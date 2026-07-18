@@ -1,0 +1,773 @@
+{
+  "schema": "paper-sandbox-overhead.v1",
+  "runId": "paper4-ablation-2026-07-18T18-36-48-021Z",
+  "generatedAt": "2026-07-18T18:36:48.022Z",
+  "runtime": {
+    "node": "v24.15.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "costModel": {
+    "schema": "holoscript.plugin-sandbox.cost-model.v1",
+    "asymptoticTime": "O(C_vm(n) + a + b)",
+    "variables": {
+      "n": "sourceCodeUnits",
+      "a": "guardedApiCalls",
+      "b": "executionBudgetMs"
+    }
+  },
+  "benchmark": {
+    "warmupIterations": 50,
+    "measuredIterations": 500
+  },
+  "suite": {
+    "scenarioCount": 22,
+    "layers": {
+      "capability": 6,
+      "resource": 6,
+      "syscall": 10
+    }
+  },
+  "variants": [
+    {
+      "id": "full-sandbox",
+      "label": "Full Sandbox (all layers)",
+      "flags": {},
+      "blocked": 22,
+      "total": 22,
+      "blockedByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "totalsByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "throughputOpsPerSecond": 3844.675124952447,
+      "costReceipt": {
+        "schema": "holoscript.plugin-sandbox.cost-receipt.v1",
+        "costModel": "holoscript.plugin-sandbox.cost-model.v1",
+        "sourceCodeUnits": 25,
+        "guardedApiCalls": 1,
+        "executionBudgetMs": 5000,
+        "contextCreated": false,
+        "scriptCompiled": false,
+        "enabledLayers": {
+          "capability": true,
+          "resource": true,
+          "syscall": true
+        }
+      },
+      "detections": [
+        {
+          "id": "C1",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C2",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C3",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C4",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C5",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C6",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "R1",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R2",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R3",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R4",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R5",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R6",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "S1",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S2",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S3",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S4",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S5",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S6",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S7",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S8",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S9",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S10",
+          "layer": "syscall",
+          "detected": true
+        }
+      ],
+      "escapeBlockedFraction": 1,
+      "overheadVsBaseline": 40.64062500008937
+    },
+    {
+      "id": "minus-capability",
+      "label": "-Capability Check",
+      "flags": {
+        "disableCapabilityChecks": true
+      },
+      "blocked": 16,
+      "total": 22,
+      "blockedByLayer": {
+        "capability": 0,
+        "resource": 6,
+        "syscall": 10
+      },
+      "totalsByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "throughputOpsPerSecond": 4359.197907581796,
+      "costReceipt": {
+        "schema": "holoscript.plugin-sandbox.cost-receipt.v1",
+        "costModel": "holoscript.plugin-sandbox.cost-model.v1",
+        "sourceCodeUnits": 25,
+        "guardedApiCalls": 1,
+        "executionBudgetMs": 5000,
+        "contextCreated": false,
+        "scriptCompiled": false,
+        "enabledLayers": {
+          "capability": false,
+          "resource": true,
+          "syscall": true
+        }
+      },
+      "detections": [
+        {
+          "id": "C1",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C2",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C3",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C4",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C5",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C6",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "R1",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R2",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R3",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R4",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R5",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R6",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "S1",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S2",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S3",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S4",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S5",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S6",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S7",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S8",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S9",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S10",
+          "layer": "syscall",
+          "detected": true
+        }
+      ],
+      "escapeBlockedFraction": 0.7272727272727273,
+      "overheadVsBaseline": 35.843750000109914
+    },
+    {
+      "id": "minus-resource",
+      "label": "-Resource Limit",
+      "flags": {
+        "disableResourceLimits": true
+      },
+      "blocked": 16,
+      "total": 22,
+      "blockedByLayer": {
+        "capability": 6,
+        "resource": 0,
+        "syscall": 10
+      },
+      "totalsByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "throughputOpsPerSecond": 163934.4262339958,
+      "costReceipt": {
+        "schema": "holoscript.plugin-sandbox.cost-receipt.v1",
+        "costModel": "holoscript.plugin-sandbox.cost-model.v1",
+        "sourceCodeUnits": 25,
+        "guardedApiCalls": 0,
+        "executionBudgetMs": null,
+        "contextCreated": false,
+        "scriptCompiled": false,
+        "enabledLayers": {
+          "capability": true,
+          "resource": false,
+          "syscall": true
+        }
+      },
+      "detections": [
+        {
+          "id": "C1",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C2",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C3",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C4",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C5",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C6",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "R1",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R2",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R3",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R4",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R5",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R6",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "S1",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S2",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S3",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S4",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S5",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S6",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S7",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S8",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S9",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S10",
+          "layer": "syscall",
+          "detected": true
+        }
+      ],
+      "escapeBlockedFraction": 0.7272727272727273,
+      "overheadVsBaseline": 0.9531249999761301
+    },
+    {
+      "id": "minus-syscall",
+      "label": "-Syscall Filter",
+      "flags": {
+        "disableSyscallFilters": true
+      },
+      "blocked": 12,
+      "total": 22,
+      "blockedByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 0
+      },
+      "totalsByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "throughputOpsPerSecond": 3913.894324849997,
+      "costReceipt": {
+        "schema": "holoscript.plugin-sandbox.cost-receipt.v1",
+        "costModel": "holoscript.plugin-sandbox.cost-model.v1",
+        "sourceCodeUnits": 25,
+        "guardedApiCalls": 1,
+        "executionBudgetMs": 5000,
+        "contextCreated": false,
+        "scriptCompiled": false,
+        "enabledLayers": {
+          "capability": true,
+          "resource": true,
+          "syscall": false
+        }
+      },
+      "detections": [
+        {
+          "id": "C1",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C2",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C3",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C4",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C5",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C6",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "R1",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R2",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R3",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R4",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R5",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R6",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "S1",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S2",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S3",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S4",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S5",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S6",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S7",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S8",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S9",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S10",
+          "layer": "syscall",
+          "detected": false
+        }
+      ],
+      "escapeBlockedFraction": 0.5454545454545454,
+      "overheadVsBaseline": 39.92187500012601
+    },
+    {
+      "id": "unsandboxed",
+      "label": "Unsandboxed (no enforcement)",
+      "flags": {
+        "disableCapabilityChecks": true,
+        "disableResourceLimits": true,
+        "disableSyscallFilters": true
+      },
+      "blocked": 0,
+      "total": 22,
+      "blockedByLayer": {
+        "capability": 0,
+        "resource": 0,
+        "syscall": 0
+      },
+      "totalsByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "throughputOpsPerSecond": 156250.00000036415,
+      "costReceipt": {
+        "schema": "holoscript.plugin-sandbox.cost-receipt.v1",
+        "costModel": "holoscript.plugin-sandbox.cost-model.v1",
+        "sourceCodeUnits": 25,
+        "guardedApiCalls": 0,
+        "executionBudgetMs": null,
+        "contextCreated": false,
+        "scriptCompiled": false,
+        "enabledLayers": {
+          "capability": false,
+          "resource": false,
+          "syscall": false
+        }
+      },
+      "detections": [
+        {
+          "id": "C1",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C2",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C3",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C4",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C5",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C6",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "R1",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R2",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R3",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R4",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R5",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R6",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "S1",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S2",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S3",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S4",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S5",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S6",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S7",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S8",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S9",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S10",
+          "layer": "syscall",
+          "detected": false
+        }
+      ],
+      "escapeBlockedFraction": 0,
+      "overheadVsBaseline": 1
+    }
+  ]
+}

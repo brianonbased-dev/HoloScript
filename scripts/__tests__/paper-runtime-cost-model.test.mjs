@@ -43,6 +43,50 @@ function writeJson(path, value) {
 function writeFixture(root) {
   const bench = join(root, '.bench-logs');
   mkdirSync(bench, { recursive: true });
+  writeJson(join(root, 'docs/public/evidence/paper-4-sandbox-runtime-cost.json'), {
+    schema: 'paper-sandbox-overhead.v1',
+    benchmark: { warmupIterations: 10, measuredIterations: 300 },
+    suite: { scenarioCount: 22 },
+    costModel: {
+      schema: 'holoscript.plugin-sandbox.cost-model.v1',
+      asymptoticTime: 'O(C_vm(n) + a + b)',
+      variables: {
+        n: 'sourceCodeUnits',
+        a: 'guardedApiCalls',
+        b: 'executionBudgetMs',
+      },
+    },
+    variants: [
+      {
+        id: 'full-sandbox',
+        blocked: 22,
+        total: 22,
+        throughputOpsPerSecond: 500,
+        costReceipt: {
+          costModel: 'holoscript.plugin-sandbox.cost-model.v1',
+          sourceCodeUnits: 25,
+          guardedApiCalls: 1,
+          executionBudgetMs: 5000,
+          contextCreated: false,
+          scriptCompiled: false,
+        },
+      },
+      {
+        id: 'unsandboxed',
+        blocked: 0,
+        total: 22,
+        throughputOpsPerSecond: 1000,
+        costReceipt: {
+          costModel: 'holoscript.plugin-sandbox.cost-model.v1',
+          sourceCodeUnits: 5,
+          guardedApiCalls: 0,
+          executionBudgetMs: null,
+          contextCreated: false,
+          scriptCompiled: false,
+        },
+      },
+    ],
+  });
   writeJson(join(bench, 'paper-6-ablation-publication.json'), {
     frames: 60,
     iterations: 1500,
@@ -81,7 +125,35 @@ const report = buildRuntimeCostModelReport({
 });
 
 assertEq(report.schemaVersion, 'holoscript.paper-runtime-cost-model.v1', 'schema version');
-assertEq(report.summary.measuredRows, 3, 'all fixture rows measured');
+assertEq(report.summary.measuredRows, 4, 'all fixture rows measured');
+
+const paper4 = report.rows.find((row) => row.paperId === '4');
+assertOk(paper4?.paperStatusDecoderCostCandidate, 'paper 4 is a decoderCost flip candidate');
+assertEq(paper4?.asymptoticClass, 'O(C_vm(n) + a + b)', 'paper 4 asymptotic class');
+assertEq(paper4?.baseline.value, 1, 'paper 4 no-enforcement latency');
+assertEq(paper4?.measured.value, 2, 'paper 4 full-sandbox latency');
+assertEq(paper4?.overhead.ratio, 2, 'paper 4 latency overhead ratio');
+assertEq(paper4?.validation.fullSandboxBlocked, 22, 'paper 4 full sandbox blocks suite');
+assertEq(paper4?.validation.noEnforcementBlocked, 0, 'paper 4 baseline exposes suite');
+
+const priorPaper6 = report.rows.find((row) => row.paperId === '6');
+priorPaper6.baseline.value = 999;
+const scopedReport = buildRuntimeCostModelReport({
+  root: tmp,
+  generatedAt: '2026-05-14T13:00:00.000Z',
+  paperIds: ['4'],
+  previousReport: report,
+});
+assertEq(
+  scopedReport.rows.find((row) => row.paperId === '6')?.baseline.value,
+  999,
+  'scoped update preserves unselected paper rows'
+);
+assertEq(
+  scopedReport.rows.find((row) => row.paperId === '4')?.baseline.value,
+  1,
+  'scoped update regenerates selected paper row'
+);
 
 const paper11 = report.rows.find((row) => row.paperId === '11');
 assertOk(paper11?.paperStatusDecoderCostCandidate, 'paper 11 is a decoderCost flip candidate');

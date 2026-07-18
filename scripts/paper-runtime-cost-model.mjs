@@ -11,7 +11,8 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { dirname, resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -21,7 +22,13 @@ const SCHEMA = 'holoscript.paper-runtime-cost-model.v1';
 export function buildRuntimeCostModelReport(options = {}) {
   const root = resolve(options.root ?? REPO_ROOT);
   const generatedAt = options.generatedAt ?? new Date().toISOString();
-  const rows = [buildPaper6Row(root), buildPaper11Row(root), buildPaper12Row(root)].filter(Boolean);
+  const generatedRows = [
+    buildPaper4Row(root),
+    buildPaper6Row(root),
+    buildPaper11Row(root),
+    buildPaper12Row(root),
+  ].filter(Boolean);
+  const rows = mergeScopedRows(generatedRows, options.previousReport, options.paperIds);
 
   const reportBody = {
     schemaVersion: SCHEMA,
@@ -42,6 +49,118 @@ export function buildRuntimeCostModelReport(options = {}) {
     reportHash: `sha256:${sha256Canonical(reportBody)}`,
     ...reportBody,
   };
+}
+
+function buildPaper4Row(root) {
+  const artifact = 'docs/public/evidence/paper-4-sandbox-runtime-cost.json';
+  const json = readJson(root, artifact);
+  const full = json?.variants?.find((row) => row.id === 'full-sandbox');
+  const baseline = json?.variants?.find((row) => row.id === 'unsandboxed');
+  const fullThroughput = Number(full?.throughputOpsPerSecond);
+  const baselineThroughput = Number(baseline?.throughputOpsPerSecond);
+  const costModel = full?.costReceipt?.costModel;
+  const asymptoticClass = json?.costModel?.asymptoticTime;
+  if (
+    !json ||
+    !full ||
+    !baseline ||
+    !Number.isFinite(fullThroughput) ||
+    fullThroughput <= 0 ||
+    !Number.isFinite(baselineThroughput) ||
+    baselineThroughput <= 0 ||
+    costModel !== 'holoscript.plugin-sandbox.cost-model.v1' ||
+    asymptoticClass !== 'O(C_vm(n) + a + b)' ||
+    !isPaper4ReceiptValid(json, full, baseline)
+  ) {
+    return missingRow('4', 'Sandbox Contract', 'plugin sandbox enforcement', artifact);
+  }
+
+  return measuredRow({
+    root,
+    paperId: '4',
+    paperTitle: 'Sandbox Contract',
+    surface: 'plugin sandbox enforcement',
+    asymptoticClass,
+    asymptoticRationale:
+      'C_vm(n) preserves Node/V8 compilation as an opaque function of n source-code units; enforcement adds constant-time checks for each guarded API-call event (a events total); execution is capped by b when resource limits are enabled.',
+    inputScale:
+      `${json.suite?.scenarioCount ?? 'unknown'} attack scenarios; ` +
+      `${json.benchmark?.measuredIterations ?? 'unknown'} measured warm-cache iterations per variant; ` +
+      `n=${full.costReceipt.sourceCodeUnits}, a=${full.costReceipt.guardedApiCalls}, ` +
+      `b=${full.costReceipt.executionBudgetMs} ms`,
+    baseline: metric('no-enforcement median', round6(1000 / baselineThroughput), 'ms/op'),
+    measured: metric('full-sandbox median', round6(1000 / fullThroughput), 'ms/op'),
+    artifact,
+    harness: 'packages/core/src/plugins/__tests__/paper-sandbox-overhead.test.ts',
+    interpretation:
+      'Paper 4 runtime cost is derived from a matched full-sandbox versus no-enforcement warm-cache benchmark. The reported value excludes context creation and compilation, and the same artifact binds it to executable attack-suite behavior.',
+    paperStatusDecoderCostCandidate: true,
+    validation: {
+      fullSandboxBlocked: Number(full.blocked),
+      fullSandboxTotal: Number(full.total),
+      noEnforcementBlocked: Number(baseline.blocked),
+      noEnforcementTotal: Number(baseline.total),
+      costModel,
+      costVariables: json.costModel.variables,
+      measuredReceipt: {
+        sourceCodeUnits: Number(full.costReceipt.sourceCodeUnits),
+        guardedApiCalls: Number(full.costReceipt.guardedApiCalls),
+        executionBudgetMs: Number(full.costReceipt.executionBudgetMs),
+        contextCreated: Boolean(full.costReceipt.contextCreated),
+        scriptCompiled: Boolean(full.costReceipt.scriptCompiled),
+      },
+    },
+  });
+}
+
+function isPaper4ReceiptValid(json, full, baseline) {
+  const variables = json?.costModel?.variables;
+  const receipt = full?.costReceipt;
+  return (
+    json?.schema === 'paper-sandbox-overhead.v1' &&
+    variables?.n === 'sourceCodeUnits' &&
+    variables?.a === 'guardedApiCalls' &&
+    variables?.b === 'executionBudgetMs' &&
+    Number(full?.total) > 0 &&
+    Number(full?.blocked) === Number(full?.total) &&
+    Number(baseline?.total) === Number(full?.total) &&
+    Number(baseline?.blocked) === 0 &&
+    Number.isFinite(Number(receipt?.sourceCodeUnits)) &&
+    Number(receipt?.sourceCodeUnits) > 0 &&
+    Number.isFinite(Number(receipt?.guardedApiCalls)) &&
+    Number(receipt?.guardedApiCalls) > 0 &&
+    Number.isFinite(Number(receipt?.executionBudgetMs)) &&
+    Number(receipt?.executionBudgetMs) > 0 &&
+    receipt?.contextCreated === false &&
+    receipt?.scriptCompiled === false
+  );
+}
+
+function mergeScopedRows(generatedRows, previousReport, paperIds) {
+  if (!paperIds?.length) return generatedRows;
+
+  const selected = new Set(paperIds.map(String));
+  const generatedById = new Map(generatedRows.map((row) => [row.paperId, row]));
+  const unknownIds = [...selected].filter((paperId) => !generatedById.has(paperId));
+  if (unknownIds.length) {
+    throw new Error(`Unknown paper id(s) for scoped runtime-cost update: ${unknownIds.join(', ')}`);
+  }
+  if (!Array.isArray(previousReport?.rows)) {
+    throw new Error(
+      'Scoped runtime-cost updates require a previous report to preserve other rows.'
+    );
+  }
+
+  const seen = new Set();
+  const merged = previousReport.rows.map((row) => {
+    if (!selected.has(String(row.paperId))) return row;
+    seen.add(String(row.paperId));
+    return generatedById.get(String(row.paperId));
+  });
+  for (const paperId of selected) {
+    if (!seen.has(paperId)) merged.push(generatedById.get(paperId));
+  }
+  return merged.sort((left, right) => Number(left.paperId) - Number(right.paperId));
 }
 
 export function writeRuntimeCostModelReport(report, outPath) {
@@ -201,6 +320,7 @@ function measuredRow(input) {
     harness: input.harness,
     interpretation: input.interpretation,
     paperStatusDecoderCostCandidate: Boolean(input.paperStatusDecoderCostCandidate),
+    ...(input.validation ? { validation: input.validation } : {}),
   };
 }
 
@@ -249,6 +369,10 @@ function metric(label, value, unit) {
   return { label, value: Number(value), unit };
 }
 
+function round6(value) {
+  return Number(Number(value).toFixed(6));
+}
+
 function formatMetric(metricValue) {
   if (!Number.isFinite(metricValue.value)) return 'missing';
   return `${metricValue.value} ${metricValue.unit}`;
@@ -294,7 +418,7 @@ function sortForJson(value) {
 }
 
 function parseArgs(argv) {
-  const args = {};
+  const args = { paperIds: [] };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--') continue;
@@ -304,21 +428,52 @@ function parseArgs(argv) {
     else if (arg === '--generated-at') args.generatedAt = argv[++i];
     else if (arg.startsWith('--generated-at='))
       args.generatedAt = arg.slice('--generated-at='.length);
+    else if (arg === '--paper') args.paperIds.push(argv[++i]);
+    else if (arg.startsWith('--paper=')) args.paperIds.push(arg.slice('--paper='.length));
+    else if (arg === '--base-ref') args.baseRef = argv[++i];
+    else if (arg.startsWith('--base-ref=')) args.baseRef = arg.slice('--base-ref='.length);
     else if (arg === '--markdown') args.markdown = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }
   return args;
 }
 
+function readPreviousReport(args) {
+  if (!args.paperIds.length) return undefined;
+  if (!args.out) throw new Error('Scoped runtime-cost updates require --out.');
+  if (!args.baseRef) {
+    if (!existsSync(resolve(args.out))) {
+      throw new Error(
+        'Scoped runtime-cost updates require an existing --out report or --base-ref.'
+      );
+    }
+    return JSON.parse(readFileSync(resolve(args.out), 'utf8'));
+  }
+
+  const relativeOut = relative(REPO_ROOT, resolve(args.out)).replace(/\\/g, '/');
+  if (relativeOut.startsWith('../') || relativeOut === '..') {
+    throw new Error('--base-ref can only load reports inside the repository.');
+  }
+  const text = execFileSync('git', ['show', `${args.baseRef}:${relativeOut}`], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  });
+  return JSON.parse(text);
+}
+
 if (process.argv[1] && import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
     console.log(
-      'Usage: node scripts/paper-runtime-cost-model.mjs --out docs/public/evidence/paper-runtime-cost-model.json [--markdown]'
+      'Usage: node scripts/paper-runtime-cost-model.mjs --out docs/public/evidence/paper-runtime-cost-model.json [--paper 4 --base-ref HEAD] [--markdown]'
     );
     process.exit(0);
   }
-  const report = buildRuntimeCostModelReport({ generatedAt: args.generatedAt });
+  const report = buildRuntimeCostModelReport({
+    generatedAt: args.generatedAt,
+    paperIds: args.paperIds,
+    previousReport: readPreviousReport(args),
+  });
   if (args.out) {
     const out = writeRuntimeCostModelReport(report, args.out);
     console.error(`[paper-runtime-cost-model] wrote ${out}`);

@@ -111,7 +111,47 @@ export interface SandboxRunResult {
   error?: string;
   cpuTimeMs: number;
   apiCalls: number;
+  /** Executed cost variables for this run. Present once execution enters the VM path. */
+  cost?: PluginSandboxCostReceipt;
 }
+
+export interface PluginSandboxCostReceipt {
+  schema: 'holoscript.plugin-sandbox.cost-receipt.v1';
+  costModel: 'holoscript.plugin-sandbox.cost-model.v1';
+  /** n: source-code units presented to the VM compiler. */
+  sourceCodeUnits: number;
+  /** a: guarded plugin API calls observed during this execution. */
+  guardedApiCalls: number;
+  /** b: configured execution timeout in milliseconds, or null when disabled. */
+  executionBudgetMs: number | null;
+  /** True when this execution paid VM-context construction cost. */
+  contextCreated: boolean;
+  /** True when this execution paid source compilation cost. */
+  scriptCompiled: boolean;
+  enabledLayers: {
+    capability: boolean;
+    resource: boolean;
+    syscall: boolean;
+  };
+}
+
+/**
+ * Executable cost contract for the server-side plugin sandbox.
+ *
+ * n is sourceCodeUnits, a is guardedApiCalls, and b is executionBudgetMs.
+ * C_vm(n) deliberately leaves Node/V8 compilation cost opaque; HoloScript does
+ * not claim a linear bound for an external VM. Capability/resource enforcement
+ * adds O(a), while execution is capped by b whenever resource limits are on.
+ */
+export const PLUGIN_SANDBOX_COST_MODEL = Object.freeze({
+  schema: 'holoscript.plugin-sandbox.cost-model.v1' as const,
+  asymptoticTime: 'O(C_vm(n) + a + b)' as const,
+  variables: Object.freeze({
+    n: 'sourceCodeUnits',
+    a: 'guardedApiCalls',
+    b: 'executionBudgetMs',
+  }),
+});
 
 export type SandboxRunnerState = 'idle' | 'running' | 'destroyed';
 
@@ -398,6 +438,8 @@ export class PluginSandboxRunner {
     this.state = 'running';
     const startApiCalls = this.apiCallCount;
     const startTime = Date.now();
+    const contextCreated = !this.vmContext;
+    const scriptCompiled = !this.scriptCache.has(code);
     this.consoleLogs = [];
 
     const span = this.telemetry?.startSpan('plugin_execute', {
@@ -432,6 +474,12 @@ export class PluginSandboxRunner {
         result,
         cpuTimeMs,
         apiCalls: this.apiCallCount - startApiCalls,
+        cost: this.createCostReceipt(
+          code,
+          this.apiCallCount - startApiCalls,
+          contextCreated,
+          scriptCompiled
+        ),
       };
     } catch (err) {
       const cpuTimeMs = Date.now() - startTime;
@@ -454,8 +502,36 @@ export class PluginSandboxRunner {
           : `Sandbox error: ${errorMessage}`,
         cpuTimeMs,
         apiCalls: this.apiCallCount - startApiCalls,
+        cost: this.createCostReceipt(
+          code,
+          this.apiCallCount - startApiCalls,
+          contextCreated,
+          scriptCompiled
+        ),
       };
     }
+  }
+
+  private createCostReceipt(
+    code: string,
+    guardedApiCalls: number,
+    contextCreated: boolean,
+    scriptCompiled: boolean
+  ): PluginSandboxCostReceipt {
+    return {
+      schema: 'holoscript.plugin-sandbox.cost-receipt.v1',
+      costModel: PLUGIN_SANDBOX_COST_MODEL.schema,
+      sourceCodeUnits: code.length,
+      guardedApiCalls,
+      executionBudgetMs: this.testAblation.disableResourceLimits ? null : this.budget.maxCpuTimeMs,
+      contextCreated,
+      scriptCompiled,
+      enabledLayers: {
+        capability: !this.testAblation.disableCapabilityChecks,
+        resource: !this.testAblation.disableResourceLimits,
+        syscall: !this.testAblation.disableSyscallFilters,
+      },
+    };
   }
 
   private getOrCreateVmContext(vm: typeof import('vm')): import('vm').Context {

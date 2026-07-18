@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_CAPABILITY_BUDGET,
+  PLUGIN_SANDBOX_COST_MODEL,
   PluginSandboxRunner,
+  type PluginSandboxCostReceipt,
   type SandboxAblationFlags,
   type SandboxPermission,
 } from '../PluginSandboxRunner';
@@ -200,30 +202,40 @@ function median(values: number[]): number {
   return sorted[Math.floor(sorted.length / 2)] ?? 0;
 }
 
-async function measureOpsPerSecond(variant: AblationVariant): Promise<number> {
+async function measureOpsPerSecond(variant: AblationVariant): Promise<{
+  throughputOpsPerSecond: number;
+  costReceipt: PluginSandboxCostReceipt;
+}> {
   const { warmup, iterations } = benchmarkConfig();
+  const benchmarkCode = 'emitEvent("benchmark", 1)';
   const runner = new PluginSandboxRunner({
     pluginId: `paper4-throughput-${variant.id}`,
-    permissions: new Set(),
-    budget: DEFAULT_CAPABILITY_BUDGET,
+    permissions: new Set(['event:emit']),
+    budget: {
+      ...DEFAULT_CAPABILITY_BUDGET,
+      maxApiCallsPerMinute: warmup + iterations + 10,
+    },
     __TEST_ABLATION: variant.flags,
   });
 
   for (let i = 0; i < warmup; i++) {
-    await runner.execute('1 + 1');
+    await runner.execute(benchmarkCode);
   }
 
   const latencies: number[] = [];
+  let costReceipt: PluginSandboxCostReceipt | undefined;
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
-    const result = await runner.execute('1 + 1');
+    const result = await runner.execute(benchmarkCode);
     const elapsed = performance.now() - start;
     expect(result.success).toBe(true);
+    costReceipt = result.cost;
     latencies.push(elapsed);
   }
 
   const medianMs = Math.max(0.001, median(latencies));
-  return 1000 / medianMs;
+  if (!costReceipt) throw new Error(`Missing sandbox cost receipt for ${variant.id}`);
+  return { throughputOpsPerSecond: 1000 / medianMs, costReceipt };
 }
 
 function benchmarkConfig(): { warmup: number; iterations: number } {
@@ -252,7 +264,7 @@ describe('Paper 4 Benchmark: Sandbox Ablation Matrix', () => {
           detected: await runScenario(scenario, variant),
         });
       }
-      const throughputOpsPerSecond = await measureOpsPerSecond(variant);
+      const { throughputOpsPerSecond, costReceipt } = await measureOpsPerSecond(variant);
       rows.push({
         id: variant.id,
         label: variant.label,
@@ -270,6 +282,7 @@ describe('Paper 4 Benchmark: Sandbox Ablation Matrix', () => {
           syscall: ATTACK_SUITE.filter((d) => d.layer === 'syscall').length,
         },
         throughputOpsPerSecond,
+        costReceipt,
         detections,
       });
     }
@@ -282,6 +295,12 @@ describe('Paper 4 Benchmark: Sandbox Ablation Matrix', () => {
       schema: 'paper-sandbox-overhead.v1',
       runId: `paper4-ablation-${new Date().toISOString().replace(/[:.]/g, '-')}`,
       generatedAt: new Date().toISOString(),
+      runtime: {
+        node: process.version,
+        platform: process.platform,
+        arch: process.arch,
+      },
+      costModel: PLUGIN_SANDBOX_COST_MODEL,
       benchmark: {
         warmupIterations: config.warmup,
         measuredIterations: config.iterations,
@@ -301,6 +320,13 @@ describe('Paper 4 Benchmark: Sandbox Ablation Matrix', () => {
     if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
     const outFile = resolve(outDir, 'paper-sandbox-overhead.json');
     writeFileSync(outFile, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+    const canonicalOut = process.env.PAPER4_ABLATION_CANONICAL_OUT;
+    if (canonicalOut) {
+      const canonicalFile = resolve(repoRoot(), canonicalOut);
+      mkdirSync(dirname(canonicalFile), { recursive: true });
+      writeFileSync(canonicalFile, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+      console.log(`[paper4-ablation] canonical artifact: ${canonicalFile}`);
+    }
 
     expect(payload.variants).toHaveLength(5);
     expect(payload.variants[0].blocked).toBe(22);

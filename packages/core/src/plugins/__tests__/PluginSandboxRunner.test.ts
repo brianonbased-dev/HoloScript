@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   PluginSandboxRunner,
   DEFAULT_CAPABILITY_BUDGET,
+  PLUGIN_SANDBOX_COST_MODEL,
   type PluginSandboxRunnerConfig,
   type SandboxPermission,
 } from '../PluginSandboxRunner';
@@ -157,6 +158,35 @@ describe('PluginSandboxRunner', () => {
       expect(result.success).toBe(true);
       expect(result.result).toBe(5);
       expect(result.cpuTimeMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('returns executable cost variables and cache-state receipts', async () => {
+      const first = await runner.execute('2 + 3');
+      const second = await runner.execute('2 + 3');
+
+      expect(PLUGIN_SANDBOX_COST_MODEL).toMatchObject({
+        schema: 'holoscript.plugin-sandbox.cost-model.v1',
+        asymptoticTime: 'O(C_vm(n) + a + b)',
+      });
+      expect(first.cost).toMatchObject({
+        schema: 'holoscript.plugin-sandbox.cost-receipt.v1',
+        costModel: 'holoscript.plugin-sandbox.cost-model.v1',
+        sourceCodeUnits: 5,
+        guardedApiCalls: 0,
+        executionBudgetMs: DEFAULT_CAPABILITY_BUDGET.maxCpuTimeMs,
+        contextCreated: true,
+        scriptCompiled: true,
+        enabledLayers: {
+          capability: true,
+          resource: true,
+          syscall: true,
+        },
+      });
+      expect(second.cost).toMatchObject({
+        executionBudgetMs: DEFAULT_CAPABILITY_BUDGET.maxCpuTimeMs,
+        contextCreated: false,
+        scriptCompiled: false,
+      });
     });
 
     it('blocks dangerous globals', async () => {
