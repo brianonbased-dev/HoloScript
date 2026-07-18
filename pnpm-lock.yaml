@@ -1878,6 +1878,9 @@ importers:
       '@holoscript/llm-provider':
         specifier: workspace:*
         version: link:../llm-provider
+      '@holoscript/meaning':
+        specifier: workspace:^
+        version: link:../meaning
       '@holoscript/memory':
         specifier: workspace:^
         version: link:../memory
@@ -1890,6 +1893,9 @@ importers:
       '@holoscript/security-sandbox':
         specifier: workspace:^
         version: link:../security-sandbox
+      '@holoscript/uaal':
+        specifier: workspace:*
+        version: link:../uaal
       '@holoscript/wasm':
         specifier: workspace:^
         version: link:../compiler-wasm

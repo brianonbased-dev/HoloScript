@@ -4,12 +4,14 @@ dockerfilePath = "infrastructure/Dockerfile.mcp-server"
 # mcp-server bundles workspace deps at build time (e.g. `@holoscript/absorb-service/mcp`
 # in handlers.ts) — those bundled deps MUST be watched, or a fix in them silently never
 # redeploys mcp.holoscript.net. absorb-service provides the holo_* codebase/graph tools.
+# HoloMeaning is uaal's runtime verifier dependency; both must trigger a rebuild
+# so the deployed grader cannot retain a stale resolution contract.
 # Broader set (engine/mesh/holomap/llm-provider/secrets-broker/config) is also
 # bundled — left unwatched for now to avoid rebuild storms; revisit as a deploy-cadence call.
 # framework/** added 2026-07-13 (trust-audit): board-task logic (claim TTL reaper,
 # fabricated-evidence gate, claim cap) lives in packages/framework/src/board — a
 # framework-only board fix must redeploy the board server, or the gate silently drifts.
-watchPatterns = ["packages/mcp-server/**", "packages/core/**", "packages/compiler-wasm/**", "packages/absorb-service/**", "packages/framework/**", "infrastructure/Dockerfile.mcp-server", "scripts/docker/**"]
+watchPatterns = ["packages/mcp-server/**", "packages/core/**", "packages/compiler-wasm/**", "packages/meaning/**", "packages/uaal/**", "packages/absorb-service/**", "packages/framework/**", "infrastructure/Dockerfile.mcp-server", "scripts/docker/**"]
 
 [deploy]
 healthcheckPath = "/health"
