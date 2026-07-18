@@ -24,6 +24,7 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,6 +32,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const REPO_ROOT = resolve(__dirname, '..');
 const RUNNER_PATH = 'scripts/bench-paper-rigorous.mjs';
+const require = createRequire(import.meta.url);
+const VITEST_CLI = resolve(dirname(require.resolve('vitest/package.json')), 'vitest.mjs');
 
 function sourceSha256(relativePath) {
   return createHash('sha256')
@@ -42,7 +45,6 @@ function gitValue(args) {
   const result = spawnSync('git', args, {
     cwd: REPO_ROOT,
     encoding: 'utf8',
-    shell: process.platform === 'win32',
   });
   return result.status === 0 ? result.stdout.trim() : null;
 }
@@ -50,11 +52,9 @@ function gitValue(args) {
 function relevantPathsClean(paths) {
   const unstaged = spawnSync('git', ['diff', '--quiet', '--', ...paths], {
     cwd: REPO_ROOT,
-    shell: process.platform === 'win32',
   });
   const staged = spawnSync('git', ['diff', '--cached', '--quiet', '--', ...paths], {
     cwd: REPO_ROOT,
-    shell: process.platform === 'win32',
   });
   return unstaged.status === 0 && staged.status === 0;
 }
@@ -62,6 +62,11 @@ function relevantPathsClean(paths) {
 function harnessSourcePath(harness) {
   const packageDir = harness.package.replace(/^@holoscript\//u, '');
   return `packages/${packageDir}/${harness.file}`;
+}
+
+function harnessPackageRoot(harness) {
+  const packageDir = harness.package.replace(/^@holoscript\//u, '');
+  return resolve(REPO_ROOT, 'packages', packageDir);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -228,10 +233,7 @@ for (const h of harnesses) {
   const startMs = Date.now();
 
   const vitestArgs = [
-    '--filter',
-    h.package,
-    'exec',
-    'vitest',
+    VITEST_CLI,
     'run',
     h.file,
     '--reporter=verbose',
@@ -242,12 +244,11 @@ for (const h of harnesses) {
     vitestArgs.push('-t', h.nameFilter);
   }
 
-  const proc = spawnSync('pnpm', vitestArgs, {
-    cwd: REPO_ROOT,
+  const proc = spawnSync(process.execPath, vitestArgs, {
+    cwd: harnessPackageRoot(h),
     env,
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
-    shell: process.platform === 'win32',
   });
 
   const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
