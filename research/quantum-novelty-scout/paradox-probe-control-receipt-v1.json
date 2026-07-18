@@ -1,0 +1,210 @@
+{
+  "schema": "holoscript.paradox-control-receipt.v1",
+  "corpus": "research/quantum-novelty-scout/paradox-probe-controls-v1.json",
+  "corpus_sha256": "9afb08b21efdbb10e6a5f0bc6fbf605ca0eae0ae9ffa84bec1baac2ae8dd3716",
+  "record_count": 12,
+  "passed_count": 12,
+  "failed_count": 0,
+  "all_labels_evaluation_only": true,
+  "claim_boundary": "Passing proves only that twelve known false-paradox controls replay their preregistered observations. It does not validate productive paradox discovery, novelty, or quantum advantage.",
+  "environment": {
+    "python": "3.14.0"
+  },
+  "results": [
+    {
+      "id": "FP-001",
+      "probe": "binary_float_sum",
+      "observed": {
+        "decimal_repr": "0.30000000000000004",
+        "equals_decimal_0_3": false
+      },
+      "expected": {
+        "decimal_repr": "0.30000000000000004",
+        "equals_decimal_0_3": false
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "Binary floating-point values are not exact decimal rationals."
+    },
+    {
+      "id": "FP-002",
+      "probe": "nan_self_inequality",
+      "observed": {
+        "is_nan": true,
+        "equals_self": false
+      },
+      "expected": {
+        "is_nan": true,
+        "equals_self": false
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "IEEE NaN comparison semantics deliberately make equality false."
+    },
+    {
+      "id": "FP-003",
+      "probe": "signed_zero",
+      "observed": {
+        "numeric_equal": true,
+        "positive_sign": 1,
+        "negative_sign": -1
+      },
+      "expected": {
+        "numeric_equal": true,
+        "positive_sign": 1,
+        "negative_sign": -1
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "Numeric equality and representational sign are distinct predicates."
+    },
+    {
+      "id": "FP-004",
+      "probe": "nonassociative_float_addition",
+      "observed": {
+        "left": 1.0,
+        "right": 0.0,
+        "different": true
+      },
+      "expected": {
+        "left": 1.0,
+        "right": 0.0,
+        "different": true
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "Rounded machine addition is not real-number addition."
+    },
+    {
+      "id": "FP-005",
+      "probe": "unicode_normalization",
+      "observed": {
+        "raw_equal": false,
+        "nfc_equal": true
+      },
+      "expected": {
+        "raw_equal": false,
+        "nfc_equal": true
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "Code-point sequences must be normalized before grapheme-level comparison."
+    },
+    {
+      "id": "FP-006",
+      "probe": "nonempty_string_truthiness",
+      "observed": {
+        "input": "False",
+        "bool_value": true
+      },
+      "expected": {
+        "input": "False",
+        "bool_value": true
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "String truthiness tests emptiness, not semantic parsing."
+    },
+    {
+      "id": "FP-007",
+      "probe": "negative_floor_division",
+      "observed": {
+        "value": -2,
+        "floor_identity": true
+      },
+      "expected": {
+        "value": -2,
+        "floor_identity": true
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "Python // is floor division and preserves the division identity with modulo."
+    },
+    {
+      "id": "FP-008",
+      "probe": "negative_modulo",
+      "observed": {
+        "value": 1,
+        "divisor_sign_rule": true
+      },
+      "expected": {
+        "value": 1,
+        "divisor_sign_rule": true
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "Python remainder follows the divisor sign under floor division."
+    },
+    {
+      "id": "FP-009",
+      "probe": "json_tuple_roundtrip",
+      "observed": {
+        "value": [
+          1,
+          2
+        ],
+        "type": "list"
+      },
+      "expected": {
+        "value": [
+          1,
+          2
+        ],
+        "type": "list"
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "JSON arrays do not encode the Python tuple/list distinction."
+    },
+    {
+      "id": "FP-010",
+      "probe": "mutable_aliasing",
+      "observed": {
+        "same_object": true,
+        "right_value": [
+          1
+        ]
+      },
+      "expected": {
+        "same_object": true,
+        "right_value": [
+          1
+        ]
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "Both names reference the same mutable object."
+    },
+    {
+      "id": "FP-011",
+      "probe": "decimal_exact_sum",
+      "observed": {
+        "decimal_repr": "0.3",
+        "equals_decimal_0_3": true
+      },
+      "expected": {
+        "decimal_repr": "0.3",
+        "equals_decimal_0_3": true
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "Decimal and binary floating-point use different representations and contracts."
+    },
+    {
+      "id": "FP-012",
+      "probe": "chained_comparison",
+      "observed": {
+        "value": true,
+        "expanded_equal": true
+      },
+      "expected": {
+        "value": true,
+        "expanded_equal": true
+      },
+      "passed": true,
+      "adjudication": "DISSOLVED",
+      "normalization": "The language defines a comparison chain as adjacent comparisons joined by logical and."
+    }
+  ],
+  "payload_hash": "820fa4005882cacdad7bd73ac88b3c9b2061fbded83cf49df7a5b72acfdd2850"
+}

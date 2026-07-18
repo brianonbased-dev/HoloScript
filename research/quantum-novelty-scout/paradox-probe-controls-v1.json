@@ -1,0 +1,116 @@
+{
+  "schema": "holoscript.paradox-control-corpus.v1",
+  "description": "Twelve executable negative controls for the false-paradox normalization gate. Labels and observations are evaluation-only and are not QUBO inputs.",
+  "optimizer_access": "hash_only",
+  "labels_evaluation_only": true,
+  "records": [
+    {
+      "id": "FP-001",
+      "title": "Binary float sum differs from decimal notation",
+      "apparent_tension": "0.1 + 0.2 appears to contradict 0.3.",
+      "probe": "binary_float_sum",
+      "expected_observation": {"decimal_repr": "0.30000000000000004", "equals_decimal_0_3": false},
+      "normalization": "Binary floating-point values are not exact decimal rationals.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-002",
+      "title": "NaN is unequal to itself",
+      "apparent_tension": "Reflexive equality appears to fail.",
+      "probe": "nan_self_inequality",
+      "expected_observation": {"is_nan": true, "equals_self": false},
+      "normalization": "IEEE NaN comparison semantics deliberately make equality false.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-003",
+      "title": "Positive and negative zero compare equal",
+      "apparent_tension": "Equal numbers retain different signs.",
+      "probe": "signed_zero",
+      "expected_observation": {"numeric_equal": true, "positive_sign": 1, "negative_sign": -1},
+      "normalization": "Numeric equality and representational sign are distinct predicates.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-004",
+      "title": "Floating-point addition is non-associative",
+      "apparent_tension": "Reparenthesizing addition changes the value.",
+      "probe": "nonassociative_float_addition",
+      "expected_observation": {"left": 1.0, "right": 0.0, "different": true},
+      "normalization": "Rounded machine addition is not real-number addition.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-005",
+      "title": "Visually identical Unicode strings differ",
+      "apparent_tension": "The same displayed character compares unequal.",
+      "probe": "unicode_normalization",
+      "expected_observation": {"raw_equal": false, "nfc_equal": true},
+      "normalization": "Code-point sequences must be normalized before grapheme-level comparison.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-006",
+      "title": "The string False is truthy",
+      "apparent_tension": "A value spelling false converts to true.",
+      "probe": "nonempty_string_truthiness",
+      "expected_observation": {"input": "False", "bool_value": true},
+      "normalization": "String truthiness tests emptiness, not semantic parsing.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-007",
+      "title": "Negative integer division rounds downward",
+      "apparent_tension": "-3 divided by 2 yields -2 instead of truncating to -1.",
+      "probe": "negative_floor_division",
+      "expected_observation": {"value": -2, "floor_identity": true},
+      "normalization": "Python // is floor division and preserves the division identity with modulo.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-008",
+      "title": "Negative dividend has positive modulo",
+      "apparent_tension": "-3 modulo 2 yields 1.",
+      "probe": "negative_modulo",
+      "expected_observation": {"value": 1, "divisor_sign_rule": true},
+      "normalization": "Python remainder follows the divisor sign under floor division.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-009",
+      "title": "JSON tuple returns as a list",
+      "apparent_tension": "Serialization does not preserve a container type.",
+      "probe": "json_tuple_roundtrip",
+      "expected_observation": {"value": [1, 2], "type": "list"},
+      "normalization": "JSON arrays do not encode the Python tuple/list distinction.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-010",
+      "title": "A second variable changes without assignment",
+      "apparent_tension": "Mutating one list appears to mutate another variable.",
+      "probe": "mutable_aliasing",
+      "expected_observation": {"same_object": true, "right_value": [1]},
+      "normalization": "Both names reference the same mutable object.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-011",
+      "title": "Decimal arithmetic restores the expected sum",
+      "apparent_tension": "One numeric type makes 0.1 + 0.2 exact while float does not.",
+      "probe": "decimal_exact_sum",
+      "expected_observation": {"decimal_repr": "0.3", "equals_decimal_0_3": true},
+      "normalization": "Decimal and binary floating-point use different representations and contracts.",
+      "adjudication": "DISSOLVED"
+    },
+    {
+      "id": "FP-012",
+      "title": "A chained comparison is not an arithmetic chain",
+      "apparent_tension": "Three operands appear to form one comparison operation.",
+      "probe": "chained_comparison",
+      "expected_observation": {"value": true, "expanded_equal": true},
+      "normalization": "The language defines a comparison chain as adjacent comparisons joined by logical and.",
+      "adjudication": "DISSOLVED"
+    }
+  ]
+}

@@ -16,6 +16,7 @@ import json
 import pathlib
 import platform
 import random
+import re
 import subprocess
 import time
 from datetime import datetime, timezone
@@ -38,6 +39,21 @@ DEFAULT_RECEIPT = (
 )
 TERMINAL_KILL_STATUSES = {"survives_tightened_claim", "narrowed", "killed"}
 FULL_RECEIPT_HASH_SCOPE = "full_receipt_excluding_payload_hash"
+PARADOX_PROBE_FIXTURE_SCHEMA = "holoscript.quantum-paradox-probes.v1"
+PARADOX_FORBIDDEN_RANKING_TOKENS = {
+    "adjudication",
+    "novelty",
+    "outcome",
+    "paradox_score",
+    "verdict",
+}
+PARADOX_OPTIMIZER_INPUT_FIELDS = [
+    "scores",
+    "kill_test.status",
+    "tags",
+    "code_evidence",
+]
+PARADOX_ALLOWED_STAGES = {"normalized", "falsifiable", "reproduced"}
 
 
 def canonical_hash(payload: Any) -> str:
@@ -102,6 +118,7 @@ def source_state(
     fixture_path: pathlib.Path,
     composition_path: pathlib.Path,
     code_evidence: list[dict[str, Any]],
+    extra_source_paths: list[pathlib.Path] | None = None,
 ) -> dict[str, Any]:
     source_paths = [
         pathlib.Path(__file__).resolve(),
@@ -112,6 +129,7 @@ def source_state(
         composition_path.resolve(),
         REPO_ROOT / "pnpm-lock.yaml",
     ]
+    source_paths.extend(extra_source_paths or [])
     source_paths.extend(
         REPO_ROOT / file_record["path"]
         for candidate_record in code_evidence
@@ -148,6 +166,153 @@ def source_state(
         "scoped_status": status.splitlines() if status else [],
         "files": files,
     }
+
+
+def _has_forbidden_ranking_token(value: str, forbidden: set[str]) -> bool:
+    normalized = value.strip().lower().replace("-", "_")
+    return any(token in normalized for token in forbidden)
+
+
+def _paradox_probe_contract(fixture: dict[str, Any]) -> dict[str, Any]:
+    policy = fixture["paradox_probe_policy"]
+    probes = [candidate["paradox_probe"] for candidate in fixture["candidates"]]
+    return {
+        "mode": "paradox_probe_selection",
+        "fixture_schema": PARADOX_PROBE_FIXTURE_SCHEMA,
+        "card_ids": sorted({probe["card_id"] for probe in probes}),
+        "probe_ids": [probe["probe_id"] for probe in probes],
+        "code_state_variable_ids": [
+            probe["code_state"]["variable_id"] for probe in probes
+        ],
+        "ranking_field_allowlist": policy["ranking_field_allowlist"],
+        "optimizer_input_fields": PARADOX_OPTIMIZER_INPUT_FIELDS,
+        "adjudication_corpus": policy["adjudication_corpus"],
+        "adjudication_corpus_sha256": policy["adjudication_corpus_sha256"],
+        "adjudication_labels_used_by_optimizer": False,
+        "claim_boundary": policy["claim_boundary"],
+    }
+
+
+def _validate_paradox_probe_fixture(fixture: dict[str, Any]) -> None:
+    policy = fixture.get("paradox_probe_policy")
+    if not isinstance(policy, dict):
+        raise ValueError("paradox_probe_policy must be an object")
+    weights = fixture["score_weights"]
+    allowlist = policy.get("ranking_field_allowlist")
+    if not isinstance(allowlist, list) or not allowlist:
+        raise ValueError("paradox ranking_field_allowlist must be non-empty")
+    if allowlist != list(weights):
+        raise ValueError("paradox ranking allowlist must exactly match score_weights")
+    forbidden = policy.get("forbidden_ranking_tokens")
+    if not isinstance(forbidden, list) or any(
+        not isinstance(item, str) or not item for item in forbidden
+    ):
+        raise ValueError("paradox forbidden_ranking_tokens must be a string list")
+    forbidden_tokens = {item.strip().lower().replace("-", "_") for item in forbidden}
+    if not PARADOX_FORBIDDEN_RANKING_TOKENS <= forbidden_tokens:
+        raise ValueError("paradox forbidden ranking token policy is incomplete")
+    for field in weights:
+        if _has_forbidden_ranking_token(field, forbidden_tokens):
+            raise ValueError(f"forbidden ranking token in score field: {field}")
+
+    allowed_stages = policy.get("allowed_stages")
+    if not isinstance(allowed_stages, list) or not set(allowed_stages) <= PARADOX_ALLOWED_STAGES:
+        raise ValueError("paradox allowed_stages contains an unsupported stage")
+    if policy.get("require_blinded_outcome") is not True:
+        raise ValueError("paradox probes must require blinded outcomes")
+    if policy.get("require_code_state_binding") is not True:
+        raise ValueError("paradox probes must require code-state binding")
+    if any(
+        abs(float(value)) > 1e-12
+        for value in fixture.get("kill_status_adjustments", {}).values()
+    ):
+        raise ValueError("paradox probe kill-status adjustments must be zero")
+
+    corpus_raw = policy.get("adjudication_corpus")
+    corpus_hash = policy.get("adjudication_corpus_sha256")
+    if not isinstance(corpus_raw, str) or not corpus_raw:
+        raise ValueError("paradox adjudication corpus path is required")
+    corpus_path = _resolve_evidence_path(corpus_raw, REPO_ROOT)
+    if not corpus_path.is_file():
+        raise ValueError("paradox adjudication corpus is unavailable")
+    if not isinstance(corpus_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", corpus_hash):
+        raise ValueError("paradox adjudication corpus hash must be SHA-256")
+    if file_sha256(corpus_path) != corpus_hash:
+        raise ValueError("paradox adjudication corpus hash mismatch")
+    if not isinstance(policy.get("claim_boundary"), str) or not policy["claim_boundary"]:
+        raise ValueError("paradox claim boundary is required")
+
+    probe_ids: set[str] = set()
+    variable_ids: set[str] = set()
+    for candidate in fixture["candidates"]:
+        candidate_id = candidate["id"]
+        if set(candidate["scores"]) != set(weights):
+            raise ValueError(f"{candidate_id} scores must exactly match the allowlist")
+        tags = candidate.get("tags")
+        if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+            raise ValueError(f"{candidate_id} optimizer tags must be a string list")
+        for tag in tags:
+            if _has_forbidden_ranking_token(tag, forbidden_tokens):
+                raise ValueError(f"{candidate_id} optimizer tag contains a forbidden ranking token")
+        status = candidate.get("kill_test", {}).get("status")
+        if status not in fixture.get("kill_status_adjustments", {}):
+            raise ValueError(f"{candidate_id} kill-test status has no zero adjustment")
+
+        probe = candidate.get("paradox_probe")
+        if not isinstance(probe, dict):
+            raise ValueError(f"{candidate_id} has no paradox_probe object")
+        if not re.fullmatch(r"PP-[0-9]{3}", str(probe.get("card_id", ""))):
+            raise ValueError(f"{candidate_id} paradox card_id is invalid")
+        probe_id = probe.get("probe_id")
+        if not isinstance(probe_id, str) or not probe_id or probe_id in probe_ids:
+            raise ValueError("paradox probe IDs must be non-empty and unique")
+        probe_ids.add(probe_id)
+        if probe.get("stage") not in allowed_stages:
+            raise ValueError(f"{candidate_id} paradox stage is not allowed")
+        for key in ("falsifier", "stopping_rule"):
+            if not isinstance(probe.get(key), str) or not probe[key].strip():
+                raise ValueError(f"{candidate_id} paradox {key} is required")
+        if probe.get("blinded_outcome") is not True:
+            raise ValueError(f"{candidate_id} paradox outcome must remain blinded")
+
+        code_state = probe.get("code_state")
+        if not isinstance(code_state, dict) or code_state.get("complete") is not True:
+            raise ValueError(f"{candidate_id} requires a complete code-state binding")
+        variable_id = code_state.get("variable_id")
+        if (
+            not isinstance(variable_id, str)
+            or not variable_id
+            or variable_id in variable_ids
+        ):
+            raise ValueError("code-state variable IDs must be non-empty and unique")
+        variable_ids.add(variable_id)
+        if code_state.get("binding_basis") != "pinned_git_blob_sha256":
+            raise ValueError(f"{candidate_id} code-state binding basis is unsupported")
+        states = code_state.get("states")
+        if not isinstance(states, list) or not states:
+            raise ValueError(f"{candidate_id} code-state binding has no states")
+        state_paths: list[str] = []
+        state_ids: set[str] = set()
+        for state in states:
+            if not isinstance(state, dict):
+                raise ValueError(f"{candidate_id} code-state entry must be an object")
+            state_id = state.get("id")
+            if not isinstance(state_id, str) or not state_id or state_id in state_ids:
+                raise ValueError(f"{candidate_id} code-state IDs must be unique")
+            state_ids.add(state_id)
+            if not isinstance(state.get("source_ref"), str) or not state["source_ref"]:
+                raise ValueError(f"{candidate_id} code-state source_ref is required")
+            paths = state.get("paths")
+            if not isinstance(paths, list) or not paths or any(
+                not isinstance(item, str) or not item for item in paths
+            ):
+                raise ValueError(f"{candidate_id} code-state paths are required")
+            state_paths.extend(paths)
+        implementation_paths = candidate["code_evidence"].get("implementation", [])
+        if sorted(set(state_paths)) != sorted(set(implementation_paths)):
+            raise ValueError(
+                f"{candidate_id} code-state paths must equal implementation evidence"
+            )
 
 
 def load_fixture(path: pathlib.Path) -> dict[str, Any]:
@@ -191,6 +356,8 @@ def load_fixture(path: pathlib.Path) -> dict[str, Any]:
         for item in allowed_extensions
     ):
         raise ValueError("code evidence allowed_extensions must be a suffix list")
+    if fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA:
+        _validate_paradox_probe_fixture(fixture)
     for candidate in candidates:
         scores = candidate.get("scores")
         if not isinstance(scores, dict):
@@ -432,7 +599,7 @@ def build_qubo(
                 10,
             )
 
-    return {
+    qubo = {
         "matrix": matrix,
         "constant_offset": cardinality_penalty * target * target,
         "candidate_rewards": rewards,
@@ -449,6 +616,9 @@ def build_qubo(
         "kill_status_adjustments": status_adjustments,
         "convention": "upper triangular: sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j",
     }
+    if fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA:
+        qubo["paradox_probe_contract"] = _paradox_probe_contract(fixture)
+    return qubo
 
 
 def qubo_objective(bitstring: str, matrix: list[list[float]]) -> float:
@@ -734,10 +904,18 @@ def run_scout(
         "ibm_job_submitted": False,
     }
 
+    extra_source_paths: list[pathlib.Path] = []
+    if fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA:
+        extra_source_paths.append(
+            _resolve_evidence_path(
+                fixture["paradox_probe_policy"]["adjudication_corpus"], REPO_ROOT
+            )
+        )
     snapshot = source_state(
         fixture_path,
         composition_path,
         qubo["code_evidence"],
+        extra_source_paths,
     )
     snapshot_by_path = {item["path"]: item for item in snapshot["files"]}
     code_hashes = {
@@ -781,10 +959,18 @@ def run_scout(
         "results": result_summary,
         "hardware_gate_decision": hardware_gate["decision"],
     }
+    is_paradox_probe = fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA
+    claim_boundary = (
+        fixture["paradox_probe_policy"]["claim_boundary"]
+        + " QAOA, exact, greedy, and random results compare portfolio-selection "
+        "objectives only; they do not establish quantum advantage."
+        if is_paradox_probe
+        else "QAOA prioritizes a diverse candidate portfolio from declared ordinal priors plus declared-path availability and exact shared implementation-file identity. File presence and hashes do not prove claim alignment, semantic correctness, test execution, novelty, quantum advantage, or publication readiness."
+    )
     receipt = {
         "schema": NOVELTY_SCOUT_SCHEMA,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "claim_boundary": "QAOA prioritizes a diverse candidate portfolio from declared ordinal priors plus declared-path availability and exact shared implementation-file identity. File presence and hashes do not prove claim alignment, semantic correctness, test execution, novelty, quantum advantage, or publication readiness.",
+        "claim_boundary": claim_boundary,
         "fixture": display_path(fixture_path),
         "input_sha256": input_sha256,
         "candidate_count": len(fixture["candidates"]),
@@ -830,6 +1016,9 @@ def run_scout(
         "hash_scope": FULL_RECEIPT_HASH_SCOPE,
         "hash_payload": hash_payload,
     }
+    if is_paradox_probe:
+        receipt["paradox_probe_policy"] = fixture["paradox_probe_policy"]
+        receipt["paradox_probe_contract"] = qubo["paradox_probe_contract"]
     receipt["payload_hash"] = canonical_hash(receipt)
     if not verify_receipt(receipt):
         raise AssertionError("generated receipt failed its own canonical hash check")

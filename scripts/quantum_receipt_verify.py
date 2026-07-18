@@ -40,6 +40,7 @@ import math
 import os
 import pathlib
 import random
+import re
 import subprocess
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -53,6 +54,21 @@ RANDOM_BUDGET_BASIS = (
 )
 MAX_RANDOM_REPLAY_EVALUATIONS = 1_000_000
 ENV_FILE = REPO_ROOT / ".env"
+PARADOX_PROBE_FIXTURE_SCHEMA = "holoscript.quantum-paradox-probes.v1"
+PARADOX_FORBIDDEN_RANKING_TOKENS = {
+    "adjudication",
+    "novelty",
+    "outcome",
+    "paradox_score",
+    "verdict",
+}
+PARADOX_OPTIMIZER_INPUT_FIELDS = [
+    "scores",
+    "kill_test.status",
+    "tags",
+    "code_evidence",
+]
+PARADOX_ALLOWED_STAGES = {"normalized", "falsifiable", "reproduced"}
 
 
 def is_ibm_receipt(r: dict) -> bool:
@@ -386,6 +402,130 @@ def _validate_source_snapshot(
     return records, blobs, errors
 
 
+def _has_forbidden_ranking_token(value: str, forbidden: set[str]) -> bool:
+    normalized = value.strip().lower().replace("-", "_")
+    return any(token in normalized for token in forbidden)
+
+
+def _expected_paradox_probe_contract(fixture: dict) -> dict:
+    policy = fixture["paradox_probe_policy"]
+    probes = [candidate["paradox_probe"] for candidate in fixture["candidates"]]
+    return {
+        "mode": "paradox_probe_selection",
+        "fixture_schema": PARADOX_PROBE_FIXTURE_SCHEMA,
+        "card_ids": sorted({probe["card_id"] for probe in probes}),
+        "probe_ids": [probe["probe_id"] for probe in probes],
+        "code_state_variable_ids": [
+            probe["code_state"]["variable_id"] for probe in probes
+        ],
+        "ranking_field_allowlist": policy["ranking_field_allowlist"],
+        "optimizer_input_fields": PARADOX_OPTIMIZER_INPUT_FIELDS,
+        "adjudication_corpus": policy["adjudication_corpus"],
+        "adjudication_corpus_sha256": policy["adjudication_corpus_sha256"],
+        "adjudication_labels_used_by_optimizer": False,
+        "claim_boundary": policy["claim_boundary"],
+    }
+
+
+def _paradox_probe_fixture_errors(
+    fixture: dict,
+    source_blobs: dict[str, bytes],
+) -> list[str]:
+    """Independently enforce the outcome-blind paradox-probe input contract."""
+
+    errors: list[str] = []
+    try:
+        policy = fixture["paradox_probe_policy"]
+        weights = fixture["score_weights"]
+        allowlist = policy["ranking_field_allowlist"]
+        if allowlist != list(weights):
+            errors.append("paradox ranking allowlist does not match score weights")
+        forbidden = {
+            str(item).strip().lower().replace("-", "_")
+            for item in policy["forbidden_ranking_tokens"]
+        }
+        if not PARADOX_FORBIDDEN_RANKING_TOKENS <= forbidden:
+            errors.append("paradox forbidden ranking token policy is incomplete")
+        for field in weights:
+            if _has_forbidden_ranking_token(str(field), forbidden):
+                errors.append(f"forbidden ranking token in score field: {field}")
+        allowed_stages = set(policy["allowed_stages"])
+        if not allowed_stages <= PARADOX_ALLOWED_STAGES:
+            errors.append("paradox allowed stages contain an unsupported stage")
+        if policy.get("require_blinded_outcome") is not True:
+            errors.append("paradox outcomes are not contractually blinded")
+        if policy.get("require_code_state_binding") is not True:
+            errors.append("paradox code-state binding is not required")
+        if any(
+            abs(float(value)) > 1e-12
+            for value in fixture.get("kill_status_adjustments", {}).values()
+        ):
+            errors.append("paradox kill-status adjustment is nonzero")
+
+        corpus_path = _safe_repo_path(policy["adjudication_corpus"])
+        corpus_hash = policy["adjudication_corpus_sha256"]
+        corpus_blob = source_blobs.get(corpus_path or "")
+        if corpus_path is None or corpus_blob is None:
+            errors.append("pinned paradox adjudication corpus is unavailable")
+        elif not re.fullmatch(r"[0-9a-f]{64}", str(corpus_hash)):
+            errors.append("paradox adjudication corpus hash is not SHA-256")
+        elif hashlib.sha256(corpus_blob).hexdigest() != corpus_hash:
+            errors.append("paradox adjudication corpus hash mismatch")
+
+        probe_ids: set[str] = set()
+        variable_ids: set[str] = set()
+        for candidate in fixture["candidates"]:
+            candidate_id = candidate["id"]
+            if set(candidate["scores"]) != set(weights):
+                errors.append(f"{candidate_id} score fields exceed the allowlist")
+            for tag in candidate.get("tags", []):
+                if _has_forbidden_ranking_token(str(tag), forbidden):
+                    errors.append(
+                        f"{candidate_id} optimizer tag contains a forbidden ranking token"
+                    )
+            status = candidate["kill_test"]["status"]
+            if status not in fixture.get("kill_status_adjustments", {}):
+                errors.append(f"{candidate_id} status has no declared zero adjustment")
+
+            probe = candidate["paradox_probe"]
+            if not re.fullmatch(r"PP-[0-9]{3}", str(probe["card_id"])):
+                errors.append(f"{candidate_id} paradox card ID is invalid")
+            probe_id = probe["probe_id"]
+            if not probe_id or probe_id in probe_ids:
+                errors.append("paradox probe IDs are not unique")
+            probe_ids.add(probe_id)
+            if probe["stage"] not in allowed_stages:
+                errors.append(f"{candidate_id} paradox stage is not allowed")
+            if not probe.get("falsifier") or not probe.get("stopping_rule"):
+                errors.append(f"{candidate_id} paradox falsifier is incomplete")
+            if probe.get("blinded_outcome") is not True:
+                errors.append(f"{candidate_id} paradox outcome is exposed")
+
+            code_state = probe["code_state"]
+            variable_id = code_state["variable_id"]
+            if not variable_id or variable_id in variable_ids:
+                errors.append("code-state variable IDs are not unique")
+            variable_ids.add(variable_id)
+            if code_state.get("complete") is not True:
+                errors.append(f"{candidate_id} code-state binding is incomplete")
+            if code_state.get("binding_basis") != "pinned_git_blob_sha256":
+                errors.append(f"{candidate_id} code-state basis is unsupported")
+            states = code_state["states"]
+            state_paths = [path for state in states for path in state["paths"]]
+            implementation_paths = candidate["code_evidence"].get(
+                "implementation", []
+            )
+            if sorted(set(state_paths)) != sorted(set(implementation_paths)):
+                errors.append(
+                    f"{candidate_id} code-state paths do not bind implementation evidence"
+                )
+            if any(not state.get("id") or not state.get("source_ref") for state in states):
+                errors.append(f"{candidate_id} code-state source is incomplete")
+    except (KeyError, TypeError, ValueError) as error:
+        errors.append(f"malformed paradox-probe fixture: {error}")
+    return errors
+
+
 def _recompute_qubo_from_source(
     receipt: dict,
     qubo: dict,
@@ -423,6 +563,10 @@ def _recompute_qubo_from_source(
     if receipt.get("input_sha256") != expected_generic_hash(fixture):
         errors.append("input hash does not match the pinned candidate fixture")
 
+    is_paradox_probe = fixture.get("schema") == PARADOX_PROBE_FIXTURE_SCHEMA
+    if is_paradox_probe:
+        errors.extend(_paradox_probe_fixture_errors(fixture, source_blobs))
+
     candidates = fixture["candidates"]
     if [candidate["id"] for candidate in candidates] != candidate_ids:
         errors.append("candidate order does not match the pinned fixture")
@@ -433,6 +577,14 @@ def _recompute_qubo_from_source(
         "score_weights": fixture["score_weights"],
         "code_evidence_policy": fixture["code_evidence_policy"],
     }
+    if is_paradox_probe:
+        expected_contract = _expected_paradox_probe_contract(fixture)
+        fixture_links["paradox_probe_policy"] = fixture["paradox_probe_policy"]
+        fixture_links["paradox_probe_contract"] = expected_contract
+        if not _structure_close(
+            qubo.get("paradox_probe_contract"), expected_contract
+        ):
+            errors.append("QUBO paradox_probe_contract does not recompute")
     for key, expected in fixture_links.items():
         if not _structure_close(receipt.get(key), expected):
             errors.append(f"{key} does not match the pinned fixture")
