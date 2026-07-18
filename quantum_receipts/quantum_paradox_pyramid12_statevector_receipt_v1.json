@@ -1,0 +1,4472 @@
+{
+  "schema": "cael-quantum-v3.qaoa-paradox-pyramid-scout",
+  "created_at": "2026-07-18T03:20:05.488266+00:00",
+  "claim_boundary": "Pairwise coefficients express declared same-face and cross-face planning relationships. Volume coefficients express three sparse aligned interactions and are reduced exactly with deterministic Rosenberg ancillas. These coefficients are author priors and do not establish a causal, geometric, or scientifically productive paradox structure. The pyramid is a visual metaphor for a nine-variable binary interaction model. The three volume ancillas, when present, are deterministic encoding overhead. Exact, greedy, random, and local seeded StatevectorSampler QAOA results compare declared portfolio objectives only; they do not establish literal 3D quantum processing, paradox productivity, novelty, or quantum advantage. The simulator result is accepted only when it deterministically replays under the recorded Python, Qiskit, and NumPy versions; this is not proof of a historical execution event. The seeded sampler may reuse common random numbers across parameter evaluations; budget matching counts samples but does not claim independent trials.",
+  "fixture": "research/quantum-novelty-scout/paradox-pyramid-probes-v1.json",
+  "input_sha256": "80164e83c9a5f01aa0cd420434298507eae826d2146637c9feb057b1e0bcb70d",
+  "candidate_count": 9,
+  "target_cardinality": 3,
+  "score_basis": "Author-assigned follow-up-planning priors inherited from paradox-probes-v1. The authors were not blinded to pilot results, and optimizer outcome independence is not claimed.",
+  "score_weights": {
+    "expected_information_gain": 2,
+    "falsifier_readiness": 1.5,
+    "strategic_value": 1,
+    "expected_cost": -1
+  },
+  "code_evidence_policy": {
+    "declared_path_availability_weight": 2,
+    "missing_required_path_penalty": -8,
+    "similarity_penalty": 1.25,
+    "required_categories": [
+      "implementation",
+      "verification"
+    ],
+    "category_weights": {
+      "implementation": 0.5,
+      "verification": 0.3,
+      "execution_evidence": 0.2
+    },
+    "similarity_basis": "For paradox fixtures, the scout replaces this ordinary basis with Jaccard overlap of declared-state Git-blob SHA-256 sets.",
+    "max_file_bytes": 2000000,
+    "allowed_extensions": [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".mjs",
+      ".cjs",
+      ".py",
+      ".holo",
+      ".hs",
+      ".hsplus",
+      ".json",
+      ".md"
+    ],
+    "claim_boundary": "Availability and hashing establish only that declared repository files exist and are bound. They do not establish semantic correctness, causality, or paper novelty."
+  },
+  "qubo": {
+    "matrix": [
+      [
+        -67.175,
+        25.8333333333,
+        25.8333333333,
+        27.5857142857,
+        26.5857142857,
+        26.5857142857,
+        23.8,
+        24.05,
+        24.05,
+        -2.5,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -66.715,
+        25.8333333333,
+        25.6333333333,
+        26.6333333333,
+        25.6333333333,
+        24.05,
+        23.8,
+        24.05,
+        0.0,
+        -2.5,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        -66.7,
+        25.6333333333,
+        25.6333333333,
+        26.6333333333,
+        24.05,
+        24.05,
+        23.8,
+        0.0,
+        0.0,
+        -2.5
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        -66.85,
+        26.7857142857,
+        26.25,
+        23.8,
+        24.05,
+        24.05,
+        -2.5,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -66.875,
+        26.25,
+        24.05,
+        23.8,
+        24.05,
+        0.0,
+        -2.5,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -66.185,
+        24.05,
+        24.05,
+        23.8,
+        0.0,
+        0.0,
+        -2.5
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -65.625,
+        24.5833333333,
+        25.3125,
+        -0.75,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -65.6,
+        24.8958333333,
+        0.0,
+        -0.75,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -65.01,
+        0.0,
+        0.0,
+        -0.75
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        3.75,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        3.75,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        3.75
+      ]
+    ],
+    "constant_offset": 108.0,
+    "candidate_rewards": [
+      7.175,
+      6.715,
+      6.699999999999999,
+      6.85,
+      6.875,
+      6.1850000000000005,
+      5.625,
+      5.6,
+      5.01
+    ],
+    "prior_candidate_rewards": [
+      3.925,
+      3.465,
+      3.4499999999999997,
+      3.6,
+      3.625,
+      2.935,
+      3.625,
+      3.6,
+      3.01
+    ],
+    "code_evidence_adjustments": [
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0
+    ],
+    "code_state_path_churn_adjustments": [
+      1.25,
+      1.25,
+      1.25,
+      1.25,
+      1.25,
+      1.25,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "code_evidence": [
+      {
+        "candidate_id": "QP-PP001-01",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 18211,
+            "worktree_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529",
+            "git_blob_oid": "210f84efd50b77ebab87677704f48cd1022070e9",
+            "git_blob_bytes": 18211,
+            "git_blob_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529"
+          },
+          {
+            "category": "verification",
+            "path": "research/paradox-to-proof/pp001/pp001_living_artifact.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 23415,
+            "worktree_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3",
+            "git_blob_oid": "d156775f70fd897a91b13353215a7e5573e1ea14",
+            "git_blob_bytes": 23415,
+            "git_blob_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp001/receipt.json",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 31227,
+            "worktree_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c",
+            "git_blob_oid": "ba3d7e3d9c778afe4fe0da6ca83eedbd41236a5a",
+            "git_blob_bytes": 31227,
+            "git_blob_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp001/report.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 8075,
+            "worktree_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd",
+            "git_blob_oid": "22f8b9959854cfa27fe391e68b60dd027c0a9ca3",
+            "git_blob_bytes": 8075,
+            "git_blob_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "c40673e05b411f44359f97ffef4815eee57752c40343a26f83374c72cac4efdc"
+      },
+      {
+        "candidate_id": "QP-PP001-04",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 18211,
+            "worktree_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529",
+            "git_blob_oid": "210f84efd50b77ebab87677704f48cd1022070e9",
+            "git_blob_bytes": 18211,
+            "git_blob_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529"
+          },
+          {
+            "category": "verification",
+            "path": "research/paradox-to-proof/pp001/pp001_living_artifact.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 23415,
+            "worktree_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3",
+            "git_blob_oid": "d156775f70fd897a91b13353215a7e5573e1ea14",
+            "git_blob_bytes": 23415,
+            "git_blob_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp001/receipt.json",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 31227,
+            "worktree_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c",
+            "git_blob_oid": "ba3d7e3d9c778afe4fe0da6ca83eedbd41236a5a",
+            "git_blob_bytes": 31227,
+            "git_blob_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "c40673e05b411f44359f97ffef4815eee57752c40343a26f83374c72cac4efdc"
+      },
+      {
+        "candidate_id": "QP-PP001-05",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 18211,
+            "worktree_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529",
+            "git_blob_oid": "210f84efd50b77ebab87677704f48cd1022070e9",
+            "git_blob_bytes": 18211,
+            "git_blob_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529"
+          },
+          {
+            "category": "verification",
+            "path": "research/paradox-to-proof/pp001/pp001_living_artifact.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 23415,
+            "worktree_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3",
+            "git_blob_oid": "d156775f70fd897a91b13353215a7e5573e1ea14",
+            "git_blob_bytes": 23415,
+            "git_blob_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp001/report.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 8075,
+            "worktree_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd",
+            "git_blob_oid": "22f8b9959854cfa27fe391e68b60dd027c0a9ca3",
+            "git_blob_bytes": 8075,
+            "git_blob_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "c40673e05b411f44359f97ffef4815eee57752c40343a26f83374c72cac4efdc"
+      },
+      {
+        "candidate_id": "QP-PP001-02",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 18211,
+            "worktree_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529",
+            "git_blob_oid": "210f84efd50b77ebab87677704f48cd1022070e9",
+            "git_blob_bytes": 18211,
+            "git_blob_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529"
+          },
+          {
+            "category": "verification",
+            "path": "research/paradox-to-proof/pp001/pp001_living_artifact.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 23415,
+            "worktree_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3",
+            "git_blob_oid": "d156775f70fd897a91b13353215a7e5573e1ea14",
+            "git_blob_bytes": 23415,
+            "git_blob_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp001/receipt.json",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 31227,
+            "worktree_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c",
+            "git_blob_oid": "ba3d7e3d9c778afe4fe0da6ca83eedbd41236a5a",
+            "git_blob_bytes": 31227,
+            "git_blob_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "c40673e05b411f44359f97ffef4815eee57752c40343a26f83374c72cac4efdc"
+      },
+      {
+        "candidate_id": "QP-PP001-03",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 18211,
+            "worktree_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529",
+            "git_blob_oid": "210f84efd50b77ebab87677704f48cd1022070e9",
+            "git_blob_bytes": 18211,
+            "git_blob_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529"
+          },
+          {
+            "category": "verification",
+            "path": "research/paradox-to-proof/pp001/pp001_living_artifact.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 23415,
+            "worktree_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3",
+            "git_blob_oid": "d156775f70fd897a91b13353215a7e5573e1ea14",
+            "git_blob_bytes": 23415,
+            "git_blob_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp001/report.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 8075,
+            "worktree_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd",
+            "git_blob_oid": "22f8b9959854cfa27fe391e68b60dd027c0a9ca3",
+            "git_blob_bytes": 8075,
+            "git_blob_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "c40673e05b411f44359f97ffef4815eee57752c40343a26f83374c72cac4efdc"
+      },
+      {
+        "candidate_id": "QP-PP001-06",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 18211,
+            "worktree_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529",
+            "git_blob_oid": "210f84efd50b77ebab87677704f48cd1022070e9",
+            "git_blob_bytes": 18211,
+            "git_blob_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529"
+          },
+          {
+            "category": "verification",
+            "path": "research/paradox-to-proof/pp001/pp001_living_artifact.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 23415,
+            "worktree_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3",
+            "git_blob_oid": "d156775f70fd897a91b13353215a7e5573e1ea14",
+            "git_blob_bytes": 23415,
+            "git_blob_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp001/receipt.json",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 31227,
+            "worktree_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c",
+            "git_blob_oid": "ba3d7e3d9c778afe4fe0da6ca83eedbd41236a5a",
+            "git_blob_bytes": 31227,
+            "git_blob_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp001/report.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 8075,
+            "worktree_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd",
+            "git_blob_oid": "22f8b9959854cfa27fe391e68b60dd027c0a9ca3",
+            "git_blob_bytes": 8075,
+            "git_blob_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "c40673e05b411f44359f97ffef4815eee57752c40343a26f83374c72cac4efdc"
+      },
+      {
+        "candidate_id": "QP-PP003-01",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 4910,
+            "worktree_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5",
+            "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+            "git_blob_bytes": 4910,
+            "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+          },
+          {
+            "category": "verification",
+            "path": "scripts/__tests__/pp003_proof_adjacency.test.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 24477,
+            "worktree_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714",
+            "git_blob_oid": "ee1baec258fdb8b50fb9bff90703614b034235bb",
+            "git_blob_bytes": 24477,
+            "git_blob_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp003/pp003-receipt.json",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 8343,
+            "worktree_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0",
+            "git_blob_oid": "547c1b96eee49412cfee6b99f1c9cd643b2726cd",
+            "git_blob_bytes": 8343,
+            "git_blob_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp003/report.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 10143,
+            "worktree_sha256": "4dfb2133bbf362a042f260f879d7226aab14a14997ea4fcb1d5995c0f87cda43",
+            "git_blob_oid": "9febbe4d15798cac5740e1111e20b8d9dd661cd6",
+            "git_blob_bytes": 10143,
+            "git_blob_sha256": "4dfb2133bbf362a042f260f879d7226aab14a14997ea4fcb1d5995c0f87cda43"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "84f3cdb03f1809f9e8a81135d7b87972d5a59241b00d4d3478c37b42b4d324b9"
+      },
+      {
+        "candidate_id": "QP-PP003-02",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 7177,
+            "worktree_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7",
+            "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+            "git_blob_bytes": 7177,
+            "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+          },
+          {
+            "category": "verification",
+            "path": "scripts/__tests__/pp003_proof_adjacency.test.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 24477,
+            "worktree_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714",
+            "git_blob_oid": "ee1baec258fdb8b50fb9bff90703614b034235bb",
+            "git_blob_bytes": 24477,
+            "git_blob_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp003/pp003-receipt.json",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 8343,
+            "worktree_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0",
+            "git_blob_oid": "547c1b96eee49412cfee6b99f1c9cd643b2726cd",
+            "git_blob_bytes": 8343,
+            "git_blob_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0"
+          }
+        ],
+        "implementation_file_hash_count": 1,
+        "implementation_set_fingerprint": "557f2f78c3d804b89830144e14ea3df5d7de1630ed8de101b7b45efd4cd3420e"
+      },
+      {
+        "candidate_id": "QP-PP003-06",
+        "declared_path_availability": 1.0,
+        "required_paths_available": true,
+        "missing_required_path_categories": [],
+        "categories": {
+          "implementation": {
+            "weight": 0.5,
+            "declared_count": 4,
+            "available_count": 4,
+            "availability_fraction": 1.0
+          },
+          "verification": {
+            "weight": 0.3,
+            "declared_count": 1,
+            "available_count": 1,
+            "availability_fraction": 1.0
+          },
+          "execution_evidence": {
+            "weight": 0.2,
+            "declared_count": 2,
+            "available_count": 2,
+            "availability_fraction": 1.0
+          }
+        },
+        "files": [
+          {
+            "category": "implementation",
+            "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 4910,
+            "worktree_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5",
+            "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+            "git_blob_bytes": 4910,
+            "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+          },
+          {
+            "category": "implementation",
+            "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 7177,
+            "worktree_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7",
+            "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+            "git_blob_bytes": 7177,
+            "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+          },
+          {
+            "category": "implementation",
+            "path": "packages/mcp-server/src/security/SandboxCostComposition.ts",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 9754,
+            "worktree_sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a",
+            "git_blob_oid": "4500b159177bb3fb04b8038503f68cbd6e79c716",
+            "git_blob_bytes": 9754,
+            "git_blob_sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a"
+          },
+          {
+            "category": "implementation",
+            "path": "compositions/holonews-claim-kiosk.hsplus",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 10942,
+            "worktree_sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4",
+            "git_blob_oid": "5817c874038c9a060e53bc4b29fe0b6b84e955d4",
+            "git_blob_bytes": 10942,
+            "git_blob_sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4"
+          },
+          {
+            "category": "verification",
+            "path": "scripts/__tests__/pp003_proof_adjacency.test.mjs",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 24477,
+            "worktree_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714",
+            "git_blob_oid": "ee1baec258fdb8b50fb9bff90703614b034235bb",
+            "git_blob_bytes": 24477,
+            "git_blob_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp003/pp003-receipt.json",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 8343,
+            "worktree_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0",
+            "git_blob_oid": "547c1b96eee49412cfee6b99f1c9cd643b2726cd",
+            "git_blob_bytes": 8343,
+            "git_blob_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0"
+          },
+          {
+            "category": "execution_evidence",
+            "path": "research/paradox-to-proof/pp003/report.md",
+            "exists": true,
+            "admitted": true,
+            "worktree_bytes": 10143,
+            "worktree_sha256": "4dfb2133bbf362a042f260f879d7226aab14a14997ea4fcb1d5995c0f87cda43",
+            "git_blob_oid": "9febbe4d15798cac5740e1111e20b8d9dd661cd6",
+            "git_blob_bytes": 10143,
+            "git_blob_sha256": "4dfb2133bbf362a042f260f879d7226aab14a14997ea4fcb1d5995c0f87cda43"
+          }
+        ],
+        "implementation_file_hash_count": 4,
+        "implementation_set_fingerprint": "243e4a91facfa2077eea928700ca928969a340373fce58c3403ac9b4cbdad16e"
+      }
+    ],
+    "tag_similarities": [
+      [
+        0.0,
+        0.1111111111111111,
+        0.1111111111111111,
+        0.42857142857142855,
+        0.42857142857142855,
+        0.42857142857142855,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.1111111111111111,
+        0.1111111111111111,
+        0.1111111111111111,
+        0.1111111111111111,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.1111111111111111,
+        0.1111111111111111,
+        0.1111111111111111,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.42857142857142855,
+        0.25,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.1111111111111111,
+        0.25
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.1111111111111111
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "code_similarities": [
+      [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "target_cardinality": 3,
+    "cardinality_penalty": 12.0,
+    "redundancy_penalty": 3.0,
+    "code_similarity_penalty": 1.25,
+    "code_similarity_basis": "declared-state Git blob SHA-256 Jaccard",
+    "code_evidence_policy": {
+      "declared_path_availability_weight": 2,
+      "missing_required_path_penalty": -8,
+      "similarity_penalty": 1.25,
+      "required_categories": [
+        "implementation",
+        "verification"
+      ],
+      "category_weights": {
+        "implementation": 0.5,
+        "verification": 0.3,
+        "execution_evidence": 0.2
+      },
+      "similarity_basis": "For paradox fixtures, the scout replaces this ordinary basis with Jaccard overlap of declared-state Git-blob SHA-256 sets.",
+      "max_file_bytes": 2000000,
+      "allowed_extensions": [
+        ".ts",
+        ".tsx",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".py",
+        ".holo",
+        ".hs",
+        ".hsplus",
+        ".json",
+        ".md"
+      ],
+      "claim_boundary": "Availability and hashing establish only that declared repository files exist and are bound. They do not establish semantic correctness, causality, or paper novelty."
+    },
+    "kill_status_adjustments": {
+      "pending_fresh_source_check": 0.0
+    },
+    "convention": "upper triangular: first nine bits are semantic candidates and final three bits are deterministic Rosenberg ancillas",
+    "code_state_bindings": [
+      {
+        "candidate_id": "QP-PP001-01",
+        "variable_id": "C-PP001-01",
+        "binding_basis": "pinned_git_blob_sha256",
+        "states": [
+          {
+            "id": "before",
+            "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "resolved_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "files": [
+              {
+                "state_id": "before",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+                "git_blob_bytes": 14229,
+                "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+              }
+            ]
+          },
+          {
+            "id": "after",
+            "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "resolved_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "files": [
+              {
+                "state_id": "after",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+                "git_blob_bytes": 15390,
+                "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "state_id": "before",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+            "git_blob_bytes": 14229,
+            "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+            "git_blob_bytes": 15390,
+            "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+          }
+        ],
+        "declared_path_count": 2,
+        "available_path_count": 2,
+        "all_paths_available": true,
+        "observed_completeness": 1.0,
+        "comparable_path_count": 1,
+        "changed_path_count": 1,
+        "declared_state_path_churn_fraction": 1.0,
+        "state_blob_hashes": [
+          "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e",
+          "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+        ],
+        "state_fingerprint": "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82"
+      },
+      {
+        "candidate_id": "QP-PP001-04",
+        "variable_id": "C-PP001-04",
+        "binding_basis": "pinned_git_blob_sha256",
+        "states": [
+          {
+            "id": "before",
+            "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "resolved_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "files": [
+              {
+                "state_id": "before",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+                "git_blob_bytes": 14229,
+                "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+              }
+            ]
+          },
+          {
+            "id": "after",
+            "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "resolved_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "files": [
+              {
+                "state_id": "after",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+                "git_blob_bytes": 15390,
+                "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "state_id": "before",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+            "git_blob_bytes": 14229,
+            "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+            "git_blob_bytes": 15390,
+            "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+          }
+        ],
+        "declared_path_count": 2,
+        "available_path_count": 2,
+        "all_paths_available": true,
+        "observed_completeness": 1.0,
+        "comparable_path_count": 1,
+        "changed_path_count": 1,
+        "declared_state_path_churn_fraction": 1.0,
+        "state_blob_hashes": [
+          "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e",
+          "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+        ],
+        "state_fingerprint": "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82"
+      },
+      {
+        "candidate_id": "QP-PP001-05",
+        "variable_id": "C-PP001-05",
+        "binding_basis": "pinned_git_blob_sha256",
+        "states": [
+          {
+            "id": "before",
+            "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "resolved_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "files": [
+              {
+                "state_id": "before",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+                "git_blob_bytes": 14229,
+                "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+              }
+            ]
+          },
+          {
+            "id": "after",
+            "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "resolved_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "files": [
+              {
+                "state_id": "after",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+                "git_blob_bytes": 15390,
+                "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "state_id": "before",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+            "git_blob_bytes": 14229,
+            "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+            "git_blob_bytes": 15390,
+            "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+          }
+        ],
+        "declared_path_count": 2,
+        "available_path_count": 2,
+        "all_paths_available": true,
+        "observed_completeness": 1.0,
+        "comparable_path_count": 1,
+        "changed_path_count": 1,
+        "declared_state_path_churn_fraction": 1.0,
+        "state_blob_hashes": [
+          "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e",
+          "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+        ],
+        "state_fingerprint": "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82"
+      },
+      {
+        "candidate_id": "QP-PP001-02",
+        "variable_id": "C-PP001-02",
+        "binding_basis": "pinned_git_blob_sha256",
+        "states": [
+          {
+            "id": "before",
+            "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "resolved_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "files": [
+              {
+                "state_id": "before",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+                "git_blob_bytes": 14229,
+                "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+              }
+            ]
+          },
+          {
+            "id": "after",
+            "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "resolved_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "files": [
+              {
+                "state_id": "after",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+                "git_blob_bytes": 15390,
+                "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "state_id": "before",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+            "git_blob_bytes": 14229,
+            "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+            "git_blob_bytes": 15390,
+            "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+          }
+        ],
+        "declared_path_count": 2,
+        "available_path_count": 2,
+        "all_paths_available": true,
+        "observed_completeness": 1.0,
+        "comparable_path_count": 1,
+        "changed_path_count": 1,
+        "declared_state_path_churn_fraction": 1.0,
+        "state_blob_hashes": [
+          "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e",
+          "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+        ],
+        "state_fingerprint": "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82"
+      },
+      {
+        "candidate_id": "QP-PP001-03",
+        "variable_id": "C-PP001-03",
+        "binding_basis": "pinned_git_blob_sha256",
+        "states": [
+          {
+            "id": "before",
+            "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "resolved_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "files": [
+              {
+                "state_id": "before",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+                "git_blob_bytes": 14229,
+                "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+              }
+            ]
+          },
+          {
+            "id": "after",
+            "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "resolved_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "files": [
+              {
+                "state_id": "after",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+                "git_blob_bytes": 15390,
+                "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "state_id": "before",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+            "git_blob_bytes": 14229,
+            "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+            "git_blob_bytes": 15390,
+            "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+          }
+        ],
+        "declared_path_count": 2,
+        "available_path_count": 2,
+        "all_paths_available": true,
+        "observed_completeness": 1.0,
+        "comparable_path_count": 1,
+        "changed_path_count": 1,
+        "declared_state_path_churn_fraction": 1.0,
+        "state_blob_hashes": [
+          "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e",
+          "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+        ],
+        "state_fingerprint": "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82"
+      },
+      {
+        "candidate_id": "QP-PP001-06",
+        "variable_id": "C-PP001-06",
+        "binding_basis": "pinned_git_blob_sha256",
+        "states": [
+          {
+            "id": "before",
+            "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "resolved_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+            "files": [
+              {
+                "state_id": "before",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+                "git_blob_bytes": 14229,
+                "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+              }
+            ]
+          },
+          {
+            "id": "after",
+            "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "resolved_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+            "files": [
+              {
+                "state_id": "after",
+                "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+                "available": true,
+                "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+                "git_blob_bytes": 15390,
+                "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "state_id": "before",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "977518fb4ee394855fef4bf5689d2e6cb19cd2bc",
+            "git_blob_bytes": 14229,
+            "git_blob_sha256": "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+            "available": true,
+            "git_blob_oid": "c4c74595ce8811f78bea503dbd3230b05d02a2f1",
+            "git_blob_bytes": 15390,
+            "git_blob_sha256": "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+          }
+        ],
+        "declared_path_count": 2,
+        "available_path_count": 2,
+        "all_paths_available": true,
+        "observed_completeness": 1.0,
+        "comparable_path_count": 1,
+        "changed_path_count": 1,
+        "declared_state_path_churn_fraction": 1.0,
+        "state_blob_hashes": [
+          "21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e",
+          "cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4"
+        ],
+        "state_fingerprint": "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82"
+      },
+      {
+        "candidate_id": "QP-PP003-01",
+        "variable_id": "C-PP003-01",
+        "binding_basis": "pinned_git_blob_sha256",
+        "states": [
+          {
+            "id": "before",
+            "source_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+            "resolved_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+            "files": [
+              {
+                "state_id": "before",
+                "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+                "available": true,
+                "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+                "git_blob_bytes": 4910,
+                "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+              }
+            ]
+          },
+          {
+            "id": "after",
+            "source_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+            "resolved_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+            "files": [
+              {
+                "state_id": "after",
+                "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+                "available": true,
+                "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+                "git_blob_bytes": 4910,
+                "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "state_id": "before",
+            "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+            "available": true,
+            "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+            "git_blob_bytes": 4910,
+            "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+            "available": true,
+            "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+            "git_blob_bytes": 4910,
+            "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+          }
+        ],
+        "declared_path_count": 2,
+        "available_path_count": 2,
+        "all_paths_available": true,
+        "observed_completeness": 1.0,
+        "comparable_path_count": 1,
+        "changed_path_count": 0,
+        "declared_state_path_churn_fraction": 0.0,
+        "state_blob_hashes": [
+          "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+        ],
+        "state_fingerprint": "c266e6c2184afafd4983b492804f533aae18a18b005f76b5497284e222217ca8"
+      },
+      {
+        "candidate_id": "QP-PP003-02",
+        "variable_id": "C-PP003-02",
+        "binding_basis": "pinned_git_blob_sha256",
+        "states": [
+          {
+            "id": "before",
+            "source_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+            "resolved_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+            "files": [
+              {
+                "state_id": "before",
+                "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+                "available": true,
+                "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+                "git_blob_bytes": 7177,
+                "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+              }
+            ]
+          },
+          {
+            "id": "after",
+            "source_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+            "resolved_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+            "files": [
+              {
+                "state_id": "after",
+                "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+                "available": true,
+                "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+                "git_blob_bytes": 7177,
+                "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "state_id": "before",
+            "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+            "available": true,
+            "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+            "git_blob_bytes": 7177,
+            "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+            "available": true,
+            "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+            "git_blob_bytes": 7177,
+            "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+          }
+        ],
+        "declared_path_count": 2,
+        "available_path_count": 2,
+        "all_paths_available": true,
+        "observed_completeness": 1.0,
+        "comparable_path_count": 1,
+        "changed_path_count": 0,
+        "declared_state_path_churn_fraction": 0.0,
+        "state_blob_hashes": [
+          "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+        ],
+        "state_fingerprint": "d4ce94dcae990df96cd5b40597024971b893ef713e7062a5859c360fe8727ead"
+      },
+      {
+        "candidate_id": "QP-PP003-06",
+        "variable_id": "C-PP003-06",
+        "binding_basis": "pinned_git_blob_sha256",
+        "states": [
+          {
+            "id": "before",
+            "source_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+            "resolved_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+            "files": [
+              {
+                "state_id": "before",
+                "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+                "available": true,
+                "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+                "git_blob_bytes": 4910,
+                "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+              },
+              {
+                "state_id": "before",
+                "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+                "available": true,
+                "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+                "git_blob_bytes": 7177,
+                "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+              },
+              {
+                "state_id": "before",
+                "path": "packages/mcp-server/src/security/SandboxCostComposition.ts",
+                "available": true,
+                "git_blob_oid": "4500b159177bb3fb04b8038503f68cbd6e79c716",
+                "git_blob_bytes": 9754,
+                "git_blob_sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a"
+              },
+              {
+                "state_id": "before",
+                "path": "compositions/holonews-claim-kiosk.hsplus",
+                "available": true,
+                "git_blob_oid": "5817c874038c9a060e53bc4b29fe0b6b84e955d4",
+                "git_blob_bytes": 10942,
+                "git_blob_sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4"
+              }
+            ]
+          },
+          {
+            "id": "after",
+            "source_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+            "resolved_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+            "files": [
+              {
+                "state_id": "after",
+                "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+                "available": true,
+                "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+                "git_blob_bytes": 4910,
+                "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+              },
+              {
+                "state_id": "after",
+                "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+                "available": true,
+                "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+                "git_blob_bytes": 7177,
+                "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+              },
+              {
+                "state_id": "after",
+                "path": "packages/mcp-server/src/security/SandboxCostComposition.ts",
+                "available": true,
+                "git_blob_oid": "4500b159177bb3fb04b8038503f68cbd6e79c716",
+                "git_blob_bytes": 9754,
+                "git_blob_sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a"
+              },
+              {
+                "state_id": "after",
+                "path": "compositions/holonews-claim-kiosk.hsplus",
+                "available": true,
+                "git_blob_oid": "5817c874038c9a060e53bc4b29fe0b6b84e955d4",
+                "git_blob_bytes": 10942,
+                "git_blob_sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "state_id": "before",
+            "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+            "available": true,
+            "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+            "git_blob_bytes": 4910,
+            "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+          },
+          {
+            "state_id": "before",
+            "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+            "available": true,
+            "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+            "git_blob_bytes": 7177,
+            "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+          },
+          {
+            "state_id": "before",
+            "path": "packages/mcp-server/src/security/SandboxCostComposition.ts",
+            "available": true,
+            "git_blob_oid": "4500b159177bb3fb04b8038503f68cbd6e79c716",
+            "git_blob_bytes": 9754,
+            "git_blob_sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a"
+          },
+          {
+            "state_id": "before",
+            "path": "compositions/holonews-claim-kiosk.hsplus",
+            "available": true,
+            "git_blob_oid": "5817c874038c9a060e53bc4b29fe0b6b84e955d4",
+            "git_blob_bytes": 10942,
+            "git_blob_sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+            "available": true,
+            "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+            "git_blob_bytes": 4910,
+            "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+            "available": true,
+            "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+            "git_blob_bytes": 7177,
+            "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+          },
+          {
+            "state_id": "after",
+            "path": "packages/mcp-server/src/security/SandboxCostComposition.ts",
+            "available": true,
+            "git_blob_oid": "4500b159177bb3fb04b8038503f68cbd6e79c716",
+            "git_blob_bytes": 9754,
+            "git_blob_sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a"
+          },
+          {
+            "state_id": "after",
+            "path": "compositions/holonews-claim-kiosk.hsplus",
+            "available": true,
+            "git_blob_oid": "5817c874038c9a060e53bc4b29fe0b6b84e955d4",
+            "git_blob_bytes": 10942,
+            "git_blob_sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4"
+          }
+        ],
+        "declared_path_count": 8,
+        "available_path_count": 8,
+        "all_paths_available": true,
+        "observed_completeness": 1.0,
+        "comparable_path_count": 4,
+        "changed_path_count": 0,
+        "declared_state_path_churn_fraction": 0.0,
+        "state_blob_hashes": [
+          "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4",
+          "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7",
+          "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a",
+          "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+        ],
+        "state_fingerprint": "4cc4d56c7064c050e99e640742b789aca576973510af028ba496b1be45d1e5c5"
+      }
+    ],
+    "paradox_probe_contract": {
+      "mode": "paradox_probe_selection",
+      "fixture_schema": "holoscript.quantum-paradox-probes.v1",
+      "card_ids": [
+        "PP-001",
+        "PP-003"
+      ],
+      "probe_ids": [
+        "QP-001",
+        "QP-004",
+        "QP-005",
+        "QP-002",
+        "QP-003",
+        "QP-006",
+        "QP-007",
+        "QP-008",
+        "QP-012"
+      ],
+      "code_state_variable_ids": [
+        "C-PP001-01",
+        "C-PP001-04",
+        "C-PP001-05",
+        "C-PP001-02",
+        "C-PP001-03",
+        "C-PP001-06",
+        "C-PP003-01",
+        "C-PP003-02",
+        "C-PP003-06"
+      ],
+      "code_state_fingerprints": [
+        "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+        "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+        "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+        "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+        "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+        "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+        "c266e6c2184afafd4983b492804f533aae18a18b005f76b5497284e222217ca8",
+        "d4ce94dcae990df96cd5b40597024971b893ef713e7062a5859c360fe8727ead",
+        "4cc4d56c7064c050e99e640742b789aca576973510af028ba496b1be45d1e5c5"
+      ],
+      "ranking_field_allowlist": [
+        "expected_information_gain",
+        "falsifier_readiness",
+        "strategic_value",
+        "expected_cost"
+      ],
+      "candidate_optimizer_input_fields": [
+        "candidates[].id/order",
+        "scores",
+        "kill_test.status",
+        "tags",
+        "code_evidence",
+        "paradox_probe.code_state"
+      ],
+      "qubo_configuration_input_fields": [
+        "score_weights",
+        "target_cardinality",
+        "cardinality_penalty",
+        "redundancy_penalty",
+        "kill_status_adjustments",
+        "code_evidence_policy",
+        "paradox_probe_policy.declared_state_path_churn_weight",
+        "pyramid_qubo",
+        "selected_pyramid_variant"
+      ],
+      "adjudication_corpus": "research/quantum-novelty-scout/paradox-probe-controls-v1.json",
+      "adjudication_corpus_schema": "holoscript.paradox-control-corpus.v1",
+      "adjudication_corpus_sha256": "f85e042f45be562e87b288a68837a34cf66463843b1944a69025bca28169b7a1",
+      "control_executor": "scripts/paradox_probe_controls.py",
+      "control_executor_sha256": "9eec4c279cab4e6c64188cf27a586e83e0aaff1e852ecc6e6bdc608440cc421a",
+      "control_receipt": "research/quantum-novelty-scout/paradox-probe-control-receipt-v1.json",
+      "control_receipt_sha256": "dfbdf2d6133b8202dec85e486536453088511970492cc2c0de62f3681fa7f2f9",
+      "passing_control_receipt_bound": true,
+      "control_execution_independently_verified": false,
+      "explicit_outcome_fields_or_label_tokens_in_score_names_or_tags": false,
+      "optimizer_outcome_independence_claimed": false,
+      "author_blinding_claimed": false,
+      "control_labels_are_author_supplied": true,
+      "declared_state_path_churn_weight": 1.25,
+      "code_similarity_basis": "declared-state Git blob SHA-256 Jaccard",
+      "claim_boundary": "The optimizer uses author-assigned priors, declared file availability, code-state path churn, tag similarity, state-blob similarity, and the declared pyramid coefficients. Authors were not blinded; outcome independence, paradox productivity, novelty, literal 3D processing, and quantum advantage are not claimed.",
+      "selected_pyramid_variant": "volume_quadratized"
+    },
+    "pyramid_variant": "volume_quadratized",
+    "semantic_variable_count": 9,
+    "ancilla_variable_count": 3,
+    "total_variable_count": 12,
+    "variable_order": [
+      {
+        "index": 0,
+        "kind": "semantic",
+        "id": "QP-PP001-01",
+        "candidate_id": "QP-PP001-01",
+        "face_id": "observability",
+        "face_index": 0,
+        "slot": 0
+      },
+      {
+        "index": 1,
+        "kind": "semantic",
+        "id": "QP-PP001-04",
+        "candidate_id": "QP-PP001-04",
+        "face_id": "observability",
+        "face_index": 0,
+        "slot": 1
+      },
+      {
+        "index": 2,
+        "kind": "semantic",
+        "id": "QP-PP001-05",
+        "candidate_id": "QP-PP001-05",
+        "face_id": "observability",
+        "face_index": 0,
+        "slot": 2
+      },
+      {
+        "index": 3,
+        "kind": "semantic",
+        "id": "QP-PP001-02",
+        "candidate_id": "QP-PP001-02",
+        "face_id": "falsification",
+        "face_index": 1,
+        "slot": 0
+      },
+      {
+        "index": 4,
+        "kind": "semantic",
+        "id": "QP-PP001-03",
+        "candidate_id": "QP-PP001-03",
+        "face_id": "falsification",
+        "face_index": 1,
+        "slot": 1
+      },
+      {
+        "index": 5,
+        "kind": "semantic",
+        "id": "QP-PP001-06",
+        "candidate_id": "QP-PP001-06",
+        "face_id": "falsification",
+        "face_index": 1,
+        "slot": 2
+      },
+      {
+        "index": 6,
+        "kind": "semantic",
+        "id": "QP-PP003-01",
+        "candidate_id": "QP-PP003-01",
+        "face_id": "proof-scope",
+        "face_index": 2,
+        "slot": 0
+      },
+      {
+        "index": 7,
+        "kind": "semantic",
+        "id": "QP-PP003-02",
+        "candidate_id": "QP-PP003-02",
+        "face_id": "proof-scope",
+        "face_index": 2,
+        "slot": 1
+      },
+      {
+        "index": 8,
+        "kind": "semantic",
+        "id": "QP-PP003-06",
+        "candidate_id": "QP-PP003-06",
+        "face_id": "proof-scope",
+        "face_index": 2,
+        "slot": 2
+      },
+      {
+        "index": 9,
+        "kind": "ancilla",
+        "id": "ancilla:aligned-volume:0",
+        "represents_product_of": [
+          0,
+          3
+        ],
+        "higher_order_term_id": "aligned-volume:0"
+      },
+      {
+        "index": 10,
+        "kind": "ancilla",
+        "id": "ancilla:aligned-volume:1",
+        "represents_product_of": [
+          1,
+          4
+        ],
+        "higher_order_term_id": "aligned-volume:1"
+      },
+      {
+        "index": 11,
+        "kind": "ancilla",
+        "id": "ancilla:aligned-volume:2",
+        "represents_product_of": [
+          2,
+          5
+        ],
+        "higher_order_term_id": "aligned-volume:2"
+      }
+    ],
+    "base_portfolio_matrix": [
+      [
+        -67.175,
+        25.5833333333,
+        25.5833333333,
+        26.5357142857,
+        26.5357142857,
+        26.5357142857,
+        24.0,
+        24.0,
+        24.0
+      ],
+      [
+        0.0,
+        -66.715,
+        25.5833333333,
+        25.5833333333,
+        25.5833333333,
+        25.5833333333,
+        24.0,
+        24.0,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        -66.7,
+        25.5833333333,
+        25.5833333333,
+        25.5833333333,
+        24.0,
+        24.0,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        -66.85,
+        26.5357142857,
+        26.0,
+        24.0,
+        24.0,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -66.875,
+        26.0,
+        24.0,
+        24.0,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -66.185,
+        24.0,
+        24.0,
+        24.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -65.625,
+        24.3333333333,
+        25.0625
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -65.6,
+        24.6458333333
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -65.01
+      ]
+    ],
+    "structural_pair_matrix": [
+      [
+        0.0,
+        0.25,
+        0.25,
+        -0.2,
+        0.05,
+        0.05,
+        -0.2,
+        0.05,
+        0.05
+      ],
+      [
+        0.0,
+        0.0,
+        0.25,
+        0.05,
+        -0.2,
+        0.05,
+        0.05,
+        -0.2,
+        0.05
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.05,
+        0.05,
+        -0.2,
+        0.05,
+        0.05,
+        -0.2
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25,
+        0.25,
+        -0.2,
+        0.05,
+        0.05
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25,
+        0.05,
+        -0.2,
+        0.05
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.05,
+        0.05,
+        -0.2
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25,
+        0.25
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "semantic_pairwise_matrix": [
+      [
+        -67.175,
+        25.8333333333,
+        25.8333333333,
+        26.3357142857,
+        26.5857142857,
+        26.5857142857,
+        23.8,
+        24.05,
+        24.05
+      ],
+      [
+        0.0,
+        -66.715,
+        25.8333333333,
+        25.6333333333,
+        25.3833333333,
+        25.6333333333,
+        24.05,
+        23.8,
+        24.05
+      ],
+      [
+        0.0,
+        0.0,
+        -66.7,
+        25.6333333333,
+        25.6333333333,
+        25.3833333333,
+        24.05,
+        24.05,
+        23.8
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        -66.85,
+        26.7857142857,
+        26.25,
+        23.8,
+        24.05,
+        24.05
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -66.875,
+        26.25,
+        24.05,
+        23.8,
+        24.05
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -66.185,
+        24.05,
+        24.05,
+        23.8
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -65.625,
+        24.5833333333,
+        25.3125
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -65.6,
+        24.8958333333
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -65.01
+      ]
+    ],
+    "structural_pair_coefficients": {
+      "same_face": 0.25,
+      "aligned_cross_face": -0.2,
+      "other_cross_face": 0.05
+    },
+    "structural_pair_terms": [
+      {
+        "left_index": 0,
+        "right_index": 1,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 0,
+        "right_index": 2,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 0,
+        "right_index": 3,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 0,
+        "right_index": 4,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 0,
+        "right_index": 5,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 0,
+        "right_index": 6,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 0,
+        "right_index": 7,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 0,
+        "right_index": 8,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 1,
+        "right_index": 2,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 1,
+        "right_index": 3,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 1,
+        "right_index": 4,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 1,
+        "right_index": 5,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 1,
+        "right_index": 6,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 1,
+        "right_index": 7,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 1,
+        "right_index": 8,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 2,
+        "right_index": 3,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 2,
+        "right_index": 4,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 2,
+        "right_index": 5,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 2,
+        "right_index": 6,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 2,
+        "right_index": 7,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 2,
+        "right_index": 8,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 3,
+        "right_index": 4,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 3,
+        "right_index": 5,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 3,
+        "right_index": 6,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 3,
+        "right_index": 7,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 3,
+        "right_index": 8,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 4,
+        "right_index": 5,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 4,
+        "right_index": 6,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 4,
+        "right_index": 7,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 4,
+        "right_index": 8,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 5,
+        "right_index": 6,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 5,
+        "right_index": 7,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 5,
+        "right_index": 8,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 6,
+        "right_index": 7,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 6,
+        "right_index": 8,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 7,
+        "right_index": 8,
+        "relation": "same_face",
+        "coefficient": 0.25
+      }
+    ],
+    "higher_order_terms": [
+      {
+        "id": "aligned-volume:0",
+        "slot": 0,
+        "semantic_indices": [
+          0,
+          3,
+          6
+        ],
+        "semantic_ids": [
+          "QP-PP001-01",
+          "QP-PP001-02",
+          "QP-PP003-01"
+        ],
+        "coefficient": -0.75
+      },
+      {
+        "id": "aligned-volume:1",
+        "slot": 1,
+        "semantic_indices": [
+          1,
+          4,
+          7
+        ],
+        "semantic_ids": [
+          "QP-PP001-04",
+          "QP-PP001-03",
+          "QP-PP003-02"
+        ],
+        "coefficient": -0.75
+      },
+      {
+        "id": "aligned-volume:2",
+        "slot": 2,
+        "semantic_indices": [
+          2,
+          5,
+          8
+        ],
+        "semantic_ids": [
+          "QP-PP001-05",
+          "QP-PP001-06",
+          "QP-PP003-06"
+        ],
+        "coefficient": -0.75
+      }
+    ],
+    "quadratization": {
+      "method": "rosenberg-pair-product-v1",
+      "penalty_polynomial": "M*(a*b-2*a*y-2*b*y+3*y)",
+      "strength_rule": "M_k=abs(t_k)+rosenberg_margin",
+      "rosenberg_margin": 0.5,
+      "ancillas_isolated": true,
+      "constant_offset_delta": 0.0,
+      "terms": [
+        {
+          "higher_order_term_id": "aligned-volume:0",
+          "substitution": "ancilla:aligned-volume:0=x0*x3",
+          "substitution_pair": [
+            0,
+            3
+          ],
+          "remaining_index": 6,
+          "ancilla_id": "ancilla:aligned-volume:0",
+          "ancilla_index": 9,
+          "cubic_coefficient": -0.75,
+          "penalty_strength": 1.25,
+          "minimum_wrong_assignment_gap_bound": 0.5
+        },
+        {
+          "higher_order_term_id": "aligned-volume:1",
+          "substitution": "ancilla:aligned-volume:1=x1*x4",
+          "substitution_pair": [
+            1,
+            4
+          ],
+          "remaining_index": 7,
+          "ancilla_id": "ancilla:aligned-volume:1",
+          "ancilla_index": 10,
+          "cubic_coefficient": -0.75,
+          "penalty_strength": 1.25,
+          "minimum_wrong_assignment_gap_bound": 0.5
+        },
+        {
+          "higher_order_term_id": "aligned-volume:2",
+          "substitution": "ancilla:aligned-volume:2=x2*x5",
+          "substitution_pair": [
+            2,
+            5
+          ],
+          "remaining_index": 8,
+          "ancilla_id": "ancilla:aligned-volume:2",
+          "ancilla_index": 11,
+          "cubic_coefficient": -0.75,
+          "penalty_strength": 1.25,
+          "minimum_wrong_assignment_gap_bound": 0.5
+        }
+      ],
+      "equivalence_certificate": {
+        "semantic_assignments_checked": 512,
+        "expanded_assignments_checked": 4096,
+        "max_abs_minimized_objective_error": 5.684341886080802e-14,
+        "minimum_infeasible_gap": 0.49999999999994316,
+        "all_minimizing_ancillas_match_products": true,
+        "semantic_optimal_bitstring": "010010010",
+        "expanded_optimal_bitstring": "010010010010",
+        "expanded_optimum_projects_to_semantic_optimum": true
+      }
+    }
+  },
+  "composition": "research/quantum-novelty-scout/paradox-pyramid12-portfolio.holo",
+  "composition_role": "Generated declarative mirror of the matrix. The measured run invokes the Python QAOA executor directly; this file is not claimed as validated or as the execution source.",
+  "run_configuration": {
+    "seed": 23,
+    "shots": 128,
+    "grid_points": 4,
+    "p": 1,
+    "execution_mode": "aer",
+    "pyramid_variant": "volume_quadratized"
+  },
+  "execution_receipt": {
+    "schema": "cael-quantum-v1.qaoa",
+    "timestamp": "2026-07-18T03:20:01.393122+00:00",
+    "script": "scripts/quantum_execute.py",
+    "task": "qaoa",
+    "method": "QAOA-qubo-p1",
+    "problem_type": "qubo",
+    "objective_sense": "minimize",
+    "matrix_convention": "upper-triangular: sum_i Qii*x_i + sum_{i<j} Qij*x_i*x_j",
+    "input_sha256": "268550b6b2ad20bc83ec5a8f3eca4cd9d75247b80b343a0bb7e69559712ef5c2",
+    "execution_mode": "aer",
+    "backend": "statevector-sampler",
+    "shots": 128,
+    "job_id": "simulator:268550b6b2ad20bc",
+    "all_job_ids": [],
+    "optimizer": "expectation-grid",
+    "optimizer_evaluations": 16,
+    "optimal_value": -124.0641666667,
+    "optimal_bitstring": "001000011001",
+    "best_sampled_expectation": -64.28050874267343,
+    "selected_parameters": [
+      0.0,
+      0.0
+    ],
+    "classical_optimal_value": -126.95666666669999,
+    "classical_optimal_bitstring": "010010010010",
+    "optimality_gap": 2.892499999999984,
+    "approximation_ratio": null,
+    "num_qubits": 12,
+    "wall_time_s": 0.6711842000077013,
+    "hash_scheme": "sha256-canonical-json-v1",
+    "hash_payload": {
+      "input_sha256": "268550b6b2ad20bc83ec5a8f3eca4cd9d75247b80b343a0bb7e69559712ef5c2",
+      "job_id": "simulator:268550b6b2ad20bc",
+      "optimal_bitstring": "001000011001",
+      "optimal_value": -124.0641666667
+    },
+    "payload_hash": "125426fcb2b692b9fe787276aac9dda6a21752edd7e070b7d0b1ca1898811fde"
+  },
+  "results": {
+    "qaoa": {
+      "bitstring": "001000011001",
+      "semantic_bitstring": "001000011",
+      "ancilla_bitstring": "001",
+      "expected_ancilla_bitstring": "000",
+      "ancilla_feasible": false,
+      "ancilla_violation_count": 1,
+      "ancilla_violation_offsets": [
+        2
+      ],
+      "selected_ids": [
+        "QP-PP001-05",
+        "QP-PP003-02",
+        "QP-PP003-06"
+      ],
+      "selected_count": 3,
+      "face_counts": {
+        "observability": 1,
+        "falsification": 0,
+        "proof-scope": 2
+      },
+      "one_per_face": false,
+      "target_cardinality_met": true,
+      "model_constraints_satisfied": false,
+      "raw_qubo_objective": -124.0641666667,
+      "shifted_objective": -16.064166666700004,
+      "base_raw_qubo_objective": -124.6641666667,
+      "structural_pair_contribution": 0.09999999999999999,
+      "semantic_pairwise_raw_objective": -124.5641666667,
+      "direct_cubic_contribution": 0.0,
+      "decoded_hubo_raw_objective": -124.5641666667,
+      "quadratic_cubic_contribution": -0.75,
+      "quadratization_penalty": 1.25,
+      "repaired_bitstring": "001000011000",
+      "repaired_raw_qubo_objective": -124.5641666667,
+      "ancilla_excess_cost": 0.5,
+      "reward_sum": 17.31,
+      "redundancy_penalty": 0.6458333333333333,
+      "tag_redundancy_penalty": 0.3333333333333333,
+      "code_redundancy_penalty": 0.3125,
+      "constraint_penalty": 0.0,
+      "portfolio_score": 16.564166666666665,
+      "runtime_seconds": 0.6711842000077013,
+      "shots_per_evaluation": 128,
+      "optimizer_evaluations": 16,
+      "measurement_budget": 2048,
+      "best_sampled_expectation": -64.28050874267343,
+      "selected_parameters": [
+        0.0,
+        0.0
+      ]
+    },
+    "exact": {
+      "bitstring": "010010010010",
+      "semantic_bitstring": "010010010",
+      "ancilla_bitstring": "010",
+      "expected_ancilla_bitstring": "010",
+      "ancilla_feasible": true,
+      "ancilla_violation_count": 0,
+      "ancilla_violation_offsets": [],
+      "selected_ids": [
+        "QP-PP001-04",
+        "QP-PP001-03",
+        "QP-PP003-02"
+      ],
+      "selected_count": 3,
+      "face_counts": {
+        "observability": 1,
+        "falsification": 1,
+        "proof-scope": 1
+      },
+      "one_per_face": true,
+      "target_cardinality_met": true,
+      "model_constraints_satisfied": true,
+      "raw_qubo_objective": -126.95666666669999,
+      "shifted_objective": -18.956666666699988,
+      "base_raw_qubo_objective": -125.6066666667,
+      "structural_pair_contribution": -0.6000000000000001,
+      "semantic_pairwise_raw_objective": -126.20666666669999,
+      "direct_cubic_contribution": -0.75,
+      "decoded_hubo_raw_objective": -126.95666666669999,
+      "quadratic_cubic_contribution": -0.75,
+      "quadratization_penalty": 0.0,
+      "repaired_bitstring": "010010010010",
+      "repaired_raw_qubo_objective": -126.95666666669999,
+      "ancilla_excess_cost": 0.0,
+      "reward_sum": 19.189999999999998,
+      "redundancy_penalty": 1.5833333333333333,
+      "tag_redundancy_penalty": 0.3333333333333333,
+      "code_redundancy_penalty": 1.25,
+      "constraint_penalty": 0.0,
+      "portfolio_score": 18.956666666666667,
+      "runtime_seconds": 0.08723420000751503,
+      "evaluations": 4096
+    },
+    "semantic_exact": {
+      "bitstring": "010010010010",
+      "semantic_bitstring": "010010010",
+      "ancilla_bitstring": "010",
+      "expected_ancilla_bitstring": "010",
+      "ancilla_feasible": true,
+      "ancilla_violation_count": 0,
+      "ancilla_violation_offsets": [],
+      "selected_ids": [
+        "QP-PP001-04",
+        "QP-PP001-03",
+        "QP-PP003-02"
+      ],
+      "selected_count": 3,
+      "face_counts": {
+        "observability": 1,
+        "falsification": 1,
+        "proof-scope": 1
+      },
+      "one_per_face": true,
+      "target_cardinality_met": true,
+      "model_constraints_satisfied": true,
+      "raw_qubo_objective": -126.95666666669999,
+      "shifted_objective": -18.956666666699988,
+      "base_raw_qubo_objective": -125.6066666667,
+      "structural_pair_contribution": -0.6000000000000001,
+      "semantic_pairwise_raw_objective": -126.20666666669999,
+      "direct_cubic_contribution": -0.75,
+      "decoded_hubo_raw_objective": -126.95666666669999,
+      "quadratic_cubic_contribution": -0.75,
+      "quadratization_penalty": 0.0,
+      "repaired_bitstring": "010010010010",
+      "repaired_raw_qubo_objective": -126.95666666669999,
+      "ancilla_excess_cost": 0.0,
+      "reward_sum": 19.189999999999998,
+      "redundancy_penalty": 1.5833333333333333,
+      "tag_redundancy_penalty": 0.3333333333333333,
+      "code_redundancy_penalty": 1.25,
+      "constraint_penalty": 0.0,
+      "portfolio_score": 18.956666666666667,
+      "runtime_seconds": 0.01001410000026226,
+      "evaluations": 512
+    },
+    "greedy": {
+      "bitstring": "100100100100",
+      "semantic_bitstring": "100100100",
+      "ancilla_bitstring": "100",
+      "expected_ancilla_bitstring": "100",
+      "ancilla_feasible": true,
+      "ancilla_violation_count": 0,
+      "ancilla_violation_offsets": [],
+      "selected_ids": [
+        "QP-PP001-01",
+        "QP-PP001-02",
+        "QP-PP003-01"
+      ],
+      "selected_count": 3,
+      "face_counts": {
+        "observability": 1,
+        "falsification": 1,
+        "proof-scope": 1
+      },
+      "one_per_face": true,
+      "target_cardinality_met": true,
+      "model_constraints_satisfied": true,
+      "raw_qubo_objective": -126.46428571429998,
+      "shifted_objective": -18.464285714299976,
+      "base_raw_qubo_objective": -125.11428571429998,
+      "structural_pair_contribution": -0.6000000000000001,
+      "semantic_pairwise_raw_objective": -125.71428571429998,
+      "direct_cubic_contribution": -0.75,
+      "decoded_hubo_raw_objective": -126.46428571429998,
+      "quadratic_cubic_contribution": -0.75,
+      "quadratization_penalty": 0.0,
+      "repaired_bitstring": "100100100100",
+      "repaired_raw_qubo_objective": -126.46428571429998,
+      "ancilla_excess_cost": 0.0,
+      "reward_sum": 19.65,
+      "redundancy_penalty": 2.5357142857142856,
+      "tag_redundancy_penalty": 1.2857142857142856,
+      "code_redundancy_penalty": 1.25,
+      "constraint_penalty": 0.0,
+      "portfolio_score": 18.464285714285715,
+      "runtime_seconds": 0.003313599998364225,
+      "evaluations": 24
+    },
+    "budget_matched_random": {
+      "bitstring": "010010010010",
+      "semantic_bitstring": "010010010",
+      "ancilla_bitstring": "010",
+      "expected_ancilla_bitstring": "010",
+      "ancilla_feasible": true,
+      "ancilla_violation_count": 0,
+      "ancilla_violation_offsets": [],
+      "selected_ids": [
+        "QP-PP001-04",
+        "QP-PP001-03",
+        "QP-PP003-02"
+      ],
+      "selected_count": 3,
+      "face_counts": {
+        "observability": 1,
+        "falsification": 1,
+        "proof-scope": 1
+      },
+      "one_per_face": true,
+      "target_cardinality_met": true,
+      "model_constraints_satisfied": true,
+      "raw_qubo_objective": -126.95666666669999,
+      "shifted_objective": -18.956666666699988,
+      "base_raw_qubo_objective": -125.6066666667,
+      "structural_pair_contribution": -0.6000000000000001,
+      "semantic_pairwise_raw_objective": -126.20666666669999,
+      "direct_cubic_contribution": -0.75,
+      "decoded_hubo_raw_objective": -126.95666666669999,
+      "quadratic_cubic_contribution": -0.75,
+      "quadratization_penalty": 0.0,
+      "repaired_bitstring": "010010010010",
+      "repaired_raw_qubo_objective": -126.95666666669999,
+      "ancilla_excess_cost": 0.0,
+      "reward_sum": 19.189999999999998,
+      "redundancy_penalty": 1.5833333333333333,
+      "tag_redundancy_penalty": 0.3333333333333333,
+      "code_redundancy_penalty": 1.25,
+      "constraint_penalty": 0.0,
+      "portfolio_score": 18.956666666666667,
+      "runtime_seconds": 0.06003130000317469,
+      "evaluations": 2048,
+      "seed": 23,
+      "budget_basis": "one random semantic bitstring per QAOA shot across all parameter evaluations; auxiliary bits are deterministically derived"
+    }
+  },
+  "qaoa_optimality_gap": 2.892499999999984,
+  "recommended_portfolio": {
+    "bitstring": "010010010010",
+    "semantic_bitstring": "010010010",
+    "ancilla_bitstring": "010",
+    "expected_ancilla_bitstring": "010",
+    "ancilla_feasible": true,
+    "ancilla_violation_count": 0,
+    "ancilla_violation_offsets": [],
+    "selected_ids": [
+      "QP-PP001-04",
+      "QP-PP001-03",
+      "QP-PP003-02"
+    ],
+    "selected_count": 3,
+    "face_counts": {
+      "observability": 1,
+      "falsification": 1,
+      "proof-scope": 1
+    },
+    "one_per_face": true,
+    "target_cardinality_met": true,
+    "model_constraints_satisfied": true,
+    "raw_qubo_objective": -126.95666666669999,
+    "shifted_objective": -18.956666666699988,
+    "base_raw_qubo_objective": -125.6066666667,
+    "structural_pair_contribution": -0.6000000000000001,
+    "semantic_pairwise_raw_objective": -126.20666666669999,
+    "direct_cubic_contribution": -0.75,
+    "decoded_hubo_raw_objective": -126.95666666669999,
+    "quadratic_cubic_contribution": -0.75,
+    "quadratization_penalty": 0.0,
+    "repaired_bitstring": "010010010010",
+    "repaired_raw_qubo_objective": -126.95666666669999,
+    "ancilla_excess_cost": 0.0,
+    "reward_sum": 19.189999999999998,
+    "redundancy_penalty": 1.5833333333333333,
+    "tag_redundancy_penalty": 0.3333333333333333,
+    "code_redundancy_penalty": 1.25,
+    "constraint_penalty": 0.0,
+    "portfolio_score": 18.956666666666667,
+    "runtime_seconds": 0.01001410000026226,
+    "evaluations": 512
+  },
+  "selected_candidates": [
+    {
+      "id": "QP-PP001-04",
+      "title": "Instrument the loaded-module dependency closure",
+      "scores": {
+        "expected_information_gain": 0.92,
+        "falsifier_readiness": 0.75,
+        "strategic_value": 0.9,
+        "expected_cost": 0.4
+      },
+      "tags": [
+        "pp001",
+        "dependency",
+        "module-graph",
+        "provenance",
+        "instrumentation"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/core/src/plugins/PluginSandboxRunner.ts"
+        ],
+        "verification": [
+          "research/paradox-to-proof/pp001/pp001_living_artifact.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp001/receipt.json"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-001",
+        "probe_id": "QP-004",
+        "stage": "falsifiable",
+        "falsifier": "A changed path outside the declared closure appears in the measured probe's loaded-module graph.",
+        "stopping_rule": "Stop after both state graphs are captured and every differing loaded blob is classified.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP001-04",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP001-03",
+      "title": "Replace the VM timing control with an untreated control",
+      "scores": {
+        "expected_information_gain": 0.9,
+        "falsifier_readiness": 0.85,
+        "strategic_value": 0.85,
+        "expected_cost": 0.3
+      },
+      "tags": [
+        "pp001",
+        "sandbox",
+        "control",
+        "factorial",
+        "timing"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/core/src/plugins/PluginSandboxRunner.ts"
+        ],
+        "verification": [
+          "research/paradox-to-proof/pp001/pp001_living_artifact.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp001/report.md"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-001",
+        "probe_id": "QP-003",
+        "stage": "falsifiable",
+        "falsifier": "A control path that executes no changed runner code shifts with the treated paths.",
+        "stopping_rule": "Stop after the declared factorial state matrix and host block complete.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP001-03",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "c83c2d3c8857c88357bee226df826114ab87432e",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "d225d6572e455d38d28d7482a315b4390870fb1b",
+              "paths": [
+                "packages/core/src/plugins/PluginSandboxRunner.ts"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "QP-PP003-02",
+      "title": "Promote the SVG scope wall into the emitter",
+      "scores": {
+        "expected_information_gain": 0.85,
+        "falsifier_readiness": 0.9,
+        "strategic_value": 0.85,
+        "expected_cost": 0.3
+      },
+      "tags": [
+        "pp003",
+        "svg",
+        "scope-wall",
+        "emitter",
+        "visibility"
+      ],
+      "code_evidence": {
+        "implementation": [
+          "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs"
+        ],
+        "verification": [
+          "scripts/__tests__/pp003_proof_adjacency.test.mjs"
+        ],
+        "execution_evidence": [
+          "research/paradox-to-proof/pp003/pp003-receipt.json"
+        ]
+      },
+      "kill_test": {
+        "named_prior": "Fresh primary-source comparison is required after portfolio selection.",
+        "status": "pending_fresh_source_check",
+        "sources": []
+      },
+      "paradox_probe": {
+        "card_id": "PP-003",
+        "probe_id": "QP-008",
+        "stage": "falsifiable",
+        "falsifier": "The production SVG emitter accepts a marker whose visible boundary is hidden, demoted, detached, or cropped.",
+        "stopping_rule": "Stop after every declared SVG mutation is accepted or rejected by the production path.",
+        "outcome_fields_excluded": true,
+        "code_state": {
+          "variable_id": "C-PP003-02",
+          "binding_basis": "pinned_git_blob_sha256",
+          "complete": true,
+          "states": [
+            {
+              "id": "before",
+              "source_ref": "3b0650d8feb3c3ed6bb922e1deb5e5db471ed6b6",
+              "paths": [
+                "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs"
+              ]
+            },
+            {
+              "id": "after",
+              "source_ref": "1bb58109609c245a924b5af9b6857591dc99c757",
+              "paths": [
+                "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "selected_code_evidence": [
+    {
+      "candidate_id": "QP-PP001-04",
+      "declared_path_availability": 1.0,
+      "required_paths_available": true,
+      "missing_required_path_categories": [],
+      "categories": {
+        "implementation": {
+          "weight": 0.5,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "verification": {
+          "weight": 0.3,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "execution_evidence": {
+          "weight": 0.2,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        }
+      },
+      "files": [
+        {
+          "category": "implementation",
+          "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 18211,
+          "worktree_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529",
+          "git_blob_oid": "210f84efd50b77ebab87677704f48cd1022070e9",
+          "git_blob_bytes": 18211,
+          "git_blob_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529"
+        },
+        {
+          "category": "verification",
+          "path": "research/paradox-to-proof/pp001/pp001_living_artifact.mjs",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 23415,
+          "worktree_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3",
+          "git_blob_oid": "d156775f70fd897a91b13353215a7e5573e1ea14",
+          "git_blob_bytes": 23415,
+          "git_blob_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3"
+        },
+        {
+          "category": "execution_evidence",
+          "path": "research/paradox-to-proof/pp001/receipt.json",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 31227,
+          "worktree_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c",
+          "git_blob_oid": "ba3d7e3d9c778afe4fe0da6ca83eedbd41236a5a",
+          "git_blob_bytes": 31227,
+          "git_blob_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c"
+        }
+      ],
+      "implementation_file_hash_count": 1,
+      "implementation_set_fingerprint": "c40673e05b411f44359f97ffef4815eee57752c40343a26f83374c72cac4efdc"
+    },
+    {
+      "candidate_id": "QP-PP001-03",
+      "declared_path_availability": 1.0,
+      "required_paths_available": true,
+      "missing_required_path_categories": [],
+      "categories": {
+        "implementation": {
+          "weight": 0.5,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "verification": {
+          "weight": 0.3,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "execution_evidence": {
+          "weight": 0.2,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        }
+      },
+      "files": [
+        {
+          "category": "implementation",
+          "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 18211,
+          "worktree_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529",
+          "git_blob_oid": "210f84efd50b77ebab87677704f48cd1022070e9",
+          "git_blob_bytes": 18211,
+          "git_blob_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529"
+        },
+        {
+          "category": "verification",
+          "path": "research/paradox-to-proof/pp001/pp001_living_artifact.mjs",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 23415,
+          "worktree_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3",
+          "git_blob_oid": "d156775f70fd897a91b13353215a7e5573e1ea14",
+          "git_blob_bytes": 23415,
+          "git_blob_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3"
+        },
+        {
+          "category": "execution_evidence",
+          "path": "research/paradox-to-proof/pp001/report.md",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 8075,
+          "worktree_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd",
+          "git_blob_oid": "22f8b9959854cfa27fe391e68b60dd027c0a9ca3",
+          "git_blob_bytes": 8075,
+          "git_blob_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd"
+        }
+      ],
+      "implementation_file_hash_count": 1,
+      "implementation_set_fingerprint": "c40673e05b411f44359f97ffef4815eee57752c40343a26f83374c72cac4efdc"
+    },
+    {
+      "candidate_id": "QP-PP003-02",
+      "declared_path_availability": 1.0,
+      "required_paths_available": true,
+      "missing_required_path_categories": [],
+      "categories": {
+        "implementation": {
+          "weight": 0.5,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "verification": {
+          "weight": 0.3,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        },
+        "execution_evidence": {
+          "weight": 0.2,
+          "declared_count": 1,
+          "available_count": 1,
+          "availability_fraction": 1.0
+        }
+      },
+      "files": [
+        {
+          "category": "implementation",
+          "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 7177,
+          "worktree_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7",
+          "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+          "git_blob_bytes": 7177,
+          "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+        },
+        {
+          "category": "verification",
+          "path": "scripts/__tests__/pp003_proof_adjacency.test.mjs",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 24477,
+          "worktree_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714",
+          "git_blob_oid": "ee1baec258fdb8b50fb9bff90703614b034235bb",
+          "git_blob_bytes": 24477,
+          "git_blob_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714"
+        },
+        {
+          "category": "execution_evidence",
+          "path": "research/paradox-to-proof/pp003/pp003-receipt.json",
+          "exists": true,
+          "admitted": true,
+          "worktree_bytes": 8343,
+          "worktree_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0",
+          "git_blob_oid": "547c1b96eee49412cfee6b99f1c9cd643b2726cd",
+          "git_blob_bytes": 8343,
+          "git_blob_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0"
+        }
+      ],
+      "implementation_file_hash_count": 1,
+      "implementation_set_fingerprint": "557f2f78c3d804b89830144e14ea3df5d7de1630ed8de101b7b45efd4cd3420e"
+    }
+  ],
+  "source_grounding_complete": false,
+  "selected_claims_not_killed": true,
+  "selected_code_evidence_paths_available": true,
+  "all_candidate_code_evidence_paths_available": true,
+  "hardware_gate": {
+    "decision": "NO_GO",
+    "criteria": {
+      "qaoa_strictly_beats_greedy": false,
+      "qaoa_strictly_beats_budget_random": false,
+      "classical_exact_not_cheaper": false,
+      "nontrivial_problem_scale": false,
+      "qaoa_target_cardinality_met": true,
+      "selected_kill_tests_complete": false,
+      "selected_claims_not_killed": true,
+      "selected_code_evidence_paths_available": true,
+      "qaoa_model_constraints_satisfied": false
+    },
+    "reason": "IBM hardware is not justified unless QAOA adds comparative signal at nontrivial scale after source grounding.",
+    "ibm_job_submitted": false
+  },
+  "environment": {
+    "python": "3.14.0",
+    "qiskit": "2.1.2",
+    "numpy": "2.3.5",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "code_hash_basis": "SHA-256 of pinned Git blob bytes",
+  "code_hashes": {
+    "scout_sha256": "9c4563c348b44ee5ecc3f477b66a9eedc9a1df7f1d20b18be180780a39dad01f",
+    "executor_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
+    "verifier_sha256": "a014e81c07d58ad02d400e819057a5652a0d16ac309b3ba8a68a10dae8c3eb0f",
+    "composition_sha256": "bfdd3d3be4d0fe54a56af123294962c329cb9d9653cd5e981e999574d85331ec"
+  },
+  "source_state": {
+    "head_commit": "1dc0261c4fa669f39d5ddce9fff1b7bf10c5caa5",
+    "head_tree": "610b9f3ec377e7e77baa658c748057375660c487",
+    "scoped_dirty": false,
+    "scoped_status": [],
+    "files": [
+      {
+        "path": "scripts/quantum_novelty_scout.py",
+        "worktree_bytes": 95806,
+        "worktree_sha256": "9c4563c348b44ee5ecc3f477b66a9eedc9a1df7f1d20b18be180780a39dad01f",
+        "git_blob_oid": "b4355ba2d45fc5d0c61b7f4593f243f5889f900a",
+        "git_blob_bytes": 95806,
+        "git_blob_sha256": "9c4563c348b44ee5ecc3f477b66a9eedc9a1df7f1d20b18be180780a39dad01f"
+      },
+      {
+        "path": "scripts/quantum_execute.py",
+        "worktree_bytes": 60245,
+        "worktree_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
+        "git_blob_oid": "a8016e6adb4a38bc4ee465be5cc2e104c86ef0f7",
+        "git_blob_bytes": 60245,
+        "git_blob_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899"
+      },
+      {
+        "path": "scripts/quantum_receipt_verify.py",
+        "worktree_bytes": 126284,
+        "worktree_sha256": "a014e81c07d58ad02d400e819057a5652a0d16ac309b3ba8a68a10dae8c3eb0f",
+        "git_blob_oid": "1603cc7cf583c6742cee80bcc4fd5f145e246971",
+        "git_blob_bytes": 126284,
+        "git_blob_sha256": "a014e81c07d58ad02d400e819057a5652a0d16ac309b3ba8a68a10dae8c3eb0f"
+      },
+      {
+        "path": "scripts/__tests__/test_quantum_novelty_scout.py",
+        "worktree_bytes": 65769,
+        "worktree_sha256": "f6770b8d01f45e50d768692aa64d3e13d876fcda842d7a9084b0241d9e06d463",
+        "git_blob_oid": "5dbf05a7ee28ac2b0629f8b37abfec8c86b2064a",
+        "git_blob_bytes": 65769,
+        "git_blob_sha256": "f6770b8d01f45e50d768692aa64d3e13d876fcda842d7a9084b0241d9e06d463"
+      },
+      {
+        "path": "research/quantum-novelty-scout/paradox-pyramid-probes-v1.json",
+        "worktree_bytes": 22852,
+        "worktree_sha256": "ebabd42497fcac4a27cc37a2433ef01195a62a27122817b33d2b0f140e44c7f1",
+        "git_blob_oid": "dabb41b250a78facd4034a98c4776ea352092429",
+        "git_blob_bytes": 22852,
+        "git_blob_sha256": "ebabd42497fcac4a27cc37a2433ef01195a62a27122817b33d2b0f140e44c7f1"
+      },
+      {
+        "path": "research/quantum-novelty-scout/paradox-pyramid12-portfolio.holo",
+        "worktree_bytes": 1825,
+        "worktree_sha256": "567164c58d32200ec746286c1eff19708e96227b0f3a4032290ccafad4665923",
+        "git_blob_oid": "1832d9843e06e30ff9210392d1ab140b58625160",
+        "git_blob_bytes": 1807,
+        "git_blob_sha256": "bfdd3d3be4d0fe54a56af123294962c329cb9d9653cd5e981e999574d85331ec"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "worktree_bytes": 1009915,
+        "worktree_sha256": "a0bebdbc1ee6e4406ee394de6c6dc199e04bfa6a4f688e7a36a5312bd5e2410e",
+        "git_blob_oid": "d2ed31bb6f5350e3162a78a5b0dc9b1c8669fa7d",
+        "git_blob_bytes": 1009915,
+        "git_blob_sha256": "a0bebdbc1ee6e4406ee394de6c6dc199e04bfa6a4f688e7a36a5312bd5e2410e"
+      },
+      {
+        "path": "research/quantum-novelty-scout/paradox-probe-controls-v1.json",
+        "worktree_bytes": 7262,
+        "worktree_sha256": "f85e042f45be562e87b288a68837a34cf66463843b1944a69025bca28169b7a1",
+        "git_blob_oid": "69f86eb4dc2abcddb76db87f6f1f686e35d9edbd",
+        "git_blob_bytes": 7262,
+        "git_blob_sha256": "f85e042f45be562e87b288a68837a34cf66463843b1944a69025bca28169b7a1"
+      },
+      {
+        "path": "scripts/paradox_probe_controls.py",
+        "worktree_bytes": 8773,
+        "worktree_sha256": "9eec4c279cab4e6c64188cf27a586e83e0aaff1e852ecc6e6bdc608440cc421a",
+        "git_blob_oid": "6b5c969e82087b598e6113a6dd8404ef30a52581",
+        "git_blob_bytes": 8773,
+        "git_blob_sha256": "9eec4c279cab4e6c64188cf27a586e83e0aaff1e852ecc6e6bdc608440cc421a"
+      },
+      {
+        "path": "research/quantum-novelty-scout/paradox-probe-control-receipt-v1.json",
+        "worktree_bytes": 8637,
+        "worktree_sha256": "dfbdf2d6133b8202dec85e486536453088511970492cc2c0de62f3681fa7f2f9",
+        "git_blob_oid": "87f0905469e817cdeb8d752211dc522b39f0bbe1",
+        "git_blob_bytes": 8637,
+        "git_blob_sha256": "dfbdf2d6133b8202dec85e486536453088511970492cc2c0de62f3681fa7f2f9"
+      },
+      {
+        "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+        "worktree_bytes": 18211,
+        "worktree_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529",
+        "git_blob_oid": "210f84efd50b77ebab87677704f48cd1022070e9",
+        "git_blob_bytes": 18211,
+        "git_blob_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529"
+      },
+      {
+        "path": "research/paradox-to-proof/pp001/pp001_living_artifact.mjs",
+        "worktree_bytes": 23415,
+        "worktree_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3",
+        "git_blob_oid": "d156775f70fd897a91b13353215a7e5573e1ea14",
+        "git_blob_bytes": 23415,
+        "git_blob_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3"
+      },
+      {
+        "path": "research/paradox-to-proof/pp001/receipt.json",
+        "worktree_bytes": 31227,
+        "worktree_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c",
+        "git_blob_oid": "ba3d7e3d9c778afe4fe0da6ca83eedbd41236a5a",
+        "git_blob_bytes": 31227,
+        "git_blob_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c"
+      },
+      {
+        "path": "research/paradox-to-proof/pp001/report.md",
+        "worktree_bytes": 8075,
+        "worktree_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd",
+        "git_blob_oid": "22f8b9959854cfa27fe391e68b60dd027c0a9ca3",
+        "git_blob_bytes": 8075,
+        "git_blob_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd"
+      },
+      {
+        "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+        "worktree_bytes": 4910,
+        "worktree_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5",
+        "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+        "git_blob_bytes": 4910,
+        "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+      },
+      {
+        "path": "scripts/__tests__/pp003_proof_adjacency.test.mjs",
+        "worktree_bytes": 24477,
+        "worktree_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714",
+        "git_blob_oid": "ee1baec258fdb8b50fb9bff90703614b034235bb",
+        "git_blob_bytes": 24477,
+        "git_blob_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714"
+      },
+      {
+        "path": "research/paradox-to-proof/pp003/pp003-receipt.json",
+        "worktree_bytes": 8343,
+        "worktree_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0",
+        "git_blob_oid": "547c1b96eee49412cfee6b99f1c9cd643b2726cd",
+        "git_blob_bytes": 8343,
+        "git_blob_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0"
+      },
+      {
+        "path": "research/paradox-to-proof/pp003/report.md",
+        "worktree_bytes": 10143,
+        "worktree_sha256": "4dfb2133bbf362a042f260f879d7226aab14a14997ea4fcb1d5995c0f87cda43",
+        "git_blob_oid": "9febbe4d15798cac5740e1111e20b8d9dd661cd6",
+        "git_blob_bytes": 10143,
+        "git_blob_sha256": "4dfb2133bbf362a042f260f879d7226aab14a14997ea4fcb1d5995c0f87cda43"
+      },
+      {
+        "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+        "worktree_bytes": 7177,
+        "worktree_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7",
+        "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+        "git_blob_bytes": 7177,
+        "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+      },
+      {
+        "path": "packages/mcp-server/src/security/SandboxCostComposition.ts",
+        "worktree_bytes": 9754,
+        "worktree_sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a",
+        "git_blob_oid": "4500b159177bb3fb04b8038503f68cbd6e79c716",
+        "git_blob_bytes": 9754,
+        "git_blob_sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a"
+      },
+      {
+        "path": "compositions/holonews-claim-kiosk.hsplus",
+        "worktree_bytes": 10942,
+        "worktree_sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4",
+        "git_blob_oid": "5817c874038c9a060e53bc4b29fe0b6b84e955d4",
+        "git_blob_bytes": 10942,
+        "git_blob_sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4"
+      }
+    ]
+  },
+  "hash_scheme": "sha256-canonical-json-v2",
+  "hash_scope": "full_receipt_excluding_payload_hash",
+  "hash_payload": {
+    "input_sha256": "80164e83c9a5f01aa0cd420434298507eae826d2146637c9feb057b1e0bcb70d",
+    "qubo_sha256": "d696d95eedc2caa5322d4bc9aef23a52f1342141a8603d7b5c0c14718eaf82ca",
+    "execution_payload_hash": "125426fcb2b692b9fe787276aac9dda6a21752edd7e070b7d0b1ca1898811fde",
+    "code_hashes": {
+      "scout_sha256": "9c4563c348b44ee5ecc3f477b66a9eedc9a1df7f1d20b18be180780a39dad01f",
+      "executor_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
+      "verifier_sha256": "a014e81c07d58ad02d400e819057a5652a0d16ac309b3ba8a68a10dae8c3eb0f",
+      "composition_sha256": "bfdd3d3be4d0fe54a56af123294962c329cb9d9653cd5e981e999574d85331ec"
+    },
+    "code_evidence_sha256": "05fc806c83005ed5594c6ee8cd5c00b2cd62ab6b3445d91320d902f542b6c84e",
+    "results": {
+      "qaoa": {
+        "bitstring": "001000011001",
+        "objective": -124.0641666667
+      },
+      "exact": {
+        "bitstring": "010010010010",
+        "objective": -126.95666666669999
+      },
+      "greedy": {
+        "bitstring": "100100100100",
+        "objective": -126.46428571429998
+      },
+      "budget_random": {
+        "bitstring": "010010010010",
+        "objective": -126.95666666669999
+      },
+      "semantic_exact": {
+        "bitstring": "010010010010",
+        "semantic_bitstring": "010010010",
+        "objective": -126.95666666669999
+      }
+    },
+    "hardware_gate_decision": "NO_GO",
+    "pyramid_variant": "volume_quadratized",
+    "base_portfolio_matrix_sha256": "bdec7a78555feed497bb42009ba5a6b08b4914b94a326f90f7f6eefd9a183f57",
+    "semantic_pairwise_matrix_sha256": "326b0529bd87e33032e427b9b4dfbea039e0b54db90b8f6ef2069e2a9860ea32",
+    "pyramid_model_sha256": "7eb9dfa4096d4f783042a85713f01cffa8778d578d19bb07ff77a41890feb9ed"
+  },
+  "pyramid_variant": "volume_quadratized",
+  "semantic_variable_count": 9,
+  "ancilla_variable_count": 3,
+  "total_qubit_count": 12,
+  "pyramid_qubo": {
+    "schema": "holoscript.paradox-pyramid-qubo.v1",
+    "default_variant": "pairwise",
+    "faces": [
+      {
+        "id": "observability",
+        "candidate_ids": [
+          "QP-PP001-01",
+          "QP-PP001-04",
+          "QP-PP001-05"
+        ]
+      },
+      {
+        "id": "falsification",
+        "candidate_ids": [
+          "QP-PP001-02",
+          "QP-PP001-03",
+          "QP-PP001-06"
+        ]
+      },
+      {
+        "id": "proof-scope",
+        "candidate_ids": [
+          "QP-PP003-01",
+          "QP-PP003-02",
+          "QP-PP003-06"
+        ]
+      }
+    ],
+    "structural_pair_coefficients": {
+      "same_face": 0.25,
+      "aligned_cross_face": -0.2,
+      "other_cross_face": 0.05
+    },
+    "aligned_cubic_coefficients": [
+      -0.75,
+      -0.75,
+      -0.75
+    ],
+    "rosenberg_margin": 0.5,
+    "coefficient_provenance": "Author-assigned mechanics-pilot coefficients declared in this fixture before either pyramid variant executes. They are structural hypotheses, not learned effects or observed scientific outcomes.",
+    "author_blinding_claimed": false,
+    "optimizer_outcome_independence_claimed": false,
+    "quantum_advantage_claimed": false,
+    "literal_3d_quantum_processing_claimed": false,
+    "claim_boundary": "Pairwise coefficients express declared same-face and cross-face planning relationships. Volume coefficients express three sparse aligned interactions and are reduced exactly with deterministic Rosenberg ancillas. These coefficients are author priors and do not establish a causal, geometric, or scientifically productive paradox structure."
+  },
+  "pyramid_model": {
+    "semantic_variable_count": 9,
+    "ancilla_variable_count": 3,
+    "total_variable_count": 12,
+    "variable_order": [
+      {
+        "index": 0,
+        "kind": "semantic",
+        "id": "QP-PP001-01",
+        "candidate_id": "QP-PP001-01",
+        "face_id": "observability",
+        "face_index": 0,
+        "slot": 0
+      },
+      {
+        "index": 1,
+        "kind": "semantic",
+        "id": "QP-PP001-04",
+        "candidate_id": "QP-PP001-04",
+        "face_id": "observability",
+        "face_index": 0,
+        "slot": 1
+      },
+      {
+        "index": 2,
+        "kind": "semantic",
+        "id": "QP-PP001-05",
+        "candidate_id": "QP-PP001-05",
+        "face_id": "observability",
+        "face_index": 0,
+        "slot": 2
+      },
+      {
+        "index": 3,
+        "kind": "semantic",
+        "id": "QP-PP001-02",
+        "candidate_id": "QP-PP001-02",
+        "face_id": "falsification",
+        "face_index": 1,
+        "slot": 0
+      },
+      {
+        "index": 4,
+        "kind": "semantic",
+        "id": "QP-PP001-03",
+        "candidate_id": "QP-PP001-03",
+        "face_id": "falsification",
+        "face_index": 1,
+        "slot": 1
+      },
+      {
+        "index": 5,
+        "kind": "semantic",
+        "id": "QP-PP001-06",
+        "candidate_id": "QP-PP001-06",
+        "face_id": "falsification",
+        "face_index": 1,
+        "slot": 2
+      },
+      {
+        "index": 6,
+        "kind": "semantic",
+        "id": "QP-PP003-01",
+        "candidate_id": "QP-PP003-01",
+        "face_id": "proof-scope",
+        "face_index": 2,
+        "slot": 0
+      },
+      {
+        "index": 7,
+        "kind": "semantic",
+        "id": "QP-PP003-02",
+        "candidate_id": "QP-PP003-02",
+        "face_id": "proof-scope",
+        "face_index": 2,
+        "slot": 1
+      },
+      {
+        "index": 8,
+        "kind": "semantic",
+        "id": "QP-PP003-06",
+        "candidate_id": "QP-PP003-06",
+        "face_id": "proof-scope",
+        "face_index": 2,
+        "slot": 2
+      },
+      {
+        "index": 9,
+        "kind": "ancilla",
+        "id": "ancilla:aligned-volume:0",
+        "represents_product_of": [
+          0,
+          3
+        ],
+        "higher_order_term_id": "aligned-volume:0"
+      },
+      {
+        "index": 10,
+        "kind": "ancilla",
+        "id": "ancilla:aligned-volume:1",
+        "represents_product_of": [
+          1,
+          4
+        ],
+        "higher_order_term_id": "aligned-volume:1"
+      },
+      {
+        "index": 11,
+        "kind": "ancilla",
+        "id": "ancilla:aligned-volume:2",
+        "represents_product_of": [
+          2,
+          5
+        ],
+        "higher_order_term_id": "aligned-volume:2"
+      }
+    ],
+    "faces": [
+      {
+        "id": "observability",
+        "candidate_ids": [
+          "QP-PP001-01",
+          "QP-PP001-04",
+          "QP-PP001-05"
+        ]
+      },
+      {
+        "id": "falsification",
+        "candidate_ids": [
+          "QP-PP001-02",
+          "QP-PP001-03",
+          "QP-PP001-06"
+        ]
+      },
+      {
+        "id": "proof-scope",
+        "candidate_ids": [
+          "QP-PP003-01",
+          "QP-PP003-02",
+          "QP-PP003-06"
+        ]
+      }
+    ],
+    "structural_pair_terms": [
+      {
+        "left_index": 0,
+        "right_index": 1,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 0,
+        "right_index": 2,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 0,
+        "right_index": 3,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 0,
+        "right_index": 4,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 0,
+        "right_index": 5,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 0,
+        "right_index": 6,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 0,
+        "right_index": 7,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 0,
+        "right_index": 8,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 1,
+        "right_index": 2,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 1,
+        "right_index": 3,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 1,
+        "right_index": 4,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 1,
+        "right_index": 5,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 1,
+        "right_index": 6,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 1,
+        "right_index": 7,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 1,
+        "right_index": 8,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 2,
+        "right_index": 3,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 2,
+        "right_index": 4,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 2,
+        "right_index": 5,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 2,
+        "right_index": 6,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 2,
+        "right_index": 7,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 2,
+        "right_index": 8,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 3,
+        "right_index": 4,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 3,
+        "right_index": 5,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 3,
+        "right_index": 6,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 3,
+        "right_index": 7,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 3,
+        "right_index": 8,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 4,
+        "right_index": 5,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 4,
+        "right_index": 6,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 4,
+        "right_index": 7,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 4,
+        "right_index": 8,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 5,
+        "right_index": 6,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 5,
+        "right_index": 7,
+        "relation": "other_cross_face",
+        "coefficient": 0.05
+      },
+      {
+        "left_index": 5,
+        "right_index": 8,
+        "relation": "aligned_cross_face",
+        "coefficient": -0.2
+      },
+      {
+        "left_index": 6,
+        "right_index": 7,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 6,
+        "right_index": 8,
+        "relation": "same_face",
+        "coefficient": 0.25
+      },
+      {
+        "left_index": 7,
+        "right_index": 8,
+        "relation": "same_face",
+        "coefficient": 0.25
+      }
+    ],
+    "higher_order_terms": [
+      {
+        "id": "aligned-volume:0",
+        "slot": 0,
+        "semantic_indices": [
+          0,
+          3,
+          6
+        ],
+        "semantic_ids": [
+          "QP-PP001-01",
+          "QP-PP001-02",
+          "QP-PP003-01"
+        ],
+        "coefficient": -0.75
+      },
+      {
+        "id": "aligned-volume:1",
+        "slot": 1,
+        "semantic_indices": [
+          1,
+          4,
+          7
+        ],
+        "semantic_ids": [
+          "QP-PP001-04",
+          "QP-PP001-03",
+          "QP-PP003-02"
+        ],
+        "coefficient": -0.75
+      },
+      {
+        "id": "aligned-volume:2",
+        "slot": 2,
+        "semantic_indices": [
+          2,
+          5,
+          8
+        ],
+        "semantic_ids": [
+          "QP-PP001-05",
+          "QP-PP001-06",
+          "QP-PP003-06"
+        ],
+        "coefficient": -0.75
+      }
+    ],
+    "quadratization": {
+      "method": "rosenberg-pair-product-v1",
+      "penalty_polynomial": "M*(a*b-2*a*y-2*b*y+3*y)",
+      "strength_rule": "M_k=abs(t_k)+rosenberg_margin",
+      "rosenberg_margin": 0.5,
+      "ancillas_isolated": true,
+      "constant_offset_delta": 0.0,
+      "terms": [
+        {
+          "higher_order_term_id": "aligned-volume:0",
+          "substitution": "ancilla:aligned-volume:0=x0*x3",
+          "substitution_pair": [
+            0,
+            3
+          ],
+          "remaining_index": 6,
+          "ancilla_id": "ancilla:aligned-volume:0",
+          "ancilla_index": 9,
+          "cubic_coefficient": -0.75,
+          "penalty_strength": 1.25,
+          "minimum_wrong_assignment_gap_bound": 0.5
+        },
+        {
+          "higher_order_term_id": "aligned-volume:1",
+          "substitution": "ancilla:aligned-volume:1=x1*x4",
+          "substitution_pair": [
+            1,
+            4
+          ],
+          "remaining_index": 7,
+          "ancilla_id": "ancilla:aligned-volume:1",
+          "ancilla_index": 10,
+          "cubic_coefficient": -0.75,
+          "penalty_strength": 1.25,
+          "minimum_wrong_assignment_gap_bound": 0.5
+        },
+        {
+          "higher_order_term_id": "aligned-volume:2",
+          "substitution": "ancilla:aligned-volume:2=x2*x5",
+          "substitution_pair": [
+            2,
+            5
+          ],
+          "remaining_index": 8,
+          "ancilla_id": "ancilla:aligned-volume:2",
+          "ancilla_index": 11,
+          "cubic_coefficient": -0.75,
+          "penalty_strength": 1.25,
+          "minimum_wrong_assignment_gap_bound": 0.5
+        }
+      ],
+      "equivalence_certificate": {
+        "semantic_assignments_checked": 512,
+        "expanded_assignments_checked": 4096,
+        "max_abs_minimized_objective_error": 5.684341886080802e-14,
+        "minimum_infeasible_gap": 0.49999999999994316,
+        "all_minimizing_ancillas_match_products": true,
+        "semantic_optimal_bitstring": "010010010",
+        "expanded_optimal_bitstring": "010010010010",
+        "expanded_optimum_projects_to_semantic_optimum": true
+      }
+    }
+  },
+  "paradox_probe_policy": {
+    "ranking_field_allowlist": [
+      "expected_information_gain",
+      "falsifier_readiness",
+      "strategic_value",
+      "expected_cost"
+    ],
+    "forbidden_ranking_tokens": [
+      "adjudication",
+      "bounded_tradeoff",
+      "bug",
+      "dissolved",
+      "empirical_anomaly",
+      "impossibility",
+      "new_mechanism",
+      "novelty",
+      "outcome",
+      "paradox_score",
+      "productive",
+      "retired",
+      "unresolved",
+      "value_tension",
+      "verdict"
+    ],
+    "allowed_stages": [
+      "normalized",
+      "falsifiable",
+      "reproduced"
+    ],
+    "require_outcome_field_exclusion": true,
+    "author_blinding_claimed": false,
+    "control_labels_are_author_supplied": true,
+    "require_code_state_binding": true,
+    "durable_receipt_requires_committed_sources": true,
+    "declared_state_path_churn_weight": 1.25,
+    "adjudication_corpus": "research/quantum-novelty-scout/paradox-probe-controls-v1.json",
+    "adjudication_corpus_schema": "holoscript.paradox-control-corpus.v1",
+    "adjudication_corpus_sha256": "f85e042f45be562e87b288a68837a34cf66463843b1944a69025bca28169b7a1",
+    "control_executor": "scripts/paradox_probe_controls.py",
+    "control_executor_sha256": "9eec4c279cab4e6c64188cf27a586e83e0aaff1e852ecc6e6bdc608440cc421a",
+    "control_receipt": "research/quantum-novelty-scout/paradox-probe-control-receipt-v1.json",
+    "control_receipt_sha256": "dfbdf2d6133b8202dec85e486536453088511970492cc2c0de62f3681fa7f2f9",
+    "passing_control_receipt_required": true,
+    "claim_boundary": "The optimizer uses author-assigned priors, declared file availability, code-state path churn, tag similarity, state-blob similarity, and the declared pyramid coefficients. Authors were not blinded; outcome independence, paradox productivity, novelty, literal 3D processing, and quantum advantage are not claimed."
+  },
+  "paradox_probe_contract": {
+    "mode": "paradox_probe_selection",
+    "fixture_schema": "holoscript.quantum-paradox-probes.v1",
+    "card_ids": [
+      "PP-001",
+      "PP-003"
+    ],
+    "probe_ids": [
+      "QP-001",
+      "QP-004",
+      "QP-005",
+      "QP-002",
+      "QP-003",
+      "QP-006",
+      "QP-007",
+      "QP-008",
+      "QP-012"
+    ],
+    "code_state_variable_ids": [
+      "C-PP001-01",
+      "C-PP001-04",
+      "C-PP001-05",
+      "C-PP001-02",
+      "C-PP001-03",
+      "C-PP001-06",
+      "C-PP003-01",
+      "C-PP003-02",
+      "C-PP003-06"
+    ],
+    "code_state_fingerprints": [
+      "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+      "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+      "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+      "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+      "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+      "b73d9fc2edce60e8b6dc4cb3f6dd1a1e16f0b4978efe264575ad2de41470cb82",
+      "c266e6c2184afafd4983b492804f533aae18a18b005f76b5497284e222217ca8",
+      "d4ce94dcae990df96cd5b40597024971b893ef713e7062a5859c360fe8727ead",
+      "4cc4d56c7064c050e99e640742b789aca576973510af028ba496b1be45d1e5c5"
+    ],
+    "ranking_field_allowlist": [
+      "expected_information_gain",
+      "falsifier_readiness",
+      "strategic_value",
+      "expected_cost"
+    ],
+    "candidate_optimizer_input_fields": [
+      "candidates[].id/order",
+      "scores",
+      "kill_test.status",
+      "tags",
+      "code_evidence",
+      "paradox_probe.code_state"
+    ],
+    "qubo_configuration_input_fields": [
+      "score_weights",
+      "target_cardinality",
+      "cardinality_penalty",
+      "redundancy_penalty",
+      "kill_status_adjustments",
+      "code_evidence_policy",
+      "paradox_probe_policy.declared_state_path_churn_weight",
+      "pyramid_qubo",
+      "selected_pyramid_variant"
+    ],
+    "adjudication_corpus": "research/quantum-novelty-scout/paradox-probe-controls-v1.json",
+    "adjudication_corpus_schema": "holoscript.paradox-control-corpus.v1",
+    "adjudication_corpus_sha256": "f85e042f45be562e87b288a68837a34cf66463843b1944a69025bca28169b7a1",
+    "control_executor": "scripts/paradox_probe_controls.py",
+    "control_executor_sha256": "9eec4c279cab4e6c64188cf27a586e83e0aaff1e852ecc6e6bdc608440cc421a",
+    "control_receipt": "research/quantum-novelty-scout/paradox-probe-control-receipt-v1.json",
+    "control_receipt_sha256": "dfbdf2d6133b8202dec85e486536453088511970492cc2c0de62f3681fa7f2f9",
+    "passing_control_receipt_bound": true,
+    "control_execution_independently_verified": false,
+    "explicit_outcome_fields_or_label_tokens_in_score_names_or_tags": false,
+    "optimizer_outcome_independence_claimed": false,
+    "author_blinding_claimed": false,
+    "control_labels_are_author_supplied": true,
+    "declared_state_path_churn_weight": 1.25,
+    "code_similarity_basis": "declared-state Git blob SHA-256 Jaccard",
+    "claim_boundary": "The optimizer uses author-assigned priors, declared file availability, code-state path churn, tag similarity, state-blob similarity, and the declared pyramid coefficients. Authors were not blinded; outcome independence, paradox productivity, novelty, literal 3D processing, and quantum advantage are not claimed.",
+    "selected_pyramid_variant": "volume_quadratized"
+  },
+  "post_execution_source_state": {
+    "head_commit": "1dc0261c4fa669f39d5ddce9fff1b7bf10c5caa5",
+    "head_tree": "610b9f3ec377e7e77baa658c748057375660c487",
+    "scoped_dirty": false,
+    "scoped_status": [],
+    "files": [
+      {
+        "path": "scripts/quantum_novelty_scout.py",
+        "worktree_bytes": 95806,
+        "worktree_sha256": "9c4563c348b44ee5ecc3f477b66a9eedc9a1df7f1d20b18be180780a39dad01f",
+        "git_blob_oid": "b4355ba2d45fc5d0c61b7f4593f243f5889f900a",
+        "git_blob_bytes": 95806,
+        "git_blob_sha256": "9c4563c348b44ee5ecc3f477b66a9eedc9a1df7f1d20b18be180780a39dad01f"
+      },
+      {
+        "path": "scripts/quantum_execute.py",
+        "worktree_bytes": 60245,
+        "worktree_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899",
+        "git_blob_oid": "a8016e6adb4a38bc4ee465be5cc2e104c86ef0f7",
+        "git_blob_bytes": 60245,
+        "git_blob_sha256": "8bba9401e300749d6b543c8865a14b8ac2680c4f01ade6077330ecdd6d449899"
+      },
+      {
+        "path": "scripts/quantum_receipt_verify.py",
+        "worktree_bytes": 126284,
+        "worktree_sha256": "a014e81c07d58ad02d400e819057a5652a0d16ac309b3ba8a68a10dae8c3eb0f",
+        "git_blob_oid": "1603cc7cf583c6742cee80bcc4fd5f145e246971",
+        "git_blob_bytes": 126284,
+        "git_blob_sha256": "a014e81c07d58ad02d400e819057a5652a0d16ac309b3ba8a68a10dae8c3eb0f"
+      },
+      {
+        "path": "scripts/__tests__/test_quantum_novelty_scout.py",
+        "worktree_bytes": 65769,
+        "worktree_sha256": "f6770b8d01f45e50d768692aa64d3e13d876fcda842d7a9084b0241d9e06d463",
+        "git_blob_oid": "5dbf05a7ee28ac2b0629f8b37abfec8c86b2064a",
+        "git_blob_bytes": 65769,
+        "git_blob_sha256": "f6770b8d01f45e50d768692aa64d3e13d876fcda842d7a9084b0241d9e06d463"
+      },
+      {
+        "path": "research/quantum-novelty-scout/paradox-pyramid-probes-v1.json",
+        "worktree_bytes": 22852,
+        "worktree_sha256": "ebabd42497fcac4a27cc37a2433ef01195a62a27122817b33d2b0f140e44c7f1",
+        "git_blob_oid": "dabb41b250a78facd4034a98c4776ea352092429",
+        "git_blob_bytes": 22852,
+        "git_blob_sha256": "ebabd42497fcac4a27cc37a2433ef01195a62a27122817b33d2b0f140e44c7f1"
+      },
+      {
+        "path": "research/quantum-novelty-scout/paradox-pyramid12-portfolio.holo",
+        "worktree_bytes": 1825,
+        "worktree_sha256": "567164c58d32200ec746286c1eff19708e96227b0f3a4032290ccafad4665923",
+        "git_blob_oid": "1832d9843e06e30ff9210392d1ab140b58625160",
+        "git_blob_bytes": 1807,
+        "git_blob_sha256": "bfdd3d3be4d0fe54a56af123294962c329cb9d9653cd5e981e999574d85331ec"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "worktree_bytes": 1009915,
+        "worktree_sha256": "a0bebdbc1ee6e4406ee394de6c6dc199e04bfa6a4f688e7a36a5312bd5e2410e",
+        "git_blob_oid": "d2ed31bb6f5350e3162a78a5b0dc9b1c8669fa7d",
+        "git_blob_bytes": 1009915,
+        "git_blob_sha256": "a0bebdbc1ee6e4406ee394de6c6dc199e04bfa6a4f688e7a36a5312bd5e2410e"
+      },
+      {
+        "path": "research/quantum-novelty-scout/paradox-probe-controls-v1.json",
+        "worktree_bytes": 7262,
+        "worktree_sha256": "f85e042f45be562e87b288a68837a34cf66463843b1944a69025bca28169b7a1",
+        "git_blob_oid": "69f86eb4dc2abcddb76db87f6f1f686e35d9edbd",
+        "git_blob_bytes": 7262,
+        "git_blob_sha256": "f85e042f45be562e87b288a68837a34cf66463843b1944a69025bca28169b7a1"
+      },
+      {
+        "path": "scripts/paradox_probe_controls.py",
+        "worktree_bytes": 8773,
+        "worktree_sha256": "9eec4c279cab4e6c64188cf27a586e83e0aaff1e852ecc6e6bdc608440cc421a",
+        "git_blob_oid": "6b5c969e82087b598e6113a6dd8404ef30a52581",
+        "git_blob_bytes": 8773,
+        "git_blob_sha256": "9eec4c279cab4e6c64188cf27a586e83e0aaff1e852ecc6e6bdc608440cc421a"
+      },
+      {
+        "path": "research/quantum-novelty-scout/paradox-probe-control-receipt-v1.json",
+        "worktree_bytes": 8637,
+        "worktree_sha256": "dfbdf2d6133b8202dec85e486536453088511970492cc2c0de62f3681fa7f2f9",
+        "git_blob_oid": "87f0905469e817cdeb8d752211dc522b39f0bbe1",
+        "git_blob_bytes": 8637,
+        "git_blob_sha256": "dfbdf2d6133b8202dec85e486536453088511970492cc2c0de62f3681fa7f2f9"
+      },
+      {
+        "path": "packages/core/src/plugins/PluginSandboxRunner.ts",
+        "worktree_bytes": 18211,
+        "worktree_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529",
+        "git_blob_oid": "210f84efd50b77ebab87677704f48cd1022070e9",
+        "git_blob_bytes": 18211,
+        "git_blob_sha256": "2189e5f88ded1301ec9842e0b2ce6f1c09a165bc7f39880e06d1230d52869529"
+      },
+      {
+        "path": "research/paradox-to-proof/pp001/pp001_living_artifact.mjs",
+        "worktree_bytes": 23415,
+        "worktree_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3",
+        "git_blob_oid": "d156775f70fd897a91b13353215a7e5573e1ea14",
+        "git_blob_bytes": 23415,
+        "git_blob_sha256": "06d4bf24805a5a800558ae8d3a4b5313c0394576dedfd7960a6773427c773fe3"
+      },
+      {
+        "path": "research/paradox-to-proof/pp001/receipt.json",
+        "worktree_bytes": 31227,
+        "worktree_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c",
+        "git_blob_oid": "ba3d7e3d9c778afe4fe0da6ca83eedbd41236a5a",
+        "git_blob_bytes": 31227,
+        "git_blob_sha256": "ac7808b394d5d5b4b3c28fbc0915031f48a2be2d48ff08e4e1fa5d14eacfa49c"
+      },
+      {
+        "path": "research/paradox-to-proof/pp001/report.md",
+        "worktree_bytes": 8075,
+        "worktree_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd",
+        "git_blob_oid": "22f8b9959854cfa27fe391e68b60dd027c0a9ca3",
+        "git_blob_bytes": 8075,
+        "git_blob_sha256": "d5b4c46c0b3ee9cc6171d20d5409cad62aca041d0d56aa7300793ff53560edcd"
+      },
+      {
+        "path": "packages/plugins/holonews-plugin/src/traits/proof-adjacency-guard.mjs",
+        "worktree_bytes": 4910,
+        "worktree_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5",
+        "git_blob_oid": "7745081febc31433e2baecdd2ae29ecf10e75e44",
+        "git_blob_bytes": 4910,
+        "git_blob_sha256": "fed0049fc373b558849fec3e632939f51f9ef306ee631b7d4ebe6d882ef2e9a5"
+      },
+      {
+        "path": "scripts/__tests__/pp003_proof_adjacency.test.mjs",
+        "worktree_bytes": 24477,
+        "worktree_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714",
+        "git_blob_oid": "ee1baec258fdb8b50fb9bff90703614b034235bb",
+        "git_blob_bytes": 24477,
+        "git_blob_sha256": "7de0ce9e5bb11b3d8e22a8c62dd03bc55b12513f13775d9919be4c932b912714"
+      },
+      {
+        "path": "research/paradox-to-proof/pp003/pp003-receipt.json",
+        "worktree_bytes": 8343,
+        "worktree_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0",
+        "git_blob_oid": "547c1b96eee49412cfee6b99f1c9cd643b2726cd",
+        "git_blob_bytes": 8343,
+        "git_blob_sha256": "e31f00fe897863015e5eddb29f217df0502cc5cece17326bdd47e3a85d7494a0"
+      },
+      {
+        "path": "research/paradox-to-proof/pp003/report.md",
+        "worktree_bytes": 10143,
+        "worktree_sha256": "4dfb2133bbf362a042f260f879d7226aab14a14997ea4fcb1d5995c0f87cda43",
+        "git_blob_oid": "9febbe4d15798cac5740e1111e20b8d9dd661cd6",
+        "git_blob_bytes": 10143,
+        "git_blob_sha256": "4dfb2133bbf362a042f260f879d7226aab14a14997ea4fcb1d5995c0f87cda43"
+      },
+      {
+        "path": "packages/plugins/holonews-plugin/src/traits/claim-kiosk-trait.mjs",
+        "worktree_bytes": 7177,
+        "worktree_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7",
+        "git_blob_oid": "1b1bde04ebc53afef6c16852f577d684d93bbcb4",
+        "git_blob_bytes": 7177,
+        "git_blob_sha256": "32b53e400ce40874ea1fa8b20b96ad4b7a175bb3fe140a633244172811eb3cc7"
+      },
+      {
+        "path": "packages/mcp-server/src/security/SandboxCostComposition.ts",
+        "worktree_bytes": 9754,
+        "worktree_sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a",
+        "git_blob_oid": "4500b159177bb3fb04b8038503f68cbd6e79c716",
+        "git_blob_bytes": 9754,
+        "git_blob_sha256": "5a3d86d1ec7bd80d858e52f0411c3024bf38d74f0db2ed290bc5e09d7523620a"
+      },
+      {
+        "path": "compositions/holonews-claim-kiosk.hsplus",
+        "worktree_bytes": 10942,
+        "worktree_sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4",
+        "git_blob_oid": "5817c874038c9a060e53bc4b29fe0b6b84e955d4",
+        "git_blob_bytes": 10942,
+        "git_blob_sha256": "30b9fb55265b67896d170e6334f772b343d23e20ce2975eba0369c4f4b99edf4"
+      }
+    ]
+  },
+  "execution_source_stability": {
+    "pre_scoped_signature_sha256": "43907b23b46c7a745946a6526e5aefb2625349172f91e0f27ebc356f95d2269a",
+    "post_scoped_signature_sha256": "43907b23b46c7a745946a6526e5aefb2625349172f91e0f27ebc356f95d2269a",
+    "scoped_sources_unchanged_during_execution": true,
+    "pre_head_commit": "1dc0261c4fa669f39d5ddce9fff1b7bf10c5caa5",
+    "post_head_commit": "1dc0261c4fa669f39d5ddce9fff1b7bf10c5caa5",
+    "unrelated_head_advance_allowed": true
+  },
+  "payload_hash": "da45bf0924abd41662774dfee6c693f2343cbd881d09aed19703ad200c589a46"
+}
