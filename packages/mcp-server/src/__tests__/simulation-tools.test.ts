@@ -124,6 +124,55 @@ const minimalStructuralConfig = {
   constraints: [{ nodeIndex: 0 }],
 };
 
+type MutableTraceEntry = {
+  version: 'cael.v1';
+  runId: string;
+  index: number;
+  event: string;
+  timestamp: number;
+  simTime: number;
+  prevHash: string;
+  hash: string;
+  payload: Record<string, unknown>;
+};
+
+function canonicalTraceValue(value: unknown): unknown {
+  if (value === null || value === undefined || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((entry) => canonicalTraceValue(entry));
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+    out[key] = canonicalTraceValue((value as Record<string, unknown>)[key]);
+  }
+  return out;
+}
+
+function traceHash(entry: Omit<MutableTraceEntry, 'hash'>): string {
+  const input = JSON.stringify(canonicalTraceValue(entry));
+  let hash = 2166136261;
+  for (let index = 0; index < input.length; index++) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `cael-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+function rehashTrace(entries: MutableTraceEntry[]): string {
+  let prevHash = 'cael.genesis';
+  return entries
+    .map((entry, index) => {
+      const { hash: _oldHash, ...entryWithoutHash } = entry;
+      const base: Omit<MutableTraceEntry, 'hash'> = {
+        ...entryWithoutHash,
+        index,
+        prevHash,
+      };
+      const hash = traceHash(base);
+      prevHash = hash;
+      return JSON.stringify({ ...base, hash });
+    })
+    .join('\n');
+}
+
 describe('simulation tools with CAEL metadata', () => {
   it('keeps simulation tool property descriptions free of generic returns pollution', () => {
     const polluted = JSON.stringify(simulationTools).includes(
@@ -330,6 +379,46 @@ describe('simulation tools with CAEL metadata', () => {
     expect(verify.hashChainValid).toBe(true);
     expect(verify.replayValid).toBe(true);
     expect(verify.solverType).toBe('solve_structural');
+  });
+
+  it('verify_cael_trace rejects a valid structural chain with no solve event', async () => {
+    const solve = (await handleSimulationTool('solve_structural', {
+      config: minimalStructuralConfig,
+    })) as Record<string, unknown>;
+    const entries = String(solve.traceJSONL)
+      .split('\n')
+      .map((line) => JSON.parse(line) as MutableTraceEntry)
+      .filter((entry) => entry.event !== 'solve');
+
+    const verify = (await handleSimulationTool('verify_cael_trace', {
+      traceJSONL: rehashTrace(entries),
+    })) as Record<string, unknown>;
+
+    expect(verify.success).toBe(false);
+    expect(verify.hashChainValid).toBe(true);
+    expect(verify.replayValid).toBe(false);
+    expect(String(verify.error)).toContain('missing the solve event');
+  });
+
+  it('verify_cael_trace rejects a valid structural chain with no state digest', async () => {
+    const solve = (await handleSimulationTool('solve_structural', {
+      config: minimalStructuralConfig,
+    })) as Record<string, unknown>;
+    const entries = String(solve.traceJSONL)
+      .split('\n')
+      .map((line) => JSON.parse(line) as MutableTraceEntry);
+    const solveEntry = entries.find((entry) => entry.event === 'solve');
+    expect(solveEntry).toBeTruthy();
+    delete solveEntry!.payload.stateDigests;
+
+    const verify = (await handleSimulationTool('verify_cael_trace', {
+      traceJSONL: rehashTrace(entries),
+    })) as Record<string, unknown>;
+
+    expect(verify.success).toBe(false);
+    expect(verify.hashChainValid).toBe(true);
+    expect(verify.replayValid).toBe(false);
+    expect(String(verify.error)).toContain('missing state digests');
   });
 
   it('solve_thermal geometry hash in init trace entry is not the placeholder geo-unavailable', async () => {

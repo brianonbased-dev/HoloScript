@@ -542,7 +542,16 @@ function computeThermalStateDigest(
 
 function verifyStateDigests(entry: TraceEntry, actualDigests: readonly string[]): void {
   const expected = entry.payload.stateDigests;
-  if (!Array.isArray(expected)) return;
+  if (!Array.isArray(expected) || expected.length === 0) {
+    throw new Error(
+      `missing state digests at ${entry.event} event (index ${entry.index}); replay cannot establish state agreement`
+    );
+  }
+  if (actualDigests.length === 0) {
+    throw new Error(
+      `replay produced no state digest at ${entry.event} event (index ${entry.index})`
+    );
+  }
 
   if (expected.length !== actualDigests.length) {
     throw new Error(
@@ -1050,7 +1059,7 @@ export const simulationTools: Tool[] = [
   {
     name: 'solve_structural',
     description:
-      'Run a TET10 structural FEA simulation. Returns displacement/stress results + a CAEL trace proving execution integrity. Input: nodes, elements, materials, forces, constraints.',
+      'Run a TET10 structural FEA simulation. Returns displacement/stress results + a CAEL trace for local chain checking and fresh-solver replay. Input: nodes, elements, materials, forces, constraints.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1093,7 +1102,7 @@ export const simulationTools: Tool[] = [
   {
     name: 'solve_thermal',
     description:
-      'Run a thermal conduction simulation on a structured grid. Returns temperature field + a CAEL trace proving execution integrity. Input: grid, material, sources, BCs.',
+      'Run a thermal conduction simulation on a structured grid. Returns temperature field + a CAEL trace for local chain checking and fresh-solver replay. Input: grid, material, sources, BCs.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1237,7 +1246,7 @@ export const simulationTools: Tool[] = [
   {
     name: 'verify_cael_trace',
     description:
-      'Verify a CAEL trace hash-chain for tamper detection. Pass traceId (from solve_* result) or raw JSONL. Returns { valid, entries, brokenAt?, reason? }.',
+      'Check CAEL hash-chain internal consistency and attempt fresh replay. This does not authenticate the trace origin or bind it to a caller-retained request/result. Pass traceId (from solve_* result) or raw JSONL.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1256,7 +1265,7 @@ export const simulationTools: Tool[] = [
   {
     name: 'solve_logic',
     description:
-      'Execute a HoloScript .hs LOGIC function (a pure computation/algorithm oracle) in a hardened isolate and return its result plus a CAEL receipt proving the computation. Input: the .hs source, the function name, and positional args. The verifyUrl RE-RUNS the logic to confirm the result (re-runnable proof, not just tamper detection). Use for verifiable math/algorithm oracles (gcd, gradient descent, dijkstra, etc.).',
+      'Execute a HoloScript .hs LOGIC function in a restricted same-process context and return its result plus a CAEL trace. Input: the .hs source, function name, and positional args. Verification re-runs the recorded logic and compares its result; it is not hard isolation or origin authentication.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1475,15 +1484,16 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
       );
       await Promise.resolve(solver.solve());
       const solveEvent = trace.find((e) => e.event === 'solve');
-      if (solveEvent) {
-        const stateDigest = computeStructuralStateDigest(
-          Sim,
-          solver.getDisplacements(),
-          solver.getVonMisesStress(),
-          hashMode
-        );
-        verifyStateDigests(solveEvent, stateDigest ? [stateDigest] : []);
+      if (!solveEvent) {
+        throw new Error('structural trace is missing the solve event required for replay evidence');
       }
+      const stateDigest = computeStructuralStateDigest(
+        Sim,
+        solver.getDisplacements(),
+        solver.getVonMisesStress(),
+        hashMode
+      );
+      verifyStateDigests(solveEvent, stateDigest ? [stateDigest] : []);
     } else if (solverType === 'solve_thermal') {
       const solver = new Sim.ThermalSolver(
         (init?.payload?.config ?? {}) as unknown as ConstructorParameters<
@@ -1501,9 +1511,9 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
         }
       }
     } else if (solverType === 'hs-logic') {
-      // Re-runnable proof for .hs logic: re-execute the recorded function with the recorded
-      // args in the hardened isolate and confirm it reproduces the recorded result. This is
-      // deterministic replay (stronger than hash-chain tamper detection alone).
+      // Re-execute the recorded .hs function with the recorded args in the restricted
+      // same-process context and compare it with the recorded result. This checks
+      // reproducibility for the trace's own input; it is not hard isolation or origin proof.
       const cfg = (init?.payload?.config ?? {}) as {
         code?: unknown;
         functionName?: unknown;

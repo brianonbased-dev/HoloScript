@@ -1,13 +1,14 @@
 /**
  * HoloScript Security Sandbox
  *
- * Provides VM-based isolation for executing HoloScript code, especially
- * AI-generated code that may contain malicious patterns.
+ * Provides a restricted same-process context for executing HoloScript code.
+ * It is defense in depth for generated code, not a hostile-code isolation
+ * boundary.
  *
  * Security Features:
- * - Isolated VM execution (no access to host filesystem, network, or process)
- * - Resource limits (memory, timeout)
- * - Allowlist-based API access
+ * - Shadowed host globals and lexical policy checks
+ * - Synchronous execution timeout (no enforced memory or instruction budget)
+ * - Narrow injected API surface
  * - Parser validation before execution
  * - Execution audit logging
  *
@@ -351,21 +352,20 @@ export class HoloScriptSandbox {
     // ─────────────────────────────────────────────────────────────────────────
     // FIRST-PASS HEURISTIC — NOT A SECURITY BOUNDARY.
     // ─────────────────────────────────────────────────────────────────────────
-    // This regex layer is defense-in-depth only. The REAL security boundary is
-    // the vm2 frozen context (see VM construction below, ~L361). vm2 enforces
-    // actual isolation of the prototype chain at runtime; this text-scan is a
-    // cheap first-pass that (a) produces human-readable rejection messages
-    // before code ever enters the VM, and (b) catches obviously malicious
-    // patterns at zero runtime cost.
+    // This regex layer is defense in depth only. It produces human-readable
+    // rejection messages before code enters the runtime and cheaply catches
+    // named malicious patterns. The restricted node:vm context below is also
+    // defense in depth: Node explicitly does not define node:vm as a security
+    // mechanism, and this package does not provide a process/OS isolation
+    // boundary, enforced memory ceiling, or instruction/fuel budget.
     //
-    // Bypassing these regexes does NOT equal a sandbox escape — vm2 still
-    // has to be broken to reach the host. Reviewers: do not treat a clever
-    // regex bypass as a vulnerability; evaluate against the actual boundary.
+    // A regex bypass is a policy bypass even when it does not by itself prove a
+    // host escape. Evaluate both layers, and require a worker/process/container
+    // boundary before treating hostile generated code as contained.
     //
-    // SEC-T16 DONE: vm2 replaced with node:vm hardened runInContext shim.
-    // The REAL boundary is now node:vm's isolated context (no prototype chain
-    // bleed between the guest context and host). This heuristic layer remains
-    // the same first-pass scan against that hardened underlying boundary.
+    // SEC-T16 replaced vm2 with the current node:vm runInContext path. The
+    // context shadows selected host globals and prototype-access forms covered
+    // by tests; those controls must not be described as hard isolation.
     //
     // Detects attempts like:
     //   ({}).__proto__.constructor.constructor('return process')()
@@ -502,10 +502,9 @@ export class HoloScriptSandbox {
       return new Proxy({}, { get: err, apply: err, construct: err });
     };
 
-    // SEC-T16: node:vm hardened runInContext shim replaces abandoned vm2.
-    // vm.createContext() creates an entirely separate V8 context — globals
-    // set here are the *only* globals available to guest code, so prototype
-    // chain bleed from the host heap is not possible.
+    // SEC-T16: node:vm runInContext shim replaces abandoned vm2. The context
+    // shadows selected host globals, but node:vm is not a security mechanism
+    // and does not provide a process/OS boundary against hostile guest code.
     //
     // Paper #4 ablation: -Syscall Filter disables the VM-level shadows so
     // guest code sees the host's real globals (those that node:vm exposes by
