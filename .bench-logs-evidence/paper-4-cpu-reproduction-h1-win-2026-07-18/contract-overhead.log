@@ -1,0 +1,84 @@
+# contract-overhead — Contract enforcement overhead on TET4 solver (N=BENCH_N)
+# elapsed: 63.4s
+# exit: 0
+# protocol_commit: a0f9836262509134a148bf89e70aa20355eea385
+# source: packages/engine/src/simulation/__tests__/paper-benchmarks.test.ts
+# source_sha256: a2d155da56e5633cf81c5f60b014de7af02824265220077edf4679679f83243e
+# runner_sha256: a5171e7c63c0966d9bc78f92d3ca63c2af57fd196c9ae64df76a3eeefbd5f073
+# relevant_paths_clean: true
+# name_filter: Contract Overhead
+
+=== STDOUT ===
+
+ RUN  v4.1.8 C:/Users/josep/Documents/GitHub/HoloScript/packages/engine
+
+stdout | src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures overhead of ContractedSimulation wrapper on TET4 solve
+
+==========================================================================================
+CONTRACT OVERHEAD: TET4 Solver (500 iterations, 3 warmup, median + p99)
+==========================================================================================
+| Mesh     | Nodes | DOF   | Bare (ms)     | Contracted (ms) | Overhead   |
+|----------|-------|-------|---------------|-----------------|------------|
+
+stdout | src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures overhead of ContractedSimulation wrapper on TET4 solve
+| Small    |    90 |   270 | 5.43 (p99: 13.66) | 6.56 (p99: 13.13) |    20.9% |
+
+stdout | src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures overhead of ContractedSimulation wrapper on TET4 solve
+| Medium   |   182 |   546 | 16.90 (p99: 26.37) | 17.82 (p99: 29.90) |     5.4% |
+
+stdout | src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures overhead of ContractedSimulation wrapper on TET4 solve
+| Large    |   306 |   918 | 36.70 (p99: 53.22) | 37.05 (p99: 49.28) |     0.9% |
+===========================================================================
+
+% --- LaTeX Table: Contract Overhead ---
+\begin{table}[h]
+  \centering
+  \caption{Contract enforcement overhead for TET4 structural solver.}
+  \label{tab:overhead}
+  \begin{tabular}{@{}lrrrrr@{}}
+    \toprule
+    Mesh & Nodes & DOF & Bare (ms) & Contracted (ms) & Overhead \\
+    \midrule
+    Small & 90 & 270 & 5.43 (p99: 13.66) & 6.56 (p99: 13.13) & 20.9% \\
+    Medium & 182 & 546 & 16.90 (p99: 26.37) & 17.82 (p99: 29.90) & 5.4% \\
+    Large & 306 & 918 & 36.70 (p99: 53.22) & 37.05 (p99: 49.28) & 0.9% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+ ✓ src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures overhead of ContractedSimulation wrapper on TET4 solve 61466ms
+stdout | src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures geometry hashing cost at various mesh sizes
+
+============================================================
+GEOMETRY HASHING COST (FNV-1a)
+============================================================
+| Nodes  | Vertices  | Elements  | Hash (ms)   |
+|--------|-----------|-----------|-------------|
+
+stdout | src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures geometry hashing cost at various mesh sizes
+|     90 |       270 |       160 |      0.1313 |
+
+stdout | src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures geometry hashing cost at various mesh sizes
+|    306 |       918 |       640 |      0.4113 |
+
+stdout | src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures geometry hashing cost at various mesh sizes
+|    650 |      1950 |      1440 |      1.1586 |
+
+stdout | src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures geometry hashing cost at various mesh sizes
+|   1122 |      3366 |      2560 |      2.1507 |
+============================================================
+
+ ✓ src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Contract Overhead > measures geometry hashing cost at various mesh sizes 55ms
+ ↓ src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Solver Wall-Clock Scaling > TET4 solve time vs mesh size
+ ↓ src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Solver Wall-Clock Scaling > TET10 solve time vs mesh size
+ ↓ src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Convergence Data for Publication > NAFEMS LE1 — TET4 + TET10 convergence with LaTeX tables
+ ↓ src/simulation/__tests__/paper-benchmarks.test.ts > Paper Benchmark: Convergence Data for Publication > generates V&V report in LaTeX format
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 4 skipped (6)
+   Start at  13:21:13
+   Duration  62.99s (transform 1.00s, setup 0ms, import 1.27s, tests 61.52s, environment 0ms)
+
+
+
+=== STDERR ===

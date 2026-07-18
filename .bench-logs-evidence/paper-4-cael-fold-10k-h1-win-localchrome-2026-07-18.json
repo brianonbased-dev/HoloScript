@@ -1,0 +1,103 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-07-18T20:15:22.296Z",
+  "path": "webgpu-browser",
+  "paper": "paper-4-sandbox-usenix",
+  "section": "7.8 (WebGPU determinism replay — cael-trace-fold-v1 over 10000 trace rows; production-scale CAEL chain)",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 (fallback: CPU model unrecognized)",
+    "gpu": "unspecified (read from adapter_info)",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "fallback"
+  },
+  "adapter_info": {},
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "main",
+    "wgsl_path": "scripts/webgpu-capture/cael-trace-fold-v1.wgsl",
+    "wgsl_sha256": "5f31c4cbebb32c0e98bbe8ffa1f7fee3dd018184945276250bb65b1236d2b99b",
+    "workgroup_size": [
+      64,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      157,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "e8dad9ed0b463d94db236e294862ada1cc90e38f",
+  "code_provenance": {
+    "relevant_paths_clean": true,
+    "inputs": [
+      {
+        "path": "scripts/webgpu-capture/capture-bench.mjs",
+        "sha256": "103c1b4744cb7e66f2eca59dc9d66cb933b88534c4e0faf0f2f17c484c3df8af"
+      },
+      {
+        "path": "scripts/webgpu-capture/configs/paper-4-cael-fold-10k.json",
+        "sha256": "5322411cbbe60daedb32918d855406cd0f9b593f135dc4294331c021d3651fab"
+      },
+      {
+        "path": "scripts/webgpu-capture/cael-trace-fold-v1.wgsl",
+        "sha256": "5f31c4cbebb32c0e98bbe8ffa1f7fee3dd018184945276250bb65b1236d2b99b"
+      }
+    ]
+  },
+  "results": [
+    {
+      "op": "main",
+      "scale": "dispatch 157x1x1 workgroups @ 64x1x1",
+      "n": 200,
+      "trials": 200,
+      "median_us": 3150.0000059604645,
+      "p95_us": 4300.000011920929,
+      "min_us": 2299.999952316284,
+      "max_us": 5000,
+      "gpu_median_us": 9.28,
+      "gpu_p95_us": 9.824,
+      "gpu_min_us": 8.608,
+      "gpu_max_us": 20.032,
+      "digest_summary": {
+        "digest_buffer": {
+          "group": 0,
+          "binding": 1
+        },
+        "digest_mode": "bit-identical",
+        "tolerance_epsilon": null,
+        "digest_count": 200,
+        "unique_digest_count": 1,
+        "digest_bit_identical": true,
+        "digest_epsilon_identical": false,
+        "digest_first": "54075b99340d799b083817dcd2d5ac9b69c7822b972ea9c13bc23667aa252af2",
+        "digest_unique_list": [
+          "54075b99340d799b083817dcd2d5ac9b69c7822b972ea9c13bc23667aa252af2"
+        ]
+      }
+    }
+  ],
+  "notes": [
+    "Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature and exclude submit/queue overhead.",
+    "Digest readback enabled on group(0).binding(1); mode=bit-identical; all 200 trials produced the same SHA-256 (bit-identical replay PASSES at same-adapter scope)."
+  ],
+  "ots_proof_path": null,
+  "anchor_chain": null
+}

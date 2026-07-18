@@ -295,6 +295,7 @@ Desktop.ini
 # Logs
 logs
 *.log
+!.bench-logs-evidence/**/*.log
 
 # Runtime data
 pids

@@ -1,0 +1,31 @@
+# sandbox-overhead — Plugin sandbox overhead three-tier
+# elapsed: 1.8s
+# exit: 0
+# protocol_commit: a0f9836262509134a148bf89e70aa20355eea385
+# source: packages/core/src/plugins/__tests__/paper-4-sandbox-bench.test.ts
+# source_sha256: 27cb43b6d92e6ae0b3aff4fdd8d9dac15e6ddb840706677dc106f9ea7d2ec4db
+# runner_sha256: a5171e7c63c0966d9bc78f92d3ca63c2af57fd196c9ae64df76a3eeefbd5f073
+# relevant_paths_clean: true
+# name_filter: (entire file)
+
+=== STDOUT ===
+
+ RUN  v4.1.8 C:/Users/josep/Documents/GitHub/HoloScript/packages/core
+
+stdout | src/plugins/__tests__/paper-4-sandbox-bench.test.ts > Paper 4 Benchmark: Sandbox Overhead > measures median and p99 execution overhead per category
+[sandbox-bench] === RESULTS ===
+[sandbox-bench] Iterations: 300
+[sandbox-bench] Cold Runner       | Median: 0.74 ms | p99: 1.43 ms
+[sandbox-bench] Cached Expression | Median: 0.16 ms | p99: 0.38 ms
+[sandbox-bench] Unique Compile+Run| Median: 2.10 ms | p99: 4.03 ms
+
+ ✓ src/plugins/__tests__/paper-4-sandbox-bench.test.ts > Paper 4 Benchmark: Sandbox Overhead > measures median and p99 execution overhead per category 996ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  13:23:07
+   Duration  1.27s (transform 47ms, setup 0ms, import 65ms, tests 997ms, environment 0ms)
+
+
+
+=== STDERR ===

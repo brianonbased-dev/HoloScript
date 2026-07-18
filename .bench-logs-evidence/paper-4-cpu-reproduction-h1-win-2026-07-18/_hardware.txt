@@ -1,0 +1,12 @@
+timestamp: 2026-07-18T20:21:12.798Z
+host: Work
+platform: win32 10.0.26200
+arch: x64
+cpus: 16x 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz
+totalmem: 31.7 GiB
+node: v24.15.0
+protocol_commit: a0f9836262509134a148bf89e70aa20355eea385
+runner_sha256: a5171e7c63c0966d9bc78f92d3ca63c2af57fd196c9ae64df76a3eeefbd5f073
+BENCH_N: 500
+BENCH_N_LARGE: 30
+BENCH_SNAPSHOT_N: 30

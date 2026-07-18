@@ -1,0 +1,98 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-07-18T20:15:03.017Z",
+  "path": "cpu-component",
+  "paper": "paper-4-sandbox-usenix",
+  "section": "7.8",
+  "harness": "scripts/paper4-rtx-bench-standalone.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 (fallback: CPU model unrecognized, assuming integrated graphics)",
+    "gpu": "unspecified (no Node-side GPU enumeration)",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "fallback"
+  },
+  "adapter_info": null,
+  "browser": null,
+  "kernel": {
+    "name": "paper-4-cpu-component-baselines",
+    "wgsl_path": null,
+    "wgsl_sha256": null,
+    "workgroup_size": null,
+    "dispatch_size": null
+  },
+  "protocol_commit": "e8dad9ed0b463d94db236e294862ada1cc90e38f",
+  "code_provenance": {
+    "relevant_paths_clean": true,
+    "inputs": [
+      {
+        "path": "scripts/paper4-rtx-bench-standalone.mjs",
+        "sha256": "d44b372e6a75ec6a607ff6b3050f5beae3e640772f772ddb12acbb7a40082feb"
+      }
+    ]
+  },
+  "results": [
+    {
+      "op": "raw FNV-1a coordinate bytes (not hashGeometry)",
+      "scale": "1K verts",
+      "n": 1000,
+      "median_us": 12.000000000000455,
+      "p95_us": 12.300000000003308,
+      "min_us": 11.599999999994282,
+      "max_us": 29.400000000002535,
+      "trials": 1000
+    },
+    {
+      "op": "raw FNV-1a coordinate bytes (not hashGeometry)",
+      "scale": "100K verts",
+      "n": 100000,
+      "median_us": 1239.149999999995,
+      "p95_us": 1485.100000000017,
+      "min_us": 1069.2999999999984,
+      "max_us": 1743.600000000015,
+      "trials": 200
+    },
+    {
+      "op": "SHA-256 CAEL-chain verify",
+      "scale": "10^4 entries",
+      "n": 10000,
+      "median_us": 40178.450000000055,
+      "p95_us": 50143.00000000003,
+      "min_us": 37017.200000000004,
+      "max_us": 50143.00000000003,
+      "trials": 10
+    },
+    {
+      "op": "synthetic SHA-chain fold (not WGSL equivalent)",
+      "scale": "500 rows",
+      "n": 500,
+      "median_us": 1828.6999999999694,
+      "p95_us": 2248.399999999947,
+      "min_us": 1604.1999999999916,
+      "max_us": 2506.0999999999467,
+      "trials": 20
+    },
+    {
+      "op": "synthetic raw-FNV + text-SHA aggregate",
+      "scale": "1K coordinates + 500 rows",
+      "n": 500,
+      "median_us": 4471.799999999974,
+      "p95_us": 5250.700000000052,
+      "min_us": 3490.8000000000357,
+      "max_us": 5985.7999999999265,
+      "trials": 100
+    }
+  ],
+  "notes": [
+    "Synthetic SHA-chain fold over 500 text rows. This is not algorithmically equivalent to cael-trace-fold-v1 WGSL and is neither a GPU substitute nor a GPU bound.",
+    "H3 (RTX 6000 Ada) capture deferred — requires HOLOSCRIPT_HW_TIER=H3 with a verified datacenter-class host. Current run captured at tier H1 (H1 (fallback: CPU model unrecognized, assuming integrated graphics))."
+  ],
+  "ots_proof_path": null,
+  "anchor_chain": null
+}

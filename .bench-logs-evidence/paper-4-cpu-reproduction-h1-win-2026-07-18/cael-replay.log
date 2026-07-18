@@ -1,0 +1,34 @@
+# cael-replay — CAEL verifier-only throughput + one same-adapter mock replay
+# elapsed: 50.4s
+# exit: 0
+# protocol_commit: a0f9836262509134a148bf89e70aa20355eea385
+# source: packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts
+# source_sha256: 73f6a1cbf0c0c49bb9ee32ea3e12a8d05d2f7144f55f18f819ae5d8312852460
+# runner_sha256: a5171e7c63c0966d9bc78f92d3ca63c2af57fd196c9ae64df76a3eeefbd5f073
+# relevant_paths_clean: true
+# name_filter: reports verify-only vs full replay wall time
+
+=== STDOUT ===
+
+ RUN  v4.1.8 C:/Users/josep/Documents/GitHub/HoloScript/packages/engine
+
+stdout | src/simulation/__tests__/paper-cael-replay-benchmark.test.ts > Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06) > reports verify-only vs full replay wall time (~100k entries)
+
+[paper-cael-replay-benchmark] entries=99997 verifyRuns=10 verify: 2.8986 us/entry median (p99: 3.2892 us/entry)
+[paper-cael-replay-benchmark] single mock replay wall (includes one verify + same-adapter digest checks) 22275.84ms (99997 entries)
+
+ ↓ src/simulation/__tests__/paper-cael-replay-benchmark.test.ts > Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06) > reports verify-only median/p99 at multiple trace lengths (table splits)
+ ✓ src/simulation/__tests__/paper-cael-replay-benchmark.test.ts > Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06) > reports verify-only vs full replay wall time (~100k entries) 48629ms
+ ↓ src/simulation/__tests__/paper-cael-replay-benchmark.test.ts > Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06) > reports tab:verify n-sweep at 3/13/103/1003 entries (hash verify median/p99, total μs)
+ ↓ src/simulation/__tests__/paper-cael-replay-benchmark.test.ts > Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06) > reports tab:verify n-sweep at 3/13/103/1003 entries (structural µs + full replay ms)
+ ↓ src/simulation/__tests__/paper-cael-replay-benchmark.test.ts > Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06) > reports paper-1 MCP ablation per-call latency and detection rates
+ ↓ src/simulation/__tests__/paper-cael-replay-benchmark.test.ts > Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06) > scaling memo — trace bytes and verify µs/entry sweep (paper-1 §Trace Size)
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 5 skipped (6)
+   Start at  13:22:16
+   Duration  49.96s (transform 915ms, setup 0ms, import 1.15s, tests 48.63s, environment 0ms)
+
+
+
+=== STDERR ===

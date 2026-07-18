@@ -1,0 +1,272 @@
+{
+  "schema_version": "paper-reproduction-triad-v1",
+  "generated_at": "2026-07-18T20:28:29.845Z",
+  "paper": "paper-4-sandbox-usenix",
+  "task": "task_1784368626374_pu11",
+  "status": "current-code-reproduced_historical-values-not-reproduced",
+  "generator": {
+    "path": "scripts/paper4-build-reproduction-manifest.mjs",
+    "sha256": "09f21584c915ec91c792628fb5c8e4ae9cfa2f66cd146a4f5642ac23d1c4aac2"
+  },
+  "integration_model": {
+    "triad": [
+      "paper_claim",
+      "implementation_path",
+      "executable_evidence"
+    ],
+    "code_as_variable": "Every admitted measurement carries a source SHA-256 and a path-scoped cleanliness result.",
+    "paradox": "A historical number can be authentic to its old harness while remaining invalid evidence for the subsystem named by the paper.",
+    "admission_rule": "Admit a current claim only when implementation semantics, measurement label, and tracked receipt agree."
+  },
+  "claim_units": [
+    {
+      "id": "plugin-runner-categories",
+      "historical_source": ".bench-logs/2026-04-18T07-20-56-134Z/sandbox-overhead.log",
+      "historical_verdict": "not reproduced; old labels did not match measured execution boundaries",
+      "implementation": "packages/core/src/plugins/__tests__/paper-4-sandbox-bench.test.ts",
+      "evidence": ".bench-logs-evidence/paper-4-cpu-reproduction-h1-win-2026-07-18/sandbox-overhead.log",
+      "current_scope": "same-process PluginSandboxRunner only",
+      "current_measurements": [
+        {
+          "operation": "Cold Runner",
+          "median_ms": 0.74,
+          "p99_ms": 1.43
+        },
+        {
+          "operation": "Cached Expression",
+          "median_ms": 0.16,
+          "p99_ms": 0.38
+        },
+        {
+          "operation": "Unique Compile+Run",
+          "median_ms": 2.1,
+          "p99_ms": 4.03
+        }
+      ]
+    },
+    {
+      "id": "standalone-contract-wrapper",
+      "historical_source": ".bench-logs/2026-04-18T07-20-56-134Z/contract-overhead.log",
+      "historical_verdict": "not reproduced; old harness did not await contracted solve",
+      "implementation": "packages/engine/src/simulation/__tests__/paper-benchmarks.test.ts",
+      "evidence": ".bench-logs-evidence/paper-4-cpu-reproduction-h1-win-2026-07-18/contract-overhead.log",
+      "current_scope": "awaited standalone TET4 wrapper with post-solve digest",
+      "current_measurements": [
+        {
+          "mesh": "Small",
+          "nodes": 90,
+          "dof": 270,
+          "bare_median_ms": 5.43,
+          "bare_p99_ms": 13.66,
+          "contracted_median_ms": 6.56,
+          "contracted_p99_ms": 13.13,
+          "overhead_percent": 20.9
+        },
+        {
+          "mesh": "Medium",
+          "nodes": 182,
+          "dof": 546,
+          "bare_median_ms": 16.9,
+          "bare_p99_ms": 26.37,
+          "contracted_median_ms": 17.82,
+          "contracted_p99_ms": 29.9,
+          "overhead_percent": 5.4
+        },
+        {
+          "mesh": "Large",
+          "nodes": 306,
+          "dof": 918,
+          "bare_median_ms": 36.7,
+          "bare_p99_ms": 53.22,
+          "contracted_median_ms": 37.05,
+          "contracted_p99_ms": 49.28,
+          "overhead_percent": 0.9
+        }
+      ]
+    },
+    {
+      "id": "geometry-hash-component",
+      "historical_source": ".bench-logs/2026-04-18T07-20-56-134Z/contract-overhead.log",
+      "historical_verdict": "not reproduced exactly; no 100K-node extrapolation admitted",
+      "implementation": "packages/engine/src/simulation/__tests__/paper-benchmarks.test.ts",
+      "evidence": ".bench-logs-evidence/paper-4-cpu-reproduction-h1-win-2026-07-18/contract-overhead.log",
+      "current_scope": "raw hashGeometry timing for four fixture sizes",
+      "current_measurements": [
+        {
+          "nodes": 90,
+          "coordinate_values": 270,
+          "elements": 160,
+          "median_ms": 0.1313
+        },
+        {
+          "nodes": 306,
+          "coordinate_values": 918,
+          "elements": 640,
+          "median_ms": 0.4113
+        },
+        {
+          "nodes": 650,
+          "coordinate_values": 1950,
+          "elements": 1440,
+          "median_ms": 1.1586
+        },
+        {
+          "nodes": 1122,
+          "coordinate_values": 3366,
+          "elements": 2560,
+          "median_ms": 2.1507
+        }
+      ]
+    },
+    {
+      "id": "cael-verify-and-mock-replay",
+      "historical_source": ".bench-logs/2026-04-18T07-20-56-134Z/cael-replay.log",
+      "historical_verdict": "not reproduced; old path double-counted verify and skipped digest comparison",
+      "implementation": "packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts",
+      "evidence": ".bench-logs-evidence/paper-4-cpu-reproduction-h1-win-2026-07-18/cael-replay.log",
+      "current_scope": "verifier-only throughput plus one same-adapter mock replay",
+      "current_measurements": {
+        "entries": 99997,
+        "verify_median_us_per_entry": 2.8986,
+        "verify_p99_us_per_entry": 3.2892,
+        "mock_replay_wall_ms": 22275.84
+      }
+    },
+    {
+      "id": "cpu-component-hardware-rows",
+      "historical_source": ".bench-logs/2026-05-29T*/paper-4-rtx-bench.json",
+      "historical_verdict": "H1/H3 pairing not reproduced; CPU components are not WGSL substitutes",
+      "implementation": "scripts/paper4-rtx-bench-standalone.mjs",
+      "evidence": ".bench-logs-evidence/paper-4-cpu-components-h1-win-2026-07-18.json",
+      "current_scope": "H1 CPU component baselines only",
+      "current_measurements": [
+        {
+          "op": "raw FNV-1a coordinate bytes (not hashGeometry)",
+          "scale": "1K verts",
+          "n": 1000,
+          "median_us": 12.000000000000455,
+          "p95_us": 12.300000000003308,
+          "min_us": 11.599999999994282,
+          "max_us": 29.400000000002535,
+          "trials": 1000
+        },
+        {
+          "op": "raw FNV-1a coordinate bytes (not hashGeometry)",
+          "scale": "100K verts",
+          "n": 100000,
+          "median_us": 1239.149999999995,
+          "p95_us": 1485.100000000017,
+          "min_us": 1069.2999999999984,
+          "max_us": 1743.600000000015,
+          "trials": 200
+        },
+        {
+          "op": "SHA-256 CAEL-chain verify",
+          "scale": "10^4 entries",
+          "n": 10000,
+          "median_us": 40178.450000000055,
+          "p95_us": 50143.00000000003,
+          "min_us": 37017.200000000004,
+          "max_us": 50143.00000000003,
+          "trials": 10
+        },
+        {
+          "op": "synthetic SHA-chain fold (not WGSL equivalent)",
+          "scale": "500 rows",
+          "n": 500,
+          "median_us": 1828.6999999999694,
+          "p95_us": 2248.399999999947,
+          "min_us": 1604.1999999999916,
+          "max_us": 2506.0999999999467,
+          "trials": 20
+        },
+        {
+          "op": "synthetic raw-FNV + text-SHA aggregate",
+          "scale": "1K coordinates + 500 rows",
+          "n": 500,
+          "median_us": 4471.799999999974,
+          "p95_us": 5250.700000000052,
+          "min_us": 3490.8000000000357,
+          "max_us": 5985.7999999999265,
+          "trials": 100
+        }
+      ]
+    },
+    {
+      "id": "webgpu-same-machine-replay",
+      "historical_source": ".bench-logs/2026-05-29T*/paper-4-sandbox-usenix-main.json",
+      "historical_verdict": "old overlapping-atomic kernel was nondeterministic and omitted digest readback",
+      "implementation": "scripts/webgpu-capture/cael-trace-fold-v1.wgsl",
+      "evidence": [
+        ".bench-logs-evidence/paper-4-cael-fold-500-h1-win-localchrome-2026-07-18.json",
+        ".bench-logs-evidence/paper-4-cael-fold-10k-h1-win-localchrome-2026-07-18.json"
+      ],
+      "current_scope": "same machine, same redacted adapter, Chrome 150, bit-identical readback",
+      "current_measurements": [
+        {
+          "scale": "dispatch 8x1x1 workgroups @ 64x1x1",
+          "trials": 200,
+          "wall_median_us": 3049.9999821186066,
+          "gpu_median_us": 2.976,
+          "digest_count": 200,
+          "unique_digest_count": 1,
+          "digest_bit_identical": true,
+          "adapter_identity_disclosed": false,
+          "protocol_commit": "e8dad9ed0b463d94db236e294862ada1cc90e38f",
+          "code_provenance": {
+            "relevant_paths_clean": true,
+            "inputs": [
+              {
+                "path": "scripts/webgpu-capture/capture-bench.mjs",
+                "sha256": "103c1b4744cb7e66f2eca59dc9d66cb933b88534c4e0faf0f2f17c484c3df8af"
+              },
+              {
+                "path": "scripts/webgpu-capture/configs/paper-4-cael-fold-500.json",
+                "sha256": "b18e173b0c92aebc74c40d1778bb5ba8e96f5f53f1dfbd182637e06c1499c354"
+              },
+              {
+                "path": "scripts/webgpu-capture/cael-trace-fold-v1.wgsl",
+                "sha256": "5f31c4cbebb32c0e98bbe8ffa1f7fee3dd018184945276250bb65b1236d2b99b"
+              }
+            ]
+          }
+        },
+        {
+          "scale": "dispatch 157x1x1 workgroups @ 64x1x1",
+          "trials": 200,
+          "wall_median_us": 3150.0000059604645,
+          "gpu_median_us": 9.28,
+          "digest_count": 200,
+          "unique_digest_count": 1,
+          "digest_bit_identical": true,
+          "adapter_identity_disclosed": false,
+          "protocol_commit": "e8dad9ed0b463d94db236e294862ada1cc90e38f",
+          "code_provenance": {
+            "relevant_paths_clean": true,
+            "inputs": [
+              {
+                "path": "scripts/webgpu-capture/capture-bench.mjs",
+                "sha256": "103c1b4744cb7e66f2eca59dc9d66cb933b88534c4e0faf0f2f17c484c3df8af"
+              },
+              {
+                "path": "scripts/webgpu-capture/configs/paper-4-cael-fold-10k.json",
+                "sha256": "5322411cbbe60daedb32918d855406cd0f9b593f135dc4294331c021d3651fab"
+              },
+              {
+                "path": "scripts/webgpu-capture/cael-trace-fold-v1.wgsl",
+                "sha256": "5f31c4cbebb32c0e98bbe8ffa1f7fee3dd018184945276250bb65b1236d2b99b"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "nonclaims": [
+    "Historical numeric equality was not reproduced.",
+    "The CPU component rows do not substitute for or bound the WGSL kernel.",
+    "Browser adapter identity was redacted, so cross-adapter and cross-vendor identity remain unproven.",
+    "No current H3 receipt was captured.",
+    "No integrated production sandbox latency was measured."
+  ]
+}
