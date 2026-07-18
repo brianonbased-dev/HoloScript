@@ -5,7 +5,8 @@ describe('Paper 4 Benchmark: Sandbox Overhead', () => {
   it('measures median and p99 execution overhead per category', async () => {
     const N = Number(process.env.PAPER_BENCH_N ?? 300);
 
-    // 1. VM Creation Overhead
+    // 1. Cold runner cost: context creation + script compilation + execution.
+    // The old paper label "VM Creation" was too narrow for what execute() measures.
     const vmCreationLatencies: number[] = [];
     for (let i = 0; i < N; i++) {
       const start = performance.now();
@@ -15,8 +16,11 @@ describe('Paper 4 Benchmark: Sandbox Overhead', () => {
         budget: DEFAULT_CAPABILITY_BUDGET,
       });
       // We do one empty execution to force isolate creation
-      await runner.execute('"init"');
+      const result = await runner.execute('"init"');
       const end = performance.now();
+      expect(result.success).toBe(true);
+      expect(result.cost?.contextCreated).toBe(true);
+      expect(result.cost?.scriptCompiled).toBe(true);
       vmCreationLatencies.push(end - start);
     }
     vmCreationLatencies.sort((a, b) => a - b);
@@ -32,13 +36,18 @@ describe('Paper 4 Benchmark: Sandbox Overhead', () => {
       budget: DEFAULT_CAPABILITY_BUDGET,
     });
 
-    await boundaryRunner.execute('"warmup"');
+    const cachedExpressionSource = '1 + 1';
+    const cachedWarmup = await boundaryRunner.execute(cachedExpressionSource);
+    expect(cachedWarmup.cost?.scriptCompiled).toBe(true);
 
     const simpleExpLatencies: number[] = [];
     for (let i = 0; i < N; i++) {
       const start = performance.now();
-      await boundaryRunner.execute(`1 + 1`);
+      const result = await boundaryRunner.execute(cachedExpressionSource);
       const end = performance.now();
+      expect(result.success).toBe(true);
+      expect(result.cost?.contextCreated).toBe(false);
+      expect(result.cost?.scriptCompiled).toBe(false);
       simpleExpLatencies.push(end - start);
     }
     simpleExpLatencies.sort((a, b) => a - b);
@@ -56,8 +65,11 @@ describe('Paper 4 Benchmark: Sandbox Overhead', () => {
         sum;
       `;
       const start = performance.now();
-      await boundaryRunner.execute(code);
+      const result = await boundaryRunner.execute(code);
       const end = performance.now();
+      expect(result.success).toBe(true);
+      expect(result.cost?.contextCreated).toBe(false);
+      expect(result.cost?.scriptCompiled).toBe(true);
       jitEvalLatencies.push(end - start);
     }
     jitEvalLatencies.sort((a, b) => a - b);
@@ -67,13 +79,13 @@ describe('Paper 4 Benchmark: Sandbox Overhead', () => {
     console.log('[sandbox-bench] === RESULTS ===');
     console.log(`[sandbox-bench] Iterations: ${N}`);
     console.log(
-      `[sandbox-bench] VM Creation       | Median: ${vmCreationMedian.toFixed(2)} ms | p99: ${vmCreationP99.toFixed(2)} ms`
+      `[sandbox-bench] Cold Runner       | Median: ${vmCreationMedian.toFixed(2)} ms | p99: ${vmCreationP99.toFixed(2)} ms`
     );
     console.log(
-      `[sandbox-bench] Simple Expression | Median: ${simpleExpMedian.toFixed(2)} ms | p99: ${simpleExpP99.toFixed(2)} ms`
+      `[sandbox-bench] Cached Expression | Median: ${simpleExpMedian.toFixed(2)} ms | p99: ${simpleExpP99.toFixed(2)} ms`
     );
     console.log(
-      `[sandbox-bench] JIT Eval Cost     | Median: ${jitEvalMedian.toFixed(2)} ms | p99: ${jitEvalP99.toFixed(2)} ms`
+      `[sandbox-bench] Unique Compile+Run| Median: ${jitEvalMedian.toFixed(2)} ms | p99: ${jitEvalP99.toFixed(2)} ms`
     );
 
     // Structural checks only: absolute medians vary by CPU/OS load. Paper prose

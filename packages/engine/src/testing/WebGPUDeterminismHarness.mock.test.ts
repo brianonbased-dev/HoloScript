@@ -1,8 +1,11 @@
 /**
  * Mock-mode WebGPU determinism harness — validates artifact shape + compareAdapterArtifacts.
  */
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
+  HARNESS_OUTPUT_WORDS,
+  HARNESS_WGSL,
   runDeterminismHarness,
   compareAdapterArtifacts,
   isHarnessMockMode,
@@ -58,6 +61,19 @@ describe('WebGPUDeterminismHarness (mock)', () => {
 
   it('isHarnessMockMode reflects WEBGPU_HARNESS_MOCK=1', () => {
     expect(isHarnessMockMode()).toBe(true);
+  });
+
+  it('keeps the production kernel and capture mirror deterministic and in lockstep', () => {
+    const mirror = readFileSync(
+      new URL('../../../../scripts/webgpu-capture/cael-trace-fold-v1.wgsl', import.meta.url),
+      'utf8'
+    );
+    const mirrorBody = mirror.slice(mirror.indexOf('struct TraceRow')).trim();
+    expect(mirrorBody).toBe(HARNESS_WGSL.trim());
+    expect(HARNESS_OUTPUT_WORDS).toBe(16);
+    expect(HARNESS_WGSL).toContain('atomicXor(&finalState[i % 8u], v)');
+    expect(HARNESS_WGSL).toContain('atomicAdd(&finalState[8u + (i % 8u)]');
+    expect(HARNESS_WGSL).not.toContain('finalState[(i + 3u) % 8u]');
   });
 
   it('runDeterminismHarness returns self-consistent artifact', async () => {

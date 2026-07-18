@@ -22,13 +22,47 @@
 // line unless you document which harness they affect.
 
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const REPO_ROOT = resolve(__dirname, '..');
+const RUNNER_PATH = 'scripts/bench-paper-rigorous.mjs';
+
+function sourceSha256(relativePath) {
+  return createHash('sha256')
+    .update(readFileSync(resolve(REPO_ROOT, relativePath)))
+    .digest('hex');
+}
+
+function gitValue(args) {
+  const result = spawnSync('git', args, {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+    shell: process.platform === 'win32',
+  });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
+function relevantPathsClean(paths) {
+  const unstaged = spawnSync('git', ['diff', '--quiet', '--', ...paths], {
+    cwd: REPO_ROOT,
+    shell: process.platform === 'win32',
+  });
+  const staged = spawnSync('git', ['diff', '--cached', '--quiet', '--', ...paths], {
+    cwd: REPO_ROOT,
+    shell: process.platform === 'win32',
+  });
+  return unstaged.status === 0 && staged.status === 0;
+}
+
+function harnessSourcePath(harness) {
+  const packageDir = harness.package.replace(/^@holoscript\//u, '');
+  return `packages/${packageDir}/${harness.file}`;
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Canonical env-var set for paper-grade runs. Higher N = more stable p99.
@@ -66,10 +100,10 @@ const HARNESSES = [
   },
   {
     id: 'cael-replay',
-    description: 'CAEL replay throughput + hash verification',
+    description: 'CAEL verifier-only throughput + one same-adapter mock replay',
     package: '@holoscript/engine',
     file: 'src/simulation/__tests__/paper-cael-replay-benchmark.test.ts',
-    nameFilter: null,
+    nameFilter: 'reports verify-only vs full replay wall time',
     timeoutMs: 300000,
   },
   {
@@ -128,6 +162,16 @@ const HARNESSES = [
 const args = process.argv.slice(2);
 const onlyArg = args.find((a) => a.startsWith('--only='));
 const onlyIds = onlyArg ? onlyArg.slice('--only='.length).split(',') : null;
+const logDirEquals = args.find((a) => a.startsWith('--log-dir='));
+const logDirIndex = args.indexOf('--log-dir');
+const requestedLogDir = logDirEquals
+  ? logDirEquals.slice('--log-dir='.length)
+  : logDirIndex >= 0
+    ? args[logDirIndex + 1]
+    : null;
+if ((logDirEquals && !requestedLogDir) || (logDirIndex >= 0 && !requestedLogDir)) {
+  throw new Error('--log-dir requires a path');
+}
 
 const harnesses = onlyIds ? HARNESSES.filter((h) => onlyIds.includes(h.id)) : HARNESSES;
 
@@ -142,11 +186,15 @@ if (onlyIds && harnesses.length === 0) {
 // Timestamped log directory
 // ────────────────────────────────────────────────────────────────────────────
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-const logDir = resolve(REPO_ROOT, '.bench-logs', timestamp);
+const logDir = requestedLogDir
+  ? resolve(REPO_ROOT, requestedLogDir)
+  : resolve(REPO_ROOT, '.bench-logs', timestamp);
 mkdirSync(logDir, { recursive: true });
 
 // Hardware annotation captured once at start
 const os = await import('node:os');
+const protocolCommit = gitValue(['rev-parse', 'HEAD']);
+const runnerSha256 = sourceSha256(RUNNER_PATH);
 const hardwareAnnotation = [
   `timestamp: ${new Date().toISOString()}`,
   `host: ${os.hostname()}`,
@@ -155,6 +203,8 @@ const hardwareAnnotation = [
   `cpus: ${os.cpus().length}x ${os.cpus()[0]?.model ?? 'unknown'}`,
   `totalmem: ${(os.totalmem() / 1024 / 1024 / 1024).toFixed(1)} GiB`,
   `node: ${process.version}`,
+  `protocol_commit: ${protocolCommit ?? 'unknown'}`,
+  `runner_sha256: ${runnerSha256}`,
   `BENCH_N: ${process.env.BENCH_N ?? DEFAULTS.BENCH_N}`,
   `BENCH_N_LARGE: ${process.env.BENCH_N_LARGE ?? DEFAULTS.BENCH_N_LARGE}`,
   `BENCH_SNAPSHOT_N: ${process.env.BENCH_SNAPSHOT_N ?? DEFAULTS.BENCH_SNAPSHOT_N}`,
@@ -202,10 +252,18 @@ for (const h of harnesses) {
 
   const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
   const logPath = resolve(logDir, `${h.id}.log`);
+  const sourcePath = harnessSourcePath(h);
+  const evidencePaths = [RUNNER_PATH, sourcePath];
   const fullOutput = [
     `# ${h.id} — ${h.description}`,
     `# elapsed: ${elapsedSec}s`,
     `# exit: ${proc.status}`,
+    `# protocol_commit: ${protocolCommit ?? 'unknown'}`,
+    `# source: ${sourcePath}`,
+    `# source_sha256: ${sourceSha256(sourcePath)}`,
+    `# runner_sha256: ${runnerSha256}`,
+    `# relevant_paths_clean: ${relevantPathsClean(evidencePaths)}`,
+    `# name_filter: ${h.nameFilter ?? '(entire file)'}`,
     '',
     '=== STDOUT ===',
     proc.stdout ?? '',

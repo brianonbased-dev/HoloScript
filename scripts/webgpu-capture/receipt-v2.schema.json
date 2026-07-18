@@ -15,8 +15,8 @@
       "description": "ISO-8601 timestamp at the moment the harness emitted the receipt."
     },
     "path": {
-      "enum": ["webgpu-browser", "cpu-substitute", "cuda-native", "wasm-simd", "wgpu-native"],
-      "description": "The execution path that produced these numbers. webgpu-browser = real WebGPU in a real browser (Playwright + Chromium with navigator.gpu adapter). cpu-substitute = the deterministic CPU equivalent of the same kernel (e.g. sha256 fold). cuda-native = libcuda/CUDA C++. wasm-simd = WASM SIMD path. wgpu-native = wgpu Rust binding native build."
+      "enum": ["webgpu-browser", "cpu-component", "cpu-substitute", "cuda-native", "wasm-simd", "wgpu-native"],
+      "description": "The execution path that produced these numbers. webgpu-browser = real WebGPU in a real browser (Playwright + Chromium with navigator.gpu adapter). cpu-component = a CPU baseline for related primitives that is not algorithmically equivalent to the GPU kernel. cpu-substitute = a deterministic CPU implementation of the same algorithm. cuda-native = libcuda/CUDA C++. wasm-simd = WASM SIMD path. wgpu-native = wgpu Rust binding native build."
     },
     "paper": {
       "type": "string",
@@ -73,15 +73,35 @@
       "description": "Identifies the exact compute kernel that ran. The wgsl_sha256 field lets a reviewer cryptographically verify the same shader source bytes were dispatched.",
       "properties": {
         "name": { "type": "string", "description": "Kernel entry point name (e.g. 'fold', 'reduce_residual')." },
-        "wgsl_path": { "type": "string", "description": "Repo-relative path to the .wgsl source file." },
-        "wgsl_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the WGSL source bytes (UTF-8)." },
-        "workgroup_size": { "type": "array", "items": { "type": "number" }, "minItems": 1, "maxItems": 3 },
-        "dispatch_size": { "type": "array", "items": { "type": "number" }, "minItems": 1, "maxItems": 3 }
+        "wgsl_path": { "type": ["string", "null"], "description": "Repo-relative path to the .wgsl source file, or null for a non-WGSL path." },
+        "wgsl_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the WGSL source bytes (UTF-8), or null for a non-WGSL path." },
+        "workgroup_size": { "type": ["array", "null"], "items": { "type": "number" }, "minItems": 1, "maxItems": 3 },
+        "dispatch_size": { "type": ["array", "null"], "items": { "type": "number" }, "minItems": 1, "maxItems": 3 }
       }
     },
     "protocol_commit": {
       "type": ["string", "null"],
       "description": "Git SHA of the harness/protocol doc at capture time. Lets a reviewer pin the receipt to a specific protocol version."
+    },
+    "code_provenance": {
+      "type": "object",
+      "description": "Content-addressed identity for the executable evidence path. relevant_paths_clean is scoped to the listed inputs, not the whole repository.",
+      "required": ["relevant_paths_clean", "inputs"],
+      "properties": {
+        "relevant_paths_clean": { "type": ["boolean", "null"] },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["path", "sha256"],
+            "properties": {
+              "path": { "type": "string" },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            }
+          }
+        }
+      }
     },
     "results": {
       "type": "array",

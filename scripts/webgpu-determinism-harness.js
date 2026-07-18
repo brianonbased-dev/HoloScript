@@ -1,9 +1,9 @@
-'use strict';
+"use strict";
 var WebGPUDeterminismHarnessBrowser = (() => {
   // src/testing/WebGPUDeterminismHarness.ts
   var HARNESS_WORKGROUP_SIZE = 64;
-  var HARNESS_KERNEL_NAME = 'cael-trace-fold-v1';
-  var HARNESS_WGSL =
+  var HARNESS_KERNEL_NAME = "cael-trace-fold-v1";
+  var HARNESS_WGSL = (
     /* wgsl */
     `
 struct TraceRow {
@@ -21,7 +21,7 @@ struct Params {
 };
 
 @group(0) @binding(0) var<storage, read> traceRows: array<TraceRow>;
-@group(0) @binding(1) var<storage, read_write> finalState: array<atomic<u32>, 8>;
+@group(0) @binding(1) var<storage, read_write> finalState: array<atomic<u32>, 16>;
 @group(0) @binding(2) var<uniform> params: Params;
 
 fn mix32(input: u32) -> u32 {
@@ -47,17 +47,22 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   v = mix32(v ^ row.c);
   v = mix32(v + row.d);
 
+  // Keep operation domains disjoint. XOR reductions use slots 0..7 and
+  // additive counters use slots 8..15, so every contended slot is updated
+  // by one associative/commutative u32 operation only.
   atomicXor(&finalState[i % 8u], v);
-  atomicAdd(&finalState[(i + 3u) % 8u], mix32(v ^ 0xc2b2ae35u));
+  atomicAdd(&finalState[8u + (i % 8u)], mix32(v ^ 0xc2b2ae35u));
 }
-`;
+`
+  );
   function isHarnessMockMode() {
     try {
-      if (typeof process !== 'undefined' && process.env?.WEBGPU_HARNESS_MOCK === '1') {
+      if (typeof process !== "undefined" && process.env?.WEBGPU_HARNESS_MOCK === "1") {
         return true;
       }
-    } catch {}
-    return typeof globalThis !== 'undefined' && globalThis.__WEBGPU_HARNESS_MOCK__ === true;
+    } catch {
+    }
+    return typeof globalThis !== "undefined" && globalThis.__WEBGPU_HARNESS_MOCK__ === true;
   }
   function toUint8Array(input) {
     if (input instanceof Uint8Array) {
@@ -71,26 +76,27 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     const mask = 0xffffffffffffffffn;
     for (let i = 0; i < bytes.length; i++) {
       hash = (hash ^ BigInt(bytes[i])) & mask;
-      hash = (hash * prime) & mask;
+      hash = hash * prime & mask;
     }
-    return hash.toString(16).padStart(16, '0');
+    return hash.toString(16).padStart(16, "0");
   }
-  async function hashBytes(input, algo = 'sha256') {
+  async function hashBytes(input, algo = "sha256") {
     const bytes = toUint8Array(input);
-    if (algo === 'sha256') {
+    if (algo === "sha256") {
       const subtle = globalThis.crypto?.subtle;
-      if (subtle && typeof subtle.digest === 'function') {
+      if (subtle && typeof subtle.digest === "function") {
         try {
           const digestInput = new Uint8Array(bytes.byteLength);
           digestInput.set(bytes);
-          const digest = await subtle.digest('SHA-256', digestInput.buffer);
+          const digest = await subtle.digest("SHA-256", digestInput.buffer);
           const view = new Uint8Array(digest);
-          let hex = '';
+          let hex = "";
           for (let i = 0; i < view.length; i++) {
-            hex += view[i].toString(16).padStart(2, '0');
+            hex += view[i].toString(16).padStart(2, "0");
           }
           return `sha256:${hex}`;
-        } catch {}
+        } catch {
+        }
       }
     }
     return `fnv1a-64:${fnv1a64Hex(bytes)}`;
@@ -106,11 +112,11 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   }
   function mix32(input) {
     let x = input >>> 0;
-    x = (x ^ (x >>> 16)) >>> 0;
+    x = (x ^ x >>> 16) >>> 0;
     x = Math.imul(x, 2146121005) >>> 0;
-    x = (x ^ (x >>> 15)) >>> 0;
+    x = (x ^ x >>> 15) >>> 0;
     x = Math.imul(x, 2221713035) >>> 0;
-    x = (x ^ (x >>> 16)) >>> 0;
+    x = (x ^ x >>> 16) >>> 0;
     return x >>> 0;
   }
   function numberToU32(value) {
@@ -123,27 +129,27 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     return (view.getUint32(0, true) ^ view.getUint32(4, true)) >>> 0;
   }
   function stableStringify(value) {
-    if (value === null) return 'null';
-    if (value === void 0) return 'undefined';
-    if (typeof value === 'number') {
-      if (Number.isNaN(value)) return 'number:NaN';
-      if (Object.is(value, -0)) return 'number:-0';
+    if (value === null) return "null";
+    if (value === void 0) return "undefined";
+    if (typeof value === "number") {
+      if (Number.isNaN(value)) return "number:NaN";
+      if (Object.is(value, -0)) return "number:-0";
       return `number:${value}`;
     }
-    if (typeof value === 'string') return `string:${JSON.stringify(value)}`;
-    if (typeof value === 'boolean') return `boolean:${value ? '1' : '0'}`;
-    if (typeof value === 'bigint') return `bigint:${value.toString()}`;
+    if (typeof value === "string") return `string:${JSON.stringify(value)}`;
+    if (typeof value === "boolean") return `boolean:${value ? "1" : "0"}`;
+    if (typeof value === "bigint") return `bigint:${value.toString()}`;
     if (Array.isArray(value)) {
-      return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+      return `[${value.map((item) => stableStringify(item)).join(",")}]`;
     }
     if (ArrayBuffer.isView(value)) {
       const view = value;
-      return `${view.constructor.name}:${Array.from(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)).join(',')}`;
+      return `${view.constructor.name}:${Array.from(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)).join(",")}`;
     }
-    if (typeof value === 'object') {
+    if (typeof value === "object") {
       const obj = value;
       const keys = Object.keys(obj).sort();
-      return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(',')}}`;
+      return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(",")}}`;
     }
     return `${typeof value}:${String(value)}`;
   }
@@ -167,31 +173,28 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     return {
       name: HARNESS_KERNEL_NAME,
       workgroupSize: HARNESS_WORKGROUP_SIZE,
-      wgslBytes: new TextEncoder().encode(HARNESS_WGSL).byteLength,
+      wgslBytes: new TextEncoder().encode(HARNESS_WGSL).byteLength
     };
   }
   async function mockFinalDigestForScenario(scenarioName, trace) {
     const payload = JSON.stringify({
-      k: 'webgpu-determinism-mock-v1',
+      k: "webgpu-determinism-mock-v1",
       scenario: scenarioName,
       traceLen: trace.length,
-      tailHash: trace[trace.length - 1]?.hash ?? '',
-      head: trace[0]?.hash ?? '',
+      tailHash: trace[trace.length - 1]?.hash ?? "",
+      head: trace[0]?.hash ?? ""
     });
-    return hashBytes(payload, 'sha256');
+    return hashBytes(payload, "sha256");
   }
   async function buildMockHarnessArtifact(config) {
     const g = globalThis;
-    const browser =
-      typeof g.navigator !== 'undefined' && g.navigator?.userAgent
-        ? g.navigator.userAgent
-        : `node-${typeof process !== 'undefined' ? process.version : 'unknown'}`;
+    const browser = typeof g.navigator !== "undefined" && g.navigator?.userAgent ? g.navigator.userAgent : `node-${typeof process !== "undefined" ? process.version : "unknown"}`;
     const adapter = {
       tag: config.adapterTag,
       vendor: `mock-vendor-${config.adapterTag}`,
-      device: 'mock-device',
-      driver: 'mock-driver',
-      userAgent: browser,
+      device: "mock-device",
+      driver: "mock-driver",
+      userAgent: browser
     };
     const scenarios = {};
     for (const [scenarioName, trace] of Object.entries(config.traces)) {
@@ -202,76 +205,89 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
           finalStateDigest: digest,
           wallMs: 0.42 + i * 1e-6,
           wgslCompileMs: 0.08,
-          finalStateFields: config.captureFields
-            ? { mock_field: [1, 2, 3, scenarioName.length] }
-            : void 0,
+          finalStateFields: config.captureFields ? { mock_field: [1, 2, 3, scenarioName.length] } : void 0
         });
       }
       scenarios[scenarioName] = {
         scenario: scenarioName,
         traceLength: trace.length,
-        replications,
+        replications
       };
     }
     return {
-      protocol: '2026-04-20_webgpu-determinism-protocol',
+      protocol: "2026-04-20_webgpu-determinism-protocol",
       protocolCommit: config.protocolCommit,
-      executionMode: 'mock',
+      executionMode: "mock",
       browser,
       host: config.host,
       adapter,
       kernel: kernelMetadata(),
       scenarios,
-      collectedAtMs: Date.now(),
+      collectedAtMs: Date.now()
     };
   }
   async function readAdapterIdentity(adapter, adapterTag) {
     const nav = globalThis.navigator;
     const adapterWithInfo = adapter;
     let info = adapterWithInfo.info ?? {};
-    if (
-      Object.keys(info).length === 0 &&
-      typeof adapterWithInfo.requestAdapterInfo === 'function'
-    ) {
+    if (Object.keys(info).length === 0 && typeof adapterWithInfo.requestAdapterInfo === "function") {
       try {
         info = await adapterWithInfo.requestAdapterInfo();
       } catch {
         info = {};
       }
     }
-    const description = [info.vendor, info.architecture, info.device, info.description]
-      .filter(Boolean)
-      .join(' ');
+    const description = [
+      info.vendor,
+      info.architecture,
+      info.device,
+      info.description
+    ].filter(Boolean).join(" ");
     return {
       tag: adapterTag,
-      vendor: info.vendor ?? '',
+      vendor: info.vendor ?? "",
       device: info.device ?? description,
-      driver: info.driver ?? '',
-      userAgent: nav?.userAgent ?? '',
+      driver: info.driver ?? "",
+      userAgent: nav?.userAgent ?? ""
     };
   }
   async function acquireWebGPU(config) {
     const nav = globalThis.navigator;
     if (!nav?.gpu) {
       throw new WebGPUUnavailableError(
-        'navigator.gpu is unavailable; run in Chrome/Edge with WebGPU enabled'
+        "navigator.gpu is unavailable; run in Chrome/Edge with WebGPU enabled"
       );
     }
-    const adapter = await nav.gpu.requestAdapter({ powerPreference: 'high-performance' });
+    const adapter = await nav.gpu.requestAdapter({ powerPreference: "high-performance" });
     if (!adapter) {
-      throw new WebGPUUnavailableError('navigator.gpu.requestAdapter() returned null');
+      throw new WebGPUUnavailableError("navigator.gpu.requestAdapter() returned null");
     }
     const device = await adapter.requestDevice();
     const identity = await readAdapterIdentity(adapter, config.adapterTag);
     return {
       device,
       identity,
-      browser: nav.userAgent ?? '',
+      browser: nav.userAgent ?? ""
     };
   }
   function makeOutputSeed() {
     return new Uint32Array([
-      1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225,
+      1779033703,
+      3144134277,
+      1013904242,
+      2773480762,
+      1359893119,
+      2600822924,
+      528734635,
+      1541459225,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
     ]);
   }
   async function runScenarioReplication(device, scenarioName, trace, replication, captureFields) {
@@ -280,28 +296,34 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     const compileStart = performance.now();
     const shaderModule = device.createShaderModule({
       label: `${HARNESS_KERNEL_NAME}:${scenarioName}`,
-      code: HARNESS_WGSL,
+      code: HARNESS_WGSL
     });
     const pipeline = await device.createComputePipelineAsync({
       label: `${HARNESS_KERNEL_NAME}:${scenarioName}`,
-      layout: 'auto',
+      layout: "auto",
       compute: {
         module: shaderModule,
-        entryPoint: 'main',
-      },
+        entryPoint: "main"
+      }
     });
     const wgslCompileMs = performance.now() - compileStart;
     const inputBuffer = device.createBuffer({
       label: `${HARNESS_KERNEL_NAME}:${scenarioName}:trace`,
       size: rows.byteLength,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
-    device.queue.writeBuffer(inputBuffer, 0, rows.buffer, rows.byteOffset, rows.byteLength);
+    device.queue.writeBuffer(
+      inputBuffer,
+      0,
+      rows.buffer,
+      rows.byteOffset,
+      rows.byteLength
+    );
     const outputSeed = makeOutputSeed();
     const outputBuffer = device.createBuffer({
       label: `${HARNESS_KERNEL_NAME}:${scenarioName}:state`,
       size: outputSeed.byteLength,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
     });
     device.queue.writeBuffer(
       outputBuffer,
@@ -314,13 +336,19 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     const paramsBuffer = device.createBuffer({
       label: `${HARNESS_KERNEL_NAME}:${scenarioName}:params`,
       size: params.byteLength,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
-    device.queue.writeBuffer(paramsBuffer, 0, params.buffer, params.byteOffset, params.byteLength);
+    device.queue.writeBuffer(
+      paramsBuffer,
+      0,
+      params.buffer,
+      params.byteOffset,
+      params.byteLength
+    );
     const readbackBuffer = device.createBuffer({
       label: `${HARNESS_KERNEL_NAME}:${scenarioName}:readback`,
       size: outputSeed.byteLength,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
     });
     const bindGroup = device.createBindGroup({
       label: `${HARNESS_KERNEL_NAME}:${scenarioName}:bind-group`,
@@ -328,15 +356,15 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       entries: [
         { binding: 0, resource: { buffer: inputBuffer } },
         { binding: 1, resource: { buffer: outputBuffer } },
-        { binding: 2, resource: { buffer: paramsBuffer } },
-      ],
+        { binding: 2, resource: { buffer: paramsBuffer } }
+      ]
     });
     const dispatchStart = performance.now();
     const encoder = device.createCommandEncoder({
-      label: `${HARNESS_KERNEL_NAME}:${scenarioName}:encoder`,
+      label: `${HARNESS_KERNEL_NAME}:${scenarioName}:encoder`
     });
     const pass = encoder.beginComputePass({
-      label: `${HARNESS_KERNEL_NAME}:${scenarioName}:pass`,
+      label: `${HARNESS_KERNEL_NAME}:${scenarioName}:pass`
     });
     pass.setPipeline(pipeline);
     pass.setBindGroup(0, bindGroup);
@@ -356,10 +384,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     paramsBuffer.destroy();
     readbackBuffer.destroy();
     return {
-      finalStateDigest: await hashBytes(canonicalBytes, 'sha256'),
+      finalStateDigest: await hashBytes(canonicalBytes, "sha256"),
       wallMs,
       wgslCompileMs,
-      finalStateFields: captureFields ? { u32_state: words } : void 0,
+      finalStateFields: captureFields ? { u32_state: words } : void 0
     };
   }
   async function buildWebGPUHarnessArtifact(config) {
@@ -376,29 +404,29 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         scenarios[scenarioName] = {
           scenario: scenarioName,
           traceLength: trace.length,
-          replications,
+          replications
         };
       }
     } finally {
       device.destroy();
     }
     return {
-      protocol: '2026-04-20_webgpu-determinism-protocol',
+      protocol: "2026-04-20_webgpu-determinism-protocol",
       protocolCommit: config.protocolCommit,
-      executionMode: 'webgpu',
+      executionMode: "webgpu",
       browser,
       host: config.host,
       adapter: identity,
       kernel: kernelMetadata(),
       scenarios,
-      collectedAtMs: Date.now(),
+      collectedAtMs: Date.now()
     };
   }
   async function runDeterminismHarness(config) {
     if (isHarnessMockMode()) {
       if (config.productionEvidence) {
         throw new WebGPUProductionEvidenceMockError(
-          'WEBGPU_HARNESS_MOCK cannot be used when productionEvidence=true'
+          "WEBGPU_HARNESS_MOCK cannot be used when productionEvidence=true"
         );
       }
       return buildMockHarnessArtifact(config);
@@ -406,109 +434,109 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     return buildWebGPUHarnessArtifact(config);
   }
   var WebGPUUnavailableError = class extends Error {
-    constructor(message = 'WebGPU not available on this adapter / browser') {
+    constructor(message = "WebGPU not available on this adapter / browser") {
       super(message);
-      this.name = 'WebGPUUnavailableError';
+      this.name = "WebGPUUnavailableError";
     }
   };
   var WebGPUProductionEvidenceMockError = class extends Error {
     constructor(message) {
       super(message);
-      this.name = 'WebGPUProductionEvidenceMockError';
+      this.name = "WebGPUProductionEvidenceMockError";
     }
   };
 
   // src/testing/webgpu-determinism.entry.ts
   var ADAPTER_TAGS = /* @__PURE__ */ new Set([
-    'intel-uhd',
-    'nvidia-rtx3060',
-    'apple-m',
-    'amd-rdna',
-    'qualcomm-adreno',
-    'swiftshader',
+    "intel-uhd",
+    "nvidia-rtx3060",
+    "apple-m",
+    "amd-rdna",
+    "qualcomm-adreno",
+    "swiftshader"
   ]);
   var smokeTrace = [
     {
-      version: 'cael.v1',
-      runId: 'webgpu-determinism-smoke',
+      version: "cael.v1",
+      runId: "webgpu-determinism-smoke",
       index: 0,
-      event: 'init',
+      event: "init",
       timestamp: 0,
       simTime: 0,
-      prevHash: 'cael.genesis',
-      hash: 'init-smoke-hash',
+      prevHash: "cael.genesis",
+      hash: "init-smoke-hash",
       payload: {
-        scenario: 'crdt-spatial-dispute',
+        scenario: "crdt-spatial-dispute",
         seed: 1337,
-        bodies: 3,
-      },
+        bodies: 3
+      }
     },
     {
-      version: 'cael.v1',
-      runId: 'webgpu-determinism-smoke',
+      version: "cael.v1",
+      runId: "webgpu-determinism-smoke",
       index: 1,
-      event: 'interaction',
+      event: "interaction",
       timestamp: 16,
       simTime: 0.016,
-      prevHash: 'init-smoke-hash',
-      hash: 'agent-a-edit-hash',
+      prevHash: "init-smoke-hash",
+      hash: "agent-a-edit-hash",
       payload: {
-        agent: 'agent-a',
-        op: 'set-position',
-        objectId: 'shared-anchor',
-        position: [1.25, 0.5, -0.75],
-      },
+        agent: "agent-a",
+        op: "set-position",
+        objectId: "shared-anchor",
+        position: [1.25, 0.5, -0.75]
+      }
     },
     {
-      version: 'cael.v1',
-      runId: 'webgpu-determinism-smoke',
+      version: "cael.v1",
+      runId: "webgpu-determinism-smoke",
       index: 2,
-      event: 'interaction',
+      event: "interaction",
       timestamp: 17,
       simTime: 0.017,
-      prevHash: 'agent-a-edit-hash',
-      hash: 'agent-b-edit-hash',
+      prevHash: "agent-a-edit-hash",
+      hash: "agent-b-edit-hash",
       payload: {
-        agent: 'agent-b',
-        op: 'set-position',
-        objectId: 'shared-anchor',
-        position: [1.25, 0.5, -0.75],
-      },
+        agent: "agent-b",
+        op: "set-position",
+        objectId: "shared-anchor",
+        position: [1.25, 0.5, -0.75]
+      }
     },
     {
-      version: 'cael.v1',
-      runId: 'webgpu-determinism-smoke',
+      version: "cael.v1",
+      runId: "webgpu-determinism-smoke",
       index: 3,
-      event: 'solve',
+      event: "solve",
       timestamp: 32,
       simTime: 0.032,
-      prevHash: 'agent-b-edit-hash',
-      hash: 'resolve-dispute-hash',
+      prevHash: "agent-b-edit-hash",
+      hash: "resolve-dispute-hash",
       payload: {
-        resolver: 'lww-register',
-        winner: 'agent-b',
-        vectorClock: { 'agent-a': 1, 'agent-b': 2 },
-      },
+        resolver: "lww-register",
+        winner: "agent-b",
+        vectorClock: { "agent-a": 1, "agent-b": 2 }
+      }
     },
     {
-      version: 'cael.v1',
-      runId: 'webgpu-determinism-smoke',
+      version: "cael.v1",
+      runId: "webgpu-determinism-smoke",
       index: 4,
-      event: 'final',
+      event: "final",
       timestamp: 48,
       simTime: 0.048,
-      prevHash: 'resolve-dispute-hash',
-      hash: 'final-state-hash',
+      prevHash: "resolve-dispute-hash",
+      hash: "final-state-hash",
       payload: {
         sharedAnchor: [1.25, 0.5, -0.75],
-        converged: true,
-      },
-    },
+        converged: true
+      }
+    }
   ];
   function boolParam(query, name, defaultValue = false) {
     const raw = query.get(name);
     if (raw == null) return defaultValue;
-    return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase());
+    return ["1", "true", "yes", "on"].includes(raw.toLowerCase());
   }
   function intParam(query, name, defaultValue) {
     const raw = query.get(name);
@@ -517,24 +545,24 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultValue;
   }
   function adapterTagParam(query) {
-    const raw = query.get('adapterTag') ?? 'swiftshader';
-    return ADAPTER_TAGS.has(raw) ? raw : 'swiftshader';
+    const raw = query.get("adapterTag") ?? "swiftshader";
+    return ADAPTER_TAGS.has(raw) ? raw : "swiftshader";
   }
   async function main() {
     const query = new URLSearchParams(window.location.search);
-    if (boolParam(query, 'mock')) {
+    if (boolParam(query, "mock")) {
       window.__WEBGPU_HARNESS_MOCK__ = true;
     }
     window.__WEBGPU_DETERMINISM_ARTIFACT__ = await runDeterminismHarness({
       traces: {
-        'cael-crdt-smoke': smokeTrace,
+        "cael-crdt-smoke": smokeTrace
       },
-      replications: intParam(query, 'replications', 2),
+      replications: intParam(query, "replications", 2),
       adapterTag: adapterTagParam(query),
-      host: query.get('host') ?? window.location.hostname ?? 'browser-file',
-      captureFields: boolParam(query, 'captureFields', true),
-      protocolCommit: query.get('protocolCommit') ?? 'local',
-      productionEvidence: boolParam(query, 'productionEvidence'),
+      host: query.get("host") ?? window.location.hostname ?? "browser-file",
+      captureFields: boolParam(query, "captureFields", true),
+      protocolCommit: query.get("protocolCommit") ?? "local",
+      productionEvidence: boolParam(query, "productionEvidence")
     });
   }
   main().catch((error) => {
@@ -542,8 +570,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     window.__WEBGPU_DETERMINISM_ERROR__ = {
       name: err.name,
       message: err.message,
-      stack: err.stack,
+      stack: err.stack
     };
-    console.error('[webgpu-determinism] failed', err);
+    console.error("[webgpu-determinism] failed", err);
   });
 })();

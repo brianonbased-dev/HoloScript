@@ -13,12 +13,26 @@
  *   HOLOSCRIPT_HW_TIER=H3 HOLOSCRIPT_HW_LABEL='A100 SXM4 40GB' \
  *     node paper4-rtx-bench-standalone.mjs
  *
- * Writes JSON to ./paper-4-rtx-bench-<tier>.json.
+ * Writes JSON to ./paper-4-rtx-bench-<tier>.json, or to --out <path>.
  */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const cliArgs = process.argv.slice(2);
+const outIndex = cliArgs.indexOf('--out');
+const outArg = outIndex >= 0 ? cliArgs[outIndex + 1] : null;
+if (outIndex >= 0 && !outArg) throw new Error('--out requires a path');
+const scriptPath = fileURLToPath(import.meta.url);
+const scriptSha256 = createHash('sha256').update(fs.readFileSync(scriptPath)).digest('hex');
+const repoRoot = findRepoRoot(path.dirname(scriptPath));
+const scriptRelativePath = repoRoot
+  ? path.relative(repoRoot, scriptPath).replaceAll('\\', '/')
+  : path.basename(scriptPath);
 
 // ── FNV-1a (byte domain) — from sha256.ts:54 ─────────────────────────────
 const FNV_OFFSET_BASIS = 0x811c9dc5;
@@ -238,7 +252,7 @@ console.log(`[paper-4-rtx-bench] hardware: ${JSON.stringify(hardware)}\n`);
     fnv1aBytes(bytes);
     times.push((performance.now() - t0) * 1000);
   }
-  results.push(summarize('fnvhash geometry hash', '1K verts', 1000, times));
+  results.push(summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '1K verts', 1000, times));
 }
 
 // 2. fnvhash 100K verts
@@ -252,7 +266,7 @@ console.log(`[paper-4-rtx-bench] hardware: ${JSON.stringify(hardware)}\n`);
     fnv1aBytes(bytes);
     times.push((performance.now() - t0) * 1000);
   }
-  results.push(summarize('fnvhash geometry hash', '100K verts', 100_000, times));
+  results.push(summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '100K verts', 100_000, times));
 }
 
 // 3. SHA-256 CAEL chain verify @ 10^4 entries
@@ -270,13 +284,11 @@ console.log(`[paper-4-rtx-bench] hardware: ${JSON.stringify(hardware)}\n`);
   results.push(summarize('SHA-256 CAEL-chain verify', '10^4 entries', N, times));
 }
 
-// 4. WebGPU determinism replay — CPU substitute
+// 4. Synthetic SHA-chain fold (not WGSL-equivalent and not a GPU bound)
 {
   notes.push(
-    'WebGPU determinism replay row measured via the deterministic CPU ' +
-      'substitute (sha256-chain over 500 synthetic CAEL rows). Real WebGPU ' +
-      'capture requires a browser driver that calls runDeterminismHarness; ' +
-      'the in-Node CPU number bounds the GPU number from above.'
+    'Synthetic SHA-chain fold over 500 text rows. This is not algorithmically ' +
+      'equivalent to cael-trace-fold-v1 WGSL and is neither a GPU substitute nor a GPU bound.'
   );
   const N = 500;
   const TRIALS = 20;
@@ -287,7 +299,7 @@ console.log(`[paper-4-rtx-bench] hardware: ${JSON.stringify(hardware)}\n`);
     verifySha256Chain(payloads, expectedHashes);
     times.push((performance.now() - t0) * 1000);
   }
-  results.push(summarize('WebGPU determinism replay (CPU substitute)', '500 steps', N, times));
+  results.push(summarize('synthetic SHA-chain fold (not WGSL equivalent)', '500 rows', N, times));
 }
 
 // 5. Full pipeline
@@ -302,7 +314,7 @@ console.log(`[paper-4-rtx-bench] hardware: ${JSON.stringify(hardware)}\n`);
     verifySha256Chain(payloads, expectedHashes);
     times.push((performance.now() - t0) * 1000);
   }
-  results.push(summarize('Full pipeline verification', '1K vert + 500 CAEL', 500, times));
+  results.push(summarize('synthetic raw-FNV + text-SHA aggregate', '1K coordinates + 500 rows', 500, times));
 }
 
 if (hardware.tier !== 'H3') {
@@ -315,14 +327,14 @@ if (hardware.tier !== 'H3') {
 
 const capturedAt = new Date().toISOString();
 // Receipt v2 — see scripts/webgpu-capture/receipt-v2.schema.json. The
-// `path: 'cpu-substitute'` field marks this row as the deterministic CPU
-// equivalent of the kernels Paper 4 §7.8 cites. Real GPU receipts
+// `path: 'cpu-component'` field marks these related CPU primitives as
+// algorithmically distinct from the WGSL kernel. Real GPU receipts
 // (path: 'webgpu-browser') live alongside this one and are produced by
 // scripts/webgpu-capture/capture-bench.mjs with the paper-4-cael-fold-* configs.
 const artifact = {
   receipt_version: 'v2',
   captured_at: capturedAt,
-  path: 'cpu-substitute',
+  path: 'cpu-component',
   paper: 'paper-4-sandbox-usenix',
   section: '7.8',
   harness: 'scripts/paper4-rtx-bench-standalone.mjs',
@@ -330,22 +342,60 @@ const artifact = {
   adapter_info: null,
   browser: null,
   kernel: {
-    name: 'paper-4-rtx-bench-cpu-substitute',
+    name: 'paper-4-cpu-component-baselines',
     wgsl_path: null,
-    wgsl_sha256:
-      'n/a (cpu path; inlines fnv1aBytes + sha256Bytes byte-for-byte from packages/engine/src/simulation/sha256.ts)',
+    wgsl_sha256: null,
     workgroup_size: null,
     dispatch_size: null,
   },
-  protocol_commit: null,
+  protocol_commit: repoRoot ? gitHeadHash(repoRoot) : null,
+  code_provenance: {
+    relevant_paths_clean: repoRoot ? gitPathsClean(repoRoot, [scriptRelativePath]) : null,
+    inputs: [{ path: scriptRelativePath, sha256: scriptSha256 }],
+  },
   results,
   notes,
   ots_proof_path: null,
   anchor_chain: null,
 };
 
-const outPath = path.join(process.cwd(), `paper-4-rtx-bench-${hardware.tier}.json`);
+const outPath = outArg
+  ? path.resolve(process.cwd(), outArg)
+  : path.join(process.cwd(), `paper-4-rtx-bench-${hardware.tier}.json`);
+fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, JSON.stringify(artifact, null, 2) + '\n', 'utf8');
 
 console.log(`[paper-4-rtx-bench] artifact → ${outPath}`);
 console.log(JSON.stringify(artifact, null, 2));
+
+function findRepoRoot(start) {
+  let current = start;
+  for (let i = 0; i < 12; i++) {
+    if (fs.existsSync(path.join(current, 'pnpm-workspace.yaml'))) return current;
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return null;
+}
+
+function gitHeadHash(root) {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function gitPathsClean(root, paths) {
+  try {
+    execFileSync('git', ['diff', '--quiet', '--', ...paths], { cwd: root, stdio: 'ignore' });
+    execFileSync('git', ['diff', '--cached', '--quiet', '--', ...paths], {
+      cwd: root,
+      stdio: 'ignore',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}

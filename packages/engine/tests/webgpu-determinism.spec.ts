@@ -227,7 +227,7 @@ test.describe('Paper-3 WebGPU determinism harness', () => {
         expect(replication.wallMs).toBeGreaterThanOrEqual(0);
         expect(replication.wgslCompileMs).toBeGreaterThanOrEqual(0);
         if (replication.finalStateFields?.u32_state) {
-          expect(replication.finalStateFields.u32_state.length).toBe(8);
+          expect(replication.finalStateFields.u32_state.length).toBe(16);
         }
       }
 

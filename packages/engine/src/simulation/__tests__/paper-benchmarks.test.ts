@@ -82,6 +82,36 @@ function generateEllipticMembraneMesh(nr: number, nt: number) {
     }
   }
 
+  // The contract rejects left-handed tetrahedra. Normalize the benchmark
+  // fixture so the measured path reaches post-solve validation/provenance
+  // instead of timing a contract failure hidden behind an un-awaited Promise.
+  for (let offset = 0; offset < tets.length; offset += 4) {
+    const i0 = tets[offset];
+    const i1 = tets[offset + 1];
+    const i2 = tets[offset + 2];
+    const i3 = tets[offset + 3];
+    const x0 = pts[i0 * 3];
+    const y0 = pts[i0 * 3 + 1];
+    const z0 = pts[i0 * 3 + 2];
+    const dx1 = pts[i1 * 3] - x0;
+    const dy1 = pts[i1 * 3 + 1] - y0;
+    const dz1 = pts[i1 * 3 + 2] - z0;
+    const dx2 = pts[i2 * 3] - x0;
+    const dy2 = pts[i2 * 3 + 1] - y0;
+    const dz2 = pts[i2 * 3 + 2] - z0;
+    const dx3 = pts[i3 * 3] - x0;
+    const dy3 = pts[i3 * 3 + 1] - y0;
+    const dz3 = pts[i3 * 3 + 2] - z0;
+    const determinant =
+      dx1 * (dy2 * dz3 - dz2 * dy3) -
+      dy1 * (dx2 * dz3 - dz2 * dx3) +
+      dz1 * (dx2 * dy3 - dy2 * dx3);
+    if (determinant < 0) {
+      tets[offset + 1] = i2;
+      tets[offset + 2] = i1;
+    }
+  }
+
   return {
     vertices: new Float32Array(pts),
     tetrahedra: new Uint32Array(tets),
@@ -189,7 +219,7 @@ function makeTET4Config(
       density: 7850,
       youngs_modulus: E_MODULUS,
       poisson_ratio: POISSON,
-      yield_strength: 400,
+      yield_strength: 400e6,
     },
     constraints: [{ id: 'fix_rbm', type: 'fixed', nodes: fixedNodes }],
     loads,
@@ -218,7 +248,7 @@ function makeTET10Config(
       density: 7850,
       youngs_modulus: E_MODULUS,
       poisson_ratio: POISSON,
-      yield_strength: 400,
+      yield_strength: 400e6,
     },
     constraints: [{ id: 'fix_rbm', type: 'fixed', nodes: fixedNodes }],
     loads,
@@ -229,18 +259,18 @@ function makeTET10Config(
   return { config, mesh, tet10Mesh };
 }
 
-function benchmark(
-  fn: () => void,
+async function benchmark(
+  fn: () => void | Promise<void>,
   iterations: number
-): { medianMs: number; meanMs: number; stdMs: number; p99Ms: number; allMs: number[] } {
+): Promise<{ medianMs: number; meanMs: number; stdMs: number; p99Ms: number; allMs: number[] }> {
   const times: number[] = [];
   // Warmup (3 runs)
-  fn();
-  fn();
-  fn();
+  await fn();
+  await fn();
+  await fn();
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
-    fn();
+    await fn();
     times.push(performance.now() - start);
   }
   times.sort((a, b) => a - b);
@@ -262,7 +292,7 @@ describe('Paper Benchmark: Contract Overhead', () => {
   it(
     'measures overhead of ContractedSimulation wrapper on TET4 solve',
     { timeout: 600_000 },
-    () => {
+    async () => {
       const meshConfigs = [
         { nr: 4, nt: 8, label: 'Small' },
         { nr: 6, nt: 12, label: 'Medium' },
@@ -286,21 +316,22 @@ describe('Paper Benchmark: Contract Overhead', () => {
         const dof = mesh.nodeCount * 3;
 
         // Bare solver timing
-        const bareTiming = benchmark(() => {
+        const bareTiming = await benchmark(() => {
           const solver = new StructuralSolver(config);
           solver.solve();
         }, N_ITER);
 
         // Contracted solver timing
-        const contractedTiming = benchmark(() => {
+        const contractedTiming = await benchmark(async () => {
           const solver = new StructuralSolver(config);
           const contracted = new ContractedSimulation(solver, config as Record<string, unknown>, {
             solverType: 'structural-tet4',
             enforceUnits: true,
             logInteractions: true,
           });
-          contracted.solve();
-          contracted.getProvenance();
+          await contracted.solve();
+          const provenance = contracted.getProvenance();
+          expect(provenance.finalStateDigest).toBeTruthy();
         }, N_ITER);
 
         const overheadStr =
@@ -336,11 +367,10 @@ describe('Paper Benchmark: Contract Overhead', () => {
 
       // Just verify the test ran
       expect(rows.length).toBe(3);
-    },
-    60000
+    }
   );
 
-  it('measures geometry hashing cost at various mesh sizes', () => {
+  it('measures geometry hashing cost at various mesh sizes', async () => {
     const meshConfigs = [
       { nr: 4, nt: 8 },
       { nr: 8, nt: 16 },
@@ -358,7 +388,7 @@ describe('Paper Benchmark: Contract Overhead', () => {
       const mesh = generateEllipticMembraneMesh(mc.nr, mc.nt);
       const elemCount = mesh.tetrahedra.length / 4;
 
-      const timing = benchmark(() => {
+      const timing = await benchmark(() => {
         hashGeometry(mesh.vertices, mesh.tetrahedra);
       }, 10);
 

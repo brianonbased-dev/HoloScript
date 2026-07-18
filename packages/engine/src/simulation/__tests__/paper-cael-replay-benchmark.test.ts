@@ -1,8 +1,8 @@
 /**
  * Paper #1 / PAPER-GAP-06 — Independent CAEL hash-chain verify + replay timing.
  *
- * Measures `verifyCAELHashChain` (verifier-only) vs full `CAELReplayer.verify` + `replay`
- * on a non-trivial trace. Logs ms and entries/s for methods text.
+ * Measures `verifyCAELHashChain` (verifier-only) vs `CAELReplayer.replay`
+ * (which performs one verification internally) on a non-trivial mock-solver trace.
  *
  * Run: pnpm --filter @holoscript/engine exec vitest run src/simulation/__tests__/paper-cael-replay-benchmark.test.ts
  */
@@ -219,7 +219,11 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
         vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
         tetrahedra: new Uint32Array([0, 1, 2, 3]),
       },
-      { solverType: 'structural-tet10', fixedDt: 0.01 }
+      {
+        solverType: 'structural-tet10',
+        fixedDt: 0.01,
+        adapterFingerprint: 'paper-cael-replay-mock-adapter',
+      }
     );
     for (let i = 0; i < steps; i++) {
       recorder.step(0.01);
@@ -283,11 +287,18 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
 
     const stats = calcStats(verifySamplesUs);
 
+    const tampered = cloneTrace(trace);
+    tampered[Math.floor(tampered.length / 2)] = mutateEntry(
+      tampered[Math.floor(tampered.length / 2)],
+      { payload: { tampered: true } }
+    );
+    expect(verifyCAELHashChain(tampered).valid).toBe(false);
+
     const replayer = new CAELReplayer(jsonl);
     const t1 = performance.now();
-    const chain = replayer.verify();
-    expect(chain.valid).toBe(true);
-    const replaySim = await replayer.replay(() => mockSolver());
+    const replaySim = await replayer.replay(() => mockSolver(), {
+      currentAdapterFingerprint: 'paper-cael-replay-mock-adapter',
+    });
     replaySim.dispose();
     const replayMs = performance.now() - t1;
 
@@ -296,7 +307,7 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
         `verify: ${stats.median.toFixed(4)} us/entry median (p99: ${stats.p99.toFixed(4)} us/entry) `
     );
     console.log(
-      `[paper-cael-replay-benchmark] single replayer.verify+replay wall ${replayMs.toFixed(2)}ms (${entryCount} entries)`
+      `[paper-cael-replay-benchmark] single mock replay wall (includes one verify + same-adapter digest checks) ${replayMs.toFixed(2)}ms (${entryCount} entries)`
     );
 
     expect(replayMs).toBeLessThan(120_000);

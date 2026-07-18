@@ -46,7 +46,7 @@
 import http from 'node:http';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { chromium } from 'playwright';
@@ -61,17 +61,35 @@ const configPath = args[0];
 const outIdx = args.indexOf('--out');
 const outPathArg = outIdx >= 0 ? args[outIdx + 1] : undefined;
 
-const config = JSON.parse(readFileSync(configPath, 'utf8'));
+const configSource = readFileSync(configPath, 'utf8');
+const config = JSON.parse(configSource);
 const repoRoot = findRepoRoot(process.cwd());
 const wgslAbsPath = path.resolve(repoRoot, config.kernel.wgsl_path);
 const wgsl = readFileSync(wgslAbsPath, 'utf8');
 const wgslSha256 = createHash('sha256').update(wgsl).digest('hex');
+const harnessRelativePath = 'scripts/webgpu-capture/capture-bench.mjs';
+const configRelativePath = path.relative(repoRoot, path.resolve(configPath)).replaceAll('\\', '/');
+const relevantPaths = [harnessRelativePath, configRelativePath, config.kernel.wgsl_path];
 
 // ── Hardware tier ────────────────────────────────────────────────────────
 const hardware = detectHardware();
 
 // ── Launch Chromium + run kernel ─────────────────────────────────────────
 const result = await runCapture({ wgsl, wgslSha256 });
+
+if (!Array.isArray(result.results) || result.results.length === 0) {
+  throw new Error('WebGPU capture produced no benchmark result; refusing to emit evidence.');
+}
+if (config.require_digest_match === true) {
+  const digest = result.results[0]?.digest_summary;
+  const matched = digest?.digest_bit_identical === true || digest?.digest_epsilon_identical === true;
+  if (!matched) {
+    throw new Error(
+      `WebGPU digest requirement failed: mode=${digest?.digest_mode ?? 'missing'} ` +
+        `unique=${digest?.unique_digest_count ?? 'missing'}`
+    );
+  }
+}
 
 // ── Emit receipt-v2 ──────────────────────────────────────────────────────
 const capturedAt = new Date().toISOString();
@@ -93,6 +111,14 @@ const receipt = {
     dispatch_size: config.kernel.dispatch_size,
   },
   protocol_commit: gitHeadHash(repoRoot),
+  code_provenance: {
+    relevant_paths_clean: gitPathsClean(repoRoot, relevantPaths),
+    inputs: [
+      sourceIdentity(repoRoot, harnessRelativePath),
+      { path: configRelativePath, sha256: sha256Text(configSource) },
+      { path: config.kernel.wgsl_path, sha256: wgslSha256 },
+    ],
+  },
   results: result.results,
   notes: result.notes,
   ots_proof_path: null,
@@ -152,6 +178,32 @@ function gitHeadHash(repoRoot) {
   } catch {
     return null;
   }
+}
+
+function gitPathsClean(repoRoot, paths) {
+  try {
+    execFileSync('git', ['diff', '--quiet', '--', ...paths], { cwd: repoRoot, stdio: 'ignore' });
+    execFileSync('git', ['diff', '--cached', '--quiet', '--', ...paths], {
+      cwd: repoRoot,
+      stdio: 'ignore',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function sha256Text(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function sourceIdentity(repoRoot, relativePath) {
+  return {
+    path: relativePath,
+    sha256: createHash('sha256')
+      .update(readFileSync(path.resolve(repoRoot, relativePath)))
+      .digest('hex'),
+  };
 }
 
 function findRepoRoot(start) {
@@ -274,9 +326,11 @@ async function runBenchInPage(input) {
       results: [],
     };
   }
-  const adapterInfo = adapter.requestAdapterInfo
-    ? await adapter.requestAdapterInfo()
-    : { vendor: '', architecture: '', device: '', description: '' };
+  const adapterInfo = adapter.info
+    ? { ...adapter.info }
+    : adapter.requestAdapterInfo
+      ? await adapter.requestAdapterInfo()
+      : { vendor: '', architecture: '', device: '', description: '' };
 
   // Phase 3: request 'timestamp-query' feature so we can report kernel-only
   // GPU timing distinct from wall-clock-including-queue. If the adapter

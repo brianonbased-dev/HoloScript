@@ -19,22 +19,26 @@
 // Workgroup size: 64.
 // Entry point: main.
 //
-// Determinism note (2026-05-29):
+// Historical determinism finding (superseded 2026-07-18):
 //   This kernel mixes atomicXor and atomicAdd on overlapping finalState
 //   slots. XOR and ADD do not commute with each other on u32, so the
 //   final state varies across replays even on the same adapter (52/100
 //   distinct digests on local Chrome/Intel UHD; 100/100 on Tesla V100
 //   NVIDIA Vulkan). Paper 3 §replay-determinism Property[same-adapter
-//   scope] therefore does NOT hold for this kernel as currently written.
+//   scope] did not hold for the historical overlapping-slot kernel.
 //
 //   The finding is documented at
 //   ai-ecosystem:research/2026-05-29_paper-3-determinism-finding.md
 //   with two paths to closure (kernel redesign vs. paper edit to Route 2b
 //   semantic ε-tolerance). Both paths are upstream of this mirror — the
-//   kernel here is preserved verbatim from packages/engine/src/testing/
-//   WebGPUDeterminismHarness.ts so existing tests continue to pass; the
-//   capture-bench receipts surface the finding for the paper-side
-//   editorial decision.
+//   repaired kernel here remains in lockstep with packages/engine/src/testing/
+//   WebGPUDeterminismHarness.ts. Capture receipts now require digest readback
+//   before they can be admitted as Paper 4 evidence.
+//
+// Current scope:
+//   XOR reductions occupy slots 0..7 and ADD reductions occupy slots 8..15.
+//   Same-adapter bit identity still requires measured receipt readback.
+//   Cross-adapter bit identity remains unproven.
 
 struct TraceRow {
   a: u32,
@@ -51,7 +55,7 @@ struct Params {
 };
 
 @group(0) @binding(0) var<storage, read> traceRows: array<TraceRow>;
-@group(0) @binding(1) var<storage, read_write> finalState: array<atomic<u32>, 8>;
+@group(0) @binding(1) var<storage, read_write> finalState: array<atomic<u32>, 16>;
 @group(0) @binding(2) var<uniform> params: Params;
 
 fn mix32(input: u32) -> u32 {
@@ -77,6 +81,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   v = mix32(v ^ row.c);
   v = mix32(v + row.d);
 
+  // Keep operation domains disjoint. XOR reductions use slots 0..7 and
+  // additive counters use slots 8..15, so every contended slot is updated
+  // by one associative/commutative u32 operation only.
   atomicXor(&finalState[i % 8u], v);
-  atomicAdd(&finalState[(i + 3u) % 8u], mix32(v ^ 0xc2b2ae35u));
+  atomicAdd(&finalState[8u + (i % 8u)], mix32(v ^ 0xc2b2ae35u));
 }

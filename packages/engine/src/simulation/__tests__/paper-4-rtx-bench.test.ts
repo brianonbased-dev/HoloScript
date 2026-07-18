@@ -1,7 +1,7 @@
 /**
  * paper-4-rtx-bench.test.ts
  *
- * Hardware-tier sandbox benchmark for Paper 4 (Trust Sandbox Contract,
+ * CPU component benchmark for Paper 4 (Trust Sandbox Contract,
  * USENIX Sec '27) §7.8 Table 5 — "GPU hash-chain and replay throughput".
  *
  * Measures the underlying contract-hash primitives that the security
@@ -11,13 +11,8 @@
  *   3. SHA-256 CAEL-chain verify @ 10^4 entries   (sha256.ts:sha256Bytes
  *                                                   threaded as the
  *                                                   chain-extension hash)
- *   4. WebGPU determinism replay @ 500 steps      (mock-mode marker —
- *                                                   the real WebGPU
- *                                                   harness needs a
- *                                                   browser/Playwright
- *                                                   driver per the
- *                                                   HarnessConfig
- *                                                   protocol)
+ *   4. Synthetic SHA-chain fold @ 500 rows        (not WGSL-equivalent;
+ *                                                   not a GPU bound)
  *   5. Full pipeline @ 1K vert + 500 CAEL entries (composed FNV-1a +
  *                                                   SHA-256 chain)
  *
@@ -188,12 +183,12 @@ function verifySha256Chain(payloads: Uint8Array[], expectedHashes: string[]): bo
 }
 
 // ── The benchmark suite ─────────────────────────────────────────────────────
-describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
+describe('paper-4 §7.8 CPU component baselines', () => {
   const hardware = detectHardware();
   const results: OpResult[] = [];
   const notes: string[] = [];
 
-  it('benchmark — fnvhash geometry hash @ 1K verts', () => {
+  it('benchmark — raw FNV-1a coordinate bytes @ 1K verts', () => {
     const bytes = makeGeometryBytes(1000);
     for (let i = 0; i < 50; i++) fnv1aBytes(bytes); // warmup
     const TRIALS = 1000;
@@ -203,11 +198,11 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
       fnv1aBytes(bytes);
       times.push((performance.now() - t0) * 1000);
     }
-    results.push(summarize('fnvhash geometry hash', '1K verts', 1000, times));
+    results.push(summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '1K verts', 1000, times));
     expect(times.length).toBe(TRIALS);
   });
 
-  it('benchmark — fnvhash geometry hash @ 100K verts', () => {
+  it('benchmark — raw FNV-1a coordinate bytes @ 100K verts', () => {
     const bytes = makeGeometryBytes(100_000);
     for (let i = 0; i < 10; i++) fnv1aBytes(bytes);
     const TRIALS = 200;
@@ -217,7 +212,7 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
       fnv1aBytes(bytes);
       times.push((performance.now() - t0) * 1000);
     }
-    results.push(summarize('fnvhash geometry hash', '100K verts', 100_000, times));
+    results.push(summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '100K verts', 100_000, times));
   });
 
   it('benchmark — SHA-256 CAEL-chain verify @ 10^4 entries', () => {
@@ -234,18 +229,12 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
     results.push(summarize('SHA-256 CAEL-chain verify', '10^4 entries', N, times));
   });
 
-  it('benchmark — WebGPU determinism replay @ 500 steps (mock)', () => {
-    // Real WebGPU replay requires a browser/Playwright driver per the
-    // HarnessConfig protocol in WebGPUDeterminismHarness.ts. Node-only
-    // path uses the deterministic CPU substitute: time the same SHA-256
-    // chain extension that the WGSL kernel folds over CAEL rows. This
-    // produces an honest CPU-bound upper bound on the GPU number.
+  it('benchmark — synthetic SHA-chain fold @ 500 rows (not WGSL equivalent)', () => {
+    // This measures a separate Node SHA-chain workload. It neither implements
+    // the mix32/atomic WGSL kernel nor establishes a bound on GPU execution.
     notes.push(
-      'WebGPU determinism replay row measured via the deterministic CPU ' +
-        'substitute (sha256-chain over 500 synthetic CAEL rows). Real WebGPU ' +
-        'capture requires a browser driver that calls runDeterminismHarness ' +
-        '(WebGPUDeterminismHarness.ts:612) with a HarnessConfig; the in-Node ' +
-        'CPU number bounds the GPU number from above per §Mock-vs-WebGPU.'
+      'Synthetic SHA-chain fold over 500 text rows. This is not algorithmically ' +
+        'equivalent to cael-trace-fold-v1 WGSL and is neither a GPU substitute nor a GPU bound.'
     );
     const N = 500;
     const TRIALS = 20;
@@ -257,7 +246,7 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
       expect(ok).toBe(true);
       times.push((performance.now() - t0) * 1000);
     }
-    results.push(summarize('WebGPU determinism replay (CPU substitute)', '500 steps', N, times));
+    results.push(summarize('synthetic SHA-chain fold (not WGSL equivalent)', '500 rows', N, times));
   });
 
   it('benchmark — Full pipeline @ 1K vert + 500 CAEL', () => {
@@ -271,7 +260,7 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
       verifySha256Chain(payloads, expectedHashes);
       times.push((performance.now() - t0) * 1000);
     }
-    results.push(summarize('Full pipeline verification', '1K vert + 500 CAEL', 500, times));
+    results.push(summarize('synthetic raw-FNV + text-SHA aggregate', '1K coordinates + 500 rows', 500, times));
   });
 
   it('emit JSON artifact under .bench-logs/<ISO>/paper-4-rtx-bench.json', () => {
@@ -287,8 +276,8 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
 
     const capturedAt = new Date().toISOString();
     // Receipt v2 — see scripts/webgpu-capture/receipt-v2.schema.json. The
-    // `path: 'cpu-substitute'` field marks this row as the deterministic CPU
-    // equivalent of the kernels Paper 4 §7.8 cites. The real GPU receipts
+    // `path: 'cpu-component'` field marks these related CPU primitives as
+    // algorithmically distinct from the WGSL kernel. The real GPU receipts
     // (path: 'webgpu-browser') live alongside this one and are produced by
     // scripts/webgpu-capture/capture-bench.mjs with the paper-4-cael-fold-*
     // configs. Both shapes are unified so reviewers see the path field on
@@ -296,7 +285,7 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
     const artifact = {
       receipt_version: 'v2',
       captured_at: capturedAt,
-      path: 'cpu-substitute',
+      path: 'cpu-component',
       paper: 'paper-4-sandbox-usenix',
       section: '7.8',
       harness: 'packages/engine/src/simulation/__tests__/paper-4-rtx-bench.test.ts',
@@ -304,10 +293,9 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
       adapter_info: null,
       browser: null,
       kernel: {
-        name: 'paper-4-rtx-bench-cpu-substitute',
+        name: 'paper-4-cpu-component-baselines',
         wgsl_path: null,
-        wgsl_sha256:
-          'n/a (cpu path; inlines fnv1aBytes + sha256Bytes from packages/engine/src/simulation/sha256.ts)',
+        wgsl_sha256: null,
         workgroup_size: null,
         dispatch_size: null,
       },

@@ -219,6 +219,13 @@ function buildTET4CSRPattern(
 // ── Solver ────────────────────────────────────────────────────────────────────
 
 export class StructuralSolver {
+  readonly fieldNames = [
+    'von_mises_stress',
+    'safety_factor',
+    'displacements',
+    'cauchy_stress',
+  ] as const;
+
   private config: StructuralConfig;
   private material: StructuralMaterial;
   private nodeCount: number;
@@ -979,6 +986,22 @@ export class StructuralSolver {
 
   getDisplacements(): Float32Array {
     return this.displacements;
+  }
+
+  /** Standard SimSolver field surface used by contract/CAEL state digests. */
+  getField(name: string): Float32Array | null {
+    switch (name) {
+      case 'displacements':
+        return this.displacements;
+      case 'von_mises_stress':
+        return this.vonMisesStress;
+      case 'cauchy_stress':
+        return this.cauchyStress;
+      case 'safety_factor':
+        return this.safetyFactors;
+      default:
+        return null;
+    }
   }
 
   getCSRMatrix(): CSRMatrix {

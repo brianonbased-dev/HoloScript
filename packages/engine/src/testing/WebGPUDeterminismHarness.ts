@@ -45,8 +45,9 @@ import type { CAELTrace } from '../simulation/CAELTrace';
 
 const HARNESS_WORKGROUP_SIZE = 64;
 const HARNESS_KERNEL_NAME = 'cael-trace-fold-v1';
+export const HARNESS_OUTPUT_WORDS = 16;
 
-const HARNESS_WGSL = /* wgsl */ `
+export const HARNESS_WGSL = /* wgsl */ `
 struct TraceRow {
   a: u32,
   b: u32,
@@ -62,7 +63,7 @@ struct Params {
 };
 
 @group(0) @binding(0) var<storage, read> traceRows: array<TraceRow>;
-@group(0) @binding(1) var<storage, read_write> finalState: array<atomic<u32>, 8>;
+@group(0) @binding(1) var<storage, read_write> finalState: array<atomic<u32>, 16>;
 @group(0) @binding(2) var<uniform> params: Params;
 
 fn mix32(input: u32) -> u32 {
@@ -88,8 +89,11 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   v = mix32(v ^ row.c);
   v = mix32(v + row.d);
 
+  // Keep operation domains disjoint. XOR reductions use slots 0..7 and
+  // additive counters use slots 8..15, so every contended slot is updated
+  // by one associative/commutative u32 operation only.
   atomicXor(&finalState[i % 8u], v);
-  atomicAdd(&finalState[(i + 3u) % 8u], mix32(v ^ 0xc2b2ae35u));
+  atomicAdd(&finalState[8u + (i % 8u)], mix32(v ^ 0xc2b2ae35u));
 }
 `;
 
@@ -476,6 +480,7 @@ async function acquireWebGPU(config: HarnessConfig): Promise<{
 function makeOutputSeed(): Uint32Array {
   return new Uint32Array([
     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+    0, 0, 0, 0, 0, 0, 0, 0,
   ]);
 }
 

@@ -10,7 +10,7 @@
   },
   "buffers": [
     { "group": 0, "binding": 0, "name": "traceRows",  "size_bytes": 8000, "init": { "kind": "trace-rows-u32x4" }, "usage": ["storage", "copy_dst"] },
-    { "group": 0, "binding": 1, "name": "finalState", "size_bytes": 32,   "init": "zeros",                       "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 1, "name": "finalState", "size_bytes": 64,   "init": "zeros",                       "usage": ["storage", "copy_dst", "copy_src"] },
     { "group": 0, "binding": 2, "name": "params",     "size_bytes": 16,   "init": { "kind": "uniform-u32-tuple", "values": [500, 305419896, 0, 0] }, "usage": ["uniform", "copy_dst"] }
   ],
   "digest_buffer": { "group": 0, "binding": 1 },
