@@ -64,6 +64,11 @@ rails only after the declared consumer boundary has:
 `0.1.0` permits public consumption. It does not permit a stable API,
 production-ready, drop-in, or v1 compatibility claim.
 
+The first measured gate audit is the
+[`0.1.0` outward-preview readiness baseline](../releases/0.1.0-readiness-baseline.md). Its
+`NOT READY` disposition remains authoritative until a newer dated baseline supersedes it with all
+required evidence green.
+
 ## Gate to public `1.0.0`
 
 The first stable public release additionally requires resolved or explicitly

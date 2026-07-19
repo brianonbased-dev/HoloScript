@@ -16,8 +16,9 @@ use holoscript_native::{
     BORROWED_SCALAR_FIELD_FORWARD_RETURN_MACHINE_CONTRACT,
     BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT,
     BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
-    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
-    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
+    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
+    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
+    OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -2081,16 +2082,12 @@ fn slice_forwarded_results_preserve_one_hop_abi_and_caller_roots() {
 }
 
 #[test]
-fn slice_forwarded_results_reject_transitive_or_severed_provenance() {
+fn slice_forwarded_results_reject_severed_provenance() {
     let options = NativeCompileOptions::host();
     for (source, expected) in [
         (
             "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32], other: &[i32]): &'a [i32] { return view(other) } function main(): i32 { return 5 }",
             "must forward exact source parameter `values` to `view`; found `other`",
-        ),
-        (
-            "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { return view(values) } function chain<'a>(values: &'a [i32]): &'a [i32] { return relay(values) } function main(): i32 { return 5 }",
-            "cannot forward borrowed slice result from forwarding function `relay`; only one direct forwarding hop is admitted",
         ),
         (
             "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { return view(values) return view(values) } function main(): i32 { return 5 }",
@@ -2205,7 +2202,7 @@ fn aggregate_forwarded_results_preserve_one_hop_abi_and_caller_roots() {
 }
 
 #[test]
-fn aggregate_forwarded_results_reject_transitive_or_severed_provenance() {
+fn aggregate_forwarded_results_reject_severed_provenance() {
     let options = NativeCompileOptions::host();
     for (source, expected) in [
         (
@@ -2213,12 +2210,8 @@ fn aggregate_forwarded_results_reject_transitive_or_severed_provenance() {
             "must forward exact source parameter `packet` to `borrow`; found `other`",
         ),
         (
-            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) } function chain<'a>(packet: &'a Packet): &'a Packet { return relay(packet) } function main(): i32 { return 5 }",
-            "cannot forward borrowed aggregate result from forwarding function `relay`; only one direct forwarding hop is admitted",
-        ),
-        (
             "struct Packet { code: i32 } function relay<'a>(packet: &'a Packet): &'a Packet { return relay(packet) } function main(): i32 { return 5 }",
-            "cannot forward borrowed aggregate result from forwarding function `relay`; only one direct forwarding hop is admitted",
+            "borrowed-summary call graph must be acyclic; found relay -> relay",
         ),
         (
             "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(&packet) } function main(): i32 { return 5 }",
@@ -3393,7 +3386,7 @@ fn scalar_field_forwarded_results_preserve_one_hop_abi_and_caller_roots() {
 }
 
 #[test]
-fn scalar_field_forwarded_results_reject_transitive_or_severed_provenance() {
+fn scalar_field_forwarded_results_reject_severed_provenance() {
     let options = NativeCompileOptions::host();
     for (source, expected) in [
         (
@@ -3405,12 +3398,8 @@ fn scalar_field_forwarded_results_reject_transitive_or_severed_provenance() {
             "must forward exact source parameter `packet` directly to `code`",
         ),
         (
-            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) } function chain<'a>(packet: &'a Packet): &'a i32 { return relay(packet) } function main(): i32 { return 5 }",
-            "cannot forward borrowed scalar-field result from forwarding function `relay`; only one direct forwarding hop is admitted",
-        ),
-        (
             "struct Packet { code: i32 } function relay<'a>(packet: &'a Packet): &'a i32 { return relay(packet) } function main(): i32 { return 5 }",
-            "cannot forward borrowed scalar-field result from forwarding function `relay`; only one direct forwarding hop is admitted",
+            "borrowed-summary call graph must be acyclic; found relay -> relay",
         ),
         (
             "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) return code(packet) } function main(): i32 { return 5 }",
@@ -3580,10 +3569,6 @@ fn aggregate_subobject_results_reject_severed_or_laundered_provenance() {
         (
             "struct Header { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet): &'a Header { return &packet.first } function relay<'a>(packet: &'a Packet, other: &Packet): &'a Header { return header(other) } function main(): i32 { return 5 }",
             "must forward exact source parameter `packet` to `header`; found `other`",
-        ),
-        (
-            "struct Header { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet): &'a Header { return &packet.first } function relay<'a>(packet: &'a Packet): &'a Header { return header(packet) } function chain<'a>(packet: &'a Packet): &'a Header { return relay(packet) } function main(): i32 { return 5 }",
-            "cannot forward borrowed aggregate subobject from forwarding function `relay`; only one direct forwarding hop is admitted",
         ),
         (
             "struct Header { code: i32 } struct Packet { first: Header, second: Header } function header<'a>(packet: &'a Packet, choose: bool): &'a Header { if (choose) { return &packet.first } return &packet.second } function main(): i32 { return 5 }",
@@ -3805,10 +3790,6 @@ fn slice_element_results_reject_severed_or_laundered_provenance() {
             "requires exactly one `i32` index parameter; found 2",
         ),
         (
-            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function relay<'a>(values: &'a [i32], index: i32): &'a i32 { return element(values, index) } function chain<'a>(values: &'a [i32], index: i32): &'a i32 { return relay(values, index) } function main(): i32 { return 5 }",
-            "cannot forward borrowed slice-element result from forwarding function `relay`; only one direct forwarding hop is admitted",
-        ),
-        (
             "function element<'a>(values: &'a [i32], index: i32): &'a i32 { if (index == 0) { return &values[index] } return &values[index] } function main(): i32 { return 5 }",
             "requires exactly one direct top-level final return; found 2 returns",
         ),
@@ -3992,10 +3973,6 @@ fn aggregate_buffer_element_results_reject_severed_or_laundered_provenance() {
             "must derive from source parameter `packet`; found root `local`",
         ),
         (
-            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.values[index] } function relay<'a>(packet: &'a Packet, index: i32): &'a i32 { return element(packet, index) } function chain<'a>(packet: &'a Packet, index: i32): &'a i32 { return relay(packet, index) } function main(): i32 { return 5 }",
-            "cannot forward aggregate-buffer element result from forwarding function `relay`; only one direct forwarding hop is admitted",
-        ),
-        (
             "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.values[index] } function relay<'a>(packet: &'a Packet, index: i32): &'a i32 { return element(packet, 0) } function main(): i32 { return 5 }",
             "must forward one exact named `i32` aggregate-buffer index directly to `element`",
         ),
@@ -4168,10 +4145,6 @@ fn aggregate_buffer_subslice_results_reject_severed_or_laundered_provenance() {
             "must derive from source parameter `packet`; found root `local`",
         ),
         (
-            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start..end] } function relay<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return view(packet, start, end) } function chain<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return relay(packet, start, end) } function main(): i32 { return 5 }",
-            "cannot forward aggregate-buffer sub-slice result from forwarding function `relay`; only one direct forwarding hop is admitted",
-        ),
-        (
             "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start..end] } function relay<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return view(packet, start, end + 1) } function main(): i32 { return 5 }",
             "must forward exact named `i32` aggregate-buffer range parameters directly to `view`",
         ),
@@ -4324,10 +4297,6 @@ fn aggregate_buffer_whole_slice_results_reject_severed_or_laundered_provenance()
             "must derive from source parameter `packet`; found root `local`",
         ),
         (
-            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet): &'a [i32] { return &packet.values } function relay<'a>(packet: &'a Packet): &'a [i32] { return view(packet) } function chain<'a>(packet: &'a Packet): &'a [i32] { return relay(packet) } function main(): i32 { return 5 }",
-            "cannot forward aggregate-buffer whole-slice result from forwarding function `relay`; only one direct forwarding hop is admitted",
-        ),
-        (
             "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet): &'a [i32] { return &packet.values } function relay<'a>(packet: &'a Packet, other: &Packet): &'a [i32] { return view(other) } function main(): i32 { return 5 }",
             "must forward exact aggregate source parameter `packet` to `view`; found `other`",
         ),
@@ -4357,6 +4326,216 @@ fn aggregate_buffer_whole_slice_results_reject_severed_or_laundered_provenance()
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn compositional_borrow_summaries_cross_three_hops_for_every_reference_shape() {
+    assert_eq!(
+        COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
+        "hs-machine-v31"
+    );
+    let options = NativeCompileOptions::host();
+    let cases = [
+        (
+            "scalar-field",
+            r#"
+                struct Packet { value: i32 }
+                function leaf<'a>(packet: &'a Packet): &'a i32 { return &packet.value }
+                function relay<'a>(packet: &'a Packet): &'a i32 { return leaf(packet) }
+                function chain<'a>(packet: &'a Packet): &'a i32 { return relay(packet) }
+                function tip<'a>(packet: &'a Packet): &'a i32 { return chain(packet) }
+                function leaf_mut<'a>(packet: &'a mut Packet): &'a mut i32 { return &mut packet.value }
+                function relay_mut<'a>(packet: &'a mut Packet): &'a mut i32 { return leaf_mut(packet) }
+                function chain_mut<'a>(packet: &'a mut Packet): &'a mut i32 { return relay_mut(packet) }
+                function tip_mut<'a>(packet: &'a mut Packet): &'a mut i32 { return chain_mut(packet) }
+                function main(): i32 {
+                    slot packet: Packet = Packet(1)
+                    scope { let writer: &mut i32 = tip_mut(&mut packet) *writer = 5 }
+                    let view: &i32 = tip(&packet)
+                    return *view
+                }
+            "#,
+        ),
+        (
+            "aggregate-subobject",
+            r#"
+                struct Header { code: i32 }
+                struct Packet { header: Header }
+                function leaf<'a>(packet: &'a Packet): &'a Header { return &packet.header }
+                function relay<'a>(packet: &'a Packet): &'a Header { return leaf(packet) }
+                function chain<'a>(packet: &'a Packet): &'a Header { return relay(packet) }
+                function tip<'a>(packet: &'a Packet): &'a Header { return chain(packet) }
+                function leaf_mut<'a>(packet: &'a mut Packet): &'a mut Header { return &mut packet.header }
+                function relay_mut<'a>(packet: &'a mut Packet): &'a mut Header { return leaf_mut(packet) }
+                function chain_mut<'a>(packet: &'a mut Packet): &'a mut Header { return relay_mut(packet) }
+                function tip_mut<'a>(packet: &'a mut Packet): &'a mut Header { return chain_mut(packet) }
+                function main(): i32 {
+                    slot packet: Packet = Packet(Header(1))
+                    scope { let writer: &mut Header = tip_mut(&mut packet) store(writer.code, 5) }
+                    let view: &Header = tip(&packet)
+                    return load(view.code)
+                }
+            "#,
+        ),
+        (
+            "ordinary-slice",
+            r#"
+                function leaf<'a>(values: &'a [i32]): &'a [i32] { return values }
+                function relay<'a>(values: &'a [i32]): &'a [i32] { return leaf(values) }
+                function chain<'a>(values: &'a [i32]): &'a [i32] { return relay(values) }
+                function tip<'a>(values: &'a [i32]): &'a [i32] { return chain(values) }
+                function leaf_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return values }
+                function relay_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return leaf_mut(values) }
+                function chain_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return relay_mut(values) }
+                function tip_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return chain_mut(values) }
+                function main(): i32 {
+                    slot values: [i32; 1] = [1]
+                    scope { let writer: &mut [i32] = tip_mut(&mut values[0..1]) store(writer[0], 5) }
+                    let view: &[i32] = tip(&values[0..1])
+                    return load(view[0])
+                }
+            "#,
+        ),
+        (
+            "slice-element",
+            r#"
+                function leaf<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] }
+                function relay<'a>(index: i32, values: &'a [i32]): &'a i32 { return leaf(values, index) }
+                function chain<'a>(values: &'a [i32], index: i32): &'a i32 { return relay(index, values) }
+                function tip<'a>(index: i32, values: &'a [i32]): &'a i32 { return chain(values, index) }
+                function leaf_mut<'a>(values: &'a mut [i32], index: i32): &'a mut i32 { return &mut values[index] }
+                function relay_mut<'a>(index: i32, values: &'a mut [i32]): &'a mut i32 { return leaf_mut(values, index) }
+                function chain_mut<'a>(values: &'a mut [i32], index: i32): &'a mut i32 { return relay_mut(index, values) }
+                function tip_mut<'a>(index: i32, values: &'a mut [i32]): &'a mut i32 { return chain_mut(values, index) }
+                function main(): i32 {
+                    slot values: [i32; 2] = [1, 2]
+                    scope { let writer: &mut i32 = tip_mut(1, &mut values[0..2]) *writer = 5 }
+                    let view: &i32 = tip(1, &values[0..2])
+                    return *view
+                }
+            "#,
+        ),
+        (
+            "aggregate-buffer-element",
+            r#"
+                struct Packet { values: [i32] }
+                function leaf<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.values[index] }
+                function relay<'a>(index: i32, packet: &'a Packet): &'a i32 { return leaf(packet, index) }
+                function chain<'a>(packet: &'a Packet, index: i32): &'a i32 { return relay(index, packet) }
+                function tip<'a>(index: i32, packet: &'a Packet): &'a i32 { return chain(packet, index) }
+                function leaf_mut<'a>(packet: &'a mut Packet, index: i32): &'a mut i32 { return &mut packet.values[index] }
+                function relay_mut<'a>(index: i32, packet: &'a mut Packet): &'a mut i32 { return leaf_mut(packet, index) }
+                function chain_mut<'a>(packet: &'a mut Packet, index: i32): &'a mut i32 { return relay_mut(index, packet) }
+                function tip_mut<'a>(index: i32, packet: &'a mut Packet): &'a mut i32 { return chain_mut(packet, index) }
+                function main(): i32 {
+                    slot packet: Packet = Packet(buffer(2, 1))
+                    scope { let writer: &mut i32 = tip_mut(1, &mut packet) *writer = 5 }
+                    let view: &i32 = tip(1, &packet)
+                    return *view
+                }
+            "#,
+        ),
+        (
+            "aggregate-buffer-subslice",
+            r#"
+                struct Packet { values: [i32] }
+                function leaf<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start..end] }
+                function relay<'a>(end: i32, packet: &'a Packet, start: i32): &'a [i32] { return leaf(packet, start, end) }
+                function chain<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return relay(end, packet, start) }
+                function tip<'a>(start: i32, end: i32, packet: &'a Packet): &'a [i32] { return chain(packet, start, end) }
+                function leaf_mut<'a>(packet: &'a mut Packet, start: i32, end: i32): &'a mut [i32] { return &mut packet.values[start..end] }
+                function relay_mut<'a>(end: i32, packet: &'a mut Packet, start: i32): &'a mut [i32] { return leaf_mut(packet, start, end) }
+                function chain_mut<'a>(packet: &'a mut Packet, start: i32, end: i32): &'a mut [i32] { return relay_mut(end, packet, start) }
+                function tip_mut<'a>(start: i32, end: i32, packet: &'a mut Packet): &'a mut [i32] { return chain_mut(packet, start, end) }
+                function main(): i32 {
+                    slot packet: Packet = Packet(buffer(2, 1))
+                    scope { let writer: &mut [i32] = tip_mut(1, 2, &mut packet) store(writer[0], 5) }
+                    let view: &[i32] = tip(1, 2, &packet)
+                    return load(view[0])
+                }
+            "#,
+        ),
+        (
+            "aggregate-buffer-whole-slice",
+            include_str!("../../../examples/native/compositional-borrow-summary-exit-five.hs"),
+        ),
+    ];
+
+    for (name, source) in cases {
+        let first = compile_object(source, &options)
+            .unwrap_or_else(|error| panic!("{name} V31 summary should compile: {error}"));
+        let second = compile_object(source, &options)
+            .unwrap_or_else(|error| panic!("{name} V31 summary should be deterministic: {error}"));
+        assert_eq!(first, second, "{name} V31 object bytes must be stable");
+        let executable = scratch_executable(&format!("native-v31-{name}"));
+        let artifact = compile_executable(source, &executable, &options)
+            .unwrap_or_else(|error| panic!("{name} V31 executable should link: {error}"));
+        assert_eq!(artifact.machine_contract, "hs-machine-v31");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .unwrap_or_else(|error| panic!("{name} V31 executable should run: {error}"));
+        assert_eq!(status.code(), Some(5), "{name} should exit five");
+        remove_scratch_executable_with_retry(&artifact.executable);
+    }
+}
+
+#[test]
+fn compositional_borrow_summaries_reject_cycles_and_provenance_laundering() {
+    let options = NativeCompileOptions::host();
+    let cases = [
+        (
+            "cycle",
+            "struct Packet { value: i32 } function first<'a>(packet: &'a Packet): &'a i32 { return second(packet) } function second<'a>(packet: &'a Packet): &'a i32 { return first(packet) } function main(): i32 { return 5 }",
+            "borrowed-summary call graph must be acyclic; found first -> second -> first",
+        ),
+        (
+            "ambiguous lifetime",
+            "struct Packet { value: i32 } function leaf<'a>(packet: &'a Packet): &'a i32 { return &packet.value } function relay<'a>(packet: &'a Packet, other: &'a Packet): &'a i32 { return leaf(packet) } function chain<'a>(packet: &'a Packet, other: &'a Packet): &'a i32 { return relay(packet, other) } function main(): i32 { return 5 }",
+            "ambiguous provenance across 2 parameters",
+        ),
+        (
+            "source temporary",
+            "struct Packet { value: i32 } function leaf<'a>(packet: &'a Packet): &'a i32 { return &packet.value } function relay<'a>(packet: &'a Packet): &'a i32 { return leaf(&packet) } function chain<'a>(packet: &'a Packet): &'a i32 { return relay(packet) } function main(): i32 { return 5 }",
+            "must forward borrowed-summary source as an exact named parameter",
+        ),
+        (
+            "coordinate substitution",
+            "function leaf<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function relay<'a>(values: &'a [i32], index: i32): &'a i32 { return leaf(values, index + 1) } function chain<'a>(values: &'a [i32], index: i32): &'a i32 { return relay(values, index) } function main(): i32 { return 5 }",
+            "must forward borrowed-summary index coordinate as an exact named parameter",
+        ),
+        (
+            "source substitution",
+            "struct Packet { value: i32 } function leaf<'a>(packet: &'a Packet): &'a i32 { return &packet.value } function relay<'a>(packet: &'a Packet, other: &Packet): &'a i32 { return leaf(other) } function chain<'a>(packet: &'a Packet, other: &Packet): &'a i32 { return relay(packet, other) } function main(): i32 { return 5 }",
+            "declared borrowed result lifetime, type, or mutability disagrees",
+        ),
+        (
+            "unknown callee",
+            "struct Packet { value: i32 } function relay<'a>(packet: &'a Packet): &'a i32 { return missing(packet) } function chain<'a>(packet: &'a Packet): &'a i32 { return relay(packet) } function main(): i32 { return 5 }",
+            "forwards an unknown function `missing`",
+        ),
+        (
+            "dead owner",
+            "struct Packet { values: [i32] } function leaf<'a>(packet: &'a Packet): &'a [i32] { return &packet.values } function relay<'a>(packet: &'a Packet): &'a [i32] { return leaf(packet) } function chain<'a>(packet: &'a Packet): &'a [i32] { return relay(packet) } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let taken: [i32] = move(packet.values) let view: &[i32] = chain(&packet) return load(view[0]) }",
+            "owned leaf `packet.values` is moved",
+        ),
+        (
+            "alias conflict",
+            "struct Packet { values: [i32] } function leaf<'a>(packet: &'a Packet): &'a [i32] { return &packet.values } function relay<'a>(packet: &'a Packet): &'a [i32] { return leaf(packet) } function chain<'a>(packet: &'a Packet): &'a [i32] { return relay(packet) } function leaf_mut<'a>(packet: &'a mut Packet): &'a mut [i32] { return &mut packet.values } function relay_mut<'a>(packet: &'a mut Packet): &'a mut [i32] { return leaf_mut(packet) } function chain_mut<'a>(packet: &'a mut Packet): &'a mut [i32] { return relay_mut(packet) } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let shared: &[i32] = chain(&packet) let writer: &mut [i32] = chain_mut(&mut packet) store(writer[0], 1) return load(shared[0]) }",
+            "cannot mutably borrow aggregate `packet` for call to `chain_mut` because an active or sibling borrow exists",
+        ),
+    ];
+
+    for (name, source, expected) in cases {
+        let error = match compile_object(source, &options) {
+            Err(error) => error,
+            Ok(_) => panic!("invalid V31 {name} program must fail closed"),
+        };
+        let rendered = error.to_string();
+        assert!(
+            rendered.contains(expected),
+            "expected `{expected}` for {name}, found `{rendered}`"
         );
     }
 }
