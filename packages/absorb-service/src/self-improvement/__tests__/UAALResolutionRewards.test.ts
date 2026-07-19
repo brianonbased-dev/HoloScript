@@ -333,10 +333,21 @@ describe('dominance property (attempt-EV > abstain-EV on solvable rows, independ
 // =============================================================================
 // 3. TS-vs-SUBPROCESS PARITY — the TS in-process term vs the Node subprocess
 // grader (scripts/reward/grade-uaal-emissions.mjs, ai-ecosystem repo) on an
-// IDENTICAL batch, bit-for-bit (F.076 evidence item 3). This is a genuine
-// cross-repo boundary check: both sides import gradeByResolver from
-// @holoscript/uaal, so a mismatch here would catch source/published drift,
-// not just a process-boundary bug.
+// IDENTICAL batch, bit-for-bit (F.076 evidence item 3).
+//
+// SCOPE — read this before trusting the test's coverage. The subprocess is
+// PINNED to this checkout's uaal source via UAAL_VERIFIER_MODULE (set below),
+// so both sides grade with the same source by construction. That makes this a
+// PROCESS-BOUNDARY check — serialization, env, and dispatch parity — and NOT a
+// source-vs-published drift check: a stale installed @holoscript/uaal cannot
+// fail it. (This comment previously claimed the opposite; the pin six lines
+// down had already made that claim false.)
+//
+// Source-vs-published drift is guarded separately, at the production edge:
+// the Node grader runs occlusion + aleatoric contract canaries at module load
+// and fails closed before reading any batch (ai-ecosystem 4a937b712), and the
+// pruned-image dependency closure is asserted by
+// production-dependency-closure.test.ts (264c42076).
 // =============================================================================
 
 describe('TS-vs-subprocess parity (cross-boundary grader)', () => {
