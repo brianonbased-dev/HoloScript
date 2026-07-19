@@ -11,10 +11,10 @@ use holoscript_native::{
     BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
     BORROWED_AGGREGATE_SUBOBJECT_RETURN_MACHINE_CONTRACT,
     BORROWED_SCALAR_FIELD_FORWARD_RETURN_MACHINE_CONTRACT,
-    BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT,
-    BORROWED_SLICE_RETURN_MACHINE_CONTRACT, BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT,
-    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
-    OWNED_BUFFER_ABI_VERSION,
+    BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT,
+    BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
+    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
+    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -24,6 +24,8 @@ const SCALAR_FIELD_FORWARDED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/scalar-field-forwarded-return-exit-five.hs");
 const AGGREGATE_SUBOBJECT_FORWARDED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/aggregate-subobject-forwarded-return-exit-five.hs");
+const SLICE_ELEMENT_FORWARDED_RETURN_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/slice-element-forwarded-return-exit-five.hs");
 const TYPED_EXIT_FIVE: &str = include_str!("../../../examples/native/typed-exit-five.hs");
 const I64_EXIT_FIVE: &str = r#"
     function add64(left: i64, right: i64): i64 {
@@ -3607,6 +3609,229 @@ fn aggregate_subobject_results_reject_severed_or_laundered_provenance() {
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid aggregate subobject borrowed result must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn slice_element_results_preserve_checked_coordinate_and_caller_root() {
+    assert_eq!(
+        BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT,
+        "hs-machine-v27"
+    );
+    let options = NativeCompileOptions::host();
+    let first = compile_object(SLICE_ELEMENT_FORWARDED_RETURN_EXIT_FIVE, &options)
+        .expect("caller-tied slice-element forwarding should compile");
+    let second = compile_object(SLICE_ELEMENT_FORWARDED_RETURN_EXIT_FIVE, &options)
+        .expect("slice-element lowering should be deterministic");
+    assert_eq!(first, second);
+
+    let executable = scratch_executable("native-slice-element-forwarded-return");
+    let artifact = compile_executable(
+        SLICE_ELEMENT_FORWARDED_RETURN_EXIT_FIVE,
+        &executable,
+        &options,
+    )
+    .expect("shared and mutable slice-element results should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v27");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("slice-element result executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let parameter_root = r#"
+        function element<'a>(values: &'a [i32], index: i32): &'a i32 {
+            return &values[index]
+        }
+        function read_slice(values: &[i32], index: i32): i32 {
+            let view: &i32 = element(values, index)
+            return *view
+        }
+        function main(): i32 {
+            slot values: [i32; 3] = [1, 5, 9]
+            return read_slice(&values[0..3], 1)
+        }
+    "#;
+    let executable = scratch_executable("native-slice-element-parameter-root");
+    let artifact = compile_executable(parameter_root, &executable, &options)
+        .expect("parameter-root slice elements should remain usable through one ordinary call");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("parameter-root slice-element executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let owned_root = r#"
+        function element<'a>(values: &'a [i32], index: i32): &'a i32 {
+            return &values[index]
+        }
+        function main(): i32 {
+            let values: [i32] = buffer(3, 5)
+            scope {
+                let source: &[i32] = &values
+                let view: &i32 = element(source, 1)
+                let observed: i32 = *view
+            }
+            drop(values)
+            return 5
+        }
+    "#;
+    compile_object(owned_root, &options)
+        .expect("owned slice roots should release element-result leases at scope exit");
+
+    let inherited = r#"
+        struct Header { code: i32 }
+        struct Packet { header: Header }
+        function header_leaf<'a>(packet: &'a Packet): &'a Header {
+            return &packet.header
+        }
+        function header_relay<'a>(packet: &'a Packet): &'a Header {
+            return header_leaf(packet)
+        }
+        function code_leaf<'a>(packet: &'a Packet): &'a i32 {
+            return &packet.header.code
+        }
+        function code_relay<'a>(packet: &'a Packet): &'a i32 {
+            return code_leaf(packet)
+        }
+        function slice_leaf<'a>(values: &'a [i32]): &'a [i32] {
+            return values
+        }
+        function slice_relay<'a>(values: &'a [i32]): &'a [i32] {
+            return slice_leaf(values)
+        }
+        function element_leaf<'a>(values: &'a [i32], index: i32): &'a i32 {
+            return &values[index]
+        }
+        function element_relay<'a>(index: i32, values: &'a [i32]): &'a i32 {
+            return element_leaf(values, index)
+        }
+        function main(): i32 {
+            slot packet: Packet = Packet(Header(1))
+            slot values: [i32; 2] = [1, 2]
+            let header: &Header = header_relay(&packet)
+            let code: &i32 = code_relay(&packet)
+            let slice: &[i32] = slice_relay(&values[0..2])
+            let element: &i32 = element_relay(1, &values[0..2])
+            return load(header.code) + *code + load(slice[0]) + *element
+        }
+    "#;
+    let executable = scratch_executable("native-slice-element-inherited-contracts");
+    let artifact = compile_executable(inherited, &executable, &options)
+        .expect("v27 should retain v0-v26 borrowed aggregate, slice, and scalar-result contracts");
+    assert_eq!(artifact.machine_contract, "hs-machine-v27");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("v27 cumulative-contract executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    for (name, index) in [("negative", -1), ("outside", 2)] {
+        let source = format!(
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 {{ return &values[index] }} function main(): i32 {{ slot values: [i32; 2] = [1, 2] let view: &i32 = element(&values[0..2], {index}) return *view }}"
+        );
+        let executable = scratch_executable(&format!("native-slice-element-{name}-trap"));
+        let artifact = compile_executable(&source, &executable, &options)
+            .expect("invalid runtime slice-element index should compile to a guard");
+        assert_eq!(artifact.machine_contract, "hs-machine-v27");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("guarded slice-element executable should launch");
+        assert!(
+            !status.success(),
+            "invalid slice-element index `{name}` must trap"
+        );
+        remove_scratch_executable_with_retry(&artifact.executable);
+    }
+}
+
+#[test]
+fn slice_element_results_reject_severed_or_laundered_provenance() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "function element<'a>(values: &'a [i32], other: &[i32], index: i32): &'a i32 { return &other[index] } function main(): i32 { return 5 }",
+            "must derive from source parameter `values`; found `other`",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { let local: &[i32] = values return &local[index] } function main(): i32 { return 5 }",
+            "must derive from source parameter `values`; found `local`",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function relay<'a>(values: &'a [i32], index: i32): &'a i32 { return element(&values[0..1], index) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `values` directly to `element`",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index + 1] } function main(): i32 { return 5 }",
+            "requires one exact named `i32` index parameter",
+        ),
+        (
+            "function element<'a>(values: &'a [i32]): &'a i32 { return &values[0] } function main(): i32 { return 5 }",
+            "requires one exact named `i32` index parameter",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: bool): &'a i32 { return &values[index] } function main(): i32 { return 5 }",
+            "index parameter `index` must have type `i32`",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i64 { return &values[index] } function main(): i32 { return 5 }",
+            "borrowed slice-element return `i64` does not match source parameter element `i32`",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a mut i32 { return &mut values[index] } function main(): i32 { return 5 }",
+            "return mutability must match source parameter `values`",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32, other: i32): &'a i32 { return &values[index] } function main(): i32 { return 5 }",
+            "requires exactly one `i32` index parameter; found 2",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function relay<'a>(values: &'a [i32], index: i32, other: i32): &'a i32 { return element(values, other) } function main(): i32 { return 5 }",
+            "requires exactly one `i32` index parameter; found 2",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function relay<'a>(values: &'a [i32], index: i32): &'a i32 { return element(values, index) } function chain<'a>(values: &'a [i32], index: i32): &'a i32 { return relay(values, index) } function main(): i32 { return 5 }",
+            "cannot forward borrowed slice-element result from forwarding function `relay`; only one direct forwarding hop is admitted",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { if (index == 0) { return &values[index] } return &values[index] } function main(): i32 { return 5 }",
+            "requires exactly one direct top-level final return; found 2 returns",
+        ),
+        (
+            "function relay<'a>(values: &'a [i32], index: i32): &'a i32 { return missing(values, index) } function main(): i32 { return 5 }",
+            "forwards an unknown function `missing`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(values: &'a [i32], index: i32): &'a i32 { return code(values) } function main(): i32 { return 5 }",
+            "cannot forward `code` because it does not return a borrowed slice element",
+        ),
+        (
+            "function slice<'a>(values: &'a [i32]): &'a [i32] { return values } function element<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function main(): i32 { slot values: [i32; 2] = [1, 2] let returned: &[i32] = slice(&values[0..2]) let view: &i32 = element(returned, 0) return *view }",
+            "cannot extend nested returned slice `returned`",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function main(): i32 { slot values: [i32; 2] = [1, 2] let view: &i32 = element(&values[0..2], 0) store(values[0], 5) return *view }",
+            "cannot store to stack slot `values` while an active borrow exists",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function main(): i32 { let values: [i32] = buffer(2, 5) let source: &[i32] = &values let view: &i32 = element(source, 0) drop(values) return *view }",
+            "cannot drop owned buffer `values` while a borrow is active",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function main(): i32 { slot values: [i32; 1] = [5] let view: &i64 = element(&values[0..1], 0) return 5 }",
+            "reference `view` expects `i64`, but `element` returns a borrowed slice element `i32`",
+        ),
+        (
+            "function element<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function main(): i32 { slot values: [i32; 1] = [5] let view: &mut i32 = element(&values[0..1], 0) return 5 }",
+            "mutability must match the borrowed slice-element result of `element`",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid slice-element borrowed result must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"

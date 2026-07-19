@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-19T04:46:14Z",
+  "generatedAt": "2026-07-19T07:05:30Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "358073dbd799a57d4bcd65b5b0e52efa049b30e5+working-tree-hs-machine-v26",
+  "sourceCommit": "72eaba77ac01983343730c4be79e3e4db294c773+working-tree-hs-machine-v27",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -18,6 +18,6 @@
     "artifactBytesChanged": false,
     "wasmBytes": 290710,
     "wasmSha256": "1bd3b3d854e8723c362cf713d8794cadc38bfa65cfeed656ce547ea0c372a4bc",
-    "note": "Rebuilt the Node WASM artifact from the working-tree parser and Kotlin bridge proofs for hs-machine-v26 caller-tied aggregate subobject reference results. Production parser and generic non-slice borrowed-reference fail-closed bridge code were unchanged, so the release artifact remains byte-identical to v25. A fresh Node process validated the canonical aggregate-subobject forwarding program through validate_detailed and validate; the source changes are committed with this receipt so the working-tree suffix resolves to that commit."
+    "note": "Rebuilt the Node WASM artifact from the working-tree parser and Kotlin bridge proofs for hs-machine-v27 caller-tied slice-element reference results. Production parser and borrowed-reference fail-closed bridge code were unchanged, so the release artifact remains byte-identical to v26. A fresh Node process validated the canonical slice-element forwarding program through validate_detailed and validate; the source changes are committed with this receipt so the working-tree suffix resolves to that commit."
   }
 }

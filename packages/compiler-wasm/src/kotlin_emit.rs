@@ -3183,6 +3183,27 @@ function main(): i32 { return 5 }
     }
 
     #[test]
+    fn slice_element_results_fail_closed_on_kotlin_bridge() {
+        let source = r#"
+function relay<'a>(values: &'a [i32], index: i32): &'a i32 {
+  return element(index, values)
+}
+function element<'a>(index: i32, values: &'a [i32]): &'a i32 {
+  return &values[index]
+}
+function main(): i32 { return 5 }
+"#;
+        let error = compile_source_to_kotlin(source, "  ")
+            .expect_err("Kotlin must not erase caller-tied slice-element results");
+        assert!(
+            error.to_string().contains(
+                "borrowed slice type `&'a [i32]` in parameter `values` of function `relay` requires target-specific borrow and bounds lowering"
+            ),
+            "{error}"
+        );
+    }
+
+    #[test]
     fn owned_machine_buffers_fail_closed_until_kotlin_ownership_lowering_exists() {
         let src = r#"function main(): i32 {
   let values: [i32] = buffer(2, 0)
