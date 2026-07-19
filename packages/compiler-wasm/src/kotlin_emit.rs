@@ -3078,6 +3078,19 @@ function main(): i32 { return 5 }"#;
         assert!(error.to_string().contains(
             "borrowed slice type `&'a [i32]` in return type of function `view` requires target-specific borrow and bounds lowering"
         ));
+
+        let forwarded = r#"function relay<'a>(values: &'a [i32]): &'a [i32] {
+  return view(values)
+}
+function view<'a>(values: &'a [i32]): &'a [i32] {
+  return values
+}
+function main(): i32 { return 5 }"#;
+        let error = compile_source_to_kotlin(forwarded, "  ")
+            .expect_err("Kotlin must not erase caller-tied forwarded slice results");
+        assert!(error.to_string().contains(
+            "borrowed slice type `&'a [i32]` in return type of function `relay` requires target-specific borrow and bounds lowering"
+        ));
     }
 
     #[test]

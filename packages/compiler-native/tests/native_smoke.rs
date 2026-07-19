@@ -8,9 +8,9 @@ use holoscript_native::{
     NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
     AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
     AGGREGATE_REFERENCE_MACHINE_CONTRACT, BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
-    BORROWED_SLICE_RETURN_MACHINE_CONTRACT, BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT,
-    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
-    OWNED_BUFFER_ABI_VERSION,
+    BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
+    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
+    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -232,6 +232,8 @@ const SLICE_BORROWED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/slice-borrowed-return-exit-five.hs");
 const SLICE_SUBRANGE_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/slice-subrange-return-exit-five.hs");
+const SLICE_FORWARDED_RETURN_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/slice-forwarded-return-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -1796,6 +1798,11 @@ fn slice_subrange_results_preserve_checked_bounds_and_caller_roots() {
     assert_eq!(first, second);
 
     let mixed_source = r#"
+        function one(): i32 { return 1 }
+        function ordinary(flag: bool): i32 {
+            if (flag) { return one() }
+            return 0
+        }
         function identity<'a>(values: &'a [i32]): &'a [i32] { return values }
         function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
             return &values[start..end]
@@ -1953,6 +1960,160 @@ fn slice_subrange_results_reject_provenance_or_escape_ambiguity() {
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid slice subrange result must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn slice_forwarded_results_preserve_one_hop_abi_and_caller_roots() {
+    assert_eq!(
+        BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT,
+        "hs-machine-v22"
+    );
+    let options = NativeCompileOptions::host();
+    let first = compile_object(SLICE_FORWARDED_RETURN_EXIT_FIVE, &options)
+        .expect("one-hop caller-tied slice forwarding should compile");
+    let second = compile_object(SLICE_FORWARDED_RETURN_EXIT_FIVE, &options)
+        .expect("one-hop caller-tied slice forwarding should be deterministic");
+    assert_eq!(first, second);
+
+    let executable = scratch_executable("native-slice-forwarded-return");
+    let artifact = compile_executable(SLICE_FORWARDED_RETURN_EXIT_FIVE, &executable, &options)
+        .expect("shared and mutable forwarded slice results should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v22");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("forwarded slice-result executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let mixed_source = r#"
+        function identity<'a>(values: &'a [i32]): &'a [i32] { return values }
+        function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return &values[start..end]
+        }
+        function relay<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return view(values, start, end)
+        }
+        function main(): i32 {
+            slot values: [i32; 2] = [1, 5]
+            let derived: &[i32] = relay(&values[0..2], 1, 2)
+            return load(derived[0])
+        }
+    "#;
+    compile_object(mixed_source, &options)
+        .expect("v22 units should retain ordinary calls plus v20 direct and v21 sub-slice returns");
+
+    let owned_source = r#"
+        function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return &values[start..end]
+        }
+        function relay<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return view(values, start, end)
+        }
+        function main(): i32 {
+            let values: [i32] = buffer(4, 5)
+            scope {
+                let source: &[i32] = &values
+                let derived: &[i32] = relay(source, 1, 3)
+                let observed: i32 = load(derived[1])
+            }
+            drop(values)
+            return 5
+        }
+    "#;
+    compile_object(owned_source, &options)
+        .expect("a forwarded result should retain and release its owned-buffer caller root");
+
+    let trapped_source = r#"
+        function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return &values[start..end]
+        }
+        function relay<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return view(values, start, end)
+        }
+        function main(): i32 {
+            slot values: [i32; 2] = [1, 2]
+            let derived: &[i32] = relay(&values[0..2], -1, 1)
+            return 5
+        }
+    "#;
+    let executable = scratch_executable("native-slice-forwarded-range-trap");
+    let artifact = compile_executable(trapped_source, &executable, &options)
+        .expect("a forwarded invalid range should compile to the callee guard");
+    assert_eq!(artifact.machine_contract, "hs-machine-v22");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("forwarded range-trap executable should launch");
+    assert!(
+        !status.success(),
+        "the forwarded callee range guard must trap"
+    );
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn slice_forwarded_results_reject_transitive_or_severed_provenance() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32], other: &[i32]): &'a [i32] { return view(other) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `values` to `view`; found `other`",
+        ),
+        (
+            "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { return view(values) } function chain<'a>(values: &'a [i32]): &'a [i32] { return relay(values) } function main(): i32 { return 5 }",
+            "cannot forward borrowed slice result from forwarding function `relay`; only one direct forwarding hop is admitted",
+        ),
+        (
+            "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { return view(values) return view(values) } function main(): i32 { return 5 }",
+            "requires exactly one direct top-level borrowed-slice forwarding return; found 2 forwarding returns, 2 top-level",
+        ),
+        (
+            "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32], choose: bool): &'a [i32] { if (choose) { return view(values) } return values } function main(): i32 { return 5 }",
+            "requires exactly one direct top-level borrowed-slice forwarding return; found 1 forwarding returns, 0 top-level",
+        ),
+        (
+            "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { slot local: [i32; 1] = [5] return view(&local[0..1]) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `values` directly to `view`",
+        ),
+        (
+            "function view_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { return view_mut(values) } function main(): i32 { return 5 }",
+            "borrowed return mutability must match the result of `view_mut`",
+        ),
+        (
+            "function view64<'a>(values: &'a [i64]): &'a [i64] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { return view64(values) } function main(): i32 { return 5 }",
+            "returns elements of `i32`, but `view64` returns elements of `i64`",
+        ),
+        (
+            "function read(values: &[i32]): i32 { return load(values[0]) } function relay<'a>(values: &'a [i32]): &'a [i32] { return read(values) } function main(): i32 { return 5 }",
+            "cannot forward `read` because it does not return a borrowed slice reference",
+        ),
+        (
+            "function relay<'a>(values: &'a [i32]): &'a [i32] { return missing(values) } function main(): i32 { return 5 }",
+            "forwards an unknown function `missing`",
+        ),
+        (
+            "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { return view(&values[0..1]) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `values` directly to `view`",
+        ),
+        (
+            "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { return view(values) } function inspect<'a>(values: &'a [i32]): &'a [i32] { let nested: &[i32] = relay(values) return values } function main(): i32 { return 5 }",
+            "cannot extend slice parameter `values`",
+        ),
+        (
+            "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { return view(values) } function main(): i32 { slot values: [i32; 1] = [5] let first: &[i32] = relay(&values[0..1]) let second: &[i32] = relay(first) return 5 }",
+            "cannot extend nested returned slice `first`",
+        ),
+        (
+            "function view<'a>(values: &'a [i32]): &'a [i32] { return values } function relay<'a>(values: &'a [i32]): &'a [i32] { return view(values) } function main(): i32 { slot values: [i32; 1] = [1] let derived: &[i32] = relay(&values[0..1]) store(values[0], 5) return 5 }",
+            "cannot store to stack slot `values` while an active borrow exists",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid forwarded borrowed slice result must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"

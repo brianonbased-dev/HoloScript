@@ -3427,6 +3427,51 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_caller_tied_slice_forwarded_return() {
+        let source = r#"
+            function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+                return &values[start..end]
+            }
+            function relay<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+                return view(values, start, end)
+            }
+        "#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("caller-tied slice forwarding return should parse");
+
+        let AstNode::Function(relay) = &program.body[1] else {
+            panic!("Expected relay Function node");
+        };
+        assert_eq!(relay.lifetimes, vec!["a"]);
+        assert_eq!(relay.param_types[0].as_deref(), Some("&'a [i32]"));
+        assert_eq!(relay.return_type.as_deref(), Some("&'a [i32]"));
+        let AstNode::Return(returned) = &relay.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::CallExpression(call)) = returned.argument.as_deref() else {
+            panic!("Expected forwarded CallExpression node");
+        };
+        assert!(matches!(
+            call.callee.as_ref(),
+            AstNode::Identifier(callee) if callee.name == "view"
+        ));
+        assert!(matches!(
+            call.arguments.first(),
+            Some(AstNode::Identifier(source)) if source.name == "values"
+        ));
+        assert!(matches!(
+            call.arguments.get(1),
+            Some(AstNode::Identifier(start)) if start.name == "start"
+        ));
+        assert!(matches!(
+            call.arguments.get(2),
+            Some(AstNode::Identifier(end)) if end.name == "end"
+        ));
+    }
+
+    #[test]
     fn test_parse_typed_stack_slot_declaration() {
         let source = r#"function main(): i32 {
             slot value: i32 = 2
