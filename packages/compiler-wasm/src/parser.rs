@@ -3772,6 +3772,62 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_caller_tied_aggregate_buffer_whole_slice_forward_return() {
+        let source = r#"
+            struct Packet { values: [i32] }
+            function view<'a>(packet: &'a Packet): &'a [i32] {
+                return &packet.values
+            }
+            function relay<'a>(packet: &'a Packet): &'a [i32] {
+                return view(packet)
+            }
+        "#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("caller-tied aggregate-buffer whole-slice forwarding should parse");
+
+        let AstNode::Function(view) = &program.body[1] else {
+            panic!("Expected view Function node");
+        };
+        assert_eq!(view.lifetimes, vec!["a"]);
+        assert_eq!(view.param_types, vec![Some("&'a Packet".to_string())]);
+        assert_eq!(view.return_type.as_deref(), Some("&'a [i32]"));
+        let AstNode::Return(returned) = &view.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::UnaryExpression(borrow)) = returned.argument.as_deref() else {
+            panic!("Expected borrowed aggregate-buffer whole-slice return");
+        };
+        assert_eq!(borrow.operator, "&");
+        assert!(matches!(
+            borrow.argument.as_ref(),
+            AstNode::MemberExpression(field)
+                if !field.computed
+                    && matches!(field.object.as_ref(), AstNode::Identifier(root) if root.name == "packet")
+                    && matches!(field.property.as_ref(), AstNode::Identifier(name) if name.name == "values")
+        ));
+
+        let AstNode::Function(relay) = &program.body[2] else {
+            panic!("Expected relay Function node");
+        };
+        let AstNode::Return(returned) = &relay.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::CallExpression(call)) = returned.argument.as_deref() else {
+            panic!("Expected forwarded CallExpression node");
+        };
+        assert!(matches!(
+            call.callee.as_ref(),
+            AstNode::Identifier(callee) if callee.name == "view"
+        ));
+        assert!(matches!(
+            call.arguments.as_slice(),
+            [AstNode::Identifier(source)] if source.name == "packet"
+        ));
+    }
+
+    #[test]
     fn test_parse_caller_tied_slice_reference_lifetime() {
         let source = r#"function view<'a>(values: &'a [i32]): &'a [i32] {
             return values
