@@ -20,9 +20,13 @@ export class CommunityDetector {
    * Detect communities from file-level import and call edges.
    * Returns a map of community label -> file paths.
    */
-  detect(files: string[], imports: ImportEdge[], calls: CallEdge[]): Map<string, string[]> {
+  detect(files: string[], imports: ImportEdge[], _calls: CallEdge[]): Map<string, string[]> {
     // Build adjacency: file -> Set<file> (undirected, weighted by edge count)
-    const adjacency = this.buildAdjacency(files, imports, calls);
+    // CallEdge intentionally does not participate: it identifies only the caller
+    // file and an unresolved callee name, so guessing a target file cannot add a
+    // sound edge. Keep the public parameter for compatibility without scanning
+    // every known file for every call.
+    const adjacency = this.buildAdjacency(files, imports);
 
     // Check density — if too sparse, fall back to directory grouping
     const totalEdges = this.countEdges(adjacency);
@@ -41,11 +45,7 @@ export class CommunityDetector {
 
   // ── Adjacency Builder ────────────────────────────────────────────────────
 
-  private buildAdjacency(
-    files: string[],
-    imports: ImportEdge[],
-    calls: CallEdge[]
-  ): Map<string, Map<string, number>> {
+  private buildAdjacency(files: string[], imports: ImportEdge[]): Map<string, Map<string, number>> {
     const adj: Map<string, Map<string, number>> = new Map();
 
     // Initialize all files
@@ -61,21 +61,6 @@ export class CommunityDetector {
       if (imp.fromFile === target) continue;
 
       this.addEdge(adj, imp.fromFile, target);
-    }
-
-    // Call edges — group by file
-    const callsByFile: Map<string, Set<string>> = new Map();
-    for (const call of calls) {
-      if (!callsByFile.has(call.filePath)) {
-        callsByFile.set(call.filePath, new Set());
-      }
-      // Find which file defines the callee (best-effort by name matching)
-      for (const [filePath] of adj) {
-        if (filePath === call.filePath) continue;
-        // The callee might be defined in this file — we can't be sure
-        // without full resolution, so we rely on import edges primarily.
-        // Call edges strengthen existing import connections.
-      }
     }
 
     return adj;
@@ -239,7 +224,7 @@ export class CommunityDetector {
     const communities = this.invertMapping(nodeToComm);
     const renamed: Map<string, string> = new Map();
 
-    for (const [comm, files] of communities) {
+    for (const [, files] of communities) {
       // Find the most common directory prefix
       const label = this.findCommonPrefix(files);
 

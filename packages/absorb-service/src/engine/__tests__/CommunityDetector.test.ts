@@ -1,10 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { CommunityDetector } from '../CommunityDetector';
-import type { ImportEdge } from '../types';
+import type { CallEdge, ImportEdge } from '../types';
 
 /** Minimal import edge (only fromFile + resolvedPath matter to the detector). */
 function imp(fromFile: string, resolvedPath: string): ImportEdge {
   return { fromFile, toModule: resolvedPath, resolvedPath, line: 1 };
+}
+
+function call(filePath: string, index: number): CallEdge {
+  return {
+    callerId: `caller-${index}`,
+    calleeName: `callee-${index}`,
+    filePath,
+    line: 1,
+    column: 1,
+  };
 }
 
 function communityOf(communities: Map<string, string[]>): Map<string, string> {
@@ -22,8 +32,10 @@ describe('CommunityDetector', () => {
     const B = Array.from({ length: 6 }, (_, i) => `src/b/b${i}.ts`);
     const files = [...A, ...B];
     const imports: ImportEdge[] = [];
-    for (let i = 0; i < A.length; i++) for (let j = 0; j < A.length; j++) if (i !== j) imports.push(imp(A[i], A[j]));
-    for (let i = 0; i < B.length; i++) for (let j = 0; j < B.length; j++) if (i !== j) imports.push(imp(B[i], B[j]));
+    for (let i = 0; i < A.length; i++)
+      for (let j = 0; j < A.length; j++) if (i !== j) imports.push(imp(A[i], A[j]));
+    for (let i = 0; i < B.length; i++)
+      for (let j = 0; j < B.length; j++) if (i !== j) imports.push(imp(B[i], B[j]));
     imports.push(imp(A[0], B[0])); // single weak bridge
 
     const communities = new CommunityDetector().detect(files, imports, []);
@@ -66,5 +78,22 @@ describe('CommunityDetector', () => {
     for (const [, fl] of communities) assigned += fl.length;
     expect(assigned).toBe(files.length); // every file assigned to a community
     expect(elapsedMs).toBeLessThan(5000); // bounded; the O(V^2) version took minutes
+  });
+
+  it('does not scan every file for unresolved call edges', () => {
+    // CallEdge does not carry a resolved callee file, so calls cannot soundly add
+    // adjacency edges. The previous no-op best-effort loop still visited every
+    // file for every call (O(calls * files)) before falling back for this sparse
+    // graph. Keeping the public calls input must not reintroduce that scan.
+    const count = 20_000;
+    const files = Array.from({ length: count }, (_, index) => `src/f${index}.ts`);
+    const calls = files.map((filePath, index) => call(filePath, index));
+
+    const startedAt = performance.now();
+    const communities = new CommunityDetector().detect(files, [], calls);
+    const elapsedMs = performance.now() - startedAt;
+
+    expect([...communities.values()].flat()).toHaveLength(files.length);
+    expect(elapsedMs).toBeLessThan(2000);
   });
 });
