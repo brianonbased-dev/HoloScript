@@ -383,12 +383,14 @@ Two tiers: free (local) and paid (proxied to Studio with credit deduction).
 
 ### Codebase Tools (codebase-tools.ts)
 
-| Tool                   | Description                                                                            |
-| ---------------------- | -------------------------------------------------------------------------------------- |
-| `holo_absorb_repo`     | Full scan, graph build, and .holo emit pipeline. Auto-detects best embedding provider. |
-| `holo_query_codebase`  | Graph traversal queries: callers, callees, impact analysis, community detection.       |
-| `holo_impact_analysis` | Given changed files, compute all transitively affected symbols.                        |
-| `holo_detect_changes`  | Diff two graph snapshots to find what changed.                                         |
+| Tool                     | Description                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| `holo_absorb_repo`       | Full scan, graph build, and .holo emit pipeline. Auto-detects best embedding provider. |
+| `holo_cancel_absorb`     | Cooperatively cancel a queued/running job and emit a terminal cancellation receipt.    |
+| `holo_get_absorb_status` | Compact job progress, phase metrics, memory peaks, budgets, and terminal receipts.     |
+| `holo_query_codebase`    | Graph traversal queries: callers, callees, impact analysis, community detection.       |
+| `holo_impact_analysis`   | Given changed files, compute all transitively affected symbols.                        |
+| `holo_detect_changes`    | Diff two graph snapshots to find what changed.                                         |
 
 #### `holo_query_codebase` trace strategy guidance
 
@@ -499,6 +501,19 @@ files by default, with an event-loop yield between parsing chunks. Running-job
 status returns only the selection mode and aggregate plan counts; pass
 `includePlan: true` to `holo_get_absorb_status` when batch-by-batch details are
 actually needed.
+
+Cold scans may run with `async: true` (large scans auto-background). Cancel one
+with `holo_cancel_absorb({ jobId })`; scanners, embedding workers, and mesh I/O
+share one cooperative abort signal. The terminal status is `cancelled` with an
+`AbsorbCancellationReceipt`. Graph and embedding caches publish only after all
+cancellable phases succeed, so cancellation before that boundary preserves the
+prior cache.
+
+Optional `maxRssMb` and `maxHeapUsedMb` limits turn a memory-budget breach into
+the same cancellation path. They may also be set process-wide with
+`ABSORB_MAX_RSS_MB` and `ABSORB_MAX_HEAP_USED_MB`. Status reports current memory,
+per-phase snapshots, peak RSS/heap, the configured limits, and the phase where a
+limit was exceeded. Limits are opt-in; omitted limits remain unbounded.
 
 Default exclusions: `node_modules`, `.git`, `dist`, `build`, `out`, `target`,
 `__pycache__`, `vendor`, `.venv`, `coverage`, and others.

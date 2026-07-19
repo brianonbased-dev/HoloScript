@@ -60,6 +60,19 @@ describe('CodebaseScanner module batching', () => {
     );
   });
 
+  it('honors an already-aborted scan signal before allocating workers', async () => {
+    const root = makeTempRepo();
+    writeFixture(root, 'src/a.ts', 'export const a = 1;\n');
+    const controller = new AbortController();
+    controller.abort(new Error('operator cancelled scan'));
+
+    const scanner = new CodebaseScanner(undefined, false);
+    await expect(
+      scanner.scanFiles(root, [path.join(root, 'src/a.ts')], { signal: controller.signal })
+    ).rejects.toThrow('operator cancelled scan');
+    await scanner.dispose();
+  });
+
   it('uses Git-visible discovery by default without losing new untracked source', () => {
     const root = makeTempRepo();
     execFileSync('git', ['init'], { cwd: root, windowsHide: true });

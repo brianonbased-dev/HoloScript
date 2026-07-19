@@ -112,6 +112,29 @@ interface AbsorbMemorySnapshot {
   heapUsedMb: number;
 }
 
+interface AbsorbMemoryBudgetLimits {
+  maxRssMb?: number;
+  maxHeapUsedMb?: number;
+}
+
+interface AbsorbMemoryBudgetTelemetry extends AbsorbMemoryBudgetLimits {
+  peakRssMb: number;
+  peakHeapUsedMb: number;
+  exceeded: boolean;
+  exceededResource?: 'rss' | 'heap' | 'rss_and_heap';
+  exceededAtPhase?: string;
+}
+
+type AbsorbCancellationReason = 'cancel_requested' | 'memory_budget_exceeded';
+
+interface AbsorbCancellationState {
+  reason: AbsorbCancellationReason;
+  message: string;
+  requestedAt: number;
+  phaseAtRequest: string;
+  completedAt?: number;
+}
+
 interface AbsorbPhaseMetric extends AbsorbMemorySnapshot {
   phase: string;
   durationMs: number;
@@ -162,6 +185,27 @@ function readPositiveEnvMs(name: string, fallback: number): number {
 function readPositiveEnvInt(name: string, fallback: number): number {
   const raw = Number(process.env[name]);
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : fallback;
+}
+
+function resolveAbsorbMemoryBudget(
+  args: Record<string, unknown>
+): { valid: true; limits: AbsorbMemoryBudgetLimits } | { valid: false; errors: string[] } {
+  const errors: string[] = [];
+  const readLimit = (key: 'maxRssMb' | 'maxHeapUsedMb', envName: string): number | undefined => {
+    const raw = args[key] ?? process.env[envName];
+    if (raw === undefined || raw === '') return undefined;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value <= 0) {
+      errors.push(`${key} must be a positive number when provided.`);
+      return undefined;
+    }
+    return value;
+  };
+  const limits = {
+    maxRssMb: readLimit('maxRssMb', 'ABSORB_MAX_RSS_MB'),
+    maxHeapUsedMb: readLimit('maxHeapUsedMb', 'ABSORB_MAX_HEAP_USED_MB'),
+  };
+  return errors.length > 0 ? { valid: false, errors } : { valid: true, limits };
 }
 
 function envFlagDisabled(name: string): boolean {
@@ -228,28 +272,57 @@ class AbsorbPhaseTimeoutError extends Error {
   }
 }
 
+class AbsorbCancelledError extends Error {
+  constructor(
+    readonly jobId: string,
+    readonly reasonCode: AbsorbCancellationReason,
+    readonly phase: string,
+    message: string
+  ) {
+    super(message);
+    this.name = 'AbsorbCancelledError';
+  }
+}
+
 async function withPhaseTimeout<T>(
   work: Promise<T>,
   timeoutMs: number,
   phase: string,
-  onTimeout?: () => Promise<void> | void
+  onStop?: () => Promise<void> | void,
+  signal?: AbortSignal
 ): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let abortListener: (() => void) | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
-      Promise.resolve(onTimeout?.())
+      Promise.resolve(onStop?.())
         .catch(() => undefined)
         .finally(() => reject(new AbsorbPhaseTimeoutError(phase, timeoutMs)));
     }, timeoutMs);
     unrefTimer(timer);
   });
+  const cancellation = new Promise<never>((_, reject) => {
+    if (!signal) return;
+    abortListener = () => {
+      const reason =
+        signal.reason instanceof Error
+          ? signal.reason
+          : new Error(typeof signal.reason === 'string' ? signal.reason : `${phase} cancelled`);
+      Promise.resolve(onStop?.())
+        .catch(() => undefined)
+        .finally(() => reject(reason));
+    };
+    if (signal.aborted) abortListener();
+    else signal.addEventListener('abort', abortListener, { once: true });
+  });
 
   work.catch(() => undefined);
 
   try {
-    return await Promise.race([work, timeout]);
+    return await Promise.race(signal ? [work, timeout, cancellation] : [work, timeout]);
   } finally {
     if (timer) clearTimeout(timer);
+    if (signal && abortListener) signal.removeEventListener('abort', abortListener);
   }
 }
 
@@ -267,9 +340,13 @@ async function fetchWithTimeout(
   url: string,
   init: RequestInit,
   timeoutMs: number,
-  phase: string
+  phase: string,
+  signal?: AbortSignal
 ): Promise<Response> {
   const controller = new AbortController();
+  const abortFromParent = (): void => controller.abort(signal?.reason);
+  if (signal?.aborted) abortFromParent();
+  else signal?.addEventListener('abort', abortFromParent, { once: true });
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   unrefTimer(timer);
 
@@ -279,12 +356,17 @@ async function fetchWithTimeout(
       signal: controller.signal,
     });
   } catch (err) {
+    if (signal?.aborted) {
+      if (signal.reason instanceof Error) throw signal.reason;
+      throw new Error(typeof signal.reason === 'string' ? signal.reason : `${phase} cancelled`);
+    }
     if (controller.signal.aborted) {
       throw new AbsorbPhaseTimeoutError(phase, timeoutMs);
     }
     throw err;
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener('abort', abortFromParent);
   }
 }
 
@@ -378,7 +460,15 @@ async function createDynamicEmbeddingIndex(
 interface AbsorbJob {
   jobId: string;
   rootDir: string;
-  status: 'queued' | 'scanning' | 'analyzing' | 'indexing' | 'complete' | 'error';
+  status:
+    | 'queued'
+    | 'scanning'
+    | 'analyzing'
+    | 'indexing'
+    | 'cancelling'
+    | 'cancelled'
+    | 'complete'
+    | 'error';
   progress: number; // 0-100
   phase: string;
   filesProcessed: number;
@@ -389,9 +479,132 @@ interface AbsorbJob {
   result?: unknown;
   scanPlan?: AbsorbScanPlanReceipt;
   phaseMetrics: AbsorbPhaseMetric[];
+  abortController: AbortController;
+  cancellation?: AbsorbCancellationState;
+  memoryBudget: AbsorbMemoryBudgetTelemetry;
+  cacheCommitted: boolean;
 }
 
 const absorbJobs = new Map<string, AbsorbJob>();
+
+function createAbsorbMemoryBudget(limits: AbsorbMemoryBudgetLimits): AbsorbMemoryBudgetTelemetry {
+  const current = readAbsorbMemorySnapshot();
+  return {
+    ...limits,
+    peakRssMb: current.rssMb,
+    peakHeapUsedMb: current.heapUsedMb,
+    exceeded: false,
+  };
+}
+
+function updateAbsorbMemoryBudget(job: AbsorbJob, phase: string): void {
+  const current = readAbsorbMemorySnapshot();
+  job.memoryBudget.peakRssMb = Math.max(job.memoryBudget.peakRssMb, current.rssMb);
+  job.memoryBudget.peakHeapUsedMb = Math.max(job.memoryBudget.peakHeapUsedMb, current.heapUsedMb);
+
+  const rssExceeded =
+    job.memoryBudget.maxRssMb !== undefined && current.rssMb > job.memoryBudget.maxRssMb;
+  const heapExceeded =
+    job.memoryBudget.maxHeapUsedMb !== undefined &&
+    current.heapUsedMb > job.memoryBudget.maxHeapUsedMb;
+  if (!rssExceeded && !heapExceeded) return;
+
+  job.memoryBudget.exceeded = true;
+  job.memoryBudget.exceededResource =
+    rssExceeded && heapExceeded ? 'rss_and_heap' : rssExceeded ? 'rss' : 'heap';
+  job.memoryBudget.exceededAtPhase ??= phase;
+  if (!job.abortController.signal.aborted) {
+    requestAbsorbCancellation(
+      job,
+      'memory_budget_exceeded',
+      `Absorb ${job.memoryBudget.exceededResource} memory budget exceeded during ${phase}`
+    );
+  }
+}
+
+function requestAbsorbCancellation(
+  job: AbsorbJob,
+  reason: AbsorbCancellationReason,
+  message: string
+): void {
+  if (job.abortController.signal.aborted) return;
+  job.cancellation = {
+    reason,
+    message,
+    requestedAt: Date.now(),
+    phaseAtRequest: job.phase,
+  };
+  job.status = 'cancelling';
+  job.abortController.abort(new AbsorbCancelledError(job.jobId, reason, job.phase, message));
+}
+
+function enforceAbsorbJobControl(jobId: string | undefined, phase: string): void {
+  if (!jobId) return;
+  const job = absorbJobs.get(jobId);
+  if (!job) return;
+  updateAbsorbMemoryBudget(job, phase);
+  if (!job.abortController.signal.aborted) return;
+  if (job.abortController.signal.reason instanceof Error) {
+    throw job.abortController.signal.reason;
+  }
+  throw new AbsorbCancelledError(
+    job.jobId,
+    job.cancellation?.reason ?? 'cancel_requested',
+    phase,
+    job.cancellation?.message ?? 'Absorb job cancelled'
+  );
+}
+
+function getAbsorbJobSignal(jobId: string | undefined): AbortSignal | undefined {
+  return jobId ? absorbJobs.get(jobId)?.abortController.signal : undefined;
+}
+
+function isAbsorbCancellation(err: unknown, jobId?: string): boolean {
+  if (err instanceof AbsorbCancelledError) return true;
+  const job = jobId ? absorbJobs.get(jobId) : undefined;
+  return job?.abortController.signal.aborted === true;
+}
+
+function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, unknown> {
+  const job = absorbJobs.get(jobId);
+  if (!job) {
+    return { error: 'absorb_cancelled', cancelled: true, jobId };
+  }
+  const completedAt = Date.now();
+  const cancellation =
+    job.cancellation ??
+    ({
+      reason: 'cancel_requested',
+      message: err instanceof Error ? err.message : 'Absorb job cancelled',
+      requestedAt: completedAt,
+      phaseAtRequest: job.phase,
+    } satisfies AbsorbCancellationState);
+  cancellation.completedAt = completedAt;
+  job.cancellation = cancellation;
+  job.status = 'cancelled';
+  job.phase = 'Cancelled';
+  job.completedAt = completedAt;
+  updateAbsorbMemoryBudget(job, 'cancelled');
+
+  const receipt = {
+    schemaVersion: 'holoscript.absorb-cancellation-receipt.v1',
+    kind: 'AbsorbCancellationReceipt',
+    error: 'absorb_cancelled',
+    cancelled: true,
+    jobId,
+    rootDir: job.rootDir,
+    reason: cancellation.reason,
+    message: cancellation.message,
+    phaseAtRequest: cancellation.phaseAtRequest,
+    requestedAt: new Date(cancellation.requestedAt).toISOString(),
+    completedAt: new Date(completedAt).toISOString(),
+    cachePreserved: !job.cacheCommitted,
+    cacheCommitted: job.cacheCommitted,
+    memoryBudget: { ...job.memoryBudget },
+  };
+  job.result = receipt;
+  return receipt;
+}
 
 /**
  * Result fields that are already persisted to the graph cache and are far too
@@ -486,6 +699,7 @@ function appendAbsorbPhaseMetric(jobId: string | undefined, metric: AbsorbPhaseM
   if (!jobId) return;
   const job = absorbJobs.get(jobId);
   if (job) job.phaseMetrics.push(metric);
+  enforceAbsorbJobControl(jobId, metric.phase);
 }
 
 /**
@@ -498,6 +712,7 @@ function trackAbsorbProgress(
   filesProcessed?: number,
   totalFiles?: number
 ): void {
+  enforceAbsorbJobControl(jobId, phase);
   const job = absorbJobs.get(jobId);
   if (job) {
     job.phase = phase;
@@ -539,7 +754,7 @@ function failAbsorbJob(
 /**
  * Create a new absorb job and register it.
  */
-function createAbsorbJob(rootDir: string): string {
+function createAbsorbJob(rootDir: string, memoryBudget: AbsorbMemoryBudgetLimits = {}): string {
   const jobId = `absorb-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   absorbJobs.set(jobId, {
     jobId,
@@ -551,6 +766,9 @@ function createAbsorbJob(rootDir: string): string {
     totalFiles: 0,
     startedAt: Date.now(),
     phaseMetrics: [],
+    abortController: new AbortController(),
+    memoryBudget: createAbsorbMemoryBudget(memoryBudget),
+    cacheCommitted: false,
   });
 
   // Auto-cleanup after 1 hour. Do not keep one-shot MCP verifier processes alive.
@@ -574,7 +792,11 @@ function startBackgroundAbsorbJob(jobId: string, work: () => Promise<unknown>): 
     void work()
       .then((result: unknown) => {
         const job = absorbJobs.get(jobId);
-        if (!job || job.status === 'error') return;
+        if (!job || job.status === 'error' || job.status === 'cancelled') return;
+        if (job.status === 'cancelling' || job.abortController.signal.aborted) {
+          settleCancelledAbsorbJob(jobId, job.abortController.signal.reason);
+          return;
+        }
         job.result = result;
         job.status = 'complete';
         job.progress = 100;
@@ -582,6 +804,10 @@ function startBackgroundAbsorbJob(jobId: string, work: () => Promise<unknown>): 
         job.completedAt = Date.now();
       })
       .catch((err: unknown) => {
+        if (isAbsorbCancellation(err, jobId)) {
+          settleCancelledAbsorbJob(jobId, err);
+          return;
+        }
         const message = errorMessage(err);
         failAbsorbJob(jobId, 'Failed', message, {
           error: 'absorb_failed',
@@ -1495,9 +1721,10 @@ function buildSemanticIndexReadinessReceipt(
     priorGraphRagReady: boolean;
     embeddingBuildError?: unknown;
     embeddingFailureReason?: 'embeddingBuildFailed' | 'embeddingLoadFailed';
+    graphRagReadyOverride?: boolean;
   }
 ): SemanticIndexReadinessReceipt {
-  const graphRagReady = isGraphRAGReady();
+  const graphRagReady = options.graphRagReadyOverride ?? isGraphRAGReady();
   const failureMessage =
     options.embeddingBuildError === undefined
       ? undefined
@@ -2351,6 +2578,16 @@ export const codebaseTools: Tool[] = [
           type: 'number',
           description: 'Maximum content file size in bytes. Defaults to 1048576.',
         },
+        maxRssMb: {
+          type: 'number',
+          description:
+            'Optional process RSS budget in MiB. Exceeding it cooperatively cancels the job and preserves the prior cache. May also be set with ABSORB_MAX_RSS_MB.',
+        },
+        maxHeapUsedMb: {
+          type: 'number',
+          description:
+            'Optional V8 heap-used budget in MiB. Exceeding it cooperatively cancels the job and preserves the prior cache. May also be set with ABSORB_MAX_HEAP_USED_MB.',
+        },
         exclude: {
           type: 'array',
           items: { type: 'string' },
@@ -2459,6 +2696,22 @@ export const codebaseTools: Tool[] = [
         },
       },
       required: [],
+    },
+  },
+  {
+    name: 'holo_cancel_absorb',
+    description:
+      'Request cooperative cancellation of a queued or running Absorb job. The job transitions through cancelling to a terminal cancelled receipt, disposes scanner/embedding workers, aborts mesh I/O, and preserves the prior graph and embedding caches.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        jobId: { type: 'string', description: 'Job ID returned from holo_absorb_repo' },
+        reason: {
+          type: 'string',
+          description: 'Optional operator-readable cancellation reason.',
+        },
+      },
+      required: ['jobId'],
     },
   },
   {
@@ -2646,6 +2899,16 @@ export function resetCodebaseToolStateForTests(skipDiskAutoload = true): void {
   cacheAutoLoaded = skipDiskAutoload;
   cacheProvenance = null;
   cacheTimestamp = 0;
+  for (const job of absorbJobs.values()) {
+    if (
+      !job.abortController.signal.aborted &&
+      job.status !== 'complete' &&
+      job.status !== 'error' &&
+      job.status !== 'cancelled'
+    ) {
+      requestAbsorbCancellation(job, 'cancel_requested', 'Test state reset');
+    }
+  }
   absorbJobs.clear();
   resetGraphRAGStateForTests();
 }
@@ -2864,7 +3127,12 @@ async function loadCodebaseModule(): Promise<CodebaseModule> {
 }
 
 function shouldAutoLoadGraph(name: string, args: Record<string, unknown>): boolean {
-  if (name === 'holo_graph_status' || name === 'holo_get_absorb_status') return false;
+  if (
+    name === 'holo_graph_status' ||
+    name === 'holo_get_absorb_status' ||
+    name === 'holo_cancel_absorb'
+  )
+    return false;
   if (name === 'holo_absorb_repo' && args.force === true) return false;
   return true;
 }
@@ -2884,6 +3152,8 @@ export async function handleCodebaseTool(
   switch (name) {
     case 'holo_absorb_repo':
       return handleAbsorb(args);
+    case 'holo_cancel_absorb':
+      return handleCancelAbsorb(args);
     case 'holo_query_codebase':
       return handleQuery(args);
     case 'holo_impact_analysis':
@@ -2938,6 +3208,8 @@ async function runFullScan(
   const rootDirs = rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : [];
   if (rootDirs.length === 0) throw new Error('No rootDir or rootDirs provided');
   const primaryRootDir = rootDirs[0];
+  const signal = getAbsorbJobSignal(jobId);
+  enforceAbsorbJobControl(jobId, 'initializing full scan');
 
   const startTime = Date.now();
   let phaseStartedAt = startTime;
@@ -3007,6 +3279,10 @@ async function runFullScan(
   if (jobId) trackAbsorbProgress(jobId, 'Discovering files', 5);
 
   const scanner = new CodebaseScanner();
+  const disposeScannerOnAbort = (): void => {
+    void scanner.dispose?.();
+  };
+  signal?.addEventListener('abort', disposeScannerOnAbort, { once: true });
   let scanResult: any;
   let scanPlanReceipt: AbsorbScanPlanReceipt | undefined;
 
@@ -3024,6 +3300,7 @@ async function runFullScan(
         includeBuildArtifacts: effectiveIncludeBuildArtifacts,
         maxFileSize: effectiveScanPolicy.maxFileSize,
         readFile: inlineScan.readFile,
+        signal,
         onProgress: (processed: number, total: number, file: string) => {
           if (jobId) {
             const scanPercent = 10 + (processed / Math.max(total, 1)) * 50; // 10-60%
@@ -3053,6 +3330,7 @@ async function runFullScan(
         ...scanOptions,
         scanBatchSize,
         scanPlan,
+        signal,
         onBatchStart: (batch: PlannedScannerBatch, totalBatches: number) => {
           if (jobId) {
             trackAbsorbProgress(
@@ -3080,6 +3358,7 @@ async function runFullScan(
       });
     }
   } finally {
+    signal?.removeEventListener('abort', disposeScannerOnAbort);
     await scanner.dispose?.();
   }
   recordPhaseMetric('scan', {
@@ -3151,33 +3430,38 @@ async function runFullScan(
     totalFiles: scanPlanReceipt?.totalCandidateFiles,
   });
 
-  // Cache for subsequent queries
-  cachedGraph = graph;
-  cachedRootDir = primaryRootDir;
-  cacheProvenance = localCodebaseSnapshotReceipt ? 'local-codebase-snapshot-receipt' : 'fresh-scan';
-  cacheTimestamp = Date.now();
-
-  // Persist graph to disk
+  // Resolve the provider before the transactional cache commit. The prior
+  // graph and embedding caches remain untouched until every cancellable phase
+  // has finished successfully.
   const detectedProvider = embeddingProvider
     ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
     : await detectBestEmbeddingProvider();
-  saveGraphCache(
-    graph,
-    primaryRootDir,
-    stats,
-    gitCommitHash,
-    fileHashes,
-    detectedProvider,
-    localCodebaseSnapshotReceipt,
-    effectiveScanPolicy
-  );
-  recordPhaseMetric('graph-cache-save', {
-    filesProcessed: scanResult?.stats?.totalFiles,
-    totalFiles: scanPlanReceipt?.totalCandidateFiles,
-    totalSymbols: stats.totalSymbols,
-  });
 
   if (outputFormat === 'stats') {
+    enforceAbsorbJobControl(jobId, 'graph-cache-commit');
+    cachedGraph = graph;
+    cachedRootDir = primaryRootDir;
+    cacheProvenance = localCodebaseSnapshotReceipt
+      ? 'local-codebase-snapshot-receipt'
+      : 'fresh-scan';
+    cacheTimestamp = Date.now();
+    saveGraphCache(
+      graph,
+      primaryRootDir,
+      stats,
+      gitCommitHash,
+      fileHashes,
+      detectedProvider,
+      localCodebaseSnapshotReceipt,
+      effectiveScanPolicy
+    );
+    const statsJob = jobId ? absorbJobs.get(jobId) : undefined;
+    if (statsJob) statsJob.cacheCommitted = true;
+    recordPhaseMetric('graph-cache-save', {
+      filesProcessed: scanResult?.stats?.totalFiles,
+      totalFiles: scanPlanReceipt?.totalCandidateFiles,
+      totalSymbols: stats.totalSymbols,
+    });
     if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
     const semanticIndexReadiness = buildStatsOnlySemanticIndexReceipt(primaryRootDir);
     resetGraphRAGState();
@@ -3215,9 +3499,9 @@ async function runFullScan(
   // Build embedding index with granular progress (Phase 8 Extension)
   const priorGraphRagReadyForEmbedding = isGraphRAGReady();
   let embeddingBuildError: unknown;
+  let preparedEmbeddingIndex: any = null;
+  let embeddingCacheNeedsSave = false;
   try {
-    const { GraphRAGEngine } = mod;
-
     // FAST-HYDRATE: when this scan is at the SAME commit as the persisted
     // embeddings, the on-disk `.bin` is still valid for this exact graph — load
     // it (seconds) instead of re-embedding 343k symbols (minutes). The provider
@@ -3246,13 +3530,13 @@ async function runFullScan(
             `[AbsorbEmbeddings] Fast-hydrate: loaded embeddings from disk (git ${gitCommitHash?.slice(0, 7)} match, provider ${providerName}) — skipping re-embed.`
           );
           if (jobId) trackAbsorbProgress(jobId, 'Loaded embeddings from disk cache', 95);
-          // The disk `.bin` is already current for this commit; do NOT re-save.
-          setGraphRAGState(hydratedIndex, new GraphRAGEngine(graph, hydratedIndex), {
-            rootDir: primaryRootDir,
-            timestamp: cacheTimestamp,
-          });
+          // The disk `.bin` is already current for this commit; stage it in
+          // memory and do not publish session state until cancellation can no
+          // longer invalidate the graph transaction.
+          preparedEmbeddingIndex = hydratedIndex;
         }
       } catch (err) {
+        if (isAbsorbCancellation(err, jobId)) throw err;
         console.warn(`[AbsorbEmbeddings] Fast-hydrate load failed, will rebuild: ${String(err)}`);
         hydratedIndex = null;
       }
@@ -3285,17 +3569,15 @@ async function runFullScan(
           ),
           EMBEDDING_BUILD_TIMEOUT_MS,
           'holo_absorb_repo embedding build',
-          () => disposeEmbeddingIndex(embeddingIndex)
+          () => disposeEmbeddingIndex(embeddingIndex),
+          signal
         );
       } finally {
         await disposeEmbeddingIndex(embeddingIndex);
       }
 
-      saveEmbeddingsCache(embeddingIndex, primaryRootDir);
-      setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex), {
-        rootDir: primaryRootDir,
-        timestamp: cacheTimestamp,
-      });
+      preparedEmbeddingIndex = embeddingIndex;
+      embeddingCacheNeedsSave = true;
       recordPhaseMetric('embedding-build', {
         totalSymbols: stats.totalSymbols,
       });
@@ -3305,9 +3587,9 @@ async function runFullScan(
       });
     }
   } catch (err) {
+    if (isAbsorbCancellation(err, jobId)) throw err;
     console.warn(`[AbsorbEmbeddings] Full-scan GraphRAG skipped: ${String(err)}`);
     embeddingBuildError = err;
-    resetGraphRAGState();
     recordPhaseMetric('embedding-skipped', {
       totalSymbols: stats.totalSymbols,
     });
@@ -3315,13 +3597,13 @@ async function runFullScan(
   const semanticIndexReadiness = buildSemanticIndexReadinessReceipt(primaryRootDir, {
     priorGraphRagReady: priorGraphRagReadyForEmbedding,
     embeddingBuildError,
+    graphRagReadyOverride: preparedEmbeddingIndex !== null && embeddingBuildError === undefined,
   });
 
   // Sync with mesh (Phase 9)
-  await syncWithMesh(graph, primaryRootDir);
+  enforceAbsorbJobControl(jobId, 'mesh-sync');
+  await syncWithMesh(graph, primaryRootDir, signal);
   recordPhaseMetric('mesh-sync');
-
-  if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
 
   let result: unknown;
 
@@ -3390,6 +3672,45 @@ async function runFullScan(
     };
   }
 
+  // Transactional publication boundary: cancellation and memory-budget checks
+  // have completed for scan, graph, embedding, mesh, and response generation.
+  // Only now replace the prior authoritative graph/index caches and session state.
+  enforceAbsorbJobControl(jobId, 'cache-commit');
+  cacheTimestamp = Date.now();
+  if (preparedEmbeddingIndex && embeddingCacheNeedsSave) {
+    saveEmbeddingsCache(preparedEmbeddingIndex, primaryRootDir);
+  }
+  saveGraphCache(
+    graph,
+    primaryRootDir,
+    stats,
+    gitCommitHash,
+    fileHashes,
+    detectedProvider,
+    localCodebaseSnapshotReceipt,
+    effectiveScanPolicy
+  );
+  cachedGraph = graph;
+  cachedRootDir = primaryRootDir;
+  cacheProvenance = localCodebaseSnapshotReceipt ? 'local-codebase-snapshot-receipt' : 'fresh-scan';
+  if (preparedEmbeddingIndex) {
+    setGraphRAGState(
+      preparedEmbeddingIndex,
+      new mod.GraphRAGEngine(graph, preparedEmbeddingIndex),
+      { rootDir: primaryRootDir, timestamp: cacheTimestamp }
+    );
+  } else {
+    resetGraphRAGState();
+  }
+  const committedJob = jobId ? absorbJobs.get(jobId) : undefined;
+  if (committedJob) committedJob.cacheCommitted = true;
+  recordPhaseMetric('cache-commit', {
+    filesProcessed: scanResult?.stats?.totalFiles,
+    totalFiles: scanPlanReceipt?.totalCandidateFiles,
+    totalSymbols: stats.totalSymbols,
+  });
+  if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
+
   // Store result in job
   if (jobId) {
     const job = absorbJobs.get(jobId);
@@ -3426,6 +3747,8 @@ async function runIncrementalPatch(
   const startTime = Date.now();
   const embeddingPolicy = buildGraphRAGEmbeddingPolicyReceipt();
   const effectiveScanPolicy = normalizeScanPolicy(scanPolicy ?? envelope.scanPolicy);
+  const signal = getAbsorbJobSignal(jobId);
+  enforceAbsorbJobControl(jobId, 'initializing incremental patch');
 
   if (jobId) trackAbsorbProgress(jobId, 'Loading cached graph', 10);
 
@@ -3474,6 +3797,10 @@ async function runIncrementalPatch(
 
   // Rescan changed files
   const scanner = new CodebaseScanner();
+  const disposeScannerOnAbort = (): void => {
+    void scanner.dispose?.();
+  };
+  signal?.addEventListener('abort', disposeScannerOnAbort, { once: true });
   let rescanResult: any;
   try {
     rescanResult = await scanner.scanFiles(
@@ -3482,6 +3809,7 @@ async function runIncrementalPatch(
       {
         includeBuildArtifacts,
         maxFileSize: effectiveScanPolicy.maxFileSize,
+        signal,
         onProgress: (processed: number, total: number, file: string) => {
           if (jobId) {
             const scanPercent = 30 + (processed / total) * 30; // 30-60%
@@ -3491,6 +3819,7 @@ async function runIncrementalPatch(
       }
     );
   } finally {
+    signal?.removeEventListener('abort', disposeScannerOnAbort);
     await scanner.dispose?.();
   }
 
@@ -3528,6 +3857,8 @@ async function runIncrementalPatch(
       undefined,
       effectiveScanPolicy
     );
+    const statsJob = jobId ? absorbJobs.get(jobId) : undefined;
+    if (statsJob) statsJob.cacheCommitted = true;
 
     if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
     const patchDurationMs = Date.now() - startTime;
@@ -3570,8 +3901,9 @@ async function runIncrementalPatch(
   // Update embedding index
   const priorGraphRagReadyForEmbedding = isGraphRAGReady();
   let embeddingBuildError: unknown;
+  let preparedEmbeddingIndex: any = null;
+  let embeddingCacheNeedsSave = false;
   try {
-    const { GraphRAGEngine } = mod;
     let index: any = null;
 
     if (cachedGraph && cachedGraph === graph && false) {
@@ -3613,29 +3945,22 @@ async function runIncrementalPatch(
             index.addSymbols(newSymbols, graph),
             INCREMENTAL_EMBEDDING_TIMEOUT_MS,
             'holo_absorb_repo incremental embedding update',
-            () => disposeEmbeddingIndex(index)
+            () => disposeEmbeddingIndex(index),
+            signal
           );
         }
 
-        saveEmbeddingsCache(index, rootDir);
-        setGraphRAGState(index, new GraphRAGEngine(graph, index), {
-          rootDir,
-        });
+        preparedEmbeddingIndex = index;
+        embeddingCacheNeedsSave = true;
       } finally {
         await disposeEmbeddingIndex(index);
       }
     }
   } catch (err) {
+    if (isAbsorbCancellation(err, jobId)) throw err;
     console.warn(`[AbsorbEmbeddings] Incremental GraphRAG skipped: ${String(err)}`);
     embeddingBuildError = err;
-    resetGraphRAGState();
   }
-
-  // Cache updated graph
-  cachedGraph = graph;
-  cachedRootDir = rootDir;
-  cacheProvenance = 'incremental-patch';
-  cacheTimestamp = Date.now();
 
   const graphStats = graph.getStats();
   const detectedProvider = embeddingProvider
@@ -3670,6 +3995,17 @@ async function runIncrementalPatch(
     }
   }
 
+  // Sync with mesh if truly changed (Phase 9)
+  if (filesToRescan.length > 0) {
+    enforceAbsorbJobControl(jobId, 'mesh-sync');
+    await syncWithMesh(graph, rootDir, signal);
+  }
+
+  enforceAbsorbJobControl(jobId, 'cache-commit');
+  cacheTimestamp = Date.now();
+  if (preparedEmbeddingIndex && embeddingCacheNeedsSave) {
+    saveEmbeddingsCache(preparedEmbeddingIndex, rootDir);
+  }
   saveGraphCache(
     graph,
     rootDir,
@@ -3680,11 +4016,20 @@ async function runIncrementalPatch(
     undefined,
     effectiveScanPolicy
   );
-
-  // Sync with mesh if truly changed (Phase 9)
-  if (filesToRescan.length > 0) {
-    await syncWithMesh(graph, rootDir);
+  cachedGraph = graph;
+  cachedRootDir = rootDir;
+  cacheProvenance = 'incremental-patch';
+  if (preparedEmbeddingIndex) {
+    setGraphRAGState(
+      preparedEmbeddingIndex,
+      new mod.GraphRAGEngine(graph, preparedEmbeddingIndex),
+      { rootDir, timestamp: cacheTimestamp }
+    );
+  } else {
+    resetGraphRAGState();
   }
+  const committedJob = jobId ? absorbJobs.get(jobId) : undefined;
+  if (committedJob) committedJob.cacheCommitted = true;
 
   if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
 
@@ -3892,9 +4237,17 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const embeddingProvider = args.embeddingProvider as string | undefined;
   const embeddingApiKey = args.embeddingApiKey as string | undefined;
   const embeddingModel = args.embeddingModel as string | undefined;
+  const memoryBudgetResult = resolveAbsorbMemoryBudget(args);
+  if (!memoryBudgetResult.valid) {
+    return {
+      error: 'memory_budget_validation_failed',
+      message: memoryBudgetResult.errors.join('; '),
+      errors: memoryBudgetResult.errors,
+    };
+  }
 
   // Create job for progress tracking
-  const jobId = createAbsorbJob(primaryRootDir);
+  const jobId = createAbsorbJob(primaryRootDir, memoryBudgetResult.limits);
 
   const plan: AbsorbExecutionPlan = {
     mod,
@@ -3944,6 +4297,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       outputFormat,
       force,
       embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
+      memoryBudget: { ...absorbJobs.get(jobId)!.memoryBudget },
       scanPolicy,
       fromSourceFiles,
       fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
@@ -3954,7 +4308,12 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     };
   }
 
-  return executeAbsorbPlan(plan);
+  try {
+    return await executeAbsorbPlan(plan);
+  } catch (err) {
+    if (isAbsorbCancellation(err, jobId)) return settleCancelledAbsorbJob(jobId, err);
+    throw err;
+  }
 }
 
 interface AbsorbExecutionPlan {
@@ -4100,6 +4459,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     fromSourceFiles,
   } = plan;
   const { CodebaseGraph, GitChangeDetector } = mod;
+  const signal = getAbsorbJobSignal(jobId);
+  enforceAbsorbJobControl(jobId, 'initializing');
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PATH 1: force=true → FULL SCAN
@@ -4354,6 +4715,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
           xenovaModel: process.env.XENOVA_MODEL,
         });
         const diskIndex = await loadEmbeddingsCache(mod, providerObj);
+        enforceAbsorbJobControl(jobId, 'embedding-cache-hydrate');
         if (diskIndex) {
           console.error(
             `[AbsorbEmbeddings] Fast-hydrate (zero-change): loaded embeddings from disk (git ${changes.headCommit.slice(0, 7)} match, provider ${providerName}) — no re-embed.`
@@ -4389,18 +4751,23 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
               ),
               EMBEDDING_BUILD_TIMEOUT_MS,
               'holo_absorb_repo zero-change embedding rebuild',
-              () => disposeEmbeddingIndex(rebuiltIndex)
+              () => disposeEmbeddingIndex(rebuiltIndex),
+              signal
             );
           } finally {
             await disposeEmbeddingIndex(rebuiltIndex);
           }
+          enforceAbsorbJobControl(jobId, 'embedding-cache-commit');
           saveEmbeddingsCache(rebuiltIndex, rootDir);
+          const embeddingCommitJob = jobId ? absorbJobs.get(jobId) : undefined;
+          if (embeddingCommitJob) embeddingCommitJob.cacheCommitted = true;
           setGraphRAGState(rebuiltIndex, new GraphRAGEngine(cachedGraph, rebuiltIndex), {
             rootDir,
             timestamp: envelope.timestamp,
           });
         }
       } catch (err) {
+        if (isAbsorbCancellation(err, jobId)) throw err;
         console.warn(`[AbsorbEmbeddings] Zero-change fast-hydrate skipped: ${String(err)}`);
         embeddingLoadError = err;
         resetGraphRAGState();
@@ -4408,6 +4775,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     }
 
     if (envelope.gitCommitHash !== changes.headCommit) {
+      enforceAbsorbJobControl(jobId, 'graph-cache-commit');
       (cachedGraph as { gitCommitHash?: string }).gitCommitHash = changes.headCommit;
       (cachedGraph as { fileHashes?: Record<string, string> }).fileHashes = envelope.fileHashes;
       cacheTimestamp = Date.now();
@@ -4421,6 +4789,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
         envelope.localCodebaseSnapshotReceipt,
         sameRootScanPolicy
       );
+      const graphCommitJob = jobId ? absorbJobs.get(jobId) : undefined;
+      if (graphCommitJob) graphCommitJob.cacheCommitted = true;
     }
 
     // Mark job as complete immediately (fast path)
@@ -5145,12 +5515,50 @@ async function handleGraphStatus(): Promise<unknown> {
 
 // ── Absorb Status ────────────────────────────────────────────────────────────
 
+async function handleCancelAbsorb(args: Record<string, unknown>): Promise<unknown> {
+  const jobId = typeof args.jobId === 'string' ? args.jobId : '';
+  if (!jobId) return { error: 'jobId_required', message: 'jobId must be a non-empty string.' };
+  const job = absorbJobs.get(jobId);
+  if (!job) return { error: 'Job not found', jobId };
+
+  if (job.status === 'complete' || job.status === 'error' || job.status === 'cancelled') {
+    return {
+      accepted: false,
+      jobId,
+      status: job.status,
+      message: `Absorb job is already terminal (${job.status}).`,
+      ...(job.status === 'cancelled' && job.result ? { cancellationReceipt: job.result } : {}),
+    };
+  }
+
+  if (!job.abortController.signal.aborted) {
+    const operatorReason =
+      typeof args.reason === 'string' && args.reason.trim() ? `: ${args.reason.trim()}` : '';
+    requestAbsorbCancellation(job, 'cancel_requested', `Cancellation requested${operatorReason}`);
+  }
+
+  return {
+    accepted: true,
+    jobId,
+    status: job.status,
+    reason: job.cancellation?.reason,
+    phaseAtRequest: job.cancellation?.phaseAtRequest,
+    requestedAt: job.cancellation
+      ? new Date(job.cancellation.requestedAt).toISOString()
+      : undefined,
+    pollTool: 'holo_get_absorb_status',
+  };
+}
+
 async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unknown> {
   const jobId = args.jobId as string;
   const job = absorbJobs.get(jobId);
 
   if (!job) {
     return { error: 'Job not found', jobId };
+  }
+  if (job.status !== 'complete' && job.status !== 'error' && job.status !== 'cancelled') {
+    updateAbsorbMemoryBudget(job, job.phase);
   }
 
   const response: Record<string, unknown> = {
@@ -5161,10 +5569,23 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
     embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
     filesProcessed: job.filesProcessed,
     totalFiles: job.totalFiles,
-    durationMs: Date.now() - job.startedAt,
+    durationMs: (job.completedAt ?? Date.now()) - job.startedAt,
     memory: readAbsorbMemorySnapshot(),
+    memoryBudget: { ...job.memoryBudget },
     phaseMetrics: job.phaseMetrics,
   };
+
+  if (job.cancellation) {
+    response.cancellation = {
+      reason: job.cancellation.reason,
+      message: job.cancellation.message,
+      phaseAtRequest: job.cancellation.phaseAtRequest,
+      requestedAt: new Date(job.cancellation.requestedAt).toISOString(),
+      ...(job.cancellation.completedAt && {
+        completedAt: new Date(job.cancellation.completedAt).toISOString(),
+      }),
+    };
+  }
 
   if (job.scanPlan) {
     response.scanPlan =
@@ -5175,7 +5596,10 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
     response.error = job.error;
   }
 
-  if (job.result && (job.status === 'complete' || job.status === 'error')) {
+  if (
+    job.result &&
+    (job.status === 'complete' || job.status === 'error' || job.status === 'cancelled')
+  ) {
     Object.assign(response, buildAbsorbResultEnvelope(job.result, args.includeResult === true));
   }
 
@@ -5333,7 +5757,15 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
 /**
  * Sync codebase symbols with the MCP Orchestrator for federated discovery.
  */
-export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
+export async function syncWithMesh(
+  graph: any,
+  rootDir: string,
+  signal?: AbortSignal
+): Promise<void> {
+  if (signal?.aborted) {
+    if (signal.reason instanceof Error) throw signal.reason;
+    throw new Error('Mesh sync cancelled');
+  }
   const orchestratorUrl =
     process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
   const workspaceId = rootDir.split(/[/\\]/).pop() || 'unknown';
@@ -5390,7 +5822,8 @@ export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
         }),
       },
       MESH_SYNC_TIMEOUT_MS,
-      'mesh knowledge sync'
+      'mesh knowledge sync',
+      signal
     );
 
     if (response.ok) {
@@ -5398,6 +5831,7 @@ export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
       console.warn(`[MeshSync] Orchestrator sync failed: ${response.status}`);
     }
   } catch (err) {
+    if (signal?.aborted) throw err;
     console.warn(`[MeshSync] Could not reach orchestrator: ${err}`);
   }
 }

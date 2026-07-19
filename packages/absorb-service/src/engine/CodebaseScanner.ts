@@ -203,6 +203,12 @@ function yieldToEventLoop(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
+function throwIfScanAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  if (signal.reason instanceof Error) throw signal.reason;
+  throw new Error(typeof signal.reason === 'string' ? signal.reason : 'Codebase scan cancelled');
+}
+
 export interface ScanInBatchesOptions extends ScanOptions {
   /** Maximum files per module batch. Defaults to a bounded monorepo-safe chunk. */
   scanBatchSize?: number;
@@ -255,6 +261,7 @@ export class CodebaseScanner {
    * from all supported source files.
    */
   async scan(options: ScanOptions): Promise<ScanResult> {
+    throwIfScanAborted(options.signal);
     const startTime = Date.now();
     const rootDirsRaw = options.rootDirs ?? (options.rootDir ? [options.rootDir] : []);
     if (rootDirsRaw.length === 0) throw new Error('No rootDir or rootDirs provided to scan');
@@ -269,6 +276,7 @@ export class CodebaseScanner {
     // 1. Collect files
     const filePathsSet = new Set<string>();
     for (const rDir of rootDirs) {
+      throwIfScanAborted(options.signal);
       if (filePathsSet.size >= maxFiles) break;
       const { files: paths } = this.collectFiles(
         rDir,
@@ -290,6 +298,7 @@ export class CodebaseScanner {
       if (lang) detectedLanguages.add(lang);
     }
     await this.adapterManager.preload(Array.from(detectedLanguages));
+    throwIfScanAborted(options.signal);
 
     // 3. Parse each file and extract symbols
     const files: ScannedFile[] = [];
@@ -304,6 +313,7 @@ export class CodebaseScanner {
     if (this.useWorkers && this.workerPool) {
       const BATCH_SIZE = 16;
       for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
+        throwIfScanAborted(options.signal);
         const batch = filePaths.slice(i, i + BATCH_SIZE);
         const parseResults = await this.parseBatchWithWorkers(
           batch,
@@ -335,11 +345,13 @@ export class CodebaseScanner {
           onProgress?.(files.length, filePaths.length, relPath);
         }
         await yieldToEventLoop();
+        throwIfScanAborted(options.signal);
       }
     } else {
       // SEQUENTIAL FALLBACK: Original implementation (no workers available)
       for (let fileIndex = 0; fileIndex < filePaths.length; fileIndex++) {
         if (fileIndex > 0 && fileIndex % 16 === 0) await yieldToEventLoop();
+        throwIfScanAborted(options.signal);
         const filePath = filePaths[fileIndex];
         const language = detectLanguage(filePath) || 'plaintext';
         const adapter = getAdapterForFile(filePath);
@@ -582,6 +594,7 @@ export class CodebaseScanner {
    * ScanResult shape expected by CodebaseGraph and GraphRAG.
    */
   async scanInBatches(options: ScanInBatchesOptions): Promise<ScanResult> {
+    throwIfScanAborted(options.signal);
     const startTime = Date.now();
     const plan = options.scanPlan ?? this.planScan(options, options.scanBatchSize);
     const files: ScannedFile[] = [];
@@ -595,11 +608,13 @@ export class CodebaseScanner {
     let completedCandidateFiles = 0;
 
     for (const batch of plan.batches) {
+      throwIfScanAborted(options.signal);
       options.onBatchStart?.(batch, plan.batches.length);
       const batchResult = await this.scanFiles(plan.rootDir, batch.files, {
         includeBuildArtifacts: options.includeBuildArtifacts,
         maxFileSize: options.maxFileSize,
         readFile: options.readFile,
+        signal: options.signal,
         onProgress: (processed, _total, file) => {
           options.onProgress?.(
             Math.min(completedCandidateFiles + processed, plan.totalFiles),
@@ -626,6 +641,7 @@ export class CodebaseScanner {
       completedCandidateFiles += batch.files.length;
       options.onBatchComplete?.(batch, batchResult, plan.batches.length);
       await yieldToEventLoop();
+      throwIfScanAborted(options.signal);
     }
 
     const stats: ScanStats = {
@@ -650,8 +666,12 @@ export class CodebaseScanner {
   async scanFiles(
     rootDir: string,
     filePaths: string[],
-    options?: Pick<ScanOptions, 'maxFileSize' | 'readFile' | 'onProgress' | 'includeBuildArtifacts'>
+    options?: Pick<
+      ScanOptions,
+      'maxFileSize' | 'readFile' | 'onProgress' | 'includeBuildArtifacts' | 'signal'
+    >
   ): Promise<ScanResult> {
+    throwIfScanAborted(options?.signal);
     const startTime = Date.now();
     const resolvedRootDir = path.resolve(rootDir);
     const maxFileSize = options?.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
@@ -666,6 +686,7 @@ export class CodebaseScanner {
       if (lang) detectedLanguages.add(lang);
     }
     await this.adapterManager.preload(Array.from(detectedLanguages));
+    throwIfScanAborted(options?.signal);
 
     const files: ScannedFile[] = [];
     const errors: ScanError[] = [];
@@ -697,6 +718,7 @@ export class CodebaseScanner {
     if (this.useWorkers && this.workerPool) {
       const BATCH_SIZE = 16;
       for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
+        throwIfScanAborted(options?.signal);
         const batch = filePaths.slice(i, i + BATCH_SIZE);
         const parseResults = await this.parseBatchWithWorkers(
           batch,
@@ -709,11 +731,13 @@ export class CodebaseScanner {
           accumulateResult(result);
         }
         await yieldToEventLoop();
+        throwIfScanAborted(options?.signal);
       }
     } else {
       // Parallel batching for I/O efficiency
       const BATCH_SIZE = 8;
       for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
+        throwIfScanAborted(options?.signal);
         const batch = filePaths.slice(i, i + BATCH_SIZE);
         const results = await Promise.all(
           batch.map((fp) =>
@@ -725,6 +749,7 @@ export class CodebaseScanner {
           accumulateResult(result);
         }
         await yieldToEventLoop();
+        throwIfScanAborted(options?.signal);
       }
     }
 
