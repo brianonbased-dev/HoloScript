@@ -9,6 +9,7 @@ use holoscript_native::{
     AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
     AGGREGATE_REFERENCE_MACHINE_CONTRACT,
     BORROWED_AGGREGATE_BUFFER_ELEMENT_RETURN_MACHINE_CONTRACT,
+    BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT,
     BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
     BORROWED_AGGREGATE_SUBOBJECT_RETURN_MACHINE_CONTRACT,
     BORROWED_SCALAR_FIELD_FORWARD_RETURN_MACHINE_CONTRACT,
@@ -29,6 +30,9 @@ const SLICE_ELEMENT_FORWARDED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/slice-element-forwarded-return-exit-five.hs");
 const AGGREGATE_BUFFER_ELEMENT_FORWARDED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/aggregate-buffer-element-forwarded-return-exit-five.hs");
+const AGGREGATE_BUFFER_SUBSLICE_FORWARDED_RETURN_EXIT_FIVE: &str = include_str!(
+    "../../../examples/native/aggregate-buffer-subslice-forwarded-return-exit-five.hs"
+);
 const TYPED_EXIT_FIVE: &str = include_str!("../../../examples/native/typed-exit-five.hs");
 const I64_EXIT_FIVE: &str = r#"
     function add64(left: i64, right: i64): i64 {
@@ -4014,6 +4018,186 @@ fn aggregate_buffer_element_results_reject_severed_or_laundered_provenance() {
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid aggregate-buffer element result must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn aggregate_buffer_subslice_results_preserve_field_range_and_whole_root() {
+    assert_eq!(
+        BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT,
+        "hs-machine-v29"
+    );
+    let options = NativeCompileOptions::host();
+    let first = compile_object(
+        AGGREGATE_BUFFER_SUBSLICE_FORWARDED_RETURN_EXIT_FIVE,
+        &options,
+    )
+    .expect("caller-tied aggregate-buffer sub-slice forwarding should compile");
+    let second = compile_object(
+        AGGREGATE_BUFFER_SUBSLICE_FORWARDED_RETURN_EXIT_FIVE,
+        &options,
+    )
+    .expect("aggregate-buffer sub-slice lowering should be deterministic");
+    assert_eq!(first, second);
+
+    let executable = scratch_executable("native-aggregate-buffer-subslice-forwarded-return");
+    let artifact = compile_executable(
+        AGGREGATE_BUFFER_SUBSLICE_FORWARDED_RETURN_EXIT_FIVE,
+        &executable,
+        &options,
+    )
+    .expect("direct and relayed shared/mutable aggregate-buffer slices should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v29");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("aggregate-buffer sub-slice executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let nested = r#"
+        struct Payload { values: [i32] }
+        struct Packet { payload: Payload, other: [i32] }
+        function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] {
+            return &packet.payload.values[start..end]
+        }
+        function main(): i32 {
+            slot packet: Packet = Packet(Payload(buffer(3, 5)), buffer(2, 9))
+            let result: &[i32] = view(&packet, 1, 2)
+            return load(result[0])
+        }
+    "#;
+    let executable = scratch_executable("native-nested-aggregate-buffer-subslice-return");
+    let artifact = compile_executable(nested, &executable, &options)
+        .expect("nested static owned-field range coordinates should compile");
+    assert_eq!(artifact.machine_contract, "hs-machine-v29");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("nested aggregate-buffer sub-slice executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let inherited = r#"
+        struct Packet { values: [i32] }
+        function aggregate_slice<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] {
+            return &packet.values[start..end]
+        }
+        function aggregate_element<'a>(packet: &'a Packet, index: i32): &'a i32 {
+            return &packet.values[index]
+        }
+        function ordinary_slice<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return &values[start..end]
+        }
+        function main(): i32 {
+            slot packet: Packet = Packet(buffer(2, 1))
+            slot values: [i32; 1] = [3]
+            let aggregate_view: &[i32] = aggregate_slice(&packet, 0, 1)
+            let element_view: &i32 = aggregate_element(&packet, 0)
+            let slice_view: &[i32] = ordinary_slice(&values[0..1], 0, 1)
+            return load(aggregate_view[0]) + *element_view + load(slice_view[0])
+        }
+    "#;
+    let executable = scratch_executable("native-aggregate-buffer-subslice-inherited-contracts");
+    let artifact = compile_executable(inherited, &executable, &options)
+        .expect("v29 should retain v28 aggregate-buffer elements and v21 sub-slices");
+    assert_eq!(artifact.machine_contract, "hs-machine-v29");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("v29 cumulative-contract executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    for (name, start, end) in [
+        ("negative-start", -1, 1),
+        ("negative-end", 0, -1),
+        ("reversed", 1, 0),
+        ("outside", 0, 3),
+    ] {
+        let source = format!(
+            "struct Packet {{ values: [i32] }} function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] {{ return &packet.values[start..end] }} function relay<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] {{ return view(packet, start, end) }} function main(): i32 {{ slot packet: Packet = Packet(buffer(2, 5)) let result: &[i32] = relay(&packet, {start}, {end}) return load(result[0]) }}"
+        );
+        let executable = scratch_executable(&format!("native-aggregate-buffer-range-{name}-trap"));
+        let artifact = compile_executable(&source, &executable, &options)
+            .expect("invalid runtime aggregate-buffer range should compile to guards");
+        assert_eq!(artifact.machine_contract, "hs-machine-v29");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("guarded aggregate-buffer range executable should launch");
+        assert!(!status.success(), "invalid range `{name}` must trap");
+        remove_scratch_executable_with_retry(&artifact.executable);
+    }
+}
+
+#[test]
+fn aggregate_buffer_subslice_results_reject_severed_or_laundered_provenance() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.missing[start..end] } function main(): i32 { return 5 }",
+            "has no field `missing`",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, other: &Packet, start: i32, end: i32): &'a [i32] { return &other.values[start..end] } function main(): i32 { return 5 }",
+            "must derive from source parameter `packet`; found root `other`",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start + 1..end] } function main(): i32 { return 5 }",
+            "requires exact named `i32` start and end parameters",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start..1] } function main(): i32 { return 5 }",
+            "requires exact named `i32` start and end parameters",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i64] { return &packet.values[start..end] } function main(): i32 { return 5 }",
+            "expects `i64`, but field `packet.values` stores `[i32]`",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a mut [i32] { return &mut packet.values[start..end] } function main(): i32 { return 5 }",
+            "return mutability must match source parameter `packet`",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { slot local: Packet = Packet(buffer(2, 5)) return &local.values[start..end] } function main(): i32 { return 5 }",
+            "must derive from source parameter `packet`; found root `local`",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start..end] } function relay<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return view(packet, start, end) } function chain<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return relay(packet, start, end) } function main(): i32 { return 5 }",
+            "cannot forward aggregate-buffer sub-slice result from forwarding function `relay`; only one direct forwarding hop is admitted",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start..end] } function relay<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return view(packet, start, end + 1) } function main(): i32 { return 5 }",
+            "must forward exact named `i32` aggregate-buffer range parameters directly to `view`",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32, extra: i32): &'a [i32] { return &packet.values[start..end] } function main(): i32 { return 5 }",
+            "requires exactly two `i32` range parameters; found 3",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start..end] } function main(): i32 { slot packet: Packet = Packet(buffer(2, 5)) let taken: [i32] = move(packet.values) let result: &[i32] = view(&packet, 0, 1) return load(result[0]) }",
+            "owned leaf `packet.values` is moved",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32, taken: [i32]): &'a [i32] { return &packet.values[start..end] } function main(): i32 { slot packet: Packet = Packet(buffer(2, 5)) let result: &[i32] = view(&packet, 0, 1, move(packet.values)) return load(result[0]) }",
+            "cannot move owned descendant `packet.values` while returning a slice tied to aggregate root `packet`",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start..end] } function main(): i32 { slot packet: Packet = Packet(buffer(2, 5)) drop(packet.values) let result: &[i32] = view(&packet, 0, 1) return load(result[0]) }",
+            "owned leaf `packet.values` is dropped",
+        ),
+        (
+            "struct Packet { values: [i32] } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start..end] } function main(): i32 { slot packet: Packet = Packet(buffer(2, 5)) let result: &[i32] = view(&packet, 0, 1) drop(packet.values) return load(result[0]) }",
+            "while aggregate ancestor `packet` is borrowed",
+        ),
+        (
+            "struct Packet { values: [i32] } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] { return &packet.values[start..end] } function main(): i32 { slot packet: Packet = Packet(buffer(2, 5)) let returned: &Packet = borrow(&packet) let result: &[i32] = view(returned, 0, 1) return load(result[0]) }",
+            "cannot extend nested returned or reborrowed aggregate `returned`",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid aggregate-buffer sub-slice result must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"

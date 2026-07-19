@@ -3689,6 +3689,89 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_caller_tied_aggregate_buffer_subslice_forward_return() {
+        let source = r#"
+            struct Packet { values: [i32] }
+            function view<'a>(packet: &'a Packet, start: i32, end: i32): &'a [i32] {
+                return &packet.values[start..end]
+            }
+            function relay<'a>(end: i32, packet: &'a Packet, start: i32): &'a [i32] {
+                return view(packet, start, end)
+            }
+        "#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("caller-tied aggregate-buffer sub-slice forwarding should parse");
+
+        let AstNode::Function(view) = &program.body[1] else {
+            panic!("Expected view Function node");
+        };
+        assert_eq!(view.lifetimes, vec!["a"]);
+        assert_eq!(
+            view.param_types,
+            vec![
+                Some("&'a Packet".to_string()),
+                Some("i32".to_string()),
+                Some("i32".to_string())
+            ]
+        );
+        assert_eq!(view.return_type.as_deref(), Some("&'a [i32]"));
+        let AstNode::Return(returned) = &view.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::UnaryExpression(borrow)) = returned.argument.as_deref() else {
+            panic!("Expected borrowed aggregate-buffer sub-slice return");
+        };
+        assert_eq!(borrow.operator, "&");
+        let AstNode::MemberExpression(ranged) = borrow.argument.as_ref() else {
+            panic!("Expected ranged aggregate-buffer field");
+        };
+        assert!(ranged.computed);
+        assert!(matches!(
+            ranged.object.as_ref(),
+            AstNode::MemberExpression(field)
+                if !field.computed
+                    && matches!(field.object.as_ref(), AstNode::Identifier(root) if root.name == "packet")
+                    && matches!(field.property.as_ref(), AstNode::Identifier(name) if name.name == "values")
+        ));
+        assert!(matches!(
+            ranged.property.as_ref(),
+            AstNode::BinaryExpression(range)
+                if range.operator == ".."
+                    && matches!(range.left.as_ref(), AstNode::Identifier(start) if start.name == "start")
+                    && matches!(range.right.as_ref(), AstNode::Identifier(end) if end.name == "end")
+        ));
+
+        let AstNode::Function(relay) = &program.body[2] else {
+            panic!("Expected relay Function node");
+        };
+        assert_eq!(
+            relay.param_types,
+            vec![
+                Some("i32".to_string()),
+                Some("&'a Packet".to_string()),
+                Some("i32".to_string())
+            ]
+        );
+        let AstNode::Return(returned) = &relay.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::CallExpression(call)) = returned.argument.as_deref() else {
+            panic!("Expected forwarded CallExpression node");
+        };
+        assert!(matches!(
+            call.callee.as_ref(),
+            AstNode::Identifier(callee) if callee.name == "view"
+        ));
+        assert!(matches!(
+            call.arguments.as_slice(),
+            [AstNode::Identifier(source), AstNode::Identifier(start), AstNode::Identifier(end)]
+                if source.name == "packet" && start.name == "start" && end.name == "end"
+        ));
+    }
+
+    #[test]
     fn test_parse_caller_tied_slice_reference_lifetime() {
         let source = r#"function view<'a>(values: &'a [i32]): &'a [i32] {
             return values
