@@ -8,15 +8,19 @@ use holoscript_native::{
     NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
     AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
     AGGREGATE_REFERENCE_MACHINE_CONTRACT, BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT,
-    BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT, BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT,
-    BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
-    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
-    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
+    BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
+    BORROWED_SCALAR_FIELD_FORWARD_RETURN_MACHINE_CONTRACT,
+    BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT,
+    BORROWED_SLICE_RETURN_MACHINE_CONTRACT, BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT,
+    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
+    OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
 const SCALAR_FIELD_BORROWED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/scalar-field-borrowed-return-exit-five.hs");
+const SCALAR_FIELD_FORWARDED_RETURN_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/scalar-field-forwarded-return-exit-five.hs");
 const TYPED_EXIT_FIVE: &str = include_str!("../../../examples/native/typed-exit-five.hs");
 const I64_EXIT_FIVE: &str = r#"
     function add64(left: i64, right: i64): i64 {
@@ -3300,6 +3304,161 @@ fn scalar_field_results_reject_severed_or_conflicting_provenance() {
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid scalar-field borrowed result must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn scalar_field_forwarded_results_preserve_one_hop_abi_and_caller_roots() {
+    assert_eq!(
+        BORROWED_SCALAR_FIELD_FORWARD_RETURN_MACHINE_CONTRACT,
+        "hs-machine-v25"
+    );
+    let options = NativeCompileOptions::host();
+    let first = compile_object(SCALAR_FIELD_FORWARDED_RETURN_EXIT_FIVE, &options)
+        .expect("one-hop caller-tied scalar-field forwarding should compile");
+    let second = compile_object(SCALAR_FIELD_FORWARDED_RETURN_EXIT_FIVE, &options)
+        .expect("scalar-field forwarding lowering should be deterministic");
+    assert_eq!(first, second);
+
+    let executable = scratch_executable("native-scalar-field-forwarded-return");
+    let artifact = compile_executable(
+        SCALAR_FIELD_FORWARDED_RETURN_EXIT_FIVE,
+        &executable,
+        &options,
+    )
+    .expect("shared and mutable forwarded scalar-field results should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v25");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("forwarded scalar-field result executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let owned_sibling = r#"
+        struct Packet { code: i32, values: [i32] }
+        function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) }
+        function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code }
+        function main(): i32 {
+            slot packet: Packet = Packet(5, buffer(1, 2))
+            scope {
+                let view: &i32 = relay(&packet)
+                let read: i32 = *view
+            }
+            drop(packet.values)
+            return 5
+        }
+    "#;
+    compile_object(owned_sibling, &options)
+        .expect("forwarded scalar-field leases should release before owned sibling drop");
+
+    let inherited = r#"
+        struct Packet { code: i32 }
+        function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code }
+        function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) }
+        function borrow<'a>(packet: &'a Packet): &'a Packet { return packet }
+        function borrow_relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) }
+        function slice<'a>(values: &'a [i32]): &'a [i32] { return values }
+        function slice_relay<'a>(values: &'a [i32]): &'a [i32] { return slice(values) }
+        function main(): i32 {
+            slot packet: Packet = Packet(5)
+            slot values: [i32; 1] = [5]
+            let field: &i32 = relay(&packet)
+            let whole: &Packet = borrow_relay(&packet)
+            let items: &[i32] = slice_relay(&values[0..1])
+            return *field + load(whole.code) + load(items[0]) - 10
+        }
+    "#;
+    compile_object(inherited, &options)
+        .expect("v25 should retain direct and forwarded aggregate and slice result contracts");
+}
+
+#[test]
+fn scalar_field_forwarded_results_reject_transitive_or_severed_provenance() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet, other: &Packet): &'a i32 { return code(other) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `packet` to `code`; found `other`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(&packet) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `packet` directly to `code`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) } function chain<'a>(packet: &'a Packet): &'a i32 { return relay(packet) } function main(): i32 { return 5 }",
+            "cannot forward borrowed scalar-field result from forwarding function `relay`; only one direct forwarding hop is admitted",
+        ),
+        (
+            "struct Packet { code: i32 } function relay<'a>(packet: &'a Packet): &'a i32 { return relay(packet) } function main(): i32 { return 5 }",
+            "cannot forward borrowed scalar-field result from forwarding function `relay`; only one direct forwarding hop is admitted",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) return code(packet) } function main(): i32 { return 5 }",
+            "requires exactly one direct top-level borrowed-scalar-field forwarding return; found 2 forwarding returns, 2 top-level",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet, choose: bool): &'a i32 { if (choose) { return code(packet) } return &packet.code } function main(): i32 { return 5 }",
+            "requires exactly one direct top-level borrowed-scalar-field forwarding return; found 1 forwarding returns, 0 top-level",
+        ),
+        (
+            "struct Packet { code: i32 } struct Boxed { code: i32 } function boxed<'a>(value: &'a Boxed): &'a i32 { return &value.code } function relay<'a>(packet: &'a Packet): &'a i32 { return boxed(packet) } function main(): i32 { return 5 }",
+            "source aggregate `Packet` does not match `boxed` source aggregate `Boxed`",
+        ),
+        (
+            "struct Packet { code: i64 } function code<'a>(packet: &'a Packet): &'a i64 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) } function main(): i32 { return 5 }",
+            "returns borrowed `i32`, but `code` returns borrowed `i64`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a mut Packet): &'a mut i32 { return &mut packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) } function main(): i32 { return 5 }",
+            "borrowed return mutability must match the result of `code`",
+        ),
+        (
+            "struct Packet { code: i32 } function read(packet: &Packet): i32 { return load(packet.code) } function relay<'a>(packet: &'a Packet): &'a i32 { return read(packet) } function main(): i32 { return 5 }",
+            "cannot forward `read` because it does not return a borrowed scalar-field reference",
+        ),
+        (
+            "struct Packet { code: i32 } function relay<'a>(packet: &'a Packet): &'a i32 { return missing(packet) } function main(): i32 { return 5 }",
+            "forwards an unknown function `missing`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { let local: &Packet = packet return code(local) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `packet` to `code`; found `local`",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) } function main(): i32 { slot packet: Packet = Packet(5) let first: &Packet = borrow(&packet) let view: &i32 = relay(first) return *view }",
+            "cannot extend nested returned aggregate `first`",
+        ),
+        (
+            "struct Packet { code: i32, values: [i32] } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(values: [i32], packet: &'a Packet): &'a i32 { return code(packet) } function main(): i32 { slot packet: Packet = Packet(5, buffer(1, 2)) let view: &i32 = relay(move(packet.values), &packet) return *view }",
+            "cannot move owned descendant `packet.values` while returning a scalar reference tied to aggregate root `packet`",
+        ),
+        (
+            "struct Packet { code: i32, values: [i32] } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) } function main(): i32 { slot packet: Packet = Packet(5, buffer(1, 2)) let view: &i32 = relay(&packet) drop(packet.values) return *view }",
+            "cannot drop owned buffer `packet.values` while aggregate ancestor `packet` is borrowed",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) } function main(): i32 { slot packet: Packet = Packet(1) let view: &i32 = relay(&packet) store(packet.code, 5) return *view }",
+            "cannot store to stack slot `packet` while an active borrow exists",
+        ),
+        (
+            "struct Packet { code: i32, values: [i32] } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) } function main(): i32 { slot packet: Packet = Packet(5, buffer(1, 2)) let view: &i32 = relay(&packet) let moved: [i32] = move(packet.values) return *view }",
+            "cannot move owned buffer `packet.values` while aggregate ancestor `packet` is borrowed",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) } function main(): i32 { slot packet: Packet = Packet(5) let view: &i64 = relay(&packet) return 5 }",
+            "reference `view` expects `i64`, but `relay` returns a borrowed `i32` field",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function relay<'a>(packet: &'a Packet): &'a i32 { return code(packet) } function main(): i32 { slot packet: Packet = Packet(5) let view: &mut i32 = relay(&packet) return 5 }",
+            "reference `view` mutability must match the borrowed scalar result of `relay`",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid forwarded scalar-field result must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"

@@ -3440,6 +3440,51 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_caller_tied_scalar_field_forward_return() {
+        let source = r#"
+            struct Packet { code: i32 }
+            function relay<'a>(marker: i32, packet: &'a Packet): &'a i32 {
+                return code(packet, marker)
+            }
+            function code<'a>(packet: &'a Packet, marker: i32): &'a i32 {
+                return &packet.code
+            }
+        "#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("caller-tied scalar-field forwarding should parse");
+
+        let AstNode::Function(relay) = &program.body[1] else {
+            panic!("Expected relay Function node");
+        };
+        assert_eq!(relay.lifetimes, vec!["a"]);
+        assert_eq!(
+            relay.param_types,
+            vec![Some("i32".to_string()), Some("&'a Packet".to_string())]
+        );
+        assert_eq!(relay.return_type.as_deref(), Some("&'a i32"));
+        let AstNode::Return(returned) = &relay.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::CallExpression(call)) = returned.argument.as_deref() else {
+            panic!("Expected forwarded CallExpression node");
+        };
+        assert!(matches!(
+            call.callee.as_ref(),
+            AstNode::Identifier(callee) if callee.name == "code"
+        ));
+        assert!(matches!(
+            call.arguments.first(),
+            Some(AstNode::Identifier(source)) if source.name == "packet"
+        ));
+        assert!(matches!(
+            call.arguments.get(1),
+            Some(AstNode::Identifier(marker)) if marker.name == "marker"
+        ));
+    }
+
+    #[test]
     fn test_parse_caller_tied_slice_reference_lifetime() {
         let source = r#"function view<'a>(values: &'a [i32]): &'a [i32] {
             return values

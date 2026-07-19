@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-19T02:32:49Z",
+  "generatedAt": "2026-07-19T03:16:42Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "52f7e5857254afe4619719ef63a030925ccfede0+working-tree-hs-machine-v24",
+  "sourceCommit": "1cc18ef31440a893ab62633e4683b064961351ba+working-tree-hs-machine-v25",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -18,6 +18,6 @@
     "artifactBytesChanged": false,
     "wasmBytes": 290710,
     "wasmSha256": "1bd3b3d854e8723c362cf713d8794cadc38bfa65cfeed656ce547ea0c372a4bc",
-    "note": "Rebuilt the Node WASM artifact from the working-tree parser and Kotlin bridge proofs for hs-machine-v24 caller-tied aggregate scalar-field reference results. Production parser and generic non-slice borrowed-reference fail-closed bridge code were unchanged, so the release artifact remains byte-identical to v23. A fresh Node process validated the canonical scalar-field result program through validate_detailed and validate; the source changes are committed with this receipt so the working-tree suffix resolves to that commit."
+    "note": "Rebuilt the Node WASM artifact from the working-tree parser and Kotlin bridge proofs for hs-machine-v25 one-hop caller-tied scalar-field reference result forwarding. Production parser and generic non-slice borrowed-reference fail-closed bridge code were unchanged, so the release artifact remains byte-identical to v24. A fresh Node process validated the canonical forwarded scalar-field result program through validate_detailed and validate; the source changes are committed with this receipt so the working-tree suffix resolves to that commit."
   }
 }
