@@ -172,6 +172,21 @@ async function main() {
     console.error(
       '[compiler-wasm-drift] Rebuild packages/compiler-wasm/pkg-node from current source and commit the artifact.'
     );
+    console.error(
+      '[compiler-wasm-drift] If that rebuild is BYTE-IDENTICAL there is nothing to commit under the artifact path, and'
+    );
+    console.error(
+      '[compiler-wasm-drift] repeating the rebuild can never clear this check (freshness is git ancestry, not content).'
+    );
+    console.error(
+      '[compiler-wasm-drift] Parse-side source changes are often byte-identical. In that case record the re-verification:'
+    );
+    console.error(
+      '[compiler-wasm-drift] update pkg-node/rebuild-receipt.json (sourceCommit + verified wasmSha256) and commit it. The'
+    );
+    console.error(
+      '[compiler-wasm-drift] receipt lives inside the artifact path, so committing it advances freshness on evidence.'
+    );
     process.exit(1);
   }
 

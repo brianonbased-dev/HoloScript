@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-19T07:55:01Z",
+  "generatedAt": "2026-07-19T22:59:53Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "b95e7781271228535b57d39da1b40de34b453c85+working-tree-hs-machine-v28",
+  "sourceCommit": "b2d2dd0b8fbbae181456e8c53192ea390c40ab78",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -18,6 +18,6 @@
     "artifactBytesChanged": false,
     "wasmBytes": 290710,
     "wasmSha256": "1bd3b3d854e8723c362cf713d8794cadc38bfa65cfeed656ce547ea0c372a4bc",
-    "note": "Rebuilt the Node WASM artifact from the working-tree parser and Kotlin bridge proofs for hs-machine-v28 caller-tied aggregate-buffer element reference results. Production parser and borrowed-reference fail-closed bridge code were unchanged, so the release artifact remains byte-identical to v27. A fresh Node process validates the canonical aggregate-buffer forwarding program through validate_detailed and validate; the source changes are committed with this receipt so the working-tree suffix resolves to that commit."
+    "note": "Re-attestation of the committed pkg-node artifact against current compiler-wasm source. Source advanced b95e77812 -> b2d2dd0b8 across the hs-machine-v28..v30 borrow/lifetime grammar additions (parser, lexer, token, ast) with no matching rebuild receipt, so check-compiler-wasm-drift correctly reported the artifact as un-re-verified. Rebuilt from b2d2dd0b8 with the toolchain below: the emitted WASM is BYTE-IDENTICAL to the committed artifact (sha256 unchanged, 290710 bytes; git reports no working-tree change under packages/compiler-wasm). The new grammar surface is parse-side and does not alter the wasm_bindgen export surface or the emitted binary, so no artifact bytes needed committing - this receipt IS the re-verification, and committing it advances pkg-node history past the source commit on evidence rather than by an empty ceremonial commit. Re-verify with: wasm-pack build --target nodejs --out-dir pkg-node, then compare the sha256 of pkg-node/holoscript_wasm_bg.wasm."
   }
 }
