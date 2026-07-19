@@ -37,6 +37,16 @@ Do not introduce HoloScript as a DSL, scene language, spatial-only language, ass
 
 MCP server at `mcp.holoscript.net` — discover tools via `POST /mcp` with `tools/list`.
 
+## Native machine and public release versions
+
+`hs-machine-vN` is an internal, cumulative compiler/runtime capability contract;
+it is not package or service SemVer. Agents build bounded successors from V0
+through Vn until the outward-consumer gate is green. The first outward preview
+is `0.1.0`; the first stable public contract is `1.0.0` across each declared
+rail (npm, PyPI, Railway, or another registry/host). No machine-generation bump
+may silently bump a public version, and no value of N automatically promotes a
+release. Canon: [`docs/spec/native-machine-release-ladder.md`](docs/spec/native-machine-release-ladder.md).
+
 ## HoloScript Tool Integration
 
 - HoloScript source/tool surface: `.holo`, `.hsplus`, `.hs`, validators,
