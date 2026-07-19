@@ -1,4 +1,5 @@
 import type http from 'http';
+import { reopenTask } from '@holoscript/framework/board';
 import type { Team, TeamMember, TeamRole, RegisteredAgent, TeamPresenceEntry } from './types';
 import { TEAM_ROLE_PERMISSIONS, PRESENCE_TTL_MS, MOBILE_PRESENCE_TTL_MS } from './types';
 import { teamStore, teamPresenceStore, teamMessageStore, reloadTeam } from './state';
@@ -203,10 +204,9 @@ export function pruneStalePresence(teamId: string): void {
     if (team?.taskBoard) {
       for (const task of team.taskBoard) {
         if (task.status === 'claimed' && task.claimedBy && deadAgentIds.includes(task.claimedBy)) {
-          task.status = 'open';
           const name = task.claimedByName || task.claimedBy;
-          task.claimedBy = undefined;
-          task.claimedByName = undefined;
+          const reopened = reopenTask(team.taskBoard, task.id);
+          if (!reopened.success) continue;
 
           // Log to team chat
           const messages = teamMessageStore.get(teamId) || [];

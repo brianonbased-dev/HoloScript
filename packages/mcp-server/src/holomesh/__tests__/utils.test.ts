@@ -3,10 +3,20 @@
  *
  * task_1778621979319_ezqy (em-dash UTF-8 serialization fix)
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import type http from 'http';
-import { parseJsonBody } from '../utils';
+import type { Team, TeamPresenceEntry, TeamTask } from '../types';
+import { teamMessageStore, teamPresenceStore, teamStore } from '../state';
+import { parseJsonBody, pruneStalePresence } from '../utils';
 import { EventEmitter } from 'events';
+
+const PRUNE_TEAM_ID = 'team_prune_stale_presence_regression';
+
+afterEach(() => {
+  teamStore.delete(PRUNE_TEAM_ID);
+  teamPresenceStore.delete(PRUNE_TEAM_ID);
+  teamMessageStore.delete(PRUNE_TEAM_ID);
+});
 
 /**
  * Build a mock IncomingMessage that emits data chunks then end.
@@ -84,5 +94,71 @@ describe('parseJsonBody', () => {
     const req = mockReqWithChunks([huge]);
     const result = await parseJsonBody(req);
     expect(result).toEqual({});
+  });
+});
+
+describe('pruneStalePresence', () => {
+  it('delegates reopening so every claim-time field is cleared', () => {
+    const deadAgentId = 'agent_dead';
+    const task = {
+      id: 'task_stale_claim',
+      title: 'stale claim',
+      description: 'claimed by an offline agent',
+      status: 'claimed',
+      priority: 2,
+      claimedBy: deadAgentId,
+      claimedByName: 'offline-agent',
+      claimedByTag: 'codex-hardware',
+      claimIdentity: { schema: 'holomesh.identity-envelope.v1' } as TeamTask['claimIdentity'],
+      claimLeaseId: 'lease_stale',
+      claimLeaseExpiresAt: new Date(0).toISOString(),
+      claimSessionId: 'session_stale',
+      claimedAt: new Date(0).toISOString(),
+    } as TeamTask;
+    const team: Team = {
+      id: PRUNE_TEAM_ID,
+      name: 'prune regression',
+      description: 'test team',
+      type: 'dev',
+      visibility: 'private',
+      ownerId: 'owner',
+      ownerName: 'owner',
+      members: [],
+      maxSlots: 1,
+      waitlist: [],
+      createdAt: new Date().toISOString(),
+      taskBoard: [task],
+    };
+    const stalePresence: TeamPresenceEntry = {
+      agentId: deadAgentId,
+      agentName: 'offline-agent',
+      ideType: 'hardware',
+      status: 'active',
+      lastHeartbeat: new Date(0).toISOString(),
+    };
+
+    teamStore.set(PRUNE_TEAM_ID, team);
+    teamPresenceStore.set(PRUNE_TEAM_ID, new Map([[deadAgentId, stalePresence]]));
+
+    pruneStalePresence(PRUNE_TEAM_ID);
+
+    expect(task.status).toBe('open');
+    const claimFields = [
+      'claimedBy',
+      'claimedByName',
+      'claimedByTag',
+      'claimIdentity',
+      'claimLeaseId',
+      'claimLeaseExpiresAt',
+      'claimSessionId',
+      'claimedAt',
+    ] as const satisfies readonly (keyof TeamTask)[];
+    for (const field of claimFields) {
+      expect(task[field]).toBeUndefined();
+    }
+    expect(teamPresenceStore.get(PRUNE_TEAM_ID)?.has(deadAgentId)).toBe(false);
+    expect(teamMessageStore.get(PRUNE_TEAM_ID)?.at(-1)?.content).toBe(
+      'Task "stale claim" reopened: offline-agent went offline.'
+    );
   });
 });
