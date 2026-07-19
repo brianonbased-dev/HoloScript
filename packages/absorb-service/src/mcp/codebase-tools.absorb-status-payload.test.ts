@@ -1,10 +1,11 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
+const originalCacheLayout = process.env.HOLOSCRIPT_CACHE_LAYOUT;
 
 type AbsorbStatus = {
   status?: string;
@@ -35,12 +36,18 @@ const SOURCE_FILES = Array.from({ length: 12 }, (_, fileIndex) => ({
 }));
 
 describe('holo_get_absorb_status transcript budget', () => {
+  beforeEach(() => {
+    process.env.HOLOSCRIPT_CACHE_LAYOUT = 'flat';
+  });
+
   afterEach(() => {
     if (originalCacheDir === undefined) {
       delete process.env.HOLOSCRIPT_CACHE_DIR;
     } else {
       process.env.HOLOSCRIPT_CACHE_DIR = originalCacheDir;
     }
+    if (originalCacheLayout === undefined) delete process.env.HOLOSCRIPT_CACHE_LAYOUT;
+    else process.env.HOLOSCRIPT_CACHE_LAYOUT = originalCacheLayout;
     vi.restoreAllMocks();
     resetCodebaseToolStateForTests(false);
   });

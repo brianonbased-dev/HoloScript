@@ -181,7 +181,7 @@ holoscript query "what calls buildIndex"
 scan (CodebaseScanner + language adapters)
   → graph (CodebaseGraph + community detection)
     → embed (EmbeddingIndex: HoloEmbed sovereign default | Xenova offline | OpenAI/nomic opt-in | BM25 floor)
-      → cache (~/.holoscript/graph-cache.json + embeddings)
+      → cache (~/.holoscript/workspaces/<workspace-id>/graph-cache.json + embeddings)
         → emit (.holo scene | JSON graph | stats)
 ```
 
@@ -408,7 +408,11 @@ Filter for precision:
 - **RESTART after rebuild**: if you rebuilt `packages/*/dist`, restart the MCP client before querying (W.766)
 - **Cache TTL**: 24 hours. Incremental re-scan detects changes via git content hashes.
 - **Cost awareness**: Free tools for local ops. Paid tools deduct credits. Check with `absorb_check_credits`.
-- **Graph cache**: `~/.holoscript/graph-cache.json` (local), `/app/.holoscript` (Docker)
+- **Graph cache**: one mutable local lane per physical workspace under
+  `~/.holoscript/workspaces/<workspace-id>/` (or the equivalent Docker cache
+  root). Set `HOLOSCRIPT_CACHE_LAYOUT=flat` only for explicit legacy
+  compatibility; unrelated repos and temporary scans must not share a writable
+  graph or embedding cache.
 
 ## Source Files Reference
 

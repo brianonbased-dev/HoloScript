@@ -7,13 +7,10 @@ import {
   invalidateOAuthTokenCache,
   resetConfigSecretResolver,
 } from '@holoscript/config';
-import {
-  handleCodebaseTool,
-  resetCodebaseToolStateForTests,
-  syncWithMesh,
-} from './codebase-tools';
+import { handleCodebaseTool, resetCodebaseToolStateForTests, syncWithMesh } from './codebase-tools';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
+const originalCacheLayout = process.env.HOLOSCRIPT_CACHE_LAYOUT;
 const originalMcpKey = process.env.HOLOSCRIPT_API_KEY;
 const originalLegacyMcpKey = process.env.MCP_API_KEY;
 const originalHoloscriptMcpKey = process.env.HOLOSCRIPT_MCP_API_KEY;
@@ -22,6 +19,7 @@ const originalMcpClientSecret = process.env.HOLOSCRIPT_MCP_CLIENT_SECRET;
 
 describe('codebase MCP abort behavior', () => {
   beforeEach(() => {
+    process.env.HOLOSCRIPT_CACHE_LAYOUT = 'flat';
     delete process.env.MCP_API_KEY;
     delete process.env.HOLOSCRIPT_MCP_API_KEY;
     configureConfigSecretResolver({
@@ -42,6 +40,8 @@ describe('codebase MCP abort behavior', () => {
     } else {
       process.env.HOLOSCRIPT_CACHE_DIR = originalCacheDir;
     }
+    if (originalCacheLayout === undefined) delete process.env.HOLOSCRIPT_CACHE_LAYOUT;
+    else process.env.HOLOSCRIPT_CACHE_LAYOUT = originalCacheLayout;
     if (originalMcpKey === undefined) {
       delete process.env.HOLOSCRIPT_API_KEY;
     } else {
