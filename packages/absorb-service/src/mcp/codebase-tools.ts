@@ -32,6 +32,7 @@ import {
   type GraphRAGEmbeddingPolicyReceipt,
 } from './graph-rag-embedding-policy';
 import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
+import type { CommunityAwareImpactReceipt } from '../engine/CodebaseGraph';
 
 // =============================================================================
 // DYNAMIC MODULE INTERFACE
@@ -2770,13 +2771,14 @@ export const codebaseTools: Tool[] = [
   {
     name: 'holo_impact_analysis',
     description:
-      'Analyze the impact of changing files or symbols. Given a list of changed files, returns all transitively affected files through import and call chains. Given a symbol name, returns all files containing callers of that symbol.',
+      'Analyze the impact of changing files or symbols. File traversal is cooperatively bounded and returns explicit completeness/truncation metadata. Given a symbol name, returns all files containing callers of that symbol.',
     inputSchema: {
       type: 'object',
       properties: {
         changedFiles: {
           type: 'array',
           items: { type: 'string' },
+          maxItems: 1000,
           description: 'List of changed file paths (relative to scan root)',
         },
         changedSymbol: {
@@ -2786,6 +2788,26 @@ export const codebaseTools: Tool[] = [
         symbolOwner: {
           type: 'string',
           description: 'Owner class/struct for the changed symbol',
+        },
+        maxAffectedFiles: {
+          type: 'number',
+          minimum: 1,
+          maximum: 20000,
+          description:
+            'Maximum changed/affected files retained for file impact analysis (default: 10000).',
+        },
+        maxDepth: {
+          type: 'number',
+          minimum: 0,
+          maximum: 256,
+          description: 'Maximum reverse-import hops for file impact analysis (default: 64).',
+        },
+        deadlineMs: {
+          type: 'number',
+          minimum: 1,
+          maximum: 25000,
+          description:
+            'Cooperative traversal deadline in milliseconds (default: 20000, capped at 25000).',
         },
       },
     },
@@ -5021,6 +5043,21 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
   }
 }
 
+const IMPACT_DEFAULT_MAX_AFFECTED_FILES = 10_000;
+const IMPACT_DEFAULT_MAX_DEPTH = 64;
+const IMPACT_DEFAULT_DEADLINE_MS = 20_000;
+const IMPACT_MAX_CHANGED_FILES = 1_000;
+
+function boundedImpactInteger(
+  value: unknown,
+  fallback: number,
+  minimum: number,
+  maximum: number
+): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.min(maximum, Math.max(minimum, Math.floor(value)));
+}
+
 async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
@@ -5042,22 +5079,84 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
         })`
       : undefined;
 
-  const changedFiles = args.changedFiles as string[] | undefined;
+  const changedFiles = args.changedFiles as unknown[] | undefined;
   const changedSymbol = args.changedSymbol as string | undefined;
   const symbolOwner = args.symbolOwner as string | undefined;
 
   if (changedFiles && changedFiles.length > 0) {
-    const communityImpact = cachedGraph.getCommunityAwareImpact(changedFiles);
-    const affectedCount = Array.from(communityImpact.values()).reduce(
-      (acc: number, files: any) => acc + (files as string[]).length,
+    if (changedFiles.length > IMPACT_MAX_CHANGED_FILES) {
+      return {
+        error: 'changedFiles_limit_exceeded',
+        message: `changedFiles accepts at most ${IMPACT_MAX_CHANGED_FILES} paths per request.`,
+        maxChangedFiles: IMPACT_MAX_CHANGED_FILES,
+        receivedChangedFiles: changedFiles.length,
+      };
+    }
+    if (!changedFiles.every((file): file is string => typeof file === 'string')) {
+      return {
+        error: 'changedFiles_validation_failed',
+        message: 'Every changedFiles item must be a string path.',
+      };
+    }
+    const maxAffectedFiles = boundedImpactInteger(
+      args.maxAffectedFiles,
+      IMPACT_DEFAULT_MAX_AFFECTED_FILES,
+      1,
+      20_000
+    );
+    const maxDepth = boundedImpactInteger(args.maxDepth, IMPACT_DEFAULT_MAX_DEPTH, 0, 256);
+    const deadlineMs = boundedImpactInteger(args.deadlineMs, IMPACT_DEFAULT_DEADLINE_MS, 1, 25_000);
+    const startedAt = Date.now();
+    const impact = cachedGraph.getCommunityAwareImpactTraversal(changedFiles, {
+      maxAffectedFiles,
+      maxDepth,
+      deadlineMs,
+    }) as CommunityAwareImpactReceipt;
+    const groupedAffectedCount = Array.from(impact.impactByCommunity.values()).reduce(
+      (acc, files) => acc + files.length,
       0
     );
+    const affectedCount = impact.affectedFiles.size;
+    const observedCommunityCount = impact.impactByCommunity.size;
+    const affectedCountIsLowerBound = !impact.impactTraversalComplete;
+    const durationMs = Date.now() - startedAt;
+    const blastRadius = impact.complete
+      ? `${affectedCount} files across ${observedCommunityCount} communities affected by changes to ${impact.resolvedChangedFiles.length} files`
+      : affectedCountIsLowerBound
+        ? `At least ${affectedCount} affected files discovered; ${groupedAffectedCount} grouped across ${observedCommunityCount} observed communities from ${impact.resolvedChangedFiles.length} indexed changed files (bounded partial result)`
+        : `${affectedCount} affected files discovered; ${groupedAffectedCount} grouped across ${observedCommunityCount} observed communities (community grouping is a bounded partial result)`;
 
     return {
       changedFiles,
-      impactByCommunity: Object.fromEntries(communityImpact),
+      resolvedChangedFiles: impact.resolvedChangedFiles,
+      unresolvedChangedFiles: impact.unresolvedChangedFiles,
+      impactByCommunity: Object.fromEntries(impact.impactByCommunity),
       affectedCount,
-      blastRadius: `${affectedCount} files across ${communityImpact.size} communities affected by changes to ${changedFiles.length} files`,
+      groupedAffectedCount,
+      affectedCountIsLowerBound,
+      totalAffectedCount: impact.impactTraversalComplete ? affectedCount : null,
+      observedCommunityCount,
+      complete: impact.complete,
+      truncated: impact.truncated,
+      truncationReasons: impact.truncationReasons,
+      communityGrouping: impact.communityGrouping,
+      communityGroupingComplete: impact.communityGroupingComplete,
+      ungroupedAffectedFiles: impact.ungroupedAffectedFiles,
+      traversal: {
+        complete: impact.impactTraversalComplete,
+        truncationReasons: impact.impactTraversalTruncationReasons,
+        changedFileInputsProcessed: impact.changedFileInputsProcessed,
+        changedFileInputsRemaining: impact.changedFileInputsRemaining,
+        processedFiles: impact.processedFiles,
+        traversedEdges: impact.traversedEdges,
+        maxDepthReached: impact.maxDepthReached,
+        queuedFilesRemaining: impact.queuedFilesRemaining,
+        durationMs: impact.impactTraversalDurationMs,
+        budgets: impact.budgets,
+      },
+      operationDurationMs: impact.durationMs,
+      durationMs,
+      blastRadius,
       ...(cacheNote && { cacheNote }),
     };
   }

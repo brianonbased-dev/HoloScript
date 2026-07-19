@@ -65,6 +65,52 @@ export interface CallChainOptions {
   edgeWeight?: (edge: CallEdge, fromNode: string, toNode: string) => number;
 }
 
+export type ImpactTruncationReason =
+  | 'max_affected_files'
+  | 'max_depth'
+  | 'deadline'
+  | 'changed_file_not_indexed';
+
+export interface ImpactTraversalOptions {
+  /** Maximum number of changed/affected files retained in the result. */
+  maxAffectedFiles?: number;
+  /** Maximum number of reverse-import hops followed from each changed file. */
+  maxDepth?: number;
+  /** Cooperative wall-clock budget for traversal in milliseconds. */
+  deadlineMs?: number;
+}
+
+export interface ImpactTraversalReceipt {
+  complete: boolean;
+  truncated: boolean;
+  truncationReasons: ImpactTruncationReason[];
+  resolvedChangedFiles: string[];
+  unresolvedChangedFiles: string[];
+  changedFileInputsProcessed: number;
+  changedFileInputsRemaining: number;
+  affectedFiles: Set<string>;
+  processedFiles: number;
+  traversedEdges: number;
+  maxDepthReached: number;
+  queuedFilesRemaining: number;
+  durationMs: number;
+  budgets: {
+    maxAffectedFiles: number | null;
+    maxDepth: number | null;
+    deadlineMs: number | null;
+  };
+}
+
+export interface CommunityAwareImpactReceipt extends ImpactTraversalReceipt {
+  impactByCommunity: Map<string, string[]>;
+  communityGrouping: 'cached' | 'directory-fallback';
+  communityGroupingComplete: boolean;
+  ungroupedAffectedFiles: number;
+  impactTraversalDurationMs: number;
+  impactTraversalComplete: boolean;
+  impactTraversalTruncationReasons: ImpactTruncationReason[];
+}
+
 export type StaleGraphEdgeKind = 'call' | 'event' | 'import';
 
 export type StaleGraphEdgeReason = 'target_file_missing' | 'target_symbol_missing';
@@ -143,6 +189,7 @@ export class CodebaseGraph {
   private symbolsByName: Map<string, string[]> = new Map();
   private importsByFile: Map<string, ImportEdge[]> = new Map();
   private importedByFile: Map<string, Set<string>> = new Map();
+  private normalizedFileIndex: Map<string, string> = new Map();
   private callerIndex: Map<string, CallEdge[]> = new Map(); // calleeName -> edges
   private calleeIndex: Map<string, CallEdge[]> = new Map(); // callerId -> edges
   /** eventName → edges where that event is emitted (HoloGraph) */
@@ -231,10 +278,14 @@ export class CodebaseGraph {
     // which left every consumer — the reverse-import index below, community
     // detection, HoloEmitter, and the scene compiler — unable to connect files,
     // yielding zero edges and degenerate communities. Resolve it once here.
-    const normFileIndex = this.buildNormalizedFileIndex();
+    this.normalizedFileIndex = this.buildNormalizedFileIndex();
     for (const imp of this.imports) {
       if (imp.resolvedPath === undefined) {
-        const resolved = this.resolveImportPath(imp.fromFile, imp.toModule, normFileIndex);
+        const resolved = this.resolveImportPath(
+          imp.fromFile,
+          imp.toModule,
+          this.normalizedFileIndex
+        );
         if (resolved) imp.resolvedPath = resolved;
       }
     }
@@ -508,8 +559,89 @@ export class CodebaseGraph {
    */
   private buildNormalizedFileIndex(): Map<string, string> {
     const index = new Map<string, string>();
-    for (const p of this.files.keys()) index.set(p.replace(/\\/g, '/'), p);
+    const root = this.normalizeGraphPath(this.rootDir);
+    const caseInsensitive = /^[A-Za-z]:\//.test(root);
+    const addAlias = (alias: string, actual: string): void => {
+      if (!alias) return;
+      index.set(alias, actual);
+      if (caseInsensitive) index.set(alias.toLowerCase(), actual);
+    };
+
+    for (const actual of this.files.keys()) {
+      const normalized = this.normalizeGraphPath(actual);
+      addAlias(normalized, actual);
+
+      if (root) {
+        if (this.isAbsoluteGraphPath(normalized)) {
+          const relative = this.relativeToGraphRoot(normalized, root, caseInsensitive);
+          if (relative !== undefined) addAlias(relative, actual);
+        } else {
+          addAlias(`${root}/${normalized}`, actual);
+        }
+      }
+    }
     return index;
+  }
+
+  /** Normalize slash style and lexical dot segments without consulting the host filesystem. */
+  private normalizeGraphPath(filePath: string): string {
+    const slashed = filePath
+      .trim()
+      .replace(/\\/g, '/')
+      .replace(/\/{2,}/g, '/');
+    const drive = slashed.match(/^([A-Za-z]):\//);
+    const rooted = !drive && slashed.startsWith('/');
+    const prefix = drive ? `${drive[1].toUpperCase()}:/` : rooted ? '/' : '';
+    const body = drive ? slashed.slice(3) : rooted ? slashed.slice(1) : slashed;
+    const parts: string[] = [];
+
+    for (const part of body.split('/')) {
+      if (!part || part === '.') continue;
+      if (part === '..') {
+        if (parts.length > 0 && parts[parts.length - 1] !== '..') parts.pop();
+        else if (!prefix) parts.push(part);
+        continue;
+      }
+      parts.push(part);
+    }
+
+    return `${prefix}${parts.join('/')}`;
+  }
+
+  private isAbsoluteGraphPath(filePath: string): boolean {
+    return filePath.startsWith('/') || /^[A-Za-z]:\//.test(filePath);
+  }
+
+  private relativeToGraphRoot(
+    filePath: string,
+    root: string,
+    caseInsensitive: boolean
+  ): string | undefined {
+    const candidate = caseInsensitive ? filePath.toLowerCase() : filePath;
+    const rootCandidate = caseInsensitive ? root.toLowerCase() : root;
+    if (candidate === rootCandidate) return '';
+    const prefix = `${rootCandidate}/`;
+    return candidate.startsWith(prefix) ? filePath.slice(root.length + 1) : undefined;
+  }
+
+  /** Resolve a caller-supplied changed path to the graph's canonical file key. */
+  private resolveImpactChangedFile(filePath: string): string | undefined {
+    const normalized = this.normalizeGraphPath(filePath);
+    if (!normalized) return undefined;
+    const root = this.normalizeGraphPath(this.rootDir);
+    const caseInsensitive = /^[A-Za-z]:\//.test(root);
+    const lookup = (candidate: string): string | undefined =>
+      this.normalizedFileIndex.get(caseInsensitive ? candidate.toLowerCase() : candidate);
+
+    const direct = lookup(normalized);
+    if (direct) return direct;
+    if (!root) return undefined;
+
+    if (this.isAbsoluteGraphPath(normalized)) {
+      const relative = this.relativeToGraphRoot(normalized, root, caseInsensitive);
+      return relative === undefined ? undefined : lookup(relative);
+    }
+    return lookup(`${root}/${normalized}`);
   }
 
   /**
@@ -533,8 +665,21 @@ export class CodebaseGraph {
     }
     const base = stack.join('/');
     const CANDIDATES = [
-      '', '.ts', '.tsx', '.hs', '.hsplus', '.holo', '.js', '.jsx', '.mjs', '.cjs',
-      '/index.ts', '/index.tsx', '/index.hsplus', '/index.holo', '/index.js',
+      '',
+      '.ts',
+      '.tsx',
+      '.hs',
+      '.hsplus',
+      '.holo',
+      '.js',
+      '.jsx',
+      '.mjs',
+      '.cjs',
+      '/index.ts',
+      '/index.tsx',
+      '/index.hsplus',
+      '/index.holo',
+      '/index.js',
     ];
     for (const ext of CANDIDATES) {
       const actual = normFileIndex.get(base + ext);
@@ -550,25 +695,130 @@ export class CodebaseGraph {
    * affected through import and call chains (BFS propagation).
    */
   getImpactSet(changedFiles: string[]): Set<string> {
-    const affected = new Set<string>(changedFiles);
-    const queue = [...changedFiles];
+    return this.getImpactTraversal(changedFiles).affectedFiles;
+  }
 
-    while (queue.length > 0) {
-      const file = queue.shift()!;
+  /**
+   * Compute reverse-import impact with explicit traversal budgets and a
+   * truthful truncation receipt. Defaults remain unbounded so existing engine
+   * callers keep their complete-result semantics; transport layers can apply
+   * stricter budgets at their request boundary.
+   */
+  getImpactTraversal(
+    changedFiles: string[],
+    options: ImpactTraversalOptions = {}
+  ): ImpactTraversalReceipt {
+    const startedAt = Date.now();
+    const maxAffectedFiles = Number.isFinite(options.maxAffectedFiles)
+      ? Math.max(0, Math.floor(options.maxAffectedFiles!))
+      : Number.POSITIVE_INFINITY;
+    const maxDepth = Number.isFinite(options.maxDepth)
+      ? Math.max(0, Math.floor(options.maxDepth!))
+      : Number.POSITIVE_INFINITY;
+    const deadlineMs = Number.isFinite(options.deadlineMs)
+      ? Math.max(0, Math.floor(options.deadlineMs!))
+      : Number.POSITIVE_INFINITY;
+    const deadlineAt = startedAt + deadlineMs;
+    const truncationReasons = new Set<ImpactTruncationReason>();
+    const resolvedChangedFiles: string[] = [];
+    const unresolvedChangedFiles: string[] = [];
+    const seenResolved = new Set<string>();
+    const seenUnresolved = new Set<string>();
+    const affectedFiles = new Set<string>();
+    const queue: Array<{ file: string; depth: number }> = [];
 
-      // Files that import this file
+    let changedFileInputsProcessed = 0;
+    for (const requestedFile of changedFiles) {
+      const file = this.resolveImpactChangedFile(requestedFile);
+      changedFileInputsProcessed++;
+      if (!file) {
+        const unresolved = this.normalizeGraphPath(requestedFile) || requestedFile;
+        if (!seenUnresolved.has(unresolved)) {
+          seenUnresolved.add(unresolved);
+          unresolvedChangedFiles.push(requestedFile);
+        }
+      } else if (!seenResolved.has(file)) {
+        seenResolved.add(file);
+        resolvedChangedFiles.push(file);
+      }
+      if (Date.now() >= deadlineAt && changedFileInputsProcessed < changedFiles.length) {
+        truncationReasons.add('deadline');
+        break;
+      }
+    }
+    if (unresolvedChangedFiles.length > 0) {
+      truncationReasons.add('changed_file_not_indexed');
+    }
+
+    for (const file of resolvedChangedFiles) {
+      if (affectedFiles.size >= maxAffectedFiles) {
+        truncationReasons.add('max_affected_files');
+        break;
+      }
+      affectedFiles.add(file);
+      queue.push({ file, depth: 0 });
+    }
+
+    let cursor = 0;
+    let processedFiles = 0;
+    let traversedEdges = 0;
+    let maxDepthReached = 0;
+
+    traversal: while (cursor < queue.length) {
+      if (Date.now() >= deadlineAt) {
+        truncationReasons.add('deadline');
+        break;
+      }
+
+      const { file, depth } = queue[cursor++];
+      processedFiles++;
+      maxDepthReached = Math.max(maxDepthReached, depth);
       const importers = this.importedByFile.get(file);
-      if (importers) {
+      if (!importers || importers.size === 0) continue;
+
+      if (depth >= maxDepth) {
         for (const importer of importers) {
-          if (!affected.has(importer)) {
-            affected.add(importer);
-            queue.push(importer);
+          if (!affectedFiles.has(importer)) {
+            truncationReasons.add('max_depth');
+            break;
           }
         }
+        continue;
+      }
+
+      for (const importer of importers) {
+        traversedEdges++;
+        if (affectedFiles.has(importer)) continue;
+        if (affectedFiles.size >= maxAffectedFiles) {
+          truncationReasons.add('max_affected_files');
+          break traversal;
+        }
+        affectedFiles.add(importer);
+        queue.push({ file: importer, depth: depth + 1 });
       }
     }
 
-    return affected;
+    const reasons = Array.from(truncationReasons);
+    return {
+      complete: reasons.length === 0,
+      truncated: reasons.length > 0,
+      truncationReasons: reasons,
+      resolvedChangedFiles,
+      unresolvedChangedFiles,
+      changedFileInputsProcessed,
+      changedFileInputsRemaining: changedFiles.length - changedFileInputsProcessed,
+      affectedFiles,
+      processedFiles,
+      traversedEdges,
+      maxDepthReached,
+      queuedFilesRemaining: Math.max(0, queue.length - cursor),
+      durationMs: Date.now() - startedAt,
+      budgets: {
+        maxAffectedFiles: Number.isFinite(maxAffectedFiles) ? maxAffectedFiles : null,
+        maxDepth: Number.isFinite(maxDepth) ? maxDepth : null,
+        deadlineMs: Number.isFinite(deadlineMs) ? deadlineMs : null,
+      },
+    };
   }
 
   /**
@@ -578,25 +828,109 @@ export class CodebaseGraph {
   getCommunityAwareImpact(changedFiles: string[]): Map<string, string[]> {
     const affected = this.getImpactSet(changedFiles);
     const communities = this.detectCommunities();
-
-    const communityImpact: Map<string, string[]> = new Map();
-
-    for (const file of affected) {
-      let foundComm = 'unknown';
-      for (const [comm, fileList] of communities) {
-        if (fileList.includes(file)) {
-          foundComm = comm;
-          break;
-        }
-      }
-
-      if (!communityImpact.has(foundComm)) {
-        communityImpact.set(foundComm, []);
-      }
-      communityImpact.get(foundComm)!.push(file);
+    const communityByFile = new Map<string, string>();
+    for (const [community, files] of communities) {
+      for (const file of files) communityByFile.set(file, community);
     }
 
-    return communityImpact;
+    const impactByCommunity = new Map<string, string[]>();
+    for (const file of affected) {
+      this.addCommunityImpact(impactByCommunity, communityByFile.get(file) ?? 'unknown', file);
+    }
+    return impactByCommunity;
+  }
+
+  /**
+   * Group a bounded impact traversal within the same wall-clock budget. Cached
+   * communities are reused when present; first-call queries use deterministic
+   * directory grouping instead of running an unbounded full-graph detector.
+   */
+  getCommunityAwareImpactTraversal(
+    changedFiles: string[],
+    options: ImpactTraversalOptions = {}
+  ): CommunityAwareImpactReceipt {
+    const startedAt = Date.now();
+    const traversal = this.getImpactTraversal(changedFiles, options);
+    const impactTraversalDurationMs = traversal.durationMs;
+    const impactTraversalComplete = traversal.complete;
+    const impactTraversalTruncationReasons = traversal.truncationReasons;
+    const deadlineAt =
+      traversal.budgets.deadlineMs === null
+        ? Number.POSITIVE_INFINITY
+        : startedAt + traversal.budgets.deadlineMs;
+    const grouping = this._communities ? 'cached' : 'directory-fallback';
+    const impactByCommunity = new Map<string, string[]>();
+    const assigned = new Set<string>();
+    let communityGroupingComplete = true;
+
+    if (grouping === 'cached') {
+      for (const [community, files] of this._communities!) {
+        for (const file of files) {
+          if (Date.now() >= deadlineAt) {
+            communityGroupingComplete = false;
+            break;
+          }
+          if (!traversal.affectedFiles.has(file) || assigned.has(file)) continue;
+          this.addCommunityImpact(impactByCommunity, community, file);
+          assigned.add(file);
+        }
+        if (!communityGroupingComplete) break;
+      }
+    } else {
+      for (const file of traversal.affectedFiles) {
+        if (Date.now() >= deadlineAt) {
+          communityGroupingComplete = false;
+          break;
+        }
+        this.addCommunityImpact(impactByCommunity, this.directoryImpactGroup(file), file);
+        assigned.add(file);
+      }
+    }
+
+    if (communityGroupingComplete) {
+      for (const file of traversal.affectedFiles) {
+        if (assigned.has(file)) continue;
+        if (Date.now() >= deadlineAt) {
+          communityGroupingComplete = false;
+          break;
+        }
+        this.addCommunityImpact(impactByCommunity, 'unknown', file);
+        assigned.add(file);
+      }
+    }
+
+    const truncationReasons = new Set(traversal.truncationReasons);
+    if (!communityGroupingComplete) truncationReasons.add('deadline');
+    const reasons = Array.from(truncationReasons);
+
+    return {
+      ...traversal,
+      complete: reasons.length === 0,
+      truncated: reasons.length > 0,
+      truncationReasons: reasons,
+      impactByCommunity,
+      communityGrouping: grouping,
+      communityGroupingComplete,
+      ungroupedAffectedFiles: traversal.affectedFiles.size - assigned.size,
+      impactTraversalDurationMs,
+      impactTraversalComplete,
+      impactTraversalTruncationReasons,
+      durationMs: Date.now() - startedAt,
+    };
+  }
+
+  private addCommunityImpact(
+    impactByCommunity: Map<string, string[]>,
+    community: string,
+    file: string
+  ): void {
+    if (!impactByCommunity.has(community)) impactByCommunity.set(community, []);
+    impactByCommunity.get(community)!.push(file);
+  }
+
+  private directoryImpactGroup(file: string): string {
+    const parts = file.replace(/\\/g, '/').split('/').filter(Boolean);
+    return parts.length > 1 ? parts[0] : 'root';
   }
 
   /**
@@ -619,8 +953,9 @@ export class CodebaseGraph {
     }
 
     // BFS through import chain
-    while (queue.length > 0) {
-      const file = queue.shift()!;
+    let cursor = 0;
+    while (cursor < queue.length) {
+      const file = queue[cursor++];
       const importers = this.importedByFile.get(file);
       if (importers) {
         for (const importer of importers) {
@@ -1227,6 +1562,7 @@ export class CodebaseGraph {
     this.symbolsByName.clear();
     this.importsByFile.clear();
     this.importedByFile.clear();
+    this.normalizedFileIndex.clear();
     this.callerIndex.clear();
     this.calleeIndex.clear();
     this.eventEmitIndex.clear();
