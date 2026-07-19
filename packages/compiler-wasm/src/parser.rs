@@ -3396,6 +3396,50 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_caller_tied_aggregate_scalar_field_return() {
+        let source = r#"
+            struct Header { code: i32 }
+            struct Packet { header: Header }
+            function code<'a>(packet: &'a Packet): &'a i32 {
+                return &packet.header.code
+            }
+        "#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("caller-tied aggregate scalar-field return should parse");
+
+        let AstNode::Function(function) = &program.body[2] else {
+            panic!("Expected code Function node");
+        };
+        assert_eq!(function.lifetimes, vec!["a"]);
+        assert_eq!(function.param_types, vec![Some("&'a Packet".to_string())]);
+        assert_eq!(function.return_type.as_deref(), Some("&'a i32"));
+        let AstNode::Return(returned) = &function.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::UnaryExpression(borrow)) = returned.argument.as_deref() else {
+            panic!("Expected borrowed field return");
+        };
+        assert_eq!(borrow.operator, "&");
+        let AstNode::MemberExpression(code) = borrow.argument.as_ref() else {
+            panic!("Expected code field projection");
+        };
+        assert!(!code.computed);
+        assert!(matches!(
+            code.property.as_ref(),
+            AstNode::Identifier(field) if field.name == "code"
+        ));
+        assert!(matches!(
+            code.object.as_ref(),
+            AstNode::MemberExpression(header)
+                if !header.computed
+                    && matches!(header.object.as_ref(), AstNode::Identifier(root) if root.name == "packet")
+                    && matches!(header.property.as_ref(), AstNode::Identifier(field) if field.name == "header")
+        ));
+    }
+
+    #[test]
     fn test_parse_caller_tied_slice_reference_lifetime() {
         let source = r#"function view<'a>(values: &'a [i32]): &'a [i32] {
             return values

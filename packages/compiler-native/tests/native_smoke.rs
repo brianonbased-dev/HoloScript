@@ -8,13 +8,15 @@ use holoscript_native::{
     NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
     AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
     AGGREGATE_REFERENCE_MACHINE_CONTRACT, BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT,
-    BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT,
-    BORROWED_SLICE_RETURN_MACHINE_CONTRACT, BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT,
-    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
-    OWNED_BUFFER_ABI_VERSION,
+    BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT, BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT,
+    BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
+    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
+    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
+const SCALAR_FIELD_BORROWED_RETURN_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/scalar-field-borrowed-return-exit-five.hs");
 const TYPED_EXIT_FIVE: &str = include_str!("../../../examples/native/typed-exit-five.hs");
 const I64_EXIT_FIVE: &str = r#"
     function add64(left: i64, right: i64): i64 {
@@ -3189,6 +3191,120 @@ fn typed_contract_rejects_partial_types_mutation_and_implicit_coercion() {
     assert!(implicit_coercion
         .to_string()
         .contains("implicit coercions are forbidden"));
+}
+
+#[test]
+fn scalar_field_results_preserve_one_pointer_abi_and_caller_root_leases() {
+    assert_eq!(
+        BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT,
+        "hs-machine-v24"
+    );
+    let options = NativeCompileOptions::host();
+    let first = compile_object(SCALAR_FIELD_BORROWED_RETURN_EXIT_FIVE, &options)
+        .expect("caller-tied scalar-field references should compile");
+    let second = compile_object(SCALAR_FIELD_BORROWED_RETURN_EXIT_FIVE, &options)
+        .expect("scalar-field reference lowering should be deterministic");
+    assert_eq!(first, second);
+
+    let executable = scratch_executable("native-scalar-field-borrowed-return");
+    let artifact = compile_executable(
+        SCALAR_FIELD_BORROWED_RETURN_EXIT_FIVE,
+        &executable,
+        &options,
+    )
+    .expect("shared and mutable scalar-field results should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v24");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("scalar-field borrowed-result executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let owned_sibling = r#"
+        struct Packet { code: i32, values: [i32] }
+        function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code }
+        function main(): i32 {
+            slot packet: Packet = Packet(5, buffer(1, 2))
+            scope {
+                let view: &i32 = code(&packet)
+                let read: i32 = *view
+            }
+            drop(packet.values)
+            return 5
+        }
+    "#;
+    compile_object(owned_sibling, &options)
+        .expect("scalar-field result leases should release before owned sibling drop");
+}
+
+#[test]
+fn scalar_field_results_reject_severed_or_conflicting_provenance() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { slot local: Packet = Packet(5) return &local.code } function main(): i32 { return 5 }",
+            "must derive from source parameter `packet`; found root `local`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet[0] } function main(): i32 { return 5 }",
+            "requires a non-computed static aggregate field path rooted at `packet`",
+        ),
+        (
+            "struct Packet { enabled: bool } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.enabled } function main(): i32 { return 5 }",
+            "borrowed scalar return expects `i32`, but field `packet.enabled` stores `bool`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a mut i32 { return &mut packet.code } function main(): i32 { return 5 }",
+            "borrowed scalar return mutability must match source parameter `packet`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet, other: &Packet): &'a i32 { return &other.code } function main(): i32 { return 5 }",
+            "must derive from source parameter `packet`; found root `other`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return packet.code } function main(): i32 { return 5 }",
+            "must return a direct static field borrow from source parameter `packet`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { slot local: i32 = 5 return &local } function main(): i32 { return 5 }",
+            "must derive from source parameter `packet`; found root `local`",
+        ),
+        (
+            "struct Packet { values: [i32] } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.values } function main(): i32 { return 5 }",
+            "owned aggregate field `packet.values` must be accessed with `move`, a borrow, or `drop`",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function main(): i32 { slot packet: Packet = Packet(5) let first: &Packet = borrow(&packet) let view: &i32 = code(first) return *view }",
+            "cannot extend nested returned aggregate `first`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function main(): i32 { slot packet: Packet = Packet(1) let view: &i32 = code(&packet) store(packet.code, 5) return *view }",
+            "cannot store to stack slot `packet` while an active borrow exists",
+        ),
+        (
+            "struct Packet { code: i32, values: [i32] } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function main(): i32 { slot packet: Packet = Packet(5, buffer(1, 2)) let view: &i32 = code(&packet) drop(packet.values) return *view }",
+            "cannot drop owned buffer `packet.values` while aggregate ancestor `packet` is borrowed",
+        ),
+        (
+            "struct Packet { code: i32, values: [i32] } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function main(): i32 { slot packet: Packet = Packet(5, buffer(1, 2)) let view: &i32 = code(&packet) let moved: [i32] = move(packet.values) return *view }",
+            "cannot move owned buffer `packet.values` while aggregate ancestor `packet` is borrowed",
+        ),
+        (
+            "struct Packet { code: i32, values: [i32] } function take_and_code<'a>(values: [i32], packet: &'a Packet): &'a i32 { return &packet.code } function main(): i32 { slot packet: Packet = Packet(5, buffer(1, 2)) let view: &i32 = take_and_code(move(packet.values), &packet) return *view }",
+            "cannot move owned descendant `packet.values` while returning a scalar reference tied to aggregate root `packet`",
+        ),
+        (
+            "struct Packet { code: i32 } function code<'a>(packet: &'a Packet): &'a i32 { return &packet.code } function main(): i32 { slot packet: Packet = Packet(5) let view: &i64 = code(&packet) return 5 }",
+            "reference `view` expects `i64`, but `code` returns a borrowed `i32` field",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid scalar-field borrowed result must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
 }
 
 #[test]

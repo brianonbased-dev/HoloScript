@@ -85,6 +85,7 @@ pub const BORROWED_SLICE_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v20";
 pub const BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v21";
 pub const BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v22";
 pub const BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v23";
+pub const BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v24";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const HOST_ALLOCATOR_PROVENANCE_ID: u32 = 1;
@@ -253,7 +254,9 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
-    let machine_contract = if has_borrowed_aggregate_forward_return_machine_metadata(&ast) {
+    let machine_contract = if has_borrowed_scalar_field_return_machine_metadata(&ast) {
+        BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
+    } else if has_borrowed_aggregate_forward_return_machine_metadata(&ast) {
         BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
     } else if has_borrowed_slice_forward_return_machine_metadata(&ast) {
         BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
@@ -304,7 +307,16 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_borrowed_aggregate_forward_return_machine_metadata(&ast) {
+    if has_borrowed_scalar_field_return_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(
+                &ast,
+                BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT,
+                true,
+            )?,
+            machine_contract: BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT,
+        })
+    } else if has_borrowed_aggregate_forward_return_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(
                 &ast,
@@ -739,6 +751,19 @@ fn has_borrowed_aggregate_return_machine_metadata(ast: &Ast) -> bool {
     })
 }
 
+fn has_borrowed_scalar_field_return_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        let AstNode::Function(function) = node else {
+            return false;
+        };
+        function.return_type.as_deref().is_some_and(|annotation| {
+            annotation.starts_with("&'")
+                && reference_annotation_pointee(annotation)
+                    .is_some_and(|pointee| matches!(pointee, "bool" | "i32" | "i64"))
+        })
+    })
+}
+
 fn has_borrowed_slice_return_machine_metadata(ast: &Ast) -> bool {
     ast.body.iter().any(|node| {
         let AstNode::Function(function) = node else {
@@ -881,6 +906,7 @@ fn validate_borrowed_forwarding_shapes(
         machine_contract,
         BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     ) {
         return Ok(());
     }
@@ -897,8 +923,11 @@ fn validate_borrowed_forwarding_shapes(
             continue;
         };
         let returns_supported_reference = function_returns_lifetimed_slice(function)
-            || (machine_contract == BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
-                && function_returns_lifetimed_aggregate(function, &aggregate_names));
+            || (matches!(
+                machine_contract,
+                BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
+            ) && function_returns_lifetimed_aggregate(function, &aggregate_names));
         if !returns_supported_reference {
             continue;
         }
@@ -1793,6 +1822,7 @@ fn bool_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1817,6 +1847,7 @@ fn control_flow_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1842,6 +1873,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1868,6 +1900,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1895,6 +1928,7 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1918,6 +1952,7 @@ fn aggregate_contract_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1935,6 +1970,7 @@ fn owned_buffers_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1957,6 +1993,7 @@ fn fixed_arrays_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1972,6 +2009,7 @@ fn affine_aggregates_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1986,6 +2024,7 @@ fn aggregate_references_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1999,6 +2038,7 @@ fn aggregate_reference_calls_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -2011,6 +2051,7 @@ fn aggregate_reborrows_enabled(machine_contract: &str) -> bool {
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -2343,6 +2384,7 @@ fn resolve_aggregate_layout(
                     | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} field `{field_name}` uses unsupported nested aggregate type `{type_name}` in struct `{}`",
@@ -2372,6 +2414,7 @@ fn resolve_aggregate_layout(
                     | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} owned buffers as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
@@ -2503,6 +2546,13 @@ enum MachineResult {
         source_parameter: usize,
         mutable: bool,
     },
+    ScalarReference {
+        machine_type: MachineType,
+        source_parameter: usize,
+        source_layout_fingerprint: u32,
+        field_offset: u32,
+        mutable: bool,
+    },
     SliceReference {
         element_type: MachineType,
         source_parameter: usize,
@@ -2517,6 +2567,9 @@ impl MachineResult {
             Self::Owned(layout) => format!("[{}]", layout.element_type.name()),
             Self::Aggregate { .. } => "aggregate".to_string(),
             Self::AggregateReference { .. } => "aggregate reference".to_string(),
+            Self::ScalarReference { machine_type, .. } => {
+                format!("borrowed scalar `{}`", machine_type.name())
+            }
             Self::SliceReference { element_type, .. } => {
                 format!("borrowed slice of `{}`", element_type.name())
             }
@@ -2654,6 +2707,13 @@ enum TypedReferenceLayout {
         offset: u32,
         root_name: String,
     },
+    ReturnedScalar {
+        machine_type: MachineType,
+        base: Value,
+        root_name: String,
+        source_layout_fingerprint: u32,
+        field_offset: u32,
+    },
     Slice {
         element_type: MachineType,
         storage: SliceStorage,
@@ -2719,7 +2779,8 @@ impl TypedReference {
     fn scalar_pointee(&self) -> Option<MachineType> {
         match &self.layout {
             TypedReferenceLayout::Scalar { machine_type, .. }
-            | TypedReferenceLayout::ParameterScalar { machine_type, .. } => Some(*machine_type),
+            | TypedReferenceLayout::ParameterScalar { machine_type, .. }
+            | TypedReferenceLayout::ReturnedScalar { machine_type, .. } => Some(*machine_type),
             TypedReferenceLayout::Slice { .. } | TypedReferenceLayout::Aggregate { .. } => None,
         }
     }
@@ -2742,6 +2803,7 @@ impl TypedReference {
                 ..
             }
             | TypedReferenceLayout::ParameterScalar { .. }
+            | TypedReferenceLayout::ReturnedScalar { .. }
             | TypedReferenceLayout::Aggregate {
                 storage:
                     AggregateReferenceStorage::Parameter { .. }
@@ -2774,6 +2836,7 @@ impl TypedReference {
     fn borrow_root(&self) -> Option<&str> {
         match &self.layout {
             TypedReferenceLayout::ParameterScalar { root_name, .. }
+            | TypedReferenceLayout::ReturnedScalar { root_name, .. }
             | TypedReferenceLayout::Aggregate {
                 storage: AggregateReferenceStorage::ParameterReborrow { root_name, .. },
                 ..
@@ -3147,6 +3210,20 @@ fn validate_aggregate_reference_pointer(
         .ins()
         .band_imm(base, i64::from(layout.alignment() - 1));
     builder.ins().trapnz(misalignment, TrapCode::unwrap_user(4));
+}
+
+fn validate_scalar_reference_pointer(
+    builder: &mut FunctionBuilder<'_>,
+    base: Value,
+    machine_type: MachineType,
+) {
+    let null = builder.ins().icmp_imm(IntCC::Equal, base, 0);
+    builder.ins().trapnz(null, TrapCode::unwrap_user(2));
+    let alignment = 1_u32 << machine_type.stack_align_shift();
+    if alignment > 1 {
+        let misalignment = builder.ins().band_imm(base, i64::from(alignment - 1));
+        builder.ins().trapnz(misalignment, TrapCode::unwrap_user(4));
+    }
 }
 
 fn aggregate_layout_by_fingerprint<'a>(
@@ -3549,8 +3626,10 @@ fn lower_typed_ast_to_object(
             .params
             .iter()
             .any(|parameter| matches!(parameter, MachineParameter::AggregateReference { .. }))
-            || matches!(spec.result, MachineResult::SliceReference { .. })
-        {
+            || matches!(
+                spec.result,
+                MachineResult::SliceReference { .. } | MachineResult::ScalarReference { .. }
+            ) {
             Linkage::Local
         } else {
             Linkage::Export
@@ -3760,9 +3839,9 @@ fn lower_typed_ast_to_object(
                         .expect("owned return must have an ABI out-record pointer"),
                 ),
                 MachineResult::Scalar(_) => None,
-                MachineResult::AggregateReference { .. } | MachineResult::SliceReference { .. } => {
-                    None
-                }
+                MachineResult::AggregateReference { .. }
+                | MachineResult::ScalarReference { .. }
+                | MachineResult::SliceReference { .. } => None,
                 MachineResult::Aggregate { layout_fingerprint } => {
                     let descriptor = block_params
                         .next()
@@ -3840,6 +3919,7 @@ fn lower_typed_ast_to_object(
             MachineResult::Owned(_)
             | MachineResult::Aggregate { .. }
             | MachineResult::AggregateReference { .. }
+            | MachineResult::ScalarReference { .. }
             | MachineResult::SliceReference { .. } => {
                 unreachable!("typed main cannot return ownership")
             }
@@ -3964,6 +4044,7 @@ fn collect_typed_function_specs<'a>(
                                 | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                                 | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                                 | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                                | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -4073,6 +4154,7 @@ fn collect_typed_function_specs<'a>(
                     | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} references cannot appear in function returns; `{}` would expose an address-bearing value",
@@ -4185,6 +4267,7 @@ fn collect_typed_function_specs<'a>(
                             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
                     ) {
                         return Err(NativeCompileError::new(format!(
                             "{machine_contract} function `{}` can return only a caller-tied aggregate reference",
@@ -4240,11 +4323,66 @@ fn collect_typed_function_specs<'a>(
                         mutable: reference_type.mutable,
                     }
                 }
-                ReferenceTarget::Scalar(_) => {
-                    return Err(NativeCompileError::new(format!(
-                        "{machine_contract} function `{}` can return only a caller-tied aggregate or slice reference",
-                        function.name
-                    )));
+                ReferenceTarget::Scalar(machine_type) => {
+                    if machine_contract != BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` can return only a caller-tied aggregate or slice reference",
+                            function.name
+                        )));
+                    }
+                    let sources = params
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(index, parameter)| match parameter {
+                            MachineParameter::AggregateReference {
+                                layout_name,
+                                mutable,
+                                lifetime: Some(parameter_lifetime),
+                            } if parameter_lifetime == lifetime => {
+                                Some((index, layout_name, *mutable))
+                            }
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>();
+                    let Some((source_parameter, source_layout_name, source_mutable)) =
+                        sources.first().copied()
+                    else {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed scalar return lifetime `'{lifetime}` does not identify exactly one aggregate-reference parameter",
+                            function.name
+                        )));
+                    };
+                    if sources.len() != 1 {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed scalar return lifetime `'{lifetime}` has ambiguous aggregate provenance across {} parameters",
+                            function.name,
+                            sources.len()
+                        )));
+                    }
+                    if source_mutable != reference_type.mutable {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed scalar return mutability must match source parameter `{}`",
+                            function.name, function.params[source_parameter]
+                        )));
+                    }
+                    let source_layout = aggregate_layouts
+                        .get(source_layout_name)
+                        .expect("aggregate-reference parameters retain a known layout");
+                    let field_offset = resolve_borrowed_scalar_return_field(
+                        function,
+                        &function.params[source_parameter],
+                        source_layout,
+                        *machine_type,
+                        reference_type.mutable,
+                        machine_contract,
+                    )?;
+                    MachineResult::ScalarReference {
+                        machine_type: *machine_type,
+                        source_parameter,
+                        source_layout_fingerprint: source_layout.abi_fingerprint(pointer_type),
+                        field_offset,
+                        mutable: reference_type.mutable,
+                    }
                 }
             }
         } else if let Some(layout) =
@@ -4259,6 +4397,7 @@ fn collect_typed_function_specs<'a>(
                     | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
             ) && !function.lifetimes.is_empty()
             {
                 return Err(NativeCompileError::new(format!(
@@ -4365,9 +4504,11 @@ fn machine_signature(
                 .returns
                 .push(AbiParam::new(machine_type.ir_type()));
         }
-        MachineResult::AggregateReference { .. } => signature
-            .returns
-            .push(AbiParam::new(module.target_config().pointer_type())),
+        MachineResult::AggregateReference { .. } | MachineResult::ScalarReference { .. } => {
+            signature
+                .returns
+                .push(AbiParam::new(module.target_config().pointer_type()))
+        }
         MachineResult::SliceReference { .. } => {
             signature
                 .returns
@@ -4572,7 +4713,23 @@ fn lower_typed_statements(
                                 machine_contract,
                                 memory_enabled,
                             )?,
-                            ReferenceTarget::Aggregate(_) | ReferenceTarget::Scalar(_) => {
+                            ReferenceTarget::Scalar(_) => lower_borrowed_scalar_call_initializer(
+                                builder,
+                                module,
+                                functions,
+                                aggregate_layouts,
+                                locals,
+                                stack_slots,
+                                references,
+                                borrow_states,
+                                owned_buffers,
+                                &local.name,
+                                &reference_type,
+                                call,
+                                machine_contract,
+                                memory_enabled,
+                            )?,
+                            ReferenceTarget::Aggregate(_) => {
                                 lower_borrowed_aggregate_call_initializer(
                                     builder,
                                     module,
@@ -5010,6 +5167,77 @@ fn lower_typed_statements(
                         }
                         builder.ins().return_(&[value.value]);
                     }
+                    MachineResult::ScalarReference {
+                        machine_type,
+                        source_parameter,
+                        source_layout_fingerprint,
+                        field_offset,
+                        mutable,
+                    } => {
+                        let source_name = spec
+                            .node
+                            .params
+                            .get(source_parameter)
+                            .expect("borrowed scalar result source parameter was validated");
+                        let source = references.get(source_name).ok_or_else(|| {
+                            NativeCompileError::new(format!(
+                                "{machine_contract} function `{}` lost borrowed scalar source parameter `{source_name}`",
+                                spec.node.name
+                            ))
+                        })?;
+                        let TypedReferenceLayout::Aggregate { layout, storage } = &source.layout
+                        else {
+                            unreachable!(
+                                "borrowed scalar field results require aggregate-reference parameters"
+                            )
+                        };
+                        if layout.abi_fingerprint(module.target_config().pointer_type())
+                            != source_layout_fingerprint
+                            || source.mutable != mutable
+                        {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} function `{}` borrowed scalar source no longer matches its declared aggregate layout or mutability",
+                                spec.node.name
+                            )));
+                        }
+                        let resolved_offset = resolve_borrowed_scalar_field_borrow(
+                            argument,
+                            &spec.node.name,
+                            source_name,
+                            layout,
+                            machine_type,
+                            mutable,
+                            machine_contract,
+                        )?;
+                        if resolved_offset != field_offset {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} function `{}` borrowed scalar field path changed after ABI collection",
+                                spec.node.name
+                            )));
+                        }
+                        let AggregateReferenceStorage::Parameter { base } = storage else {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} function `{}` borrowed scalar result cannot escape local, returned, or reborrowed aggregate storage",
+                                spec.node.name
+                            )));
+                        };
+                        let returned_base = if field_offset == 0 {
+                            *base
+                        } else {
+                            builder.ins().iadd_imm(*base, i64::from(field_offset))
+                        };
+                        validate_scalar_reference_pointer(builder, returned_base, machine_type);
+                        if let Some(allocator) = allocator {
+                            emit_owned_buffer_cleanup(
+                                builder,
+                                module,
+                                owned_buffers,
+                                owner_order,
+                                allocator,
+                            );
+                        }
+                        builder.ins().return_(&[returned_base]);
+                    }
                     MachineResult::AggregateReference {
                         layout_fingerprint,
                         source_parameter,
@@ -5059,8 +5287,11 @@ fn lower_typed_statements(
                                 *base
                             }
                             AstNode::CallExpression(call)
-                                if machine_contract
-                                    == BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT =>
+                                if matches!(
+                                    machine_contract,
+                                    BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                                        | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
+                                ) =>
                             {
                                 lower_forwarded_borrowed_aggregate_return(
                                     builder,
@@ -5082,9 +5313,11 @@ fn lower_typed_statements(
                                 )?
                             }
                             _ => {
-                                let requirement = if machine_contract
-                                    == BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
-                                {
+                                let requirement = if matches!(
+                                    machine_contract,
+                                    BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                                        | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
+                                ) {
                                     format!(
                                         "return source parameter `{source_name}` directly or forward one direct borrowed-aggregate call"
                                     )
@@ -5158,6 +5391,7 @@ fn lower_typed_statements(
                                     machine_contract,
                                     BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                                         | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                                        | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
                                 ) =>
                             {
                                 lower_forwarded_borrowed_slice_return(
@@ -5184,6 +5418,7 @@ fn lower_typed_statements(
                                     BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                                         | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                                         | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                                        | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
                                 ) =>
                             {
                                 let expected_operator = if mutable { "&mut" } else { "&" };
@@ -5284,6 +5519,7 @@ fn lower_typed_statements(
                                     BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                                         | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                                         | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                                        | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
                                 ) {
                                     format!(
                                         "return source parameter `{source_name}` directly, derive `&{source_name}[start..end]`, or forward one direct borrowed-slice call"
@@ -5662,6 +5898,18 @@ fn owned_buffer_path(node: &AstNode) -> Option<String> {
     }
 }
 
+fn explicit_owned_move_path(node: &AstNode) -> Option<String> {
+    let AstNode::CallExpression(call) = node else {
+        return None;
+    };
+    let AstNode::Identifier(callee) = call.callee.as_ref() else {
+        return None;
+    };
+    (callee.name == "move" && call.arguments.len() == 1)
+        .then(|| owned_buffer_path(&call.arguments[0]))
+        .flatten()
+}
+
 #[allow(clippy::too_many_arguments)]
 fn lower_owned_buffer_initializer(
     builder: &mut FunctionBuilder<'_>,
@@ -5917,6 +6165,12 @@ fn lower_scalar_call_with_ownership(
         MachineResult::AggregateReference { .. } => {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} `{}` returns a borrowed aggregate reference; bind it to a typed reference local",
+                callee.name
+            )));
+        }
+        MachineResult::ScalarReference { .. } => {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} `{}` returns a borrowed scalar-field reference; bind it to a typed reference local",
                 callee.name
             )));
         }
@@ -7264,9 +7518,19 @@ fn validate_reference_lease(
     let Some(root_name) = reference.borrow_root() else {
         return Ok(());
     };
+    let provenance = match &reference.layout {
+        TypedReferenceLayout::ReturnedScalar {
+            source_layout_fingerprint,
+            field_offset,
+            ..
+        } => format!(
+            " (aggregate ABI {source_layout_fingerprint:#010x}, field offset {field_offset})"
+        ),
+        _ => String::new(),
+    };
     let state = borrow_states.get(root_name).ok_or_else(|| {
         NativeCompileError::new(format!(
-            "{machine_contract} reference `{reference_name}` lost its borrow lease for root `{root_name}`"
+            "{machine_contract} reference `{reference_name}` lost its borrow lease for root `{root_name}`{provenance}"
         ))
     })?;
     let lease_is_active = if reference.mutable {
@@ -7276,7 +7540,7 @@ fn validate_reference_lease(
     };
     if !lease_is_active {
         return Err(NativeCompileError::new(format!(
-            "{machine_contract} reference `{reference_name}` no longer owns a valid borrow lease"
+            "{machine_contract} reference `{reference_name}` no longer owns a valid borrow lease{provenance}"
         )));
     }
     Ok(())
@@ -7336,6 +7600,89 @@ fn resolve_aggregate_scalar_projection(
         }
     }
     unreachable!("non-empty aggregate field projections always return or fail")
+}
+
+fn resolve_borrowed_scalar_return_field(
+    function: &FunctionNode,
+    source_name: &str,
+    source_layout: &AggregateLayout,
+    expected_type: MachineType,
+    mutable: bool,
+    machine_contract: &str,
+) -> Result<u32, NativeCompileError> {
+    let Some(AstNode::Return(returned)) = function.body.last() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed scalar result requires one direct top-level final return",
+            function.name
+        )));
+    };
+    let argument = returned.argument.as_deref().ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed scalar result requires a returned field borrow",
+            function.name
+        ))
+    })?;
+    resolve_borrowed_scalar_field_borrow(
+        argument,
+        &function.name,
+        source_name,
+        source_layout,
+        expected_type,
+        mutable,
+        machine_contract,
+    )
+}
+
+fn resolve_borrowed_scalar_field_borrow(
+    argument: &AstNode,
+    function_name: &str,
+    source_name: &str,
+    source_layout: &AggregateLayout,
+    expected_type: MachineType,
+    mutable: bool,
+    machine_contract: &str,
+) -> Result<u32, NativeCompileError> {
+    let AstNode::UnaryExpression(borrow) = argument else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed scalar result must return a direct static field borrow from source parameter `{source_name}`",
+            function_name
+        )));
+    };
+    let expected_operator = if mutable { "&mut" } else { "&" };
+    if borrow.operator != expected_operator {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed scalar result expects `{expected_operator}`, found `{}`",
+            function_name, borrow.operator
+        )));
+    }
+    let path = owned_buffer_path(borrow.argument.as_ref()).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed scalar result requires a non-computed static aggregate field path rooted at `{source_name}`",
+            function_name
+        ))
+    })?;
+    let mut segments = path.split('.');
+    let root_name = segments
+        .next()
+        .expect("aggregate field paths always contain a root");
+    if root_name != source_name {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed scalar result must derive from source parameter `{source_name}`; found root `{root_name}`",
+            function_name
+        )));
+    }
+    let field_names = segments.collect::<Vec<_>>();
+    let (field_type, field_offset) =
+        resolve_aggregate_scalar_projection(source_layout, &field_names, &path, machine_contract)?;
+    if field_type != expected_type {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed scalar return expects `{}`, but field `{path}` stores `{}`",
+            function_name,
+            expected_type.name(),
+            field_type.name()
+        )));
+    }
+    Ok(field_offset)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -7901,6 +8248,253 @@ fn acquire_returned_slice_borrow(
 }
 
 #[allow(clippy::too_many_arguments)]
+fn lower_borrowed_scalar_call_initializer(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    aggregate_layouts: &HashMap<String, AggregateLayout>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &mut HashMap<String, BorrowState>,
+    owned_buffers: &mut HashMap<String, OwnedBuffer>,
+    reference_name: &str,
+    reference_type: &ReferenceType,
+    call: &CallExpression,
+    machine_contract: &str,
+    memory_enabled: bool,
+) -> Result<TypedReference, NativeCompileError> {
+    let AstNode::Identifier(callee) = call.callee.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} borrowed scalar initializer `{reference_name}` requires a named function"
+        )));
+    };
+    let abi = functions.get(&callee.name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} borrowed scalar initializer `{reference_name}` calls unknown function `{}`",
+            callee.name
+        ))
+    })?;
+    let MachineResult::ScalarReference {
+        machine_type,
+        source_parameter,
+        source_layout_fingerprint,
+        field_offset,
+        mutable,
+    } = abi.result
+    else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` does not return a borrowed scalar-field reference",
+            callee.name
+        )));
+    };
+    let ReferenceTarget::Scalar(expected_type) = reference_type.target else {
+        unreachable!("scalar result initializers are dispatched by reference target")
+    };
+    if expected_type != machine_type {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` expects `{}`, but `{}` returns a borrowed `{}` field",
+            expected_type.name(),
+            callee.name,
+            machine_type.name()
+        )));
+    }
+    if reference_type.mutable != mutable {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} reference `{reference_name}` mutability must match the borrowed scalar result of `{}`",
+            callee.name
+        )));
+    }
+    let source_parameter_abi = abi.params.get(source_parameter).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} function `{}` lost borrowed scalar parameter provenance",
+            callee.name
+        ))
+    })?;
+    let MachineParameter::AggregateReference {
+        layout_name: source_layout_name,
+        mutable: source_mutable,
+        ..
+    } = source_parameter_abi
+    else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed scalar provenance is not an aggregate reference",
+            callee.name
+        )));
+    };
+    let source_layout = aggregate_layouts.get(source_layout_name).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} function `{}` lost aggregate layout `{source_layout_name}` for its borrowed scalar result",
+            callee.name
+        ))
+    })?;
+    if source_layout.abi_fingerprint(module.target_config().pointer_type())
+        != source_layout_fingerprint
+        || *source_mutable != mutable
+    {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed scalar ABI disagrees with its aggregate source parameter",
+            callee.name
+        )));
+    }
+    let source_argument = call.arguments.get(source_parameter).ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} call to `{}` omitted its borrowed scalar source argument",
+            callee.name
+        ))
+    })?;
+    let (root_name, validate_owned_leaves) = match source_argument {
+        AstNode::UnaryExpression(borrow) => {
+            let AstNode::Identifier(root) = borrow.argument.as_ref() else {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} borrowed scalar source for `{}` must be a complete aggregate root",
+                    callee.name
+                )));
+            };
+            (root.name.clone(), true)
+        }
+        AstNode::Identifier(source) => {
+            let source_reference = references.get(&source.name).ok_or_else(|| {
+                NativeCompileError::new(format!(
+                    "{machine_contract} borrowed scalar result from `{}` lost source reference `{}`",
+                    callee.name, source.name
+                ))
+            })?;
+            match &source_reference.layout {
+                TypedReferenceLayout::Aggregate {
+                    storage: AggregateReferenceStorage::ReturnedStack { .. },
+                    ..
+                } => {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} borrowed scalar result from `{}` cannot extend nested returned aggregate `{}`",
+                        callee.name, source.name
+                    )));
+                }
+                TypedReferenceLayout::Aggregate {
+                    storage: AggregateReferenceStorage::Stack { slot_name },
+                    ..
+                } => (slot_name.clone(), true),
+                TypedReferenceLayout::Aggregate {
+                    storage: AggregateReferenceStorage::Parameter { .. },
+                    ..
+                } => (source.name.clone(), false),
+                TypedReferenceLayout::Aggregate {
+                    storage: AggregateReferenceStorage::ParameterReborrow { .. },
+                    ..
+                } => {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} borrowed scalar result from `{}` cannot extend nested aggregate reborrow `{}`",
+                        callee.name, source.name
+                    )));
+                }
+                _ => {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} borrowed scalar source for `{}` requires an aggregate reference; `{}` has incompatible reference storage",
+                        callee.name, source.name
+                    )));
+                }
+            }
+        }
+        _ => {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} borrowed scalar source for `{}` requires a direct aggregate borrow or named aggregate reference",
+                callee.name
+            )));
+        }
+    };
+    if validate_owned_leaves {
+        validate_aggregate_root_owned_leaves(
+            source_layout,
+            &root_name,
+            owned_buffers,
+            &format!("borrowed scalar result from `{}`", callee.name),
+            machine_contract,
+        )?;
+    }
+    for (index, (argument, parameter)) in call.arguments.iter().zip(&abi.params).enumerate() {
+        if index == source_parameter || !matches!(parameter, MachineParameter::Owned { .. }) {
+            continue;
+        }
+        if let Some(moved_path) = explicit_owned_move_path(argument) {
+            if moved_path == root_name
+                || moved_path
+                    .strip_prefix(&root_name)
+                    .is_some_and(|suffix| suffix.starts_with('.'))
+            {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} call to `{}` cannot move owned descendant `{moved_path}` while returning a scalar reference tied to aggregate root `{root_name}`",
+                    callee.name
+                )));
+            }
+        }
+    }
+    let arguments = lower_call_arguments_with_ownership(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        owned_buffers,
+        call,
+        abi,
+        machine_contract,
+        memory_enabled,
+    )?;
+    let source_abi_index = abi.params[..source_parameter]
+        .iter()
+        .map(|parameter| match parameter {
+            MachineParameter::Scalar(_)
+            | MachineParameter::Aggregate { .. }
+            | MachineParameter::AggregateReference { .. } => 1,
+            MachineParameter::Slice { .. } => 2,
+            MachineParameter::Owned { .. } => 3,
+        })
+        .sum::<usize>();
+    let source_base = arguments[source_abi_index];
+    let local_callee = module.declare_func_in_func(abi.func_id, builder.func);
+    let call_inst = builder.ins().call(local_callee, &arguments);
+    let results = builder.inst_results(call_inst);
+    if results.len() != 1 {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` did not produce its declared borrowed scalar pointer result",
+            callee.name
+        )));
+    }
+    let returned_base = results[0];
+    validate_scalar_reference_pointer(builder, returned_base, machine_type);
+    let expected_base = if field_offset == 0 {
+        source_base
+    } else {
+        builder.ins().iadd_imm(source_base, i64::from(field_offset))
+    };
+    let wrong_field = builder
+        .ins()
+        .icmp(IntCC::NotEqual, returned_base, expected_base);
+    builder.ins().trapnz(wrong_field, TrapCode::unwrap_user(4));
+
+    acquire_returned_aggregate_borrow(
+        borrow_states,
+        &root_name,
+        mutable,
+        reference_name,
+        &callee.name,
+        machine_contract,
+    )?;
+    Ok(TypedReference {
+        layout: TypedReferenceLayout::ReturnedScalar {
+            machine_type,
+            base: returned_base,
+            root_name,
+            source_layout_fingerprint,
+            field_offset,
+        },
+        mutable,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
 fn lower_borrowed_aggregate_call_initializer(
     builder: &mut FunctionBuilder<'_>,
     module: &mut ObjectModule,
@@ -8095,7 +8689,12 @@ fn lower_borrowed_aggregate_call_initializer(
                 TypedReferenceLayout::Aggregate {
                     storage: AggregateReferenceStorage::ReturnedStack { .. },
                     ..
-                } if machine_contract == BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT => {
+                } if matches!(
+                    machine_contract,
+                    BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                        | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
+                ) =>
+                {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} borrowed result from `{}` cannot extend nested returned aggregate `{}`",
                         callee.name, source.name
@@ -8517,6 +9116,7 @@ fn lower_reference_initializer(
                     | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -8711,7 +9311,8 @@ fn lower_reference_dereference(
                 identifier.name
             ),
             TypedReferenceLayout::Scalar { .. }
-            | TypedReferenceLayout::ParameterScalar { .. } => {
+            | TypedReferenceLayout::ParameterScalar { .. }
+            | TypedReferenceLayout::ReturnedScalar { .. } => {
                 unreachable!("scalar pointee was checked")
             }
         };
@@ -8748,6 +9349,11 @@ fn lower_reference_dereference(
             *base,
             i32::try_from(*offset).expect("aggregate offsets are validated"),
         ),
+        TypedReferenceLayout::ReturnedScalar { base, .. } => {
+            builder
+                .ins()
+                .load(pointee.ir_type(), MemFlags::new(), *base, 0)
+        }
         TypedReferenceLayout::Slice { .. } | TypedReferenceLayout::Aggregate { .. } => {
             unreachable!("scalar references always retain scalar layout")
         }
@@ -8810,7 +9416,9 @@ fn lower_reference_assignment(
             TypedReferenceLayout::Aggregate { .. } => {
                 format!("use `store({}.field, value)`", identifier.name)
             }
-            TypedReferenceLayout::Scalar { .. } | TypedReferenceLayout::ParameterScalar { .. } => {
+            TypedReferenceLayout::Scalar { .. }
+            | TypedReferenceLayout::ParameterScalar { .. }
+            | TypedReferenceLayout::ReturnedScalar { .. } => {
                 unreachable!("scalar pointee was checked")
             }
         };
@@ -8857,6 +9465,9 @@ fn lower_reference_assignment(
                 *base,
                 i32::try_from(*offset).expect("aggregate offsets are validated"),
             );
+        }
+        TypedReferenceLayout::ReturnedScalar { base, .. } => {
+            builder.ins().store(MemFlags::new(), value.value, *base, 0);
         }
         TypedReferenceLayout::Slice { .. } | TypedReferenceLayout::Aggregate { .. } => {
             unreachable!("scalar references always retain scalar layout")
@@ -8923,7 +9534,8 @@ fn lower_typed_expression(
             if let Some(reference) = references.get(&identifier.name) {
                 let message = match &reference.layout {
                     TypedReferenceLayout::Scalar { .. }
-                    | TypedReferenceLayout::ParameterScalar { .. } => format!(
+                    | TypedReferenceLayout::ParameterScalar { .. }
+                    | TypedReferenceLayout::ReturnedScalar { .. } => format!(
                         "{machine_contract} reference `{}` cannot escape as a scalar value; dereference it with `*{}`",
                         identifier.name, identifier.name
                     ),
@@ -9151,6 +9763,12 @@ fn lower_typed_expression(
                 MachineResult::AggregateReference { .. } => {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} `{}` returns a borrowed aggregate reference; bind it to a typed reference local",
+                        callee.name
+                    )));
+                }
+                MachineResult::ScalarReference { .. } => {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} `{}` returns a borrowed scalar-field reference; bind it to a typed reference local",
                         callee.name
                     )));
                 }
@@ -9479,6 +10097,7 @@ fn lower_forwarded_slice_call_argument(
             | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+            | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
     ) {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
@@ -9541,6 +10160,7 @@ fn lower_forwarded_slice_call_argument(
                     | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT
             ) =>
         {
             let AstNode::BinaryExpression(range) = range_node else {
@@ -9991,6 +10611,7 @@ fn known_expression_type(
                         MachineResult::Owned(_)
                         | MachineResult::Aggregate { .. }
                         | MachineResult::AggregateReference { .. }
+                        | MachineResult::ScalarReference { .. }
                         | MachineResult::SliceReference { .. } => None,
                     })
             }
@@ -10235,7 +10856,8 @@ fn resolve_stack_access<'a>(
             if let Some(reference) = references.get(&identifier.name) {
                 let requirement = match &reference.layout {
                     TypedReferenceLayout::Scalar { .. }
-                    | TypedReferenceLayout::ParameterScalar { .. } => {
+                    | TypedReferenceLayout::ParameterScalar { .. }
+                    | TypedReferenceLayout::ReturnedScalar { .. } => {
                         "must be dereferenced with `*`"
                     }
                     TypedReferenceLayout::Slice { .. } => "must be indexed",
