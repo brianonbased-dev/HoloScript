@@ -735,6 +735,7 @@ interface GraphScanPolicy {
 
 interface NormalizedCoveragePolicy {
   names: Set<string>;
+  suffixes: string[];
   pathFragments: string[];
   nameFragments: string[];
   includeHidden: boolean;
@@ -966,6 +967,7 @@ function normalizePathFragment(value: string): string {
 function addCoverageNameOrPath(
   pattern: string,
   names: Set<string>,
+  suffixes: string[],
   pathFragments: string[],
   includeBuildArtifacts: boolean
 ): void {
@@ -974,6 +976,11 @@ function addCoverageNameOrPath(
   if (trimmed.includes('/') || trimmed.includes('\\')) {
     const fragment = normalizePathFragment(trimmed);
     if (fragment) pathFragments.push(fragment);
+    return;
+  }
+  if (trimmed.startsWith('*.')) {
+    const suffix = trimmed.slice(1).replace(/\*/g, '').toLowerCase();
+    if (suffix && suffix !== '.') suffixes.push(suffix);
     return;
   }
 
@@ -986,6 +993,7 @@ function addCoverageNameOrPath(
 function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoveragePolicy {
   const receipt = normalizeScanPolicy(policy);
   const names = new Set<string>();
+  const suffixes: string[] = [];
   const pathFragments: string[] = [];
   const nameFragments: string[] = [];
   const includeBuildArtifacts = receipt.includeBuildArtifacts === true;
@@ -997,7 +1005,7 @@ function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoverag
     names.add(name.toLowerCase());
   }
   for (const pattern of receipt.exclude ?? []) {
-    addCoverageNameOrPath(pattern, names, pathFragments, includeBuildArtifacts);
+    addCoverageNameOrPath(pattern, names, suffixes, pathFragments, includeBuildArtifacts);
   }
   for (const fragment of receipt.excludePathFragments ?? []) {
     const normalized = normalizePathFragment(fragment);
@@ -1010,6 +1018,7 @@ function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoverag
 
   return {
     names,
+    suffixes: Array.from(new Set(suffixes)),
     pathFragments: Array.from(new Set(pathFragments)),
     nameFragments: Array.from(new Set(nameFragments)),
     includeHidden: receipt.includeHidden === true,
@@ -1033,6 +1042,7 @@ function isCoverageExcludedPath(filePath: string, policy: NormalizedCoveragePoli
 
   const basename = path.basename(normalizedPath).toLowerCase();
   if (policy.names.has(basename)) return true;
+  if (policy.suffixes.some((suffix) => basename.endsWith(suffix))) return true;
   if (policy.nameFragments.some((fragment) => basename.includes(fragment))) return true;
   const pathProbe = `/${normalizedPath}`.toLowerCase();
   if (policy.pathFragments.some((fragment) => pathProbe.includes(fragment))) return true;

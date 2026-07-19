@@ -67,14 +67,37 @@ describe('CodebaseScanner module batching', () => {
     writeFixture(root, 'src/tracked.ts', 'export const tracked = true;\n');
     writeFixture(root, 'src/untracked.ts', 'export const untracked = true;\n');
     writeFixture(root, 'generated/ignored.ts', 'export const ignored = true;\n');
-    execFileSync('git', ['add', '.gitignore', 'src/tracked.ts'], {
-      cwd: root,
-      windowsHide: true,
-    });
+    writeFixture(root, '.hidden/tracked-hidden.ts', 'export const hidden = true;\n');
+    writeFixture(root, 'dist/tracked-bundle.js', 'export const bundled = true;\n');
+    writeFixture(root, 'src/tracked.min.js', 'export const minified = true;\n');
+    writeFixture(root, 'src/map/route.ts', 'export const route = true;\n');
+    execFileSync(
+      'git',
+      [
+        'add',
+        '-f',
+        '.gitignore',
+        'src/tracked.ts',
+        '.hidden/tracked-hidden.ts',
+        'dist/tracked-bundle.js',
+        'src/tracked.min.js',
+        'src/map/route.ts',
+      ],
+      {
+        cwd: root,
+        windowsHide: true,
+      }
+    );
 
     const scanner = new CodebaseScanner(undefined, false);
     const visiblePlan = scanner.planScan({ rootDir: root, maxFiles: 10 });
     const trackedPlan = scanner.planScan({ rootDir: root, maxFiles: 10, includeUntracked: false });
+    const expandedPlan = scanner.planScan({
+      rootDir: root,
+      maxFiles: 10,
+      includeHidden: true,
+      includeBuildArtifacts: true,
+    });
     const filesystemPlan = scanner.planScan({
       rootDir: root,
       maxFiles: 10,
@@ -85,18 +108,31 @@ describe('CodebaseScanner module batching', () => {
     expect(visiblePlan.batchSize).toBe(100);
     expect(
       visiblePlan.batches.flatMap((batch) => batch.files).map((file) => path.basename(file))
-    ).toEqual(['tracked.ts', 'untracked.ts']);
+    ).toEqual(['route.ts', 'tracked.ts', 'untracked.ts']);
     expect(trackedPlan.selectionMode).toBe('git-tracked');
     expect(
       trackedPlan.batches.flatMap((batch) => batch.files).map((file) => path.basename(file))
-    ).toEqual(['tracked.ts']);
+    ).toEqual(['route.ts', 'tracked.ts']);
+    expect(
+      expandedPlan.batches
+        .flatMap((batch) => batch.files)
+        .map((file) => path.basename(file))
+        .sort()
+    ).toEqual([
+      '.gitignore',
+      'route.ts',
+      'tracked-bundle.js',
+      'tracked-hidden.ts',
+      'tracked.ts',
+      'untracked.ts',
+    ]);
     expect(filesystemPlan.selectionMode).toBe('filesystem');
     expect(
       filesystemPlan.batches
         .flatMap((batch) => batch.files)
         .map((file) => path.basename(file))
         .sort()
-    ).toEqual(['ignored.ts', 'tracked.ts', 'untracked.ts']);
+    ).toEqual(['ignored.ts', 'route.ts', 'tracked.ts', 'untracked.ts']);
   });
 
   it('scans planned batches and merges them into one ScanResult', async () => {

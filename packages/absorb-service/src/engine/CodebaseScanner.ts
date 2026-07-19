@@ -188,6 +188,7 @@ export interface ScanPlan {
 
 interface ExcludePolicy {
   names: Set<string>;
+  suffixes: string[];
   pathFragments: string[];
   nameFragments: string[];
   includeHidden: boolean;
@@ -1189,7 +1190,7 @@ export class CodebaseScanner {
         }
 
         const name = path.basename(fullPath);
-        if (this.pathExcludedByPolicy(fullPath, rootProbe, name, exclude)) continue;
+        if (this.pathTreeExcludedByPolicy(fullPath, rootProbe, exclude)) continue;
         const dot = name.lastIndexOf('.');
         const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
         if (NON_ABSORBABLE_EXT.has(ext)) continue;
@@ -1220,6 +1221,7 @@ export class CodebaseScanner {
     >
   ): ExcludePolicy {
     const names = new Set<string>();
+    const suffixes: string[] = [];
     const pathFragments: string[] = [];
     const nameFragments: string[] = [];
     const includeBuildArtifacts = options.includeBuildArtifacts ?? false;
@@ -1230,7 +1232,12 @@ export class CodebaseScanner {
         pathFragments.push(this.normalizePathFragment(trimmed));
         return;
       }
-      const name = trimmed.replace(/^\*\./, '').replace(/\*/g, '');
+      if (trimmed.startsWith('*.')) {
+        const suffix = trimmed.slice(1).replace(/\*/g, '').toLowerCase();
+        if (suffix && suffix !== '.') suffixes.push(suffix);
+        return;
+      }
+      const name = trimmed.replace(/^\*\./, '').replace(/\*/g, '').toLowerCase();
       if (includeBuildArtifacts && BUILD_ARTIFACT_DIRS.has(name)) return;
       names.add(name);
     };
@@ -1253,6 +1260,7 @@ export class CodebaseScanner {
 
     return {
       names,
+      suffixes: Array.from(new Set(suffixes)),
       pathFragments: Array.from(new Set(pathFragments)),
       nameFragments: Array.from(new Set(nameFragments)),
       includeHidden: options.includeHidden ?? false,
@@ -1272,8 +1280,10 @@ export class CodebaseScanner {
     name: string,
     policy: ExcludePolicy
   ): boolean {
-    if (policy.names.has(name)) return true;
     const lowerName = name.toLowerCase();
+    if (policy.names.has(lowerName)) return true;
+    if (policy.suffixes.some((suffix) => lowerName.endsWith(suffix))) return true;
+    if (lowerName.endsWith('.min.js') || lowerName.endsWith('.min.css')) return true;
     if (policy.nameFragments.some((fragment) => lowerName.includes(fragment))) return true;
     if (!policy.includeHidden && name.startsWith('.') && name !== '.') return true;
 
@@ -1283,6 +1293,24 @@ export class CodebaseScanner {
     return policy.pathFragments.some(
       (fragment) => relativeProbe.includes(fragment) || absoluteProbe.includes(fragment)
     );
+  }
+
+  private pathTreeExcludedByPolicy(
+    fullPath: string,
+    rootDir: string,
+    policy: ExcludePolicy
+  ): boolean {
+    const relative = path.relative(rootDir, fullPath);
+    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      return true;
+    }
+
+    let current = rootDir;
+    for (const segment of relative.split(path.sep).filter(Boolean)) {
+      current = path.join(current, segment);
+      if (this.pathExcludedByPolicy(current, rootDir, segment, policy)) return true;
+    }
+    return false;
   }
 
   private normalizeScanBatchSize(value?: number): number {
