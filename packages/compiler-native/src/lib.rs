@@ -77,6 +77,7 @@ pub const AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT: &str = "hs-machine-v17";
 pub const AGGREGATE_REBORROW_MACHINE_CONTRACT: &str = "hs-machine-v18";
 pub const BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v19";
 pub const BORROWED_SLICE_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v20";
+pub const BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v21";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const HOST_ALLOCATOR_PROVENANCE_ID: u32 = 1;
@@ -245,7 +246,9 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
-    let machine_contract = if has_borrowed_slice_return_machine_metadata(&ast) {
+    let machine_contract = if has_borrowed_subslice_return_machine_metadata(&ast) {
+        BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
+    } else if has_borrowed_slice_return_machine_metadata(&ast) {
         BORROWED_SLICE_RETURN_MACHINE_CONTRACT
     } else if has_borrowed_aggregate_return_machine_metadata(&ast) {
         BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
@@ -290,7 +293,16 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_borrowed_slice_return_machine_metadata(&ast) {
+    if has_borrowed_subslice_return_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(
+                &ast,
+                BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT,
+                true,
+            )?,
+            machine_contract: BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT,
+        })
+    } else if has_borrowed_slice_return_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, BORROWED_SLICE_RETURN_MACHINE_CONTRACT, true)?,
             machine_contract: BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
@@ -712,6 +724,30 @@ fn has_borrowed_slice_return_machine_metadata(ast: &Ast) -> bool {
                 && reference_annotation_pointee(annotation)
                     .is_some_and(|pointee| pointee.starts_with('['))
         })
+    })
+}
+
+fn has_borrowed_subslice_return_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        let AstNode::Function(function) = node else {
+            return false;
+        };
+        let returns_lifetimed_slice = function.return_type.as_deref().is_some_and(|annotation| {
+            annotation.starts_with("&'")
+                && reference_annotation_pointee(annotation)
+                    .is_some_and(|pointee| pointee.starts_with('['))
+        });
+        returns_lifetimed_slice
+            && function.body.iter().any(|statement| {
+                let AstNode::Return(returned) = statement else {
+                    return false;
+                };
+                let Some(AstNode::UnaryExpression(borrow)) = returned.argument.as_deref() else {
+                    return false;
+                };
+                matches!(borrow.operator.as_str(), "&" | "&mut")
+                    && matches!(borrow.argument.as_ref(), AstNode::MemberExpression(_))
+            })
     })
 }
 
@@ -1582,6 +1618,7 @@ fn bool_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1603,6 +1640,7 @@ fn control_flow_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1625,6 +1663,7 @@ fn scoped_lifetimes_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1648,6 +1687,7 @@ fn references_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1672,6 +1712,7 @@ fn memory_contract_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1692,6 +1733,7 @@ fn aggregate_contract_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1706,6 +1748,7 @@ fn owned_buffers_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1725,6 +1768,7 @@ fn fixed_arrays_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1737,6 +1781,7 @@ fn affine_aggregates_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1748,6 +1793,7 @@ fn aggregate_references_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1758,6 +1804,7 @@ fn aggregate_reference_calls_enabled(machine_contract: &str) -> bool {
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -1767,6 +1814,7 @@ fn aggregate_reborrows_enabled(machine_contract: &str) -> bool {
         AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     )
 }
 
@@ -2096,6 +2144,7 @@ fn resolve_aggregate_layout(
                     | AGGREGATE_REBORROW_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
                     | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} field `{field_name}` uses unsupported nested aggregate type `{type_name}` in struct `{}`",
@@ -2122,6 +2171,7 @@ fn resolve_aggregate_layout(
                     | AGGREGATE_REBORROW_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
                     | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} owned buffers as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
@@ -3702,6 +3752,7 @@ fn collect_typed_function_specs<'a>(
                                 | AGGREGATE_REBORROW_MACHINE_CONTRACT
                                 | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
                                 | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+                                | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -3806,7 +3857,9 @@ fn collect_typed_function_specs<'a>(
         let result = if let Some(reference_type) = borrowed_result {
             if !matches!(
                 machine_contract,
-                BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+                BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} references cannot appear in function returns; `{}` would expose an address-bearing value",
@@ -3913,7 +3966,11 @@ fn collect_typed_function_specs<'a>(
                     }
                 }
                 ReferenceTarget::Slice(element_type) => {
-                    if machine_contract != BORROWED_SLICE_RETURN_MACHINE_CONTRACT {
+                    if !matches!(
+                        machine_contract,
+                        BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+                            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
+                    ) {
                         return Err(NativeCompileError::new(format!(
                             "{machine_contract} function `{}` can return only a caller-tied aggregate reference",
                             function.name
@@ -3982,7 +4039,9 @@ fn collect_typed_function_specs<'a>(
         } else {
             if matches!(
                 machine_contract,
-                BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+                BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             ) && !function.lifetimes.is_empty()
             {
                 return Err(NativeCompileError::new(format!(
@@ -4802,18 +4861,6 @@ fn lower_typed_statements(
                             .params
                             .get(source_parameter)
                             .expect("borrowed slice result source parameter was validated");
-                        let AstNode::Identifier(returned) = argument else {
-                            return Err(NativeCompileError::new(format!(
-                                "{machine_contract} function `{}` borrowed slice result must return source parameter `{source_name}` directly",
-                                spec.node.name
-                            )));
-                        };
-                        if returned.name != *source_name {
-                            return Err(NativeCompileError::new(format!(
-                                "{machine_contract} function `{}` borrowed slice result must return source parameter `{source_name}` directly; found `{}`",
-                                spec.node.name, returned.name
-                            )));
-                        }
                         let source = references.get(source_name).ok_or_else(|| {
                             NativeCompileError::new(format!(
                                 "{machine_contract} function `{}` lost borrowed slice result source parameter `{source_name}`",
@@ -4839,6 +4886,128 @@ fn lower_typed_statements(
                                 spec.node.name
                             )));
                         };
+                        let (returned_base, returned_length) = match argument {
+                            AstNode::Identifier(returned) => {
+                                if returned.name != *source_name {
+                                    return Err(NativeCompileError::new(format!(
+                                        "{machine_contract} function `{}` borrowed slice result must return source parameter `{source_name}` directly; found `{}`",
+                                        spec.node.name, returned.name
+                                    )));
+                                }
+                                (*base, *length)
+                            }
+                            AstNode::UnaryExpression(borrow)
+                                if machine_contract
+                                    == BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT =>
+                            {
+                                let expected_operator = if mutable { "&mut" } else { "&" };
+                                if borrow.operator != expected_operator {
+                                    return Err(NativeCompileError::new(format!(
+                                        "{machine_contract} function `{}` borrowed slice subrange result expects `{expected_operator}`, found `{}`",
+                                        spec.node.name, borrow.operator
+                                    )));
+                                }
+                                let AstNode::MemberExpression(member) = borrow.argument.as_ref()
+                                else {
+                                    return Err(NativeCompileError::new(format!(
+                                        "{machine_contract} function `{}` borrowed slice subrange result must derive from source parameter `{source_name}`",
+                                        spec.node.name
+                                    )));
+                                };
+                                let AstNode::Identifier(returned_source) = member.object.as_ref()
+                                else {
+                                    return Err(NativeCompileError::new(format!(
+                                        "{machine_contract} function `{}` borrowed slice subrange result must derive from source parameter `{source_name}`",
+                                        spec.node.name
+                                    )));
+                                };
+                                if returned_source.name != *source_name {
+                                    return Err(NativeCompileError::new(format!(
+                                        "{machine_contract} function `{}` borrowed slice subrange result must derive from source parameter `{source_name}`; found `{}`",
+                                        spec.node.name, returned_source.name
+                                    )));
+                                }
+                                let AstNode::BinaryExpression(range) = member.property.as_ref()
+                                else {
+                                    return Err(NativeCompileError::new(format!(
+                                        "{machine_contract} function `{}` borrowed slice subrange result requires a half-open range",
+                                        spec.node.name
+                                    )));
+                                };
+                                if !member.computed || range.operator != ".." {
+                                    return Err(NativeCompileError::new(format!(
+                                        "{machine_contract} function `{}` borrowed slice subrange result requires a half-open range",
+                                        spec.node.name
+                                    )));
+                                }
+                                let start = lower_typed_expression(
+                                    builder,
+                                    module,
+                                    functions,
+                                    locals,
+                                    stack_slots,
+                                    references,
+                                    borrow_states,
+                                    &range.left,
+                                    MachineType::I32,
+                                    &format!(
+                                        "borrowed slice return range start for `{source_name}`"
+                                    ),
+                                    machine_contract,
+                                    memory_enabled,
+                                )?
+                                .value;
+                                let end = lower_typed_expression(
+                                    builder,
+                                    module,
+                                    functions,
+                                    locals,
+                                    stack_slots,
+                                    references,
+                                    borrow_states,
+                                    &range.right,
+                                    MachineType::I32,
+                                    &format!("borrowed slice return range end for `{source_name}`"),
+                                    machine_contract,
+                                    memory_enabled,
+                                )?
+                                .value;
+                                let pointer_type = module.target_config().pointer_type();
+                                emit_runtime_slice_range_checks(
+                                    builder,
+                                    start,
+                                    end,
+                                    *length,
+                                    pointer_type,
+                                    element_type.stack_size(),
+                                    0,
+                                );
+                                let derived_base = offset_runtime_slice_base(
+                                    builder,
+                                    pointer_type,
+                                    *base,
+                                    start,
+                                    element_type.stack_size(),
+                                );
+                                let derived_length = builder.ins().isub(end, start);
+                                (derived_base, derived_length)
+                            }
+                            _ => {
+                                let requirement = if machine_contract
+                                    == BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
+                                {
+                                    format!(
+                                        "return source parameter `{source_name}` directly or derive `&{source_name}[start..end]`"
+                                    )
+                                } else {
+                                    format!("return source parameter `{source_name}` directly")
+                                };
+                                return Err(NativeCompileError::new(format!(
+                                    "{machine_contract} function `{}` borrowed slice result must {requirement}",
+                                    spec.node.name
+                                )));
+                            }
+                        };
                         if let Some(allocator) = allocator {
                             emit_owned_buffer_cleanup(
                                 builder,
@@ -4848,7 +5017,7 @@ fn lower_typed_statements(
                                 allocator,
                             );
                         }
-                        builder.ins().return_(&[*base, *length]);
+                        builder.ins().return_(&[returned_base, returned_length]);
                     }
                     MachineResult::Owned(result_layout) => {
                         let owner = lower_owned_buffer_return(
@@ -7745,6 +7914,7 @@ fn lower_reference_initializer(
                     | AGGREGATE_REBORROW_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
                     | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -8704,6 +8874,7 @@ fn lower_forwarded_slice_call_argument(
             | AGGREGATE_REBORROW_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+            | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
     ) {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
@@ -8763,6 +8934,7 @@ fn lower_forwarded_slice_call_argument(
                     | AGGREGATE_REBORROW_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT
                     | BORROWED_SLICE_RETURN_MACHINE_CONTRACT
+                    | BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT
             ) =>
         {
             let AstNode::BinaryExpression(range) = range_node else {

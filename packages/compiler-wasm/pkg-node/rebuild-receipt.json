@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-18T23:15:07Z",
+  "generatedAt": "2026-07-18T23:58:56Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "e9bc9896eb8c7c26d2cec413c66616563aebb63e+working-tree-hs-machine-v20",
+  "sourceCommit": "ceaf5228fa5e00947d0ad2f7d5fd23d1ff2783ab+working-tree-hs-machine-v21",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -15,9 +15,9 @@
   },
   "result": {
     "rebuilt": true,
-    "artifactBytesChanged": true,
+    "artifactBytesChanged": false,
     "wasmBytes": 290188,
     "wasmSha256": "0ef2d6745c1bd0406a12f4685569b9b4f5d64a02ef9b7ee1a69e70521470396b",
-    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser and Kotlin fail-closed bridge containing canonical lifetime-bearing slice signatures for hs-machine-v20. A fresh Node process validated the caller-tied slice program through validate_detailed; the source changes are committed with this artifact so the working-tree suffix resolves to that commit."
+    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser tests and Kotlin fail-closed bridge covering caller-tied derived slice returns for hs-machine-v21. Test-only Rust changes leave release bytes identical to v20. A fresh Node process validated the canonical &values[start..end] return program through validate_detailed; the source changes are committed with this receipt so the working-tree suffix resolves to that commit."
   }
 }

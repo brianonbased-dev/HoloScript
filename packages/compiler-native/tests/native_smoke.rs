@@ -8,8 +8,9 @@ use holoscript_native::{
     NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
     AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
     AGGREGATE_REFERENCE_MACHINE_CONTRACT, BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
-    BORROWED_SLICE_RETURN_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
-    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
+    BORROWED_SLICE_RETURN_MACHINE_CONTRACT, BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT,
+    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
+    OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -229,6 +230,8 @@ const AGGREGATE_BORROWED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/aggregate-borrowed-return-exit-five.hs");
 const SLICE_BORROWED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/slice-borrowed-return-exit-five.hs");
+const SLICE_SUBRANGE_RETURN_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/slice-subrange-return-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -1775,6 +1778,181 @@ fn slice_reference_results_reject_ambiguous_aliasing_or_escape() {
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid borrowed slice result must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn slice_subrange_results_preserve_checked_bounds_and_caller_roots() {
+    assert_eq!(BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, "hs-machine-v21");
+    let options = NativeCompileOptions::host();
+    let first = compile_object(SLICE_SUBRANGE_RETURN_EXIT_FIVE, &options)
+        .expect("caller-tied slice subrange result should compile");
+    let second = compile_object(SLICE_SUBRANGE_RETURN_EXIT_FIVE, &options)
+        .expect("caller-tied slice subrange lowering should be deterministic");
+    assert_eq!(first, second);
+
+    let mixed_source = r#"
+        function identity<'a>(values: &'a [i32]): &'a [i32] { return values }
+        function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return &values[start..end]
+        }
+        function main(): i32 {
+            slot values: [i32; 2] = [1, 5]
+            let derived: &[i32] = view(&values[0..2], 1, 2)
+            return load(derived[0])
+        }
+    "#;
+    compile_object(mixed_source, &options)
+        .expect("v21 units should retain v20 direct borrowed-return functions");
+
+    let executable = scratch_executable("native-slice-subrange-return");
+    let artifact = compile_executable(SLICE_SUBRANGE_RETURN_EXIT_FIVE, &executable, &options)
+        .expect("shared and mutable slice subrange results should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v21");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("slice subrange-result executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let empty_source = r#"
+        function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return &values[start..end]
+        }
+        function main(): i32 {
+            slot values: [i32; 3] = [1, 2, 3]
+            scope {
+                let empty: &[i32] = view(&values[0..3], 2, 2)
+            }
+            store(values[0], 5)
+            return load(values[0])
+        }
+    "#;
+    let executable = scratch_executable("native-slice-subrange-empty-return");
+    let artifact = compile_executable(empty_source, &executable, &options)
+        .expect("an empty derived slice should remain a valid borrowed result");
+    assert_eq!(artifact.machine_contract, "hs-machine-v21");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("empty slice subrange-result executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let owned_source = r#"
+        function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return &values[start..end]
+        }
+        function main(): i32 {
+            let values: [i32] = buffer(4, 5)
+            scope {
+                let source: &[i32] = &values
+                let derived: &[i32] = view(source, 1, 3)
+                let observed: i32 = load(derived[1])
+            }
+            drop(values)
+            return 5
+        }
+    "#;
+    compile_object(owned_source, &options).expect(
+        "an owned-buffer caller root should survive a derived result and release on scope exit",
+    );
+
+    let bounds_source = r#"
+        function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+            return &values[start..end]
+        }
+        function main(): i32 {
+            slot values: [i32; 4] = [1, 2, 3, 4]
+            let derived: &[i32] = view(&values[0..4], 1, 3)
+            return load(derived[2])
+        }
+    "#;
+    let executable = scratch_executable("native-slice-subrange-result-bounds");
+    let artifact = compile_executable(bounds_source, &executable, &options)
+        .expect("derived result bounds should compile to a runtime trap");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("derived result bounds executable should launch");
+    assert!(!status.success(), "derived result length must guard access");
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn slice_subrange_results_trap_before_invalid_pointer_arithmetic() {
+    let options = NativeCompileOptions::host();
+    for (name, source) in [
+        (
+            "negative-start",
+            "function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] { return &values[start..end] } function main(): i32 { slot values: [i32; 2] = [1, 2] let derived: &[i32] = view(&values[0..2], -1, 1) return 5 }",
+        ),
+        (
+            "negative-end",
+            "function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] { return &values[start..end] } function main(): i32 { slot values: [i32; 2] = [1, 2] let derived: &[i32] = view(&values[0..2], 0, -1) return 5 }",
+        ),
+        (
+            "reversed",
+            "function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] { return &values[start..end] } function main(): i32 { slot values: [i32; 2] = [1, 2] let derived: &[i32] = view(&values[0..2], 2, 1) return 5 }",
+        ),
+        (
+            "outside-source",
+            "function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] { return &values[start..end] } function main(): i32 { slot values: [i32; 2] = [1, 2] let derived: &[i32] = view(&values[0..2], 0, 3) return 5 }",
+        ),
+    ] {
+        let executable = scratch_executable(&format!("native-slice-subrange-{name}"));
+        let artifact = compile_executable(source, &executable, &options)
+            .expect("guarded slice subrange program should compile");
+        assert_eq!(artifact.machine_contract, "hs-machine-v21");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("guarded slice subrange executable should launch");
+        assert!(!status.success(), "invalid derived range `{name}` must trap");
+        remove_scratch_executable_with_retry(&artifact.executable);
+    }
+}
+
+#[test]
+fn slice_subrange_results_reject_provenance_or_escape_ambiguity() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] { return &mut values[start..end] } function main(): i32 { return 5 }",
+            "expects `&`, found `&mut`",
+        ),
+        (
+            "function view<'a>(values: &'a mut [i32], start: i32, end: i32): &'a mut [i32] { return &values[start..end] } function main(): i32 { return 5 }",
+            "expects `&mut`, found `&`",
+        ),
+        (
+            "function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] { slot local: [i32; 2] = [1, 2] let other: &[i32] = &local[0..2] return &other[start..end] } function main(): i32 { return 5 }",
+            "must derive from source parameter `values`; found `other`",
+        ),
+        (
+            "function view<'a>(values: &'a [i32], start: i32): &'a [i32] { return &values[start] } function main(): i32 { return 5 }",
+            "requires a half-open range",
+        ),
+        (
+            "function view<'a>(values: &'a [i32], start: bool, end: i32): &'a [i32] { return &values[start..end] } function main(): i32 { return 5 }",
+            "expects `i32`, found `bool`",
+        ),
+        (
+            "function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] { return &values[start..end] } function main(): i32 { slot values: [i32; 2] = [1, 2] let first: &[i32] = view(&values[0..2], 0, 2) let second: &[i32] = view(first, 0, 1) return 5 }",
+            "cannot extend nested returned slice `first`",
+        ),
+        (
+            "function view<'a>(values: &'a mut [i32], start: i32, end: i32): &'a mut [i32] { return &mut values[start..end] } function main(): i32 { slot values: [i32; 2] = [1, 2] let first: &mut [i32] = view(&mut values[0..2], 0, 1) let second: &mut [i32] = view(&mut values[0..2], 1, 2) return 5 }",
+            "cannot mutably reborrow stack slot `values`",
+        ),
+        (
+            "function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] { return &values[start..end] } function main(): i32 { slot values: [i32; 2] = [1, 2] let derived: &[i32] = view(&values[0..2], 0, 1) store(values[0], 5) return 5 }",
+            "cannot store to stack slot `values` while an active borrow exists",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid slice subrange result must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"

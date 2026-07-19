@@ -3069,8 +3069,8 @@ function mk() {
             "borrowed slice type `&[i32]` in local `view` requires target-specific borrow and bounds lowering"
         ));
 
-        let lifetimed = r#"function view<'a>(values: &'a [i32]): &'a [i32] {
-  return values
+        let lifetimed = r#"function view<'a>(values: &'a [i32], start: i32, end: i32): &'a [i32] {
+  return &values[start..end]
 }
 function main(): i32 { return 5 }"#;
         let error = compile_source_to_kotlin(lifetimed, "  ")

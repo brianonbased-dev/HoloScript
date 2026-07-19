@@ -3378,6 +3378,55 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_caller_tied_slice_subrange_return() {
+        let source = r#"function view<'a>(
+            values: &'a [i32],
+            start: i32,
+            end: i32
+        ): &'a [i32] {
+            return &values[start..end]
+        }"#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("caller-tied slice subrange return should parse");
+
+        let AstNode::Function(function) = &program.body[0] else {
+            panic!("Expected Function node");
+        };
+        let AstNode::Return(returned) = &function.body[0] else {
+            panic!("Expected Return node");
+        };
+        assert!(matches!(
+            returned.argument.as_deref(),
+            Some(AstNode::UnaryExpression(borrow))
+                if borrow.operator == "&"
+                    && matches!(
+                        borrow.argument.as_ref(),
+                        AstNode::MemberExpression(member)
+                            if member.computed
+                                && matches!(
+                                    member.object.as_ref(),
+                                    AstNode::Identifier(source) if source.name == "values"
+                                )
+                                && matches!(
+                                    member.property.as_ref(),
+                                    AstNode::BinaryExpression(range)
+                                        if range.operator == ".."
+                                            && matches!(
+                                                range.left.as_ref(),
+                                                AstNode::Identifier(start) if start.name == "start"
+                                            )
+                                            && matches!(
+                                                range.right.as_ref(),
+                                                AstNode::Identifier(end) if end.name == "end"
+                                            )
+                                )
+                    )
+        ));
+    }
+
+    #[test]
     fn test_parse_typed_stack_slot_declaration() {
         let source = r#"function main(): i32 {
             slot value: i32 = 2
