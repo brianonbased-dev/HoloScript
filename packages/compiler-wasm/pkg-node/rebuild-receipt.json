@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-19T00:36:47Z",
+  "generatedAt": "2026-07-19T01:37:08Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "3885837d5be25c4f34c2fbe304312350f7741db9+working-tree-hs-machine-v22",
+  "sourceCommit": "e447aaf55b73c1b59d57513424aabd2d3c65dc39+working-tree-hs-machine-v23",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -15,9 +15,9 @@
   },
   "result": {
     "rebuilt": true,
-    "artifactBytesChanged": false,
-    "wasmBytes": 290188,
-    "wasmSha256": "0ef2d6745c1bd0406a12f4685569b9b4f5d64a02ef9b7ee1a69e70521470396b",
-    "note": "Rebuilt the Node WASM artifact from the working-tree Rust parser test and Kotlin fail-closed bridge covering one-hop caller-tied borrowed-slice return forwarding for hs-machine-v22. Test-only compiler-wasm changes leave release bytes identical to v21. A fresh Node process validated the canonical forwarding program through validate_detailed and validate; the source changes are committed with this receipt so the working-tree suffix resolves to that commit."
+    "artifactBytesChanged": true,
+    "wasmBytes": 290710,
+    "wasmSha256": "1bd3b3d854e8723c362cf713d8794cadc38bfa65cfeed656ce547ea0c372a4bc",
+    "note": "Rebuilt the Node WASM artifact from the working-tree parser and Kotlin bridge changes for hs-machine-v23 one-hop caller-tied borrowed aggregate return forwarding. The generic non-slice borrowed-reference fail-closed boundary changes release bytes. A fresh Node process validated the canonical forwarding program through validate_detailed and validate; the source changes are committed with this receipt so the working-tree suffix resolves to that commit."
   }
 }

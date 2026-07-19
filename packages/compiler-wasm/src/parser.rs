@@ -3358,6 +3358,44 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_caller_tied_aggregate_forwarded_return() {
+        let source = r#"
+            struct Packet { code: i32 }
+            function borrow<'a>(packet: &'a Packet): &'a Packet {
+                return packet
+            }
+            function relay<'a>(packet: &'a Packet): &'a Packet {
+                return borrow(packet)
+            }
+        "#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("caller-tied aggregate forwarding return should parse");
+
+        let AstNode::Function(relay) = &program.body[2] else {
+            panic!("Expected relay Function node");
+        };
+        assert_eq!(relay.lifetimes, vec!["a"]);
+        assert_eq!(relay.param_types, vec![Some("&'a Packet".to_string())]);
+        assert_eq!(relay.return_type.as_deref(), Some("&'a Packet"));
+        let AstNode::Return(returned) = &relay.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::CallExpression(call)) = returned.argument.as_deref() else {
+            panic!("Expected forwarded CallExpression node");
+        };
+        assert!(matches!(
+            call.callee.as_ref(),
+            AstNode::Identifier(callee) if callee.name == "borrow"
+        ));
+        assert!(matches!(
+            call.arguments.first(),
+            Some(AstNode::Identifier(source)) if source.name == "packet"
+        ));
+    }
+
+    #[test]
     fn test_parse_caller_tied_slice_reference_lifetime() {
         let source = r#"function view<'a>(values: &'a [i32]): &'a [i32] {
             return values

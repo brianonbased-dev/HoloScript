@@ -402,6 +402,11 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
             "borrowed slice type `{annotation}` in {context} requires target-specific borrow and bounds lowering; the Kotlin bridge does not erase native alias semantics"
         )));
     }
+    if let Some((annotation, context)) = find_borrowed_non_slice_reference_annotation(ast) {
+        return Err(KotlinEmitError::new(format!(
+            "borrowed reference type `{annotation}` in {context} requires target-specific borrow and alias lowering; the Kotlin bridge does not erase native alias semantics"
+        )));
+    }
     if let Some((annotation, context)) = find_owned_buffer_annotation(ast) {
         return Err(KotlinEmitError::new(format!(
             "owned buffer type `{annotation}` in {context} requires target-specific allocator, move, and drop lowering; the Kotlin bridge does not erase affine ownership"
@@ -507,18 +512,28 @@ pub(crate) fn find_owned_buffer_annotation(ast: &Ast) -> Option<(&str, String)> 
 
 fn find_borrowed_slice_annotation(ast: &Ast) -> Option<(&str, String)> {
     find_type_annotation(ast, |annotation| {
-        let Some(mut rest) = annotation.strip_prefix('&') else {
-            return false;
-        };
-        if let Some(lifetime_rest) = rest.strip_prefix('\'') {
-            let Some((_, pointee)) = lifetime_rest.split_once(' ') else {
-                return false;
-            };
-            rest = pointee;
-        }
-        let pointee = rest.strip_prefix("mut ").unwrap_or(rest);
-        pointee.starts_with('[') && pointee.ends_with(']') && !pointee.contains(';')
+        borrowed_reference_pointee(annotation).is_some_and(|pointee| {
+            pointee.starts_with('[') && pointee.ends_with(']') && !pointee.contains(';')
+        })
     })
+}
+
+fn find_borrowed_non_slice_reference_annotation(ast: &Ast) -> Option<(&str, String)> {
+    find_type_annotation(ast, |annotation| {
+        borrowed_reference_pointee(annotation).is_some_and(|pointee| {
+            !(pointee.starts_with('[') && pointee.ends_with(']') && !pointee.contains(';'))
+        })
+    })
+}
+
+fn borrowed_reference_pointee(annotation: &str) -> Option<&str> {
+    let mut rest = annotation.strip_prefix('&')?;
+    if let Some(lifetime_rest) = rest.strip_prefix('\'') {
+        let (_, pointee) = lifetime_rest.split_once(' ')?;
+        rest = pointee;
+    }
+    let pointee = rest.strip_prefix("mut ").unwrap_or(rest);
+    (!pointee.is_empty()).then_some(pointee)
 }
 
 fn find_type_annotation(ast: &Ast, predicate: fn(&str) -> bool) -> Option<(&str, String)> {
@@ -3090,6 +3105,25 @@ function main(): i32 { return 5 }"#;
             .expect_err("Kotlin must not erase caller-tied forwarded slice results");
         assert!(error.to_string().contains(
             "borrowed slice type `&'a [i32]` in return type of function `relay` requires target-specific borrow and bounds lowering"
+        ));
+    }
+
+    #[test]
+    fn borrowed_machine_aggregates_fail_closed_until_kotlin_borrow_lowering_exists() {
+        let forwarded = r#"
+struct Packet { code: i32 }
+function relay<'a>(packet: &'a Packet): &'a Packet {
+  return borrow(packet)
+}
+function borrow<'a>(packet: &'a Packet): &'a Packet {
+  return packet
+}
+function main(): i32 { return 5 }
+"#;
+        let error = compile_source_to_kotlin(forwarded, "  ")
+            .expect_err("Kotlin must not erase caller-tied forwarded aggregate results");
+        assert!(error.to_string().contains(
+            "borrowed reference type `&'a Packet` in return type of function `relay` requires target-specific borrow and alias lowering"
         ));
     }
 

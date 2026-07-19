@@ -7,10 +7,11 @@ use holoscript_native::{
     compile_executable, compile_object, inspect_native_layouts, NativeAggregateFfi,
     NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
     AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
-    AGGREGATE_REFERENCE_MACHINE_CONTRACT, BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
-    BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
-    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
-    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
+    AGGREGATE_REFERENCE_MACHINE_CONTRACT, BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT,
+    BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT,
+    BORROWED_SLICE_RETURN_MACHINE_CONTRACT, BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT,
+    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
+    OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -234,6 +235,8 @@ const SLICE_SUBRANGE_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/slice-subrange-return-exit-five.hs");
 const SLICE_FORWARDED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/slice-forwarded-return-exit-five.hs");
+const AGGREGATE_FORWARDED_RETURN_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/aggregate-forwarded-return-exit-five.hs");
 
 fn scratch_executable(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -2114,6 +2117,138 @@ fn slice_forwarded_results_reject_transitive_or_severed_provenance() {
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid forwarded borrowed slice result must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn aggregate_forwarded_results_preserve_one_hop_abi_and_caller_roots() {
+    assert_eq!(
+        BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT,
+        "hs-machine-v23"
+    );
+    let options = NativeCompileOptions::host();
+    let first = compile_object(AGGREGATE_FORWARDED_RETURN_EXIT_FIVE, &options)
+        .expect("one-hop caller-tied aggregate forwarding should compile");
+    let second = compile_object(AGGREGATE_FORWARDED_RETURN_EXIT_FIVE, &options)
+        .expect("one-hop aggregate forwarding lowering should be deterministic");
+    assert_eq!(first, second);
+
+    let executable = scratch_executable("native-aggregate-forwarded-return");
+    let artifact = compile_executable(AGGREGATE_FORWARDED_RETURN_EXIT_FIVE, &executable, &options)
+        .expect("shared and mutable forwarded aggregate results should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v23");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("forwarded aggregate-result executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let mixed_source = r#"
+        struct Packet { code: i32 }
+        function add(left: i32, right: i32): i32 { return left + right }
+        function borrow<'a>(packet: &'a Packet): &'a Packet { return packet }
+        function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) }
+        function slice<'a>(values: &'a [i32]): &'a [i32] { return values }
+        function slice_relay<'a>(values: &'a [i32]): &'a [i32] { return slice(values) }
+        function main(): i32 {
+            slot packet: Packet = Packet(5)
+            slot values: [i32; 1] = [5]
+            let view: &Packet = relay(&packet)
+            let items: &[i32] = slice_relay(&values[0..1])
+            return add(load(view.code), load(items[0])) - 5
+        }
+    "#;
+    compile_object(mixed_source, &options)
+        .expect("v23 units should retain ordinary calls plus v19 aggregate and v22 slice returns");
+
+    let owned_source = r#"
+        struct Packet { values: [i32] }
+        function borrow<'a>(packet: &'a Packet): &'a Packet { return packet }
+        function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) }
+        function main(): i32 {
+            slot packet: Packet = Packet(buffer(2, 5))
+            scope {
+                let view: &Packet = relay(&packet)
+            }
+            drop(packet.values)
+            return 5
+        }
+    "#;
+    compile_object(owned_source, &options)
+        .expect("a forwarded aggregate result should retain and release owned-leaf roots");
+}
+
+#[test]
+fn aggregate_forwarded_results_reject_transitive_or_severed_provenance() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet, other: &Packet): &'a Packet { return borrow(other) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `packet` to `borrow`; found `other`",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) } function chain<'a>(packet: &'a Packet): &'a Packet { return relay(packet) } function main(): i32 { return 5 }",
+            "cannot forward borrowed aggregate result from forwarding function `relay`; only one direct forwarding hop is admitted",
+        ),
+        (
+            "struct Packet { code: i32 } function relay<'a>(packet: &'a Packet): &'a Packet { return relay(packet) } function main(): i32 { return 5 }",
+            "cannot forward borrowed aggregate result from forwarding function `relay`; only one direct forwarding hop is admitted",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(&packet) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `packet` directly to `borrow`",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow_mut<'a>(packet: &'a mut Packet): &'a mut Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow_mut(packet) } function main(): i32 { return 5 }",
+            "borrowed return mutability must match the result of `borrow_mut`",
+        ),
+        (
+            "struct Packet { code: i32 } struct Boxed { code: i32 } function borrow_box<'a>(value: &'a Boxed): &'a Boxed { return value } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow_box(packet) } function main(): i32 { return 5 }",
+            "returns aggregate `Packet`, but `borrow_box` returns a different aggregate layout",
+        ),
+        (
+            "struct Packet { code: i32 } function read(packet: &Packet): i32 { return load(packet.code) } function relay<'a>(packet: &'a Packet): &'a Packet { return read(packet) } function main(): i32 { return 5 }",
+            "cannot forward `read` because it does not return a borrowed aggregate reference",
+        ),
+        (
+            "struct Packet { code: i32 } function relay<'a>(packet: &'a Packet): &'a Packet { return missing(packet) } function main(): i32 { return 5 }",
+            "forwards an unknown function `missing`",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) return borrow(packet) } function main(): i32 { return 5 }",
+            "requires exactly one direct top-level borrowed-reference forwarding return; found 2 forwarding returns, 2 top-level",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet, choose: bool): &'a Packet { if (choose) { return borrow(packet) } return packet } function main(): i32 { return 5 }",
+            "requires exactly one direct top-level borrowed-reference forwarding return; found 1 forwarding returns, 0 top-level",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) } function inspect<'a>(packet: &'a Packet): &'a Packet { let nested: &Packet = relay(packet) return borrow(nested) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `packet` to `borrow`; found `nested`",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) } function main(): i32 { slot packet: Packet = Packet(5) let first: &Packet = relay(&packet) let second: &Packet = relay(first) return 5 }",
+            "borrowed result from `relay` cannot extend nested returned aggregate `first`",
+        ),
+        (
+            "struct Packet { code: i32 } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) } function main(): i32 { slot packet: Packet = Packet(1) let view: &Packet = relay(&packet) store(packet.code, 5) return load(view.code) }",
+            "cannot store to stack slot `packet` while an active borrow exists",
+        ),
+        (
+            "struct Packet { values: [i32] } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let view: &Packet = relay(&packet) drop(packet.values) return 5 }",
+            "cannot drop owned buffer `packet.values` while aggregate ancestor `packet` is borrowed",
+        ),
+        (
+            "struct Packet { values: [i32] } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function relay<'a>(packet: &'a Packet): &'a Packet { return borrow(packet) } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let view: &Packet = relay(&packet) let moved: [i32] = move(packet.values) return 5 }",
+            "cannot move owned buffer `packet.values` while aggregate ancestor `packet` is borrowed",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid forwarded borrowed aggregate result must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"
