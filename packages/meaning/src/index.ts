@@ -22,4 +22,4 @@ export * from './affective-harm';
 export * from './verifier';
 export * from './uq';
 export * from './consistency';
-export * from './epistemic';
+export * from './uncertain';

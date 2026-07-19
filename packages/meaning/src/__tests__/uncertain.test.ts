@@ -3,17 +3,18 @@ import {
   both,
   flatMap,
   fromResolution,
+  isAleatoric,
   isKnown,
   known,
   map,
   orElse,
   requireKnown,
   unknown,
-  type Epistemic,
-} from '../epistemic';
-import { structuredGap, type MeaningResolution } from '../contract';
+  type Uncertain,
+} from '../uncertain';
+import { aleatoricGap, structuredGap, type MeaningResolution } from '../contract';
 
-describe('Epistemic<T> — first-class ignorance as a value', () => {
+describe('Uncertain<T> — first-class ignorance as a value', () => {
   it('known/unknown constructors and the isKnown guard', () => {
     expect(known(7)).toEqual({ known: true, value: 7 });
     const u = unknown<number>('underdetermined');
@@ -31,16 +32,27 @@ describe('Epistemic<T> — first-class ignorance as a value', () => {
     expect('gap' in bare).toBe(false);
   });
 
+  it('isAleatoric separates the IRREDUCIBLE class from the reducible one', () => {
+    const reducible = unknown<number>('underdetermined', structuredGap('temporal', 'temporal.unstated_now', 'underdetermined'));
+    const irreducible = unknown<number>('irreducible_stochastic', aleatoricGap('sampling', 'sampling.coin_flip'));
+    expect(isAleatoric(reducible)).toBe(false);
+    expect(isAleatoric(irreducible)).toBe(true);
+    // a KNOWN value is never aleatoric — there is no gap to classify
+    expect(isAleatoric(known(1))).toBe(false);
+    // an unknown with no structured gap is not assumed irreducible
+    expect(isAleatoric(unknown<number>('underdetermined'))).toBe(false);
+  });
+
   it('map transforms a known value and propagates an unknown UNCHANGED (reason + gap preserved)', () => {
     expect(map(known(3), (n) => n * 2)).toEqual({ known: true, value: 6 });
     const gap = structuredGap('temporal', 'temporal.unstated_now', 'underdetermined');
-    const u: Epistemic<number> = unknown('underdetermined', gap);
+    const u: Uncertain<number> = unknown('underdetermined', gap);
     const mapped = map(u, (n) => n * 2);
     expect(mapped).toBe(u); // same unknown, not recomputed
   });
 
   it('flatMap chains and short-circuits on the first unknown', () => {
-    const safeDiv = (n: number): Epistemic<number> => (n === 0 ? unknown('missing_precondition') : known(100 / n));
+    const safeDiv = (n: number): Uncertain<number> => (n === 0 ? unknown('missing_precondition') : known(100 / n));
     expect(flatMap(known(4), safeDiv)).toEqual({ known: true, value: 25 });
     expect(flatMap(known(0), safeDiv).known).toBe(false);
     expect(flatMap(unknown<number>('cyclic_dependency'), safeDiv)).toEqual({ known: false, reason: 'cyclic_dependency' });
