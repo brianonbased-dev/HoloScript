@@ -31,6 +31,7 @@ import {
   requireNativeGraphRAGProvider,
   type GraphRAGEmbeddingPolicyReceipt,
 } from './graph-rag-embedding-policy';
+import { resolveCodebaseCachePaths } from './codebase-cache-storage';
 import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
 import type { CommunityAwareImpactReceipt } from '../engine/CodebaseGraph';
 
@@ -1104,16 +1105,17 @@ interface LocalCodebaseSnapshotAuthority {
   receipt: LocalCodebaseSnapshotReceiptSummary;
 }
 
-function getCacheDir(): string {
-  return process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
+function resolveCacheWorkspaceRoot(rootDir?: string | null): string {
+  const pinned = process.env.HOLOSCRIPT_WORKSPACE_ROOT;
+  return path.resolve(rootDir || (pinned && pinned.trim().length > 0 ? pinned : process.cwd()));
 }
 
-function getCacheFile(): string {
-  return path.join(getCacheDir(), 'graph-cache.json');
+function getCacheFile(rootDir?: string | null): string {
+  return resolveCodebaseCachePaths(resolveCacheWorkspaceRoot(rootDir)).graphFile;
 }
 
-function getEmbeddingsFile(): string {
-  return path.join(getCacheDir(), 'embeddings-cache.bin');
+function getEmbeddingsFile(rootDir?: string | null): string {
+  return resolveCodebaseCachePaths(resolveCacheWorkspaceRoot(rootDir)).embeddingsFile;
 }
 
 function formatCacheAge(ageMs: number | undefined): string | null {
@@ -1857,12 +1859,12 @@ function saveGraphCache(
       localCodebaseSnapshotReceipt,
       scanPolicy: normalizeScanPolicy(scanPolicy),
     };
-    const cacheFile = getCacheFile();
+    const cacheFile = getCacheFile(rootDir);
     atomicWriteFileSync(cacheFile, JSON.stringify(envelope), 'utf-8');
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
     console.warn(
-      `[CacheDebug][codebase] save miss path=${getCacheFile()} error=${(err as Error)?.message ?? String(err)}`
+      `[CacheDebug][codebase] save miss path=${getCacheFile(rootDir)} error=${(err as Error)?.message ?? String(err)}`
     );
   }
 }
@@ -1871,17 +1873,17 @@ function saveEmbeddingsCache(index: any, rootDir: string): void {
   try {
     if (typeof index.serializeBinary === 'function') {
       const buffer = index.serializeBinary();
-      atomicWriteFileSync(getEmbeddingsFile(), buffer);
+      atomicWriteFileSync(getEmbeddingsFile(rootDir), buffer);
     }
   } catch (err) {
     console.warn(
-      `[CacheDebug][codebase] save embeddings miss path=${getEmbeddingsFile()} error=${(err as Error)?.message}`
+      `[CacheDebug][codebase] save embeddings miss path=${getEmbeddingsFile(rootDir)} error=${(err as Error)?.message}`
     );
   }
 }
 
-function readEmbeddingsCacheModel(): string | null {
-  const embeddingsFile = getEmbeddingsFile();
+function readEmbeddingsCacheModel(rootDir?: string | null): string | null {
+  const embeddingsFile = getEmbeddingsFile(rootDir);
   if (!fs.existsSync(embeddingsFile)) return null;
 
   let fd: number | undefined;
@@ -1903,9 +1905,13 @@ function readEmbeddingsCacheModel(): string | null {
   }
 }
 
-async function loadEmbeddingsCache(mod: any, providerInstance: any): Promise<any | null> {
+async function loadEmbeddingsCache(
+  mod: any,
+  providerInstance: any,
+  rootDir?: string | null
+): Promise<any | null> {
   try {
-    const embeddingsFile = getEmbeddingsFile();
+    const embeddingsFile = getEmbeddingsFile(rootDir);
     if (!fs.existsSync(embeddingsFile)) return null;
     const buffer = fs.readFileSync(embeddingsFile);
     // No mixed embedding spaces: a cache built by a different provider holds
@@ -1932,41 +1938,59 @@ async function loadEmbeddingsCache(mod: any, providerInstance: any): Promise<any
     const index = mod.EmbeddingIndex.deserializeBinary(buffer, { provider: providerInstance });
     return index;
   } catch (err) {
-    console.warn(`[CacheDebug][codebase] load embeddings miss path=${getEmbeddingsFile()}`);
+    console.warn(`[CacheDebug][codebase] load embeddings miss path=${getEmbeddingsFile(rootDir)}`);
     return null;
   }
 }
 
-function loadGraphCache(): GraphCacheEnvelope | null {
-  try {
-    const cacheFile = getCacheFile();
-    if (!fs.existsSync(cacheFile)) {
-      return null;
-    }
-    const raw = fs.readFileSync(cacheFile, 'utf-8');
-    const envelope: GraphCacheEnvelope = JSON.parse(raw);
-
-    // Accept both v1 and v2
-    if (envelope.version !== 1 && envelope.version !== 2) {
-      return null;
-    }
-
-    // v2 caches use content-based invalidation (no TTL check)
-    // v1 caches still use 24h TTL
-    if (envelope.version === 1 && Date.now() - envelope.timestamp > CACHE_MAX_AGE_MS) {
-      return null;
-    }
-
-    return envelope;
-  } catch {
-    console.warn(
-      `[CacheDebug][codebase] load miss path=${getCacheFile()} reason=parse-or-io-error`
-    );
-    return null;
-  }
+interface GraphCacheReadResult {
+  envelope: GraphCacheEnvelope;
+  cacheFile: string;
 }
 
-function getCacheAge(): {
+function readGraphCache(
+  rootDir?: string | null,
+  options: { allowExpiredV1?: boolean } = {}
+): GraphCacheReadResult | null {
+  const workspaceRoot = resolveCacheWorkspaceRoot(rootDir);
+  const paths = resolveCodebaseCachePaths(workspaceRoot);
+  const candidates =
+    paths.layout === 'flat' ? [paths.graphFile] : [paths.graphFile, paths.legacyGraphFile];
+
+  for (const cacheFile of candidates) {
+    if (!fs.existsSync(cacheFile)) continue;
+    try {
+      const raw = fs.readFileSync(cacheFile, 'utf-8');
+      const envelope: GraphCacheEnvelope = JSON.parse(raw);
+      if (envelope.version !== 1 && envelope.version !== 2) continue;
+
+      // A namespaced reader may use the old flat cache only when it belongs to
+      // this exact workspace. This makes upgrades non-destructive without
+      // reviving the cross-repository eviction bug.
+      if (paths.layout !== 'flat' && !rootMatchesCurrentRepo(envelope.rootDir, workspaceRoot)) {
+        continue;
+      }
+
+      if (
+        !options.allowExpiredV1 &&
+        envelope.version === 1 &&
+        Date.now() - envelope.timestamp > CACHE_MAX_AGE_MS
+      ) {
+        continue;
+      }
+      return { envelope, cacheFile };
+    } catch {
+      console.warn(`[CacheDebug][codebase] load miss path=${cacheFile} reason=parse-or-io-error`);
+    }
+  }
+  return null;
+}
+
+function loadGraphCache(rootDir?: string | null): GraphCacheEnvelope | null {
+  return readGraphCache(rootDir)?.envelope ?? null;
+}
+
+function getCacheAge(rootDir?: string | null): {
   exists: boolean;
   ageMs?: number;
   rootDir?: string;
@@ -1980,10 +2004,9 @@ function getCacheAge(): {
   scanPolicy?: GraphScanPolicy;
 } {
   try {
-    const cacheFile = getCacheFile();
-    if (!fs.existsSync(cacheFile)) return { exists: false };
-    const raw = fs.readFileSync(cacheFile, 'utf-8');
-    const envelope: GraphCacheEnvelope = JSON.parse(raw);
+    const cacheRead = readGraphCache(rootDir, { allowExpiredV1: true });
+    if (!cacheRead) return { exists: false };
+    const envelope = cacheRead.envelope;
     return {
       exists: true,
       ageMs: Date.now() - envelope.timestamp,
@@ -2952,7 +2975,7 @@ async function hydrateGraphRAGFromDiskEmbeddings(
     xenovaModel: process.env.XENOVA_MODEL,
   });
 
-  const cachedIndex = await loadEmbeddingsCache(mod, providerObj);
+  const cachedIndex = await loadEmbeddingsCache(mod, providerObj, rootDir);
   if (!cachedIndex) return false;
 
   setGraphRAGState(cachedIndex, new GraphRAGEngine(graph, cachedIndex), {
@@ -2996,10 +3019,10 @@ async function ensureCachedGraph(): Promise<{
     };
   }
   // Try disk
-  const envelope = loadGraphCache();
+  const currentCwd = resolveWorkspaceRoot();
+  const envelope = loadGraphCache(currentCwd);
   if (envelope) {
     try {
-      const currentCwd = resolveWorkspaceRoot();
       const ageMs = Date.now() - envelope.timestamp;
       const currentGitCommitHash = await getCurrentGitCommit(envelope.rootDir);
       const cacheMatchesCwd = rootMatchesCurrentRepo(envelope.rootDir, currentCwd);
@@ -3263,7 +3286,7 @@ async function runFullScan(
   // same commit as the persisted embeddings, the disk `.bin` is still valid — we
   // can load it instead of re-embedding 343k symbols. Read here, at the top,
   // because the save at the end of the scan-persist step clobbers the file.
-  const priorEnvelopeForHydrate = loadGraphCache();
+  const priorEnvelopeForHydrate = loadGraphCache(primaryRootDir);
   const priorGitCommitHash = priorEnvelopeForHydrate?.gitCommitHash;
 
   const rootDiagnostics = inlineSourceFiles
@@ -3275,7 +3298,7 @@ async function runFullScan(
     (diagnostic) => !diagnostic.resolvedDirExists || !diagnostic.resolvedDirReadable
   );
   if (inaccessibleRoots.length > 0) {
-    const cache = getCacheAge();
+    const cache = getCacheAge(primaryRootDir);
     const graphUnavailableReceipt = buildGraphUnavailableReceipt({
       reason: 'rootDir_unavailable',
       requestedPath: inaccessibleRoots[0].requestedRootDir,
@@ -3546,7 +3569,7 @@ async function runFullScan(
           openaiModel: embeddingModel || process.env.OPENAI_MODEL,
           xenovaModel: process.env.XENOVA_MODEL,
         });
-        hydratedIndex = await loadEmbeddingsCache(mod, providerObj);
+        hydratedIndex = await loadEmbeddingsCache(mod, providerObj, primaryRootDir);
         if (hydratedIndex) {
           console.error(
             `[AbsorbEmbeddings] Fast-hydrate: loaded embeddings from disk (git ${gitCommitHash?.slice(0, 7)} match, provider ${providerName}) — skipping re-embed.`
@@ -3943,7 +3966,7 @@ async function runIncrementalPatch(
         xenovaModel: process.env.XENOVA_MODEL,
       });
 
-      index = await loadEmbeddingsCache(mod, providerObj);
+      index = await loadEmbeddingsCache(mod, providerObj, rootDir);
       if (!index) {
         index = await createDynamicEmbeddingIndex(
           mod,
@@ -4387,7 +4410,7 @@ async function buildAutoBackgroundDecision(
     }
   }
 
-  const existingCache = loadGraphCache();
+  const existingCache = loadGraphCache(plan.primaryRootDir);
   const existingCacheMatchesRoot =
     existingCache?.version === 2 &&
     rootMatchesCurrentRepo(existingCache.rootDir, plan.primaryRootDir);
@@ -4518,7 +4541,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
   // ═══════════════════════════════════════════════════════════════════════════
   // PATH 2: Load cache checks
   // ═══════════════════════════════════════════════════════════════════════════
-  const envelope = loadGraphCache();
+  const envelope = loadGraphCache(primaryRootDir);
   if (!envelope) {
     const result = await runFullScan(
       mod,
@@ -4736,7 +4759,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
           openaiModel: embeddingModel || process.env.OPENAI_MODEL,
           xenovaModel: process.env.XENOVA_MODEL,
         });
-        const diskIndex = await loadEmbeddingsCache(mod, providerObj);
+        const diskIndex = await loadEmbeddingsCache(mod, providerObj, rootDir);
         enforceAbsorbJobControl(jobId, 'embedding-cache-hydrate');
         if (diskIndex) {
           console.error(
@@ -5280,11 +5303,14 @@ async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown
 // ── Graph Status ─────────────────────────────────────────────────────────────
 
 async function handleGraphStatus(): Promise<unknown> {
-  const cache = getCacheAge();
+  const currentCwd = resolveWorkspaceRoot();
+  const activeCacheRoot = cachedRootDir || currentCwd;
+  const activeCachePaths = resolveCodebaseCachePaths(activeCacheRoot);
+  const cache = getCacheAge(activeCacheRoot);
   const embeddingPolicy = cache.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt();
   const { getGraphRAGStateStatus } = await import('./graph-rag-tools');
-  const embeddingsCacheExists = fs.existsSync(getEmbeddingsFile());
-  const embeddingsCacheModel = readEmbeddingsCacheModel();
+  const embeddingsCacheExists = fs.existsSync(getEmbeddingsFile(activeCacheRoot));
+  const embeddingsCacheModel = readEmbeddingsCacheModel(activeCacheRoot);
   const cacheAgeMs = cache.ageMs;
   const diskCacheFreshByAge = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
   const inMemoryAgeMs =
@@ -5297,7 +5323,6 @@ async function handleGraphStatus(): Promise<unknown> {
   // different directory (e.g. a temp absorb scratch dir) is NOT authoritative
   // for the workspace the agent is actually working in.
   const cacheRootDir = cachedRootDir || cache.rootDir || null;
-  const currentCwd = resolveWorkspaceRoot();
   const cacheMatchesCwd = rootMatchesCurrentRepo(cacheRootDir, currentCwd);
   const diskCacheMatchesCwd = rootMatchesCurrentRepo(cache.rootDir, currentCwd);
   const workspaceGitCommitHash =
@@ -5510,6 +5535,13 @@ async function handleGraphStatus(): Promise<unknown> {
   return {
     inMemory: cachedGraph !== null,
     rootDir: cachedRootDir || null,
+    cacheStorage: {
+      layout: activeCachePaths.layout,
+      workspaceId: activeCachePaths.workspaceId,
+      directory: activeCachePaths.directory,
+      graphFile: activeCachePaths.graphFile,
+      embeddingsFile: activeCachePaths.embeddingsFile,
+    },
     embeddingPolicy,
     graphRAGReady: semanticIndexReady,
     semanticIndexReady,

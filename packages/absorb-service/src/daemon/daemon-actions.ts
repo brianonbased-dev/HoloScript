@@ -14,7 +14,6 @@
 // @ts-ignore - Automatic remediation for TS2305
 import type { ActionHandler } from '@holoscript/core/runtime';
 import path from 'path';
-import os from 'os';
 import fs from 'fs';
 import { createHmac, timingSafeEqual } from 'crypto';
 import {
@@ -24,6 +23,7 @@ import {
   type DaemonToolProfile,
 } from './daemon-prompt-profiles';
 import { parseTscOutput, aggregatePatterns, type ErrorCategory } from './daemon-error-taxonomy';
+import { resolveCodebaseCachePaths } from '../mcp/codebase-cache-storage';
 import type {
   HostCapabilities,
   HostExecOptions,
@@ -201,20 +201,43 @@ async function computeQuality(
 
 let _graphEngine: import('../engine').GraphRAGEngine | null = null;
 let _codebaseGraph: import('../engine').CodebaseGraph | null = null;
+let _graphRoot = '';
 
-async function getGraphEngine() {
-  if (_graphEngine) return { engine: _graphEngine, graph: _codebaseGraph };
+async function getGraphEngine(repoRoot: string) {
+  const resolvedRepoRoot = path.resolve(repoRoot);
+  if (_graphEngine && _graphRoot === resolvedRepoRoot) {
+    return { engine: _graphEngine, graph: _codebaseGraph };
+  }
   try {
-    const CACHE_FILE = path.join(os.homedir(), '.holoscript', 'graph-cache.json');
-    if (!fs.existsSync(CACHE_FILE)) return null;
-    const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
-    const envelope = JSON.parse(raw);
+    const cachePaths = resolveCodebaseCachePaths(resolvedRepoRoot);
+    const candidates =
+      cachePaths.layout === 'flat'
+        ? [cachePaths.graphFile]
+        : [cachePaths.graphFile, cachePaths.legacyGraphFile];
+    let envelope: { rootDir?: string; graphJson?: string } | null = null;
+    for (const cacheFile of candidates) {
+      if (!fs.existsSync(cacheFile)) continue;
+      const candidate = JSON.parse(fs.readFileSync(cacheFile, 'utf-8')) as {
+        rootDir?: string;
+        graphJson?: string;
+      };
+      const candidateRoot = candidate.rootDir
+        ? resolveCodebaseCachePaths(candidate.rootDir).workspaceRoot
+        : '';
+      if (cachePaths.layout !== 'flat' && candidateRoot !== cachePaths.workspaceRoot) {
+        continue;
+      }
+      envelope = candidate;
+      break;
+    }
+    if (!envelope?.graphJson) return null;
     const { CodebaseGraph, GraphRAGEngine, EmbeddingIndex } = await import('../engine');
     const graph = CodebaseGraph.deserialize(envelope.graphJson);
     const index = new EmbeddingIndex();
     const engine = new GraphRAGEngine(graph, index);
     _codebaseGraph = graph;
     _graphEngine = engine;
+    _graphRoot = resolvedRepoRoot;
     return { engine, graph };
   } catch (err) {
     console.warn('[Daemon] Failed to load native GraphRAGEngine cache:', err);
@@ -229,7 +252,7 @@ async function computeDownstreamImpact(
   repoRoot: string
 ): Promise<Map<string, number>> {
   const impact = new Map<string, number>();
-  const graphContext = await getGraphEngine();
+  const graphContext = await getGraphEngine(repoRoot);
 
   for (const [file] of candidates) {
     if (graphContext) {
@@ -345,7 +368,7 @@ async function resolveRelatedFiles(
 ): Promise<RelatedFile[]> {
   const related: RelatedFile[] = [];
   const fileNormalized = path.relative(repoRoot, path.resolve(repoRoot, file)).replace(/\\/g, '/');
-  const graphContext = await getGraphEngine();
+  const graphContext = await getGraphEngine(repoRoot);
 
   if (graphContext) {
     // 1. Structural Graph Context: precise caller/callee chains

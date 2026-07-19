@@ -3,7 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
 import {
   handleGraphRagTool,
@@ -13,12 +13,19 @@ import {
 import { EmbeddingIndex } from '../engine/EmbeddingIndex';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
+const originalCacheLayout = process.env.HOLOSCRIPT_CACHE_LAYOUT;
 const originalWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACE_ROOT;
 const originalAutoBackground = process.env.ABSORB_AUTO_BACKGROUND;
 const originalAutoBackgroundScanFileThreshold =
   process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD;
 
+beforeEach(() => {
+  process.env.HOLOSCRIPT_CACHE_LAYOUT = 'flat';
+});
+
 afterEach(() => {
+  if (originalCacheLayout === undefined) delete process.env.HOLOSCRIPT_CACHE_LAYOUT;
+  else process.env.HOLOSCRIPT_CACHE_LAYOUT = originalCacheLayout;
   if (originalAutoBackground === undefined) {
     delete process.env.ABSORB_AUTO_BACKGROUND;
   } else {

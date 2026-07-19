@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CodebaseScanner, EmbeddingIndex } from '../engine';
 import {
   codebaseTools,
@@ -10,6 +10,7 @@ import {
 } from './codebase-tools';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
+const originalCacheLayout = process.env.HOLOSCRIPT_CACHE_LAYOUT;
 const tempDirs: string[] = [];
 
 type AbsorbStatus = {
@@ -72,11 +73,17 @@ async function seedPriorCache(rootDir: string): Promise<{ cacheFile: string; byt
 }
 
 describe('Absorb cooperative cancellation and memory budgets', () => {
+  beforeEach(() => {
+    process.env.HOLOSCRIPT_CACHE_LAYOUT = 'flat';
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
     resetCodebaseToolStateForTests(false);
     if (originalCacheDir === undefined) delete process.env.HOLOSCRIPT_CACHE_DIR;
     else process.env.HOLOSCRIPT_CACHE_DIR = originalCacheDir;
+    if (originalCacheLayout === undefined) delete process.env.HOLOSCRIPT_CACHE_LAYOUT;
+    else process.env.HOLOSCRIPT_CACHE_LAYOUT = originalCacheLayout;
     for (const dir of tempDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
   });
 
