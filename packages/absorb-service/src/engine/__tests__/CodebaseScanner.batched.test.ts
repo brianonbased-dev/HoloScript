@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CodebaseScanner } from '../CodebaseScanner';
 
@@ -16,6 +17,11 @@ function writeFixture(root: string, relativePath: string, content = 'fixture\n')
   const filePath = path.join(root, relativePath);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, content, 'utf-8');
+}
+
+function initializeGitFixture(root: string, trackedPaths: string[]): void {
+  execFileSync('git', ['init', '--quiet'], { cwd: root, windowsHide: true });
+  execFileSync('git', ['add', '--', ...trackedPaths], { cwd: root, windowsHide: true });
 }
 
 describe('CodebaseScanner module batching', () => {
@@ -59,6 +65,49 @@ describe('CodebaseScanner module batching', () => {
     );
   });
 
+  it('uses Git tracked files as the authoritative selection when Git truth is available', () => {
+    const root = makeTempRepo();
+    writeFixture(root, 'src/tracked.ts', 'export const tracked = true;\n');
+    writeFixture(root, 'generated/untracked.ts', 'export const generated = true;\n');
+    initializeGitFixture(root, ['src/tracked.ts']);
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const plan = scanner.planScan({ rootDir: root, maxFiles: 10 }, 10);
+
+    expect(plan.selection).toMatchObject({
+      source: 'git-ls-files',
+      authoritative: true,
+      discoveredFiles: 1,
+      selectedFiles: 1,
+      cappedByMaxFiles: false,
+      caveats: [],
+    });
+    expect(plan.execution).toEqual({
+      progressUnit: 'candidate-files',
+      progressBounded: true,
+      cooperativeCancellation: true,
+      eventLoopYield: 'between-parse-batches',
+    });
+    expect(plan.batches.flatMap((batch) => batch.files).map((file) => path.basename(file))).toEqual(
+      ['tracked.ts']
+    );
+  });
+
+  it('records a filesystem fallback caveat outside Git repositories', () => {
+    const root = makeTempRepo();
+    writeFixture(root, 'src/untracked.ts', 'export const untracked = true;\n');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const plan = scanner.planScan({ rootDir: root, maxFiles: 10 }, 10);
+
+    expect(plan.selection).toMatchObject({
+      source: 'filesystem-walk',
+      authoritative: false,
+      selectedFiles: 1,
+      caveats: ['git_tracked_selection_unavailable'],
+    });
+  });
+
   it('scans planned batches and merges them into one ScanResult', async () => {
     const root = makeTempRepo();
     writeFixture(root, 'packages/core/src/a.txt', 'import "./b";\n');
@@ -93,6 +142,53 @@ describe('CodebaseScanner module batching', () => {
     expect(started).toHaveLength(plan.batches.length);
     expect(completed).toHaveLength(plan.batches.length);
     expect(progress[progress.length - 1]).toMatchObject({ processed: 3, total: 3 });
+  });
+
+  it('yields to the event loop between scan batches', async () => {
+    const root = makeTempRepo();
+    writeFixture(root, 'src/a.txt');
+    writeFixture(root, 'src/b.txt');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const plan = scanner.planScan({ rootDir: root, maxFiles: 10 }, 1);
+    let timerFired = false;
+    setTimeout(() => {
+      timerFired = true;
+    }, 0);
+
+    await scanner.scanInBatches({
+      rootDir: root,
+      scanPlan: plan,
+      readFile: async () => 'fixture\n',
+    });
+
+    expect(timerFired).toBe(true);
+  });
+
+  it('cancels cooperatively between candidate files and reports bounded progress', async () => {
+    const root = makeTempRepo();
+    writeFixture(root, 'src/a.txt');
+    writeFixture(root, 'src/b.txt');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const plan = scanner.planScan({ rootDir: root, maxFiles: 10 }, 1);
+    const controller = new AbortController();
+    const progress: number[] = [];
+
+    await expect(
+      scanner.scanInBatches({
+        rootDir: root,
+        scanPlan: plan,
+        signal: controller.signal,
+        readFile: async () => 'fixture\n',
+        onProgress: (processed) => {
+          progress.push(processed);
+          controller.abort('test cancellation');
+        },
+      })
+    ).rejects.toMatchObject({ name: 'AbortError' });
+
+    expect(progress).toEqual([1]);
   });
 
   it('parses native HoloScript files through worker-backed scanFiles', async () => {

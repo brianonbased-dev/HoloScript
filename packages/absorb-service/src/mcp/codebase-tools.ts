@@ -87,6 +87,8 @@ interface AbsorbScanPlanReceipt {
   batchCount: number;
   batchSize?: number;
   batches: AbsorbScanBatchSummary[];
+  selection?: PlannedScannerSelectionReceipt;
+  execution?: PlannedScannerExecutionReceipt;
 }
 
 interface PlannedScannerBatch {
@@ -99,6 +101,24 @@ interface PlannedScannerScanPlan {
   totalFiles: number;
   batchSize: number;
   batches: PlannedScannerBatch[];
+  selection?: PlannedScannerSelectionReceipt;
+  execution?: PlannedScannerExecutionReceipt;
+}
+
+interface PlannedScannerSelectionReceipt {
+  source: 'git-ls-files' | 'filesystem-walk' | 'mixed';
+  authoritative: boolean;
+  discoveredFiles: number;
+  selectedFiles: number;
+  cappedByMaxFiles: boolean;
+  caveats: string[];
+}
+
+interface PlannedScannerExecutionReceipt {
+  progressUnit: 'candidate-files';
+  progressBounded: true;
+  cooperativeCancellation: true;
+  eventLoopYield: 'between-parse-batches';
 }
 
 interface AbsorbMemorySnapshot {
@@ -184,6 +204,8 @@ function summarizeModuleScanPlan(plan: PlannedScannerScanPlan): AbsorbScanPlanRe
     totalCandidateFiles: plan.totalFiles,
     batchCount: plan.batches.length,
     batchSize: plan.batchSize,
+    ...(plan.selection && { selection: plan.selection }),
+    ...(plan.execution && { execution: plan.execution }),
     batches: plan.batches.map((batch) => ({
       index: batch.index,
       label: batch.label,

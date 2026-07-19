@@ -312,6 +312,8 @@ export interface ScanOptions {
   readFile?: (path: string) => Promise<string>;
   /** Progress callback, called after each file is parsed */
   onProgress?: (parsed: number, total: number, file: string) => void;
+  /** Cooperative cancellation signal checked between bounded parse batches */
+  signal?: AbortSignal;
 }
 
 // =============================================================================
