@@ -339,11 +339,30 @@ pub struct TalentNode {
     pub properties: Vec<PropertyNode>,
 }
 
+/// `skip_serializing_if` helper: keeps the JSON shape byte-identical when a flag is unset.
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
 /// Property node (key: value)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PropertyNode {
     pub key: String,
     pub value: Box<AstNode>,
+    /// `true` when the field carried the `Type?` presence marker: the value MAY BE ABSENT.
+    /// Previously parsed and discarded (the G3 silent-drop) — now captured.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub optional: bool,
+    /// Field-level `@name` annotations, e.g. `@unknown`.
+    ///
+    /// `@unknown` and `?` are DELIBERATELY DIFFERENT AXES and must not be collapsed:
+    /// `?` says the value may not BE THERE (absence); `@unknown` says the value exists but
+    /// may not be KNOWN — an epistemic state that carries a typed reason. That distinction is
+    /// the whole point of first-class ignorance: `Option` conflates the two, which is what
+    /// `Uncertain<T>` (@holoscript/meaning) exists to separate. A field marked `@unknown`
+    /// lowers to `Uncertain<T>`; a `?` field lowers to ordinary optionality.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub annotations: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }

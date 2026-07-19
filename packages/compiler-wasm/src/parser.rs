@@ -770,6 +770,8 @@ impl Parser {
                 properties.push(PropertyNode {
                     key,
                     value: Box::new(value),
+                    optional: false,
+                    annotations: Vec::new(),
                     loc: None,
                 });
             }
@@ -870,6 +872,8 @@ impl Parser {
                                     node_props.push(PropertyNode {
                                         key: node_key,
                                         value: Box::new(node_value),
+                                        optional: false,
+                                        annotations: Vec::new(),
                                         loc: None,
                                     });
                                 }
@@ -905,6 +909,8 @@ impl Parser {
                 properties.push(PropertyNode {
                     key,
                     value: Box::new(value),
+                    optional: false,
+                    annotations: Vec::new(),
                     loc: None,
                 });
             }
@@ -1518,9 +1524,24 @@ impl Parser {
 
         while !self.check(TokenType::RBrace) && !self.is_at_end() {
             if self.check(TokenType::Trait) {
-                // `@word ...` — an `@on_*` handler or a nested annotation.
+                // `@word ...` — a field modifier, an `@on_*` handler, or a nested annotation.
                 let word = self.peek().value.trim_start_matches('@').to_string();
-                if word.starts_with("on_") {
+                if Self::FIELD_MODIFIER_ANNOTATIONS.contains(&word.as_str()) {
+                    // Consecutive field modifiers BIND to the property that follows them. Without
+                    // this, `@unknown` above a field parses "successfully" but lands in `members`
+                    // as a standalone trait — disconnected from the field it modifies, which is a
+                    // silently-broken feature that an `is_ok()` test would happily pass.
+                    let mut annotations = Vec::new();
+                    while self.check(TokenType::Trait) {
+                        let next = self.peek().value.trim_start_matches('@').to_string();
+                        if !Self::FIELD_MODIFIER_ANNOTATIONS.contains(&next.as_str()) {
+                            break;
+                        }
+                        self.advance();
+                        annotations.push(next);
+                    }
+                    properties.push(self.parse_trait_property(annotations)?);
+                } else if word.starts_with("on_") {
                     members.push(self.parse_trait_arrow_handler()?);
                 } else {
                     members.push(self.parse_trait_annotation()?);
@@ -1529,7 +1550,7 @@ impl Parser {
                 // Bare keyword reaction block `on_grab { ... }` (no `@`).
                 members.push(self.parse_game_event_block()?);
             } else {
-                properties.push(self.parse_trait_property()?);
+                properties.push(self.parse_trait_property(Vec::new())?);
             }
         }
 
@@ -1616,9 +1637,24 @@ impl Parser {
         }))
     }
 
+    /// Field-level annotations that MODIFY the property declared immediately after them, rather
+    /// than standing alone as trait members.
+    ///
+    /// Deliberately narrow. Binding every `@name` to a following field would silently change the
+    /// AST shape of existing programs — a bare `@receipt` above a property would stop being a
+    /// member and become a field modifier — and because BOTH shapes still parse, no pass/fail
+    /// gate (including the 2303-file grammar-authority differential) would catch that. Adding an
+    /// entry here is a deliberate grammar decision, not a convenience.
+    const FIELD_MODIFIER_ANNOTATIONS: &'static [&'static str] = &["unknown"];
+
     /// Parse a trait definition property, tolerating a typed field default:
     ///   `maxHealth: 100` | `capability_tags: [ ... ]` | `auto_register: Bool = true`
-    fn parse_trait_property(&mut self) -> Result<PropertyNode, ParseError> {
+    /// `annotations` are the field modifiers that preceded this property (see
+    /// [`Self::FIELD_MODIFIER_ANNOTATIONS`]); empty for an unannotated field.
+    fn parse_trait_property(
+        &mut self,
+        annotations: Vec<String>,
+    ) -> Result<PropertyNode, ParseError> {
         let key = self.expect_property_key()?;
         self.expect(TokenType::Colon)?;
         // `mode: enum("a" | "b")` — enum type annotations aren't expressions.
@@ -1628,12 +1664,18 @@ impl Parser {
             self.parse_expression()?
         };
 
-        // Optional-type marker: `llm_provider_id: String?`.
-        if self.check(TokenType::Question) {
+        // Optional-type marker: `llm_provider_id: String?` — now CAPTURED, not discarded.
+        let optional = if self.check(TokenType::Question) {
             self.advance();
-        }
+            true
+        } else {
+            false
+        };
 
         // Optional typed-field default: `name: Type = default`.
+        // NOTE: the default expression is still parsed and dropped — capturing it needs its own
+        // AST slot and is out of scope for this slice. Named here so it stays greppable rather
+        // than looking intentional.
         if self.check(TokenType::Equals) {
             self.advance();
             let _default = self.parse_expression()?;
@@ -1648,6 +1690,8 @@ impl Parser {
         Ok(PropertyNode {
             key,
             value: Box::new(value),
+            optional,
+            annotations,
             loc: None,
         })
     }
@@ -1694,6 +1738,8 @@ impl Parser {
         Ok(PropertyNode {
             key,
             value: Box::new(value),
+            optional: false,
+            annotations: Vec::new(),
             loc: Some(self.location_from(start_loc)),
         })
     }
@@ -2119,9 +2165,14 @@ impl Parser {
                 self.parse_expression()?
             };
             // Optional-type marker + typed-field default: `x: Type? = default`.
-            if self.check(TokenType::Question) {
+            // The `?` is CAPTURED; the default expression is still dropped (see
+            // parse_trait_property for why that remains out of scope).
+            let optional = if self.check(TokenType::Question) {
                 self.advance();
-            }
+                true
+            } else {
+                false
+            };
             if self.check(TokenType::Equals) {
                 self.advance();
                 let _default = self.parse_expression()?;
@@ -2130,6 +2181,8 @@ impl Parser {
             properties.push(PropertyNode {
                 key,
                 value: Box::new(value),
+                optional,
+                annotations: Vec::new(),
                 loc: None,
             });
 
@@ -2580,6 +2633,126 @@ mod tests {
     use super::*;
 
     // --- Trait-definition body grammar (handlers / @receipt / field-defaults) ---
+
+    fn trait_props<'a>(ast: &'a crate::ast::Ast, name: &str) -> &'a Vec<PropertyNode> {
+        let t = ast
+            .body
+            .iter()
+            .find_map(|n| match n {
+                AstNode::Trait(t) if t.name == name => Some(t),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("{name} trait present"));
+        match t.config.as_deref() {
+            Some(AstNode::ObjectLiteral(o)) => &o.properties,
+            _ => panic!("{name} config should be an ObjectLiteral of properties"),
+        }
+    }
+
+    #[test]
+    fn test_unknown_annotation_binds_to_the_field_it_modifies() {
+        // `@unknown` must land ON the property it precedes, not float free in `members`.
+        // An is_ok()-only test passes either way — which is exactly how this feature would
+        // ship silently broken. Assert the binding, and assert the absence of the orphan.
+        let source = r#"@trait Sensor {
+            @unknown
+            reading: Temperature
+            label: "probe"
+        }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser.parse().expect("annotated field should parse");
+        let props = trait_props(&ast, "Sensor");
+
+        let reading = props
+            .iter()
+            .find(|p| p.key == "reading")
+            .expect("reading field captured");
+        assert_eq!(
+            reading.annotations,
+            vec!["unknown".to_string()],
+            "@unknown must bind to the field it modifies"
+        );
+
+        let t = ast
+            .body
+            .iter()
+            .find_map(|n| match n {
+                AstNode::Trait(t) if t.name == "Sensor" => Some(t),
+                _ => None,
+            })
+            .expect("Sensor trait present");
+        assert!(
+            !t.members
+                .iter()
+                .any(|m| matches!(m, AstNode::Trait(a) if a.name == "unknown")),
+            "@unknown must NOT also survive as a free-floating trait member"
+        );
+
+        let label = props
+            .iter()
+            .find(|p| p.key == "label")
+            .expect("label field captured");
+        assert!(
+            label.annotations.is_empty(),
+            "an unannotated sibling field must stay clean"
+        );
+    }
+
+    #[test]
+    fn test_optional_marker_is_captured_not_discarded() {
+        // `Type?` was parsed and thrown away because PropertyNode had no slot for it.
+        let source = r#"@trait Config {
+            provider: String?
+            required: String
+        }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser.parse().expect("optional marker should parse");
+        let props = trait_props(&ast, "Config");
+        assert!(
+            props.iter().find(|p| p.key == "provider").unwrap().optional,
+            "`String?` must set optional"
+        );
+        assert!(
+            !props.iter().find(|p| p.key == "required").unwrap().optional,
+            "an unmarked field must not be optional"
+        );
+    }
+
+    #[test]
+    fn test_optional_and_unknown_are_independent_axes() {
+        // Presence (`?`) and epistemic state (`@unknown`) are different claims and must be
+        // representable together: a field that may be absent AND, when present, unknown.
+        let source = r#"@trait Reading {
+            @unknown
+            value: Celsius?
+        }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser.parse().expect("both modifiers should parse");
+        let props = trait_props(&ast, "Reading");
+        let value = props.iter().find(|p| p.key == "value").unwrap();
+        assert!(value.optional, "`?` captured alongside an annotation");
+        assert_eq!(value.annotations, vec!["unknown".to_string()]);
+    }
+
+    #[test]
+    fn test_non_field_modifier_annotation_does_not_gain_field_binding() {
+        // REGRESSION GUARD for the deliberately-narrow FIELD_MODIFIER_ANNOTATIONS set.
+        //
+        // Verified against the shipped parser: `@synced` above a field is a parse ERROR today
+        // ("Expected property key") — the annotation consumes the field NAME as its label and
+        // then chokes on the colon. Binding every `@name` to the following property would
+        // silently turn that error into a success, widening the accepted language surface far
+        // beyond this feature. Only `@unknown` is permitted to gain new validity.
+        let source = r#"@trait Health {
+            @synced
+            maxHP: 100
+        }"#;
+        let mut parser = Parser::new(source);
+        assert!(
+            parser.parse().is_err(),
+            "a non-modifier annotation above a field must still be rejected"
+        );
+    }
 
     #[test]
     fn test_trait_definition_captures_handlers_and_receipt() {

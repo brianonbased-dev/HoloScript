@@ -53,6 +53,20 @@ export interface PropertyNode {
   type: 'Property';
   key: string;
   value: AstNode;
+  /**
+   * `true` when the field carried the `Type?` presence marker: the value MAY BE ABSENT.
+   * Omitted from the JSON when false.
+   */
+  optional?: boolean;
+  /**
+   * Field-level `@name` annotations, e.g. `@unknown`. Omitted when empty.
+   *
+   * `@unknown` and `?` are different axes: `?` means the value may not BE THERE (absence),
+   * `@unknown` means the value exists but may not be KNOWN — an epistemic state carrying a
+   * typed reason. A field marked `@unknown` lowers to `Uncertain<T>` (@holoscript/meaning);
+   * a `?` field lowers to ordinary optionality.
+   */
+  annotations?: string[];
   loc?: Location;
 }
 

@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-19T22:59:53Z",
+  "generatedAt": "2026-07-19T23:48:10Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "b2d2dd0b8fbbae181456e8c53192ea390c40ab78",
+  "sourceCommit": "8112b936d99f7323d352b4a41f1ae5776bf4ae3a+working-tree-unknown-field-annotation",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -15,9 +15,10 @@
   },
   "result": {
     "rebuilt": true,
-    "artifactBytesChanged": false,
-    "wasmBytes": 290710,
-    "wasmSha256": "1bd3b3d854e8723c362cf713d8794cadc38bfa65cfeed656ce547ea0c372a4bc",
-    "note": "Re-attestation of the committed pkg-node artifact against current compiler-wasm source. Source advanced b95e77812 -> b2d2dd0b8 across the hs-machine-v28..v30 borrow/lifetime grammar additions (parser, lexer, token, ast) with no matching rebuild receipt, so check-compiler-wasm-drift correctly reported the artifact as un-re-verified. Rebuilt from b2d2dd0b8 with the toolchain below: the emitted WASM is BYTE-IDENTICAL to the committed artifact (sha256 unchanged, 290710 bytes; git reports no working-tree change under packages/compiler-wasm). The new grammar surface is parse-side and does not alter the wasm_bindgen export surface or the emitted binary, so no artifact bytes needed committing - this receipt IS the re-verification, and committing it advances pkg-node history past the source commit on evidence rather than by an empty ceremonial commit. Re-verify with: wasm-pack build --target nodejs --out-dir pkg-node, then compare the sha256 of pkg-node/holoscript_wasm_bg.wasm."
+    "artifactBytesChanged": true,
+    "wasmBytes": 292459,
+    "wasmSha256": "6e5a83ca9f2778f9a9bd3da66f2504eed9302dfbd1e92139216abbc30420cf82",
+    "previousWasmSha256": "1bd3b3d854e8723c362cf713d8794cadc38bfa65cfeed656ce547ea0c372a4bc",
+    "note": "Grammar addition: the `@unknown` field annotation and the previously-discarded `Type?` optional marker are now CAPTURED on PropertyNode (first-class ignorance, RFC stage 2). Parser and AST changed, so unlike the previous re-attestation the emitted binary genuinely moved (290710 -> 292459 bytes). Only holoscript_wasm_bg.wasm changed in pkg-node: no wasm_bindgen export was added or removed, so the JS glue and .d.ts are byte-identical and the 8 exported functions are unchanged. Verified additive against the declared authority corpus: check-grammar-authority differential over 2303 .hsplus files reports Rust pass rate 2256/2303 (97.96%) and 0 files regressed vs the 2026-07-17 baseline -- byte-for-byte the same figures as before the change, i.e. no existing program's parse verdict moved. cargo test -p holoscript-wasm 210 passed; cargo clippy --all-targets -D warnings clean. The source changes are committed together with this receipt, so the working-tree suffix in sourceCommit resolves to that commit."
   }
 }
