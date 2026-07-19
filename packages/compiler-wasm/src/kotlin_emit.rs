@@ -3163,6 +3163,26 @@ function main(): i32 { return 5 }
     }
 
     #[test]
+    fn aggregate_subobject_results_fail_closed_on_kotlin_bridge() {
+        let source = r#"
+struct Header { code: i32 }
+struct Packet { header: Header }
+function relay<'a>(packet: &'a Packet): &'a Header {
+  return header(packet)
+}
+function header<'a>(packet: &'a Packet): &'a Header {
+  return &packet.header
+}
+function main(): i32 { return 5 }
+"#;
+        let error = compile_source_to_kotlin(source, "  ")
+            .expect_err("Kotlin must not erase caller-tied aggregate subobject results");
+        assert!(error.to_string().contains(
+            "borrowed reference type `&'a Header` in return type of function `relay` requires target-specific borrow and alias lowering"
+        ));
+    }
+
+    #[test]
     fn owned_machine_buffers_fail_closed_until_kotlin_ownership_lowering_exists() {
         let src = r#"function main(): i32 {
   let values: [i32] = buffer(2, 0)

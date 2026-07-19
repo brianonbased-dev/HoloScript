@@ -3485,6 +3485,66 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_caller_tied_aggregate_subobject_forward_return() {
+        let source = r#"
+            struct Header { code: i32 }
+            struct Packet { first: Header, second: Header }
+            function relay<'a>(marker: i32, packet: &'a Packet): &'a Header {
+                return header(packet, marker)
+            }
+            function header<'a>(packet: &'a Packet, marker: i32): &'a Header {
+                return &packet.second
+            }
+        "#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("caller-tied aggregate subobject forwarding should parse");
+
+        let AstNode::Function(relay) = &program.body[2] else {
+            panic!("Expected relay Function node");
+        };
+        assert_eq!(relay.lifetimes, vec!["a"]);
+        assert_eq!(
+            relay.param_types,
+            vec![Some("i32".to_string()), Some("&'a Packet".to_string())]
+        );
+        assert_eq!(relay.return_type.as_deref(), Some("&'a Header"));
+        let AstNode::Return(returned) = &relay.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::CallExpression(call)) = returned.argument.as_deref() else {
+            panic!("Expected forwarded CallExpression node");
+        };
+        assert!(matches!(
+            call.callee.as_ref(),
+            AstNode::Identifier(callee) if callee.name == "header"
+        ));
+        assert!(matches!(
+            call.arguments.first(),
+            Some(AstNode::Identifier(source)) if source.name == "packet"
+        ));
+
+        let AstNode::Function(header) = &program.body[3] else {
+            panic!("Expected header Function node");
+        };
+        let AstNode::Return(returned) = &header.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::UnaryExpression(borrow)) = returned.argument.as_deref() else {
+            panic!("Expected borrowed aggregate field return");
+        };
+        assert_eq!(borrow.operator, "&");
+        assert!(matches!(
+            borrow.argument.as_ref(),
+            AstNode::MemberExpression(member)
+                if !member.computed
+                    && matches!(member.object.as_ref(), AstNode::Identifier(root) if root.name == "packet")
+                    && matches!(member.property.as_ref(), AstNode::Identifier(field) if field.name == "second")
+        ));
+    }
+
+    #[test]
     fn test_parse_caller_tied_slice_reference_lifetime() {
         let source = r#"function view<'a>(values: &'a [i32]): &'a [i32] {
             return values

@@ -9,6 +9,7 @@ use holoscript_native::{
     AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
     AGGREGATE_REFERENCE_MACHINE_CONTRACT, BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT,
     BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
+    BORROWED_AGGREGATE_SUBOBJECT_RETURN_MACHINE_CONTRACT,
     BORROWED_SCALAR_FIELD_FORWARD_RETURN_MACHINE_CONTRACT,
     BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT,
     BORROWED_SLICE_RETURN_MACHINE_CONTRACT, BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT,
@@ -21,6 +22,8 @@ const SCALAR_FIELD_BORROWED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/scalar-field-borrowed-return-exit-five.hs");
 const SCALAR_FIELD_FORWARDED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/scalar-field-forwarded-return-exit-five.hs");
+const AGGREGATE_SUBOBJECT_FORWARDED_RETURN_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/aggregate-subobject-forwarded-return-exit-five.hs");
 const TYPED_EXIT_FIVE: &str = include_str!("../../../examples/native/typed-exit-five.hs");
 const I64_EXIT_FIVE: &str = r#"
     function add64(left: i64, right: i64): i64 {
@@ -3459,6 +3462,151 @@ fn scalar_field_forwarded_results_reject_transitive_or_severed_provenance() {
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid forwarded scalar-field result must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn aggregate_subobject_results_preserve_exact_offset_and_caller_root() {
+    assert_eq!(
+        BORROWED_AGGREGATE_SUBOBJECT_RETURN_MACHINE_CONTRACT,
+        "hs-machine-v26"
+    );
+    let options = NativeCompileOptions::host();
+    let first = compile_object(AGGREGATE_SUBOBJECT_FORWARDED_RETURN_EXIT_FIVE, &options)
+        .expect("caller-tied aggregate subobject forwarding should compile");
+    let second = compile_object(AGGREGATE_SUBOBJECT_FORWARDED_RETURN_EXIT_FIVE, &options)
+        .expect("aggregate subobject forwarding lowering should be deterministic");
+    assert_eq!(first, second);
+
+    let executable = scratch_executable("native-aggregate-subobject-forwarded-return");
+    let artifact = compile_executable(
+        AGGREGATE_SUBOBJECT_FORWARDED_RETURN_EXIT_FIVE,
+        &executable,
+        &options,
+    )
+    .expect("shared and mutable aggregate subobject results should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v26");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("aggregate subobject result executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let owned_sibling = r#"
+        struct Header { code: i32 }
+        struct Packet { header: Header, values: [i32] }
+        function header<'a>(packet: &'a Packet): &'a Header { return &packet.header }
+        function main(): i32 {
+            slot packet: Packet = Packet(Header(5), buffer(1, 2))
+            scope {
+                let view: &Header = header(&packet)
+                let read: i32 = load(view.code)
+            }
+            drop(packet.values)
+            return 5
+        }
+    "#;
+    compile_object(owned_sibling, &options)
+        .expect("aggregate subobject leases should release before owned sibling drop");
+
+    let parameter_root = r#"
+        struct Header { code: i32 }
+        struct Envelope { header: Header }
+        struct Packet { envelope: Envelope }
+        function header<'a>(packet: &'a Packet): &'a Header {
+            return &packet.envelope.header
+        }
+        function read(header: &Header): i32 { return load(header.code) }
+        function read_packet(packet: &Packet): i32 {
+            let view: &Header = header(packet)
+            return read(view)
+        }
+        function main(): i32 {
+            slot packet: Packet = Packet(Envelope(Header(5)))
+            return read_packet(&packet)
+        }
+    "#;
+    let executable = scratch_executable("native-aggregate-subobject-parameter-root");
+    let artifact = compile_executable(parameter_root, &executable, &options)
+        .expect("parameter-root subobjects should retain their actual base across a call");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("parameter-root subobject executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn aggregate_subobject_results_reject_severed_or_laundered_provenance() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Header { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet, other: &Packet): &'a Header { return &other.first } function main(): i32 { return 5 }",
+            "must derive from source parameter `packet`; found root `other`",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet): &'a Header { return &packet[0] } function main(): i32 { return 5 }",
+            "requires a non-computed static field path rooted at `packet`",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { code: i32 } function header<'a>(packet: &'a Packet): &'a Header { return &packet.code } function main(): i32 { return 5 }",
+            "aggregate subobject return expects `Header`, but field `packet.code` stores scalar `i32`",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { values: [i32] } function header<'a>(packet: &'a Packet): &'a Header { return &packet.values } function main(): i32 { return 5 }",
+            "aggregate subobject return cannot borrow owned field `packet.values`",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet): &'a mut Header { return &mut packet.first } function main(): i32 { return 5 }",
+            "borrowed return mutability must match source parameter `packet`",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet): &'a Header { return &packet.first } function relay<'a>(packet: &'a Packet, other: &Packet): &'a Header { return header(other) } function main(): i32 { return 5 }",
+            "must forward exact source parameter `packet` to `header`; found `other`",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet): &'a Header { return &packet.first } function relay<'a>(packet: &'a Packet): &'a Header { return header(packet) } function chain<'a>(packet: &'a Packet): &'a Header { return relay(packet) } function main(): i32 { return 5 }",
+            "cannot forward borrowed aggregate subobject from forwarding function `relay`; only one direct forwarding hop is admitted",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header, second: Header } function header<'a>(packet: &'a Packet, choose: bool): &'a Header { if (choose) { return &packet.first } return &packet.second } function main(): i32 { return 5 }",
+            "borrowed aggregate subobject result requires exactly one direct top-level final return; found 2 returns",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet): &'a Header { return &packet.first } function broken<'a>(packet: &'a Packet): &'a Header { return missing(packet) } function main(): i32 { return 5 }",
+            "forwards an unknown function `missing`",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header } struct Envelope { first: Header } function header<'a>(envelope: &'a Envelope): &'a Header { return &envelope.first } function relay<'a>(packet: &'a Packet): &'a Header { return header(packet) } function main(): i32 { return 5 }",
+            "source aggregate `Packet` does not match `header` source aggregate `Envelope`",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header, values: [i32] } function header<'a>(packet: &'a Packet): &'a Header { return &packet.first } function take_and_header<'a>(values: [i32], packet: &'a Packet): &'a Header { return header(packet) } function main(): i32 { slot packet: Packet = Packet(Header(5), buffer(1, 2)) let view: &Header = take_and_header(move(packet.values), &packet) return load(view.code) }",
+            "cannot move owned descendant `packet.values` while returning an aggregate subobject tied to root `packet`",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet): &'a Header { return &packet.first } function main(): i32 { slot packet: Packet = Packet(Header(1)) let view: &Header = header(&packet) store(packet.first.code, 5) return load(view.code) }",
+            "cannot store to stack slot `packet` while an active borrow exists",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet): &'a Header { return &packet.first } function main(): i32 { let view: &Header = header(&Packet(Header(5))) return load(view.code) }",
+            "borrowed result source for `header` must be a complete aggregate root",
+        ),
+        (
+            "struct Header { code: i32 } struct Packet { first: Header } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function header<'a>(packet: &'a Packet): &'a Header { return &packet.first } function main(): i32 { slot packet: Packet = Packet(Header(5)) let whole: &Packet = borrow(&packet) let view: &Header = header(whole) return load(view.code) }",
+            "cannot extend nested returned or reborrowed aggregate `whole`",
+        ),
+        (
+            "struct Header { code: i32 } struct Other { code: i32 } struct Packet { first: Header } function header<'a>(packet: &'a Packet): &'a Header { return &packet.first } function main(): i32 { slot packet: Packet = Packet(Header(5)) let view: &Other = header(&packet) return 5 }",
+            "reference `view` expects `Other`, but `header` returns an incompatible aggregate reference",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid aggregate subobject borrowed result must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"
