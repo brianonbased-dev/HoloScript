@@ -15,9 +15,11 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { startMcpProcessLifecycle } from './lib/mcp-process-lifecycle.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(__dirname, '..');
+export const LAUNCHER_PATH = fileURLToPath(import.meta.url);
 
 export const BUILD_GROUPS = [
   {
@@ -181,26 +183,70 @@ function ensureBuild({ noBuild = false } = {}) {
   };
 }
 
-function startServer() {
-  const child = spawn(process.execPath, [stdioServerPath()], {
+export function startServer({
+  input = process.stdin,
+  output = process.stdout,
+  spawnImpl = spawn,
+  spawnSyncImpl = spawnSync,
+  lifecycleFactory = startMcpProcessLifecycle,
+  exitProcess = (code) => process.exit(code),
+  platform = process.platform,
+  registerProcessHandlers = true,
+} = {}) {
+  const lifecycle = lifecycleFactory({
+    role: 'holoscript-mcp-stdio',
+    scriptPath: LAUNCHER_PATH,
+  });
+  const child = spawnImpl(process.execPath, [stdioServerPath()], {
     cwd: ROOT,
     env: { ...process.env, START_MCP_STDIO: 'true' },
-    stdio: ['inherit', 'inherit', 'inherit'],
+    stdio: ['pipe', 'pipe', 'inherit'],
+    windowsHide: true,
   });
 
-  const forwardSignal = (signal) => {
-    if (!child.killed) child.kill(signal);
-  };
-  process.on('SIGINT', () => forwardSignal('SIGINT'));
-  process.on('SIGTERM', () => forwardSignal('SIGTERM'));
+  input.pipe(child.stdin);
+  child.stdout.pipe(output);
+  input.on('data', lifecycle.touch);
+  child.stdout.on('data', lifecycle.touch);
 
-  child.on('exit', (code, signal) => {
-    if (signal) {
-      process.kill(process.pid, signal);
+  let stopping = false;
+  const stopChildTree = (reason, signal = 'SIGTERM') => {
+    if (stopping) return;
+    stopping = true;
+    lifecycle.close();
+    try {
+      input.unpipe(child.stdin);
+      child.stdout.unpipe(output);
+    } catch {
+      // Streams may already be torn down by the client disconnect.
+    }
+    if (child.killed || !child.pid) return;
+    if (platform === 'win32') {
+      // `child` is a handle returned by this launcher, so the tree rooted at
+      // this exact PID is owned. `/T` also reaps parse/embedding workers.
+      spawnSyncImpl('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
+        encoding: 'utf8',
+        windowsHide: true,
+      });
       return;
     }
-    process.exit(code ?? 1);
+    child.kill(signal);
+  };
+
+  input.once('end', () => stopChildTree('stdin_eof'));
+  input.once('close', () => stopChildTree('stdin_close'));
+  input.once('error', () => stopChildTree('stdin_error'));
+  if (registerProcessHandlers) {
+    process.once('SIGINT', () => stopChildTree('sigint', 'SIGINT'));
+    process.once('SIGTERM', () => stopChildTree('sigterm', 'SIGTERM'));
+  }
+
+  child.on('exit', (code, signal) => {
+    lifecycle.close();
+    exitProcess(stopping ? 0 : signal ? 1 : (code ?? 1));
   });
+
+  return { child, lifecycle, stopChildTree };
 }
 
 async function main() {

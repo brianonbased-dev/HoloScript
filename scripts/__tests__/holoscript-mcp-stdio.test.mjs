@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { once } from 'node:events';
+import { PassThrough } from 'node:stream';
 import {
   BUILD_GROUPS,
   buildCommandForGroup,
   missingBuildGroups,
+  startServer,
   stdioServerPath,
   validateAbsorbBackgroundContract,
 } from '../holoscript-mcp-stdio.mjs';
@@ -84,4 +87,53 @@ test('absorb background contract fails on stale pre-async schemas', () => {
       ]),
     /inputSchema missing async/
   );
+});
+
+test('stdio disconnect closes the lease and reaps only the owned child tree', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const child = new PassThrough();
+  child.stdin = new PassThrough();
+  child.stdout = new PassThrough();
+  child.pid = 4321;
+  child.killed = false;
+  child.kill = () => {
+    child.killed = true;
+  };
+  const calls = [];
+  const exitCodes = [];
+  let touches = 0;
+  let closes = 0;
+
+  startServer({
+    input,
+    output,
+    spawnImpl: () => child,
+    spawnSyncImpl: (command, args) => {
+      calls.push({ command, args });
+      return { status: 0 };
+    },
+    lifecycleFactory: () => ({
+      touch: () => {
+        touches += 1;
+      },
+      close: () => {
+        closes += 1;
+      },
+      reapReceipt: { candidates: [], actions: [] },
+    }),
+    platform: 'win32',
+    registerProcessHandlers: false,
+    exitProcess: (code) => exitCodes.push(code),
+  });
+
+  input.write('request\n');
+  input.destroy();
+  await once(input, 'close');
+
+  assert.ok(touches >= 1, 'stdin activity refreshes the connection lease');
+  assert.ok(closes >= 1, 'disconnect removes the connection lease');
+  assert.deepEqual(calls, [{ command: 'taskkill.exe', args: ['/PID', '4321', '/T', '/F'] }]);
+  child.emit('exit', null, 'SIGTERM');
+  assert.deepEqual(exitCodes, [0], 'an expected disconnect teardown is a clean exit');
 });
