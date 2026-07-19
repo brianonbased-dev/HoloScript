@@ -83,10 +83,15 @@ interface AbsorbScanBatchSummary {
 interface AbsorbScanPlanReceipt {
   kind: 'AbsorbScanPlan';
   mode: 'module-batched' | 'inline-source-files';
+  selectionMode: 'git-visible' | 'git-tracked' | 'filesystem' | 'mixed' | 'inline';
   totalCandidateFiles: number;
   batchCount: number;
   batchSize?: number;
   batches: AbsorbScanBatchSummary[];
+}
+
+interface CompactAbsorbScanPlanReceipt extends Omit<AbsorbScanPlanReceipt, 'batches'> {
+  batchDetailsOmitted: number;
 }
 
 interface PlannedScannerBatch {
@@ -98,6 +103,7 @@ interface PlannedScannerBatch {
 interface PlannedScannerScanPlan {
   totalFiles: number;
   batchSize: number;
+  selectionMode?: 'git-visible' | 'git-tracked' | 'filesystem' | 'mixed';
   batches: PlannedScannerBatch[];
 }
 
@@ -181,6 +187,7 @@ function summarizeModuleScanPlan(plan: PlannedScannerScanPlan): AbsorbScanPlanRe
   return {
     kind: 'AbsorbScanPlan',
     mode: 'module-batched',
+    selectionMode: plan.selectionMode ?? 'filesystem',
     totalCandidateFiles: plan.totalFiles,
     batchCount: plan.batches.length,
     batchSize: plan.batchSize,
@@ -196,6 +203,7 @@ function summarizeInlineScanPlan(totalCandidateFiles: number): AbsorbScanPlanRec
   return {
     kind: 'AbsorbScanPlan',
     mode: 'inline-source-files',
+    selectionMode: 'inline',
     totalCandidateFiles,
     batchCount: totalCandidateFiles > 0 ? 1 : 0,
     batches:
@@ -203,6 +211,11 @@ function summarizeInlineScanPlan(totalCandidateFiles: number): AbsorbScanPlanRec
         ? [{ index: 1, label: 'inline-source-files', files: totalCandidateFiles }]
         : [],
   };
+}
+
+function compactAbsorbScanPlan(plan: AbsorbScanPlanReceipt): CompactAbsorbScanPlanReceipt {
+  const { batches, ...summary } = plan;
+  return { ...summary, batchDetailsOmitted: batches.length };
 }
 
 class AbsorbPhaseTimeoutError extends Error {
@@ -714,6 +727,8 @@ interface GraphScanPolicy {
   excludeNameFragments?: string[];
   includeHidden?: boolean;
   includeBuildArtifacts?: boolean;
+  respectGitIgnore?: boolean;
+  includeUntracked?: boolean;
   maxFiles?: number;
   maxFileSize?: number;
 }
@@ -724,6 +739,8 @@ interface NormalizedCoveragePolicy {
   nameFragments: string[];
   includeHidden: boolean;
   includeBuildArtifacts: boolean;
+  respectGitIgnore: boolean;
+  includeUntracked: boolean;
   maxFiles: number;
   maxFileSize: number;
   receipt: GraphScanPolicy;
@@ -797,9 +814,11 @@ interface SemanticIndexReadinessReceipt {
 
 interface GraphCoverageStatus {
   available: boolean;
-  source: 'git-ls-files' | 'unavailable';
+  source: 'git-ls-files' | 'git-ls-files-cached-and-others' | 'unavailable';
   graphFileCount: number;
   trackedCandidateCount?: number;
+  workspaceCandidateCount?: number;
+  selectedCandidateCount?: number;
   expectedGraphFileCount?: number;
   defaultMaxFiles: number;
   complete?: boolean;
@@ -914,6 +933,8 @@ function normalizeScanPolicy(policy?: GraphScanPolicy | null): GraphScanPolicy {
   if (excludeNameFragments) normalized.excludeNameFragments = excludeNameFragments;
   if (policy?.includeHidden === true) normalized.includeHidden = true;
   if (policy?.includeBuildArtifacts === true) normalized.includeBuildArtifacts = true;
+  if (policy?.respectGitIgnore === false) normalized.respectGitIgnore = false;
+  if (policy?.includeUntracked === false) normalized.includeUntracked = false;
   if (Number.isFinite(policy?.maxFiles) && Number(policy?.maxFiles) > 0) {
     normalized.maxFiles = Math.floor(Number(policy?.maxFiles));
   }
@@ -993,6 +1014,8 @@ function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoverag
     nameFragments: Array.from(new Set(nameFragments)),
     includeHidden: receipt.includeHidden === true,
     includeBuildArtifacts,
+    respectGitIgnore: receipt.respectGitIgnore !== false,
+    includeUntracked: receipt.includeUntracked !== false,
     maxFiles: receipt.maxFiles ?? DEFAULT_SCAN_MAX_FILES,
     maxFileSize: receipt.maxFileSize ?? DEFAULT_SCAN_MAX_FILE_SIZE,
     receipt,
@@ -1020,13 +1043,17 @@ function isCoverageExcludedPath(filePath: string, policy: NormalizedCoveragePoli
   return COVERAGE_NON_ABSORBABLE_EXT.has(ext);
 }
 
-function countGitTrackedAbsorbableFiles(
+function countGitAbsorbableFiles(
   rootDir: string,
-  scanPolicy?: GraphScanPolicy | null
+  scanPolicy: GraphScanPolicy | null | undefined,
+  includeUntracked: boolean
 ): number | null {
   const policy = buildCoveragePolicy(scanPolicy);
   try {
-    const output = execFileSync('git', ['ls-files'], {
+    const args = ['ls-files', '--cached'];
+    if (includeUntracked) args.push('--others', '--exclude-standard');
+    args.push('-z');
+    const output = execFileSync('git', args, {
       cwd: rootDir,
       encoding: 'utf-8',
       windowsHide: true,
@@ -1034,7 +1061,7 @@ function countGitTrackedAbsorbableFiles(
       maxBuffer: 64 * 1024 * 1024,
     });
     return output
-      .split(/\r?\n/)
+      .split('\0')
       .filter((line) => line.length > 0)
       .filter((line) => !isCoverageExcludedPath(line, policy))
       .filter((line) => {
@@ -1066,7 +1093,17 @@ function buildGraphCoverageStatus(
     };
   }
 
-  const trackedCandidateCount = countGitTrackedAbsorbableFiles(rootDir, policy.receipt);
+  if (!policy.respectGitIgnore) {
+    return {
+      available: false,
+      source: 'unavailable',
+      graphFileCount: safeGraphFileCount,
+      defaultMaxFiles: policy.maxFiles,
+      error: 'filesystem discovery does not have a bounded Git coverage denominator',
+    };
+  }
+
+  const trackedCandidateCount = countGitAbsorbableFiles(rootDir, policy.receipt, false);
   if (trackedCandidateCount === null) {
     return {
       available: false,
@@ -1077,14 +1114,33 @@ function buildGraphCoverageStatus(
     };
   }
 
-  const expectedGraphFileCount = Math.min(trackedCandidateCount, policy.maxFiles);
+  const workspaceCandidateCount = policy.includeUntracked
+    ? countGitAbsorbableFiles(rootDir, policy.receipt, true)
+    : trackedCandidateCount;
+  if (workspaceCandidateCount === null) {
+    return {
+      available: false,
+      source: 'unavailable',
+      graphFileCount: safeGraphFileCount,
+      trackedCandidateCount,
+      defaultMaxFiles: policy.maxFiles,
+      error: 'git ls-files --others --exclude-standard unavailable',
+    };
+  }
+
+  const selectedCandidateCount = policy.includeUntracked
+    ? workspaceCandidateCount
+    : trackedCandidateCount;
+  const expectedGraphFileCount = Math.min(selectedCandidateCount, policy.maxFiles);
   const complete = safeGraphFileCount >= expectedGraphFileCount;
   const extraGraphFiles = Math.max(0, safeGraphFileCount - expectedGraphFileCount);
   return {
     available: true,
-    source: 'git-ls-files',
+    source: policy.includeUntracked ? 'git-ls-files-cached-and-others' : 'git-ls-files',
     graphFileCount: safeGraphFileCount,
     trackedCandidateCount,
+    workspaceCandidateCount,
+    selectedCandidateCount,
     expectedGraphFileCount,
     defaultMaxFiles: policy.maxFiles,
     complete,
@@ -1092,14 +1148,14 @@ function buildGraphCoverageStatus(
       expectedGraphFileCount === 0
         ? 1
         : Number((safeGraphFileCount / expectedGraphFileCount).toFixed(4)),
-    cappedByMaxFiles: trackedCandidateCount > policy.maxFiles,
+    cappedByMaxFiles: selectedCandidateCount > policy.maxFiles,
     overInclusive: extraGraphFiles > 0,
     extraGraphFiles,
   };
 }
 
 function graphCoverageIsComplete(coverage: GraphCoverageStatus): boolean {
-  return !coverage.available || coverage.complete !== false;
+  return !coverage.available || (coverage.complete !== false && coverage.overInclusive !== true);
 }
 
 function buildCoverageAuthorityCaveats(coverage: GraphCoverageStatus): string[] {
@@ -1107,12 +1163,12 @@ function buildCoverageAuthorityCaveats(coverage: GraphCoverageStatus): string[] 
   const caveats: string[] = [];
   if (coverage.cappedByMaxFiles) {
     caveats.push(
-      `graph_coverage_capped_at_${coverage.expectedGraphFileCount ?? 0}_of_${coverage.trackedCandidateCount ?? 'unknown'}_git_tracked_candidates`
+      `graph_coverage_capped_at_${coverage.expectedGraphFileCount ?? 0}_of_${coverage.selectedCandidateCount ?? 'unknown'}_git_visible_candidates`
     );
   }
   if (coverage.overInclusive) {
     caveats.push(
-      `graph_contains_${coverage.extraGraphFiles ?? 0}_files_beyond_git_tracked_candidates`
+      `graph_contains_${coverage.extraGraphFiles ?? 0}_files_beyond_selected_candidates`
     );
   }
   return caveats;
@@ -2308,6 +2364,18 @@ export const codebaseTools: Tool[] = [
           description:
             'When true, dot-prefixed files/directories may be scanned unless excluded by name/path policy. Defaults to false.',
         },
+        respectGitIgnore: {
+          type: 'boolean',
+          description:
+            'When true (default), scans Git-tracked files plus non-ignored untracked files and excludes ignored build/cache debris. Set false only for explicit filesystem-wide scans.',
+          default: true,
+        },
+        includeUntracked: {
+          type: 'boolean',
+          description:
+            'When true (default), includes non-ignored untracked files in Git-aware discovery so new source is visible before its first commit.',
+          default: true,
+        },
         scanBatchSize: {
           type: 'number',
           description:
@@ -2336,7 +2404,7 @@ export const codebaseTools: Tool[] = [
         includeBuildArtifacts: {
           type: 'boolean',
           description:
-            'When true, includes build output folders (dist/build/out) in scanning. Useful in production containers that only ship compiled output. Defaults to false.',
+            'When true, permits build output folders (dist/build/out) in scanning. In Git worktrees this includes tracked or non-ignored outputs; pair with respectGitIgnore:false to include ignored outputs. Defaults to false.',
         },
         sourceFiles: {
           type: 'array',
@@ -2528,6 +2596,12 @@ export const codebaseTools: Tool[] = [
           type: 'boolean',
           description:
             'Inline the terminal result body (excluding the cached graph blob) when it fits the inline budget. Defaults to false.',
+          default: false,
+        },
+        includePlan: {
+          type: 'boolean',
+          description:
+            'Include every scan-batch summary. Defaults to false; compact status still reports selection mode, total files, batch count, and batch size.',
           default: false,
         },
       },
@@ -2959,6 +3033,8 @@ async function runFullScan(
         excludePathFragments: effectiveScanPolicy.excludePathFragments,
         excludeNameFragments: effectiveScanPolicy.excludeNameFragments,
         includeHidden: effectiveScanPolicy.includeHidden,
+        respectGitIgnore: effectiveScanPolicy.respectGitIgnore !== false,
+        includeUntracked: effectiveScanPolicy.includeUntracked !== false,
       };
       const scanPlan = scanner.planScan(scanOptions, scanBatchSize) as PlannedScannerScanPlan;
       scanPlanReceipt = summarizeModuleScanPlan(scanPlan);
@@ -3674,6 +3750,12 @@ function buildScanPolicyFromArgs(
   if (args.includeHidden !== undefined && typeof args.includeHidden !== 'boolean') {
     errors.push('includeHidden must be a boolean.');
   }
+  if (args.respectGitIgnore !== undefined && typeof args.respectGitIgnore !== 'boolean') {
+    errors.push('respectGitIgnore must be a boolean.');
+  }
+  if (args.includeUntracked !== undefined && typeof args.includeUntracked !== 'boolean') {
+    errors.push('includeUntracked must be a boolean.');
+  }
   if (
     args.maxFileSize !== undefined &&
     (!Number.isFinite(args.maxFileSize) || Number(args.maxFileSize) <= 0)
@@ -3691,6 +3773,8 @@ function buildScanPolicyFromArgs(
       excludeNameFragments: excludeNameFragments.value,
       includeHidden: args.includeHidden === true,
       includeBuildArtifacts,
+      respectGitIgnore: args.respectGitIgnore !== false,
+      includeUntracked: args.includeUntracked !== false,
       maxFiles,
       maxFileSize,
     }),
@@ -3704,6 +3788,8 @@ function scanPolicyArgsProvided(args: Record<string, unknown>): boolean {
     'excludeNameFragments',
     'includeHidden',
     'includeBuildArtifacts',
+    'respectGitIgnore',
+    'includeUntracked',
     'maxFiles',
     'maxFileSize',
   ].some((key) => args[key] !== undefined);
@@ -3807,6 +3893,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     rootDir,
     languages,
     maxFiles,
+    maxFileSize,
     scanBatchSize,
     includeBuildArtifacts,
     scanPolicy,
@@ -3958,6 +4045,8 @@ async function buildAutoBackgroundDecision(
         excludePathFragments: effectiveScanPolicy.excludePathFragments,
         excludeNameFragments: effectiveScanPolicy.excludeNameFragments,
         includeHidden: effectiveScanPolicy.includeHidden,
+        respectGitIgnore: effectiveScanPolicy.respectGitIgnore !== false,
+        includeUntracked: effectiveScanPolicy.includeUntracked !== false,
       },
       plan.scanBatchSize
     ) as PlannedScannerScanPlan;
@@ -3984,7 +4073,6 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     rootDir,
     languages,
     maxFiles,
-    maxFileSize,
     scanBatchSize,
     includeBuildArtifacts,
     scanPolicy,
@@ -4761,8 +4849,8 @@ async function handleGraphStatus(): Promise<unknown> {
     diskGraphFileCount,
     cache.scanPolicy
   );
-  const activeCoverageComplete = !activeCoverage.available || activeCoverage.complete !== false;
-  const diskCoverageComplete = !diskCoverage.available || diskCoverage.complete !== false;
+  const activeCoverageComplete = graphCoverageIsComplete(activeCoverage);
+  const diskCoverageComplete = graphCoverageIsComplete(diskCoverage);
   const activeHeadMatchesWorkspace = cacheGitMatchesHead(
     activeGitCommitHash,
     workspaceGitCommitHash
@@ -5069,7 +5157,8 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
   };
 
   if (job.scanPlan) {
-    response.scanPlan = job.scanPlan;
+    response.scanPlan =
+      args.includePlan === true ? job.scanPlan : compactAbsorbScanPlan(job.scanPlan);
   }
 
   if (job.error) {

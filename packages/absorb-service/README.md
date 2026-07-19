@@ -487,6 +487,19 @@ Walks a project directory respecting `.gitignore` patterns and configurable
 exclusions. Parses each file via the appropriate tree-sitter adapter and
 collects normalized symbols, imports, and call edges into a `ScanResult`.
 
+In Git worktrees, discovery defaults to tracked files plus non-ignored untracked
+files (`git ls-files --cached --others --exclude-standard`). This keeps newly
+authored source visible while excluding ignored caches and generated debris.
+Set `includeUntracked: false` for tracked-only scans or
+`respectGitIgnore: false` for an explicit filesystem-wide scan. Outside a Git
+worktree, discovery falls back to the filesystem automatically.
+
+Large repositories are planned in deterministic module batches of at most 100
+files by default, with an event-loop yield between parsing chunks. Running-job
+status returns only the selection mode and aggregate plan counts; pass
+`includePlan: true` to `holo_get_absorb_status` when batch-by-batch details are
+actually needed.
+
 Default exclusions: `node_modules`, `.git`, `dist`, `build`, `out`, `target`,
 `__pycache__`, `vendor`, `.venv`, `coverage`, and others.
 
@@ -633,18 +646,18 @@ tracking.
 
 ### Environment Variables
 
-| Variable                | Required         | Description                                                                                                                                                      |
-| ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ABSORB_API_KEY`        | For paid tools   | API key for Studio authentication                                                                                                                                |
-| `OPENAI_API_KEY`        | Optional         | OpenAI key, used ONLY for the generic factory with explicit `provider: 'openai'`. The GraphRAG path (`detectBestEmbeddingProvider`) ignores it entirely (F.106). |
-| `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)                                                                                                              |
+| Variable                | Required         | Description                                                                                                                                                                                       |
+| ----------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ABSORB_API_KEY`        | For paid tools   | API key for Studio authentication                                                                                                                                                                 |
+| `OPENAI_API_KEY`        | Optional         | OpenAI key, used ONLY for the generic factory with explicit `provider: 'openai'`. The GraphRAG path (`detectBestEmbeddingProvider`) ignores it entirely (F.106).                                  |
+| `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)                                                                                                                                               |
 | `HOLOLLAMA_PROFILE`     | Optional         | Default HoloLlama profile for `llmProvider: "holollama"` answer synthesis (`jetson-orin`, `laptop-windows`, or `vast-linux-gpu`). Resolved through HoloKey-aware config first, then env fallback. |
 | `HOLOLLAMA_ENDPOINT`    | Optional         | OpenAI-compatible HoloLlama endpoint override for answer synthesis. Accepts a base URL, `/v1` URL, or `/v1/chat/completions` URL. Resolved through HoloKey-aware config first, then env fallback. |
-| `EMBEDDING_PROVIDER`    | Optional         | GraphRAG override — only `holoembed` is accepted (`structural` is a legacy alias mapped to `holoembed`); any other value (incl. `openai`) is rejected (F.106).   |
-| `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://holoscript.studio`)                                                                                                       |
-| `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                                                                                                                         |
-| `ANTHROPIC_API_KEY`     | Optional         | Anthropic API key for LLM-powered queries                                                                                                                        |
-| `GEMINI_API_KEY`        | Optional         | Google Gemini API key for LLM-powered queries                                                                                                                    |
+| `EMBEDDING_PROVIDER`    | Optional         | GraphRAG override — only `holoembed` is accepted (`structural` is a legacy alias mapped to `holoembed`); any other value (incl. `openai`) is rejected (F.106).                                    |
+| `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://holoscript.studio`)                                                                                                                                        |
+| `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                                                                                                                                                          |
+| `ANTHROPIC_API_KEY`     | Optional         | Anthropic API key for LLM-powered queries                                                                                                                                                         |
+| `GEMINI_API_KEY`        | Optional         | Google Gemini API key for LLM-powered queries                                                                                                                                                     |
 
 ### Embedding Provider Auto-Detection
 

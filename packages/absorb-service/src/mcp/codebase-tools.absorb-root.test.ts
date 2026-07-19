@@ -495,10 +495,10 @@ describe('holo_absorb_repo root validation', () => {
   it('does not emit a graph unavailable receipt for a fresh disk cache matching cwd', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-fresh-graph-cache-'));
-    // Use process.cwd() as rootDir so the cache matches the current workspace
-    const requestedRoot = process.cwd();
+    const requestedRoot = makeTinyGitRepo('holoscript-fresh-graph-repo-');
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
-    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, undefined, 10_000);
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = requestedRoot;
+    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, undefined, 2);
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
@@ -517,7 +517,7 @@ describe('holo_absorb_repo root validation', () => {
 
     expect(status.graphAuthoritative).toBe(true);
     expect(status.freshForCurrentRepo).toBe(true);
-    expect(status.currentCwd).toBe(path.resolve(process.cwd()));
+    expect(status.currentCwd).toBe(path.resolve(requestedRoot));
     expect(status.diskCache?.fresh).toBe(true);
     expect(status.diskCache?.freshByAge).toBe(true);
     expect(status.diskCache?.authoritative).toBe(true);
@@ -809,10 +809,11 @@ describe('holo_absorb_repo root validation', () => {
   it('keeps a fresh disk cache authoritative when its git hash matches HEAD', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-git-fresh-cache-'));
-    const requestedRoot = process.cwd();
-    const head = getHeadCommit();
+    const requestedRoot = makeTinyGitRepo('holoscript-git-fresh-repo-');
+    const head = getHeadCommit(requestedRoot);
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
-    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, head, 10_000);
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = requestedRoot;
+    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, head, 2);
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
@@ -898,7 +899,7 @@ describe('holo_absorb_repo root validation', () => {
       cappedByMaxFiles: true,
     });
     expect(status.authorityCaveats).toContain(
-      'graph_coverage_capped_at_2_of_3_git_tracked_candidates'
+      'graph_coverage_capped_at_2_of_3_git_visible_candidates'
     );
     expect(status.diskCache?.authoritative).toBe(true);
     expect(status.diskCache?.coverage).toMatchObject({
@@ -909,7 +910,7 @@ describe('holo_absorb_repo root validation', () => {
       cappedByMaxFiles: true,
     });
     expect(status.diskCache?.authorityCaveats).toContain(
-      'graph_coverage_capped_at_2_of_3_git_tracked_candidates'
+      'graph_coverage_capped_at_2_of_3_git_visible_candidates'
     );
   });
 
@@ -1196,7 +1197,7 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.diskCache?.scanPolicy?.maxFileSize).toBe(64);
   });
 
-  it('flags graph caches that include untracked local files as over-inclusive', async () => {
+  it('counts non-ignored untracked source in authoritative workspace coverage', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-overinclusive-cache-'));
     const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-overinclusive-repo-'));
@@ -1244,6 +1245,8 @@ describe('holo_absorb_repo root validation', () => {
         graphFileCount?: number;
         expectedGraphFileCount?: number;
         trackedCandidateCount?: number;
+        workspaceCandidateCount?: number;
+        selectedCandidateCount?: number;
         overInclusive?: boolean;
         extraGraphFiles?: number;
       };
@@ -1255,6 +1258,8 @@ describe('holo_absorb_repo root validation', () => {
           graphFileCount?: number;
           expectedGraphFileCount?: number;
           trackedCandidateCount?: number;
+          workspaceCandidateCount?: number;
+          selectedCandidateCount?: number;
           overInclusive?: boolean;
           extraGraphFiles?: number;
         };
@@ -1265,26 +1270,78 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.coverage).toMatchObject({
       complete: true,
       graphFileCount: 2,
-      expectedGraphFileCount: 1,
+      expectedGraphFileCount: 2,
       trackedCandidateCount: 1,
-      overInclusive: true,
-      extraGraphFiles: 1,
+      workspaceCandidateCount: 2,
+      selectedCandidateCount: 2,
+      overInclusive: false,
+      extraGraphFiles: 0,
     });
-    expect(status.authorityCaveats).toContain(
-      'graph_contains_1_files_beyond_git_tracked_candidates'
+    expect(status.authorityCaveats).not.toContain(
+      'graph_contains_1_files_beyond_selected_candidates'
     );
     expect(status.diskCache?.authoritative).toBe(true);
     expect(status.diskCache?.coverage).toMatchObject({
       complete: true,
       graphFileCount: 2,
-      expectedGraphFileCount: 1,
+      expectedGraphFileCount: 2,
       trackedCandidateCount: 1,
+      workspaceCandidateCount: 2,
+      selectedCandidateCount: 2,
+      overInclusive: false,
+      extraGraphFiles: 0,
+    });
+    expect(status.diskCache?.authorityCaveats).not.toContain(
+      'graph_contains_1_files_beyond_selected_candidates'
+    );
+  });
+
+  it('rejects a fresh cache that contains ignored files beyond the selected workspace', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-ignored-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-ignored-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    fs.appendFileSync(path.join(repoDir, '.git', 'info', 'exclude'), 'node_modules/\n', 'utf-8');
+    fs.mkdirSync(path.join(repoDir, 'node_modules'), { recursive: true });
+    fs.writeFileSync(
+      path.join(repoDir, 'node_modules', 'ignored.ts'),
+      'export const ignored = true;\n',
+      'utf-8'
+    );
+    const head = getHeadCommit(repoDir);
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      repoDir,
+      Date.now() - 5 * 60 * 1000,
+      head,
+      hashRepoFiles(repoDir, ['src/alpha.ts', 'src/beta.ts', 'node_modules/ignored.ts'])
+    );
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      authorityCaveats?: string[];
+      coverage?: {
+        graphFileCount?: number;
+        expectedGraphFileCount?: number;
+        selectedCandidateCount?: number;
+        overInclusive?: boolean;
+        extraGraphFiles?: number;
+      };
+      diskCache?: { authoritative?: boolean };
+    };
+
+    expect(status.graphAuthoritative).toBe(false);
+    expect(status.coverage).toMatchObject({
+      graphFileCount: 3,
+      expectedGraphFileCount: 2,
+      selectedCandidateCount: 2,
       overInclusive: true,
       extraGraphFiles: 1,
     });
-    expect(status.diskCache?.authorityCaveats).toContain(
-      'graph_contains_1_files_beyond_git_tracked_candidates'
-    );
+    expect(status.authorityCaveats).toContain('graph_contains_1_files_beyond_selected_candidates');
+    expect(status.diskCache?.authoritative).toBe(false);
   });
 
   it('marks a fresh git-current cache incomplete when coverage is below the scanner target', async () => {

@@ -15,6 +15,13 @@ type AbsorbStatus = {
   resultOmittedFields?: Array<{ field?: string; bytes?: number; recoverVia?: string }>;
   resultTruncated?: boolean;
   resultHint?: string;
+  scanPlan?: {
+    selectionMode?: string;
+    totalCandidateFiles?: number;
+    batchCount?: number;
+    batchDetailsOmitted?: number;
+    batches?: Array<{ index?: number; label?: string; files?: number }>;
+  };
 };
 
 // Enough distinct symbols that graph.serialize() is far larger than any status envelope.
@@ -70,6 +77,23 @@ describe('holo_get_absorb_status transcript budget', () => {
     // resultKeys still advertises the blob so callers know it existed.
     expect(status.resultKeys).toContain('graph');
     expect(status.resultBytes).toBeGreaterThan(omittedGraph!.bytes!);
+
+    expect(status.scanPlan).toMatchObject({
+      selectionMode: 'inline',
+      totalCandidateFiles: SOURCE_FILES.length,
+      batchCount: 1,
+      batchDetailsOmitted: 1,
+    });
+    expect(status.scanPlan?.batches).toBeUndefined();
+
+    const detailedStatus = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: absorbed.jobId,
+      includePlan: true,
+    })) as AbsorbStatus;
+    expect(detailedStatus.scanPlan?.batches).toEqual([
+      { index: 1, label: 'inline-source-files', files: SOURCE_FILES.length },
+    ]);
+    expect(detailedStatus.scanPlan?.batchDetailsOmitted).toBeUndefined();
 
     // The whole envelope must stay far below the graph it describes.
     const envelopeBytes = Buffer.byteLength(JSON.stringify(status), 'utf-8');

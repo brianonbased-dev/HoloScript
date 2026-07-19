@@ -308,6 +308,16 @@ export interface ScanOptions {
   includeHidden?: boolean;
   /** Include build output directories like dist/build/out (default: false) */
   includeBuildArtifacts?: boolean;
+  /**
+   * Respect the repository's Git ignore rules when Git metadata is available.
+   * Defaults to true and falls back to a filesystem walk outside Git worktrees.
+   */
+  respectGitIgnore?: boolean;
+  /**
+   * Include non-ignored untracked files in Git-aware discovery. Defaults to true
+   * so newly authored source is visible before its first commit.
+   */
+  includeUntracked?: boolean;
   /** Injectable file reader (for testing / browser) */
   readFile?: (path: string) => Promise<string>;
   /** Progress callback, called after each file is parsed */

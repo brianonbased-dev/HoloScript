@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CodebaseScanner } from '../CodebaseScanner';
 
@@ -59,6 +60,45 @@ describe('CodebaseScanner module batching', () => {
     );
   });
 
+  it('uses Git-visible discovery by default without losing new untracked source', () => {
+    const root = makeTempRepo();
+    execFileSync('git', ['init'], { cwd: root, windowsHide: true });
+    writeFixture(root, '.gitignore', 'generated/\n');
+    writeFixture(root, 'src/tracked.ts', 'export const tracked = true;\n');
+    writeFixture(root, 'src/untracked.ts', 'export const untracked = true;\n');
+    writeFixture(root, 'generated/ignored.ts', 'export const ignored = true;\n');
+    execFileSync('git', ['add', '.gitignore', 'src/tracked.ts'], {
+      cwd: root,
+      windowsHide: true,
+    });
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const visiblePlan = scanner.planScan({ rootDir: root, maxFiles: 10 });
+    const trackedPlan = scanner.planScan({ rootDir: root, maxFiles: 10, includeUntracked: false });
+    const filesystemPlan = scanner.planScan({
+      rootDir: root,
+      maxFiles: 10,
+      respectGitIgnore: false,
+    });
+
+    expect(visiblePlan.selectionMode).toBe('git-visible');
+    expect(visiblePlan.batchSize).toBe(100);
+    expect(
+      visiblePlan.batches.flatMap((batch) => batch.files).map((file) => path.basename(file))
+    ).toEqual(['tracked.ts', 'untracked.ts']);
+    expect(trackedPlan.selectionMode).toBe('git-tracked');
+    expect(
+      trackedPlan.batches.flatMap((batch) => batch.files).map((file) => path.basename(file))
+    ).toEqual(['tracked.ts']);
+    expect(filesystemPlan.selectionMode).toBe('filesystem');
+    expect(
+      filesystemPlan.batches
+        .flatMap((batch) => batch.files)
+        .map((file) => path.basename(file))
+        .sort()
+    ).toEqual(['ignored.ts', 'tracked.ts', 'untracked.ts']);
+  });
+
   it('scans planned batches and merges them into one ScanResult', async () => {
     const root = makeTempRepo();
     writeFixture(root, 'packages/core/src/a.txt', 'import "./b";\n');
@@ -93,6 +133,29 @@ describe('CodebaseScanner module batching', () => {
     expect(started).toHaveLength(plan.batches.length);
     expect(completed).toHaveLength(plan.batches.length);
     expect(progress[progress.length - 1]).toMatchObject({ processed: 3, total: 3 });
+  });
+
+  it('yields to status polling between scan batches', async () => {
+    const root = makeTempRepo();
+    writeFixture(root, 'src/a.txt');
+    writeFixture(root, 'src/b.txt');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const plan = scanner.planScan({ rootDir: root, maxFiles: 10 }, 1);
+    let statusPollRan = false;
+    const observedAtSecondBatch: boolean[] = [];
+
+    await scanner.scanInBatches({
+      rootDir: root,
+      scanPlan: plan,
+      readFile: async () => 'fixture\n',
+      onBatchComplete: (batch) => {
+        if (batch.index === 1) setImmediate(() => (statusPollRan = true));
+        if (batch.index === 2) observedAtSecondBatch.push(statusPollRan);
+      },
+    });
+
+    expect(observedAtSecondBatch).toEqual([true]);
   });
 
   it('parses native HoloScript files through worker-backed scanFiles', async () => {

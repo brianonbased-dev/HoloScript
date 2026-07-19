@@ -9,6 +9,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 // ESM-compatible __dirname
@@ -66,7 +67,7 @@ const DEFAULT_EXCLUDE = [
 
 const DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const DEFAULT_MAX_FILES = 10_000;
-const DEFAULT_SCAN_MODULE_BATCH_SIZE = 500;
+const DEFAULT_SCAN_MODULE_BATCH_SIZE = 100;
 const BUILD_ARTIFACT_DIRS = new Set(['dist', 'build', 'out']);
 
 function resolveParseWorkerFile(): string | null {
@@ -181,6 +182,7 @@ export interface ScanPlan {
   rootDirs: string[];
   totalFiles: number;
   batchSize: number;
+  selectionMode?: 'git-visible' | 'git-tracked' | 'filesystem' | 'mixed';
   batches: PlannedScanBatch[];
 }
 
@@ -189,6 +191,15 @@ interface ExcludePolicy {
   pathFragments: string[];
   nameFragments: string[];
   includeHidden: boolean;
+}
+
+interface CollectedFiles {
+  files: string[];
+  selectionMode: Exclude<NonNullable<ScanPlan['selectionMode']>, 'mixed'>;
+}
+
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
 }
 
 export interface ScanInBatchesOptions extends ScanOptions {
@@ -258,12 +269,14 @@ export class CodebaseScanner {
     const filePathsSet = new Set<string>();
     for (const rDir of rootDirs) {
       if (filePathsSet.size >= maxFiles) break;
-      const paths = this.collectFiles(
+      const { files: paths } = this.collectFiles(
         rDir,
         exclude,
         maxFiles - filePathsSet.size,
         options.languages,
-        maxFileSize
+        maxFileSize,
+        options.respectGitIgnore,
+        options.includeUntracked
       );
       for (const p of paths) filePathsSet.add(p);
     }
@@ -320,10 +333,13 @@ export class CodebaseScanner {
 
           onProgress?.(files.length, filePaths.length, relPath);
         }
+        await yieldToEventLoop();
       }
     } else {
       // SEQUENTIAL FALLBACK: Original implementation (no workers available)
-      for (const filePath of filePaths) {
+      for (let fileIndex = 0; fileIndex < filePaths.length; fileIndex++) {
+        if (fileIndex > 0 && fileIndex % 16 === 0) await yieldToEventLoop();
+        const filePath = filePaths[fileIndex];
         const language = detectLanguage(filePath) || 'plaintext';
         const adapter = getAdapterForFile(filePath);
 
@@ -513,16 +529,20 @@ export class CodebaseScanner {
     const batchSize = this.normalizeScanBatchSize(scanBatchSize);
 
     const filePathsSet = new Set<string>();
+    const selectionModes = new Set<CollectedFiles['selectionMode']>();
     for (const rDir of rootDirs) {
       if (filePathsSet.size >= maxFiles) break;
-      const paths = this.collectFiles(
+      const collected = this.collectFiles(
         rDir,
         exclude,
         maxFiles - filePathsSet.size,
         options.languages,
-        maxFileSize
+        maxFileSize,
+        options.respectGitIgnore,
+        options.includeUntracked
       );
-      for (const p of paths) filePathsSet.add(p);
+      selectionModes.add(collected.selectionMode);
+      for (const p of collected.files) filePathsSet.add(p);
     }
 
     const filePaths = Array.from(filePathsSet);
@@ -551,7 +571,9 @@ export class CodebaseScanner {
       }
     }
 
-    return { rootDir, rootDirs, totalFiles: filePaths.length, batchSize, batches };
+    const selectionMode =
+      selectionModes.size <= 1 ? (selectionModes.values().next().value ?? 'filesystem') : 'mixed';
+    return { rootDir, rootDirs, totalFiles: filePaths.length, batchSize, selectionMode, batches };
   }
 
   /**
@@ -602,6 +624,7 @@ export class CodebaseScanner {
 
       completedCandidateFiles += batch.files.length;
       options.onBatchComplete?.(batch, batchResult, plan.batches.length);
+      await yieldToEventLoop();
     }
 
     const stats: ScanStats = {
@@ -684,6 +707,7 @@ export class CodebaseScanner {
         for (const result of parseResults) {
           accumulateResult(result);
         }
+        await yieldToEventLoop();
       }
     } else {
       // Parallel batching for I/O efficiency
@@ -699,6 +723,7 @@ export class CodebaseScanner {
         for (const result of results) {
           accumulateResult(result);
         }
+        await yieldToEventLoop();
       }
     }
 
@@ -1010,15 +1035,27 @@ export class CodebaseScanner {
     exclude: ExcludePolicy,
     maxFiles: number,
     languages?: SupportedLanguage[],
-    maxFileSize = DEFAULT_MAX_FILE_SIZE
-  ): string[] {
+    maxFileSize = DEFAULT_MAX_FILE_SIZE,
+    respectGitIgnore = true,
+    includeUntracked = true
+  ): CollectedFiles {
     const langFilter = languages ? new Set(languages) : null;
 
     // Phase 1 — DISCOVER candidate paths. Skip binary/asset files (they can't be absorbed and,
     // in asset-heavy example dirs, would flood the pool and truncate discovery before packages/
     // is reached). A high ceiling then only guards truly pathological repos.
     const HARD = Math.max(maxFiles * 20, 120000);
-    const all: string[] = [];
+    const gitFiles = respectGitIgnore
+      ? this.collectGitVisibleFiles(
+          rootDir,
+          exclude,
+          langFilter,
+          maxFileSize,
+          HARD,
+          includeUntracked
+        )
+      : null;
+    const all: string[] = gitFiles ?? [];
     const walk = (dir: string): void => {
       if (all.length >= HARD) return;
       let entries: fs.Dirent[];
@@ -1049,8 +1086,10 @@ export class CodebaseScanner {
         }
       }
     };
-    walk(rootDir);
-    if (all.length <= maxFiles) return all;
+    if (gitFiles === null) walk(rootDir);
+    const selectionMode: CollectedFiles['selectionMode'] =
+      gitFiles === null ? 'filesystem' : includeUntracked ? 'git-visible' : 'git-tracked';
+    if (all.length <= maxFiles) return { files: all, selectionMode };
 
     // Phase 2 — FAIR selection. A plain depth-first cap lets whatever directory sorts first
     // (e.g. examples/) exhaust the whole budget before packages/ is ever reached. Group by a
@@ -1097,7 +1136,77 @@ export class CodebaseScanner {
       }
       if (selected.length >= maxFiles) break;
     }
-    return selected;
+    return { files: selected, selectionMode };
+  }
+
+  private collectGitVisibleFiles(
+    rootDir: string,
+    exclude: ExcludePolicy,
+    langFilter: Set<SupportedLanguage> | null,
+    maxFileSize: number,
+    hardLimit: number,
+    includeUntracked: boolean
+  ): string[] | null {
+    try {
+      const gitRoot = execFileSync('git', ['-C', rootDir, 'rev-parse', '--show-toplevel'], {
+        encoding: 'utf-8',
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+      if (!gitRoot) return null;
+
+      const relativeRoot = path.relative(gitRoot, rootDir).replace(/\\/g, '/');
+      if (relativeRoot === '..' || relativeRoot.startsWith('../')) return null;
+
+      const args = ['-C', gitRoot, 'ls-files', '--cached'];
+      if (includeUntracked) args.push('--others', '--exclude-standard');
+      args.push('-z', '--');
+      if (relativeRoot && relativeRoot !== '.') args.push(relativeRoot);
+
+      const output = execFileSync('git', args, {
+        encoding: 'buffer',
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'ignore'],
+        maxBuffer: 128 * 1024 * 1024,
+      });
+      const rootProbe = path.resolve(rootDir);
+      const files: string[] = [];
+      const entries = output
+        .toString('utf-8')
+        .split('\0')
+        .filter((entry) => entry.length > 0)
+        .sort();
+      for (const entry of entries) {
+        if (files.length >= hardLimit) break;
+        const fullPath = path.resolve(gitRoot, entry);
+        const relative = path.relative(rootProbe, fullPath);
+        if (
+          relative === '..' ||
+          relative.startsWith(`..${path.sep}`) ||
+          path.isAbsolute(relative)
+        ) {
+          continue;
+        }
+
+        const name = path.basename(fullPath);
+        if (this.pathExcludedByPolicy(fullPath, rootProbe, name, exclude)) continue;
+        const dot = name.lastIndexOf('.');
+        const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
+        if (NON_ABSORBABLE_EXT.has(ext)) continue;
+        try {
+          const stat = fs.statSync(fullPath);
+          if (!stat.isFile() || stat.size > maxFileSize) continue;
+        } catch {
+          continue;
+        }
+        const lang = detectLanguage(fullPath) || 'plaintext';
+        if (langFilter && !langFilter.has(lang)) continue;
+        files.push(fullPath);
+      }
+      return files;
+    } catch {
+      return null;
+    }
   }
 
   private buildExcludePolicy(
