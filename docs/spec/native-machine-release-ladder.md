@@ -5,11 +5,11 @@ contracts from the versions published to outward consumers.
 
 ## Three namespaces
 
-| Namespace | Form | Meaning |
-| --- | --- | --- |
-| Machine contract | `hs-machine-vN` | Internal cumulative compiler/runtime capability and evidence selector. Not SemVer. |
-| Outward preview | `0.x.y`, beginning at `0.1.0` | Publicly consumable preview with an explicit pre-stable compatibility boundary. |
-| Public stable | `1.0.0` and later | Stable public compatibility, support, migration, and recovery contract. |
+| Namespace        | Form                          | Meaning                                                                            |
+| ---------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
+| Machine contract | `hs-machine-vN`               | Internal cumulative compiler/runtime capability and evidence selector. Not SemVer. |
+| Outward preview  | `0.x.y`, beginning at `0.1.0` | Publicly consumable preview with an explicit pre-stable compatibility boundary.    |
+| Public stable    | `1.0.0` and later             | Stable public compatibility, support, migration, and recovery contract.            |
 
 ```text
 hs-machine-v0 -> hs-machine-v1 -> ... -> hs-machine-vN
@@ -68,6 +68,14 @@ The first measured gate audit is the
 [`0.1.0` outward-preview readiness baseline](../releases/0.1.0-readiness-baseline.md). Its
 `NOT READY` disposition remains authoritative until a newer dated baseline supersedes it with all
 required evidence green.
+
+The exact non-conflicting consumer identity is the
+[`HoloScript Systems Toolchain 0.1.0` distribution contract](../releases/0.1.0-distribution-contract.md),
+enforced by
+[`systems-preview-release-manifest.json`](../../scripts/holo-ci/systems-preview-release-manifest.json).
+It versions a new distribution rather than resetting existing npm, PyPI, Cargo, or hosted-service
+lines. `node scripts/holo-ci/check-systems-preview-release.mjs --require-ready` is the fail-closed
+publication decision for that candidate.
 
 ## Gate to public `1.0.0`
 

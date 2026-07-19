@@ -1,0 +1,377 @@
+{
+  "schema": "holoscript.systems-preview-release/v1",
+  "releaseIdentity": {
+    "distributionId": "holoscript-systems-toolchain",
+    "displayName": "HoloScript Systems Toolchain",
+    "version": "0.1.0",
+    "channel": "outward-preview",
+    "status": "defined-not-ready",
+    "registryPackage": {
+      "registry": "npm",
+      "name": "@holoscript/systems",
+      "version": "0.1.0",
+      "publishState": "planned-unpublished"
+    },
+    "versionAuthority": "This distribution manifest owns the 0.x preview version. Component packages, crates, services, and hs-machine selectors retain independent versions.",
+    "legacyVersionReset": "forbidden",
+    "immutableArtifactRule": "A published version is never overwritten, reinterpreted, or reused. Corrections receive a new distribution version."
+  },
+  "authority": {
+    "machineReleaseLadder": "docs/spec/native-machine-release-ladder.md",
+    "readinessBaseline": "docs/releases/0.1.0-readiness-baseline.md",
+    "consumerContract": "docs/releases/0.1.0-distribution-contract.md",
+    "crossEcosystemPolicySchema": "holoscript.release-stage-standard/v1",
+    "rule": "The manifest is the machine-readable candidate boundary. The consumer contract explains it; neither file authorizes publication while releaseDecision.readyToPublish is false."
+  },
+  "supportedSurface": {
+    "sourceFormats": [".hs", ".hsplus", ".holo"],
+    "minimumMachineContract": "hs-machine-v31",
+    "hostPlatforms": ["win32-x64"],
+    "capabilities": [
+      "Parse, validate, format, and compile HoloScript source through the pinned npm core and CLI components.",
+      "Compile the cumulative, fail-closed native machine subset through hs-machine-v31 with holoscriptc.",
+      "Validate the portable parser and type-checker path through holoscript-wasm.",
+      "Run local parse, validation, and native compilation without a hosted service or private workspace clone.",
+      "Use hosted MCP, Absorb, and Studio as optional companions with independent service versions."
+    ],
+    "consumerPromises": [
+      "The distribution version identifies one immutable component and artifact set.",
+      "Local compile paths require no HoloScript service credential.",
+      "Unsupported native syntax and unsafe ownership or provenance states fail closed.",
+      "Every component pin, artifact digest, and declared service compatibility result is recorded before publication."
+    ]
+  },
+  "knownLimits": [
+    "0.1.0 is an unstable preview, not a stable API, production-readiness, or drop-in compatibility claim.",
+    "The native compiler supports the cumulative hs-machine-v0 through hs-machine-v31 subset, not every parser or library surface in the wider TypeScript ecosystem.",
+    "The first native binary target is win32-x64; Linux, macOS, ARM64, and cross-compilation artifacts are deferred until separately declared and proven.",
+    "HoloScript is not yet self-hosting, and bootstrap compiler/runtime implementations still include Rust and TypeScript.",
+    "Hosted MCP, Absorb, and Studio have independent versions and no preview SLA; loss of those services must not break local compilation.",
+    "PyPI packages and existing npm package versions are legacy component lines and are not the HoloScript Systems Toolchain 0.1.0 identity."
+  ],
+  "components": [
+    {
+      "id": "npm-core",
+      "kind": "npm-component",
+      "name": "@holoscript/core",
+      "version": "8.0.16",
+      "role": "language-core",
+      "relationship": "pinned-legacy-component",
+      "requiredForInstall": true,
+      "localManifest": "packages/core/package.json"
+    },
+    {
+      "id": "npm-cli",
+      "kind": "npm-component",
+      "name": "@holoscript/cli",
+      "version": "8.0.11",
+      "role": "user-cli",
+      "relationship": "pinned-legacy-component",
+      "requiredForInstall": true,
+      "localManifest": "packages/cli/package.json",
+      "bins": ["holoscript", "hs"]
+    },
+    {
+      "id": "native-compiler",
+      "kind": "cargo-workspace-component",
+      "name": "holoscript-native",
+      "version": "3.0.0",
+      "role": "native-compiler",
+      "relationship": "bundled-source-component",
+      "requiredForInstall": true,
+      "localManifest": "packages/compiler-native/Cargo.toml",
+      "entrypoint": "holoscriptc",
+      "machineContract": "hs-machine-v31"
+    },
+    {
+      "id": "wasm-validation-runtime",
+      "kind": "cargo-workspace-component",
+      "name": "holoscript-wasm",
+      "version": "3.0.0",
+      "role": "portable-validation-runtime",
+      "relationship": "bundled-source-component",
+      "requiredForInstall": false,
+      "requiredForConformance": true,
+      "localManifest": "packages/compiler-wasm/Cargo.toml"
+    }
+  ],
+  "rails": [
+    {
+      "id": "npm-toolchain",
+      "rail": "npm",
+      "class": "distribution",
+      "required": true,
+      "identity": "@holoscript/systems@0.1.0",
+      "versionMode": "distribution-semver",
+      "artifactState": "planned-unpublished",
+      "installCommand": "npm install --global @holoscript/systems@0.1.0",
+      "coldProbe": "holoscript --version && hs --version && holoscriptc --help"
+    },
+    {
+      "id": "native-windows-x64",
+      "rail": "github-release-artifact",
+      "class": "distribution",
+      "required": true,
+      "identity": "holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip",
+      "versionMode": "distribution-semver",
+      "artifactState": "planned-unbuilt",
+      "requiredContents": ["holoscriptc.exe", "release-manifest.json", "SHA256SUMS", "LICENSE"],
+      "coldProbe": "holoscriptc examples/native/compositional-borrow-summary-exit-five.hs -o proof.exe; proof.exe exits 5"
+    },
+    {
+      "id": "wasm-portable-runtime",
+      "rail": "npm-bundled-artifact",
+      "class": "distribution",
+      "required": true,
+      "identity": "@holoscript/systems@0.1.0/wasm",
+      "versionMode": "distribution-semver",
+      "artifactState": "planned-unbuilt",
+      "coldProbe": "Import the bundled WASM parser/type-checker and run the declared conformance corpus."
+    },
+    {
+      "id": "hosted-mcp",
+      "rail": "railway",
+      "class": "optional-companion",
+      "required": false,
+      "identity": "https://mcp.holoscript.net",
+      "componentIdentity": "@holoscript/mcp-server",
+      "baselineObservedVersion": "8.0.13",
+      "versionMode": "independent-compatible-component",
+      "requiredForLocalCompile": false,
+      "compatibilityProbe": "GET https://mcp.holoscript.net/health and compile the release example through the declared public tool surface."
+    },
+    {
+      "id": "hosted-absorb",
+      "rail": "railway",
+      "class": "optional-companion",
+      "required": false,
+      "identity": "https://absorb.holoscript.net",
+      "componentIdentity": "@holoscript/absorb-service",
+      "baselineObservedVersion": "6.1.1",
+      "versionMode": "independent-compatible-component",
+      "requiredForLocalCompile": false,
+      "compatibilityProbe": "GET https://absorb.holoscript.net/health and run a bounded sourceFiles Absorb probe."
+    },
+    {
+      "id": "hosted-studio",
+      "rail": "railway",
+      "class": "optional-companion",
+      "required": false,
+      "identity": "https://studio-production-a071.up.railway.app",
+      "versionMode": "independent-compatible-component",
+      "requiredForLocalCompile": false,
+      "compatibilityProbe": "Read the declared Studio health endpoint and confirm the preview install path remains optional."
+    },
+    {
+      "id": "legacy-pypi",
+      "rail": "pypi",
+      "class": "excluded",
+      "required": false,
+      "identity": "holoscript",
+      "versionMode": "legacy-independent",
+      "reason": "The existing PyPI line remains independently versioned and is not part of the first systems-toolchain distribution."
+    }
+  ],
+  "installContract": {
+    "availability": "planned-unpublished",
+    "primaryCommand": "npm install --global @holoscript/systems@0.1.0",
+    "expectedBins": ["holoscript", "hs", "holoscriptc"],
+    "coldConsumerRequirements": [
+      "No HoloScript repository clone.",
+      "No founder-local path, GOLD vault, private .env file, or HoloScript service credential.",
+      "Node.js 20 or later and a supported win32-x64 host for the first native binary.",
+      "Network access only for installation; local parse, validate, and compile remain offline-capable after installation."
+    ]
+  },
+  "compatibilityPolicy": {
+    "semverStage": "0.x-preview",
+    "minorReleaseRule": "A 0.x minor release may make breaking language, CLI, manifest, or ABI changes only with migration notes and an explicit changed-boundary list.",
+    "patchReleaseRule": "A patch release must not intentionally break a documented supported surface.",
+    "deprecationRule": "When safety permits, retain deprecated behavior for at least one preview minor release; unsafe behavior may be removed immediately with a security migration note.",
+    "machineContractRule": "An hs-machine-vN successor never changes the public distribution version by itself.",
+    "componentPinRule": "Changing any required component pin or artifact content requires a new distribution version and fresh parity receipts."
+  },
+  "supportContract": {
+    "ownerId": "holoscript-language-toolchain",
+    "supportChannel": "https://github.com/brianonbased-dev/HoloScript/issues",
+    "serviceLevel": "best-effort preview; no uptime or response-time SLA",
+    "supported": [
+      "Reproducing documented install, parse, validate, and compile failures on the declared host and pinned artifacts.",
+      "Security reports, deterministic artifact mismatches, and fail-closed compiler regressions."
+    ],
+    "unsupported": [
+      "Undeclared host targets, private plugins, founder-local services, and compatibility with unpinned component versions.",
+      "Stable-API, production-readiness, or drop-in replacement guarantees."
+    ]
+  },
+  "rollbackContract": {
+    "npm": "Never overwrite or reuse a published version. Move the preview dist-tag to the last verified release; if 0.1.0 is the first and is defective, remove the preview tag and publish the correction as 0.1.1 or later.",
+    "nativeArtifacts": "Retain immutable checksums, mark a defective artifact withdrawn, and restore the last verified artifact link. If no prior preview exists, withhold the install link until a corrected version is available.",
+    "services": "Rollback hosted companions independently to their prior deployment. Service loss cannot invalidate the offline compiler artifact or require a distribution-version rewrite.",
+    "source": "Revert the faulty source commit through a normal commit, preserve the failed receipt, and publish migration or recovery notes with the corrected candidate."
+  },
+  "securityContract": {
+    "credentialBoundary": "Local install, parse, validate, and compile require no HoloScript credential. Hosted companion credentials are caller-owned and never bundled.",
+    "requiredArtifactChecks": [
+      "Inspect npm pack contents and native archive contents against explicit allowlists.",
+      "Scan packed artifacts for secrets, wallet material, private paths, auth caches, and source maps not intended for consumers.",
+      "Run HS010 lexical-firewall and fail-closed native diagnostics on the exact candidate artifacts.",
+      "Record SHA-256 digests for every immutable distribution artifact."
+    ]
+  },
+  "parityContract": {
+    "sameReleaseIdentity": ["npm-toolchain", "native-windows-x64", "wasm-portable-runtime"],
+    "independentlyVersionedCompanions": ["hosted-mcp", "hosted-absorb", "hosted-studio"],
+    "excludedRails": ["legacy-pypi"],
+    "requiredProof": [
+      "Every distribution rail embeds this manifest schema, distribution ID, version, source commit, and artifact digest set.",
+      "The npm, native, and WASM cold probes consume the same conformance corpus and report the same minimum machine contract.",
+      "Hosted companions report compatibility with the distribution manifest but retain their own SemVer."
+    ]
+  },
+  "gatePolicy": {
+    "readyStatus": "pass",
+    "notApplicableStatus": "not-applicable",
+    "requiredGateIds": [
+      "named-consumer-boundary",
+      "supported-features-known-limits",
+      "cumulative-machine-conformance",
+      "deterministic-artifact-provenance",
+      "cold-npm-consumption",
+      "registry-version-dependency-closure",
+      "package-architecture",
+      "package-stewardship",
+      "publish-secret-safe-boundary",
+      "railway-readback",
+      "preview-compatibility-policy",
+      "release-owner-support-rollback",
+      "cross-rail-parity"
+    ]
+  },
+  "gates": [
+    {
+      "id": "named-consumer-boundary",
+      "required": true,
+      "status": "pass",
+      "evidencePaths": ["scripts/holo-ci/systems-preview-release-manifest.json", "docs/releases/0.1.0-distribution-contract.md"],
+      "verificationCommands": ["node scripts/holo-ci/check-systems-preview-release.mjs --json"]
+    },
+    {
+      "id": "supported-features-known-limits",
+      "required": true,
+      "status": "pass",
+      "evidencePaths": ["scripts/holo-ci/systems-preview-release-manifest.json", "docs/releases/0.1.0-distribution-contract.md"],
+      "verificationCommands": ["node scripts/holo-ci/check-systems-preview-release.mjs --json"]
+    },
+    {
+      "id": "cumulative-machine-conformance",
+      "required": true,
+      "status": "partial",
+      "evidencePaths": ["docs/spec/native-machine-v31.md", "packages/compiler-native/tests/native_smoke.rs"],
+      "verificationCommands": ["cargo test -p holoscript-native", "cargo test -p holoscript-wasm"],
+      "remaining": "Run the cumulative corpus through the exact packed npm, native, and WASM candidate artifacts."
+    },
+    {
+      "id": "deterministic-artifact-provenance",
+      "required": true,
+      "status": "partial",
+      "evidencePaths": ["docs/releases/0.1.0-readiness-baseline.md"],
+      "verificationCommands": ["cargo run --release -p holoscript-native --bin holoscriptc -- examples/native/compositional-borrow-summary-exit-five.hs -o <temp>/proof.exe"],
+      "remaining": "Build the named distribution artifacts and emit their source-commit and SHA-256 set."
+    },
+    {
+      "id": "cold-npm-consumption",
+      "required": true,
+      "status": "blocked",
+      "evidencePaths": ["scripts/holo-ci/npm-v1-release-manifest.json"],
+      "verificationCommands": ["node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/systems@0.1.0 --probe systems-toolchain --json"],
+      "remaining": "Create and pack @holoscript/systems@0.1.0, then run the repo-less cold probe."
+    },
+    {
+      "id": "cold-pypi-consumption",
+      "required": false,
+      "status": "not-applicable",
+      "evidencePaths": ["docs/releases/0.1.0-readiness-baseline.md"],
+      "verificationCommands": [],
+      "remaining": "PyPI is explicitly excluded from this distribution identity."
+    },
+    {
+      "id": "registry-version-dependency-closure",
+      "required": true,
+      "status": "partial",
+      "evidencePaths": ["scripts/holo-ci/npm-v1-release-manifest.json"],
+      "verificationCommands": ["node scripts/holo-ci/check-npm-v1-release-readiness.mjs --json"],
+      "remaining": "Prove the new meta-package dependency closure and immutable artifact versions."
+    },
+    {
+      "id": "package-architecture",
+      "required": true,
+      "status": "fail",
+      "evidencePaths": ["scripts/holo-ci/check-package-architecture.mjs"],
+      "verificationCommands": ["node scripts/holo-ci/check-package-architecture.mjs"],
+      "remaining": "Close the declared candidate consumption or public-API-canary gaps."
+    },
+    {
+      "id": "package-stewardship",
+      "required": true,
+      "status": "fail",
+      "evidencePaths": ["scripts/holo-ci/check-package-stewardship.mjs", "scripts/holo-ci/package-stewardship-manifest.json"],
+      "verificationCommands": ["node scripts/holo-ci/check-package-stewardship.mjs"],
+      "remaining": "Add every missing required package steward record."
+    },
+    {
+      "id": "publish-secret-safe-boundary",
+      "required": true,
+      "status": "partial",
+      "evidencePaths": ["scripts/holo-ci/check-publish-surface.mjs"],
+      "verificationCommands": ["node scripts/holo-ci/check-publish-surface.mjs"],
+      "remaining": "Inspect and secret-scan the exact npm, native, and WASM candidate artifacts."
+    },
+    {
+      "id": "railway-readback",
+      "required": true,
+      "status": "partial",
+      "evidencePaths": ["scripts/data/railway-ecosystem.targets.json"],
+      "verificationCommands": ["node scripts/holo-ci/check-systems-preview-release.mjs --check-services --json"],
+      "remaining": "Record release-date compatibility probes and rollback readback for every optional hosted companion."
+    },
+    {
+      "id": "preview-compatibility-policy",
+      "required": true,
+      "status": "pass",
+      "evidencePaths": ["scripts/holo-ci/systems-preview-release-manifest.json", "docs/releases/0.1.0-distribution-contract.md"],
+      "verificationCommands": ["node scripts/holo-ci/check-systems-preview-release.mjs --json"]
+    },
+    {
+      "id": "release-owner-support-rollback",
+      "required": true,
+      "status": "pass",
+      "evidencePaths": ["scripts/holo-ci/systems-preview-release-manifest.json", "docs/releases/0.1.0-distribution-contract.md"],
+      "verificationCommands": ["node scripts/holo-ci/check-systems-preview-release.mjs --json"]
+    },
+    {
+      "id": "cross-rail-parity",
+      "required": true,
+      "status": "blocked",
+      "evidencePaths": ["scripts/holo-ci/systems-preview-release-manifest.json"],
+      "verificationCommands": ["node scripts/holo-ci/check-systems-preview-release.mjs --require-ready --json"],
+      "remaining": "Build all distribution rails and compare embedded identity, conformance, commit, and digest receipts."
+    }
+  ],
+  "releaseDecision": {
+    "readyToPublish": false,
+    "status": "not-ready",
+    "blockingGateIds": [
+      "cumulative-machine-conformance",
+      "deterministic-artifact-provenance",
+      "cold-npm-consumption",
+      "registry-version-dependency-closure",
+      "package-architecture",
+      "package-stewardship",
+      "publish-secret-safe-boundary",
+      "railway-readback",
+      "cross-rail-parity"
+    ],
+    "authorizationRule": "Only a validated manifest with every required gate at pass may authorize a 0.1.0 publish, tag, or distribution claim."
+  }
+}
