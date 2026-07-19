@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { ok as assertOk } from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +15,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const MANIFEST_PATH = resolve(ROOT, 'scripts', 'holo-ci', 'systems-preview-release-manifest.json');
 const canonical = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
+
+assertOk(canonical && typeof canonical === 'object', 'canonical release manifest must parse');
 
 let testsRun = 0;
 let testsFailed = 0;
