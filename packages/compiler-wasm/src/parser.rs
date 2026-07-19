@@ -3613,6 +3613,82 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_caller_tied_aggregate_buffer_element_forward_return() {
+        let source = r#"
+            struct Packet { values: [i32] }
+            function element<'a>(packet: &'a Packet, index: i32): &'a i32 {
+                return &packet.values[index]
+            }
+            function relay<'a>(index: i32, packet: &'a Packet): &'a i32 {
+                return element(packet, index)
+            }
+        "#;
+        let mut parser = Parser::new(source);
+        let program = parser
+            .parse()
+            .expect("caller-tied aggregate-buffer element forwarding should parse");
+
+        let AstNode::Function(element) = &program.body[1] else {
+            panic!("Expected element Function node");
+        };
+        assert_eq!(element.lifetimes, vec!["a"]);
+        assert_eq!(
+            element.param_types,
+            vec![Some("&'a Packet".to_string()), Some("i32".to_string())]
+        );
+        assert_eq!(element.return_type.as_deref(), Some("&'a i32"));
+        let AstNode::Return(returned) = &element.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::UnaryExpression(borrow)) = returned.argument.as_deref() else {
+            panic!("Expected borrowed aggregate-buffer element return");
+        };
+        assert_eq!(borrow.operator, "&");
+        let AstNode::MemberExpression(indexed) = borrow.argument.as_ref() else {
+            panic!("Expected indexed aggregate-buffer field");
+        };
+        assert!(indexed.computed);
+        assert!(matches!(
+            indexed.property.as_ref(),
+            AstNode::Identifier(index) if index.name == "index"
+        ));
+        assert!(matches!(
+            indexed.object.as_ref(),
+            AstNode::MemberExpression(field)
+                if !field.computed
+                    && matches!(field.object.as_ref(), AstNode::Identifier(root) if root.name == "packet")
+                    && matches!(field.property.as_ref(), AstNode::Identifier(name) if name.name == "values")
+        ));
+
+        let AstNode::Function(relay) = &program.body[2] else {
+            panic!("Expected relay Function node");
+        };
+        assert_eq!(relay.lifetimes, vec!["a"]);
+        assert_eq!(
+            relay.param_types,
+            vec![Some("i32".to_string()), Some("&'a Packet".to_string())]
+        );
+        let AstNode::Return(returned) = &relay.body[0] else {
+            panic!("Expected Return node");
+        };
+        let Some(AstNode::CallExpression(call)) = returned.argument.as_deref() else {
+            panic!("Expected forwarded CallExpression node");
+        };
+        assert!(matches!(
+            call.callee.as_ref(),
+            AstNode::Identifier(callee) if callee.name == "element"
+        ));
+        assert!(matches!(
+            call.arguments.first(),
+            Some(AstNode::Identifier(source)) if source.name == "packet"
+        ));
+        assert!(matches!(
+            call.arguments.get(1),
+            Some(AstNode::Identifier(index)) if index.name == "index"
+        ));
+    }
+
+    #[test]
     fn test_parse_caller_tied_slice_reference_lifetime() {
         let source = r#"function view<'a>(values: &'a [i32]): &'a [i32] {
             return values

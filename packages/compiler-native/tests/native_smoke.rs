@@ -7,8 +7,9 @@ use holoscript_native::{
     compile_executable, compile_object, inspect_native_layouts, NativeAggregateFfi,
     NativeCompileOptions, NativeOwnedBufferFfi, AFFINE_AGGREGATE_MACHINE_CONTRACT,
     AGGREGATE_REBORROW_MACHINE_CONTRACT, AGGREGATE_REFERENCE_CALL_MACHINE_CONTRACT,
-    AGGREGATE_REFERENCE_MACHINE_CONTRACT, BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT,
-    BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
+    AGGREGATE_REFERENCE_MACHINE_CONTRACT,
+    BORROWED_AGGREGATE_BUFFER_ELEMENT_RETURN_MACHINE_CONTRACT,
+    BORROWED_AGGREGATE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_AGGREGATE_RETURN_MACHINE_CONTRACT,
     BORROWED_AGGREGATE_SUBOBJECT_RETURN_MACHINE_CONTRACT,
     BORROWED_SCALAR_FIELD_FORWARD_RETURN_MACHINE_CONTRACT,
     BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT,
@@ -26,6 +27,8 @@ const AGGREGATE_SUBOBJECT_FORWARDED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/aggregate-subobject-forwarded-return-exit-five.hs");
 const SLICE_ELEMENT_FORWARDED_RETURN_EXIT_FIVE: &str =
     include_str!("../../../examples/native/slice-element-forwarded-return-exit-five.hs");
+const AGGREGATE_BUFFER_ELEMENT_FORWARDED_RETURN_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/aggregate-buffer-element-forwarded-return-exit-five.hs");
 const TYPED_EXIT_FIVE: &str = include_str!("../../../examples/native/typed-exit-five.hs");
 const I64_EXIT_FIVE: &str = r#"
     function add64(left: i64, right: i64): i64 {
@@ -3832,6 +3835,185 @@ fn slice_element_results_reject_severed_or_laundered_provenance() {
     ] {
         let error = compile_object(source, &options)
             .expect_err("invalid slice-element borrowed result must fail closed");
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` in `{error}`"
+        );
+    }
+}
+
+#[test]
+fn aggregate_buffer_element_results_preserve_field_index_and_whole_root() {
+    assert_eq!(
+        BORROWED_AGGREGATE_BUFFER_ELEMENT_RETURN_MACHINE_CONTRACT,
+        "hs-machine-v28"
+    );
+    let options = NativeCompileOptions::host();
+    let first = compile_object(
+        AGGREGATE_BUFFER_ELEMENT_FORWARDED_RETURN_EXIT_FIVE,
+        &options,
+    )
+    .expect("caller-tied aggregate-buffer element forwarding should compile");
+    let second = compile_object(
+        AGGREGATE_BUFFER_ELEMENT_FORWARDED_RETURN_EXIT_FIVE,
+        &options,
+    )
+    .expect("aggregate-buffer element lowering should be deterministic");
+    assert_eq!(first, second);
+
+    let executable = scratch_executable("native-aggregate-buffer-element-forwarded-return");
+    let artifact = compile_executable(
+        AGGREGATE_BUFFER_ELEMENT_FORWARDED_RETURN_EXIT_FIVE,
+        &executable,
+        &options,
+    )
+    .expect("shared and mutable aggregate-buffer element results should link");
+    assert_eq!(artifact.machine_contract, "hs-machine-v28");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("aggregate-buffer element executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let nested = r#"
+        struct Payload { values: [i32] }
+        struct Packet { payload: Payload, other: [i32] }
+        function element<'a>(packet: &'a Packet, index: i32): &'a i32 {
+            return &packet.payload.values[index]
+        }
+        function main(): i32 {
+            slot packet: Packet = Packet(Payload(buffer(2, 5)), buffer(2, 9))
+            let view: &i32 = element(&packet, 1)
+            return *view
+        }
+    "#;
+    let executable = scratch_executable("native-nested-aggregate-buffer-element-return");
+    let artifact = compile_executable(nested, &executable, &options)
+        .expect("nested static owned-field coordinates should compile");
+    assert_eq!(artifact.machine_contract, "hs-machine-v28");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("nested aggregate-buffer element executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    let inherited = r#"
+        struct Header { code: i32 }
+        struct Packet { header: Header, values: [i32] }
+        function header<'a>(packet: &'a Packet): &'a Header { return &packet.header }
+        function relay_header<'a>(packet: &'a Packet): &'a Header { return header(packet) }
+        function code<'a>(packet: &'a Packet): &'a i32 { return &packet.header.code }
+        function relay_code<'a>(packet: &'a Packet): &'a i32 { return code(packet) }
+        function slice<'a>(values: &'a [i32]): &'a [i32] { return values }
+        function relay_slice<'a>(values: &'a [i32]): &'a [i32] { return slice(values) }
+        function slice_element<'a>(values: &'a [i32], index: i32): &'a i32 {
+            return &values[index]
+        }
+        function relay_slice_element<'a>(values: &'a [i32], index: i32): &'a i32 {
+            return slice_element(values, index)
+        }
+        function buffer_element<'a>(packet: &'a Packet, index: i32): &'a i32 {
+            return &packet.values[index]
+        }
+        function main(): i32 {
+            slot packet: Packet = Packet(Header(1), buffer(2, 1))
+            slot values: [i32; 2] = [1, 1]
+            let header_view: &Header = relay_header(&packet)
+            let code_view: &i32 = relay_code(&packet)
+            let slice_view: &[i32] = relay_slice(&values[0..2])
+            let slice_element_view: &i32 = relay_slice_element(&values[0..2], 1)
+            let buffer_element_view: &i32 = buffer_element(&packet, 1)
+            return load(header_view.code) + *code_view + load(slice_view[0]) + *slice_element_view + *buffer_element_view
+        }
+    "#;
+    let executable = scratch_executable("native-aggregate-buffer-element-inherited-contracts");
+    let artifact = compile_executable(inherited, &executable, &options)
+        .expect("v28 should retain v0-v27 aggregate, slice, and scalar-result contracts");
+    assert_eq!(artifact.machine_contract, "hs-machine-v28");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("v28 cumulative-contract executable should run");
+    assert_eq!(status.code(), Some(5));
+    remove_scratch_executable_with_retry(&artifact.executable);
+
+    for (name, index) in [("negative", -1), ("outside", 2)] {
+        let source = format!(
+            "struct Packet {{ values: [i32] }} function element<'a>(packet: &'a Packet, index: i32): &'a i32 {{ return &packet.values[index] }} function relay<'a>(packet: &'a Packet, index: i32): &'a i32 {{ return element(packet, index) }} function main(): i32 {{ slot packet: Packet = Packet(buffer(2, 5)) let view: &i32 = relay(&packet, {index}) return *view }}"
+        );
+        let executable = scratch_executable(&format!("native-aggregate-buffer-{name}-trap"));
+        let artifact = compile_executable(&source, &executable, &options)
+            .expect("invalid runtime aggregate-buffer index should compile to guards");
+        assert_eq!(artifact.machine_contract, "hs-machine-v28");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("guarded aggregate-buffer executable should launch");
+        assert!(
+            !status.success(),
+            "invalid aggregate-buffer index `{name}` must trap"
+        );
+        remove_scratch_executable_with_retry(&artifact.executable);
+    }
+}
+
+#[test]
+fn aggregate_buffer_element_results_reject_severed_or_laundered_provenance() {
+    let options = NativeCompileOptions::host();
+    for (source, expected) in [
+        (
+            "struct Packet { values: [i32], other: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.missing[index] } function main(): i32 { return 5 }",
+            "has no field `missing`",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, other: &Packet, index: i32): &'a i32 { return &other.values[index] } function main(): i32 { return 5 }",
+            "must derive from source parameter `packet`; found root `other`",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.values[index + 1] } function main(): i32 { return 5 }",
+            "requires one exact named `i32` index parameter",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i64 { return &packet.values[index] } function main(): i32 { return 5 }",
+            "expects `i64`, but field `packet.values` stores `[i32]`",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a mut i32 { return &mut packet.values[index] } function main(): i32 { return 5 }",
+            "return mutability must match source parameter `packet`",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { slot local: Packet = Packet(buffer(1, 5)) return &local.values[index] } function main(): i32 { return 5 }",
+            "must derive from source parameter `packet`; found root `local`",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.values[index] } function relay<'a>(packet: &'a Packet, index: i32): &'a i32 { return element(packet, index) } function chain<'a>(packet: &'a Packet, index: i32): &'a i32 { return relay(packet, index) } function main(): i32 { return 5 }",
+            "cannot forward aggregate-buffer element result from forwarding function `relay`; only one direct forwarding hop is admitted",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.values[index] } function relay<'a>(packet: &'a Packet, index: i32): &'a i32 { return element(packet, 0) } function main(): i32 { return 5 }",
+            "must forward one exact named `i32` aggregate-buffer index directly to `element`",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.values[index] } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let taken: [i32] = move(packet.values) let view: &i32 = element(&packet, 0) return *view }",
+            "owned leaf `packet.values` is moved",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32, taken: [i32]): &'a i32 { return &packet.values[index] } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let view: &i32 = element(&packet, 0, move(packet.values)) return *view }",
+            "cannot move owned descendant `packet.values` while returning an element tied to aggregate root `packet`",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.values[index] } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) drop(packet.values) let view: &i32 = element(&packet, 0) return *view }",
+            "owned leaf `packet.values` is dropped",
+        ),
+        (
+            "struct Packet { values: [i32] } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.values[index] } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let view: &i32 = element(&packet, 0) drop(packet.values) return *view }",
+            "while aggregate ancestor `packet` is borrowed",
+        ),
+        (
+            "struct Packet { values: [i32] } function borrow<'a>(packet: &'a Packet): &'a Packet { return packet } function element<'a>(packet: &'a Packet, index: i32): &'a i32 { return &packet.values[index] } function main(): i32 { slot packet: Packet = Packet(buffer(1, 5)) let returned: &Packet = borrow(&packet) let view: &i32 = element(returned, 0) return *view }",
+            "cannot extend nested returned or reborrowed aggregate `returned`",
+        ),
+    ] {
+        let error = compile_object(source, &options)
+            .expect_err("invalid aggregate-buffer element result must fail closed");
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"

@@ -3204,6 +3204,28 @@ function main(): i32 { return 5 }
     }
 
     #[test]
+    fn aggregate_buffer_element_results_fail_closed_on_kotlin_bridge() {
+        let source = r#"
+struct Packet { values: [i32] }
+function relay<'a>(packet: &'a Packet, index: i32): &'a i32 {
+  return element(packet, index)
+}
+function element<'a>(packet: &'a Packet, index: i32): &'a i32 {
+  return &packet.values[index]
+}
+function main(): i32 { return 5 }
+"#;
+        let error = compile_source_to_kotlin(source, "  ")
+            .expect_err("Kotlin must not erase aggregate-buffer ownership or element provenance");
+        assert!(
+            error.to_string().contains(
+                "borrowed reference type `&'a i32` in return type of function `relay` requires target-specific borrow and alias lowering"
+            ),
+            "{error}"
+        );
+    }
+
+    #[test]
     fn owned_machine_buffers_fail_closed_until_kotlin_ownership_lowering_exists() {
         let src = r#"function main(): i32 {
   let values: [i32] = buffer(2, 0)
