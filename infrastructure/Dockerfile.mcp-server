@@ -42,6 +42,8 @@ COPY packages/holomap/ packages/holomap/
 COPY packages/meaning/ packages/meaning/
 COPY packages/uaal/ packages/uaal/
 COPY packages/crdt-spatial/ packages/crdt-spatial/
+COPY packages/runtime/ packages/runtime/
+COPY packages/hololand-platform/ packages/hololand-platform/
 COPY packages/snn-webgpu/ packages/snn-webgpu/
 COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
@@ -94,6 +96,15 @@ RUN cd packages/absorb-service && pnpm exec tsup --no-dts
 # (else "Cannot find package .../security-sandbox/dist/index.js"). holo-vm only needs core.
 RUN cd packages/holo-vm && pnpm exec tsup --no-dts
 RUN cd packages/security-sandbox && pnpm exec tsup --no-dts
+# hololand-platform + its runtime dep: the holo_tunnel_create MCP tool dynamically
+# imports @holoscript/hololand-platform at runtime (src/holo-tunnel-tools.ts), and that
+# barrel externalizes @holoscript/runtime — so both dists must exist in the deployed
+# image (else "Cannot find module .../hololand-platform/dist/index.js"). Same
+# runtime-image-closure class as meaning/uaal (264c42076) and security-sandbox above.
+# runtime (deps: core + engine) builds before hololand-platform (deps: core,
+# crdt-spatial, framework, runtime) — all built earlier in this stage.
+RUN cd packages/runtime && pnpm exec tsup --no-dts
+RUN cd packages/hololand-platform && pnpm exec tsup --no-dts
 RUN cd packages/mcp-server && pnpm exec tsup
 
 
@@ -163,6 +174,8 @@ COPY --from=builder /app/packages/mesh/dist packages/mesh/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
 COPY --from=builder /app/packages/holo-vm/dist packages/holo-vm/dist
 COPY --from=builder /app/packages/security-sandbox/dist packages/security-sandbox/dist
+COPY --from=builder /app/packages/runtime/dist packages/runtime/dist
+COPY --from=builder /app/packages/hololand-platform/dist packages/hololand-platform/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
 COPY packages/mcp-server/migrations/ packages/mcp-server/migrations/
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
@@ -177,6 +190,8 @@ RUN mkdir -p /app/node_modules/@holoscript && \
     ln -sfn /app/packages/holomap /app/node_modules/@holoscript/holomap && \
     ln -sfn /app/packages/meaning /app/node_modules/@holoscript/meaning && \
     ln -sfn /app/packages/uaal /app/node_modules/@holoscript/uaal && \
+    ln -sfn /app/packages/runtime /app/node_modules/@holoscript/runtime && \
+    ln -sfn /app/packages/hololand-platform /app/node_modules/@holoscript/hololand-platform && \
     ln -sfn /app/packages/crdt-spatial /app/node_modules/@holoscript/crdt-spatial && \
     ln -sfn /app/packages/snn-webgpu /app/node_modules/@holoscript/snn-webgpu && \
     ln -sfn /app/packages/platform /app/node_modules/@holoscript/platform && \
@@ -203,6 +218,8 @@ RUN test -f /app/packages/core/dist/index.cjs && \
     test -f /app/packages/holomap/dist/index.cjs && \
     test -f /app/packages/meaning/dist/index.js && \
     test -f /app/packages/uaal/dist/index.js && \
+    test -f /app/packages/runtime/dist/index.js && \
+    test -f /app/packages/hololand-platform/dist/index.js && \
     test -f /app/packages/crdt-spatial/dist/index.js && \
     test -f /app/packages/snn-webgpu/dist/index.js && \
     test -f /app/packages/holoembed/dist/index.js && \

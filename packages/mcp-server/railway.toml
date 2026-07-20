@@ -11,7 +11,10 @@ dockerfilePath = "infrastructure/Dockerfile.mcp-server"
 # framework/** added 2026-07-13 (trust-audit): board-task logic (claim TTL reaper,
 # fabricated-evidence gate, claim cap) lives in packages/framework/src/board — a
 # framework-only board fix must redeploy the board server, or the gate silently drifts.
-watchPatterns = ["packages/mcp-server/**", "packages/core/**", "packages/compiler-wasm/**", "packages/meaning/**", "packages/uaal/**", "packages/absorb-service/**", "packages/framework/**", "infrastructure/Dockerfile.mcp-server", "scripts/docker/**"]
+# hololand-platform/** + runtime/** added: the holo_tunnel_create MCP tool dynamically
+# imports @holoscript/hololand-platform (which pulls @holoscript/runtime) at runtime —
+# a fix in either must redeploy, or the tunnel handler ships a stale/broken build.
+watchPatterns = ["packages/mcp-server/**", "packages/core/**", "packages/compiler-wasm/**", "packages/meaning/**", "packages/uaal/**", "packages/hololand-platform/**", "packages/runtime/**", "packages/absorb-service/**", "packages/framework/**", "infrastructure/Dockerfile.mcp-server", "scripts/docker/**"]
 
 [deploy]
 healthcheckPath = "/health"

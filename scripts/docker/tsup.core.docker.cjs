@@ -67,6 +67,14 @@ module.exports = {
     // engine boot barrel; caught preemptively in the 2026-06-16 outage sweep before
     // it became the next crashloop after parameter-envelope.
     'coordinators/index': 'src/coordinators/index.ts',
+    // Required on the holo_tunnel_create runtime load path: shipping
+    // @holoscript/hololand-platform (which value-imports '@holoscript/core/world-model')
+    // and its @holoscript/runtime dep (which imports '@holoscript/core/traits/engines')
+    // into the mcp-server image adds these to the runtime-image workspace set, so core's
+    // Docker bundle must emit them or the tunnel tool crashloops with "Cannot find module
+    // .../dist/world-model/index.js". Same Docker-entry-drift class as world/policy above.
+    'world-model/index': 'src/world-model/index.ts',
+    'traits/engines/index': 'src/traits/engines/index.ts',
   },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),
