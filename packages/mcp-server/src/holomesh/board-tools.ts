@@ -60,7 +60,7 @@ export const boardTools: Tool[] = [
   {
     name: 'holomesh_board_list',
     description:
-      'List all tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles. Pass tags to filter to tasks matching those capability tags.',
+      'List tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles. Pass tags to filter to tasks matching those capability tags. Pass status to scope to one bucket, and limit/offset to page a large board instead of returning everything (omit limit for the full board, today\'s default behavior).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -73,6 +73,22 @@ export const boardTools: Tool[] = [
           items: { type: 'string' },
           description:
             'Optional capability tags to filter by. Returns only tasks whose tags array contains ALL specified tags (intersection). Useful for agent-scoped board views.',
+        },
+        status: {
+          type: 'string',
+          enum: ['open', 'claimed', 'blocked'],
+          description:
+            'Optional — scope the response to a single status bucket instead of all three. Other buckets are omitted from the response entirely (not just emptied).',
+        },
+        limit: {
+          type: 'number',
+          description:
+            'Optional — maximum tasks to return per status bucket (each of open/claimed/blocked is capped independently, max 500). Omit for unbounded (current default: returns every matching task, which can be large on a busy board).',
+        },
+        offset: {
+          type: 'number',
+          description:
+            'Optional — number of tasks to skip per bucket before applying limit (default 0). Only meaningful when limit is set.',
         },
       },
       required: ['team_id'],
@@ -566,12 +582,31 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
       const text = `${t.title} ${t.description}`.toLowerCase();
       return filterTags.every((ft) => taskTags.includes(ft) || text.includes(ft));
     };
-    const open = board.filter((t: TeamTask) => t.status === 'open' && tagMatch(t));
-    const claimed = board.filter((t: TeamTask) => t.status === 'claimed' && tagMatch(t));
-    const blocked = board.filter((t: TeamTask) => t.status === 'blocked' && tagMatch(t));
+    const statusFilter = typeof args.status === 'string' ? args.status : null;
+    const wantsBucket = (s: 'open' | 'claimed' | 'blocked') => !statusFilter || statusFilter === s;
+    const openAll = wantsBucket('open') ? board.filter((t: TeamTask) => t.status === 'open' && tagMatch(t)) : [];
+    const claimedAll = wantsBucket('claimed') ? board.filter((t: TeamTask) => t.status === 'claimed' && tagMatch(t)) : [];
+    const blockedAll = wantsBucket('blocked') ? board.filter((t: TeamTask) => t.status === 'blocked' && tagMatch(t)) : [];
+
+    // limit/offset are opt-in: omitting them preserves today's behavior (return every
+    // matching task). Passing limit pages each bucket independently — the fix for
+    // holomesh_board_list previously having no bound at all on a busy board (W.911).
+    const hasPaging = args.limit !== undefined && args.limit !== null;
+    const limit = hasPaging ? clampInteger(args.limit, 500, 1, 500) : null;
+    const offset = clampInteger(args.offset, 0, 0, Number.MAX_SAFE_INTEGER);
+    const page = <T,>(all: T[]) => {
+      if (!hasPaging) return { items: all, total: all.length, hasMore: false };
+      const items = all.slice(offset, offset + (limit as number));
+      return { items, total: all.length, hasMore: offset + items.length < all.length };
+    };
+    const openPage = page(openAll);
+    const claimedPage = page(claimedAll);
+    const blockedPage = page(blockedAll);
+
     return {
       success: true,
-      board: { open, claimed, blocked },
+      board: { open: openPage.items, claimed: claimedPage.items, blocked: blockedPage.items },
+      board_totals: { open: openPage.total, claimed: claimedPage.total, blocked: blockedPage.total },
       done_count: team.doneLog?.length || 0,
       mode: team.mode || 'general',
       objective: team.roomConfig?.objective || '',
@@ -583,6 +618,10 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
         blockedReopened: maintenance.blockedLifecycle.reopened.map((task) => task.id),
       },
       ...(filterTags ? { filtered_by_tags: filterTags } : {}),
+      ...(statusFilter ? { filtered_by_status: statusFilter } : {}),
+      ...(hasPaging
+        ? { paging: { limit, offset, hasMore: openPage.hasMore || claimedPage.hasMore || blockedPage.hasMore } }
+        : {}),
     };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };

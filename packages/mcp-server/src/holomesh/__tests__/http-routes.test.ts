@@ -5028,6 +5028,80 @@ describe('HoloMesh HTTP Routes', () => {
       expect(bigRes._body.hasMore).toBe(false);
     }, 90000);
 
+    it('GET /board supports optional limit/offset/status paging without changing default (unbounded) behavior (W.911)', async () => {
+      // Prior impl always returned the full taskBoard array with no bound —
+      // a busy board (257+ live tasks observed 2026-07-20) produced 655K-char
+      // responses. Fix: opt-in limit/offset/status, defaulting to prior
+      // (unbounded) behavior when limit is omitted so existing callers are unaffected.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `board-paging-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const team = teamStore.get(tid)!;
+      team.taskBoard = [
+        ...Array.from({ length: 12 }, (_, i) => ({
+          id: `open-${i}`,
+          title: `Open ${i}`,
+          description: 'd',
+          status: 'open' as const,
+          priority: 5,
+          prioritySortKey: 5,
+          createdAt: new Date().toISOString(),
+        })),
+        {
+          id: 'claimed-1',
+          title: 'Claimed',
+          description: 'd',
+          status: 'claimed' as const,
+          priority: 5,
+          prioritySortKey: 5,
+          claimedBy: 'agent-1',
+          claimedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        },
+      ] as any;
+      teamStore.set(tid, team);
+
+      // Default (no limit) — unchanged behavior, returns every task, no paging block.
+      const defaultReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const defaultRes = mockRes();
+      await handleHoloMeshRoute(defaultReq, defaultRes, `/api/holomesh/team/${tid}/board`);
+      expect(defaultRes._status).toBe(200);
+      expect(defaultRes._body.tasks.length).toBe(13);
+      expect(defaultRes._body.total).toBe(13);
+      expect(defaultRes._body.paging).toBeUndefined();
+
+      // limit=5 pages the (unfiltered) full board.
+      const pagedReq = mockReq('GET', `/api/holomesh/team/${tid}/board?limit=5`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const pagedRes = mockRes();
+      await handleHoloMeshRoute(pagedReq, pagedRes, `/api/holomesh/team/${tid}/board?limit=5`);
+      expect(pagedRes._status).toBe(200);
+      expect(pagedRes._body.tasks.length).toBe(5);
+      expect(pagedRes._body.total).toBe(13);
+      expect(pagedRes._body.paging).toEqual({ limit: 5, offset: 0, hasMore: true });
+
+      // status=claimed scopes to that bucket only.
+      const statusReq = mockReq('GET', `/api/holomesh/team/${tid}/board?status=claimed`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const statusRes = mockRes();
+      await handleHoloMeshRoute(statusReq, statusRes, `/api/holomesh/team/${tid}/board?status=claimed`);
+      expect(statusRes._status).toBe(200);
+      expect(statusRes._body.tasks.length).toBe(1);
+      expect(statusRes._body.tasks[0].id).toBe('claimed-1');
+      expect(statusRes._body.filtered_by_status).toBe('claimed');
+    });
+
     it('/board.done_count and /board/done.count stay in lockstep across completions (task_1776986320321_xvv6)', async () => {
       // Audit observation 2026-04-23: a live probe returned done_count=482 on
       // /board but 756 entries on /board/done — two counters disagreeing for

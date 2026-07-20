@@ -1644,12 +1644,33 @@ export async function handleBoardRoutes(
     const { teamId } = access;
     const team = teamStore.get(teamId)!;
     const boardMaintenance = await runBoardMaintenance(teamId, team.taskBoard || []);
+    const fullBoard = team.taskBoard || [];
+
+    // limit/offset/status are opt-in (W.911): a busy board with hundreds of open
+    // tasks previously had no way to bound this response — `?limit=` was silently
+    // ignored (see scripts/room-add-tasks.mjs, which already passes it). Omitting
+    // limit preserves prior behavior (every task) for existing callers.
+    const q = parseQuery(url);
+    const statusFilter = q.get('status');
+    const filteredBoard = statusFilter ? fullBoard.filter((t) => t.status === statusFilter) : fullBoard;
+    const rawLimit = q.get('limit');
+    const hasPaging = rawLimit !== null && rawLimit !== '';
+    const limit = hasPaging
+      ? (() => {
+          const parsed = parseInt(String(rawLimit), 10);
+          return Number.isFinite(parsed) ? Math.min(500, Math.max(1, parsed)) : 500;
+        })()
+      : null;
+    const rawOffset = parseInt(String(q.get('offset') || '0'), 10);
+    const offset = Number.isFinite(rawOffset) ? Math.max(0, rawOffset) : 0;
+    const tasks = hasPaging ? filteredBoard.slice(offset, offset + (limit as number)) : filteredBoard;
 
     json(res, 200, {
       success: true,
       teamId,
       name: team.name,
-      tasks: team.taskBoard || [],
+      tasks,
+      total: filteredBoard.length,
       done_count: team.doneLog?.length || 0,
       mode: team.mode || 'general',
       objective: team.roomConfig?.objective || '',
@@ -1663,6 +1684,10 @@ export async function handleBoardRoutes(
         ttlReleased: boardMaintenance.ttlReleased.map((task) => task.id),
         ttlClockStarted: boardMaintenance.ttlClockStarted.map((task) => task.id),
       },
+      ...(statusFilter ? { filtered_by_status: statusFilter } : {}),
+      ...(hasPaging
+        ? { paging: { limit, offset, hasMore: offset + tasks.length < filteredBoard.length } }
+        : {}),
       ...getBoardModeFields(team),
     });
     return true;

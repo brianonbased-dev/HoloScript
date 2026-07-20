@@ -306,6 +306,101 @@ describe('handleBoardTool with in-memory store', () => {
     expect(persistTeamDurable).toHaveBeenCalledWith('team-abc');
   });
 
+  it('holomesh_board_list omits limit/offset paging fields when limit is not passed (unbounded default)', async () => {
+    seedTeam('team-big', {
+      taskBoard: Array.from({ length: 12 }, (_, i) => ({
+        id: `open-${i}`,
+        title: `Open ${i}`,
+        description: 'd',
+        status: 'open' as const,
+        priority: 5,
+        prioritySortKey: 5,
+        createdAt: new Date().toISOString(),
+      })),
+    });
+    const result = (await handleBoardTool('holomesh_board_list', {
+      team_id: 'team-big',
+    })) as Record<string, unknown>;
+    expect(result.success).toBe(true);
+    const board = result.board as { open: unknown[] };
+    expect(board.open).toHaveLength(12);
+    expect(result.paging).toBeUndefined();
+    expect(result.board_totals).toEqual({ open: 12, claimed: 0, blocked: 0 });
+  });
+
+  it('holomesh_board_list pages each status bucket independently when limit is passed', async () => {
+    seedTeam('team-big', {
+      taskBoard: [
+        ...Array.from({ length: 12 }, (_, i) => ({
+          id: `open-${i}`,
+          title: `Open ${i}`,
+          description: 'd',
+          status: 'open' as const,
+          priority: 5,
+          prioritySortKey: 5,
+          createdAt: new Date().toISOString(),
+        })),
+        {
+          id: 'claimed-1',
+          title: 'Claimed',
+          description: 'd',
+          status: 'claimed' as const,
+          priority: 5,
+          prioritySortKey: 5,
+          claimedBy: 'agent-1',
+          claimedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    });
+    const page1 = (await handleBoardTool('holomesh_board_list', {
+      team_id: 'team-big',
+      limit: 5,
+    })) as Record<string, unknown>;
+    expect(page1.success).toBe(true);
+    const board1 = page1.board as { open: unknown[]; claimed: unknown[] };
+    expect(board1.open).toHaveLength(5);
+    expect(board1.claimed).toHaveLength(1);
+    expect(page1.board_totals).toEqual({ open: 12, claimed: 1, blocked: 0 });
+    expect(page1.paging).toEqual({ limit: 5, offset: 0, hasMore: true });
+
+    const page2 = (await handleBoardTool('holomesh_board_list', {
+      team_id: 'team-big',
+      limit: 5,
+      offset: 5,
+    })) as Record<string, unknown>;
+    const board2 = page2.board as { open: unknown[] };
+    expect(board2.open).toHaveLength(5);
+    expect((page2.paging as Record<string, unknown>).hasMore).toBe(true);
+
+    const page3 = (await handleBoardTool('holomesh_board_list', {
+      team_id: 'team-big',
+      limit: 5,
+      offset: 10,
+    })) as Record<string, unknown>;
+    const board3 = page3.board as { open: unknown[] };
+    expect(board3.open).toHaveLength(2);
+    expect((page3.paging as Record<string, unknown>).hasMore).toBe(false);
+  });
+
+  it('holomesh_board_list status filter scopes to a single bucket', async () => {
+    seedTeam('team-abc2', {
+      taskBoard: [
+        { id: 'o1', title: 'Open', description: 'd', status: 'open', priority: 5, prioritySortKey: 5, createdAt: new Date().toISOString() },
+        { id: 'c1', title: 'Claimed', description: 'd', status: 'claimed', priority: 5, prioritySortKey: 5, claimedBy: 'a', claimedAt: new Date().toISOString(), createdAt: new Date().toISOString() },
+      ],
+    });
+    const result = (await handleBoardTool('holomesh_board_list', {
+      team_id: 'team-abc2',
+      status: 'open',
+    })) as Record<string, unknown>;
+    const board = result.board as { open: unknown[]; claimed: unknown[]; blocked: unknown[] };
+    expect(board.open).toHaveLength(1);
+    expect(board.claimed).toHaveLength(0);
+    expect(board.blocked).toHaveLength(0);
+    expect(result.filtered_by_status).toBe('open');
+  });
+
   it('holomesh_board_add adds tasks and persists', async () => {
     seedTeam('team-abc');
     const result = (await handleBoardTool('holomesh_board_add', {
