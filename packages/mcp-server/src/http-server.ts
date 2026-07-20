@@ -96,6 +96,7 @@ import {
   HoloMeshWorldState,
   HoloMeshDiscovery,
   registerSearchProviders,
+  setTeamFormationRosterSource,
 } from './holomesh/index';
 import { getClient as getHoloMeshOrchestratorClient } from './holomesh/orchestrator-client';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
@@ -115,6 +116,8 @@ import {
   stateStore,
   keyRegistry,
   agentKeyStore,
+  teamPresenceStore,
+  reloadTeam,
 } from './holomesh/state';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
 import { startCiPublicWorker } from './ci-public-worker';
@@ -4324,6 +4327,46 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     (query: string, opts?: { type?: string; limit?: number }) =>
       getHoloMeshOrchestratorClient().queryKnowledge(query, opts)
   );
+
+  // Wire holomesh_team_form's team_id roster source (task_1784579983269_ragg —
+  // same never-called DI pattern flagged, but not fixed, alongside the search
+  // fix above: setTeamFormationRosterSource() was exported from
+  // team-formation-tools.ts but never invoked, so `holomesh_team_form` could
+  // only ever succeed with an inline `roster` — passing `team_id` always
+  // returned the explicit "No roster source configured" error). Real data,
+  // not a stub: team membership comes from the same teamStore/reloadTeam
+  // pair route handlers use for request-boundary freshness; each member's
+  // capabilities/reputation are cross-referenced from the same agentKeyStore
+  // identity map the search fix above already wires as agentProvider;
+  // liveness comes from the same teamPresenceStore heartbeat map the
+  // board/presence routes read.
+  setTeamFormationRosterSource({
+    fetchRoster: async (teamId: string) => {
+      await reloadTeam(teamId);
+      const team = teamStore.get(teamId);
+      if (!team) return [];
+
+      const agentsById = new Map(Array.from(agentKeyStore.values()).map((a) => [a.id, a]));
+      const presence = teamPresenceStore.get(teamId);
+
+      return team.members.map((member) => {
+        const registered = agentsById.get(member.agentId);
+        // RosterAgent scores are 0..1; reputation is an unbounded tier score
+        // (100+ = 'authority'), so normalize onto the same scale the
+        // team-formation scorer expects instead of passing the raw value.
+        const score = registered ? Math.max(0, Math.min(1, registered.reputation / 100)) : undefined;
+        const presenceEntry = presence?.get(member.agentId);
+        return {
+          agentId: member.agentId,
+          agentName: member.agentName,
+          capabilities: registered?.traits ?? [],
+          specializationScore: score,
+          performanceScore: score,
+          active: presenceEntry ? presenceEntry.status !== 'offline' : true,
+        };
+      });
+    },
+  });
 
   // Rehydrate founder seat attestations from durable storage so a single
   // (Trezor) attestation survives restart instead of being wiped every deploy.
