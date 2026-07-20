@@ -1,15 +1,18 @@
 # HoloScript Language Specification
 
-> **Status (2026-07-03): reclaimed + reconciled.** This directory is the canonical home of
-> the HoloScript language specification. Its core — the uAAL/HOLO language definition — was
-> authored in **January 2026** but lived only in a Gemini/Antigravity knowledge silo
-> (`~/.gemini/antigravity/knowledge/uaa2_language_evolution_and_uaal/`), never committed to a
-> repo. It was reclaimed here on 2026-06-22. See [Provenance](#provenance).
+> **Status (2026-07-17): stratum taxonomy ratified.** This directory is the canonical home of
+> the HoloScript language specification, now topped by
+> [`language-architecture.md`](./language-architecture.md) — the ratified three-strata
+> taxonomy that scopes every other doc here. Its historical core — the reclaimed uAAL/HOLO
+> definition — was authored in **January 2026** but lived only in a Gemini/Antigravity
+> knowledge silo (`~/.gemini/antigravity/knowledge/uaa2_language_evolution_and_uaal/`), never
+> committed to a repo, reclaimed 2026-06-22. See [Provenance](#provenance).
 
 ## What lives here
 
 | File | What it is |
 |------|------------|
+| [`language-architecture.md`](./language-architecture.md) | **The ratified top of the language canon (2026-07-17)**: three strata — ① surface (the three formats) · ② meaning (**HoloMeaning**, `@holoscript/meaning`, defined once) · ③ execution (uAAL cognitive VM + HOLO VM). Bans bare "uAAL" as a language name; gate `check:language-strata --strict`. Every doc below is scoped by it. |
 | [`language-identity.md`](./language-identity.md) | The canonical category and wording contract: general-purpose semantic systems programming language, current honesty boundary, and systems-language acceptance gates. |
 | [`holoscript-grammar-ssot.md`](./holoscript-grammar-ssot.md) | The accepted-grammar router: parser-backed sources only, plus the conformance test that keeps `get_syntax_reference` examples aligned with the production parser path. |
 | [`uaal-language-spec.md`](./uaal-language-spec.md) | The reclaimed uAAL (cognitive) + HOLO (spatial) language definition: primitives, instruction set, and a **real-vs-aspirational** reconciliation with the shipped code. |

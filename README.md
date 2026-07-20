@@ -156,7 +156,7 @@ contract lives in [docs/architecture/universal-use-boundary.md](docs/architectur
 | 4 · Agents      | Swarm intelligence, MCP comms, economy primitives                             | [`packages/mcp-server/`](./packages/mcp-server/)                            |
 | 3 · Compiler    | Named backends, cross-target compilation, circuit breaker, incremental builds | [`packages/core/src/compiler/`](./packages/core/src/compiler/)              |
 | 2 · Runtime     | Three.js browser, Rust spatial engine, WebGPU rendering                       | `packages/r3f-renderer/`, `packages/snn-webgpu/`, `packages/compiler-wasm/` |
-| 1 · OS Core     | Cognitive (uAAL), perceptual (SNN), economic (x402), semantic traits          | [`packages/core/`](./packages/core/)                                        |
+| 1 · OS Core     | Cognitive VM (uAAL, stratum ③), perceptual (SNN), economic (x402), semantic traits | [`packages/core/`](./packages/core/)                                        |
 
 The layers are architectural, not counts — they don't go stale. Ecosystem counts (tools, traits, compilers) are never hardcoded here; see [What to verify live](#what-to-verify-live).
 

@@ -12,7 +12,7 @@ as accepted by the tools.
 | --- | --- | --- |
 | `.holo` scene/composition syntax | `packages/core/src/parser/HoloCompositionParser.ts` | `packages/mcp-server/src/documentation.ts` `SYNTAX_DOCS` examples, checked by `packages/mcp-server/src/__tests__/syntax-reference-conformance.test.ts` |
 | `.hsplus` trait/brain syntax | `packages/core/src/parser/HoloScriptPlusParser.ts` | Same `SYNTAX_DOCS` examples when the example is not a full `.holo` composition |
-| `.hs` logic syntax | `packages/compiler-wasm/src/` for the Rust/WASM grammar and logic emitters; TS parser coverage remains a known bridge gap | `docs/spec/spec-vs-reality-gap.md` |
+| `.hs` logic syntax | `packages/compiler-wasm/src/` for the Rust/WASM grammar and logic emitters — including **first-class ignorance** (`@unknown` field annotation, `Uncertain<T>` carrier; shipped 2026-07-19, RFC `ai-ecosystem/research/2026-07-17_first-class-ignorance-rfc.md`); TS parser coverage remains a known bridge gap | `docs/spec/spec-vs-reality-gap.md` |
 
 ## Rule
 

@@ -2,6 +2,12 @@
 
 **Package**: `@holoscript/uaal`
 
+> **Stratum note ([`docs/spec/language-architecture.md`](../spec/language-architecture.md), ratified 2026-07-17):**
+> the UAAL VM is **stratum ③ (execution)** — one of the two VMs. Despite the expansion
+> "Universal Autonomous Agent Language", uAAL is **not** the name of a language: surface syntax
+> is stratum ① (the three formats), meaning is stratum ② (**HoloMeaning**, `@holoscript/meaning`).
+> This doc describes the bytecode runtime only.
+
 The **Universal Autonomous Agent Language (UAAL) VM** is HoloScript's bytecode execution runtime for autonomous agents. It provides a sandboxed, deterministic environment for agent behavior programs — enabling hot-reload, reproducible replays, cross-platform deployment, and tamper-evident execution logging.
 
 ---

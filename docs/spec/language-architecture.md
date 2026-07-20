@@ -68,7 +68,7 @@ stratum you mean.
 | provenance envelope, resolution records, receipts | ABI of ③ | **effects & receipts** | rides with the VMs |
 
 > **Note on the name — RATIFIED by the founder, 2026-07-17: "HoloMeaning."** Chosen over
-> "HoloMeaning" (universally reads as Hardware Security Module — a bad collision in an ecosystem
+> "HSM" (universally reads as Hardware Security Module — a bad collision in an ecosystem
 > running custody), over keeping "uAAL" for meaning (retains the historical ambiguity in
 > every older doc), and over "HSI-IR" (crowns the mirror). The name follows HOLON.md:
 > `Holo-` = part of the whole, `-Meaning` = a true noun for the thing's own complete role;

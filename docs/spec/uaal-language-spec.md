@@ -8,7 +8,13 @@
 > **real, implementable core**, quarantines the **aspirational/mythologized** layer, and maps
 > every primitive to the **shipped code**. See [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md).
 
-uAAL is the **cognitive** language layer (`.hs` logic); the **HOLO VM** is the **spatial**
+> **Subordinate to [`language-architecture.md`](./language-architecture.md) (ratified 2026-07-17).**
+> This document is the **stratum-③ execution** spec. "uAAL" names the **cognitive VM**, never
+> the language or the meaning layer — meaning is stratum ② (**HoloMeaning**, `@holoscript/meaning`),
+> surface syntax is stratum ① (the three formats). Bare "uAAL" as a language name is banned in
+> new canon; read the wording below with that scoping.
+
+uAAL is the **cognitive VM** (stratum ③) executing `.hs` logic; the **HOLO VM** is the **spatial**
 layer (`.holo` IR). `.hsplus` is the declarative trait/brain authoring surface over both. The
 protocol phases (INTAKE → REFLECT → EXECUTE → COMPRESS → GROW → RE-INTAKE → EVOLVE →
 AUTONOMIZE) are first-class language primitives, not library calls.

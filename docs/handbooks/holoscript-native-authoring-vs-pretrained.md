@@ -43,7 +43,7 @@ silently.
 | **Higher-level trait** | stateful class with `compute()` methods | pure-function object `generate(ctx)→slice`, composed by min/max (tropical) | stateful accumulation breaks the bounding-box integrity math |
 | **Render surface** | hand-write `Foo.tsx` (JSX/`useState`/`fetch`) | author `.holo`: `state{}` + `@panel`/`@fetch`/`@theme`/`@slot`; `.tsx` is `@generated` | `check-render-surface-native.mjs` → `SURFACE-GREW` exit 1, commit blocked |
 | **Format choice** | treat `.hs`/`.hsplus`/`.holo` as aliases | strict capability envelope per format (F.120) | wrong-format blocks rejected by the parser that owns it |
-| **`.hs`/`.hsplus` grammar** | add a keyword in the TS parser | edit the **Rust+WASM** parser (`compiler-wasm/`) + rebuild | TS edit silently no-ops; WASM parser is the trust boundary |
+| **`.hs`/`.hsplus` grammar** | add a keyword in the TS parser | check the per-surface router (`docs/spec/holoscript-grammar-ssot.md`), then edit the parser that owns the surface — `.hs` + the growing `.hsplus` `@trait` subset live in the **Rust+WASM** authority (`compiler-wasm/` + rebuild); full `.hsplus` still parses via TS `HoloScriptPlusParser` | editing a parser that doesn't own the surface silently no-ops; the WASM authority is the growing trust boundary (language-architecture.md §5, directional) |
 | **Agent brain prompt** | system prompt as a string in the runner | the free-text **preamble** IS the prompt; structured blocks never reach the LLM | prompt inside a block → model gets no instructions |
 | **Agent task routing** | `if (task.title.includes…)` in runner | `identity.capability_tags` data, scored by set-intersection | empty tags → silent permanent idle, no error |
 | **Agent cognition** | inline `recall→plan→exec` in runner TS | ordered `behavior on_task { recall; rag_query; llm_call; reflect }` verbs as data | inlining loses per-verb trait backing + reorderability |
@@ -82,14 +82,18 @@ machine-checked token, not a doc comment: `scripts/holo-ci/check-render-surface-
 scans the first 6 lines and any non-allowlisted, non-generated `.tsx` under the render roots
 is `SURFACE-GREW` → exit 1, in **both** pre-commit and full HoloCI.
 
-### The three formats + the two parsers (F.120)
+### The three formats + the parser router (F.120)
 `.hs` = flat data, no `state`/`template`/`system`. `.hsplus` = adds `state`/`template`/`action`/
 `behavior`/traits. `.holo` = adds `metadata`/`system`/`environment`/`platforms:`. These are
-capability envelopes, not aliases. **Two parsers** enforce them: `.holo` is the TypeScript
-`HoloCompositionParser`; **`.hs`/`.hsplus` is a Rust+WASM parser** (`packages/compiler-wasm/src/`
-— `token.rs` keyword table, `parser.rs` grammar, `ast.rs` nodes; rebuild `pkg-node/`). Adding a
-`.hs`/`.hsplus` keyword by editing the TS parser **silently no-ops** — the WASM parser is the
-trust boundary and never sees the edit (`compiler-wasm/src/parser.rs:1-13` enumerates its scope).
+capability envelopes, not aliases. Parser authority is routed **per surface** by
+`docs/spec/holoscript-grammar-ssot.md` (corrected 2026-07-17 per `language-architecture.md` §5):
+the **Rust+WASM authority** (`packages/compiler-wasm/src/` — `token.rs` keyword table,
+`parser.rs` grammar, `ast.rs` nodes; rebuild `pkg-node/`) owns `.hs` **and a growing `.hsplus`
+`@trait` subset** — its coverage grows toward the whole surface and must never regress; `.holo`
+and full `.hsplus` are still parsed by the TS parsers (`HoloCompositionParser` /
+`HoloScriptPlusParser`) as strangled predecessors. Adding a keyword to a surface the WASM
+authority owns by editing the TS parser **silently no-ops** — check the router first, then edit
+the parser that owns the surface (`compiler-wasm/src/parser.rs:1-13` enumerates its scope).
 
 ### Agent brains
 The **free-text preamble** (everything before the first `#version`/`identity{`/block keyword) IS

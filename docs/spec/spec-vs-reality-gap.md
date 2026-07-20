@@ -4,6 +4,9 @@
 > verified initially 2026-06-22 and refreshed 2026-07-03 in the HoloScript repo. Each gap carries the F.076 four-question frame
 > (falsifiable claim · real seam · failing-if-broken evidence · scope/blast) so it is a
 > buildable slice, not a vibe. Ordered by leverage.
+> **Stratum scope (2026-07-17):** bare "uAAL" below is historical wording — per
+> [`language-architecture.md`](./language-architecture.md) it names only the stratum-③
+> cognitive VM; meaning is stratum-② **HoloMeaning**, surface is stratum-① (the three formats).
 
 ## Status legend
 ✅ shipped & wired · ⚠️ exists but not wired into the canonical path · ❌ absent/aspirational
