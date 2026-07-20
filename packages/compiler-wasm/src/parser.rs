@@ -40,6 +40,13 @@ pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
     errors: Vec<ParseError>,
+    /// True only while speculatively parsing an `@on_*`/`on_*` handler body
+    /// ([`Self::try_parse_braced_statements`]). Handler bodies were historically raw-captured, so
+    /// the corpus wrote idioms there the strict grammar never accepted (paren-less `if`, word
+    /// operator `not`, shorthand `{ a, b }`, `;` separators). Lenient mode admits those forms in
+    /// handler bodies ONLY — the main grammar stays frozen, so whether e.g. paren-less `if`
+    /// becomes legal in function bodies remains a deliberate future decision, not a side effect.
+    lenient_statements: bool,
 }
 
 impl Parser {
@@ -77,6 +84,7 @@ impl Parser {
             tokens,
             current: 0,
             errors,
+            lenient_statements: false,
         }
     }
 
@@ -1382,7 +1390,10 @@ impl Parser {
     /// only `parse()` pushes into `self.errors`, and this never routes through it.
     fn try_parse_braced_statements(&mut self) -> Option<Vec<AstNode>> {
         let saved = self.current;
+        let saved_lenient = self.lenient_statements;
+        self.lenient_statements = true;
         let parsed = self.parse_braced_statements_speculative();
+        self.lenient_statements = saved_lenient;
         self.current = saved;
         parsed
     }
@@ -1393,6 +1404,11 @@ impl Parser {
         }
         let mut statements = Vec::new();
         while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            // Lenient form 4: stray `;` separators between statements (corpus-measured idiom).
+            if self.check(TokenType::Semicolon) {
+                self.advance();
+                continue;
+            }
             let before = self.current;
             let Ok(statement) = self.parse_statement() else {
                 return None;
@@ -2015,6 +2031,22 @@ impl Parser {
     }
 
     fn parse_unary_expression(&mut self) -> Result<AstNode, ParseError> {
+        // Lenient form 2: word operator `not` (`if not enabled { … }`), corpus-measured in
+        // handler bodies. Only in lenient mode — outside it, `not` remains an ordinary
+        // identifier, so a function or field named `not` keeps its meaning in the main grammar.
+        if self.lenient_statements
+            && self.check(TokenType::Identifier)
+            && self.peek().value == "not"
+        {
+            self.advance();
+            let argument = self.parse_unary_expression()?;
+            return Ok(AstNode::UnaryExpression(UnaryExpression {
+                operator: "not".to_string(),
+                argument: Box::new(argument),
+                prefix: true,
+                loc: None,
+            }));
+        }
         if self.check(TokenType::Ampersand) {
             self.advance();
             let operator = if self.check_value("mut") {
@@ -2208,6 +2240,25 @@ impl Parser {
 
         while !self.check(TokenType::RBrace) && !self.is_at_end() {
             let key = self.expect_property_key()?;
+            // Lenient form 3: shorthand property (`{ from_state, to_state }`), corpus-measured in
+            // handler-body emit() payloads. `{ a }` desugars to `{ a: a }`. Lenient mode only —
+            // outside handler bodies a missing `:` is still an error.
+            if self.lenient_statements && (self.check(TokenType::Comma) || self.check(TokenType::RBrace)) {
+                properties.push(PropertyNode {
+                    key: key.clone(),
+                    value: Box::new(AstNode::Identifier(IdentifierNode {
+                        name: key,
+                        loc: None,
+                    })),
+                    optional: false,
+                    annotations: Vec::new(),
+                    loc: None,
+                });
+                if self.check(TokenType::Comma) {
+                    self.advance();
+                }
+                continue;
+            }
             self.expect(TokenType::Colon)?;
             let value = if self.check(TokenType::Enum) {
                 self.parse_enum_type()?
@@ -2284,9 +2335,19 @@ impl Parser {
 
     fn parse_if_statement(&mut self) -> Result<AstNode, ParseError> {
         self.advance(); // consume 'if'
-        self.expect(TokenType::LParen)?;
-        let test = self.parse_expression()?;
-        self.expect(TokenType::RParen)?;
+        // Lenient form 1: paren-less test (`if result.success { … }`) — the single largest
+        // corpus idiom in handler bodies. Admitted ONLY in lenient (handler-body) mode; the main
+        // grammar still requires parentheses.
+        let test = if self.check(TokenType::LParen) {
+            self.advance();
+            let test = self.parse_expression()?;
+            self.expect(TokenType::RParen)?;
+            test
+        } else if self.lenient_statements {
+            self.parse_expression()?
+        } else {
+            return Err(self.error("Expected '(' after 'if'"));
+        };
         self.expect(TokenType::LBrace)?;
 
         let mut consequent = Vec::new();
@@ -2719,6 +2780,59 @@ mod tests {
                 _ => None,
             })
             .unwrap_or_else(|| panic!("{handler} handler captured"))
+    }
+
+    #[test]
+    fn lenient_forms_parse_in_handler_bodies() {
+        // The four corpus-measured idioms that caused 19% of handler bodies to decline
+        // (empirically isolated by probe, 2026-07-20): paren-less if, word `not`, shorthand
+        // object literal, `;` separators. All admitted in handler bodies ONLY.
+        let source = r#"@trait Daemon {
+            enabled: Bool
+            @on_tick(e) => {
+                result = actions.execute(e) ;
+                if result.success { emit(done, { result, enabled }) }
+                if not enabled { return }
+            }
+        }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser.parse().expect("lenient handler body should parse");
+        let handler = trait_handler(&ast, "Daemon", "on_tick");
+        let parsed = handler
+            .parsed_body
+            .as_ref()
+            .expect("all four lenient forms together must parse");
+        assert_eq!(parsed.len(), 3, "assignment + two ifs");
+        // The shorthand `{ result, enabled }` desugars to key: Identifier(key).
+        let json = serde_json::to_string(&parsed[1]).expect("serializable");
+        assert!(
+            json.contains(r#""key":"result""#) && json.contains(r#""name":"result""#),
+            "shorthand property desugars to key: key — {json}"
+        );
+        // Word `not` survives as a prefix unary.
+        let json2 = serde_json::to_string(&parsed[2]).expect("serializable");
+        assert!(
+            json2.contains(r#""operator":"not""#),
+            "word `not` becomes a unary operator — {json2}"
+        );
+    }
+
+    #[test]
+    fn lenient_forms_stay_rejected_in_the_main_grammar() {
+        // THE BOUNDARY TEST. Lenient mode exists so the corpus's handler idioms parse; it must
+        // not leak into the main grammar, where admitting these forms is a language-surface
+        // decision nobody has made. Each form alone, in a FUNCTION body, must still error.
+        for (label, src) in [
+            ("paren-less if", "function f(): i32 { if x { return 1 } return 0 }"),
+            ("word not", "function f(): i32 { if (not x) { return 1 } return 0 }"),
+            ("shorthand object", "orb o { cfg: { a, b } }"),
+        ] {
+            let mut parser = Parser::new(src);
+            assert!(
+                parser.parse().is_err(),
+                "{label} must remain a main-grammar error — lenient mode leaked"
+            );
+        }
     }
 
     #[test]

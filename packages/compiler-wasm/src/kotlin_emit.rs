@@ -2253,7 +2253,7 @@ fn emit_expr(node: &AstNode, int_locals: &[String]) -> Result<String, KotlinEmit
             // LOOSER than this one, and wrap the right child of a left-associative operator when it
             // shares this precedence (so `a - (b - c)` and `(a + b) * c` survive intact).
             let parent = precedence(&b.operator);
-            let op = map_binary_operator(&b.operator);
+            let op = map_binary_operator(&b.operator)?;
             let left = emit_operand(&b.left, parent, false, int_locals)?;
             let right = emit_operand(&b.right, parent, true, int_locals)?;
             Ok(format!("{} {} {}", left, op, right))
@@ -2376,11 +2376,20 @@ fn infer_lambda_return_type(body: &AstNode) -> ValType {
 /// Map `.hs` binary operators to Kotlin. They are identical for the supported set,
 /// but the function makes the mapping explicit so an unexpected operator fails rather
 /// than passing through silently.
-fn map_binary_operator(op: &str) -> &str {
+///
+/// The catch-all previously returned `op` unchanged — the exact silent passthrough this doc
+/// promises not to do. `??` was the live case: it emitted VERBATIM into Kotlin (where `??` is not
+/// an operator), producing code that does not compile. A `?:` elvis lowering would not be honest
+/// today either — `ValType` has no nullable variant and parameter inference types everything
+/// non-null, so there is nothing null-shaped for an elvis to guard. Until a real nullable/
+/// Uncertain lowering exists, an unmapped operator is a loud error, as documented.
+fn map_binary_operator(op: &str) -> Result<&str, KotlinEmitError> {
     match op {
         "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "||"
-        | ".." => op,
-        _ => op,
+        | ".." => Ok(op),
+        _ => Err(KotlinEmitError::new(format!(
+            "binary operator `{op}` has no Kotlin lowering; refusing to emit it verbatim into invalid Kotlin"
+        ))),
     }
 }
 
@@ -2485,7 +2494,7 @@ fn emit_int_expr(node: &AstNode, int_locals: &[String]) -> Result<String, Kotlin
             if matches!(b.operator.as_str(), "+" | "-" | "*" | "/" | "%") =>
         {
             let parent = precedence(&b.operator);
-            let op = map_binary_operator(&b.operator);
+            let op = map_binary_operator(&b.operator)?;
             let left = emit_int_operand(&b.left, parent, false, int_locals)?;
             let right = emit_int_operand(&b.right, parent, true, int_locals)?;
             Ok(format!("{} {} {}", left, op, right))
