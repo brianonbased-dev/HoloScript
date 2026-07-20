@@ -683,6 +683,122 @@ describe('handleBoardTool with in-memory store', () => {
     }
   });
 
+  // ── holomesh_suggest / holomesh_suggest_vote agent attribution (regression) ──
+
+  it('holomesh_suggest attributes proposedBy to the passed agent_id instead of hardcoded mcp-tool', async () => {
+    seedTeam('team-abc');
+    const result = (await handleBoardTool('holomesh_suggest', {
+      team_id: 'team-abc',
+      title: 'Attributed suggestion',
+      agent_id: 'claude1',
+      agent_name: 'Claude One',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    const suggestion = result.suggestion as Record<string, unknown>;
+    expect(suggestion.proposedBy).toBe('claude1');
+    expect(suggestion.proposedByName).toBe('Claude One');
+  });
+
+  it('holomesh_suggest defaults proposedBy to mcp-agent when agent_id is omitted', async () => {
+    seedTeam('team-abc');
+    const result = (await handleBoardTool('holomesh_suggest', {
+      team_id: 'team-abc',
+      title: 'Unattributed suggestion',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    const suggestion = result.suggestion as Record<string, unknown>;
+    expect(suggestion.proposedBy).toBe('mcp-agent');
+    expect(suggestion.proposedByName).toBe('mcp-agent');
+  });
+
+  it('holomesh_suggest_vote: two distinct agent_id votes both count instead of collapsing into one mcp-tool vote', async () => {
+    seedTeam('team-abc');
+    const created = (await handleBoardTool('holomesh_suggest', {
+      team_id: 'team-abc',
+      title: 'Suggestion needing real multi-agent votes',
+      agent_id: 'claude1',
+    })) as Record<string, unknown>;
+    const suggestionId = (created.suggestion as Record<string, unknown>).id as string;
+
+    const vote1 = (await handleBoardTool('holomesh_suggest_vote', {
+      team_id: 'team-abc',
+      suggestion_id: suggestionId,
+      value: 1,
+      agent_id: 'claude1',
+    })) as Record<string, unknown>;
+    expect(vote1.success).toBe(true);
+    expect(((vote1.suggestion as Record<string, unknown>).votes as unknown[])).toHaveLength(1);
+    expect((vote1.suggestion as Record<string, unknown>).score).toBe(1);
+
+    // A second, DIFFERENT real agent voting must ADD a vote, not overwrite the first one.
+    const vote2 = (await handleBoardTool('holomesh_suggest_vote', {
+      team_id: 'team-abc',
+      suggestion_id: suggestionId,
+      value: 1,
+      agent_id: 'grok1',
+    })) as Record<string, unknown>;
+    expect(vote2.success).toBe(true);
+    const votes = (vote2.suggestion as Record<string, unknown>).votes as Array<
+      Record<string, unknown>
+    >;
+    expect(votes).toHaveLength(2);
+    expect(votes.map((v) => v.agentId).sort()).toEqual(['claude1', 'grok1']);
+    // Bug symptom: without agent_id threading, both calls hardcoded 'mcp-tool' and the
+    // second vote replaced the first, leaving score stuck at 1 no matter how many agents voted.
+    expect((vote2.suggestion as Record<string, unknown>).score).toBe(2);
+  });
+
+  it('holomesh_suggest_vote: the same agent_id voting twice still replaces its own prior vote', async () => {
+    seedTeam('team-abc');
+    const created = (await handleBoardTool('holomesh_suggest', {
+      team_id: 'team-abc',
+      title: 'Suggestion for vote-change test',
+      agent_id: 'claude1',
+    })) as Record<string, unknown>;
+    const suggestionId = (created.suggestion as Record<string, unknown>).id as string;
+
+    await handleBoardTool('holomesh_suggest_vote', {
+      team_id: 'team-abc',
+      suggestion_id: suggestionId,
+      value: 1,
+      agent_id: 'claude1',
+    });
+    const changed = (await handleBoardTool('holomesh_suggest_vote', {
+      team_id: 'team-abc',
+      suggestion_id: suggestionId,
+      value: -1,
+      agent_id: 'claude1',
+    })) as Record<string, unknown>;
+
+    const votes = (changed.suggestion as Record<string, unknown>).votes as unknown[];
+    expect(votes).toHaveLength(1);
+    expect((changed.suggestion as Record<string, unknown>).score).toBe(-1);
+  });
+
+  it('holomesh_suggest_vote defaults voter attribution to mcp-agent when agent_id is omitted', async () => {
+    seedTeam('team-abc');
+    const created = (await handleBoardTool('holomesh_suggest', {
+      team_id: 'team-abc',
+      title: 'Suggestion for default-voter test',
+      agent_id: 'claude1',
+    })) as Record<string, unknown>;
+    const suggestionId = (created.suggestion as Record<string, unknown>).id as string;
+
+    const result = (await handleBoardTool('holomesh_suggest_vote', {
+      team_id: 'team-abc',
+      suggestion_id: suggestionId,
+      value: 1,
+    })) as Record<string, unknown>;
+
+    const votes = (result.suggestion as Record<string, unknown>).votes as Array<
+      Record<string, unknown>
+    >;
+    expect(votes).toHaveLength(1);
+    expect(votes[0].agentId).toBe('mcp-agent');
+  });
+
   it('holomesh_mode_set changes team mode', async () => {
     seedTeam('team-abc');
     const result = (await handleBoardTool('holomesh_mode_set', {

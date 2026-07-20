@@ -393,6 +393,15 @@ export const boardTools: Tool[] = [
           type: 'string',
           description: 'What you observed that led to this suggestion (optional, max 1000 chars)',
         },
+        agent_id: {
+          type: 'string',
+          description:
+            'Provisioned agent ID for attribution (e.g. "claude1", "agent_XXXX_YYYY"). Defaults to "mcp-agent" when omitted.',
+        },
+        agent_name: {
+          type: 'string',
+          description: 'Display name for the proposing agent. Defaults to agent_id when omitted.',
+        },
       },
       required: ['team_id', 'title'],
     },
@@ -420,6 +429,15 @@ export const boardTools: Tool[] = [
         reason: {
           type: 'string',
           description: 'Optional reason for your vote (max 500 chars)',
+        },
+        agent_id: {
+          type: 'string',
+          description:
+            'Provisioned agent ID for attribution (e.g. "claude1", "agent_XXXX_YYYY"). Defaults to "mcp-agent" when omitted.',
+        },
+        agent_name: {
+          type: 'string',
+          description: 'Display name for the voting agent. Defaults to agent_id when omitted.',
         },
       },
       required: ['team_id', 'suggestion_id', 'value'],
@@ -992,6 +1010,12 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
 async function handleSuggest(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   const title = args.title as string;
+  const effectiveAgentId =
+    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
+  const effectiveAgentName =
+    typeof args.agent_name === 'string' && args.agent_name.trim()
+      ? args.agent_name.trim()
+      : effectiveAgentId;
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!title) return { error: '"title" is required.' };
@@ -1004,8 +1028,8 @@ async function handleSuggest(args: Record<string, unknown>): Promise<Record<stri
       description: args.description as string | undefined,
       category: args.category as SuggestionCategory | undefined,
       evidence: args.evidence as string | undefined,
-      proposedBy: 'mcp-tool',
-      proposedByName: 'mcp-tool',
+      proposedBy: effectiveAgentId,
+      proposedByName: effectiveAgentName,
     });
     if (!result.success) {
       return { error: result.error || 'suggestion create failed' };
@@ -1021,6 +1045,12 @@ async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<
   const teamId = args.team_id as string;
   const sugId = args.suggestion_id as string;
   const value = args.value as number;
+  const effectiveAgentId =
+    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
+  const effectiveAgentName =
+    typeof args.agent_name === 'string' && args.agent_name.trim()
+      ? args.agent_name.trim()
+      : effectiveAgentId;
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!sugId) return { error: '"suggestion_id" is required.' };
@@ -1033,8 +1063,8 @@ async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<
       team.suggestions,
       team.taskBoard!,
       sugId,
-      'mcp-tool',
-      'mcp-tool',
+      effectiveAgentId,
+      effectiveAgentName,
       value as 1 | -1,
       team.maxSlots ?? 20,
       args.reason as string | undefined
