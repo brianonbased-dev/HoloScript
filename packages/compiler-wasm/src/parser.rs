@@ -780,6 +780,7 @@ impl Parser {
                     value: Box::new(value),
                     optional: false,
                     annotations: Vec::new(),
+                    default_value: None,
                     loc: None,
                 });
             }
@@ -882,6 +883,7 @@ impl Parser {
                                         value: Box::new(node_value),
                                         optional: false,
                                         annotations: Vec::new(),
+                                        default_value: None,
                                         loc: None,
                                     });
                                 }
@@ -919,6 +921,7 @@ impl Parser {
                     value: Box::new(value),
                     optional: false,
                     annotations: Vec::new(),
+                    default_value: None,
                     loc: None,
                 });
             }
@@ -1738,14 +1741,14 @@ impl Parser {
             false
         };
 
-        // Optional typed-field default: `name: Type = default`.
-        // NOTE: the default expression is still parsed and dropped — capturing it needs its own
-        // AST slot and is out of scope for this slice. Named here so it stays greppable rather
-        // than looking intentional.
-        if self.check(TokenType::Equals) {
+        // Typed-field default: `name: Type = default` — now CAPTURED (stage 4; it was
+        // parse-and-drop until 2026-07-20).
+        let default_value = if self.check(TokenType::Equals) {
             self.advance();
-            let _default = self.parse_expression()?;
-        }
+            Some(Box::new(self.parse_expression()?))
+        } else {
+            None
+        };
 
         if !self.check(TokenType::RBrace)
             && (self.check(TokenType::Comma) || self.check(TokenType::Semicolon))
@@ -1758,6 +1761,7 @@ impl Parser {
             value: Box::new(value),
             optional,
             annotations,
+            default_value,
             loc: None,
         })
     }
@@ -1806,6 +1810,7 @@ impl Parser {
             value: Box::new(value),
             optional: false,
             annotations: Vec::new(),
+            default_value: None,
             loc: Some(self.location_from(start_loc)),
         })
     }
@@ -2195,6 +2200,25 @@ impl Parser {
                     loc: None,
                 }))
             }
+            // Lenient form 5: structural DECLARATION keywords used as plain identifiers in
+            // handler-body expressions — the corpus writes `analyzer.analyze(composition, path)`,
+            // `action`, `world`, etc. as ordinary variable/argument names inside handlers
+            // (probe-measured 2026-07-20: these were the bulk of the residual 3% decliners).
+            // Lenient mode only: at top level these words still begin declarations.
+            TokenType::Composition
+            | TokenType::Action
+            | TokenType::World
+            | TokenType::Orb
+            | TokenType::Entity
+            | TokenType::Template
+            | TokenType::Group
+            | TokenType::Timeline
+            | TokenType::Environment
+                if self.lenient_statements =>
+            {
+                let name = self.advance().value.clone();
+                Ok(AstNode::Identifier(IdentifierNode { name, loc: None }))
+            }
             _ => Err(self.error(&format!("Unexpected token: {:?}", token.token_type))),
         }
     }
@@ -2252,6 +2276,7 @@ impl Parser {
                     })),
                     optional: false,
                     annotations: Vec::new(),
+                    default_value: None,
                     loc: None,
                 });
                 if self.check(TokenType::Comma) {
@@ -2265,25 +2290,26 @@ impl Parser {
             } else {
                 self.parse_expression()?
             };
-            // Optional-type marker + typed-field default: `x: Type? = default`.
-            // The `?` is CAPTURED; the default expression is still dropped (see
-            // parse_trait_property for why that remains out of scope).
+            // Optional-type marker + typed-field default: `x: Type? = default`. Both CAPTURED.
             let optional = if self.check(TokenType::Question) {
                 self.advance();
                 true
             } else {
                 false
             };
-            if self.check(TokenType::Equals) {
+            let default_value = if self.check(TokenType::Equals) {
                 self.advance();
-                let _default = self.parse_expression()?;
-            }
+                Some(Box::new(self.parse_expression()?))
+            } else {
+                None
+            };
 
             properties.push(PropertyNode {
                 key,
                 value: Box::new(value),
                 optional,
                 annotations: Vec::new(),
+                default_value,
                 loc: None,
             });
 

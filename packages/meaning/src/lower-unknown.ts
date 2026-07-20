@@ -42,6 +42,8 @@ export interface LowerableField {
   annotations?: string[];
   /** The field's value node; for a typed declaration this is its type identifier. */
   value?: { type?: string; name?: string } | null;
+  /** Declared default AST node from `name: Type = expr` (grammar stage 4), when present. */
+  default_value?: unknown | null;
 }
 
 /** The lowered form of one `@unknown` field declaration. */
@@ -59,8 +61,21 @@ export interface UnknownFieldLowering {
    * The field's initial epistemic state: honestly unknown, reason `underdetermined`, until some
    * runtime fact or resolver verdict replaces it with `known(value)`. Typed `Uncertain<never>`
    * because at declaration time there is no value of T to carry — only the ignorance.
+   *
+   * DELIBERATE: this stays unknown even when `declaredDefault` is present. A fallback is not
+   * knowledge — the compiler admits bare reads of a defaulted `@unknown` field because a
+   * fallback exists BY CONSTRUCTION, not because the value became known. Runtime consumers
+   * apply the default explicitly (`orElse(initial, declaredDefault)`), keeping the epistemic
+   * state and the fallback separable in receipts.
    */
   initial: Uncertain<never>;
+  /**
+   * The declared default's AST node when the field wrote `= expr` — the declaration-level
+   * fallback the compile-time guard credits. `null` when no default was declared. Passed
+   * through raw (an AST node, not an evaluated value): interpreting expressions is the
+   * consumer's runtime's job, not the bridge's.
+   */
+  declaredDefault: unknown | null;
 }
 
 /**
@@ -80,6 +95,7 @@ export function lowerUnknownField(field: LowerableField): UnknownFieldLowering |
     typeName,
     optional: field.optional === true,
     initial: unknown('underdetermined'),
+    declaredDefault: field.default_value ?? null,
   };
 }
 

@@ -48,6 +48,20 @@ describe('lowerUnknownField — @unknown surface annotation → Uncertain', () =
     expect(lowered!.typeName).toBeNull();
   });
 
+  it('declaredDefault passes the AST node through; initial STAYS unknown — a fallback is not knowledge', () => {
+    const withDefault = lowerUnknownField({
+      key: 'reading',
+      annotations: ['unknown'],
+      value: { type: 'Identifier', name: 'Temperature' },
+      default_value: { type: 'Number', value: 20, raw: '20.0' },
+    });
+    expect(withDefault!.declaredDefault).toEqual({ type: 'Number', value: 20, raw: '20.0' });
+    expect(isKnown(withDefault!.initial)).toBe(false); // the default did NOT make it known
+
+    const withoutDefault = lowerUnknownField({ key: 'reading', annotations: ['unknown'] });
+    expect(withoutDefault!.declaredDefault).toBeNull();
+  });
+
   it('the lowered initial composes with the Uncertain combinators (the point of the bridge)', () => {
     const lowered = lowerUnknownField({ key: 'reading', annotations: ['unknown'] })!;
     // A consumer must supply a fallback to extract a value — same contract the compiler

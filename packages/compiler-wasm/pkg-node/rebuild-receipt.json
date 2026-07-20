@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-20T23:09:33Z",
+  "generatedAt": "2026-07-20T23:51:17Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "923e6602c1e9943facffa0b71d852766ccf7ad6d+working-tree-lenient-handler-statements",
+  "sourceCommit": "d5a0550611815a39d5b964df151faad201827b8e+working-tree-default-capture-and-keyword-atoms",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -16,9 +16,9 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 298595,
-    "wasmSha256": "e4718b4136a5055b2d57c7d15310f0600819ca7be7d39b8b4edafae69f3e7424",
-    "previousWasmSha256": "f929b10f025317384517de49ce204df0740fc9d4db7413ab31525b928805e38c",
-    "note": "Stage 2d lenient handler-statement mode + kotlin ?? fail-loud. The 19% of handler bodies that declined the stage-2c speculative parse were probe-isolated to four corpus idioms (cluster labels first suggested bare assignment, but a controlled probe proved assignment innocent): paren-less `if`, word operator `not`, shorthand object literals `{ a, b }`, and `;` separators. A `lenient_statements` flag on the Parser admits exactly those four forms ONLY while speculatively parsing @on_*/on_* handler bodies; the main grammar is frozen (a boundary test pins each form as still-rejected in function bodies / trait configs, so whether e.g. paren-less if becomes legal generally remains a deliberate future decision, not a side effect). MEASURED effect: handler bodies analyzed 4062/5013 (81.0%) -> 4864/5013 (97.0%); declined 951 -> 149 (3.0%). Differential over the 2303-file authority corpus: Rust pass rate 2256/2303 (97.96%), 0 regressions vs baseline -- figures byte-identical to before, so lenient mode is provably confined to handler-body analysis and changes no file's parse verdict. Also in this rebuild: map_binary_operator's catch-all previously returned unmapped operators VERBATIM (contradicting its own fail-loud doc) -- `??` emitted into invalid Kotlin; it now errs loudly (no elvis lowering is honest while ValType has no nullable variant). No wasm_bindgen export changed; 8 exports intact. cargo test 224 passed; clippy --all-targets -D warnings clean. Source changes are committed together with this receipt."
+    "wasmBytes": 299399,
+    "wasmSha256": "dee4f48886d28bef57742376d6ce3a7d27105bda7e5ef71b18a1918414469bc4",
+    "previousWasmSha256": "e4718b4136a5055b2d57c7d15310f0600819ca7be7d39b8b4edafae69f3e7424",
+    "note": "Stage 4 grammar slices. (1) `= default` CAPTURED: PropertyNode.default_value now holds the declared default at both former parse-and-drop sites. Enforcement semantics: a DEFAULTED @unknown field admits bare reads (the fallback exists BY CONSTRUCTION at the declaration -- same reasoning as ?? at a use site) while an undefaulted one still requires the guard; a default EXPRESSION is a real read site (evaluated at instantiation), so a default reading an undefaulted @unknown field is rejected with its own diagnostic. Epistemically the value stays unknown -- the lowering keeps initial=unknown and surfaces declaredDefault separately (a fallback is not knowledge). (2) Lenient form 5: nine structural DECLARATION keywords (composition, action, world, orb, entity, template, group, timeline, environment) now parse as plain identifiers in handler-body expressions, lenient mode ONLY -- probe-isolated as the bulk of the residual decliners (corpus writes analyzer.analyze(composition, path) etc.). MEASURED: handler bodies analyzed 4864/5013 (97.0%) -> 4944/5013 (98.6%), declined 149 -> 69 (1.4%). Differential over 2303 files: 2256/2303 (97.96%), 0 regressions -- main grammar unchanged. The e2e drift guard EARNED ITS KEEP this rebuild: the new defaulted-@unknown e2e correctly FAILED against the stale artifact before this rebuild and passed after -- reality-shaped guarding working as designed. cargo test 227 passed (3 new); meaning suite 207 (2 new); clippy -D warnings clean. No wasm_bindgen export change. Source changes committed with this receipt."
   }
 }

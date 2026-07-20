@@ -67,6 +67,12 @@ export interface PropertyNode {
    * a `?` field lowers to ordinary optionality.
    */
   annotations?: string[];
+  /**
+   * Declared field default from `name: Type = expr` (captured since stage 4; previously parsed
+   * and dropped). For an @unknown field a declared default is a fallback BY CONSTRUCTION — the
+   * compile-time guard admits bare reads — but the value remains epistemically unknown.
+   */
+  default_value?: AstNode;
   loc?: Location;
 }
 

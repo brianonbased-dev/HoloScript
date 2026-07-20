@@ -137,11 +137,18 @@ fn check_unknown_field_guards_in_node(node: &AstNode) -> Result<(), SemanticDiag
         return Ok(());
     };
 
+    // Only UNDEFAULTED @unknown fields require use-site guards. A declared default
+    // (`@unknown reading: Temperature = 20.0`) is a fallback BY CONSTRUCTION — every read has it
+    // available at the declaration, the same reasoning that admits `??` at a use site. The field
+    // is still epistemically unknown (a fallback is not knowledge — lowering keeps the unknown
+    // state); what changes is only that no read can crash into an unestablished value.
     let unknown: Vec<&str> = match trait_node.config.as_deref() {
         Some(AstNode::ObjectLiteral(object)) => object
             .properties
             .iter()
-            .filter(|property| property.annotations.iter().any(|a| a == "unknown"))
+            .filter(|property| {
+                property.annotations.iter().any(|a| a == "unknown") && property.default_value.is_none()
+            })
             .map(|property| property.key.as_str())
             .collect(),
         _ => Vec::new(),
@@ -150,19 +157,36 @@ fn check_unknown_field_guards_in_node(node: &AstNode) -> Result<(), SemanticDiag
     if !unknown.is_empty() {
         if let Some(AstNode::ObjectLiteral(object)) = trait_node.config.as_deref() {
             for property in &object.properties {
-                // Skip an `@unknown` field's own declaration: in this grammar a typed field's
-                // VALUE is its type identifier (`reading: Temperature`), not a read of itself.
-                if unknown.contains(&property.key.as_str()) {
-                    continue;
+                // An @unknown field's own declaration VALUE is its type identifier
+                // (`reading: Temperature`), not a read of itself — skip the value walk for those.
+                let is_unknown_decl = property.annotations.iter().any(|a| a == "unknown");
+                if !is_unknown_decl {
+                    if let Some(name) = first_unguarded_unknown_read(&property.value, &unknown, false)
+                    {
+                        return Err(semantic_error(
+                            format!(
+                                "field `{}` reads `@unknown` field `{}` without a fallback — write `{} ?? <default>`. An `@unknown` field may hold no known value, so a bare read would commit to one nobody established.",
+                                property.key, name, name
+                            ),
+                            &trait_node.loc,
+                        ));
+                    }
                 }
-                if let Some(name) = first_unguarded_unknown_read(&property.value, &unknown, false) {
-                    return Err(semantic_error(
-                        format!(
-                            "field `{}` reads `@unknown` field `{}` without a fallback — write `{} ?? <default>`. An `@unknown` field may hold no known value, so a bare read would commit to one nobody established.",
-                            property.key, name, name
-                        ),
-                        &trait_node.loc,
-                    ));
+                // A DEFAULT EXPRESSION is evaluated at instantiation, so it is a real read site:
+                // `b: Num = a` where `a` is an undefaulted @unknown field is the same hazard as a
+                // bare use-site read, and gets the same diagnostic. Checked for every property,
+                // including @unknown ones (their defaults may read other unknowns).
+                if let Some(default_expression) = &property.default_value {
+                    if let Some(name) = first_unguarded_unknown_read(default_expression, &unknown, false)
+                    {
+                        return Err(semantic_error(
+                            format!(
+                                "default of field `{}` reads `@unknown` field `{}` without a fallback — write `{} ?? <default>`. An `@unknown` field may hold no known value, so a bare read would commit to one nobody established.",
+                                property.key, name, name
+                            ),
+                            &trait_node.loc,
+                        ));
+                    }
                 }
             }
         }
@@ -3187,6 +3211,57 @@ function f(x) {
         }"#;
         let ast = crate::parse_ast(src).expect("declaration alone should parse");
         check_semantics(&ast).expect("declaring an @unknown field must not flag itself");
+    }
+
+    #[test]
+    fn a_declared_default_is_a_fallback_by_construction() {
+        // Stage 4: `@unknown reading: Temperature = 20.0` — the fallback lives at the
+        // DECLARATION, so bare reads are admitted (same reasoning as `??` at a use site).
+        let src = r#"@trait Sensor {
+            @unknown
+            reading: Temperature = 20.0
+            display: reading
+        }"#;
+        let ast = crate::parse_ast(src).expect("defaulted @unknown field should parse");
+        check_semantics(&ast).expect("a defaulted @unknown field is guarded by construction");
+    }
+
+    #[test]
+    fn an_undefaulted_unknown_field_still_requires_the_use_site_guard() {
+        // The relaxation is EXACTLY scoped to declared defaults — without one, nothing changed.
+        let src = r#"@trait Sensor {
+            @unknown
+            reading: Temperature
+            display: reading
+        }"#;
+        let ast = crate::parse_ast(src).expect("undefaulted @unknown field should parse");
+        check_semantics(&ast).expect_err("no default, no guard — still rejected");
+    }
+
+    #[test]
+    fn a_default_expression_is_a_real_read_site() {
+        // `calibrated: Num = raw` evaluates at instantiation — reading an undefaulted @unknown
+        // field there is the same hazard as any bare use-site read.
+        let src = r#"@trait Sensor {
+            @unknown
+            raw: Temperature
+            calibrated: Temperature = raw
+        }"#;
+        let ast = crate::parse_ast(src).expect("default-reads-unknown should parse");
+        let error = check_semantics(&ast).expect_err("a default reading an unknown must fail");
+        assert!(
+            error.message.contains("default of field `calibrated`"),
+            "diagnostic names the defaulting field: {}",
+            error.message
+        );
+        // ...and guarding the default read admits it.
+        let guarded = r#"@trait Sensor {
+            @unknown
+            raw: Temperature
+            calibrated: Temperature = raw ?? 0.0
+        }"#;
+        let ast2 = crate::parse_ast(guarded).expect("guarded default should parse");
+        check_semantics(&ast2).expect("a ??-guarded default read is admitted");
     }
 
     #[test]

@@ -363,6 +363,14 @@ pub struct PropertyNode {
     /// lowers to `Uncertain<T>`; a `?` field lowers to ordinary optionality.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub annotations: Vec<String>,
+    /// Declared field default from `name: Type = expr` — previously parsed and DISCARDED at two
+    /// sites; now captured. For an `@unknown` field a declared default is a FALLBACK BY
+    /// CONSTRUCTION: every read has the fallback available at the declaration, so bare reads are
+    /// admitted (the same reasoning that admits `??` at a use site). Epistemically the value is
+    /// still unknown — a fallback is not knowledge; lowering keeps the unknown state and surfaces
+    /// the default separately.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_value: Option<Box<AstNode>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }

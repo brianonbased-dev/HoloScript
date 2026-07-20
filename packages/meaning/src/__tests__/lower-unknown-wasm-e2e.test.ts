@@ -62,4 +62,18 @@ describe.skipIf(!wasmPresent)('lowering bridge e2e (real WASM artifact)', () => 
     const unguarded = '@trait S {\n  @unknown\n  reading: Temperature\n  display: reading\n}';
     expect(JSON.parse(wasm.validate_detailed(unguarded)).valid).toBe(false);
   });
+
+  it('a declared default is a fallback by construction — grammar, enforcement, and lowering agree', () => {
+    const wasm = requireCjs(PKG_NODE) as { parse(source: string): string; validate_detailed(source: string): string };
+    const source = '@trait S {\n  @unknown\n  reading: Temperature = 20.0\n  display: reading\n}';
+    // Enforcement: the bare read of the DEFAULTED @unknown field is admitted.
+    expect(JSON.parse(wasm.validate_detailed(source)).valid).toBe(true);
+    // Lowering: the default survives the real artifact's JSON, and initial stays unknown.
+    const ast = JSON.parse(wasm.parse(source));
+    const trait = ast.body.find((n: { type: string }) => n.type === 'Trait');
+    const lowered = lowerUnknownFields(trait.config.properties);
+    expect(lowered).toHaveLength(1);
+    expect(lowered[0].declaredDefault).toMatchObject({ type: 'Number', value: 20 });
+    expect(isKnown(lowered[0].initial)).toBe(false);
+  });
 });
