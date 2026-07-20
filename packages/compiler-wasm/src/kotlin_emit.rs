@@ -111,13 +111,20 @@ impl DeclarationSite {
 /// `reading ?? 20.0` supplies the fallback explicitly, mirroring `orElse` on `Uncertain<T>` in
 /// `@holoscript/meaning`. No new syntax is introduced for the guard.
 ///
-/// SCOPE — stated plainly so this is never mistaken for full coverage. This checks field VALUE
-/// expressions, which are real parsed AST. It does NOT check `@on_*` handler bodies: those are
-/// captured as raw space-joined token text (`GameEventBlockNode.body: String`), so there is no
-/// AST to walk, and because `?` lexes as a single character `??` does not even survive there as a
-/// distinguishable token pair (`a ?? b` becomes the text `"a ? ? b"`). Covering handlers requires
-/// making handler bodies real AST first. A string-matching approximation over that raw text would
-/// look like enforcement without being it, which is worse than the honest gap.
+/// SCOPE — stated plainly so this is never mistaken for full coverage.
+///
+/// Checked: field VALUE expressions, and `@on_*` handler bodies wherever
+/// [`GameEventBlockNode::parsed_body`] is `Some` (stage 2c). Handler coverage exists because the
+/// parser now speculatively parses those bodies from the TOKEN STREAM; the raw `body` text cannot
+/// be used for this, as it is lossy — string quotes are stripped, escapes decoded, and `??`
+/// flattens to `? ?` because `?` lexes as a single character.
+///
+/// NOT checked: a handler whose body did not parse (`parsed_body: None`). Such a handler is
+/// UNANALYZED, which is deliberately distinct from "analyzed and clean" — the raw capture is
+/// intentionally tolerant of any in-body form, so declining is the only honest option. A
+/// string-matching approximation over the lossy text would look like enforcement without being
+/// it, which is worse than a gap you can see. Also not checked: struct fields, which cannot carry
+/// `@unknown` at all (`StructDeclarationNode` stores plain `Vec<String>` with no annotation slot).
 fn check_unknown_field_guards(ast: &Ast) -> Result<(), SemanticDiagnostic> {
     for node in &ast.body {
         check_unknown_field_guards_in_node(node)?;
@@ -130,15 +137,18 @@ fn check_unknown_field_guards_in_node(node: &AstNode) -> Result<(), SemanticDiag
         return Ok(());
     };
 
-    if let Some(AstNode::ObjectLiteral(object)) = trait_node.config.as_deref() {
-        let unknown: Vec<&str> = object
+    let unknown: Vec<&str> = match trait_node.config.as_deref() {
+        Some(AstNode::ObjectLiteral(object)) => object
             .properties
             .iter()
             .filter(|property| property.annotations.iter().any(|a| a == "unknown"))
             .map(|property| property.key.as_str())
-            .collect();
+            .collect(),
+        _ => Vec::new(),
+    };
 
-        if !unknown.is_empty() {
+    if !unknown.is_empty() {
+        if let Some(AstNode::ObjectLiteral(object)) = trait_node.config.as_deref() {
             for property in &object.properties {
                 // Skip an `@unknown` field's own declaration: in this grammar a typed field's
                 // VALUE is its type identifier (`reading: Temperature`), not a read of itself.
@@ -152,6 +162,29 @@ fn check_unknown_field_guards_in_node(node: &AstNode) -> Result<(), SemanticDiag
                             property.key, name, name
                         ),
                         &trait_node.loc,
+                    ));
+                }
+            }
+        }
+
+        // Handler bodies, wherever the speculative parse produced real AST. A handler whose body
+        // did not parse (`parsed_body: None`) is NOT analyzed — that is an honest, inspectable
+        // gap, not a silent pass: the alternative is string-matching lossy text.
+        for member in &trait_node.members {
+            let AstNode::GameEventBlock(handler) = member else {
+                continue;
+            };
+            let Some(statements) = &handler.parsed_body else {
+                continue;
+            };
+            for statement in statements {
+                if let Some(name) = first_unguarded_unknown_read(statement, &unknown, false) {
+                    return Err(semantic_error(
+                        format!(
+                            "handler `{}` reads `@unknown` field `{}` without a fallback — write `{} ?? <default>`. An `@unknown` field may hold no known value, so a bare read would commit to one nobody established.",
+                            handler.name, name, name
+                        ),
+                        &handler.loc,
                     ));
                 }
             }
@@ -209,6 +242,53 @@ fn first_unguarded_unknown_read(node: &AstNode, unknown: &[&str], guarded: bool)
             .properties
             .iter()
             .find_map(|property| first_unguarded_unknown_read(&property.value, unknown, guarded)),
+
+        // Statement forms — reachable once a handler body has been parsed (see `parsed_body`).
+        AstNode::VariableDeclaration(declaration) => {
+            first_unguarded_unknown_read(&declaration.value, unknown, guarded)
+        }
+        // Assignment recurses the VALUE only, never the target: writing a known value INTO an
+        // `@unknown` field is exactly how one resolves it, so flagging the target would punish
+        // the fix. (A read hidden in a computed target is a deliberate false negative — an
+        // uncaught violation is a gap; a false positive breaks working code.)
+        AstNode::Assignment(assignment) => {
+            first_unguarded_unknown_read(&assignment.value, unknown, guarded)
+        }
+        AstNode::Return(return_node) => return_node
+            .argument
+            .as_ref()
+            .and_then(|argument| first_unguarded_unknown_read(argument, unknown, guarded)),
+        AstNode::If(if_node) => first_unguarded_unknown_read(&if_node.test, unknown, guarded)
+            .or_else(|| {
+                if_node
+                    .consequent
+                    .iter()
+                    .find_map(|statement| first_unguarded_unknown_read(statement, unknown, guarded))
+            })
+            .or_else(|| {
+                if_node.alternate.as_ref().and_then(|alternate| {
+                    alternate.iter().find_map(|statement| {
+                        first_unguarded_unknown_read(statement, unknown, guarded)
+                    })
+                })
+            }),
+        AstNode::While(while_node) => {
+            first_unguarded_unknown_read(&while_node.test, unknown, guarded).or_else(|| {
+                while_node
+                    .body
+                    .iter()
+                    .find_map(|statement| first_unguarded_unknown_read(statement, unknown, guarded))
+            })
+        }
+        AstNode::LexicalScope(scope) => scope
+            .body
+            .iter()
+            .find_map(|statement| first_unguarded_unknown_read(statement, unknown, guarded)),
+        // The `onXxx: { … }` colon form was ALWAYS parsed into real AST, so it comes along free.
+        AstNode::EventHandler(handler) => handler
+            .body
+            .iter()
+            .find_map(|statement| first_unguarded_unknown_read(statement, unknown, guarded)),
         _ => None,
     }
 }
@@ -3098,6 +3178,74 @@ function f(x) {
         }"#;
         let ast = crate::parse_ast(src).expect("declaration alone should parse");
         check_semantics(&ast).expect("declaring an @unknown field must not flag itself");
+    }
+
+    #[test]
+    fn an_unguarded_read_inside_a_handler_body_is_rejected() {
+        // Stage 2c: enforcement now reaches inside `@on_*` handlers, which stage 2b could not
+        // see because their bodies were raw text.
+        let src = r#"@trait Sensor {
+            @unknown
+            reading: Temperature
+            @on_tick(e) => { hp = reading }
+        }"#;
+        let ast = crate::parse_ast(src).expect("handler should parse");
+        let error =
+            check_semantics(&ast).expect_err("a bare read inside a handler body must fail");
+        assert!(
+            error.message.contains("on_tick") && error.message.contains("reading"),
+            "diagnostic must name the handler and the unknown field: {}",
+            error.message
+        );
+    }
+
+    #[test]
+    fn a_guarded_read_inside_a_handler_body_is_admitted() {
+        // Only possible because the body is parsed from TOKENS — `??` does not survive in the
+        // raw text at all.
+        let src = r#"@trait Sensor {
+            @unknown
+            reading: Temperature
+            @on_tick(e) => { hp = reading ?? 20.0 }
+        }"#;
+        let ast = crate::parse_ast(src).expect("guarded handler should parse");
+        check_semantics(&ast).expect("a handler read with an explicit fallback must be admitted");
+    }
+
+    #[test]
+    fn an_unparseable_handler_body_is_not_analyzed_rather_than_wrongly_passed() {
+        // The honest boundary, pinned as a test so it cannot rot into a silent claim of coverage:
+        // when the speculative parse declines, that handler is NOT analyzed. It must not error
+        // (the raw path stays tolerant), and it must not be mistaken for "checked and clean".
+        let src = r#"@trait Sensor {
+            @unknown
+            reading: Temperature
+            @on_tick => { let }
+        }"#;
+        let ast = crate::parse_ast(src).expect("unparseable handler body must still be tolerated");
+        check_semantics(&ast).expect("an unanalyzable handler must not be reported as a violation");
+
+        let trait_node = ast
+            .body
+            .iter()
+            .find_map(|n| match n {
+                AstNode::Trait(t) if t.name == "Sensor" => Some(t),
+                _ => None,
+            })
+            .expect("Sensor trait present");
+        let handler = trait_node
+            .members
+            .iter()
+            .find_map(|m| match m {
+                AstNode::GameEventBlock(g) if g.name == "on_tick" => Some(g),
+                _ => None,
+            })
+            .expect("handler captured");
+        assert!(
+            handler.parsed_body.is_none(),
+            "this case is unanalyzed by construction — if it ever starts parsing, the coverage \
+             claim in check_unknown_field_guards must be revisited"
+        );
     }
 
     #[test]

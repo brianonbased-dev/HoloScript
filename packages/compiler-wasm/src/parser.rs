@@ -1316,16 +1316,20 @@ impl Parser {
             self.expect(TokenType::RParen)?;
         }
 
-        let body = if self.check(TokenType::LBrace) {
-            self.consume_braced_body_raw()?
+        // Parse the body speculatively FIRST (it restores the cursor either way), then take the
+        // raw text exactly as before. The raw capture stays authoritative and unchanged.
+        let (parsed_body, body) = if self.check(TokenType::LBrace) {
+            let parsed = self.try_parse_braced_statements();
+            (parsed, self.consume_braced_body_raw()?)
         } else {
-            String::new()
+            (None, String::new())
         };
 
         Ok(AstNode::GameEventBlock(GameEventBlockNode {
             name: name.clone(),
             params,
             body,
+            parsed_body,
             category: Some(reaction_category(&name).to_string()),
             loc: Some(self.location_from(start_loc)),
         }))
@@ -1362,6 +1366,48 @@ impl Parser {
             out.get(1).copied().unwrap_or(0.0),
             out.get(2).copied().unwrap_or(0.0),
         ])
+    }
+
+    /// Speculatively parse a `{ ... }` block (the `{` is current) as statements, WITHOUT
+    /// committing — the cursor is always restored to where it started, success or failure.
+    ///
+    /// Returns `Some(statements)` when the entire block parsed, `None` when it did not. Callers
+    /// fall through to [`Self::consume_braced_body_raw`] regardless, so a handler body that no
+    /// statement grammar accepts remains exactly as tolerated as it was before this existed. The
+    /// point is to give semantic checks a real AST to walk instead of string-matching the raw
+    /// text, which is lossy (quotes stripped, escapes decoded, `??` flattened to `? ?`).
+    ///
+    /// This is the crate's first speculative parse. It is sound because `self.current` is mutated
+    /// in exactly one place (`advance`), and because `parse_statement` returns errors by value —
+    /// only `parse()` pushes into `self.errors`, and this never routes through it.
+    fn try_parse_braced_statements(&mut self) -> Option<Vec<AstNode>> {
+        let saved = self.current;
+        let parsed = self.parse_braced_statements_speculative();
+        self.current = saved;
+        parsed
+    }
+
+    fn parse_braced_statements_speculative(&mut self) -> Option<Vec<AstNode>> {
+        if self.expect(TokenType::LBrace).is_err() {
+            return None;
+        }
+        let mut statements = Vec::new();
+        while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            let before = self.current;
+            let Ok(statement) = self.parse_statement() else {
+                return None;
+            };
+            statements.push(statement);
+            // Progress guard. `parse_expression_statement` can return Ok having consumed only
+            // part of a construct, leaving the cursor parked on a token the loop cannot advance
+            // past — a brace-balanced but malformed body would then spin forever. Declining is
+            // always safe here (the raw path still runs); hanging the compiler is not.
+            if self.current == before {
+                return None;
+            }
+        }
+        // Reaching EOF without the closing brace means the speculative read ran off the end.
+        self.check(TokenType::RBrace).then_some(statements)
     }
 
     /// Consume a `{ ... }` block (the `{` is current) and return its raw inner
@@ -1589,16 +1635,20 @@ impl Parser {
             self.advance();
         }
 
-        let body = if self.check(TokenType::LBrace) {
-            self.consume_braced_body_raw()?
+        // Parse the body speculatively FIRST (it restores the cursor either way), then take the
+        // raw text exactly as before. The raw capture stays authoritative and unchanged.
+        let (parsed_body, body) = if self.check(TokenType::LBrace) {
+            let parsed = self.try_parse_braced_statements();
+            (parsed, self.consume_braced_body_raw()?)
         } else {
-            String::new()
+            (None, String::new())
         };
 
         Ok(AstNode::GameEventBlock(GameEventBlockNode {
             name: name.clone(),
             params,
             body,
+            parsed_body,
             category: Some(reaction_category(&name).to_string()),
             loc: Some(self.location_from(start_loc)),
         }))
@@ -2647,6 +2697,97 @@ mod tests {
             Some(AstNode::ObjectLiteral(o)) => &o.properties,
             _ => panic!("{name} config should be an ObjectLiteral of properties"),
         }
+    }
+
+    fn trait_handler<'a>(
+        ast: &'a crate::ast::Ast,
+        trait_name: &str,
+        handler: &str,
+    ) -> &'a crate::ast::GameEventBlockNode {
+        let t = ast
+            .body
+            .iter()
+            .find_map(|n| match n {
+                AstNode::Trait(t) if t.name == trait_name => Some(t),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("{trait_name} trait present"));
+        t.members
+            .iter()
+            .find_map(|m| match m {
+                AstNode::GameEventBlock(g) if g.name == handler => Some(g),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("{handler} handler captured"))
+    }
+
+    #[test]
+    fn handler_bodies_gain_a_parsed_ast_without_losing_the_raw_capture() {
+        let source = r#"@trait Sensor {
+            reading: Temperature
+            @on_tick(e) => { hp = reading }
+        }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser.parse().expect("handler should parse");
+        let handler = trait_handler(&ast, "Sensor", "on_tick");
+        assert!(
+            !handler.body.is_empty(),
+            "the raw capture must remain authoritative and populated"
+        );
+        let parsed = handler
+            .parsed_body
+            .as_ref()
+            .expect("a well-formed handler body should parse into AST");
+        assert_eq!(parsed.len(), 1, "one statement in the body");
+    }
+
+    #[test]
+    fn an_unparseable_handler_body_is_declined_not_rejected() {
+        // The raw capture exists so ANY in-body form round-trips. The speculative parse must
+        // therefore DECLINE (parsed_body: None) rather than fail the parse — otherwise adding a
+        // parsed representation would silently narrow what the grammar accepts, which is exactly
+        // the tolerance regression this design avoids.
+        let source = r#"@trait Sensor {
+            reading: Temperature
+            @on_tick => { let }
+        }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser
+            .parse()
+            .expect("an unparseable handler body must still be tolerated");
+        let handler = trait_handler(&ast, "Sensor", "on_tick");
+        assert!(
+            handler.parsed_body.is_none(),
+            "speculative parse must decline, never reject"
+        );
+        assert!(
+            !handler.body.is_empty(),
+            "the raw capture must still hold the text"
+        );
+    }
+
+    #[test]
+    fn the_null_coalescing_guard_survives_inside_a_parsed_handler_body() {
+        // `??` is destroyed in the RAW text (`?` lexes single-char, so it flattens to `? ?`).
+        // Parsing from the token stream is what recovers it — this test is the reason the
+        // speculative parse reads tokens rather than re-lexing `body`.
+        let source = r#"@trait Sensor {
+            reading: Temperature
+            @on_tick => { hp = reading ?? 20.0 }
+        }"#;
+        let mut parser = Parser::new(source);
+        let ast = parser.parse().expect("guarded handler should parse");
+        let handler = trait_handler(&ast, "Sensor", "on_tick");
+        assert!(
+            handler.body.contains("? ?"),
+            "raw text is expected to be lossy here — that is why we parse tokens instead"
+        );
+        let parsed = handler.parsed_body.as_ref().expect("body should parse");
+        let json = serde_json::to_string(&parsed[0]).expect("serializable");
+        assert!(
+            json.contains(r#""operator":"??""#),
+            "the ?? guard must be recovered in the parsed AST: {json}"
+        );
     }
 
     #[test]

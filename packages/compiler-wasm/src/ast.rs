@@ -756,7 +756,21 @@ pub struct ActionDeclNode {
 pub struct GameEventBlockNode {
     pub name: String,
     pub params: Vec<String>,
+    /// Raw space-joined token lexemes. AUTHORITATIVE and deliberately tolerant: a handler body
+    /// that no statement grammar accepts still round-trips here. Note it is LOSSY — string quotes
+    /// are stripped and escapes decoded by the lexer, and `??` degrades to `? ?` — so this text
+    /// must never be re-lexed to recover meaning. Use `parsed_body` for analysis.
     pub body: String,
+    /// Best-effort parsed form of the same body, produced from the TOKEN STREAM (never by
+    /// re-lexing `body`, which is lossy). `Some` when the body parsed as statements; `None` when
+    /// the speculative parse declined — which is a real, reportable state, NOT an empty body.
+    /// `Some(vec![])` means a genuinely empty `{}`.
+    ///
+    /// This is purely additive: the raw path is unchanged, so a body that did not parse before
+    /// still does not fail now. It exists so semantic checks can reach inside handlers instead of
+    /// string-matching the lossy text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parsed_body: Option<Vec<AstNode>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub category: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

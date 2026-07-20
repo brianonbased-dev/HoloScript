@@ -231,7 +231,17 @@ export interface GameEventBlockNode {
   type: 'GameEventBlock';
   name: string;
   params: string[];
+  /**
+   * Raw space-joined token lexemes — authoritative and deliberately tolerant of any in-body
+   * form. LOSSY: string quotes are stripped, escapes decoded, and `??` flattens to `? ?`.
+   * Never re-lex this to recover meaning; use `parsedBody`.
+   */
   body: string;
+  /**
+   * Best-effort parsed form of the same body, produced from the token stream. Absent when the
+   * speculative parse declined — which means UNANALYZED, not empty. An empty `{}` is `[]`.
+   */
+  parsed_body?: AstNode[];
   category?: string;
   loc?: Location;
 }
