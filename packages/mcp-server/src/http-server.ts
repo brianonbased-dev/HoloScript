@@ -91,7 +91,13 @@ import { ensureMcpOtelTracer, withMcpToolExecutionSpan } from './telemetry/mcp-t
 import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
 import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
-import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
+import {
+  handleInboundGossip,
+  HoloMeshWorldState,
+  HoloMeshDiscovery,
+  registerSearchProviders,
+} from './holomesh/index';
+import { getClient as getHoloMeshOrchestratorClient } from './holomesh/orchestrator-client';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import {
   extractAndVerifySigning,
@@ -108,6 +114,7 @@ import {
   geoAnchorStore,
   stateStore,
   keyRegistry,
+  agentKeyStore,
 } from './holomesh/state';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
 import { startCiPublicWorker } from './ci-public-worker';
@@ -4293,6 +4300,30 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
 // Load team, social, and agent state
 (async () => {
   await initStores();
+
+  // Wire holomesh_search's data providers (task_1784578782174_oo87 — the
+  // module-level agentProvider/entryProvider in search.ts stayed null forever
+  // because registerSearchProviders() was never called, so holomesh_search
+  // silently returned 0 results for every query). agentProvider reads the
+  // same in-memory registered-agent store identity/auth code uses; entryProvider
+  // delegates to the orchestrator client's existing cross-workspace knowledge
+  // query (the same call the reputation/contribution code paths already use).
+  registerSearchProviders(
+    () =>
+      Array.from(agentKeyStore.values()).map((agent) => ({
+        id: agent.id,
+        name: agent.name,
+        traits: agent.traits || [],
+        reputation: agent.reputation || 0,
+        profile: {
+          bio: typeof agent.profile?.bio === 'string' ? agent.profile.bio : undefined,
+          statusText:
+            typeof agent.profile?.statusText === 'string' ? agent.profile.statusText : undefined,
+        },
+      })),
+    (query: string, opts?: { type?: string; limit?: number }) =>
+      getHoloMeshOrchestratorClient().queryKnowledge(query, opts)
+  );
 
   // Rehydrate founder seat attestations from durable storage so a single
   // (Trezor) attestation survives restart instead of being wiped every deploy.
