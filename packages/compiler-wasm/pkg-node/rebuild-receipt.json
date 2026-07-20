@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-19T23:48:10Z",
+  "generatedAt": "2026-07-20T00:27:06Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "8112b936d99f7323d352b4a41f1ae5776bf4ae3a+working-tree-unknown-field-annotation",
+  "sourceCommit": "0039c223fb558f6a14310c2a6e3c0d996eddc979+working-tree-unknown-guard-enforcement",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -16,9 +16,9 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 292459,
-    "wasmSha256": "6e5a83ca9f2778f9a9bd3da66f2504eed9302dfbd1e92139216abbc30420cf82",
-    "previousWasmSha256": "1bd3b3d854e8723c362cf713d8794cadc38bfa65cfeed656ce547ea0c372a4bc",
-    "note": "Grammar addition: the `@unknown` field annotation and the previously-discarded `Type?` optional marker are now CAPTURED on PropertyNode (first-class ignorance, RFC stage 2). Parser and AST changed, so unlike the previous re-attestation the emitted binary genuinely moved (290710 -> 292459 bytes). Only holoscript_wasm_bg.wasm changed in pkg-node: no wasm_bindgen export was added or removed, so the JS glue and .d.ts are byte-identical and the 8 exported functions are unchanged. Verified additive against the declared authority corpus: check-grammar-authority differential over 2303 .hsplus files reports Rust pass rate 2256/2303 (97.96%) and 0 files regressed vs the 2026-07-17 baseline -- byte-for-byte the same figures as before the change, i.e. no existing program's parse verdict moved. cargo test -p holoscript-wasm 210 passed; cargo clippy --all-targets -D warnings clean. The source changes are committed together with this receipt, so the working-tree suffix in sourceCommit resolves to that commit."
+    "wasmBytes": 294751,
+    "wasmSha256": "3160a680fa03c88da9fc6366cbc5c40f6a4480fbbfac60525d94d8a2a12da993",
+    "previousWasmSha256": "6e5a83ca9f2778f9a9bd3da66f2504eed9302dfbd1e92139216abbc30420cf82",
+    "note": "Semantic enforcement for the @unknown field annotation (first-class ignorance, RFC stage 2b): check_unknown_field_guards is now part of check_semantics, so reading an @unknown field without a `??` fallback is REJECTED. Only kotlin_emit.rs changed on the source side; no wasm_bindgen export was added or removed, so the JS glue and .d.ts are byte-identical and the 8 exported functions are unchanged. Note this rejection reaches all three check_semantics callers -- validate_detailed, the Kotlin emitter, and the uAAL emitter -- so the contract is enforced consistently at validation and at both emit paths, not just in the validator. Verified against the declared authority corpus, and the differential DOES exercise this code (shadow-compare-rust-ts.mjs calls validate_detailed, not validate): 2303 .hsplus files, Rust pass rate 2256/2303 (97.96%), 0 files regressed vs the 2026-07-17 baseline -- byte-for-byte the same figures as before, i.e. the check is inert for every program that does not use @unknown. cargo test -p holoscript-wasm 216 passed; cargo clippy --all-targets -D warnings clean. The source changes are committed together with this receipt, so the working-tree suffix in sourceCommit resolves to that commit."
   }
 }

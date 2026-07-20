@@ -103,6 +103,116 @@ impl DeclarationSite {
     }
 }
 
+/// Reject reading an `@unknown` field without supplying a fallback.
+///
+/// This is where first-class ignorance stops being metadata and becomes an ENFORCED contract: a
+/// field declared `@unknown` may hold no known value, so consuming it bare would silently
+/// propagate a value nobody ever established. The guard is the existing `??` operator —
+/// `reading ?? 20.0` supplies the fallback explicitly, mirroring `orElse` on `Uncertain<T>` in
+/// `@holoscript/meaning`. No new syntax is introduced for the guard.
+///
+/// SCOPE — stated plainly so this is never mistaken for full coverage. This checks field VALUE
+/// expressions, which are real parsed AST. It does NOT check `@on_*` handler bodies: those are
+/// captured as raw space-joined token text (`GameEventBlockNode.body: String`), so there is no
+/// AST to walk, and because `?` lexes as a single character `??` does not even survive there as a
+/// distinguishable token pair (`a ?? b` becomes the text `"a ? ? b"`). Covering handlers requires
+/// making handler bodies real AST first. A string-matching approximation over that raw text would
+/// look like enforcement without being it, which is worse than the honest gap.
+fn check_unknown_field_guards(ast: &Ast) -> Result<(), SemanticDiagnostic> {
+    for node in &ast.body {
+        check_unknown_field_guards_in_node(node)?;
+    }
+    Ok(())
+}
+
+fn check_unknown_field_guards_in_node(node: &AstNode) -> Result<(), SemanticDiagnostic> {
+    let AstNode::Trait(trait_node) = node else {
+        return Ok(());
+    };
+
+    if let Some(AstNode::ObjectLiteral(object)) = trait_node.config.as_deref() {
+        let unknown: Vec<&str> = object
+            .properties
+            .iter()
+            .filter(|property| property.annotations.iter().any(|a| a == "unknown"))
+            .map(|property| property.key.as_str())
+            .collect();
+
+        if !unknown.is_empty() {
+            for property in &object.properties {
+                // Skip an `@unknown` field's own declaration: in this grammar a typed field's
+                // VALUE is its type identifier (`reading: Temperature`), not a read of itself.
+                if unknown.contains(&property.key.as_str()) {
+                    continue;
+                }
+                if let Some(name) = first_unguarded_unknown_read(&property.value, &unknown, false) {
+                    return Err(semantic_error(
+                        format!(
+                            "field `{}` reads `@unknown` field `{}` without a fallback — write `{} ?? <default>`. An `@unknown` field may hold no known value, so a bare read would commit to one nobody established.",
+                            property.key, name, name
+                        ),
+                        &trait_node.loc,
+                    ));
+                }
+            }
+        }
+    }
+
+    for member in &trait_node.members {
+        check_unknown_field_guards_in_node(member)?;
+    }
+    Ok(())
+}
+
+/// First read of an `@unknown` field that no fallback covers.
+///
+/// `guarded` is true inside the LEFT operand of a `??` — the side a fallback exists for. The RIGHT
+/// operand IS the fallback, so it inherits the surrounding guard state rather than becoming
+/// guarded: in `a ?? b`, a bare `b` is itself an unguarded read.
+fn first_unguarded_unknown_read(node: &AstNode, unknown: &[&str], guarded: bool) -> Option<String> {
+    match node {
+        AstNode::Identifier(identifier) => {
+            if !guarded && unknown.contains(&identifier.name.as_str()) {
+                Some(identifier.name.clone())
+            } else {
+                None
+            }
+        }
+        AstNode::BinaryExpression(binary) => {
+            let left_guarded = guarded || binary.operator == "??";
+            first_unguarded_unknown_read(&binary.left, unknown, left_guarded)
+                .or_else(|| first_unguarded_unknown_read(&binary.right, unknown, guarded))
+        }
+        AstNode::UnaryExpression(unary) => {
+            first_unguarded_unknown_read(&unary.argument, unknown, guarded)
+        }
+        AstNode::CallExpression(call) => first_unguarded_unknown_read(&call.callee, unknown, guarded)
+            .or_else(|| {
+                call.arguments
+                    .iter()
+                    .find_map(|argument| first_unguarded_unknown_read(argument, unknown, guarded))
+            }),
+        AstNode::MemberExpression(member) => {
+            first_unguarded_unknown_read(&member.object, unknown, guarded).or_else(|| {
+                if member.computed {
+                    first_unguarded_unknown_read(&member.property, unknown, guarded)
+                } else {
+                    None
+                }
+            })
+        }
+        AstNode::Array(array) => array
+            .elements
+            .iter()
+            .find_map(|element| first_unguarded_unknown_read(element, unknown, guarded)),
+        AstNode::ObjectLiteral(object) => object
+            .properties
+            .iter()
+            .find_map(|property| first_unguarded_unknown_read(&property.value, unknown, guarded)),
+        _ => None,
+    }
+}
+
 /// Reject top-level declaration names that would collide after caller-side import inlining.
 pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), SemanticDiagnostic> {
     let mut declarations: HashMap<String, DeclarationSite> = HashMap::new();
@@ -137,6 +247,7 @@ pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), Se
 
 pub(crate) fn check_semantics(ast: &Ast) -> Result<(), SemanticDiagnostic> {
     check_top_level_declaration_collisions(ast)?;
+    check_unknown_field_guards(ast)?;
     check_assignment_mutability(ast)
 }
 
@@ -2904,6 +3015,89 @@ function f(x) {
             "{msg}"
         );
         assert!(msg.contains("declare it with `var`"), "{msg}");
+    }
+
+    #[test]
+    fn unguarded_read_of_an_unknown_field_is_rejected() {
+        // The payoff of first-class ignorance: reading a value nobody established must not
+        // silently succeed.
+        let src = r#"@trait Sensor {
+            @unknown
+            reading: Temperature
+            display: reading
+        }"#;
+        let ast = crate::parse_ast(src).expect("@unknown field should parse");
+        let error = check_semantics(&ast).expect_err("bare read of an @unknown field must fail");
+        assert!(
+            error.message.contains("display") && error.message.contains("reading"),
+            "diagnostic must name both the reader and the unknown field: {}",
+            error.message
+        );
+        assert!(
+            error.message.contains("??"),
+            "diagnostic must point at the fallback guard: {}",
+            error.message
+        );
+    }
+
+    #[test]
+    fn fallback_guarded_read_of_an_unknown_field_is_admitted() {
+        // `??` is the existing surface operator for "supply a fallback" — the analog of orElse.
+        let src = r#"@trait Sensor {
+            @unknown
+            reading: Temperature
+            display: reading ?? 20.0
+        }"#;
+        let ast = crate::parse_ast(src).expect("guarded read should parse");
+        check_semantics(&ast).expect("a read with an explicit fallback must be admitted");
+    }
+
+    #[test]
+    fn fields_without_the_annotation_are_untouched() {
+        // Corpus-safety property: the check must be inert for every program that does not use
+        // @unknown, which is all 2303 files in the authority corpus.
+        let src = r#"@trait Health {
+            maxHP: 100
+            current: maxHP
+            label: describe(maxHP)
+        }"#;
+        let ast = crate::parse_ast(src).expect("plain trait should parse");
+        check_semantics(&ast).expect("unannotated field reads must never be flagged");
+    }
+
+    #[test]
+    fn the_fallback_side_is_itself_checked() {
+        // In `a ?? b` the RIGHT operand IS the fallback, so a bare unknown read there is still
+        // unguarded — otherwise `?? unknownField` would launder the very thing being guarded.
+        let src = r#"@trait Sensor {
+            @unknown
+            reading: Temperature
+            display: other ?? reading
+        }"#;
+        let ast = crate::parse_ast(src).expect("nested guard should parse");
+        check_semantics(&ast).expect_err("an unknown read used AS the fallback must still fail");
+    }
+
+    #[test]
+    fn an_unknown_read_nested_in_a_call_is_rejected() {
+        let src = r#"@trait Sensor {
+            @unknown
+            reading: Temperature
+            display: format(reading)
+        }"#;
+        let ast = crate::parse_ast(src).expect("call expression should parse");
+        check_semantics(&ast).expect_err("an unknown read inside a call argument must fail");
+    }
+
+    #[test]
+    fn an_unknown_fields_own_type_annotation_is_not_a_read() {
+        // A typed field's VALUE is its type identifier, so the declaration must not flag itself.
+        let src = r#"@trait Sensor {
+            @unknown
+            reading: Temperature
+        }"#;
+        let ast = crate::parse_ast(src).expect("declaration alone should parse");
+        check_semantics(&ast).expect("declaring an @unknown field must not flag itself");
     }
 
     #[test]
