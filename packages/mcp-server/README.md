@@ -110,8 +110,8 @@ buckets, and the advertised tool/cache/memory envelope. The default profile is
 
 Use-case profiles:
 
-- `laptop`: founder laptop or HoloShell local agent tooling.
-- `jetson`: owned-metal Jetson edge node.
+- `laptop`: developer workstation or local agent tooling.
+- `jetson`: self-hosted edge node (e.g. NVIDIA Jetson-class hardware).
 - `vast`: single Vast.ai GPU worker or render/inference utility node.
 - `fleet`: hosted coordinator or multi-worker fleet gateway.
 
