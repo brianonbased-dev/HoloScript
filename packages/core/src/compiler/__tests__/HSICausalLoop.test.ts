@@ -10,9 +10,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
+import { createRequire } from 'module';
 import { join } from 'path';
 import { performance } from 'perf_hooks';
+import { known, unknown, lowerUnknownFields } from '@holoscript/meaning';
 import { parseHoloStrict } from '../../parser/HoloCompositionParser';
 import { lowerCompositionToHSIIR } from '../HSIIRCompiler';
 import type { Capability } from '../identity/CapabilityToken';
@@ -24,6 +26,12 @@ import {
   HSI_CAUSAL_LOOP_SCHEMA_VERSION,
   type HSICausalLoopInput,
 } from '../HSICausalLoop';
+
+// The real WASM grammar-authority artifact, for the full-chain e2e. skipIf keeps the skip LOUD
+// when the artifact is unbuilt — never a silent pass (the canonical core parity-test pattern).
+const PKG_NODE = join(__dirname, '..', '..', '..', '..', 'compiler-wasm', 'pkg-node', 'holoscript_wasm.js');
+const wasmPresent = existsSync(PKG_NODE);
+const requireCjs = createRequire(__filename);
 
 const FIXTURE_PATH = join(__dirname, '..', '..', '__tests__', 'fixtures', 'hs-core-barrier-world.hsplus');
 const SOURCE = readFileSync(FIXTURE_PATH, 'utf8');
@@ -190,6 +198,95 @@ describe('HSI-IR Stage-B causal loop (task 6mg9)', () => {
     it('distinct barriers yield distinct receipt digests', () => {
       const digests = ['GlassPane', 'StoneSlab', 'VeilPanel'].map((b) => runCausalLoop(baseInput(b)).deterministicDigest);
       expect(new Set(digests).size).toBe(3);
+    });
+  });
+
+  describe('runtime honesty gate (Wave 5.1 / first-class ignorance stage 3)', () => {
+    it('known prerequisites: behavior unchanged, receipt records the proceed decision', () => {
+      const r = runCausalLoop({
+        ...baseInput('GlassPane'),
+        epistemicPrerequisites: { clearance: known(2.5), route: known('east') },
+      });
+      expect(r.policy).toBe('safe');
+      expect(r.action.name).toBe('traverse');
+      expect(r.outcome).toBe('goal-reached');
+      expect(r.epistemicGate?.decision).toBe('proceed');
+      if (r.epistemicGate?.decision === 'proceed') {
+        expect(r.epistemicGate.values).toEqual({ clearance: 2.5, route: 'east' });
+      }
+    });
+
+    it('an unknown prerequisite downgrades a confident traverse to inspect — abstain, not act', () => {
+      // GlassPane is TRANSPARENT: without the gate this traverses to the goal. With one
+      // epistemically-unknown prerequisite, the honest loop inspects instead.
+      const r = runCausalLoop({
+        ...baseInput('GlassPane'),
+        epistemicPrerequisites: { clearance: unknown('underdetermined') },
+      });
+      expect(r.resolution?.status).toBe('resolved'); // perception was FINE — the gate abstained
+      expect(r.policy).toBe('inspect');
+      expect(r.action.name).toBe('inspect');
+      expect(r.outcome).toBe('inspected');
+      expect(r.failClosed).toBe(false); // abstention is honest caution, not a fault
+      expect(r.nextState?.goalReached).toBe(false);
+      expect(r.epistemicGate?.decision).toBe('abstain');
+      if (r.epistemicGate?.decision === 'abstain') {
+        expect(r.epistemicGate.blocking).toEqual([
+          { key: 'clearance', reason: 'underdetermined', aleatoric: false },
+        ]);
+      }
+    });
+
+    it('no prerequisites supplied: epistemicGate is null — not-modeled is a different claim than modeled-and-clean', () => {
+      const r = runCausalLoop(baseInput('GlassPane'));
+      expect(r.epistemicGate).toBeNull();
+      const modeled = runCausalLoop({ ...baseInput('GlassPane'), epistemicPrerequisites: {} });
+      expect(modeled.epistemicGate?.decision).toBe('proceed');
+    });
+
+    it('the gate only ever makes the loop MORE cautious: block stays block under abstention', () => {
+      const r = runCausalLoop({
+        ...baseInput('StoneSlab'),
+        epistemicPrerequisites: { clearance: unknown('missing_precondition') },
+      });
+      expect(r.policy).toBe('block'); // resolved-occluded hold is already non-committal
+      expect(r.action.name).toBe('hold');
+      expect(r.epistemicGate?.decision).toBe('abstain'); // ...but the abstention is still on record
+    });
+
+    it('the abstention is in the deterministic digest — an ungated and a gated run differ', () => {
+      const ungated = runCausalLoop(baseInput('GlassPane'));
+      const gated = runCausalLoop({
+        ...baseInput('GlassPane'),
+        epistemicPrerequisites: { clearance: unknown('underdetermined') },
+      });
+      expect(ungated.deterministicDigest).not.toBe(gated.deterministicDigest);
+    });
+  });
+
+  describe.skipIf(!wasmPresent)('full chain e2e: @unknown surface annotation gates a live action loop', () => {
+    it('wasm-parse -> lowerUnknownFields -> honesty gate -> the loop abstains instead of traversing', () => {
+      // The complete first-class-ignorance chain with no mocks: the Rust/WASM grammar authority
+      // parses an @unknown field; the meaning package lowers it to Uncertain; the causal loop
+      // consumes it as an epistemic prerequisite and INSPECTS a world it would otherwise
+      // confidently traverse. Surface honesty became runtime behavior.
+      const wasm = requireCjs(PKG_NODE) as { parse(source: string): string };
+      const traitSource = '@trait SensorPack {\n  @unknown\n  reading: Temperature\n}';
+      const ast = JSON.parse(wasm.parse(traitSource));
+      expect(ast.errors).toBeUndefined();
+      const trait = ast.body.find((n: { type: string; name?: string }) => n.type === 'Trait');
+      const lowered = lowerUnknownFields(trait.config.properties);
+      expect(lowered).toHaveLength(1);
+
+      const prerequisites = Object.fromEntries(lowered.map((l) => [l.key, l.initial]));
+      const r = runCausalLoop({ ...baseInput('GlassPane'), epistemicPrerequisites: prerequisites });
+      expect(r.policy).toBe('inspect');
+      expect(r.outcome).toBe('inspected');
+      expect(r.epistemicGate?.decision).toBe('abstain');
+      if (r.epistemicGate?.decision === 'abstain') {
+        expect(r.epistemicGate.blocking[0].key).toBe('reading');
+        expect(r.epistemicGate.blocking[0].reason).toBe('underdetermined');
+      }
     });
   });
 });

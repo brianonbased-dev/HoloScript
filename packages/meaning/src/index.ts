@@ -24,3 +24,4 @@ export * from './uq';
 export * from './consistency';
 export * from './uncertain';
 export * from './lower-unknown';
+export * from './honesty-gate';

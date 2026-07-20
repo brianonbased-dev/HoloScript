@@ -27,7 +27,12 @@
  * (W.830b: it is barely-wired; the exact-trace reducer is the solid, invariant-checked substrate).
  */
 
-import type { MeaningResolutionStatus } from '@holoscript/meaning';
+import {
+  honestyGate,
+  type HonestyDecision,
+  type MeaningResolutionStatus,
+  type Uncertain,
+} from '@holoscript/meaning';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import { parseHoloStrict } from '../parser/HoloCompositionParser';
 import type { Capability } from './identity/CapabilityToken';
@@ -43,7 +48,7 @@ import {
   type HSIScenarioStep,
 } from './HSIIRTypes';
 
-export const HSI_CAUSAL_LOOP_SCHEMA_VERSION = 'holoscript.hsi-causal-loop.v0.1.0' as const;
+export const HSI_CAUSAL_LOOP_SCHEMA_VERSION = 'holoscript.hsi-causal-loop.v0.2.0' as const;
 export type HSICausalLoopSchemaVersion = typeof HSI_CAUSAL_LOOP_SCHEMA_VERSION;
 
 /** Resource scheme the capability gate authorizes actions against. */
@@ -100,6 +105,12 @@ export interface HSICausalReceipt {
   readonly query: { readonly agent: string; readonly target: string; readonly barrier: string };
   readonly admission: { readonly admitted: boolean; readonly error: string | null };
   readonly resolution: HSIContainmentResolution | null;
+  /**
+   * The runtime honesty gate's decision over the caller-supplied epistemic prerequisites.
+   * `null` = no prerequisites were modeled (a different claim than a `proceed` over `{}`).
+   * On `abstain`, `blocking` lists EVERY unknown prerequisite with its typed reason.
+   */
+  readonly epistemicGate: HonestyDecision | null;
   readonly policy: HSIPolicy;
   readonly action: HSIGatedAction;
   readonly mutation: {
@@ -127,6 +138,15 @@ export interface HSICausalLoopInput {
   readonly barrier: string;
   /** Capabilities the acting principal holds. Missing the action capability fails the loop closed. */
   readonly grantedCapabilities: readonly Capability[];
+  /**
+   * Named epistemic prerequisites of the action (runtime honesty gate, Wave 5.1 / first-class
+   * ignorance stage 3). Each is an `Uncertain` — typically a lowered `@unknown` field
+   * (`lowerUnknownField`) or a resolver verdict via `fromResolution`. When ANY is unknown the
+   * loop abstains (a confident 'safe' traverse downgrades to 'inspect'); the full decision is
+   * recorded in the receipt. Omitting this field means "no prerequisites MODELED" (receipt
+   * `epistemicGate: null`) — deliberately distinct from `{}`, "modeled and none blocking".
+   */
+  readonly epistemicPrerequisites?: Readonly<Record<string, Uncertain<unknown>>>;
 }
 
 const SHARED_SEMANTICS = new HoloScriptCapabilitySemantics();
@@ -236,6 +256,7 @@ function failClosedReceipt(
   resolution: HSIContainmentResolution | null,
   policy: HSIPolicy,
   action: HSIGatedAction,
+  epistemicGate: HonestyDecision | null = null,
 ): HSICausalReceipt {
   const withoutDigest = {
     schemaVersion: HSI_CAUSAL_LOOP_SCHEMA_VERSION,
@@ -245,6 +266,7 @@ function failClosedReceipt(
     query: { agent: input.agent, target: input.target, barrier: input.barrier },
     admission: { admitted: admissionError === null, error: admissionError },
     resolution,
+    epistemicGate,
     policy,
     action,
     mutation: { applied: false, step: null, traceValid: null },
@@ -315,7 +337,19 @@ export function runCausalLoopFromIR(ir: HSIIRDocument, input: HSICausalLoopInput
   }
 
   const resolution = resolveContainment(snapshot);
-  const policy = selectPolicy(resolution);
+  const basePolicy = selectPolicy(resolution);
+
+  // Stage: runtime honesty gate (Wave 5.1) — the N-field generalization of selectPolicy's
+  // unresolvable=>inspect rule. Caller-supplied epistemic prerequisites (lowered @unknown fields,
+  // resolver verdicts via fromResolution) must ALL be known before a confident act; any unknown
+  // downgrades a 'safe' traverse to 'inspect'. The gate only ever makes the loop MORE cautious:
+  // 'block' and 'inspect' stay as they are (already non-committal), and abstention is honest
+  // caution, not a fail-closed fault — mirroring the existing unknown-opacity semantics.
+  const epistemicGate: HonestyDecision | null =
+    input.epistemicPrerequisites !== undefined ? honestyGate(input.epistemicPrerequisites) : null;
+  const policy: HSIPolicy =
+    epistemicGate?.decision === 'abstain' && basePolicy === 'safe' ? 'inspect' : basePolicy;
+
   const worldName = ir.world.name;
   const action = gateAction(policy, worldName, input.grantedCapabilities);
 
@@ -329,6 +363,7 @@ export function runCausalLoopFromIR(ir: HSIIRDocument, input: HSICausalLoopInput
       resolution,
       policy,
       action,
+      epistemicGate,
     );
   }
 
@@ -356,6 +391,7 @@ export function runCausalLoopFromIR(ir: HSIIRDocument, input: HSICausalLoopInput
     query: { agent: input.agent, target: input.target, barrier: input.barrier },
     admission: { admitted: true, error: null },
     resolution,
+    epistemicGate,
     policy,
     action,
     mutation: { applied: step !== null, step, traceValid: trace.valid },
