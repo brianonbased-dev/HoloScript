@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { resolveHoloLlamaLiveEndpoint } from '@holoscript/holollama';
 import type { CodebaseGraph } from '../engine/CodebaseGraph';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import type { ExternalSymbolDefinition } from '../engine/types';
@@ -16,6 +17,7 @@ import {
 
 const originalHoloLlamaEndpoint = process.env.HOLOLLAMA_ENDPOINT;
 const originalHoloLlamaProfile = process.env.HOLOLLAMA_PROFILE;
+const originalJetsonLiveEndpoint = process.env.HOLO_LLAMA_JETSON_ENDPOINT;
 
 describe('holo_ask_codebase HoloLlama synthesis lane', () => {
   afterEach(() => {
@@ -32,6 +34,11 @@ describe('holo_ask_codebase HoloLlama synthesis lane', () => {
       delete process.env.HOLOLLAMA_PROFILE;
     } else {
       process.env.HOLOLLAMA_PROFILE = originalHoloLlamaProfile;
+    }
+    if (originalJetsonLiveEndpoint === undefined) {
+      delete process.env.HOLO_LLAMA_JETSON_ENDPOINT;
+    } else {
+      process.env.HOLO_LLAMA_JETSON_ENDPOINT = originalJetsonLiveEndpoint;
     }
   });
 
@@ -123,6 +130,28 @@ describe('holo_ask_codebase HoloLlama synthesis lane', () => {
       embeddingPolicy: 'holoembed-query-tower-only',
       graphProvider: 'holograph',
     });
+  });
+
+  it('never targets the jetson-orin bind wildcard 0.0.0.0 as a connect endpoint (task_1784541081251_sdmp)', async () => {
+    // Reproduces the observed bug: with no explicit endpoint and no
+    // HOLOLLAMA_ENDPOINT/HOLOLLAMA_URL config secret, the default jetson-orin
+    // profile's compiled bundle.registryEntry.endpoint is bind-derived
+    // (`http://0.0.0.0:18080/v1` — the llama-server `--host` flag, never a
+    // valid CONNECT target). createHoloLlamaSynthesisProvider must fall back
+    // to the package's own live-endpoint resolver instead, so a bare
+    // holo_ask_codebase call never dials an address that can never answer.
+    delete process.env.HOLOLLAMA_ENDPOINT;
+    delete process.env.HOLO_LLAMA_JETSON_ENDPOINT;
+
+    const provider = await createHoloLlamaSynthesisProvider({
+      profile: 'jetson-orin',
+      generatedAt: '2026-07-20T00:00:00.000Z',
+      fetchImpl: vi.fn(),
+    });
+
+    expect(provider.receipt.endpoint).not.toContain('0.0.0.0');
+    expect(provider.receipt.chatCompletionsUrl).not.toContain('0.0.0.0');
+    expect(provider.receipt.endpoint).toBe(resolveHoloLlamaLiveEndpoint('jetson-orin'));
   });
 
   it('resolves Jetson HoloLlama profile and endpoint through the HoloKey-aware config bridge', async () => {
@@ -321,4 +350,86 @@ describe('holo_ask_codebase HoloLlama synthesis lane', () => {
     });
     expect(String(calls[0]?.input)).toBe('http://127.0.0.1:18080/v1/chat/completions');
   });
+
+  it(
+    'returns an honest no-answer status (not a fake answer string) when the LLM is ' +
+      'unreachable AND the extractive fallback has no citable context (task_1784541081251_sdmp)',
+    async () => {
+      // Reproduces the observed bug end-to-end: the configured LLM endpoint is
+      // unreachable (fetch rejects), so holo_ask_codebase falls back to
+      // buildExtractiveCodebaseAnswer — but the retrieved context's citations
+      // don't resolve against the graph (getSymbolsInFile returns []), so the
+      // provenance guard rejects every citation. Previously this produced
+      // `answer: "[Provenance guard rejected: ...]"` — a string that reads
+      // like failed prose an agent could relay as if it were the answer. It
+      // must instead be an honest, machine-checkable "no answer" status.
+      const symbol: ExternalSymbolDefinition = {
+        name: 'checkRegistryColdStart',
+        type: 'function',
+        filePath: 'scripts/holo-ci/check-registry-cold-start.mjs',
+        line: 3,
+        column: 1,
+        language: 'javascript',
+        visibility: 'public',
+        signature: 'function checkRegistryColdStart()',
+      };
+      const searchResult = {
+        symbol,
+        score: 0.11,
+        file: symbol.filePath,
+        type: symbol.type,
+      };
+      const index: SymbolSearchIndex = {
+        search: async () => [searchResult],
+        searchWithFilters: async () => [searchResult],
+      };
+      const graph = {
+        getCallersOf: () => [],
+        getCalleesOf: () => [],
+        getSymbolImpact: () => new Set<string>(),
+        getCommunityForFile: () => undefined,
+        // Every citation is unresolvable against the graph, regardless of file.
+        getSymbolsInFile: () => [],
+      } as unknown as CodebaseGraph;
+      const engine = new GraphRAGEngine(graph, index);
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new Error('fetch failed');
+        })
+      );
+
+      setGraphRAGState(index, engine);
+      const result = (await handleGraphRagTool('holo_ask_codebase', {
+        question: 'How does seat provisioning work in hooks/sessionstart/seat-identity.mjs?',
+        llmProvider: 'ollama',
+        topK: 1,
+      })) as {
+        answered?: boolean;
+        answer?: string | null;
+        note?: string;
+        fallback?: string;
+        fallbackReason?: string;
+        citations?: unknown[];
+        context?: unknown[];
+        provenanceGuard?: { passed?: boolean; unresolvedCount?: number };
+      };
+
+      expect(result.fallback).toBe('extractive-graphrag');
+      expect(result.fallbackReason).toContain('fetch failed');
+      expect(result.provenanceGuard?.passed).toBe(false);
+      expect(result.answered).toBe(false);
+      // The answer field must be null, not a bracket-string that reads like
+      // failed prose (`[Provenance guard rejected: ...]`) an agent could
+      // relay verbatim as if it were a real answer.
+      expect(result.answer).toBeNull();
+      expect(result.note).toBeTruthy();
+      expect(result.note).toContain('No LLM was reachable');
+      expect(result.citations).toEqual([]);
+      // The raw structural context still comes through — a caller can use it
+      // even though nothing was synthesized.
+      expect(result.context?.length).toBeGreaterThan(0);
+    }
+  );
 });

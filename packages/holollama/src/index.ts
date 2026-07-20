@@ -740,6 +740,25 @@ export function resolveHoloLlamaServeSpec(
   return { ...definition.spec, ...defined(overrides) };
 }
 
+/**
+ * Resolve a profile's CLIENT-facing connect endpoint.
+ *
+ * `HoloLlamaServeSpec.host` may be a bind wildcard (`0.0.0.0`) — correct for
+ * the server's own `--host` flag (accept on every interface), but never a
+ * valid CONNECT target for a remote consumer: dialing `0.0.0.0` always fails,
+ * independent of whether the node is actually reachable. This is the same
+ * resolution `probeHoloLlamaLiveLifecycle` already uses internally for its
+ * live health/completion probes ({@link defaultHoloLlamaLiveEndpoint});
+ * exported so other consumers (e.g. Absorb's GraphRAG answer-synthesis lane,
+ * `holo_ask_codebase`) get a real, dialable default instead of re-deriving one
+ * from the compiled bundle's bind-derived `registryEntry.endpoint`. Still only
+ * a last-resort default — an explicit caller endpoint or
+ * HOLOLLAMA_ENDPOINT/HOLO_LLAMA_JETSON_ENDPOINT config/env wins over this.
+ */
+export function resolveHoloLlamaLiveEndpoint(profile: HoloLlamaProfile = 'jetson-orin'): string {
+  return defaultHoloLlamaLiveEndpoint(profile);
+}
+
 export function getHoloLlamaProfileSourcePath(profile: HoloLlamaProfile): string {
   return join(HOLOLLAMA_PROFILE_SOURCE_DIR, `${profile}.holo`);
 }

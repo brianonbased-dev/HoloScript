@@ -338,6 +338,15 @@ export async function createHoloLlamaSynthesisProvider(
     (explicitEndpoint
       ? undefined
       : await resolveFirstConfigSecret('HOLOLLAMA_ENDPOINT', 'HOLOLLAMA_URL')) ??
+    // summary.endpoint (bundle.registryEntry.endpoint) is derived from the serve
+    // spec's BIND host (spec.host, e.g. "0.0.0.0" for jetson-orin/vast-linux-gpu)
+    // — the address llama-server listens on, never a valid CONNECT target for a
+    // remote MCP consumer (a laptop asking a Jetson-hosted profile). Prefer the
+    // package's own live-endpoint resolution (the same one
+    // probeHoloLlamaLiveLifecycle uses) so a bare holo_ask_codebase call doesn't
+    // silently target an address that can never answer regardless of whether the
+    // node is actually up (task_1784541081251_sdmp).
+    holoLlama.resolveHoloLlamaLiveEndpoint(profile) ??
     summary.endpoint ??
     `http://${spec.host}:${spec.port}/v1`;
   const chatCompletionsUrl = normalizeHoloLlamaChatCompletionsUrl(endpoint);
@@ -647,13 +656,30 @@ async function buildExtractiveCodebaseAnswer(options: {
 
   return {
     question,
+    // Honest status (task_1784541081251_sdmp): a provenance-guard rejection is
+    // NOT a synthesized answer. Previously this branch stuffed
+    // `[Provenance guard rejected: ...]` into `answer`, which reads like failed
+    // prose an agent might relay verbatim. `answered: false` + `answer: null`
+    // make the no-answer case machine-checkable instead of string-sniffable;
+    // `context` (below) still carries the raw structural-only retrieval so the
+    // caller gets on-topic-or-not symbol data instead of nothing.
+    answered: guard.passed,
     answer: guard.passed
       ? [
           `LLM generation was unavailable (${fallbackReason}); returning an extractive GraphRAG answer from cited code context.`,
           '',
           ...citedLines,
         ].join('\n')
-      : `[Provenance guard rejected: ${guard.rejectionReason}]`,
+      : null,
+    ...(guard.passed
+      ? {}
+      : {
+          note:
+            `No LLM was reachable (${fallbackReason}), and none of the retrieved context's ` +
+            'citations resolved to a real file:line span in the absorbed graph — see ' +
+            'provenanceGuard.rejectionReason. Returning raw structural context only; no prose ' +
+            'was fabricated.',
+        }),
     citations: filteredCitations,
     provenanceGuard: {
       resolvedCount: guard.resolvedCount,
@@ -791,9 +817,20 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
 
     return {
       question,
-      answer: guard.passed
-        ? answer.answer
-        : `[Provenance guard rejected: ${guard.rejectionReason}]`,
+      // See buildExtractiveCodebaseAnswer's matching comment: a rejected
+      // guard is not a synthesized answer, so don't stuff a bracket-string
+      // into `answer` — surface `answered: false` + `note` instead
+      // (task_1784541081251_sdmp).
+      answered: guard.passed,
+      answer: guard.passed ? answer.answer : null,
+      ...(guard.passed
+        ? {}
+        : {
+            note:
+              "No citable answer: the LLM-synthesized response's citations did not resolve to " +
+              'a real file:line span in the absorbed graph — see provenanceGuard.rejectionReason ' +
+              'and context.',
+          }),
       citations: filteredCitations,
       provenanceGuard: {
         resolvedCount: guard.resolvedCount,
@@ -882,9 +919,18 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
 
           return {
             question,
-            answer: fbGuard.passed
-              ? fbAnswer.answer
-              : `[Provenance guard rejected: ${fbGuard.rejectionReason}]`,
+            // Same honesty fix as the primary path (task_1784541081251_sdmp):
+            // a rejected guard is not a synthesized answer.
+            answered: fbGuard.passed,
+            answer: fbGuard.passed ? fbAnswer.answer : null,
+            ...(fbGuard.passed
+              ? {}
+              : {
+                  note:
+                    "No citable answer: the LLM-synthesized response's citations did not " +
+                    'resolve to a real file:line span in the absorbed graph — see ' +
+                    'provenanceGuard.rejectionReason and context.',
+                }),
             citations: fbFilteredCitations,
             provenanceGuard: {
               resolvedCount: fbGuard.resolvedCount,
