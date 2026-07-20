@@ -55,7 +55,7 @@
 | **Cross-agent coordination**    | HoloMesh = multi-agent team infrastructure Cursor lacks               | `packages/mesh/`, HoloMesh Teams API       |
 | **Verifiable artifacts**        | Cursor outputs code; HoloScript outputs code + provenance + contracts | CAEL hash chain, W.GOLD.014                |
 | **Zero IDE lock-in**            | `.holo` files work in any editor including Cursor                     | —                                          |
-| **Built for agent-as-user**     | MCP tools as core architecture, not marketplace bolt-on               | 215 tools at mcp.holoscript.net            |
+| **Built for agent-as-user**     | MCP tools as core architecture, not marketplace bolt-on               | 400+ tools at mcp.holoscript.net (427 verified 2026-07-20 via `/health`)            |
 
 ## Strategic Posture: **Partnership, Not Competition**
 

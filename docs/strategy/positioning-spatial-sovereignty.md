@@ -114,7 +114,7 @@ Four pillars support the Spatial Sovereignty claim. Each needs dedicated proof.
 
 ### Pillar 3: Agent Sovereignty
 
-- MCP server exposes 215+ tools; agents use the platform natively
+- MCP server exposes 400+ tools (427 verified 2026-07-20 via `/health`); agents use the platform natively
 - Absorb gives agents GraphRAG-powered codebase intelligence
 - HoloMesh coordinates agents without centralized platform
 - **Proof**: Live demo of Claude / GPT compiling `.holo` via MCP tools

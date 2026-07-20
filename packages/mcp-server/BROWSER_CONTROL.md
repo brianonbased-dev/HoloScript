@@ -380,7 +380,7 @@ script: 'return window.holoscriptRenderer?.errors || []';
 Planned features (not yet implemented):
 
 1. **WebXR Testing**: Test VR scenes without physical headset
-2. **Trait Auto-Validation**: Automatic validation of all 2,000+ traits
+2. **Trait Auto-Validation**: Automatic validation of the full trait inventory (live count via `docs/NUMBERS.md`)
 3. **Hot Reload**: Auto-refresh when `.hs` file changes
 4. **Performance Regression**: Track FPS over time
 5. **Visual Diff**: Compare screenshots between versions

@@ -94,7 +94,7 @@ If nothing changes, HoloScript has time to ship and establish position. But this
 | Dimension          | Babylon MCP (community)           | HoloScript MCP                                        |
 | ------------------ | --------------------------------- | ----------------------------------------------------- |
 | **Scope**          | Scene graph manipulation          | Platform (Absorb, HoloMesh, compilation, simulation)  |
-| **Tool count**     | ~20 tools (estimated from thread) | 215+ verifiable via `/health`                         |
+| **Tool count**     | ~20 tools (estimated from thread) | 400+ (427 verified 2026-07-20) via `/health`                         |
 | **Domain**         | 3D scenes in Babylon only         | Spatial + simulation + agent coordination + knowledge |
 | **Semantic layer** | None — raw scene graph            | `.holo` AST with typed traits                         |
 | **Cross-runtime**  | No — Babylon only                 | Yes — compile to 30+ targets                          |
@@ -126,7 +126,7 @@ This table is our offensive material. If Babylon tries to add features, they hav
 
 4. **Submit HoloScript MCP server to Cursor marketplace**
    - First listing matters — most-downloaded wins the default
-   - Compare tool counts: ours 215+, Babylon's ~20
+   - Compare tool counts: ours 400+ (verify via `/health`), Babylon's ~20
    - Cursor users evaluate via MCP server quality; we should win
 
 ### Must ship within 90 days
@@ -180,7 +180,7 @@ Channel: Babylon forum, Discord, YouTube tutorials.
 
 ### Play 2: Publish a compatible HoloScript MCP server that competes on surface area
 
-HoloScript's 215 tools vs Babylon's ~20. Make the comparison explicit and visible.
+HoloScript's 400+ tools (427 verified 2026-07-20 via `/health`) vs Babylon's ~20. Make the comparison explicit and visible.
 
 Channel: Awesome-MCP lists, Cursor marketplace, LangChain integrations docs.
 

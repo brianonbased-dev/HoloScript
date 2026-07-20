@@ -8,7 +8,7 @@ The HoloScript MCP Compiler Tools enable AI agents (Claude, GPT-4, Grok, etc.) t
 
 ### Key Features
 
-- **47 Export Targets**: Unity, Unreal, URDF, SDF, WebGPU, WASM, R3F, VRChat, Next.js, A2A, and more (verify via `find packages/core/src -name "*Compiler.ts"`)
+- **Export Targets**: Unity, Unreal, URDF, SDF, WebGPU, WASM, R3F, VRChat, Next.js, A2A, and more — the count changes with every deploy; verify live via `find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" | wc -l` (see `docs/NUMBERS.md`)
 - **Circuit Breaker Protection**: Automatic fault isolation per target with graceful degradation
 - **Job Status Tracking**: Monitor long-running compilations with unique job IDs
 - **Streaming Progress**: Real-time progress updates for large compilations (WebSocket upgrade support)
@@ -109,7 +109,7 @@ The server runs on **port 8100** by default.
 
 #### `compile_holoscript`
 
-**Generic compilation tool supporting all 18+ export targets.**
+**Generic compilation tool supporting every registered export target** (enumerate live via `list_export_targets` — never trust a hardcoded count).
 
 **Arguments**:
 

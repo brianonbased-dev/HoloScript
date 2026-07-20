@@ -199,7 +199,7 @@ GodotCompiler.ts exists. No integration tutorial, no community presence in Godot
 Babylon 9.0 ships OpenPBR, geospatial rendering, improved navmesh + crowd agents. Babylon 9.15.0 shipped July 2, 2026 after 9.14.0 added HTML-in-Canvas support, Gaussian Splatting GPU-picking fixes, and continued streaming/LOD work. The community-contributed MCP server lets LLMs inspect/manipulate Babylon graph editors live — creating an agent-native 3D narrative HoloScript must counter. Microsoft distribution (Windows Dev Blog, Azure examples) gives organic reach HoloScript lacks.
 
 **HoloScript State:**
-HoloScript MCP has 215+ tools vs Babylon's scene-inspection-only plugin. BabylonCompiler.ts is a compile target. Studio inspector is newer/less mature than Babylon's.
+HoloScript MCP has 400+ tools (427 verified 2026-07-20 via `/health`) vs Babylon's scene-inspection-only plugin. BabylonCompiler.ts is a compile target. Studio inspector is newer/less mature than Babylon's.
 
 **Needed Response:**
 1. Ship npx create-holoscript with 30-sec time-to-wow. 2. Submit HoloScript MCP to Cursor marketplace before Babylon does. 3. Publish flagship multi-target demo: same .holo → Babylon + Three.js + Unity + Unreal side by side. 4. Write 'HoloScript compiles TO Babylon' positioning — they can use both.
@@ -314,7 +314,7 @@ Ship a three-tier DispatchPolicy in core that routes per-trait by (trait class �
 Cursor has the fastest-growing AI developer mindshare, native MCP client support, team MCP marketplaces, and automation surfaces that can now survive MCP auth setup without losing partial state. The developers most likely to adopt HoloScript (AI-native, agent-first) are Cursor users. Whoever wins their MCP ecosystem wins the developer wedge.
 
 **HoloScript State:**
-HoloScript MCP server exists at mcp.holoscript.net with 215+ tools. Not yet published to Cursor marketplace. No HoloScript-specific Cursor config template in docs. Cursor entry docs also do not yet show the full HoloScript substrate path: HoloKey/x402 custody, routeTask/umbrella routing, and competitor-paper-codebase triad review.
+HoloScript MCP server exists at mcp.holoscript.net with 400+ tools (427 verified 2026-07-20 via `/health`). Not yet published to Cursor marketplace. No HoloScript-specific Cursor config template in docs. Cursor entry docs also do not yet show the full HoloScript substrate path: HoloKey/x402 custody, routeTask/umbrella routing, and competitor-paper-codebase triad review.
 
 **Needed Response:**
 1. Submit HoloScript MCP to Cursor marketplace immediately. 2. Publish Cursor-specific quickstart: add mcp.holoscript.net to cursor settings, first compile in 60 seconds, then show HoloKey/x402 receipts, routeTask umbrella routing, and triad review. 3. Create docs/guides/cursor-holoscript.md. 4. The win condition: every Cursor user can author HoloScript without leaving their IDE and every repo-level Cursor entry translates back into HoloScript source, HoloMesh tasks, and portable receipts.

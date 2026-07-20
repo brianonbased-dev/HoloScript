@@ -14,7 +14,17 @@ These rules keep empirical results and narrative out of “lost history” and s
 
 ## [Unreleased]
 
-Post-6.x release-line correction: package manifests, release lanes, Studio version stamps, and scaffolder templates are aligned back to the 6.x story. Treat generated v7/v8 package metadata as drift unless a future public-major release is explicitly approved. Recent work remains in the 6.x continuation: benchmark axis expansion, higher-is-better comparator support in `perf-regression-check.mjs`, stub-audit Phase 3.5 emit-without-listener detection, and board-tools scout regex fixes.
+**HoloMesh hardening wave (2026-07-14 → 2026-07-20).** The multi-agent coordination surface went from partially-broken to multi-agent-correct in one week:
+
+- Board list gained opt-in pagination — `limit`/`offset`/`status`, max 500/page (`4c4b524af`); an unbounded board response had grown to 655K chars and was overflowing agent contexts.
+- `holomesh_search` went from silently returning 0 results (dead providers) to live (`b26bec107`); `holomesh_suggest`/`holomesh_suggest_vote` now thread `agent_id`/`agent_name` instead of collapsing every voter into one identity (`e93c11bdb`); team-formation roster wiring fixed the same DI pattern (`591ac7c12`).
+- `holo_tunnel_create` now works in the production image — hololand-platform + runtime are shipped in the prod dependency closure (`d317c543b`).
+
+**Absorb honesty.** `holo_ask_codebase` returns `answered:false` instead of fake prose when provenance rejects, and dials a reachable resolver instead of a bind-address (`a5db851cf`).
+
+**Compiler-wasm.** `@unknown` shipped in the grammar authority — first-class ignorance is now parseable surface syntax (`c59418c35`, `0039c223f`); `Epistemic<T>` renamed `Uncertain<T>` (`46e943aa7`).
+
+Earlier in the window — post-6.x release-line correction: package manifests, release lanes, Studio version stamps, and scaffolder templates are aligned back to the 6.x story. Treat generated v7/v8 package metadata as drift unless a future public-major release is explicitly approved. Recent work remains in the 6.x continuation: benchmark axis expansion, higher-is-better comparator support in `perf-regression-check.mjs`, stub-audit Phase 3.5 emit-without-listener detection, and board-tools scout regex fixes.
 
 ---
 
