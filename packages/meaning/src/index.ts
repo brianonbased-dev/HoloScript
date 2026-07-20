@@ -23,3 +23,4 @@ export * from './verifier';
 export * from './uq';
 export * from './consistency';
 export * from './uncertain';
+export * from './lower-unknown';
