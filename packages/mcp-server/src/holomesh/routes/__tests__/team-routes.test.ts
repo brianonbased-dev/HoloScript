@@ -1865,6 +1865,55 @@ describe('Board Routes — Founder Approval (N3 signed-write path)', () => {
   const TEAM = 'team_test_mobile';
   const APPROVAL_URL = `/api/holomesh/team/${TEAM}/founder-approval`;
 
+  // Founder seat — the ONLY identity allowed to mint approval records
+  // (task_1784314731746_o5jk security fix). isFounder comes from the key
+  // registry, exactly like production founder keys.
+  const FOUNDER_KEY = 'founder-test-key';
+  const FOUNDER_ID = 'agent_founder_test_001';
+  // A second ordinary member seat, for claim-hijack coverage.
+  const OTHER_KEY = 'other-agent-key';
+  const OTHER_ID = 'agent_other_001';
+
+  function seedMemberKey(
+    key: string,
+    agentId: string,
+    agentName: string,
+    isFounder: boolean
+  ): void {
+    const wallet = `0x${agentId.replace(/[^a-zA-Z0-9]/g, '').slice(-4).padStart(40, '0')}`;
+    keyRegistry.set(key, {
+      key,
+      walletAddress: wallet,
+      agentId,
+      agentName,
+      scopes: ['holomesh', 'mcp'],
+      createdAt: new Date().toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
+      isFounder,
+    });
+    const team = teamStore.get(TEAM)!;
+    team.members = [
+      ...(team.members || []),
+      {
+        agentId,
+        agentName,
+        role: 'member',
+        joinedAt: new Date().toISOString(),
+        walletAddress: wallet,
+      },
+    ];
+    persistTeamStore();
+  }
+
+  function seedFounder(): void {
+    seedMemberKey(FOUNDER_KEY, FOUNDER_ID, 'JosephFounder', true);
+  }
+
+  function seedOtherAgent(): void {
+    seedMemberKey(OTHER_KEY, OTHER_ID, 'OtherAgent', false);
+  }
+
   function seedTask(id: string, title: string): void {
     const team = teamStore.get(TEAM)!;
     team.taskBoard = [
@@ -1882,9 +1931,10 @@ describe('Board Routes — Founder Approval (N3 signed-write path)', () => {
   }
 
   it('records an exact-four decision and round-trips it Bearer-authed', async () => {
+    seedFounder();
     seedTask('task_rev_1', 'Change the treasury master wallet');
 
-    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rev_1' }, PARENT_KEY);
+    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rev_1' }, FOUNDER_KEY);
     expect(post._status).toBe(201);
     expect(post._body.success).toBe(true);
     expect(post._body.approval.status).toBe('approved');
@@ -1892,7 +1942,9 @@ describe('Board Routes — Founder Approval (N3 signed-write path)', () => {
     expect(post._body.approval.authorityRoute).toBe('joseph-exact-four');
     expect(post._body.approval.josephReviewClass).toBe('spend-or-custody');
     expect(post._body.approval.taskId).toBe('task_rev_1');
-    expect(post._body.approval.approvedByAgentId).toBe(PARENT_ID);
+    expect(post._body.approval.approvedByAgentId).toBe(FOUNDER_ID);
+    // Server-derived founder attestation — the flag downstream consumers require.
+    expect(post._body.approval.approvedByFounder).toBe(true);
 
     // Round-trip: the consume-loop poll sees it. (No query string here — the
     // shared callBoard helper passes the raw path as `pathname`, and the route
@@ -1936,8 +1988,11 @@ describe('Board Routes — Founder Approval (N3 signed-write path)', () => {
   });
 
   it('lets a signing agent PATCH the lifecycle approved → executing → executed', async () => {
+    seedFounder();
     seedTask('task_rev_2', "Publish the commitment under Joseph's name");
-    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rev_2' }, PARENT_KEY);
+    // Founder mints; an ORDINARY member seat executes the lifecycle — proving
+    // the founder gate does not break the signing-agent consume loop.
+    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rev_2' }, FOUNDER_KEY);
     expect(post._status).toBe(201);
     const approvalId = post._body.approval.id;
 
@@ -1971,5 +2026,72 @@ describe('Board Routes — Founder Approval (N3 signed-write path)', () => {
       PARENT_KEY
     );
     expect(res._status).toBe(404);
+  });
+
+  // ── SECURITY (task_1784314731746_o5jk): founder-approval forgery gate ──────
+
+  it('SECURITY: 403s a non-founder board:write seat minting an exact-four approval', async () => {
+    seedTask('task_forge_1', 'Change the treasury master wallet');
+
+    // PARENT is a full team member with board:write — exactly the caller the
+    // A-010 finding proved could forge founder-attributed records.
+    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_forge_1' }, PARENT_KEY);
+    expect(post._status).toBe(403);
+    expect(post._body.error).toMatch(/founder authorization required/i);
+    expect(post._body.authorityRoute).toBe('joseph-exact-four');
+
+    // Nothing minted — the forgery is fully blocked, not just renamed.
+    expect(teamStore.get(TEAM)?.founderApprovals ?? []).toHaveLength(0);
+  });
+
+  it('SECURITY: PATCH lifecycle cannot skip states or hijack another claim', async () => {
+    seedFounder();
+    seedOtherAgent();
+    seedTask('task_rev_3', 'Change the treasury master wallet');
+    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rev_3' }, FOUNDER_KEY);
+    expect(post._status).toBe(201);
+    const approvalId = post._body.approval.id;
+    const patchUrl = `${APPROVAL_URL}/${approvalId}`;
+
+    // Cannot finalize straight from 'approved' — must claim first.
+    const skip = await callBoard('PATCH', patchUrl, { status: 'executed' }, PARENT_KEY);
+    expect(skip._status).toBe(409);
+
+    // PARENT claims it.
+    const claim = await callBoard('PATCH', patchUrl, { status: 'executing' }, PARENT_KEY);
+    expect(claim._status).toBe(200);
+    expect(claim._body.approval.claimedByAgentId).toBe(PARENT_ID);
+
+    // Double-claim rejected.
+    const reclaim = await callBoard('PATCH', patchUrl, { status: 'executing' }, OTHER_KEY);
+    expect(reclaim._status).toBe(409);
+
+    // A different non-founder seat cannot finalize PARENT's in-flight execution.
+    const hijack = await callBoard('PATCH', patchUrl, { status: 'failed' }, OTHER_KEY);
+    expect(hijack._status).toBe(403);
+    expect(hijack._body.error).toMatch(/claiming agent/i);
+
+    // The claiming agent itself finalizes fine.
+    const done = await callBoard('PATCH', patchUrl, { status: 'executed' }, PARENT_KEY);
+    expect(done._status).toBe(200);
+    expect(done._body.approval.status).toBe('executed');
+  });
+
+  it('SECURITY: founder may finalize an approval another agent claimed', async () => {
+    seedFounder();
+    seedTask('task_rev_4', 'Change the treasury master wallet');
+    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rev_4' }, FOUNDER_KEY);
+    const approvalId = post._body.approval.id;
+    const patchUrl = `${APPROVAL_URL}/${approvalId}`;
+
+    await callBoard('PATCH', patchUrl, { status: 'executing' }, PARENT_KEY);
+    const founderOverride = await callBoard(
+      'PATCH',
+      patchUrl,
+      { status: 'failed', resultRef: 'founder abort' },
+      FOUNDER_KEY
+    );
+    expect(founderOverride._status).toBe(200);
+    expect(founderOverride._body.approval.status).toBe('failed');
   });
 });

@@ -627,6 +627,14 @@ export interface FounderApprovalRecord {
   approvedByAgentId: string;
   approvedByName: string;
   /**
+   * True iff the approving Bearer key carried isFounder at mint time. Set
+   * server-side (task_1784314731746_o5jk security fix); consumers MUST require
+   * `approvedByFounder === true` before acting — records missing the flag
+   * predate the founder gate and are untrusted (any board:write seat could
+   * have minted them).
+   */
+  approvedByFounder?: boolean;
+  /**
    * approved   → recorded, awaiting a signing agent
    * executing  → a signing agent claimed it and is materializing/signing
    * executed   → the signed mutation landed; resultRef points to the receipt

@@ -3651,6 +3651,29 @@ export async function handleBoardRoutes(
       return true;
     }
 
+    // SECURITY GATE (task_1784314731746_o5jk, A-010 wf_9f479599-73e): minting a
+    // founder-attributed exact-four approval IS the founder decision itself.
+    // Team membership + board:write is NOT sufficient — without this check any
+    // seat could forge {status:'approved', approvedBy*: caller} for the four
+    // Joseph-reserved classes (spend/custody, governance, public-identity,
+    // physical-presence). Only a Bearer key carrying isFounder may record one.
+    // Sits AFTER classification on purpose: the informative 403s above (which
+    // route non-exact-four intents to their owning lane) remain available to
+    // every seat; only record creation is founder-gated.
+    if (!caller.isFounder) {
+      json(res, 403, {
+        error: 'founder authorization required',
+        reason:
+          'intent classifies as joseph-exact-four; only the founder key can mint the ' +
+          'approval record. board:write seats may poll (GET) and execute lifecycle ' +
+          '(PATCH), never approve.',
+        authorityRoute: 'joseph-exact-four',
+        josephReviewClass,
+        taskId,
+      });
+      return true;
+    }
+
     const record: FounderApprovalRecord = {
       id: `approval_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       taskId,
@@ -3660,6 +3683,10 @@ export async function handleBoardRoutes(
       josephReviewClass,
       approvedByAgentId: caller.id,
       approvedByName: caller.name,
+      // Server-derived founder attestation — consumers require this exact flag
+      // before executing; records without it predate the founder gate and are
+      // untrusted (see FounderApprovalRecord.approvedByFounder docs).
+      approvedByFounder: true,
       status: 'approved',
       createdAt: new Date().toISOString(),
     };
@@ -3722,6 +3749,31 @@ export async function handleBoardRoutes(
     if (!record) {
       json(res, 404, { error: 'approval not found' });
       return true;
+    }
+    // Lifecycle discipline (task_1784314731746_o5jk): board:write seats may
+    // execute the lifecycle but not rewrite history or hijack another agent's
+    // in-flight execution.
+    //   approved → executing  (any signing agent claims it)
+    //   executing → executed|failed  (ONLY the claiming agent, or the founder)
+    if (nextStatus === 'executing' && record.status !== 'approved') {
+      json(res, 409, {
+        error: `cannot claim approval in status '${record.status}' (expected 'approved')`,
+      });
+      return true;
+    }
+    if (nextStatus === 'executed' || nextStatus === 'failed') {
+      if (record.status !== 'executing') {
+        json(res, 409, {
+          error: `cannot finalize approval in status '${record.status}' (expected 'executing')`,
+        });
+        return true;
+      }
+      if (!caller.isFounder && record.claimedByAgentId && record.claimedByAgentId !== caller.id) {
+        json(res, 403, {
+          error: 'only the claiming agent (or the founder) may finalize this approval',
+        });
+        return true;
+      }
     }
     record.status = nextStatus;
     if (nextStatus === 'executing') {
