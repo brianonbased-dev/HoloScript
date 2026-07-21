@@ -24,6 +24,7 @@
  *   node scripts/holo-ci/check-spec-corpus.mjs --strict         # exit 1 on any drift/mismatch
  *   node scripts/holo-ci/check-spec-corpus.mjs --update-manifest # re-pin after a verified run
  */
+import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -40,6 +41,8 @@ const artifactWasm = path.join(repoRoot, 'packages', 'compiler-wasm', 'pkg-node'
 
 const strict = process.argv.includes('--strict');
 const updateManifest = process.argv.includes('--update-manifest');
+const selfTest = process.argv.includes('--self-test');
+const skipDrift = process.argv.includes('--skip-drift');
 const sha256 = (buffer) => crypto.createHash('sha256').update(buffer).digest('hex');
 
 function fail(message) {
@@ -47,9 +50,48 @@ function fail(message) {
   process.exit(1);
 }
 
-if (!fs.existsSync(corpusPath)) fail(`corpus missing: ${corpusPath}`);
+/** Misconfiguration (missing files, bad JSON) exits 2 — distinct from a conformance failure (1). */
+function misconfigured(message) {
+  console.error(`[spec-corpus] MISCONFIGURED — ${message}`);
+  process.exit(2);
+}
+
+if (!fs.existsSync(corpusPath)) misconfigured(`corpus not found at ${corpusPath}`);
 if (!fs.existsSync(artifactJs) || !fs.existsSync(artifactWasm)) {
-  fail('grammar-authority artifact (pkg-node) is missing — build it before running the executable spec');
+  misconfigured('grammar-authority artifact (pkg-node) not found — build it before running the executable spec');
+}
+
+// Prerequisite: never verify normative verdicts against a STALE authority. Same chain the
+// grammar-authority gate uses; --skip-drift exists for the self-test path only.
+if (!skipDrift) {
+  const drift = spawnSync(
+    process.execPath,
+    [path.join(here, 'check-compiler-wasm-drift.mjs')],
+    { cwd: repoRoot, encoding: 'utf8', windowsHide: true },
+  );
+  if (drift.status !== 0) {
+    console.error('[spec-corpus] authority freshness prerequisite failed (check-compiler-wasm-drift):');
+    console.error(String(drift.stderr || drift.stdout || '').trim());
+    process.exit(1);
+  }
+}
+
+// --self-test: prove this gate can go RED (the W.783 invariant every golden gate carries). Runs a
+// deliberately wrong case through the same verdict logic; a gate that cannot fail is decoration.
+if (selfTest) {
+  const requireForSelfTest = createRequire(import.meta.url);
+  const wasmForSelfTest = requireForSelfTest(artifactJs);
+  const wrongCase = {
+    id: 'self-test-000',
+    expect: { valid: true }, // deliberately wrong: this source is invalid (unguarded @unknown read)
+    source: '@trait S {\n  @unknown\n  reading: Temperature\n  display: reading\n}',
+  };
+  const result = JSON.parse(wasmForSelfTest.validate_detailed(wrongCase.source));
+  if (result.valid === wrongCase.expect.valid) {
+    misconfigured('self-test could not construct a failing case — the authority accepted a known-invalid source');
+  }
+  console.log('[spec-corpus] self-test OK — a deliberately wrong verdict IS detected as drift (the gate can go red)');
+  process.exit(0);
 }
 
 const requireCjs = createRequire(import.meta.url);
@@ -118,9 +160,12 @@ if (updateManifest) {
     corpus_sha256: `sha256:${corpusSha}`,
     cases: cases.length,
     sections: sectionCounts,
+    verifier_of_record:
+      'packages/compiler-wasm pkg-node validate_detailed (committed ready-to-run WASM authority artifact)',
     authority: {
       artifact: 'packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm',
       wasmSha256: `sha256:${artifactSha}`,
+      rebuild_receipt: 'packages/compiler-wasm/pkg-node/rebuild-receipt.json',
       note: 'The authority build every verdict in this corpus release was verified against. If the artifact hash no longer matches, rerun this script: all-verdicts-hold means the spec is stable under the new build (re-pin with --update-manifest); any drift means the language moved.',
     },
   };
