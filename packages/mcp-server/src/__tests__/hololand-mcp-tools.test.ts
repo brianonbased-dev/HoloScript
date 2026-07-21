@@ -810,6 +810,161 @@ describe('hololand-mcp-tools', () => {
     expect(result).toMatchObject({ error: expect.stringContaining('not found') });
   });
 
+  // oth3: the orphansRemoved counter must report removals that actually HAPPENED.
+  // Before the fix the tick counted "removals" while mutating nothing (and never even
+  // reported the counter) — this test fails against that behavior.
+  it('hololand_steward_tick removes orphaned references and reports honest counters', async () => {
+    // create_shard enforces cross-reference integrity, so orphans arise POST-create:
+    // update_shard mutates the stored shard in place BEFORE validating, so dropping
+    // referenced entities persists dangling refs even though the update reports the
+    // validation error — the exact state steward cleanup exists for.
+    const created = (await handleHololandMcpTool('create_shard', {
+      id: 'orphan-shard',
+      name: 'Orphan Shard',
+      zones: [
+        { id: 'oz1', name: 'Live Zone', biome: 'urban' },
+        { id: 'oz2', name: 'Doomed Zone', biome: 'urban' },
+      ],
+      encounters: [
+        { id: 'oe1', name: 'Kept', trigger: 'on-enter', zoneId: 'oz1' },
+        { id: 'oe2', name: 'Zone Orphan', trigger: 'on-enter', zoneId: 'oz2' },
+        { id: 'oe3', name: 'Loot Ref Orphan', trigger: 'on-enter', zoneId: 'oz1', lootTableId: 'ot2' },
+      ],
+      items: [
+        { id: 'oi1', name: 'Real Item', category: 'artifact' },
+        { id: 'oi2', name: 'Doomed Item', category: 'artifact' },
+      ],
+      lootTables: [
+        {
+          id: 'ot1',
+          name: 'Table',
+          entries: [
+            { id: 'ent1', itemId: 'oi1', weight: 1 },
+            { id: 'ent2', itemId: 'oi2', weight: 1 },
+          ],
+        },
+        { id: 'ot2', name: 'Doomed Table', entries: [{ id: 'ent3', itemId: 'oi1', weight: 1 }] },
+      ],
+    })) as Record<string, unknown>;
+    expect(created.success).toBe(true);
+
+    // Drop oz2, oi2, and ot2 in one update: oe2.zoneId, oe3.lootTableId, and
+    // ot1.entries[ent2].itemId all dangle now (update reports the error; mutation persists).
+    const update = (await handleHololandMcpTool('update_shard', {
+      shardId: 'orphan-shard',
+      zones: [{ id: 'oz1', name: 'Live Zone', biome: 'urban' }],
+      items: [{ id: 'oi1', name: 'Real Item', category: 'artifact' }],
+      lootTables: [
+        {
+          id: 'ot1',
+          name: 'Table',
+          entries: [
+            { id: 'ent1', itemId: 'oi1', weight: 1 },
+            { id: 'ent2', itemId: 'oi2', weight: 1 },
+          ],
+        },
+      ],
+    })) as Record<string, unknown>;
+    expect(update.error).toBeDefined();
+
+    const result = (await handleHololandMcpTool('hololand_steward_tick', {
+      shardId: 'orphan-shard',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    // 3 dangling references: oe2.zoneId, oe3.lootTableId, ot1.entries[ent2].itemId
+    expect(result.orphansDetected).toBe(3);
+    expect(result.orphansRemoved).toBe(3);
+
+    // The removals actually happened in the stored shard:
+    const after = (await handleHololandMcpTool('get_shard', { shardId: 'orphan-shard' })) as {
+      shard: Shard;
+    };
+    expect(after.shard.encounters.map((e) => e.id)).toEqual(['oe1', 'oe3']);
+    expect(after.shard.encounters.find((e) => e.id === 'oe3')?.lootTableId).toBeUndefined();
+    expect(after.shard.lootTables[0].entries.map((entry) => entry.id)).toEqual(['ent1']);
+
+    // Idempotent: a second tick finds nothing left to remove.
+    const second = (await handleHololandMcpTool('hololand_steward_tick', {
+      shardId: 'orphan-shard',
+    })) as Record<string, unknown>;
+    expect(second.orphansDetected).toBe(0);
+    expect(second.orphansRemoved).toBe(0);
+  });
+
+  // ksp7: honestyGate consumer — reference resolution modeled as Uncertain. A collection the
+  // registry does not actually model (non-array) is UNKNOWN, not an empty set: the old code
+  // would have treated missing knowledge as "nothing exists" and mass-removed every reference.
+  // The honest tick abstains, mutates nothing, and embeds the HonestyDecision as the receipt.
+  it('hololand_steward_tick abstains via honestyGate when a collection is not modeled', async () => {
+    await handleHololandMcpTool('create_shard', {
+      id: 'unknown-shard',
+      name: 'Unknown Shard',
+      zones: [{ id: 'uz1', name: 'Zone', biome: 'urban' }],
+      encounters: [{ id: 'ue1', name: 'Enc', trigger: 'on-enter', zoneId: 'uz1' }],
+      items: [{ id: 'ui1', name: 'Item', category: 'artifact' }],
+      lootTables: [
+        { id: 'ut1', name: 'Table', entries: [{ id: 'uent1', itemId: 'ui1', weight: 1 }] },
+      ],
+    });
+
+    // update_shard mutates the stored shard in place BEFORE validating, so a truthy
+    // non-array persists in the registry even though the update reports a validation
+    // error — exactly the not-modeled state the gate must refuse to proceed over.
+    const update = (await handleHololandMcpTool('update_shard', {
+      shardId: 'unknown-shard',
+      items: 'not-an-array',
+    })) as Record<string, unknown>;
+    expect(update.error).toBeDefined();
+
+    const result = (await handleHololandMcpTool('hololand_steward_tick', {
+      shardId: 'unknown-shard',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    const honesty = result.honesty as {
+      decision: string;
+      blocking: Array<{ key: string; reason: string; aleatoric: boolean }>;
+    };
+    expect(honesty.decision).toBe('abstain');
+    expect(honesty.blocking.map((b) => b.key)).toContain('items');
+    for (const blocker of honesty.blocking) {
+      expect(blocker.reason).toBe('missing_precondition');
+      expect(blocker.aleatoric).toBe(false);
+    }
+
+    // No counters: reporting 0 would claim knowledge ("no orphans") the gate says we lack.
+    expect(result.orphansDetected).toBeUndefined();
+    expect(result.orphansRemoved).toBeUndefined();
+    expect(result.skipped).toEqual(['cleanupOrphans', 'validateEncounters', 'rollupMetrics']);
+
+    // And nothing was mutated: the loot entry referencing a real item survived, even though
+    // the broken items collection would have made every itemId look orphaned.
+    const after = (await handleHololandMcpTool('get_shard', { shardId: 'unknown-shard' })) as {
+      shard: Shard;
+    };
+    expect(after.shard.lootTables[0].entries.map((entry) => entry.id)).toEqual(['uent1']);
+    expect(after.shard.encounters.map((e) => e.id)).toEqual(['ue1']);
+  });
+
+  it('hololand_steward_tick embeds a proceed HonestyDecision on the happy path', async () => {
+    await handleHololandMcpTool('create_shard', {
+      id: 'honest-shard',
+      name: 'Honest Shard',
+      zones: [{ id: 'hz1', name: 'Zone', biome: 'urban' }],
+      encounters: [{ id: 'he1', name: 'Enc', trigger: 'on-enter', zoneId: 'hz1' }],
+    });
+
+    const result = (await handleHololandMcpTool('hololand_steward_tick', {
+      shardId: 'honest-shard',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect((result.honesty as { decision: string }).decision).toBe('proceed');
+    expect(result.orphansDetected).toBe(0);
+    expect(result.orphansRemoved).toBe(0);
+  });
+
   // ---------------------------------------------------------------------------
   // hololand_capture_runtime_receipt
   // ---------------------------------------------------------------------------

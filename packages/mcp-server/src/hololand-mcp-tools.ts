@@ -67,6 +67,12 @@ import {
   type ContentPolicyConfig,
 } from '@holoscript/core/policy';
 import { AuditLogger, type AuditEvent } from '@holoscript/core';
+import {
+  honestyGate,
+  known,
+  unknown as unknownValue,
+  type Uncertain,
+} from '@holoscript/meaning';
 import type {
   AdmissionAuditContext,
   ConformanceReport,
@@ -3082,30 +3088,97 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
 
   const tickStart = Date.now();
   const shard = stored.shard;
+
+  // honestyGate consumer (first-class-ignorance stage 3, task ksp7): every reference
+  // resolution below depends on the shard's collections being MODELED. A non-array
+  // collection (possible via update_shard's cast or a direct registry write) is not an
+  // empty set — it is an unknown, and treating it as empty would "clean up" every
+  // reference against knowledge nobody established. Model each collection as Uncertain
+  // and let the gate decide; null/undefined = not-modeled, never proceed-over.
+  const asModeledCollection = <T>(value: unknown): Uncertain<T[]> =>
+    Array.isArray(value) ? known(value as T[]) : unknownValue<T[]>('missing_precondition');
+
+  const honesty = honestyGate({
+    zones: asModeledCollection<Zone>(shard.zones),
+    encounters: asModeledCollection<Encounter>(shard.encounters),
+    lootTables: asModeledCollection<LootTable>(shard.lootTables),
+    items: asModeledCollection<Item>(shard.items),
+    skills: asModeledCollection<Skill>(shard.skills),
+  });
+
+  if (honesty.decision === 'abstain') {
+    // Honest caution, not failure (same semantics as HSICausalLoop's epistemic gate):
+    // the tick INSPECTS instead of mutating, and the decision IS the receipt. No orphan
+    // counters here — reporting 0 would claim knowledge the gate says we lack.
+    return {
+      success: true,
+      shardId,
+      tickDurationMs: Date.now() - tickStart,
+      cleanupOrphans,
+      validateEncounters,
+      rollupMetrics,
+      honesty,
+      skipped: ['cleanupOrphans', 'validateEncounters', 'rollupMetrics'],
+    };
+  }
+
+  // The gate is the single unwrap point: collections come from the decision, never `.value`.
+  const { zones, lootTables, items, skills } = honesty.values as {
+    zones: Zone[];
+    encounters: Encounter[];
+    lootTables: LootTable[];
+    items: Item[];
+    skills: Skill[];
+  };
+
   let orphansDetected = 0;
   let orphansRemoved = 0;
   let validationIssues = 0;
 
   if (cleanupOrphans) {
-    const zoneIds = new Set(shard.zones.map((z) => z.id));
-    const tableIds = new Set(shard.lootTables.map((t) => t.id));
-    const itemIds = new Set(shard.items.map((i) => i.id));
-    const skillIds = new Set(shard.skills.map((s) => s.id));
+    const zoneIds = new Set(zones.map((z) => z.id));
+    const tableIds = new Set(lootTables.map((t) => t.id));
+    const itemIds = new Set(items.map((i) => i.id));
+    const skillIds = new Set(skills.map((s) => s.id));
 
+    // oth3 fix: the old loop only COUNTED "removals" and mutated nothing. Now the
+    // cleanup actually removes what it reports. Semantics per frontier-shard.ts:
+    // an encounter's zoneId is REQUIRED, so a dangling zone orphans the whole
+    // encounter (remove it); lootTableId is an OPTIONAL ref (clear just the ref);
+    // a loot entry is a pure reference row (remove the dangling entry).
+    const keptEncounters: Encounter[] = [];
     for (const encounter of shard.encounters) {
       if (encounter.zoneId && !zoneIds.has(encounter.zoneId)) {
         orphansDetected++;
         orphansRemoved++;
+        continue; // encounter removed with its dead required-zone reference
       }
       if (encounter.lootTableId && !tableIds.has(encounter.lootTableId)) {
+        orphansDetected++;
+        delete encounter.lootTableId;
         orphansRemoved++;
       }
+      keptEncounters.push(encounter);
     }
-    for (const table of shard.lootTables) {
-      for (const entry of table.entries ?? []) {
-        if (entry.itemId && !itemIds.has(entry.itemId)) orphansRemoved++;
-        if (entry.skillId && !skillIds.has(entry.skillId)) orphansRemoved++;
-      }
+    shard.encounters = keptEncounters;
+
+    for (const table of lootTables) {
+      const entries = table.entries ?? [];
+      const keptEntries = entries.filter((entry) => {
+        const dangling =
+          (entry.itemId !== undefined && !itemIds.has(entry.itemId)) ||
+          (entry.skillId !== undefined && !skillIds.has(entry.skillId));
+        if (dangling) {
+          orphansDetected++;
+          orphansRemoved++;
+        }
+        return !dangling;
+      });
+      if (keptEntries.length !== entries.length) table.entries = keptEntries;
+    }
+
+    if (orphansRemoved > 0) {
+      stored.modifiedAt = new Date().toISOString();
     }
   }
 
@@ -3125,16 +3198,18 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
     cleanupOrphans,
     validateEncounters,
     rollupMetrics,
+    honesty,
   };
 
   if (cleanupOrphans) {
     result.orphansDetected = orphansDetected;
+    result.orphansRemoved = orphansRemoved;
   }
   if (validateEncounters) {
     result.encounterValidationIssues = validationIssues;
   }
   if (rollupMetrics) {
-    result.zoneMetrics = shard.zones.map((z) => ({
+    result.zoneMetrics = zones.map((z) => ({
       zoneId: z.id,
       name: z.name,
       encounterCount: z.encounterIds?.length ?? 0,
