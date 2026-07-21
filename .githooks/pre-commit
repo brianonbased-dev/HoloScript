@@ -535,6 +535,27 @@ else
     echo -e "  ${GREEN}✓${NC} One meaning stratum, defined once"
 fi
 
+# Gate 5g6: Docker-drift gate (per-service Docker recipe vs import graph, W.787 class).
+# The gate existed since 2026-07-10 (check:docker-drift) but was wired into NO enforcement
+# seam — so the @holoscript/meaning extraction (2026-07-17) broke THREE production images
+# (mcp-server 264c42076, tunnel d317c543b, studio bd748044a — 5 consecutive deploy
+# failures) with a gap class the gate detects statically in ~2s. Runs UNCONDITIONALLY
+# (same rationale as the strata gate above: the breaking change is usually a SOURCE
+# import with zero Dockerfile edits, so staged-file scoping would miss exactly the
+# class this exists to catch). Ratcheted: fails only when a gap set GROWS vs
+# scripts/holo-ci/docker-drift-baseline.json; burn the baseline down, never up.
+echo "  ├─ Docker-drift gate (import graph vs per-service Docker recipes)..."
+DOCKER_DRIFT_OUT=$(run_with_timeout 60 node scripts/holo-ci/check-docker-drift.mjs 2>&1)
+DOCKER_DRIFT_STATUS=$?
+if [ "$DOCKER_DRIFT_STATUS" -ne 0 ]; then
+    echo -e "  ${RED}❌ Docker recipe drift (a NEW one-sided import/build-order gap would break a container build)${NC}"
+    echo "$DOCKER_DRIFT_OUT"
+    echo "     Fix: add the dep's build step (with dts) BEFORE its importer in the named Dockerfile — see the studio/meaning fix bd748044a for the pattern. Reseed only for a deliberate exception: pnpm check:docker-drift:update."
+    FAILED=1
+else
+    echo -e "  ${GREEN}✓${NC} Docker recipes hold vs import graph (ratchet baseline)"
+fi
+
 # Gate 5g3: Verifier-of-record gate (language-architecture.md §6.3). A corpus/reward file that
 # emits abstention LABELS must route them through the shipped gradeByResolver, never a fork —
 # the function that labels training data must be the function that runs at inference. Strict on
