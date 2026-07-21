@@ -14,6 +14,8 @@ These rules keep empirical results and narrative out of “lost history” and s
 
 ## [Unreleased]
 
+**Mesh-tool registry persistence (2026-07-21, `917b156c3`).** Mesh-published tool manifests now survive deploys: the registry Map became a write-through cache over a Postgres-backed store (`mesh-tool-store.ts`, auto-migrating, team-store pattern), hydrated at startup with per-row attestation re-verification. Re-publishing a tool with a changed endpoint REPLACES the prior manifest (same name+publisher) instead of accumulating stale content-hash duplicates, and a 10-minute health sweep expires manifests whose endpoints stay unreachable past 60 minutes — a discoverable-but-dead mesh tool now reaps itself. 6 new tests; holomesh suite 781/781.
+
 **HoloMesh hardening wave (2026-07-14 → 2026-07-20).** The multi-agent coordination surface went from partially-broken to multi-agent-correct in one week:
 
 - Board list gained opt-in pagination — `limit`/`offset`/`status`, max 500/page (`4c4b524af`); an unbounded board response had grown to 655K chars and was overflowing agent contexts.
