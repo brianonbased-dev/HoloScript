@@ -214,6 +214,18 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
     profiles: ['full'],
     resource_requirements: { max_dph: 0.4 },
   },
+  // The executable spec (I2, spec-as-corpus): normative source+verdict cases replayed against the
+  // real WASM authority artifact. Distinct from the ecosystem artifact-admission "conformance"
+  // subsystem (worlds/shards/NPCs JSON rules — a different domain that never parses source).
+  // A drifted verdict = the language no longer means what the spec says; the fix is either the
+  // grammar change or a reviewed corpus-case update in the same commit, never silent drift.
+  'spec-corpus': {
+    description:
+      'Executable spec corpus: every normative language case (source + expected verdict) holds against the WASM grammar authority; verdict drift fails and requires a reviewed corpus update + manifest re-pin',
+    step: 'node scripts/holo-ci/check-spec-corpus.mjs --strict',
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.2 },
+  },
   // WRAP-WITH-RECEIPTS coverage ratchet (dependency-sovereignty-ladder, 2026-07-16).
   // Every setRequestHandler(CallToolRequestSchema) fold point under packages/mcp-server/src
   // must route through gateToolCall (tool-call-gate.ts) — the single typed gate that emits

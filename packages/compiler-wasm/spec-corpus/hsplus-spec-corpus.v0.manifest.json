@@ -1,0 +1,33 @@
+{
+  "schema": "holoscript.hsplus-spec-corpus.manifest.v0",
+  "corpus": "packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl",
+  "corpus_sha256": "sha256:24bac9091b6ff57a09ac90fd6593524dc1d0db825b7b21a828dd55586d0f0861",
+  "cases": 37,
+  "sections": {
+    "first-class-ignorance-rfc §Stage 2": 2,
+    "language-architecture.md §6 / FIELD_MODIFIER_ANNOTATIONS": 1,
+    "language-architecture.md §6": 1,
+    "first-class-ignorance-rfc §Stage 2b": 6,
+    "first-class-ignorance-rfc §Stage 2c": 3,
+    "first-class-ignorance-rfc §Stage 2c — the honest gap, ON RECORD": 1,
+    "first-class-ignorance-rfc §Stage 2d": 4,
+    "first-class-ignorance-rfc §Stage 2d — main grammar frozen": 2,
+    "first-class-ignorance-rfc §Stage 4": 5,
+    "language-architecture.md §2 (three formats)": 1,
+    "first-class-ignorance-rfc §Stage 2 (the ? axis)": 1,
+    "grammar — null-coalescing": 1,
+    "grammar — null-coalescing (left-assoc)": 1,
+    "HS010 lexical capability firewall": 2,
+    "grammar — objects and traits": 1,
+    "grammar — trait definitions": 1,
+    "grammar — functions": 1,
+    "grammar — fail-closed on malformed input": 1,
+    "grammar — declarations": 1,
+    "grammar — top-level structural keywords keep their declaration role": 1
+  },
+  "authority": {
+    "artifact": "packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm",
+    "wasmSha256": "sha256:dee4f48886d28bef57742376d6ce3a7d27105bda7e5ef71b18a1918414469bc4",
+    "note": "The authority build every verdict in this corpus release was verified against. If the artifact hash no longer matches, rerun this script: all-verdicts-hold means the spec is stable under the new build (re-pin with --update-manifest); any drift means the language moved."
+  }
+}

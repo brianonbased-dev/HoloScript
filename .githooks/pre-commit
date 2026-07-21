@@ -568,6 +568,24 @@ else
     echo -e "  ${GREEN}✓${NC} Every admitted family emits a family-scoped gap code"
 fi
 
+# Gate 5g5: Executable spec corpus (I2, spec-as-corpus). Every case in
+# packages/compiler-wasm/spec-corpus/ is a NORMATIVE claim (source + verdict the grammar authority
+# must reach); this replays all of them against the real pkg-node artifact. A drifted verdict means
+# the language no longer means what the spec says — either the grammar change is wrong, or the spec
+# changed and the corpus case must be updated IN THE SAME COMMIT so the meaning change is
+# reviewable. ~1s for the whole corpus; binds to the WASM authority, never the TS parsers.
+echo "  ├─ Executable spec corpus (spec-as-corpus, I2)..."
+SPEC_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-spec-corpus.mjs --strict 2>&1)
+SPEC_STATUS=$?
+if [ "$SPEC_STATUS" -ne 0 ]; then
+    echo -e "  ${RED}❌ The executable spec drifted — a normative corpus verdict no longer holds${NC}"
+    echo "$SPEC_OUT"
+    echo "     Fix: correct the grammar change, or update the corpus case + re-pin (--update-manifest) in this commit."
+    FAILED=1
+else
+    echo -e "  ${GREEN}✓${NC} Executable spec holds (every normative corpus verdict verified)"
+fi
+
 # Gate 5h: No third-party QR-code service gate (F.106/F.117: generate QR codes LOCALLY).
 # Scans STAGED packages/*/src files for a hosted QR-service hostname (api.qrserver.com et al).
 # Regression history: api.qrserver.com leaked every published .holo share/scan URL via
