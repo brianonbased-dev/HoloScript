@@ -69,6 +69,16 @@ RUN cd packages/crdt-spatial && pnpm exec tsup --no-dts && pnpm exec tsc --emitD
 # Uses tsup --dts-only (not pattern B tsc) because WGSL shader types need tsup's
 # resolver. Emit is heavy (~50s, large type graph + WGSL) — bump the heap.
 RUN cd packages/snn-webgpu && pnpm exec tsup --no-dts && NODE_OPTIONS=--max-old-space-size=4096 pnpm exec tsup --dts-only
+# meaning MUST build before uaal (and before core/absorb-service further down):
+# the language-strata extraction (docs/spec/language-architecture.md, ratified
+# 2026-07-17) moved the resolution contract into @holoscript/meaning, and uaal's
+# src/{vibe,beneficiary,verifier,affective-harm}.ts re-export it — uaal's tsup
+# fails 'Could not resolve "@holoscript/meaning"' without meaning's dist on disk
+# (broke 5+ consecutive studio deploys through 2026-07-21; same
+# runtime-image-closure class as mcp-server's 264c42076 and the tunnel fix
+# d317c543b). meaning has zero workspace deps, so it can build this early.
+# Pattern A: dts:true in its tsup.config.ts — JS+dts in one fail-loud pass.
+RUN cd packages/meaning && pnpm exec tsup
 RUN cd packages/uaal && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/agent-protocol && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/core-types && pnpm exec tsup
