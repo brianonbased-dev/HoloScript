@@ -37,6 +37,40 @@ export function requireNativeGraphRAGProvider(
   return NATIVE_GRAPH_RAG_PROVIDER;
 }
 
+export interface CoercedGraphRAGProvider {
+  provider: NativeGraphRAGProvider;
+  coerced: boolean;
+  requested: string;
+}
+
+/**
+ * Self-healing variant of requireNativeGraphRAGProvider for AMBIENT config
+ * (the EMBEDDING_PROVIDER env var). A stale launcher/session export (e.g.
+ * `openai` inherited from an unrelated shell) must not brick the shared
+ * absorb path: the policy already declares external providers invalid for
+ * the shared cache, so the only correct provider is holoembed — coerce to it
+ * and report, instead of throwing. Sovereign-by-default self-heal
+ * (research/2026-07-17_architecture-interrogation-graphrag-synthesis.md).
+ *
+ * EXPLICIT per-call `embeddingProvider` arguments keep failing closed via
+ * requireNativeGraphRAGProvider — an agent asking for openai by name is a
+ * real error; ambient env is a shadow.
+ */
+export function coerceNativeGraphRAGProvider(
+  providerName: string,
+  _source: string
+): CoercedGraphRAGProvider {
+  const normalized = providerName.trim().toLowerCase();
+  const isNative =
+    normalized === NATIVE_GRAPH_RAG_PROVIDER ||
+    (LEGACY_GRAPH_RAG_PROVIDER_ALIASES as readonly string[]).includes(normalized);
+  return {
+    provider: NATIVE_GRAPH_RAG_PROVIDER,
+    coerced: !isNative,
+    requested: normalized,
+  };
+}
+
 export function buildGraphRAGEmbeddingPolicyReceipt(): GraphRAGEmbeddingPolicyReceipt {
   return {
     schemaVersion: GRAPH_RAG_EMBEDDING_POLICY_VERSION,

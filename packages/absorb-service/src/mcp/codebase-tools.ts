@@ -27,6 +27,7 @@ import {
 import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
 import {
   buildGraphRAGEmbeddingPolicyReceipt,
+  coerceNativeGraphRAGProvider,
   NATIVE_GRAPH_RAG_PROVIDER,
   requireNativeGraphRAGProvider,
   type GraphRAGEmbeddingPolicyReceipt,
@@ -391,11 +392,22 @@ export async function detectBestEmbeddingProvider(): Promise<string> {
   if (cachedProviderName) return cachedProviderName;
 
   if (process.env.EMBEDDING_PROVIDER) {
-    cachedProviderName = requireNativeGraphRAGProvider(
+    // Ambient env is the shadow class (stale session exports of e.g. `openai`
+    // can outlive the shell that set them): self-heal to the sovereign native
+    // provider instead of bricking every shared absorb. Explicit per-call
+    // `embeddingProvider` arguments below still fail closed.
+    const { provider, coerced, requested } = coerceNativeGraphRAGProvider(
       process.env.EMBEDDING_PROVIDER,
       'EMBEDDING_PROVIDER'
     );
-    console.error(`[EmbeddingProvider] Using explicit env: ${cachedProviderName}`);
+    if (coerced) {
+      console.error(
+        `[EmbeddingProvider] EMBEDDING_PROVIDER=${requested} is not a valid shared GraphRAG embedding provider; coercing to ${provider} (external providers never enter shared Absorb caches — fix or unset the stale env export)`
+      );
+    } else {
+      console.error(`[EmbeddingProvider] Using explicit env: ${provider}`);
+    }
+    cachedProviderName = provider;
     return cachedProviderName;
   }
 

@@ -8,6 +8,7 @@ import {
 import {
   buildGraphRAGEmbeddingPolicyReceipt,
   GRAPH_RAG_EMBEDDING_POLICY_VERSION,
+  requireNativeGraphRAGProvider,
 } from '../graph-rag-embedding-policy';
 
 describe('detectBestEmbeddingProvider', () => {
@@ -25,13 +26,14 @@ describe('detectBestEmbeddingProvider', () => {
     resetDetectedEmbeddingProviderForTests();
   });
 
-  it('rejects non-native EMBEDDING_PROVIDER overrides', async () => {
+  it('coerces non-native EMBEDDING_PROVIDER overrides to HoloEmbed (self-heal, not refuse)', async () => {
+    // A stale session export (`openai`) is ambient shadow config, not an
+    // explicit agent request — the shared absorb path self-heals to the
+    // sovereign provider instead of bricking every absorb.
     vi.stubEnv('EMBEDDING_PROVIDER', 'openai');
     vi.stubEnv('OPENAI_API_KEY', 'present-but-ignored');
 
-    await expect(detectBestEmbeddingProvider()).rejects.toThrow(
-      /GraphRAG embedding provider must be holoembed/
-    );
+    await expect(detectBestEmbeddingProvider()).resolves.toBe('holoembed');
   });
 
   it('accepts HoloEmbed as the only explicit provider override', async () => {
@@ -46,20 +48,25 @@ describe('detectBestEmbeddingProvider', () => {
     await expect(detectBestEmbeddingProvider()).resolves.toBe('holoembed');
   });
 
-  it('rejects Ollama as a shared GraphRAG embedding provider', async () => {
+  it('coerces an ambient Ollama env override to HoloEmbed', async () => {
     // HoloLlama/Ollama may serve LLM synthesis, but shared Absorb indexes stay
-    // in the canonical HoloGraph + HoloEmbed vector space.
+    // in the canonical HoloGraph + HoloEmbed vector space — ambient env never
+    // routes shared embeddings elsewhere, it self-heals to holoembed.
     vi.stubEnv('EMBEDDING_PROVIDER', ' Ollama ');
 
-    await expect(detectBestEmbeddingProvider()).rejects.toThrow(
-      /not valid shared GraphRAG embedding providers/
-    );
+    await expect(detectBestEmbeddingProvider()).resolves.toBe('holoembed');
   });
 
-  it('still rejects cloud providers even as explicit overrides', async () => {
+  it('coerces ambient cloud-provider env overrides to HoloEmbed', async () => {
     vi.stubEnv('EMBEDDING_PROVIDER', 'xenova');
 
-    await expect(detectBestEmbeddingProvider()).rejects.toThrow(
+    await expect(detectBestEmbeddingProvider()).resolves.toBe('holoembed');
+  });
+
+  it('still fails closed on an explicit non-native embeddingProvider argument', () => {
+    // Coercion is for ambient env only; an agent naming an external provider
+    // per-call is a real error and keeps the fail-closed contract.
+    expect(() => requireNativeGraphRAGProvider('openai', 'embeddingProvider argument')).toThrow(
       /not valid shared GraphRAG embedding providers/
     );
   });
