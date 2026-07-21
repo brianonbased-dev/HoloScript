@@ -76,6 +76,126 @@ export interface MeshToolInvocationChainVerification {
 
 const registry = new Map<string, MeshToolManifest>();
 
+// ── Persistence (task_1784589178204_gnzq) ────────────────────────────────────
+// The Map above is now a CACHE over a pluggable store backend
+// (holomesh/mesh-tool-store.ts — Postgres in prod, in-memory in dev), hydrated
+// at startup by initMeshToolRegistry(). Reads stay synchronous against the
+// cache (single-replica by design); writes go through the backend so published
+// tools survive deploys. Health bookkeeping powers sweepMeshToolRegistry(),
+// which expires manifests whose endpoints stay unreachable past a TTL — a
+// discoverable-but-dead tool is worse than an absent one.
+import type { MeshToolStoreBackend } from './mesh-tool-store';
+
+let storeBackend: MeshToolStoreBackend | null = null;
+let writeQueue: Promise<void> = Promise.resolve();
+const lastHealthyAt = new Map<string, string>();
+
+function enqueueStoreWrite(op: (backend: MeshToolStoreBackend) => Promise<void>): void {
+  const backend = storeBackend;
+  if (!backend) return;
+  writeQueue = writeQueue
+    .then(() => op(backend))
+    .catch((e) => {
+      console.error('[MeshToolRegistry] store write failed:', e);
+    });
+}
+
+/**
+ * Wire the persistent backend and hydrate the cache. Call once at server
+ * startup (same DI convention as registerSearchProviders — see http-server.ts).
+ * Tests may pass an InMemoryMeshToolStoreBackend to simulate restarts.
+ */
+export async function initMeshToolRegistry(backend?: MeshToolStoreBackend): Promise<number> {
+  const { createMeshToolStoreBackend } = await import('./mesh-tool-store');
+  storeBackend = backend ?? createMeshToolStoreBackend();
+  const rows = await storeBackend.getAll();
+  registry.clear();
+  lastHealthyAt.clear();
+  for (const row of rows) {
+    if (verifyMeshToolAttestation(row.manifest)) {
+      registry.set(row.manifest.id, row.manifest);
+      lastHealthyAt.set(row.manifest.id, row.lastHealthyAt);
+    }
+  }
+  return registry.size;
+}
+
+/** Await all pending write-through operations (deterministic tests/handlers). */
+export async function flushMeshToolStore(): Promise<void> {
+  await writeQueue;
+}
+
+export interface MeshToolSweepResult {
+  probed: number;
+  healthy: number;
+  expired: string[];
+}
+
+/**
+ * Probe every remote (mcp-http) manifest's health endpoint and expire the ones
+ * that have been unreachable longer than ttlMs. Local-transport manifests live
+ * in-process and are never expired. The probe is injectable for tests.
+ */
+export async function sweepMeshToolRegistry(
+  options: {
+    probe?: (url: string) => Promise<boolean>;
+    ttlMs?: number;
+    now?: Date;
+  } = {}
+): Promise<MeshToolSweepResult> {
+  const ttlMs = options.ttlMs ?? 60 * 60 * 1000;
+  const now = options.now ?? new Date();
+  const probe =
+    options.probe ??
+    (async (url: string): Promise<boolean> => {
+      try {
+        const response = await axios.get(url, { timeout: 10_000, validateStatus: () => true });
+        return response.status >= 200 && response.status < 500;
+      } catch {
+        return false;
+      }
+    });
+
+  const result: MeshToolSweepResult = { probed: 0, healthy: 0, expired: [] };
+  for (const manifest of Array.from(registry.values())) {
+    if (manifest.endpoint.transport !== 'mcp-http' || !manifest.endpoint.url) continue;
+    result.probed += 1;
+    const healthUrl = manifest.endpoint.url.replace(/\/mcp\/?$/u, '/health');
+    const healthy = await probe(healthUrl);
+    if (healthy) {
+      result.healthy += 1;
+      const at = now.toISOString();
+      lastHealthyAt.set(manifest.id, at);
+      enqueueStoreWrite((backend) => backend.markHealthy(manifest.id, at));
+      continue;
+    }
+    const lastHealthy = Date.parse(lastHealthyAt.get(manifest.id) ?? manifest.attestation.publishedAt);
+    if (Number.isFinite(lastHealthy) && now.getTime() - lastHealthy > ttlMs) {
+      registry.delete(manifest.id);
+      lastHealthyAt.delete(manifest.id);
+      enqueueStoreWrite((backend) => backend.delete(manifest.id));
+      result.expired.push(manifest.id);
+    }
+  }
+  await flushMeshToolStore();
+  return result;
+}
+
+/**
+ * Periodic sweep wiring for server startup. No-op under test runners.
+ * Returns a stop function.
+ */
+export function startMeshToolRegistrySweep(intervalMs = 10 * 60 * 1000): () => void {
+  if (process.env.VITEST || process.env.NODE_ENV === 'test') return () => {};
+  const timer = setInterval(() => {
+    sweepMeshToolRegistry().catch((e) =>
+      console.error('[MeshToolRegistry] health sweep failed:', e)
+    );
+  }, intervalMs);
+  timer.unref?.();
+  return () => clearInterval(timer);
+}
+
 function stableJson(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableJson(item)).join(',')}]`;
@@ -290,7 +410,21 @@ export function publishMeshToolManifest(manifest: MeshToolManifest): MeshToolMan
   if (!verifyMeshToolAttestation(manifest)) {
     throw new Error('Mesh tool manifest attestation failed verification');
   }
+  // Dedupe by (name, publisher): a changed endpoint mints a new content-hash
+  // id, and the stale prior manifest must not linger beside it.
+  for (const [id, existing] of Array.from(registry.entries())) {
+    if (
+      id !== manifest.id &&
+      existing.name === manifest.name &&
+      existing.attestation.publisherAgentId === manifest.attestation.publisherAgentId
+    ) {
+      registry.delete(id);
+      lastHealthyAt.delete(id);
+    }
+  }
   registry.set(manifest.id, manifest);
+  lastHealthyAt.set(manifest.id, manifest.attestation.publishedAt);
+  enqueueStoreWrite((backend) => backend.upsertReplacing(manifest));
   return manifest;
 }
 
@@ -326,6 +460,10 @@ export function discoverMeshTools(query: unknown, limit = 20): MeshToolManifest[
 
 export function clearMeshToolRegistry(): void {
   registry.clear();
+  lastHealthyAt.clear();
+  // Cache-only clear (mirrors TeamStore.clear) — wiping the persistent backend
+  // is a separate explicit operation; tests wanting isolation should
+  // initMeshToolRegistry(new InMemoryMeshToolStoreBackend()).
 }
 
 export function verifyMeshToolInvocationChain(
@@ -478,6 +616,9 @@ export async function handleMeshToolRegistryTool(
   if (name === 'holomesh_publish_tool') {
     const manifest = buildMeshToolManifest(buildPublishArgs(args, allTools), readPublisher(args));
     const published = publishMeshToolManifest(manifest);
+    // Persistence is write-through; await it so a publish acknowledged to the
+    // caller is guaranteed deploy-survivable, not just cached.
+    await flushMeshToolStore();
     return {
       success: true,
       tool: published,

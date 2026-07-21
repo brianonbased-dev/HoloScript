@@ -98,6 +98,10 @@ import {
   registerSearchProviders,
   setTeamFormationRosterSource,
 } from './holomesh/index';
+import {
+  initMeshToolRegistry,
+  startMeshToolRegistrySweep,
+} from './holomesh/mesh-tool-registry';
 import { getClient as getHoloMeshOrchestratorClient } from './holomesh/orchestrator-client';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import {
@@ -4327,6 +4331,21 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     (query: string, opts?: { type?: string; limit?: number }) =>
       getHoloMeshOrchestratorClient().queryKnowledge(query, opts)
   );
+
+  // Hydrate the mesh-tool registry from its persistent store and start the
+  // health sweep (task_1784589178204_gnzq — the registry Map was process-local,
+  // so every deploy wiped all mesh-published tools; the sweep expires manifests
+  // whose endpoints stay unreachable past the TTL so a wiped-or-dead publisher
+  // cannot leave a discoverable-but-dead tool behind).
+  try {
+    const restored = await initMeshToolRegistry();
+    if (restored > 0) {
+      console.error(`[MeshToolRegistry] restored ${restored} mesh tool(s) from store`);
+    }
+    startMeshToolRegistrySweep();
+  } catch (e) {
+    console.error('[MeshToolRegistry] init failed (continuing with empty cache):', e);
+  }
 
   // Wire holomesh_team_form's team_id roster source (task_1784579983269_ragg —
   // same never-called DI pattern flagged, but not fixed, alongside the search
