@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/meaning",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "HoloMeaning — the stratum-2 meaning contract of the HoloScript language. The ONE typed resolution record (status, gap reasons, structured gap) that compiler, reward, corpus grader, and VMs all import. Canon: docs/spec/language-architecture.md.",
   "type": "module",
   "main": "./dist/index.cjs",
