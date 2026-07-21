@@ -111,6 +111,24 @@ module.exports = {
     // policy/world/hololand entries above).
     '@holoscript/mesh',
     /^@holoscript\/mesh\//,
+    // Same lazy-optional drift class as mesh (docker-drift externals gaps, burned
+    // down 2026-07-21): core value-imports each of these only behind try/catch'd
+    // dynamic import()/require() (HolobCompiler holo-vm, runner mcp-server + qm-bridge,
+    // DispatchPolicy snn-webgpu). None is declared in core/package.json; externalizing
+    // declares the resolve-at-runtime-if-present intent explicitly instead of relying
+    // on esbuild's tolerance of guarded dynamic specifiers. The standard config
+    // (packages/core/tsup.config.ts) already externalizes mcp-server — this Docker
+    // config had drifted from it. 'webgpu' rides along for parity with the standard
+    // config (snn-webgpu's native optional dep).
+    '@holoscript/holo-vm',
+    /^@holoscript\/holo-vm\//,
+    '@holoscript/mcp-server',
+    /^@holoscript\/mcp-server\//,
+    '@holoscript/qm-bridge',
+    /^@holoscript\/qm-bridge\//,
+    '@holoscript/snn-webgpu',
+    /^@holoscript\/snn-webgpu\//,
+    'webgpu',
     // ONNX runtimes — native bindings (onnxruntime-node) + WebGPU platform
     // packages; dynamically imported and optional. Must mirror
     // packages/core/tsup.config.ts (which externalizes these) or the Docker

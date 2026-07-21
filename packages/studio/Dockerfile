@@ -63,7 +63,6 @@ COPY packages/ packages/
 #      — packages where tsup's rollup-plugin-dts fails on complex type graphs;
 #        JS via tsup (fail loud on JS errors), .d.ts via tsc (fail loud on missing types).
 RUN cd packages/crdt && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
-RUN cd packages/crdt-spatial && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # snn-webgpu: engine/src/simulation/SNNCognitionEngine.ts imports from
 # '@holoscript/snn-webgpu'; without dist/index.d.ts Studio's type-check fails TS7016.
 # Uses tsup --dts-only (not pattern B tsc) because WGSL shader types need tsup's
@@ -110,6 +109,13 @@ RUN cd packages/llm-provider && pnpm exec tsup
 # needs framework's dist/agents/index.d.ts on disk or it fails TS2307
 # "Cannot find module '@holoscript/framework/agents'" (broke studio deploy 2026-06-07).
 RUN cd packages/framework && pnpm exec tsup --no-dts && pnpm exec tsc -p tsconfig.build.json
+# crdt-spatial MUST build after framework: MeshNodeIntegrator.ts statically
+# value-imports X402Facilitator/InvisibleWalletStub from '@holoscript/framework'
+# (its only workspace dep), so its dts emit needs framework's dist d.ts on disk —
+# it sat before framework as a blessed docker-drift order gap until 2026-07-21.
+# Verified safe to move: nothing between the old slot and here consumes
+# crdt-spatial's dist (engine's imports are type-only, erased by its no-dts build).
+RUN cd packages/crdt-spatial && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # NOTE: engine is intentionally built --no-dts (line above). No package needs engine's .d.ts:
 # mesh tolerates it via --noImplicitAny false (below) and Studio's next build resolves engine via
 # its ../engine/src tsconfig alias. An engine `tsup --dts-only` step was tried (2026-06-07) but is

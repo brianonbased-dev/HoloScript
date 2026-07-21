@@ -105,7 +105,18 @@ const CORE_DOCKER_TSUP = 'scripts/docker/tsup.core.docker.cjs';
 // Packages that never need a built .d.ts on disk to satisfy a downstream dts emit:
 //   engine — resolved via the `../engine/src` tsconfig path alias (built --no-dts by design)
 //   core   — always built early with hand-crafted d.ts (generate-types.mjs)
-const ORDER_DTS_EXEMPT = new Set(['@holoscript/engine', '@holoscript/core']);
+//   absorb-service — absorb-service-host tolerates a no-dts build via the ambient
+//     `declare module` blocks in services/absorb-service/src/types/absorb-service.d.ts
+//     (they cover every imported subpath) plus noImplicitAny:false on the untyped
+//     dist-JS fallback. NOTE the tsconfig src paths alias is NOT the mechanism — it
+//     is inert under NodeNext ESM (no extension/index probing on mapped dirs;
+//     verified via --traceResolution 2026-07-21). Keep the ambient decls in sync
+//     with the host's imported subpaths or this exemption goes stale.
+const ORDER_DTS_EXEMPT = new Set([
+  '@holoscript/engine',
+  '@holoscript/core',
+  '@holoscript/absorb-service',
+]);
 
 const SRC_EXT = /\.[cm]?[jt]sx?$/;
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', '__tests__', '.turbo', '.next', 'coverage']);
@@ -152,7 +163,12 @@ function buildWorkspaceMap() {
 // real STATEMENT, not when the same text appears inside a generated-code string
 // literal (`imports.push(`import { X } from '@holoscript/ui'`)`) or a `//` comment —
 // those have the keyword preceded by `"`, a backtick, or `//`, never at line-start.
-const STATIC_IMPORT_RE = /^[ \t]*(import|export)\s+(type\s+)?([\s\S]*?)\bfrom\s*['"]([^'"]+)['"]/gm;
+// The clause group is [^;]*? (not [\s\S]*?): a legal import/export clause never
+// contains ';' before `from`, while the greedy form could bridge from an
+// `export` keyword ACROSS dozens of interface members to a `from '...'` inside
+// a later comment — which manufactured a phantom agent-protocol→framework
+// order gap from comment text at agent-protocol/src/index.ts:250 (2026-07-21).
+const STATIC_IMPORT_RE = /^[ \t]*(import|export)\s+(type\s+)?([^;]*?)\bfrom\s*['"]([^'"]+)['"]/gm;
 const DYNAMIC_IMPORT_RE = /(typeof\s+)?\bimport\s*\(\s*['"]([^'"]+)['"]/g;
 const REQUIRE_RE = /\brequire\s*\(\s*['"]([^'"]+)['"]/g;
 

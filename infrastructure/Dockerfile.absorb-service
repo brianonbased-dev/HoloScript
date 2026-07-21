@@ -64,10 +64,17 @@ COPY services/absorb-service/ services/absorb-service/
 
 # Build in dependency order (skip DTS for runtime)
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
-RUN cd packages/config && pnpm exec tsup --no-dts
-RUN cd packages/llm-provider && pnpm exec tsup --no-dts
-# Build secrets-broker WITH dts (zero-dep) — the host's tsc needs dist/index.d.ts to resolve the import.
+# secrets-broker WITH dts (zero-dep) MUST precede config: config's dts emit needs it
+# (packages/config/src/auth.ts dynamically imports '@holoscript/secrets-broker' — the
+# literal 'secrets-broker-before-config' TS2307 class the docker-drift gate documents).
+# The host's tsc also needs its dist/index.d.ts to resolve the import.
 RUN cd packages/secrets-broker && pnpm exec tsup
+# config WITH dts (tsup.config.ts has dts:true): the host's tsc imports
+# '@holoscript/config' — with --no-dts here the host compiled against untyped JS
+# (silently `any` under noImplicitAny:false). Emitting dts closes the blessed
+# docker-drift order gap and types server.ts's config import for real.
+RUN cd packages/config && pnpm exec tsup
+RUN cd packages/llm-provider && pnpm exec tsup --no-dts
 RUN cd packages/platform && pnpm exec tsup --no-dts
 RUN cd packages/mesh && pnpm exec tsup --no-dts
 RUN cd packages/absorb-service && pnpm exec tsup --no-dts
