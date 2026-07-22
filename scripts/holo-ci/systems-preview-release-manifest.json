@@ -54,7 +54,7 @@
       "id": "npm-core",
       "kind": "npm-component",
       "name": "@holoscript/core",
-      "version": "8.0.16",
+      "version": "8.0.17",
       "role": "language-core",
       "relationship": "pinned-legacy-component",
       "requiredForInstall": true,
@@ -135,7 +135,7 @@
       "required": false,
       "identity": "https://mcp.holoscript.net",
       "componentIdentity": "@holoscript/mcp-server",
-      "baselineObservedVersion": "8.0.13",
+      "baselineObservedVersion": "8.0.14",
       "versionMode": "independent-compatible-component",
       "requiredForLocalCompile": false,
       "compatibilityProbe": "GET https://mcp.holoscript.net/health and compile the release example through the declared public tool surface."
@@ -218,6 +218,12 @@
       "Run HS010 lexical-firewall and fail-closed native diagnostics on the exact candidate artifacts.",
       "Record SHA-256 digests for every immutable distribution artifact."
     ]
+  },
+  "evidencePolicy": {
+    "requireResolvableSourceCommit": true,
+    "requireExistingArtifactPaths": true,
+    "requireMatchingArtifactDigests": true,
+    "requireMachineReadableReceipts": true
   },
   "parityContract": {
     "sameReleaseIdentity": ["npm-toolchain", "native-windows-x64", "wasm-portable-runtime"],

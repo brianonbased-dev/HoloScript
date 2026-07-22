@@ -15,6 +15,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const MANIFEST_PATH = resolve(ROOT, 'scripts', 'holo-ci', 'systems-preview-release-manifest.json');
 const canonical = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
+const localCoreVersion = JSON.parse(
+  readFileSync(resolve(ROOT, 'packages', 'core', 'package.json'), 'utf8')
+).version;
 
 assertOk(canonical && typeof canonical === 'object', 'canonical release manifest must parse');
 
@@ -86,8 +89,19 @@ console.log('check-systems-preview-release.test.mjs');
   });
   assert(!result.ok, 'component pin drift fails');
   assert(
-    hasError(result, /does not match local 8\.0\.16/u),
+    result.errors.some((error) => error.includes(`does not match local ${localCoreVersion}`)),
     'component drift names the local version'
+  );
+}
+
+{
+  const result = validate((manifest) => {
+    manifest.evidencePolicy.requireResolvableSourceCommit = false;
+  });
+  assert(!result.ok, 'release evidence policy cannot be weakened');
+  assert(
+    hasError(result, /evidencePolicy\.requireResolvableSourceCommit must be true/u),
+    'weakened evidence policy diagnostic is explicit'
   );
 }
 
@@ -99,6 +113,24 @@ console.log('check-systems-preview-release.test.mjs');
   assert(
     hasError(result, /missing declared rail: native-windows-x64/u),
     'missing rail diagnostic is explicit'
+  );
+}
+
+{
+  const result = validate((manifest) => {
+    for (const gate of manifest.gates) gate.status = 'pass';
+    manifest.releaseDecision.blockingGateIds = [];
+    manifest.releaseDecision.readyToPublish = true;
+    manifest.releaseDecision.status = 'ready';
+    manifest.releaseIdentity.registryPackage.publishState = 'candidate-built';
+    for (const rail of manifest.rails) {
+      if (rail.class === 'distribution') rail.artifactState = 'candidate-built';
+    }
+  });
+  assert(!result.ok, 'ready release cannot rely on prose-only evidence');
+  assert(
+    hasError(result, /ready release must include candidateEvidence/u),
+    'missing candidate evidence diagnostic is explicit'
   );
 }
 
@@ -164,7 +196,7 @@ console.log('check-systems-preview-release.test.mjs');
 {
   const seen = [];
   const versions = new Map([
-    ['https://mcp.holoscript.net/health', '8.0.13'],
+    ['https://mcp.holoscript.net/health', '8.0.14'],
     ['https://absorb.holoscript.net/health', '6.1.1'],
   ]);
   const result = await probeHostedCompanions(canonical, {

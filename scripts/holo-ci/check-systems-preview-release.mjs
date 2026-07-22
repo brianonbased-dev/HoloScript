@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -47,6 +49,12 @@ const REQUIRED_RAIL_IDS = [
 ];
 
 const ALLOWED_GATE_STATUSES = new Set(['pass', 'partial', 'blocked', 'fail', 'not-applicable']);
+const REQUIRED_EVIDENCE_POLICY_KEYS = [
+  'requireResolvableSourceCommit',
+  'requireExistingArtifactPaths',
+  'requireMatchingArtifactDigests',
+  'requireMachineReadableReceipts',
+];
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -98,6 +106,20 @@ function workspaceCargoVersion(rootDir) {
   const cargo = readFileSync(join(rootDir, 'Cargo.toml'), 'utf8');
   const workspacePackage = cargo.match(/\[workspace\.package\]([\s\S]*?)(?:\n\[|$)/u)?.[1] || '';
   return workspacePackage.match(/^version\s*=\s*"([^"]+)"/mu)?.[1] || '';
+}
+
+function gitCommitResolves(rootDir, commit) {
+  if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u.test(String(commit || ''))) return false;
+  const result = spawnSync('git', ['cat-file', '-e', `${commit}^{commit}`], {
+    cwd: rootDir,
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  return !result.error && result.status === 0;
+}
+
+function fileSha256(path) {
+  return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
 function secretShapedValues(value, path = '$', findings = []) {
@@ -360,6 +382,11 @@ export function validateSystemsPreviewRelease(manifest, { rootDir = DEFAULT_ROOT
     errors,
     3
   );
+  for (const key of REQUIRED_EVIDENCE_POLICY_KEYS) {
+    if (manifest?.evidencePolicy?.[key] !== true) {
+      errors.push(`evidencePolicy.${key} must be true`);
+    }
+  }
 
   const gates = manifest?.gates || [];
   const gateById = uniqueRecords(gates, 'id', 'gate', errors);
@@ -409,6 +436,48 @@ export function validateSystemsPreviewRelease(manifest, { rootDir = DEFAULT_ROOT
     for (const id of ['npm-toolchain', 'native-windows-x64', 'wasm-portable-runtime']) {
       if (/^planned-/u.test(String(railById.get(id)?.artifactState || ''))) {
         errors.push(`${id}: a ready release cannot retain a planned artifact state`);
+      }
+    }
+
+    const candidateEvidence = manifest?.candidateEvidence;
+    if (!candidateEvidence || typeof candidateEvidence !== 'object') {
+      errors.push('a ready release must include candidateEvidence');
+    } else {
+      if (!gitCommitResolves(root, candidateEvidence.sourceCommit)) {
+        errors.push('candidateEvidence.sourceCommit must resolve to a repository commit');
+      }
+
+      const artifactPaths = candidateEvidence.artifactPaths;
+      requireStrings(artifactPaths, 'candidateEvidence.artifactPaths', errors, 3);
+      const artifactDigests = candidateEvidence.artifactDigests || {};
+      for (const path of artifactPaths || []) {
+        assertRepoPath(root, path, 'candidateEvidence.artifactPaths', errors);
+        const expectedDigest = artifactDigests[path];
+        if (!/^[0-9a-f]{64}$/u.test(String(expectedDigest || ''))) {
+          errors.push(`candidateEvidence.artifactDigests is missing a SHA-256 for ${path}`);
+          continue;
+        }
+        const absolute = resolve(root, path);
+        if (existsSync(absolute) && fileSha256(absolute) !== expectedDigest) {
+          errors.push(`candidateEvidence.artifactDigests does not match ${path}`);
+        }
+      }
+
+      const receiptPaths = candidateEvidence.receiptPaths;
+      requireStrings(receiptPaths, 'candidateEvidence.receiptPaths', errors, 1);
+      for (const path of receiptPaths || []) {
+        assertRepoPath(root, path, 'candidateEvidence.receiptPaths', errors);
+        const absolute = resolve(root, path);
+        if (!existsSync(absolute)) continue;
+        if (!path.endsWith('.json')) {
+          errors.push(`candidateEvidence receipt must be JSON: ${path}`);
+          continue;
+        }
+        try {
+          readJson(absolute);
+        } catch {
+          errors.push(`candidateEvidence receipt is not valid JSON: ${path}`);
+        }
       }
     }
   }
