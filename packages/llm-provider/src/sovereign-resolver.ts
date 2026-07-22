@@ -9,14 +9,15 @@
  * the policy (studio's lib/brittney/provider.ts) should converge here.
  *
  * Auto-detect priority (no explicit provider):
- *   1. fleet     — Vast serverless sovereign serving fleet (P.008), route-probed
- *                  per request so cold pools can fall back while they wake
- *   2. cloud     — pinned sovereign serving endpoint (BrittneyCloudAdapter)
- *   3. holollama — sovereign local inference layer (llama.cpp llama-server, D.117),
+ *   1. local-fleet — owned laptop/Jetson model-fleet routes, discovered per request
+ *   2. fleet       — Vast serverless sovereign serving fleet (P.008), route-probed
+ *                    per request so cold pools can fall back while they wake
+ *   3. cloud       — pinned sovereign serving endpoint (BrittneyCloudAdapter)
+ *   4. holollama   — sovereign local inference layer (llama.cpp llama-server, D.117),
  *                  when HOLOLLAMA_URL is set; preferred over legacy Ollama
- *   4. ollama    — legacy local model (OLLAMA_HOST), kept for back-compat
- *   5. anthropic / xai / openai — BYOK frontier fallback, in that order
- *   6. holollama (default :18080) — TERMINAL sovereign default (D.117), instead of
+ *   5. ollama      — legacy local model (OLLAMA_HOST), kept for back-compat
+ *   6. anthropic / xai / openai — BYOK frontier fallback, in that order
+ *   7. holollama (default :18080) — TERMINAL sovereign default (D.117), instead of
  *                  a bare "nothing configured" throw
  *
  * Env surface (universal names first, BRITTNEY_* kept as compat aliases):
@@ -27,6 +28,7 @@
  *   OLLAMA_HOST | OLLAMA_BASE_URL | OLLAMA_URL    local endpoint
  *   FLEET_PROVIDER_ENDPOINT | VAST_QWEN_ENDPOINT_NAME  Vast endpoint
  *   HOLO_LLM_FLEET_MODEL | BRITTNEY_FLEET_MODEL   fleet model
+ *   HOLO_LLM_FLEET_BRAIN                            owned local @model_fleet source
  *   VAST_API_KEY                                  Vast route + worker bearer
  *   ANTHROPIC_API_KEY / XAI_API_KEY / OPENAI_API_KEY  BYOK fallbacks
  *   HOLOSERVE_PARITY_PINS                         model@binding-sha256 pins (comma-separated)
@@ -45,9 +47,11 @@ import { XAIAdapter } from './adapters/xai';
 import { LocalLLMAdapter } from './adapters/local-llm';
 import { BrittneyCloudAdapter } from './adapters/brittney-cloud';
 import { VastServerlessAdapter } from './adapters/vast-serverless';
-import { admitHoloServeHealth } from './fleet-router';
+import { admitHoloServeHealth, resolveLocalFleet } from './fleet-router';
+import type { FleetBackend } from './fleet-router';
 
 export type SovereignProviderName =
+  | 'local-fleet'
   | 'fleet'
   | 'cloud'
   | 'holoserve'
@@ -151,6 +155,8 @@ export interface ResolvedSovereignProvider {
   model: string;
   maxTokens: number;
   providerName: SovereignProviderName;
+  /** Concrete owned-fleet wire protocol selected in-band by resolveLocalFleet. */
+  fleetBackend?: FleetBackend;
   /** Exact parity-tested HoloServe binding when a strangler pin selected this route. */
   artifactBindingSha256?: string;
 }
@@ -237,10 +243,15 @@ function resolveSovereignProviderInternal(
         'provider=fleet requires async resolution (Vast serverless route probe) — ' +
           'call resolveSovereignProviderAsync().'
       );
+    case 'local-fleet':
+      throw new Error(
+        'provider=local-fleet requires async resolution (owned model-fleet discovery) — ' +
+          'call resolveSovereignProviderAsync().'
+      );
     default:
       throw new Error(
         `Unknown LLM provider "${explicit}". ` +
-          `Valid: fleet | cloud | holoserve | holollama | ollama | anthropic | xai | openai | sovereign/auto.`
+          `Valid: local-fleet | fleet | cloud | holoserve | holollama | ollama | anthropic | xai | openai | sovereign/auto.`
       );
   }
 
@@ -276,13 +287,42 @@ export async function resolveSovereignProviderAsync(
   opts: SovereignResolveOptions = {}
 ): Promise<ResolvedSovereignProvider> {
   const explicit = (opts.explicit || env('HOLO_LLM_PROVIDER', 'BRITTNEY_PROVIDER'))?.toLowerCase();
+  const auto =
+    explicit === undefined || explicit === '' || explicit === 'auto' || explicit === 'sovereign';
+  const localFleetBrain = env('HOLO_LLM_FLEET_BRAIN');
+  const localFleetConfigured = explicit === 'local-fleet' || (auto && Boolean(localFleetBrain));
+
+  if (localFleetConfigured) {
+    const picked = await resolveLocalFleet({
+      brainPath: localFleetBrain,
+      model: modelOverride(opts),
+    });
+    if (picked) {
+      const provider = new LocalLLMAdapter({
+        baseURL: picked.baseURL,
+        model: picked.model,
+        nativeOllamaApi: picked.backend === 'ollama',
+        timeoutMs: 300_000,
+      });
+      return {
+        provider,
+        model: picked.model,
+        maxTokens: maxTokensOverride(opts) || 4096,
+        providerName: 'local-fleet',
+        fleetBackend: picked.backend,
+      };
+    }
+    if (explicit === 'local-fleet') {
+      throw new Error(
+        'No admitted owned local fleet route is available. Check the @model_fleet brain, ' +
+          'node registry, and backend health/sovereignty receipts.'
+      );
+    }
+  }
+
   const fleetConfigured =
     explicit === 'fleet' ||
-    ((explicit === undefined ||
-      explicit === '' ||
-      explicit === 'auto' ||
-      explicit === 'sovereign') &&
-      Boolean(env('VAST_API_KEY')));
+    (auto && Boolean(env('VAST_API_KEY')));
 
   if (fleetConfigured) {
     try {

@@ -16,6 +16,13 @@ import { AnthropicAdapter } from '../adapters/anthropic';
 import { VastServerlessAdapter } from '../adapters/vast-serverless';
 import { admitHoloServeHealth } from '../fleet-router';
 
+const resolveLocalFleetMock = vi.hoisted(() => vi.fn());
+
+vi.mock('../fleet-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../fleet-router')>();
+  return { ...actual, resolveLocalFleet: resolveLocalFleetMock };
+});
+
 const HOLOSERVE_REGISTRY_SCHEMA = 'holoscript.holoserve-model-artifact-registry.v0.1.0';
 const HOLOSERVE_BINDING_SCHEMA = 'holoscript.holoserve-model-artifact-binding.v0.1.0';
 const HOLOSERVE_BINS_SCHEMA = 'holoscript.holoserve-bins-binding.v0.1.0';
@@ -64,6 +71,7 @@ const ENV_KEYS = [
   'HOLO_LLM_TIER',
   'HOLO_LLM_LANE',
   'HOLO_LLM_FLEET_MODEL',
+  'HOLO_LLM_FLEET_BRAIN',
   'FLEET_PROVIDER_ENDPOINT',
   'BRITTNEY_PROVIDER',
   'BRITTNEY_SERVICE_URL',
@@ -98,6 +106,7 @@ const ENV_KEYS = [
 
 beforeEach(() => {
   for (const k of ENV_KEYS) vi.stubEnv(k, '');
+  resolveLocalFleetMock.mockReset().mockResolvedValue(null);
   __clearLocalModelPickerCache();
 });
 
@@ -224,6 +233,75 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
 
   it('rejects unknown explicit providers', () => {
     expect(() => resolveSovereignProvider({ explicit: 'gpt5-turbo' })).toThrow(/Unknown/i);
+  });
+});
+
+describe('resolveSovereignProviderAsync (owned local fleet)', () => {
+  it('consumes a pytorch-holo route through the OpenAI-compatible chat path', async () => {
+    vi.stubEnv('HOLO_LLM_FLEET_BRAIN', 'C:/fleet/model-fleet.hsplus');
+    resolveLocalFleetMock.mockResolvedValue({
+      baseURL: 'http://127.0.0.1:8099',
+      model: 'holorunner-s0',
+      backend: 'pytorch-holo',
+      route: {
+        handle: 'laptop-holoserve',
+        baseURL: 'http://127.0.0.1:8099',
+        model: 'holorunner-s0',
+        warm: true,
+        loadScore: 0,
+        backend: 'pytorch-holo',
+        reason: 'test route',
+        candidates: [],
+      },
+    });
+
+    const r = await resolveSovereignProviderAsync();
+    expect(resolveLocalFleetMock).toHaveBeenCalledWith({
+      brainPath: 'C:/fleet/model-fleet.hsplus',
+      model: undefined,
+    });
+    expect(r.providerName).toBe('local-fleet');
+    expect(r.model).toBe('holorunner-s0');
+    expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
+
+    const fetchSpy = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        model: 'holorunner-s0',
+        choices: [{ message: { content: 'owned-metal reply' }, finish_reason: 'stop' }],
+        usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+      }),
+      text: async () => '',
+    }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await r.provider.complete(
+      { messages: [{ role: 'user', content: 'status?' }] },
+      r.model
+    );
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe('http://127.0.0.1:8099/v1/chat/completions');
+  });
+
+  it('keeps HoloLlama as the GGUF carrier when an auto local-fleet route is unavailable', async () => {
+    vi.stubEnv('HOLO_LLM_FLEET_BRAIN', 'C:/fleet/model-fleet.hsplus');
+    vi.stubEnv('HOLOLLAMA_URL', 'http://127.0.0.1:18080');
+
+    const r = await resolveSovereignProviderAsync();
+
+    expect(resolveLocalFleetMock).toHaveBeenCalledOnce();
+    expect(r.providerName).toBe('holollama');
+    expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
+  });
+
+  it('fails closed when local-fleet is explicitly required but no route is admitted', async () => {
+    vi.stubEnv('HOLO_LLM_PROVIDER', 'local-fleet');
+    vi.stubEnv('HOLO_LLM_FLEET_BRAIN', 'C:/fleet/model-fleet.hsplus');
+
+    await expect(resolveSovereignProviderAsync()).rejects.toThrow(
+      /no admitted owned local fleet route/i
+    );
   });
 });
 
