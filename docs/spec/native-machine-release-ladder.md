@@ -65,9 +65,12 @@ rails only after the declared consumer boundary has:
 production-ready, drop-in, or v1 compatibility claim.
 
 The first measured gate audit is the
-[`0.1.0` outward-preview readiness baseline](../releases/0.1.0-readiness-baseline.md). Its
-`NOT READY` disposition remains authoritative until a newer dated baseline supersedes it with all
-required evidence green.
+[`0.1.0` outward-preview readiness baseline](../releases/0.1.0-readiness-baseline.md).
+That baseline was superseded in place on 2026-07-22 after every required gate,
+anonymous npm consumption, and GitHub artifact readback passed. Its current
+`PUBLISHED OUTWARD PREVIEW` disposition is authoritative for the immutable
+`0.1.0` release; later machine contracts or preview releases require their own
+fresh evidence.
 
 The exact non-conflicting consumer identity is the
 [`HoloScript Systems Toolchain 0.1.0` distribution contract](../releases/0.1.0-distribution-contract.md),
