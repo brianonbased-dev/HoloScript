@@ -837,7 +837,11 @@ function startBackgroundAbsorbJob(jobId: string, work: () => Promise<unknown>): 
 // =============================================================================
 
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
-const DEFAULT_SCAN_MAX_FILES = 10_000;
+// The main HoloScript checkout crossed 10k absorbable files in 2026. A 10k
+// default therefore produced a cache that was fresh by age and HEAD but could
+// never be authoritative by coverage. Keep the scan bounded for laptop/edge
+// nodes while leaving enough headroom for the current monorepo.
+const DEFAULT_SCAN_MAX_FILES = 20_000;
 const DEFAULT_SCAN_MAX_FILE_SIZE = 1024 * 1024;
 const FILE_HASH_FRESHNESS_SAMPLE_LIMIT = 10;
 const GRAPH_UNAVAILABLE_RECEIPT_SCHEMA = 'holoscript.codebase.graph-unavailable-receipt.v0.1.0';
@@ -2608,7 +2612,7 @@ export const codebaseTools: Tool[] = [
         },
         maxFiles: {
           type: 'number',
-          description: 'Maximum number of files to process. Defaults to 10000.',
+          description: 'Maximum number of files to process. Defaults to 20000.',
         },
         maxFileSize: {
           type: 'number',
@@ -3272,7 +3276,7 @@ async function runFullScan(
   let phaseStartedAt = startTime;
   const phaseMetrics: AbsorbPhaseMetric[] = [];
   const effectiveScanPolicy = normalizeScanPolicy(scanPolicy);
-  const effectiveMaxFiles = maxFiles ?? effectiveScanPolicy.maxFiles;
+  const effectiveMaxFiles = maxFiles ?? effectiveScanPolicy.maxFiles ?? DEFAULT_SCAN_MAX_FILES;
   const effectiveIncludeBuildArtifacts =
     includeBuildArtifacts || effectiveScanPolicy.includeBuildArtifacts === true;
   const recordPhaseMetric = (
@@ -4187,7 +4191,7 @@ function buildScanPolicyFromArgs(
       includeBuildArtifacts,
       respectGitIgnore: args.respectGitIgnore !== false,
       includeUntracked: args.includeUntracked !== false,
-      maxFiles,
+      maxFiles: maxFiles ?? DEFAULT_SCAN_MAX_FILES,
       maxFileSize,
     }),
   };
@@ -4430,7 +4434,7 @@ async function buildAutoBackgroundDecision(
     existingCacheMatchesRoot && !plan.scanPolicyExplicit
       ? normalizeScanPolicy(existingCache.scanPolicy)
       : plan.scanPolicy;
-  const effectiveMaxFiles = plan.maxFiles ?? effectiveScanPolicy.maxFiles;
+  const effectiveMaxFiles = plan.maxFiles ?? effectiveScanPolicy.maxFiles ?? DEFAULT_SCAN_MAX_FILES;
   const effectiveIncludeBuildArtifacts =
     plan.includeBuildArtifacts || effectiveScanPolicy.includeBuildArtifacts === true;
   const existingCacheCoverageComplete = existingCache

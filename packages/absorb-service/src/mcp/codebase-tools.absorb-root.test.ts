@@ -720,6 +720,27 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.diskCache?.scanPolicy?.maxFiles).toBe(1);
   });
 
+  it('defaults new scans to a 20k coverage ceiling for the current monorepo scale', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-default-policy-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-default-policy-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+    })) as {
+      scanPolicy?: { maxFiles?: number };
+      stats?: { totalFiles?: number };
+    };
+
+    expect(result.stats?.totalFiles).toBe(2);
+    expect(result.scanPolicy?.maxFiles).toBe(20_000);
+  });
+
   it('uses cached scan policy when a missing stored commit forces a rescan', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-policy-rescan-cache-'));
