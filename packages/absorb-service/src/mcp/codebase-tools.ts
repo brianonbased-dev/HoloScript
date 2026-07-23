@@ -963,6 +963,8 @@ interface GraphCacheEnvelope {
   embeddingPolicy?: GraphRAGEmbeddingPolicyReceipt;
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
   scanPolicy?: GraphScanPolicy;
+  worktreeFingerprint?: string;
+  coverageAtScan?: GraphCoverageStatus;
 }
 
 interface GraphScanPolicy {
@@ -1410,7 +1412,88 @@ function buildGraphCoverageStatus(
 }
 
 function graphCoverageIsComplete(coverage: GraphCoverageStatus): boolean {
+  return (
+    coverage.available &&
+    coverage.complete === true &&
+    coverage.overInclusive !== true &&
+    coverage.cappedByMaxFiles !== true
+  );
+}
+
+// Scan reuse can be complete for an explicitly capped subset even though that
+// subset must not claim whole-repository authority. Keep execution reuse and
+// authority as separate predicates to avoid rebuilding the same capped plan on
+// every call while still failing closed for global queries.
+function graphCoverageMatchesScanPolicy(coverage: GraphCoverageStatus): boolean {
   return !coverage.available || (coverage.complete !== false && coverage.overInclusive !== true);
+}
+
+/**
+ * Hash the live Git worktree delta without rereading every cached file.
+ *
+ * HEAD alone cannot detect staged, unstaged, or untracked edits. The porcelain
+ * path set plus current bytes provides a stable fingerprint for those changes:
+ * staging an unchanged file does not invalidate the graph, while a second edit,
+ * dirty-to-clean transition, add, delete, or rename does. Paths outside the
+ * scanner policy are omitted so ignored binaries and build debris do not make a
+ * source graph stale.
+ */
+function buildGitWorktreeFingerprint(
+  rootDir: string | null | undefined,
+  scanPolicy?: GraphScanPolicy | null
+): string | null {
+  if (!rootDir) return null;
+  const policy = buildCoveragePolicy(scanPolicy);
+  if (!policy.respectGitIgnore) return null;
+
+  try {
+    const output = execFileSync(
+      'git',
+      ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
+      {
+        cwd: rootDir,
+        encoding: 'utf-8',
+        windowsHide: true,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        maxBuffer: 64 * 1024 * 1024,
+      }
+    );
+    const records = output.split('\0').filter(Boolean);
+    const paths = new Set<string>();
+
+    for (let index = 0; index < records.length; index += 1) {
+      const record = records[index]!;
+      if (record.length < 4) continue;
+      const status = record.slice(0, 2);
+      const filePath = record.slice(3).replace(/\\/g, '/');
+      if (!(status === '??' && !policy.includeUntracked)) paths.add(filePath);
+
+      // Porcelain -z emits the second rename/copy path as the next NUL record.
+      if ((status.includes('R') || status.includes('C')) && records[index + 1]) {
+        paths.add(records[index + 1]!.replace(/\\/g, '/'));
+        index += 1;
+      }
+    }
+
+    const entries: string[] = [];
+    for (const filePath of Array.from(paths).sort()) {
+      if (isCoverageExcludedPath(filePath, policy)) continue;
+      const resolvedFile = resolveCachedGraphFilePath(rootDir, filePath);
+      if (!resolvedFile) continue;
+      try {
+        const stat = fs.statSync(resolvedFile);
+        if (!stat.isFile() || stat.size > policy.maxFileSize) continue;
+        const hash = createHash('sha256').update(fs.readFileSync(resolvedFile)).digest('hex');
+        entries.push(`${filePath}\0${hash}`);
+      } catch {
+        entries.push(`${filePath}\0<deleted>`);
+      }
+    }
+
+    return createHash('sha256').update(JSON.stringify(entries)).digest('hex');
+  } catch {
+    return null;
+  }
 }
 
 function buildCoverageAuthorityCaveats(coverage: GraphCoverageStatus): string[] {
@@ -1663,9 +1746,12 @@ async function cacheDescribesRealCurrentRepo(options: {
   const currentGitCommitHash = await getCurrentGitCommit(rootDir);
   const gitMatchesHead =
     currentGitCommitHash !== null && currentGitCommitHash === cacheGitCommitHash;
-  const fileHashFreshness = gitMatchesHead
-    ? buildSkippedFileHashFreshnessStatus('not_checked', fileHashes)
-    : buildGraphFileHashFreshnessStatus(rootDir, fileHashes);
+  // HEAD equality is not content equality in a live worktree. A staged,
+  // unstaged, or untracked edit leaves HEAD unchanged, so skipping hashes here
+  // can mark a graph authoritative even after its source changed. Verify the
+  // persisted snapshot on every authority check; coverage separately detects
+  // newly added absorbable files that are not present in fileHashes yet.
+  const fileHashFreshness = buildGraphFileHashFreshnessStatus(rootDir, fileHashes);
   const fileHashFreshForHeadMismatch = fileHashesBridgeHeadMismatch({
     cacheGitCommitHash,
     currentGitCommitHash,
@@ -1673,7 +1759,10 @@ async function cacheDescribesRealCurrentRepo(options: {
   });
 
   return {
-    ok: currentGitCommitHash !== null && (gitMatchesHead || fileHashFreshForHeadMismatch),
+    ok:
+      currentGitCommitHash !== null &&
+      fileHashFreshness.fresh &&
+      (gitMatchesHead || fileHashFreshForHeadMismatch),
     currentGitCommitHash,
     gitMatchesHead,
     fileHashFreshForHeadMismatch,
@@ -1862,6 +1951,19 @@ function saveGraphCache(
     return;
   }
   try {
+    const normalizedScanPolicy = normalizeScanPolicy(scanPolicy);
+    const coverageAtScan = buildGraphCoverageStatus(
+      rootDir,
+      fileHashes ? Object.keys(fileHashes).length : totalFiles,
+      normalizedScanPolicy
+    );
+    const worktreeFingerprint = buildGitWorktreeFingerprint(rootDir, normalizedScanPolicy);
+    graph.gitCommitHash = gitCommitHash;
+    graph.fileHashes = fileHashes;
+    graph.scanPolicy = normalizedScanPolicy;
+    graph.worktreeFingerprint = worktreeFingerprint ?? undefined;
+    graph.coverageAtScan = coverageAtScan;
+    graph.localCodebaseSnapshotReceipt = localCodebaseSnapshotReceipt;
     const envelope: GraphCacheEnvelope = {
       version: 2,
       rootDir,
@@ -1873,7 +1975,9 @@ function saveGraphCache(
       embeddingProvider,
       embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
       localCodebaseSnapshotReceipt,
-      scanPolicy: normalizeScanPolicy(scanPolicy),
+      scanPolicy: normalizedScanPolicy,
+      ...(worktreeFingerprint && { worktreeFingerprint }),
+      coverageAtScan,
     };
     const cacheFile = getCacheFile(rootDir);
     atomicWriteFileSync(cacheFile, JSON.stringify(envelope), 'utf-8');
@@ -2006,6 +2110,15 @@ function loadGraphCache(rootDir?: string | null): GraphCacheEnvelope | null {
   return readGraphCache(rootDir)?.envelope ?? null;
 }
 
+function attachGraphCacheMetadata(graph: any, envelope: GraphCacheEnvelope): void {
+  graph.gitCommitHash = envelope.gitCommitHash;
+  graph.fileHashes = envelope.fileHashes;
+  graph.scanPolicy = normalizeScanPolicy(envelope.scanPolicy);
+  graph.worktreeFingerprint = envelope.worktreeFingerprint;
+  graph.coverageAtScan = envelope.coverageAtScan;
+  graph.localCodebaseSnapshotReceipt = envelope.localCodebaseSnapshotReceipt;
+}
+
 function getCacheAge(rootDir?: string | null): {
   exists: boolean;
   ageMs?: number;
@@ -2018,6 +2131,8 @@ function getCacheAge(rootDir?: string | null): {
   embeddingPolicy?: GraphRAGEmbeddingPolicyReceipt;
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
   scanPolicy?: GraphScanPolicy;
+  worktreeFingerprint?: string;
+  coverageAtScan?: GraphCoverageStatus;
 } {
   try {
     const cacheRead = readGraphCache(rootDir, { allowExpiredV1: true });
@@ -2035,6 +2150,8 @@ function getCacheAge(rootDir?: string | null): {
       embeddingPolicy: envelope.embeddingPolicy,
       localCodebaseSnapshotReceipt: envelope.localCodebaseSnapshotReceipt,
       scanPolicy: normalizeScanPolicy(envelope.scanPolicy),
+      worktreeFingerprint: envelope.worktreeFingerprint,
+      coverageAtScan: envelope.coverageAtScan,
     };
   } catch {
     return { exists: false };
@@ -3018,6 +3135,105 @@ async function ensureCachedGraph(): Promise<{
   graphUnavailableReceipt?: GraphUnavailableReceipt;
 }> {
   if (cachedGraph) {
+    const memoryRootDir = cachedRootDir || resolveWorkspaceRoot();
+    const memoryGraph = cachedGraph as {
+      gitCommitHash?: string;
+      fileHashes?: Record<string, string>;
+      scanPolicy?: GraphScanPolicy;
+      worktreeFingerprint?: string;
+      coverageAtScan?: GraphCoverageStatus;
+      localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
+    };
+    const memoryFileHashes = memoryGraph.fileHashes;
+    const memoryGitCommitHash = memoryGraph.gitCommitHash;
+    const memoryScanPolicy = normalizeScanPolicy(memoryGraph.scanPolicy);
+    const memoryTimestamp = cacheTimestamp;
+    const ageMs = memoryTimestamp ? Date.now() - memoryTimestamp : undefined;
+    const freshByAge = ageMs === undefined || ageMs < CACHE_MAX_AGE_MS;
+    const currentGitCommitHash = await getCurrentGitCommit(memoryRootDir);
+    const currentWorktreeFingerprint = buildGitWorktreeFingerprint(
+      memoryRootDir,
+      memoryScanPolicy
+    );
+    let coverage = memoryGraph.coverageAtScan;
+    const localCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
+      receipt: memoryGraph.localCodebaseSnapshotReceipt,
+      rootDir: memoryRootDir,
+      graphFileCount: memoryFileHashes ? Object.keys(memoryFileHashes).length : 0,
+      freshByAge,
+    });
+    let authoritative = localCodebaseSnapshot?.authoritative === true && freshByAge;
+
+    // Warm path: HEAD and the persisted dirty-worktree fingerprint match, so
+    // no graph JSON reload, full-repo hash pass, or repeated coverage walk is
+    // needed. The fingerprint hashes bytes for every Git-visible dirty path.
+    if (
+      !authoritative &&
+      freshByAge &&
+      memoryGitCommitHash &&
+      currentGitCommitHash === memoryGitCommitHash &&
+      memoryGraph.worktreeFingerprint &&
+      currentWorktreeFingerprint === memoryGraph.worktreeFingerprint &&
+      coverage &&
+      graphCoverageIsComplete(coverage)
+    ) {
+      authoritative = true;
+    }
+
+    // Legacy cache or changed HEAD/worktree: pay the comprehensive check once.
+    if (!authoritative && freshByAge) {
+      coverage = buildGraphCoverageStatus(
+        memoryRootDir,
+        memoryFileHashes ? Object.keys(memoryFileHashes).length : 0,
+        memoryScanPolicy
+      );
+      const coverageComplete = graphCoverageIsComplete(coverage);
+      const fileHashFreshness = coverageComplete
+        ? buildGraphFileHashFreshnessStatus(memoryRootDir, memoryFileHashes)
+        : buildSkippedFileHashFreshnessStatus('not_checked', memoryFileHashes);
+      const gitMatchesHead = cacheGitMatchesHead(memoryGitCommitHash, currentGitCommitHash);
+      const fileHashFreshForHeadMismatch = fileHashesBridgeHeadMismatch({
+        cacheGitCommitHash: memoryGitCommitHash,
+        currentGitCommitHash,
+        fileHashFreshness,
+      });
+      authoritative =
+        currentGitCommitHash !== null &&
+        coverageComplete &&
+        fileHashFreshness.fresh &&
+        (gitMatchesHead || fileHashFreshForHeadMismatch);
+
+      if (authoritative && currentGitCommitHash) {
+        memoryGraph.gitCommitHash = currentGitCommitHash;
+        memoryGraph.worktreeFingerprint = currentWorktreeFingerprint ?? undefined;
+        memoryGraph.coverageAtScan = coverage;
+      }
+    }
+
+    if (!authoritative) {
+      const reason: GraphUnavailableReason =
+        coverage && !graphCoverageIsComplete(coverage) ? 'cache_incomplete' : 'cache_stale';
+      cachedGraph = null;
+      cachedRootDir = '';
+      cacheProvenance = null;
+      cacheTimestamp = 0;
+      resetGraphRAGState();
+      return {
+        loaded: false,
+        source: 'none',
+        ageMs,
+        rootDir: memoryRootDir,
+        stale: true,
+        ...(coverage && { coverage }),
+        graphUnavailableReceipt: buildGraphUnavailableReceipt({
+          reason,
+          requestedPath: memoryRootDir,
+          runtimePath: path.resolve(memoryRootDir),
+          cacheAgeMs: ageMs,
+        }),
+      };
+    }
+
     if (!isGraphRAGReady()) {
       try {
         const mod = await loadCodebaseModule();
@@ -3029,9 +3245,10 @@ async function ensureCachedGraph(): Promise<{
     return {
       loaded: true,
       source: cacheProvenance === 'disk-cache' ? 'disk-cache' : 'memory',
-      ageMs: cacheTimestamp ? Date.now() - cacheTimestamp : undefined,
+      ageMs,
       rootDir: cachedRootDir,
-      stale: cacheTimestamp ? Date.now() - cacheTimestamp > CACHE_MAX_AGE_MS : false,
+      stale: false,
+      ...(coverage && { coverage }),
     };
   }
   // Try disk
@@ -3051,7 +3268,7 @@ async function ensureCachedGraph(): Promise<{
       );
       const coverageComplete = graphCoverageIsComplete(coverage);
       const cwdFileHashFreshness =
-        cacheMatchesCwd && !gitMatchesHead && freshByAge && coverageComplete
+        cacheMatchesCwd && freshByAge && coverageComplete
           ? buildGraphFileHashFreshnessStatus(envelope.rootDir, envelope.fileHashes)
           : buildSkippedFileHashFreshnessStatus('not_checked', envelope.fileHashes);
       const cwdFileHashFreshForHeadMismatch =
@@ -3061,6 +3278,12 @@ async function ensureCachedGraph(): Promise<{
           currentGitCommitHash,
           fileHashFreshness: cwdFileHashFreshness,
         });
+      const cwdLocalCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
+        receipt: envelope.localCodebaseSnapshotReceipt,
+        rootDir: envelope.rootDir,
+        graphFileCount: getEnvelopeGraphFileCount(envelope),
+        freshByAge,
+      });
 
       // A cache built for a different directory is still authoritative for its
       // own repo when it positively describes that repo's live HEAD with complete
@@ -3083,16 +3306,22 @@ async function ensureCachedGraph(): Promise<{
           });
       const cwdAuthoritative =
         cacheMatchesCwd &&
-        (gitMatchesHead || cwdFileHashFreshForHeadMismatch) &&
         freshByAge &&
-        coverageComplete;
+        (cwdLocalCodebaseSnapshot?.authoritative === true ||
+          (coverageComplete &&
+            cwdFileHashFreshness.fresh &&
+            (gitMatchesHead || cwdFileHashFreshForHeadMismatch)));
 
       if (!cwdAuthoritative && !crossRootAuthority.ok) {
         const reason: GraphUnavailableReason = !cacheMatchesCwd
           ? 'cache_root_mismatch'
-          : (!gitMatchesHead && !cwdFileHashFreshForHeadMismatch) || !freshByAge
-            ? 'cache_stale'
-            : 'cache_incomplete';
+          : !coverageComplete
+            ? 'cache_incomplete'
+            : !cwdFileHashFreshness.fresh ||
+                (!gitMatchesHead && !cwdFileHashFreshForHeadMismatch) ||
+                !freshByAge
+              ? 'cache_stale'
+              : 'cache_incomplete';
         return {
           loaded: false,
           source: 'none',
@@ -3111,6 +3340,16 @@ async function ensureCachedGraph(): Promise<{
       const mod = await loadCodebaseModule();
       const { CodebaseGraph, GraphRAGEngine } = mod;
       cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
+      attachGraphCacheMetadata(cachedGraph, envelope);
+      (cachedGraph as { worktreeFingerprint?: string }).worktreeFingerprint =
+        envelope.worktreeFingerprint ??
+        buildGitWorktreeFingerprint(envelope.rootDir, envelope.scanPolicy) ??
+        undefined;
+      (cachedGraph as { coverageAtScan?: GraphCoverageStatus }).coverageAtScan =
+        envelope.coverageAtScan ?? coverage;
+      if (cwdFileHashFreshForHeadMismatch && currentGitCommitHash) {
+        (cachedGraph as { gitCommitHash?: string }).gitCommitHash = currentGitCommitHash;
+      }
       cachedRootDir = envelope.rootDir;
       cacheProvenance = 'disk-cache';
       cacheTimestamp = envelope.timestamp;
@@ -3817,6 +4056,7 @@ async function runIncrementalPatch(
   let graph: any;
   try {
     graph = CodebaseGraph.deserialize(envelope.graphJson);
+    attachGraphCacheMetadata(graph, envelope);
   } catch {
     console.warn('[AbsorbIncremental] deserialization failed → full scan');
     return await runFullScan(
@@ -4438,7 +4678,7 @@ async function buildAutoBackgroundDecision(
   const effectiveIncludeBuildArtifacts =
     plan.includeBuildArtifacts || effectiveScanPolicy.includeBuildArtifacts === true;
   const existingCacheCoverageComplete = existingCache
-    ? graphCoverageIsComplete(
+    ? graphCoverageMatchesScanPolicy(
         buildGraphCoverageStatus(
           plan.primaryRootDir,
           getEnvelopeGraphFileCount(existingCache),
@@ -4639,7 +4879,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     : normalizeScanPolicy(envelope.scanPolicy);
   const cachePolicyChanged =
     scanPolicyExplicit && !scanPoliciesEqual(envelope.scanPolicy, scanPolicy);
-  if (cachePolicyChanged || !graphCoverageIsComplete(envelopeCoverage)) {
+  if (cachePolicyChanged || !graphCoverageMatchesScanPolicy(envelopeCoverage)) {
     const result = await runFullScan(
       mod,
       effectiveRootDirs,
@@ -4726,6 +4966,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     if (!cachedGraph) {
       try {
         cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
+        attachGraphCacheMetadata(cachedGraph, envelope);
         cachedRootDir = rootDir;
         cacheProvenance = 'disk-cache';
         cacheTimestamp = envelope.timestamp;
@@ -5359,16 +5600,22 @@ async function handleGraphStatus(): Promise<unknown> {
           )
       : undefined;
   const activeGraphFileCount = inMemoryGraphFileCount ?? diskGraphFileCount;
+  const activeAndDiskShareCoverage =
+    (cachedGraph === null || cacheProvenance === 'disk-cache') &&
+    rootMatchesCurrentRepo(cacheRootDir, cache.rootDir ?? currentCwd) &&
+    activeGraphFileCount === diskGraphFileCount;
   const activeCoverage = buildGraphCoverageStatus(
     cacheMatchesCwd || diskCacheMatchesCwd ? currentCwd : cacheRootDir,
     activeGraphFileCount,
     cache.scanPolicy
   );
-  const diskCoverage = buildGraphCoverageStatus(
-    diskCacheMatchesCwd ? currentCwd : cache.rootDir,
-    diskGraphFileCount,
-    cache.scanPolicy
-  );
+  const diskCoverage = activeAndDiskShareCoverage
+    ? activeCoverage
+    : buildGraphCoverageStatus(
+        diskCacheMatchesCwd ? currentCwd : cache.rootDir,
+        diskGraphFileCount,
+        cache.scanPolicy
+      );
   const activeCoverageComplete = graphCoverageIsComplete(activeCoverage);
   const diskCoverageComplete = graphCoverageIsComplete(diskCoverage);
   const activeHeadMatchesWorkspace = cacheGitMatchesHead(
@@ -5381,12 +5628,18 @@ async function handleGraphStatus(): Promise<unknown> {
       cache.fileHashes) ||
     undefined;
   const activeSameRootFileHashFreshness =
-    cacheMatchesCwd && !activeHeadMatchesWorkspace && activeFreshByAge && activeCoverageComplete
+    cacheMatchesCwd && activeFreshByAge && activeCoverageComplete
       ? buildGraphFileHashFreshnessStatus(cacheRootDir, activeFileHashes)
       : buildSkippedFileHashFreshnessStatus('not_checked', activeFileHashes);
+  const activeAndDiskShareFileSnapshot =
+    activeAndDiskShareCoverage &&
+    activeGitCommitHash === (cache.gitCommitHash ?? null) &&
+    cacheMatchesCwd === diskCacheMatchesCwd;
   const diskSameRootFileHashFreshness =
-    diskCacheMatchesCwd && !diskHeadMatchesWorkspace && diskCacheFreshByAge && diskCoverageComplete
-      ? buildGraphFileHashFreshnessStatus(cache.rootDir, cache.fileHashes)
+    diskCacheMatchesCwd && diskCacheFreshByAge && diskCoverageComplete
+      ? activeAndDiskShareFileSnapshot
+        ? activeSameRootFileHashFreshness
+        : buildGraphFileHashFreshnessStatus(cache.rootDir, cache.fileHashes)
       : buildSkippedFileHashFreshnessStatus('not_checked', cache.fileHashes);
   const activeSameRootFileHashFreshForHeadMismatch =
     cacheMatchesCwd &&
@@ -5500,13 +5753,16 @@ async function handleGraphStatus(): Promise<unknown> {
     graphRAGState.ready &&
     graphRAGMatchesCwd &&
     graphRAGFreshByAge &&
-    (activeGitMatchesHead || activeFileHashFreshForHeadMismatch) &&
+    (noGraphCachePresent ||
+      (activeFileHashFreshness.fresh &&
+        (activeGitMatchesHead || activeFileHashFreshForHeadMismatch))) &&
     localGraphCoverageComplete;
 
   const graphAuthoritative =
     (cacheMatchesCwd &&
       (cachedGraph !== null || cache.exists) &&
       activeFreshByAge &&
+      activeFileHashFreshness.fresh &&
       (activeGitMatchesHead || activeFileHashFreshForHeadMismatch) &&
       activeCoverageComplete) ||
     activeCrossRootAuthority.ok ||
@@ -5516,6 +5772,7 @@ async function handleGraphStatus(): Promise<unknown> {
   const diskCacheFreshForCurrentRepo =
     (diskCacheMatchesCwd &&
       diskCacheFreshByAge &&
+      diskFileHashFreshness.fresh &&
       (diskCacheGitMatchesHead || diskFileHashFreshForHeadMismatch) &&
       diskCoverageComplete) ||
     diskCrossRootAuthority.ok;
@@ -5534,13 +5791,15 @@ async function handleGraphStatus(): Promise<unknown> {
           (!cacheMatchesCwd && (cache.exists || cachedGraph !== null)) ||
           (!graphRAGMatchesCwd && graphRAGState.ready)
             ? 'cache_root_mismatch'
-            : (cache.exists || cachedGraph !== null || graphRAGState.ready) &&
-                (!activeFreshByAge ||
-                  (!activeGitMatchesHead && !activeFileHashFreshForHeadMismatch))
+            : (cache.exists || cachedGraph !== null || graphRAGState.ready) && !activeFreshByAge
               ? 'cache_stale'
               : (cache.exists || cachedGraph !== null) && !activeCoverageComplete
-                ? 'cache_incomplete'
-                : cache.exists || cachedGraph !== null || graphRAGState.ready
+              ? 'cache_incomplete'
+              : (cache.exists || cachedGraph !== null || graphRAGState.ready) &&
+                (!activeFileHashFreshness.fresh ||
+                  (!activeGitMatchesHead && !activeFileHashFreshForHeadMismatch))
+              ? 'cache_stale'
+              : cache.exists || cachedGraph !== null || graphRAGState.ready
                   ? 'cache_stale'
                   : 'cache_missing',
         requestedPath,
@@ -5641,13 +5900,15 @@ async function handleGraphStatus(): Promise<unknown> {
                 ? `Cache rootDir (${cache.rootDir}) differs from the workspace root (${currentCwd}); its HEAD changed, but cached file hashes still match that repo with complete coverage and remain authoritative for ${cache.rootDir}. Queries answer about ${cache.rootDir}.`
                 : `Cache rootDir (${cache.rootDir}) differs from the workspace root (${currentCwd}) but matches that repo's live HEAD with complete coverage and remains authoritative for ${cache.rootDir}. Queries answer about ${cache.rootDir}.`
               : `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
-            : !diskCacheGitMatchesHead && !diskFileHashFreshForHeadMismatch
+            : !diskCoverageComplete
+              ? `Cache covers ${diskCoverage.graphFileCount}/${diskCoverage.expectedGraphFileCount ?? 'unknown'} expected files for this checkout. Refresh with holo_absorb_repo before trusting whole-repo queries.`
+              : !diskCacheGitMatchesHead && !diskFileHashFreshForHeadMismatch
               ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but current HEAD is ${shortGitHash(currentGitCommitHash)}. Call holo_absorb_repo with force:true to refresh.`
+              : !diskFileHashFreshness.fresh
+                ? `Cache file hashes no longer match the live worktree (${diskFileHashFreshness.modifiedFileCount} modified, ${diskFileHashFreshness.deletedFileCount} deleted). Call holo_absorb_repo to refresh before trusting structural or semantic queries.`
               : !diskCacheGitMatchesHead && diskFileHashFreshForHeadMismatch
                 ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but all cached file hashes still match current HEAD ${shortGitHash(currentGitCommitHash)}. Structural tools may use it with the head-mismatch caveat.`
-                : !diskCoverageComplete
-                  ? `Cache covers ${diskCoverage.graphFileCount}/${diskCoverage.expectedGraphFileCount ?? 'unknown'} expected files for this checkout. Refresh with holo_absorb_repo before trusting whole-repo queries.`
-                  : diskCacheFreshByAge
+                : diskCacheFreshByAge
                     ? diskSemanticIndexHydratable
                       ? 'HoloGraph cache and HoloEmbed disk index are fresh; structural and semantic tools can auto-load without re-scanning.'
                       : 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'

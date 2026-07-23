@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { execFileSync } from 'child_process';
+import { createHash } from 'crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CodebaseGraph } from '../engine/CodebaseGraph';
 import type { ScannedFile } from '../engine/types';
@@ -37,10 +38,13 @@ function makeImpactRepo(): { repoDir: string; cacheDir: string } {
     windowsHide: true,
   });
 
+  const fileHashes: Record<string, string> = {};
   const files = Array.from({ length: 6 }, (_, index) => {
     const filePath = `src/f${index}.ts`;
+    const content = `export const f${index} = ${index};\n`;
     fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
-    fs.writeFileSync(path.join(repoDir, filePath), `export const f${index} = ${index};\n`, 'utf-8');
+    fs.writeFileSync(path.join(repoDir, filePath), content, 'utf-8');
+    fileHashes[filePath] = createHash('sha256').update(content, 'utf-8').digest('hex');
     return makeFile(
       filePath,
       index === 0
@@ -89,6 +93,7 @@ function makeImpactRepo(): { repoDir: string; cacheDir: string } {
       stats: graph.getStats(),
       graphJson: graph.serialize(),
       gitCommitHash,
+      fileHashes,
       scanPolicy: { includeUntracked: false, maxFiles: 20_000 },
     }),
     'utf-8'

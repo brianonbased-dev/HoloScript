@@ -505,7 +505,13 @@ describe('holo_absorb_repo root validation', () => {
     const requestedRoot = makeTinyGitRepo('holoscript-fresh-graph-repo-');
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
     process.env.HOLOSCRIPT_WORKSPACE_ROOT = requestedRoot;
-    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, undefined, 2);
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      requestedRoot,
+      Date.now() - 5 * 60 * 1000,
+      getHeadCommit(requestedRoot),
+      hashRepoFiles(requestedRoot, ['src/alpha.ts', 'src/beta.ts'])
+    );
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
@@ -535,14 +541,15 @@ describe('holo_absorb_repo root validation', () => {
   it('marks a fresh-age disk cache stale when its git hash differs from HEAD', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-git-stale-cache-'));
-    const requestedRoot = process.cwd();
+    const requestedRoot = makeTinyGitRepo('holoscript-git-stale-repo-');
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = requestedRoot;
     writeGraphCache(
       cacheDir,
       requestedRoot,
       Date.now() - 5 * 60 * 1000,
       '1111111111111111111111111111111111111111',
-      10_000
+      2
     );
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
@@ -568,7 +575,7 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.diskCache?.stale).toBe(true);
     expect(status.diskCache?.authoritative).toBe(false);
     expect(status.diskCache?.gitCommitHash).toBe('1111111111111111111111111111111111111111');
-    expect(status.diskCache?.currentGitCommitHash).toBe(getHeadCommit());
+    expect(status.diskCache?.currentGitCommitHash).toBe(getHeadCommit(requestedRoot));
     expect(status.diskCache?.gitCommitMatchesHead).toBe(false);
     expect(status.diskCache?.hint).toContain('111111111111');
     expect(status.graphUnavailableReceipt).toMatchObject({
@@ -706,18 +713,22 @@ describe('holo_absorb_repo root validation', () => {
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
       diskCache?: {
+        freshForCurrentRepo?: boolean;
         gitCommitHash?: string | null;
         currentGitCommitHash?: string | null;
         gitCommitMatchesHead?: boolean;
         scanPolicy?: { maxFiles?: number };
+        coverage?: { cappedByMaxFiles?: boolean };
       };
     };
 
-    expect(status.graphAuthoritative).toBe(true);
+    expect(status.graphAuthoritative).toBe(false);
+    expect(status.diskCache?.freshForCurrentRepo).toBe(false);
     expect(status.diskCache?.gitCommitHash).toBe(currentHead);
     expect(status.diskCache?.currentGitCommitHash).toBe(currentHead);
     expect(status.diskCache?.gitCommitMatchesHead).toBe(true);
     expect(status.diskCache?.scanPolicy?.maxFiles).toBe(1);
+    expect(status.diskCache?.coverage?.cappedByMaxFiles).toBe(true);
   });
 
   it('defaults new scans to a 20k coverage ceiling for the current monorepo scale', async () => {
@@ -841,7 +852,13 @@ describe('holo_absorb_repo root validation', () => {
     const head = getHeadCommit(requestedRoot);
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
     process.env.HOLOSCRIPT_WORKSPACE_ROOT = requestedRoot;
-    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000, head, 2);
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      requestedRoot,
+      Date.now() - 5 * 60 * 1000,
+      head,
+      hashRepoFiles(requestedRoot, ['src/alpha.ts', 'src/beta.ts'])
+    );
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
@@ -866,7 +883,78 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt).toBeUndefined();
   });
 
-  it('flags authoritative caches whose coverage is capped by maxFiles', async () => {
+  it('invalidates a matching-HEAD cache when the dirty worktree changes after scanning', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-dirty-hash-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-dirty-hash-repo-');
+    const alphaPath = path.join(repoDir, 'src', 'alpha.ts');
+    const head = getHeadCommit(repoDir);
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    fs.appendFileSync(alphaPath, '\nexport const dirtyAtScan = true;\n');
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      repoDir,
+      Date.now() - 5 * 60 * 1000,
+      head,
+      hashRepoFiles(repoDir, ['src/alpha.ts', 'src/beta.ts'])
+    );
+
+    const freshStatus = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      fileHashFreshness?: { checked?: boolean; fresh?: boolean };
+      diskCache?: { gitCommitMatchesHead?: boolean };
+    };
+    expect(freshStatus.graphAuthoritative).toBe(true);
+    expect(freshStatus.diskCache?.gitCommitMatchesHead).toBe(true);
+    expect(freshStatus.fileHashFreshness).toMatchObject({ checked: true, fresh: true });
+
+    fs.appendFileSync(alphaPath, '\nexport const dirtyAfterScan = true;\n');
+    resetCodebaseToolStateForTests();
+
+    const staleStatus = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      fileHashFreshness?: {
+        checked?: boolean;
+        fresh?: boolean;
+        modifiedFileSample?: string[];
+      };
+      diskCache?: {
+        gitCommitMatchesHead?: boolean;
+        hint?: string;
+      };
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+    };
+    expect(staleStatus.graphAuthoritative).toBe(false);
+    expect(staleStatus.diskCache?.gitCommitMatchesHead).toBe(true);
+    expect(staleStatus.fileHashFreshness).toMatchObject({
+      checked: true,
+      fresh: false,
+      modifiedFileSample: ['src/alpha.ts'],
+    });
+    expect(staleStatus.diskCache?.hint).toContain('file hashes no longer match');
+    expect(staleStatus.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'cache_stale',
+      authoritative: false,
+    });
+
+    execFileSync('git', ['add', 'src/alpha.ts'], { cwd: repoDir, windowsHide: true });
+    resetCodebaseToolStateForTests(false);
+    const stagedQuery = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'stats',
+      queryType: 'stats',
+    })) as { error?: string; graphUnavailableReceipt?: GraphUnavailableReceipt };
+    expect(stagedQuery.error).toContain('No codebase graph loaded');
+    expect(stagedQuery.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'cache_stale',
+      authoritative: false,
+    });
+  });
+
+  it('refuses whole-repo authority when coverage is capped by maxFiles', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-capped-cache-'));
     const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-capped-repo-'));
@@ -893,7 +981,14 @@ describe('holo_absorb_repo root validation', () => {
     execFileSync('git', ['add', 'src'], { cwd: repoDir, windowsHide: true });
     execFileSync('git', ['commit', '-m', 'fixture'], { cwd: repoDir, windowsHide: true });
     const head = getHeadCommit(repoDir);
-    writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, head, 2, { maxFiles: 2 });
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      repoDir,
+      Date.now() - 5 * 60 * 1000,
+      head,
+      hashRepoFiles(repoDir, ['src/tracked-0.ts', 'src/tracked-1.ts']),
+      { maxFiles: 2 }
+    );
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
@@ -918,7 +1013,7 @@ describe('holo_absorb_repo root validation', () => {
       };
     };
 
-    expect(status.graphAuthoritative).toBe(true);
+    expect(status.graphAuthoritative).toBe(false);
     expect(status.coverage).toMatchObject({
       complete: true,
       graphFileCount: 2,
@@ -929,7 +1024,7 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.authorityCaveats).toContain(
       'graph_coverage_capped_at_2_of_3_git_visible_candidates'
     );
-    expect(status.diskCache?.authoritative).toBe(true);
+    expect(status.diskCache?.authoritative).toBe(false);
     expect(status.diskCache?.coverage).toMatchObject({
       complete: true,
       graphFileCount: 2,
@@ -975,7 +1070,13 @@ describe('holo_absorb_repo root validation', () => {
     execFileSync('git', ['add', 'src'], { cwd: repoDir, windowsHide: true });
     execFileSync('git', ['commit', '-m', 'initial'], { cwd: repoDir, windowsHide: true });
     const head = getHeadCommit(repoDir);
-    writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, head, 3);
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      repoDir,
+      Date.now() - 5 * 60 * 1000,
+      head,
+      hashRepoFiles(repoDir, ['src/eligible-0.ts', 'src/eligible-1.ts', 'src/eligible-2.ts'])
+    );
 
     try {
       process.chdir(repoDir);
@@ -1610,7 +1711,7 @@ describe('holo_absorb_repo root validation', () => {
       gitCommitHash?: string;
     };
     expect(cache.gitCommitHash).toBe(secondCommit);
-  }, 20_000);
+  }, 30_000);
 
   it('builds missing HoloEmbed index when a zero-change graph request follows stats-only cache', async () => {
     resetCodebaseToolStateForTests();
@@ -1721,7 +1822,7 @@ describe('holo_absorb_repo root validation', () => {
     })) as { error?: string; results?: unknown[] };
     expect(semanticSearch.error).toBeUndefined();
     expect(semanticSearch.results?.length).toBeGreaterThan(0);
-  }, 20_000);
+  }, 30_000);
 
   it('does not emit a graph unavailable receipt when local GraphRAG is live without disk cache', async () => {
     resetCodebaseToolStateForTests();
@@ -1838,7 +1939,13 @@ describe('holo_absorb_repo root validation', () => {
     const head = getHeadCommit(cachedRepo);
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
     process.env.HOLOSCRIPT_WORKSPACE_ROOT = workspaceRepo;
-    writeGraphCache(cacheDir, cachedRepo, Date.now() - 5 * 60 * 1000, head, 2);
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      cachedRepo,
+      Date.now() - 5 * 60 * 1000,
+      head,
+      hashRepoFiles(cachedRepo, ['src/alpha.ts', 'src/beta.ts'])
+    );
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
@@ -1960,7 +2067,13 @@ describe('holo_absorb_repo root validation', () => {
     const head = getHeadCommit(cachedRepo);
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
     process.env.HOLOSCRIPT_WORKSPACE_ROOT = workspaceRepo;
-    writeGraphCache(cacheDir, cachedRepo, Date.now() - 5 * 60 * 1000, head, 2);
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      cachedRepo,
+      Date.now() - 5 * 60 * 1000,
+      head,
+      hashRepoFiles(cachedRepo, ['src/alpha.ts', 'src/beta.ts'])
+    );
 
     const result = (await handleCodebaseTool('holo_query_codebase', {
       query: 'stats',
