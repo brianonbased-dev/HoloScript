@@ -1,0 +1,237 @@
+{
+  "evidence": {
+    "identity": "brittney-edge",
+    "version": "v0-5",
+    "baseModel": "Qwen/Qwen3-4B-Instruct-2507",
+    "completionReceipt": {
+      "path": "holotune/runs/brittney-edge/brittney-edge-v0-5-candidate-mr5ia2w3/completion-receipt.json",
+      "digest": "sha256:907d96e24e8e9f5540b45c26f40f9a2474c08021d4b388de5d686605d23466a7"
+    },
+    "codingEvaluationReceipt": {
+      "path": "holotune/runs/brittney-edge/v0-5/eval-coding-20260703T225638Z-receipt.json",
+      "digest": "sha256:e569a80691da767ff08a557ad50287310e5ec7b5c7ee50d09157242bff5e4757"
+    },
+    "adapterArtifact": {
+      "name": "adapter_model.safetensors",
+      "digest": "sha256:55d72be352ad2adf1088a7705cd0d4091cad37db6d16d7904c160cf6438d231c"
+    },
+    "candidateArtifact": {
+      "format": "gguf",
+      "digest": "sha256:78688ea87fb42175dae5c1b6145079eb87ce57c94d28d0203dd46df49a8dec08"
+    },
+    "tokenizerArtifact": {
+      "name": "tokenizer.json",
+      "digest": "sha256:be75606093db2094d7cd20f3c2f385c212750648bd6ea4fb2bf507a6a4c55506"
+    },
+    "promotionGate": {
+      "verdict": "FAIL",
+      "blockers": [
+        "branch-utility-not-improved",
+        "safety-suite-required",
+        "misevolution-metric-required"
+      ]
+    },
+    "normalization": {
+      "kind": "historical-receipt-replay",
+      "note": "This HoloTune run predates native HoloWeight suite manifests. The closed-world coding evaluation receipt is pinned as the replay suite identity; the graph cannot become admissible while the safety and misevolution receipts are absent."
+    }
+  },
+  "graph": {
+    "schema": "holoweight.graph.v1",
+    "id": "holotune:brittney-edge:v0-5",
+    "candidateDigest": "sha256:78688ea87fb42175dae5c1b6145079eb87ce57c94d28d0203dd46df49a8dec08",
+    "base": {
+      "artifact": {
+        "digest": "sha256:85e4a5b7b8ef0e48af0e8658f5aaab9c2324c76c1641493f4d1e25fce54b18b9",
+        "format": "gguf"
+      },
+      "architecture": "Qwen/Qwen3-4B-Instruct-2507",
+      "tokenizerDigest": "sha256:be75606093db2094d7cd20f3c2f385c212750648bd6ea4fb2bf507a6a4c55506"
+    },
+    "deltas": [
+      {
+        "id": "brittney-edge-v0-5-lora",
+        "artifact": {
+          "digest": "sha256:55d72be352ad2adf1088a7705cd0d4091cad37db6d16d7904c160cf6438d231c",
+          "format": "safetensors"
+        },
+        "compatibility": {
+          "baseDigest": "sha256:85e4a5b7b8ef0e48af0e8658f5aaab9c2324c76c1641493f4d1e25fce54b18b9",
+          "architecture": "Qwen/Qwen3-4B-Instruct-2507",
+          "tokenizerDigest": "sha256:be75606093db2094d7cd20f3c2f385c212750648bd6ea4fb2bf507a6a4c55506",
+          "targetModules": [
+            "gate_proj",
+            "v_proj",
+            "o_proj",
+            "up_proj",
+            "q_proj",
+            "k_proj",
+            "down_proj"
+          ],
+          "rank": 8
+        },
+        "provides": [
+          "brittney_edge_coding_pass_rate"
+        ],
+        "mustPreserve": [
+          "holo_compile_pass_rate",
+          "holo_edit_pass_rate",
+          "parse_fix_pass_rate",
+          "refactor_green_rate",
+          "safety_suite",
+          "misevolution_drift"
+        ],
+        "producerRef": "holotune:completion-receipt:sha256:907d96e24e8e9f5540b45c26f40f9a2474c08021d4b388de5d686605d23466a7"
+      }
+    ],
+    "compositions": [],
+    "requirements": [
+      {
+        "id": "branch-utility",
+        "subject": "brittney_edge_coding_pass_rate",
+        "metric": "coding_branch_utility",
+        "suiteDigest": "sha256:e569a80691da767ff08a557ad50287310e5ec7b5c7ee50d09157242bff5e4757",
+        "rule": {
+          "kind": "improves_by",
+          "value": 0.05
+        },
+        "minSeeds": 1,
+        "evaluatorPolicy": "provenance_independent"
+      },
+      {
+        "id": "preserve-holo-compile",
+        "subject": "holo_compile_pass_rate",
+        "metric": "pass_rate",
+        "suiteDigest": "sha256:e569a80691da767ff08a557ad50287310e5ec7b5c7ee50d09157242bff5e4757",
+        "rule": {
+          "kind": "non_regression",
+          "tolerance": 0
+        },
+        "minSeeds": 1,
+        "evaluatorPolicy": "deterministic"
+      },
+      {
+        "id": "preserve-holo-edit",
+        "subject": "holo_edit_pass_rate",
+        "metric": "pass_rate",
+        "suiteDigest": "sha256:e569a80691da767ff08a557ad50287310e5ec7b5c7ee50d09157242bff5e4757",
+        "rule": {
+          "kind": "non_regression",
+          "tolerance": 0
+        },
+        "minSeeds": 1,
+        "evaluatorPolicy": "deterministic"
+      },
+      {
+        "id": "preserve-parse-fix",
+        "subject": "parse_fix_pass_rate",
+        "metric": "pass_rate",
+        "suiteDigest": "sha256:e569a80691da767ff08a557ad50287310e5ec7b5c7ee50d09157242bff5e4757",
+        "rule": {
+          "kind": "non_regression",
+          "tolerance": 0
+        },
+        "minSeeds": 1,
+        "evaluatorPolicy": "deterministic"
+      },
+      {
+        "id": "preserve-refactor-green",
+        "subject": "refactor_green_rate",
+        "metric": "pass_rate",
+        "suiteDigest": "sha256:e569a80691da767ff08a557ad50287310e5ec7b5c7ee50d09157242bff5e4757",
+        "rule": {
+          "kind": "non_regression",
+          "tolerance": 0
+        },
+        "minSeeds": 1,
+        "evaluatorPolicy": "deterministic"
+      },
+      {
+        "id": "safety-suite",
+        "subject": "safety_suite",
+        "metric": "pass_rate",
+        "suiteDigest": "sha256:e569a80691da767ff08a557ad50287310e5ec7b5c7ee50d09157242bff5e4757",
+        "rule": {
+          "kind": "minimum",
+          "value": 1
+        },
+        "minSeeds": 1,
+        "evaluatorPolicy": "cross_family"
+      },
+      {
+        "id": "misevolution-drift",
+        "subject": "misevolution_drift",
+        "metric": "drift_rate",
+        "suiteDigest": "sha256:e569a80691da767ff08a557ad50287310e5ec7b5c7ee50d09157242bff5e4757",
+        "rule": {
+          "kind": "maximum",
+          "value": 0.02
+        },
+        "minSeeds": 1,
+        "evaluatorPolicy": "cross_family"
+      }
+    ],
+    "receipts": [
+      {
+        "requirementId": "branch-utility",
+        "candidateDigest": "sha256:78688ea87fb42175dae5c1b6145079eb87ce57c94d28d0203dd46df49a8dec08",
+        "receiptDigest": "sha256:e569a80691da767ff08a557ad50287310e5ec7b5c7ee50d09157242bff5e4757",
+        "evaluatorRef": "holotune:coding-eval:20260703T225638Z",
+        "seedCount": 0,
+        "passed": false
+      },
+      {
+        "requirementId": "preserve-holo-compile",
+        "candidateDigest": "sha256:78688ea87fb42175dae5c1b6145079eb87ce57c94d28d0203dd46df49a8dec08",
+        "receiptDigest": "sha256:907d96e24e8e9f5540b45c26f40f9a2474c08021d4b388de5d686605d23466a7",
+        "evaluatorRef": "holotune:frozen-benchmark:20260703T225638Z",
+        "seedCount": 1,
+        "passed": true
+      },
+      {
+        "requirementId": "preserve-holo-edit",
+        "candidateDigest": "sha256:78688ea87fb42175dae5c1b6145079eb87ce57c94d28d0203dd46df49a8dec08",
+        "receiptDigest": "sha256:907d96e24e8e9f5540b45c26f40f9a2474c08021d4b388de5d686605d23466a7",
+        "evaluatorRef": "holotune:frozen-benchmark:20260703T225638Z",
+        "seedCount": 1,
+        "passed": true
+      },
+      {
+        "requirementId": "preserve-parse-fix",
+        "candidateDigest": "sha256:78688ea87fb42175dae5c1b6145079eb87ce57c94d28d0203dd46df49a8dec08",
+        "receiptDigest": "sha256:907d96e24e8e9f5540b45c26f40f9a2474c08021d4b388de5d686605d23466a7",
+        "evaluatorRef": "holotune:frozen-benchmark:20260703T225638Z",
+        "seedCount": 1,
+        "passed": true
+      },
+      {
+        "requirementId": "preserve-refactor-green",
+        "candidateDigest": "sha256:78688ea87fb42175dae5c1b6145079eb87ce57c94d28d0203dd46df49a8dec08",
+        "receiptDigest": "sha256:907d96e24e8e9f5540b45c26f40f9a2474c08021d4b388de5d686605d23466a7",
+        "evaluatorRef": "holotune:frozen-benchmark:20260703T225638Z",
+        "seedCount": 1,
+        "passed": true
+      }
+    ],
+    "previousAdmittedHead": "sha256:da3c55306b1a2dac1ca470bd1320e4432ba272fe0d1e1e30f67265d0b2fdec05"
+  },
+  "expected": {
+    "readiness": "candidate",
+    "promotionGateVerdict": "FAIL",
+    "blockers": [
+      "branch-utility-not-improved",
+      "safety-suite-required",
+      "misevolution-metric-required"
+    ],
+    "requirementStatuses": {
+      "branch-utility": "failed",
+      "preserve-holo-compile": "satisfied",
+      "preserve-holo-edit": "satisfied",
+      "preserve-parse-fix": "satisfied",
+      "preserve-refactor-green": "satisfied",
+      "safety-suite": "missing",
+      "misevolution-drift": "missing"
+    },
+    "rollbackHead": "sha256:da3c55306b1a2dac1ca470bd1320e4432ba272fe0d1e1e30f67265d0b2fdec05"
+  }
+}
