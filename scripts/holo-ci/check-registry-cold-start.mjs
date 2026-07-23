@@ -10,7 +10,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 
 const args = process.argv.slice(2);
@@ -22,6 +22,11 @@ const probeIdx = args.indexOf('--probe');
 const registryIdx = args.indexOf('--registry');
 const mirrorIdx = args.indexOf('--mirror-url');
 const PACKAGE_SPEC = packageIdx >= 0 ? args[packageIdx + 1] : '@holoscript/core@latest';
+const LOCAL_PACKAGE_PATH = existsSync(resolve(PACKAGE_SPEC)) ? resolve(PACKAGE_SPEC) : null;
+const INSTALL_SPEC = LOCAL_PACKAGE_PATH || PACKAGE_SPEC;
+const DISPLAY_PACKAGE_SPEC = LOCAL_PACKAGE_PATH
+  ? `file:<local-artifact>/${basename(LOCAL_PACKAGE_PATH)}`
+  : PACKAGE_SPEC;
 const OUT_PATH = outIdx >= 0 ? resolve(args[outIdx + 1]) : null;
 const REGISTRY_URL =
   (registryIdx >= 0 ? args[registryIdx + 1] : null) ||
@@ -120,6 +125,7 @@ const PACKAGE_BIN_HELP_PROBES = {
   },
 };
 const PROBES = new Set([
+  'systems-toolchain',
   'core-holo-webgpu',
   'mcp-server-sizing',
   'holollama-harness',
@@ -248,8 +254,28 @@ function fail(receipt, reason, error) {
   process.exit(1);
 }
 
+function redactReceiptPaths(value) {
+  if (Array.isArray(value)) return value.map(redactReceiptPaths);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, redactReceiptPaths(child)])
+    );
+  }
+  if (typeof value !== 'string') return value;
+  let redacted = value;
+  for (const [path, replacement] of [
+    [LOCAL_PACKAGE_PATH, '<local-artifact>'],
+    [process.cwd(), '<repo>'],
+    [tmpdir(), '<temp-root>'],
+  ]) {
+    if (path) redacted = redacted.replaceAll(path, replacement);
+  }
+  return redacted;
+}
+
 function emit(receipt) {
-  const text = `${JSON.stringify(receipt, null, 2)}\n`;
+  const safeReceipt = redactReceiptPaths(receipt);
+  const text = `${JSON.stringify(safeReceipt, null, 2)}\n`;
   if (OUT_PATH) {
     mkdirSync(dirname(OUT_PATH), { recursive: true });
     writeFileSync(OUT_PATH, text);
@@ -932,6 +958,86 @@ console.log(JSON.stringify({
 `;
 }
 
+function buildSystemsToolchainProbeScript() {
+  return `
+import { spawnSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import * as systems from '@holoscript/systems';
+
+const wasmNamespace = await import('@holoscript/systems/wasm');
+const wasm = wasmNamespace.default || wasmNamespace;
+const packageRoot = resolve(process.cwd(), 'node_modules', '@holoscript', 'systems');
+const manifest = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
+const release = JSON.parse(readFileSync(join(packageRoot, 'release-manifest.json'), 'utf8'));
+const nativeBin = join(packageRoot, manifest.bin.holoscriptc);
+const cliBin = join(packageRoot, manifest.bin.holoscript);
+const source = systems.conformanceSourcePath;
+const output = join(process.cwd(), 'systems-proof.exe');
+
+const wasmSource = 'function main(): i32 { return 5 }';
+const wasmValidation = wasm.validate(wasmSource);
+const wasmParse = JSON.parse(wasm.parse(wasmSource));
+const compile = spawnSync(process.execPath, [nativeBin, source, '-o', output], {
+  cwd: process.cwd(),
+  encoding: 'utf8',
+  stdio: ['ignore', 'pipe', 'pipe'],
+  timeout: 180_000,
+  windowsHide: true
+});
+const program = compile.status === 0 && existsSync(output)
+  ? spawnSync(output, [], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 30_000,
+      windowsHide: true
+    })
+  : null;
+const cli = spawnSync(process.execPath, [cliBin, '--help'], {
+  cwd: process.cwd(),
+  encoding: 'utf8',
+  stdio: ['ignore', 'pipe', 'pipe'],
+  timeout: 60_000,
+  windowsHide: true
+});
+const cliText = String(cli.stdout || cli.stderr || '').replace(/\\u001b\\[[0-9;]*m/g, '');
+
+const checks = {
+  packageIdentity: manifest.name === '@holoscript/systems' && manifest.version === '0.1.0',
+  exactCorePin: manifest.dependencies?.['@holoscript/core'] === '8.0.17',
+  exactCliPin: manifest.dependencies?.['@holoscript/cli'] === '8.0.11',
+  expectedBins: ['holoscript', 'hs', 'holoscriptc'].every((name) => name in (manifest.bin || {})),
+  releaseIdentity:
+    release.distributionId === 'holoscript-systems-toolchain' &&
+    release.version === '0.1.0' &&
+    release.machineContract === 'hs-machine-v32' &&
+    /^[0-9a-f]{40}$/.test(release.sourceCommit || ''),
+  exportedIdentity:
+    systems.distribution?.version === release.version &&
+    systems.distribution?.sourceCommit === release.sourceCommit,
+  wasmParseValidate: wasmValidation === true && !wasmParse.error,
+  nativeCompile: compile.status === 0 && existsSync(output),
+  nativeProgramExitFive: program?.status === 5,
+  cliHelp: cli.status === 0 && cliText.includes('HoloScript')
+};
+
+console.log(JSON.stringify({
+  kind: 'systems-toolchain',
+  ok: Object.values(checks).every(Boolean),
+  checks,
+  sourceCommit: release.sourceCommit,
+  native: {
+    compileExitCode: compile.status,
+    programExitCode: program?.status ?? null,
+    stderr: String(compile.stderr || '').slice(0, 800)
+  },
+  wasm: { version: wasm.version(), validation: wasmValidation, parsedWithoutError: !wasmParse.error },
+  cli: { exitCode: cli.status, stdoutBytes: Buffer.byteLength(cliText) }
+}, null, 2));
+`;
+}
+
 function main() {
   const work = mkdtempSync(join(tmpdir(), 'hs-registry-cold-start-'));
   const npmCacheDir = join(work, 'npm-cache');
@@ -943,7 +1049,7 @@ function main() {
     generatedAt: new Date().toISOString(),
     ok: false,
     package: {
-      spec: PACKAGE_SPEC,
+      spec: DISPLAY_PACKAGE_SPEC,
       metadata: null,
       installed: null,
     },
@@ -969,7 +1075,7 @@ function main() {
       tempDirKept: KEEP_TEMP,
       repoAccess: false,
       installCommand:
-        `npm install ${PACKAGE_SPEC}${REGISTRY_URL ? ` --registry ${REGISTRY_URL}` : ''} ` +
+        `npm install ${DISPLAY_PACKAGE_SPEC}${REGISTRY_URL ? ` --registry ${REGISTRY_URL}` : ''} ` +
         '--ignore-scripts --no-audit --no-fund ' +
         `${installOmit.join(' ')} --prefer-online --cache <temp>/npm-cache --loglevel=error`,
     },
@@ -1003,24 +1109,32 @@ function main() {
     );
   }
 
-  try {
-    const metadataRaw = runNpm(
-      [
-        'view',
-        PACKAGE_SPEC,
-        'name',
-        'version',
-        'dist.integrity',
-        'dist.tarball',
-        'dependencies',
-        'exports',
-        '--json',
-      ],
-      { cwd: work }
-    );
-    receipt.package.metadata = JSON.parse(metadataRaw);
-  } catch (error) {
-    fail(receipt, 'npm-view-failed', error);
+  if (LOCAL_PACKAGE_PATH) {
+    receipt.package.metadata = {
+      source: 'local-artifact',
+      filename: basename(LOCAL_PACKAGE_PATH),
+      sha256: sha256(readFileSync(LOCAL_PACKAGE_PATH)),
+    };
+  } else {
+    try {
+      const metadataRaw = runNpm(
+        [
+          'view',
+          PACKAGE_SPEC,
+          'name',
+          'version',
+          'dist.integrity',
+          'dist.tarball',
+          'dependencies',
+          'exports',
+          '--json',
+        ],
+        { cwd: work }
+      );
+      receipt.package.metadata = JSON.parse(metadataRaw);
+    } catch (error) {
+      fail(receipt, 'npm-view-failed', error);
+    }
   }
 
   try {
@@ -1028,7 +1142,7 @@ function main() {
       'npm',
       withRegistry([
         'install',
-        PACKAGE_SPEC,
+        INSTALL_SPEC,
         '--ignore-scripts',
         '--no-audit',
         '--no-fund',
@@ -1045,8 +1159,11 @@ function main() {
   }
 
   try {
+    const consumerManifest = readJsonIfExists(join(work, 'package.json'));
+    const directPackageNames = Object.keys(consumerManifest?.dependencies || {});
     const packageName =
       receipt.package.metadata?.name ||
+      directPackageNames.find((name) => name.startsWith('@holoscript/')) ||
       String(PACKAGE_SPEC)
         .replace(/@latest$/u, '')
         .replace(/@\d+\.\d+\.\d+.*$/u, '');
@@ -1062,13 +1179,21 @@ function main() {
       resolved: installed?.resolved || null,
       packageJsonSha256: manifestRaw ? sha256(manifestRaw) : null,
     };
+    if (LOCAL_PACKAGE_PATH && manifest) {
+      receipt.package.metadata.name = manifest.name;
+      receipt.package.metadata.version = manifest.version;
+      receipt.package.metadata.dependencies = manifest.dependencies || {};
+      receipt.package.metadata.exports = manifest.exports || {};
+    }
   } catch (error) {
     fail(receipt, 'installed-package-inspection-failed', error);
   }
 
   try {
     const probeFile = join(work, 'probe.mjs');
-    if (PROBE === 'core-holo-webgpu') {
+    if (PROBE === 'systems-toolchain') {
+      writeFileSync(probeFile, buildSystemsToolchainProbeScript());
+    } else if (PROBE === 'core-holo-webgpu') {
       const sourceFile = join(work, 'registry-cold-start.holo');
       const outputFile = join(work, 'registry-cold-start.webgpu.ts');
       writeFileSync(sourceFile, SOURCE);

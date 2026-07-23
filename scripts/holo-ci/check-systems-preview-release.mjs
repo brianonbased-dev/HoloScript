@@ -179,6 +179,30 @@ export function validateSystemsPreviewRelease(manifest, { rootDir = DEFAULT_ROOT
   if (registryPackage.version !== identity.version) {
     errors.push('registry package version must equal the distribution version');
   }
+  assertRepoPath(
+    root,
+    registryPackage.localManifest,
+    'releaseIdentity.registryPackage.localManifest',
+    errors
+  );
+  if (registryPackage.localManifest && existsSync(resolve(root, registryPackage.localManifest))) {
+    const localDistribution = readJson(resolve(root, registryPackage.localManifest));
+    if (localDistribution.name !== registryPackage.name) {
+      errors.push(
+        `distribution package name ${localDistribution.name || '<missing>'} does not match ${registryPackage.name}`
+      );
+    }
+    if (localDistribution.version !== registryPackage.version) {
+      errors.push(
+        `distribution package version ${localDistribution.version || '<missing>'} does not match ${registryPackage.version}`
+      );
+    }
+    for (const bin of manifest?.installContract?.expectedBins || []) {
+      if (!Object.hasOwn(localDistribution.bin || {}, bin)) {
+        errors.push(`distribution package is missing bin ${bin}`);
+      }
+    }
+  }
 
   for (const [key, path] of Object.entries({
     machineReleaseLadder: manifest?.authority?.machineReleaseLadder,
@@ -438,46 +462,47 @@ export function validateSystemsPreviewRelease(manifest, { rootDir = DEFAULT_ROOT
         errors.push(`${id}: a ready release cannot retain a planned artifact state`);
       }
     }
+  }
 
-    const candidateEvidence = manifest?.candidateEvidence;
-    if (!candidateEvidence || typeof candidateEvidence !== 'object') {
-      errors.push('a ready release must include candidateEvidence');
-    } else {
-      if (!gitCommitResolves(root, candidateEvidence.sourceCommit)) {
-        errors.push('candidateEvidence.sourceCommit must resolve to a repository commit');
+  const candidateEvidence = manifest?.candidateEvidence;
+  if (ready && (!candidateEvidence || typeof candidateEvidence !== 'object')) {
+    errors.push('a ready release must include candidateEvidence');
+  }
+  if (candidateEvidence && typeof candidateEvidence === 'object') {
+    if (!gitCommitResolves(root, candidateEvidence.sourceCommit)) {
+      errors.push('candidateEvidence.sourceCommit must resolve to a repository commit');
+    }
+
+    const artifactPaths = candidateEvidence.artifactPaths;
+    requireStrings(artifactPaths, 'candidateEvidence.artifactPaths', errors, 3);
+    const artifactDigests = candidateEvidence.artifactDigests || {};
+    for (const path of artifactPaths || []) {
+      assertRepoPath(root, path, 'candidateEvidence.artifactPaths', errors);
+      const expectedDigest = artifactDigests[path];
+      if (!/^[0-9a-f]{64}$/u.test(String(expectedDigest || ''))) {
+        errors.push(`candidateEvidence.artifactDigests is missing a SHA-256 for ${path}`);
+        continue;
       }
-
-      const artifactPaths = candidateEvidence.artifactPaths;
-      requireStrings(artifactPaths, 'candidateEvidence.artifactPaths', errors, 3);
-      const artifactDigests = candidateEvidence.artifactDigests || {};
-      for (const path of artifactPaths || []) {
-        assertRepoPath(root, path, 'candidateEvidence.artifactPaths', errors);
-        const expectedDigest = artifactDigests[path];
-        if (!/^[0-9a-f]{64}$/u.test(String(expectedDigest || ''))) {
-          errors.push(`candidateEvidence.artifactDigests is missing a SHA-256 for ${path}`);
-          continue;
-        }
-        const absolute = resolve(root, path);
-        if (existsSync(absolute) && fileSha256(absolute) !== expectedDigest) {
-          errors.push(`candidateEvidence.artifactDigests does not match ${path}`);
-        }
+      const absolute = resolve(root, path);
+      if (existsSync(absolute) && fileSha256(absolute) !== expectedDigest) {
+        errors.push(`candidateEvidence.artifactDigests does not match ${path}`);
       }
+    }
 
-      const receiptPaths = candidateEvidence.receiptPaths;
-      requireStrings(receiptPaths, 'candidateEvidence.receiptPaths', errors, 1);
-      for (const path of receiptPaths || []) {
-        assertRepoPath(root, path, 'candidateEvidence.receiptPaths', errors);
-        const absolute = resolve(root, path);
-        if (!existsSync(absolute)) continue;
-        if (!path.endsWith('.json')) {
-          errors.push(`candidateEvidence receipt must be JSON: ${path}`);
-          continue;
-        }
-        try {
-          readJson(absolute);
-        } catch {
-          errors.push(`candidateEvidence receipt is not valid JSON: ${path}`);
-        }
+    const receiptPaths = candidateEvidence.receiptPaths;
+    requireStrings(receiptPaths, 'candidateEvidence.receiptPaths', errors, 1);
+    for (const path of receiptPaths || []) {
+      assertRepoPath(root, path, 'candidateEvidence.receiptPaths', errors);
+      const absolute = resolve(root, path);
+      if (!existsSync(absolute)) continue;
+      if (!path.endsWith('.json')) {
+        errors.push(`candidateEvidence receipt must be JSON: ${path}`);
+        continue;
+      }
+      try {
+        readJson(absolute);
+      } catch {
+        errors.push(`candidateEvidence receipt is not valid JSON: ${path}`);
       }
     }
   }

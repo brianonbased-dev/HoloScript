@@ -1,0 +1,77 @@
+{
+  "name": "@holoscript/systems",
+  "version": "0.1.0",
+  "description": "Pinned HoloScript systems toolchain preview with CLI, native compiler, and bundled WebAssembly validation runtime",
+  "type": "module",
+  "main": "./index.mjs",
+  "types": "./index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs",
+      "default": "./index.mjs"
+    },
+    "./wasm": {
+      "types": "./wasm/holoscript_wasm.d.ts",
+      "require": "./wasm/index.cjs",
+      "default": "./wasm/index.cjs"
+    },
+    "./release-manifest": "./release-manifest.json"
+  },
+  "bin": {
+    "holoscript": "./bin/holoscript.cjs",
+    "hs": "./bin/holoscript.cjs",
+    "holoscriptc": "./bin/holoscriptc.cjs"
+  },
+  "files": [
+    "bin",
+    "conformance",
+    "native",
+    "wasm",
+    "index.mjs",
+    "index.d.ts",
+    "release-manifest.json",
+    "SHA256SUMS",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "prepack": "node scripts/verify-package.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "dependencies": {
+    "@holoscript/cli": "8.0.11",
+    "@holoscript/core": "8.0.17"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "preview"
+  },
+  "keywords": [
+    "holoscript",
+    "systems-programming",
+    "compiler",
+    "native",
+    "webassembly"
+  ],
+  "author": "HoloScript Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "distributions/systems"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

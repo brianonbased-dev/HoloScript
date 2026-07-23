@@ -10,6 +10,7 @@
       "registry": "npm",
       "name": "@holoscript/systems",
       "version": "0.1.0",
+      "localManifest": "distributions/systems/package.json",
       "publishState": "planned-unpublished"
     },
     "versionAuthority": "This distribution manifest owns the 0.x preview version. Component packages, crates, services, and hs-machine selectors retain independent versions.",
@@ -283,7 +284,7 @@
       "status": "partial",
       "evidencePaths": ["docs/releases/0.1.0-readiness-baseline.md"],
       "verificationCommands": ["cargo run --release -p holoscript-native --bin holoscriptc -- examples/native/conditional-borrow-summary-exit-five.hs -o <temp>/proof.exe"],
-      "remaining": "Build the named distribution artifacts and emit their source-commit and SHA-256 set."
+      "remaining": "Commit the distribution source layer, run scripts/holo-ci/build-systems-preview-artifacts.mjs from that exact commit, and record the resulting artifact set."
     },
     {
       "id": "cold-npm-consumption",
