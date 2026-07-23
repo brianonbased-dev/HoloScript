@@ -2,7 +2,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -603,6 +603,7 @@ function parseArgs(argv) {
   const args = [...argv];
   const rootIndex = args.indexOf('--root');
   const manifestIndex = args.indexOf('--manifest');
+  const outIndex = args.indexOf('--out');
   const rootDir = rootIndex >= 0 ? resolve(args[rootIndex + 1]) : DEFAULT_ROOT;
   const manifestPath =
     manifestIndex >= 0
@@ -616,6 +617,7 @@ function parseArgs(argv) {
     json: args.includes('--json'),
     requireReady: args.includes('--require-ready'),
     checkServices: args.includes('--check-services'),
+    outPath: outIndex >= 0 ? resolve(args[outIndex + 1]) : null,
   };
 }
 
@@ -633,6 +635,10 @@ async function main() {
     ? await probeHostedCompanions(manifest, { rootDir: options.rootDir })
     : null;
   const output = serviceReadback ? { ...result, serviceReadback } : result;
+  if (options.outPath) {
+    mkdirSync(dirname(options.outPath), { recursive: true });
+    writeFileSync(options.outPath, `${JSON.stringify(output, null, 2)}\n`);
+  }
   if (options.json) {
     console.log(JSON.stringify(output, null, 2));
   } else {

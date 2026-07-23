@@ -1,0 +1,64 @@
+{
+  "schema": "holoscript.systems-preview-build-receipt/v1",
+  "generatedAt": "2026-07-23T01:42:45.967Z",
+  "ok": true,
+  "distributionId": "holoscript-systems-toolchain",
+  "version": "0.1.0",
+  "machineContract": "hs-machine-v32",
+  "sourceCommit": "a3afbd31b03bc8fd16f61321b59cad1d77727807",
+  "sourceTreeClean": true,
+  "host": {
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "toolchain": {
+    "node": "v24.15.0",
+    "npm": "11.6.2",
+    "rustc": "rustc 1.91.0 (f8297e351 2025-10-28)",
+    "cargo": "cargo 1.91.0 (ea2d97820 2025-10-10)",
+    "wasmPack": "wasm-pack 0.14.0"
+  },
+  "reproducibility": {
+    "sourceDateEpoch": "1784770854",
+    "cargoIncremental": false,
+    "rustPathRemaps": [
+      "/holoscript/source",
+      "/rust/cargo",
+      "/rust/toolchain"
+    ]
+  },
+  "commands": [
+    "cargo build --release -p holoscript-native --bin holoscriptc",
+    "wasm-pack.exe build --release --target nodejs --out-dir <temp>",
+    "npm pack --json --pack-destination artifacts/releases/0.1.0"
+  ],
+  "deterministicRebuilds": {
+    "npmTarball": true,
+    "nativeArchive": true
+  },
+  "conformanceCorpus": {
+    "programCount": 25,
+    "digest": "49c0d1a066ee5fb9fb9c5b64cc4cc151a32e5940e095fe5d3e441a82c96a0055"
+  },
+  "embeddedArtifactDigests": {
+    "native/win32-x64/holoscriptc.exe": "8ee59dbedf1bc6a254fd498374943b19292a0494a5c11744e9596a11015497f3",
+    "wasm/holoscript_wasm_bg.wasm": "60b1fa9f0a071e6447b8674635b9ae6e3fdb9493d945ec94e3d6de4b8fc9c945"
+  },
+  "artifacts": [
+    {
+      "path": "artifacts/releases/0.1.0/holoscript-systems-0.1.0.tgz",
+      "bytes": 1145546,
+      "sha256": "316490e4e9342ddaed17952d20c4bd4abe9b529a40e0bf210b28d47c76e9b15d"
+    },
+    {
+      "path": "artifacts/releases/0.1.0/holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip",
+      "bytes": 1036798,
+      "sha256": "ff0994b5075b83d099f2500a34808ffb31f69a79f39cf978d53e41f924a266d1"
+    },
+    {
+      "path": "artifacts/releases/0.1.0/holoscript-systems-v0.1.0-wasm.wasm",
+      "bytes": 299247,
+      "sha256": "60b1fa9f0a071e6447b8674635b9ae6e3fdb9493d945ec94e3d6de4b8fc9c945"
+    }
+  ]
+}

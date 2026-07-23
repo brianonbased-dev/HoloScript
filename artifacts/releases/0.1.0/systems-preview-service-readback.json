@@ -1,0 +1,50 @@
+{
+  "schema": "holoscript.systems-preview-release-check/v1",
+  "ok": true,
+  "ready": true,
+  "distributionId": "holoscript-systems-toolchain",
+  "version": "0.1.0",
+  "registryPackage": "@holoscript/systems",
+  "componentCount": 4,
+  "railCount": 7,
+  "gateCount": 14,
+  "blockingGateIds": [],
+  "errors": [],
+  "warnings": [],
+  "serviceReadback": {
+    "schema": "holoscript.systems-preview-service-readback/v1",
+    "ok": true,
+    "checkedAt": "2026-07-23T01:49:58.394Z",
+    "rows": [
+      {
+        "railId": "hosted-mcp",
+        "identity": "https://mcp.holoscript.net",
+        "healthUrl": "https://mcp.holoscript.net/health",
+        "status": 200,
+        "ok": true,
+        "version": "8.0.14",
+        "baselineObservedVersion": "8.0.14"
+      },
+      {
+        "railId": "hosted-absorb",
+        "identity": "https://absorb.holoscript.net",
+        "healthUrl": "https://absorb.holoscript.net/health",
+        "status": 200,
+        "ok": true,
+        "version": "6.1.1",
+        "baselineObservedVersion": "6.1.1"
+      },
+      {
+        "railId": "hosted-studio",
+        "identity": "https://studio-production-a071.up.railway.app",
+        "healthUrl": "https://studio-production-a071.up.railway.app/api/health",
+        "status": 200,
+        "ok": true,
+        "version": null,
+        "baselineObservedVersion": null
+      }
+    ],
+    "errors": [],
+    "warnings": []
+  }
+}

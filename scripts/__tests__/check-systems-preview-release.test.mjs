@@ -53,7 +53,7 @@ console.log('check-systems-preview-release.test.mjs');
     'canonical distribution contract is structurally valid',
     result.errors.join('; ')
   );
-  assert(result.ready === false, 'canonical candidate remains explicitly not ready');
+  assert(result.ready === true, 'canonical candidate is evidence-backed and ready');
   assert(
     result.blockingGateIds.length === canonical.releaseDecision.blockingGateIds.length,
     'computed blockers match the declared readiness decision'
@@ -118,6 +118,7 @@ console.log('check-systems-preview-release.test.mjs');
 
 {
   const result = validate((manifest) => {
+    delete manifest.candidateEvidence;
     for (const gate of manifest.gates) gate.status = 'pass';
     manifest.releaseDecision.blockingGateIds = [];
     manifest.releaseDecision.readyToPublish = true;
@@ -170,6 +171,9 @@ console.log('check-systems-preview-release.test.mjs');
 
 {
   const result = validate((manifest) => {
+    const gate = manifest.gates.find((candidate) => candidate.id === 'cross-rail-parity');
+    gate.status = 'partial';
+    gate.remaining = 'Synthetic missing parity evidence.';
     manifest.releaseDecision.blockingGateIds = [];
     manifest.releaseDecision.readyToPublish = true;
     manifest.releaseDecision.status = 'ready';

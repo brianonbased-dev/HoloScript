@@ -1,0 +1,20 @@
+{
+  "name": "holoscript-wasm",
+  "collaborators": [
+    "HoloScript Team"
+  ],
+  "description": "HoloScript parser and type checker compiled to WebAssembly",
+  "version": "3.0.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript"
+  },
+  "files": [
+    "holoscript_wasm_bg.wasm",
+    "holoscript_wasm.js",
+    "holoscript_wasm.d.ts"
+  ],
+  "main": "holoscript_wasm.js",
+  "types": "holoscript_wasm.d.ts"
+}

@@ -5,13 +5,13 @@
     "displayName": "HoloScript Systems Toolchain",
     "version": "0.1.0",
     "channel": "outward-preview",
-    "status": "defined-not-ready",
+    "status": "candidate-built",
     "registryPackage": {
       "registry": "npm",
       "name": "@holoscript/systems",
       "version": "0.1.0",
       "localManifest": "distributions/systems/package.json",
-      "publishState": "planned-unpublished"
+      "publishState": "candidate-built"
     },
     "versionAuthority": "This distribution manifest owns the 0.x preview version. Component packages, crates, services, and hs-machine selectors retain independent versions.",
     "legacyVersionReset": "forbidden",
@@ -104,7 +104,7 @@
       "required": true,
       "identity": "@holoscript/systems@0.1.0",
       "versionMode": "distribution-semver",
-      "artifactState": "planned-unpublished",
+      "artifactState": "candidate-built",
       "installCommand": "npm install --global @holoscript/systems@0.1.0",
       "coldProbe": "holoscript --version && hs --version && holoscriptc --help"
     },
@@ -115,7 +115,7 @@
       "required": true,
       "identity": "holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip",
       "versionMode": "distribution-semver",
-      "artifactState": "planned-unbuilt",
+      "artifactState": "candidate-built",
       "requiredContents": ["holoscriptc.exe", "conformance/*.hs", "release-manifest.json", "SHA256SUMS", "LICENSE"],
       "coldProbe": "holoscriptc examples/native/conditional-borrow-summary-exit-five.hs -o proof.exe; proof.exe exits 5"
     },
@@ -126,7 +126,7 @@
       "required": true,
       "identity": "@holoscript/systems@0.1.0/wasm",
       "versionMode": "distribution-semver",
-      "artifactState": "planned-unbuilt",
+      "artifactState": "candidate-built",
       "coldProbe": "Import the bundled WASM parser/type-checker and run the declared conformance corpus."
     },
     {
@@ -174,7 +174,7 @@
     }
   ],
   "installContract": {
-    "availability": "planned-unpublished",
+    "availability": "candidate-built",
     "primaryCommand": "npm install --global @holoscript/systems@0.1.0",
     "expectedBins": ["holoscript", "hs", "holoscriptc"],
     "coldConsumerRequirements": [
@@ -226,6 +226,25 @@
     "requireMatchingArtifactDigests": true,
     "requireMachineReadableReceipts": true
   },
+  "candidateEvidence": {
+    "sourceCommit": "a3afbd31b03bc8fd16f61321b59cad1d77727807",
+    "artifactPaths": [
+      "artifacts/releases/0.1.0/holoscript-systems-0.1.0.tgz",
+      "artifacts/releases/0.1.0/holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip",
+      "artifacts/releases/0.1.0/holoscript-systems-v0.1.0-wasm.wasm"
+    ],
+    "artifactDigests": {
+      "artifacts/releases/0.1.0/holoscript-systems-0.1.0.tgz": "316490e4e9342ddaed17952d20c4bd4abe9b529a40e0bf210b28d47c76e9b15d",
+      "artifacts/releases/0.1.0/holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip": "ff0994b5075b83d099f2500a34808ffb31f69a79f39cf978d53e41f924a266d1",
+      "artifacts/releases/0.1.0/holoscript-systems-v0.1.0-wasm.wasm": "60b1fa9f0a071e6447b8674635b9ae6e3fdb9493d945ec94e3d6de4b8fc9c945"
+    },
+    "receiptPaths": [
+      "artifacts/releases/0.1.0/systems-preview-build-receipt.json",
+      "artifacts/releases/0.1.0/systems-preview-verification-receipt.json",
+      "artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json",
+      "artifacts/releases/0.1.0/systems-preview-service-readback.json"
+    ]
+  },
   "parityContract": {
     "sameReleaseIdentity": ["npm-toolchain", "native-windows-x64", "wasm-portable-runtime"],
     "independentlyVersionedCompanions": ["hosted-mcp", "hosted-absorb", "hosted-studio"],
@@ -273,26 +292,40 @@
     {
       "id": "cumulative-machine-conformance",
       "required": true,
-      "status": "partial",
-      "evidencePaths": ["docs/spec/native-machine-v32.md", "packages/compiler-native/tests/native_smoke.rs"],
-      "verificationCommands": ["cargo test -p holoscript-native", "cargo test -p holoscript-wasm"],
-      "remaining": "Run the cumulative corpus through the exact packed npm, native, and WASM candidate artifacts."
+      "status": "pass",
+      "evidencePaths": [
+        "docs/spec/native-machine-v32.md",
+        "artifacts/releases/0.1.0/systems-preview-verification-receipt.json",
+        "artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json"
+      ],
+      "verificationCommands": [
+        "node scripts/holo-ci/check-systems-preview-artifacts.mjs --json",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package artifacts/releases/0.1.0/holoscript-systems-0.1.0.tgz --probe systems-toolchain --json"
+      ]
     },
     {
       "id": "deterministic-artifact-provenance",
       "required": true,
-      "status": "partial",
-      "evidencePaths": ["docs/releases/0.1.0-readiness-baseline.md"],
-      "verificationCommands": ["cargo run --release -p holoscript-native --bin holoscriptc -- examples/native/conditional-borrow-summary-exit-five.hs -o <temp>/proof.exe"],
-      "remaining": "Commit the distribution source layer, run scripts/holo-ci/build-systems-preview-artifacts.mjs from that exact commit, and record the resulting artifact set."
+      "status": "pass",
+      "evidencePaths": [
+        "artifacts/releases/0.1.0/systems-preview-build-receipt.json",
+        "artifacts/releases/0.1.0/holoscript-systems-0.1.0.tgz",
+        "artifacts/releases/0.1.0/holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip",
+        "artifacts/releases/0.1.0/holoscript-systems-v0.1.0-wasm.wasm"
+      ],
+      "verificationCommands": [
+        "node scripts/holo-ci/build-systems-preview-artifacts.mjs --source-commit a3afbd31b03bc8fd16f61321b59cad1d77727807 --json",
+        "node scripts/holo-ci/check-systems-preview-artifacts.mjs --json"
+      ]
     },
     {
       "id": "cold-npm-consumption",
       "required": true,
-      "status": "blocked",
-      "evidencePaths": ["scripts/holo-ci/npm-v1-release-manifest.json"],
-      "verificationCommands": ["node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/systems@0.1.0 --probe systems-toolchain --json"],
-      "remaining": "Create and pack @holoscript/systems@0.1.0, then run the repo-less cold probe."
+      "status": "pass",
+      "evidencePaths": ["artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json"],
+      "verificationCommands": [
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package artifacts/releases/0.1.0/holoscript-systems-0.1.0.tgz --probe systems-toolchain --json"
+      ]
     },
     {
       "id": "cold-pypi-consumption",
@@ -305,10 +338,12 @@
     {
       "id": "registry-version-dependency-closure",
       "required": true,
-      "status": "partial",
-      "evidencePaths": ["scripts/holo-ci/npm-v1-release-manifest.json"],
-      "verificationCommands": ["node scripts/holo-ci/check-npm-v1-release-readiness.mjs --json"],
-      "remaining": "Prove the new meta-package dependency closure and immutable artifact versions."
+      "status": "pass",
+      "evidencePaths": [
+        "scripts/holo-ci/npm-v1-release-manifest.json",
+        "artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json"
+      ],
+      "verificationCommands": ["node scripts/holo-ci/check-npm-v1-release-readiness.mjs --json"]
     },
     {
       "id": "package-architecture",
@@ -337,18 +372,27 @@
     {
       "id": "publish-secret-safe-boundary",
       "required": true,
-      "status": "partial",
-      "evidencePaths": ["scripts/holo-ci/check-publish-surface.mjs"],
-      "verificationCommands": ["node scripts/holo-ci/check-publish-surface.mjs"],
-      "remaining": "Inspect and secret-scan the exact npm, native, and WASM candidate artifacts."
+      "status": "pass",
+      "evidencePaths": [
+        "scripts/holo-ci/check-publish-surface.mjs",
+        "artifacts/releases/0.1.0/systems-preview-verification-receipt.json"
+      ],
+      "verificationCommands": [
+        "node scripts/holo-ci/check-publish-surface.mjs",
+        "node scripts/holo-ci/check-systems-preview-artifacts.mjs --json"
+      ]
     },
     {
       "id": "railway-readback",
       "required": true,
-      "status": "partial",
-      "evidencePaths": ["scripts/data/railway-ecosystem.targets.json"],
-      "verificationCommands": ["node scripts/holo-ci/check-systems-preview-release.mjs --check-services --json"],
-      "remaining": "Record release-date compatibility probes and rollback readback for every optional hosted companion."
+      "status": "pass",
+      "evidencePaths": [
+        "scripts/data/railway-ecosystem.targets.json",
+        "artifacts/releases/0.1.0/systems-preview-service-readback.json"
+      ],
+      "verificationCommands": [
+        "node scripts/holo-ci/check-systems-preview-release.mjs --check-services --json"
+      ]
     },
     {
       "id": "preview-compatibility-policy",
@@ -367,24 +411,23 @@
     {
       "id": "cross-rail-parity",
       "required": true,
-      "status": "blocked",
-      "evidencePaths": ["scripts/holo-ci/systems-preview-release-manifest.json"],
-      "verificationCommands": ["node scripts/holo-ci/check-systems-preview-release.mjs --require-ready --json"],
-      "remaining": "Build all distribution rails and compare embedded identity, conformance, commit, and digest receipts."
+      "status": "pass",
+      "evidencePaths": [
+        "scripts/holo-ci/systems-preview-release-manifest.json",
+        "artifacts/releases/0.1.0/systems-preview-build-receipt.json",
+        "artifacts/releases/0.1.0/systems-preview-verification-receipt.json",
+        "artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json"
+      ],
+      "verificationCommands": [
+        "node scripts/holo-ci/check-systems-preview-artifacts.mjs --json",
+        "node scripts/holo-ci/check-systems-preview-release.mjs --require-ready --json"
+      ]
     }
   ],
   "releaseDecision": {
-    "readyToPublish": false,
-    "status": "not-ready",
-    "blockingGateIds": [
-      "cumulative-machine-conformance",
-      "deterministic-artifact-provenance",
-      "cold-npm-consumption",
-      "registry-version-dependency-closure",
-      "publish-secret-safe-boundary",
-      "railway-readback",
-      "cross-rail-parity"
-    ],
+    "readyToPublish": true,
+    "status": "ready",
+    "blockingGateIds": [],
     "authorizationRule": "Only a validated manifest with every required gate at pass may authorize a 0.1.0 publish, tag, or distribution claim."
   }
 }
