@@ -137,6 +137,8 @@
     "build:systems-preview-artifacts": "node scripts/holo-ci/build-systems-preview-artifacts.mjs",
     "check:systems-preview-release:ready": "node scripts/holo-ci/check-systems-preview-release.mjs --require-ready",
     "check:systems-preview-release:test": "node scripts/__tests__/check-systems-preview-release.test.mjs",
+    "check:systems-preview-public-canary": "node scripts/holo-ci/check-systems-preview-public-canary.mjs",
+    "check:systems-preview-public-canary:test": "node scripts/__tests__/check-systems-preview-public-canary.test.mjs",
     "check:npm-deprecations": "node scripts/holo-ci/check-npm-deprecations.mjs",
     "check:package-architecture": "node scripts/holo-ci/check-package-architecture.mjs",
     "check:package-architecture:test": "node scripts/holo-ci/check-package-architecture.mjs --self-test",
