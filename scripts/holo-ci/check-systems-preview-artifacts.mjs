@@ -13,7 +13,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { readDeterministicZip } from './lib/deterministic-zip.mjs';
@@ -198,6 +198,23 @@ try {
       'LICENSE',
     ].map((file) => join(SYSTEMS_DIR, file)),
   ];
+  const conformanceFiles = listFiles(join(SYSTEMS_DIR, 'conformance'))
+    .filter((path) => path.endsWith('.hs'))
+    .sort((left, right) => left.localeCompare(right, 'en'));
+  if (conformanceFiles.length < 25) {
+    errors.push(`cumulative conformance corpus has only ${conformanceFiles.length} programs`);
+  }
+  const conformanceDigests = Object.fromEntries(
+    conformanceFiles.map((path) => [basename(path), sha256File(path)])
+  );
+  if (
+    embedded?.conformanceCorpus?.programCount !== conformanceFiles.length ||
+    embedded?.conformanceCorpus?.digest !== sha256(JSON.stringify(conformanceDigests)) ||
+    JSON.stringify(embedded?.conformanceCorpus?.programs || {}) !==
+      JSON.stringify(conformanceDigests)
+  ) {
+    errors.push('embedded cumulative conformance corpus metadata does not match package bytes');
+  }
   const packageSums = parseSums(
     readFileSync(join(SYSTEMS_DIR, 'SHA256SUMS'), 'utf8'),
     'package SHA256SUMS',
@@ -209,15 +226,30 @@ try {
   if (!zipArtifact) errors.push('native ZIP artifact is missing from the build receipt');
   else {
     const zipFiles = readDeterministicZip(readFileSync(resolve(ROOT, zipArtifact.path)));
-    const expectedNames = ['LICENSE', 'SHA256SUMS', 'holoscriptc.exe', 'release-manifest.json'];
-    if (JSON.stringify([...zipFiles.keys()]) !== JSON.stringify(expectedNames)) {
+    const expectedNames = [
+      'LICENSE',
+      'SHA256SUMS',
+      'holoscriptc.exe',
+      'release-manifest.json',
+      ...conformanceFiles.map((path) => `conformance/${basename(path)}`),
+    ];
+    if (
+      zipFiles.size !== expectedNames.length ||
+      !expectedNames.every((name) => zipFiles.has(name))
+    ) {
       errors.push(`native ZIP contents mismatch: ${[...zipFiles.keys()].join(', ')}`);
     }
     const zipSums = parseSums(zipFiles.get('SHA256SUMS'), 'native ZIP SHA256SUMS', errors);
-    for (const name of ['LICENSE', 'holoscriptc.exe', 'release-manifest.json']) {
+    for (const name of expectedNames.filter((name) => name !== 'SHA256SUMS')) {
       const bytes = zipFiles.get(name);
       if (!bytes || zipSums.get(name) !== sha256(bytes)) {
         errors.push(`native ZIP checksum mismatch: ${name}`);
+      }
+    }
+    for (const path of conformanceFiles) {
+      const name = `conformance/${basename(path)}`;
+      if (!zipFiles.get(name)?.equals(readFileSync(path))) {
+        errors.push(`native ZIP conformance program differs from npm package: ${name}`);
       }
     }
     if (
@@ -251,6 +283,14 @@ try {
       ]) {
         if (!names.includes(required)) errors.push(`npm tarball is missing ${required}`);
       }
+      const packedConformance = names.filter(
+        (name) => name.startsWith('package/conformance/') && name.endsWith('.hs')
+      );
+      if (packedConformance.length !== conformanceFiles.length) {
+        errors.push(
+          `npm tarball conformance count ${packedConformance.length} does not match ${conformanceFiles.length}`
+        );
+      }
       if (names.some((name) => name.endsWith('.map') || name.includes('/scripts/'))) {
         errors.push('npm tarball includes a source map or package-only verification script');
       }
@@ -266,6 +306,12 @@ try {
           readFileSync(join(SYSTEMS_DIR, 'release-manifest.json'), 'utf8')
         ) {
           errors.push('npm tarball embeds a different release manifest');
+        }
+        for (const path of conformanceFiles) {
+          const packedPath = join(packedRoot, 'conformance', basename(path));
+          if (!existsSync(packedPath) || !readFileSync(packedPath).equals(readFileSync(path))) {
+            errors.push(`npm tarball conformance program differs: ${basename(path)}`);
+          }
         }
         const findings = secretFindings(listFiles(packedRoot), packedRoot);
         if (findings.length) errors.push(`secret-safe scan findings: ${JSON.stringify(findings)}`);
@@ -285,44 +331,62 @@ try {
   if (errors.length === 0) {
     const require = createRequire(join(SYSTEMS_DIR, 'wasm', 'index.cjs'));
     const wasm = require(join(SYSTEMS_DIR, 'wasm', 'index.cjs'));
-    const wasmSource = 'function main(): i32 { return 5 }';
-    const wasmValidation = wasm.validate(wasmSource);
-    const wasmParse = JSON.parse(wasm.parse(wasmSource));
+    const wasmFailures = [];
+    for (const path of conformanceFiles) {
+      const source = readFileSync(path, 'utf8');
+      const validation = wasm.validate(source);
+      const parsed = JSON.parse(wasm.parse(source));
+      if (validation !== true || parsed.error) wasmFailures.push(basename(path));
+    }
     checks.wasm = {
-      ok: wasmValidation === true && !wasmParse.error,
+      ok: wasmFailures.length === 0 && conformanceFiles.length >= 25,
       version: wasm.version(),
-      validation: wasmValidation,
-      parsedWithoutError: !wasmParse.error,
+      programCount: conformanceFiles.length,
+      failures: wasmFailures,
     };
-    if (!checks.wasm.ok) errors.push('bundled WASM parse/validation probe failed');
-    void require;
+    if (!checks.wasm.ok) {
+      errors.push(`bundled WASM cumulative conformance failed: ${wasmFailures.join(', ')}`);
+    }
 
     const systems = await import(
       `${pathToFileURL(join(SYSTEMS_DIR, 'index.mjs')).href}?verify=${Date.now()}`
     );
     systems.assertSupportedHost();
-    const nativeOutput = join(temp, 'proof.exe');
-    const compile = command(
-      process.execPath,
-      [
-        join(SYSTEMS_DIR, 'bin', 'holoscriptc.cjs'),
-        systems.conformanceSourcePath,
-        '-o',
-        nativeOutput,
-      ],
-      { cwd: temp, timeout: 180_000 }
-    );
-    if (compile.status !== 0 || !existsSync(nativeOutput)) {
-      errors.push(`bundled native compiler probe failed: ${compile.stderr || compile.stdout}`);
-    } else {
+    const nativeFailures = [];
+    for (const path of conformanceFiles) {
+      const nativeOutput = join(temp, `${basename(path, '.hs')}.exe`);
+      const compile = command(
+        process.execPath,
+        [join(SYSTEMS_DIR, 'bin', 'holoscriptc.cjs'), path, '-o', nativeOutput],
+        { cwd: temp, timeout: 180_000 }
+      );
+      if (compile.status !== 0 || !existsSync(nativeOutput)) {
+        nativeFailures.push({
+          program: basename(path),
+          phase: 'compile',
+          exitCode: compile.status,
+        });
+        continue;
+      }
       const execute = command(nativeOutput, [], { cwd: temp, timeout: 30_000 });
-      checks.native = {
-        ok: execute.status === 5,
-        compilerExitCode: compile.status,
-        programExitCode: execute.status,
-      };
-      if (!checks.native.ok)
-        errors.push(`native proof program exited ${execute.status}, expected 5`);
+      if (execute.status !== 5) {
+        nativeFailures.push({
+          program: basename(path),
+          phase: 'execute',
+          exitCode: execute.status,
+        });
+      }
+    }
+    checks.native = {
+      ok: nativeFailures.length === 0 && conformanceFiles.length >= 25,
+      programCount: conformanceFiles.length,
+      expectedExitCode: 5,
+      failures: nativeFailures,
+    };
+    if (!checks.native.ok) {
+      errors.push(
+        `bundled native cumulative conformance failed: ${JSON.stringify(nativeFailures)}`
+      );
     }
   }
 } catch (error) {

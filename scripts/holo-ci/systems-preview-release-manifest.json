@@ -116,7 +116,7 @@
       "identity": "holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip",
       "versionMode": "distribution-semver",
       "artifactState": "planned-unbuilt",
-      "requiredContents": ["holoscriptc.exe", "release-manifest.json", "SHA256SUMS", "LICENSE"],
+      "requiredContents": ["holoscriptc.exe", "conformance/*.hs", "release-manifest.json", "SHA256SUMS", "LICENSE"],
       "coldProbe": "holoscriptc examples/native/conditional-borrow-summary-exit-five.hs -o proof.exe; proof.exe exits 5"
     },
     {

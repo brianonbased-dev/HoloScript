@@ -262,6 +262,13 @@ function redactReceiptPaths(value) {
     );
   }
   if (typeof value !== 'string') return value;
+  if (
+    LOCAL_PACKAGE_PATH &&
+    value.startsWith('file:') &&
+    value.includes(basename(LOCAL_PACKAGE_PATH))
+  ) {
+    return DISPLAY_PACKAGE_SPEC;
+  }
   let redacted = value;
   for (const [path, replacement] of [
     [LOCAL_PACKAGE_PATH, '<local-artifact>'],
@@ -961,8 +968,8 @@ console.log(JSON.stringify({
 function buildSystemsToolchainProbeScript() {
   return `
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
 import * as systems from '@holoscript/systems';
 
 const wasmNamespace = await import('@holoscript/systems/wasm');
@@ -972,28 +979,43 @@ const manifest = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf
 const release = JSON.parse(readFileSync(join(packageRoot, 'release-manifest.json'), 'utf8'));
 const nativeBin = join(packageRoot, manifest.bin.holoscriptc);
 const cliBin = join(packageRoot, manifest.bin.holoscript);
-const source = systems.conformanceSourcePath;
-const output = join(process.cwd(), 'systems-proof.exe');
+const conformanceDir = dirname(systems.conformanceSourcePath);
+const conformancePrograms = readdirSync(conformanceDir)
+  .filter((file) => file.endsWith('.hs'))
+  .sort();
+const wasmFailures = [];
+const nativeFailures = [];
 
-const wasmSource = 'function main(): i32 { return 5 }';
-const wasmValidation = wasm.validate(wasmSource);
-const wasmParse = JSON.parse(wasm.parse(wasmSource));
-const compile = spawnSync(process.execPath, [nativeBin, source, '-o', output], {
-  cwd: process.cwd(),
-  encoding: 'utf8',
-  stdio: ['ignore', 'pipe', 'pipe'],
-  timeout: 180_000,
-  windowsHide: true
-});
-const program = compile.status === 0 && existsSync(output)
-  ? spawnSync(output, [], {
+for (const file of conformancePrograms) {
+  const sourcePath = join(conformanceDir, file);
+  const source = readFileSync(sourcePath, 'utf8');
+  const validation = wasm.validate(source);
+  const parsed = JSON.parse(wasm.parse(source));
+  if (validation !== true || parsed.error) wasmFailures.push(file);
+
+  const output = join(process.cwd(), basename(file, '.hs') + '.exe');
+  const compile = spawnSync(process.execPath, [nativeBin, sourcePath, '-o', output], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 180_000,
+    windowsHide: true
+  });
+  if (compile.status !== 0 || !existsSync(output)) {
+    nativeFailures.push({ program: file, phase: 'compile', exitCode: compile.status });
+    continue;
+  }
+  const program = spawnSync(output, [], {
       cwd: process.cwd(),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 30_000,
       windowsHide: true
-    })
-  : null;
+  });
+  if (program.status !== 5) {
+    nativeFailures.push({ program: file, phase: 'execute', exitCode: program.status });
+  }
+}
 const cli = spawnSync(process.execPath, [cliBin, '--help'], {
   cwd: process.cwd(),
   encoding: 'utf8',
@@ -1016,9 +1038,11 @@ const checks = {
   exportedIdentity:
     systems.distribution?.version === release.version &&
     systems.distribution?.sourceCommit === release.sourceCommit,
-  wasmParseValidate: wasmValidation === true && !wasmParse.error,
-  nativeCompile: compile.status === 0 && existsSync(output),
-  nativeProgramExitFive: program?.status === 5,
+  cumulativeCorpus:
+    conformancePrograms.length >= 25 &&
+    release.conformanceCorpus?.programCount === conformancePrograms.length,
+  wasmCumulativeConformance: wasmFailures.length === 0,
+  nativeCumulativeConformance: nativeFailures.length === 0,
   cliHelp: cli.status === 0 && cliText.includes('HoloScript')
 };
 
@@ -1028,11 +1052,11 @@ console.log(JSON.stringify({
   checks,
   sourceCommit: release.sourceCommit,
   native: {
-    compileExitCode: compile.status,
-    programExitCode: program?.status ?? null,
-    stderr: String(compile.stderr || '').slice(0, 800)
+    programCount: conformancePrograms.length,
+    expectedExitCode: 5,
+    failures: nativeFailures
   },
-  wasm: { version: wasm.version(), validation: wasmValidation, parsedWithoutError: !wasmParse.error },
+  wasm: { version: wasm.version(), programCount: conformancePrograms.length, failures: wasmFailures },
   cli: { exitCode: cli.status, stdoutBytes: Buffer.byteLength(cliText) }
 }, null, 2));
 `;
@@ -1215,7 +1239,12 @@ function main() {
     } else if (PACKAGE_BIN_HELP_PROBES[PROBE]) {
       writeFileSync(probeFile, buildPackageBinHelpProbeScript(PROBE));
     }
-    const probe = JSON.parse(run('node', [probeFile], { cwd: work, timeout: 60_000 }));
+    const probe = JSON.parse(
+      run('node', [probeFile], {
+        cwd: work,
+        timeout: PROBE === 'systems-toolchain' ? 300_000 : 60_000,
+      })
+    );
     receipt.probe = probe;
     receipt.ok =
       PROBE === 'core-holo-webgpu'

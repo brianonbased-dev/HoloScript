@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,6 +30,14 @@ if (manifest.dependencies?.['@holoscript/core'] !== '8.0.17') {
 }
 if (manifest.dependencies?.['@holoscript/cli'] !== '8.0.11') {
   errors.push('@holoscript/cli must remain exactly pinned to 8.0.11');
+}
+const conformancePrograms = existsSync(resolve(root, 'conformance'))
+  ? readdirSync(resolve(root, 'conformance')).filter((file) => file.endsWith('.hs'))
+  : [];
+if (conformancePrograms.length < 25) {
+  errors.push(
+    `cumulative native conformance corpus has only ${conformancePrograms.length} programs`
+  );
 }
 
 for (const relativePath of required) {

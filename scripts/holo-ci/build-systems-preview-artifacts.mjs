@@ -22,6 +22,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SYSTEMS_DIR = join(ROOT, 'distributions', 'systems');
 const NATIVE_DIR = join(SYSTEMS_DIR, 'native', 'win32-x64');
 const WASM_DIR = join(SYSTEMS_DIR, 'wasm');
+const CONFORMANCE_DIR = join(SYSTEMS_DIR, 'conformance');
 const ARTIFACT_DIR = join(ROOT, 'artifacts', 'releases', '0.1.0');
 const CANONICAL_MANIFEST_PATH = join(
   ROOT,
@@ -36,6 +37,7 @@ const SOURCE_PATHS = [
   'packages/compiler-native/src',
   'packages/compiler-wasm/Cargo.toml',
   'packages/compiler-wasm/src',
+  'examples/native',
   'distributions/systems/package.json',
   'distributions/systems/index.mjs',
   'distributions/systems/index.d.ts',
@@ -214,9 +216,11 @@ const commands = [];
 try {
   rmSync(NATIVE_DIR, { recursive: true, force: true });
   rmSync(WASM_DIR, { recursive: true, force: true });
+  rmSync(CONFORMANCE_DIR, { recursive: true, force: true });
   rmSync(ARTIFACT_DIR, { recursive: true, force: true });
   mkdirSync(NATIVE_DIR, { recursive: true });
   mkdirSync(WASM_DIR, { recursive: true });
+  mkdirSync(CONFORMANCE_DIR, { recursive: true });
   mkdirSync(ARTIFACT_DIR, { recursive: true });
   mkdirSync(wasmTemp, { recursive: true });
   mkdirSync(secondPackDir, { recursive: true });
@@ -262,6 +266,22 @@ try {
     "'use strict';\n\nmodule.exports = require('./holoscript_wasm.js');\n"
   );
 
+  const conformanceSources = readdirSync(join(ROOT, 'examples', 'native'), {
+    withFileTypes: true,
+  })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.hs'))
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right, 'en'));
+  if (conformanceSources.length < 25) {
+    throw new Error(`native cumulative corpus has only ${conformanceSources.length} programs`);
+  }
+  for (const file of conformanceSources) {
+    copyFileSync(join(ROOT, 'examples', 'native', file), join(CONFORMANCE_DIR, file));
+  }
+  const conformanceDigests = Object.fromEntries(
+    conformanceSources.map((file) => [file, sha256File(join(CONFORMANCE_DIR, file))])
+  );
+
   const embeddedArtifactDigests = {
     'native/win32-x64/holoscriptc.exe': sha256File(nativeTarget),
     'wasm/holoscript_wasm_bg.wasm': sha256File(join(WASM_DIR, 'holoscript_wasm_bg.wasm')),
@@ -283,6 +303,12 @@ try {
       ])
     ),
     embeddedArtifactDigests,
+    conformanceCorpus: {
+      schema: 'holoscript.systems-cumulative-native-corpus/v1',
+      programCount: conformanceSources.length,
+      digest: sha256(JSON.stringify(conformanceDigests)),
+      programs: conformanceDigests,
+    },
   };
   const embeddedManifestPath = join(SYSTEMS_DIR, 'release-manifest.json');
   writeJson(embeddedManifestPath, embeddedManifest);
@@ -304,16 +330,22 @@ try {
   writeFileSync(join(SYSTEMS_DIR, 'SHA256SUMS'), checksumLines(SYSTEMS_DIR, packageChecksumPaths));
   run('node', ['scripts/verify-package.mjs'], { cwd: SYSTEMS_DIR, timeout: 60_000 });
 
-  const nativeArchiveSums =
-    [
-      `${sha256File(join(SYSTEMS_DIR, 'LICENSE'))}  LICENSE`,
-      `${sha256File(nativeTarget)}  holoscriptc.exe`,
-      `${sha256File(embeddedManifestPath)}  release-manifest.json`,
-    ].join('\n') + '\n';
-  const nativeEntries = [
+  const nativePayloadEntries = [
     { name: 'holoscriptc.exe', data: readFileSync(nativeTarget) },
     { name: 'release-manifest.json', data: readFileSync(embeddedManifestPath) },
     { name: 'LICENSE', data: readFileSync(join(SYSTEMS_DIR, 'LICENSE')) },
+    ...conformanceSources.map((file) => ({
+      name: `conformance/${file}`,
+      data: readFileSync(join(CONFORMANCE_DIR, file)),
+    })),
+  ];
+  const nativeArchiveSums =
+    nativePayloadEntries
+      .map((entry) => `${sha256(entry.data)}  ${entry.name}`)
+      .sort((left, right) => left.localeCompare(right, 'en'))
+      .join('\n') + '\n';
+  const nativeEntries = [
+    ...nativePayloadEntries,
     { name: 'SHA256SUMS', data: Buffer.from(nativeArchiveSums) },
   ];
   const nativeZip = createDeterministicZip(nativeEntries);
@@ -385,6 +417,10 @@ try {
     },
     commands,
     deterministicRebuilds: { npmTarball: true, nativeArchive: true },
+    conformanceCorpus: {
+      programCount: conformanceSources.length,
+      digest: embeddedManifest.conformanceCorpus.digest,
+    },
     embeddedArtifactDigests,
     artifacts,
   };
