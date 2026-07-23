@@ -267,6 +267,7 @@ function buildViewProjection(): Float32Array {
 const vpUniform = createBuffer(device, buildViewProjection(), GPUBufferUsage.UNIFORM);
 
 // === Scene Lights (shared uniform, bound by every mesh at binding 3) ===
+// Light[0]: "Key" (directional, intensity 1.2)
 const sceneLights = createBuffer(device, new Float32Array([1,0,0,0, 1.2,1.2,1.2,0, 10,20,10,0, -10,-20,-10,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0]), GPUBufferUsage.UNIFORM);
 
 const holoGraphObjects = [];
@@ -453,6 +454,10 @@ const GroupedCubePipeline = device.createRenderPipeline({
 const GroupedCubeBind = device.createBindGroup({ layout: GroupedCubePipeline.getBindGroupLayout(0), entries: [
   { binding: 0, resource: { buffer: GroupedCubeModel } }, { binding: 1, resource: { buffer: GroupedCubeMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
 
+
+// === HoloScene Manifest (machine-readable world facts; part of the delivered artifact) ===
+const holoSceneManifest = {"version":"holo-scene-manifest-v1","source":"WebGPUGoldenScene","objects":[{"id":"BoxObj","geometry":"cube","visible":true,"traits":[],"affordances":[],"position":[0,0,0],"scale":[1,1,1],"color":[1,0.5333,0.4392]},{"id":"SphereObj","geometry":"sphere","visible":true,"traits":[],"affordances":[],"position":[1.5,0,0],"scale":[1,1,1],"color":[0.2118,0.898,1]},{"id":"TorusObj","geometry":"torus","visible":true,"traits":[],"affordances":[],"position":[-1.5,0,0],"scale":[1,1,1],"color":[0.1255,0.8706,0.9412]},{"id":"CylinderObj","geometry":"cylinder","visible":true,"traits":[],"affordances":[],"position":[0,1.5,0],"scale":[1,1,1],"color":[0.8,0.8,0.8]},{"id":"ConeObj","geometry":"cone","visible":true,"traits":[],"affordances":[],"position":[0,-1.5,0],"scale":[1,1,1],"color":[0.8,0.8,0.8]},{"id":"PlaneObj","geometry":"plane","visible":true,"traits":[],"affordances":[],"position":[0,0,-2],"scale":[1,1,1],"color":[0.0235,0.0745,0.1216]},{"id":"OrbObj","geometry":"orb","visible":true,"traits":[],"affordances":[],"position":[2,2,0],"scale":[1,1,1],"color":[0.8,0.8,0.8]},{"id":"UnmappedMeshObj","geometry":"rounded_panel","visible":true,"traits":[],"affordances":[],"position":[-2,-2,0],"scale":[1,1,1],"color":[0.8,0.8,0.8]},{"id":"GroupedSphere","geometry":"sphere","visible":true,"traits":[],"affordances":[],"position":[3,0,0],"scale":[1,1,1],"color":[0.3451,1,0.7804]},{"id":"GroupedCube","geometry":"cube","visible":true,"traits":[],"affordances":[],"position":[3,1,0],"scale":[1,1,1],"color":[0.8,0.8,0.8]}]};
+if (typeof globalThis !== "undefined") { globalThis.holoSceneManifest = holoSceneManifest; }
 
 // === HoloGraph Viewport Runtime ===
 const holoGraphInitialCameraPos = new Float32Array(cameraPos);

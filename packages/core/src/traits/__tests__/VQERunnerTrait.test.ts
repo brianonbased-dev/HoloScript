@@ -13,7 +13,20 @@
  *   GUARD9 — onDetach cancels a running job.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// The handler intentionally loads qm-bridge dynamically. Keep these unit tests
+// deterministic and independent of the optional plugin's local build state.
+vi.mock('@holoscript/qm-bridge', () => ({
+  createIBMQuantumBackend: function () {
+    return {
+      vqe: async function () {
+        return { energy: -1.1175, evals: 3 };
+      },
+    };
+  },
+}));
+
 import {
   vqeRunnerHandler,
   vqeRunnerTrait,

@@ -5307,6 +5307,21 @@ export class HoloScriptPlusParser {
     const to = this.parseStateMachineIdentifier('Expected target state');
     const transition: Record<string, unknown> = { from, to };
 
+    // Preserve the original transitions-block spelling alongside the richer
+    // clause form below:
+    //
+    //   closed -> open: click
+    //   closed -> open on click
+    //
+    // `isStateMachineTransitionShorthandStart()` intentionally routes both
+    // forms here. Without consuming the colon form, the parser leaves `:` at
+    // the cursor and treats the rest of the program as more transitions.
+    if (this.check('COLON')) {
+      this.advance();
+      transition.event = this.parseStateMachineIdentifier('Expected event name');
+      return transition;
+    }
+
     while (
       !this.check('NEWLINE') &&
       !this.check('RBRACE') &&

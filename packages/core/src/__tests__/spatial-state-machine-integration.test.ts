@@ -39,6 +39,7 @@ describe('Spatial State Machines Integration', () => {
 
     const parser = new HoloScriptPlusParser();
     const result = parser.parse(source);
+    expect(result.success, JSON.stringify(result.errors)).toBe(true);
 
     // Execute the program
     const execResults = await runtime.execute(result.ast.body);

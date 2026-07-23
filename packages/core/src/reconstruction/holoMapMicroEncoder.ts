@@ -448,7 +448,7 @@ export function createHoloMapMicroEncoder(device: GPUDevice): HoloMapMicroEncode
       });
       attn = await layerNorm.run(attn, weights.gamma2, weights.beta2);
       attn = await gelu.run(attn);
-      return gemm.run(attn, weights.Wxyz, 1, EMBED_DIM, 3);
+      return gemm.run(attn, weights.Wxyz, 1, 3, EMBED_DIM);
     },
   };
 }

@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   serializeMicroWeights,
   deserializeMicroWeights,
+  createHoloMapMicroEncoder,
   runHoloMapMicroEncoderCpu,
+  tryCreateHoloMapEncoderDevice,
   type HoloMapMicroWeights,
   type HoloMapMicroFrame,
 } from '../holoMapMicroEncoder';
@@ -62,6 +64,29 @@ describe('holoMapMicroEncoder checkpoint (de)serialization', () => {
 });
 
 describe('holoMapMicroEncoder weight wiring (the loader↔encoder fix)', () => {
+  it('keeps the WebGPU projection dimensionally valid and numerically aligned', async () => {
+    const device = await tryCreateHoloMapEncoderDevice();
+    if (!device) return;
+
+    try {
+      const frame = gradientFrame();
+      const cfg = {
+        seed: 7,
+        modelHash: 'webgpu-parity-test',
+        weightBytes: serializeMicroWeights(makeWeights()),
+      };
+      const gpu = await createHoloMapMicroEncoder(device).run(frame, cfg);
+      const cpu = await runHoloMapMicroEncoderCpu(frame, cfg);
+
+      expect(gpu).toHaveLength(3);
+      for (let index = 0; index < cpu.length; index += 1) {
+        expect(gpu[index]).toBeCloseTo(cpu[index]!, 3);
+      }
+    } finally {
+      device.destroy();
+    }
+  }, 30_000);
+
   it('consumes valid checkpoint bytes — output differs from PRNG weights', async () => {
     const frame = gradientFrame();
     const cfg = { seed: 7, modelHash: 'wiring-test' };

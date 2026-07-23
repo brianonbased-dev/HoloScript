@@ -473,28 +473,36 @@ describe('Feature 4B: RateLimitError', () => {
     expect(typeof RateLimitError).toBe('function');
   });
 
-  it('can be instantiated with retryAfter and limit', () => {
-    const err = new RateLimitError(60, 100);
+  it('can be instantiated with generated runtime error fields', () => {
+    const err = new RateLimitError('Rate limit exceeded', 429, 60, {
+      remaining: 0,
+      limit: 100,
+      resetAt: new Date().toISOString(),
+    });
     expect(err).toBeInstanceOf(RateLimitError);
   });
 
   it('is an instanceof Error', () => {
-    const err = new RateLimitError(60, 100);
+    const err = new RateLimitError('Rate limit exceeded', 429, 60);
     expect(err).toBeInstanceOf(Error);
   });
 
-  it('has retryAfter property', () => {
-    const err = new RateLimitError(60, 100);
-    expect(err.retryAfter).toBe(60);
+  it('has retryAfterSeconds property', () => {
+    const err = new RateLimitError('Rate limit exceeded', 429, 60);
+    expect(err.retryAfterSeconds).toBe(60);
   });
 
-  it('has limit property', () => {
-    const err = new RateLimitError(60, 100);
-    expect(err.limit).toBe(100);
+  it('has limit in the rate-limit snapshot', () => {
+    const err = new RateLimitError('Rate limit exceeded', 429, 60, {
+      remaining: 0,
+      limit: 100,
+      resetAt: new Date().toISOString(),
+    });
+    expect(err.rateLimit?.limit).toBe(100);
   });
 
   it('has a message', () => {
-    const err = new RateLimitError(60, 100);
+    const err = new RateLimitError('Rate limit exceeded', 429, 60);
     expect(typeof err.message).toBe('string');
     expect(err.message.length).toBeGreaterThan(0);
   });

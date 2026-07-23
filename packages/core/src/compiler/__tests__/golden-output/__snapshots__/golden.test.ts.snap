@@ -269,16 +269,13 @@ exports[`Compiler golden-output regression > WASM: canonical scene → WAT sourc
   (import "env" "log_str" (func $log_str (param i32 i32)))
   (import "env" "emit_event" (func $emit_event (param i32 i32)))
   (import "env" "get_time" (func $get_time (result f64)))
-  
   ;; Memory: 16 pages (1024KB)
   (memory (export "memory") 16)
-  
   ;; Globals
   (global $frame_count (mut i32) (i32.const 0))
   (global $delta_time (mut f32) (f32.const 0.0))
   (global $last_time (mut f64) (f64.const 0.0))
   (global $object_count i32 (i32.const 3))
-  
   ;; Function types
   (type $void_void (func))
   (type $i32_void (func (param i32)))
@@ -289,7 +286,6 @@ exports[`Compiler golden-output regression > WASM: canonical scene → WAT sourc
   (type $i32_f32 (func (param i32) (result f32)))
   (type $i32_i32_void (func (param i32 i32)))
   (type $update_fn (func (param f32)))
-  
   ;; Initialize module
   (func $init (export "init")
       ;; score
@@ -313,7 +309,6 @@ exports[`Compiler golden-output regression > WASM: canonical scene → WAT sourc
       (i32.store (i32.const 68) (i32.const 1)) ;; active
       (i32.store (i32.const 72) (i32.const -1)) ;; parent
   )
-  
   ;; State accessors
   (func $get_score (export "get_score") (result i32)
     (i32.load (i32.const 0))
@@ -342,7 +337,6 @@ exports[`Compiler golden-output regression > WASM: canonical scene → WAT sourc
   (func $get_frame_count (export "get_frame_count") (result i32)
     (global.get $frame_count)
   )
-  
   ;; Object functions
   (func $get_object_count (export "get_object_count") (result i32)
     (global.get $object_count)
@@ -370,12 +364,10 @@ exports[`Compiler golden-output regression > WASM: canonical scene → WAT sourc
       (local.get $active)
     )
   )
-  
   ;; Event functions
   (func $dispatch_event (param $event_id i32) (param $payload i32)
     (call $emit_event (local.get $event_id) (local.get $payload))
   )
-  
   ;; Main update function
   (func $update (export "update") (param $dt f32)
     (global.set $delta_time (local.get $dt))
@@ -401,7 +393,6 @@ exports[`Compiler golden-output regression > WASM: canonical scene → WAT sourc
         )
       )
   )
-  
   (func $update_object_0 (param $dt f32)
     ;; Update logic for hero
     ;; trait:@grabbable
@@ -425,10 +416,8 @@ exports[`Compiler golden-output regression > WASM: canonical scene → WAT sourc
     ;; trait:@glowing
     (call $emit_event (i32.const 263748708) (i32.const 2))
   )
-  
   ;; Data sections
   (data (i32.const 1112) "Hero")
-  
 )"
 `;
 
@@ -521,6 +510,7 @@ const canvas = document.querySelector("canvas") as HTMLCanvasElement;
 const adapter = await navigator.gpu.requestAdapter();
 if (!adapter) throw new Error("WebGPU not supported");
 const device = await adapter.requestDevice();
+document.body.dataset.holoscriptWebgpu = "device-ready";
 const context = canvas.getContext("webgpu") as GPUCanvasContext;
 const format = navigator.gpu.getPreferredCanvasFormat();
 context.configure({ device, format, alphaMode: "premultiplied" });
@@ -535,76 +525,145 @@ function createBuffer(device: GPUDevice, data: Float32Array, usage: number): GPU
 function createStorageBuffer(device: GPUDevice, size: number): GPUBuffer {
   return device.createBuffer({ size, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
 }
+function createFallbackTexture(device, rgba) {
+  const tex = device.createTexture({ size: [1, 1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+  device.queue.writeTexture({ texture: tex }, new Uint8Array(rgba), { bytesPerRow: 4 }, [1, 1, 1]);
+  return tex;
+}
+async function loadTexture2D(src) {
+  const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear", mipmapFilter: "linear", addressModeU: "repeat", addressModeV: "repeat" });
+  try {
+    const resp = await fetch(src);
+    if (!resp.ok) throw new Error(\`texture fetch \${resp.status}\`);
+    const bitmap = await createImageBitmap(await resp.blob());
+    const texture = device.createTexture({ size: [bitmap.width, bitmap.height, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });
+    device.queue.copyExternalImageToTexture({ source: bitmap }, { texture }, [bitmap.width, bitmap.height]);
+    return { src, texture, view: texture.createView(), sampler, loaded: true };
+  } catch {
+    const texture = createFallbackTexture(device, [255, 255, 255, 255]);
+    return { src, texture, view: texture.createView(), sampler, loaded: false };
+  }
+}
+async function loadMaterialTextureSet(maps) {
+  const entries = await Promise.all(Object.entries(maps).map(async ([kind, src]) => [kind, await loadTexture2D(src)]));
+  return Object.fromEntries(entries);
+}
+const assetLoader = {
+  async load(src) {
+    return { src, kind: "external-model", loaded: false };
+  },
+};
+function makeParticleCloud(count, seed) {
+  let s = seed || 1;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  const data = new Float32Array(count * 8);
+  for (let i = 0; i < count; i++) {
+    const o = i * 8;
+    data[o + 0] = rnd() * 1.8 - 0.9; data[o + 1] = rnd() * 1.2 - 0.6; data[o + 2] = rnd() * 1.8 - 0.9;
+    data[o + 3] = 0.0; data[o + 4] = 0.25 + rnd(); data[o + 5] = 0.0; data[o + 6] = rnd(); data[o + 7] = 0.0;
+  }
+  return data;
+}
 
-// Object: hero
-const heroVertices = generateCubeVertices(1.0);
-const heroVBO = createBuffer(device, heroVertices, GPUBufferUsage.VERTEX);
-const heroVertexCount = heroVertices.length / 6;
-const heroModel = createBuffer(device, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.6,0,1]), GPUBufferUsage.UNIFORM);
-const heroMat = createBuffer(device, new Float32Array([0,1,0.8,1.0, 0.5,0,0,0]), GPUBufferUsage.UNIFORM);
-const heroPipeline = device.createRenderPipeline({
-  layout: "auto",
-  vertex: { module: device.createShaderModule({ code: WGSL_VERTEX }), entryPoint: "vs_main",
-    buffers: [{ arrayStride: 24, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }, { shaderLocation: 1, offset: 12, format: "float32x3" }] }] },
-  fragment: { module: device.createShaderModule({ code: WGSL_FRAGMENT }), entryPoint: "fs_main", targets: [{ format }] },
-  primitive: { topology: "triangle-list", cullMode: "back" },
-  depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
-});
-const heroBind = device.createBindGroup({ layout: heroPipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: heroModel } }, { binding: 1, resource: { buffer: heroMat } }] });
-
-// Object: platform
-const platformVertices = generateCubeVertices(1.0);
-const platformVBO = createBuffer(device, platformVertices, GPUBufferUsage.VERTEX);
-const platformVertexCount = platformVertices.length / 6;
-const platformModel = createBuffer(device, new Float32Array([5,0,0,0, 0,0.1,0,0, 0,0,5,0, 0,0,0,1]), GPUBufferUsage.UNIFORM);
-const platformMat = createBuffer(device, new Float32Array([0.8,0.8,0.8,1.0, 0.5,0,0,0]), GPUBufferUsage.UNIFORM);
-const platformPipeline = device.createRenderPipeline({
-  layout: "auto",
-  vertex: { module: device.createShaderModule({ code: WGSL_VERTEX }), entryPoint: "vs_main",
-    buffers: [{ arrayStride: 24, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }, { shaderLocation: 1, offset: 12, format: "float32x3" }] }] },
-  fragment: { module: device.createShaderModule({ code: WGSL_FRAGMENT }), entryPoint: "fs_main", targets: [{ format }] },
-  primitive: { topology: "triangle-list", cullMode: "back" },
-  depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
-});
-const platformBind = device.createBindGroup({ layout: platformPipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: platformModel } }, { binding: 1, resource: { buffer: platformMat } }] });
-
-// Object: collectible
-const collectibleVertices = generateSphereVertices(0.5, 16, 16);
-const collectibleVBO = createBuffer(device, collectibleVertices, GPUBufferUsage.VERTEX);
-const collectibleVertexCount = collectibleVertices.length / 6;
-const collectibleModel = createBuffer(device, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 2,1,-3,1]), GPUBufferUsage.UNIFORM);
-const collectibleMat = createBuffer(device, new Float32Array([1,0.8,0,1.0, 0.5,0,0,0]), GPUBufferUsage.UNIFORM);
-const collectiblePipeline = device.createRenderPipeline({
-  layout: "auto",
-  vertex: { module: device.createShaderModule({ code: WGSL_VERTEX }), entryPoint: "vs_main",
-    buffers: [{ arrayStride: 24, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }, { shaderLocation: 1, offset: 12, format: "float32x3" }] }] },
-  fragment: { module: device.createShaderModule({ code: WGSL_FRAGMENT }), entryPoint: "fs_main", targets: [{ format }] },
-  primitive: { topology: "triangle-list", cullMode: "back" },
-  depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
-});
-const collectibleBind = device.createBindGroup({ layout: collectiblePipeline.getBindGroupLayout(0), entries: [
-  { binding: 0, resource: { buffer: collectibleModel } }, { binding: 1, resource: { buffer: collectibleMat } }] });
+// === Geometry Helpers ===
+function generateCubeVertices(size) {
+  const s = size / 2;
+  return new Float32Array([
+    -s,-s, s, 0,0,1,  s,-s, s, 0,0,1,  s, s, s, 0,0,1, -s,-s, s, 0,0,1,  s, s, s, 0,0,1, -s, s, s, 0,0,1,
+     s,-s,-s, 0,0,-1, -s,-s,-s, 0,0,-1, -s, s,-s, 0,0,-1,  s,-s,-s, 0,0,-1, -s, s,-s, 0,0,-1,  s, s,-s, 0,0,-1,
+    -s,-s,-s, -1,0,0, -s,-s, s, -1,0,0, -s, s, s, -1,0,0, -s,-s,-s, -1,0,0, -s, s, s, -1,0,0, -s, s,-s, -1,0,0,
+     s,-s, s, 1,0,0,  s,-s,-s, 1,0,0,  s, s,-s, 1,0,0,  s,-s, s, 1,0,0,  s, s,-s, 1,0,0,  s, s, s, 1,0,0,
+    -s, s, s, 0,1,0,  s, s, s, 0,1,0,  s, s,-s, 0,1,0, -s, s, s, 0,1,0,  s, s,-s, 0,1,0, -s, s,-s, 0,1,0,
+    -s,-s,-s, 0,-1,0,  s,-s,-s, 0,-1,0,  s,-s, s, 0,-1,0, -s,-s,-s, 0,-1,0,  s,-s, s, 0,-1,0, -s,-s, s, 0,-1,0
+  ]);
+}
+function generatePlaneVertices(width, depth) {
+  const x = width / 2, z = depth / 2;
+  return new Float32Array([-x,0,-z,0,1,0, x,0,-z,0,1,0, x,0,z,0,1,0, -x,0,-z,0,1,0, x,0,z,0,1,0, -x,0,z,0,1,0]);
+}
+function generateSphereVertices(radius, lat, lon) {
+  const rings = Math.max(3, lat | 0), segs = Math.max(3, lon | 0); const out = [];
+  const P = (ri, si) => {
+    const phi = Math.PI * ri / rings, theta = 2 * Math.PI * si / segs;
+    const nx = Math.sin(phi) * Math.cos(theta), ny = Math.cos(phi), nz = Math.sin(phi) * Math.sin(theta);
+    return [nx * radius, ny * radius, nz * radius, nx, ny, nz];
+  };
+  for (let ri = 0; ri < rings; ri++) { for (let si = 0; si < segs; si++) {
+    const a = P(ri, si), b = P(ri + 1, si), c = P(ri + 1, si + 1), d = P(ri, si + 1);
+    out.push(...a, ...b, ...c, ...a, ...c, ...d);
+  } } return new Float32Array(out);
+}
+function generateCylinderVertices(radius, height, segments) {
+  const segs = Math.max(3, segments | 0), hy = height / 2, out = [];
+  for (let i = 0; i < segs; i++) {
+    const t0 = 2*Math.PI*i/segs, t1 = 2*Math.PI*(i+1)/segs;
+    const c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1);
+    const b0 = [radius*c0, -hy, radius*s0, c0, 0, s0], t0v = [radius*c0, hy, radius*s0, c0, 0, s0];
+    const b1 = [radius*c1, -hy, radius*s1, c1, 0, s1], t1v = [radius*c1, hy, radius*s1, c1, 0, s1];
+    out.push(...b0, ...b1, ...t1v, ...b0, ...t1v, ...t0v);
+    out.push(0, hy, 0, 0, 1, 0, radius*c0, hy, radius*s0, 0, 1, 0, radius*c1, hy, radius*s1, 0, 1, 0);
+    out.push(0, -hy, 0, 0, -1, 0, radius*c1, -hy, radius*s1, 0, -1, 0, radius*c0, -hy, radius*s0, 0, -1, 0);
+  } return new Float32Array(out);
+}
+function generateConeVertices(radius, height, segments) {
+  const segs = Math.max(3, segments | 0), hy = height / 2, out = [];
+  const ny = radius / Math.hypot(radius, height) || 0, nyx = height / Math.hypot(radius, height) || 1;
+  for (let i = 0; i < segs; i++) {
+    const t0 = 2*Math.PI*i/segs, t1 = 2*Math.PI*(i+1)/segs;
+    const c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1);
+    out.push(0, hy, 0, (c0+c1)*0.5*nyx, ny, (s0+s1)*0.5*nyx);
+    out.push(radius*c0, -hy, radius*s0, c0*nyx, ny, s0*nyx);
+    out.push(radius*c1, -hy, radius*s1, c1*nyx, ny, s1*nyx);
+    out.push(0, -hy, 0, 0, -1, 0, radius*c1, -hy, radius*s1, 0, -1, 0, radius*c0, -hy, radius*s0, 0, -1, 0);
+  } return new Float32Array(out);
+}
+function generateTorusVertices(radius, tube, radial, tubular) {
+  const R = Math.max(3, radial | 0), T = Math.max(3, tubular | 0), out = [];
+  const P = (ri, ti) => {
+    const u = 2*Math.PI*ri/R, v = 2*Math.PI*ti/T;
+    const cu = Math.cos(u), su = Math.sin(u), cv = Math.cos(v), sv = Math.sin(v);
+    const x = (radius + tube*cv)*cu, y = tube*sv, z = (radius + tube*cv)*su;
+    return [x, y, z, cv*cu, sv, cv*su];
+  };
+  for (let ri = 0; ri < R; ri++) { for (let ti = 0; ti < T; ti++) {
+    const a = P(ri, ti), b = P(ri + 1, ti), c = P(ri + 1, ti + 1), d = P(ri, ti + 1);
+    out.push(...a, ...b, ...c, ...a, ...c, ...d);
+  } } return new Float32Array(out);
+}
 
 // === WGSL Shader Sources ===
 const WGSL_VERTEX = /* wgsl */\`
 struct Uniforms { model: mat4x4<f32> };
+struct Camera { viewProj: mat4x4<f32> };
 @group(0) @binding(0) var<uniform> u: Uniforms;
+@group(0) @binding(2) var<uniform> cam: Camera;
 struct VIn { @location(0) pos: vec3<f32>, @location(1) norm: vec3<f32> };
 struct VOut { @builtin(position) clip: vec4<f32>, @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };
 @vertex fn vs_main(i: VIn) -> VOut {
   var o: VOut; let w = u.model * vec4<f32>(i.pos, 1.0);
-  o.clip = w; o.wNorm = (u.model * vec4<f32>(i.norm, 0.0)).xyz; o.wPos = w.xyz; return o; }\`;
+  o.clip = cam.viewProj * w; o.wNorm = normalize((u.model * vec4<f32>(i.norm, 0.0)).xyz); o.wPos = w.xyz; return o; }\`;
 
 const WGSL_FRAGMENT = /* wgsl */\`
-struct Mat { color: vec4<f32>, rm: vec4<f32> };
+struct Mat { color: vec4<f32>, rm: vec4<f32>, emissive: vec4<f32> };
+struct Light { ct: vec4<f32>, posW: vec4<f32>, dirW: vec4<f32> };
+struct Lights { count: vec4<f32>, items: array<Light, 4> };
 @group(0) @binding(1) var<uniform> mat: Mat;
+@group(0) @binding(3) var<uniform> lights: Lights;
 struct FIn { @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };
 @fragment fn fs_main(i: FIn) -> @location(0) vec4<f32> {
-  let N = normalize(i.wNorm); let L = normalize(vec3<f32>(1.0, 2.0, 1.5));
-  let d = max(dot(N, L), 0.0) * (1.0 - mat.rm[0] * 0.5);
-  return vec4<f32>(mat.color.rgb * (0.15 + d), mat.color.a); }\`;
+  let N = normalize(i.wNorm);
+  var acc = vec3<f32>(0.0, 0.0, 0.0);
+  let n = i32(lights.count.x);
+  for (var k = 0; k < n; k = k + 1) {
+    let lt = lights.items[k];
+    var L = normalize(-lt.dirW.xyz);
+    if (lt.ct.w > 0.5) { L = normalize(lt.posW.xyz - i.wPos); }
+    let d = max(dot(N, L), 0.0) * (1.0 - mat.rm[0] * 0.5);
+    acc = acc + lt.ct.rgb * d;
+  }
+  let lit = mat.color.rgb * (0.15 + acc);
+  let emit = mat.emissive.rgb * mat.rm[2];
+  return vec4<f32>(lit + emit, mat.color.a); }\`;
 
 const WGSL_SPLAT = /* wgsl */\`
 struct Splat { center: vec3<f32>, opacity: f32, cov: array<f32,6>, sh: vec3<f32> };
@@ -629,6 +688,25 @@ struct PVO { @builtin(position) p: vec4<f32>, @location(0) life: f32 };
 @fragment fn fs_particle(i: PVO) -> @location(0) vec4<f32> {
   let t = clamp(i.life, 0.0, 1.0); return vec4<f32>(mix(vec3(1.0,0.2,0.0), vec3(1.0,1.0,0.5), t), t*0.8); }\`;
 
+const WGSL_SCATTER = /* wgsl */\`
+struct VIn { @location(0) pos: vec3<f32>, @location(1) norm: vec3<f32> };
+struct VOut { @builtin(position) clip: vec4<f32>, @location(0) shade: f32 };
+fn hash11(v: f32) -> f32 { return fract(sin(v * 12.9898) * 43758.5453); }
+@vertex fn vs_scatter(i: VIn, @builtin(instance_index) instance: u32) -> VOut {
+  let id = f32(instance);
+  let x = hash11(id + 1.0) * 1.8 - 0.9; let z = hash11(id + 7.0) * 1.8 - 0.9;
+  let scale = 0.35 + hash11(id + 13.0) * 0.45;
+  var o: VOut; o.clip = vec4<f32>(i.pos.x * scale + x, i.pos.y * scale - 0.65, i.pos.z * scale + z, 1.0);
+  o.shade = 0.45 + max(i.norm.y, 0.0) * 0.45; return o; }
+@fragment fn fs_scatter(i: VOut) -> @location(0) vec4<f32> { return vec4<f32>(0.08 * i.shade, 0.34 * i.shade, 0.12 * i.shade, 1.0); }\`;
+
+const WGSL_POSTFX = /* wgsl */\`
+struct VO { @builtin(position) pos: vec4<f32> };
+@vertex fn vs_postfx(@builtin(vertex_index) vi: u32) -> VO {
+  var p = array<vec2<f32>,3>(vec2(-1.0,-1.0), vec2(3.0,-1.0), vec2(-1.0,3.0));
+  var o: VO; o.pos = vec4<f32>(p[vi], 0.0, 1.0); return o; }
+@fragment fn fs_postfx() -> @location(0) vec4<f32> { return vec4<f32>(0.04, 0.08, 0.05, 0.18); }\`;
+
 const WGSL_PARTICLE_COMPUTE = /* wgsl */\`
 struct P { pos: vec3<f32>, _p0: f32, vel: vec3<f32>, life: f32 };
 @group(0) @binding(0) var<storage, read> pin: array<P>;
@@ -649,12 +727,199 @@ struct Body { pos: vec3<f32>, mass: f32, vel: vec3<f32>, _p: f32 };
   b.vel[1] -= 9.81 * dt; b.pos += b.vel * dt;
   if (b.pos[1] < 0.0) { b.pos[1] = 0.0; b.vel[1] = -b.vel[1] * 0.6; } bodies[i] = b; }\`;
 
+// === Environment ===
+const clearColor: GPUColor = { r: 0, g: 0, b: 0, a: 1.0 };
+
+// === Camera ===
+const cameraFov = 60 * Math.PI / 180;
+const cameraNear = 0.1, cameraFar = 1000;
+const cameraPos = new Float32Array([2.9126,3.7448,7.8217]);
+const cameraTarget = new Float32Array([0,0,-0.5]);
+const cameraUp = new Float32Array([0, 1, 0]);
+const aspect = (canvas.width || 1) / (canvas.height || 1);
+function mat4Multiply(a: Float32Array, b: Float32Array): Float32Array {
+  const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++) { for (let r = 0; r < 4; r++) {
+    o[c*4+r] = a[0*4+r]*b[c*4+0] + a[1*4+r]*b[c*4+1] + a[2*4+r]*b[c*4+2] + a[3*4+r]*b[c*4+3];
+  } } return o;
+}
+function lookAtMatrix(eye: Float32Array, target: Float32Array, up: Float32Array): Float32Array {
+  const zx = eye[0]-target[0], zy = eye[1]-target[1], zz = eye[2]-target[2];
+  let zl = Math.hypot(zx, zy, zz) || 1; const fz = [zx/zl, zy/zl, zz/zl];
+  const xx = up[1]*fz[2]-up[2]*fz[1], xy = up[2]*fz[0]-up[0]*fz[2], xz = up[0]*fz[1]-up[1]*fz[0];
+  let xl = Math.hypot(xx, xy, xz) || 1; const rx = [xx/xl, xy/xl, xz/xl];
+  const uy = [fz[1]*rx[2]-fz[2]*rx[1], fz[2]*rx[0]-fz[0]*rx[2], fz[0]*rx[1]-fz[1]*rx[0]];
+  return new Float32Array([
+    rx[0], uy[0], fz[0], 0,
+    rx[1], uy[1], fz[1], 0,
+    rx[2], uy[2], fz[2], 0,
+    -(rx[0]*eye[0]+rx[1]*eye[1]+rx[2]*eye[2]),
+    -(uy[0]*eye[0]+uy[1]*eye[1]+uy[2]*eye[2]),
+    -(fz[0]*eye[0]+fz[1]*eye[1]+fz[2]*eye[2]), 1]);
+}
+function buildViewProjection(): Float32Array {
+  const f = 1.0 / Math.tan(cameraFov / 2), ri = 1.0 / (cameraNear - cameraFar);
+  const proj = new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,cameraFar*ri,-1, 0,0,cameraNear*cameraFar*ri,0]);
+  const view = lookAtMatrix(cameraPos, cameraTarget, cameraUp);
+  return mat4Multiply(proj, view);
+}
+const vpUniform = createBuffer(device, buildViewProjection(), GPUBufferUsage.UNIFORM);
+
+// === Scene Lights (shared uniform, bound by every mesh at binding 3) ===
+// Light[0]: "(synthesized key light)" (directional, intensity 1)
+const sceneLights = createBuffer(device, new Float32Array([1,0,0,0, 1,1,1,0, 1,2,1.5,0, -1,-2,-1.5,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0]), GPUBufferUsage.UNIFORM);
+
+const holoGraphObjects = [];
+
+// Object: hero
+const heroVertices = generateCubeVertices(1.0);
+const heroVBO = createBuffer(device, heroVertices, GPUBufferUsage.VERTEX);
+const heroVertexCount = heroVertices.length / 6;
+const heroModel = createBuffer(device, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.6,0,1]), GPUBufferUsage.UNIFORM);
+const heroMat = createBuffer(device, new Float32Array([0,1,0.8,1.0, 0.5,0,1,0, 0,0,0,0]), GPUBufferUsage.UNIFORM);
+holoGraphObjects.push({ id: "hero", name: "hero", geometry: "humanoid", traits: ["@grabbable","@collidable","@networked"], properties: {"geometry":"humanoid","color":"#00ffcc","position":[0,1.6,0]}, basePosition: [0,1.6,0], position: [0,1.6,0], baseScale: [1,1,1], scale: [1,1,1], baseColor: [0,1,0.8], color: [0,1,0.8], material: { roughness: 0.5, metalness: 0, emissiveStrength: 1, emissive: [0,0,0] }, modelBuffer: heroModel, matBuffer: heroMat, visible: true });
+const heroPipeline = device.createRenderPipeline({
+  layout: "auto",
+  vertex: { module: device.createShaderModule({ code: WGSL_VERTEX }), entryPoint: "vs_main",
+    buffers: [{ arrayStride: 24, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }, { shaderLocation: 1, offset: 12, format: "float32x3" }] }] },
+  fragment: { module: device.createShaderModule({ code: WGSL_FRAGMENT }), entryPoint: "fs_main", targets: [{ format }] },
+  primitive: { topology: "triangle-list", cullMode: "back" },
+  depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
+});
+const heroBind = device.createBindGroup({ layout: heroPipeline.getBindGroupLayout(0), entries: [
+  { binding: 0, resource: { buffer: heroModel } }, { binding: 1, resource: { buffer: heroMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
+
+// Object: platform
+const platformVertices = generateCubeVertices(1.0);
+const platformVBO = createBuffer(device, platformVertices, GPUBufferUsage.VERTEX);
+const platformVertexCount = platformVertices.length / 6;
+const platformModel = createBuffer(device, new Float32Array([5,0,0,0, 0,0.1,0,0, 0,0,5,0, 0,0,0,1]), GPUBufferUsage.UNIFORM);
+const platformMat = createBuffer(device, new Float32Array([0.8,0.8,0.8,1.0, 0.5,0,1,0, 0,0,0,0]), GPUBufferUsage.UNIFORM);
+holoGraphObjects.push({ id: "platform", name: "platform", geometry: "cube", traits: ["@collidable","@physics"], properties: {"geometry":"cube","scale":[5,0.1,5],"position":[0,0,0]}, basePosition: [0,0,0], position: [0,0,0], baseScale: [5,0.1,5], scale: [5,0.1,5], baseColor: [0.8,0.8,0.8], color: [0.8,0.8,0.8], material: { roughness: 0.5, metalness: 0, emissiveStrength: 1, emissive: [0,0,0] }, modelBuffer: platformModel, matBuffer: platformMat, visible: true });
+const platformPipeline = device.createRenderPipeline({
+  layout: "auto",
+  vertex: { module: device.createShaderModule({ code: WGSL_VERTEX }), entryPoint: "vs_main",
+    buffers: [{ arrayStride: 24, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }, { shaderLocation: 1, offset: 12, format: "float32x3" }] }] },
+  fragment: { module: device.createShaderModule({ code: WGSL_FRAGMENT }), entryPoint: "fs_main", targets: [{ format }] },
+  primitive: { topology: "triangle-list", cullMode: "back" },
+  depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
+});
+const platformBind = device.createBindGroup({ layout: platformPipeline.getBindGroupLayout(0), entries: [
+  { binding: 0, resource: { buffer: platformModel } }, { binding: 1, resource: { buffer: platformMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
+
+// Object: collectible
+const collectibleVertices = generateSphereVertices(0.5, 16, 16);
+const collectibleVBO = createBuffer(device, collectibleVertices, GPUBufferUsage.VERTEX);
+const collectibleVertexCount = collectibleVertices.length / 6;
+const collectibleModel = createBuffer(device, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 2,1,-3,1]), GPUBufferUsage.UNIFORM);
+const collectibleMat = createBuffer(device, new Float32Array([1,0.8,0,1.0, 0.5,0,1,0, 0,0,0,0]), GPUBufferUsage.UNIFORM);
+holoGraphObjects.push({ id: "collectible", name: "collectible", geometry: "sphere", traits: ["@grabbable","@glowing"], properties: {"geometry":"sphere","color":"#ffcc00","position":[2,1,-3]}, basePosition: [2,1,-3], position: [2,1,-3], baseScale: [1,1,1], scale: [1,1,1], baseColor: [1,0.8,0], color: [1,0.8,0], material: { roughness: 0.5, metalness: 0, emissiveStrength: 1, emissive: [0,0,0] }, modelBuffer: collectibleModel, matBuffer: collectibleMat, visible: true });
+const collectiblePipeline = device.createRenderPipeline({
+  layout: "auto",
+  vertex: { module: device.createShaderModule({ code: WGSL_VERTEX }), entryPoint: "vs_main",
+    buffers: [{ arrayStride: 24, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }, { shaderLocation: 1, offset: 12, format: "float32x3" }] }] },
+  fragment: { module: device.createShaderModule({ code: WGSL_FRAGMENT }), entryPoint: "fs_main", targets: [{ format }] },
+  primitive: { topology: "triangle-list", cullMode: "back" },
+  depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" }, multisample: { count: MSAA_COUNT },
+});
+const collectibleBind = device.createBindGroup({ layout: collectiblePipeline.getBindGroupLayout(0), entries: [
+  { binding: 0, resource: { buffer: collectibleModel } }, { binding: 1, resource: { buffer: collectibleMat } }, { binding: 2, resource: { buffer: vpUniform } }, { binding: 3, resource: { buffer: sceneLights } }] });
+
+// === HoloScene Manifest (machine-readable world facts; part of the delivered artifact) ===
+const holoSceneManifest = {"version":"holo-scene-manifest-v1","source":"GoldenScene","objects":[{"id":"hero","geometry":"humanoid","visible":true,"traits":["@grabbable","@collidable","@networked"],"affordances":[],"position":[0,1.6,0],"scale":[1,1,1],"color":[0,1,0.8]},{"id":"platform","geometry":"cube","visible":true,"traits":["@collidable","@physics"],"affordances":[],"position":[0,0,0],"scale":[5,0.1,5],"color":[0.8,0.8,0.8]},{"id":"collectible","geometry":"sphere","visible":true,"traits":["@grabbable","@glowing"],"affordances":[],"position":[2,1,-3],"scale":[1,1,1],"color":[1,0.8,0]}]};
+if (typeof globalThis !== "undefined") { globalThis.holoSceneManifest = holoSceneManifest; }
+
+// === HoloGraph Viewport Runtime ===
+const holoGraphInitialCameraPos = new Float32Array(cameraPos);
+const holoGraphInitialCameraTarget = new Float32Array(cameraTarget);
+const holoGraphViewportState = { actionCount: 0, lastAction: null, filter: "all", colorMode: "semantic", structureStyle: "flow", labelPolicy: "none", focusId: null };
+document.body.style.position = document.body.style.position || "relative";
+const holoGraphLabelLayer = document.createElement("div");
+holoGraphLabelLayer.setAttribute("data-holograph-label-layer", "true");
+Object.assign(holoGraphLabelLayer.style, { position: "absolute", inset: "0", pointerEvents: "none", overflow: "hidden", fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace", zIndex: "5" });
+canvas.insertAdjacentElement("afterend", holoGraphLabelLayer);
+function hsVec3(v) { return [Number(v[0] || 0), Number(v[1] || 0), Number(v[2] || 0)]; }
+function hsSub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+function hsAdd(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+function hsMul(v, s) { return [v[0] * s, v[1] * s, v[2] * s]; }
+function hsLen(v) { return Math.hypot(v[0], v[1], v[2]) || 1; }
+function hsNorm(v) { const l = hsLen(v); return [v[0] / l, v[1] / l, v[2] / l]; }
+function hsCross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+function hsHash(text) { let h = 2166136261; const s = String(text || ""); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function hsHueRgb(h) { const x = (n) => { const k = (n + h * 6) % 6; return Math.max(0, Math.min(1, Math.min(k, 4 - k, 1))); }; return [x(5), x(3), x(1)]; }
+function hsGraphCenter() { if (!holoGraphObjects.length) return [0, 0, 0]; const sum = holoGraphObjects.reduce((acc, o) => [acc[0] + o.basePosition[0], acc[1] + o.basePosition[1], acc[2] + o.basePosition[2]], [0, 0, 0]); return hsMul(sum, 1 / holoGraphObjects.length); }
+function hsWriteModel(o) { const s = o.visible ? o.scale : [0, 0, 0]; device.queue.writeBuffer(o.modelBuffer, 0, new Float32Array([s[0],0,0,0, 0,s[1],0,0, 0,0,s[2],0, o.position[0],o.position[1],o.position[2],1])); }
+function hsWriteMaterial(o, color) { o.color = [color[0], color[1], color[2]]; const m = o.material; device.queue.writeBuffer(o.matBuffer, 0, new Float32Array([color[0],color[1],color[2],1.0, m.roughness,m.metalness,m.emissiveStrength,0, m.emissive[0],m.emissive[1],m.emissive[2],0])); }
+function hsCameraDistance() { return hsLen(hsSub(hsVec3(cameraTarget), hsVec3(cameraPos))); }
+function hsSetCamera(pos, target) { cameraPos.set(pos); cameraTarget.set(target); device.queue.writeBuffer(vpUniform, 0, buildViewProjection()); document.body.dataset.holoscriptWebgpuCamera = JSON.stringify({ position: Array.from(cameraPos), target: Array.from(cameraTarget) }); }
+function hsCameraBasis() { const forward = hsNorm(hsSub(hsVec3(cameraTarget), hsVec3(cameraPos))); const worldUp = [0, 1, 0]; const right = hsNorm(hsCross(forward, worldUp)); const up = hsNorm(hsCross(right, forward)); return { forward, right, up }; }
+function hsMatchesFilter(o, filter) { const rawKind = o.properties.symbolType || o.properties.symbol_type || o.properties.kind || o.properties.role || o.properties.type || ""; const symbolType = String(rawKind).toLowerCase(); const traits = (o.traits || []).map((t) => String(t).toLowerCase()); if (filter === "all") return true; if (filter === "call") return symbolType === "function" || symbolType === "method" || symbolType === "call" || traits.includes("function") || traits.includes("method") || traits.includes("call"); if (filter === "import") return symbolType === "module" || symbolType === "namespace" || symbolType === "package" || symbolType === "import" || traits.includes("module") || traits.includes("namespace") || traits.includes("package") || traits.includes("import"); return true; }
+function hsColorForMode(o, mode) { if (mode === "identity_hue") return hsHueRgb((hsHash(o.id) % 10000) / 10000); if (mode === "file_hue") return hsHueRgb((hsHash(o.properties.file || o.properties.path || o.id) % 10000) / 10000); if (mode === "relation_hue") return hsHueRgb((hsHash(o.properties.symbolType || o.properties.symbol_type || o.properties.kind || o.properties.role || (o.traits || []).join(",")) % 10000) / 10000); return o.baseColor; }
+function hsRound(n) { return Math.round(Number(n || 0) * 1000) / 1000; }
+function hsRoundVec(v) { return [hsRound(v?.[0]), hsRound(v?.[1]), hsRound(v?.[2])]; }
+function hsHueBucket(o, mode = holoGraphViewportState.colorMode) { if (mode === "identity_hue") return hsHash(o.id) % 10000; if (mode === "file_hue") return hsHash(o.properties.file || o.properties.path || o.id) % 10000; if (mode === "relation_hue") return hsHash(o.properties.symbolType || o.properties.symbol_type || o.properties.kind || o.properties.role || (o.traits || []).join(",")) % 10000; return hsHash(JSON.stringify(o.color || o.baseColor || [])) % 10000; }
+function hsObjectRole(o) { return String(o.properties.symbolType || o.properties.symbol_type || o.properties.kind || o.properties.role || o.properties.type || (o.traits || [])[0] || "object"); }
+function hsCounts(items, keyFn, limit = 12) { const m = new Map(); for (const item of items) { const key = String(keyFn(item) || "unknown"); m.set(key, (m.get(key) || 0) + 1); } return Array.from(m.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, limit).map(([key, count]) => ({ key, count })); }
+function hsCompactObject(o, index) { return { index, id: o.id, name: o.name, geometry: o.geometry || "mesh", shape: o.geometry || "mesh", role: hsObjectRole(o), traits: o.traits || [], file: o.properties.file || null, path: o.properties.path || null, signature: o.properties.signature || null, language: o.properties.language || null, position: hsRoundVec(o.position), scale: hsRoundVec(o.scale), color: hsRoundVec(o.color || o.baseColor), hueBucket: hsHueBucket(o), visible: o.visible, projection: hsProjectPoint(o.position) }; }
+function hsResolveObject(payload = {}) { const key = payload && (payload.nodeId ?? payload.id ?? payload.target ?? payload.anchorId ?? payload.name); let obj = null; if (typeof payload?.anchorIndex === "number") obj = holoGraphObjects[payload.anchorIndex] || null; if (!obj && typeof key === "number") obj = holoGraphObjects[key] || null; if (!obj && key !== undefined && key !== null) obj = holoGraphObjects.find((o) => o.id === String(key) || o.name === String(key)); if (!obj) obj = holoGraphObjects.find((o) => o.visible) || holoGraphObjects[0] || null; return obj; }
+function hsNearestObjects(obj, limit = 8) { if (!obj) return []; return holoGraphObjects.filter((o) => o.visible && o !== obj).map((o) => ({ object: o, distance: hsLen(hsSub(o.position, obj.position)) })).sort((a, b) => a.distance - b.distance).slice(0, Math.max(0, Math.min(32, Number(limit) || 8))).map((entry) => ({ ...hsCompactObject(entry.object, holoGraphObjects.indexOf(entry.object)), distance: hsRound(entry.distance) })); }
+function hsDescribeScene(payload = {}) { const limit = Math.max(1, Math.min(128, Number(payload.limit || 24))); const visible = holoGraphObjects.filter((o) => o.visible); return { canonicalNames: { graphSurface: "HoloGraph", embeddingTower: "HoloEmbed", visionNavigator: "HoloLlama" }, actionContract: ["pan_left","pan_right","pan_up","pan_down","zoom_in","zoom_out","zoom_to_fit","focus_anchor","focus_node","filter_call","filter_import","filter_all","set_color_mode","set_structure_style","set_label_policy","reset_view"], projectionBridge: "renderer-native", canvas: { width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight }, camera: { position: hsRoundVec(cameraPos), target: hsRoundVec(cameraTarget), distance: hsRound(hsCameraDistance()) }, actionCount: holoGraphViewportState.actionCount, lastAction: holoGraphViewportState.lastAction, filter: holoGraphViewportState.filter, colorMode: holoGraphViewportState.colorMode, structureStyle: holoGraphViewportState.structureStyle, labelPolicy: holoGraphViewportState.labelPolicy, objectCount: holoGraphObjects.length, visibleObjects: visible.length, shapes: hsCounts(visible, (o) => o.geometry || "mesh"), roles: hsCounts(visible, hsObjectRole), hueBuckets: hsCounts(visible, (o) => \`hue_\${hsHueBucket(o)}\`, 16), files: hsCounts(visible, (o) => o.properties.file || o.properties.path || "unknown", 16), objects: visible.slice(0, limit).map((o) => hsCompactObject(o, holoGraphObjects.indexOf(o))) }; }
+function hsProjectObject(payload = {}) { const obj = hsResolveObject(payload); if (!obj) return null; return { ...hsCompactObject(obj, holoGraphObjects.indexOf(obj)), cameraDistance: hsRound(hsLen(hsSub(hsVec3(cameraPos), obj.position))) }; }
+function hsInspectObject(payload = {}) { const obj = hsResolveObject(payload); if (!obj) return null; return { ...hsProjectObject(payload), properties: obj.properties, neighbors: hsNearestObjects(obj, payload.limit || 8) }; }
+function hsNormalizeLabelPolicy(value) { const policy = String(value || "none").toLowerCase(); return ["none","ids","signatures","details"].includes(policy) ? policy : "none"; }
+function hsLabelText(o) { const policy = holoGraphViewportState.labelPolicy; if (policy === "none") return ""; if (policy === "ids") return o.id; if (policy === "signatures") return o.properties.signature || o.id; return \`\${hsObjectRole(o)}:\${o.properties.signature || o.id}\`; }
+function hsProjectPoint(p) { const m = buildViewProjection(); const x = Number(p?.[0] || 0), y = Number(p?.[1] || 0), z = Number(p?.[2] || 0); const cx = m[0]*x + m[4]*y + m[8]*z + m[12]; const cy = m[1]*x + m[5]*y + m[9]*z + m[13]; const cz = m[2]*x + m[6]*y + m[10]*z + m[14]; const cw = m[3]*x + m[7]*y + m[11]*z + m[15]; const clip = { x: hsRound(cx), y: hsRound(cy), z: hsRound(cz), w: hsRound(cw) }; if (!Number.isFinite(cw) || Math.abs(cw) < 0.00001) return { source: "renderer-native", valid: false, reason: "invalid-w", inFrame: false, clip }; const ndcX = cx / cw, ndcY = cy / cw, ndcZ = cz / cw; const normalizedX = ndcX * 0.5 + 0.5; const normalizedY = 0.5 - ndcY * 0.5; const width = canvas.clientWidth || canvas.width || 1; const height = canvas.clientHeight || canvas.height || 1; const screenX = normalizedX * width; const screenY = normalizedY * height; const centerDistance = Math.hypot(normalizedX - 0.5, normalizedY - 0.5); return { source: "renderer-native", valid: Number.isFinite(normalizedX) && Number.isFinite(normalizedY), inFrame: ndcX >= -1 && ndcX <= 1 && ndcY >= -1 && ndcY <= 1, ndc: { x: hsRound(ndcX), y: hsRound(ndcY), z: hsRound(ndcZ) }, normalizedX: hsRound(normalizedX), normalizedY: hsRound(normalizedY), screenX: hsRound(screenX), screenY: hsRound(screenY), centerDistance: hsRound(centerDistance), clip }; }
+function hsRenderLabels() { const policy = holoGraphViewportState.labelPolicy; document.body.dataset.holoscriptWebgpuLabels = policy; if (policy === "none") { holoGraphLabelLayer.replaceChildren(); return; } const ranked = holoGraphObjects.filter((o) => o.visible).map((o) => ({ object: o, distance: hsLen(hsSub(o.position, hsVec3(cameraTarget))) })).sort((a, b) => a.distance - b.distance).slice(0, 18); const nodes = []; for (const entry of ranked) { const o = entry.object; const text = hsLabelText(o); const point = hsProjectPoint(o.position); if (!text || !point?.valid || !point.inFrame) continue; const focus = entry.distance <= 0.001 || o.id === holoGraphViewportState.focusId; const el = document.createElement("div"); el.textContent = text.length > 72 ? \`\${text.slice(0, 69)}...\` : text; Object.assign(el.style, { position: "absolute", left: \`\${point.screenX}px\`, top: \`\${point.screenY}px\`, transform: "translate(-50%, -120%)", maxWidth: "280px", padding: focus ? "4px 7px" : "3px 6px", border: focus ? "2px solid rgba(250,204,21,0.98)" : "1px solid rgba(255,255,255,0.68)", borderRadius: "3px", background: focus ? "rgba(15,23,42,0.94)" : "rgba(2,6,23,0.86)", color: focus ? "#fef9c3" : "#f8fafc", fontSize: focus ? "13px" : "12px", fontWeight: focus ? "700" : "600", lineHeight: "1.2", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textShadow: "0 1px 2px #000" }); nodes.push(el); } const focusObj = holoGraphViewportState.focusId ? holoGraphObjects.find((o) => o.id === holoGraphViewportState.focusId && o.visible) : null; if (focusObj) { const panel = document.createElement("div"); Object.assign(panel.style, { position: "absolute", left: "12px", top: "12px", maxWidth: "560px", padding: "8px 10px", border: "2px solid rgba(250,204,21,0.98)", borderRadius: "4px", background: "rgba(15,23,42,0.96)", color: "#fef9c3", fontSize: "13px", fontWeight: "700", lineHeight: "1.35", textShadow: "0 1px 2px #000", boxShadow: "0 10px 30px rgba(0,0,0,0.34)" }); const near = holoGraphObjects.filter((o) => o.visible && o !== focusObj).map((o) => ({ object: o, distance: hsLen(hsSub(o.position, focusObj.position)) })).sort((a, b) => a.distance - b.distance).slice(0, 5); const rows = [{ kind: "target", object: focusObj }, ...near.map((entry) => ({ kind: "near", object: entry.object }))]; for (const row of rows) { const line = document.createElement("div"); const text = \`\${row.kind} \${hsLabelText(row.object)}\`; line.textContent = text.length > 96 ? \`\${text.slice(0, 93)}...\` : text; panel.appendChild(line); } nodes.push(panel); } holoGraphLabelLayer.replaceChildren(...nodes); }
+function hsApplyLabelPolicy(policy) { holoGraphViewportState.labelPolicy = hsNormalizeLabelPolicy(policy); hsRenderLabels(); }
+function hsApplyFilter(filter) { holoGraphViewportState.filter = filter; for (const o of holoGraphObjects) { o.visible = hsMatchesFilter(o, filter); hsWriteModel(o); } }
+function hsApplyColorMode(mode) { holoGraphViewportState.colorMode = mode; for (const o of holoGraphObjects) hsWriteMaterial(o, hsColorForMode(o, mode)); }
+function hsApplyStructureStyle(style) { const center = hsGraphCenter(); const n = Math.max(1, holoGraphObjects.length); const radius = Math.max(20, Math.sqrt(n) * 18); holoGraphViewportState.structureStyle = style; holoGraphObjects.forEach((o, i) => { if (style === "compact") { o.position = hsAdd(center, hsMul(hsSub(o.basePosition, center), 0.45)); } else if (style === "radial") { const a = (i / n) * Math.PI * 2; o.position = [center[0] + Math.cos(a) * radius, center[1] + (o.basePosition[1] - center[1]) * 0.18, center[2] + Math.sin(a) * radius]; } else { o.position = [...o.basePosition]; } hsWriteModel(o); }); }
+function hsFocusObject(payload) { const obj = hsResolveObject(payload); if (!obj) return false; holoGraphViewportState.focusId = obj.id; const target = [...obj.position]; const away = hsNorm(hsSub(hsVec3(cameraPos), hsVec3(cameraTarget))); const distance = Math.max(8, hsCameraDistance() * 0.45); hsSetCamera(hsAdd(target, hsMul(away, distance)), target); return true; }
+function hsViewportSnapshot() { const scene = hsDescribeScene({ limit: 8 }); return { camera: { position: Array.from(cameraPos), target: Array.from(cameraTarget), distance: hsCameraDistance() }, projectionBridge: "renderer-native", canvas: scene.canvas, actionCount: holoGraphViewportState.actionCount, lastAction: holoGraphViewportState.lastAction, filter: holoGraphViewportState.filter, colorMode: holoGraphViewportState.colorMode, structureStyle: holoGraphViewportState.structureStyle, labelPolicy: holoGraphViewportState.labelPolicy, focusId: holoGraphViewportState.focusId, objectCount: scene.objectCount, visibleObjects: scene.visibleObjects, sceneSummary: { shapes: scene.shapes, roles: scene.roles, hueBuckets: scene.hueBuckets, files: scene.files }, sampleObjects: scene.objects }; }
+function hsApplyViewportAction(action, payload = {}) {
+  const type = typeof action === "string" ? action : String(action?.type || action?.action || "");
+  const data = typeof action === "object" && action !== null ? { ...action, ...payload } : payload || {};
+  const before = hsViewportSnapshot();
+  const basis = hsCameraBasis();
+  const distance = hsCameraDistance();
+  const pan = Math.max(1, distance * 0.08);
+  let ok = true;
+  if (type === "pan_left") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.right, -pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.right, -pan)));
+  else if (type === "pan_right") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.right, pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.right, pan)));
+  else if (type === "pan_up") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.up, pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.up, pan)));
+  else if (type === "pan_down") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.up, -pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.up, -pan)));
+  else if (type === "zoom_in") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.forward, distance * 0.22)), hsVec3(cameraTarget));
+  else if (type === "zoom_out") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.forward, -distance * 0.25)), hsVec3(cameraTarget));
+  else if (type === "zoom_to_fit" || type === "reset_view") { holoGraphViewportState.focusId = null; hsSetCamera(Array.from(holoGraphInitialCameraPos), Array.from(holoGraphInitialCameraTarget)); }
+  else if (type === "focus_anchor" || type === "focus_node") ok = hsFocusObject(data);
+  else if (type === "filter_call") hsApplyFilter("call");
+  else if (type === "filter_import") hsApplyFilter("import");
+  else if (type === "filter_all") hsApplyFilter("all");
+  else if (type === "set_color_mode") hsApplyColorMode(String(data.mode || data.colorMode || "semantic"));
+  else if (type === "set_structure_style") hsApplyStructureStyle(String(data.style || data.structureStyle || "flow"));
+  else if (type === "set_label_policy") hsApplyLabelPolicy(data.policy || data.labelPolicy || "none");
+  else ok = false;
+  if (!ok) return { ok: false, action: type, before, after: hsViewportSnapshot() };
+  holoGraphViewportState.actionCount++;
+  holoGraphViewportState.lastAction = type;
+  document.body.dataset.holoscriptWebgpuLastAction = type;
+  return { ok: true, action: type, before, after: hsViewportSnapshot() };
+}
+globalThis.holoscriptWebgpuViewport = { applyAction: hsApplyViewportAction, getState: hsViewportSnapshot, describeScene: hsDescribeScene, inspectObject: hsInspectObject, projectObject: hsProjectObject, projectPoint: hsProjectPoint };
+globalThis.HoloGraphViewport = globalThis.holoscriptWebgpuViewport;
+document.body.dataset.holoscriptWebgpuViewport = "ready";
+document.body.dataset.holoscriptWebgpuInspector = "ready";
+document.body.dataset.holoscriptWebgpuLabels = "none";
+hsSetCamera(Array.from(cameraPos), Array.from(cameraTarget));
+
 // === Render Loop ===
 let frameCount = 0;
 const t0 = performance.now();
 function frame() {
   frameCount++;
   const time = (performance.now() - t0) / 1000.0;
+  device.queue.writeBuffer(vpUniform, 0, buildViewProjection());
+  hsRenderLabels();
   const enc = device.createCommandEncoder();
   const rp = enc.beginRenderPass({
     colorAttachments: [{ view: msaaTexture.createView(), resolveTarget: context.getCurrentTexture().createView(), clearValue: clearColor, loadOp: "clear", storeOp: "store" }],
@@ -665,6 +930,7 @@ function frame() {
   rp.setPipeline(collectiblePipeline); rp.setBindGroup(0, collectibleBind); rp.setVertexBuffer(0, collectibleVBO); rp.draw(collectibleVertexCount);
   rp.end();
   device.queue.submit([enc.finish()]);
+  document.body.dataset.holoscriptWebgpuFrame = String(frameCount);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);"

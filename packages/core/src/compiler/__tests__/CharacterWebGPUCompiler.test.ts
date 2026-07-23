@@ -26,7 +26,11 @@ function characterComp(): HoloComposition {
         traits: [
           { type: 'ObjectTrait', name: 'skeleton', config: { rig: 'humanoid_65' } },
           { type: 'ObjectTrait', name: 'body', config: { height: 1.7, build_scale: 1.0 } },
-          { type: 'ObjectTrait', name: 'subsurface_scattering', config: { color: [0.8, 0.3, 0.2] } },
+          {
+            type: 'ObjectTrait',
+            name: 'subsurface_scattering',
+            config: { color: [0.8, 0.3, 0.2] },
+          },
           { type: 'ObjectTrait', name: 'hair', config: { style: 'short', color: '#2c1810' } },
           { type: 'ObjectTrait', name: 'locomotion', config: { mode: 'walk', speed: 1.4 } },
         ],
@@ -38,40 +42,58 @@ function characterComp(): HoloComposition {
 }
 
 function emptyComp(): HoloComposition {
-  return { name: 'Empty', objects: [], templates: [], spatialGroups: [] } as unknown as HoloComposition;
+  return {
+    name: 'Empty',
+    objects: [],
+    templates: [],
+    spatialGroups: [],
+  } as unknown as HoloComposition;
 }
 
-describe('CharacterWebGPUCompiler', () => {
-  it('compiles a character .holo to a CharacterDrawSpec bundle with real skinned geometry', async () => {
-    const out = await new CharacterWebGPUCompiler().compile(characterComp());
-    const bundle = JSON.parse(out) as CharacterDrawSpecBundle;
+// The first call exercises the lazy core→engine source import. Transforming
+// that graph takes ~55s alone and up to ~95s inside the full sharded corpus;
+// production consumes the already-built package.
+const COLD_IMPORT_TIMEOUT_MS = 180_000;
 
-    expect(bundle.format).toBe('character-webgpu/drawspec');
-    // A real humanoid body, NOT a placeholder cube (24 position floats). Hundreds of verts.
-    expect(bundle.vertexCount).toBeGreaterThan(50);
-    expect(bundle.mesh.positions.length).toBeGreaterThan(300);
-    expect(bundle.mesh.positions.length % 3).toBe(0);
-    // GPU skinning data is present (the cube path has none).
-    expect(bundle.mesh.jointIndices.length).toBe(bundle.vertexCount);
-    expect(bundle.mesh.jointWeights.length).toBe(bundle.vertexCount);
-    expect(bundle.jointMatrices.length).toBe(bundle.jointCount * 16);
-    // Authored materials reached the bundle: skin + hair + eye material groups.
-    expect(Array.isArray(bundle.materialGroups)).toBe(true);
-    expect((bundle.materialGroups as unknown[]).length).toBeGreaterThanOrEqual(3);
-    const models = (bundle.materialGroups as Array<{ material: { shadingModel: string } }>).map(
-      (g) => g.material.shadingModel
-    );
-    expect(models).toContain('skin-sss');
-    expect(models).toContain('marschner-hair');
-    expect(models).toContain('refractive-eye');
-  });
+describe('CharacterWebGPUCompiler', () => {
+  it(
+    'compiles a character .holo to a CharacterDrawSpec bundle with real skinned geometry',
+    async () => {
+      const out = await new CharacterWebGPUCompiler().compile(characterComp());
+      const bundle = JSON.parse(out) as CharacterDrawSpecBundle;
+
+      expect(bundle.format).toBe('character-webgpu/drawspec');
+      // A real humanoid body, NOT a placeholder cube (24 position floats). Hundreds of verts.
+      expect(bundle.vertexCount).toBeGreaterThan(50);
+      expect(bundle.mesh.positions.length).toBeGreaterThan(300);
+      expect(bundle.mesh.positions.length % 3).toBe(0);
+      // GPU skinning data is present (the cube path has none).
+      expect(bundle.mesh.jointIndices.length).toBe(bundle.vertexCount);
+      expect(bundle.mesh.jointWeights.length).toBe(bundle.vertexCount);
+      expect(bundle.jointMatrices.length).toBe(bundle.jointCount * 16);
+      // Authored materials reached the bundle: skin + hair + eye material groups.
+      expect(Array.isArray(bundle.materialGroups)).toBe(true);
+      expect((bundle.materialGroups as unknown[]).length).toBeGreaterThanOrEqual(3);
+      const models = (bundle.materialGroups as Array<{ material: { shadingModel: string } }>).map(
+        (g) => g.material.shadingModel
+      );
+      expect(models).toContain('skin-sss');
+      expect(models).toContain('marschner-hair');
+      expect(models).toContain('refractive-eye');
+    },
+    COLD_IMPORT_TIMEOUT_MS
+  );
 
   it('honours an entityId override option', async () => {
-    const out = await new CharacterWebGPUCompiler({ entityId: 'brittney' }).compile(characterComp());
+    const out = await new CharacterWebGPUCompiler({ entityId: 'brittney' }).compile(
+      characterComp()
+    );
     expect((JSON.parse(out) as CharacterDrawSpecBundle).entityId).toBe('brittney');
   });
 
   it('throws on a composition with no character object (no fabricated body — false case)', async () => {
-    await expect(new CharacterWebGPUCompiler().compile(emptyComp())).rejects.toThrow(/no character object/);
+    await expect(new CharacterWebGPUCompiler().compile(emptyComp())).rejects.toThrow(
+      /no character object/
+    );
   });
 });

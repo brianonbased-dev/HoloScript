@@ -64,7 +64,6 @@ describe('HoloScriptCodeParser — security: suspicious keywords', () => {
     'fs',
     'child_process',
     'exec',
-    'spawn',
   ];
 
   for (const kw of BLOCKED) {
@@ -74,6 +73,11 @@ describe('HoloScriptCodeParser — security: suspicious keywords', () => {
       expect(result.errors.some((e) => e.code === 'HS010')).toBe(true);
     });
   }
+
+  it('allows the native game-logic "spawn" keyword', () => {
+    const result = parse('orb Spawner { spawn }');
+    expect(result.errors.every((e) => e.code !== 'HS010')).toBe(true);
+  });
 
   it('word boundary: "respawn" does NOT trigger "spawn" block', () => {
     const result = parse('orb Mesh { respawn: true }');

@@ -1,13 +1,12 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
 import { HoloCompositionParser } from '../HoloCompositionParser';
 
-const CONTRACT_PATH = resolve(
-  process.cwd(),
-  'examples/integration/foundry-toolbox-adapter-contract.holo',
+const CONTRACT_PATH = fileURLToPath(
+  new URL('../../../../../examples/integration/foundry-toolbox-adapter-contract.holo', import.meta.url),
 );
 
 type HoloTraitNode = {

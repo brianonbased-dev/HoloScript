@@ -412,8 +412,8 @@ describe('Feature 5: LLM provider model constant arrays', () => {
     expect(GEMINI_MODELS).toContain('gemini-3-flash-preview');
   });
 
-  it('GEMINI_MODELS includes gemini-2.0-flash', () => {
-    expect(GEMINI_MODELS).toContain('gemini-2.0-flash');
+  it('GEMINI_MODELS excludes the retired gemini-2.0-flash model', () => {
+    expect(GEMINI_MODELS).not.toContain('gemini-2.0-flash');
   });
 
   it('GEMINI_MODELS includes gemini-1.5-pro', () => {

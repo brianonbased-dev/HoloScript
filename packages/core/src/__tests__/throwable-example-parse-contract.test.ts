@@ -1,11 +1,10 @@
 import { test, expect, describe } from 'vitest';
 import { HoloCompositionParser } from '../parser/HoloCompositionParser';
 import * as fs from 'fs';
-import * as path from 'path';
+import { fileURLToPath } from 'node:url';
 
-const FILE_PATH = path.resolve(
-  process.cwd(),
-  'examples/traits/throwable-breakable-stackable.holo'
+const FILE_PATH = fileURLToPath(
+  new URL('../../../../examples/traits/throwable-breakable-stackable.holo', import.meta.url)
 );
 
 describe('throwable example parse contract', () => {

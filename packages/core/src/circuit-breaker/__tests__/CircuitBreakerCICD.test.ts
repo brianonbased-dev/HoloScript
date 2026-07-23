@@ -96,10 +96,11 @@ describe('DEFAULT_CRITICAL_TARGET_OVERRIDES', () => {
     }
   });
 
-  it('includes critical targets like r3f and webgpu', () => {
+  it('includes maintained critical targets and excludes the retired r3f bridge', () => {
     const targets = DEFAULT_CRITICAL_TARGET_OVERRIDES.map((e) => e.target);
-    expect(targets).toContain('r3f');
     expect(targets).toContain('webgpu');
+    expect(targets).toContain('openxr');
+    expect(targets).not.toContain('r3f');
   });
 });
 

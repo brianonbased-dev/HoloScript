@@ -27,7 +27,7 @@ orb cube_1 {
     expect(result.ast.migrations).toBeDefined();
     expect(result.ast.migrations.length).toBe(1);
     expect(result.ast.migrations[0].fromVersion).toBe(1);
-    expect(result.ast.migrations[0].body).toContain('state . newValue = state . oldValue');
+    expect(result.ast.migrations[0].body).toContain('state.newValue = state.oldValue;');
   });
 
   it('should parse @version and @migrate inside templates', () => {
@@ -51,7 +51,7 @@ template "VulnerableBot" {
     expect(template.migrations).toBeDefined();
     expect(template.migrations.length).toBe(1);
     expect(template.migrations[0].fromVersion).toBe(2);
-    expect(template.migrations[0].body).toContain('state . health = 100');
+    expect(template.migrations[0].body).toContain('state.health = 100;');
   });
 
   it('should handle multiple migration steps', () => {

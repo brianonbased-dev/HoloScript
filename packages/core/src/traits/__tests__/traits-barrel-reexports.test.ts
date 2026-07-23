@@ -13,21 +13,25 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import {
+  volumetricCloudsHandler,
+  fluidSimulationHandler,
+  cacheHandler,
+  retryHandler,
+} from '../index';
 
 describe('traits barrel re-exports', () => {
-  it('re-exports the marketplace-cataloged handlers restored on 2026-07-09', async () => {
-    const barrel = await import('../index');
+  it('re-exports the marketplace-cataloged handlers restored on 2026-07-09', () => {
+    expect(volumetricCloudsHandler).toBeDefined();
+    expect(volumetricCloudsHandler.name).toBe('volumetric_clouds');
 
-    expect(barrel.volumetricCloudsHandler).toBeDefined();
-    expect(barrel.volumetricCloudsHandler.name).toBe('volumetric_clouds');
+    expect(fluidSimulationHandler).toBeDefined();
+    expect(fluidSimulationHandler.name).toBe('fluid_simulation');
 
-    expect(barrel.fluidSimulationHandler).toBeDefined();
-    expect(barrel.fluidSimulationHandler.name).toBe('fluid_simulation');
+    expect(cacheHandler).toBeDefined();
+    expect(cacheHandler.name).toBe('cache');
 
-    expect(barrel.cacheHandler).toBeDefined();
-    expect(barrel.cacheHandler.name).toBe('cache');
-
-    expect(barrel.retryHandler).toBeDefined();
-    expect(barrel.retryHandler.name).toBe('retry');
+    expect(retryHandler).toBeDefined();
+    expect(retryHandler.name).toBe('retry');
   });
 });

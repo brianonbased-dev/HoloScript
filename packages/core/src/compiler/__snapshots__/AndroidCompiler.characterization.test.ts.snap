@@ -20,14 +20,14 @@ exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > Androi
 
 exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A10] lens_* trait triggers lensSetup > A10-lens 1`] = `"112c9f0317482281"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Core codegen (XR glasses target) > [A11] XR empty composition locks baseline > A11-xrEmpty 1`] = `"8a080a2387945df8"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Core codegen (XR glasses target) > [A11] XR empty composition locks baseline > A11-xrEmpty 1`] = `"757dd4b1656ca9b9"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Core codegen (XR glasses target) > [A12] XR composition with single object locks codegen > A12-xrSingleObject 1`] = `"340fedf34ea2b725"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Core codegen (XR glasses target) > [A12] XR composition with single object locks codegen > A12-xrSingleObject 1`] = `"06819d8372dfcb1f"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Core codegen (XR glasses target) > [A13] XR composition activityFile isolated lock > A13-xrActivityIsolated 1`] = `"0a34a297d286bb10"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Core codegen (XR glasses target) > [A13] XR composition activityFile isolated lock > A13-xrActivityIsolated 1`] = `"41500020b337ae18"`;
 
 exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Core codegen (XR glasses target) > [A14] XR manifestFile isolated lock > A14-xrManifestIsolated 1`] = `"7e287a83b1c2d655"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Trait map (via XR compiler) + Glimmer composables > [A15] XR composition with trait exercises AndroidXRTraitMap dispatch > A15-xrTraitMap 1`] = `"7d91d95f95c08fd5"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Trait map (via XR compiler) + Glimmer composables > [A15] XR composition with trait exercises AndroidXRTraitMap dispatch > A15-xrTraitMap 1`] = `"85b4e5b3c8e4b8b0"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > Cross-compiler composite > [A16] same composition compiled to both targets — diff-lock across trio > A16-crossCompositeDiffLock 1`] = `"9a88de21bb6f109e"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > Cross-compiler composite > [A16] same composition compiled to both targets — diff-lock across trio > A16-crossCompositeDiffLock 1`] = `"3ad1e64d96d0c0bd"`;

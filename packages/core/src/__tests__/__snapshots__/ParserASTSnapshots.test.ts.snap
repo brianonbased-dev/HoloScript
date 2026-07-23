@@ -3274,7 +3274,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
       {
         "children": [
           {
-            "body": "doSomething ( )",
+            "body": "doSomething()",
             "name": "if",
             "params": [
               "condition",
@@ -3332,7 +3332,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
       {
         "children": [
           {
-            "body": "doSomething ( )",
+            "body": "doSomething()",
             "name": "if",
             "params": [
               "condition",
@@ -3411,7 +3411,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         {
           "children": [
             {
-              "body": "doSomething ( )",
+              "body": "doSomething()",
               "name": "if",
               "params": [
                 "condition",
@@ -3469,7 +3469,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         {
           "children": [
             {
-              "body": "doSomething ( )",
+              "body": "doSomething()",
               "name": "if",
               "params": [
                 "condition",

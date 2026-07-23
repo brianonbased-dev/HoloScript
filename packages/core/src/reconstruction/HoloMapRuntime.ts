@@ -882,7 +882,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       );
     }
 
-    this.encoderDevice = await tryCreateHoloMapEncoderDevice();
+    this.encoderDevice = this.config.cpuOffload ? null : await tryCreateHoloMapEncoderDevice();
     this.microEncoder = this.encoderDevice ? createHoloMapMicroEncoder(this.encoderDevice) : null;
     const streamingTokens = Math.max(
       1,

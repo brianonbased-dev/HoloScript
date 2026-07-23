@@ -537,7 +537,8 @@ describe('E2E Export: Android XR (Kotlin/Jetpack XR)', () => {
 
   it('emits XR session initialization', () => {
     const result = compiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(result.activityFile).toContain('XRSession.create');
+    expect(result.activityFile).toContain('xrSession = XRSession(this)');
+    expect(result.activityFile).toContain('xrSession.configure(Config())');
   });
 
   it('compiles empty composition without errors', () => {

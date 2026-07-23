@@ -54,13 +54,13 @@ describe('ALL_EXPORT_TARGETS', () => {
     expect(ALL_EXPORT_TARGETS.length).toBeGreaterThan(0);
   });
 
-  it('contains expected targets', () => {
+  it('contains maintained targets and excludes the retired r3f bridge', () => {
     const targets = ALL_EXPORT_TARGETS as string[];
-    expect(targets).toContain('r3f');
     expect(targets).toContain('unity');
     expect(targets).toContain('unreal');
     expect(targets).toContain('webgpu');
     expect(targets).toContain('nir');
+    expect(targets).not.toContain('r3f');
   });
 
   it('has no duplicates', () => {
