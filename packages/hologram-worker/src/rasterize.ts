@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-import sharp from 'sharp';
+import sharp, { type Sharp } from 'sharp';
 
 import type { HologramSourceKind } from '@holoscript/engine/hologram';
 
@@ -27,7 +27,7 @@ function tempPath(suffix: string): string {
 }
 
 async function resizeToCapPipeline(
-  sharpInput: sharp.Sharp
+  sharpInput: Sharp
 ): Promise<{ buffer: Buffer; width: number; height: number }> {
   const meta = await sharpInput.metadata();
   let w = meta.width ?? 1;

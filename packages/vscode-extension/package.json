@@ -674,7 +674,7 @@
     "@holoscript/lsp": "workspace:^",
     "@holoscript/sdk": "workspace:^",
     "@types/adm-zip": "^0.5.7",
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.0",
     "vscode-languageclient": "^9.0.1"
   }
 }
