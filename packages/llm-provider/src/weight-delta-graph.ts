@@ -57,6 +57,15 @@ export interface EvaluationReceiptRef {
   candidateDigest: ContentDigest;
   receiptDigest: ContentDigest;
   evaluatorRef: string;
+  /**
+   * Consensus metadata is optional for deterministic evaluators, but is required by
+   * provenance_independent and cross_family policies. `signatureVerified` is asserted by the
+   * receipt-verification boundary (for example HoloTune's EIP-191 verifier), not by this planner.
+   */
+  evaluatorFamily?: string;
+  signerAddress?: string;
+  signatureVerified?: boolean;
+  seed?: number;
   seedCount: number;
   passed: boolean;
 }
@@ -145,12 +154,21 @@ export type AdmissionRequirementStatus =
   | 'under_seeded'
   | 'failed'
   | 'invalid_receipt'
+  | 'unverified_evaluator'
+  | 'insufficient_independence'
+  | 'insufficient_families'
   | 'satisfied';
 
 export interface AdmissionRequirementPlan {
   requirementId: string;
   status: AdmissionRequirementStatus;
   receipt?: EvaluationReceiptRef;
+  receipts?: EvaluationReceiptRef[];
+  evaluatorEvidence?: {
+    verifiedSigners: string[];
+    evaluatorFamilies: string[];
+    seedCount: number;
+  };
 }
 
 export type WeightExecutionStep =
@@ -209,9 +227,17 @@ function receiptEquals(left: EvaluationReceiptRef, right: EvaluationReceiptRef):
     left.candidateDigest === right.candidateDigest &&
     left.receiptDigest === right.receiptDigest &&
     left.evaluatorRef === right.evaluatorRef &&
+    left.evaluatorFamily === right.evaluatorFamily &&
+    left.signerAddress === right.signerAddress &&
+    left.signatureVerified === right.signatureVerified &&
+    left.seed === right.seed &&
     left.seedCount === right.seedCount &&
     left.passed === right.passed
   );
+}
+
+function evaluatorIdentity(receipt: EvaluationReceiptRef): string {
+  return receipt.signerAddress || receipt.evaluatorRef;
 }
 
 function validRule(rule: EvaluationRule): boolean {
@@ -245,7 +271,7 @@ function validateGraph(
 ): {
   provides: string[];
   mustPreserve: string[];
-  receiptsByRequirement: Map<string, EvaluationReceiptRef>;
+  receiptsByRequirement: Map<string, EvaluationReceiptRef[]>;
 } {
   if (graph.schema !== 'holoweight.graph.v1') {
     issue(
@@ -603,20 +629,34 @@ function validateGraph(
     receiptGroups.set(receipt.requirementId, group);
   }
 
-  const receiptsByRequirement = new Map<string, EvaluationReceiptRef>();
+  const receiptsByRequirement = new Map<string, EvaluationReceiptRef[]>();
   for (const [requirementId, group] of receiptGroups) {
-    const first = group[0];
-    if (!first) continue;
-    if (group.some(({ receipt }) => !receiptEquals(receipt, first.receipt))) {
-      issue(
-        issues,
-        'CONFLICTING_REQUIREMENT_RECEIPTS',
-        `receipts[${first.index}]`,
-        `Requirement "${requirementId}" has non-identical duplicate receipts.`
-      );
-      continue;
+    const byEvaluator = new Map<string, Array<{ receipt: EvaluationReceiptRef; index: number }>>();
+    for (const entry of group) {
+      const identity = evaluatorIdentity(entry.receipt);
+      const evaluatorGroup = byEvaluator.get(identity) ?? [];
+      evaluatorGroup.push(entry);
+      byEvaluator.set(identity, evaluatorGroup);
     }
-    receiptsByRequirement.set(requirementId, first.receipt);
+    let conflicting = false;
+    for (const evaluatorGroup of byEvaluator.values()) {
+      const first = evaluatorGroup[0];
+      if (!first) continue;
+      if (evaluatorGroup.some(({ receipt }) => !receiptEquals(receipt, first.receipt))) {
+        issue(
+          issues,
+          'CONFLICTING_REQUIREMENT_RECEIPTS',
+          `receipts[${first.index}]`,
+          `Requirement "${requirementId}" has conflicting receipts from evaluator "${evaluatorIdentity(first.receipt)}".`
+        );
+        conflicting = true;
+      }
+    }
+    if (conflicting) continue;
+    receiptsByRequirement.set(
+      requirementId,
+      [...byEvaluator.values()].flatMap((entries) => (entries[0] ? [entries[0].receipt] : []))
+    );
   }
 
   if (
@@ -640,31 +680,73 @@ function validateGraph(
 
 function admissionPlan(
   graph: WeightDeltaGraph,
-  receiptsByRequirement: Map<string, EvaluationReceiptRef>
+  receiptsByRequirement: Map<string, EvaluationReceiptRef[]>
 ): AdmissionRequirementPlan[] {
   return graph.requirements.map((requirement) => {
-    const receipt = receiptsByRequirement.get(requirement.id);
-    if (!receipt) {
+    const receipts = receiptsByRequirement.get(requirement.id) ?? [];
+    if (receipts.length === 0) {
       return { requirementId: requirement.id, status: 'missing' };
     }
+    const result = (status: AdmissionRequirementStatus): AdmissionRequirementPlan => ({
+      requirementId: requirement.id,
+      status,
+      receipt: receipts[0],
+      receipts,
+      evaluatorEvidence: {
+        verifiedSigners: sortedUnique(
+          receipts
+            .filter((receipt) => receipt.signatureVerified === true && receipt.signerAddress)
+            .map((receipt) => receipt.signerAddress!)
+        ),
+        evaluatorFamilies: sortedUnique(
+          receipts
+            .filter((receipt) => receipt.signatureVerified === true && receipt.evaluatorFamily)
+            .map((receipt) => receipt.evaluatorFamily!)
+        ),
+        seedCount:
+          receipts.every((receipt) => Number.isInteger(receipt.seed))
+            ? new Set(receipts.map((receipt) => receipt.seed)).size
+            : Math.max(...receipts.map((receipt) => receipt.seedCount)),
+      },
+    });
     if (
-      !validDigest(receipt.receiptDigest) ||
-      !nonEmpty(receipt.evaluatorRef) ||
-      !Number.isInteger(receipt.seedCount) ||
-      receipt.seedCount < 0
+      receipts.some(
+        (receipt) =>
+          !validDigest(receipt.receiptDigest) ||
+          !nonEmpty(receipt.evaluatorRef) ||
+          !Number.isInteger(receipt.seedCount) ||
+          receipt.seedCount < 0
+      )
     ) {
-      return { requirementId: requirement.id, status: 'invalid_receipt', receipt };
+      return result('invalid_receipt');
     }
-    if (receipt.candidateDigest !== graph.candidateDigest) {
-      return { requirementId: requirement.id, status: 'candidate_mismatch', receipt };
+    if (receipts.some((receipt) => receipt.candidateDigest !== graph.candidateDigest)) {
+      return result('candidate_mismatch');
     }
-    if (!receipt.passed) {
-      return { requirementId: requirement.id, status: 'failed', receipt };
+    if (receipts.some((receipt) => !receipt.passed)) {
+      return result('failed');
     }
-    if (receipt.seedCount < requirement.minSeeds) {
-      return { requirementId: requirement.id, status: 'under_seeded', receipt };
+    const evidence = result('satisfied').evaluatorEvidence!;
+    if (evidence.seedCount < requirement.minSeeds) {
+      return result('under_seeded');
     }
-    return { requirementId: requirement.id, status: 'satisfied', receipt };
+    if (requirement.evaluatorPolicy !== 'deterministic') {
+      const allSigned = receipts.every(
+        (receipt) =>
+          receipt.signatureVerified === true &&
+          nonEmpty(receipt.signerAddress || '') &&
+          nonEmpty(receipt.evaluatorFamily || '')
+      );
+      if (!allSigned) return result('unverified_evaluator');
+      if (evidence.verifiedSigners.length < 2) return result('insufficient_independence');
+      if (
+        requirement.evaluatorPolicy === 'cross_family' &&
+        evidence.evaluatorFamilies.length < 2
+      ) {
+        return result('insufficient_families');
+      }
+    }
+    return result('satisfied');
   });
 }
 

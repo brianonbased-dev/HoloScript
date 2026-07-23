@@ -222,8 +222,33 @@ describe('planWeightDeltaGraph', () => {
   it('becomes ready only when every receipt matches, passes, and has enough seeds', () => {
     const input = graph({
       receipts: [
-        receipt('code-heldout'),
-        receipt('honest-abstention', { receiptDigest: digest('5') }),
+        receipt('code-heldout', {
+          evaluatorRef: 'holomesh-seat:openai',
+          signerAddress: '0xopenai',
+          evaluatorFamily: 'openai',
+          signatureVerified: true,
+        }),
+        receipt('code-heldout', {
+          receiptDigest: digest('4'),
+          evaluatorRef: 'holomesh-seat:anthropic',
+          signerAddress: '0xanthropic',
+          evaluatorFamily: 'anthropic',
+          signatureVerified: true,
+        }),
+        receipt('honest-abstention', {
+          receiptDigest: digest('5'),
+          evaluatorRef: 'holomesh-seat:openai',
+          signerAddress: '0xopenai',
+          evaluatorFamily: 'openai',
+          signatureVerified: true,
+        }),
+        receipt('honest-abstention', {
+          receiptDigest: digest('6'),
+          evaluatorRef: 'holomesh-seat:anthropic',
+          signerAddress: '0xanthropic',
+          evaluatorFamily: 'anthropic',
+          signatureVerified: true,
+        }),
       ],
     });
 
@@ -233,6 +258,85 @@ describe('planWeightDeltaGraph', () => {
     expect(plan.admissionRequirements.every((requirement) => requirement.status === 'satisfied')).toBe(
       true
     );
+  });
+
+  it('keeps self-certified behavioral receipts in candidate state', () => {
+    const input = graph({
+      requirements: [codeRequirement],
+      receipts: [receipt('code-heldout')],
+    });
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.readiness).toBe('candidate');
+    expect(plan.admissionRequirements).toEqual([
+      expect.objectContaining({
+        requirementId: 'code-heldout',
+        status: 'unverified_evaluator',
+      }),
+    ]);
+  });
+
+  it('requires two verified families for cross-family requirements', () => {
+    const signed = {
+      evaluatorRef: 'holomesh-seat:openai',
+      signerAddress: '0xopenai',
+      evaluatorFamily: 'openai',
+      signatureVerified: true,
+    };
+    const oneFamily = graph({
+      requirements: [abstentionRequirement],
+      receipts: [
+        receipt('honest-abstention', signed),
+        receipt('honest-abstention', {
+          ...signed,
+          evaluatorRef: 'holomesh-seat:openai-2',
+          signerAddress: '0xopenai2',
+          receiptDigest: digest('7'),
+        }),
+      ],
+    });
+
+    const oneFamilyPlan = planWeightDeltaGraph(oneFamily);
+
+    expect(oneFamilyPlan.readiness).toBe('candidate');
+    expect(oneFamilyPlan.admissionRequirements[0]).toEqual(
+      expect.objectContaining({
+        status: 'insufficient_families',
+        evaluatorEvidence: expect.objectContaining({
+          verifiedSigners: ['0xopenai', '0xopenai2'],
+          evaluatorFamilies: ['openai'],
+        }),
+      })
+    );
+  });
+
+  it('accepts non-identical receipts from distinct evaluators without a conflict issue', () => {
+    const input = graph({
+      requirements: [codeRequirement],
+      receipts: [
+        receipt('code-heldout', {
+          evaluatorRef: 'holomesh-seat:openai',
+          signerAddress: '0xopenai',
+          evaluatorFamily: 'openai',
+          signatureVerified: true,
+        }),
+        receipt('code-heldout', {
+          receiptDigest: digest('8'),
+          evaluatorRef: 'holomesh-seat:anthropic',
+          signerAddress: '0xanthropic',
+          evaluatorFamily: 'anthropic',
+          signatureVerified: true,
+        }),
+      ],
+    });
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.issues).not.toContainEqual(
+      expect.objectContaining({ code: 'CONFLICTING_REQUIREMENT_RECEIPTS' })
+    );
+    expect(plan.readiness).toBe('ready');
   });
 
   it('selects an immutable prior head for rollback without inverse arithmetic', () => {
