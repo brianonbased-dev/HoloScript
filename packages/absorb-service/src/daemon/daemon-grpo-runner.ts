@@ -21,31 +21,20 @@ import {
   type OrchestratorStats,
 } from '../self-improvement/index.js';
 import type { RewardToolRunner, RewardFunctionOptions } from '../self-improvement/index.js';
-import { execFile } from 'child_process';
-import { createRequire } from 'module';
-import { promisify } from 'util';
+import {
+  packageProcessFailureOutput,
+  resolvePackageBinary,
+  resolvePackageEntry,
+  runPackageTool,
+  type PackageProcessFailure,
+} from '../self-improvement/PackageToolRuntime.js';
 import { pathToFileURL } from 'url';
 import * as path from 'path';
 import * as fs from 'fs';
 
-const execFileAsync = promisify(execFile);
-const requireFromModule = createRequire(import.meta.url);
-const packageBinaryCache = new Map<string, string>();
 const ownedTempDirs = new Set<string>();
-const nodePackageExecutionArgs = ['--preserve-symlinks', '--preserve-symlinks-main'] as const;
 
-interface PackageManifest {
-  bin?: string | Record<string, string>;
-  main?: string;
-  module?: string;
-  exports?: unknown;
-}
-
-interface ProcessFailure {
-  message?: string;
-  stdout?: string;
-  stderr?: string;
-}
+export { resolvePackageBinary };
 
 interface VitestJsonResult {
   numPassedTests?: number;
@@ -59,70 +48,6 @@ interface CoverageSummary {
       pct?: number | string;
     };
   };
-}
-
-function resolvePackageManifest(packageName: string): string {
-  for (const nodeModulesDir of requireFromModule.resolve.paths(packageName) ?? []) {
-    const candidate = path.join(nodeModulesDir, packageName, 'package.json');
-    if (fs.existsSync(candidate)) return candidate;
-  }
-
-  return requireFromModule.resolve(`${packageName}/package.json`);
-}
-
-function resolveExportTarget(value: unknown): string | undefined {
-  if (typeof value === 'string') return value;
-  if (!value || typeof value !== 'object') return undefined;
-
-  const conditions = value as Record<string, unknown>;
-  return (
-    resolveExportTarget(conditions.import) ??
-    resolveExportTarget(conditions.default) ??
-    resolveExportTarget(conditions.require)
-  );
-}
-
-export function resolvePackageBinary(packageName: string, binaryName: string): string {
-  const cacheKey = `${packageName}:${binaryName}`;
-  const cached = packageBinaryCache.get(cacheKey);
-  if (cached) return cached;
-
-  // Preserve the logical node_modules path instead of require.resolve's
-  // canonical pnpm virtual-store path. On Windows, the expanded peer-suffixed
-  // path can cross the package-scope lookup limit and make otherwise valid
-  // `#imports` inside Vitest appear undefined.
-  const manifestPath = resolvePackageManifest(packageName);
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as PackageManifest;
-  const relativeBinary =
-    typeof manifest.bin === 'string' ? manifest.bin : manifest.bin?.[binaryName];
-
-  if (!relativeBinary) {
-    throw new Error(`Package "${packageName}" does not expose binary "${binaryName}"`);
-  }
-
-  const resolved = path.resolve(path.dirname(manifestPath), relativeBinary);
-  packageBinaryCache.set(cacheKey, resolved);
-  return resolved;
-}
-
-function resolvePackageEntry(packageName: string): string {
-  const manifestPath = resolvePackageManifest(packageName);
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as PackageManifest;
-  const packageExport =
-    manifest.exports && typeof manifest.exports === 'object'
-      ? (manifest.exports as Record<string, unknown>)['.']
-      : manifest.exports;
-  const relativeEntry = resolveExportTarget(packageExport) ?? manifest.module ?? manifest.main;
-
-  return relativeEntry
-    ? path.resolve(path.dirname(manifestPath), relativeEntry)
-    : requireFromModule.resolve(packageName);
-}
-
-function processFailureOutput(error: unknown): string {
-  const failure = error as ProcessFailure;
-  const output = `${failure.stdout ?? ''}${failure.stderr ?? ''}`;
-  return output || failure.message || String(error);
 }
 
 function parseVitestJson(output: string): VitestJsonResult | null {
@@ -425,11 +350,10 @@ export const realToolRunner: RewardToolRunner = {
       // artifact could not be created.
     }
     try {
-      const { stdout, stderr } = await execFileAsync(
-        process.execPath,
-        [
-          ...nodePackageExecutionArgs,
-          resolvePackageBinary('vitest', 'vitest'),
+      const { stdout, stderr } = await runPackageTool({
+        packageName: 'vitest',
+        binaryName: 'vitest',
+        args: [
           'run',
           '--reporter=json',
           '--root',
@@ -438,14 +362,10 @@ export const realToolRunner: RewardToolRunner = {
           configPath,
           executableTestPath,
         ],
-        {
-          cwd: workDir,
-          timeout,
-          maxBuffer: 5 * 1024 * 1024,
-          windowsHide: true,
-          encoding: 'utf-8',
-        }
-      );
+        cwd: workDir,
+        timeout,
+        preserveSymlinks: true,
+      });
       return vitestCounts(
         stdout + stderr,
         2000,
@@ -457,7 +377,7 @@ export const realToolRunner: RewardToolRunner = {
       // with a partial pass rate. execFile still captures stdout/stderr on a
       // rejected process, and the JSON reporter output has the real counts.
       return vitestCounts(
-        processFailureOutput(e),
+        packageProcessFailureOutput(e),
         1000,
         coverageSummaryPath ? readCoveragePercent(coverageSummaryPath) : undefined
       );
@@ -471,27 +391,22 @@ export const realToolRunner: RewardToolRunner = {
     const timeout = options?.timeout ?? 30_000;
     const workDir = path.dirname(filePath);
     try {
-      const { stdout, stderr } = await execFileAsync(
-        process.execPath,
-        [
-          resolvePackageBinary('typescript', 'tsc'),
+      const { stdout, stderr } = await runPackageTool({
+        packageName: 'typescript',
+        binaryName: 'tsc',
+        args: [
           '--noEmit',
           '--pretty',
           'false',
           '--skipLibCheck',
           filePath,
         ],
-        {
-          cwd: workDir,
-          timeout,
-          maxBuffer: 5 * 1024 * 1024,
-          windowsHide: true,
-          encoding: 'utf-8',
-        }
-      );
+        cwd: workDir,
+        timeout,
+      });
       return { passed: true, output: (stdout + stderr).slice(0, 2000) };
     } catch (e: unknown) {
-      return { passed: false, output: processFailureOutput(e).slice(0, 2000) };
+      return { passed: false, output: packageProcessFailureOutput(e).slice(0, 2000) };
     }
   },
 
@@ -504,10 +419,10 @@ export const realToolRunner: RewardToolRunner = {
     const configPath = path.join(workDir, 'eslint.config.mjs');
     try {
       fs.writeFileSync(configPath, createEphemeralEslintConfig(), 'utf-8');
-      const { stdout, stderr } = await execFileAsync(
-        process.execPath,
-        [
-          resolvePackageBinary('eslint', 'eslint'),
+      const { stdout, stderr } = await runPackageTool({
+        packageName: 'eslint',
+        binaryName: 'eslint',
+        args: [
           '--no-config-lookup',
           '--config',
           configPath,
@@ -515,14 +430,9 @@ export const realToolRunner: RewardToolRunner = {
           '--format',
           'json',
         ],
-        {
-          cwd: workDir,
-          timeout,
-          maxBuffer: 5 * 1024 * 1024,
-          windowsHide: true,
-          encoding: 'utf-8',
-        }
-      );
+        cwd: workDir,
+        timeout,
+      });
       const output = stdout + stderr;
       const issueCount = parseEslintIssueCount(stdout);
       const errorCount = (output.match(/^\s*\d+:\d+\s+error\s/gm) ?? []).length;
@@ -532,8 +442,8 @@ export const realToolRunner: RewardToolRunner = {
         output: output.slice(0, 2000),
       };
     } catch (e: unknown) {
-      const failure = e as ProcessFailure;
-      const output = processFailureOutput(e);
+      const failure = e as PackageProcessFailure;
+      const output = packageProcessFailureOutput(e);
       const parsedIssueCount = parseEslintIssueCount(failure.stdout ?? output);
       const errorCount = (output.match(/^\s*\d+:\d+\s+error\s/gm) ?? []).length;
       const warningCount = (output.match(/^\s*\d+:\d+\s+warning\s/gm) ?? []).length;

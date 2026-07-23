@@ -21,10 +21,10 @@
  * @module self-improvement
  */
 
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type {
   SelfImproveIO,
   AbsorbResult,
@@ -35,8 +35,12 @@ import type {
   LintResult,
 } from './SelfImproveCommand';
 import { GRPOPromptExtractor, createNodeFS } from './GRPOPromptExtractor';
-
-const execAsync = promisify(exec);
+import {
+  packageProcessFailureOutput,
+  resolvePackageEntry,
+  runPackageTool,
+  type PackageProcessFailure,
+} from './PackageToolRuntime';
 
 /** Injected LLM completion — returns raw text for a (system, user) prompt. */
 export type LLMComplete = (args: { system: string; user: string }) => Promise<string>;
@@ -89,7 +93,7 @@ export class FleetSelfImproveIO implements SelfImproveIO {
   private readonly written: SelfImproveProposal[] = [];
 
   constructor(opts: FleetSelfImproveIOOptions) {
-    this.rootDir = opts.rootDir;
+    this.rootDir = path.resolve(opts.rootDir);
     this.llm = opts.llmComplete;
     this.logger =
       opts.log ??
@@ -125,7 +129,7 @@ export class FleetSelfImproveIO implements SelfImproveIO {
   }
 
   async generateTest(target: UntestedTarget): Promise<GeneratedTest> {
-    const absSource = path.resolve(this.rootDir, target.filePath);
+    const absSource = this.resolveInsideRoot(target.filePath);
     let sourceExcerpt = '';
     try {
       sourceExcerpt = fs.readFileSync(absSource, 'utf8').slice(0, 6000);
@@ -155,9 +159,9 @@ export class FleetSelfImproveIO implements SelfImproveIO {
   }
 
   async writeFile(filePath: string, content: string): Promise<void> {
-    const abs = path.resolve(this.rootDir, filePath);
+    const abs = this.resolveInsideRoot(filePath);
     fs.mkdirSync(path.dirname(abs), { recursive: true });
-    fs.writeFileSync(abs, content, 'utf8');
+    fs.writeFileSync(abs, content, { encoding: 'utf8', flag: 'wx' });
     this.written.push({
       testFilePath: filePath,
       content,
@@ -168,13 +172,28 @@ export class FleetSelfImproveIO implements SelfImproveIO {
   }
 
   async runVitest(testFilePath: string): Promise<VitestResult> {
-    const abs = path.resolve(this.rootDir, testFilePath);
+    const abs = this.resolveInsideRoot(testFilePath);
     const started = Date.now();
+    const toolDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-fleet-vitest-'));
+    const configPath = path.join(toolDir, 'vitest.config.mjs');
     try {
-      const { stdout, stderr } = await execAsync(`npx vitest run --reporter=json "${abs}"`, {
+      fs.writeFileSync(configPath, this.createVitestConfig(), 'utf8');
+      const { stdout, stderr } = await runPackageTool({
+        packageName: 'vitest',
+        binaryName: 'vitest',
+        args: [
+          'run',
+          '--reporter=json',
+          '--root',
+          this.rootDir,
+          '--config',
+          configPath,
+          abs,
+        ],
         cwd: this.rootDir,
         timeout: this.toolTimeoutMs,
         maxBuffer: 8 * 1024 * 1024,
+        preserveSymlinks: true,
       });
       const out = stdout + stderr;
       const parsed = this.parseVitestJson(out);
@@ -183,14 +202,16 @@ export class FleetSelfImproveIO implements SelfImproveIO {
       if (proposal) proposal.passed = parsed.passed;
       return { ...parsed, duration: Date.now() - started };
     } catch (e: unknown) {
-      const err = e as { stdout?: string; stderr?: string; message?: string };
-      const out = (err.stdout ?? '') + (err.stderr ?? '');
+      const err = e as PackageProcessFailure;
+      const out = packageProcessFailureOutput(e);
       const parsed = this.parseVitestJson(out);
       return {
         ...parsed,
         duration: Date.now() - started,
         error: parsed.passed ? undefined : (err.message ?? 'vitest failed').slice(0, 500),
       };
+    } finally {
+      fs.rmSync(toolDir, { recursive: true, force: true });
     }
   }
 
@@ -216,43 +237,49 @@ export class FleetSelfImproveIO implements SelfImproveIO {
     // Type-check only the generated proposal file(s), not the whole project.
     const last = this.written[this.written.length - 1];
     if (!last) return true;
-    const abs = path.resolve(this.rootDir, last.testFilePath);
+    const abs = this.resolveInsideRoot(last.testFilePath);
     try {
-      const { stdout, stderr } = await execAsync(`npx tsc --noEmit --pretty false "${abs}"`, {
+      await runPackageTool({
+        packageName: 'typescript',
+        binaryName: 'tsc',
+        args: ['--noEmit', '--pretty', 'false', '--skipLibCheck', abs],
         cwd: this.rootDir,
         timeout: this.toolTimeoutMs,
         maxBuffer: 8 * 1024 * 1024,
       });
-      return ((stdout + stderr).match(/error TS\d+/g) ?? []).length === 0;
-    } catch (e: unknown) {
-      const err = e as { stdout?: string; stderr?: string };
-      return (((err.stdout ?? '') + (err.stderr ?? '')).match(/error TS\d+/g) ?? []).length === 0;
+      return true;
+    } catch {
+      return false;
     }
   }
 
   async runLint(): Promise<LintResult> {
     const last = this.written[this.written.length - 1];
     if (!last) return { issueCount: 0, filesLinted: 0 };
-    const abs = path.resolve(this.rootDir, last.testFilePath);
+    const abs = this.resolveInsideRoot(last.testFilePath);
+    const toolDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-fleet-eslint-'));
+    const configPath = path.join(toolDir, 'eslint.config.mjs');
     try {
-      const { stdout, stderr } = await execAsync(`npx eslint "${abs}" --format json`, {
+      fs.writeFileSync(configPath, this.createEslintConfig(), 'utf8');
+      const { stdout } = await runPackageTool({
+        packageName: 'eslint',
+        binaryName: 'eslint',
+        args: ['--no-config-lookup', '--config', configPath, abs, '--format', 'json'],
         cwd: this.rootDir,
         timeout: this.toolTimeoutMs,
         maxBuffer: 8 * 1024 * 1024,
       });
-      const out = stdout + stderr;
-      try {
-        const parsed = JSON.parse(out) as Array<{ errorCount?: number; warningCount?: number }>;
-        const issueCount = parsed.reduce(
-          (n, f) => n + (f.errorCount ?? 0) + (f.warningCount ?? 0),
-          0
-        );
-        return { issueCount, filesLinted: parsed.length };
-      } catch {
-        return { issueCount: 0, filesLinted: 1 };
-      }
-    } catch {
-      return { issueCount: 0, filesLinted: 1 };
+      return this.parseEslintJson(stdout) ?? { issueCount: 1, filesLinted: 1 };
+    } catch (e: unknown) {
+      const failure = e as PackageProcessFailure;
+      return (
+        this.parseEslintJson(failure.stdout ?? packageProcessFailureOutput(e)) ?? {
+          issueCount: 1,
+          filesLinted: 1,
+        }
+      );
+    } finally {
+      fs.rmSync(toolDir, { recursive: true, force: true });
     }
   }
 
@@ -294,7 +321,7 @@ export class FleetSelfImproveIO implements SelfImproveIO {
     let removed = 0;
     const failed: string[] = [];
     for (const w of this.written) {
-      const abs = path.resolve(this.rootDir, w.testFilePath);
+      const abs = this.resolveInsideRoot(w.testFilePath);
       try {
         if (fs.existsSync(abs)) {
           fs.unlinkSync(abs);
@@ -369,7 +396,7 @@ export class FleetSelfImproveIO implements SelfImproveIO {
   }
 
   private relativeImportSpecifier(testFileRel: string, absSource: string): string {
-    const absTest = path.resolve(this.rootDir, testFileRel);
+    const absTest = this.resolveInsideRoot(testFileRel);
     let spec = path.relative(path.dirname(absTest), absSource).split(path.sep).join('/');
     spec = spec.replace(/\.ts$/, '');
     if (!spec.startsWith('.')) spec = `./${spec}`;
@@ -382,10 +409,11 @@ export class FleetSelfImproveIO implements SelfImproveIO {
   }
 
   private parseVitestJson(output: string): Omit<VitestResult, 'duration'> {
-    const jsonMatch = output.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
-    if (jsonMatch) {
+    const candidates = output.trim().split(/\r?\n/).reverse();
+    for (const candidate of candidates) {
+      if (!candidate.trimStart().startsWith('{')) continue;
       try {
-        const r = JSON.parse(jsonMatch[0]) as {
+        const r = JSON.parse(candidate) as {
           numPassedTests?: number;
           numFailedTests?: number;
           numTotalTests?: number;
@@ -401,9 +429,110 @@ export class FleetSelfImproveIO implements SelfImproveIO {
           testsTotal,
         };
       } catch {
-        /* fall through */
+        // Diagnostics may precede the JSON reporter output.
       }
     }
     return { passed: false, testsPassed: 0, testsFailed: 0, testsTotal: 0 };
+  }
+
+  private parseEslintJson(output: string): LintResult | null {
+    const start = output.indexOf('[');
+    const end = output.lastIndexOf(']');
+    if (start < 0 || end < start) return null;
+
+    try {
+      const parsed = JSON.parse(output.slice(start, end + 1)) as Array<{
+        errorCount?: number;
+        warningCount?: number;
+      }>;
+      if (!Array.isArray(parsed)) return null;
+      return {
+        issueCount: parsed.reduce(
+          (count, result) =>
+            count + (result.errorCount ?? 0) + (result.warningCount ?? 0),
+          0
+        ),
+        filesLinted: parsed.length,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private createVitestConfig(): string {
+    return `export default {
+  test: {
+    globals: true,
+    environment: 'node',
+    include: ['**/*.test.ts', '**/*.spec.ts'],
+    passWithNoTests: false,
+  },
+};
+`;
+  }
+
+  private createEslintConfig(): string {
+    const parserUrl = pathToFileURL(resolvePackageEntry('@typescript-eslint/parser')).href;
+    const pluginUrl = pathToFileURL(resolvePackageEntry('@typescript-eslint/eslint-plugin')).href;
+
+    return `import * as parserNamespace from ${JSON.stringify(parserUrl)};
+import * as pluginNamespace from ${JSON.stringify(pluginUrl)};
+
+const parser = parserNamespace.default ?? parserNamespace;
+const plugin = pluginNamespace.default ?? pluginNamespace;
+
+export default [{
+  files: ['**/*.ts', '**/*.tsx'],
+  languageOptions: {
+    parser,
+    parserOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+    },
+    globals: {
+      Buffer: 'readonly',
+      console: 'readonly',
+      process: 'readonly',
+      setInterval: 'readonly',
+      setTimeout: 'readonly',
+      clearInterval: 'readonly',
+      clearTimeout: 'readonly',
+      describe: 'readonly',
+      it: 'readonly',
+      test: 'readonly',
+      expect: 'readonly',
+      vi: 'readonly',
+      beforeEach: 'readonly',
+      afterEach: 'readonly',
+    },
+  },
+  plugins: {
+    '@typescript-eslint': plugin,
+  },
+  rules: {
+    'no-unreachable': 'error',
+    'no-constant-binary-expression': 'error',
+    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-unused-vars': ['warn', {
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+      caughtErrorsIgnorePattern: '^_',
+    }],
+  },
+}];
+`;
+  }
+
+  private resolveInsideRoot(filePath: string): string {
+    const resolved = path.resolve(this.rootDir, filePath);
+    const relative = path.relative(this.rootDir, resolved);
+    if (
+      relative === '' ||
+      (!path.isAbsolute(relative) && !relative.startsWith(`..${path.sep}`) && relative !== '..')
+    ) {
+      return resolved;
+    }
+
+    throw new Error(`Self-improve path escapes rootDir: ${filePath}`);
   }
 }
