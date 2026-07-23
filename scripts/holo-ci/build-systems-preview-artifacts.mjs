@@ -192,6 +192,23 @@ const secondPackDir = join(temp, 'second-pack');
 const wasmPack = resolveWasmPack();
 const cargo = resolveRustTool('cargo');
 const rustc = resolveRustTool('rustc');
+const sourceDateEpoch = git(['show', '-s', '--format=%ct', sourceCommit]);
+const rustPathRemaps = [
+  [ROOT, '/holoscript/source'],
+  [join(homedir(), '.cargo'), '/rust/cargo'],
+  [join(homedir(), '.rustup'), '/rust/toolchain'],
+];
+const releaseBuildEnv = {
+  ...process.env,
+  CARGO_INCREMENTAL: '0',
+  SOURCE_DATE_EPOCH: sourceDateEpoch,
+  RUSTFLAGS: [
+    process.env.RUSTFLAGS,
+    ...rustPathRemaps.map(([from, to]) => `--remap-path-prefix=${from}=${to}`),
+  ]
+    .filter(Boolean)
+    .join(' '),
+};
 const commands = [];
 
 try {
@@ -205,7 +222,9 @@ try {
   mkdirSync(secondPackDir, { recursive: true });
 
   commands.push('cargo build --release -p holoscript-native --bin holoscriptc');
-  run(cargo, ['build', '--release', '-p', 'holoscript-native', '--bin', 'holoscriptc']);
+  run(cargo, ['build', '--release', '-p', 'holoscript-native', '--bin', 'holoscriptc'], {
+    env: releaseBuildEnv,
+  });
   const nativeSource = join(
     ROOT,
     'target',
@@ -222,7 +241,7 @@ try {
   run(wasmPack, ['build', '--release', '--target', 'nodejs', '--out-dir', relativeWasmOut], {
     cwd: join(ROOT, 'packages', 'compiler-wasm'),
     env: {
-      ...process.env,
+      ...releaseBuildEnv,
       PATH: [dirname(cargo), process.env.PATH].filter(Boolean).join(delimiter),
     },
   });
@@ -358,6 +377,11 @@ try {
       rustc: commandVersion(rustc),
       cargo: commandVersion(cargo),
       wasmPack: commandVersion(wasmPack),
+    },
+    reproducibility: {
+      sourceDateEpoch,
+      cargoIncremental: false,
+      rustPathRemaps: rustPathRemaps.map(([, to]) => to),
     },
     commands,
     deterministicRebuilds: { npmTarball: true, nativeArchive: true },
