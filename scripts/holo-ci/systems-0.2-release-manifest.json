@@ -1,0 +1,101 @@
+{
+  "schema": "holoscript.systems-platform-public-release/v1",
+  "distributionId": "holoscript-systems-toolchain",
+  "version": "0.2.0",
+  "channel": "next",
+  "status": "planned",
+  "machineContract": "hs-machine-v33",
+  "sourceCommit": "9ff53e466e8401df4dace1d5364a6efe4ef9dfc6",
+  "candidateCommit": "25e96a3d8e28beaf54f798e021f4450f3ff6b9d7",
+  "candidateManifest": "scripts/holo-ci/systems-0.2-candidate-manifest.json",
+  "candidateReceipt": "artifacts/releases/0.2.0-candidate/systems-0.2-build-receipt.json",
+  "packages": [
+    {
+      "id": "linux-x64",
+      "name": "@holoscript/systems-linux-x64",
+      "version": "0.2.0",
+      "publishOrder": 10,
+      "artifact": "artifacts/releases/0.2.0-candidate/holoscript-systems-linux-x64-0.2.0.tgz",
+      "bytes": 1340789,
+      "sha256": "2ed245c7e07a912fcc310f221c87f26c23c23559a48432e2eabd5a9995e97d3d",
+      "shasum": "7b1f182cabb2e290f9bbdbd8bd281c11487b00f8",
+      "integrity": "sha512-HpUQ1TqO8cZZbNTnfjeq4tn2uAcAjew1nd5JS6kkyv1h5iszu3HklQOf3oalSQjX8+xVm9eem0IDmA3hzgSzOg==",
+      "tarballUrl": "https://registry.npmjs.org/@holoscript/systems-linux-x64/-/systems-linux-x64-0.2.0.tgz",
+      "distTags": {
+        "next": "0.2.0"
+      }
+    },
+    {
+      "id": "win32-x64",
+      "name": "@holoscript/systems-win32-x64",
+      "version": "0.2.0",
+      "publishOrder": 20,
+      "artifact": "artifacts/releases/0.2.0-candidate/holoscript-systems-win32-x64-0.2.0.tgz",
+      "bytes": 1155800,
+      "sha256": "c95f474eea89da04a34d7d309bf9ddb1505a714dc52ef154b250ec56c1db7932",
+      "shasum": "a19db212986382e481984f335206a99ce7780ba1",
+      "integrity": "sha512-1uggSENy7EnZhhB9rSs27tohKA1n0z2SAUGmNVprI4t9cdYnZJapTUqmxmDEadU/87GM+rIXUuMizUf2beduXA==",
+      "tarballUrl": "https://registry.npmjs.org/@holoscript/systems-win32-x64/-/systems-win32-x64-0.2.0.tgz",
+      "distTags": {
+        "next": "0.2.0"
+      }
+    },
+    {
+      "id": "meta",
+      "name": "@holoscript/systems",
+      "version": "0.2.0",
+      "publishOrder": 30,
+      "artifact": "artifacts/releases/0.2.0-candidate/holoscript-systems-0.2.0.tgz",
+      "bytes": 120751,
+      "sha256": "fb215e347e9a9d5205a062ad166050311b302309a971258bd03502a0f2c53edd",
+      "shasum": "b81d38357ac765820a1b25e386f925acb1fb2551",
+      "integrity": "sha512-j1MEeZpeUgnkuaLuXSHbNlObmoq6TrUDKwlBiOn4IKgOrZ5RVhO9sbVwFZDKG5qOGIgEWi7bmWWx7WrbYK9+1w==",
+      "tarballUrl": "https://registry.npmjs.org/@holoscript/systems/-/systems-0.2.0.tgz",
+      "distTags": {
+        "next": "0.2.0",
+        "latest": "0.1.0",
+        "preview": "0.1.0"
+      }
+    }
+  ],
+  "github": {
+    "repository": "brianonbased-dev/HoloScript",
+    "tag": "v0.2.0",
+    "targetCommit": "25e96a3d8e28beaf54f798e021f4450f3ff6b9d7",
+    "title": "HoloScript Systems 0.2.0 — Linux and Windows preview",
+    "releaseUrl": "https://github.com/brianonbased-dev/HoloScript/releases/tag/v0.2.0",
+    "apiUrl": "https://api.github.com/repos/brianonbased-dev/HoloScript/releases/tags/v0.2.0",
+    "prerelease": true,
+    "assets": [
+      {
+        "name": "holoscript-systems-0.2.0.tgz",
+        "path": "artifacts/releases/0.2.0-candidate/holoscript-systems-0.2.0.tgz",
+        "bytes": 120751,
+        "sha256": "fb215e347e9a9d5205a062ad166050311b302309a971258bd03502a0f2c53edd"
+      },
+      {
+        "name": "holoscript-systems-linux-x64-0.2.0.tgz",
+        "path": "artifacts/releases/0.2.0-candidate/holoscript-systems-linux-x64-0.2.0.tgz",
+        "bytes": 1340789,
+        "sha256": "2ed245c7e07a912fcc310f221c87f26c23c23559a48432e2eabd5a9995e97d3d"
+      },
+      {
+        "name": "holoscript-systems-win32-x64-0.2.0.tgz",
+        "path": "artifacts/releases/0.2.0-candidate/holoscript-systems-win32-x64-0.2.0.tgz",
+        "bytes": 1155800,
+        "sha256": "c95f474eea89da04a34d7d309bf9ddb1505a714dc52ef154b250ec56c1db7932"
+      },
+      {
+        "name": "systems-0.2-build-receipt.json",
+        "path": "artifacts/releases/0.2.0-candidate/systems-0.2-build-receipt.json",
+        "bytes": 2039,
+        "sha256": "07edc8b2b20448df045ef7a7fe6dd90ba5a905457a11a0dd7eda24594f7a1ec9"
+      }
+    ]
+  },
+  "immutability": {
+    "latestMustRemain": "0.1.0",
+    "previewMustRemain": "0.1.0",
+    "publishedVersionsAreNeverOverwritten": true
+  }
+}
