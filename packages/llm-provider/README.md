@@ -1,8 +1,9 @@
 # @holoscript/llm-provider
 
 Unified, multi-provider LLM adapter layer for HoloScript. One interface across
-Anthropic, OpenAI, Gemini, xAI (Grok), OpenRouter, and local HoloLlama
-(llama.cpp) endpoints, plus capability routing and a cost guard.
+Anthropic, OpenAI, Gemini, xAI (Grok), OpenRouter, local HoloLlama
+(llama.cpp), and native HoloServe (PyTorch-direct) endpoints, plus capability
+routing and a cost guard.
 
 It serves external developers, founder/operators, and agent frameworks that
 need a public provider contract while retaining caller custody of credentials,
@@ -58,6 +59,39 @@ underlying provider transport. Responses also distinguish compatibility values
 from provider evidence: `usage.reported === false` and `reportedModel === null`
 mean the provider omitted those fields; zeroes and the requested model remain in
 the legacy fields only for caller compatibility.
+
+## Native HoloServe routing and artifact pins
+
+HoloServe is the native PyTorch-direct route for HOLO-family checkpoints. Use
+the asynchronous resolver so the package can verify the live `/health`
+sovereignty claim and the exact model artifact binding before returning a
+provider:
+
+```bash
+HOLOSERVE_URL=http://127.0.0.1:8099
+HOLO_LLM_MODEL=holorunner-s0
+HOLOSERVE_PARITY_PINS=holorunner-s0@sha256:<64-hex-binding>
+```
+
+```ts
+import { resolveSovereignProviderAsync } from '@holoscript/llm-provider';
+
+const resolved = await resolveSovereignProviderAsync();
+const response = await resolved.provider.complete(
+  { messages: [{ role: 'user', content: 'Return one bounded next action.' }] },
+  resolved.model,
+);
+```
+
+A valid per-model parity pin makes that model HoloServe-only and carries the
+verified value in `resolved.artifactBindingSha256`. The synchronous resolver
+refuses pinned models because it cannot perform live binding verification.
+Unpinned, missing, or malformed pin sources preserve the prior routing behavior.
+
+Callers may use `HOLOSERVE_PARITY_REGISTRY` instead of the inline environment
+value. The JSON registry must use schema `holoserve-parity-pin-registry/v0`; only
+entries with `verdict: "pass"` and a valid `bindingSha256` are admitted. The
+registry, endpoint, checkpoint, and receipt remain caller-owned.
 
 ## Consumer validation gate
 

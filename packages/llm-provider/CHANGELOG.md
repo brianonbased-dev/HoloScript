@@ -1,5 +1,19 @@
 # @holoscript/llm-provider
 
+## 1.6.0
+
+### Minor Changes
+
+- Add exact, per-model HoloServe parity pins to the sovereign resolver. Pinned
+  models require the asynchronous live-binding path, refuse artifact drift, and
+  cannot fall through to HoloLlama.
+- Require HoloServe health admission to bind the expected model to canonical
+  checkpoint, tokenizer, and artifact digests before routing a request.
+- Route owned-fleet chat through the shared sovereign resolver and keep Vast
+  telemetry request-bound.
+- Export contract-carrying, backend-neutral HoloWeight delta-graph planning with
+  deterministic validation, topological planning, and replay tests.
+
 ## 1.5.0
 
 ### Minor Changes
