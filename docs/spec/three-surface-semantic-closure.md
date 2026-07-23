@@ -9,11 +9,20 @@ HoloScript has one language identity with three source surfaces:
 | Surface | Primary responsibility | Demonstrated execution lane |
 | --- | --- | --- |
 | `.holo` | Whole-system composition, world state, events, effects, and orchestration | Composition behavior lowers through `UaalBehaviorCompiler` to the cognitive VM; spatial content retains its separate HOLO/render lane |
-| `.hsplus` | Typed agent identity, cognition, state, traits, effects, and authority frames | The canonical typed brain AST projects into the edge agent runtime, including deterministic cognition, reflection, and frame enforcement |
+| `.hsplus` | TypeScript-like typed semantic programming: modules, reusable behavior, traits, reactive state, effects, pipelines, interfaces, applications, devices, and agents | The current tracer demonstrates one agent-brain vertical: its canonical typed AST projects into the edge runtime with deterministic cognition, reflection, and frame enforcement |
 | `.hs` | Deterministic typed policy and systems logic | The Rust/WASM compiler validates function bodies and lowers a declared `i32` subset to UAAL while the same source compiles and executes natively |
 
 The surfaces are complementary capability boundaries, not "basic", "extended",
 and "full" editions. A product may use one surface or bind all three.
+
+`.hsplus` is not an agent-brain DSL. Its parser accepts TypeScript-like
+expressions and code declarations alongside templates, compositions, reactive
+state, state machines, reactions, pipeline stages, timelines, UI/application
+nodes, service/device traits, and agent cognition. The three-surface tracer uses
+a brain because that is a high-value vertical for testing cognition and
+authority; it does not define the boundary of the surface. Support still varies
+by construct: several code bodies remain raw source and do not yet have the
+typed/lowered/executed closure demonstrated by the tracer.
 
 ## Executable reference
 

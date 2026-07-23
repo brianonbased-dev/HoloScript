@@ -1,10 +1,11 @@
-// @holoscript_plus_parser — HoloScript Plus parser: parses .hsplus trait/brain definitions to AST.
+// @holoscript_plus_parser — parses .hsplus semantic behavior and systems components to AST.
 //
 // Native .hsplus surface for core/src/HoloScriptPlusParser.ts.
-// F.120: .hsplus = traits/brains; two-parser model: TS here, Rust+WASM for .hs.
+// F.120: .hsplus = typed semantic components/behavior; brains are one vertical.
+// Two-parser model: TypeScript authority here, Rust+WASM authority for .hs.
 
 @trait holoscript_plus_parser {
-  capability_tags: ["holoscript_plus_parser", "hsplus_trait_brain", "trait_ast", "parser", "core"]
+  capability_tags: ["holoscript_plus_parser", "hsplus_semantic_components", "traits", "state", "pipelines", "services", "interfaces", "brains", "trait_ast", "parser", "core"]
 
   @on_spawn => {
     emit("holoscript_plus_parser_ready", {})
@@ -17,7 +18,7 @@
 
   @receipt holoscript_plus_parser_config {
     type: "HoloScriptPlusParserReceipt"
-    doc: "F.120 three-format model: .holo=IR, .hsplus=traits/brains, .hs=logic"
+    doc: "F.120 three-surface model: .holo=whole-system composition, .hsplus=typed semantic components/behavior, .hs=deterministic logic/policy"
     timestamp: now()
   }
 }

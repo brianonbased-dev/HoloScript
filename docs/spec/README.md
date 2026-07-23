@@ -33,7 +33,7 @@ implementation strengths; it does not define a permanent set of domains:
 | Format | Strongest role | Canonical authority | Demonstrated closure |
 |--------|----------------|---------------------|----------------------|
 | `.holo` | Whole-system composition, worlds, events, effects, and orchestration | `HoloCompositionParser`; spatial `HolobCompiler`; behavioral `UaalBehaviorCompiler` | ✅ spatial render path plus executable event/action behavior, typed action parameters, and observable VM effects |
-| `.hsplus` | Typed agents, brains, cognition, state, traits, effects, and authority | preprocessing + `HoloScriptPlusParser`; edge agent projection/runtime | ✅ strict typed brain projection, deterministic cognition/reflection, and frame enforcement in the three-surface tracer |
+| `.hsplus` | TypeScript-like typed semantic programs: reusable behavior, traits, reactive state, effects, pipelines, applications, devices, and agents | preprocessing + `HoloScriptPlusParser`; specialized runtimes/compiler paths by construct | ✅ broad parser/authoring surface; strict brain projection, deterministic cognition/reflection, and frame enforcement are the currently receipt-closed tracer vertical |
 | `.hs` | Deterministic typed policy and systems logic | Rust/WASM grammar and shared semantic type pass | ✅ conservative typed subset lowers to UAAL and executes natively with parity; broader language coverage remains active work |
 
 > **The load-bearing gap has narrowed, not disappeared.** The checked-in

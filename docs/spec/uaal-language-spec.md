@@ -15,7 +15,8 @@
 > new canon; read the wording below with that scoping.
 
 uAAL is the **cognitive VM** (stratum ③) executing `.hs` logic; the **HOLO VM** is the **spatial**
-layer (`.holo` IR). `.hsplus` is the declarative trait/brain authoring surface over both. The
+layer (`.holo` IR). `.hsplus` is the TypeScript-like semantic behavior and
+systems-component surface over both; agent brains are one specialized vertical. The
 protocol phases (INTAKE → REFLECT → EXECUTE → COMPRESS → GROW → RE-INTAKE → EVOLVE →
 AUTONOMIZE) are first-class language primitives, not library calls.
 

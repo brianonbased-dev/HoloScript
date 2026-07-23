@@ -1,6 +1,13 @@
 # .hsplus Behavior Cookbook
 
-`.hsplus` is the behavior language for HoloScript. While `.holo` describes worlds and `.hs` describes data pipelines, `.hsplus` describes **what agents do** — how they think, decide, coordinate, and govern.
+`.hsplus` is HoloScript's TypeScript-like semantic behavior and
+systems-component surface. It is used for services, interfaces, simulation,
+devices, rendering, economics, tooling, reactive applications, and agents.
+
+This cookbook deliberately focuses on the **agent vertical**—how agents think,
+decide, coordinate, and govern. It is not the umbrella definition of
+`.hsplus`. See the [language identity](../spec/language-identity.md) for the
+full surface contract.
 
 ## Agent Patterns
 

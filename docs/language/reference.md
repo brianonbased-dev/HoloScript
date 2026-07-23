@@ -7,10 +7,15 @@ Comprehensive syntax references for all three HoloScript formats.
 HoloScript provides three file formats, each occupying a distinct **role/layer** in the stack:
 
 - **`.hs`** - Process / sequential agent logic (coroutines, graph wiring, sequential procedures)
-- **`.hsplus`** - Behavior / brains / reactivity (superset of `.hs` — templates, traits, state machines, brain declarations, AI cognitive verbs)
+- **`.hsplus`** - TypeScript-like semantic behavior and systems components
+  (modules, templates, traits, reactive state, state machines, pipelines,
+  interfaces, services/devices, and agent cognition)
 - **`.holo`** - Universal IR / scene composition (the compilation unit consumed by ALL platform compilers — 2D web, VR, AR, native, and beyond)
 
-These are not a complexity ladder. They are layers. A full HoloScript system typically uses all three: `.hs` for process logic, `.hsplus` for brains and reusable behaviors, and `.holo` for the composed scene that gets compiled to a target platform.
+These are not a complexity ladder. They are capability surfaces. A full
+HoloScript system may use all three: `.hs` for deterministic process/policy
+logic, `.hsplus` for reusable typed semantic components and behavior, and
+`.holo` for whole-system composition and target orchestration.
 
 ## Quick Format Selection
 
@@ -23,6 +28,8 @@ These are not a complexity ladder. They are layers. A full HoloScript system typ
 ### Use `.hsplus` when:
 
 - Defining reusable templates or module libraries (`@import` / `@export`)
+- Building typed systems components, services, interfaces, simulations, device
+  behavior, or application logic
 - Declaring AI brain behaviors (`brain Name : @behavior_tree`)
 - Writing cognitive agent skills (`llm_call`, `recall`, `rag_query`, `plan`, `reflect`)
 - Building reactive state machines, event-driven UI, or hot-reloadable components (`@version` / `@migrate`)
@@ -42,7 +49,7 @@ These are not a complexity ladder. They are layers. A full HoloScript system typ
 - [Basic Objects Reference](./reference-hs-basic) - Complete syntax guide for `.hs` format
 - [Process Language](./reference-hs-process) - `execute`, `yield`, `connect`, agent primitives
 
-### Behavior & Brains (`.hsplus`)
+### Semantic Behavior & Systems Components (`.hsplus`)
 
 - [Templates & Decorators](./reference-hsplus-templates) - Template definitions, `@decorators`
 - [State & Actions](./reference-hsplus-state) - State management, actions, computed values

@@ -54,7 +54,7 @@ HoloScript uses three file formats:
 | Extension | Purpose        | Best For                         |
 | --------- | -------------- | -------------------------------- |
 | `.hs`     | Process files  | Pipelines, sync jobs, monitoring |
-| `.hsplus` | Behavior files | Traits, agents, state, events    |
+| `.hsplus` | Semantic component files | Services, UI, simulation, devices, traits, state, effects, and agents |
 | `.holo`   | World files    | Scenes, systems, target metadata |
 
 ## Quick Start

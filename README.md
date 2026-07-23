@@ -258,7 +258,7 @@ cd HoloScript && pnpm install && pnpm build && pnpm test
 | Extension | Purpose                           | Examples                                                            |
 | --------- | --------------------------------- | ------------------------------------------------------------------- |
 | `.hs`     | Data pipelines, ETL, transforms   | Compiles to Node.js, JSON. Source → transform → sink workflows      |
-| `.hsplus` | Behaviors, agents, economics, IoT | Traits for networking, AI, state machines, digital twins, ZK proofs |
+| `.hsplus` | TypeScript-like semantic components and behavior | Services, UI, simulation, devices, rendering, economics, tooling, traits, state machines, effects, and agents |
 | `.holo`   | Compositions, scenes, dashboards  | Cross-platform AI-generated. Runtime interprets directly            |
 
 TypeScript is the last resort — for parsers, CLI, adapters, infrastructure. If you're writing `.ts` for business logic, you're doing it wrong.

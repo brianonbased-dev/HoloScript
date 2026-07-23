@@ -25,6 +25,16 @@ different grammar and runtime strengths, but none is a separate product category
 | `.hsplus` | Typed behavior, traits, agents, state, and effects | Reusable systems behavior with explicit effects and resource contracts |
 | `.holo` | Whole-system composition, environments, platforms, and orchestration | Programs that bind logic, behavior, resources, deployment, and embodiment |
 
+`.hsplus` is intentionally broader than agent brains. It is the
+TypeScript-like typed semantic application surface: modules, structs,
+interfaces, functions, templates, reactive state, state machines, reactions,
+pipelines, UI/service/device behavior, and agent cognition can share one
+compiler-visible model. "TypeScript-like" describes its productive authoring
+altitude, not JavaScript compatibility or complete current type/runtime
+coverage. Some accepted declarations and bodies remain raw or partially
+lowered and must not be presented as semantically closed until their receipts
+say so.
+
 The compiler may expose an AST or intermediate representation for each surface. That makes
 HoloScript useful as an IR; it does not make HoloScript "only an IR" or place TypeScript, Rust,
 C++, an engine, or a generated artifact above it as the real implementation language.
