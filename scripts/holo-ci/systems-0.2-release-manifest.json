@@ -3,12 +3,21 @@
   "distributionId": "holoscript-systems-toolchain",
   "version": "0.2.0",
   "channel": "next",
-  "status": "planned",
+  "status": "published",
+  "publishedAt": "2026-07-23T07:37:41Z",
   "machineContract": "hs-machine-v33",
   "sourceCommit": "9ff53e466e8401df4dace1d5364a6efe4ef9dfc6",
   "candidateCommit": "25e96a3d8e28beaf54f798e021f4450f3ff6b9d7",
   "candidateManifest": "scripts/holo-ci/systems-0.2-candidate-manifest.json",
   "candidateReceipt": "artifacts/releases/0.2.0-candidate/systems-0.2-build-receipt.json",
+  "publicationReceipt": {
+    "path": "artifacts/releases/0.2.0/systems-0.2-publication-receipt.json",
+    "sha256": "83d2dde74893426fa514e5f34ce423b983b33a6edf50cf28c13f9bcccc59c0af"
+  },
+  "publicReadbackReceipt": {
+    "path": "artifacts/releases/0.2.0/systems-0.2-public-release-receipt.json",
+    "sha256": "e5f751ce5763d5f5d1ddfe69b9162e370fc49fc28f6cec3dd46ac4a5bdca72c3"
+  },
   "packages": [
     {
       "id": "linux-x64",

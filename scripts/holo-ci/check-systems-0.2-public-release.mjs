@@ -310,7 +310,6 @@ function runLinuxColdConsumer(manifest, timeoutMs) {
 
 export async function checkSystems02PublicRelease({
   manifest,
-  rootDir = ROOT,
   fetchImpl = globalThis.fetch,
   timeoutMs = 60_000,
   downloadAssets = true,
@@ -381,7 +380,6 @@ export async function checkSystems02PublicRelease({
     checks: { registry, github, coldConsumers },
     errors,
     publicStateReadAnonymously: true,
-    rootDir,
   };
 }
 

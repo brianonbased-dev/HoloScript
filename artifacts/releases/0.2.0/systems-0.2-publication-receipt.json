@@ -1,0 +1,124 @@
+{
+  "schema": "holoscript.systems-0.2-publication-receipt/v1",
+  "generatedAt": "2026-07-23T07:37:55.094Z",
+  "ok": true,
+  "mode": "publish",
+  "distributionId": "holoscript-systems-toolchain",
+  "version": "0.2.0",
+  "channel": "next",
+  "machineContract": "hs-machine-v33",
+  "sourceCommit": "9ff53e466e8401df4dace1d5364a6efe4ef9dfc6",
+  "candidateCommit": "25e96a3d8e28beaf54f798e021f4450f3ff6b9d7",
+  "auth": {
+    "npm": "brianonbased",
+    "github": "brianonbased-dev"
+  },
+  "packages": [
+    {
+      "name": "@holoscript/systems-linux-x64",
+      "action": "published",
+      "result": {
+        "schema": "holoscript.systems-0.2-public-release.npm-package/v1",
+        "ok": true,
+        "name": "@holoscript/systems-linux-x64",
+        "version": "0.2.0",
+        "observedVersion": "0.2.0",
+        "integrity": "sha512-HpUQ1TqO8cZZbNTnfjeq4tn2uAcAjew1nd5JS6kkyv1h5iszu3HklQOf3oalSQjX8+xVm9eem0IDmA3hzgSzOg==",
+        "shasum": "7b1f182cabb2e290f9bbdbd8bd281c11487b00f8",
+        "tarballUrl": "https://registry.npmjs.org/@holoscript/systems-linux-x64/-/systems-linux-x64-0.2.0.tgz",
+        "distTags": {
+          "next": "0.2.0",
+          "latest": "0.2.0"
+        },
+        "publishedAt": "2026-07-23T07:36:22.697Z",
+        "errors": []
+      }
+    },
+    {
+      "name": "@holoscript/systems-win32-x64",
+      "action": "published",
+      "result": {
+        "schema": "holoscript.systems-0.2-public-release.npm-package/v1",
+        "ok": true,
+        "name": "@holoscript/systems-win32-x64",
+        "version": "0.2.0",
+        "observedVersion": "0.2.0",
+        "integrity": "sha512-1uggSENy7EnZhhB9rSs27tohKA1n0z2SAUGmNVprI4t9cdYnZJapTUqmxmDEadU/87GM+rIXUuMizUf2beduXA==",
+        "shasum": "a19db212986382e481984f335206a99ce7780ba1",
+        "tarballUrl": "https://registry.npmjs.org/@holoscript/systems-win32-x64/-/systems-win32-x64-0.2.0.tgz",
+        "distTags": {
+          "next": "0.2.0",
+          "latest": "0.2.0"
+        },
+        "publishedAt": "2026-07-23T07:36:56.863Z",
+        "errors": []
+      }
+    },
+    {
+      "name": "@holoscript/systems",
+      "action": "published",
+      "result": {
+        "schema": "holoscript.systems-0.2-public-release.npm-package/v1",
+        "ok": true,
+        "name": "@holoscript/systems",
+        "version": "0.2.0",
+        "observedVersion": "0.2.0",
+        "integrity": "sha512-j1MEeZpeUgnkuaLuXSHbNlObmoq6TrUDKwlBiOn4IKgOrZ5RVhO9sbVwFZDKG5qOGIgEWi7bmWWx7WrbYK9+1w==",
+        "shasum": "b81d38357ac765820a1b25e386f925acb1fb2551",
+        "tarballUrl": "https://registry.npmjs.org/@holoscript/systems/-/systems-0.2.0.tgz",
+        "distTags": {
+          "preview": "0.1.0",
+          "latest": "0.1.0",
+          "next": "0.2.0"
+        },
+        "publishedAt": "2026-07-23T07:37:27.865Z",
+        "errors": []
+      }
+    }
+  ],
+  "github": {
+    "action": "created",
+    "result": {
+      "schema": "holoscript.systems-0.2-public-release.github/v1",
+      "ok": true,
+      "tag": "v0.2.0",
+      "url": "https://github.com/brianonbased-dev/HoloScript/releases/tag/v0.2.0",
+      "draft": false,
+      "prerelease": true,
+      "publishedAt": "2026-07-23T07:37:41Z",
+      "assets": [
+        {
+          "name": "holoscript-systems-0.2.0.tgz",
+          "bytes": 120751,
+          "expectedSha256": "fb215e347e9a9d5205a062ad166050311b302309a971258bd03502a0f2c53edd",
+          "apiSha256": "fb215e347e9a9d5205a062ad166050311b302309a971258bd03502a0f2c53edd",
+          "downloadUrl": "https://github.com/brianonbased-dev/HoloScript/releases/download/v0.2.0/holoscript-systems-0.2.0.tgz"
+        },
+        {
+          "name": "holoscript-systems-linux-x64-0.2.0.tgz",
+          "bytes": 1340789,
+          "expectedSha256": "2ed245c7e07a912fcc310f221c87f26c23c23559a48432e2eabd5a9995e97d3d",
+          "apiSha256": "2ed245c7e07a912fcc310f221c87f26c23c23559a48432e2eabd5a9995e97d3d",
+          "downloadUrl": "https://github.com/brianonbased-dev/HoloScript/releases/download/v0.2.0/holoscript-systems-linux-x64-0.2.0.tgz"
+        },
+        {
+          "name": "holoscript-systems-win32-x64-0.2.0.tgz",
+          "bytes": 1155800,
+          "expectedSha256": "c95f474eea89da04a34d7d309bf9ddb1505a714dc52ef154b250ec56c1db7932",
+          "apiSha256": "c95f474eea89da04a34d7d309bf9ddb1505a714dc52ef154b250ec56c1db7932",
+          "downloadUrl": "https://github.com/brianonbased-dev/HoloScript/releases/download/v0.2.0/holoscript-systems-win32-x64-0.2.0.tgz"
+        },
+        {
+          "name": "systems-0.2-build-receipt.json",
+          "bytes": 2039,
+          "expectedSha256": "07edc8b2b20448df045ef7a7fe6dd90ba5a905457a11a0dd7eda24594f7a1ec9",
+          "apiSha256": "07edc8b2b20448df045ef7a7fe6dd90ba5a905457a11a0dd7eda24594f7a1ec9",
+          "downloadUrl": "https://github.com/brianonbased-dev/HoloScript/releases/download/v0.2.0/systems-0.2-build-receipt.json"
+        }
+      ],
+      "needsDownload": [],
+      "errors": []
+    }
+  },
+  "publicStateMutated": true
+}

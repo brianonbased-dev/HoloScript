@@ -40,6 +40,9 @@ for (const expected of [...manifest.packages, ...manifest.github.assets]) {
   assert.equal(statSync(join(root, path)).size, expected.bytes);
   assert.equal(hash(path), expected.sha256);
 }
+for (const receipt of [manifest.publicationReceipt, manifest.publicReadbackReceipt]) {
+  assert.equal(hash(receipt.path), receipt.sha256);
+}
 
 const expected = manifest.packages.at(-1);
 const packument = {
