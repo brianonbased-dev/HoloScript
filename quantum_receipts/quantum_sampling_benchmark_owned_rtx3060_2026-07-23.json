@@ -1,0 +1,617 @@
+{
+  "schema": "cael-quantum-v1.sampling-benchmark",
+  "benchmark_id": "sparse-rbm-pcd-v784-h1200-e18025-seed37",
+  "generated_at": "2026-07-23T22:40:52.567802+00:00",
+  "claim_boundary": {
+    "allowed": "owned-hardware timing calibration for sparse-RBM PCD Gibbs sampling under the recorded configuration",
+    "forbidden": [
+      "end-to-end AI training speedup",
+      "quantum advantage",
+      "quality-matched comparison to D-Wave Advantage2",
+      "reproduction of Kim-Gyhm-Park"
+    ]
+  },
+  "external_reference": {
+    "doi": "10.1103/2g6m-whm2",
+    "reported_scope": "sampling-only",
+    "reported_pcd_k100_ms_per_sample": 16.3,
+    "reported_dqa_ms_per_sample": 0.256,
+    "reported_ratio": 63.67,
+    "comparison_status": "context-only; hardware and implementation not matched"
+  },
+  "model": {
+    "family": "sparse restricted Boltzmann machine",
+    "visible_nodes": 784,
+    "hidden_nodes": 1200,
+    "total_nodes": 1984,
+    "edge_count": 18025,
+    "average_degree": 18.170362903225808,
+    "bipartite_density": 0.019159226190476192,
+    "weight_initialization": "normal(mean=0,std=0.08)",
+    "bias_initialization": "normal(mean=0,std=0.02)",
+    "topology_seed": 37,
+    "weights_sha256": "03688db0f0bceaf5ecee9a725823cccf20d1f0e244e02147f9c2d0d7c6734dd1"
+  },
+  "dataset": {
+    "name": "deterministic synthetic Bernoulli chains",
+    "training_dataset": null,
+    "mnist_used": false,
+    "initial_visible_probability": 0.5,
+    "seed": 37
+  },
+  "sampler": {
+    "algorithm": "persistent contrastive divergence block Gibbs",
+    "k_values": [
+      5,
+      10,
+      25,
+      50,
+      100
+    ],
+    "samples_per_run": 128,
+    "repeats": 5,
+    "warmup_repeats": 1,
+    "dtype": "float32",
+    "framework": "PyTorch",
+    "framework_version": "2.10.0+cu128",
+    "cpu_threads": 8,
+    "config": {
+      "visible_nodes": 784,
+      "hidden_nodes": 1200,
+      "edge_count": 18025,
+      "samples": 128,
+      "k_values": [
+        5,
+        10,
+        25,
+        50,
+        100
+      ],
+      "repeats": 5,
+      "warmup_repeats": 1,
+      "devices": [
+        "cpu",
+        "cuda"
+      ],
+      "seed": 37,
+      "dtype": "float32",
+      "cpu_threads": 0
+    }
+  },
+  "timing_scope": {
+    "clock": "time.perf_counter_ns",
+    "device_synchronization": "torch.cuda.synchronize around CUDA timing",
+    "includes": [
+      "K alternating hidden/visible Bernoulli Gibbs transitions"
+    ],
+    "excludes": [
+      "model construction",
+      "sparse topology construction",
+      "host-device transfer",
+      "initial-chain allocation",
+      "quality-metric calculation",
+      "optimizer updates",
+      "training epochs",
+      "service latency"
+    ],
+    "per_sample_formula": "median(raw_wall_ms) / samples_per_run"
+  },
+  "training_scope": {
+    "scope": "sampling-only",
+    "parameter_updates": false,
+    "training_epochs": 0,
+    "loss_evaluation": false,
+    "generative_quality_evaluation": "energy and transition diagnostics only"
+  },
+  "hardware": {
+    "host_os": "Windows-11-10.0.26200-SP0",
+    "python": "3.14.0",
+    "torch_cuda_version": "12.8",
+    "cuda_available": true,
+    "qpu_used": false,
+    "qpu_provider": null,
+    "qpu_job_ids": []
+  },
+  "backends": [
+    {
+      "device": "cpu",
+      "status": "available",
+      "processor": "Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
+      "measurements": [
+        {
+          "k": 5,
+          "raw_wall_ms": [
+            38.3793,
+            47.2278,
+            39.0122,
+            42.4211,
+            45.0124
+          ],
+          "median_wall_ms": 42.4211,
+          "median_ms_per_sample": 0.33141484375,
+          "quality_runs": [
+            {
+              "mean_energy": 1.247748613357544,
+              "std_energy": 4.28749418258667,
+              "visible_one_fraction": 0.5074936151504517,
+              "transition_fraction": 0.5002591013908386
+            },
+            {
+              "mean_energy": 1.2665200233459473,
+              "std_energy": 4.745634078979492,
+              "visible_one_fraction": 0.5024015307426453,
+              "transition_fraction": 0.5024314522743225
+            },
+            {
+              "mean_energy": 2.0098743438720703,
+              "std_energy": 4.595383644104004,
+              "visible_one_fraction": 0.5014150142669678,
+              "transition_fraction": 0.4977080821990967
+            },
+            {
+              "mean_energy": 1.1928006410598755,
+              "std_energy": 4.809201240539551,
+              "visible_one_fraction": 0.5061483383178711,
+              "transition_fraction": 0.4989437162876129
+            },
+            {
+              "mean_energy": 1.0561141967773438,
+              "std_energy": 4.641813278198242,
+              "visible_one_fraction": 0.5051618218421936,
+              "transition_fraction": 0.49884405732154846
+            }
+          ]
+        },
+        {
+          "k": 10,
+          "raw_wall_ms": [
+            81.5317,
+            83.9385,
+            76.2749,
+            81.5888,
+            78.0023
+          ],
+          "median_wall_ms": 81.5317,
+          "median_ms_per_sample": 0.63696640625,
+          "quality_runs": [
+            {
+              "mean_energy": 2.5013065338134766,
+              "std_energy": 4.764337062835693,
+              "visible_one_fraction": 0.5055106282234192,
+              "transition_fraction": 0.49871453642845154
+            },
+            {
+              "mean_energy": 1.9941320419311523,
+              "std_energy": 4.441394329071045,
+              "visible_one_fraction": 0.506855845451355,
+              "transition_fraction": 0.5001096129417419
+            },
+            {
+              "mean_energy": 1.2538366317749023,
+              "std_energy": 4.74691915512085,
+              "visible_one_fraction": 0.5030293464660645,
+              "transition_fraction": 0.5010462999343872
+            },
+            {
+              "mean_energy": 1.3297646045684814,
+              "std_energy": 4.894190311431885,
+              "visible_one_fraction": 0.5048528909683228,
+              "transition_fraction": 0.4991131126880646
+            },
+            {
+              "mean_energy": 2.097893714904785,
+              "std_energy": 4.882701396942139,
+              "visible_one_fraction": 0.5027702450752258,
+              "transition_fraction": 0.5007274150848389
+            }
+          ]
+        },
+        {
+          "k": 25,
+          "raw_wall_ms": [
+            296.5201,
+            452.2596,
+            318.6925,
+            228.9954,
+            211.1115
+          ],
+          "median_wall_ms": 296.5201,
+          "median_ms_per_sample": 2.31656328125,
+          "quality_runs": [
+            {
+              "mean_energy": 1.5368199348449707,
+              "std_energy": 4.730917930603027,
+              "visible_one_fraction": 0.5053411722183228,
+              "transition_fraction": 0.49752870202064514
+            },
+            {
+              "mean_energy": 1.6365031003952026,
+              "std_energy": 4.782211780548096,
+              "visible_one_fraction": 0.5073142647743225,
+              "transition_fraction": 0.4978176951408386
+            },
+            {
+              "mean_energy": 0.5499284267425537,
+              "std_energy": 4.486774921417236,
+              "visible_one_fraction": 0.5060088634490967,
+              "transition_fraction": 0.5057298541069031
+            },
+            {
+              "mean_energy": 1.378432035446167,
+              "std_energy": 4.2095866203308105,
+              "visible_one_fraction": 0.5037866830825806,
+              "transition_fraction": 0.49864476919174194
+            },
+            {
+              "mean_energy": 1.6518347263336182,
+              "std_energy": 4.943653106689453,
+              "visible_one_fraction": 0.5017438530921936,
+              "transition_fraction": 0.49998006224632263
+            }
+          ]
+        },
+        {
+          "k": 50,
+          "raw_wall_ms": [
+            487.2435,
+            444.737,
+            454.4223,
+            1477.14,
+            1060.564
+          ],
+          "median_wall_ms": 487.2435,
+          "median_ms_per_sample": 3.80658984375,
+          "quality_runs": [
+            {
+              "mean_energy": 1.5230681896209717,
+              "std_energy": 4.8729448318481445,
+              "visible_one_fraction": 0.5048828125,
+              "transition_fraction": 0.49939215183258057
+            },
+            {
+              "mean_energy": 1.8063567876815796,
+              "std_energy": 4.706060409545898,
+              "visible_one_fraction": 0.5040357708930969,
+              "transition_fraction": 0.5016840696334839
+            },
+            {
+              "mean_energy": 2.1917831897735596,
+              "std_energy": 4.925834655761719,
+              "visible_one_fraction": 0.5068758130073547,
+              "transition_fraction": 0.49662187695503235
+            },
+            {
+              "mean_energy": 1.3463425636291504,
+              "std_energy": 4.7284088134765625,
+              "visible_one_fraction": 0.5055006146430969,
+              "transition_fraction": 0.49912309646606445
+            },
+            {
+              "mean_energy": 1.5979669094085693,
+              "std_energy": 4.623432159423828,
+              "visible_one_fraction": 0.5026008486747742,
+              "transition_fraction": 0.5016242861747742
+            }
+          ]
+        },
+        {
+          "k": 100,
+          "raw_wall_ms": [
+            1607.5578,
+            1671.2185,
+            1295.3343,
+            1387.569,
+            1821.7776
+          ],
+          "median_wall_ms": 1607.5578,
+          "median_ms_per_sample": 12.5590453125,
+          "quality_runs": [
+            {
+              "mean_energy": 1.675576090812683,
+              "std_energy": 4.658160209655762,
+              "visible_one_fraction": 0.5064173936843872,
+              "transition_fraction": 0.4997209906578064
+            },
+            {
+              "mean_energy": 1.463818073272705,
+              "std_energy": 4.924661636352539,
+              "visible_one_fraction": 0.5049525499343872,
+              "transition_fraction": 0.5017936825752258
+            },
+            {
+              "mean_energy": 1.144585132598877,
+              "std_energy": 4.61657190322876,
+              "visible_one_fraction": 0.5029994249343872,
+              "transition_fraction": 0.5016043782234192
+            },
+            {
+              "mean_energy": 0.7441405653953552,
+              "std_energy": 4.276998043060303,
+              "visible_one_fraction": 0.5036969780921936,
+              "transition_fraction": 0.4991529881954193
+            },
+            {
+              "mean_energy": 1.9764182567596436,
+              "std_energy": 3.920630931854248,
+              "visible_one_fraction": 0.5043646097183228,
+              "transition_fraction": 0.5008470416069031
+            }
+          ]
+        }
+      ],
+      "negative_controls": [
+        {
+          "name": "k-zero-no-transition",
+          "k": 0,
+          "expected_status": "invalid-sampler",
+          "observed_wall_ms": 0.0289,
+          "transition_fraction": 0.0,
+          "interpretation": "A zero-step copy may be faster than PCD but is not a sample transition and cannot support a speedup claim."
+        }
+      ]
+    },
+    {
+      "device": "cuda",
+      "status": "available",
+      "processor": "NVIDIA GeForce RTX 3060 Laptop GPU",
+      "measurements": [
+        {
+          "k": 5,
+          "raw_wall_ms": [
+            4.8591,
+            5.5456,
+            4.9118,
+            4.109,
+            5.3966
+          ],
+          "median_wall_ms": 4.9118,
+          "median_ms_per_sample": 0.0383734375,
+          "quality_runs": [
+            {
+              "mean_energy": 2.0335121154785156,
+              "std_energy": 4.653810977935791,
+              "visible_one_fraction": 0.5097357034683228,
+              "transition_fraction": 0.5007174611091614
+            },
+            {
+              "mean_energy": 2.2519021034240723,
+              "std_energy": 4.476021766662598,
+              "visible_one_fraction": 0.50634765625,
+              "transition_fraction": 0.4991529583930969
+            },
+            {
+              "mean_energy": 1.223008632659912,
+              "std_energy": 4.131394863128662,
+              "visible_one_fraction": 0.5060586333274841,
+              "transition_fraction": 0.5009068250656128
+            },
+            {
+              "mean_energy": 2.0656633377075195,
+              "std_energy": 4.77249813079834,
+              "visible_one_fraction": 0.505281388759613,
+              "transition_fraction": 0.5002092719078064
+            },
+            {
+              "mean_energy": 0.6906635165214539,
+              "std_energy": 5.301471710205078,
+              "visible_one_fraction": 0.5016541481018066,
+              "transition_fraction": 0.4969407618045807
+            }
+          ]
+        },
+        {
+          "k": 10,
+          "raw_wall_ms": [
+            9.9224,
+            10.431,
+            13.8875,
+            13.8167,
+            11.2523
+          ],
+          "median_wall_ms": 11.2523,
+          "median_ms_per_sample": 0.08790859375,
+          "quality_runs": [
+            {
+              "mean_energy": 0.9945685863494873,
+              "std_energy": 4.493314266204834,
+              "visible_one_fraction": 0.5016741156578064,
+              "transition_fraction": 0.5018534660339355
+            },
+            {
+              "mean_energy": 1.7265492677688599,
+              "std_energy": 4.247353553771973,
+              "visible_one_fraction": 0.5056600570678711,
+              "transition_fraction": 0.49711015820503235
+            },
+            {
+              "mean_energy": 1.9200069904327393,
+              "std_energy": 3.9128386974334717,
+              "visible_one_fraction": 0.5032684803009033,
+              "transition_fraction": 0.5019431710243225
+            },
+            {
+              "mean_energy": 1.9676653146743774,
+              "std_energy": 4.64560079574585,
+              "visible_one_fraction": 0.5059291124343872,
+              "transition_fraction": 0.4999900162220001
+            },
+            {
+              "mean_energy": 2.0298047065734863,
+              "std_energy": 4.678477764129639,
+              "visible_one_fraction": 0.5045738816261292,
+              "transition_fraction": 0.5022321343421936
+            }
+          ]
+        },
+        {
+          "k": 25,
+          "raw_wall_ms": [
+            28.6323,
+            31.4304,
+            31.2836,
+            31.4797,
+            25.2402
+          ],
+          "median_wall_ms": 31.2836,
+          "median_ms_per_sample": 0.244403125,
+          "quality_runs": [
+            {
+              "mean_energy": 1.4767855405807495,
+              "std_energy": 5.402837753295898,
+              "visible_one_fraction": 0.5049625039100647,
+              "transition_fraction": 0.5031688213348389
+            },
+            {
+              "mean_energy": 1.8947654962539673,
+              "std_energy": 4.571050643920898,
+              "visible_one_fraction": 0.5044344067573547,
+              "transition_fraction": 0.50146484375
+            },
+            {
+              "mean_energy": 0.757067859172821,
+              "std_energy": 4.859848976135254,
+              "visible_one_fraction": 0.5038862824440002,
+              "transition_fraction": 0.5002591013908386
+            },
+            {
+              "mean_energy": 1.8906230926513672,
+              "std_energy": 4.624842643737793,
+              "visible_one_fraction": 0.5035474896430969,
+              "transition_fraction": 0.5012854933738708
+            },
+            {
+              "mean_energy": 1.9853918552398682,
+              "std_energy": 4.208185195922852,
+              "visible_one_fraction": 0.5041952133178711,
+              "transition_fraction": 0.5004484057426453
+            }
+          ]
+        },
+        {
+          "k": 50,
+          "raw_wall_ms": [
+            42.3332,
+            39.4151,
+            41.956,
+            43.3666,
+            46.1087
+          ],
+          "median_wall_ms": 42.3332,
+          "median_ms_per_sample": 0.330728125,
+          "quality_runs": [
+            {
+              "mean_energy": 0.2283822000026703,
+              "std_energy": 4.077536582946777,
+              "visible_one_fraction": 0.5046436190605164,
+              "transition_fraction": 0.5011160373687744
+            },
+            {
+              "mean_energy": 1.6035182476043701,
+              "std_energy": 4.888035297393799,
+              "visible_one_fraction": 0.5036371946334839,
+              "transition_fraction": 0.5000298619270325
+            },
+            {
+              "mean_energy": 0.9020015001296997,
+              "std_energy": 4.624154567718506,
+              "visible_one_fraction": 0.5060287714004517,
+              "transition_fraction": 0.5003188848495483
+            },
+            {
+              "mean_energy": 1.5799212455749512,
+              "std_energy": 4.663271427154541,
+              "visible_one_fraction": 0.504902720451355,
+              "transition_fraction": 0.5021424293518066
+            },
+            {
+              "mean_energy": 1.3382508754730225,
+              "std_energy": 4.874454498291016,
+              "visible_one_fraction": 0.5077726244926453,
+              "transition_fraction": 0.5008669495582581
+            }
+          ]
+        },
+        {
+          "k": 100,
+          "raw_wall_ms": [
+            123.7955,
+            120.6752,
+            114.8715,
+            106.968,
+            77.8195
+          ],
+          "median_wall_ms": 114.8715,
+          "median_ms_per_sample": 0.89743359375,
+          "quality_runs": [
+            {
+              "mean_energy": 1.6656930446624756,
+              "std_energy": 4.539912223815918,
+              "visible_one_fraction": 0.5032585263252258,
+              "transition_fraction": 0.4979970455169678
+            },
+            {
+              "mean_energy": 1.8872376680374146,
+              "std_energy": 4.620259761810303,
+              "visible_one_fraction": 0.5035574436187744,
+              "transition_fraction": 0.4997807741165161
+            },
+            {
+              "mean_energy": 1.194024682044983,
+              "std_energy": 4.557929039001465,
+              "visible_one_fraction": 0.5017538070678711,
+              "transition_fraction": 0.49814650416374207
+            },
+            {
+              "mean_energy": 1.0560333728790283,
+              "std_energy": 4.417545318603516,
+              "visible_one_fraction": 0.505879282951355,
+              "transition_fraction": 0.5007972121238708
+            },
+            {
+              "mean_energy": 1.3751542568206787,
+              "std_energy": 4.471309185028076,
+              "visible_one_fraction": 0.5020726919174194,
+              "transition_fraction": 0.5016940236091614
+            }
+          ]
+        }
+      ],
+      "negative_controls": [
+        {
+          "name": "k-zero-no-transition",
+          "k": 0,
+          "expected_status": "invalid-sampler",
+          "observed_wall_ms": 0.07,
+          "transition_fraction": 0.0,
+          "interpretation": "A zero-step copy may be faster than PCD but is not a sample transition and cannot support a speedup claim."
+        }
+      ]
+    }
+  ],
+  "source_snapshot": [
+    {
+      "path": "scripts/quantum_sampling_benchmark.py",
+      "sha256": "fe3c4539ad4145a21fbdc9ff92ccfcb6d24111bd2a36c4507f4efcf400e75587"
+    },
+    {
+      "path": "scripts/quantum_receipt_verify.py",
+      "sha256": "3346a80785ed271a82b329192bdababedbe934dfb58c02509d099cf528a427ba"
+    }
+  ],
+  "source_revision": {
+    "commit": "87a9fce367dc485bdfa34b94df1fe21d678e9e6e",
+    "target_sources_dirty": false
+  },
+  "cost": {
+    "external_spend_usd": 0.0,
+    "owned_hardware": true,
+    "energy_measured": false
+  },
+  "hash_payload": {
+    "schema": "cael-quantum-v1.sampling-benchmark",
+    "benchmark_id": "sparse-rbm-pcd-v784-h1200-e18025-seed37",
+    "source_snapshot_sha256": "d01b9582f43a7faedc71aab49ad0aaab437eaeaf6865529461b8bc1009446dea"
+  },
+  "hash_scope": "full_receipt_excluding_payload_hash",
+  "payload_hash": "3f6b960d0f86b53a41e7bfacb3c6cff1746f36874ee94d537a74f22c83a6c7a3"
+}
