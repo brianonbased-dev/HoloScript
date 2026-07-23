@@ -15,6 +15,105 @@ export type CompilerToken = string | CapabilityTokenCredential;
 export function isCapabilityTokenCredential(token: CompilerToken): token is CapabilityTokenCredential;
 export function createTestCompilerToken(): string;
 
+export type HSIScalar = string | number | boolean | null;
+
+export interface HSPlusHSIIRLoweringOptions {
+  worldName?: string;
+}
+
+export interface HSIMachineInput {
+  id: string;
+  name: string;
+  inputType: 'bool' | 'float' | 'int' | 'trigger';
+  baseline: HSIScalar;
+}
+
+export interface HSITransition {
+  id: string;
+  from: string;
+  target: string;
+  priority: number;
+  guard?: unknown;
+  event?: string;
+  reads: string[];
+}
+
+export interface HSIStateMachine {
+  id: string;
+  name: string;
+  initialState: string;
+  states: string[];
+  inputs: HSIMachineInput[];
+  transitions: HSITransition[];
+}
+
+export interface HSIIRDocument {
+  schemaVersion: 'holoscript.hsi-ir.v0.1.0';
+  kind: 'HSIIR';
+  world: { name: string; sourceDigest: string };
+  entities: unknown[];
+  relations: unknown[];
+  state: unknown[];
+  observationPolicy: unknown[];
+  eventHandlers: unknown[];
+  machines: HSIStateMachine[];
+  predicates: unknown[];
+  declaredUnknowns: string[];
+  provenance: {
+    compiler: 'HSIIRCompiler';
+    sourceSurface?: 'holo' | 'hsplus';
+    deterministicDigest: string;
+  };
+}
+
+export type HSIScenarioStep =
+  | { kind: 'set-input'; machine: string; input: string; value: HSIScalar }
+  | { kind: 'fire-trigger'; machine: string; input: string }
+  | { kind: 'fire-event'; event: string };
+
+export interface HSITraceTransitionRecord {
+  machine: string;
+  transitionId: string;
+  from: string;
+  to: string;
+}
+
+export interface HSITraceStep {
+  ordinal: number;
+  step: HSIScenarioStep;
+  transitions: HSITraceTransitionRecord[];
+  effects: unknown[];
+  emitted: string[];
+  invariantViolations: string[];
+  stateDigest: string;
+}
+
+export interface HSITrace {
+  schemaVersion: 'holoscript.hsi-trace.v0.1.0';
+  kind: 'HSITrace';
+  worldDigest: string;
+  preconditionResults: Array<{ id: string; holds: boolean }>;
+  initial: {
+    state: Record<string, HSIScalar>;
+    machineStates: Record<string, string>;
+    stateDigest: string;
+  };
+  steps: HSITraceStep[];
+  final: {
+    state: Record<string, HSIScalar>;
+    machineStates: Record<string, string>;
+    stateDigest: string;
+  };
+  valid: boolean;
+  deterministicDigest: string;
+}
+
+export function lowerHSPlusProgramToHSIIR(
+  source: string,
+  options?: HSPlusHSIIRLoweringOptions
+): HSIIRDocument;
+export function runExactTrace(ir: HSIIRDocument, scenario: HSIScenarioStep[]): HSITrace;
+
 export interface ICompiler {
   compile(ast: any, token: CompilerToken): any;
   [key: string]: any;

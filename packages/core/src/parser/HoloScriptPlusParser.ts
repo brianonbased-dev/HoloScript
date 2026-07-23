@@ -5316,7 +5316,12 @@ export class HoloScriptPlusParser {
       } else if (current.type === 'TRANSITION' || current.value === 'transitions') {
         transitions.push(...this.parseTransitionsBlock());
       } else {
-        // Skip unknown
+        if (this.options.strict) {
+          this.errorAt(
+            current,
+            `Unsupported state_machine declaration '${current.value}'`,
+          );
+        }
         this.advance();
       }
       this.skipNewlines();
@@ -5368,6 +5373,9 @@ export class HoloScriptPlusParser {
         this.expect('COLON', `Expected : after ${key}`);
         metadata[key] = this.parseValue();
       } else {
+        if (this.options.strict) {
+          this.errorAt(current, `Unsupported state declaration '${current.value}'`);
+        }
         this.advance();
       }
       this.skipNewlines();
@@ -5583,7 +5591,8 @@ export class HoloScriptPlusParser {
       !this.check('EOF')
     ) {
       if (!this.isStateMachineIdentifierToken(0)) break;
-      const clause = this.current().value.toLowerCase();
+      const clauseToken = this.current();
+      const clause = clauseToken.value.toLowerCase();
       this.advance();
 
       if (clause === 'when') {
@@ -5604,6 +5613,12 @@ export class HoloScriptPlusParser {
       } else if (clause === 'cantransitiontoself' || clause === 'can_transition_to_self') {
         transition.canTransitionToSelf = this.parseOptionalStateMachineBoolean();
       } else {
+        if (this.options.strict) {
+          this.errorAt(
+            clauseToken,
+            `Unsupported state transition clause '${clauseToken.value}'`,
+          );
+        }
         break;
       }
     }

@@ -227,6 +227,8 @@ export interface HSIIRDocument {
   declaredUnknowns: string[];
   provenance: {
     compiler: 'HSIIRCompiler';
+    /** Source surface admitted into HSI-IR. Omitted on legacy `.holo` receipts. */
+    sourceSurface?: 'holo' | 'hsplus';
     deterministicDigest: string;
   };
 }

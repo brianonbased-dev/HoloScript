@@ -161,6 +161,8 @@
     "check:grammar-authority:regression": "node scripts/holo-ci/check-grammar-authority.mjs --skip-drift",
     "check:three-surface-closure": "pnpm --filter @holoscript/meaning run build && tsx scripts/holo-ci/check-three-surface-closure.ts",
     "check:three-surface-closure:test": "pnpm run check:three-surface-closure -- --self-test",
+    "check:hsplus-systems-closure": "tsx scripts/holo-ci/check-hsplus-systems-closure.ts",
+    "check:hsplus-systems-closure:test": "pnpm run check:hsplus-systems-closure -- --self-test",
     "check:package-doc-mold": "node scripts/holo-ci/package-doc-mold.mjs",
     "check:package-doc-mold:test": "node scripts/holo-ci/package-doc-mold.mjs --self-test",
     "package:opportunity-map": "node scripts/holo-ci/package-opportunity-map.mjs",

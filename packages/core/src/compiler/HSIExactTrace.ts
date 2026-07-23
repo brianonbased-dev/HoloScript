@@ -40,6 +40,15 @@ interface WorldRuntime {
   machines: Map<string, MachineRuntime>;
 }
 
+function inputAcceptsValue(
+  inputType: 'bool' | 'float' | 'int' | 'trigger',
+  value: HSIScalar
+): boolean {
+  if (inputType === 'bool' || inputType === 'trigger') return typeof value === 'boolean';
+  if (inputType === 'int') return typeof value === 'number' && Number.isInteger(value);
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
 function snapshot(world: WorldRuntime): {
   state: Record<string, HSIScalar>;
   machineStates: Record<string, string>;
@@ -194,10 +203,25 @@ export function runExactTrace(ir: HSIIRDocument, scenario: HSIScenarioStep[]): H
     switch (step.kind) {
       case 'set-input': {
         const machine = world.machines.get(step.machine);
-        if (!machine || !(step.input in machine.inputs)) {
+        const declared = ir.machines
+          .find((candidate) => candidate.name === step.machine)
+          ?.inputs.find((input) => input.name === step.input);
+        if (!machine || !declared) {
           throw new HSIAdmissionError(
             'unknown-slot',
             `scenario step ${ordinal}: unknown machine input ${step.machine}.${step.input}`,
+          );
+        }
+        if (declared.inputType === 'trigger') {
+          throw new HSIAdmissionError(
+            'trigger-step-kind',
+            `scenario step ${ordinal}: trigger ${step.machine}.${step.input} must use fire-trigger`,
+          );
+        }
+        if (!inputAcceptsValue(declared.inputType, step.value)) {
+          throw new HSIAdmissionError(
+            'input-type',
+            `scenario step ${ordinal}: ${step.machine}.${step.input} expects ${declared.inputType}`,
           );
         }
         machine.inputs[step.input] = step.value;

@@ -230,6 +230,7 @@ export {
   lowerHoloExpression,
   HSI_OBSERVATION_MEDIATOR_EDGE,
 } from './HSIIRCompiler';
+export { lowerHSPlusProgramToHSIIR } from './HSPlusHSIIRCompiler';
 export { runExactTrace } from './HSIExactTrace';
 export { projectLearningGraph } from './HSILearningGraph';
 export {
@@ -287,6 +288,7 @@ export type {
   HSIAuditManifest,
 } from './HSIIRTypes';
 export type { HSIIRLoweringOptions } from './HSIIRCompiler';
+export type { HSPlusHSIIRLoweringOptions } from './HSPlusHSIIRCompiler';
 export type { HSIRenameMap, HSICompositionIntervention, HSIAuditInput } from './HSIAuditVerifier';
 
 // HSI-IR Stage B: the causal snapshot -> resolver -> policy -> capability-gated action -> mutation -> receipt loop.

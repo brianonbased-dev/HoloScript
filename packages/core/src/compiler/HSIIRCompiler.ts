@@ -425,7 +425,16 @@ function lowerEventHandlers(
   return handlers;
 }
 
-function lowerMachine(machine: HoloStateMachine): HSIStateMachine {
+/**
+ * Lower one already-parsed state machine into the shared HSI-IR machine form.
+ *
+ * This is exported so every HoloScript source surface can normalize into the
+ * same fail-closed machine semantics instead of maintaining parallel lowering
+ * and execution code.
+ */
+export function lowerStateMachineToHSIIR(
+  machine: HoloStateMachine,
+): HSIStateMachine {
   const stateNames = Object.keys(machine.states ?? {});
   if (stateNames.length === 0) {
     throw new HSIAdmissionError('admission-skewed', `state machine "${machine.name}" declares no states`);
@@ -585,7 +594,7 @@ export function lowerCompositionToHSIIR(
   const observationPolicy = deriveObservationPolicy(entities, relations);
   const stateSlots = new Set(stateFields.map((f) => f.key));
   const eventHandlers = lowerEventHandlers(composition, stateSlots);
-  const machines = (composition.stateMachines ?? []).map(lowerMachine);
+  const machines = (composition.stateMachines ?? []).map(lowerStateMachineToHSIIR);
   const predicates = lowerPredicates(composition, stateSlots);
 
   const sourceDigest = options.sourceText !== undefined

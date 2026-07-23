@@ -1,0 +1,21 @@
+// A non-agent .hsplus systems component.
+//
+// This worker is intentionally small enough to pass through the current
+// fail-closed sovereign subset: canonical .hsplus parse -> typed HSI-IR ->
+// deterministic exact trace. It contains no host-JavaScript body.
+
+state_machine ResilientWorker {
+  input start: trigger = false
+  input reset: trigger = false
+  input failures: int = 0
+
+  initial: idle
+
+  state idle {}
+  state running {}
+  state open {}
+
+  idle -> running when start
+  running -> open when failures >= 3
+  open -> idle when reset
+}
