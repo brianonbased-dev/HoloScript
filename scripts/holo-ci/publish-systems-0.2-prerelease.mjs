@@ -156,16 +156,6 @@ async function waitForRegistry(expected, timeoutMs = 180_000) {
   );
 }
 
-async function waitForRegistryPresence(expected, timeoutMs = 180_000) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    const state = await registryState(expected);
-    if (state.exists) return state;
-    await sleep(3000);
-  }
-  throw new Error(`${expected.name}@${expected.version} did not become publicly visible`);
-}
-
 function npmPublish(expected, publish) {
   const args = [
     'publish',
@@ -179,22 +169,6 @@ function npmPublish(expected, publish) {
     '--json',
   ];
   return run(NPM.command, [...NPM.prefix, ...args], { timeout: 300_000 });
-}
-
-function removeForbiddenDistTags(expected, observedTags, publish) {
-  const present = (expected.forbiddenDistTags || []).filter(
-    (tag) => observedTags?.[tag] !== undefined
-  );
-  if (publish) {
-    for (const tag of present) {
-      run(
-        NPM.command,
-        [...NPM.prefix, 'dist-tag', 'rm', expected.name, tag],
-        { timeout: 60_000 }
-      );
-    }
-  }
-  return present;
 }
 
 async function publicGitHubRelease(manifest) {
@@ -307,36 +281,9 @@ async function main() {
     const before = await registryState(expected);
     if (before.exists) {
       if (!before.exact) {
-        const forbiddenTags = removeForbiddenDistTags(
-          expected,
-          before.result.distTags,
-          false
+        throw new Error(
+          `${expected.name}@${expected.version} already exists with non-matching public bytes or tags: ${before.result.errors.join('; ')}`
         );
-        const onlyCorrectableTags =
-          forbiddenTags.length > 0 &&
-          before.result.errors.every((error) => error.includes('forbidden dist-tag'));
-        if (!onlyCorrectableTags) {
-          throw new Error(
-            `${expected.name}@${expected.version} already exists with non-matching public bytes or tags: ${before.result.errors.join('; ')}`
-          );
-        }
-        if (options.publish) {
-          removeForbiddenDistTags(expected, before.result.distTags, true);
-          publicStateMutated = true;
-          packages.push({
-            name: expected.name,
-            action: 'removed-forbidden-dist-tags',
-            removed: forbiddenTags,
-            result: await waitForRegistry(expected),
-          });
-        } else {
-          packages.push({
-            name: expected.name,
-            action: 'would-remove-forbidden-dist-tags',
-            removed: forbiddenTags,
-          });
-        }
-        continue;
       }
       packages.push({ name: expected.name, action: 'already-exact', result: before.result });
       continue;
@@ -344,8 +291,6 @@ async function main() {
     npmPublish(expected, options.publish);
     if (options.publish) {
       publicStateMutated = true;
-      const initial = await waitForRegistryPresence(expected);
-      removeForbiddenDistTags(expected, initial.result?.distTags, true);
       packages.push({
         name: expected.name,
         action: 'published',

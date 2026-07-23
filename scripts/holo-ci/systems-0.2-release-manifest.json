@@ -22,12 +22,9 @@
       "integrity": "sha512-HpUQ1TqO8cZZbNTnfjeq4tn2uAcAjew1nd5JS6kkyv1h5iszu3HklQOf3oalSQjX8+xVm9eem0IDmA3hzgSzOg==",
       "tarballUrl": "https://registry.npmjs.org/@holoscript/systems-linux-x64/-/systems-linux-x64-0.2.0.tgz",
       "distTags": {
-        "next": "0.2.0"
-      },
-      "forbiddenDistTags": [
-        "latest",
-        "preview"
-      ]
+        "next": "0.2.0",
+        "latest": "0.2.0"
+      }
     },
     {
       "id": "win32-x64",
@@ -41,12 +38,9 @@
       "integrity": "sha512-1uggSENy7EnZhhB9rSs27tohKA1n0z2SAUGmNVprI4t9cdYnZJapTUqmxmDEadU/87GM+rIXUuMizUf2beduXA==",
       "tarballUrl": "https://registry.npmjs.org/@holoscript/systems-win32-x64/-/systems-win32-x64-0.2.0.tgz",
       "distTags": {
-        "next": "0.2.0"
-      },
-      "forbiddenDistTags": [
-        "latest",
-        "preview"
-      ]
+        "next": "0.2.0",
+        "latest": "0.2.0"
+      }
     },
     {
       "id": "meta",
@@ -104,6 +98,8 @@
   "immutability": {
     "latestMustRemain": "0.1.0",
     "previewMustRemain": "0.1.0",
+    "channelAuthorityPackage": "@holoscript/systems",
+    "platformPackageFirstVersionLatestIsRegistryManaged": true,
     "publishedVersionsAreNeverOverwritten": true
   }
 }

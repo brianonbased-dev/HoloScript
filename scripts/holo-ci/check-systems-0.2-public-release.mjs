@@ -98,13 +98,6 @@ export function evaluateRegistryPackage(expected, packument) {
       );
     }
   }
-  for (const tag of expected.forbiddenDistTags || []) {
-    if (tags[tag] !== undefined) {
-      errors.push(
-        `${expected.name} forbidden dist-tag: expected ${tag} to be absent, found ${tags[tag]}`
-      );
-    }
-  }
   return {
     schema: 'holoscript.systems-0.2-public-release.npm-package/v1',
     ok: errors.length === 0,

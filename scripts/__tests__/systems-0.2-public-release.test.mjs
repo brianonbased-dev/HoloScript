@@ -32,11 +32,7 @@ assert.equal(manifest.packages.at(-1).distTags.preview, '0.1.0');
 assert.ok(
   manifest.packages
     .filter((pkg) => pkg.id !== 'meta')
-    .every(
-      (pkg) =>
-        pkg.forbiddenDistTags.includes('latest') &&
-        pkg.forbiddenDistTags.includes('preview')
-    )
+    .every((pkg) => pkg.distTags.latest === '0.2.0' && pkg.distTags.next === '0.2.0')
 );
 
 for (const expected of [...manifest.packages, ...manifest.github.assets]) {
@@ -69,25 +65,6 @@ assert.equal(
   }).ok,
   false
 );
-const platform = manifest.packages.at(0);
-assert.equal(
-  evaluateRegistryPackage(platform, {
-    'dist-tags': { next: '0.2.0', latest: '0.2.0' },
-    versions: {
-      '0.2.0': {
-        name: platform.name,
-        version: platform.version,
-        dist: {
-          integrity: platform.integrity,
-          shasum: platform.shasum,
-          tarball: platform.tarballUrl,
-        },
-      },
-    },
-  }).ok,
-  false
-);
-
 const release = {
   tag_name: manifest.github.tag,
   draft: false,
