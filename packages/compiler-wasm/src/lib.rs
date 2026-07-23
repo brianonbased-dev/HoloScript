@@ -36,6 +36,7 @@ pub mod ast;
 mod kotlin_emit;
 mod lexer;
 mod parser;
+mod semantic_types;
 mod token;
 pub mod types;
 mod uaal_emit;
@@ -152,7 +153,9 @@ pub fn parse_pretty(source: &str) -> String {
 /// `true` if the source is valid, `false` otherwise
 #[wasm_bindgen]
 pub fn validate(source: &str) -> bool {
-    parser::Parser::new(source).parse().is_ok()
+    parser::Parser::new(source)
+        .parse()
+        .is_ok_and(|ast| kotlin_emit::check_semantics(&ast).is_ok())
 }
 
 /// Get detailed validation results as JSON.
@@ -391,6 +394,97 @@ mod tests {
             result.contains("cannot assign to immutable binding `x`"),
             "{result}"
         );
+    }
+
+    #[test]
+    fn test_validation_rejects_explicit_return_type_mismatch() {
+        let source = r#"function main(): i32 { return true }"#;
+
+        assert!(!validate(source));
+        let result = validate_detailed(source);
+        assert!(result.contains("\"valid\":false"), "{result}");
+        assert!(result.contains("[HS-TYPE-RETURN-001]"), "{result}");
+        assert!(result.contains("expected `i32`, found `bool`"), "{result}");
+    }
+
+    #[test]
+    fn test_validation_rejects_null_at_primitive_type_boundary() {
+        let source = r#"function main(): i32 { return null }"#;
+
+        assert!(!validate(source));
+        let result = validate_detailed(source);
+        assert!(result.contains("\"valid\":false"), "{result}");
+        assert!(result.contains("[HS-TYPE-RETURN-001]"), "{result}");
+        assert!(result.contains("expected `i32`, found `null`"), "{result}");
+    }
+
+    #[test]
+    fn test_validation_accepts_explicit_any_boundary() {
+        let source = r#"function identity(value: any): any { return value }
+function main(): any { return identity(true) }"#;
+
+        assert!(validate(source));
+        let result = validate_detailed(source);
+        assert!(result.contains("\"valid\": true"), "{result}");
+    }
+
+    #[test]
+    fn test_validate_detailed_rejects_explicit_local_assignment_type_mismatch() {
+        let source = r#"function main(): i32 {
+  var decision: i32 = 1
+  decision = false
+  return decision
+}"#;
+
+        let result = validate_detailed(source);
+        assert!(result.contains("\"valid\":false"), "{result}");
+        assert!(result.contains("[HS-TYPE-ASSIGN-001]"), "{result}");
+        assert!(result.contains("binding `decision`"), "{result}");
+        assert!(result.contains("expected `i32`, found `bool`"), "{result}");
+    }
+
+    #[test]
+    fn test_validate_detailed_rejects_explicit_call_argument_type_mismatch() {
+        let source = r#"function decide(score: i32): i32 { return score }
+function main(): i32 { return decide(true) }"#;
+
+        let result = validate_detailed(source);
+        assert!(result.contains("\"valid\":false"), "{result}");
+        assert!(result.contains("[HS-TYPE-ARG-001]"), "{result}");
+        assert!(result.contains("argument 1 to `decide`"), "{result}");
+        assert!(result.contains("expected `i32`, found `bool`"), "{result}");
+    }
+
+    #[test]
+    fn test_wasm_uaal_export_preserves_stable_type_diagnostics() {
+        for (source, diagnostic_code) in [
+            (
+                r#"function main(): i32 { return true }"#,
+                "HS-TYPE-RETURN-001",
+            ),
+            (
+                r#"function main(): i32 {
+  var decision: i32 = 1
+  decision = false
+  return decision
+}"#,
+                "HS-TYPE-ASSIGN-001",
+            ),
+            (
+                r#"function decide(score: i32): i32 { return score }
+function main(): i32 { return decide(true) }"#,
+                "HS-TYPE-ARG-001",
+            ),
+        ] {
+            let result = compile_to_uaal(source);
+            let parsed: serde_json::Value =
+                serde_json::from_str(&result).expect("WASM export must return JSON");
+            let message = parsed
+                .get("error")
+                .and_then(serde_json::Value::as_str)
+                .expect("typed mismatch must return an error");
+            assert!(message.contains(diagnostic_code), "{message}");
+        }
     }
 
     #[test]

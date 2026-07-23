@@ -10,10 +10,11 @@ use std::collections::{HashMap, HashSet};
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::ast::{Ast, AstNode, CallExpression, FunctionNode};
+use crate::ast::{Ast, AstNode, BinaryExpression, CallExpression, FunctionNode};
 use crate::kotlin_emit::{check_semantics, find_owned_buffer_annotation, SemanticDiagnostic};
 
 const OP_PUSH: u16 = 0x01;
+const OP_EXEC: u16 = 0x20;
 const OP_JUMP: u16 = 0x30;
 const OP_JUMP_IF: u16 = 0x31;
 const OP_CALL: u16 = 0x32;
@@ -21,6 +22,13 @@ const OP_RET: u16 = 0x33;
 const OP_STATE_SET: u16 = 0xcb;
 const OP_STATE_GET: u16 = 0xcc;
 const OP_HALT: u16 = 0xff;
+
+/// Host-handler ABI used for i32 arithmetic/comparison on UAAL's generic EXEC seam.
+///
+/// Stack contract: the emitter pushes `left`, then `right`; the handler pops
+/// `right`, then `left`, applies the named signed-i32 operation, and pushes the
+/// result. Arithmetic results use wrapping i32 semantics. Comparisons push bool.
+const HS_I32_BINARY_ABI: &str = "hs.i32.binary.v1";
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct UaalBytecode {
@@ -74,11 +82,14 @@ struct UaalEmitter<'a> {
     functions: Vec<&'a FunctionNode>,
     function_names: HashSet<String>,
     function_params: HashMap<String, Vec<String>>,
+    function_param_types: HashMap<String, Vec<Option<String>>>,
+    function_return_types: HashMap<String, Option<String>>,
     entry_points: HashMap<String, usize>,
     pending_calls: Vec<PendingCall>,
     instructions: Vec<UaalInstruction>,
     current_function: Option<String>,
     current_bindings: HashSet<String>,
+    current_binding_types: HashMap<String, Option<String>>,
 }
 
 pub fn compile_source_to_uaal(source: &str) -> Result<UaalBytecode, UaalEmitError> {
@@ -123,6 +134,21 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         .iter()
         .map(|f| (f.name.clone(), f.params.clone()))
         .collect::<HashMap<_, _>>();
+    let function_param_types = functions
+        .iter()
+        .map(|function| {
+            let types = if function.param_types.is_empty() {
+                vec![None; function.params.len()]
+            } else {
+                function.param_types.clone()
+            };
+            (function.name.clone(), types)
+        })
+        .collect::<HashMap<_, _>>();
+    let function_return_types = functions
+        .iter()
+        .map(|function| (function.name.clone(), function.return_type.clone()))
+        .collect::<HashMap<_, _>>();
 
     validate_imports_resolved(ast, &function_names)?;
 
@@ -130,11 +156,14 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         functions,
         function_names,
         function_params,
+        function_param_types,
+        function_return_types,
         entry_points: HashMap::new(),
         pending_calls: Vec::new(),
         instructions: Vec::new(),
         current_function: None,
         current_bindings: HashSet::new(),
+        current_binding_types: HashMap::new(),
     };
 
     emitter.emit_bootstrap()?;
@@ -212,6 +241,15 @@ impl<'a> UaalEmitter<'a> {
                 .insert(function.name.clone(), self.instructions.len());
             self.current_function = Some(function.name.clone());
             self.current_bindings = function.params.iter().cloned().collect();
+            self.current_binding_types = function
+                .params
+                .iter()
+                .enumerate()
+                .map(|(index, name)| {
+                    let type_annotation = function.param_types.get(index).cloned().unwrap_or(None);
+                    (name.clone(), type_annotation)
+                })
+                .collect();
 
             for param in function.params.iter().rev() {
                 self.emit_op(
@@ -226,6 +264,7 @@ impl<'a> UaalEmitter<'a> {
             self.emit_op(OP_RET, Vec::new());
             self.current_function = None;
             self.current_bindings.clear();
+            self.current_binding_types.clear();
         }
         Ok(())
     }
@@ -248,17 +287,21 @@ impl<'a> UaalEmitter<'a> {
         match node {
             AstNode::Return(ret) => {
                 if let Some(argument) = &ret.argument {
-                    self.emit_expression(argument)?;
+                    let expected = self.current_function_return_type()?.cloned();
+                    self.emit_expression_with_expected(argument, expected.as_deref())?;
                 }
                 self.emit_op(OP_RET, Vec::new());
                 Ok(())
             }
             AstNode::CallExpression(call) => self.emit_call_expression(call),
             AstNode::If(if_node) => self.emit_if(if_node),
+            AstNode::While(while_node) => self.emit_while(while_node),
             AstNode::VariableDeclaration(var) => {
-                self.emit_expression(&var.value)?;
+                self.emit_expression_with_expected(&var.value, var.type_annotation.as_deref())?;
                 let slot = Self::slot_key(self.current_function_name()?, &var.name);
                 self.current_bindings.insert(var.name.clone());
+                self.current_binding_types
+                    .insert(var.name.clone(), var.type_annotation.clone());
                 self.emit_op(OP_STATE_SET, vec![Value::from(slot)]);
                 Ok(())
             }
@@ -284,7 +327,11 @@ impl<'a> UaalEmitter<'a> {
                         target
                     )));
                 }
-                self.emit_expression(&assignment.value)?;
+                let expected = self
+                    .current_binding_types
+                    .get(target)
+                    .and_then(|annotation| annotation.clone());
+                self.emit_expression_with_expected(&assignment.value, expected.as_deref())?;
                 let slot = Self::slot_key(self.current_function_name()?, target);
                 self.emit_op(OP_STATE_SET, vec![Value::from(slot)]);
                 Ok(())
@@ -297,7 +344,11 @@ impl<'a> UaalEmitter<'a> {
         }
     }
 
-    fn emit_expression(&mut self, node: &AstNode) -> Result<(), UaalEmitError> {
+    fn emit_expression_with_expected(
+        &mut self,
+        node: &AstNode,
+        expected_type: Option<&str>,
+    ) -> Result<(), UaalEmitError> {
         match node {
             AstNode::String(value) => {
                 self.emit_op(OP_PUSH, vec![Value::from(value.value.clone())]);
@@ -326,6 +377,7 @@ impl<'a> UaalEmitter<'a> {
                 self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
                 Ok(())
             }
+            AstNode::BinaryExpression(binary) => self.emit_binary_expression(binary, expected_type),
             AstNode::CallExpression(call) => self.emit_call_expression(call),
             other => Err(UaalEmitError::new(format!(
                 "unsupported expression node for compile_to_uaal: {}",
@@ -365,15 +417,23 @@ impl<'a> UaalEmitter<'a> {
             )));
         }
 
-        for argument in &call.arguments {
-            self.emit_expression(argument)?;
+        let param_types = self
+            .function_param_types
+            .get(callee)
+            .cloned()
+            .unwrap_or_else(|| vec![None; call.arguments.len()]);
+        for (index, argument) in call.arguments.iter().enumerate() {
+            let expected = param_types
+                .get(index)
+                .and_then(|annotation| annotation.as_deref());
+            self.emit_expression_with_expected(argument, expected)?;
         }
         self.emit_call(callee);
         Ok(())
     }
 
     fn emit_if(&mut self, if_node: &crate::ast::IfNode) -> Result<(), UaalEmitError> {
-        self.emit_expression(&if_node.test)?;
+        self.emit_expression_with_expected(&if_node.test, Some("bool"))?;
 
         let jump_to_consequent = self.emit_op(OP_JUMP_IF, Vec::new());
 
@@ -396,6 +456,143 @@ impl<'a> UaalEmitter<'a> {
         Ok(())
     }
 
+    fn emit_while(&mut self, while_node: &crate::ast::WhileNode) -> Result<(), UaalEmitError> {
+        let condition_start = self.instructions.len();
+        self.emit_expression_with_expected(&while_node.test, Some("bool"))?;
+
+        let jump_to_body = self.emit_op(OP_JUMP_IF, Vec::new());
+        let jump_to_end = self.emit_op(OP_JUMP, Vec::new());
+        let body_start = self.instructions.len();
+        self.instructions[jump_to_body].operands = vec![Value::from(body_start)];
+
+        for statement in &while_node.body {
+            self.emit_statement(statement)?;
+        }
+        self.emit_op(OP_JUMP, vec![Value::from(condition_start)]);
+
+        let end = self.instructions.len();
+        self.instructions[jump_to_end].operands = vec![Value::from(end)];
+        Ok(())
+    }
+
+    fn emit_binary_expression(
+        &mut self,
+        binary: &BinaryExpression,
+        expected_type: Option<&str>,
+    ) -> Result<(), UaalEmitError> {
+        if matches!(binary.operator.as_str(), "&&" | "||") {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-002",
+                "uaal.expression.logical.short_circuit",
+                format!(
+                    "short-circuit operator `{}` requires lazy right-hand evaluation; compile_to_uaal will not erase that behavior through eager EXEC operands",
+                    binary.operator
+                ),
+            ));
+        }
+
+        let result_type = if matches!(
+            binary.operator.as_str(),
+            "==" | "!=" | "<" | "<=" | ">" | ">="
+        ) {
+            "bool"
+        } else if matches!(binary.operator.as_str(), "+" | "-" | "*") {
+            "i32"
+        } else {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-001",
+                "uaal.expression.i32.binary.v1",
+                format!(
+                    "operator `{}` is unavailable; supported operators are `+`, `-`, `*`, `==`, `!=`, `<`, `<=`, `>`, and `>=`",
+                    binary.operator
+                ),
+            ));
+        };
+
+        if result_type == "i32" && expected_type.is_none() {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-001",
+                "uaal.expression.i32.binary.v1",
+                format!(
+                    "operator `{}` has no proven result width; annotate the containing return, local, or parameter as `i32` because untyped numeric source may carry non-i32 semantics",
+                    binary.operator
+                ),
+            ));
+        }
+
+        if let Some(expected) = expected_type {
+            if expected != result_type {
+                return Err(Self::target_capability_error(
+                    "HS-UAAL-CAP-001",
+                    "uaal.expression.i32.binary.v1",
+                    format!(
+                        "operator `{}` produces `{result_type}`, but this expression requires `{expected}`",
+                        binary.operator
+                    ),
+                ));
+            }
+        }
+
+        for (side, operand) in [
+            ("left", binary.left.as_ref()),
+            ("right", binary.right.as_ref()),
+        ] {
+            if !self.is_proven_i32_expression(operand) {
+                return Err(Self::target_capability_error(
+                    "HS-UAAL-CAP-001",
+                    "uaal.expression.i32.binary.v1",
+                    format!(
+                        "{side} operand of `{}` is not proven `i32`; annotate parameters, locals, and callee returns because the cognitive VM's numeric host ABI cannot preserve untyped or i64 semantics",
+                        binary.operator
+                    ),
+                ));
+            }
+        }
+
+        self.emit_expression_with_expected(&binary.left, Some("i32"))?;
+        self.emit_expression_with_expected(&binary.right, Some("i32"))?;
+        self.emit_op(
+            OP_EXEC,
+            vec![
+                Value::from(HS_I32_BINARY_ABI),
+                Value::from(binary.operator.clone()),
+            ],
+        );
+        Ok(())
+    }
+
+    fn is_proven_i32_expression(&self, node: &AstNode) -> bool {
+        match node {
+            AstNode::Number(value) => {
+                value.value.is_finite()
+                    && value.value.fract() == 0.0
+                    && value.value >= i32::MIN as f64
+                    && value.value <= i32::MAX as f64
+            }
+            AstNode::Identifier(identifier) => {
+                self.current_binding_types
+                    .get(&identifier.name)
+                    .and_then(|annotation| annotation.as_deref())
+                    == Some("i32")
+            }
+            AstNode::CallExpression(call) => {
+                let AstNode::Identifier(callee) = call.callee.as_ref() else {
+                    return false;
+                };
+                self.function_return_types
+                    .get(&callee.name)
+                    .and_then(|annotation| annotation.as_deref())
+                    == Some("i32")
+            }
+            AstNode::BinaryExpression(binary) => {
+                matches!(binary.operator.as_str(), "+" | "-" | "*")
+                    && self.is_proven_i32_expression(&binary.left)
+                    && self.is_proven_i32_expression(&binary.right)
+            }
+            _ => false,
+        }
+    }
+
     fn emit_call(&mut self, target: &str) {
         let instruction_index = self.emit_op(OP_CALL, Vec::new());
         self.pending_calls.push(PendingCall {
@@ -415,6 +612,25 @@ impl<'a> UaalEmitter<'a> {
         self.current_function
             .as_deref()
             .ok_or_else(|| UaalEmitError::new("internal compile_to_uaal error: no active function"))
+    }
+
+    fn current_function_return_type(&self) -> Result<Option<&String>, UaalEmitError> {
+        let function_name = self.current_function_name()?;
+        Ok(self
+            .function_return_types
+            .get(function_name)
+            .and_then(Option::as_ref))
+    }
+
+    fn target_capability_error(
+        code: &str,
+        capability: &str,
+        detail: impl Into<String>,
+    ) -> UaalEmitError {
+        UaalEmitError::new(format!(
+            "[{code}] target capability `{capability}` is unavailable: {}",
+            detail.into()
+        ))
     }
 
     fn slot_key(function_name: &str, name: &str) -> String {
@@ -598,6 +814,150 @@ function main() {
         assert_eq!(
             bytecode.instructions[3].operands,
             vec![Value::from("__hs::countdown::active")]
+        );
+    }
+
+    #[test]
+    fn lowers_i32_decision_kernel_with_binary_exec_and_bounded_while() {
+        let bytecode = compile(
+            r#"function decide(score: i32): i32 {
+  while (score >= 6) {
+    return score * 7
+  }
+  return score + 1
+}
+
+function main(): i32 {
+  return decide(6)
+}"#,
+        );
+
+        let binary_instructions = bytecode
+            .instructions
+            .iter()
+            .filter(|instruction| instruction.op_code == 0x20)
+            .collect::<Vec<_>>();
+        assert_eq!(binary_instructions.len(), 3);
+        assert_eq!(
+            binary_instructions[0].operands,
+            vec![Value::from("hs.i32.binary.v1"), Value::from(">=")]
+        );
+        assert_eq!(
+            binary_instructions[1].operands,
+            vec![Value::from("hs.i32.binary.v1"), Value::from("*")]
+        );
+        assert_eq!(
+            binary_instructions[2].operands,
+            vec![Value::from("hs.i32.binary.v1"), Value::from("+")]
+        );
+
+        let back_edge = bytecode
+            .instructions
+            .iter()
+            .enumerate()
+            .find(|(index, instruction)| {
+                instruction.op_code == OP_JUMP
+                    && instruction
+                        .operands
+                        .first()
+                        .and_then(Value::as_u64)
+                        .is_some_and(|target| target < *index as u64)
+            });
+        assert!(
+            back_edge.is_some(),
+            "bounded while lowering must contain a real backward jump: {:?}",
+            bytecode.instructions
+        );
+    }
+
+    #[test]
+    fn reports_short_circuit_logic_as_an_unsupported_target_capability() {
+        let error = compile_source_to_uaal(
+            r#"function main(): i32 {
+  if (true && false) {
+    return 1
+  }
+  return 0
+}"#,
+        )
+        .expect_err("UAAL emitter must not erase short-circuit semantics");
+
+        assert!(
+            error.message.contains("[HS-UAAL-CAP-002]"),
+            "{}",
+            error.message
+        );
+        assert!(error.message.contains("short-circuit"), "{}", error.message);
+    }
+
+    #[test]
+    fn rejects_untyped_arithmetic_instead_of_assuming_i32_width() {
+        let error = compile_source_to_uaal(
+            r#"function main() {
+  return 20 + 22
+}"#,
+        )
+        .expect_err("untyped numeric arithmetic must not silently become wrapping i32");
+
+        assert!(
+            error.message.contains("[HS-UAAL-CAP-001]"),
+            "{}",
+            error.message
+        );
+        assert!(
+            error.message.contains("no proven result width"),
+            "{}",
+            error.message
+        );
+    }
+
+    #[test]
+    fn rejects_explicit_return_type_mismatch_before_lowering() {
+        let error = compile_source_to_uaal(r#"function main(): i32 { return true }"#)
+            .expect_err("typed return mismatch must fail before UAAL lowering");
+
+        assert!(
+            error.message.contains("[HS-TYPE-RETURN-001]"),
+            "{}",
+            error.message
+        );
+        assert!(
+            error.message.contains("expected `i32`, found `bool`"),
+            "{}",
+            error.message
+        );
+    }
+
+    #[test]
+    fn rejects_explicit_assignment_type_mismatch_before_lowering() {
+        let error = compile_source_to_uaal(
+            r#"function main(): i32 {
+  var decision: i32 = 1
+  decision = false
+  return decision
+}"#,
+        )
+        .expect_err("typed assignment mismatch must fail before UAAL lowering");
+
+        assert!(
+            error.message.contains("[HS-TYPE-ASSIGN-001]"),
+            "{}",
+            error.message
+        );
+    }
+
+    #[test]
+    fn rejects_explicit_call_argument_type_mismatch_before_lowering() {
+        let error = compile_source_to_uaal(
+            r#"function decide(score: i32): i32 { return score }
+function main(): i32 { return decide(true) }"#,
+        )
+        .expect_err("typed call argument mismatch must fail before UAAL lowering");
+
+        assert!(
+            error.message.contains("[HS-TYPE-ARG-001]"),
+            "{}",
+            error.message
         );
     }
 

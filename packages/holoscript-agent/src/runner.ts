@@ -13,6 +13,7 @@ import { createTaskExecutionAttributeClaims } from './care-claims.js';
 import { resolveActiveTools, runTool, summarizeToolProductivity, isProductiveToolUse } from './tools.js';
 import { augmentWithOnTaskCognition } from './cognitive-verbs.js';
 import { DelegatedAuthorityHandler } from './delegated-authority.js';
+import { evaluateReflectGate, type ReflectGateResult } from './reflect-evaluator.js';
 import {
   resolveAutomationLaneConfig,
   selectAutomationTask,
@@ -25,6 +26,18 @@ import type {
   RuntimeBrainConfig,
   TickResult,
 } from './types.js';
+
+export {
+  buildReflectRequest,
+  evaluateReflectGate,
+  parseReflectVerdict,
+} from './reflect-evaluator.js';
+export type {
+  ParsedReflectVerdict,
+  ReflectEvaluator,
+  ReflectGateInput,
+  ReflectGateResult,
+} from './reflect-evaluator.js';
 
 // Bumped when the CAEL record schema or layer-hash semantics change. Lives
 // in the version_vector_fingerprint of every emitted record so consumers
@@ -933,47 +946,25 @@ export class AgentRunner {
     // confidence gate. Uses the same provider (no engine/trait dependency) and
     // mirrors the CognitiveActions reflect prompt shape. The verdict is acted on
     // at the markDone gate below; its tokens fold into aggUsage so cost is honest.
-    let reflectVerdict: { pass: boolean; reason: string } | undefined;
+    let reflectVerdict: ReflectGateResult | undefined;
     if (brain.reflect) {
       try {
-        const reflectResp = await provider.complete(
-          {
-            messages: [
-              {
-                role: 'system',
-                content:
-                  'You are a strict reviewer. Evaluate the work against the criteria; do not rewrite it.',
-              },
-              {
-                role: 'user',
-                content:
-                  `Reflect on the artifact produced for this task. Evaluate it for: ${brain.reflect.criteria}.\n\n` +
-                  `--- artifact / final response ---\n${finalText.slice(0, 4000)}\n--- end ---\n\n` +
-                  `Give a one-line reason, then end with exactly "VERDICT: PASS" or "VERDICT: FAIL".`,
-              },
-            ],
-            maxTokens: 512,
-            temperature: 0.1,
-          },
-          identity.llmModel
-        );
+        reflectVerdict = await evaluateReflectGate({
+          criteria: brain.reflect.criteria,
+          artifact: finalText,
+          evaluator: provider,
+          model: identity.llmModel,
+          escalateOnFail: brain.reflect.escalateOnFail,
+        });
         aggUsage = {
-          promptTokens: aggUsage.promptTokens + reflectResp.usage.promptTokens,
-          completionTokens: aggUsage.completionTokens + reflectResp.usage.completionTokens,
-          totalTokens: aggUsage.totalTokens + reflectResp.usage.totalTokens,
-        };
-        const verdictMatch = /VERDICT:\s*(PASS|FAIL)/i.exec(reflectResp.content);
-        // Unparseable verdict = PASS — reflect is a gate, not a tripwire; never
-        // block a real artifact on a parser miss (small local models phrase loosely).
-        const pass = verdictMatch ? verdictMatch[1].toUpperCase() === 'PASS' : true;
-        reflectVerdict = {
-          pass,
-          reason: reflectResp.content.replace(/VERDICT:\s*(PASS|FAIL)/i, '').trim().slice(0, 300),
+          promptTokens: aggUsage.promptTokens + reflectVerdict.usage.promptTokens,
+          completionTokens: aggUsage.completionTokens + reflectVerdict.usage.completionTokens,
+          totalTokens: aggUsage.totalTokens + reflectVerdict.usage.totalTokens,
         };
         log({
           ev: 'reflect',
           taskId: target.id,
-          pass,
+          pass: reflectVerdict.pass,
           escalateOnFail: brain.reflect.escalateOnFail,
           reason: reflectVerdict.reason.slice(0, 120),
         });
@@ -1067,7 +1058,7 @@ export class AgentRunner {
     // (the local_first directive). Cost + CAEL are already recorded above (the work
     // happened and the self-eval is a verifiable trace); only acceptance/markDone is
     // withheld. Brains without reflect, or with an advisory reflect, fall through.
-    if (reflectVerdict && !reflectVerdict.pass && brain.reflect?.escalateOnFail) {
+    if (reflectVerdict?.shouldEscalate) {
       try {
         await mesh.sendMessageOnTask(
           target.id,

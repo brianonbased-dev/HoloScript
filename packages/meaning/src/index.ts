@@ -25,3 +25,4 @@ export * from './consistency';
 export * from './uncertain';
 export * from './lower-unknown';
 export * from './honesty-gate';
+export * from './semantic-closure';

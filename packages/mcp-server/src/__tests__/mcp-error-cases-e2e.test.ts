@@ -84,6 +84,30 @@ describe('MCP Tool Error Cases', () => {
     expect(result.validator).toBe('rust-wasm');
   });
 
+  it('validate_holoscript auto-routes an explicit agent brain through the hsplus authority', async () => {
+    const result = (await handleTool('validate_holoscript', {
+      code: `
+#brain DiagnosticAgent
+#version 1.0.0
+#target edge
+
+identity {
+  domain: "diagnostic-routing"
+  capability_tags: ["validation"]
+}
+
+behavior on_task {
+  recall { query: "canonical diagnostics" }
+}
+`,
+    })) as Record<string, unknown>;
+
+    expect(result.valid).toBe(true);
+    expect(result.format).toBe('hsplus');
+    expect(result.validator).toBe('typescript-hsplus');
+    expect(result.errors).toEqual([]);
+  });
+
   it('validate_holoscript keeps HS010 ahead of native machine parsing', async () => {
     const result = (await handleTool('validate_holoscript', {
       code: 'function main(): i32 { return process(5) }',

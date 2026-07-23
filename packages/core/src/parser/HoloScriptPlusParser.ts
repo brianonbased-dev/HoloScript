@@ -70,6 +70,15 @@ export interface HoloBrainState {
   traits: Record<string, unknown>;
 }
 
+/** Typed routing identity authored in an agent brain's `identity { ... }` block. */
+export interface HoloBrainIdentity {
+  domain: string;
+  capabilityTags: string[];
+  requires: string[];
+  prefers: string[];
+  avoids: string[];
+}
+
 /**
  * Top-level `brain` declaration node.
  *
@@ -119,8 +128,147 @@ export interface HoloBrainDecl {
    * the frame edge. Absent = unrestricted frame (no boundary enforcement).
    */
   frameDeclaration?: FrameDeclaration;
+  /** Typed identity/routing data from the canonical agent-brain source contract. */
+  identity?: HoloBrainIdentity;
   states: HoloBrainState[];
   traits: Record<string, unknown>;
+}
+
+/**
+ * Required line-oriented header for deployable agent-brain documents.
+ *
+ * The ordinary `.hsplus` grammar remains `brain Name { ... }`. Existing
+ * first-party brains predate that wrapper and instead author top-level
+ * `identity {}` / `behavior on_task {}` blocks after `#version` metadata.
+ * `#brain <Name>` is the explicit opt-in that lets this preprocessor normalize
+ * that authored surface into the canonical typed brain AST.
+ */
+export interface AgentBrainSourceHeader {
+  brainName: string;
+  version?: string;
+  targets: string[];
+}
+
+export interface PreparedAgentBrainSource {
+  header: AgentBrainSourceHeader;
+  source: string;
+  /**
+   * One entry per transformed line. `authoredLine` is 1-based and
+   * `columnOffset` is the indentation added by this preprocessor.
+   */
+  locationMap: Array<{ authoredLine: number; columnOffset: number }>;
+}
+
+function structuralBraceDelta(line: string): number {
+  let delta = 0;
+  let quote: '"' | "'" | null = null;
+  let escaped = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const next = line[i + 1];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === '/' && next === '/') break;
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (char === '{') delta++;
+    else if (char === '}') delta--;
+  }
+  return delta;
+}
+
+/**
+ * Normalize a deployable first-party agent brain into ordinary `.hsplus`.
+ *
+ * Contract:
+ * - `#brain <Identifier>` is required and is the only opt-in signal.
+ * - `#version` and comma-separated `#target` lines become typed header data.
+ * - top-level `identity {}` becomes `@identity {}` on the brain.
+ * - `behavior on_task {}` becomes the typed `state on_task {}` cognitive path.
+ * - other top-level behavior/reflect blocks become brain traits.
+ *
+ * The returned source is consumed by the same HoloScriptPlusParser as any
+ * handwritten `brain` declaration; this function does not create a second AST.
+ */
+export function preprocessAgentBrainSource(source: string): PreparedAgentBrainSource {
+  const lines = source.replace(/\r\n?/g, '\n').split('\n');
+  let brainName: string | undefined;
+  let brainHeaderLine: number | undefined;
+  let version: string | undefined;
+  const targets: string[] = [];
+  const body: Array<{ line: string; authoredLine: number }> = [];
+  let depth = 0;
+
+  for (const [lineIndex, authoredLine] of lines.entries()) {
+    const authoredLineNumber = lineIndex + 1;
+    const trimmed = authoredLine.trim();
+    const brainHeader = trimmed.match(/^#brain\s+([A-Za-z_$][\w$-]*)$/);
+    if (brainHeader) {
+      if (brainName !== undefined) {
+        throw new Error('Agent brain source may declare exactly one #brain header');
+      }
+      brainName = brainHeader[1];
+      brainHeaderLine = authoredLineNumber;
+      continue;
+    }
+    const versionHeader = trimmed.match(/^#version\s+(.+)$/);
+    if (versionHeader) {
+      version = versionHeader[1].trim();
+      continue;
+    }
+    const targetHeader = trimmed.match(/^#target\s+(.+)$/);
+    if (targetHeader) {
+      targets.push(
+        ...targetHeader[1]
+          .split(',')
+          .map((target) => target.trim())
+          .filter(Boolean)
+      );
+      continue;
+    }
+    if (/^#mode\s+/.test(trimmed)) continue;
+
+    let normalizedLine = authoredLine;
+    if (depth === 0) {
+      normalizedLine = normalizedLine
+        .replace(/^(\s*)identity\s*:?\s*\{/, '$1@identity {')
+        .replace(/^(\s*)behavior\s+on_task\s*\{/, '$1state on_task {')
+        .replace(/^(\s*)behavior\s+([A-Za-z_$][\w$-]*)\s*\{/, '$1@$2 {')
+        .replace(/^(\s*)reflect\s*\{/, '$1@reflect {');
+    }
+    body.push({ line: normalizedLine, authoredLine: authoredLineNumber });
+    depth += structuralBraceDelta(authoredLine);
+  }
+
+  if (!brainName) {
+    throw new Error(
+      'Agent brain source requires an explicit "#brain <Identifier>" header before preprocessing'
+    );
+  }
+
+  return {
+    header: { brainName, version, targets },
+    source: [
+      `brain ${brainName} : @behavior_tree {`,
+      ...body.map(({ line }) => (line.length > 0 ? `  ${line}` : line)),
+      '}',
+    ].join('\n'),
+    locationMap: [
+      { authoredLine: brainHeaderLine ?? 1, columnOffset: 0 },
+      ...body.map(({ line, authoredLine }) => ({
+        authoredLine,
+        columnOffset: line.length > 0 ? 2 : 0,
+      })),
+      { authoredLine: lines.length, columnOffset: 0 },
+    ],
+  };
 }
 
 // =============================================================================
@@ -1103,9 +1251,16 @@ export class HoloScriptPlusParser {
     if (typeof c.log_level === 'string') out.structured_logger.min_level = c.log_level;
 
     // Nested per-trait deep overrides
-    for (const t of ['rate_limiter', 'circuit_breaker', 'timeout_guard', 'economy', 'structured_logger']) {
+    for (const t of [
+      'rate_limiter',
+      'circuit_breaker',
+      'timeout_guard',
+      'economy',
+      'structured_logger',
+    ]) {
       const override = c[t];
-      if (override && typeof override === 'object') Object.assign(out[t], override as Record<string, unknown>);
+      if (override && typeof override === 'object')
+        Object.assign(out[t], override as Record<string, unknown>);
     }
     return Object.entries(out);
   }
@@ -1151,7 +1306,11 @@ export class HoloScriptPlusParser {
         const idx = dirs.findIndex((d) => d && d.type === 'trait' && d.name === 'safe_daemon');
         if (idx >= 0) {
           const cfg = dirs[idx].config;
-          const expanded = this.expandSafeDaemon(cfg).map(([name, c]) => ({ type: 'trait', name, config: c }));
+          const expanded = this.expandSafeDaemon(cfg).map(([name, c]) => ({
+            type: 'trait',
+            name,
+            config: c,
+          }));
           const existing = new Set(dirs.map((d) => d.name));
           dirs.splice(idx, 1, ...expanded.filter((e) => !existing.has(e.name)));
         }
@@ -2279,43 +2438,71 @@ export class HoloScriptPlusParser {
 
     // @quest { gives: [...], advances: [...], completes: [...], ... }
     if (name === 'quest') {
-      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      const config = this.check('LBRACE')
+        ? this.parseBlockContent()
+        : this.check('LPAREN')
+          ? this.parseTraitConfig()
+          : {};
       return { type: 'quest', ...config } as unknown as HSPlusDirective;
     }
 
     // @faction { faction_id: ..., reputation: {...}, hostile_factions: [...], ... }
     if (name === 'faction') {
-      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      const config = this.check('LBRACE')
+        ? this.parseBlockContent()
+        : this.check('LPAREN')
+          ? this.parseTraitConfig()
+          : {};
       return { type: 'faction', ...config } as unknown as HSPlusDirective;
     }
 
     // @loot { table: ..., luck_modifier: ..., instanced: true, drop_on: ... }
     if (name === 'loot') {
-      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      const config = this.check('LBRACE')
+        ? this.parseBlockContent()
+        : this.check('LPAREN')
+          ? this.parseTraitConfig()
+          : {};
       return { type: 'loot', ...config } as unknown as HSPlusDirective;
     }
 
     // @ability { abilities: [...], damage_multiplier: ..., ... }
     if (name === 'ability') {
-      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      const config = this.check('LBRACE')
+        ? this.parseBlockContent()
+        : this.check('LPAREN')
+          ? this.parseTraitConfig()
+          : {};
       return { type: 'ability', ...config } as unknown as HSPlusDirective;
     }
 
     // @authority { model: server_authoritative | client_predictive | owner_controlled, ... }
     if (name === 'authority') {
-      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      const config = this.check('LBRACE')
+        ? this.parseBlockContent()
+        : this.check('LPAREN')
+          ? this.parseTraitConfig()
+          : {};
       return { type: 'authority', ...config } as unknown as HSPlusDirective;
     }
 
     // @wallet_gated { action: ..., currency: ..., amount: ..., ... }
     if (name === 'wallet_gated') {
-      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      const config = this.check('LBRACE')
+        ? this.parseBlockContent()
+        : this.check('LPAREN')
+          ? this.parseTraitConfig()
+          : {};
       return { type: 'wallet_gated', ...config } as unknown as HSPlusDirective;
     }
 
     // @world_chunk { chunk_id: ..., lod_distances: [...], streaming_priority: ..., ... }
     if (name === 'world_chunk') {
-      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      const config = this.check('LBRACE')
+        ? this.parseBlockContent()
+        : this.check('LPAREN')
+          ? this.parseTraitConfig()
+          : {};
       return { type: 'world_chunk', ...config } as unknown as HSPlusDirective;
     }
 
@@ -2388,7 +2575,11 @@ export class HoloScriptPlusParser {
           this.pos = saved; // not @when — restore
         }
       }
-      return { type: 'preferred_ability', ability: abilityName, when } as unknown as HSPlusDirective;
+      return {
+        type: 'preferred_ability',
+        ability: abilityName,
+        when,
+      } as unknown as HSPlusDirective;
     }
 
     // @flee_threshold 0.15
@@ -3111,29 +3302,54 @@ export class HoloScriptPlusParser {
         }
         const dirName = this.advance().value;
 
-        if (dirName === 'personality') {
-          const val = this.check('IDENTIFIER') ? this.advance().value
-                    : this.check('STRING')     ? this.advance().value
-                    : 'neutral';
+        if (dirName === 'identity') {
+          const cfg = this.check('LBRACE')
+            ? (this.parseBlockContent() as Record<string, unknown>)
+            : {};
+          // Preserve the prior generic-trait projection for existing consumers
+          // while adding the typed identity view used by agent routing.
+          brain.traits['identity'] = cfg;
+          const strings = (key: string): string[] =>
+            Array.isArray(cfg[key])
+              ? (cfg[key] as unknown[]).filter(
+                  (value): value is string => typeof value === 'string'
+                )
+              : [];
+          brain.identity = {
+            domain: typeof cfg.domain === 'string' ? cfg.domain : 'unknown',
+            capabilityTags: strings('capability_tags'),
+            requires: strings('requires'),
+            prefers: strings('prefers'),
+            avoids: strings('avoids'),
+          };
+        } else if (dirName === 'personality') {
+          const val = this.check('IDENTIFIER')
+            ? this.advance().value
+            : this.check('STRING')
+              ? this.advance().value
+              : 'neutral';
           brain.personality = val;
-
         } else if (dirName === 'faction_alignment') {
-          let val = this.check('IDENTIFIER') ? this.advance().value
-                  : this.check('STRING')     ? this.advance().value
-                  : 'true_neutral';
+          let val = this.check('IDENTIFIER')
+            ? this.advance().value
+            : this.check('STRING')
+              ? this.advance().value
+              : 'true_neutral';
           if (this.check('IDENTIFIER')) val += '_' + this.advance().value;
           brain.factionAlignment = val;
-
         } else if (dirName === 'memory_persistence') {
-          const raw = this.check('BOOLEAN')    ? this.advance().value
-                    : this.check('IDENTIFIER') ? this.advance().value
-                    : 'true';
+          const raw = this.check('BOOLEAN')
+            ? this.advance().value
+            : this.check('IDENTIFIER')
+              ? this.advance().value
+              : 'true';
           brain.memoryPersistence = raw !== 'false';
-
         } else if (dirName === 'preferred_ability') {
-          const abilityName = this.check('STRING')     ? this.advance().value
-                            : this.check('IDENTIFIER') ? this.advance().value
-                            : '';
+          const abilityName = this.check('STRING')
+            ? this.advance().value
+            : this.check('IDENTIFIER')
+              ? this.advance().value
+              : '';
           let when: string | undefined;
           if (this.check('AT')) {
             const saved = this.pos;
@@ -3146,51 +3362,55 @@ export class HoloScriptPlusParser {
             }
           }
           brain.preferredAbility = { name: abilityName, when };
-
         } else if (dirName === 'flee_threshold') {
           brain.fleeThreshold = this.check('NUMBER') ? parseFloat(this.advance().value) : 0.25;
-
         } else if (dirName === 'patrol_speed') {
-          brain.patrolSpeed = this.check('NUMBER')     ? parseFloat(this.advance().value)
-                            : this.check('IDENTIFIER') ? this.advance().value
-                            : 1.0;
-
+          brain.patrolSpeed = this.check('NUMBER')
+            ? parseFloat(this.advance().value)
+            : this.check('IDENTIFIER')
+              ? this.advance().value
+              : 1.0;
         } else if (dirName === 'waypoints') {
           brain.waypoints = this.check('LBRACKET') ? (this.parseValue() as unknown[]) : [];
-
         } else if (dirName === 'goal') {
           // @goal { name, desiredState, priority } — declarative GOAP goal that
           // feeds the (already-built, A*-planning) GoalOrientedTrait.
-          const cfg = this.check('LBRACE') ? (this.parseBlockContent() as Record<string, unknown>) : {};
+          const cfg = this.check('LBRACE')
+            ? (this.parseBlockContent() as Record<string, unknown>)
+            : {};
           if (!brain.goals) brain.goals = [];
           brain.goals.push({
-            name: typeof cfg.name === 'string' ? cfg.name : String(cfg.name ?? `goal_${brain.goals.length}`),
+            name:
+              typeof cfg.name === 'string'
+                ? cfg.name
+                : String(cfg.name ?? `goal_${brain.goals.length}`),
             desiredState:
               cfg.desiredState && typeof cfg.desiredState === 'object'
                 ? (cfg.desiredState as Record<string, unknown>)
                 : undefined,
             priority: typeof cfg.priority === 'number' ? cfg.priority : undefined,
           });
-
         } else if (dirName === 'escalation') {
           // @escalation { on, action } — compiles to LLMAgentTrait EscalationCondition[].
-          const cfg = this.check('LBRACE') ? (this.parseBlockContent() as Record<string, unknown>) : {};
+          const cfg = this.check('LBRACE')
+            ? (this.parseBlockContent() as Record<string, unknown>)
+            : {};
           if (!brain.escalations) brain.escalations = [];
           brain.escalations.push({
             on: typeof cfg.on === 'string' ? cfg.on : String(cfg.on ?? ''),
             action: typeof cfg.action === 'string' ? cfg.action : 'notify',
           });
-
         } else if (dirName === 'provider_policy') {
           // @provider_policy { prefer, fallback, requires } — a load-time hint the
           // sovereign-first resolver reads (it does NOT duplicate the resolver).
-          const cfg = this.check('LBRACE') ? (this.parseBlockContent() as Record<string, unknown>) : {};
+          const cfg = this.check('LBRACE')
+            ? (this.parseBlockContent() as Record<string, unknown>)
+            : {};
           brain.providerPolicy = {
             prefer: typeof cfg.prefer === 'string' ? cfg.prefer : undefined,
             fallback: typeof cfg.fallback === 'string' ? cfg.fallback : undefined,
             requires: typeof cfg.requires === 'string' ? cfg.requires : undefined,
           };
-
         } else if (dirName === 'frame_declaration') {
           // @frame_declaration { domain, horizon, capability_tier, trust_tier,
           //                      allowed_tools, denied_domains }
@@ -3199,20 +3419,21 @@ export class HoloScriptPlusParser {
           // enforce boundary violations: a tool call outside the declared frame
           // emits 'frame_violation' instead of hallucinating through the edge.
           // All fields are optional; coerceFrameDeclarationConfig applies defaults.
-          const cfg = this.check('LBRACE') ? (this.parseBlockContent() as Record<string, unknown>) : {};
+          const cfg = this.check('LBRACE')
+            ? (this.parseBlockContent() as Record<string, unknown>)
+            : {};
           brain.frameDeclaration = coerceFrameDeclarationConfig(cfg);
-
         } else if (dirName === 'behavior_tree') {
           // @behavior_tree { ... } block inside the brain body
           const config = this.check('LBRACE') ? this.parseBlockContent() : {};
           brain.traits['behavior_tree'] = config;
-
         } else {
           // Generic trait — parse optional block/parens config
-          const config: Record<string, unknown> =
-            this.check('LBRACE')  ? this.parseBlockContent()
-          : this.check('LPAREN') ? this.parseTraitConfig()
-          : {};
+          const config: Record<string, unknown> = this.check('LBRACE')
+            ? this.parseBlockContent()
+            : this.check('LPAREN')
+              ? this.parseTraitConfig()
+              : {};
           brain.traits[dirName] = config;
         }
         this.skipNewlines();
@@ -3239,7 +3460,10 @@ export class HoloScriptPlusParser {
 
             // transition to <target> [ @when { <expr> } ]
             // Note: 'transition' is lexed as a TRANSITION keyword token, not IDENTIFIER.
-            if (this.check('TRANSITION') || (this.check('IDENTIFIER') && this.current().value === 'transition')) {
+            if (
+              this.check('TRANSITION') ||
+              (this.check('IDENTIFIER') && this.current().value === 'transition')
+            ) {
               this.advance(); // consume 'transition'
               let to = '';
               // accept: "to <target>" or just "<target>"
@@ -3260,17 +3484,16 @@ export class HoloScriptPlusParser {
                 }
               }
               brainState.transitions.push({ to, when });
-
             } else if (this.check('AT')) {
               // Trait annotation inside a state
               this.advance();
               const innerDir = this.check('IDENTIFIER') ? this.advance().value : '';
-              const config: Record<string, unknown> =
-                this.check('LBRACE')  ? this.parseBlockContent()
-              : this.check('LPAREN') ? this.parseTraitConfig()
-              : {};
+              const config: Record<string, unknown> = this.check('LBRACE')
+                ? this.parseBlockContent()
+                : this.check('LPAREN')
+                  ? this.parseTraitConfig()
+                  : {};
               brainState.traits[innerDir] = config;
-
             } else if (this.check('IDENTIFIER') && isCognitiveVerb(this.current().value)) {
               // Typed cognitive action — `llm_call { ... }`, `recall { ... }`,
               // `rag_query { ... }`, `plan { ... }`, `reflect { ... }`. Dispatches
@@ -3284,13 +3507,21 @@ export class HoloScriptPlusParser {
               } else {
                 // Bare verb with no config block — treat as a free-form action.
                 this.pos = saved;
+                const token = this.current();
                 const parts: string[] = [this.advance().value];
                 while (!this.check('NEWLINE') && !this.check('EOF') && !this.check('RBRACE')) {
                   parts.push(this.advance().value);
                 }
-                brainState.actions.push(parts.join(' '));
+                if (this.options.strict) {
+                  this.errorAt(
+                    token,
+                    `Cognitive verb '${verb}' requires a configuration block`,
+                    'HSP109'
+                  );
+                } else {
+                  brainState.actions.push(parts.join(' '));
+                }
               }
-
             } else if (
               this.check('IDENTIFIER') &&
               this.tokens[this.pos + 1]?.type === 'LBRACE' &&
@@ -3299,23 +3530,43 @@ export class HoloScriptPlusParser {
               // Near-miss of a cognitive verb followed by a config block (e.g.
               // `recal { ... }`)? Surface it as a parse-time signal, then consume
               // the block so braces stay balanced and parsing continues.
-              const typo = this.current().value;
+              const token = this.current();
+              const typo = token.value;
               const suggestion = nearestCognitiveVerb(typo);
-              this.warn(`Unknown cognitive verb '${typo}' — did you mean '${suggestion}'?`);
+              if (this.options.strict) {
+                this.errorAt(
+                  token,
+                  `Unknown cognitive verb '${typo}' - did you mean '${suggestion}'?`,
+                  'HSP109'
+                );
+              } else {
+                this.warn(`Unknown cognitive verb '${typo}' - did you mean '${suggestion}'?`);
+              }
               this.advance(); // consume the misspelled verb
               this.parseBlockContent(); // consume + discard its config block (balanced)
-              brainState.actions.push(typo);
-
+              if (!this.options.strict) brainState.actions.push(typo);
             } else if (this.check('IDENTIFIER')) {
               // Treat as free-form action string — collect to end of line
+              const token = this.current();
               const parts: string[] = [this.advance().value];
               while (!this.check('NEWLINE') && !this.check('EOF') && !this.check('RBRACE')) {
                 parts.push(this.advance().value);
               }
-              brainState.actions.push(parts.join(' '));
-
+              if (this.options.strict) {
+                this.errorAt(token, `Unsupported brain action '${parts.join(' ')}'`, 'HSP109');
+              } else {
+                brainState.actions.push(parts.join(' '));
+              }
             } else {
-              this.advance(); // skip unknown
+              const token = this.current();
+              if (this.options.strict) {
+                this.errorAt(
+                  token,
+                  `Unsupported token '${token.value || token.type}' in brain state`,
+                  'HSP109'
+                );
+              }
+              this.advance();
             }
 
             this.skipNewlines();
@@ -5109,7 +5360,10 @@ export class HoloScriptPlusParser {
       } else if (current.type === 'ON_EXIT' || current.value === 'on_exit') {
         this.advance();
         onExit = this.parseCodeBlock();
-      } else if (this.isStateMachineStateMetadataKey(current.value) && this.peek(1).type === 'COLON') {
+      } else if (
+        this.isStateMachineStateMetadataKey(current.value) &&
+        this.peek(1).type === 'COLON'
+      ) {
         const key = this.advance().value;
         this.expect('COLON', `Expected : after ${key}`);
         metadata[key] = this.parseValue();

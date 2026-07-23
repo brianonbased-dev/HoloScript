@@ -1,4 +1,14 @@
-export { HoloScriptPlusParser, createParser, parse } from './HoloScriptPlusParser';
+export {
+  HoloScriptPlusParser,
+  createParser,
+  parse,
+  preprocessAgentBrainSource,
+  type AgentBrainSourceHeader,
+  type PreparedAgentBrainSource,
+  type HoloBrainDecl,
+  type HoloBrainIdentity,
+  type HoloBrainState,
+} from './HoloScriptPlusParser';
 export {
   TypeScriptHsplusGrammar,
   normalizeHsplusGrammarErrors,

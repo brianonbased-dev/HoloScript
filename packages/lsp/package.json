@@ -38,6 +38,7 @@
     "@holoscript/core": "workspace:^",
     "@holoscript/framework": "workspace:^",
     "@holoscript/linter": "workspace:^",
+    "@holoscript/wasm": "workspace:^",
     "tree-sitter": "^0.22.4",
     "tree-sitter-holoscript": "workspace:^",
     "vscode-debugadapter": "^1.51.0",

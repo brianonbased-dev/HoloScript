@@ -1,0 +1,21 @@
+composition "ExecutableClosure" {
+  state {
+    count: 0
+  }
+
+  object "Counter" {
+    count: 0
+  }
+
+  logic {
+    action increment() {
+      state.count += 2
+      Counter.count += 3
+    }
+
+    on "tick" {
+      state.count += 1
+      Counter.count += 1
+    }
+  }
+}

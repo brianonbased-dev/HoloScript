@@ -62,6 +62,7 @@ export const HSPLUS_ERROR_CODES = {
   HSP106: 'Invalid logic block',
   HSP107: 'Duplicate identifier',
   HSP108: 'Missing required property',
+  HSP109: 'Unsupported brain action',
 
   // Trait Errors (HSP200-HSP299)
   HSP200: 'Unknown trait',

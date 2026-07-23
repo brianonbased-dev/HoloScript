@@ -7,7 +7,7 @@ export async function loadBrain(
   scopeTier: 'cold' | 'warm' | 'hot' = 'warm'
 ): Promise<RuntimeBrainConfig> {
   const raw = await readFile(brainPath, 'utf8');
-  const { domain, capabilityTags, requires, prefers, avoids } = extractIdentity(raw);
+  const document = adaptRuntimeBrainDocument(raw);
   // For .hsplus brains: the file begins with a free-text instruction block
   // (the actual system prompt for the LLM) followed by HoloScript structured
   // sections (#version, #target, identity {}, state {}, etc.). Sending the
@@ -20,16 +20,56 @@ export async function loadBrain(
   return {
     brainPath,
     systemPrompt,
-    capabilityTags,
-    domain,
+    capabilityTags: document.identity.capabilityTags,
+    domain: document.identity.domain,
     scopeTier,
     frameDeclaration: extractFrameDeclaration(raw),
-    requires,
-    prefers,
-    avoids,
+    requires: document.identity.requires,
+    prefers: document.identity.prefers,
+    avoids: document.identity.avoids,
     reflect: extractReflect(raw),
-    onTaskActions: extractOnTaskActions(raw),
+    onTaskActions: document.onTaskActions,
     idle: extractIdleDirective(raw),
+  };
+}
+
+interface RuntimeBrainDocument {
+  identity: {
+    domain: string;
+    capabilityTags: string[];
+    requires: string[];
+    prefers: string[];
+    avoids: string[];
+  };
+  onTaskActions: OnTaskAction[];
+}
+
+/**
+ * One typed adapter for the edge package's core-free runtime projection.
+ *
+ * The canonical parser owns the complete `.hsplus` AST. This package remains a
+ * small edge runtime, so it projects only the identity and on-task fields it
+ * executes. Both projections share one balanced-block scan and one KV decoder
+ * instead of maintaining field-specific extractors.
+ */
+function adaptRuntimeBrainDocument(brain: string): RuntimeBrainDocument {
+  const identityConfig = parseKVBlock(sliceNamedBlock(brain, 'identity') ?? '');
+  const strings = (key: string): string[] =>
+    Array.isArray(identityConfig[key])
+      ? (identityConfig[key] as unknown[]).filter(
+          (value): value is string => typeof value === 'string'
+        )
+      : [];
+
+  return {
+    identity: {
+      domain: typeof identityConfig.domain === 'string' ? identityConfig.domain : 'unknown',
+      capabilityTags: strings('capability_tags'),
+      requires: strings('requires'),
+      prefers: strings('prefers'),
+      avoids: strings('avoids'),
+    },
+    onTaskActions: parseOnTaskActions(sliceNamedBlock(brain, 'on_task') ?? ''),
   };
 }
 
@@ -118,7 +158,8 @@ function extractReflect(brain: string): { criteria: string; escalateOnFail: bool
  */
 function extractSystemPromptPreamble(src: string): string {
   const lines = src.split('\n');
-  const BLOCK_START = /^(#version|#target|#mode|identity\s*\{|state\s*\{|computed\s*\{|traits\s*\[|capabilities\s*\{|directives\s*\{|behavior\s)/;
+  const BLOCK_START =
+    /^(#brain|#version|#target|#mode|identity\s*\{|state\s*\{|computed\s*\{|traits\s*\[|capabilities\s*\{|directives\s*\{|behavior\s)/;
   let cutLine = -1;
   for (let i = 0; i < lines.length; i++) {
     if (BLOCK_START.test(lines[i].trim())) {
@@ -126,39 +167,14 @@ function extractSystemPromptPreamble(src: string): string {
       break;
     }
   }
-  if (cutLine <= 0) return src; // no HoloScript sections — whole file is prompt
+  if (cutLine < 0) return src; // no HoloScript sections — whole file is prompt
   return lines.slice(0, cutLine).join('\n').trimEnd();
-}
-
-function extractIdentity(brain: string): {
-  domain: string;
-  capabilityTags: string[];
-  requires: string[];
-  prefers: string[];
-  avoids: string[];
-} {
-  const identityBlock = sliceNamedBlock(brain, 'identity');
-  if (!identityBlock) {
-    // No identity block — open routing (backward-compatible default).
-    // Brains without explicit requires/prefers/avoids match any provider.
-    return { domain: 'unknown', capabilityTags: [], requires: [], prefers: [], avoids: [] };
-  }
-  const domain = scalarField(identityBlock, 'domain') ?? 'unknown';
-  const capabilityTags = listField(identityBlock, 'capability_tags') ?? [];
-  // Universal+segregated routing fields (founder ruling 2026-05-06): brains
-  // declare capability requirements as data; router matches against the
-  // provider's `capabilities` manifest at session start. Empty (omitted) =
-  // open routing — preserves today's behavior for unmigrated brains.
-  const requires = listField(identityBlock, 'requires') ?? [];
-  const prefers = listField(identityBlock, 'prefers') ?? [];
-  const avoids = listField(identityBlock, 'avoids') ?? [];
-  return { domain, capabilityTags, requires, prefers, avoids };
 }
 
 /**
  * Parse the `behavior on_task { … }` block into an ordered sequence of
  * cognitive verb calls (Phase 2.1). Each verb's config is extracted with a
- * lightweight regex KV parser — no full parser dependency. Only verbs whose
+ * lightweight typed projection — no full parser dependency. Only verbs whose
  * keys match known cognitive verbs are included; unknown keywords are skipped.
  *
  * AgentRunner now passes the parsed sequence to augmentWithOnTaskCognition,
@@ -166,12 +182,19 @@ function extractIdentity(brain: string): {
  * `ask_peer`, `council`, and `discover`. `reflect` is still extracted
  * separately via extractReflect because it runs as the post-artifact gate.
  */
-function extractOnTaskActions(brain: string): OnTaskAction[] {
-  // `sliceNamedBlock` with 'on_task' matches `on_task {` inside `behavior on_task {`
-  const block = sliceNamedBlock(brain, 'on_task');
+function parseOnTaskActions(block: string): OnTaskAction[] {
   if (!block) return [];
 
-  const VERBS: OnTaskAction['verb'][] = ['recall', 'rag_query', 'llm_call', 'plan', 'reflect', 'ask_peer', 'council', 'discover'];
+  const VERBS: OnTaskAction['verb'][] = [
+    'recall',
+    'rag_query',
+    'llm_call',
+    'plan',
+    'reflect',
+    'ask_peer',
+    'council',
+    'discover',
+  ];
   const entries: Array<OnTaskAction & { _pos: number }> = [];
 
   for (const verb of VERBS) {

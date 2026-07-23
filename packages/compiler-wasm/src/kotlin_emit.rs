@@ -147,7 +147,8 @@ fn check_unknown_field_guards_in_node(node: &AstNode) -> Result<(), SemanticDiag
             .properties
             .iter()
             .filter(|property| {
-                property.annotations.iter().any(|a| a == "unknown") && property.default_value.is_none()
+                property.annotations.iter().any(|a| a == "unknown")
+                    && property.default_value.is_none()
             })
             .map(|property| property.key.as_str())
             .collect(),
@@ -161,7 +162,8 @@ fn check_unknown_field_guards_in_node(node: &AstNode) -> Result<(), SemanticDiag
                 // (`reading: Temperature`), not a read of itself — skip the value walk for those.
                 let is_unknown_decl = property.annotations.iter().any(|a| a == "unknown");
                 if !is_unknown_decl {
-                    if let Some(name) = first_unguarded_unknown_read(&property.value, &unknown, false)
+                    if let Some(name) =
+                        first_unguarded_unknown_read(&property.value, &unknown, false)
                     {
                         return Err(semantic_error(
                             format!(
@@ -177,7 +179,8 @@ fn check_unknown_field_guards_in_node(node: &AstNode) -> Result<(), SemanticDiag
                 // bare use-site read, and gets the same diagnostic. Checked for every property,
                 // including @unknown ones (their defaults may read other unknowns).
                 if let Some(default_expression) = &property.default_value {
-                    if let Some(name) = first_unguarded_unknown_read(default_expression, &unknown, false)
+                    if let Some(name) =
+                        first_unguarded_unknown_read(default_expression, &unknown, false)
                     {
                         return Err(semantic_error(
                             format!(
@@ -243,12 +246,13 @@ fn first_unguarded_unknown_read(node: &AstNode, unknown: &[&str], guarded: bool)
         AstNode::UnaryExpression(unary) => {
             first_unguarded_unknown_read(&unary.argument, unknown, guarded)
         }
-        AstNode::CallExpression(call) => first_unguarded_unknown_read(&call.callee, unknown, guarded)
-            .or_else(|| {
+        AstNode::CallExpression(call) => {
+            first_unguarded_unknown_read(&call.callee, unknown, guarded).or_else(|| {
                 call.arguments
                     .iter()
                     .find_map(|argument| first_unguarded_unknown_read(argument, unknown, guarded))
-            }),
+            })
+        }
         AstNode::MemberExpression(member) => {
             first_unguarded_unknown_read(&member.object, unknown, guarded).or_else(|| {
                 if member.computed {
@@ -352,7 +356,8 @@ pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), Se
 pub(crate) fn check_semantics(ast: &Ast) -> Result<(), SemanticDiagnostic> {
     check_top_level_declaration_collisions(ast)?;
     check_unknown_field_guards(ast)?;
-    check_assignment_mutability(ast)
+    check_assignment_mutability(ast)?;
+    crate::semantic_types::check_explicit_type_contracts(ast)
 }
 
 fn top_level_declaration_site(node: &AstNode) -> Option<DeclarationSite> {
@@ -3274,8 +3279,7 @@ function f(x) {
             @on_tick(e) => { hp = reading }
         }"#;
         let ast = crate::parse_ast(src).expect("handler should parse");
-        let error =
-            check_semantics(&ast).expect_err("a bare read inside a handler body must fail");
+        let error = check_semantics(&ast).expect_err("a bare read inside a handler body must fail");
         assert!(
             error.message.contains("on_tick") && error.message.contains("reading"),
             "diagnostic must name the handler and the unknown field: {}",

@@ -1010,7 +1010,34 @@ async function main(): Promise<void> {
 
         let parseResult: any;
 
-        if (isHolo) {
+        if (options.command === 'validate') {
+          const { validateCanonicalSource } = await import('@holoscript/core');
+          const validateHsDetailed =
+            !isHolo && !isHsplus
+              ? (await import('@holoscript/wasm/node')).validate_detailed
+              : undefined;
+          const canonicalResult = validateCanonicalSource(
+            { source: content, fileName: options.input },
+            { validateHsDetailed }
+          );
+          parseResult = { ast: canonicalResult.ast };
+          success = canonicalResult.valid;
+          errorList = [...canonicalResult.errors, ...canonicalResult.warnings].map(
+            (diagnostic) => ({
+              line: diagnostic.line,
+              column: diagnostic.column,
+              message: diagnostic.message,
+              code: diagnostic.code,
+              severity: diagnostic.severity,
+            })
+          );
+
+          if (options.verbose) {
+            console.log(
+              `\x1b[2m[TRACE] ${canonicalResult.surface} validation used ${canonicalResult.validator}. Success: ${canonicalResult.valid}\x1b[0m`
+            );
+          }
+        } else if (isHolo) {
           if (options.verbose)
             console.log(`\x1b[2m[TRACE] Importing HoloCompositionParser...\x1b[0m`);
           const { HoloCompositionParser } = await import('@holoscript/core');
@@ -1031,18 +1058,34 @@ async function main(): Promise<void> {
         } else if (isHsplus) {
           if (options.verbose)
             console.log(`\x1b[2m[TRACE] Importing HoloScriptPlusParser...\x1b[0m`);
-          const { HoloScriptPlusParser } = await import('@holoscript/core');
+          const { HoloScriptPlusParser, preprocessAgentBrainSource } =
+            await import('@holoscript/core');
           if (options.verbose)
             console.log(`\x1b[2m[TRACE] Parser imported. Initializing...\x1b[0m`);
-          const parser = new HoloScriptPlusParser();
+          const explicitAgentBrain = /^\s*#brain\s+/m.test(content);
+          const parser = new HoloScriptPlusParser({ strict: explicitAgentBrain });
+          const preparedAgentBrain = explicitAgentBrain
+            ? preprocessAgentBrainSource(content)
+            : undefined;
+          const parserSource = preparedAgentBrain?.source ?? content;
           if (options.verbose) console.log(`\x1b[2m[TRACE] Starting parse...\x1b[0m`);
-          const result = parser.parse(content);
+          const result = parser.parse(parserSource);
           parseResult = result;
           const parserErrors = result.errors ?? [];
           success = parserErrors.length === 0;
           errorList = parserErrors.map((e: CliParseError | string) => ({
-            line: typeof e === 'string' ? undefined : e.line,
-            column: typeof e === 'string' ? undefined : e.column,
+            line:
+              typeof e === 'string' || e.line === undefined
+                ? undefined
+                : (preparedAgentBrain?.locationMap[e.line - 1]?.authoredLine ?? e.line),
+            column:
+              typeof e === 'string' || e.column === undefined
+                ? undefined
+                : Math.max(
+                    1,
+                    e.column -
+                      (preparedAgentBrain?.locationMap[e.line ? e.line - 1 : -1]?.columnOffset ?? 0)
+                  ),
             message: typeof e === 'string' ? e : e.message,
           }));
         } else {
@@ -2088,7 +2131,9 @@ async function main(): Promise<void> {
         const { HoloCompositionParser, UaalBehaviorCompiler } = await import('@holoscript/core');
         const parseResult = new HoloCompositionParser().parse(content);
         if (!parseResult.success || !parseResult.ast) {
-          console.error('\x1b[31mError: failed to parse source for --target uaal (expects a .holo composition).\x1b[0m');
+          console.error(
+            '\x1b[31mError: failed to parse source for --target uaal (expects a .holo composition).\x1b[0m'
+          );
           for (const err of parseResult.errors || []) {
             console.error(`  - ${typeof err === 'string' ? err : JSON.stringify(err)}`);
           }
@@ -2270,14 +2315,18 @@ async function main(): Promise<void> {
           }
 
           // Debug lines go to stderr so stdout contains only the compiled code
-          process.stderr.write(`\x1b[2m[DEBUG] Compiling to Unity C# (TypeScript class-based)...\x1b[0m\n`);
+          process.stderr.write(
+            `\x1b[2m[DEBUG] Compiling to Unity C# (TypeScript class-based)...\x1b[0m\n`
+          );
           const compiler = new UnityCompiler({
             className: 'GeneratedScene',
             namespace: 'HoloScript',
           });
           const unityOutput = compiler.compile(parseResult.ast, '');
 
-          process.stderr.write(`\x1b[2m[DEBUG] Code generation complete. Length: ${unityOutput.length}\x1b[0m\n`);
+          process.stderr.write(
+            `\x1b[2m[DEBUG] Code generation complete. Length: ${unityOutput.length}\x1b[0m\n`
+          );
 
           if (options.output) {
             const outputPath = path.resolve(options.output);
@@ -2565,7 +2614,10 @@ async function main(): Promise<void> {
 
         // The old VRR bridge stays closed until rebuilt through a native compiler path.
         if (target === 'vrr') {
-          printLegacyBridgeTarget('vrr', 'openxr, android-xr, visionos, or a native game/runtime target');
+          printLegacyBridgeTarget(
+            'vrr',
+            'openxr, android-xr, visionos, or a native game/runtime target'
+          );
         }
 
         // The old multi-layer public target stays closed until rebuilt through native orchestration.
@@ -2943,7 +2995,8 @@ async function main(): Promise<void> {
             console.error(`\x1b[31mError: physics compilation requires .holo files.\x1b[0m`);
             process.exit(1);
           }
-          const { HoloCompositionParser, PhysicsColliderCompiler } = await import('@holoscript/core');
+          const { HoloCompositionParser, PhysicsColliderCompiler } =
+            await import('@holoscript/core');
           const compositionParser = new HoloCompositionParser();
           const parseResult = compositionParser.parse(content);
           if (!parseResult.success || !parseResult.ast) {
@@ -2974,7 +3027,8 @@ async function main(): Promise<void> {
             console.error(`\x1b[31mError: physics-sim compilation requires .holo files.\x1b[0m`);
             process.exit(1);
           }
-          const { HoloCompositionParser, ComputePhysicsCompiler } = await import('@holoscript/core');
+          const { HoloCompositionParser, ComputePhysicsCompiler } =
+            await import('@holoscript/core');
           const compositionParser = new HoloCompositionParser();
           const parseResult = compositionParser.parse(content);
           if (!parseResult.success || !parseResult.ast) {
@@ -3002,7 +3056,9 @@ async function main(): Promise<void> {
               writeFileSync(path.join(dir, rel), contents as string);
             }
             console.log(`\x1b[32m✓ Rust wgpu physics-sim project written to ${dir}\x1b[0m`);
-            console.log(`\x1b[2m  Simulate & render: cd ${dir} && cargo run --release  (writes out.png — an animated APNG of the whole fall)\x1b[0m`);
+            console.log(
+              `\x1b[2m  Simulate & render: cd ${dir} && cargo run --release  (writes out.png — an animated APNG of the whole fall)\x1b[0m`
+            );
           } else {
             console.log(project['src/main.rs']);
           }
@@ -3082,7 +3138,9 @@ async function main(): Promise<void> {
           });
           const png = CpuPathTracer.toPNG(image);
           console.log(`\x1b[32m✓ pathtrace-cpu render complete!\x1b[0m`);
-          console.log(`\x1b[2m  ${image.width}x${image.height} on CPU in ${((Date.now() - t0) / 1000).toFixed(1)}s (no GPU)\x1b[0m`);
+          console.log(
+            `\x1b[2m  ${image.width}x${image.height} on CPU in ${((Date.now() - t0) / 1000).toFixed(1)}s (no GPU)\x1b[0m`
+          );
           if (options.output) {
             const { writeFileSync } = await import('node:fs');
             const outPath = path.resolve(options.output);
@@ -3130,7 +3188,9 @@ async function main(): Promise<void> {
               writeFileSync(path.join(dir, rel), contents as string);
             }
             console.log(`\x1b[32m✓ Rust wgpu path-tracer project written to ${dir}\x1b[0m`);
-            console.log(`\x1b[2m  Render: cd ${dir} && cargo run --release  (writes out.png)\x1b[0m`);
+            console.log(
+              `\x1b[2m  Render: cd ${dir} && cargo run --release  (writes out.png)\x1b[0m`
+            );
           } else {
             console.log(project['src/main.rs']);
           }
@@ -3163,7 +3223,9 @@ async function main(): Promise<void> {
               writeFileSync(path.join(dir, rel), contents as string);
             }
             console.log(`\x1b[32m✓ Rust wgpu project written to ${dir}\x1b[0m`);
-            console.log(`\x1b[2m  Build & render: cd ${dir} && cargo run --release  (writes out.png)\x1b[0m`);
+            console.log(
+              `\x1b[2m  Build & render: cd ${dir} && cargo run --release  (writes out.png)\x1b[0m`
+            );
           } else {
             console.log(project['src/main.rs']);
           }
@@ -3195,7 +3257,8 @@ async function main(): Promise<void> {
           );
           if (options.output) {
             const outPath = path.resolve(options.output);
-            const jsPath = outPath.endsWith('.js') || outPath.endsWith('.mjs') ? outPath : outPath + '.mjs';
+            const jsPath =
+              outPath.endsWith('.js') || outPath.endsWith('.mjs') ? outPath : outPath + '.mjs';
             writeCompileOutputFile(jsPath, output);
             console.log(`\x1b[32m✓ Web Audio graph module written to ${jsPath}\x1b[0m`);
           } else {
@@ -5058,8 +5121,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
     case 'query': {
       if (!options.input) {
         cliError('E001', 'No question specified.', {
-          usage:
-            'holoscript query "<question>" [--provider holoembed] [--with-llm] [--top-k <n>]',
+          usage: 'holoscript query "<question>" [--provider holoembed] [--with-llm] [--top-k <n>]',
           hint: 'Wrap the question in quotes. Example: `holoscript query "what calls buildIndex"`. Add `--with-llm --llm openai` for a synthesised answer. GraphRAG embeddings use HoloEmbed.',
         });
         process.exit(1);

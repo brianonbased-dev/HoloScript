@@ -47,7 +47,6 @@ import {
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import {
-  HoloScriptPlusParser,
   HoloScriptValidator,
   createTypeChecker,
   HoloScriptTypeChecker,
@@ -55,10 +54,12 @@ import {
   useGemini,
   useOllama,
   buildKnownTraitSet,
+  resolveCanonicalSourceSurface,
+  validateCanonicalSource,
   type ASTProgram,
   type HSPlusASTNode as HSPlusNode,
-  type HSPlusCompileResult,
 } from '@holoscript/core';
+import { validate_detailed as validateCanonicalHsDetailed } from '@holoscript/wasm/node';
 
 import { getTraitDoc, formatTraitDocCompact, getAllTraitNames } from './traitDocs';
 import {
@@ -107,7 +108,6 @@ const documents: TextDocuments<TextDocument> = new TextDocuments({
 });
 
 // Parser and validator instances
-const parser = new HoloScriptPlusParser();
 const _validator = new HoloScriptValidator();
 const linter = new HoloScriptLinter();
 
@@ -367,8 +367,10 @@ documents.onDidChangeContent((change) => {
  *   1. **tree-sitter** (incremental) -- fast concrete syntax tree with accurate
  *      error-node ranges.  On each keystroke only the changed region is
  *      re-parsed, making it O(edit-size) rather than O(file-size).
- *   2. **HoloScriptPlusParser** (full) -- produces the typed AST used by the
- *      type checker, symbol table, linter, and all other IDE features.
+ *   2. **Canonical extension router** (full) -- assigns `.holo` to
+ *      HoloCompositionParser, `.hsplus` to HoloScriptPlusParser, and `.hs` to
+ *      the Rust/WASM authority. HoloScript+ ASTs continue into the type
+ *      checker, symbol table, and safety passes.
  *
  * tree-sitter diagnostics are tagged with source 'holoscript-ts' so they
  * can be distinguished from the existing 'holoscript' parser diagnostics.
@@ -378,11 +380,20 @@ async function validateDocument(document: TextDocument): Promise<void> {
   const uri = document.uri;
   const diagnostics: Diagnostic[] = [];
   const symbols = new Map<string, { node: HSPlusNode; line: number; column: number }>();
+  let surface: 'holo' | 'hsplus' | 'hs';
+  try {
+    surface = resolveCanonicalSourceSurface({ fileName: uri });
+  } catch {
+    // Untitled editor buffers have no extension. Preserve the historical
+    // HoloScript+ editing default until the document is saved with one.
+    surface = 'hsplus';
+  }
+  const explicitAgentBrain = surface === 'hsplus' && /^\s*#brain\s+/m.test(text);
 
   // ── Tree-sitter incremental parse ─────────────────────────────────────────
   let tsTree: import('tree-sitter').Tree | null = null;
 
-  if (treeSitter.isReady()) {
+  if (surface === 'hsplus' && !explicitAgentBrain && treeSitter.isReady()) {
     try {
       // Consume the stashed content changes (set by our custom TextDocuments
       // configuration's `update` method).  If there are none this is either
@@ -417,11 +428,16 @@ async function validateDocument(document: TextDocument): Promise<void> {
       );
       // Non-fatal: fall through to HSPlus parser
     }
+  } else {
+    pendingContentChanges.delete(uri);
   }
 
-  // ── HSPlus parser (full re-parse for AST / type checking / symbols) ───────
+  // ── Canonical extension-routed parser ────────────────────────────────────
   try {
-    const parseResult: HSPlusCompileResult = parser.parse(text);
+    const parseResult = validateCanonicalSource(
+      { source: text, surface },
+      { validateHsDetailed: validateCanonicalHsDetailed }
+    );
 
     // 1. Handle Parse Errors (Integrated Multi-Error Reporting)
     if (parseResult.errors && parseResult.errors.length > 0) {
@@ -433,7 +449,7 @@ async function validateDocument(document: TextDocument): Promise<void> {
             end: { line: (error.line || 1) - 1, character: (error.column || 1) + 20 },
           },
           message: error.message,
-          source: 'holoscript',
+          source: `holoscript-${parseResult.validator}`,
         });
       }
     }
@@ -448,13 +464,13 @@ async function validateDocument(document: TextDocument): Promise<void> {
             end: { line: (warning.line || 1) - 1, character: (warning.column || 1) + 20 },
           },
           message: warning.message,
-          source: 'holoscript',
+          source: `holoscript-${parseResult.validator}`,
         });
       }
     }
 
-    if (parseResult.ast) {
-      const ast = parseResult.ast;
+    if (surface === 'hsplus' && parseResult.ast) {
+      const ast = parseResult.ast as ASTProgram;
       const typeChecker = createTypeChecker();
 
       // Run type checker on the AST body
@@ -507,30 +523,38 @@ async function validateDocument(document: TextDocument): Promise<void> {
 
       // Cache the parsed result including the type checker and tree-sitter tree
       documentCache.set(uri, {
-        ast: parseResult.ast,
+        ast,
         version: document.version,
         symbols,
         typeChecker,
         tsTree,
       });
+    } else {
+      // Do not let a previous `.hsplus` parse survive a rename to another
+      // surface and feed stale symbols/type information to IDE features.
+      documentCache.delete(uri);
     }
 
-    // 3. Linter Logic
-    const lintResult = linter.lint(text, uri);
-    for (const diag of lintResult.diagnostics) {
-      diagnostics.push({
-        severity: mapLintSeverity(diag.severity),
-        range: {
-          start: { line: diag.line - 1, character: diag.column - 1 },
-          end: {
-            line: (diag.endLine || diag.line) - 1,
-            character: (diag.endColumn || diag.column + 20) - 1,
+    // The current linter owns a HoloScriptPlusParser internally. Run it only
+    // where that parser is authoritative; other extensions and preprocessed
+    // agent brains must not acquire diagnostics from a second grammar.
+    if (surface === 'hsplus' && !explicitAgentBrain) {
+      const lintResult = linter.lint(text, uri);
+      for (const diag of lintResult.diagnostics) {
+        diagnostics.push({
+          severity: mapLintSeverity(diag.severity),
+          range: {
+            start: { line: diag.line - 1, character: diag.column - 1 },
+            end: {
+              line: (diag.endLine || diag.line) - 1,
+              character: (diag.endColumn || diag.column + 20) - 1,
+            },
           },
-        },
-        message: diag.message,
-        source: 'holoscript-linter',
-        data: diag, // Store for code actions
-      });
+          message: diag.message,
+          source: 'holoscript-linter',
+          data: diag, // Store for code actions
+        });
+      }
     }
   } catch (error) {
     diagnostics.push({

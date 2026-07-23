@@ -11,6 +11,7 @@ import {
   parseHolo,
   parseHoloStrict,
   parsePipeline,
+  validateCanonicalSource,
   VR_TRAITS,
   buildKnownTraitSet,
   createNativeAutoRigPlan,
@@ -1028,40 +1029,34 @@ async function handleValidate(args: Record<string, unknown>) {
 
   try {
     // Detect format if auto
-    const detectedFormat = format === 'auto' ? detectFormat(code) : format;
+    const detectedFormat =
+      format === 'auto'
+        ? detectFormat(code)
+        : format === 'holo' || format === 'hsplus' || format === 'hs'
+          ? format
+          : (() => {
+              throw new Error(
+                `Unsupported HoloScript format "${format}". Expected auto, holo, hsplus, or hs.`
+              );
+            })();
 
-    // Parse based on format
-    let parseResult;
-    let validator: 'holo-parser' | 'rust-wasm' | 'typescript-hsplus';
-    if (detectedFormat === 'holo') {
-      parseResult = parseHolo(code);
-      validator = 'holo-parser';
-    } else if (detectedFormat === 'hs') {
-      parseResult = JSON.parse(validateCanonicalHsDetailed(code)) as {
-        valid: boolean;
-        errors: Array<{ message: string; line?: number; column?: number }>;
-        warnings?: Array<{ message: string; line?: number; column?: number }>;
-      };
-      validator = 'rust-wasm';
-    } else {
-      const parser = new HoloScriptPlusParser();
-      parseResult = parser.parse(code);
-      validator = 'typescript-hsplus';
-    }
+    const validation = validateCanonicalSource(
+      { source: code, surface: detectedFormat },
+      { validateHsDetailed: validateCanonicalHsDetailed }
+    );
+    const validator = validation.validator;
 
     const errors: AIFriendlyError[] = [];
     const warnings: AIFriendlyError[] = [];
 
     // Convert errors to AI-friendly format
-    if (parseResult.errors) {
-      for (const err of parseResult.errors) {
-        const aiError = toAIFriendlyError(err, code, includeSuggestions);
-        errors.push(aiError);
-      }
+    for (const err of validation.errors) {
+      const aiError = toAIFriendlyError(err, code, includeSuggestions);
+      errors.push(aiError);
     }
 
-    if (includeWarnings && parseResult.warnings) {
-      for (const warn of parseResult.warnings) {
+    if (includeWarnings) {
+      for (const warn of validation.warnings) {
         const aiWarn = toAIFriendlyError(warn, code, includeSuggestions);
         warnings.push(aiWarn);
       }
@@ -1089,7 +1084,7 @@ async function handleValidate(args: Record<string, unknown>) {
 
     const hasWarnings = warnings.length > 0;
     return {
-      valid: errors.length === 0,
+      valid: validation.valid && errors.length === 0,
       format: detectedFormat,
       validator,
       errors,
@@ -1622,14 +1617,25 @@ function detectFormat(code: string): 'hs' | 'hsplus' | 'holo' {
   if (code.includes('composition') && code.includes('{')) {
     return 'holo';
   }
-  if (code.includes('@') || code.includes('state {')) {
+  if (
+    /^\s*#brain\s+/m.test(code) ||
+    /^\s*brain\s+[A-Za-z_$][\w$-]*/m.test(code) ||
+    code.includes('@') ||
+    code.includes('state {')
+  ) {
     return 'hsplus';
   }
   return 'hs';
 }
 
 function toAIFriendlyError(
-  error: { message: string; line?: number; column?: number },
+  error: {
+    message: string;
+    line?: number;
+    column?: number;
+    code?: string;
+    suggestion?: string;
+  },
   code: string,
   includeSuggestions: boolean
 ): AIFriendlyError {
@@ -1637,7 +1643,7 @@ function toAIFriendlyError(
   const line = error.line || 1;
 
   const aiError: AIFriendlyError = {
-    code: extractErrorCode(message),
+    code: error.code ?? extractErrorCode(message),
     line,
     column: error.column,
     message,
@@ -1651,10 +1657,14 @@ function toAIFriendlyError(
 
   // Add suggestions if enabled
   if (includeSuggestions) {
-    const suggestion = generateSuggestion(message);
-    if (suggestion) {
-      aiError.suggestion = suggestion.message;
-      aiError.fix = suggestion.fix;
+    if (error.suggestion) {
+      aiError.suggestion = error.suggestion;
+    } else {
+      const suggestion = generateSuggestion(message);
+      if (suggestion) {
+        aiError.suggestion = suggestion.message;
+        aiError.fix = suggestion.fix;
+      }
     }
   }
 

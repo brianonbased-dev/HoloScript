@@ -443,11 +443,29 @@ export function canonicalizeScaleBridgeJson(value: unknown): string;
 // PARSERS
 // ============================================================================
 
+export interface HSPlusParserOptions {
+  sourceMap?: boolean;
+  strict?: boolean;
+  enableTypeScriptImports?: boolean;
+  enableVRTraits?: boolean;
+}
 export class HoloScriptPlusParser {
+  constructor(options?: HSPlusParserOptions);
   parse(source: string): ParseResult;
   parseExpression(source: string): any;
   parseStatement(source: string): any;
 }
+export interface AgentBrainSourceHeader {
+  brainName: string;
+  version?: string;
+  targets: string[];
+}
+export interface PreparedAgentBrainSource {
+  header: AgentBrainSourceHeader;
+  source: string;
+  locationMap: Array<{ authoredLine: number; columnOffset: number }>;
+}
+export function preprocessAgentBrainSource(source: string): PreparedAgentBrainSource;
 
 export interface ParseCacheStats {
   size: number;
@@ -504,6 +522,48 @@ export class HoloCompositionParser {
   parse(source: string): any;
 }
 
+export type CanonicalSourceSurface = 'holo' | 'hsplus' | 'hs';
+export type CanonicalValidator = 'holo-parser' | 'typescript-hsplus' | 'rust-wasm';
+export interface CanonicalDiagnostic {
+  severity: 'error' | 'warning';
+  message: string;
+  line?: number;
+  column?: number;
+  code?: string;
+  suggestion?: string;
+}
+export interface CanonicalSourceValidationRequest {
+  source: string;
+  fileName?: string;
+  surface?: CanonicalSourceSurface | '.holo' | '.hsplus' | '.hs';
+}
+export type CanonicalHsDetailedValidator = (source: string) => string | unknown;
+export interface CanonicalSourceValidationDependencies {
+  validateHsDetailed?: CanonicalHsDetailedValidator;
+}
+export interface CanonicalSourceValidationResult {
+  valid: boolean;
+  surface: CanonicalSourceSurface;
+  validator: CanonicalValidator;
+  errors: CanonicalDiagnostic[];
+  warnings: CanonicalDiagnostic[];
+  ast?: unknown;
+  preprocessedAgentBrain?: boolean;
+  agentBrainHeader?: {
+    brainName: string;
+    version?: string;
+    targets: string[];
+  };
+}
+export function resolveCanonicalSourceSurface(request: {
+  fileName?: string;
+  surface?: CanonicalSourceSurface | '.holo' | '.hsplus' | '.hs';
+}): CanonicalSourceSurface;
+export function validateCanonicalSource(
+  request: CanonicalSourceValidationRequest,
+  dependencies?: CanonicalSourceValidationDependencies
+): CanonicalSourceValidationResult;
+
 export class HoloScriptCodeParser {
   parse(source: string): ParseResult;
   parseExpression(source: string): any;
@@ -520,7 +580,13 @@ export function generateHoloSource(ast: any): string;
 
 // uAAL cognitive front-end bridge (G3): HoloComposition behavior -> UAAL bytecode.
 export class UaalBehaviorCompiler {
-  compile(composition: any): {
+  compile(
+    composition: any,
+    options?: {
+      sourceSurface?: '.holo' | '.hsplus';
+      entryPoints?: string[];
+    }
+  ): {
     bytecode: { version: number; instructions: Array<{ opCode: number; operands?: any[] }> };
     stats: {
       actions: number;
@@ -532,8 +598,17 @@ export class UaalBehaviorCompiler {
       unhandled: Record<string, number>;
       compilationMs: number;
     };
+    semanticClosure: any;
   };
 }
+export interface UaalBehaviorStateReference {
+  abi: 'holo.behavior.state-ref.v1';
+  key: string;
+}
+export function resolveUaalBehaviorOperand(
+  operand: any,
+  context: Readonly<Record<string, any>>
+): any;
 
 // ============================================================================
 // COMPOSITION TYPES (from .holo files)

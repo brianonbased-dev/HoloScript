@@ -98,6 +98,9 @@ export {
   HoloScriptPlusParser,
   createParser,
   parse as parseHoloScriptPlus,
+  preprocessAgentBrainSource,
+  type AgentBrainSourceHeader,
+  type PreparedAgentBrainSource,
 } from './parser/HoloScriptPlusParser';
 
 // Rich Error System (NEW - Enhanced error messages with codes, context, suggestions)
@@ -122,6 +125,17 @@ export {
   parseHoloStrict,
   parseHoloPartial,
 } from './parser/HoloCompositionParser';
+export {
+  resolveCanonicalSourceSurface,
+  validateCanonicalSource,
+  type CanonicalDiagnostic,
+  type CanonicalHsDetailedValidator,
+  type CanonicalSourceSurface,
+  type CanonicalSourceValidationDependencies,
+  type CanonicalSourceValidationRequest,
+  type CanonicalSourceValidationResult,
+  type CanonicalValidator,
+} from './validation/CanonicalSourceValidator';
 export { factory as holoFactory } from './parser/HoloCompositionFactory';
 export { generateHoloSource } from './parser/HoloCompositionGenerator';
 export type {
@@ -377,9 +391,17 @@ export { SpatialAudioCompiler, type AudioSceneModel } from './compiler/SpatialAu
 export { DesktopGPUCompiler } from './compiler/DesktopGPUCompiler';
 export { PathTracerCompiler, type PathTracerOptions } from './compiler/PathTracerCompiler';
 export { CpuPathTracer, type CpuRenderOptions, type CpuImage } from './compiler/CpuPathTracer';
-export { MediaPipelineCompiler, type MediaOptions, type MediaClip } from './compiler/MediaPipelineCompiler';
+export {
+  MediaPipelineCompiler,
+  type MediaOptions,
+  type MediaClip,
+} from './compiler/MediaPipelineCompiler';
 export { ComputePhysicsCompiler, type PhysicsSimOptions } from './compiler/ComputePhysicsCompiler';
-export { SVGCompiler, type SVGCompilerOptions, type SVGCompilationResult } from './compiler/SVGCompiler';
+export {
+  SVGCompiler,
+  type SVGCompilerOptions,
+  type SVGCompilationResult,
+} from './compiler/SVGCompiler';
 export {
   buildDecisionHolo,
   renderDecisionSvg,

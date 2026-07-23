@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { loadBrain } from '../brain.js';
 
@@ -82,7 +82,44 @@ describe('loadBrain', () => {
     expect(brain.brainPath).toBe(path);
   });
 
-  it('extracts domain + capability_tags for routing without regex on the DSL', async () => {
+  it('does not promote a direct #brain document to the system prompt', async () => {
+    const directPath = join(dir, 'direct-brain.hsplus');
+    writeFileSync(
+      directPath,
+      [
+        '#brain DirectBrain',
+        '#version 6.0.0',
+        'identity { domain: "security" capability_tags: ["threat-model"] }',
+        '',
+      ].join('\n'),
+      'utf8'
+    );
+
+    const directBrain = await loadBrain(directPath);
+    expect(directBrain.systemPrompt).toBe('');
+    expect(directBrain.systemPrompt).not.toContain('#brain');
+    expect(directBrain.systemPrompt).not.toContain('identity');
+
+    const commentedPath = join(dir, 'commented-brain.hsplus');
+    writeFileSync(
+      commentedPath,
+      [
+        '// Review only the declared security surface.',
+        '// Escalate evidence gaps.',
+        '#brain CommentedBrain',
+        '#version 6.0.0',
+        'identity { domain: "security" }',
+        '',
+      ].join('\n'),
+      'utf8'
+    );
+
+    expect((await loadBrain(commentedPath)).systemPrompt).toBe(
+      '// Review only the declared security surface.\n// Escalate evidence gaps.'
+    );
+  });
+
+  it('projects domain + capability_tags through the typed runtime document adapter', async () => {
     const path = join(dir, 'mini2.hsplus');
     writeFileSync(path, MINI_BRAIN, 'utf8');
     const brain = await loadBrain(path);
@@ -111,6 +148,34 @@ describe('loadBrain', () => {
     writeFileSync(path, MINI_BRAIN, 'utf8');
     expect((await loadBrain(path, 'cold')).scopeTier).toBe('cold');
     expect((await loadBrain(path, 'hot')).scopeTier).toBe('hot');
+  });
+
+  it('loads the canonical-parser golden brain through the same typed runtime projection', async () => {
+    const fixturePath = resolve(import.meta.dirname, '../brains/holoscript-engineer.hsplus');
+    const brain = await loadBrain(fixturePath);
+
+    expect(brain.domain).toBe('holoscript-language');
+    expect(brain.capabilityTags).toEqual([
+      'native_authoring',
+      'trait_porting',
+      'compiler_work',
+      'rust_wasm',
+      'language_design',
+    ]);
+    expect(brain.requires).toEqual(['tools']);
+    expect(brain.onTaskActions?.map((action) => action.verb)).toEqual([
+      'recall',
+      'rag_query',
+      'llm_call',
+      'reflect',
+    ]);
+    expect(brain.frameDeclaration).toMatchObject({
+      domain: 'holoscript-language',
+      capability_tier: 2,
+      trust_tier: 2,
+      allowed_tools: ['parse_hs', 'validate_holoscript'],
+    });
+    expect(brain.systemPrompt).not.toContain('#brain');
   });
 
   it('extracts @frame_declaration as a typed runtime tool boundary', async () => {
@@ -258,7 +323,9 @@ describe('loadBrain — reflect gate', () => {
     const path = join(rdir, 'r1.hsplus');
     writeFileSync(
       path,
-      withReflect('reflect { of: "the artifact", criteria: "valid HoloScript", escalate_on_fail: true }'),
+      withReflect(
+        'reflect { of: "the artifact", criteria: "valid HoloScript", escalate_on_fail: true }'
+      ),
       'utf8'
     );
     const brain = await loadBrain(path);

@@ -2649,8 +2649,11 @@ export class HoloCompositionParser {
         const event = this.advance().value;
         const parameters = this.check('LPAREN') ? this.parseParameterList() : [];
         if (this.check('LBRACE')) {
-          this.skipBlock();
-          handlers.push({ type: 'EventHandler' as const, event, parameters, body: [] });
+          this.advance(); // consume {
+          this.skipNewlines();
+          const body = this.parseStatementBlock();
+          this.expect('RBRACE');
+          handlers.push({ type: 'EventHandler' as const, event, parameters, body });
         } else {
           handlers.push({ type: 'EventHandler' as const, event, parameters, body: [] });
         }
@@ -2704,15 +2707,19 @@ export class HoloCompositionParser {
     this.expect('ACTION');
     const name = this.expectIdentifier();
     const parameters = this.parseParameterList();
+    let body: HoloStatement[] = [];
     if (this.check('LBRACE')) {
-      this.skipBlock(); // skip action body — too diverse to parse statement-by-statement
+      this.advance(); // consume {
+      this.skipNewlines();
+      body = this.parseStatementBlock();
+      this.expect('RBRACE');
     }
     return {
       loc: { start: startLoc, end: this.currentLocation() },
       type: 'Action',
       name,
       parameters,
-      body: [],
+      body,
       async: isAsync,
     };
   }

@@ -21,12 +21,15 @@ export {
 } from '../compiler/HolobCompiler';
 export {
   UaalBehaviorCompiler,
+  resolveUaalBehaviorOperand,
   type UaalBehaviorCompileResult,
   type UaalBehaviorCompileStats,
+  type UaalBehaviorStateReference,
   type UaalBytecode,
   type UaalInstruction,
   type UaalOperand,
 } from '../compiler/UaalBehaviorCompiler';
+export { validateHoloBehaviorTypes } from '../compiler/HoloBehaviorTypeValidator';
 
 // ── Trait System Base Types ─────────────────────────────────────────────────
 export type { TraitHandler } from '../traits/TraitTypes';

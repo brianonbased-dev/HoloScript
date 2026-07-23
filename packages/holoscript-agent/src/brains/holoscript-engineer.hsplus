@@ -10,6 +10,7 @@
 // TS dissolving INTO .holo/.hsplus/.hs, not TS growing as TS.
 // Secondary directive: maintain CI green; fix before shipping.
 
+#brain HoloScriptEngineer
 #version 6.0.0
 #target edge, mcp-server
 
@@ -24,6 +25,15 @@ identity {
   requires: ["tools"]
   prefers: ["contextWindow", "visibleReasoning"]
   avoids: ["imageGeneration"]
+}
+
+@frame_declaration {
+  domain: "holoscript-language"
+  horizon: "2026-07"
+  capability_tier: 2
+  trust_tier: 2
+  allowed_tools: ["parse_hs", "validate_holoscript"]
+  denied_domains: ["treasury-custody", "public-identity"]
 }
 
 behavior on_task {

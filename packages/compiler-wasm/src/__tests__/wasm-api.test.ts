@@ -10,11 +10,17 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { delimiter, resolve } from 'node:path';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { delimiter, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { UAALVirtualMachine, UAALOpCode, type UAALBytecode } from '@holoscript/uaal';
+import {
+  UAALVirtualMachine,
+  UAALOpCode,
+  type UAALBytecode,
+  type UAALOperand,
+} from '@holoscript/uaal';
 import {
   HoloScriptWasm,
   HoloScriptCompileError,
@@ -59,6 +65,8 @@ const VALID_UAAL_BYTECODE: UAALWasmBytecode = {
 const TEST_DIR = fileURLToPath(new URL('.', import.meta.url));
 const REPO_ROOT = resolve(TEST_DIR, '../../../..');
 const COMPILER_WASM_MANIFEST = resolve(REPO_ROOT, 'packages/compiler-wasm/Cargo.toml');
+const COMPILER_NATIVE_MANIFEST = resolve(REPO_ROOT, 'packages/compiler-native/Cargo.toml');
+const THREE_SURFACE_POLICY_PATH = resolve(REPO_ROOT, 'examples/three-surface-agent/policy.hs');
 
 function resolveCargoCommand(): string {
   const names = process.platform === 'win32' ? ['cargo.exe', 'cargo.cmd', 'cargo.bat'] : ['cargo'];
@@ -91,6 +99,103 @@ function compileHsToUaalViaRust(source: string): UAALBytecode {
     throw new Error(result.error);
   }
   return result;
+}
+
+function executeHsNativeViaRust(source: string): number {
+  const scratchDir = mkdtempSync(join(tmpdir(), 'holoscript-native-uaal-parity-'));
+  const sourcePath = join(scratchDir, 'main.hs');
+  const executablePath = join(
+    scratchDir,
+    process.platform === 'win32' ? 'decision-kernel.exe' : 'decision-kernel'
+  );
+
+  try {
+    writeFileSync(sourcePath, source, 'utf8');
+    execFileSync(
+      resolveCargoCommand(),
+      [
+        'run',
+        '--quiet',
+        '--manifest-path',
+        COMPILER_NATIVE_MANIFEST,
+        '--bin',
+        'holoscriptc',
+        '--',
+        sourcePath,
+        '-o',
+        executablePath,
+      ],
+      {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+        maxBuffer: 1024 * 1024,
+      }
+    );
+
+    const execution = spawnSync(executablePath, [], {
+      cwd: scratchDir,
+      encoding: 'utf8',
+    });
+    if (execution.error) throw execution.error;
+    if (execution.signal) {
+      throw new Error(`native decision kernel terminated by ${execution.signal}`);
+    }
+    if (execution.status === null) {
+      throw new Error('native decision kernel did not report an exit status');
+    }
+    return execution.status;
+  } finally {
+    rmSync(scratchDir, { recursive: true, force: true });
+  }
+}
+
+function registerHsI32BinaryHandler(vm: UAALVirtualMachine): void {
+  vm.registerHandler(UAALOpCode.EXEC, (proxy, operands) => {
+    const [abi, operator] = operands;
+    if (abi !== 'hs.i32.binary.v1' || typeof operator !== 'string') {
+      throw new Error(`unsupported HoloScript EXEC ABI: ${String(abi)}`);
+    }
+
+    const right = proxy.pop();
+    const left = proxy.pop();
+    if (typeof left !== 'number' || typeof right !== 'number') {
+      throw new Error(`hs.i32.binary.v1 requires numeric operands`);
+    }
+
+    let result: UAALOperand;
+    switch (operator) {
+      case '+':
+        result = (left + right) | 0;
+        break;
+      case '-':
+        result = (left - right) | 0;
+        break;
+      case '*':
+        result = Math.imul(left, right);
+        break;
+      case '==':
+        result = left === right;
+        break;
+      case '!=':
+        result = left !== right;
+        break;
+      case '<':
+        result = left < right;
+        break;
+      case '<=':
+        result = left <= right;
+        break;
+      case '>':
+        result = left > right;
+        break;
+      case '>=':
+        result = left >= right;
+        break;
+      default:
+        throw new Error(`unsupported hs.i32.binary.v1 operator: ${operator}`);
+    }
+    proxy.push(result);
+  });
 }
 
 const VALID_AST: Ast = {
@@ -528,6 +633,59 @@ function main() {
     },
     60000
   );
+
+  it('executes the canonical three-surface policy identically on native and cognitive VMs', async () => {
+    const source = readFileSync(THREE_SURFACE_POLICY_PATH, 'utf8');
+
+    const nativeExitCode = executeHsNativeViaRust(source);
+    const bytecode = compileHsToUaalViaRust(source);
+    const opCodes = bytecode.instructions.map((instruction) => instruction.opCode);
+
+    expect(nativeExitCode).toBe(1);
+    expect(opCodes).toContain(UAALOpCode.EXEC);
+    expect(opCodes).toContain(UAALOpCode.JUMP_IF);
+    expect(opCodes).toContain(UAALOpCode.JUMP);
+
+    const vm = new UAALVirtualMachine({ recordLog: true });
+    registerHsI32BinaryHandler(vm);
+    const result = await vm.execute(bytecode);
+    const executionLog = vm.exportLog();
+
+    expect(result.taskStatus).toBe('HALTED');
+    expect(result.stackTop).toBe(nativeExitCode);
+    expect(result.state.callStack).toEqual([]);
+    expect(
+      executionLog.steps.filter((step) => step.opcode === UAALOpCode.EXEC && step.injected)
+    ).toHaveLength(1);
+  }, 120000);
+
+  it('executes typed i32 arithmetic and bounded while identically on both VMs', async () => {
+    const source = `function decide(score: i32): i32 {
+  while (score >= 6) {
+    return score * 7
+  }
+  return score + 1
+}
+
+function main(): i32 {
+  return decide(6)
+}`;
+
+    const nativeExitCode = executeHsNativeViaRust(source);
+    const bytecode = compileHsToUaalViaRust(source);
+    const vm = new UAALVirtualMachine({ recordLog: true });
+    registerHsI32BinaryHandler(vm);
+    const result = await vm.execute(bytecode);
+    const executionLog = vm.exportLog();
+
+    expect(nativeExitCode).toBe(42);
+    expect(result.taskStatus).toBe('HALTED');
+    expect(result.stackTop).toBe(nativeExitCode);
+    expect(result.state.callStack).toEqual([]);
+    expect(
+      executionLog.steps.filter((step) => step.opcode === UAALOpCode.EXEC && step.injected)
+    ).toHaveLength(2);
+  }, 120000);
 });
 
 describe('extractTraitNames', () => {

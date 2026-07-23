@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { HoloScriptPlusParser } from './HoloScriptPlusParser';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { HoloScriptPlusParser, preprocessAgentBrainSource } from './HoloScriptPlusParser';
 import type { HoloBrainDecl } from './HoloScriptPlusParser';
 
 /**
@@ -95,5 +97,79 @@ describe('HoloScriptPlusParser — cognitive brain actions', () => {
     // `plan` here is not followed by `{` → falls back to free-form, not cognitive.
     expect(s!.cognitiveActions).toBeUndefined();
     expect(s!.actions.some((a) => a.includes('plan'))).toBe(true);
+  });
+
+  it('parses the checked-in HoloScript engineer through the explicit agent-brain contract', () => {
+    const fixturePath = resolve(
+      import.meta.dirname,
+      '../../../holoscript-agent/src/brains/holoscript-engineer.hsplus'
+    );
+    const authored = readFileSync(fixturePath, 'utf8');
+    const prepared = preprocessAgentBrainSource(authored);
+    const result = parser.parse(prepared.source);
+
+    expect(prepared.header).toEqual({
+      brainName: 'HoloScriptEngineer',
+      version: '6.0.0',
+      targets: ['edge', 'mcp-server'],
+    });
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+
+    const brain = result.ast.root as unknown as HoloBrainDecl;
+    expect(brain.type).toBe('brain');
+    expect(brain.identity).toMatchObject({
+      domain: 'holoscript-language',
+      capabilityTags: [
+        'native_authoring',
+        'trait_porting',
+        'compiler_work',
+        'rust_wasm',
+        'language_design',
+      ],
+      requires: ['tools'],
+    });
+    expect(brain.traits.identity).toMatchObject({
+      domain: 'holoscript-language',
+      requires: ['tools'],
+    });
+    expect(brain.frameDeclaration).toMatchObject({
+      domain: 'holoscript-language',
+      capability_tier: 2,
+      trust_tier: 2,
+      allowed_tools: ['parse_hs', 'validate_holoscript'],
+    });
+
+    const onTask = brain.states.find((state) => state.name === 'on_task');
+    expect(onTask?.cognitiveActions?.map((action) => action.verb)).toEqual([
+      'recall',
+      'rag_query',
+      'llm_call',
+      'reflect',
+    ]);
+  });
+
+  it('rejects unsupported explicit-brain state syntax instead of dropping it', () => {
+    const prepared = preprocessAgentBrainSource(`#brain StrictAgent
+behavior on_task {
+  ???
+}`);
+    const result = new HoloScriptPlusParser({ strict: true }).parse(prepared.source);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'HSP109',
+          message: expect.stringContaining('Unsupported token'),
+        }),
+      ])
+    );
+  });
+
+  it('does not silently treat an unmarked document as an agent brain', () => {
+    expect(() => preprocessAgentBrainSource('identity { domain: "ambiguous" }')).toThrow(
+      /#brain <Identifier>/
+    );
   });
 });

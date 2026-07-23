@@ -5,9 +5,14 @@
  * control flow (JUMP_IF) actually gates execution. See docs/spec/spec-vs-reality-gap.md G3.
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { UAALVirtualMachine, UAALOpCode } from '@holoscript/uaal';
 import type { UAALBytecode, UAALOperand } from '@holoscript/uaal';
-import { UaalBehaviorCompiler } from '../../compiler/UaalBehaviorCompiler';
+import {
+  UaalBehaviorCompiler,
+  resolveUaalBehaviorOperand,
+} from '../../compiler/UaalBehaviorCompiler';
+import { parseHolo } from '../../parser/HoloCompositionParser';
 import type { HoloAction, HoloComposition, HoloStatement } from '../../parser/HoloCompositionTypes';
 
 // Minimal behavioral-AST factories — only the fields the compiler reads.
@@ -19,22 +24,55 @@ const callExpr = (name: string, ...args: (string | number | boolean | null)[]) =
   arguments: args.map(lit),
 });
 const call = (method: string, ...args: (string | number | boolean | null)[]): HoloStatement =>
-  ({ type: 'MethodCall', method, arguments: args.map(lit) } as unknown as HoloStatement);
+  ({ type: 'MethodCall', method, arguments: args.map(lit) }) as unknown as HoloStatement;
 const actionCall = (name: string, ...args: (string | number | boolean | null)[]): HoloStatement =>
-  ({ type: 'ExpressionStatement', expression: callExpr(name, ...args) } as unknown as HoloStatement);
+  ({
+    type: 'ExpressionStatement',
+    expression: callExpr(name, ...args),
+  }) as unknown as HoloStatement;
 const emit = (event: string): HoloStatement =>
-  ({ type: 'EmitStatement', event } as unknown as HoloStatement);
-const iff = (cond: boolean, consequent: HoloStatement[], alternate?: HoloStatement[]): HoloStatement =>
-  ({ type: 'IfStatement', condition: lit(cond), consequent, alternate } as unknown as HoloStatement);
+  ({ type: 'EmitStatement', event }) as unknown as HoloStatement;
+const iff = (
+  cond: boolean,
+  consequent: HoloStatement[],
+  alternate?: HoloStatement[]
+): HoloStatement =>
+  ({
+    type: 'IfStatement',
+    condition: lit(cond),
+    consequent,
+    alternate,
+  }) as unknown as HoloStatement;
 const ret = (value?: unknown): HoloStatement =>
-  ({ type: 'ReturnStatement', ...(value ? { value } : {}) } as unknown as HoloStatement);
+  ({ type: 'ReturnStatement', ...(value ? { value } : {}) }) as unknown as HoloStatement;
 const action = (name: string, body: HoloStatement[]): HoloAction =>
-  ({ type: 'Action', name, parameters: [], body } as unknown as HoloAction);
+  ({ type: 'Action', name, parameters: [], body }) as unknown as HoloAction;
 
 const comp = (body: HoloStatement[]): HoloComposition =>
-  ({ type: 'Composition', name: 'test', actions: [action('main', body)] } as unknown as HoloComposition);
+  ({
+    type: 'Composition',
+    name: 'test',
+    actions: [action('main', body)],
+  }) as unknown as HoloComposition;
 const compActions = (actions: HoloAction[]): HoloComposition =>
-  ({ type: 'Composition', name: 'test', actions } as unknown as HoloComposition);
+  ({ type: 'Composition', name: 'test', actions }) as unknown as HoloComposition;
+const compWithState = (
+  state: Record<string, string | number | boolean | null>,
+  actions: HoloAction[]
+): HoloComposition =>
+  ({
+    type: 'Composition',
+    name: 'test',
+    state: {
+      type: 'State',
+      properties: Object.entries(state).map(([key, value]) => ({
+        type: 'StateProperty',
+        key,
+        value,
+      })),
+    },
+    actions,
+  }) as unknown as HoloComposition;
 
 async function run(c: HoloComposition): Promise<{ trace: UAALOperand[][]; status: string }> {
   const { bytecode } = new UaalBehaviorCompiler().compile(c);
@@ -57,6 +95,7 @@ describe('UaalBehaviorCompiler — G3 cognitive front-end bridge', () => {
     expect(UAALOpCode.JUMP_IF).toBe(0x31);
     expect(UAALOpCode.CALL).toBe(0x32);
     expect(UAALOpCode.RET).toBe(0x33);
+    expect(UAALOpCode.OP_STATE_SET).toBe(0xcb);
     expect(UAALOpCode.HALT).toBe(0xff);
   });
 
@@ -71,10 +110,7 @@ describe('UaalBehaviorCompiler — G3 cognitive front-end bridge', () => {
 
   it('control flow is real: a false condition skips the consequent (JUMP_IF works)', async () => {
     const { trace } = await run(
-      comp([
-        iff(false, [call('log', 'then-NO')], [call('log', 'else-YES')]),
-        call('log', 'after'),
-      ]),
+      comp([iff(false, [call('log', 'then-NO')], [call('log', 'else-YES')]), call('log', 'after')])
     );
     const flat = trace.map((t) => t.join(':'));
     expect(flat).toContain('log:else-YES'); // alternate ran
@@ -83,7 +119,9 @@ describe('UaalBehaviorCompiler — G3 cognitive front-end bridge', () => {
   });
 
   it('control flow: a true condition runs the consequent', async () => {
-    const { trace } = await run(comp([iff(true, [call('log', 'then-YES')], [call('log', 'else-NO')])]));
+    const { trace } = await run(
+      comp([iff(true, [call('log', 'then-YES')], [call('log', 'else-NO')])])
+    );
     const flat = trace.map((t) => t.join(':'));
     expect(flat).toContain('log:then-YES');
     expect(flat).not.toContain('log:else-NO');
@@ -118,6 +156,37 @@ describe('UaalBehaviorCompiler — G3 cognitive front-end bridge', () => {
     ]);
     expect(result.state.stack).toEqual([42]);
     expect(result.state.callStack).toEqual([]);
+  });
+
+  it('CALL/RET: binds typed action parameters before executing their effects', async () => {
+    const setCount = {
+      ...action('set_count', [
+        {
+          type: 'Assignment',
+          target: 'state.count',
+          operator: '=',
+          value: id('value'),
+        } as HoloStatement,
+      ]),
+      parameters: [{ type: 'Parameter', name: 'value', paramType: 'number' }],
+    } as HoloAction;
+    const source = compWithState({ count: 0 }, [
+      action('main', [actionCall('set_count', 7)]),
+      setCount,
+    ]);
+    const { bytecode, semanticClosure } = new UaalBehaviorCompiler().compile(source);
+    const observed = { count: 0 };
+    const vm = new UAALVirtualMachine();
+    vm.registerHandler(UAALOpCode.EXECUTE, (proxy, operands) => {
+      if (operands[0] !== 'assign:state.count') return;
+      observed.count = resolveUaalBehaviorOperand(operands[2], proxy.getState().context) as number;
+    });
+
+    const result = await vm.execute(bytecode as unknown as UAALBytecode);
+
+    expect(result.taskStatus).toBe('HALTED');
+    expect(observed.count).toBe(7);
+    expect(semanticClosure.summary.complete).toBe(true);
   });
 
   it('CALL/RET: recursive action calls unwind through the real VM call stack', async () => {
@@ -156,12 +225,231 @@ describe('UaalBehaviorCompiler — G3 cognitive front-end bridge', () => {
     expect(result.state.callStack).toEqual([]);
   });
 
+  it('can select one event entry point for deterministic project execution', async () => {
+    const c = {
+      ...compActions([action('apply_decision', [call('log', 'applied')])]),
+      eventHandlers: [
+        {
+          type: 'EventHandler',
+          event: 'on_start',
+          parameters: [],
+          body: [actionCall('apply_decision')],
+        },
+      ],
+    } as unknown as HoloComposition;
+    const { bytecode } = new UaalBehaviorCompiler().compile(c, {
+      entryPoints: ['event:on_start'],
+    });
+    const vm = new UAALVirtualMachine();
+    const trace: string[] = [];
+    vm.registerHandler(UAALOpCode.EXECUTE, (_proxy, operands) => {
+      trace.push(operands.join(':'));
+    });
+
+    const result = await vm.execute(bytecode as unknown as UAALBytecode);
+
+    expect(result.taskStatus).toBe('HALTED');
+    expect(trace).toEqual(['log:applied']);
+  });
+
   it('records deferred statement kinds honestly rather than faking them', () => {
     const withOnError = comp([
       { type: 'OnErrorStatement', body: [call('log', 'x')] } as unknown as HoloStatement,
     ]);
-    const { stats } = new UaalBehaviorCompiler().compile(withOnError);
+    const { stats, semanticClosure } = new UaalBehaviorCompiler().compile(withOnError);
     expect(stats.unhandled.OnErrorStatement).toBe(1);
+    const deferred = semanticClosure.entries.find((entry) => entry.kind === 'OnErrorStatement');
+    expect(deferred?.stages.lowered).toEqual({
+      status: 'deferred',
+      diagnosticCode: 'HS-CLOSURE-LOWER-001',
+      reason: 'OnErrorStatement has no UAAL lowering',
+    });
+    expect(semanticClosure.summary.complete).toBe(false);
+  });
+
+  it('emits a deterministic construct-complete semantic closure receipt', () => {
+    const source = comp([
+      call('log', 'alpha'),
+      iff(true, [emit('ready')], [call('log', 'not-ready')]),
+    ]);
+    const first = new UaalBehaviorCompiler().compile(source).semanticClosure;
+    const second = new UaalBehaviorCompiler().compile(source).semanticClosure;
+
+    expect(first).toEqual(second);
+    expect(first.schemaVersion).toBe('holoscript.semantic-closure-receipt.v1');
+    expect(first.sourceDigest).toMatch(/^holo-fnv256:/);
+    expect(first.entries.map((entry) => entry.constructId)).toEqual([
+      'action:main',
+      'action:main/body:0',
+      'action:main/body:1',
+      'action:main/body:1/alternate:0',
+      'action:main/body:1/consequent:0',
+    ]);
+    expect(first.entries.every((entry) => entry.stages.parsed.status === 'passed')).toBe(true);
+    expect(first.entries.every((entry) => entry.stages.lowered.status === 'passed')).toBe(true);
+    expect(
+      first.entries.find((entry) => entry.constructId === 'action:main')?.stages.typed
+    ).toEqual({
+      status: 'deferred',
+      diagnosticCode: 'HS-HOLO-TYPE-EXTERNAL-CALL-001',
+      reason: 'global method log has no declared action signature',
+    });
+    expect(
+      first.entries.find((entry) => entry.constructId === 'action:main/body:1/consequent:0')?.stages
+        .typed.status
+    ).toBe('passed');
+  });
+
+  it('fails closed when entry emission drops a construct from the independent AST inventory', () => {
+    const compiler = new UaalBehaviorCompiler();
+    const internals = compiler as unknown as {
+      collectStatementClosureEntries: (...args: unknown[]) => Array<{ constructId: string }>;
+    };
+    const emitEntries = internals.collectStatementClosureEntries.bind(compiler);
+    internals.collectStatementClosureEntries = (...args) =>
+      emitEntries(...args).filter((entry) => entry.constructId !== 'action:main/body:0');
+
+    expect(() => compiler.compile(comp([emit('ready')]))).toThrow(
+      'Unreported construct "action:main/body:0"'
+    );
+  });
+
+  it('closes typed evidence for declared state updates, emit, and a resolved action call', () => {
+    const source = compWithState({ approved: false, decision_count: 0 }, [
+      action('main', [actionCall('apply_decision')]),
+      action('apply_decision', [
+        {
+          type: 'Assignment',
+          target: 'state.approved',
+          operator: '=',
+          value: lit(true),
+        } as HoloStatement,
+        {
+          type: 'Assignment',
+          target: 'state.decision_count',
+          operator: '+=',
+          value: lit(1),
+        } as HoloStatement,
+        emit('decision_applied'),
+      ]),
+    ]);
+
+    const receipt = new UaalBehaviorCompiler().compile(source).semanticClosure;
+
+    expect(receipt.entries.every((entry) => entry.stages.typed.status === 'passed')).toBe(true);
+  });
+
+  it('closes every typed entry in the canonical three-surface .holo tracer', () => {
+    const source = readFileSync(
+      new URL('../../../../../examples/three-surface-agent/main.holo', import.meta.url),
+      'utf8'
+    );
+    const parsed = parseHolo(source);
+    expect(parsed.success).toBe(true);
+    expect(parsed.ast).toBeDefined();
+
+    const receipt = new UaalBehaviorCompiler().compile(parsed.ast!, {
+      entryPoints: ['event:on_start'],
+    }).semanticClosure;
+
+    expect(receipt.entries.map((entry) => entry.constructId)).toEqual([
+      'action:apply_decision',
+      'action:apply_decision/body:0',
+      'action:apply_decision/body:1',
+      'action:apply_decision/body:2',
+      'event:on_start',
+      'event:on_start/body:0',
+    ]);
+    expect(receipt.entries.every((entry) => entry.stages.typed.status === 'passed')).toBe(true);
+  });
+
+  it('rejects a resolved action call with the wrong arity', () => {
+    const helper = {
+      type: 'Action',
+      name: 'helper',
+      parameters: [{ type: 'Parameter', name: 'value', paramType: 'number' }],
+      body: [],
+    } as HoloAction;
+    const receipt = new UaalBehaviorCompiler().compile(
+      compActions([action('main', [actionCall('helper')]), helper])
+    ).semanticClosure;
+
+    expect(
+      receipt.entries.find((entry) => entry.constructId === 'action:main/body:0')?.stages.typed
+    ).toEqual({
+      status: 'rejected',
+      diagnosticCode: 'HS-HOLO-TYPE-CALL-002',
+      reason: 'action helper expects 1 arguments, received 0',
+    });
+  });
+
+  it('rejects incompatible state assignment evidence without breaking legacy bytecode emission', () => {
+    const source = compWithState({ approved: false }, [
+      action('main', [
+        {
+          type: 'Assignment',
+          target: 'state.approved',
+          operator: '=',
+          value: lit('yes'),
+        } as HoloStatement,
+      ]),
+    ]);
+
+    const result = new UaalBehaviorCompiler().compile(source);
+    const assignment = result.semanticClosure.entries.find(
+      (entry) => entry.constructId === 'action:main/body:0'
+    );
+
+    expect(result.bytecode.instructions).toContainEqual({
+      opCode: UAALOpCode.EXECUTE,
+      operands: ['assign:state.approved', '=', 'yes'],
+    });
+    expect(assignment?.stages.typed).toEqual({
+      status: 'rejected',
+      diagnosticCode: 'HS-HOLO-TYPE-ASSIGN-001',
+      reason: 'cannot assign string to boolean state property state.approved',
+    });
+    expect(result.semanticClosure.summary.complete).toBe(false);
+  });
+
+  it('requires numeric compatibility for compound state assignments', () => {
+    const source = compWithState({ approved: false }, [
+      action('main', [
+        {
+          type: 'Assignment',
+          target: 'state.approved',
+          operator: '+=',
+          value: lit(1),
+        } as HoloStatement,
+      ]),
+    ]);
+
+    const typed = new UaalBehaviorCompiler()
+      .compile(source)
+      .semanticClosure.entries.find((entry) => entry.constructId === 'action:main/body:0')
+      ?.stages.typed;
+
+    expect(typed).toEqual({
+      status: 'rejected',
+      diagnosticCode: 'HS-HOLO-TYPE-COMPOUND-001',
+      reason: 'operator += requires number target and value, received boolean and number',
+    });
+  });
+
+  it('rejects an unresolved action call in closure evidence without throwing from compile()', () => {
+    const result = new UaalBehaviorCompiler().compile(
+      compActions([action('main', [actionCall('missing_action')])])
+    );
+    const callEntry = result.semanticClosure.entries.find(
+      (entry) => entry.constructId === 'action:main/body:0'
+    );
+
+    expect(callEntry?.stages.typed).toEqual({
+      status: 'rejected',
+      diagnosticCode: 'HS-HOLO-TYPE-CALL-001',
+      reason: 'action missing_action is not declared',
+    });
+    expect(result.semanticClosure.summary.complete).toBe(false);
   });
 
   // ── Loop lowering (idea-seeds/2026-06-22_uaal-loop-control-flow-lowering.md) ──

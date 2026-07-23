@@ -1,12 +1,13 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-20T23:51:17Z",
+  "generatedAt": "2026-07-23T20:53:54Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "d5a0550611815a39d5b964df151faad201827b8e+working-tree-default-capture-and-keyword-atoms",
+  "sourceCommit": "4e8d45585a078edf7257726fcddfb26eaa49408d+working-tree-three-surface-semantic-type-closure",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
-    "wasm-pack build --target nodejs --out-dir pkg-node"
+    "wasm-pack build --target web --out-dir pkg --release",
+    "wasm-pack build --target nodejs --out-dir pkg-node --release"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -16,9 +17,9 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 299399,
-    "wasmSha256": "dee4f48886d28bef57742376d6ce3a7d27105bda7e5ef71b18a1918414469bc4",
-    "previousWasmSha256": "e4718b4136a5055b2d57c7d15310f0600819ca7be7d39b8b4edafae69f3e7424",
-    "note": "Stage 4 grammar slices. (1) `= default` CAPTURED: PropertyNode.default_value now holds the declared default at both former parse-and-drop sites. Enforcement semantics: a DEFAULTED @unknown field admits bare reads (the fallback exists BY CONSTRUCTION at the declaration -- same reasoning as ?? at a use site) while an undefaulted one still requires the guard; a default EXPRESSION is a real read site (evaluated at instantiation), so a default reading an undefaulted @unknown field is rejected with its own diagnostic. Epistemically the value stays unknown -- the lowering keeps initial=unknown and surfaces declaredDefault separately (a fallback is not knowledge). (2) Lenient form 5: nine structural DECLARATION keywords (composition, action, world, orb, entity, template, group, timeline, environment) now parse as plain identifiers in handler-body expressions, lenient mode ONLY -- probe-isolated as the bulk of the residual decliners (corpus writes analyzer.analyze(composition, path) etc.). MEASURED: handler bodies analyzed 4864/5013 (97.0%) -> 4944/5013 (98.6%), declined 149 -> 69 (1.4%). Differential over 2303 files: 2256/2303 (97.96%), 0 regressions -- main grammar unchanged. The e2e drift guard EARNED ITS KEEP this rebuild: the new defaulted-@unknown e2e correctly FAILED against the stale artifact before this rebuild and passed after -- reality-shaped guarding working as designed. cargo test 227 passed (3 new); meaning suite 207 (2 new); clippy -D warnings clean. No wasm_bindgen export change. Source changes committed with this receipt."
+    "wasmBytes": 325610,
+    "wasmSha256": "d0351144d218b2461d913bdd35ab884dfdec9bbd0b15ea406ab2365186fca292",
+    "previousWasmSha256": "dee4f48886d28bef57742376d6ce3a7d27105bda7e5ef71b18a1918414469bc4",
+    "note": "Rebuilt the tracked Node authority from the shared semantic type pass and current UAAL emitter. validate_detailed and compile_to_uaal reject proven return, assignment, and call-argument type mismatches with HS-TYPE-* diagnostics; null cannot cross a primitive boundary, explicit any remains admissible, and typed i32 arithmetic/control-flow parity remains green. Final validation receipts accompany the commit."
   }
 }
