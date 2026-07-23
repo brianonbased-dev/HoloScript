@@ -4,6 +4,9 @@
  * Property-level semantic annotations, data binding, and platform capabilities.
  */
 
+// Surface-to-meaning adapter (canonical `.holo` parser -> HoloMeaning).
+export * from './HoloContainmentPerceiver';
+
 // Semantic Annotations
 export {
   SemanticAnnotation,

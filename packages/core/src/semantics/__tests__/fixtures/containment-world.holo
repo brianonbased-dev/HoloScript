@@ -1,0 +1,47 @@
+composition "ContainmentWorld" {
+  object "room" {
+    kind: "region"
+    opaque: false
+
+    spatial_agent "agent" {
+      label: "Scene observer"
+    }
+
+    object "opaque_box" {
+      role: "container"
+      opaque: true
+      blocks: ["visual"]
+
+      object "coin" {
+        kind: "object"
+      }
+    }
+
+    object "transparent_box" {
+      kind: "container"
+      opaque: false
+
+      object "map" {
+        kind: "object"
+      }
+    }
+
+    object "unknown_box" {
+      kind: "container"
+
+      object "key" {
+        kind: "object"
+      }
+    }
+
+    object "audible_unknown_box" {
+      kind: "container"
+      opaque: false
+      blocks_unknown: ["audible"]
+
+      object "bell" {
+        kind: "object"
+      }
+    }
+  }
+}

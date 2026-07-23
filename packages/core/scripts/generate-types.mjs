@@ -57,6 +57,13 @@ const mainDTS = `/**
  * @module @holoscript/core
  */
 
+import type {
+  UAALContainmentIR,
+  UAALContainmentQuery,
+  UAALContainmentRelation,
+  UAALSemanticEntity,
+} from '@holoscript/meaning';
+
 // ============================================================================
 // CORE TYPES
 // ============================================================================
@@ -702,6 +709,65 @@ export interface HoloParseResult {
   errors: any[];
   warnings: any[];
 }
+
+export type HoloContainmentPerceptionErrorCode =
+  | 'invalid-source'
+  | 'unsupported-import'
+  | 'unsupported-template'
+  | 'unsupported-dynamic-containment'
+  | 'unsupported-platform-constraint'
+  | 'duplicate-semantic-id'
+  | 'invalid-semantic-property'
+  | 'conflicting-semantic-property'
+  | 'unknown-query-entity';
+
+export class HoloContainmentPerceptionError extends Error {
+  readonly code: HoloContainmentPerceptionErrorCode;
+  constructor(code: HoloContainmentPerceptionErrorCode, message: string);
+}
+
+export interface HoloContainmentPerceptionOptions {
+  sourceId?: string;
+  query?: UAALContainmentQuery;
+}
+
+export interface HoloContainmentSourceRef {
+  format: '.holo';
+  parser: 'HoloCompositionParser';
+  composition: string;
+  sourceDigest: string;
+  sourceId?: string;
+  path: string;
+  line?: number;
+  column?: number;
+}
+
+export interface HoloContainmentPerceptionMetadata {
+  format: '.holo';
+  parser: 'HoloCompositionParser';
+  composition: string;
+  sourceDigest: string;
+  sourceId?: string;
+}
+
+export type HoloPerceivedSemanticEntity = UAALSemanticEntity & {
+  source: HoloContainmentSourceRef;
+};
+
+export type HoloPerceivedContainmentRelation = UAALContainmentRelation & {
+  source: HoloContainmentSourceRef;
+};
+
+export type HoloPerceivedContainmentIR = UAALContainmentIR & {
+  entities: HoloPerceivedSemanticEntity[];
+  containment: HoloPerceivedContainmentRelation[];
+  perception: HoloContainmentPerceptionMetadata;
+};
+
+export function perceiveContainmentIR(
+  source: string,
+  options?: HoloContainmentPerceptionOptions
+): HoloPerceivedContainmentIR;
 
 // ============================================================================
 // TRAIT VISUAL SYSTEM
