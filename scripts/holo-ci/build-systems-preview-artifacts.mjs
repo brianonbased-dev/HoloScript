@@ -136,6 +136,12 @@ function resolveWasmPack() {
   return existsSync(homeCandidate) ? homeCandidate : 'wasm-pack';
 }
 
+function resolveRustTool(name) {
+  const extension = process.platform === 'win32' ? '.exe' : '';
+  const homeCandidate = join(homedir(), '.cargo', 'bin', `${name}${extension}`);
+  return existsSync(homeCandidate) ? homeCandidate : name;
+}
+
 function ensureCleanSource() {
   for (const mode of [[], ['--cached']]) {
     const result = spawnSync('git', ['diff', '--quiet', ...mode, '--', ...SOURCE_PATHS], {
@@ -178,6 +184,8 @@ const temp = mkdtempSync(join(tmpdir(), 'holoscript-systems-build-'));
 const wasmTemp = join(temp, 'wasm');
 const secondPackDir = join(temp, 'second-pack');
 const wasmPack = resolveWasmPack();
+const cargo = resolveRustTool('cargo');
+const rustc = resolveRustTool('rustc');
 const commands = [];
 
 try {
@@ -191,7 +199,7 @@ try {
   mkdirSync(secondPackDir, { recursive: true });
 
   commands.push('cargo build --release -p holoscript-native --bin holoscriptc');
-  run('cargo', ['build', '--release', '-p', 'holoscript-native', '--bin', 'holoscriptc']);
+  run(cargo, ['build', '--release', '-p', 'holoscript-native', '--bin', 'holoscriptc']);
   const nativeSource = join(
     ROOT,
     'target',
@@ -337,8 +345,8 @@ try {
     toolchain: {
       node: process.version,
       npm: commandVersion('npm'),
-      rustc: commandVersion('rustc'),
-      cargo: commandVersion('cargo'),
+      rustc: commandVersion(rustc),
+      cargo: commandVersion(cargo),
       wasmPack: commandVersion(wasmPack),
     },
     commands,
