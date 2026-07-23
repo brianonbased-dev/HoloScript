@@ -244,6 +244,32 @@ export {
 } from './model-policy';
 export type { ModelLane, ModelTier, ModelLibraryEntry } from './model-policy';
 
+// HoloWeight — contract-carrying, backend-neutral weight-delta planning. The
+// planner validates exact artifact compatibility and receipt-bound admission
+// without loading tensors or mutating a serving endpoint.
+export { planWeightDeltaGraph } from './weight-delta-graph';
+export type {
+  ContentDigest,
+  WeightArtifactFormat,
+  WeightArtifactRef,
+  WeightCompatibility,
+  WeightDelta,
+  EvaluationRule,
+  EvaluatorPolicy,
+  EvaluationRequirement,
+  EvaluationReceiptRef,
+  WeightCompositionMethod,
+  WeightComposition,
+  WeightDeltaGraph,
+  WeightGraphReadiness,
+  WeightPlanIssueCode,
+  WeightPlanIssue,
+  AdmissionRequirementStatus,
+  AdmissionRequirementPlan,
+  WeightExecutionStep,
+  WeightExecutionPlan,
+} from './weight-delta-graph';
+
 // Local model discovery — picks the best behaviorally-verified tool-calling
 // model from whatever Ollama has installed, instead of a hardcoded tag
 // (founder 2026-06-10: "don't we have a large variety available?").
