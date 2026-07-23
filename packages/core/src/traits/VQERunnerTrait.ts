@@ -67,10 +67,9 @@ import type { HSPlusNode } from '../types/HoloScriptPlus';
 export type VQEMethod = 'vqe' | 'vqe-adapt';
 
 /** Supported classical optimisers for the variational loop.
- * RATCHET (F.070): 'l-bfgs-b' is listed as a type variant but no call site
- * in the current codebase selects it. The Python quantum_execute.py uses COBYLA.
- * This type variant exists for future use; do not claim L-BFGS-B convergence data
- * until a real optimizer call site is added. */
+ * The current bridge implements COBYLA for Aer and COBYLA or SPSA for IBM
+ * hardware. The other variants remain parse-time vocabulary only and are
+ * rejected at execution time. */
 export type VQEOptimizer = 'cobyla' | 'spsa' | 'l-bfgs-b' | 'nelder-mead';
 
 /** Execution backend. */
@@ -164,6 +163,17 @@ export interface VQEReceipt {
   evaluations: number;
   wallSeconds: number;
   jobId?: string;
+  /**
+   * Exact canonical object committed to by payloadHash. Emitting the preimage
+   * lets independent verifiers recompute the digest instead of trusting an
+   * opaque hash supplied by the producer.
+   */
+  hashPayload: {
+    energy: number;
+    jobId: string | null;
+    ansatz: string | null;
+    optimizer: string | null;
+  };
   /** SHA-256 hex of canonical payload for tamper-detection. */
   payloadHash: string;
 }
@@ -198,9 +208,10 @@ function defaultConfig(): VQERunnerConfig {
 
 /**
  * Compute a SHA-256 hex digest of a canonical JSON payload.
- * Uses SubtleCrypto when available (browser/Deno), falls back to a
- * pure-JS djb2 hex approximation for Node environments without
- * globalThis.crypto (tests, SSR without --experimental-vm-modules).
+ * Uses SubtleCrypto when available (browser/Deno), then Node crypto. An
+ * unmistakably labelled djb2 value is returned only if neither cryptographic
+ * implementation exists, so a consumer cannot mistake that fallback for
+ * SHA-256.
  */
 async function payloadHash(data: Record<string, unknown>): Promise<string> {
   const json = JSON.stringify(data, Object.keys(data).sort());
@@ -216,8 +227,7 @@ async function payloadHash(data: Record<string, unknown>): Promise<string> {
       .join('');
   }
   // RATCHET (was THIN P3): Formerly djb2 fallback padded to look like SHA-256.
-  // Now uses Node crypto.createHash('sha256') when SubtleCrypto is unavailable.
-  // ALL paths now produce genuine SHA-256. No djb2 approximation remains.
+  // Node uses crypto.createHash('sha256') when SubtleCrypto is unavailable.
   try {
     const { createHash } = await import('node:crypto');
     return createHash('sha256').update(json).digest('hex');
@@ -257,6 +267,7 @@ async function buildReceipt(
     evaluations: result.evaluations,
     wallSeconds: result.wallSeconds,
     jobId: result.jobId,
+    hashPayload: canonical,
     payloadHash: hash,
   };
 }
@@ -271,9 +282,30 @@ async function buildReceipt(
 async function dispatchVQE(
   config: VQERunnerConfig,
   moleculeAtoms: Array<{ symbol: string; x: number; y: number; z: number }>,
-  onEnergy?: (iteration: number, energy: number) => void
+  _onEnergy?: (iteration: number, energy: number) => void
 ): Promise<VQERunResult> {
   const t0 = Date.now();
+
+  if (config.method !== 'vqe') {
+    throw new Error(
+      `[vqeRunner] method '${config.method}' is not implemented by qm-bridge; only 'vqe' is executable.`
+    );
+  }
+  if (config.ansatz_type && config.ansatz_type !== 'hardware-efficient') {
+    throw new Error(
+      `[vqeRunner] ansatz '${config.ansatz_type}' is not implemented by qm-bridge; only 'hardware-efficient' is executable.`
+    );
+  }
+  if (config.optimizer !== 'cobyla' && config.optimizer !== 'spsa') {
+    throw new Error(
+      `[vqeRunner] optimizer '${config.optimizer}' is not implemented by qm-bridge; use 'cobyla' or 'spsa'.`
+    );
+  }
+  if (config.backend !== 'ibm-quantum' && config.optimizer !== 'cobyla') {
+    throw new Error(
+      `[vqeRunner] the Aer/statevector execution path currently implements only the 'cobyla' optimizer.`
+    );
+  }
 
   try {
     // Dynamic import Ã¢â‚¬â€ keeps core free of a hard compile-time dependency.
@@ -285,30 +317,54 @@ async function dispatchVQE(
     ) {
       const createBackend = (qmBridge as Record<string, (...args: unknown[]) => unknown>)
         .createIBMQuantumBackend;
+      const ansatz = 'hardware-efficient' as const;
       const backend = createBackend({
-        backend: config.backend === 'ibm-quantum' ? 'ibm-quantum' : 'ibm-quantum',
+        backend: 'ibm-quantum',
         method: config.method,
         basis: config.basis,
         executionMode: config.backend === 'ibm-quantum' ? 'ibm-quantum' : 'aer',
         apiToken: config.ibmApiToken,
-        backendName: config.ibmBackendName,
-        maxIter: config.maxIter,
+        ibmBackend: config.ibmBackendName,
+        maxOptimizerIterations: config.maxIter,
+        ansatz,
         optimizer: config.optimizer,
-        nShots: config.nShots,
-      }) as { vqe: (cfg: unknown) => Promise<{ energy: number; jobId?: string; evals?: number }> };
+      }) as {
+        runVQE: (molecule: {
+          atoms: typeof moleculeAtoms;
+          charge: number;
+          multiplicity: number;
+          units: 'angstrom';
+        }) => Promise<{
+          groundStateEnergy: number;
+          optimizerIterations: number;
+          executionBackend: 'aer' | 'ibm-quantum' | string;
+          jobId?: string;
+          wallTimeSeconds: number;
+          solverConfig?: { ansatz?: string; optimizer?: string };
+        }>;
+      };
 
-      const res = await backend.vqe({
+      const res = await backend.runVQE({
         atoms: moleculeAtoms,
-        onEnergyUpdate: onEnergy,
+        charge: 0,
+        multiplicity: 1,
+        units: 'angstrom',
       });
+      const actualOptimizer =
+        res.executionBackend === 'aer'
+          ? 'cobyla'
+          : (res.solverConfig?.optimizer ?? config.optimizer);
 
       return {
-        energy: res.energy,
+        energy: res.groundStateEnergy,
         unit: 'Ha',
-        evaluations: res.evals ?? 0,
-        wallSeconds: (Date.now() - t0) / 1000,
-        backend: config.backend,
+        evaluations: res.optimizerIterations,
+        wallSeconds: res.wallTimeSeconds,
+        backend: res.executionBackend,
         jobId: res.jobId,
+        ansatz: res.solverConfig?.ansatz ?? ansatz,
+        optimizer: actualOptimizer,
+        tier: res.executionBackend === 'ibm-quantum' ? 'real' : undefined,
       };
     }
   } catch (e) {

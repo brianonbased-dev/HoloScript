@@ -93,7 +93,9 @@ interface StoredTwinEarthReceipt {
 // REGISTRIES
 // =============================================================================
 
-// THIN (ratchet P5): identity/permission/envelope registries are in-memory only â€” no persistence, no substrate enforcement. All state lost on server restart.
+// Registry operations use Maps in-process. Non-test runtimes persist snapshots
+// to disk by default, so restart recovery is real; this is still not a
+// transactional or multi-process identity store.
 export const twinEarthIdentityRegistry = new Map<string, StoredTwinEarthIdentity>();
 export const safetyEnvelopeRegistry = new Map<string, StoredSafetyEnvelope>();
 export const permissionGrantRegistry = new Map<string, StoredPermissionGrant>();
@@ -397,8 +399,8 @@ export const robotAiMcpTools: Tool[] = [
   {
     name: 'twin_earth_create_safety_envelope',
     description:
-      'Create a Safety Envelope — runtime-enforced boundary for a robot or AI participant. THIN: substrateEnforced flag is advisory, not enforced at runtime. ' +
-      'Substrate-enforced; the participant cannot override it.',
+      'Create a Safety Envelope enforced for calls through the HoloScript MCP dispatch path. BOUNDED: this is not a kernel or hardware sandbox, and it cannot constrain backend calls made outside the gated dispatch seam. ' +
+      'Robot actuation uses the canonical gatedDispatch path; AI invocation enforces its local resource and permission checks but remains simulated.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -942,7 +944,7 @@ async function handleTwinEarthCreateSafetyEnvelope(
     envelopeId,
     agentId,
     substrateEnforced: true,
-    note: 'Safety envelope is substrate-enforced and cannot be overridden by the participant.',
+    note: 'Safety envelope is enforced for calls through HoloScript gated dispatch; it is not a kernel or hardware sandbox and cannot constrain out-of-band backend calls.',
   };
 }
 
@@ -1225,7 +1227,9 @@ async function handleTwinEarthRobotActuate(
     humanApprovalRequired: storedEnvelope.humanApprovalRequired,
     humanApprovalGrantedAt: storedEnvelope.humanApprovalGrantedAt,
     humanApprovalTtlMs: storedEnvelope.humanApprovalTtlMs,
-    substrateEnforced: storedEnvelope.substrateEnforced, // THIN (ratchet P5): flag copied from in-memory registry but never enforced by a substrate Ã¢â‚¬â€ client self-reports the value
+    // Enforced by gatedDispatch for this actuation path. This remains an
+    // application boundary, not a kernel or robot-runtime sandbox.
+    substrateEnforced: storedEnvelope.substrateEnforced,
   };
 
   const grant: PermissionGrant = storedGrant

@@ -78,7 +78,9 @@ export interface IBMQuantumConfig extends QmSolverConfig {
   // always uses EfficientSU2 (hardware-efficient). UCCSD/ADAPT-VQE are planned
   // but unimplemented; requesting them falls back to hardware-efficient silently.
   // Track: implement UCCSD ansatz in quantum_execute.py or remove from config.
-  /** Number of SPSA optimizer iterations. Default: 300. */
+  /** Hardware optimizer. Aer currently uses COBYLA regardless. Default: 'spsa'. */
+  optimizer?: 'spsa' | 'cobyla';
+  /** Maximum optimizer iterations. Default: 300. */
   maxOptimizerIterations?: number;
   /** QAOA circuit depth parameter p. Default: 1. */
   qaoa_p?: number;
@@ -282,6 +284,7 @@ export class IBMQuantumBackend implements QmSolver {
       ansatz: this.config.ansatz ?? 'hardware-efficient',
       ansatz_layers: ansatzLayers,
       max_iterations: this.config.maxOptimizerIterations ?? 300,
+      hw_optimizer: this.config.optimizer ?? 'spsa',
       execution_mode: this.config.executionMode ?? 'aer',
       ibm_backend: this.config.ibmBackend ?? null,
     };

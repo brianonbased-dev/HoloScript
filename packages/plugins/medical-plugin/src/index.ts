@@ -6,7 +6,11 @@
  */
 /**
  * @holoscript/medical-plugin
- * DICOM medical imaging and surgical simulation for HoloScript. THIN: DICOM viewer and surgical interfaces are type-only stubs with no rendering implementation; only BMI/GFR/PK/NEWS2/Framingham solvers are implemented.
+ * DICOM medical imaging and surgical simulation for HoloScript. THIN: DICOM
+ * viewer and surgical interfaces are type-only stubs with no rendering
+ * implementation. Deterministic clinical calculators (including Parkland)
+ * and in-memory FHIR/HL7 serializers are implemented, but there is no live
+ * clinical-system connectivity.
  */
 
 export * from './medicalsolver';

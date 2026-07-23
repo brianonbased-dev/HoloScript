@@ -1,11 +1,13 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { resolveHolomeshApiBase } from '../hologram-holomesh-send';
 /**
  * Sovereign topology + LifePod tools.
  *
- * OVERCLAIMED (ratchet P5): holomesh_sovereign_topology and lifepod tools delegate to an
- * orchestrator endpoint (/api/holomesh/sovereign/*) that does not exist. The handler
- * constructs fetch() calls to an absent baseUrl — every call returns network error.
- * D.051 tier hierarchy has no code enforcement layer; sovereignty is aspirational.
+ * The mcp-server routes are registered in knowledge-routes.ts. Topology is a
+ * deterministic preview generated from requested cluster/replica counts, not an
+ * observation of deployed clusters or live telemetry. LifePod snapshot/restore
+ * signs and verifies state, but the store is process-local and restore remains a
+ * simulated placement receipt rather than a real cluster migration.
  */
 import type { HoloMeshOrchestratorClient } from './orchestrator-client';
 
@@ -13,7 +15,7 @@ export const sovereignTools: Tool[] = [
   {
     name: 'holomesh_sovereign_topology',
     description:
-      'Get the graph topology view for sovereign HoloVM clusters. OVERCLAIMED: requires orchestrator endpoint which does not exist - returns error if called without a live HoloMesh orchestrator. No local fallback topology is generated.',
+      'Get a deterministic graph-topology preview for requested sovereign HoloVM cluster and replica counts. The registered mcp-server route models nodes and links from the request; it does not discover deployed clusters or report live telemetry.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -89,8 +91,9 @@ export async function handleSovereignTool(
     return { error: 'HoloMesh orchestrator client is required for Sovereign tools.' };
   }
 
-  const baseUrl = (client as any).config.orchestratorUrl;
   const apiKey = (client as any).config.apiKey;
+  const holomeshApiBase = resolveHolomeshApiBase();
+  const authHeaders = { 'x-mcp-api-key': apiKey };
 
   try {
     switch (name) {
@@ -98,18 +101,18 @@ export async function handleSovereignTool(
         const queryParams = new URLSearchParams();
         if (args.clusters) queryParams.set('clusters', String(args.clusters));
         if (args.replicas) queryParams.set('replicas', String(args.replicas));
-        const res = await fetch(`${baseUrl}/api/holomesh/sovereign/topology?${queryParams}`, {
-          headers: { Authorization: `Bearer ${apiKey}` },
+        const res = await fetch(`${holomeshApiBase}/sovereign/topology?${queryParams}`, {
+          headers: authHeaders,
         });
         return await res.json();
       }
 
       case 'holomesh_sovereign_lifepod_snapshot': {
-        const res = await fetch(`${baseUrl}/api/holomesh/sovereign/lifepod/snapshot`, {
+        const res = await fetch(`${holomeshApiBase}/sovereign/lifepod/snapshot`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json; charset=utf-8',
-            Authorization: `Bearer ${apiKey}`,
+            ...authHeaders,
           },
           body: JSON.stringify(args),
         });
@@ -117,11 +120,11 @@ export async function handleSovereignTool(
       }
 
       case 'holomesh_sovereign_lifepod_restore': {
-        const res = await fetch(`${baseUrl}/api/holomesh/sovereign/lifepod/restore`, {
+        const res = await fetch(`${holomeshApiBase}/sovereign/lifepod/restore`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json; charset=utf-8',
-            Authorization: `Bearer ${apiKey}`,
+            ...authHeaders,
           },
           body: JSON.stringify(args),
         });

@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/medical-plugin",
   "version": "2.0.3",
-  "description": "DICOM medical imaging and surgical simulation for HoloScript - VR medical training. THIN: DICOM viewer and surgical interfaces are type-only stubs; only clinical calculators are implemented.",
+  "description": "Medical traits, deterministic clinical calculators, and in-memory serializers for HoloScript. THIN: DICOM and surgical surfaces are type-only, with no live clinical-system connectivity.",
   "releaseLane": "v0-preview",
   "type": "module",
   "main": "./dist/index.js",

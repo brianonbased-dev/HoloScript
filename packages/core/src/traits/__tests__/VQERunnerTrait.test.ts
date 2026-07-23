@@ -9,10 +9,11 @@
  *   GUARD5 — vqe:status replies with current state.
  *   GUARD6 — receipt emitted on converged when writeReceipt=true.
  *   GUARD7 — receipt schema = 'cael-quantum-v1.vqe-runner'.
- *   GUARD8 — payloadHash is a non-empty string.
+ *   GUARD8 — payloadHash is independently recomputable SHA-256.
  *   GUARD9 — onDetach cancels a running job.
  */
 
+import { createHash } from 'node:crypto';
 import { describe, it, expect, vi } from 'vitest';
 
 // The handler intentionally loads qm-bridge dynamically. Keep these unit tests
@@ -20,8 +21,14 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('@holoscript/qm-bridge', () => ({
   createIBMQuantumBackend: function () {
     return {
-      vqe: async function () {
-        return { energy: -1.1175, evals: 3 };
+      runVQE: async function () {
+        return {
+          groundStateEnergy: -1.1175,
+          optimizerIterations: 3,
+          executionBackend: 'aer',
+          wallTimeSeconds: 0.01,
+          solverConfig: { ansatz: 'hardware-efficient', optimizer: 'cobyla' },
+        };
       },
     };
   },
@@ -285,9 +292,9 @@ describe('VQERunnerTrait', () => {
     });
   });
 
-  // GUARD8 — payloadHash non-empty
-  describe('GUARD8: payloadHash is a non-empty string', () => {
-    it('receipt payloadHash is a non-empty string', async () => {
+  // GUARD8 — canonical receipt payload is visible and independently verifiable
+  describe('GUARD8: payloadHash commits to the emitted canonical payload', () => {
+    it('emits ansatz and optimizer in hashPayload with a recomputable SHA-256', async () => {
       const node = makeNode();
       const { ctx, emitted } = makeContext();
       vqeRunnerHandler.onAttach!(node, baseConfig(), ctx);
@@ -301,8 +308,19 @@ describe('VQERunnerTrait', () => {
 
       const receiptEvent = emitted.find((e) => e.type === 'vqe:receipt');
       const receipt = receiptEvent?.payload as VQEReceipt | undefined;
-      expect(receipt?.payloadHash).toBeTypeOf('string');
-      expect(receipt!.payloadHash.length).toBeGreaterThan(0);
+      expect(receipt?.hashPayload).toEqual({
+        energy: -1.1175,
+        jobId: null,
+        ansatz: 'hardware-efficient',
+        optimizer: 'cobyla',
+      });
+      const canonicalJson = JSON.stringify(
+        receipt!.hashPayload,
+        Object.keys(receipt!.hashPayload).sort()
+      );
+      const expectedHash = createHash('sha256').update(canonicalJson).digest('hex');
+      expect(receipt!.payloadHash).toBe(expectedHash);
+      expect(receipt!.payloadHash).toMatch(/^[0-9a-f]{64}$/);
     });
   });
 
@@ -327,5 +345,34 @@ describe('VQERunnerTrait', () => {
       const converged = emitted.find((e) => e.type === 'vqe:converged');
       expect(converged).toBeUndefined();
     });
+  });
+
+  describe('GUARD10: unsupported quantum vocabulary fails honestly', () => {
+    it.each([
+      [{ method: 'vqe-adapt' as const }, "method 'vqe-adapt' is not implemented"],
+      [{ ansatz_type: 'uccsd' }, "ansatz 'uccsd' is not implemented"],
+      [{ optimizer: 'l-bfgs-b' as const }, "optimizer 'l-bfgs-b' is not implemented"],
+    ])(
+      'rejects %o instead of silently running a different algorithm',
+      async (override, message) => {
+        const node = makeNode();
+        const { ctx, emitted } = makeContext();
+        const config = baseConfig(override);
+        vqeRunnerHandler.onAttach!(node, config, ctx);
+
+        vqeRunnerHandler.onEvent!(node, config, ctx, {
+          type: 'vqe:run',
+          payload: { molecule: N2_ATOMS },
+        });
+
+        await flushAsync(25);
+
+        const errorEvent = emitted.find((event) => event.type === 'vqe:error');
+        expect(errorEvent).toBeDefined();
+        expect((errorEvent!.payload as { code: string }).code).toBe('EXECUTION_FAILED');
+        expect((errorEvent!.payload as { message: string }).message).toContain(message);
+        expect(emitted.find((event) => event.type === 'vqe:converged')).toBeUndefined();
+      }
+    );
   });
 });

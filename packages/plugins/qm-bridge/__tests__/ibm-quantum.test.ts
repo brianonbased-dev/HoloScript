@@ -53,6 +53,7 @@ describe('IBMQuantumBackend secret handling', () => {
       basis: 'sto-3g',
       executionMode: 'ibm-quantum',
       apiToken: 'secret-token',
+      optimizer: 'cobyla',
     });
 
     await solver.runVQE(h2);
@@ -65,6 +66,7 @@ describe('IBMQuantumBackend secret handling', () => {
 
     expect(payload).not.toHaveProperty('api_token');
     expect(payload).not.toHaveProperty('apiToken');
+    expect(payload['hw_optimizer']).toBe('cobyla');
     expect(JSON.stringify(payload)).not.toContain('secret-token');
     expect(options.env?.['IBM_QUANTUM_API_KEY']).toBe('secret-token');
   });

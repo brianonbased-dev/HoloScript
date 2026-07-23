@@ -193,6 +193,11 @@ def expected_receipt_hash(receipt: dict) -> str | None:
             {key: value for key, value in receipt.items() if key != "payload_hash"}
         )
     hash_payload = receipt.get("hash_payload")
+    if (
+        not isinstance(hash_payload, dict)
+        and receipt.get("schema") == "cael-quantum-v1.vqe-runner"
+    ):
+        hash_payload = receipt.get("hashPayload")
     return (
         expected_generic_hash(hash_payload) if isinstance(hash_payload, dict) else None
     )
@@ -2980,8 +2985,14 @@ def main() -> int:
         r = json.loads(path.read_text(encoding="utf-8"))
         name = path.name
         hash_payload = r.get("hash_payload")
+        stored_generic = r.get("payload_hash")
+        if (
+            not isinstance(hash_payload, dict)
+            and r.get("schema") == "cael-quantum-v1.vqe-runner"
+        ):
+            hash_payload = r.get("hashPayload")
+            stored_generic = r.get("payloadHash")
         if isinstance(hash_payload, dict):
-            stored_generic = r.get("payload_hash")
             want_generic = expected_receipt_hash(r)
             if stored_generic != want_generic:
                 print(f"FAIL  {name}  canonical payload_hash mismatch")
