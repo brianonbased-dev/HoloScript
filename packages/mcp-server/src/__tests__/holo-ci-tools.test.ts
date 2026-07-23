@@ -70,6 +70,13 @@ describe('holo-ci-tools', () => {
     // with the canonical scripts/holo-ci/gates.mjs so a dispatch via this tool can
     // never silently skip the fence that caught non-installable @holoscript/core.
     expect(workload.jobs.some((j) => j.id === 'cold-consume')).toBe(true);
+    // The language's three authored surfaces must remain one executable product,
+    // not three parser islands that happen to share a repository.
+    const closure = workload.jobs.find((j) => j.id === 'three-surface-closure');
+    expect(closure).toBeDefined();
+    expect(String(closure?.command)).toContain(
+      'pnpm run check:three-surface-closure -- --self-test --require-complete'
+    );
   });
 
   it('quick profile is a strict subset of full', () => {
@@ -82,6 +89,7 @@ describe('holo-ci-tools', () => {
     expect(quick.workload.jobs.length).toBeLessThan(full.workload.jobs.length);
     const fullIds = new Set(full.workload.jobs.map((j) => j.id));
     for (const j of quick.workload.jobs) expect(fullIds.has(j.id)).toBe(true);
+    expect(quick.workload.jobs.some((j) => j.id === 'three-surface-closure')).toBe(false);
   });
 
   it('embeds the exact sha into every gate command', () => {

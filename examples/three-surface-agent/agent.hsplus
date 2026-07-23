@@ -1,0 +1,35 @@
+// Minimal policy-carrying agent for the three-surface closure gate.
+#brain TriadAgent
+#version 1.0.0
+#target edge
+
+identity {
+  domain: "holoscript-language"
+  capability_tags: ["triad_decision", "native_authoring"]
+  requires: ["tools"]
+}
+
+@frame_declaration {
+  domain: "holoscript-language"
+  horizon: "2026-07"
+  capability_tier: 2
+  trust_tier: 2
+  allowed_tools: ["triad_decide", "emit_metric"]
+  denied_domains: ["treasury-custody", "public-identity"]
+}
+
+behavior on_task {
+  recall {
+    query: "three-surface decision policy"
+    limit: 3
+  }
+  plan {
+    state: {
+      signal: 1
+    }
+  }
+  reflect {
+    criteria: "the decision is deterministic and remains inside the declared frame"
+    escalate_on_fail: true
+  }
+}

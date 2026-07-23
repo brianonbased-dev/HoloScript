@@ -108,6 +108,7 @@ The example files are part of the pitch. They show how the three HoloScript form
 | `.hsplus` | [`examples/three-format-showcase/smart-gallery.hsplus`](examples/three-format-showcase/smart-gallery.hsplus)             | A gallery that grows from objects into templates, state, interactions, and audio.      |
 | `.holo`   | [`examples/iot/holotwin-smart-farm.holo`](examples/iot/holotwin-smart-farm.holo)                                         | A smart farm dashboard where MQTT sensors drive a 3D digital twin.                     |
 | `.holo`   | [`examples/novel-use-cases/05-robot-training-metaverse.holo`](examples/novel-use-cases/05-robot-training-metaverse.holo) | A robot training arena that links simulation, agents, feedback, and ROS-style targets. |
+| All three | [`examples/three-surface-agent/`](examples/three-surface-agent/)                                                         | One agent whose composition, cognition, and typed policy execute under one receipt.    |
 
 Use these when explaining HoloScript to a new person: start with the story, then show the format that carries it.
 

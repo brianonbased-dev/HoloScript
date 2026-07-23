@@ -1,41 +1,42 @@
 # Three-Format Showcase: Smart Gallery
 
-This directory contains the **same scene** — an interactive art gallery — implemented in all three HoloScript file formats. Compare them side-by-side to understand when and why to use each format.
+This directory is a **historical syntax comparison** of one gallery scene. It
+predates the canonical one-language/three-surface contract and is retained as a
+migration corpus. Do not use its `.hs` scene syntax or its "basic / extended /
+full" labels as current grammar authority.
+
+For an executable, parser-authoritative product that binds all three surfaces,
+use [`../three-surface-agent`](../three-surface-agent/) and run
+`pnpm check:three-surface-closure`.
 
 ## The Three Formats
 
-| Feature       | `.hs` (Basic)       | `.hsplus` (Extended)  | `.holo` (Full World)  |
-| ------------- | ------------------- | --------------------- | --------------------- |
-| **Purpose**   | Scene description   | Interactive apps      | Complete worlds       |
-| **Wrapper**   | None (flat)         | `composition { }`     | `composition { }`     |
-| **Objects**   | `object "Name" { }` | `object "Name" { }`   | `object "Name" { }`   |
-| **Templates** | -                   | `template "Name" { }` | `template "Name" { }` |
-| **Traits**    | Inline properties   | `@trait` decorators   | `@trait` decorators   |
-| **State**     | -                   | `state Name { }`      | `state Name { }`      |
-| **Actions**   | -                   | `action name() { }`   | `action name() { }`   |
-| **Behaviors** | -                   | `behavior { }`        | `behavior { }`        |
-| **Metadata**  | -                   | -                     | `metadata { }`        |
-| **Systems**   | -                   | -                     | `system "Name" { }`   |
-| **Lines**     | ~120                | ~190                  | ~290                  |
+| Surface | Current responsibility |
+| --- | --- |
+| `.hs` | Deterministic typed policy, logic, processes, and headless systems programs |
+| `.hsplus` | Typed behavior, traits, agents, cognition, state, effects, and authority |
+| `.holo` | Whole-system composition, environments, worlds, resources, events, effects, and orchestration |
 
 ## When to Use Each
 
-- **`.hs`** — Quick prototypes, static scenes, learning the object model. No interactivity needed.
-- **`.hsplus`** — Interactive applications with reusable components, state management, and user actions. Most apps live here.
-- **`.holo`** — Production worlds with platform targets, integrations (analytics, audio engines, lighting systems), and deployment metadata.
+- **`.hs`** — Use when deterministic computation and native/VM policy are the
+  center of the artifact.
+- **`.hsplus`** — Use when typed behavior, cognition, state, traits, or authority
+  are the center of the artifact.
+- **`.holo`** — Use when the artifact binds systems, resources, deployment,
+  embodiment, events, effects, or a world.
+
+A product can use one surface or bind all three. The extensions are not maturity
+tiers.
 
 ## Compile Commands
 
+The files below are not a canonical compile matrix. Use the current executable
+reference instead:
+
 ```bash
-# .hs — compiles to a static scene
-holoscript compile smart-gallery.hs --target r3f
-
-# .hsplus — compiles with interaction support
-holoscript compile smart-gallery.hsplus --target unity
-
-# .holo — compiles with full system wiring
-holoscript compile smart-gallery.holo --target openxr
-holoscript compile smart-gallery.holo --target godot
+pnpm check:three-surface-closure
+pnpm check:three-surface-closure:test
 ```
 
 ## What the Gallery Contains

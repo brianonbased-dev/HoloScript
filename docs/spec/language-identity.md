@@ -54,9 +54,12 @@ useful bridge outputs. They are not substitutes for these gates.
 
 The repository already contains real parsers, ASTs, traits, interpreters, runtimes, VM paths,
 compiler backends, policy-gated I/O, and provenance machinery. Coverage differs by surface and
-target. The native bytecode path is still evolving, direct lowering is incomplete in documented
-areas, and systems capabilities such as a stable memory/ABI model and self-hosting are not yet
-closed.
+target. A checked-in product tracer now executes one causal
+`.holo → .hsplus → .hs → .holo` path and returns a construct-level semantic-closure receipt;
+the `.hs` policy executes both natively and on the cognitive VM. This is a demonstrated bounded
+subset, not general language closure. Direct whole-document `.hsplus` lowering, recursive
+parameter-frame semantics, broader native/VM coverage, a stable memory/ABI model, and
+self-hosting are not yet closed.
 
 Therefore:
 
@@ -68,6 +71,8 @@ Therefore:
   demo surface.
 
 Implementation reconciliation lives in [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md).
+The executable three-surface contract lives in
+[`three-surface-semantic-closure.md`](./three-surface-semantic-closure.md).
 The strategic architecture bar lives in [`../../NORTH_STAR.md`](../../NORTH_STAR.md).
 
 ## Wording contract

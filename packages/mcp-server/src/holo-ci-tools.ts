@@ -214,6 +214,17 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
     profiles: ['full'],
     resource_requirements: { max_dph: 0.4 },
   },
+  'three-surface-closure': {
+    description:
+      'Three-surface semantic closure: one checked-in .holo + .hsplus + .hs product must causally execute every applicable stage with native/UAAL parity; exact target-inapplicable stages are independently allowlisted in its fail-closed HoloMeaning receipt',
+    step: [
+      'curl --proto \'=https\' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal',
+      '. "$HOME/.cargo/env"',
+      'pnpm run check:three-surface-closure -- --self-test --require-complete',
+    ].join('\n'),
+    profiles: ['full'],
+    resource_requirements: { max_dph: 0.4 },
+  },
   // The executable spec (I2, spec-as-corpus): normative source+verdict cases replayed against the
   // real WASM authority artifact. Distinct from the ecosystem artifact-admission "conformance"
   // subsystem (worlds/shards/NPCs JSON rules — a different domain that never parses source).

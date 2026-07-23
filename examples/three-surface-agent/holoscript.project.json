@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "holoscript.project.v1",
+  "name": "three-surface-agent",
+  "entries": {
+    "composition": "main.holo",
+    "agent": "agent.hsplus",
+    "logic": "policy.hs"
+  },
+  "bindings": [
+    {
+      "from": "main.holo#on_start",
+      "to": "agent.hsplus#on_task",
+      "kind": "event"
+    },
+    {
+      "from": "agent.hsplus#on_task",
+      "to": "policy.hs#decide",
+      "kind": "decision"
+    },
+    {
+      "from": "policy.hs#decide",
+      "to": "main.holo#apply_decision",
+      "kind": "effect"
+    }
+  ],
+  "expected": {
+    "constructs": [
+      "main.holo#composition:ThreeSurfaceAgent",
+      "main.holo#import:TriadAgent",
+      "main.holo#import:decide",
+      "main.holo#state:approved",
+      "main.holo#state:decision_count",
+      "main.holo#object:DecisionBeacon",
+      "main.holo#action:apply_decision",
+      "main.holo#action:apply_decision/body:0",
+      "main.holo#action:apply_decision/body:1",
+      "main.holo#action:apply_decision/body:2",
+      "main.holo#event:on_start",
+      "main.holo#event:on_start/body:0",
+      "agent.hsplus#TriadAgent",
+      "agent.hsplus#identity",
+      "agent.hsplus#frame_declaration",
+      "agent.hsplus#on_task",
+      "agent.hsplus#on_task/0:recall",
+      "agent.hsplus#on_task/1:plan",
+      "agent.hsplus#on_task/2:reflect",
+      "policy.hs#decide",
+      "policy.hs#main",
+      "binding:event:main.holo#on_start->agent.hsplus#on_task",
+      "binding:decision:agent.hsplus#on_task->policy.hs#decide",
+      "binding:effect:policy.hs#decide->main.holo#apply_decision"
+    ],
+    "notApplicableStages": [
+      "main.holo#object:DecisionBeacon:typed",
+      "main.holo#object:DecisionBeacon:lowered",
+      "main.holo#object:DecisionBeacon:enforced",
+      "main.holo#object:DecisionBeacon:executed",
+      "main.holo#object:DecisionBeacon:target_preserved",
+      "agent.hsplus#on_task/0:recall:enforced",
+      "agent.hsplus#on_task/1:plan:enforced",
+      "policy.hs#decide:enforced",
+      "policy.hs#main:enforced"
+    ],
+    "state": {
+      "approved": true,
+      "decision_count": 1
+    },
+    "events": [
+      "decision_applied"
+    ]
+  }
+}

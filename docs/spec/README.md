@@ -1,6 +1,7 @@
 # HoloScript Language Specification
 
-> **Status (2026-07-17): stratum taxonomy ratified.** This directory is the canonical home of
+> **Status (2026-07-23): stratum taxonomy ratified and three-surface closure gated.**
+> This directory is the canonical home of
 > the HoloScript language specification, now topped by
 > [`language-architecture.md`](./language-architecture.md) — the ratified three-strata
 > taxonomy that scopes every other doc here. Its historical core — the reclaimed uAAL/HOLO
@@ -15,6 +16,7 @@
 | [`language-architecture.md`](./language-architecture.md) | **The ratified top of the language canon (2026-07-17)**: three strata — ① surface (the three formats) · ② meaning (**HoloMeaning**, `@holoscript/meaning`, defined once) · ③ execution (uAAL cognitive VM + HOLO VM). Bans bare "uAAL" as a language name; gate `check:language-strata --strict`. Every doc below is scoped by it. |
 | [`language-identity.md`](./language-identity.md) | The canonical category and wording contract: general-purpose semantic systems programming language, current honesty boundary, and systems-language acceptance gates. |
 | [`holoscript-grammar-ssot.md`](./holoscript-grammar-ssot.md) | The accepted-grammar router: parser-backed sources only, plus the conformance test that keeps `get_syntax_reference` examples aligned with the production parser path. |
+| [`three-surface-semantic-closure.md`](./three-surface-semantic-closure.md) | The executable `.holo` + `.hsplus` + `.hs` product contract: causal bindings, canonical diagnostics, per-construct semantic stages, strict receipt rules, and demonstrated limits. |
 | [`uaal-language-spec.md`](./uaal-language-spec.md) | The reclaimed uAAL (cognitive) + HOLO (spatial) language definition: primitives, instruction set, and a **real-vs-aspirational** reconciliation with the shipped code. |
 | [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md) | The language-build backlog: each spec claim mapped to its actual code status (shipped / island / absent), with the seam that would close it. |
 | [`motivation-trait.md`](./motivation-trait.md) | (pre-existing) trait-level spec note. |
@@ -28,22 +30,19 @@ HoloScript is a **general-purpose semantic systems programming language in three
 (MEMORY F.120), all descending from the uaa2-service genesis. The table records current
 implementation strengths; it does not define a permanent set of domains:
 
-| Format | Role | Descends from | Canonical compiler/runtime | Status |
-|--------|------|---------------|----------------------------|--------|
-| `.holo` | Spatial **IR** — scenes, entities, transforms | **HOLO VM** (spatial) | `core/compiler/HolobCompiler.ts` → `@holoscript/holo-vm` (`executor.ts`) | ✅ wired + e2e-tested to pixels (2026-06-05) |
-| `.hsplus` | **Traits / brains** — declarative behavior authoring | uAAL handler-extension arch | parsed by `@holoscript/core` | ⚠️ parsed; native authoring coverage is tracked separately |
-| `.hs` | **Logic** — imperative/cognitive programs | **uAAL** (cognitive) | Rust/WASM grammar (`packages/compiler-wasm`); `.hs→Kotlin` emitter (2026-06-21) | ⚠️ grammar parses; emitter young; direct `.hs`→UAAL lowering remains unwired |
+| Format | Strongest role | Canonical authority | Demonstrated closure |
+|--------|----------------|---------------------|----------------------|
+| `.holo` | Whole-system composition, worlds, events, effects, and orchestration | `HoloCompositionParser`; spatial `HolobCompiler`; behavioral `UaalBehaviorCompiler` | ✅ spatial render path plus executable event/action behavior, typed action parameters, and observable VM effects |
+| `.hsplus` | Typed agents, brains, cognition, state, traits, effects, and authority | preprocessing + `HoloScriptPlusParser`; edge agent projection/runtime | ✅ strict typed brain projection, deterministic cognition/reflection, and frame enforcement in the three-surface tracer |
+| `.hs` | Deterministic typed policy and systems logic | Rust/WASM grammar and shared semantic type pass | ✅ conservative typed subset lowers to UAAL and executes natively with parity; broader language coverage remains active work |
 
-> **The load-bearing gap:** the cognitive runtime (`@holoscript/uaal`, a real
-> compiler + VM) still has an Intent-DSL compiler of its own, while the canonical
-> parser bridge is only partially wired. Current reality: `holo compile --target uaal`
-> exists for `.holo` compositions with behavior/action blocks and lowers through
-> `UaalBehaviorCompiler` into `.uaal` bytecode. The remaining gap is direct
-> `.hs`/`.hsplus` lowering to UAAL bytecode plus richer argument/local semantics over the VM's
-> minimal return-address stack. The pipeline
-> `(.hs/.hsplus → uAA2++ compiler → UAAL bytecode → VM)` documented in
-> [`../agents/uaal-vm.md`](../agents/uaal-vm.md) is therefore **partial**, not absent. See
-> [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md).
+> **The load-bearing gap has narrowed, not disappeared.** The checked-in
+> [`three-surface-agent`](../../examples/three-surface-agent/) now proves one causal
+> `.holo → .hsplus → .hs → .holo` product with a construct-complete HoloMeaning
+> receipt. Direct whole-document `.hsplus` lowering, general `.hs` coverage,
+> recursive `.holo` parameter frames, and formal cross-target preservation remain
+> open. See [`three-surface-semantic-closure.md`](./three-surface-semantic-closure.md)
+> and [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md).
 
 ## Provenance
 

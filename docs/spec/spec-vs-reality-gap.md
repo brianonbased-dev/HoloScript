@@ -1,7 +1,7 @@
 # uAAL/HOLO Spec ↔ Reality Gap (the language-build backlog)
 
 > Reconciles [`uaal-language-spec.md`](./uaal-language-spec.md) against the shipped code,
-> verified initially 2026-06-22 and refreshed 2026-07-03 in the HoloScript repo. Each gap carries the F.076 four-question frame
+> verified initially 2026-06-22 and refreshed 2026-07-23 in the HoloScript repo. Each gap carries the F.076 four-question frame
 > (falsifiable claim · real seam · failing-if-broken evidence · scope/blast) so it is a
 > buildable slice, not a vibe. Ordered by leverage.
 > **Stratum scope (2026-07-17):** bare "uAAL" below is historical wording — per
@@ -17,22 +17,46 @@
 |---|------------|---------|--------|
 | G1 | `.holo → bytecode → VM → render` | `HolobCompiler` + `holo-vm`, e2e-tested to pixels | ✅ |
 | G2 | `@holoscript/uaal` cognitive VM + compiler | `packages/uaal` alive, consumed by agent-protocol/engine/studio | ✅ (runtime) |
-| G3 | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode` | **behavior bridge active**: `UaalBehaviorCompiler` lowers `.holo` action/handler behavior to UAAL bytecode, including loops and named action `CALL`/`RET`; direct `.hs/.hsplus` lowering remains | ✅⚠️ **partial** |
+| G3 | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode` | `.holo` behavior bridge active; canonical `.hs` Rust/WASM path now lowers a conservative typed function subset directly to UAAL; whole-document `.hsplus` lowering remains | ✅⚠️ **partial** |
 | G4 | `holo compile … --target uaal` (per `agents/uaal-vm.md`) | **shipped**: `--target uaal` parses `.holo` → `UaalBehaviorCompiler` → writes `.uaal` bytecode; verified end-to-end | ✅ |
 | G5 | cognitive ⇄ spatial via `SceneSnapshot` | **shipped**: `sceneSnapshot()` serializes HOLO world → perception; both real VMs proven against the shared contract (producer+act / cognitive decision); in-process adapter deferred (needs a package depping both) | ✅⚠️ **partial** |
-| G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar parses; `.hs→Kotlin` emitter now covers a substantial subset — numerics, enums, structs (+per-field type inference), strings (+`${}` interpolation), arrays→`listOf` with `List<T>` inference on returns/params/locals (G6 + G7 slice-1/slice-2/G7c/G7d shipped 2026-06-21..23); still a *declared* subset (object-literals→`mapOf` = G7e, struct list-fields = G7f queued); TS parser can't parse `.hs` logic (HSP101) | ⚠️ growing |
+| G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar plus shared body-type pass; a conservative typed `i32` subset compiles to UAAL and to a native executable with result parity in the three-surface tracer; broader data/ABI coverage remains | ✅⚠️ **bounded subset** |
 | G7 | native-authoring coverage is tracked + rising | **shipped**: `check:native-coverage` ratchet gate; live baseline is computed by the checker, must rise/hold, and replaces the unverified paper figure | ✅ |
 | G8 | the spec is the language's source of truth | spec lived only in the Gemini knowledge silo until 2026-06-22 | ✅ (reclaimed by this dir) |
 | G9 | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending | ✅⚠️ **partial** |
 
 ---
 
+## 2026-07-23 semantic-closure ratchet
+
+[`three-surface-semantic-closure.md`](./three-surface-semantic-closure.md) and
+[`examples/three-surface-agent`](../../examples/three-surface-agent/) supersede
+the older assumption that each extension should be demonstrated in isolation.
+The checked-in tracer proves one causal path:
+
+```text
+.holo on_start
+  → .hsplus on_task
+  → .hs decide(plan.signal)
+  → .holo apply_decision
+```
+
+Its independent 24-construct inventory reports 135 passed stage observations,
+zero deferred, zero rejected, and nine exact target-inapplicable stages. The
+mutation self-test must reject state, binding, inventory, policy-result, and
+plan-signal drift. This closes a bounded executable slice of G3 and G6; it does
+not close whole-document `.hsplus` lowering, the complete `.hs` grammar,
+recursive `.holo` parameter frames, or formal target preservation.
+
+---
+
 ## G3 — Wire `.hs`/`.hsplus` source into the uAAL compiler *(highest leverage)*
 
-The cognitive language is now reachable from `.holo` behavior/action blocks, but direct
-`.hs`/`.hsplus` lowering remains incomplete. `packages/uaal/compiler.ts` still tokenizes its own
-Intent-DSL (`INTAKE("…")`, `CYCLE("…")`, `IF…THEN…END`), while the canonical `.hs`/`.hsplus`
-parser output needs a first-class UAAL lowering path.
+The cognitive language is reachable from `.holo` behavior/action blocks, and
+the canonical Rust/WASM `.hs` parser now lowers a conservative typed function
+subset directly to UAAL. Whole-document `.hsplus` lowering remains incomplete.
+`packages/uaal/compiler.ts` also retains its historical Intent-DSL
+(`INTAKE("…")`, `CYCLE("…")`, `IF…THEN…END`) for compatibility.
 
 - **Falsifiable claim:** a `.hs`/`.hsplus` source file compiles, through the canonical parser,
   to a `UAALBytecode` packet that `packages/uaal` `vm.ts` executes — producing the same result
@@ -45,7 +69,8 @@ parser output needs a first-class UAAL lowering path.
 - **Scope/blast:** new file under `core/src/compiler/` + a test; consumes existing
   `@holoscript/uaal`. Out of scope: changing the uaal VM ISA. Regression risk: low (additive
   target; does not touch `HolobCompiler` or the `.holo` path).
-- **STATUS — slice 1 SHIPPED 2026-06-22; CALL/RET slice shipped 2026-07-03.**
+- **STATUS — `.holo` slice shipped 2026-06-22; CALL/RET slice shipped
+  2026-07-03; direct typed `.hs` subset shipped 2026-07-23.**
   `core/src/compiler/UaalBehaviorCompiler.ts` +
   `core/src/__tests__/compiler/UaalBehaviorCompiler.test.ts` pass on the real
   `@holoscript/uaal` VM; `tsc --noEmit` on core is clean; **no new dependency / lockfile change** —
@@ -59,8 +84,13 @@ parser output needs a first-class UAAL lowering path.
     ExpressionStatement, ReturnStatement, IfStatement, For/While/ClassicFor, and named action
     calls lowered to real UAAL `CALL`/`RET` with patched entry-point PCs.
   - **Deferred (recorded as `stats.unhandled`, not faked):** Animate and OnError.
-  - **Remaining for G3:** direct `.hs`/`.hsplus` lowering, plus richer argument/local binding
-    semantics above the VM's intentionally minimal return-address stack.
+  - **Direct `.hs` subset:** `packages/compiler-wasm/src/uaal_emit.rs` consumes
+    the canonical AST, shares the semantic body-type pass used by validation,
+    lowers typed `i32` arithmetic, comparison, calls, conditionals, and
+    `while`, and fails closed when width, ownership, short-circuit, or ABI
+    semantics are not preserved.
+  - **Remaining for G3:** whole-document `.hsplus` lowering and broader `.hs`
+    type/control/data coverage.
 
 ## G4 — Register a `uaal` CLI compile target
 
@@ -116,12 +146,13 @@ actuate back) is described but not exercised in a canonical path.
 
 ## G6 — Mature the `.hs` grammar + emitter on the canonical Rust/WASM parser
 
-The `.hs→Kotlin` emitter (first landed 2026-06-21, W.815) is the proof `.hs` logic compiles to a
-real target. Since then the subset has grown — loops, structs (with per-field type inference),
-local mutable-state, string interpolation (`${}`), and typed arrays/lists (`listOf` + `List<T>`
-inference on returns, params, and locals) all ship and are cargo-/parity-tested. It is still a
-*declared subset* (`lib.rs:1` self-labels "`.hs` subset parser"): object literals → `mapOf` (G7e)
-and struct list-fields (G7f) are the next queued slices; broader grammar generalization continues.
+The `.hs→Kotlin` emitter (first landed 2026-06-21, W.815) proved `.hs`
+could reach a real target. The 2026-07-23 slice adds a shared semantic body-type
+pass and direct UAAL lowering for a conservative typed subset. The
+three-surface tracer compiles and runs the same `.hs` policy through the native
+path and the cognitive VM and requires equal results. The parser and emitters
+remain declared subsets; broader grammar, data, ownership, and ABI
+generalization continues.
 
 - **Falsifiable claim:** the documented `.hs` logic subset compiles via `packages/compiler-wasm`
   to ≥1 target with parity tests green.
