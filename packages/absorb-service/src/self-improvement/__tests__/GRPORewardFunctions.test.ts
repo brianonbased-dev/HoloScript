@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { RewardToolRunner } from '../GRPORewardFunctions';
 import { createGRPORewardFunctions, GRPO_REWARD_WEIGHTS } from '../GRPORewardFunctions';
 // Real (non-mocked) tool runner — the actual production implementation that
-// shells out to a real `npx vitest` subprocess. Imported (not re-derived)
+// launches the repository-resolved Vitest CLI. Imported (not re-derived)
 // so this test exercises the FIX itself rather than a second hand-rolled
 // copy that could silently diverge from it.
 import { realToolRunner } from '../../daemon/daemon-grpo-runner';
@@ -215,8 +215,8 @@ describe('GRPORewardFunctions', () => {
   // mocked-runner suite above can't catch this because it never actually
   // shells out to vitest, so it never observed vitest's CLI filtering a
   // positional path arg against its own test-file include glob. This suite
-  // uses the real production `realToolRunner` (real temp files, real `npx
-  // vitest` subprocess) end-to-end.
+  // uses the real production `realToolRunner` (real temp files, real Vitest
+  // subprocess) end-to-end.
   // ---------------------------------------------------------------------------
 
   describe('testPassReward (real, non-mocked tool runner)', () => {
@@ -276,6 +276,53 @@ describe('mixed completion', () => {
       expect(rewards).toHaveLength(1);
       expect(rewards[0]).toBeCloseTo(0.5, 4);
     }, 60_000);
+  });
+
+  describe('real tool runner package binaries', () => {
+    it('runs the repository TypeScript compiler without shell discovery', async () => {
+      const filePath = await realToolRunner.writeTempFile(
+        'const value: number = 1;\nvoid value;\n',
+        '.ts'
+      );
+
+      try {
+        const result = await realToolRunner.runTypeCheck(filePath, { timeout: 30_000 });
+
+        expect(result.passed, result.output).toBe(true);
+        expect(result.output).not.toContain('node_modules\\node_modules');
+      } finally {
+        await realToolRunner.deleteTempFile(filePath);
+      }
+    }, 45_000);
+
+    it('still rejects completion-source type errors while skipping dependency declarations', async () => {
+      const filePath = await realToolRunner.writeTempFile(
+        'const value: number = "not a number";\nvoid value;\n',
+        '.ts'
+      );
+
+      try {
+        const result = await realToolRunner.runTypeCheck(filePath, { timeout: 30_000 });
+
+        expect(result.passed).toBe(false);
+        expect(result.output).toContain('error TS2322');
+      } finally {
+        await realToolRunner.deleteTempFile(filePath);
+      }
+    }, 45_000);
+
+    it('runs the repository ESLint binary without shell discovery', async () => {
+      const filePath = await realToolRunner.writeTempFile('const value = 1;\nvoid value;\n', '.ts');
+
+      try {
+        const result = await realToolRunner.runLint(filePath, { timeout: 30_000 });
+
+        expect(result.issueCount).toBe(0);
+        expect(result.output).not.toContain('node_modules\\node_modules');
+      } finally {
+        await realToolRunner.deleteTempFile(filePath);
+      }
+    }, 45_000);
   });
 
   // ---------------------------------------------------------------------------

@@ -21,12 +21,86 @@ import {
   type OrchestratorStats,
 } from '../self-improvement/index.js';
 import type { RewardToolRunner, RewardFunctionOptions } from '../self-improvement/index.js';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
+import { createRequire } from 'module';
 import { promisify } from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+const requireFromModule = createRequire(import.meta.url);
+const packageBinaryCache = new Map<string, string>();
+
+interface PackageManifest {
+  bin?: string | Record<string, string>;
+}
+
+interface ProcessFailure {
+  message?: string;
+  stdout?: string;
+  stderr?: string;
+}
+
+interface VitestJsonResult {
+  numPassedTests?: number;
+  numTotalTests?: number;
+  coveragePercent?: number;
+}
+
+function resolvePackageBinary(packageName: string, binaryName: string): string {
+  const cacheKey = `${packageName}:${binaryName}`;
+  const cached = packageBinaryCache.get(cacheKey);
+  if (cached) return cached;
+
+  const manifestPath = requireFromModule.resolve(`${packageName}/package.json`);
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as PackageManifest;
+  const relativeBinary =
+    typeof manifest.bin === 'string' ? manifest.bin : manifest.bin?.[binaryName];
+
+  if (!relativeBinary) {
+    throw new Error(`Package "${packageName}" does not expose binary "${binaryName}"`);
+  }
+
+  const resolved = path.resolve(path.dirname(manifestPath), relativeBinary);
+  packageBinaryCache.set(cacheKey, resolved);
+  return resolved;
+}
+
+function processFailureOutput(error: unknown): string {
+  const failure = error as ProcessFailure;
+  const output = `${failure.stdout ?? ''}${failure.stderr ?? ''}`;
+  return output || failure.message || String(error);
+}
+
+function parseVitestJson(output: string): VitestJsonResult | null {
+  const lines = output.trim().split(/\r?\n/).reverse();
+  for (const line of lines) {
+    const candidate = line.trim();
+    if (!candidate.startsWith('{')) continue;
+
+    try {
+      const result = JSON.parse(candidate) as VitestJsonResult;
+      if (typeof result.numTotalTests === 'number') return result;
+    } catch {
+      // Keep searching in case diagnostics preceded the JSON reporter output.
+    }
+  }
+
+  return null;
+}
+
+function vitestCounts(
+  output: string,
+  outputLimit: number
+): { passed: number; total: number; coveragePercent?: number; output: string } {
+  const result = parseVitestJson(output);
+  return {
+    passed: result?.numPassedTests ?? 0,
+    total: result?.numTotalTests ?? 0,
+    coveragePercent: result?.coveragePercent,
+    output: output.slice(0, outputLimit),
+  };
+}
 
 // =============================================================================
 // TYPES
@@ -151,53 +225,33 @@ export const realToolRunner: RewardToolRunner = {
       // config rather than crash the whole reward evaluation.
     }
     try {
-      const cmd = `npx vitest run --reporter=json --root "${workDir}" --config "${configPath}" "${filePath}" 2>&1`;
-      const { stdout, stderr } = await execAsync(cmd, {
-        cwd: workDir,
-        timeout,
-        maxBuffer: 5 * 1024 * 1024,
-      });
-      const output = stdout + stderr;
-      const jsonMatch = output.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const result = JSON.parse(jsonMatch[0]);
-          return {
-            passed: result.numPassedTests ?? 0,
-            total: result.numTotalTests ?? 0,
-            coveragePercent: result.coveragePercent,
-            output: output.slice(0, 2000),
-          };
-        } catch {
-          // JSON parse failed
+      const { stdout, stderr } = await execFileAsync(
+        process.execPath,
+        [
+          resolvePackageBinary('vitest', 'vitest'),
+          'run',
+          '--reporter=json',
+          '--root',
+          workDir,
+          '--config',
+          configPath,
+          filePath,
+        ],
+        {
+          cwd: workDir,
+          timeout,
+          maxBuffer: 5 * 1024 * 1024,
+          windowsHide: true,
+          encoding: 'utf-8',
         }
-      }
-      return { passed: 0, total: 0, output: output.slice(0, 2000) };
+      );
+      return vitestCounts(stdout + stderr, 2000);
     } catch (e: unknown) {
       // `vitest run` exits non-zero whenever ANY test in the file fails —
       // not just on a crash — so this branch is hit for every completion
-      // with a partial pass rate, not only total failures. execAsync still
-      // captures stdout/stderr on a rejected exec, and the JSON reporter's
-      // output (with the real passed/total counts) is in there; parse it
-      // the same way the try branch does instead of discarding it wholesale
-      // (which previously collapsed every partial-pass completion to 0/0).
-      const execErr = e as { stdout?: string; stderr?: string };
-      const output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
-      const jsonMatch = output.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const result = JSON.parse(jsonMatch[0]);
-          return {
-            passed: result.numPassedTests ?? 0,
-            total: result.numTotalTests ?? 0,
-            coveragePercent: result.coveragePercent,
-            output: output.slice(0, 1000),
-          };
-        } catch {
-          // JSON parse failed — fall through to the zeroed result below.
-        }
-      }
-      return { passed: 0, total: 0, output: output.slice(0, 1000) };
+      // with a partial pass rate. execFile still captures stdout/stderr on a
+      // rejected process, and the JSON reporter output has the real counts.
+      return vitestCounts(processFailureOutput(e), 1000);
     }
   },
 
@@ -208,18 +262,27 @@ export const realToolRunner: RewardToolRunner = {
     const timeout = options?.timeout ?? 30_000;
     const workDir = path.dirname(filePath);
     try {
-      const { stdout, stderr } = await execAsync(
-        `npx tsc --noEmit --pretty false "${filePath}" 2>&1`,
-        { cwd: workDir, timeout, maxBuffer: 5 * 1024 * 1024 }
+      const { stdout, stderr } = await execFileAsync(
+        process.execPath,
+        [
+          resolvePackageBinary('typescript', 'tsc'),
+          '--noEmit',
+          '--pretty',
+          'false',
+          '--skipLibCheck',
+          filePath,
+        ],
+        {
+          cwd: workDir,
+          timeout,
+          maxBuffer: 5 * 1024 * 1024,
+          windowsHide: true,
+          encoding: 'utf-8',
+        }
       );
-      const output = stdout + stderr;
-      const errorCount = (output.match(/error TS\d+/g) ?? []).length;
-      return { passed: errorCount === 0, output: output.slice(0, 2000) };
+      return { passed: true, output: (stdout + stderr).slice(0, 2000) };
     } catch (e: unknown) {
-      const execErr = e as { stdout?: string; stderr?: string };
-      const output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
-      const errorCount = (output.match(/error TS\d+/g) ?? []).length;
-      return { passed: errorCount === 0, output: output.slice(0, 2000) };
+      return { passed: false, output: processFailureOutput(e).slice(0, 2000) };
     }
   },
 
@@ -230,11 +293,17 @@ export const realToolRunner: RewardToolRunner = {
     const timeout = options?.timeout ?? 30_000;
     const workDir = path.dirname(filePath);
     try {
-      const { stdout, stderr } = await execAsync(`npx eslint "${filePath}" --format json 2>&1`, {
-        cwd: workDir,
-        timeout,
-        maxBuffer: 5 * 1024 * 1024,
-      });
+      const { stdout, stderr } = await execFileAsync(
+        process.execPath,
+        [resolvePackageBinary('eslint', 'eslint'), filePath, '--format', 'json'],
+        {
+          cwd: workDir,
+          timeout,
+          maxBuffer: 5 * 1024 * 1024,
+          windowsHide: true,
+          encoding: 'utf-8',
+        }
+      );
       const output = stdout + stderr;
       try {
         const result = JSON.parse(output);
@@ -251,10 +320,13 @@ export const realToolRunner: RewardToolRunner = {
         return { issueCount: errorCount + warningCount, output: output.slice(0, 2000) };
       }
     } catch (e: unknown) {
-      const execErr = e as { stdout?: string; stderr?: string };
-      const output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
-      const issueCount = (output.match(/^\s*\d+:\d+\s+error\s/gm) ?? []).length;
-      return { issueCount, output: output.slice(0, 2000) };
+      const output = processFailureOutput(e);
+      const errorCount = (output.match(/^\s*\d+:\d+\s+error\s/gm) ?? []).length;
+      const warningCount = (output.match(/^\s*\d+:\d+\s+warning\s/gm) ?? []).length;
+      return {
+        issueCount: Math.max(1, errorCount + warningCount),
+        output: output.slice(0, 2000),
+      };
     }
   },
 
