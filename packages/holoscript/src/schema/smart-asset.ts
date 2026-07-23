@@ -12,6 +12,8 @@ export const HoloSmartAssetMetadataSchema = z.object({
   license: z.string().optional(),
 });
 
+export type HoloSmartAssetMetadata = z.infer<typeof HoloSmartAssetMetadataSchema>;
+
 export const HoloPhysicsPropertiesSchema = z.object({
   mass: z.number().optional(),
   friction: z.number().optional(),
@@ -20,11 +22,16 @@ export const HoloPhysicsPropertiesSchema = z.object({
   colliderType: z.enum(['box', 'sphere', 'capsule', 'mesh']).optional(),
 });
 
+export type HoloPhysicsProperties = z.infer<typeof HoloPhysicsPropertiesSchema>;
+export type ColliderType = NonNullable<HoloPhysicsProperties['colliderType']>;
+
 export const HoloAIBehaviorSchema = z.object({
   personality: z.string().optional(),
   interactions: z.array(z.string()).optional(), // List of interaction triggers
   knowledgeBaseId: z.string().optional(),
 });
+
+export type HoloAIBehavior = z.infer<typeof HoloAIBehaviorSchema>;
 
 /**
  * HoloSmartAsset
@@ -73,3 +80,8 @@ export const HoloSmartAssetSchema = z.object({
   assets: z.record(z.string(), z.union([z.string(), z.instanceof(Uint8Array)])).optional(),
   dependencies: z.record(z.string(), z.string()).optional(),
 });
+
+export type HoloSmartAssetType = HoloSmartAsset;
+export type ZodIssue = z.core.$ZodIssue;
+export type ZodError = z.ZodError;
+export type ZodType<Output> = z.ZodType<Output>;

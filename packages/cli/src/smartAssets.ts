@@ -34,7 +34,7 @@ export async function packAsset(
   const validation = HoloSmartAssetSchema.safeParse(json);
   if (!validation.success) {
     console.error(`\x1b[31mSchema Validation Failed:\x1b[0m`);
-    validation.error.errors.forEach((err: { path: any[]; message: string }) => {
+    validation.error.issues.forEach((err: { path: PropertyKey[]; message: string }) => {
       console.error(`  ${err.path.join('.')}: ${err.message}`);
     });
     throw new Error(`Invalid Smart Asset descriptor.`);

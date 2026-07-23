@@ -27,7 +27,7 @@
     "@holoscript/connector-core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "form-data": "^4.0.0",
-    "googleapis": "^144.0.0",
+    "googleapis": "^173.0.0",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2"
   },

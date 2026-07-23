@@ -6,7 +6,11 @@ export default defineConfig({
     'schema/index': 'src/schema/index.ts',
   },
   format: ['cjs', 'esm'],
-  dts: false,
+  dts: {
+    compilerOptions: {
+      composite: false,
+    },
+  },
   clean: true,
   sourcemap: true,
   splitting: true,

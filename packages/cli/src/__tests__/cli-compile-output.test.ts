@@ -21,6 +21,28 @@ async function runCli(args: string[]) {
   });
 }
 
+async function expectLegacyTargetRejected(args: string[], normalizedTarget: string): Promise<void> {
+  try {
+    await runCli(args);
+    throw new Error(`Expected legacy compile target "${normalizedTarget}" to be rejected`);
+  } catch (error) {
+    const result = error as Error & {
+      code?: number | string;
+      stdout?: string;
+      stderr?: string;
+    };
+
+    if (result.message.startsWith('Expected legacy compile target')) {
+      throw result;
+    }
+
+    expect(result.code).not.toBe(0);
+    expect(`${result.stdout ?? ''}\n${result.stderr ?? ''}\n${result.message}`).toContain(
+      `compile target "${normalizedTarget}" is on a disabled legacy bridge path.`
+    );
+  }
+}
+
 function writeSmokeHolo(tempDir: string): string {
   const sourcePath = path.join(tempDir, 'scene.holo');
   writeFileSync(
@@ -186,42 +208,35 @@ describe('CLI compile output writing', () => {
     }
   });
 
-  it('writes AR output with parent directory creation', async () => {
+  it('rejects the retired AR bridge without writing output', async () => {
     const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
 
     try {
       const sourcePath = writeSmokeHolo(tempDir);
       const outputPath = path.join(tempDir, 'nested', 'ar', 'scene.js');
 
-      const result = await runCli(['compile', sourcePath, '--target', 'ar', '-o', outputPath]);
-      const output = readFileSync(outputPath, 'utf8');
-
-      expect(result.stdout).toContain('AR compilation successful');
-      expect(output).toContain('ARRuntime');
+      await expectLegacyTargetRejected(
+        ['compile', sourcePath, '--target', 'ar', '-o', outputPath],
+        'ar'
+      );
+      expect(existsSync(outputPath)).toBe(false);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  it('writes PlayCanvas output with parent directory creation', async () => {
+  it('rejects the retired PlayCanvas bridge without writing output', async () => {
     const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
 
     try {
       const sourcePath = writeSmokeHolo(tempDir);
       const outputPath = path.join(tempDir, 'nested', 'playcanvas', 'scene.ts');
 
-      const result = await runCli([
-        'compile',
-        sourcePath,
-        '--target',
-        'playcanvas',
-        '-o',
-        outputPath,
-      ]);
-      const output = readFileSync(outputPath, 'utf8');
-
-      expect(result.stdout).toContain('PlayCanvas compilation successful');
-      expect(output).toContain('pc.Application');
+      await expectLegacyTargetRejected(
+        ['compile', sourcePath, '--target', 'playcanvas', '-o', outputPath],
+        'playcanvas'
+      );
+      expect(existsSync(outputPath)).toBe(false);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
@@ -277,44 +292,35 @@ describe('CLI compile output writing', () => {
     }
   });
 
-  it('writes VRR JavaScript output with parent directory creation', async () => {
+  it('rejects the retired VRR bridge without writing output', async () => {
     const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
 
     try {
       const sourcePath = writeSmokeHolo(tempDir);
       const outputPath = path.join(tempDir, 'nested', 'vrr', 'scene.js');
 
-      const result = await runCli(['compile', sourcePath, '--target', 'vrr', '-o', outputPath]);
-      const output = readFileSync(outputPath, 'utf8');
-
-      expect(result.stdout).toContain('VRR compilation successful');
-      expect(output).toContain('VRRRuntime');
+      await expectLegacyTargetRejected(
+        ['compile', sourcePath, '--target', 'vrr', '-o', outputPath],
+        'vrr'
+      );
+      expect(existsSync(outputPath)).toBe(false);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  it('writes multi-layer bundle output and normalizes aliases', async () => {
+  it('normalizes aliases before rejecting the retired multi-layer bridge', async () => {
     const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
 
     try {
       const sourcePath = writeSmokeHolo(tempDir);
       const outputDir = path.join(tempDir, 'nested', 'multi-layer');
 
-      const result = await runCli([
-        'compile',
-        sourcePath,
-        '--target',
-        'multilayer',
-        '-o',
-        outputDir,
-      ]);
-
-      expect(result.stdout).toContain('Multi-layer compilation successful');
-      expect(existsSync(path.join(outputDir, 'vr.js'))).toBe(true);
-      expect(existsSync(path.join(outputDir, 'vrr.js'))).toBe(true);
-      expect(existsSync(path.join(outputDir, 'ar.js'))).toBe(true);
-      expect(existsSync(path.join(outputDir, 'multi-layer.json'))).toBe(true);
+      await expectLegacyTargetRejected(
+        ['compile', sourcePath, '--target', 'multilayer', '-o', outputDir],
+        'multi-layer'
+      );
+      expect(existsSync(outputDir)).toBe(false);
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
