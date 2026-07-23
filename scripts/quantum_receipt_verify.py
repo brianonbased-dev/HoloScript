@@ -43,6 +43,7 @@ import pathlib
 import platform
 import random
 import re
+import statistics
 import subprocess
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -51,6 +52,7 @@ ENV_NAME = "IBM_QUANTUM_API_KEY"
 FULL_RECEIPT_HASH_SCOPE = "full_receipt_excluding_payload_hash"
 NOVELTY_SCOUT_SCHEMA = "cael-quantum-v2.qaoa-novelty-scout"
 PYRAMID_SCOUT_SCHEMA = "cael-quantum-v3.qaoa-paradox-pyramid-scout"
+SAMPLING_BENCHMARK_SCHEMA = "cael-quantum-v1.sampling-benchmark"
 TERMINAL_KILL_STATUSES = {"survives_tightened_claim", "narrowed", "killed"}
 RANDOM_BUDGET_BASIS = (
     "one random bitstring per QAOA shot across all parameter evaluations"
@@ -209,6 +211,176 @@ def linked_code_evidence_verifies(receipt: dict) -> bool | None:
     return isinstance(code_evidence, list) and linked_hash == expected_generic_hash(
         code_evidence
     )
+
+
+def sampling_benchmark_receipt_errors(receipt: dict) -> list[str]:
+    """Recompute the structural and timing claims in a sampling receipt."""
+
+    errors: list[str] = []
+    if receipt.get("schema") != SAMPLING_BENCHMARK_SCHEMA:
+        return [f"schema must be {SAMPLING_BENCHMARK_SCHEMA}"]
+    try:
+        model = receipt["model"]
+        visible_nodes = int(model["visible_nodes"])
+        hidden_nodes = int(model["hidden_nodes"])
+        total_nodes = int(model["total_nodes"])
+        edge_count = int(model["edge_count"])
+        if total_nodes != visible_nodes + hidden_nodes:
+            errors.append("model total_nodes does not recompute")
+        expected_degree = (2.0 * edge_count) / total_nodes
+        if not math.isclose(
+            float(model["average_degree"]), expected_degree, rel_tol=1e-9, abs_tol=1e-12
+        ):
+            errors.append("model average_degree does not recompute")
+        expected_density = edge_count / (visible_nodes * hidden_nodes)
+        if not math.isclose(
+            float(model["bipartite_density"]),
+            expected_density,
+            rel_tol=1e-9,
+            abs_tol=1e-12,
+        ):
+            errors.append("model bipartite_density does not recompute")
+
+        sampler = receipt["sampler"]
+        samples = int(sampler["samples_per_run"])
+        repeats = int(sampler["repeats"])
+        expected_k_values = [int(value) for value in sampler["k_values"]]
+        if (
+            samples <= 0
+            or repeats <= 0
+            or not expected_k_values
+            or any(value <= 0 for value in expected_k_values)
+        ):
+            errors.append("sampler dimensions must be positive")
+        if expected_k_values != sorted(set(expected_k_values)):
+            errors.append("sampler k_values must be unique and sorted")
+        if receipt["training_scope"].get("scope") != "sampling-only":
+            errors.append("training_scope must remain sampling-only")
+        if receipt["training_scope"].get("parameter_updates") is not False:
+            errors.append("sampling benchmark cannot claim parameter updates")
+        if receipt["hardware"].get("qpu_used") is not False:
+            errors.append("owned PCD receipt must not claim QPU use")
+
+        available_backends = 0
+        for backend in receipt["backends"]:
+            status = backend.get("status")
+            if status == "unavailable":
+                if backend.get("measurements"):
+                    errors.append(
+                        f"{backend.get('device')} unavailable backend has measurements"
+                    )
+                continue
+            if status != "available":
+                errors.append(f"{backend.get('device')} backend status is invalid")
+                continue
+            available_backends += 1
+            measurements = backend["measurements"]
+            measured_k_values = [int(item["k"]) for item in measurements]
+            if measured_k_values != expected_k_values:
+                errors.append(
+                    f"{backend.get('device')} measurement K values do not match sampler"
+                )
+            for measurement in measurements:
+                raw = [float(value) for value in measurement["raw_wall_ms"]]
+                if len(raw) != repeats or any(
+                    not math.isfinite(value) or value <= 0 for value in raw
+                ):
+                    errors.append(
+                        f"{backend.get('device')} K={measurement.get('k')} raw timing invalid"
+                    )
+                    continue
+                median_wall_ms = statistics.median(raw)
+                if not math.isclose(
+                    float(measurement["median_wall_ms"]),
+                    median_wall_ms,
+                    rel_tol=1e-9,
+                    abs_tol=1e-9,
+                ):
+                    errors.append(
+                        f"{backend.get('device')} K={measurement.get('k')} "
+                        "median_wall_ms does not recompute"
+                    )
+                expected_per_sample = median_wall_ms / samples
+                if not math.isclose(
+                    float(measurement["median_ms_per_sample"]),
+                    expected_per_sample,
+                    rel_tol=1e-9,
+                    abs_tol=1e-9,
+                ):
+                    errors.append(
+                        f"{backend.get('device')} K={measurement.get('k')} "
+                        "median_ms_per_sample does not recompute"
+                    )
+                quality_runs = measurement["quality_runs"]
+                if len(quality_runs) != repeats:
+                    errors.append(
+                        f"{backend.get('device')} K={measurement.get('k')} "
+                        "quality run count does not match repeats"
+                    )
+                for quality in quality_runs:
+                    numeric_values = [
+                        float(quality[key])
+                        for key in (
+                            "mean_energy",
+                            "std_energy",
+                            "visible_one_fraction",
+                            "transition_fraction",
+                        )
+                    ]
+                    if any(not math.isfinite(value) for value in numeric_values):
+                        errors.append(
+                            f"{backend.get('device')} K={measurement.get('k')} "
+                            "quality diagnostics are non-finite"
+                        )
+                    if not 0.0 <= float(quality["visible_one_fraction"]) <= 1.0:
+                        errors.append("visible_one_fraction is outside [0,1]")
+                    if not 0.0 <= float(quality["transition_fraction"]) <= 1.0:
+                        errors.append("transition_fraction is outside [0,1]")
+
+            controls = backend["negative_controls"]
+            zero_controls = [
+                control
+                for control in controls
+                if control.get("name") == "k-zero-no-transition"
+            ]
+            if len(zero_controls) != 1:
+                errors.append(
+                    f"{backend.get('device')} must contain one K=0 negative control"
+                )
+            elif (
+                int(zero_controls[0].get("k", -1)) != 0
+                or zero_controls[0].get("expected_status") != "invalid-sampler"
+                or not math.isclose(
+                    float(zero_controls[0].get("transition_fraction", math.nan)),
+                    0.0,
+                    rel_tol=0.0,
+                    abs_tol=0.0,
+                )
+            ):
+                errors.append(
+                    f"{backend.get('device')} K=0 negative control does not recompute"
+                )
+        if available_backends == 0:
+            errors.append("receipt has no available benchmark backend")
+
+        source_snapshot = receipt["source_snapshot"]
+        if not source_snapshot:
+            errors.append("source_snapshot is empty")
+        for source in source_snapshot:
+            if not re.fullmatch(r"[0-9a-f]{64}", str(source.get("sha256", ""))):
+                errors.append("source_snapshot contains an invalid sha256")
+        hash_payload = receipt["hash_payload"]
+        if hash_payload.get("source_snapshot_sha256") != expected_generic_hash(
+            source_snapshot
+        ):
+            errors.append("source snapshot hash does not recompute")
+        if hash_payload.get("schema") != SAMPLING_BENCHMARK_SCHEMA:
+            errors.append("hash_payload schema mismatch")
+        if hash_payload.get("benchmark_id") != receipt.get("benchmark_id"):
+            errors.append("hash_payload benchmark_id mismatch")
+    except (KeyError, TypeError, ValueError, ZeroDivisionError) as error:
+        errors.append(f"malformed sampling-benchmark receipt: {error}")
+    return errors
 
 
 def _qubo_objective(bitstring: str, matrix: list[list[float]]) -> float:
@@ -2830,6 +3002,17 @@ def main() -> int:
                     failures += 1
                 else:
                     print(f"OK    {name}  novelty-scout scientific claims recompute")
+            if r.get("schema") == SAMPLING_BENCHMARK_SCHEMA:
+                semantic_errors = sampling_benchmark_receipt_errors(r)
+                if semantic_errors:
+                    for error in semantic_errors:
+                        print(f"FAIL  {name}  {error}")
+                    failures += 1
+                else:
+                    print(
+                        f"OK    {name}  "
+                        "sampling-benchmark scientific claims recompute"
+                    )
 
         if not is_ibm_receipt(r):
             if not isinstance(hash_payload, dict):
