@@ -23,7 +23,11 @@
       "tarballUrl": "https://registry.npmjs.org/@holoscript/systems-linux-x64/-/systems-linux-x64-0.2.0.tgz",
       "distTags": {
         "next": "0.2.0"
-      }
+      },
+      "forbiddenDistTags": [
+        "latest",
+        "preview"
+      ]
     },
     {
       "id": "win32-x64",
@@ -38,7 +42,11 @@
       "tarballUrl": "https://registry.npmjs.org/@holoscript/systems-win32-x64/-/systems-win32-x64-0.2.0.tgz",
       "distTags": {
         "next": "0.2.0"
-      }
+      },
+      "forbiddenDistTags": [
+        "latest",
+        "preview"
+      ]
     },
     {
       "id": "meta",
