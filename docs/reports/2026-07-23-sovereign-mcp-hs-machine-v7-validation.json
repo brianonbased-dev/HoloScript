@@ -1,0 +1,68 @@
+{
+  "schema": "holoscript.sovereign-mcp.validator-receipt.v1",
+  "generatedAt": "2026-07-23T23:28:08.5328306Z",
+  "taskId": "task_1784317338476_pwq1",
+  "objective": "Refresh the sovereign MCP validator to an artifact that accepts hs-machine-v7 fixed arrays and slice projections while retaining Kotlin fail-closed behavior.",
+  "baseline": {
+    "commit": "401d200568e3f725a3a592d9c68949789e85f89e",
+    "artifactPath": "packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm",
+    "artifactBytes": 285701,
+    "artifactSha256": "0c3e1af9b4957616a3af9a22db14cb4ba1aa3c7cd535c9c70934acf67cc9eaf7",
+    "verification": "SHA-256 reproduced directly from the Git object at commit 401d20056."
+  },
+  "liveRuntime": {
+    "endpoint": "http://127.0.0.1:7411/mcp",
+    "healthEndpoint": "http://127.0.0.1:7411/health",
+    "serviceVersion": "8.0.14",
+    "processId": 33640,
+    "processStartedAt": "2026-07-23T23:02:19.8230900Z",
+    "repositoryHead": "c8e242a0bcda2ff1b17969fdddfd8ab379dbacf8",
+    "loadedArtifact": {
+      "path": "packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm",
+      "writtenAt": "2026-07-23T20:53:07.2263909Z",
+      "bytes": 325610,
+      "sha256": "d0351144d218b2461d913bdd35ab884dfdec9bbd0b15ea406ab2365186fca292",
+      "sourceReceipt": "packages/compiler-wasm/pkg-node/rebuild-receipt.json",
+      "relationshipToBaseline": "supersedes"
+    },
+    "freshnessProof": "The sovereign HTTP process started after the loaded artifact was written, and its validate_holoscript result identifies the Rust/WASM validator."
+  },
+  "checks": [
+    {
+      "id": "baseline-artifact-hash",
+      "command": "git show 401d20056:packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm | SHA-256",
+      "result": "pass",
+      "evidence": {
+        "bytes": 285701,
+        "sha256": "0c3e1af9b4957616a3af9a22db14cb4ba1aa3c7cd535c9c70934acf67cc9eaf7"
+      }
+    },
+    {
+      "id": "live-sovereign-mcp-validation",
+      "command": "POST http://127.0.0.1:7411/mcp tools/call validate_holoscript with the accepted program from docs/spec/native-machine-v7.md",
+      "result": "pass",
+      "evidence": {
+        "valid": true,
+        "format": "hs",
+        "validator": "rust-wasm",
+        "errors": [],
+        "warnings": [],
+        "summary": "Valid HoloScript code"
+      }
+    },
+    {
+      "id": "kotlin-fail-closed",
+      "command": "packages/compiler-wasm/pkg-node compile_to_kotlin with the same hs-machine-v7 program",
+      "result": "pass",
+      "evidence": {
+        "compilerVersion": "3.0.0",
+        "error": "fixed array type `[i32; 4]` in stack slot `values` requires target-specific bounds lowering; the Kotlin bridge does not erase native array semantics"
+      }
+    }
+  ],
+  "verdict": {
+    "status": "pass",
+    "baselineSatisfied": true,
+    "runtimeState": "The requested v7 artifact is historically verified and the live sovereign validator is running a newer superseding artifact that preserves both required behaviors."
+  }
+}

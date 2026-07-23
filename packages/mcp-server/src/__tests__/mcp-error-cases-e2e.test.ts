@@ -84,6 +84,30 @@ describe('MCP Tool Error Cases', () => {
     expect(result.validator).toBe('rust-wasm');
   });
 
+  it('validate_holoscript accepts the hs-machine-v7 fixed-array and slice contract', async () => {
+    const result = (await handleTool('validate_holoscript', {
+      code: `struct Delta { amount: i32 }
+
+function main(): i32 {
+  slot delta: Delta = Delta(2)
+  slot values: [i32; 4] = [1, 2, 3, 4]
+  let direct_index: i32 = 2
+  let slice_index: i32 = 1
+
+  store(
+    values[1..4][slice_index],
+    load(values[direct_index]) + load(delta.amount)
+  )
+  return load(values[direct_index])
+}`,
+      format: 'hs',
+    })) as Record<string, unknown>;
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.validator).toBe('rust-wasm');
+  });
+
   it('validate_holoscript auto-routes an explicit agent brain through the hsplus authority', async () => {
     const result = (await handleTool('validate_holoscript', {
       code: `
