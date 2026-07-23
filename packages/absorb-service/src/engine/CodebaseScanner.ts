@@ -215,7 +215,25 @@ export interface ScanInBatchesOptions extends ScanOptions {
   /** Precomputed plan from planScan(), avoiding a second discovery walk. */
   scanPlan?: ScanPlan;
   onBatchStart?: (batch: PlannedScanBatch, totalBatches: number) => void;
-  onBatchComplete?: (batch: PlannedScanBatch, result: ScanResult, totalBatches: number) => void;
+  /**
+   * Return a previously completed batch result to resume a durable scan.
+   * Returning null scans the batch normally. The caller owns validation of
+   * persisted results against the current plan and repository pin.
+   */
+  loadBatchResult?: (
+    batch: PlannedScanBatch,
+    totalBatches: number
+  ) => Promise<ScanResult | null> | ScanResult | null;
+  onBatchResume?: (
+    batch: PlannedScanBatch,
+    result: ScanResult,
+    totalBatches: number
+  ) => Promise<void> | void;
+  onBatchComplete?: (
+    batch: PlannedScanBatch,
+    result: ScanResult,
+    totalBatches: number
+  ) => Promise<void> | void;
 }
 
 export class CodebaseScanner {
@@ -610,19 +628,23 @@ export class CodebaseScanner {
     for (const batch of plan.batches) {
       throwIfScanAborted(options.signal);
       options.onBatchStart?.(batch, plan.batches.length);
-      const batchResult = await this.scanFiles(plan.rootDir, batch.files, {
-        includeBuildArtifacts: options.includeBuildArtifacts,
-        maxFileSize: options.maxFileSize,
-        readFile: options.readFile,
-        signal: options.signal,
-        onProgress: (processed, _total, file) => {
-          options.onProgress?.(
-            Math.min(completedCandidateFiles + processed, plan.totalFiles),
-            plan.totalFiles,
-            file
-          );
-        },
-      });
+      const resumedBatchResult =
+        (await options.loadBatchResult?.(batch, plan.batches.length)) ?? null;
+      const batchResult =
+        resumedBatchResult ??
+        (await this.scanFiles(plan.rootDir, batch.files, {
+          includeBuildArtifacts: options.includeBuildArtifacts,
+          maxFileSize: options.maxFileSize,
+          readFile: options.readFile,
+          signal: options.signal,
+          onProgress: (processed, _total, file) => {
+            options.onProgress?.(
+              Math.min(completedCandidateFiles + processed, plan.totalFiles),
+              plan.totalFiles,
+              file
+            );
+          },
+        }));
 
       files.push(...batchResult.files);
       errors.push(...batchResult.stats.errors);
@@ -639,7 +661,11 @@ export class CodebaseScanner {
       }
 
       completedCandidateFiles += batch.files.length;
-      options.onBatchComplete?.(batch, batchResult, plan.batches.length);
+      if (resumedBatchResult) {
+        await options.onBatchResume?.(batch, batchResult, plan.batches.length);
+      } else {
+        await options.onBatchComplete?.(batch, batchResult, plan.batches.length);
+      }
       await yieldToEventLoop();
       throwIfScanAborted(options.signal);
     }

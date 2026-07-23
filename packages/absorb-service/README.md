@@ -509,6 +509,15 @@ share one cooperative abort signal. The terminal status is `cancelled` with an
 cancellable phases succeed, so cancellation before that boundary preserves the
 prior cache.
 
+Forced local scans also return an `AbsorbRefreshProgressReceipt` and
+`resumeToken` before background parsing begins. Each completed module batch is
+written atomically under the workspace cache. Resume with the same root, scan
+policy, batch size, and `resumeToken`; HoloScript rejects the resume if Git
+`HEAD`, dirty-worktree fingerprint, selected file set, or plan changed. Progress
+receipts are always non-authoritative. Only the exact completed graph crosses
+the cache publication boundary, so interrupted refreshes cannot replace the
+last valid graph or retain files outside the selected set.
+
 Optional `maxRssMb` and `maxHeapUsedMb` limits turn a memory-budget breach into
 the same cancellation path. They may also be set process-wide with
 `ABSORB_MAX_RSS_MB` and `ABSORB_MAX_HEAP_USED_MB`. Status reports current memory,

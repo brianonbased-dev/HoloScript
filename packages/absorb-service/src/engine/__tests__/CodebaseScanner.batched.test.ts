@@ -207,6 +207,40 @@ describe('CodebaseScanner module batching', () => {
     expect(observedAtSecondBatch).toEqual([true]);
   });
 
+  it('merges durable resumed batches without reparsing their files', async () => {
+    const root = makeTempRepo();
+    writeFixture(root, 'src/a.txt', 'first\n');
+    writeFixture(root, 'src/b.txt', 'second\n');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const plan = scanner.planScan({ rootDir: root, maxFiles: 10 }, 1);
+    const completedFirstBatch = await scanner.scanFiles(root, plan.batches[0].files);
+    const readFiles: string[] = [];
+    const resumed: number[] = [];
+    const completed: number[] = [];
+
+    const result = await scanner.scanInBatches({
+      rootDir: root,
+      scanPlan: plan,
+      loadBatchResult: (batch) => (batch.index === 1 ? completedFirstBatch : null),
+      onBatchResume: async (batch) => {
+        resumed.push(batch.index);
+      },
+      onBatchComplete: async (batch) => {
+        completed.push(batch.index);
+      },
+      readFile: async (filePath) => {
+        readFiles.push(path.basename(filePath));
+        return fs.promises.readFile(filePath, 'utf-8');
+      },
+    });
+
+    expect(result.stats.totalFiles).toBe(2);
+    expect(resumed).toEqual([1]);
+    expect(completed).toEqual([2]);
+    expect(readFiles).toEqual(['b.txt']);
+  });
+
   it('parses native HoloScript files through worker-backed scanFiles', async () => {
     const root = makeTempRepo();
     const relativePath = 'src/workered.hsplus';

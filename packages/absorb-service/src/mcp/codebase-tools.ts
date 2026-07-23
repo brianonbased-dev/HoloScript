@@ -33,8 +33,15 @@ import {
   type GraphRAGEmbeddingPolicyReceipt,
 } from './graph-rag-embedding-policy';
 import { resolveCodebaseCachePaths } from './codebase-cache-storage';
+import {
+  AbsorbRefreshCheckpoint,
+  prepareAbsorbRefreshCheckpoint,
+  type AbsorbRefreshProgressReceipt,
+} from './absorb-refresh-checkpoint';
 import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
 import type { CommunityAwareImpactReceipt } from '../engine/CodebaseGraph';
+import type { ScanPlan } from '../engine/CodebaseScanner';
+import type { ScanResult } from '../engine/types';
 
 // =============================================================================
 // DYNAMIC MODULE INTERFACE
@@ -104,6 +111,8 @@ interface PlannedScannerBatch {
 }
 
 interface PlannedScannerScanPlan {
+  rootDir: string;
+  rootDirs: string[];
   totalFiles: number;
   batchSize: number;
   selectionMode?: 'git-visible' | 'git-tracked' | 'filesystem' | 'mixed';
@@ -284,6 +293,34 @@ class AbsorbCancelledError extends Error {
   ) {
     super(message);
     this.name = 'AbsorbCancelledError';
+  }
+}
+
+class AbsorbRefreshCommitPinError extends Error {
+  constructor(
+    readonly expectedCommit: string,
+    readonly actualCommit: string | null
+  ) {
+    super(
+      `Repository HEAD changed during absorb refresh: expected ${expectedCommit}, received ${
+        actualCommit ?? 'no git commit'
+      }`
+    );
+    this.name = 'AbsorbRefreshCommitPinError';
+  }
+}
+
+class AbsorbRefreshWorktreePinError extends Error {
+  constructor(
+    readonly expectedFingerprint: string,
+    readonly actualFingerprint: string | null
+  ) {
+    super(
+      `Repository worktree changed during absorb refresh: expected ${expectedFingerprint}, received ${
+        actualFingerprint ?? 'unavailable'
+      }`
+    );
+    this.name = 'AbsorbRefreshWorktreePinError';
   }
 }
 
@@ -497,6 +534,7 @@ interface AbsorbJob {
   cancellation?: AbsorbCancellationState;
   memoryBudget: AbsorbMemoryBudgetTelemetry;
   cacheCommitted: boolean;
+  refreshProgressReceipt?: AbsorbRefreshProgressReceipt;
 }
 
 const absorbJobs = new Map<string, AbsorbJob>();
@@ -614,6 +652,10 @@ function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, 
     completedAt: new Date(completedAt).toISOString(),
     cachePreserved: !job.cacheCommitted,
     cacheCommitted: job.cacheCommitted,
+    ...(job.refreshProgressReceipt && {
+      refreshProgressReceipt: job.refreshProgressReceipt,
+      resumeToken: job.refreshProgressReceipt.resumeToken,
+    }),
     memoryBudget: { ...job.memoryBudget },
   };
   job.result = receipt;
@@ -707,6 +749,15 @@ function setAbsorbJobScanPlan(
   if (!jobId || !scanPlan) return;
   const job = absorbJobs.get(jobId);
   if (job) job.scanPlan = scanPlan;
+}
+
+function setAbsorbJobRefreshProgress(
+  jobId: string | undefined,
+  receipt: AbsorbRefreshProgressReceipt | undefined
+): void {
+  if (!jobId || !receipt) return;
+  const job = absorbJobs.get(jobId);
+  if (job) job.refreshProgressReceipt = receipt;
 }
 
 function appendAbsorbPhaseMetric(jobId: string | undefined, metric: AbsorbPhaseMetric): void {
@@ -1945,10 +1996,10 @@ function saveGraphCache(
   embeddingProvider?: string,
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary,
   scanPolicy?: GraphScanPolicy
-): void {
+): boolean {
   const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
   if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
-    return;
+    return false;
   }
   try {
     const normalizedScanPolicy = normalizeScanPolicy(scanPolicy);
@@ -1981,11 +2032,13 @@ function saveGraphCache(
     };
     const cacheFile = getCacheFile(rootDir);
     atomicWriteFileSync(cacheFile, JSON.stringify(envelope), 'utf-8');
+    return true;
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
     console.warn(
       `[CacheDebug][codebase] save miss path=${getCacheFile(rootDir)} error=${(err as Error)?.message ?? String(err)}`
     );
+    return false;
   }
 }
 
@@ -2805,6 +2858,11 @@ export const codebaseTools: Tool[] = [
           description:
             'Alias for async. Useful for long forced scans that may exceed MCP timeouts.',
         },
+        resumeToken: {
+          type: 'string',
+          description:
+            'Resume a previously interrupted forced scan from the exact durable progress receipt. The token is bound to repository root, git HEAD, scan policy, batch plan, and selected file set; mismatches are rejected without changing the authoritative graph.',
+        },
         includeBuildArtifacts: {
           type: 'boolean',
           description:
@@ -3494,7 +3552,11 @@ async function runFullScan(
   inlineSourceFiles?: SourceFileEntry[],
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary,
   scanBatchSize?: number,
-  scanPolicy?: GraphScanPolicy
+  scanPolicy?: GraphScanPolicy,
+  preparedScanPlan?: PlannedScannerScanPlan,
+  refreshCheckpoint?: AbsorbRefreshCheckpoint,
+  targetGitCommitHash?: string | null,
+  targetWorktreeFingerprint?: string | null
 ): Promise<unknown> {
   const {
     CodebaseScanner,
@@ -3576,6 +3638,30 @@ async function runFullScan(
     return result;
   }
 
+  const enforceRefreshSourcePin = (): void => {
+    let error: AbsorbRefreshCommitPinError | AbsorbRefreshWorktreePinError | undefined;
+    if (targetGitCommitHash) {
+      const detector = new GitChangeDetector(primaryRootDir);
+      const currentCommit =
+        typeof detector.isGitRepo !== 'function' || detector.isGitRepo()
+          ? (detector.getHeadCommit?.() ?? null)
+          : null;
+      if (currentCommit !== targetGitCommitHash) {
+        error = new AbsorbRefreshCommitPinError(targetGitCommitHash, currentCommit);
+      }
+    }
+    if (!error && targetWorktreeFingerprint) {
+      const currentFingerprint = buildGitWorktreeFingerprint(primaryRootDir, effectiveScanPolicy);
+      if (currentFingerprint !== targetWorktreeFingerprint) {
+        error = new AbsorbRefreshWorktreePinError(targetWorktreeFingerprint, currentFingerprint);
+      }
+    }
+    if (!error) return;
+    refreshCheckpoint?.markInvalidated(error);
+    setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
+    throw error;
+  };
+
   if (jobId) trackAbsorbProgress(jobId, 'Discovering files', 5);
 
   const scanner = new CodebaseScanner();
@@ -3589,6 +3675,7 @@ async function runFullScan(
   if (jobId) trackAbsorbProgress(jobId, 'Scanning codebase', 10);
 
   try {
+    enforceRefreshSourcePin();
     if (inlineSourceFiles) {
       const inlineScan = buildInlineSourceScan(primaryRootDir, inlineSourceFiles);
       const selectedFilePaths = effectiveMaxFiles
@@ -3623,14 +3710,33 @@ async function runFullScan(
         respectGitIgnore: effectiveScanPolicy.respectGitIgnore !== false,
         includeUntracked: effectiveScanPolicy.includeUntracked !== false,
       };
-      const scanPlan = scanner.planScan(scanOptions, scanBatchSize) as PlannedScannerScanPlan;
+      const scanPlan =
+        preparedScanPlan ??
+        (scanner.planScan(scanOptions, scanBatchSize) as PlannedScannerScanPlan);
       scanPlanReceipt = summarizeModuleScanPlan(scanPlan);
       setAbsorbJobScanPlan(jobId, scanPlanReceipt);
+      refreshCheckpoint?.markScanning();
+      setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
       scanResult = await scanner.scanInBatches({
         ...scanOptions,
         scanBatchSize,
         scanPlan,
         signal,
+        loadBatchResult: refreshCheckpoint
+          ? (batch: PlannedScannerBatch) => refreshCheckpoint.loadBatchResult(batch)
+          : undefined,
+        onBatchResume: refreshCheckpoint
+          ? (batch: PlannedScannerBatch, _result: ScanResult, totalBatches: number) => {
+              setAbsorbJobRefreshProgress(jobId, refreshCheckpoint.progressReceipt());
+              if (jobId) {
+                trackAbsorbProgress(
+                  jobId,
+                  `Resumed batch ${batch.index}/${totalBatches}: ${batch.label}`,
+                  10 + (batch.index / Math.max(totalBatches, 1)) * 50
+                );
+              }
+            }
+          : undefined,
         onBatchStart: (batch: PlannedScannerBatch, totalBatches: number) => {
           if (jobId) {
             trackAbsorbProgress(
@@ -3640,7 +3746,15 @@ async function runFullScan(
             );
           }
         },
-        onBatchComplete: (batch: PlannedScannerBatch, _result: unknown, totalBatches: number) => {
+        onBatchComplete: async (
+          batch: PlannedScannerBatch,
+          batchResult: ScanResult,
+          totalBatches: number
+        ) => {
+          if (refreshCheckpoint) {
+            refreshCheckpoint.persistBatch(batch, batchResult);
+            setAbsorbJobRefreshProgress(jobId, refreshCheckpoint.progressReceipt());
+          }
           if (jobId) {
             trackAbsorbProgress(
               jobId,
@@ -3656,7 +3770,20 @@ async function runFullScan(
           }
         },
       });
+      refreshCheckpoint?.markScanned();
+      setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
     }
+  } catch (error) {
+    if (refreshCheckpoint) {
+      if (
+        error instanceof AbsorbRefreshCommitPinError ||
+        error instanceof AbsorbRefreshWorktreePinError
+      ) {
+        refreshCheckpoint.markInvalidated(error);
+      } else refreshCheckpoint.markInterrupted(error);
+      setAbsorbJobRefreshProgress(jobId, refreshCheckpoint.progressReceipt());
+    }
+    throw error;
   } finally {
     signal?.removeEventListener('abort', disposeScannerOnAbort);
     await scanner.dispose?.();
@@ -3716,7 +3843,7 @@ async function runFullScan(
   } else {
     const detector = new GitChangeDetector(primaryRootDir);
     if (detector.isGitRepo()) {
-      gitCommitHash = detector.getHeadCommit() ?? undefined;
+      gitCommitHash = targetGitCommitHash ?? detector.getHeadCommit() ?? undefined;
       const filePaths = (scanResult as { files: any[] }).files.map((f: any) => f.path);
       const hashes = detector.computeFileHashes(filePaths);
       fileHashes = Object.fromEntries(hashes.map((h: any) => [h.filePath, h.hash]));
@@ -3738,14 +3865,9 @@ async function runFullScan(
     : await detectBestEmbeddingProvider();
 
   if (outputFormat === 'stats') {
+    enforceRefreshSourcePin();
     enforceAbsorbJobControl(jobId, 'graph-cache-commit');
-    cachedGraph = graph;
-    cachedRootDir = primaryRootDir;
-    cacheProvenance = localCodebaseSnapshotReceipt
-      ? 'local-codebase-snapshot-receipt'
-      : 'fresh-scan';
-    cacheTimestamp = Date.now();
-    saveGraphCache(
+    const cacheSaved = saveGraphCache(
       graph,
       primaryRootDir,
       stats,
@@ -3755,8 +3877,22 @@ async function runFullScan(
       localCodebaseSnapshotReceipt,
       effectiveScanPolicy
     );
+    if (!cacheSaved) {
+      const error = new Error('Unable to publish the completed absorb graph cache atomically');
+      refreshCheckpoint?.markInterrupted(error);
+      setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
+      throw error;
+    }
+    cachedGraph = graph;
+    cachedRootDir = primaryRootDir;
+    cacheProvenance = localCodebaseSnapshotReceipt
+      ? 'local-codebase-snapshot-receipt'
+      : 'fresh-scan';
+    cacheTimestamp = Date.now();
     const statsJob = jobId ? absorbJobs.get(jobId) : undefined;
     if (statsJob) statsJob.cacheCommitted = true;
+    refreshCheckpoint?.markComplete();
+    setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
     recordPhaseMetric('graph-cache-save', {
       filesProcessed: scanResult?.stats?.totalFiles,
       totalFiles: scanPlanReceipt?.totalCandidateFiles,
@@ -3772,6 +3908,10 @@ async function runFullScan(
       embeddingPolicy,
       scanPolicy: effectiveScanPolicy,
       scanPlan: scanPlanReceipt,
+      ...(refreshCheckpoint && {
+        resumeToken: refreshCheckpoint.progressReceipt().resumeToken,
+        refreshProgressReceipt: refreshCheckpoint.progressReceipt(),
+      }),
       phaseMetrics,
       gitCommitHash,
       diagnostics,
@@ -3975,12 +4115,13 @@ async function runFullScan(
   // Transactional publication boundary: cancellation and memory-budget checks
   // have completed for scan, graph, embedding, mesh, and response generation.
   // Only now replace the prior authoritative graph/index caches and session state.
+  enforceRefreshSourcePin();
   enforceAbsorbJobControl(jobId, 'cache-commit');
   cacheTimestamp = Date.now();
   if (preparedEmbeddingIndex && embeddingCacheNeedsSave) {
     saveEmbeddingsCache(preparedEmbeddingIndex, primaryRootDir);
   }
-  saveGraphCache(
+  const cacheSaved = saveGraphCache(
     graph,
     primaryRootDir,
     stats,
@@ -3990,6 +4131,12 @@ async function runFullScan(
     localCodebaseSnapshotReceipt,
     effectiveScanPolicy
   );
+  if (!cacheSaved) {
+    const error = new Error('Unable to publish the completed absorb graph cache atomically');
+    refreshCheckpoint?.markInterrupted(error);
+    setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
+    throw error;
+  }
   cachedGraph = graph;
   cachedRootDir = primaryRootDir;
   cacheProvenance = localCodebaseSnapshotReceipt ? 'local-codebase-snapshot-receipt' : 'fresh-scan';
@@ -4004,6 +4151,14 @@ async function runFullScan(
   }
   const committedJob = jobId ? absorbJobs.get(jobId) : undefined;
   if (committedJob) committedJob.cacheCommitted = true;
+  refreshCheckpoint?.markComplete();
+  setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
+  if (refreshCheckpoint && typeof result === 'object' && result !== null) {
+    Object.assign(result as Record<string, unknown>, {
+      resumeToken: refreshCheckpoint.progressReceipt().resumeToken,
+      refreshProgressReceipt: refreshCheckpoint.progressReceipt(),
+    });
+  }
   recordPhaseMetric('cache-commit', {
     filesProcessed: scanResult?.stats?.totalFiles,
     totalFiles: scanPlanReceipt?.totalCandidateFiles,
@@ -4516,9 +4671,22 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const maxFiles = args.maxFiles as number | undefined;
   const maxFileSize = args.maxFileSize as number | undefined;
   const scanBatchSize = args.scanBatchSize as number | undefined;
+  if (args.resumeToken !== undefined && typeof args.resumeToken !== 'string') {
+    return {
+      error: 'resume_token_validation_failed',
+      message: 'resumeToken must be a string from an AbsorbRefreshProgressReceipt.',
+    };
+  }
+  const resumeToken = (args.resumeToken as string | undefined)?.trim() || undefined;
+  if (resumeToken && fromSourceFiles) {
+    return {
+      error: 'resume_token_validation_failed',
+      message: 'resumeToken is only valid for local filesystem scans, not inline sourceFiles.',
+    };
+  }
   const interactive = (args.interactive as boolean) ?? false;
   // sourceFiles always forces a fresh scan (no disk cache match for temp dirs)
-  const force = fromSourceFiles ? true : ((args.force as boolean) ?? false);
+  const force = fromSourceFiles ? true : ((args.force as boolean) ?? false) || Boolean(resumeToken);
   const includeBuildArtifacts = (args.includeBuildArtifacts as boolean) ?? false;
   const scanPolicyResult = buildScanPolicyFromArgs(
     args,
@@ -4573,6 +4741,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     inlineSourceFiles,
     localCodebaseSnapshotReceipt,
     fromSourceFiles,
+    resumeToken,
   };
 
   const requestedBackground = args.async === true || args.background === true;
@@ -4581,6 +4750,22 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     : await buildAutoBackgroundDecision(plan);
   const runInBackground = requestedBackground || autoBackground.autoBackground;
   if (runInBackground) {
+    if (plan.force && !plan.fromSourceFiles) {
+      try {
+        await prepareDurableRefreshCheckpoint(plan);
+      } catch (error) {
+        const message = errorMessage(error);
+        const result = {
+          error: 'absorb_refresh_checkpoint_rejected',
+          message,
+          jobId,
+          cachePreserved: true,
+          graphAuthoritative: false,
+        };
+        failAbsorbJob(jobId, 'Refresh checkpoint rejected', message, result);
+        return result;
+      }
+    }
     startBackgroundAbsorbJob(jobId, () => executeAbsorbPlan(plan));
     return {
       accepted: true,
@@ -4600,6 +4785,10 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
       memoryBudget: { ...absorbJobs.get(jobId)!.memoryBudget },
       scanPolicy,
+      ...(plan.refreshCheckpoint && {
+        resumeToken: plan.refreshCheckpoint.progressReceipt().resumeToken,
+        refreshProgressReceipt: plan.refreshCheckpoint.progressReceipt(),
+      }),
       fromSourceFiles,
       fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
@@ -4613,6 +4802,27 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     return await executeAbsorbPlan(plan);
   } catch (err) {
     if (isAbsorbCancellation(err, jobId)) return settleCancelledAbsorbJob(jobId, err);
+    if (plan.refreshCheckpoint || resumeToken) {
+      const message = errorMessage(err);
+      const refreshProgressReceipt = plan.refreshCheckpoint?.progressReceipt();
+      const result = {
+        error:
+          err instanceof AbsorbRefreshCommitPinError ||
+          err instanceof AbsorbRefreshWorktreePinError
+            ? 'absorb_refresh_source_changed'
+            : 'absorb_refresh_failed',
+        message,
+        jobId,
+        cachePreserved: !absorbJobs.get(jobId)?.cacheCommitted,
+        graphAuthoritative: false,
+        ...(refreshProgressReceipt && {
+          resumeToken: refreshProgressReceipt.resumeToken,
+          refreshProgressReceipt,
+        }),
+      };
+      failAbsorbJob(jobId, 'Refresh failed', message, result);
+      return result;
+    }
     throw err;
   }
 }
@@ -4640,6 +4850,11 @@ interface AbsorbExecutionPlan {
   inlineSourceFiles?: SourceFileEntry[];
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
   fromSourceFiles: boolean;
+  resumeToken?: string;
+  preparedScanPlan?: PlannedScannerScanPlan;
+  refreshCheckpoint?: AbsorbRefreshCheckpoint;
+  targetGitCommitHash?: string | null;
+  targetWorktreeFingerprint?: string | null;
 }
 
 interface AbsorbAutoBackgroundDecision {
@@ -4647,6 +4862,65 @@ interface AbsorbAutoBackgroundDecision {
   reason?: 'scan_plan_exceeds_foreground_threshold';
   thresholdFiles?: number;
   scanPlan?: AbsorbScanPlanReceipt;
+}
+
+async function prepareDurableRefreshCheckpoint(
+  plan: AbsorbExecutionPlan
+): Promise<AbsorbRefreshCheckpoint> {
+  if (plan.fromSourceFiles) {
+    throw new Error('Durable refresh checkpoints require a local filesystem scan');
+  }
+  let scanPlan = plan.preparedScanPlan;
+  if (!scanPlan) {
+    const { CodebaseScanner } = plan.mod;
+    const scanner = new CodebaseScanner(undefined, false);
+    try {
+      scanPlan = scanner.planScan(
+        {
+          rootDir: plan.primaryRootDir,
+          rootDirs: plan.effectiveRootDirs,
+          languages: plan.languages,
+          maxFiles: plan.maxFiles ?? plan.scanPolicy.maxFiles ?? DEFAULT_SCAN_MAX_FILES,
+          maxFileSize: plan.scanPolicy.maxFileSize ?? plan.maxFileSize,
+          includeBuildArtifacts:
+            plan.includeBuildArtifacts || plan.scanPolicy.includeBuildArtifacts === true,
+          exclude: plan.scanPolicy.exclude,
+          excludePathFragments: plan.scanPolicy.excludePathFragments,
+          excludeNameFragments: plan.scanPolicy.excludeNameFragments,
+          includeHidden: plan.scanPolicy.includeHidden,
+          respectGitIgnore: plan.scanPolicy.respectGitIgnore !== false,
+          includeUntracked: plan.scanPolicy.includeUntracked !== false,
+        },
+        plan.scanBatchSize
+      ) as PlannedScannerScanPlan;
+    } finally {
+      await scanner.dispose?.();
+    }
+  }
+
+  const targetGitCommitHash = await getCurrentGitCommit(plan.primaryRootDir);
+  const targetWorktreeFingerprint = buildGitWorktreeFingerprint(
+    plan.primaryRootDir,
+    plan.scanPolicy
+  );
+  const coverage = buildGraphCoverageStatus(plan.primaryRootDir, 0, plan.scanPolicy);
+  const checkpoint = prepareAbsorbRefreshCheckpoint({
+    rootDir: plan.primaryRootDir,
+    scanPlan: scanPlan as ScanPlan,
+    targetGitCommitHash,
+    targetWorktreeFingerprint,
+    scanPolicyHash: scanPolicyKey(plan.scanPolicy),
+    maxFiles: plan.maxFiles ?? plan.scanPolicy.maxFiles ?? DEFAULT_SCAN_MAX_FILES,
+    workspaceCandidateFiles: coverage.selectedCandidateCount ?? undefined,
+    resumeToken: plan.resumeToken,
+  });
+  plan.preparedScanPlan = scanPlan;
+  plan.targetGitCommitHash = targetGitCommitHash;
+  plan.targetWorktreeFingerprint = targetWorktreeFingerprint;
+  plan.refreshCheckpoint = checkpoint;
+  setAbsorbJobScanPlan(plan.jobId, summarizeModuleScanPlan(scanPlan));
+  setAbsorbJobRefreshProgress(plan.jobId, checkpoint.progressReceipt());
+  return checkpoint;
 }
 
 async function buildAutoBackgroundDecision(
@@ -4671,7 +4945,7 @@ async function buildAutoBackgroundDecision(
     existingCache?.version === 2 &&
     rootMatchesCurrentRepo(existingCache.rootDir, plan.primaryRootDir);
   const effectiveScanPolicy =
-    existingCacheMatchesRoot && !plan.scanPolicyExplicit
+    existingCacheMatchesRoot && !plan.scanPolicyExplicit && !plan.force
       ? normalizeScanPolicy(existingCache.scanPolicy)
       : plan.scanPolicy;
   const effectiveMaxFiles = plan.maxFiles ?? effectiveScanPolicy.maxFiles ?? DEFAULT_SCAN_MAX_FILES;
@@ -4720,6 +4994,7 @@ async function buildAutoBackgroundDecision(
       },
       plan.scanBatchSize
     ) as PlannedScannerScanPlan;
+    plan.preparedScanPlan = scanPlan;
     if (scanPlan.totalFiles >= thresholdFiles) {
       return {
         autoBackground: true,
@@ -4758,6 +5033,10 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     inlineSourceFiles,
     localCodebaseSnapshotReceipt,
     fromSourceFiles,
+    preparedScanPlan,
+    refreshCheckpoint,
+    targetGitCommitHash,
+    targetWorktreeFingerprint,
   } = plan;
   const { CodebaseGraph, GitChangeDetector } = mod;
   const signal = getAbsorbJobSignal(jobId);
@@ -4767,6 +5046,9 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
   // PATH 1: force=true → FULL SCAN
   // ═══════════════════════════════════════════════════════════════════════════
   if (force) {
+    if (!fromSourceFiles && !refreshCheckpoint) {
+      await prepareDurableRefreshCheckpoint(plan);
+    }
     const result = await runFullScan(
       mod,
       effectiveRootDirs,
@@ -4783,7 +5065,11 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       inlineSourceFiles,
       localCodebaseSnapshotReceipt,
       scanBatchSize,
-      scanPolicy
+      scanPolicy,
+      plan.preparedScanPlan ?? preparedScanPlan,
+      plan.refreshCheckpoint ?? refreshCheckpoint,
+      plan.targetGitCommitHash ?? targetGitCommitHash,
+      plan.targetWorktreeFingerprint ?? targetWorktreeFingerprint
     );
     return {
       ...(result as Record<string, unknown>),
@@ -5806,6 +6092,13 @@ async function handleGraphStatus(): Promise<unknown> {
         runtimePath: requestedPath ? path.resolve(requestedPath) : null,
         cacheAgeMs: activeAgeMs ?? graphRAGState.ageMs ?? undefined,
       });
+  const latestRefreshJob = Array.from(absorbJobs.values())
+    .filter(
+      (job) =>
+        job.refreshProgressReceipt &&
+        rootMatchesCurrentRepo(job.refreshProgressReceipt.rootDir, currentCwd)
+    )
+    .sort((left, right) => right.startedAt - left.startedAt)[0];
 
   return {
     inMemory: cachedGraph !== null,
@@ -5817,6 +6110,11 @@ async function handleGraphStatus(): Promise<unknown> {
       graphFile: activeCachePaths.graphFile,
       embeddingsFile: activeCachePaths.embeddingsFile,
     },
+    ...(latestRefreshJob?.refreshProgressReceipt && {
+      refreshInProgress: !['complete', 'error', 'cancelled'].includes(latestRefreshJob.status),
+      refreshJobId: latestRefreshJob.jobId,
+      refreshProgressReceipt: latestRefreshJob.refreshProgressReceipt,
+    }),
     embeddingPolicy,
     graphRAGReady: semanticIndexReady,
     semanticIndexReady,
@@ -5954,6 +6252,10 @@ async function handleCancelAbsorb(args: Record<string, unknown>): Promise<unknow
     requestedAt: job.cancellation
       ? new Date(job.cancellation.requestedAt).toISOString()
       : undefined,
+    ...(job.refreshProgressReceipt && {
+      resumeToken: job.refreshProgressReceipt.resumeToken,
+      refreshProgressReceipt: job.refreshProgressReceipt,
+    }),
     pollTool: 'holo_get_absorb_status',
   };
 }
@@ -5998,6 +6300,11 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
   if (job.scanPlan) {
     response.scanPlan =
       args.includePlan === true ? job.scanPlan : compactAbsorbScanPlan(job.scanPlan);
+  }
+
+  if (job.refreshProgressReceipt) {
+    response.resumeToken = job.refreshProgressReceipt.resumeToken;
+    response.refreshProgressReceipt = job.refreshProgressReceipt;
   }
 
   if (job.error) {

@@ -11,6 +11,7 @@ import {
   setGraphRAGState,
 } from './graph-rag-tools';
 import { EmbeddingIndex } from '../engine/EmbeddingIndex';
+import { CodebaseScanner } from '../engine/CodebaseScanner';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
 const originalCacheLayout = process.env.HOLOSCRIPT_CACHE_LAYOUT;
@@ -470,6 +471,165 @@ describe('holo_absorb_repo root validation', () => {
       embeddingSkipReason: 'outputFormat:stats',
     });
   }, 15_000);
+
+  it('interrupts and resumes a forced refresh without replacing the prior authoritative graph', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-resume-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-resume-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    const baseline = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+      scanBatchSize: 1,
+    })) as { stats?: { totalFiles?: number }; gitCommitHash?: string };
+    expect(baseline.stats?.totalFiles).toBe(2);
+    const baselineCache = fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8');
+
+    for (let index = 0; index < 4; index++) {
+      fs.writeFileSync(
+        path.join(repoDir, 'src', `resume-${index}.ts`),
+        `export const resumeFixture${index} = ${index};\n`,
+        'utf-8'
+      );
+    }
+    execFileSync('git', ['add', 'src'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'expand fixture'], { cwd: repoDir, windowsHide: true });
+    const targetHead = getHeadCommit(repoDir);
+
+    const originalScanFiles = CodebaseScanner.prototype.scanFiles;
+    vi.spyOn(CodebaseScanner.prototype, 'scanFiles').mockImplementation(async function (...args) {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      return originalScanFiles.apply(this, args);
+    });
+
+    const acceptedAt = Date.now();
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+      scanBatchSize: 1,
+      background: true,
+    })) as {
+      accepted?: boolean;
+      jobId?: string;
+      resumeToken?: string;
+      refreshProgressReceipt?: {
+        status?: string;
+        authoritative?: boolean;
+        targetGitCommitHash?: string;
+        totalCandidateFiles?: number;
+        completedBatchCount?: number;
+      };
+    };
+
+    expect(Date.now() - acceptedAt).toBeLessThan(30_000);
+    expect(accepted.accepted).toBe(true);
+    expect(accepted.resumeToken).toMatch(/^[a-f0-9]{32}$/);
+    expect(accepted.refreshProgressReceipt).toMatchObject({
+      status: 'prepared',
+      authoritative: false,
+      targetGitCommitHash: targetHead,
+      totalCandidateFiles: 6,
+      completedBatchCount: 0,
+    });
+
+    let progress: {
+      status?: string;
+      refreshProgressReceipt?: {
+        status?: string;
+        authoritative?: boolean;
+        cachePublished?: boolean;
+        priorAuthoritativeCachePreserved?: boolean;
+        resumable?: boolean;
+        completedBatchCount?: number;
+      };
+    } = {};
+    for (let index = 0; index < 100; index++) {
+      progress = (await handleCodebaseTool('holo_get_absorb_status', {
+        jobId: accepted.jobId,
+      })) as typeof progress;
+      if ((progress.refreshProgressReceipt?.completedBatchCount ?? 0) >= 1) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(progress.refreshProgressReceipt?.completedBatchCount).toBeGreaterThanOrEqual(1);
+
+    await handleCodebaseTool('holo_cancel_absorb', {
+      jobId: accepted.jobId,
+      reason: 'resume verifier interruption',
+    });
+    for (let index = 0; index < 100; index++) {
+      progress = (await handleCodebaseTool('holo_get_absorb_status', {
+        jobId: accepted.jobId,
+      })) as typeof progress;
+      if (progress.status === 'cancelled') break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(progress.status).toBe('cancelled');
+    expect(progress.refreshProgressReceipt).toMatchObject({
+      status: 'interrupted',
+      authoritative: false,
+      cachePublished: false,
+      priorAuthoritativeCachePreserved: true,
+      resumable: true,
+    });
+    expect(fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')).toBe(baselineCache);
+
+    const resumed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+      scanBatchSize: 1,
+      background: true,
+      resumeToken: accepted.resumeToken,
+    })) as { accepted?: boolean; jobId?: string; resumeToken?: string };
+    expect(resumed).toMatchObject({
+      accepted: true,
+      resumeToken: accepted.resumeToken,
+    });
+
+    const completed = await waitForAbsorbTerminalStatus(resumed.jobId!, true);
+    expect(completed.status).toBe('complete');
+    expect(completed.refreshProgressReceipt).toMatchObject({
+      status: 'complete',
+      targetGitCommitHash: targetHead,
+      totalCandidateFiles: 6,
+      completedBatchCount: 6,
+      remainingCandidateFiles: 0,
+      cachePublished: true,
+      resumable: false,
+    });
+
+    const cache = JSON.parse(fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')) as {
+      gitCommitHash?: string;
+      fileHashes?: Record<string, string>;
+    };
+    expect(cache.gitCommitHash).toBe(targetHead);
+    expect(Object.keys(cache.fileHashes ?? {}).sort()).toEqual([
+      'src/alpha.ts',
+      'src/beta.ts',
+      'src/resume-0.ts',
+      'src/resume-1.ts',
+      'src/resume-2.ts',
+      'src/resume-3.ts',
+    ]);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      coverage?: { complete?: boolean; extraGraphFiles?: number; graphFileCount?: number };
+    };
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.freshForCurrentRepo).toBe(true);
+    expect(status.coverage).toMatchObject({
+      complete: true,
+      extraGraphFiles: 0,
+      graphFileCount: 6,
+    });
+  }, 30_000);
 
   it('returns a graph unavailable receipt when the disk cache is stale', async () => {
     resetCodebaseToolStateForTests();
