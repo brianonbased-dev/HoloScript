@@ -5,13 +5,20 @@
     "displayName": "HoloScript Systems Toolchain",
     "version": "0.1.0",
     "channel": "outward-preview",
-    "status": "candidate-built",
+    "status": "published",
     "registryPackage": {
       "registry": "npm",
       "name": "@holoscript/systems",
       "version": "0.1.0",
       "localManifest": "distributions/systems/package.json",
-      "publishState": "candidate-built"
+      "publishState": "published",
+      "distTags": {
+        "preview": "0.1.0",
+        "latest": "0.1.0"
+      },
+      "integrity": "sha512-kyreAqdsqJai0TK5Xn2DJwXb3wuXCc2c+iZq/vkgMUindc+/bgrr2VuEsJSAJtqD6BABm7qoYquI4ZOSXSHFFQ==",
+      "tarballUrl": "https://registry.npmjs.org/@holoscript/systems/-/systems-0.1.0.tgz",
+      "registryReadbackReceipt": "artifacts/releases/0.1.0/systems-preview-registry-readback-receipt.json"
     },
     "versionAuthority": "This distribution manifest owns the 0.x preview version. Component packages, crates, services, and hs-machine selectors retain independent versions.",
     "legacyVersionReset": "forbidden",
@@ -104,7 +111,7 @@
       "required": true,
       "identity": "@holoscript/systems@0.1.0",
       "versionMode": "distribution-semver",
-      "artifactState": "candidate-built",
+      "artifactState": "published",
       "installCommand": "npm install --global @holoscript/systems@0.1.0",
       "coldProbe": "holoscript --version && hs --version && holoscriptc --help"
     },
@@ -115,7 +122,10 @@
       "required": true,
       "identity": "holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip",
       "versionMode": "distribution-semver",
-      "artifactState": "candidate-built",
+      "artifactState": "published",
+      "releaseTag": "v0.1.0",
+      "releaseUrl": "https://github.com/brianonbased-dev/HoloScript/releases/tag/v0.1.0",
+      "assetUrl": "https://github.com/brianonbased-dev/HoloScript/releases/download/v0.1.0/holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip",
       "requiredContents": ["holoscriptc.exe", "conformance/*.hs", "release-manifest.json", "SHA256SUMS", "LICENSE"],
       "coldProbe": "holoscriptc examples/native/conditional-borrow-summary-exit-five.hs -o proof.exe; proof.exe exits 5"
     },
@@ -126,7 +136,9 @@
       "required": true,
       "identity": "@holoscript/systems@0.1.0/wasm",
       "versionMode": "distribution-semver",
-      "artifactState": "candidate-built",
+      "artifactState": "published",
+      "releaseTag": "v0.1.0",
+      "assetUrl": "https://github.com/brianonbased-dev/HoloScript/releases/download/v0.1.0/holoscript-systems-v0.1.0-wasm.wasm",
       "coldProbe": "Import the bundled WASM parser/type-checker and run the declared conformance corpus."
     },
     {
@@ -174,7 +186,7 @@
     }
   ],
   "installContract": {
-    "availability": "candidate-built",
+    "availability": "published",
     "primaryCommand": "npm install --global @holoscript/systems@0.1.0",
     "expectedBins": ["holoscript", "hs", "holoscriptc"],
     "coldConsumerRequirements": [
@@ -224,7 +236,9 @@
     "requireResolvableSourceCommit": true,
     "requireExistingArtifactPaths": true,
     "requireMatchingArtifactDigests": true,
-    "requireMachineReadableReceipts": true
+    "requireMachineReadableReceipts": true,
+    "requirePassingReceipts": true,
+    "requirePublishedReadbacks": true
   },
   "candidateEvidence": {
     "sourceCommit": "a3afbd31b03bc8fd16f61321b59cad1d77727807",
@@ -242,7 +256,9 @@
       "artifacts/releases/0.1.0/systems-preview-build-receipt.json",
       "artifacts/releases/0.1.0/systems-preview-verification-receipt.json",
       "artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json",
-      "artifacts/releases/0.1.0/systems-preview-service-readback.json"
+      "artifacts/releases/0.1.0/systems-preview-service-readback.json",
+      "artifacts/releases/0.1.0/systems-preview-registry-readback-receipt.json",
+      "artifacts/releases/0.1.0/systems-preview-github-readback-receipt.json"
     ]
   },
   "parityContract": {
@@ -322,9 +338,13 @@
       "id": "cold-npm-consumption",
       "required": true,
       "status": "pass",
-      "evidencePaths": ["artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json"],
+      "evidencePaths": [
+        "artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json",
+        "artifacts/releases/0.1.0/systems-preview-registry-readback-receipt.json"
+      ],
       "verificationCommands": [
-        "node scripts/holo-ci/check-registry-cold-start.mjs --package artifacts/releases/0.1.0/holoscript-systems-0.1.0.tgz --probe systems-toolchain --json"
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package artifacts/releases/0.1.0/holoscript-systems-0.1.0.tgz --probe systems-toolchain --json",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/systems@0.1.0 --probe systems-toolchain --json"
       ]
     },
     {
@@ -416,7 +436,9 @@
         "scripts/holo-ci/systems-preview-release-manifest.json",
         "artifacts/releases/0.1.0/systems-preview-build-receipt.json",
         "artifacts/releases/0.1.0/systems-preview-verification-receipt.json",
-        "artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json"
+        "artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json",
+        "artifacts/releases/0.1.0/systems-preview-registry-readback-receipt.json",
+        "artifacts/releases/0.1.0/systems-preview-github-readback-receipt.json"
       ],
       "verificationCommands": [
         "node scripts/holo-ci/check-systems-preview-artifacts.mjs --json",

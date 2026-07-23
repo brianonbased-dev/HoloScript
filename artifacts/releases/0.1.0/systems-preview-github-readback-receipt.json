@@ -1,0 +1,35 @@
+{
+  "schema": "holoscript.systems-preview-github-readback/v1",
+  "checkedAt": "2026-07-23T02:09:44.000Z",
+  "ok": true,
+  "repository": "brianonbased-dev/HoloScript",
+  "release": {
+    "tag": "v0.1.0",
+    "tagCommit": "e9a1374558331de8477a6f73a230b681c55911cf",
+    "name": "HoloScript Systems Toolchain 0.1.0 (Preview)",
+    "prerelease": true,
+    "draft": false,
+    "url": "https://github.com/brianonbased-dev/HoloScript/releases/tag/v0.1.0"
+  },
+  "assets": [
+    {
+      "name": "holoscript-systems-0.1.0.tgz",
+      "bytes": 1145546,
+      "sha256": "316490e4e9342ddaed17952d20c4bd4abe9b529a40e0bf210b28d47c76e9b15d",
+      "url": "https://github.com/brianonbased-dev/HoloScript/releases/download/v0.1.0/holoscript-systems-0.1.0.tgz"
+    },
+    {
+      "name": "holoscript-systems-v0.1.0-wasm.wasm",
+      "bytes": 299247,
+      "sha256": "60b1fa9f0a071e6447b8674635b9ae6e3fdb9493d945ec94e3d6de4b8fc9c945",
+      "url": "https://github.com/brianonbased-dev/HoloScript/releases/download/v0.1.0/holoscript-systems-v0.1.0-wasm.wasm"
+    },
+    {
+      "name": "holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip",
+      "bytes": 1036798,
+      "sha256": "ff0994b5075b83d099f2500a34808ffb31f69a79f39cf978d53e41f924a266d1",
+      "url": "https://github.com/brianonbased-dev/HoloScript/releases/download/v0.1.0/holoscript-systems-v0.1.0-x86_64-pc-windows-msvc.zip"
+    }
+  ],
+  "errors": []
+}

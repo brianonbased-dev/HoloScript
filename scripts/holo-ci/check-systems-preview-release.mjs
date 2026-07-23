@@ -54,6 +54,20 @@ const REQUIRED_EVIDENCE_POLICY_KEYS = [
   'requireExistingArtifactPaths',
   'requireMatchingArtifactDigests',
   'requireMachineReadableReceipts',
+  'requirePassingReceipts',
+  'requirePublishedReadbacks',
+];
+
+const REQUIRED_CANDIDATE_RECEIPTS = [
+  'artifacts/releases/0.1.0/systems-preview-build-receipt.json',
+  'artifacts/releases/0.1.0/systems-preview-verification-receipt.json',
+  'artifacts/releases/0.1.0/systems-preview-cold-install-receipt.json',
+  'artifacts/releases/0.1.0/systems-preview-service-readback.json',
+];
+
+const REQUIRED_PUBLISHED_RECEIPTS = [
+  'artifacts/releases/0.1.0/systems-preview-registry-readback-receipt.json',
+  'artifacts/releases/0.1.0/systems-preview-github-readback-receipt.json',
 ];
 
 function readJson(path) {
@@ -491,6 +505,17 @@ export function validateSystemsPreviewRelease(manifest, { rootDir = DEFAULT_ROOT
 
     const receiptPaths = candidateEvidence.receiptPaths;
     requireStrings(receiptPaths, 'candidateEvidence.receiptPaths', errors, 1);
+    if (ready) {
+      const requiredReceipts = [...REQUIRED_CANDIDATE_RECEIPTS];
+      if (registryPackage.publishState === 'published') {
+        requiredReceipts.push(...REQUIRED_PUBLISHED_RECEIPTS);
+      }
+      for (const requiredReceipt of requiredReceipts) {
+        if (!receiptPaths?.includes(requiredReceipt)) {
+          errors.push(`candidateEvidence.receiptPaths is missing ${requiredReceipt}`);
+        }
+      }
+    }
     for (const path of receiptPaths || []) {
       assertRepoPath(root, path, 'candidateEvidence.receiptPaths', errors);
       const absolute = resolve(root, path);
@@ -500,7 +525,53 @@ export function validateSystemsPreviewRelease(manifest, { rootDir = DEFAULT_ROOT
         continue;
       }
       try {
-        readJson(absolute);
+        const receipt = readJson(absolute);
+        if (receipt?.ok !== true) {
+          errors.push(`candidateEvidence receipt did not pass: ${path}`);
+        }
+        const receiptSourceCommit = receipt?.sourceCommit || receipt?.probe?.sourceCommit;
+        if (receiptSourceCommit && receiptSourceCommit !== candidateEvidence.sourceCommit) {
+          errors.push(`candidateEvidence receipt source commit does not match: ${path}`);
+        }
+        if (receipt?.artifactDigests && typeof receipt.artifactDigests === 'object') {
+          for (const [artifactPath, digest] of Object.entries(artifactDigests)) {
+            if (receipt.artifactDigests[artifactPath] !== digest) {
+              errors.push(
+                `candidateEvidence receipt artifact digest does not match ${artifactPath}: ${path}`
+              );
+            }
+          }
+        }
+        if (receipt?.schema === 'holoscript.registry-cold-start.receipt.v1') {
+          if (
+            receipt?.package?.metadata?.name !== registryPackage.name ||
+            receipt?.package?.metadata?.version !== registryPackage.version
+          ) {
+            errors.push(
+              `candidateEvidence registry receipt package identity does not match: ${path}`
+            );
+          }
+          if (
+            path.endsWith('systems-preview-registry-readback-receipt.json') &&
+            receipt?.package?.installed?.integrity !== registryPackage.integrity
+          ) {
+            errors.push(`candidateEvidence registry receipt integrity does not match: ${path}`);
+          }
+        }
+        if (receipt?.schema === 'holoscript.systems-preview-github-readback/v1') {
+          if (receipt?.release?.tag !== railById.get('native-windows-x64')?.releaseTag) {
+            errors.push(`candidateEvidence GitHub receipt release tag does not match: ${path}`);
+          }
+          for (const [artifactPath, digest] of Object.entries(artifactDigests)) {
+            const artifactName = artifactPath.split('/').at(-1);
+            const asset = receipt.assets?.find((candidate) => candidate?.name === artifactName);
+            if (asset?.sha256 !== digest) {
+              errors.push(
+                `candidateEvidence GitHub receipt asset digest does not match ${artifactName}: ${path}`
+              );
+            }
+          }
+        }
       } catch {
         errors.push(`candidateEvidence receipt is not valid JSON: ${path}`);
       }

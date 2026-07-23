@@ -14,7 +14,7 @@
   "serviceReadback": {
     "schema": "holoscript.systems-preview-service-readback/v1",
     "ok": true,
-    "checkedAt": "2026-07-23T01:49:58.394Z",
+    "checkedAt": "2026-07-23T02:18:37.573Z",
     "rows": [
       {
         "railId": "hosted-mcp",

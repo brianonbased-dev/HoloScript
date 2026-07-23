@@ -1,0 +1,97 @@
+{
+  "schema": "holoscript.registry-cold-start.receipt.v1",
+  "generatedAt": "2026-07-23T02:08:10.237Z",
+  "ok": true,
+  "package": {
+    "spec": "@holoscript/systems@0.1.0",
+    "metadata": {
+      "name": "@holoscript/systems",
+      "version": "0.1.0",
+      "dist.integrity": "sha512-kyreAqdsqJai0TK5Xn2DJwXb3wuXCc2c+iZq/vkgMUindc+/bgrr2VuEsJSAJtqD6BABm7qoYquI4ZOSXSHFFQ==",
+      "dist.tarball": "https://registry.npmjs.org/@holoscript/systems/-/systems-0.1.0.tgz",
+      "dependencies": {
+        "@holoscript/cli": "8.0.11",
+        "@holoscript/core": "8.0.17"
+      },
+      "exports": {
+        ".": {
+          "types": "./index.d.ts",
+          "import": "./index.mjs",
+          "default": "./index.mjs"
+        },
+        "./wasm": {
+          "types": "./wasm/holoscript_wasm.d.ts",
+          "require": "./wasm/index.cjs",
+          "default": "./wasm/index.cjs"
+        },
+        "./release-manifest": "./release-manifest.json"
+      }
+    },
+    "installed": {
+      "name": "@holoscript/systems",
+      "version": "0.1.0",
+      "integrity": "sha512-kyreAqdsqJai0TK5Xn2DJwXb3wuXCc2c+iZq/vkgMUindc+/bgrr2VuEsJSAJtqD6BABm7qoYquI4ZOSXSHFFQ==",
+      "resolved": "https://registry.npmjs.org/@holoscript/systems/-/systems-0.1.0.tgz",
+      "packageJsonSha256": "3de5d3362d6dd77e8c702c968fc9a2f2339cd02eba747d9a6ca76022c66a7c6b"
+    }
+  },
+  "registry": {
+    "requestedUrl": null,
+    "url": "https://registry.npmjs.org/",
+    "resolvedByNpmConfig": "https://registry.npmjs.org/",
+    "publicFallbackAllowed": true,
+    "publicFallbackDisabled": false,
+    "clientPolicy": "npm-config",
+    "publicRegistryUrls": [
+      "https://registry.npmjs.org"
+    ]
+  },
+  "environment": {
+    "node": "v24.15.0",
+    "npm": "11.6.2",
+    "python": "Python 3.14.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "isolation": {
+    "tempDir": "<temp-root>\\hs-registry-cold-start-2fSa61",
+    "npmCacheDir": "<temp-root>\\hs-registry-cold-start-2fSa61\\npm-cache",
+    "tempDirKept": false,
+    "repoAccess": false,
+    "installCommand": "npm install @holoscript/systems@0.1.0 --ignore-scripts --no-audit --no-fund --omit=optional --prefer-online --cache <temp>/npm-cache --loglevel=error"
+  },
+  "probeKind": "systems-toolchain",
+  "source": null,
+  "probe": {
+    "kind": "systems-toolchain",
+    "ok": true,
+    "checks": {
+      "packageIdentity": true,
+      "exactCorePin": true,
+      "exactCliPin": true,
+      "expectedBins": true,
+      "releaseIdentity": true,
+      "exportedIdentity": true,
+      "cumulativeCorpus": true,
+      "wasmCumulativeConformance": true,
+      "nativeCumulativeConformance": true,
+      "cliHelp": true
+    },
+    "sourceCommit": "a3afbd31b03bc8fd16f61321b59cad1d77727807",
+    "native": {
+      "programCount": 25,
+      "expectedExitCode": 5,
+      "failures": []
+    },
+    "wasm": {
+      "version": "3.0.0",
+      "programCount": 25,
+      "failures": []
+    },
+    "cli": {
+      "exitCode": 0,
+      "stdoutBytes": 16974
+    }
+  },
+  "finalDisposition": "repo_less_systems_toolchain_passed"
+}

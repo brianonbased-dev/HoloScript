@@ -137,6 +137,15 @@ console.log('check-systems-preview-release.test.mjs');
 
 {
   const result = validate((manifest) => {
+    manifest.candidateEvidence.receiptPaths[0] =
+      'scripts/holo-ci/systems-preview-release-manifest.json';
+  });
+  assert(!result.ok, 'failed or non-receipt JSON cannot satisfy candidate evidence');
+  assert(hasError(result, /receipt did not pass/u), 'non-passing receipt diagnostic is explicit');
+}
+
+{
+  const result = validate((manifest) => {
     manifest.rails.find((rail) => rail.id === 'hosted-mcp').requiredForLocalCompile = true;
   });
   assert(!result.ok, 'hosted service cannot become a hidden local compiler dependency');
