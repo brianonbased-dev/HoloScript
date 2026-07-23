@@ -1,0 +1,68 @@
+{
+  "schema": "holoscript.systems-compatible-builder-contract/v1",
+  "distributionId": "holoscript-systems-toolchain",
+  "releaseVersion": "0.3.0",
+  "channel": "next",
+  "machineContract": "hs-machine-v33",
+  "platform": {
+    "id": "darwin-arm64",
+    "os": "darwin",
+    "cpu": "arm64",
+    "rustTarget": "aarch64-apple-darwin",
+    "package": "@holoscript/systems-darwin-arm64",
+    "builderPolicy": "compatible-host-only"
+  },
+  "baselinePlatformPackages": {
+    "@holoscript/systems-linux-x64": "0.2.0",
+    "@holoscript/systems-win32-x64": "0.2.0"
+  },
+  "metaPackage": {
+    "name": "@holoscript/systems",
+    "version": "0.3.0",
+    "platformNeutral": true
+  },
+  "sourcePaths": [
+    "Cargo.toml",
+    "Cargo.lock",
+    "packages/compiler-native/Cargo.toml",
+    "packages/compiler-native/src",
+    "packages/compiler-native/tests",
+    "examples/native/multi-file-modules",
+    "distributions/systems",
+    "distributions/systems-next",
+    "scripts/__tests__/systems-platform-builder-contract.test.mjs",
+    "scripts/holo-ci/lib/deterministic-zip.mjs",
+    "scripts/holo-ci/lib/systems-platform-builder-contract.mjs",
+    "scripts/holo-ci/build-systems-0.3-macos-bundle.mjs",
+    "scripts/holo-ci/check-systems-0.3-macos-bundle.mjs",
+    "scripts/holo-ci/check-systems-0.3-macos-public-consumer.mjs",
+    "scripts/holo-ci/systems-0.2-release-manifest.json",
+    "scripts/holo-ci/systems-0.3-macos-builder-contract.json"
+  ],
+  "outputs": {
+    "metaTarball": "holoscript-systems-0.3.0.tgz",
+    "platformTarball": "holoscript-systems-darwin-arm64-0.3.0.tgz",
+    "receipt": "systems-0.3-macos-builder-receipt.json",
+    "bundle": "systems-0.3-macos-builder-bundle.zip"
+  },
+  "requiredProofs": {
+    "actualCompatibleHost": true,
+    "cleanSourceAtCommit": true,
+    "lockedRustBuild": true,
+    "nativeMultiFileExitCode": 5,
+    "deterministicNpmRepack": true,
+    "repoLessNpmColdConsumerExitCode": 5,
+    "publicStateMutated": false
+  },
+  "postPublicationGate": {
+    "required": true,
+    "satisfiedByBuilderBundle": false,
+    "command": "node scripts/holo-ci/check-systems-0.3-macos-public-consumer.mjs --json",
+    "proof": "An anonymous repo-less darwin-arm64 install from the public npm registry must compile the packaged multi-file example and exit 5 after publication."
+  },
+  "handoff": {
+    "buildCommand": "node scripts/holo-ci/build-systems-0.3-macos-bundle.mjs --source-commit <full-commit> --json",
+    "verifyCommand": "node scripts/holo-ci/check-systems-0.3-macos-bundle.mjs --bundle <bundle.zip> --source-commit <full-commit> --json",
+    "transportRule": "Transfer the deterministic bundle as opaque bytes. The verifier recomputes every transferable byte digest; compatible-host execution proof remains receipt-bound until the separate post-publication macOS cold readback corroborates it."
+  }
+}

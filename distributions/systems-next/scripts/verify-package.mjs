@@ -6,10 +6,18 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 const errors = [];
-const expectedPlatforms = {
-  '@holoscript/systems-linux-x64': '0.2.0',
-  '@holoscript/systems-win32-x64': '0.2.0',
+const expectedPlatformsByVersion = {
+  '0.2.0': {
+    '@holoscript/systems-linux-x64': '0.2.0',
+    '@holoscript/systems-win32-x64': '0.2.0',
+  },
+  '0.3.0': {
+    '@holoscript/systems-darwin-arm64': '0.3.0',
+    '@holoscript/systems-linux-x64': '0.2.0',
+    '@holoscript/systems-win32-x64': '0.2.0',
+  },
 };
+const expectedPlatforms = expectedPlatformsByVersion[manifest.version];
 
 function filesRecursively(directory) {
   if (!existsSync(directory)) return [];
@@ -19,14 +27,19 @@ function filesRecursively(directory) {
   });
 }
 
-if (manifest.name !== '@holoscript/systems' || manifest.version !== '0.2.0') {
-  errors.push('package identity must remain @holoscript/systems@0.2.0');
+if (manifest.name !== '@holoscript/systems' || !expectedPlatforms) {
+  errors.push(
+    `package identity must be a supported @holoscript/systems candidate; found ${manifest.name}@${manifest.version}`
+  );
 }
-if (JSON.stringify(manifest.optionalDependencies) !== JSON.stringify(expectedPlatforms)) {
+if (
+  expectedPlatforms &&
+  JSON.stringify(manifest.optionalDependencies) !== JSON.stringify(expectedPlatforms)
+) {
   errors.push('platform optionalDependencies must remain exact and complete');
 }
 if (manifest.os || manifest.cpu) {
-  errors.push('the 0.2 meta package must remain platform-neutral');
+  errors.push('the systems meta package must remain platform-neutral');
 }
 if (manifest.dependencies?.['@holoscript/core'] !== '8.0.17') {
   errors.push('@holoscript/core must remain exactly pinned to 8.0.17');
@@ -64,7 +77,7 @@ if (existsSync(releaseManifestPath)) {
   const release = JSON.parse(readFileSync(releaseManifestPath, 'utf8'));
   if (
     release.distributionId !== 'holoscript-systems-toolchain' ||
-    release.version !== '0.2.0' ||
+    release.version !== manifest.version ||
     release.machineContract !== 'hs-machine-v33'
   ) {
     errors.push('embedded release manifest identity mismatch');
@@ -93,9 +106,9 @@ if (existsSync(sumsPath)) {
 }
 
 if (errors.length > 0) {
-  for (const error of errors) console.error(`[systems-0.2-package] ${error}`);
+  for (const error of errors) console.error(`[systems-package] ${error}`);
   process.exit(1);
 }
 console.error(
-  '[systems-0.2-package] package identity, platform split, files, and digests verified'
+  `[systems-package] ${manifest.name}@${manifest.version} identity, platform split, files, and digests verified`
 );
