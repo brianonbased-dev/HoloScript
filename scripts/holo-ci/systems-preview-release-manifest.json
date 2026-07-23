@@ -312,18 +312,26 @@
     {
       "id": "package-architecture",
       "required": true,
-      "status": "fail",
-      "evidencePaths": ["scripts/holo-ci/check-package-architecture.mjs"],
-      "verificationCommands": ["node scripts/holo-ci/check-package-architecture.mjs"],
-      "remaining": "Close the declared candidate consumption or public-API-canary gaps."
+      "status": "pass",
+      "evidencePaths": [
+        "scripts/holo-ci/check-package-architecture.mjs",
+        "scripts/holo-ci/check-registry-cold-start.mjs",
+        "scripts/holo-ci/package-stewardship-manifest.json"
+      ],
+      "verificationCommands": [
+        "node scripts/holo-ci/check-package-architecture.mjs",
+        "corepack pnpm run check:registry-cold-start:agent-protocol-public-api",
+        "corepack pnpm run check:registry-cold-start:llm-provider-public-api",
+        "corepack pnpm run check:registry-cold-start:snn-webgpu-public-api",
+        "corepack pnpm run check:registry-cold-start:holoembed-public-api"
+      ]
     },
     {
       "id": "package-stewardship",
       "required": true,
-      "status": "fail",
+      "status": "pass",
       "evidencePaths": ["scripts/holo-ci/check-package-stewardship.mjs", "scripts/holo-ci/package-stewardship-manifest.json"],
-      "verificationCommands": ["node scripts/holo-ci/check-package-stewardship.mjs"],
-      "remaining": "Add every missing required package steward record."
+      "verificationCommands": ["node scripts/holo-ci/check-package-stewardship.mjs"]
     },
     {
       "id": "publish-secret-safe-boundary",
@@ -372,8 +380,6 @@
       "deterministic-artifact-provenance",
       "cold-npm-consumption",
       "registry-version-dependency-closure",
-      "package-architecture",
-      "package-stewardship",
       "publish-secret-safe-boundary",
       "railway-readback",
       "cross-rail-parity"

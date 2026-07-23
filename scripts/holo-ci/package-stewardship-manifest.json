@@ -588,14 +588,130 @@
       },
       "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu", "hosted-service"],
       "utilityIds": [],
-      "validationScripts": ["package:opportunity-map", "version:check:strict"],
+      "validationScripts": [
+        "check:registry-cold-start:llm-provider-public-api",
+        "package:opportunity-map",
+        "version:check:strict"
+      ],
       "validationCommands": [
         "pnpm --filter @holoscript/llm-provider build",
-        "pnpm --filter @holoscript/llm-provider test"
+        "pnpm --filter @holoscript/llm-provider test",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/llm-provider@latest --probe llm-provider-public-api --json"
       ],
       "nextActions": [
-        "Add a no-secret import smoke that verifies provider factories without touching live API keys.",
+        "Keep the no-secret public API canary green for provider factories without touching live API keys.",
         "Keep local-LLM adapter strategy aligned with HoloLlama rather than reintroducing Ollama dependency assumptions."
+      ]
+    },
+    {
+      "id": "agent-protocol-contracts",
+      "registry": "npm",
+      "packageName": "@holoscript/agent-protocol",
+      "status": "release-candidate",
+      "constructionRole": "Portable uAA2++ protocol contracts, runtime enums, and knowledge-entry guards shared by agents and framework consumers.",
+      "stewardshipIntent": "Keep protocol identity and wire-level contracts importable without pulling private agent implementations or founder state into the package.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/agent-protocol/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": [],
+      "validationScripts": ["check:registry-cold-start:agent-protocol-public-api"],
+      "validationCommands": [
+        "pnpm --filter @holoscript/agent-protocol build",
+        "pnpm --filter @holoscript/agent-protocol test",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/agent-protocol@latest --probe agent-protocol-public-api --json"
+      ],
+      "caveats": [
+        {
+          "id": "contracts-not-agent-implementation",
+          "scope": "npm-public-api",
+          "summary": "The package exposes protocol contracts, enums, helpers, and adapters; full agent implementations remain owned by their runtime packages.",
+          "overclaimGuard": "Do not claim that a successful protocol import proves a running agent, model, memory store, or HoloMesh service."
+        }
+      ],
+      "nextActions": [
+        "Keep ProtocolPhase, PHASE_NAMES, and isPattern available from the repo-less package root.",
+        "Add package-consumption lanes only when a concrete fleet utility consumes the package directly."
+      ]
+    },
+    {
+      "id": "spiking-neural-webgpu-runtime",
+      "registry": "npm",
+      "packageName": "@holoscript/snn-webgpu",
+      "status": "release-candidate",
+      "constructionRole": "WebGPU and CPU-reference spiking-neural runtime for LIF simulation, network orchestration, encoding, and decoding.",
+      "stewardshipIntent": "Keep neuromorphic compute reusable from public package APIs while hardware performance and training claims remain receipt-bound.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/snn-webgpu/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": [],
+      "validationScripts": ["check:registry-cold-start:snn-webgpu-public-api"],
+      "validationCommands": [
+        "pnpm --filter @holoscript/snn-webgpu build",
+        "pnpm --filter @holoscript/snn-webgpu test",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/snn-webgpu@latest --probe snn-webgpu-public-api --json"
+      ],
+      "caveats": [
+        {
+          "id": "import-not-gpu-throughput-proof",
+          "scope": "npm-public-api",
+          "summary": "A repo-less import proves the public runtime surface, not WebGPU availability, accelerator correctness, throughput, or model quality on a particular host.",
+          "overclaimGuard": "Tie GPU, latency, scale, and learning claims to separate hardware and benchmark receipts."
+        }
+      ],
+      "nextActions": [
+        "Keep LIFSimulator, SNNNetwork, and DEFAULT_LIF_PARAMS available from the repo-less package root.",
+        "Promote a fleet utility row only after an operational laptop, Jetson, or Vast workload consumes this package directly."
+      ]
+    },
+    {
+      "id": "structural-code-embeddings",
+      "registry": "npm",
+      "packageName": "@holoscript/holoembed",
+      "status": "release-candidate",
+      "constructionRole": "HoloScript-native structural and subword embedding runtime for codebase GraphRAG and agent retrieval.",
+      "stewardshipIntent": "Keep the shared HoloEmbed vector space keyless, portable, and externally importable without private corpora or hosted embedding custody.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "ready",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/holoembed/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "utilityIds": [],
+      "validationScripts": ["check:registry-cold-start:holoembed-public-api"],
+      "validationCommands": [
+        "pnpm --filter @holoscript/holoembed build",
+        "pnpm --filter @holoscript/holoembed test",
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/holoembed@latest --probe holoembed-public-api --json"
+      ],
+      "caveats": [
+        {
+          "id": "import-not-retrieval-quality-proof",
+          "scope": "npm-public-api",
+          "summary": "A repo-less import proves the deterministic encoder surface, not corpus quality, retrieval accuracy, or optional WebGPU acceleration.",
+          "overclaimGuard": "Require separate retrieval and hardware receipts before claiming semantic quality or accelerator gains."
+        }
+      ],
+      "nextActions": [
+        "Keep HoloEmbedEncoder, HOLOEMBED_DIM, and trigramHistogram available from the repo-less package root.",
+        "Add a fleet utility row only after an operational graph or retrieval lane records direct package consumption."
       ]
     },
     {

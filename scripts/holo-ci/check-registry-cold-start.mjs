@@ -36,6 +36,10 @@ const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const PYTHON_BIN = process.env.PYTHON || 'python';
 const PUBLIC_NPM_REGISTRIES = new Set(['https://registry.npmjs.org']);
 const PACKAGE_IMPORT_PROBES = {
+  'agent-protocol-public-api': ['@holoscript/agent-protocol'],
+  'llm-provider-public-api': ['@holoscript/llm-provider'],
+  'snn-webgpu-public-api': ['@holoscript/snn-webgpu'],
+  'holoembed-public-api': ['@holoscript/holoembed'],
   'engine-runtime-import': [
     '@holoscript/engine',
     '@holoscript/engine/runtime',
@@ -67,6 +71,20 @@ const PACKAGE_IMPORT_PROBES = {
     '@holoscript/holoscript-agent/supervisor-config',
   ],
   'xr-embodiment-import': ['@holoscript/xr-embodiment', '@holoscript/xr-embodiment/three'],
+};
+const PACKAGE_REQUIRED_EXPORTS = {
+  'agent-protocol-public-api': {
+    '@holoscript/agent-protocol': ['ProtocolPhase', 'PHASE_NAMES', 'isPattern'],
+  },
+  'llm-provider-public-api': {
+    '@holoscript/llm-provider': ['LLMProviderManager', 'MockAdapter', 'createMockProvider'],
+  },
+  'snn-webgpu-public-api': {
+    '@holoscript/snn-webgpu': ['LIFSimulator', 'SNNNetwork', 'DEFAULT_LIF_PARAMS'],
+  },
+  'holoembed-public-api': {
+    '@holoscript/holoembed': ['HoloEmbedEncoder', 'HOLOEMBED_DIM', 'trigramHistogram'],
+  },
 };
 const PACKAGE_BIN_HELP_PROBES = {
   'cli-bin-help': {
@@ -815,19 +833,25 @@ console.log(JSON.stringify({
 
 function buildPackageImportProbeScript(probeKind) {
   const importSpecs = PACKAGE_IMPORT_PROBES[probeKind] || [];
+  const requiredExportsBySpec = PACKAGE_REQUIRED_EXPORTS[probeKind] || {};
   return `
 const importSpecs = ${JSON.stringify(importSpecs, null, 2)};
+const requiredExportsBySpec = ${JSON.stringify(requiredExportsBySpec, null, 2)};
 const imports = [];
 
 for (const spec of importSpecs) {
   try {
     const namespace = await import(spec);
     const exportedKeys = Object.keys(namespace).sort();
+    const requiredExports = requiredExportsBySpec[spec] || [];
+    const missingExports = requiredExports.filter((name) => !(name in namespace));
     imports.push({
       spec,
-      ok: true,
+      ok: missingExports.length === 0,
       exportCount: exportedKeys.length,
-      sampleExports: exportedKeys.slice(0, 20)
+      sampleExports: exportedKeys.slice(0, 20),
+      requiredExports,
+      missingExports
     });
   } catch (error) {
     imports.push({
