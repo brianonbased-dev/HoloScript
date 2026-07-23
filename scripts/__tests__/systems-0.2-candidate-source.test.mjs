@@ -42,6 +42,7 @@ assert.doesNotMatch(wrapper, /native[\\/]win32-x64/u);
 assert.match(builder, /rust:1\.91-bookworm/u);
 assert.match(builder, /node:22-bookworm/u);
 assert.match(builder, /deterministicRepackSha256/u);
+assert.match(builder, /ensureSourceMatchesCommit/u);
 assert.match(builder, /Windows cold consumer executable exited/u);
 assert.match(builder, /linux-consumer/u);
 

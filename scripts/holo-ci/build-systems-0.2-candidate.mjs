@@ -34,6 +34,7 @@ const SOURCE_PATHS = [
   'packages/compiler-wasm/Cargo.toml',
   'packages/compiler-wasm/src',
   'examples/native',
+  'distributions/systems',
   'distributions/systems-next',
   'scripts/holo-ci/build-systems-0.2-candidate.mjs',
   'scripts/holo-ci/check-systems-0.2-candidate.mjs',
@@ -135,6 +136,20 @@ function ensureCleanSource() {
         `release source paths have ${mode.length ? 'staged' : 'working-tree'} changes; commit source before assembly`
       );
     }
+  }
+}
+
+function ensureSourceMatchesCommit(sourceCommit) {
+  ensureCleanSource();
+  const result = spawnSync('git', ['diff', '--quiet', sourceCommit, '--', ...SOURCE_PATHS], {
+    cwd: ROOT,
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `release source paths changed after build start and no longer match ${sourceCommit}`
+    );
   }
 }
 
@@ -300,11 +315,7 @@ function verifyWindowsColdInstall(metaArtifact, windowsArtifact, tempRoot) {
   const consumer = join(tempRoot, 'windows-consumer');
   mkdirSync(consumer, { recursive: true });
   run('npm', ['init', '-y'], { cwd: consumer, capture: true });
-  run('npm', ['install', '--ignore-scripts', '--omit=optional', metaArtifact], {
-    cwd: consumer,
-    capture: true,
-  });
-  run('npm', ['install', '--ignore-scripts', '--omit=optional', windowsArtifact], {
+  run('npm', ['install', '--ignore-scripts', '--omit=optional', metaArtifact, windowsArtifact], {
     cwd: consumer,
     capture: true,
   });
@@ -336,8 +347,7 @@ function verifyLinuxColdInstall(metaArtifact, linuxArtifact, tempRoot) {
     'set -eu',
     'cd /consumer',
     'npm init -y >/dev/null',
-    `npm install --ignore-scripts --omit=optional /artifacts/${basename(metaArtifact)} >/dev/null`,
-    `npm install --ignore-scripts --omit=optional /artifacts/${basename(linuxArtifact)} >/dev/null`,
+    `npm install --ignore-scripts --omit=optional /artifacts/${basename(metaArtifact)} /artifacts/${basename(linuxArtifact)} >/dev/null`,
     'node node_modules/@holoscript/systems/bin/holoscriptc.cjs /source/examples/native/multi-file-modules/entry.hs -o /consumer/module-exit-five',
     'set +e',
     '/consumer/module-exit-five',
@@ -500,6 +510,7 @@ try {
     platformArtifacts['linux-x64'].path,
     temp
   );
+  ensureSourceMatchesCommit(sourceCommit);
 
   const receipt = {
     schema: 'holoscript.systems-0.2-build-receipt/v1',
