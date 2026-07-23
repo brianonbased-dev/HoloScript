@@ -1,0 +1,57 @@
+{
+  "schema": "holoscript.systems-0.2-build-receipt/v1",
+  "generatedAt": "2026-07-23T05:41:36.441Z",
+  "ok": true,
+  "distributionId": "holoscript-systems-toolchain",
+  "version": "0.2.0",
+  "channel": "next",
+  "machineContract": "hs-machine-v33",
+  "sourceCommit": "9ff53e466e8401df4dace1d5364a6efe4ef9dfc6",
+  "candidateManifest": "scripts/holo-ci/systems-0.2-candidate-manifest.json",
+  "builders": {
+    "win32-x64": {
+      "kind": "owned-host",
+      "binarySha256": "b3a2b43066c37038614ee816fe4ad0d9f8aa03acba24e3db0e8572155bc7d5c3"
+    },
+    "linux-x64": {
+      "kind": "docker",
+      "image": "rust:1.91-bookworm",
+      "binarySha256": "737ab801b543af62543a6b0b2b9a4c4cb15b2293482a06624754bb8b26e995f0"
+    }
+  },
+  "artifacts": {
+    "meta": {
+      "path": "artifacts/releases/0.2.0-candidate/holoscript-systems-0.2.0.tgz",
+      "sha256": "fb215e347e9a9d5205a062ad166050311b302309a971258bd03502a0f2c53edd",
+      "bytes": 120751,
+      "deterministicRepackSha256": "fb215e347e9a9d5205a062ad166050311b302309a971258bd03502a0f2c53edd"
+    },
+    "platforms": {
+      "linux-x64": {
+        "path": "artifacts/releases/0.2.0-candidate/holoscript-systems-linux-x64-0.2.0.tgz",
+        "sha256": "2ed245c7e07a912fcc310f221c87f26c23c23559a48432e2eabd5a9995e97d3d",
+        "bytes": 1340789,
+        "deterministicRepackSha256": "2ed245c7e07a912fcc310f221c87f26c23c23559a48432e2eabd5a9995e97d3d"
+      },
+      "win32-x64": {
+        "path": "artifacts/releases/0.2.0-candidate/holoscript-systems-win32-x64-0.2.0.tgz",
+        "sha256": "c95f474eea89da04a34d7d309bf9ddb1505a714dc52ef154b250ec56c1db7932",
+        "bytes": 1155800,
+        "deterministicRepackSha256": "c95f474eea89da04a34d7d309bf9ddb1505a714dc52ef154b250ec56c1db7932"
+      }
+    }
+  },
+  "coldConsumers": {
+    "win32-x64": {
+      "ok": true,
+      "exitCode": 5
+    },
+    "linux-x64": {
+      "ok": true,
+      "exitCode": 5,
+      "image": "node:22-bookworm"
+    }
+  },
+  "immutablePredecessor": "@holoscript/systems@0.1.0",
+  "publicStateMutated": false
+}
