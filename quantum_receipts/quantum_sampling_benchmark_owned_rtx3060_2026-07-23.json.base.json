@@ -1,0 +1,16 @@
+{
+  "anchor_authority": "agent-x402-seat",
+  "anchored_at": 1784847250,
+  "basescan_url": "https://basescan.org/tx/0x21b19469be6f7e730b9da983ad306f9f203084ed4565d9747a76467c62541b01",
+  "chain": "base-mainnet",
+  "chain_id": 8453,
+  "file_sha256": "d15268a02c53c4eac4c7d9ed280f74f058e86b75230f8ccf484f764b49a3b205",
+  "seat_id": "openai-codex-c40b1de5-default-x402",
+  "status": "mined",
+  "tx_hash": "0x21b19469be6f7e730b9da983ad306f9f203084ed4565d9747a76467c62541b01",
+  "wallet": "0x08e9B4bDa331A33bc67A0b11b811bF9365c3Eaf8",
+  "agent_surface": "codex",
+  "block_number": 49028950,
+  "block_hash": "0xf11037257856af885f467b013a0eb1f68d3c47a41ba2d68824cabbd97c125fa1",
+  "gas_used": 22280
+}
