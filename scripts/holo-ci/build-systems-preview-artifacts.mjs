@@ -62,12 +62,13 @@ function run(
   commandArgs,
   { cwd = ROOT, timeout = 1_200_000, capture = false, env = process.env } = {}
 ) {
-  const executable = process.platform === 'win32' && command === 'npm' ? 'npm.cmd' : command;
+  const isWindowsNpm = process.platform === 'win32' && command === 'npm';
+  const executable = isWindowsNpm ? 'npm.cmd' : command;
   const result = spawnSync(executable, commandArgs, {
     cwd,
     encoding: capture ? 'utf8' : undefined,
     stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
-    shell: false,
+    shell: isWindowsNpm,
     timeout,
     windowsHide: true,
     env,
