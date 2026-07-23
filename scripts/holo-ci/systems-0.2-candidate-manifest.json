@@ -1,0 +1,62 @@
+{
+  "schema": "holoscript.systems-platform-release-candidate/v1",
+  "distributionId": "holoscript-systems-toolchain",
+  "version": "0.2.0",
+  "channel": "next",
+  "status": "candidate",
+  "machineContract": "hs-machine-v33",
+  "immutablePredecessor": {
+    "package": "@holoscript/systems@0.1.0",
+    "releaseTag": "v0.1.0",
+    "manifest": "scripts/holo-ci/systems-preview-release-manifest.json"
+  },
+  "metaPackage": {
+    "name": "@holoscript/systems",
+    "source": "distributions/systems-next",
+    "platformNeutral": true
+  },
+  "platformPackages": {
+    "linux-x64": {
+      "name": "@holoscript/systems-linux-x64",
+      "os": "linux",
+      "cpu": "x64",
+      "rustTarget": "x86_64-unknown-linux-gnu",
+      "builder": "rust:1.91-bookworm"
+    },
+    "win32-x64": {
+      "name": "@holoscript/systems-win32-x64",
+      "os": "win32",
+      "cpu": "x64",
+      "rustTarget": "x86_64-pc-windows-msvc",
+      "builder": "owned-host"
+    }
+  },
+  "componentPins": {
+    "@holoscript/core": "8.0.17",
+    "@holoscript/cli": "8.0.11",
+    "holoscript-native": "3.0.0",
+    "holoscript-wasm": "3.0.0"
+  },
+  "portableArtifactPolicy": {
+    "wasmSource": "distributions/systems/wasm",
+    "provenance": "immutable-0.1.0-artifact",
+    "reason": "0.2.0 expands native hosts; it does not silently replace the published portable validator"
+  },
+  "artifacts": [
+    "artifacts/releases/0.2.0-candidate/holoscript-systems-0.2.0.tgz",
+    "artifacts/releases/0.2.0-candidate/holoscript-systems-linux-x64-0.2.0.tgz",
+    "artifacts/releases/0.2.0-candidate/holoscript-systems-win32-x64-0.2.0.tgz",
+    "artifacts/releases/0.2.0-candidate/systems-0.2-build-receipt.json"
+  ],
+  "promotionPolicy": {
+    "publishTag": "next",
+    "latestMutationAllowed": false,
+    "requires": [
+      "deterministic npm packs",
+      "Windows x64 native compile and runtime exit 5",
+      "GNU/Linux x64 native compile and runtime exit 5",
+      "cold npm installs for both supported hosts",
+      "anonymous registry and GitHub readback after publication"
+    ]
+  }
+}
