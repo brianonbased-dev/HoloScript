@@ -72,4 +72,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log('[systems-package] package identity, files, and digests verified');
+console.error('[systems-package] package identity, files, and digests verified');
