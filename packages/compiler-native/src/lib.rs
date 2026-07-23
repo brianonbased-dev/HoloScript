@@ -49,8 +49,11 @@
 //! `hs-machine-v30` adds whole owned-buffer field slice results, `hs-machine-v31` replaces the
 //! one-hop forwarding ceiling with deterministic typed summaries composed across acyclic call graphs,
 //! and `hs-machine-v32` joins exhaustive control-flow branches only when every branch composes to the
-//! same exact summary.
+//! same exact summary. `hs-machine-v33` adds deterministic, project-root-fenced multi-file modules
+//! with explicit relative imports, named exports, aliases, cycle rejection, and isolated symbols.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
+
+mod project;
 
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -106,6 +109,7 @@ pub const BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT: &str = "hs
 pub const BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v30";
 pub const COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT: &str = "hs-machine-v31";
 pub const CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT: &str = "hs-machine-v32";
+pub const MULTI_FILE_MODULE_MACHINE_CONTRACT: &str = "hs-machine-v33";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const HOST_ALLOCATOR_PROVENANCE_ID: u32 = 1;
@@ -236,7 +240,7 @@ pub struct NativeCompileError {
 }
 
 impl NativeCompileError {
-    fn new(message: impl Into<String>) -> Self {
+    pub(crate) fn new(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
         }
@@ -343,6 +347,10 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
+    compile_ast_unit(ast)
+}
+
+fn compile_ast_unit(ast: Ast) -> Result<CompiledObject, NativeCompileError> {
     if has_conditional_borrow_summary_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(
@@ -568,7 +576,76 @@ pub fn compile_executable(
     executable: impl AsRef<Path>,
     options: &NativeCompileOptions,
 ) -> Result<NativeArtifact, NativeCompileError> {
-    let executable = executable.as_ref().to_path_buf();
+    link_compiled_object(compile_unit(source, options)?, executable.as_ref(), options)
+}
+
+/// Compile a canonical `.hs` entry module and all of its relative imports to an object.
+pub fn compile_project_object(
+    entry: impl AsRef<Path>,
+    options: &NativeCompileOptions,
+) -> Result<Vec<u8>, NativeCompileError> {
+    Ok(compile_project_unit(entry.as_ref(), options)?.bytes)
+}
+
+/// Compile and link a canonical `.hs` entry module and its deterministic dependency graph.
+pub fn compile_project_executable(
+    entry: impl AsRef<Path>,
+    executable: impl AsRef<Path>,
+    options: &NativeCompileOptions,
+) -> Result<NativeArtifact, NativeCompileError> {
+    link_compiled_object(
+        compile_project_unit(entry.as_ref(), options)?,
+        executable.as_ref(),
+        options,
+    )
+}
+
+/// Compile a `.hs` path, selecting project mode only when import/export syntax is present.
+pub fn compile_path_executable(
+    entry: impl AsRef<Path>,
+    executable: impl AsRef<Path>,
+    options: &NativeCompileOptions,
+) -> Result<NativeArtifact, NativeCompileError> {
+    let entry = entry.as_ref();
+    let source = fs::read_to_string(entry).map_err(|error| {
+        NativeCompileError::new(format!("failed to read {}: {error}", entry.display()))
+    })?;
+    let ast = holoscript_wasm::parse_ast(&source).map_err(|diagnostics| {
+        let rendered = diagnostics
+            .into_iter()
+            .map(|diagnostic| {
+                format!(
+                    "{}:{}: {}",
+                    diagnostic.line, diagnostic.column, diagnostic.message
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
+        NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
+    })?;
+    if project::uses_module_syntax(&ast) {
+        compile_project_executable(entry, executable, options)
+    } else {
+        compile_executable(&source, executable, options)
+    }
+}
+
+fn compile_project_unit(
+    entry: &Path,
+    _options: &NativeCompileOptions,
+) -> Result<CompiledObject, NativeCompileError> {
+    let ast = project::load_project_ast(entry)?;
+    let mut compiled = compile_ast_unit(ast)?;
+    compiled.machine_contract = MULTI_FILE_MODULE_MACHINE_CONTRACT;
+    Ok(compiled)
+}
+
+fn link_compiled_object(
+    compiled: CompiledObject,
+    executable: &Path,
+    options: &NativeCompileOptions,
+) -> Result<NativeArtifact, NativeCompileError> {
+    let executable = executable.to_path_buf();
     if let Some(parent) = executable.parent() {
         fs::create_dir_all(parent).map_err(|error| {
             NativeCompileError::new(format!(
@@ -578,7 +655,6 @@ pub fn compile_executable(
         })?;
     }
 
-    let compiled = compile_unit(source, options)?;
     let object = compiled.bytes;
     let object_path = executable.with_extension(if cfg!(windows) { "obj" } else { "o" });
     fs::write(&object_path, &object).map_err(|error| {

@@ -1,9 +1,8 @@
 use std::env;
-use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use holoscript_native::{compile_executable, NativeCompileOptions};
+use holoscript_native::{compile_path_executable, NativeCompileOptions};
 
 fn main() -> ExitCode {
     match run() {
@@ -24,7 +23,7 @@ fn run() -> Result<(), String> {
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "-h" | "--help" => {
-                println!("Usage: holoscriptc <input.hs> -o <executable> [--linker <clang-or-cc>]");
+                println!("Usage: holoscriptc <entry.hs> -o <executable> [--linker <clang-or-cc>]");
                 return Ok(());
             }
             "-o" | "--output" => {
@@ -49,13 +48,11 @@ fn run() -> Result<(), String> {
 
     let input = input.ok_or_else(|| "missing input file; run with --help for usage".to_string())?;
     let output = output.ok_or_else(|| "missing -o <executable>".to_string())?;
-    let source = fs::read_to_string(&input)
-        .map_err(|error| format!("failed to read {}: {error}", input.display()))?;
     let options = linker
         .map(NativeCompileOptions::with_linker)
         .unwrap_or_else(NativeCompileOptions::host);
     let artifact =
-        compile_executable(&source, &output, &options).map_err(|error| error.to_string())?;
+        compile_path_executable(&input, &output, &options).map_err(|error| error.to_string())?;
     let receipt = serde_json::to_string_pretty(&artifact)
         .map_err(|error| format!("failed to serialize compile receipt: {error}"))?;
     println!("{receipt}");
