@@ -14,7 +14,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { basename, delimiter, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDeterministicZip } from './lib/deterministic-zip.mjs';
 
@@ -57,7 +57,11 @@ function fail(message) {
   process.exit(1);
 }
 
-function run(command, commandArgs, { cwd = ROOT, timeout = 1_200_000, capture = false } = {}) {
+function run(
+  command,
+  commandArgs,
+  { cwd = ROOT, timeout = 1_200_000, capture = false, env = process.env } = {}
+) {
   const executable = process.platform === 'win32' && command === 'npm' ? 'npm.cmd' : command;
   const result = spawnSync(executable, commandArgs, {
     cwd,
@@ -66,6 +70,7 @@ function run(command, commandArgs, { cwd = ROOT, timeout = 1_200_000, capture = 
     shell: false,
     timeout,
     windowsHide: true,
+    env,
   });
   if (result.error) throw result.error;
   if (result.status !== 0) {
@@ -215,6 +220,10 @@ try {
   commands.push(`${basename(wasmPack)} build --release --target nodejs --out-dir <temp>`);
   run(wasmPack, ['build', '--release', '--target', 'nodejs', '--out-dir', relativeWasmOut], {
     cwd: join(ROOT, 'packages', 'compiler-wasm'),
+    env: {
+      ...process.env,
+      PATH: [dirname(cargo), process.env.PATH].filter(Boolean).join(delimiter),
+    },
   });
 
   for (const file of [
