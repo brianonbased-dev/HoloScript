@@ -207,9 +207,9 @@ export function validateSystemsPreviewRelease(manifest, { rootDir = DEFAULT_ROOT
     3
   );
   requireStrings(manifest?.knownLimits, 'knownLimits', errors, 5);
-  if (manifest?.supportedSurface?.minimumMachineContract !== 'hs-machine-v31') {
+  if (manifest?.supportedSurface?.minimumMachineContract !== 'hs-machine-v32') {
     errors.push(
-      'supportedSurface.minimumMachineContract must name the currently proven hs-machine-v31 floor'
+      'supportedSurface.minimumMachineContract must name the currently proven hs-machine-v32 floor'
     );
   }
 

@@ -17,8 +17,8 @@ use holoscript_native::{
     BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT,
     BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
     BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
-    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
-    OWNED_BUFFER_ABI_VERSION,
+    CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
+    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -4536,6 +4536,188 @@ fn compositional_borrow_summaries_reject_cycles_and_provenance_laundering() {
         assert!(
             rendered.contains(expected),
             "expected `{expected}` for {name}, found `{rendered}`"
+        );
+    }
+}
+
+#[test]
+fn conditional_borrow_summaries_join_identical_branch_provenance() {
+    assert_eq!(
+        CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
+        "hs-machine-v32"
+    );
+    let options = NativeCompileOptions::host();
+    let cases = [
+        (
+            "scalar-field",
+            r#"
+                struct Packet { value: i32 }
+                function leaf<'a>(packet: &'a Packet): &'a i32 { return &packet.value }
+                function left<'a>(packet: &'a Packet): &'a i32 { return leaf(packet) }
+                function right<'a>(packet: &'a Packet): &'a i32 { return leaf(packet) }
+                function join<'a>(flag: bool, packet: &'a Packet): &'a i32 {
+                    if (flag) { return left(packet) } else { return right(packet) }
+                }
+                function tip<'a>(packet: &'a Packet): &'a i32 { return join(false, packet) }
+                function leaf_mut<'a>(packet: &'a mut Packet): &'a mut i32 { return &mut packet.value }
+                function left_mut<'a>(packet: &'a mut Packet): &'a mut i32 { return leaf_mut(packet) }
+                function right_mut<'a>(packet: &'a mut Packet): &'a mut i32 { return leaf_mut(packet) }
+                function join_mut<'a>(flag: bool, packet: &'a mut Packet): &'a mut i32 {
+                    if (flag) { return left_mut(packet) } else { return right_mut(packet) }
+                }
+                function tip_mut<'a>(packet: &'a mut Packet): &'a mut i32 { return join_mut(true, packet) }
+                function main(): i32 {
+                    slot packet: Packet = Packet(1)
+                    scope { let writer: &mut i32 = tip_mut(&mut packet) *writer = 5 }
+                    let view: &i32 = tip(&packet)
+                    return *view
+                }
+            "#,
+        ),
+        (
+            "aggregate-reference",
+            r#"
+                struct Packet { value: i32 }
+                function leaf<'a>(packet: &'a Packet): &'a Packet { return packet }
+                function left<'a>(packet: &'a Packet): &'a Packet { return leaf(packet) }
+                function right<'a>(packet: &'a Packet): &'a Packet { return leaf(packet) }
+                function join<'a>(flag: bool, packet: &'a Packet): &'a Packet {
+                    if (flag) { return left(packet) } else { return right(packet) }
+                }
+                function tip<'a>(packet: &'a Packet): &'a Packet { return join(true, packet) }
+                function leaf_mut<'a>(packet: &'a mut Packet): &'a mut Packet { return packet }
+                function left_mut<'a>(packet: &'a mut Packet): &'a mut Packet { return leaf_mut(packet) }
+                function right_mut<'a>(packet: &'a mut Packet): &'a mut Packet { return leaf_mut(packet) }
+                function join_mut<'a>(flag: bool, packet: &'a mut Packet): &'a mut Packet {
+                    if (flag) { return left_mut(packet) } else { return right_mut(packet) }
+                }
+                function tip_mut<'a>(packet: &'a mut Packet): &'a mut Packet { return join_mut(false, packet) }
+                function main(): i32 {
+                    slot packet: Packet = Packet(1)
+                    scope { let writer: &mut Packet = tip_mut(&mut packet) store(writer.value, 5) }
+                    let view: &Packet = tip(&packet)
+                    return load(view.value)
+                }
+            "#,
+        ),
+        (
+            "ordinary-slice",
+            r#"
+                function leaf<'a>(values: &'a [i32]): &'a [i32] { return values }
+                function left<'a>(values: &'a [i32]): &'a [i32] { return leaf(values) }
+                function right<'a>(values: &'a [i32]): &'a [i32] { return leaf(values) }
+                function join<'a>(flag: bool, values: &'a [i32]): &'a [i32] {
+                    if (flag) { return left(values) } else { return right(values) }
+                }
+                function tip<'a>(values: &'a [i32]): &'a [i32] { return join(false, values) }
+                function leaf_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return values }
+                function left_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return leaf_mut(values) }
+                function right_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return leaf_mut(values) }
+                function join_mut<'a>(flag: bool, values: &'a mut [i32]): &'a mut [i32] {
+                    if (flag) { return left_mut(values) } else { return right_mut(values) }
+                }
+                function tip_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return join_mut(true, values) }
+                function main(): i32 {
+                    slot values: [i32; 1] = [1]
+                    scope { let writer: &mut [i32] = tip_mut(&mut values[0..1]) store(writer[0], 5) }
+                    let view: &[i32] = tip(&values[0..1])
+                    return load(view[0])
+                }
+            "#,
+        ),
+        (
+            "slice-element",
+            r#"
+                function leaf<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] }
+                function left<'a>(index: i32, values: &'a [i32]): &'a i32 { return leaf(values, index) }
+                function right<'a>(index: i32, values: &'a [i32]): &'a i32 { return leaf(values, index) }
+                function join<'a>(flag: bool, values: &'a [i32], index: i32): &'a i32 {
+                    if (flag) { return left(index, values) } else { return right(index, values) }
+                }
+                function tip<'a>(index: i32, values: &'a [i32]): &'a i32 { return join(false, values, index) }
+                function leaf_mut<'a>(values: &'a mut [i32], index: i32): &'a mut i32 { return &mut values[index] }
+                function left_mut<'a>(index: i32, values: &'a mut [i32]): &'a mut i32 { return leaf_mut(values, index) }
+                function right_mut<'a>(index: i32, values: &'a mut [i32]): &'a mut i32 { return leaf_mut(values, index) }
+                function join_mut<'a>(flag: bool, values: &'a mut [i32], index: i32): &'a mut i32 {
+                    if (flag) { return left_mut(index, values) } else { return right_mut(index, values) }
+                }
+                function tip_mut<'a>(index: i32, values: &'a mut [i32]): &'a mut i32 { return join_mut(true, values, index) }
+                function main(): i32 {
+                    slot values: [i32; 2] = [1, 2]
+                    scope { let writer: &mut i32 = tip_mut(1, &mut values[0..2]) *writer = 5 }
+                    let view: &i32 = tip(1, &values[0..2])
+                    return *view
+                }
+            "#,
+        ),
+        (
+            "aggregate-buffer-subslice",
+            include_str!("../../../examples/native/conditional-borrow-summary-exit-five.hs"),
+        ),
+    ];
+
+    for (name, source) in cases {
+        let first = compile_object(source, &options)
+            .unwrap_or_else(|error| panic!("{name} V32 summary should compile: {error}"));
+        let second = compile_object(source, &options)
+            .unwrap_or_else(|error| panic!("{name} V32 summary should be deterministic: {error}"));
+        assert_eq!(first, second, "{name} V32 object bytes must be stable");
+        let executable = scratch_executable(&format!("native-v32-{name}"));
+        let artifact = compile_executable(source, &executable, &options)
+            .unwrap_or_else(|error| panic!("{name} V32 executable should link: {error}"));
+        assert_eq!(artifact.machine_contract, "hs-machine-v32");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .unwrap_or_else(|error| panic!("{name} V32 executable should run: {error}"));
+        assert_eq!(status.code(), Some(5), "{name} should exit five");
+        remove_scratch_executable_with_retry(&artifact.executable);
+    }
+}
+
+#[test]
+fn conditional_borrow_summaries_reject_divergent_or_partial_joins() {
+    let options = NativeCompileOptions::host();
+    let cases = [
+        (
+            "source",
+            "struct Packet { value: i32 } function leaf<'a>(packet: &'a Packet): &'a i32 { return &packet.value } function left<'a>(packet: &'a Packet): &'a i32 { return leaf(packet) } function right<'a>(packet: &'a Packet): &'a i32 { return leaf(packet) } function join<'a>(flag: bool, packet: &'a Packet, other: &Packet): &'a i32 { if (flag) { return left(packet) } else { return right(other) } } function main(): i32 { return 5 }",
+            "borrowed-summary branches must compose to one exact typed provenance summary",
+        ),
+        (
+            "field-coordinate",
+            "struct Packet { left: i32, right: i32 } function left_leaf<'a>(packet: &'a Packet): &'a i32 { return &packet.left } function right_leaf<'a>(packet: &'a Packet): &'a i32 { return &packet.right } function left<'a>(packet: &'a Packet): &'a i32 { return left_leaf(packet) } function right<'a>(packet: &'a Packet): &'a i32 { return right_leaf(packet) } function join<'a>(flag: bool, packet: &'a Packet): &'a i32 { if (flag) { return left(packet) } else { return right(packet) } } function main(): i32 { return 5 }",
+            "borrowed-summary branches must compose to one exact typed provenance summary",
+        ),
+        (
+            "index-coordinate",
+            "function leaf<'a>(values: &'a [i32], index: i32): &'a i32 { return &values[index] } function left<'a>(values: &'a [i32], index: i32): &'a i32 { return leaf(values, index) } function right<'a>(values: &'a [i32], index: i32): &'a i32 { return leaf(values, index) } function join<'a>(flag: bool, values: &'a [i32], left_index: i32, right_index: i32): &'a i32 { if (flag) { return left(values, left_index) } else { return right(values, right_index) } } function main(): i32 { return 5 }",
+            "borrowed-summary branches must compose to one exact typed provenance summary",
+        ),
+        (
+            "mutability",
+            "struct Packet { value: i32 } function shared<'a>(packet: &'a Packet): &'a i32 { return &packet.value } function exclusive<'a>(packet: &'a mut Packet): &'a mut i32 { return &mut packet.value } function join<'a>(flag: bool, packet: &'a mut Packet): &'a mut i32 { if (flag) { return exclusive(packet) } else { return shared(packet) } } function main(): i32 { return 5 }",
+            "changes borrowed-summary source type or mutability",
+        ),
+        (
+            "missing-else",
+            "struct Packet { value: i32 } function leaf<'a>(packet: &'a Packet): &'a i32 { return &packet.value } function join<'a>(flag: bool, packet: &'a Packet): &'a i32 { if (flag) { return leaf(packet) } } function main(): i32 { return 5 }",
+            "one final exhaustive if/else",
+        ),
+        (
+            "loop-in-branch",
+            "struct Packet { value: i32 } function leaf<'a>(packet: &'a Packet): &'a i32 { return &packet.value } function join<'a>(flag: bool, packet: &'a Packet): &'a i32 { if (flag) { while (flag) { return leaf(packet) } return leaf(packet) } else { return leaf(packet) } } function main(): i32 { return 5 }",
+            "one final exhaustive if/else",
+        ),
+    ];
+
+    for (name, source, expected) in cases {
+        let error = match compile_object(source, &options) {
+            Err(error) => error,
+            Ok(_) => panic!("invalid V32 {name} program must fail closed"),
+        };
+        assert!(
+            error.to_string().contains(expected),
+            "expected `{expected}` for {name}, found `{error}`"
         );
     }
 }

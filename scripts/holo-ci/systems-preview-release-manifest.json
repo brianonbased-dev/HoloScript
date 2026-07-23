@@ -25,11 +25,11 @@
   },
   "supportedSurface": {
     "sourceFormats": [".hs", ".hsplus", ".holo"],
-    "minimumMachineContract": "hs-machine-v31",
+    "minimumMachineContract": "hs-machine-v32",
     "hostPlatforms": ["win32-x64"],
     "capabilities": [
       "Parse, validate, format, and compile HoloScript source through the pinned npm core and CLI components.",
-      "Compile the cumulative, fail-closed native machine subset through hs-machine-v31 with holoscriptc.",
+      "Compile the cumulative, fail-closed native machine subset through hs-machine-v32 with holoscriptc.",
       "Validate the portable parser and type-checker path through holoscript-wasm.",
       "Run local parse, validation, and native compilation without a hosted service or private workspace clone.",
       "Use hosted MCP, Absorb, and Studio as optional companions with independent service versions."
@@ -43,7 +43,7 @@
   },
   "knownLimits": [
     "0.1.0 is an unstable preview, not a stable API, production-readiness, or drop-in compatibility claim.",
-    "The native compiler supports the cumulative hs-machine-v0 through hs-machine-v31 subset, not every parser or library surface in the wider TypeScript ecosystem.",
+    "The native compiler supports the cumulative hs-machine-v0 through hs-machine-v32 subset, not every parser or library surface in the wider TypeScript ecosystem.",
     "The first native binary target is win32-x64; Linux, macOS, ARM64, and cross-compilation artifacts are deferred until separately declared and proven.",
     "HoloScript is not yet self-hosting, and bootstrap compiler/runtime implementations still include Rust and TypeScript.",
     "Hosted MCP, Absorb, and Studio have independent versions and no preview SLA; loss of those services must not break local compilation.",
@@ -81,7 +81,7 @@
       "requiredForInstall": true,
       "localManifest": "packages/compiler-native/Cargo.toml",
       "entrypoint": "holoscriptc",
-      "machineContract": "hs-machine-v31"
+      "machineContract": "hs-machine-v32"
     },
     {
       "id": "wasm-validation-runtime",
@@ -116,7 +116,7 @@
       "versionMode": "distribution-semver",
       "artifactState": "planned-unbuilt",
       "requiredContents": ["holoscriptc.exe", "release-manifest.json", "SHA256SUMS", "LICENSE"],
-      "coldProbe": "holoscriptc examples/native/compositional-borrow-summary-exit-five.hs -o proof.exe; proof.exe exits 5"
+      "coldProbe": "holoscriptc examples/native/conditional-borrow-summary-exit-five.hs -o proof.exe; proof.exe exits 5"
     },
     {
       "id": "wasm-portable-runtime",
@@ -273,7 +273,7 @@
       "id": "cumulative-machine-conformance",
       "required": true,
       "status": "partial",
-      "evidencePaths": ["docs/spec/native-machine-v31.md", "packages/compiler-native/tests/native_smoke.rs"],
+      "evidencePaths": ["docs/spec/native-machine-v32.md", "packages/compiler-native/tests/native_smoke.rs"],
       "verificationCommands": ["cargo test -p holoscript-native", "cargo test -p holoscript-wasm"],
       "remaining": "Run the cumulative corpus through the exact packed npm, native, and WASM candidate artifacts."
     },
@@ -282,7 +282,7 @@
       "required": true,
       "status": "partial",
       "evidencePaths": ["docs/releases/0.1.0-readiness-baseline.md"],
-      "verificationCommands": ["cargo run --release -p holoscript-native --bin holoscriptc -- examples/native/compositional-borrow-summary-exit-five.hs -o <temp>/proof.exe"],
+      "verificationCommands": ["cargo run --release -p holoscript-native --bin holoscriptc -- examples/native/conditional-borrow-summary-exit-five.hs -o <temp>/proof.exe"],
       "remaining": "Build the named distribution artifacts and emit their source-commit and SHA-256 set."
     },
     {

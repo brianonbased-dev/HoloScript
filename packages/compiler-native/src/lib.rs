@@ -46,8 +46,10 @@
 //! for elements borrowed from owned-buffer fields while preserving the aggregate's whole-root lease.
 //! `hs-machine-v29` composes that aggregate-owned-buffer provenance with checked half-open sub-slice
 //! results while retaining both range coordinates through one direct forwarding hop.
-//! `hs-machine-v30` adds whole owned-buffer field slice results, and `hs-machine-v31` replaces the
-//! one-hop forwarding ceiling with deterministic typed summaries composed across acyclic call graphs.
+//! `hs-machine-v30` adds whole owned-buffer field slice results, `hs-machine-v31` replaces the
+//! one-hop forwarding ceiling with deterministic typed summaries composed across acyclic call graphs,
+//! and `hs-machine-v32` joins exhaustive control-flow branches only when every branch composes to the
+//! same exact summary.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
 
 use std::collections::{HashMap, HashSet};
@@ -103,6 +105,7 @@ pub const BORROWED_AGGREGATE_BUFFER_ELEMENT_RETURN_MACHINE_CONTRACT: &str = "hs-
 pub const BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v29";
 pub const BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT: &str = "hs-machine-v30";
 pub const COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT: &str = "hs-machine-v31";
+pub const CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT: &str = "hs-machine-v32";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const HOST_ALLOCATOR_PROVENANCE_ID: u32 = 1;
@@ -271,7 +274,9 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
-    let machine_contract = if has_compositional_borrow_summary_machine_metadata(&ast) {
+    let machine_contract = if has_conditional_borrow_summary_machine_metadata(&ast) {
+        CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+    } else if has_compositional_borrow_summary_machine_metadata(&ast) {
         COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
     } else if has_borrowed_aggregate_buffer_whole_slice_return_machine_metadata(&ast) {
         BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
@@ -338,7 +343,16 @@ fn compile_unit(
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
 
-    if has_compositional_borrow_summary_machine_metadata(&ast) {
+    if has_conditional_borrow_summary_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(
+                &ast,
+                CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
+                true,
+            )?,
+            machine_contract: CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
+        })
+    } else if has_compositional_borrow_summary_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(
                 &ast,
@@ -1078,6 +1092,28 @@ fn has_compositional_borrow_summary_machine_metadata(ast: &Ast) -> bool {
     })
 }
 
+fn has_conditional_borrow_summary_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        let AstNode::Function(function) = node else {
+            return false;
+        };
+        function
+            .return_type
+            .as_deref()
+            .is_some_and(|annotation| annotation.starts_with("&'"))
+            && matches!(
+                function.body.last(),
+                Some(AstNode::If(if_node))
+                    if count_borrowed_forward_returns(&if_node.consequent)
+                        + if_node
+                            .alternate
+                            .as_deref()
+                            .map_or(0, count_borrowed_forward_returns)
+                        > 0
+            )
+    })
+}
+
 fn function_returns_aggregate_buffer_subslice_shape(
     ast: &Ast,
     function: &FunctionNode,
@@ -1315,6 +1351,64 @@ fn direct_borrowed_forward_return_count(function: &FunctionNode) -> usize {
         .count()
 }
 
+fn collect_conditional_borrow_summary_calls<'a>(
+    statements: &'a [AstNode],
+    calls: &mut Vec<&'a CallExpression>,
+) -> bool {
+    match statements {
+        [AstNode::Return(returned)] => {
+            let Some(AstNode::CallExpression(call)) = returned.argument.as_deref() else {
+                return false;
+            };
+            calls.push(call);
+            true
+        }
+        [AstNode::If(if_node)] => {
+            let Some(alternate) = if_node.alternate.as_deref() else {
+                return false;
+            };
+            collect_conditional_borrow_summary_calls(&if_node.consequent, calls)
+                && collect_conditional_borrow_summary_calls(alternate, calls)
+        }
+        _ => false,
+    }
+}
+
+fn conditional_borrow_summary_calls(function: &FunctionNode) -> Option<Vec<&CallExpression>> {
+    if !matches!(function.body.as_slice(), [AstNode::If(_)]) {
+        return None;
+    }
+    let mut calls = Vec::new();
+    if !collect_conditional_borrow_summary_calls(&function.body, &mut calls) || calls.len() < 2 {
+        return None;
+    }
+    Some(calls)
+}
+
+fn borrowed_summary_forward_calls<'a>(
+    function: &'a FunctionNode,
+    machine_contract: &str,
+) -> Result<Vec<&'a CallExpression>, NativeCompileError> {
+    if machine_contract == CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT {
+        if let Some(calls) = conditional_borrow_summary_calls(function) {
+            return Ok(calls);
+        }
+    }
+    let Some(AstNode::Return(returned)) = function.body.last() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed-summary forwarding requires a final return",
+            function.name
+        )));
+    };
+    let Some(AstNode::CallExpression(call)) = returned.argument.as_deref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} function `{}` borrowed-summary forwarding requires a direct call or an exhaustive conditional join",
+            function.name
+        )));
+    };
+    Ok(vec![call])
+}
+
 fn validate_borrowed_forwarding_shapes(
     ast: &Ast,
     machine_contract: &str,
@@ -1331,6 +1425,7 @@ fn validate_borrowed_forwarding_shapes(
             | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
             | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+            | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
     ) {
         return Ok(());
     }
@@ -1356,6 +1451,7 @@ fn validate_borrowed_forwarding_shapes(
                     | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
             ) && function_returns_lifetimed_scalar(function))
             || (matches!(
                 machine_contract,
@@ -1368,6 +1464,7 @@ fn validate_borrowed_forwarding_shapes(
                     | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
             ) && function_returns_lifetimed_aggregate(function, &aggregate_names));
         if !returns_supported_reference {
             continue;
@@ -1377,6 +1474,11 @@ fn validate_borrowed_forwarding_shapes(
             continue;
         }
         let direct = direct_borrowed_forward_return_count(function);
+        let conditional_join = machine_contract == CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+            && conditional_borrow_summary_calls(function).is_some();
+        if conditional_join {
+            continue;
+        }
         if total != 1 || direct != 1 {
             let forwarding_kind = if function_returns_lifetimed_slice(function) {
                 "borrowed-slice"
@@ -1393,8 +1495,15 @@ fn validate_borrowed_forwarding_shapes(
             } else {
                 "borrowed-reference"
             };
+            let requirement = if machine_contract == CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT {
+                format!(
+                    "one direct top-level {forwarding_kind} forwarding return or one final exhaustive if/else whose reachable branches each return a borrowed call"
+                )
+            } else {
+                format!("exactly one direct top-level {forwarding_kind} forwarding return")
+            };
             return Err(NativeCompileError::new(format!(
-                "{machine_contract} function `{}` requires exactly one direct top-level {forwarding_kind} forwarding return; found {total} forwarding returns, {direct} top-level",
+                "{machine_contract} function `{}` requires {requirement}; found {total} forwarding returns, {direct} top-level",
                 function.name
             )));
         }
@@ -2266,6 +2375,7 @@ fn latest_reference_contract(machine_contract: &str) -> bool {
             | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
             | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+            | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
     )
 }
 
@@ -2908,6 +3018,7 @@ fn resolve_aggregate_layout(
                     | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} field `{field_name}` uses unsupported nested aggregate type `{type_name}` in struct `{}`",
@@ -2945,6 +3056,7 @@ fn resolve_aggregate_layout(
                     | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} owned buffers as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
@@ -4575,7 +4687,10 @@ fn lower_typed_ast_to_object(
 }
 
 fn transitive_borrow_summary_enabled(machine_contract: &str) -> bool {
-    machine_contract == COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+    matches!(
+        machine_contract,
+        COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+    )
 }
 
 fn borrowed_forward_placeholder(
@@ -5122,53 +5237,58 @@ fn compose_transitive_borrow_summaries(
         let summary = if borrowed_result_source_parameter(initial_results[index]).is_some()
             && function_forwards_borrowed_result(spec.node)
         {
-            let AstNode::Return(returned) = spec.node.body.last().expect("forward shape validated")
-            else {
-                unreachable!("forward shape validation retains a final return")
-            };
-            let AstNode::CallExpression(call) = returned
-                .argument
-                .as_deref()
-                .expect("forward shape validated")
-            else {
-                unreachable!("forward shape validation retains a direct call")
-            };
-            let AstNode::Identifier(callee_name) = call.callee.as_ref() else {
-                return Err(NativeCompileError::new(format!(
-                    "{machine_contract} function `{}` borrowed-summary forwarding requires a named HoloScript function",
-                    spec.node.name
-                )));
-            };
-            let callee_index = *names.get(&callee_name.name).ok_or_else(|| {
-                NativeCompileError::new(format!(
-                    "{machine_contract} function `{}` forwards an unknown function `{}`",
-                    spec.node.name, callee_name.name
-                ))
-            })?;
-            let callee_summary = resolve(
-                callee_index,
-                specs,
-                names,
-                initial_results,
-                states,
-                summaries,
-                stack,
-                machine_contract,
-            )?;
-            let composed = remap_borrow_summary(
-                callee_summary,
-                spec,
-                &specs[callee_index],
-                call,
-                machine_contract,
-            )?;
+            let calls = borrowed_summary_forward_calls(spec.node, machine_contract)?;
+            let mut joined = None::<(MachineResult, &str)>;
+            for call in calls {
+                let AstNode::Identifier(callee_name) = call.callee.as_ref() else {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} function `{}` borrowed-summary forwarding requires a named HoloScript function",
+                        spec.node.name
+                    )));
+                };
+                let callee_index = *names.get(&callee_name.name).ok_or_else(|| {
+                    NativeCompileError::new(format!(
+                        "{machine_contract} function `{}` forwards an unknown function `{}`",
+                        spec.node.name, callee_name.name
+                    ))
+                })?;
+                let callee_summary = resolve(
+                    callee_index,
+                    specs,
+                    names,
+                    initial_results,
+                    states,
+                    summaries,
+                    stack,
+                    machine_contract,
+                )?;
+                let composed = remap_borrow_summary(
+                    callee_summary,
+                    spec,
+                    &specs[callee_index],
+                    call,
+                    machine_contract,
+                )?;
+                if let Some((expected, expected_callee)) = joined {
+                    if expected != composed {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} function `{}` borrowed-summary branches must compose to one exact typed provenance summary; `{expected_callee}` produced {expected:?}, `{}` produced {composed:?}",
+                            spec.node.name, callee_name.name
+                        )));
+                    }
+                } else {
+                    joined = Some((composed, callee_name.name.as_str()));
+                }
+            }
+            let (composed, joined_callee) =
+                joined.expect("forward shape retains at least one call");
             if !borrowed_result_surface_matches(initial_results[index], composed)
                 || borrowed_result_source_parameter(initial_results[index])
                     != borrowed_result_source_parameter(composed)
             {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} function `{}` declared borrowed result lifetime, type, or mutability disagrees with composed summary from `{}`",
-                    spec.node.name, callee_name.name
+                    spec.node.name, joined_callee
                 )));
             }
             composed
@@ -5313,6 +5433,7 @@ fn collect_typed_function_specs<'a>(
                                 | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                                 | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                                 | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                                | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -5451,6 +5572,7 @@ fn collect_typed_function_specs<'a>(
                     | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} references cannot appear in function returns; `{}` would expose an address-bearing value",
@@ -5608,6 +5730,7 @@ fn collect_typed_function_specs<'a>(
                             | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                             | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                             | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                            | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     ) {
                         return Err(NativeCompileError::new(format!(
                             "{machine_contract} function `{}` can return only a caller-tied aggregate reference",
@@ -5618,6 +5741,7 @@ fn collect_typed_function_specs<'a>(
                         machine_contract,
                         BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                             | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                            | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     ) && function_returns_aggregate_buffer_whole_slice_shape(ast, function, 2)
                     {
                         let sources = params
@@ -5692,6 +5816,7 @@ fn collect_typed_function_specs<'a>(
                         BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                             | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                             | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                            | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     ) && function_returns_aggregate_buffer_subslice_shape(
                         ast, function, 2,
                     ) {
@@ -5827,6 +5952,7 @@ fn collect_typed_function_specs<'a>(
                             | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                             | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                             | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                            | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     ) {
                         return Err(NativeCompileError::new(format!(
                             "{machine_contract} function `{}` can return only a caller-tied aggregate or slice reference",
@@ -5848,6 +5974,7 @@ fn collect_typed_function_specs<'a>(
                             | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                             | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                             | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                            | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     ) && function_returns_aggregate_buffer_element_shape(ast, function, 2)
                     {
                         let sources = params
@@ -5926,6 +6053,7 @@ fn collect_typed_function_specs<'a>(
                             | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                             | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                             | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                            | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     ) && has_lifetimed_slice_source
                     {
                         let sources = params
@@ -6044,6 +6172,7 @@ fn collect_typed_function_specs<'a>(
                                 | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                                 | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                                 | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                                | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                         ) && function_forwards_borrowed_result(function)
                         {
                             resolve_forwarded_borrowed_scalar_return_field(
@@ -6097,6 +6226,7 @@ fn collect_typed_function_specs<'a>(
                     | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
             ) && !function.lifetimes.is_empty()
             {
                 return Err(NativeCompileError::new(format!(
@@ -7454,6 +7584,7 @@ fn lower_typed_statements(
                                         | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                                         | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                                         | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                                        | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                                 ) =>
                             {
                                 lower_forwarded_borrowed_scalar_return(
@@ -7684,6 +7815,7 @@ fn lower_typed_statements(
                                         | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                                         | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                                         | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                                        | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                                 ) =>
                             {
                                 lower_forwarded_borrowed_aggregate_return(
@@ -7717,6 +7849,7 @@ fn lower_typed_statements(
                                         | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                                         | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                                         | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                                        | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                                 ) {
                                     format!(
                                         "return source parameter `{source_name}` directly or forward one direct borrowed-aggregate call"
@@ -7799,6 +7932,7 @@ fn lower_typed_statements(
                                         | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                                         | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                                         | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                                        | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                                 ) =>
                             {
                                 lower_forwarded_borrowed_slice_return(
@@ -7833,6 +7967,7 @@ fn lower_typed_statements(
                                         | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                                         | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                                         | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                                        | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                                 ) =>
                             {
                                 let expected_operator = if mutable { "&mut" } else { "&" };
@@ -7941,6 +8076,7 @@ fn lower_typed_statements(
                                         | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                                         | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                                         | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                                        | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                                 ) {
                                     format!(
                                         "return source parameter `{source_name}` directly, derive `&{source_name}[start..end]`, or forward one direct borrowed-slice call"
@@ -15504,6 +15640,7 @@ fn lower_borrowed_aggregate_call_initializer(
                         | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                         | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                         | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                        | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                 ) =>
                 {
                     return Err(NativeCompileError::new(format!(
@@ -15958,6 +16095,7 @@ fn lower_reference_initializer(
                     | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -16980,6 +17118,7 @@ fn lower_forwarded_slice_call_argument(
             | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
             | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+            | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
     ) {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} slice argument {} to `{callee_name}` must be a direct range reborrow",
@@ -17050,6 +17189,7 @@ fn lower_forwarded_slice_call_argument(
                     | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
             ) =>
         {
             let AstNode::BinaryExpression(range) = range_node else {
