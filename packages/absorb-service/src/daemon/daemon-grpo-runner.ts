@@ -24,15 +24,21 @@ import type { RewardToolRunner, RewardFunctionOptions } from '../self-improvemen
 import { execFile } from 'child_process';
 import { createRequire } from 'module';
 import { promisify } from 'util';
+import { pathToFileURL } from 'url';
 import * as path from 'path';
 import * as fs from 'fs';
 
 const execFileAsync = promisify(execFile);
 const requireFromModule = createRequire(import.meta.url);
 const packageBinaryCache = new Map<string, string>();
+const ownedTempDirs = new Set<string>();
+const nodePackageExecutionArgs = ['--preserve-symlinks', '--preserve-symlinks-main'] as const;
 
 interface PackageManifest {
   bin?: string | Record<string, string>;
+  main?: string;
+  module?: string;
+  exports?: unknown;
 }
 
 interface ProcessFailure {
@@ -47,12 +53,45 @@ interface VitestJsonResult {
   coveragePercent?: number;
 }
 
-function resolvePackageBinary(packageName: string, binaryName: string): string {
+interface CoverageSummary {
+  total?: {
+    lines?: {
+      pct?: number | string;
+    };
+  };
+}
+
+function resolvePackageManifest(packageName: string): string {
+  for (const nodeModulesDir of requireFromModule.resolve.paths(packageName) ?? []) {
+    const candidate = path.join(nodeModulesDir, packageName, 'package.json');
+    if (fs.existsSync(candidate)) return candidate;
+  }
+
+  return requireFromModule.resolve(`${packageName}/package.json`);
+}
+
+function resolveExportTarget(value: unknown): string | undefined {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return undefined;
+
+  const conditions = value as Record<string, unknown>;
+  return (
+    resolveExportTarget(conditions.import) ??
+    resolveExportTarget(conditions.default) ??
+    resolveExportTarget(conditions.require)
+  );
+}
+
+export function resolvePackageBinary(packageName: string, binaryName: string): string {
   const cacheKey = `${packageName}:${binaryName}`;
   const cached = packageBinaryCache.get(cacheKey);
   if (cached) return cached;
 
-  const manifestPath = requireFromModule.resolve(`${packageName}/package.json`);
+  // Preserve the logical node_modules path instead of require.resolve's
+  // canonical pnpm virtual-store path. On Windows, the expanded peer-suffixed
+  // path can cross the package-scope lookup limit and make otherwise valid
+  // `#imports` inside Vitest appear undefined.
+  const manifestPath = resolvePackageManifest(packageName);
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as PackageManifest;
   const relativeBinary =
     typeof manifest.bin === 'string' ? manifest.bin : manifest.bin?.[binaryName];
@@ -64,6 +103,20 @@ function resolvePackageBinary(packageName: string, binaryName: string): string {
   const resolved = path.resolve(path.dirname(manifestPath), relativeBinary);
   packageBinaryCache.set(cacheKey, resolved);
   return resolved;
+}
+
+function resolvePackageEntry(packageName: string): string {
+  const manifestPath = resolvePackageManifest(packageName);
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as PackageManifest;
+  const packageExport =
+    manifest.exports && typeof manifest.exports === 'object'
+      ? (manifest.exports as Record<string, unknown>)['.']
+      : manifest.exports;
+  const relativeEntry = resolveExportTarget(packageExport) ?? manifest.module ?? manifest.main;
+
+  return relativeEntry
+    ? path.resolve(path.dirname(manifestPath), relativeEntry)
+    : requireFromModule.resolve(packageName);
 }
 
 function processFailureOutput(error: unknown): string {
@@ -89,17 +142,50 @@ function parseVitestJson(output: string): VitestJsonResult | null {
   return null;
 }
 
+function readCoveragePercent(summaryPath: string): number | undefined {
+  try {
+    const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8')) as CoverageSummary;
+    const rawPercent = summary.total?.lines?.pct;
+    const percent =
+      typeof rawPercent === 'number' ? rawPercent : Number.parseFloat(String(rawPercent));
+    return Number.isFinite(percent) ? percent : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function vitestCounts(
   output: string,
-  outputLimit: number
+  outputLimit: number,
+  coveragePercent?: number
 ): { passed: number; total: number; coveragePercent?: number; output: string } {
   const result = parseVitestJson(output);
   return {
     passed: result?.numPassedTests ?? 0,
     total: result?.numTotalTests ?? 0,
-    coveragePercent: result?.coveragePercent,
+    coveragePercent: result?.coveragePercent ?? coveragePercent,
     output: output.slice(0, outputLimit),
   };
+}
+
+function parseEslintIssueCount(output: string): number | null {
+  const start = output.indexOf('[');
+  const end = output.lastIndexOf(']');
+  if (start < 0 || end < start) return null;
+
+  try {
+    const result = JSON.parse(output.slice(start, end + 1)) as Array<{
+      errorCount?: number;
+      warningCount?: number;
+    }>;
+    if (!Array.isArray(result)) return null;
+    return result.reduce(
+      (count, fileResult) => count + (fileResult.errorCount ?? 0) + (fileResult.warningCount ?? 0),
+      0
+    );
+  } catch {
+    return null;
+  }
 }
 
 // =============================================================================
@@ -166,7 +252,7 @@ export interface DaemonGRPOResult {
 
 /**
  * A vitest config injected into the reward temp dir, isolated from whatever
- * package the daemon happens to be running from. Without this, `npx vitest`
+ * package the daemon happens to be running from. Without this, Vitest
  * walks up from the temp dir's cwd and picks up the nearest ancestor
  * vitest.config.ts (e.g. absorb-service's own, which restricts `include` to
  * `src/**` / `src/__tests__/**`) — a completion temp file living outside that
@@ -175,15 +261,81 @@ export interface DaemonGRPOResult {
  * `*.test.ts` / `*.spec.ts` completion is always discovered when the CLI is
  * pointed at it via `--config` + `--root` (see realToolRunner.runVitest).
  */
-const EPHEMERAL_VITEST_CONFIG = `export default {
+function createEphemeralVitestConfig(coverageDirectory?: string): string {
+  const coverageConfig = coverageDirectory
+    ? `,
+    coverage: {
+      enabled: true,
+      provider: 'v8',
+      reporter: ['json-summary'],
+      reportsDirectory: ${JSON.stringify(coverageDirectory)},
+      reportOnFailure: true,
+      allowExternal: true,
+    }`
+    : '';
+
+  return `export default {
   test: {
     globals: true,
     environment: 'node',
     include: ['**/*.test.ts', '**/*.spec.ts'],
-    passWithNoTests: false,
+    passWithNoTests: false${coverageConfig},
   },
 };
 `;
+}
+
+function createEphemeralEslintConfig(): string {
+  const parserUrl = pathToFileURL(resolvePackageEntry('@typescript-eslint/parser')).href;
+  const pluginUrl = pathToFileURL(resolvePackageEntry('@typescript-eslint/eslint-plugin')).href;
+
+  return `import * as parserNamespace from ${JSON.stringify(parserUrl)};
+import * as pluginNamespace from ${JSON.stringify(pluginUrl)};
+
+const parser = parserNamespace.default ?? parserNamespace;
+const plugin = pluginNamespace.default ?? pluginNamespace;
+
+export default [{
+  files: ['**/*.ts', '**/*.tsx'],
+  languageOptions: {
+    parser,
+    parserOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+    },
+    globals: {
+      Buffer: 'readonly',
+      console: 'readonly',
+      process: 'readonly',
+      setInterval: 'readonly',
+      setTimeout: 'readonly',
+      clearInterval: 'readonly',
+      clearTimeout: 'readonly',
+      describe: 'readonly',
+      it: 'readonly',
+      test: 'readonly',
+      expect: 'readonly',
+      vi: 'readonly',
+      beforeEach: 'readonly',
+      afterEach: 'readonly',
+    },
+  },
+  plugins: {
+    '@typescript-eslint': plugin,
+  },
+  rules: {
+    'no-unreachable': 'error',
+    'no-constant-binary-expression': 'error',
+    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-unused-vars': ['warn', {
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+      caughtErrorsIgnorePattern: '^_',
+    }],
+  },
+}];
+`;
+}
 
 // Exported (not just module-private) so tests can exercise the REAL
 // implementation end-to-end (real vitest subprocess, real temp files)
@@ -191,21 +343,53 @@ const EPHEMERAL_VITEST_CONFIG = `export default {
 // diverge from the fix — see GRPORewardFunctions.test.ts's
 // 'real (non-mocked) tool runner' suite.
 export const realToolRunner: RewardToolRunner = {
-  async writeTempFile(content: string, extension: string): Promise<string> {
-    const tmpDir = fs.mkdtempSync(path.join(process.cwd(), '.grpo-tmp-'));
+  async writeTempFile(
+    content: string,
+    extension: string,
+    options?: { workDir?: string }
+  ): Promise<string> {
+    if (!/^\.[a-z0-9]+(?:\.[a-z0-9]+)*$/iu.test(extension)) {
+      throw new Error(`Invalid GRPO completion extension: ${extension}`);
+    }
+
+    const workDir = path.resolve(options?.workDir ?? process.cwd());
+    const tmpRoot = path.join(workDir, '.grpo-tmp');
+    fs.mkdirSync(tmpRoot, { recursive: true });
+    const tmpDir = fs.mkdtempSync(path.join(tmpRoot, `${process.pid}-`));
+    ownedTempDirs.add(tmpDir);
     const filePath = path.join(tmpDir, `completion${extension}`);
-    fs.writeFileSync(filePath, content, 'utf-8');
-    return filePath;
+    try {
+      fs.writeFileSync(filePath, content, 'utf-8');
+      return filePath;
+    } catch (error) {
+      ownedTempDirs.delete(tmpDir);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      try {
+        fs.rmdirSync(tmpRoot);
+      } catch {
+        // Another concurrent reward evaluation may still own this root.
+      }
+      throw error;
+    }
   },
 
   async deleteTempFile(filePath: string): Promise<void> {
+    const dir = path.resolve(path.dirname(filePath));
+    if (!ownedTempDirs.has(dir)) return;
+
     try {
       // Recursive removal (not unlink+rmdir): the vitest run may have left an
       // ephemeral vitest.config.mjs and/or a .vite cache dir alongside the
       // completion file — a plain rmdir would silently no-op on a non-empty
       // dir and leak temp dirs.
-      const dir = path.dirname(filePath);
-      await fs.promises.rm(dir, { recursive: true, force: true });
+      await fs.promises.rm(dir, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 100,
+      });
+      ownedTempDirs.delete(dir);
+      await fs.promises.rmdir(path.dirname(dir)).catch(() => {});
     } catch {
       // Best effort cleanup
     }
@@ -218,16 +402,33 @@ export const realToolRunner: RewardToolRunner = {
     const timeout = options?.timeout ?? 30_000;
     const workDir = path.dirname(filePath);
     const configPath = path.join(workDir, 'vitest.config.mjs');
+    const coverageDirectory = options?.withCoverage
+      ? path.join(workDir, 'coverage-report')
+      : undefined;
+    const coverageSummaryPath = coverageDirectory
+      ? path.join(coverageDirectory, 'coverage-summary.json')
+      : undefined;
+    let executableTestPath = filePath;
     try {
-      fs.writeFileSync(configPath, EPHEMERAL_VITEST_CONFIG, 'utf-8');
+      if (coverageDirectory && !/\.test\.[cm]?[jt]sx?$/u.test(filePath)) {
+        executableTestPath = path.join(workDir, 'completion.coverage.test.ts');
+        const completionImport = `./${path.basename(filePath).replace(/\\/gu, '/')}`;
+        fs.writeFileSync(
+          executableTestPath,
+          `import ${JSON.stringify(completionImport)};\n`,
+          'utf-8'
+        );
+      }
+      fs.writeFileSync(configPath, createEphemeralVitestConfig(coverageDirectory), 'utf-8');
     } catch {
-      // Best effort — if this fails, fall through to the (broken) ancestor
-      // config rather than crash the whole reward evaluation.
+      // Best effort. The explicit config/test paths below fail closed if either
+      // artifact could not be created.
     }
     try {
       const { stdout, stderr } = await execFileAsync(
         process.execPath,
         [
+          ...nodePackageExecutionArgs,
           resolvePackageBinary('vitest', 'vitest'),
           'run',
           '--reporter=json',
@@ -235,7 +436,7 @@ export const realToolRunner: RewardToolRunner = {
           workDir,
           '--config',
           configPath,
-          filePath,
+          executableTestPath,
         ],
         {
           cwd: workDir,
@@ -245,13 +446,21 @@ export const realToolRunner: RewardToolRunner = {
           encoding: 'utf-8',
         }
       );
-      return vitestCounts(stdout + stderr, 2000);
+      return vitestCounts(
+        stdout + stderr,
+        2000,
+        coverageSummaryPath ? readCoveragePercent(coverageSummaryPath) : undefined
+      );
     } catch (e: unknown) {
       // `vitest run` exits non-zero whenever ANY test in the file fails —
       // not just on a crash — so this branch is hit for every completion
       // with a partial pass rate. execFile still captures stdout/stderr on a
       // rejected process, and the JSON reporter output has the real counts.
-      return vitestCounts(processFailureOutput(e), 1000);
+      return vitestCounts(
+        processFailureOutput(e),
+        1000,
+        coverageSummaryPath ? readCoveragePercent(coverageSummaryPath) : undefined
+      );
     }
   },
 
@@ -292,10 +501,20 @@ export const realToolRunner: RewardToolRunner = {
   ): Promise<{ issueCount: number; output: string }> {
     const timeout = options?.timeout ?? 30_000;
     const workDir = path.dirname(filePath);
+    const configPath = path.join(workDir, 'eslint.config.mjs');
     try {
+      fs.writeFileSync(configPath, createEphemeralEslintConfig(), 'utf-8');
       const { stdout, stderr } = await execFileAsync(
         process.execPath,
-        [resolvePackageBinary('eslint', 'eslint'), filePath, '--format', 'json'],
+        [
+          resolvePackageBinary('eslint', 'eslint'),
+          '--no-config-lookup',
+          '--config',
+          configPath,
+          filePath,
+          '--format',
+          'json',
+        ],
         {
           cwd: workDir,
           timeout,
@@ -305,26 +524,21 @@ export const realToolRunner: RewardToolRunner = {
         }
       );
       const output = stdout + stderr;
-      try {
-        const result = JSON.parse(output);
-        let issueCount = 0;
-        if (Array.isArray(result)) {
-          for (const fileResult of result) {
-            issueCount += (fileResult.errorCount ?? 0) + (fileResult.warningCount ?? 0);
-          }
-        }
-        return { issueCount, output: output.slice(0, 2000) };
-      } catch {
-        const errorCount = (output.match(/^\s*\d+:\d+\s+error\s/gm) ?? []).length;
-        const warningCount = (output.match(/^\s*\d+:\d+\s+warning\s/gm) ?? []).length;
-        return { issueCount: errorCount + warningCount, output: output.slice(0, 2000) };
-      }
-    } catch (e: unknown) {
-      const output = processFailureOutput(e);
+      const issueCount = parseEslintIssueCount(stdout);
       const errorCount = (output.match(/^\s*\d+:\d+\s+error\s/gm) ?? []).length;
       const warningCount = (output.match(/^\s*\d+:\d+\s+warning\s/gm) ?? []).length;
       return {
-        issueCount: Math.max(1, errorCount + warningCount),
+        issueCount: issueCount ?? errorCount + warningCount,
+        output: output.slice(0, 2000),
+      };
+    } catch (e: unknown) {
+      const failure = e as ProcessFailure;
+      const output = processFailureOutput(e);
+      const parsedIssueCount = parseEslintIssueCount(failure.stdout ?? output);
+      const errorCount = (output.match(/^\s*\d+:\d+\s+error\s/gm) ?? []).length;
+      const warningCount = (output.match(/^\s*\d+:\d+\s+warning\s/gm) ?? []).length;
+      return {
+        issueCount: parsedIssueCount ?? Math.max(1, errorCount + warningCount),
         output: output.slice(0, 2000),
       };
     }

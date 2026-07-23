@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, sep } from 'node:path';
 import type { RewardToolRunner } from '../GRPORewardFunctions';
 import { createGRPORewardFunctions, GRPO_REWARD_WEIGHTS } from '../GRPORewardFunctions';
 // Real (non-mocked) tool runner — the actual production implementation that
 // launches the repository-resolved Vitest CLI. Imported (not re-derived)
 // so this test exercises the FIX itself rather than a second hand-rolled
 // copy that could silently diverge from it.
-import { realToolRunner } from '../../daemon/daemon-grpo-runner';
+import { realToolRunner, resolvePackageBinary } from '../../daemon/daemon-grpo-runner';
 
 // =============================================================================
 // MOCK TOOL RUNNER
@@ -159,7 +162,9 @@ describe('GRPORewardFunctions', () => {
       // testPassReward must write a vitest-discoverable filename ('.test.ts'
       // by default), NOT the generic fileExtension ('.ts') used by
       // typeCheck/lint — see RewardFunctionOptions.testFileExtension.
-      expect(runner.writeTempFile).toHaveBeenCalledWith('code', '.test.ts');
+      expect(runner.writeTempFile).toHaveBeenCalledWith('code', '.test.ts', {
+        workDir: '.',
+      });
       expect(runner.deleteTempFile).toHaveBeenCalledWith('/tmp/test-file.ts');
     });
 
@@ -278,7 +283,88 @@ describe('mixed completion', () => {
     }, 60_000);
   });
 
+  describe('coverageReward (real, non-mocked tool runner)', () => {
+    const fns = createGRPORewardFunctions(realToolRunner);
+
+    it('executes a source completion through a test harness and reports real coverage', async () => {
+      const completion = `
+import { describe, it, expect } from 'vitest';
+
+function branch(value: boolean): number {
+  if (value) return 1;
+  return 0;
+}
+
+describe('coverage completion', () => {
+  it('covers one branch', () => {
+    expect(branch(true)).toBe(1);
+  });
+});
+`;
+
+      const rewards = await fns.coverageReward([completion], { timeout: 45_000 });
+
+      expect(rewards).toHaveLength(1);
+      expect(rewards[0]).toBeGreaterThan(0);
+      expect(rewards[0]).toBeLessThan(1);
+    }, 60_000);
+  });
+
   describe('real tool runner package binaries', () => {
+    it('declares every spawned tool as a production dependency', () => {
+      const manifest = JSON.parse(
+        readFileSync(new URL('../../../package.json', import.meta.url), 'utf-8')
+      ) as { dependencies?: Record<string, string> };
+
+      for (const dependency of [
+        '@types/node',
+        '@typescript-eslint/eslint-plugin',
+        '@typescript-eslint/parser',
+        '@vitest/coverage-v8',
+        'eslint',
+        'typescript',
+        'vitest',
+      ]) {
+        expect(manifest.dependencies?.[dependency], dependency).toBeTypeOf('string');
+      }
+    });
+
+    it('preserves the logical Vitest package path instead of expanding pnpm internals', () => {
+      const binaryPath = resolvePackageBinary('vitest', 'vitest');
+
+      expect(binaryPath).toContain(`${sep}node_modules${sep}vitest${sep}`);
+      expect(binaryPath).not.toContain(`${sep}.pnpm${sep}`);
+    });
+
+    it('stages completions under the consumer workdir and cleans only owned directories', async () => {
+      const filePath = await realToolRunner.writeTempFile('void 0;\n', '.ts', {
+        workDir: process.cwd(),
+      });
+      const ownedDir = dirname(filePath);
+
+      expect(dirname(ownedDir)).toBe(join(process.cwd(), '.grpo-tmp'));
+      expect(existsSync(filePath)).toBe(true);
+
+      await realToolRunner.deleteTempFile(filePath);
+      expect(existsSync(ownedDir)).toBe(false);
+
+      const foreignDir = mkdtempSync(join(tmpdir(), 'absorb-grpo-foreign-'));
+      const foreignFile = join(foreignDir, 'completion.ts');
+      writeFileSync(foreignFile, 'void 0;\n', 'utf-8');
+      try {
+        await realToolRunner.deleteTempFile(foreignFile);
+        expect(existsSync(foreignFile)).toBe(true);
+      } finally {
+        rmSync(foreignDir, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects file extensions that could escape the owned temp directory', async () => {
+      await expect(realToolRunner.writeTempFile('void 0;\n', '../../outside.ts')).rejects.toThrow(
+        'Invalid GRPO completion extension'
+      );
+    });
+
     it('runs the repository TypeScript compiler without shell discovery', async () => {
       const filePath = await realToolRunner.writeTempFile(
         'const value: number = 1;\nvoid value;\n',
@@ -319,6 +405,23 @@ describe('mixed completion', () => {
 
         expect(result.issueCount).toBe(0);
         expect(result.output).not.toContain('node_modules\\node_modules');
+      } finally {
+        await realToolRunner.deleteTempFile(filePath);
+      }
+    }, 45_000);
+
+    it('uses the isolated TypeScript lint contract to report completion issues', async () => {
+      const filePath = await realToolRunner.writeTempFile(
+        'const unused: any = 1;\nvoid 0;\n',
+        '.ts'
+      );
+
+      try {
+        const result = await realToolRunner.runLint(filePath, { timeout: 30_000 });
+
+        expect(result.issueCount).toBeGreaterThanOrEqual(2);
+        expect(result.output).toContain('@typescript-eslint/no-explicit-any');
+        expect(result.output).toContain('@typescript-eslint/no-unused-vars');
       } finally {
         await realToolRunner.deleteTempFile(filePath);
       }
@@ -517,6 +620,9 @@ describe('mixed completion', () => {
         '/tmp/test-file.ts',
         expect.objectContaining({ withCoverage: true })
       );
+      expect(runner.writeTempFile).toHaveBeenCalledWith('code', '.ts', {
+        workDir: '.',
+      });
     });
 
     it('clamps coverage above 100 to 1.0', async () => {

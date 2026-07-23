@@ -31,10 +31,7 @@ import type {
   CalibrationRewardContext,
   ProvenanceRewardContext,
 } from './ProvenanceCalibrationRewards';
-import type {
-  AgentBenefitRewardContext,
-  HumanBenefitRewardContext,
-} from './BeneficiaryRewards';
+import type { AgentBenefitRewardContext, HumanBenefitRewardContext } from './BeneficiaryRewards';
 import type { UAALResolutionRewardContext } from './UAALResolutionRewards';
 
 /** Options passed to reward functions via kwargs */
@@ -104,8 +101,17 @@ export interface RewardEvaluation {
  * interface so reward functions remain unit-testable with pure stubs.
  */
 export interface RewardToolRunner {
-  /** Write a temporary file and return its path */
-  writeTempFile(content: string, extension: string): Promise<string>;
+  /**
+   * Write a temporary file and return its path.
+   *
+   * `workDir` keeps the completion inside the consumer project so its normal
+   * package resolution remains available to vitest, TypeScript, and ESLint.
+   */
+  writeTempFile(
+    content: string,
+    extension: string,
+    options?: { workDir?: string }
+  ): Promise<string>;
 
   /** Delete a temporary file */
   deleteTempFile(filePath: string): Promise<void>;
@@ -154,7 +160,12 @@ export interface RewardToolRunner {
 // =============================================================================
 
 /** Tool-execution options always resolve; term contexts stay caller-supplied. */
-type TermContextKeys = 'provenance' | 'calibration' | 'agentBenefit' | 'humanBenefit' | 'uaalResolution';
+type TermContextKeys =
+  | 'provenance'
+  | 'calibration'
+  | 'agentBenefit'
+  | 'humanBenefit'
+  | 'uaalResolution';
 type ResolvedRewardOptions = Required<Omit<RewardFunctionOptions, TermContextKeys>> &
   Pick<RewardFunctionOptions, TermContextKeys>;
 
@@ -250,7 +261,9 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
         // so a file named 'completion.ts' never matches and numTotalTests is
         // always 0 regardless of the completion's actual content (see doc comment
         // on RewardFunctionOptions.testFileExtension).
-        const filePath = await runner.writeTempFile(completion, opts.testFileExtension);
+        const filePath = await runner.writeTempFile(completion, opts.testFileExtension, {
+          workDir: opts.workDir,
+        });
         try {
           const result = await runner.runVitest(filePath, { timeout: opts.timeout });
           if (result.total === 0) return 0;
@@ -286,7 +299,9 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
 
     for (const completion of completions) {
       const eval_ = await evaluateWithTimeout(async (): Promise<number> => {
-        const filePath = await runner.writeTempFile(completion, opts.fileExtension);
+        const filePath = await runner.writeTempFile(completion, opts.fileExtension, {
+          workDir: opts.workDir,
+        });
         try {
           const result = await runner.runTypeCheck(filePath, { timeout: opts.timeout });
           return result.passed ? 1.0 : 0.0;
@@ -321,7 +336,9 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
 
     for (const completion of completions) {
       const eval_ = await evaluateWithTimeout(async (): Promise<number> => {
-        const filePath = await runner.writeTempFile(completion, opts.fileExtension);
+        const filePath = await runner.writeTempFile(completion, opts.fileExtension, {
+          workDir: opts.workDir,
+        });
         try {
           const result = await runner.runLint(filePath, { timeout: opts.timeout });
           const maxIssues = Math.max(1, opts.maxLintIssues);
@@ -358,7 +375,9 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
 
     for (const completion of completions) {
       const eval_ = await evaluateWithTimeout(async (): Promise<number> => {
-        const filePath = await runner.writeTempFile(completion, opts.fileExtension);
+        const filePath = await runner.writeTempFile(completion, opts.fileExtension, {
+          workDir: opts.workDir,
+        });
         try {
           const result = await runner.runVitest(filePath, {
             withCoverage: true,

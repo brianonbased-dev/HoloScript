@@ -118,8 +118,15 @@
     "@holoscript/llm-provider": "workspace:^",
     "@holoscript/meaning": "workspace:^",
     "@holoscript/uaal": "workspace:^",
+    "@types/node": "^24.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "@vitest/coverage-v8": "^4.1.5",
     "drizzle-orm": ">=0.45.2",
+    "eslint": "^9.39.1",
     "openai": "^6.32.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.5",
     "zod": "^4.3.6"
   },
   "optionalDependencies": {
@@ -142,9 +149,6 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
-    "tsup": "^8.0.1",
-    "typescript": "~5.9.3",
-    "vitest": "^4.1.5"
+    "tsup": "^8.0.1"
   }
 }
