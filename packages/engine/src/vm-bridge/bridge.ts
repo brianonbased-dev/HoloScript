@@ -24,7 +24,14 @@ import type {
   Vec3,
 } from '../vm/executor';
 
-import type { UAALVirtualMachine, UAALOperand, VMProxy, UAALBytecode } from '@holoscript/uaal';
+import type {
+  UAALVirtualMachine,
+  UAALOperand,
+  VMProxy,
+  UAALBytecode,
+  UAALExecutionLog,
+} from '@holoscript/uaal';
+import type { N4TypedMoveAction, N4ResidualTarget } from '@holoscript/core/world-model';
 import { createRequire } from 'node:module';
 
 // ---------------------------------------------------------------------------
@@ -246,6 +253,25 @@ export interface CognitiveTickResult {
   cycleResult?: unknown;
 }
 
+export interface N4RoundTripCustody {
+  readonly sourceDigest: string;
+  readonly graphDigest: string;
+  readonly modelDigest: string;
+}
+
+export interface N4OwnedRuntimeRoundTrip {
+  readonly kind: 'N4OwnedRuntimeRoundTrip';
+  readonly actionDigest: string;
+  readonly entityId: number;
+  readonly entityName: string;
+  readonly before: Vec3;
+  readonly after: Vec3;
+  readonly uaalProgram: UAALBytecode;
+  readonly uaalLog: UAALExecutionLog;
+  readonly uaalTaskStatus: string;
+  readonly mutationApplied: boolean;
+}
+
 export class SpatialCognitiveAgent {
   private world: ECSWorld;
   private cognitiveVM: UAALVirtualMachine;
@@ -455,4 +481,118 @@ export class SpatialCognitiveAgent {
   getTickCount(): number {
     return this.tickCount;
   }
+}
+
+const N4_CLOSED_RESIDUAL_SCOPE: readonly N4ResidualTarget[] = Object.freeze([
+  'object.drag',
+  'event.gust',
+  'event.contact',
+]);
+
+function sameN4ResidualScope(scope: readonly N4ResidualTarget[]): boolean {
+  return (
+    scope.length === N4_CLOSED_RESIDUAL_SCOPE.length &&
+    scope.every((target, index) => target === N4_CLOSED_RESIDUAL_SCOPE[index])
+  );
+}
+
+/**
+ * Execute one compiler-bound N4 typed move through the real uAAL VM and the
+ * existing HoloVM ECS mutation bridge.
+ *
+ * Security is lexical/structural: this adapter accepts only the closed `move`
+ * action and the three compiler-declared residual targets. It exposes no
+ * arbitrary opcode, component, host callback, filesystem, or process concept
+ * to the learned processor.
+ */
+export async function executeN4TypedMoveRoundTrip(
+  holoVM: HoloVM,
+  cognitiveVM: UAALVirtualMachine,
+  action: N4TypedMoveAction,
+  expected: N4RoundTripCustody
+): Promise<N4OwnedRuntimeRoundTrip> {
+  if ((action as { type?: unknown }).type !== 'move') {
+    throw new Error('N4 runtime admits only the typed move action');
+  }
+  if (
+    action.sourceDigest !== expected.sourceDigest ||
+    action.graphDigest !== expected.graphDigest ||
+    action.modelDigest !== expected.modelDigest
+  ) {
+    throw new Error('N4 runtime custody digest mismatch');
+  }
+  if (!sameN4ResidualScope(action.residualScope)) {
+    throw new Error('N4 runtime rejected undeclared or reordered residual scope');
+  }
+  if (!Number.isFinite(action.confidence) || action.confidence < 0.5 || action.confidence > 1) {
+    throw new Error('N4 runtime rejected invalid or insufficient confidence');
+  }
+  if (!Number.isFinite(action.position.x) || !Number.isFinite(action.position.y)) {
+    throw new Error('N4 runtime rejected non-finite position');
+  }
+
+  const matches = holoVM.world
+    .getAllEntities()
+    .filter((entity) => entity.alive && entity.name === action.entityId);
+  if (matches.length !== 1) {
+    throw new Error(
+      `N4 runtime target "${action.entityId}" must resolve to exactly one living HoloVM entity`
+    );
+  }
+  const entity = matches[0]!;
+  const transform = holoVM.world.getComponent<TransformComponent>(entity.id, 0x01);
+  if (!transform) throw new Error(`N4 runtime target "${action.entityId}" has no Transform component`);
+  const before: Vec3 = [...transform.position];
+
+  const { UAALOpCode } = lazyUaal();
+  const program: UAALBytecode = {
+    version: 1,
+    instructions: [
+      { opCode: UAALOpCode.PUSH, operands: [action as unknown as UAALOperand] },
+      { opCode: UAALOpCode.EXECUTE },
+      { opCode: UAALOpCode.HALT },
+    ],
+  };
+  const agent = new SpatialCognitiveAgent(holoVM.world, cognitiveVM, {
+    cognitiveHz: 1,
+    maxActionsPerTick: 1,
+    program,
+  });
+  agent.queueAction({
+    type: 'move',
+    entityId: entity.id,
+    position: [action.position.x, action.position.y, before[2]],
+  });
+  const result = await agent.decide('execute compiler-bound N4 move');
+  const afterTransform = holoVM.world.getComponent<TransformComponent>(entity.id, 0x01);
+  if (!afterTransform) throw new Error('N4 runtime mutation removed the target Transform');
+  const after: Vec3 = [...afterTransform.position];
+  const mutationApplied =
+    after[0] === action.position.x &&
+    after[1] === action.position.y &&
+    after[2] === before[2];
+  if (!mutationApplied) throw new Error('N4 runtime action did not produce the declared HoloVM mutation');
+
+  let uaalLog: UAALExecutionLog;
+  try {
+    uaalLog = cognitiveVM.exportLog();
+  } catch {
+    throw new Error('N4 runtime requires UAALVirtualMachine({ recordLog: true })');
+  }
+  const taskStatus =
+    typeof result === 'object' && result !== null && 'taskStatus' in result
+      ? String((result as { taskStatus: unknown }).taskStatus)
+      : 'unknown';
+  return {
+    kind: 'N4OwnedRuntimeRoundTrip',
+    actionDigest: action.deterministicDigest,
+    entityId: entity.id,
+    entityName: entity.name,
+    before,
+    after,
+    uaalProgram: program,
+    uaalLog,
+    uaalTaskStatus: taskStatus,
+    mutationApplied,
+  };
 }

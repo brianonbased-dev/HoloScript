@@ -83,6 +83,63 @@ export {
   runTwoAgentHandoffCatchReplay,
   buildTwoAgentHandoffCatchTrajectory,
 } from './TwoAgentHandoffCatchScene';
+
+export {
+  N4_RESIDUAL_WORLD_SCHEMA_VERSION,
+  N4_METRIC_CONTRACT_SHA256,
+  N4_DT,
+  N4_LONG_HORIZON,
+  N4_TRAIN_SEEDS,
+  N4_OOD_SEEDS,
+  N4_PLANNING_SEEDS,
+  N4_BOOTSTRAP_SEEDS,
+  N4_SAMPLE_BUDGETS,
+  N4_RESIDUAL_TARGETS,
+  N4_ARMS,
+  compileN4ResidualWorldSource,
+  generateN4Scene,
+  stepN4Exact,
+  stepN4Truth,
+  trainN4Models,
+  predictN4Scene,
+  projectN4TypedFeatures,
+  verifyN4Prediction,
+  evaluateN4Arm,
+  buildN4WeightsManifest,
+  generateN4Artifacts,
+  proposeN4TypedMove,
+  runN4Experiment,
+} from './N4ResidualWorldLoop';
+export type {
+  N4ResidualTarget,
+  N4Arm,
+  N4Vec2,
+  N4Object2D,
+  N4WorldEvent,
+  N4WorldScene,
+  N4SourceContract,
+  N4LinearModel,
+  N4ModelSet,
+  N4ObjectPrediction,
+  N4ScenePrediction,
+  N4ArmMetrics,
+  N4TypedMoveAction,
+  N4WeightsManifest,
+  N4GeneratedArtifacts,
+  N4ExperimentReceipt,
+} from './N4ResidualWorldLoop';
+
+export {
+  N4_RUNTIME_PARITY_TOLERANCE,
+  inferN4Cpu,
+  inferN4Wasm,
+  inferN4WebGPU,
+  verifyN4RuntimeParity,
+} from './N4ResidualRuntimeParity';
+export type {
+  N4RuntimeInference,
+  N4RuntimeParityVerdict,
+} from './N4ResidualRuntimeParity';
 export type {
   TwoAgentHandoffObject,
   TwoAgentHandoffCatchSceneState,

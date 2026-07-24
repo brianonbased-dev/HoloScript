@@ -8180,6 +8180,126 @@ export interface TwoAgentHandoffCatchTrajectoryBuild { readonly result: any; rea
 export function buildDeterministicFailureTrajectory(actions?: readonly any[], options?: any): DeterministicFailureTrajectoryBuild;
 export function buildHumanoidRockThrowTrajectory(options?: any): HumanoidRockThrowTrajectoryBuild;
 export function buildTwoAgentHandoffCatchTrajectory(options?: any): TwoAgentHandoffCatchTrajectoryBuild;
+
+// --- N4 exact-plus-learned residual world loop ---
+export type N4ResidualTarget = 'object.drag' | 'event.gust' | 'event.contact';
+export type N4Arm =
+  | 'exact-only'
+  | 'learned-only-object'
+  | 'exact-plus-untyped-residual'
+  | 'exact-plus-typed-residual'
+  | 'exact-plus-typed-residual-uncertainty';
+export interface N4Vec2 { readonly x: number; readonly y: number; }
+export interface N4Object2D {
+  readonly id: string;
+  readonly kind: 'orb' | 'crate';
+  readonly position: N4Vec2;
+  readonly velocity: N4Vec2;
+  readonly massKg: number;
+  readonly dragPerSecond: number;
+  readonly latentContactScale: number;
+}
+export type N4WorldEvent =
+  | { readonly type: 'gust'; readonly impulse: N4Vec2 }
+  | { readonly type: 'contact'; readonly objectIds: readonly string[] };
+export interface N4WorldScene {
+  readonly seed: number;
+  readonly split: 'train' | 'ood' | 'planning';
+  readonly step: number;
+  readonly objects: readonly N4Object2D[];
+  readonly events: readonly N4WorldEvent[];
+}
+export interface N4SourceContract {
+  readonly sourceDigest: string;
+  readonly ir: { readonly provenance: { readonly deterministicDigest: string; readonly sourceSurface?: string } };
+  readonly learningGraph: { readonly deterministicDigest: string; readonly nodes: readonly { readonly nodeType: string }[] };
+  readonly residualTargets: readonly N4ResidualTarget[];
+  readonly actionVocabulary: readonly ['move'];
+  readonly deterministicDigest: string;
+}
+export interface N4LinearModel {
+  readonly featureNames: readonly string[];
+  readonly outputNames: readonly string[];
+  readonly weights: readonly number[];
+  readonly shape: readonly [number, number];
+  readonly deterministicDigest: string;
+}
+export interface N4ModelSet {
+  readonly learnedOnly: N4LinearModel;
+  readonly untypedResidual: N4LinearModel;
+  readonly typedResidual: N4LinearModel;
+  readonly typedEnsemble: readonly N4LinearModel[];
+  readonly uncertaintyScale: number;
+  readonly deterministicDigest: string;
+}
+export interface N4TypedMoveAction {
+  readonly type: 'move';
+  readonly entityId: string;
+  readonly position: N4Vec2;
+  readonly confidence: number;
+  readonly residualScope: readonly N4ResidualTarget[];
+  readonly sourceDigest: string;
+  readonly graphDigest: string;
+  readonly modelDigest: string;
+  readonly deterministicDigest: string;
+}
+export interface N4WeightsManifest {
+  readonly sourceDigest: string;
+  readonly irDigest: string;
+  readonly graphDigest: string;
+  readonly modelDigest: string;
+  readonly featureSchemaDigest: string;
+  readonly featureNames: readonly string[];
+  readonly outputNames: readonly string[];
+  readonly weightTensor: readonly number[];
+  readonly weightShape: readonly [number, number];
+  readonly typeTensor: readonly number[];
+  readonly typeShape: readonly [number, number];
+  readonly tensorChecksum: string;
+  readonly deterministicDigest: string;
+}
+export interface N4GeneratedArtifacts {
+  readonly contract: N4SourceContract;
+  readonly models: N4ModelSet;
+  readonly weightsManifest: N4WeightsManifest;
+  readonly deterministicDigest: string;
+}
+export interface N4RuntimeInference {
+  readonly runtime: 'cpu' | 'wasm' | 'webgpu';
+  readonly output: readonly number[];
+  readonly sourceDigest: string;
+  readonly graphDigest: string;
+  readonly modelDigest: string;
+  readonly weightsManifestDigest: string;
+  readonly deterministicDigest: string;
+}
+export interface N4RuntimeParityVerdict {
+  readonly valid: boolean;
+  readonly maxAbsoluteError: number;
+  readonly tolerance: number;
+  readonly reason: string;
+}
+export declare const N4_METRIC_CONTRACT_SHA256: string;
+export declare const N4_RESIDUAL_TARGETS: readonly N4ResidualTarget[];
+export declare function compileN4ResidualWorldSource(source: string): N4SourceContract;
+export declare function generateN4Scene(seed: number, split: N4WorldScene['split']): N4WorldScene;
+export declare function trainN4Models(trainScenes: readonly N4WorldScene[]): N4ModelSet;
+export declare function generateN4Artifacts(source: string): N4GeneratedArtifacts;
+export declare function projectN4TypedFeatures(scene: N4WorldScene, object: N4Object2D): readonly number[];
+export declare function proposeN4TypedMove(
+  contract: N4SourceContract,
+  models: N4ModelSet,
+  scene: N4WorldScene,
+  entityId: string,
+  action: N4Vec2
+): N4TypedMoveAction;
+export declare function inferN4Cpu(manifest: N4WeightsManifest, features: readonly number[]): N4RuntimeInference;
+export declare function inferN4Wasm(manifest: N4WeightsManifest, features: readonly number[]): Promise<N4RuntimeInference>;
+export declare function inferN4WebGPU(device: GPUDevice, manifest: N4WeightsManifest, features: readonly number[]): Promise<N4RuntimeInference>;
+export declare function verifyN4RuntimeParity(
+  reference: N4RuntimeInference,
+  candidate: N4RuntimeInference
+): N4RuntimeParityVerdict;
 `;
 
 const paper0cSpikeDTS = `/** @holoscript/core/paper-0c-spike — CAEL paper-0c primitives (subgrid attestation) */

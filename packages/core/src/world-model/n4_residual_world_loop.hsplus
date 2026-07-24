@@ -1,0 +1,33 @@
+// N4 exact-plus-learned residual world loop.
+//
+// This is the single source of the experiment contract. The sovereign
+// HSPlus -> HSI-IR lowering exposes the typed state/action/event vocabulary;
+// generated datasets, tensors, verifier cases, and receipts bind its digest.
+
+state_machine ResidualWorldLoop {
+  input object_x: float = 0
+  input object_y: float = 0
+  input velocity_x: float = 0
+  input velocity_y: float = 0
+  input mass_kg: float = 1
+  input drag_per_second: float = 0
+  input action_x: float = 0
+  input action_y: float = 0
+  input object_kind: int = 0
+  input residual_uncertainty: float = 0
+  input act: trigger = false
+  input gust: trigger = false
+  input contact: trigger = false
+  input verify: trigger = false
+
+  initial: ready
+
+  state ready {}
+  state acting {}
+  state verified {}
+
+  ready -> acting when act
+  acting -> acting when gust
+  acting -> acting when contact
+  acting -> verified when verify
+}

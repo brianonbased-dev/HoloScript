@@ -6,13 +6,20 @@
  * @packageDocumentation
  */
 
-export { captureSceneSnapshot, applyActions, SpatialCognitiveAgent } from './bridge';
+export {
+  captureSceneSnapshot,
+  applyActions,
+  SpatialCognitiveAgent,
+  executeN4TypedMoveRoundTrip,
+} from './bridge';
 export type {
   EntitySnapshot,
   SceneSnapshot,
   AgentAction,
   BridgeConfig,
   CognitiveTickResult,
+  N4RoundTripCustody,
+  N4OwnedRuntimeRoundTrip,
 } from './bridge';
 
 // Agent lifecycle/registry layer (G5 join) — service over the bridge primitives.
