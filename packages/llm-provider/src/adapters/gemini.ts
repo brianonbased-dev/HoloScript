@@ -3,8 +3,9 @@
  *
  * Implements the unified ILLMProvider interface for Google Gemini's API.
  * Uses fetch-based HTTP requests (no SDK dependency) for maximum compatibility.
- * Supports Gemini 3.5 Flash, Gemini 3 Flash Preview, Gemini Omni Flash Preview
- * route metadata, and legacy Gemini 1.5 models.
+ * Supports Gemini 3.6 Flash, Gemini 3.5 Flash/Flash-Lite, Gemini 3 Flash
+ * Preview, Gemini Omni Flash Preview route metadata, and legacy Gemini 1.5
+ * models.
  *
  * Function calling uses the standard generateContent API (not the Interactions/
  * Live API). Tool calls appear as `functionCall` parts in the response
@@ -31,6 +32,7 @@ import type {
   LLMCompletionResponse,
   LLMMessage,
   GeminiProviderConfig,
+  GeminiThinkingLevel,
   ToolSpec,
   ToolUseBlock,
 } from '../types';
@@ -63,7 +65,9 @@ import {
 //     gemini-3.1-flash-lite-image (GA 2026-06-30).
 //   SSOT dates: docs/llm-capabilities/google-gemini.md.
 export const GEMINI_MODELS = [
+  'gemini-3.6-flash',
   'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
   'gemini-3.1-flash-tts-preview',
   'gemini-omni-flash-preview',
   'gemini-3-flash-preview',
@@ -87,6 +91,13 @@ export interface GeminiModelMetadata {
   supportsVideoEditing?: boolean;
   supportsImageAnimation?: boolean;
   supportsConversationalMediaEditing?: boolean;
+  inputTokenLimit?: number;
+  outputTokenLimit?: number;
+  costPerMillion?: { input: number; output: number };
+  defaultThinkingLevel?: GeminiThinkingLevel;
+  supportedThinkingLevels?: readonly GeminiThinkingLevel[];
+  supportsSamplingParameters: boolean;
+  allowsPrefilledModelTurn: boolean;
   lastVerified: string;
   routingNotes: readonly string[];
   sources: readonly string[];
@@ -103,6 +114,8 @@ function geminiModelMetadata(
     defaultRoutingEligible: true,
     supportsTextCompletion: true,
     supportsFunctionCalling: true,
+    supportsSamplingParameters: true,
+    allowsPrefilledModelTurn: true,
     lastVerified: '2026-06-30',
     routingNotes: [],
     sources: ['https://ai.google.dev/gemini-api/docs/models'],
@@ -111,7 +124,52 @@ function geminiModelMetadata(
 }
 
 export const GEMINI_MODEL_METADATA = {
-  'gemini-3.5-flash': geminiModelMetadata('gemini-3.5-flash'),
+  'gemini-3.6-flash': geminiModelMetadata('gemini-3.6-flash', {
+    inputTokenLimit: 1_048_576,
+    outputTokenLimit: 65_536,
+    costPerMillion: { input: 1.5, output: 7.5 },
+    defaultThinkingLevel: 'medium',
+    supportedThinkingLevels: ['minimal', 'low', 'medium', 'high'],
+    supportsSamplingParameters: false,
+    allowsPrefilledModelTurn: false,
+    lastVerified: '2026-07-21',
+    routingNotes: [
+      'GA agentic/multimodal Flash model; deprecated sampling parameters are never forwarded.',
+      'Requests whose last non-empty turn is model-authored are rejected before dispatch.',
+    ],
+    sources: [
+      'https://ai.google.dev/gemini-api/docs/latest-model',
+      'https://ai.google.dev/gemini-api/docs/models/gemini-3.6-flash',
+      'https://ai.google.dev/gemini-api/docs/pricing',
+    ],
+  }),
+  'gemini-3.5-flash': geminiModelMetadata('gemini-3.5-flash', {
+    defaultThinkingLevel: 'medium',
+    supportedThinkingLevels: ['minimal', 'low', 'medium', 'high'],
+    sources: [
+      'https://ai.google.dev/gemini-api/docs/models',
+      'https://ai.google.dev/gemini-api/docs/generate-content/thinking',
+    ],
+  }),
+  'gemini-3.5-flash-lite': geminiModelMetadata('gemini-3.5-flash-lite', {
+    inputTokenLimit: 1_048_576,
+    outputTokenLimit: 65_536,
+    costPerMillion: { input: 0.3, output: 2.5 },
+    defaultThinkingLevel: 'minimal',
+    supportedThinkingLevels: ['minimal', 'low', 'medium', 'high'],
+    supportsSamplingParameters: false,
+    allowsPrefilledModelTurn: false,
+    lastVerified: '2026-07-21',
+    routingNotes: [
+      'GA high-throughput Flash-Lite model; deprecated sampling parameters are never forwarded.',
+      'Requests whose last non-empty turn is model-authored are rejected before dispatch.',
+    ],
+    sources: [
+      'https://ai.google.dev/gemini-api/docs/latest-model',
+      'https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite',
+      'https://ai.google.dev/gemini-api/docs/pricing',
+    ],
+  }),
   'gemini-3.1-flash-tts-preview': geminiModelMetadata('gemini-3.1-flash-tts-preview', {
     status: 'preview',
     routingNotes: ['Streaming speech generation remains on the generateContent/stream axis.'],
@@ -175,6 +233,11 @@ interface GeminiPart {
 interface GeminiContent {
   parts: GeminiPart[];
   role: 'user' | 'model';
+}
+
+function isNonEmptyGeminiPart(part: GeminiPart): boolean {
+  if (part.functionCall || part.functionResponse) return true;
+  return typeof part.text === 'string' && part.text.trim().length > 0;
 }
 
 /**
@@ -314,14 +377,51 @@ export class GeminiAdapter extends BaseLLMAdapter {
       this.messageToGeminiContent(m)
     );
 
+    if (modelMetadata?.allowsPrefilledModelTurn === false) {
+      let lastNonEmptyContent: GeminiContent | undefined;
+      for (let index = contents.length - 1; index >= 0; index -= 1) {
+        if (contents[index].parts.some((part) => isNonEmptyGeminiPart(part))) {
+          lastNonEmptyContent = contents[index];
+          break;
+        }
+      }
+      if (lastNonEmptyContent?.role === 'model') {
+        throw new LLMProviderError(
+          `${model} does not accept a prefilled model turn. The last non-empty ` +
+            'conversation message must be user-authored; use a system instruction or ' +
+            'structured output contract to constrain the response.',
+          'gemini',
+          400,
+          false
+        );
+      }
+    }
+
+    const thinkingLevel = request.provider?.gemini?.thinkingLevel;
+    if (thinkingLevel && !modelMetadata?.supportedThinkingLevels?.includes(thinkingLevel)) {
+      throw new LLMProviderError(
+        `${model} does not declare support for Gemini thinkingLevel=${thinkingLevel}.`,
+        'gemini',
+        400,
+        false
+      );
+    }
+
+    const generationConfig: Record<string, unknown> = {
+      maxOutputTokens: request.maxTokens,
+      stopSequences: request.stop,
+    };
+    if (modelMetadata?.supportsSamplingParameters !== false) {
+      generationConfig.temperature = request.temperature;
+      generationConfig.topP = request.topP;
+    }
+    if (thinkingLevel) {
+      generationConfig.thinkingConfig = { thinkingLevel };
+    }
+
     const body: Record<string, unknown> = {
       contents,
-      generationConfig: {
-        maxOutputTokens: request.maxTokens,
-        temperature: request.temperature,
-        topP: request.topP,
-        stopSequences: request.stop,
-      },
+      generationConfig,
     };
 
     // Add system instruction if present

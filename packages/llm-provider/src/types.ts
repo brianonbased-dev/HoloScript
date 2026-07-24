@@ -1419,6 +1419,11 @@ export interface GrokProviderExtensions {
 }
 
 export interface GeminiProviderExtensions {
+  /**
+   * Gemini 3 reasoning effort. The adapter validates the selected model's
+   * supported levels and sends this as `generationConfig.thinkingConfig.thinkingLevel`.
+   */
+  thinkingLevel?: GeminiThinkingLevel;
   /** Search Grounding — first-party Google Search citations. */
   grounding?: boolean;
   /** Reference to a previously-cached `cached_content` resource. */
@@ -1475,6 +1480,9 @@ export interface GeminiProviderExtensions {
     voiceConfig?: { prebuiltVoice?: string };
   };
 }
+
+/** Gemini 3 `thinkingLevel` values supported by the generateContent API. */
+export type GeminiThinkingLevel = 'minimal' | 'low' | 'medium' | 'high';
 
 export interface OllamaProviderExtensions {
   /** Controls how long the model stays loaded after the call (e.g. '5m', '1h'). */

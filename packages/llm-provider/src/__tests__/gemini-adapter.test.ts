@@ -7,7 +7,7 @@
  * `candidates[]` path tested here.
  */
 
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
   GEMINI_CAPABILITIES,
   GEMINI_MODEL_METADATA,
@@ -20,6 +20,10 @@ import {
   parseGeminiResponse,
 } from '../adapters/gemini';
 import type { ToolSpec } from '../types';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 // ---------------------------------------------------------------------------
 // Model list guard
@@ -54,11 +58,38 @@ describe('GEMINI_MODELS', () => {
   });
 
   it('contains the expected current models', () => {
+    expect(GEMINI_MODELS).toContain('gemini-3.6-flash');
     expect(GEMINI_MODELS).toContain('gemini-3.5-flash');
+    expect(GEMINI_MODELS).toContain('gemini-3.5-flash-lite');
     expect(GEMINI_MODELS).toContain('gemini-3.1-flash-tts-preview');
     expect(GEMINI_MODELS).toContain('gemini-omni-flash-preview');
     expect(GEMINI_MODELS).toContain('gemini-3-flash-preview');
     expect(GEMINI_MODELS).toContain('gemini-1.5-pro');
+  });
+
+  it('records current limits, pricing, and request rules for the new GA models', () => {
+    expect(GEMINI_MODEL_METADATA['gemini-3.6-flash']).toMatchObject({
+      status: 'ga',
+      inputTokenLimit: 1_048_576,
+      outputTokenLimit: 65_536,
+      costPerMillion: { input: 1.5, output: 7.5 },
+      defaultThinkingLevel: 'medium',
+      supportedThinkingLevels: ['minimal', 'low', 'medium', 'high'],
+      supportsSamplingParameters: false,
+      allowsPrefilledModelTurn: false,
+      lastVerified: '2026-07-21',
+    });
+    expect(GEMINI_MODEL_METADATA['gemini-3.5-flash-lite']).toMatchObject({
+      status: 'ga',
+      inputTokenLimit: 1_048_576,
+      outputTokenLimit: 65_536,
+      costPerMillion: { input: 0.3, output: 2.5 },
+      defaultThinkingLevel: 'minimal',
+      supportedThinkingLevels: ['minimal', 'low', 'medium', 'high'],
+      supportsSamplingParameters: false,
+      allowsPrefilledModelTurn: false,
+      lastVerified: '2026-07-21',
+    });
   });
 
   it('marks Gemini Omni Flash Preview as Interactions-only media metadata', () => {
@@ -84,9 +115,7 @@ describe('GEMINI_MODELS', () => {
   it('keeps Interactions-only Gemini models out of default text routing', () => {
     expect(isGeminiDefaultRoutingEligible('gemini-3.5-flash')).toBe(true);
     expect(isGeminiDefaultRoutingEligible('gemini-omni-flash-preview')).toBe(false);
-    expect(getGeminiModelMetadata('gemini-omni-flash-preview')?.apiSurface).toBe(
-      'interactions'
-    );
+    expect(getGeminiModelMetadata('gemini-omni-flash-preview')?.apiSurface).toBe('interactions');
   });
 });
 
@@ -131,6 +160,112 @@ describe('GeminiAdapter route guards', () => {
         'gemini-omni-flash-preview'
       )
     ).rejects.toThrow(/Interactions API/);
+  });
+
+  it('rejects a prefilled model turn for new-generation models before dispatch', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new GeminiAdapter({ apiKey: 'test-key', maxRetries: 0 });
+
+    await expect(
+      adapter.complete(
+        {
+          messages: [
+            { role: 'user', content: 'Translate hello.' },
+            { role: 'assistant', content: 'Translation:' },
+          ],
+        },
+        'gemini-3.6-flash'
+      )
+    ).rejects.toThrow(/prefilled model turn/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('omits deprecated sampling fields and forwards thinkingLevel', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        candidates: [
+          {
+            content: { parts: [{ text: 'done' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new GeminiAdapter({ apiKey: 'test-key', maxRetries: 0 });
+
+    await adapter.complete(
+      {
+        messages: [{ role: 'user', content: 'Complete this task.' }],
+        temperature: 0.2,
+        topP: 0.8,
+        provider: { gemini: { thinkingLevel: 'high' } },
+      },
+      'gemini-3.5-flash-lite'
+    );
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const body = JSON.parse(String(init.body)) as {
+      generationConfig: Record<string, unknown>;
+    };
+    expect(body.generationConfig).not.toHaveProperty('temperature');
+    expect(body.generationConfig).not.toHaveProperty('topP');
+    expect(body.generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'high' });
+  });
+
+  it('preserves sampling controls for legacy models', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        candidates: [
+          {
+            content: { parts: [{ text: 'done' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new GeminiAdapter({ apiKey: 'test-key', maxRetries: 0 });
+
+    await adapter.complete(
+      {
+        messages: [{ role: 'user', content: 'Complete this task.' }],
+        temperature: 0.2,
+        topP: 0.8,
+      },
+      'gemini-1.5-flash'
+    );
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const body = JSON.parse(String(init.body)) as {
+      generationConfig: Record<string, unknown>;
+    };
+    expect(body.generationConfig.temperature).toBe(0.2);
+    expect(body.generationConfig.topP).toBe(0.8);
+  });
+
+  it('rejects thinkingLevel when the selected model does not declare support', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const adapter = new GeminiAdapter({ apiKey: 'test-key', maxRetries: 0 });
+
+    await expect(
+      adapter.complete(
+        {
+          messages: [{ role: 'user', content: 'Think carefully.' }],
+          provider: { gemini: { thinkingLevel: 'high' } },
+        },
+        'gemini-1.5-flash'
+      )
+    ).rejects.toThrow(/does not declare support/);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
