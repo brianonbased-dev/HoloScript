@@ -1,4 +1,4 @@
-// HS-Core barrier world — deterministic Stage-A fixture for the HSI-IR vertical slice
+// HS-Core barrier world — deterministic `.holo` Stage-A fixture for the HSI-IR vertical slice
 // (task 9v9q, research/2026-07-14_holoscript-native-intelligence-opportunity-EVOLVED.md).
 //
 // One agent, one target, three barriers with three-state opacity:

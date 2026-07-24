@@ -420,9 +420,13 @@ Use `.holo` to connect rather than duplicate:
 6. policy/effect boundaries, and
 7. provenance-preserving composition, overlays, and diffs.
 
-The canonical parser now perceives `.holo` containment into shared meaning IR. Continue by
-adding references and relationships with the same rule: no regex-derived shadow graph and no
-new `.holo` construct without a downstream consumer.
+The canonical parser now perceives `.holo` containment into shared meaning IR. In the bounded HSI
+causal loop, authored `seeks` and selected-barrier `shields` relationships are also admission
+conditions: removing either exact edge produces a deterministic fail-closed receipt before
+containment resolution or mutation. Continue by adding references and wider relationship semantics
+with the same rule: no regex-derived shadow graph and no new `.holo` construct without a downstream
+consumer. This narrow admission path is not yet generic graph reachability, topic/channel execution,
+or evidence of reduced agent cost.
 
 ### Phase E — close the cross-format loop
 
@@ -461,8 +465,13 @@ epistemic receipt without maintaining a private adapter. It does not establish `
 execution: `compiler-native` does not consume `.hsplus`, `interface` and `class` bodies remain raw,
 and Kotlin rejects typed structs.
 
+The adjacent `.holo` slice establishes that the bounded sovereign HSI causal loop consumes exact
+authored query and mediation relationships rather than inferring intent from entity roles alone.
+An unbound `seeks` or selected-barrier `shields` edge blocks before resolution, action, or mutation
+and records `unbound-query-relation`. It does not establish general relationship execution.
+
 These slices are not yet evidence for `.hsplus` parity, probabilistic uncertainty, every native
-type, every backend, or greater agent efficiency.
+type, every backend, general graph execution, or greater agent efficiency.
 
 ## 8. Public language that is safe now
 

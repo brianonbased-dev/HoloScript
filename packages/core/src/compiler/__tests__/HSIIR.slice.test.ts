@@ -34,7 +34,7 @@ import {
   type HSIRenameMap,
 } from '../HSIAuditVerifier';
 
-const FIXTURE_PATH = join(__dirname, '..', '..', '__tests__', 'fixtures', 'hs-core-barrier-world.hsplus');
+const FIXTURE_PATH = join(__dirname, '..', '..', '__tests__', 'fixtures', 'hs-core-barrier-world.holo');
 
 function loadFixture(): { source: string; composition: HoloComposition } {
   const source = readFileSync(FIXTURE_PATH, 'utf8');

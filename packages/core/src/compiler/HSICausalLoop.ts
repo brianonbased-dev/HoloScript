@@ -38,7 +38,7 @@ import { parseHoloStrict } from '../parser/HoloCompositionParser';
 import type { Capability } from './identity/CapabilityToken';
 import { HoloScriptCapabilitySemantics } from './identity/CapabilityTokenIssuer';
 import { runExactTrace } from './HSIExactTrace';
-import { lowerCompositionToHSIIR } from './HSIIRCompiler';
+import { HSI_OBSERVATION_MEDIATOR_EDGE, lowerCompositionToHSIIR } from './HSIIRCompiler';
 import {
   HSIAdmissionError,
   hsiSha256,
@@ -55,6 +55,7 @@ export type HSICausalLoopSchemaVersion = typeof HSI_CAUSAL_LOOP_SCHEMA_VERSION;
 const HSI_WORLD_RESOURCE_PREFIX = 'holoscript://world/';
 const ACTION_CAPABILITY = 'world/traverse';
 const INSPECT_CAPABILITY = 'world/inspect';
+const HSI_QUERY_INTENT_EDGE = 'seeks';
 
 export type HSIPolicy = 'safe' | 'block' | 'inspect';
 export type HSIActionName = 'traverse' | 'hold' | 'inspect';
@@ -153,6 +154,18 @@ const SHARED_SEMANTICS = new HoloScriptCapabilitySemantics();
 
 function findEntity(ir: HSIIRDocument, name: string): HSIIRDocument['entities'][number] | undefined {
   return ir.entities.find((entity) => entity.name === name);
+}
+
+function hasRelation(
+  ir: HSIIRDocument,
+  from: string,
+  to: string,
+  edgeType: string,
+): boolean {
+  return ir.relations.some(
+    (relation) =>
+      relation.from === from && relation.to === to && relation.edgeType === edgeType,
+  );
 }
 
 function projectStateBaseline(ir: HSIIRDocument): Record<string, HSIScalar> {
@@ -282,6 +295,7 @@ function failClosedReceipt(
  * Run one full causal loop over the imported barrier world. Deterministic and fail-closed:
  *   - empty world / admission-skewed => admission throws => fail-closed receipt.
  *   - family-skewed query (roles wrong for agent/target/barrier) => fail-closed receipt.
+ *   - relation-skewed query (missing authored seeks/shields edge) => fail-closed receipt.
  *   - missing capability (the action's "handler") => gate denies => fail-closed receipt.
  *   - unresolved evidence (unknown opacity) => inspect, never a confident traverse.
  */
@@ -328,6 +342,43 @@ export function runCausalLoopFromIR(ir: HSIIRDocument, input: HSICausalLoopInput
     return failClosedReceipt(
       input,
       'family-skewed-query',
+      snapshot.digest,
+      ir.provenance.deterministicDigest,
+      null,
+      'block',
+      emptyAction,
+    );
+  }
+
+  const requiredRelations = [
+    {
+      from: input.agent,
+      to: input.target,
+      edgeType: HSI_QUERY_INTENT_EDGE,
+    },
+    {
+      from: input.barrier,
+      to: input.target,
+      edgeType: HSI_OBSERVATION_MEDIATOR_EDGE,
+    },
+  ] as const;
+  const missingRelation = requiredRelations.find(
+    (relation) => !hasRelation(ir, relation.from, relation.to, relation.edgeType),
+  );
+  if (missingRelation) {
+    const denial =
+      `unbound query relation: missing ${missingRelation.from} ` +
+      `-[${missingRelation.edgeType}]-> ${missingRelation.to}`;
+    const emptyAction: HSIGatedAction = {
+      name: 'hold',
+      event: null,
+      requiredCapability: null,
+      granted: false,
+      denial,
+    };
+    return failClosedReceipt(
+      input,
+      'unbound-query-relation',
       snapshot.digest,
       ir.provenance.deterministicDigest,
       null,

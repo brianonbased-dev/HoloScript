@@ -33,7 +33,7 @@ const PKG_NODE = join(__dirname, '..', '..', '..', '..', 'compiler-wasm', 'pkg-n
 const wasmPresent = existsSync(PKG_NODE);
 const requireCjs = createRequire(__filename);
 
-const FIXTURE_PATH = join(__dirname, '..', '..', '__tests__', 'fixtures', 'hs-core-barrier-world.hsplus');
+const FIXTURE_PATH = join(__dirname, '..', '..', '__tests__', 'fixtures', 'hs-core-barrier-world.holo');
 const SOURCE = readFileSync(FIXTURE_PATH, 'utf8');
 const WORLD = 'holoscript://world/HSCoreBarrierWorld';
 
@@ -127,6 +127,65 @@ describe('HSI-IR Stage-B causal loop (task 6mg9)', () => {
       expect(r.action.name).not.toBe('traverse');
       expect(r.nextState?.goalReached).toBe(false);
       expect(r.outcome).toBe('inspected');
+    });
+  });
+
+  describe('authored .holo relationship admission', () => {
+    it('fails closed before resolution when the agent-target seeks edge is absent', () => {
+      const unboundSource = SOURCE.replace('  connect Scout to Beacon as "seeks"', '');
+      expect(unboundSource).not.toBe(SOURCE);
+      const input = { ...baseInput('StoneSlab'), sourceText: unboundSource };
+      const receipt = runCausalLoop(input);
+
+      expect(receipt.admission).toEqual({
+        admitted: false,
+        error: 'unbound-query-relation',
+      });
+      expect(receipt.resolution).toBeNull();
+      expect(receipt.policy).toBe('block');
+      expect(receipt.action).toEqual({
+        name: 'hold',
+        event: null,
+        requiredCapability: null,
+        granted: false,
+        denial: 'unbound query relation: missing Scout -[seeks]-> Beacon',
+      });
+      expect(receipt.mutation).toEqual({ applied: false, step: null, traceValid: null });
+      expect(receipt.nextState).toBeNull();
+      expect(receipt.predicates).toEqual([]);
+      expect(receipt.outcome).toBe('blocked-fail-closed');
+      expect(receipt.failClosed).toBe(true);
+      expect(receipt.snapshotDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
+      expect(receipt.worldDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
+      expect(receipt.deterministicDigest).toBe(runCausalLoop(input).deterministicDigest);
+    });
+
+    it('fails closed before resolution when the selected barrier-target shields edge is absent', () => {
+      const unboundSource = SOURCE.replace('  connect StoneSlab to Beacon as "shields"', '');
+      expect(unboundSource).not.toBe(SOURCE);
+      const receipt = runCausalLoop({
+        ...baseInput('StoneSlab'),
+        sourceText: unboundSource,
+      });
+
+      expect(receipt.admission).toEqual({
+        admitted: false,
+        error: 'unbound-query-relation',
+      });
+      expect(receipt.resolution).toBeNull();
+      expect(receipt.policy).toBe('block');
+      expect(receipt.action).toEqual({
+        name: 'hold',
+        event: null,
+        requiredCapability: null,
+        granted: false,
+        denial: 'unbound query relation: missing StoneSlab -[shields]-> Beacon',
+      });
+      expect(receipt.mutation).toEqual({ applied: false, step: null, traceValid: null });
+      expect(receipt.nextState).toBeNull();
+      expect(receipt.predicates).toEqual([]);
+      expect(receipt.outcome).toBe('blocked-fail-closed');
+      expect(receipt.failClosed).toBe(true);
     });
   });
 
