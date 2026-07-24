@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.hsplus-spec-corpus.manifest.v0",
   "corpus": "packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl",
-  "corpus_sha256": "sha256:24bac9091b6ff57a09ac90fd6593524dc1d0db825b7b21a828dd55586d0f0861",
-  "cases": 37,
+  "corpus_sha256": "sha256:6d48d20671f935278089ed1db3a74e8b3d056853823a1854e5c568305e8bc38d",
+  "cases": 39,
   "sections": {
     "first-class-ignorance-rfc §Stage 2": 2,
     "language-architecture.md §6 / FIELD_MODIFIER_ANNOTATIONS": 1,
@@ -23,12 +23,13 @@
     "grammar — functions": 1,
     "grammar — fail-closed on malformed input": 1,
     "grammar — declarations": 1,
-    "grammar — top-level structural keywords keep their declaration role": 1
+    "grammar — top-level structural keywords keep their declaration role": 1,
+    "native-machine-v34.md §Source contract": 2
   },
   "verifier_of_record": "packages/compiler-wasm pkg-node validate_detailed (committed ready-to-run WASM authority artifact)",
   "authority": {
     "artifact": "packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm",
-    "wasmSha256": "sha256:d0351144d218b2461d913bdd35ab884dfdec9bbd0b15ea406ab2365186fca292",
+    "wasmSha256": "sha256:f01594dc39c7ca1911b15bfdb89e41fccc67a43d751dba1a4880d29ad94c1b78",
     "rebuild_receipt": "packages/compiler-wasm/pkg-node/rebuild-receipt.json",
     "note": "The authority build every verdict in this corpus release was verified against. If the artifact hash no longer matches, rerun this script: all-verdicts-hold means the spec is stable under the new build (re-pin with --update-manifest); any drift means the language moved."
   }

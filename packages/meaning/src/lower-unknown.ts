@@ -1,9 +1,10 @@
 /**
  * Lowering bridge: HoloScript `@unknown` surface annotation → `Uncertain<T>` (RFC stage 2d).
  *
- * The grammar authority (packages/compiler-wasm) parses `@unknown` on a trait field and captures
- * it in the AST as `PropertyNode.annotations: ["unknown"]`, with the independent `?` presence
- * marker in `PropertyNode.optional`. Its docs promise: "A field marked `@unknown` lowers to
+ * The grammar authority (packages/compiler-wasm) parses `@unknown` on trait properties and native
+ * struct fields. Trait properties carry `PropertyNode.annotations`; structs carry aligned
+ * `field_annotations`. The independent `?` presence marker remains a separate axis. Its docs
+ * promise: "A field marked `@unknown` lowers to
  * `Uncertain<T>` (@holoscript/meaning)". THIS module is that lowering — the first and only
  * meaning→grammar coupling, kept structural on purpose:
  *
@@ -14,10 +15,10 @@
  *   real AST is guarded by the end-to-end test (`lower-unknown-wasm-e2e.test.ts`), which parses
  *   real source with the real artifact — reality-shaped, not type-shaped (D.130).
  *
- * - Emitter-side lowering was investigated and deliberately REJECTED: trait fields reach neither
- *   the Kotlin emitter (traits emit nothing there) nor the bytecode emitter (traits are
- *   hard-rejected before any field walk), so an emitter-side Uncertain type would be dark code
- *   with no consumer (D.135). The honest lowering seam is here, where `Uncertain<T>` lives.
+ * - Trait fields still lower here because they do not reach a runtime emitter. Native `.hs`
+ *   struct fields additionally lower to compiler-native's tagged inline carrier and honesty
+ *   primitives. Kotlin fails closed until it has an equivalent carrier; no target may erase
+ *   `Uncertain<T>` to its payload type.
  *
  * WHY `underdetermined`: a bare `@unknown` is an author DECLARING ignorance without stating why —
  * reducible by construction (some later fact could resolve it), which is exactly the
@@ -44,6 +45,16 @@ export interface LowerableField {
   value?: { type?: string; name?: string } | null;
   /** Declared default AST node from `name: Type = expr` (grammar stage 4), when present. */
   default_value?: unknown | null;
+}
+
+/** Structural subset of compiler-wasm's native `StructDeclarationNode` JSON. */
+export interface LowerableStructDeclaration {
+  name: string;
+  fields: string[];
+  /** Empty for legacy records; otherwise aligned 1:1 with `fields`. */
+  field_types?: Array<string | null>;
+  /** Empty when unannotated; otherwise aligned 1:1 with `fields`. */
+  field_annotations?: string[][];
 }
 
 /** The lowered form of one `@unknown` field declaration. */
@@ -107,6 +118,32 @@ export function lowerUnknownFields(fields: readonly LowerableField[]): UnknownFi
     if (result !== null) {
       lowered.push(result);
     }
+  }
+  return lowered;
+}
+
+/**
+ * Lower every `@unknown` field in a native structured record.
+ *
+ * Native records have no `?` or declaration default in this first carrier, so those outputs are
+ * deliberately `false`/`null`. Runtime source construction chooses `known(value)` or
+ * `unknown("reason")`; the declaration itself still denotes an uncertainty-bearing field.
+ */
+export function lowerUnknownStructFields(
+  declaration: LowerableStructDeclaration
+): UnknownFieldLowering[] {
+  const lowered: UnknownFieldLowering[] = [];
+  for (let index = 0; index < declaration.fields.length; index += 1) {
+    if (!declaration.field_annotations?.[index]?.includes('unknown')) {
+      continue;
+    }
+    lowered.push({
+      key: declaration.fields[index],
+      typeName: declaration.field_types?.[index] ?? null,
+      optional: false,
+      initial: unknown('underdetermined'),
+      declaredDefault: null,
+    });
   }
   return lowered;
 }

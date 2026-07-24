@@ -574,8 +574,9 @@ pub struct EnumDeclarationNode {
     pub loc: Option<Location>,
 }
 
-/// Struct (record) declaration: `struct Vec3 { x, y, z }` or
-/// `struct Packet { enabled: bool, count: i64 }`.
+/// Struct (record) declaration: `struct Vec3 { x, y, z }`,
+/// `struct Packet { enabled: bool, count: i64 }`, or
+/// `struct Sensor { @unknown reading: i32 }`.
 ///
 /// Legacy untyped records remain inferred data carriers for target emitters such as Kotlin.
 /// Explicit field types carry deterministic systems-language layout metadata for native machine
@@ -587,6 +588,13 @@ pub struct StructDeclarationNode {
     /// Empty for legacy inferred records; otherwise aligned 1:1 with `fields`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub field_types: Vec<Option<String>>,
+    /// Field-level modifiers aligned 1:1 with `fields`; empty when every field is unannotated.
+    ///
+    /// `@unknown` is the first admitted modifier. Keeping the annotation on the structured field
+    /// declaration lets native lowering preserve the epistemic carrier instead of erasing it to
+    /// the payload type.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub field_annotations: Vec<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }

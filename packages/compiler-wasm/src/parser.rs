@@ -1078,10 +1078,12 @@ impl Parser {
         }))
     }
 
-    /// Parse a struct (record) declaration: `struct Vec3 { x, y, z }`.
-    /// Fields are bare identifiers; commas between them are optional and a trailing comma is
+    /// Parse a struct (record) declaration: `struct Vec3 { x, y, z }` or
+    /// `struct Sensor { @unknown reading: i32 }`.
+    /// Commas between fields are optional and a trailing comma is
     /// tolerated (same lenient comma policy as enum members / object literals). Data-only — no
-    /// methods. The Kotlin backend emits `data class Vec3(val x: Float, val y: Float, val z: Float)`.
+    /// methods. Only `@unknown` binds as a field modifier. Kotlin emits legacy inferred records and
+    /// fails closed on annotated or explicitly typed native records.
     fn parse_struct_declaration(&mut self) -> Result<AstNode, ParseError> {
         let start_loc = self.current_location();
         self.advance(); // consume 'struct'
@@ -1091,7 +1093,19 @@ impl Parser {
 
         let mut fields = Vec::new();
         let mut field_types = Vec::new();
+        let mut field_annotations = Vec::new();
         while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            let mut annotations = Vec::new();
+            while self.check(TokenType::Trait) {
+                let annotation = self.peek().value.trim_start_matches('@').to_string();
+                if !Self::FIELD_MODIFIER_ANNOTATIONS.contains(&annotation.as_str()) {
+                    return Err(self.error(
+                        "Only @unknown may modify a struct field; other @annotations remain declarations",
+                    ));
+                }
+                self.advance();
+                annotations.push(annotation);
+            }
             fields.push(self.expect_identifier()?);
             let field_type = if self.check(TokenType::Colon) {
                 self.advance();
@@ -1100,6 +1114,7 @@ impl Parser {
                 None
             };
             field_types.push(field_type);
+            field_annotations.push(annotations);
             if self.check(TokenType::Comma) {
                 self.advance();
             }
@@ -1114,6 +1129,11 @@ impl Parser {
                 Vec::new()
             } else {
                 field_types
+            },
+            field_annotations: if field_annotations.iter().all(Vec::is_empty) {
+                Vec::new()
+            } else {
+                field_annotations
             },
             loc: Some(self.location_from(start_loc)),
         }))
@@ -4813,6 +4833,7 @@ function decideRoute(isWorldLink) {
                 vec!["x".to_string(), "y".to_string(), "z".to_string()]
             );
             assert!(s.field_types.is_empty());
+            assert!(s.field_annotations.is_empty());
         } else {
             panic!("Expected StructDeclaration node, got {:?}", program.body[0]);
         }
@@ -4835,6 +4856,44 @@ function decideRoute(isWorldLink) {
                 Some("i64".to_string()),
                 Some("i32".to_string())
             ]
+        );
+        assert!(packet.field_annotations.is_empty());
+    }
+
+    #[test]
+    fn test_unknown_annotation_binds_to_the_struct_field_it_modifies() {
+        let source =
+            r#"struct Sensor { @unknown reading: i32, calibrated: bool, @unknown drift: i64 }"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("annotated struct should parse");
+        let AstNode::StructDeclaration(sensor) = &program.body[0] else {
+            panic!("expected StructDeclaration node");
+        };
+
+        assert_eq!(sensor.fields, vec!["reading", "calibrated", "drift"]);
+        assert_eq!(
+            sensor.field_annotations,
+            vec![
+                vec!["unknown".to_string()],
+                Vec::<String>::new(),
+                vec!["unknown".to_string()]
+            ],
+            "annotations must remain aligned with their exact fields"
+        );
+    }
+
+    #[test]
+    fn test_non_modifier_annotation_cannot_bind_to_a_struct_field() {
+        let source = r#"struct Sensor { @synced reading: i32 }"#;
+        let mut parser = Parser::new(source);
+        let error = parser
+            .parse()
+            .expect_err("only the deliberately admitted @unknown modifier may bind");
+        assert!(
+            error
+                .iter()
+                .any(|diagnostic| diagnostic.message.contains("Only @unknown")),
+            "diagnostic must name the admitted modifier: {error:?}"
         );
     }
 

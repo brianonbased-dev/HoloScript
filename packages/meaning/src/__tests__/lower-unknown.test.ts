@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { lowerUnknownField, lowerUnknownFields } from '../lower-unknown';
+import {
+  lowerUnknownField,
+  lowerUnknownFields,
+  lowerUnknownStructFields,
+} from '../lower-unknown';
 import { isKnown, orElse } from '../uncertain';
 
 describe('lowerUnknownField — @unknown surface annotation → Uncertain', () => {
@@ -76,5 +80,21 @@ describe('lowerUnknownField — @unknown surface annotation → Uncertain', () =
       { key: 'level', annotations: ['unknown'] },
     ]);
     expect(lowered.map((l) => l.key)).toEqual(['reading', 'level']);
+  });
+
+  it('lowers aligned native struct annotations without inventing optionality or a default', () => {
+    const lowered = lowerUnknownStructFields({
+      name: 'Sensor',
+      fields: ['reading', 'calibrated', 'drift'],
+      field_types: ['i32', 'bool', 'i64'],
+      field_annotations: [['unknown'], [], ['unknown']],
+    });
+    expect(lowered.map(({ key, typeName }) => [key, typeName])).toEqual([
+      ['reading', 'i32'],
+      ['drift', 'i64'],
+    ]);
+    expect(lowered.every((field) => field.optional === false)).toBe(true);
+    expect(lowered.every((field) => field.declaredDefault === null)).toBe(true);
+    expect(lowered.every((field) => !isKnown(field.initial))).toBe(true);
   });
 });

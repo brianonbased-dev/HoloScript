@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { lowerUnknownFields } from '../lower-unknown';
+import { lowerUnknownFields, lowerUnknownStructFields } from '../lower-unknown';
 import { isKnown } from '../uncertain';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -75,5 +75,25 @@ describe.skipIf(!wasmPresent)('lowering bridge e2e (real WASM artifact)', () => 
     expect(lowered).toHaveLength(1);
     expect(lowered[0].declaredDefault).toMatchObject({ type: 'Number', value: 20 });
     expect(isKnown(lowered[0].initial)).toBe(false);
+  });
+
+  it('parses a native @unknown struct field and lowers the real aligned AST metadata', () => {
+    const wasm = requireCjs(PKG_NODE) as { parse(source: string): string };
+    const source =
+      'struct Sensor { @unknown reading: i32, calibrated: bool, @unknown drift: i64 }';
+    const ast = JSON.parse(wasm.parse(source));
+    expect(ast.errors).toBeUndefined();
+    const sensor = ast.body.find(
+      (node: { type: string; name?: string }) =>
+        node.type === 'StructDeclaration' && node.name === 'Sensor'
+    );
+    expect(sensor.field_annotations).toEqual([['unknown'], [], ['unknown']]);
+
+    const lowered = lowerUnknownStructFields(sensor);
+    expect(lowered.map(({ key, typeName }) => [key, typeName])).toEqual([
+      ['reading', 'i32'],
+      ['drift', 'i64'],
+    ]);
+    expect(lowered.every((field) => !isKnown(field.initial))).toBe(true);
   });
 });

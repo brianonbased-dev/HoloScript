@@ -18,7 +18,9 @@ use holoscript_native::{
     BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
     BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
     CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
-    NATIVE_AGGREGATE_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
+    NATIVE_AGGREGATE_ABI_VERSION, NATIVE_MEANING_GAP_REASON_ABI_VERSION,
+    OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
+    UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -39,6 +41,8 @@ const AGGREGATE_BUFFER_WHOLE_SLICE_FORWARDED_RETURN_EXIT_FIVE: &str = include_st
     "../../../examples/native/aggregate-buffer-whole-slice-forwarded-return-exit-five.hs"
 );
 const TYPED_EXIT_FIVE: &str = include_str!("../../../examples/native/typed-exit-five.hs");
+const UNCERTAIN_STEWARD_HONESTY_GATE_EXIT_FIVE: &str =
+    include_str!("../../../examples/native/uncertain-steward-honesty-gate-exit-five.hs");
 const I64_EXIT_FIVE: &str = r#"
     function add64(left: i64, right: i64): i64 {
         return left + right
@@ -498,6 +502,134 @@ fn compiles_contiguous_typed_aggregates_with_exact_layout() {
         .expect("aggregate executable should run");
     assert_eq!(status.code(), Some(5));
     fs::remove_file(&artifact.executable).expect("remove aggregate executable");
+}
+
+#[test]
+fn uncertain_aggregate_honesty_gate_preserves_carrier_and_abstains_before_effects() {
+    let layouts = inspect_native_layouts(UNCERTAIN_STEWARD_HONESTY_GATE_EXIT_FIVE)
+        .expect("annotated aggregate layout should be inspectable");
+    let snapshot = layouts
+        .iter()
+        .find(|layout| layout.name == "StewardSnapshot")
+        .expect("snapshot layout should be reported");
+    assert_eq!(snapshot.size, 12);
+    assert_eq!(snapshot.alignment, 4);
+    assert_eq!(snapshot.fields.len(), 1);
+    let orphan_count = &snapshot.fields[0];
+    assert_eq!(orphan_count.machine_type, "Uncertain<i32>");
+    assert_eq!(orphan_count.offset, 0);
+    assert_eq!(orphan_count.size, 12);
+    let uncertainty = orphan_count
+        .uncertainty
+        .as_ref()
+        .expect("@unknown must publish its inline carrier");
+    assert_eq!(uncertainty.known_offset, 0);
+    assert_eq!(uncertainty.reason_offset, 4);
+    assert_eq!(uncertainty.value_offset, 8);
+    assert_eq!(
+        uncertainty.reason_abi_version,
+        NATIVE_MEANING_GAP_REASON_ABI_VERSION
+    );
+
+    let plain = inspect_native_layouts(
+        "struct StewardSnapshot { orphanCount: i32 } function main(): i32 { return 5 }",
+    )
+    .expect("plain comparison layout should be inspectable");
+    assert_ne!(
+        snapshot.abi_fingerprint, plain[0].abi_fingerprint,
+        "Uncertain<i32> must never share ABI identity with raw i32"
+    );
+
+    let executable = scratch_executable("native-uncertain-steward-gate");
+    let artifact = compile_executable(
+        UNCERTAIN_STEWARD_HONESTY_GATE_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("native honesty gate should compile");
+    assert_eq!(
+        artifact.machine_contract,
+        UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
+    );
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("native honesty-gate executable should run");
+    assert_eq!(
+        status.code(),
+        Some(5),
+        "the executable checks abstention/no-mutation/reason before its known proceed path"
+    );
+    fs::remove_file(&artifact.executable).expect("remove uncertain aggregate executable");
+}
+
+#[test]
+fn uncertain_aggregate_operations_fail_closed_without_explicit_honesty_handling() {
+    let options = NativeCompileOptions::host();
+    for (label, source, expected) in [
+        (
+            "raw constructor",
+            r#"struct Sensor { @unknown reading: i32 }
+function main(): i32 {
+  slot sensor: Sensor = Sensor(5)
+  return 0
+}"#,
+            "must be initialized with `known(value)` or `unknown",
+        ),
+        (
+            "bare load",
+            r#"struct Sensor { @unknown reading: i32 }
+function main(): i32 {
+  slot sensor: Sensor = Sensor(known(5))
+  return load(sensor.reading)
+}"#,
+            "bare `load(sensor.reading)` would erase first-class ignorance",
+        ),
+        (
+            "fallback laundering",
+            r#"struct Sensor { @unknown reading: i32 }
+function main(): i32 {
+  slot sensor: Sensor = Sensor(unknown("underdetermined"))
+  return load(sensor.reading) ?? load(sensor.reading)
+}"#,
+            "bare `load(sensor.reading)` would erase first-class ignorance",
+        ),
+        (
+            "raw store",
+            r#"struct Sensor { @unknown reading: i32 }
+function main(): i32 {
+  slot sensor: Sensor = Sensor(known(1))
+  store(sensor.reading, 5)
+  return 0
+}"#,
+            "raw `store(sensor.reading, value)` would erase the @unknown carrier",
+        ),
+        (
+            "invalid reason",
+            r#"struct Sensor { @unknown reading: i32 }
+function main(): i32 {
+  slot sensor: Sensor = Sensor(unknown("probably"))
+  return 0
+}"#,
+            "unknown meaning-gap reason `probably`",
+        ),
+        (
+            "borrowed payload",
+            r#"struct Sensor { @unknown reading: i32 }
+function main(): i32 {
+  slot sensor: Sensor = Sensor(known(5))
+  let view: &i32 = &sensor.reading
+  return 0
+}
+"#,
+            "@unknown aggregate field `sensor.reading` cannot be borrowed",
+        ),
+    ] {
+        let error = compile_object(source, &options).expect_err(label);
+        assert!(
+            error.to_string().contains(expected),
+            "{label} diagnostic `{error}` must contain `{expected}`"
+        );
+    }
 }
 
 #[test]

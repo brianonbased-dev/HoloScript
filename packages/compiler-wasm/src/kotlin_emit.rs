@@ -661,6 +661,15 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
             _ => None,
         })
         .collect();
+    if let Some(annotated) = structs
+        .iter()
+        .find(|decl| !decl.field_annotations.is_empty())
+    {
+        return Err(KotlinEmitError::new(format!(
+            "struct `{}` carries @unknown field state that requires an Uncertain<T> runtime carrier; the Kotlin bridge must fail closed instead of erasing it to a raw value",
+            annotated.name
+        )));
+    }
     if let Some(typed) = structs.iter().find(|decl| !decl.field_types.is_empty()) {
         return Err(KotlinEmitError::new(format!(
             "typed struct `{}` requires target-specific layout lowering; the Kotlin bridge supports only legacy inferred record fields",
@@ -3486,6 +3495,23 @@ function mk() {
         assert!(error
             .to_string()
             .contains("typed struct `Packet` requires target-specific layout lowering"));
+    }
+
+    #[test]
+    fn unknown_struct_fields_fail_closed_before_kotlin_can_erase_the_carrier() {
+        let src = r#"struct Sensor { @unknown reading: i32 }
+function main(): i32 {
+  slot sensor: Sensor = Sensor(unknown("underdetermined"))
+  return load(sensor.reading) ?? 0
+}"#;
+        let error = compile_source_to_kotlin(src, "  ")
+            .expect_err("Kotlin must not erase Uncertain<T> to the payload type");
+        let message = error.to_string();
+        assert!(
+            message.contains("requires an Uncertain<T> runtime carrier")
+                && message.contains("fail closed"),
+            "{message}"
+        );
     }
 
     #[test]

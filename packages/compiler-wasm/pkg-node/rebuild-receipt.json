@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-23T20:53:54Z",
+  "generatedAt": "2026-07-24T00:16:34Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "4e8d45585a078edf7257726fcddfb26eaa49408d+working-tree-three-surface-semantic-type-closure",
+  "sourceCommit": "f44973cff5a46b90201cae1abd4f327a6b8656eb+working-tree-native-uncertain-aggregate-v34",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -17,9 +17,9 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 325610,
-    "wasmSha256": "d0351144d218b2461d913bdd35ab884dfdec9bbd0b15ea406ab2365186fca292",
-    "previousWasmSha256": "dee4f48886d28bef57742376d6ce3a7d27105bda7e5ef71b18a1918414469bc4",
-    "note": "Rebuilt the tracked Node authority from the shared semantic type pass and current UAAL emitter. validate_detailed and compile_to_uaal reject proven return, assignment, and call-argument type mismatches with HS-TYPE-* diagnostics; null cannot cross a primitive boundary, explicit any remains admissible, and typed i32 arithmetic/control-flow parity remains green. Final validation receipts accompany the commit."
+    "wasmBytes": 327224,
+    "wasmSha256": "f01594dc39c7ca1911b15bfdb89e41fccc67a43d751dba1a4880d29ad94c1b78",
+    "previousWasmSha256": "d0351144d218b2461d913bdd35ab884dfdec9bbd0b15ea406ab2365186fca292",
+    "note": "Rebuilt web and Node authorities from the struct-field @unknown grammar. Struct annotations remain aligned in the real AST, native lowering preserves a tagged Uncertain<T> carrier, and Kotlin fails closed rather than erasing it."
   }
 }

@@ -51,6 +51,8 @@
 //! and `hs-machine-v32` joins exhaustive control-flow branches only when every branch composes to the
 //! same exact summary. `hs-machine-v33` adds deterministic, project-root-fenced multi-file modules
 //! with explicit relative imports, named exports, aliases, cycle rejection, and isolated symbols.
+//! `hs-machine-v34` adds inline, tagged `Uncertain<T>` scalar fields, canonical meaning-gap reason
+//! codes, explicit `known(...)` / `unknown(...)` construction, and fail-closed `??`/honesty reads.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
 
 mod project;
@@ -110,8 +112,10 @@ pub const BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT: &str = 
 pub const COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT: &str = "hs-machine-v31";
 pub const CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT: &str = "hs-machine-v32";
 pub const MULTI_FILE_MODULE_MACHINE_CONTRACT: &str = "hs-machine-v33";
+pub const UNCERTAIN_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v34";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
+pub const NATIVE_MEANING_GAP_REASON_ABI_VERSION: u32 = 1;
 pub const HOST_ALLOCATOR_PROVENANCE_ID: u32 = 1;
 
 /// Foreign bridge layout for an owned buffer returned by `hs-machine-v13` or later.
@@ -140,6 +144,38 @@ pub struct NativeAggregateFfi {
     pub alignment: u32,
     pub layout_fingerprint: u32,
     pub abi_version: u32,
+}
+
+/// Stable native encoding of the canonical `@holoscript/meaning` gap-reason vocabulary.
+///
+/// Zero is reserved for the known branch. An unknown `Uncertain<T>` field always carries exactly
+/// one of these non-zero codes beside its payload.
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeMeaningGapReason {
+    Underdetermined = 1,
+    UnprioritizedConflict = 2,
+    CyclicDependency = 3,
+    MissingPrecondition = 4,
+    IrreducibleStochastic = 5,
+}
+
+impl NativeMeaningGapReason {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "underdetermined" => Some(Self::Underdetermined),
+            "unprioritized_conflict" => Some(Self::UnprioritizedConflict),
+            "cyclic_dependency" => Some(Self::CyclicDependency),
+            "missing_precondition" => Some(Self::MissingPrecondition),
+            "irreducible_stochastic" => Some(Self::IrreducibleStochastic),
+            _ => None,
+        }
+    }
+
+    fn code(self) -> i32 {
+        self as i32
+    }
 }
 
 struct CompiledObject {
@@ -179,6 +215,17 @@ pub struct NativeFieldLayout {
     pub offset: u32,
     pub size: u32,
     pub alignment: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uncertainty: Option<NativeUncertainFieldLayout>,
+}
+
+/// Relative offsets for the native inline `Uncertain<T>` carrier.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct NativeUncertainFieldLayout {
+    pub known_offset: u32,
+    pub reason_offset: u32,
+    pub value_offset: u32,
+    pub reason_abi_version: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -278,7 +325,9 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
-    let machine_contract = if has_conditional_borrow_summary_machine_metadata(&ast) {
+    let machine_contract = if has_uncertain_aggregate_machine_metadata(&ast) {
+        UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
+    } else if has_conditional_borrow_summary_machine_metadata(&ast) {
         CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
     } else if has_compositional_borrow_summary_machine_metadata(&ast) {
         COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
@@ -351,7 +400,12 @@ fn compile_unit(
 }
 
 fn compile_ast_unit(ast: Ast) -> Result<CompiledObject, NativeCompileError> {
-    if has_conditional_borrow_summary_machine_metadata(&ast) {
+    if has_uncertain_aggregate_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, UNCERTAIN_AGGREGATE_MACHINE_CONTRACT, true)?,
+            machine_contract: UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
+        })
+    } else if has_conditional_borrow_summary_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(
                 &ast,
@@ -635,8 +689,11 @@ fn compile_project_unit(
     _options: &NativeCompileOptions,
 ) -> Result<CompiledObject, NativeCompileError> {
     let ast = project::load_project_ast(entry)?;
+    let carries_uncertainty = has_uncertain_aggregate_machine_metadata(&ast);
     let mut compiled = compile_ast_unit(ast)?;
-    compiled.machine_contract = MULTI_FILE_MODULE_MACHINE_CONTRACT;
+    if !carries_uncertainty {
+        compiled.machine_contract = MULTI_FILE_MODULE_MACHINE_CONTRACT;
+    }
     Ok(compiled)
 }
 
@@ -791,6 +848,20 @@ fn has_aggregate_machine_metadata(ast: &Ast) -> bool {
         matches!(
             node,
             AstNode::StructDeclaration(structure) if !structure.field_types.is_empty()
+        )
+    })
+}
+
+fn has_uncertain_aggregate_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        matches!(
+            node,
+            AstNode::StructDeclaration(structure)
+                if structure
+                    .field_annotations
+                    .iter()
+                    .flatten()
+                    .any(|annotation| annotation == "unknown")
         )
     })
 }
@@ -2445,7 +2516,8 @@ impl MachineType {
 fn latest_reference_contract(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        BORROWED_AGGREGATE_SUBOBJECT_RETURN_MACHINE_CONTRACT
+        UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
+            | BORROWED_AGGREGATE_SUBOBJECT_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_BUFFER_ELEMENT_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_BUFFER_SUBSLICE_RETURN_MACHINE_CONTRACT
@@ -2864,9 +2936,44 @@ struct AggregateFieldLayout {
     align_shift: u8,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct UncertainScalarLayout {
+    value_type: MachineType,
+    size: u32,
+    align_shift: u8,
+}
+
+impl UncertainScalarLayout {
+    const KNOWN_OFFSET: u32 = 0;
+    const REASON_OFFSET: u32 = 4;
+    const VALUE_OFFSET: u32 = 8;
+
+    fn new(value_type: MachineType) -> Self {
+        let align_shift = value_type.stack_align_shift().max(2);
+        let alignment = 1_u32 << align_shift;
+        let unaligned_size = Self::VALUE_OFFSET + value_type.stack_size();
+        let size = (unaligned_size + alignment - 1) & !(alignment - 1);
+        Self {
+            value_type,
+            size,
+            align_shift,
+        }
+    }
+
+    fn public_layout(self) -> NativeUncertainFieldLayout {
+        NativeUncertainFieldLayout {
+            known_offset: Self::KNOWN_OFFSET,
+            reason_offset: Self::REASON_OFFSET,
+            value_offset: Self::VALUE_OFFSET,
+            reason_abi_version: NATIVE_MEANING_GAP_REASON_ABI_VERSION,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 enum AggregateFieldType {
     Scalar(MachineType),
+    UncertainScalar(UncertainScalarLayout),
     Owned(OwnedBufferLayout),
     Aggregate(Box<AggregateLayout>),
 }
@@ -2875,6 +2982,9 @@ impl AggregateFieldType {
     fn name(&self) -> String {
         match self {
             Self::Scalar(machine_type) => machine_type.name().to_string(),
+            Self::UncertainScalar(layout) => {
+                format!("Uncertain<{}>", layout.value_type.name())
+            }
             Self::Owned(layout) => format!("[{}]", layout.element_type.name()),
             Self::Aggregate(layout) => layout.name.clone(),
         }
@@ -2915,12 +3025,19 @@ impl AggregateLayout {
             fields: self
                 .fields
                 .into_iter()
-                .map(|field| NativeFieldLayout {
-                    name: field.name,
-                    machine_type: field.field_type.name(),
-                    offset: field.offset,
-                    size: field.size,
-                    alignment: 1_u32 << field.align_shift,
+                .map(|field| {
+                    let uncertainty = match &field.field_type {
+                        AggregateFieldType::UncertainScalar(layout) => Some(layout.public_layout()),
+                        _ => None,
+                    };
+                    NativeFieldLayout {
+                        name: field.name,
+                        machine_type: field.field_type.name(),
+                        offset: field.offset,
+                        size: field.size,
+                        alignment: 1_u32 << field.align_shift,
+                        uncertainty,
+                    }
                 })
                 .collect(),
         }
@@ -2942,6 +3059,14 @@ fn hash_aggregate_layout(digest: &mut Sha256, layout: &AggregateLayout) {
             AggregateFieldType::Scalar(machine_type) => {
                 digest.update(b"scalar\0");
                 digest.update(machine_type.name().as_bytes());
+            }
+            AggregateFieldType::UncertainScalar(layout) => {
+                digest.update(b"uncertain-scalar\0");
+                digest.update(NATIVE_MEANING_GAP_REASON_ABI_VERSION.to_le_bytes());
+                digest.update(layout.value_type.name().as_bytes());
+                digest.update(UncertainScalarLayout::KNOWN_OFFSET.to_le_bytes());
+                digest.update(UncertainScalarLayout::REASON_OFFSET.to_le_bytes());
+                digest.update(UncertainScalarLayout::VALUE_OFFSET.to_le_bytes());
             }
             AggregateFieldType::Owned(owned) => {
                 digest.update(b"owned\0");
@@ -2999,6 +3124,27 @@ fn collect_aggregate_layouts(
                 structure.name
             )));
         }
+        if !structure.field_annotations.is_empty()
+            && structure.field_annotations.len() != structure.fields.len()
+        {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} struct `{}` has misaligned field annotation metadata",
+                structure.name
+            )));
+        }
+        for (index, annotations) in structure.field_annotations.iter().enumerate() {
+            if annotations.len() > 1 || annotations.iter().any(|value| value != "unknown") {
+                let field_name = structure
+                    .fields
+                    .get(index)
+                    .map(String::as_str)
+                    .unwrap_or("<missing>");
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} field `{field_name}` in struct `{}` supports only one @unknown modifier",
+                    structure.name
+                )));
+            }
+        }
         declaration_order.push(structure.name.clone());
     }
 
@@ -3054,11 +3200,19 @@ fn resolve_aggregate_layout(
     let mut align_shift = 0_u8;
     let mut fields = Vec::with_capacity(structure.fields.len());
     let mut field_names = HashSet::new();
-    for (field_name, type_name) in structure
+    for (field_index, (field_name, type_name)) in structure
         .fields
         .iter()
-        .zip(structure.field_types.iter().flatten())
+        .zip(structure.field_types.iter())
+        .enumerate()
     {
+        let type_name = type_name
+            .as_deref()
+            .expect("typed aggregate fields were validated before layout");
+        let is_unknown = structure
+            .field_annotations
+            .get(field_index)
+            .is_some_and(|annotations| annotations.iter().any(|value| value == "unknown"));
         if !field_names.insert(field_name.as_str()) {
             return Err(NativeCompileError::new(format!(
                 "{machine_contract} struct `{}` declares duplicate field `{field_name}`",
@@ -3073,7 +3227,7 @@ fn resolve_aggregate_layout(
             )));
         }
 
-        let field_type = if declarations.contains_key(type_name) {
+        let raw_field_type = if declarations.contains_key(type_name) {
             if !matches!(
                 machine_contract,
                 OWNED_AGGREGATE_MACHINE_CONTRACT
@@ -3095,6 +3249,7 @@ fn resolve_aggregate_layout(
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} field `{field_name}` uses unsupported nested aggregate type `{type_name}` in struct `{}`",
@@ -3133,6 +3288,7 @@ fn resolve_aggregate_layout(
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} owned buffers as aggregate fields are not enabled; field `{field_name}` in struct `{}` uses `{type_name}`",
@@ -3149,10 +3305,30 @@ fn resolve_aggregate_layout(
             AggregateFieldType::Scalar(MachineType::parse(type_name, &context, machine_contract)?)
         };
 
+        let field_type = if is_unknown {
+            match raw_field_type {
+                AggregateFieldType::Scalar(machine_type) => {
+                    AggregateFieldType::UncertainScalar(UncertainScalarLayout::new(machine_type))
+                }
+                AggregateFieldType::Owned(_) | AggregateFieldType::Aggregate(_) => {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} @unknown field `{field_name}` in struct `{}` must carry a scalar `bool`, `i32`, or `i64` payload in the first native carrier",
+                        structure.name
+                    )));
+                }
+                AggregateFieldType::UncertainScalar(_) => {
+                    unreachable!("raw field types are never already uncertain")
+                }
+            }
+        } else {
+            raw_field_type
+        };
+
         let (field_size, field_align_shift) = match &field_type {
             AggregateFieldType::Scalar(machine_type) => {
                 (machine_type.stack_size(), machine_type.stack_align_shift())
             }
+            AggregateFieldType::UncertainScalar(layout) => (layout.size, layout.align_shift),
             AggregateFieldType::Owned(_) => {
                 let (_, _, size, align_shift) = owned_buffer_abi_offsets(pointer_type);
                 (size, align_shift)
@@ -4081,6 +4257,60 @@ fn materialize_aggregate_from_pointer(
                 );
                 builder.ins().stack_store(value, destination, native_offset);
             }
+            AggregateFieldType::UncertainScalar(uncertain) => {
+                let known_offset = i32::try_from(UncertainScalarLayout::KNOWN_OFFSET)
+                    .expect("uncertain offsets fit i32");
+                let reason_offset = i32::try_from(UncertainScalarLayout::REASON_OFFSET)
+                    .expect("uncertain offsets fit i32");
+                let value_offset = i32::try_from(UncertainScalarLayout::VALUE_OFFSET)
+                    .expect("uncertain offsets fit i32");
+                let known = builder.ins().load(
+                    types::I8,
+                    MemFlags::new(),
+                    payload,
+                    native_offset + known_offset,
+                );
+                let reason = builder.ins().load(
+                    types::I32,
+                    MemFlags::new(),
+                    payload,
+                    native_offset + reason_offset,
+                );
+                let invalid_tag = builder.ins().icmp_imm(IntCC::UnsignedGreaterThan, known, 1);
+                builder.ins().trapnz(invalid_tag, TrapCode::unwrap_user(10));
+                let is_known = builder.ins().icmp_imm(IntCC::NotEqual, known, 0);
+                let reason_is_nonzero = builder.ins().icmp_imm(IntCC::NotEqual, reason, 0);
+                let known_with_reason = builder.ins().band(is_known, reason_is_nonzero);
+                builder
+                    .ins()
+                    .trapnz(known_with_reason, TrapCode::unwrap_user(11));
+                let is_unknown = builder.ins().icmp_imm(IntCC::Equal, known, 0);
+                let reason_below_range = builder.ins().icmp_imm(IntCC::SignedLessThan, reason, 1);
+                let reason_above_range =
+                    builder.ins().icmp_imm(IntCC::SignedGreaterThan, reason, 5);
+                let unknown_below_range = builder.ins().band(is_unknown, reason_below_range);
+                let unknown_above_range = builder.ins().band(is_unknown, reason_above_range);
+                let invalid_unknown_reason =
+                    builder.ins().bor(unknown_below_range, unknown_above_range);
+                builder
+                    .ins()
+                    .trapnz(invalid_unknown_reason, TrapCode::unwrap_user(12));
+                let value = builder.ins().load(
+                    uncertain.value_type.ir_type(),
+                    MemFlags::new(),
+                    payload,
+                    native_offset + value_offset,
+                );
+                for (value, relative_offset) in [
+                    (known, known_offset),
+                    (reason, reason_offset),
+                    (value, value_offset),
+                ] {
+                    builder
+                        .ins()
+                        .stack_store(value, destination, native_offset + relative_offset);
+                }
+            }
             AggregateFieldType::Owned(owned_layout) => {
                 let base =
                     builder
@@ -4160,6 +4390,29 @@ fn copy_aggregate_slot_to_slot(
                     .ins()
                     .stack_store(value, destination, native_destination);
             }
+            AggregateFieldType::UncertainScalar(uncertain) => {
+                for (field_type, relative_offset) in [
+                    (types::I8, UncertainScalarLayout::KNOWN_OFFSET),
+                    (types::I32, UncertainScalarLayout::REASON_OFFSET),
+                    (
+                        uncertain.value_type.ir_type(),
+                        UncertainScalarLayout::VALUE_OFFSET,
+                    ),
+                ] {
+                    let relative_offset =
+                        i32::try_from(relative_offset).expect("uncertain offsets fit i32");
+                    let value = builder.ins().stack_load(
+                        field_type,
+                        source,
+                        native_source + relative_offset,
+                    );
+                    builder.ins().stack_store(
+                        value,
+                        destination,
+                        native_destination + relative_offset,
+                    );
+                }
+            }
             AggregateFieldType::Owned(_) => {
                 for (field_type, relative_offset) in [
                     (pointer_type, 0),
@@ -4213,6 +4466,30 @@ fn copy_aggregate_slot_to_pointer(
                     .ins()
                     .store(MemFlags::new(), value, payload, native_offset);
             }
+            AggregateFieldType::UncertainScalar(uncertain) => {
+                for (field_type, relative_offset) in [
+                    (types::I8, UncertainScalarLayout::KNOWN_OFFSET),
+                    (types::I32, UncertainScalarLayout::REASON_OFFSET),
+                    (
+                        uncertain.value_type.ir_type(),
+                        UncertainScalarLayout::VALUE_OFFSET,
+                    ),
+                ] {
+                    let relative_offset =
+                        i32::try_from(relative_offset).expect("uncertain offsets fit i32");
+                    let value = builder.ins().stack_load(
+                        field_type,
+                        source,
+                        native_offset + relative_offset,
+                    );
+                    builder.ins().store(
+                        MemFlags::new(),
+                        value,
+                        payload,
+                        native_offset + relative_offset,
+                    );
+                }
+            }
             AggregateFieldType::Owned(_) => {
                 for (field_type, relative_offset) in [
                     (pointer_type, 0),
@@ -4251,7 +4528,7 @@ fn aggregate_owned_leaf_names(
             AggregateFieldType::Aggregate(nested) => {
                 aggregate_owned_leaf_names(nested, &owner_name, names);
             }
-            AggregateFieldType::Scalar(_) => {}
+            AggregateFieldType::Scalar(_) | AggregateFieldType::UncertainScalar(_) => {}
         }
     }
 }
@@ -8444,6 +8721,99 @@ fn lower_aggregate_initializer(
                     i32::try_from(field_offset).expect("validated aggregate field offset"),
                 );
             }
+            AggregateFieldType::UncertainScalar(uncertain) => {
+                let AstNode::CallExpression(state) = argument else {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} @unknown field `{}` in constructor `{}` must be initialized with `known(value)` or `unknown(\"reason\")`",
+                        field.name, layout.name
+                    )));
+                };
+                let AstNode::Identifier(state_name) = state.callee.as_ref() else {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} @unknown field `{}` in constructor `{}` requires a named epistemic constructor",
+                        field.name, layout.name
+                    )));
+                };
+                let (known, reason, value) = match state_name.name.as_str() {
+                    "known" => {
+                        if state.arguments.len() != 1 {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} `known(value)` for field `{}` expects exactly one payload",
+                                field.name
+                            )));
+                        }
+                        let value = lower_typed_expression(
+                            builder,
+                            module,
+                            functions,
+                            locals,
+                            stack_slots,
+                            references,
+                            borrow_states,
+                            &state.arguments[0],
+                            uncertain.value_type,
+                            &format!(
+                                "known payload for field `{}` in constructor `{}`",
+                                field.name, layout.name
+                            ),
+                            machine_contract,
+                            memory_enabled,
+                        )?;
+                        (1_i64, 0_i64, value.value)
+                    }
+                    "unknown" => {
+                        let [AstNode::String(reason)] = state.arguments.as_slice() else {
+                            return Err(NativeCompileError::new(format!(
+                                "{machine_contract} `unknown(\"reason\")` for field `{}` expects exactly one canonical meaning-gap reason string",
+                                field.name
+                            )));
+                        };
+                        let reason =
+                            NativeMeaningGapReason::parse(&reason.value).ok_or_else(|| {
+                                NativeCompileError::new(format!(
+                                    "{machine_contract} unknown meaning-gap reason `{}` for field `{}`; expected underdetermined, unprioritized_conflict, cyclic_dependency, missing_precondition, or irreducible_stochastic",
+                                    reason.value, field.name
+                                ))
+                            })?;
+                        (
+                            0_i64,
+                            i64::from(reason.code()),
+                            builder.ins().iconst(uncertain.value_type.ir_type(), 0),
+                        )
+                    }
+                    other => {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} @unknown field `{}` in constructor `{}` cannot be initialized by `{other}`; use `known(value)` or `unknown(\"reason\")`",
+                            field.name, layout.name
+                        )));
+                    }
+                };
+                let field_offset =
+                    i32::try_from(field_offset).expect("validated aggregate field offset");
+                let known = builder.ins().iconst(types::I8, known);
+                let reason = builder.ins().iconst(types::I32, reason);
+                builder.ins().stack_store(
+                    known,
+                    stack_slot,
+                    field_offset
+                        + i32::try_from(UncertainScalarLayout::KNOWN_OFFSET)
+                            .expect("uncertain offsets fit i32"),
+                );
+                builder.ins().stack_store(
+                    reason,
+                    stack_slot,
+                    field_offset
+                        + i32::try_from(UncertainScalarLayout::REASON_OFFSET)
+                            .expect("uncertain offsets fit i32"),
+                );
+                builder.ins().stack_store(
+                    value,
+                    stack_slot,
+                    field_offset
+                        + i32::try_from(UncertainScalarLayout::VALUE_OFFSET)
+                            .expect("uncertain offsets fit i32"),
+                );
+            }
             AggregateFieldType::Owned(owned_layout) => {
                 let allocator = allocator.ok_or_else(|| {
                     NativeCompileError::new(format!(
@@ -10258,12 +10628,20 @@ fn validate_reference_lease(
     Ok(())
 }
 
-fn resolve_aggregate_scalar_projection(
+#[derive(Clone, Copy)]
+struct AggregateScalarProjection {
+    machine_type: MachineType,
+    value_offset: u32,
+    known_offset: Option<u32>,
+    reason_offset: Option<u32>,
+}
+
+fn resolve_aggregate_scalar_projection_for_access(
     root_layout: &AggregateLayout,
     field_names: &[&str],
     path: &str,
     machine_contract: &str,
-) -> Result<(MachineType, u32), NativeCompileError> {
+) -> Result<AggregateScalarProjection, NativeCompileError> {
     if field_names.is_empty() {
         return Err(NativeCompileError::new(format!(
             "{machine_contract} aggregate `{}` requires a scalar field projection",
@@ -10291,7 +10669,20 @@ fn resolve_aggregate_scalar_projection(
         let is_final = index + 1 == field_names.len();
         match (&field.field_type, is_final) {
             (AggregateFieldType::Scalar(machine_type), true) => {
-                return Ok((*machine_type, offset));
+                return Ok(AggregateScalarProjection {
+                    machine_type: *machine_type,
+                    value_offset: offset,
+                    known_offset: None,
+                    reason_offset: None,
+                });
+            }
+            (AggregateFieldType::UncertainScalar(uncertain), true) => {
+                return Ok(AggregateScalarProjection {
+                    machine_type: uncertain.value_type,
+                    value_offset: offset + UncertainScalarLayout::VALUE_OFFSET,
+                    known_offset: Some(offset + UncertainScalarLayout::KNOWN_OFFSET),
+                    reason_offset: Some(offset + UncertainScalarLayout::REASON_OFFSET),
+                });
             }
             (AggregateFieldType::Owned(_), true) => {
                 return Err(NativeCompileError::new(format!(
@@ -10304,7 +10695,12 @@ fn resolve_aggregate_scalar_projection(
                 )));
             }
             (AggregateFieldType::Aggregate(nested), false) => layout = nested,
-            (AggregateFieldType::Scalar(_), false) | (AggregateFieldType::Owned(_), false) => {
+            (
+                AggregateFieldType::Scalar(_)
+                | AggregateFieldType::UncertainScalar(_)
+                | AggregateFieldType::Owned(_),
+                false,
+            ) => {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} field path `{path}` projects through non-aggregate field `{field_name}`"
                 )));
@@ -10312,6 +10708,27 @@ fn resolve_aggregate_scalar_projection(
         }
     }
     unreachable!("non-empty aggregate field projections always return or fail")
+}
+
+fn resolve_aggregate_scalar_projection(
+    root_layout: &AggregateLayout,
+    field_names: &[&str],
+    path: &str,
+    machine_contract: &str,
+) -> Result<(MachineType, u32), NativeCompileError> {
+    let projection = resolve_aggregate_scalar_projection_for_access(
+        root_layout,
+        field_names,
+        path,
+        machine_contract,
+    )?;
+    if projection.known_offset.is_some() {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} @unknown aggregate field `{path}` cannot be borrowed or read as a raw `{}`; use `isKnown({path})` to gate the action and `load({path}) ?? <fallback>` to obtain a value",
+            projection.machine_type.name()
+        )));
+    }
+    Ok((projection.machine_type, projection.value_offset))
 }
 
 fn resolve_aggregate_owned_projection(
@@ -10363,6 +10780,12 @@ fn resolve_aggregate_owned_projection(
                     machine_type.name()
                 )));
             }
+            (AggregateFieldType::UncertainScalar(uncertain), true) => {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} aggregate-buffer element return cannot treat @unknown field `{path}` carrying `Uncertain<{}>` as owned storage",
+                    uncertain.value_type.name()
+                )));
+            }
             (AggregateFieldType::Aggregate(nested), true) => {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} aggregate-buffer element return expects an owned `[{}]` field, but `{path}` stores aggregate `{}`",
@@ -10371,7 +10794,12 @@ fn resolve_aggregate_owned_projection(
                 )));
             }
             (AggregateFieldType::Aggregate(nested), false) => layout = nested,
-            (AggregateFieldType::Scalar(_), false) | (AggregateFieldType::Owned(_), false) => {
+            (
+                AggregateFieldType::Scalar(_)
+                | AggregateFieldType::UncertainScalar(_)
+                | AggregateFieldType::Owned(_),
+                false,
+            ) => {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} aggregate-buffer path `{path}` projects through non-aggregate field `{field_name}`"
                 )));
@@ -11355,6 +11783,13 @@ fn resolve_aggregate_subobject_projection<'a>(
                     machine_type.name()
                 )));
             }
+            (AggregateFieldType::UncertainScalar(uncertain), true) => {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} aggregate subobject return cannot borrow @unknown field `{path}` carrying `Uncertain<{}>` as `{}`",
+                    uncertain.value_type.name(),
+                    expected_target_layout.name
+                )));
+            }
             (AggregateFieldType::Owned(owned), true) => {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} aggregate subobject return cannot borrow owned field `{path}` of type `[{}]`",
@@ -11362,7 +11797,12 @@ fn resolve_aggregate_subobject_projection<'a>(
                 )));
             }
             (AggregateFieldType::Aggregate(nested), false) => layout = nested,
-            (AggregateFieldType::Scalar(_), false) | (AggregateFieldType::Owned(_), false) => {
+            (
+                AggregateFieldType::Scalar(_)
+                | AggregateFieldType::UncertainScalar(_)
+                | AggregateFieldType::Owned(_),
+                false,
+            ) => {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} aggregate subobject path `{path}` projects through non-aggregate field `{field_name}`"
                 )));
@@ -16695,6 +17135,22 @@ fn lower_typed_expression(
                 unary.operator
             )));
         }
+        AstNode::BinaryExpression(binary) if binary.operator == "??" => {
+            return lower_uncertain_coalesce(
+                builder,
+                module,
+                functions,
+                locals,
+                stack_slots,
+                references,
+                borrow_states,
+                binary,
+                expected,
+                context,
+                machine_contract,
+                memory_enabled,
+            );
+        }
         AstNode::BinaryExpression(binary)
             if matches!(
                 binary.operator.as_str(),
@@ -16800,6 +17256,18 @@ fn lower_typed_expression(
                     call,
                     expected,
                     context,
+                    machine_contract,
+                );
+            }
+            if memory_enabled && matches!(callee.name.as_str(), "isKnown" | "unknownReason") {
+                return lower_uncertain_metadata_read(
+                    builder,
+                    stack_slots,
+                    references,
+                    borrow_states,
+                    call,
+                    expected,
+                    &callee.name,
                     machine_contract,
                 );
             }
@@ -17722,7 +18190,11 @@ fn known_expression_type(
             let AstNode::Identifier(callee) = call.callee.as_ref() else {
                 return None;
             };
-            if callee.name == "load" {
+            if callee.name == "isKnown" {
+                Some(MachineType::Bool)
+            } else if callee.name == "unknownReason" {
+                Some(MachineType::I32)
+            } else if callee.name == "load" {
                 resolve_stack_access(
                     call.arguments.first()?,
                     stack_slots,
@@ -17752,6 +18224,191 @@ fn known_expression_type(
         }
         _ => None,
     }
+}
+
+fn load_direct_stack_access(
+    builder: &mut FunctionBuilder<'_>,
+    access: &ResolvedStackAccess<'_>,
+    machine_type: MachineType,
+    offset: i32,
+    machine_contract: &str,
+) -> Result<Value, NativeCompileError> {
+    if access.dynamic_index.is_some() {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} @unknown state is not yet supported inside indexed storage"
+        )));
+    }
+    Ok(if let Some(base) = access.base_address {
+        builder
+            .ins()
+            .load(machine_type.ir_type(), MemFlags::new(), base, offset)
+    } else {
+        builder.ins().stack_load(
+            machine_type.ir_type(),
+            access
+                .slot
+                .expect("direct uncertain access must retain storage"),
+            offset,
+        )
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_uncertain_coalesce(
+    builder: &mut FunctionBuilder<'_>,
+    module: &mut ObjectModule,
+    functions: &HashMap<String, TypedFunctionAbi>,
+    locals: &HashMap<String, TypedValue>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
+    binary: &BinaryExpression,
+    expected: MachineType,
+    context: &str,
+    machine_contract: &str,
+    memory_enabled: bool,
+) -> Result<TypedValue, NativeCompileError> {
+    let AstNode::CallExpression(load) = binary.left.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} native `??` requires `load(@unknownField) ?? fallback` on its left side"
+        )));
+    };
+    let AstNode::Identifier(callee) = load.callee.as_ref() else {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} native `??` requires a named `load` call"
+        )));
+    };
+    if callee.name != "load" || load.arguments.len() != 1 {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} native `??` requires exactly `load(@unknownField) ?? fallback`"
+        )));
+    }
+    let access = resolve_stack_access(
+        &load.arguments[0],
+        stack_slots,
+        references,
+        "uncertain coalesce",
+        machine_contract,
+    )?;
+    validate_stack_access_borrow(
+        &access,
+        borrow_states,
+        "uncertain coalesce",
+        machine_contract,
+    )?;
+    let uncertainty = access.uncertainty.ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} `??` left side `{}` is not an @unknown field",
+            access.display
+        ))
+    })?;
+    if access.machine_type != expected {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} {context} expects `{}`, but @unknown field `{}` carries `Uncertain<{}>`",
+            expected.name(),
+            access.display,
+            access.machine_type.name()
+        )));
+    }
+
+    let known = load_direct_stack_access(
+        builder,
+        &access,
+        MachineType::Bool,
+        uncertainty.known_offset,
+        machine_contract,
+    )?;
+    let known_block = builder.create_block();
+    let fallback_block = builder.create_block();
+    let merge_block = builder.create_block();
+    let result = builder.append_block_param(merge_block, expected.ir_type());
+    builder
+        .ins()
+        .brif(known, known_block, &[], fallback_block, &[]);
+
+    builder.switch_to_block(known_block);
+    let payload = load_direct_stack_access(
+        builder,
+        &access,
+        access.machine_type,
+        access.offset,
+        machine_contract,
+    )?;
+    builder.ins().jump(merge_block, &[payload.into()]);
+
+    builder.switch_to_block(fallback_block);
+    let fallback = lower_typed_expression(
+        builder,
+        module,
+        functions,
+        locals,
+        stack_slots,
+        references,
+        borrow_states,
+        &binary.right,
+        expected,
+        "uncertain fallback",
+        machine_contract,
+        memory_enabled,
+    )?;
+    builder.ins().jump(merge_block, &[fallback.value.into()]);
+
+    builder.switch_to_block(merge_block);
+    Ok(TypedValue {
+        value: result,
+        machine_type: expected,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_uncertain_metadata_read(
+    builder: &mut FunctionBuilder<'_>,
+    stack_slots: &HashMap<String, TypedStackSlot>,
+    references: &HashMap<String, TypedReference>,
+    borrow_states: &HashMap<String, BorrowState>,
+    call: &CallExpression,
+    expected: MachineType,
+    operation: &str,
+    machine_contract: &str,
+) -> Result<TypedValue, NativeCompileError> {
+    if call.arguments.len() != 1 {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `{operation}(@unknownField)` expects exactly one field, found {}",
+            call.arguments.len()
+        )));
+    }
+    let access = resolve_stack_access(
+        &call.arguments[0],
+        stack_slots,
+        references,
+        operation,
+        machine_contract,
+    )?;
+    validate_stack_access_borrow(&access, borrow_states, operation, machine_contract)?;
+    let uncertainty = access.uncertainty.ok_or_else(|| {
+        NativeCompileError::new(format!(
+            "{machine_contract} `{operation}` requires an @unknown field; `{}` stores a plain `{}`",
+            access.display,
+            access.machine_type.name()
+        ))
+    })?;
+    let (result_type, offset) = match operation {
+        "isKnown" => (MachineType::Bool, uncertainty.known_offset),
+        "unknownReason" => (MachineType::I32, uncertainty.reason_offset),
+        _ => unreachable!("only native uncertainty metadata builtins call this helper"),
+    };
+    if expected != result_type {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} `{operation}` produces `{}`, but this expression expects `{}`",
+            result_type.name(),
+            expected.name()
+        )));
+    }
+    let value = load_direct_stack_access(builder, &access, result_type, offset, machine_contract)?;
+    Ok(TypedValue {
+        value,
+        machine_type: result_type,
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -17971,11 +18628,18 @@ enum StackAccessProvenance {
     },
 }
 
+#[derive(Clone, Copy)]
+struct ResolvedUncertainAccess {
+    known_offset: i32,
+    reason_offset: i32,
+}
+
 struct ResolvedStackAccess<'a> {
     slot: Option<StackSlot>,
     base_address: Option<Value>,
     machine_type: MachineType,
     offset: i32,
+    uncertainty: Option<ResolvedUncertainAccess>,
     dynamic_index: Option<DynamicArrayIndex<'a>>,
     root_name: String,
     display: String,
@@ -18035,6 +18699,7 @@ fn resolve_stack_access<'a>(
                 base_address: None,
                 machine_type,
                 offset: 0,
+                uncertainty: None,
                 dynamic_index: None,
                 root_name: identifier.name.clone(),
                 display: identifier.name.clone(),
@@ -18159,7 +18824,7 @@ fn resolve_stack_access<'a>(
                     StackAccessProvenance::Owner,
                 )
             };
-            let (machine_type, offset) = resolve_aggregate_scalar_projection(
+            let projection = resolve_aggregate_scalar_projection_for_access(
                 root_layout,
                 &field_names,
                 &path,
@@ -18168,8 +18833,17 @@ fn resolve_stack_access<'a>(
             Ok(ResolvedStackAccess {
                 slot,
                 base_address,
-                machine_type,
-                offset: i32::try_from(offset).expect("validated aggregate field offset"),
+                machine_type: projection.machine_type,
+                offset: i32::try_from(projection.value_offset)
+                    .expect("validated aggregate field offset"),
+                uncertainty: projection.known_offset.zip(projection.reason_offset).map(
+                    |(known_offset, reason_offset)| ResolvedUncertainAccess {
+                        known_offset: i32::try_from(known_offset)
+                            .expect("validated aggregate field offset"),
+                        reason_offset: i32::try_from(reason_offset)
+                            .expect("validated aggregate field offset"),
+                    },
+                ),
                 dynamic_index: None,
                 root_name: borrow_root,
                 display: path,
@@ -18233,6 +18907,7 @@ fn resolve_array_access<'a>(
                     base_address: Some(*base),
                     machine_type: *element_type,
                     offset: 0,
+                    uncertainty: None,
                     dynamic_index: Some(DynamicArrayIndex {
                         expression: member.property.as_ref(),
                         bound: DynamicArrayBound::Runtime(*length),
@@ -18254,6 +18929,7 @@ fn resolve_array_access<'a>(
                     base_address: Some(*base),
                     machine_type: *element_type,
                     offset: 0,
+                    uncertainty: None,
                     dynamic_index: Some(DynamicArrayIndex {
                         expression: member.property.as_ref(),
                         bound: DynamicArrayBound::Runtime(*length),
@@ -18275,6 +18951,7 @@ fn resolve_array_access<'a>(
                     base_address: Some(*base),
                     machine_type: *element_type,
                     offset: 0,
+                    uncertainty: None,
                     dynamic_index: Some(DynamicArrayIndex {
                         expression: member.property.as_ref(),
                         bound: DynamicArrayBound::Runtime(*length),
@@ -18466,6 +19143,7 @@ fn finish_array_access<'a>(
             base_address: None,
             machine_type: element_type,
             offset: i32::try_from(offset).expect("fixed array offset is validated"),
+            uncertainty: None,
             dynamic_index: None,
             root_name: root_name.to_string(),
             display,
@@ -18478,6 +19156,7 @@ fn finish_array_access<'a>(
         base_address: None,
         machine_type: element_type,
         offset: i32::try_from(base_offset).expect("fixed array offset is validated"),
+        uncertainty: None,
         dynamic_index: Some(DynamicArrayIndex {
             expression: index,
             bound: DynamicArrayBound::Constant(bound),
@@ -18748,6 +19427,12 @@ fn lower_typed_load(
         machine_contract,
     )?;
     validate_stack_access_borrow(&access, borrow_states, "load", machine_contract)?;
+    if access.uncertainty.is_some() {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} bare `load({})` would erase first-class ignorance; gate with `isKnown({})` and read with `load({}) ?? <fallback>`",
+            access.display, access.display, access.display
+        )));
+    }
     if access.machine_type != expected {
         let storage = if access.display.contains('.') {
             format!("aggregate field `{}`", access.display)
@@ -18823,6 +19508,12 @@ fn lower_typed_store(
         machine_contract,
     )?;
     validate_stack_access_borrow(&access, borrow_states, "store", machine_contract)?;
+    if access.uncertainty.is_some() {
+        return Err(NativeCompileError::new(format!(
+            "{machine_contract} raw `store({}, value)` would erase the @unknown carrier; reconstruct the aggregate with `known(value)` or `unknown(\"reason\")`",
+            access.display
+        )));
+    }
     let value_context = if access.display.contains('.') {
         format!("field `{}`", access.display)
     } else {
