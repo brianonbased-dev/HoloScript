@@ -4820,6 +4820,113 @@ export interface TraitHandler<T = any> {
   [key: string]: any;
 }
 
+export declare const SEMANTIC_CUSTODY_SCHEMA: 'holoscript.semantic-custody.v2';
+export interface SemanticCustodyBindingV2 {
+  schema: typeof SEMANTIC_CUSTODY_SCHEMA;
+  message_id: string;
+  action: string;
+  sender: string;
+  recipient: string;
+  nonce: string;
+  axis_1_id: string;
+  axis_2_id: string;
+  payload_digest: string;
+  surface_id: string;
+  holokey: string;
+}
+export interface HoloMeshSignedSemanticEnvelope {
+  body: SemanticCustodyBindingV2;
+  signature: string;
+  signer_address: string;
+  nonce: string;
+  timestamp: string;
+}
+export interface SemanticCustodyEnvelope {
+  schema: typeof SEMANTIC_CUSTODY_SCHEMA;
+  signed: HoloMeshSignedSemanticEnvelope;
+}
+export interface SemanticCustodyMessageLike {
+  version: '2.0';
+  message_id: string;
+  from: string;
+  to: string;
+  created_at_ms: number;
+  action: string;
+  nonce: string;
+  pillar_slice: {
+    axis_1_id: string;
+    axis_2_id: string;
+  };
+  provenance: {
+    surface_id: string;
+    holokey: string;
+    signer_address: string;
+  };
+  brain_coord?: unknown;
+  receipt?: unknown;
+  scene_delta?: unknown;
+  task_state?: unknown;
+  confidence?: number;
+  payload?: Record<string, unknown>;
+  parallel_slice?: unknown;
+  text_boundary?: string;
+  custody?: SemanticCustodyEnvelope;
+}
+export interface SemanticCustodyVerification {
+  valid: boolean;
+  signer: string | null;
+  reason?: string;
+}
+export type SemanticCustodyVerifier = (
+  envelope: HoloMeshSignedSemanticEnvelope
+) => Promise<SemanticCustodyVerification>;
+export interface SemanticReplayStore {
+  claim(signer: string, nonce: string): boolean | Promise<boolean>;
+}
+export declare class InMemorySemanticReplayStore implements SemanticReplayStore {
+  claim(signer: string, nonce: string): boolean;
+  clear(): void;
+}
+export type SemanticCustodyFailureReason =
+  | 'missing-custody'
+  | 'schema-version'
+  | 'binding-mismatch'
+  | 'payload-digest'
+  | 'signature'
+  | 'signer-mismatch'
+  | 'replay';
+export interface SemanticCustodyReceipt {
+  schema: 'holoscript.semantic-custody-receipt.v1';
+  accepted: true;
+  message_id: string;
+  action: string;
+  sender: string;
+  recipient: string;
+  nonce: string;
+  signer_address: string;
+  payload_digest: string;
+  receipt_digest: string;
+}
+export type SemanticCustodyAdmission =
+  | { ok: true; receipt: SemanticCustodyReceipt }
+  | { ok: false; reason: SemanticCustodyFailureReason; detail?: string };
+export declare function computeSemanticPayloadDigest(
+  message: SemanticCustodyMessageLike
+): Promise<string>;
+export declare function buildSemanticCustodyBinding(
+  message: SemanticCustodyMessageLike
+): Promise<SemanticCustodyBindingV2>;
+export declare function admitSemanticCustodyMessage(
+  message: SemanticCustodyMessageLike,
+  options: {
+    verifySignedEnvelope: SemanticCustodyVerifier;
+    replayStore: SemanticReplayStore;
+  }
+): Promise<SemanticCustodyAdmission>;
+export declare function getSemanticCustodyReceipt(
+  message: object
+): SemanticCustodyReceipt | undefined;
+
 export type PerceptualColorMode = 'auto' | 'palette' | 'gradient' | 'color_map';
 export interface PerceptualGradientStop { t: number; color: string; }
 export interface PerceptualColorConfig {

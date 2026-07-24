@@ -29,6 +29,13 @@
  * @module holomesh/request-signing
  */
 
+import {
+  admitSemanticCustodyMessage,
+  type SemanticCustodyAdmission,
+  type SemanticCustodyMessageLike,
+  type SemanticReplayStore,
+} from '@holoscript/core/traits';
+
 /** Mutating envelope for HoloMesh request signing. */
 export interface SignedEnvelope {
   body: unknown;
@@ -197,4 +204,28 @@ export async function verifyRequestBody(
     return { valid: false, signer: env.signer_address, reason: 'signer-address-mismatch' };
   }
   return result;
+}
+
+/**
+ * Production bridge between typed uAAL custody and the existing HoloMesh
+ * EIP-191 verifier. The semantic layer never accepts an unkeyed digest as
+ * authentication; the recovered wallet address must match the signer bound in
+ * the message provenance, and replay is consumed only after verification.
+ */
+export async function admitHoloMeshSemanticMessage(
+  message: SemanticCustodyMessageLike,
+  options: {
+    replayStore: SemanticReplayStore;
+    nowMs?: number;
+    registryCheck?: RegistryCheck;
+  }
+): Promise<SemanticCustodyAdmission> {
+  return admitSemanticCustodyMessage(message, {
+    replayStore: options.replayStore,
+    verifySignedEnvelope: async (envelope) =>
+      verifyEnvelope(envelope, {
+        nowMs: options.nowMs,
+        registryCheck: options.registryCheck,
+      }),
+  });
 }

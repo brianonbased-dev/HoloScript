@@ -11,8 +11,11 @@
  * access to model hidden states, which closed-API agents (Claude, GPT, Gemini,
  * Grok) do not expose.
  *
- * SemanticCollaborationContract operates at the STRUCTURED-STATE level, one
- * layer above raw hidden states.  This makes the protocol:
+ * SemanticCollaborationContract operates at the STRUCTURED-STATE level, not
+ * raw hidden states. The equal-bandwidth tournament found that equal-content
+ * text/JSON matched the typed frame, so this contract claims a versioned,
+ * auditable schema and replay ABI rather than privileged cognitive coordinates.
+ * This makes the protocol:
  *   • Compatible with every agent family (closed or open)
  *   • Verifiable via SimulationContract receipts
  *   • Inspectable without needing model internals
@@ -21,7 +24,7 @@
  * Design
  * ──────
  * A `SemanticCollaborationMessage` is the atomic unit of inter-agent exchange.
- * Text is a BOUNDARY OUTPUT ONLY — inside the agent mesh, messages carry:
+ * Inside the agent mesh, messages may carry structured fields alongside text:
  *   - pillar_slice      : the 4-tuple that configures the current runtime layer
  *   - brain_coord       : MNI152 storage address for this message's latent content
  *   - receipt           : SimulationContract evidence hash (anti-abduction anchor)
@@ -58,6 +61,11 @@
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from '../TraitTypes';
 import type { ParallelPillarSlice } from './ParallelPillar';
+import {
+  getSemanticCustodyReceipt,
+  type SemanticCustodyEnvelope,
+  type SemanticCustodyReceipt,
+} from './SemanticCustody';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Core types
@@ -188,6 +196,10 @@ export interface ProvenanceAttestation {
   surface_id: string;
   /** EIP-712 signature if available */
   eip712_signature?: string;
+  /** HoloKey identity bound inside a v2 signed custody envelope. */
+  holokey?: string;
+  /** Wallet address recovered by the HoloMesh signed-envelope verifier. */
+  signer_address?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -196,11 +208,11 @@ export interface ProvenanceAttestation {
 
 /**
  * SemanticCollaborationMessage — the atomic unit of inter-agent exchange in the
- * uAAL Cognitive VM.  Text is a BOUNDARY OUTPUT ONLY.
+ * uAAL Cognitive VM. Text remains a valid equal-content carrier.
  */
 export interface SemanticCollaborationMessage {
   /** Protocol version for forward compatibility */
-  version: '1.0';
+  version: '1.0' | '2.0';
 
   /** Unique message ID (UUID v4) */
   message_id: string;
@@ -214,13 +226,26 @@ export interface SemanticCollaborationMessage {
   /** Unix timestamp of message creation */
   created_at_ms: number;
 
+  /**
+   * Application action carried by a v2 message. It is bound into the signed
+   * custody body and must agree with payload.action when that field is present.
+   */
+  action?: string;
+
+  /** Signer-scoped replay nonce required by v2 custody. */
+  nonce?: string;
+
+  /**
+   * Signed HoloMesh transport envelope. Presence alone is not proof: the exact
+   * message object must first pass `admitSemanticCustodyMessage`.
+   */
+  custody?: SemanticCustodyEnvelope;
+
   // ── Semantic payload ───────────────────────────────────────────────────────
 
   /**
    * Pillar-generated 4-tuple coordinate slice.
-   * This IS the latent configuration vector for the current runtime layer.
-   * Pass this directly via RecursiveLinkTrait on local/open models instead
-   * of converting to text tokens (recaptures the RecursiveMAS efficiency gain).
+   * This is a typed runtime coordinate, not a model hidden-state claim.
    */
   pillar_slice: PillarSlice;
 
@@ -287,13 +312,19 @@ export interface SemanticCollaborationMessage {
    */
   parallel_slice?: ParallelPillarSlice;
 
-  /**
-   * Text summary — BOUNDARY OUTPUT ONLY.
-   * Populated when message exits the agent mesh to a human-readable surface.
-   * Never the primary carrier of semantic content.
-   */
+  /** Optional equal-content human-readable representation. */
   text_boundary?: string;
 }
+
+export type SemanticCollaborationMessageV2 = SemanticCollaborationMessage & {
+  version: '2.0';
+  action: string;
+  nonce: string;
+  provenance: ProvenanceAttestation & {
+    holokey: string;
+    signer_address: string;
+  };
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Integrity types
@@ -301,6 +332,10 @@ export interface SemanticCollaborationMessage {
 
 export type IntegrityFailReason =
   | 'missing_provenance' // No x402 attestation
+  | 'unsupported_version'
+  | 'unverified_custody'
+  | 'action_payload_mismatch'
+  | 'recipient_mismatch'
   | 'confidence_without_receipt' // confidence < 0.5 and no receipt for A-step claim
   | 'invalid_pillar_slice' // axis_ids empty or pos out of expected range
   | 'invalid_brain_coord' // MNI coords outside anatomically plausible range
@@ -320,6 +355,11 @@ export interface SemanticCollabConfig {
   centroid_drift_threshold: number;
   /** Whether to log all messages to the knowledge store */
   log_to_knowledge_store: boolean;
+  /**
+   * Migration accepts existing v1 messages and emits a migration-required
+   * event. Strict requires an admitted v2 signed custody envelope.
+   */
+  custody_mode: 'migration' | 'strict';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -343,6 +383,7 @@ export const semanticCollabHandler: TraitHandler<SemanticCollabConfig> = {
     cosine_anomaly_threshold: 0.15,
     centroid_drift_threshold: 0.4,
     log_to_knowledge_store: false,
+    custody_mode: 'migration',
   },
 
   onAttach(node: HSPlusNode): void {
@@ -387,6 +428,7 @@ export const semanticCollabHandler: TraitHandler<SemanticCollabConfig> = {
 
       state.received++;
       updateCentroid(state, msg.pillar_slice);
+      emitCustodyStatus(context, msg);
       context.emit?.('semcol:received', { message: msg });
     }
 
@@ -397,6 +439,15 @@ export const semanticCollabHandler: TraitHandler<SemanticCollabConfig> = {
       const to = ((event as Record<string, unknown>).to ?? event.payload?.to) as string | undefined;
       if (!msg || !to) return;
 
+      if (msg.to !== to) {
+        state.integrity_failures++;
+        context.emit?.('semcol:integrity_fail', {
+          reason: 'recipient_mismatch' satisfies IntegrityFailReason,
+          message: msg,
+        });
+        return;
+      }
+
       const fail = validateMessage(msg, config, state);
       if (fail) {
         state.integrity_failures++;
@@ -405,6 +456,7 @@ export const semanticCollabHandler: TraitHandler<SemanticCollabConfig> = {
       }
 
       state.sent++;
+      emitCustodyStatus(context, msg);
       context.emit?.('semcol:sent', { message: msg, to });
     }
   },
@@ -419,9 +471,35 @@ function validateMessage(
   config: SemanticCollabConfig,
   state: SemanticCollabState
 ): IntegrityFailReason | null {
+  if (msg.version !== '1.0' && msg.version !== '2.0') {
+    return 'unsupported_version';
+  }
+
   // Provenance required
   if (!msg.provenance?.attestation_hash || !msg.provenance?.surface_id) {
     return 'missing_provenance';
+  }
+
+  if (msg.version === '2.0') {
+    if (!msg.action || !msg.nonce) return 'unverified_custody';
+    const payloadAction =
+      msg.payload && typeof msg.payload.action === 'string' ? msg.payload.action : undefined;
+    if (payloadAction !== undefined && payloadAction !== msg.action) {
+      return 'action_payload_mismatch';
+    }
+    const custodyReceipt = getSemanticCustodyReceipt(msg);
+    if (
+      !custodyReceipt ||
+      custodyReceipt.message_id !== msg.message_id ||
+      custodyReceipt.action !== msg.action ||
+      custodyReceipt.sender !== msg.from ||
+      custodyReceipt.recipient !== msg.to ||
+      custodyReceipt.nonce !== msg.nonce
+    ) {
+      return 'unverified_custody';
+    }
+  } else if (config.custody_mode === 'strict') {
+    return 'unverified_custody';
   }
 
   // Receipt required for low-confidence messages (A-step enforcement)
@@ -457,6 +535,19 @@ function validateMessage(
   }
 
   return null;
+}
+
+function emitCustodyStatus(context: TraitContext, msg: SemanticCollaborationMessage): void {
+  if (msg.version === '1.0') {
+    context.emit?.('semcol:migration_required', {
+      message_id: msg.message_id,
+      from_version: '1.0',
+      to_version: '2.0',
+    });
+    return;
+  }
+  const receipt = getSemanticCustodyReceipt(msg);
+  if (receipt) context.emit?.('semcol:custody_receipt', { receipt });
 }
 
 function updateCentroid(state: SemanticCollabState, slice: PillarSlice): void {
@@ -507,3 +598,60 @@ export function createSemanticMessage(
     provenance,
   };
 }
+
+/**
+ * Decode either protocol generation without silently upgrading trust.
+ * Legacy messages remain v1 and are explicitly marked for signed migration.
+ */
+export function decodeSemanticMessage(input: unknown):
+  | {
+      ok: true;
+      message: SemanticCollaborationMessage;
+      migration_required: boolean;
+    }
+  | { ok: false; reason: 'shape' | 'version' } {
+  if (!input || typeof input !== 'object') return { ok: false, reason: 'shape' };
+  const candidate = input as Partial<SemanticCollaborationMessage>;
+  if (candidate.version !== '1.0' && candidate.version !== '2.0') {
+    return { ok: false, reason: 'version' };
+  }
+  if (
+    !candidate.message_id ||
+    !candidate.from ||
+    !candidate.to ||
+    !candidate.pillar_slice ||
+    !candidate.brain_coord ||
+    !candidate.provenance
+  ) {
+    return { ok: false, reason: 'shape' };
+  }
+  return {
+    ok: true,
+    message: candidate as SemanticCollaborationMessage,
+    migration_required: candidate.version === '1.0',
+  };
+}
+
+/**
+ * Prepare a legacy message for v2 signing. This does not authenticate it.
+ * Callers must build/sign the custody binding and then admit the result through
+ * the HoloMesh verifier before a strict handler will accept it.
+ */
+export function prepareSemanticMessageV2(
+  legacy: SemanticCollaborationMessage,
+  action: string,
+  nonce: string,
+  provenance: ProvenanceAttestation & { holokey: string; signer_address: string }
+): SemanticCollaborationMessageV2 {
+  if (!action || !nonce) throw new Error('v2 migration requires action and nonce');
+  return {
+    ...legacy,
+    version: '2.0',
+    action,
+    nonce,
+    provenance,
+    custody: undefined,
+  } as SemanticCollaborationMessageV2;
+}
+
+export type { SemanticCustodyEnvelope, SemanticCustodyReceipt };

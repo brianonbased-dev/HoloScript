@@ -24,11 +24,39 @@ export type {
   TaskState,
   ProvenanceAttestation,
   SemanticCollaborationMessage,
+  SemanticCollaborationMessageV2,
   IntegrityFailReason,
   SemanticCollabConfig,
+  SemanticCustodyEnvelope,
+  SemanticCustodyReceipt,
 } from './SemanticCollaborationContract';
 
-export { semanticCollabHandler, createSemanticMessage } from './SemanticCollaborationContract';
+export {
+  semanticCollabHandler,
+  createSemanticMessage,
+  decodeSemanticMessage,
+  prepareSemanticMessageV2,
+} from './SemanticCollaborationContract';
+
+export type {
+  SemanticCustodyMessageLike,
+  SemanticCustodyBindingV2,
+  HoloMeshSignedSemanticEnvelope,
+  SemanticCustodyVerification,
+  SemanticCustodyVerifier,
+  SemanticReplayStore,
+  SemanticCustodyFailureReason,
+  SemanticCustodyAdmission,
+} from './SemanticCustody';
+
+export {
+  SEMANTIC_CUSTODY_SCHEMA,
+  InMemorySemanticReplayStore,
+  computeSemanticPayloadDigest,
+  buildSemanticCustodyBinding,
+  admitSemanticCustodyMessage,
+  getSemanticCustodyReceipt,
+} from './SemanticCustody';
 
 // ── Single Pillars ─────────────────────────────────────────────────────────────
 export type {

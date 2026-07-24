@@ -1,8 +1,9 @@
 /**
- * RecursiveLinkTrait — latent vector Pillar communication layer (RecursiveMAS port).
+ * RecursiveLinkTrait — signed structured-state collaboration link.
  *
- * Replaces text-token agent communication with direct PillarSlice exchange.
- * Pillar-generated 4-tuples ARE the latent messages (no token conversion step).
+ * Carries PillarSlice fields without claiming that they are model hidden
+ * states. Equal-content text/JSON matched the typed frame in the P32 protocol
+ * tournament; this handler's admitted value is schema, replay, and custody.
  *
  * Inner loop (Domain/Layer Pillars): high-frequency refinement.
  * Outer loop (Intent/Temporal Pillars): low-frequency optimization.
@@ -11,9 +12,6 @@
  * Works with closed-API agents (Claude/GPT/Gemini/Grok) because it operates
  * on structured Pillar state, not raw hidden states.
  *
- * Expected gains (per RecursiveMAS arxiv:2604.25917):
- *   +8.3% accuracy, 1.2–2.4× faster, 34–76% fewer tokens.
- *
  * References:
  *   RecursiveMAS — arxiv:2604.25917 (UIUC/Stanford/NVIDIA/MIT, 2026-04)
  *   Pillar-Slice Framework — research/2026-05-20_paper26-pillar-slice-scope.md
@@ -21,7 +19,8 @@
  */
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from '../TraitTypes';
-import type { PillarSlice } from './SemanticCollaborationContract';
+import type { PillarSlice, SemanticCollaborationMessage } from './SemanticCollaborationContract';
+import { getSemanticCustodyReceipt, type SemanticCustodyReceipt } from './SemanticCustody';
 
 // --- Types -------------------------------------------------------------------
 
@@ -33,6 +32,13 @@ export interface RecursiveLinkMessage {
   receipt?: string; // SimulationContract evidence hash
   timestamp_ms: number;
   metadata?: Record<string, unknown>;
+  /**
+   * Admitted v2 semantic message that binds this link's action, endpoints,
+   * nonce, axis IDs, and payload to a signed HoloMesh envelope.
+   */
+  semantic_message?: SemanticCollaborationMessage;
+  /** Deterministic local receipt emitted only after admission succeeds. */
+  custody_receipt?: SemanticCustodyReceipt;
 }
 
 export interface RecursiveLinkConfig {
@@ -40,6 +46,8 @@ export interface RecursiveLinkConfig {
   require_receipt: boolean;
   /** Default loop for new links */
   default_loop: 'inner' | 'outer';
+  /** Migration preserves legacy links; strict requires signed v2 custody. */
+  custody_mode: 'migration' | 'strict';
 }
 
 // --- Trait Implementation ----------------------------------------------------
@@ -62,6 +70,7 @@ export const recursiveLinkHandler: TraitHandler<RecursiveLinkConfig> = {
   defaultConfig: {
     require_receipt: true,
     default_loop: 'inner',
+    custody_mode: 'migration',
   },
 
   onAttach(node: HSPlusNode, _config: RecursiveLinkConfig, _context: TraitContext): void {
@@ -91,11 +100,38 @@ export const recursiveLinkHandler: TraitHandler<RecursiveLinkConfig> = {
       const loop = extractField<'inner' | 'outer'>(event, 'loop') ?? config.default_loop;
       const receipt = extractField<string>(event, 'receipt');
       const metadata = extractField<Record<string, unknown>>(event, 'metadata');
+      const semanticMessage = extractField<SemanticCollaborationMessage>(event, 'semantic_message');
 
       if (!slice || !to) {
         context.emit?.('recursive_link:error', {
           code: 'INVALID_MESSAGE',
           message: 'slice and to are required',
+        });
+        return;
+      }
+      if (config.require_receipt && !receipt && config.custody_mode === 'strict') {
+        context.emit?.('recursive_link:error', {
+          code: 'RECEIPT_REQUIRED',
+          message: 'strict recursive links require a SimulationContract receipt',
+        });
+        return;
+      }
+
+      const custody = validateRecursiveCustody(
+        semanticMessage,
+        {
+          from: extractField<string>(event, 'from') ?? 'unknown',
+          to,
+          loop,
+          slice,
+          receipt,
+        },
+        config.custody_mode
+      );
+      if (!custody.ok) {
+        context.emit?.('recursive_link:error', {
+          code: custody.code,
+          message: custody.message,
         });
         return;
       }
@@ -108,9 +144,20 @@ export const recursiveLinkHandler: TraitHandler<RecursiveLinkConfig> = {
         receipt: config.require_receipt && !receipt ? `receipt_${Date.now()}` : receipt,
         timestamp_ms: Date.now(),
         metadata,
+        semantic_message: semanticMessage,
+        custody_receipt: custody.receipt,
       };
 
       state.sentCount++;
+      if (custody.migrationRequired) {
+        context.emit?.('recursive_link:migration_required', {
+          from: fullMsg.from,
+          to: fullMsg.to,
+          action: 'recursive_link',
+        });
+      } else if (custody.receipt) {
+        context.emit?.('recursive_link:custody_receipt', { receipt: custody.receipt });
+      }
       context.emit?.('recursive_link:sent', fullMsg);
       return;
     }
@@ -121,9 +168,30 @@ export const recursiveLinkHandler: TraitHandler<RecursiveLinkConfig> = {
         extractField<RecursiveLinkMessage>(event, 'message') ??
         (event as unknown as RecursiveLinkMessage);
 
-      // Integrity hook: Two-Axis checks (cosine_anomaly + centroid_drift)
-      // are expected to have been run upstream by SemanticCollaborationContract.
+      const custody = validateRecursiveCustody(
+        incoming.semantic_message,
+        incoming,
+        config.custody_mode
+      );
+      if (!custody.ok) {
+        context.emit?.('recursive_link:error', {
+          code: custody.code,
+          message: custody.message,
+        });
+        return;
+      }
+
       state.receivedCount++;
+      if (custody.migrationRequired) {
+        context.emit?.('recursive_link:migration_required', {
+          from: incoming.from,
+          to: incoming.to,
+          action: 'recursive_link',
+        });
+      } else if (custody.receipt) {
+        incoming.custody_receipt = custody.receipt;
+        context.emit?.('recursive_link:custody_receipt', { receipt: custody.receipt });
+      }
       context.emit?.('recursive_link:received', incoming);
       return;
     }
@@ -159,5 +227,81 @@ export const recursiveLinkHandler: TraitHandler<RecursiveLinkConfig> = {
     }
   },
 };
+
+type RecursiveCustodyResult =
+  | {
+      ok: true;
+      receipt?: SemanticCustodyReceipt;
+      migrationRequired: boolean;
+    }
+  | {
+      ok: false;
+      code: 'CUSTODY_REQUIRED' | 'CUSTODY_MISMATCH' | 'RECEIPT_REQUIRED';
+      message: string;
+    };
+
+function validateRecursiveCustody(
+  semanticMessage: SemanticCollaborationMessage | undefined,
+  link: Pick<RecursiveLinkMessage, 'from' | 'to' | 'loop' | 'slice' | 'receipt'>,
+  mode: RecursiveLinkConfig['custody_mode']
+): RecursiveCustodyResult {
+  if (!semanticMessage) {
+    if (mode === 'strict') {
+      return {
+        ok: false,
+        code: 'CUSTODY_REQUIRED',
+        message: 'strict recursive links require an admitted semantic_message',
+      };
+    }
+    return { ok: true, migrationRequired: true };
+  }
+
+  const receipt = getSemanticCustodyReceipt(semanticMessage);
+  const payloadLoop =
+    semanticMessage.payload && typeof semanticMessage.payload.loop === 'string'
+      ? semanticMessage.payload.loop
+      : undefined;
+  const payloadReceipt =
+    semanticMessage.payload && typeof semanticMessage.payload.link_receipt === 'string'
+      ? semanticMessage.payload.link_receipt
+      : undefined;
+  if (mode === 'strict' && !link.receipt) {
+    return {
+      ok: false,
+      code: 'RECEIPT_REQUIRED',
+      message: 'strict recursive links require a SimulationContract receipt',
+    };
+  }
+  if (
+    semanticMessage.version !== '2.0' ||
+    semanticMessage.action !== 'recursive_link' ||
+    !receipt ||
+    semanticMessage.from !== link.from ||
+    semanticMessage.to !== link.to ||
+    !sameSlice(semanticMessage.pillar_slice, link.slice) ||
+    payloadLoop !== link.loop ||
+    payloadReceipt !== link.receipt
+  ) {
+    return {
+      ok: false,
+      code: 'CUSTODY_MISMATCH',
+      message:
+        'semantic custody must bind recursive_link action, endpoints, loop payload, receipt, and complete slice',
+    };
+  }
+
+  return { ok: true, receipt, migrationRequired: false };
+}
+
+function sameSlice(left: PillarSlice, right: PillarSlice): boolean {
+  return (
+    left.axis_1_id === right.axis_1_id &&
+    left.axis_2_id === right.axis_2_id &&
+    left.pos_1 === right.pos_1 &&
+    left.pos_2 === right.pos_2 &&
+    left.pillar_id === right.pillar_id &&
+    left.pillar_domain === right.pillar_domain
+  );
+}
 
 export default recursiveLinkHandler;
