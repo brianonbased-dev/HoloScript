@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { canonicalizeHeadlessValue } from '@holoscript/engine/runtime';
 import { describe, expect, it } from 'vitest';
 import { parseArgs } from '../args';
 
@@ -118,30 +119,10 @@ function planRecords(): unknown[] {
   ];
 }
 
-function holoLiteral(value: unknown): string {
-  if (value === null || typeof value === 'string' || typeof value === 'number') {
-    return JSON.stringify(value);
-  }
-  if (typeof value === 'boolean') return value ? 'true' : 'false';
-  if (Array.isArray(value)) return `[${value.map(holoLiteral).join(', ')}]`;
-  if (value && typeof value === 'object') {
-    return `{ ${Object.entries(value)
-      .map(([key, child]) => `${key}: ${holoLiteral(child)}`)
-      .join(', ')} }`;
-  }
-  throw new Error(`Unsupported HoloScript fixture literal: ${typeof value}`);
-}
-
-function planSource(name = 'TwoResidentPlan'): string {
-  return `pipeline ${JSON.stringify(name)} {
-    source OrderedSchedule {
-      type: "list"
-      items: ${holoLiteral(planRecords())}
-    }
-
-    sink CapturedPlan {
-      type: "stdout"
-    }
+function planSource(): string {
+  const canonicalPlan = canonicalizeHeadlessValue(planRecords());
+  return `export function main(): string {
+    return ${JSON.stringify(canonicalPlan)}
   }`;
 }
 
@@ -189,7 +170,7 @@ describe('CLI deterministic cross-format headless execution', () => {
     );
   });
 
-  it('executes .hs schedule data and .hsplus actions with isolated observer equivalence', async () => {
+  it('executes a Rust/WASM-to-UAAL .hs plan and .hsplus actions with observer equivalence', async () => {
     const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-headless-experiment-'));
     try {
       const worldPath = path.join(tempDir, 'village.holo');
@@ -231,14 +212,23 @@ describe('CLI deterministic cross-format headless execution', () => {
       });
       expect(onReceipt.executionEngines).toEqual({
         world: 'holoscript-cli-pure-world-projection-v1',
-        schedule: 'holoscript-node-pipeline-bridge-v1',
+        schedule: 'holoscript-rust-wasm-uaal-plan-kernel-v1',
         behavior: 'holoscript-engine-hsplus-deterministic-action-subset-v1',
       });
       expect(onReceipt.claimBoundary).toMatchObject({
         holoWorldParsedAndProjected: true,
-        hsPipelineExecuted: true,
+        hsPipelineExecuted: false,
+        hsPlanEntrypointExecuted: true,
+        rustWasmCompilerExecuted: true,
+        uaalVmExecuted: true,
+        hsPlanReturnParsedAsJson: true,
+        fullHsLanguageExecutionClaimed: false,
+        hsDynamicJavaScriptEvaluationUsed: false,
         hsplusActionEntrypointsExecuted: true,
         nativeRustPipelineExecutionClaimed: false,
+        nativeMachineCodeExecutionClaimed: false,
+        executionEngineIdentitySealedInReceipt: false,
+        uaalBytecodeHashSealedInReceipt: false,
         nativeEngineHsplusExecutionClaimed: false,
         engineOwnedDeterministicHsplusActionSubsetExecuted: true,
         fullHsplusLanguageExecutionClaimed: false,
@@ -344,7 +334,7 @@ describe('CLI deterministic cross-format headless execution', () => {
     }
   });
 
-  it('rejects unsafe pipeline metadata and wrong experiment extensions before execution', async () => {
+  it('rejects ambiguous .hs plan entrypoints and wrong experiment extensions before execution', async () => {
     const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-headless-plan-gates-'));
     try {
       const worldPath = path.join(tempDir, 'village.holo');
@@ -355,7 +345,9 @@ describe('CLI deterministic cross-format headless execution', () => {
       writeFileSync(wrongPlanPath, planSource());
       writeFileSync(
         unsafePlanPath,
-        planSource('A*/globalThis.__deterministicPlanMetadataExecuted=1;/*')
+        `export function helper(): string {
+          return "[]"
+        }`
       );
       writeFileSync(behaviorPath, behaviorSource());
 
@@ -384,7 +376,7 @@ describe('CLI deterministic cross-format headless execution', () => {
           '--json',
         ])
       ).rejects.toMatchObject({
-        stderr: expect.stringMatching(/plan names must use/i),
+        stderr: expect.stringMatching(/must export main\(\)|main\(\)/i),
       });
     } finally {
       rmSync(tempDir, { recursive: true, force: true });

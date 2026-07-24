@@ -532,6 +532,9 @@ importers:
       '@holoscript/sdk':
         specifier: workspace:^
         version: link:../holoscript
+      '@holoscript/uaal':
+        specifier: workspace:*
+        version: link:../uaal
       '@holoscript/wasm':
         specifier: workspace:^
         version: link:../compiler-wasm

@@ -10,7 +10,7 @@ import {
   type HeadlessExperimentReceipt,
   type HeadlessJsonObject,
 } from '@holoscript/engine/runtime';
-import { executePipelineSource, NODE_PIPELINE_BRIDGE } from './pipeline-runner';
+import { executeHsPlanKernel, RUST_WASM_UAAL_HS_PLAN_KERNEL } from './native-hs-plan-runner';
 
 export const POST_SEAL_OBSERVER_PROCESS = 'separate-node-process-serialized-post-seal-v1' as const;
 export const PURE_HOLO_WORLD_PROJECTION = 'holoscript-cli-pure-world-projection-v1' as const;
@@ -31,14 +31,23 @@ export interface HeadlessExperimentSourceRun {
   execution: HeadlessExperimentReceipt;
   engines: {
     world: typeof PURE_HOLO_WORLD_PROJECTION;
-    schedule: typeof NODE_PIPELINE_BRIDGE;
+    schedule: typeof RUST_WASM_UAAL_HS_PLAN_KERNEL;
     behavior: typeof ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET;
   };
   claimBoundary: {
     holoWorldParsedAndProjected: true;
-    hsPipelineExecuted: true;
+    hsPipelineExecuted: false;
+    hsPlanEntrypointExecuted: true;
+    rustWasmCompilerExecuted: true;
+    uaalVmExecuted: true;
+    hsPlanReturnParsedAsJson: true;
+    fullHsLanguageExecutionClaimed: false;
+    hsDynamicJavaScriptEvaluationUsed: false;
     hsplusActionEntrypointsExecuted: true;
     nativeRustPipelineExecutionClaimed: false;
+    nativeMachineCodeExecutionClaimed: false;
+    executionEngineIdentitySealedInReceipt: false;
+    uaalBytecodeHashSealedInReceipt: false;
     nativeEngineHsplusExecutionClaimed: false;
     engineOwnedDeterministicHsplusActionSubsetExecuted: true;
     fullHsplusLanguageExecutionClaimed: false;
@@ -148,7 +157,6 @@ export async function runHeadlessExperimentSources(options: {
     | { scene: unknown; posePhysics: unknown };
   worldProjectionEngine: typeof PURE_HOLO_WORLD_PROJECTION;
   observer: 'off' | 'on';
-  planModuleName?: string;
 }): Promise<HeadlessExperimentSourceRun> {
   const sourceBundleHash = hashHeadlessValue({
     world: options.worldSource,
@@ -157,11 +165,8 @@ export async function runHeadlessExperimentSources(options: {
   });
 
   const execute = async (): Promise<HeadlessExperimentReceipt> => {
-    const pipeline = await executePipelineSource(options.planSource, {
-      mode: 'deterministic-plan',
-      moduleName: options.planModuleName ?? 'headless-plan.hs',
-    });
-    const plan = parseHeadlessExperimentPlan(pipeline.data);
+    const planKernel = await executeHsPlanKernel(options.planSource);
+    const plan = parseHeadlessExperimentPlan(planKernel.data);
     const world = await options.captureWorld();
     const behavior = createDeterministicHsplusActionRuntime(options.behaviorSource);
     const receipt = await buildHeadlessExperimentReceipt({
@@ -191,14 +196,23 @@ export async function runHeadlessExperimentSources(options: {
     execution: offReceipt,
     engines: {
       world: options.worldProjectionEngine,
-      schedule: NODE_PIPELINE_BRIDGE,
+      schedule: RUST_WASM_UAAL_HS_PLAN_KERNEL,
       behavior: ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
     },
     claimBoundary: {
       holoWorldParsedAndProjected: true,
-      hsPipelineExecuted: true,
+      hsPipelineExecuted: false,
+      hsPlanEntrypointExecuted: true,
+      rustWasmCompilerExecuted: true,
+      uaalVmExecuted: true,
+      hsPlanReturnParsedAsJson: true,
+      fullHsLanguageExecutionClaimed: false,
+      hsDynamicJavaScriptEvaluationUsed: false,
       hsplusActionEntrypointsExecuted: true,
       nativeRustPipelineExecutionClaimed: false,
+      nativeMachineCodeExecutionClaimed: false,
+      executionEngineIdentitySealedInReceipt: false,
+      uaalBytecodeHashSealedInReceipt: false,
       nativeEngineHsplusExecutionClaimed: false,
       engineOwnedDeterministicHsplusActionSubsetExecuted: true,
       fullHsplusLanguageExecutionClaimed: false,

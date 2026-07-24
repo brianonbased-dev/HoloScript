@@ -1823,7 +1823,6 @@ async function main(): Promise<void> {
             },
             worldProjectionEngine: PURE_HOLO_WORLD_PROJECTION,
             observer: options.observer ?? 'off',
-            planModuleName: path.basename(planPath),
           });
           const output = {
             schema: 'holoscript-headless-run-receipt-v1',
