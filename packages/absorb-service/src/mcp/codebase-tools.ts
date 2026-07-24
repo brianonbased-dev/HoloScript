@@ -127,6 +127,7 @@ interface AbsorbMemorySnapshot {
 interface AbsorbMemoryBudgetLimits {
   maxRssMb?: number;
   maxHeapUsedMb?: number;
+  cacheCommitHeadroomMb?: number;
 }
 
 interface AbsorbMemoryBudgetTelemetry extends AbsorbMemoryBudgetLimits {
@@ -135,9 +136,17 @@ interface AbsorbMemoryBudgetTelemetry extends AbsorbMemoryBudgetLimits {
   exceeded: boolean;
   exceededResource?: 'rss' | 'heap' | 'rss_and_heap';
   exceededAtPhase?: string;
+  headroomExhausted: boolean;
+  headroomResource?: 'rss' | 'heap' | 'rss_and_heap';
+  headroomExhaustedAtPhase?: string;
+  effectiveMaxRssBeforeCacheCommitMb?: number;
+  effectiveMaxHeapUsedBeforeCacheCommitMb?: number;
 }
 
-type AbsorbCancellationReason = 'cancel_requested' | 'memory_budget_exceeded';
+type AbsorbCancellationReason =
+  | 'cancel_requested'
+  | 'memory_budget_exceeded'
+  | 'cache_commit_headroom_exhausted';
 
 interface AbsorbCancellationState {
   reason: AbsorbCancellationReason;
@@ -188,6 +197,8 @@ function hasMeshAuthHeaders(headers: Record<string, string>): boolean {
   );
 }
 const DEFAULT_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = 1_000;
+const DEFAULT_CACHE_COMMIT_HEADROOM_RATIO = 0.125;
+const DEFAULT_CACHE_COMMIT_HEADROOM_MAX_MB = 512;
 
 function readPositiveEnvMs(name: string, fallback: number): number {
   const raw = Number(process.env[name]);
@@ -213,10 +224,29 @@ function resolveAbsorbMemoryBudget(
     }
     return value;
   };
-  const limits = {
+  const limits: AbsorbMemoryBudgetLimits = {
     maxRssMb: readLimit('maxRssMb', 'ABSORB_MAX_RSS_MB'),
     maxHeapUsedMb: readLimit('maxHeapUsedMb', 'ABSORB_MAX_HEAP_USED_MB'),
   };
+  const rawHeadroom = args.cacheCommitHeadroomMb ?? process.env.ABSORB_CACHE_COMMIT_HEADROOM_MB;
+  if (rawHeadroom !== undefined && rawHeadroom !== '') {
+    const value = Number(rawHeadroom);
+    if (!Number.isFinite(value) || value < 0) {
+      errors.push('cacheCommitHeadroomMb must be a non-negative number when provided.');
+    } else {
+      limits.cacheCommitHeadroomMb = value;
+    }
+  } else {
+    const configuredCaps = [limits.maxRssMb, limits.maxHeapUsedMb].filter(
+      (value): value is number => value !== undefined
+    );
+    if (configuredCaps.length > 0) {
+      limits.cacheCommitHeadroomMb = Math.min(
+        DEFAULT_CACHE_COMMIT_HEADROOM_MAX_MB,
+        Math.max(0.1, Math.min(...configuredCaps) * DEFAULT_CACHE_COMMIT_HEADROOM_RATIO)
+      );
+    }
+  }
   return errors.length > 0 ? { valid: false, errors } : { valid: true, limits };
 }
 
@@ -541,11 +571,19 @@ const absorbJobs = new Map<string, AbsorbJob>();
 
 function createAbsorbMemoryBudget(limits: AbsorbMemoryBudgetLimits): AbsorbMemoryBudgetTelemetry {
   const current = readAbsorbMemorySnapshot();
+  const headroom = limits.cacheCommitHeadroomMb ?? 0;
   return {
     ...limits,
     peakRssMb: current.rssMb,
     peakHeapUsedMb: current.heapUsedMb,
     exceeded: false,
+    headroomExhausted: false,
+    ...(limits.maxRssMb !== undefined && {
+      effectiveMaxRssBeforeCacheCommitMb: Math.max(0, limits.maxRssMb - headroom),
+    }),
+    ...(limits.maxHeapUsedMb !== undefined && {
+      effectiveMaxHeapUsedBeforeCacheCommitMb: Math.max(0, limits.maxHeapUsedMb - headroom),
+    }),
   };
 }
 
@@ -559,17 +597,43 @@ function updateAbsorbMemoryBudget(job: AbsorbJob, phase: string): void {
   const heapExceeded =
     job.memoryBudget.maxHeapUsedMb !== undefined &&
     current.heapUsedMb > job.memoryBudget.maxHeapUsedMb;
-  if (!rssExceeded && !heapExceeded) return;
+  const rssHeadroomExhausted =
+    job.memoryBudget.effectiveMaxRssBeforeCacheCommitMb !== undefined &&
+    current.rssMb > job.memoryBudget.effectiveMaxRssBeforeCacheCommitMb;
+  const heapHeadroomExhausted =
+    job.memoryBudget.effectiveMaxHeapUsedBeforeCacheCommitMb !== undefined &&
+    current.heapUsedMb > job.memoryBudget.effectiveMaxHeapUsedBeforeCacheCommitMb;
+  if (!rssExceeded && !heapExceeded && !rssHeadroomExhausted && !heapHeadroomExhausted) {
+    return;
+  }
 
-  job.memoryBudget.exceeded = true;
-  job.memoryBudget.exceededResource =
-    rssExceeded && heapExceeded ? 'rss_and_heap' : rssExceeded ? 'rss' : 'heap';
-  job.memoryBudget.exceededAtPhase ??= phase;
+  if (rssExceeded || heapExceeded) {
+    job.memoryBudget.exceeded = true;
+    job.memoryBudget.exceededResource =
+      rssExceeded && heapExceeded ? 'rss_and_heap' : rssExceeded ? 'rss' : 'heap';
+    job.memoryBudget.exceededAtPhase ??= phase;
+  }
+  if (rssHeadroomExhausted || heapHeadroomExhausted) {
+    job.memoryBudget.headroomExhausted = true;
+    job.memoryBudget.headroomResource =
+      rssHeadroomExhausted && heapHeadroomExhausted
+        ? 'rss_and_heap'
+        : rssHeadroomExhausted
+          ? 'rss'
+          : 'heap';
+    job.memoryBudget.headroomExhaustedAtPhase ??= phase;
+  }
   if (!job.abortController.signal.aborted) {
+    const hardLimitExceeded = rssExceeded || heapExceeded;
+    const resource = hardLimitExceeded
+      ? job.memoryBudget.exceededResource
+      : job.memoryBudget.headroomResource;
     requestAbsorbCancellation(
       job,
-      'memory_budget_exceeded',
-      `Absorb ${job.memoryBudget.exceededResource} memory budget exceeded during ${phase}`
+      hardLimitExceeded ? 'memory_budget_exceeded' : 'cache_commit_headroom_exhausted',
+      hardLimitExceeded
+        ? `Absorb ${resource} memory budget exceeded during ${phase}`
+        : `Absorb ${resource} cache-commit headroom exhausted during ${phase}; preserving the prior authoritative cache`
     );
   }
 }
@@ -781,17 +845,17 @@ function trackAbsorbProgress(
   const job = absorbJobs.get(jobId);
   if (job) {
     job.phase = phase;
-    job.progress = Math.min(100, Math.max(0, progress));
+    job.progress = Math.max(job.progress, Math.min(100, Math.max(0, progress)));
     if (filesProcessed !== undefined) job.filesProcessed = filesProcessed;
     if (totalFiles !== undefined) job.totalFiles = totalFiles;
 
     // Auto-update status based on progress
-    if (progress >= 100) {
+    if (job.progress >= 100) {
       job.status = 'complete';
       job.completedAt = Date.now();
-    } else if (progress >= 65) {
+    } else if (job.progress >= 65) {
       job.status = 'indexing';
-    } else if (progress >= 10) {
+    } else if (job.progress >= 10) {
       job.status = 'scanning';
     } else {
       job.status = 'queued';
@@ -1987,6 +2051,72 @@ function atomicWriteFileSync(
   }
 }
 
+function writeUtf8ChunksSync(fileDescriptor: number, value: string): void {
+  const chunkCharacters = 1024 * 1024;
+  for (let offset = 0; offset < value.length; offset += chunkCharacters) {
+    const buffer = Buffer.from(value.slice(offset, offset + chunkCharacters), 'utf-8');
+    let written = 0;
+    while (written < buffer.length) {
+      const bytesWritten = fs.writeSync(fileDescriptor, buffer, written, buffer.length - written);
+      if (bytesWritten <= 0) {
+        throw new Error('Unable to make progress while writing graph cache');
+      }
+      written += bytesWritten;
+    }
+  }
+}
+
+/**
+ * Persist the graph envelope without materializing a second cache-sized JSON
+ * string. `graph.serialize()` is already hundreds of MiB on the HoloScript
+ * monorepo; JSON.stringify(envelope) used to duplicate and escape that entire
+ * string on the V8 heap immediately before publication.
+ */
+function atomicWriteGraphCacheEnvelopeSync(targetPath: string, envelope: GraphCacheEnvelope): void {
+  const dir = path.dirname(targetPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const tempPath = path.join(
+    dir,
+    `${path.basename(targetPath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
+  let fileDescriptor: number | undefined;
+
+  try {
+    const { graphJson, ...metadata } = envelope;
+    const metadataJson = JSON.stringify(metadata);
+    fileDescriptor = fs.openSync(tempPath, 'wx');
+    writeUtf8ChunksSync(fileDescriptor, metadataJson.slice(0, -1));
+    writeUtf8ChunksSync(fileDescriptor, ',"graphJson":"');
+    const chunkCharacters = 1024 * 1024;
+    for (let offset = 0; offset < graphJson.length; offset += chunkCharacters) {
+      const escaped = JSON.stringify(graphJson.slice(offset, offset + chunkCharacters)).slice(
+        1,
+        -1
+      );
+      writeUtf8ChunksSync(fileDescriptor, escaped);
+    }
+    writeUtf8ChunksSync(fileDescriptor, '"}');
+    fs.fsyncSync(fileDescriptor);
+    fs.closeSync(fileDescriptor);
+    fileDescriptor = undefined;
+    fs.renameSync(tempPath, targetPath);
+  } catch (err) {
+    try {
+      if (fileDescriptor !== undefined) fs.closeSync(fileDescriptor);
+    } catch {
+      // Preserve the original write failure.
+    }
+    try {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    } catch {
+      // Ignore temp cleanup failures; preserve the original write error.
+    }
+    throw err;
+  }
+}
+
 function saveGraphCache(
   graph: any,
   rootDir: string,
@@ -1995,7 +2125,8 @@ function saveGraphCache(
   fileHashes?: Record<string, string>,
   embeddingProvider?: string,
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary,
-  scanPolicy?: GraphScanPolicy
+  scanPolicy?: GraphScanPolicy,
+  serializedGraph?: string
 ): boolean {
   const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
   if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
@@ -2020,7 +2151,7 @@ function saveGraphCache(
       rootDir,
       timestamp: Date.now(),
       stats,
-      graphJson: graph.serialize(),
+      graphJson: serializedGraph ?? graph.serialize(),
       gitCommitHash,
       fileHashes,
       embeddingProvider,
@@ -2031,7 +2162,7 @@ function saveGraphCache(
       coverageAtScan,
     };
     const cacheFile = getCacheFile(rootDir);
-    atomicWriteFileSync(cacheFile, JSON.stringify(envelope), 'utf-8');
+    atomicWriteGraphCacheEnvelopeSync(cacheFile, envelope);
     return true;
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
@@ -2798,6 +2929,12 @@ export const codebaseTools: Tool[] = [
           description:
             'Optional V8 heap-used budget in MiB. Exceeding it cooperatively cancels the job and preserves the prior cache. May also be set with ABSORB_MAX_HEAP_USED_MB.',
         },
+        cacheCommitHeadroomMb: {
+          type: 'number',
+          minimum: 0,
+          description:
+            'Memory reserve in MiB held below configured RSS/heap caps for graph and embedding serialization plus atomic cache publication. Near-cap jobs cancel cooperatively before touching the prior cache. Defaults to 12.5% of the smallest configured cap, capped at 512 MiB; set ABSORB_CACHE_COMMIT_HEADROOM_MB or pass 0 to disable.',
+        },
         exclude: {
           type: 'array',
           items: { type: 'string' },
@@ -3209,10 +3346,7 @@ async function ensureCachedGraph(): Promise<{
     const ageMs = memoryTimestamp ? Date.now() - memoryTimestamp : undefined;
     const freshByAge = ageMs === undefined || ageMs < CACHE_MAX_AGE_MS;
     const currentGitCommitHash = await getCurrentGitCommit(memoryRootDir);
-    const currentWorktreeFingerprint = buildGitWorktreeFingerprint(
-      memoryRootDir,
-      memoryScanPolicy
-    );
+    const currentWorktreeFingerprint = buildGitWorktreeFingerprint(memoryRootDir, memoryScanPolicy);
     let coverage = memoryGraph.coverageAtScan;
     const localCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
       receipt: memoryGraph.localCodebaseSnapshotReceipt,
@@ -4046,12 +4180,14 @@ async function runFullScan(
   recordPhaseMetric('mesh-sync');
 
   let result: unknown;
+  let serializedGraphForCache: string | undefined;
 
   if (outputFormat === 'graph') {
+    serializedGraphForCache = graph.serialize();
     result = {
       rootDir: primaryRootDir,
       stats,
-      graph: graph.serialize(),
+      graph: serializedGraphForCache,
       embeddingPolicy,
       scanPolicy: normalizeScanPolicy(scanPolicy),
       graphRagReady: semanticIndexReadiness.graphRagReady,
@@ -4129,7 +4265,8 @@ async function runFullScan(
     fileHashes,
     detectedProvider,
     localCodebaseSnapshotReceipt,
-    effectiveScanPolicy
+    effectiveScanPolicy,
+    serializedGraphForCache
   );
   if (!cacheSaved) {
     const error = new Error('Unable to publish the completed absorb graph cache atomically');
@@ -4807,8 +4944,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       const refreshProgressReceipt = plan.refreshCheckpoint?.progressReceipt();
       const result = {
         error:
-          err instanceof AbsorbRefreshCommitPinError ||
-          err instanceof AbsorbRefreshWorktreePinError
+          err instanceof AbsorbRefreshCommitPinError || err instanceof AbsorbRefreshWorktreePinError
             ? 'absorb_refresh_source_changed'
             : 'absorb_refresh_failed',
         message,
@@ -5040,7 +5176,16 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
   } = plan;
   const { CodebaseGraph, GitChangeDetector } = mod;
   const signal = getAbsorbJobSignal(jobId);
-  enforceAbsorbJobControl(jobId, 'initializing');
+  try {
+    enforceAbsorbJobControl(jobId, 'initializing');
+  } catch (error) {
+    const activeCheckpoint = plan.refreshCheckpoint ?? refreshCheckpoint;
+    if (activeCheckpoint) {
+      activeCheckpoint.markInterrupted(error);
+      setAbsorbJobRefreshProgress(jobId, activeCheckpoint.progressReceipt());
+    }
+    throw error;
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PATH 1: force=true → FULL SCAN
@@ -5049,35 +5194,51 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     if (!fromSourceFiles && !refreshCheckpoint) {
       await prepareDurableRefreshCheckpoint(plan);
     }
-    const result = await runFullScan(
-      mod,
-      effectiveRootDirs,
-      languages,
-      maxFiles,
-      includeBuildArtifacts,
-      outputFormat,
-      layout,
-      interactive,
-      jobId,
-      embeddingProvider,
-      embeddingApiKey,
-      embeddingModel,
-      inlineSourceFiles,
-      localCodebaseSnapshotReceipt,
-      scanBatchSize,
-      scanPolicy,
-      plan.preparedScanPlan ?? preparedScanPlan,
-      plan.refreshCheckpoint ?? refreshCheckpoint,
-      plan.targetGitCommitHash ?? targetGitCommitHash,
-      plan.targetWorktreeFingerprint ?? targetWorktreeFingerprint
-    );
-    return {
-      ...(result as Record<string, unknown>),
-      jobId,
-      fromSourceFiles,
-      fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
-      ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
-    };
+    const activeCheckpoint = plan.refreshCheckpoint ?? refreshCheckpoint;
+    try {
+      const result = await runFullScan(
+        mod,
+        effectiveRootDirs,
+        languages,
+        maxFiles,
+        includeBuildArtifacts,
+        outputFormat,
+        layout,
+        interactive,
+        jobId,
+        embeddingProvider,
+        embeddingApiKey,
+        embeddingModel,
+        inlineSourceFiles,
+        localCodebaseSnapshotReceipt,
+        scanBatchSize,
+        scanPolicy,
+        plan.preparedScanPlan ?? preparedScanPlan,
+        activeCheckpoint,
+        plan.targetGitCommitHash ?? targetGitCommitHash,
+        plan.targetWorktreeFingerprint ?? targetWorktreeFingerprint
+      );
+      return {
+        ...(result as Record<string, unknown>),
+        jobId,
+        fromSourceFiles,
+        fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
+        ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
+      };
+    } catch (error) {
+      if (activeCheckpoint) {
+        if (
+          error instanceof AbsorbRefreshCommitPinError ||
+          error instanceof AbsorbRefreshWorktreePinError
+        ) {
+          activeCheckpoint.markInvalidated(error);
+        } else {
+          activeCheckpoint.markInterrupted(error);
+        }
+        setAbsorbJobRefreshProgress(jobId, activeCheckpoint.progressReceipt());
+      }
+      throw error;
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -6080,14 +6241,14 @@ async function handleGraphStatus(): Promise<unknown> {
             : (cache.exists || cachedGraph !== null || graphRAGState.ready) && !activeFreshByAge
               ? 'cache_stale'
               : (cache.exists || cachedGraph !== null) && !activeCoverageComplete
-              ? 'cache_incomplete'
-              : (cache.exists || cachedGraph !== null || graphRAGState.ready) &&
-                (!activeFileHashFreshness.fresh ||
-                  (!activeGitMatchesHead && !activeFileHashFreshForHeadMismatch))
-              ? 'cache_stale'
-              : cache.exists || cachedGraph !== null || graphRAGState.ready
+                ? 'cache_incomplete'
+                : (cache.exists || cachedGraph !== null || graphRAGState.ready) &&
+                    (!activeFileHashFreshness.fresh ||
+                      (!activeGitMatchesHead && !activeFileHashFreshForHeadMismatch))
                   ? 'cache_stale'
-                  : 'cache_missing',
+                  : cache.exists || cachedGraph !== null || graphRAGState.ready
+                    ? 'cache_stale'
+                    : 'cache_missing',
         requestedPath,
         runtimePath: requestedPath ? path.resolve(requestedPath) : null,
         cacheAgeMs: activeAgeMs ?? graphRAGState.ageMs ?? undefined,
@@ -6201,16 +6362,16 @@ async function handleGraphStatus(): Promise<unknown> {
             : !diskCoverageComplete
               ? `Cache covers ${diskCoverage.graphFileCount}/${diskCoverage.expectedGraphFileCount ?? 'unknown'} expected files for this checkout. Refresh with holo_absorb_repo before trusting whole-repo queries.`
               : !diskCacheGitMatchesHead && !diskFileHashFreshForHeadMismatch
-              ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but current HEAD is ${shortGitHash(currentGitCommitHash)}. Call holo_absorb_repo with force:true to refresh.`
-              : !diskFileHashFreshness.fresh
-                ? `Cache file hashes no longer match the live worktree (${diskFileHashFreshness.modifiedFileCount} modified, ${diskFileHashFreshness.deletedFileCount} deleted). Call holo_absorb_repo to refresh before trusting structural or semantic queries.`
-              : !diskCacheGitMatchesHead && diskFileHashFreshForHeadMismatch
-                ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but all cached file hashes still match current HEAD ${shortGitHash(currentGitCommitHash)}. Structural tools may use it with the head-mismatch caveat.`
-                : diskCacheFreshByAge
-                    ? diskSemanticIndexHydratable
-                      ? 'HoloGraph cache and HoloEmbed disk index are fresh; structural and semantic tools can auto-load without re-scanning.'
-                      : 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'
-                    : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
+                ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but current HEAD is ${shortGitHash(currentGitCommitHash)}. Call holo_absorb_repo with force:true to refresh.`
+                : !diskFileHashFreshness.fresh
+                  ? `Cache file hashes no longer match the live worktree (${diskFileHashFreshness.modifiedFileCount} modified, ${diskFileHashFreshness.deletedFileCount} deleted). Call holo_absorb_repo to refresh before trusting structural or semantic queries.`
+                  : !diskCacheGitMatchesHead && diskFileHashFreshForHeadMismatch
+                    ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but all cached file hashes still match current HEAD ${shortGitHash(currentGitCommitHash)}. Structural tools may use it with the head-mismatch caveat.`
+                    : diskCacheFreshByAge
+                      ? diskSemanticIndexHydratable
+                        ? 'HoloGraph cache and HoloEmbed disk index are fresh; structural and semantic tools can auto-load without re-scanning.'
+                        : 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'
+                      : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
         }
       : {
           exists: false,

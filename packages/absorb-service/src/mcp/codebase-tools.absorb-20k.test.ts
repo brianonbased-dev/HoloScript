@@ -23,7 +23,8 @@ function git(rootDir: string, args: string[]): void {
 async function waitForStatus(
   jobId: string,
   predicate: (status: Record<string, unknown>) => boolean,
-  timeoutMs = 120_000
+  timeoutMs = 120_000,
+  progressSamples?: number[]
 ): Promise<Record<string, unknown>> {
   const startedAt = Date.now();
   let status: Record<string, unknown> = {};
@@ -32,10 +33,18 @@ async function waitForStatus(
       jobId,
       includeResult: true,
     })) as Record<string, unknown>;
+    if (progressSamples) progressSamples.push(Number(status.progress ?? 0));
     if (predicate(status)) return status;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
   return status;
+}
+
+function expectMonotonicProgress(samples: number[]): void {
+  expect(samples.length).toBeGreaterThan(1);
+  for (let index = 1; index < samples.length; index++) {
+    expect(samples[index]).toBeGreaterThanOrEqual(samples[index - 1]);
+  }
 }
 
 afterEach(() => {
@@ -131,6 +140,7 @@ describe('20k authoritative absorb refresh verifier', () => {
         });
 
       const acceptedAt = Date.now();
+      const interruptedProgressSamples: number[] = [];
       const accepted = (await handleCodebaseTool('holo_absorb_repo', {
         rootDir,
         force: true,
@@ -160,12 +170,17 @@ describe('20k authoritative absorb refresh verifier', () => {
         },
       });
 
-      const progressed = await waitForStatus(accepted.jobId!, (status) => {
-        const receipt = status.refreshProgressReceipt as
-          | { completedBatchCount?: number }
-          | undefined;
-        return (receipt?.completedBatchCount ?? 0) >= 1;
-      });
+      const progressed = await waitForStatus(
+        accepted.jobId!,
+        (status) => {
+          const receipt = status.refreshProgressReceipt as
+            | { completedBatchCount?: number }
+            | undefined;
+          return (receipt?.completedBatchCount ?? 0) >= 1;
+        },
+        120_000,
+        interruptedProgressSamples
+      );
       expect(
         (progressed.refreshProgressReceipt as { completedBatchCount?: number }).completedBatchCount
       ).toBeGreaterThanOrEqual(1);
@@ -176,7 +191,9 @@ describe('20k authoritative absorb refresh verifier', () => {
       });
       const cancelled = await waitForStatus(
         accepted.jobId!,
-        (status) => status.status === 'cancelled'
+        (status) => status.status === 'cancelled',
+        120_000,
+        interruptedProgressSamples
       );
       expect(cancelled.status).toBe('cancelled');
       expect(cancelled.refreshProgressReceipt).toMatchObject({
@@ -187,9 +204,11 @@ describe('20k authoritative absorb refresh verifier', () => {
         resumable: true,
       });
       expect(fs.readFileSync(cacheFile, 'utf-8')).toBe(baselineCache);
+      expectMonotonicProgress(interruptedProgressSamples);
 
       scanSpy.mockRestore();
       const resumedAt = Date.now();
+      const resumedProgressSamples: number[] = [];
       const resumed = (await handleCodebaseTool('holo_absorb_repo', {
         rootDir,
         force: true,
@@ -207,7 +226,8 @@ describe('20k authoritative absorb refresh verifier', () => {
       const completed = await waitForStatus(
         resumed.jobId!,
         (status) => status.status === 'complete',
-        180_000
+        180_000,
+        resumedProgressSamples
       );
       const resumeElapsedMs = Date.now() - resumedAt;
       expect(completed.refreshProgressReceipt).toMatchObject({
@@ -248,6 +268,7 @@ describe('20k authoritative absorb refresh verifier', () => {
         extraGraphFiles: 0,
         complete: true,
       });
+      expectMonotonicProgress(resumedProgressSamples);
       expect(resumeElapsedMs).toBeLessThan(180_000);
     },
     300_000
