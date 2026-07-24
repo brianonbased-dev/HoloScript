@@ -104,6 +104,126 @@ describe('planWeightDeltaGraph', () => {
       provides: ['holo.code_repair'],
       mustPreserve: ['holo.honest_abstention'],
     });
+    expect(first.steps).toContainEqual({
+      kind: 'apply-delta',
+      deltaId: 'code-repair',
+      artifact: { digest: DELTA_DIGEST, format: 'peft' },
+      roleContract: {
+        role: 'generator',
+        activation: {
+          mode: 'global',
+          allowUserVisibleOutput: true,
+        },
+      },
+    });
+  });
+
+  it('plans a task-scoped shadow critic with an immutable fallback head', () => {
+    const input = graph({ previousAdmittedHead: PREVIOUS_HEAD });
+    input.deltas[0]!.roleContract = {
+      role: 'critic',
+      activation: {
+        mode: 'shadow_only',
+        taskTags: ['holo.confounder_audit'],
+        minRouterConfidence: 0.85,
+        allowUserVisibleOutput: false,
+        fallbackHead: PREVIOUS_HEAD,
+      },
+    };
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.issues).toEqual([]);
+    expect(plan.readiness).toBe('candidate');
+    expect(plan.steps).toContainEqual({
+      kind: 'apply-delta',
+      deltaId: 'code-repair',
+      artifact: { digest: DELTA_DIGEST, format: 'peft' },
+      roleContract: {
+        role: 'critic',
+        activation: {
+          mode: 'shadow_only',
+          taskTags: ['holo.confounder_audit'],
+          minRouterConfidence: 0.85,
+          allowUserVisibleOutput: false,
+          fallbackHead: PREVIOUS_HEAD,
+        },
+      },
+    });
+    expect(plan.rollbackHead).toBe(PREVIOUS_HEAD);
+  });
+
+  it('fails closed when a shadow role omits its task routing contract', () => {
+    const input = graph({ previousAdmittedHead: PREVIOUS_HEAD });
+    input.deltas[0]!.roleContract = {
+      role: 'critic',
+      activation: {
+        mode: 'shadow_only',
+        allowUserVisibleOutput: true,
+      },
+    };
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.readiness).toBe('invalid');
+    expect(plan.issues.map((entry) => entry.code)).toEqual(
+      expect.arrayContaining([
+        'ACTIVATION_TASK_TAG_REQUIRED',
+        'ACTIVATION_ROUTER_CONFIDENCE_REQUIRED',
+        'ROLE_OUTPUT_VISIBILITY_FORBIDDEN',
+        'ROLE_FALLBACK_HEAD_REQUIRED',
+      ])
+    );
+    expect(plan.steps).toEqual([]);
+  });
+
+  it('rejects a task-scoped role whose fallback is not the admitted head', () => {
+    const input = graph({ previousAdmittedHead: PREVIOUS_HEAD });
+    input.deltas[0]!.roleContract = {
+      role: 'generator',
+      activation: {
+        mode: 'task_scoped',
+        taskTags: ['holo.code_repair'],
+        minRouterConfidence: 0.9,
+        allowUserVisibleOutput: true,
+        fallbackHead: digest('9'),
+      },
+    };
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.readiness).toBe('invalid');
+    expect(plan.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'ROLE_FALLBACK_HEAD_MISMATCH',
+        path: 'deltas[0].roleContract.activation.fallbackHead',
+      })
+    );
+  });
+
+  it('does not let a critic role bypass failed empirical receipts', () => {
+    const input = graph({
+      previousAdmittedHead: PREVIOUS_HEAD,
+      requirements: [codeRequirement],
+      receipts: [receipt('code-heldout', { passed: false })],
+    });
+    input.deltas[0]!.roleContract = {
+      role: 'critic',
+      activation: {
+        mode: 'shadow_only',
+        taskTags: ['holo.code_repair'],
+        minRouterConfidence: 0.8,
+        allowUserVisibleOutput: false,
+        fallbackHead: PREVIOUS_HEAD,
+      },
+    };
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.readiness).toBe('candidate');
+    expect(plan.admissionRequirements).toEqual([
+      expect.objectContaining({ requirementId: 'code-heldout', status: 'failed' }),
+    ]);
   });
 
   it('rejects a delta pinned to a different base with a stable issue', () => {
@@ -255,9 +375,9 @@ describe('planWeightDeltaGraph', () => {
     const plan = planWeightDeltaGraph(input);
 
     expect(plan.readiness).toBe('ready');
-    expect(plan.admissionRequirements.every((requirement) => requirement.status === 'satisfied')).toBe(
-      true
-    );
+    expect(
+      plan.admissionRequirements.every((requirement) => requirement.status === 'satisfied')
+    ).toBe(true);
   });
 
   it('keeps self-certified behavioral receipts in candidate state', () => {

@@ -25,6 +25,26 @@ export interface WeightCompatibility {
   rank?: number;
 }
 
+export type WeightDeltaRole = 'generator' | 'critic' | 'router' | 'teacher';
+
+export type WeightActivationMode = 'global' | 'task_scoped' | 'shadow_only';
+
+/**
+ * Declares what a weight delta is allowed to do at runtime. The planner defaults
+ * legacy deltas to a global, user-visible generator. Any narrower activation
+ * scope must fail closed to an immutable previously admitted head.
+ */
+export interface WeightRoleContract {
+  role: WeightDeltaRole;
+  activation: {
+    mode: WeightActivationMode;
+    taskTags?: string[];
+    minRouterConfidence?: number;
+    allowUserVisibleOutput: boolean;
+    fallbackHead?: ContentDigest;
+  };
+}
+
 export interface WeightDelta {
   id: string;
   artifact: WeightArtifactRef;
@@ -32,6 +52,7 @@ export interface WeightDelta {
   provides: string[];
   mustPreserve: string[];
   producerRef: string;
+  roleContract?: WeightRoleContract;
 }
 
 export type EvaluationRule =
@@ -120,6 +141,19 @@ export type WeightPlanIssueCode =
   | 'DUPLICATE_TARGET_MODULE'
   | 'INVALID_ADAPTER_RANK'
   | 'SEMANTIC_LABEL_REQUIRED'
+  | 'WEIGHT_ROLE_INVALID'
+  | 'ACTIVATION_MODE_INVALID'
+  | 'ACTIVATION_TASK_TAG_REQUIRED'
+  | 'ACTIVATION_TASK_TAG_INVALID'
+  | 'DUPLICATE_ACTIVATION_TASK_TAG'
+  | 'ACTIVATION_TASK_TAGS_FORBIDDEN'
+  | 'ACTIVATION_ROUTER_CONFIDENCE_REQUIRED'
+  | 'ACTIVATION_ROUTER_CONFIDENCE_INVALID'
+  | 'ROLE_OUTPUT_VISIBILITY_INVALID'
+  | 'ROLE_OUTPUT_VISIBILITY_FORBIDDEN'
+  | 'ROLE_FALLBACK_HEAD_REQUIRED'
+  | 'ROLE_FALLBACK_HEAD_INVALID'
+  | 'ROLE_FALLBACK_HEAD_MISMATCH'
   | 'COMPOSITION_ID_REQUIRED'
   | 'COMPOSITION_INPUT_REQUIRED'
   | 'DUPLICATE_COMPOSITION_INPUT'
@@ -178,7 +212,12 @@ export type WeightExecutionStep =
       architecture: string;
       tokenizerDigest: ContentDigest;
     }
-  | { kind: 'apply-delta'; deltaId: string; artifact: WeightArtifactRef }
+  | {
+      kind: 'apply-delta';
+      deltaId: string;
+      artifact: WeightArtifactRef;
+      roleContract: WeightRoleContract;
+    }
   | {
       kind: 'compose';
       compositionId: string;
@@ -212,6 +251,12 @@ export interface WeightExecutionPlan {
 }
 
 const SHA256_RE = /^sha256:[0-9a-f]{64}$/u;
+const WEIGHT_DELTA_ROLES = new Set<WeightDeltaRole>(['generator', 'critic', 'router', 'teacher']);
+const WEIGHT_ACTIVATION_MODES = new Set<WeightActivationMode>([
+  'global',
+  'task_scoped',
+  'shadow_only',
+]);
 
 function nonEmpty(value: string): boolean {
   return value.trim().length > 0;
@@ -265,6 +310,33 @@ function sortedUnique(values: string[]): string[] {
   return [...new Set(values)].sort(compareText);
 }
 
+function normalizedRoleContract(delta: WeightDelta): WeightRoleContract {
+  if (!delta.roleContract) {
+    return {
+      role: 'generator',
+      activation: {
+        mode: 'global',
+        allowUserVisibleOutput: true,
+      },
+    };
+  }
+  const activation = delta.roleContract.activation;
+  return {
+    role: delta.roleContract.role,
+    activation: {
+      mode: activation.mode,
+      ...(activation.taskTags
+        ? { taskTags: sortedUnique(activation.taskTags.map((tag) => tag.trim())) }
+        : {}),
+      ...(activation.minRouterConfidence !== undefined
+        ? { minRouterConfidence: activation.minRouterConfidence }
+        : {}),
+      allowUserVisibleOutput: activation.allowUserVisibleOutput,
+      ...(activation.fallbackHead ? { fallbackHead: activation.fallbackHead } : {}),
+    },
+  };
+}
+
 function validateGraph(
   graph: WeightDeltaGraph,
   issues: WeightPlanIssue[]
@@ -274,12 +346,7 @@ function validateGraph(
   receiptsByRequirement: Map<string, EvaluationReceiptRef[]>;
 } {
   if (graph.schema !== 'holoweight.graph.v1') {
-    issue(
-      issues,
-      'INVALID_GRAPH_SCHEMA',
-      'schema',
-      'Expected the holoweight.graph.v1 schema.'
-    );
+    issue(issues, 'INVALID_GRAPH_SCHEMA', 'schema', 'Expected the holoweight.graph.v1 schema.');
   }
   if (!nonEmpty(graph.id)) {
     issue(issues, 'GRAPH_ID_REQUIRED', 'id', 'Graph id must be non-empty.');
@@ -412,6 +479,157 @@ function validateGraph(
         `${deltaPath}.compatibility.rank`,
         'Adapter rank must be a positive integer when declared.'
       );
+    }
+
+    const roleContract = delta.roleContract;
+    if (roleContract !== undefined) {
+      const rolePath = `${deltaPath}.roleContract`;
+      if (!WEIGHT_DELTA_ROLES.has(roleContract.role)) {
+        issue(
+          issues,
+          'WEIGHT_ROLE_INVALID',
+          `${rolePath}.role`,
+          'Weight role must be generator, critic, router, or teacher.'
+        );
+      }
+      const activation = roleContract.activation;
+      if (!activation || typeof activation !== 'object') {
+        issue(
+          issues,
+          'ACTIVATION_MODE_INVALID',
+          `${rolePath}.activation`,
+          'Role contract activation must be an object.'
+        );
+      } else {
+        const activationPath = `${rolePath}.activation`;
+        const validMode = WEIGHT_ACTIVATION_MODES.has(activation.mode);
+        if (!validMode) {
+          issue(
+            issues,
+            'ACTIVATION_MODE_INVALID',
+            `${activationPath}.mode`,
+            'Activation mode must be global, task_scoped, or shadow_only.'
+          );
+        }
+
+        const taskTags = activation.taskTags;
+        if (taskTags !== undefined && !Array.isArray(taskTags)) {
+          issue(
+            issues,
+            'ACTIVATION_TASK_TAG_INVALID',
+            `${activationPath}.taskTags`,
+            'Activation task tags must be an array.'
+          );
+        } else if (Array.isArray(taskTags)) {
+          const seenTags = new Set<string>();
+          for (const [tagIndex, tag] of taskTags.entries()) {
+            const tagPath = `${activationPath}.taskTags[${tagIndex}]`;
+            if (typeof tag !== 'string' || !nonEmpty(tag)) {
+              issue(
+                issues,
+                'ACTIVATION_TASK_TAG_INVALID',
+                tagPath,
+                'Activation task tags must be non-empty strings.'
+              );
+              continue;
+            }
+            const normalizedTag = tag.trim();
+            if (seenTags.has(normalizedTag)) {
+              issue(
+                issues,
+                'DUPLICATE_ACTIVATION_TASK_TAG',
+                tagPath,
+                `Activation task tag "${normalizedTag}" is declared more than once.`
+              );
+            }
+            seenTags.add(normalizedTag);
+          }
+        }
+
+        if (validMode && activation.mode === 'global' && (taskTags?.length ?? 0) > 0) {
+          issue(
+            issues,
+            'ACTIVATION_TASK_TAGS_FORBIDDEN',
+            `${activationPath}.taskTags`,
+            'Global activation cannot also declare task tags.'
+          );
+        }
+        if (
+          validMode &&
+          activation.mode !== 'global' &&
+          (!Array.isArray(taskTags) || taskTags.length === 0)
+        ) {
+          issue(
+            issues,
+            'ACTIVATION_TASK_TAG_REQUIRED',
+            `${activationPath}.taskTags`,
+            'Task-scoped and shadow-only activation require at least one task tag.'
+          );
+        }
+
+        const confidence = activation.minRouterConfidence;
+        if (validMode && activation.mode !== 'global' && confidence === undefined) {
+          issue(
+            issues,
+            'ACTIVATION_ROUTER_CONFIDENCE_REQUIRED',
+            `${activationPath}.minRouterConfidence`,
+            'Task-scoped and shadow-only activation require a router confidence threshold.'
+          );
+        } else if (
+          confidence !== undefined &&
+          (!Number.isFinite(confidence) || confidence < 0 || confidence > 1)
+        ) {
+          issue(
+            issues,
+            'ACTIVATION_ROUTER_CONFIDENCE_INVALID',
+            `${activationPath}.minRouterConfidence`,
+            'Router confidence must be a finite number between 0 and 1.'
+          );
+        }
+
+        if (typeof activation.allowUserVisibleOutput !== 'boolean') {
+          issue(
+            issues,
+            'ROLE_OUTPUT_VISIBILITY_INVALID',
+            `${activationPath}.allowUserVisibleOutput`,
+            'Role output visibility must be an explicit boolean.'
+          );
+        } else if (
+          activation.allowUserVisibleOutput &&
+          (roleContract.role !== 'generator' || activation.mode === 'shadow_only')
+        ) {
+          issue(
+            issues,
+            'ROLE_OUTPUT_VISIBILITY_FORBIDDEN',
+            `${activationPath}.allowUserVisibleOutput`,
+            'Only a non-shadow generator may emit user-visible output.'
+          );
+        }
+
+        const fallbackHead = activation.fallbackHead;
+        if (validMode && activation.mode !== 'global' && fallbackHead === undefined) {
+          issue(
+            issues,
+            'ROLE_FALLBACK_HEAD_REQUIRED',
+            `${activationPath}.fallbackHead`,
+            'Task-scoped and shadow-only activation require an immutable fallback head.'
+          );
+        } else if (fallbackHead !== undefined && !validDigest(fallbackHead)) {
+          issue(
+            issues,
+            'ROLE_FALLBACK_HEAD_INVALID',
+            `${activationPath}.fallbackHead`,
+            'Role fallback head must be a lowercase sha256 content digest.'
+          );
+        } else if (fallbackHead !== undefined && fallbackHead !== graph.previousAdmittedHead) {
+          issue(
+            issues,
+            'ROLE_FALLBACK_HEAD_MISMATCH',
+            `${activationPath}.fallbackHead`,
+            'Role fallback head must match the graph previous admitted head.'
+          );
+        }
+      }
     }
 
     for (const [labelIndex, label] of delta.provides.entries()) {
@@ -659,10 +877,7 @@ function validateGraph(
     );
   }
 
-  if (
-    graph.previousAdmittedHead !== undefined &&
-    !validDigest(graph.previousAdmittedHead)
-  ) {
+  if (graph.previousAdmittedHead !== undefined && !validDigest(graph.previousAdmittedHead)) {
     issue(
       issues,
       'PREVIOUS_HEAD_DIGEST_INVALID',
@@ -703,10 +918,9 @@ function admissionPlan(
             .filter((receipt) => receipt.signatureVerified === true && receipt.evaluatorFamily)
             .map((receipt) => receipt.evaluatorFamily!)
         ),
-        seedCount:
-          receipts.every((receipt) => Number.isInteger(receipt.seed))
-            ? new Set(receipts.map((receipt) => receipt.seed)).size
-            : Math.max(...receipts.map((receipt) => receipt.seedCount)),
+        seedCount: receipts.every((receipt) => Number.isInteger(receipt.seed))
+          ? new Set(receipts.map((receipt) => receipt.seed)).size
+          : Math.max(...receipts.map((receipt) => receipt.seedCount)),
       },
     });
     if (
@@ -739,10 +953,7 @@ function admissionPlan(
       );
       if (!allSigned) return result('unverified_evaluator');
       if (evidence.verifiedSigners.length < 2) return result('insufficient_independence');
-      if (
-        requirement.evaluatorPolicy === 'cross_family' &&
-        evidence.evaluatorFamilies.length < 2
-      ) {
+      if (requirement.evaluatorPolicy === 'cross_family' && evidence.evaluatorFamilies.length < 2) {
         return result('insufficient_families');
       }
     }
@@ -767,6 +978,7 @@ function executionSteps(
         kind: 'apply-delta',
         deltaId: delta.id,
         artifact: { ...delta.artifact },
+        roleContract: normalizedRoleContract(delta),
       })
     ),
     ...graph.compositions.map(
