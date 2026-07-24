@@ -16,6 +16,7 @@ import { fmtCommand } from './commands/fmt';
 import { hologramCommand } from './commands/hologram';
 import { quickstartCommand } from './commands/quickstart';
 import { runPhysicsSmoke, printSmokeReceipt } from './smoke';
+import { PURE_HOLO_WORLD_PROJECTION, runHeadlessExperimentSources } from './headless-experiment';
 
 /**
  * Minimal structural shape for parse errors emitted by the various parsers
@@ -1703,7 +1704,9 @@ async function main(): Promise<void> {
     case 'headless': {
       if (!options.input) {
         console.error('\x1b[31mError: No input file specified.\x1b[0m');
-        console.log('Usage: holoscript headless <file.holo> [--tick-rate <hz>] [--duration <ms>]');
+        console.log(
+          'Usage: holoscript headless <file.holo> [--tick-rate <hz>] [--duration <ms>] [--plan <schedule.hs> --behavior <actions.hsplus> --observer off|on]'
+        );
         process.exit(1);
       }
 
@@ -1720,6 +1723,18 @@ async function main(): Promise<void> {
 
         const content = fs.readFileSync(filePath, 'utf-8');
         const isHolo = options.input.endsWith('.holo');
+        const experimentRequested =
+          options.planPath !== undefined ||
+          options.behaviorPath !== undefined ||
+          options.observer !== undefined;
+        if (experimentRequested && (!options.planPath || !options.behaviorPath)) {
+          throw new Error(
+            'Deterministic headless execution requires both --plan <schedule.hs> and --behavior <actions.hsplus>'
+          );
+        }
+        if (experimentRequested && !isHolo) {
+          throw new Error('Deterministic headless execution requires a .holo world input');
+        }
 
         if (!options.json) {
           console.log(`\n\x1b[36mStarting headless runtime: ${options.input}\x1b[0m`);
@@ -1767,7 +1782,87 @@ async function main(): Promise<void> {
           profile = HEADLESS_PROFILE;
         }
 
-        // Create headless runtime
+        if (experimentRequested) {
+          const planPath = path.resolve(options.planPath!);
+          const behaviorPath = path.resolve(options.behaviorPath!);
+          if (!planPath.endsWith('.hs')) {
+            throw new Error('Headless experiment --plan must be a .hs source');
+          }
+          if (!behaviorPath.endsWith('.hsplus')) {
+            throw new Error('Headless experiment --behavior must be a .hsplus source');
+          }
+          if (!fs.existsSync(planPath)) {
+            throw new Error(`Headless experiment plan not found: ${planPath}`);
+          }
+          if (!fs.existsSync(behaviorPath)) {
+            throw new Error(`Headless experiment behavior not found: ${behaviorPath}`);
+          }
+
+          const experiment = await runHeadlessExperimentSources({
+            worldSource: content,
+            planSource: fs.readFileSync(planPath, 'utf8'),
+            behaviorSource: fs.readFileSync(behaviorPath, 'utf8'),
+            captureWorld: () => {
+              // Reparse on every observer pass so no mutable AST or runtime
+              // state is shared. This path is a pure receipt projection: it
+              // does not start lifecycle hooks, attach traits, or initialize
+              // network/protocol providers.
+              const captureParser = new HoloCompositionParser();
+              const captureParseResult = captureParser.parse(content);
+              if (!captureParseResult.success) {
+                throw new Error(
+                  `Fresh deterministic world parse failed: ${captureParseResult.errors
+                    .map((error: CliParseError) => error.message)
+                    .join('; ')}`
+                );
+              }
+              const captureAst = holoCompositionToHeadlessAst(captureParseResult.ast);
+              const scene = headlessAstToSceneReceipt(captureAst);
+              const posePhysics = buildHeadlessPosePhysicsReceipt(scene);
+              return { scene, posePhysics };
+            },
+            worldProjectionEngine: PURE_HOLO_WORLD_PROJECTION,
+            observer: options.observer ?? 'off',
+            planModuleName: path.basename(planPath),
+          });
+          const output = {
+            schema: 'holoscript-headless-run-receipt-v1',
+            input: options.input,
+            profile: 'deterministic-projection',
+            requestedProfile: profile.name,
+            tickRate: 0,
+            requestedDurationMs: 0,
+            scene: experiment.execution.scene,
+            posePhysics: experiment.execution.posePhysics,
+            execution: experiment.execution,
+            executionEngines: experiment.engines,
+            claimBoundary: experiment.claimBoundary,
+            ...(experiment.observerProof === undefined
+              ? {}
+              : { observerProof: experiment.observerProof }),
+          };
+
+          if (options.json) {
+            printJson(output);
+          } else {
+            console.log('\n\x1b[32mDeterministic headless experiment sealed.\x1b[0m');
+            console.log(`  Run: ${experiment.execution.runId}`);
+            console.log(`  Schedule entries: ${experiment.execution.scheduleLedger.length}`);
+            console.log(`  Observations: ${experiment.execution.observationLedger.length}`);
+            console.log(`  Actions: ${experiment.execution.actionLedger.length}`);
+            console.log(
+              `  Terminal commitment: ${experiment.execution.terminal.terminalCommitment}`
+            );
+            if (experiment.observerProof) {
+              console.log(`  Observer equivalence: ${experiment.observerProof.equivalent}`);
+            }
+            console.log('');
+          }
+          process.exit(0);
+        }
+
+        // Create the executable runtime only for the legacy headless command.
+        // Deterministic experiments above use a no-effects world projection.
         const runtime = createHeadlessRuntime(ast, {
           profile,
           tickRate: options.tickRate || 10,

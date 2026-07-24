@@ -27,6 +27,12 @@ export interface CLIOptions {
     tickRate?: number;
     /** Duration to run headless runtime (ms), 0 = indefinite */
     duration?: number;
+    /** Deterministic headless experiment schedule source */
+    planPath?: string;
+    /** Deterministic headless experiment behavior source */
+    behaviorPath?: string;
+    /** Post-seal observer process toggle for deterministic headless experiments */
+    observer?: 'off' | 'on';
     /** Edge deployment platform */
     platform?: EdgePlatform;
     /** Remote host for deploy/monitor */

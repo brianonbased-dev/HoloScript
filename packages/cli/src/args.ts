@@ -153,6 +153,12 @@ export interface CLIOptions {
   tickRate?: number;
   /** Duration to run headless runtime (ms), 0 = indefinite */
   duration?: number;
+  /** Deterministic `.hs` schedule plan for a headless experiment */
+  planPath?: string;
+  /** Stateful `.hsplus` action/observation behavior for a headless experiment */
+  behaviorPath?: string;
+  /** Post-seal observer process toggle for deterministic headless experiments */
+  observer?: 'off' | 'on';
   /** Edge deployment platform */
   platform?: EdgePlatform;
   /** Remote host for deploy/monitor */
@@ -479,6 +485,26 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--duration':
         options.duration = parseInt(args[++i], 10) || 0;
         break;
+      case '--plan':
+        options.planPath = args[++i];
+        if (!options.planPath || options.planPath.startsWith('-')) {
+          throw new Error('--plan requires a .hs path value');
+        }
+        break;
+      case '--behavior':
+        options.behaviorPath = args[++i];
+        if (!options.behaviorPath || options.behaviorPath.startsWith('-')) {
+          throw new Error('--behavior requires a .hsplus path value');
+        }
+        break;
+      case '--observer': {
+        const observer = args[++i];
+        if (observer !== 'off' && observer !== 'on') {
+          throw new Error('--observer expects exactly "off" or "on"');
+        }
+        options.observer = observer;
+        break;
+      }
       case '--platform':
         options.platform = args[++i] as EdgePlatform;
         break;
@@ -756,6 +782,9 @@ Usage: holoscript <command> [options] [input]
   headless <file>   Run HoloScript in headless mode (no rendering)
                     Ideal for IoT, edge computing, testing
                     Use --profile to select runtime profile
+                    Use --plan <schedule.hs> --behavior <actions.hsplus>
+                    for deterministic cross-format execution receipts
+                    Use --observer off|on for isolated post-seal equivalence
 
   \x1b[33mEdge Deployment:\x1b[0m
   package <source>  Package HoloScript for edge deployment
