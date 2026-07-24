@@ -162,11 +162,7 @@ export { SemanticSceneGraph } from './SemanticSceneGraph';
 export { MCPConfigCompiler } from './MCPConfigCompiler';
 export type { MCPConfigCompilerOptions, MCPConfigTarget } from './MCPConfigCompiler';
 export { HoloMCPCompiler } from './HoloMCPCompiler';
-export type {
-  HoloMCPCompilerOptions,
-  HoloMCPTool,
-  HoloParamAnnotation,
-} from './HoloMCPCompiler';
+export type { HoloMCPCompilerOptions, HoloMCPTool, HoloParamAnnotation } from './HoloMCPCompiler';
 
 // Studio native code editor compiler (CodeMirror 6 config bundle)
 export { CodeEditorCompiler } from './CodeEditorCompiler';
@@ -321,9 +317,12 @@ export type {
 // HSI N3 falsification harness: the deterministic structural-semantic tournament battery (Stage D first layer).
 export {
   HSI_N3_TOURNAMENT_SCHEMA_VERSION,
+  HSI_N3_CHECKPOINT_BUNDLE_SCHEMA_VERSION,
   generateBarrierWorldSource,
   generateTournamentBattery,
   oracleLabel,
+  createCheckpointPredictionBundle,
+  checkpointBundleToTournamentArm,
   scoreArm,
   runTournament,
   exactOracleArm,
@@ -332,6 +331,7 @@ export {
 } from './HSINTournament';
 export type {
   HSIN3TournamentSchemaVersion,
+  HSIN3CheckpointBundleSchemaVersion,
   HSINOodAxis,
   HSINMetamorphicKind,
   HSINOpacityLabel,
@@ -342,6 +342,9 @@ export type {
   HSINMetamorphicCase,
   HSINBattery,
   TournamentArm,
+  HSINCheckpointPrediction,
+  HSINCheckpointPredictionBundle,
+  HSINCheckpointPredictionBundleInput,
   HSINScorecard,
   HSINTournamentReceipt,
 } from './HSINTournament';

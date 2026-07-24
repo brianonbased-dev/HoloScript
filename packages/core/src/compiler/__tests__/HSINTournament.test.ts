@@ -17,6 +17,8 @@ import {
   exactOracleArm,
   edgeBlindArm,
   dynamicsOnlyArm,
+  createCheckpointPredictionBundle,
+  checkpointBundleToTournamentArm,
   HSI_N3_TOURNAMENT_SCHEMA_VERSION,
   type HSINWorldParams,
 } from '../HSINTournament';
@@ -43,7 +45,9 @@ describe('HSI N3 falsification harness (task ghmo)', () => {
   describe('parameterized world generator + oracle', () => {
     it('generates HS-Core source that lowers, with three-state opacity preserved', () => {
       const ir = irFor(BASE);
-      const opacities = Object.fromEntries(ir.entities.filter((e) => e.role === 'barrier').map((e) => [e.name, e.opacity]));
+      const opacities = Object.fromEntries(
+        ir.entities.filter((e) => e.role === 'barrier').map((e) => [e.name, e.opacity])
+      );
       expect(opacities['GlassPane']).toBe('transparent');
       expect(opacities['StoneSlab']).toBe('opaque');
       expect(opacities['VeilPanel']).toBe('unknown');
@@ -57,9 +61,17 @@ describe('HSI N3 falsification harness (task ghmo)', () => {
     });
 
     it('oracle: all-unknown mediators aggregate to unknown; all-transparent to visible', () => {
-      const allUnknown = oracleLabel(irFor({ ...BASE, worldName: 'U', barriers: [{ name: 'VeilPanel', opacity: 'unknown' }] }));
+      const allUnknown = oracleLabel(
+        irFor({ ...BASE, worldName: 'U', barriers: [{ name: 'VeilPanel', opacity: 'unknown' }] })
+      );
       expect(allUnknown.access).toBe('unknown');
-      const allClear = oracleLabel(irFor({ ...BASE, worldName: 'C', barriers: [{ name: 'GlassPane', opacity: 'transparent' }] }));
+      const allClear = oracleLabel(
+        irFor({
+          ...BASE,
+          worldName: 'C',
+          barriers: [{ name: 'GlassPane', opacity: 'transparent' }],
+        })
+      );
       expect(allClear.access).toBe('visible');
     });
   });
@@ -110,7 +122,10 @@ describe('HSI N3 falsification harness (task ghmo)', () => {
     });
 
     it('the harness ranks the exact-oracle arm above the edge-blind arm', () => {
-      const receipt = runTournament([edgeBlindArm, exactOracleArm, dynamicsOnlyArm], generateTournamentBattery());
+      const receipt = runTournament(
+        [edgeBlindArm, exactOracleArm, dynamicsOnlyArm],
+        generateTournamentBattery()
+      );
       expect(receipt.ranking[0]).toBe('ref:exact-oracle');
       expect(receipt.ranking[receipt.ranking.length - 1]).toBe('ref:edge-blind');
     });
@@ -126,6 +141,99 @@ describe('HSI N3 falsification harness (task ghmo)', () => {
       expect(a.device).toBe('cpu-reference');
       expect(a.verifiers).toContain('structural-sensitivity');
       expect(a.deterministicDigest.startsWith('sha256:')).toBe(true);
+    });
+  });
+
+  describe('offline trained-checkpoint adapter', () => {
+    function checkpointBundleForBattery() {
+      const battery = generateTournamentBattery();
+      const byDigest = new Map<string, ReturnType<typeof oracleLabel>>();
+      for (const variant of battery.variants) {
+        byDigest.set(variant.ir.provenance.deterministicDigest, variant.oracle);
+      }
+      for (const mm of battery.metamorphic) {
+        byDigest.set(mm.baseIr.provenance.deterministicDigest, mm.baseOracle);
+        byDigest.set(mm.transformedIr.provenance.deterministicDigest, mm.transformedOracle);
+      }
+      const bundle = createCheckpointPredictionBundle({
+        armId: 'checkpoint:sem:s20260721',
+        checkpoint: {
+          sha256: `sha256:${'a'.repeat(64)}`,
+          trainingArm: 'sem',
+          seed: 20260721,
+        },
+        batteryDataDigest: battery.dataDigest,
+        predictions: [...byDigest].map(([irDigest, oracle]) => ({
+          irDigest,
+          prediction: {
+            access: 'unknown' as const,
+            mediatorCount: 0,
+            goalReached: oracle.goalReached,
+          },
+          decodedFinalDigest: `sha256:${'b'.repeat(64)}`,
+        })),
+      });
+      return { battery, bundle };
+    }
+
+    it('scores checkpoint-derived dynamics through the TournamentArm contract', () => {
+      const { battery, bundle } = checkpointBundleForBattery();
+      const arm = checkpointBundleToTournamentArm(bundle, battery);
+      const score = scoreArm(arm, battery);
+      expect(score.armId).toBe('checkpoint:sem:s20260721');
+      expect(score.dynamicsAccuracy).toBe(1);
+      expect(score.accessAccuracy).toBeLessThan(1);
+      expect(score.structureBlind).toBe(true);
+      expect(bundle.decisionAuthority).toBe('diagnostic-only');
+    });
+
+    it('fails closed when the bundle is stale, incomplete, or tampered', () => {
+      const { battery, bundle } = checkpointBundleForBattery();
+      expect(() =>
+        checkpointBundleToTournamentArm(
+          { ...bundle, batteryDataDigest: `sha256:${'c'.repeat(64)}` },
+          battery
+        )
+      ).toThrow(/battery digest/);
+      const incomplete = createCheckpointPredictionBundle({
+        armId: bundle.armId,
+        checkpoint: bundle.checkpoint,
+        batteryDataDigest: bundle.batteryDataDigest,
+        predictions: bundle.predictions.slice(1),
+      });
+      expect(() => checkpointBundleToTournamentArm(incomplete, battery)).toThrow(
+        /coverage mismatch/
+      );
+      expect(() =>
+        checkpointBundleToTournamentArm(
+          {
+            ...bundle,
+            armId: 'tampered',
+          },
+          battery
+        )
+      ).toThrow(/deterministic digest mismatch/);
+    });
+
+    it('rejects invented perception predictions from a dynamics-only checkpoint', () => {
+      const { battery, bundle } = checkpointBundleForBattery();
+      expect(() =>
+        createCheckpointPredictionBundle({
+          armId: bundle.armId,
+          checkpoint: bundle.checkpoint,
+          batteryDataDigest: bundle.batteryDataDigest,
+          predictions: [
+            {
+              ...bundle.predictions[0],
+              prediction: {
+                access: 'visible',
+                mediatorCount: 1,
+                goalReached: true,
+              },
+            },
+          ],
+        })
+      ).toThrow(/unsupported perception sentinels/);
     });
   });
 });

@@ -26,24 +26,23 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import { parseHoloStrict } from '../parser/HoloCompositionParser';
-import { renameComposition, reorderComposition, applyIntervention, type HSIRenameMap } from './HSIAuditVerifier';
+import {
+  renameComposition,
+  reorderComposition,
+  applyIntervention,
+  type HSIRenameMap,
+} from './HSIAuditVerifier';
 import { runExactTrace } from './HSIExactTrace';
 import { lowerCompositionToHSIIR } from './HSIIRCompiler';
-import {
-  hsiSha256,
-  type HSIAccess,
-  type HSIIRDocument,
-  type HSIScenarioStep,
-} from './HSIIRTypes';
+import { hsiSha256, type HSIAccess, type HSIIRDocument, type HSIScenarioStep } from './HSIIRTypes';
 
 export const HSI_N3_TOURNAMENT_SCHEMA_VERSION = 'holoscript.hsi-n3-tournament.v0.1.0' as const;
 export type HSIN3TournamentSchemaVersion = typeof HSI_N3_TOURNAMENT_SCHEMA_VERSION;
+export const HSI_N3_CHECKPOINT_BUNDLE_SCHEMA_VERSION =
+  'holoscript.hsi-n3-checkpoint-predictions.v0.1.0' as const;
+export type HSIN3CheckpointBundleSchemaVersion = typeof HSI_N3_CHECKPOINT_BUNDLE_SCHEMA_VERSION;
 
-export type HSINOodAxis =
-  | 'train'
-  | 'ood-object-count'
-  | 'ood-opacity-composition'
-  | 'ood-rename';
+export type HSINOodAxis = 'train' | 'ood-object-count' | 'ood-opacity-composition' | 'ood-rename';
 
 export type HSINMetamorphicKind =
   | 'rename-invariant'
@@ -105,6 +104,189 @@ export interface TournamentArm {
   predict(ir: HSIIRDocument): HSINPrediction;
 }
 
+/**
+ * Offline predictions exported from a trained checkpoint.
+ *
+ * The v1 `n3_train.py` target contains exact-trace `{machines,state}` only. It
+ * does not train observation access or mediator count. The bundle therefore
+ * admits checkpoint-derived `goalReached` while pinning unsupported perception
+ * fields to their fail-closed sentinels. These scorecards are diagnostic-only
+ * and MUST NOT alter the preregistered v1 arm/seed branch decision.
+ */
+export interface HSINCheckpointPredictionBundle {
+  readonly schemaVersion: HSIN3CheckpointBundleSchemaVersion;
+  readonly kind: 'HSINCheckpointPredictionBundle';
+  readonly armId: string;
+  readonly checkpoint: {
+    readonly sha256: string;
+    readonly trainingArm: string;
+    readonly seed: number;
+  };
+  readonly batteryDataDigest: string;
+  readonly decisionAuthority: 'diagnostic-only';
+  readonly support: {
+    readonly access: 'unsupported';
+    readonly mediatorCount: 'unsupported';
+    readonly goalReached: 'checkpoint-exact-trace';
+  };
+  readonly predictions: readonly HSINCheckpointPrediction[];
+  readonly deterministicDigest: string;
+}
+
+export interface HSINCheckpointPrediction {
+  readonly irDigest: string;
+  readonly prediction: HSINPrediction;
+  /** Hash of the checkpoint's canonical decoded `{machines,state}` JSON. */
+  readonly decodedFinalDigest: string;
+}
+
+export interface HSINCheckpointPredictionBundleInput {
+  readonly armId: string;
+  readonly checkpoint: HSINCheckpointPredictionBundle['checkpoint'];
+  readonly batteryDataDigest: string;
+  readonly predictions: readonly HSINCheckpointPrediction[];
+}
+
+const CHECKPOINT_BUNDLE_SUPPORT = {
+  access: 'unsupported',
+  mediatorCount: 'unsupported',
+  goalReached: 'checkpoint-exact-trace',
+} as const;
+
+function tournamentQueryDigests(battery: HSINBattery): string[] {
+  const digests = new Set<string>();
+  for (const variant of battery.variants) {
+    digests.add(variant.ir.provenance.deterministicDigest);
+  }
+  for (const metamorphic of battery.metamorphic) {
+    digests.add(metamorphic.baseIr.provenance.deterministicDigest);
+    digests.add(metamorphic.transformedIr.provenance.deterministicDigest);
+  }
+  return [...digests].sort();
+}
+
+function assertSha256(value: string, label: string): void {
+  if (!/^sha256:[0-9a-f]{64}$/.test(value)) {
+    throw new Error(`${label} must be a lowercase sha256 digest`);
+  }
+}
+
+/**
+ * Canonicalize checkpoint output into a custody-bound, diagnostic-only bundle.
+ * Predictions are sorted by IR digest so the receipt hash is deterministic.
+ */
+export function createCheckpointPredictionBundle(
+  input: HSINCheckpointPredictionBundleInput
+): HSINCheckpointPredictionBundle {
+  if (!input.armId.trim()) throw new Error('checkpoint armId must not be empty');
+  if (!input.checkpoint.trainingArm.trim()) {
+    throw new Error('checkpoint trainingArm must not be empty');
+  }
+  if (!Number.isSafeInteger(input.checkpoint.seed)) {
+    throw new Error('checkpoint seed must be a safe integer');
+  }
+  assertSha256(input.checkpoint.sha256, 'checkpoint.sha256');
+  assertSha256(input.batteryDataDigest, 'batteryDataDigest');
+
+  const seen = new Set<string>();
+  const predictions = [...input.predictions]
+    .map((entry) => {
+      assertSha256(entry.irDigest, 'prediction.irDigest');
+      assertSha256(entry.decodedFinalDigest, 'prediction.decodedFinalDigest');
+      if (seen.has(entry.irDigest)) {
+        throw new Error(`duplicate checkpoint prediction for ${entry.irDigest}`);
+      }
+      seen.add(entry.irDigest);
+      if (entry.prediction.access !== 'unknown' || entry.prediction.mediatorCount !== 0) {
+        throw new Error(
+          `checkpoint prediction ${entry.irDigest} must use fail-closed unsupported perception sentinels`
+        );
+      }
+      return entry;
+    })
+    .sort((a, b) => a.irDigest.localeCompare(b.irDigest));
+
+  const withoutDigest = {
+    schemaVersion: HSI_N3_CHECKPOINT_BUNDLE_SCHEMA_VERSION,
+    kind: 'HSINCheckpointPredictionBundle' as const,
+    armId: input.armId,
+    checkpoint: input.checkpoint,
+    batteryDataDigest: input.batteryDataDigest,
+    decisionAuthority: 'diagnostic-only' as const,
+    support: CHECKPOINT_BUNDLE_SUPPORT,
+    predictions,
+  };
+  return { ...withoutDigest, deterministicDigest: hsiSha256(withoutDigest) };
+}
+
+/**
+ * Adapt a custody-bound offline checkpoint bundle to the synchronous
+ * `TournamentArm` contract. Missing, extra, stale, or tampered predictions
+ * fail closed before any score is computed.
+ */
+export function checkpointBundleToTournamentArm(
+  bundle: HSINCheckpointPredictionBundle,
+  battery: HSINBattery
+): TournamentArm {
+  if (bundle.schemaVersion !== HSI_N3_CHECKPOINT_BUNDLE_SCHEMA_VERSION) {
+    throw new Error(`unsupported checkpoint bundle schema ${bundle.schemaVersion}`);
+  }
+  if (bundle.decisionAuthority !== 'diagnostic-only') {
+    throw new Error('checkpoint battery scores must remain diagnostic-only');
+  }
+  if (
+    bundle.support.access !== 'unsupported' ||
+    bundle.support.mediatorCount !== 'unsupported' ||
+    bundle.support.goalReached !== 'checkpoint-exact-trace'
+  ) {
+    throw new Error('checkpoint bundle support declaration is invalid');
+  }
+  if (bundle.batteryDataDigest !== battery.dataDigest) {
+    throw new Error(
+      `checkpoint bundle battery digest ${bundle.batteryDataDigest} does not match ${battery.dataDigest}`
+    );
+  }
+  const { deterministicDigest, ...withoutDigest } = bundle;
+  if (hsiSha256(withoutDigest) !== deterministicDigest) {
+    throw new Error('checkpoint bundle deterministic digest mismatch');
+  }
+
+  const expected = tournamentQueryDigests(battery);
+  const predictions = new Map<string, HSINPrediction>();
+  for (const entry of bundle.predictions) {
+    if (predictions.has(entry.irDigest)) {
+      throw new Error(`duplicate checkpoint prediction for ${entry.irDigest}`);
+    }
+    if (entry.prediction.access !== 'unknown' || entry.prediction.mediatorCount !== 0) {
+      throw new Error(
+        `checkpoint prediction ${entry.irDigest} violates unsupported perception sentinels`
+      );
+    }
+    predictions.set(entry.irDigest, entry.prediction);
+  }
+  const actual = [...predictions.keys()].sort();
+  if (
+    actual.length !== expected.length ||
+    actual.some((digest, index) => digest !== expected[index])
+  ) {
+    throw new Error(
+      `checkpoint bundle coverage mismatch: expected ${expected.length} unique battery IRs, got ${actual.length}`
+    );
+  }
+
+  return {
+    id: bundle.armId,
+    predict: (ir) => {
+      const digest = ir.provenance.deterministicDigest;
+      const prediction = predictions.get(digest);
+      if (!prediction) {
+        throw new Error(`checkpoint arm ${bundle.armId} has no prediction for ${digest}`);
+      }
+      return prediction;
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Parameterized HS-Core world generator (deterministic; clean OOD-axis control).
 // ---------------------------------------------------------------------------
@@ -129,20 +311,24 @@ export function generateBarrierWorldSource(params: HSINWorldParams): string {
   lines.push(`  template "BeaconCore" {\n    geometry: "box"\n    role: "target"\n  }`);
   for (const barrier of params.barriers) {
     lines.push(
-      `  template "${barrier.name}Wall" {\n    geometry: "box"\n    role: "barrier"\n${OPACITY_PROP[barrier.opacity]}  }`,
+      `  template "${barrier.name}Wall" {\n    geometry: "box"\n    role: "barrier"\n${OPACITY_PROP[barrier.opacity]}  }`
     );
   }
   lines.push(`  object "${params.agent}" using "AgentBody" {\n    position: [-4, 0, 0]\n  }`);
   lines.push(`  object "${params.target}" using "BeaconCore" {\n    position: [4, 0, 0]\n  }`);
   params.barriers.forEach((barrier, i) => {
-    lines.push(`  object "${barrier.name}" using "${barrier.name}Wall" {\n    position: [0, 0, ${i}]\n  }`);
+    lines.push(
+      `  object "${barrier.name}" using "${barrier.name}Wall" {\n    position: [0, 0, ${i}]\n  }`
+    );
   });
   lines.push(`  connect ${params.agent} to ${params.target} as "seeks"`);
   for (const barrier of params.barriers) {
     lines.push(`  connect ${barrier.name} to ${params.target} as "shields"`);
   }
   lines.push('  logic {');
-  lines.push('    on_traverse {\n      traversals += 1\n      scoutZone = "east"\n      goalReached = true\n    }');
+  lines.push(
+    '    on_traverse {\n      traversals += 1\n      scoutZone = "east"\n      goalReached = true\n    }'
+  );
   lines.push('    on_inspect {\n      inspections += 1\n    }');
   lines.push('  }');
   lines.push('  sim_contract {');
@@ -163,7 +349,9 @@ function lowerParams(params: HSINWorldParams): HSIIRDocument {
 // Oracle: ground-truth from Stage A (never a model).
 // ---------------------------------------------------------------------------
 
-const TRAVERSE_SCENARIO: readonly HSIScenarioStep[] = [{ kind: 'fire-event', event: 'on_traverse' }];
+const TRAVERSE_SCENARIO: readonly HSIScenarioStep[] = [
+  { kind: 'fire-event', event: 'on_traverse' },
+];
 
 /** Aggregate observation access of the (single) agent observer over its observed target. */
 function aggregateAccess(ir: HSIIRDocument): { access: HSIAccess; mediatorCount: number } {
@@ -194,13 +382,22 @@ const BASE_PARAMS: HSINWorldParams = {
   ],
 };
 
-const RENAME_MAP: HSIRenameMap = { Scout: 'Pathfinder', Beacon: 'Lodestar', GlassPane: 'ClearPane' };
+const RENAME_MAP: HSIRenameMap = {
+  Scout: 'Pathfinder',
+  Beacon: 'Lodestar',
+  GlassPane: 'ClearPane',
+};
 
 function cloneComposition(source: string): HoloComposition {
   return parseHoloStrict(source);
 }
 
-function variant(id: string, axis: HSINOodAxis, split: 'train' | 'eval', params: HSINWorldParams): HSINWorldVariant {
+function variant(
+  id: string,
+  axis: HSINOodAxis,
+  split: 'train' | 'eval',
+  params: HSINWorldParams
+): HSINWorldVariant {
   const ir = lowerParams(params);
   return { id, axis, split, params, ir, oracle: oracleLabel(ir) };
 }
@@ -255,7 +452,11 @@ export function generateTournamentBattery(): HSINBattery {
 
   const metamorphic = buildMetamorphicCases();
   const dataDigest = hsiSha256({
-    variants: variants.map((v) => ({ id: v.id, digest: v.ir.provenance.deterministicDigest, oracle: v.oracle })),
+    variants: variants.map((v) => ({
+      id: v.id,
+      digest: v.ir.provenance.deterministicDigest,
+      oracle: v.oracle,
+    })),
     metamorphic: metamorphic.map((m) => ({ id: m.id, kind: m.kind, expectation: m.expectation })),
   });
 
@@ -316,7 +517,12 @@ function buildMetamorphicCases(): HSINMetamorphicCase[] {
   // edge-scramble-sensitive: reassign the opaque wall's opacity to transparent via an intervention
   // (a structure-changing edit of the opacity that mediates the observation edge).
   const scrambled = cloneComposition(baseSource);
-  applyIntervention(scrambled, { id: 'scramble', kind: 'set-opacity', entity: 'StoneSlab', opaque: false });
+  applyIntervention(scrambled, {
+    id: 'scramble',
+    kind: 'set-opacity',
+    entity: 'StoneSlab',
+    opaque: false,
+  });
   const scrambledIr = lowerCompositionToHSIIR(scrambled, {});
   cases.push({
     id: 'mm:edge-scramble',
@@ -338,7 +544,12 @@ function buildMetamorphicCases(): HSINMetamorphicCase[] {
   const singleIr = lowerParams(singleTransparent);
   const singleSource = generateBarrierWorldSource(singleTransparent);
   const flipped = cloneComposition(singleSource);
-  applyIntervention(flipped, { id: 'flip', kind: 'set-opacity', entity: 'GlassPane', opaque: true });
+  applyIntervention(flipped, {
+    id: 'flip',
+    kind: 'set-opacity',
+    entity: 'GlassPane',
+    opaque: true,
+  });
   const flippedIr = lowerCompositionToHSIIR(flipped, {});
   cases.push({
     id: 'mm:opacity-flip',
@@ -366,13 +577,21 @@ export const exactOracleArm: TournamentArm = {
 /** Structure-blind: ignores edges/opacity, predicts a fixed perception. Must be CAUGHT by sensitivity. */
 export const edgeBlindArm: TournamentArm = {
   id: 'ref:edge-blind',
-  predict: (ir) => ({ access: 'visible', mediatorCount: 0, goalReached: oracleLabel(ir).goalReached }),
+  predict: (ir) => ({
+    access: 'visible',
+    mediatorCount: 0,
+    goalReached: oracleLabel(ir).goalReached,
+  }),
 };
 
 /** Dynamics-only: predicts state dynamics correctly but treats perception as a constant. */
 export const dynamicsOnlyArm: TournamentArm = {
   id: 'ref:dynamics-only',
-  predict: (ir) => ({ access: 'blocked', mediatorCount: ir.observationPolicy[0]?.mediators.length ?? 0, goalReached: oracleLabel(ir).goalReached }),
+  predict: (ir) => ({
+    access: 'blocked',
+    mediatorCount: ir.observationPolicy[0]?.mediators.length ?? 0,
+    goalReached: oracleLabel(ir).goalReached,
+  }),
 };
 
 // ---------------------------------------------------------------------------
@@ -393,7 +612,9 @@ export interface HSINScorecard {
 const SENSITIVITY_FLOOR = 0.5;
 
 function predictionsEqual(a: HSINPrediction, b: HSINPrediction): boolean {
-  return a.access === b.access && a.mediatorCount === b.mediatorCount && a.goalReached === b.goalReached;
+  return (
+    a.access === b.access && a.mediatorCount === b.mediatorCount && a.goalReached === b.goalReached
+  );
 }
 
 function accessMatches(pred: HSINPrediction, oracle: HSINPrediction): boolean {
@@ -401,9 +622,14 @@ function accessMatches(pred: HSINPrediction, oracle: HSINPrediction): boolean {
 }
 
 export function scoreArm(arm: TournamentArm, battery: HSINBattery): HSINScorecard {
-  const axes: HSINOodAxis[] = ['train', 'ood-object-count', 'ood-opacity-composition', 'ood-rename'];
+  const axes: HSINOodAxis[] = [
+    'train',
+    'ood-object-count',
+    'ood-opacity-composition',
+    'ood-rename',
+  ];
   const perAxisHits: Record<HSINOodAxis, { hit: number; total: number }> = {
-    'train': { hit: 0, total: 0 },
+    train: { hit: 0, total: 0 },
     'ood-object-count': { hit: 0, total: 0 },
     'ood-opacity-composition': { hit: 0, total: 0 },
     'ood-rename': { hit: 0, total: 0 },
@@ -416,7 +642,8 @@ export function scoreArm(arm: TournamentArm, battery: HSINBattery): HSINScorecar
     if (accessMatches(pred, v.oracle)) accessHits += 1;
     if (pred.goalReached === v.oracle.goalReached) dynamicsHits += 1;
     perAxisHits[v.axis].total += 1;
-    if (accessMatches(pred, v.oracle) && pred.goalReached === v.oracle.goalReached) perAxisHits[v.axis].hit += 1;
+    if (accessMatches(pred, v.oracle) && pred.goalReached === v.oracle.goalReached)
+      perAxisHits[v.axis].hit += 1;
   }
 
   let sensitiveTotal = 0;
@@ -440,7 +667,10 @@ export function scoreArm(arm: TournamentArm, battery: HSINBattery): HSINScorecar
   }
 
   const oodGeneralization = Object.fromEntries(
-    axes.map((axis) => [axis, perAxisHits[axis].total === 0 ? 1 : perAxisHits[axis].hit / perAxisHits[axis].total]),
+    axes.map((axis) => [
+      axis,
+      perAxisHits[axis].total === 0 ? 1 : perAxisHits[axis].hit / perAxisHits[axis].total,
+    ])
   ) as Record<HSINOodAxis, number>;
 
   const structuralSensitivity = sensitiveTotal === 0 ? 1 : sensitiveCaught / sensitiveTotal;
@@ -470,7 +700,10 @@ export interface HSINTournamentReceipt {
 }
 
 /** Run the tournament: score every arm, rank them, and emit a deterministic receipt. */
-export function runTournament(arms: readonly TournamentArm[], battery: HSINBattery): HSINTournamentReceipt {
+export function runTournament(
+  arms: readonly TournamentArm[],
+  battery: HSINBattery
+): HSINTournamentReceipt {
   const scorecards = arms.map((arm) => scoreArm(arm, battery));
   const rankOf = (s: HSINScorecard): number =>
     (s.structureBlind ? 0 : 1) * 1000 +
