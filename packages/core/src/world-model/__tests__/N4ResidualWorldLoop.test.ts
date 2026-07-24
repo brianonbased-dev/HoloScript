@@ -12,6 +12,7 @@ import {
   stepN4Exact,
   stepN4Truth,
   trainN4Models,
+  verifyN4TypedMove,
   verifyN4Prediction,
 } from '../N4ResidualWorldLoop';
 
@@ -100,11 +101,22 @@ describe('N4 exact-plus-learned residual world loop', () => {
     expect(() =>
       proposeN4TypedMove(contract, models, scene, 'missing-object', action)
     ).toThrow(/not in the typed scene/);
-    expect(proposeN4TypedMove(contract, models, scene, 'object-0', action)).toMatchObject({
+    const typedMove = proposeN4TypedMove(contract, models, scene, 'object-0', action);
+    expect(typedMove).toMatchObject({
       type: 'move',
       entityId: 'object-0',
       residualScope: N4_RESIDUAL_TARGETS,
     });
+    expect(verifyN4TypedMove(typedMove)).toBe(true);
+    expect(
+      verifyN4TypedMove({ ...typedMove, deterministicDigest: 'sha256:stale' })
+    ).toBe(false);
+    expect(
+      verifyN4TypedMove({
+        ...typedMove,
+        residualScope: [...typedMove.residualScope, 'host.process'] as typeof typedMove.residualScope,
+      })
+    ).toBe(false);
   });
 
   it('meets or honestly narrows the frozen preregistered admission gates', () => {

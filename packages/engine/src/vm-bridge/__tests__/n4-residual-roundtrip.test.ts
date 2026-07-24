@@ -78,7 +78,7 @@ describe('N4 uAAL -> HoloVM owned-runtime round trip', () => {
           modelDigest: models.typedResidual.deterministicDigest,
         }
       )
-    ).rejects.toThrow(/custody digest mismatch/);
+    ).rejects.toThrow(/stale typed action digest/);
     expect(
       holoVM.world.getComponent<TransformComponent>(entityId, ComponentType.Transform)!.position
     ).toEqual(before);
@@ -105,9 +105,28 @@ describe('N4 uAAL -> HoloVM owned-runtime round trip', () => {
           modelDigest: models.typedResidual.deterministicDigest,
         }
       )
-    ).rejects.toThrow(/undeclared or reordered residual scope/);
+    ).rejects.toThrow(/invalid or stale typed action digest/);
     expect(
       holoVM.world.getComponent<TransformComponent>(entityId, ComponentType.Transform)!.position
     ).toEqual(before);
+  });
+
+  it('detects a tampered uAAL replay log', async () => {
+    const { contract, models, action, holoVM } = setup();
+    const receipt = await executeN4TypedMoveRoundTrip(
+      holoVM,
+      new UAALVirtualMachine({ recordLog: true }),
+      action,
+      {
+        sourceDigest: contract.sourceDigest,
+        graphDigest: contract.learningGraph.deterministicDigest,
+        modelDigest: models.typedResidual.deterministicDigest,
+      }
+    );
+    const tampered = structuredClone(receipt.uaalLog);
+    tampered.result.stackTop = 'forged';
+    const replay = await UAALVirtualMachine.replayLog(receipt.uaalProgram, tampered);
+    expect(replay.valid).toBe(false);
+    expect(replay.reason).toMatch(/final result mismatch/);
   });
 });

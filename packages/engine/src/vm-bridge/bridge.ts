@@ -31,7 +31,11 @@ import type {
   UAALBytecode,
   UAALExecutionLog,
 } from '@holoscript/uaal';
-import type { N4TypedMoveAction, N4ResidualTarget } from '@holoscript/core/world-model';
+import {
+  verifyN4TypedMove,
+  type N4TypedMoveAction,
+  type N4ResidualTarget,
+} from '@holoscript/core/world-model';
 import { createRequire } from 'node:module';
 
 // ---------------------------------------------------------------------------
@@ -510,6 +514,9 @@ export async function executeN4TypedMoveRoundTrip(
   action: N4TypedMoveAction,
   expected: N4RoundTripCustody
 ): Promise<N4OwnedRuntimeRoundTrip> {
+  if (!verifyN4TypedMove(action)) {
+    throw new Error('N4 runtime rejected invalid or stale typed action digest');
+  }
   if ((action as { type?: unknown }).type !== 'move') {
     throw new Error('N4 runtime admits only the typed move action');
   }

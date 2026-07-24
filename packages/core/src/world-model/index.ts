@@ -108,6 +108,7 @@ export {
   buildN4WeightsManifest,
   generateN4Artifacts,
   proposeN4TypedMove,
+  verifyN4TypedMove,
   runN4Experiment,
 } from './N4ResidualWorldLoop';
 export type {

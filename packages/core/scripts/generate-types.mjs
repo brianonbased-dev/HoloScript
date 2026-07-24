@@ -8293,6 +8293,7 @@ export declare function proposeN4TypedMove(
   entityId: string,
   action: N4Vec2
 ): N4TypedMoveAction;
+export declare function verifyN4TypedMove(action: N4TypedMoveAction): boolean;
 export declare function inferN4Cpu(manifest: N4WeightsManifest, features: readonly number[]): N4RuntimeInference;
 export declare function inferN4Wasm(manifest: N4WeightsManifest, features: readonly number[]): Promise<N4RuntimeInference>;
 export declare function inferN4WebGPU(device: GPUDevice, manifest: N4WeightsManifest, features: readonly number[]): Promise<N4RuntimeInference>;

@@ -1081,8 +1081,12 @@ export function buildN4WeightsManifest(
   });
   const tensorChecksum = fnv1a64(JSON.stringify({
     sourceDigest: contract.sourceDigest,
+    irDigest: contract.ir.provenance.deterministicDigest,
     graphDigest: contract.learningGraph.deterministicDigest,
     modelDigest: model.deterministicDigest,
+    featureSchemaDigest,
+    featureNames: model.featureNames,
+    outputNames: model.outputNames,
     weightTensor: model.weights,
     weightShape: model.shape,
     typeTensor,
@@ -1172,6 +1176,38 @@ export function proposeN4TypedMove(
     modelDigest: models.typedResidual.deterministicDigest,
   };
   return { ...withoutDigest, deterministicDigest: hsiSha256(withoutDigest) };
+}
+
+export function verifyN4TypedMove(action: N4TypedMoveAction): boolean {
+  if (
+    action.type !== 'move' ||
+    action.entityId.length === 0 ||
+    !Number.isFinite(action.position.x) ||
+    !Number.isFinite(action.position.y) ||
+    !Number.isFinite(action.confidence) ||
+    action.confidence < 0 ||
+    action.confidence > 1 ||
+    action.residualScope.length !== N4_RESIDUAL_TARGETS.length ||
+    !action.residualScope.every(
+      (target, index) => target === N4_RESIDUAL_TARGETS[index]
+    ) ||
+    !action.sourceDigest.startsWith('sha256:') ||
+    !action.graphDigest.startsWith('sha256:') ||
+    !action.modelDigest.startsWith('sha256:')
+  ) {
+    return false;
+  }
+  const withoutDigest = {
+    type: action.type,
+    entityId: action.entityId,
+    position: action.position,
+    confidence: action.confidence,
+    residualScope: [...action.residualScope],
+    sourceDigest: action.sourceDigest,
+    graphDigest: action.graphDigest,
+    modelDigest: action.modelDigest,
+  };
+  return hsiSha256(withoutDigest) === action.deterministicDigest;
 }
 
 function admission(metrics: readonly N4ArmMetrics[]): {

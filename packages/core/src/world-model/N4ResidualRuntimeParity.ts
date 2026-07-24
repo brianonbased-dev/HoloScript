@@ -41,8 +41,12 @@ function fnv1a64(value: string): string {
 function tensorChecksum(manifest: N4WeightsManifest): string {
   return fnv1a64(JSON.stringify({
     sourceDigest: manifest.sourceDigest,
+    irDigest: manifest.irDigest,
     graphDigest: manifest.graphDigest,
     modelDigest: manifest.modelDigest,
+    featureSchemaDigest: manifest.featureSchemaDigest,
+    featureNames: manifest.featureNames,
+    outputNames: manifest.outputNames,
     weightTensor: manifest.weightTensor,
     weightShape: manifest.weightShape,
     typeTensor: manifest.typeTensor,

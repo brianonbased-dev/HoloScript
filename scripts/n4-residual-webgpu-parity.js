@@ -4,7 +4,7 @@
   var define_N4_FEATURES_default = [1, 0.005225926637649536, 0.0034576591569930315, 0, 0, 0.1133863553404808, -0.04676457494497299, 0.582502007484436, 0.3854040801525116, 0, 0];
 
   // <define:__N4_MANIFEST__>
-  var define_N4_MANIFEST_default = { sourceDigest: "sha256:c8288f5fa70ec024afbe6362f0518a837880d753fb2bfc92a7f8b0dd20b6f9c3", irDigest: "sha256:ac880d88cb7d5c2d5cce6da44070f3c6ddb9a6747c956f58c585845979ddd77f", graphDigest: "sha256:2ad3ada13db0c4204a5038fe2e457942b76062722c1607298f86a453556aedcb", modelDigest: "sha256:5271e071aabcbe65e1ef0ffd04f6bc075add4b5f35eb0f01e168e2a6ec84f11f", featureSchemaDigest: "sha256:5c49345896c20396d16498fe98435b9c0ceed6bd1cfcba3483a6c0ef12b48903", featureNames: ["bias", "drag-vx-orb", "drag-vy-orb", "drag-vx-crate", "drag-vy-crate", "gust-x-per-mass", "gust-y-per-mass", "contact-vx-orb", "contact-vy-orb", "contact-vx-crate", "contact-vy-crate"], outputNames: ["residual-vx", "residual-vy"], weightTensor: [8262209303211421e-20, -0.8391917943954468, -0.20582643151283264, -1.2799557447433472, -0.006731370929628611, 0.33981814980506897, 6659167120233178e-19, -0.3210013210773468, 0.0022216930519789457, 0, 0, -37961124326102436e-20, -0.06084280461072922, -0.913568377494812, -0.0049233753234148026, -1.2568258047103882, 0.001030904590152204, 0.34002485871315, 7875708397477865e-19, -0.32125845551490784, 0, 0], weightShape: [2, 11], typeTensor: [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], typeShape: [22, 3], tensorChecksum: "fnv1a64:818afa6dd2642476", deterministicDigest: "sha256:378645923f402a16d004c2b7edf525a0a1f26a21029a8ae05c4ce6fb1cc7033b" };
+  var define_N4_MANIFEST_default = { sourceDigest: "sha256:c8288f5fa70ec024afbe6362f0518a837880d753fb2bfc92a7f8b0dd20b6f9c3", irDigest: "sha256:ac880d88cb7d5c2d5cce6da44070f3c6ddb9a6747c956f58c585845979ddd77f", graphDigest: "sha256:2ad3ada13db0c4204a5038fe2e457942b76062722c1607298f86a453556aedcb", modelDigest: "sha256:5271e071aabcbe65e1ef0ffd04f6bc075add4b5f35eb0f01e168e2a6ec84f11f", featureSchemaDigest: "sha256:5c49345896c20396d16498fe98435b9c0ceed6bd1cfcba3483a6c0ef12b48903", featureNames: ["bias", "drag-vx-orb", "drag-vy-orb", "drag-vx-crate", "drag-vy-crate", "gust-x-per-mass", "gust-y-per-mass", "contact-vx-orb", "contact-vy-orb", "contact-vx-crate", "contact-vy-crate"], outputNames: ["residual-vx", "residual-vy"], weightTensor: [8262209303211421e-20, -0.8391917943954468, -0.20582643151283264, -1.2799557447433472, -0.006731370929628611, 0.33981814980506897, 6659167120233178e-19, -0.3210013210773468, 0.0022216930519789457, 0, 0, -37961124326102436e-20, -0.06084280461072922, -0.913568377494812, -0.0049233753234148026, -1.2568258047103882, 0.001030904590152204, 0.34002485871315, 7875708397477865e-19, -0.32125845551490784, 0, 0], weightShape: [2, 11], typeTensor: [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], typeShape: [22, 3], tensorChecksum: "fnv1a64:15ca17f418a7f79d", deterministicDigest: "sha256:b351593e48fa675aac922893d71d7e0cb7007d6cf74cb59cad4768e83747e418" };
 
   // ../core/src/world-model/N4ResidualRuntimeParity.ts
   var N4_RUNTIME_PARITY_TOLERANCE = 1e-5;
@@ -20,8 +20,12 @@
   function tensorChecksum(manifest) {
     return fnv1a64(JSON.stringify({
       sourceDigest: manifest.sourceDigest,
+      irDigest: manifest.irDigest,
       graphDigest: manifest.graphDigest,
       modelDigest: manifest.modelDigest,
+      featureSchemaDigest: manifest.featureSchemaDigest,
+      featureNames: manifest.featureNames,
+      outputNames: manifest.outputNames,
       weightTensor: manifest.weightTensor,
       weightShape: manifest.weightShape,
       typeTensor: manifest.typeTensor,

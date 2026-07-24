@@ -40,4 +40,43 @@ describe('N4 CPU/WASM tensor custody', () => {
 
     await expect(inferN4Wasm(tampered, features)).rejects.toThrow(/checksum mismatch/);
   });
+
+  it('fails closed on graph custody or type-tensor ordering tamper', async () => {
+    const artifacts = generateN4Artifacts(readFileSync(SOURCE_PATH, 'utf8'));
+    const scene = generateN4Scene(9100, 'ood');
+    const features = projectN4TypedFeatures(scene, scene.objects[0]!);
+    await expect(
+      inferN4Wasm(
+        { ...artifacts.weightsManifest, graphDigest: 'sha256:tampered' },
+        features
+      )
+    ).rejects.toThrow(/checksum mismatch/);
+    await expect(
+      inferN4Wasm(
+        {
+          ...artifacts.weightsManifest,
+          typeTensor: [...artifacts.weightsManifest.typeTensor].reverse(),
+        },
+        features
+      )
+    ).rejects.toThrow(/checksum mismatch/);
+  });
+
+  it('rejects WASM and WebGPU output drift above the frozen tolerance', () => {
+    const artifacts = generateN4Artifacts(readFileSync(SOURCE_PATH, 'utf8'));
+    const scene = generateN4Scene(9100, 'ood');
+    const features = projectN4TypedFeatures(scene, scene.objects[0]!);
+    const cpu = inferN4Cpu(artifacts.weightsManifest, features);
+    for (const runtime of ['wasm', 'webgpu'] as const) {
+      const drifted = {
+        ...cpu,
+        runtime,
+        output: cpu.output.map((value, index) => index === 0 ? value + 1e-3 : value),
+      };
+      expect(verifyN4RuntimeParity(cpu, drifted)).toMatchObject({
+        valid: false,
+        reason: 'runtime output drift exceeds tolerance',
+      });
+    }
+  });
 });
