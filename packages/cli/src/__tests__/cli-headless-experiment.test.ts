@@ -4,9 +4,19 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { canonicalizeHeadlessValue } from '@holoscript/engine/runtime';
+import {
+  canonicalizeHeadlessValue,
+  hashHeadlessValue,
+  type HeadlessExperimentReceipt,
+} from '@holoscript/engine/runtime';
 import { describe, expect, it } from 'vitest';
 import { parseArgs } from '../args';
+import {
+  HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA,
+  HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY,
+  verifyHeadlessExperimentSourceRunReceipt,
+  type HeadlessExperimentSourceRunReceipt,
+} from '../headless-experiment';
 
 const execFileAsync = promisify(execFile);
 const testDir = path.dirname(fileURLToPath(import.meta.url));
@@ -158,6 +168,23 @@ function behaviorSource(extraAction = ''): string {
   }`;
 }
 
+function clone<T>(value: T): T {
+  return JSON.parse(canonicalizeHeadlessValue(value)) as T;
+}
+
+function resealSourceRun(
+  source: HeadlessExperimentSourceRunReceipt,
+  mutate: (receipt: HeadlessExperimentSourceRunReceipt) => void
+): HeadlessExperimentSourceRunReceipt {
+  const receipt = clone(source);
+  mutate(receipt);
+  const { sourceRunCommitment: _sourceRunCommitment, ...preimage } = receipt;
+  return {
+    ...receipt,
+    sourceRunCommitment: hashHeadlessValue(preimage),
+  };
+}
+
 describe('CLI deterministic cross-format headless execution', () => {
   it('rejects invalid or missing observer modes instead of downgrading the command', () => {
     expect(() => parseArgs(['headless', 'world.holo', '--observer', 'yes'])).toThrow(
@@ -176,17 +203,17 @@ describe('CLI deterministic cross-format headless execution', () => {
       const worldPath = path.join(tempDir, 'village.holo');
       const planPath = path.join(tempDir, 'schedule.hs');
       const behaviorPath = path.join(tempDir, 'behavior.hsplus');
-      writeFileSync(
-        worldPath,
-        `composition "Village" {
+      const worldSource = `composition "Village" {
           object "Commons" @grabbable @mqtt_source {
             position: [0, 0, 0]
             geometry: "box"
           }
-        }`
-      );
-      writeFileSync(planPath, planSource());
-      writeFileSync(behaviorPath, behaviorSource());
+        }`;
+      const authoredPlan = planSource();
+      const authoredBehavior = behaviorSource();
+      writeFileSync(worldPath, worldSource);
+      writeFileSync(planPath, authoredPlan);
+      writeFileSync(behaviorPath, authoredBehavior);
 
       const on = await runCli([
         'headless',
@@ -201,6 +228,23 @@ describe('CLI deterministic cross-format headless execution', () => {
       ]);
       const onReceipt = JSON.parse(on.stdout);
       expect(onReceipt.schema).toBe('holoscript-headless-run-receipt-v1');
+      expect(Object.keys(onReceipt).sort()).toEqual(
+        [
+          'schema',
+          'input',
+          'profile',
+          'requestedProfile',
+          'tickRate',
+          'requestedDurationMs',
+          'scene',
+          'posePhysics',
+          'execution',
+          'sourceRunReceipt',
+          'executionEngines',
+          'claimBoundary',
+          'observerProof',
+        ].sort()
+      );
       expect(onReceipt.profile).toBe('deterministic-projection');
       expect(onReceipt.requestedProfile).toBe('headless');
       expect(onReceipt.execution.schema).toBe('holoscript.headless-experiment-run.v1');
@@ -210,6 +254,18 @@ describe('CLI deterministic cross-format headless execution', () => {
       expect(onReceipt.execution.publicStateSnapshots.at(-1).payload.publicState).toEqual({
         water: 3,
       });
+      expect(onReceipt.sourceRunReceipt).toMatchObject({
+        schema: HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA,
+        hashAlgorithm: 'sha256-strict-canonical-json-v1',
+        sourceBundleHash: onReceipt.execution.sourceBundleHash,
+        verificationBoundary: HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY,
+        innerLedger: {
+          schema: 'holoscript.headless-experiment-run.v1',
+          terminalCommitment: onReceipt.execution.terminal.terminalCommitment,
+          canonicalReceiptHash: hashHeadlessValue(onReceipt.execution),
+        },
+      });
+      expect(onReceipt.sourceRunReceipt.sourceRunCommitment).toMatch(/^[a-f0-9]{64}$/);
       expect(onReceipt.executionEngines).toEqual({
         world: 'holoscript-cli-pure-world-projection-v1',
         schedule: 'holoscript-rust-wasm-uaal-plan-kernel-v1',
@@ -227,8 +283,16 @@ describe('CLI deterministic cross-format headless execution', () => {
         hsplusActionEntrypointsExecuted: true,
         nativeRustPipelineExecutionClaimed: false,
         nativeMachineCodeExecutionClaimed: false,
-        executionEngineIdentitySealedInReceipt: false,
-        uaalBytecodeHashSealedInReceipt: false,
+        executionEngineIdentitySealedInReceipt: true,
+        hsCompilerCrateVersionSealedInReceipt: true,
+        uaalBytecodeHashSealedInReceipt: true,
+        uaalVmExecutionProfileSealedInReceipt: true,
+        hsReturnedPlanHashSealedInReceipt: true,
+        worldSourceReexecutedDuringVerification: false,
+        hsPlanSourceReexecutedDuringVerification: true,
+        hsplusBehaviorSourceReexecutedDuringVerification: false,
+        compilerArtifactAttested: false,
+        sourceRunPublisherAuthenticated: false,
         nativeEngineHsplusExecutionClaimed: false,
         engineOwnedDeterministicHsplusActionSubsetExecuted: true,
         fullHsplusLanguageExecutionClaimed: false,
@@ -239,6 +303,38 @@ describe('CLI deterministic cross-format headless execution', () => {
         externalReplayRegistryAvailable: true,
         vmSecurityBoundaryClaimed: false,
       });
+      expect(onReceipt.sourceRunReceipt.engines).toMatchObject({
+        world: onReceipt.executionEngines.world,
+        schedule: {
+          engine: onReceipt.executionEngines.schedule,
+          bytecode: {
+            hashAlgorithm: 'sha256-uaal-bytecode-canonical-v1',
+            sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+          },
+          vm: {
+            profile: {
+              limits: {
+                maxStackSize: 4,
+                maxInstructions: 16,
+                maxCallDepth: 2,
+              },
+              registeredHandlerOpcodes: [],
+            },
+          },
+        },
+        behavior: onReceipt.executionEngines.behavior,
+      });
+      await expect(
+        verifyHeadlessExperimentSourceRunReceipt(
+          onReceipt.sourceRunReceipt as HeadlessExperimentSourceRunReceipt,
+          onReceipt.execution as HeadlessExperimentReceipt,
+          {
+            worldSource,
+            planSource: authoredPlan,
+            behaviorSource: authoredBehavior,
+          }
+        )
+      ).resolves.toEqual({ valid: true, errors: [] });
       expect(onReceipt.scene.objects[0].traits).toEqual(['grabbable', 'mqtt_source']);
       expect(onReceipt.observerProof).toMatchObject({
         isolation: 'separate-node-process-serialized-post-seal-v1',
@@ -264,6 +360,102 @@ describe('CLI deterministic cross-format headless execution', () => {
       const offReceipt = JSON.parse(off.stdout);
       expect(offReceipt.observerProof).toBeUndefined();
       expect(offReceipt.execution).toEqual(onReceipt.execution);
+      expect(offReceipt.sourceRunReceipt).toEqual(onReceipt.sourceRunReceipt);
+
+      const forgedInner = clone(onReceipt.execution) as HeadlessExperimentReceipt;
+      forgedInner.terminal.terminalCommitment = '0'.repeat(64);
+      const forgedSourceRun = resealSourceRun(
+        onReceipt.sourceRunReceipt as HeadlessExperimentSourceRunReceipt,
+        (receipt) => {
+          receipt.innerLedger.terminalCommitment = forgedInner.terminal.terminalCommitment;
+          receipt.innerLedger.canonicalReceiptHash = hashHeadlessValue(forgedInner);
+        }
+      );
+      await expect(
+        verifyHeadlessExperimentSourceRunReceipt(forgedSourceRun, forgedInner, {
+          worldSource,
+          planSource: authoredPlan,
+          behaviorSource: authoredBehavior,
+        })
+      ).resolves.toMatchObject({
+        valid: false,
+        errors: [expect.stringMatching(/inner execution receipt failed/i)],
+      });
+
+      const shadowInner = clone(onReceipt.execution) as HeadlessExperimentReceipt &
+        Record<string, unknown>;
+      shadowInner.shadowEvidence = { publisherAuthenticated: true };
+      await expect(
+        verifyHeadlessExperimentSourceRunReceipt(onReceipt.sourceRunReceipt, shadowInner, {
+          worldSource,
+          planSource: authoredPlan,
+          behaviorSource: authoredBehavior,
+        })
+      ).resolves.toMatchObject({
+        valid: false,
+        errors: [expect.stringMatching(/inner execution receipt fields do not match/i)],
+      });
+
+      const downgradedSourceRun = resealSourceRun(
+        onReceipt.sourceRunReceipt as HeadlessExperimentSourceRunReceipt,
+        (receipt) => {
+          (receipt as unknown as Record<string, unknown>).schema =
+            'holoscript.headless-experiment-source-run.v1';
+        }
+      );
+      await expect(
+        verifyHeadlessExperimentSourceRunReceipt(
+          downgradedSourceRun,
+          onReceipt.execution as HeadlessExperimentReceipt,
+          {
+            worldSource,
+            planSource: authoredPlan,
+            behaviorSource: authoredBehavior,
+          }
+        )
+      ).resolves.toMatchObject({
+        valid: false,
+        errors: [expect.stringMatching(/identity mismatch/i)],
+      });
+
+      const shadowSourceRun = resealSourceRun(
+        onReceipt.sourceRunReceipt as HeadlessExperimentSourceRunReceipt,
+        (receipt) => {
+          (receipt as unknown as Record<string, unknown>).shadowReceipt = true;
+        }
+      );
+      await expect(
+        verifyHeadlessExperimentSourceRunReceipt(
+          shadowSourceRun,
+          onReceipt.execution as HeadlessExperimentReceipt,
+          {
+            worldSource,
+            planSource: authoredPlan,
+            behaviorSource: authoredBehavior,
+          }
+        )
+      ).resolves.toMatchObject({
+        valid: false,
+        errors: [expect.stringMatching(/fields do not match/i)],
+      });
+
+      const falseVerificationBoundary = resealSourceRun(
+        onReceipt.sourceRunReceipt as HeadlessExperimentSourceRunReceipt,
+        (receipt) => {
+          (receipt.verificationBoundary as unknown as Record<string, unknown>).world =
+            'source-reexecuted-v1';
+        }
+      );
+      await expect(
+        verifyHeadlessExperimentSourceRunReceipt(falseVerificationBoundary, onReceipt.execution, {
+          worldSource,
+          planSource: authoredPlan,
+          behaviorSource: authoredBehavior,
+        })
+      ).resolves.toMatchObject({
+        valid: false,
+        errors: [expect.stringMatching(/verification boundary mismatch/i)],
+      });
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
@@ -286,8 +478,23 @@ describe('CLI deterministic cross-format headless execution', () => {
       const legacy = await runCli(['headless', worldPath, '--duration', '1', '--json']);
       const receipt = JSON.parse(legacy.stdout);
       expect(receipt.schema).toBe('holoscript-headless-run-receipt-v1');
+      expect(Object.keys(receipt).sort()).toEqual(
+        [
+          'schema',
+          'input',
+          'profile',
+          'tickRate',
+          'requestedDurationMs',
+          'stats',
+          'scene',
+          'posePhysics',
+        ].sort()
+      );
       expect(receipt.scene.objectCount).toBe(1);
       expect(receipt.execution).toBeUndefined();
+      expect(receipt.sourceRunReceipt).toBeUndefined();
+      expect(receipt.executionEngines).toBeUndefined();
+      expect(receipt.claimBoundary).toBeUndefined();
       expect(receipt.stats).toBeDefined();
     } finally {
       rmSync(tempDir, { recursive: true, force: true });

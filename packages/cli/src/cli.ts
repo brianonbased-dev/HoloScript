@@ -1834,6 +1834,7 @@ async function main(): Promise<void> {
             scene: experiment.execution.scene,
             posePhysics: experiment.execution.posePhysics,
             execution: experiment.execution,
+            sourceRunReceipt: experiment.sourceRunReceipt,
             executionEngines: experiment.engines,
             claimBoundary: experiment.claimBoundary,
             ...(experiment.observerProof === undefined
@@ -1850,7 +1851,10 @@ async function main(): Promise<void> {
             console.log(`  Observations: ${experiment.execution.observationLedger.length}`);
             console.log(`  Actions: ${experiment.execution.actionLedger.length}`);
             console.log(
-              `  Terminal commitment: ${experiment.execution.terminal.terminalCommitment}`
+              `  Source-run commitment: ${experiment.sourceRunReceipt.sourceRunCommitment}`
+            );
+            console.log(
+              `  Inner terminal commitment: ${experiment.execution.terminal.terminalCommitment}`
             );
             if (experiment.observerProof) {
               console.log(`  Observer equivalence: ${experiment.observerProof.equivalent}`);
