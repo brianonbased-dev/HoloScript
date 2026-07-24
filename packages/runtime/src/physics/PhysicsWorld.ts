@@ -22,6 +22,7 @@ import {
   PhysicsWorldImpl,
   type IPhysicsWorldConfig,
   type IRigidBodyConfig,
+  type IRigidBodyState,
   type CollisionShape,
 } from '@holoscript/engine/physics';
 
@@ -577,6 +578,26 @@ export class PhysicsWorld {
 
   getBody(id: string): BodyProxy | undefined {
     return this._proxies.get(id);
+  }
+
+  /**
+   * Return a detached snapshot of the native solver state for one body.
+   *
+   * This is intentionally separate from getBody(), which preserves the
+   * mutable compatibility proxy used by existing browser/runtime callers.
+   * Receipt and replay tooling can use this method to observe solver-owned
+   * sleeping and active state without reaching through the private adapter.
+   */
+  getBodyState(id: string): IRigidBodyState | undefined {
+    return this._impl.getBody(id);
+  }
+
+  /**
+   * Return detached native solver snapshots in deterministic registration
+   * order. Mutating a returned tuple cannot mutate the physics world.
+   */
+  getAllBodyStates(): IRigidBodyState[] {
+    return this._impl.getAllBodies();
   }
 
   getVelocity(id: string): [number, number, number] | undefined {

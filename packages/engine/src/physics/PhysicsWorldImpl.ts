@@ -73,6 +73,28 @@ function vec3Normalize(v: IVector3): IVector3 {
   return [v[0] / len, v[1] / len, v[2] / len];
 }
 
+function rotateVector(v: IVector3, q: IQuaternion): IVector3 {
+  const qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+  const r00 = 1 - 2 * (qy * qy + qz * qz);
+  const r01 = 2 * (qx * qy - qz * qw);
+  const r02 = 2 * (qx * qz + qy * qw);
+  const r10 = 2 * (qx * qy + qz * qw);
+  const r11 = 1 - 2 * (qx * qx + qz * qz);
+  const r12 = 2 * (qy * qz - qx * qw);
+  const r20 = 2 * (qx * qz - qy * qw);
+  const r21 = 2 * (qy * qz + qx * qw);
+  const r22 = 1 - 2 * (qx * qx + qy * qy);
+  return [
+    r00 * v[0] + r01 * v[1] + r02 * v[2],
+    r10 * v[0] + r11 * v[1] + r12 * v[2],
+    r20 * v[0] + r21 * v[1] + r22 * v[2],
+  ];
+}
+
+function inverseRotateVector(v: IVector3, q: IQuaternion): IVector3 {
+  return rotateVector(v, [-q[0], -q[1], -q[2], q[3]]);
+}
+
 /**
  * Triple product: (a x b) x c  -- used in GJK for perpendicular direction
  */
@@ -1042,6 +1064,13 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   }
 
   private fixedStep(dt: number): void {
+    // Integrate forces before contact generation so the collision solver sees
+    // this step's gravity/forces and can cancel a resting body's normal
+    // velocity before positions advance.
+    for (const body of this.bodiesArray) {
+      body.integrateForces(dt, this.config.gravity);
+    }
+
     // Broadphase collision detection
     this.broadphase();
 
@@ -1051,11 +1080,6 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     // Detect islands for sleeping
     if (this.config.allowSleep) {
       this.detectIslands();
-    }
-
-    // Integrate forces (gravity + accumulated user forces)
-    for (const body of this.bodiesArray) {
-      body.integrateForces(dt, this.config.gravity);
     }
 
     // Clear forces after integration
@@ -1165,6 +1189,20 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       return this.checkSphereSphere(bodyA, bodyB);
     }
 
+    // Exact sphere-box path avoids GJK/EPA degeneracy at resting contact and
+    // supports oriented boxes used by ramps and chutes.
+    if (bodyA.shape.type === 'sphere' && bodyB.shape.type === 'box') {
+      return this.checkSphereBox(bodyA, bodyB);
+    }
+    if (bodyA.shape.type === 'box' && bodyB.shape.type === 'sphere') {
+      const collision = this.checkSphereBox(bodyB, bodyA);
+      if (!collision) return null;
+      for (const contact of collision.contacts) {
+        contact.normal = vec3Negate(contact.normal);
+      }
+      return collision;
+    }
+
     // ---- GJK/EPA for all other convex shape pairs ----
     return this.checkGJKEPA(bodyA, bodyB);
   }
@@ -1213,6 +1251,71 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
           impulse: 0,
         },
       ],
+    };
+  }
+
+  /**
+   * Exact sphere versus oriented-box contact. The returned normal follows the
+   * world convention and points from the sphere body toward the box body.
+   */
+  private checkSphereBox(
+    sphereBody: RigidBody,
+    boxBody: RigidBody
+  ): {
+    contacts: Array<{ position: IVector3; normal: IVector3; penetration: number; impulse: number }>;
+  } | null {
+    const spherePosition = sphereBody.position;
+    const boxPosition = boxBody.position;
+    const boxRotation = boxBody.rotation;
+    const radius = (sphereBody.shape as { radius: number }).radius;
+    const halfExtents = (boxBody.shape as { halfExtents: IVector3 }).halfExtents;
+
+    const sphereLocal = inverseRotateVector(vec3Sub(spherePosition, boxPosition), boxRotation);
+    const closestLocal: IVector3 = [
+      Math.max(-halfExtents[0], Math.min(halfExtents[0], sphereLocal[0])),
+      Math.max(-halfExtents[1], Math.min(halfExtents[1], sphereLocal[1])),
+      Math.max(-halfExtents[2], Math.min(halfExtents[2], sphereLocal[2])),
+    ];
+    const sphereToClosestLocal = vec3Sub(closestLocal, sphereLocal);
+    const distanceSquared = vec3LengthSq(sphereToClosestLocal);
+    if (distanceSquared >= radius * radius) return null;
+
+    let normalLocal: IVector3;
+    let distance: number;
+    let penetration: number;
+    if (distanceSquared > 1e-20) {
+      distance = Math.sqrt(distanceSquared);
+      normalLocal = vec3Scale(sphereToClosestLocal, 1 / distance);
+      penetration = radius - distance;
+    } else {
+      // Sphere centre is inside or exactly on the box. Pick the nearest face;
+      // the correction convention needs a normal pointing into the box so
+      // subtracting it pushes the sphere out through that face.
+      const faceDistances = [
+        halfExtents[0] - Math.abs(sphereLocal[0]),
+        halfExtents[1] - Math.abs(sphereLocal[1]),
+        halfExtents[2] - Math.abs(sphereLocal[2]),
+      ];
+      let axis = 0;
+      if (faceDistances[1] < faceDistances[axis]) axis = 1;
+      if (faceDistances[2] < faceDistances[axis]) axis = 2;
+      const outwardSign = sphereLocal[axis] >= 0 ? 1 : -1;
+      normalLocal = [0, 0, 0];
+      normalLocal[axis] = -outwardSign;
+      closestLocal[axis] = outwardSign * halfExtents[axis];
+      distance = faceDistances[axis];
+      penetration = radius + distance;
+    }
+
+    const normal = rotateVector(normalLocal, boxRotation);
+    const closestWorld = vec3Add(boxPosition, rotateVector(closestLocal, boxRotation));
+    return {
+      contacts: [{
+        position: closestWorld,
+        normal,
+        penetration,
+        impulse: 0,
+      }],
     };
   }
 
@@ -1407,7 +1510,12 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       // Don't resolve if separating
       if (normalVelocity > 0) continue;
 
-      const restitution = Math.min(bodyA.material.restitution, bodyB.material.restitution);
+      // Suppress micro-bounces at resting-contact speeds while preserving
+      // authored restitution for visible impacts.
+      const restitution =
+        Math.abs(normalVelocity) < 0.5
+          ? 0
+          : Math.min(bodyA.material.restitution, bodyB.material.restitution);
 
       // Denominator: linear terms + rotational terms for each body
       const invMassSum = bodyA.inverseMass + bodyB.inverseMass;
@@ -1431,8 +1539,8 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
         normal[1] * impulseMag,
         normal[2] * impulseMag,
       ];
-      bodyA.applyImpulse([-jn[0], -jn[1], -jn[2]]);
-      bodyB.applyImpulse(jn);
+      bodyA.applySolverImpulse([-jn[0], -jn[1], -jn[2]]);
+      bodyB.applySolverImpulse(jn);
 
       // Apply angular impulse: dω = I^-1 * (r × j*n)
       // applyTorqueImpulse already applies the I^-1 scaling internally
@@ -1442,7 +1550,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
           rA[2] * jn[0] - rA[0] * jn[2],
           rA[0] * jn[1] - rA[1] * jn[0],
         ];
-        bodyA.applyTorqueImpulse([-torqueA[0], -torqueA[1], -torqueA[2]]);
+        bodyA.applySolverTorqueImpulse([-torqueA[0], -torqueA[1], -torqueA[2]]);
       }
       if (bodyB.type === 'dynamic') {
         const torqueB: IVector3 = [
@@ -1450,7 +1558,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
           rB[2] * jn[0] - rB[0] * jn[2],
           rB[0] * jn[1] - rB[1] * jn[0],
         ];
-        bodyB.applyTorqueImpulse(torqueB);
+        bodyB.applySolverTorqueImpulse(torqueB);
       }
 
       // Position correction (penetration resolution) — mass-weighted
@@ -1461,19 +1569,19 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
         const correctionMag = (Math.max(contact.penetration - slop, 0) / totalInvMass) * percent;
 
         if (bodyA.type === 'dynamic') {
-          bodyA.position = [
+          bodyA.setSolverPosition([
             posA[0] - normal[0] * correctionMag * bodyA.inverseMass,
             posA[1] - normal[1] * correctionMag * bodyA.inverseMass,
             posA[2] - normal[2] * correctionMag * bodyA.inverseMass,
-          ];
+          ]);
         }
         if (bodyB.type === 'dynamic') {
           const posB2 = bodyB.position;
-          bodyB.position = [
+          bodyB.setSolverPosition([
             posB2[0] + normal[0] * correctionMag * bodyB.inverseMass,
             posB2[1] + normal[1] * correctionMag * bodyB.inverseMass,
             posB2[2] + normal[2] * correctionMag * bodyB.inverseMass,
-          ];
+          ]);
         }
       }
 
@@ -1546,7 +1654,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       // but applyImpulse already divides by mass, so pass mass-scaled values.
       const m = body.mass;
       if (m > 0) {
-        body.applyImpulse([
+        body.applySolverImpulse([
           delta.linearVelocity[0] * m,
           delta.linearVelocity[1] * m,
           delta.linearVelocity[2] * m,
@@ -1563,7 +1671,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       // To achieve angVel += dω we need τ = dω / I^-1 = dω * I.
       // The inertia tensor (diagonal) = 1 / inverseInertia.
       const invI = body.inverseInertia;
-      body.applyTorqueImpulse([
+      body.applySolverTorqueImpulse([
         invI[0] > 0 ? delta.angularVelocity[0] / invI[0] : 0,
         invI[1] > 0 ? delta.angularVelocity[1] / invI[1] : 0,
         invI[2] > 0 ? delta.angularVelocity[2] / invI[2] : 0,
@@ -1589,19 +1697,19 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     const correction: IVector3 = [dx * diff * 0.5, dy * diff * 0.5, dz * diff * 0.5];
 
     if (bodyA.type === 'dynamic') {
-      bodyA.position = [
+      bodyA.setSolverPosition([
         posA[0] + correction[0],
         posA[1] + correction[1],
         posA[2] + correction[2],
-      ];
+      ]);
     }
 
     if (bodyB.type === 'dynamic') {
-      bodyB.position = [
+      bodyB.setSolverPosition([
         posB[0] - correction[0],
         posB[1] - correction[1],
         posB[2] - correction[2],
-      ];
+      ]);
     }
   }
 

@@ -8,6 +8,7 @@
  *  4. IslandDetector result discarded (_islands unused) — dead-compute removal
  *  5. PhysicsStep positional correction 50/50 split ignores mass
  *  6. PhysicsStep broadphase single-cell insert misses cross-cell collisions
+ *  7. Resting sphere-box contacts tunnel and reset sleeping every step
  */
 
 import { describe, it, expect } from 'vitest';
@@ -273,6 +274,76 @@ describe('Bug 4 — IslandDetector dead computation removed (no-throw / observab
     }).not.toThrow();
 
     expect(world.getAllBodies().length).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bug 7: grounded sphere-box contacts must settle and sleep
+// ---------------------------------------------------------------------------
+
+describe('Bug 7 - grounded sphere-box contacts settle without solver wake churn', () => {
+  it('keeps a gravity-driven sphere on a static box floor and reaches sleep', () => {
+    const world = createPhysicsWorld({
+      allowSleep: true,
+      gravity: [0, -9.81, 0],
+      fixedTimestep: 1 / 60,
+      maxSubsteps: 1,
+    });
+    world.createBody({
+      id: 'floor',
+      type: 'static',
+      mass: 0,
+      shape: boxShape([5, 0.5, 5]),
+      transform: {
+        position: [0, -0.5, 0],
+        rotation: identityQuaternion(),
+      },
+      material: { friction: 0.6, restitution: 0 },
+    });
+    world.createBody({
+      ...mkSphere('token', 0.5, [0, 4, 0]),
+      material: { friction: 0.6, restitution: 0.1 },
+      linearDamping: 0.08,
+      angularDamping: 0.08,
+    });
+
+    let minimumY = Number.POSITIVE_INFINITY;
+    for (let step = 0; step < 600; step += 1) {
+      world.step(1 / 60);
+      minimumY = Math.min(minimumY, world.getBody('token')!.position[1]);
+    }
+
+    const token = world.getBody('token')!;
+    expect(minimumY).toBeGreaterThan(0.45);
+    expect(token.position[1]).toBeGreaterThanOrEqual(0.485);
+    expect(token.position[1]).toBeLessThanOrEqual(0.505);
+    expect(token.linearVelocity).toEqual([0, 0, 0]);
+    expect(token.angularVelocity).toEqual([0, 0, 0]);
+    expect(token.isSleeping).toBe(true);
+  });
+
+  it('wakes a sleeping body when a meaningful solver impact arrives', () => {
+    const world = createPhysicsWorld({
+      allowSleep: true,
+      gravity: [0, 0, 0],
+      fixedTimestep: 1 / 60,
+      maxSubsteps: 1,
+    });
+    world.createBody({
+      ...mkSphere('sleeping', 0.5, [0, 0, 0]),
+      sleeping: true,
+      material: { friction: 0.3, restitution: 0 },
+    });
+    world.createBody({
+      ...mkSphere('striker', 0.5, [-1.5, 0, 0]),
+      material: { friction: 0.3, restitution: 0 },
+    });
+    world.setLinearVelocity('striker', [10, 0, 0]);
+
+    for (let step = 0; step < 10; step += 1) world.step(1 / 60);
+
+    expect(world.getBody('sleeping')!.isSleeping).toBe(false);
+    expect(world.getBody('sleeping')!.linearVelocity[0]).toBeGreaterThan(0);
   });
 });
 

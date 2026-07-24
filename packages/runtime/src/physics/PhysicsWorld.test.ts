@@ -341,6 +341,44 @@ describe('PhysicsWorld', () => {
     });
   });
 
+  describe('native state snapshots', () => {
+    it('exposes solver sleeping and active state without exposing the private implementation', () => {
+      const physics = new PhysicsWorld({ gravity: [0, 0, 0] });
+      const mesh = createMockMesh({ x: 1, y: 2, z: 3 });
+      physics.addBodyWithConfig('receipt-token', mesh, {
+        type: 'dynamic',
+        mass: 1,
+        shape: 'sphere',
+      });
+
+      const state = physics.getBodyState('receipt-token');
+
+      expect(state).toMatchObject({
+        id: 'receipt-token',
+        position: [1, 2, 3],
+        isSleeping: false,
+        isActive: true,
+      });
+      expect(physics.getBodyState('missing')).toBeUndefined();
+    });
+
+    it('returns detached snapshots in deterministic registration order', () => {
+      const physics = new PhysicsWorld({ gravity: [0, 0, 0] });
+      physics.addBodyWithConfig('first', createMockMesh({ x: 1, y: 0, z: 0 }), {
+        type: 'dynamic',
+      });
+      physics.addBodyWithConfig('second', createMockMesh({ x: 2, y: 0, z: 0 }), {
+        type: 'dynamic',
+      });
+
+      const snapshots = physics.getAllBodyStates();
+      expect(snapshots.map((state) => state.id)).toEqual(['first', 'second']);
+
+      snapshots[0].position[0] = 99;
+      expect(physics.getBodyState('first')?.position[0]).toBe(1);
+    });
+  });
+
   describe('applyImpulse', () => {
     let physics: PhysicsWorld;
 
