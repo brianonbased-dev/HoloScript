@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/llm-provider",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Unified LLM provider SDK for HoloScript - OpenAI, Anthropic, Gemini, OpenRouter, xAI, and local LLM adapters",
   "releaseLane": "v0-preview",
   "publishConfig": {

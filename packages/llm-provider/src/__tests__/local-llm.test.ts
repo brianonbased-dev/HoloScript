@@ -155,6 +155,33 @@ describe('LocalLLMAdapter — complete()', () => {
     expect(body.temperature).toBe(0.2);
   });
 
+  it('forwards the opt-in HoloServe payload pipeline on OpenAI-compatible requests', async () => {
+    fetchMock = mockFetch(makeOkResponse('153'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await adapter.complete({
+      messages: [{ role: 'user', content: 'Return 17 multiplied by 9 as a bare integer.' }],
+      holoPipeline: 'broker-v1',
+    });
+
+    const body = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string);
+    expect(body.holo_pipeline).toBe('broker-v1');
+  });
+
+  it('rejects holoPipeline on the native Ollama transport', async () => {
+    const ollama = new LocalLLMAdapter({
+      baseURL: 'http://localhost:11434',
+      nativeOllamaApi: true,
+    });
+
+    await expect(
+      ollama.complete({
+        messages: [{ role: 'user', content: 'test' }],
+        holoPipeline: 'broker-v1',
+      })
+    ).rejects.toThrow('holoPipeline requires the local OpenAI-compatible transport');
+  });
+
   it('throws LLMProviderError on 500 response', async () => {
     fetchMock = mockFetch({ error: 'internal' }, 500);
     vi.stubGlobal('fetch', fetchMock);

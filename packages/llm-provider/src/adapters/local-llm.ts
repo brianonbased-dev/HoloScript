@@ -173,6 +173,12 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
   ): Promise<LLMCompletionResponse> {
+    if (this.useNativeOllamaApi && request.holoPipeline !== undefined) {
+      throw new LLMProviderError(
+        'holoPipeline requires the local OpenAI-compatible transport',
+        'local-llm'
+      );
+    }
     return this.useNativeOllamaApi
       ? this.completeNativeOllama(request, model)
       : this.completeOpenAICompat(request, model);
@@ -336,6 +342,9 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       stream: false,
       ...this._thinkParam(model),
       ...(request.grammar ? { grammar: request.grammar } : {}),
+      ...(request.holoPipeline !== undefined
+        ? { holo_pipeline: request.holoPipeline }
+        : {}),
       ...(filteredTools.length > 0 ? { tools: this.mapToolsToOllama(filteredTools) } : {}),
     });
 
@@ -529,6 +538,12 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
   ): AsyncIterable<LLMStreamChunk> {
+    if (this.useNativeOllamaApi && request.holoPipeline !== undefined) {
+      throw new LLMProviderError(
+        'holoPipeline requires the local OpenAI-compatible transport',
+        'local-llm'
+      );
+    }
     // Same protocol split as complete(): Ollama-native NDJSON /api/chat vs
     // OpenAI-compat SSE /v1/chat/completions (llama.cpp llama-server, HoloServe,
     // LM Studio, vLLM). Before this branch existed, streaming was hardwired to
@@ -783,6 +798,9 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       stream: true,
       ...this._thinkParam(model),
       ...(request.grammar ? { grammar: request.grammar } : {}),
+      ...(request.holoPipeline !== undefined
+        ? { holo_pipeline: request.holoPipeline }
+        : {}),
       ...(filteredTools.length > 0 ? { tools: this.mapToolsToOllama(filteredTools) } : {}),
     });
 

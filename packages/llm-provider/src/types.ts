@@ -124,6 +124,14 @@ export interface LLMCompletionRequest {
   grammar?: string;
 
   /**
+   * HoloServe's opt-in consumer payload pipeline. Passed through only by the
+   * local OpenAI-compatible adapter as request field `holo_pipeline`; cloud
+   * adapters ignore it and the native Ollama path rejects it rather than
+   * silently degrading to model generation.
+   */
+  holoPipeline?: 'off' | 'broker-v1';
+
+  /**
    * Tools the model can call. When set, the response may contain `toolUses`
    * blocks that the caller must execute and re-feed via a follow-up request
    * containing assistantBlocks (the prior response) + tool_result messages.

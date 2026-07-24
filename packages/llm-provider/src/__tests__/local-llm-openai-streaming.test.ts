@@ -146,6 +146,25 @@ describe('streamCompletion protocol split', () => {
 // =============================================================================
 
 describe('streamOpenAICompat SSE translation', () => {
+  it('forwards the opt-in HoloServe payload pipeline in streaming requests', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return mockSseResponse([sse([chatChunk({ content: '153' }, 'stop')])]);
+    });
+    const adapter = new LocalLLMAdapter({ baseURL: 'http://127.0.0.1:8099', nativeOllamaApi: false });
+
+    await collect(
+      adapter.streamCompletion({
+        messages: [{ role: 'user', content: 'Return 17 multiplied by 9 as a bare integer.' }],
+        holoPipeline: 'broker-v1',
+      })
+    );
+
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].holo_pipeline).toBe('broker-v1');
+  });
+
   it('text deltas in order + exactly one message_stop with usage from the final frame', async () => {
     vi.stubGlobal('fetch', async () =>
       mockSseResponse([
