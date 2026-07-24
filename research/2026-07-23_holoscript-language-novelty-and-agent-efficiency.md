@@ -37,12 +37,13 @@ work.
 
 The efficiency verdict is equally precise:
 
-- HoloScript already has evidence of fast native parsing and now has an allocation-free
-  inline carrier for native known/unknown scalar fields.
+- HoloScript already has measured native parser latency and now has an allocation-free inline
+  carrier for native known/unknown scalar fields.
 - The current native carrier has a measurable space cost: 12 bytes for uncertain `bool` and
   `i32`, and 16 bytes for uncertain `i64`.
-- A prior single-host benchmark found native Rust parsing about 1.22–1.39x faster than the
-  JavaScript parser on the measured fixtures, while the Node/WASM boundary was slower.
+- On two larger single-host fixtures (5.3 KB and 8.3 KB), native Rust medians were 564.9 µs and
+  822.2 µs versus JavaScript medians of 689.5 µs and 1,128.2 µs. The 434-byte result was mixed,
+  Node/WASM was slower, and three fixture points are not an asymptotic performance proof.
 - HoloScript has **not yet measured** fewer model tokens, fewer repair turns, lower total
   agent cost, or better task success than TypeScript, JSON, or YAML.
 
@@ -366,10 +367,18 @@ Prioritize ordinary programming completeness before adding more agent nouns:
 Agents, brains, goals, tools, memory, and delegation then become libraries plus first-class
 semantic constructs in this general language. They do not replace its ordinary core.
 
-The immediate blocker is concrete: the TypeScript `.hsplus` parser still stores typed struct
-bodies as raw text in the relevant path. It must structurally emit field names, types, and
-annotations before `.hsplus @unknown` can honestly claim the native behavior now present in
-`.hs`.
+The first structural step is now present: the TypeScript `.hsplus` parser exposes field names,
+types, and admitted annotations in its internal AST for `struct` declarations while retaining the
+raw body for legacy consumers. The AST distinguishes admitted typed fields from preserved-opaque
+members and retains optionality plus authored defaults. HoloMeaning consumes parser-produced
+structured `@unknown` through a defensive shape-validating adapter that delegates to the canonical
+struct-field lowering instead of reparsing raw text; type-syntax admission remains the parser's
+responsibility.
+
+The next blocker is executable native `.hsplus` lowering together with wider ordinary-programming
+completeness. `compiler-native` still consumes only `.hs`; `interface` and `class` bodies remain
+raw; and the Kotlin bridge rejects typed structs. This step establishes neither cross-backend
+parity nor an agent-efficiency advantage.
 
 ### Phase C — keep `.hs` small and hard
 
@@ -432,18 +441,24 @@ The native `.hs` slice for first-class ignorance now establishes:
 This is evidence for a narrow claim: **native HoloScript can preserve declared ignorance
 instead of compiling it into a plausible lie.**
 
-It is not yet evidence for `.hsplus` parity, probabilistic uncertainty, every native type,
-or every backend.
+The adjacent `.hsplus` slice establishes structural parsing and canonical HoloMeaning lowering for
+typed `struct` fields carrying `@unknown`, while preserving the legacy raw body. It does not
+establish `.hsplus` native execution: `compiler-native` does not consume `.hsplus`, `interface` and
+`class` bodies remain raw, and Kotlin rejects typed structs.
+
+These slices are not yet evidence for `.hsplus` parity, probabilistic uncertainty, every native
+type, every backend, or greater agent efficiency.
 
 ## 8. Public language that is safe now
 
 Safe:
 
-> HoloScript has three specialized authoring surfaces—composition, typed semantic
-> programming, and compact deterministic execution—converging on one meaning layer.
+> HoloScript is developing three specialized authoring surfaces—composition, typed semantic
+> programming, and compact deterministic execution—that converge on one meaning layer.
 
-> `.hsplus` is a TypeScript-like general-purpose semantic language in which agents, traits,
-> space, state, effects, and provenance are first-class rather than external schemas.
+> `.hsplus` is being developed as a TypeScript-like general-purpose semantic language in which
+> agents, traits, space, state, effects, and provenance are first-class rather than external
+> schemas.
 
 > HoloScript's native `.hs` path preserves known/unknown state and a stable reason code
 > through layout, fallback control flow, copying, and FFI.
@@ -460,9 +475,9 @@ Still unsafe:
 ## 9. Research conclusion
 
 HoloScript does appear to contain more language novelty than "a DSL for agent brains." The
-most promising contribution is a **general semantic programming language embedded in a
-three-surface system**, with knowledge state, spatial composition, effects, provenance, and
-native execution treated as parts of one contract.
+most promising contribution is a **general semantic programming language being developed within a
+three-surface system**, with knowledge state, spatial composition, effects, provenance, and native
+execution treated as parts of one contract.
 
 The next six months should not maximize the count of syntax features. They should maximize:
 

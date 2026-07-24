@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  type LowerableHSPlusStructDeclaration,
   lowerUnknownField,
   lowerUnknownFields,
+  lowerUnknownHSPlusStructFields,
   lowerUnknownStructFields,
 } from '../lower-unknown';
 import { isKnown, orElse } from '../uncertain';
+
+function injectedHSPlusStruct(fields: unknown[]): LowerableHSPlusStructDeclaration {
+  return { name: 'Injected', fields } as unknown as LowerableHSPlusStructDeclaration;
+}
 
 describe('lowerUnknownField — @unknown surface annotation → Uncertain', () => {
   it('lowers an @unknown field to an unknown(underdetermined) initial state', () => {
@@ -96,5 +102,161 @@ describe('lowerUnknownField — @unknown surface annotation → Uncertain', () =
     expect(lowered.every((field) => field.optional === false)).toBe(true);
     expect(lowered.every((field) => field.declaredDefault === null)).toBe(true);
     expect(lowered.every((field) => !isKnown(field.initial))).toBe(true);
+  });
+
+  it('adapts object-shaped HoloScript+ fields with exact annotation-to-field binding', () => {
+    const lowered = lowerUnknownHSPlusStructFields({
+      name: 'Sensor',
+      body: '\n  reading: Celsius\n  calibrated: bool\n  drift: i64\n',
+      fields: [
+        { projection: 'typed', name: 'reading', type: 'Celsius' },
+        {
+          projection: 'typed',
+          name: 'calibrated',
+          type: 'bool',
+          annotations: ['unknown'],
+          optional: true,
+          defaultSource: 'sensorFallback()',
+        },
+        { projection: 'typed', name: 'drift', type: 'i64', annotations: ['unknown'] },
+      ],
+    });
+
+    expect(
+      lowered.map(({ key, typeName, optional, declaredDefault }) => ({
+        key,
+        typeName,
+        optional,
+        declaredDefault,
+      }))
+    ).toEqual([
+      {
+        key: 'calibrated',
+        typeName: 'bool',
+        optional: true,
+        declaredDefault: 'sensorFallback()',
+      },
+      { key: 'drift', typeName: 'i64', optional: false, declaredDefault: null },
+    ]);
+    expect(lowered.every((field) => !isKnown(field.initial))).toBe(true);
+  });
+
+  it('ignores honest opaque and unannotated fields without reparsing their raw body', () => {
+    expect(
+      lowerUnknownHSPlusStructFields({
+        name: 'LegacyPacket',
+        body: 'code: i32',
+        fields: [{ projection: 'preserved-opaque', name: 'code', optional: true }],
+      })
+    ).toEqual([]);
+    expect(
+      lowerUnknownHSPlusStructFields({
+        name: 'PlainPacket',
+        fields: [
+          { projection: 'typed', name: 'code', type: 'i32' },
+          { projection: 'typed', name: 'ready', type: 'bool', annotations: [] },
+        ],
+      })
+    ).toEqual([]);
+  });
+
+  it('rejects duplicate field names because annotation binding would be ambiguous', () => {
+    expect(() =>
+      lowerUnknownHSPlusStructFields(
+        injectedHSPlusStruct([
+          {
+            projection: 'typed',
+            name: 'reading',
+            type: 'i32',
+            annotations: ['unknown'],
+          },
+          { projection: 'preserved-opaque', name: 'reading' },
+        ])
+      )
+    ).toThrow(TypeError);
+    expect(() =>
+      lowerUnknownHSPlusStructFields(
+        injectedHSPlusStruct([
+          { projection: 'typed', name: 'reading', type: 'i32' },
+          { projection: 'typed', name: 'reading', type: 'i64' },
+        ])
+      )
+    ).toThrow(/ambiguous/);
+  });
+
+  it('rejects non-canonical injected names and type whitespace', () => {
+    expect(() =>
+      lowerUnknownHSPlusStructFields(
+        injectedHSPlusStruct([{ projection: 'typed', name: ' value ', type: 'i32' }])
+      )
+    ).toThrow(/canonical whitespace/);
+    expect(() =>
+      lowerUnknownHSPlusStructFields(
+        injectedHSPlusStruct([{ projection: 'typed', name: 'value', type: ' i32 ' }])
+      )
+    ).toThrow(/canonical whitespace/);
+  });
+
+  it.each([
+    [{ projection: 'typed', name: 'missing' }, /requires a non-empty type/],
+    [{ projection: 'typed', name: 'empty', type: '   ' }, /requires a non-empty type/],
+    [
+      {
+        projection: 'typed',
+        name: 'unsupported',
+        type: 'i32',
+        annotations: ['deprecated'],
+      },
+      /Unsupported .*@deprecated/,
+    ],
+    [
+      {
+        projection: 'typed',
+        name: 'duplicate',
+        type: 'i32',
+        annotations: ['unknown', 'unknown'],
+      },
+      /Duplicate .*@unknown/,
+    ],
+    [
+      {
+        projection: 'preserved-opaque',
+        name: 'opaqueUnknown',
+        annotations: ['unknown'],
+      },
+      /requires projection "typed"/,
+    ],
+    [
+      {
+        projection: 'future-opaque',
+        name: 'nonTypedUnknown',
+        annotations: ['unknown'],
+      },
+      /requires projection "typed"/,
+    ],
+    [
+      {
+        projection: 'preserved-opaque',
+        name: 'opaqueAnnotation',
+        annotations: ['deprecated'],
+      },
+      /cannot carry type or annotations/,
+    ],
+    [
+      { projection: 'preserved-opaque', name: 'opaqueType', type: 'i32' },
+      /cannot carry type or annotations/,
+    ],
+    [
+      {
+        projection: 'preserved-opaque',
+        name: 'opaqueDefault',
+        defaultSource: '0',
+      },
+      /cannot carry a default initializer/,
+    ],
+  ])('rejects runtime-invalid injected HoloScript+ field %#', (field, diagnostic) => {
+    expect(() => lowerUnknownHSPlusStructFields(injectedHSPlusStruct([field]))).toThrowError(
+      diagnostic
+    );
   });
 });

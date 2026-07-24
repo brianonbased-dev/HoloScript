@@ -19,7 +19,7 @@ import type {
   HSPlusTraitDirective,
   HSPlusTraitSumDirective,
 } from '../types/AdvancedTypeSystem';
-import type { HSPlusNode } from '../types/HoloScriptPlus';
+import type { HSPlusNode, HSPlusStructField } from '../types/HoloScriptPlus';
 import type { VRTraitName } from '../types';
 import {
   isCognitiveVerb,
@@ -38,6 +38,7 @@ import type { ReactionCategory } from '../types/base';
 export type {
   ASTProgram,
   HSPlusNode,
+  HSPlusStructField,
   HSPlusDirective,
   HSPlusCompileResult,
   HSPlusParserOptions,
@@ -810,6 +811,7 @@ class Lexer {
   private readString(quote: string): Token {
     const startLine = this.line;
     const startColumn = this.column;
+    const startOffset = this.pos;
     this.advance(); // Opening quote
     let value = '';
 
@@ -854,7 +856,7 @@ class Lexer {
       value,
       line: startLine,
       column: startColumn,
-      offset: this.pos - (value.length + 2), // approximation for start of string
+      offset: startOffset,
     };
     return token;
   }
@@ -1814,13 +1816,57 @@ export class HoloScriptPlusParser {
     }
 
     // =========================================================================
-    // Special handling for code blocks (module, script, struct, enum, action, function, on)
+    // Special handling for typed struct declarations. Keep the raw body for
+    // backward compatibility while also exposing field-aligned structure.
+    // =========================================================================
+    if (type === 'struct') {
+      let name = 'anonymous';
+      if (this.check('IDENTIFIER') || this.check('STRING')) {
+        name = this.advance().value;
+      }
+
+      // Preserve the raw-block path's historical tolerance for qualified
+      // names and parameter lists even though structs do not interpret them.
+      while (this.check('DOT')) {
+        this.advance();
+        if (this.check('IDENTIFIER')) this.advance();
+      }
+      if (this.check('LPAREN')) {
+        this.skipParens();
+      }
+
+      let body = '';
+      let fields: HSPlusStructField[] = [];
+      if (this.check('LBRACE')) {
+        ({ body, fields } = this.parseStructBlock());
+      } else {
+        this.error('Expected { to start struct declaration', 'HSP100');
+      }
+
+      return {
+        type: 'struct',
+        name,
+        id: name,
+        properties: {},
+        directives: [],
+        children: [],
+        traits: new Map(),
+        body,
+        fields,
+        loc: {
+          start: { line: startToken.line, column: startToken.column },
+          end: { line: this.current().line, column: this.current().column },
+        },
+      } as unknown as HSPlusNode;
+    }
+
+    // =========================================================================
+    // Special handling for raw code blocks (module, script, enum, action, function, on)
     // =========================================================================
     if (
       [
         'module',
         'script',
-        'struct',
         'enum',
         'class',
         'interface',
@@ -7005,6 +7051,670 @@ export class HoloScriptPlusParser {
       token.type === 'NULL' ||
       token.type === 'TEMPLATE_STRING'
     );
+  }
+
+  /**
+   * Parse a HoloScript+ struct body into a typed field sidecar while preserving
+   * the exact legacy raw-body slice.
+   *
+   * Fields may be separated by commas, semicolons, or newlines. `@unknown` is the only
+   * admitted field modifier; unsupported modifiers and malformed fields add a
+   * hard parser error so downstream lowering cannot silently reinterpret them.
+   */
+  private parseStructBlock(): { body: string; fields: HSPlusStructField[] } {
+    const startToken = this.expect('LBRACE', 'Expected {');
+    const startOffset = startToken.offset + 1;
+    const fields: HSPlusStructField[] = [];
+    const seenFieldNames = new Set<string>();
+
+    this.skipStructWhitespace();
+    while (!this.check('RBRACE') && !this.check('EOF')) {
+      if (this.check('COMMA')) {
+        this.error('Unexpected comma before struct field', 'HSP100');
+        this.advance();
+        this.skipStructWhitespace();
+        continue;
+      }
+
+      const annotations: string[] = [];
+      let annotationMalformed = false;
+      while (this.check('AT')) {
+        const annotationToken = this.advance();
+        if (
+          this.findStructFieldBoundaryBetween(annotationToken.offset, this.current().offset) !==
+          undefined
+        ) {
+          this.errorAt(
+            annotationToken,
+            'Struct field modifier cannot cross a semicolon separator',
+            'HSP100'
+          );
+          annotationMalformed = true;
+        }
+        if (!this.check('IDENTIFIER')) {
+          this.errorAt(annotationToken, 'Expected struct field modifier name after @', 'HSP100');
+          annotationMalformed = true;
+          this.recoverStructField();
+          break;
+        }
+
+        const modifierToken = this.advance();
+        if (modifierToken.value !== 'unknown') {
+          this.errorAt(
+            modifierToken,
+            `Unsupported struct field modifier @${modifierToken.value}; only @unknown is admitted`,
+            'HSP100'
+          );
+          annotationMalformed = true;
+        } else if (annotations.includes('unknown')) {
+          this.errorAt(modifierToken, 'Duplicate @unknown struct field modifier', 'HSP100');
+          annotationMalformed = true;
+        } else {
+          annotations.push('unknown');
+        }
+
+        if (this.check('LPAREN')) {
+          this.errorAt(
+            modifierToken,
+            `Struct field modifier @${modifierToken.value} does not accept arguments`,
+            'HSP100'
+          );
+          annotationMalformed = true;
+          this.skipParens();
+        }
+        this.skipStructWhitespace();
+        if (
+          this.findStructSemicolonBetween(modifierToken.offset, this.current().offset) !== undefined
+        ) {
+          this.errorAt(
+            modifierToken,
+            'Struct field modifier cannot cross a semicolon separator',
+            'HSP100'
+          );
+          annotationMalformed = true;
+        }
+      }
+
+      if (this.check('RBRACE') || this.check('EOF')) {
+        if (annotations.length > 0 || annotationMalformed) {
+          this.error('Expected struct field after modifier', 'HSP100');
+        }
+        break;
+      }
+
+      if (!this.isStructFieldNameToken()) {
+        this.error(
+          `Expected struct field name, got ${this.current().type} "${this.current().value}"`,
+          'HSP100'
+        );
+        this.recoverStructField();
+        this.skipStructWhitespace();
+        continue;
+      }
+
+      const fieldNameToken = this.advance();
+      const duplicateField = seenFieldNames.has(fieldNameToken.value);
+      seenFieldNames.add(fieldNameToken.value);
+      if (
+        this.findStructFieldBoundaryBetween(fieldNameToken.offset, this.current().offset) !==
+        undefined
+      ) {
+        this.errorAt(
+          fieldNameToken,
+          'Struct field name cannot cross a semicolon separator',
+          'HSP100'
+        );
+        annotationMalformed = true;
+      }
+      const optionalField = this.check('QUESTION');
+      if (optionalField) {
+        const optionalToken = this.advance();
+        if (
+          this.findStructFieldBoundaryBetween(optionalToken.offset, this.current().offset) !==
+          undefined
+        ) {
+          this.errorAt(
+            optionalToken,
+            'Struct field optional marker cannot cross a semicolon separator',
+            'HSP100'
+          );
+          annotationMalformed = true;
+        }
+      }
+      if (!this.check('COLON')) {
+        this.errorAt(
+          fieldNameToken,
+          `Expected : after struct field "${fieldNameToken.value}"`,
+          'HSP009'
+        );
+        this.recoverStructField();
+        this.skipStructWhitespace();
+        continue;
+      }
+      const colonToken = this.advance();
+
+      const typeTokens: Token[] = [];
+      const initializerTokens: Token[] = [];
+      let parsingInitializer = false;
+      let initializerStartOffset: number | undefined;
+      let fieldBoundaryOffset = this.current().offset;
+      let braceDepth = 0;
+      let bracketDepth = 0;
+      let parenDepth = 0;
+      let typeAngleDepth = 0;
+      let initializerGenericDepth = 0;
+      let lastConsumedToken: Token = colonToken;
+
+      while (!this.check('EOF')) {
+        const token = this.current();
+        const atTopLevel =
+          braceDepth === 0 &&
+          bracketDepth === 0 &&
+          parenDepth === 0 &&
+          typeAngleDepth === 0 &&
+          initializerGenericDepth === 0;
+
+        const sourceBoundaryOffset = atTopLevel
+          ? this.findStructFieldBoundaryBetween(lastConsumedToken.offset, token.offset)
+          : undefined;
+        if (sourceBoundaryOffset !== undefined) {
+          fieldBoundaryOffset = sourceBoundaryOffset;
+          break;
+        }
+
+        // An unmatched `}` belongs to the enclosing struct. Leave it for the
+        // caller even if an opaque type expression has unbalanced delimiters.
+        if (token.type === 'RBRACE' && braceDepth === 0) {
+          fieldBoundaryOffset = token.offset;
+          break;
+        }
+        if (atTopLevel && (token.type === 'COMMA' || token.type === 'NEWLINE')) {
+          fieldBoundaryOffset = token.offset;
+          break;
+        }
+
+        if (!parsingInitializer && atTopLevel && token.type === 'EQUALS') {
+          parsingInitializer = true;
+          initializerStartOffset = token.offset + token.value.length;
+          lastConsumedToken = token;
+          this.advance();
+          continue;
+        }
+
+        if (
+          token.type === 'NEWLINE' ||
+          token.type === 'INDENT' ||
+          token.type === 'DEDENT'
+        ) {
+          lastConsumedToken = token;
+          this.advance();
+          continue;
+        }
+
+        switch (token.type) {
+          case 'LBRACE':
+            braceDepth++;
+            break;
+          case 'RBRACE':
+            if (braceDepth > 0) braceDepth--;
+            break;
+          case 'LBRACKET':
+            bracketDepth++;
+            break;
+          case 'RBRACKET':
+            if (bracketDepth > 0) bracketDepth--;
+            break;
+          case 'LPAREN':
+            parenDepth++;
+            break;
+          case 'RPAREN':
+            if (parenDepth > 0) parenDepth--;
+            break;
+          case 'LESS_THAN':
+            if (!parsingInitializer) {
+              typeAngleDepth++;
+            } else if (
+              initializerGenericDepth > 0 ||
+              this.isStructInitializerGenericStart(this.pos)
+            ) {
+              initializerGenericDepth++;
+            }
+            break;
+          case 'GREATER_THAN':
+            if (!parsingInitializer) {
+              if (typeAngleDepth > 0) typeAngleDepth--;
+            } else if (initializerGenericDepth > 0) {
+              initializerGenericDepth--;
+            }
+            break;
+        }
+
+        if (parsingInitializer) {
+          initializerTokens.push(token);
+        } else {
+          typeTokens.push(token);
+        }
+        lastConsumedToken = token;
+        this.advance();
+      }
+
+      if (this.check('EOF')) fieldBoundaryOffset = this.current().offset;
+      const supportedType = this.isSupportedStructType(typeTokens);
+      const fieldType = supportedType ? this.formatStructType(typeTokens) : undefined;
+      const defaultSource =
+        parsingInitializer && initializerStartOffset !== undefined
+          ? this.source.substring(initializerStartOffset, fieldBoundaryOffset).trim()
+          : undefined;
+      const misplacedModifier = [...typeTokens, ...initializerTokens].find(
+        (token) => token.type === 'AT'
+      );
+
+      if (typeTokens.length === 0) {
+        this.errorAt(
+          fieldNameToken,
+          `Expected type for struct field "${fieldNameToken.value}"`,
+          'HSP100'
+        );
+        annotationMalformed = true;
+      }
+      if (misplacedModifier !== undefined) {
+        this.errorAt(
+          misplacedModifier,
+          'Struct field modifiers must precede the field name',
+          'HSP100'
+        );
+        annotationMalformed = true;
+      }
+      if (parsingInitializer && (initializerTokens.length === 0 || defaultSource?.length === 0)) {
+        this.errorAt(
+          fieldNameToken,
+          `Expected initializer value for struct field "${fieldNameToken.value}"`,
+          'HSP100'
+        );
+        annotationMalformed = true;
+      }
+      if (
+        parsingInitializer &&
+        (braceDepth !== 0 ||
+          bracketDepth !== 0 ||
+          parenDepth !== 0 ||
+          initializerGenericDepth !== 0)
+      ) {
+        this.errorAt(
+          fieldNameToken,
+          `Unclosed initializer delimiter for struct field "${fieldNameToken.value}"`,
+          'HSP100'
+        );
+        annotationMalformed = true;
+      }
+
+      if (annotations.includes('unknown') && !supportedType) {
+        this.errorAt(
+          fieldNameToken,
+          `@unknown field "${fieldNameToken.value}" requires an admitted type expression`,
+          'HSP100'
+        );
+        annotationMalformed = true;
+      }
+      if (duplicateField) {
+        this.errorAt(
+          fieldNameToken,
+          `Duplicate struct field "${fieldNameToken.value}" makes annotation binding ambiguous`,
+          'HSP100'
+        );
+        annotationMalformed = true;
+      }
+
+      if (!annotationMalformed) {
+        if (supportedType && fieldType !== undefined) {
+          fields.push({
+            projection: 'typed',
+            name: fieldNameToken.value,
+            type: fieldType,
+            ...(annotations.length > 0 ? { annotations } : {}),
+            ...(optionalField ? { optional: true as const } : {}),
+            ...(defaultSource !== undefined ? { defaultSource } : {}),
+          });
+        } else {
+          fields.push({
+            projection: 'preserved-opaque',
+            name: fieldNameToken.value,
+            ...(optionalField ? { optional: true as const } : {}),
+          });
+        }
+      }
+
+      if (this.check('COMMA')) this.advance();
+      this.skipStructWhitespace();
+    }
+
+    const endOffset = this.current().offset;
+    this.expect('RBRACE', 'Expected }');
+    return {
+      body: this.source.substring(startOffset, endOffset).trim(),
+      fields,
+    };
+  }
+
+  /** Skip layout-only tokens between struct fields or modifiers. */
+  private skipStructWhitespace(): void {
+    while (this.check('NEWLINE') || this.check('INDENT') || this.check('DEDENT')) {
+      this.advance();
+    }
+  }
+
+  /**
+   * Lexer keywords remain legal as struct field names. They are contextual
+   * inside this block and must not make existing fields such as `state` fail.
+   */
+  private isStructFieldNameToken(): boolean {
+    return this.isStructIdentifierTokenType(this.current().type);
+  }
+
+  private isStructIdentifierTokenType(type: TokenType): boolean {
+    return [
+      'IDENTIFIER',
+      'STATE_MACHINE',
+      'INITIAL',
+      'STATE',
+      'ON_ENTRY',
+      'ON_EXIT',
+      'TRANSITION',
+      'MATCH',
+      'UNDERSCORE',
+      'ON_ERROR',
+      'ASSERT',
+    ].includes(type);
+  }
+
+  /**
+   * Admit a bounded, explicit type grammar for the structured sidecar.
+   *
+   * This is intentionally smaller than every future HoloScript+ type form:
+   * unsupported declarations remain `preserved-opaque`, while `@unknown`
+   * requires admission here before it can reach HoloMeaning.
+   */
+  private isSupportedStructType(tokens: readonly Token[]): boolean {
+    let index = 0;
+
+    const parseType = (): boolean => {
+      if (!parsePrimary()) return false;
+      while (tokens[index]?.type === 'PIPE') {
+        index++;
+        if (!parsePrimary()) return false;
+      }
+      return true;
+    };
+
+    const parseTypeArguments = (): boolean => {
+      if (tokens[index]?.type !== 'LESS_THAN') return true;
+      index++;
+      if (!parseType()) return false;
+      while (tokens[index]?.type === 'COMMA') {
+        index++;
+        if (!parseType()) return false;
+      }
+      if (tokens[index]?.type !== 'GREATER_THAN') return false;
+      index++;
+      return true;
+    };
+
+    const parseArraySuffixes = (): boolean => {
+      while (tokens[index]?.type === 'LBRACKET' && tokens[index + 1]?.type === 'RBRACKET') {
+        index += 2;
+      }
+      return true;
+    };
+
+    const parsePrimary = (): boolean => {
+      const token = tokens[index];
+      if (!token) return false;
+
+      if (this.isStructIdentifierTokenType(token.type)) {
+        index++;
+        while (tokens[index]?.type === 'DOT') {
+          index++;
+          if (!tokens[index] || !this.isStructIdentifierTokenType(tokens[index].type)) {
+            return false;
+          }
+          index++;
+        }
+        if (!parseTypeArguments()) return false;
+        return parseArraySuffixes();
+      }
+
+      if (token.type === 'LBRACKET') {
+        index++;
+        if (!parseType()) return false;
+        while (tokens[index]?.type === 'COMMA') {
+          index++;
+          if (!parseType()) return false;
+        }
+        if (tokens[index]?.type !== 'RBRACKET') return false;
+        index++;
+        return parseArraySuffixes();
+      }
+
+      if (token.type === 'LPAREN') {
+        index++;
+        if (!parseType()) return false;
+        if (tokens[index]?.type !== 'RPAREN') return false;
+        index++;
+        return parseArraySuffixes();
+      }
+
+      return false;
+    };
+
+    return parseType() && index === tokens.length;
+  }
+
+  /** Canonical type text from semantic tokens; comments and trailing trivia cannot leak in. */
+  private formatStructType(tokens: readonly Token[]): string {
+    return tokens
+      .map((token) => {
+        if (token.type === 'COMMA') return ', ';
+        if (token.type === 'PIPE') return ' | ';
+        return token.value;
+      })
+      .join('');
+  }
+
+  /**
+   * Detect generic-call angle brackets in an initializer without treating
+   * comparison operators as generic nesting.
+   */
+  private isStructInitializerGenericStart(startIndex: number): boolean {
+    if (this.tokens[startIndex]?.type !== 'LESS_THAN') return false;
+    let depth = 0;
+    for (let index = startIndex; index < this.tokens.length; index++) {
+      const token = this.tokens[index];
+      if (token.type === 'LESS_THAN') {
+        depth++;
+      } else if (token.type === 'GREATER_THAN') {
+        depth--;
+        if (depth === 0) {
+          const next = this.tokens[index + 1];
+          const argumentsAreTypes = this.areSupportedStructTypeArguments(
+            this.tokens.slice(startIndex + 1, index)
+          );
+          return (
+            argumentsAreTypes &&
+            (next?.type === 'LPAREN' || next?.type === 'DOT' || next?.type === 'OPTIONAL_DOT')
+          );
+        }
+      } else if (
+        depth > 0 &&
+        (token.type === 'COLON' ||
+          token.type === 'EQUALS' ||
+          token.type === 'RBRACE' ||
+          token.type === 'EOF')
+      ) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /** Validate a comma-separated generic argument list without crossing a field boundary. */
+  private areSupportedStructTypeArguments(tokens: readonly Token[]): boolean {
+    const semanticTokens = tokens.filter(
+      (token) =>
+        token.type !== 'NEWLINE' && token.type !== 'INDENT' && token.type !== 'DEDENT'
+    );
+    if (semanticTokens.length === 0) return false;
+
+    let start = 0;
+    let angleDepth = 0;
+    let bracketDepth = 0;
+    let parenDepth = 0;
+    for (let index = 0; index <= semanticTokens.length; index++) {
+      const token = semanticTokens[index];
+      const atArgumentBoundary =
+        index === semanticTokens.length ||
+        (token.type === 'COMMA' &&
+          angleDepth === 0 &&
+          bracketDepth === 0 &&
+          parenDepth === 0);
+      if (atArgumentBoundary) {
+        if (!this.isSupportedStructType(semanticTokens.slice(start, index))) return false;
+        start = index + 1;
+        continue;
+      }
+
+      if (token.type === 'LESS_THAN') angleDepth++;
+      else if (token.type === 'GREATER_THAN') {
+        if (angleDepth === 0) return false;
+        angleDepth--;
+      } else if (token.type === 'LBRACKET') bracketDepth++;
+      else if (token.type === 'RBRACKET') {
+        if (bracketDepth === 0) return false;
+        bracketDepth--;
+      } else if (token.type === 'LPAREN') parenDepth++;
+      else if (token.type === 'RPAREN') {
+        if (parenDepth === 0) return false;
+        parenDepth--;
+      }
+    }
+    return angleDepth === 0 && bracketDepth === 0 && parenDepth === 0;
+  }
+
+  /** Find a real semicolon in lexer-discarded trivia, ignoring strings and comments. */
+  private findStructSemicolonBetween(startOffset: number, endOffset: number): number | undefined {
+    return this.findStructSourceBoundaryBetween(startOffset, endOffset, false);
+  }
+
+  /**
+   * Find a field boundary hidden in lexer-discarded source. A line break inside
+   * a block comment still separates top-level fields, matching newline layout.
+   */
+  private findStructFieldBoundaryBetween(
+    startOffset: number,
+    endOffset: number
+  ): number | undefined {
+    return this.findStructSourceBoundaryBetween(startOffset, endOffset, true);
+  }
+
+  private findStructSourceBoundaryBetween(
+    startOffset: number,
+    endOffset: number,
+    lineBreaksSeparate: boolean
+  ): number | undefined {
+    let quote: '"' | "'" | '`' | null = null;
+    let lineComment = false;
+    let blockComment = false;
+    let lineCommentStart: number | undefined;
+    let blockCommentStart: number | undefined;
+    let escaped = false;
+
+    for (let index = Math.max(0, startOffset); index < endOffset; index++) {
+      const char = this.source[index];
+      const next = this.source[index + 1];
+
+      if (lineComment) {
+        if (char === '\n' || char === '\r') {
+          if (lineBreaksSeparate) return lineCommentStart ?? index;
+          lineComment = false;
+          lineCommentStart = undefined;
+        }
+        continue;
+      }
+      if (blockComment) {
+        if (lineBreaksSeparate && (char === '\n' || char === '\r')) {
+          return blockCommentStart ?? index;
+        }
+        if (char === '*' && next === '/') {
+          blockComment = false;
+          blockCommentStart = undefined;
+          index++;
+        }
+        continue;
+      }
+      if (quote !== null) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === '\\') {
+          escaped = true;
+        } else if (char === quote) {
+          quote = null;
+        }
+        continue;
+      }
+
+      if (char === '/' && next === '/') {
+        lineComment = true;
+        lineCommentStart = index;
+        index++;
+      } else if (char === '/' && next === '*') {
+        blockComment = true;
+        blockCommentStart = index;
+        index++;
+      } else if (char === '"' || char === "'" || char === '`') {
+        quote = char;
+      } else if (lineBreaksSeparate && (char === '\n' || char === '\r')) {
+        return index;
+      } else if (char === ';') {
+        return index;
+      }
+    }
+    if (lineBreaksSeparate && lineCommentStart !== undefined) return lineCommentStart;
+    return undefined;
+  }
+
+  /**
+   * Recover at the next top-level field separator without consuming the
+   * enclosing struct's closing brace.
+   */
+  private recoverStructField(): void {
+    let braceDepth = 0;
+    let bracketDepth = 0;
+    let parenDepth = 0;
+    let lastConsumedToken = this.previous();
+
+    while (!this.check('EOF')) {
+      const token = this.current();
+      const atTopLevel = braceDepth === 0 && bracketDepth === 0 && parenDepth === 0;
+      if (
+        atTopLevel &&
+        this.findStructFieldBoundaryBetween(lastConsumedToken.offset, token.offset) !== undefined
+      ) {
+        return;
+      }
+      if (token.type === 'RBRACE' && braceDepth === 0) return;
+      if (atTopLevel && (token.type === 'NEWLINE' || token.type === 'COMMA')) {
+        if (token.type === 'COMMA') this.advance();
+        return;
+      }
+
+      if (token.type === 'LBRACE') braceDepth++;
+      else if (token.type === 'RBRACE') braceDepth--;
+      else if (token.type === 'LBRACKET') bracketDepth++;
+      else if (token.type === 'RBRACKET' && bracketDepth > 0) bracketDepth--;
+      else if (token.type === 'LPAREN') parenDepth++;
+      else if (token.type === 'RPAREN' && parenDepth > 0) parenDepth--;
+      lastConsumedToken = token;
+      this.advance();
+    }
   }
 
   /**

@@ -1,0 +1,28 @@
+// General-purpose .hsplus systems fixture: typed device data and service logic,
+// with no agent brain or spatial scene.
+//
+// Current proof boundary: the canonical TypeScript .hsplus parser exposes the
+// struct fields while preserving every declaration body as raw source.
+// HoloMeaning lowers the structured @unknown field; interface/class members
+// remain raw, and this fixture claims neither type checking nor native execution.
+
+struct SensorReading {
+  device_id: string
+  @unknown temperature_c?: float = sensorFallbackCelsius()
+  sequence: i64
+  healthy: bool
+}
+
+interface SensorDevice {
+  read(): SensorReading
+}
+
+class SensorService {
+  latest: SensorReading
+
+  ingest(device: SensorDevice): SensorReading {
+    let reading: SensorReading = device.read()
+    latest = reading
+    return reading
+  }
+}

@@ -8,9 +8,16 @@ tagged `Uncertain<i32>` carrier with a stable meaning-gap reason code. V34 is an
 capability/evidence contract under the
 [native machine release ladder](native-machine-release-ladder.md), not a public SemVer release.
 
-This first structured carrier is a canonical `.hs` capability. The TypeScript `.hsplus` parser
-currently preserves struct bodies as raw blocks, and the Kotlin bridge rejects typed structs.
-Neither surface is claimed as a V34 consumer; Kotlin fails closed rather than erasing uncertainty.
+This first structured carrier remains a canonical `.hs` capability. The TypeScript `.hsplus`
+parser now exposes typed fields and admitted annotations in its internal AST for `struct`
+declarations, distinguishes typed fields from preserved-opaque legacy members, and retains the raw
+body. Optionality and authored defaults remain explicit. `@holoscript/meaning` consumes
+parser-produced structured `@unknown` fields through a defensive shape-validating adapter that
+delegates to the canonical struct-field lowering; syntax admission remains the parser's job.
+
+That parser-to-meaning path is not a V34 native-execution claim. `compiler-native` does not consume
+`.hsplus`; `interface` and `class` bodies remain raw; and the Kotlin bridge rejects typed structs.
+No cross-backend parity is claimed.
 
 ## Source contract
 

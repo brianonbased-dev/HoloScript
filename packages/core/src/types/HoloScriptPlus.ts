@@ -79,6 +79,31 @@ export interface HSPlusBuiltins {
 import type { VRTraitName, ASTNode } from './base';
 import type { HSPlusDirective } from './AdvancedTypeSystem';
 
+/**
+ * A field declared inside a HoloScript+ `struct`.
+ *
+ * Typed projections are admitted only when the parser recognizes the complete
+ * type expression. Legacy/value-shaped declarations remain explicitly opaque
+ * so consumers cannot mistake a lossy compatibility projection for a type.
+ */
+export type HSPlusStructField =
+  | {
+      name: string;
+      projection: 'typed';
+      type: string;
+      annotations?: string[];
+      optional?: true;
+      defaultSource?: string;
+    }
+  | {
+      name: string;
+      projection: 'preserved-opaque';
+      optional?: true;
+      type?: never;
+      annotations?: never;
+      defaultSource?: never;
+    };
+
 export interface HSPlusNode extends ASTNode {
   name?: string;
   children?: HSPlusNode[];
@@ -86,6 +111,11 @@ export interface HSPlusNode extends ASTNode {
   directives?: HSPlusDirective[];
   args?: unknown;
   body?: unknown;
+  /**
+   * Structured view of a `struct` body. The raw `body` remains available for
+   * backward-compatible consumers.
+   */
+  fields?: HSPlusStructField[];
   /** Scene-graph rotation set by spatial traits at runtime (euler or quaternion). */
   rotation?: Vector3 | Quaternion;
   /** Scene-graph scale set by spatial traits at runtime. */
