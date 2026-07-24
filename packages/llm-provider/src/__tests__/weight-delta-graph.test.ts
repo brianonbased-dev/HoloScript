@@ -153,6 +153,24 @@ describe('planWeightDeltaGraph', () => {
     expect(plan.rollbackHead).toBe(PREVIOUS_HEAD);
   });
 
+  it('fails closed instead of throwing when untrusted JSON supplies a null role contract', () => {
+    const input = graph();
+    input.deltas[0]!.roleContract = null as unknown as NonNullable<
+      WeightDeltaGraph['deltas'][number]['roleContract']
+    >;
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.readiness).toBe('invalid');
+    expect(plan.steps).toEqual([]);
+    expect(plan.issues).toContainEqual({
+      code: 'WEIGHT_ROLE_INVALID',
+      severity: 'error',
+      path: 'deltas[0].roleContract',
+      message: 'Weight role contract must be an object.',
+    });
+  });
+
   it('fails closed when a shadow role omits its task routing contract', () => {
     const input = graph({ previousAdmittedHead: PREVIOUS_HEAD });
     input.deltas[0]!.roleContract = {

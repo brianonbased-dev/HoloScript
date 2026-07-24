@@ -484,150 +484,158 @@ function validateGraph(
     const roleContract = delta.roleContract;
     if (roleContract !== undefined) {
       const rolePath = `${deltaPath}.roleContract`;
-      if (!WEIGHT_DELTA_ROLES.has(roleContract.role)) {
-        issue(
-          issues,
-          'WEIGHT_ROLE_INVALID',
-          `${rolePath}.role`,
-          'Weight role must be generator, critic, router, or teacher.'
-        );
-      }
-      const activation = roleContract.activation;
-      if (!activation || typeof activation !== 'object') {
-        issue(
-          issues,
-          'ACTIVATION_MODE_INVALID',
-          `${rolePath}.activation`,
-          'Role contract activation must be an object.'
-        );
+      if (
+        roleContract === null ||
+        typeof roleContract !== 'object' ||
+        Array.isArray(roleContract)
+      ) {
+        issue(issues, 'WEIGHT_ROLE_INVALID', rolePath, 'Weight role contract must be an object.');
       } else {
-        const activationPath = `${rolePath}.activation`;
-        const validMode = WEIGHT_ACTIVATION_MODES.has(activation.mode);
-        if (!validMode) {
+        if (!WEIGHT_DELTA_ROLES.has(roleContract.role)) {
+          issue(
+            issues,
+            'WEIGHT_ROLE_INVALID',
+            `${rolePath}.role`,
+            'Weight role must be generator, critic, router, or teacher.'
+          );
+        }
+        const activation = roleContract.activation;
+        if (!activation || typeof activation !== 'object') {
           issue(
             issues,
             'ACTIVATION_MODE_INVALID',
-            `${activationPath}.mode`,
-            'Activation mode must be global, task_scoped, or shadow_only.'
+            `${rolePath}.activation`,
+            'Role contract activation must be an object.'
           );
-        }
-
-        const taskTags = activation.taskTags;
-        if (taskTags !== undefined && !Array.isArray(taskTags)) {
-          issue(
-            issues,
-            'ACTIVATION_TASK_TAG_INVALID',
-            `${activationPath}.taskTags`,
-            'Activation task tags must be an array.'
-          );
-        } else if (Array.isArray(taskTags)) {
-          const seenTags = new Set<string>();
-          for (const [tagIndex, tag] of taskTags.entries()) {
-            const tagPath = `${activationPath}.taskTags[${tagIndex}]`;
-            if (typeof tag !== 'string' || !nonEmpty(tag)) {
-              issue(
-                issues,
-                'ACTIVATION_TASK_TAG_INVALID',
-                tagPath,
-                'Activation task tags must be non-empty strings.'
-              );
-              continue;
-            }
-            const normalizedTag = tag.trim();
-            if (seenTags.has(normalizedTag)) {
-              issue(
-                issues,
-                'DUPLICATE_ACTIVATION_TASK_TAG',
-                tagPath,
-                `Activation task tag "${normalizedTag}" is declared more than once.`
-              );
-            }
-            seenTags.add(normalizedTag);
+        } else {
+          const activationPath = `${rolePath}.activation`;
+          const validMode = WEIGHT_ACTIVATION_MODES.has(activation.mode);
+          if (!validMode) {
+            issue(
+              issues,
+              'ACTIVATION_MODE_INVALID',
+              `${activationPath}.mode`,
+              'Activation mode must be global, task_scoped, or shadow_only.'
+            );
           }
-        }
 
-        if (validMode && activation.mode === 'global' && (taskTags?.length ?? 0) > 0) {
-          issue(
-            issues,
-            'ACTIVATION_TASK_TAGS_FORBIDDEN',
-            `${activationPath}.taskTags`,
-            'Global activation cannot also declare task tags.'
-          );
-        }
-        if (
-          validMode &&
-          activation.mode !== 'global' &&
-          (!Array.isArray(taskTags) || taskTags.length === 0)
-        ) {
-          issue(
-            issues,
-            'ACTIVATION_TASK_TAG_REQUIRED',
-            `${activationPath}.taskTags`,
-            'Task-scoped and shadow-only activation require at least one task tag.'
-          );
-        }
+          const taskTags = activation.taskTags;
+          if (taskTags !== undefined && !Array.isArray(taskTags)) {
+            issue(
+              issues,
+              'ACTIVATION_TASK_TAG_INVALID',
+              `${activationPath}.taskTags`,
+              'Activation task tags must be an array.'
+            );
+          } else if (Array.isArray(taskTags)) {
+            const seenTags = new Set<string>();
+            for (const [tagIndex, tag] of taskTags.entries()) {
+              const tagPath = `${activationPath}.taskTags[${tagIndex}]`;
+              if (typeof tag !== 'string' || !nonEmpty(tag)) {
+                issue(
+                  issues,
+                  'ACTIVATION_TASK_TAG_INVALID',
+                  tagPath,
+                  'Activation task tags must be non-empty strings.'
+                );
+                continue;
+              }
+              const normalizedTag = tag.trim();
+              if (seenTags.has(normalizedTag)) {
+                issue(
+                  issues,
+                  'DUPLICATE_ACTIVATION_TASK_TAG',
+                  tagPath,
+                  `Activation task tag "${normalizedTag}" is declared more than once.`
+                );
+              }
+              seenTags.add(normalizedTag);
+            }
+          }
 
-        const confidence = activation.minRouterConfidence;
-        if (validMode && activation.mode !== 'global' && confidence === undefined) {
-          issue(
-            issues,
-            'ACTIVATION_ROUTER_CONFIDENCE_REQUIRED',
-            `${activationPath}.minRouterConfidence`,
-            'Task-scoped and shadow-only activation require a router confidence threshold.'
-          );
-        } else if (
-          confidence !== undefined &&
-          (!Number.isFinite(confidence) || confidence < 0 || confidence > 1)
-        ) {
-          issue(
-            issues,
-            'ACTIVATION_ROUTER_CONFIDENCE_INVALID',
-            `${activationPath}.minRouterConfidence`,
-            'Router confidence must be a finite number between 0 and 1.'
-          );
-        }
+          if (validMode && activation.mode === 'global' && (taskTags?.length ?? 0) > 0) {
+            issue(
+              issues,
+              'ACTIVATION_TASK_TAGS_FORBIDDEN',
+              `${activationPath}.taskTags`,
+              'Global activation cannot also declare task tags.'
+            );
+          }
+          if (
+            validMode &&
+            activation.mode !== 'global' &&
+            (!Array.isArray(taskTags) || taskTags.length === 0)
+          ) {
+            issue(
+              issues,
+              'ACTIVATION_TASK_TAG_REQUIRED',
+              `${activationPath}.taskTags`,
+              'Task-scoped and shadow-only activation require at least one task tag.'
+            );
+          }
 
-        if (typeof activation.allowUserVisibleOutput !== 'boolean') {
-          issue(
-            issues,
-            'ROLE_OUTPUT_VISIBILITY_INVALID',
-            `${activationPath}.allowUserVisibleOutput`,
-            'Role output visibility must be an explicit boolean.'
-          );
-        } else if (
-          activation.allowUserVisibleOutput &&
-          (roleContract.role !== 'generator' || activation.mode === 'shadow_only')
-        ) {
-          issue(
-            issues,
-            'ROLE_OUTPUT_VISIBILITY_FORBIDDEN',
-            `${activationPath}.allowUserVisibleOutput`,
-            'Only a non-shadow generator may emit user-visible output.'
-          );
-        }
+          const confidence = activation.minRouterConfidence;
+          if (validMode && activation.mode !== 'global' && confidence === undefined) {
+            issue(
+              issues,
+              'ACTIVATION_ROUTER_CONFIDENCE_REQUIRED',
+              `${activationPath}.minRouterConfidence`,
+              'Task-scoped and shadow-only activation require a router confidence threshold.'
+            );
+          } else if (
+            confidence !== undefined &&
+            (!Number.isFinite(confidence) || confidence < 0 || confidence > 1)
+          ) {
+            issue(
+              issues,
+              'ACTIVATION_ROUTER_CONFIDENCE_INVALID',
+              `${activationPath}.minRouterConfidence`,
+              'Router confidence must be a finite number between 0 and 1.'
+            );
+          }
 
-        const fallbackHead = activation.fallbackHead;
-        if (validMode && activation.mode !== 'global' && fallbackHead === undefined) {
-          issue(
-            issues,
-            'ROLE_FALLBACK_HEAD_REQUIRED',
-            `${activationPath}.fallbackHead`,
-            'Task-scoped and shadow-only activation require an immutable fallback head.'
-          );
-        } else if (fallbackHead !== undefined && !validDigest(fallbackHead)) {
-          issue(
-            issues,
-            'ROLE_FALLBACK_HEAD_INVALID',
-            `${activationPath}.fallbackHead`,
-            'Role fallback head must be a lowercase sha256 content digest.'
-          );
-        } else if (fallbackHead !== undefined && fallbackHead !== graph.previousAdmittedHead) {
-          issue(
-            issues,
-            'ROLE_FALLBACK_HEAD_MISMATCH',
-            `${activationPath}.fallbackHead`,
-            'Role fallback head must match the graph previous admitted head.'
-          );
+          if (typeof activation.allowUserVisibleOutput !== 'boolean') {
+            issue(
+              issues,
+              'ROLE_OUTPUT_VISIBILITY_INVALID',
+              `${activationPath}.allowUserVisibleOutput`,
+              'Role output visibility must be an explicit boolean.'
+            );
+          } else if (
+            activation.allowUserVisibleOutput &&
+            (roleContract.role !== 'generator' || activation.mode === 'shadow_only')
+          ) {
+            issue(
+              issues,
+              'ROLE_OUTPUT_VISIBILITY_FORBIDDEN',
+              `${activationPath}.allowUserVisibleOutput`,
+              'Only a non-shadow generator may emit user-visible output.'
+            );
+          }
+
+          const fallbackHead = activation.fallbackHead;
+          if (validMode && activation.mode !== 'global' && fallbackHead === undefined) {
+            issue(
+              issues,
+              'ROLE_FALLBACK_HEAD_REQUIRED',
+              `${activationPath}.fallbackHead`,
+              'Task-scoped and shadow-only activation require an immutable fallback head.'
+            );
+          } else if (fallbackHead !== undefined && !validDigest(fallbackHead)) {
+            issue(
+              issues,
+              'ROLE_FALLBACK_HEAD_INVALID',
+              `${activationPath}.fallbackHead`,
+              'Role fallback head must be a lowercase sha256 content digest.'
+            );
+          } else if (fallbackHead !== undefined && fallbackHead !== graph.previousAdmittedHead) {
+            issue(
+              issues,
+              'ROLE_FALLBACK_HEAD_MISMATCH',
+              `${activationPath}.fallbackHead`,
+              'Role fallback head must match the graph previous admitted head.'
+            );
+          }
         }
       }
     }
