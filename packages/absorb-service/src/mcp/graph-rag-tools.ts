@@ -390,8 +390,18 @@ async function resolveHoloLlamaConfigSecret(name: string): Promise<string | unde
   return stringArg(await resolveConfigSecret(name));
 }
 
+/**
+ * Node-local default (mass-update WS2, D.131): an unconfigured node must default to
+ * ITS OWN profile, never cross-node jetson-orin — whose endpoint is jetson.local:18080
+ * (mDNS, unresolvable on Windows), the root cause of the laptop synthesis outage. An
+ * explicit profile or HOLOLLAMA_PROFILE still wins; this is only the last-resort default.
+ */
+function defaultHoloLlamaProfileForNode(): HoloLlamaProfile {
+  return process.platform === 'win32' ? 'laptop-windows' : 'jetson-orin';
+}
+
 function resolveHoloLlamaProfile(value: unknown, configuredProfile?: string): HoloLlamaProfile {
-  const candidate = stringArg(value) ?? configuredProfile ?? 'jetson-orin';
+  const candidate = stringArg(value) ?? configuredProfile ?? defaultHoloLlamaProfileForNode();
   if (HOLOLLAMA_PROFILES.includes(candidate as HoloLlamaProfile)) {
     return candidate as HoloLlamaProfile;
   }
