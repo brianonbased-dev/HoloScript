@@ -232,7 +232,7 @@ describe('CLI deterministic cross-format headless execution', () => {
       expect(onReceipt.executionEngines).toEqual({
         world: 'holoscript-cli-pure-world-projection-v1',
         schedule: 'holoscript-node-pipeline-bridge-v1',
-        behavior: 'holoscript-hsplus-vm-action-subset-v1',
+        behavior: 'holoscript-engine-hsplus-deterministic-action-subset-v1',
       });
       expect(onReceipt.claimBoundary).toMatchObject({
         holoWorldParsedAndProjected: true,
@@ -240,6 +240,9 @@ describe('CLI deterministic cross-format headless execution', () => {
         hsplusActionEntrypointsExecuted: true,
         nativeRustPipelineExecutionClaimed: false,
         nativeEngineHsplusExecutionClaimed: false,
+        engineOwnedDeterministicHsplusActionSubsetExecuted: true,
+        fullHsplusLanguageExecutionClaimed: false,
+        hsplusDynamicJavaScriptEvaluationUsed: false,
         worldRuntimeLifecycleExecuted: false,
         providerCallsMade: 0,
         liveAuthorizationReplayProtectionClaimed: false,
@@ -301,7 +304,7 @@ describe('CLI deterministic cross-format headless execution', () => {
     }
   });
 
-  it('rejects nondeterministic HoloScript+ host capabilities before invocation', async () => {
+  it('rejects dynamic HoloScript+ host capabilities and unsupported statements before invocation', async () => {
     const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-headless-nondeterminism-'));
     try {
       const worldPath = path.join(tempDir, 'village.holo');
@@ -319,7 +322,7 @@ describe('CLI deterministic cross-format headless execution', () => {
       await expect(
         runCli(['headless', worldPath, '--plan', planPath, '--behavior', behaviorPath, '--json'])
       ).rejects.toMatchObject({
-        stderr: expect.stringMatching(/forbidden nondeterministic or host capability/i),
+        stderr: expect.stringMatching(/CallExpression.*not admitted/i),
       });
 
       writeFileSync(
@@ -334,7 +337,7 @@ describe('CLI deterministic cross-format headless execution', () => {
       await expect(
         runCli(['headless', worldPath, '--plan', planPath, '--behavior', behaviorPath, '--json'])
       ).rejects.toMatchObject({
-        stderr: expect.stringMatching(/custom array key/i),
+        stderr: expect.stringMatching(/VariableDeclaration.*not admitted/i),
       });
     } finally {
       rmSync(tempDir, { recursive: true, force: true });

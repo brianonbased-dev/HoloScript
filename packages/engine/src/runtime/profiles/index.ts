@@ -65,3 +65,9 @@ export {
   type HeadlessRollbackReference,
   type ParsedHeadlessExperimentPlan,
 } from './HeadlessExecutionLedger';
+
+export {
+  ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
+  DeterministicHsplusActionRuntime,
+  createDeterministicHsplusActionRuntime,
+} from './DeterministicHsplusActionRuntime';
