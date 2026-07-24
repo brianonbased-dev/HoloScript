@@ -278,6 +278,28 @@ export type OpcodeHandler = (vm: VMProxy, operands: UAALOperand[]) => void | Pro
 // VM OPTIONS
 // =============================================================================
 
+export const UAAL_BYTECODE_HASH_ALGORITHM = 'sha256-uaal-bytecode-canonical-v1' as const;
+export const UAAL_VM_IMPLEMENTATION_ID = 'holoscript.uaal-virtual-machine.v1' as const;
+export const UAAL_VM_EXECUTION_PROFILE_SCHEMA = 'holoscript.uaal-vm.execution-profile.v1' as const;
+
+/**
+ * Read-only runtime facts that affect execution admission.
+ *
+ * Receipts use this snapshot instead of inferring limits or handler state from
+ * constructor call sites. A fresh snapshot is returned on every call so later
+ * handler registration cannot mutate evidence captured before execution.
+ */
+export interface UAALVMExecutionProfile {
+  readonly schema: typeof UAAL_VM_EXECUTION_PROFILE_SCHEMA;
+  readonly implementation: typeof UAAL_VM_IMPLEMENTATION_ID;
+  readonly limits: {
+    readonly maxStackSize: number;
+    readonly maxInstructions: number;
+    readonly maxCallDepth: number;
+  };
+  readonly registeredHandlerOpcodes: readonly UAALOpCode[];
+}
+
 export interface UAALVMOptions {
   enableLogging?: boolean;
   maxStackSize?: number;
@@ -345,6 +367,25 @@ export class UAALVirtualMachine {
     this.injectLog = options.replayInjectLog ?? null;
     this.state = this.createInitialState();
     this.registerDefaultHandlers();
+  }
+
+  /**
+   * Return the effective execution limits and currently registered host
+   * handlers without exposing mutable VM internals.
+   */
+  getExecutionProfile(): UAALVMExecutionProfile {
+    return Object.freeze({
+      schema: UAAL_VM_EXECUTION_PROFILE_SCHEMA,
+      implementation: UAAL_VM_IMPLEMENTATION_ID,
+      limits: Object.freeze({
+        maxStackSize: this.maxStackSize,
+        maxInstructions: this.maxInstructions,
+        maxCallDepth: this.maxCallDepth,
+      }),
+      registeredHandlerOpcodes: Object.freeze(
+        [...this.handlers.keys()].sort((left, right) => left - right)
+      ),
+    });
   }
 
   private createInitialState(context: Record<string, UAALOperand> = {}): VMState {
@@ -471,10 +512,7 @@ export class UAALVirtualMachine {
    * Convenience alias for the standalone replayUAALLog() — see its doc
    * comment for the full contract.
    */
-  static async replayLog(
-    bytecode: UAALBytecode,
-    log: UAALExecutionLog
-  ): Promise<UAALReplayResult> {
+  static async replayLog(bytecode: UAALBytecode, log: UAALExecutionLog): Promise<UAALReplayResult> {
     return replayUAALLog(bytecode, log);
   }
 
@@ -506,14 +544,20 @@ export class UAALVirtualMachine {
     }
     this.state.stack.push(value);
     if (this.effectCapture) {
-      this.effectCapture.push({ op: 'push', value: cloneJsonSafe(value, LOG_VALUE_DEPTH) as UAALOperand });
+      this.effectCapture.push({
+        op: 'push',
+        value: cloneJsonSafe(value, LOG_VALUE_DEPTH) as UAALOperand,
+      });
     }
   }
 
   pop(): UAALOperand {
     const value = this.state.stack.pop() ?? null;
     if (this.effectCapture) {
-      this.effectCapture.push({ op: 'pop', value: cloneJsonSafe(value, LOG_VALUE_DEPTH) as UAALOperand });
+      this.effectCapture.push({
+        op: 'pop',
+        value: cloneJsonSafe(value, LOG_VALUE_DEPTH) as UAALOperand,
+      });
     }
     return value;
   }
@@ -522,7 +566,10 @@ export class UAALVirtualMachine {
     const value =
       this.state.stack.length > 0 ? this.state.stack[this.state.stack.length - 1] : null;
     if (this.effectCapture) {
-      this.effectCapture.push({ op: 'peek', value: cloneJsonSafe(value, LOG_VALUE_DEPTH) as UAALOperand });
+      this.effectCapture.push({
+        op: 'peek',
+        value: cloneJsonSafe(value, LOG_VALUE_DEPTH) as UAALOperand,
+      });
     }
     return value;
   }

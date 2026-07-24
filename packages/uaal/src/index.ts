@@ -27,13 +27,21 @@
 export { UAALOpCode, getUAALOpcodeName, isCognitiveOp, isControlFlowOp } from './opcodes';
 export type { UAALOperand, UAALInstruction, UAALBytecode } from './opcodes';
 
-export { UAALVirtualMachine, replayUAALLog, computeUAALBytecodeSha256 } from './vm';
+export {
+  UAAL_BYTECODE_HASH_ALGORITHM,
+  UAAL_VM_EXECUTION_PROFILE_SCHEMA,
+  UAAL_VM_IMPLEMENTATION_ID,
+  UAALVirtualMachine,
+  replayUAALLog,
+  computeUAALBytecodeSha256,
+} from './vm';
 export type {
   VMState,
   VMResult,
   VMProxy,
   OpcodeHandler,
   UAALVMOptions,
+  UAALVMExecutionProfile,
   UAALExecutionLog,
   UAALLogStep,
   UAALRecordedEffect,
