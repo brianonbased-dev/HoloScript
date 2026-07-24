@@ -72,3 +72,31 @@ export {
   type PhysicsSmokeReceipt,
   type DemoReceipt,
 } from './smoke';
+
+// Deterministic cross-format experiment receipts
+export {
+  HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA,
+  HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY,
+  verifyHeadlessExperimentSourceRunReceipt,
+  type HeadlessExperimentSourceRunReceipt,
+  type HeadlessExperimentSourceRunSources,
+} from './headless-experiment';
+export {
+  HS_PLAN_KERNEL_EXECUTION_PROVENANCE_SCHEMA,
+  HS_PLAN_KERNEL_TRACE_SCHEMA,
+  HS_PLAN_KERNEL_PARSER,
+  HS_PLAN_KERNEL_COMPILER,
+  HS_PLAN_KERNEL_VM,
+  HS_PLAN_KERNEL_UAAL_LIMITS,
+  HS_PLAN_KERNEL_TRACE_PROGRAM_COUNTERS,
+  HS_PLAN_KERNEL_TRACE_OPCODES,
+  RUST_WASM_UAAL_HS_PLAN_KERNEL,
+  executeHsPlanKernel,
+  verifyHsPlanKernelExecutionProvenance,
+  type HsPlanKernelCompactTrace,
+  type HsPlanKernelExecutionProvenance,
+  type HsPlanKernelExecutionResult,
+  type HsPlanKernelProvenanceVerificationOptions,
+  type HsPlanKernelProvenanceVerificationResult,
+  type HsPlanKernelVmExecutionProfile,
+} from './native-hs-plan-runner';

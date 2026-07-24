@@ -1,0 +1,50 @@
+import {
+  HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA,
+  HS_PLAN_KERNEL_EXECUTION_PROVENANCE_SCHEMA,
+  verifyHeadlessExperimentSourceRunReceipt,
+  verifyHsPlanKernelExecutionProvenance,
+  type HeadlessExperimentSourceRunSources,
+  type HsPlanKernelExecutionProvenance,
+} from '../dist/index.js';
+
+declare const untrustedSourceRunReceipt: unknown;
+declare const untrustedInnerExecutionReceipt: unknown;
+declare const untrustedPlanProvenance: unknown;
+declare const verifiedPlanProvenance: HsPlanKernelExecutionProvenance;
+
+const sources: HeadlessExperimentSourceRunSources = {
+  worldSource: 'composition "Canary" {}',
+  planSource: 'export function main(): string { return "[]" }',
+  behaviorSource: 'state Canary {}',
+};
+
+const sourceRunVerdict = verifyHeadlessExperimentSourceRunReceipt(
+  untrustedSourceRunReceipt,
+  untrustedInnerExecutionReceipt,
+  sources
+);
+const planVerdict = verifyHsPlanKernelExecutionProvenance(untrustedPlanProvenance, {
+  expectedSource: sources.planSource,
+});
+
+const sourceRunSchema: 'holoscript.headless-experiment-source-run.v2' =
+  HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA;
+const planSchema: 'holoscript.hs-plan-kernel-execution-provenance.v1' =
+  HS_PLAN_KERNEL_EXECUTION_PROVENANCE_SCHEMA;
+const instructionCount: 5 = verifiedPlanProvenance.bytecode.instructionCount;
+const traceCount: 4 = verifiedPlanProvenance.vm.trace.executedInstructionCount;
+const programCounters: readonly [0, 2, 3, 1] = verifiedPlanProvenance.vm.trace.programCounters;
+const opcodes: readonly [50, 1, 51, 255] = verifiedPlanProvenance.vm.trace.opcodes;
+const handlerOpcodes: readonly [] = verifiedPlanProvenance.vm.profile.registeredHandlerOpcodes;
+
+void [
+  sourceRunVerdict,
+  planVerdict,
+  sourceRunSchema,
+  planSchema,
+  instructionCount,
+  traceCount,
+  programCounters,
+  opcodes,
+  handlerOpcodes,
+];
