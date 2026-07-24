@@ -521,6 +521,7 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
       ...(resolvedIndex.manifestPath
         ? { holoGraphHoloEmbedManifest: resolvedIndex.manifestPath }
         : {}),
+      ...(resolvedIndex.warning ? { warning: resolvedIndex.warning } : {}),
       results: results.map((r: SearchResult) => ({
         name: r.symbol.owner ? `${r.symbol.owner}.${r.symbol.name}` : r.symbol.name,
         type: r.type,
@@ -545,7 +546,7 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
 async function resolveSemanticSearchIndex(
   args: Record<string, unknown>
 ): Promise<
-  | { index: SymbolSearchIndex; source: string; manifestPath?: string }
+  | { index: SymbolSearchIndex; source: string; manifestPath?: string; warning?: string }
   | { error: string; hint: string }
 > {
   if (args.useCachedAbsorbIndex === true) {
@@ -560,6 +561,17 @@ async function resolveSemanticSearchIndex(
   const explicitManifestPath =
     stringArg(args.holoGraphHoloEmbedManifest) ??
     stringArg(process.env.HOLOGRAPH_HOLOEMBED_MANIFEST);
+
+  // A fresh in-session cached index (holo_absorb_repo of the CURRENT repo) is the ground
+  // truth for this query. The promoted DEFAULT manifest is a FIXED shared release that may
+  // be built on a DIFFERENT repo (it currently ships an mcp-orchestrator model) or lag the
+  // working tree — silently serving it returned confident wrong-repo results. Prefer the
+  // cached index; the default manifest is a last-resort fallback for sessions with no
+  // in-session absorb. An explicit manifest (arg or env) still wins over both.
+  if (!explicitManifestPath && cachedEmbeddingIndex) {
+    return { index: cachedEmbeddingIndex, source: 'cached-embedding-index' };
+  }
+
   const defaultManifestPath = explicitManifestPath
     ? undefined
     : resolveDefaultHoloGraphHoloEmbedManifestPath();
@@ -584,6 +596,18 @@ async function resolveSemanticSearchIndex(
       index,
       source: 'holograph-holoembed-manifest',
       manifestPath,
+      // Fail loud: reached only when there is no explicit manifest AND no in-session
+      // cached index, so the promoted DEFAULT release was used — it is not guaranteed to
+      // match the queried repo. Surface it so a wrong-repo index is never silent.
+      ...(defaultManifestPath
+        ? {
+            warning:
+              `Semantic search used the promoted DEFAULT HoloGraph/HoloEmbed release manifest ` +
+              `(${manifestPath}) — NOT guaranteed to match the queried repo (it may be built on a ` +
+              `different codebase). For repo-accurate results run holo_absorb_repo for the current ` +
+              `repo, or pass useCachedAbsorbIndex:true / an explicit holoGraphHoloEmbedManifest.`,
+          }
+        : {}),
     };
   } catch (err) {
     return {
