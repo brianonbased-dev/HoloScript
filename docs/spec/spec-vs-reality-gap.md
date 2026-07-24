@@ -9,21 +9,22 @@
 > cognitive VM; meaning is stratum-② **HoloMeaning**, surface is stratum-① (the three formats).
 
 ## Status legend
+
 ✅ shipped & wired · ⚠️ exists but not wired into the canonical path · ❌ absent/aspirational
 
 ## Summary table
 
-| # | Spec claim | Reality | Status |
-|---|------------|---------|--------|
-| G1 | `.holo → bytecode → VM → render` | `HolobCompiler` + `holo-vm`, e2e-tested to pixels | ✅ |
-| G2 | `@holoscript/uaal` cognitive VM + compiler | `packages/uaal` alive, consumed by agent-protocol/engine/studio | ✅ (runtime) |
-| G3 | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode` | `.holo` behavior bridge active; canonical `.hs` Rust/WASM path now lowers a conservative typed function subset directly to UAAL; whole-document `.hsplus` lowering remains | ✅⚠️ **partial** |
-| G4 | `holo compile … --target uaal` (per `agents/uaal-vm.md`) | **shipped**: `--target uaal` parses `.holo` → `UaalBehaviorCompiler` → writes `.uaal` bytecode; verified end-to-end | ✅ |
-| G5 | cognitive ⇄ spatial via `SceneSnapshot` | **shipped**: `sceneSnapshot()` serializes HOLO world → perception; both real VMs proven against the shared contract (producer+act / cognitive decision); in-process adapter deferred (needs a package depping both) | ✅⚠️ **partial** |
-| G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar plus shared body-type pass; a conservative typed `i32` subset compiles to UAAL and to a native executable with result parity in the three-surface tracer; broader data/ABI coverage remains | ✅⚠️ **bounded subset** |
-| G7 | native-authoring coverage is tracked + rising | **shipped**: `check:native-coverage` ratchet gate; live baseline is computed by the checker, must rise/hold, and replaces the unverified paper figure | ✅ |
-| G8 | the spec is the language's source of truth | spec lived only in the Gemini knowledge silo until 2026-06-22 | ✅ (reclaimed by this dir) |
-| G9 | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending | ✅⚠️ **partial** |
+| #   | Spec claim                                                  | Reality                                                                                                                                                                                                              | Status                     |
+| --- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| G1  | `.holo → bytecode → VM → render`                            | `HolobCompiler` + `holo-vm`, e2e-tested to pixels                                                                                                                                                                    | ✅                         |
+| G2  | `@holoscript/uaal` cognitive VM + compiler                  | `packages/uaal` alive, consumed by agent-protocol/engine/studio                                                                                                                                                      | ✅ (runtime)               |
+| G3  | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode`             | `.holo` behavior bridge active; canonical `.hs` Rust/WASM path now lowers a conservative typed function subset directly to UAAL; whole-document `.hsplus` lowering remains                                           | ✅⚠️ **partial**           |
+| G4  | `holo compile … --target uaal` (per `agents/uaal-vm.md`)    | **shipped**: `--target uaal` parses `.holo` → `UaalBehaviorCompiler` → writes `.uaal` bytecode; verified end-to-end                                                                                                  | ✅                         |
+| G5  | cognitive ⇄ spatial via `SceneSnapshot`                     | **shipped**: `sceneSnapshot()` serializes HOLO world → perception; both real VMs proven against the shared contract (producer+act / cognitive decision); in-process adapter deferred (needs a package depping both)  | ✅⚠️ **partial**           |
+| G6  | `.hs` imperative logic is a real compiled language          | Rust/WASM grammar plus shared body-type pass; a conservative typed `i32`/`bool` control subset, including lazy `&&`/`\|\|`, compiles to UAAL and to a native executable; broader inference/data/ABI coverage remains | ✅⚠️ **bounded subset**    |
+| G7  | native-authoring coverage is tracked + rising               | **shipped**: `check:native-coverage` ratchet gate; live baseline is computed by the checker, must rise/hold, and replaces the unverified paper figure                                                                | ✅                         |
+| G8  | the spec is the language's source of truth                  | spec lived only in the Gemini knowledge silo until 2026-06-22                                                                                                                                                        | ✅ (reclaimed by this dir) |
+| G9  | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending                                              | ✅⚠️ **partial**           |
 
 ---
 
@@ -50,7 +51,7 @@ recursive `.holo` parameter frames, or formal target preservation.
 
 ---
 
-## G3 — Wire `.hs`/`.hsplus` source into the uAAL compiler *(highest leverage)*
+## G3 — Wire `.hs`/`.hsplus` source into the uAAL compiler _(highest leverage)_
 
 The cognitive language is reachable from `.holo` behavior/action blocks, and
 the canonical Rust/WASM `.hs` parser now lowers a conservative typed function
@@ -75,7 +76,7 @@ subset directly to UAAL. Whole-document `.hsplus` lowering remains incomplete.
   `core/src/__tests__/compiler/UaalBehaviorCompiler.test.ts` pass on the real
   `@holoscript/uaal` VM; `tsc --noEmit` on core is clean; **no new dependency / lockfile change** —
   local opcode constants are drift-guarded against the real ISA in the test.
-  - **Premortem correction applied:** lowers only the *behavioral* subset (actions /
+  - **Premortem correction applied:** lowers only the _behavioral_ subset (actions /
     eventHandlers / logic → `HoloStatement` bodies), NOT spatial nodes (that would be the
     category error the premortem flagged — spatial is `HolobCompiler → HoloVM`). The test is
     non-vacuous: distinct inputs yield distinct observable EXECUTE traces, and `JUMP_IF` is
@@ -86,9 +87,10 @@ subset directly to UAAL. Whole-document `.hsplus` lowering remains incomplete.
   - **Deferred (recorded as `stats.unhandled`, not faked):** Animate and OnError.
   - **Direct `.hs` subset:** `packages/compiler-wasm/src/uaal_emit.rs` consumes
     the canonical AST, shares the semantic body-type pass used by validation,
-    lowers typed `i32` arithmetic, comparison, calls, conditionals, and
-    `while`, and fails closed when width, ownership, short-circuit, or ABI
-    semantics are not preserved.
+    lowers typed `i32` arithmetic, comparison, calls, conditionals, `while`,
+    and typed boolean `&&`/`||` through lazy branch graphs. Known non-boolean
+    operands fail with `HS-TYPE-LOGICAL-001`; target-unproven truthiness fails
+    with `HS-UAAL-CAP-002`.
   - **Remaining for G3:** whole-document `.hsplus` lowering and broader `.hs`
     type/control/data coverage.
 
@@ -106,13 +108,13 @@ target.
 - **STATUS — SHIPPED 2026-06-22.** `packages/cli/src/cli.ts` adds `uaal` to `validTargets` + an
   inline handler block: parse `.holo` (`HoloCompositionParser`) → `UaalBehaviorCompiler.compile` →
   write `.uaal` JSON bytecode (with `--output`). Verified end-to-end: `pnpm --filter @holoscript/cli
-  build` (exit 0), then `holo compile <fixture>.holo --target uaal` emitted valid bytecode
+build` (exit 0), then `holo compile <fixture>.holo --target uaal` emitted valid bytecode
   (`{version:2, instructions:[{opCode:255 HALT}]}`) and the parse-error path prints + exits 1.
   - **Required publishing the new core export:** `UaalBehaviorCompiler` was added to
     `packages/core/scripts/generate-types.mjs` (the hand-curated `dist/index.d.ts`) and core
     rebuilt, so consumers see it on `@holoscript/core`. (core/dist is gitignored — consumers
     rebuild from src; the committable change is the `generate-types.mjs` declaration.)
-  - **Scope note:** behavior lowering requires *composition-level* `actions`/`eventHandlers`/`logic`;
+  - **Scope note:** behavior lowering requires _composition-level_ `actions`/`eventHandlers`/`logic`;
     a behavior-less scene compiles to a single `HALT`. `.hsplus` input (vs `.holo`) needs the
     `.hsplus → HoloComposition` bridge — a known follow-up, not in this slice.
 
@@ -147,12 +149,13 @@ actuate back) is described but not exercised in a canonical path.
 ## G6 — Mature the `.hs` grammar + emitter on the canonical Rust/WASM parser
 
 The `.hs→Kotlin` emitter (first landed 2026-06-21, W.815) proved `.hs`
-could reach a real target. The 2026-07-23 slice adds a shared semantic body-type
-pass and direct UAAL lowering for a conservative typed subset. The
-three-surface tracer compiles and runs the same `.hs` policy through the native
-path and the cognitive VM and requires equal results. The parser and emitters
-remain declared subsets; broader grammar, data, ownership, and ABI
-generalization continues.
+could reach a real target. The 2026-07-23 slices add a shared semantic body-type
+pass and direct UAAL lowering for a conservative typed subset. That subset now
+includes boolean `&&`/`||` lowered as real lazy branches, not eager VM
+truthiness. A poison-RHS differential test returns `5` on both the native and
+UAAL paths while the UAAL execution log proves neither statically present RHS
+call executes. The parser and emitters remain declared subsets; broader
+inference, grammar, data, ownership, and ABI generalization continues.
 
 - **Falsifiable claim:** the documented `.hs` logic subset compiles via `packages/compiler-wasm`
   to ≥1 target with parity tests green.
@@ -160,6 +163,9 @@ generalization continues.
 - **Failing-if-broken evidence:** the existing cargo + parity tests (extend, keep green).
 - **Scope/blast:** grammar repo only. Out of scope: TS-parser `.hs`-logic support (HSP101 —
   intentionally not the path). Regression: covered by parity tests.
+- **Typed-logic boundary:** known non-booleans are semantic errors; UAAL also
+  requires explicit boolean proof for bindings and call returns. Unary `!` and
+  unannotated truthiness remain outside this target subset.
 
 ## G7 — Make native-authoring coverage a tracked, rising gate
 
@@ -171,7 +177,7 @@ The gate replaces it with a real number from the tree.
 - **Falsifiable claim:** a check reports `native / (native + hand-TS-traits)` over `packages/` and
   fails CI if either the native count or the ratio drops below a committed baseline.
 - **Real seam:** a `check:native-coverage` script + `package.json` `check:*` entry (HoloCI runs
-  these); D.101-compatible (it is *measurement of the language*).
+  these); D.101-compatible (it is _measurement of the language_).
 - **Failing-if-broken evidence:** the check itself (red on regression) + a pure-node test
   asserting the metric is real, the baseline is honest, and a simulated drop exits 1.
 - **Scope/blast:** new check script + baseline + test + package.json entries. Regression: none.
@@ -184,7 +190,7 @@ The gate replaces it with a real number from the tree.
   `.githooks/pre-commit` block like Gate 5e) is an optional follow-up; the `check:*` entry is the
   CI hook.
 
-## G9 — Fleet agents communicate as uAAL peers *(Jetson / laptop / Vast)*
+## G9 — Fleet agents communicate as uAAL peers _(Jetson / laptop / Vast)_
 
 The uAAL ISA ships peer opcodes — `CALL_NODE` (0x21), `OP_OFFLOAD` (0x23), `OP_SYNC` (0x24) —
 but they were inert extension points. A uAAL program on one node could not actually reach
@@ -213,7 +219,7 @@ another. This is the "fleet agents all communicating with each other" gap (MEMOR
 - `.holo` spatial pipeline (G1) — built and tested; do not "rebuild."
 - The aspirational ISA (`OP_BECOME_SENTIENT`, `OP_COLLAPSE_WAVEFUNCTION`, multiversal/timeline
   ops) — quarantined in the spec; not a build target.
-- The uaal/holo-vm *runtimes* themselves — they exist; the work is the **front-end bridge**
+- The uaal/holo-vm _runtimes_ themselves — they exist; the work is the **front-end bridge**
   (G3/G4/G5), not the VMs.
 
 ## Sequencing

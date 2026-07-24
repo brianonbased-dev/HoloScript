@@ -56,10 +56,7 @@ function createMockWasm(overrides?: Partial<HoloScriptWasmModule>): HoloScriptWa
 
 const VALID_UAAL_BYTECODE: UAALWasmBytecode = {
   version: 1,
-  instructions: [
-    { opCode: 0x01, operands: [42] },
-    { opCode: 0xff },
-  ],
+  instructions: [{ opCode: 0x01, operands: [42] }, { opCode: 0xff }],
 };
 
 const TEST_DIR = fileURLToPath(new URL('.', import.meta.url));
@@ -75,7 +72,12 @@ function resolveCargoCommand(): string {
     .flatMap((entry) => names.map((name) => resolve(entry, name)));
   const userHome = process.env.USERPROFILE ?? process.env.HOME ?? '';
   const homeFallback = userHome
-    ? [resolve(userHome, process.platform === 'win32' ? '.cargo/bin/cargo.exe' : '.cargo/bin/cargo')]
+    ? [
+        resolve(
+          userHome,
+          process.platform === 'win32' ? '.cargo/bin/cargo.exe' : '.cargo/bin/cargo'
+        ),
+      ]
     : [];
   const candidates = [process.env.CARGO, ...fromPath, ...homeFallback].filter(
     (candidate): candidate is string => Boolean(candidate)
@@ -101,7 +103,7 @@ function compileHsToUaalViaRust(source: string): UAALBytecode {
   return result;
 }
 
-function executeHsNativeViaRust(source: string): number {
+function executeHsNativeViaRust(source: string, executionTimeoutMs = 30000): number {
   const scratchDir = mkdtempSync(join(tmpdir(), 'holoscript-native-uaal-parity-'));
   const sourcePath = join(scratchDir, 'main.hs');
   const executablePath = join(
@@ -135,6 +137,7 @@ function executeHsNativeViaRust(source: string): number {
     const execution = spawnSync(executablePath, [], {
       cwd: scratchDir,
       encoding: 'utf8',
+      timeout: executionTimeoutMs,
     });
     if (execution.error) throw execution.error;
     if (execution.signal) {
@@ -492,7 +495,9 @@ describe('HoloScriptWasm', () => {
 
     it('should throw HoloScriptCompileError for compiler error objects', () => {
       mockWasm = createMockWasm({
-        compile_to_uaal: vi.fn().mockReturnValue(JSON.stringify({ error: 'unresolved function call' })),
+        compile_to_uaal: vi
+          .fn()
+          .mockReturnValue(JSON.stringify({ error: 'unresolved function call' })),
       });
       wrapper = new HoloScriptWasm(mockWasm);
 
@@ -577,10 +582,8 @@ describe('HoloScriptWasm', () => {
 // ── APL WIT Trait-Evaluation Surface Tests ──────────────────────────────
 
 describe('compile_to_uaal e2e', () => {
-  it(
-    'compiles a non-recursive .hs function call to bytecode the UAAL VM executes',
-    async () => {
-      const bytecode = compileHsToUaalViaRust(`function helper() {
+  it('compiles a non-recursive .hs function call to bytecode the UAAL VM executes', async () => {
+    const bytecode = compileHsToUaalViaRust(`function helper() {
   return 42
 }
 
@@ -588,24 +591,24 @@ function main() {
   return helper()
 }`);
 
-      expect(bytecode.version).toBe(1);
-      expect(bytecode.instructions.some((instruction) => instruction.opCode === UAALOpCode.CALL)).toBe(true);
-      expect(bytecode.instructions.some((instruction) => instruction.opCode === UAALOpCode.RET)).toBe(true);
+    expect(bytecode.version).toBe(1);
+    expect(
+      bytecode.instructions.some((instruction) => instruction.opCode === UAALOpCode.CALL)
+    ).toBe(true);
+    expect(bytecode.instructions.some((instruction) => instruction.opCode === UAALOpCode.RET)).toBe(
+      true
+    );
 
-      const vm = new UAALVirtualMachine();
-      const result = await vm.execute(bytecode);
+    const vm = new UAALVirtualMachine();
+    const result = await vm.execute(bytecode);
 
-      expect(result.taskStatus).toBe('HALTED');
-      expect(result.stackTop).toBe(42);
-      expect(result.state.callStack).toEqual([]);
-    },
-    60000
-  );
+    expect(result.taskStatus).toBe('HALTED');
+    expect(result.stackTop).toBe(42);
+    expect(result.state.callStack).toEqual([]);
+  }, 60000);
 
-  it(
-    'executes a recursive .hs function with one parameter and an if branch',
-    async () => {
-      const bytecode = compileHsToUaalViaRust(`function countdown(active) {
+  it('executes a recursive .hs function with one parameter and an if branch', async () => {
+    const bytecode = compileHsToUaalViaRust(`function countdown(active) {
   if (active) {
     return countdown(false)
   } else {
@@ -617,22 +620,20 @@ function main() {
   return countdown(true)
 }`);
 
-      const opCodes = bytecode.instructions.map((instruction) => instruction.opCode);
-      expect(opCodes).toContain(UAALOpCode.OP_STATE_SET);
-      expect(opCodes).toContain(UAALOpCode.OP_STATE_GET);
-      expect(opCodes).toContain(UAALOpCode.JUMP_IF);
-      expect(opCodes).toContain(UAALOpCode.JUMP);
-      expect(opCodes.filter((opCode) => opCode === UAALOpCode.CALL)).toHaveLength(3);
+    const opCodes = bytecode.instructions.map((instruction) => instruction.opCode);
+    expect(opCodes).toContain(UAALOpCode.OP_STATE_SET);
+    expect(opCodes).toContain(UAALOpCode.OP_STATE_GET);
+    expect(opCodes).toContain(UAALOpCode.JUMP_IF);
+    expect(opCodes).toContain(UAALOpCode.JUMP);
+    expect(opCodes.filter((opCode) => opCode === UAALOpCode.CALL)).toHaveLength(3);
 
-      const vm = new UAALVirtualMachine();
-      const result = await vm.execute(bytecode);
+    const vm = new UAALVirtualMachine();
+    const result = await vm.execute(bytecode);
 
-      expect(result.taskStatus).toBe('HALTED');
-      expect(result.stackTop).toBe('done');
-      expect(result.state.callStack).toEqual([]);
-    },
-    60000
-  );
+    expect(result.taskStatus).toBe('HALTED');
+    expect(result.stackTop).toBe('done');
+    expect(result.state.callStack).toEqual([]);
+  }, 60000);
 
   it('executes the canonical three-surface policy identically on native and cognitive VMs', async () => {
     const source = readFileSync(THREE_SURFACE_POLICY_PATH, 'utf8');
@@ -685,6 +686,48 @@ function main(): i32 {
     expect(
       executionLog.steps.filter((step) => step.opcode === UAALOpCode.EXEC && step.injected)
     ).toHaveLength(2);
+  }, 120000);
+
+  it('executes typed short-circuit policy lazily with native parity', async () => {
+    const source = `function expensive_policy(): bool {
+  while (true) {
+  }
+  return false
+}
+
+function main(): i32 {
+  if (false && expensive_policy()) {
+    return 9
+  }
+  if (true || expensive_policy()) {
+    return 5
+  }
+  return 0
+}`;
+
+    const nativeExitCode = executeHsNativeViaRust(source, 5000);
+    const bytecode = compileHsToUaalViaRust(source);
+    const vm = new UAALVirtualMachine({ recordLog: true });
+    const result = await vm.execute(bytecode);
+    const executionLog = vm.exportLog();
+
+    expect(nativeExitCode).toBe(5);
+    expect(result.taskStatus).toBe('HALTED');
+    expect(result.stackTop).toBe(nativeExitCode);
+    expect(result.state.callStack).toEqual([]);
+    const staticCallPcs = bytecode.instructions
+      .map((instruction, pc) => ({ instruction, pc }))
+      .filter(({ instruction }) => instruction.opCode === UAALOpCode.CALL)
+      .map(({ pc }) => pc);
+    const executedCallPcs = executionLog.steps
+      .filter((step) => step.opcode === UAALOpCode.CALL)
+      .map((step) => step.pc);
+    expect(staticCallPcs).toHaveLength(3);
+    expect(executedCallPcs).toEqual([0]);
+
+    for (const step of executionLog.steps.filter((entry) => entry.opcode === UAALOpCode.JUMP_IF)) {
+      expect(step.stackAfter.depth).toBe(step.stackBefore.depth - 1);
+    }
   }, 120000);
 });
 

@@ -13,6 +13,7 @@ use crate::kotlin_emit::SemanticDiagnostic;
 const RETURN_MISMATCH: &str = "HS-TYPE-RETURN-001";
 const ASSIGNMENT_MISMATCH: &str = "HS-TYPE-ASSIGN-001";
 const ARGUMENT_MISMATCH: &str = "HS-TYPE-ARG-001";
+const LOGICAL_MISMATCH: &str = "HS-TYPE-LOGICAL-001";
 
 #[derive(Debug, Clone, PartialEq)]
 enum TypeEvidence {
@@ -367,7 +368,17 @@ impl TypeChecker {
                 let left = self.infer_expression(&binary.left, scopes)?;
                 let right = self.infer_expression(&binary.right, scopes)?;
                 let evidence = match binary.operator.as_str() {
-                    "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||" => {
+                    "&&" | "||" => {
+                        self.require_logical_operand("left", &binary.operator, &left, &binary.loc)?;
+                        self.require_logical_operand(
+                            "right",
+                            &binary.operator,
+                            &right,
+                            &binary.loc,
+                        )?;
+                        TypeEvidence::Known("bool".to_string())
+                    }
+                    "==" | "!=" | "<" | "<=" | ">" | ">=" => {
                         TypeEvidence::Known("bool".to_string())
                     }
                     "+" if is_string_evidence(&left) || is_string_evidence(&right) => {
@@ -427,6 +438,25 @@ impl TypeChecker {
         Err(diagnostic(
             format!(
                 "[{ASSIGNMENT_MISMATCH}] {operation} type mismatch for binding `{binding_name}`: expected `{expected}`, found `{}`",
+                actual.display_name()
+            ),
+            loc,
+        ))
+    }
+
+    fn require_logical_operand(
+        &self,
+        side: &str,
+        operator: &str,
+        actual: &TypeEvidence,
+        loc: &Option<Location>,
+    ) -> Result<(), SemanticDiagnostic> {
+        if is_assignable("bool", actual) {
+            return Ok(());
+        }
+        Err(diagnostic(
+            format!(
+                "[{LOGICAL_MISMATCH}] {side} operand of logical operator `{operator}` must be `bool`, found `{}`",
                 actual.display_name()
             ),
             loc,

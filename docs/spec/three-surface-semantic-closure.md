@@ -6,11 +6,11 @@
 
 HoloScript has one language identity with three source surfaces:
 
-| Surface | Primary responsibility | Demonstrated execution lane |
-| --- | --- | --- |
-| `.holo` | Whole-system composition, world state, events, effects, and orchestration | Composition behavior lowers through `UaalBehaviorCompiler` to the cognitive VM; spatial content retains its separate HOLO/render lane |
-| `.hsplus` | TypeScript-like typed semantic programming: modules, reusable behavior, traits, reactive state, effects, pipelines, interfaces, applications, devices, and agents | The current tracer demonstrates one agent-brain vertical: its canonical typed AST projects into the edge runtime with deterministic cognition, reflection, and frame enforcement |
-| `.hs` | Deterministic typed policy and systems logic | The Rust/WASM compiler validates function bodies and lowers a declared `i32` subset to UAAL while the same source compiles and executes natively |
+| Surface   | Primary responsibility                                                                                                                                            | Demonstrated execution lane                                                                                                                                                                        |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.holo`   | Whole-system composition, world state, events, effects, and orchestration                                                                                         | Composition behavior lowers through `UaalBehaviorCompiler` to the cognitive VM; spatial content retains its separate HOLO/render lane                                                              |
+| `.hsplus` | TypeScript-like typed semantic programming: modules, reusable behavior, traits, reactive state, effects, pipelines, interfaces, applications, devices, and agents | The current tracer demonstrates one agent-brain vertical: its canonical typed AST projects into the edge runtime with deterministic cognition, reflection, and frame enforcement                   |
+| `.hs`     | Deterministic typed policy and systems logic                                                                                                                      | The Rust/WASM compiler validates function bodies and lowers a declared `i32`/`bool` control subset, including typed lazy `&&`/`\|\|`, to UAAL while the same source compiles and executes natively |
 
 The surfaces are complementary capability boundaries, not "basic", "extended",
 and "full" editions. A product may use one surface or bind all three.
@@ -97,10 +97,27 @@ The CLI, language server, and MCP validation handler use this router. This
 prevents a file from being accepted by a convenient parser that is not
 authoritative for its extension.
 
-The `.hs` path uses stable type diagnostics for return, assignment, and call
-argument mismatches. UAAL lowering rejects operations whose semantics are not
-preserved by the current VM ABI instead of silently widening, eagerly
-evaluating, or erasing them.
+The `.hs` path uses stable type diagnostics for return, assignment, call
+argument, and known non-boolean logical-operand mismatches. UAAL lowering
+rejects operations whose semantics are not preserved by the current VM ABI
+instead of silently widening, eagerly evaluating, or erasing them.
+
+### Typed lazy logic
+
+The declared UAAL subset now preserves boolean `&&` and `||` with real
+`JUMP_IF`/`JUMP` control-flow graphs. Known non-boolean operands fail semantic
+checking with `HS-TYPE-LOGICAL-001`. The target proof floor admits boolean
+literals, explicitly typed boolean bindings and call returns, comparisons, and
+recursively proven logical expressions. An operand that remains untyped or
+otherwise unproven fails lowering with `HS-UAAL-CAP-002`; it does not inherit
+the cognitive VM's generic truthiness.
+
+The end-to-end differential test places an infinite-loop function on both
+right-hand branches. Native execution and UAAL execution both return `5`; the
+UAAL artifact contains both right-hand `CALL` sites, while its execution log
+records only the bootstrap `CALL`. This mechanically demonstrates skipped
+right-hand work for that program. It is not evidence of fewer model tokens,
+repair turns, runtime cost, or greater task success.
 
 ## Honesty boundary
 
@@ -117,8 +134,9 @@ semantic preservation.
   Recursive parameterized actions do not yet have independent call frames and
   are outside the demonstrated subset.
 - Direct whole-document `.hsplus` lowering to UAAL remains incomplete.
-- `.hs` dual execution covers a conservative typed subset. Unsupported
-  short-circuit, width, ownership, or ABI semantics fail closed.
+- `.hs` dual execution covers a conservative typed subset. Boolean inference
+  beyond the explicit UAAL proof floor, unary `!`, unsupported widths,
+  ownership, and broader ABI semantics still fail closed.
 - General cross-target equivalence still requires broader differential tests
   and, for proof-level claims, formal semantics and machine-checked
   preservation.

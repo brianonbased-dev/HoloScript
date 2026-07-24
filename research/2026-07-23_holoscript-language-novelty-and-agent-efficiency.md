@@ -55,11 +55,11 @@ agents" is not yet a fair result claim.
 The three extensions should be treated as coordinated authoring surfaces, not three brands
 for one drifting grammar.
 
-| Surface | Primary authoring question | Language role | What must stay out of the role |
-|---|---|---|---|
-| `.holo` | What exists, how is it connected, and where does it run? | Declarative whole-system composition: worlds, scenes, interfaces, services, devices, dashboards, agents, and deployment topology | General algorithmic code duplicated inside composition files |
-| `.hsplus` | How does the system behave? | General-purpose typed semantic programming: modules, values, records, functions, state, events, effects, traits, services, simulation, tools, and optional first-class agent constructs | Being reduced to prompts, brains, or one product vertical |
-| `.hs` | What is the smallest deterministic contract or executable kernel? | Compact structural/logic/process core: auditable machine contracts, native kernels, transforms, and pipelines | Becoming a second full `.hsplus` with different spelling |
+| Surface   | Primary authoring question                                        | Language role                                                                                                                                                                           | What must stay out of the role                               |
+| --------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `.holo`   | What exists, how is it connected, and where does it run?          | Declarative whole-system composition: worlds, scenes, interfaces, services, devices, dashboards, agents, and deployment topology                                                        | General algorithmic code duplicated inside composition files |
+| `.hsplus` | How does the system behave?                                       | General-purpose typed semantic programming: modules, values, records, functions, state, events, effects, traits, services, simulation, tools, and optional first-class agent constructs | Being reduced to prompts, brains, or one product vertical    |
+| `.hs`     | What is the smallest deterministic contract or executable kernel? | Compact structural/logic/process core: auditable machine contracts, native kernels, transforms, and pipelines                                                                           | Becoming a second full `.hsplus` with different spelling     |
 
 The intended relationship is:
 
@@ -199,18 +199,18 @@ property is **semantic specialization without semantic fragmentation**.
 
 ## 3. Claim ledger
 
-| Candidate claim | Verdict | Evidence needed or available |
-|---|---|---|
-| `.hsplus` is broader than agent brains | **Supported as architecture and current product intent** | README and examples already name services, UI, simulation, devices, rendering, economics, tools, state machines, effects, and agents |
-| HoloScript invented `Uncertain<T>` | **False / prior art** | Bornholt et al. used the name and probabilistic abstraction in 2013 |
-| HoloScript invented unknown values | **False / prior art** | TypeScript, Julia, Terraform, CUE, databases, and many typed sum models precede it |
-| HoloScript is the first general-purpose agent language | **False or at least indefensible** | SARL explicitly makes the same category claim; Jason and other agent languages predate both |
-| Three extensions make HoloScript novel | **Unsupported** | Multiple syntaxes and encodings are common |
-| Three specialized surfaces lowering into one typed meaning layer is novel | **Plausible composite-novelty hypothesis** | Requires completed cross-format lowering and a systematic literature comparison |
-| Reason-carrying ignorance preserved into native ABI and receipts is novel | **Plausible narrow systems contribution** | Native `.hs` path is implemented; `.hsplus`, all backends, receipt propagation, and prior-art search must close |
-| HoloScript is faster than TypeScript | **Unsupported as a general claim** | Existing parser benchmark is mixed and measures parsers, not end-to-end programs |
-| HoloScript makes agents cheaper or more accurate | **Unmeasured** | Requires controlled model/task benchmark |
-| Inline native `Uncertain<T>` is zero-cost | **False wording** | No heap allocation, but size and branch costs are nonzero |
+| Candidate claim                                                           | Verdict                                                  | Evidence needed or available                                                                                                         |
+| ------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `.hsplus` is broader than agent brains                                    | **Supported as architecture and current product intent** | README and examples already name services, UI, simulation, devices, rendering, economics, tools, state machines, effects, and agents |
+| HoloScript invented `Uncertain<T>`                                        | **False / prior art**                                    | Bornholt et al. used the name and probabilistic abstraction in 2013                                                                  |
+| HoloScript invented unknown values                                        | **False / prior art**                                    | TypeScript, Julia, Terraform, CUE, databases, and many typed sum models precede it                                                   |
+| HoloScript is the first general-purpose agent language                    | **False or at least indefensible**                       | SARL explicitly makes the same category claim; Jason and other agent languages predate both                                          |
+| Three extensions make HoloScript novel                                    | **Unsupported**                                          | Multiple syntaxes and encodings are common                                                                                           |
+| Three specialized surfaces lowering into one typed meaning layer is novel | **Plausible composite-novelty hypothesis**               | Requires completed cross-format lowering and a systematic literature comparison                                                      |
+| Reason-carrying ignorance preserved into native ABI and receipts is novel | **Plausible narrow systems contribution**                | Native `.hs` path is implemented; `.hsplus`, all backends, receipt propagation, and prior-art search must close                      |
+| HoloScript is faster than TypeScript                                      | **Unsupported as a general claim**                       | Existing parser benchmark is mixed and measures parsers, not end-to-end programs                                                     |
+| HoloScript makes agents cheaper or more accurate                          | **Unmeasured**                                           | Requires controlled model/task benchmark                                                                                             |
+| Inline native `Uncertain<T>` is zero-cost                                 | **False wording**                                        | No heap allocation, but size and branch costs are nonzero                                                                            |
 
 ## 4. Current efficiency evidence
 
@@ -220,11 +220,11 @@ The reproducible snapshot in
 [`2026-04-19_todo-r2-wasm-bench-results.md`](./2026-04-19_todo-r2-wasm-bench-results.md)
 measured three `.hsplus` fixtures on one host:
 
-| Parser | 434 B | 5,297 B | 8,279 B |
-|---|---:|---:|---:|
-| Native Rust median | 44.8 µs | 564.9 µs | 822.2 µs |
-| Node/WASM median after optimization | 84.0 µs | 1,078.2 µs | 1,701.5 µs |
-| JavaScript median | 37.5–62.4 µs | 689.5 µs | 1,128.2 µs |
+| Parser                              |        434 B |    5,297 B |    8,279 B |
+| ----------------------------------- | -----------: | ---------: | ---------: |
+| Native Rust median                  |      44.8 µs |   564.9 µs |   822.2 µs |
+| Node/WASM median after optimization |      84.0 µs | 1,078.2 µs | 1,701.5 µs |
+| JavaScript median                   | 37.5–62.4 µs |   689.5 µs | 1,128.2 µs |
 
 The native parser was competitive and scaled roughly linearly across those fixtures. The
 WASM boundary erased that advantage. These are variance snapshots, not a universal or
@@ -234,11 +234,11 @@ cross-host benchmark.
 
 Native machine contract `hs-machine-v34` uses an inline tagged carrier:
 
-| Source field | Layout | Size | Alignment |
-|---|---|---:|---:|
-| `@unknown x: bool` | known tag + reason code + payload | 12 B | 4 B |
-| `@unknown x: i32` | known tag + reason code + payload | 12 B | 4 B |
-| `@unknown x: i64` | known tag + reason code + payload | 16 B | 8 B |
+| Source field       | Layout                            | Size | Alignment |
+| ------------------ | --------------------------------- | ---: | --------: |
+| `@unknown x: bool` | known tag + reason code + payload | 12 B |       4 B |
+| `@unknown x: i32`  | known tag + reason code + payload | 12 B |       4 B |
+| `@unknown x: i64`  | known tag + reason code + payload | 16 B |       8 B |
 
 The carrier does not require a heap allocation. It preserves a stable known tag and
 canonical reason code through aggregate copy, materialization, and FFI. It also prevents
@@ -296,15 +296,15 @@ tool availability, and retry policy for each run.
 
 ### Primary metrics
 
-| Dimension | Metric |
-|---|---|
-| Representation | UTF-8 bytes and tokens in source, schema, prompt, and repairs |
-| Generation | first-pass parse, typecheck, and semantic-test success |
-| Repair | repair turns and changed tokens until acceptance |
-| Agent outcome | task success, unsafe action rate, false-known rate, and correct abstention rate |
-| Compiler | parse/compile p50, p95, peak RSS, artifact size |
-| Runtime | instruction count, allocations, wall time, FFI throughput |
-| Human audit | time to locate an error and inter-rater correctness |
+| Dimension      | Metric                                                                          |
+| -------------- | ------------------------------------------------------------------------------- |
+| Representation | UTF-8 bytes and tokens in source, schema, prompt, and repairs                   |
+| Generation     | first-pass parse, typecheck, and semantic-test success                          |
+| Repair         | repair turns and changed tokens until acceptance                                |
+| Agent outcome  | task success, unsafe action rate, false-known rate, and correct abstention rate |
+| Compiler       | parse/compile p50, p95, peak RSS, artifact size                                 |
+| Runtime        | instruction count, allocations, wall time, FFI throughput                       |
+| Human audit    | time to locate an error and inter-rater correctness                             |
 
 Report both **successful-task cost** and raw call cost. A terse language that needs repeated
 repair can be less efficient overall.
@@ -432,9 +432,9 @@ or evidence of reduced agent cost.
 
 For each semantic feature, maintain a matrix:
 
-| Feature | `.holo` | `.hsplus` | `.hs` | HoloMeaning | VM | native | receipt |
-|---|---|---|---|---|---|---|---|
-| Status | syntax / N/A / forbidden | syntax / N/A / forbidden | syntax / N/A / forbidden | lowered / opaque / rejected | preserved | preserved | evidenced |
+| Feature | `.holo`                  | `.hsplus`                | `.hs`                    | HoloMeaning                 | VM        | native    | receipt   |
+| ------- | ------------------------ | ------------------------ | ------------------------ | --------------------------- | --------- | --------- | --------- |
+| Status  | syntax / N/A / forbidden | syntax / N/A / forbidden | syntax / N/A / forbidden | lowered / opaque / rejected | preserved | preserved | evidenced |
 
 No feature is "language-wide" until every relevant cell is green or deliberately marked
 not applicable.
@@ -470,8 +470,17 @@ authored query and mediation relationships rather than inferring intent from ent
 An unbound `seeks` or selected-barrier `shields` edge blocks before resolution, action, or mutation
 and records `unbound-query-relation`. It does not establish general relationship execution.
 
+The adjacent `.hs` control-flow slice establishes typed, lazy `&&` and `||` on the direct UAAL
+target. Known non-boolean operands fail with `HS-TYPE-LOGICAL-001`; expressions whose boolean type
+is not proven at the UAAL target boundary fail with `HS-UAAL-CAP-002` instead of inheriting generic
+VM truthiness. The emitted bytecode uses real branches. In the differential test, both native and
+UAAL execution return `5` even though each logical expression has an infinite-loop function on its
+right side; both call sites remain in the bytecode, but neither appears in the UAAL execution log.
+That is evidence of preserved skipped work for one bounded program, not a benchmark result.
+
 These slices are not yet evidence for `.hsplus` parity, probabilistic uncertainty, every native
-type, every backend, general graph execution, or greater agent efficiency.
+type, every backend, general graph execution, fewer model tokens or repair turns, lower runtime
+cost, or greater agent efficiency.
 
 ## 8. Public language that is safe now
 
@@ -486,6 +495,9 @@ Safe:
 
 > HoloScript's native `.hs` path preserves known/unknown state and a stable reason code
 > through layout, fallback control flow, copying, and FFI.
+
+> HoloScript's bounded `.hs`-to-UAAL subset preserves typed boolean short-circuit behavior through
+> explicit branch bytecode and fails closed when the target cannot prove an operand is boolean.
 
 Still unsafe:
 

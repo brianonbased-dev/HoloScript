@@ -481,14 +481,7 @@ impl<'a> UaalEmitter<'a> {
         expected_type: Option<&str>,
     ) -> Result<(), UaalEmitError> {
         if matches!(binary.operator.as_str(), "&&" | "||") {
-            return Err(Self::target_capability_error(
-                "HS-UAAL-CAP-002",
-                "uaal.expression.logical.short_circuit",
-                format!(
-                    "short-circuit operator `{}` requires lazy right-hand evaluation; compile_to_uaal will not erase that behavior through eager EXEC operands",
-                    binary.operator
-                ),
-            ));
+            return self.emit_logical_expression(binary, expected_type);
         }
 
         let result_type = if matches!(
@@ -561,6 +554,68 @@ impl<'a> UaalEmitter<'a> {
         Ok(())
     }
 
+    fn emit_logical_expression(
+        &mut self,
+        binary: &BinaryExpression,
+        expected_type: Option<&str>,
+    ) -> Result<(), UaalEmitError> {
+        if let Some(expected) = expected_type {
+            if !is_bool_annotation(expected) {
+                return Err(Self::target_capability_error(
+                    "HS-UAAL-CAP-002",
+                    "uaal.expression.logical.short_circuit.v1",
+                    format!(
+                        "operator `{}` produces `bool`, but this expression requires `{expected}`",
+                        binary.operator
+                    ),
+                ));
+            }
+        }
+
+        for (side, operand) in [
+            ("left", binary.left.as_ref()),
+            ("right", binary.right.as_ref()),
+        ] {
+            if !self.is_proven_bool_expression(operand) {
+                return Err(Self::target_capability_error(
+                    "HS-UAAL-CAP-002",
+                    "uaal.expression.logical.short_circuit.v1",
+                    format!(
+                        "{side} operand of `{}` is not proven `bool`; annotate bindings and callee returns because compile_to_uaal does not inherit the VM's generic truthiness",
+                        binary.operator
+                    ),
+                ));
+            }
+        }
+
+        self.emit_expression_with_expected(&binary.left, Some("bool"))?;
+        let jump_if = self.emit_op(OP_JUMP_IF, Vec::new());
+
+        match binary.operator.as_str() {
+            "&&" => {
+                self.emit_op(OP_PUSH, vec![Value::from(false)]);
+                let jump_to_end = self.emit_op(OP_JUMP, Vec::new());
+                let right_start = self.instructions.len();
+                self.instructions[jump_if].operands = vec![Value::from(right_start)];
+                self.emit_expression_with_expected(&binary.right, Some("bool"))?;
+                let end = self.instructions.len();
+                self.instructions[jump_to_end].operands = vec![Value::from(end)];
+            }
+            "||" => {
+                self.emit_expression_with_expected(&binary.right, Some("bool"))?;
+                let jump_to_end = self.emit_op(OP_JUMP, Vec::new());
+                let true_start = self.instructions.len();
+                self.instructions[jump_if].operands = vec![Value::from(true_start)];
+                self.emit_op(OP_PUSH, vec![Value::from(true)]);
+                let end = self.instructions.len();
+                self.instructions[jump_to_end].operands = vec![Value::from(end)];
+            }
+            _ => unreachable!("emit_logical_expression only admits && and ||"),
+        }
+
+        Ok(())
+    }
+
     fn is_proven_i32_expression(&self, node: &AstNode) -> bool {
         match node {
             AstNode::Number(value) => {
@@ -588,6 +643,35 @@ impl<'a> UaalEmitter<'a> {
                 matches!(binary.operator.as_str(), "+" | "-" | "*")
                     && self.is_proven_i32_expression(&binary.left)
                     && self.is_proven_i32_expression(&binary.right)
+            }
+            _ => false,
+        }
+    }
+
+    fn is_proven_bool_expression(&self, node: &AstNode) -> bool {
+        match node {
+            AstNode::Boolean(_) => true,
+            AstNode::Identifier(identifier) => self
+                .current_binding_types
+                .get(&identifier.name)
+                .and_then(|annotation| annotation.as_deref())
+                .is_some_and(is_bool_annotation),
+            AstNode::CallExpression(call) => {
+                let AstNode::Identifier(callee) = call.callee.as_ref() else {
+                    return false;
+                };
+                self.function_return_types
+                    .get(&callee.name)
+                    .and_then(|annotation| annotation.as_deref())
+                    .is_some_and(is_bool_annotation)
+            }
+            AstNode::BinaryExpression(binary) => {
+                matches!(
+                    binary.operator.as_str(),
+                    "==" | "!=" | "<" | "<=" | ">" | ">="
+                ) || (matches!(binary.operator.as_str(), "&&" | "||")
+                    && self.is_proven_bool_expression(&binary.left)
+                    && self.is_proven_bool_expression(&binary.right))
             }
             _ => false,
         }
@@ -636,6 +720,10 @@ impl<'a> UaalEmitter<'a> {
     fn slot_key(function_name: &str, name: &str) -> String {
         format!("__hs::{function_name}::{name}")
     }
+}
+
+fn is_bool_annotation(annotation: &str) -> bool {
+    matches!(annotation.trim(), "bool" | "Boolean")
 }
 
 fn node_kind(node: &AstNode) -> &'static str {
@@ -871,23 +959,198 @@ function main(): i32 {
     }
 
     #[test]
-    fn reports_short_circuit_logic_as_an_unsupported_target_capability() {
+    fn lowers_typed_short_circuit_logic_to_lazy_jump_graphs() {
+        let bytecode = compile(
+            r#"function expensive_policy(): bool {
+  return false
+}
+
+function main(): i32 {
+  if (false && expensive_policy()) {
+    return 9
+  }
+  if (true || expensive_policy()) {
+    return 5
+  }
+  return 0
+}"#,
+        );
+
+        let ops = bytecode
+            .instructions
+            .iter()
+            .map(|instruction| instruction.op_code)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            ops.iter().filter(|op| **op == OP_CALL).count(),
+            3,
+            "bootstrap plus both statically present RHS calls must be emitted: {ops:?}"
+        );
+        assert!(
+            ops.iter().filter(|op| **op == OP_JUMP_IF).count() >= 4,
+            "logical and outer if branches must use real conditional jumps: {ops:?}"
+        );
+        assert!(
+            ops.iter().filter(|op| **op == OP_JUMP).count() >= 4,
+            "each logical expression and outer if must patch a real end jump: {ops:?}"
+        );
+    }
+
+    #[test]
+    fn lowers_nested_logical_expressions_over_typed_boolean_bindings() {
+        let bytecode = compile(
+            r#"function decide(enabled: bool, ready: bool): bool {
+  return enabled && (ready || false)
+}
+
+function main(): bool {
+  return decide(false, true)
+}"#,
+        );
+
+        let ops = bytecode
+            .instructions
+            .iter()
+            .map(|instruction| instruction.op_code)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            ops.iter().filter(|op| **op == OP_JUMP_IF).count(),
+            2,
+            "nested logical expressions must retain both lazy branches: {ops:?}"
+        );
+        assert_eq!(
+            ops.iter().filter(|op| **op == OP_JUMP).count(),
+            2,
+            "nested logical expressions must patch both branch ends: {ops:?}"
+        );
+    }
+
+    #[test]
+    fn patches_logical_branch_targets_to_stack_balanced_joins() {
+        let and_bytecode = compile(
+            r#"function rhs(): bool { return true }
+function main(): bool { return false && rhs() }"#,
+        );
+        let and_jump_if = and_bytecode
+            .instructions
+            .iter()
+            .position(|instruction| instruction.op_code == OP_JUMP_IF)
+            .expect("&& must emit JUMP_IF");
+        let and_jump = and_bytecode
+            .instructions
+            .iter()
+            .position(|instruction| instruction.op_code == OP_JUMP)
+            .expect("&& must emit JUMP");
+        let and_rhs_call = and_bytecode
+            .instructions
+            .iter()
+            .rposition(|instruction| instruction.op_code == OP_CALL)
+            .expect("&& RHS call must remain in bytecode");
+        assert_eq!(
+            and_bytecode.instructions[and_jump_if].operands,
+            vec![Value::from(and_rhs_call)]
+        );
+        assert_eq!(
+            and_bytecode.instructions[and_jump].operands,
+            vec![Value::from(and_rhs_call + 1)]
+        );
+        assert_eq!(
+            and_bytecode.instructions[and_jump_if + 1],
+            UaalInstruction {
+                op_code: OP_PUSH,
+                operands: vec![Value::from(false)],
+            }
+        );
+
+        let or_bytecode = compile(
+            r#"function rhs(): bool { return false }
+function main(): bool { return true || rhs() }"#,
+        );
+        let or_jump_if = or_bytecode
+            .instructions
+            .iter()
+            .position(|instruction| instruction.op_code == OP_JUMP_IF)
+            .expect("|| must emit JUMP_IF");
+        let or_jump = or_bytecode
+            .instructions
+            .iter()
+            .position(|instruction| instruction.op_code == OP_JUMP)
+            .expect("|| must emit JUMP");
+        let true_start = or_jump + 1;
+        let end = true_start + 1;
+        assert_eq!(
+            or_bytecode.instructions[or_jump_if].operands,
+            vec![Value::from(true_start)]
+        );
+        assert_eq!(
+            or_bytecode.instructions[or_jump].operands,
+            vec![Value::from(end)]
+        );
+        assert_eq!(
+            or_bytecode.instructions[true_start],
+            UaalInstruction {
+                op_code: OP_PUSH,
+                operands: vec![Value::from(true)],
+            }
+        );
+    }
+
+    #[test]
+    fn rejects_known_non_boolean_logical_operands_before_lowering() {
+        for (condition, side) in [("1 && true", "left"), ("true || 1", "right")] {
+            let source = format!(
+                r#"function main(): i32 {{
+  if ({condition}) {{
+    return 1
+  }}
+  return 0
+}}"#
+            );
+            let error = compile_source_to_uaal(&source)
+                .expect_err("known non-boolean logical operands must fail semantic checking");
+
+            assert!(
+                error.message.contains("[HS-TYPE-LOGICAL-001]"),
+                "{}",
+                error.message
+            );
+            assert!(
+                error.message.contains(&format!("{side} operand")),
+                "{}",
+                error.message
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_unproven_logical_operands_instead_of_inheriting_vm_truthiness() {
         let error = compile_source_to_uaal(
-            r#"function main(): i32 {
-  if (true && false) {
+            r#"function dynamic_flag() {
+  return true
+}
+
+function main(): i32 {
+  if (dynamic_flag() && true) {
     return 1
   }
   return 0
 }"#,
         )
-        .expect_err("UAAL emitter must not erase short-circuit semantics");
+        .expect_err("UAAL lowering requires target-proven boolean operands");
 
         assert!(
             error.message.contains("[HS-UAAL-CAP-002]"),
             "{}",
             error.message
         );
-        assert!(error.message.contains("short-circuit"), "{}", error.message);
+        assert!(
+            error
+                .message
+                .contains("does not inherit the VM's generic truthiness"),
+            "{}",
+            error.message
+        );
     }
 
     #[test]

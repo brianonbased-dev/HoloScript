@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-24T00:16:34Z",
+  "generatedAt": "2026-07-24T05:55:56Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "f44973cff5a46b90201cae1abd4f327a6b8656eb+working-tree-native-uncertain-aggregate-v34",
+  "sourceCommit": "664f17889b65ac31ddcc4bd1e17ae1432186964b+working-tree-hs-uaal-short-circuit-v1",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
@@ -17,9 +17,9 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 327224,
-    "wasmSha256": "f01594dc39c7ca1911b15bfdb89e41fccc67a43d751dba1a4880d29ad94c1b78",
-    "previousWasmSha256": "d0351144d218b2461d913bdd35ab884dfdec9bbd0b15ea406ab2365186fca292",
-    "note": "Rebuilt web and Node authorities from the struct-field @unknown grammar. Struct annotations remain aligned in the real AST, native lowering preserves a tagged Uncertain<T> carrier, and Kotlin fails closed rather than erasing it."
+    "wasmBytes": 329874,
+    "wasmSha256": "f507209f10afe1496c5f53aec85b6a541d4f0a863d88828df1f3b751252fdb94",
+    "previousWasmSha256": "f01594dc39c7ca1911b15bfdb89e41fccc67a43d751dba1a4880d29ad94c1b78",
+    "note": "Rebuilt web and Node authorities from typed lazy logical lowering. `&&` and `||` preserve short-circuit evaluation through absolute jumps, known non-boolean operands fail semantic checking, and UAAL rejects unproven VM truthiness."
   }
 }
