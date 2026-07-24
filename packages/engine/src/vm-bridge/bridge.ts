@@ -58,19 +58,18 @@ let _uaal: UaalModule | undefined;
 
 /**
  * Resolve a CommonJS-style `require` that works in BOTH build outputs:
- *  - CJS output: esbuild keeps a native `require`, but rewrites `import.meta`
- *    to `{}`, so `createRequire(import.meta.url)` would receive `undefined`.
- *    Use the native `require` directly there.
+ *  - CJS output: esbuild defines `__filename` and rewrites `import.meta` to
+ *    `{}`, so bind `createRequire` to the emitted filename.
  *  - ESM output: there is no native `require`, but `import.meta.url` is real,
  *    so derive one via `createRequire`.
+ *
+ * Do not branch on `typeof require`: esbuild replaces that identifier with an
+ * always-present ESM shim which throws for dynamic package loads.
  */
 function getRequire(): NodeRequire {
-  // In CJS output, `require` is the genuine module loader.
-  if (typeof require !== 'undefined') {
-    return require;
-  }
-  // In ESM output, derive a require bound to this module's URL.
-  return createRequire(import.meta.url);
+  return createRequire(
+    typeof __filename !== 'undefined' ? __filename : import.meta.url
+  );
 }
 
 function lazyUaal(): UaalModule {
