@@ -32,6 +32,7 @@ import type {
   UAALTensionIR,
   UAALPresuppositionIR,
   UAALAnalogyIR,
+  UAALRateTest,
 } from './semantic';
 import {
   resolveOcclusion,
@@ -96,7 +97,10 @@ export interface VerifierLabel {
  * The single dispatch point: family → normalized resolver call. Uses `unknown`+cast (never `any`)
  * because each family's IR type differs; the cast is safe because the caller names the family.
  */
-const RESOLVERS: Record<UAALResolvedFamily, (ir: unknown, query: VerifierQuery) => UAALResolution<unknown>> = {
+const RESOLVERS: Record<
+  UAALResolvedFamily,
+  (ir: unknown, query: VerifierQuery) => UAALResolution<unknown>
+> = {
   occlusion: (ir, q) => resolveOcclusion(ir as UAALContainmentIR, q.agent, q.object),
   norm_status: (ir, q) => resolveNormStatus(ir as UAALDeonticIR, q.normId),
   dischargeable: (ir) => resolveDischargeable(ir as UAALCompositionIR),
@@ -132,7 +136,7 @@ export function hasResolver(family: string): family is UAALResolvedFamily {
 export function gradeByResolver(
   family: UAALResolvedFamily,
   ir: unknown,
-  query: VerifierQuery = {},
+  query: VerifierQuery = {}
 ): VerifierLabel {
   const resolver = RESOLVERS[family];
   if (!resolver) {
@@ -145,5 +149,248 @@ export function gradeByResolver(
     ...(resolution.reason !== undefined ? { reason: resolution.reason } : {}),
     ...(resolution.gap !== undefined ? { gap: resolution.gap } : {}),
     ...(resolution.answer !== undefined ? { answer: resolution.answer } : {}),
+  };
+}
+
+/**
+ * One verifier-owned fixture for the `uaal.gap-ir.v0` emission contract.
+ *
+ * The fixture keeps the source IR and query beside the intended disposition so
+ * the benchmark re-derives every answer through {@link gradeByResolver}. This
+ * prevents the schema registry from treating a model-emitted answer as
+ * semantic merely because the envelope calls itself an IR.
+ */
+export interface UAALGapIRFixture {
+  id: string;
+  vertical: UAALResolvedFamily;
+  oracle_ir: unknown;
+  verifier_query?: VerifierQuery;
+  intended: {
+    status: MeaningResolutionStatus;
+    reason?: UAALGapReason;
+    code?: string;
+    obstruction?: string;
+    answer?: unknown;
+  };
+}
+
+export interface UAALGapIREmission {
+  schema: 'uaal.gap-ir.v0';
+  scenarioId: string;
+  query: string;
+  status: MeaningResolutionStatus;
+  answer?: unknown;
+  reason?: UAALGapReason;
+  code?: string;
+  obstruction?: string;
+}
+
+export interface UAALGapIRBenchmarkResult {
+  n: number;
+  tests: {
+    gap1_verifier_fidelity: UAALRateTest;
+    gap2_schema_structure: UAALRateTest;
+    gap3_branch_exclusivity: UAALRateTest;
+    gap4_structural_falsification: UAALRateTest;
+  };
+  pass: boolean;
+  misses: {
+    fidelity: string[];
+    structure: string[];
+    falsification: string[];
+  };
+}
+
+function gapRateTest(hits: number, total: number): UAALRateTest {
+  const rate = total > 0 ? hits / total : 0;
+  return { hits, total, rate, floor: 1, pass: total > 0 && rate === 1 };
+}
+
+function sameJson(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function gapAnswerMatchesIntended(actual: unknown, intended: unknown): boolean {
+  if (
+    typeof actual !== 'object' ||
+    actual === null ||
+    typeof intended !== 'object' ||
+    intended === null ||
+    Array.isArray(actual) ||
+    Array.isArray(intended)
+  ) {
+    return sameJson(actual, intended);
+  }
+  const actualRecord = actual as Record<string, unknown>;
+  return Object.entries(intended as Record<string, unknown>).every(([key, value]) => {
+    if (key === 'human_floor') {
+      return (
+        (value === 'held' && actualRecord.humanFloorHeld === true) ||
+        (value === 'breached' && actualRecord.humanFloorHeld === false)
+      );
+    }
+    return sameJson(actualRecord[key], value);
+  });
+}
+
+function gapLabelMatchesIntended(
+  label: VerifierLabel,
+  intended: UAALGapIRFixture['intended']
+): boolean {
+  if (label.status !== intended.status) return false;
+  if (label.status === 'resolved') {
+    return gapAnswerMatchesIntended(label.answer, intended.answer);
+  }
+  return label.reason === intended.reason && label.gap?.code === intended.code;
+}
+
+/** Encode the verifier's exact result into the public gap-emission contract. */
+export function encodeGapIR(fixture: UAALGapIRFixture, label: VerifierLabel): UAALGapIREmission {
+  const base = {
+    schema: 'uaal.gap-ir.v0' as const,
+    scenarioId: fixture.id,
+    query: fixture.vertical,
+    status: label.status,
+  };
+  if (label.status === 'resolved') {
+    return { ...base, answer: label.answer };
+  }
+  return {
+    ...base,
+    ...(label.reason !== undefined ? { reason: label.reason } : {}),
+    ...(label.gap?.code !== undefined ? { code: label.gap.code } : {}),
+    ...(fixture.intended.obstruction !== undefined
+      ? { obstruction: fixture.intended.obstruction }
+      : {}),
+  };
+}
+
+function gapStructureIsValid(emission: UAALGapIREmission): boolean {
+  if (
+    emission.schema !== 'uaal.gap-ir.v0' ||
+    emission.scenarioId.length === 0 ||
+    emission.query.length === 0
+  ) {
+    return false;
+  }
+  if (emission.status === 'resolved') {
+    return (
+      emission.answer !== undefined &&
+      emission.reason === undefined &&
+      emission.code === undefined &&
+      emission.obstruction === undefined
+    );
+  }
+  return (
+    emission.answer === undefined &&
+    emission.reason !== undefined &&
+    emission.code !== undefined &&
+    emission.obstruction !== undefined &&
+    emission.obstruction.length > 0
+  );
+}
+
+function gapSemanticSignature(label: VerifierLabel): string {
+  return JSON.stringify({
+    status: label.status,
+    ...(label.status === 'resolved'
+      ? { answer: label.answer }
+      : { reason: label.reason, code: label.gap?.code }),
+  });
+}
+
+/**
+ * Semantic gate for `uaal.gap-ir.v0`.
+ *
+ * GAP1 re-derives every declared disposition through the shipped family
+ * resolver. GAP2/GAP3 prove the emitted envelope has one legal branch. GAP4
+ * substitutes a same-family fixture with the opposite disposition and requires
+ * the re-derived semantic signature to change, making the T4 falsification
+ * condition explicit rather than inferred from the schema name.
+ */
+export function benchmarkGapIR(rows: UAALGapIRFixture[]): UAALGapIRBenchmarkResult {
+  const fixtures = rows.filter(
+    (row): row is UAALGapIRFixture =>
+      Boolean(row) &&
+      typeof row.id === 'string' &&
+      typeof row.vertical === 'string' &&
+      hasResolver(row.vertical) &&
+      row.oracle_ir !== undefined &&
+      typeof row.intended === 'object' &&
+      row.intended !== null
+  );
+  const labels = new Map<UAALGapIRFixture, VerifierLabel>();
+  const misses = {
+    fidelity: [] as string[],
+    structure: [] as string[],
+    falsification: [] as string[],
+  };
+  let fidelity = 0;
+  let structure = 0;
+  let exclusivity = 0;
+  let falsification = 0;
+
+  for (const fixture of fixtures) {
+    const label = gradeByResolver(
+      fixture.vertical,
+      fixture.oracle_ir,
+      fixture.verifier_query ?? {}
+    );
+    labels.set(fixture, label);
+    const emission = encodeGapIR(fixture, label);
+
+    if (gapLabelMatchesIntended(label, fixture.intended)) {
+      fidelity++;
+    } else if (misses.fidelity.length < 8) {
+      misses.fidelity.push(
+        `${fixture.id}: verifier=${gapSemanticSignature(label)} intended=${JSON.stringify(fixture.intended)}`
+      );
+    }
+    if (gapStructureIsValid(emission)) {
+      structure++;
+    } else if (misses.structure.length < 8) {
+      misses.structure.push(`${fixture.id}: invalid ${JSON.stringify(emission)}`);
+    }
+    if (
+      (emission.status === 'resolved' && emission.answer !== undefined) ||
+      (emission.status === 'unresolvable' &&
+        emission.answer === undefined &&
+        emission.reason !== undefined)
+    ) {
+      exclusivity++;
+    }
+  }
+
+  for (const fixture of fixtures) {
+    const opposite = fixtures.find(
+      (candidate) =>
+        candidate.vertical === fixture.vertical &&
+        candidate.intended.status !== fixture.intended.status
+    );
+    const label = labels.get(fixture);
+    const oppositeLabel = opposite ? labels.get(opposite) : undefined;
+    if (
+      label &&
+      oppositeLabel &&
+      gapSemanticSignature(label) !== gapSemanticSignature(oppositeLabel)
+    ) {
+      falsification++;
+    } else if (misses.falsification.length < 8) {
+      misses.falsification.push(`${fixture.id}: no opposite-disposition semantic flip`);
+    }
+  }
+
+  const n = fixtures.length;
+  const tests = {
+    gap1_verifier_fidelity: gapRateTest(fidelity, n),
+    gap2_schema_structure: gapRateTest(structure, n),
+    gap3_branch_exclusivity: gapRateTest(exclusivity, n),
+    gap4_structural_falsification: gapRateTest(falsification, n),
+  };
+  return {
+    n,
+    tests,
+    pass: Object.values(tests).every((test) => test.pass),
+    misses,
   };
 }
