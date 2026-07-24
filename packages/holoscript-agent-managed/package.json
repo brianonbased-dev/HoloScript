@@ -1,0 +1,64 @@
+{
+  "name": "@holoscript/agent-managed",
+  "version": "0.1.0",
+  "description": "Typed Claude Managed Agents control-plane contracts and HoloKey-verified CAEL/uAAL lifecycle receipts.",
+  "releaseLane": "v0-preview",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "check": "pnpm run test && pnpm run build",
+    "prepublishOnly": "pnpm run check"
+  },
+  "dependencies": {
+    "standardwebhooks": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "holoscript",
+    "agents",
+    "anthropic",
+    "webhooks",
+    "cael",
+    "uaal",
+    "holokey"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/holoscript-agent-managed"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript/tree/main/packages/holoscript-agent-managed",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

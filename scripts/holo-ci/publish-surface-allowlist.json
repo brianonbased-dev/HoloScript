@@ -3,6 +3,7 @@
   "packages": [
     "@holoscript/absorb-service",
     "@holoscript/adapter-postgres",
+    "@holoscript/agent-managed",
     "@holoscript/agent-protocol",
     "@holoscript/agent-runtime",
     "@holoscript/ai-validator",

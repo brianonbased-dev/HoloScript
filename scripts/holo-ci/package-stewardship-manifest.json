@@ -259,6 +259,41 @@
       ]
     },
     {
+      "id": "managed-agent-lifecycle-boundary",
+      "registry": "npm",
+      "packageName": "@holoscript/agent-managed",
+      "status": "incubating",
+      "constructionRole": "Typed Claude Managed Agents control-plane contracts and signed lifecycle evidence.",
+      "stewardshipIntent": "Keep provider-managed environments and memory stores behind HoloKey-resolved webhook verification, replay-safe CAEL/uAAL receipts, and an explicit non-authoritative memory boundary.",
+      "userClasses": ["human", "ai-agent"],
+      "outsideUserGate": {
+        "readiness": "incubating",
+        "harnessMode": "standalone",
+        "audience": ["external-human", "external-ai-agent"],
+        "publicEntry": "packages/holoscript-agent-managed/README.md",
+        "requiredPublicFiles": [],
+        "privateHarnessLeakAllowed": false
+      },
+      "consumerLanes": ["laptop-windows"],
+      "utilityIds": [],
+      "validationCommands": [
+        "pnpm --filter @holoscript/agent-managed run check",
+        "node scripts/holo-ci/check-package-public-consumption.mjs --package packages/holoscript-agent-managed"
+      ],
+      "nextActions": [
+        "Add a repo-less packed-artifact public API canary before promoting this package into the V1 release manifest.",
+        "Keep Anthropic memory stores optional and explicitly outside HoloScript source-of-truth and GOLD authority."
+      ],
+      "caveats": [
+        {
+          "id": "live-provider-lifecycle-not-proven",
+          "scope": "laptop-windows",
+          "summary": "Typed contracts, signature verification, and offline receipt replay do not prove a live Anthropic environment, memory store, or delivery endpoint.",
+          "overclaimGuard": "Do not claim live Managed Agents availability from package tests or replay fixtures alone."
+        }
+      ]
+    },
+    {
       "id": "provider-neutral-second-brain-runtime",
       "registry": "npm",
       "packageName": "@holoscript/agent-runtime",

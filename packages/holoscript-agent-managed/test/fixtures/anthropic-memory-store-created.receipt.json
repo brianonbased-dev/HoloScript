@@ -1,0 +1,69 @@
+{
+  "schema": "holoscript.managed-agent.lifecycle-receipt.v1",
+  "receiptId": "managed_3bdfda1f2c634999e0ef",
+  "generatedAt": "2026-07-24T06:34:58.344Z",
+  "provider": "anthropic.claude-managed-agents",
+  "event": {
+    "id": "whe_replay_memory_store_created_001",
+    "createdAt": "2026-07-24T06:34:58.340Z",
+    "type": "memory_store.created",
+    "resource": {
+      "kind": "memory_store",
+      "id": "memstore_replay_fixture",
+      "action": "created"
+    },
+    "scope": {
+      "organizationId": "org_replay_fixture",
+      "workspaceId": "workspace_replay_fixture"
+    }
+  },
+  "delivery": {
+    "webhookId": "whe_replay_memory_store_created_001",
+    "timestamp": "1784874898",
+    "signatureHash": "sha256:c9c876483e7b54e28d3a3aa3cd6e196c8290740a2932fddc11e74b2cdda85aa3",
+    "verified": true,
+    "dedupeKey": "anthropic:whe_replay_memory_store_created_001"
+  },
+  "custody": {
+    "resolver": "holokey",
+    "secretRefHash": "sha256:a2f61eca66ddd27e98dd2a2d721eed7fa313d079a5f01381327a0015d4d908b1",
+    "secretValueIncluded": false
+  },
+  "authority": {
+    "memoryBackend": "optional-external-backend",
+    "sourceOfTruth": false,
+    "goldAuthority": false,
+    "directMemoryPromotionAllowed": false
+  },
+  "cael": {
+    "schema": "cael.external-agent-lifecycle.v1",
+    "event": "memory_store.created",
+    "provider": "anthropic",
+    "resourceKind": "memory_store",
+    "resourceId": "memstore_replay_fixture",
+    "observedAt": "2026-07-24T06:34:58.340Z",
+    "signatureVerified": true,
+    "evidenceHash": "sha256:3bdfda1f2c634999e0ef59b9b61176cec24fb91099d8a6a2236cb8fc846038f3"
+  },
+  "uaal": {
+    "schema": "uaal.external-lifecycle-receipt.v1",
+    "operation": "created",
+    "actor": "external-provider",
+    "resource": {
+      "kind": "memory_store",
+      "id": "memstore_replay_fixture"
+    },
+    "evidenceHash": "sha256:3bdfda1f2c634999e0ef59b9b61176cec24fb91099d8a6a2236cb8fc846038f3",
+    "replay": {
+      "mode": "idempotent-event",
+      "key": "anthropic:whe_replay_memory_store_created_001",
+      "orderingGuaranteed": false
+    }
+  },
+  "integrity": {
+    "bodyHash": "sha256:6c99d62dd82a938558bebcc018debcd4ae14eff0ac1f16a83b0a442dfef95871",
+    "eventHash": "sha256:e62545578f7ff7447e6f1bea60bc9e1fa8f5f823f9e70e21d37630d231106837",
+    "evidenceHash": "sha256:3bdfda1f2c634999e0ef59b9b61176cec24fb91099d8a6a2236cb8fc846038f3",
+    "receiptHash": "sha256:033f01d37365adfcbfed82173ed48ab657d109abfccd63ba6c8b606023f8f6b2"
+  }
+}
