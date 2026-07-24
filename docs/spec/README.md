@@ -17,6 +17,7 @@
 | [`language-identity.md`](./language-identity.md) | The canonical category and wording contract: general-purpose semantic systems programming language, current honesty boundary, and systems-language acceptance gates. |
 | [`holoscript-grammar-ssot.md`](./holoscript-grammar-ssot.md) | The accepted-grammar router: parser-backed sources only, plus the conformance test that keeps `get_syntax_reference` examples aligned with the production parser path. |
 | [`three-surface-semantic-closure.md`](./three-surface-semantic-closure.md) | The executable `.holo` + `.hsplus` + `.hs` product contract: causal bindings, canonical diagnostics, per-construct semantic stages, strict receipt rules, and demonstrated limits. |
+| P10 `.hs`, P11 `.hsplus`, P12 `.holo` (canonical drafts: `ai-ecosystem/research/paper-{10,11,12}-*.tex`) | Subordinate **vision/design papers**: roadmap-generating language arguments written in `target`, `formal`, `observed`, and `gap` registers. They may describe the intended fixed point beyond current implementation, but they are not syntax specifications or capability inventories. See [`language-architecture.md` §1.1](./language-architecture.md#11-document-roles-and-claim-registers). |
 | [`uaal-language-spec.md`](./uaal-language-spec.md) | The reclaimed uAAL (cognitive) + HOLO (spatial) language definition: primitives, instruction set, and a **real-vs-aspirational** reconciliation with the shipped code. |
 | [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md) | The language-build backlog: each spec claim mapped to its actual code status (shipped / island / absent), with the seam that would close it. |
 | [`motivation-trait.md`](./motivation-trait.md) | (pre-existing) trait-level spec note. |
@@ -64,9 +65,11 @@ implementation strengths; it does not define a permanent set of domains:
 ## Why this directory exists (the failure it closes)
 
 The paper program produced ~40 application papers and three format-*named* papers
-(P10 `.hs`, P11 `.hsplus`, P12 `.holo`) — but none of the three is a *specification* of its
-format; all three are the same provenance-semiring theorem applied to three surfaces. The
-actual language spec existed the whole time, stranded in a peer family's knowledge silo. This
-directory reconnects the three silos that were never wired together: **spec** (was in Gemini
-knowledge) ↔ **implementation** (TS packages) ↔ **papers** (ai-ecosystem `research/`).
+(P10 `.hs`, P11 `.hsplus`, P12 `.holo`). None is a *specification* of its
+format. They are vision/design papers whose job is to propose and pressure-test
+the formats' desired fixed points; their `observed` claims still bind to current
+artifacts. The actual language spec existed the whole time, stranded in a peer
+family's knowledge silo. This directory reconnects the three silos that were
+never wired together: **spec** (was in Gemini knowledge) ↔ **implementation**
+(TS packages) ↔ **papers** (ai-ecosystem `research/`).
 See MEMORY P.017, D.104, D.105.

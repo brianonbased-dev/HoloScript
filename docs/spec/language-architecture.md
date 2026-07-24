@@ -50,6 +50,42 @@ VMs, not with meaning.
 produces ② → a VM *executes* ② at ③ → ③ emits effects/receipts. Meaning (②) is the pivot:
 ① lowers *into* it, ③ runs *from* it, checkers/rewards/papers all read *it*.
 
+### 1.1 Document roles and claim registers
+
+Language documents answer different questions. Treating all of them as current
+capability inventories makes vision papers timid and makes implementation
+claims unreliable. Every language artifact therefore has a **role**, and every
+material claim has a **register**.
+
+| Artifact role | Primary job | It is not |
+|---|---|---|
+| `vision-design` | State a coherent, falsifiable language fixed point and generate implementation pressure | A claim that the fixed point is already shipped |
+| `implementation-spec` | Define currently accepted syntax, semantics, and conformance behavior | A permission slip for unimplemented syntax |
+| `evidence-paper` | Defend a scoped research claim with formal or empirical evidence | A general capability inventory |
+| `capability-report` | Record what a named revision, package, service, or runtime demonstrably does now | The permanent boundary of the language |
+
+P10 (`.hs`), P11 (`.hsplus`), and P12 (`.holo`) are primarily
+`vision-design` papers. They are intentionally **constructively
+aspirational**: each should describe the strongest coherent language we are
+building toward, not merely narrate the latest parser snapshot. Their current
+implementation checkpoints remain evidence-bound, and none of the three
+replaces the grammar or implementation specifications in this directory.
+
+Use these claim registers inside every format paper:
+
+| Claim register | Required voice | Evidence rule |
+|---|---|---|
+| `target` | “we propose”, “is designed to”, “the target invariant is” | May outrun implementation, but must be precise enough to become an acceptance test |
+| `formal` | “in the model”, “under these premises”, “we prove” | Scope the result to its definitions and premises; do not silently promote it to all current backends |
+| `observed` | “the current path”, “the prototype”, “we measured” | Cite the source path plus revision, receipt, or reproducible artifact; distinguish prototype, measurement, and released path |
+| `gap` | “remains”, “requires”, “acceptance gate” | Name the missing parser, lowering, runtime, conformance, or evaluation work |
+
+The governing sentence is: **vision may outrun implementation; observed claims
+may not outrun evidence.** A format paper should normally move in this order:
+target architecture → present construction → formal contract → observed
+checkpoint → development gaps. That structure makes the papers compasses for
+growth without turning aspiration into false product status.
+
 ---
 
 ## 2. The overload map — what "uAAL" really meant each time, and what retires
@@ -262,9 +298,9 @@ moves land one at a time behind receipts:
    core→meaning) — if ExpressionIR is ever extracted, they can follow. Stage-3 landed with it:
    the verifier of record (`gradeByResolver`) and the eight family test files moved into
    `packages/meaning` (uaal keeps shims; VM tests stay). **Papers**: the three format papers
-   (P10 `.hs` / P11 `.hsplus` / P12 `.holo`) are tracked but not yet authored as files — a board
-   task directs them to cite HoloMeaning as the meaning stratum at authoring time; the live
-   citation surfaces (DEFINITIONS glossary, this spec, the holon registry) are updated now.
+   (P10 `.hs` / P11 `.hsplus` / P12 `.holo`) are authored and classified as
+   `vision-design` artifacts under §1.1. They cite HoloMeaning as the shared meaning
+   stratum while keeping current implementation checkpoints in the `observed` register.
 4. **Turn on the remaining gate rules** (6.1, 6.3, 6.5, 6.4) once the tree is green.
 5. **Stratum-① conformance** (`.hsplus` parse rate) proceeds independently on its own track.
 
