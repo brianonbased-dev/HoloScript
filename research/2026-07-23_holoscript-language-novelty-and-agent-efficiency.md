@@ -376,6 +376,14 @@ source-to-meaning call: it invokes the canonical parser, consumes only parser-pr
 `@unknown`, and delegates to the canonical struct-field lowering instead of reparsing raw text.
 Plain `parse()` remains syntax-only, and type-syntax admission remains the parser's responsibility.
 
+The agent-facing `parse_hs` MCP tool can now opt into that same bounded projection with
+`includeUnknownStructMeaning: true` and an optional stable `sourceId`. Ordinary parse calls retain
+their historical syntax/diagnostics payload. Opt-in lowering failures identify the semantic stage
+and stable error code, and native `.hs` requests are rejected rather than being mislabeled as
+`.hsplus` meaning. This is a production-code consumer of the source-to-meaning adapter; it is still
+not a claim of hosted deployment, complete program meaning, direct `.hsplus` execution, or evidence
+of fewer model tokens or repair turns.
+
 Compatibility note: `HSPlusCompileResult.ast` is now structured but remains optional for handwritten
 mock compatibility. Canonical parser APIs return `HSPlusParseResult`, whose `ast` is a required
 `ASTProgram`, matching unchanged runtime behavior.
@@ -447,9 +455,11 @@ This is evidence for a narrow claim: **native HoloScript can preserve declared i
 instead of compiling it into a plausible lie.**
 
 The adjacent `.hsplus` slice establishes structural parsing and canonical HoloMeaning lowering for
-typed `struct` fields carrying `@unknown`, while preserving the legacy raw body. It does not
-establish `.hsplus` native execution: `compiler-native` does not consume `.hsplus`, `interface` and
-`class` bodies remain raw, and Kotlin rejects typed structs.
+typed `struct` fields carrying `@unknown`, while preserving the legacy raw body. The bounded
+projection is opt-in on the public `parse_hs` MCP path, so an agent can obtain syntax plus the
+epistemic receipt without maintaining a private adapter. It does not establish `.hsplus` native
+execution: `compiler-native` does not consume `.hsplus`, `interface` and `class` bodies remain raw,
+and Kotlin rejects typed structs.
 
 These slices are not yet evidence for `.hsplus` parity, probabilistic uncertainty, every native
 type, every backend, or greater agent efficiency.

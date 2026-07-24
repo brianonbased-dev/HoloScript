@@ -92,6 +92,16 @@ export const coreTools: Tool[] = [
           type: 'boolean',
           description: 'Include source map for debugging',
         },
+        includeUnknownStructMeaning: {
+          type: 'boolean',
+          description:
+            'For format "hsplus", include the bounded, fail-closed HoloMeaning projection of parser-admitted @unknown struct fields. This is not complete program meaning or native execution.',
+        },
+        sourceId: {
+          type: 'string',
+          description:
+            'Optional stable source name carried into the HoloMeaning projection and its receipt metadata.',
+        },
       },
       required: ['code'],
     },

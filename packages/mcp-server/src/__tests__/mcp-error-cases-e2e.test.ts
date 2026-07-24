@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { handleTool } from '../handlers';
+import { coreTools } from '../tools';
 
 vi.mock('@holoscript/llm-provider', () => ({
   LOCAL_DEFAULT_MODEL: 'test-local-model',
@@ -235,6 +236,128 @@ behavior on_task {
     expect(result.success).toBe(false);
     expect(Array.isArray(result.errors)).toBe(true);
     expect(JSON.stringify(result.errors)).toContain('looks like an object body');
+  });
+
+  it('parse_hs optionally returns bounded HoloMeaning for @unknown structs', async () => {
+    const result = (await handleTool('parse_hs', {
+      code: `struct AgentObservation {
+  id: string
+  @unknown confidence?: float = inferConfidence()
+}`,
+      format: 'hsplus',
+      includeUnknownStructMeaning: true,
+      sourceId: 'agent-observation.hsplus',
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      success: true,
+      hsplusUnknownStructMeaning: {
+        schema: 'holoscript.hsplus-unknown-struct-meaning.v1',
+        format: '.hsplus',
+        parser: 'HoloScriptPlusParser',
+        sourceId: 'agent-observation.hsplus',
+        structs: [
+          {
+            name: 'AgentObservation',
+            unknownFields: [
+              {
+                key: 'confidence',
+                typeName: 'float',
+                optional: true,
+                declaredDefault: 'inferConfidence()',
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect((result.hsplusUnknownStructMeaning as { sourceDigest: string }).sourceDigest).toMatch(
+      /^sha256:[a-f0-9]{64}$/
+    );
+  });
+
+  it('parse_hs advertises the opt-in projection without broadening its default contract', () => {
+    const parseTool = coreTools.find((tool) => tool.name === 'parse_hs');
+
+    expect(parseTool?.inputSchema).toMatchObject({
+      properties: {
+        includeUnknownStructMeaning: { type: 'boolean' },
+        sourceId: { type: 'string' },
+      },
+      required: ['code'],
+    });
+  });
+
+  it('parse_hs keeps HoloMeaning out of the default compatibility payload', async () => {
+    const result = (await handleTool('parse_hs', {
+      code: 'struct AgentObservation { @unknown confidence: float }',
+      format: 'hsplus',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result).not.toHaveProperty('hsplusUnknownStructMeaning');
+  });
+
+  it('parse_hs defaults the opt-in meaning projection to the hsplus format', async () => {
+    const result = (await handleTool('parse_hs', {
+      code: 'struct AgentObservation { @unknown confidence: float }',
+      includeUnknownStructMeaning: true,
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      success: true,
+      hsplusUnknownStructMeaning: {
+        format: '.hsplus',
+        structs: [{ name: 'AgentObservation' }],
+      },
+    });
+  });
+
+  it('parse_hs rejects an empty source identity for an opted-in meaning receipt', async () => {
+    const result = (await handleTool('parse_hs', {
+      code: 'struct AgentObservation { @unknown confidence: float }',
+      includeUnknownStructMeaning: true,
+      sourceId: '   ',
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      success: false,
+      errorStage: 'hsplus-unknown-struct-meaning',
+      errorCode: 'invalid-source-id',
+    });
+    expect(result).not.toHaveProperty('hsplusUnknownStructMeaning');
+  });
+
+  it('parse_hs reports the strict meaning stage when struct identity is ambiguous', async () => {
+    const result = (await handleTool('parse_hs', {
+      code: `struct Reading { @unknown value: i32 }
+struct Reading { @unknown replacement: i64 }`,
+      format: 'hsplus',
+      includeUnknownStructMeaning: true,
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      success: false,
+      errorStage: 'hsplus-unknown-struct-meaning',
+      errorCode: 'duplicate-struct',
+    });
+    expect(result.error).toContain('Duplicate HoloScript+ struct "Reading"');
+    expect(result).not.toHaveProperty('hsplusUnknownStructMeaning');
+  });
+
+  it('parse_hs refuses to relabel native .hs meaning as the bounded .hsplus projection', async () => {
+    const result = (await handleTool('parse_hs', {
+      code: 'struct Reading { @unknown value: i32 }',
+      format: 'hs',
+      includeUnknownStructMeaning: true,
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      success: false,
+      errorStage: 'hsplus-unknown-struct-meaning',
+      errorCode: 'unsupported-format',
+    });
+    expect(result.error).toContain('requires format "hsplus"');
   });
 
   it('generate_scene fails gracefully without description', async () => {

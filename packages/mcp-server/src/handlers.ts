@@ -6,8 +6,10 @@
  */
 
 import {
+  HSPlusStructMeaningLoweringError,
   HoloScriptPlusParser,
   compilePipelineSourceToNode,
+  lowerHSPlusUnknownStructsToMeaning,
   parseHolo,
   parseHoloStrict,
   parsePipeline,
@@ -883,39 +885,80 @@ export async function handleTool(
 
 async function handleParseHs(args: Record<string, unknown>) {
   const code = args.code as string;
-  const _format = (args.format as string) || 'hsplus';
+  const format = (args.format as string) || 'hsplus';
+  const includeUnknownStructMeaning = args.includeUnknownStructMeaning === true;
 
   try {
+    if (includeUnknownStructMeaning && format !== 'hsplus') {
+      return {
+        success: false,
+        errorStage: 'hsplus-unknown-struct-meaning',
+        errorCode: 'unsupported-format',
+        error:
+          'The bounded @unknown struct meaning projection requires format "hsplus"; native .hs meaning uses a different authority.',
+      };
+    }
+
+    const sourceId = args.sourceId;
+    if (
+      includeUnknownStructMeaning &&
+      sourceId !== undefined &&
+      (typeof sourceId !== 'string' || sourceId.trim().length === 0)
+    ) {
+      return {
+        success: false,
+        errorStage: 'hsplus-unknown-struct-meaning',
+        errorCode: 'invalid-source-id',
+        error: 'sourceId must be a non-empty string when requesting HoloMeaning.',
+      };
+    }
+
     const parser = new HoloScriptPlusParser();
     const result = parser.parse(code);
     const errors = result.errors || [];
     const warnings = result.warnings || [];
     const success = result.success === true && errors.length === 0;
 
-    // Deduplicate AST: root-level 'body' duplicates 'children'
+    // Deduplicate AST: root-level 'body' duplicates 'children'.
     const ast = result.ast;
+    let responseAst = ast;
     if (ast && typeof ast === 'object' && 'body' in ast && 'children' in ast) {
       const { body: _body, ...cleanAst } = ast as Record<string, unknown>;
-      return {
-        success,
-        ast: cleanAst,
-        errors,
-        warnings,
-        ...(args.includeSourceMap
-          ? { sourceMap: (result as unknown as Record<string, unknown>).sourceMap }
-          : {}),
-      };
+      responseAst = cleanAst as typeof ast;
     }
 
-    return {
+    const response = {
       success,
-      ast,
+      ast: responseAst,
       errors,
       warnings,
       ...(args.includeSourceMap
         ? { sourceMap: (result as unknown as Record<string, unknown>).sourceMap }
         : {}),
     };
+
+    if (!includeUnknownStructMeaning || !success) {
+      return response;
+    }
+
+    try {
+      const hsplusUnknownStructMeaning = lowerHSPlusUnknownStructsToMeaning(code, {
+        ...(typeof sourceId === 'string' ? { sourceId } : {}),
+      });
+      return {
+        ...response,
+        hsplusUnknownStructMeaning,
+      };
+    } catch (error) {
+      return {
+        ...response,
+        success: false,
+        errorStage: 'hsplus-unknown-struct-meaning',
+        errorCode:
+          error instanceof HSPlusStructMeaningLoweringError ? error.code : 'projection-failed',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   } catch (error) {
     return {
       success: false,
