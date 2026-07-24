@@ -203,6 +203,7 @@ export type {
   ASTProgram,
   HSPlusDirective,
   HSPlusCompileResult,
+  HSPlusParseResult,
   HSPlusParserOptions,
   HSPlusTraitAtom,
   HSPlusTraitDirective,

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 
-import { isKnown, lowerUnknownHSPlusStructFields } from '@holoscript/meaning';
+import { isKnown } from '@holoscript/meaning';
 import { describe, expect, it } from 'vitest';
 
+import { lowerHSPlusUnknownStructsToMeaning } from '../../semantics/HSPlusStructMeaningLowering';
 import type { HSPlusNode } from '../../types/HoloScriptPlus';
 import { HoloScriptPlusParser } from '../HoloScriptPlusParser';
 
@@ -47,11 +48,18 @@ describe('general-purpose .hsplus systems fixture', () => {
       { projection: 'typed', name: 'sequence', type: 'i64' },
       { projection: 'typed', name: 'healthy', type: 'bool' },
     ]);
-    const lowered = lowerUnknownHSPlusStructFields({
-      name: reading.name ?? 'anonymous',
-      body: typeof reading.body === 'string' ? reading.body : undefined,
-      fields: reading.fields ?? [],
+    const meaning = lowerHSPlusUnknownStructsToMeaning(source, {
+      sourceId: 'examples/hsplus/systems/typed-sensor-service.hsplus',
     });
+    expect(meaning).toMatchObject({
+      schema: 'holoscript.hsplus-unknown-struct-meaning.v1',
+      format: '.hsplus',
+      parser: 'HoloScriptPlusParser',
+      sourceId: 'examples/hsplus/systems/typed-sensor-service.hsplus',
+    });
+    expect(meaning.structs.map(({ name }) => name)).toEqual(['SensorReading']);
+
+    const lowered = meaning.structs[0].unknownFields;
     expect(lowered).toHaveLength(1);
     expect(lowered[0]).toMatchObject({
       key: 'temperature_c',

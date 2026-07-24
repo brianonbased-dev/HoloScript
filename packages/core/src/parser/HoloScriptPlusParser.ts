@@ -14,6 +14,7 @@ import type {
   ASTProgram,
   HSPlusDirective,
   HSPlusCompileResult,
+  HSPlusParseResult,
   HSPlusParserOptions,
   HSPlusTraitAtom,
   HSPlusTraitDirective,
@@ -41,6 +42,7 @@ export type {
   HSPlusStructField,
   HSPlusDirective,
   HSPlusCompileResult,
+  HSPlusParseResult,
   HSPlusParserOptions,
   HSPlusTraitAtom,
   HSPlusTraitDirective,
@@ -1172,7 +1174,7 @@ export class HoloScriptPlusParser {
     );
   }
 
-  parse(source: string): HSPlusCompileResult {
+  parse(source: string): HSPlusParseResult {
     // Reset state
     this.source = source;
     this.errors = [];
@@ -1340,7 +1342,7 @@ export class HoloScriptPlusParser {
    * `ChunkBasedIncrementalParser` provides. This is now wired through the
    * superior engine (APL WIT audit gap #3, 2026-05-21).
    */
-  parseIncremental(source: string, cache: ParseCache = globalParseCache): HSPlusCompileResult {
+  parseIncremental(source: string, cache: ParseCache = globalParseCache): HSPlusParseResult {
     // Get or create a ChunkBasedIncrementalParser bound to this cache.
     // Using a per-cache map ensures that callers who supply their own cache
     // get a dedicated incremental parser instance that tracks chunk state
@@ -1449,7 +1451,7 @@ export class HoloScriptPlusParser {
     return result;
   }
 
-  private buildResult(root: HSPlusNode): HSPlusCompileResult {
+  private buildResult(root: HSPlusNode): HSPlusParseResult {
     const isFragment = root.type === 'fragment';
     const directives = root.directives || [];
 
@@ -1821,8 +1823,10 @@ export class HoloScriptPlusParser {
     // =========================================================================
     if (type === 'struct') {
       let name = 'anonymous';
+      let nameOrigin: 'explicit' | 'synthetic' = 'synthetic';
       if (this.check('IDENTIFIER') || this.check('STRING')) {
         name = this.advance().value;
+        nameOrigin = 'explicit';
       }
 
       // Preserve the raw-block path's historical tolerance for qualified
@@ -1846,6 +1850,7 @@ export class HoloScriptPlusParser {
       return {
         type: 'struct',
         name,
+        nameOrigin,
         id: name,
         properties: {},
         directives: [],
@@ -7755,7 +7760,7 @@ export function createParser(options?: HSPlusParserOptions): HoloScriptPlusParse
   return new HoloScriptPlusParser(options);
 }
 
-export function parse(source: string, options?: HSPlusParserOptions): HSPlusCompileResult {
+export function parse(source: string, options?: HSPlusParserOptions): HSPlusParseResult {
   const parser = createParser(options);
   return parser.parse(source);
 }

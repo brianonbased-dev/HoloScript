@@ -381,14 +381,21 @@ export class AdvancedTypeChecker {
 
 export interface ASTProgram {
   type: 'Program';
-  body: unknown[];
+  children: import('./HoloScriptPlus').HSPlusNode[];
+  body: import('./HoloScriptPlus').HSPlusNode[];
   version: string | number;
-  root: unknown;
-  imports: Array<{ path: string; alias: string; namedImports?: string[]; isWildcard?: boolean }>;
+  root: import('./HoloScriptPlus').HSPlusNode;
+  imports: Array<{
+    path: string;
+    alias: string;
+    namedImports?: string[];
+    isWildcard?: boolean;
+  }>;
   hasState: boolean;
   hasVRTraits: boolean;
   hasControlFlow: boolean;
   migrations?: unknown[];
+  [key: string]: unknown;
 }
 
 export type HSPlusAST = ASTProgram;
@@ -614,12 +621,17 @@ export interface HSPlusCompileResult {
   code?: string;
   sourceMap?: unknown;
   errors: Array<{ message: string; line: number; column: number }>;
-  ast?: unknown;
+  ast?: ASTProgram;
   compiledExpressions?: unknown;
   requiredCompanions?: string[];
   features?: unknown;
   warnings?: unknown[];
   [key: string]: unknown;
+}
+
+/** Result returned by canonical HoloScript+ parser APIs, which always build an AST. */
+export interface HSPlusParseResult extends HSPlusCompileResult {
+  ast: ASTProgram;
 }
 
 export interface HSPlusParserOptions {

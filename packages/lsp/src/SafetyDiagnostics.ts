@@ -42,6 +42,20 @@ interface SafetyASTInput {
   [key: string]: unknown;
 }
 
+function asSafetyASTInput(value: unknown): SafetyASTInput | undefined {
+  return typeof value === 'object' && value !== null
+    ? (value as SafetyASTInput)
+    : undefined;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function numberValue(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
 /**
  * Extract EffectASTNodes from the parsed HSPlus AST.
  *
@@ -54,17 +68,21 @@ interface SafetyASTInput {
  * - traits: string[] → trait names (with @ prefix)
  * - calls: string[] → built-in function names
  */
-export function extractEffectNodes(ast: SafetyASTInput): EffectASTNode[] {
+export function extractEffectNodes(ast: unknown): EffectASTNode[] {
   const nodes: EffectASTNode[] = [];
+  const root = asSafetyASTInput(ast);
+  if (!root) return nodes;
 
   function extractTraits(node: SafetyASTInput): string[] {
     const traits: string[] = [];
 
     // Source 1: directives array (type === 'trait')
     if (Array.isArray(node.directives)) {
-      for (const d of node.directives) {
-        if (d.type === 'trait' && d.name) {
-          const name = d.name.startsWith('@') ? d.name : `@${d.name}`;
+      for (const candidate of node.directives as unknown[]) {
+        const directive = asSafetyASTInput(candidate);
+        const directiveName = stringValue(directive?.name);
+        if (directive?.type === 'trait' && directiveName) {
+          const name = directiveName.startsWith('@') ? directiveName : `@${directiveName}`;
           traits.push(name);
         }
       }
@@ -73,6 +91,7 @@ export function extractEffectNodes(ast: SafetyASTInput): EffectASTNode[] {
     // Source 2: pre-processed traits Map
     if (node.traits instanceof Map) {
       for (const [traitName] of node.traits) {
+        if (typeof traitName !== 'string') continue;
         const name = `@${traitName}`;
         if (!traits.includes(name)) {
           traits.push(name);
@@ -85,19 +104,23 @@ export function extractEffectNodes(ast: SafetyASTInput): EffectASTNode[] {
 
   function extractCalls(node: SafetyASTInput): string[] {
     const calls: string[] = [];
+    const visited = new Set<object>();
 
-    function walkForCalls(n: SafetyASTInput) {
-      if (!n) return;
+    function walkForCalls(value: unknown) {
+      const n = asSafetyASTInput(value);
+      if (!n || visited.has(n)) return;
+      visited.add(n);
 
       // function_call nodes
       if (n.type === 'function_call' || n.type === 'call_expression') {
-        const name = n.name || n.callee || n.id;
-        if (typeof name === 'string') calls.push(name);
+        const name = stringValue(n.name) ?? stringValue(n.callee) ?? stringValue(n.id);
+        if (name) calls.push(name);
       }
 
       // method property
-      if (n.method && typeof n.method === 'string') {
-        calls.push(n.method);
+      const method = stringValue(n.method);
+      if (method) {
+        calls.push(method);
       }
 
       // Recurse into children, body, arguments
@@ -107,7 +130,7 @@ export function extractEffectNodes(ast: SafetyASTInput): EffectASTNode[] {
       if (Array.isArray(n.body)) {
         for (const stmt of n.body) walkForCalls(stmt);
       }
-      if (n.body && typeof n.body === 'object' && !Array.isArray(n.body)) {
+      if (asSafetyASTInput(n.body) && !Array.isArray(n.body)) {
         walkForCalls(n.body);
       }
       if (Array.isArray(n.arguments)) {
@@ -119,21 +142,27 @@ export function extractEffectNodes(ast: SafetyASTInput): EffectASTNode[] {
     return calls;
   }
 
-  function visit(node: SafetyASTInput) {
-    if (!node || typeof node !== 'object') return;
+  const visited = new Set<object>();
+
+  function visit(value: unknown) {
+    const node = asSafetyASTInput(value);
+    if (!node || visited.has(node)) return;
+    visited.add(node);
 
     const traits = extractTraits(node);
     const calls = extractCalls(node);
+    const loc = asSafetyASTInput(node.loc);
+    const start = asSafetyASTInput(loc?.start);
 
     // Only create an EffectASTNode if there are traits or calls to analyze
     if (traits.length > 0 || calls.length > 0) {
       const effectNode: EffectASTNode = {
-        type: node.type || 'unknown',
-        name: node.id || node.name || '<anonymous>',
+        type: stringValue(node.type) ?? 'unknown',
+        name: stringValue(node.id) ?? stringValue(node.name) ?? '<anonymous>',
         traits,
         calls,
-        line: node.loc?.start?.line || node.line,
-        column: node.loc?.start?.column || node.column,
+        line: numberValue(start?.line) ?? numberValue(node.line),
+        column: numberValue(start?.column) ?? numberValue(node.column),
       };
 
       // Don't recurse children into EffectASTNode.children --
@@ -149,9 +178,11 @@ export function extractEffectNodes(ast: SafetyASTInput): EffectASTNode[] {
   }
 
   // The AST root has either .children or .body
-  const topLevel = ast?.children || ast?.body || [];
+  const topLevel = root.children || root.body || [];
   if (Array.isArray(topLevel)) {
     for (const node of topLevel) visit(node);
+  } else {
+    visit(topLevel);
   }
 
   return nodes;
@@ -267,7 +298,7 @@ const DEFAULT_CONFIG: SafetyDiagnosticConfig = {
  * This is the single entry point for the LSP server to call.
  */
 export function runSafetyDiagnostics(
-  ast: SafetyASTInput,
+  ast: unknown,
   uri: string,
   config?: Partial<SafetyDiagnosticConfig>
 ): Diagnostic[] {

@@ -168,13 +168,35 @@ export type HSPlusType =
  * Minimal HoloScript+ scene node shape used by downstream packages that need
  * to inspect parsed object trees without importing @holoscript/core.
  */
+export type HSPlusStructField =
+  | {
+      name: string;
+      projection: 'typed';
+      type: string;
+      annotations?: string[];
+      optional?: true;
+      defaultSource?: string;
+    }
+  | {
+      name: string;
+      projection: 'preserved-opaque';
+      optional?: true;
+      type?: never;
+      annotations?: never;
+      defaultSource?: never;
+    };
+
 export interface HSPlusNode extends ASTNode {
   name?: string;
+  /** Whether a declaration name was authored or supplied by parser fallback. */
+  nameOrigin?: 'explicit' | 'synthetic';
   children?: HSPlusNode[];
   properties?: Record<string, unknown>;
   directives?: HSPlusDirective[];
   args?: unknown;
   body?: unknown;
+  /** Structured view of a `struct` body; raw `body` remains available. */
+  fields?: HSPlusStructField[];
   /** Scene-graph rotation set by spatial traits at runtime (euler or quaternion). */
   rotation?: Vector3 | Quaternion;
   /** Scene-graph scale set by spatial traits at runtime. */
@@ -277,14 +299,16 @@ export type HoloScriptType =
 
 export interface ASTProgram {
   type: 'Program';
-  body: unknown[];
+  children: HSPlusNode[];
+  body: HSPlusNode[];
   version: string | number;
-  root: unknown;
+  root: HSPlusNode;
   imports: Array<{ path: string; alias: string; namedImports?: string[]; isWildcard?: boolean }>;
   hasState: boolean;
   hasVRTraits: boolean;
   hasControlFlow: boolean;
   migrations?: unknown[];
+  [key: string]: unknown;
 }
 
 export type HSPlusAST = ASTProgram;
@@ -509,12 +533,17 @@ export interface HSPlusCompileResult {
   code?: string;
   sourceMap?: unknown;
   errors: Array<{ message: string; line: number; column: number }>;
-  ast?: unknown;
+  ast?: ASTProgram;
   compiledExpressions?: unknown;
   requiredCompanions?: string[];
   features?: unknown;
   warnings?: unknown[];
   [key: string]: unknown;
+}
+
+/** Result returned by canonical HoloScript+ parser APIs, which always build an AST. */
+export interface HSPlusParseResult extends HSPlusCompileResult {
+  ast: ASTProgram;
 }
 
 export interface HSPlusParserOptions {

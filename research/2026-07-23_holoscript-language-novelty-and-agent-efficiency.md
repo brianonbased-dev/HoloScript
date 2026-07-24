@@ -368,12 +368,17 @@ Agents, brains, goals, tools, memory, and delegation then become libraries plus 
 semantic constructs in this general language. They do not replace its ordinary core.
 
 The first structural step is now present: the TypeScript `.hsplus` parser exposes field names,
-types, and admitted annotations in its internal AST for `struct` declarations while retaining the
-raw body for legacy consumers. The AST distinguishes admitted typed fields from preserved-opaque
-members and retains optionality plus authored defaults. HoloMeaning consumes parser-produced
-structured `@unknown` through a defensive shape-validating adapter that delegates to the canonical
-struct-field lowering instead of reparsing raw text; type-syntax admission remains the parser's
-responsibility.
+types, and admitted annotations through the supported root and parser-subpath package declarations
+for `struct` declarations while retaining the raw body for legacy consumers. The AST distinguishes
+admitted typed fields from preserved-opaque members and retains optionality plus authored defaults.
+The public core function `lowerHSPlusUnknownStructsToMeaning` provides an explicit, fail-closed
+source-to-meaning call: it invokes the canonical parser, consumes only parser-produced structured
+`@unknown`, and delegates to the canonical struct-field lowering instead of reparsing raw text.
+Plain `parse()` remains syntax-only, and type-syntax admission remains the parser's responsibility.
+
+Compatibility note: `HSPlusCompileResult.ast` is now structured but remains optional for handwritten
+mock compatibility. Canonical parser APIs return `HSPlusParseResult`, whose `ast` is a required
+`ASTProgram`, matching unchanged runtime behavior.
 
 The next blocker is executable native `.hsplus` lowering together with wider ordinary-programming
 completeness. `compiler-native` still consumes only `.hs`; `interface` and `class` bodies remain

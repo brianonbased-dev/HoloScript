@@ -9,15 +9,17 @@ capability/evidence contract under the
 [native machine release ladder](native-machine-release-ladder.md), not a public SemVer release.
 
 This first structured carrier remains a canonical `.hs` capability. The TypeScript `.hsplus`
-parser now exposes typed fields and admitted annotations in its internal AST for `struct`
+parser now exposes typed fields and admitted annotations in its public AST for `struct`
 declarations, distinguishes typed fields from preserved-opaque legacy members, and retains the raw
-body. Optionality and authored defaults remain explicit. `@holoscript/meaning` consumes
-parser-produced structured `@unknown` fields through a defensive shape-validating adapter that
-delegates to the canonical struct-field lowering; syntax admission remains the parser's job.
+body. Optionality and authored defaults remain explicit. The public core function
+`lowerHSPlusUnknownStructsToMeaning` explicitly parses source and projects parser-produced
+structured `@unknown` fields through a defensive shape-validating adapter that delegates to the
+canonical struct-field lowering. Plain `parse()` remains syntax-only; syntax admission remains the
+parser's job.
 
-That parser-to-meaning path is not a V34 native-execution claim. `compiler-native` does not consume
-`.hsplus`; `interface` and `class` bodies remain raw; and the Kotlin bridge rejects typed structs.
-No cross-backend parity is claimed.
+That explicit source-to-meaning path is not a V34 native-execution claim. `compiler-native` does
+not consume `.hsplus`; `interface` and `class` bodies remain raw; and the Kotlin bridge rejects
+typed structs. No cross-backend parity is claimed.
 
 ## Source contract
 

@@ -13,6 +13,7 @@ import type {
   HSPlusAST,
   ASTProgram,
   HSPlusCompileResult,
+  HSPlusParseResult,
 } from './types/AdvancedTypeSystem';
 
 import type { HSPlusNode, Vector3, Transform } from './types/HoloScriptPlus';
@@ -37,7 +38,14 @@ import type {
   ActionClause,
 } from './types/base';
 
-export type { HSPlusDirective, HSPlusAST, ASTProgram, HSPlusCompileResult, HSPlusNode };
+export type {
+  HSPlusDirective,
+  HSPlusAST,
+  ASTProgram,
+  HSPlusCompileResult,
+  HSPlusParseResult,
+  HSPlusNode,
+};
 
 export type {
   VRTraitName,

@@ -257,10 +257,11 @@
   "scripts": {
     "prepublishOnly": "node scripts/verify-publish-manager.mjs && pnpm run test:release && pnpm run build",
     "verify:workspace": "node scripts/verify-internal-workspace-protocol.mjs",
-    "build": "node scripts/verify-internal-workspace-protocol.mjs && node scripts/gen-quest-mr-templates.mjs && tsup && node scripts/generate-types.mjs",
+    "build": "node scripts/verify-internal-workspace-protocol.mjs && node scripts/gen-quest-mr-templates.mjs && tsup && node scripts/generate-types.mjs && pnpm run test:public-types",
     "dev": "tsup --watch",
     "test": "node --max-old-space-size=16384 run-vitest.mjs",
     "test:release": "vitest run src/reconstruction/__tests__/PublicReconstructionExports.test.ts src/reconstruction/__tests__/PerceiverConsensus.test.ts",
+    "test:public-types": "tsc -p test/public-types/tsconfig.json",
     "test:coverage": "node --max-old-space-size=16384 run-vitest.mjs --coverage",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",

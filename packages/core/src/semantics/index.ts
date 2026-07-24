@@ -7,6 +7,9 @@
 // Surface-to-meaning adapter (canonical `.holo` parser -> HoloMeaning).
 export * from './HoloContainmentPerceiver';
 
+// Surface-to-meaning adapter (canonical `.hsplus` typed structs -> HoloMeaning).
+export * from './HSPlusStructMeaningLowering';
+
 // Semantic Annotations
 export {
   SemanticAnnotation,

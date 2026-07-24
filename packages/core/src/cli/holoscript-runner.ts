@@ -21,7 +21,7 @@ import * as readline from 'readline';
 import { spawn } from 'child_process';
 import { createHash, randomUUID } from 'crypto';
 import type { ActionHandler } from '@holoscript/engine/runtime';
-import type { HSPlusAST } from '../types/HoloScriptPlus';
+import type { HSPlusAST } from '../types/AdvancedTypeSystem';
 
 // The engine package re-exports its own copy of HSPlusAST/HeadlessRuntime via the
 // dist barrel. Structurally identical to the src types but TS treats them as

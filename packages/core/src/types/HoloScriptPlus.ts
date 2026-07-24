@@ -106,6 +106,8 @@ export type HSPlusStructField =
 
 export interface HSPlusNode extends ASTNode {
   name?: string;
+  /** Whether a declaration name was authored or supplied by parser fallback. */
+  nameOrigin?: 'explicit' | 'synthetic';
   children?: HSPlusNode[];
   properties?: Record<string, unknown>;
   directives?: HSPlusDirective[];

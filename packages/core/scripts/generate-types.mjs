@@ -58,6 +58,7 @@ const mainDTS = `/**
  */
 
 import type {
+  UnknownFieldLowering,
   UAALContainmentIR,
   UAALContainmentQuery,
   UAALContainmentRelation,
@@ -458,7 +459,7 @@ export interface HSPlusParserOptions {
 }
 export class HoloScriptPlusParser {
   constructor(options?: HSPlusParserOptions);
-  parse(source: string): ParseResult;
+  parse(source: string): HSPlusParseResult;
   parseExpression(source: string): any;
   parseStatement(source: string): any;
 }
@@ -581,7 +582,10 @@ export class HoloScriptCodeParser {
 export function parse(source: string, options?: any): ParseResult;
 export function parseHolo(source: string, options?: any): any;
 export function parseHoloStrict(source: string): any;
-export function parseHoloScriptPlus(source: string, options?: any): ParseResult;
+export function parseHoloScriptPlus(
+  source: string,
+  options?: HSPlusParserOptions
+): HSPlusParseResult;
 export const holoFactory: any;
 export function generateHoloSource(ast: any): string;
 
@@ -768,6 +772,45 @@ export function perceiveContainmentIR(
   source: string,
   options?: HoloContainmentPerceptionOptions
 ): HoloPerceivedContainmentIR;
+
+export type HSPlusStructMeaningLoweringErrorCode =
+  | 'invalid-source'
+  | 'invalid-struct'
+  | 'duplicate-struct';
+
+export class HSPlusStructMeaningLoweringError extends Error {
+  readonly code: HSPlusStructMeaningLoweringErrorCode;
+  constructor(code: HSPlusStructMeaningLoweringErrorCode, message: string);
+}
+
+export interface HSPlusStructMeaningLoweringOptions {
+  sourceId?: string;
+}
+
+export interface HSPlusUnknownStructSource {
+  line?: number;
+  column?: number;
+}
+
+export interface HSPlusUnknownStructMeaning {
+  name: string;
+  unknownFields: UnknownFieldLowering[];
+  source: HSPlusUnknownStructSource;
+}
+
+export interface HSPlusUnknownStructMeaningProjection {
+  schema: 'holoscript.hsplus-unknown-struct-meaning.v1';
+  format: '.hsplus';
+  parser: 'HoloScriptPlusParser';
+  sourceDigest: string;
+  sourceId?: string;
+  structs: HSPlusUnknownStructMeaning[];
+}
+
+export function lowerHSPlusUnknownStructsToMeaning(
+  source: string,
+  options?: HSPlusStructMeaningLoweringOptions
+): HSPlusUnknownStructMeaningProjection;
 
 // ============================================================================
 // TRAIT VISUAL SYSTEM
@@ -1515,9 +1558,57 @@ export interface EffectViolation { [key: string]: any; }
 export interface BudgetDiagnostic { [key: string]: any; }
 export interface CapabilityRequirement { [key: string]: any; }
 export interface LinearViolation { [key: string]: any; }
-export interface ASTProgram { [key: string]: any; }
-export interface HSPlusASTNode { [key: string]: any; }
-export interface HSPlusCompileResult { [key: string]: any; }
+export type HSPlusStructField =
+  | {
+      name: string;
+      projection: 'typed';
+      type: string;
+      annotations?: string[];
+      optional?: true;
+      defaultSource?: string;
+    }
+  | {
+      name: string;
+      projection: 'preserved-opaque';
+      optional?: true;
+      type?: never;
+      annotations?: never;
+      defaultSource?: never;
+    };
+export interface ASTProgram {
+  type: 'Program';
+  children: HSPlusNode[];
+  body: HSPlusNode[];
+  version: string | number;
+  root: HSPlusNode;
+  imports: Array<{
+    path: string;
+    alias: string;
+    namedImports?: string[];
+    isWildcard?: boolean;
+  }>;
+  hasState: boolean;
+  hasVRTraits: boolean;
+  hasControlFlow: boolean;
+  migrations?: unknown[];
+  [key: string]: unknown;
+}
+export type HSPlusASTNode = HSPlusNode;
+export interface HSPlusCompileResult {
+  success: boolean;
+  code?: string;
+  sourceMap?: unknown;
+  errors: Array<{ message: string; line: number; column: number }>;
+  ast?: ASTProgram;
+  compiledExpressions?: unknown;
+  requiredCompanions?: string[];
+  features?: unknown;
+  warnings?: unknown[];
+  [key: string]: unknown;
+}
+export interface HSPlusParseResult extends HSPlusCompileResult {
+  ast: ASTProgram;
+}
 
 export function runSafetyPass(ast: any, config?: SafetyPassConfig): SafetyPassResult;
 
@@ -1640,8 +1731,12 @@ export type TraitEvent =
 
 export interface HSPlusNode extends ASTNode {
   id?: string;
+  name?: string;
+  nameOrigin?: 'explicit' | 'synthetic';
   traits?: Map<string, unknown>;
   children?: HSPlusNode[];
+  body?: unknown;
+  fields?: HSPlusStructField[];
   [key: string]: any;
 }
 
@@ -2218,7 +2313,7 @@ export function createState(initial?: Record<string, any>): ReactiveState;
 
 export class HoloScriptParser { parse(source: string): ParseResult; [key: string]: any; }
 export class HoloScript2DParser { parse(source: string): ParseResult; [key: string]: any; }
-export function createParser(options?: any): HoloScriptPlusParser;
+export function createParser(options?: HSPlusParserOptions): HoloScriptPlusParser;
 export function createDebugger(options?: any): HoloScriptDebugger;
 export function createHoloScriptEnvironment(options?: any): any;
 
@@ -4599,11 +4694,26 @@ export declare interface TraitInstanceDelegate {
 }
 `;
 
-const parserDTS = `export class HoloScriptPlusParser {
-  parse(source: string): any;
+const parserDTS = `import type {
+  HSPlusParseResult,
+  HSPlusParserOptions,
+} from './index.js';
+
+export type {
+  ASTProgram,
+  HSPlusCompileResult,
+  HSPlusNode,
+  HSPlusParseResult,
+  HSPlusParserOptions,
+  HSPlusStructField,
+} from './index.js';
+
+export class HoloScriptPlusParser {
+  constructor(options?: HSPlusParserOptions);
+  parse(source: string): HSPlusParseResult;
 }
-export function parse(source: string): any;
-export function createParser(options?: any): HoloScriptPlusParser;
+export function parse(source: string, options?: HSPlusParserOptions): HSPlusParseResult;
+export function createParser(options?: HSPlusParserOptions): HoloScriptPlusParser;
 export class HoloCompositionParser {
   constructor(options?: any);
   parse(source: string): any;

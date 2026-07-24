@@ -30,6 +30,7 @@ describe('HoloScriptPlusParser struct fields', () => {
     expect(success).toBe(true);
     expect(node.type).toBe('struct');
     expect(node.name).toBe('SensorReading');
+    expect(node.nameOrigin).toBe('explicit');
     expect(node.body).toBe('@unknown reading: i32,\n  calibrated: bool');
     expect(node.fields satisfies HSPlusStructField[] | undefined).toEqual([
       {
@@ -40,6 +41,14 @@ describe('HoloScriptPlusParser struct fields', () => {
       },
       { projection: 'typed', name: 'calibrated', type: 'bool' },
     ]);
+  });
+
+  it('marks a fallback struct identity as synthetic instead of presenting it as authored', () => {
+    const { node, success } = parseStruct('struct { @unknown value: i32 }');
+
+    expect(success).toBe(true);
+    expect(node.name).toBe('anonymous');
+    expect(node.nameOrigin).toBe('synthetic');
   });
 
   it('marks value-shaped legacy members opaque instead of relabeling them as types', () => {
