@@ -1,44 +1,7 @@
 composition "ModelVillageHeadlessFixture" {
-  metadata {
-    name: "Model Village deterministic headless fixture"
-    description: "Two resident proxies share a lit commons and exercise one permitted and one denied action."
-    version: "1.0.0"
-    tags: ["model-village", "deterministic", "fixture"]
-  }
-
-  environment {
-    backgroundColor: "#0d1824"
-    ambient: 0.32
-    shadows: true
-    toneMapping: "aces"
-    exposure: 1.05
-  }
-
-  // Asset-free scalar PBR keeps this fixture portable. These are intentional
-  // test volumes, not claims of final avatars, production assets, or realism.
-  material "CommonsStoneFixture" @advanced_pbr {
-    base_color: "#65716b"
-    roughness: 0.88
-    metallic: 0.04
-  }
-
-  material "CisternCopperFixture" @advanced_pbr {
-    base_color: "#507c72"
-    roughness: 0.42
-    metallic: 0.68
-  }
-
-  material "ResidentAmberFixture" @advanced_pbr {
-    base_color: "#f0a43c"
-    roughness: 0.28
-    metallic: 0.18
-  }
-
-  material "ResidentAzureFixture" @advanced_pbr {
-    base_color: "#55a9e8"
-    roughness: 0.24
-    metallic: 0.22
-  }
+  // This fixture intentionally stays inside the deterministic static-object
+  // projection subset. Scalar materials and light data are authored metadata,
+  // not claims of final assets, renderer execution, PBR, or lighting realism.
 
   template "ResidentProxyFixture" {
     geometry: "sphere"
@@ -58,7 +21,7 @@ composition "ModelVillageHeadlessFixture" {
       radius: 6
       height: 0.3
       position: [0, -0.15, 0]
-      material: "CommonsStoneFixture"
+      material: { color: "#65716b", roughness: 0.88, metalness: 0.04 }
 
       @physics {
         mass: 0
@@ -71,7 +34,7 @@ composition "ModelVillageHeadlessFixture" {
       radius: 1.1
       height: 1.8
       position: [0, 0.9, 0]
-      material: "CisternCopperFixture"
+      material: { color: "#507c72", roughness: 0.42, metalness: 0.68 }
 
       @physics {
         mass: 450
@@ -81,13 +44,13 @@ composition "ModelVillageHeadlessFixture" {
 
     object "resident-1" using "ResidentProxyFixture" {
       position: [-1.8, 0.55, 1.2]
-      material: "ResidentAmberFixture"
+      material: { color: "#f0a43c", roughness: 0.28, metalness: 0.18 }
       representation: "fixture_proxy_not_final_avatar"
     }
 
     object "resident-2" using "ResidentProxyFixture" {
       position: [1.8, 0.55, 1.2]
-      material: "ResidentAzureFixture"
+      material: { color: "#55a9e8", roughness: 0.24, metalness: 0.22 }
       representation: "fixture_proxy_not_final_avatar"
     }
 
@@ -95,7 +58,14 @@ composition "ModelVillageHeadlessFixture" {
       geometry: "box"
       scale: [0.35, 0.35, 0.35]
       position: [0, 0.8, -1.3]
-      material: "CisternCopperFixture"
+      material: { color: "#507c72", roughness: 0.42, metalness: 0.68 }
+
+      @physics {
+        mass: 24
+        kinematic: true
+        friction: 0.52
+        restitution: 0.04
+      }
     }
 
     object "commons-lantern" @emissive {

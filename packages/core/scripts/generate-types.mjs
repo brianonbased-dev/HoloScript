@@ -4714,10 +4714,17 @@ export class HoloScriptPlusParser {
 }
 export function parse(source: string, options?: HSPlusParserOptions): HSPlusParseResult;
 export function createParser(options?: HSPlusParserOptions): HoloScriptPlusParser;
+export interface HoloSourceToken {
+  type: string;
+  value: string;
+  line: number;
+  column: number;
+}
 export class HoloCompositionParser {
   constructor(options?: any);
   parse(source: string): any;
 }
+export function tokenizeHoloSource(source: string): HoloSourceToken[];
 export function parseHolo(source: string, options?: any): any;
 export function parseHoloStrict(source: string, options?: any): any;
 export function parseHoloPartial(source: string, options?: any): any;

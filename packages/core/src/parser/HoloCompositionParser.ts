@@ -163,6 +163,22 @@ import {
 // Re-export token types so external consumers can import them from this module.
 export { type TokenType, type Token, KEYWORDS, PRIMITIVE_SHAPES, LIGHT_PRIMITIVES };
 
+export interface HoloSourceToken {
+  type: string;
+  value: string;
+  line: number;
+  column: number;
+}
+
+/**
+ * Tokenize `.holo` source with the same lexer used by HoloCompositionParser.
+ * Tooling can use this to enforce source-level profiles without maintaining a
+ * second, drift-prone approximation of comments, strings, keywords, or operators.
+ */
+export function tokenizeHoloSource(source: string): HoloSourceToken[] {
+  return new HoloLexer(source).tokenize();
+}
+
 // =============================================================================
 // PARSER
 // =============================================================================

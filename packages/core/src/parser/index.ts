@@ -30,6 +30,8 @@ export {
   parseHolo,
   parseHoloStrict,
   parseHoloPartial,
+  tokenizeHoloSource,
+  type HoloSourceToken,
 } from './HoloCompositionParser';
 
 export {

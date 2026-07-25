@@ -30,6 +30,7 @@ import {
 
 export {
   DETERMINISTIC_HOLO_WORLD_PROJECTION,
+  HOLO_WORLD_PROJECTION_COVERAGE,
   HOLO_WORLD_PROJECTION_PROVENANCE_SCHEMA,
   PURE_HOLO_WORLD_PROJECTION,
   executeHoloWorldProjection,
@@ -50,7 +51,7 @@ export const HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY = Object.freeze({
 export const HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3 =
   'holoscript.headless-experiment-source-run.v3' as const;
 export const HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3 = Object.freeze({
-  world: 'source-reexecuted-core-parser-structural-projection-no-lifecycle-v1',
+  world: 'source-reexecuted-static-object-declarations-no-lifecycle-v1',
   schedule: 'source-reexecuted-rust-wasm-uaal-v1',
   behavior: 'source-hash-anchored-inner-ledger-not-reexecuted-v1',
 });
@@ -77,6 +78,10 @@ export interface HeadlessExperimentSourceRun {
   };
   claimBoundary: {
     holoWorldParsedAndProjected: true;
+    holoWorldStaticObjectSubsetProjected: true;
+    fullHoloWorldProjectionClaimed: false;
+    physicsMetadataProjected: true;
+    physicsEngineExecuted: false;
     hsPipelineExecuted: false;
     hsPlanEntrypointExecuted: true;
     rustWasmCompilerExecuted: true;
@@ -184,6 +189,228 @@ function assertExactKeys(
   }
 }
 
+function assertClosedKeys(
+  value: unknown,
+  required: readonly string[],
+  optional: readonly string[],
+  label: string
+): asserts value is Record<string, unknown> {
+  if (!isRecord(value)) throw new Error(`${label} must be an object`);
+  const allowed = new Set([...required, ...optional]);
+  for (const key of required) {
+    if (!Object.prototype.hasOwnProperty.call(value, key)) {
+      throw new Error(`${label} is missing required field ${key}`);
+    }
+  }
+  const unknown = Object.keys(value).filter((key) => !allowed.has(key));
+  if (unknown.length > 0) {
+    throw new Error(`${label} fields do not match the sealed contract`);
+  }
+}
+
+function assertArray(value: unknown, label: string): asserts value is unknown[] {
+  if (!Array.isArray(value)) throw new Error(`${label} must be an array`);
+}
+
+function assertAuthorizationShape(value: unknown, label: string): void {
+  assertExactKeys(
+    value,
+    ['nonce', 'sequence', 'turnOpportunityId', 'safetyReceiptId', 'decisionReceiptId'],
+    label
+  );
+}
+
+function assertScheduleSourceShape(value: unknown, label: string): void {
+  assertClosedKeys(
+    value,
+    ['kind', 'scheduleEntryId', 'order', 'tick', 'phase', 'entrypoint'],
+    ['args', 'targetIds', 'barrierId', 'authorization', 'expect'],
+    label
+  );
+  if (value.authorization !== undefined) {
+    assertAuthorizationShape(value.authorization, `${label}.authorization`);
+  }
+  if (value.expect !== undefined) {
+    assertClosedKeys(
+      value.expect,
+      [],
+      ['allowed', 'outcome', 'stateChanged'],
+      `${label}.expect`
+    );
+  }
+}
+
+function assertChainedEntryShape(value: unknown, label: string): Record<string, unknown> {
+  assertExactKeys(
+    value,
+    ['sequence', 'logicalTick', 'previousHash', 'payload', 'entryHash'],
+    label
+  );
+  return value;
+}
+
+function assertNestedExecutionContract(value: Record<string, unknown>): void {
+  assertClosedKeys(
+    value.manifest,
+    ['kind', 'schema', 'runId', 'seed', 'clock', 'publicStateKeys', 'expected'],
+    ['authorization', 'observationPolicy'],
+    'inner execution manifest'
+  );
+  const manifest = value.manifest;
+  assertExactKeys(manifest.clock, ['startTick', 'endTick', 'step'], 'manifest clock');
+  assertExactKeys(
+    manifest.expected,
+    ['scheduleCount', 'observationCount', 'actionCount', 'finalPublicState'],
+    'manifest expected counts'
+  );
+  if (manifest.authorization !== undefined) {
+    assertExactKeys(
+      manifest.authorization,
+      ['required', 'startSequence'],
+      'manifest authorization'
+    );
+  }
+  if (manifest.observationPolicy !== undefined) {
+    assertClosedKeys(
+      manifest.observationPolicy,
+      [],
+      ['allowedRootKeys', 'forbiddenKeys', 'forbiddenValues'],
+      'manifest observation policy'
+    );
+  }
+
+  assertExactKeys(
+    value.logicalClock,
+    ['start_tick', 'end_tick', 'step', 'executed_ticks'],
+    'inner execution logical clock'
+  );
+  assertExactKeys(
+    value.canonicalFields,
+    [
+      'canonicalSceneHash',
+      'canonicalPoseHash',
+      'logicalClockHash',
+      'publicStateHash',
+      'executedScheduleHash',
+      'residentObservationHash',
+      'actionReceiptRoot',
+    ],
+    'inner execution canonical fields'
+  );
+  assertExactKeys(
+    value.terminal,
+    [
+      'finalTick',
+      'finalPublicStateHash',
+      'expectedCounts',
+      'actualCounts',
+      'publicStateHistoryRoot',
+      'scheduleRoot',
+      'observationRoot',
+      'actionRoot',
+      'terminalCommitment',
+    ],
+    'inner execution terminal'
+  );
+  const terminal = value.terminal;
+  assertExactKeys(
+    terminal.expectedCounts,
+    ['schedule', 'observations', 'actions', 'publicStateSnapshots'],
+    'terminal expected counts'
+  );
+  assertExactKeys(
+    terminal.actualCounts,
+    ['schedule', 'observations', 'actions', 'publicStateSnapshots'],
+    'terminal actual counts'
+  );
+
+  assertArray(value.publicStateSnapshots, 'public-state ledger');
+  value.publicStateSnapshots.forEach((entry, index) => {
+    const chained = assertChainedEntryShape(entry, `public-state ledger entry ${index}`);
+    assertExactKeys(
+      chained.payload,
+      ['snapshotId', 'scheduleEntryId', 'publicState', 'publicStateHash'],
+      `public-state ledger payload ${index}`
+    );
+  });
+
+  assertArray(value.scheduleLedger, 'schedule ledger');
+  value.scheduleLedger.forEach((entry, index) => {
+    const chained = assertChainedEntryShape(entry, `schedule ledger entry ${index}`);
+    assertExactKeys(
+      chained.payload,
+      [
+        'scheduleEntryId',
+        'order',
+        'tick',
+        'phase',
+        'kind',
+        'entrypoint',
+        'source',
+        'outcomeHashes',
+      ],
+      `schedule ledger payload ${index}`
+    );
+    assertScheduleSourceShape(
+      (chained.payload as Record<string, unknown>).source,
+      `schedule ledger source ${index}`
+    );
+  });
+
+  assertArray(value.observationLedger, 'observation ledger');
+  value.observationLedger.forEach((entry, index) => {
+    const chained = assertChainedEntryShape(entry, `observation ledger entry ${index}`);
+    assertExactKeys(
+      chained.payload,
+      [
+        'scheduleEntryId',
+        'tick',
+        'entrypoint',
+        'targetIds',
+        'publicStateHash',
+        'observation',
+      ],
+      `observation ledger payload ${index}`
+    );
+  });
+
+  assertArray(value.actionLedger, 'action ledger');
+  value.actionLedger.forEach((entry, index) => {
+    const chained = assertChainedEntryShape(entry, `action ledger entry ${index}`);
+    assertExactKeys(
+      chained.payload,
+      [
+        'scheduleEntryId',
+        'tick',
+        'entrypoint',
+        'args',
+        'targetIds',
+        'authorization',
+        'allowed',
+        'outcome',
+        'result',
+        'emittedEvents',
+        'preStateSnapshotId',
+        'postStateSnapshotId',
+        'prePublicStateHash',
+        'postPublicStateHash',
+        'stateChanged',
+        'rollbackReference',
+      ],
+      `action ledger payload ${index}`
+    );
+    const payload = chained.payload as Record<string, unknown>;
+    if (payload.authorization !== null) {
+      assertAuthorizationShape(payload.authorization, `action authorization ${index}`);
+    }
+    assertExactKeys(
+      payload.rollbackReference,
+      ['preStateSnapshotId', 'preStateHash', 'priorActionRoot'],
+      `action rollback reference ${index}`
+    );
+  });
+}
+
 function sourceRunPreimage(
   receipt: AnyHeadlessExperimentSourceRunReceipt
 ):
@@ -284,6 +511,7 @@ export async function verifyHeadlessExperimentSourceRunReceipt(
       ],
       'inner execution receipt'
     );
+    assertNestedExecutionContract(executionInput);
     const execution = executionInput as unknown as HeadlessExperimentReceipt;
     assertExactKeys(
       receipt.verificationBoundary,
@@ -539,6 +767,10 @@ export async function runHeadlessExperimentSources(options: {
     },
     claimBoundary: {
       holoWorldParsedAndProjected: true,
+      holoWorldStaticObjectSubsetProjected: true,
+      fullHoloWorldProjectionClaimed: false,
+      physicsMetadataProjected: true,
+      physicsEngineExecuted: false,
       hsPipelineExecuted: false,
       hsPlanEntrypointExecuted: true,
       rustWasmCompilerExecuted: true,

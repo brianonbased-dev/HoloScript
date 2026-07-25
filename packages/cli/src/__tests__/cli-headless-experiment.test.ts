@@ -20,6 +20,7 @@ import {
   HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3,
   HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY,
   HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3,
+  HOLO_WORLD_PROJECTION_COVERAGE,
   HOLO_WORLD_PROJECTION_PROVENANCE_SCHEMA,
   PURE_HOLO_WORLD_PROJECTION,
   verifyHeadlessExperimentSourceRunReceipt,
@@ -283,6 +284,10 @@ describe('CLI deterministic cross-format headless execution', () => {
       });
       expect(onReceipt.claimBoundary).toMatchObject({
         holoWorldParsedAndProjected: true,
+        holoWorldStaticObjectSubsetProjected: true,
+        fullHoloWorldProjectionClaimed: false,
+        physicsMetadataProjected: true,
+        physicsEngineExecuted: false,
         hsPipelineExecuted: false,
         hsPlanEntrypointExecuted: true,
         rustWasmCompilerExecuted: true,
@@ -319,6 +324,7 @@ describe('CLI deterministic cross-format headless execution', () => {
           engine: onReceipt.executionEngines.world,
           hashAlgorithm: 'sha256-strict-canonical-json-v1',
           sourceHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+          coverage: HOLO_WORLD_PROJECTION_COVERAGE,
           parser: {
             implementation: '@holoscript/core/HoloCompositionParser.parse',
             options: {
@@ -457,10 +463,17 @@ describe('CLI deterministic cross-format headless execution', () => {
         'external-valve',
         'commons-lantern',
       ]);
-      expect(onReceipt.posePhysics.bodies.find((body: { id: string }) => body.id === 'cistern'))
-        .toMatchObject({
-          physics: { massKg: 450, kinematic: true },
-        });
+      expect(onReceipt.posePhysics).toMatchObject({
+        coverage: HOLO_WORLD_PROJECTION_COVERAGE,
+        complete: false,
+        physicsExecutionClaimed: false,
+      });
+      expect(
+        onReceipt.posePhysics.bodies.find((body: { id: string }) => body.id === 'cistern')
+      ).toMatchObject({
+        transform: { scale: [2.2, 1.8, 2.2] },
+        physics: { massKg: 450, kinematic: true },
+      });
       expect(onReceipt.observerProof).toMatchObject({
         isolation: 'separate-node-process-serialized-post-seal-v1',
         equivalent: true,
@@ -545,6 +558,89 @@ describe('CLI deterministic cross-format headless execution', () => {
       ).resolves.toMatchObject({
         valid: false,
         errors: [expect.stringMatching(/inner execution receipt fields do not match/i)],
+      });
+
+      const nestedLedgerShadowCases = [
+        ['publicStateSnapshots', /public-state ledger entry.*fields/i],
+        ['scheduleLedger', /schedule ledger entry.*fields/i],
+        ['observationLedger', /observation ledger entry.*fields/i],
+        ['actionLedger', /action ledger entry.*fields/i],
+      ] as const;
+      for (const [ledgerName, expectedError] of nestedLedgerShadowCases) {
+        const shadowLedgerExecution = clone(onReceipt.execution) as HeadlessExperimentReceipt;
+        (
+          shadowLedgerExecution[ledgerName][0] as unknown as Record<string, unknown>
+        ).publisherAuthenticated = true;
+        const shadowLedgerSourceRun = resealSourceRun(
+          onReceipt.sourceRunReceipt as HeadlessExperimentSourceRunReceiptV3,
+          (receipt) => {
+            receipt.innerLedger.canonicalReceiptHash =
+              hashHeadlessValue(shadowLedgerExecution);
+          }
+        );
+        await expect(
+          verifyHeadlessExperimentSourceRunReceipt(
+            shadowLedgerSourceRun,
+            shadowLedgerExecution,
+            {
+              worldSource,
+              planSource: authoredPlan,
+              behaviorSource: authoredBehavior,
+            }
+          )
+        ).resolves.toMatchObject({
+          valid: false,
+          errors: [expect.stringMatching(expectedError)],
+        });
+      }
+
+      const shadowClockExecution = clone(onReceipt.execution) as HeadlessExperimentReceipt;
+      (
+        shadowClockExecution.logicalClock as unknown as Record<string, unknown>
+      ).publisherAuthenticated = true;
+      shadowClockExecution.canonicalFields.logicalClockHash = hashHeadlessValue(
+        shadowClockExecution.logicalClock
+      );
+      const terminalPreimage = {
+        schema: shadowClockExecution.schema,
+        hashAlgorithm: shadowClockExecution.hashAlgorithm,
+        runId: shadowClockExecution.runId,
+        seed: shadowClockExecution.seed,
+        sourceBundleHash: shadowClockExecution.sourceBundleHash,
+        manifestHash: hashHeadlessValue(shadowClockExecution.manifest),
+        finalTick: shadowClockExecution.terminal.finalTick,
+        finalPublicStateHash: shadowClockExecution.terminal.finalPublicStateHash,
+        expectedCounts: shadowClockExecution.terminal.expectedCounts,
+        actualCounts: shadowClockExecution.terminal.actualCounts,
+        publicStateHistoryRoot: shadowClockExecution.terminal.publicStateHistoryRoot,
+        scheduleRoot: shadowClockExecution.terminal.scheduleRoot,
+        observationRoot: shadowClockExecution.terminal.observationRoot,
+        actionRoot: shadowClockExecution.terminal.actionRoot,
+        canonicalFields: shadowClockExecution.canonicalFields,
+      };
+      shadowClockExecution.terminal.terminalCommitment = hashHeadlessValue(terminalPreimage);
+      const shadowClockSourceRun = resealSourceRun(
+        onReceipt.sourceRunReceipt as HeadlessExperimentSourceRunReceiptV3,
+        (receipt) => {
+          receipt.innerLedger.terminalCommitment =
+            shadowClockExecution.terminal.terminalCommitment;
+          receipt.innerLedger.canonicalReceiptHash =
+            hashHeadlessValue(shadowClockExecution);
+        }
+      );
+      await expect(
+        verifyHeadlessExperimentSourceRunReceipt(
+          shadowClockSourceRun,
+          shadowClockExecution,
+          {
+            worldSource,
+            planSource: authoredPlan,
+            behaviorSource: authoredBehavior,
+          }
+        )
+      ).resolves.toMatchObject({
+        valid: false,
+        errors: [expect.stringMatching(/logical clock fields/i)],
       });
 
       const downgradedSourceRun = resealSourceRun(
