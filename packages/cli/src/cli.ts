@@ -16,7 +16,13 @@ import { fmtCommand } from './commands/fmt';
 import { hologramCommand } from './commands/hologram';
 import { quickstartCommand } from './commands/quickstart';
 import { runPhysicsSmoke, printSmokeReceipt } from './smoke';
-import { PURE_HOLO_WORLD_PROJECTION, runHeadlessExperimentSources } from './headless-experiment';
+import { runHeadlessExperimentSources } from './headless-experiment';
+import {
+  buildHeadlessPosePhysicsReceipt,
+  headlessAstToSceneReceipt,
+  holoCompositionToHeadlessAst,
+  normalizeHeadlessSceneProperties,
+} from './holo-headless-world-projection';
 
 /**
  * Minimal structural shape for parse errors emitted by the various parsers
@@ -97,36 +103,6 @@ function normalizeHsplusTraits(...nodes: unknown[]): Array<{ name: string; confi
   return [...traits.entries()].map(([name, config]) => ({ name, config }));
 }
 
-function normalizeHsplusProperties(properties: Record<string, unknown>): Record<string, unknown> {
-  const normalized = { ...properties };
-  const material = asRecord(normalized.material);
-
-  for (const key of ['color', 'roughness', 'opacity', 'transparent'] as const) {
-    if (normalized[key] === undefined && material[key] !== undefined) {
-      normalized[key] = material[key];
-    }
-  }
-
-  if (normalized.metallic === undefined && material.metalness !== undefined) {
-    normalized.metallic = material.metalness;
-  }
-
-  if (normalized.scale === undefined && typeof normalized.radius === 'number') {
-    const diameter = normalized.radius * 2;
-    normalized.scale = [diameter, diameter, diameter];
-  }
-
-  if (
-    normalized.scale === undefined &&
-    (typeof normalized.width === 'number' || typeof normalized.height === 'number')
-  ) {
-    normalized.scale = [normalized.width ?? 1, 1, normalized.height ?? 1];
-  }
-
-  delete normalized.__templateRef;
-  return normalized;
-}
-
 function mapHsplusToGeneratorAst(parseResult: unknown): {
   orbs: Array<Record<string, unknown>>;
   functions: Array<{ name: string }>;
@@ -150,7 +126,10 @@ function mapHsplusToGeneratorAst(parseResult: unknown): {
         typeof ownProperties.__templateRef === 'string' ? ownProperties.__templateRef : undefined;
       const template = templateRef ? templates.get(templateRef) : undefined;
       const templateProperties = asRecord(template?.properties);
-      const properties = normalizeHsplusProperties({ ...templateProperties, ...ownProperties });
+      const properties = normalizeHeadlessSceneProperties({
+        ...templateProperties,
+        ...ownProperties,
+      });
 
       return {
         name: typeof node.name === 'string' ? node.name : node.id,
@@ -575,276 +554,6 @@ async function runWorldModelTrajectoryGenerate(
   if (options.output) {
     console.log(`Wrote report: ${options.output}`);
   }
-}
-
-function propertyListToRecord(properties: unknown): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const property of Array.isArray(properties) ? properties : []) {
-    const entry = asRecord(property);
-    if (typeof entry.key === 'string') {
-      result[entry.key] = entry.value;
-    }
-  }
-  return result;
-}
-
-function stateBlockToRecord(state: unknown): Record<string, unknown> {
-  return propertyListToRecord(asRecord(state).properties);
-}
-
-function traitListsToMap(...traitLists: unknown[]): Map<string, Record<string, unknown>> {
-  const traits = new Map<string, Record<string, unknown>>();
-
-  for (const traitList of traitLists) {
-    for (const trait of Array.isArray(traitList) ? traitList : []) {
-      const entry = asRecord(trait);
-      if (typeof entry.name !== 'string') continue;
-      const config = { ...asRecord(entry.config) };
-      if (Array.isArray(entry.args) && entry.args.length > 0) {
-        config.args = entry.args;
-      }
-      traits.set(entry.name, config);
-    }
-  }
-
-  return traits;
-}
-
-function holoTemplateMap(composition: unknown): Map<string, Record<string, unknown>> {
-  const templates = new Map<string, Record<string, unknown>>();
-  for (const template of Array.isArray(asRecord(composition).templates)
-    ? (asRecord(composition).templates as unknown[])
-    : []) {
-    const entry = asRecord(template);
-    if (typeof entry.name === 'string') {
-      templates.set(entry.name, entry);
-    }
-  }
-  return templates;
-}
-
-function holoObjectToHeadlessNode(
-  object: unknown,
-  templates: Map<string, Record<string, unknown>>,
-  groupPath: string[] = []
-): (HsplusNodeLike & Record<string, unknown>) | null {
-  const entry = asRecord(object);
-  const name = typeof entry.name === 'string' ? entry.name : undefined;
-  if (!name) return null;
-
-  const templateName = typeof entry.template === 'string' ? entry.template : undefined;
-  const template = templateName ? templates.get(templateName) : undefined;
-  const properties = normalizeHsplusProperties({
-    ...propertyListToRecord(template?.properties),
-    ...propertyListToRecord(entry.properties),
-  });
-  const stateBlock = stateBlockToRecord(entry.state);
-  const directives = [
-    ...(Array.isArray(template?.directives) ? template.directives : []),
-    ...(Array.isArray(entry.directives) ? entry.directives : []),
-  ];
-  const children = (Array.isArray(entry.children) ? entry.children : [])
-    .map((child) => holoObjectToHeadlessNode(child, templates, groupPath))
-    .filter(Boolean);
-  const node: HsplusNodeLike & Record<string, unknown> = {
-    type: typeof entry.declarationKind === 'string' ? entry.declarationKind : 'object',
-    id: name,
-    name,
-    template: templateName ?? null,
-    groupPath,
-    properties,
-    traits: traitListsToMap(template?.traits, entry.traits),
-    directives,
-    children,
-  };
-
-  if (Object.keys(stateBlock).length > 0) {
-    node.stateBlock = stateBlock;
-  }
-
-  return node;
-}
-
-function collectHoloHeadlessNodes(
-  composition: unknown
-): Array<HsplusNodeLike & Record<string, unknown>> {
-  const root = asRecord(composition);
-  const templates = holoTemplateMap(root);
-  const nodes: Array<HsplusNodeLike & Record<string, unknown>> = [];
-  const addObjects = (objects: unknown, groupPath: string[] = []) => {
-    for (const object of Array.isArray(objects) ? objects : []) {
-      const node = holoObjectToHeadlessNode(object, templates, groupPath);
-      if (node) nodes.push(node);
-    }
-  };
-  const visitGroup = (group: unknown, groupPath: string[] = []) => {
-    const entry = asRecord(group);
-    const nextPath = typeof entry.name === 'string' ? [...groupPath, entry.name] : groupPath;
-    addObjects(entry.objects, nextPath);
-    for (const child of Array.isArray(entry.groups) ? entry.groups : []) {
-      visitGroup(child, nextPath);
-    }
-  };
-
-  addObjects(root.objects);
-  for (const group of Array.isArray(root.spatialGroups) ? root.spatialGroups : []) {
-    visitGroup(group);
-  }
-  for (const conditional of Array.isArray(root.conditionals) ? root.conditionals : []) {
-    const entry = asRecord(conditional);
-    addObjects(entry.objects);
-    addObjects(entry.elseObjects);
-    for (const group of Array.isArray(entry.spatialGroups) ? entry.spatialGroups : []) {
-      visitGroup(group);
-    }
-    for (const group of Array.isArray(entry.elseSpatialGroups) ? entry.elseSpatialGroups : []) {
-      visitGroup(group);
-    }
-  }
-  for (const iterator of Array.isArray(root.iterators) ? root.iterators : []) {
-    const entry = asRecord(iterator);
-    addObjects(entry.objects);
-    for (const group of Array.isArray(entry.spatialGroups) ? entry.spatialGroups : []) {
-      visitGroup(group);
-    }
-  }
-  for (const world of Array.isArray(root.worlds) ? root.worlds : []) {
-    const entry = asRecord(world);
-    const worldPath = typeof entry.name === 'string' ? [entry.name] : ['world'];
-    addObjects(entry.children, worldPath);
-  }
-
-  return nodes;
-}
-
-function holoCompositionToHeadlessAst(composition: unknown): Record<string, unknown> {
-  const root = asRecord(composition);
-  const children = collectHoloHeadlessNodes(root);
-  const stateBody = stateBlockToRecord(root.state);
-  return {
-    type: 'Program',
-    root: {
-      type: 'scene',
-      id: 'root',
-      name: typeof root.name === 'string' ? root.name : 'root',
-      children,
-      directives:
-        Object.keys(stateBody).length > 0
-          ? [
-              {
-                type: 'state',
-                body: stateBody,
-              },
-            ]
-          : [],
-    },
-    imports: Array.isArray(root.imports) ? root.imports : [],
-    body: children,
-  };
-}
-
-function buildHeadlessPosePhysicsReceipt(sceneReceipt: unknown): Record<string, unknown> {
-  const scene = asRecord(sceneReceipt);
-  const objects = Array.isArray(scene.objects) ? scene.objects : [];
-
-  return {
-    schema: 'holoscript-headless-pose-physics-receipt-v1',
-    mode: 'headless-scene-state',
-    complete: true,
-    objectCount: typeof scene.objectCount === 'number' ? scene.objectCount : objects.length,
-    bodies: objects.map((object) => {
-      const entry = asRecord(object);
-      return {
-        id: entry.id,
-        type: entry.type,
-        parentId: entry.parentId ?? null,
-        template: entry.template ?? null,
-        transform: entry.transform ?? {},
-        physics: entry.physics ?? {},
-        traits: Array.isArray(entry.traits) ? entry.traits : [],
-      };
-    }),
-  };
-}
-
-function traitNamesFromHeadlessNode(node: Record<string, unknown>): string[] {
-  if (node.traits instanceof Map) {
-    return [...node.traits.keys()].map(String).sort();
-  }
-  if (Array.isArray(node.traits)) {
-    return node.traits
-      .map((trait) => {
-        const entry = asRecord(trait);
-        return typeof entry.name === 'string' ? entry.name : null;
-      })
-      .filter((name): name is string => Boolean(name))
-      .sort();
-  }
-  return [];
-}
-
-function headlessAstToSceneReceipt(ast: unknown): Record<string, unknown> {
-  const root = asRecord(asRecord(ast).root);
-  const objects: Record<string, unknown>[] = [];
-  const nodeId = (node: Record<string, unknown>) =>
-    String(node.id || node.name || node.type || `node-${objects.length}`);
-
-  const visit = (nodeValue: unknown, parentId: string | null, path: string[]) => {
-    const node = asRecord(nodeValue);
-    if (!node.type) return;
-    const id = nodeId(node);
-    const nextPath = [...path, id];
-    const properties = asRecord(node.properties);
-    const traits = traitNamesFromHeadlessNode(node);
-    const physicsConfig =
-      node.traits instanceof Map
-        ? asRecord(node.traits.get('physics'))
-        : asRecord(properties.physics);
-    const groupPath = Array.isArray(node.groupPath) ? node.groupPath.map(String) : [];
-
-    objects.push({
-      id,
-      type: String(node.type),
-      name: typeof node.name === 'string' ? node.name : undefined,
-      template: typeof node.template === 'string' ? node.template : null,
-      parentId,
-      path: nextPath,
-      groupPath,
-      traits,
-      properties,
-      transform: {
-        position: properties.position ?? node.position ?? null,
-        rotation: properties.rotation ?? node.rotation ?? null,
-        scale: properties.scale ?? node.scale ?? null,
-      },
-      physics: {
-        collidable: traits.includes('collidable') || Boolean(properties.collidable),
-        kinematic: physicsConfig.kinematic ?? properties.kinematic ?? traits.includes('static'),
-        massKg:
-          physicsConfig.massKg ??
-          physicsConfig.mass ??
-          properties.massKg ??
-          properties.mass ??
-          null,
-      },
-    });
-
-    for (const child of Array.isArray(node.children) ? node.children : []) {
-      visit(child, id, nextPath);
-    }
-  };
-
-  for (const child of Array.isArray(root.children) ? root.children : []) {
-    visit(child, null, []);
-  }
-
-  return {
-    schema: 'holoscript-headless-scene-receipt-v1',
-    source: 'CLIHeadlessAstBridge',
-    rootId: typeof root.id === 'string' ? root.id : null,
-    objectCount: objects.length,
-    objects,
-  };
 }
 
 function isMissingPuppeteerError(error: Error): boolean {
@@ -1802,26 +1511,6 @@ async function main(): Promise<void> {
             worldSource: content,
             planSource: fs.readFileSync(planPath, 'utf8'),
             behaviorSource: fs.readFileSync(behaviorPath, 'utf8'),
-            captureWorld: () => {
-              // Reparse on every observer pass so no mutable AST or runtime
-              // state is shared. This path is a pure receipt projection: it
-              // does not start lifecycle hooks, attach traits, or initialize
-              // network/protocol providers.
-              const captureParser = new HoloCompositionParser();
-              const captureParseResult = captureParser.parse(content);
-              if (!captureParseResult.success) {
-                throw new Error(
-                  `Fresh deterministic world parse failed: ${captureParseResult.errors
-                    .map((error: CliParseError) => error.message)
-                    .join('; ')}`
-                );
-              }
-              const captureAst = holoCompositionToHeadlessAst(captureParseResult.ast);
-              const scene = headlessAstToSceneReceipt(captureAst);
-              const posePhysics = buildHeadlessPosePhysicsReceipt(scene);
-              return { scene, posePhysics };
-            },
-            worldProjectionEngine: PURE_HOLO_WORLD_PROJECTION,
             observer: options.observer ?? 'off',
           });
           const output = {

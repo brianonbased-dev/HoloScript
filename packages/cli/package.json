@@ -23,7 +23,7 @@
     "start": "node ./dist/cli.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:public-receipts": "tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --skipLibCheck test/public-receipt-api.consumer.ts && node -e \"const api=require('./dist/index.js'); for (const key of ['HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA','verifyHeadlessExperimentSourceRunReceipt','HS_PLAN_KERNEL_EXECUTION_PROVENANCE_SCHEMA','verifyHsPlanKernelExecutionProvenance']) if (api[key] === undefined) throw new Error('missing public receipt API: ' + key); for (const key of ['HS_PLAN_KERNEL_TRACE_PROGRAM_COUNTERS','HS_PLAN_KERNEL_TRACE_OPCODES']) if (!Object.isFrozen(api[key])) throw new Error('mutable public receipt constant: ' + key);\""
+    "test:public-receipts": "tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --skipLibCheck test/public-receipt-api.consumer.ts && node -e \"const api=require('./dist/index.js'); for (const key of ['HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA','HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3','HOLO_WORLD_PROJECTION_PROVENANCE_SCHEMA','DETERMINISTIC_HOLO_WORLD_PROJECTION','executeHoloWorldProjection','verifyHoloWorldProjectionProvenance','verifyHeadlessExperimentSourceRunReceipt','HS_PLAN_KERNEL_EXECUTION_PROVENANCE_SCHEMA','verifyHsPlanKernelExecutionProvenance']) if (api[key] === undefined) throw new Error('missing public receipt API: ' + key); for (const key of ['HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3','HS_PLAN_KERNEL_TRACE_PROGRAM_COUNTERS','HS_PLAN_KERNEL_TRACE_OPCODES']) if (!Object.isFrozen(api[key])) throw new Error('mutable public receipt constant: ' + key);\""
   },
   "keywords": [
     "holoscript",

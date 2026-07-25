@@ -75,11 +75,23 @@ export {
 
 // Deterministic cross-format experiment receipts
 export {
+  DETERMINISTIC_HOLO_WORLD_PROJECTION,
   HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA,
+  HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3,
   HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY,
+  HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3,
+  HOLO_WORLD_PROJECTION_PROVENANCE_SCHEMA,
+  PURE_HOLO_WORLD_PROJECTION,
+  executeHoloWorldProjection,
+  verifyHoloWorldProjectionProvenance,
   verifyHeadlessExperimentSourceRunReceipt,
+  type AnyHeadlessExperimentSourceRunReceipt,
   type HeadlessExperimentSourceRunReceipt,
+  type HeadlessExperimentSourceRunReceiptV3,
   type HeadlessExperimentSourceRunSources,
+  type HoloWorldProjectionExecution,
+  type HoloWorldProjectionProvenance,
+  type HoloWorldProjectionVerificationOptions,
 } from './headless-experiment';
 export {
   HS_PLAN_KERNEL_EXECUTION_PROVENANCE_SCHEMA,

@@ -20,13 +20,37 @@ import {
   verifyHsPlanKernelExecutionProvenance,
   type HsPlanKernelExecutionProvenance,
 } from './native-hs-plan-runner';
+import {
+  DETERMINISTIC_HOLO_WORLD_PROJECTION,
+  PURE_HOLO_WORLD_PROJECTION,
+  executeHoloWorldProjection,
+  verifyHoloWorldProjectionProvenance,
+  type HoloWorldProjectionProvenance,
+} from './holo-headless-world-projection';
+
+export {
+  DETERMINISTIC_HOLO_WORLD_PROJECTION,
+  HOLO_WORLD_PROJECTION_PROVENANCE_SCHEMA,
+  PURE_HOLO_WORLD_PROJECTION,
+  executeHoloWorldProjection,
+  verifyHoloWorldProjectionProvenance,
+  type HoloWorldProjectionExecution,
+  type HoloWorldProjectionProvenance,
+  type HoloWorldProjectionVerificationOptions,
+} from './holo-headless-world-projection';
 
 export const POST_SEAL_OBSERVER_PROCESS = 'separate-node-process-serialized-post-seal-v1' as const;
-export const PURE_HOLO_WORLD_PROJECTION = 'holoscript-cli-pure-world-projection-v1' as const;
 export const HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA =
   'holoscript.headless-experiment-source-run.v2' as const;
 export const HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY = Object.freeze({
   world: 'source-hash-anchored-inner-ledger-not-reexecuted-v1',
+  schedule: 'source-reexecuted-rust-wasm-uaal-v1',
+  behavior: 'source-hash-anchored-inner-ledger-not-reexecuted-v1',
+});
+export const HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3 =
+  'holoscript.headless-experiment-source-run.v3' as const;
+export const HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3 = Object.freeze({
+  world: 'source-reexecuted-core-parser-structural-projection-no-lifecycle-v1',
   schedule: 'source-reexecuted-rust-wasm-uaal-v1',
   behavior: 'source-hash-anchored-inner-ledger-not-reexecuted-v1',
 });
@@ -45,9 +69,9 @@ export interface HeadlessObserverEquivalenceProof {
 
 export interface HeadlessExperimentSourceRun {
   execution: HeadlessExperimentReceipt;
-  sourceRunReceipt: HeadlessExperimentSourceRunReceipt;
+  sourceRunReceipt: HeadlessExperimentSourceRunReceiptV3;
   engines: {
-    world: typeof PURE_HOLO_WORLD_PROJECTION;
+    world: typeof DETERMINISTIC_HOLO_WORLD_PROJECTION;
     schedule: typeof RUST_WASM_UAAL_HS_PLAN_KERNEL;
     behavior: typeof ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET;
   };
@@ -68,7 +92,7 @@ export interface HeadlessExperimentSourceRun {
     uaalBytecodeHashSealedInReceipt: true;
     uaalVmExecutionProfileSealedInReceipt: true;
     hsReturnedPlanHashSealedInReceipt: true;
-    worldSourceReexecutedDuringVerification: false;
+    worldSourceReexecutedDuringVerification: true;
     hsPlanSourceReexecutedDuringVerification: true;
     hsplusBehaviorSourceReexecutedDuringVerification: false;
     compilerArtifactAttested: false;
@@ -105,6 +129,28 @@ export interface HeadlessExperimentSourceRunReceipt {
   sourceRunCommitment: string;
 }
 
+export interface HeadlessExperimentSourceRunReceiptV3 {
+  schema: typeof HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3;
+  hashAlgorithm: typeof HEADLESS_EXPERIMENT_HASH_ALGORITHM;
+  sourceBundleHash: string;
+  verificationBoundary: typeof HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3;
+  engines: {
+    world: HoloWorldProjectionProvenance;
+    schedule: HsPlanKernelExecutionProvenance;
+    behavior: typeof ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET;
+  };
+  innerLedger: {
+    schema: typeof HEADLESS_EXPERIMENT_RECEIPT_SCHEMA;
+    terminalCommitment: string;
+    canonicalReceiptHash: string;
+  };
+  sourceRunCommitment: string;
+}
+
+export type AnyHeadlessExperimentSourceRunReceipt =
+  | HeadlessExperimentSourceRunReceipt
+  | HeadlessExperimentSourceRunReceiptV3;
+
 export interface HeadlessExperimentSourceRunSources {
   worldSource: string;
   planSource: string;
@@ -139,30 +185,27 @@ function assertExactKeys(
 }
 
 function sourceRunPreimage(
-  receipt: HeadlessExperimentSourceRunReceipt
-): Omit<HeadlessExperimentSourceRunReceipt, 'sourceRunCommitment'> {
-  return {
-    schema: receipt.schema,
-    hashAlgorithm: receipt.hashAlgorithm,
-    sourceBundleHash: receipt.sourceBundleHash,
-    verificationBoundary: receipt.verificationBoundary,
-    engines: receipt.engines,
-    innerLedger: receipt.innerLedger,
-  };
+  receipt: AnyHeadlessExperimentSourceRunReceipt
+):
+  | Omit<HeadlessExperimentSourceRunReceipt, 'sourceRunCommitment'>
+  | Omit<HeadlessExperimentSourceRunReceiptV3, 'sourceRunCommitment'> {
+  const { sourceRunCommitment: _sourceRunCommitment, ...preimage } = receipt;
+  return preimage;
 }
 
 function buildSourceRunReceipt(options: {
   sourceBundleHash: string;
   execution: HeadlessExperimentReceipt;
   planProvenance: HsPlanKernelExecutionProvenance;
-}): HeadlessExperimentSourceRunReceipt {
-  const preimage: Omit<HeadlessExperimentSourceRunReceipt, 'sourceRunCommitment'> = {
-    schema: HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA,
+  worldProvenance: HoloWorldProjectionProvenance;
+}): HeadlessExperimentSourceRunReceiptV3 {
+  const preimage: Omit<HeadlessExperimentSourceRunReceiptV3, 'sourceRunCommitment'> = {
+    schema: HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3,
     hashAlgorithm: HEADLESS_EXPERIMENT_HASH_ALGORITHM,
     sourceBundleHash: options.sourceBundleHash,
-    verificationBoundary: HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY,
+    verificationBoundary: HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3,
     engines: {
-      world: PURE_HOLO_WORLD_PROJECTION,
+      world: options.worldProvenance,
       schedule: options.planProvenance,
       behavior: ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
     },
@@ -182,14 +225,14 @@ function buildSourceRunReceipt(options: {
 }
 
 /**
- * Verify the additive source-run v2 seal against untrusted serialized claims.
+ * Verify additive source-run v2 or v3 seals against untrusted serialized claims.
  *
- * Verification is deliberately asymmetric and records that boundary in the
- * committed receipt: the `.hs` schedule source is parsed, compiled, and
- * re-executed, while `.holo` world and `.hsplus` behavior sources are
- * hash-anchored to a self-consistent inner v1 ledger but are not re-executed.
- * SHA-256 proves integrity/reproducibility within that boundary, not publisher
- * identity or exact WASM-binary attestation.
+ * V2 retains its published asymmetric boundary: `.hs` is re-executed while
+ * `.holo` and `.hsplus` are hash-anchored. V3 additionally reparses the
+ * single-source `.holo` world through the fixed structural projector and
+ * compares the complete scene and pose/physics projections. Neither version
+ * claims `.holo` lifecycle execution, `.hsplus` source re-execution, publisher
+ * identity, or exact compiler-artifact attestation.
  */
 export async function verifyHeadlessExperimentSourceRunReceipt(
   receiptInput: unknown,
@@ -211,7 +254,15 @@ export async function verifyHeadlessExperimentSourceRunReceipt(
       ],
       'source-run receipt'
     );
-    const receipt = receiptInput as unknown as HeadlessExperimentSourceRunReceipt;
+    const schema = receiptInput.schema;
+    if (
+      schema !== HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA &&
+      schema !== HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3
+    ) {
+      throw new Error('source-run receipt identity mismatch');
+    }
+    const receipt = receiptInput as unknown as AnyHeadlessExperimentSourceRunReceipt;
+    const isV3 = receipt.schema === HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3;
     assertExactKeys(
       executionInput,
       [
@@ -245,23 +296,28 @@ export async function verifyHeadlessExperimentSourceRunReceipt(
       ['schema', 'terminalCommitment', 'canonicalReceiptHash'],
       'source-run inner ledger'
     );
-    if (
-      receipt.schema !== HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA ||
-      receipt.hashAlgorithm !== HEADLESS_EXPERIMENT_HASH_ALGORITHM
-    ) {
+    if (receipt.hashAlgorithm !== HEADLESS_EXPERIMENT_HASH_ALGORITHM) {
       throw new Error('source-run receipt identity mismatch');
     }
+    const expectedVerificationBoundary = isV3
+      ? HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3
+      : HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY;
     if (
       canonicalizeHeadlessValue(receipt.verificationBoundary) !==
-      canonicalizeHeadlessValue(HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY)
+      canonicalizeHeadlessValue(expectedVerificationBoundary)
     ) {
       throw new Error('source-run verification boundary mismatch');
     }
     if (
-      receipt.engines.world !== PURE_HOLO_WORLD_PROJECTION ||
       receipt.engines.behavior !== ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET ||
       receipt.engines.schedule.engine !== RUST_WASM_UAAL_HS_PLAN_KERNEL
     ) {
+      throw new Error('source-run engine identity mismatch');
+    }
+    if (!isV3 && receipt.engines.world !== PURE_HOLO_WORLD_PROJECTION) {
+      throw new Error('source-run engine identity mismatch');
+    }
+    if (isV3 && receipt.engines.world.engine !== DETERMINISTIC_HOLO_WORLD_PROJECTION) {
       throw new Error('source-run engine identity mismatch');
     }
     const expectedSourceBundleHash = hashHeadlessValue({
@@ -296,6 +352,16 @@ export async function verifyHeadlessExperimentSourceRunReceipt(
     });
     if (!innerVerification.valid) {
       throw new Error(`inner execution receipt failed: ${innerVerification.errors.join('; ')}`);
+    }
+    if (isV3) {
+      const worldVerification = verifyHoloWorldProjectionProvenance(receipt.engines.world, {
+        expectedSource: sources.worldSource,
+        expectedScene: execution.scene,
+        expectedPosePhysics: execution.posePhysics,
+      });
+      if (!worldVerification.valid) {
+        throw new Error(`world provenance failed: ${worldVerification.errors.join('; ')}`);
+      }
     }
     const expectedRecords = [execution.manifest, ...schedule];
     const planVerification = await verifyHsPlanKernelExecutionProvenance(receipt.engines.schedule, {
@@ -394,15 +460,8 @@ export async function runHeadlessExperimentSources(options: {
   worldSource: string;
   planSource: string;
   behaviorSource: string;
-  captureWorld: () =>
-    | Promise<{ scene: unknown; posePhysics: unknown }>
-    | { scene: unknown; posePhysics: unknown };
-  worldProjectionEngine: typeof PURE_HOLO_WORLD_PROJECTION;
   observer: 'off' | 'on';
 }): Promise<HeadlessExperimentSourceRun> {
-  if (options.worldProjectionEngine !== PURE_HOLO_WORLD_PROJECTION) {
-    throw new Error('Headless experiment requires the pure Holo world projection');
-  }
   const sourceBundleHash = hashHeadlessValue({
     world: options.worldSource,
     plan: options.planSource,
@@ -411,11 +470,11 @@ export async function runHeadlessExperimentSources(options: {
 
   const execute = async (): Promise<{
     execution: HeadlessExperimentReceipt;
-    sourceRunReceipt: HeadlessExperimentSourceRunReceipt;
+    sourceRunReceipt: HeadlessExperimentSourceRunReceiptV3;
   }> => {
     const planKernel = await executeHsPlanKernel(options.planSource);
     const plan = parseHeadlessExperimentPlan(planKernel.data);
-    const world = await options.captureWorld();
+    const world = executeHoloWorldProjection(options.worldSource);
     const behavior = createDeterministicHsplusActionRuntime(options.behaviorSource);
     const receipt = await buildHeadlessExperimentReceipt({
       sourceBundleHash,
@@ -438,6 +497,7 @@ export async function runHeadlessExperimentSources(options: {
       sourceBundleHash,
       execution: receipt,
       planProvenance: planKernel.provenance,
+      worldProvenance: world.provenance,
     });
     const sourceRunVerification = await verifyHeadlessExperimentSourceRunReceipt(
       sourceRunReceipt,
@@ -473,7 +533,7 @@ export async function runHeadlessExperimentSources(options: {
     execution: offRun.execution,
     sourceRunReceipt: offRun.sourceRunReceipt,
     engines: {
-      world: PURE_HOLO_WORLD_PROJECTION,
+      world: DETERMINISTIC_HOLO_WORLD_PROJECTION,
       schedule: RUST_WASM_UAAL_HS_PLAN_KERNEL,
       behavior: ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
     },
@@ -494,7 +554,7 @@ export async function runHeadlessExperimentSources(options: {
       uaalBytecodeHashSealedInReceipt: true,
       uaalVmExecutionProfileSealedInReceipt: true,
       hsReturnedPlanHashSealedInReceipt: true,
-      worldSourceReexecutedDuringVerification: false,
+      worldSourceReexecutedDuringVerification: true,
       hsPlanSourceReexecutedDuringVerification: true,
       hsplusBehaviorSourceReexecutedDuringVerification: false,
       compilerArtifactAttested: false,

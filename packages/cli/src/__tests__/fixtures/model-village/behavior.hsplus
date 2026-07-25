@@ -1,0 +1,28 @@
+composition "Model Village Deterministic Behavior" {
+  state {
+    water: 2
+    privateAdapter: "fixture-private-adapter"
+  }
+
+  logic {
+    action observe(residentId) {
+      return {
+        resident_id: residentId,
+        location: "commons",
+        visible_event_ids: [],
+        // Strict-canonical SHA-256 digest of [], representing empty bounded memory.
+        bounded_memory_hash: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    }
+
+    action contribute(amount) {
+      state.water = state.water + amount
+      emit("water_added", { amount: amount })
+      return { allowed: true, outcome: "water_added" }
+    }
+
+    action reject() {
+      return { allowed: false, outcome: "blocked_without_world_mutation" }
+    }
+  }
+}

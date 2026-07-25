@@ -1,16 +1,24 @@
 import {
+  DETERMINISTIC_HOLO_WORLD_PROJECTION,
   HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA,
+  HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3,
+  HOLO_WORLD_PROJECTION_PROVENANCE_SCHEMA,
   HS_PLAN_KERNEL_EXECUTION_PROVENANCE_SCHEMA,
+  executeHoloWorldProjection,
   verifyHeadlessExperimentSourceRunReceipt,
+  verifyHoloWorldProjectionProvenance,
   verifyHsPlanKernelExecutionProvenance,
   type HeadlessExperimentSourceRunSources,
+  type HoloWorldProjectionProvenance,
   type HsPlanKernelExecutionProvenance,
 } from '../dist/index.js';
 
 declare const untrustedSourceRunReceipt: unknown;
 declare const untrustedInnerExecutionReceipt: unknown;
 declare const untrustedPlanProvenance: unknown;
+declare const untrustedWorldProvenance: unknown;
 declare const verifiedPlanProvenance: HsPlanKernelExecutionProvenance;
+declare const verifiedWorldProvenance: HoloWorldProjectionProvenance;
 
 const sources: HeadlessExperimentSourceRunSources = {
   worldSource: 'composition "Canary" {}',
@@ -26,9 +34,22 @@ const sourceRunVerdict = verifyHeadlessExperimentSourceRunReceipt(
 const planVerdict = verifyHsPlanKernelExecutionProvenance(untrustedPlanProvenance, {
   expectedSource: sources.planSource,
 });
+const projectedWorld = executeHoloWorldProjection(sources.worldSource);
+const worldVerdict = verifyHoloWorldProjectionProvenance(untrustedWorldProvenance, {
+  expectedSource: sources.worldSource,
+  expectedScene: projectedWorld.scene,
+  expectedPosePhysics: projectedWorld.posePhysics,
+});
 
 const sourceRunSchema: 'holoscript.headless-experiment-source-run.v2' =
   HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA;
+const sourceRunSchemaV3: 'holoscript.headless-experiment-source-run.v3' =
+  HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3;
+const worldProjectionSchema: 'holoscript.holo-world-projection-provenance.v1' =
+  HOLO_WORLD_PROJECTION_PROVENANCE_SCHEMA;
+const worldProjectionEngine: 'holoscript-core-parser-headless-world-projection-v1' =
+  DETERMINISTIC_HOLO_WORLD_PROJECTION;
+const projectedObjectCount: number = verifiedWorldProvenance.result.objectCount;
 const planSchema: 'holoscript.hs-plan-kernel-execution-provenance.v1' =
   HS_PLAN_KERNEL_EXECUTION_PROVENANCE_SCHEMA;
 const instructionCount: 5 = verifiedPlanProvenance.bytecode.instructionCount;
@@ -40,7 +61,12 @@ const handlerOpcodes: readonly [] = verifiedPlanProvenance.vm.profile.registered
 void [
   sourceRunVerdict,
   planVerdict,
+  worldVerdict,
   sourceRunSchema,
+  sourceRunSchemaV3,
+  worldProjectionSchema,
+  worldProjectionEngine,
+  projectedObjectCount,
   planSchema,
   instructionCount,
   traceCount,
