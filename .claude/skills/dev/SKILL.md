@@ -59,7 +59,7 @@ The feature list is shorter than when you started.
 ## The Build Cycle
 
 ```
-1. ABSORB   — holo_graph_status → holo_absorb_repo (understand the code first)
+1. ABSORB   — prove a fresh sovereign graph or declare the degraded local-scan fallback
 2. PLAN     — Identify files to touch, blast radius, test strategy
 3. BUILD    — Write the code. Prefer editing existing files over creating new ones.
 4. TEST     — Run targeted tests: pnpm vitest <path>. Fix failures.
@@ -68,6 +68,20 @@ The feature list is shorter than when you started.
 7. PUSH     — Small changes (1-9 files, 1 package): push to main. 10+ files or 3+ packages: open a PR.
 8. SHARE    — Push discovery to HoloMesh as W/P/G. Post to Moltbook if significant.
 ```
+
+### Absorb authority gate
+
+1. Call `holo_graph_status` through `holoscript-local`.
+2. Trust graph answers only when the cache is loaded, authoritative, fresh for the current
+   repository commit/worktree, and complete for the selected scan.
+3. If it is missing or stale, start `holo_absorb_repo` asynchronously with sovereign
+   HoloEmbed, retain its job/resume receipt, and poll `holo_get_absorb_status` until the cache
+   is published. Re-check `holo_graph_status` before querying.
+4. If the supervised local transport interrupts a read, retry it once after the worker
+   recovers. For a mutating call, inspect its receipt or resulting state first and retry only
+   when it was not applied; never retry it blindly.
+5. If the sovereign graph remains unavailable, use the sanctioned read-only local repo scan,
+   say that the result is degraded, and do not claim graph authority or cache freshness.
 
 **NEVER skip step 1.** You must understand the code before changing it.
 **NEVER skip step 4.** Untested code is unfinished code.
@@ -153,7 +167,7 @@ Things that `/holomesh-artist`, `/holomesh-oracle`, or `/holomesh` need but can'
 - **CompilerBase tests** need RBAC mock + `'test-token'`.
 - **Cross-package imports** — externalize in tsup config, don't use relative paths across packages.
 - **Git/commit/PR rules**: See NORTH_STAR.md DT-2. Canonical scopes + 72-char limit enforced by commit-msg hook. PR required for 10+ files or 3+ packages.
-- **Cache rules**: See NORTH_STAR.md DT-5. Always `holo_graph_status` first. Sovereign default embeddings via HoloEmbed (`@holoscript/holoembed`, F.106); OpenAI opt-in only.
+- **Cache rules**: See NORTH_STAR.md DT-5. Always enforce the absorb authority gate above. Sovereign default embeddings via HoloEmbed (`@holoscript/holoembed`, F.106); OpenAI opt-in only.
 - **Codebase/absorb routing**: FS/codebase/graph tools (`holo_graph_status`, `holo_absorb_repo`, absorb/query) MUST route to the sovereign `holoscript-local` MCP — the remote is FS-blind (R.027).
 
 ## Sharing What You Built
