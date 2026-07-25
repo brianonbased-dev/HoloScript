@@ -521,6 +521,36 @@ class UnifiedPurchasedComputeLedgerTests(unittest.TestCase):
         self.assertEqual(burn_rate, 0.0)
         self.assertEqual(active, [])
 
+    def test_unsigned_reconciler_close_is_inert_until_exact_signed_close(self) -> None:
+        rent = {
+            "ts_iso": LEDGER._iso(self.now - timedelta(hours=2)),
+            "event": "rented",
+            "instance_id": 77,
+            "dph": 1,
+            **self.signed_binding("reconciled"),
+        }
+        unsigned_close = {
+            "ts_iso": LEDGER._iso(self.now - timedelta(minutes=70)),
+            "event": "closed",
+            "instance_id": 77,
+            "reason": "vast-reconcile-not-found",
+        }
+        exact_close = {
+            **unsigned_close,
+            "ts_iso": LEDGER._iso(self.now - timedelta(hours=1)),
+            **self.signed_binding("reconciled"),
+        }
+
+        spent, burn_rate, active = LEDGER.compute_day_spend(
+            [rent, unsigned_close, exact_close],
+            now=self.now,
+            window_hours=24,
+        )
+
+        self.assertAlmostEqual(spent, 1.0)
+        self.assertEqual(burn_rate, 0.0)
+        self.assertEqual(active, [])
+
     def test_cli_reports_one_dollar_headroom_then_blocks_mixed_spend(self) -> None:
         now = datetime.now(timezone.utc)
         with tempfile.TemporaryDirectory() as temp_dir:

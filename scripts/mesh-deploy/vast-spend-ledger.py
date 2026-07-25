@@ -361,6 +361,7 @@ def compute_day_spend(
     # lifecycle and at most one currently open lifecycle per provider id.
     open_rentals: dict[int | str, dict] = {}
     last_closed: dict[int | str, dict] = {}
+    pending_unsigned_closes: set[int | str] = set()
     completed: list[tuple[dict, dict]] = []
     for index, record in enumerate(records, start=1):
         event = record.get("event")
@@ -386,7 +387,7 @@ def compute_day_spend(
             }
             continue
 
-        lifecycle = open_rentals.pop(instance_id, None)
+        lifecycle = open_rentals.get(instance_id)
         if lifecycle is None:
             prior = last_closed.get(instance_id)
             if prior is None:
@@ -402,9 +403,20 @@ def compute_day_spend(
             continue
 
         if lifecycle["binding"] != binding:
+            if lifecycle["binding"] is not None and binding is None:
+                # A legacy/conservative reconciler may observe that a provider
+                # instance disappeared before the signed host watchdog writes
+                # its exact close. The unsigned row has no authority to close
+                # or replace the signed lifecycle, so retain the rental until
+                # a later exact close arrives. If none arrives, fail closed
+                # after the append-only stream has been inspected.
+                pending_unsigned_closes.add(instance_id)
+                continue
             raise LedgerIntegrityError(
                 f"closed record {index} has no exact signed lifecycle proof for instance {instance_id}"
             )
+        open_rentals.pop(instance_id)
+        pending_unsigned_closes.discard(instance_id)
         rent_ts = parse_iso(lifecycle["rent"]["ts_iso"])
         close_ts = parse_iso(record["ts_iso"])
         if close_ts < rent_ts:
@@ -416,6 +428,13 @@ def compute_day_spend(
             "binding": binding,
             "close": record,
         }
+
+    unresolved_unsigned_closes = pending_unsigned_closes.intersection(open_rentals)
+    if unresolved_unsigned_closes:
+        instance_id = sorted(unresolved_unsigned_closes, key=str)[0]
+        raise LedgerIntegrityError(
+            f"signed rental {instance_id} has an unsigned close but no exact signed lifecycle proof"
+        )
 
     already_spent = llm_spend
     daily_burn_rate = 0.0
