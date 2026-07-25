@@ -6,6 +6,7 @@ import { PassThrough } from 'node:stream';
 import {
   BUILD_GROUPS,
   buildCommandForGroup,
+  isPackagedDistInvalidationResponse,
   missingBuildGroups,
   startServer,
   stdioServerPath,
@@ -102,6 +103,39 @@ test('absorb background contract fails on stale pre-async schemas', () => {
         { name: 'holo_get_absorb_status', inputSchema: { properties: {} } },
       ]),
     /inputSchema missing async/
+  );
+});
+
+test('packaged dist invalidation detection is narrow to hashed local chunks', () => {
+  const response = {
+    jsonrpc: '2.0',
+    id: 17,
+    result: {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            error:
+              "Cannot find module './graph-rag-tools-I65GGOG7.cjs'\n" +
+              'Require stack:\n' +
+              '- C:\\repo\\packages\\absorb-service\\dist\\chunk-X2DVFQWP.cjs',
+          }),
+        },
+      ],
+    },
+  };
+
+  assert.equal(isPackagedDistInvalidationResponse(response, 'C:/repo'), true);
+  assert.equal(
+    isPackagedDistInvalidationResponse(
+      {
+        jsonrpc: '2.0',
+        id: 18,
+        result: { content: [{ type: 'text', text: "Cannot find module './user-plugin.cjs'" }] },
+      },
+      'C:/repo'
+    ),
+    false
   );
 });
 
@@ -204,6 +238,96 @@ test('unexpected worker closure keeps stdio open, fails in-flight work, and resp
   );
   await nextTurn();
   assert.match(outputChunks.join(''), /"id":42/);
+
+  input.destroy();
+  await once(input, 'close');
+  workers[1].emit('close', null, 'SIGTERM');
+});
+
+test('packaged dist invalidation response is forwarded once before worker recycle', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const workers = [fakeWorker(5501), fakeWorker(5502)];
+  const workerInput = ['', ''];
+  const outputChunks = [];
+  const taskkills = [];
+  let spawnCount = 0;
+  workers.forEach((worker, index) => {
+    worker.stdin.on('data', (chunk) => {
+      workerInput[index] += chunk.toString();
+    });
+  });
+  output.on('data', (chunk) => outputChunks.push(chunk.toString()));
+
+  startServer({
+    input,
+    output,
+    spawnImpl: () => workers[spawnCount++],
+    spawnSyncImpl: (command, args) => {
+      taskkills.push({ command, args });
+      return { status: 0 };
+    },
+    lifecycleFactory: () => ({
+      touch: () => {},
+      close: () => {},
+      reapReceipt: { candidates: [], actions: [] },
+    }),
+    platform: 'win32',
+    registerProcessHandlers: false,
+    exitProcess: () => {},
+    restartDelayMs: () => 0,
+    setTimeoutImpl: (callback) => {
+      callback();
+      return null;
+    },
+  });
+
+  input.write(
+    `${JSON.stringify({
+      jsonrpc: '2.0',
+      id: 77,
+      method: 'tools/call',
+      params: { name: 'holo_graph_status', arguments: {} },
+    })}\n`
+  );
+  await nextTurn();
+  workers[0].stdout.write(
+    `${JSON.stringify({
+      jsonrpc: '2.0',
+      id: 77,
+      result: {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              error:
+                "Cannot find module './graph-rag-tools-I65GGOG7.cjs'\n" +
+                'Require stack:\n' +
+                `- ${process
+                  .cwd()
+                  .replaceAll('/', '\\')}\\packages\\absorb-service\\dist\\chunk-X2DVFQWP.cjs`,
+            }),
+          },
+        ],
+      },
+    })}\n`
+  );
+  await nextTurn();
+
+  assert.deepEqual(taskkills, [
+    { command: 'taskkill.exe', args: ['/PID', '5501', '/T', '/F'] },
+  ]);
+  assert.match(outputChunks.join(''), /"id":77/);
+  assert.match(outputChunks.join(''), /Cannot find module/);
+  assert.doesNotMatch(outputChunks.join(''), /"id":77[^\n]*"retryable":true/);
+
+  workers[0].emit('close', 1, null);
+  await nextTurn();
+  assert.equal(spawnCount, 2);
+
+  input.write(`${JSON.stringify({ jsonrpc: '2.0', id: 78, method: 'tools/list' })}\n`);
+  await nextTurn();
+  assert.match(workerInput[1], /"id":78/);
 
   input.destroy();
   await once(input, 'close');

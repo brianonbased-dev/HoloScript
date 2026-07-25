@@ -10,8 +10,9 @@
  * This launcher keeps stdout reserved for MCP protocol traffic, repairs missing
  * local build entrypoints on stderr, and supervises the packaged stdio worker.
  * If a rebuild invalidates a loaded chunk or the worker otherwise exits, the
- * client transport stays open: interrupted calls receive a retryable error and
- * a replacement worker receives the cached MCP initialization handshake.
+ * client transport stays open. Interrupted calls receive a retryable error; a
+ * caught hashed-dist invalidation response is forwarded once before the stale
+ * worker is recycled; and the replacement receives the cached MCP handshake.
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -114,6 +115,36 @@ export function validateAbsorbBackgroundContract(codebaseTools) {
   };
 }
 
+export function isPackagedDistInvalidationResponse(message, root = ROOT) {
+  if (!message || typeof message !== 'object' || message.id === undefined || message.method) {
+    return false;
+  }
+  const strings = [];
+  const pending = [message];
+  while (pending.length > 0) {
+    const value = pending.pop();
+    if (typeof value === 'string') {
+      strings.push(value);
+    } else if (Array.isArray(value)) {
+      pending.push(...value);
+    } else if (value && typeof value === 'object') {
+      pending.push(...Object.values(value));
+    }
+  }
+  const serialized = strings
+    .join('\n')
+    .replaceAll('\\', '/')
+    .replace(/\/+/g, '/')
+    .toLowerCase();
+  const normalizedRoot = resolve(root).replaceAll('\\', '/').toLowerCase();
+  return (
+    serialized.includes(normalizedRoot) &&
+    serialized.includes('/packages/') &&
+    serialized.includes('/dist/') &&
+    /cannot find module ['"]\.\/[^'"]+-[a-z0-9_-]{6,}\.(?:cjs|mjs|js)['"]/.test(serialized)
+  );
+}
+
 async function probeAbsorbBackgroundContract() {
   const { codebaseTools } = await import('@holoscript/absorb-service/mcp');
   return validateAbsorbBackgroundContract(codebaseTools);
@@ -210,6 +241,7 @@ export function startServer({
   let childGeneration = 0;
   let restartAttempt = 0;
   let restartTimer = null;
+  let recycleGeneration = null;
   let inputBuffer = '';
   let outputBuffer = '';
   let initializeLine = null;
@@ -282,7 +314,32 @@ export function startServer({
     if (!stopping) input.resume();
   };
 
-  const handleWorkerLine = (line) => {
+  const recycleWorker = (generation, reason) => {
+    if (
+      stopping ||
+      !child ||
+      generation !== childGeneration ||
+      recycleGeneration === generation
+    ) {
+      return;
+    }
+    recycleGeneration = generation;
+    input.pause();
+    stderr(
+      `[holoscript-mcp-stdio] Recycling worker generation ${generation} after ${reason}.`
+    );
+    if (!child.pid || child.killed) return;
+    if (platform === 'win32') {
+      const result = spawnSyncImpl('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
+        encoding: 'utf8',
+        windowsHide: true,
+      });
+      if (result.status === 0) return;
+    }
+    child.kill('SIGTERM');
+  };
+
+  const handleWorkerLine = (generation, line) => {
     const message = parseLine(line.trim());
     if (!message || message.id === undefined) {
       writeToOutput(line);
@@ -303,6 +360,9 @@ export function startServer({
     if (key === initializeIdKey && !message.error) initializeCompleted = true;
     restartAttempt = 0;
     writeToOutput(line);
+    if (isPackagedDistInvalidationResponse(message)) {
+      recycleWorker(generation, 'a packaged dist chunk was invalidated');
+    }
   };
 
   const handleWorkerData = (generation, chunk) => {
@@ -313,7 +373,7 @@ export function startServer({
     while (newline >= 0) {
       const line = outputBuffer.slice(0, newline + 1);
       outputBuffer = outputBuffer.slice(newline + 1);
-      handleWorkerLine(line);
+      handleWorkerLine(generation, line);
       newline = outputBuffer.indexOf('\n');
     }
   };
@@ -410,6 +470,7 @@ export function startServer({
       if (generation !== childGeneration) return;
       const closedChild = child;
       child = null;
+      recycleGeneration = null;
       outputBuffer = '';
       if (stopping) {
         if (closedChild?.stdout) closedChild.stdout.removeAllListeners('data');

@@ -938,10 +938,23 @@ function startBackgroundAbsorbJob(jobId: string, work: () => Promise<unknown>): 
           return;
         }
         const message = errorMessage(err);
+        const job = absorbJobs.get(jobId);
+        const refreshProgressReceipt = job?.refreshProgressReceipt;
+        const refreshSourceChanged = refreshProgressReceipt?.status === 'invalidated';
         failAbsorbJob(jobId, 'Failed', message, {
-          error: 'absorb_failed',
+          error: refreshProgressReceipt
+            ? refreshSourceChanged
+              ? 'absorb_refresh_source_changed'
+              : 'absorb_refresh_failed'
+            : 'absorb_failed',
           message,
           jobId,
+          ...(refreshProgressReceipt && {
+            cachePreserved: !job?.cacheCommitted,
+            graphAuthoritative: false,
+            resumeToken: refreshProgressReceipt.resumeToken,
+            refreshProgressReceipt,
+          }),
         });
       });
   }, 0);
@@ -3714,6 +3727,14 @@ async function runFullScan(
   const effectiveMaxFiles = maxFiles ?? effectiveScanPolicy.maxFiles ?? DEFAULT_SCAN_MAX_FILES;
   const effectiveIncludeBuildArtifacts =
     includeBuildArtifacts || effectiveScanPolicy.includeBuildArtifacts === true;
+  let activeRefreshCheckpoint = refreshCheckpoint;
+  const effectiveTargetGitCommitHash = inlineSourceFiles
+    ? null
+    : (targetGitCommitHash ?? (await getCurrentGitCommit(primaryRootDir)));
+  const effectiveTargetWorktreeFingerprint = inlineSourceFiles
+    ? null
+    : (targetWorktreeFingerprint ??
+      buildGitWorktreeFingerprint(primaryRootDir, effectiveScanPolicy));
   const recordPhaseMetric = (
     phase: string,
     details: Partial<Pick<AbsorbPhaseMetric, 'filesProcessed' | 'totalFiles' | 'totalSymbols'>> = {}
@@ -3774,25 +3795,28 @@ async function runFullScan(
 
   const enforceRefreshSourcePin = (): void => {
     let error: AbsorbRefreshCommitPinError | AbsorbRefreshWorktreePinError | undefined;
-    if (targetGitCommitHash) {
+    if (effectiveTargetGitCommitHash) {
       const detector = new GitChangeDetector(primaryRootDir);
       const currentCommit =
         typeof detector.isGitRepo !== 'function' || detector.isGitRepo()
           ? (detector.getHeadCommit?.() ?? null)
           : null;
-      if (currentCommit !== targetGitCommitHash) {
-        error = new AbsorbRefreshCommitPinError(targetGitCommitHash, currentCommit);
+      if (currentCommit !== effectiveTargetGitCommitHash) {
+        error = new AbsorbRefreshCommitPinError(effectiveTargetGitCommitHash, currentCommit);
       }
     }
-    if (!error && targetWorktreeFingerprint) {
+    if (!error && effectiveTargetWorktreeFingerprint) {
       const currentFingerprint = buildGitWorktreeFingerprint(primaryRootDir, effectiveScanPolicy);
-      if (currentFingerprint !== targetWorktreeFingerprint) {
-        error = new AbsorbRefreshWorktreePinError(targetWorktreeFingerprint, currentFingerprint);
+      if (currentFingerprint !== effectiveTargetWorktreeFingerprint) {
+        error = new AbsorbRefreshWorktreePinError(
+          effectiveTargetWorktreeFingerprint,
+          currentFingerprint
+        );
       }
     }
     if (!error) return;
-    refreshCheckpoint?.markInvalidated(error);
-    setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
+    activeRefreshCheckpoint?.markInvalidated(error);
+    setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
     throw error;
   };
 
@@ -3847,21 +3871,33 @@ async function runFullScan(
       const scanPlan =
         preparedScanPlan ??
         (scanner.planScan(scanOptions, scanBatchSize) as PlannedScannerScanPlan);
+      if (!activeRefreshCheckpoint) {
+        const coverage = buildGraphCoverageStatus(primaryRootDir, 0, effectiveScanPolicy);
+        activeRefreshCheckpoint = prepareAbsorbRefreshCheckpoint({
+          rootDir: primaryRootDir,
+          scanPlan: scanPlan as ScanPlan,
+          targetGitCommitHash: effectiveTargetGitCommitHash,
+          targetWorktreeFingerprint: effectiveTargetWorktreeFingerprint,
+          scanPolicyHash: scanPolicyKey(effectiveScanPolicy),
+          maxFiles: effectiveMaxFiles,
+          workspaceCandidateFiles: coverage.selectedCandidateCount ?? undefined,
+        });
+      }
+      const scanRefreshCheckpoint = activeRefreshCheckpoint;
       scanPlanReceipt = summarizeModuleScanPlan(scanPlan);
       setAbsorbJobScanPlan(jobId, scanPlanReceipt);
-      refreshCheckpoint?.markScanning();
-      setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
+      scanRefreshCheckpoint.markScanning();
+      setAbsorbJobRefreshProgress(jobId, scanRefreshCheckpoint.progressReceipt());
       scanResult = await scanner.scanInBatches({
         ...scanOptions,
         scanBatchSize,
         scanPlan,
         signal,
-        loadBatchResult: refreshCheckpoint
-          ? (batch: PlannedScannerBatch) => refreshCheckpoint.loadBatchResult(batch)
-          : undefined,
-        onBatchResume: refreshCheckpoint
+        loadBatchResult: (batch: PlannedScannerBatch) =>
+          scanRefreshCheckpoint.loadBatchResult(batch),
+        onBatchResume: scanRefreshCheckpoint
           ? (batch: PlannedScannerBatch, _result: ScanResult, totalBatches: number) => {
-              setAbsorbJobRefreshProgress(jobId, refreshCheckpoint.progressReceipt());
+              setAbsorbJobRefreshProgress(jobId, scanRefreshCheckpoint.progressReceipt());
               if (jobId) {
                 trackAbsorbProgress(
                   jobId,
@@ -3885,10 +3921,8 @@ async function runFullScan(
           batchResult: ScanResult,
           totalBatches: number
         ) => {
-          if (refreshCheckpoint) {
-            refreshCheckpoint.persistBatch(batch, batchResult);
-            setAbsorbJobRefreshProgress(jobId, refreshCheckpoint.progressReceipt());
-          }
+          scanRefreshCheckpoint.persistBatch(batch, batchResult);
+          setAbsorbJobRefreshProgress(jobId, scanRefreshCheckpoint.progressReceipt());
           if (jobId) {
             trackAbsorbProgress(
               jobId,
@@ -3904,18 +3938,18 @@ async function runFullScan(
           }
         },
       });
-      refreshCheckpoint?.markScanned();
-      setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
+      activeRefreshCheckpoint?.markScanned();
+      setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
     }
   } catch (error) {
-    if (refreshCheckpoint) {
+    if (activeRefreshCheckpoint) {
       if (
         error instanceof AbsorbRefreshCommitPinError ||
         error instanceof AbsorbRefreshWorktreePinError
       ) {
-        refreshCheckpoint.markInvalidated(error);
-      } else refreshCheckpoint.markInterrupted(error);
-      setAbsorbJobRefreshProgress(jobId, refreshCheckpoint.progressReceipt());
+        activeRefreshCheckpoint.markInvalidated(error);
+      } else activeRefreshCheckpoint.markInterrupted(error);
+      setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint.progressReceipt());
     }
     throw error;
   } finally {
@@ -3977,7 +4011,7 @@ async function runFullScan(
   } else {
     const detector = new GitChangeDetector(primaryRootDir);
     if (detector.isGitRepo()) {
-      gitCommitHash = targetGitCommitHash ?? detector.getHeadCommit() ?? undefined;
+      gitCommitHash = effectiveTargetGitCommitHash ?? detector.getHeadCommit() ?? undefined;
       const filePaths = (scanResult as { files: any[] }).files.map((f: any) => f.path);
       const hashes = detector.computeFileHashes(filePaths);
       fileHashes = Object.fromEntries(hashes.map((h: any) => [h.filePath, h.hash]));
@@ -4013,8 +4047,8 @@ async function runFullScan(
     );
     if (!cacheSaved) {
       const error = new Error('Unable to publish the completed absorb graph cache atomically');
-      refreshCheckpoint?.markInterrupted(error);
-      setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
+      activeRefreshCheckpoint?.markInterrupted(error);
+      setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
       throw error;
     }
     cachedGraph = graph;
@@ -4025,8 +4059,8 @@ async function runFullScan(
     cacheTimestamp = Date.now();
     const statsJob = jobId ? absorbJobs.get(jobId) : undefined;
     if (statsJob) statsJob.cacheCommitted = true;
-    refreshCheckpoint?.markComplete();
-    setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
+    activeRefreshCheckpoint?.markComplete();
+    setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
     recordPhaseMetric('graph-cache-save', {
       filesProcessed: scanResult?.stats?.totalFiles,
       totalFiles: scanPlanReceipt?.totalCandidateFiles,
@@ -4042,9 +4076,9 @@ async function runFullScan(
       embeddingPolicy,
       scanPolicy: effectiveScanPolicy,
       scanPlan: scanPlanReceipt,
-      ...(refreshCheckpoint && {
-        resumeToken: refreshCheckpoint.progressReceipt().resumeToken,
-        refreshProgressReceipt: refreshCheckpoint.progressReceipt(),
+      ...(activeRefreshCheckpoint && {
+        resumeToken: activeRefreshCheckpoint.progressReceipt().resumeToken,
+        refreshProgressReceipt: activeRefreshCheckpoint.progressReceipt(),
       }),
       phaseMetrics,
       gitCommitHash,
@@ -4270,8 +4304,8 @@ async function runFullScan(
   );
   if (!cacheSaved) {
     const error = new Error('Unable to publish the completed absorb graph cache atomically');
-    refreshCheckpoint?.markInterrupted(error);
-    setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
+    activeRefreshCheckpoint?.markInterrupted(error);
+    setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
     throw error;
   }
   cachedGraph = graph;
@@ -4288,12 +4322,12 @@ async function runFullScan(
   }
   const committedJob = jobId ? absorbJobs.get(jobId) : undefined;
   if (committedJob) committedJob.cacheCommitted = true;
-  refreshCheckpoint?.markComplete();
-  setAbsorbJobRefreshProgress(jobId, refreshCheckpoint?.progressReceipt());
-  if (refreshCheckpoint && typeof result === 'object' && result !== null) {
+  activeRefreshCheckpoint?.markComplete();
+  setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
+  if (activeRefreshCheckpoint && typeof result === 'object' && result !== null) {
     Object.assign(result as Record<string, unknown>, {
-      resumeToken: refreshCheckpoint.progressReceipt().resumeToken,
-      refreshProgressReceipt: refreshCheckpoint.progressReceipt(),
+      resumeToken: activeRefreshCheckpoint.progressReceipt().resumeToken,
+      refreshProgressReceipt: activeRefreshCheckpoint.progressReceipt(),
     });
   }
   recordPhaseMetric('cache-commit', {

@@ -1711,6 +1711,7 @@ describe('holo_absorb_repo root validation', () => {
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-repair-cache-'));
     const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-repair-repo-'));
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
     process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '3';
 
     execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
@@ -1736,6 +1737,12 @@ describe('holo_absorb_repo root validation', () => {
     const head = getHeadCommit(repoDir);
     writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, head, 1);
 
+    const originalScanFiles = CodebaseScanner.prototype.scanFiles;
+    vi.spyOn(CodebaseScanner.prototype, 'scanFiles').mockImplementation(async function (...args) {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      return originalScanFiles.apply(this, args);
+    });
+
     const accepted = (await handleCodebaseTool('holo_absorb_repo', {
       rootDir: repoDir,
       outputFormat: 'stats',
@@ -1751,8 +1758,47 @@ describe('holo_absorb_repo root validation', () => {
     expect(accepted.scanPlan?.totalCandidateFiles).toBe(3);
     expect(accepted.jobId).toMatch(/^absorb-/);
 
+    let activeStatus: {
+      status?: string;
+      refreshProgressReceipt?: {
+        status?: string;
+        targetGitCommitHash?: string;
+        authoritative?: boolean;
+      };
+    } = {};
+    for (let index = 0; index < 100; index++) {
+      activeStatus = (await handleCodebaseTool('holo_get_absorb_status', {
+        jobId: accepted.jobId,
+      })) as typeof activeStatus;
+      if (activeStatus.refreshProgressReceipt) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(activeStatus.refreshProgressReceipt).toMatchObject({
+      targetGitCommitHash: head,
+      authoritative: false,
+    });
+
+    const graphStatus = (await handleCodebaseTool('holo_graph_status', {})) as {
+      refreshInProgress?: boolean;
+      refreshJobId?: string;
+      refreshProgressReceipt?: { targetGitCommitHash?: string };
+    };
+    expect(graphStatus).toMatchObject({
+      refreshInProgress: true,
+      refreshJobId: accepted.jobId,
+      refreshProgressReceipt: {
+        targetGitCommitHash: head,
+      },
+    });
+
     const status = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
     expect(status.status).toBe('complete');
+    expect(status.refreshProgressReceipt).toMatchObject({
+      status: 'complete',
+      authoritative: false,
+      cachePublished: true,
+      targetGitCommitHash: head,
+    });
     expect(status.result).toMatchObject({
       rootDir: repoDir,
       stats: {
@@ -1765,6 +1811,62 @@ describe('holo_absorb_repo root validation', () => {
         expectedGraphFileCount: 3,
       },
     });
+  }, 15_000);
+
+  it('invalidates a non-forced incomplete-cache rebuild when the worktree changes', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-pin-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-incomplete-pin-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '2';
+    const head = getHeadCommit(repoDir);
+    writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, head, 1);
+    const priorCache = fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8');
+
+    const originalScanFiles = CodebaseScanner.prototype.scanFiles;
+    vi.spyOn(CodebaseScanner.prototype, 'scanFiles').mockImplementation(async function (...args) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return originalScanFiles.apply(this, args);
+    });
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+    })) as { accepted?: boolean; jobId?: string };
+    expect(accepted).toMatchObject({ accepted: true });
+
+    let refreshObserved = false;
+    for (let index = 0; index < 100; index++) {
+      const status = (await handleCodebaseTool('holo_get_absorb_status', {
+        jobId: accepted.jobId,
+      })) as { refreshProgressReceipt?: unknown };
+      if (status.refreshProgressReceipt) {
+        refreshObserved = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(refreshObserved).toBe(true);
+    fs.appendFileSync(path.join(repoDir, 'src', 'beta.ts'), '\nexport const drifted = true;\n');
+
+    const status = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
+    expect(status).toMatchObject({
+      status: 'error',
+      refreshProgressReceipt: {
+        status: 'invalidated',
+        cachePublished: false,
+        priorAuthoritativeCachePreserved: true,
+        resumable: false,
+      },
+      result: {
+        error: 'absorb_refresh_source_changed',
+        cachePreserved: true,
+        graphAuthoritative: false,
+      },
+    });
+    expect(String(status.error)).toContain('Repository worktree changed during absorb refresh');
+    expect(fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')).toBe(priorCache);
   }, 15_000);
 
   it('repairs a git-stale cache through incremental stats without embeddings', async () => {
