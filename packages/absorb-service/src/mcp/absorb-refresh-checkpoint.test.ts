@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { CodebaseScanner } from '../engine/CodebaseScanner';
 import {
   ABSORB_REFRESH_PROGRESS_RECEIPT_SCHEMA,
+  compactAbsorbRefreshProgressReceipt,
   prepareAbsorbRefreshCheckpoint,
 } from './absorb-refresh-checkpoint';
 
@@ -64,8 +65,9 @@ describe('AbsorbRefreshCheckpoint', () => {
 
     checkpoint.markScanning();
     const firstBatch = scanPlan.batches[0];
+    const firstInputSha256 = checkpoint.captureBatchInput(firstBatch);
     const firstResult = await scanner.scanFiles(rootDir, firstBatch.files);
-    checkpoint.persistBatch(firstBatch, firstResult);
+    expect(checkpoint.persistBatch(firstBatch, firstResult, firstInputSha256)).toBe(true);
     checkpoint.markInterrupted(new Error('synthetic interruption'));
 
     const interrupted = checkpoint.progressReceipt();
@@ -81,6 +83,14 @@ describe('AbsorbRefreshCheckpoint', () => {
       resumable: true,
       error: 'synthetic interruption',
     });
+    expect(interrupted.completedBatches[0].inputSha256).toMatch(/^[a-f0-9]{64}$/);
+
+    const compact = compactAbsorbRefreshProgressReceipt(interrupted);
+    expect(compact).toMatchObject({
+      completedBatchesOmitted: 1,
+      latestCompletedBatch: { index: firstBatch.index },
+    });
+    expect('completedBatches' in compact).toBe(false);
 
     const resumed = prepareAbsorbRefreshCheckpoint({
       rootDir,
@@ -103,11 +113,12 @@ describe('AbsorbRefreshCheckpoint', () => {
     expect(() => resumed.loadBatchResult(firstBatch)).toThrow(/SHA-256 integrity check/);
   });
 
-  it('rejects a resume when the commit pin or selected set changed', async () => {
+  it('reuses unchanged batches as a content-addressed overlay when the target pin changed', async () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-mismatch-'));
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
     writeFixture(rootDir, 'src/a.txt', 'a\n');
+    writeFixture(rootDir, 'src/b.txt', 'b\n');
 
     const scanner = new CodebaseScanner(undefined, false);
     const scanPlan = scanner.planScan({ rootDir, maxFiles: 10 }, 1);
@@ -119,34 +130,67 @@ describe('AbsorbRefreshCheckpoint', () => {
       scanPolicyHash: 'policy-v1',
       maxFiles: 10,
     });
+    for (const batch of scanPlan.batches) {
+      const inputSha256 = checkpoint.captureBatchInput(batch);
+      const result = await scanner.scanFiles(rootDir, batch.files);
+      expect(checkpoint.persistBatch(batch, result, inputSha256)).toBe(true);
+    }
     checkpoint.markInterrupted(new Error('stop'));
     const resumeToken = checkpoint.progressReceipt().resumeToken;
+    writeFixture(rootDir, 'src/a.txt', 'a changed\n');
 
-    expect(() =>
-      prepareAbsorbRefreshCheckpoint({
-        rootDir,
-        scanPlan,
-        targetGitCommitHash: 'b'.repeat(40),
-        targetWorktreeFingerprint: null,
-        scanPolicyHash: 'policy-v1',
-        maxFiles: 10,
-        resumeToken,
-      })
-    ).toThrow(/git commit pin/);
+    const overlaid = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan,
+      targetGitCommitHash: 'b'.repeat(40),
+      targetWorktreeFingerprint: 'dirty-after-checkpoint',
+      scanPolicyHash: 'policy-v1',
+      maxFiles: 10,
+      resumeToken,
+    });
+    expect(overlaid.progressReceipt()).toMatchObject({
+      resumeMode: 'content-addressed-overlay',
+      baseTargetGitCommitHash: 'a'.repeat(40),
+      targetGitCommitHash: 'b'.repeat(40),
+      completedBatchCount: 2,
+    });
 
-    expect(() =>
-      prepareAbsorbRefreshCheckpoint({
-        rootDir,
-        scanPlan,
-        targetGitCommitHash: 'a'.repeat(40),
-        targetWorktreeFingerprint: 'dirty-after-checkpoint',
-        scanPolicyHash: 'policy-v1',
-        maxFiles: 10,
-        resumeToken,
-      })
-    ).toThrow(/worktree fingerprint/);
+    const changedBatch = scanPlan.batches.find((batch) =>
+      batch.files.some((filePath) => filePath.endsWith('a.txt'))
+    )!;
+    const unchangedBatch = scanPlan.batches.find((batch) =>
+      batch.files.some((filePath) => filePath.endsWith('b.txt'))
+    )!;
+    expect(overlaid.loadBatchResult(changedBatch)).toBeNull();
+    expect(overlaid.loadBatchResult(unchangedBatch)).not.toBeNull();
+    expect(overlaid.progressReceipt()).toMatchObject({
+      completedBatchCount: 1,
+      reusedBatchCount: 1,
+      invalidatedBatchCount: 1,
+    });
+
+    const changedInputSha256 = overlaid.captureBatchInput(changedBatch);
+    const changedResult = await scanner.scanFiles(rootDir, changedBatch.files);
+    expect(overlaid.persistBatch(changedBatch, changedResult, changedInputSha256)).toBe(true);
+    overlaid.markInterrupted(new Error('stop again'));
+
+    const autoResumed = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan,
+      targetGitCommitHash: 'c'.repeat(40),
+      targetWorktreeFingerprint: 'new-overlay',
+      scanPolicyHash: 'policy-v1',
+      maxFiles: 10,
+      reuseLatest: true,
+    });
+    expect(autoResumed.progressReceipt()).toMatchObject({
+      resumeToken,
+      resumeMode: 'content-addressed-overlay',
+      targetGitCommitHash: 'c'.repeat(40),
+    });
 
     writeFixture(rootDir, 'src/b.txt', 'b\n');
+    writeFixture(rootDir, 'src/c.txt', 'c\n');
     const changedPlan = scanner.planScan({ rootDir, maxFiles: 10 }, 1);
     expect(() =>
       prepareAbsorbRefreshCheckpoint({
@@ -159,5 +203,34 @@ describe('AbsorbRefreshCheckpoint', () => {
         resumeToken,
       })
     ).toThrow(/scan plan|selected file set/);
+  });
+
+  it('does not checkpoint a batch whose source bytes changed during its scan window', async () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-race-'));
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeFixture(rootDir, 'src/a.txt', 'before\n');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const scanPlan = scanner.planScan({ rootDir, maxFiles: 10 }, 1);
+    const checkpoint = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan,
+      targetGitCommitHash: null,
+      targetWorktreeFingerprint: 'before',
+      scanPolicyHash: 'policy-v1',
+      maxFiles: 10,
+    });
+    const batch = scanPlan.batches[0];
+    const inputSha256 = checkpoint.captureBatchInput(batch);
+    writeFixture(rootDir, 'src/a.txt', 'after\n');
+    const result = await scanner.scanFiles(rootDir, batch.files);
+
+    expect(checkpoint.persistBatch(batch, result, inputSha256)).toBe(false);
+    expect(checkpoint.progressReceipt()).toMatchObject({
+      completedBatchCount: 0,
+      completedCandidateFiles: 0,
+      remainingCandidateFiles: 1,
+    });
   });
 });

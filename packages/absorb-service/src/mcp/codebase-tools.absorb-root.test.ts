@@ -1833,21 +1833,23 @@ describe('holo_absorb_repo root validation', () => {
     const accepted = (await handleCodebaseTool('holo_absorb_repo', {
       rootDir: repoDir,
       outputFormat: 'stats',
+      scanBatchSize: 1,
+      maxFiles: 20_000,
     })) as { accepted?: boolean; jobId?: string };
     expect(accepted).toMatchObject({ accepted: true });
 
-    let refreshObserved = false;
+    let refreshProgress: { completedBatchCount?: number; resumeToken?: string } | undefined;
     for (let index = 0; index < 100; index++) {
-      const status = (await handleCodebaseTool('holo_get_absorb_status', {
+      const progress = (await handleCodebaseTool('holo_get_absorb_status', {
         jobId: accepted.jobId,
-      })) as { refreshProgressReceipt?: unknown };
-      if (status.refreshProgressReceipt) {
-        refreshObserved = true;
-        break;
-      }
+      })) as {
+        refreshProgressReceipt?: { completedBatchCount?: number; resumeToken?: string };
+      };
+      refreshProgress = progress.refreshProgressReceipt;
+      if ((refreshProgress?.completedBatchCount ?? 0) >= 1) break;
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
-    expect(refreshObserved).toBe(true);
+    expect(refreshProgress?.completedBatchCount).toBeGreaterThanOrEqual(1);
     fs.appendFileSync(path.join(repoDir, 'src', 'beta.ts'), '\nexport const drifted = true;\n');
 
     const status = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
@@ -1857,7 +1859,7 @@ describe('holo_absorb_repo root validation', () => {
         status: 'invalidated',
         cachePublished: false,
         priorAuthoritativeCachePreserved: true,
-        resumable: false,
+        resumable: true,
       },
       result: {
         error: 'absorb_refresh_source_changed',
@@ -1867,6 +1869,41 @@ describe('holo_absorb_repo root validation', () => {
     });
     expect(String(status.error)).toContain('Repository worktree changed during absorb refresh');
     expect(fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')).toBe(priorCache);
+
+    const invalidatedReceipt = status.refreshProgressReceipt as {
+      resumeToken?: string;
+    };
+    const resumed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+      scanBatchSize: 1,
+      maxFiles: 20_000,
+    })) as { accepted?: boolean; jobId?: string; resumeToken?: string };
+    expect(resumed).toMatchObject({
+      accepted: true,
+      resumeToken: invalidatedReceipt.resumeToken,
+    });
+
+    const completed = await waitForAbsorbTerminalStatus(resumed.jobId!, true);
+    expect(completed).toMatchObject({
+      status: 'complete',
+      refreshProgressReceipt: {
+        status: 'complete',
+        resumeMode: 'content-addressed-overlay',
+        cachePublished: true,
+      },
+      result: {
+        stats: { totalFiles: 2 },
+      },
+    });
+    expect(
+      (
+        completed.refreshProgressReceipt as {
+          reusedBatchCount?: number;
+        }
+      ).reusedBatchCount
+    ).toBeGreaterThanOrEqual(1);
   }, 15_000);
 
   it('repairs a git-stale cache through incremental stats without embeddings', async () => {

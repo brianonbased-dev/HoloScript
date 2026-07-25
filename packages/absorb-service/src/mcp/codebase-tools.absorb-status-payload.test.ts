@@ -23,6 +23,12 @@ type AbsorbStatus = {
     batchDetailsOmitted?: number;
     batches?: Array<{ index?: number; label?: string; files?: number }>;
   };
+  refreshProgressReceipt?: {
+    completedBatchCount?: number;
+    completedBatchesOmitted?: number;
+    completedBatches?: Array<{ index?: number }>;
+    latestCompletedBatch?: { index?: number };
+  };
 };
 
 // Enough distinct symbols that graph.serialize() is far larger than any status envelope.
@@ -157,4 +163,52 @@ describe('holo_get_absorb_status transcript budget', () => {
     expect(status.resultTruncated).toBeUndefined();
     expect(status.resultOmittedFields).toBeUndefined();
   }, 15_000);
+
+  it('keeps checkpoint history compact by default and exposes it only on explicit opt-in', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-status-receipt-cache-'));
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-status-receipt-repo-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    fs.mkdirSync(path.join(rootDir, 'src'), { recursive: true });
+    for (let index = 0; index < 96; index++) {
+      fs.writeFileSync(
+        path.join(rootDir, 'src', `fixture-${index}.ts`),
+        `export const receiptFixture${index} = ${index};\n`,
+        'utf-8'
+      );
+    }
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir,
+      force: true,
+      outputFormat: 'stats',
+      scanBatchSize: 1,
+      background: true,
+    })) as { jobId?: string };
+
+    let compactStatus = {} as AbsorbStatus;
+    for (let attempt = 0; attempt < 300; attempt++) {
+      compactStatus = (await handleCodebaseTool('holo_get_absorb_status', {
+        jobId: accepted.jobId,
+      })) as AbsorbStatus;
+      if (compactStatus.status === 'complete' || compactStatus.status === 'error') break;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
+    expect(compactStatus.status).toBe('complete');
+    expect(compactStatus.refreshProgressReceipt).toMatchObject({
+      completedBatchCount: 96,
+      completedBatchesOmitted: 96,
+      latestCompletedBatch: { index: 96 },
+    });
+    expect(compactStatus.refreshProgressReceipt?.completedBatches).toBeUndefined();
+    expect(Buffer.byteLength(JSON.stringify(compactStatus), 'utf-8')).toBeLessThan(64 * 1024);
+
+    const detailedStatus = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: accepted.jobId,
+      includeReceiptDetails: true,
+    })) as AbsorbStatus;
+    expect(detailedStatus.refreshProgressReceipt?.completedBatches).toHaveLength(96);
+    expect(detailedStatus.refreshProgressReceipt?.completedBatchesOmitted).toBeUndefined();
+  }, 30_000);
 });

@@ -23,7 +23,14 @@ export interface AbsorbRefreshCompletedBatch {
   scannedFiles: number;
   resultFile: string;
   sha256: string;
+  /**
+   * Digest of the ordered source paths and bytes that produced this result.
+   * Older v1 receipts omit it and remain eligible only for exact-pin resume.
+   */
+  inputSha256?: string;
 }
+
+export type AbsorbRefreshResumeMode = 'new' | 'exact' | 'content-addressed-overlay';
 
 export interface AbsorbRefreshProgressReceipt {
   schemaVersion: typeof ABSORB_REFRESH_PROGRESS_RECEIPT_SCHEMA;
@@ -47,6 +54,11 @@ export interface AbsorbRefreshProgressReceipt {
   remainingCandidateFiles: number;
   progressPercent: number;
   completedBatches: AbsorbRefreshCompletedBatch[];
+  resumeMode?: AbsorbRefreshResumeMode;
+  baseTargetGitCommitHash?: string | null;
+  baseTargetWorktreeFingerprint?: string | null;
+  reusedBatchCount?: number;
+  invalidatedBatchCount?: number;
   selection: {
     maxFiles: number;
     workspaceCandidateFiles: number | null;
@@ -71,6 +83,19 @@ export interface PrepareAbsorbRefreshCheckpointOptions {
   maxFiles: number;
   workspaceCandidateFiles?: number;
   resumeToken?: string;
+  /**
+   * Adopt the newest compatible non-terminal checkpoint when no explicit
+   * resumeToken is supplied. Source digests still gate every reused batch.
+   */
+  reuseLatest?: boolean;
+}
+
+export interface CompactAbsorbRefreshProgressReceipt extends Omit<
+  AbsorbRefreshProgressReceipt,
+  'completedBatches'
+> {
+  completedBatchesOmitted: number;
+  latestCompletedBatch?: AbsorbRefreshCompletedBatch;
 }
 
 function atomicWriteFileSync(targetPath: string, data: string): void {
@@ -133,6 +158,28 @@ function buildPlanHash(plan: ScanPlan): string {
   );
 }
 
+function buildBatchInputSha256(plan: ScanPlan, batch: PlannedScanBatch): string | null {
+  const digest = createHash('sha256');
+  for (const filePath of batch.files) {
+    let source: Buffer;
+    try {
+      source = fs.readFileSync(filePath);
+    } catch {
+      return null;
+    }
+    const relativePath = normalizePlannedFile(plan.rootDir, filePath);
+    digest.update(String(Buffer.byteLength(relativePath, 'utf-8')));
+    digest.update(':');
+    digest.update(relativePath);
+    digest.update(':');
+    digest.update(String(source.byteLength));
+    digest.update(':');
+    digest.update(source);
+    digest.update('\0');
+  }
+  return digest.digest('hex');
+}
+
 function validateResumeToken(token: string): void {
   if (!/^[a-f0-9]{32}$/.test(token)) {
     throw new Error('resumeToken must be the 32-character token from an absorb progress receipt');
@@ -171,6 +218,21 @@ function readReceipt(receiptFile: string): AbsorbRefreshProgressReceipt {
     throw new Error('Absorb refresh receipt is missing required v1 fields');
   }
   return receipt as AbsorbRefreshProgressReceipt;
+}
+
+export function compactAbsorbRefreshProgressReceipt(
+  receipt: AbsorbRefreshProgressReceipt,
+  includeCompletedBatches = false
+): AbsorbRefreshProgressReceipt | CompactAbsorbRefreshProgressReceipt {
+  if (includeCompletedBatches) return structuredClone(receipt);
+  const { completedBatches, ...compact } = structuredClone(receipt);
+  return {
+    ...compact,
+    completedBatchesOmitted: completedBatches.length,
+    ...(completedBatches.length > 0 && {
+      latestCompletedBatch: completedBatches[completedBatches.length - 1],
+    }),
+  };
 }
 
 function isProcessAlive(processId: number): boolean {
@@ -215,6 +277,7 @@ function validateResumedBatchResult(
 
 export class AbsorbRefreshCheckpoint {
   private receipt: AbsorbRefreshProgressReceipt;
+  private readonly reusedBatchIndexes = new Set<number>();
 
   constructor(
     private readonly plan: ScanPlan,
@@ -236,7 +299,14 @@ export class AbsorbRefreshCheckpoint {
     });
   }
 
-  loadBatchResult(batch: PlannedScanBatch): ScanResult | null {
+  captureBatchInput(batch: PlannedScanBatch): string | null {
+    return buildBatchInputSha256(this.plan, batch);
+  }
+
+  loadBatchResult(
+    batch: PlannedScanBatch,
+    currentInputSha256 = buildBatchInputSha256(this.plan, batch)
+  ): ScanResult | null {
     const completed = this.receipt.completedBatches.find((entry) => entry.index === batch.index);
     if (!completed) return null;
     const expectedResultFile = `batch-${String(batch.index).padStart(5, '0')}.json`;
@@ -246,6 +316,15 @@ export class AbsorbRefreshCheckpoint {
       completed.candidateFiles !== batch.files.length
     ) {
       throw new Error(`Checkpoint batch ${batch.index} metadata does not match the current plan`);
+    }
+    if (completed.inputSha256) {
+      if (currentInputSha256 !== completed.inputSha256) {
+        this.dropCompletedBatch(batch.index);
+        return null;
+      }
+    } else if (this.receipt.resumeMode === 'content-addressed-overlay') {
+      this.dropCompletedBatch(batch.index);
+      return null;
     }
     const resultFile = path.join(this.receipt.checkpointDirectory, completed.resultFile);
     let serialized: string;
@@ -259,11 +338,26 @@ export class AbsorbRefreshCheckpoint {
     }
     const result = JSON.parse(serialized) as ScanResult;
     validateResumedBatchResult(this.plan, batch, result);
+    if (!this.reusedBatchIndexes.has(batch.index)) {
+      this.reusedBatchIndexes.add(batch.index);
+      this.updateReceipt({
+        reusedBatchCount: (this.receipt.reusedBatchCount ?? 0) + 1,
+      });
+    }
     return result;
   }
 
-  persistBatch(batch: PlannedScanBatch, result: ScanResult): void {
+  persistBatch(
+    batch: PlannedScanBatch,
+    result: ScanResult,
+    expectedInputSha256: string | null
+  ): boolean {
     validateResumedBatchResult(this.plan, batch, result);
+    const currentInputSha256 = buildBatchInputSha256(this.plan, batch);
+    if (!expectedInputSha256 || currentInputSha256 !== expectedInputSha256) {
+      this.dropCompletedBatch(batch.index);
+      return false;
+    }
     const resultFile = `batch-${String(batch.index).padStart(5, '0')}.json`;
     const serialized = JSON.stringify(result);
     atomicWriteFileSync(path.join(this.receipt.checkpointDirectory, resultFile), serialized);
@@ -277,34 +371,25 @@ export class AbsorbRefreshCheckpoint {
         scannedFiles: result.files.length,
         resultFile,
         sha256: sha256(serialized),
+        inputSha256: expectedInputSha256,
       })
       .sort((left, right) => left.index - right.index);
-    const completedCandidateFiles = completedBatches.reduce(
-      (total, entry) => total + entry.candidateFiles,
-      0
-    );
-    this.updateReceipt({
-      status: 'scanning',
-      completedBatches,
-      completedBatchCount: completedBatches.length,
-      completedCandidateFiles,
-      remainingCandidateFiles: Math.max(
-        0,
-        this.receipt.totalCandidateFiles - completedCandidateFiles
-      ),
-      progressPercent:
-        this.receipt.totalCandidateFiles === 0
-          ? 100
-          : Number(((completedCandidateFiles / this.receipt.totalCandidateFiles) * 100).toFixed(2)),
-    });
+    this.updateCompletedBatches(completedBatches, { status: 'scanning' });
+    return true;
   }
 
   markScanned(): void {
     this.updateReceipt({
       status: 'scanned',
       resumable: true,
-      progressPercent: 100,
-      remainingCandidateFiles: 0,
+      progressPercent:
+        this.receipt.completedCandidateFiles === this.receipt.totalCandidateFiles
+          ? 100
+          : this.receipt.progressPercent,
+      remainingCandidateFiles: Math.max(
+        0,
+        this.receipt.totalCandidateFiles - this.receipt.completedCandidateFiles
+      ),
     });
   }
 
@@ -319,9 +404,12 @@ export class AbsorbRefreshCheckpoint {
   }
 
   markInvalidated(error: unknown): void {
+    const contentAddressedResumeAvailable = this.receipt.completedBatches.every(
+      (entry) => typeof entry.inputSha256 === 'string'
+    );
     this.updateReceipt({
       status: 'invalidated',
-      resumable: false,
+      resumable: contentAddressedResumeAvailable,
       cachePublished: false,
       priorAuthoritativeCachePreserved: true,
       error: error instanceof Error ? error.message : String(error),
@@ -340,6 +428,67 @@ export class AbsorbRefreshCheckpoint {
     });
   }
 
+  prepareForResume(options: {
+    targetGitCommitHash: string | null;
+    targetWorktreeFingerprint: string | null;
+    resumeMode: Exclude<AbsorbRefreshResumeMode, 'new'>;
+  }): void {
+    const targetChanged =
+      this.receipt.targetGitCommitHash !== options.targetGitCommitHash ||
+      this.receipt.targetWorktreeFingerprint !== options.targetWorktreeFingerprint;
+    this.updateReceipt({
+      status: 'prepared',
+      resumable: true,
+      cachePublished: false,
+      priorAuthoritativeCachePreserved: true,
+      ownerProcessId: process.pid,
+      resumeMode: options.resumeMode,
+      reusedBatchCount: 0,
+      invalidatedBatchCount: 0,
+      ...(targetChanged && {
+        baseTargetGitCommitHash: this.receipt.targetGitCommitHash,
+        baseTargetWorktreeFingerprint: this.receipt.targetWorktreeFingerprint,
+      }),
+      targetGitCommitHash: options.targetGitCommitHash,
+      targetWorktreeFingerprint: options.targetWorktreeFingerprint,
+      error: undefined,
+    });
+  }
+
+  private dropCompletedBatch(batchIndex: number): void {
+    const completedBatches = this.receipt.completedBatches.filter(
+      (entry) => entry.index !== batchIndex
+    );
+    if (completedBatches.length === this.receipt.completedBatches.length) return;
+    this.updateCompletedBatches(completedBatches, {
+      invalidatedBatchCount: (this.receipt.invalidatedBatchCount ?? 0) + 1,
+    });
+  }
+
+  private updateCompletedBatches(
+    completedBatches: AbsorbRefreshCompletedBatch[],
+    updates: Partial<AbsorbRefreshProgressReceipt> = {}
+  ): void {
+    const completedCandidateFiles = completedBatches.reduce(
+      (total, entry) => total + entry.candidateFiles,
+      0
+    );
+    this.updateReceipt({
+      ...updates,
+      completedBatches,
+      completedBatchCount: completedBatches.length,
+      completedCandidateFiles,
+      remainingCandidateFiles: Math.max(
+        0,
+        this.receipt.totalCandidateFiles - completedCandidateFiles
+      ),
+      progressPercent:
+        this.receipt.totalCandidateFiles === 0
+          ? 100
+          : Number(((completedCandidateFiles / this.receipt.totalCandidateFiles) * 100).toFixed(2)),
+    });
+  }
+
   private updateReceipt(
     updates: Partial<AbsorbRefreshProgressReceipt> & {
       error?: string | undefined;
@@ -355,25 +504,88 @@ export class AbsorbRefreshCheckpoint {
   }
 }
 
+function findLatestCompatibleCheckpoint(options: {
+  rootDir: string;
+  planHash: string;
+  selectedFilesHash: string;
+  scanPolicyHash: string;
+  targetGitCommitHash: string | null;
+  targetWorktreeFingerprint: string | null;
+}): AbsorbRefreshProgressReceipt | null {
+  const refreshDirectory = path.join(
+    resolveCodebaseCachePaths(options.rootDir).directory,
+    'absorb-refreshes'
+  );
+  let receiptFiles: Array<{ receiptFile: string; modifiedAt: number }>;
+  try {
+    receiptFiles = fs
+      .readdirSync(refreshDirectory, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .flatMap((entry) => {
+        const receiptFile = path.join(refreshDirectory, entry.name, 'progress-receipt.json');
+        try {
+          return [{ receiptFile, modifiedAt: fs.statSync(receiptFile).mtimeMs }];
+        } catch {
+          return [];
+        }
+      })
+      .sort((left, right) => right.modifiedAt - left.modifiedAt);
+  } catch {
+    return null;
+  }
+
+  for (const candidate of receiptFiles) {
+    let receipt: AbsorbRefreshProgressReceipt;
+    try {
+      receipt = readReceipt(candidate.receiptFile);
+    } catch {
+      continue;
+    }
+    const compatible =
+      normalizeRoot(receipt.rootDir) === normalizeRoot(options.rootDir) &&
+      receipt.planHash === options.planHash &&
+      receipt.selectedFilesHash === options.selectedFilesHash &&
+      receipt.scanPolicyHash === options.scanPolicyHash &&
+      receipt.status !== 'complete' &&
+      ((receipt.targetGitCommitHash === options.targetGitCommitHash &&
+        receipt.targetWorktreeFingerprint === options.targetWorktreeFingerprint) ||
+        receipt.completedBatches.every((entry) => typeof entry.inputSha256 === 'string')) &&
+      !(
+        receipt.status === 'scanning' &&
+        (receipt.ownerProcessId === process.pid || isProcessAlive(receipt.ownerProcessId))
+      );
+    if (compatible) return receipt;
+  }
+  return null;
+}
+
 export function prepareAbsorbRefreshCheckpoint(
   options: PrepareAbsorbRefreshCheckpointOptions
 ): AbsorbRefreshCheckpoint {
   const rootDir = path.resolve(options.rootDir);
   const planHash = buildPlanHash(options.scanPlan);
   const selectedFilesHash = buildSelectedFilesHash(options.scanPlan);
-  const resumeToken = options.resumeToken ?? randomUUID().replace(/-/g, '');
+  const reusableReceipt =
+    !options.resumeToken && options.reuseLatest
+      ? findLatestCompatibleCheckpoint({
+          rootDir,
+          planHash,
+          selectedFilesHash,
+          scanPolicyHash: options.scanPolicyHash,
+          targetGitCommitHash: options.targetGitCommitHash,
+          targetWorktreeFingerprint: options.targetWorktreeFingerprint,
+        })
+      : null;
+  const resumeToken =
+    options.resumeToken ?? reusableReceipt?.resumeToken ?? randomUUID().replace(/-/g, '');
   validateResumeToken(resumeToken);
   const paths = checkpointPaths(rootDir, resumeToken);
 
-  if (options.resumeToken) {
-    const receipt = readReceipt(paths.receiptFile);
+  if (options.resumeToken || reusableReceipt) {
+    const receipt = reusableReceipt ?? readReceipt(paths.receiptFile);
     const errors: string[] = [];
     if (receipt.resumeToken !== resumeToken) errors.push('resume token');
     if (normalizeRoot(receipt.rootDir) !== normalizeRoot(rootDir)) errors.push('repository root');
-    if (receipt.targetGitCommitHash !== options.targetGitCommitHash) errors.push('git commit pin');
-    if (receipt.targetWorktreeFingerprint !== options.targetWorktreeFingerprint) {
-      errors.push('worktree fingerprint');
-    }
     if (receipt.planHash !== planHash) errors.push('scan plan');
     if (receipt.selectedFilesHash !== selectedFilesHash) errors.push('selected file set');
     if (receipt.scanPolicyHash !== options.scanPolicyHash) errors.push('scan policy');
@@ -388,10 +600,25 @@ export function prepareAbsorbRefreshCheckpoint(
     if (receipt.status === 'scanning' && receipt.ownerProcessId === process.pid) {
       errors.push(`active owner process ${receipt.ownerProcessId}`);
     }
+    const targetChanged =
+      receipt.targetGitCommitHash !== options.targetGitCommitHash ||
+      receipt.targetWorktreeFingerprint !== options.targetWorktreeFingerprint;
+    if (
+      targetChanged &&
+      receipt.completedBatches.some((entry) => typeof entry.inputSha256 !== 'string')
+    ) {
+      errors.push('content-addressed batch inputs');
+    }
     if (errors.length > 0) {
       throw new Error(`Absorb refresh checkpoint does not match: ${errors.join(', ')}`);
     }
-    return new AbsorbRefreshCheckpoint(options.scanPlan, receipt);
+    const checkpoint = new AbsorbRefreshCheckpoint(options.scanPlan, receipt);
+    checkpoint.prepareForResume({
+      targetGitCommitHash: options.targetGitCommitHash,
+      targetWorktreeFingerprint: options.targetWorktreeFingerprint,
+      resumeMode: targetChanged ? 'content-addressed-overlay' : 'exact',
+    });
+    return checkpoint;
   }
 
   fs.mkdirSync(paths.directory, { recursive: true });
@@ -423,6 +650,9 @@ export function prepareAbsorbRefreshCheckpoint(
     remainingCandidateFiles: options.scanPlan.totalFiles,
     progressPercent: 0,
     completedBatches: [],
+    resumeMode: 'new',
+    reusedBatchCount: 0,
+    invalidatedBatchCount: 0,
     selection: {
       maxFiles: options.maxFiles,
       workspaceCandidateFiles,

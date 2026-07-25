@@ -35,6 +35,7 @@ import {
 import { resolveCodebaseCachePaths } from './codebase-cache-storage';
 import {
   AbsorbRefreshCheckpoint,
+  compactAbsorbRefreshProgressReceipt,
   prepareAbsorbRefreshCheckpoint,
   type AbsorbRefreshProgressReceipt,
 } from './absorb-refresh-checkpoint';
@@ -717,7 +718,7 @@ function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, 
     cachePreserved: !job.cacheCommitted,
     cacheCommitted: job.cacheCommitted,
     ...(job.refreshProgressReceipt && {
-      refreshProgressReceipt: job.refreshProgressReceipt,
+      refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(job.refreshProgressReceipt),
       resumeToken: job.refreshProgressReceipt.resumeToken,
     }),
     memoryBudget: { ...job.memoryBudget },
@@ -953,7 +954,7 @@ function startBackgroundAbsorbJob(jobId: string, work: () => Promise<unknown>): 
             cachePreserved: !job?.cacheCommitted,
             graphAuthoritative: false,
             resumeToken: refreshProgressReceipt.resumeToken,
-            refreshProgressReceipt,
+            refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(refreshProgressReceipt),
           }),
         });
       });
@@ -3011,7 +3012,7 @@ export const codebaseTools: Tool[] = [
         resumeToken: {
           type: 'string',
           description:
-            'Resume a previously interrupted forced scan from the exact durable progress receipt. The token is bound to repository root, git HEAD, scan policy, batch plan, and selected file set; mismatches are rejected without changing the authoritative graph.',
+            'Resume a previously interrupted forced scan from its durable progress receipt. Repository root, scan policy, batch plan, and selected file set must match; when HEAD or worktree state changed, only batches whose source-content digest still matches are reused.',
         },
         includeBuildArtifacts: {
           type: 'boolean',
@@ -3251,6 +3252,12 @@ export const codebaseTools: Tool[] = [
           type: 'boolean',
           description:
             'Include every scan-batch summary. Defaults to false; compact status still reports selection mode, total files, batch count, and batch size.',
+          default: false,
+        },
+        includeReceiptDetails: {
+          type: 'boolean',
+          description:
+            'Include every completed checkpoint-batch receipt. Defaults to false; compact status reports counts, reuse mode, and only the latest completed batch.',
           default: false,
         },
       },
@@ -3881,9 +3888,11 @@ async function runFullScan(
           scanPolicyHash: scanPolicyKey(effectiveScanPolicy),
           maxFiles: effectiveMaxFiles,
           workspaceCandidateFiles: coverage.selectedCandidateCount ?? undefined,
+          reuseLatest: true,
         });
       }
       const scanRefreshCheckpoint = activeRefreshCheckpoint;
+      const batchInputHashes = new Map<number, string | null>();
       scanPlanReceipt = summarizeModuleScanPlan(scanPlan);
       setAbsorbJobScanPlan(jobId, scanPlanReceipt);
       scanRefreshCheckpoint.markScanning();
@@ -3894,7 +3903,7 @@ async function runFullScan(
         scanPlan,
         signal,
         loadBatchResult: (batch: PlannedScannerBatch) =>
-          scanRefreshCheckpoint.loadBatchResult(batch),
+          scanRefreshCheckpoint.loadBatchResult(batch, batchInputHashes.get(batch.index) ?? null),
         onBatchResume: scanRefreshCheckpoint
           ? (batch: PlannedScannerBatch, _result: ScanResult, totalBatches: number) => {
               setAbsorbJobRefreshProgress(jobId, scanRefreshCheckpoint.progressReceipt());
@@ -3908,6 +3917,7 @@ async function runFullScan(
             }
           : undefined,
         onBatchStart: (batch: PlannedScannerBatch, totalBatches: number) => {
+          batchInputHashes.set(batch.index, scanRefreshCheckpoint.captureBatchInput(batch));
           if (jobId) {
             trackAbsorbProgress(
               jobId,
@@ -3921,12 +3931,18 @@ async function runFullScan(
           batchResult: ScanResult,
           totalBatches: number
         ) => {
-          scanRefreshCheckpoint.persistBatch(batch, batchResult);
+          const persisted = scanRefreshCheckpoint.persistBatch(
+            batch,
+            batchResult,
+            batchInputHashes.get(batch.index) ?? null
+          );
           setAbsorbJobRefreshProgress(jobId, scanRefreshCheckpoint.progressReceipt());
           if (jobId) {
             trackAbsorbProgress(
               jobId,
-              `Completed batch ${batch.index}/${totalBatches}: ${batch.label}`,
+              persisted
+                ? `Completed batch ${batch.index}/${totalBatches}: ${batch.label}`
+                : `Batch ${batch.index}/${totalBatches} changed during scan; checkpoint skipped`,
               10 + (batch.index / Math.max(totalBatches, 1)) * 50
             );
           }
@@ -4078,7 +4094,9 @@ async function runFullScan(
       scanPlan: scanPlanReceipt,
       ...(activeRefreshCheckpoint && {
         resumeToken: activeRefreshCheckpoint.progressReceipt().resumeToken,
-        refreshProgressReceipt: activeRefreshCheckpoint.progressReceipt(),
+        refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(
+          activeRefreshCheckpoint.progressReceipt()
+        ),
       }),
       phaseMetrics,
       gitCommitHash,
@@ -4327,7 +4345,9 @@ async function runFullScan(
   if (activeRefreshCheckpoint && typeof result === 'object' && result !== null) {
     Object.assign(result as Record<string, unknown>, {
       resumeToken: activeRefreshCheckpoint.progressReceipt().resumeToken,
-      refreshProgressReceipt: activeRefreshCheckpoint.progressReceipt(),
+      refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(
+        activeRefreshCheckpoint.progressReceipt()
+      ),
     });
   }
   recordPhaseMetric('cache-commit', {
@@ -4958,7 +4978,9 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       scanPolicy,
       ...(plan.refreshCheckpoint && {
         resumeToken: plan.refreshCheckpoint.progressReceipt().resumeToken,
-        refreshProgressReceipt: plan.refreshCheckpoint.progressReceipt(),
+        refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(
+          plan.refreshCheckpoint.progressReceipt()
+        ),
       }),
       fromSourceFiles,
       fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
@@ -4987,7 +5009,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
         graphAuthoritative: false,
         ...(refreshProgressReceipt && {
           resumeToken: refreshProgressReceipt.resumeToken,
-          refreshProgressReceipt,
+          refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(refreshProgressReceipt),
         }),
       };
       failAbsorbJob(jobId, 'Refresh failed', message, result);
@@ -5083,6 +5105,7 @@ async function prepareDurableRefreshCheckpoint(
     maxFiles: plan.maxFiles ?? plan.scanPolicy.maxFiles ?? DEFAULT_SCAN_MAX_FILES,
     workspaceCandidateFiles: coverage.selectedCandidateCount ?? undefined,
     resumeToken: plan.resumeToken,
+    reuseLatest: !plan.resumeToken,
   });
   plan.preparedScanPlan = scanPlan;
   plan.targetGitCommitHash = targetGitCommitHash;
@@ -6308,7 +6331,9 @@ async function handleGraphStatus(): Promise<unknown> {
     ...(latestRefreshJob?.refreshProgressReceipt && {
       refreshInProgress: !['complete', 'error', 'cancelled'].includes(latestRefreshJob.status),
       refreshJobId: latestRefreshJob.jobId,
-      refreshProgressReceipt: latestRefreshJob.refreshProgressReceipt,
+      refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(
+        latestRefreshJob.refreshProgressReceipt
+      ),
     }),
     embeddingPolicy,
     graphRAGReady: semanticIndexReady,
@@ -6449,7 +6474,7 @@ async function handleCancelAbsorb(args: Record<string, unknown>): Promise<unknow
       : undefined,
     ...(job.refreshProgressReceipt && {
       resumeToken: job.refreshProgressReceipt.resumeToken,
-      refreshProgressReceipt: job.refreshProgressReceipt,
+      refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(job.refreshProgressReceipt),
     }),
     pollTool: 'holo_get_absorb_status',
   };
@@ -6499,7 +6524,10 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
 
   if (job.refreshProgressReceipt) {
     response.resumeToken = job.refreshProgressReceipt.resumeToken;
-    response.refreshProgressReceipt = job.refreshProgressReceipt;
+    response.refreshProgressReceipt = compactAbsorbRefreshProgressReceipt(
+      job.refreshProgressReceipt,
+      args.includeReceiptDetails === true
+    );
   }
 
   if (job.error) {
