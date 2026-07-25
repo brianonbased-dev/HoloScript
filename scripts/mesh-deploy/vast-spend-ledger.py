@@ -68,6 +68,12 @@ SIGNED_RENTAL_BINDING_FIELDS = (
     "run_id",
     "label",
 )
+SIGNED_RENTAL_INTENT_FIELDS = (
+    "spend_authority_hash",
+    "provider_principal",
+    "contract_guard_path",
+    "binding_hash",
+)
 SIGNED_RENTAL_HASH_FIELDS = {
     "spend_authority_hash",
     "provider_principal",
@@ -83,11 +89,12 @@ class LedgerIntegrityError(ValueError):
 def signed_rental_binding(record: dict, *, context: str) -> tuple[str, ...] | None:
     """Return an exact signed lifecycle tuple, or ``None`` for a legacy row.
 
-    Presence of even one binding key is signed intent. Treating a partial tuple
-    as legacy would let an append-only downgrade replace an authenticated rent
-    or close with the old instance-id-only semantics.
+    Presence of a cryptographic or guard binding key is signed intent. ``run_id``
+    and ``label`` are also valid legacy metadata, so they do not independently
+    switch a row into signed mode. Once signed intent exists, every binding
+    field remains mandatory; partial cryptographic tuples never fall back.
     """
-    if not any(field in record for field in SIGNED_RENTAL_BINDING_FIELDS):
+    if not any(field in record for field in SIGNED_RENTAL_INTENT_FIELDS):
         return None
 
     values: list[str] = []

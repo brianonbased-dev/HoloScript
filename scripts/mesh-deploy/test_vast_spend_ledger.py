@@ -346,6 +346,29 @@ class UnifiedPurchasedComputeLedgerTests(unittest.TestCase):
                 [historical_without_id], now=self.now, window_hours=24
             )
 
+    def test_legacy_run_and_label_metadata_do_not_claim_signed_intent(self) -> None:
+        records = [
+            {
+                "ts_iso": LEDGER._iso(self.now - timedelta(hours=2)),
+                "event": "rented",
+                "instance_id": 77,
+                "dph": 1,
+                "run_id": "legacy-finite-job",
+                "label": "legacy-finite-job",
+            },
+            {
+                "ts_iso": LEDGER._iso(self.now - timedelta(hours=1)),
+                "event": "closed",
+                "instance_id": 77,
+            },
+        ]
+        spent, burn_rate, active = LEDGER.compute_day_spend(
+            records, now=self.now, window_hours=24
+        )
+        self.assertEqual(spent, 1)
+        self.assertEqual(burn_rate, 0)
+        self.assertEqual(active, [])
+
     def test_duplicate_open_rent_is_rejected_for_all_binding_modes(self) -> None:
         def rent(hours: int, *, signed: bool) -> dict:
             row = {
