@@ -28,6 +28,12 @@ export interface HeadlessExperimentClockDeclaration {
   step: number;
 }
 
+interface HeadlessObservationSubjectBinding {
+  argumentKey: string;
+  observationKey: string;
+  targetCardinality: 1;
+}
+
 export interface HeadlessExperimentManifest {
   kind: 'manifest';
   schema: typeof HEADLESS_EXPERIMENT_PLAN_SCHEMA;
@@ -49,6 +55,7 @@ export interface HeadlessExperimentManifest {
     allowedRootKeys?: string[];
     forbiddenKeys?: string[];
     forbiddenValues?: HeadlessJsonValue[];
+    subjectBinding?: HeadlessObservationSubjectBinding;
   };
 }
 
@@ -359,6 +366,25 @@ function stringArray(value: unknown, label: string): string[] {
   return result;
 }
 
+function parseObservationSubjectBinding(
+  value: unknown,
+  label: string
+): HeadlessObservationSubjectBinding {
+  const parsed = toJsonObject(value, label);
+  assertContract(
+    canonicalizeHeadlessValue(Object.keys(parsed).sort()) ===
+      canonicalizeHeadlessValue(['argumentKey', 'observationKey', 'targetCardinality'].sort()),
+    `${label} fields must be exactly argumentKey, observationKey, and targetCardinality`
+  );
+  const targetCardinality = requiredSafeInteger(parsed, 'targetCardinality', label);
+  assertContract(targetCardinality === 1, `${label}.targetCardinality must be 1`);
+  return {
+    argumentKey: requiredString(parsed, 'argumentKey', label),
+    observationKey: requiredString(parsed, 'observationKey', label),
+    targetCardinality: 1,
+  };
+}
+
 function parseAuthorization(value: unknown, label: string): HeadlessActionAuthorization {
   assertContract(isPlainObject(value), `${label} must be an object`);
   return {
@@ -490,6 +516,7 @@ function parseManifest(value: unknown): HeadlessExperimentManifest {
       `${label}.observationPolicy must be an object`
     );
     let forbiddenValues: HeadlessJsonValue[] | undefined;
+    let subjectBinding: HeadlessObservationSubjectBinding | undefined;
     if (value.observationPolicy.forbiddenValues !== undefined) {
       const parsedForbiddenValues = toJsonValue(
         value.observationPolicy.forbiddenValues,
@@ -500,6 +527,12 @@ function parseManifest(value: unknown): HeadlessExperimentManifest {
         `${label}.observationPolicy.forbiddenValues must be an array`
       );
       forbiddenValues = parsedForbiddenValues.map((item) => cloneHeadlessValue(item));
+    }
+    if (value.observationPolicy.subjectBinding !== undefined) {
+      subjectBinding = parseObservationSubjectBinding(
+        value.observationPolicy.subjectBinding,
+        `${label}.observationPolicy.subjectBinding`
+      );
     }
     observationPolicy = {
       ...(value.observationPolicy.allowedRootKeys === undefined
@@ -519,6 +552,7 @@ function parseManifest(value: unknown): HeadlessExperimentManifest {
             ),
           }),
       ...(forbiddenValues === undefined ? {} : { forbiddenValues }),
+      ...(subjectBinding === undefined ? {} : { subjectBinding }),
     };
   }
 
@@ -562,6 +596,13 @@ function validatePlan(
   manifest: HeadlessExperimentManifest,
   schedule: HeadlessExperimentScheduleEntry[]
 ): void {
+  const subjectBinding =
+    manifest.observationPolicy?.subjectBinding === undefined
+      ? undefined
+      : parseObservationSubjectBinding(
+          manifest.observationPolicy.subjectBinding,
+          'manifest.observationPolicy.subjectBinding'
+        );
   assertContract(
     schedule.length === manifest.expected.scheduleCount,
     `expected ${manifest.expected.scheduleCount} schedule entries, received ${schedule.length}`
@@ -609,6 +650,7 @@ function validatePlan(
     }
 
     if (entry.kind === 'observation') {
+      validateObservationSubjectSchedule(entry, subjectBinding, entry.scheduleEntryId);
       assertContract(
         entry.authorization === undefined,
         'observation entries cannot carry authorization'
@@ -652,6 +694,30 @@ function validatePlan(
     ) === canonicalizeHeadlessValue(manifest.expected.finalPublicState),
     'expected final public state must contain exactly publicStateKeys'
   );
+}
+
+function validateObservationSubjectSchedule(
+  entry: HeadlessExperimentScheduleEntry,
+  binding: HeadlessObservationSubjectBinding | undefined,
+  label: string
+): string | undefined {
+  if (!binding) return undefined;
+  const targetIds = entry.targetIds ?? [];
+  assertContract(
+    targetIds.length === binding.targetCardinality,
+    `${label} subject binding requires exactly ${binding.targetCardinality} target`
+  );
+  const targetId = targetIds[0];
+  const args = entry.args ?? {};
+  assertContract(
+    Object.prototype.hasOwnProperty.call(args, binding.argumentKey),
+    `${label} subject binding argument ${binding.argumentKey} is missing`
+  );
+  assertContract(
+    args[binding.argumentKey] === targetId,
+    `${label} subject binding argument ${binding.argumentKey} must equal sole target ${targetId}`
+  );
+  return targetId;
 }
 
 function projectPublicState(
@@ -724,6 +790,25 @@ function enforceObservationPolicy(
     }
   };
   visit(observation, '$');
+}
+
+function enforceObservationSubjectBinding(
+  observation: HeadlessJsonValue,
+  entry: HeadlessExperimentScheduleEntry,
+  binding: HeadlessObservationSubjectBinding | undefined,
+  label: string
+): void {
+  if (!binding) return;
+  const targetId = validateObservationSubjectSchedule(entry, binding, label);
+  assertContract(isPlainObject(observation), `${label} must be an object`);
+  assertContract(
+    Object.prototype.hasOwnProperty.call(observation, binding.observationKey),
+    `${label} subject field ${binding.observationKey} is missing`
+  );
+  assertContract(
+    observation[binding.observationKey] === targetId,
+    `${label} subject field ${binding.observationKey} must equal sole target ${targetId}`
+  );
 }
 
 function ledgerGenesis(
@@ -904,6 +989,12 @@ export async function buildHeadlessExperimentReceipt(options: {
         `${entry.scheduleEntryId} observation emitted host-visible events`
       );
       enforceObservationPolicy(value, manifest.observationPolicy);
+      enforceObservationSubjectBinding(
+        value,
+        entry,
+        manifest.observationPolicy?.subjectBinding,
+        `${entry.scheduleEntryId} observation`
+      );
       const payload: HeadlessObservationPayload = {
         scheduleEntryId: entry.scheduleEntryId,
         tick: entry.tick,
@@ -1321,6 +1412,12 @@ export function verifyHeadlessExperimentReceipt(
       assertContract(
         source?.kind === 'observation',
         'observation points to non-observation schedule'
+      );
+      enforceObservationSubjectBinding(
+        entry.payload.observation,
+        source,
+        receipt.manifest.observationPolicy?.subjectBinding,
+        `${entry.payload.scheduleEntryId} observation`
       );
       const preSnapshot = receipt.publicStateSnapshots[scheduleIndex];
       const postSnapshot = receipt.publicStateSnapshots[scheduleIndex + 1];

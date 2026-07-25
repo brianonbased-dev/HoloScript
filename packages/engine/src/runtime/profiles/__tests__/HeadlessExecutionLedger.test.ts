@@ -44,6 +44,11 @@ function planRecords(): unknown[] {
           'private_memory',
         ],
         forbiddenValues: ['secret-adapter-a'],
+        subjectBinding: {
+          argumentKey: 'residentId',
+          observationKey: 'resident_id',
+          targetCardinality: 1,
+        },
       },
     },
     {
@@ -119,6 +124,7 @@ function makeInvoker(
     actionLeak?: boolean;
     eventLeak?: boolean;
     actionDetail?: string;
+    wrongObservationResident?: boolean;
   } = {}
 ) {
   let state: Record<string, unknown> = {
@@ -132,7 +138,7 @@ function makeInvoker(
       if (entry.kind === 'observation') {
         const residentId = String(entry.args?.residentId);
         const observation: Record<string, HeadlessJsonValue> = {
-          resident_id: residentId,
+          resident_id: options.wrongObservationResident ? 'resident-constant-wrong' : residentId,
           location: 'commons',
           visible_event_ids: [],
           bounded_memory_hash: hashHeadlessValue([residentId, entry.tick]),
@@ -268,6 +274,25 @@ describe('HeadlessExecutionLedger', () => {
       'entry hash mismatch'
     );
 
+    const tamperedResident = mutableReceipt(receipt);
+    (
+      tamperedResident.observationLedger[0].payload.observation as Record<string, unknown>
+    ).resident_id = 'resident-2';
+    expect(verifyHeadlessExperimentReceipt(tamperedResident)).toMatchObject({
+      valid: false,
+    });
+
+    const openSubjectBinding = mutableReceipt(receipt);
+    (
+      openSubjectBinding.manifest.observationPolicy!.subjectBinding as unknown as Record<
+        string,
+        unknown
+      >
+    ).publisherAuthenticated = true;
+    expect(verifyHeadlessExperimentReceipt(openSubjectBinding).errors[0]).toMatch(
+      /subjectBinding fields must be exactly/i
+    );
+
     const truncated = mutableReceipt(receipt);
     truncated.actionLedger.pop();
     expect(verifyHeadlessExperimentReceipt(truncated).errors[0]).toContain('ledger count mismatch');
@@ -326,6 +351,9 @@ describe('HeadlessExecutionLedger', () => {
     await expect(buildReceipt(undefined, { observationPrivateMutation: true })).rejects.toThrow(
       /observation mutated executor state/i
     );
+    await expect(buildReceipt(undefined, { wrongObservationResident: true })).rejects.toThrow(
+      /subject field resident_id must equal sole target resident-1/i
+    );
     await expect(buildReceipt(undefined, { actionLeak: true })).rejects.toThrow(/forbidden key/i);
     await expect(buildReceipt(undefined, { eventLeak: true })).rejects.toThrow(/forbidden key/i);
     await expect(buildReceipt(undefined, { deniedMutation: true })).rejects.toThrow(
@@ -345,6 +373,38 @@ describe('HeadlessExecutionLedger', () => {
     secondAction.authorization.nonce = 'nonce-1';
     expect(() => parseHeadlessExperimentPlan(duplicateAuthorization)).toThrow(
       /duplicate authorization nonce/i
+    );
+
+    const mismatchedObservationTarget = planRecords();
+    (
+      mismatchedObservationTarget[1] as {
+        targetIds: string[];
+      }
+    ).targetIds = ['resident-2'];
+    expect(() => parseHeadlessExperimentPlan(mismatchedObservationTarget)).toThrow(
+      /subject binding argument residentId must equal sole target resident-2/i
+    );
+
+    const multipleObservationTargets = planRecords();
+    (
+      multipleObservationTargets[1] as {
+        targetIds: string[];
+      }
+    ).targetIds = ['resident-1', 'resident-2'];
+    expect(() => parseHeadlessExperimentPlan(multipleObservationTargets)).toThrow(
+      /subject binding requires exactly 1 target/i
+    );
+
+    const openSubjectBinding = planRecords();
+    (
+      openSubjectBinding[0] as {
+        observationPolicy: {
+          subjectBinding: Record<string, unknown>;
+        };
+      }
+    ).observationPolicy.subjectBinding.publisherAuthenticated = true;
+    expect(() => parseHeadlessExperimentPlan(openSubjectBinding)).toThrow(
+      /subjectBinding fields must be exactly/i
     );
   });
 

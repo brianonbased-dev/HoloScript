@@ -12,7 +12,6 @@ import {
   type HeadlessExperimentReceipt,
   type HeadlessExperimentScheduleEntry,
   type HeadlessExperimentVerificationResult,
-  type HeadlessJsonObject,
 } from '@holoscript/engine/runtime';
 import {
   executeHsPlanKernel,
@@ -55,22 +54,58 @@ export const HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3 = Object.freeze({
   schedule: 'source-reexecuted-rust-wasm-uaal-v1',
   behavior: 'source-hash-anchored-inner-ledger-not-reexecuted-v1',
 });
+export const HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V4 =
+  'holoscript.headless-experiment-source-run.v4' as const;
+export const HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V4 = Object.freeze({
+  world: 'source-reexecuted-static-object-declarations-no-lifecycle-v1',
+  schedule: 'source-reexecuted-rust-wasm-uaal-v1',
+  behavior: 'source-reexecuted-engine-owned-deterministic-action-subset-v1',
+});
+export const HEADLESS_OBSERVER_PROJECTION_SCHEMA =
+  'holoscript.headless-observer-projection.v1' as const;
+export const HEADLESS_OBSERVER_PROOF_SCHEMA =
+  'holoscript.headless-observer-noninterference.v2' as const;
+export const SINGLE_EXECUTION_POST_SEAL_OBSERVER = 'single-execution-post-seal-v1' as const;
+
+export interface HeadlessObserverProjection {
+  readonly schema: typeof HEADLESS_OBSERVER_PROJECTION_SCHEMA;
+  readonly sourceReceiptSchema: typeof HEADLESS_EXPERIMENT_RECEIPT_SCHEMA;
+  readonly runId: string;
+  readonly canonicalFields: Readonly<{
+    canonicalSceneHash: string;
+    canonicalPoseHash: string;
+    logicalClockHash: string;
+    publicStateHash: string;
+    executedScheduleHash: string;
+    residentObservationHash: string;
+    actionReceiptRoot: string;
+  }>;
+  readonly terminalCommitment: string;
+}
 
 export interface HeadlessObserverEquivalenceProof {
-  schema: 'holoscript.headless-observer-equivalence.v1';
-  isolation: typeof POST_SEAL_OBSERVER_PROCESS;
-  equivalent: boolean;
-  canonicalPayloadEqual: boolean;
-  sevenFieldsEqual: boolean;
-  offCanonicalPayloadHash: string;
-  onCanonicalPayloadHash: string;
-  observerProjectionHash: string;
-  observerProjection: HeadlessJsonObject;
+  readonly schema: typeof HEADLESS_OBSERVER_PROOF_SCHEMA;
+  readonly mode: typeof SINGLE_EXECUTION_POST_SEAL_OBSERVER;
+  readonly isolation: typeof POST_SEAL_OBSERVER_PROCESS;
+  readonly observedSealedExecutionCount: 1;
+  readonly observerIntroducedExperimentExecutionCount: 0;
+  readonly observerExecutionCount: 1;
+  readonly observedTerminalCommitment: string;
+  readonly preObserverCanonicalPayloadHash: string;
+  readonly postObserverCanonicalPayloadHash: string;
+  readonly preObserverCanonicalFieldsHash: string;
+  readonly postObserverCanonicalFieldsHash: string;
+  readonly equivalent: boolean;
+  readonly canonicalPayloadEqual: boolean;
+  readonly sevenFieldsEqual: boolean;
+  readonly observerProjectionHash: string;
+  readonly observerProjection: Readonly<HeadlessObserverProjection>;
+  readonly liveSchedulingNoninterferenceClaimed: false;
 }
 
 export interface HeadlessExperimentSourceRun {
   execution: HeadlessExperimentReceipt;
-  sourceRunReceipt: HeadlessExperimentSourceRunReceiptV3;
+  sourceRunReceipt: HeadlessExperimentSourceRunReceiptV4;
   engines: {
     world: typeof DETERMINISTIC_HOLO_WORLD_PROJECTION;
     schedule: typeof RUST_WASM_UAAL_HS_PLAN_KERNEL;
@@ -99,7 +134,7 @@ export interface HeadlessExperimentSourceRun {
     hsReturnedPlanHashSealedInReceipt: true;
     worldSourceReexecutedDuringVerification: true;
     hsPlanSourceReexecutedDuringVerification: true;
-    hsplusBehaviorSourceReexecutedDuringVerification: false;
+    hsplusBehaviorSourceReexecutedDuringVerification: true;
     compilerArtifactAttested: false;
     sourceRunPublisherAuthenticated: false;
     nativeEngineHsplusExecutionClaimed: false;
@@ -152,9 +187,28 @@ export interface HeadlessExperimentSourceRunReceiptV3 {
   sourceRunCommitment: string;
 }
 
+export interface HeadlessExperimentSourceRunReceiptV4 {
+  schema: typeof HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V4;
+  hashAlgorithm: typeof HEADLESS_EXPERIMENT_HASH_ALGORITHM;
+  sourceBundleHash: string;
+  verificationBoundary: typeof HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V4;
+  engines: {
+    world: HoloWorldProjectionProvenance;
+    schedule: HsPlanKernelExecutionProvenance;
+    behavior: typeof ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET;
+  };
+  innerLedger: {
+    schema: typeof HEADLESS_EXPERIMENT_RECEIPT_SCHEMA;
+    terminalCommitment: string;
+    canonicalReceiptHash: string;
+  };
+  sourceRunCommitment: string;
+}
+
 export type AnyHeadlessExperimentSourceRunReceipt =
   | HeadlessExperimentSourceRunReceipt
-  | HeadlessExperimentSourceRunReceiptV3;
+  | HeadlessExperimentSourceRunReceiptV3
+  | HeadlessExperimentSourceRunReceiptV4;
 
 export interface HeadlessExperimentSourceRunSources {
   worldSource: string;
@@ -170,6 +224,16 @@ function strictClone<T>(value: T, label: string): T {
       `${label} is not deterministic JSON: ${error instanceof Error ? error.message : String(error)}`
     );
   }
+}
+
+function deepFreezeJson<T>(value: T): T {
+  if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
+    for (const nested of Object.values(value as Record<string, unknown>)) {
+      deepFreezeJson(nested);
+    }
+    Object.freeze(value);
+  }
+  return value;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -231,12 +295,7 @@ function assertScheduleSourceShape(value: unknown, label: string): void {
     assertAuthorizationShape(value.authorization, `${label}.authorization`);
   }
   if (value.expect !== undefined) {
-    assertClosedKeys(
-      value.expect,
-      [],
-      ['allowed', 'outcome', 'stateChanged'],
-      `${label}.expect`
-    );
+    assertClosedKeys(value.expect, [], ['allowed', 'outcome', 'stateChanged'], `${label}.expect`);
   }
 }
 
@@ -274,9 +333,16 @@ function assertNestedExecutionContract(value: Record<string, unknown>): void {
     assertClosedKeys(
       manifest.observationPolicy,
       [],
-      ['allowedRootKeys', 'forbiddenKeys', 'forbiddenValues'],
+      ['allowedRootKeys', 'forbiddenKeys', 'forbiddenValues', 'subjectBinding'],
       'manifest observation policy'
     );
+    if (manifest.observationPolicy.subjectBinding !== undefined) {
+      assertExactKeys(
+        manifest.observationPolicy.subjectBinding,
+        ['argumentKey', 'observationKey', 'targetCardinality'],
+        'manifest observation subject binding'
+      );
+    }
   }
 
   assertExactKeys(
@@ -362,14 +428,7 @@ function assertNestedExecutionContract(value: Record<string, unknown>): void {
     const chained = assertChainedEntryShape(entry, `observation ledger entry ${index}`);
     assertExactKeys(
       chained.payload,
-      [
-        'scheduleEntryId',
-        'tick',
-        'entrypoint',
-        'targetIds',
-        'publicStateHash',
-        'observation',
-      ],
+      ['scheduleEntryId', 'tick', 'entrypoint', 'targetIds', 'publicStateHash', 'observation'],
       `observation ledger payload ${index}`
     );
   });
@@ -411,11 +470,40 @@ function assertNestedExecutionContract(value: Record<string, unknown>): void {
   });
 }
 
+function assertExecutionReceiptContract(
+  value: unknown,
+  label: string
+): asserts value is Record<string, unknown> {
+  assertExactKeys(
+    value,
+    [
+      'schema',
+      'hashAlgorithm',
+      'runId',
+      'seed',
+      'sourceBundleHash',
+      'manifest',
+      'logicalClock',
+      'scene',
+      'posePhysics',
+      'publicStateSnapshots',
+      'scheduleLedger',
+      'observationLedger',
+      'actionLedger',
+      'canonicalFields',
+      'terminal',
+    ],
+    label
+  );
+  assertNestedExecutionContract(value);
+}
+
 function sourceRunPreimage(
   receipt: AnyHeadlessExperimentSourceRunReceipt
 ):
   | Omit<HeadlessExperimentSourceRunReceipt, 'sourceRunCommitment'>
-  | Omit<HeadlessExperimentSourceRunReceiptV3, 'sourceRunCommitment'> {
+  | Omit<HeadlessExperimentSourceRunReceiptV3, 'sourceRunCommitment'>
+  | Omit<HeadlessExperimentSourceRunReceiptV4, 'sourceRunCommitment'> {
   const { sourceRunCommitment: _sourceRunCommitment, ...preimage } = receipt;
   return preimage;
 }
@@ -425,12 +513,12 @@ function buildSourceRunReceipt(options: {
   execution: HeadlessExperimentReceipt;
   planProvenance: HsPlanKernelExecutionProvenance;
   worldProvenance: HoloWorldProjectionProvenance;
-}): HeadlessExperimentSourceRunReceiptV3 {
-  const preimage: Omit<HeadlessExperimentSourceRunReceiptV3, 'sourceRunCommitment'> = {
-    schema: HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3,
+}): HeadlessExperimentSourceRunReceiptV4 {
+  const preimage: Omit<HeadlessExperimentSourceRunReceiptV4, 'sourceRunCommitment'> = {
+    schema: HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V4,
     hashAlgorithm: HEADLESS_EXPERIMENT_HASH_ALGORITHM,
     sourceBundleHash: options.sourceBundleHash,
-    verificationBoundary: HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3,
+    verificationBoundary: HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V4,
     engines: {
       world: options.worldProvenance,
       schedule: options.planProvenance,
@@ -452,14 +540,16 @@ function buildSourceRunReceipt(options: {
 }
 
 /**
- * Verify additive source-run v2 or v3 seals against untrusted serialized claims.
+ * Verify additive source-run v2, v3, or v4 seals against untrusted serialized claims.
  *
  * V2 retains its published asymmetric boundary: `.hs` is re-executed while
  * `.holo` and `.hsplus` are hash-anchored. V3 additionally reparses the
  * single-source `.holo` world through the fixed structural projector and
- * compares the complete scene and pose/physics projections. Neither version
- * claims `.holo` lifecycle execution, `.hsplus` source re-execution, publisher
- * identity, or exact compiler-artifact attestation.
+ * compares the complete scene and pose/physics projections. V4 additionally
+ * re-executes the bounded engine-owned `.hsplus` action subset and requires the
+ * complete inner receipt to be byte-identical. No version claims `.holo`
+ * lifecycle execution, full `.hsplus` execution, publisher identity, or exact
+ * compiler-artifact attestation.
  */
 export async function verifyHeadlessExperimentSourceRunReceipt(
   receiptInput: unknown,
@@ -467,9 +557,23 @@ export async function verifyHeadlessExperimentSourceRunReceipt(
   sources: HeadlessExperimentSourceRunSources
 ): Promise<HeadlessExperimentVerificationResult> {
   try {
-    canonicalizeHeadlessValue(receiptInput);
+    const receiptSnapshot = strictClone(receiptInput, 'source-run receipt input');
+    const executionSnapshot = strictClone(executionInput, 'inner execution receipt input');
+    const sourceSnapshot = strictClone(sources, 'source-run sources');
     assertExactKeys(
-      receiptInput,
+      sourceSnapshot,
+      ['worldSource', 'planSource', 'behaviorSource'],
+      'source-run sources'
+    );
+    if (
+      typeof sourceSnapshot.worldSource !== 'string' ||
+      typeof sourceSnapshot.planSource !== 'string' ||
+      typeof sourceSnapshot.behaviorSource !== 'string'
+    ) {
+      throw new Error('source-run sources must be strings');
+    }
+    assertExactKeys(
+      receiptSnapshot,
       [
         'schema',
         'hashAlgorithm',
@@ -481,38 +585,20 @@ export async function verifyHeadlessExperimentSourceRunReceipt(
       ],
       'source-run receipt'
     );
-    const schema = receiptInput.schema;
+    const schema = receiptSnapshot.schema;
     if (
       schema !== HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA &&
-      schema !== HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3
+      schema !== HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3 &&
+      schema !== HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V4
     ) {
       throw new Error('source-run receipt identity mismatch');
     }
-    const receipt = receiptInput as unknown as AnyHeadlessExperimentSourceRunReceipt;
+    const receipt = receiptSnapshot as unknown as AnyHeadlessExperimentSourceRunReceipt;
     const isV3 = receipt.schema === HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V3;
-    assertExactKeys(
-      executionInput,
-      [
-        'schema',
-        'hashAlgorithm',
-        'runId',
-        'seed',
-        'sourceBundleHash',
-        'manifest',
-        'logicalClock',
-        'scene',
-        'posePhysics',
-        'publicStateSnapshots',
-        'scheduleLedger',
-        'observationLedger',
-        'actionLedger',
-        'canonicalFields',
-        'terminal',
-      ],
-      'inner execution receipt'
-    );
-    assertNestedExecutionContract(executionInput);
-    const execution = executionInput as unknown as HeadlessExperimentReceipt;
+    const isV4 = receipt.schema === HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA_V4;
+    const hasWorldProvenance = isV3 || isV4;
+    assertExecutionReceiptContract(executionSnapshot, 'inner execution receipt');
+    const execution = executionSnapshot as unknown as HeadlessExperimentReceipt;
     assertExactKeys(
       receipt.verificationBoundary,
       ['world', 'schedule', 'behavior'],
@@ -527,9 +613,11 @@ export async function verifyHeadlessExperimentSourceRunReceipt(
     if (receipt.hashAlgorithm !== HEADLESS_EXPERIMENT_HASH_ALGORITHM) {
       throw new Error('source-run receipt identity mismatch');
     }
-    const expectedVerificationBoundary = isV3
-      ? HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3
-      : HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY;
+    const expectedVerificationBoundary = isV4
+      ? HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V4
+      : isV3
+        ? HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY_V3
+        : HEADLESS_SOURCE_RUN_VERIFICATION_BOUNDARY;
     if (
       canonicalizeHeadlessValue(receipt.verificationBoundary) !==
       canonicalizeHeadlessValue(expectedVerificationBoundary)
@@ -542,16 +630,19 @@ export async function verifyHeadlessExperimentSourceRunReceipt(
     ) {
       throw new Error('source-run engine identity mismatch');
     }
-    if (!isV3 && receipt.engines.world !== PURE_HOLO_WORLD_PROJECTION) {
+    if (!hasWorldProvenance && receipt.engines.world !== PURE_HOLO_WORLD_PROJECTION) {
       throw new Error('source-run engine identity mismatch');
     }
-    if (isV3 && receipt.engines.world.engine !== DETERMINISTIC_HOLO_WORLD_PROJECTION) {
+    if (
+      hasWorldProvenance &&
+      receipt.engines.world.engine !== DETERMINISTIC_HOLO_WORLD_PROJECTION
+    ) {
       throw new Error('source-run engine identity mismatch');
     }
     const expectedSourceBundleHash = hashHeadlessValue({
-      world: sources.worldSource,
-      plan: sources.planSource,
-      behavior: sources.behaviorSource,
+      world: sourceSnapshot.worldSource,
+      plan: sourceSnapshot.planSource,
+      behavior: sourceSnapshot.behaviorSource,
     });
     if (
       receipt.sourceBundleHash !== expectedSourceBundleHash ||
@@ -581,9 +672,9 @@ export async function verifyHeadlessExperimentSourceRunReceipt(
     if (!innerVerification.valid) {
       throw new Error(`inner execution receipt failed: ${innerVerification.errors.join('; ')}`);
     }
-    if (isV3) {
+    if (hasWorldProvenance) {
       const worldVerification = verifyHoloWorldProjectionProvenance(receipt.engines.world, {
-        expectedSource: sources.worldSource,
+        expectedSource: sourceSnapshot.worldSource,
         expectedScene: execution.scene,
         expectedPosePhysics: execution.posePhysics,
       });
@@ -593,11 +684,30 @@ export async function verifyHeadlessExperimentSourceRunReceipt(
     }
     const expectedRecords = [execution.manifest, ...schedule];
     const planVerification = await verifyHsPlanKernelExecutionProvenance(receipt.engines.schedule, {
-      expectedSource: sources.planSource,
+      expectedSource: sourceSnapshot.planSource,
       expectedRecords,
     });
     if (!planVerification.valid) {
       throw new Error(`plan provenance failed: ${planVerification.errors.join('; ')}`);
+    }
+    if (isV4) {
+      const replayWorld = executeHoloWorldProjection(sourceSnapshot.worldSource);
+      const replayPlanKernel = await executeHsPlanKernel(sourceSnapshot.planSource);
+      const replayPlan = parseHeadlessExperimentPlan(replayPlanKernel.data);
+      const replayBehavior = createDeterministicHsplusActionRuntime(sourceSnapshot.behaviorSource);
+      const replayExecution = await buildHeadlessExperimentReceipt({
+        sourceBundleHash: expectedSourceBundleHash,
+        scene: replayWorld.scene,
+        posePhysics: replayWorld.posePhysics,
+        plan: replayPlan,
+        initialState: replayBehavior.initialState,
+        invoke: (entry) => replayBehavior.invoke(entry),
+      });
+      if (canonicalizeHeadlessValue(replayExecution) !== canonicalizeHeadlessValue(execution)) {
+        throw new Error(
+          'behavior source reexecution differs from the sealed inner execution receipt'
+        );
+      }
     }
     return { valid: true, errors: [] };
   } catch (error) {
@@ -640,7 +750,50 @@ process.stdin.on("end", () => {
 });
 `;
 
-function consumeInIsolatedObserver(receipt: HeadlessExperimentReceipt): HeadlessJsonObject {
+function assertObserverProjection(
+  projection: unknown,
+  receipt: HeadlessExperimentReceipt
+): asserts projection is HeadlessObserverProjection {
+  assertExactKeys(
+    projection,
+    ['schema', 'sourceReceiptSchema', 'runId', 'canonicalFields', 'terminalCommitment'],
+    'observer projection'
+  );
+  assertExactKeys(
+    projection.canonicalFields,
+    [
+      'canonicalSceneHash',
+      'canonicalPoseHash',
+      'logicalClockHash',
+      'publicStateHash',
+      'executedScheduleHash',
+      'residentObservationHash',
+      'actionReceiptRoot',
+    ],
+    'observer projection canonical fields'
+  );
+  if (
+    projection.schema !== HEADLESS_OBSERVER_PROJECTION_SCHEMA ||
+    projection.sourceReceiptSchema !== HEADLESS_EXPERIMENT_RECEIPT_SCHEMA ||
+    projection.runId !== receipt.runId ||
+    projection.terminalCommitment !== receipt.terminal.terminalCommitment ||
+    canonicalizeHeadlessValue(projection.canonicalFields) !==
+      canonicalizeHeadlessValue(receipt.canonicalFields)
+  ) {
+    throw new Error('observer projection does not match the sealed receipt');
+  }
+}
+
+export function observeHeadlessExperimentReceipt(
+  receiptInput: unknown
+): Readonly<HeadlessObserverProjection> {
+  const receiptSnapshot = strictClone(receiptInput, 'observer receipt input');
+  assertExecutionReceiptContract(receiptSnapshot, 'observer receipt');
+  const receipt = receiptSnapshot as unknown as HeadlessExperimentReceipt;
+  const verification = verifyHeadlessExperimentReceipt(receipt);
+  if (!verification.valid) {
+    throw new Error(`Observer rejected invalid receipt: ${verification.errors.join('; ')}`);
+  }
   const serialized = canonicalizeHeadlessValue(receipt);
   const child = spawnSync(process.execPath, ['--eval', OBSERVER_PROCESS_SOURCE], {
     input: serialized,
@@ -653,35 +806,42 @@ function consumeInIsolatedObserver(receipt: HeadlessExperimentReceipt): Headless
   if (child.status !== 0) {
     throw new Error(`Observer process failed: ${child.stderr.trim() || `exit ${child.status}`}`);
   }
-  return strictClone(JSON.parse(child.stdout), 'observer projection') as HeadlessJsonObject;
+  const projection = strictClone(JSON.parse(child.stdout), 'observer projection');
+  assertObserverProjection(projection, receipt);
+  return deepFreezeJson(projection);
 }
 
-function observerProof(
-  offReceipt: HeadlessExperimentReceipt,
-  onReceipt: HeadlessExperimentReceipt
-): HeadlessObserverEquivalenceProof {
-  const offPayload = canonicalizeHeadlessValue(offReceipt);
-  const onPayload = canonicalizeHeadlessValue(onReceipt);
-  const canonicalPayloadEqual = offPayload === onPayload;
-  const sevenFieldsEqual =
-    canonicalizeHeadlessValue(offReceipt.canonicalFields) ===
-    canonicalizeHeadlessValue(onReceipt.canonicalFields);
-  const projection = consumeInIsolatedObserver(onReceipt);
+function observerProof(receipt: HeadlessExperimentReceipt): HeadlessObserverEquivalenceProof {
+  const preObserverPayload = canonicalizeHeadlessValue(receipt);
+  const preObserverCanonicalFields = canonicalizeHeadlessValue(receipt.canonicalFields);
+  const projection = observeHeadlessExperimentReceipt(receipt);
+  const postObserverPayload = canonicalizeHeadlessValue(receipt);
+  const postObserverCanonicalFields = canonicalizeHeadlessValue(receipt.canonicalFields);
+  const canonicalPayloadEqual = preObserverPayload === postObserverPayload;
+  const sevenFieldsEqual = preObserverCanonicalFields === postObserverCanonicalFields;
   const proof: HeadlessObserverEquivalenceProof = {
-    schema: 'holoscript.headless-observer-equivalence.v1',
+    schema: HEADLESS_OBSERVER_PROOF_SCHEMA,
+    mode: SINGLE_EXECUTION_POST_SEAL_OBSERVER,
     isolation: POST_SEAL_OBSERVER_PROCESS,
+    observedSealedExecutionCount: 1,
+    observerIntroducedExperimentExecutionCount: 0,
+    observerExecutionCount: 1,
+    observedTerminalCommitment: receipt.terminal.terminalCommitment,
+    preObserverCanonicalPayloadHash: hashHeadlessValue(receipt),
+    postObserverCanonicalPayloadHash: hashHeadlessValue(receipt),
+    preObserverCanonicalFieldsHash: hashHeadlessValue(receipt.canonicalFields),
+    postObserverCanonicalFieldsHash: hashHeadlessValue(receipt.canonicalFields),
     equivalent: canonicalPayloadEqual && sevenFieldsEqual,
     canonicalPayloadEqual,
     sevenFieldsEqual,
-    offCanonicalPayloadHash: hashHeadlessValue(offReceipt),
-    onCanonicalPayloadHash: hashHeadlessValue(onReceipt),
     observerProjectionHash: hashHeadlessValue(projection),
     observerProjection: projection,
+    liveSchedulingNoninterferenceClaimed: false,
   };
-  if (!proof.equivalent) {
-    throw new Error('Observer off/on executions are not canonically equivalent');
+  if (!canonicalPayloadEqual || !sevenFieldsEqual) {
+    throw new Error('Observer changed the sealed headless execution receipt');
   }
-  return proof;
+  return deepFreezeJson(proof);
 }
 
 export async function runHeadlessExperimentSources(options: {
@@ -698,20 +858,22 @@ export async function runHeadlessExperimentSources(options: {
 
   const execute = async (): Promise<{
     execution: HeadlessExperimentReceipt;
-    sourceRunReceipt: HeadlessExperimentSourceRunReceiptV3;
+    sourceRunReceipt: HeadlessExperimentSourceRunReceiptV4;
   }> => {
     const planKernel = await executeHsPlanKernel(options.planSource);
     const plan = parseHeadlessExperimentPlan(planKernel.data);
     const world = executeHoloWorldProjection(options.worldSource);
     const behavior = createDeterministicHsplusActionRuntime(options.behaviorSource);
-    const receipt = await buildHeadlessExperimentReceipt({
-      sourceBundleHash,
-      scene: strictClone(world.scene, 'headless scene receipt'),
-      posePhysics: strictClone(world.posePhysics, 'headless pose/physics receipt'),
-      plan,
-      initialState: behavior.initialState,
-      invoke: (entry) => behavior.invoke(entry),
-    });
+    const receipt = deepFreezeJson(
+      await buildHeadlessExperimentReceipt({
+        sourceBundleHash,
+        scene: strictClone(world.scene, 'headless scene receipt'),
+        posePhysics: strictClone(world.posePhysics, 'headless pose/physics receipt'),
+        plan,
+        initialState: behavior.initialState,
+        invoke: (entry) => behavior.invoke(entry),
+      })
+    );
     const verification = verifyHeadlessExperimentReceipt(receipt, {
       expectedSourceBundleHash: sourceBundleHash,
       expectedSchedule: plan.schedule,
@@ -744,22 +906,15 @@ export async function runHeadlessExperimentSources(options: {
     return { execution: receipt, sourceRunReceipt };
   };
 
-  const offRun = await execute();
+  const run = await execute();
   let proof: HeadlessObserverEquivalenceProof | undefined;
   if (options.observer === 'on') {
-    const onRun = await execute();
-    if (
-      canonicalizeHeadlessValue(offRun.sourceRunReceipt) !==
-      canonicalizeHeadlessValue(onRun.sourceRunReceipt)
-    ) {
-      throw new Error('Observer off/on source-run receipts are not canonically equivalent');
-    }
-    proof = observerProof(offRun.execution, onRun.execution);
+    proof = observerProof(run.execution);
   }
 
   return {
-    execution: offRun.execution,
-    sourceRunReceipt: offRun.sourceRunReceipt,
+    execution: run.execution,
+    sourceRunReceipt: run.sourceRunReceipt,
     engines: {
       world: DETERMINISTIC_HOLO_WORLD_PROJECTION,
       schedule: RUST_WASM_UAAL_HS_PLAN_KERNEL,
@@ -788,7 +943,7 @@ export async function runHeadlessExperimentSources(options: {
       hsReturnedPlanHashSealedInReceipt: true,
       worldSourceReexecutedDuringVerification: true,
       hsPlanSourceReexecutedDuringVerification: true,
-      hsplusBehaviorSourceReexecutedDuringVerification: false,
+      hsplusBehaviorSourceReexecutedDuringVerification: true,
       compilerArtifactAttested: false,
       sourceRunPublisherAuthenticated: false,
       nativeEngineHsplusExecutionClaimed: false,
