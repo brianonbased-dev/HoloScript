@@ -25,7 +25,11 @@ composition "ModelVillageHeadlessFixture" {
 
       @physics {
         mass: 0
-        kinematic: true
+        static: true
+        // PhysicsWorldImpl's current cylinder broadphase envelope is not
+        // radius-aware. The visual commons stays cylindrical while this
+        // authored box collider provides the explicit CPU collision proxy.
+        shape: "box"
       }
     }
 
@@ -39,6 +43,9 @@ composition "ModelVillageHeadlessFixture" {
       @physics {
         mass: 450
         kinematic: true
+        // The visual cistern remains cylindrical; the current receipt lane
+        // requires an explicit supported collision proxy.
+        shape: "box"
       }
     }
 

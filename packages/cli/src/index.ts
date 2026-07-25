@@ -95,6 +95,27 @@ export {
   type HoloWorldProjectionVerificationOptions,
 } from './headless-experiment';
 export {
+  HOLOLAND_PHYSICS_OBSERVER_SCHEMA,
+  HOLO_CPU_PHYSICS_ENGINE,
+  HOLO_CPU_PHYSICS_EVIDENCE_SCHEMA,
+  HOLO_CPU_PHYSICS_LIMITS,
+  HOLO_CPU_PHYSICS_RECEIPT_SCHEMA,
+  executeHoloCpuPhysicsReceipt,
+  verifyHoloCpuPhysicsReceipt,
+  type HoloCpuPhysicsBodyRegistration,
+  type HoloCpuPhysicsEngineDefaultsSnapshot,
+  type HoloCpuPhysicsExecutionOptions,
+  type HoloCpuPhysicsExecutionReceipt,
+  type HoloCpuPhysicsObservedBody,
+  type HoloCpuPhysicsObservedContact,
+  type HoloCpuPhysicsObservedContactPoint,
+  type HoloCpuPhysicsObserverFrame,
+  type HoloCpuPhysicsShape,
+  type HoloCpuPhysicsVerificationOptions,
+  type HoloCpuPhysicsVerificationResult,
+  type HoloLandPhysicsObserverProjection,
+} from './holo-cpu-physics-receipt';
+export {
   HS_PLAN_KERNEL_EXECUTION_PROVENANCE_SCHEMA,
   HS_PLAN_KERNEL_TRACE_SCHEMA,
   HS_PLAN_KERNEL_PARSER,

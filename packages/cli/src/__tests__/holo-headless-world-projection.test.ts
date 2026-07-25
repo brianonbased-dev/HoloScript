@@ -45,16 +45,16 @@ describe('deterministic .holo headless world projection', () => {
       },
     });
     expect(first.provenance.sourceHash).toBe(
-      '3da5910adf5f51db56982afc3258f61dda70582ea911c27dfe504f4924e9f23f'
+      'cbad315946d342ba8460223bc7be80bea4a3ea673044e995c95c13fe565865b8'
     );
     expect(first.provenance.result.sceneHash).toBe(
-      '8bc4e611570efc0e8a99023ca14cc34b111f00e39a58db21832158d8eec1bf46'
+      '561d414988f3dce4dde399c30ab9e72a46d9d80bdfbde7954c0eed7f03a8e68c'
     );
     expect(first.provenance.result.posePhysicsHash).toBe(
-      '8fa34ef7851755f7cbde217d0dc6cd1d87a4e504c17649900427ac91685178f9'
+      'e2cdadc5d52dfb7c4c4327b2b2a8e230690457fed601a0e90f0064fa20c73d6e'
     );
     expect(first.provenance.provenanceCommitment).toBe(
-      'af61bd58645867ae4915267526c11b8de3fc98931f868d0926dcca07e048675b'
+      'e0c965a93d48b62d1187b6547f1b9f36d6a2039e189de492bedfc2cf435fb0ab'
     );
     expect(
       (first.scene.objects as Array<{ id: string }>).map((object) => object.id)
@@ -69,7 +69,11 @@ describe('deterministic .holo headless world projection', () => {
     const bodies = first.posePhysics.bodies as Array<{
       id: string;
       transform: { scale: number[] };
-      physics: { massKg: number | null; friction: number | null };
+      physics: {
+        massKg: number | null;
+        friction: number | null;
+        geometry: string | null;
+      };
     }>;
     expect(first.posePhysics).toMatchObject({
       coverage: HOLO_WORLD_PROJECTION_COVERAGE,
@@ -78,7 +82,7 @@ describe('deterministic .holo headless world projection', () => {
     });
     expect(bodies.find((body) => body.id === 'commons')).toMatchObject({
       transform: { scale: [12, 0.3, 12] },
-      physics: { massKg: 0 },
+      physics: { massKg: 0, geometry: 'box' },
     });
     expect(bodies.find((body) => body.id === 'cistern')).toMatchObject({
       transform: { scale: [2.2, 1.8, 2.2] },

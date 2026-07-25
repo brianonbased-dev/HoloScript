@@ -508,6 +508,7 @@ const STATIC_PROJECTION_PROPERTY_KEYS = new Set([
 const STATIC_PROJECTION_TRAIT_NAMES = new Set([
   'collidable',
   'emissive',
+  'kinematic',
   'physics',
   'static',
 ]);
@@ -1490,6 +1491,7 @@ export function headlessAstToSceneReceipt(ast: unknown): Record<string, unknown>
       properties.static === true;
     const kinematicValue =
       staticValue ||
+      traits.includes('kinematic') ||
       (physicsConfig.kinematic ?? properties.kinematic ?? false);
     const massValue =
       physicsConfig.massKg ??
