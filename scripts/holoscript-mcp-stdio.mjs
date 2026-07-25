@@ -8,7 +8,10 @@
  * handshake and clients report only "Transport closed".
  *
  * This launcher keeps stdout reserved for MCP protocol traffic, repairs missing
- * local build entrypoints on stderr, then delegates to the packaged stdio bin.
+ * local build entrypoints on stderr, and supervises the packaged stdio worker.
+ * If a rebuild invalidates a loaded chunk or the worker otherwise exits, the
+ * client transport stays open: interrupted calls receive a retryable error and
+ * a replacement worker receives the cached MCP initialization handshake.
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -192,35 +195,276 @@ export function startServer({
   exitProcess = (code) => process.exit(code),
   platform = process.platform,
   registerProcessHandlers = true,
+  restartDelayMs = (attempt) => Math.min(100 * 2 ** Math.min(attempt - 1, 6), 5_000),
+  setTimeoutImpl = setTimeout,
+  clearTimeoutImpl = clearTimeout,
 } = {}) {
   const lifecycle = lifecycleFactory({
     role: 'holoscript-mcp-stdio',
     scriptPath: LAUNCHER_PATH,
   });
-  const child = spawnImpl(process.execPath, [stdioServerPath()], {
-    cwd: ROOT,
-    env: { ...process.env, START_MCP_STDIO: 'true' },
-    stdio: ['pipe', 'pipe', 'inherit'],
-    windowsHide: true,
-  });
-
-  input.pipe(child.stdin);
-  child.stdout.pipe(output);
-  input.on('data', lifecycle.touch);
-  child.stdout.on('data', lifecycle.touch);
 
   let stopping = false;
+  let finished = false;
+  let child = null;
+  let childGeneration = 0;
+  let restartAttempt = 0;
+  let restartTimer = null;
+  let inputBuffer = '';
+  let outputBuffer = '';
+  let initializeLine = null;
+  let initializeIdKey = null;
+  let initializeCompleted = false;
+  let initializedNotificationLine = null;
+  let recoveryHandshake = null;
+  const queuedLines = [];
+  const pendingRequests = new Map();
+
+  const idKey = (id) => `${typeof id}:${JSON.stringify(id)}`;
+  const parseLine = (line) => {
+    try {
+      return JSON.parse(line);
+    } catch {
+      return null;
+    }
+  };
+
+  const finish = (code) => {
+    if (finished) return;
+    finished = true;
+    lifecycle.close();
+    exitProcess(code);
+  };
+
+  const writeToOutput = (line) => {
+    lifecycle.touch();
+    output.write(line);
+  };
+
+  const writeToChild = (line) => {
+    if (!child || recoveryHandshake) {
+      queuedLines.push(line);
+      return;
+    }
+    if (!child.stdin.write(line)) {
+      input.pause();
+      child.stdin.once('drain', () => {
+        if (!stopping && !recoveryHandshake) input.resume();
+      });
+    }
+  };
+
+  const flushQueuedLines = () => {
+    if (!child || recoveryHandshake) return;
+    while (queuedLines.length > 0) {
+      const line = queuedLines.shift();
+      if (!child.stdin.write(line)) {
+        input.pause();
+        child.stdin.once('drain', () => {
+          if (!stopping && !recoveryHandshake) {
+            flushQueuedLines();
+            input.resume();
+          }
+        });
+        return;
+      }
+    }
+  };
+
+  const completeRecoveryHandshake = () => {
+    const handshake = recoveryHandshake;
+    recoveryHandshake = null;
+    restartAttempt = 0;
+    if (handshake?.replayInitialized && initializedNotificationLine && child) {
+      child.stdin.write(initializedNotificationLine);
+    }
+    flushQueuedLines();
+    if (!stopping) input.resume();
+  };
+
+  const handleWorkerLine = (line) => {
+    const message = parseLine(line.trim());
+    if (!message || message.id === undefined) {
+      writeToOutput(line);
+      return;
+    }
+
+    const key = idKey(message.id);
+    if (recoveryHandshake?.initializeIdKey === key) {
+      const suppressResponse = recoveryHandshake.suppressResponse;
+      if (!message.error) initializeCompleted = true;
+      pendingRequests.delete(key);
+      completeRecoveryHandshake();
+      if (!suppressResponse) writeToOutput(line);
+      return;
+    }
+
+    pendingRequests.delete(key);
+    if (key === initializeIdKey && !message.error) initializeCompleted = true;
+    restartAttempt = 0;
+    writeToOutput(line);
+  };
+
+  const handleWorkerData = (generation, chunk) => {
+    if (!child || generation !== childGeneration) return;
+    lifecycle.touch();
+    outputBuffer += chunk.toString();
+    let newline = outputBuffer.indexOf('\n');
+    while (newline >= 0) {
+      const line = outputBuffer.slice(0, newline + 1);
+      outputBuffer = outputBuffer.slice(newline + 1);
+      handleWorkerLine(line);
+      newline = outputBuffer.indexOf('\n');
+    }
+  };
+
+  const failInterruptedRequests = (generation) => {
+    for (const [key, request] of pendingRequests) {
+      if (request.method === 'initialize' && !initializeCompleted) continue;
+      pendingRequests.delete(key);
+      writeToOutput(
+        `${JSON.stringify({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32098,
+            message:
+              'Sovereign MCP worker restarted before completing this request; retry the tool call.',
+            data: {
+              retryable: true,
+              workerRestarted: true,
+              generation,
+            },
+          },
+        })}\n`
+      );
+    }
+  };
+
+  const handleClientLine = (line) => {
+    const message = parseLine(line.trim());
+    if (message?.method === 'initialize' && message.id !== undefined) {
+      initializeLine = line;
+      initializeIdKey = idKey(message.id);
+      initializeCompleted = false;
+    }
+    if (message?.method === 'notifications/initialized') {
+      initializedNotificationLine = line;
+    }
+    if (message?.method && message.id !== undefined) {
+      pendingRequests.set(idKey(message.id), {
+        id: message.id,
+        method: message.method,
+      });
+    }
+    writeToChild(line);
+  };
+
+  const handleInputData = (chunk) => {
+    lifecycle.touch();
+    inputBuffer += chunk.toString();
+    let newline = inputBuffer.indexOf('\n');
+    while (newline >= 0) {
+      const line = inputBuffer.slice(0, newline + 1);
+      inputBuffer = inputBuffer.slice(newline + 1);
+      handleClientLine(line);
+      newline = inputBuffer.indexOf('\n');
+    }
+  };
+
+  const spawnWorker = (isRestart = false) => {
+    if (stopping) return;
+    restartTimer = null;
+    outputBuffer = '';
+    let nextChild;
+    try {
+      nextChild = spawnImpl(process.execPath, [stdioServerPath()], {
+        cwd: ROOT,
+        env: { ...process.env, START_MCP_STDIO: 'true' },
+        stdio: ['pipe', 'pipe', 'inherit'],
+        windowsHide: true,
+      });
+    } catch (error) {
+      stderr(
+        `[holoscript-mcp-stdio] Worker spawn failed: ${
+          error instanceof Error ? error.message : error
+        }`
+      );
+      scheduleRestart();
+      return;
+    }
+
+    child = nextChild;
+    childGeneration += 1;
+    const generation = childGeneration;
+    child.stdin.on('error', (error) => {
+      if (!stopping) {
+        stderr(`[holoscript-mcp-stdio] Worker stdin error: ${error.message}`);
+      }
+    });
+    child.stdout.on('data', (chunk) => handleWorkerData(generation, chunk));
+    child.on('error', (error) => {
+      if (!stopping) stderr(`[holoscript-mcp-stdio] Worker error: ${error.message}`);
+    });
+    child.once('close', (code, signal) => {
+      if (generation !== childGeneration) return;
+      const closedChild = child;
+      child = null;
+      outputBuffer = '';
+      if (stopping) {
+        if (closedChild?.stdout) closedChild.stdout.removeAllListeners('data');
+        finish(0);
+        return;
+      }
+
+      input.pause();
+      failInterruptedRequests(generation);
+      stderr(
+        `[holoscript-mcp-stdio] Worker generation ${generation} closed ` +
+          `(code=${code ?? 'null'}, signal=${signal ?? 'none'}); restarting.`
+      );
+      scheduleRestart();
+    });
+
+    if (isRestart && initializeLine && initializeIdKey) {
+      recoveryHandshake = {
+        initializeIdKey,
+        suppressResponse: initializeCompleted,
+        replayInitialized: initializeCompleted,
+      };
+      child.stdin.write(initializeLine);
+      return;
+    }
+
+    recoveryHandshake = null;
+    flushQueuedLines();
+    input.resume();
+  };
+
+  function scheduleRestart() {
+    if (stopping || restartTimer) return;
+    restartAttempt += 1;
+    const delay = Math.max(0, Number(restartDelayMs(restartAttempt)) || 0);
+    restartTimer = setTimeoutImpl(() => spawnWorker(true), delay);
+  }
+
   const stopChildTree = (reason, signal = 'SIGTERM') => {
     if (stopping) return;
     stopping = true;
     lifecycle.close();
-    try {
-      input.unpipe(child.stdin);
-      child.stdout.unpipe(output);
-    } catch {
-      // Streams may already be torn down by the client disconnect.
+    input.pause();
+    if (restartTimer) {
+      clearTimeoutImpl(restartTimer);
+      restartTimer = null;
     }
-    if (child.killed || !child.pid) return;
+    if (!child) {
+      finish(0);
+      return;
+    }
+    if (child.killed || !child.pid) {
+      finish(0);
+      return;
+    }
     if (platform === 'win32') {
       // `child` is a handle returned by this launcher, so the tree rooted at
       // this exact PID is owned. `/T` also reaps parse/embedding workers.
@@ -233,6 +477,7 @@ export function startServer({
     child.kill(signal);
   };
 
+  input.on('data', handleInputData);
   input.once('end', () => stopChildTree('stdin_eof'));
   input.once('close', () => stopChildTree('stdin_close'));
   input.once('error', () => stopChildTree('stdin_error'));
@@ -241,12 +486,15 @@ export function startServer({
     process.once('SIGTERM', () => stopChildTree('sigterm', 'SIGTERM'));
   }
 
-  child.on('exit', (code, signal) => {
-    lifecycle.close();
-    exitProcess(stopping ? 0 : signal ? 1 : (code ?? 1));
-  });
+  spawnWorker(false);
 
-  return { child, lifecycle, stopChildTree };
+  return {
+    get child() {
+      return child;
+    },
+    lifecycle,
+    stopChildTree,
+  };
 }
 
 async function main() {
