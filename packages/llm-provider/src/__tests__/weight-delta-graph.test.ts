@@ -129,6 +129,13 @@ describe('planWeightDeltaGraph', () => {
         allowUserVisibleOutput: false,
         fallbackHead: PREVIOUS_HEAD,
       },
+      outputContract: {
+        format: 'json_schema',
+        schemaDigest: digest('3'),
+        enforcement: 'constrained_decode',
+        maxTokens: 96,
+        failClosed: true,
+      },
     };
 
     const plan = planWeightDeltaGraph(input);
@@ -148,9 +155,132 @@ describe('planWeightDeltaGraph', () => {
           allowUserVisibleOutput: false,
           fallbackHead: PREVIOUS_HEAD,
         },
+        outputContract: {
+          format: 'json_schema',
+          schemaDigest: digest('3'),
+          enforcement: 'constrained_decode',
+          maxTokens: 96,
+          failClosed: true,
+        },
       },
     });
     expect(plan.rollbackHead).toBe(PREVIOUS_HEAD);
+  });
+
+  it('rejects a JSON output ABI without a content-addressed schema', () => {
+    const input = graph({ previousAdmittedHead: PREVIOUS_HEAD });
+    input.deltas[0]!.roleContract = {
+      role: 'critic',
+      activation: {
+        mode: 'shadow_only',
+        taskTags: ['holo.confounder_audit'],
+        minRouterConfidence: 0.85,
+        allowUserVisibleOutput: false,
+        fallbackHead: PREVIOUS_HEAD,
+      },
+      outputContract: {
+        format: 'json_schema',
+        enforcement: 'constrained_decode',
+        maxTokens: 96,
+        failClosed: true,
+      },
+    };
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.readiness).toBe('invalid');
+    expect(plan.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'OUTPUT_SCHEMA_DIGEST_REQUIRED',
+        path: 'deltas[0].roleContract.outputContract.schemaDigest',
+      })
+    );
+    expect(plan.steps).toEqual([]);
+  });
+
+  it('rejects an advisory, free-text, fail-open ABI for a hidden role', () => {
+    const input = graph({ previousAdmittedHead: PREVIOUS_HEAD });
+    input.deltas[0]!.roleContract = {
+      role: 'critic',
+      activation: {
+        mode: 'shadow_only',
+        taskTags: ['holo.confounder_audit'],
+        minRouterConfidence: 0.85,
+        allowUserVisibleOutput: false,
+        fallbackHead: PREVIOUS_HEAD,
+      },
+      outputContract: {
+        format: 'free_text',
+        enforcement: 'advisory',
+        maxTokens: 96,
+        failClosed: false,
+      },
+    };
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.readiness).toBe('invalid');
+    expect(plan.issues.map((entry) => entry.code)).toEqual(
+      expect.arrayContaining([
+        'ROLE_OUTPUT_FORMAT_UNSAFE',
+        'ROLE_OUTPUT_ENFORCEMENT_UNSAFE',
+        'ROLE_OUTPUT_FAIL_CLOSED_REQUIRED',
+      ])
+    );
+    expect(plan.steps).toEqual([]);
+  });
+
+  it('rejects a non-positive output token ceiling', () => {
+    const input = graph();
+    input.deltas[0]!.roleContract = {
+      role: 'generator',
+      activation: {
+        mode: 'global',
+        allowUserVisibleOutput: true,
+      },
+      outputContract: {
+        format: 'json_schema',
+        schemaDigest: digest('3'),
+        enforcement: 'validate_and_reject',
+        maxTokens: 0,
+        failClosed: true,
+      },
+    };
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.readiness).toBe('invalid');
+    expect(plan.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'OUTPUT_MAX_TOKENS_INVALID',
+        path: 'deltas[0].roleContract.outputContract.maxTokens',
+      })
+    );
+  });
+
+  it('keeps legacy role contracts valid without a behavioral output ABI', () => {
+    const input = graph({ previousAdmittedHead: PREVIOUS_HEAD });
+    input.deltas[0]!.roleContract = {
+      role: 'critic',
+      activation: {
+        mode: 'shadow_only',
+        taskTags: ['holo.confounder_audit'],
+        minRouterConfidence: 0.85,
+        allowUserVisibleOutput: false,
+        fallbackHead: PREVIOUS_HEAD,
+      },
+    };
+
+    const plan = planWeightDeltaGraph(input);
+
+    expect(plan.issues).toEqual([]);
+    expect(plan.readiness).toBe('candidate');
+    expect(plan.steps).toContainEqual(
+      expect.objectContaining({
+        kind: 'apply-delta',
+        roleContract: expect.not.objectContaining({ outputContract: expect.anything() }),
+      })
+    );
   });
 
   it('fails closed instead of throwing when untrusted JSON supplies a null role contract', () => {

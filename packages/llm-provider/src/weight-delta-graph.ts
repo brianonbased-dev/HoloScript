@@ -29,6 +29,26 @@ export type WeightDeltaRole = 'generator' | 'critic' | 'router' | 'teacher';
 
 export type WeightActivationMode = 'global' | 'task_scoped' | 'shadow_only';
 
+export type WeightOutputFormat = 'free_text' | 'json_schema';
+
+export type WeightOutputEnforcement =
+  | 'advisory'
+  | 'constrained_decode'
+  | 'validate_and_reject';
+
+/**
+ * Binds a behavioral output ABI to the exact delta that must obey it. Schema
+ * contents live in the content-addressed artifact store; the graph carries
+ * their digest so serving cannot silently substitute a different contract.
+ */
+export interface WeightOutputContract {
+  format: WeightOutputFormat;
+  schemaDigest?: ContentDigest;
+  enforcement: WeightOutputEnforcement;
+  maxTokens: number;
+  failClosed: boolean;
+}
+
 /**
  * Declares what a weight delta is allowed to do at runtime. The planner defaults
  * legacy deltas to a global, user-visible generator. Any narrower activation
@@ -43,6 +63,7 @@ export interface WeightRoleContract {
     allowUserVisibleOutput: boolean;
     fallbackHead?: ContentDigest;
   };
+  outputContract?: WeightOutputContract;
 }
 
 export interface WeightDelta {
@@ -154,6 +175,18 @@ export type WeightPlanIssueCode =
   | 'ROLE_FALLBACK_HEAD_REQUIRED'
   | 'ROLE_FALLBACK_HEAD_INVALID'
   | 'ROLE_FALLBACK_HEAD_MISMATCH'
+  | 'OUTPUT_CONTRACT_INVALID'
+  | 'OUTPUT_FORMAT_INVALID'
+  | 'OUTPUT_SCHEMA_DIGEST_REQUIRED'
+  | 'OUTPUT_SCHEMA_DIGEST_INVALID'
+  | 'OUTPUT_SCHEMA_DIGEST_FORBIDDEN'
+  | 'OUTPUT_ENFORCEMENT_INVALID'
+  | 'OUTPUT_ENFORCEMENT_FORBIDDEN'
+  | 'OUTPUT_MAX_TOKENS_INVALID'
+  | 'OUTPUT_FAIL_CLOSED_INVALID'
+  | 'ROLE_OUTPUT_FORMAT_UNSAFE'
+  | 'ROLE_OUTPUT_ENFORCEMENT_UNSAFE'
+  | 'ROLE_OUTPUT_FAIL_CLOSED_REQUIRED'
   | 'COMPOSITION_ID_REQUIRED'
   | 'COMPOSITION_INPUT_REQUIRED'
   | 'DUPLICATE_COMPOSITION_INPUT'
@@ -257,6 +290,12 @@ const WEIGHT_ACTIVATION_MODES = new Set<WeightActivationMode>([
   'task_scoped',
   'shadow_only',
 ]);
+const WEIGHT_OUTPUT_FORMATS = new Set<WeightOutputFormat>(['free_text', 'json_schema']);
+const WEIGHT_OUTPUT_ENFORCEMENTS = new Set<WeightOutputEnforcement>([
+  'advisory',
+  'constrained_decode',
+  'validate_and_reject',
+]);
 
 function nonEmpty(value: string): boolean {
   return value.trim().length > 0;
@@ -321,6 +360,7 @@ function normalizedRoleContract(delta: WeightDelta): WeightRoleContract {
     };
   }
   const activation = delta.roleContract.activation;
+  const outputContract = delta.roleContract.outputContract;
   return {
     role: delta.roleContract.role,
     activation: {
@@ -334,6 +374,19 @@ function normalizedRoleContract(delta: WeightDelta): WeightRoleContract {
       allowUserVisibleOutput: activation.allowUserVisibleOutput,
       ...(activation.fallbackHead ? { fallbackHead: activation.fallbackHead } : {}),
     },
+    ...(outputContract
+      ? {
+          outputContract: {
+            format: outputContract.format,
+            ...(outputContract.schemaDigest
+              ? { schemaDigest: outputContract.schemaDigest }
+              : {}),
+            enforcement: outputContract.enforcement,
+            maxTokens: outputContract.maxTokens,
+            failClosed: outputContract.failClosed,
+          },
+        }
+      : {}),
   };
 }
 
@@ -635,6 +688,133 @@ function validateGraph(
               `${activationPath}.fallbackHead`,
               'Role fallback head must match the graph previous admitted head.'
             );
+          }
+
+          const outputContract = roleContract.outputContract;
+          if (outputContract !== undefined) {
+            const outputPath = `${rolePath}.outputContract`;
+            if (
+              outputContract === null ||
+              typeof outputContract !== 'object' ||
+              Array.isArray(outputContract)
+            ) {
+              issue(
+                issues,
+                'OUTPUT_CONTRACT_INVALID',
+                outputPath,
+                'Role output contract must be an object.'
+              );
+            } else {
+              const validFormat = WEIGHT_OUTPUT_FORMATS.has(outputContract.format);
+              if (!validFormat) {
+                issue(
+                  issues,
+                  'OUTPUT_FORMAT_INVALID',
+                  `${outputPath}.format`,
+                  'Output format must be free_text or json_schema.'
+                );
+              }
+
+              if (validFormat && outputContract.format === 'json_schema') {
+                if (outputContract.schemaDigest === undefined) {
+                  issue(
+                    issues,
+                    'OUTPUT_SCHEMA_DIGEST_REQUIRED',
+                    `${outputPath}.schemaDigest`,
+                    'JSON-schema output requires a content-addressed schema digest.'
+                  );
+                } else if (!validDigest(outputContract.schemaDigest)) {
+                  issue(
+                    issues,
+                    'OUTPUT_SCHEMA_DIGEST_INVALID',
+                    `${outputPath}.schemaDigest`,
+                    'Output schema digest must be a lowercase sha256 content digest.'
+                  );
+                }
+              } else if (
+                validFormat &&
+                outputContract.format === 'free_text' &&
+                outputContract.schemaDigest !== undefined
+              ) {
+                issue(
+                  issues,
+                  'OUTPUT_SCHEMA_DIGEST_FORBIDDEN',
+                  `${outputPath}.schemaDigest`,
+                  'Free-text output cannot bind a JSON-schema digest.'
+                );
+              }
+
+              const validEnforcement = WEIGHT_OUTPUT_ENFORCEMENTS.has(
+                outputContract.enforcement
+              );
+              if (!validEnforcement) {
+                issue(
+                  issues,
+                  'OUTPUT_ENFORCEMENT_INVALID',
+                  `${outputPath}.enforcement`,
+                  'Output enforcement must be advisory, constrained_decode, or validate_and_reject.'
+                );
+              } else if (
+                validFormat &&
+                outputContract.format === 'free_text' &&
+                outputContract.enforcement === 'constrained_decode'
+              ) {
+                issue(
+                  issues,
+                  'OUTPUT_ENFORCEMENT_FORBIDDEN',
+                  `${outputPath}.enforcement`,
+                  'Constrained decoding requires a structured output format.'
+                );
+              }
+
+              if (
+                !Number.isInteger(outputContract.maxTokens) ||
+                outputContract.maxTokens <= 0
+              ) {
+                issue(
+                  issues,
+                  'OUTPUT_MAX_TOKENS_INVALID',
+                  `${outputPath}.maxTokens`,
+                  'Output maxTokens must be a positive integer.'
+                );
+              }
+
+              if (typeof outputContract.failClosed !== 'boolean') {
+                issue(
+                  issues,
+                  'OUTPUT_FAIL_CLOSED_INVALID',
+                  `${outputPath}.failClosed`,
+                  'Output failClosed must be an explicit boolean.'
+                );
+              }
+
+              if (activation.allowUserVisibleOutput === false) {
+                if (outputContract.format !== 'json_schema') {
+                  issue(
+                    issues,
+                    'ROLE_OUTPUT_FORMAT_UNSAFE',
+                    `${outputPath}.format`,
+                    'A hidden role output contract must use a JSON schema.'
+                  );
+                }
+                if (outputContract.enforcement === 'advisory') {
+                  issue(
+                    issues,
+                    'ROLE_OUTPUT_ENFORCEMENT_UNSAFE',
+                    `${outputPath}.enforcement`,
+                    'A hidden role output contract must enforce decoding or reject invalid output.'
+                  );
+                }
+                if (outputContract.failClosed !== true) {
+                  issue(
+                    issues,
+                    'ROLE_OUTPUT_FAIL_CLOSED_REQUIRED',
+                    `${outputPath}.failClosed`,
+                    'A hidden role output contract must fail closed.'
+                  );
+                }
+              }
+            }
           }
         }
       }
