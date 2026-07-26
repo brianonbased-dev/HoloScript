@@ -1,6 +1,6 @@
 # HoloScript Library Coherence Program
 
-**Status:** compiler-native contract shipped; runtime and production deployment follow-ups remain  
+**Status:** compiler-native contract and scalar std ABI v1 shipped; wider runtime and production deployment follow-ups remain
 **Date:** 2026-07-26  
 **Scope:** package identity, resolution, registry storage, publishing, release admission, native standard-library source, ABI projection, and catalog truth
 
@@ -33,11 +33,11 @@ The lock receipt proves only the canonical resolved graph and the bytes presente
 
 The three public artifact classes remain separate:
 
-| Artifact | Canonical route | Purpose |
-| --- | --- | --- |
-| Compiler-native library package | `POST /api/v1/packages` and exact-version/resolve reads under `/api/v1/packages/:namespace/:name` | Immutable `PackageIR` plus HoloScript source |
-| Marketplace trait | `/api/v1/traits` | Trait discovery, rating, and marketplace metadata |
-| Studio scene | MCP `/api/publish`; legacy `/api/registry` compatibility | Scene publishing and Studio discovery |
+| Artifact                        | Canonical route                                                                                   | Purpose                                           |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Compiler-native library package | `POST /api/v1/packages` and exact-version/resolve reads under `/api/v1/packages/:namespace/:name` | Immutable `PackageIR` plus HoloScript source      |
+| Marketplace trait               | `/api/v1/traits`                                                                                  | Trait discovery, rating, and marketplace metadata |
+| Studio scene                    | MCP `/api/publish`; legacy `/api/registry` compatibility                                          | Scene publishing and Studio discovery             |
 
 The library store authenticates namespace ownership, verifies the package digest, retains declared source, persists JSON state, and rejects mutation of an existing version. These properties are source-level server behavior; they are not evidence that a production registry deployment is currently configured.
 
@@ -53,13 +53,15 @@ The core import resolver accepts an explicit package lock and registry cache:
 
 There is no filesystem fallback for an unresolved registry import. The focused suites prove each contract independently, and `scripts/holo-ci/check-native-library-cold-consumer.mjs` joins them through a freshly packed npm consumer. That harness publishes through the packed CLI, restarts a standalone registry store, resolves the exact artifact through the packed compiler, verifies the digest before parsing, and replays the verified cache in a separate process with Node network APIs denied.
 
-The cold harness proves the current source release cohort, not public-registry dependency closure. It must pack the current `@holoscript/meaning@0.1.1` source because the same-version public artifact lacks an export the current core imports. The receipt therefore exposes that registry drift instead of hiding it. Its deterministic assertion is compiler import/export resolution, not native host-runtime execution, and the network guard is process-level rather than an OS air gap.
+The v2 cold harness proves the current public release cohort, including a fresh-registry install of `@holoscript/meaning@0.1.2` with the export current core requires. Its deterministic assertion is compiler import/export resolution, not native host-runtime execution, and the network guard is process-level rather than an OS air gap.
 
 ## Native standard library
 
 `@holoscript/std` now publishes native `math.hsplus` and `collections.hsplus` entrypoints alongside its host-language compatibility surface. The package declares itself as a HoloScript library artifact with experimental support.
 
-Current boundary: the native source is shipped and statically traced, and TypeScript/Rust shadow parsers agree on the corpus. Host standard-library ABI execution parity is not yet proved.
+`hs.std.scalar.i32.v1` is the first executable cross-target subset. It exposes `clamp`, `sign`, and `step` semantics through typed HoloScript functions. The conformance gate executes the existing package implementation on Node, compiles the same shipped HoloScript source with the committed browser WebAssembly compiler and executes its UAAL bytecode in Chromium, then compiles and runs a host executable through `holoscriptc`/Cranelift.
+
+Current boundary: parity is proved only for the declared i32 scalar subset. The wider `.hsplus` math and collections sources remain experimental previews; floating-point, vectors, quaternions, noise, collections, browser receipt hashing, and a generally stable systems ABI are not proved.
 
 ## Release and catalog truth
 
@@ -76,34 +78,37 @@ The narrative package index remains a discovery guide. Release counts, receipt l
 
 ## Shipped slices
 
-| Commit | Result |
-| --- | --- |
-| `c198fb608` | Compiler-native `PackageIR` and lock receipt |
-| `54ab0160d` | Persistent immutable native package registry store and routes |
-| `d2ab4f88d` | CLI publishing of declared HoloScript library artifacts |
-| `b2d5246ab` | Lock-pinned, integrity-checked registry imports and offline replay |
+| Commit      | Result                                                                  |
+| ----------- | ----------------------------------------------------------------------- |
+| `c198fb608` | Compiler-native `PackageIR` and lock receipt                            |
+| `54ab0160d` | Persistent immutable native package registry store and routes           |
+| `d2ab4f88d` | CLI publishing of declared HoloScript library artifacts                 |
+| `b2d5246ab` | Lock-pinned, integrity-checked registry imports and offline replay      |
 | `1c7535e22` | Release admission and consumption receipts for all 19 npm v1 candidates |
-| `522dbcb89` | Native standard-library source corpus and package exports |
-| `62590569a` | WIT projection of the package contract |
+| `522dbcb89` | Native standard-library source corpus and package exports               |
+| `62590569a` | WIT projection of the package contract                                  |
+| `6b58a8318` | Public native-library dependency release cohort                         |
+| `a9a773d32` | Fresh-registry public Meaning dependency closure                        |
 
 ## Acceptance status
 
-| Acceptance condition | Status | Evidence boundary |
-| --- | --- | --- |
-| Compiler-native package identity and lock contract | Shipped | Platform unit tests, public type check, build |
-| Persistent native library registry path | Shipped in source | Registry contract tests and build; no production deployment claim |
-| CLI emits native library package artifacts | Shipped | CLI publish suite and build |
-| Compiler verifies lock-pinned source and offline cache | Shipped | Core import-resolver suite and build |
-| All npm v1 candidates admitted to release checks | Shipped | 19-candidate closure and consumption/architecture checks |
-| Native std source distributed | Experimental | npm pack inspection and static/parser parity; no execution-parity claim |
-| Package contract projected to WIT | Shipped as ABI | `wasm-tools` component embedding/new/validation |
-| One cold external end-to-end native consumer | Shipped for current source cohort | Fresh packed CLI/platform/core/meaning, standalone registry restart, exact digest resolve, and process-guarded offline replay; public dependency closure remains false |
-| Production native registry deployment | Open | Requires configured public registry, auth, storage, and operational receipts |
-| Native std runtime execution parity | Open | Requires executable ABI tests across supported targets |
+| Acceptance condition                                   | Status                            | Evidence boundary                                                                                                                                                                                                     |
+| ------------------------------------------------------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Compiler-native package identity and lock contract     | Shipped                           | Platform unit tests, public type check, build                                                                                                                                                                         |
+| Persistent native library registry path                | Shipped in source                 | Registry contract tests and build; no production deployment claim                                                                                                                                                     |
+| CLI emits native library package artifacts             | Shipped                           | CLI publish suite and build                                                                                                                                                                                           |
+| Compiler verifies lock-pinned source and offline cache | Shipped                           | Core import-resolver suite and build                                                                                                                                                                                  |
+| All npm v1 candidates admitted to release checks       | Shipped                           | 19-candidate closure and consumption/architecture checks                                                                                                                                                              |
+| Native std source distributed                          | Experimental                      | npm pack inspection and static/parser parity                                                                                                                                                                          |
+| Scalar std ABI v1 execution parity                     | Shipped experimental subset       | `reports/library-coherence/2026-07-26_std-scalar-abi-v1.json`: Node implementation, browser WebAssembly compiler plus in-browser UAAL execution, and owned-metal native executable all return the same 42-case digest |
+| Package contract projected to WIT                      | Shipped as ABI                    | `wasm-tools` component embedding/new/validation                                                                                                                                                                       |
+| One cold external end-to-end native consumer           | Shipped for public release cohort | Fresh packed CLI/platform/core plus public `@holoscript/meaning@0.1.2`, standalone registry restart, exact digest resolve, and process-guarded offline replay                                                         |
+| Production native registry deployment                  | Open                              | Requires configured public registry, auth, storage, and operational receipts                                                                                                                                          |
+| Wider native std runtime execution parity              | Open                              | Requires executable floating-point, vector, quaternion, noise, and collections ABI tests across supported targets                                                                                                     |
 
 ## Next gates
 
-1. Bump and publish `@holoscript/meaning` with its current exports, then rerun the cold harness using registry dependencies only; do not treat same-version source drift as a valid public release.
-2. Deploy the native package routes behind the intended production registry host and capture auth, persistence, restart, and rollback receipts.
-3. Define and execute the standard-library ABI conformance suite across Node, browser-Wasm, and owned-metal targets.
+1. Deploy the native package routes behind the intended production registry host and capture auth, persistence, restart, and rollback receipts.
+2. Extend executable std ABI conformance to floating-point/vector math and immutable collections without erasing target-specific semantics.
+3. Remove the browser UAAL `node:crypto` compatibility shim by shipping a browser-native receipt-hashing path.
 4. Promote additional native libraries only after their source, compatibility, support tier, and runtime boundary appear in the generated catalog.

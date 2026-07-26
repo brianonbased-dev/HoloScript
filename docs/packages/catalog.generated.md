@@ -11,8 +11,8 @@ This catalog is the deterministic view of the npm v1 release candidates and comp
 | `@holoscript/absorb-service` | `6.1.2` | codebase-intelligence-service | fleet | laptop-windows, vast-linux-gpu | fleet-operational | `packages/absorb-service` |
 | `@holoscript/agent-protocol` | `8.0.8` | agent-protocol-types | candidate | laptop-windows, jetson-orin, vast-linux-gpu | release-candidate | `packages/agent-protocol` |
 | `@holoscript/agent-runtime` | `0.6.1` | provider-neutral-second-brain-runtime | fleet | laptop-windows, jetson-orin, vast-linux-gpu | release-candidate | `packages/agent-runtime` |
-| `@holoscript/cli` | `8.0.11` | user-cli | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/cli` |
-| `@holoscript/core` | `8.0.17` | language-core | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/core` |
+| `@holoscript/cli` | `8.0.12` | user-cli | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/cli` |
+| `@holoscript/core` | `8.0.18` | language-core | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/core` |
 | `@holoscript/domain-plugin-template` | `0.1.1` | domain-plugin-template | candidate | laptop-windows, jetson-orin, vast-linux-gpu | release-candidate | `packages/plugins/domain-plugin-template` |
 | `@holoscript/engine` | `6.1.4` | spatial-engine-runtime | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/engine` |
 | `@holoscript/formatter` | `6.0.4` | language-formatter | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/formatter` |
@@ -23,7 +23,7 @@ This catalog is the deterministic view of the npm v1 release candidates and comp
 | `@holoscript/llm-provider` | `1.6.1` | llm-provider-sdk | candidate | laptop-windows, jetson-orin, vast-linux-gpu | release-candidate | `packages/llm-provider` |
 | `@holoscript/mcp-server` | `8.0.14` | agent-mcp | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/mcp-server` |
 | `@holoscript/memory` | `0.3.0` | sovereign-memory-client | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/memory` |
-| `@holoscript/platform` | `6.1.3` | platform-control-plane | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/platform` |
+| `@holoscript/platform` | `6.1.4` | platform-control-plane | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/platform` |
 | `@holoscript/snn-webgpu` | `8.0.6` | spiking-neural-network-webgpu | candidate | laptop-windows, jetson-orin, vast-linux-gpu | release-candidate | `packages/snn-webgpu` |
 | `@holoscript/uaal` | `8.6.0` | semantic-agent-vm | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/uaal` |
 | `@holoscript/xr-embodiment` | `6.1.3` | xr-embodiment | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/xr-embodiment` |
@@ -37,7 +37,7 @@ Receipt lane semantics:
 
 | Package | Version | Support tier | Entrypoint | Targets | Runtime boundary |
 | --- | --- | --- | --- | --- | --- |
-| `@holoscript/std` | `7.0.1` | experimental | `./src/math.hsplus` | node, browser-wasm, owned-metal | Declarative native-source preview; host std ABI execution parity is not yet claimed. |
+| `@holoscript/std` | `7.0.3` | experimental | `./src/math.hsplus` | node, browser-wasm, owned-metal | Executable scalar i32 math ABI v1 parity is proven for clamp, sign, and step across Node, browser-WASM to UAAL, and owned-metal. Floating-point, vector, quaternion, noise, and collections parity remain preview. |
 
 A compiler-native artifact declaration proves package metadata and shipped source paths. It does not by itself prove execution parity, registry deployment, authorship, or reproducible builds.
 

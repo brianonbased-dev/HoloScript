@@ -10,13 +10,14 @@ npm install @holoscript/std
 
 ## Entry Points
 
-| Import                        | Description              |
-| ----------------------------- | ------------------------ |
-| `@holoscript/std`             | All utilities            |
-| `@holoscript/std/math`        | Math & vector operations |
-| `@holoscript/std/collections` | Immutable collections    |
-| `@holoscript/std/string`      | String manipulation      |
-| `@holoscript/std/time`        | Timers & scheduling      |
+| Import                                    | Description                            |
+| ----------------------------------------- | -------------------------------------- |
+| `@holoscript/std`                         | All utilities                          |
+| `@holoscript/std/math`                    | Math & vector operations               |
+| `@holoscript/std/collections`             | Immutable collections                  |
+| `@holoscript/std/string`                  | String manipulation                    |
+| `@holoscript/std/time`                    | Timers & scheduling                    |
+| `@holoscript/std/native/abi/scalar-v1.hs` | Executable cross-target i32 scalar ABI |
 
 ## Core Types
 
@@ -198,7 +199,19 @@ pipe(5, double, addOne, toString); // '11'
 
 `@holoscript/std/fs` is the one boundary-sensitive entry point: filesystem helpers pass through to the host filesystem by default and do not ship any sandboxing unless the caller opts in. Path-boundary enforcement is disabled by default (a no-op, matching pre-existing call sites) and only activates when the operator sets the `HOLOSCRIPT_FS_SANDBOX_ROOT` environment variable — this package does not ship a default sandbox root, and it is not the package default to restrict paths.
 
-**Known limitations:** `@holoscript/std/fs` assumes a Node.js-like filesystem (`fs`/`path`) and is not usable in a browser bundle; import the browser-safe entry points (`math`, `collections`, `string`, `time`) instead if you need this library client-side. Interfaces may change before a v1 release.
+### Native executable ABI
+
+`@holoscript/std/native/abi/scalar-v1.hs` is the first executable cross-target standard-library ABI. Its contract ID is `hs.std.scalar.i32.v1`, and it exports `std_math_clamp_i32`, `std_math_sign_i32`, and `std_math_step_i32`.
+
+The conformance gate executes the existing JavaScript implementation on Node, loads the committed browser WebAssembly compiler in headless Chromium and executes its UAAL bytecode in that browser, then compiles the same HoloScript source with `holoscriptc` and runs the generated host executable:
+
+```bash
+pnpm --filter @holoscript/std run test:abi
+```
+
+This proves only the declared i32 scalar subset. Floating-point operations, vectors, quaternions, noise, collections, OS-level air-gap behavior, and a general stable systems ABI remain outside the proof.
+
+**Known limitations:** `@holoscript/std/fs` assumes a Node.js-like filesystem (`fs`/`path`) and is not usable in a browser bundle; import the browser-safe entry points (`math`, `collections`, `string`, `time`) instead if you need this library client-side. The browser ABI gate uses UAAL with derivation logging disabled because that package's optional receipt hashing still imports Node `crypto`. Interfaces may change before a v1 release.
 
 ## License
 

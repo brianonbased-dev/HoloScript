@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/std",
-  "version": "7.0.2",
+  "version": "7.0.3",
   "description": "HoloScript Standard Library - Core types and utilities",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -10,6 +10,7 @@
     "dist",
     "src/math.hsplus",
     "src/collections.hsplus",
+    "src/abi/scalar-v1.hs",
     "LICENSE",
     "README.md"
   ],
@@ -31,6 +32,7 @@
     },
     "./native/math.hsplus": "./src/math.hsplus",
     "./native/collections.hsplus": "./src/collections.hsplus",
+    "./native/abi/scalar-v1.hs": "./src/abi/scalar-v1.hs",
     "./string": {
       "types": "./dist/string.d.ts",
       "import": "./dist/string.js",
@@ -62,6 +64,7 @@
     "watch": "tsc -w",
     "clean": "rm -rf dist",
     "test": "vitest run --passWithNoTests",
+    "test:abi": "pnpm --dir ../.. --filter @holoscript/meaning run build && pnpm --dir ../.. --filter @holoscript/uaal run build && pnpm run build && node scripts/abi-conformance.mjs",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "keywords": [
@@ -79,15 +82,38 @@
     "entrypoint": "./src/math.hsplus",
     "exports": {
       "./math": "./src/math.hsplus",
-      "./collections": "./src/collections.hsplus"
+      "./collections": "./src/collections.hsplus",
+      "./abi/scalar-v1": "./src/abi/scalar-v1.hs"
     },
     "supportTier": "experimental",
     "compatibility": {
       "holoscript": ">=8.0.0",
-      "targets": ["node", "browser-wasm", "owned-metal"]
+      "targets": [
+        "node",
+        "browser-wasm",
+        "owned-metal"
+      ]
     },
-    "capabilities": ["std_math", "std_collections"],
-    "runtimeBoundary": "Declarative native-source preview; host std ABI execution parity is not yet claimed."
+    "capabilities": [
+      "std_math",
+      "std_math_scalar_i32_v1",
+      "std_collections"
+    ],
+    "abi": {
+      "id": "hs.std.scalar.i32.v1",
+      "entrypoint": "./src/abi/scalar-v1.hs",
+      "functions": [
+        "std_math_clamp_i32",
+        "std_math_sign_i32",
+        "std_math_step_i32"
+      ],
+      "provenTargets": [
+        "node",
+        "browser-wasm-uaal",
+        "owned-metal"
+      ]
+    },
+    "runtimeBoundary": "Executable scalar i32 math ABI v1 parity is proven for clamp, sign, and step across Node, browser-WASM to UAAL, and owned-metal. Floating-point, vector, quaternion, noise, and collections parity remain preview."
   },
   "author": "Brian X Base Team",
   "license": "MIT",

@@ -1,0 +1,81 @@
+{
+  "schema": "holoscript.std.scalar-abi-conformance.v1",
+  "generatedAt": "2026-07-26T23:21:56.314Z",
+  "status": "pass",
+  "package": {
+    "name": "@holoscript/std",
+    "version": "7.0.3"
+  },
+  "abi": {
+    "id": "hs.std.scalar.i32.v1",
+    "source": "packages/std/src/abi/scalar-v1.hs",
+    "sourceSha256": "f1653a8a366ec325fe17e363f6637384b64be34430b57fc9003caa2946101539",
+    "functions": [
+      "std_math_clamp_i32",
+      "std_math_sign_i32",
+      "std_math_step_i32"
+    ],
+    "expectedDigest": 42
+  },
+  "targets": {
+    "node": {
+      "runtime": "v24.15.0",
+      "implementation": "@holoscript/std/dist/math.js",
+      "result": 42
+    },
+    "browserWasm": {
+      "browserExecutable": "chrome.exe",
+      "browserVersion": "150.0.7871.182",
+      "browserUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+      "compiler": "@holoscript/wasm web artifact",
+      "execution": "@holoscript/uaal browser ESM",
+      "instructionCount": 123,
+      "wasmBytes": 345153,
+      "wasmSha256": "4dc33724a8c0d5ee63304580bcfc5b86c2a2eedad90e23c317c06f4f097cf7ab",
+      "rebuildReceiptSchema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
+      "result": 42
+    },
+    "ownedMetal": {
+      "compiler": "holoscriptc",
+      "machineContract": "hs-machine-v33",
+      "objectBytes": 771,
+      "objectSha256": "9411a7dc3bc9c547a4885cbc49185f9d9e09ba5a1c1f562084ab8d7055ea99ea",
+      "result": 42
+    }
+  },
+  "validation": {
+    "command": "pnpm --filter @holoscript/std run test:abi",
+    "stdTests": {
+      "files": 25,
+      "tests": 1038,
+      "status": "pass"
+    },
+    "uaalTests": {
+      "files": 9,
+      "tests": 149,
+      "status": "pass"
+    },
+    "wasmPackageArtifactsPresent": true,
+    "npmDryRunIncludesAbiSource": true,
+    "codexHardwareAudit": {
+      "command": "pnpm check:codex-hardware (ai-ecosystem)",
+      "status": "pass",
+      "chromeVersion": "150.0.7871.182"
+    }
+  },
+  "boundaries": {
+    "provesScalarI32Math": [
+      "clamp",
+      "sign",
+      "step"
+    ],
+    "provesBrowserWasmCompilerAndUaalExecution": true,
+    "provesOwnedMetalNativeExecutable": true,
+    "provesFloatingPointMath": false,
+    "provesVectorOrQuaternionMath": false,
+    "provesCollections": false,
+    "provesBrowserReceiptHashing": false,
+    "provesOsAirGap": false,
+    "provesGeneralStableSystemsAbi": false
+  }
+}
