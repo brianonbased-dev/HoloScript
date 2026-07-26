@@ -3235,6 +3235,213 @@ describe('holo_absorb_repo root validation', () => {
     ).toBeGreaterThanOrEqual(1);
   }, 15_000);
 
+  it('reuses completed graph and embedding work after final-pin rejection without publishing stale files', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-resume-publish-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-resume-publish-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'gamma.ts'),
+      'export function gammaIndependent(): string { return "gamma"; }\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/gamma.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'independent embedding fixture'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    const baseline = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'graph',
+      embeddingProvider: 'holoembed',
+      scanBatchSize: 1,
+      maxFiles: 20_000,
+    })) as {
+      error?: string;
+      graphAuthoritative?: boolean;
+      graphRagReady?: boolean;
+    };
+    expect(baseline).toMatchObject({
+      graphAuthoritative: true,
+      graphRagReady: true,
+    });
+
+    const cachePaths = resolveCodebaseCachePaths(repoDir);
+    const baselineGraphCache = fs.readFileSync(cachePaths.graphFile);
+    fs.appendFileSync(
+      path.join(repoDir, 'src', 'alpha.ts'),
+      '\nexport const committedBeforeRefresh = true;\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/alpha.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'committed refresh target'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    let markEmbeddingRefreshStarted!: () => void;
+    let releaseEmbeddingRefresh!: () => void;
+    const embeddingRefreshStarted = new Promise<void>((resolve) => {
+      markEmbeddingRefreshStarted = resolve;
+    });
+    const embeddingRefreshGate = new Promise<void>((resolve) => {
+      releaseEmbeddingRefresh = resolve;
+    });
+    const originalRefreshIndex = EmbeddingIndex.prototype.refreshIndex;
+    const embeddingRefreshSpy = vi
+      .spyOn(EmbeddingIndex.prototype, 'refreshIndex')
+      .mockImplementationOnce(async function (...args) {
+        markEmbeddingRefreshStarted();
+        await embeddingRefreshGate;
+        return originalRefreshIndex.apply(this, args);
+      });
+    const scanSpy = vi.spyOn(CodebaseScanner.prototype, 'scanFiles');
+
+    const rejectedAttempt = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      async: true,
+      outputFormat: 'graph',
+      embeddingProvider: 'holoembed',
+      scanBatchSize: 1,
+      maxFiles: 20_000,
+    })) as { accepted?: boolean; jobId?: string };
+    expect(rejectedAttempt).toMatchObject({ accepted: true, jobId: expect.any(String) });
+    await embeddingRefreshStarted;
+
+    const scannedProgress = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: rejectedAttempt.jobId,
+    })) as {
+      refreshProgressReceipt?: {
+        completedBatchCount?: number;
+        totalBatches?: number;
+      };
+    };
+    expect(scannedProgress.refreshProgressReceipt).toMatchObject({
+      completedBatchCount: 3,
+      totalBatches: 3,
+    });
+
+    fs.appendFileSync(
+      path.join(repoDir, 'src', 'beta.ts'),
+      '\nexport const driftedAfterCheckpoint = true;\n',
+      'utf-8'
+    );
+    releaseEmbeddingRefresh();
+
+    const rejected = await waitForAbsorbTerminalStatus(rejectedAttempt.jobId!, true);
+    expect(rejected).toMatchObject({
+      status: 'error',
+      refreshProgressReceipt: {
+        status: 'invalidated',
+        completedBatchCount: 3,
+        cachePublished: false,
+        resumable: true,
+      },
+      result: {
+        error: 'absorb_refresh_source_changed',
+        cachePreserved: true,
+        graphAuthoritative: false,
+      },
+    });
+    expect(fs.readFileSync(cachePaths.graphFile)).toEqual(baselineGraphCache);
+
+    const scanCallsBeforeResume = scanSpy.mock.calls.length;
+    const resumedAttempt = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      async: true,
+      outputFormat: 'graph',
+      embeddingProvider: 'holoembed',
+      scanBatchSize: 1,
+      maxFiles: 20_000,
+    })) as { accepted?: boolean; jobId?: string; resumeToken?: string };
+    expect(resumedAttempt).toMatchObject({
+      accepted: true,
+      resumeToken: (
+        rejected.refreshProgressReceipt as {
+          resumeToken?: string;
+        }
+      ).resumeToken,
+    });
+
+    const completed = await waitForAbsorbTerminalStatus(resumedAttempt.jobId!, true);
+    expect(completed).toMatchObject({
+      status: 'complete',
+      refreshProgressReceipt: {
+        status: 'complete',
+        resumeMode: 'content-addressed-overlay',
+        completedBatchCount: 3,
+        reusedBatchCount: 2,
+        invalidatedBatchCount: 1,
+        cachePublished: true,
+        publishedGraphAuthoritative: true,
+      },
+      result: {
+        graphAuthoritative: true,
+        graphRagReady: true,
+        semanticIndexReady: true,
+        embeddingRefresh: {
+          kind: 'EmbeddingRefreshReceipt',
+          reusedSymbols: expect.any(Number),
+          embeddedSymbols: expect.any(Number),
+        },
+      },
+    });
+    const completedResult = completed.result as {
+      embeddingRefresh?: { reusedSymbols?: number; embeddedSymbols?: number };
+    };
+    expect(completedResult.embeddingRefresh?.reusedSymbols).toBeGreaterThan(0);
+    expect(completedResult.embeddingRefresh?.embeddedSymbols).toBeGreaterThan(0);
+    expect(embeddingRefreshSpy).toHaveBeenCalledTimes(2);
+
+    const resumedScanFiles = scanSpy.mock.calls
+      .slice(scanCallsBeforeResume)
+      .flatMap((call) => call[1] as string[])
+      .map((filePath) => path.relative(repoDir, filePath).replace(/\\/g, '/'));
+    expect(resumedScanFiles).toEqual(['src/beta.ts']);
+
+    const publishedEnvelope = JSON.parse(
+      fs.readFileSync(cachePaths.graphFile, 'utf-8')
+    ) as {
+      graphJson: string;
+      fileHashes?: Record<string, string>;
+    };
+    const publishedGraph = CodebaseGraph.deserialize(publishedEnvelope.graphJson);
+    expect(publishedGraph.findSymbolsByName('committedBeforeRefresh')).toHaveLength(1);
+    expect(publishedGraph.findSymbolsByName('driftedAfterCheckpoint')).toHaveLength(1);
+    expect(publishedEnvelope.fileHashes?.['src/beta.ts']).toBe(
+      sha256(fs.readFileSync(path.join(repoDir, 'src', 'beta.ts'), 'utf-8'))
+    );
+
+    simulateAbsorbProcessRestartForTests();
+    const statusAfterRestart = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      graphAuthoritative?: boolean;
+      diskCache?: {
+        freshForCurrentRepo?: boolean;
+        gitCommitMatchesHead?: boolean;
+        fileHashFreshness?: { fresh?: boolean };
+      };
+    };
+    expect(statusAfterRestart).toMatchObject({
+      graphAuthoritative: true,
+      diskCache: {
+        freshForCurrentRepo: true,
+        gitCommitMatchesHead: true,
+        fileHashFreshness: {
+          fresh: true,
+        },
+      },
+    });
+  }, 30_000);
+
   it('keeps a large small-delta refresh incremental, observable, and source-pinned', async () => {
     resetCodebaseToolStateForTests();
     const fixtureCount = 2_000;
