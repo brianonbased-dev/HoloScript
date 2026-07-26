@@ -5835,12 +5835,11 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     const backgroundIsolation = startBackgroundAbsorbJob(
       jobId,
       () => executeAbsorbPlan(plan),
-      {
-        ...args,
+      buildIsolatedAbsorbWorkerArgs(args, plan, {
         ...(plan.refreshCheckpoint && {
           resumeToken: plan.refreshCheckpoint.progressReceipt().resumeToken,
         }),
-      },
+      }),
       requiresIsolatedLargeBackground(scaleDecision)
     );
     if (backgroundIsolation === 'isolation-unavailable') {
@@ -5959,6 +5958,28 @@ interface AbsorbAutoBackgroundDecision {
   scanPlan?: AbsorbScanPlanReceipt;
 }
 
+function buildIsolatedAbsorbWorkerArgs(
+  args: Record<string, unknown>,
+  plan: AbsorbExecutionPlan,
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  const policy = normalizeScanPolicy(plan.scanPolicy);
+  return {
+    ...args,
+    exclude: policy.exclude,
+    excludePathFragments: policy.excludePathFragments,
+    excludeNameFragments: policy.excludeNameFragments,
+    includeHidden: policy.includeHidden === true,
+    includeBuildArtifacts:
+      plan.includeBuildArtifacts || policy.includeBuildArtifacts === true,
+    respectGitIgnore: policy.respectGitIgnore !== false,
+    includeUntracked: policy.includeUntracked !== false,
+    maxFiles: plan.maxFiles ?? policy.maxFiles ?? DEFAULT_SCAN_MAX_FILES,
+    maxFileSize: policy.maxFileSize ?? plan.maxFileSize,
+    ...overrides,
+  };
+}
+
 async function prepareDurableRefreshCheckpoint(
   plan: AbsorbExecutionPlan
 ): Promise<AbsorbRefreshCheckpoint> {
@@ -6057,6 +6078,13 @@ async function buildAutoBackgroundDecision(
   const effectiveMaxFiles = plan.maxFiles ?? effectiveScanPolicy.maxFiles ?? DEFAULT_SCAN_MAX_FILES;
   const effectiveIncludeBuildArtifacts =
     plan.includeBuildArtifacts || effectiveScanPolicy.includeBuildArtifacts === true;
+  // The scanner plan, durable checkpoint, and isolated worker must all derive
+  // from one materialized policy. In particular, implicit full-coverage
+  // promotion above DEFAULT_SCAN_MAX_FILES must not exist only in the parent
+  // process or the worker will reject the checkpoint's selected file set.
+  plan.scanPolicy = effectiveScanPolicy;
+  plan.maxFiles = effectiveMaxFiles;
+  plan.includeBuildArtifacts = effectiveIncludeBuildArtifacts;
   const existingCacheCoverageComplete = existingCache
     ? graphCoverageMatchesScanPolicy(
         buildGraphCoverageStatusForRoots(

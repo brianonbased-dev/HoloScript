@@ -544,6 +544,63 @@ describe('holo_absorb_repo root validation', () => {
     });
   });
 
+  it('materializes the parent scan policy into isolated worker arguments', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-isolated-policy-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-isolated-policy-cache-')
+    );
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    class FakeWorker extends EventEmitter {
+      unref(): this {
+        return this;
+      }
+
+      terminate(): Promise<number> {
+        return Promise.resolve(0);
+      }
+    }
+
+    const worker = new FakeWorker();
+    let workerArgs: Record<string, unknown> | undefined;
+    setIsolatedAbsorbWorkerFactoryForTests((workerData) => {
+      workerArgs = workerData.args;
+      return worker as unknown as Worker;
+    });
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      background: true,
+      force: true,
+    })) as {
+      accepted?: boolean;
+      jobId?: string;
+      scanPolicy?: { maxFiles?: number };
+      resumeToken?: string;
+    };
+
+    expect(accepted.accepted).toBe(true);
+    expect(accepted.resumeToken).toMatch(/^[a-f0-9]{32}$/);
+    expect(accepted.scanPolicy?.maxFiles).toBe(20_000);
+    expect(workerArgs).toMatchObject({
+      maxFiles: 20_000,
+      includeHidden: false,
+      includeBuildArtifacts: false,
+      respectGitIgnore: true,
+      includeUntracked: true,
+      resumeToken: accepted.resumeToken,
+    });
+
+    worker.emit('message', {
+      type: 'complete',
+      result: { graphAuthoritative: true, embeddingSkipped: true },
+      workerStatus: { status: 'complete', filesProcessed: 2, totalFiles: 2 },
+    });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  });
+
   it('coalesces concurrent writers for the same workspace into one job', async () => {
     resetCodebaseToolStateForTests();
     const repoDir = makeTinyGitRepo('holoscript-single-flight-repo-');
