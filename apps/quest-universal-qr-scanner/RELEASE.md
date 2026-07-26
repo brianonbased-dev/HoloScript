@@ -6,7 +6,9 @@ your Meta developer identity — neither can (or should) be done by an agent.
 
 > Native principle (F.126): the app icon, `build.gradle.kts`, and `AndroidManifest.xml` are
 > **`@generated` from `scanner.holo`** by the quest compiler. To change app metadata (version, icon
-> colors, name), edit `scanner.holo` and recompile — never hand-edit `android-mr/`.
+> colors, name), edit `scanner.holo` and recompile — never hand-edit `android-mr/`. The canonical
+> signed-build command compiles `scanner.holo` plus `worlds/*.holo`, verifies the materialization
+> independently, and only then accesses signing custody or invokes Gradle.
 
 ---
 
@@ -31,17 +33,17 @@ your Meta developer identity — neither can (or should) be done by an agent.
 
 Review runs **Technical → Content → Publishing**. Mandatory technical VRCs and our status:
 
-| VRC | Requirement | Status |
-|---|---|---|
-| Packaging.2 | APK v2 signature | ✅ verified v2 |
-| Packaging.6 | 64-bit (arm64-v8a) only | ✅ fixed — arm64-only |
-| Packaging.1 | Manifest conforms (VR category, version) | ✅ emitted |
-| Packaging.5 | APK < 1 GB | ✅ ~120 MB |
-| Functional.14 | Passthrough app launches in passthrough | ✅ `enablePassthrough(true)` on scene-ready |
-| Functional.1 / 5 | No crashes; responds to head tracking | ▶ playtest (BETA channel) |
-| Performance.1 / 3 | Hits refresh rate; graphics ≤ 4 s or VR loader | ▶ playtest (lightweight panel + passthrough) |
-| Security.2 | Minimum permissions | ⚠ manifest declares `HAND_TRACKING`/`RENDER_MODEL` (Spatial-SDK starter inheritance) the scanner may not use — trim after a headset test confirms controller input still works; not a hard blocker |
-| Security.1 | Entitlement check | ➖ **recommended, NOT required** — no Platform SDK integration needed |
+| VRC               | Requirement                                    | Status                                                                                                                                                                                             |
+| ----------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Packaging.2       | APK v2 signature                               | ✅ verified v2                                                                                                                                                                                     |
+| Packaging.6       | 64-bit (arm64-v8a) only                        | ✅ fixed — arm64-only                                                                                                                                                                              |
+| Packaging.1       | Manifest conforms (VR category, version)       | ✅ emitted                                                                                                                                                                                         |
+| Packaging.5       | APK < 1 GB                                     | ✅ ~120 MB                                                                                                                                                                                         |
+| Functional.14     | Passthrough app launches in passthrough        | ✅ `enablePassthrough(true)` on scene-ready                                                                                                                                                        |
+| Functional.1 / 5  | No crashes; responds to head tracking          | ▶ playtest (BETA channel)                                                                                                                                                                          |
+| Performance.1 / 3 | Hits refresh rate; graphics ≤ 4 s or VR loader | ▶ playtest (lightweight panel + passthrough)                                                                                                                                                       |
+| Security.2        | Minimum permissions                            | ⚠ manifest declares `HAND_TRACKING`/`RENDER_MODEL` (Spatial-SDK starter inheritance) the scanner may not use — trim after a headset test confirms controller input still works; not a hard blocker |
+| Security.1        | Entitlement check                              | ➖ **recommended, NOT required** — no Platform SDK integration needed                                                                                                                              |
 
 **Founder/submission-side (not build):** Data Use Checkup (declare the passthrough camera — "frames decoded on-device, not stored/transmitted"), Content Guidelines, IARC age rating, and the listing assets. Use a **Release Channel (ALPHA/BETA)** to install on-headset with no review before the public submission.
 
@@ -59,6 +61,7 @@ time — never in a plaintext file. `build-release.mjs` resolves them, materiali
 private tmp file, builds, and **deletes the keystore after the build**.
 
 ### 1a. Generate the keystore (once, ever)
+
 ```bash
 keytool -genkeypair -v \
   -keystore release.keystore \
@@ -66,35 +69,47 @@ keytool -genkeypair -v \
   -keyalg RSA -keysize 2048 -validity 10000 \
   -dname "CN=Joseph Krzywoszyja, OU=HoloScript, O=HoloScript, L=YourCity, S=YourState, C=US"
 ```
+
 **Back up `release.keystore` to two secure locations (offline). Record the passwords.** HoloKey holds
-the *operational* copy; your offline backup is the custody master. Losing the HoloKey KEK ≠ losing the
+the _operational_ copy; your offline backup is the custody master. Losing the HoloKey KEK ≠ losing the
 keystore as long as that offline backup exists.
 
 ### 1b. Store the four secrets in HoloKey (once)
+
 The vault needs a KEK + Postgres in env: `HOLOKEY_PROD_KEK_CURRENT` + `HOLOKEY_PROD_KEK_<ID>`
 (`node scripts/holokey.mjs gen-kek` prints them) and `DATABASE_URL`.
+
 ```bash
 node scripts/holokey.mjs set KEYSTORE_PASSWORD    '<store-password>'
 node scripts/holokey.mjs set KEY_PASSWORD         '<key-password>'
 node scripts/holokey.mjs set KEY_ALIAS            'quest_qr'
 node scripts/holokey.mjs set ANDROID_KEYSTORE_B64 "$(base64 -w0 release.keystore)"
 ```
+
 (I can run these for you secrets-safely — the values go only into the encrypted vault, never into chat
 or a committed/logged file.) Secrets are owner-bound under `HOLOKEY_OWNER` (default `infra`); the build
 must resolve under the same owner.
 
 ### 1c. Build the signed APK
+
 ```bash
 # env: JAVA_HOME (JDK 17) + ANDROID_HOME, plus the HoloKey KEK + DATABASE_URL (so the vault is ON)
-node scripts/build-release.mjs
+pnpm holoqr:build-release
 # → android-mr/app/build/outputs/apk/release/app-release.apk  (signed v2)
 ```
-`build-release.mjs` resolves the four secrets from HoloKey (or, if the vault is OFF — no KEK — from
-matching env vars `KEYSTORE_PASSWORD`/`KEY_PASSWORD`/`KEY_ALIAS`/`ANDROID_KEYSTORE_B64`), writes the
-keystore to a `0o600` tmp file, runs `gradlew assembleRelease`, and unlinks the tmp keystore. **No
-gradle change was needed** — `android-mr/app/build.gradle.kts` already reads `KEYSTORE_FILE`/`…` from
-env. A plaintext `keystore.properties` still works as a *local-only optional override* but is
-gitignored and unnecessary with HoloKey.
+
+`holoqr:build-release` first runs the real HoloCompositionParser and QuestCompiler over
+`scanner.holo` and every bundled world, then runs the independent Quest golden-diff gate. A parser,
+compiler, or generated-output mismatch blocks the build before signing secrets are resolved. For a
+safe proof with no signing or Gradle, run `pnpm check:holoqr-born-from-source`.
+
+After the source gate passes, `build-release.mjs` resolves the four secrets from HoloKey (or, if the
+vault is OFF, from matching env vars
+`KEYSTORE_PASSWORD`/`KEY_PASSWORD`/`KEY_ALIAS`/`ANDROID_KEYSTORE_B64`), writes the keystore to a
+`0o600` temporary file, runs `gradlew assembleRelease`, and unlinks the temporary keystore. The
+`android-mr/app/build.gradle.kts` file already reads `KEYSTORE_FILE` and the other values from env. A
+plaintext `keystore.properties` still works as a local-only optional override but is gitignored and
+unnecessary with HoloKey.
 
 > Verified (2026-06-22): the full resolve → materialize → `assembleRelease` → v2-signed APK → cleanup
 > chain builds GREEN on-device via the env-fallback path (same resolver code the vault uses).
@@ -115,12 +130,13 @@ review-skip path, but a clean utility passes the basic technical/content/privacy
    to install on your headset and verify before public submission.
 5. **Fill listing + declarations** (assets list below).
 6. **IARC age-rating questionnaire** (in-dashboard).
-7. **Data Use questionnaire** — declare the passthrough camera: *"camera frames are processed on-device
-   to decode QR codes; frames are not stored or transmitted."* A **Privacy Policy URL is required**
+7. **Data Use questionnaire** — declare the passthrough camera: _"camera frames are processed on-device
+   to decode QR codes; frames are not stored or transmitted."_ A **Privacy Policy URL is required**
    (see `PRIVACY.md`).
 8. **Submit for review** — Technical → Content → Publishing. Submit ≥ 2 weeks before any target date.
 
 ### Listing assets to provide (24-bit PNG unless noted)
+
 - App icon **512×512** (no transparency) · Spatialized icon **180×180** (transparent)
 - Hero **3000×900** · Cover landscape **2560×1440** · square **1440×1440** · portrait **1008×1440** · mini **1080×360**
 - Logo (transparent) up to **9000×1440** (32-bit)
@@ -133,6 +149,7 @@ I can produce the icon/cover/logo art set from the emitted `ic_launcher.xml` bra
 ---
 
 ## Sources
+
 Meta Horizon publishing docs (upload, manifest, signing, submit, asset guidelines, release channels)
 — verified June 2026. Key facts: APK + v2 signing, `quest3|quest3s` supportedDevices, monotonic
 `versionCode`, App-Lab-merged-into-Store.
