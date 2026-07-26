@@ -1,0 +1,79 @@
+{
+  "schema": "holoscript.native-library-cold-consumer.v1",
+  "generatedAt": "2026-07-26T18:09:44.829Z",
+  "status": "pass",
+  "sourceRevision": "2e6f1e3d4a572a0bf36c3837068ba13198fc7f73",
+  "fixture": {
+    "name": "@cold/ping",
+    "version": "1.0.0",
+    "sourceIntegrity": "sha256:2b081279ecf694f1a741b99e1080c43452bd1a49ea42664a8498259d6b55cffe",
+    "supportTier": "preview"
+  },
+  "packedConsumer": {
+    "packageManager": "npm",
+    "installScriptsEnabled": false,
+    "optionalDependenciesInstalled": false,
+    "packages": [
+      {
+        "name": "@holoscript/meaning",
+        "version": "0.1.1",
+        "tarball": "holoscript-meaning-0.1.1.tgz",
+        "integrity": "sha256:268f31c62a7a9aa57c1a36e5a8efdbc6da84828afbeb16ea54388d8352d74edf",
+        "releaseCohortReason": "Current core imports an export absent from the same-version public registry artifact."
+      },
+      {
+        "name": "@holoscript/platform",
+        "version": "6.1.3",
+        "tarball": "holoscript-platform-6.1.3.tgz",
+        "integrity": "sha256:2b06ffe92cfcc17e8d2536abaca4ca672c4bf4d82f631c467589344f15b82d43"
+      },
+      {
+        "name": "@holoscript/core",
+        "version": "8.0.17",
+        "tarball": "holoscript-core-8.0.17.tgz",
+        "integrity": "sha256:937fa6da3c92449b16137405720bc6b9b0e7485c3d9f260e423a28a65171fa8a"
+      },
+      {
+        "name": "@holoscript/cli",
+        "version": "8.0.11",
+        "tarball": "holoscript-cli-8.0.11.tgz",
+        "integrity": "sha256:c09dcef1dc793fe00255afdad9ae35d3e0a87656a66313f429c05ec48f06ae11"
+      }
+    ]
+  },
+  "phases": {
+    "cliPublish": {
+      "passed": true,
+      "packageName": "@cold/ping",
+      "version": "1.0.0"
+    },
+    "registryRestart": {
+      "passed": true,
+      "persistence": "fresh JSON store reopened by a new LibraryPackageStore instance"
+    },
+    "onlineResolve": {
+      "passed": true,
+      "exactVersion": "1.0.0",
+      "digestVerifiedBeforeParse": true,
+      "deterministicAssertion": "resolved compiler scope contains exported template Ping"
+    },
+    "offlineReplay": {
+      "passed": true,
+      "cacheDigestReverified": true,
+      "processNetworkDenied": true
+    }
+  },
+  "boundaries": {
+    "provesFreshPackedConsumer": true,
+    "provesCurrentSourceReleaseCohort": true,
+    "provesPublicRegistryDependencyClosure": false,
+    "provesCliToRegistryToCompilerContract": true,
+    "provesRegistryRestartPersistence": true,
+    "provesProcessGuardedOfflineReplay": true,
+    "provesOsLevelAirGap": false,
+    "provesNativeRuntimeExecution": false,
+    "provesProductionRegistryDeployment": false,
+    "provesRegistryGovernanceOrAuthorship": false,
+    "note": "The deterministic assertion is compiler import/export resolution, not host runtime execution. The consumer pins a current-source @holoscript/meaning tarball because the same-version public artifact is stale."
+  }
+}
