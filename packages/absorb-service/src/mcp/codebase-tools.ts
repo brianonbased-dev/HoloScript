@@ -545,6 +545,7 @@ async function createDynamicEmbeddingIndex(
 interface AbsorbJob {
   jobId: string;
   rootDir: string;
+  writerKey?: string;
   status:
     | 'queued'
     | 'scanning'
@@ -571,9 +572,58 @@ interface AbsorbJob {
   refreshProgressReceipt?: AbsorbRefreshProgressReceipt;
   backgroundWorker?: Worker;
   backgroundIsolation?: 'worker-thread' | 'inline-fallback';
+  workerMemory?: AbsorbMemorySnapshot;
 }
 
 const absorbJobs = new Map<string, AbsorbJob>();
+const ABSORB_TERMINAL_JOB_RETENTION_MS = 60 * 60 * 1000;
+
+function isTerminalAbsorbJob(job: AbsorbJob): boolean {
+  return job.status === 'complete' || job.status === 'error' || job.status === 'cancelled';
+}
+
+function scheduleAbsorbJobCleanup(jobId: string, delayMs = ABSORB_TERMINAL_JOB_RETENTION_MS): void {
+  const cleanupTimer = setTimeout(() => {
+    const job = absorbJobs.get(jobId);
+    if (!job) return;
+    if (isTerminalAbsorbJob(job)) {
+      const terminalAgeMs = Date.now() - (job.completedAt ?? Date.now());
+      const remainingRetentionMs = ABSORB_TERMINAL_JOB_RETENTION_MS - terminalAgeMs;
+      if (remainingRetentionMs <= 0) {
+        absorbJobs.delete(jobId);
+      } else {
+        scheduleAbsorbJobCleanup(jobId, remainingRetentionMs);
+      }
+      return;
+    }
+    // Retention starts after terminal settlement. Slow scans must remain
+    // observable and cancellable no matter how long they run.
+    scheduleAbsorbJobCleanup(jobId);
+  }, delayMs);
+  unrefTimer(cleanupTimer);
+}
+
+function buildAbsorbWriterKey(rootDirs: string[]): string {
+  const normalized = rootDirs.map((rootDir) => {
+    const resolved = path.resolve(rootDir).replace(/\\/g, '/').replace(/\/+$/, '');
+    return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+  });
+  const primary = normalized[0] ?? '';
+  return createHash('sha256')
+    .update(`${primary}\n${[...normalized].sort().join('\n')}`)
+    .digest('hex');
+}
+
+function absorbRootSetsMatch(left: string[], right: string[]): boolean {
+  return buildAbsorbWriterKey(left) === buildAbsorbWriterKey(right);
+}
+
+function findActiveAbsorbWriter(writerKey: string | undefined): AbsorbJob | undefined {
+  if (!writerKey) return undefined;
+  return Array.from(absorbJobs.values()).find(
+    (job) => job.writerKey === writerKey && !isTerminalAbsorbJob(job)
+  );
+}
 
 function createAbsorbMemoryBudget(limits: AbsorbMemoryBudgetLimits): AbsorbMemoryBudgetTelemetry {
   const current = readAbsorbMemorySnapshot();
@@ -594,6 +644,10 @@ function createAbsorbMemoryBudget(limits: AbsorbMemoryBudgetLimits): AbsorbMemor
 }
 
 function updateAbsorbMemoryBudget(job: AbsorbJob, phase: string): void {
+  // An isolated worker owns and enforces its own process memory budget. Sampling
+  // this request host would observe the wrong process and could terminate a
+  // healthy worker because an unrelated MCP request raised parent RSS.
+  if (job.backgroundIsolation === 'worker-thread') return;
   const current = readAbsorbMemorySnapshot();
   job.memoryBudget.peakRssMb = Math.max(job.memoryBudget.peakRssMb, current.rssMb);
   job.memoryBudget.peakHeapUsedMb = Math.max(job.memoryBudget.peakHeapUsedMb, current.heapUsedMb);
@@ -833,6 +887,41 @@ function setAbsorbJobRefreshProgress(
   if (job) job.refreshProgressReceipt = receipt;
 }
 
+function refreshIsolatedAbsorbProgressFromDisk(job: AbsorbJob): void {
+  if (job.backgroundIsolation !== 'worker-thread' || isTerminalAbsorbJob(job)) return;
+  const current = job.refreshProgressReceipt;
+  if (!current?.receiptFile || !fs.existsSync(current.receiptFile)) return;
+  try {
+    const refreshed = JSON.parse(
+      fs.readFileSync(current.receiptFile, 'utf-8')
+    ) as AbsorbRefreshProgressReceipt;
+    if (
+      refreshed.schemaVersion !== 'holoscript.absorb-refresh-progress-receipt.v1' ||
+      refreshed.kind !== 'AbsorbRefreshProgressReceipt' ||
+      refreshed.resumeToken !== current.resumeToken ||
+      !rootMatchesCurrentRepo(refreshed.rootDir, job.rootDir)
+    ) {
+      return;
+    }
+    job.refreshProgressReceipt = refreshed;
+    job.filesProcessed = refreshed.completedCandidateFiles;
+    job.totalFiles = refreshed.totalCandidateFiles;
+    if (refreshed.status === 'complete') {
+      job.progress = Math.max(job.progress, 65);
+      job.phase = `Building graph and semantic index after ${refreshed.completedBatchCount}/${refreshed.totalBatches} scan batches`;
+    } else {
+      job.progress = Math.max(
+        job.progress,
+        Math.min(60, Math.floor((refreshed.progressPercent / 100) * 60))
+      );
+      job.phase = `Scanning checkpoint batches ${refreshed.completedBatchCount}/${refreshed.totalBatches}`;
+    }
+  } catch {
+    // The worker atomically replaces this file. A transient read/parse miss
+    // leaves the last verified snapshot in place for the next status poll.
+  }
+}
+
 function appendAbsorbPhaseMetric(jobId: string | undefined, metric: AbsorbPhaseMetric): void {
   if (!jobId) return;
   const job = absorbJobs.get(jobId);
@@ -892,11 +981,16 @@ function failAbsorbJob(
 /**
  * Create a new absorb job and register it.
  */
-function createAbsorbJob(rootDir: string, memoryBudget: AbsorbMemoryBudgetLimits = {}): string {
+function createAbsorbJob(
+  rootDir: string,
+  memoryBudget: AbsorbMemoryBudgetLimits = {},
+  writerKey?: string
+): string {
   const jobId = `absorb-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   absorbJobs.set(jobId, {
     jobId,
     rootDir,
+    writerKey,
     status: 'queued',
     progress: 0,
     phase: 'Initializing',
@@ -909,14 +1003,9 @@ function createAbsorbJob(rootDir: string, memoryBudget: AbsorbMemoryBudgetLimits
     cacheCommitted: false,
   });
 
-  // Auto-cleanup after 1 hour. Do not keep one-shot MCP verifier processes alive.
-  const cleanupTimer = setTimeout(
-    () => {
-      absorbJobs.delete(jobId);
-    },
-    60 * 60 * 1000
-  );
-  unrefTimer(cleanupTimer);
+  // Keep one-shot verifier processes free of permanent job state, but never
+  // expire a running worker. The timer re-arms until the job is terminal.
+  scheduleAbsorbJobCleanup(jobId);
 
   return jobId;
 }
@@ -962,6 +1051,20 @@ const ISOLATED_ABSORB_WORKER_SOURCE = `
     };
   };
 
+  const reportMemory = () => {
+    const memory = process.memoryUsage();
+    parentPort.postMessage({
+      type: 'telemetry',
+      memory: {
+        rssMb: Math.round(memory.rss / 1024 / 1024),
+        heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
+      },
+    });
+  };
+  const telemetryTimer = setInterval(reportMemory, 250);
+  telemetryTimer.unref();
+  reportMemory();
+
   try {
     const mod = await import(workerData.moduleUrl);
     const result = await mod.handleCodebaseTool('holo_absorb_repo', {
@@ -970,12 +1073,29 @@ const ISOLATED_ABSORB_WORKER_SOURCE = `
       background: false,
       __isolatedBackgroundWorker: true,
     });
-    parentPort.postMessage({ type: 'complete', result: compact(result) });
+    const innerJobId =
+      result && typeof result === 'object' && typeof result.jobId === 'string'
+        ? result.jobId
+        : undefined;
+    const workerStatus = innerJobId
+      ? await mod.handleCodebaseTool('holo_get_absorb_status', {
+          jobId: innerJobId,
+          includePlan: true,
+          includeReceiptDetails: true,
+        })
+      : undefined;
+    parentPort.postMessage({
+      type: 'complete',
+      result: compact(result),
+      workerStatus: compact(workerStatus),
+    });
   } catch (error) {
     parentPort.postMessage({
       type: 'error',
       error: error instanceof Error ? error.message : String(error),
     });
+  } finally {
+    clearInterval(telemetryTimer);
   }
 })().catch(async (error) => {
   const { parentPort } = await import('node:worker_threads');
@@ -1010,10 +1130,7 @@ function resolveIsolatedAbsorbModuleUrl(): string {
   return pathToFileURL(localRequire.resolve('@holoscript/absorb-service/mcp')).href;
 }
 
-function startIsolatedBackgroundAbsorbJob(
-  jobId: string,
-  args: Record<string, unknown>
-): boolean {
+function startIsolatedBackgroundAbsorbJob(jobId: string, args: Record<string, unknown>): boolean {
   const job = absorbJobs.get(jobId);
   if (!job || !shouldUseIsolatedAbsorbWorker()) return false;
 
@@ -1035,9 +1152,34 @@ function startIsolatedBackgroundAbsorbJob(
   job.phase = 'Running in isolated worker';
   let settled = false;
 
-  worker.once('message', (message: unknown) => {
+  worker.on('message', (message: unknown) => {
     if (settled) return;
-    const payload = message as { type?: unknown; result?: unknown; error?: unknown };
+    const payload = message as {
+      type?: unknown;
+      result?: unknown;
+      error?: unknown;
+      memory?: unknown;
+      workerStatus?: unknown;
+    };
+    if (payload.type === 'telemetry') {
+      const memory = payload.memory as Partial<AbsorbMemorySnapshot> | undefined;
+      const activeJob = absorbJobs.get(jobId);
+      if (activeJob && Number.isFinite(memory?.rssMb) && Number.isFinite(memory?.heapUsedMb)) {
+        activeJob.workerMemory = {
+          rssMb: Number(memory!.rssMb),
+          heapUsedMb: Number(memory!.heapUsedMb),
+        };
+        activeJob.memoryBudget.peakRssMb = Math.max(
+          activeJob.memoryBudget.peakRssMb,
+          activeJob.workerMemory.rssMb
+        );
+        activeJob.memoryBudget.peakHeapUsedMb = Math.max(
+          activeJob.memoryBudget.peakHeapUsedMb,
+          activeJob.workerMemory.heapUsedMb
+        );
+      }
+      return;
+    }
     if (payload.type === 'error') {
       settled = true;
       const activeJob = absorbJobs.get(jobId);
@@ -1069,13 +1211,86 @@ function startIsolatedBackgroundAbsorbJob(
       typeof result === 'object' && result !== null
         ? (result as Record<string, unknown>).error
         : undefined;
+    const workerStatus =
+      typeof payload.workerStatus === 'object' && payload.workerStatus !== null
+        ? (payload.workerStatus as Record<string, unknown>)
+        : undefined;
+    const workerMemory =
+      workerStatus && typeof workerStatus.memory === 'object' && workerStatus.memory !== null
+        ? (workerStatus.memory as Partial<AbsorbMemorySnapshot>)
+        : undefined;
+    if (Number.isFinite(workerMemory?.rssMb) && Number.isFinite(workerMemory?.heapUsedMb)) {
+      activeJob.workerMemory = {
+        rssMb: Number(workerMemory!.rssMb),
+        heapUsedMb: Number(workerMemory!.heapUsedMb),
+      };
+    }
+    if (
+      workerStatus &&
+      typeof workerStatus.memoryBudget === 'object' &&
+      workerStatus.memoryBudget !== null
+    ) {
+      const workerBudget = workerStatus.memoryBudget as AbsorbMemoryBudgetTelemetry;
+      activeJob.memoryBudget = {
+        ...activeJob.memoryBudget,
+        ...workerBudget,
+        peakRssMb: Math.max(
+          activeJob.memoryBudget.peakRssMb,
+          workerBudget.peakRssMb ?? 0,
+          activeJob.workerMemory?.rssMb ?? 0
+        ),
+        peakHeapUsedMb: Math.max(
+          activeJob.memoryBudget.peakHeapUsedMb,
+          workerBudget.peakHeapUsedMb ?? 0,
+          activeJob.workerMemory?.heapUsedMb ?? 0
+        ),
+      };
+    }
+    if (workerStatus && Array.isArray(workerStatus.phaseMetrics)) {
+      activeJob.phaseMetrics = workerStatus.phaseMetrics as AbsorbPhaseMetric[];
+    }
+    if (workerStatus && typeof workerStatus.filesProcessed === 'number') {
+      activeJob.filesProcessed = workerStatus.filesProcessed;
+    }
+    if (workerStatus && typeof workerStatus.totalFiles === 'number') {
+      activeJob.totalFiles = workerStatus.totalFiles;
+    }
+    if (workerStatus?.scanPlan && typeof workerStatus.scanPlan === 'object') {
+      activeJob.scanPlan = workerStatus.scanPlan as AbsorbScanPlanReceipt;
+    }
+    if (
+      workerStatus?.refreshProgressReceipt &&
+      typeof workerStatus.refreshProgressReceipt === 'object'
+    ) {
+      activeJob.refreshProgressReceipt =
+        workerStatus.refreshProgressReceipt as AbsorbRefreshProgressReceipt;
+    }
+    if (resultError === 'absorb_cancelled' || workerStatus?.status === 'cancelled') {
+      const resultRecord = result as Record<string, unknown>;
+      const completedAt = Date.now();
+      activeJob.status = 'cancelled';
+      activeJob.progress = 100;
+      activeJob.phase = 'Cancelled';
+      activeJob.completedAt = completedAt;
+      activeJob.result = result;
+      activeJob.cancellation = {
+        reason: (resultRecord.reason as AbsorbCancellationReason | undefined) ?? 'cancel_requested',
+        message: String(resultRecord.message ?? 'Isolated absorb worker cancelled'),
+        requestedAt:
+          typeof resultRecord.requestedAt === 'string'
+            ? Date.parse(resultRecord.requestedAt) || completedAt
+            : completedAt,
+        phaseAtRequest: String(resultRecord.phaseAtRequest ?? 'isolated worker'),
+        completedAt,
+      };
+      return;
+    }
     if (resultError) {
       failAbsorbJob(
         jobId,
         'Failed (isolated worker)',
         String(
-          (result as Record<string, unknown>).message ||
-            (result as Record<string, unknown>).error
+          (result as Record<string, unknown>).message || (result as Record<string, unknown>).error
         ),
         result
       );
@@ -1089,6 +1304,18 @@ function startIsolatedBackgroundAbsorbJob(
     activeJob.phase = 'Complete (isolated worker)';
     activeJob.completedAt = Date.now();
     activeJob.cacheCommitted = true;
+    const resultStats =
+      typeof result === 'object' &&
+      result !== null &&
+      typeof (result as Record<string, unknown>).stats === 'object' &&
+      (result as Record<string, unknown>).stats !== null
+        ? ((result as Record<string, unknown>).stats as Record<string, unknown>)
+        : undefined;
+    const completedFileCount = Number(resultStats?.totalFiles ?? activeJob.totalFiles);
+    if (Number.isFinite(completedFileCount) && completedFileCount > 0) {
+      activeJob.filesProcessed = completedFileCount;
+      activeJob.totalFiles = completedFileCount;
+    }
   });
 
   worker.once('error', (error: Error) => {
@@ -1128,10 +1355,22 @@ function startIsolatedBackgroundAbsorbJob(
 function startBackgroundAbsorbJob(
   jobId: string,
   work: () => Promise<unknown>,
-  workerArgs?: Record<string, unknown>
-): 'worker-thread' | 'inline-fallback' {
+  workerArgs?: Record<string, unknown>,
+  requireIsolation = false
+): 'worker-thread' | 'inline-fallback' | 'isolation-unavailable' {
   if (workerArgs && startIsolatedBackgroundAbsorbJob(jobId, workerArgs)) {
     return 'worker-thread';
+  }
+  if (requireIsolation) {
+    const message =
+      'Large background absorb requires worker isolation, but the worker could not be started; the request event loop was not used as a fallback.';
+    failAbsorbJob(jobId, 'Worker isolation unavailable', message, {
+      error: 'absorb_background_isolation_unavailable',
+      message,
+      jobId,
+      cachePreserved: true,
+    });
+    return 'isolation-unavailable';
   }
   const job = absorbJobs.get(jobId);
   if (job) job.backgroundIsolation = 'inline-fallback';
@@ -1177,6 +1416,17 @@ function startBackgroundAbsorbJob(
       });
   }, 0);
   return 'inline-fallback';
+}
+
+function requiresIsolatedLargeBackground(decision: AbsorbAutoBackgroundDecision): boolean {
+  if (!decision.autoBackground) return false;
+  // Vitest intentionally runs the inline executor so its deterministic
+  // scanner fixtures remain in-process. Production can explicitly exercise
+  // the fail-closed path with ABSORB_REQUIRE_ISOLATION=1.
+  if (process.env.VITEST || process.env.NODE_ENV === 'test') {
+    return process.env.ABSORB_REQUIRE_ISOLATION === '1';
+  }
+  return true;
 }
 
 // =============================================================================
@@ -1300,6 +1550,7 @@ const COVERAGE_NON_ABSORBABLE_EXT = new Set([
 interface GraphCacheEnvelope {
   version: 1 | 2;
   rootDir: string;
+  rootDirs?: string[];
   timestamp: number;
   stats: Record<string, unknown>;
   graphJson: string;
@@ -1312,6 +1563,10 @@ interface GraphCacheEnvelope {
   scanPolicy?: GraphScanPolicy;
   worktreeFingerprint?: string;
   coverageAtScan?: GraphCoverageStatus;
+  /** SHA-256 of the exact embeddings binary published with this graph generation. */
+  embeddingCacheSha256?: string | null;
+  embeddingCacheBytes?: number | null;
+  embeddingCacheMtimeMs?: number | null;
 }
 
 interface GraphScanPolicy {
@@ -1423,6 +1678,7 @@ interface GraphCoverageStatus {
   cappedByMaxFiles?: boolean;
   overInclusive?: boolean;
   extraGraphFiles?: number;
+  rootCount?: number;
   error?: string;
 }
 
@@ -1656,6 +1912,14 @@ function countGitAbsorbableFiles(
   scanPolicy: GraphScanPolicy | null | undefined,
   includeUntracked: boolean
 ): number | null {
+  return listGitAbsorbableFiles(rootDir, scanPolicy, includeUntracked)?.size ?? null;
+}
+
+function listGitAbsorbableFiles(
+  rootDir: string,
+  scanPolicy: GraphScanPolicy | null | undefined,
+  includeUntracked: boolean
+): Set<string> | null {
   const policy = buildCoveragePolicy(scanPolicy);
   try {
     const args = ['ls-files', '--cached'];
@@ -1668,17 +1932,20 @@ function countGitAbsorbableFiles(
       stdio: ['pipe', 'pipe', 'pipe'],
       maxBuffer: 64 * 1024 * 1024,
     });
-    return output
-      .split('\0')
-      .filter((line) => line.length > 0)
-      .filter((line) => !isCoverageExcludedPath(line, policy))
-      .filter((line) => {
-        try {
-          return fs.statSync(path.join(rootDir, line)).size <= policy.maxFileSize;
-        } catch {
-          return false;
-        }
-      }).length;
+    return new Set(
+      output
+        .split('\0')
+        .filter((line) => line.length > 0)
+        .filter((line) => !isCoverageExcludedPath(line, policy))
+        .filter((line) => {
+          try {
+            return fs.statSync(path.join(rootDir, line)).size <= policy.maxFileSize;
+          } catch {
+            return false;
+          }
+        })
+        .map((line) => normalizeRootForComparison(path.resolve(rootDir, line)))
+    );
   } catch {
     return null;
   }
@@ -1759,6 +2026,74 @@ function buildGraphCoverageStatus(
     cappedByMaxFiles: selectedCandidateCount > policy.maxFiles,
     overInclusive: extraGraphFiles > 0,
     extraGraphFiles,
+  };
+}
+
+function buildGraphCoverageStatusForRoots(
+  rootDirs: string[] | null | undefined,
+  graphFileCount: number,
+  scanPolicy?: GraphScanPolicy | null
+): GraphCoverageStatus {
+  const normalizedRoots = Array.from(
+    new Set((rootDirs ?? []).filter(Boolean).map((rootDir) => path.resolve(rootDir)))
+  );
+  if (normalizedRoots.length <= 1) {
+    return buildGraphCoverageStatus(normalizedRoots[0], graphFileCount, scanPolicy);
+  }
+
+  const safeGraphFileCount = Number.isFinite(graphFileCount) ? Math.max(0, graphFileCount) : 0;
+  const policy = buildCoveragePolicy(scanPolicy);
+  if (!policy.respectGitIgnore) {
+    return {
+      available: false,
+      source: 'unavailable',
+      graphFileCount: safeGraphFileCount,
+      defaultMaxFiles: policy.maxFiles,
+      rootCount: normalizedRoots.length,
+      error: 'filesystem discovery does not have a bounded Git coverage denominator',
+    };
+  }
+
+  const tracked = new Set<string>();
+  const workspace = new Set<string>();
+  for (const rootDir of normalizedRoots) {
+    const trackedForRoot = listGitAbsorbableFiles(rootDir, policy.receipt, false);
+    const workspaceForRoot = policy.includeUntracked
+      ? listGitAbsorbableFiles(rootDir, policy.receipt, true)
+      : trackedForRoot;
+    if (!trackedForRoot || !workspaceForRoot) {
+      return {
+        available: false,
+        source: 'unavailable',
+        graphFileCount: safeGraphFileCount,
+        defaultMaxFiles: policy.maxFiles,
+        rootCount: normalizedRoots.length,
+        error: 'git ls-files unavailable for one or more workspace roots',
+      };
+    }
+    for (const filePath of trackedForRoot) tracked.add(filePath);
+    for (const filePath of workspaceForRoot) workspace.add(filePath);
+  }
+
+  const selectedCandidateCount = policy.includeUntracked ? workspace.size : tracked.size;
+  const expectedGraphFileCount = Math.min(selectedCandidateCount, policy.maxFiles);
+  const complete = safeGraphFileCount >= expectedGraphFileCount;
+  const extraGraphFiles = Math.max(0, safeGraphFileCount - expectedGraphFileCount);
+  return {
+    available: true,
+    source: policy.includeUntracked ? 'git-ls-files-cached-and-others' : 'git-ls-files',
+    graphFileCount: safeGraphFileCount,
+    trackedCandidateCount: tracked.size,
+    workspaceCandidateCount: workspace.size,
+    selectedCandidateCount,
+    expectedGraphFileCount,
+    defaultMaxFiles: policy.maxFiles,
+    complete,
+    ratio: expectedGraphFileCount === 0 ? 1 : safeGraphFileCount / expectedGraphFileCount,
+    cappedByMaxFiles: selectedCandidateCount > policy.maxFiles,
+    overInclusive: extraGraphFiles > 0,
+    extraGraphFiles,
+    rootCount: normalizedRoots.length,
   };
 }
 
@@ -2267,8 +2602,7 @@ function buildSemanticIndexReadinessReceipt(
 ): SemanticIndexReadinessReceipt {
   const graphAuthoritative =
     options.graphCoverage === undefined || graphCoverageIsComplete(options.graphCoverage);
-  const graphRagReady =
-    (options.graphRagReadyOverride ?? isGraphRAGReady()) && graphAuthoritative;
+  const graphRagReady = (options.graphRagReadyOverride ?? isGraphRAGReady()) && graphAuthoritative;
   const authorityFields = buildSemanticAuthorityFields(options.graphCoverage);
   const failureMessage =
     options.embeddingBuildError === undefined
@@ -2465,7 +2799,9 @@ function saveGraphCache(
   embeddingProvider?: string,
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary,
   scanPolicy?: GraphScanPolicy,
-  serializedGraph?: string
+  serializedGraph?: string,
+  embeddingCacheIdentity?: EmbeddingCacheIdentity,
+  rootDirs?: string[]
 ): boolean {
   const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
   if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
@@ -2473,8 +2809,10 @@ function saveGraphCache(
   }
   try {
     const normalizedScanPolicy = normalizeScanPolicy(scanPolicy);
-    const coverageAtScan = buildGraphCoverageStatus(
-      rootDir,
+    const normalizedRootDirs =
+      rootDirs && rootDirs.length > 0 ? rootDirs.map((entry) => path.resolve(entry)) : [rootDir];
+    const coverageAtScan = buildGraphCoverageStatusForRoots(
+      normalizedRootDirs,
       fileHashes ? Object.keys(fileHashes).length : totalFiles,
       normalizedScanPolicy
     );
@@ -2484,10 +2822,12 @@ function saveGraphCache(
     graph.scanPolicy = normalizedScanPolicy;
     graph.worktreeFingerprint = worktreeFingerprint ?? undefined;
     graph.coverageAtScan = coverageAtScan;
+    graph.rootDirs = normalizedRootDirs;
     graph.localCodebaseSnapshotReceipt = localCodebaseSnapshotReceipt;
     const envelope: GraphCacheEnvelope = {
       version: 2,
       rootDir,
+      rootDirs: normalizedRootDirs,
       timestamp: Date.now(),
       stats,
       graphJson: serializedGraph ?? graph.serialize(),
@@ -2499,6 +2839,9 @@ function saveGraphCache(
       scanPolicy: normalizedScanPolicy,
       ...(worktreeFingerprint && { worktreeFingerprint }),
       coverageAtScan,
+      embeddingCacheSha256: embeddingCacheIdentity?.sha256 ?? null,
+      embeddingCacheBytes: embeddingCacheIdentity?.bytes ?? null,
+      embeddingCacheMtimeMs: embeddingCacheIdentity?.mtimeMs ?? null,
     };
     const cacheFile = getCacheFile(rootDir);
     atomicWriteGraphCacheEnvelopeSync(cacheFile, envelope);
@@ -2512,16 +2855,87 @@ function saveGraphCache(
   }
 }
 
-function saveEmbeddingsCache(index: any, rootDir: string): void {
+function embeddingCacheSha256(buffer: Buffer): string {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
+function fileHashMapsMatch(
+  left: Record<string, string> | undefined,
+  right: Record<string, string> | undefined
+): boolean {
+  if (!left || !right) return false;
+  const leftEntries = Object.entries(left).sort(([a], [b]) => a.localeCompare(b));
+  const rightEntries = Object.entries(right).sort(([a], [b]) => a.localeCompare(b));
+  if (leftEntries.length !== rightEntries.length) return false;
+  return leftEntries.every(
+    ([filePath, digest], index) =>
+      rightEntries[index]?.[0] === filePath && rightEntries[index]?.[1] === digest
+  );
+}
+
+interface EmbeddingCacheIdentity {
+  sha256: string;
+  bytes: number;
+  mtimeMs: number;
+}
+
+function readEmbeddingsCacheIdentity(rootDir?: string | null): EmbeddingCacheIdentity | null {
+  try {
+    const embeddingsFile = getEmbeddingsFile(rootDir);
+    if (!fs.existsSync(embeddingsFile)) return null;
+    const buffer = fs.readFileSync(embeddingsFile);
+    const stat = fs.statSync(embeddingsFile);
+    return {
+      sha256: embeddingCacheSha256(buffer),
+      bytes: stat.size,
+      mtimeMs: stat.mtimeMs,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveEmbeddingsCache(index: any, rootDir: string): EmbeddingCacheIdentity | null {
   try {
     if (typeof index.serializeBinary === 'function') {
       const buffer = index.serializeBinary();
-      atomicWriteFileSync(getEmbeddingsFile(rootDir), buffer);
+      const embeddingsFile = getEmbeddingsFile(rootDir);
+      atomicWriteFileSync(embeddingsFile, buffer);
+      const stat = fs.statSync(embeddingsFile);
+      return {
+        sha256: embeddingCacheSha256(buffer),
+        bytes: stat.size,
+        mtimeMs: stat.mtimeMs,
+      };
     }
   } catch (err) {
     console.warn(
       `[CacheDebug][codebase] save embeddings miss path=${getEmbeddingsFile(rootDir)} error=${(err as Error)?.message}`
     );
+  }
+  return null;
+}
+
+function bindGraphCacheToEmbeddings(
+  rootDir: string,
+  identity: EmbeddingCacheIdentity | null
+): boolean {
+  if (!identity) return false;
+  const cacheRead = readGraphCache(rootDir, { allowExpiredV1: true });
+  if (!cacheRead) return false;
+  try {
+    atomicWriteGraphCacheEnvelopeSync(cacheRead.cacheFile, {
+      ...cacheRead.envelope,
+      embeddingCacheSha256: identity.sha256,
+      embeddingCacheBytes: identity.bytes,
+      embeddingCacheMtimeMs: identity.mtimeMs,
+    });
+    return true;
+  } catch (err) {
+    console.warn(
+      `[CacheDebug][codebase] embedding generation bind failed path=${cacheRead.cacheFile} error=${errorMessage(err)}`
+    );
+    return false;
   }
 }
 
@@ -2551,12 +2965,22 @@ function readEmbeddingsCacheModel(rootDir?: string | null): string | null {
 async function loadEmbeddingsCache(
   mod: any,
   providerInstance: any,
-  rootDir?: string | null
+  rootDir?: string | null,
+  expectedSha256?: string | null
 ): Promise<any | null> {
   try {
+    // A current graph envelope that explicitly has no bound embedding
+    // generation must not hydrate an arbitrary binary left by an older scan.
+    if (expectedSha256 === null) return null;
     const embeddingsFile = getEmbeddingsFile(rootDir);
     if (!fs.existsSync(embeddingsFile)) return null;
     const buffer = fs.readFileSync(embeddingsFile);
+    if (expectedSha256 && embeddingCacheSha256(buffer) !== expectedSha256) {
+      console.warn(
+        `[CacheDebug][codebase] embeddings generation does not match graph cache — discarding to avoid mixed graph/vector state.`
+      );
+      return null;
+    }
     // No mixed embedding spaces: a cache built by a different provider holds
     // vectors from a different semantic space, so querying it with this provider's
     // vectors returns garbage. The .bin header records the building provider —
@@ -2640,6 +3064,10 @@ function attachGraphCacheMetadata(graph: any, envelope: GraphCacheEnvelope): voi
   graph.worktreeFingerprint = envelope.worktreeFingerprint;
   graph.coverageAtScan = envelope.coverageAtScan;
   graph.localCodebaseSnapshotReceipt = envelope.localCodebaseSnapshotReceipt;
+  graph.embeddingCacheSha256 = envelope.embeddingCacheSha256;
+  graph.embeddingCacheBytes = envelope.embeddingCacheBytes;
+  graph.embeddingCacheMtimeMs = envelope.embeddingCacheMtimeMs;
+  graph.rootDirs = envelope.rootDirs ?? [envelope.rootDir];
 }
 
 function getCacheAge(rootDir?: string | null): {
@@ -2656,6 +3084,10 @@ function getCacheAge(rootDir?: string | null): {
   scanPolicy?: GraphScanPolicy;
   worktreeFingerprint?: string;
   coverageAtScan?: GraphCoverageStatus;
+  embeddingCacheSha256?: string | null;
+  embeddingCacheBytes?: number | null;
+  embeddingCacheMtimeMs?: number | null;
+  rootDirs?: string[];
 } {
   try {
     const cacheRead = readGraphCache(rootDir, { allowExpiredV1: true });
@@ -2675,6 +3107,10 @@ function getCacheAge(rootDir?: string | null): {
       scanPolicy: normalizeScanPolicy(envelope.scanPolicy),
       worktreeFingerprint: envelope.worktreeFingerprint,
       coverageAtScan: envelope.coverageAtScan,
+      embeddingCacheSha256: envelope.embeddingCacheSha256,
+      embeddingCacheBytes: envelope.embeddingCacheBytes,
+      embeddingCacheMtimeMs: envelope.embeddingCacheMtimeMs,
+      rootDirs: envelope.rootDirs ?? [envelope.rootDir],
     };
   } catch {
     return { exists: false };
@@ -3645,7 +4081,8 @@ async function hydrateGraphRAGFromDiskEmbeddings(
   mod: CodebaseModule,
   graph: unknown,
   rootDir: string,
-  timestamp?: number
+  timestamp?: number,
+  expectedEmbeddingSha256?: string | null
 ): Promise<boolean> {
   const { GraphRAGEngine } = mod;
   const providerName = await detectBestEmbeddingProvider();
@@ -3658,7 +4095,7 @@ async function hydrateGraphRAGFromDiskEmbeddings(
     xenovaModel: process.env.XENOVA_MODEL,
   });
 
-  const cachedIndex = await loadEmbeddingsCache(mod, providerObj, rootDir);
+  const cachedIndex = await loadEmbeddingsCache(mod, providerObj, rootDir, expectedEmbeddingSha256);
   if (!cachedIndex) return false;
 
   setGraphRAGState(cachedIndex, new GraphRAGEngine(graph, cachedIndex), {
@@ -3729,8 +4166,8 @@ async function ensureCachedGraph(): Promise<{
 
     // Legacy cache or changed HEAD/worktree: pay the comprehensive check once.
     if (!authoritative && freshByAge) {
-      coverage = buildGraphCoverageStatus(
-        memoryRootDir,
+      coverage = buildGraphCoverageStatusForRoots(
+        (memoryGraph as { rootDirs?: string[] }).rootDirs ?? [memoryRootDir],
         memoryFileHashes ? Object.keys(memoryFileHashes).length : 0,
         memoryScanPolicy
       );
@@ -3784,7 +4221,13 @@ async function ensureCachedGraph(): Promise<{
     if (!isGraphRAGReady()) {
       try {
         const mod = await loadCodebaseModule();
-        await hydrateGraphRAGFromDiskEmbeddings(mod, cachedGraph, cachedRootDir, cacheTimestamp);
+        await hydrateGraphRAGFromDiskEmbeddings(
+          mod,
+          cachedGraph,
+          cachedRootDir,
+          cacheTimestamp,
+          (cachedGraph as { embeddingCacheSha256?: string | null }).embeddingCacheSha256
+        );
       } catch (err) {
         console.warn(`[AbsorbCacheWarm] memory GraphRAG hydrate skipped: ${String(err)}`);
       }
@@ -3808,8 +4251,8 @@ async function ensureCachedGraph(): Promise<{
       const cacheMatchesCwd = rootMatchesCurrentRepo(envelope.rootDir, currentCwd);
       const gitMatchesHead = cacheGitMatchesHead(envelope.gitCommitHash, currentGitCommitHash);
       const freshByAge = ageMs < CACHE_MAX_AGE_MS;
-      const coverage = buildGraphCoverageStatus(
-        cacheMatchesCwd ? currentCwd : envelope.rootDir,
+      const coverage = buildGraphCoverageStatusForRoots(
+        envelope.rootDirs ?? [cacheMatchesCwd ? currentCwd : envelope.rootDir],
         getEnvelopeGraphFileCount(envelope),
         envelope.scanPolicy
       );
@@ -3914,7 +4357,8 @@ async function ensureCachedGraph(): Promise<{
           mod,
           cachedGraph,
           cachedRootDir,
-          cacheTimestamp
+          cacheTimestamp,
+          envelope.embeddingCacheSha256
         );
         if (hydrated) {
           // GraphRAG is ready from the persisted HoloEmbed index.
@@ -3932,7 +4376,8 @@ async function ensureCachedGraph(): Promise<{
                 'disk-cache GraphRAG embedding rebuild (background)',
                 () => disposeEmbeddingIndex(idx)
               );
-              saveEmbeddingsCache(idx, rootForWarm);
+              const identity = saveEmbeddingsCache(idx, rootForWarm);
+              bindGraphCacheToEmbeddings(rootForWarm, identity);
               setGraphRAGState(idx, new GraphRAGEngine(graphForWarm, idx), {
                 rootDir: rootForWarm,
               });
@@ -4217,7 +4662,7 @@ async function runFullScan(
         preparedScanPlan ??
         (scanner.planScan(scanOptions, scanBatchSize) as PlannedScannerScanPlan);
       if (!activeRefreshCheckpoint) {
-        const coverage = buildGraphCoverageStatus(primaryRootDir, 0, effectiveScanPolicy);
+        const coverage = buildGraphCoverageStatusForRoots(rootDirs, 0, effectiveScanPolicy);
         activeRefreshCheckpoint = prepareAbsorbRefreshCheckpoint({
           rootDir: primaryRootDir,
           scanPlan: scanPlan as ScanPlan,
@@ -4397,7 +4842,10 @@ async function runFullScan(
       fileHashes,
       detectedProvider,
       localCodebaseSnapshotReceipt,
-      effectiveScanPolicy
+      effectiveScanPolicy,
+      undefined,
+      undefined,
+      rootDirs
     );
     if (!cacheSaved) {
       const error = new Error('Unable to publish the completed absorb graph cache atomically');
@@ -4423,8 +4871,8 @@ async function runFullScan(
     if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
     const graphCoverage = inlineSourceFiles
       ? undefined
-      : buildGraphCoverageStatus(
-          primaryRootDir,
+      : buildGraphCoverageStatusForRoots(
+          rootDirs,
           Number(stats.totalFiles ?? 0),
           effectiveScanPolicy
         );
@@ -4486,7 +4934,10 @@ async function runFullScan(
       ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
       : await detectBestEmbeddingProvider();
     const gitHashMatches =
-      !!priorGitCommitHash && !!gitCommitHash && priorGitCommitHash === gitCommitHash;
+      !!priorGitCommitHash &&
+      !!gitCommitHash &&
+      priorGitCommitHash === gitCommitHash &&
+      fileHashMapsMatch(priorEnvelopeForHydrate?.fileHashes, fileHashes);
 
     let hydratedIndex: any = null;
     if (gitHashMatches) {
@@ -4499,7 +4950,12 @@ async function runFullScan(
           openaiModel: embeddingModel || process.env.OPENAI_MODEL,
           xenovaModel: process.env.XENOVA_MODEL,
         });
-        hydratedIndex = await loadEmbeddingsCache(mod, providerObj, primaryRootDir);
+        hydratedIndex = await loadEmbeddingsCache(
+          mod,
+          providerObj,
+          primaryRootDir,
+          priorEnvelopeForHydrate?.embeddingCacheSha256
+        );
         if (hydratedIndex) {
           console.error(
             `[AbsorbEmbeddings] Fast-hydrate: loaded embeddings from disk (git ${gitCommitHash?.slice(0, 7)} match, provider ${providerName}) — skipping re-embed.`
@@ -4571,8 +5027,8 @@ async function runFullScan(
   }
   const graphCoverage = inlineSourceFiles
     ? undefined
-    : buildGraphCoverageStatus(
-        primaryRootDir,
+    : buildGraphCoverageStatusForRoots(
+        rootDirs,
         Number(stats.totalFiles ?? 0),
         effectiveScanPolicy
       );
@@ -4665,9 +5121,12 @@ async function runFullScan(
   enforceRefreshSourcePin();
   enforceAbsorbJobControl(jobId, 'cache-commit');
   cacheTimestamp = Date.now();
-  if (preparedEmbeddingIndex && embeddingCacheNeedsSave) {
-    saveEmbeddingsCache(preparedEmbeddingIndex, primaryRootDir);
-  }
+  const embeddingIdentity =
+    preparedEmbeddingIndex && embeddingCacheNeedsSave
+      ? saveEmbeddingsCache(preparedEmbeddingIndex, primaryRootDir)
+      : preparedEmbeddingIndex
+        ? readEmbeddingsCacheIdentity(primaryRootDir)
+        : null;
   const cacheSaved = saveGraphCache(
     graph,
     primaryRootDir,
@@ -4677,7 +5136,9 @@ async function runFullScan(
     detectedProvider,
     localCodebaseSnapshotReceipt,
     effectiveScanPolicy,
-    serializedGraphForCache
+    serializedGraphForCache,
+    embeddingIdentity ?? undefined,
+    rootDirs
   );
   if (!cacheSaved) {
     const error = new Error('Unable to publish the completed absorb graph cache atomically');
@@ -4861,7 +5322,10 @@ async function runIncrementalPatch(
       graph.fileHashes,
       statsOnlyProvider,
       undefined,
-      effectiveScanPolicy
+      effectiveScanPolicy,
+      undefined,
+      undefined,
+      [rootDir]
     );
     const statsJob = jobId ? absorbJobs.get(jobId) : undefined;
     if (statsJob) statsJob.cacheCommitted = true;
@@ -4933,7 +5397,7 @@ async function runIncrementalPatch(
         xenovaModel: process.env.XENOVA_MODEL,
       });
 
-      index = await loadEmbeddingsCache(mod, providerObj, rootDir);
+      index = await loadEmbeddingsCache(mod, providerObj, rootDir, envelope.embeddingCacheSha256);
       if (!index) {
         index = await createDynamicEmbeddingIndex(
           mod,
@@ -5020,9 +5484,12 @@ async function runIncrementalPatch(
 
   enforceAbsorbJobControl(jobId, 'cache-commit');
   cacheTimestamp = Date.now();
-  if (preparedEmbeddingIndex && embeddingCacheNeedsSave) {
-    saveEmbeddingsCache(preparedEmbeddingIndex, rootDir);
-  }
+  const embeddingIdentity =
+    preparedEmbeddingIndex && embeddingCacheNeedsSave
+      ? saveEmbeddingsCache(preparedEmbeddingIndex, rootDir)
+      : preparedEmbeddingIndex
+        ? readEmbeddingsCacheIdentity(rootDir)
+        : null;
   saveGraphCache(
     graph,
     rootDir,
@@ -5031,7 +5498,10 @@ async function runIncrementalPatch(
     graph.fileHashes,
     detectedProvider,
     undefined,
-    effectiveScanPolicy
+    effectiveScanPolicy,
+    undefined,
+    embeddingIdentity ?? undefined,
+    [rootDir]
   );
   cachedGraph = graph;
   cachedRootDir = rootDir;
@@ -5279,8 +5749,31 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     };
   }
 
-  // Create job for progress tracking
-  const jobId = createAbsorbJob(primaryRootDir, memoryBudgetResult.limits);
+  // Inline uploads with an explicit provenance root publish to that root's
+  // durable cache and therefore join the same writer lease. Only anonymous
+  // temp-root uploads are isolated enough to skip workspace single-flight.
+  const writerKey = tempDir ? undefined : buildAbsorbWriterKey(effectiveRootDirs);
+  const activeWriter = findActiveAbsorbWriter(writerKey);
+  if (activeWriter) {
+    return {
+      accepted: true,
+      async: true,
+      coalesced: true,
+      coalescedReason: 'workspace_absorb_already_active',
+      jobId: activeWriter.jobId,
+      status: activeWriter.status,
+      phase: activeWriter.phase,
+      pollTool: 'holo_get_absorb_status',
+      rootDir: activeWriter.rootDir,
+      backgroundIsolation: activeWriter.backgroundIsolation,
+      message:
+        'An absorb writer is already active for this workspace root set; this request joined the existing job instead of starting a competing cache publisher.',
+    };
+  }
+
+  // Create job for progress tracking. One writer per normalized workspace root
+  // set prevents concurrent agents in this MCP host from racing cache commits.
+  const jobId = createAbsorbJob(primaryRootDir, memoryBudgetResult.limits, writerKey);
 
   const plan: AbsorbExecutionPlan = {
     mod,
@@ -5309,10 +5802,18 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     resumeToken,
   };
 
-  const requestedBackground = args.async === true || args.background === true;
-  const autoBackground = requestedBackground
+  const runningInsideIsolatedWorker = args.__isolatedBackgroundWorker === true;
+  const requestedBackground =
+    !runningInsideIsolatedWorker && (args.async === true || args.background === true);
+  // The isolated worker is already the event-loop boundary. Auto-backgrounding
+  // again would recursively spawn another worker and let the parent report
+  // completion before any cache publication occurred.
+  const scaleDecision = runningInsideIsolatedWorker
     ? ({ autoBackground: false } satisfies AbsorbAutoBackgroundDecision)
     : await buildAutoBackgroundDecision(plan);
+  const autoBackground = requestedBackground
+    ? ({ autoBackground: false } satisfies AbsorbAutoBackgroundDecision)
+    : scaleDecision;
   const runInBackground = requestedBackground || autoBackground.autoBackground;
   if (runInBackground) {
     if (plan.force && !plan.fromSourceFiles) {
@@ -5339,8 +5840,22 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
         ...(plan.refreshCheckpoint && {
           resumeToken: plan.refreshCheckpoint.progressReceipt().resumeToken,
         }),
-      }
+      },
+      requiresIsolatedLargeBackground(scaleDecision)
     );
+    if (backgroundIsolation === 'isolation-unavailable') {
+      return {
+        accepted: false,
+        async: false,
+        error: 'absorb_background_isolation_unavailable',
+        jobId,
+        status: absorbJobs.get(jobId)?.status ?? 'error',
+        rootDir: primaryRootDir,
+        cachePreserved: true,
+        message:
+          'Large background absorb was rejected because worker isolation was unavailable; retry after restoring the worker runtime.',
+      };
+    }
     return {
       accepted: true,
       async: true,
@@ -5483,7 +5998,7 @@ async function prepareDurableRefreshCheckpoint(
     plan.primaryRootDir,
     plan.scanPolicy
   );
-  const coverage = buildGraphCoverageStatus(plan.primaryRootDir, 0, plan.scanPolicy);
+  const coverage = buildGraphCoverageStatusForRoots(plan.effectiveRootDirs, 0, plan.scanPolicy);
   const checkpoint = prepareAbsorbRefreshCheckpoint({
     rootDir: plan.primaryRootDir,
     scanPlan: scanPlan as ScanPlan,
@@ -5544,8 +6059,8 @@ async function buildAutoBackgroundDecision(
     plan.includeBuildArtifacts || effectiveScanPolicy.includeBuildArtifacts === true;
   const existingCacheCoverageComplete = existingCache
     ? graphCoverageMatchesScanPolicy(
-        buildGraphCoverageStatus(
-          plan.primaryRootDir,
+        buildGraphCoverageStatusForRoots(
+          existingCache.rootDirs ?? plan.effectiveRootDirs,
           getEnvelopeGraphFileCount(existingCache),
           existingCache.scanPolicy
         )
@@ -5750,7 +6265,11 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
   // rootDir "C:/Users/Josep/..." vs a request "C:\\Users\\josep\\..."). Normalize
   // both sides (case-insensitive on win32, slash/trailing-slash agnostic) so the
   // fast-hydrate path is reached when they refer to the same repo.
-  if (!rootMatchesCurrentRepo(envelope.rootDir, primaryRootDir)) {
+  const envelopeRootDirs = envelope.rootDirs ?? [envelope.rootDir];
+  if (
+    !rootMatchesCurrentRepo(envelope.rootDir, primaryRootDir) ||
+    !absorbRootSetsMatch(envelopeRootDirs, effectiveRootDirs)
+  ) {
     const result = await runFullScan(
       mod,
       effectiveRootDirs,
@@ -5772,8 +6291,34 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     return { ...(result as Record<string, unknown>), jobId };
   }
 
-  const envelopeCoverage = buildGraphCoverageStatus(
-    primaryRootDir,
+  // Incremental GitChangeDetector currently has one repository root. A
+  // multi-root cache therefore refreshes through the full batched scanner so
+  // changes in every root are hashed and embedded instead of silently trusting
+  // the primary repository's diff.
+  if (effectiveRootDirs.length > 1) {
+    const result = await runFullScan(
+      mod,
+      effectiveRootDirs,
+      languages,
+      maxFiles,
+      includeBuildArtifacts,
+      outputFormat,
+      layout,
+      interactive,
+      jobId,
+      embeddingProvider,
+      embeddingApiKey,
+      embeddingModel,
+      undefined,
+      undefined,
+      scanBatchSize,
+      scanPolicy
+    );
+    return { ...(result as Record<string, unknown>), jobId, multiRootRefresh: 'full-scan' };
+  }
+
+  const envelopeCoverage = buildGraphCoverageStatusForRoots(
+    envelopeRootDirs,
     getEnvelopeGraphFileCount(envelope),
     envelope.scanPolicy
   );
@@ -5875,8 +6420,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
   // PATH 4: FAST PATH - Zero changes
   // ═══════════════════════════════════════════════════════════════════════════
   if (totalChanges === 0) {
-    const zeroChangeCoverage = buildGraphCoverageStatus(
-      primaryRootDir,
+    const zeroChangeCoverage = buildGraphCoverageStatusForRoots(
+      envelopeRootDirs,
       getEnvelopeGraphFileCount(envelope),
       sameRootScanPolicy
     );
@@ -5937,12 +6482,27 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
           openaiModel: embeddingModel || process.env.OPENAI_MODEL,
           xenovaModel: process.env.XENOVA_MODEL,
         });
-        const diskIndex = await loadEmbeddingsCache(mod, providerObj, rootDir);
+        const diskIndex = await loadEmbeddingsCache(
+          mod,
+          providerObj,
+          rootDir,
+          envelope.embeddingCacheSha256
+        );
         enforceAbsorbJobControl(jobId, 'embedding-cache-hydrate');
         if (diskIndex) {
           console.error(
             `[AbsorbEmbeddings] Fast-hydrate (zero-change): loaded embeddings from disk (git ${changes.headCommit.slice(0, 7)} match, provider ${providerName}) — no re-embed.`
           );
+          if (
+            envelope.embeddingCacheSha256 &&
+            (typeof envelope.embeddingCacheBytes !== 'number' ||
+              typeof envelope.embeddingCacheMtimeMs !== 'number')
+          ) {
+            const legacyIdentity = readEmbeddingsCacheIdentity(rootDir);
+            if (legacyIdentity?.sha256 === envelope.embeddingCacheSha256) {
+              bindGraphCacheToEmbeddings(rootDir, legacyIdentity);
+            }
+          }
           setGraphRAGState(diskIndex, new GraphRAGEngine(cachedGraph, diskIndex), {
             rootDir,
             timestamp: envelope.timestamp,
@@ -5981,7 +6541,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
             await disposeEmbeddingIndex(rebuiltIndex);
           }
           enforceAbsorbJobControl(jobId, 'embedding-cache-commit');
-          saveEmbeddingsCache(rebuiltIndex, rootDir);
+          const identity = saveEmbeddingsCache(rebuiltIndex, rootDir);
+          bindGraphCacheToEmbeddings(rootDir, identity);
           const embeddingCommitJob = jobId ? absorbJobs.get(jobId) : undefined;
           if (embeddingCommitJob) embeddingCommitJob.cacheCommitted = true;
           setGraphRAGState(rebuiltIndex, new GraphRAGEngine(cachedGraph, rebuiltIndex), {
@@ -6010,7 +6571,10 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
         envelope.fileHashes,
         envelope.embeddingProvider ?? (await detectBestEmbeddingProvider()),
         envelope.localCodebaseSnapshotReceipt,
-        sameRootScanPolicy
+        sameRootScanPolicy,
+        undefined,
+        readEmbeddingsCacheIdentity(rootDir) ?? undefined,
+        envelope.rootDirs ?? [rootDir]
       );
       const graphCommitJob = jobId ? absorbJobs.get(jobId) : undefined;
       if (graphCommitJob) graphCommitJob.cacheCommitted = true;
@@ -6489,8 +7053,18 @@ async function handleGraphStatus(): Promise<unknown> {
   const cache = getCacheAge(activeCacheRoot);
   const embeddingPolicy = cache.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt();
   const { getGraphRAGStateStatus } = await import('./graph-rag-tools');
-  const embeddingsCacheExists = fs.existsSync(getEmbeddingsFile(activeCacheRoot));
+  const embeddingsFile = getEmbeddingsFile(activeCacheRoot);
+  const embeddingsCacheExists = fs.existsSync(embeddingsFile);
   const embeddingsCacheModel = readEmbeddingsCacheModel(activeCacheRoot);
+  let embeddingsCacheStat: fs.Stats | null = null;
+  if (embeddingsCacheExists) {
+    try {
+      embeddingsCacheStat = fs.statSync(embeddingsFile);
+    } catch {
+      // A concurrent atomic generation swap can briefly retire the observed
+      // path between exists and stat. Treat it as not yet hydratable.
+    }
+  }
   const cacheAgeMs = cache.ageMs;
   const diskCacheFreshByAge = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
   const inMemoryAgeMs =
@@ -6537,15 +7111,22 @@ async function handleGraphStatus(): Promise<unknown> {
     (cachedGraph === null || cacheProvenance === 'disk-cache') &&
     rootMatchesCurrentRepo(cacheRootDir, cache.rootDir ?? currentCwd) &&
     activeGraphFileCount === diskGraphFileCount;
-  const activeCoverage = buildGraphCoverageStatus(
-    cacheMatchesCwd || diskCacheMatchesCwd ? currentCwd : cacheRootDir,
+  const activeCoverage = buildGraphCoverageStatusForRoots(
+    (cachedGraph as { rootDirs?: string[] } | null)?.rootDirs ??
+      cache.rootDirs ??
+      [cacheMatchesCwd || diskCacheMatchesCwd ? currentCwd : cacheRootDir].filter(
+        (entry): entry is string => Boolean(entry)
+      ),
     activeGraphFileCount,
     cache.scanPolicy
   );
   const diskCoverage = activeAndDiskShareCoverage
     ? activeCoverage
-    : buildGraphCoverageStatus(
-        diskCacheMatchesCwd ? currentCwd : cache.rootDir,
+    : buildGraphCoverageStatusForRoots(
+        cache.rootDirs ??
+          [diskCacheMatchesCwd ? currentCwd : cache.rootDir].filter((entry): entry is string =>
+            Boolean(entry)
+          ),
         diskGraphFileCount,
         cache.scanPolicy
       );
@@ -6724,8 +7305,26 @@ async function handleGraphStatus(): Promise<unknown> {
   const diskEmbeddingProviderMatchesPolicy =
     embeddingsCacheExists &&
     (embeddingsCacheModel === null || embeddingsCacheModel === embeddingPolicy.provider);
+  const hasStatBoundEmbeddingGeneration =
+    typeof cache.embeddingCacheBytes === 'number' &&
+    typeof cache.embeddingCacheMtimeMs === 'number';
+  const legacyEmbeddingIdentity =
+    cache.embeddingCacheSha256 && !hasStatBoundEmbeddingGeneration
+      ? readEmbeddingsCacheIdentity(activeCacheRoot)
+      : null;
+  const diskEmbeddingGenerationMatchesGraph =
+    cache.embeddingCacheSha256 === undefined
+      ? true
+      : typeof cache.embeddingCacheSha256 === 'string' &&
+        (hasStatBoundEmbeddingGeneration
+          ? embeddingsCacheStat?.size === cache.embeddingCacheBytes &&
+            embeddingsCacheStat?.mtimeMs === cache.embeddingCacheMtimeMs
+          : legacyEmbeddingIdentity?.sha256 === cache.embeddingCacheSha256);
   const diskSemanticIndexHydratable =
-    embeddingsCacheExists && diskCacheFreshForCurrentRepo && diskEmbeddingProviderMatchesPolicy;
+    embeddingsCacheExists &&
+    diskCacheFreshForCurrentRepo &&
+    diskEmbeddingProviderMatchesPolicy &&
+    diskEmbeddingGenerationMatchesGraph;
   const semanticIndexReady = localGraphLive || diskSemanticIndexHydratable;
 
   const requestedPath = cacheRootDir || graphRAGState.rootDir;
@@ -6795,6 +7394,17 @@ async function handleGraphStatus(): Promise<unknown> {
       diskEmbeddingCacheExists: embeddingsCacheExists,
       diskEmbeddingCacheModel: embeddingsCacheModel,
       diskEmbeddingProviderMatchesPolicy,
+      diskEmbeddingGenerationMatchesGraph,
+      graphEmbeddingGeneration: cache.embeddingCacheSha256 ?? null,
+      diskEmbeddingGenerationStat: embeddingsCacheStat
+        ? {
+            bytes: embeddingsCacheStat.size,
+            mtimeMs: embeddingsCacheStat.mtimeMs,
+            verification: hasStatBoundEmbeddingGeneration
+              ? 'graph-bound-stat'
+              : 'legacy-digest-fallback',
+          }
+        : null,
       diskHydratable: diskSemanticIndexHydratable,
       provider: embeddingPolicy.provider,
       graphProvider: 'holograph',
@@ -6929,6 +7539,7 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
     return { error: 'Job not found', jobId };
   }
   if (job.status !== 'complete' && job.status !== 'error' && job.status !== 'cancelled') {
+    refreshIsolatedAbsorbProgressFromDisk(job);
     updateAbsorbMemoryBudget(job, job.phase);
   }
 
@@ -6945,7 +7556,12 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
       backgroundIsolation: job.backgroundIsolation,
       requestEventLoopIsolated: job.backgroundIsolation === 'worker-thread',
     }),
-    memory: readAbsorbMemorySnapshot(),
+    memory: job.workerMemory ?? readAbsorbMemorySnapshot(),
+    memoryScope: job.backgroundIsolation === 'worker-thread' ? 'isolated-worker' : 'request-host',
+    ...(job.backgroundIsolation === 'worker-thread' && {
+      rssScope: 'shared-worker-thread-process',
+      heapScope: 'isolated-worker-isolate',
+    }),
     memoryBudget: { ...job.memoryBudget },
     phaseMetrics: job.phaseMetrics,
   };
