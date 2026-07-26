@@ -8237,6 +8237,32 @@ async function handleGraphStatus(args: Record<string, unknown>): Promise<unknown
   }
 }
 
+function readInMemoryGraphFileCount(graph: unknown): number {
+  if (!graph || typeof graph !== 'object') return 0;
+
+  try {
+    const filePaths = (graph as { getFilePaths?: () => unknown }).getFilePaths?.();
+    if (Array.isArray(filePaths)) return filePaths.length;
+  } catch {
+    // A long-lived host can briefly retain a graph instance from the previous
+    // build generation. Status must degrade to metadata instead of becoming an
+    // outage while the new generation is loading.
+  }
+
+  try {
+    const totalFiles = (
+      graph as { getStats?: () => { totalFiles?: unknown } | null | undefined }
+    ).getStats?.()?.totalFiles;
+    const count = Number(totalFiles);
+    if (Number.isFinite(count)) return Math.max(0, count);
+  } catch {
+    // Fall through to serialized cache metadata.
+  }
+
+  const fileHashes = (graph as { fileHashes?: unknown }).fileHashes;
+  return fileHashes && typeof fileHashes === 'object' ? Object.keys(fileHashes).length : 0;
+}
+
 async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapshot> {
   const activeCacheRoot = cachedRootDir || currentCwd;
   const activeCachePaths = resolveCodebaseCachePaths(activeCacheRoot);
@@ -8288,14 +8314,7 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
     cache.fileHashCount ??
     Number((cache.stats as { totalFiles?: unknown } | undefined)?.totalFiles ?? 0);
   const inMemoryGraphFileCount =
-    cachedGraph !== null
-      ? typeof (cachedGraph as { getFilePaths?: () => unknown[] }).getFilePaths === 'function'
-        ? (cachedGraph as { getFilePaths: () => unknown[] }).getFilePaths().length
-        : Number(
-            (cachedGraph as { getStats?: () => { totalFiles?: unknown } }).getStats?.()
-              ?.totalFiles ?? 0
-          )
-      : undefined;
+    cachedGraph !== null ? readInMemoryGraphFileCount(cachedGraph) : undefined;
   const activeGraphFileCount = inMemoryGraphFileCount ?? diskGraphFileCount;
   const activeAndDiskShareCoverage =
     (cachedGraph === null || cacheProvenance === 'disk-cache') &&

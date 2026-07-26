@@ -21,6 +21,7 @@ import {
 } from './graph-rag-tools';
 import { EmbeddingIndex } from '../engine/EmbeddingIndex';
 import { CodebaseScanner } from '../engine/CodebaseScanner';
+import { CodebaseGraph } from '../engine/CodebaseGraph';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
 const originalCacheLayout = process.env.HOLOSCRIPT_CACHE_LAYOUT;
@@ -3460,6 +3461,33 @@ describe('holo_absorb_repo root validation', () => {
       coalesced: false,
       forceRefreshAvailable: true,
     });
+  });
+
+  it('keeps graph status available when a hot-loaded graph host returns no file path array', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-status-hot-host-'));
+    const requestedRoot = makeTinyGitRepo('holoscript-status-hot-host-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = requestedRoot;
+
+    await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: requestedRoot,
+      force: true,
+      outputFormat: 'stats',
+    });
+    vi.spyOn(CodebaseGraph.prototype, 'getFilePaths').mockReturnValue(undefined as never);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      inMemory?: boolean;
+      coverage?: { graphFileCount?: number };
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+    };
+
+    expect(status.inMemory).toBe(true);
+    expect(status.coverage?.graphFileCount).toBe(2);
+    expect(status.graphUnavailableReceipt?.reason).not.toBe('cache_missing');
   });
 
   it('rejects a root-mismatched cache when the root is not a current git repo', async () => {

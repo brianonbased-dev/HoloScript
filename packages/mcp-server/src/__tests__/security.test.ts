@@ -578,11 +578,15 @@ describe('Gate 2: Tool Scope Authorization', () => {
     expect(result.requiredScopes).toEqual(['tools:codebase']);
   });
 
-  it('should expose the HoloAbsorb manifest through the least-privilege read scope', () => {
-    const result = authorizeToolCall('holo_absorb_manifest', ['tools:read']);
-    expect(result.authorized).toBe(true);
-    expect(result.riskLevel).toBe('low');
-    expect(result.requiredScopes).toEqual(['tools:read']);
+  it('should expose the HoloAbsorb manifest through read or codebase discovery scopes', () => {
+    const readResult = authorizeToolCall('holo_absorb_manifest', ['tools:read']);
+    const codebaseResult = authorizeToolCall('holo_absorb_manifest', ['tools:codebase']);
+    expect(readResult.authorized).toBe(true);
+    expect(codebaseResult.authorized).toBe(true);
+    expect(readResult.riskLevel).toBe('low');
+    expect(codebaseResult.riskLevel).toBe('low');
+    expect(readResult.requiredScopes).toEqual(['tools:read', 'tools:codebase']);
+    expect(codebaseResult.requiredScopes).toEqual(['tools:read', 'tools:codebase']);
   });
 
   it('should deny browser tools without tools:browser scope', () => {
@@ -600,9 +604,11 @@ describe('Gate 2: Tool Scope Authorization', () => {
 
   it('should list tools for a scope', () => {
     const readTools = getToolsForScope('tools:read');
+    const codebaseTools = getToolsForScope('tools:codebase');
     expect(readTools).toContain('parse_hs');
     expect(readTools).toContain('validate_holoscript');
     expect(readTools).toContain('holo_absorb_manifest');
+    expect(codebaseTools).toContain('holo_absorb_manifest');
     expect(readTools).not.toContain('generate_scene');
   });
 

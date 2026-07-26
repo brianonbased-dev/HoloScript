@@ -134,7 +134,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   hs_ai_scaffold: ['tools:write'],
 
   // === Codebase intelligence ===
-  holo_absorb_manifest: ['tools:read'],
+  holo_absorb_manifest: ['tools:read', 'tools:codebase'],
   holo_graph_status: ['tools:codebase'],
   holo_absorb_repo: ['tools:codebase'],
   holo_cancel_absorb: ['tools:codebase'],
