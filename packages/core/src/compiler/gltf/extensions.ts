@@ -414,6 +414,16 @@ export function collectUsedExtensions(gltf: Record<string, unknown>): string[] {
     }
   }
 
+  // Check meshes
+  const meshes = gltf.meshes as Array<{ extensions?: Record<string, unknown> }> | undefined;
+  if (meshes) {
+    for (const mesh of meshes) {
+      if (mesh.extensions) {
+        Object.keys(mesh.extensions).forEach((ext) => extensions.add(ext));
+      }
+    }
+  }
+
   // Check nodes for lights
   const nodes = gltf.nodes as Array<{ extensions?: Record<string, unknown> }> | undefined;
   if (nodes) {

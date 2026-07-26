@@ -14,6 +14,21 @@ function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposit
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
 }
 
+function readGLBJson(binary: Uint8Array): {
+  meshes?: Array<{ extensions?: Record<string, unknown> }>;
+  extensionsUsed?: string[];
+} {
+  const view = new DataView(binary.buffer, binary.byteOffset, binary.byteLength);
+  const jsonChunkLength = view.getUint32(12, true);
+  const jsonChunkType = view.getUint32(16, true);
+  if (jsonChunkType !== 0x4e4f534a) {
+    throw new Error('Expected GLB JSON chunk');
+  }
+
+  const jsonBytes = binary.subarray(20, 20 + jsonChunkLength);
+  return JSON.parse(new TextDecoder().decode(jsonBytes));
+}
+
 describe('GLTFPipeline', () => {
   let pipeline: GLTFPipeline;
 
@@ -41,6 +56,26 @@ describe('GLTFPipeline', () => {
     // glTF magic: 0x46546C67 = "glTF"
     const view = new DataView(result.binary!.buffer, result.binary!.byteOffset);
     expect(view.getUint32(0, true)).toBe(0x46546c67);
+  });
+
+  it('declares mesh extensions used by generated GLB LODs', () => {
+    const result = pipeline.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'cube',
+            properties: [{ type: 'ObjectProperty', key: 'geometry', value: 'box' }],
+            traits: [],
+          },
+        ],
+      }),
+      'test-token'
+    );
+    const json = readGLBJson(result.binary!);
+
+    expect(json.meshes?.[0]?.extensions?.MSFT_lod).toBeDefined();
+    expect(json.extensionsUsed).toContain('MSFT_lod');
   });
 
   // =========== glTF JSON output ===========
