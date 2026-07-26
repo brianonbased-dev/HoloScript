@@ -55,6 +55,7 @@ function git(rootDir, args) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const implementationRoot = resolve(packageRoot, '..', '..');
   const enginePath = resolve(packageRoot, 'dist/engine/index.js');
   const {
     CodebaseGraph,
@@ -146,6 +147,11 @@ async function main() {
     status,
     startedAt,
     completedAt: new Date().toISOString(),
+    implementation: {
+      root: implementationRoot,
+      head: git(implementationRoot, ['rev-parse', 'HEAD']),
+      dirty: Boolean(git(implementationRoot, ['status', '--porcelain'])),
+    },
     repo: {
       root: repoRoot,
       head: git(repoRoot, ['rev-parse', 'HEAD']),
