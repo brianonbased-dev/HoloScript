@@ -364,7 +364,12 @@ export const realToolRunner: RewardToolRunner = {
         ],
         cwd: workDir,
         timeout,
-        preserveSymlinks: true,
+        // The logical pnpm path protects ordinary Vitest runs from deep
+        // Windows package-scope resolution. Coverage-v8 must instead resolve
+        // its peer dependency graph through pnpm's real virtual-store path;
+        // preserving symlinks there can bind an incompatible trace-mapping
+        // copy and abort before the JSON summary is written.
+        preserveSymlinks: !options?.withCoverage,
       });
       return vitestCounts(
         stdout + stderr,

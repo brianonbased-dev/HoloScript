@@ -299,6 +299,10 @@ export function createGRPORewardFunctions(runner: RewardToolRunner) {
 
     for (const completion of completions) {
       const eval_ = await evaluateWithTimeout(async (): Promise<number> => {
+        // Coverage intentionally stages instrumented source, not a *.test.ts
+        // file: Vitest excludes test modules from its coverage map. The
+        // canonical runner creates a discoverable test harness that imports
+        // this source while preserving its measurable branches and lines.
         const filePath = await runner.writeTempFile(completion, opts.fileExtension, {
           workDir: opts.workDir,
         });

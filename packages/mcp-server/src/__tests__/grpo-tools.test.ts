@@ -12,7 +12,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { grpoTools, handleGrpoTool } from '../grpo-tools';
+
+function nonexistentRoot(): string {
+  return join(tmpdir(), `holo-grpo-missing-${process.pid}-${randomUUID()}`);
+}
 
 // ---------------------------------------------------------------------------
 // Tool definitions
@@ -69,7 +76,7 @@ describe('GRPO Handler Dispatch', () => {
 
   it('should return error for holo_extract_grpo_prompts with nonexistent rootDir', async () => {
     const result = await handleGrpoTool('holo_extract_grpo_prompts', {
-      rootDir: '/nonexistent/path/that/does/not/exist',
+      rootDir: nonexistentRoot(),
     });
     expect(result).not.toBeNull();
     expect((result as any).error).toContain('not found');
@@ -83,7 +90,7 @@ describe('GRPO Handler Dispatch', () => {
 describe('holo_run_grpo_pass - extraction only', () => {
   it('should return error for nonexistent rootDir', async () => {
     const result = await handleGrpoTool('holo_run_grpo_pass', {
-      rootDir: '/nonexistent/path',
+      rootDir: nonexistentRoot(),
     });
     expect(result).not.toBeNull();
     expect((result as any).error).toContain('not found');
