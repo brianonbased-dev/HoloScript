@@ -118,3 +118,37 @@ test('compiler-wasm drift gate passes once artifact commit follows source and ex
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('compiler-wasm drift gate admits a staged artifact refresh during pre-commit', () => {
+  const root = createFixtureRepo();
+  try {
+    write(join(root, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\n');
+    write(join(root, 'pkg-node/artifact.cjs'), 'exports.parse = function parse() {};\n');
+    git(root, ['add', 'src/lib.rs', 'pkg-node/artifact.cjs', 'package.json']);
+    git(root, ['commit', '-m', 'initial source and artifact']);
+
+    write(
+      join(root, 'src/lib.rs'),
+      '#[wasm_bindgen]\npub fn parse() {}\n#[wasm_bindgen]\npub fn compile_to_uaal() {}\n'
+    );
+    git(root, ['add', 'src/lib.rs']);
+    git(root, ['commit', '-m', 'source adds uaal export']);
+
+    write(
+      join(root, 'pkg-node/artifact.cjs'),
+      [
+        'exports.parse = function parse() {};',
+        'exports.compile_to_uaal = function compile_to_uaal() {};',
+        '',
+      ].join('\n')
+    );
+    git(root, ['add', 'pkg-node/artifact.cjs']);
+
+    const pending = runGate(root);
+    assert.equal(pending.status, 0, `${pending.stdout}\n${pending.stderr}`);
+    assert.match(pending.stdout, /staged-refresh/);
+    assert.match(pending.stdout, /2 function exports checked/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

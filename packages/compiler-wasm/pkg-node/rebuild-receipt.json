@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-26T05:58:06Z",
+  "generatedAt": "2026-07-26T21:51:59.1695231Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "a526e35fb1a9746957f65267d6036f977c59f796+working-tree-kotlin-unknown-v1",
+  "sourceCommit": "9b2dc4ddf40c169df7d9c0dca2b2f64ca2677280",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
@@ -16,8 +16,9 @@
     "rebuilt": true,
     "artifactBytesChanged": true,
     "wasmBytes": 345153,
-    "wasmSha256": "a7dc159739a7b99c714d81e3c17f327f2c6217204d7937e507065c0f70e44128",
-    "previousWasmSha256": "f507209f10afe1496c5f53aec85b6a541d4f0a863d88828df1f3b751252fdb94",
-    "note": "Rebuilt the Node authority after Kotlin target support for typed @unknown carriers, explicit fallback enforcement, and explicit struct parameter preservation."
+    "wasmSha256": "4dc33724a8c0d5ee63304580bcfc5b86c2a2eedad90e23c317c06f4f097cf7ab",
+    "previousWasmSha256": "a7dc159739a7b99c714d81e3c17f327f2c6217204d7937e507065c0f70e44128",
+    "repeatBuildSha256Matched": true,
+    "note": "Rebuilt the Node verifier-of-record after the parser-parity source change. A second release rebuild produced the same SHA-256, proving the recorded artifact is stable on this toolchain."
   }
 }

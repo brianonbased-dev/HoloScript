@@ -97,6 +97,19 @@ function isAncestor(root, ancestor, descendant) {
   return result.status === 0;
 }
 
+function hasStagedChanges(root, relPath) {
+  const result = runGit(root, ['diff', '--cached', '--quiet', '--', relPath], {
+    allowFailure: true,
+  });
+  if (result.status === 0) return false;
+  if (result.status === 1) return true;
+  throw new Error(
+    `git diff --cached failed for ${relPath}: ${String(
+      result.stderr || result.stdout || ''
+    ).trim()}`
+  );
+}
+
 function short(hash) {
   return String(hash || '').slice(0, 10);
 }
@@ -159,7 +172,12 @@ async function main() {
 
   const srcCommit = latestCommit(root, srcRel);
   const artifactCommit = latestCommit(root, artifactRel);
-  const fresh = isAncestor(root, srcCommit.hash, artifactCommit.hash);
+  const committedFresh = isAncestor(root, srcCommit.hash, artifactCommit.hash);
+  // During pre-commit the pending artifact refresh does not have a commit hash
+  // yet. Treat an explicitly staged artifact-path update as the post-commit
+  // freshness edge, while still checking the staged JS artifact's exports.
+  const stagedArtifactRefresh = hasStagedChanges(root, artifactRel);
+  const fresh = committedFresh || stagedArtifactRefresh;
 
   if (!fresh) {
     console.error('[compiler-wasm-drift] ERROR: pkg-node WASM artifact is stale.');
@@ -195,7 +213,9 @@ async function main() {
   console.log(
     `[compiler-wasm-drift] PASS ${srcRel}@${short(srcCommit.hash)} <= ${artifactRel}@${short(
       artifactCommit.hash
-    )} (${exports.length} function export${exports.length === 1 ? '' : 's'} checked)`
+    )}${stagedArtifactRefresh ? '+staged-refresh' : ''} (${exports.length} function export${
+      exports.length === 1 ? '' : 's'
+    } checked)`
   );
 }
 
