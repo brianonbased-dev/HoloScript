@@ -167,6 +167,66 @@ describe('HoloAbsorb visual graph agent context', () => {
     });
   });
 
+  it('fails stale unresolved visual focus closed to baseline-equivalent ranking', async () => {
+    const { graph, first, selected } = fixture();
+    const index = ambiguousIndex(first, selected);
+    const engine = new GraphRAGEngine(graph, index);
+    const manager = new GraphSelectionManager(graph);
+    const staleNodeId = `${makeSymbolObjectId(selected)}:stale`;
+    manager.select(staleNodeId);
+    const visualFocus = manager.getVisualFocus();
+
+    const baseline = await engine.query('parse', { topK: 2 });
+    const stale = await engine.query('parse', { topK: 2, visualFocus });
+
+    expect(visualFocus).toMatchObject({
+      resolutionRate: 0,
+      unresolvedNodeIds: [staleNodeId],
+    });
+    expect(stale.visualFocus).toBeUndefined();
+    expect(
+      stale.results.map((result) => ({
+        file: result.file,
+        score: result.score,
+        visualScore: result.visualScore,
+        visualReasons: result.visualReasons,
+      }))
+    ).toEqual(
+      baseline.results.map((result) => ({
+        file: result.file,
+        score: result.score,
+        visualScore: result.visualScore,
+        visualReasons: result.visualReasons,
+      }))
+    );
+  });
+
+  it('measures wrong-but-resolved visual focus as supplied intent instead of hidden accuracy', async () => {
+    const { graph, first, selected } = fixture();
+    const index = ambiguousIndex(first, selected);
+    const engine = new GraphRAGEngine(graph, index);
+    const manager = new GraphSelectionManager(graph);
+    manager.select(makeSymbolObjectId(selected));
+    const visualFocus = manager.getVisualFocus();
+
+    // For this ablation the fixed retrieval target is `first`; `selected` is a
+    // valid but intentionally wrong visual choice supplied by the caller.
+    const baseline = await engine.query('parse', { topK: 2 });
+    const wrong = await engine.query('parse', { topK: 2, visualFocus });
+    const baselineTargetRank =
+      baseline.results.findIndex((result) => result.file === first.filePath) + 1;
+    const wrongTargetRank = wrong.results.findIndex((result) => result.file === first.filePath) + 1;
+
+    expect(visualFocus.resolutionRate).toBe(1);
+    expect(baselineTargetRank).toBe(1);
+    expect(wrongTargetRank).toBe(2);
+    expect(wrong.results[0]).toMatchObject({
+      file: selected.filePath,
+      visualScore: 1,
+      visualReasons: expect.arrayContaining(['selected-node']),
+    });
+  });
+
   it('exposes the visual selection as an agent-readable MCP receipt', async () => {
     const { graph, first, selected } = fixture();
     const index = ambiguousIndex(first, selected);

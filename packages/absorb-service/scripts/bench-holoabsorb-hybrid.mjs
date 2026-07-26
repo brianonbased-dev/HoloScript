@@ -11,6 +11,7 @@ import { cpus, platform, release, totalmem } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 function parseArgs(argv) {
@@ -82,12 +83,18 @@ async function main() {
 
   const scanner = new CodebaseScanner(undefined, true);
   const setupStart = performance.now();
-  const scanResult = await scanner.scan({
+  const scanOptions = {
     rootDir: repoRoot,
     maxFiles: options.maxFiles,
     respectGitIgnore: true,
     includeUntracked: false,
+  };
+  const coverageInventoryLimit = 1_000_000;
+  const coveragePlan = scanner.planScan({
+    ...scanOptions,
+    maxFiles: coverageInventoryLimit,
   });
+  const scanResult = await scanner.scan(scanOptions);
   const graph = new CodebaseGraph();
   graph.buildFromScanResult(scanResult);
   const index = new EmbeddingIndex({
@@ -139,10 +146,21 @@ async function main() {
       pass: requiredFiles.every((file) => top3.includes(file)),
     };
   });
+  const cappedByMaxFiles = coveragePlan.totalFiles > options.maxFiles;
+  checks.push({
+    query: 'whole-repo-corpus-coverage',
+    selectedCandidateFiles: coveragePlan.totalFiles,
+    scannedFiles: scanResult.files.length,
+    cappedByMaxFiles,
+    pass:
+      coveragePlan.totalFiles < coverageInventoryLimit &&
+      !cappedByMaxFiles &&
+      scanResult.files.length === coveragePlan.totalFiles,
+  });
   const status =
     checks.every((check) => check.pass) && visualDisambiguation.check.pass ? 'pass' : 'fail';
   const artifact = {
-    schemaVersion: 'holoscript.holoabsorb.hybrid-recall.v2',
+    schemaVersion: 'holoscript.holoabsorb.hybrid-recall.v3',
     productName: 'HoloAbsorb',
     status,
     startedAt,
@@ -151,6 +169,19 @@ async function main() {
       root: implementationRoot,
       head: git(implementationRoot, ['rev-parse', 'HEAD']),
       dirty: Boolean(git(implementationRoot, ['status', '--porcelain'])),
+      benchmarkSourcePaths: [
+        'packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs',
+        'packages/absorb-service/src/engine/__tests__/VisualGraphAgentContext.test.ts',
+      ],
+      benchmarkSourceDirty: Boolean(
+        git(implementationRoot, [
+          'status',
+          '--porcelain',
+          '--',
+          'packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs',
+          'packages/absorb-service/src/engine/__tests__/VisualGraphAgentContext.test.ts',
+        ])
+      ),
     },
     repo: {
       root: repoRoot,
@@ -159,7 +190,13 @@ async function main() {
     },
     corpus: {
       maxFiles: options.maxFiles,
+      selectedCandidateFiles: coveragePlan.totalFiles,
       files: scanResult.files.length,
+      selectionMode: coveragePlan.selectionMode,
+      coverageRatio: round(scanResult.files.length / Math.max(1, coveragePlan.totalFiles)),
+      cappedByMaxFiles,
+      coverageInventoryLimit,
+      coverageInventoryCapped: coveragePlan.totalFiles >= coverageInventoryLimit,
       graphSymbols: graph.getAllSymbols().length,
       indexedEntries: index.size,
       parserLightFileEntries: index.size - graph.getAllSymbols().length,
@@ -218,8 +255,9 @@ async function benchmarkVisualDisambiguation({
 
   const duplicateNames = Array.from(symbolsByName.entries())
     .filter(([, symbols]) => new Set(symbols.map((symbol) => symbol.filePath)).size > 1)
+    .filter(([name]) => /^[A-Za-z][A-Za-z0-9_]{2,}$/.test(name))
     .map(([name]) => name)
-    .sort((a, b) => a.localeCompare(b));
+    .sort((a, b) => stableDigest(a).localeCompare(stableDigest(b)));
   const engine = new GraphRAGEngine(graph, index);
   const coldIndexStart = performance.now();
   new GraphSelectionManager(graph);
@@ -227,80 +265,257 @@ async function benchmarkVisualDisambiguation({
   const warmIndexStart = performance.now();
   new GraphSelectionManager(graph);
   const warmSelectionIndexMs = performance.now() - warmIndexStart;
-  const cases = [];
+  const frozenCases = [];
 
   for (const query of duplicateNames) {
-    if (cases.length >= 20) break;
+    if (frozenCases.length >= 20) break;
+    const baselineStart = performance.now();
     const baseline = await engine.query(query, { topK });
+    const baselineDurationMs = performance.now() - baselineStart;
     const sameName = baseline.results.filter((result) => result.symbol.name === query);
     if (sameName.length < 2) continue;
 
-    // Deliberately choose the lowest-ranked same-name result. The benchmark
-    // measures whether explicit visual intent can recover the selected overload,
-    // not whether ambient retrieval happened to guess the user's target.
+    // Freeze the target from the no-selection arm before any visual input is
+    // applied. Every arm below reuses this exact target and adversarial choice.
     const target = sameName[sameName.length - 1].symbol;
+    const wrongCandidate = sameName.find((result) => result.symbol.filePath !== target.filePath);
+    if (!wrongCandidate) continue;
+    const wrongTarget = wrongCandidate.symbol;
     const targetId = symbolIdentity(target);
-    const manager = new GraphSelectionManager(graph);
-    manager.select(makeSymbolObjectId(target));
-    const visualFocus = manager.getVisualFocus();
-    const focused = await engine.query(query, { topK, visualFocus });
+    const wrongTargetId = symbolIdentity(wrongTarget);
+    if (targetId === wrongTargetId) continue;
     const baselineRank = rankOf(baseline.results, targetId);
-    const focusedRank = rankOf(focused.results, targetId);
-    if (baselineRank === 0 || focusedRank === 0) continue;
+    const wrongBaselineRank = rankOf(baseline.results, wrongTargetId);
+    if (baselineRank === 0 || wrongBaselineRank === 0) continue;
+
+    frozenCases.push({
+      query,
+      target,
+      targetId,
+      wrongTarget,
+      wrongTargetId,
+      baseline,
+      baselineDurationMs,
+      baselineRank,
+      wrongBaselineRank,
+    });
+  }
+
+  const caseSetDigest = createHash('sha256')
+    .update(
+      JSON.stringify(
+        frozenCases.map(({ query, targetId, wrongTargetId }) => ({
+          query,
+          targetId,
+          wrongTargetId,
+        }))
+      )
+    )
+    .digest('hex');
+  const cases = [];
+
+  for (const frozen of frozenCases) {
+    const {
+      query,
+      target,
+      targetId,
+      wrongTarget,
+      wrongTargetId,
+      baseline,
+      baselineDurationMs,
+      baselineRank,
+      wrongBaselineRank,
+    } = frozen;
+
+    const correctManager = new GraphSelectionManager(graph);
+    correctManager.select(makeSymbolObjectId(target));
+    const correctFocus = correctManager.getVisualFocus();
+    const correctStart = performance.now();
+    const correct = await engine.query(query, { topK, visualFocus: correctFocus });
+    const correctDurationMs = performance.now() - correctStart;
+
+    const staleNodeId = `${makeSymbolObjectId(target)}:stale`;
+    const staleManager = new GraphSelectionManager(graph);
+    staleManager.select(staleNodeId);
+    const staleFocus = staleManager.getVisualFocus();
+    const staleStart = performance.now();
+    const stale = await engine.query(query, { topK, visualFocus: staleFocus });
+    const staleDurationMs = performance.now() - staleStart;
+
+    const wrongManager = new GraphSelectionManager(graph);
+    wrongManager.select(makeSymbolObjectId(wrongTarget));
+    const wrongFocus = wrongManager.getVisualFocus();
+    const wrongStart = performance.now();
+    const wrong = await engine.query(query, { topK, visualFocus: wrongFocus });
+    const wrongDurationMs = performance.now() - wrongStart;
+
+    const correctRank = rankOf(correct.results, targetId);
+    const staleRank = rankOf(stale.results, targetId);
+    const wrongRank = rankOf(wrong.results, targetId);
+    const wrongSelectedRank = rankOf(wrong.results, wrongTargetId);
+    if (correctRank === 0 || staleRank === 0 || wrongRank === 0 || wrongSelectedRank === 0) {
+      continue;
+    }
+
+    const baselineOrder = baseline.results.map((result) => symbolIdentity(result.symbol));
+    const staleOrder = stale.results.map((result) => symbolIdentity(result.symbol));
 
     cases.push({
       query,
-      selectedNodeId: makeSymbolObjectId(target),
-      selectedFile: target.filePath.replace(/\\/g, '/'),
+      fixedTarget: {
+        nodeId: makeSymbolObjectId(target),
+        file: target.filePath.replace(/\\/g, '/'),
+      },
+      suppliedWrongSelection: {
+        nodeId: makeSymbolObjectId(wrongTarget),
+        file: wrongTarget.filePath.replace(/\\/g, '/'),
+      },
+      staleNodeId,
       baselineRank,
-      focusedRank,
+      correctRank,
+      staleRank,
+      wrongRank,
+      wrongSelectedBaselineRank: wrongBaselineRank,
+      wrongSelectedRank,
       reciprocalRankBefore: round(1 / baselineRank),
-      reciprocalRankAfter: round(1 / focusedRank),
-      rankGain: baselineRank - focusedRank,
-      resolutionRate: visualFocus.resolutionRate,
-      focusedScoreReceipt: focused.results[focusedRank - 1]
+      reciprocalRankAfterCorrectSelection: round(1 / correctRank),
+      correctRankGain: baselineRank - correctRank,
+      staleRankDelta: staleRank - baselineRank,
+      wrongTargetRankDelta: wrongRank - baselineRank,
+      staleExactRankingMatch: JSON.stringify(staleOrder) === JSON.stringify(baselineOrder),
+      resolutionRates: {
+        correct: correctFocus.resolutionRate,
+        stale: staleFocus.resolutionRate,
+        wrong: wrongFocus.resolutionRate,
+      },
+      latencyMs: {
+        noSelection: round(baselineDurationMs),
+        correctSelection: round(correctDurationMs),
+        staleUnresolved: round(staleDurationMs),
+        wrongResolved: round(wrongDurationMs),
+      },
+      correctScoreReceipt: correct.results[correctRank - 1]
         ? {
-            score: focused.results[focusedRank - 1].score,
-            semanticScore: focused.results[focusedRank - 1].semanticScore,
-            connectionScore: focused.results[focusedRank - 1].connectionScore,
-            impactScore: focused.results[focusedRank - 1].impactScore,
-            visualScore: focused.results[focusedRank - 1].visualScore,
-            visualReasons: focused.results[focusedRank - 1].visualReasons,
+            score: correct.results[correctRank - 1].score,
+            semanticScore: correct.results[correctRank - 1].semanticScore,
+            connectionScore: correct.results[correctRank - 1].connectionScore,
+            impactScore: correct.results[correctRank - 1].impactScore,
+            visualScore: correct.results[correctRank - 1].visualScore,
+            visualReasons: correct.results[correctRank - 1].visualReasons,
+          }
+        : null,
+      wrongScoreReceipt: wrong.results[wrongSelectedRank - 1]
+        ? {
+            score: wrong.results[wrongSelectedRank - 1].score,
+            visualScore: wrong.results[wrongSelectedRank - 1].visualScore,
+            visualReasons: wrong.results[wrongSelectedRank - 1].visualReasons,
+          }
+        : null,
+      wrongFixedTargetReceipt: wrong.results[wrongRank - 1]
+        ? {
+            score: wrong.results[wrongRank - 1].score,
+            visualScore: wrong.results[wrongRank - 1].visualScore,
+            visualReasons: wrong.results[wrongRank - 1].visualReasons,
           }
         : null,
     });
   }
 
   const baselineMrr = mean(cases.map((item) => 1 / item.baselineRank));
-  const focusedMrr = mean(cases.map((item) => 1 / item.focusedRank));
+  const correctMrr = mean(cases.map((item) => 1 / item.correctRank));
+  const staleMrr = mean(cases.map((item) => 1 / item.staleRank));
+  const wrongMrr = mean(cases.map((item) => 1 / item.wrongRank));
   const baselineTop1 = mean(cases.map((item) => (item.baselineRank === 1 ? 1 : 0)));
-  const focusedTop1 = mean(cases.map((item) => (item.focusedRank === 1 ? 1 : 0)));
-  const meanRankGain = mean(cases.map((item) => item.rankGain));
-  const meanResolutionRate = mean(cases.map((item) => item.resolutionRate));
+  const correctTop1 = mean(cases.map((item) => (item.correctRank === 1 ? 1 : 0)));
+  const staleTop1 = mean(cases.map((item) => (item.staleRank === 1 ? 1 : 0)));
+  const wrongTop1 = mean(cases.map((item) => (item.wrongRank === 1 ? 1 : 0)));
+  const meanCorrectRankGain = mean(cases.map((item) => item.correctRankGain));
+  const correctResolutionRate = mean(cases.map((item) => item.resolutionRates.correct));
+  const staleResolutionRate = mean(cases.map((item) => item.resolutionRates.stale));
+  const wrongResolutionRate = mean(cases.map((item) => item.resolutionRates.wrong));
+  const staleExactRankingMatchRate = mean(
+    cases.map((item) => (item.staleExactRankingMatch ? 1 : 0))
+  );
+  const harmfulOverrideRate = mean(
+    cases.map((item) => (item.wrongRank > item.baselineRank ? 1 : 0))
+  );
+  const wrongSelectionFollowRate = mean(
+    cases.map((item) => (item.wrongSelectedRank === 1 ? 1 : 0))
+  );
+  const wrongFixedTargetBoostRate = mean(
+    cases.map((item) => (item.wrongFixedTargetReceipt?.visualScore > 0 ? 1 : 0))
+  );
+  const wrongSelectionIsolationRate = 1 - wrongFixedTargetBoostRate;
+  const meanWrongTargetRankDelta = mean(cases.map((item) => item.wrongTargetRankDelta));
+  const arms = {
+    noSelection: summarizeArm(cases, 'baselineRank', 'noSelection', null),
+    correctSelection: summarizeArm(cases, 'correctRank', 'correctSelection', correctResolutionRate),
+    staleUnresolved: summarizeArm(cases, 'staleRank', 'staleUnresolved', staleResolutionRate),
+    wrongResolved: summarizeArm(cases, 'wrongRank', 'wrongResolved', wrongResolutionRate),
+  };
   const check = {
     minimumCases: 5,
     measuredCases: cases.length,
-    focusedMrrImproves: focusedMrr > baselineMrr,
-    focusedTop1AtLeast80Percent: focusedTop1 >= 0.8,
-    fullSelectionResolution: meanResolutionRate === 1,
+    correctMrrImproves: correctMrr > baselineMrr,
+    correctTop1AtLeast80Percent: correctTop1 >= 0.8,
+    correctSelectionFullyResolved: correctResolutionRate === 1,
+    staleSelectionFullyUnresolved: staleResolutionRate === 0,
+    staleRankingBaselineEquivalent:
+      staleExactRankingMatchRate === 1 && staleMrr === baselineMrr && staleTop1 === baselineTop1,
+    wrongSelectionFullyResolved: wrongResolutionRate === 1,
     pass:
       cases.length >= 5 &&
-      focusedMrr > baselineMrr &&
-      focusedTop1 >= 0.8 &&
-      meanResolutionRate === 1,
+      correctMrr > baselineMrr &&
+      correctTop1 >= 0.8 &&
+      correctResolutionRate === 1 &&
+      staleResolutionRate === 0 &&
+      staleExactRankingMatchRate === 1 &&
+      staleMrr === baselineMrr &&
+      staleTop1 === baselineTop1 &&
+      wrongResolutionRate === 1,
   };
 
   return {
     methodology:
-      'For each real-repository duplicate symbol name, select the lowest-ranked same-name candidate by its collision-safe graph.holo node ID, then compare GraphRAG rank before and after the explicit visual-focus receipt.',
+      'Freeze a real-repository duplicate-symbol case set from the no-selection ranking, hold the lowest-ranked same-name symbol as the target, and reuse it across four arms: no selection, the correct collision-safe graph.holo node ID, an unresolved stale ID, and a different resolved same-name node.',
+    claimBoundary:
+      'Correct selection measures whether visible graph intent can improve retrieval of a fixed target. Stale/unresolved selection must fail closed to the no-selection order. Wrong-but-resolved selection is valid caller-supplied intent: its steering and target-rank harm are reported diagnostically and are not mislabeled as model accuracy.',
+    caseSet: {
+      digestAlgorithm: 'sha256',
+      digest: caseSetDigest,
+      frozenBeforeVisualArms: true,
+      reusedAcrossAllArms: true,
+      targetRule: 'lowest-ranked same-name result in the no-selection arm',
+      wrongSelectionRule:
+        'highest-ranked different same-name result from a different file in the no-selection arm',
+      samplingRule:
+        'duplicate names matching a public-identifier shape, ordered by a stable SHA-256 digest instead of lexicographic prefix',
+    },
     summary: {
       cases: cases.length,
+      arms,
       baselineMrr: round(baselineMrr),
-      focusedMrr: round(focusedMrr),
+      focusedMrr: round(correctMrr),
+      correctMrr: round(correctMrr),
+      staleMrr: round(staleMrr),
+      wrongMrr: round(wrongMrr),
       baselineTop1Rate: round(baselineTop1),
-      focusedTop1Rate: round(focusedTop1),
-      meanRankGain: round(meanRankGain),
-      meanResolutionRate: round(meanResolutionRate),
+      focusedTop1Rate: round(correctTop1),
+      correctTop1Rate: round(correctTop1),
+      staleTop1Rate: round(staleTop1),
+      wrongTop1Rate: round(wrongTop1),
+      meanRankGain: round(meanCorrectRankGain),
+      meanCorrectRankGain: round(meanCorrectRankGain),
+      meanResolutionRate: round(correctResolutionRate),
+      correctResolutionRate: round(correctResolutionRate),
+      staleResolutionRate: round(staleResolutionRate),
+      wrongResolutionRate: round(wrongResolutionRate),
+      staleExactRankingMatchRate: round(staleExactRankingMatchRate),
+      harmfulOverrideRate: round(harmfulOverrideRate),
+      wrongSelectionFollowRate: round(wrongSelectionFollowRate),
+      wrongFixedTargetBoostRate: round(wrongFixedTargetBoostRate),
+      wrongSelectionIsolationRate: round(wrongSelectionIsolationRate),
+      meanWrongTargetRankDelta: round(meanWrongTargetRankDelta),
       coldSelectionIndexMs: round(coldSelectionIndexMs),
       warmSelectionIndexMs: round(warmSelectionIndexMs),
       warmSelectionIndexSpeedup:
@@ -311,8 +526,25 @@ async function benchmarkVisualDisambiguation({
   };
 }
 
+function summarizeArm(cases, rankKey, latencyKey, resolutionRate) {
+  const ranks = cases.map((item) => item[rankKey]);
+  const latencies = cases.map((item) => item.latencyMs[latencyKey]);
+  return {
+    mrr: round(mean(ranks.map((rank) => 1 / rank))),
+    top1Rate: round(mean(ranks.map((rank) => (rank === 1 ? 1 : 0)))),
+    meanTargetRank: round(mean(ranks)),
+    meanQueryMs: round(mean(latencies)),
+    p95QueryMs: round(percentile(latencies, 0.95)),
+    resolutionRate: resolutionRate === null ? null : round(resolutionRate),
+  };
+}
+
 function symbolIdentity(symbol) {
   return `${symbol.filePath}:${symbol.line}:${symbol.owner ?? ''}:${symbol.name}`;
+}
+
+function stableDigest(value) {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 function rankOf(results, identity) {
@@ -322,6 +554,13 @@ function rankOf(results, identity) {
 
 function mean(values) {
   return values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function percentile(values, fraction) {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(sorted.length - 1, Math.ceil(sorted.length * fraction) - 1);
+  return sorted[index];
 }
 
 function round(value) {
