@@ -1,8 +1,12 @@
 import {
   AdaptiveFrameRateManager,
   LocalRegistry,
+  PACKAGE_IR_SCHEMA_VERSION,
+  createPackageLockReceipt,
   randomUUID,
   sha256,
+  validatePackageIR,
+  type PackageIR,
   type PackageManifest,
   type SecurityPolicy,
   type ThermalState,
@@ -22,5 +26,34 @@ registry.publish({ name: '@holoscript/example', version: '1.0.0' });
 const requestId: string = randomUUID();
 const digest: Promise<string> = sha256('public type consumer fixture');
 const walletConnect: Web3Connector['connectWallet'] = connector.connectWallet;
+const packageIR: PackageIR = {
+  schemaVersion: PACKAGE_IR_SCHEMA_VERSION,
+  name: '@holoscript/public-consumer-fixture',
+  version: '1.0.0',
+  kind: 'library',
+  supportTier: 'preview',
+  entrypoints: { source: './src/index.hsplus' },
+  dependencies: {},
+  compatibility: { holoscript: '>=8.0.0', targets: ['node'] },
+  capabilities: [],
+  provenance: {
+    license: 'MIT',
+    repository: 'https://github.com/brianonbased-dev/HoloScript',
+    owner: 'HoloScript',
+  },
+};
+const packageValidation: boolean = validatePackageIR(packageIR).valid;
+const packageLock = createPackageLockReceipt(packageIR, []);
 
-void [digest, manifest, policy, registry, requestId, thermalState, walletConnect];
+void [
+  digest,
+  manifest,
+  packageIR,
+  packageLock,
+  packageValidation,
+  policy,
+  registry,
+  requestId,
+  thermalState,
+  walletConnect,
+];

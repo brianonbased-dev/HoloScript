@@ -1,0 +1,62 @@
+// @package_ir — compiler-visible HoloScript library package contract.
+//
+// This native source names the semantic boundary implemented by PackageIR.ts.
+// Host manifests and registry records project into PackageIR; the compiler,
+// resolver, release gates, and catalog consume the same validated record.
+
+@trait package_ir {
+  capability_tags: [
+    "package_identity",
+    "dependency_resolution",
+    "integrity",
+    "offline_replay",
+    "provenance"
+  ]
+
+  @on_validate(package) => {
+    require(package.schema_version == "holoscript.package-ir.v0.1")
+    require(package.name)
+    require(package.version)
+    require(package.entrypoints.source)
+    require(package.compatibility.targets)
+    require(package.provenance.license)
+    require(package.provenance.repository)
+    require(package.provenance.owner)
+    emit("package_ir_validated", {
+      name: package.name,
+      version: package.version,
+      support_tier: package.support_tier
+    })
+  }
+
+  @on_lock(root, resolved_packages) => {
+    ordered = sort(resolved_packages, by: ["name", "version"])
+    graph_digest = sha256(canonical_json({
+      root: root,
+      packages: ordered
+    }))
+    emit("package_lock_receipt_created", {
+      root: root.name,
+      version: root.version,
+      graph_digest: graph_digest
+    })
+    return graph_digest
+  }
+
+  @on_offline_replay(package, cached_source) => {
+    actual_digest = sha256(cached_source)
+    require(actual_digest == package.content_digest)
+    emit("package_offline_replay_verified", {
+      name: package.name,
+      version: package.version,
+      content_digest: actual_digest
+    })
+  }
+
+  @receipt package_lock_integrity {
+    type: "PackageLockReceipt"
+    schema_version: "holoscript.package-lock-receipt.v0.1"
+    boundary: "resolved graph plus cached source integrity"
+    timestamp: now()
+  }
+}

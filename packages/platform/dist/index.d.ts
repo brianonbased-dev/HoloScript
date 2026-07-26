@@ -1139,6 +1139,87 @@ declare class PackageResolver {
     getMatchingVersions(name: string, range: string): LocalVersionEntry[];
 }
 
+declare const PACKAGE_IR_SCHEMA_VERSION: "holoscript.package-ir.v0.1";
+declare const PACKAGE_LOCK_SCHEMA_VERSION: "holoscript.package-lock-receipt.v0.1";
+type PackageKind = 'library' | 'application' | 'template' | 'trait-pack' | 'plugin';
+type PackageSupportTier = 'supported' | 'preview' | 'experimental' | 'internal' | 'deprecated' | 'archived';
+type PackageTarget = 'node' | 'browser-wasm' | 'wasi-component' | 'native-linux' | 'native-windows' | 'owned-metal';
+type PackageSourceKind = 'registry' | 'path' | 'git' | 'content';
+interface PackageSource {
+    kind: PackageSourceKind;
+    locator?: string;
+}
+interface PackageDependencySpec {
+    range: string;
+    source: PackageSource;
+    optional?: boolean;
+    peer?: boolean;
+}
+interface PackageEntrypoints {
+    source: string;
+    exports?: Record<string, string>;
+    compiled?: Partial<Record<PackageTarget, string>>;
+}
+interface PackageCompatibility {
+    holoscript: string;
+    targets: PackageTarget[];
+    node?: string;
+}
+interface PackageProvenance {
+    license: string;
+    repository: string;
+    owner: string;
+    documentation?: string;
+}
+/**
+ * Compiler-visible package contract.
+ *
+ * Host manifests such as package.json and registry records project into this
+ * shape. Resolvers, compilers, catalogs, and release gates consume this shape
+ * instead of maintaining parallel package truth.
+ */
+interface PackageIR {
+    schemaVersion: typeof PACKAGE_IR_SCHEMA_VERSION;
+    name: string;
+    version: string;
+    kind: PackageKind;
+    supportTier: PackageSupportTier;
+    entrypoints: PackageEntrypoints;
+    dependencies: Record<string, PackageDependencySpec>;
+    compatibility: PackageCompatibility;
+    capabilities: string[];
+    provenance: PackageProvenance;
+}
+interface ResolvedPackageArtifact {
+    name: string;
+    version: string;
+    source: PackageSource;
+    manifestDigest: string;
+    contentDigest: string;
+    dependencies: string[];
+}
+interface PackageLockReceipt {
+    schemaVersion: typeof PACKAGE_LOCK_SCHEMA_VERSION;
+    root: {
+        name: string;
+        version: string;
+        manifestDigest: string;
+    };
+    packages: ResolvedPackageArtifact[];
+    graphDigest: string;
+    generatedAt: string;
+}
+interface PackageContractValidation {
+    valid: boolean;
+    errors: string[];
+}
+declare function canonicalizePackageIR(packageIR: PackageIR): string;
+declare function digestPackageSource(source: string): Promise<string>;
+declare function validatePackageIR(value: unknown): PackageContractValidation;
+declare function createPackageLockReceipt(rootPackage: PackageIR, artifacts: ResolvedPackageArtifact[], generatedAt?: string): Promise<PackageLockReceipt>;
+declare function verifyPackageLockReceipt(receipt: PackageLockReceipt): Promise<PackageContractValidation>;
+declare function verifyCachedPackageArtifact(artifact: ResolvedPackageArtifact, cachedSource: string): Promise<boolean>;
+
 /**
  * Package Registry
  *
@@ -3441,4 +3522,4 @@ declare class AccessControl {
 }
 declare function createAccessControl(): AccessControl;
 
-export { type APIKeySecurityScheme, type APIRequest, APIRequestSchema, type ASTNode, AccessControl, type AccessDecision, type ActionAffordance, type ActivityEntry, type ActivityType, AgentOutputSchemaValidator, type AgentOutputSchemaValidatorConfig, type AgentRBAC, type AuditEntry, AuditLogger, type AuthToken, type BadgeFormat, BadgeGenerator, type BadgeOptions, type BadgeStyle, type BasicSecurityScheme, type BearerSecurityScheme, CERTIFICATION_LEVELS, CapabilityRBAC, type CapabilityScope, type CapabilityToken, CapabilityValidator, type Certificate, type CertificationBadge, CertificationChecker, type CertificationConfig, type CertificationManifest, type CertificationResult, type CheckCategory, type CheckResult, type CheckStatus, type ClassicalAlgorithm, type CompilerTarget, type ContractCondition, type ContractValidationResult, ContractValidator, type ContractViolation, type CreateTenantConfig, type CreateTokenOptions, type CreateWorkspaceOptions, DEFAULT_CERTIFICATION_CONFIG, type DataSchema, type DeepPartial, type Ed25519KeyPair, type EventAffordance, type FileSystemAccess, type Form, type HybridCryptoConfig, HybridCryptoProvider, type HybridEncapsulation, type HybridKeyPair, type HybridSignature, type HybridVerificationResult, type ImportDeclaration, type InstallResult, type LegacyCertificationCategory, type LegacyCertificationIssue, type LegacyCertificationResult, type Link, type LocalPackageInput, type LocalPackageManifest, LocalRegistry, type LocalVersionEntry, MockWeb3Connector, type NFTAsset, type Namespace, type NamespaceInfo, NamespaceManager, type NoSecurityScheme, type OAuth2SecurityScheme, type OrgRole, type Organization, type OutputObjectSchema, type OutputPropertySchema, type PQAlgorithm, type Package, type PackageAccess, type PackageDependency, type PackageFiles, type PackageManifest, type PackageMetadata, type PackagePermission, PackageRegistry, PackageResolver, type PackageVisibility, Permission, type PropertyAffordance, QUOTA_TIERS, type QuotaConfig, QuotaManager, type QuotaOperation, type QuotaResult, RATE_LIMIT_TIERS, ROLES, ROLE_PERMISSIONS, type RateLimitConfig, type RateLimitQuotaConfig, type RateLimitResult, RateLimiter, type ResolvedDependency, type ResourceDescriptor, ResourceType, type Sandbox, type SandboxExecutionResult, type SandboxState, type Scene, SceneSchema, SchemaErrorCode, type SchemaValidationError, type SchemaValidationResult, type SchemaValidationWarning, type SchemaValueType, type SearchResult, type SecurityPolicy, type SecurityScanResult, type SecurityScheme, type SecurityViolation, type SemVer, type SignedPackage, type SigningManifest, type Tenant, type TenantContext, type TenantFilter, TenantIsolationError, TenantManager, type TenantPermission, type TenantPlan, type TenantSettings, type TenantStore, type ThingDescription, ThingDescriptionGenerator, type ThingDescriptionGeneratorOptions, type TierName, TokenBucketRateLimiter, TokenManager, type TokenPermission, type TokenRecord, type TraitContract, TraitContractBuilder, TraitContractRegistry, type UsageSnapshot, type User, UserSchema, type ValidateResult, type ValidationResult, type ViolationCategory, type ViolationSeverity, type Web3Connector, type Web3ConnectorConfig, Web3Provider, type WoTThingConfig, WorkflowStep, type Workspace, WorkspaceManager, type WorkspaceMember, type WorkspaceRole, type WorkspaceSecret, type WorkspaceSettings, auditLogger, canManageMembers, canPublishPackages, canonicalizeManifest, checkRateLimit, compareSemVer, createAccessControl, createBadgeGenerator, createCertificationChecker, createContext, createDefaultContractRegistry, createDefaultPolicy, createPackageManifest, createPackageRegistry, createSandbox, createStrictPolicy, createTokenManager, createWeb3EventBridge, createWorkspaceManager, decrypt, decryptData, defaultBadgeGenerator, defaultRegistry, defaultWorkspaceManager, deriveKey, destroy, encrypt, encryptData, execute, exportKey, findBestMatch, formatSemVer, generateAllThingDescriptions, generateBadge, generateBadgeSVG, generateEncryptionKey, generateKeyPair, generateMarkdownBadge, generateRandomToken, generateSignature, generateThingDescription, getBadge, getCapabilityRBAC, getContractRegistry, getCurrentContext, getHybridCryptoProvider, getIsolatedNamespace, getOutputSchemaValidator, getQuotaConfig, getRBAC, getRateLimitConfig, hasAllPermissions, hasAnyPermission, hasPermission, hmacSha256, importKey, isActivelyCertified, isolateExecution, issueBadge, listBadges, mergePolicy, parseSemVer, randomBytes, randomHex, randomUUID, requireContext, resetContractRegistry, resetHybridCryptoProvider, resetOutputSchemaValidator, resetRateLimit, resetRateLimits, revokeBadge, sanitizeInput, satisfiesRange, scanForVulnerabilities, secureHashToken, secureRandom, serializeThingDescription, sha256, sha512, signPackage, storeBadge, validateAccess, validateApiKey, validateComposition, validateImports, validateInput, validateManifest, validateNamespace, validatePackageName, validateResourceAccess, validateSignature, validateThingDescription, validateUrl, validateWalletAddress, verifyBadge, verifyHmacSha256, verifySignature, verifyToken, withTenantContext };
+export { type APIKeySecurityScheme, type APIRequest, APIRequestSchema, type ASTNode, AccessControl, type AccessDecision, type ActionAffordance, type ActivityEntry, type ActivityType, AgentOutputSchemaValidator, type AgentOutputSchemaValidatorConfig, type AgentRBAC, type AuditEntry, AuditLogger, type AuthToken, type BadgeFormat, BadgeGenerator, type BadgeOptions, type BadgeStyle, type BasicSecurityScheme, type BearerSecurityScheme, CERTIFICATION_LEVELS, CapabilityRBAC, type CapabilityScope, type CapabilityToken, CapabilityValidator, type Certificate, type CertificationBadge, CertificationChecker, type CertificationConfig, type CertificationManifest, type CertificationResult, type CheckCategory, type CheckResult, type CheckStatus, type ClassicalAlgorithm, type CompilerTarget, type ContractCondition, type ContractValidationResult, ContractValidator, type ContractViolation, type CreateTenantConfig, type CreateTokenOptions, type CreateWorkspaceOptions, DEFAULT_CERTIFICATION_CONFIG, type DataSchema, type DeepPartial, type Ed25519KeyPair, type EventAffordance, type FileSystemAccess, type Form, type HybridCryptoConfig, HybridCryptoProvider, type HybridEncapsulation, type HybridKeyPair, type HybridSignature, type HybridVerificationResult, type ImportDeclaration, type InstallResult, type LegacyCertificationCategory, type LegacyCertificationIssue, type LegacyCertificationResult, type Link, type LocalPackageInput, type LocalPackageManifest, LocalRegistry, type LocalVersionEntry, MockWeb3Connector, type NFTAsset, type Namespace, type NamespaceInfo, NamespaceManager, type NoSecurityScheme, type OAuth2SecurityScheme, type OrgRole, type Organization, type OutputObjectSchema, type OutputPropertySchema, PACKAGE_IR_SCHEMA_VERSION, PACKAGE_LOCK_SCHEMA_VERSION, type PQAlgorithm, type Package, type PackageAccess, type PackageCompatibility, type PackageContractValidation, type PackageDependency, type PackageDependencySpec, type PackageEntrypoints, type PackageFiles, type PackageIR, type PackageKind, type PackageLockReceipt, type PackageManifest, type PackageMetadata, type PackagePermission, type PackageProvenance, PackageRegistry, PackageResolver, type PackageSource, type PackageSourceKind, type PackageSupportTier, type PackageTarget, type PackageVisibility, Permission, type PropertyAffordance, QUOTA_TIERS, type QuotaConfig, QuotaManager, type QuotaOperation, type QuotaResult, RATE_LIMIT_TIERS, ROLES, ROLE_PERMISSIONS, type RateLimitConfig, type RateLimitQuotaConfig, type RateLimitResult, RateLimiter, type ResolvedDependency, type ResolvedPackageArtifact, type ResourceDescriptor, ResourceType, type Sandbox, type SandboxExecutionResult, type SandboxState, type Scene, SceneSchema, SchemaErrorCode, type SchemaValidationError, type SchemaValidationResult, type SchemaValidationWarning, type SchemaValueType, type SearchResult, type SecurityPolicy, type SecurityScanResult, type SecurityScheme, type SecurityViolation, type SemVer, type SignedPackage, type SigningManifest, type Tenant, type TenantContext, type TenantFilter, TenantIsolationError, TenantManager, type TenantPermission, type TenantPlan, type TenantSettings, type TenantStore, type ThingDescription, ThingDescriptionGenerator, type ThingDescriptionGeneratorOptions, type TierName, TokenBucketRateLimiter, TokenManager, type TokenPermission, type TokenRecord, type TraitContract, TraitContractBuilder, TraitContractRegistry, type UsageSnapshot, type User, UserSchema, type ValidateResult, type ValidationResult, type ViolationCategory, type ViolationSeverity, type Web3Connector, type Web3ConnectorConfig, Web3Provider, type WoTThingConfig, WorkflowStep, type Workspace, WorkspaceManager, type WorkspaceMember, type WorkspaceRole, type WorkspaceSecret, type WorkspaceSettings, auditLogger, canManageMembers, canPublishPackages, canonicalizeManifest, canonicalizePackageIR, checkRateLimit, compareSemVer, createAccessControl, createBadgeGenerator, createCertificationChecker, createContext, createDefaultContractRegistry, createDefaultPolicy, createPackageLockReceipt, createPackageManifest, createPackageRegistry, createSandbox, createStrictPolicy, createTokenManager, createWeb3EventBridge, createWorkspaceManager, decrypt, decryptData, defaultBadgeGenerator, defaultRegistry, defaultWorkspaceManager, deriveKey, destroy, digestPackageSource, encrypt, encryptData, execute, exportKey, findBestMatch, formatSemVer, generateAllThingDescriptions, generateBadge, generateBadgeSVG, generateEncryptionKey, generateKeyPair, generateMarkdownBadge, generateRandomToken, generateSignature, generateThingDescription, getBadge, getCapabilityRBAC, getContractRegistry, getCurrentContext, getHybridCryptoProvider, getIsolatedNamespace, getOutputSchemaValidator, getQuotaConfig, getRBAC, getRateLimitConfig, hasAllPermissions, hasAnyPermission, hasPermission, hmacSha256, importKey, isActivelyCertified, isolateExecution, issueBadge, listBadges, mergePolicy, parseSemVer, randomBytes, randomHex, randomUUID, requireContext, resetContractRegistry, resetHybridCryptoProvider, resetOutputSchemaValidator, resetRateLimit, resetRateLimits, revokeBadge, sanitizeInput, satisfiesRange, scanForVulnerabilities, secureHashToken, secureRandom, serializeThingDescription, sha256, sha512, signPackage, storeBadge, validateAccess, validateApiKey, validateComposition, validateImports, validateInput, validateManifest, validateNamespace, validatePackageIR, validatePackageName, validateResourceAccess, validateSignature, validateThingDescription, validateUrl, validateWalletAddress, verifyBadge, verifyCachedPackageArtifact, verifyHmacSha256, verifyPackageLockReceipt, verifySignature, verifyToken, withTenantContext };
