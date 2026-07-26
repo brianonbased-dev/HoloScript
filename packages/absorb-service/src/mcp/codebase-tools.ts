@@ -16,6 +16,9 @@ import * as path from 'path';
 import * as os from 'os';
 import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
+import { createRequire } from 'module';
+import { Worker } from 'worker_threads';
+import { pathToFileURL } from 'url';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { mcpAuthHeadersAsync } from '@holoscript/config';
 import {
@@ -566,6 +569,8 @@ interface AbsorbJob {
   memoryBudget: AbsorbMemoryBudgetTelemetry;
   cacheCommitted: boolean;
   refreshProgressReceipt?: AbsorbRefreshProgressReceipt;
+  backgroundWorker?: Worker;
+  backgroundIsolation?: 'worker-thread' | 'inline-fallback';
 }
 
 const absorbJobs = new Map<string, AbsorbJob>();
@@ -653,6 +658,9 @@ function requestAbsorbCancellation(
   };
   job.status = 'cancelling';
   job.abortController.abort(new AbsorbCancelledError(job.jobId, reason, job.phase, message));
+  if (job.backgroundWorker) {
+    void job.backgroundWorker.terminate().catch(() => {});
+  }
 }
 
 function enforceAbsorbJobControl(jobId: string | undefined, phase: string): void {
@@ -917,7 +925,216 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-function startBackgroundAbsorbJob(jobId: string, work: () => Promise<unknown>): void {
+interface IsolatedAbsorbWorkerData {
+  moduleUrl: string;
+  args: Record<string, unknown>;
+}
+
+type IsolatedAbsorbWorkerFactory = (workerData: IsolatedAbsorbWorkerData) => Worker;
+
+let isolatedAbsorbWorkerFactoryForTests: IsolatedAbsorbWorkerFactory | null = null;
+
+export function setIsolatedAbsorbWorkerFactoryForTests(
+  factory?: IsolatedAbsorbWorkerFactory
+): void {
+  isolatedAbsorbWorkerFactoryForTests = factory ?? null;
+}
+
+const ISOLATED_ABSORB_WORKER_SOURCE = `
+(async () => {
+  const { parentPort, workerData } = await import('node:worker_threads');
+  const omit = new Set(['graph', 'holoSource', 'interactiveScene']);
+  const compact = (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    const result = {};
+    const omittedResultFields = [];
+    for (const [key, entry] of Object.entries(value)) {
+      if (omit.has(key)) {
+        omittedResultFields.push(key);
+      } else {
+        result[key] = entry;
+      }
+    }
+    return {
+      ...result,
+      isolatedBackground: true,
+      ...(omittedResultFields.length > 0 && { omittedResultFields }),
+    };
+  };
+
+  try {
+    const mod = await import(workerData.moduleUrl);
+    const result = await mod.handleCodebaseTool('holo_absorb_repo', {
+      ...workerData.args,
+      async: false,
+      background: false,
+      __isolatedBackgroundWorker: true,
+    });
+    parentPort.postMessage({ type: 'complete', result: compact(result) });
+  } catch (error) {
+    parentPort.postMessage({
+      type: 'error',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+})().catch(async (error) => {
+  const { parentPort } = await import('node:worker_threads');
+  parentPort.postMessage({
+    type: 'error',
+    error: error instanceof Error ? error.message : String(error),
+  });
+});
+`;
+
+function shouldUseIsolatedAbsorbWorker(): boolean {
+  if (isolatedAbsorbWorkerFactoryForTests) return true;
+  if (process.env.VITEST || process.env.NODE_ENV === 'test') return false;
+  return process.env.ABSORB_ISOLATED_BACKGROUND !== '0';
+}
+
+function createIsolatedAbsorbWorker(workerData: IsolatedAbsorbWorkerData): Worker {
+  if (isolatedAbsorbWorkerFactoryForTests) {
+    return isolatedAbsorbWorkerFactoryForTests(workerData);
+  }
+  return new Worker(ISOLATED_ABSORB_WORKER_SOURCE, {
+    eval: true,
+    workerData,
+  });
+}
+
+function resolveIsolatedAbsorbModuleUrl(): string {
+  const requireBase = process.argv[1]
+    ? path.resolve(process.argv[1])
+    : path.join(process.cwd(), 'package.json');
+  const localRequire = createRequire(requireBase);
+  return pathToFileURL(localRequire.resolve('@holoscript/absorb-service/mcp')).href;
+}
+
+function startIsolatedBackgroundAbsorbJob(
+  jobId: string,
+  args: Record<string, unknown>
+): boolean {
+  const job = absorbJobs.get(jobId);
+  if (!job || !shouldUseIsolatedAbsorbWorker()) return false;
+
+  let worker: Worker;
+  try {
+    worker = createIsolatedAbsorbWorker({
+      moduleUrl: resolveIsolatedAbsorbModuleUrl(),
+      args,
+    });
+  } catch (error) {
+    console.warn(`[AbsorbBackground] worker isolation unavailable: ${errorMessage(error)}`);
+    return false;
+  }
+
+  job.backgroundWorker = worker;
+  job.backgroundIsolation = 'worker-thread';
+  job.status = 'scanning';
+  job.progress = 1;
+  job.phase = 'Running in isolated worker';
+  let settled = false;
+
+  worker.once('message', (message: unknown) => {
+    if (settled) return;
+    const payload = message as { type?: unknown; result?: unknown; error?: unknown };
+    if (payload.type === 'error') {
+      settled = true;
+      const activeJob = absorbJobs.get(jobId);
+      if (activeJob) activeJob.backgroundWorker = undefined;
+      const error = String(payload.error || 'Isolated absorb worker failed');
+      failAbsorbJob(jobId, 'Failed (isolated worker)', error, {
+        error: 'absorb_failed',
+        message: error,
+        jobId,
+        isolatedBackground: true,
+      });
+      return;
+    }
+    if (payload.type !== 'complete') return;
+    settled = true;
+    const activeJob = absorbJobs.get(jobId);
+    if (!activeJob) return;
+    activeJob.backgroundWorker = undefined;
+    if (activeJob.status === 'cancelling' || activeJob.abortController.signal.aborted) {
+      settleCancelledAbsorbJob(jobId, activeJob.abortController.signal.reason);
+      return;
+    }
+
+    const result =
+      typeof payload.result === 'object' && payload.result !== null
+        ? { ...(payload.result as Record<string, unknown>), jobId }
+        : payload.result;
+    const resultError =
+      typeof result === 'object' && result !== null
+        ? (result as Record<string, unknown>).error
+        : undefined;
+    if (resultError) {
+      failAbsorbJob(
+        jobId,
+        'Failed (isolated worker)',
+        String(
+          (result as Record<string, unknown>).message ||
+            (result as Record<string, unknown>).error
+        ),
+        result
+      );
+      return;
+    }
+
+    invalidateInMemoryGraphAfterIsolatedRefresh();
+    activeJob.result = result;
+    activeJob.status = 'complete';
+    activeJob.progress = 100;
+    activeJob.phase = 'Complete (isolated worker)';
+    activeJob.completedAt = Date.now();
+    activeJob.cacheCommitted = true;
+  });
+
+  worker.once('error', (error: Error) => {
+    if (settled) return;
+    settled = true;
+    const activeJob = absorbJobs.get(jobId);
+    if (activeJob) activeJob.backgroundWorker = undefined;
+    failAbsorbJob(jobId, 'Failed (isolated worker)', error.message, {
+      error: 'absorb_failed',
+      message: error.message,
+      jobId,
+      isolatedBackground: true,
+    });
+  });
+
+  worker.once('exit', (code: number) => {
+    const activeJob = absorbJobs.get(jobId);
+    if (activeJob) activeJob.backgroundWorker = undefined;
+    if (settled || !activeJob) return;
+    settled = true;
+    if (activeJob.status === 'cancelling' || activeJob.abortController.signal.aborted) {
+      settleCancelledAbsorbJob(jobId, activeJob.abortController.signal.reason);
+      return;
+    }
+    failAbsorbJob(jobId, 'Failed (isolated worker)', `Worker exited with code ${code}`, {
+      error: 'absorb_failed',
+      message: `Isolated absorb worker exited with code ${code}`,
+      jobId,
+      isolatedBackground: true,
+    });
+  });
+
+  worker.unref();
+  return true;
+}
+
+function startBackgroundAbsorbJob(
+  jobId: string,
+  work: () => Promise<unknown>,
+  workerArgs?: Record<string, unknown>
+): 'worker-thread' | 'inline-fallback' {
+  if (workerArgs && startIsolatedBackgroundAbsorbJob(jobId, workerArgs)) {
+    return 'worker-thread';
+  }
+  const job = absorbJobs.get(jobId);
+  if (job) job.backgroundIsolation = 'inline-fallback';
   setTimeout(() => {
     void work()
       .then((result: unknown) => {
@@ -959,6 +1176,7 @@ function startBackgroundAbsorbJob(jobId: string, work: () => Promise<unknown>): 
         });
       });
   }, 0);
+  return 'inline-fallback';
 }
 
 // =============================================================================
@@ -3393,6 +3611,16 @@ let cacheTimestamp = 0;
 // kick off duplicate builds (the build is fired-and-forgotten in ensureCachedGraph).
 let graphRAGWarmInProgress = false;
 
+function invalidateInMemoryGraphAfterIsolatedRefresh(): void {
+  cachedGraph = null;
+  cachedRootDir = '';
+  cacheAutoLoaded = false;
+  cacheProvenance = null;
+  cacheTimestamp = 0;
+  graphRAGWarmInProgress = false;
+  resetGraphRAGState();
+}
+
 export function resetCodebaseToolStateForTests(skipDiskAutoload = true): void {
   cachedGraph = null;
   cachedRootDir = '';
@@ -3745,14 +3973,17 @@ async function loadCodebaseModule(): Promise<CodebaseModule> {
   return EngineMod;
 }
 
-function shouldAutoLoadGraph(name: string, args: Record<string, unknown>): boolean {
+function shouldAutoLoadGraph(name: string, _args: Record<string, unknown>): boolean {
   if (
     name === 'holo_graph_status' ||
     name === 'holo_get_absorb_status' ||
     name === 'holo_cancel_absorb'
   )
     return false;
-  if (name === 'holo_absorb_repo' && args.force === true) return false;
+  // Absorb owns its cache-selection and incremental/full-scan path. Prewarming
+  // here duplicates a large graph/index load before the job is even accepted
+  // and, for async calls, blocks the request-serving event loop.
+  if (name === 'holo_absorb_repo') return false;
   return true;
 }
 
@@ -5100,17 +5331,27 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
         return result;
       }
     }
-    startBackgroundAbsorbJob(jobId, () => executeAbsorbPlan(plan));
+    const backgroundIsolation = startBackgroundAbsorbJob(
+      jobId,
+      () => executeAbsorbPlan(plan),
+      {
+        ...args,
+        ...(plan.refreshCheckpoint && {
+          resumeToken: plan.refreshCheckpoint.progressReceipt().resumeToken,
+        }),
+      }
+    );
     return {
       accepted: true,
       async: true,
+      backgroundIsolation,
       ...(autoBackground.autoBackground && {
         autoBackground: true,
         autoBackgroundReason: autoBackground.reason,
         foregroundThresholdFiles: autoBackground.thresholdFiles,
         scanPlan: autoBackground.scanPlan,
       }),
-      status: 'queued',
+      status: absorbJobs.get(jobId)?.status ?? 'queued',
       jobId,
       pollTool: 'holo_get_absorb_status',
       rootDir: primaryRootDir,
@@ -5128,9 +5369,12 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       fromSourceFiles,
       fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
-      message: autoBackground.autoBackground
-        ? 'Large cold absorb scan was started in the background to avoid the MCP foreground timeout; poll holo_get_absorb_status with jobId.'
-        : 'Absorb job started in the background; poll holo_get_absorb_status with jobId.',
+      message:
+        backgroundIsolation === 'worker-thread'
+          ? 'Absorb job started in an isolated worker so MCP health, status, and cancellation remain responsive; poll holo_get_absorb_status with jobId.'
+          : autoBackground.autoBackground
+            ? 'Large cold absorb scan was started in the background to avoid the MCP foreground timeout; poll holo_get_absorb_status with jobId.'
+            : 'Absorb job started in the background; poll holo_get_absorb_status with jobId.',
     };
   }
 
@@ -6697,6 +6941,10 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
     filesProcessed: job.filesProcessed,
     totalFiles: job.totalFiles,
     durationMs: (job.completedAt ?? Date.now()) - job.startedAt,
+    ...(job.backgroundIsolation && {
+      backgroundIsolation: job.backgroundIsolation,
+      requestEventLoopIsolated: job.backgroundIsolation === 'worker-thread',
+    }),
     memory: readAbsorbMemorySnapshot(),
     memoryBudget: { ...job.memoryBudget },
     phaseMetrics: job.phaseMetrics,

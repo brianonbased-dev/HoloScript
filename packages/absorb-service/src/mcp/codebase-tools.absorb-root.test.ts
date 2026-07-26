@@ -3,8 +3,14 @@ import * as os from 'os';
 import * as path from 'path';
 import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
+import { EventEmitter } from 'events';
+import type { Worker } from 'worker_threads';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
+import {
+  handleCodebaseTool,
+  resetCodebaseToolStateForTests,
+  setIsolatedAbsorbWorkerFactoryForTests,
+} from './codebase-tools';
 import {
   handleGraphRagTool,
   resetGraphRAGStateForTests,
@@ -25,6 +31,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  setIsolatedAbsorbWorkerFactoryForTests();
   if (originalCacheLayout === undefined) delete process.env.HOLOSCRIPT_CACHE_LAYOUT;
   else process.env.HOLOSCRIPT_CACHE_LAYOUT = originalCacheLayout;
   if (originalAutoBackground === undefined) {
@@ -410,6 +417,142 @@ describe('holo_absorb_repo root validation', () => {
       },
     });
   }, 15_000);
+
+  it('keeps status responsive while an isolated background worker is still running', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-isolated-background-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-isolated-background-cache-')
+    );
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    class FakeWorker extends EventEmitter {
+      unref(): this {
+        return this;
+      }
+
+      terminate(): Promise<number> {
+        return Promise.resolve(0);
+      }
+    }
+
+    const worker = new FakeWorker();
+    setIsolatedAbsorbWorkerFactoryForTests(() => worker as unknown as Worker);
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      async: true,
+    })) as {
+      accepted?: boolean;
+      backgroundIsolation?: string;
+      status?: string;
+      jobId?: string;
+    };
+
+    expect(accepted).toMatchObject({
+      accepted: true,
+      backgroundIsolation: 'worker-thread',
+      status: 'scanning',
+    });
+
+    const statusStartedAt = Date.now();
+    const running = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: accepted.jobId,
+    })) as {
+      status?: string;
+      phase?: string;
+      backgroundIsolation?: string;
+      requestEventLoopIsolated?: boolean;
+    };
+    expect(Date.now() - statusStartedAt).toBeLessThan(100);
+    expect(running).toMatchObject({
+      status: 'scanning',
+      phase: 'Running in isolated worker',
+      backgroundIsolation: 'worker-thread',
+      requestEventLoopIsolated: true,
+    });
+
+    worker.emit('message', {
+      type: 'complete',
+      result: {
+        incremental: true,
+        filesChanged: 1,
+        graphAuthoritative: true,
+        graphRagReady: true,
+        semanticIndexReady: true,
+      },
+    });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    const completed = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: accepted.jobId,
+      includeResult: true,
+    })) as {
+      status?: string;
+      phase?: string;
+      result?: {
+        jobId?: string;
+        isolatedBackground?: boolean;
+        graphAuthoritative?: boolean;
+      };
+    };
+    expect(completed).toMatchObject({
+      status: 'complete',
+      phase: 'Complete (isolated worker)',
+      result: {
+        jobId: accepted.jobId,
+        graphAuthoritative: true,
+      },
+    });
+  });
+
+  it('terminates an isolated background worker when cancellation is requested', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-isolated-cancel-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-isolated-cancel-cache-')
+    );
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    class FakeWorker extends EventEmitter {
+      terminated = false;
+
+      unref(): this {
+        return this;
+      }
+
+      terminate(): Promise<number> {
+        this.terminated = true;
+        queueMicrotask(() => this.emit('exit', 1));
+        return Promise.resolve(1);
+      }
+    }
+
+    const worker = new FakeWorker();
+    setIsolatedAbsorbWorkerFactoryForTests(() => worker as unknown as Worker);
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      async: true,
+    })) as { jobId?: string };
+
+    const cancellation = (await handleCodebaseTool('holo_cancel_absorb', {
+      jobId: accepted.jobId,
+      reason: 'transport cancellation canary',
+    })) as { accepted?: boolean; status?: string };
+    expect(cancellation).toMatchObject({ accepted: true, status: 'cancelling' });
+    expect(worker.terminated).toBe(true);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    const status = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: accepted.jobId,
+    })) as { status?: string; cancellation?: { reason?: string } };
+    expect(status).toMatchObject({
+      status: 'cancelled',
+      cancellation: { reason: 'cancel_requested' },
+    });
+  });
 
   it('auto-backgrounds cold large filesystem scans before the foreground call can time out', async () => {
     resetCodebaseToolStateForTests();
