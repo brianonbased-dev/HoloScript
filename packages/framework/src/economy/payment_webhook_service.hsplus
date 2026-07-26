@@ -2,7 +2,7 @@
 //
 // Native .hsplus surface for framework/economy/PaymentWebhookService.ts.
 //
-// process(webhookPayload, signature) → PaymentWebhookResult
+// verifySignature(rawBody, signature, provider) → processWebhook(verified payload)
 // HMAC-SHA256 signature verification before processing
 // Updates LedgerEntry settlement status; emits telemetry events
 // Part of HoloScript v5.8 "Live Economy"
@@ -15,8 +15,12 @@
     emit("payment_webhook_service_ready", {})
   }
 
-  @on_process(payload, signature) => {
-    result = service.process(payload, signature)
+  @on_process(raw_body, signature, provider) => {
+    verification = service.verifySignature(raw_body, signature, provider)
+    if not verification.verified {
+      return { success: false, error: verification.error }
+    }
+    result = service.processWebhook(verification.payload)
     emit("webhook_processed", { settlement_id: result.ledger_entry_id })
     return result
   }

@@ -26,7 +26,7 @@
 
   // Process an embedding job and return the result
   @on_process_job(job) => {
-    result = worker.process(job)
+    result = worker.run(job)
     emit("embedding_job_complete", { job_id: job.job_id })
     return result
   }

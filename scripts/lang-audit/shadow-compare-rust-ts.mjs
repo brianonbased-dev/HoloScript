@@ -26,14 +26,15 @@
  * compared.
  *
  * Usage:
- *   node scripts/lang-audit/shadow-compare-rust-ts.mjs [--json-out <path>] [--limit N]
+ *   node scripts/lang-audit/shadow-compare-rust-ts.mjs [--json-out <path>] [--limit N] [--require-nonzero-ts]
+ *   pnpm exec tsx scripts/lang-audit/shadow-compare-rust-ts.mjs --ts-parser-source [other flags]
  *   node scripts/lang-audit/shadow-compare-rust-ts.mjs --write-corpus-manifest <path>
  *   node scripts/lang-audit/shadow-compare-rust-ts.mjs --corpus-manifest <path> [--json-out <path>]
  */
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { checkReallyValid } from './assert-really-valid.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -195,11 +196,23 @@ async function main() {
   const limitRaw = getArgValue(args, '--limit');
   const limit = limitRaw ? parseInt(limitRaw, 10) : Infinity;
   const baselinePath = getArgValue(args, '--baseline');
+  const requireNonzeroTs = args.includes('--require-nonzero-ts');
+  const useTsParserSource = args.includes('--ts-parser-source');
   const corpusManifestPath = getArgValue(args, '--corpus-manifest');
   const writeCorpusManifestPath = getArgValue(args, '--write-corpus-manifest');
 
   if (limitRaw && !Number.isFinite(limit)) {
     throw new Error(`Invalid --limit value: ${limitRaw}`);
+  }
+
+  let parseWithTsSource;
+  if (useTsParserSource) {
+    const parserModule = await import(
+      pathToFileURL(
+        path.join(REPO_ROOT, 'packages', 'core', 'src', 'parser', 'HoloScriptPlusParser.ts')
+      ).href
+    );
+    parseWithTsSource = (source) => new parserModule.HoloScriptPlusParser().parse(source);
   }
 
   let corpus;
@@ -250,7 +263,11 @@ async function main() {
     const file = files[i];
     const source = fs.readFileSync(file, 'utf-8');
 
-    const tsResult = await checkReallyValid(source, '.hsplus');
+    const tsResult = await checkReallyValid(
+      source,
+      '.hsplus',
+      parseWithTsSource ? { parseContent: parseWithTsSource } : {}
+    );
     const rustResult = await checkReallyValid(source, '.hsplus', {
       parseContent: parseWithRustWasm,
     });
@@ -333,6 +350,7 @@ async function main() {
         {
           summary: {
             total,
+            tsParserMode: useTsParserSource ? 'source-tsx' : 'package-dist',
             corpus: {
               manifestPath: corpus.relManifestPath,
               sha256: corpusHash(comparedRelFiles),
@@ -359,6 +377,15 @@ async function main() {
       )
     );
     console.log(`\n[shadow-compare] Full per-file results written to ${jsonOutPath}`);
+  }
+
+  if (requireNonzeroTs && tsPassCount === 0) {
+    console.error(
+      '\n[shadow-compare] TS BOOTSTRAP GATE FAILED: the live TypeScript parser passed 0 files. ' +
+        'Run the comparator through tsx with --ts-parser-source or repair package resolution before trusting parity results.'
+    );
+    process.exitCode = 1;
+    return;
   }
 
   // Regression gate (Step 0 of the lang-arch B/C sequencing synthesis,
