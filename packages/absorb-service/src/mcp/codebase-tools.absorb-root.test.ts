@@ -1921,6 +1921,111 @@ describe('holo_absorb_repo root validation', () => {
     expect(result.scanPolicy?.maxFiles).toBe(20_000);
   });
 
+  it('reuses unchanged embeddings across a forced small-delta full refresh', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-delta-embed-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-delta-embed-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'gamma.ts'),
+      'export function gamma(): string { return "stable"; }\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/gamma.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'add stable fixture'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    const buildSpy = vi.spyOn(EmbeddingIndex.prototype, 'buildIndex');
+    const refreshSpy = vi.spyOn(EmbeddingIndex.prototype, 'refreshIndex');
+    const initial = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      force: true,
+    })) as {
+      error?: string;
+      graphPayload?: { inline?: boolean; stored?: boolean };
+      stats?: { totalFiles?: number; totalSymbols?: number };
+    };
+
+    fs.appendFileSync(
+      path.join(repoDir, 'src', 'alpha.ts'),
+      '\nexport function alphaDelta(input: string): string { return input.trim(); }\n'
+    );
+    execFileSync('git', ['add', 'src/alpha.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'change one source file'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    const refreshed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      force: true,
+    })) as {
+      error?: string;
+      graphPayload?: { inline?: boolean; stored?: boolean };
+      embeddingRefresh?: {
+        kind?: string;
+        previousSymbols?: number;
+        totalSymbols?: number;
+        reusedSymbols?: number;
+        embeddedSymbols?: number;
+        reuseRatio?: number;
+      };
+    };
+
+    expect(initial.error).toBeUndefined();
+    expect(initial.stats?.totalFiles).toBe(3);
+    expect(initial.graphPayload).toMatchObject({ inline: false, stored: true });
+    expect(refreshed.error).toBeUndefined();
+    expect(refreshed.graphPayload).toMatchObject({ inline: false, stored: true });
+    expect(buildSpy).toHaveBeenCalledTimes(1);
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+    expect(refreshed.embeddingRefresh).toMatchObject({
+      kind: 'EmbeddingRefreshReceipt',
+      previousSymbols: initial.stats?.totalSymbols,
+      totalSymbols: expect.any(Number),
+      reusedSymbols: expect.any(Number),
+      embeddedSymbols: expect.any(Number),
+    });
+    expect(refreshed.embeddingRefresh!.reusedSymbols).toBeGreaterThan(0);
+    expect(refreshed.embeddingRefresh!.embeddedSymbols).toBeGreaterThan(0);
+    expect(refreshed.embeddingRefresh!.embeddedSymbols).toBeLessThan(
+      refreshed.embeddingRefresh!.totalSymbols!
+    );
+    expect(refreshed.embeddingRefresh!.reuseRatio).toBeGreaterThan(0);
+
+    simulateAbsorbProcessRestartForTests();
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      diskCache?: {
+        freshForCurrentRepo?: boolean;
+        gitCommitMatchesHead?: boolean;
+      };
+    };
+    const query = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'stats',
+      queryType: 'stats',
+    })) as {
+      error?: string;
+      result?: { totalFiles?: number; totalSymbols?: number };
+    };
+
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.diskCache).toMatchObject({
+      freshForCurrentRepo: true,
+      gitCommitMatchesHead: true,
+    });
+    expect(query.error).toBeUndefined();
+    expect(query.result?.totalFiles).toBe(3);
+    expect(query.result?.totalSymbols).toBe(refreshed.embeddingRefresh?.totalSymbols);
+  }, 30_000);
+
   it('promotes a cached cap before a missing stored commit forces a rescan', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-policy-rescan-cache-'));

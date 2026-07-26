@@ -79,6 +79,17 @@ export interface IndexedSymbol {
   embedding: Float32Array;
 }
 
+export interface EmbeddingRefreshReceipt {
+  kind: 'EmbeddingRefreshReceipt';
+  previousSymbols: number;
+  totalSymbols: number;
+  reusedSymbols: number;
+  embeddedSymbols: number;
+  retiredSymbols: number;
+  reuseRatio: number;
+  batchCount: number;
+}
+
 export interface SearchResult {
   /** Matched symbol */
   symbol: ExternalSymbolDefinition;
@@ -310,6 +321,103 @@ export class EmbeddingIndex {
       // SEQUENTIAL PATH: Original implementation (fallback)
       await this.buildIndexSequential(symbols, totalBatches, onProgress, graph);
     }
+  }
+
+  /**
+   * Reconcile a persisted index with a freshly built graph while embedding only
+   * symbols whose exact embedding input changed. The stored text is the
+   * authority: this also invalidates unchanged-file symbols when their bounded
+   * HoloGraph caller/callee/sibling context changed.
+   *
+   * The old entries stay selected until the complete replacement is ready, so
+   * provider failures cannot leave a partially refreshed in-memory index.
+   */
+  async refreshIndex(
+    graph: CodebaseGraph,
+    onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void
+  ): Promise<EmbeddingRefreshReceipt> {
+    const previousEntries = this.entries;
+    const previousSymbols = previousEntries.length;
+    const reusableByText = new Map<string, IndexedSymbol[]>();
+    for (const entry of previousEntries) {
+      const bucket = reusableByText.get(entry.text);
+      if (bucket) bucket.push(entry);
+      else reusableByText.set(entry.text, [entry]);
+    }
+
+    const symbols = graph.getAllSymbols();
+    const totalBatches = Math.ceil(symbols.length / this.batchSize);
+    const graphTextContext = this.createGraphTextContext(graph);
+    const nextEntries: IndexedSymbol[] = [];
+    let reusedSymbols = 0;
+    let embeddedSymbols = 0;
+    this.startTime = Date.now();
+
+    for (let i = 0; i < symbols.length; i += this.batchSize) {
+      if (i > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      }
+
+      const batchSymbols = symbols.slice(i, i + this.batchSize);
+      const batchTexts = this.symbolsToTexts(batchSymbols, graphTextContext);
+      const pendingTexts: string[] = [];
+      const pendingIndexes: number[] = [];
+      const batchEntries = new Array<IndexedSymbol | undefined>(batchSymbols.length);
+
+      for (let index = 0; index < batchTexts.length; index++) {
+        const text = batchTexts[index];
+        const bucket = reusableByText.get(text);
+        const reused = bucket?.pop();
+        if (bucket?.length === 0) reusableByText.delete(text);
+        if (reused) {
+          batchEntries[index] = {
+            symbol: batchSymbols[index],
+            text,
+            embedding: reused.embedding,
+          };
+          reusedSymbols += 1;
+        } else {
+          pendingTexts.push(text);
+          pendingIndexes.push(index);
+        }
+      }
+
+      if (pendingTexts.length > 0) {
+        const embeddings = await this.getEmbeddings(pendingTexts);
+        if (embeddings.length !== pendingTexts.length) {
+          throw new Error(
+            `Embedding provider returned ${embeddings.length} vectors for ${pendingTexts.length} changed symbols`
+          );
+        }
+        for (let index = 0; index < embeddings.length; index++) {
+          const batchIndex = pendingIndexes[index];
+          batchEntries[batchIndex] = {
+            symbol: batchSymbols[batchIndex],
+            text: pendingTexts[index],
+            embedding: new Float32Array(embeddings[index]),
+          };
+        }
+        embeddedSymbols += embeddings.length;
+      }
+
+      nextEntries.push(...(batchEntries as IndexedSymbol[]));
+      onProgress?.(Math.floor(i / this.batchSize) + 1, totalBatches, nextEntries.length);
+    }
+
+    this.entries = nextEntries;
+    return {
+      kind: 'EmbeddingRefreshReceipt',
+      previousSymbols,
+      totalSymbols: symbols.length,
+      reusedSymbols,
+      embeddedSymbols,
+      retiredSymbols: Math.max(0, previousSymbols - reusedSymbols),
+      reuseRatio:
+        symbols.length === 0
+          ? 1
+          : Math.round((reusedSymbols / symbols.length) * 1_000_000) / 1_000_000,
+      batchCount: totalBatches,
+    };
   }
 
   /**

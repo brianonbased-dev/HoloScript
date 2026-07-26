@@ -281,6 +281,93 @@ describe('EmbeddingIndex streaming batches', () => {
     expect(embeddedTexts[0]).toContain('file siblings evictExpiredEntries');
   });
 
+  it('reuses exact symbol texts and embeds only the changed delta', async () => {
+    const embeddedBatches: string[][] = [];
+    const provider: EmbeddingProvider = {
+      name: 'test-provider',
+      getEmbeddings: vi.fn(async (texts: string[]) => {
+        embeddedBatches.push([...texts]);
+        return texts.map((text) => [text.length, embeddedBatches.length]);
+      }),
+    };
+    const initialGraph = makeGraph([
+      makeScannedFile('src/a.ts', [makeNamedSymbol('alpha', 'src/a.ts')]),
+      makeScannedFile('src/b.ts', [makeNamedSymbol('beta', 'src/b.ts')]),
+      makeScannedFile('src/c.ts', [makeNamedSymbol('gamma', 'src/c.ts')]),
+    ]);
+    const refreshedGraph = makeGraph([
+      makeScannedFile('src/a.ts', [
+        makeNamedSymbol('alpha', 'src/a.ts', {
+          signature: 'function alpha(input: string): string',
+        }),
+      ]),
+      makeScannedFile('src/b.ts', [makeNamedSymbol('beta', 'src/b.ts', { line: 200 })]),
+      makeScannedFile('src/d.ts', [makeNamedSymbol('delta', 'src/d.ts')]),
+    ]);
+    const index = new EmbeddingIndex({ provider, batchSize: 10, useWorkers: false });
+    await index.buildIndex(initialGraph);
+    embeddedBatches.length = 0;
+
+    const receipt = await index.refreshIndex(refreshedGraph);
+
+    expect(receipt).toEqual({
+      kind: 'EmbeddingRefreshReceipt',
+      previousSymbols: 3,
+      totalSymbols: 3,
+      reusedSymbols: 1,
+      embeddedSymbols: 2,
+      retiredSymbols: 2,
+      reuseRatio: 0.333333,
+      batchCount: 1,
+    });
+    expect(embeddedBatches).toHaveLength(1);
+    expect(embeddedBatches[0]).toHaveLength(2);
+    expect(embeddedBatches[0].some((text) => text.includes('alpha'))).toBe(true);
+    expect(embeddedBatches[0].some((text) => text.includes('delta'))).toBe(true);
+    expect(embeddedBatches[0].some((text) => text.includes('beta'))).toBe(false);
+    expect(JSON.parse(index.serialize()).entries.map((entry: any) => entry.symbol.name)).toEqual([
+      'alpha',
+      'beta',
+      'delta',
+    ]);
+  });
+
+  it('invalidates reused symbols when their graph-context text changes', async () => {
+    const embeddedTexts: string[] = [];
+    const provider: EmbeddingProvider = {
+      name: 'test-provider',
+      getEmbeddings: vi.fn(async (texts: string[]) => {
+        embeddedTexts.push(...texts);
+        return texts.map((text) => [text.length, 1]);
+      }),
+    };
+    const target = makeNamedSymbol('refreshCache', 'src/cache.ts');
+    const stable = makeNamedSymbol('serveRequest', 'src/http.ts');
+    const initialGraph = makeGraph([
+      makeScannedFile('src/cache.ts', [target]),
+      makeScannedFile('src/http.ts', [stable]),
+    ]);
+    const sibling = makeNamedSymbol('evictExpiredEntries', 'src/cache.ts');
+    const refreshedGraph = makeGraph([
+      makeScannedFile('src/cache.ts', [target, sibling]),
+      makeScannedFile('src/http.ts', [stable]),
+    ]);
+    const index = new EmbeddingIndex({ provider, batchSize: 10, useWorkers: false });
+    await index.buildIndex(initialGraph);
+    embeddedTexts.length = 0;
+
+    const receipt = await index.refreshIndex(refreshedGraph);
+
+    expect(receipt).toMatchObject({
+      totalSymbols: 3,
+      reusedSymbols: 1,
+      embeddedSymbols: 2,
+    });
+    expect(embeddedTexts.some((text) => text.includes('refreshCache'))).toBe(true);
+    expect(embeddedTexts.some((text) => text.includes('evictExpiredEntries'))).toBe(true);
+    expect(embeddedTexts.some((text) => text.includes('serveRequest'))).toBe(false);
+  });
+
   it('adds bounded code-intelligence aliases from symbol and module vocabulary', async () => {
     const embeddedTexts: string[] = [];
     const provider: EmbeddingProvider = {
@@ -355,9 +442,7 @@ describe('EmbeddingIndex streaming batches', () => {
     const gitTestText = embeddedTexts.find((text) =>
       text.includes('in src/__tests__/GitChangeDetector.test.ts')
     );
-    const sceneCompilerText = embeddedTexts.find((text) =>
-      text.includes('CodebaseSceneCompiler')
-    );
+    const sceneCompilerText = embeddedTexts.find((text) => text.includes('CodebaseSceneCompiler'));
     const graphRagText = embeddedTexts.find((text) => text.includes('GraphRAGEngine'));
     const holoEmitterText = embeddedTexts.find((text) => text.includes('HoloEmitter'));
     const claimNetworkText = embeddedTexts.find((text) => text.includes('ClaimNetworkGraph'));

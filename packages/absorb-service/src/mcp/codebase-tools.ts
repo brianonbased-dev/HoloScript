@@ -43,6 +43,7 @@ import {
   type AbsorbRefreshProgressReceipt,
 } from './absorb-refresh-checkpoint';
 import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
+import type { EmbeddingRefreshReceipt } from '../engine/EmbeddingIndex';
 import type { CommunityAwareImpactReceipt } from '../engine/CodebaseGraph';
 import type { ScanPlan } from '../engine/CodebaseScanner';
 import type { ScanResult } from '../engine/types';
@@ -4425,7 +4426,7 @@ export const codebaseTools: Tool[] = [
           type: 'string',
           enum: ['holo', 'graph', 'stats'],
           description:
-            'Output format: "holo" for .holo source, "graph" for serialized knowledge graph JSON, "stats" for scan statistics only. Defaults to "holo".',
+            'Output format: "holo" for .holo source, "graph" to build and cache the knowledge graph while returning a compact receipt (the graph blob is never inlined over MCP), "stats" for scan statistics only. Defaults to "holo".',
         },
         layout: {
           type: 'string',
@@ -5779,6 +5780,7 @@ async function runFullScan(
   const priorGraphRagReadyForEmbedding = isGraphRAGReady();
   let embeddingBuildError: unknown;
   let preparedEmbeddingIndex: any = null;
+  let embeddingRefreshReceipt: EmbeddingRefreshReceipt | undefined;
   try {
     // FAST-HYDRATE: when this scan is at the SAME commit as the persisted
     // embeddings, the on-disk `.bin` is still valid for this exact graph — load
@@ -5795,7 +5797,7 @@ async function runFullScan(
       fileHashMapsMatch(priorEnvelopeForHydrate?.fileHashes, fileHashes);
 
     let hydratedIndex: any = null;
-    if (gitHashMatches) {
+    if (priorEnvelopeForHydrate?.embeddingCacheSha256) {
       try {
         const providerObj = await mod.createEmbeddingProvider({
           provider: providerName as EmbeddingProviderName,
@@ -5811,7 +5813,7 @@ async function runFullScan(
           primaryRootDir,
           priorEnvelopeForHydrate?.embeddingCacheSha256
         );
-        if (hydratedIndex) {
+        if (hydratedIndex && gitHashMatches) {
           console.error(
             `[AbsorbEmbeddings] Fast-hydrate: loaded embeddings from disk (git ${gitCommitHash?.slice(0, 7)} match, provider ${providerName}) — skipping re-embed.`
           );
@@ -5820,11 +5822,42 @@ async function runFullScan(
           // memory and do not publish session state until cancellation can no
           // longer invalidate the graph transaction.
           preparedEmbeddingIndex = hydratedIndex;
+        } else if (hydratedIndex && typeof hydratedIndex.refreshIndex === 'function') {
+          if (jobId) trackAbsorbProgress(jobId, 'Reconciling changed symbol embeddings', 80);
+          const refreshReceipt: EmbeddingRefreshReceipt = await withPhaseTimeout(
+            hydratedIndex.refreshIndex(
+              graph,
+              jobId
+                ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
+                    const embeddingProgress =
+                      80 + Math.floor((batchNum / Math.max(totalBatches, 1)) * 15);
+                    trackAbsorbProgress(
+                      jobId,
+                      `Reconciling embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols checked)`,
+                      embeddingProgress
+                    );
+                  }
+                : undefined
+            ),
+            EMBEDDING_BUILD_TIMEOUT_MS,
+            'holo_absorb_repo changed-symbol embedding refresh',
+            () => disposeEmbeddingIndex(hydratedIndex),
+            signal
+          );
+          embeddingRefreshReceipt = refreshReceipt;
+          console.error(
+            `[AbsorbEmbeddings] Delta refresh: reused ${refreshReceipt.reusedSymbols}/${refreshReceipt.totalSymbols} symbols; embedded ${refreshReceipt.embeddedSymbols}.`
+          );
+          preparedEmbeddingIndex = hydratedIndex;
         }
       } catch (err) {
         if (isAbsorbCancellation(err, jobId)) throw err;
         console.warn(`[AbsorbEmbeddings] Fast-hydrate load failed, will rebuild: ${String(err)}`);
+        if (hydratedIndex) await disposeEmbeddingIndex(hydratedIndex);
         hydratedIndex = null;
+        embeddingRefreshReceipt = undefined;
+      } finally {
+        if (hydratedIndex) await disposeEmbeddingIndex(hydratedIndex);
       }
     }
 
@@ -5866,6 +5899,10 @@ async function runFullScan(
       recordPhaseMetric('embedding-build', {
         totalSymbols: stats.totalSymbols,
       });
+    } else if (embeddingRefreshReceipt) {
+      recordPhaseMetric('embedding-incremental-refresh', {
+        totalSymbols: embeddingRefreshReceipt.totalSymbols,
+      });
     } else {
       recordPhaseMetric('embedding-cache-hydrate', {
         totalSymbols: stats.totalSymbols,
@@ -5906,8 +5943,14 @@ async function runFullScan(
     result = {
       rootDir: primaryRootDir,
       stats,
-      graph: serializedGraphForCache,
+      graphPayload: {
+        inline: false,
+        stored: true,
+        reason: 'mcp_payload_memory_bound',
+        recoverVia: ['holo_query_codebase', 'holo_ask_codebase', 'holo_semantic_search'],
+      },
       embeddingPolicy,
+      ...(embeddingRefreshReceipt && { embeddingRefresh: embeddingRefreshReceipt }),
       scanPolicy: normalizeScanPolicy(scanPolicy),
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
@@ -6228,6 +6271,7 @@ async function runIncrementalPatch(
   const priorGraphRagReadyForEmbedding = isGraphRAGReady();
   let embeddingBuildError: unknown;
   let preparedEmbeddingIndex: any = null;
+  let embeddingRefreshReceipt: EmbeddingRefreshReceipt | undefined;
   try {
     let index: any = null;
 
@@ -6247,29 +6291,39 @@ async function runIncrementalPatch(
       });
 
       index = await loadEmbeddingsCache(mod, providerObj, rootDir, envelope.embeddingCacheSha256);
-      if (!index) {
-        index = await createDynamicEmbeddingIndex(
-          mod,
-          embeddingProvider,
-          embeddingApiKey,
-          embeddingModel
-        );
-      }
-
-      // Remove stale embeddings
-      for (const file of filesToRemove) {
-        index.removeSymbols(file);
-      }
-      // Add fresh embeddings
-      const newSymbols = rescanResult.files.flatMap(
-        (f: Record<string, unknown>) => (f as { symbols?: unknown[] }).symbols ?? []
-      );
       try {
-        if (newSymbols.length > 0) {
-          await withPhaseTimeout(
-            index.addSymbols(newSymbols, graph),
+        if (index && typeof index.refreshIndex === 'function') {
+          embeddingRefreshReceipt = await withPhaseTimeout(
+            index.refreshIndex(
+              graph,
+              jobId
+                ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
+                    const embeddingProgress =
+                      80 + Math.floor((batchNum / Math.max(totalBatches, 1)) * 15);
+                    trackAbsorbProgress(
+                      jobId,
+                      `Reconciling embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols checked)`,
+                      embeddingProgress
+                    );
+                  }
+                : undefined
+            ),
             INCREMENTAL_EMBEDDING_TIMEOUT_MS,
-            'holo_absorb_repo incremental embedding update',
+            'holo_absorb_repo incremental changed-symbol embedding update',
+            () => disposeEmbeddingIndex(index),
+            signal
+          );
+        } else {
+          index = await createDynamicEmbeddingIndex(
+            mod,
+            embeddingProvider,
+            embeddingApiKey,
+            embeddingModel
+          );
+          await withPhaseTimeout(
+            index.buildIndex(graph),
+            EMBEDDING_BUILD_TIMEOUT_MS,
+            'holo_absorb_repo incremental fallback full embedding build',
             () => disposeEmbeddingIndex(index),
             signal
           );
@@ -6277,7 +6331,7 @@ async function runIncrementalPatch(
 
         preparedEmbeddingIndex = index;
       } finally {
-        await disposeEmbeddingIndex(index);
+        if (index) await disposeEmbeddingIndex(index);
       }
     }
   } catch (err) {
@@ -6380,6 +6434,7 @@ async function runIncrementalPatch(
     rootDir,
     stats: graphStats,
     embeddingPolicy,
+    ...(embeddingRefreshReceipt && { embeddingRefresh: embeddingRefreshReceipt }),
     scanPolicy: effectiveScanPolicy,
     graphRagReady: semanticIndexReadiness.graphRagReady,
     semanticIndexReady: semanticIndexReadiness.semanticIndexReady,

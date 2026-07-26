@@ -266,6 +266,19 @@ export async function main(argv = process.argv.slice(2)) {
     })
   );
 
+  const refreshBenchmarkPath = resolve(outDir, 'holoabsorb-refresh-benchmark.json');
+  steps.push(
+    runStep({
+      id: 'holoabsorb-refresh-benchmark',
+      command: node,
+      args: [
+        'packages/absorb-service/scripts/bench-holoabsorb-refresh.mjs',
+        `--out=${relative(repoRoot, refreshBenchmarkPath).replace(/\\/g, '/')}`,
+      ],
+      outDir,
+    })
+  );
+
   const paper5AccuracyPath = resolve(outDir, 'paper-5-accuracy-holoembed.json');
   steps.push(
     runStep({
@@ -370,6 +383,7 @@ export async function main(argv = process.argv.slice(2)) {
   const legacyAccuracy = safeJson(paper5LegacyAccuracyPath);
   const timing = safeJson(paper5TimingPath);
   const umbrellaAudit = safeJson(umbrellaAuditPath);
+  const refreshBenchmark = safeJson(refreshBenchmarkPath);
   const paper26HoloGraphMeasurements = parsePaper26HoloGraph(
     safeText(resolve(outDir, 'paper-26-holograph.stdout.log'))
   );
@@ -397,6 +411,14 @@ export async function main(argv = process.argv.slice(2)) {
     steps,
     summaries: {
       umbrellaAuditStatus: umbrellaAudit?.status ?? null,
+      refreshBenchmark: refreshBenchmark
+        ? {
+            status: refreshBenchmark.status,
+            fixture: refreshBenchmark.fixture,
+            measurements: refreshBenchmark.measurements,
+            checks: refreshBenchmark.checks,
+          }
+        : null,
       paper5Accuracy: {
         current: summarizePaper5Accuracy(accuracy),
         legacyFloor: summarizePaper5Accuracy(legacyAccuracy),
@@ -439,6 +461,7 @@ export async function main(argv = process.argv.slice(2)) {
       'Paper 5 timing is a bounded synthetic GraphRAG workload unless captureClass is an explicitly verified hardware capture.',
       'Paper 26 HoloGraph event latency uses synthetic event corpora.',
       'Paper 26 HoloEmbed recall uses name-derived NL queries over a 50-symbol synthetic corpus.',
+      'The changed-symbol refresh benchmark uses a deterministic synthetic Git corpus and does not claim production-monorepo throughput.',
       options.withXenova
         ? 'The optional Xenova ablation was attempted and its subprocess result is recorded.'
         : 'The optional Xenova model-download ablation was not run; no Xenova comparison is claimed.',

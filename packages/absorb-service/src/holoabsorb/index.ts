@@ -272,6 +272,7 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'packages/absorb-service/src/holoabsorb/index.ts',
       'packages/absorb-service/scripts/audit-holoabsorb.mjs',
       'packages/absorb-service/scripts/bench-holoabsorb.mjs',
+      'packages/absorb-service/scripts/bench-holoabsorb-refresh.mjs',
       'research/paper-5-graphrag-icse.tex',
       'research/paper-26-main.tex',
     ],

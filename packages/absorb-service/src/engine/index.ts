@@ -132,7 +132,12 @@ export type { GitChangeResult, FileContentHash } from './GitChangeDetector';
 
 // Graph RAG
 export { EmbeddingIndex } from './EmbeddingIndex';
-export type { EmbeddingIndexOptions, IndexedSymbol, SearchResult } from './EmbeddingIndex';
+export type {
+  EmbeddingIndexOptions,
+  EmbeddingRefreshReceipt,
+  IndexedSymbol,
+  SearchResult,
+} from './EmbeddingIndex';
 export type { SymbolSearchFilters, SymbolSearchIndex } from './SearchIndex';
 export { TwoTowerSearchIndex } from './TwoTowerSearchIndex';
 export type {

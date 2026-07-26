@@ -60,19 +60,41 @@ describe('holo_get_absorb_status transcript budget', () => {
 
   it('never inlines the serialized graph, even when includeResult is requested', async () => {
     resetCodebaseToolStateForTests();
-    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'holoscript-status-payload-')
-    );
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-status-payload-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
 
     const absorbed = (await handleCodebaseTool('holo_absorb_repo', {
       sourceFiles: SOURCE_FILES,
       outputFormat: 'graph',
-    })) as { error?: string; jobId?: string; graph?: string };
+    })) as {
+      error?: string;
+      jobId?: string;
+      graph?: string;
+      graphPayload?: {
+        inline?: boolean;
+        stored?: boolean;
+        reason?: string;
+        recoverVia?: string[];
+      };
+    };
 
     expect(absorbed.error).toBeUndefined();
-    // Guards the premise: the absorb result really does carry a large graph blob.
-    expect(typeof absorbed.graph).toBe('string');
-    expect(absorbed.graph!.length).toBeGreaterThan(10_000);
+    expect(absorbed.graph).toBeUndefined();
+    expect(absorbed.graphPayload).toEqual({
+      inline: false,
+      stored: true,
+      reason: 'mcp_payload_memory_bound',
+      recoverVia: ['holo_query_codebase', 'holo_ask_codebase', 'holo_semantic_search'],
+    });
+
+    const cacheEnvelope = JSON.parse(
+      fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')
+    ) as { graphJson?: string };
+    expect(typeof cacheEnvelope.graphJson).toBe('string');
+    expect(cacheEnvelope.graphJson!.length).toBeGreaterThan(10_000);
+    const absorbResponseBytes = Buffer.byteLength(JSON.stringify(absorbed), 'utf-8');
+    expect(absorbResponseBytes).toBeLessThan(64 * 1024);
+    expect(absorbResponseBytes).toBeLessThan(cacheEnvelope.graphJson!.length);
 
     const status = (await handleCodebaseTool('holo_get_absorb_status', {
       jobId: absorbed.jobId,
@@ -81,15 +103,11 @@ describe('holo_get_absorb_status transcript budget', () => {
 
     expect(status.status).toBe('complete');
     expect(status.result?.graph).toBeUndefined();
-
-    const omittedGraph = status.resultOmittedFields?.find((entry) => entry.field === 'graph');
-    expect(omittedGraph).toBeDefined();
-    expect(omittedGraph!.bytes).toBeGreaterThan(10_000);
-    expect(omittedGraph!.recoverVia).toContain('graph-cache.json');
-
-    // resultKeys still advertises the blob so callers know it existed.
-    expect(status.resultKeys).toContain('graph');
-    expect(status.resultBytes).toBeGreaterThan(omittedGraph!.bytes!);
+    expect(status.result?.graphPayload).toEqual(absorbed.graphPayload);
+    expect(status.resultOmittedFields).toBeUndefined();
+    expect(status.resultKeys).toContain('graphPayload');
+    expect(status.resultKeys).not.toContain('graph');
+    expect(status.resultBytes).toBeLessThan(64 * 1024);
 
     expect(status.scanPlan).toMatchObject({
       selectionMode: 'inline',
@@ -111,7 +129,7 @@ describe('holo_get_absorb_status transcript budget', () => {
     // The whole envelope must stay far below the graph it describes.
     const envelopeBytes = Buffer.byteLength(JSON.stringify(status), 'utf-8');
     expect(envelopeBytes).toBeLessThan(64 * 1024);
-    expect(envelopeBytes).toBeLessThan(omittedGraph!.bytes!);
+    expect(envelopeBytes).toBeLessThan(cacheEnvelope.graphJson!.length);
   }, 30_000);
 
   it('omits the result body by default and does not advertise an unusable retrieval hint', async () => {
