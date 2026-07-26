@@ -56,6 +56,11 @@ export interface CharacterHostOptions {
   color?: number;
   /** Skin base colour 0xRRGGBB for the SSS material (default warm skin #e8c4a0). */
   skinTone?: number;
+  /**
+   * Authored subsurface scatter colour in linear RGB. Omitted characters retain the
+   * human-skin preset; non-human/sovereign bodies can provide their own material response.
+   */
+  skinScatterColor?: [number, number, number];
   /** Hair eumelanin 0..1 (0 = white/blond, ~0.9 = black). Default 0.7 (dark brown). */
   melanin?: number;
   /** Hair pheomelanin/redness 0..1. Default 0.2. */
@@ -147,7 +152,13 @@ export class CharacterHost {
       opacity: 1,
     };
     // Default SSS skin material — characters have skin (W.241: biggest realism jump).
-    this.skinMaterial = { ...HUMAN_SKIN, color: skinTone };
+    this.skinMaterial = {
+      ...HUMAN_SKIN,
+      color: skinTone,
+      ...(opts.skinScatterColor
+        ? { scatterColor: [...opts.skinScatterColor] as [number, number, number] }
+        : {}),
+    };
     this.hairMaterial = {
       ...HAIR_BASE,
       melanin: opts.melanin ?? 0.7,

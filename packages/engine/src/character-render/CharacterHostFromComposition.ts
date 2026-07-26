@@ -73,6 +73,26 @@ const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v
 const asNum = (v: unknown): number | undefined => (typeof v === 'number' ? v : undefined);
 const asStr = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 
+/** Normalize an authored RGB array or #RRGGBB string to a clamped linear-RGB tuple. */
+function asRgb(v: unknown): [number, number, number] | undefined {
+  if (Array.isArray(v) && v.length >= 3 && v.slice(0, 3).every((x) => typeof x === 'number')) {
+    return [
+      clamp(v[0] as number, 0, 1),
+      clamp(v[1] as number, 0, 1),
+      clamp(v[2] as number, 0, 1),
+    ];
+  }
+  if (typeof v === 'string' && /^#?[0-9a-fA-F]{6}$/.test(v)) {
+    const packed = parseInt(v.replace('#', ''), 16);
+    return [
+      ((packed >> 16) & 0xff) / 255,
+      ((packed >> 8) & 0xff) / 255,
+      (packed & 0xff) / 255,
+    ];
+  }
+  return undefined;
+}
+
 /** Read a trait config value by key, falling back to the parser's positional `_arg0`. */
 function cfgVal(t: TraitRec | undefined, ...keys: string[]): unknown {
   if (!t) return undefined;
@@ -195,12 +215,10 @@ export function buildCharacterHostFromComposition(
   let color: number | undefined;
   const sss = traits.get('subsurface_scattering');
   const sssColor = sss ? cfgVal(sss, 'color', 'base_color', 'skin_tone') : undefined;
-  if (Array.isArray(sssColor) && sssColor.length >= 3 && sssColor.every((x) => typeof x === 'number')) {
-    const [r, g, b] = sssColor as number[];
+  const normalizedSssColor = asRgb(sssColor);
+  if (normalizedSssColor) {
+    const [r, g, b] = normalizedSssColor;
     color = (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
-    report.mapped.push('@subsurface_scattering');
-  } else if (typeof sssColor === 'string' && /^#?[0-9a-fA-F]{6}$/.test(sssColor)) {
-    color = parseInt(sssColor.replace('#', ''), 16);
     report.mapped.push('@subsurface_scattering');
   } else {
     const tone = asStr(cfgVal(body, 'skin_tone'));
@@ -208,6 +226,12 @@ export function buildCharacterHostFromComposition(
       color = parseInt(tone.replace('#', ''), 16);
       report.warnings.push('skin tone taken from @body(skin_tone)');
     }
+  }
+  const skinScatterColor = asRgb(
+    sss ? cfgVal(sss, 'scatter_color', 'scatterColor') : undefined
+  );
+  if (skinScatterColor) {
+    report.mapped.push('@subsurface_scattering(scatter_color)');
   }
 
   // 4. @hair(color) → Marschner melanin/redness. Darker authored hair → more eumelanin;
@@ -248,6 +272,7 @@ export function buildCharacterHostFromComposition(
     heightScale,
     buildScale,
     skinTone: color,
+    skinScatterColor,
     melanin,
     melaninRedness,
     position,

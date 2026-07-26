@@ -72,6 +72,35 @@ describe('buildCharacterHostFromComposition', () => {
     expect(dark.report.warnings.some((w) => w.includes('style'))).toBe(true); // style noted, not faked
   });
 
+  it('@subsurface_scattering(scatter_color) keeps non-human bodies out of the fixed human preset', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'Stormglass',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'subsurface_scattering',
+              config: { color: '#9ab3be', scatter_color: '#6f9fb3' },
+            },
+          ],
+        },
+      ],
+    });
+    const skin = result.host
+      ?.getDrawSpec()
+      .materialGroups?.find((group) => group.material.shadingModel === 'skin-sss');
+    expect(result.report.mapped).toContain('@subsurface_scattering(scatter_color)');
+    expect(skin?.material.shadingModel).toBe('skin-sss');
+    if (skin?.material.shadingModel === 'skin-sss') {
+      expect(skin.material.scatterColor).toEqual([
+        0x6f / 255,
+        0x9f / 255,
+        0xb3 / 255,
+      ]);
+    }
+  });
+
   it('@skeleton(rig) is validated: matching rig → mapped, unsupported rig → stubbed', () => {
     const ok = buildCharacterHostFromComposition({
       objects: [{ name: 'A', traits: [{ name: 'skeleton', config: { rig: 'humanoid_65' } }] }],
