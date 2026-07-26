@@ -10,4 +10,5 @@ export * from './workspace/WorkspaceRepository.js';
 export * from './api/workspaces.js';
 export { PackageManifest, PackageVersion as ManifestPackageVersion } from './PackageManifest.js';
 export * from './LocalRegistry.js';
+export * from './LibraryPackageStore.js';
 export * from './PackageResolver.js';

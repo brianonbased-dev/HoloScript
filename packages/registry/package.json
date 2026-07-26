@@ -23,6 +23,7 @@
   "author": "HoloScript Team",
   "license": "MIT",
   "dependencies": {
+    "@holoscript/platform": "workspace:^",
     "better-sqlite3": "^11.7.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",

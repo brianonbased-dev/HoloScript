@@ -8,6 +8,7 @@
 import express from 'express';
 import { workspacesRouter } from './api/workspaces.js';
 import { LocalRegistry } from './LocalRegistry.js';
+import { LibraryPackageStore, createLibraryPackageRouter } from './LibraryPackageStore.js';
 import { PackageResolver } from './PackageResolver.js';
 import { AccessControl } from './access/AccessControl.js';
 import { TokenManager } from './auth/TokenManager.js';
@@ -20,6 +21,7 @@ const registry = new LocalRegistry();
 const resolver = new PackageResolver(registry);
 const accessControl = new AccessControl();
 const tokenManager = new TokenManager();
+const libraryPackageStore = new LibraryPackageStore(process.env.REGISTRY_LIBRARY_STORE_PATH);
 
 // ─── Express App ─────────────────────────────────────────────────────────────
 
@@ -34,6 +36,25 @@ app.use((_req, res, next) => {
   if (_req.method === 'OPTIONS') return res.status(204).end();
   next();
 });
+
+app.use(
+  createLibraryPackageRouter({
+    store: libraryPackageStore,
+    authenticate: (request) => {
+      const authorization = request.headers.authorization;
+      if (!authorization?.startsWith('Bearer ')) return null;
+      const result = tokenManager.validate(authorization.slice(7));
+      if (
+        !result.valid ||
+        !result.record ||
+        !tokenManager.hasPermission(result.record, 'publish')
+      ) {
+        return null;
+      }
+      return { namespace: result.record.orgScope };
+    },
+  })
+);
 
 // ─── Health ──────────────────────────────────────────────────────────────────
 
@@ -312,4 +333,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`[registry] Orgs:       http://localhost:${PORT}/api/orgs`);
 });
 
-export { app, registry, resolver, accessControl, tokenManager };
+export { app, registry, resolver, accessControl, tokenManager, libraryPackageStore };
