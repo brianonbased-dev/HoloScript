@@ -89,6 +89,7 @@ The narrative package index remains a discovery guide. Release counts, receipt l
 | `62590569a` | WIT projection of the package contract                                  |
 | `6b58a8318` | Public native-library dependency release cohort                         |
 | `a9a773d32` | Fresh-registry public Meaning dependency closure                        |
+| `311e061f1` | Scalar std ABI v1 and three-target executable conformance               |
 
 ## Acceptance status
 

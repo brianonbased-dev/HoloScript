@@ -1,7 +1,9 @@
 {
   "schema": "holoscript.std.scalar-abi-conformance.v1",
   "generatedAt": "2026-07-26T23:21:56.314Z",
+  "publishedAt": "2026-07-26T23:31:45.315Z",
   "status": "pass",
+  "sourceRevision": "311e061f1e36268554325fbb532fc21c806bf2b8",
   "package": {
     "name": "@holoscript/std",
     "version": "7.0.3"
@@ -61,6 +63,18 @@
       "command": "pnpm check:codex-hardware (ai-ecosystem)",
       "status": "pass",
       "chromeVersion": "150.0.7871.182"
+    },
+    "publicRegistry": {
+      "status": "pass",
+      "version": "7.0.3",
+      "integrity": "sha512-RbVv5yklfFdFVlRIJPRe/C5FSm4iIAtidh9hvc2gBJRAyJ5NYnUrKDsWOqA5D/2bGfrzJ7PDbB3UeO8A+dYYaw==",
+      "nativeAbiExport": "./native/abi/scalar-v1.hs",
+      "freshCacheConsumer": {
+        "clamp": 9,
+        "sign": -1,
+        "step": 1,
+        "abiSourceResolved": true
+      }
     }
   },
   "boundaries": {
