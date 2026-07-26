@@ -51,7 +51,9 @@ The core import resolver accepts an explicit package lock and registry cache:
 4. offline resolution replays only a verified cache artifact;
 5. version and digest participate in resolver cache identity.
 
-There is no filesystem fallback for an unresolved registry import. The existing focused suites prove registry storage, CLI publishing, resolver verification, and offline replay independently. A single freshly packed CLI-to-registry-to-compiler cold-consumer receipt is still required before claiming complete external end-to-end proof.
+There is no filesystem fallback for an unresolved registry import. The focused suites prove each contract independently, and `scripts/holo-ci/check-native-library-cold-consumer.mjs` joins them through a freshly packed npm consumer. That harness publishes through the packed CLI, restarts a standalone registry store, resolves the exact artifact through the packed compiler, verifies the digest before parsing, and replays the verified cache in a separate process with Node network APIs denied.
+
+The cold harness proves the current source release cohort, not public-registry dependency closure. It must pack the current `@holoscript/meaning@0.1.1` source because the same-version public artifact lacks an export the current core imports. The receipt therefore exposes that registry drift instead of hiding it. Its deterministic assertion is compiler import/export resolution, not native host-runtime execution, and the network guard is process-level rather than an OS air gap.
 
 ## Native standard library
 
@@ -95,14 +97,13 @@ The narrative package index remains a discovery guide. Release counts, receipt l
 | All npm v1 candidates admitted to release checks | Shipped | 19-candidate closure and consumption/architecture checks |
 | Native std source distributed | Experimental | npm pack inspection and static/parser parity; no execution-parity claim |
 | Package contract projected to WIT | Shipped as ABI | `wasm-tools` component embedding/new/validation |
-| One cold external end-to-end native consumer | Open | Requires fresh pack, standalone registry, publish, install/resolve, offline replay receipt |
+| One cold external end-to-end native consumer | Shipped for current source cohort | Fresh packed CLI/platform/core/meaning, standalone registry restart, exact digest resolve, and process-guarded offline replay; public dependency closure remains false |
 | Production native registry deployment | Open | Requires configured public registry, auth, storage, and operational receipts |
 | Native std runtime execution parity | Open | Requires executable ABI tests across supported targets |
 
 ## Next gates
 
-1. Add a single standalone cold-consumer harness that packs the CLI/compiler surfaces, starts a fresh registry store, publishes a native library, resolves it online, removes network access, and replays the verified lock/cache.
+1. Bump and publish `@holoscript/meaning` with its current exports, then rerun the cold harness using registry dependencies only; do not treat same-version source drift as a valid public release.
 2. Deploy the native package routes behind the intended production registry host and capture auth, persistence, restart, and rollback receipts.
 3. Define and execute the standard-library ABI conformance suite across Node, browser-Wasm, and owned-metal targets.
 4. Promote additional native libraries only after their source, compatibility, support tier, and runtime boundary appear in the generated catalog.
-

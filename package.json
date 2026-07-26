@@ -175,6 +175,7 @@
     "package:catalog": "node scripts/holo-ci/package-catalog.mjs --write",
     "package:catalog:check": "node scripts/holo-ci/package-catalog.mjs --check",
     "package:catalog:test": "node scripts/holo-ci/package-catalog.mjs --self-test",
+    "check:native-library-cold-consumer": "node scripts/holo-ci/check-native-library-cold-consumer.mjs",
     "check:package-consumption": "node scripts/holo-ci/check-package-consumption-matrix.mjs",
     "check:package-consumption:full": "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm --build-python --inspect-python-artifacts --smoke-python-artifacts",
     "check:package-consumption:test": "node scripts/holo-ci/check-package-consumption-matrix.mjs --self-test",

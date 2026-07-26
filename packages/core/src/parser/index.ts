@@ -43,6 +43,16 @@ export {
 export { ParseCache, globalParseCache } from './ParseCache';
 export type { CachedNode, ParseCacheStats } from './ParseCache';
 
+// Compiler-native package imports. The alias avoids colliding with the LSP's
+// filesystem-oriented ImportResolver on the root compatibility barrel.
+export { ImportResolver as PackageImportResolver } from './ImportResolver';
+export type {
+  ImportResolveOptions as PackageImportResolveOptions,
+  ImportResolutionResult as PackageImportResolution,
+  RegistryPackageCacheEntry,
+  RegistryPackageLockPin,
+} from './ImportResolver';
+
 export type { HoloParseResult, HoloParseError, HoloParserOptions } from './HoloCompositionTypes';
 export type { HoloContract, HoloContractClause } from './HoloCompositionTypes';
 export type { HoloTopic, HoloChannel, HoloConnection } from './HoloCompositionTypes';
