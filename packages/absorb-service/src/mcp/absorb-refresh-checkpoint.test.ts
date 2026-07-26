@@ -5,8 +5,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { CodebaseScanner } from '../engine/CodebaseScanner';
 import {
   ABSORB_REFRESH_PROGRESS_RECEIPT_SCHEMA,
+  ABSORB_REFRESH_RETENTION_RECEIPT_SCHEMA,
   compactAbsorbRefreshProgressReceipt,
   prepareAbsorbRefreshCheckpoint,
+  pruneAbsorbRefreshCheckpoints,
   replaceFileWithRetry,
 } from './absorb-refresh-checkpoint';
 
@@ -72,6 +74,166 @@ describe('AbsorbRefreshCheckpoint', () => {
       publishedGraphAuthoritative: true,
       priorAuthoritativeCachePreserved: false,
     });
+  });
+
+  it('bounds superseded checkpoint directories and reports reclaimed bytes', () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-retention-'));
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeFixture(rootDir, 'src/a.txt', 'a\n');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const scanPlan = scanner.planScan({ rootDir, maxFiles: 1 }, 1);
+    const receipts = Array.from({ length: 6 }, (_, index) => {
+      const checkpoint = prepareAbsorbRefreshCheckpoint({
+        rootDir,
+        scanPlan,
+        targetGitCommitHash: String(index).padStart(40, '0'),
+        targetWorktreeFingerprint: null,
+        scanPolicyHash: `policy-${index}`,
+        maxFiles: 1,
+      });
+      checkpoint.markComplete();
+      const receipt = checkpoint.progressReceipt();
+      const updatedAt = new Date(Date.now() + index * 1_000).toISOString();
+      const persisted = JSON.parse(fs.readFileSync(receipt.receiptFile, 'utf-8')) as Record<
+        string,
+        unknown
+      >;
+      persisted.updatedAt = updatedAt;
+      fs.writeFileSync(receipt.receiptFile, JSON.stringify(persisted, null, 2), 'utf-8');
+      fs.writeFileSync(
+        path.join(receipt.checkpointDirectory, 'retention-payload.bin'),
+        Buffer.alloc(128 + index)
+      );
+      return receipt;
+    });
+
+    const retention = pruneAbsorbRefreshCheckpoints({
+      rootDir,
+      maxDirectories: 3,
+      terminalMaxAgeMs: Number.MAX_SAFE_INTEGER,
+      nowMs: Date.now() + 10_000,
+    });
+
+    expect(retention).toMatchObject({
+      schemaVersion: ABSORB_REFRESH_RETENTION_RECEIPT_SCHEMA,
+      kind: 'AbsorbRefreshRetentionReceipt',
+      discoveredDirectories: 4,
+      retainedDirectories: 3,
+      removedDirectories: 1,
+      failedRemovals: [],
+    });
+    expect(retention.bytesReclaimed).toBeGreaterThan(0);
+    expect(retention.bytesAfter).toBeLessThan(retention.bytesBefore);
+    for (const receipt of receipts.slice(0, 3)) {
+      expect(fs.existsSync(receipt.checkpointDirectory)).toBe(false);
+    }
+    for (const receipt of receipts.slice(3)) {
+      expect(fs.existsSync(receipt.checkpointDirectory)).toBe(true);
+    }
+  });
+
+  it('never collects live writers or caller-preserved resume tokens', () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-protected-'));
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeFixture(rootDir, 'src/a.txt', 'a\n');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const scanPlan = scanner.planScan({ rootDir, maxFiles: 1 }, 1);
+    const live = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan,
+      targetGitCommitHash: 'a'.repeat(40),
+      targetWorktreeFingerprint: null,
+      scanPolicyHash: 'live-policy',
+      maxFiles: 1,
+    });
+    const preserved = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan,
+      targetGitCommitHash: 'b'.repeat(40),
+      targetWorktreeFingerprint: null,
+      scanPolicyHash: 'preserved-policy',
+      maxFiles: 1,
+    });
+    preserved.markInterrupted(new Error('retain for explicit resume'));
+    const disposable = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan,
+      targetGitCommitHash: 'c'.repeat(40),
+      targetWorktreeFingerprint: null,
+      scanPolicyHash: 'disposable-policy',
+      maxFiles: 1,
+    });
+    disposable.markComplete();
+
+    const retention = pruneAbsorbRefreshCheckpoints({
+      rootDir,
+      preserveResumeTokens: [preserved.progressReceipt().resumeToken],
+      maxDirectories: 1,
+      terminalMaxAgeMs: 0,
+      resumableMaxAgeMs: 0,
+      nowMs: Date.now() + 1,
+    });
+
+    expect(retention).toMatchObject({
+      discoveredDirectories: 3,
+      retainedDirectories: 2,
+      removedDirectories: 1,
+      activeDirectories: 1,
+      preservedDirectories: 1,
+    });
+    expect(fs.existsSync(live.progressReceipt().checkpointDirectory)).toBe(true);
+    expect(fs.existsSync(preserved.progressReceipt().checkpointDirectory)).toBe(true);
+    expect(fs.existsSync(disposable.progressReceipt().checkpointDirectory)).toBe(false);
+  });
+
+  it('enforces the byte ceiling before directory count becomes pressure', () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-byte-cap-'));
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeFixture(rootDir, 'src/a.txt', 'a\n');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const scanPlan = scanner.planScan({ rootDir, maxFiles: 1 }, 1);
+    const receipts = Array.from({ length: 3 }, (_, index) => {
+      const checkpoint = prepareAbsorbRefreshCheckpoint({
+        rootDir,
+        scanPlan,
+        targetGitCommitHash: String(index).padStart(40, '0'),
+        targetWorktreeFingerprint: null,
+        scanPolicyHash: `byte-policy-${index}`,
+        maxFiles: 1,
+      });
+      checkpoint.markComplete();
+      const receipt = checkpoint.progressReceipt();
+      fs.writeFileSync(path.join(receipt.checkpointDirectory, 'large.bin'), Buffer.alloc(2_048));
+      return receipt;
+    });
+    const bytesPerCheckpoint = receipts.map((receipt) => {
+      const files = fs.readdirSync(receipt.checkpointDirectory);
+      return files.reduce(
+        (total, file) => total + fs.statSync(path.join(receipt.checkpointDirectory, file)).size,
+        0
+      );
+    });
+    const keepNewestTwoBytes = bytesPerCheckpoint[1] + bytesPerCheckpoint[2];
+
+    const retention = pruneAbsorbRefreshCheckpoints({
+      rootDir,
+      maxDirectories: 10,
+      maxBytes: keepNewestTwoBytes,
+      terminalMaxAgeMs: Number.MAX_SAFE_INTEGER,
+    });
+
+    expect(retention.removedDirectories).toBe(1);
+    expect(retention.retainedDirectories).toBe(2);
+    expect(retention.bytesAfter).toBeLessThanOrEqual(keepNewestTwoBytes);
+    expect(fs.existsSync(receipts[0].checkpointDirectory)).toBe(false);
+    expect(fs.existsSync(receipts[1].checkpointDirectory)).toBe(true);
+    expect(fs.existsSync(receipts[2].checkpointDirectory)).toBe(true);
   });
 
   it('persists a bounded non-authoritative progress receipt and resumes completed batches', async () => {

@@ -14,6 +14,19 @@ export {
   type ValidationResult,
 } from './codebase-tools';
 export {
+  ABSORB_REFRESH_PROGRESS_RECEIPT_SCHEMA,
+  ABSORB_REFRESH_RETENTION_DEFAULTS,
+  ABSORB_REFRESH_RETENTION_RECEIPT_SCHEMA,
+  compactAbsorbRefreshProgressReceipt,
+  prepareAbsorbRefreshCheckpoint,
+  pruneAbsorbRefreshCheckpoints,
+  type AbsorbRefreshProgressReceipt,
+  type AbsorbRefreshRetentionReceipt,
+  type CompactAbsorbRefreshProgressReceipt,
+  type PrepareAbsorbRefreshCheckpointOptions,
+  type PruneAbsorbRefreshCheckpointsOptions,
+} from './absorb-refresh-checkpoint';
+export {
   ABSORB_CODEBASE_LOAD_ERROR,
   ABSORB_EMBEDDING_INDEX_ERROR,
   ABSORB_GRAPH_RAG_ENGINE_ERROR,

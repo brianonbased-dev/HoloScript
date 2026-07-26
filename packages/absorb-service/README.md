@@ -117,6 +117,7 @@ Repeatable evidence:
 
 ```bash
 pnpm --filter @holoscript/absorb-service benchmark:holoabsorb
+pnpm --filter @holoscript/absorb-service benchmark:holoabsorb-checkpoints -- --repo <repo>
 pnpm --filter @holoscript/absorb-service benchmark:holoabsorb-hybrid -- --repo <repo>
 ```
 

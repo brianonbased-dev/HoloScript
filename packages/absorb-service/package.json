@@ -83,6 +83,7 @@
     "test": "vitest run --passWithNoTests",
     "audit:holoabsorb": "node scripts/audit-holoabsorb.mjs",
     "benchmark:holoabsorb": "node scripts/bench-holoabsorb.mjs",
+    "benchmark:holoabsorb-checkpoints": "node scripts/bench-holoabsorb-checkpoint-retention.mjs",
     "benchmark:holoabsorb-hybrid": "node scripts/bench-holoabsorb-hybrid.mjs",
     "generate:language-registry": "tsx scripts/check-language-registry.mjs --write",
     "check:language-registry": "tsx scripts/check-language-registry.mjs",

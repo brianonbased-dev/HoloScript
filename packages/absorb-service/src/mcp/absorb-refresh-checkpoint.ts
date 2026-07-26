@@ -7,6 +7,16 @@ import { resolveCodebaseCachePaths } from './codebase-cache-storage';
 
 export const ABSORB_REFRESH_PROGRESS_RECEIPT_SCHEMA =
   'holoscript.absorb-refresh-progress-receipt.v1';
+export const ABSORB_REFRESH_RETENTION_RECEIPT_SCHEMA =
+  'holoscript.absorb-refresh-retention-receipt.v1';
+
+export const ABSORB_REFRESH_RETENTION_DEFAULTS = Object.freeze({
+  maxDirectories: 4,
+  maxBytes: 1024 * 1024 * 1024,
+  terminalMaxAgeMs: 60 * 60 * 1000,
+  resumableMaxAgeMs: 7 * 24 * 60 * 60 * 1000,
+  unreadableMaxAgeMs: 60 * 60 * 1000,
+});
 
 type AbsorbRefreshStatus =
   | 'prepared'
@@ -108,9 +118,48 @@ export interface CompactAbsorbRefreshProgressReceipt extends Omit<
   latestCompletedBatch?: AbsorbRefreshCompletedBatch;
 }
 
+export interface PruneAbsorbRefreshCheckpointsOptions {
+  rootDir: string;
+  preserveResumeTokens?: string[];
+  maxDirectories?: number;
+  maxBytes?: number;
+  terminalMaxAgeMs?: number;
+  resumableMaxAgeMs?: number;
+  unreadableMaxAgeMs?: number;
+  nowMs?: number;
+}
+
+export interface AbsorbRefreshRetentionReceipt {
+  schemaVersion: typeof ABSORB_REFRESH_RETENTION_RECEIPT_SCHEMA;
+  kind: 'AbsorbRefreshRetentionReceipt';
+  rootDir: string;
+  refreshDirectory: string;
+  maxDirectories: number;
+  maxBytes: number;
+  terminalMaxAgeMs: number;
+  resumableMaxAgeMs: number;
+  unreadableMaxAgeMs: number;
+  discoveredDirectories: number;
+  retainedDirectories: number;
+  removedDirectories: number;
+  activeDirectories: number;
+  preservedDirectories: number;
+  unreadableDirectories: number;
+  bytesBefore: number;
+  bytesAfter: number;
+  bytesReclaimed: number;
+  removedResumeTokens: string[];
+  removedResumeTokensOmitted: number;
+  failedRemovals: Array<{ resumeToken: string; error: string }>;
+  durationMs: number;
+}
+
 const TRANSIENT_ATOMIC_REPLACE_CODES = new Set(['EACCES', 'EBUSY', 'EPERM']);
 const ATOMIC_REPLACE_RETRY_DELAYS_MS = [2, 4, 8, 16, 32, 50];
 const atomicReplaceSleepBuffer = new Int32Array(new SharedArrayBuffer(4));
+const RESUME_TOKEN_PATTERN = /^[a-f0-9]{32}$/;
+const ACTIVE_REFRESH_STATUSES = new Set<AbsorbRefreshStatus>(['prepared', 'scanning', 'scanned']);
+const MAX_REMOVED_TOKENS_IN_RETENTION_RECEIPT = 64;
 
 function isTransientAtomicReplaceError(error: unknown): boolean {
   return (
@@ -223,7 +272,7 @@ function buildBatchInputSha256(plan: ScanPlan, batch: PlannedScanBatch): string 
 }
 
 function validateResumeToken(token: string): void {
-  if (!/^[a-f0-9]{32}$/.test(token)) {
+  if (!RESUME_TOKEN_PATTERN.test(token)) {
     throw new Error('resumeToken must be the 32-character token from an absorb progress receipt');
   }
 }
@@ -285,6 +334,242 @@ function isProcessAlive(processId: number): boolean {
   } catch {
     return false;
   }
+}
+
+function isActiveRefreshReceipt(receipt: AbsorbRefreshProgressReceipt): boolean {
+  return (
+    ACTIVE_REFRESH_STATUSES.has(receipt.status) &&
+    (receipt.ownerProcessId === process.pid || isProcessAlive(receipt.ownerProcessId))
+  );
+}
+
+function finiteRetentionValue(value: number | undefined, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.floor(value!));
+}
+
+function directorySizeBytes(directory: string): number {
+  let total = 0;
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(directory, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      total += directorySizeBytes(entryPath);
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    try {
+      total += fs.statSync(entryPath).size;
+    } catch {
+      // A concurrent writer may replace a receipt while retention measures it.
+    }
+  }
+  return total;
+}
+
+interface AbsorbRefreshRetentionCandidate {
+  resumeToken: string;
+  directory: string;
+  modifiedAt: number;
+  bytes: number;
+  receipt: AbsorbRefreshProgressReceipt | null;
+  active: boolean;
+  preserved: boolean;
+}
+
+/**
+ * Bound superseded durable refresh state without touching an active writer or
+ * an explicitly requested resume token.
+ *
+ * The cap is deliberately soft for protected entries: process-live scanning
+ * checkpoints and caller-preserved tokens survive even when they temporarily
+ * exceed maxDirectories. Unknown directory names are ignored so this collector
+ * cannot expand its authority beyond Absorb-owned token directories.
+ */
+export function pruneAbsorbRefreshCheckpoints(
+  options: PruneAbsorbRefreshCheckpointsOptions
+): AbsorbRefreshRetentionReceipt {
+  const startedAt = Date.now();
+  const rootDir = path.resolve(options.rootDir);
+  const refreshDirectory = path.join(
+    resolveCodebaseCachePaths(rootDir).directory,
+    'absorb-refreshes'
+  );
+  const maxDirectories = finiteRetentionValue(
+    options.maxDirectories,
+    ABSORB_REFRESH_RETENTION_DEFAULTS.maxDirectories
+  );
+  const maxBytes = finiteRetentionValue(options.maxBytes, ABSORB_REFRESH_RETENTION_DEFAULTS.maxBytes);
+  const terminalMaxAgeMs = finiteRetentionValue(
+    options.terminalMaxAgeMs,
+    ABSORB_REFRESH_RETENTION_DEFAULTS.terminalMaxAgeMs
+  );
+  const resumableMaxAgeMs = finiteRetentionValue(
+    options.resumableMaxAgeMs,
+    ABSORB_REFRESH_RETENTION_DEFAULTS.resumableMaxAgeMs
+  );
+  const unreadableMaxAgeMs = finiteRetentionValue(
+    options.unreadableMaxAgeMs,
+    ABSORB_REFRESH_RETENTION_DEFAULTS.unreadableMaxAgeMs
+  );
+  const nowMs = Number.isFinite(options.nowMs) ? options.nowMs! : Date.now();
+  const preserveResumeTokens = new Set(options.preserveResumeTokens ?? []);
+  const candidates: AbsorbRefreshRetentionCandidate[] = [];
+
+  let directoryEntries: fs.Dirent[] = [];
+  try {
+    directoryEntries = fs.readdirSync(refreshDirectory, { withFileTypes: true });
+  } catch {
+    // A missing refresh directory is already within the retention contract.
+  }
+
+  for (const entry of directoryEntries) {
+    if (!entry.isDirectory() || !RESUME_TOKEN_PATTERN.test(entry.name)) continue;
+    const directory = path.join(refreshDirectory, entry.name);
+    const receiptFile = path.join(directory, 'progress-receipt.json');
+    let modifiedAt = 0;
+    try {
+      modifiedAt = fs.statSync(receiptFile).mtimeMs;
+    } catch {
+      try {
+        modifiedAt = fs.statSync(directory).mtimeMs;
+      } catch {
+        continue;
+      }
+    }
+    let receipt: AbsorbRefreshProgressReceipt | null = null;
+    try {
+      const parsed = readReceipt(receiptFile);
+      if (
+        parsed.resumeToken === entry.name &&
+        normalizeRoot(parsed.rootDir) === normalizeRoot(rootDir)
+      ) {
+        receipt = parsed;
+        const receiptUpdatedAt = Date.parse(parsed.updatedAt);
+        if (Number.isFinite(receiptUpdatedAt)) modifiedAt = receiptUpdatedAt;
+      }
+    } catch {
+      // Recent unreadable state is retained for a bounded repair window.
+    }
+    candidates.push({
+      resumeToken: entry.name,
+      directory,
+      modifiedAt,
+      bytes: directorySizeBytes(directory),
+      receipt,
+      active: receipt ? isActiveRefreshReceipt(receipt) : false,
+      preserved: preserveResumeTokens.has(entry.name),
+    });
+  }
+
+  const bytesBefore = candidates.reduce((total, entry) => total + entry.bytes, 0);
+  const removeTokens = new Set<string>();
+  const isProtected = (candidate: AbsorbRefreshRetentionCandidate): boolean =>
+    candidate.active || candidate.preserved;
+  const removableByPriority = (
+    entries: AbsorbRefreshRetentionCandidate[]
+  ): AbsorbRefreshRetentionCandidate[] =>
+    entries
+      .filter((candidate) => !isProtected(candidate))
+      .sort((left, right) => {
+        const leftResumable = left.receipt?.resumable ? 1 : 0;
+        const rightResumable = right.receipt?.resumable ? 1 : 0;
+        return leftResumable - rightResumable || left.modifiedAt - right.modifiedAt;
+      });
+  for (const candidate of candidates) {
+    if (isProtected(candidate)) continue;
+    const maxAgeMs = candidate.receipt
+      ? candidate.receipt.resumable
+        ? resumableMaxAgeMs
+        : terminalMaxAgeMs
+      : unreadableMaxAgeMs;
+    if (nowMs - candidate.modifiedAt > maxAgeMs) {
+      removeTokens.add(candidate.resumeToken);
+    }
+  }
+
+  const remaining = candidates.filter((candidate) => !removeTokens.has(candidate.resumeToken));
+  if (remaining.length > maxDirectories) {
+    const directoryCandidates = removableByPriority(remaining);
+    let retainedCount = remaining.length;
+    for (const candidate of directoryCandidates) {
+      if (retainedCount <= maxDirectories) break;
+      removeTokens.add(candidate.resumeToken);
+      retainedCount -= 1;
+    }
+  }
+  let retainedBytes = candidates
+    .filter((candidate) => !removeTokens.has(candidate.resumeToken))
+    .reduce((total, candidate) => total + candidate.bytes, 0);
+  if (retainedBytes > maxBytes) {
+    const byteCandidates = removableByPriority(
+      candidates.filter((candidate) => !removeTokens.has(candidate.resumeToken))
+    );
+    for (const candidate of byteCandidates) {
+      if (retainedBytes <= maxBytes) break;
+      removeTokens.add(candidate.resumeToken);
+      retainedBytes -= candidate.bytes;
+    }
+  }
+
+  const refreshRootWithSeparator = `${path.resolve(refreshDirectory)}${path.sep}`;
+  const removedResumeTokens: string[] = [];
+  const failedRemovals: Array<{ resumeToken: string; error: string }> = [];
+  let bytesReclaimed = 0;
+  for (const candidate of candidates) {
+    if (!removeTokens.has(candidate.resumeToken)) continue;
+    const resolvedDirectory = path.resolve(candidate.directory);
+    if (!resolvedDirectory.startsWith(refreshRootWithSeparator)) {
+      failedRemovals.push({
+        resumeToken: candidate.resumeToken,
+        error: 'checkpoint directory escaped the Absorb refresh root',
+      });
+      continue;
+    }
+    try {
+      fs.rmSync(resolvedDirectory, { recursive: true, force: true });
+      removedResumeTokens.push(candidate.resumeToken);
+      bytesReclaimed += candidate.bytes;
+    } catch (error) {
+      failedRemovals.push({
+        resumeToken: candidate.resumeToken,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return {
+    schemaVersion: ABSORB_REFRESH_RETENTION_RECEIPT_SCHEMA,
+    kind: 'AbsorbRefreshRetentionReceipt',
+    rootDir,
+    refreshDirectory,
+    maxDirectories,
+    maxBytes,
+    terminalMaxAgeMs,
+    resumableMaxAgeMs,
+    unreadableMaxAgeMs,
+    discoveredDirectories: candidates.length,
+    retainedDirectories: candidates.length - removedResumeTokens.length,
+    removedDirectories: removedResumeTokens.length,
+    activeDirectories: candidates.filter((candidate) => candidate.active).length,
+    preservedDirectories: candidates.filter((candidate) => candidate.preserved).length,
+    unreadableDirectories: candidates.filter((candidate) => !candidate.receipt).length,
+    bytesBefore,
+    bytesAfter: Math.max(0, bytesBefore - bytesReclaimed),
+    bytesReclaimed,
+    removedResumeTokens: removedResumeTokens.slice(0, MAX_REMOVED_TOKENS_IN_RETENTION_RECEIPT),
+    removedResumeTokensOmitted: Math.max(
+      0,
+      removedResumeTokens.length - MAX_REMOVED_TOKENS_IN_RETENTION_RECEIPT
+    ),
+    failedRemovals,
+    durationMs: Date.now() - startedAt,
+  };
 }
 
 function validateResumedBatchResult(
@@ -471,6 +756,10 @@ export class AbsorbRefreshCheckpoint {
       remainingCandidateFiles: 0,
       error: undefined,
     });
+    pruneAbsorbRefreshCheckpoints({
+      rootDir: this.receipt.rootDir,
+      preserveResumeTokens: [this.receipt.resumeToken],
+    });
   }
 
   prepareForResume(options: {
@@ -597,8 +886,7 @@ function findLatestCompatibleCheckpoint(options: {
         receipt.targetWorktreeFingerprint === options.targetWorktreeFingerprint) ||
         receipt.completedBatches.every((entry) => typeof entry.inputSha256 === 'string')) &&
       !(
-        receipt.status === 'scanning' &&
-        (receipt.ownerProcessId === process.pid || isProcessAlive(receipt.ownerProcessId))
+        isActiveRefreshReceipt(receipt)
       );
     if (compatible) return receipt;
   }
@@ -609,6 +897,11 @@ export function prepareAbsorbRefreshCheckpoint(
   options: PrepareAbsorbRefreshCheckpointOptions
 ): AbsorbRefreshCheckpoint {
   const rootDir = path.resolve(options.rootDir);
+  if (options.resumeToken) validateResumeToken(options.resumeToken);
+  pruneAbsorbRefreshCheckpoints({
+    rootDir,
+    preserveResumeTokens: options.resumeToken ? [options.resumeToken] : [],
+  });
   const planHash = buildPlanHash(options.scanPlan);
   const selectedFilesHash = buildSelectedFilesHash(options.scanPlan);
   const reusableReceipt =
@@ -636,14 +929,7 @@ export function prepareAbsorbRefreshCheckpoint(
     if (receipt.selectedFilesHash !== selectedFilesHash) errors.push('selected file set');
     if (receipt.scanPolicyHash !== options.scanPolicyHash) errors.push('scan policy');
     if (receipt.status === 'complete') errors.push('completed checkpoint');
-    if (
-      receipt.status === 'scanning' &&
-      receipt.ownerProcessId !== process.pid &&
-      isProcessAlive(receipt.ownerProcessId)
-    ) {
-      errors.push(`active owner process ${receipt.ownerProcessId}`);
-    }
-    if (receipt.status === 'scanning' && receipt.ownerProcessId === process.pid) {
+    if (isActiveRefreshReceipt(receipt)) {
       errors.push(`active owner process ${receipt.ownerProcessId}`);
     }
     const targetChanged =
@@ -714,5 +1000,9 @@ export function prepareAbsorbRefreshCheckpoint(
     updatedAt: now,
   };
   atomicWriteFileSync(paths.receiptFile, JSON.stringify(receipt, null, 2));
+  pruneAbsorbRefreshCheckpoints({
+    rootDir,
+    preserveResumeTokens: [resumeToken],
+  });
   return new AbsorbRefreshCheckpoint(options.scanPlan, receipt);
 }
