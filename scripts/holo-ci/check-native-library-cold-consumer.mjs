@@ -36,6 +36,7 @@ const SKIP_BUILD = args.includes('--skip-build');
 const COREPACK = process.platform === 'win32' ? 'corepack.cmd' : 'corepack';
 const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const NODE = process.execPath;
+const PUBLIC_NPM_REGISTRY = 'https://registry.npmjs.org/';
 const FIXTURE_NAME = '@cold/ping';
 const FIXTURE_VERSION = '1.0.0';
 const FIXTURE_SOURCE = '@export template "Ping"\norb ping { }\n';
@@ -76,9 +77,7 @@ function runAsync(file, argv, options = {}) {
         return;
       }
       reject(
-        new Error(
-          `${file} exited with ${code ?? signal ?? 'unknown'}\n${stdout}${stderr}`.trim()
-        )
+        new Error(`${file} exited with ${code ?? signal ?? 'unknown'}\n${stdout}${stderr}`.trim())
       );
     });
   });
@@ -107,14 +106,23 @@ function findTarball(directory, packageName, version) {
   const path = join(directory, expected);
   if (!existsSync(path)) {
     throw new Error(
-      `packed tarball missing: ${expected}; found ${readdirSync(directory).filter((name) => name.endsWith('.tgz')).join(', ')}`
+      `packed tarball missing: ${expected}; found ${readdirSync(directory)
+        .filter((name) => name.endsWith('.tgz'))
+        .join(', ')}`
     );
   }
   return path;
 }
 
 function pack(packageDir, destination) {
-  run(COREPACK, ['pnpm', '--dir', join(ROOT, packageDir), 'pack', '--pack-destination', destination]);
+  run(COREPACK, [
+    'pnpm',
+    '--dir',
+    join(ROOT, packageDir),
+    'pack',
+    '--pack-destination',
+    destination,
+  ]);
   const manifest = readJson(join(ROOT, packageDir, 'package.json'));
   return findTarball(destination, manifest.name, manifest.version);
 }
@@ -177,6 +185,7 @@ function makeConsumerPrograms(root) {
   const publishProgram = join(root, 'publish.mjs');
   const resolveProgram = join(root, 'resolve.mjs');
   const offlineProgram = join(root, 'offline.mjs');
+  const dependencyProgram = join(root, 'verify-public-dependency.mjs');
   const denyNetwork = join(root, 'deny-network.cjs');
 
   writeFileSync(
@@ -253,6 +262,33 @@ if (result.errors.length > 0 || !evidence.exportedPing || !evidence.processNetwo
   );
 
   writeFileSync(
+    dependencyProgram,
+    `import { readFileSync, writeFileSync } from 'node:fs';
+import * as meaning from '@holoscript/meaning';
+const [expectedVersion, outputPath] = process.argv.slice(2);
+const manifest = JSON.parse(
+  readFileSync(new URL('./node_modules/@holoscript/meaning/package.json', import.meta.url), 'utf8')
+);
+const evidence = {
+  name: manifest.name,
+  expectedVersion,
+  installedVersion: manifest.version,
+  createSemanticClosureReceiptExported:
+    typeof meaning.createSemanticClosureReceipt === 'function',
+};
+writeFileSync(outputPath, JSON.stringify(evidence));
+if (
+  evidence.name !== '@holoscript/meaning' ||
+  evidence.installedVersion !== expectedVersion ||
+  !evidence.createSemanticClosureReceiptExported
+) {
+  process.exit(1);
+}
+`,
+    'utf8'
+  );
+
+  writeFileSync(
     denyNetwork,
     `const denied = () => { throw new Error('network denied by cold-consumer guard'); };
 globalThis.__HOLOSCRIPT_NETWORK_DENIED__ = true;
@@ -271,7 +307,7 @@ net.Socket.prototype.connect = denied;
     'utf8'
   );
 
-  return { publishProgram, resolveProgram, offlineProgram, denyNetwork };
+  return { publishProgram, resolveProgram, offlineProgram, dependencyProgram, denyNetwork };
 }
 
 async function main() {
@@ -291,11 +327,12 @@ async function main() {
   try {
     const artifacts = join(root, 'artifacts');
     const consumer = join(root, 'consumer');
+    const npmCache = join(root, 'npm-cache');
     const storagePath = join(root, 'registry', 'packages.json');
     mkdirSync(artifacts, { recursive: true });
     mkdirSync(consumer, { recursive: true });
+    mkdirSync(npmCache, { recursive: true });
 
-    const meaningTarball = pack('packages/meaning', artifacts);
     const platformTarball = pack('packages/platform', artifacts);
     const coreTarball = pack('packages/core', artifacts);
     const cliTarball = pack('packages/cli', artifacts);
@@ -309,7 +346,11 @@ async function main() {
         '--omit=optional',
         '--no-audit',
         '--no-fund',
-        meaningTarball,
+        '--prefer-online',
+        '--registry',
+        PUBLIC_NPM_REGISTRY,
+        '--cache',
+        npmCache,
         platformTarball,
         coreTarball,
         cliTarball,
@@ -324,13 +365,19 @@ async function main() {
     const onlineOutput = join(root, 'online-output.json');
     const offlineInput = join(root, 'offline-input.json');
     const offlineOutput = join(root, 'offline-output.json');
+    const dependencyOutput = join(root, 'public-dependency-output.json');
 
-    const firstRegistry = await startRegistry(storagePath);
     await runAsync(
       NODE,
-      [programs.publishProgram, fixture, firstRegistry.origin, publishOutput],
+      [programs.dependencyProgram, packageVersion('packages/meaning'), dependencyOutput],
       { cwd: consumer }
     );
+    const publicDependency = readJson(dependencyOutput);
+
+    const firstRegistry = await startRegistry(storagePath);
+    await runAsync(NODE, [programs.publishProgram, fixture, firstRegistry.origin, publishOutput], {
+      cwd: consumer,
+    });
     await firstRegistry.close();
 
     const secondRegistry = await startRegistry(storagePath);
@@ -361,7 +408,8 @@ async function main() {
         cwd: consumer,
         env: {
           ...process.env,
-          NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --require=${programs.denyNetwork}`.trim(),
+          NODE_OPTIONS:
+            `${process.env.NODE_OPTIONS || ''} --require=${programs.denyNetwork}`.trim(),
         },
         stdio: 'pipe',
       });
@@ -384,15 +432,9 @@ async function main() {
           packageManager: 'npm',
           installScriptsEnabled: false,
           optionalDependenciesInstalled: false,
+          registry: PUBLIC_NPM_REGISTRY,
+          freshRegistryCache: true,
           packages: [
-            {
-              name: '@holoscript/meaning',
-              version: packageVersion('packages/meaning'),
-              tarball: basename(meaningTarball),
-              integrity: sha256File(meaningTarball),
-              releaseCohortReason:
-                'Current core imports an export absent from the same-version public registry artifact.',
-            },
             {
               name: '@holoscript/platform',
               version: packageVersion('packages/platform'),
@@ -412,8 +454,28 @@ async function main() {
               integrity: sha256File(cliTarball),
             },
           ],
+          registryDependencies: [
+            {
+              name: publicDependency.name,
+              expectedVersion: publicDependency.expectedVersion,
+              installedVersion: publicDependency.installedVersion,
+              createSemanticClosureReceiptExported:
+                publicDependency.createSemanticClosureReceiptExported,
+              installSource: PUBLIC_NPM_REGISTRY,
+            },
+          ],
         },
         phases: {
+          publicRegistryDependencyClosure: {
+            passed:
+              publicDependency.name === '@holoscript/meaning' &&
+              publicDependency.installedVersion === publicDependency.expectedVersion &&
+              publicDependency.createSemanticClosureReceiptExported === true,
+            packageName: publicDependency.name,
+            version: publicDependency.installedVersion,
+            requiredExport: 'createSemanticClosureReceipt',
+            freshRegistryCache: true,
+          },
           cliPublish: {
             passed: published.success === true,
             packageName: published.packageName,
@@ -441,7 +503,7 @@ async function main() {
         boundaries: {
           provesFreshPackedConsumer: true,
           provesCurrentSourceReleaseCohort: true,
-          provesPublicRegistryDependencyClosure: false,
+          provesPublicRegistryDependencyClosure: true,
           provesCliToRegistryToCompilerContract: true,
           provesRegistryRestartPersistence: true,
           provesProcessGuardedOfflineReplay: true,
@@ -449,7 +511,7 @@ async function main() {
           provesNativeRuntimeExecution: false,
           provesProductionRegistryDeployment: false,
           provesRegistryGovernanceOrAuthorship: false,
-          note: 'The deterministic assertion is compiler import/export resolution, not host runtime execution. The consumer pins a current-source @holoscript/meaning tarball because the same-version public artifact is stale.',
+          note: 'The deterministic assertion is compiler import/export resolution, not host runtime execution. @holoscript/meaning is installed from the public npm registry through an empty per-run cache; no local Meaning tarball override is used.',
         },
       };
       writeJson(OUTPUT, receipt);

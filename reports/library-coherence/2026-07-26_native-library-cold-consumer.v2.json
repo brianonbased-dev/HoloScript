@@ -1,0 +1,90 @@
+{
+  "schema": "holoscript.native-library-cold-consumer.v1",
+  "generatedAt": "2026-07-26T21:13:30.252Z",
+  "status": "pass",
+  "sourceRevision": "7f2a39a596dbcc8c986cf9d0ad6015cea14c9177",
+  "fixture": {
+    "name": "@cold/ping",
+    "version": "1.0.0",
+    "sourceIntegrity": "sha256:2b081279ecf694f1a741b99e1080c43452bd1a49ea42664a8498259d6b55cffe",
+    "supportTier": "preview"
+  },
+  "packedConsumer": {
+    "packageManager": "npm",
+    "installScriptsEnabled": false,
+    "optionalDependenciesInstalled": false,
+    "registry": "https://registry.npmjs.org/",
+    "freshRegistryCache": true,
+    "packages": [
+      {
+        "name": "@holoscript/platform",
+        "version": "6.1.4",
+        "tarball": "holoscript-platform-6.1.4.tgz",
+        "integrity": "sha256:b8e7098c3d2dc709044385b3d0439547c631fb125c45172e81edf3eb903206e4"
+      },
+      {
+        "name": "@holoscript/core",
+        "version": "8.0.18",
+        "tarball": "holoscript-core-8.0.18.tgz",
+        "integrity": "sha256:50b82b1a88fe88673d8e1b2e8321e7b5e92ea0f6ef1fdda9843991a07dcbc992"
+      },
+      {
+        "name": "@holoscript/cli",
+        "version": "8.0.12",
+        "tarball": "holoscript-cli-8.0.12.tgz",
+        "integrity": "sha256:b6ac3efedb0d034b3c01be6f2b3b0af0e81a34dee7432d82e79fb4573952d133"
+      }
+    ],
+    "registryDependencies": [
+      {
+        "name": "@holoscript/meaning",
+        "expectedVersion": "0.1.2",
+        "installedVersion": "0.1.2",
+        "createSemanticClosureReceiptExported": true,
+        "installSource": "https://registry.npmjs.org/"
+      }
+    ]
+  },
+  "phases": {
+    "publicRegistryDependencyClosure": {
+      "passed": true,
+      "packageName": "@holoscript/meaning",
+      "version": "0.1.2",
+      "requiredExport": "createSemanticClosureReceipt",
+      "freshRegistryCache": true
+    },
+    "cliPublish": {
+      "passed": true,
+      "packageName": "@cold/ping",
+      "version": "1.0.0"
+    },
+    "registryRestart": {
+      "passed": true,
+      "persistence": "fresh JSON store reopened by a new LibraryPackageStore instance"
+    },
+    "onlineResolve": {
+      "passed": true,
+      "exactVersion": "1.0.0",
+      "digestVerifiedBeforeParse": true,
+      "deterministicAssertion": "resolved compiler scope contains exported template Ping"
+    },
+    "offlineReplay": {
+      "passed": true,
+      "cacheDigestReverified": true,
+      "processNetworkDenied": true
+    }
+  },
+  "boundaries": {
+    "provesFreshPackedConsumer": true,
+    "provesCurrentSourceReleaseCohort": true,
+    "provesPublicRegistryDependencyClosure": true,
+    "provesCliToRegistryToCompilerContract": true,
+    "provesRegistryRestartPersistence": true,
+    "provesProcessGuardedOfflineReplay": true,
+    "provesOsLevelAirGap": false,
+    "provesNativeRuntimeExecution": false,
+    "provesProductionRegistryDeployment": false,
+    "provesRegistryGovernanceOrAuthorship": false,
+    "note": "The deterministic assertion is compiler import/export resolution, not host runtime execution. @holoscript/meaning is installed from the public npm registry through an empty per-run cache; no local Meaning tarball override is used."
+  }
+}
