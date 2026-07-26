@@ -200,6 +200,7 @@
     "check:package-stewardship": "node scripts/holo-ci/check-package-stewardship.mjs",
     "check:package-stewardship:test": "node scripts/holo-ci/check-package-stewardship.mjs --self-test",
     "check:solver-smoke": "node scripts/holo-ci/solver-smoke-check.mjs",
+    "check:solver-smoke:test": "node --test scripts/__tests__/solver-smoke-check.test.mjs",
     "check:codex-mcp": "node scripts/holo-ci/check-codex-mcp.mjs",
     "check:cross-platform-paths": "node scripts/holo-ci/check-cross-platform-paths.mjs",
     "check:docker-core-entries": "node scripts/holo-ci/check-docker-core-entries.mjs",
