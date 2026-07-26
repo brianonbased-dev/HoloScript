@@ -13,7 +13,10 @@ import {
   setIsolatedAbsorbWorkerFactoryForTests,
   simulateAbsorbProcessRestartForTests,
 } from './codebase-tools';
-import { resolveCodebaseCachePaths } from './codebase-cache-storage';
+import {
+  resolveCodebaseCachePaths,
+  resolveCodebaseCachePathsForRoots,
+} from './codebase-cache-storage';
 import {
   handleGraphRagTool,
   resetGraphRAGStateForTests,
@@ -1358,13 +1361,17 @@ describe('holo_absorb_repo root validation', () => {
     expect(nestedWorkerStarts).toBe(0);
   });
 
-  it('keeps multi-root cache coverage authoritative and refreshes every root', async () => {
+  it('isolates, reuses, and invalidates exact multi-root authority sets', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-multi-root-cache-'));
     const primaryRoot = makeTinyGitRepo('holoscript-multi-root-primary-');
     const secondaryRoot = makeTinyGitRepo('holoscript-multi-root-secondary-');
+    const alternateRoot = makeTinyGitRepo('holoscript-multi-root-alternate-');
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
     process.env.HOLOSCRIPT_WORKSPACE_ROOT = primaryRoot;
+    const primarySecondaryPaths = resolveCodebaseCachePathsForRoots([primaryRoot, secondaryRoot]);
+    const primaryAlternatePaths = resolveCodebaseCachePathsForRoots([primaryRoot, alternateRoot]);
+    expect(primarySecondaryPaths.directory).not.toBe(primaryAlternatePaths.directory);
 
     const first = (await handleCodebaseTool('holo_absorb_repo', {
       rootDirs: [primaryRoot, secondaryRoot],
@@ -1373,16 +1380,23 @@ describe('holo_absorb_repo root validation', () => {
     })) as {
       error?: string;
       graphAuthoritative?: boolean;
+      rootSetId?: string;
       stats?: { totalFiles?: number };
     };
     expect(first.error).toBeUndefined();
     expect(first.graphAuthoritative).toBe(true);
     expect(first.stats?.totalFiles).toBe(4);
+    expect(first.rootSetId).toHaveLength(64);
 
-    const firstEnvelope = JSON.parse(
-      fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')
-    ) as {
+    const firstEnvelope = JSON.parse(fs.readFileSync(primarySecondaryPaths.graphFile, 'utf-8')) as {
       rootDirs?: string[];
+      rootSetId?: string;
+      rootAuthorityPins?: Array<{
+        rootDir?: string;
+        gitCommitHash?: string | null;
+        worktreeFingerprint?: string | null;
+        coverageAtScan?: { complete?: boolean; graphFileCount?: number };
+      }>;
       coverageAtScan?: {
         complete?: boolean;
         rootCount?: number;
@@ -1403,8 +1417,76 @@ describe('holo_absorb_repo root validation', () => {
       graphFileCount: 4,
       overInclusive: false,
     });
+    expect(firstEnvelope.rootSetId).toBe(first.rootSetId);
+    expect(firstEnvelope.rootAuthorityPins).toHaveLength(2);
+    for (const pin of firstEnvelope.rootAuthorityPins ?? []) {
+      expect(pin.gitCommitHash).toMatch(/^[a-f0-9]{40}$/);
+      expect(pin.worktreeFingerprint).toMatch(/^[a-f0-9]{64}$/);
+      expect(pin.coverageAtScan).toMatchObject({
+        complete: true,
+        graphFileCount: 2,
+      });
+    }
     const firstSecondaryDigest =
       firstEnvelope.fileHashes?.['../' + path.basename(secondaryRoot) + '/src/alpha.ts'];
+
+    resetCodebaseToolStateForTests();
+    const reused = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDirs: [secondaryRoot, primaryRoot],
+      outputFormat: 'stats',
+    })) as {
+      cached?: boolean;
+      multiRootReuse?: boolean;
+      rootSetId?: string;
+      stats?: { totalFiles?: number };
+    };
+    expect(reused).toMatchObject({
+      cached: true,
+      multiRootReuse: true,
+      rootSetId: first.rootSetId,
+      stats: { totalFiles: 4 },
+    });
+
+    resetCodebaseToolStateForTests();
+    const alternate = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDirs: [primaryRoot, alternateRoot],
+      outputFormat: 'stats',
+      force: true,
+    })) as { rootSetId?: string; stats?: { totalFiles?: number } };
+    expect(alternate.stats?.totalFiles).toBe(4);
+    expect(alternate.rootSetId).not.toBe(first.rootSetId);
+    expect(fs.existsSync(primarySecondaryPaths.graphFile)).toBe(true);
+    expect(fs.existsSync(primaryAlternatePaths.graphFile)).toBe(true);
+
+    resetCodebaseToolStateForTests();
+    const reusedAfterAlternate = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDirs: [primaryRoot, secondaryRoot],
+      outputFormat: 'stats',
+    })) as { cached?: boolean; multiRootReuse?: boolean; rootSetId?: string };
+    expect(reusedAfterAlternate).toMatchObject({
+      cached: true,
+      multiRootReuse: true,
+      rootSetId: first.rootSetId,
+    });
+    const reusedStatus = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      graphAuthoritative?: boolean;
+      rootDirs?: string[];
+      rootSetId?: string;
+      rootSetAuthority?: { authoritative?: boolean };
+      cacheStorage?: { directory?: string };
+    };
+    expect(reusedStatus).toMatchObject({
+      graphAuthoritative: true,
+      rootSetId: first.rootSetId,
+      rootSetAuthority: { authoritative: true },
+      cacheStorage: { directory: primarySecondaryPaths.directory },
+    });
+    expect(reusedStatus.rootDirs?.map((entry) => path.resolve(entry))).toEqual([
+      path.resolve(primaryRoot),
+      path.resolve(secondaryRoot),
+    ]);
 
     fs.writeFileSync(
       path.join(secondaryRoot, 'src', 'alpha.ts'),
@@ -1416,6 +1498,19 @@ describe('holo_absorb_repo root validation', () => {
       cwd: secondaryRoot,
       windowsHide: true,
     });
+    const driftedStatus = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      graphAuthoritative?: boolean;
+      rootSetAuthority?: { authoritative?: boolean; changedRoots?: string[] };
+    };
+    expect(driftedStatus.graphAuthoritative).toBe(false);
+    expect(driftedStatus.rootSetAuthority?.authoritative).toBe(false);
+    expect(
+      driftedStatus.rootSetAuthority?.changedRoots?.some(
+        (rootDir) => path.resolve(rootDir) === path.resolve(secondaryRoot)
+      )
+    ).toBe(true);
 
     const refreshed = (await handleCodebaseTool('holo_absorb_repo', {
       rootDirs: [primaryRoot, secondaryRoot],
@@ -1433,12 +1528,23 @@ describe('holo_absorb_repo root validation', () => {
     });
 
     const refreshedEnvelope = JSON.parse(
-      fs.readFileSync(path.join(cacheDir, 'graph-cache.json'), 'utf-8')
-    ) as { fileHashes?: Record<string, string> };
+      fs.readFileSync(primarySecondaryPaths.graphFile, 'utf-8')
+    ) as {
+      fileHashes?: Record<string, string>;
+      rootAuthorityPins?: Array<{ rootDir?: string; gitCommitHash?: string | null }>;
+    };
     const refreshedSecondaryDigest =
       refreshedEnvelope.fileHashes?.['../' + path.basename(secondaryRoot) + '/src/alpha.ts'];
     expect(refreshedSecondaryDigest).toBeTruthy();
     expect(refreshedSecondaryDigest).not.toBe(firstSecondaryDigest);
+    expect(
+      refreshedEnvelope.rootAuthorityPins?.find((pin) =>
+        pin.rootDir ? path.resolve(pin.rootDir) === path.resolve(secondaryRoot) : false
+      )?.gitCommitHash
+    ).toBe(getHeadCommit(secondaryRoot));
+    expect(JSON.parse(fs.readFileSync(primaryAlternatePaths.graphFile, 'utf-8')).rootSetId).toBe(
+      alternate.rootSetId
+    );
   }, 30_000);
 
   it('interrupts and resumes a forced refresh without replacing the prior authoritative graph', async () => {

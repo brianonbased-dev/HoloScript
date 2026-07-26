@@ -36,7 +36,11 @@ import {
   requireNativeGraphRAGProvider,
   type GraphRAGEmbeddingPolicyReceipt,
 } from './graph-rag-embedding-policy';
-import { resolveCodebaseCachePaths } from './codebase-cache-storage';
+import {
+  codebaseRootSetId,
+  resolveCodebaseCachePaths,
+  resolveCodebaseCachePathsForRoots,
+} from './codebase-cache-storage';
 import {
   AbsorbRefreshCheckpoint,
   compactAbsorbRefreshProgressReceipt,
@@ -336,12 +340,13 @@ class AbsorbCancelledError extends Error {
 class AbsorbRefreshCommitPinError extends Error {
   constructor(
     readonly expectedCommit: string,
-    readonly actualCommit: string | null
+    readonly actualCommit: string | null,
+    readonly rootDir?: string
   ) {
     super(
-      `Repository HEAD changed during absorb refresh: expected ${expectedCommit}, received ${
-        actualCommit ?? 'no git commit'
-      }`
+      `Repository HEAD changed during absorb refresh${
+        rootDir ? ` for ${rootDir}` : ''
+      }: expected ${expectedCommit}, received ${actualCommit ?? 'no git commit'}`
     );
     this.name = 'AbsorbRefreshCommitPinError';
   }
@@ -350,12 +355,13 @@ class AbsorbRefreshCommitPinError extends Error {
 class AbsorbRefreshWorktreePinError extends Error {
   constructor(
     readonly expectedFingerprint: string,
-    readonly actualFingerprint: string | null
+    readonly actualFingerprint: string | null,
+    readonly rootDir?: string
   ) {
     super(
-      `Repository worktree changed during absorb refresh: expected ${expectedFingerprint}, received ${
-        actualFingerprint ?? 'unavailable'
-      }`
+      `Repository worktree changed during absorb refresh${
+        rootDir ? ` for ${rootDir}` : ''
+      }: expected ${expectedFingerprint}, received ${actualFingerprint ?? 'unavailable'}`
     );
     this.name = 'AbsorbRefreshWorktreePinError';
   }
@@ -836,8 +842,8 @@ function writerLeaseIsStale(record: AbsorbWriterLeaseRecord | null, leaseFile: s
   return ageMs > absorbWriterLeaseStaleMs();
 }
 
-function absorbWriterReceiptFile(rootDir: string, jobId: string): string {
-  const paths = resolveCodebaseCachePaths(resolveCacheWorkspaceRoot(rootDir));
+function absorbWriterReceiptFile(rootDir: string, jobId: string, rootDirs?: string[]): string {
+  const paths = resolveCachePathsForRoots(rootDir, rootDirs);
   return path.join(paths.writerReceiptsDirectory, `${jobId}.json`);
 }
 
@@ -849,9 +855,9 @@ function acquireAbsorbWriterLease(options: {
   jobId: string;
   adoptToken?: string;
 }): AbsorbWriterLeaseAcquisition {
-  const paths = resolveCodebaseCachePaths(resolveCacheWorkspaceRoot(options.rootDir));
+  const paths = resolveCachePathsForRoots(options.rootDir, options.rootDirs);
   fs.mkdirSync(paths.directory, { recursive: true });
-  const receiptFile = absorbWriterReceiptFile(options.rootDir, options.jobId);
+  const receiptFile = absorbWriterReceiptFile(options.rootDir, options.jobId, options.rootDirs);
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const token =
@@ -875,7 +881,8 @@ function acquireAbsorbWriterLease(options: {
       acquiredAt: now,
       updatedAt: now,
       priorGenerationId:
-        readCacheGenerationManifest(options.rootDir)?.manifest.generationId ?? null,
+        readCacheGenerationManifest(options.rootDir, options.rootDirs)?.manifest.generationId ??
+        null,
     };
 
     try {
@@ -914,7 +921,7 @@ function acquireAbsorbWriterLease(options: {
         lease: {
           record: observed,
           leaseFile: paths.writerLeaseFile,
-          receiptFile: absorbWriterReceiptFile(options.rootDir, observed.jobId),
+          receiptFile: absorbWriterReceiptFile(options.rootDir, observed.jobId, options.rootDirs),
         },
         recoveredStaleLease: false,
       };
@@ -940,7 +947,7 @@ function acquireAbsorbWriterLease(options: {
           } satisfies AbsorbWriterLeaseRecord),
         leaseFile: paths.writerLeaseFile,
         receiptFile: observed
-          ? absorbWriterReceiptFile(options.rootDir, observed.jobId)
+          ? absorbWriterReceiptFile(options.rootDir, observed.jobId, options.rootDirs)
           : receiptFile,
       };
     }
@@ -1941,11 +1948,20 @@ const COVERAGE_NON_ABSORBABLE_EXT = new Set([
   'ds_store',
 ]);
 
+interface GraphRootAuthorityPin {
+  rootDir: string;
+  gitCommitHash: string | null;
+  worktreeFingerprint: string | null;
+  coverageAtScan: GraphCoverageStatus;
+}
+
 interface GraphCacheEnvelope {
   version: 1 | 2;
   cacheGenerationId?: string;
   rootDir: string;
   rootDirs?: string[];
+  rootSetId?: string;
+  rootAuthorityPins?: GraphRootAuthorityPin[];
   timestamp: number;
   stats: Record<string, unknown>;
   graphJson: string;
@@ -2159,9 +2175,12 @@ function resolveGenerationArtifact(
   return resolved;
 }
 
-function readCacheGenerationManifest(rootDir?: string | null): CacheGenerationSelection | null {
-  const workspaceRoot = resolveCacheWorkspaceRoot(rootDir);
-  const paths = resolveCodebaseCachePaths(workspaceRoot);
+function readCacheGenerationManifest(
+  rootDir?: string | null,
+  rootDirs?: string[] | null
+): CacheGenerationSelection | null {
+  const workspaceRoot = resolveCacheWorkspaceRootForRoots(rootDir, rootDirs);
+  const paths = resolveCachePathsForRoots(rootDir, rootDirs);
   if (!fs.existsSync(paths.generationManifestFile)) return null;
   try {
     const manifest = JSON.parse(
@@ -2209,28 +2228,26 @@ function readCacheGenerationManifest(rootDir?: string | null): CacheGenerationSe
   }
 }
 
-function getCacheFile(rootDir?: string | null): string {
-  const workspaceRoot = resolveCacheWorkspaceRoot(rootDir);
+function getCacheFile(rootDir?: string | null, rootDirs?: string[] | null): string {
   return (
-    readCacheGenerationManifest(workspaceRoot)?.graphFile ??
-    resolveCodebaseCachePaths(workspaceRoot).graphFile
+    readCacheGenerationManifest(rootDir, rootDirs)?.graphFile ??
+    resolveCachePathsForRoots(rootDir, rootDirs).graphFile
   );
 }
 
-function getEmbeddingsFile(rootDir?: string | null): string {
-  const workspaceRoot = resolveCacheWorkspaceRoot(rootDir);
-  const selected = readCacheGenerationManifest(workspaceRoot);
+function getEmbeddingsFile(rootDir?: string | null, rootDirs?: string[] | null): string {
+  const selected = readCacheGenerationManifest(rootDir, rootDirs);
   if (selected) {
     return (
       selected.embeddingsFile ??
       path.join(
-        resolveCodebaseCachePaths(workspaceRoot).generationsDirectory,
+        resolveCachePathsForRoots(rootDir, rootDirs).generationsDirectory,
         selected.manifest.generationId,
         'embeddings-cache.missing'
       )
     );
   }
-  return resolveCodebaseCachePaths(workspaceRoot).embeddingsFile;
+  return resolveCachePathsForRoots(rootDir, rootDirs).embeddingsFile;
 }
 
 function formatCacheAge(ageMs: number | undefined): string | null {
@@ -2243,6 +2260,53 @@ function formatCacheAge(ageMs: number | undefined): string | null {
 function normalizeRootForComparison(rootDir: string): string {
   const normalized = path.normalize(path.resolve(rootDir)).replace(/[\\\/]+$/, '');
   return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+function normalizeRootSet(rootDirs: string[]): string[] {
+  return Array.from(
+    new Set(rootDirs.filter(Boolean).map((rootDir) => normalizeRootForComparison(rootDir)))
+  ).sort((left, right) => left.localeCompare(right));
+}
+
+function canonicalizeRootSet(rootDirs: string[]): string[] {
+  const rootsByIdentity = new Map<string, string>();
+  for (const rootDir of rootDirs.filter(Boolean)) {
+    const resolvedRoot = path.resolve(rootDir);
+    const identity = normalizeRootForComparison(resolvedRoot);
+    if (!rootsByIdentity.has(identity)) {
+      rootsByIdentity.set(identity, resolvedRoot);
+    }
+  }
+  return Array.from(rootsByIdentity.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, rootDir]) => rootDir);
+}
+
+function buildRootSetId(rootDirs: string[]): string {
+  return codebaseRootSetId(rootDirs);
+}
+
+/**
+ * A multi-root graph is a distinct authority object, not an alias of its first
+ * root. Keep the legacy single-root lane byte-for-byte compatible while giving
+ * each normalized root set an isolated generation/lease namespace.
+ */
+function resolveCacheWorkspaceRootForRoots(
+  rootDir?: string | null,
+  rootDirs?: string[] | null
+): string {
+  const primaryRoot = resolveCacheWorkspaceRoot(rootDir);
+  const normalizedRoots = normalizeRootSet(
+    rootDirs && rootDirs.length > 0 ? rootDirs : [primaryRoot]
+  );
+  if (normalizedRoots.length <= 1) return primaryRoot;
+  return resolveCodebaseCachePathsForRoots(normalizedRoots).workspaceRoot;
+}
+
+function resolveCachePathsForRoots(rootDir?: string | null, rootDirs?: string[] | null) {
+  const effectiveRoots =
+    rootDirs && rootDirs.length > 0 ? rootDirs : [resolveCacheWorkspaceRoot(rootDir)];
+  return resolveCodebaseCachePathsForRoots(effectiveRoots);
 }
 
 function rootMatchesCurrentRepo(
@@ -2594,6 +2658,142 @@ function graphCoverageIsComplete(coverage: GraphCoverageStatus): boolean {
     coverage.overInclusive !== true &&
     coverage.cappedByMaxFiles !== true
   );
+}
+
+interface GraphRootSourcePin {
+  rootDir: string;
+  gitCommitHash: string | null;
+  worktreeFingerprint: string | null;
+}
+
+function fileBelongsToRoot(filePath: string, rootDir: string): boolean {
+  const relative = path.relative(path.resolve(rootDir), path.resolve(filePath));
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+async function captureGraphRootSourcePins(
+  rootDirs: string[],
+  scanPolicy: GraphScanPolicy,
+  primaryCommit?: string | null,
+  primaryWorktreeFingerprint?: string | null
+): Promise<GraphRootSourcePin[]> {
+  const primaryRoot = normalizeRootForComparison(rootDirs[0] ?? '');
+  return Promise.all(
+    canonicalizeRootSet(rootDirs).map(async (rootDir) => {
+      const isPrimary = normalizeRootForComparison(rootDir) === primaryRoot;
+      return {
+        rootDir: path.resolve(rootDir),
+        gitCommitHash:
+          isPrimary && primaryCommit !== undefined
+            ? primaryCommit
+            : await getCurrentGitCommit(rootDir),
+        worktreeFingerprint:
+          isPrimary && primaryWorktreeFingerprint !== undefined
+            ? primaryWorktreeFingerprint
+            : buildGitWorktreeFingerprint(rootDir, scanPolicy),
+      };
+    })
+  );
+}
+
+async function assertGraphRootSourcePinsCurrent(
+  pins: GraphRootSourcePin[],
+  scanPolicy: GraphScanPolicy
+): Promise<void> {
+  for (const pin of pins) {
+    const currentCommit = await getCurrentGitCommit(pin.rootDir);
+    if (pin.gitCommitHash !== currentCommit) {
+      throw new AbsorbRefreshCommitPinError(
+        pin.gitCommitHash ?? 'no git commit',
+        currentCommit,
+        pin.rootDir
+      );
+    }
+    const currentFingerprint = buildGitWorktreeFingerprint(pin.rootDir, scanPolicy);
+    if (pin.worktreeFingerprint !== currentFingerprint) {
+      throw new AbsorbRefreshWorktreePinError(
+        pin.worktreeFingerprint ?? 'unavailable',
+        currentFingerprint,
+        pin.rootDir
+      );
+    }
+  }
+}
+
+function buildGraphRootAuthorityPins(
+  sourcePins: GraphRootSourcePin[],
+  primaryRootDir: string,
+  scannedFilePaths: string[],
+  scanPolicy: GraphScanPolicy
+): GraphRootAuthorityPin[] {
+  const absoluteFiles = scannedFilePaths.map((filePath) => path.resolve(primaryRootDir, filePath));
+  return sourcePins.map((pin) => {
+    const graphFileCount = absoluteFiles.filter((filePath) =>
+      fileBelongsToRoot(filePath, pin.rootDir)
+    ).length;
+    return {
+      ...pin,
+      coverageAtScan: buildGraphCoverageStatus(pin.rootDir, graphFileCount, scanPolicy),
+    };
+  });
+}
+
+interface GraphRootSetAuthorityStatus {
+  authoritative: boolean;
+  rootSetMatches: boolean;
+  changedRoots: string[];
+  incompleteRoots: string[];
+}
+
+type GraphRootSetAuthoritySource = Pick<
+  GraphCacheEnvelope,
+  'rootDir' | 'rootDirs' | 'rootSetId' | 'rootAuthorityPins' | 'scanPolicy'
+>;
+
+async function evaluateGraphRootSetAuthority(
+  envelope: GraphRootSetAuthoritySource,
+  requestedRootDirs: string[]
+): Promise<GraphRootSetAuthorityStatus> {
+  const envelopeRoots = envelope.rootDirs ?? [envelope.rootDir];
+  const rootSetMatches = absorbRootSetsMatch(envelopeRoots, requestedRootDirs);
+  const requested = canonicalizeRootSet(requestedRootDirs);
+  const pins = envelope.rootAuthorityPins ?? [];
+  if (
+    !rootSetMatches ||
+    envelope.rootSetId !== buildRootSetId(requestedRootDirs) ||
+    pins.length !== requested.length
+  ) {
+    return {
+      authoritative: false,
+      rootSetMatches,
+      changedRoots: [],
+      incompleteRoots: requested,
+    };
+  }
+
+  const pinsByRoot = new Map(
+    pins.map((pin) => [normalizeRootForComparison(pin.rootDir), pin] as const)
+  );
+  const changedRoots: string[] = [];
+  const incompleteRoots: string[] = [];
+  for (const rootDir of requested) {
+    const pin = pinsByRoot.get(normalizeRootForComparison(rootDir));
+    if (!pin || !graphCoverageIsComplete(pin.coverageAtScan)) {
+      incompleteRoots.push(rootDir);
+      continue;
+    }
+    const currentCommit = await getCurrentGitCommit(rootDir);
+    const currentFingerprint = buildGitWorktreeFingerprint(rootDir, envelope.scanPolicy);
+    if (currentCommit !== pin.gitCommitHash || currentFingerprint !== pin.worktreeFingerprint) {
+      changedRoots.push(rootDir);
+    }
+  }
+  return {
+    authoritative: changedRoots.length === 0 && incompleteRoots.length === 0,
+    rootSetMatches,
+    changedRoots,
+    incompleteRoots,
+  };
 }
 
 // Scan reuse can be complete for an explicitly capped subset even though that
@@ -3324,7 +3524,8 @@ function saveGraphCache(
   embeddingCacheIdentity?: EmbeddingCacheIdentity,
   rootDirs?: string[],
   targetPath?: string,
-  cacheGenerationId?: string
+  cacheGenerationId?: string,
+  rootAuthorityPins?: GraphRootAuthorityPin[]
 ): boolean {
   const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
   if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
@@ -3346,12 +3547,16 @@ function saveGraphCache(
     graph.worktreeFingerprint = worktreeFingerprint ?? undefined;
     graph.coverageAtScan = coverageAtScan;
     graph.rootDirs = normalizedRootDirs;
+    graph.rootSetId = buildRootSetId(normalizedRootDirs);
+    graph.rootAuthorityPins = rootAuthorityPins;
     graph.localCodebaseSnapshotReceipt = localCodebaseSnapshotReceipt;
     const envelope: GraphCacheEnvelope = {
       version: 2,
       ...(cacheGenerationId && { cacheGenerationId }),
       rootDir,
       rootDirs: normalizedRootDirs,
+      rootSetId: buildRootSetId(normalizedRootDirs),
+      rootAuthorityPins,
       timestamp: Date.now(),
       stats,
       graphJson: serializedGraph ?? graph.serialize(),
@@ -3403,9 +3608,12 @@ interface EmbeddingCacheIdentity {
   mtimeMs: number;
 }
 
-function readEmbeddingsCacheIdentity(rootDir?: string | null): EmbeddingCacheIdentity | null {
+function readEmbeddingsCacheIdentity(
+  rootDir?: string | null,
+  rootDirs?: string[] | null
+): EmbeddingCacheIdentity | null {
   try {
-    const embeddingsFile = getEmbeddingsFile(rootDir);
+    const embeddingsFile = getEmbeddingsFile(rootDir, rootDirs);
     if (!fs.existsSync(embeddingsFile)) return null;
     const buffer = fs.readFileSync(embeddingsFile);
     const stat = fs.statSync(embeddingsFile);
@@ -3484,9 +3692,10 @@ function replaceCacheAliasWithHardLink(sourcePath: string, aliasPath: string): v
 function refreshCacheCompatibilityAliases(
   rootDir: string,
   graphFile: string,
-  embeddingsFile: string | null
+  embeddingsFile: string | null,
+  rootDirs?: string[]
 ): void {
-  const paths = resolveCodebaseCachePaths(resolveCacheWorkspaceRoot(rootDir));
+  const paths = resolveCachePathsForRoots(rootDir, rootDirs);
   replaceCacheAliasWithHardLink(graphFile, paths.graphFile);
   if (embeddingsFile) {
     replaceCacheAliasWithHardLink(embeddingsFile, paths.embeddingsFile);
@@ -3506,6 +3715,7 @@ interface PublishCacheGenerationOptions {
   serializedGraph?: string;
   embeddingIndex?: any;
   reuseCurrentEmbeddings?: boolean;
+  rootAuthorityPins?: GraphRootAuthorityPin[];
 }
 
 interface PublishedCacheGeneration {
@@ -3519,8 +3729,8 @@ interface PublishedCacheGeneration {
 function publishCacheGeneration(
   options: PublishCacheGenerationOptions
 ): PublishedCacheGeneration | null {
-  const workspaceRoot = resolveCacheWorkspaceRoot(options.rootDir);
-  const paths = resolveCodebaseCachePaths(workspaceRoot);
+  const workspaceRoot = resolveCacheWorkspaceRootForRoots(options.rootDir, options.rootDirs);
+  const paths = resolveCachePathsForRoots(options.rootDir, options.rootDirs);
   const generationId = createHash('sha256')
     .update(
       `${workspaceRoot}:${options.gitCommitHash ?? ''}:${Date.now()}:${process.pid}:${Math.random()}`
@@ -3546,7 +3756,7 @@ function publishCacheGeneration(
       }
       publishedEmbeddingsFile = embeddingsFile;
     } else if (options.reuseCurrentEmbeddings) {
-      const currentEmbeddingsFile = getEmbeddingsFile(options.rootDir);
+      const currentEmbeddingsFile = getEmbeddingsFile(options.rootDir, options.rootDirs);
       if (fs.existsSync(currentEmbeddingsFile)) {
         const buffer = fs.readFileSync(currentEmbeddingsFile);
         atomicWriteFileSync(embeddingsFile, buffer);
@@ -3577,7 +3787,8 @@ function publishCacheGeneration(
       embeddingIdentity ?? undefined,
       options.rootDirs,
       graphFile,
-      generationId
+      generationId,
+      options.rootAuthorityPins
     );
     if (!graphSaved) {
       throw new Error('Unable to write graph artifact for cache generation');
@@ -3596,7 +3807,12 @@ function publishCacheGeneration(
       publishedAt: new Date().toISOString(),
     };
     atomicWriteFileSync(paths.generationManifestFile, JSON.stringify(manifest), 'utf-8');
-    refreshCacheCompatibilityAliases(options.rootDir, graphFile, publishedEmbeddingsFile);
+    refreshCacheCompatibilityAliases(
+      options.rootDir,
+      graphFile,
+      publishedEmbeddingsFile,
+      options.rootDirs
+    );
     invalidateGraphStatusSnapshot();
     return {
       generationId,
@@ -3622,10 +3838,11 @@ function publishCacheGeneration(
 
 function bindGraphCacheToEmbeddings(
   rootDir: string,
-  identity: EmbeddingCacheIdentity | null
+  identity: EmbeddingCacheIdentity | null,
+  rootDirs?: string[]
 ): boolean {
   if (!identity) return false;
-  const cacheRead = readGraphCache(rootDir, { allowExpiredV1: true });
+  const cacheRead = readGraphCache(rootDir, { allowExpiredV1: true, rootDirs });
   if (!cacheRead) return false;
   try {
     atomicWriteGraphCacheEnvelopeSync(cacheRead.cacheFile, {
@@ -3634,7 +3851,12 @@ function bindGraphCacheToEmbeddings(
       embeddingCacheBytes: identity.bytes,
       embeddingCacheMtimeMs: identity.mtimeMs,
     });
-    refreshCacheCompatibilityAliases(rootDir, cacheRead.cacheFile, getEmbeddingsFile(rootDir));
+    refreshCacheCompatibilityAliases(
+      rootDir,
+      cacheRead.cacheFile,
+      getEmbeddingsFile(rootDir, rootDirs),
+      rootDirs
+    );
     return true;
   } catch (err) {
     console.warn(
@@ -3644,8 +3866,11 @@ function bindGraphCacheToEmbeddings(
   }
 }
 
-function readEmbeddingsCacheModel(rootDir?: string | null): string | null {
-  const embeddingsFile = getEmbeddingsFile(rootDir);
+function readEmbeddingsCacheModel(
+  rootDir?: string | null,
+  rootDirs?: string[] | null
+): string | null {
+  const embeddingsFile = getEmbeddingsFile(rootDir, rootDirs);
   if (!fs.existsSync(embeddingsFile)) return null;
 
   let fd: number | undefined;
@@ -3671,13 +3896,14 @@ async function loadEmbeddingsCache(
   mod: any,
   providerInstance: any,
   rootDir?: string | null,
-  expectedSha256?: string | null
+  expectedSha256?: string | null,
+  rootDirs?: string[] | null
 ): Promise<any | null> {
   try {
     // A current graph envelope that explicitly has no bound embedding
     // generation must not hydrate an arbitrary binary left by an older scan.
     if (expectedSha256 === null) return null;
-    const embeddingsFile = getEmbeddingsFile(rootDir);
+    const embeddingsFile = getEmbeddingsFile(rootDir, rootDirs);
     if (!fs.existsSync(embeddingsFile)) return null;
     const buffer = fs.readFileSync(embeddingsFile);
     if (expectedSha256 && embeddingCacheSha256(buffer) !== expectedSha256) {
@@ -3710,7 +3936,9 @@ async function loadEmbeddingsCache(
     const index = mod.EmbeddingIndex.deserializeBinary(buffer, { provider: providerInstance });
     return index;
   } catch (err) {
-    console.warn(`[CacheDebug][codebase] load embeddings miss path=${getEmbeddingsFile(rootDir)}`);
+    console.warn(
+      `[CacheDebug][codebase] load embeddings miss path=${getEmbeddingsFile(rootDir, rootDirs)}`
+    );
     return null;
   }
 }
@@ -3722,11 +3950,14 @@ interface GraphCacheReadResult {
 
 function readGraphCache(
   rootDir?: string | null,
-  options: { allowExpiredV1?: boolean } = {}
+  options: { allowExpiredV1?: boolean; rootDirs?: string[] | null } = {}
 ): GraphCacheReadResult | null {
-  const workspaceRoot = resolveCacheWorkspaceRoot(rootDir);
-  const paths = resolveCodebaseCachePaths(workspaceRoot);
-  const selected = readCacheGenerationManifest(workspaceRoot);
+  const explicitRootDirs =
+    options.rootDirs && options.rootDirs.length > 0 ? options.rootDirs : null;
+  const exactRootSetRequested = explicitRootDirs !== null;
+  const requestedRootDirs = explicitRootDirs ?? [resolveCacheWorkspaceRoot(rootDir)];
+  const paths = resolveCachePathsForRoots(rootDir, requestedRootDirs);
+  const selected = readCacheGenerationManifest(rootDir, requestedRootDirs);
   const candidates = [
     ...(selected
       ? [
@@ -3769,10 +4000,14 @@ function readGraphCache(
         continue;
       }
 
-      // A namespaced reader may use the old flat cache only when it belongs to
-      // this exact workspace. This makes upgrades non-destructive without
-      // reviving the cross-repository eviction bug.
-      if (paths.layout !== 'flat' && !rootMatchesCurrentRepo(envelope.rootDir, workspaceRoot)) {
+      // A namespaced reader may use a cache only when it belongs to the exact
+      // normalized root set requested. This keeps A+B isolated from A+C even
+      // though both sets share the same primary root A.
+      const envelopeRootDirs = envelope.rootDirs ?? [envelope.rootDir];
+      if (
+        (exactRootSetRequested && !absorbRootSetsMatch(envelopeRootDirs, requestedRootDirs)) ||
+        (!exactRootSetRequested && envelopeRootDirs.length > 1)
+      ) {
         continue;
       }
 
@@ -3791,8 +4026,11 @@ function readGraphCache(
   return null;
 }
 
-function loadGraphCache(rootDir?: string | null): GraphCacheEnvelope | null {
-  return readGraphCache(rootDir)?.envelope ?? null;
+function loadGraphCache(
+  rootDir?: string | null,
+  rootDirs?: string[] | null
+): GraphCacheEnvelope | null {
+  return readGraphCache(rootDir, { rootDirs })?.envelope ?? null;
 }
 
 function attachGraphCacheMetadata(graph: any, envelope: GraphCacheEnvelope): void {
@@ -3801,6 +4039,8 @@ function attachGraphCacheMetadata(graph: any, envelope: GraphCacheEnvelope): voi
   graph.scanPolicy = normalizeScanPolicy(envelope.scanPolicy);
   graph.worktreeFingerprint = envelope.worktreeFingerprint;
   graph.coverageAtScan = envelope.coverageAtScan;
+  graph.rootSetId = envelope.rootSetId;
+  graph.rootAuthorityPins = envelope.rootAuthorityPins;
   graph.localCodebaseSnapshotReceipt = envelope.localCodebaseSnapshotReceipt;
   graph.embeddingCacheSha256 = envelope.embeddingCacheSha256;
   graph.embeddingCacheBytes = envelope.embeddingCacheBytes;
@@ -3808,7 +4048,10 @@ function attachGraphCacheMetadata(graph: any, envelope: GraphCacheEnvelope): voi
   graph.rootDirs = envelope.rootDirs ?? [envelope.rootDir];
 }
 
-function getCacheAge(rootDir?: string | null): {
+function getCacheAge(
+  rootDir?: string | null,
+  rootDirs?: string[] | null
+): {
   exists: boolean;
   ageMs?: number;
   rootDir?: string;
@@ -3826,9 +4069,11 @@ function getCacheAge(rootDir?: string | null): {
   embeddingCacheBytes?: number | null;
   embeddingCacheMtimeMs?: number | null;
   rootDirs?: string[];
+  rootSetId?: string;
+  rootAuthorityPins?: GraphRootAuthorityPin[];
 } {
   try {
-    const cacheRead = readGraphCache(rootDir, { allowExpiredV1: true });
+    const cacheRead = readGraphCache(rootDir, { allowExpiredV1: true, rootDirs });
     if (!cacheRead) return { exists: false };
     const envelope = cacheRead.envelope;
     return {
@@ -3849,6 +4094,8 @@ function getCacheAge(rootDir?: string | null): {
       embeddingCacheBytes: envelope.embeddingCacheBytes,
       embeddingCacheMtimeMs: envelope.embeddingCacheMtimeMs,
       rootDirs: envelope.rootDirs ?? [envelope.rootDir],
+      rootSetId: envelope.rootSetId,
+      rootAuthorityPins: envelope.rootAuthorityPins,
     };
   } catch {
     return { exists: false };
@@ -4397,8 +4644,7 @@ export const codebaseTools: Tool[] = [
       properties: {
         audit: {
           type: 'boolean',
-          description:
-            'Include the executable HoloAbsorb self-audit. Defaults to true.',
+          description: 'Include the executable HoloAbsorb self-audit. Defaults to true.',
           default: true,
         },
       },
@@ -4873,7 +5119,8 @@ async function hydrateGraphRAGFromDiskEmbeddings(
   graph: unknown,
   rootDir: string,
   timestamp?: number,
-  expectedEmbeddingSha256?: string | null
+  expectedEmbeddingSha256?: string | null,
+  rootDirs?: string[]
 ): Promise<boolean> {
   const { GraphRAGEngine } = mod;
   const providerName = await detectBestEmbeddingProvider();
@@ -4886,7 +5133,13 @@ async function hydrateGraphRAGFromDiskEmbeddings(
     xenovaModel: process.env.XENOVA_MODEL,
   });
 
-  const cachedIndex = await loadEmbeddingsCache(mod, providerObj, rootDir, expectedEmbeddingSha256);
+  const cachedIndex = await loadEmbeddingsCache(
+    mod,
+    providerObj,
+    rootDir,
+    expectedEmbeddingSha256,
+    rootDirs
+  );
   if (!cachedIndex) return false;
 
   setGraphRAGState(cachedIndex, new GraphRAGEngine(graph, cachedIndex), {
@@ -4920,6 +5173,9 @@ async function ensureCachedGraph(): Promise<{
       scanPolicy?: GraphScanPolicy;
       worktreeFingerprint?: string;
       coverageAtScan?: GraphCoverageStatus;
+      rootDirs?: string[];
+      rootSetId?: string;
+      rootAuthorityPins?: GraphRootAuthorityPin[];
       localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
     };
     const memoryFileHashes = memoryGraph.fileHashes;
@@ -4930,6 +5186,7 @@ async function ensureCachedGraph(): Promise<{
     const freshByAge = ageMs === undefined || ageMs < CACHE_MAX_AGE_MS;
     const currentGitCommitHash = await getCurrentGitCommit(memoryRootDir);
     const currentWorktreeFingerprint = buildGitWorktreeFingerprint(memoryRootDir, memoryScanPolicy);
+    const memoryRootDirs = memoryGraph.rootDirs ?? [memoryRootDir];
     let coverage = memoryGraph.coverageAtScan;
     const localCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
       receipt: memoryGraph.localCodebaseSnapshotReceipt,
@@ -4938,12 +5195,26 @@ async function ensureCachedGraph(): Promise<{
       freshByAge,
     });
     let authoritative = localCodebaseSnapshot?.authoritative === true && freshByAge;
+    if (!authoritative && freshByAge && memoryRootDirs.length > 1) {
+      const rootSetAuthority = await evaluateGraphRootSetAuthority(
+        {
+          rootDir: memoryRootDir,
+          rootDirs: memoryRootDirs,
+          rootSetId: memoryGraph.rootSetId,
+          rootAuthorityPins: memoryGraph.rootAuthorityPins,
+          scanPolicy: memoryScanPolicy,
+        },
+        memoryRootDirs
+      );
+      authoritative = rootSetAuthority.authoritative;
+    }
 
     // Warm path: HEAD and the persisted dirty-worktree fingerprint match, so
     // no graph JSON reload, full-repo hash pass, or repeated coverage walk is
     // needed. The fingerprint hashes bytes for every Git-visible dirty path.
     if (
       !authoritative &&
+      memoryRootDirs.length === 1 &&
       freshByAge &&
       memoryGitCommitHash &&
       currentGitCommitHash === memoryGitCommitHash &&
@@ -4956,7 +5227,7 @@ async function ensureCachedGraph(): Promise<{
     }
 
     // Legacy cache or changed HEAD/worktree: pay the comprehensive check once.
-    if (!authoritative && freshByAge) {
+    if (!authoritative && freshByAge && memoryRootDirs.length === 1) {
       coverage = buildGraphCoverageStatusForRoots(
         (memoryGraph as { rootDirs?: string[] }).rootDirs ?? [memoryRootDir],
         memoryFileHashes ? Object.keys(memoryFileHashes).length : 0,
@@ -5017,7 +5288,8 @@ async function ensureCachedGraph(): Promise<{
           cachedGraph,
           cachedRootDir,
           cacheTimestamp,
-          (cachedGraph as { embeddingCacheSha256?: string | null }).embeddingCacheSha256
+          (cachedGraph as { embeddingCacheSha256?: string | null }).embeddingCacheSha256,
+          memoryRootDirs
         );
       } catch (err) {
         console.warn(`[AbsorbCacheWarm] memory GraphRAG hydrate skipped: ${String(err)}`);
@@ -5219,6 +5491,7 @@ async function ensureCachedGraph(): Promise<{
                   localCodebaseSnapshotReceipt: envelope.localCodebaseSnapshotReceipt,
                   scanPolicy: envelope.scanPolicy,
                   embeddingIndex: idx,
+                  rootAuthorityPins: envelope.rootAuthorityPins,
                 });
                 if (!published) {
                   throw new Error('Unable to publish background GraphRAG cache generation');
@@ -5384,6 +5657,14 @@ async function runFullScan(
     ? null
     : (targetWorktreeFingerprint ??
       buildGitWorktreeFingerprint(primaryRootDir, effectiveScanPolicy));
+  const rootSourcePins = inlineSourceFiles
+    ? []
+    : await captureGraphRootSourcePins(
+        rootDirs,
+        effectiveScanPolicy,
+        effectiveTargetGitCommitHash,
+        effectiveTargetWorktreeFingerprint
+      );
   const recordPhaseMetric = (
     phase: string,
     details: Partial<Pick<AbsorbPhaseMetric, 'filesProcessed' | 'totalFiles' | 'totalSymbols'>> = {}
@@ -5407,7 +5688,7 @@ async function runFullScan(
   // same commit as the persisted embeddings, the disk `.bin` is still valid — we
   // can load it instead of re-embedding 343k symbols. Read here, at the top,
   // because the save at the end of the scan-persist step clobbers the file.
-  const priorEnvelopeForHydrate = loadGraphCache(primaryRootDir);
+  const priorEnvelopeForHydrate = loadGraphCache(primaryRootDir, rootDirs);
   const priorGitCommitHash = priorEnvelopeForHydrate?.gitCommitHash;
 
   const rootDiagnostics = inlineSourceFiles
@@ -5419,7 +5700,7 @@ async function runFullScan(
     (diagnostic) => !diagnostic.resolvedDirExists || !diagnostic.resolvedDirReadable
   );
   if (inaccessibleRoots.length > 0) {
-    const cache = getCacheAge(primaryRootDir);
+    const cache = getCacheAge(primaryRootDir, rootDirs);
     const graphUnavailableReceipt = buildGraphUnavailableReceipt({
       reason: 'rootDir_unavailable',
       requestedPath: inaccessibleRoots[0].requestedRootDir,
@@ -5442,31 +5723,14 @@ async function runFullScan(
     return result;
   }
 
-  const enforceRefreshSourcePin = (): void => {
-    let error: AbsorbRefreshCommitPinError | AbsorbRefreshWorktreePinError | undefined;
-    if (effectiveTargetGitCommitHash) {
-      const detector = new GitChangeDetector(primaryRootDir);
-      const currentCommit =
-        typeof detector.isGitRepo !== 'function' || detector.isGitRepo()
-          ? (detector.getHeadCommit?.() ?? null)
-          : null;
-      if (currentCommit !== effectiveTargetGitCommitHash) {
-        error = new AbsorbRefreshCommitPinError(effectiveTargetGitCommitHash, currentCommit);
-      }
+  const enforceRefreshSourcePin = async (): Promise<void> => {
+    try {
+      await assertGraphRootSourcePinsCurrent(rootSourcePins, effectiveScanPolicy);
+    } catch (error) {
+      activeRefreshCheckpoint?.markInvalidated(error);
+      setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
+      throw error;
     }
-    if (!error && effectiveTargetWorktreeFingerprint) {
-      const currentFingerprint = buildGitWorktreeFingerprint(primaryRootDir, effectiveScanPolicy);
-      if (currentFingerprint !== effectiveTargetWorktreeFingerprint) {
-        error = new AbsorbRefreshWorktreePinError(
-          effectiveTargetWorktreeFingerprint,
-          currentFingerprint
-        );
-      }
-    }
-    if (!error) return;
-    activeRefreshCheckpoint?.markInvalidated(error);
-    setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
-    throw error;
   };
 
   if (jobId) trackAbsorbProgress(jobId, 'Discovering files', 5);
@@ -5482,7 +5746,7 @@ async function runFullScan(
   if (jobId) trackAbsorbProgress(jobId, 'Scanning codebase', 10);
 
   try {
-    enforceRefreshSourcePin();
+    await enforceRefreshSourcePin();
     if (inlineSourceFiles) {
       const inlineScan = buildInlineSourceScan(primaryRootDir, inlineSourceFiles);
       const selectedFilePaths = effectiveMaxFiles
@@ -5663,6 +5927,10 @@ async function runFullScan(
   // Compute git commit hash and file hashes for v2 cache
   let gitCommitHash: string | undefined;
   let fileHashes: Record<string, string> | undefined;
+  const scannedFilePaths =
+    (scanResult as { files?: Array<{ path?: string }> }).files
+      ?.map((file) => file.path)
+      .filter((filePath): filePath is string => typeof filePath === 'string') ?? [];
 
   if (inlineSourceFiles) {
     fileHashes = hashInlineSourceFiles(inlineSourceFiles);
@@ -5670,14 +5938,23 @@ async function runFullScan(
     const detector = new GitChangeDetector(primaryRootDir);
     if (detector.isGitRepo()) {
       gitCommitHash = effectiveTargetGitCommitHash ?? detector.getHeadCommit() ?? undefined;
-      const filePaths = (scanResult as { files: any[] }).files.map((f: any) => f.path);
-      const hashes = detector.computeFileHashes(filePaths);
+      const hashes = detector.computeFileHashes(scannedFilePaths);
       fileHashes = Object.fromEntries(hashes.map((h: any) => [h.filePath, h.hash]));
     }
   }
+  const rootAuthorityPins = inlineSourceFiles
+    ? undefined
+    : buildGraphRootAuthorityPins(
+        rootSourcePins,
+        primaryRootDir,
+        scannedFilePaths,
+        effectiveScanPolicy
+      );
 
   graph.gitCommitHash = gitCommitHash;
   graph.fileHashes = fileHashes;
+  graph.rootSetId = buildRootSetId(rootDirs);
+  graph.rootAuthorityPins = rootAuthorityPins;
   recordPhaseMetric('git-hash', {
     filesProcessed: scanResult?.stats?.totalFiles,
     totalFiles: scanPlanReceipt?.totalCandidateFiles,
@@ -5691,7 +5968,7 @@ async function runFullScan(
     : await detectBestEmbeddingProvider();
 
   if (outputFormat === 'stats') {
-    enforceRefreshSourcePin();
+    await enforceRefreshSourcePin();
     enforceAbsorbJobControl(jobId, 'graph-cache-commit');
     const publishedGeneration = publishCacheGeneration({
       graph,
@@ -5703,6 +5980,7 @@ async function runFullScan(
       embeddingProvider: detectedProvider,
       localCodebaseSnapshotReceipt,
       scanPolicy: effectiveScanPolicy,
+      rootAuthorityPins,
     });
     if (!publishedGeneration) {
       const error = new Error('Unable to publish the completed absorb graph cache atomically');
@@ -5753,6 +6031,8 @@ async function runFullScan(
       }),
       phaseMetrics,
       gitCommitHash,
+      rootSetId: buildRootSetId(rootDirs),
+      rootAuthorityPins,
       diagnostics,
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
@@ -5812,7 +6092,8 @@ async function runFullScan(
           mod,
           providerObj,
           primaryRootDir,
-          priorEnvelopeForHydrate?.embeddingCacheSha256
+          priorEnvelopeForHydrate?.embeddingCacheSha256,
+          rootDirs
         );
         if (hydratedIndex && gitHashMatches) {
           console.error(
@@ -5964,6 +6245,8 @@ async function runFullScan(
       scanPlan: scanPlanReceipt,
       phaseMetrics,
       gitCommitHash,
+      rootSetId: buildRootSetId(rootDirs),
+      rootAuthorityPins,
       diagnostics,
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
       durationMs: Date.now() - startTime,
@@ -6007,6 +6290,8 @@ async function runFullScan(
       scanPlan: scanPlanReceipt,
       phaseMetrics,
       gitCommitHash,
+      rootSetId: buildRootSetId(rootDirs),
+      rootAuthorityPins,
       diagnostics,
       ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
       durationMs: Date.now() - startTime,
@@ -6016,7 +6301,7 @@ async function runFullScan(
   // Transactional publication boundary: cancellation and memory-budget checks
   // have completed for scan, graph, embedding, mesh, and response generation.
   // Only now replace the prior authoritative graph/index caches and session state.
-  enforceRefreshSourcePin();
+  await enforceRefreshSourcePin();
   enforceAbsorbJobControl(jobId, 'cache-commit');
   cacheTimestamp = Date.now();
   const publishedGeneration = publishCacheGeneration({
@@ -6031,6 +6316,7 @@ async function runFullScan(
     scanPolicy: effectiveScanPolicy,
     serializedGraph: serializedGraphForCache,
     ...(preparedEmbeddingIndex && { embeddingIndex: preparedEmbeddingIndex }),
+    rootAuthorityPins,
   });
   if (!publishedGeneration) {
     const error = new Error('Unable to publish the completed absorb graph cache atomically');
@@ -6586,8 +6872,9 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     }
     fromSourceFiles = true;
   } else {
-    effectiveRootDirs =
-      rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : rootDir ? [rootDir] : [];
+    effectiveRootDirs = canonicalizeRootSet(
+      rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : rootDir ? [rootDir] : []
+    );
     primaryRootDir = effectiveRootDirs[0];
   }
 
@@ -7086,10 +7373,11 @@ async function buildAutoBackgroundDecision(
     }
   }
 
-  const existingCache = loadGraphCache(plan.primaryRootDir);
+  const existingCache = loadGraphCache(plan.primaryRootDir, plan.effectiveRootDirs);
   const existingCacheMatchesRoot =
     existingCache?.version === 2 &&
-    rootMatchesCurrentRepo(existingCache.rootDir, plan.primaryRootDir);
+    rootMatchesCurrentRepo(existingCache.rootDir, plan.primaryRootDir) &&
+    absorbRootSetsMatch(existingCache.rootDirs ?? [existingCache.rootDir], plan.effectiveRootDirs);
   const requestedScanPolicy =
     existingCacheMatchesRoot && !plan.scanPolicyExplicit && !plan.force
       ? normalizeScanPolicy(existingCache.scanPolicy)
@@ -7129,7 +7417,12 @@ async function buildAutoBackgroundDecision(
     scanPoliciesEqual(existingCache.scanPolicy, effectiveScanPolicy) &&
     existingCacheCoverageComplete
   ) {
-    return { autoBackground: false };
+    if (plan.effectiveRootDirs.length === 1) return { autoBackground: false };
+    const rootSetAuthority = await evaluateGraphRootSetAuthority(
+      existingCache,
+      plan.effectiveRootDirs
+    );
+    if (rootSetAuthority.authoritative) return { autoBackground: false };
   }
 
   const thresholdFiles = readPositiveEnvInt(
@@ -7171,6 +7464,93 @@ async function buildAutoBackgroundDecision(
   }
 
   return { autoBackground: false };
+}
+
+async function reuseAuthoritativeMultiRootCache(
+  mod: CodebaseModule,
+  plan: AbsorbExecutionPlan,
+  envelope: GraphCacheEnvelope,
+  graphCoverage: GraphCoverageStatus
+): Promise<Record<string, unknown>> {
+  const { CodebaseGraph } = mod;
+  const rootDirs = plan.effectiveRootDirs;
+  const activeRootDirs = (cachedGraph as { rootDirs?: string[] } | null)?.rootDirs;
+  const cacheSwitched =
+    !cachedGraph || !activeRootDirs || !absorbRootSetsMatch(activeRootDirs, rootDirs);
+  if (cacheSwitched) {
+    resetGraphRAGState();
+    cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
+    attachGraphCacheMetadata(cachedGraph, envelope);
+  }
+  cachedRootDir = plan.primaryRootDir;
+  cacheProvenance = 'disk-cache';
+  cacheTimestamp = envelope.timestamp;
+
+  const priorGraphRagReady = isGraphRAGReady();
+  let embeddingLoadError: unknown;
+  if (plan.outputFormat !== 'stats' && !isGraphRAGReady()) {
+    try {
+      const hydrated = await hydrateGraphRAGFromDiskEmbeddings(
+        mod,
+        cachedGraph,
+        plan.primaryRootDir,
+        envelope.timestamp,
+        envelope.embeddingCacheSha256,
+        rootDirs
+      );
+      if (!hydrated) {
+        embeddingLoadError = new Error('Multi-root embedding generation is unavailable');
+        resetGraphRAGState();
+      }
+    } catch (error) {
+      embeddingLoadError = error;
+      resetGraphRAGState();
+    }
+  }
+
+  const semanticIndexReadiness =
+    plan.outputFormat === 'stats'
+      ? buildStatsOnlySemanticIndexReceipt(plan.primaryRootDir, graphCoverage)
+      : buildSemanticIndexReadinessReceipt(plan.primaryRootDir, {
+          priorGraphRagReady,
+          embeddingBuildError: embeddingLoadError,
+          embeddingFailureReason: embeddingLoadError ? 'embeddingLoadFailed' : undefined,
+          graphCoverage,
+        });
+  const result: Record<string, unknown> = {
+    cached: true,
+    incremental: false,
+    multiRootReuse: true,
+    filesChanged: 0,
+    rootDir: plan.primaryRootDir,
+    rootDirs,
+    rootSetId: envelope.rootSetId,
+    rootAuthorityPins: envelope.rootAuthorityPins,
+    stats: envelope.stats,
+    embeddingPolicy: envelope.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt(),
+    scanPolicy: normalizeScanPolicy(envelope.scanPolicy),
+    gitCommitHash: envelope.gitCommitHash,
+    graphRagReady: semanticIndexReadiness.graphRagReady,
+    semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+    ...buildAbsorbAuthorityResultFields(semanticIndexReadiness),
+    semanticIndexReadiness,
+    embeddingSkipped: semanticIndexReadiness.embeddingSkipped,
+    ...(semanticIndexReadiness.embeddingSkipReason && {
+      embeddingSkipReason: semanticIndexReadiness.embeddingSkipReason,
+    }),
+    message: `Reused authoritative HoloAbsorb root set ${envelope.rootSetId?.slice(0, 12)}`,
+    jobId: plan.jobId,
+  };
+  const job = absorbJobs.get(plan.jobId);
+  if (job) {
+    job.result = result;
+    job.status = 'complete';
+    job.progress = 100;
+    job.phase = 'Complete (multi-root cache)';
+    job.completedAt = Date.now();
+    settleAbsorbWriterLeaseIfTerminal(job);
+  }
+  return result;
 }
 
 async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
@@ -7272,7 +7652,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
   // ═══════════════════════════════════════════════════════════════════════════
   // PATH 2: Load cache checks
   // ═══════════════════════════════════════════════════════════════════════════
-  const envelope = loadGraphCache(primaryRootDir);
+  const envelope = loadGraphCache(primaryRootDir, effectiveRootDirs);
   if (!envelope) {
     const result = await runFullScan(
       mod,
@@ -7348,11 +7728,31 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     return { ...(result as Record<string, unknown>), jobId };
   }
 
-  // Incremental GitChangeDetector currently has one repository root. A
-  // multi-root cache therefore refreshes through the full batched scanner so
-  // changes in every root are hashed and embedded instead of silently trusting
-  // the primary repository's diff.
+  // Multi-root cache reuse is governed by the exact root-set identity and every
+  // root's commit/worktree/coverage pin. Changed root sets use separate cache
+  // lanes; changed members invalidate only the matching set generation.
   if (effectiveRootDirs.length > 1) {
+    const multiRootCoverage = buildGraphCoverageStatusForRoots(
+      envelopeRootDirs,
+      getEnvelopeGraphFileCount(envelope),
+      envelope.scanPolicy
+    );
+    const requestedMultiRootScanPolicy = scanPolicyExplicit
+      ? scanPolicy
+      : normalizeScanPolicy(envelope.scanPolicy);
+    const cachePolicyChanged = !scanPoliciesEqual(
+      envelope.scanPolicy,
+      requestedMultiRootScanPolicy
+    );
+    const rootSetAuthority = await evaluateGraphRootSetAuthority(envelope, effectiveRootDirs);
+    if (
+      !cachePolicyChanged &&
+      graphCoverageMatchesScanPolicy(multiRootCoverage) &&
+      rootSetAuthority.authoritative &&
+      (outputFormat === 'stats' || Boolean(envelope.embeddingCacheSha256))
+    ) {
+      return reuseAuthoritativeMultiRootCache(mod, plan, envelope, multiRootCoverage);
+    }
     const result = await runFullScan(
       mod,
       effectiveRootDirs,
@@ -7369,9 +7769,15 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       undefined,
       undefined,
       scanBatchSize,
-      scanPolicy
+      requestedMultiRootScanPolicy
     );
-    return { ...(result as Record<string, unknown>), jobId, multiRootRefresh: 'full-scan' };
+    return {
+      ...(result as Record<string, unknown>),
+      jobId,
+      multiRootRefresh: 'full-scan',
+      priorRootSetAuthority: rootSetAuthority,
+      policyChanged: cachePolicyChanged,
+    };
   }
 
   const envelopeCoverage = buildGraphCoverageStatusForRoots(
@@ -8136,8 +8542,12 @@ function graphStatusFileGeneration(filePath: string): string {
 
 function buildGraphStatusSnapshotKey(currentCwd: string): string {
   const activeCacheRoot = cachedRootDir || currentCwd;
-  const cachePaths = resolveCodebaseCachePaths(activeCacheRoot);
-  const selectedGeneration = readCacheGenerationManifest(activeCacheRoot);
+  const activeRootDirs = (cachedGraph as { rootDirs?: string[] } | null)?.rootDirs ?? [
+    activeCacheRoot,
+  ];
+  const activeRootSetSelection = activeRootDirs.length > 1 ? activeRootDirs : undefined;
+  const cachePaths = resolveCachePathsForRoots(activeCacheRoot, activeRootSetSelection);
+  const selectedGeneration = readCacheGenerationManifest(activeCacheRoot, activeRootSetSelection);
   const refreshGeneration = Array.from(absorbJobs.values())
     .map(
       (job) =>
@@ -8265,13 +8675,17 @@ function readInMemoryGraphFileCount(graph: unknown): number {
 
 async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapshot> {
   const activeCacheRoot = cachedRootDir || currentCwd;
-  const activeCachePaths = resolveCodebaseCachePaths(activeCacheRoot);
-  const selectedGeneration = readCacheGenerationManifest(activeCacheRoot);
-  const cache = getCacheAge(activeCacheRoot);
+  const activeRootDirs = (cachedGraph as { rootDirs?: string[] } | null)?.rootDirs ?? [
+    activeCacheRoot,
+  ];
+  const activeRootSetSelection = activeRootDirs.length > 1 ? activeRootDirs : undefined;
+  const activeCachePaths = resolveCachePathsForRoots(activeCacheRoot, activeRootSetSelection);
+  const selectedGeneration = readCacheGenerationManifest(activeCacheRoot, activeRootSetSelection);
+  const cache = getCacheAge(activeCacheRoot, activeRootSetSelection);
   const embeddingPolicy = cache.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt();
-  const embeddingsFile = getEmbeddingsFile(activeCacheRoot);
+  const embeddingsFile = getEmbeddingsFile(activeCacheRoot, activeRootSetSelection);
   const embeddingsCacheExists = fs.existsSync(embeddingsFile);
-  const embeddingsCacheModel = readEmbeddingsCacheModel(activeCacheRoot);
+  const embeddingsCacheModel = readEmbeddingsCacheModel(activeCacheRoot, activeRootSetSelection);
   let embeddingsCacheStat: fs.Stats | null = null;
   if (embeddingsCacheExists) {
     try {
@@ -8303,6 +8717,21 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   const activeScanPolicy = normalizeScanPolicy(
     (cachedGraph as { scanPolicy?: GraphScanPolicy } | null)?.scanPolicy ?? cache.scanPolicy
   );
+  const activeRootSetAuthority =
+    activeRootDirs.length > 1
+      ? await evaluateGraphRootSetAuthority(
+          {
+            rootDir: activeCacheRoot,
+            rootDirs: activeRootDirs,
+            rootSetId: (cachedGraph as { rootSetId?: string } | null)?.rootSetId ?? cache.rootSetId,
+            rootAuthorityPins:
+              (cachedGraph as { rootAuthorityPins?: GraphRootAuthorityPin[] } | null)
+                ?.rootAuthorityPins ?? cache.rootAuthorityPins,
+            scanPolicy: activeScanPolicy,
+          },
+          activeRootDirs
+        )
+      : null;
   const currentWorktreeFingerprint =
     cacheMatchesCwd || diskCacheMatchesCwd
       ? buildGitWorktreeFingerprint(currentCwd, activeScanPolicy)
@@ -8476,6 +8905,12 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
       gitMatchesHead: activeGitMatchesHead,
       fileHashFreshForHeadMismatch: activeFileHashFreshForHeadMismatch,
     }),
+    ...(activeRootSetAuthority?.changedRoots.map(
+      (rootDir) => `Root-set member changed since scan: ${rootDir}`
+    ) ?? []),
+    ...(activeRootSetAuthority?.incompleteRoots.map(
+      (rootDir) => `Root-set member lacks complete authority coverage: ${rootDir}`
+    ) ?? []),
   ];
   const diskAuthorityCaveats = [
     ...buildCoverageAuthorityCaveats(diskCoverage),
@@ -8483,34 +8918,49 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
       gitMatchesHead: diskCacheGitMatchesHead,
       fileHashFreshForHeadMismatch: diskFileHashFreshForHeadMismatch,
     }),
+    ...(activeRootSetAuthority?.changedRoots.map(
+      (rootDir) => `Root-set member changed since scan: ${rootDir}`
+    ) ?? []),
+    ...(activeRootSetAuthority?.incompleteRoots.map(
+      (rootDir) => `Root-set member lacks complete authority coverage: ${rootDir}`
+    ) ?? []),
   ];
   const localGraphLive =
     graphRAGState.ready &&
     graphRAGMatchesCwd &&
     graphRAGFreshByAge &&
+    (activeRootSetAuthority?.authoritative ?? true) &&
     (noGraphCachePresent ||
       (activeFileHashFreshness.fresh &&
         (activeGitMatchesHead || activeFileHashFreshForHeadMismatch))) &&
     localGraphCoverageComplete;
 
-  const graphAuthoritative =
-    (cacheMatchesCwd &&
-      (cachedGraph !== null || cache.exists) &&
+  const graphAuthoritative = activeRootSetAuthority
+    ? (cachedGraph !== null || cache.exists) &&
       activeFreshByAge &&
-      activeFileHashFreshness.fresh &&
-      (activeGitMatchesHead || activeFileHashFreshForHeadMismatch) &&
-      activeCoverageComplete) ||
-    activeCrossRootAuthority.ok ||
-    localGraphLive;
+      activeCoverageComplete &&
+      activeRootSetAuthority.authoritative
+    : (cacheMatchesCwd &&
+        (cachedGraph !== null || cache.exists) &&
+        activeFreshByAge &&
+        activeFileHashFreshness.fresh &&
+        (activeGitMatchesHead || activeFileHashFreshForHeadMismatch) &&
+        activeCoverageComplete) ||
+      activeCrossRootAuthority.ok ||
+      localGraphLive;
 
   const freshForCurrentRepo = graphAuthoritative;
-  const diskCacheFreshForCurrentRepo =
-    (diskCacheMatchesCwd &&
+  const diskCacheFreshForCurrentRepo = activeRootSetAuthority
+    ? cache.exists &&
       diskCacheFreshByAge &&
-      diskFileHashFreshness.fresh &&
-      (diskCacheGitMatchesHead || diskFileHashFreshForHeadMismatch) &&
-      diskCoverageComplete) ||
-    diskCrossRootAuthority.ok;
+      diskCoverageComplete &&
+      activeRootSetAuthority.authoritative
+    : (diskCacheMatchesCwd &&
+        diskCacheFreshByAge &&
+        diskFileHashFreshness.fresh &&
+        (diskCacheGitMatchesHead || diskFileHashFreshForHeadMismatch) &&
+        diskCoverageComplete) ||
+      diskCrossRootAuthority.ok;
   const diskEmbeddingProviderMatchesPolicy =
     embeddingsCacheExists &&
     (embeddingsCacheModel === null || embeddingsCacheModel === embeddingPolicy.provider);
@@ -8519,7 +8969,7 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
     typeof cache.embeddingCacheMtimeMs === 'number';
   const legacyEmbeddingIdentity =
     cache.embeddingCacheSha256 && !hasStatBoundEmbeddingGeneration
-      ? readEmbeddingsCacheIdentity(activeCacheRoot)
+      ? readEmbeddingsCacheIdentity(activeCacheRoot, activeRootSetSelection)
       : null;
   const diskEmbeddingGenerationMatchesGraph =
     cache.embeddingCacheSha256 === undefined
@@ -8570,6 +9020,9 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   return {
     inMemory: cachedGraph !== null,
     rootDir: cachedRootDir || null,
+    rootDirs: cache.rootDirs ?? activeRootDirs,
+    rootSetId: (cachedGraph as { rootSetId?: string } | null)?.rootSetId ?? cache.rootSetId ?? null,
+    rootSetAuthority: activeRootSetAuthority,
     cacheStorage: {
       layout: activeCachePaths.layout,
       workspaceId: activeCachePaths.workspaceId,
@@ -8785,7 +9238,8 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
           }
         }
         const selectedGenerationId =
-          readCacheGenerationManifest(external.record.rootDirs[0])?.manifest.generationId ?? null;
+          readCacheGenerationManifest(external.record.rootDirs[0], external.record.rootDirs)
+            ?.manifest.generationId ?? null;
         if (selectedGenerationId && selectedGenerationId !== external.record.priorGenerationId) {
           return {
             jobId,

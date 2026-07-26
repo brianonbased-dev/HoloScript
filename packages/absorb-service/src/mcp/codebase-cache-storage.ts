@@ -31,6 +31,16 @@ function normalizeWorkspaceRoot(rootDir: string): string {
   return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
 }
 
+function normalizeRootSet(rootDirs: string[]): string[] {
+  return Array.from(
+    new Set(rootDirs.filter(Boolean).map((rootDir) => normalizeWorkspaceRoot(rootDir)))
+  ).sort((left, right) => left.localeCompare(right));
+}
+
+export function codebaseRootSetId(rootDirs: string[]): string {
+  return createHash('sha256').update(normalizeRootSet(rootDirs).join('\n')).digest('hex');
+}
+
 function workspaceSlug(rootDir: string): string {
   const basename = path.basename(rootDir).toLowerCase();
   const slug = basename.replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
@@ -78,4 +88,31 @@ export function resolveCodebaseCachePaths(
     legacyGraphFile: path.join(baseDir, 'graph-cache.json'),
     legacyEmbeddingsFile: path.join(baseDir, 'embeddings-cache.bin'),
   };
+}
+
+/**
+ * Resolve a cache namespace for one exact normalized workspace root set.
+ * Single-root callers keep the legacy layout. Multi-root callers always use a
+ * workspace namespace—even when legacy flat layout is configured—so A+B and
+ * A+C cannot overwrite one another through their shared primary root A.
+ */
+export function resolveCodebaseCachePathsForRoots(
+  rootDirs: string[],
+  options: ResolveCodebaseCachePathsOptions = {}
+): CodebaseCachePaths {
+  const normalizedRoots = normalizeRootSet(rootDirs);
+  if (normalizedRoots.length === 0) {
+    throw new Error('resolveCodebaseCachePathsForRoots requires at least one root');
+  }
+  if (normalizedRoots.length === 1) {
+    return resolveCodebaseCachePaths(normalizedRoots[0], options);
+  }
+  const syntheticRoot = path.join(
+    normalizedRoots[0],
+    `.holoscript-root-set-${codebaseRootSetId(normalizedRoots).slice(0, 16)}`
+  );
+  return resolveCodebaseCachePaths(syntheticRoot, {
+    ...options,
+    layout: 'workspace-v1',
+  });
 }
