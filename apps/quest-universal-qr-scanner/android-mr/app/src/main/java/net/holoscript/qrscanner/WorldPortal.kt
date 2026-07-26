@@ -21,7 +21,7 @@ object WorldPortal {
   val linkPatterns: List<String> = listOf("holoscript://world/", "https://holoscript.studio/w/", "https://hololand.holoscript.studio/")
 
   /** Enter the world automatically on a world-link read (vs. showing an "Enter world" card). */
-  const val autoImmerse = true
+  const val autoImmerse = false
 
   // ── @generated from logic/WorldPortal.logic.hs (compile_to_kotlin) ──────────────────────────
   fun isWorldLink(text: String): Boolean {

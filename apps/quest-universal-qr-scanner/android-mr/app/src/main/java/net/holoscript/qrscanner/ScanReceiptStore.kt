@@ -1,0 +1,120 @@
+/*
+ * @generated from scanner.holo's @qr_decode.receipts declaration by the Quest compiler.
+ * Raw QR payloads are never serialized. The payload commitment is HMAC-SHA256 under a
+ * random per-install secret held in app-private SharedPreferences.
+ */
+package net.holoscript.qrscanner
+
+import android.content.Context
+import android.util.Base64
+import java.io.File
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.security.SecureRandom
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+import org.json.JSONObject
+
+class ScanReceiptStore(private val context: Context) {
+  private val enabled = true
+  private val useHashChain = true
+  private val maxEntries = 1000
+  private val file: File by lazy { File(context.filesDir, "holoqr-scan-receipts.ndjson") }
+  private val secret: ByteArray by lazy { loadOrCreateSecret() }
+  private var sequence = 0L
+  private var previousDigest = "GENESIS"
+  private var available = true
+
+  init {
+    if (enabled && file.exists()) {
+      try {
+        val lines = file.readLines().filter { it.isNotBlank() }
+        sequence = lines.size.toLong()
+        previousDigest =
+            lines.lastOrNull()?.let { line ->
+              try { JSONObject(line).optString("digest", "GENESIS") } catch (_: Exception) { "GENESIS" }
+            } ?: "GENESIS"
+      } catch (_: Exception) {
+        // Receipts are diagnostics, never a reason to crash or block scanning.
+        available = false
+      }
+    }
+  }
+
+  @Synchronized
+  fun record(
+      payload: String,
+      classification: String,
+      decision: String,
+      userAction: String,
+      parentDigest: String? = null,
+  ): String? {
+    if (!enabled || !available) return null
+    return try {
+      if (sequence >= maxEntries) {
+        if (file.exists() && !file.delete()) return null
+        sequence = 0L
+        previousDigest = "GENESIS"
+      }
+
+      val timestamp = System.currentTimeMillis()
+      val payloadCommitment = hmacSha256(payload)
+      val previous = if (useHashChain) previousDigest else "UNCHAINED"
+      val canonical =
+          listOf(
+                  "holoscript.scan-receipt.v1",
+                  (sequence + 1L).toString(),
+                  timestamp.toString(),
+                  payloadCommitment,
+                  classification,
+                  decision,
+                  userAction,
+                  previous,
+                  parentDigest ?: "",
+              )
+              .joinToString("\u001f")
+      val digest = "sha256:" + hex(MessageDigest.getInstance("SHA-256").digest(canonical.toByteArray(StandardCharsets.UTF_8)))
+      val receipt =
+          JSONObject()
+              .put("schema", "holoscript.scan-receipt.v1")
+              .put("sequence", sequence + 1L)
+              .put("timestamp_ms", timestamp)
+              .put("payload_commitment", payloadCommitment)
+              .put("classification", classification)
+              .put("decision", decision)
+              .put("user_action", userAction)
+              .put("previous_digest", previous)
+              .put("parent_digest", parentDigest ?: JSONObject.NULL)
+              .put("digest", digest)
+      file.parentFile?.mkdirs()
+      file.appendText(receipt.toString() + "\n", StandardCharsets.UTF_8)
+      sequence += 1L
+      previousDigest = digest
+      digest
+    } catch (_: Exception) {
+      // Fail safe: loss of a local diagnostic receipt must never crash a scan or user action.
+      available = false
+      null
+    }
+  }
+
+  private fun loadOrCreateSecret(): ByteArray {
+    val prefs = context.getSharedPreferences("holoqr_receipt_custody", Context.MODE_PRIVATE)
+    val existing = prefs.getString("hmac_secret", null)
+    if (existing != null) return Base64.decode(existing, Base64.NO_WRAP)
+    val generated = ByteArray(32).also { SecureRandom().nextBytes(it) }
+    if (!prefs.edit().putString("hmac_secret", Base64.encodeToString(generated, Base64.NO_WRAP)).commit()) {
+      throw IllegalStateException("receipt secret unavailable")
+    }
+    return generated
+  }
+
+  private fun hmacSha256(value: String): String {
+    val mac = Mac.getInstance("HmacSHA256")
+    mac.init(SecretKeySpec(secret, "HmacSHA256"))
+    return "hmac-sha256:" + hex(mac.doFinal(value.toByteArray(StandardCharsets.UTF_8)))
+  }
+
+  private fun hex(bytes: ByteArray): String =
+      bytes.joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+}

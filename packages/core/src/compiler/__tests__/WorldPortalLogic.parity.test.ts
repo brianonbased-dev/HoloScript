@@ -149,7 +149,7 @@ describe('WorldPortal .hs → Kotlin emission', () => {
 
   it('preserves the scanner.holo data members', () => {
     expect(kt).toContain('val linkPatterns: List<String> = listOf(');
-    expect(kt).toContain('const val autoImmerse = true');
+    expect(kt).toContain('const val autoImmerse = false');
   });
 });
 

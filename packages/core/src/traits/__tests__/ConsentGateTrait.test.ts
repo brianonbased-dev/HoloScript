@@ -2,7 +2,7 @@
  * ConsentGateTrait — comprehensive tests
  */
 import { describe, it, expect, vi } from 'vitest';
-import { consentGateHandler } from '../ConsentGateTrait';
+import { consentGateHandler, isConsentGranted } from '../ConsentGateTrait';
 import type { ConsentGateState } from '../ConsentGateTrait';
 
 const makeNode = () => ({
@@ -31,6 +31,17 @@ describe('ConsentGateTrait — metadata', () => {
 
   it('defaultConfig scope is ["camera"]', () => {
     expect(consentGateHandler.defaultConfig?.scope).toEqual(['camera']);
+  });
+
+  it('supports action consent scopes used by native application compilers', () => {
+    const scopes = ['external_navigation', 'world_entry', 'clipboard', 'local_storage'] as const;
+    const node = makeNode();
+    consentGateHandler.onAttach!(
+      node as never,
+      { ...defaultConfig, scope: [...scopes] },
+      makeCtx(node) as never
+    );
+    expect((node.__consentGateState as ConsentGateState).auditLog[0].scope).toEqual(scopes);
   });
 });
 
@@ -259,5 +270,18 @@ describe('ConsentGateTrait — onEvent', () => {
         log: expect.arrayContaining([expect.objectContaining({ action: 'requested' })]),
       })
     );
+  });
+
+  it('checks the exact granted scope instead of treating any grant as universal', () => {
+    const node = makeNode();
+    consentGateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'consent_grant' } as never
+    );
+    expect(isConsentGranted(node as never, ['camera'])).toBe(true);
+    expect(isConsentGranted(node as never, ['world_entry'])).toBe(false);
   });
 });

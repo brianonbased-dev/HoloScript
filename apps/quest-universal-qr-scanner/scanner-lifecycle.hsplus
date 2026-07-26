@@ -1,0 +1,35 @@
+// HoloQR scanner routing lifecycle.
+//
+// This graph owns the order in which decoded input may become an action. The
+// Quest adapter consumes emitted transition decisions; platform effects remain
+// outside this bounded state-machine source and cannot skip the consent state.
+
+state_machine ScannerLifecycle {
+  input decode_ready: trigger = false
+  input classification_ready: trigger = false
+  input invalid_payload: trigger = false
+  input consent_requested: trigger = false
+  input consent_granted: trigger = false
+  input action_ready: trigger = false
+  input user_action_requested: trigger = false
+  input dismissed: trigger = false
+  input action_complete: trigger = false
+
+  initial: idle
+
+  state idle {}
+  state decoded {}
+  state classified {}
+  state consent {}
+  state action {}
+
+  idle -> decoded when decode_ready
+  idle -> action when user_action_requested
+  decoded -> classified when classification_ready
+  decoded -> idle when invalid_payload
+  classified -> consent when consent_requested
+  classified -> action when action_ready
+  consent -> action when consent_granted
+  consent -> idle when dismissed
+  action -> idle when action_complete
+}

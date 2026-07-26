@@ -123,13 +123,210 @@ impl DeclarationSite {
 /// UNANALYZED, which is deliberately distinct from "analyzed and clean" — the raw capture is
 /// intentionally tolerant of any in-body form, so declining is the only honest option. A
 /// string-matching approximation over the lossy text would look like enforcement without being
-/// it, which is worse than a gap you can see. Also not checked: struct fields, which cannot carry
-/// `@unknown` at all (`StructDeclarationNode` stores plain `Vec<String>` with no annotation slot).
+/// it, which is worse than a gap you can see. Struct fields are checked separately by
+/// [`check_unknown_struct_field_guards`].
 fn check_unknown_field_guards(ast: &Ast) -> Result<(), SemanticDiagnostic> {
     for node in &ast.body {
         check_unknown_field_guards_in_node(node)?;
     }
     Ok(())
+}
+
+/// Reject reading an `@unknown` struct field without an explicit `??` fallback.
+///
+/// Struct annotations are a native-machine surface, while this module is only a Kotlin bridge.
+/// The bridge nevertheless has to preserve the sovereign consumption rule: the carrier may cross
+/// the boundary, but a consumer may not silently obtain its payload. Field names are deliberately
+/// resolved conservatively here. If an annotated field name appears in a member read, that read
+/// must carry a fallback; this can reject an ambiguous same-named field from another record, but it
+/// cannot erase ignorance. A future typed member-resolution pass may narrow that conservative
+/// boundary without weakening it.
+fn check_unknown_struct_field_guards(ast: &Ast) -> Result<(), SemanticDiagnostic> {
+    let unknown_fields: HashSet<&str> = ast
+        .body
+        .iter()
+        .filter_map(|node| match node {
+            AstNode::StructDeclaration(structure) => Some(structure),
+            _ => None,
+        })
+        .flat_map(|structure| {
+            structure
+                .fields
+                .iter()
+                .enumerate()
+                .filter_map(|(index, field)| {
+                    structure
+                        .field_annotations
+                        .get(index)
+                        .is_some_and(|annotations| annotations.iter().any(|a| a == "unknown"))
+                        .then_some(field.as_str())
+                })
+        })
+        .collect();
+
+    if unknown_fields.is_empty() {
+        return Ok(());
+    }
+
+    for node in &ast.body {
+        let AstNode::Function(function) = node else {
+            continue;
+        };
+        for statement in &function.body {
+            if let Some((field, loc)) =
+                first_unguarded_unknown_struct_field_read(statement, &unknown_fields, false)
+            {
+                return Err(semantic_error(
+                    format!(
+                        "function `{}` reads `@unknown` struct field `{}` without a fallback — write `.{} ?? <default>`. `Uncertain<T>` is not assignable to `T`, so a bare read cannot become a raw value.",
+                        function.name, field, field
+                    ),
+                    loc,
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn first_unguarded_unknown_struct_field_read<'a>(
+    node: &'a AstNode,
+    unknown_fields: &HashSet<&str>,
+    guarded: bool,
+) -> Option<(String, &'a Option<crate::ast::Location>)> {
+    match node {
+        AstNode::MemberExpression(member) => {
+            let direct_read = if !guarded && !member.computed {
+                match member.property.as_ref() {
+                    AstNode::Identifier(identifier)
+                        if unknown_fields.contains(identifier.name.as_str()) =>
+                    {
+                        Some((identifier.name.clone(), &member.loc))
+                    }
+                    _ => None,
+                }
+            } else {
+                None
+            };
+            direct_read
+                .or_else(|| {
+                    first_unguarded_unknown_struct_field_read(
+                        &member.object,
+                        unknown_fields,
+                        guarded,
+                    )
+                })
+                .or_else(|| {
+                    member.computed.then(|| {
+                        first_unguarded_unknown_struct_field_read(
+                            &member.property,
+                            unknown_fields,
+                            guarded,
+                        )
+                    })?
+                })
+        }
+        AstNode::BinaryExpression(binary) => {
+            let left_guarded = guarded || binary.operator == "??";
+            first_unguarded_unknown_struct_field_read(&binary.left, unknown_fields, left_guarded)
+                .or_else(|| {
+                    first_unguarded_unknown_struct_field_read(
+                        &binary.right,
+                        unknown_fields,
+                        guarded,
+                    )
+                })
+        }
+        AstNode::UnaryExpression(unary) => {
+            first_unguarded_unknown_struct_field_read(&unary.argument, unknown_fields, guarded)
+        }
+        AstNode::CallExpression(call) => {
+            first_unguarded_unknown_struct_field_read(&call.callee, unknown_fields, guarded)
+                .or_else(|| {
+                    call.arguments.iter().find_map(|argument| {
+                        first_unguarded_unknown_struct_field_read(argument, unknown_fields, guarded)
+                    })
+                })
+        }
+        AstNode::LambdaExpression(lambda) => {
+            first_unguarded_unknown_struct_field_read(&lambda.body, unknown_fields, guarded)
+        }
+        AstNode::Array(array) => array.elements.iter().find_map(|element| {
+            first_unguarded_unknown_struct_field_read(element, unknown_fields, guarded)
+        }),
+        AstNode::ObjectLiteral(object) => object.properties.iter().find_map(|property| {
+            first_unguarded_unknown_struct_field_read(&property.value, unknown_fields, guarded)
+        }),
+        AstNode::SpreadElement(spread) => {
+            first_unguarded_unknown_struct_field_read(&spread.argument, unknown_fields, guarded)
+        }
+        AstNode::VariableDeclaration(declaration) => {
+            first_unguarded_unknown_struct_field_read(&declaration.value, unknown_fields, guarded)
+        }
+        AstNode::StackSlotDeclaration(declaration) => {
+            first_unguarded_unknown_struct_field_read(&declaration.value, unknown_fields, guarded)
+        }
+        AstNode::Assignment(assignment) => {
+            first_unguarded_unknown_struct_field_read(&assignment.value, unknown_fields, guarded)
+        }
+        AstNode::Return(return_node) => return_node.argument.as_ref().and_then(|argument| {
+            first_unguarded_unknown_struct_field_read(argument, unknown_fields, guarded)
+        }),
+        AstNode::If(if_node) => {
+            first_unguarded_unknown_struct_field_read(&if_node.test, unknown_fields, guarded)
+                .or_else(|| {
+                    if_node.consequent.iter().find_map(|statement| {
+                        first_unguarded_unknown_struct_field_read(
+                            statement,
+                            unknown_fields,
+                            guarded,
+                        )
+                    })
+                })
+                .or_else(|| {
+                    if_node.alternate.as_ref().and_then(|alternate| {
+                        alternate.iter().find_map(|statement| {
+                            first_unguarded_unknown_struct_field_read(
+                                statement,
+                                unknown_fields,
+                                guarded,
+                            )
+                        })
+                    })
+                })
+        }
+        AstNode::While(while_node) => {
+            first_unguarded_unknown_struct_field_read(&while_node.test, unknown_fields, guarded)
+                .or_else(|| {
+                    while_node.body.iter().find_map(|statement| {
+                        first_unguarded_unknown_struct_field_read(
+                            statement,
+                            unknown_fields,
+                            guarded,
+                        )
+                    })
+                })
+        }
+        AstNode::ForOf(for_node) => {
+            first_unguarded_unknown_struct_field_read(&for_node.range, unknown_fields, guarded)
+                .or_else(|| {
+                    for_node.body.iter().find_map(|statement| {
+                        first_unguarded_unknown_struct_field_read(
+                            statement,
+                            unknown_fields,
+                            guarded,
+                        )
+                    })
+                })
+        }
+        AstNode::LexicalScope(scope) => scope.body.iter().find_map(|statement| {
+            first_unguarded_unknown_struct_field_read(statement, unknown_fields, guarded)
+        }),
+        AstNode::EventHandler(handler) => handler.body.iter().find_map(|statement| {
+            first_unguarded_unknown_struct_field_read(statement, unknown_fields, guarded)
+        }),
+        _ => None,
+    }
 }
 
 fn check_unknown_field_guards_in_node(node: &AstNode) -> Result<(), SemanticDiagnostic> {
@@ -356,6 +553,7 @@ pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), Se
 pub(crate) fn check_semantics(ast: &Ast) -> Result<(), SemanticDiagnostic> {
     check_top_level_declaration_collisions(ast)?;
     check_unknown_field_guards(ast)?;
+    check_unknown_struct_field_guards(ast)?;
     check_assignment_mutability(ast)?;
     crate::semantic_types::check_explicit_type_contracts(ast)
 }
@@ -512,6 +710,8 @@ enum ValType {
     Float,
     /// An integer — used for a parameter that bounds a range (`for (i in 0..n)` ⇒ `n: Int`).
     Int,
+    /// A 64-bit integer carried by an explicitly typed `i64` unknown field.
+    Long,
     /// A declared `.hs` enum (sum-type), carrying its Kotlin type name (e.g. `Route`).
     Enum(String),
     /// A declared `.hs` struct (record), carrying its Kotlin type name (e.g. `Vec3`).
@@ -530,12 +730,134 @@ impl ValType {
             ValType::Bool => "Boolean".to_string(),
             ValType::Float => "Float".to_string(),
             ValType::Int => "Int".to_string(),
+            ValType::Long => "Long".to_string(),
             ValType::Enum(name) => name.clone(),
             ValType::Struct(name) => name.clone(),
             ValType::List(inner) => format!("List<{}>", inner.kotlin()),
             ValType::Map(inner) => format!("Map<String, {}>", inner.kotlin()),
         }
     }
+}
+
+/// Scalar payloads supported by the thin Kotlin `Uncertain<T>` compatibility bridge.
+///
+/// Native lowering remains authoritative for representation and ABI. Kotlin preserves the typed
+/// epistemic state for Quest/device logic; it does not claim the native inline layout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum KotlinUnknownScalar {
+    Str,
+    Bool,
+    I32,
+    I64,
+}
+
+impl KotlinUnknownScalar {
+    fn from_holoscript(annotation: &str) -> Option<Self> {
+        match annotation {
+            "string" | "String" | "str" => Some(Self::Str),
+            "bool" | "Boolean" => Some(Self::Bool),
+            "i32" => Some(Self::I32),
+            "i64" => Some(Self::I64),
+            _ => None,
+        }
+    }
+
+    fn kotlin(self) -> &'static str {
+        match self {
+            Self::Str => "String",
+            Self::Bool => "Boolean",
+            Self::I32 => "Int",
+            Self::I64 => "Long",
+        }
+    }
+
+    fn value_type(self) -> ValType {
+        match self {
+            Self::Str => ValType::Str,
+            Self::Bool => ValType::Bool,
+            Self::I32 => ValType::Int,
+            Self::I64 => ValType::Long,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+struct KotlinUnknownFields {
+    by_struct: HashMap<String, Vec<Option<KotlinUnknownScalar>>>,
+    by_field: HashMap<String, Option<KotlinUnknownScalar>>,
+}
+
+impl KotlinUnknownFields {
+    fn collect(structs: &[&StructDeclarationNode]) -> Result<Self, KotlinEmitError> {
+        let mut fields = Self::default();
+
+        for structure in structs {
+            let mut per_field = vec![None; structure.fields.len()];
+            for (index, field_name) in structure.fields.iter().enumerate() {
+                let annotations = structure
+                    .field_annotations
+                    .get(index)
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]);
+                if !annotations.iter().any(|annotation| annotation == "unknown") {
+                    continue;
+                }
+
+                let Some(annotation) = structure
+                    .field_types
+                    .get(index)
+                    .and_then(|annotation| annotation.as_deref())
+                else {
+                    return Err(KotlinEmitError::new(format!(
+                        "`@unknown` field `{}` in struct `{}` requires an explicit scalar payload type for Kotlin carrier lowering",
+                        field_name, structure.name
+                    )));
+                };
+                let Some(scalar) = KotlinUnknownScalar::from_holoscript(annotation) else {
+                    return Err(KotlinEmitError::new(format!(
+                        "`@unknown` field `{}` in struct `{}` carries unsupported Kotlin bridge payload `{}`; supported payloads are string, bool, i32, and i64",
+                        field_name, structure.name, annotation
+                    )));
+                };
+                per_field[index] = Some(scalar);
+
+                match fields.by_field.entry(field_name.clone()) {
+                    std::collections::hash_map::Entry::Vacant(entry) => {
+                        entry.insert(Some(scalar));
+                    }
+                    std::collections::hash_map::Entry::Occupied(mut entry) => {
+                        if entry.get().as_ref() != Some(&scalar) {
+                            entry.insert(None);
+                        }
+                    }
+                }
+            }
+            if per_field.iter().any(Option::is_some) {
+                fields.by_struct.insert(structure.name.clone(), per_field);
+            }
+        }
+
+        Ok(fields)
+    }
+
+    fn is_empty(&self) -> bool {
+        self.by_struct.is_empty()
+    }
+
+    fn field_type(&self, field_name: &str) -> Result<Option<KotlinUnknownScalar>, KotlinEmitError> {
+        match self.by_field.get(field_name) {
+            Some(Some(scalar)) => Ok(Some(*scalar)),
+            Some(None) => Err(KotlinEmitError::new(format!(
+                "`@unknown` field `{field_name}` has conflicting payload types across structs; the thin Kotlin bridge cannot resolve this member access without typed owner analysis"
+            ))),
+            None => Ok(None),
+        }
+    }
+}
+
+struct EmitContext<'a> {
+    int_locals: &'a [String],
+    unknown_fields: &'a KotlinUnknownFields,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -661,16 +983,21 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
             _ => None,
         })
         .collect();
-    if let Some(annotated) = structs
-        .iter()
-        .find(|decl| !decl.field_annotations.is_empty())
-    {
-        return Err(KotlinEmitError::new(format!(
-            "struct `{}` carries @unknown field state that requires an Uncertain<T> runtime carrier; the Kotlin bridge must fail closed instead of erasing it to a raw value",
-            annotated.name
-        )));
-    }
-    if let Some(typed) = structs.iter().find(|decl| !decl.field_types.is_empty()) {
+    let unknown_fields = KotlinUnknownFields::collect(&structs)?;
+    if let Some(typed) = structs.iter().find(|decl| {
+        decl.field_types
+            .iter()
+            .enumerate()
+            .any(|(index, field_type)| {
+                field_type.is_some()
+                    && unknown_fields
+                        .by_struct
+                        .get(&decl.name)
+                        .and_then(|fields| fields.get(index))
+                        .and_then(|field| *field)
+                        .is_none()
+            })
+    }) {
         return Err(KotlinEmitError::new(format!(
             "typed struct `{}` requires target-specific layout lowering; the Kotlin bridge supports only legacy inferred record fields",
             typed.name
@@ -700,6 +1027,9 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
     let struct_field_types = infer_struct_field_types(ast, &enum_names, &struct_names);
 
     let mut blocks: Vec<String> = Vec::new();
+    if !unknown_fields.is_empty() {
+        blocks.push(emit_uncertain_prelude(indent));
+    }
     // Data declarations (struct/enum) precede functions so a function may name them as a return
     // type or construct them.
     for s in &structs {
@@ -707,20 +1037,30 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
             .get(&s.name)
             .map(Vec::as_slice)
             .unwrap_or(&[]);
-        blocks.push(emit_struct(s, indent, field_types));
+        let uncertain_types = unknown_fields
+            .by_struct
+            .get(&s.name)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        blocks.push(emit_struct(s, indent, field_types, uncertain_types));
     }
     for e in &enums {
         blocks.push(emit_enum(e, indent));
     }
+    let declared_types = KotlinDeclaredTypes {
+        enums: &enum_names,
+        structs: &struct_names,
+    };
     for node in &ast.body {
         if let AstNode::Function(func) = node {
             blocks.push(emit_function(
                 &func.name,
                 &func.params,
+                &func.param_types,
                 &func.body,
                 indent,
-                &enum_names,
-                &struct_names,
+                &declared_types,
+                &unknown_fields,
             )?);
         }
     }
@@ -905,18 +1245,32 @@ fn check_imports_resolved(
     Ok(())
 }
 
-/// Emit `data class <Name>(val <field>: <Type>, …)` for a `.hs` struct declaration. Fields are
-/// untyped in the `.hs` logic subset, so each field's Kotlin type is inferred from the struct's
-/// constructor-call sites (`field_types`, indexed by field position) — a string-literal argument
-/// types that field `String`, a boolean `Boolean`, a nested struct constructor that struct type.
-/// A field with no inferred type (no construction, or a non-literal/expression argument) falls
-/// back to `Float` — the numeric default that matches the math/geometry use cases and keeps an
-/// unconstructed record byte-identical to the prior all-`Float` output. A zero-field struct emits
-/// `class <Name>` (Kotlin forbids an empty `data class`).
+fn emit_uncertain_prelude(indent: &str) -> String {
+    let inner = format!("{indent}  ");
+    format!(
+        "{indent}sealed interface Uncertain<out T> {{\n\
+{inner}data class Known<T>(val value: T) : Uncertain<T>\n\
+{inner}data class Unknown(val reason: String) : Uncertain<Nothing>\n\
+{indent}}}\n\n\
+{indent}fun <T> known(value: T): Uncertain<T> = Uncertain.Known(value)\n\
+{indent}fun unknown(reason: String): Uncertain<Nothing> = Uncertain.Unknown(reason)\n\n\
+{indent}inline fun <T> Uncertain<T>.orElse(fallback: () -> T): T = when (this) {{\n\
+{inner}is Uncertain.Known -> value\n\
+{inner}is Uncertain.Unknown -> fallback()\n\
+{indent}}}"
+    )
+}
+
+/// Emit `data class <Name>(val <field>: <Type>, …)` for a `.hs` struct declaration.
+///
+/// Legacy fields retain constructor-site inference. An `@unknown` field instead emits the typed
+/// `Uncertain<T>` carrier selected from its explicit scalar payload annotation; no payload type is
+/// inferred or erased for epistemic state.
 fn emit_struct(
     node: &StructDeclarationNode,
     indent: &str,
     field_types: &[Option<ValType>],
+    uncertain_types: &[Option<KotlinUnknownScalar>],
 ) -> String {
     if node.fields.is_empty() {
         return format!("{}class {}", indent, node.name);
@@ -926,11 +1280,17 @@ fn emit_struct(
         .iter()
         .enumerate()
         .map(|(i, f)| {
-            let ty = field_types
+            let ty = uncertain_types
                 .get(i)
-                .and_then(|t| t.as_ref())
-                .map(ValType::kotlin)
-                .unwrap_or_else(|| "Float".to_string());
+                .and_then(|scalar| *scalar)
+                .map(|scalar| format!("Uncertain<{}>", scalar.kotlin()))
+                .unwrap_or_else(|| {
+                    field_types
+                        .get(i)
+                        .and_then(|t| t.as_ref())
+                        .map(ValType::kotlin)
+                        .unwrap_or_else(|| "Float".to_string())
+                });
             format!("val {}: {}", f, ty)
         })
         .collect::<Vec<_>>()
@@ -966,26 +1326,60 @@ pub fn compile_source_to_kotlin(source: &str, indent: &str) -> Result<String, Ko
     emit_functions(&ast, indent)
 }
 
+struct KotlinDeclaredTypes<'a> {
+    enums: &'a [String],
+    structs: &'a [String],
+}
+
 fn emit_function(
     name: &str,
     params: &[String],
+    param_types: &[Option<String>],
     body: &[AstNode],
     indent: &str,
-    enum_names: &[String],
-    struct_names: &[String],
+    declared_types: &KotlinDeclaredTypes<'_>,
+    unknown_fields: &KotlinUnknownFields,
 ) -> Result<String, KotlinEmitError> {
-    let ret = infer_return_type(body, enum_names, struct_names);
+    let ret = infer_return_type(
+        body,
+        declared_types.enums,
+        declared_types.structs,
+        unknown_fields,
+    )?;
     let int_locals = collect_index_local_bindings(body);
+    let context = EmitContext {
+        int_locals: &int_locals,
+        unknown_fields,
+    };
     let param_list = params
         .iter()
-        .map(|p| format!("{}: {}", p, infer_param_type(p, body, &int_locals).kotlin()))
+        .enumerate()
+        .map(|(index, p)| {
+            let explicit = param_types
+                .get(index)
+                .and_then(|annotation| annotation.as_deref())
+                .and_then(|annotation| {
+                    explicit_kotlin_param_type(
+                        annotation,
+                        declared_types.enums,
+                        declared_types.structs,
+                    )
+                });
+            format!(
+                "{}: {}",
+                p,
+                explicit
+                    .unwrap_or_else(|| infer_param_type(p, body, &int_locals))
+                    .kotlin()
+            )
+        })
         .collect::<Vec<_>>()
         .join(", ");
 
     let body_indent = format!("{}  ", indent);
     let mut lines: Vec<String> = Vec::new();
     for stmt in body {
-        emit_statement(stmt, &body_indent, &mut lines, &int_locals)?;
+        emit_statement(stmt, &body_indent, &mut lines, &context)?;
     }
 
     let mut out = String::new();
@@ -1004,6 +1398,27 @@ fn emit_function(
     Ok(out)
 }
 
+fn explicit_kotlin_param_type(
+    annotation: &str,
+    enum_names: &[String],
+    struct_names: &[String],
+) -> Option<ValType> {
+    match annotation {
+        "string" | "String" | "str" => Some(ValType::Str),
+        "bool" | "Boolean" => Some(ValType::Bool),
+        "i32" => Some(ValType::Int),
+        "i64" => Some(ValType::Long),
+        "f32" | "f64" | "float" | "number" => Some(ValType::Float),
+        name if struct_names.iter().any(|candidate| candidate == name) => {
+            Some(ValType::Struct(name.to_string()))
+        }
+        name if enum_names.iter().any(|candidate| candidate == name) => {
+            Some(ValType::Enum(name.to_string()))
+        }
+        _ => None,
+    }
+}
+
 /// Infer the Kotlin return type from the function's `return` expressions:
 /// an `enum` type if every return is a member of the SAME declared enum (`Route.EnterWorld`),
 /// `Boolean` if every return is boolean-shaped, `Float` if every return is numeric-shaped
@@ -1012,11 +1427,16 @@ fn emit_function(
 /// locomotion math; the enum branch carries the routing decision. Enum is checked first so a
 /// member access never falls through to `String`, then Boolean so a comparison never reads as
 /// numeric.
-fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[String]) -> ValType {
+fn infer_return_type(
+    body: &[AstNode],
+    enum_names: &[String],
+    struct_names: &[String],
+    unknown_fields: &KotlinUnknownFields,
+) -> Result<ValType, KotlinEmitError> {
     let mut returns: Vec<&AstNode> = Vec::new();
     collect_returns(body, &mut returns);
     if returns.is_empty() {
-        return ValType::Str;
+        return Ok(ValType::Str);
     }
     // Enum: every return must be a member of the SAME declared enum. A mix of two enums (or an
     // enum and something else) is not a single enum type, so it falls through to the rules below.
@@ -1028,7 +1448,7 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
             .iter()
             .all(|n| enum_member_owner(n, enum_names).as_deref() == Some(first.as_str()))
         {
-            return ValType::Enum(first);
+            return Ok(ValType::Enum(first));
         }
     }
     // Struct: every return must construct the SAME declared struct (`Vec3(x, y, z)`).
@@ -1040,7 +1460,7 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
             .iter()
             .all(|n| struct_ctor_owner(n, struct_names).as_deref() == Some(first.as_str()))
         {
-            return ValType::Struct(first);
+            return Ok(ValType::Struct(first));
         }
     }
     // List: every return is an array literal (`[1, 2, 3]`) ⇒ `List<element>`. The element type is
@@ -1059,7 +1479,7 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
                 _ => None,
             })
             .unwrap_or(ValType::Float);
-        return ValType::List(Box::new(elem));
+        return Ok(ValType::List(Box::new(elem)));
     }
     // Map: every return is an object literal (`{ key: value }`) => `Map<String, value>`.
     // The value type is read from the first non-empty object; empty objects default to Float.
@@ -1076,7 +1496,7 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
                 _ => None,
             })
             .unwrap_or(ValType::Float);
-        return ValType::Map(Box::new(value));
+        return Ok(ValType::Map(Box::new(value)));
     }
     // List via bare-identifier return: every return is an identifier bound to a `let xs = [..]` list
     // local with a consistent element type (the list analogue of the numeric-accumulator rule below,
@@ -1103,7 +1523,7 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
                 .iter()
                 .all(|n| elem_at(n).as_ref() == Some(&first_elem))
             {
-                return first_elem;
+                return Ok(first_elem);
             }
         }
 
@@ -1121,7 +1541,7 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
                 .iter()
                 .all(|n| elem_of(n).as_ref() == Some(&first_elem))
             {
-                return ValType::List(Box::new(first_elem));
+                return Ok(ValType::List(Box::new(first_elem)));
             }
         }
     }
@@ -1143,7 +1563,7 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
                 .iter()
                 .all(|n| value_of(n).as_ref() == Some(&first_value))
             {
-                return ValType::Map(Box::new(first_value));
+                return Ok(ValType::Map(Box::new(first_value)));
             }
         }
     }
@@ -1157,13 +1577,23 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
             || matches!(n, AstNode::Identifier(id) if numeric_locals.iter().any(|b| b == &id.name))
     };
 
-    if returns.iter().all(|n| is_boolean_expr(n)) {
+    let uncertain_types = returns
+        .iter()
+        .map(|node| uncertain_fallback_type(node, unknown_fields))
+        .collect::<Result<Vec<_>, _>>()?;
+    if let Some(first) = uncertain_types.first().copied().flatten() {
+        if uncertain_types.iter().all(|scalar| *scalar == Some(first)) {
+            return Ok(first.value_type());
+        }
+    }
+
+    Ok(if returns.iter().all(|n| is_boolean_expr(n)) {
         ValType::Bool
     } else if returns.iter().all(|n| is_num(n)) {
         ValType::Float
     } else {
         ValType::Str
-    }
+    })
 }
 
 /// Collect the names of local bindings (`let`/`const`/`var`) in this function body whose value is
@@ -2163,15 +2593,15 @@ fn emit_statement(
     node: &AstNode,
     indent: &str,
     lines: &mut Vec<String>,
-    int_locals: &[String],
+    context: &EmitContext<'_>,
 ) -> Result<(), KotlinEmitError> {
     match node {
         // `let`/`const x = expr` → immutable `val`; `var x = expr` → mutable `var`.
         AstNode::VariableDeclaration(v) => {
-            let value = if int_locals.iter().any(|n| n == &v.name) {
-                emit_int_expr(&v.value, int_locals)?
+            let value = if context.int_locals.iter().any(|n| n == &v.name) {
+                emit_int_expr(&v.value, context)?
             } else {
-                emit_expr(&v.value, int_locals)?
+                emit_expr(&v.value, context)?
             };
             let kw = if v.mutable { "var" } else { "val" };
             if let AstNode::LambdaExpression(lambda) = v.value.as_ref() {
@@ -2185,14 +2615,14 @@ fn emit_statement(
         // Defensive: an object-graph `Property` reaching the logic emitter is treated as an
         // immutable binding (the parser now emits `VariableDeclaration` for `.hs` logic bindings).
         AstNode::Property(p) => {
-            let value = emit_expr(&p.value, int_locals)?;
+            let value = emit_expr(&p.value, context)?;
             lines.push(format!("{}val {} = {}", indent, p.key, value));
             Ok(())
         }
         // `x = expr` / `acc += expr` reassignment of a LOCAL `var`.
         AstNode::Assignment(a) => {
-            let target = emit_expr(&a.target, int_locals)?;
-            let value = emit_expr(&a.value, int_locals)?;
+            let target = emit_expr(&a.target, context)?;
+            let value = emit_expr(&a.value, context)?;
             lines.push(format!("{}{} {} {}", indent, target, a.operator, value));
             Ok(())
         }
@@ -2201,11 +2631,11 @@ fn emit_statement(
             lines.push(format!(
                 "{}while ({}) {{",
                 indent,
-                emit_expr(&w.test, int_locals)?
+                emit_expr(&w.test, context)?
             ));
             let inner = format!("{}  ", indent);
             for stmt in &w.body {
-                emit_statement(stmt, &inner, lines, int_locals)?;
+                emit_statement(stmt, &inner, lines, context)?;
             }
             lines.push(format!("{}}}", indent));
             Ok(())
@@ -2216,20 +2646,18 @@ fn emit_statement(
                 "{}for ({} in {}) {{",
                 indent,
                 f.var_name,
-                emit_expr(&f.range, int_locals)?
+                emit_expr(&f.range, context)?
             ));
             let inner = format!("{}  ", indent);
             for stmt in &f.body {
-                emit_statement(stmt, &inner, lines, int_locals)?;
+                emit_statement(stmt, &inner, lines, context)?;
             }
             lines.push(format!("{}}}", indent));
             Ok(())
         }
         AstNode::Return(r) => {
             match &r.argument {
-                Some(arg) => {
-                    lines.push(format!("{}return {}", indent, emit_expr(arg, int_locals)?))
-                }
+                Some(arg) => lines.push(format!("{}return {}", indent, emit_expr(arg, context)?)),
                 None => lines.push(format!("{}return", indent)),
             }
             Ok(())
@@ -2238,16 +2666,16 @@ fn emit_statement(
             lines.push(format!(
                 "{}if ({}) {{",
                 indent,
-                emit_expr(&if_node.test, int_locals)?
+                emit_expr(&if_node.test, context)?
             ));
             let inner = format!("{}  ", indent);
             for stmt in &if_node.consequent {
-                emit_statement(stmt, &inner, lines, int_locals)?;
+                emit_statement(stmt, &inner, lines, context)?;
             }
             if let Some(alt) = &if_node.alternate {
                 lines.push(format!("{}}} else {{", indent));
                 for stmt in alt {
-                    emit_statement(stmt, &inner, lines, int_locals)?;
+                    emit_statement(stmt, &inner, lines, context)?;
                 }
             }
             lines.push(format!("{}}}", indent));
@@ -2259,7 +2687,7 @@ fn emit_statement(
         | AstNode::Identifier(_)
         | AstNode::BinaryExpression(_)
         | AstNode::UnaryExpression(_) => {
-            lines.push(format!("{}{}", indent, emit_expr(node, int_locals)?));
+            lines.push(format!("{}{}", indent, emit_expr(node, context)?));
             Ok(())
         }
         AstNode::Comment(_) => Ok(()),
@@ -2270,7 +2698,77 @@ fn emit_statement(
     }
 }
 
-fn emit_expr(node: &AstNode, int_locals: &[String]) -> Result<String, KotlinEmitError> {
+fn uncertain_fallback_type(
+    node: &AstNode,
+    unknown_fields: &KotlinUnknownFields,
+) -> Result<Option<KotlinUnknownScalar>, KotlinEmitError> {
+    let AstNode::BinaryExpression(binary) = node else {
+        return Ok(None);
+    };
+    if binary.operator != "??" {
+        return Ok(None);
+    }
+    unknown_scalar_for_expr(&binary.left, unknown_fields)
+}
+
+fn unknown_scalar_for_expr(
+    node: &AstNode,
+    unknown_fields: &KotlinUnknownFields,
+) -> Result<Option<KotlinUnknownScalar>, KotlinEmitError> {
+    match node {
+        AstNode::MemberExpression(member) if !member.computed => {
+            let AstNode::Identifier(field) = member.property.as_ref() else {
+                return Ok(None);
+            };
+            unknown_fields.field_type(&field.name)
+        }
+        AstNode::CallExpression(call)
+            if matches!(call.callee.as_ref(), AstNode::Identifier(id) if id.name == "load")
+                && call.arguments.len() == 1 =>
+        {
+            unknown_scalar_for_expr(&call.arguments[0], unknown_fields)
+        }
+        _ => Ok(None),
+    }
+}
+
+fn emit_unknown_fallback(
+    node: &AstNode,
+    scalar: KotlinUnknownScalar,
+    context: &EmitContext<'_>,
+) -> Result<String, KotlinEmitError> {
+    match (scalar, node) {
+        (KotlinUnknownScalar::I32, AstNode::Number(number)) => Ok(emit_int_literal(&number.raw)),
+        (KotlinUnknownScalar::I64, AstNode::Number(number)) => Ok(emit_long_literal(&number.raw)),
+        _ => emit_expr(node, context),
+    }
+}
+
+fn emit_unknown_constructor_argument(
+    node: &AstNode,
+    scalar: KotlinUnknownScalar,
+    context: &EmitContext<'_>,
+) -> Result<String, KotlinEmitError> {
+    if let AstNode::CallExpression(call) = node {
+        if matches!(call.callee.as_ref(), AstNode::Identifier(id) if id.name == "known")
+            && call.arguments.len() == 1
+        {
+            let value = emit_unknown_fallback(&call.arguments[0], scalar, context)?;
+            return Ok(format!("known({value})"));
+        }
+    }
+    if matches!(
+        node,
+        AstNode::String(_) | AstNode::Number(_) | AstNode::Boolean(_) | AstNode::Null(_)
+    ) {
+        return Err(KotlinEmitError::new(
+            "an `@unknown` field constructor argument must be an explicit `known(value)` or `unknown(reason)` carrier; refusing to wrap a raw value implicitly",
+        ));
+    }
+    emit_expr(node, context)
+}
+
+fn emit_expr(node: &AstNode, context: &EmitContext<'_>) -> Result<String, KotlinEmitError> {
     match node {
         AstNode::String(s) => Ok(emit_string_literal(&s.value)),
         AstNode::Number(n) => Ok(emit_float_literal(&n.raw)),
@@ -2282,9 +2780,19 @@ fn emit_expr(node: &AstNode, int_locals: &[String]) -> Result<String, KotlinEmit
             // Its operands live in an Int context, so numeric literals drop the Float `f` suffix.
             if b.operator == ".." {
                 let parent = precedence(&b.operator);
-                let left = emit_range_operand(&b.left, parent, false, int_locals)?;
-                let right = emit_range_operand(&b.right, parent, true, int_locals)?;
+                let left = emit_range_operand(&b.left, parent, false, context)?;
+                let right = emit_range_operand(&b.right, parent, true, context)?;
                 return Ok(format!("{}..{}", left, right));
+            }
+            if b.operator == "??" {
+                let Some(scalar) = uncertain_fallback_type(node, context.unknown_fields)? else {
+                    return Err(KotlinEmitError::new(
+                        "binary operator `??` requires an `@unknown` field on its left in the thin Kotlin bridge",
+                    ));
+                };
+                let left = emit_expr(&b.left, context)?;
+                let fallback = emit_unknown_fallback(&b.right, scalar, context)?;
+                return Ok(format!("({left}).orElse {{ {fallback} }}"));
             }
             // The parser discards parentheses, keeping only a precedence-correct tree. To emit
             // Kotlin that means the SAME thing, re-parenthesize: wrap a child whose operator binds
@@ -2292,51 +2800,71 @@ fn emit_expr(node: &AstNode, int_locals: &[String]) -> Result<String, KotlinEmit
             // shares this precedence (so `a - (b - c)` and `(a + b) * c` survive intact).
             let parent = precedence(&b.operator);
             let op = map_binary_operator(&b.operator)?;
-            let left = emit_operand(&b.left, parent, false, int_locals)?;
-            let right = emit_operand(&b.right, parent, true, int_locals)?;
+            let left = emit_operand(&b.left, parent, false, context)?;
+            let right = emit_operand(&b.right, parent, true, context)?;
             Ok(format!("{} {} {}", left, op, right))
         }
         AstNode::UnaryExpression(u) => {
             // Parenthesize a binary argument so `-(a + b)` / `!(a && b)` keep their grouping.
             let arg = match u.argument.as_ref() {
                 AstNode::BinaryExpression(_) => {
-                    format!("({})", emit_expr(&u.argument, int_locals)?)
+                    format!("({})", emit_expr(&u.argument, context)?)
                 }
-                _ => emit_expr(&u.argument, int_locals)?,
+                _ => emit_expr(&u.argument, context)?,
             };
             Ok(format!("{}{}", u.operator, arg))
         }
         AstNode::MemberExpression(m) => {
-            let object = emit_expr(&m.object, int_locals)?;
+            let object = emit_expr(&m.object, context)?;
             if m.computed {
                 Ok(format!(
                     "{}[{}]",
                     object,
-                    emit_int_expr(&m.property, int_locals)?
+                    emit_int_expr(&m.property, context)?
                 ))
             } else {
                 let prop = match m.property.as_ref() {
                     AstNode::Identifier(id) => id.name.clone(),
-                    other => emit_expr(other, int_locals)?,
+                    other => emit_expr(other, context)?,
                 };
                 Ok(format!("{}.{}", object, prop))
             }
         }
         AstNode::CallExpression(c) => {
-            let args = c
-                .arguments
-                .iter()
-                .map(|arg| emit_expr(arg, int_locals))
-                .collect::<Result<Vec<_>, _>>()?;
             // Bare numeric builtins map through the shared table so emission and type inference
             // stay in lockstep. Member-call forms (e.g. `x.trim()`) pass through unchanged.
             if let AstNode::Identifier(id) = c.callee.as_ref() {
+                let args = if let Some(field_types) = context.unknown_fields.by_struct.get(&id.name)
+                {
+                    c.arguments
+                        .iter()
+                        .enumerate()
+                        .map(
+                            |(index, argument)| match field_types.get(index).and_then(|t| *t) {
+                                Some(scalar) => {
+                                    emit_unknown_constructor_argument(argument, scalar, context)
+                                }
+                                None => emit_expr(argument, context),
+                            },
+                        )
+                        .collect::<Result<Vec<_>, _>>()?
+                } else {
+                    c.arguments
+                        .iter()
+                        .map(|arg| emit_expr(arg, context))
+                        .collect::<Result<Vec<_>, _>>()?
+                };
                 if let Some(builtin) = kotlin_builtin(&id.name) {
                     return emit_builtin_call(builtin, &args);
                 }
                 return Ok(format!("{}({})", id.name, args.join(", ")));
             }
-            let callee = emit_expr(&c.callee, int_locals)?;
+            let args = c
+                .arguments
+                .iter()
+                .map(|arg| emit_expr(arg, context))
+                .collect::<Result<Vec<_>, _>>()?;
+            let callee = emit_expr(&c.callee, context)?;
             Ok(format!("{}({})", callee, args.join(", ")))
         }
         AstNode::LambdaExpression(lambda) => {
@@ -2344,14 +2872,14 @@ fn emit_expr(node: &AstNode, int_locals: &[String]) -> Result<String, KotlinEmit
             Ok(format!(
                 "{{ {} -> {} }}",
                 params,
-                emit_expr(&lambda.body, int_locals)?
+                emit_expr(&lambda.body, context)?
             ))
         }
         AstNode::Array(arr) => {
             let elems = arr
                 .elements
                 .iter()
-                .map(|element| emit_expr(element, int_locals))
+                .map(|element| emit_expr(element, context))
                 .collect::<Result<Vec<_>, _>>()?
                 .join(", ");
             Ok(format!("listOf({})", elems))
@@ -2362,7 +2890,7 @@ fn emit_expr(node: &AstNode, int_locals: &[String]) -> Result<String, KotlinEmit
                 entries.push(format!(
                     "{} to {}",
                     emit_string_literal(&prop.key),
-                    emit_expr(prop.value.as_ref(), int_locals)?
+                    emit_expr(prop.value.as_ref(), context)?
                 ));
             }
             Ok(format!("mapOf({})", entries.join(", ")))
@@ -2415,12 +2943,9 @@ fn infer_lambda_return_type(body: &AstNode) -> ValType {
 /// but the function makes the mapping explicit so an unexpected operator fails rather
 /// than passing through silently.
 ///
-/// The catch-all previously returned `op` unchanged — the exact silent passthrough this doc
-/// promises not to do. `??` was the live case: it emitted VERBATIM into Kotlin (where `??` is not
-/// an operator), producing code that does not compile. A `?:` elvis lowering would not be honest
-/// today either — `ValType` has no nullable variant and parameter inference types everything
-/// non-null, so there is nothing null-shaped for an elvis to guard. Until a real nullable/
-/// Uncertain lowering exists, an unmapped operator is a loud error, as documented.
+/// `??` is handled before this table and lowers only when its left operand is a typed
+/// `Uncertain<T>` field. It is intentionally not mapped to Kotlin's nullable `?:`: optionality and
+/// first-class ignorance are distinct sovereign meanings.
 fn map_binary_operator(op: &str) -> Result<&str, KotlinEmitError> {
     match op {
         "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "||"
@@ -2490,9 +3015,9 @@ fn emit_operand(
     node: &AstNode,
     parent: u8,
     is_right: bool,
-    int_locals: &[String],
+    context: &EmitContext<'_>,
 ) -> Result<String, KotlinEmitError> {
-    let emitted = emit_expr(node, int_locals)?;
+    let emitted = emit_expr(node, context)?;
     if let AstNode::BinaryExpression(b) = node {
         let child = precedence(&b.operator);
         if child < parent || (is_right && child == parent) {
@@ -2509,9 +3034,9 @@ fn emit_range_operand(
     node: &AstNode,
     parent: u8,
     is_right: bool,
-    int_locals: &[String],
+    context: &EmitContext<'_>,
 ) -> Result<String, KotlinEmitError> {
-    let emitted = emit_int_expr(node, int_locals)?;
+    let emitted = emit_int_expr(node, context)?;
     if let AstNode::BinaryExpression(b) = node {
         let child = precedence(&b.operator);
         if child < parent || (is_right && child == parent) {
@@ -2525,7 +3050,7 @@ fn emit_range_operand(
 /// integers (no Float `f` suffix); arithmetic sub-expressions recurse in the same Int context;
 /// everything else falls back to the normal expression emitter (identifiers, calls, members pass
 /// through — they are assumed to already be Int-typed in a range position).
-fn emit_int_expr(node: &AstNode, int_locals: &[String]) -> Result<String, KotlinEmitError> {
+fn emit_int_expr(node: &AstNode, context: &EmitContext<'_>) -> Result<String, KotlinEmitError> {
     match node {
         AstNode::Number(n) => Ok(emit_int_literal(&n.raw)),
         AstNode::BinaryExpression(b)
@@ -2533,11 +3058,11 @@ fn emit_int_expr(node: &AstNode, int_locals: &[String]) -> Result<String, Kotlin
         {
             let parent = precedence(&b.operator);
             let op = map_binary_operator(&b.operator)?;
-            let left = emit_int_operand(&b.left, parent, false, int_locals)?;
-            let right = emit_int_operand(&b.right, parent, true, int_locals)?;
+            let left = emit_int_operand(&b.left, parent, false, context)?;
+            let right = emit_int_operand(&b.right, parent, true, context)?;
             Ok(format!("{} {} {}", left, op, right))
         }
-        other => emit_expr(other, int_locals),
+        other => emit_expr(other, context),
     }
 }
 
@@ -2545,9 +3070,9 @@ fn emit_int_operand(
     node: &AstNode,
     parent: u8,
     is_right: bool,
-    int_locals: &[String],
+    context: &EmitContext<'_>,
 ) -> Result<String, KotlinEmitError> {
-    let emitted = emit_int_expr(node, int_locals)?;
+    let emitted = emit_int_expr(node, context)?;
     if let AstNode::BinaryExpression(b) = node {
         let child = precedence(&b.operator);
         if child < parent || (is_right && child == parent) {
@@ -2567,6 +3092,10 @@ fn emit_int_literal(raw: &str) -> String {
         Some(("", _frac)) => "0".to_string(),
         _ => trimmed.to_string(),
     }
+}
+
+fn emit_long_literal(raw: &str) -> String {
+    format!("{}L", emit_int_literal(raw))
 }
 
 /// Emit a numeric literal as a Kotlin `Float` (the `.hs` numeric subset is Float-only — the
@@ -3498,19 +4027,120 @@ function mk() {
     }
 
     #[test]
-    fn unknown_struct_fields_fail_closed_before_kotlin_can_erase_the_carrier() {
-        let src = r#"struct Sensor { @unknown reading: i32 }
-function main(): i32 {
-  slot sensor: Sensor = Sensor(unknown("underdetermined"))
-  return load(sensor.reading) ?? 0
+    fn unknown_struct_fields_emit_typed_carriers_and_explicit_fallbacks() {
+        let src = r#"struct Evidence {
+  @unknown payload: string,
+  @unknown ready: bool,
+  @unknown count: i32,
+  @unknown epoch: i64
+}
+function resolve() {
+  let evidence = Evidence(unknown("missing"), known(true), known(7), known(9))
+  let ready = evidence.ready ?? false
+  let count = evidence.count ?? 0
+  let epoch = evidence.epoch ?? 0
+  return evidence.payload ?? "fallback"
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("sealed interface Uncertain<out T>"), "{out}");
+        assert!(out.contains("val payload: Uncertain<String>"), "{out}");
+        assert!(out.contains("val ready: Uncertain<Boolean>"), "{out}");
+        assert!(out.contains("val count: Uncertain<Int>"), "{out}");
+        assert!(out.contains("val epoch: Uncertain<Long>"), "{out}");
+        assert!(out.contains("known(7)"), "{out}");
+        assert!(out.contains("known(9L)"), "{out}");
+        assert!(out.contains("(evidence.ready).orElse { false }"), "{out}");
+        assert!(out.contains("(evidence.count).orElse { 0 }"), "{out}");
+        assert!(out.contains("(evidence.epoch).orElse { 0L }"), "{out}");
+        assert!(
+            out.contains("(evidence.payload).orElse { \"fallback\" }"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn explicit_struct_parameter_preserves_unknown_carrier_owner_type() {
+        let src = r#"struct ClassifiedIntent { @unknown inferred: string }
+function resolveIntent(intent: ClassifiedIntent): string {
+  return intent.inferred ?? "deny"
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("fun resolveIntent(intent: ClassifiedIntent): String"),
+            "{out}"
+        );
+        assert!(
+            out.contains("(intent.inferred).orElse { \"deny\" }"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn bare_unknown_struct_field_read_fails_before_kotlin_emission() {
+        let src = r#"struct Scan { @unknown payload: string }
+function unsafeRead() {
+  let scan = Scan(unknown("not_scanned"))
+  return scan.payload
 }"#;
         let error = compile_source_to_kotlin(src, "  ")
-            .expect_err("Kotlin must not erase Uncertain<T> to the payload type");
+            .expect_err("a bare unknown read must never become a raw Kotlin String");
         let message = error.to_string();
         assert!(
-            message.contains("requires an Uncertain<T> runtime carrier")
-                && message.contains("fail closed"),
+            message.contains("reads `@unknown` struct field `payload`"),
             "{message}"
+        );
+        assert!(
+            message.contains("`Uncertain<T>` is not assignable to `T`"),
+            "{message}"
+        );
+    }
+
+    #[test]
+    fn unknown_field_cannot_be_constructed_from_a_raw_payload() {
+        let src = r#"struct Scan { @unknown payload: string }
+function unsafeConstruct() {
+  return Scan("raw payload")
+}"#;
+        let error = compile_source_to_kotlin(src, "  ")
+            .expect_err("the bridge must not silently wrap a raw value as known");
+        assert!(
+            error
+                .to_string()
+                .contains("must be an explicit `known(value)` or `unknown(reason)` carrier"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn unknown_read_used_as_a_fallback_is_still_rejected() {
+        let src = r#"struct Scan {
+  @unknown primary: string,
+  @unknown secondary: string
+}
+function unsafeFallback() {
+  let scan = Scan(unknown("primary_missing"), unknown("secondary_missing"))
+  return scan.primary ?? scan.secondary
+}"#;
+        let error = compile_source_to_kotlin(src, "  ")
+            .expect_err("an unknown value cannot launder itself through the fallback branch");
+        assert!(
+            error
+                .to_string()
+                .contains("reads `@unknown` struct field `secondary`"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn unsupported_unknown_payload_type_fails_closed() {
+        let src = r#"struct Sensor { @unknown reading: f32 }"#;
+        let error = compile_source_to_kotlin(src, "  ")
+            .expect_err("the thin bridge must reject payloads it cannot faithfully preserve");
+        assert!(
+            error
+                .to_string()
+                .contains("supported payloads are string, bool, i32, and i64"),
+            "{error}"
         );
     }
 

@@ -159,7 +159,7 @@ async function loadCompilers() {
 export async function runCrossTargetBench() {
   const parser = new HoloScriptPlusParser();
   const source = generateComplexScene();
-  const ast = parser.parse(source).ast as HoloComposition;
+  const ast = parser.parse(source).ast as unknown as HoloComposition;
 
   // Verify scene complexity
   const objectCount = ast.objects?.length ?? 0;

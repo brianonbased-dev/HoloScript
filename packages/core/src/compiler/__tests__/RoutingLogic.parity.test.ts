@@ -44,7 +44,7 @@ function emittedActivityKt(): string {
 }
 
 // ── The decision domain ──────────────────────────────────────────────────────────────────────
-type Route = 'EnterWorld' | 'PendingWorld' | 'OpenUrl' | 'ShowResult';
+type Route = 'EnterWorld' | 'PendingWorld' | 'OpenUrl' | 'ShowResult' | 'Deny';
 
 // The ScannerState writes a route produces. `null` here means a Kotlin `null` assignment; `undefined`
 // (a missing key) means the field is NOT written for that route. `text` is the decoded payload.
@@ -107,26 +107,79 @@ function origRoute(text: string, isWorld: boolean, autoImmerse: boolean, c: QrCo
 
 // ── NEW .hs-compiled decision (transliterated from Routing.logic.hs) ────────────────────────────
 // The exact pure boolean decision emitted to the `Routing` Kotlin object.
-function decideRoute(isWorldLink: boolean, autoImmerse: boolean, isOpenAction: boolean): Route {
-  if (isWorldLink) {
+function decideRoute(intent: string, autoImmerse: boolean): Route {
+  if (intent === 'world') {
     if (autoImmerse) {
       return 'EnterWorld';
     } else {
       return 'PendingWorld';
     }
+  } else if (intent === 'open') {
+    return 'OpenUrl';
+  } else if (intent === 'copy') {
+    return 'ShowResult';
   } else {
-    if (isOpenAction) {
-      return 'OpenUrl';
-    } else {
-      return 'ShowResult';
+    return 'Deny';
+  }
+}
+
+function admissiblePayload(
+  nonEmpty: boolean,
+  withinLimit: boolean,
+  controlsSafe: boolean,
+  syntaxSafe: boolean
+): boolean {
+  return nonEmpty && withinLimit && controlsSafe && syntaxSafe;
+}
+
+function questPayloadAdmitted(text: string, maxPayloadChars = 4096): boolean {
+  const trimmed = text.trim();
+  const structuredMultiline =
+    /^BEGIN:VCARD/i.test(trimmed) || /^BEGIN:VEVENT/i.test(trimmed);
+  const controlsSafe = [...text].every((ch) => {
+    const code = ch.charCodeAt(0);
+    const control = code <= 0x1f || code === 0x7f;
+    return !control || (structuredMultiline && (ch === '\n' || ch === '\r' || ch === '\t'));
+  });
+  const validStructuredEnvelope = (begin: string, end: string): boolean => {
+    const lines = trimmed.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    return (
+      lines.length >= 3 &&
+      lines[0].trim().toUpperCase() === begin &&
+      lines.at(-1)!.trim().toUpperCase() === end &&
+      lines.slice(1, -1).some((line) => {
+        const separator = line.indexOf(':');
+        return separator > 0 && separator < line.length - 1;
+      })
+    );
+  };
+  let webUrlSyntaxSafe = true;
+  if (/^BEGIN:VCARD/i.test(trimmed)) {
+    webUrlSyntaxSafe = validStructuredEnvelope('BEGIN:VCARD', 'END:VCARD');
+  } else if (/^BEGIN:VEVENT/i.test(trimmed)) {
+    webUrlSyntaxSafe = validStructuredEnvelope('BEGIN:VEVENT', 'END:VEVENT');
+  } else if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      webUrlSyntaxSafe =
+        (parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.host.length > 0;
+    } catch {
+      webUrlSyntaxSafe = false;
     }
   }
+  return admissiblePayload(
+    text.trim().length > 0,
+    text.length <= maxPayloadChars,
+    controlsSafe,
+    webUrlSyntaxSafe
+  );
 }
 
 // The shell application (exactly the rewritten onDecoded `when (route) { … }`) over the .hs decision.
 function hsRoute(text: string, isWorld: boolean, autoImmerse: boolean, c: QrContent | null): StateWrites {
   const isOpen = c?.action === 'OPEN'; // c is null for world payloads → isOpen false (route ignores it)
-  const route = decideRoute(isWorld, autoImmerse, isOpen);
+  const intent = isWorld ? 'world' : isOpen ? 'open' : 'copy';
+  const route = decideRoute(intent, autoImmerse);
   switch (route) {
     case 'EnterWorld':
       return { enterWorldCalled: true };
@@ -159,6 +212,8 @@ function hsRoute(text: string, isWorld: boolean, autoImmerse: boolean, c: QrCont
         status: cc.label,
       };
     }
+    case 'Deny':
+      return { status: 'Unsupported QR content' };
   }
 }
 
@@ -194,10 +249,14 @@ describe('Routing .hs → Kotlin emission', () => {
   it('injects the .hs-compiled Routing decision (enum + decideRoute, not hand-Kotlin, not empty)', () => {
     expect(kt).toContain('@generated from logic/Routing.logic.hs (compile_to_kotlin)');
     expect(kt).toContain('private object Routing {');
-    expect(kt).toContain('enum class Route { EnterWorld, PendingWorld, OpenUrl, ShowResult }');
+    expect(kt).toContain('sealed interface Uncertain<out T>');
+    expect(kt).toContain('data class ClassifiedIntent(val inferred: Uncertain<String>)');
+    expect(kt).toContain('enum class Route { EnterWorld, PendingWorld, OpenUrl, ShowResult, Deny }');
     expect(kt).toContain(
-      'fun decideRoute(isWorldLink: Boolean, autoImmerse: Boolean, isOpenAction: Boolean): Route {'
+      'fun decideRoute(intent: String, autoImmerse: Boolean): Route {'
     );
+    expect(kt).toContain('fun resolveIntent(intent: ClassifiedIntent): String');
+    expect(kt).toContain('(intent.inferred).orElse { "deny" }');
     expect(kt).toContain('return Route.EnterWorld');
     expect(kt).toContain('return Route.PendingWorld');
     expect(kt).toContain('return Route.OpenUrl');
@@ -205,20 +264,48 @@ describe('Routing .hs → Kotlin emission', () => {
   });
 
   it('wires onDecoded() to compute the booleans and apply the .hs route in a `when`', () => {
-    expect(kt).toContain('val isWorld = WorldPortal.isWorldLink(text)');
-    expect(kt).toContain('val c: QrContent? = if (isWorld) null else classifyContent(text)');
+    expect(kt).toContain('Routing.admissiblePayload(');
+    expect(kt).toContain('text.length <= MAX_PAYLOAD_CHARS');
+    expect(kt).toContain('URI(trimmed).parseServerAuthority()');
+    expect(kt).toContain('validStructuredEnvelope(trimmed, "BEGIN:VEVENT", "END:VEVENT")');
+    expect(kt).toContain('QrPayloadFacts.controlsSafe(text)');
+    expect(kt).toContain('QrPayloadFacts.syntaxSafe(text)');
+    expect(kt).toContain('payloadSyntaxSafe,');
+    expect(kt).toContain('val isWorld = payloadAdmitted && WorldPortal.isWorldLink(text)');
+    expect(kt).toContain(
+      'val c: QrContent? = if (payloadAdmitted && !isWorld) classifyContent(text) else null'
+    );
+    expect(kt).toContain('!payloadAdmitted -> Routing.unknown("malformed-payload")');
     expect(kt).toContain('val isOpen = c?.action == QrAction.OPEN');
-    expect(kt).toContain('when (Routing.decideRoute(isWorld, WorldPortal.autoImmerse, isOpen)) {');
-    expect(kt).toContain('Routing.Route.EnterWorld -> enterWorld(text)');
+    expect(kt).toContain('val intent = Routing.resolveIntent(Routing.ClassifiedIntent(intentCarrier))');
+    expect(kt).toContain('val route = Routing.decideRoute(intent, WorldPortal.autoImmerse)');
+    expect(kt).toContain('when (route) {');
+    expect(kt).toContain('Routing.Route.EnterWorld -> {');
     expect(kt).toContain('Routing.Route.PendingWorld -> {');
     expect(kt).toContain('Routing.Route.OpenUrl -> {');
     expect(kt).toContain('Routing.Route.ShowResult -> {');
+    expect(kt).toContain('Routing.Route.Deny -> {');
+  });
+
+  it('fails adversarial payload admission closed while preserving structured multiline QR types', () => {
+    expect(questPayloadAdmitted('')).toBe(false);
+    expect(questPayloadAdmitted('x'.repeat(4097))).toBe(false);
+    expect(questPayloadAdmitted('https://example.com/\nextra')).toBe(false);
+    expect(questPayloadAdmitted('https://')).toBe(false);
+    expect(questPayloadAdmitted('https://example.com:bad')).toBe(false);
+    expect(questPayloadAdmitted('https://example.com/path')).toBe(true);
+    expect(questPayloadAdmitted('holoscript://world/aurora')).toBe(true);
+    expect(questPayloadAdmitted('BEGIN:VCARD\r\nFN:Ada\r\nEND:VCARD')).toBe(true);
+    expect(questPayloadAdmitted('BEGIN:VCARD\nnot-a-card')).toBe(false);
+    expect(questPayloadAdmitted('plain\ttext')).toBe(false);
   });
 
   it('applies all four routes with the EXACT state writes + status strings (byte-identical)', () => {
     // PendingWorld arm.
     expect(kt).toContain('ScannerState.pendingWorld = text');
-    expect(kt).toContain('ScannerState.status = "World found — enter it?"');
+    expect(kt).toContain(
+      'if (WORLD_ENTRY_CONSENT_EXPLICIT) WORLD_CONSENT_PURPOSE else "World found — enter it?"'
+    );
     // OpenUrl arm.
     expect(kt).toContain('ScannerState.status = c.label + " — open it?"');
     // ShowResult arm — bare `c.label` status.
@@ -233,7 +320,7 @@ describe('Routing .hs → Kotlin emission', () => {
 
   it('keeps side effects + state + the host call in the imperative shell (functional-core/shell)', () => {
     // Side effects + host call stay in onDecoded, NOT in the Routing object.
-    expect(kt).toContain('Log.i(tag, "decoded: $text")');
+    expect(kt).toContain('Log.i(tag, "decoded QR payload")');
     expect(kt).toContain('controller?.pauseScanning()');
     expect(kt).toContain('if (scanSound) playScanTone()');
     // The Routing object is pure: no ScannerState writes, no host calls, no SDK symbols leak into it.
@@ -250,7 +337,12 @@ describe('Routing .hs → Kotlin emission', () => {
 describe('Routing .hs decision ≡ original hand-Kotlin onDecoded (behavioral parity)', () => {
   it.each(TRUTH)('decideRoute matches: $name', (row) => {
     const isOpen = row.isWorld ? false : row.isOpenAction; // classify only runs for non-world
-    expect(decideRoute(row.isWorld, row.autoImmerse, isOpen)).toBe(row.expected);
+    const intent = row.isWorld ? 'world' : isOpen ? 'open' : 'copy';
+    expect(decideRoute(intent, row.autoImmerse)).toBe(row.expected);
+  });
+
+  it('fails closed when inferred intent remains unknown', () => {
+    expect(decideRoute('deny', false)).toBe('Deny');
   });
 
   it.each(TRUTH)('state writes match the original branching: $name', (row) => {

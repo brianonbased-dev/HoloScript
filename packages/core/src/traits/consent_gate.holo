@@ -3,6 +3,7 @@
   category: "compliance",
   description: "Runtime consent gate — blocks capability execution until explicit consent is granted. scope is the list of capabilities requiring consent (default: [camera]). expiry_ms is the consent expiry in ms (default: 0 — no expiry). require_explicit requires an affirmative user action (default: true). audit_log logs consent events to the audit trail (default: true). purpose is the stated purpose of data collection. Port of ConsentGateTrait.ts (handler name: consent_gate).",
   props: {
+    scope: list<string> = ["camera"],
     expiry_ms: number = 0,
     require_explicit: boolean = true,
     audit_log: boolean = true,

@@ -14,7 +14,12 @@
  * backend). Editing the app is a scanner.holo edit — never a hand-edit of generated Kotlin (F.126).
  */
 import type { HoloComposition, HoloObjectTrait, HoloValue } from '../parser/HoloCompositionTypes';
-import { QUEST_MR_TEMPLATES, QUEST_MR_COMPILED_LOGIC } from './quest-mr-templates.generated';
+import {
+  QUEST_MR_TEMPLATES,
+  QUEST_MR_COMPILED_LOGIC,
+  QUEST_MR_HSPLUS_SOURCES,
+} from './quest-mr-templates.generated';
+import { compileHSPlusStateMachineToKotlin } from './HSIIRKotlinStateMachineEmitter';
 
 // ── HoloValue accessors ──────────────────────────────────────────────────────
 type Obj = Record<string, HoloValue>;
@@ -62,7 +67,13 @@ export interface QuestMrFeatures {
   centerCropH: number;
   decodeIntervalMs: number;
   dedupeWindowMs: number;
+  maxPayloadChars: number;
   logPayloadValues: boolean;
+  scanReceiptsEnabled: boolean;
+  scanReceiptStorage: string;
+  scanReceiptHashChain: boolean;
+  scanReceiptIncludePayload: boolean;
+  scanReceiptMaxEntries: number;
   feedbackSound: boolean; // qr_decode.feedback.sound — beep on decode
   title: string;
   tagline: string;
@@ -77,10 +88,26 @@ export interface QuestMrFeatures {
   // world_portal — scan a QR → enter a HoloScript world (immerse), keep scanning inside it.
   worldLinkPatterns: string[];
   autoImmerse: boolean;
+  worldEntryConsentExplicit: boolean;
+  worldConsentExpiryMs: number;
+  worldConsentAuditLog: boolean;
+  worldConsentPurpose: string;
   keepScanningInWorld: boolean;
   enteringLabel: string;
   leaveAction: string;
   demoWorldUrl: string;
+  portalTrustPolicy: string;
+  portalSignatureAlgorithm: string;
+  portalAllowBundled: boolean;
+  portalRequireRemoteSignature: boolean;
+  portalTrustedPublicKeys: string[];
+  bookmarksEnabled: boolean;
+  bookmarkItemType: string;
+  bookmarkCapacity: number;
+  bookmarkOrdering: string;
+  bookmarkDeduplicate: boolean;
+  bookmarkStorage: string;
+  bookmarkBackup: boolean;
   // qr_decode.content_types — universal content classification rule table (+ fallback).
   contentTypes: QuestContentType[];
   fallbackKind: string;
@@ -120,7 +147,13 @@ function defaults(): QuestMrFeatures {
     centerCropH: 480,
     decodeIntervalMs: 200,
     dedupeWindowMs: 2500,
+    maxPayloadChars: 4096,
     logPayloadValues: false,
+    scanReceiptsEnabled: false,
+    scanReceiptStorage: 'device_private',
+    scanReceiptHashChain: true,
+    scanReceiptIncludePayload: false,
+    scanReceiptMaxEntries: 1000,
     feedbackSound: true,
     title: 'Universal QR Scanner',
     tagline: 'Read any QR code — right in mixed reality',
@@ -137,11 +170,27 @@ function defaults(): QuestMrFeatures {
       'https://holoscript.studio/w/',
       'https://hololand.holoscript.studio/',
     ],
-    autoImmerse: true,
+    autoImmerse: false,
+    worldEntryConsentExplicit: false,
+    worldConsentExpiryMs: 0,
+    worldConsentAuditLog: false,
+    worldConsentPurpose: '',
     keepScanningInWorld: true,
     enteringLabel: 'Entered',
     leaveAction: 'Leave world',
     demoWorldUrl: 'holoscript://world/hololand',
+    portalTrustPolicy: 'bundled_or_signed',
+    portalSignatureAlgorithm: 'ed25519',
+    portalAllowBundled: true,
+    portalRequireRemoteSignature: true,
+    portalTrustedPublicKeys: [],
+    bookmarksEnabled: false,
+    bookmarkItemType: 'url',
+    bookmarkCapacity: 100,
+    bookmarkOrdering: 'most_recent',
+    bookmarkDeduplicate: true,
+    bookmarkStorage: 'device_private',
+    bookmarkBackup: false,
     // Defaults mirror scanner.holo's @qr_decode.content_types so emit == reference even if a spec
     // omits the table; scanner.holo is authoritative when it declares it.
     contentTypes: [
@@ -220,7 +269,17 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
           f.centerCropH = vnum(crop.height, f.centerCropH);
           f.decodeIntervalMs = vnum(c.decode_interval_ms, f.decodeIntervalMs);
           f.dedupeWindowMs = vnum(c.dedupe_window_ms, f.dedupeWindowMs);
+          f.maxPayloadChars = vnum(c.max_payload_chars, f.maxPayloadChars);
           f.logPayloadValues = vbool(c.log_payload_values, f.logPayloadValues);
+          const receipts = vobj(c.receipts);
+          f.scanReceiptsEnabled = vbool(receipts.enabled, f.scanReceiptsEnabled);
+          f.scanReceiptStorage = vstr(receipts.storage, f.scanReceiptStorage);
+          f.scanReceiptHashChain = vbool(receipts.hash_chain, f.scanReceiptHashChain);
+          f.scanReceiptIncludePayload = vbool(
+            receipts.include_payload,
+            f.scanReceiptIncludePayload
+          );
+          f.scanReceiptMaxEntries = vnum(receipts.max_entries, f.scanReceiptMaxEntries);
           f.feedbackSound = vbool(vobj(c.feedback).sound, f.feedbackSound);
           // Universal content classification table → on-device classifyContent() when-arms.
           const cts = varr(c.content_types)
@@ -286,10 +345,87 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
           f.enteringLabel = vstr(c.entering_label, f.enteringLabel);
           f.leaveAction = vstr(c.leave_action, f.leaveAction);
           f.demoWorldUrl = vstr(c.demo_world_url, f.demoWorldUrl);
+          const trust = vobj(c.trust);
+          f.portalTrustPolicy = vstr(trust.policy, f.portalTrustPolicy);
+          f.portalSignatureAlgorithm = vstr(
+            trust.signature_algorithm,
+            f.portalSignatureAlgorithm
+          );
+          f.portalAllowBundled = vbool(trust.allow_bundled, f.portalAllowBundled);
+          f.portalRequireRemoteSignature = vbool(
+            trust.require_signature_for_remote,
+            f.portalRequireRemoteSignature
+          );
+          const trustedKeys = varr(trust.trusted_public_keys)
+            .map((key) => (typeof key === 'string' ? key : ''))
+            .filter((key) => key.length > 0);
+          if (trustedKeys.length > 0) f.portalTrustedPublicKeys = trustedKeys;
+          break;
+        }
+        case 'consent_gate': {
+          const scopes = varr(c.scope).filter((scope) => typeof scope === 'string');
+          if (scopes.includes('world_entry')) {
+            f.worldEntryConsentExplicit = vbool(c.require_explicit, true);
+            f.worldConsentExpiryMs = vnum(c.expiry_ms, 0);
+            f.worldConsentAuditLog = vbool(c.audit_log, false);
+            f.worldConsentPurpose = vstr(c.purpose, '');
+          }
+          break;
+        }
+        case 'local_collection': {
+          const itemType = vstr(c.item_type, '');
+          if (itemType === 'url') {
+            f.bookmarksEnabled = true;
+            f.bookmarkItemType = 'url';
+            f.bookmarkCapacity = vnum(c.capacity, f.bookmarkCapacity);
+            f.bookmarkOrdering = vstr(c.ordering, f.bookmarkOrdering);
+            f.bookmarkDeduplicate = vbool(c.deduplicate, f.bookmarkDeduplicate);
+            f.bookmarkStorage = vstr(c.storage, f.bookmarkStorage);
+            f.bookmarkBackup = vbool(c.backup, f.bookmarkBackup);
+          }
           break;
         }
       }
     }
+  }
+  if (f.worldEntryConsentExplicit && f.autoImmerse) {
+    throw new Error(
+      'quest-mr-emit: @consent_gate(scope:["world_entry"], require_explicit:true) forbids ' +
+        '@world_portal.auto_immerse=true'
+    );
+  }
+  if (f.worldEntryConsentExplicit && f.worldConsentPurpose.trim().length === 0) {
+    throw new Error('quest-mr-emit: explicit world-entry consent requires a non-empty purpose');
+  }
+  if (!Number.isFinite(f.worldConsentExpiryMs) || f.worldConsentExpiryMs < 0) {
+    throw new Error('quest-mr-emit: @consent_gate.expiry_ms must be zero or positive');
+  }
+  if (f.scanReceiptsEnabled && f.scanReceiptStorage !== 'device_private') {
+    throw new Error('quest-mr-emit: enabled scan receipts must use device_private storage');
+  }
+  if (f.scanReceiptsEnabled && f.scanReceiptIncludePayload) {
+    throw new Error('quest-mr-emit: scan receipts must structurally omit decoded payloads');
+  }
+  if (
+    !Number.isFinite(f.maxPayloadChars) ||
+    f.maxPayloadChars < 1 ||
+    f.maxPayloadChars > 65_536
+  ) {
+    throw new Error('quest-mr-emit: @qr_decode.max_payload_chars must be between 1 and 65536');
+  }
+  if (f.portalRequireRemoteSignature && f.portalSignatureAlgorithm !== 'ed25519') {
+    throw new Error('quest-mr-emit: signed remote portals require Ed25519');
+  }
+  if (f.bookmarksEnabled && f.bookmarkStorage !== 'device_private') {
+    throw new Error('quest-mr-emit: URL bookmarks must use device_private storage');
+  }
+  if (
+    f.bookmarksEnabled &&
+    (!Number.isFinite(f.bookmarkCapacity) ||
+      f.bookmarkCapacity < 1 ||
+      f.bookmarkCapacity > 10_000)
+  ) {
+    throw new Error('quest-mr-emit: URL bookmark capacity must be between 1 and 10000');
   }
   return f;
 }
@@ -308,6 +444,9 @@ const CONTROLLER_REL = `${SRC_DIR}/PassthroughCameraController.kt`;
 const PANEL_REL = `${SRC_DIR}/ScannerPanel.kt`;
 const ACTIVITY_REL = `${SRC_DIR}/StarterSampleActivity.kt`;
 const WORLDPORTAL_REL = `${SRC_DIR}/WorldPortal.kt`;
+const WORLDTRUST_REL = `${SRC_DIR}/WorldTrust.kt`;
+const SCANRECEIPT_REL = `${SRC_DIR}/ScanReceiptStore.kt`;
+const SCANNER_LIFECYCLE_REL = `${SRC_DIR}/ScannerLifecycleMachine.kt`;
 const WORLDRENDERER_REL = `${SRC_DIR}/WorldRenderer.kt`;
 // Signed-release + Horizon-submission artifacts (MR paths are app/...-relative).
 const ICON_REL = 'app/src/main/res/drawable/ic_launcher.xml';
@@ -415,6 +554,20 @@ function routingLogic(): string {
     .join('\n');
 }
 
+function scannerLifecycleKotlin(): string {
+  const source = QUEST_MR_HSPLUS_SOURCES['ScannerLifecycle'];
+  if (source == null || source.trim().length === 0) {
+    throw new Error(
+      'quest-mr-emit: missing scanner-lifecycle.hsplus. Run `node scripts/gen-quest-mr-templates.mjs`.'
+    );
+  }
+  return compileHSPlusStateMachineToKotlin(source, {
+    machineName: 'ScannerLifecycle',
+    className: 'ScannerLifecycleMachine',
+    packageName: PKG,
+  }).code;
+}
+
 /** Replace {{TOKEN}} markers in a .kt.tmpl with feature values. */
 function applyTokens(tmplName: string, f: QuestMrFeatures): string {
   const tmpl = QUEST_MR_TEMPLATES[tmplName];
@@ -425,6 +578,7 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     CAMERA_POSITION: f.cameraPosition,
     DECODE_INTERVAL_MS: f.decodeIntervalMs,
     DEDUPE_MS: f.dedupeWindowMs,
+    MAX_PAYLOAD_CHARS: Math.floor(f.maxPayloadChars),
     PREVIEW_DOWNSCALE: f.previewDownscale,
     CAP_WIDTH: f.frameWidth,
     CAP_HEIGHT: f.frameHeight,
@@ -438,11 +592,31 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     FOLLOW_DISTANCE: f.followDistance,
     LINK_PATTERNS: 'listOf(' + f.worldLinkPatterns.map((p) => kstr(p)).join(', ') + ')',
     AUTO_IMMERSE: String(f.autoImmerse),
+    WORLD_ENTRY_CONSENT_EXPLICIT: String(f.worldEntryConsentExplicit),
+    WORLD_CONSENT_EXPIRY_MS: Math.floor(f.worldConsentExpiryMs),
+    WORLD_CONSENT_AUDIT_LOG: String(f.worldConsentAuditLog),
+    WORLD_CONSENT_PURPOSE: kstr(f.worldConsentPurpose),
+    PORTAL_TRUST_POLICY: kstr(f.portalTrustPolicy),
+    PORTAL_ALLOW_BUNDLED: String(f.portalAllowBundled),
+    PORTAL_REQUIRE_REMOTE_SIGNATURE: String(f.portalRequireRemoteSignature),
+    PORTAL_TRUSTED_PUBLIC_KEYS:
+      'listOf(' + f.portalTrustedPublicKeys.map((key) => kstr(key)).join(', ') + ')',
+    BOOKMARK_CAPACITY: Math.max(0, Math.floor(f.bookmarkCapacity)),
+    BOOKMARKS_ENABLED: String(f.bookmarksEnabled),
+    BOOKMARK_MOST_RECENT: String(f.bookmarkOrdering === 'most_recent'),
+    BOOKMARK_DEDUPLICATE: String(f.bookmarkDeduplicate),
+    BOOKMARK_BACKUP: String(f.bookmarkBackup),
+    SCAN_RECEIPTS_ENABLED: String(f.scanReceiptsEnabled),
+    SCAN_RECEIPT_HASH_CHAIN: String(f.scanReceiptHashChain),
+    SCAN_RECEIPT_MAX_ENTRIES: Math.max(1, Math.floor(f.scanReceiptMaxEntries)),
     CONTENT_WHEN: buildContentWhen(f),
     SCAN_SOUND: String(f.feedbackSound),
     DECODE_LOG: f.logPayloadValues
       ? 'Log.i(tag, "decoded: $text")'
       : 'Log.i(tag, "decoded QR payload")',
+    CONTROLLER_DECODE_LOG: f.logPayloadValues
+      ? 'Log.i(TAG, "QR read (attempt $attempts): $decoded")'
+      : 'Log.i(TAG, "QR read (attempt $attempts)")',
     WORLD_LOG: f.logPayloadValues
       ? 'Log.i(tag, "entering world: $link")'
       : 'Log.i(tag, "entering QR world")',
@@ -530,6 +704,10 @@ export const emitStarterSampleActivityKt = (f: QuestMrFeatures): string =>
   applyTokens('StarterSampleActivity.kt.tmpl', f);
 export const emitWorldPortalKt = (f: QuestMrFeatures): string =>
   applyTokens('WorldPortal.kt.tmpl', f);
+export const emitWorldTrustKt = (f: QuestMrFeatures): string =>
+  applyTokens('WorldTrust.kt.tmpl', f);
+export const emitScanReceiptStoreKt = (f: QuestMrFeatures): string =>
+  applyTokens('ScanReceiptStore.kt.tmpl', f);
 export const emitWorldRendererKt = (f: QuestMrFeatures): string =>
   applyTokens('WorldRenderer.kt.tmpl', f);
 
@@ -757,7 +935,7 @@ export function emitAndroidManifestXml(f: QuestMrFeatures): string {
   <uses-permission android:name="com.oculus.permission.RENDER_MODEL" />
   <!-- Volume Control -->
   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-  <application android:allowBackup="false" android:icon="@drawable/ic_launcher" android:label="@string/app_name">
+  <application android:allowBackup="${f.bookmarkBackup}" android:icon="@drawable/ic_launcher" android:label="@string/app_name">
     <meta-data
       android:name="com.oculus.supportedDevices"
       android:value="quest3|quest3s"
@@ -815,6 +993,9 @@ export function emitQuestMrFiles(composition?: HoloComposition): Record<string, 
     [PANEL_REL]: emitScannerPanelKt(f),
     [ACTIVITY_REL]: emitStarterSampleActivityKt(f),
     [WORLDPORTAL_REL]: emitWorldPortalKt(f),
+    [WORLDTRUST_REL]: emitWorldTrustKt(f),
+    [SCANRECEIPT_REL]: emitScanReceiptStoreKt(f),
+    [SCANNER_LIFECYCLE_REL]: scannerLifecycleKotlin(),
     [WORLDRENDERER_REL]: emitWorldRendererKt(f),
     // Signed-release + Horizon-submission artifacts (icon, app build, manifest).
     [ICON_REL]: emitIcLauncherXml(f),

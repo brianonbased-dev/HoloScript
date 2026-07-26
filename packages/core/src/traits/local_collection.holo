@@ -1,0 +1,21 @@
+@trait {
+  name: "@local_collection",
+  category: "data",
+  description: "A bounded application-local collection with deterministic ordering, deduplication, and portable storage intent. Platform compilers map device_private to an app-private store and must honor backup=false.",
+  props: {
+    item_type: string = "string",
+    capacity: number = 100,
+    ordering: enum("most_recent" | "oldest_first") = "most_recent",
+    deduplicate: boolean = true,
+    storage: enum("memory" | "device_private") = "device_private",
+    backup: boolean = false
+  },
+  events: {
+    on_changed: "local_collection:changed",
+    on_result: "local_collection:result",
+    add: "local_collection:add",
+    remove: "local_collection:remove",
+    clear: "local_collection:clear",
+    query: "local_collection:query"
+  }
+}

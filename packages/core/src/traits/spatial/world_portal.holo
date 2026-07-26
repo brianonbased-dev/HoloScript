@@ -4,11 +4,18 @@
   description: "QR-code-triggered world immersion. Declares world-link URL patterns as data; the Quest compile target emits the native Meta Spatial SDK portal logic (WorldPortal.kt). On a matching QR decode, immerses the user into the linked world (passthrough off) while keeping the Camera2 feed scanning for further hops. Port of WorldPortalTrait.ts (handler name: world_portal).",
   props: {
     link_patterns: list<string> = ["holoscript://world/", "https://holoscript.studio/w/", "https://hololand.holoscript.studio/"],
-    auto_immerse: boolean = true,
+    auto_immerse: boolean = false,
     keep_scanning: boolean = true,
     entering_label: string = "Entered",
     leave_action: string = "Leave world",
-    demo_world_url: string = "holoscript://world/hololand"
+    demo_world_url: string = "holoscript://world/hololand",
+    trust: object = {
+      policy: "bundled_or_signed",
+      signature_algorithm: "ed25519",
+      allow_bundled: true,
+      require_signature_for_remote: true,
+      trusted_public_keys: []
+    }
   },
   events: {
     attached: "portal_mount",

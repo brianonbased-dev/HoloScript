@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { QuestCompiler } from '../QuestCompiler';
 import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
+import { compileHSPlusStateMachineToKotlin } from '../HSIIRKotlinStateMachineEmitter';
 
 const SCANNER_HOLO = join(
   __dirname,
@@ -59,7 +60,12 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(ctl).toContain('CaptureRequest.CONTROL_AF_MODE_OFF');
     // escaped Kotlin string templates render literally (not consumed by TS interpolation)
     expect(ctl).toContain('capture=${capW}x$capH');
-    expect(ctl).toContain('"frame_latest_${image.width}x${image.height}.gray"');
+    // Privacy invariant: camera luminance exists only in memory and decoded values are redacted.
+    expect(ctl).not.toContain('getExternalFilesDir');
+    expect(ctl).not.toContain('writeBytes(y)');
+    expect(ctl).not.toContain('frame_latest_');
+    expect(ctl).not.toContain('$decoded")');
+    expect(ctl).toContain('Log.i(TAG, "QR read (attempt $attempts)")');
     // no leftover TS interpolation artifacts
     expect(ctl).not.toContain('[object Object]');
     expect(ctl).not.toContain('undefined');
@@ -84,6 +90,174 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(activity).not.toContain('Log.i(tag, "decoded: $text")');
     expect(activity).not.toContain('Log.i(tag, "entering world: $link")');
     expect(activity).not.toContain('Log.i(tag, "user opened: $url")');
+
+    const allKotlin = Object.entries(out)
+      .filter(([key]) => key.endsWith('.kt'))
+      .map(([, value]) => value)
+      .join('\n');
+    expect(allKotlin).not.toContain('getExternalFilesDir');
+    expect(allKotlin).not.toContain('writeBytes(y)');
+    expect(allKotlin).not.toContain('frame_latest_');
+    expect(allKotlin).not.toMatch(/Log\.[A-Za-z]+\([^)]*\$(?:decoded|text|url|link)/);
+  });
+
+  it('lowers inferred QR intent through @unknown and fails closed to Deny', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const activity = out[Object.keys(out).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    expect(activity).toContain('sealed interface Uncertain<out T>');
+    expect(activity).toContain('data class ClassifiedIntent(val inferred: Uncertain<String>)');
+    expect(activity).toContain('(intent.inferred).orElse { "deny" }');
+    expect(activity).toContain(
+      'fun admissiblePayload(nonEmpty: Boolean, withinLimit: Boolean, controlsSafe: Boolean, syntaxSafe: Boolean): Boolean'
+    );
+    expect(activity).toContain('text.length <= MAX_PAYLOAD_CHARS');
+    expect(activity).toContain('URI(trimmed).parseServerAuthority()');
+    expect(activity).toContain('validStructuredEnvelope(trimmed, "BEGIN:VCARD", "END:VCARD")');
+    expect(activity).toContain('QrPayloadFacts.controlsSafe(text)');
+    expect(activity).toContain('QrPayloadFacts.syntaxSafe(text)');
+    expect(activity).toContain('payloadSyntaxSafe,');
+    expect(activity).toContain('!payloadAdmitted -> Routing.unknown("malformed-payload")');
+    expect(activity).toContain('Routing.unknown("unsupported-action")');
+    expect(activity).toContain('Routing.Route.Deny');
+
+    const changed = new HoloCompositionParser().parse(
+      source.replace('max_payload_chars: 4096', 'max_payload_chars: 37')
+    );
+    expect(changed.success).toBe(true);
+    const changedOut = new QuestCompiler().compile(changed.ast!, '');
+    const changedActivity =
+      changedOut[Object.keys(changedOut).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    expect(changedActivity).toContain('private const val MAX_PAYLOAD_CHARS = 37');
+  });
+
+  it('makes explicit world-entry consent a compile-time and runtime invariant', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const portal = out[Object.keys(out).find((k) => k.endsWith('WorldPortal.kt'))!];
+    const activity = out[Object.keys(out).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    expect(portal).toContain('const val autoImmerse = false');
+    expect(activity).toContain('lifecycle.fireConsentRequested()');
+    expect(activity).toContain('lifecycle.fireConsentGranted()');
+    expect(activity).toContain('private const val WORLD_ENTRY_CONSENT_EXPLICIT = true');
+    expect(activity).toContain('private const val WORLD_CONSENT_EXPIRY_MS = 0L');
+    expect(activity).toContain('private const val WORLD_CONSENT_AUDIT_LOG = true');
+    expect(activity).toContain(
+      'private const val WORLD_CONSENT_PURPOSE = "Enter the HoloScript world encoded by a scanned QR"'
+    );
+
+    const noExplicitConsent = new HoloCompositionParser().parse(
+      source.replace('require_explicit: true', 'require_explicit: false')
+    );
+    expect(noExplicitConsent.success).toBe(true);
+    const noConsentOut = new QuestCompiler().compile(noExplicitConsent.ast!, '');
+    const noConsentActivity =
+      noConsentOut[Object.keys(noConsentOut).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    expect(noConsentActivity).toContain('private const val WORLD_ENTRY_CONSENT_EXPLICIT = false');
+
+    const contradictory = new HoloCompositionParser().parse(
+      source.replace('auto_immerse: false', 'auto_immerse: true')
+    );
+    expect(contradictory.success).toBe(true);
+    expect(() => new QuestCompiler().compile(contradictory.ast!, '')).toThrow(
+      /consent_gate.*forbids.*auto_immerse/s
+    );
+  });
+
+  it('compiles bookmark policy from @local_collection instead of hardcoding it', () => {
+    const changed = new HoloCompositionParser().parse(
+      source
+        .replace('capacity: 100', 'capacity: 3')
+        .replace('ordering: "most_recent"', 'ordering: "oldest_first"')
+        .replace('deduplicate: true', 'deduplicate: false')
+    );
+    expect(changed.success).toBe(true);
+    const out = new QuestCompiler().compile(changed.ast!, '');
+    const activity = out[Object.keys(out).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    const panel = out[Object.keys(out).find((k) => k.endsWith('ScannerPanel.kt'))!];
+    expect(activity).toContain('private const val MAX_BOOKMARKS = 3');
+    expect(activity).toContain('private const val BOOKMARKS_ENABLED = true');
+    expect(activity).toContain('private const val BOOKMARK_MOST_RECENT = false');
+    expect(activity).toContain('private const val BOOKMARK_DEDUPLICATE = false');
+    expect(activity).toContain('val array = JSONArray(encoded)');
+    expect(activity).toContain('return normalized.take(MAX_BOOKMARKS)');
+    expect(panel).toContain('private const val BOOKMARKS_ENABLED = true');
+
+    const nonUrl = new HoloCompositionParser().parse(
+      source.replace('item_type: "url"', 'item_type: "string"')
+    );
+    expect(nonUrl.success).toBe(true);
+    const nonUrlOut = new QuestCompiler().compile(nonUrl.ast!, '');
+    const nonUrlPanel =
+      nonUrlOut[Object.keys(nonUrlOut).find((k) => k.endsWith('ScannerPanel.kt'))!];
+    expect(nonUrlPanel).toContain('private const val BOOKMARKS_ENABLED = false');
+  });
+
+  it('emits private HMAC scan receipts that structurally omit raw payloads', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const receipts = out[Object.keys(out).find((k) => k.endsWith('ScanReceiptStore.kt'))!];
+    expect(receipts).toContain('context.filesDir');
+    expect(receipts).toContain('HmacSHA256');
+    expect(receipts).toContain('"payload_commitment"');
+    expect(receipts).toContain('loss of a local diagnostic receipt must never crash');
+    expect(receipts).toContain('available = false');
+    expect(receipts).not.toContain('.put("payload",');
+    expect(receipts).not.toContain('payload_hash');
+  });
+
+  it('admits bundled worlds by compiled registry and verifies remote manifests with Ed25519', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const trust = out[Object.keys(out).find((k) => k.endsWith('WorldTrust.kt'))!];
+    const activity = out[Object.keys(out).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    expect(trust).toContain('Worlds.ids.contains(bundledId)');
+    expect(trust).toContain('Signature.getInstance("Ed25519")');
+    expect(trust).toContain('reason = "untrusted-key"');
+    expect(trust).toContain('signed-parameter-cardinality');
+    expect(trust).toContain('reason = "freshness"');
+    expect(activity.indexOf('WorldTrust.admit(link)')).toBeLessThan(
+      activity.indexOf('worldRenderer.enter(worldId)')
+    );
+  });
+
+  it('emits the exact app .hsplus lifecycle through HSI-IR and uses it as the runtime gate', () => {
+    const lifecyclePath = join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      '..',
+      '..',
+      'apps',
+      'quest-universal-qr-scanner',
+      'scanner-lifecycle.hsplus'
+    );
+    const lifecycleSource = readFileSync(lifecyclePath, 'utf8');
+    const expected = compileHSPlusStateMachineToKotlin(lifecycleSource, {
+      machineName: 'ScannerLifecycle',
+      className: 'ScannerLifecycleMachine',
+      packageName: 'net.holoscript.qrscanner',
+    });
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const emitted = out[Object.keys(out).find((k) => k.endsWith('ScannerLifecycleMachine.kt'))!];
+    const activity = out[Object.keys(out).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    expect(emitted).toBe(expected.code);
+    expect(emitted).toContain(`HSI-IR digest: ${expected.irDigest}`);
+    expect(activity).toContain('lifecycle.fireDecodeReady()');
+    expect(activity).toContain('lifecycle.fireClassificationReady()');
+    expect(activity).toContain('lifecycle.fireActionReady()');
+    expect(activity).toContain('lifecycle.fireUserActionRequested()');
+    expect(activity.indexOf('if (!admitUserAction())')).toBeLessThan(
+      activity.indexOf('openInQuestBrowser(url)')
+    );
+
+    const mutated = compileHSPlusStateMachineToKotlin(
+      lifecycleSource.replace('classified -> action when action_ready', 'classified -> idle when action_ready'),
+      {
+        machineName: 'ScannerLifecycle',
+        className: 'ScannerLifecycleMachine',
+        packageName: 'net.holoscript.qrscanner',
+      }
+    );
+    expect(mutated.irDigest).not.toBe(expected.irDigest);
+    expect(mutated.code).not.toBe(expected.code);
   });
 
   it('ScannerContent.kt carries values from the parsed trait configs', () => {

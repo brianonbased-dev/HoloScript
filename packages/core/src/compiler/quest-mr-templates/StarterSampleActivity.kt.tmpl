@@ -42,12 +42,69 @@ import com.meta.spatial.splat.SpatialSDKExperimentalSplatAPI
 import com.meta.spatial.splat.SplatFeature
 import com.meta.spatial.vr.LocomotionSystem
 import com.meta.spatial.vr.VRFeature
+import java.net.URI
+import org.json.JSONArray
 
 /** What to do with a scanned payload: OPEN it in the Quest browser, or COPY it to the clipboard. */
 enum class QrAction { OPEN, COPY }
 
 /** A classified QR payload: its content kind, the result-card label, and the primary action. */
 data class QrContent(val kind: String, val label: String, val action: QrAction)
+
+/** Host-library facts consumed by the HoloScript admission decision. Kept Android-free for JVM tests. */
+internal object QrPayloadFacts {
+  private fun normalizedLines(text: String): List<String> =
+      text.replace("\r\n", "\n").replace('\r', '\n').split('\n')
+
+  private fun validStructuredEnvelope(
+      text: String,
+      begin: String,
+      end: String,
+  ): Boolean {
+    val lines = normalizedLines(text)
+    return lines.size >= 3 &&
+        lines.first().trim().equals(begin, ignoreCase = true) &&
+        lines.last().trim().equals(end, ignoreCase = true) &&
+        lines.subList(1, lines.lastIndex).any { line ->
+          val separator = line.indexOf(':')
+          separator > 0 && separator < line.lastIndex
+        }
+  }
+
+  fun structuredMultiline(text: String): Boolean {
+    val trimmed = text.trim()
+    return trimmed.startsWith("BEGIN:VCARD", ignoreCase = true) ||
+        trimmed.startsWith("BEGIN:VEVENT", ignoreCase = true)
+  }
+
+  fun controlsSafe(text: String): Boolean {
+    val structured = structuredMultiline(text)
+    return text.all { ch ->
+      !Character.isISOControl(ch) ||
+          (structured && (ch == '\n' || ch == '\r' || ch == '\t'))
+    }
+  }
+
+  fun syntaxSafe(text: String): Boolean {
+    val trimmed = text.trim()
+    if (trimmed.startsWith("BEGIN:VCARD", ignoreCase = true)) {
+      return validStructuredEnvelope(trimmed, "BEGIN:VCARD", "END:VCARD")
+    }
+    if (trimmed.startsWith("BEGIN:VEVENT", ignoreCase = true)) {
+      return validStructuredEnvelope(trimmed, "BEGIN:VEVENT", "END:VEVENT")
+    }
+    val declaresWebUrl =
+        trimmed.startsWith("http://", ignoreCase = true) ||
+            trimmed.startsWith("https://", ignoreCase = true)
+    if (!declaresWebUrl) return true
+    val uri = try { URI(trimmed).parseServerAuthority() } catch (_: Exception) { return false }
+    val validPort = uri.port == -1 || uri.port in 1..65535
+    return (uri.scheme.equals("http", true) || uri.scheme.equals("https", true)) &&
+        !uri.host.isNullOrBlank() &&
+        uri.userInfo == null &&
+        validPort
+  }
+}
 
 class StarterSampleActivity : AppSystemActivity() {
 
@@ -56,6 +113,9 @@ class StarterSampleActivity : AppSystemActivity() {
   private var controller: PassthroughCameraController? = null
   private var panelEntity: Entity? = null
   private val worldRenderer = WorldRenderer() // builds/tears down the themed 3D world while immersed
+  private val scanReceipts by lazy { ScanReceiptStore(this) }
+  private val lifecycle = ScannerLifecycleMachine()
+  private var worldConsentRequestedAt = 0L
   private var smoothPose: Pose? = null // last head-locked panel pose, eased toward the head each tick
   private var sceneReady = false
 
@@ -86,31 +146,123 @@ class StarterSampleActivity : AppSystemActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    ScannerState.onOpen = { url -> openInQuestBrowser(url) }
+    ScannerState.onOpen = openAction@{ url ->
+      if (!admitUserAction()) {
+        ScannerState.status = "Open blocked: lifecycle"
+        return@openAction
+      }
+      try {
+        scanReceipts.record(
+            url,
+            ScannerState.resultKind ?: "url",
+            "open-url",
+            "user-open",
+            ScannerState.pendingReceiptDigest,
+        )
+        openInQuestBrowser(url)
+      } finally {
+        lifecycle.fireActionComplete()
+      }
+    }
     ScannerState.onStart = { maybeStartScanner() }
-    ScannerState.onDismiss = { controller?.resumeScanning() } // resume scanning after a result clears
-    ScannerState.onCopy = { text -> copyToClipboard(text) } // copy a non-link result to the clipboard
+    ScannerState.onDismiss = {
+      when (lifecycle.state) {
+        ScannerLifecycleMachine.State.CONSENT -> {
+          if (WORLD_CONSENT_AUDIT_LOG) Log.i(tag, "world consent dismissed")
+          worldConsentRequestedAt = 0L
+          lifecycle.fireDismissed()
+        }
+        ScannerLifecycleMachine.State.ACTION -> lifecycle.fireActionComplete()
+        else -> null
+      }
+      controller?.resumeScanning()
+    }
+    ScannerState.onCopy = copyAction@{ text ->
+      if (!admitUserAction()) {
+        ScannerState.status = "Copy blocked: lifecycle"
+        return@copyAction
+      }
+      try {
+        scanReceipts.record(
+            text,
+            ScannerState.resultKind ?: "content",
+            "copy",
+            "user-copy",
+            ScannerState.pendingReceiptDigest,
+        )
+        copyToClipboard(text)
+      } finally {
+        lifecycle.fireActionComplete()
+      }
+    }
     ScannerState.onEnterWorld = { link -> enterWorld(link) } // scan a world QR → immerse
-    ScannerState.onLeaveWorld = { leaveWorld() } // in-world "Leave world" → back to passthrough scanning
+    ScannerState.onLeaveWorld = {
+      if (admitUserAction()) {
+        try {
+          leaveWorld()
+        } finally {
+          lifecycle.fireActionComplete()
+        }
+      } else {
+        ScannerState.status = "Leave blocked: lifecycle"
+      }
+    }
     ScannerState.mockQr = qrImageBitmap(ScannerState.demoUrl, 360) // tutorial mock QR (on-device)
 
-    // In-app bookmarks: load saved links from SharedPreferences ("holoqr" / "bookmarks", newline-joined,
-    // most-recent first), and wire save/delete. Each write re-persists the whole list + refreshes state.
+    // In-app bookmarks: the @local_collection declaration controls whether this feature exists and
+    // how app-private JSON storage is bounded, ordered, and deduplicated.
     val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    ScannerState.bookmarks =
-        (prefs.getString(PREFS_BOOKMARKS, "") ?: "")
-            .split("\n")
-            .filter { it.isNotBlank() }
-    ScannerState.onBookmark = { url ->
-      // Dedup (drop any existing copy), prepend (most-recent first), cap the list, persist, refresh.
-      val next = (listOf(url) + ScannerState.bookmarks.filter { it != url }).take(MAX_BOOKMARKS)
-      ScannerState.bookmarks = next
-      saveBookmarks(next)
+    ScannerState.bookmarks = if (BOOKMARKS_ENABLED) loadBookmarks(prefs) else emptyList()
+    ScannerState.onBookmark = bookmarkAction@{ url ->
+      if (!BOOKMARKS_ENABLED) {
+        ScannerState.status = "Saved links disabled by composition"
+        return@bookmarkAction
+      }
+      if (!admitUserAction()) {
+        ScannerState.status = "Save blocked: lifecycle"
+        return@bookmarkAction
+      }
+      if (!isSafeBookmarkUrl(url)) {
+        ScannerState.status = "Link not saved: invalid URL"
+        lifecycle.fireActionComplete()
+        return@bookmarkAction
+      }
+      try {
+        val base =
+            if (BOOKMARK_DEDUPLICATE) ScannerState.bookmarks.filter { it != url }
+            else ScannerState.bookmarks
+        val ordered = if (BOOKMARK_MOST_RECENT) listOf(url) + base else base + url
+        val next = ordered.take(MAX_BOOKMARKS)
+        ScannerState.bookmarks = next
+        saveBookmarks(next)
+        scanReceipts.record(
+            url,
+            "url",
+            "bookmark",
+            "user-bookmark",
+            ScannerState.pendingReceiptDigest,
+        )
+      } finally {
+        lifecycle.fireActionComplete()
+      }
     }
-    ScannerState.onDeleteBookmark = { url ->
-      val next = ScannerState.bookmarks.filter { it != url }
-      ScannerState.bookmarks = next
-      saveBookmarks(next)
+    ScannerState.onDeleteBookmark = deleteBookmarkAction@{ url ->
+      if (!BOOKMARKS_ENABLED) {
+        ScannerState.status = "Saved links disabled by composition"
+        return@deleteBookmarkAction
+      }
+      if (!admitUserAction()) {
+        ScannerState.status = "Delete blocked: lifecycle"
+        return@deleteBookmarkAction
+      }
+      try {
+        val next = ScannerState.bookmarks.filter { it != url }
+        ScannerState.bookmarks = next
+        saveBookmarks(next)
+        scanReceipts.record(url, "url", "delete-bookmark", "user-delete")
+      } finally {
+        lifecycle.fireActionComplete()
+      }
     }
     if (!hasCameraPermission()) {
       requestPermissions(arrayOf(cameraPermission), REQUEST_CAMERA)
@@ -250,26 +402,95 @@ class StarterSampleActivity : AppSystemActivity() {
     {{DECODE_LOG}}
     controller?.pauseScanning() // hold scanning while the result card is shown; resume on dismiss/open
     if (scanSound) playScanTone() // audible confirmation cue (config: @qr_decode.feedback.sound)
+    if (lifecycle.fireDecodeReady()?.to != ScannerLifecycleMachine.State.DECODED) {
+      ScannerState.status = "Scan ignored: lifecycle not ready"
+      controller?.resumeScanning()
+      return
+    }
     // FUNCTIONAL-CORE / IMPERATIVE-SHELL: the ROUTING DECISION (which of four outcomes a scan is) is
     // .hs-authored pure boolean logic (Routing.decideRoute, below). This shell computes the three
     // boolean inputs — a HoloScript world link takes precedence (its own @world_portal patterns);
     // otherwise classify the payload (url / wifi / contact / email / phone / sms / geo / event / text)
     // from scanner.holo's @qr_decode.content_types — then APPLIES the returned route (state writes +
     // host call). classifyContent is computed only for non-world payloads (it only drives those routes).
-    val isWorld = WorldPortal.isWorldLink(text)
-    val c: QrContent? = if (isWorld) null else classifyContent(text)
+    val controlsSafe = QrPayloadFacts.controlsSafe(text)
+    val payloadSyntaxSafe = QrPayloadFacts.syntaxSafe(text)
+    val payloadAdmitted =
+        Routing.admissiblePayload(
+            text.isNotBlank(),
+            text.length <= MAX_PAYLOAD_CHARS,
+            controlsSafe,
+            payloadSyntaxSafe,
+        )
+    val isWorld = payloadAdmitted && WorldPortal.isWorldLink(text)
+    val c: QrContent? = if (payloadAdmitted && !isWorld) classifyContent(text) else null
     val isOpen = c?.action == QrAction.OPEN
-    when (Routing.decideRoute(isWorld, WorldPortal.autoImmerse, isOpen)) {
-      Routing.Route.EnterWorld -> enterWorld(text)
+    val intentCarrier =
+        when {
+          !payloadAdmitted -> Routing.unknown("malformed-payload")
+          isWorld -> Routing.known("world")
+          c == null -> Routing.unknown("unclassified")
+          isOpen -> Routing.known("open")
+          c.action == QrAction.COPY -> Routing.known("copy")
+          else -> Routing.unknown("unsupported-action")
+        }
+    val intent = Routing.resolveIntent(Routing.ClassifiedIntent(intentCarrier))
+    val route = Routing.decideRoute(intent, WorldPortal.autoImmerse)
+    ScannerState.pendingReceiptDigest =
+        scanReceipts.record(
+            text,
+            if (isWorld) "world" else c?.kind ?: "unknown",
+            route.name,
+            if (route == Routing.Route.Deny) "denied" else "presented",
+        )
+    if (route == Routing.Route.Deny) {
+      lifecycle.fireInvalidPayload()
+      ScannerState.status = "Unsupported QR content"
+      controller?.resumeScanning()
+      return
+    }
+    if (lifecycle.fireClassificationReady()?.to != ScannerLifecycleMachine.State.CLASSIFIED) {
+      ScannerState.status = "Scan blocked: classification lifecycle"
+      controller?.resumeScanning()
+      return
+    }
+    when (route) {
+      Routing.Route.EnterWorld -> {
+        if (lifecycle.fireActionReady()?.to == ScannerLifecycleMachine.State.ACTION) {
+          enterWorld(text)
+        } else {
+          ScannerState.status = "World blocked: lifecycle"
+          controller?.resumeScanning()
+        }
+      }
       Routing.Route.PendingWorld -> {
+        if (WORLD_ENTRY_CONSENT_EXPLICIT) {
+          if (lifecycle.fireConsentRequested()?.to != ScannerLifecycleMachine.State.CONSENT) {
+            ScannerState.status = "World blocked: consent lifecycle"
+            controller?.resumeScanning()
+            return
+          }
+          worldConsentRequestedAt = System.currentTimeMillis()
+          if (WORLD_CONSENT_AUDIT_LOG) Log.i(tag, "world consent requested")
+        } else if (lifecycle.fireActionReady()?.to != ScannerLifecycleMachine.State.ACTION) {
+          ScannerState.status = "World blocked: action lifecycle"
+          controller?.resumeScanning()
+          return
+        }
         ScannerState.pendingWorld = text
         ScannerState.pendingUrl = null
         ScannerState.lastResult = null
         ScannerState.resultKind = null
         ScannerState.resultLabel = null
-        ScannerState.status = "World found — enter it?"
+        ScannerState.status =
+            if (WORLD_ENTRY_CONSENT_EXPLICIT) WORLD_CONSENT_PURPOSE else "World found — enter it?"
       }
       Routing.Route.OpenUrl -> {
+        if (lifecycle.fireActionReady()?.to != ScannerLifecycleMachine.State.ACTION) {
+          ScannerState.status = "Link blocked: lifecycle"
+          controller?.resumeScanning()
+          return
+        }
         ScannerState.resultKind = c!!.kind
         ScannerState.resultLabel = c.label
         ScannerState.pendingUrl = text
@@ -277,13 +498,34 @@ class StarterSampleActivity : AppSystemActivity() {
         ScannerState.status = c.label + " — open it?"
       }
       Routing.Route.ShowResult -> {
+        if (lifecycle.fireActionReady()?.to != ScannerLifecycleMachine.State.ACTION) {
+          ScannerState.status = "Result blocked: lifecycle"
+          controller?.resumeScanning()
+          return
+        }
         ScannerState.resultKind = c!!.kind
         ScannerState.resultLabel = c.label
         ScannerState.pendingUrl = null
         ScannerState.lastResult = text
         ScannerState.status = c.label
       }
+      Routing.Route.Deny -> {
+        ScannerState.pendingWorld = null
+        ScannerState.pendingUrl = null
+        ScannerState.lastResult = null
+        ScannerState.resultKind = "unknown"
+        ScannerState.resultLabel = "Unsupported QR"
+        ScannerState.status = "Unsupported QR content"
+        controller?.resumeScanning()
+      }
     }
+  }
+
+  // Every user-triggered effect is admitted by the HSI-IR machine. Current scan cards already sit
+  // in ACTION; saved-link and leave-world controls take the explicit idle -> action user-action edge.
+  private fun admitUserAction(): Boolean {
+    if (lifecycle.state == ScannerLifecycleMachine.State.ACTION) return true
+    return lifecycle.fireUserActionRequested()?.to == ScannerLifecycleMachine.State.ACTION
   }
 
   // ── @generated from logic/Routing.logic.hs (compile_to_kotlin) ──────────────────────────────
@@ -301,10 +543,52 @@ class StarterSampleActivity : AppSystemActivity() {
   // the physical cameras, independent of what is rendered), so real QRs still scan inside the world —
   // scanning another world link hops worlds.
   private fun enterWorld(link: String) {
+    if (lifecycle.state == ScannerLifecycleMachine.State.CONSENT) {
+      val expired =
+          WORLD_CONSENT_EXPIRY_MS > 0L &&
+              (worldConsentRequestedAt == 0L ||
+                  System.currentTimeMillis() - worldConsentRequestedAt > WORLD_CONSENT_EXPIRY_MS)
+      if (expired) {
+        if (WORLD_CONSENT_AUDIT_LOG) Log.i(tag, "world consent expired")
+        worldConsentRequestedAt = 0L
+        lifecycle.fireDismissed()
+        ScannerState.status = "World consent expired — scan again"
+        controller?.resumeScanning()
+        return
+      }
+      if (lifecycle.fireConsentGranted()?.to != ScannerLifecycleMachine.State.ACTION) {
+        ScannerState.status = "World blocked: consent not granted"
+        controller?.resumeScanning()
+        return
+      }
+      if (WORLD_CONSENT_AUDIT_LOG) Log.i(tag, "world consent granted")
+      worldConsentRequestedAt = 0L
+    }
+    if (lifecycle.state != ScannerLifecycleMachine.State.ACTION) {
+      ScannerState.status = "World blocked: lifecycle"
+      controller?.resumeScanning()
+      return
+    }
+    val admission = WorldTrust.admit(link)
+    scanReceipts.record(
+        link,
+        "world",
+        if (admission.allowed) "enter-world" else "deny-world",
+        "user-enter",
+        ScannerState.pendingReceiptDigest,
+    )
+    if (!admission.allowed || admission.worldLink == null) {
+      ScannerState.status = "World blocked: " + admission.reason
+      ScannerState.pendingWorld = null
+      lifecycle.fireActionComplete()
+      controller?.resumeScanning()
+      return
+    }
+    val admittedLink = admission.worldLink
     {{WORLD_LOG}}
-    val worldId = WorldPortal.worldId(link)
+    val worldId = WorldPortal.worldId(admittedLink)
     // Prefer the compiled HoloScript world's own name; fall back to the name parsed from the link.
-    val name = Worlds.displayName(worldId) ?: WorldPortal.worldName(link)
+    val name = Worlds.displayName(worldId) ?: WorldPortal.worldName(admittedLink)
     ScannerState.enterWorld(name)
     if (sceneReady) {
       worldRenderer.enter(worldId) // compiled HoloScript world (worlds/<id>.holo) or themed fallback
@@ -313,6 +597,7 @@ class StarterSampleActivity : AppSystemActivity() {
       // right stick = turn), free continuous roam. Spawn at the world origin facing the scene.
       startLocomotion()
     }
+    lifecycle.fireActionComplete()
     controller?.resumeScanning() // keep scanning inside the world
   }
 
@@ -456,11 +741,40 @@ class StarterSampleActivity : AppSystemActivity() {
     }
   }
 
-  /** Persist the bookmark list to SharedPreferences (newline-joined; URLs contain no newlines). */
+  /** Load the language-declared URL collection, migrating the legacy newline form once. */
+  private fun loadBookmarks(prefs: SharedPreferences): List<String> {
+    val encoded = prefs.getString(PREFS_BOOKMARKS, "") ?: ""
+    val raw = mutableListOf<String>()
+    try {
+      if (encoded.trimStart().startsWith("[")) {
+        val array = JSONArray(encoded)
+        for (index in 0 until array.length()) raw += array.optString(index)
+      } else {
+        raw += encoded.split("\n")
+      }
+    } catch (_: Exception) {
+      return emptyList()
+    }
+    val valid = raw.filter(::isSafeBookmarkUrl)
+    val normalized = if (BOOKMARK_DEDUPLICATE) valid.distinct() else valid
+    return normalized.take(MAX_BOOKMARKS)
+  }
+
+  private fun isSafeBookmarkUrl(value: String): Boolean {
+    if (value.isBlank() || value.any(Character::isISOControl)) return false
+    val uri = try { Uri.parse(value) } catch (_: Exception) { return false }
+    return (uri.scheme.equals("http", true) || uri.scheme.equals("https", true)) &&
+        !uri.host.isNullOrBlank()
+  }
+
+  /** Persist the bookmark list as a JSON array in app-private SharedPreferences. */
   private fun saveBookmarks(list: List<String>) {
+    if (!BOOKMARKS_ENABLED) return
     try {
       val prefs: SharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-      prefs.edit().putString(PREFS_BOOKMARKS, list.joinToString("\n")).apply()
+      val encoded = JSONArray()
+      list.take(MAX_BOOKMARKS).filter(::isSafeBookmarkUrl).forEach { encoded.put(it) }
+      prefs.edit().putString(PREFS_BOOKMARKS, encoded.toString()).apply()
     } catch (e: Exception) {
       Log.w(tag, "save bookmarks failed: ${e.message}")
     }
@@ -529,7 +843,15 @@ class StarterSampleActivity : AppSystemActivity() {
     private const val FOLLOW_DISTANCE = {{FOLLOW_DISTANCE}}f
     private const val HEAD_LOCK_SMOOTHING = 0.2f // 0..1 per tick; lower = smoother trail
     private const val PREFS_NAME = "holoqr" // SharedPreferences store for in-app bookmarks
-    private const val PREFS_BOOKMARKS = "bookmarks" // newline-joined saved links (most-recent first)
-    private const val MAX_BOOKMARKS = 100 // cap saved links so the list never grows unbounded
+    private const val PREFS_BOOKMARKS = "bookmarks" // private JSON array of validated URLs
+    private const val MAX_BOOKMARKS = {{BOOKMARK_CAPACITY}}
+    private const val MAX_PAYLOAD_CHARS = {{MAX_PAYLOAD_CHARS}}
+    private const val BOOKMARKS_ENABLED = {{BOOKMARKS_ENABLED}}
+    private const val BOOKMARK_MOST_RECENT = {{BOOKMARK_MOST_RECENT}}
+    private const val BOOKMARK_DEDUPLICATE = {{BOOKMARK_DEDUPLICATE}}
+    private const val WORLD_ENTRY_CONSENT_EXPLICIT = {{WORLD_ENTRY_CONSENT_EXPLICIT}}
+    private const val WORLD_CONSENT_EXPIRY_MS = {{WORLD_CONSENT_EXPIRY_MS}}L
+    private const val WORLD_CONSENT_AUDIT_LOG = {{WORLD_CONSENT_AUDIT_LOG}}
+    private const val WORLD_CONSENT_PURPOSE = {{WORLD_CONSENT_PURPOSE}}
   }
 }

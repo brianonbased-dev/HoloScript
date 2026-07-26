@@ -11,6 +11,7 @@ import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HoloCompositionParser } from '../../packages/core/src/parser/HoloCompositionParser';
 import { QuestCompiler } from '../../packages/core/src/compiler/QuestCompiler';
+import { compileHSPlusStateMachineToKotlin } from '../../packages/core/src/compiler/HSIIRKotlinStateMachineEmitter';
 import {
   emitWorldSceneKt,
   emitWorldsRegistryKt,
@@ -18,6 +19,7 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const specPath = join(here, 'scanner.holo');
+const lifecyclePath = join(here, 'scanner-lifecycle.hsplus');
 const refDir = join(here, 'android-mr');
 const srcRel = 'app/src/main/java/net/holoscript/qrscanner';
 
@@ -32,6 +34,18 @@ function parse(file: string) {
 
 // ── Scanner app (surface: immersive_mr) ──────────────────────────────────────
 const files = new QuestCompiler().compile(parse(specPath), '');
+const lifecycleRel = `${srcRel}/ScannerLifecycleMachine.kt`;
+const lifecycle = compileHSPlusStateMachineToKotlin(readFileSync(lifecyclePath, 'utf8'), {
+  machineName: 'ScannerLifecycle',
+  className: 'ScannerLifecycleMachine',
+  packageName: 'net.holoscript.qrscanner',
+});
+if (files[lifecycleRel] !== lifecycle.code) {
+  throw new Error(
+    'scanner-lifecycle.hsplus differs from the compiler-bundled HSI source; run ' +
+      'packages/core/scripts/gen-quest-mr-templates.mjs before generating the app'
+  );
+}
 let n = 0;
 for (const [rel, content] of Object.entries(files)) {
   const out = join(refDir, rel);

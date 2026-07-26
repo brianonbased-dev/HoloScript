@@ -6,6 +6,7 @@ export * from './SpatialPanelTrait';
 export * from './OnboardingTrait';
 export * from './TutorialTrait';
 export * from './WorldPortalTrait';
+export * from './LocalCollectionTrait';
 export { advancedClothHandler } from './AdvancedClothTrait';
 export * from './AdvancedLightingTrait';
 export * from './AdvancedPBRTrait';

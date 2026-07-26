@@ -1,0 +1,129 @@
+/*
+ * @generated from scanner.holo's @world_portal.trust declaration by the Quest compiler.
+ * Bundled worlds are admitted only through the compiled Worlds registry. Remote portals
+ * require a fresh Ed25519-signed manifest from an application-trusted public key.
+ */
+package {{PKG}}
+
+import android.net.Uri
+import android.util.Base64
+import java.nio.charset.StandardCharsets
+import java.security.KeyFactory
+import java.security.MessageDigest
+import java.security.Signature
+import java.security.spec.X509EncodedKeySpec
+import org.json.JSONObject
+
+data class PortalAdmission(
+    val allowed: Boolean,
+    val worldLink: String? = null,
+    val sourceDigest: String? = null,
+    val signerKeyId: String? = null,
+    val reason: String,
+)
+
+object WorldTrust {
+  private const val SCHEMA = "holoscript.world-portal.v1"
+  private const val POLICY = {{PORTAL_TRUST_POLICY}}
+  private const val ALLOW_BUNDLED = {{PORTAL_ALLOW_BUNDLED}}
+  private const val REQUIRE_REMOTE_SIGNATURE = {{PORTAL_REQUIRE_REMOTE_SIGNATURE}}
+  private const val MAX_CLOCK_SKEW_MS = 300_000L
+  private val trustedPublicKeys: List<String> = {{PORTAL_TRUSTED_PUBLIC_KEYS}}
+
+  fun admit(scannedLink: String, nowMs: Long = System.currentTimeMillis()): PortalAdmission {
+    val trimmed = scannedLink.trim()
+    val bundledId = WorldPortal.worldId(trimmed).lowercase()
+    val isBundled =
+        trimmed.startsWith("holoscript://world/", ignoreCase = true) &&
+            Worlds.ids.contains(bundledId)
+    if (isBundled && ALLOW_BUNDLED && POLICY != "signed_only") {
+      return PortalAdmission(true, stripQueryAndFragment(trimmed), reason = "bundled")
+    }
+    if (POLICY == "bundled_only") {
+      return PortalAdmission(false, reason = "remote-disabled")
+    }
+    if (!REQUIRE_REMOTE_SIGNATURE) {
+      return PortalAdmission(true, stripQueryAndFragment(trimmed), reason = "remote-policy")
+    }
+
+    return try {
+      val uri = Uri.parse(trimmed)
+      val manifestValues = uri.getQueryParameters("hs_manifest")
+      val signatureValues = uri.getQueryParameters("hs_signature")
+      val keyIdValues = uri.getQueryParameters("hs_key_id")
+      if (manifestValues.size != 1 || signatureValues.size != 1 || keyIdValues.size != 1) {
+        return PortalAdmission(false, reason = "signed-parameter-cardinality")
+      }
+
+      val manifestBytes = decodeUrlBase64(manifestValues.single())
+      val signatureBytes = decodeUrlBase64(signatureValues.single())
+      val requestedKeyId = keyIdValues.single()
+      val trustedKey =
+          trustedPublicKeys.firstOrNull { encoded ->
+            constantTimeEquals(keyId(encoded), requestedKeyId)
+          } ?: return PortalAdmission(false, reason = "untrusted-key")
+
+      val publicKeyBytes = Base64.decode(trustedKey, Base64.DEFAULT)
+      val publicKey =
+          KeyFactory.getInstance("Ed25519").generatePublic(X509EncodedKeySpec(publicKeyBytes))
+      val verifier = Signature.getInstance("Ed25519")
+      verifier.initVerify(publicKey)
+      verifier.update(manifestBytes)
+      if (!verifier.verify(signatureBytes)) {
+        return PortalAdmission(false, reason = "signature")
+      }
+
+      val manifestText = String(manifestBytes, StandardCharsets.UTF_8)
+      val manifest = JSONObject(manifestText)
+      if (manifest.optString("schema") != SCHEMA) {
+        return PortalAdmission(false, reason = "schema")
+      }
+      val portalUrl = manifest.optString("portal_url")
+      val worldLink = manifest.optString("world_link")
+      val sourceDigest = manifest.optString("source_digest")
+      val issuedAt = manifest.optLong("issued_at_ms", -1L)
+      val expiresAt = manifest.optLong("expires_at_ms", -1L)
+      if (portalUrl != stripQueryAndFragment(trimmed)) {
+        return PortalAdmission(false, reason = "portal-binding")
+      }
+      if (!WorldPortal.isWorldLink(worldLink) || WorldPortal.worldId(worldLink) == "world") {
+        return PortalAdmission(false, reason = "world-link")
+      }
+      if (!sourceDigest.matches(Regex("^sha256:[0-9a-f]{64}$"))) {
+        return PortalAdmission(false, reason = "source-digest")
+      }
+      if (issuedAt < 0L || expiresAt <= issuedAt || issuedAt > nowMs + MAX_CLOCK_SKEW_MS || nowMs > expiresAt) {
+        return PortalAdmission(false, reason = "freshness")
+      }
+      PortalAdmission(
+          allowed = true,
+          worldLink = worldLink,
+          sourceDigest = sourceDigest,
+          signerKeyId = requestedKeyId,
+          reason = "signed",
+      )
+    } catch (_: Exception) {
+      PortalAdmission(false, reason = "malformed")
+    }
+  }
+
+  private fun stripQueryAndFragment(value: String): String =
+      value.substringBefore("?").substringBefore("#")
+
+  private fun decodeUrlBase64(value: String): ByteArray =
+      Base64.decode(value, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+
+  private fun keyId(encodedKey: String): String {
+    val bytes = Base64.decode(encodedKey, Base64.DEFAULT)
+    return "sha256:" + hex(MessageDigest.getInstance("SHA-256").digest(bytes))
+  }
+
+  private fun constantTimeEquals(left: String, right: String): Boolean =
+      MessageDigest.isEqual(
+          left.toByteArray(StandardCharsets.UTF_8),
+          right.toByteArray(StandardCharsets.UTF_8),
+      )
+
+  private fun hex(bytes: ByteArray): String =
+      bytes.joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+}

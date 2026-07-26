@@ -22,7 +22,11 @@ export type ConsentScope =
   | 'location'
   | 'biometric'
   | 'deepfake_detect'
-  | 'eye_tracking';
+  | 'eye_tracking'
+  | 'external_navigation'
+  | 'world_entry'
+  | 'clipboard'
+  | 'local_storage';
 export type ConsentStatus = 'pending' | 'granted' | 'denied' | 'expired' | 'revoked';
 
 export interface ConsentAuditEntry {
@@ -34,6 +38,7 @@ export interface ConsentAuditEntry {
 
 export interface ConsentGateState {
   status: ConsentStatus;
+  grantedScopes: ConsentScope[];
   grantedAt: number | null;
   expiresAt: number | null;
   auditLog: ConsentAuditEntry[];
@@ -71,6 +76,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
   onAttach(node, config, context) {
     const state: ConsentGateState = {
       status: 'pending',
+      grantedScopes: [],
       grantedAt: null,
       expiresAt: null,
       auditLog: [],
@@ -106,6 +112,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
     // Check expiry
     if (config.expiry_ms > 0 && state.expiresAt !== null && Date.now() >= state.expiresAt) {
       state.status = 'expired';
+      state.grantedScopes = [];
       if (config.audit_log) {
         state.auditLog.push({ timestamp: Date.now(), action: 'expired', scope: config.scope });
       }
@@ -120,6 +127,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
     if (event.type === 'consent_grant') {
       if (state.status === 'pending' || state.status === 'revoked' || state.status === 'expired') {
         state.status = 'granted';
+        state.grantedScopes = [...config.scope];
         state.grantedAt = Date.now();
         state.expiresAt = config.expiry_ms > 0 ? state.grantedAt + config.expiry_ms : null;
 
@@ -138,6 +146,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
       }
     } else if (event.type === 'consent_deny') {
       state.status = 'denied';
+      state.grantedScopes = [];
       const reason = event.reason as string | undefined;
       if (config.audit_log) {
         state.auditLog.push({
@@ -150,6 +159,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
       context.emit?.('consent_denied', { node, scope: config.scope, reason });
     } else if (event.type === 'consent_revoke') {
       state.status = 'revoked';
+      state.grantedScopes = [];
       const reason = event.reason as string | undefined;
       if (config.audit_log) {
         state.auditLog.push({
@@ -163,6 +173,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
     } else if (event.type === 'consent_expire') {
       // Explicit expiry signal (for testing)
       state.status = 'expired';
+      state.grantedScopes = [];
       if (config.audit_log) {
         state.auditLog.push({ timestamp: Date.now(), action: 'expired', scope: config.scope });
       }
@@ -212,8 +223,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
 export function isConsentGranted(node: HSPlusNode, requiredScopes: ConsentScope[]): boolean {
   const state = node.__consentGateState as ConsentGateState | undefined;
   if (!state || state.status !== 'granted') return false;
-  // All required scopes must be a subset of the granted config scopes
-  return true; // Scope check delegated to config validation at attach time
+  return requiredScopes.every((scope) => state.grantedScopes.includes(scope));
 }
 
 export default consentGateHandler;

@@ -30,9 +30,9 @@ const largeSource = readFileSync(resolve(fixturesDir, 'large.hsplus'), 'utf-8');
 
 // Parse fixtures once
 const parser = new HoloScriptPlusParser();
-const smallAST = parser.parse(smallSource).ast as HoloComposition;
-const mediumAST = parser.parse(mediumSource).ast as HoloComposition;
-const largeAST = parser.parse(largeSource).ast as HoloComposition;
+const smallAST = parser.parse(smallSource).ast as unknown as HoloComposition;
+const mediumAST = parser.parse(mediumSource).ast as unknown as HoloComposition;
+const largeAST = parser.parse(largeSource).ast as unknown as HoloComposition;
 
 // Mock compiler function
 const mockCompile = (obj: { name: string }) => `function ${obj.name}() { return <mesh />; }`;

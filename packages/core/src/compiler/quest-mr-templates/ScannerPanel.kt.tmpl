@@ -79,6 +79,7 @@ data class HowTo(val context: String, val text: String)
 private val ScanAccent = Color(0xFF34D399)
 private val SuccessGreen = Color(0xFF22C55E)
 private const val QR_DP = {{MOCK_QR_DP}}
+private const val BOOKMARKS_ENABLED = {{BOOKMARKS_ENABLED}}
 
 fun qrImageBitmap(text: String, sizePx: Int): ImageBitmap {
   val bits = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, sizePx, sizePx)
@@ -101,6 +102,7 @@ object ScannerState {
   var justEnteredWorld by mutableStateOf(false) // transient: show "Entered <world>" briefly
   var resultKind by mutableStateOf<String?>(null) // classified content kind (url/wifi/contact/email/…)
   var resultLabel by mutableStateOf<String?>(null) // typed heading for the result card (e.g. "Wi-Fi network")
+  var pendingReceiptDigest by mutableStateOf<String?>(null)
   var onOpen: ((String) -> Unit)? = null
   var onStart: (() -> Unit)? = null
   var onDismiss: (() -> Unit)? = null // resume scanning after a result card is cleared
@@ -133,6 +135,7 @@ object ScannerState {
     lastResult = null
     resultKind = null
     resultLabel = null
+    pendingReceiptDigest = null
     worldName = name
     justEnteredWorld = true
     screen = Screen.IN_WORLD
@@ -156,6 +159,7 @@ object ScannerState {
     lastResult = null
     resultKind = null
     resultLabel = null
+    pendingReceiptDigest = null
     status = "Point at a QR code…"
   }
 }
@@ -227,8 +231,10 @@ private fun WelcomeScreen() {
   Row {
     Button(onClick = { ScannerState.screen = Screen.TUTORIAL }) { Text("See how it works") }
     Spacer(Modifier.size(14.dp))
-    Button(onClick = { ScannerState.screen = Screen.BOOKMARKS }) { Text("Saved links") }
-    Spacer(Modifier.size(14.dp))
+    if (BOOKMARKS_ENABLED) {
+      Button(onClick = { ScannerState.screen = Screen.BOOKMARKS }) { Text("Saved links") }
+      Spacer(Modifier.size(14.dp))
+    }
     Button(onClick = { startScanning() }) { Text("Start scanning") }
   }
 }
@@ -351,14 +357,16 @@ private fun ResultCard() {
         Text("Open in browser")
       }
       Spacer(Modifier.size(14.dp))
-      Button(
-          onClick = {
-            ScannerState.onBookmark?.invoke(url) // save the link, then dismiss back to scanning
-            ScannerState.reset()
-            ScannerState.onDismiss?.invoke()
-          }
-      ) {
-        Text("Bookmark")
+      if (BOOKMARKS_ENABLED) {
+        Button(
+            onClick = {
+              ScannerState.onBookmark?.invoke(url) // save the link, then dismiss back to scanning
+              ScannerState.reset()
+              ScannerState.onDismiss?.invoke()
+            }
+        ) {
+          Text("Bookmark")
+        }
       }
     }
     Spacer(Modifier.size(12.dp))

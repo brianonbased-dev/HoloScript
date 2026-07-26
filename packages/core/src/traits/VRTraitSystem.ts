@@ -95,6 +95,7 @@ import { spatialPanelHandler } from './SpatialPanelTrait';
 import { onboardingHandler } from './OnboardingTrait';
 import { tutorialHandler } from './TutorialTrait';
 import { worldPortalHandler } from './WorldPortalTrait';
+import { localCollectionHandler } from './LocalCollectionTrait';
 import { altTextHandler } from './AltTextTrait';
 import { spatialAudioCueHandler } from './SpatialAudioCueTrait';
 import { gemResonanceHandler } from './GemResonanceTrait';
@@ -2143,6 +2144,7 @@ export class VRTraitRegistry {
     this.register(onboardingHandler as TraitHandler);
     this.register(tutorialHandler as TraitHandler);
     this.register(worldPortalHandler as TraitHandler);
+    this.register(localCollectionHandler as TraitHandler);
   }
 
   register<T>(handler: TraitHandler<T>): void {

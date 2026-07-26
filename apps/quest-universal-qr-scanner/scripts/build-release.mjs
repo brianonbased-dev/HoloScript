@@ -3,7 +3,7 @@
  * Build the signed HoloQR release APK (immersive MR / android-mr).
  *
  * The shipping path is fail-closed on HoloScript authorship:
- *   scanner.holo + worlds/*.holo -> QuestCompiler -> android-mr -> golden-diff gate
+ *   scanner.holo + scanner-lifecycle.hsplus + worlds/*.holo -> QuestCompiler -> android-mr -> gate
  *
  * Only after that source gate passes does this resolve signing secrets from HoloKey or process.env,
  * materialize the keystore to a private temporary file, run Gradle, and delete the keystore.
@@ -81,7 +81,7 @@ export function runHoloScriptSourceGate({
   };
 
   const generated = runStep(
-    'compiling scanner.holo and worlds/*.holo through QuestCompiler',
+    'compiling scanner.holo, scanner-lifecycle.hsplus, and worlds/*.holo through QuestCompiler',
     nodePath,
     [tsxCliPath, generatorPath],
     commonOptions,

@@ -52,7 +52,16 @@ composition "UniversalQrScanner" {
       center_crop: { width: 640, height: 480 }
       decode_interval_ms: 200
       dedupe_window_ms: 2500
+      max_payload_chars: 4096       // malformed/oversize payloads become @unknown and fail closed
       log_payload_values: false       // privacy: never write decoded contents/URLs to system logs
+      receipts: {
+        enabled: true
+        storage: "device_private"
+        digest_algorithm: "sha256"
+        hash_chain: true
+        include_payload: false
+        max_entries: 1000
+      }
 
       // Scan feedback — a short confirmation beep on every decode (non-visual cue). Compiles to a
       // ToneGenerator call in StarterSampleActivity. (Haptics aren't reliable from a headset app, so
@@ -95,11 +104,39 @@ composition "UniversalQrScanner" {
   object "portal" {
     @world_portal {
       link_patterns: ["holoscript://world/", "https://holoscript.studio/w/", "https://hololand.holoscript.studio/"]
-      auto_immerse: true                   // a world QR immerses you automatically (no extra tap)
+      auto_immerse: false                  // consent-first: the user must tap Enter world
       keep_scanning: true                  // the camera keeps reading inside the world — scan/hop worlds
       entering_label: "Entered"
       leave_action: "Leave world"
       demo_world_url: "holoscript://world/hololand"
+      trust: {
+        policy: "bundled_or_signed"
+        signature_algorithm: "ed25519"
+        allow_bundled: true
+        require_signature_for_remote: true
+        trusted_public_keys: []
+      }
+    }
+
+    @consent_gate {
+      scope: ["world_entry"]
+      expiry_ms: 0
+      require_explicit: true
+      audit_log: true
+      purpose: "Enter the HoloScript world encoded by a scanned QR"
+    }
+
+  }
+
+  // App-private saved links. The language owns capacity, ordering, dedupe, storage, and backup policy.
+  object "saved_links" {
+    @local_collection {
+      item_type: "url"
+      capacity: 100
+      ordering: "most_recent"
+      deduplicate: true
+      storage: "device_private"
+      backup: false
     }
   }
 

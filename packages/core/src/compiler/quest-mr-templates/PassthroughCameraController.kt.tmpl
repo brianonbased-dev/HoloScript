@@ -176,16 +176,6 @@ class PassthroughCameraController(
 
             val y = packYPlane(image)
 
-            // DEBUG: roll the exact luminance frame fed to ZXing to disk for offline inspection.
-            if (attempts == 1 || attempts % 10 == 0) {
-                try {
-                    java.io.File(
-                        context.getExternalFilesDir(null),
-                        "frame_latest_${image.width}x${image.height}.gray"
-                    ).writeBytes(y)
-                } catch (_: Exception) {}
-            }
-
             // Live viewfinder: downscaled grayscale of exactly what the camera sees, so the user can aim.
             onPreview?.let { cb ->
                 try { cb(buildPreview(y, image.width, image.height, PREVIEW_DOWNSCALE)) } catch (_: Exception) {}
@@ -200,7 +190,7 @@ class PassthroughCameraController(
             if (decoded == lastReported && now - lastReportedMs < COOLDOWN_MS) return
             lastReported = decoded
             lastReportedMs = now
-            Log.i(TAG, "QR read (attempt $attempts): $decoded")
+            {{CONTROLLER_DECODE_LOG}}
             onDecoded(decoded)
         } catch (e: Exception) {
             Log.w(TAG, "frame decode failed", e)

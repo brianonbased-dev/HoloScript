@@ -19,6 +19,19 @@ import type { TraitHandler } from './TraitTypes';
 // TYPES
 // =============================================================================
 
+export interface WorldPortalTrustConfig {
+  /** Admit bundled worlds, signed remote worlds, or both. */
+  policy: 'bundled_only' | 'signed_only' | 'bundled_or_signed';
+  /** Signature algorithm required for remote world manifests. */
+  signature_algorithm: 'ed25519';
+  /** Bundled worlds are trusted because their source is compiled into the APK. */
+  allow_bundled: boolean;
+  /** Fail closed when a remote world link lacks a valid trusted signature. */
+  require_signature_for_remote: boolean;
+  /** Base64 X.509 Ed25519 public keys admitted by the application declaration. */
+  trusted_public_keys: string[];
+}
+
 export interface WorldPortalConfig {
   /** Decoded-QR prefixes that mark a world link (matched case-insensitively). */
   link_patterns: string[];
@@ -32,6 +45,8 @@ export interface WorldPortalConfig {
   leave_action: string;
   /** Demo world link used by the tutorial / onboarding copy. */
   demo_world_url: string;
+  /** Admission policy for bundled and remote world portals. */
+  trust?: WorldPortalTrustConfig;
 }
 
 // =============================================================================
@@ -47,11 +62,18 @@ export const worldPortalHandler: TraitHandler<WorldPortalConfig> = {
       'https://holoscript.studio/w/',
       'https://hololand.holoscript.studio/',
     ],
-    auto_immerse: true,
+    auto_immerse: false,
     keep_scanning: true,
     entering_label: 'Entered',
     leave_action: 'Leave world',
     demo_world_url: 'holoscript://world/hololand',
+    trust: {
+      policy: 'bundled_or_signed',
+      signature_algorithm: 'ed25519',
+      allow_bundled: true,
+      require_signature_for_remote: true,
+      trusted_public_keys: [],
+    },
   },
 
   onAttach(node, _config, context) {

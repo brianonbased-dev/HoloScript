@@ -1,15 +1,25 @@
 @trait {
   name: "@qr_decode",
   category: "sensing",
-  description: "QR code and barcode decoder for XR camera feeds. library: zxing-core (default) or mlkit. formats is the list of barcode formats to decode (default: ['QR_CODE']). try_harder enables exhaustive search for hard-to-detect codes (default: true). also_inverted attempts decoding of inverted (white-on-black) codes (default: true). center_crop defines the crop region for focused decoding {width, height} (default: 640x480). decode_interval_ms is the decode throttle in milliseconds (default: 200ms). dedupe_window_ms suppresses re-emission of the same code within this window (default: 2500ms). Port of QrDecodeTrait.ts (handler name: qr_decode).",
+  description: "QR code and barcode decoder for XR camera feeds. library: zxing-core (default) or mlkit. formats is the list of barcode formats to decode (default: ['QR_CODE']). try_harder enables exhaustive search for hard-to-detect codes (default: true). also_inverted attempts decoding of inverted (white-on-black) codes (default: true). center_crop defines the crop region for focused decoding {width, height} (default: 640x480). decode_interval_ms is the decode throttle in milliseconds (default: 200ms). dedupe_window_ms suppresses re-emission of the same code within this window (default: 2500ms). max_payload_chars bounds semantic classification input (default: 4096). Port of QrDecodeTrait.ts (handler name: qr_decode).",
   props: {
     library: enum("zxing-core" | "mlkit") = "zxing-core",
+    formats: list<string> = ["QR_CODE"],
     try_harder: boolean = true,
     also_inverted: boolean = true,
-    crop_width: number = 640,
-    crop_height: number = 480,
+    center_crop: object = { width: 640, height: 480 },
     decode_interval_ms: number = 200,
-    dedupe_window_ms: number = 2500
+    dedupe_window_ms: number = 2500,
+    max_payload_chars: number = 4096,
+    log_payload_values: boolean = false,
+    receipts: object = {
+      enabled: false,
+      storage: "device_private",
+      digest_algorithm: "sha256",
+      hash_chain: true,
+      include_payload: false,
+      max_entries: 1000
+    }
   },
   events: {
     on_decoded: "qr_decoded",

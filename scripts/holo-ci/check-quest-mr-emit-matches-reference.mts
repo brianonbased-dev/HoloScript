@@ -14,10 +14,11 @@
 //
 //   npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts            # real gate
 //   npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts --self-test # prove it detects drift
-import { readdirSync, existsSync } from 'node:fs';
+import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { QuestCompiler } from '../../packages/core/src/compiler/QuestCompiler';
+import { compileHSPlusStateMachineToKotlin } from '../../packages/core/src/compiler/HSIIRKotlinStateMachineEmitter';
 import {
   emitWorldSceneKt,
   emitWorldsRegistryKt,
@@ -27,7 +28,26 @@ import { parseOrDie, runGoldenDiffGate } from './build-verify/golden-diff.mts';
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const appDir = join(repoRoot, 'apps', 'quest-universal-qr-scanner');
 const specPath = join(appDir, 'scanner.holo');
+const lifecyclePath = join(appDir, 'scanner-lifecycle.hsplus');
 const srcRel = 'app/src/main/java/net/holoscript/qrscanner';
+
+function assertPrivacyBoundary(emitted: Record<string, string>): void {
+  const forbidden: Array<[RegExp, string]> = [
+    [/getExternalFilesDir/, 'external camera-frame storage'],
+    [/writeBytes\s*\(\s*y\s*\)/, 'raw luminance-frame write'],
+    [/frame_latest_/, 'raw frame debug artifact'],
+    [/Log\.[A-Za-z]+\([^\n]*(?:\$decoded|\$text|\$url|\$link)/, 'decoded payload logging'],
+    [/\.put\(\s*"payload"\s*,/, 'raw payload receipt field'],
+  ];
+  for (const [relativePath, content] of Object.entries(emitted)) {
+    if (!relativePath.endsWith('.kt')) continue;
+    for (const [pattern, claim] of forbidden) {
+      if (pattern.test(content)) {
+        throw new Error(`HoloQR privacy gate: ${claim} found in ${relativePath}`);
+      }
+    }
+  }
+}
 
 /** Quest MR emit = scanner.holo (trait-dispatch) + worlds/*.holo → Meta Spatial SDK scene Kotlin. */
 function emit(): Record<string, string> {
@@ -35,6 +55,17 @@ function emit(): Record<string, string> {
     parseOrDie(specPath, 'scanner.holo'),
     ''
   );
+  const lifecycleRel = `${srcRel}/ScannerLifecycleMachine.kt`;
+  const lifecycle = compileHSPlusStateMachineToKotlin(readFileSync(lifecyclePath, 'utf8'), {
+    machineName: 'ScannerLifecycle',
+    className: 'ScannerLifecycleMachine',
+    packageName: 'net.holoscript.qrscanner',
+  });
+  if (emitted[lifecycleRel] !== lifecycle.code) {
+    throw new Error(
+      'scanner-lifecycle.hsplus differs from the compiler-bundled HSI source; regenerate core templates'
+    );
+  }
 
   const worldsDir = join(appDir, 'worlds');
   if (existsSync(worldsDir)) {
@@ -50,6 +81,7 @@ function emit(): Record<string, string> {
     }
     emitted[`${srcRel}/WorldsRegistry.kt`] = emitWorldsRegistryKt(worldIds);
   }
+  assertPrivacyBoundary(emitted);
   return emitted;
 }
 
