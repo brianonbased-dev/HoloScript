@@ -12,12 +12,12 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage --passWithNoTests"
   },
   "dependencies": {
-    "@auth/drizzle-adapter": "^1.11.1",
+    "@auth/drizzle-adapter": "1.11.3",
     "@aws-sdk/client-s3": "^3.1014.0",
     "@aws-sdk/s3-request-presigner": "^3.1013.0",
     "drizzle-orm": ">=0.45.2",
     "next": ">=15.5.15",
-    "next-auth": "4",
+    "next-auth": "4.24.15",
     "pg": "^8.13.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.4",
