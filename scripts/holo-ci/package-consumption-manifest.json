@@ -226,7 +226,49 @@
       "forbidBundledNativeAddons": true
     }
   ],
-  "candidateNpmPackages": [],
+  "candidateNpmPackages": [
+    {
+      "name": "@holoscript/domain-plugin-template",
+      "packageDir": "packages/plugins/domain-plugin-template",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": ["dist/index.js", "dist/index.mjs", "dist/index.d.ts"],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/agent-protocol",
+      "packageDir": "packages/agent-protocol",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/llm-provider",
+      "packageDir": "packages/llm-provider",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": [
+        "dist/index.js",
+        "dist/index.cjs",
+        "dist/index.d.ts",
+        "dist/adapters/openai.js",
+        "dist/adapters/anthropic.js"
+      ],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/snn-webgpu",
+      "packageDir": "packages/snn-webgpu",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
+      "forbidBundledNativeAddons": true
+    },
+    {
+      "name": "@holoscript/holoembed",
+      "packageDir": "packages/holoembed",
+      "requiredBy": ["laptop-windows", "jetson-orin", "vast-linux-gpu"],
+      "requireFiles": ["dist/index.js", "dist/index.cjs", "dist/index.d.ts"],
+      "forbidBundledNativeAddons": true
+    }
+  ],
   "pypiPackages": [
     {
       "name": "holoscript",

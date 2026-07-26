@@ -8,44 +8,41 @@
  */
 
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const args = new Set(process.argv.slice(2));
 const DRY_RUN = args.has('--dry-run');
 const SELF_TEST = args.has('--self-test');
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const RELEASE_MANIFEST = JSON.parse(
+  readFileSync(join(SCRIPT_DIR, 'npm-v1-release-manifest.json'), 'utf8')
+);
+const CANDIDATE_PACKAGES = RELEASE_MANIFEST.candidatePackages.map((entry) => entry.name);
+const assigned = new Set();
+
+function phase(id, filters) {
+  for (const filter of filters) assigned.add(filter);
+  return { id, filters };
+}
 
 const PHASES = [
-  {
-    id: 'type-provider-foundation',
-    filters: [
+  phase(
+    'type-provider-foundation',
+    [
       '@holoscript/core-types',
       '@holoscript/llm-provider',
       '@holoscript/agent-protocol',
       '@holoscript/uaal',
-    ],
-  },
-  {
-    id: 'engine-foundation',
-    filters: ['@holoscript/holoembed', '@holoscript/snn-webgpu'],
-  },
-  {
-    id: 'engine',
-    filters: ['@holoscript/engine'],
-  },
-  {
-    id: 'release-candidates',
-    filters: [
-      '@holoscript/core',
-      '@holoscript/cli',
-      '@holoscript/mcp-server',
-      '@holoscript/memory',
-      '@holoscript/agent-runtime',
-      '@holoscript/holollama',
-      '@holoscript/platform',
-      '@holoscript/domain-plugin-template',
-      '@holoscript/holoscript-agent',
-      '@holoscript/xr-embodiment',
-    ],
-  },
+    ]
+  ),
+  phase('engine-foundation', ['@holoscript/holoembed', '@holoscript/snn-webgpu']),
+  phase('engine', ['@holoscript/engine']),
+  phase(
+    'release-candidates',
+    CANDIDATE_PACKAGES.filter((packageName) => !assigned.has(packageName))
+  ),
 ];
 
 function pnpmArgsForPhase(phase) {
@@ -95,23 +92,17 @@ function assertPlan() {
 
   for (const required of [
     '@holoscript/core-types',
-    '@holoscript/holoembed',
-    '@holoscript/snn-webgpu',
-    '@holoscript/engine',
-    '@holoscript/core',
-    '@holoscript/cli',
-    '@holoscript/mcp-server',
-    '@holoscript/memory',
-    '@holoscript/agent-runtime',
-    '@holoscript/holollama',
-    '@holoscript/platform',
-    '@holoscript/domain-plugin-template',
-    '@holoscript/holoscript-agent',
-    '@holoscript/xr-embodiment',
+    ...CANDIDATE_PACKAGES,
   ]) {
     if (!seen.has(required)) {
       throw new Error(`Release closure omitted ${required}`);
     }
+  }
+  const plannedCandidates = CANDIDATE_PACKAGES.filter((packageName) => seen.has(packageName));
+  if (plannedCandidates.length !== CANDIDATE_PACKAGES.length) {
+    throw new Error(
+      `Release closure planned ${plannedCandidates.length}/${CANDIDATE_PACKAGES.length} candidates`
+    );
   }
 }
 
@@ -127,7 +118,9 @@ function main() {
   }
 
   if (DRY_RUN || SELF_TEST) {
-    console.log('[package-release-closure] PASS: plan is valid.');
+    console.log(
+      `[package-release-closure] PASS: plan is valid (${CANDIDATE_PACKAGES.length} release candidates).`
+    );
     return;
   }
 

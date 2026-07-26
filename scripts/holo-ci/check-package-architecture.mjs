@@ -6,10 +6,8 @@
  * - npm fleet-consumed packages must be v1 candidates.
  * - consumed npm/PyPI packages must be represented by at least one fleet utility.
  * - fleet utilities must point at packages that the consumption matrix owns.
- * - v1 candidates must either be fleet-consumed or carry an explicit
- *   publish-support role such as the domain plugin template.
- * - non-consumed v1 release candidates are allowed only when stewardship names
- *   them as release-candidate packages with a repo-less public API canary.
+ * - every v1 candidate must have a fleet-consumption row or a candidate
+ *   repo-less consumption receipt row.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -29,12 +27,6 @@ const MANIFESTS = {
   utilities: join(ROOT, 'scripts', 'holo-ci', 'fleet-utilities-manifest.json'),
   stewardship: join(ROOT, 'scripts', 'holo-ci', 'package-stewardship-manifest.json'),
 };
-
-const ALLOWED_NON_CONSUMED_V1_ROLES = new Set([
-  'domain-plugin-template',
-  'compatibility-shim',
-  'publish-support',
-]);
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -88,6 +80,7 @@ function validateManifests({ release, consumption, utilities, stewardship }) {
   const candidates = release?.candidatePackages || [];
   const candidateNames = names(candidates);
   const consumedNpm = names(consumption?.npmPackages);
+  const candidateNpmReceipts = names(consumption?.candidateNpmPackages);
   const consumedPypi = names(consumption?.pypiPackages);
   const utilityNpm = names(utilities?.utilities, 'packageName');
   const utilityPypi = names(utilities?.utilities, 'pypiPackage');
@@ -99,6 +92,15 @@ function validateManifests({ release, consumption, utilities, stewardship }) {
     }
     if (!utilityNpm.has(name)) {
       errors.push(`${name}: package-consumption entry has no fleet utility`);
+    }
+  }
+
+  for (const name of candidateNpmReceipts) {
+    if (!candidateNames.has(name)) {
+      errors.push(`${name}: candidate consumption receipt is missing from npm v1 candidates`);
+    }
+    if (consumedNpm.has(name)) {
+      errors.push(`${name}: package is duplicated across fleet and candidate consumption rows`);
     }
   }
 
@@ -126,20 +128,14 @@ function validateManifests({ release, consumption, utilities, stewardship }) {
       errors.push('npm v1 candidate is missing name');
       continue;
     }
-    if (consumedNpm.has(candidate.name)) continue;
-    if (ALLOWED_NON_CONSUMED_V1_ROLES.has(candidate.role)) {
-      warnings.push(`${candidate.name}: v1 candidate is publish-support, not fleet-consumed`);
-      continue;
-    }
+    if (consumedNpm.has(candidate.name) || candidateNpmReceipts.has(candidate.name)) continue;
     const steward = npmStewards.get(candidate.name);
-    if (steward?.status === 'release-candidate' && hasPublicApiCanary(steward)) {
-      warnings.push(
-        `${candidate.name}: v1 release-candidate has public API canary but is not fleet-consumed`
-      );
-      continue;
-    }
+    const stewardDetail =
+      steward?.status === 'release-candidate' && hasPublicApiCanary(steward)
+        ? ' (a public API canary exists but is not wired into the consumption matrix)'
+        : '';
     errors.push(
-      `${candidate.name}: npm v1 candidate is not fleet-consumed, role '${candidate.role || '<missing>'}' is not exempt, and no release-candidate public API canary is declared`
+      `${candidate.name}: npm v1 candidate has no fleet or candidate consumption receipt${stewardDetail}`
     );
   }
 
@@ -148,6 +144,7 @@ function validateManifests({ release, consumption, utilities, stewardship }) {
     rows: {
       candidates: sorted(candidateNames),
       consumedNpm: sorted(consumedNpm),
+      candidateNpmReceipts: sorted(candidateNpmReceipts),
       consumedPypi: sorted(consumedPypi),
       utilityNpm: sorted(utilityNpm),
       utilityPypi: sorted(utilityPypi),
@@ -169,6 +166,7 @@ function runSelfTest() {
     consumption: {
       schema: 'holoscript.package-consumption-matrix/v1',
       npmPackages: [{ name: '@holoscript/core' }],
+      candidateNpmPackages: [{ name: '@holoscript/domain-plugin-template' }],
       pypiPackages: [{ name: 'holoscript' }],
     },
     utilities: {
@@ -201,6 +199,7 @@ function runSelfTest() {
     consumption: {
       schema: 'holoscript.package-consumption-matrix/v1',
       npmPackages: [{ name: '@holoscript/core' }],
+      candidateNpmPackages: [],
       pypiPackages: [{ name: 'holoscript' }],
     },
     utilities: {
@@ -230,6 +229,7 @@ function runSelfTest() {
     consumption: {
       schema: 'holoscript.package-consumption-matrix/v1',
       npmPackages: [],
+      candidateNpmPackages: [{ name: '@holoscript/engine' }],
       pypiPackages: [],
     },
     utilities: {
