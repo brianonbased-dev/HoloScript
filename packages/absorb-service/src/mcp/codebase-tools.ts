@@ -546,6 +546,8 @@ interface AbsorbJob {
   jobId: string;
   rootDir: string;
   writerKey?: string;
+  writerPolicyHash?: string;
+  writerLease?: AbsorbWriterLease;
   status:
     | 'queued'
     | 'scanning'
@@ -575,11 +577,87 @@ interface AbsorbJob {
   workerMemory?: AbsorbMemorySnapshot;
 }
 
+interface AbsorbWriterLeaseRecord {
+  schemaVersion: 'holoscript.absorb-writer-lease.v1';
+  kind: 'AbsorbWriterLease';
+  jobId: string;
+  writerKey: string;
+  policyHash: string;
+  token: string;
+  rootDirs: string[];
+  ownerPid: number;
+  ownerHost: string;
+  acquiredAt: string;
+  updatedAt: string;
+  priorGenerationId: string | null;
+}
+
+interface AbsorbWriterLease {
+  record: AbsorbWriterLeaseRecord;
+  leaseFile: string;
+  receiptFile: string;
+}
+
+interface ExternalAbsorbJobLease {
+  leaseFile: string;
+  receiptFile: string;
+  record: AbsorbWriterLeaseRecord;
+}
+
+type AbsorbWriterLeaseAcquisition =
+  | { outcome: 'acquired'; lease: AbsorbWriterLease; recoveredStaleLease: boolean }
+  | {
+      outcome: 'occupied';
+      record: AbsorbWriterLeaseRecord;
+      leaseFile: string;
+      receiptFile: string;
+    };
+
 const absorbJobs = new Map<string, AbsorbJob>();
+const externalAbsorbJobLeases = new Map<string, ExternalAbsorbJobLease>();
 const ABSORB_TERMINAL_JOB_RETENTION_MS = 60 * 60 * 1000;
+const DEFAULT_ABSORB_WRITER_LEASE_STALE_MS = 6 * 60 * 60 * 1000;
 
 function isTerminalAbsorbJob(job: AbsorbJob): boolean {
   return job.status === 'complete' || job.status === 'error' || job.status === 'cancelled';
+}
+
+function releaseAbsorbWriterLease(job: AbsorbJob): void {
+  const lease = job.writerLease;
+  if (!lease) return;
+  job.writerLease = undefined;
+  const receipt = {
+    schemaVersion: 'holoscript.absorb-writer-receipt.v1',
+    kind: 'AbsorbWriterReceipt',
+    jobId: job.jobId,
+    writerKey: job.writerKey ?? null,
+    policyHash: job.writerPolicyHash ?? null,
+    status: job.status,
+    phase: job.phase,
+    cacheCommitted: job.cacheCommitted,
+    rootDir: job.rootDir,
+    startedAt: new Date(job.startedAt).toISOString(),
+    completedAt: new Date(job.completedAt ?? Date.now()).toISOString(),
+  };
+  try {
+    atomicWriteFileSync(lease.receiptFile, JSON.stringify(receipt), 'utf-8');
+  } catch (error) {
+    console.warn(
+      `[AbsorbWriterLease] unable to write terminal receipt ${lease.receiptFile}: ${errorMessage(error)}`
+    );
+  }
+  try {
+    const current = parseAbsorbWriterLease(fs.readFileSync(lease.leaseFile, 'utf-8'));
+    if (current?.token === lease.record.token) {
+      fs.unlinkSync(lease.leaseFile);
+    }
+  } catch {
+    // The isolated worker or a stale-lease recovery may already have retired it.
+  }
+}
+
+function settleAbsorbWriterLeaseIfTerminal(job: AbsorbJob): void {
+  if (isTerminalAbsorbJob(job)) releaseAbsorbWriterLease(job);
 }
 
 function scheduleAbsorbJobCleanup(jobId: string, delayMs = ABSORB_TERMINAL_JOB_RETENTION_MS): void {
@@ -614,6 +692,79 @@ function buildAbsorbWriterKey(rootDirs: string[]): string {
     .digest('hex');
 }
 
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, entry]) => entry !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right));
+    return `{${entries
+      .map(([key, entry]) => `${JSON.stringify(key)}:${stableStringify(entry)}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function sortedStrings(values: string[] | undefined): string[] | undefined {
+  return values ? [...values].sort((left, right) => left.localeCompare(right)) : undefined;
+}
+
+function buildAbsorbWriterPolicyHash(options: {
+  rootDirs: string[];
+  languages?: string[];
+  scanPolicy: GraphScanPolicy;
+  outputFormat: string;
+  layout: string;
+  interactive: boolean;
+  force: boolean;
+  scanBatchSize?: number;
+  embeddingProvider?: string;
+  embeddingModel?: string;
+  inlineSourceFiles?: SourceFileEntry[];
+  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
+  resumeToken?: string;
+}): string {
+  const normalizedScanPolicy = normalizeScanPolicy(options.scanPolicy);
+  const inlineSourceDigest = options.inlineSourceFiles
+    ? createHash('sha256')
+        .update(
+          stableStringify(
+            options.inlineSourceFiles.map((entry) => ({
+              path: entry.path,
+              sha256: createHash('sha256').update(entry.content).digest('hex'),
+            }))
+          )
+        )
+        .digest('hex')
+    : undefined;
+  return createHash('sha256')
+    .update(
+      stableStringify({
+        roots: options.rootDirs.map((entry) => normalizeRootForComparison(entry)).sort(),
+        languages: sortedStrings(options.languages),
+        scanPolicy: {
+          ...normalizedScanPolicy,
+          exclude: sortedStrings(normalizedScanPolicy.exclude),
+          excludePathFragments: sortedStrings(normalizedScanPolicy.excludePathFragments),
+          excludeNameFragments: sortedStrings(normalizedScanPolicy.excludeNameFragments),
+        },
+        outputFormat: options.outputFormat,
+        layout: options.layout,
+        interactive: options.interactive,
+        force: options.force,
+        scanBatchSize: options.scanBatchSize,
+        embeddingProvider: options.embeddingProvider ?? NATIVE_GRAPH_RAG_PROVIDER,
+        embeddingModel: options.embeddingModel,
+        inlineSourceDigest,
+        localCodebaseSnapshotReceipt: options.localCodebaseSnapshotReceipt,
+        resumeToken: options.resumeToken,
+      })
+    )
+    .digest('hex');
+}
+
 function absorbRootSetsMatch(left: string[], right: string[]): boolean {
   return buildAbsorbWriterKey(left) === buildAbsorbWriterKey(right);
 }
@@ -623,6 +774,184 @@ function findActiveAbsorbWriter(writerKey: string | undefined): AbsorbJob | unde
   return Array.from(absorbJobs.values()).find(
     (job) => job.writerKey === writerKey && !isTerminalAbsorbJob(job)
   );
+}
+
+function absorbWriterLeaseStaleMs(): number {
+  const configured = Number(process.env.ABSORB_WRITER_LEASE_STALE_MS);
+  if (!Number.isFinite(configured) || configured <= 0) {
+    return DEFAULT_ABSORB_WRITER_LEASE_STALE_MS;
+  }
+  return Math.max(60_000, Math.floor(configured));
+}
+
+function isProcessAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    return code === 'EPERM';
+  }
+}
+
+function parseAbsorbWriterLease(raw: string): AbsorbWriterLeaseRecord | null {
+  try {
+    const value = JSON.parse(raw) as Partial<AbsorbWriterLeaseRecord>;
+    if (
+      value.schemaVersion !== 'holoscript.absorb-writer-lease.v1' ||
+      value.kind !== 'AbsorbWriterLease' ||
+      typeof value.jobId !== 'string' ||
+      typeof value.writerKey !== 'string' ||
+      typeof value.policyHash !== 'string' ||
+      typeof value.token !== 'string' ||
+      !Array.isArray(value.rootDirs) ||
+      typeof value.ownerPid !== 'number' ||
+      typeof value.ownerHost !== 'string' ||
+      typeof value.acquiredAt !== 'string' ||
+      typeof value.updatedAt !== 'string'
+    ) {
+      return null;
+    }
+    return value as AbsorbWriterLeaseRecord;
+  } catch {
+    return null;
+  }
+}
+
+function writerLeaseIsStale(record: AbsorbWriterLeaseRecord | null, leaseFile: string): boolean {
+  let ageMs = Number.POSITIVE_INFINITY;
+  try {
+    const timestamp = record ? Date.parse(record.updatedAt) : fs.statSync(leaseFile).mtimeMs;
+    ageMs = Number.isFinite(timestamp) ? Date.now() - timestamp : Number.POSITIVE_INFINITY;
+  } catch {
+    return true;
+  }
+  if (record?.ownerHost === os.hostname()) {
+    return !isProcessAlive(record.ownerPid);
+  }
+  return ageMs > absorbWriterLeaseStaleMs();
+}
+
+function absorbWriterReceiptFile(rootDir: string, jobId: string): string {
+  const paths = resolveCodebaseCachePaths(resolveCacheWorkspaceRoot(rootDir));
+  return path.join(paths.writerReceiptsDirectory, `${jobId}.json`);
+}
+
+function acquireAbsorbWriterLease(options: {
+  rootDir: string;
+  rootDirs: string[];
+  writerKey: string;
+  policyHash: string;
+  jobId: string;
+  adoptToken?: string;
+}): AbsorbWriterLeaseAcquisition {
+  const paths = resolveCodebaseCachePaths(resolveCacheWorkspaceRoot(options.rootDir));
+  fs.mkdirSync(paths.directory, { recursive: true });
+  const receiptFile = absorbWriterReceiptFile(options.rootDir, options.jobId);
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const token =
+      options.adoptToken ??
+      createHash('sha256')
+        .update(
+          `${options.jobId}:${options.writerKey}:${process.pid}:${Date.now()}:${Math.random()}`
+        )
+        .digest('hex');
+    const now = new Date().toISOString();
+    const record: AbsorbWriterLeaseRecord = {
+      schemaVersion: 'holoscript.absorb-writer-lease.v1',
+      kind: 'AbsorbWriterLease',
+      jobId: options.jobId,
+      writerKey: options.writerKey,
+      policyHash: options.policyHash,
+      token,
+      rootDirs: options.rootDirs.map((entry) => path.resolve(entry)),
+      ownerPid: process.pid,
+      ownerHost: os.hostname(),
+      acquiredAt: now,
+      updatedAt: now,
+      priorGenerationId:
+        readCacheGenerationManifest(options.rootDir)?.manifest.generationId ?? null,
+    };
+
+    try {
+      const fd = fs.openSync(paths.writerLeaseFile, 'wx');
+      try {
+        fs.writeFileSync(fd, JSON.stringify(record), 'utf-8');
+        fs.fsyncSync(fd);
+      } finally {
+        fs.closeSync(fd);
+      }
+      return {
+        outcome: 'acquired',
+        lease: { record, leaseFile: paths.writerLeaseFile, receiptFile },
+        recoveredStaleLease: attempt > 0,
+      };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    }
+
+    let observedRaw = '';
+    try {
+      observedRaw = fs.readFileSync(paths.writerLeaseFile, 'utf-8');
+    } catch {
+      continue;
+    }
+    const observed = parseAbsorbWriterLease(observedRaw);
+    if (
+      observed &&
+      options.adoptToken &&
+      observed.token === options.adoptToken &&
+      observed.writerKey === options.writerKey &&
+      observed.policyHash === options.policyHash
+    ) {
+      return {
+        outcome: 'acquired',
+        lease: {
+          record: observed,
+          leaseFile: paths.writerLeaseFile,
+          receiptFile: absorbWriterReceiptFile(options.rootDir, observed.jobId),
+        },
+        recoveredStaleLease: false,
+      };
+    }
+    if (!writerLeaseIsStale(observed, paths.writerLeaseFile)) {
+      return {
+        outcome: 'occupied',
+        record:
+          observed ??
+          ({
+            schemaVersion: 'holoscript.absorb-writer-lease.v1',
+            kind: 'AbsorbWriterLease',
+            jobId: 'unknown',
+            writerKey: options.writerKey,
+            policyHash: 'unknown',
+            token: 'unreadable',
+            rootDirs: options.rootDirs,
+            ownerPid: -1,
+            ownerHost: 'unknown',
+            acquiredAt: new Date(0).toISOString(),
+            updatedAt: new Date().toISOString(),
+            priorGenerationId: null,
+          } satisfies AbsorbWriterLeaseRecord),
+        leaseFile: paths.writerLeaseFile,
+        receiptFile: observed
+          ? absorbWriterReceiptFile(options.rootDir, observed.jobId)
+          : receiptFile,
+      };
+    }
+
+    try {
+      if (fs.readFileSync(paths.writerLeaseFile, 'utf-8') === observedRaw) {
+        fs.unlinkSync(paths.writerLeaseFile);
+      }
+    } catch {
+      // Another contender changed or recovered the lease. Re-read on retry.
+    }
+  }
+
+  throw new Error(`Unable to acquire Absorb writer lease at ${paths.writerLeaseFile}`);
 }
 
 function createAbsorbMemoryBudget(limits: AbsorbMemoryBudgetLimits): AbsorbMemoryBudgetTelemetry {
@@ -786,6 +1115,7 @@ function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, 
     memoryBudget: { ...job.memoryBudget },
   };
   job.result = receipt;
+  releaseAbsorbWriterLease(job);
   return receipt;
 }
 
@@ -958,6 +1288,7 @@ function trackAbsorbProgress(
     } else {
       job.status = 'queued';
     }
+    settleAbsorbWriterLeaseIfTerminal(job);
   }
 }
 
@@ -976,6 +1307,7 @@ function failAbsorbJob(
   job.error = error;
   job.completedAt = Date.now();
   job.result = result;
+  releaseAbsorbWriterLease(job);
 }
 
 /**
@@ -984,13 +1316,18 @@ function failAbsorbJob(
 function createAbsorbJob(
   rootDir: string,
   memoryBudget: AbsorbMemoryBudgetLimits = {},
-  writerKey?: string
+  writerKey?: string,
+  writerPolicyHash?: string,
+  writerLease?: AbsorbWriterLease,
+  requestedJobId?: string
 ): string {
-  const jobId = `absorb-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  const jobId = requestedJobId ?? `absorb-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   absorbJobs.set(jobId, {
     jobId,
     rootDir,
     writerKey,
+    writerPolicyHash,
+    writerLease,
     status: 'queued',
     progress: 0,
     phase: 'Initializing',
@@ -1283,6 +1620,7 @@ function startIsolatedBackgroundAbsorbJob(jobId: string, args: Record<string, un
         phaseAtRequest: String(resultRecord.phaseAtRequest ?? 'isolated worker'),
         completedAt,
       };
+      releaseAbsorbWriterLease(activeJob);
       return;
     }
     if (resultError) {
@@ -1316,6 +1654,7 @@ function startIsolatedBackgroundAbsorbJob(jobId: string, args: Record<string, un
       activeJob.filesProcessed = completedFileCount;
       activeJob.totalFiles = completedFileCount;
     }
+    releaseAbsorbWriterLease(activeJob);
   });
 
   worker.once('error', (error: Error) => {
@@ -1388,6 +1727,7 @@ function startBackgroundAbsorbJob(
         job.progress = 100;
         job.phase = job.phase === 'Initializing' ? 'Complete' : job.phase;
         job.completedAt = Date.now();
+        releaseAbsorbWriterLease(job);
       })
       .catch((err: unknown) => {
         if (isAbsorbCancellation(err, jobId)) {
@@ -1549,6 +1889,7 @@ const COVERAGE_NON_ABSORBABLE_EXT = new Set([
 
 interface GraphCacheEnvelope {
   version: 1 | 2;
+  cacheGenerationId?: string;
   rootDir: string;
   rootDirs?: string[];
   timestamp: number;
@@ -1567,6 +1908,24 @@ interface GraphCacheEnvelope {
   embeddingCacheSha256?: string | null;
   embeddingCacheBytes?: number | null;
   embeddingCacheMtimeMs?: number | null;
+}
+
+interface CodebaseCacheGenerationManifest {
+  schemaVersion: 'holoscript.absorb-cache-generation.v1';
+  kind: 'AbsorbCacheGeneration';
+  generationId: string;
+  workspaceRoot: string;
+  graphFile: string;
+  embeddingsFile: string | null;
+  embeddingCacheSha256: string | null;
+  publishedAt: string;
+}
+
+interface CacheGenerationSelection {
+  manifest: CodebaseCacheGenerationManifest;
+  manifestFile: string;
+  graphFile: string;
+  embeddingsFile: string | null;
 }
 
 interface GraphScanPolicy {
@@ -1735,12 +2094,89 @@ function resolveCacheWorkspaceRoot(rootDir?: string | null): string {
   return path.resolve(rootDir || (pinned && pinned.trim().length > 0 ? pinned : process.cwd()));
 }
 
+function resolveGenerationArtifact(
+  generationsDirectory: string,
+  relativeFile: string
+): string | null {
+  if (!relativeFile || path.isAbsolute(relativeFile)) return null;
+  const resolved = path.resolve(generationsDirectory, relativeFile);
+  const relative = path.relative(generationsDirectory, resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) return null;
+  return resolved;
+}
+
+function readCacheGenerationManifest(rootDir?: string | null): CacheGenerationSelection | null {
+  const workspaceRoot = resolveCacheWorkspaceRoot(rootDir);
+  const paths = resolveCodebaseCachePaths(workspaceRoot);
+  if (!fs.existsSync(paths.generationManifestFile)) return null;
+  try {
+    const manifest = JSON.parse(
+      fs.readFileSync(paths.generationManifestFile, 'utf-8')
+    ) as Partial<CodebaseCacheGenerationManifest>;
+    if (
+      manifest.schemaVersion !== 'holoscript.absorb-cache-generation.v1' ||
+      manifest.kind !== 'AbsorbCacheGeneration' ||
+      typeof manifest.generationId !== 'string' ||
+      !/^[a-f0-9]{32}$/.test(manifest.generationId) ||
+      typeof manifest.workspaceRoot !== 'string' ||
+      !rootMatchesCurrentRepo(manifest.workspaceRoot, workspaceRoot) ||
+      typeof manifest.graphFile !== 'string' ||
+      manifest.graphFile.replace(/\\/g, '/') !== `${manifest.generationId}/graph-cache.json` ||
+      (manifest.embeddingsFile !== null && typeof manifest.embeddingsFile !== 'string') ||
+      (typeof manifest.embeddingsFile === 'string' &&
+        manifest.embeddingsFile.replace(/\\/g, '/') !==
+          `${manifest.generationId}/embeddings-cache.bin`) ||
+      (manifest.embeddingCacheSha256 !== null &&
+        typeof manifest.embeddingCacheSha256 !== 'string') ||
+      typeof manifest.publishedAt !== 'string'
+    ) {
+      return null;
+    }
+    const graphFile = resolveGenerationArtifact(paths.generationsDirectory, manifest.graphFile);
+    const embeddingsFile =
+      manifest.embeddingsFile === null
+        ? null
+        : resolveGenerationArtifact(paths.generationsDirectory, manifest.embeddingsFile);
+    if (
+      !graphFile ||
+      !fs.existsSync(graphFile) ||
+      (manifest.embeddingsFile !== null && (!embeddingsFile || !fs.existsSync(embeddingsFile)))
+    ) {
+      return null;
+    }
+    return {
+      manifest: manifest as CodebaseCacheGenerationManifest,
+      manifestFile: paths.generationManifestFile,
+      graphFile,
+      embeddingsFile,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function getCacheFile(rootDir?: string | null): string {
-  return resolveCodebaseCachePaths(resolveCacheWorkspaceRoot(rootDir)).graphFile;
+  const workspaceRoot = resolveCacheWorkspaceRoot(rootDir);
+  return (
+    readCacheGenerationManifest(workspaceRoot)?.graphFile ??
+    resolveCodebaseCachePaths(workspaceRoot).graphFile
+  );
 }
 
 function getEmbeddingsFile(rootDir?: string | null): string {
-  return resolveCodebaseCachePaths(resolveCacheWorkspaceRoot(rootDir)).embeddingsFile;
+  const workspaceRoot = resolveCacheWorkspaceRoot(rootDir);
+  const selected = readCacheGenerationManifest(workspaceRoot);
+  if (selected) {
+    return (
+      selected.embeddingsFile ??
+      path.join(
+        resolveCodebaseCachePaths(workspaceRoot).generationsDirectory,
+        selected.manifest.generationId,
+        'embeddings-cache.missing'
+      )
+    );
+  }
+  return resolveCodebaseCachePaths(workspaceRoot).embeddingsFile;
 }
 
 function formatCacheAge(ageMs: number | undefined): string | null {
@@ -2697,6 +3133,25 @@ function buildLocalAdapterRecommendation(
   };
 }
 
+function fsyncDirectoryBestEffort(directory: string): void {
+  let descriptor: number | undefined;
+  try {
+    descriptor = fs.openSync(directory, 'r');
+    fs.fsyncSync(descriptor);
+  } catch {
+    // Windows may reject directory handles. File fsync + atomic rename still
+    // preserves process-crash safety; POSIX gets the stronger power-loss fence.
+  } finally {
+    if (descriptor !== undefined) {
+      try {
+        fs.closeSync(descriptor);
+      } catch {
+        // Best-effort durability fence only.
+      }
+    }
+  }
+}
+
 function atomicWriteFileSync(
   targetPath: string,
   data: string | NodeJS.ArrayBufferView,
@@ -2710,11 +3165,22 @@ function atomicWriteFileSync(
     dir,
     `${path.basename(targetPath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
+  let fileDescriptor: number | undefined;
 
   try {
-    fs.writeFileSync(tempPath, data, options);
+    fileDescriptor = fs.openSync(tempPath, 'wx');
+    fs.writeFileSync(fileDescriptor, data, options);
+    fs.fsyncSync(fileDescriptor);
+    fs.closeSync(fileDescriptor);
+    fileDescriptor = undefined;
     fs.renameSync(tempPath, targetPath);
+    fsyncDirectoryBestEffort(dir);
   } catch (err) {
+    try {
+      if (fileDescriptor !== undefined) fs.closeSync(fileDescriptor);
+    } catch {
+      // Preserve the original write failure.
+    }
     try {
       if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
     } catch {
@@ -2775,6 +3241,7 @@ function atomicWriteGraphCacheEnvelopeSync(targetPath: string, envelope: GraphCa
     fs.closeSync(fileDescriptor);
     fileDescriptor = undefined;
     fs.renameSync(tempPath, targetPath);
+    fsyncDirectoryBestEffort(dir);
   } catch (err) {
     try {
       if (fileDescriptor !== undefined) fs.closeSync(fileDescriptor);
@@ -2801,7 +3268,9 @@ function saveGraphCache(
   scanPolicy?: GraphScanPolicy,
   serializedGraph?: string,
   embeddingCacheIdentity?: EmbeddingCacheIdentity,
-  rootDirs?: string[]
+  rootDirs?: string[],
+  targetPath?: string,
+  cacheGenerationId?: string
 ): boolean {
   const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
   if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
@@ -2826,6 +3295,7 @@ function saveGraphCache(
     graph.localCodebaseSnapshotReceipt = localCodebaseSnapshotReceipt;
     const envelope: GraphCacheEnvelope = {
       version: 2,
+      ...(cacheGenerationId && { cacheGenerationId }),
       rootDir,
       rootDirs: normalizedRootDirs,
       timestamp: Date.now(),
@@ -2843,13 +3313,13 @@ function saveGraphCache(
       embeddingCacheBytes: embeddingCacheIdentity?.bytes ?? null,
       embeddingCacheMtimeMs: embeddingCacheIdentity?.mtimeMs ?? null,
     };
-    const cacheFile = getCacheFile(rootDir);
+    const cacheFile = targetPath ?? getCacheFile(rootDir);
     atomicWriteGraphCacheEnvelopeSync(cacheFile, envelope);
     return true;
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
     console.warn(
-      `[CacheDebug][codebase] save miss path=${getCacheFile(rootDir)} error=${(err as Error)?.message ?? String(err)}`
+      `[CacheDebug][codebase] save miss path=${targetPath ?? getCacheFile(rootDir)} error=${(err as Error)?.message ?? String(err)}`
     );
     return false;
   }
@@ -2895,11 +3365,15 @@ function readEmbeddingsCacheIdentity(rootDir?: string | null): EmbeddingCacheIde
   }
 }
 
-function saveEmbeddingsCache(index: any, rootDir: string): EmbeddingCacheIdentity | null {
+function saveEmbeddingsCache(
+  index: any,
+  rootDir: string,
+  targetPath?: string
+): EmbeddingCacheIdentity | null {
   try {
     if (typeof index.serializeBinary === 'function') {
       const buffer = index.serializeBinary();
-      const embeddingsFile = getEmbeddingsFile(rootDir);
+      const embeddingsFile = targetPath ?? getEmbeddingsFile(rootDir);
       atomicWriteFileSync(embeddingsFile, buffer);
       const stat = fs.statSync(embeddingsFile);
       return {
@@ -2910,10 +3384,186 @@ function saveEmbeddingsCache(index: any, rootDir: string): EmbeddingCacheIdentit
     }
   } catch (err) {
     console.warn(
-      `[CacheDebug][codebase] save embeddings miss path=${getEmbeddingsFile(rootDir)} error=${(err as Error)?.message}`
+      `[CacheDebug][codebase] save embeddings miss path=${targetPath ?? getEmbeddingsFile(rootDir)} error=${(err as Error)?.message}`
     );
   }
   return null;
+}
+
+type CachePublicationFault = 'after-embeddings';
+let cachePublicationFaultForTests: CachePublicationFault | null = null;
+
+export function setCachePublicationFaultForTests(fault?: CachePublicationFault): void {
+  cachePublicationFaultForTests = fault ?? null;
+}
+
+function replaceCacheAliasWithHardLink(sourcePath: string, aliasPath: string): void {
+  if (path.resolve(sourcePath) === path.resolve(aliasPath)) return;
+  fs.mkdirSync(path.dirname(aliasPath), { recursive: true });
+  const tempPath = path.join(
+    path.dirname(aliasPath),
+    `${path.basename(aliasPath)}.link-${process.pid}-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}`
+  );
+  try {
+    fs.linkSync(sourcePath, tempPath);
+    try {
+      fs.renameSync(tempPath, aliasPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      fs.unlinkSync(aliasPath);
+      fs.renameSync(tempPath, aliasPath);
+    }
+  } catch (error) {
+    try {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    } catch {
+      // The aliases are compatibility projections; the manifest stays authoritative.
+    }
+    console.warn(
+      `[CacheDebug][codebase] compatibility alias update skipped target=${aliasPath} error=${errorMessage(error)}`
+    );
+  }
+}
+
+function refreshCacheCompatibilityAliases(
+  rootDir: string,
+  graphFile: string,
+  embeddingsFile: string | null
+): void {
+  const paths = resolveCodebaseCachePaths(resolveCacheWorkspaceRoot(rootDir));
+  replaceCacheAliasWithHardLink(graphFile, paths.graphFile);
+  if (embeddingsFile) {
+    replaceCacheAliasWithHardLink(embeddingsFile, paths.embeddingsFile);
+  }
+}
+
+interface PublishCacheGenerationOptions {
+  graph: any;
+  rootDir: string;
+  rootDirs: string[];
+  stats: Record<string, unknown>;
+  gitCommitHash?: string;
+  fileHashes?: Record<string, string>;
+  embeddingProvider?: string;
+  localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
+  scanPolicy?: GraphScanPolicy;
+  serializedGraph?: string;
+  embeddingIndex?: any;
+  reuseCurrentEmbeddings?: boolean;
+}
+
+interface PublishedCacheGeneration {
+  generationId: string;
+  manifestFile: string;
+  graphFile: string;
+  embeddingsFile: string | null;
+  embeddingIdentity: EmbeddingCacheIdentity | null;
+}
+
+function publishCacheGeneration(
+  options: PublishCacheGenerationOptions
+): PublishedCacheGeneration | null {
+  const workspaceRoot = resolveCacheWorkspaceRoot(options.rootDir);
+  const paths = resolveCodebaseCachePaths(workspaceRoot);
+  const generationId = createHash('sha256')
+    .update(
+      `${workspaceRoot}:${options.gitCommitHash ?? ''}:${Date.now()}:${process.pid}:${Math.random()}`
+    )
+    .digest('hex')
+    .slice(0, 32);
+  const generationDirectory = path.join(paths.generationsDirectory, generationId);
+  const graphFile = path.join(generationDirectory, 'graph-cache.json');
+  const embeddingsFile = path.join(generationDirectory, 'embeddings-cache.bin');
+  let publishedEmbeddingsFile: string | null = null;
+  let embeddingIdentity: EmbeddingCacheIdentity | null = null;
+
+  try {
+    fs.mkdirSync(generationDirectory, { recursive: true });
+    if (options.embeddingIndex) {
+      embeddingIdentity = saveEmbeddingsCache(
+        options.embeddingIndex,
+        options.rootDir,
+        embeddingsFile
+      );
+      if (!embeddingIdentity) {
+        throw new Error('Unable to serialize the prepared embedding generation');
+      }
+      publishedEmbeddingsFile = embeddingsFile;
+    } else if (options.reuseCurrentEmbeddings) {
+      const currentEmbeddingsFile = getEmbeddingsFile(options.rootDir);
+      if (fs.existsSync(currentEmbeddingsFile)) {
+        const buffer = fs.readFileSync(currentEmbeddingsFile);
+        atomicWriteFileSync(embeddingsFile, buffer);
+        const stat = fs.statSync(embeddingsFile);
+        embeddingIdentity = {
+          sha256: embeddingCacheSha256(buffer),
+          bytes: stat.size,
+          mtimeMs: stat.mtimeMs,
+        };
+        publishedEmbeddingsFile = embeddingsFile;
+      }
+    }
+
+    if (cachePublicationFaultForTests === 'after-embeddings') {
+      throw new Error('Injected cache publication failure after embeddings write');
+    }
+
+    const graphSaved = saveGraphCache(
+      options.graph,
+      options.rootDir,
+      options.stats,
+      options.gitCommitHash,
+      options.fileHashes,
+      options.embeddingProvider,
+      options.localCodebaseSnapshotReceipt,
+      options.scanPolicy,
+      options.serializedGraph,
+      embeddingIdentity ?? undefined,
+      options.rootDirs,
+      graphFile,
+      generationId
+    );
+    if (!graphSaved) {
+      throw new Error('Unable to write graph artifact for cache generation');
+    }
+
+    const manifest: CodebaseCacheGenerationManifest = {
+      schemaVersion: 'holoscript.absorb-cache-generation.v1',
+      kind: 'AbsorbCacheGeneration',
+      generationId,
+      workspaceRoot,
+      graphFile: path.relative(paths.generationsDirectory, graphFile).replace(/\\/g, '/'),
+      embeddingsFile: publishedEmbeddingsFile
+        ? path.relative(paths.generationsDirectory, publishedEmbeddingsFile).replace(/\\/g, '/')
+        : null,
+      embeddingCacheSha256: embeddingIdentity?.sha256 ?? null,
+      publishedAt: new Date().toISOString(),
+    };
+    atomicWriteFileSync(paths.generationManifestFile, JSON.stringify(manifest), 'utf-8');
+    refreshCacheCompatibilityAliases(options.rootDir, graphFile, publishedEmbeddingsFile);
+    invalidateGraphStatusSnapshot();
+    return {
+      generationId,
+      manifestFile: paths.generationManifestFile,
+      graphFile,
+      embeddingsFile: publishedEmbeddingsFile,
+      embeddingIdentity,
+    };
+  } catch (error) {
+    console.warn(
+      `[CacheDebug][codebase] generation publication aborted id=${generationId} error=${errorMessage(error)}`
+    );
+    try {
+      if (fs.existsSync(generationDirectory)) {
+        fs.rmSync(generationDirectory, { recursive: true, force: true });
+      }
+    } catch {
+      // An orphaned unselected generation is safe and can be reaped later.
+    }
+    return null;
+  }
 }
 
 function bindGraphCacheToEmbeddings(
@@ -2930,6 +3580,7 @@ function bindGraphCacheToEmbeddings(
       embeddingCacheBytes: identity.bytes,
       embeddingCacheMtimeMs: identity.mtimeMs,
     });
+    refreshCacheCompatibilityAliases(rootDir, cacheRead.cacheFile, getEmbeddingsFile(rootDir));
     return true;
   } catch (err) {
     console.warn(
@@ -3021,15 +3672,48 @@ function readGraphCache(
 ): GraphCacheReadResult | null {
   const workspaceRoot = resolveCacheWorkspaceRoot(rootDir);
   const paths = resolveCodebaseCachePaths(workspaceRoot);
-  const candidates =
-    paths.layout === 'flat' ? [paths.graphFile] : [paths.graphFile, paths.legacyGraphFile];
+  const selected = readCacheGenerationManifest(workspaceRoot);
+  const candidates = [
+    ...(selected
+      ? [
+          {
+            cacheFile: selected.graphFile,
+            generationId: selected.manifest.generationId,
+            embeddingSha256: selected.manifest.embeddingCacheSha256,
+          },
+        ]
+      : []),
+    { cacheFile: paths.graphFile, generationId: undefined, embeddingSha256: undefined },
+    ...(paths.layout === 'flat'
+      ? []
+      : [
+          {
+            cacheFile: paths.legacyGraphFile,
+            generationId: undefined,
+            embeddingSha256: undefined,
+          },
+        ]),
+  ];
 
-  for (const cacheFile of candidates) {
+  for (const candidate of candidates) {
+    const { cacheFile, generationId, embeddingSha256 } = candidate;
     if (!fs.existsSync(cacheFile)) continue;
     try {
       const raw = fs.readFileSync(cacheFile, 'utf-8');
       const envelope: GraphCacheEnvelope = JSON.parse(raw);
       if (envelope.version !== 1 && envelope.version !== 2) continue;
+      if (generationId && envelope.cacheGenerationId !== generationId) {
+        console.warn(
+          `[CacheDebug][codebase] generation manifest ${generationId} does not match graph envelope ${envelope.cacheGenerationId ?? 'missing'}`
+        );
+        continue;
+      }
+      if (generationId && envelope.embeddingCacheSha256 !== embeddingSha256) {
+        console.warn(
+          `[CacheDebug][codebase] generation manifest embedding digest does not match graph envelope`
+        );
+        continue;
+      }
 
       // A namespaced reader may use the old flat cache only when it belongs to
       // this exact workspace. This makes upgrades non-destructive without
@@ -4059,12 +4743,10 @@ interface GraphStatusSnapshotCacheEntry {
   value: GraphStatusSnapshot;
 }
 let graphStatusSnapshotCache: GraphStatusSnapshotCacheEntry | null = null;
-let graphStatusSnapshotInFlight:
-  | {
-      key: string;
-      promise: Promise<GraphStatusSnapshot>;
-    }
-  | null = null;
+let graphStatusSnapshotInFlight: {
+  key: string;
+  promise: Promise<GraphStatusSnapshot>;
+} | null = null;
 // Guards the background GraphRAG embedding warm so concurrent cold loads don't
 // kick off duplicate builds (the build is fired-and-forgotten in ensureCachedGraph).
 let graphRAGWarmInProgress = false;
@@ -4101,9 +4783,18 @@ export function resetCodebaseToolStateForTests(skipDiskAutoload = true): void {
     ) {
       requestAbsorbCancellation(job, 'cancel_requested', 'Test state reset');
     }
+    releaseAbsorbWriterLease(job);
   }
   absorbJobs.clear();
+  externalAbsorbJobLeases.clear();
+  cachePublicationFaultForTests = null;
   resetGraphRAGStateForTests();
+}
+
+export function simulateAbsorbProcessRestartForTests(): void {
+  absorbJobs.clear();
+  externalAbsorbJobLeases.clear();
+  invalidateGraphStatusSnapshot();
 }
 
 async function hydrateGraphRAGFromDiskEmbeddings(
@@ -4392,31 +5083,93 @@ async function ensureCachedGraph(): Promise<{
         if (hydrated) {
           // GraphRAG is ready from the persisted HoloEmbed index.
         } else if (!graphRAGWarmInProgress) {
-          graphRAGWarmInProgress = true;
           const graphForWarm = cachedGraph;
           const rootForWarm = cachedRootDir;
-          // Fire-and-forget — do not block graph availability on the build.
-          void (async () => {
-            const idx = await createDynamicEmbeddingIndex(mod);
-            try {
-              await withPhaseTimeout(
-                idx.buildIndex(graphForWarm),
-                CACHE_WARM_GRAPH_RAG_TIMEOUT_MS,
-                'disk-cache GraphRAG embedding rebuild (background)',
-                () => disposeEmbeddingIndex(idx)
-              );
-              const identity = saveEmbeddingsCache(idx, rootForWarm);
-              bindGraphCacheToEmbeddings(rootForWarm, identity);
-              setGraphRAGState(idx, new GraphRAGEngine(graphForWarm, idx), {
+          const warmRootDirs = envelope.rootDirs ?? [rootForWarm];
+          const warmWriterKey = buildAbsorbWriterKey(warmRootDirs);
+          const warmPolicyHash = createHash('sha256')
+            .update(
+              stableStringify({
+                kind: 'graph-rag-cache-warm',
+                rootDirs: warmRootDirs.map((entry) => normalizeRootForComparison(entry)).sort(),
+                cacheGenerationId: envelope.cacheGenerationId ?? null,
+                embeddingProvider: envelope.embeddingProvider ?? NATIVE_GRAPH_RAG_PROVIDER,
+              })
+            )
+            .digest('hex');
+          const warmJobId = `absorb-warm-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+          const activeWriter = findActiveAbsorbWriter(warmWriterKey);
+          const acquisition = activeWriter
+            ? null
+            : acquireAbsorbWriterLease({
                 rootDir: rootForWarm,
+                rootDirs: warmRootDirs,
+                writerKey: warmWriterKey,
+                policyHash: warmPolicyHash,
+                jobId: warmJobId,
               });
-            } catch (err) {
-              console.warn(`[AbsorbCacheWarm] background GraphRAG build failed: ${String(err)}`);
-            } finally {
-              await disposeEmbeddingIndex(idx);
-              graphRAGWarmInProgress = false;
-            }
-          })();
+          if (!acquisition || acquisition.outcome === 'occupied') {
+            console.error(
+              `[AbsorbCacheWarm] skipped because writer job ${
+                activeWriter?.jobId ??
+                (acquisition?.outcome === 'occupied' ? acquisition.record.jobId : 'unknown')
+              } owns this workspace`
+            );
+          } else {
+            createAbsorbJob(
+              rootForWarm,
+              {},
+              warmWriterKey,
+              warmPolicyHash,
+              acquisition.lease,
+              warmJobId
+            );
+            graphRAGWarmInProgress = true;
+            // Fire-and-forget — do not block graph availability on the build.
+            void (async () => {
+              let idx: any = null;
+              try {
+                idx = await createDynamicEmbeddingIndex(mod);
+                trackAbsorbProgress(warmJobId, 'Building missing cached embeddings', 80);
+                await withPhaseTimeout(
+                  idx.buildIndex(graphForWarm),
+                  CACHE_WARM_GRAPH_RAG_TIMEOUT_MS,
+                  'disk-cache GraphRAG embedding rebuild (background)',
+                  () => disposeEmbeddingIndex(idx)
+                );
+                const published = publishCacheGeneration({
+                  graph: graphForWarm,
+                  rootDir: rootForWarm,
+                  rootDirs: envelope.rootDirs ?? [rootForWarm],
+                  stats: envelope.stats,
+                  gitCommitHash: envelope.gitCommitHash,
+                  fileHashes: envelope.fileHashes,
+                  embeddingProvider: envelope.embeddingProvider ?? NATIVE_GRAPH_RAG_PROVIDER,
+                  localCodebaseSnapshotReceipt: envelope.localCodebaseSnapshotReceipt,
+                  scanPolicy: envelope.scanPolicy,
+                  embeddingIndex: idx,
+                });
+                if (!published) {
+                  throw new Error('Unable to publish background GraphRAG cache generation');
+                }
+                const warmJob = absorbJobs.get(warmJobId);
+                if (warmJob) warmJob.cacheCommitted = true;
+                setGraphRAGState(idx, new GraphRAGEngine(graphForWarm, idx), {
+                  rootDir: rootForWarm,
+                });
+                trackAbsorbProgress(warmJobId, 'Complete', 100);
+              } catch (err) {
+                console.warn(`[AbsorbCacheWarm] background GraphRAG build failed: ${String(err)}`);
+                failAbsorbJob(warmJobId, 'Cache warm failed', errorMessage(err), {
+                  error: 'absorb_cache_warm_failed',
+                  message: errorMessage(err),
+                });
+              } finally {
+                if (idx) await disposeEmbeddingIndex(idx);
+                graphRAGWarmInProgress = false;
+              }
+            })();
+          }
         }
       } catch (err) {
         console.warn(`[AbsorbCacheWarm] GraphRAG warmup skipped: ${String(err)}`);
@@ -4863,20 +5616,18 @@ async function runFullScan(
   if (outputFormat === 'stats') {
     enforceRefreshSourcePin();
     enforceAbsorbJobControl(jobId, 'graph-cache-commit');
-    const cacheSaved = saveGraphCache(
+    const publishedGeneration = publishCacheGeneration({
       graph,
-      primaryRootDir,
+      rootDir: primaryRootDir,
+      rootDirs,
       stats,
       gitCommitHash,
       fileHashes,
-      detectedProvider,
+      embeddingProvider: detectedProvider,
       localCodebaseSnapshotReceipt,
-      effectiveScanPolicy,
-      undefined,
-      undefined,
-      rootDirs
-    );
-    if (!cacheSaved) {
+      scanPolicy: effectiveScanPolicy,
+    });
+    if (!publishedGeneration) {
       const error = new Error('Unable to publish the completed absorb graph cache atomically');
       activeRefreshCheckpoint?.markInterrupted(error);
       setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
@@ -4941,6 +5692,7 @@ async function runFullScan(
         job.result = result;
         job.status = 'complete';
         job.completedAt = Date.now();
+        settleAbsorbWriterLeaseIfTerminal(job);
       }
     }
     return result;
@@ -4952,7 +5704,6 @@ async function runFullScan(
   const priorGraphRagReadyForEmbedding = isGraphRAGReady();
   let embeddingBuildError: unknown;
   let preparedEmbeddingIndex: any = null;
-  let embeddingCacheNeedsSave = false;
   try {
     // FAST-HYDRATE: when this scan is at the SAME commit as the persisted
     // embeddings, the on-disk `.bin` is still valid for this exact graph — load
@@ -5037,7 +5788,6 @@ async function runFullScan(
       }
 
       preparedEmbeddingIndex = embeddingIndex;
-      embeddingCacheNeedsSave = true;
       recordPhaseMetric('embedding-build', {
         totalSymbols: stats.totalSymbols,
       });
@@ -5150,26 +5900,20 @@ async function runFullScan(
   enforceRefreshSourcePin();
   enforceAbsorbJobControl(jobId, 'cache-commit');
   cacheTimestamp = Date.now();
-  const embeddingIdentity =
-    preparedEmbeddingIndex && embeddingCacheNeedsSave
-      ? saveEmbeddingsCache(preparedEmbeddingIndex, primaryRootDir)
-      : preparedEmbeddingIndex
-        ? readEmbeddingsCacheIdentity(primaryRootDir)
-        : null;
-  const cacheSaved = saveGraphCache(
+  const publishedGeneration = publishCacheGeneration({
     graph,
-    primaryRootDir,
+    rootDir: primaryRootDir,
+    rootDirs,
     stats,
     gitCommitHash,
     fileHashes,
-    detectedProvider,
+    embeddingProvider: detectedProvider,
     localCodebaseSnapshotReceipt,
-    effectiveScanPolicy,
-    serializedGraphForCache,
-    embeddingIdentity ?? undefined,
-    rootDirs
-  );
-  if (!cacheSaved) {
+    scanPolicy: effectiveScanPolicy,
+    serializedGraph: serializedGraphForCache,
+    ...(preparedEmbeddingIndex && { embeddingIndex: preparedEmbeddingIndex }),
+  });
+  if (!publishedGeneration) {
     const error = new Error('Unable to publish the completed absorb graph cache atomically');
     activeRefreshCheckpoint?.markInterrupted(error);
     setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
@@ -5213,6 +5957,7 @@ async function runFullScan(
       job.result = result;
       job.status = 'complete';
       job.completedAt = Date.now();
+      settleAbsorbWriterLeaseIfTerminal(job);
     }
   }
 
@@ -5343,19 +6088,19 @@ async function runIncrementalPatch(
       ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
       : (envelope.embeddingProvider ?? (await detectBestEmbeddingProvider()));
 
-    saveGraphCache(
+    const publishedGeneration = publishCacheGeneration({
       graph,
       rootDir,
-      statsOnlyGraphStats,
-      graph.gitCommitHash,
-      graph.fileHashes,
-      statsOnlyProvider,
-      undefined,
-      effectiveScanPolicy,
-      undefined,
-      undefined,
-      [rootDir]
-    );
+      rootDirs: [rootDir],
+      stats: statsOnlyGraphStats,
+      gitCommitHash: graph.gitCommitHash,
+      fileHashes: graph.fileHashes,
+      embeddingProvider: statsOnlyProvider,
+      scanPolicy: effectiveScanPolicy,
+    });
+    if (!publishedGeneration) {
+      throw new Error('Unable to publish incremental stats cache generation');
+    }
     const statsJob = jobId ? absorbJobs.get(jobId) : undefined;
     if (statsJob) statsJob.cacheCommitted = true;
 
@@ -5395,6 +6140,7 @@ async function runIncrementalPatch(
         job.result = result;
         job.status = 'complete';
         job.completedAt = Date.now();
+        settleAbsorbWriterLeaseIfTerminal(job);
       }
     }
 
@@ -5407,7 +6153,6 @@ async function runIncrementalPatch(
   const priorGraphRagReadyForEmbedding = isGraphRAGReady();
   let embeddingBuildError: unknown;
   let preparedEmbeddingIndex: any = null;
-  let embeddingCacheNeedsSave = false;
   try {
     let index: any = null;
 
@@ -5456,7 +6201,6 @@ async function runIncrementalPatch(
         }
 
         preparedEmbeddingIndex = index;
-        embeddingCacheNeedsSave = true;
       } finally {
         await disposeEmbeddingIndex(index);
       }
@@ -5513,25 +6257,20 @@ async function runIncrementalPatch(
 
   enforceAbsorbJobControl(jobId, 'cache-commit');
   cacheTimestamp = Date.now();
-  const embeddingIdentity =
-    preparedEmbeddingIndex && embeddingCacheNeedsSave
-      ? saveEmbeddingsCache(preparedEmbeddingIndex, rootDir)
-      : preparedEmbeddingIndex
-        ? readEmbeddingsCacheIdentity(rootDir)
-        : null;
-  saveGraphCache(
+  const publishedGeneration = publishCacheGeneration({
     graph,
     rootDir,
-    graphStats,
-    graph.gitCommitHash,
-    graph.fileHashes,
-    detectedProvider,
-    undefined,
-    effectiveScanPolicy,
-    undefined,
-    embeddingIdentity ?? undefined,
-    [rootDir]
-  );
+    rootDirs: [rootDir],
+    stats: graphStats,
+    gitCommitHash: graph.gitCommitHash,
+    fileHashes: graph.fileHashes,
+    embeddingProvider: detectedProvider,
+    scanPolicy: effectiveScanPolicy,
+    ...(preparedEmbeddingIndex && { embeddingIndex: preparedEmbeddingIndex }),
+  });
+  if (!publishedGeneration) {
+    throw new Error('Unable to publish incremental graph and embedding cache generation');
+  }
   cachedGraph = graph;
   cachedRootDir = rootDir;
   cacheProvenance = 'incremental-patch';
@@ -5588,6 +6327,7 @@ async function runIncrementalPatch(
       job.result = result;
       job.status = 'complete';
       job.completedAt = Date.now();
+      settleAbsorbWriterLeaseIfTerminal(job);
     }
   }
 
@@ -5777,13 +6517,48 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       errors: memoryBudgetResult.errors,
     };
   }
+  const runningInsideIsolatedWorker = args.__isolatedBackgroundWorker === true;
 
   // Inline uploads with an explicit provenance root publish to that root's
   // durable cache and therefore join the same writer lease. Only anonymous
   // temp-root uploads are isolated enough to skip workspace single-flight.
   const writerKey = tempDir ? undefined : buildAbsorbWriterKey(effectiveRootDirs);
+  const writerPolicyHash = writerKey
+    ? runningInsideIsolatedWorker && typeof args.__writerPolicyHash === 'string'
+      ? args.__writerPolicyHash
+      : buildAbsorbWriterPolicyHash({
+          rootDirs: effectiveRootDirs,
+          languages,
+          scanPolicy,
+          outputFormat,
+          layout,
+          interactive,
+          force,
+          scanBatchSize,
+          embeddingProvider,
+          embeddingModel,
+          inlineSourceFiles,
+          localCodebaseSnapshotReceipt,
+          resumeToken,
+        })
+    : undefined;
   const activeWriter = findActiveAbsorbWriter(writerKey);
   if (activeWriter) {
+    if (activeWriter.writerPolicyHash !== writerPolicyHash) {
+      return {
+        accepted: false,
+        async: false,
+        busy: true,
+        error: 'absorb_workspace_busy',
+        activeJobId: activeWriter.jobId,
+        status: activeWriter.status,
+        phase: activeWriter.phase,
+        rootDir: activeWriter.rootDir,
+        retryable: true,
+        retryHint:
+          'Poll the active job to a terminal state, then retry this request. Cache-affecting scan, embedding, or output policies cannot join a different active writer.',
+      };
+    }
     return {
       accepted: true,
       async: true,
@@ -5800,9 +6575,87 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     };
   }
 
-  // Create job for progress tracking. One writer per normalized workspace root
-  // set prevents concurrent agents in this MCP host from racing cache commits.
-  const jobId = createAbsorbJob(primaryRootDir, memoryBudgetResult.limits, writerKey);
+  const requestedInternalJobId =
+    runningInsideIsolatedWorker && typeof args.__writerJobId === 'string'
+      ? args.__writerJobId
+      : undefined;
+  const requestedJobId =
+    requestedInternalJobId ?? `absorb-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  let writerLease: AbsorbWriterLease | undefined;
+  let recoveredStaleWriterLease = false;
+  if (writerKey && writerPolicyHash) {
+    const acquisition = acquireAbsorbWriterLease({
+      rootDir: primaryRootDir,
+      rootDirs: effectiveRootDirs,
+      writerKey,
+      policyHash: writerPolicyHash,
+      jobId: requestedJobId,
+      ...(runningInsideIsolatedWorker &&
+        typeof args.__writerLeaseToken === 'string' && {
+          adoptToken: args.__writerLeaseToken,
+        }),
+    });
+    if (acquisition.outcome === 'occupied') {
+      const equivalent = acquisition.record.policyHash === writerPolicyHash;
+      if (equivalent) {
+        externalAbsorbJobLeases.set(acquisition.record.jobId, {
+          leaseFile: acquisition.leaseFile,
+          receiptFile: acquisition.receiptFile,
+          record: acquisition.record,
+        });
+        return {
+          accepted: true,
+          async: true,
+          coalesced: true,
+          externalWriter: true,
+          coalescedReason: 'workspace_absorb_already_active',
+          jobId: acquisition.record.jobId,
+          status: 'scanning',
+          phase: 'External writer lease active',
+          pollTool: 'holo_get_absorb_status',
+          rootDir: acquisition.record.rootDirs[0] ?? primaryRootDir,
+          writerLease: {
+            ownerPid: acquisition.record.ownerPid,
+            ownerHost: acquisition.record.ownerHost,
+            acquiredAt: acquisition.record.acquiredAt,
+            updatedAt: acquisition.record.updatedAt,
+          },
+          message:
+            'An equivalent Absorb request is already running in another process; this request reused its durable writer job and publication lease.',
+        };
+      }
+      return {
+        accepted: false,
+        async: false,
+        busy: true,
+        error: 'absorb_workspace_busy',
+        activeJobId: acquisition.record.jobId,
+        rootDir: acquisition.record.rootDirs[0] ?? primaryRootDir,
+        retryable: true,
+        writerLease: {
+          ownerPid: acquisition.record.ownerPid,
+          ownerHost: acquisition.record.ownerHost,
+          acquiredAt: acquisition.record.acquiredAt,
+          updatedAt: acquisition.record.updatedAt,
+        },
+        retryHint:
+          'Poll or wait for the leased writer to finish, then retry. A different cache-affecting policy cannot replace the selected generation while that lease is active.',
+      };
+    }
+    writerLease = acquisition.lease;
+    recoveredStaleWriterLease = acquisition.recoveredStaleLease;
+  }
+
+  // Create job for progress tracking. The in-process map provides cheap
+  // single-flight, while the durable lease closes the second-MCP-process race.
+  const jobId = createAbsorbJob(
+    primaryRootDir,
+    memoryBudgetResult.limits,
+    writerKey,
+    writerPolicyHash,
+    writerLease,
+    requestedJobId
+  );
 
   const plan: AbsorbExecutionPlan = {
     mod,
@@ -5831,7 +6684,6 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     resumeToken,
   };
 
-  const runningInsideIsolatedWorker = args.__isolatedBackgroundWorker === true;
   const requestedBackground =
     !runningInsideIsolatedWorker && (args.async === true || args.background === true);
   // The isolated worker is already the event-loop boundary. Auto-backgrounding
@@ -5902,6 +6754,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       force,
       embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
       memoryBudget: { ...absorbJobs.get(jobId)!.memoryBudget },
+      ...(recoveredStaleWriterLease && { recoveredStaleWriterLease: true }),
       scanPolicy: plan.scanPolicy,
       ...(plan.refreshCheckpoint && {
         resumeToken: plan.refreshCheckpoint.progressReceipt().resumeToken,
@@ -5945,7 +6798,17 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       failAbsorbJob(jobId, 'Refresh failed', message, result);
       return result;
     }
+    const message = errorMessage(err);
+    failAbsorbJob(jobId, 'Failed', message, {
+      error: 'absorb_failed',
+      message,
+      jobId,
+      cachePreserved: !absorbJobs.get(jobId)?.cacheCommitted,
+    });
     throw err;
+  } finally {
+    const job = absorbJobs.get(jobId);
+    if (job?.writerLease) releaseAbsorbWriterLease(job);
   }
 }
 
@@ -5993,18 +6856,23 @@ function buildIsolatedAbsorbWorkerArgs(
   overrides: Record<string, unknown> = {}
 ): Record<string, unknown> {
   const policy = normalizeScanPolicy(plan.scanPolicy);
+  const writerLease = absorbJobs.get(plan.jobId)?.writerLease;
   return {
     ...args,
     exclude: policy.exclude,
     excludePathFragments: policy.excludePathFragments,
     excludeNameFragments: policy.excludeNameFragments,
     includeHidden: policy.includeHidden === true,
-    includeBuildArtifacts:
-      plan.includeBuildArtifacts || policy.includeBuildArtifacts === true,
+    includeBuildArtifacts: plan.includeBuildArtifacts || policy.includeBuildArtifacts === true,
     respectGitIgnore: policy.respectGitIgnore !== false,
     includeUntracked: policy.includeUntracked !== false,
     maxFiles: plan.maxFiles ?? policy.maxFiles ?? DEFAULT_SCAN_MAX_FILES,
     maxFileSize: policy.maxFileSize ?? plan.maxFileSize,
+    ...(writerLease && {
+      __writerJobId: plan.jobId,
+      __writerLeaseToken: writerLease.record.token,
+      __writerPolicyHash: writerLease.record.policyHash,
+    }),
     ...overrides,
   };
 }
@@ -6598,8 +7466,21 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
             await disposeEmbeddingIndex(rebuiltIndex);
           }
           enforceAbsorbJobControl(jobId, 'embedding-cache-commit');
-          const identity = saveEmbeddingsCache(rebuiltIndex, rootDir);
-          bindGraphCacheToEmbeddings(rootDir, identity);
+          const publishedGeneration = publishCacheGeneration({
+            graph: cachedGraph,
+            rootDir,
+            rootDirs: envelope.rootDirs ?? [rootDir],
+            stats: envelope.stats,
+            gitCommitHash: envelope.gitCommitHash,
+            fileHashes: envelope.fileHashes,
+            embeddingProvider: envelope.embeddingProvider ?? NATIVE_GRAPH_RAG_PROVIDER,
+            localCodebaseSnapshotReceipt: envelope.localCodebaseSnapshotReceipt,
+            scanPolicy: sameRootScanPolicy,
+            embeddingIndex: rebuiltIndex,
+          });
+          if (!publishedGeneration) {
+            throw new Error('Unable to publish rebuilt zero-change semantic generation');
+          }
           const embeddingCommitJob = jobId ? absorbJobs.get(jobId) : undefined;
           if (embeddingCommitJob) embeddingCommitJob.cacheCommitted = true;
           setGraphRAGState(rebuiltIndex, new GraphRAGEngine(cachedGraph, rebuiltIndex), {
@@ -6620,19 +7501,21 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       (cachedGraph as { gitCommitHash?: string }).gitCommitHash = changes.headCommit;
       (cachedGraph as { fileHashes?: Record<string, string> }).fileHashes = envelope.fileHashes;
       cacheTimestamp = Date.now();
-      saveGraphCache(
-        cachedGraph,
+      const publishedGeneration = publishCacheGeneration({
+        graph: cachedGraph,
         rootDir,
-        envelope.stats,
-        changes.headCommit,
-        envelope.fileHashes,
-        envelope.embeddingProvider ?? (await detectBestEmbeddingProvider()),
-        envelope.localCodebaseSnapshotReceipt,
-        sameRootScanPolicy,
-        undefined,
-        readEmbeddingsCacheIdentity(rootDir) ?? undefined,
-        envelope.rootDirs ?? [rootDir]
-      );
+        rootDirs: envelope.rootDirs ?? [rootDir],
+        stats: envelope.stats,
+        gitCommitHash: changes.headCommit,
+        fileHashes: envelope.fileHashes,
+        embeddingProvider: envelope.embeddingProvider ?? (await detectBestEmbeddingProvider()),
+        localCodebaseSnapshotReceipt: envelope.localCodebaseSnapshotReceipt,
+        scanPolicy: sameRootScanPolicy,
+        reuseCurrentEmbeddings: true,
+      });
+      if (!publishedGeneration) {
+        throw new Error('Unable to publish zero-change cache metadata generation');
+      }
       const graphCommitJob = jobId ? absorbJobs.get(jobId) : undefined;
       if (graphCommitJob) graphCommitJob.cacheCommitted = true;
     }
@@ -6645,6 +7528,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
         job.progress = 100;
         job.phase = 'Complete (cached)';
         job.completedAt = Date.now();
+        settleAbsorbWriterLeaseIfTerminal(job);
       }
     }
 
@@ -7121,6 +8005,7 @@ function graphStatusFileGeneration(filePath: string): string {
 function buildGraphStatusSnapshotKey(currentCwd: string): string {
   const activeCacheRoot = cachedRootDir || currentCwd;
   const cachePaths = resolveCodebaseCachePaths(activeCacheRoot);
+  const selectedGeneration = readCacheGenerationManifest(activeCacheRoot);
   const refreshGeneration = Array.from(absorbJobs.values())
     .map(
       (job) =>
@@ -7135,8 +8020,13 @@ function buildGraphStatusSnapshotKey(currentCwd: string): string {
     activeCacheRoot,
     cachedGraph === null ? 'cold' : 'loaded',
     cacheTimestamp,
-    graphStatusFileGeneration(cachePaths.graphFile),
-    graphStatusFileGeneration(cachePaths.embeddingsFile),
+    graphStatusFileGeneration(cachePaths.generationManifestFile),
+    graphStatusFileGeneration(selectedGeneration?.graphFile ?? cachePaths.graphFile),
+    selectedGeneration
+      ? selectedGeneration.embeddingsFile
+        ? graphStatusFileGeneration(selectedGeneration.embeddingsFile)
+        : 'selected-generation-has-no-embeddings'
+      : graphStatusFileGeneration(cachePaths.embeddingsFile),
     refreshGeneration,
   ].join('\n');
 }
@@ -7218,6 +8108,7 @@ async function handleGraphStatus(args: Record<string, unknown>): Promise<unknown
 async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapshot> {
   const activeCacheRoot = cachedRootDir || currentCwd;
   const activeCachePaths = resolveCodebaseCachePaths(activeCacheRoot);
+  const selectedGeneration = readCacheGenerationManifest(activeCacheRoot);
   const cache = getCacheAge(activeCacheRoot);
   const embeddingPolicy = cache.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt();
   const { getGraphRAGStateStatus } = await import('./graph-rag-tools');
@@ -7533,8 +8424,13 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
       layout: activeCachePaths.layout,
       workspaceId: activeCachePaths.workspaceId,
       directory: activeCachePaths.directory,
-      graphFile: activeCachePaths.graphFile,
-      embeddingsFile: activeCachePaths.embeddingsFile,
+      graphFile: selectedGeneration?.graphFile ?? activeCachePaths.graphFile,
+      embeddingsFile: selectedGeneration
+        ? selectedGeneration.embeddingsFile
+        : activeCachePaths.embeddingsFile,
+      generationManifestFile: activeCachePaths.generationManifestFile,
+      generationId: selectedGeneration?.manifest.generationId ?? null,
+      generationSelectedAt: selectedGeneration?.manifest.publishedAt ?? null,
     },
     ...(latestRefreshJob?.refreshProgressReceipt && {
       refreshInProgress: !['complete', 'error', 'cancelled'].includes(latestRefreshJob.status),
@@ -7704,6 +8600,71 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
   const job = absorbJobs.get(jobId);
 
   if (!job) {
+    const external = externalAbsorbJobLeases.get(jobId);
+    if (external) {
+      try {
+        if (fs.existsSync(external.receiptFile)) {
+          const receipt = JSON.parse(fs.readFileSync(external.receiptFile, 'utf-8')) as Record<
+            string,
+            unknown
+          >;
+          return {
+            ...receipt,
+            externalWriter: true,
+            resultAvailable: false,
+          };
+        }
+        if (fs.existsSync(external.leaseFile)) {
+          const active = parseAbsorbWriterLease(fs.readFileSync(external.leaseFile, 'utf-8'));
+          if (active?.jobId === jobId) {
+            return {
+              jobId,
+              status: 'scanning',
+              progress: null,
+              phase: 'External writer lease active',
+              externalWriter: true,
+              rootDir: active.rootDirs[0] ?? null,
+              writerLease: {
+                ownerPid: active.ownerPid,
+                ownerHost: active.ownerHost,
+                acquiredAt: active.acquiredAt,
+                updatedAt: active.updatedAt,
+              },
+              embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
+            };
+          }
+        }
+        const selectedGenerationId =
+          readCacheGenerationManifest(external.record.rootDirs[0])?.manifest.generationId ?? null;
+        if (selectedGenerationId && selectedGenerationId !== external.record.priorGenerationId) {
+          return {
+            jobId,
+            status: 'complete',
+            progress: 100,
+            phase: 'External writer published a new cache generation',
+            externalWriter: true,
+            cacheCommitted: true,
+            selectedGenerationId,
+          };
+        }
+        return {
+          jobId,
+          status: 'error',
+          progress: 100,
+          phase: 'External writer lease ended without a new selected generation',
+          externalWriter: true,
+          cacheCommitted: false,
+          retryable: true,
+        };
+      } catch (error) {
+        return {
+          error: 'external_absorb_status_unavailable',
+          message: errorMessage(error),
+          jobId,
+          retryable: true,
+        };
+      }
+    }
     return { error: 'Job not found', jobId };
   }
   if (job.status !== 'complete' && job.status !== 'error' && job.status !== 'cancelled') {

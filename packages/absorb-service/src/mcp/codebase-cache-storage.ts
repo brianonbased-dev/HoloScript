@@ -10,6 +10,10 @@ export interface CodebaseCachePaths {
   workspaceRoot: string;
   workspaceId: string;
   directory: string;
+  generationsDirectory: string;
+  generationManifestFile: string;
+  writerLeaseFile: string;
+  writerReceiptsDirectory: string;
   graphFile: string;
   embeddingsFile: string;
   legacyGraphFile: string;
@@ -65,6 +69,10 @@ export function resolveCodebaseCachePaths(
     workspaceRoot,
     workspaceId,
     directory,
+    generationsDirectory: path.join(directory, 'generations'),
+    generationManifestFile: path.join(directory, 'cache-generation.json'),
+    writerLeaseFile: path.join(directory, 'absorb-writer.lease.json'),
+    writerReceiptsDirectory: path.join(directory, 'writer-receipts'),
     graphFile: path.join(directory, 'graph-cache.json'),
     embeddingsFile: path.join(directory, 'embeddings-cache.bin'),
     legacyGraphFile: path.join(baseDir, 'graph-cache.json'),

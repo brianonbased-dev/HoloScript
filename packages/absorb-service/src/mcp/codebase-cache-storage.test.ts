@@ -39,9 +39,14 @@ describe('workspace-scoped codebase cache storage', () => {
     expect(first.layout).toBe('workspace-v1');
     expect(first.graphFile).toBe(firstAgain.graphFile);
     expect(first.embeddingsFile).toBe(firstAgain.embeddingsFile);
+    expect(first.generationManifestFile).toBe(firstAgain.generationManifestFile);
+    expect(first.writerLeaseFile).toBe(firstAgain.writerLeaseFile);
     expect(first.graphFile).not.toBe(second.graphFile);
     expect(first.embeddingsFile).not.toBe(second.embeddingsFile);
+    expect(first.generationManifestFile).not.toBe(second.generationManifestFile);
+    expect(first.writerLeaseFile).not.toBe(second.writerLeaseFile);
     expect(first.graphFile).toContain(path.join(cacheDir, 'workspaces'));
+    expect(first.generationsDirectory).toBe(path.join(first.directory, 'generations'));
   });
 
   it('preserves the first workspace cache when an unrelated inline absorb completes', async () => {

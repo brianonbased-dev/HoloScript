@@ -9,8 +9,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   handleCodebaseTool,
   resetCodebaseToolStateForTests,
+  setCachePublicationFaultForTests,
   setIsolatedAbsorbWorkerFactoryForTests,
+  simulateAbsorbProcessRestartForTests,
 } from './codebase-tools';
+import { resolveCodebaseCachePaths } from './codebase-cache-storage';
 import {
   handleGraphRagTool,
   resetGraphRAGStateForTests,
@@ -632,9 +635,8 @@ describe('holo_absorb_repo root validation', () => {
     })) as { jobId?: string; accepted?: boolean };
     const second = (await handleCodebaseTool('holo_absorb_repo', {
       rootDirs: [repoDir],
-      outputFormat: 'graph',
+      outputFormat: 'stats',
       async: true,
-      force: true,
     })) as {
       jobId?: string;
       accepted?: boolean;
@@ -649,8 +651,255 @@ describe('holo_absorb_repo root validation', () => {
       coalescedReason: 'workspace_absorb_already_active',
       jobId: first.jobId,
     });
+    const conflicting = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      async: true,
+      force: true,
+    })) as {
+      accepted?: boolean;
+      error?: string;
+      busy?: boolean;
+      activeJobId?: string;
+    };
+    expect(conflicting).toMatchObject({
+      accepted: false,
+      busy: true,
+      error: 'absorb_workspace_busy',
+      activeJobId: first.jobId,
+    });
     expect(workerStarts).toBe(1);
   });
+
+  it('reuses an equivalent writer lease owned by another MCP process', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-cross-process-flight-repo-');
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-cross-process-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    class FakeWorker extends EventEmitter {
+      unref(): this {
+        return this;
+      }
+      terminate(): Promise<number> {
+        return Promise.resolve(0);
+      }
+    }
+
+    let workerStarts = 0;
+    setIsolatedAbsorbWorkerFactoryForTests(() => {
+      workerStarts += 1;
+      return new FakeWorker() as unknown as Worker;
+    });
+
+    const first = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      async: true,
+    })) as { accepted?: boolean; jobId?: string };
+    expect(first.accepted).toBe(true);
+    expect(first.jobId).toBeTruthy();
+
+    const paths = resolveCodebaseCachePaths(repoDir);
+    expect(fs.existsSync(paths.writerLeaseFile)).toBe(true);
+    simulateAbsorbProcessRestartForTests();
+
+    const joined = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDirs: [repoDir],
+      outputFormat: 'stats',
+      async: true,
+    })) as {
+      accepted?: boolean;
+      coalesced?: boolean;
+      externalWriter?: boolean;
+      jobId?: string;
+    };
+    expect(joined).toMatchObject({
+      accepted: true,
+      coalesced: true,
+      externalWriter: true,
+      jobId: first.jobId,
+    });
+    expect(workerStarts).toBe(1);
+
+    const externalStatus = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: first.jobId,
+    })) as { status?: string; externalWriter?: boolean };
+    expect(externalStatus).toMatchObject({
+      status: 'scanning',
+      externalWriter: true,
+    });
+
+    const conflict = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      async: true,
+    })) as { accepted?: boolean; error?: string; activeJobId?: string };
+    expect(conflict).toMatchObject({
+      accepted: false,
+      error: 'absorb_workspace_busy',
+      activeJobId: first.jobId,
+    });
+  });
+
+  it('recovers a writer lease whose owning process is gone', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-stale-writer-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-stale-writer-cache-')
+    );
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    class FakeWorker extends EventEmitter {
+      unref(): this {
+        return this;
+      }
+      terminate(): Promise<number> {
+        return Promise.resolve(0);
+      }
+    }
+
+    let workerStarts = 0;
+    setIsolatedAbsorbWorkerFactoryForTests(() => {
+      workerStarts += 1;
+      return new FakeWorker() as unknown as Worker;
+    });
+
+    const first = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      async: true,
+    })) as { jobId?: string };
+    expect(first.jobId).toBeTruthy();
+    const paths = resolveCodebaseCachePaths(repoDir);
+    const staleLease = JSON.parse(fs.readFileSync(paths.writerLeaseFile, 'utf-8')) as Record<
+      string,
+      unknown
+    >;
+    simulateAbsorbProcessRestartForTests();
+    fs.writeFileSync(
+      paths.writerLeaseFile,
+      JSON.stringify({
+        ...staleLease,
+        ownerPid: 2_147_483_647,
+        ownerHost: os.hostname(),
+      }),
+      'utf-8'
+    );
+
+    const recovered = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      async: true,
+    })) as {
+      accepted?: boolean;
+      jobId?: string;
+      recoveredStaleWriterLease?: boolean;
+    };
+    expect(recovered).toMatchObject({
+      accepted: true,
+      recoveredStaleWriterLease: true,
+    });
+    expect(recovered.jobId).not.toBe(first.jobId);
+    expect(workerStarts).toBe(2);
+  });
+
+  it('keeps the prior graph and embedding generation selected when publication is interrupted', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-generation-rollback-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-generation-rollback-cache-')
+    );
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    const initial = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      force: true,
+    })) as { error?: string };
+    expect(initial.error).toBeUndefined();
+
+    const paths = resolveCodebaseCachePaths(repoDir);
+    const manifestBeforeRaw = fs.readFileSync(paths.generationManifestFile, 'utf-8');
+    const manifestBefore = JSON.parse(manifestBeforeRaw) as {
+      generationId: string;
+      graphFile: string;
+      embeddingsFile: string;
+    };
+    const selectedGraphBefore = path.resolve(paths.generationsDirectory, manifestBefore.graphFile);
+    const selectedEmbeddingsBefore = path.resolve(
+      paths.generationsDirectory,
+      manifestBefore.embeddingsFile
+    );
+    const graphHashBefore = createHash('sha256')
+      .update(fs.readFileSync(selectedGraphBefore))
+      .digest('hex');
+    const embeddingsHashBefore = createHash('sha256')
+      .update(fs.readFileSync(selectedEmbeddingsBefore))
+      .digest('hex');
+
+    fs.appendFileSync(
+      path.join(repoDir, 'src', 'alpha.ts'),
+      '\nexport const interruptedGeneration = true;\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/alpha.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'change generation'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    setCachePublicationFaultForTests('after-embeddings');
+    const interrupted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      force: true,
+    })) as {
+      error?: string;
+      message?: string;
+      cachePreserved?: boolean;
+    };
+    setCachePublicationFaultForTests();
+    expect(interrupted).toMatchObject({
+      error: 'absorb_refresh_failed',
+      message: 'Unable to publish the completed absorb graph cache atomically',
+      cachePreserved: true,
+    });
+
+    expect(fs.readFileSync(paths.generationManifestFile, 'utf-8')).toBe(manifestBeforeRaw);
+    const manifestAfter = JSON.parse(fs.readFileSync(paths.generationManifestFile, 'utf-8')) as {
+      generationId: string;
+      graphFile: string;
+      embeddingsFile: string;
+    };
+    expect(manifestAfter.generationId).toBe(manifestBefore.generationId);
+    expect(
+      createHash('sha256')
+        .update(fs.readFileSync(path.resolve(paths.generationsDirectory, manifestAfter.graphFile)))
+        .digest('hex')
+    ).toBe(graphHashBefore);
+    expect(
+      createHash('sha256')
+        .update(
+          fs.readFileSync(path.resolve(paths.generationsDirectory, manifestAfter.embeddingsFile))
+        )
+        .digest('hex')
+    ).toBe(embeddingsHashBefore);
+
+    resetCodebaseToolStateForTests(false);
+    const status = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      semanticIndex?: {
+        diskEmbeddingGenerationMatchesGraph?: boolean;
+      };
+      cacheStorage?: { generationId?: string | null };
+    };
+    expect(status.cacheStorage?.generationId).toBe(manifestBefore.generationId);
+    expect(status.semanticIndex?.diskEmbeddingGenerationMatchesGraph).toBe(true);
+  }, 30_000);
 
   it('surfaces isolated scan checkpoint progress from the durable receipt', async () => {
     resetCodebaseToolStateForTests();
