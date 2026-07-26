@@ -15,6 +15,7 @@
   },
   "files": [
     "dist",
+    "wit",
     "!dist/**/*.map",
     "LICENSE",
     "README.md"
@@ -29,7 +30,8 @@
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js",
       "require": "./dist/*.cjs"
-    }
+    },
+    "./wit/package-ir": "./wit/package-ir.wit"
   },
   "scripts": {
     "build": "tsup",

@@ -1,0 +1,123 @@
+package holoscript:package-ir@0.1.0;
+
+interface package-contract {
+  enum package-kind {
+    library,
+    application,
+    template,
+    trait-pack,
+    plugin,
+  }
+
+  enum support-tier {
+    supported,
+    preview,
+    experimental,
+    internal,
+    deprecated,
+    archived,
+  }
+
+  enum package-target {
+    node,
+    browser-wasm,
+    wasi-component,
+    native-linux,
+    native-windows,
+    owned-metal,
+  }
+
+  enum package-source-kind {
+    registry,
+    path,
+    git,
+    content,
+  }
+
+  record package-source {
+    kind: package-source-kind,
+    locator: option<string>,
+  }
+
+  record named-path {
+    name: string,
+    path: string,
+  }
+
+  record compiled-path {
+    target: package-target,
+    path: string,
+  }
+
+  record dependency {
+    name: string,
+    range: string,
+    source: package-source,
+    optional: bool,
+    peer: bool,
+  }
+
+  record package-entrypoints {
+    source: string,
+    exports: list<named-path>,
+    compiled: list<compiled-path>,
+  }
+
+  record compatibility {
+    holoscript: string,
+    targets: list<package-target>,
+    node: option<string>,
+  }
+
+  record provenance {
+    license: string,
+    repository: string,
+    owner: string,
+    documentation: option<string>,
+  }
+
+  record package-ir {
+    schema-version: string,
+    name: string,
+    version: string,
+    kind: package-kind,
+    support: support-tier,
+    entrypoints: package-entrypoints,
+    dependencies: list<dependency>,
+    compatibility: compatibility,
+    capabilities: list<string>,
+    provenance: provenance,
+  }
+
+  record resolved-package-artifact {
+    name: string,
+    version: string,
+    source: package-source,
+    manifest-digest: string,
+    content-digest: string,
+    dependencies: list<string>,
+  }
+
+  record package-lock-root {
+    name: string,
+    version: string,
+    manifest-digest: string,
+  }
+
+  record package-lock-receipt {
+    schema-version: string,
+    root: package-lock-root,
+    packages: list<resolved-package-artifact>,
+    graph-digest: string,
+    generated-at: string,
+  }
+
+  validate-package: func(value: package-ir) -> result<_, list<string>>;
+  canonicalize-package: func(value: package-ir) -> string;
+  verify-cached-source: func(artifact: resolved-package-artifact, source: list<u8>) -> bool;
+  verify-lock: func(receipt: package-lock-receipt) -> result<_, list<string>>;
+}
+
+world package-ir {
+  export package-contract;
+}
