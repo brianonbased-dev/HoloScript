@@ -135,6 +135,7 @@ describe('dispatch health check', () => {
     // The generic ^Unknown tool: check above does not catch this distinct
     // message, so assert it directly here.
     const absorbServiceGraphTools = [
+      'holo_absorb_manifest',
       'holo_absorb_repo',
       'holo_graph_status',
       'holo_query_codebase',

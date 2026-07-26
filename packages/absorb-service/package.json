@@ -33,6 +33,11 @@
       "import": "./dist/gev/index.js",
       "require": "./dist/gev/index.cjs"
     },
+    "./holoabsorb": {
+      "types": "./dist/holoabsorb/index.d.ts",
+      "import": "./dist/holoabsorb/index.js",
+      "require": "./dist/holoabsorb/index.cjs"
+    },
     "./pipeline": {
       "types": "./dist/pipeline/index.d.ts",
       "import": "./dist/pipeline/index.js",
@@ -76,6 +81,8 @@
     "self-improve": "tsx src/self-improvement/run-self-improve.ts",
     "self-improve:targets": "tsx src/self-improvement/run-self-improve.ts --targets-only",
     "test": "vitest run --passWithNoTests",
+    "audit:holoabsorb": "node scripts/audit-holoabsorb.mjs",
+    "benchmark:holoabsorb": "node scripts/bench-holoabsorb.mjs",
     "generate:language-registry": "tsx scripts/check-language-registry.mjs --write",
     "check:language-registry": "tsx scripts/check-language-registry.mjs",
     "generate:language-traits": "tsx scripts/gen-language-traits.mjs",

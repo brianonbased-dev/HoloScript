@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { parseArgs } from '../args';
 
 describe('agent tooling commands', () => {
+  it('parses the official HoloAbsorb command and compatibility alias', () => {
+    expect(parseArgs(['holoabsorb', '--json'])).toMatchObject({
+      command: 'holoabsorb',
+      json: true,
+    });
+    expect(parseArgs(['absorb-manifest'])).toMatchObject({
+      command: 'absorb-manifest',
+    });
+  });
+
   it('parses graph-status command', () => {
     const opts = parseArgs(['graph-status', '--json']);
 

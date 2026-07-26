@@ -1,8 +1,16 @@
 # @holoscript/absorb-service
 
-Codebase intelligence, Graph RAG, recursive self-improvement, and credit-metered
-operations for the HoloScript ecosystem. This package is the engine behind
-`absorb.holoscript.net` and the `absorb_*` MCP tools.
+This package is the canonical engine and compatibility boundary for
+**HoloAbsorb**, HoloScript's sovereign codebase-intelligence product. HoloAbsorb
+includes ingest, HoloGraph, HoloEmbed, GraphRAG, synthesis, spatial output,
+transport/cache authority, self-improvement, hosted service behavior, and
+benchmark evidence. It powers `absorb.holoscript.net` and the existing
+`absorb_*` / `holo_*` MCP tools.
+
+The official machine-readable ownership map is available from
+`@holoscript/absorb-service/holoabsorb`, `holo_absorb_manifest`, or
+`holoscript holoabsorb --json`. The package name, service slug, GEV entry point,
+and existing tools remain stable compatibility contracts.
 
 Given any codebase, absorb-service scans it into a knowledge graph, indexes
 symbols with vector embeddings, answers natural-language questions with
@@ -41,6 +49,7 @@ absorb-service/
       visualization/   Scene compilation, theming, tooltips, interactive enrichment
       workers/         Worker pool for parallel parsing and embedding
     gev/               Canonical Graph + Embedding + Vector/RAG consumer surface
+    holoabsorb/        Official product manifest, ownership, papers, and audits
     ingest/            Professional ingest contracts and canonical format registry
     pipeline/          Recursive self-improvement orchestrator (L0/L1/L2)
     self-improvement/  Training data generation, GRPO, OPLoRA, quality scoring
@@ -80,7 +89,8 @@ absorb-service/
 
 ## Canonical Substrate Map
 
-Absorb is the umbrella package for HoloScript codebase intelligence. Its native
+HoloAbsorb is the official umbrella for HoloScript codebase intelligence.
+`@holoscript/absorb-service` remains its canonical package boundary. Its native
 Graph + Embedding + Vector/RAG spine is consumed through
 `@holoscript/absorb-service/gev`, not by composing separate GraphRAG and embed
 packages.
@@ -110,6 +120,7 @@ Import from the specific sub-path you need:
 | Root             | `@holoscript/absorb-service`                  | Engine + bridge (default)                                       |
 | Engine           | `@holoscript/absorb-service/engine`           | Scanner, graph, embeddings, visualization, knowledge extraction |
 | GEV              | `@holoscript/absorb-service/gev`              | Canonical graph, HoloEmbed, vector index, and GraphRAG surface  |
+| HoloAbsorb       | `@holoscript/absorb-service/holoabsorb`       | Product identity, capability owners, aliases, papers, and audit |
 | Ingest           | `@holoscript/absorb-service/ingest`           | Professional ingest adapter contract + format registry          |
 | Pipeline         | `@holoscript/absorb-service/pipeline`         | Recursive self-improvement orchestrator                         |
 | Daemon           | `@holoscript/absorb-service/daemon`           | HoloDaemon actions, error taxonomy, prompt profiles             |

@@ -1,31 +1,38 @@
 ---
 name: absorb
 description: >
-  Codebase intelligence via HoloScript Absorb — the GEV absorb-service (Graph · RAG ·
-  Embedding · Vision): scan repos into knowledge graphs, semantic search, Graph RAG Q&A,
-  impact analysis, and recursive self-improvement. Sovereign by default (HoloEmbed
-  embeddings, HoloLlama synthesis); route local repos to the holoscript-local MCP, not
-  the FS-blind remote. Use to understand, map, or analyze any codebase before refactoring,
-  planning, or investigating dependencies.
+  Codebase intelligence via HoloAbsorb, the official umbrella over Absorb ingest,
+  HoloGraph, HoloEmbed, GraphRAG, synthesis, spatial output, cache authority,
+  self-improvement, service hosting, and evidence. Route local repos to the
+  holoscript-local MCP, not the FS-blind remote.
 argument-hint: "[status|repo|query|ask|diff|provenance|fmu] [args]"
 disable-model-invocation: false
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
-# HoloScript Absorb — Codebase Intelligence Skill
+# HoloAbsorb — Sovereign Codebase Intelligence Skill
 
 **Working directory**: `C:/Users/Josep/Documents/GitHub/HoloScript` (MANDATORY)
 
-## This skill IS GEV — the whole absorb-service (D.123)
+## HoloAbsorb is the umbrella; GEV is its consumer spine
 
-Absorb is not four tools — it is one service, **GEV = Graph · RAG · Embedding · Vision**
-(`@holoscript/absorb-service`). Every query you run flows through all four pillars:
+HoloAbsorb is the official product identity. The `absorb` skill name,
+`@holoscript/absorb-service`, `absorb-service`, and existing tools stay stable
+compatibility contracts. **GEV = Graph + Embedding + Vector/RAG** is the
+consumer spine, not the whole product. Discover the executable ownership map
+with `holo_absorb_manifest({})` or `holoscript holoabsorb --json`.
+
+Codebase queries flow through these core lanes:
 
 - **G**raph — `CodebaseGraph` + community detection (structure, call/import edges)
 - **R**AG — `GraphRAGEngine` fuses `0.6·semantic + 0.2·connections + 0.2·impact` and
   synthesizes with an LLM (sovereign **HoloLlama** by default — see below)
 - **E**mbedding — `EmbeddingIndex` over **sovereign HoloEmbed** vectors by default
 - **V**ision — `CodebaseSceneCompiler` / `HoloEmitter` emit a navigable `graph.holo`
+
+HoloAbsorb also owns ingest/cancellation, sovereign transport and cache
+authority, synthesis, self-improvement/GRPO, the thin hosted service boundary,
+and paper/benchmark evidence.
 
 Judge results at the **service** level (embed + graph re-rank + synthesis), never one
 pillar alone — weak embedding-only recall is by-design, the graph fixes precision (W.764).
@@ -90,6 +97,8 @@ coverage is backed by explicit tool names.
 `absorb_run_render`, `absorb_check_credits`, `absorb_provenance_answer`,
 `absorb_typescript`, `absorb_suggest_holoscript_transform`,
 `absorb_get_status`, `absorb_fmu`
+
+Official umbrella discovery: `holo_absorb_manifest`.
 
 ## Quick Start
 

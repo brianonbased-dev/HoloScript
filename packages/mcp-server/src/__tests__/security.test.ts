@@ -571,6 +571,13 @@ describe('Gate 2: Tool Scope Authorization', () => {
     expect(result.authorized).toBe(true);
   });
 
+  it('should expose the HoloAbsorb manifest through the least-privilege read scope', () => {
+    const result = authorizeToolCall('holo_absorb_manifest', ['tools:read']);
+    expect(result.authorized).toBe(true);
+    expect(result.riskLevel).toBe('low');
+    expect(result.requiredScopes).toEqual(['tools:read']);
+  });
+
   it('should deny browser tools without tools:browser scope', () => {
     const result = authorizeToolCall('browser_launch', ['tools:read', 'tools:write']);
     expect(result.authorized).toBe(false);
@@ -578,6 +585,7 @@ describe('Gate 2: Tool Scope Authorization', () => {
 
   it('should return correct risk levels', () => {
     expect(getToolRiskLevel('parse_hs')).toBe('low');
+    expect(getToolRiskLevel('holo_absorb_manifest')).toBe('low');
     expect(getToolRiskLevel('generate_scene')).toBe('medium');
     expect(getToolRiskLevel('browser_execute')).toBe('high');
     expect(getToolRiskLevel('holo_self_diagnose')).toBe('critical');
@@ -587,6 +595,7 @@ describe('Gate 2: Tool Scope Authorization', () => {
     const readTools = getToolsForScope('tools:read');
     expect(readTools).toContain('parse_hs');
     expect(readTools).toContain('validate_holoscript');
+    expect(readTools).toContain('holo_absorb_manifest');
     expect(readTools).not.toContain('generate_scene');
   });
 

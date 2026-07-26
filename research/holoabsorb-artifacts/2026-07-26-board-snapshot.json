@@ -1,0 +1,148 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.thread-snapshot.v1",
+  "source": "HoloMesh board team_1777834718247_unr35n filtered by absorb",
+  "capturedAt": "2026-07-26T05:57:00.000Z",
+  "umbrella": {
+    "productName": "HoloAbsorb",
+    "taskId": "task_1785045258746_89kn"
+  },
+  "tasks": [
+    {
+      "id": "task_1785045258746_89kn",
+      "title": "[holoabsorb] Publish official umbrella manifest and evidence runner",
+      "status": "claimed"
+    },
+    {
+      "id": "task_1783461928336_vxjh",
+      "title": "Promote engine/framework/absorb-service after public API canaries",
+      "status": "open"
+    },
+    {
+      "id": "task_1783462811392_lfx2",
+      "title": "Decide fleet-consumption promotion for engine framework absorb-service",
+      "status": "open"
+    },
+    {
+      "id": "task_1783464537131_zny4",
+      "title": "Add absorb-service Jetson lifecycle receipt",
+      "status": "open"
+    },
+    {
+      "id": "task_1782886422455_jken",
+      "title": "[Jetson][Absorb] Execute three prepared repository absorbs and store receipts",
+      "status": "open"
+    },
+    {
+      "id": "task_1784228007360_vrdr",
+      "title": "GRPO coverageReward always returns zero",
+      "status": "open"
+    },
+    {
+      "id": "task_1784368626374_6bib",
+      "title": "[paper-evidence][paper-5-graphrag-icse] Reproduce claim through tracked evidence",
+      "status": "open"
+    },
+    {
+      "id": "task_1784945249114_y2vc",
+      "title": "[graphrag] Resume rejected refreshes from completed checkpoints",
+      "status": "open"
+    },
+    {
+      "id": "task_1784947559807_d45f",
+      "title": "Benchmark and compact Absorb checkpoint retention",
+      "status": "open"
+    },
+    {
+      "id": "task_1785005981387_lot7",
+      "title": "absorb-service hybrid retrieval for semantic-search exact-name recall",
+      "status": "open"
+    },
+    {
+      "id": "task_1785038364851_zywz",
+      "title": "[absorb] Eliminate isolated refresh 1% blindness and full-rescan fallback",
+      "status": "open"
+    },
+    {
+      "id": "task_1785041541852_ggzk",
+      "title": "[absorb-resilience] Account isolated worker memory and fail closed",
+      "status": "open"
+    },
+    {
+      "id": "task_1785041541852_fzm1",
+      "title": "[absorb-versatility] Make multi-root authority reusable and retain active jobs",
+      "status": "open"
+    }
+  ],
+  "coverage": [
+    {
+      "workstreamId": "runtime-reliability",
+      "taskIds": [
+        "task_1784945249114_y2vc",
+        "task_1784947559807_d45f",
+        "task_1785038364851_zywz",
+        "task_1785041541852_ggzk",
+        "task_1785041541852_fzm1"
+      ]
+    },
+    {
+      "workstreamId": "retrieval-quality",
+      "taskIds": [
+        "task_1785005981387_lot7",
+        "task_1784368626374_6bib"
+      ]
+    },
+    {
+      "workstreamId": "paper-evidence",
+      "taskIds": [
+        "task_1785045258746_89kn",
+        "task_1784368626374_6bib"
+      ]
+    },
+    {
+      "workstreamId": "fleet-lifecycle",
+      "taskIds": [
+        "task_1783464537131_zny4",
+        "task_1782886422455_jken"
+      ]
+    },
+    {
+      "workstreamId": "promotion",
+      "taskIds": [
+        "task_1783461928336_vxjh",
+        "task_1783462811392_lfx2"
+      ]
+    },
+    {
+      "workstreamId": "self-improvement",
+      "taskIds": [
+        "task_1784228007360_vrdr"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "overlap-candidate",
+      "taskIds": [
+        "task_1783461928336_vxjh",
+        "task_1783462811392_lfx2"
+      ],
+      "disposition": "Consolidate into one HoloAbsorb promotion gate after public API canaries; retain the other ID as linked provenance."
+    },
+    {
+      "type": "parent-child",
+      "taskIds": [
+        "task_1784945249114_y2vc",
+        "task_1784947559807_d45f"
+      ],
+      "disposition": "Checkpoint reuse is implementation; retention benchmark and compaction is its measured follow-up, not duplicate work."
+    },
+    {
+      "type": "source-reconciliation-required",
+      "taskIds": [
+        "task_1785041541852_ggzk",
+        "task_1785041541852_fzm1"
+      ],
+      "disposition": "Audit current source and commits before implementation because recent resilience work may already satisfy part of each task."
+    }
+  ]
+}

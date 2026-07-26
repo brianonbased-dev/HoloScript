@@ -46,6 +46,7 @@ import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvide
 import type { CommunityAwareImpactReceipt } from '../engine/CodebaseGraph';
 import type { ScanPlan } from '../engine/CodebaseScanner';
 import type { ScanResult } from '../engine/types';
+import { auditHoloAbsorbManifest, buildHoloAbsorbManifest } from '../holoabsorb/index';
 
 // =============================================================================
 // DYNAMIC MODULE INTERFACE
@@ -4335,6 +4336,23 @@ function resolveLocalCodebaseSnapshotReceiptForAbsorb(
 
 export const codebaseTools: Tool[] = [
   {
+    name: 'holo_absorb_manifest',
+    description:
+      'Return the official HoloAbsorb product manifest: canonical ownership, compatibility aliases, capability lanes, paper evidence contracts, and workstream coverage. This is a metadata-only call and never loads a codebase graph.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        audit: {
+          type: 'boolean',
+          description:
+            'Include the executable HoloAbsorb self-audit. Defaults to true.',
+          default: true,
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'holo_absorb_repo',
     description:
       'Absorb a codebase into HoloScript. Scans a directory, extracts symbols from all supported languages (TypeScript, Python, Rust, Go), builds a knowledge graph, and optionally generates a .holo composition for spatial visualization. Returns scan stats and the generated output.',
@@ -5202,6 +5220,7 @@ async function loadCodebaseModule(): Promise<CodebaseModule> {
 
 function shouldAutoLoadGraph(name: string, _args: Record<string, unknown>): boolean {
   if (
+    name === 'holo_absorb_manifest' ||
     name === 'holo_graph_status' ||
     name === 'holo_get_absorb_status' ||
     name === 'holo_cancel_absorb'
@@ -5227,6 +5246,11 @@ export async function handleCodebaseTool(
   }
 
   switch (name) {
+    case 'holo_absorb_manifest':
+      return {
+        manifest: buildHoloAbsorbManifest(),
+        ...(args.audit === false ? {} : { audit: auditHoloAbsorbManifest() }),
+      };
     case 'holo_absorb_repo':
       return handleAbsorb(args);
     case 'holo_cancel_absorb':

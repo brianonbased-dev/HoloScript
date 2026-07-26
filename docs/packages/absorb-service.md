@@ -1,9 +1,12 @@
 # @holoscript/absorb-service
 
-`@holoscript/absorb-service` is the public package for HoloScript codebase
-intelligence. It owns the reusable Absorb engine: scanners, graph construction,
+`@holoscript/absorb-service` is the public package and compatibility boundary
+for **HoloAbsorb**, HoloScript's sovereign codebase-intelligence umbrella. It
+owns the reusable engine: scanners, graph construction,
 GraphRAG query machinery, embeddings, MCP tool definitions, credit metering, and
-the recursive self-improvement pipeline.
+the recursive self-improvement pipeline. HoloAbsorb additionally names the
+transport/authority, hosted service, and paper-evidence surfaces that previously
+had no single official product identity.
 
 ## Install
 
@@ -23,6 +26,7 @@ end users should reach Absorb through MCP tools such as `holo_absorb_repo`,
 | `@holoscript/absorb-service/engine`           | Scanner, graph, embeddings, visualization, and query machinery |
 | `@holoscript/absorb-service/ingest`           | Professional ingest contracts and format registry              |
 | `@holoscript/absorb-service/gev`              | Canonical Graph + Embedding + Vector/RAG surface               |
+| `@holoscript/absorb-service/holoabsorb`       | Product manifest, capability ownership, aliases, and audits    |
 | `@holoscript/absorb-service/pipeline`         | Recursive self-improvement orchestrator                        |
 | `@holoscript/absorb-service/daemon`           | HoloDaemon actions, errors, and prompt profiles                |
 | `@holoscript/absorb-service/self-improvement` | GRPO, OPLoRA, DPO, quality scoring, and convergence helpers    |
@@ -45,7 +49,8 @@ host should stay thin and import the package.
 
 ## Canonical Substrates
 
-Absorb is the umbrella package for HoloScript codebase intelligence. Its native
+HoloAbsorb is the official product umbrella; Absorb remains the stable package
+and tool-family compatibility name. Its native
 Graph + Embedding + Vector/RAG spine is consumed through
 `@holoscript/absorb-service/gev`, not by asking callers to install separate
 GraphRAG or embed packages.
@@ -86,6 +91,8 @@ If the map points at Absorb, foster this package first.
 
 ```bash
 corepack pnpm --filter @holoscript/absorb-service run build
+corepack pnpm --filter @holoscript/absorb-service run audit:holoabsorb
+corepack pnpm --filter @holoscript/absorb-service run benchmark:holoabsorb
 corepack pnpm --filter @holoscript/absorb-service run test
 corepack pnpm run package:opportunity-map
 corepack pnpm run check:publish-surface

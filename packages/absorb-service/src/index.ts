@@ -8,6 +8,7 @@
  *   - @holoscript/absorb-service/engine         -- Codebase scanner, graph, embeddings, visualization
  *   - @holoscript/absorb-service/ingest         -- Professional ingest contracts and format registry
  *   - @holoscript/absorb-service/gev            -- Canonical Graph + Embedding + Vector/RAG package surface
+ *   - @holoscript/absorb-service/holoabsorb     -- Official product manifest, ownership map, and audit receipt
  *   - @holoscript/absorb-service/pipeline        -- Recursive self-improvement orchestrator (L0/L1/L2)
  *   - @holoscript/absorb-service/daemon          -- Daemon actions, error taxonomy, prompt profiles, types
  *   - @holoscript/absorb-service/self-improvement -- Training data generation, quality scoring, GRPO
@@ -28,6 +29,9 @@ export * from './engine/index';
 
 // Professional ingest contracts and registry
 export * from './ingest/index';
+
+// Official HoloAbsorb product identity and executable ownership contract
+export * from './holoabsorb/index';
 
 // Bridge (no collisions)
 export * from './bridge';

@@ -4775,6 +4775,43 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       break;
     }
 
+    case 'holoabsorb':
+    case 'absorb-manifest': {
+      try {
+        const { buildHoloAbsorbManifest, auditHoloAbsorbManifest } =
+          await import('@holoscript/absorb-service/holoabsorb');
+        const manifest = buildHoloAbsorbManifest();
+        const audit = auditHoloAbsorbManifest();
+        if (options.json) {
+          printJson({ manifest, audit });
+        } else {
+          console.log('\n\x1b[36mHoloAbsorb\x1b[0m\n');
+          console.log('  Official umbrella for sovereign codebase intelligence');
+          console.log(`  Package:       ${manifest.canonicalPackage}`);
+          console.log(`  Service:       ${manifest.serviceSlug}`);
+          console.log(`  GEV spine:     ${manifest.consumerSpine}`);
+          console.log(`  Capabilities:  ${manifest.capabilities.length}`);
+          console.log(`  Papers:        ${manifest.papers.map((paper) => paper.id).join(', ')}`);
+          console.log(`  Audit:         ${audit.status.toUpperCase()}`);
+          console.log('\n  Capability ownership:');
+          for (const capability of manifest.capabilities) {
+            console.log(`    ${capability.name.padEnd(34)} ${capability.canonicalOwner}`);
+          }
+          console.log(
+            '\n  Use `holoscript holoabsorb --json` for aliases, evidence paths, and workstreams.\n'
+          );
+        }
+        process.exit(audit.status === 'pass' ? 0 : 1);
+      } catch (err: unknown) {
+        console.error(
+          `\x1b[31mHoloAbsorb manifest error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
+        if (err instanceof Error && err.stack) console.error(err.stack);
+        process.exit(1);
+      }
+      break;
+    }
+
     case 'graph-status': {
       try {
         const { handleCodebaseTool } = await import('@holoscript/absorb-service/mcp');

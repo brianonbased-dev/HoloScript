@@ -134,6 +134,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   hs_ai_scaffold: ['tools:write'],
 
   // === Codebase intelligence ===
+  holo_absorb_manifest: ['tools:read'],
   holo_graph_status: ['tools:codebase'],
   holo_absorb_repo: ['tools:codebase'],
   holo_query_codebase: ['tools:codebase'],
@@ -613,6 +614,7 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   hs_hover: 'low',
   hs_docs: 'low',
   holo_from_scratch_status: 'low',
+  holo_absorb_manifest: 'low',
 
   // Meta-dispatch is side-effect free itself; inner tools retain their own risk.
   batch_tool_call: 'medium',

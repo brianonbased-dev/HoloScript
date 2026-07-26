@@ -70,6 +70,8 @@ export interface CLIOptions {
     | 'prerender'
     | 'pdf'
     | 'absorb'
+    | 'holoabsorb'
+    | 'absorb-manifest'
     | 'graph-status'
     | 'impact'
     | 'impact-analysis'
@@ -341,6 +343,8 @@ export function parseArgs(args: string[]): CLIOptions {
           'import',
           'visualize',
           'absorb',
+          'holoabsorb',
+          'absorb-manifest',
           'graph-status',
           'impact',
           'impact-analysis',
@@ -803,6 +807,9 @@ Usage: holoscript <command> [options] [input]
                     Outputs fully rendered HTML with meta tags
 
   \x1b[33mCodebase Intelligence:\x1b[0m
+  holoabsorb       Print the official HoloAbsorb capability, ownership,
+                    compatibility, paper-evidence, and workstream manifest
+                    Alias: absorb-manifest. Use --json for the full receipt
   absorb <dir>      Scan a codebase and emit a spatial .holo knowledge graph
                     Use --for-agent for agent-optimized manifest output
                     Use --depth shallow|medium|deep to control detail

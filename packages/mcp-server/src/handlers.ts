@@ -539,6 +539,7 @@ export async function handleTool(
   // root-caused from task_1782886422455_jken). Mirror index.ts's wiring here so
   // both dispatch paths agree.
   if (
+    name === 'holo_absorb_manifest' ||
     name === 'holo_absorb_repo' ||
     name === 'holo_graph_status' ||
     name === 'holo_query_codebase'

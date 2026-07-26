@@ -17,9 +17,9 @@
  *                       file path + signature, ranked by overlap count.
  *                       This is the lexical/BM25-ish baseline.
  *
- *   2. Semantic-only — StructuralEmbeddingProvider + EmbeddingIndex over the
- *                       scanned corpus, ranked by cosine similarity.
- *                       Zero network, deterministic vectors.
+ *   2. Semantic-only — HoloEmbedProvider + EmbeddingIndex over the scanned
+ *                       corpus, ranked by cosine similarity. The legacy
+ *                       StructuralEmbeddingProvider is selectable explicitly.
  *
  *   3. Graph RAG    — GraphRAGEngine over the same index, which fuses
  *                       semantic score with graph connection and impact
@@ -99,8 +99,8 @@ const QUERY_SET = [
   {
     id: 'q05',
     category: 'reasoning',
-    query: 'structural embedding provider deterministic vectors no api',
-    goldFile: 'src/engine/providers/StructuralEmbeddingProvider.ts',
+    query: 'holo embed provider sovereign subword vectors no api',
+    goldFile: 'src/engine/providers/HoloEmbedProvider.ts',
   },
   {
     id: 'q06',
@@ -144,6 +144,7 @@ function parseArgs(argv) {
     topK: DEFAULT_TOP_K,
     pAt: DEFAULT_P_AT,
     maxFiles: 200,
+    provider: 'holoembed',
     help: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -156,6 +157,12 @@ function parseArgs(argv) {
     if (flag === 'top-k') out.topK = positiveInt(value, flag);
     if (flag === 'p-at') out.pAt = positiveInt(value, flag);
     if (flag === 'max-files') out.maxFiles = positiveInt(value, flag);
+    if (flag === 'provider') {
+      if (!['holoembed', 'structural'].includes(value)) {
+        throw new Error('--provider must be holoembed or structural');
+      }
+      out.provider = value;
+    }
     if (flag === 'help') out.help = true;
   }
   return out;
@@ -178,6 +185,7 @@ function usage() {
     '  --top-k=N         results retrieved per query (default 10)',
     '  --p-at=N          precision cutoff (default 5)',
     '  --max-files=N     scanner max files cap (default 200)',
+    '  --provider=NAME    holoembed (default) or structural (legacy floor)',
     '  --help            show this message',
   ].join('\n');
 }
@@ -186,7 +194,7 @@ function usage() {
 // CORPUS LOADING (real packages/absorb-service/src/)
 // =============================================================================
 
-async function loadCorpus(repoRoot, maxFiles) {
+async function loadCorpus(repoRoot, maxFiles, providerName) {
   // Lazy-load via the built dist/ exports to avoid pulling .ts through ts-node.
   const enginePkg = pathToFileUrl(
     resolve(repoRoot, 'packages/absorb-service/dist/engine/index.js')
@@ -198,6 +206,7 @@ async function loadCorpus(repoRoot, maxFiles) {
     CodebaseGraph,
     EmbeddingIndex,
     GraphRAGEngine,
+    HoloEmbedProvider,
     StructuralEmbeddingProvider,
   } = mod;
 
@@ -209,6 +218,11 @@ async function loadCorpus(repoRoot, maxFiles) {
   if (!StructuralEmbeddingProvider) {
     throw new Error(
       'StructuralEmbeddingProvider missing from absorb-service/dist/engine — rebuild with `pnpm --filter @holoscript/absorb-service build`'
+    );
+  }
+  if (!HoloEmbedProvider) {
+    throw new Error(
+      'HoloEmbedProvider missing from absorb-service/dist/engine — rebuild with `pnpm --filter @holoscript/absorb-service build`'
     );
   }
 
@@ -224,7 +238,10 @@ async function loadCorpus(repoRoot, maxFiles) {
   const graph = new CodebaseGraph();
   graph.buildFromScanResult(scanResult);
 
-  const provider = new StructuralEmbeddingProvider();
+  const provider =
+    providerName === 'structural'
+      ? new StructuralEmbeddingProvider()
+      : new HoloEmbedProvider();
   const index = new EmbeddingIndex({ provider, batchSize: 100, useWorkers: false });
   await index.buildIndex(graph);
 
@@ -387,7 +404,7 @@ export async function main(argv = process.argv.slice(2), config = {}) {
 
   const repoRoot = config.cwd ?? process.cwd();
   console.error(
-    `[paper-5-accuracy-bench] queries=${QUERY_SET.length} topK=${options.topK} p@${options.pAt} maxFiles=${options.maxFiles}`
+    `[paper-5-accuracy-bench] queries=${QUERY_SET.length} topK=${options.topK} p@${options.pAt} maxFiles=${options.maxFiles} provider=${options.provider}`
   );
 
   const hardware = detectHardware();
@@ -397,11 +414,11 @@ export async function main(argv = process.argv.slice(2), config = {}) {
   let bundle;
   const setupStart = performance.now();
   try {
-    bundle = await loadCorpus(repoRoot, options.maxFiles);
+    bundle = await loadCorpus(repoRoot, options.maxFiles, options.provider);
   } catch (err) {
     // Hard fail — without a corpus, no system can produce honest numbers.
     const artifact = {
-      schema_version: 'paper-5-accuracy-bench-v1',
+      schema_version: 'paper-5-accuracy-bench-v2',
       benchmark: 'paper-5-graphrag-accuracy',
       status: 'setup_failed',
       ran_at: ranAt,
@@ -547,7 +564,7 @@ export async function main(argv = process.argv.slice(2), config = {}) {
 
   // ── 6. Emit artifact ─────────────────────────────────────────────────────
   const artifact = {
-    schema_version: 'paper-5-accuracy-bench-v1',
+    schema_version: 'paper-5-accuracy-bench-v2',
     benchmark: 'paper-5-graphrag-accuracy',
     status: 'completed',
     runner: 'packages/absorb-service/scripts/bench-paper-5-accuracy.mjs',
@@ -576,14 +593,21 @@ export async function main(argv = process.argv.slice(2), config = {}) {
       top_k: options.topK,
       p_at: options.pAt,
     },
-    embedding_provider: 'StructuralEmbeddingProvider (deterministic, no network)',
+    embedding_provider:
+      options.provider === 'structural'
+        ? 'StructuralEmbeddingProvider (legacy deterministic floor)'
+        : 'HoloEmbedProvider (sovereign structural + subword embeddings)',
     hardware,
     systems,
     notes: [
-      'Numbers are deterministic across runs (StructuralEmbeddingProvider seeds vectors from symbol structure).',
+      options.provider === 'structural'
+        ? 'Legacy structural-floor mode: vectors encode symbol structure without name-derived HoloEmbed subwords.'
+        : 'Current-system mode: sovereign HoloEmbed structural + subword vectors, with no API key or external provider.',
       'Keyword-only acts as the lexical/BM25-analog baseline; a true BM25 implementation is not shipped in absorb-service.',
       'No LLM is invoked — the engine returns ranked enriched results, not generated answers, so accuracy is measured on retrieval not synthesis.',
-      'IMPORTANT: This bootstrap run uses StructuralEmbeddingProvider for the semantic and graph-rag systems because it has zero external dependencies (no API key, no model download, no network) and produces reproducible CI numbers. StructuralEmbeddingProvider is documented (see its file header) to encode AST-structural features (package, visibility, fan-in/out, signature shape) rather than NL-text semantic similarity, so its scores on free-form natural-language queries are a FLOOR for embedding quality. The full Paper 5 Table III evaluation should re-run this harness with XenovaEmbeddingProvider (transformer-based text embeddings) or OpenAIEmbeddingProvider for the semantic-only / graph-rag systems to measure their true text-semantic retrieval accuracy.',
+      options.provider === 'structural'
+        ? 'IMPORTANT: StructuralEmbeddingProvider encodes AST-structural features rather than NL-text semantics. Treat these results as a legacy floor.'
+        : 'IMPORTANT: HoloEmbed is the current sovereign shared GraphRAG provider. This remains a 10-query bootstrap and must not be presented as the full Paper 5 evaluation.',
       'Keyword-only MRR is meaningful here even when P@5 looks low: it shows the gold file IS being ranked highly, just not always at rank 1, and there are other valid related files in the top-5 (e.g. GraphRAGVisualizer for a "graph rag engine" query).',
     ],
   };

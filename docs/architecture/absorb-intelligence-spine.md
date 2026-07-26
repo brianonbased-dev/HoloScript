@@ -1,18 +1,20 @@
 # Absorb Intelligence Spine
 
-Absorb is the canonical umbrella for HoloScript codebase intelligence. It is
-the product and service surface that scans source, builds a graph, indexes
-native embeddings, answers questions, emits `.holo` graph scenes, and feeds
-self-improvement loops.
+**HoloAbsorb** is the official umbrella for HoloScript codebase intelligence.
+The historical short name Absorb, the `@holoscript/absorb-service` package, and
+the `absorb-service` deployment slug remain stable compatibility contracts.
+HoloAbsorb scans source, builds a graph, indexes native embeddings, answers
+questions, emits `.holo` graph scenes, protects cache authority, and feeds
+self-improvement and evidence loops.
 
-This umbrella has one canonical consumer package surface:
-`@holoscript/absorb-service/gev`. HoloGraph and HoloEmbed remain named substrate
-lanes, but callers should not assemble a separate GraphRAG package plus an embed
-package for Absorb workflows.
+The official executable ownership map is
+`@holoscript/absorb-service/holoabsorb`. GEV remains the canonical Graph +
+Embedding + Vector/RAG consumer spine at `@holoscript/absorb-service/gev`;
+HoloGraph and HoloEmbed remain named substrate lanes.
 
 | Lane      | Canonical home                                          | Role                                                                                                                    | Boundary                                                                                                                                                                     |
 | --------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Absorb    | `packages/absorb-service` and `services/absorb-service` | Public codebase-intelligence package, MCP tools, service API, credits, GraphRAG, self-improvement pipeline              | Owns orchestration, cache policy, MCP handlers, service behavior, and the canonical GEV package surface.                                                                     |
+| HoloAbsorb | `packages/absorb-service` and `services/absorb-service` | Product umbrella, package, MCP tools, service API, reliability, GraphRAG, self-improvement, and evidence | Owns orchestration, cache policy, MCP handlers, service behavior, the GEV spine, and the executable capability/evidence manifest. |
 | HoloGraph | `packages/absorb-service/src/engine`                    | Structural graph layer: symbols, imports, calls, event edges, provenance, communities, impact analysis, graph manifests | A named subsystem inside Absorb today, not a separate npm package unless external consumers need a small graph-only install.                                                 |
 | HoloEmbed | `@holoscript/absorb-service/gev`                        | Keyless native embedding lane for NL-to-code and symbol search                                                          | Public consumers enter through Absorb GEV. `packages/holoembed` may remain as an implementation/migration workspace package until direct engine/research imports are folded. |
 | HoloLlama | `packages/holollama`                                    | Owned-model serving planner and fleet receipts for llama.cpp-compatible local inference                                 | Fleet utility package. It plans and proves serving nodes; Absorb may consume local inference endpoints or receipts, but HoloLlama must not become the graph or MCP gateway.  |
@@ -21,7 +23,7 @@ package for Absorb workflows.
 
 ```text
 source tree
-  -> Absorb scanner
+  -> HoloAbsorb scanner
   -> HoloGraph structural graph
   -> HoloEmbed vector index
   -> GraphRAG search and enrichment
@@ -37,11 +39,13 @@ the code graph.
 
 ## Revalidation Rule
 
-Before marking Absorb unification done, verify the live package and service
+Before marking HoloAbsorb consolidation done, verify the live package and service
 shape instead of relying on this architecture note:
 
 ```bash
 corepack pnpm --filter @holoscript/absorb-service run build
+corepack pnpm --filter @holoscript/absorb-service run audit:holoabsorb
+corepack pnpm --filter @holoscript/absorb-service run benchmark:holoabsorb
 corepack pnpm --filter @holoscript/absorb-service run test
 corepack pnpm run check:package-architecture
 corepack pnpm run package:opportunity-map
@@ -60,8 +64,9 @@ Then inspect new imports and service routes:
 
 ## Naming Rules
 
-- Use **Absorb** for the umbrella product, service, MCP tool family, recursive
-  codebase-intelligence pipeline, and public GEV package boundary.
+- Use **HoloAbsorb** for the official product umbrella.
+- Keep **Absorb**, `@holoscript/absorb-service`, `absorb-service`, and existing
+  `absorb_*` / `holo_*` tools as compatibility names; do not fork their logic.
 - Use **GEV** for Absorb's Graph + Embedding + Vector/RAG consumer entry point:
   `@holoscript/absorb-service/gev`.
 - Use **HoloGraph** for structural graph behavior inside Absorb: `CodebaseGraph`,
@@ -111,6 +116,7 @@ HoloGraph shadow implementation outside Absorb without a migration plan
 Service routes duplicating packages/absorb-service business logic
 ```
 
-The operating principle is simple: Absorb is the package mold, GEV is the
-consumer entry point, HoloGraph is its structural graph core, HoloEmbed is its
-native embedding lane, and HoloLlama is the owned-model inference lane beside it.
+The operating principle is simple: HoloAbsorb is the product umbrella, Absorb
+is its stable package/service compatibility boundary, GEV is the consumer
+spine, HoloGraph is the structural core, HoloEmbed is the native embedding lane,
+and HoloLlama is the owned-model inference lane beside it.
