@@ -489,12 +489,16 @@ function main(): i32 { return decide(true) }"#,
 
     #[test]
     fn test_validate_detailed_enforces_hs010_lexical_firewall() {
-        let source = r#"function main(): i32 { return process(5) }"#;
-        let result = validate_detailed(source);
+        for source in [
+            r#"function main(): i32 { return process(5) }"#,
+            r#"function main(): i32 { return worker.process(5) }"#,
+        ] {
+            let result = validate_detailed(source);
 
-        assert!(result.contains("\"valid\":false"), "{result}");
-        assert!(result.contains("HS010"), "{result}");
-        assert!(result.contains("process"), "{result}");
+            assert!(result.contains("\"valid\":false"), "{result}");
+            assert!(result.contains("HS010"), "{result}");
+            assert!(result.contains("process"), "{result}");
+        }
     }
 
     #[test]
