@@ -2,6 +2,8 @@
 
 HoloScript currently ships as a monorepo with **real packages** under `packages/`. This section documents the public package surface and separates it from support directories that exist in the repo but are not published package manifests.
 
+For release admission, consumption receipts, stewardship status, and compiler-native library metadata, use the [generated package catalog](./catalog.generated.md). It is derived from machine-readable manifests rather than this narrative index.
+
 > **Zero hardcoded stats.** Verify current package counts via `find packages -maxdepth 1 -type d -name "[^.]*" | wc -l` and cross-check against `docs/cross-language-deletion-ledger.md`.
 
 ## Language & Runtime Core
