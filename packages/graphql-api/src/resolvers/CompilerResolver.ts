@@ -1,5 +1,6 @@
 import { Resolver, Mutation, Arg } from 'type-graphql';
 import { CompileInput, CompilePayload, CompilerTarget } from '../types/GraphQLTypes.js';
+import { normalizeParserWarnings } from './parser-result-normalizers.js';
 
 function stringifyCompileOutput(output: unknown): string {
   return typeof output === 'string' ? output : JSON.stringify(output, null, 2);
@@ -96,7 +97,7 @@ export class CompilerResolver {
         success: true,
         output: compiledOutput,
         errors: [],
-        warnings: parseResult.warnings || [],
+        warnings: normalizeParserWarnings(parseResult.warnings),
         metadata: {
           compilationTime,
           outputSize: compiledOutput.length,

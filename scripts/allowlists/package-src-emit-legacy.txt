@@ -20,7 +20,6 @@ packages/vscode-extension/src/types/holoscript-sdk.d.ts
 # commits (agents --no-verify'd past, which ALSO skipped the gitleaks secret
 # hook). wgsl-raw.d.ts here mirrors the approved engine/src/wgsl-raw.d.ts.
 packages/absorb-service/src/engine/workers/__fixtures__/telemetry-worker.js
-packages/core/src/types/absorb-service-daemon.d.ts
 packages/snn-webgpu/src/wgsl-raw.d.ts
 packages/studio/src/r3f-jsx.d.ts
 packages/studio/src/tauri-shim.d.ts

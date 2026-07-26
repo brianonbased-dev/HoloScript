@@ -319,7 +319,9 @@ function compileHsToUaal(source: string): UAALBytecode {
     }
   );
   const result = JSON.parse(stdout.trim()) as UAALBytecode | { error: string };
-  invariant(!('error' in result), `Rust .hs -> UAAL lowering failed: ${result.error}`);
+  if ('error' in result) {
+    throw new Error(`Rust .hs -> UAAL lowering failed: ${result.error}`);
+  }
   return result;
 }
 
@@ -390,15 +392,14 @@ function loadRustProgram(source: string): { program: RustProgram; compilerVersio
   const parsed = JSON.parse(wasm.parse(source)) as
     | RustProgram
     | { error?: string; errors?: unknown[] };
-  invariant(!('error' in parsed), `canonical WASM .hs parser failed: ${parsed.error}`);
-  invariant(
-    !('errors' in parsed) || !Array.isArray(parsed.errors) || parsed.errors.length === 0,
-    `canonical WASM .hs parser returned errors: ${JSON.stringify(parsed.errors)}`
-  );
-  invariant(
-    parsed.type === 'Program' && Array.isArray(parsed.body),
-    'canonical .hs AST is malformed'
-  );
+  if ('error' in parsed && parsed.error) {
+    throw new Error(`canonical WASM .hs parser failed: ${parsed.error}`);
+  }
+  if ('errors' in parsed && Array.isArray(parsed.errors) && parsed.errors.length > 0) {
+    throw new Error(`canonical WASM .hs parser returned errors: ${JSON.stringify(parsed.errors)}`);
+  }
+  invariant('type' in parsed && parsed.type === 'Program', 'canonical .hs AST is malformed');
+  invariant('body' in parsed && Array.isArray(parsed.body), 'canonical .hs AST is malformed');
   return { program: parsed, compilerVersion: wasm.version() };
 }
 
@@ -678,8 +679,9 @@ async function evaluateProject(project: LoadedProject): Promise<ThreeSurfaceClos
     hsplusResult.success && hsplusResult.ast,
     `.hsplus parse failed: ${hsplusResult.errors.map((error) => error.message).join('; ')}`
   );
-  const brain = (hsplusResult.ast as { root: HoloBrainDecl }).root;
-  invariant(brain.type === 'brain', '.hsplus root must be a typed brain');
+  const root = hsplusResult.ast.root;
+  invariant(root.type === 'brain', '.hsplus root must be a typed brain');
+  const brain = root as unknown as HoloBrainDecl;
   invariant(brain.name === preparedBrain.header.brainName, '.hsplus header/AST brain name drift');
   invariant(brain.identity, '.hsplus brain must declare typed identity');
   invariant(brain.frameDeclaration, '.hsplus brain must declare a frame');

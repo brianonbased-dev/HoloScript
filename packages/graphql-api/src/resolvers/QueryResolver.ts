@@ -6,6 +6,7 @@ import {
   CompilerTarget,
   TargetInfo,
 } from '../types/GraphQLTypes.js';
+import { normalizeParserWarnings } from './parser-result-normalizers.js';
 
 @Resolver()
 export class QueryResolver {
@@ -29,7 +30,7 @@ export class QueryResolver {
         success: true,
         ast: astJson,
         errors: [],
-        warnings: result.warnings || [],
+        warnings: normalizeParserWarnings(result.warnings),
       };
     } catch (error: unknown) {
       // Handle parsing errors

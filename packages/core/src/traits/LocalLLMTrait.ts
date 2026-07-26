@@ -389,8 +389,7 @@ export const localLLMHandler = {
     const ac = new AbortController();
     s.activeRequests.set(requestId, ac);
     s.totalRequests++;
-    // @ts-expect-error During migration
-    const lastMessage = messages.at(-1);
+    const lastMessage = messages[messages.length - 1];
     ctx.emit('llm_started', { node, requestId, model, prompt: lastMessage?.content });
 
     const cfg: LocalLLMConfig = s.usingFallback

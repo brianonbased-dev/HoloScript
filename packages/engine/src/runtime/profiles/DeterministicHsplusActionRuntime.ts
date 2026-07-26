@@ -776,7 +776,9 @@ export class DeterministicHsplusActionRuntime {
     const structured = parseHolo(source);
     if (!structured.success || !structured.ast) {
       fail(
-        `structured parse failed: ${structured.errors.map((error) => error.message).join('; ')}`
+        `structured parse failed: ${structured.errors
+          .map((error: { message: string }) => error.message)
+          .join('; ')}`
       );
     }
     const structuredState = extractStructuredState(structured.ast.state?.properties);

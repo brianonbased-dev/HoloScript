@@ -23,6 +23,7 @@
  *   pnpm tsx scripts/holo-ci/audit-trait-prop-validity.ts --samples 20
  */
 import { readdirSync, readFileSync } from 'node:fs';
+import type { Dirent } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseHolo } from '../../packages/core/src/parser/HoloCompositionParser';
@@ -34,14 +35,24 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
 const SCAN_ROOTS = [path.join(ROOT, 'packages'), path.join(ROOT, 'examples')];
 const TRAITS_DIR = path.join(ROOT, 'packages', 'core', 'src', 'traits');
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.turbo', 'out', 'target']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'coverage',
+  '.next',
+  '.turbo',
+  'out',
+  'target',
+]);
 
 const jsonOut = process.argv.includes('--json');
 const samplesIdx = process.argv.indexOf('--samples');
 const maxSamples = samplesIdx >= 0 ? Number(process.argv[samplesIdx + 1]) || 20 : 20;
 
 function walkHolo(dir: string, acc: string[]): void {
-  let entries: ReturnType<typeof readdirSync>;
+  let entries: Dirent<string>[];
   try {
     entries = readdirSync(dir, { withFileTypes: true });
   } catch {
@@ -101,7 +112,13 @@ function main(): void {
   const byCodeFpSuspect: Record<string, number> = {};
   const suspectTraits = new Set<string>();
   const trueTraits = new Set<string>();
-  const samples: Array<{ file: string; code: string; trait?: string; message: string; fpSuspect: boolean }> = [];
+  const samples: Array<{
+    file: string;
+    code: string;
+    trait?: string;
+    message: string;
+    fpSuspect: boolean;
+  }> = [];
 
   for (const file of files) {
     filesScanned++;
@@ -175,13 +192,19 @@ function main(): void {
   }
 
   console.log('[audit-trait-prop-validity] REPORT-ONLY — gates nothing.');
-  console.log(`  scanned .holo files:        ${report.scannedFiles} (${report.parseFailed} parse-failed, skipped)`);
+  console.log(
+    `  scanned .holo files:        ${report.scannedFiles} (${report.parseFailed} parse-failed, skipped)`
+  );
   console.log(`  compositions (has objects): ${report.compositionsWithObjects}`);
   console.log(`    clean:                    ${report.compositionsClean}`);
   console.log(`    with violations:          ${report.compositionsWithViolations}`);
   console.log(`  total prop violations:      ${report.totalViolations}`);
-  console.log(`    candidate-TRUE:           ${report.candidateTrueViolations}  (${report.candidateTrueTraitCount} distinct traits)`);
-  console.log(`    FALSE-POSITIVE suspects:  ${report.fpSuspectViolations}  (trait in the ${report.conflictTraitNameCount}-conflict set)`);
+  console.log(
+    `    candidate-TRUE:           ${report.candidateTrueViolations}  (${report.candidateTrueTraitCount} distinct traits)`
+  );
+  console.log(
+    `    FALSE-POSITIVE suspects:  ${report.fpSuspectViolations}  (trait in the ${report.conflictTraitNameCount}-conflict set)`
+  );
   console.log(`  by code (all):              ${JSON.stringify(report.byCode)}`);
   console.log(`  by code (fp-suspect):       ${JSON.stringify(report.byCodeFpSuspect)}`);
   if (report.samples.length) {

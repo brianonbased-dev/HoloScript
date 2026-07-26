@@ -386,8 +386,13 @@ async function createDaemonLLMProvider(
 ): Promise<import('@holoscript/absorb-service/daemon').LLMProvider> {
   // Dynamic import for ESM compatibility — adapters are loaded only when
   // a daemon session actually needs LLM, not at CLI startup.
-  const { AnthropicAdapter, XAIAdapter, OpenAIAdapter, LocalLLMAdapter, resolveSovereignProviderAsync } =
-    await import('@holoscript/llm-provider');
+  const {
+    AnthropicAdapter,
+    XAIAdapter,
+    OpenAIAdapter,
+    LocalLLMAdapter,
+    resolveSovereignProviderAsync,
+  } = await import('@holoscript/llm-provider');
 
   if (opts.provider === 'sovereign') {
     // Universal sovereign-first resolution (founder 2026-06-10): serving fleet
@@ -2079,7 +2084,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   });
 
   // Create host capabilities
-  const host: unknown = {
+  const host: import('@holoscript/absorb-service/daemon').DaemonHost = {
     readFile: (p: string) => fs.readFileSync(path.resolve(repoRoot, p), 'utf-8'),
     writeFile: (p: string, c: string | Buffer) => {
       const resolved = path.resolve(repoRoot, p);
@@ -2087,37 +2092,39 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
       fs.writeFileSync(resolved, c, 'utf-8');
     },
     exists: (p: string) => fs.existsSync(path.resolve(repoRoot, p)),
-    exec: (cmd: string, args: string[] = [], execOpts: any = {}) =>
-      new Promise((resolve, reject) => {
-        const child = spawn(cmd, args, {
-          cwd: execOpts.cwd ?? repoRoot,
-          shell: true,
-          stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        let stdout = '';
-        let stderr = '';
-        let timer: ReturnType<typeof setTimeout> | null = null;
-        child.stdout?.on('data', (d: Buffer) => {
-          stdout += d.toString('utf-8');
-        });
-        child.stderr?.on('data', (d: Buffer) => {
-          stderr += d.toString('utf-8');
-        });
-        if (execOpts.timeoutMs && execOpts.timeoutMs > 0) {
-          timer = setTimeout(() => {
-            try {
-              child.kill('SIGKILL');
-            } catch {
-              /* */
-            }
-          }, execOpts.timeoutMs);
+    exec: (cmd: string, args: string[] = [], execOpts: { cwd?: string; timeoutMs?: number } = {}) =>
+      new Promise<import('@holoscript/absorb-service/daemon').DaemonExecResult>(
+        (resolve, reject) => {
+          const child = spawn(cmd, args, {
+            cwd: execOpts.cwd ?? repoRoot,
+            shell: true,
+            stdio: ['ignore', 'pipe', 'pipe'],
+          });
+          let stdout = '';
+          let stderr = '';
+          let timer: ReturnType<typeof setTimeout> | null = null;
+          child.stdout?.on('data', (d: Buffer) => {
+            stdout += d.toString('utf-8');
+          });
+          child.stderr?.on('data', (d: Buffer) => {
+            stderr += d.toString('utf-8');
+          });
+          if (execOpts.timeoutMs && execOpts.timeoutMs > 0) {
+            timer = setTimeout(() => {
+              try {
+                child.kill('SIGKILL');
+              } catch {
+                /* */
+              }
+            }, execOpts.timeoutMs);
+          }
+          child.on('close', (code: number | null) => {
+            if (timer) clearTimeout(timer);
+            resolve({ code, stdout, stderr });
+          });
+          child.on('error', reject);
         }
-        child.on('close', (code: number | null) => {
-          if (timer) clearTimeout(timer);
-          resolve({ code, stdout, stderr });
-        });
-        child.on('error', reject);
-      }),
+      ),
   };
 
   const skillsDirRel = opts.skillsDir || 'compositions/skills';
@@ -2126,24 +2133,12 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     fs.mkdirSync(skillsDirAbs, { recursive: true });
   }
 
-  let runtimeSkillActions = loadRuntimeSkillActions(
-    skillsDirAbs,
-    opts,
-    host as Parameters<typeof loadRuntimeSkillActions>[2],
-    repoRoot,
-    opts.debug
-  );
+  let runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host, repoRoot, opts.debug);
   let activeRuntime: { registerAction: (name: string, handler: ActionHandler) => void } | null =
     null;
 
   const reloadRuntimeSkills = () => {
-    runtimeSkillActions = loadRuntimeSkillActions(
-      skillsDirAbs,
-      opts,
-      host as Parameters<typeof loadRuntimeSkillActions>[2],
-      repoRoot,
-      opts.debug
-    );
+    runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host, repoRoot, opts.debug);
     if (activeRuntime) {
       for (const [name, handler] of Object.entries(runtimeSkillActions)) {
         activeRuntime.registerAction(name, handler);
@@ -2268,8 +2263,19 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
         string,
         unknown
       >;
-      config.committedFiles = fileState.committed || [];
-      config.failedFiles = fileState.failures || {};
+      config.committedFiles = Array.isArray(fileState.committed)
+        ? fileState.committed.filter((value): value is string => typeof value === 'string')
+        : [];
+      config.failedFiles =
+        fileState.failures !== null &&
+        typeof fileState.failures === 'object' &&
+        !Array.isArray(fileState.failures)
+          ? Object.fromEntries(
+              Object.entries(fileState.failures).filter(
+                (entry): entry is [string, number] => typeof entry[1] === 'number'
+              )
+            )
+          : {};
     } catch {
       /* use defaults */
     }
@@ -2554,7 +2560,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     fs.writeFileSync(stateFile, JSON.stringify(daemonState, null, 2), 'utf-8');
 
     // Persist file tracking (committed + quarantined files)
-    const fileState = getDaemonFileState(repoRoot);
+    const fileState = getDaemonFileState();
     fs.writeFileSync(fileStateFile, JSON.stringify(fileState, null, 2), 'utf-8');
 
     // Convergence detection: escalate strategy when quality plateaus

@@ -15,6 +15,7 @@ import {
   type CompilationProgressEvent,
   type ValidationResultEvent,
 } from '../services/pubsub.js';
+import { normalizeParserWarnings } from './parser-result-normalizers.js';
 
 /**
  * Subscription Resolver for real-time updates
@@ -94,6 +95,7 @@ export class SubscriptionResolver {
       const codeHash = createHash('sha256').update(input.code).digest('hex').substring(0, 16);
 
       const astJson = result.ast ? JSON.stringify(result.ast, null, 2) : undefined;
+      const warnings = normalizeParserWarnings(result.warnings);
 
       // Publish validation results if real-time is enabled
       if (input.realTime) {
@@ -109,14 +111,11 @@ export class SubscriptionResolver {
                 column: e.location?.column,
               })
             ) || [],
-          warnings:
-            result.warnings?.map(
-              (w: { message: string; location?: { line?: number; column?: number } }) => ({
-                message: w.message,
-                line: w.location?.line,
-                column: w.location?.column,
-              })
-            ) || [],
+          warnings: warnings.map((warning) => ({
+            message: warning.message,
+            line: warning.location?.line,
+            column: warning.location?.column,
+          })),
           timestamp: Date.now(),
         };
 
@@ -127,7 +126,7 @@ export class SubscriptionResolver {
         success: !!result.ast,
         ast: astJson,
         errors: result.errors || [],
-        warnings: result.warnings || [],
+        warnings,
       };
     } catch (error: unknown) {
       const errMessage = error instanceof Error ? error.message : 'Unknown validation error';
