@@ -1,0 +1,1369 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.hybrid-recall.v3",
+  "productName": "HoloAbsorb",
+  "status": "fail",
+  "startedAt": "2026-07-26T20:45:06.449Z",
+  "completedAt": "2026-07-26T20:52:43.013Z",
+  "implementation": {
+    "root": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript",
+    "head": "cdeddde27cd013b4534f30d13eb3c73ea89fe252",
+    "dirty": true
+  },
+  "repo": {
+    "root": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript",
+    "head": "cdeddde27cd013b4534f30d13eb3c73ea89fe252",
+    "dirty": true
+  },
+  "corpus": {
+    "maxFiles": 10000,
+    "files": 10000,
+    "graphSymbols": 245573,
+    "indexedEntries": 247274,
+    "parserLightFileEntries": 1701
+  },
+  "measurements": {
+    "setupMs": 372326.418,
+    "baselineRssBytes": 63225856,
+    "peakRssBytes": 2356154368,
+    "peakRssDeltaBytes": 2292928512,
+    "queries": [
+      {
+        "query": "safe-commit",
+        "durationMs": 2517.377,
+        "results": [
+          {
+            "rank": 1,
+            "file": "packages/holoscript-agent/src/commit-hook.ts",
+            "type": "function",
+            "score": 0.6919,
+            "vectorScore": 0.6137,
+            "lexicalScore": 0.45,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          },
+          {
+            "rank": 2,
+            "file": "packages/meaning/src/__tests__/resolve-temporal-commitment.test.ts",
+            "type": "function",
+            "score": 0.6438,
+            "vectorScore": 0.453,
+            "lexicalScore": 0.775,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          },
+          {
+            "rank": 3,
+            "file": "services/holoscript-net/src/components/LiveEvidenceStrip.tsx",
+            "type": "constant",
+            "score": 0.6309,
+            "vectorScore": 0.4333,
+            "lexicalScore": 0.775,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          },
+          {
+            "rank": 4,
+            "file": "packages/core/src/compiler/FlutterCompiler.ts",
+            "type": "constant",
+            "score": 0.6307,
+            "vectorScore": 0.433,
+            "lexicalScore": 0.775,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          },
+          {
+            "rank": 5,
+            "file": "packages/mcp-server/src/holomesh/board-tools.ts",
+            "type": "constant",
+            "score": 0.6306,
+            "vectorScore": 0.4328,
+            "lexicalScore": 0.775,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          }
+        ]
+      },
+      {
+        "query": "safe-commit atomic wrapper that uses git commit --only with explicit paths",
+        "durationMs": 726.075,
+        "results": [
+          {
+            "rank": 1,
+            "file": "packages/mcp-server/src/security/gates.ts",
+            "type": "constant",
+            "score": 0.7816,
+            "vectorScore": 0.685,
+            "lexicalScore": 0.6813,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          },
+          {
+            "rank": 2,
+            "file": "services/holoscript-net/src/components/LiveEvidenceStrip.tsx",
+            "type": "constant",
+            "score": 0.7813,
+            "vectorScore": 0.6847,
+            "lexicalScore": 0.6813,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          },
+          {
+            "rank": 3,
+            "file": "packages/engine/src/simulation/SimulationContract.ts",
+            "type": "constant",
+            "score": 0.7631,
+            "vectorScore": 0.6584,
+            "lexicalScore": 0.6813,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          },
+          {
+            "rank": 4,
+            "file": "packages/hololand-platform/src/evidence-envelope/index.ts",
+            "type": "constant",
+            "score": 0.7576,
+            "vectorScore": 0.6504,
+            "lexicalScore": 0.6813,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          },
+          {
+            "rank": 5,
+            "file": "packages/core/src/compiler/__tests__/CrossRealityValidator.test.ts",
+            "type": "constant",
+            "score": 0.7568,
+            "vectorScore": 0.6492,
+            "lexicalScore": 0.6813,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          }
+        ]
+      }
+    ],
+    "visualDisambiguation": {
+      "methodology": "Freeze a real-repository duplicate-symbol case set from the no-selection ranking, hold the lowest-ranked same-name symbol as the target, and reuse it across four arms: no selection, the correct collision-safe graph.holo node ID, an unresolved stale ID, and a different resolved same-name node.",
+      "claimBoundary": "Correct selection measures whether visible graph intent can improve retrieval of a fixed target. Stale/unresolved selection must fail closed to the no-selection order. Wrong-but-resolved selection is valid caller-supplied intent: its steering and target-rank harm are reported diagnostically and are not mislabeled as model accuracy.",
+      "caseSet": {
+        "digestAlgorithm": "sha256",
+        "digest": "0a3957fea284c32f79a8a6e12981c0d17387b2d7b40c79fdec4aa5ee8e7553cf",
+        "frozenBeforeVisualArms": true,
+        "reusedAcrossAllArms": true,
+        "targetRule": "lowest-ranked same-name result in the no-selection arm",
+        "wrongSelectionRule": "highest-ranked different same-name result from a different file in the no-selection arm"
+      },
+      "summary": {
+        "cases": 20,
+        "arms": {
+          "noSelection": {
+            "mrr": 0.263,
+            "top1Rate": 0,
+            "meanTargetRank": 8,
+            "meanQueryMs": 779.369,
+            "p95QueryMs": 979.075,
+            "resolutionRate": null
+          },
+          "correctSelection": {
+            "mrr": 1,
+            "top1Rate": 1,
+            "meanTargetRank": 1,
+            "meanQueryMs": 719.925,
+            "p95QueryMs": 765.215,
+            "resolutionRate": 1
+          },
+          "staleUnresolved": {
+            "mrr": 0.263,
+            "top1Rate": 0,
+            "meanTargetRank": 8,
+            "meanQueryMs": 703.299,
+            "p95QueryMs": 751.566,
+            "resolutionRate": 0
+          },
+          "wrongResolved": {
+            "mrr": 0.321,
+            "top1Rate": 0,
+            "meanTargetRank": 6.7,
+            "meanQueryMs": 713.452,
+            "p95QueryMs": 813.966,
+            "resolutionRate": 1
+          }
+        },
+        "baselineMrr": 0.263,
+        "focusedMrr": 1,
+        "correctMrr": 1,
+        "staleMrr": 0.263,
+        "wrongMrr": 0.321,
+        "baselineTop1Rate": 0,
+        "focusedTop1Rate": 1,
+        "correctTop1Rate": 1,
+        "staleTop1Rate": 0,
+        "wrongTop1Rate": 0,
+        "meanRankGain": 7,
+        "meanCorrectRankGain": 7,
+        "meanResolutionRate": 1,
+        "correctResolutionRate": 1,
+        "staleResolutionRate": 0,
+        "wrongResolutionRate": 1,
+        "staleExactRankingMatchRate": 1,
+        "harmfulOverrideRate": 0,
+        "wrongSelectionFollowRate": 1,
+        "meanWrongTargetRankDelta": -1.3,
+        "coldSelectionIndexMs": 659.605,
+        "warmSelectionIndexMs": 0.022,
+        "warmSelectionIndexSpeedup": 29711.955
+      },
+      "check": {
+        "minimumCases": 5,
+        "measuredCases": 20,
+        "correctMrrImproves": true,
+        "correctTop1AtLeast80Percent": true,
+        "correctSelectionFullyResolved": true,
+        "staleSelectionFullyUnresolved": true,
+        "staleRankingBaselineEquivalent": true,
+        "wrongSelectionFullyResolved": true,
+        "pass": true
+      },
+      "cases": [
+        {
+          "query": "__bw",
+          "fixedTarget": {
+            "nodeId": "__bw__18rnh50",
+            "file": "packages/studio/src/components/panels/native/honestChart.native.tsx"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "__bw__1enkr38",
+            "file": "packages/studio/src/components/panels/native/compilerExport.native.tsx"
+          },
+          "staleNodeId": "__bw__18rnh50:stale",
+          "baselineRank": 6,
+          "correctRank": 1,
+          "staleRank": 6,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.167,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 5,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": -4,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 833.59,
+            "correctSelection": 730.798,
+            "staleUnresolved": 701.239,
+            "wrongResolved": 727.036
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "__dir",
+          "fixedTarget": {
+            "nodeId": "__dir__1a5stfw",
+            "file": "packages/core/scripts/run-paper10-compile-matrix.mjs"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "__dir__1iwzhgo",
+            "file": "packages/engine/src/simulation/__tests__/tvcg-contract-ablation.test.ts"
+          },
+          "staleNodeId": "__dir__1a5stfw:stale",
+          "baselineRank": 17,
+          "correctRank": 1,
+          "staleRank": 17,
+          "wrongRank": 17,
+          "wrongSelectedBaselineRank": 11,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.059,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 16,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 741.64,
+            "correctSelection": 697.307,
+            "staleUnresolved": 692.245,
+            "wrongResolved": 746.662
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "__dirname",
+          "fixedTarget": {
+            "nodeId": "__dirname__1tmge8d",
+            "file": "packages/core/scripts/batch-readjson-tests.mjs"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "__dirname__1nezmfy",
+            "file": "packages/absorb-service/src/engine/workers/test-telemetry-internal.test.ts"
+          },
+          "staleNodeId": "__dirname__1tmge8d:stale",
+          "baselineRank": 20,
+          "correctRank": 1,
+          "staleRank": 20,
+          "wrongRank": 20,
+          "wrongSelectedBaselineRank": 5,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.05,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 19,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 689.104,
+            "correctSelection": 745.083,
+            "staleUnresolved": 784.703,
+            "wrongResolved": 826.151
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "__dirname_esm",
+          "fixedTarget": {
+            "nodeId": "__dirname_esm__1y475c7",
+            "file": "packages/absorb-service/src/engine/EmbeddingIndex.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "__dirname_esm__1nrp3pd",
+            "file": "packages/absorb-service/src/engine/CodebaseScanner.ts"
+          },
+          "staleNodeId": "__dirname_esm__1y475c7:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 676.179,
+            "correctSelection": 752.424,
+            "staleUnresolved": 717.483,
+            "wrongResolved": 677.655
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "__filename",
+          "fixedTarget": {
+            "nodeId": "__filename__1w5v8uk",
+            "file": "packages/snn-webgpu/scripts/power-benchmark.mjs"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "__filename__1ofgufe",
+            "file": "packages/cli/src/__tests__/world-model-replay.test.ts"
+          },
+          "staleNodeId": "__filename__1w5v8uk:stale",
+          "baselineRank": 20,
+          "correctRank": 1,
+          "staleRank": 20,
+          "wrongRank": 20,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.05,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 19,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 705.856,
+            "correctSelection": 681.244,
+            "staleUnresolved": 672.227,
+            "wrongResolved": 813.966
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "__filename_esm",
+          "fixedTarget": {
+            "nodeId": "__filename_esm__1get57w",
+            "file": "packages/absorb-service/src/engine/EmbeddingIndex.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "__filename_esm__kw0cae",
+            "file": "packages/absorb-service/src/engine/CodebaseScanner.ts"
+          },
+          "staleNodeId": "__filename_esm__1get57w:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 717.156,
+            "correctSelection": 733.791,
+            "staleUnresolved": 713.938,
+            "wrongResolved": 692.041
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "__getattr__",
+          "fixedTarget": {
+            "nodeId": "__getattr____2vvqma",
+            "file": "packages/trait-inference/trait_inference/model/__init__.py"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "__getattr____1qrkc8l",
+            "file": "packages/trait-inference/trait_inference/eval/__init__.py"
+          },
+          "staleNodeId": "__getattr____2vvqma:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 727.266,
+            "correctSelection": 697.805,
+            "staleUnresolved": 751.566,
+            "wrongResolved": 691.464
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "__slot",
+          "fixedTarget": {
+            "nodeId": "__slot__1enkr38",
+            "file": "packages/studio/src/components/panels/native/compilerExport.native.tsx"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "__slot__18rnh50",
+            "file": "packages/studio/src/components/panels/native/honestChart.native.tsx"
+          },
+          "staleNodeId": "__slot__1enkr38:stale",
+          "baselineRank": 8,
+          "correctRank": 1,
+          "staleRank": 8,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 4,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.125,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 7,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": -6,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 704.784,
+            "correctSelection": 675.799,
+            "staleUnresolved": 674.546,
+            "wrongResolved": 676.794
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_AbsorbScanResult",
+          "fixedTarget": {
+            "nodeId": "_AbsorbScanResult__xuprgs",
+            "file": "packages/studio/src/app/api/daemon/jobs/runner.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_AbsorbScanResult__m1x2l3",
+            "file": "services/studio-api/src/app/api/daemon/jobs/runner.ts"
+          },
+          "staleNodeId": "_AbsorbScanResult__xuprgs:stale",
+          "baselineRank": 4,
+          "correctRank": 1,
+          "staleRank": 4,
+          "wrongRank": 4,
+          "wrongSelectedBaselineRank": 3,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.25,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 3,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 716.209,
+            "correctSelection": 733.071,
+            "staleUnresolved": 713.698,
+            "wrongResolved": 721.106
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_anthropicAdapter",
+          "fixedTarget": {
+            "nodeId": "_anthropicAdapter__1611ki8",
+            "file": "packages/mcp-server/scripts/local-worker.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_anthropicAdapter__ro88cy",
+            "file": "packages/mcp-server/src/ollama-client.ts"
+          },
+          "staleNodeId": "_anthropicAdapter__1611ki8:stale",
+          "baselineRank": 4,
+          "correctRank": 1,
+          "staleRank": 4,
+          "wrongRank": 4,
+          "wrongSelectedBaselineRank": 3,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.25,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 3,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 711.539,
+            "correctSelection": 741.509,
+            "staleUnresolved": 709.943,
+            "wrongResolved": 676.617
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_clientRegistry",
+          "fixedTarget": {
+            "nodeId": "_clientRegistry__1n4i0kc",
+            "file": "packages/engine/src/traits/__tests__/MQTTSourceTrait.prod.test.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_clientRegistry__r4y1ti",
+            "file": "packages/engine/src/traits/__tests__/MQTTSinkTrait.prod.test.ts"
+          },
+          "staleNodeId": "_clientRegistry__1n4i0kc:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 979.075,
+            "correctSelection": 676.282,
+            "staleUnresolved": 702.555,
+            "wrongResolved": 685.138
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_effectId",
+          "fixedTarget": {
+            "nodeId": "_effectId__19fltxv",
+            "file": "packages/engine/src/rendering/PostProcessStack.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_effectId__1jr9tgp",
+            "file": "packages/engine/src/combat/StatusEffects.ts"
+          },
+          "staleNodeId": "_effectId__19fltxv:stale",
+          "baselineRank": 3,
+          "correctRank": 1,
+          "staleRank": 3,
+          "wrongRank": 3,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.333,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 2,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 796.864,
+            "correctSelection": 681.958,
+            "staleUnresolved": 699.056,
+            "wrongResolved": 690.497
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_escapedCode",
+          "fixedTarget": {
+            "nodeId": "_escapedCode__1oec4lu",
+            "file": "services/studio-api/src/app/api/deploy/route.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_escapedCode__qigjdh",
+            "file": "packages/studio/src/app/api/deploy/route.ts"
+          },
+          "staleNodeId": "_escapedCode__1oec4lu:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 992.857,
+            "correctSelection": 693.555,
+            "staleUnresolved": 689.873,
+            "wrongResolved": 712.03
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_exhaustive",
+          "fixedTarget": {
+            "nodeId": "_exhaustive__1ay7va",
+            "file": "packages/absorb-service/src/engine/providers/EmbeddingProviderFactory.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_exhaustive__1u8t8c3",
+            "file": "packages/core/src/compiler/render-modules/collider-extraction.ts"
+          },
+          "staleNodeId": "_exhaustive__1ay7va:stale",
+          "baselineRank": 9,
+          "correctRank": 1,
+          "staleRank": 9,
+          "wrongRank": 9,
+          "wrongSelectedBaselineRank": 5,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.111,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 8,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 757.53,
+            "correctSelection": 717.081,
+            "staleUnresolved": 681.945,
+            "wrongResolved": 673.253
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_globalRegistry",
+          "fixedTarget": {
+            "nodeId": "_globalRegistry__auhlbj",
+            "file": "packages/marketplace-api/src/contracts/TraitBehavioralContract.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_globalRegistry__mg24zq",
+            "file": "packages/platform/src/contracts/TraitBehavioralContract.ts"
+          },
+          "staleNodeId": "_globalRegistry__auhlbj:stale",
+          "baselineRank": 6,
+          "correctRank": 1,
+          "staleRank": 6,
+          "wrongRank": 6,
+          "wrongSelectedBaselineRank": 5,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.167,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 5,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 811.789,
+            "correctSelection": 721.19,
+            "staleUnresolved": 699.126,
+            "wrongResolved": 692.945
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_listeners",
+          "fixedTarget": {
+            "nodeId": "_listeners__4aq3l3",
+            "file": "packages/engine/src/traits/__tests__/IoTPipeline.integration.test.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_listeners__4zpi66",
+            "file": "packages/lsp/src/__tests__/DebugSession.test.ts"
+          },
+          "staleNodeId": "_listeners__4aq3l3:stale",
+          "baselineRank": 11,
+          "correctRank": 1,
+          "staleRank": 11,
+          "wrongRank": 11,
+          "wrongSelectedBaselineRank": 3,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.091,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 10,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 745.615,
+            "correctSelection": 765.215,
+            "staleUnresolved": 731.228,
+            "wrongResolved": 711.869
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_MAX_SIZE_MB",
+          "fixedTarget": {
+            "nodeId": "_MAX_SIZE_MB__nvjycy",
+            "file": "services/studio-api/src/app/api/assets/upload/route.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_MAX_SIZE_MB__1uwyyf7",
+            "file": "packages/studio/src/app/api/assets/upload/route.ts"
+          },
+          "staleNodeId": "_MAX_SIZE_MB__nvjycy:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 799.077,
+            "correctSelection": 914.439,
+            "staleUnresolved": 647.735,
+            "wrongResolved": 668.646
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_nodeId",
+          "fixedTarget": {
+            "nodeId": "_nodeId__tl7gzb",
+            "file": "packages/engine/src/traits/__tests__/EmotionalVoiceTrait.prod.test.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_nodeId__1g3elpc",
+            "file": "packages/engine/src/audio/AudioGraph.ts"
+          },
+          "staleNodeId": "_nodeId__tl7gzb:stale",
+          "baselineRank": 20,
+          "correctRank": 1,
+          "staleRank": 20,
+          "wrongRank": 20,
+          "wrongSelectedBaselineRank": 19,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.05,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 19,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 768.949,
+            "correctSelection": 671.763,
+            "staleUnresolved": 721.78,
+            "wrongResolved": 752.222
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_openrouterAdapter",
+          "fixedTarget": {
+            "nodeId": "_openrouterAdapter__1fqssd7",
+            "file": "packages/mcp-server/scripts/local-worker.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_openrouterAdapter__1jj3500",
+            "file": "packages/mcp-server/src/ollama-client.ts"
+          },
+          "staleNodeId": "_openrouterAdapter__1fqssd7:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 824.959,
+            "correctSelection": 705.524,
+            "staleUnresolved": 681.563,
+            "wrongResolved": 673.971
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_parser",
+          "fixedTarget": {
+            "nodeId": "_parser__1tr28ke",
+            "file": "packages/holoserve-py/holoserve/workspace_fidelity.py"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "_parser__13altpt",
+            "file": "packages/holoserve-py/holoserve/workspace_eval.py"
+          },
+          "staleNodeId": "_parser__1tr28ke:stale",
+          "baselineRank": 18,
+          "correctRank": 1,
+          "staleRank": 18,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 17,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.056,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 17,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": -16,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 887.341,
+            "correctSelection": 662.662,
+            "staleUnresolved": 679.533,
+            "wrongResolved": 758.982
+          },
+          "correctScoreReceipt": {
+            "score": 0.9739,
+            "semanticScore": 1,
+            "connectionScore": 0.125,
+            "impactScore": 0.3333,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9739,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "query": "safe-commit",
+      "requiredFilesInTop3": [],
+      "pass": false
+    },
+    {
+      "query": "safe-commit atomic wrapper that uses git commit --only with explicit paths",
+      "requiredFilesInTop3": [],
+      "pass": false
+    }
+  ],
+  "hardware": {
+    "os": "win32 10.0.26200",
+    "node": "v24.15.0",
+    "cpuCount": 16,
+    "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "totalMemoryBytes": 34069385216,
+    "embeddingExecution": "cpu"
+  }
+}
