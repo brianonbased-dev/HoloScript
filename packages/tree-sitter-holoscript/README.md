@@ -177,8 +177,12 @@ The `queries/locals.scm` file provides:
 # Install dependencies
 npm install
 
-# Generate parser from grammar
+# Generate the parser and attempt the optional native binding.
+# A committed parser + WASM fallback keep this portable when node-gyp is unavailable.
 npm run build
+
+# Require the native binding to compile (release/toolchain validation)
+npm run build:native
 
 # Run tests
 npm test
@@ -199,7 +203,7 @@ tree-sitter-holoscript targets the external/public consumer of any tree-sitter-a
 
 Configuration is fully caller-owned: you point your editor or tool at the published `tree-sitter-holoscript` package (or its `.wasm` binding) yourself, and any language-server wiring, injection regex, or file-type mapping is supplied by your own editor config, not a founder-local default. The package boundary stops at the grammar and bindings — it does not ship any private workspace, private process, or local adapter beyond the standard `node-gyp-build` prebuild-or-source-build fallback.
 
-Release posture: this is a v0-preview grammar release. Known limitations: the native addon build falls back to compiling `src/parser.c` via `node-gyp` when no prebuild matches your platform/ABI — validate this locally with `npm run build` and `npm test` before depending on prebuilds in CI. Breaking grammar changes are not currently guarded by a compatibility gate, so pin a version rather than tracking latest, and roll back to a known-good version if a grammar update breaks your queries.
+Release posture: this is a v0-preview grammar release. Known limitations: the native addon build falls back to compiling `src/parser.c` via `node-gyp` when no prebuild matches your platform/ABI. The normal workspace build keeps that native attempt optional because the committed parser and WASM artifact remain portable; use `npm run build:native` plus `npm test` when a native binding is the artifact under validation. Breaking grammar changes are not currently guarded by a compatibility gate, so pin a version rather than tracking latest, and roll back to a known-good version if a grammar update breaks your queries.
 
 ## License
 

@@ -53,7 +53,7 @@ export function runNativeInstall({
   warn(
     `[tree-sitter-holoscript] optional native binding build failed during install ` +
       `(exit ${status}); WASM fallback remains available. ` +
-      `Run \`pnpm --filter tree-sitter-holoscript run build\` for a strict native build.`
+      `Run \`pnpm --filter tree-sitter-holoscript run build:native\` for a strict native build.`
   );
   return strict ? status : 0;
 }

@@ -67,9 +67,10 @@
   },
   "scripts": {
     "install": "node scripts/install-native-optional.mjs",
-    "build": "node scripts/build-native.mjs",
+    "build": "node scripts/build-portable.mjs",
+    "build:native": "node scripts/build-native.mjs",
     "build:wasm": "tree-sitter build --wasm",
-    "build:all": "npm run build && npm run build:wasm",
+    "build:all": "npm run build:native && npm run build:wasm",
     "test": "tree-sitter test || exit 0",
     "parse": "tree-sitter parse",
     "highlight": "tree-sitter highlight",
