@@ -15,13 +15,34 @@ import { TokenManager } from './auth/TokenManager.js';
 import { CertificationChecker, generateBadge, generateBadgeSVG } from './certification/Checker.js';
 import type { Package } from './types.js';
 
+const SERVICE_VERSION = process.env.npm_package_version || '6.1.1';
+const LIBRARY_STORE_PATH = process.env.REGISTRY_LIBRARY_STORE_PATH;
+const BOOTSTRAP_TOKEN = process.env.REGISTRY_BOOTSTRAP_TOKEN;
+
+if (process.env.NODE_ENV === 'production') {
+  if (!LIBRARY_STORE_PATH) {
+    throw new Error('REGISTRY_LIBRARY_STORE_PATH is required in production');
+  }
+  if (!BOOTSTRAP_TOKEN) {
+    throw new Error('REGISTRY_BOOTSTRAP_TOKEN is required in production');
+  }
+}
+
 // ─── Singletons ──────────────────────────────────────────────────────────────
 
 const registry = new LocalRegistry();
 const resolver = new PackageResolver(registry);
 const accessControl = new AccessControl();
 const tokenManager = new TokenManager();
-const libraryPackageStore = new LibraryPackageStore(process.env.REGISTRY_LIBRARY_STORE_PATH);
+const libraryPackageStore = new LibraryPackageStore(LIBRARY_STORE_PATH);
+
+if (BOOTSTRAP_TOKEN) {
+  tokenManager.register(BOOTSTRAP_TOKEN, {
+    name: 'bootstrap-admin',
+    orgScope: 'holoscript',
+    permissions: ['admin'],
+  });
+}
 
 // ─── Express App ─────────────────────────────────────────────────────────────
 
@@ -62,10 +83,15 @@ app.get('/health', (_req, res) => {
   res.json({
     status: 'healthy',
     service: 'holoscript-registry',
-    version: '3.9.0',
+    version: SERVICE_VERSION,
     uptime: process.uptime(),
     packages: registry.size,
     tokens: tokenManager.size,
+    nativePackages: {
+      count: libraryPackageStore.size,
+      durable: Boolean(LIBRARY_STORE_PATH),
+      authenticatedPublish: Boolean(BOOTSTRAP_TOKEN),
+    },
   });
 });
 
@@ -307,26 +333,12 @@ app.get('/badge/:name/:level.svg', (req, res) => {
 
 app.use('/api/workspaces', workspacesRouter);
 
-// ─── Bootstrap Admin Token ───────────────────────────────────────────────────
-
-const BOOTSTRAP_TOKEN = process.env.REGISTRY_BOOTSTRAP_TOKEN;
-if (BOOTSTRAP_TOKEN) {
-  // Create an admin token for initial setup
-  const { rawToken } = tokenManager.create({
-    name: 'bootstrap-admin',
-    orgScope: 'holoscript',
-    permissions: ['admin'],
-    expiresIn: 365 * 24 * 60 * 60, // 1 year
-  });
-  // Bootstrap token created — retrieve via REGISTRY_BOOTSTRAP_TOKEN env
-}
-
 // ─── Start ───────────────────────────────────────────────────────────────────
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[registry] HoloScript Registry v3.9.0 listening on port ${PORT}`);
+  console.log(`[registry] HoloScript Registry v${SERVICE_VERSION} listening on port ${PORT}`);
   console.log(`[registry] Health:     http://localhost:${PORT}/health`);
   console.log(`[registry] Packages:   http://localhost:${PORT}/api/packages`);
   console.log(`[registry] Workspaces: http://localhost:${PORT}/api/workspaces`);
