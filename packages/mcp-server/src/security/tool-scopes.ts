@@ -137,6 +137,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_absorb_manifest: ['tools:read'],
   holo_graph_status: ['tools:codebase'],
   holo_absorb_repo: ['tools:codebase'],
+  holo_cancel_absorb: ['tools:codebase'],
   holo_query_codebase: ['tools:codebase'],
   holo_impact_analysis: ['tools:codebase'],
   holo_detect_changes: ['tools:codebase'],
@@ -144,6 +145,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   // === Graph RAG ===
   holo_semantic_search: ['tools:codebase'],
   holo_ask_codebase: ['tools:codebase'],
+  holo_visual_graph_context: ['tools:codebase'],
 
   // === Self-improve (admin) ===
   holo_self_diagnose: ['tools:admin'],

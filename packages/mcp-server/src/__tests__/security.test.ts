@@ -571,6 +571,13 @@ describe('Gate 2: Tool Scope Authorization', () => {
     expect(result.authorized).toBe(true);
   });
 
+  it('should expose visual graph context through the least-privilege codebase scope', () => {
+    const result = authorizeToolCall('holo_visual_graph_context', ['tools:codebase']);
+    expect(result.authorized).toBe(true);
+    expect(result.riskLevel).toBe('medium');
+    expect(result.requiredScopes).toEqual(['tools:codebase']);
+  });
+
   it('should expose the HoloAbsorb manifest through the least-privilege read scope', () => {
     const result = authorizeToolCall('holo_absorb_manifest', ['tools:read']);
     expect(result.authorized).toBe(true);
