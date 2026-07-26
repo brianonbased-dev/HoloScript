@@ -49,3 +49,26 @@ e0e642b46ecd3038596887f5a909412a22e38575:.local-worker-key.legacy.1775327969021.
 6c4a0f1ef4fa0ce29859a1aed322546f296b4621:.claude/settings.local.json:jwt:115
 6c4a0f1ef4fa0ce29859a1aed322546f296b4621:.claude/settings.local.json:jwt:116
 24129ec0d8e40208e18f5f10c0261f8b1372056b:.claude/settings.local.json:jwt:116
+
+# -- 2026-07-26 HoloCI history scan: non-credential semantic identifiers ------
+# systems 0.2 public receipts: apiSha256 values are public API artifact
+# digests, not authentication material.
+008823343de66effd17eb33a954fead5bcf5cf7f:artifacts/releases/0.2.0/systems-0.2-public-release-receipt.json:generic-api-key:76
+008823343de66effd17eb33a954fead5bcf5cf7f:artifacts/releases/0.2.0/systems-0.2-public-release-receipt.json:generic-api-key:83
+008823343de66effd17eb33a954fead5bcf5cf7f:artifacts/releases/0.2.0/systems-0.2-public-release-receipt.json:generic-api-key:90
+008823343de66effd17eb33a954fead5bcf5cf7f:artifacts/releases/0.2.0/systems-0.2-public-release-receipt.json:generic-api-key:97
+008823343de66effd17eb33a954fead5bcf5cf7f:artifacts/releases/0.2.0/systems-0.2-publication-receipt.json:generic-api-key:94
+008823343de66effd17eb33a954fead5bcf5cf7f:artifacts/releases/0.2.0/systems-0.2-publication-receipt.json:generic-api-key:101
+008823343de66effd17eb33a954fead5bcf5cf7f:artifacts/releases/0.2.0/systems-0.2-publication-receipt.json:generic-api-key:108
+008823343de66effd17eb33a954fead5bcf5cf7f:artifacts/releases/0.2.0/systems-0.2-publication-receipt.json:generic-api-key:115
+
+# Non-secret vocabulary fields: keySource is simulation provenance,
+# tokenizerFamily is tokenizer routing metadata, and dedup_key is an audit
+# record identity. Exact fingerprints keep the exception bound to the reviewed
+# historical lines rather than weakening the generic-api-key detector.
+87d96365f856e622ddfa1beac90e053a3f6557dd:scripts/bovine-tb-phase-b-physiology-sim.mjs:generic-api-key:427
+2af5b7dd64a2bcb0001e95db5d8089a2e289b553:packages/llm-provider/src/adapters/anthropic.ts:generic-api-key:251
+2af5b7dd64a2bcb0001e95db5d8089a2e289b553:packages/llm-provider/src/adapters/anthropic.ts:generic-api-key:269
+2af5b7dd64a2bcb0001e95db5d8089a2e289b553:packages/llm-provider/src/adapters/anthropic.ts:generic-api-key:279
+2af5b7dd64a2bcb0001e95db5d8089a2e289b553:packages/llm-provider/src/adapters/anthropic.ts:generic-api-key:284
+fa581512cdac8a10fd36afde3ac8bc5a06984783:research/audit-reports/gaps-consumed/A-009-2026-06-10T01-43-19Z-stress-d0b34241.json:generic-api-key:39

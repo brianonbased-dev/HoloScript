@@ -1,0 +1,97 @@
+{
+  "schema": "holoscript.gitleaks-history-baseline-receipt.v1",
+  "generatedAt": "2026-07-26T21:48:03.6713157Z",
+  "sourceTask": "task_1785084741122_mfk3",
+  "sourceReceipt": "cael-ci-v1:85b04976069bb2c3d0790284198d337ef92b4d22e5f3d869051f0aa3d8baf52d",
+  "scanTarget": {
+    "repository": "HoloScript",
+    "headBeforeBaseline": "9b2dc4ddf40c169df7d9c0dca2b2f64ca2677280",
+    "commitsScanned": 9119
+  },
+  "scanner": {
+    "name": "gitleaks",
+    "version": "8.21.2",
+    "commandBoundary": "gitleaks git . --config .gitleaks.toml --redact --no-banner --exit-code 1",
+    "gitNativeMode": true,
+    "redacted": true,
+    "ruleId": "generic-api-key"
+  },
+  "before": {
+    "findingCount": 14,
+    "allReportSecretsRedacted": true,
+    "activeCredentialFindingCount": 0
+  },
+  "classifications": [
+    {
+      "class": "public-artifact-digest",
+      "count": 8,
+      "field": "apiSha256",
+      "basis": "Public Systems 0.2 release and publication receipts record API artifact SHA-256 digests. The semantic field and receipt provenance make these integrity identifiers, not authentication material.",
+      "files": [
+        "artifacts/releases/0.2.0/systems-0.2-public-release-receipt.json",
+        "artifacts/releases/0.2.0/systems-0.2-publication-receipt.json"
+      ]
+    },
+    {
+      "class": "simulation-provenance-label",
+      "count": 1,
+      "field": "keySource",
+      "basis": "The physiology simulation records the source category of a deterministic simulation key. It is provenance vocabulary, not a credential value.",
+      "files": [
+        "scripts/bovine-tb-phase-b-physiology-sim.mjs"
+      ]
+    },
+    {
+      "class": "tokenizer-routing-metadata",
+      "count": 4,
+      "field": "tokenizerFamily",
+      "basis": "The Anthropic adapter records tokenizer-family routing labels. These are model metadata values and do not authorize provider access.",
+      "files": [
+        "packages/llm-provider/src/adapters/anthropic.ts"
+      ]
+    },
+    {
+      "class": "audit-deduplication-identifier",
+      "count": 1,
+      "field": "dedup_key",
+      "basis": "The consumed A-009 audit record stores a task deduplication identifier. It is an internal record identity, not authentication material.",
+      "files": [
+        "research/audit-reports/gaps-consumed/A-009-2026-06-10T01-43-19Z-stress-d0b34241.json"
+      ]
+    }
+  ],
+  "remediation": {
+    "mechanism": "exact-history-fingerprints",
+    "fingerprintCount": 14,
+    "location": ".gitleaksignore",
+    "detectorRegexChanged": false,
+    "pathAllowlistChanged": false,
+    "rotationOrRevocationRequired": false,
+    "reasonNoRotation": "All 14 findings are integrity identifiers, provenance labels, tokenizer metadata, or a deduplication identifier; no credential was classified."
+  },
+  "after": {
+    "findingCount": 0,
+    "exitCode": 0,
+    "scannerSummary": "no leaks found",
+    "commitsScanned": 9119,
+    "syntheticDetectorControl": {
+      "input": "deterministic fake GitHub PAT shape on stdin",
+      "rawValueRecorded": false,
+      "configuredExitCode": 42,
+      "observedExitCode": 42,
+      "findingCount": 1,
+      "result": "PASS"
+    }
+  },
+  "threatModel": {
+    "asset": "repository and downstream CI credentials",
+    "adversary": "an actor harvesting committed provider keys, access tokens, private keys, or high-entropy credentials from public history",
+    "defensePreserved": "The default gitleaks ruleset and generic-api-key detector remain active. Only 14 reviewed commit-file-rule-line fingerprints are ignored.",
+    "residualRisk": "This receipt proves only the configured gitleaks 8.21.2 history scan boundary. It does not prove absence of secrets outside Git history or credentials that do not match the configured rules."
+  },
+  "nonClaims": [
+    "No raw candidate values are copied into this receipt.",
+    "This is not a universal credential-inventory or revocation receipt.",
+    "A zero-finding gitleaks result does not prove that every possible secret pattern is detectable."
+  ]
+}
