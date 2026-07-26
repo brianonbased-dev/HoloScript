@@ -17,6 +17,8 @@
     "holoqr:generate-native": "tsx apps/quest-universal-qr-scanner/generate-native.mts",
     "check:holoqr-born-from-source": "node --test scripts/__tests__/holoqr-release-source-gate.test.mjs && node apps/quest-universal-qr-scanner/scripts/build-release.mjs --source-gate-only",
     "holoqr:build-release": "node apps/quest-universal-qr-scanner/scripts/build-release.mjs",
+    "holoqr:capture-quest": "powershell -NoProfile -ExecutionPolicy Bypass -File apps/quest-universal-qr-scanner/scripts/capture-quest.ps1",
+    "check:holoqr-capture": "powershell -NoProfile -ExecutionPolicy Bypass -File apps/quest-universal-qr-scanner/scripts/capture-quest.ps1 -SelfTest",
     "check:pnpm-package-manager": "node scripts/check-pnpm-package-manager.mjs",
     "audit:package-deps": "node scripts/package-dependency-audit.mjs",
     "check:pnpm-package-manager:test": "node scripts/__tests__/check-pnpm-package-manager.test.mjs",

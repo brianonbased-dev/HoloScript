@@ -61,6 +61,29 @@ apps/quest-universal-qr-scanner/android-mr/app/build/outputs/apk/release/app-rel
 
 See [`RELEASE.md`](./RELEASE.md) for HoloKey signing custody, Meta validation, and store submission.
 
+## Capture the live Quest panel
+
+Ordinary `adb screencap` targets Android's physical display and does not see HoloQR's immersive
+surface. The capture command discovers the live app-owned VR display, mirrors it through a pinned
+official scrcpy build, captures the native 1080x1080 panel, and writes a hardware receipt beside the
+PNG:
+
+```powershell
+pnpm holoqr:capture-quest `
+  -DeviceSerial <quest-serial> `
+  -OutputPath .scratch/holoqr-result-card.png `
+  -BootstrapScrcpy
+```
+
+The first bootstrap downloads scrcpy from its official GitHub release and verifies the pinned
+SHA-256 digest before extraction. Later captures reuse the verified local copy. The receipt fails
+closed unless the package is installed, running, owns the selected display, and produces a
+non-blank frame.
+
+This command captures the live Compose panel only. It does **not** claim to capture the Quest
+compositor, passthrough background, or native world entities. Use Meta Quest Developer Hub's
+compositor capture for final store screenshots that need the complete user view.
+
 ## Install on a Quest
 
 For a sideloaded test build:

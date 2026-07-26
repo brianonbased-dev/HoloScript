@@ -144,6 +144,20 @@ review-skip path, but a clean utility passes the basic technical/content/privacy
 - Trailer (optional, recommended): MP4 H.264/AAC, 1080p–2K, 30 s–2 min + a 2560×1440 cover
 - Text: name, short + long descriptions, Privacy Policy URL, supported devices (Quest 3 / 3S), comfort rating, languages
 
+For agent-operated UI evidence:
+
+```powershell
+pnpm holoqr:capture-quest `
+  -DeviceSerial <serial> `
+  -OutputPath <file.png> `
+  -BootstrapScrcpy
+```
+
+This captures HoloQR's live app-owned 1080x1080 panel and emits a receipt beside it. That proof
+deliberately excludes the Quest compositor, passthrough, and native world entities. The five public
+2560x1440 listing screenshots still require Meta Quest Developer Hub compositor capture; do not
+upscale the panel receipt and call it a full in-headset screenshot.
+
 I can produce the icon/cover/logo art set from the emitted `ic_launcher.xml` brand on request.
 
 ---
