@@ -110,10 +110,13 @@ export class CharacterWebGPUCompiler {
 
     const entityIdOverride =
       typeof this.options.entityId === 'string' ? (this.options.entityId as string) : undefined;
+    const objectId =
+      typeof this.options.objectId === 'string' ? (this.options.objectId as string) : undefined;
     const lodLevel =
       typeof this.options.lodLevel === 'number' ? (this.options.lodLevel as number) : undefined;
     const result = CharacterRender.buildCharacterHostFromComposition(parsed, {
       entityId: entityIdOverride,
+      objectId,
       lodLevel,
     });
     if (!result.ok || !result.host) {

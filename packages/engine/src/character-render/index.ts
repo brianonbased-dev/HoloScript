@@ -34,6 +34,16 @@ export {
 } from './AgentAvatarGarment';
 
 export {
+  SOVEREIGN_MANTLE_CATALOG,
+  getSovereignMantleCatalogEntry,
+  isSovereignMantleStyle,
+  listSovereignMantleStyles,
+  type SovereignMantleCatalogEntry,
+  type SovereignMantleFamilyId,
+  type SovereignMantleGeometryProfile,
+} from './AgentAvatarMantleCatalog';
+
+export {
   DeterministicClothSimulation,
   DEFAULT_CLOTH_SIMULATION,
   type ClothSimulationConfig,

@@ -16,7 +16,11 @@
 import { CharacterHost } from './CharacterHost';
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
-import type { SovereignMantleStyle } from './AgentAvatarGarment';
+import {
+  getSovereignMantleCatalogEntry,
+  isSovereignMantleStyle,
+  type SovereignMantleStyle,
+} from './AgentAvatarMantleCatalog';
 
 // ── Minimal structural view of the parsed composition (matches HoloComposition AST shape). ──
 export interface CompTrait {
@@ -329,14 +333,17 @@ export function buildCharacterHostFromComposition(
       includeHair = false;
       includeEyes = false;
       report.mapped.push('@clothing(style=stormglass_hooded_tunic)');
-      const authoredMantle = asStr(cfgVal(clothing, 'mantle_style', 'mantle'));
-      if (authoredMantle?.toLowerCase() === 'openai_recursive_interlock') {
-        mantleStyle = 'openai_recursive_interlock';
+      const authoredMantle = asStr(cfgVal(clothing, 'mantle_style', 'mantle'))?.toLowerCase();
+      if (authoredMantle && isSovereignMantleStyle(authoredMantle)) {
+        mantleStyle = authoredMantle;
+        const catalogEntry = getSovereignMantleCatalogEntry(mantleStyle);
         const authoredMantleColor = asRgb(cfgVal(clothing, 'mantle_color', 'mantle_base_color'));
         if (authoredMantleColor) {
           const [r, g, b] = authoredMantleColor;
           mantleColor =
             (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
+        } else {
+          mantleColor = catalogEntry.accentColor;
         }
         mantle = {
           style: mantleStyle,
@@ -351,7 +358,7 @@ export function buildCharacterHostFromComposition(
             ? { roughnessMap: asStr(cfgVal(clothing, 'mantle_roughness_map')) }
             : {}),
         };
-        report.mapped.push('@clothing(mantle_style=openai_recursive_interlock)');
+        report.mapped.push(`@clothing(mantle_style=${mantleStyle})`);
       } else if (authoredMantle) {
         report.stubbed.push({
           trait: '@clothing(mantle_style)',

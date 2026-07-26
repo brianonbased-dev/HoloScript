@@ -10,10 +10,15 @@
 
 import { HUMANOID_BONE_NAMES } from '../character/HumanoidSkeleton';
 import { computeBindWorld } from './AgentAvatarMesh';
+import {
+  getSovereignMantleCatalogEntry,
+  type SovereignMantleGeometryProfile,
+  type SovereignMantleStyle,
+} from './AgentAvatarMantleCatalog';
 import { getTranslation, type Vec3 } from './skin-math';
 
 export type SovereignGarmentStyle = 'stormglass_hooded_tunic';
-export type SovereignMantleStyle = 'openai_recursive_interlock';
+export type { SovereignMantleStyle } from './AgentAvatarMantleCatalog';
 
 export interface GarmentMeshPart {
   positions: Float32Array<ArrayBuffer>;
@@ -239,7 +244,12 @@ function pushVisor(target: MeshAccum, segments: number, buildScale: number): voi
  * A shoulder-pinned, front-readable mantle panel. The repeating UV field carries the family
  * pattern; the lower rows are mobile while the shoulder seam stays pinned.
  */
-function pushMantlePanel(target: MeshAccum, buildScale: number, segments: number): void {
+function pushMantlePanel(
+  target: MeshAccum,
+  buildScale: number,
+  segments: number,
+  profile: Readonly<SovereignMantleGeometryProfile>
+): void {
   const columns = Math.max(6, Math.min(16, Math.round(segments / 2)));
   const rows = 7;
   const base = target.positions.length / 3;
@@ -250,10 +260,27 @@ function pushMantlePanel(target: MeshAccum, buildScale: number, segments: number
     for (let column = 0; column <= columns; column += 1) {
       const u01 = column / columns;
       const centerArc = Math.sin(u01 * Math.PI) ** 2;
-      const y = 1.42 - v01 * 0.78 - v01 * centerArc * 0.12;
-      const halfWidth = (0.34 * (1 - v01) + 0.15 * v01) * buildScale;
-      const x = (u01 * 2 - 1) * halfWidth;
-      const z = (0.19 + 0.026 * Math.cos((u01 - 0.5) * Math.PI)) * buildScale;
+      const edgeArc = Math.abs(u01 * 2 - 1) ** 1.6;
+      const y =
+        1.42 -
+        v01 * profile.length -
+        v01 * centerArc * profile.centerDrop -
+        v01 * edgeArc * profile.edgeDrop +
+        (1 - v01) * centerArc * profile.shoulderCenterRise +
+        (u01 - 0.5) * v01 * profile.verticalSkew;
+      const midContour = Math.sin(v01 * Math.PI);
+      const halfWidth =
+        (profile.shoulderHalfWidth * (1 - v01) + profile.hemHalfWidth * v01) *
+        (1 + profile.midWidthFactor * midContour) *
+        buildScale;
+      const x =
+        (u01 * 2 - 1) * halfWidth +
+        profile.lateralSkew * v01 * buildScale;
+      const z =
+        (0.19 +
+          profile.zCurve * Math.cos((u01 - 0.5) * Math.PI) +
+          profile.zWave * Math.sin(u01 * Math.PI * 2) * v01) *
+        buildScale;
       target.positions.push(x, y, z);
       target.normals.push(0, 0, 1);
       target.tangents.push(1, 0, 0, 0);
@@ -347,8 +374,13 @@ export function buildAgentAvatarGarment(
   }
 
   pushVisor(visor, segments, buildScale);
-  if (options.mantleStyle === 'openai_recursive_interlock') {
-    pushMantlePanel(mantle, buildScale, segments);
+  if (options.mantleStyle) {
+    pushMantlePanel(
+      mantle,
+      buildScale,
+      segments,
+      getSovereignMantleCatalogEntry(options.mantleStyle).geometry
+    );
   }
   return {
     cloth: finish(cloth, heightScale),

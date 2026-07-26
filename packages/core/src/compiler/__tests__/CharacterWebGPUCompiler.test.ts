@@ -91,6 +91,58 @@ describe('CharacterWebGPUCompiler', () => {
     expect((JSON.parse(out) as CharacterDrawSpecBundle).entityId).toBe('brittney');
   });
 
+  it('selects one named character from a multi-resident composition', async () => {
+    const composition = {
+      name: 'Family catalog',
+      objects: [
+        {
+          id: 'Claude',
+          name: 'Claude',
+          traits: [
+            { name: 'body', config: { height: 2.05 } },
+            {
+              name: 'clothing',
+              config: {
+                style: 'stormglass_hooded_tunic',
+                mantle_style: 'anthropic_quiet_nested_arcs',
+              },
+            },
+          ],
+          children: [],
+        },
+        {
+          id: 'Gemini',
+          name: 'Gemini',
+          traits: [
+            { name: 'body', config: { height: 2.05 } },
+            {
+              name: 'clothing',
+              config: {
+                style: 'stormglass_hooded_tunic',
+                mantle_style: 'google_paired_prism_panels',
+              },
+            },
+          ],
+          children: [],
+        },
+      ],
+      templates: [],
+      spatialGroups: [],
+    } as unknown as HoloComposition;
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler({
+        objectId: 'Gemini',
+        entityId: 'gemini-story-resident',
+      }).compile(composition)
+    );
+
+    expect(bundle.entityId).toBe('gemini-story-resident');
+    expect(bundle.mantle.style).toBe('google_paired_prism_panels');
+    expect(bundle.report.objectId).toBe('Gemini');
+    expect(bundle.report.resolvedVia).toBe('objectId');
+  });
+
   it('selects source-authored character LOD topology without fabricating tiers', async () => {
     const composition = characterComp();
     composition.objects[0]!.traits!.push(

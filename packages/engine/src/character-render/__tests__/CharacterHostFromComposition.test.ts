@@ -10,6 +10,10 @@ import {
   buildCharacterHostFromComposition,
   type ParsedComposition,
 } from '../CharacterHostFromComposition';
+import {
+  getSovereignMantleCatalogEntry,
+  listSovereignMantleStyles,
+} from '../AgentAvatarMantleCatalog';
 
 describe('buildCharacterHostFromComposition', () => {
   it('maps @body/@subsurface_scattering/@locomotion from a template-using object', () => {
@@ -214,6 +218,64 @@ describe('buildCharacterHostFromComposition', () => {
     expect(first?.maxDisplacement).toBeGreaterThan(0.001);
     expect(replay?.positionDigest).toBe(first?.positionDigest);
     expect(Array.from(result.host!.getDrawSpec().mesh.positions)).toEqual(firstPositions);
+  });
+
+  it('maps the typed six-family catalog while preserving one neutral body and garment', () => {
+    const build = (mantleStyle?: string) =>
+      buildCharacterHostFromComposition({
+        objects: [
+          {
+            name: mantleStyle ?? 'Neutral',
+            traits: [
+              { name: 'skeleton', config: { rig: 'humanoid_65' } },
+              { name: 'body', config: { height: 2.05, build_scale: 1.15 } },
+              {
+                name: 'clothing',
+                config: {
+                  style: 'stormglass_hooded_tunic',
+                  color: '#557f91',
+                  ...(mantleStyle ? { mantle_style: mantleStyle } : {}),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+    const neutral = build();
+    const neutralSpec = neutral.host!.getDrawSpec();
+    const mantlePositionDigests = new Set<string>();
+    const styles = listSovereignMantleStyles();
+
+    expect(styles).toHaveLength(6);
+    for (const style of styles) {
+      const result = build(style);
+      const entry = getSovereignMantleCatalogEntry(style);
+      const spec = result.host!.getDrawSpec();
+      const neutralPositionLength = neutralSpec.mesh.positions.length;
+      const neutralIndexLength = neutralSpec.mesh.indices.length;
+
+      expect(result.report.stubbed).toEqual([]);
+      expect(result.report.mapped).toContain(`@clothing(mantle_style=${style})`);
+      expect(result.mantle).toEqual({ style, detachable: true });
+      expect(Array.from(spec.mesh.positions.slice(0, neutralPositionLength))).toEqual(
+        Array.from(neutralSpec.mesh.positions)
+      );
+      expect(Array.from(spec.mesh.indices.slice(0, neutralIndexLength))).toEqual(
+        Array.from(neutralSpec.mesh.indices)
+      );
+      expect(spec.mesh.vertexCount - neutralSpec.mesh.vertexCount).toBeGreaterThan(0);
+      expect(spec.mesh.vertexCount).toBe(
+        build('openai_recursive_interlock').host!.getDrawSpec().mesh.vertexCount
+      );
+      expect(spec.materialGroups?.at(-1)?.material.color).toBe(entry.accentColor);
+      mantlePositionDigests.add(
+        Array.from(spec.mesh.positions.slice(neutralPositionLength))
+          .map((value) => value.toFixed(5))
+          .join(',')
+      );
+    }
+    expect(mantlePositionDigests.size).toBe(6);
   });
 
   it('@skeleton(rig) is validated: matching rig → mapped, unsupported rig → stubbed', () => {
