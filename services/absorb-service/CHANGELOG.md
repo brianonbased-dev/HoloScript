@@ -1,5 +1,16 @@
 # @holoscript/absorb-service-host
 
+## 6.1.2
+
+### Fixed
+
+- Added the canonical stateless Streamable HTTP `POST /mcp` transport so
+  Railway replica changes do not invalidate an in-memory SSE session.
+- Registered the engine's standard JSON Schema tool definitions through the
+  MCP protocol server instead of the SDK's Zod-only convenience overload.
+- Advertised HoloAbsorb and its preferred/fallback transports truthfully in
+  MCP discovery.
+
 ## 6.1.1
 
 ### Patch Changes

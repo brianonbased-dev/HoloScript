@@ -16,6 +16,7 @@ import { adminRouter } from './routes/admin.js';
 import { router as emergentSpacetimeRouter } from './routes/emergent-spacetime.js';
 import {
   handleMcpSse,
+  handleMcpStreamableHttp,
   handleMcpMessages,
   handleMcpDelete,
   handleMcpDiscovery,
@@ -227,7 +228,10 @@ app.get('/health', (_req, res) => {
 app.get('/.well-known/mcp', handleMcpDiscovery);
 app.get('/.well-known/mcp.json', handleMcpDiscovery);
 
-// --- MCP SSE transport ---
+// --- MCP transports ---
+// Streamable HTTP is the canonical, stateless Railway-safe path. Retain the
+// original SSE route as a compatibility fallback for older MCP clients.
+app.post('/mcp', authMiddleware, handleMcpStreamableHttp);
 app.get('/mcp', handleMcpSse);
 app.post('/mcp/messages', handleMcpMessages);
 app.delete('/mcp', handleMcpDelete);

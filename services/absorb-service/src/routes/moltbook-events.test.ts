@@ -8,6 +8,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response } from 'express';
 
+const MOCK_USER_ID = '00000000-0000-4000-8000-000000000001';
+
 // ── Mock Data ───────────────────────────────────────────────────────────────
 
 const mockEvents = [
@@ -18,7 +20,7 @@ const mockEvents = [
 
 const mockAgent = {
   id: 'agent-1',
-  userId: 'user-1',
+  userId: MOCK_USER_ID,
   agentName: 'bot-a',
   moltbookApiKey: 'mb_test_key_123',
   heartbeatEnabled: false,
@@ -72,7 +74,7 @@ function createMockReq(overrides: Record<string, any> = {}): Request {
     params: {},
     query: {},
     body: {},
-    userId: 'user-1',
+    userId: MOCK_USER_ID,
     ...overrides,
   } as any;
 }
