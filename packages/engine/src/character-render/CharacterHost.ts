@@ -25,6 +25,8 @@ import type {
   SkinSSSMaterialSpec,
   MarschnerHairMaterialSpec,
   RefractiveEyeMaterialSpec,
+  BaseMaterialSpec,
+  WovenClothMaterialSpec,
 } from '../native-render/draw-spec';
 import {
   computeBindWorld,
@@ -35,6 +37,7 @@ import {
   type AvatarPose,
 } from './AgentAvatarMesh';
 import { buildCharacterMesh, type CharacterMeshData } from './AgentAvatarHair';
+import type { SovereignGarmentStyle } from './AgentAvatarGarment';
 import {
   fromRotationTranslation,
   fromTranslation,
@@ -69,6 +72,16 @@ export interface CharacterHostOptions {
   irisColor?: number;
   /** Initial world position. */
   position?: [number, number, number];
+  /** Operative native garment preset selected by @clothing. */
+  garmentStyle?: SovereignGarmentStyle;
+  /** Packed 0xRRGGBB cloth base colour. */
+  garmentColor?: number;
+  /** Authored radial topology selected by @lod. */
+  garmentSegments?: number;
+  /** Procedural hair can be suppressed by a closed hood. */
+  includeHair?: boolean;
+  /** Procedural eyes can be suppressed by a faceless visor. */
+  includeEyes?: boolean;
 }
 
 /** Human-skin SSS preset (SubsurfaceScattering.ts humanSkin + SkinSSRenderer defaults). */
@@ -126,6 +139,8 @@ export class CharacterHost {
   private readonly skinMaterial: SkinSSSMaterialSpec;
   private readonly hairMaterial: MarschnerHairMaterialSpec;
   private readonly eyeMaterial: RefractiveEyeMaterialSpec;
+  private readonly garmentMaterial: WovenClothMaterialSpec;
+  private readonly visorMaterial: BaseMaterialSpec;
   private modelMatrix: Mat4;
   private pose: Map<string, Quat> = new Map();
   // D.102 portable mind (opt-in via bindMind; body renders identically with or without it).
@@ -139,6 +154,10 @@ export class CharacterHost {
       entityId: opts.entityId,
       heightScale: opts.heightScale,
       buildScale: opts.buildScale,
+      garmentStyle: opts.garmentStyle,
+      garmentSegments: opts.garmentSegments,
+      includeHair: opts.includeHair,
+      includeEyes: opts.includeEyes,
     });
     this.bindWorld = computeBindWorld();
     this.inverseBind = computeInverseBind(this.bindWorld);
@@ -165,6 +184,25 @@ export class CharacterHost {
       melaninRedness: opts.melaninRedness ?? 0.2,
     };
     this.eyeMaterial = { ...EYE_BASE, color: opts.irisColor ?? 0x4a3520 };
+    this.garmentMaterial = {
+      shadingModel: 'woven-cloth',
+      color: opts.garmentColor ?? 0x4f7182,
+      metalness: 0,
+      roughness: 0.72,
+      emissive: 0,
+      opacity: 1,
+      sheen: 0.42,
+      weaveScale: 18,
+      rimStrength: 0.32,
+    };
+    this.visorMaterial = {
+      shadingModel: 'lambert',
+      color: 0x07111f,
+      metalness: 0,
+      roughness: 0.35,
+      emissive: 0,
+      opacity: 1,
+    };
     const p = opts.position ?? [0, 0, 0];
     this.modelMatrix = fromTranslation(p[0], p[1], p[2]);
   }
@@ -214,7 +252,9 @@ export class CharacterHost {
       { ...this.built.bodyRange, material: this.skinMaterial },
       { ...this.built.hairRange, material: this.hairMaterial },
       { ...this.built.eyeRange, material: this.eyeMaterial },
-    ];
+      { ...this.built.garmentRange, material: this.garmentMaterial },
+      { ...this.built.visorRange, material: this.visorMaterial },
+    ].filter((group) => group.indexCount > 0);
     return {
       entityId: this.entityId,
       mesh: this.built.mesh,

@@ -175,3 +175,37 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
   let col = base * (0.3 + 0.7 * ndl) + vec3<f32>(catchlight) + vec3<f32>(fres * 0.3);
   return vec4<f32>(col, mat.color.a);
 }
+
+// ── Woven cloth: broad rough specular + grazing fibre sheen + micro-weave breakup. ──
+// Material packing: scatterColor = (roughness, sheen, weaveScale, rimStrength).
+@fragment
+fn fs_woven_cloth(in : VSOut) -> @location(0) vec4<f32> {
+  let N = normalize(in.wN);
+  let L = normalize(frame.lightDir.xyz);
+  let V = normalize(frame.cameraPos.xyz - in.wP);
+  let H = normalize(L + V);
+  let ndl = max(dot(N, L), 0.0);
+  let ndv = max(dot(N, V), 0.0);
+  let ndh = max(dot(N, H), 0.0);
+
+  let rough = clamp(mat.scatterColor.x, 0.08, 1.0);
+  let sheenStrength = clamp(mat.scatterColor.y, 0.0, 1.0);
+  let weaveScale = max(mat.scatterColor.z, 1.0);
+  let rimStrength = clamp(mat.scatterColor.w, 0.0, 1.0);
+
+  // World-space crossed fibres keep the procedural garment texture-owned and UV independent.
+  let warp = sin(in.wP.x * weaveScale * 6.28318);
+  let weft = sin(in.wP.y * weaveScale * 6.28318);
+  let weave = 0.92 + 0.08 * warp * weft;
+
+  let specExp = max(2.0, 2.0 / (rough * rough) - 2.0);
+  let roughSpec = pow(ndh, specExp) * (0.04 + 0.08 * (1.0 - rough));
+  let fibreSheen = pow(1.0 - ndv, 3.0) * sheenStrength;
+  let rim = pow(1.0 - ndv, 4.0) * rimStrength;
+
+  var col = mat.color.rgb * weave * (0.18 + 0.82 * ndl);
+  col += mat.color.rgb * fibreSheen * 0.35;
+  col += vec3<f32>(roughSpec + rim * 0.12);
+  col = col / (col + vec3<f32>(1.0));
+  return vec4<f32>(col, mat.color.a);
+}

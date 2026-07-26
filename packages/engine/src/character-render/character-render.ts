@@ -47,6 +47,7 @@ const FRAG_ENTRY: Record<ShadingModel, string> = {
   'skin-sss': 'fs_skin_sss',
   'marschner-hair': 'fs_marschner',
   'refractive-eye': 'fs_eye',
+  'woven-cloth': 'fs_woven_cloth',
 };
 
 /**
@@ -111,6 +112,11 @@ function fillMaterial(m: CharacterMaterialSpec): Float32Array<ArrayBuffer> {
     out[7] = m.secondaryExp;
   } else if (m.shadingModel === 'refractive-eye') {
     out[4] = m.ior; // scatterColor.x = ior (Fresnel rim)
+  } else if (m.shadingModel === 'woven-cloth') {
+    out[4] = m.roughness;
+    out[5] = m.sheen;
+    out[6] = m.weaveScale;
+    out[7] = m.rimStrength;
   }
   // lambert: leaves 4..15 zero (fs_lambert reads only color).
   return out;
@@ -196,17 +202,35 @@ export async function renderCharacter(
   };
 
   // Geometry buffers (shared across all groups).
-  const posBuf = device.createBuffer({ size: mesh.positions.byteLength, usage: BUF_VERTEX | BUF_COPY_DST });
+  const posBuf = device.createBuffer({
+    size: mesh.positions.byteLength,
+    usage: BUF_VERTEX | BUF_COPY_DST,
+  });
   device.queue.writeBuffer(posBuf, 0, mesh.positions);
-  const normBuf = device.createBuffer({ size: mesh.normals.byteLength, usage: BUF_VERTEX | BUF_COPY_DST });
+  const normBuf = device.createBuffer({
+    size: mesh.normals.byteLength,
+    usage: BUF_VERTEX | BUF_COPY_DST,
+  });
   device.queue.writeBuffer(normBuf, 0, mesh.normals);
-  const jiBuf = device.createBuffer({ size: mesh.jointIndices.byteLength, usage: BUF_VERTEX | BUF_COPY_DST });
+  const jiBuf = device.createBuffer({
+    size: mesh.jointIndices.byteLength,
+    usage: BUF_VERTEX | BUF_COPY_DST,
+  });
   device.queue.writeBuffer(jiBuf, 0, mesh.jointIndices);
-  const jwBuf = device.createBuffer({ size: mesh.jointWeights.byteLength, usage: BUF_VERTEX | BUF_COPY_DST });
+  const jwBuf = device.createBuffer({
+    size: mesh.jointWeights.byteLength,
+    usage: BUF_VERTEX | BUF_COPY_DST,
+  });
   device.queue.writeBuffer(jwBuf, 0, mesh.jointWeights);
-  const tanBuf = device.createBuffer({ size: mesh.tangents.byteLength, usage: BUF_VERTEX | BUF_COPY_DST });
+  const tanBuf = device.createBuffer({
+    size: mesh.tangents.byteLength,
+    usage: BUF_VERTEX | BUF_COPY_DST,
+  });
   device.queue.writeBuffer(tanBuf, 0, mesh.tangents);
-  const idxBuf = device.createBuffer({ size: mesh.indices.byteLength, usage: BUF_INDEX | BUF_COPY_DST });
+  const idxBuf = device.createBuffer({
+    size: mesh.indices.byteLength,
+    usage: BUF_INDEX | BUF_COPY_DST,
+  });
   device.queue.writeBuffer(idxBuf, 0, mesh.indices);
 
   // Shared frame uniform: mvp(16) + model(16) + cameraPos(4) + lightDir(4) = 40 floats.
@@ -222,11 +246,17 @@ export async function renderCharacter(
   frame[37] = light[1];
   frame[38] = light[2];
   frame[39] = 0;
-  const frameBuf = device.createBuffer({ size: frame.byteLength, usage: BUF_UNIFORM | BUF_COPY_DST });
+  const frameBuf = device.createBuffer({
+    size: frame.byteLength,
+    usage: BUF_UNIFORM | BUF_COPY_DST,
+  });
   device.queue.writeBuffer(frameBuf, 0, frame);
 
   // Shared skin palette storage buffer.
-  const jointBuf = device.createBuffer({ size: spec.jointMatrices.byteLength, usage: BUF_STORAGE | BUF_COPY_DST });
+  const jointBuf = device.createBuffer({
+    size: spec.jointMatrices.byteLength,
+    usage: BUF_STORAGE | BUF_COPY_DST,
+  });
   device.queue.writeBuffer(jointBuf, 0, spec.jointMatrices);
 
   const frameBindGroup = device.createBindGroup({
@@ -295,17 +325,29 @@ export async function renderCharacter(
   for (const g of ordered) {
     const pipe = getPipeline(g.material.shadingModel, !!g.transparent);
     const matData = fillMaterial(g.material);
-    const matBuf = device.createBuffer({ size: matData.byteLength, usage: BUF_UNIFORM | BUF_COPY_DST });
+    const matBuf = device.createBuffer({
+      size: matData.byteLength,
+      usage: BUF_UNIFORM | BUF_COPY_DST,
+    });
     device.queue.writeBuffer(matBuf, 0, matData);
     matBufs.push(matBuf);
     pass.setPipeline(pipe);
-    pass.setBindGroup(1, device.createBindGroup({ layout: matBGL, entries: [{ binding: 0, resource: { buffer: matBuf } }] }));
+    pass.setBindGroup(
+      1,
+      device.createBindGroup({
+        layout: matBGL,
+        entries: [{ binding: 0, resource: { buffer: matBuf } }],
+      })
+    );
     pass.drawIndexed(g.indexCount, 1, g.indexStart);
   }
   pass.end();
 
   const bytesPerRow = size * 4;
-  const readback = device.createBuffer({ size: bytesPerRow * size, usage: BUF_COPY_DST | BUF_MAP_READ });
+  const readback = device.createBuffer({
+    size: bytesPerRow * size,
+    usage: BUF_COPY_DST | BUF_MAP_READ,
+  });
   encoder.copyTextureToBuffer(
     { texture },
     { buffer: readback, bytesPerRow, rowsPerImage: size },

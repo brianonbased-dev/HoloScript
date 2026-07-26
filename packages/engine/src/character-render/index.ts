@@ -25,6 +25,14 @@ export {
 } from './AgentAvatarMesh';
 
 export {
+  buildAgentAvatarGarment,
+  type AgentAvatarGarmentData,
+  type AgentAvatarGarmentOptions,
+  type GarmentMeshPart,
+  type SovereignGarmentStyle,
+} from './AgentAvatarGarment';
+
+export {
   buildAgentAvatarHair,
   buildAgentAvatarEyes,
   buildCharacterMesh,
@@ -55,11 +63,7 @@ export {
   type MindMemoryEntry,
 } from './CharacterMind';
 
-export {
-  renderCharacter,
-  framingMatrix,
-  type CharacterRenderOptions,
-} from './character-render';
+export { renderCharacter, framingMatrix, type CharacterRenderOptions } from './character-render';
 
 // Render "Part 2" — native WebGPU Gaussian-splat variant (photoreal mesh/skin upgrade route).
 export {

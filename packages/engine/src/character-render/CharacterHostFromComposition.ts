@@ -47,6 +47,8 @@ export interface CharacterHostFromCompositionOptions {
   objectId?: string;
   /** Clamp bounds for derived scales (default 0.5..2.0). */
   scaleBounds?: { min: number; max: number };
+  /** Select one source-authored @lod level for the emitted native mesh (default 0). */
+  lodLevel?: number;
 }
 
 export interface CharacterHostFromCompositionResult {
@@ -56,6 +58,8 @@ export interface CharacterHostFromCompositionResult {
   gait?: { mode: GaitMode; speed: number };
   /** Packed 0xRRGGBB derived from @subsurface_scattering(color), if present. */
   materialColor?: number;
+  /** The operative authored LOD selection, when @lod is present. */
+  lod?: { level: number; distance: number; garmentSegments: number };
   report: {
     objectId?: string;
     resolvedVia: 'objectId' | 'body-trait-heuristic' | 'first-object' | 'none';
@@ -72,23 +76,17 @@ const SUPPORTED_RIG = 'humanoid_65';
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), hi);
 const asNum = (v: unknown): number | undefined => (typeof v === 'number' ? v : undefined);
 const asStr = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
+const asRecord = (v: unknown): Record<string, unknown> | undefined =>
+  v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined;
 
 /** Normalize an authored RGB array or #RRGGBB string to a clamped linear-RGB tuple. */
 function asRgb(v: unknown): [number, number, number] | undefined {
   if (Array.isArray(v) && v.length >= 3 && v.slice(0, 3).every((x) => typeof x === 'number')) {
-    return [
-      clamp(v[0] as number, 0, 1),
-      clamp(v[1] as number, 0, 1),
-      clamp(v[2] as number, 0, 1),
-    ];
+    return [clamp(v[0] as number, 0, 1), clamp(v[1] as number, 0, 1), clamp(v[2] as number, 0, 1)];
   }
   if (typeof v === 'string' && /^#?[0-9a-fA-F]{6}$/.test(v)) {
     const packed = parseInt(v.replace('#', ''), 16);
-    return [
-      ((packed >> 16) & 0xff) / 255,
-      ((packed >> 8) & 0xff) / 255,
-      (packed & 0xff) / 255,
-    ];
+    return [((packed >> 16) & 0xff) / 255, ((packed >> 8) & 0xff) / 255, (packed & 0xff) / 255];
   }
   return undefined;
 }
@@ -195,7 +193,39 @@ export function buildCharacterHostFromComposition(
   report.objectId = obj.id ?? obj.name;
   const traits = mergeTraits(obj, templates);
 
-  // 2. @body → heightScale / buildScale (height authored in METRES; reference = 1.75 m).
+  // 2. @lod → an authored topology selection. The compiler chooses one declared level;
+  //    it never invents decimation tiers from the LOD0 mesh.
+  let lod: CharacterHostFromCompositionResult['lod'];
+  const lodTrait = traits.get('lod');
+  if (lodTrait) {
+    const requestedLevel = Math.max(0, Math.round(opts.lodLevel ?? 0));
+    const levels = cfgVal(lodTrait, 'levels');
+    const authored = Array.isArray(levels)
+      ? levels.map(asRecord).filter((level): level is Record<string, unknown> => !!level)
+      : [];
+    const selected = authored.find(
+      (level) => Math.round(asNum(level.level) ?? -1) === requestedLevel
+    );
+    if (selected) {
+      const garmentSegments = Math.max(
+        6,
+        Math.min(32, Math.round(asNum(selected.garment_segments) ?? 24))
+      );
+      lod = {
+        level: requestedLevel,
+        distance: Math.max(0, asNum(selected.distance) ?? 0),
+        garmentSegments,
+      };
+      report.mapped.push(`@lod(level=${requestedLevel})`);
+    } else {
+      report.stubbed.push({
+        trait: '@lod',
+        reason: `level ${requestedLevel} is not authored; no generated fallback tier`,
+      });
+    }
+  }
+
+  // 3. @body → heightScale / buildScale (height authored in METRES; reference = 1.75 m).
   let heightScale = 1;
   let buildScale = 1;
   const body = traits.get('body');
@@ -210,7 +240,7 @@ export function buildCharacterHostFromComposition(
     if (b !== undefined) buildScale = clamp(b, bounds.min, bounds.max);
   }
 
-  // 3. Skin tone → packed colour. Prefer @subsurface_scattering(color); fall back to
+  // 4. Skin tone → packed colour. Prefer @subsurface_scattering(color); fall back to
   //    @body(skin_tone) (the canonical avatar-template authoring shape).
   let color: number | undefined;
   const sss = traits.get('subsurface_scattering');
@@ -227,14 +257,12 @@ export function buildCharacterHostFromComposition(
       report.warnings.push('skin tone taken from @body(skin_tone)');
     }
   }
-  const skinScatterColor = asRgb(
-    sss ? cfgVal(sss, 'scatter_color', 'scatterColor') : undefined
-  );
+  const skinScatterColor = asRgb(sss ? cfgVal(sss, 'scatter_color', 'scatterColor') : undefined);
   if (skinScatterColor) {
     report.mapped.push('@subsurface_scattering(scatter_color)');
   }
 
-  // 4. @hair(color) → Marschner melanin/redness. Darker authored hair → more eumelanin;
+  // 5. @hair(color) → Marschner melanin/redness. Darker authored hair → more eumelanin;
   //    warmer (red-dominant) → more pheomelanin. Makes the authored hair colour OPERATIVE
   //    (changing @hair(color) in the .holo changes the rendered hair). @hair(style) has no
   //    geometry channel yet → reported, not faked.
@@ -253,20 +281,51 @@ export function buildCharacterHostFromComposition(
       melanin = clamp(1 - luminance, 0.05, 0.95);
       melaninRedness = clamp((r - b) * 1.5, 0, 1);
       report.mapped.push('@hair(color)');
-      if (style) report.warnings.push(`@hair(style:'${style}') has no geometry channel yet; colour mapped`);
+      if (style)
+        report.warnings.push(`@hair(style:'${style}') has no geometry channel yet; colour mapped`);
     } else {
-      report.warnings.push('@hair present: default procedural hair rendered; colour/style not author-driven');
+      report.warnings.push(
+        '@hair present: default procedural hair rendered; colour/style not author-driven'
+      );
     }
   }
 
-  // 5. entityId + position.
+  // 6. @clothing → operative sovereign garment geometry/material. The supported closed hood
+  //    intentionally suppresses human hair/eyes; its dark visor carries the faceless identity.
+  let garmentStyle: 'stormglass_hooded_tunic' | undefined;
+  let garmentColor: number | undefined;
+  let includeHair: boolean | undefined;
+  let includeEyes: boolean | undefined;
+  const clothing = traits.get('clothing');
+  if (clothing) {
+    const style = asStr(cfgVal(clothing, 'style', 'type', 'preset'));
+    if (style?.toLowerCase() === 'stormglass_hooded_tunic') {
+      garmentStyle = 'stormglass_hooded_tunic';
+      const authoredColor = asRgb(cfgVal(clothing, 'color', 'base_color'));
+      if (authoredColor) {
+        const [r, g, b] = authoredColor;
+        garmentColor =
+          (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
+      }
+      includeHair = false;
+      includeEyes = false;
+      report.mapped.push('@clothing(style=stormglass_hooded_tunic)');
+    } else {
+      report.stubbed.push({
+        trait: '@clothing',
+        reason: `style '${style ?? 'unspecified'}' has no sovereign character geometry channel`,
+      });
+    }
+  }
+
+  // 7. entityId + position.
   const entityId = opts.entityId ?? obj.id ?? obj.name ?? parsed.name ?? 'character';
   const p = obj.position;
   const position: [number, number, number] | undefined = p
     ? [p.x ?? 0, p.y ?? 0, p.z ?? 0]
     : undefined;
 
-  // 6. Construct (undefined fields → CharacterHost uses its skin-tone / hair defaults).
+  // 8. Construct (undefined fields → CharacterHost uses its skin-tone / hair defaults).
   const host = new CharacterHost({
     entityId,
     heightScale,
@@ -276,17 +335,19 @@ export function buildCharacterHostFromComposition(
     melanin,
     melaninRedness,
     position,
+    garmentStyle,
+    garmentColor,
+    garmentSegments: lod?.garmentSegments,
+    includeHair,
+    includeEyes,
   });
 
-  // 7. @locomotion → gait descriptor (caller drives the per-frame clock).
+  // 9. @locomotion → gait descriptor (caller drives the per-frame clock).
   let gait: { mode: GaitMode; speed: number } | undefined;
   const loco = traits.get('locomotion');
   if (loco) {
-    const rawMode = (
-      asStr(cfgVal(loco, 'mode', 'default_mode')) ?? 'walk'
-    ).toLowerCase();
-    const speed =
-      asNum(cfgVal(loco, 'speed', 'smooth_speed', 'walk_speed', 'move_speed')) ?? 1.4;
+    const rawMode = (asStr(cfgVal(loco, 'mode', 'default_mode')) ?? 'walk').toLowerCase();
+    const speed = asNum(cfgVal(loco, 'speed', 'smooth_speed', 'walk_speed', 'move_speed')) ?? 1.4;
     const mapped = GAIT_FROM_MODE[rawMode];
     if (mapped) {
       gait = { mode: mapped, speed };
@@ -303,7 +364,7 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 8. @skeleton(rig) → validated against the one rig the host renders. A matching rig is
+  // 10. @skeleton(rig) → validated against the one rig the host renders. A matching rig is
   //    operative-by-agreement (the authored rig IS what renders); a mismatch is reported, never
   //    silently mis-rendered.
   const skel = traits.get('skeleton');
@@ -319,9 +380,9 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 9. STUBBED traits — captured, never faked (no CharacterHost channel exists yet).
+  // 11. STUBBED traits — captured, never faked (no CharacterHost channel exists yet).
   if (traits.has('morph'))
     report.stubbed.push({ trait: '@morph', reason: 'no FACS/morph-target channel yet' });
 
-  return { ok: true, host, gait, materialColor: color, report };
+  return { ok: true, host, gait, materialColor: color, lod, report };
 }

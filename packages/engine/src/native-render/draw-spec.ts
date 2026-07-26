@@ -178,7 +178,12 @@ export interface CharacterDrawSpec {
 // ---------------------------------------------------------------------------
 
 /** Which fragment shading model a material group renders with. */
-export type ShadingModel = 'lambert' | 'skin-sss' | 'marschner-hair' | 'refractive-eye';
+export type ShadingModel =
+  | 'lambert'
+  | 'skin-sss'
+  | 'marschner-hair'
+  | 'refractive-eye'
+  | 'woven-cloth';
 
 /** Flat two-sided half-Lambert (the Phase-0 base; the single-material fallback). */
 export interface BaseMaterialSpec extends MaterialSpec {
@@ -218,11 +223,25 @@ export interface RefractiveEyeMaterialSpec extends MaterialSpec {
   ior: number;
 }
 
+/** Rough woven cloth with grazing-angle sheen and world-space micro-weave breakup. */
+export interface WovenClothMaterialSpec extends MaterialSpec {
+  shadingModel: 'woven-cloth';
+  /** Broad highlight width, 0.05..1. */
+  roughness: number;
+  /** Retroreflective fibre sheen, 0..1. */
+  sheen: number;
+  /** World-space weave frequency in cycles/metre. */
+  weaveScale: number;
+  /** Cloth rim response at grazing angles, 0..1. */
+  rimStrength: number;
+}
+
 export type CharacterMaterialSpec =
   | BaseMaterialSpec
   | SkinSSSMaterialSpec
   | MarschnerHairMaterialSpec
-  | RefractiveEyeMaterialSpec;
+  | RefractiveEyeMaterialSpec
+  | WovenClothMaterialSpec;
 
 /** A contiguous slice of `mesh.indices` drawn with one material. Offsets are INDEX ELEMENTS. */
 export interface MaterialGroup {

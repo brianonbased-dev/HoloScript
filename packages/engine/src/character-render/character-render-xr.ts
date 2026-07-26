@@ -62,6 +62,7 @@ const FRAG_ENTRY: Record<ShadingModel, string> = {
   'skin-sss': 'fs_skin_sss',
   'marschner-hair': 'fs_marschner',
   'refractive-eye': 'fs_eye',
+  'woven-cloth': 'fs_woven_cloth',
 };
 
 // =============================================================================
@@ -83,10 +84,12 @@ export interface XRSupport {
  * → the existing three.js ImmersiveViewer; flat → offscreen renderCharacter preview.
  */
 export async function detectSupport(): Promise<XRSupport> {
-  const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { xr?: XRSystem }) : undefined;
+  const nav =
+    typeof navigator !== 'undefined' ? (navigator as Navigator & { xr?: XRSystem }) : undefined;
   const webgpu = !!nav && 'gpu' in nav;
   const hasXR = !!nav && 'xr' in nav && !!nav.xr;
-  const xrWebGPUBinding = typeof (globalThis as Record<string, unknown>).XRWebGPUBinding !== 'undefined';
+  const xrWebGPUBinding =
+    typeof (globalThis as Record<string, unknown>).XRWebGPUBinding !== 'undefined';
   let immersiveVR = false;
   if (hasXR) {
     try {
@@ -96,7 +99,13 @@ export async function detectSupport(): Promise<XRSupport> {
     }
   }
   if (webgpu && immersiveVR && xrWebGPUBinding)
-    return { webgpu, immersiveVR, xrWebGPUBinding, mode: 'xr-webgpu', reason: 'native WebGPU WebXR available' };
+    return {
+      webgpu,
+      immersiveVR,
+      xrWebGPUBinding,
+      mode: 'xr-webgpu',
+      reason: 'native WebGPU WebXR available',
+    };
   if (immersiveVR)
     return {
       webgpu,
@@ -105,11 +114,20 @@ export async function detectSupport(): Promise<XRSupport> {
       mode: 'webgl-fallback',
       reason: 'immersive-vr present but no WebGPU XR binding → three.js WebGL path',
     };
-  return { webgpu, immersiveVR, xrWebGPUBinding, mode: 'flat', reason: 'no immersive-vr → flat preview' };
+  return {
+    webgpu,
+    immersiveVR,
+    xrWebGPUBinding,
+    mode: 'flat',
+    reason: 'no immersive-vr → flat preview',
+  };
 }
 
 /** Per-eye view·projection from an XRView: projectionMatrix · inverse(view transform). Column-major. */
-export function composeEyeViewProj(projectionMatrix: Float32Array, viewInverseMatrix: Float32Array): Mat4 {
+export function composeEyeViewProj(
+  projectionMatrix: Float32Array,
+  viewInverseMatrix: Float32Array
+): Mat4 {
   return multiply(projectionMatrix as unknown as Mat4, viewInverseMatrix as unknown as Mat4);
 }
 
@@ -169,8 +187,14 @@ export class XRCharacterRenderer {
   private matBGL: GPUBindGroupLayout | null = null;
   private pipelineLayout: GPUPipelineLayout | null = null;
   private pipelineCache = new Map<string, GPURenderPipeline>();
-  private geo: { pos: GPUBuffer; norm: GPUBuffer; ji: GPUBuffer; jw: GPUBuffer; tan: GPUBuffer; idx: GPUBuffer } | null =
-    null;
+  private geo: {
+    pos: GPUBuffer;
+    norm: GPUBuffer;
+    ji: GPUBuffer;
+    jw: GPUBuffer;
+    tan: GPUBuffer;
+    idx: GPUBuffer;
+  } | null = null;
   private jointBuf: GPUBuffer | null = null;
   private matBufs: GPUBuffer[] = [];
   private eyes: EyeResources[] = [];
@@ -193,7 +217,9 @@ export class XRCharacterRenderer {
       requiredFeatures: ['local-floor'],
       optionalFeatures: ['hand-tracking', 'layers', 'bounded-floor'],
     });
-    const Ctor = (globalThis as Record<string, unknown>).XRWebGPUBinding as unknown as XRWebGPUBindingCtor | undefined;
+    const Ctor = (globalThis as Record<string, unknown>).XRWebGPUBinding as unknown as
+      | XRWebGPUBindingCtor
+      | undefined;
     if (!Ctor) throw new Error('XRWebGPUBinding unavailable on this device');
     this.binding = new Ctor(this.session, this.device);
     this.layer = this.binding.createProjectionLayer({
@@ -214,7 +240,15 @@ export class XRCharacterRenderer {
   }
 
   private onFrame(frame: XRFrame): void {
-    if (!this.session || !this.binding || !this.layer || !this.baseRef || !this.geo || !this.jointBuf) return;
+    if (
+      !this.session ||
+      !this.binding ||
+      !this.layer ||
+      !this.baseRef ||
+      !this.geo ||
+      !this.jointBuf
+    )
+      return;
     const pose = frame.getViewerPose(this.baseRef);
     if (!pose) return; // headset not localized yet; caller re-arms requestAnimationFrame
     const spec = this.host.getDrawSpec();
@@ -277,8 +311,16 @@ export class XRCharacterRenderer {
     const groups =
       spec.materialGroups && spec.materialGroups.length > 0
         ? spec.materialGroups
-        : [{ indexStart: 0, indexCount: spec.mesh.indices.length, material: { ...spec.material, shadingModel: 'lambert' as const } }];
-    return [...groups].sort((a, b) => Number(a.transparent ?? false) - Number(b.transparent ?? false));
+        : [
+            {
+              indexStart: 0,
+              indexCount: spec.mesh.indices.length,
+              material: { ...spec.material, shadingModel: 'lambert' as const },
+            },
+          ];
+    return [...groups].sort(
+      (a, b) => Number(a.transparent ?? false) - Number(b.transparent ?? false)
+    );
   }
 
   private buildResources(): void {
@@ -295,8 +337,13 @@ export class XRCharacterRenderer {
     this.matBGL = device.createBindGroupLayout({
       entries: [{ binding: 0, visibility: SHADER_FRAGMENT, buffer: { type: 'uniform' } }],
     });
-    this.pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [this.frameBGL, this.matBGL] });
-    const mk = (a: Float32Array<ArrayBuffer> | Uint32Array<ArrayBuffer>, usage: number): GPUBuffer => {
+    this.pipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [this.frameBGL, this.matBGL],
+    });
+    const mk = (
+      a: Float32Array<ArrayBuffer> | Uint32Array<ArrayBuffer>,
+      usage: number
+    ): GPUBuffer => {
       const b = device.createBuffer({ size: a.byteLength, usage: usage | BUF_COPY_DST });
       device.queue.writeBuffer(b, 0, a);
       return b;
@@ -315,7 +362,10 @@ export class XRCharacterRenderer {
   private eyeResources(eye: number, sub: XRSubImageLike): EyeResources {
     let er = this.eyes[eye];
     if (!er) {
-      const frameBuf = this.device.createBuffer({ size: 40 * 4, usage: BUF_UNIFORM | BUF_COPY_DST });
+      const frameBuf = this.device.createBuffer({
+        size: 40 * 4,
+        usage: BUF_UNIFORM | BUF_COPY_DST,
+      });
       const frameBindGroup = this.device.createBindGroup({
         layout: this.frameBGL!,
         entries: [
@@ -352,11 +402,20 @@ export class XRCharacterRenderer {
           module: this.module!,
           entryPoint: 'vs',
           buffers: [
-            { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] },
-            { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x3' }] },
+            {
+              arrayStride: 12,
+              attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }],
+            },
+            {
+              arrayStride: 12,
+              attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x3' }],
+            },
             { arrayStride: 4, attributes: [{ shaderLocation: 2, offset: 0, format: 'uint32' }] },
             { arrayStride: 4, attributes: [{ shaderLocation: 3, offset: 0, format: 'float32' }] },
-            { arrayStride: 16, attributes: [{ shaderLocation: 4, offset: 0, format: 'float32x4' }] },
+            {
+              arrayStride: 16,
+              attributes: [{ shaderLocation: 4, offset: 0, format: 'float32x4' }],
+            },
           ],
         },
         fragment: {
@@ -377,7 +436,11 @@ export class XRCharacterRenderer {
           ],
         },
         primitive: { topology: 'triangle-list', cullMode: 'none' },
-        depthStencil: { format: 'depth24plus', depthWriteEnabled: !transparent, depthCompare: 'less' },
+        depthStencil: {
+          format: 'depth24plus',
+          depthWriteEnabled: !transparent,
+          depthCompare: 'less',
+        },
       });
       this.pipelineCache.set(key, p);
     }
@@ -392,10 +455,22 @@ export class XRCharacterRenderer {
     data[1] = ((m.color >> 8) & 0xff) / 255;
     data[2] = (m.color & 0xff) / 255;
     data[3] = m.opacity;
-    const buf = this.device.createBuffer({ size: data.byteLength, usage: BUF_UNIFORM | BUF_COPY_DST });
+    if (m.shadingModel === 'woven-cloth') {
+      data[4] = m.roughness;
+      data[5] = m.sheen;
+      data[6] = m.weaveScale;
+      data[7] = m.rimStrength;
+    }
+    const buf = this.device.createBuffer({
+      size: data.byteLength,
+      usage: BUF_UNIFORM | BUF_COPY_DST,
+    });
     this.device.queue.writeBuffer(buf, 0, data);
     this.matBufs.push(buf);
-    return this.device.createBindGroup({ layout: this.matBGL!, entries: [{ binding: 0, resource: { buffer: buf } }] });
+    return this.device.createBindGroup({
+      layout: this.matBGL!,
+      entries: [{ binding: 0, resource: { buffer: buf } }],
+    });
   }
 
   /** Destroy GPU resources + drop the session. Auto-called on session 'end'. */

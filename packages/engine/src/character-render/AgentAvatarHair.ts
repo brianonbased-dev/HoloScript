@@ -22,6 +22,7 @@ import {
   computeBindWorld,
   type AgentAvatarMeshOptions,
 } from './AgentAvatarMesh';
+import { buildAgentAvatarGarment, type SovereignGarmentStyle } from './AgentAvatarGarment';
 import { getTranslation, type Vec3 } from './skin-math';
 
 const HEAD_INDEX = HUMANOID_BONE_NAMES.indexOf('head');
@@ -119,7 +120,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
         const up = Math.abs(tan.y) > 0.99 ? v(1, 0, 0) : v(0, 1, 0);
         const right0 = nrm(cross(tan, up));
         // roll the card around the strand axis for volume
-        const right = nrm(add(scl(right0, Math.cos(roll)), scl(cross(tan, right0), Math.sin(roll))));
+        const right = nrm(
+          add(scl(right0, Math.cos(roll)), scl(cross(tan, right0), Math.sin(roll)))
+        );
         const faceN = nrm(cross(right, tan));
         const strandT = i / (segs - 1);
         const off = scl(right, cardW * 0.5);
@@ -158,7 +161,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
  * Two eyeball spheres at the front of the head, weighted to the head bone (so they ride the
  * head). Emits the same 6-array format as hair; rendered with the refractive-eye material.
  */
-export function buildAgentAvatarEyes(o: { buildScale?: number; heightScale?: number } = {}): HairMeshData {
+export function buildAgentAvatarEyes(
+  o: { buildScale?: number; heightScale?: number } = {}
+): HairMeshData {
   const bs = o.buildScale ?? 1;
   const hScale = o.heightScale ?? 1;
   const bind = computeBindWorld();
@@ -238,6 +243,8 @@ export interface CharacterMeshData {
   bodyRange: { indexStart: number; indexCount: number };
   hairRange: { indexStart: number; indexCount: number };
   eyeRange: { indexStart: number; indexCount: number };
+  garmentRange: { indexStart: number; indexCount: number };
+  visorRange: { indexStart: number; indexCount: number };
 }
 
 /** Offset a set of mesh-local indices by a vertex base (for concatenation). */
@@ -252,41 +259,110 @@ function offsetIndices(src: Uint32Array, base: number): Uint32Array {
  * the renderer slices for the body=skin-SSS / hair=marschner / eyes=refractive material groups.
  */
 export function buildCharacterMesh(
-  opts: AgentAvatarMeshOptions & HairOptions = {}
+  opts: AgentAvatarMeshOptions &
+    HairOptions & {
+      garmentStyle?: SovereignGarmentStyle;
+      garmentSegments?: number;
+      includeHair?: boolean;
+      includeEyes?: boolean;
+    } = {}
 ): CharacterMeshData {
   const body = buildAgentAvatarMesh(opts);
-  const hair = buildAgentAvatarHair({
-    buildScale: opts.buildScale,
-    heightScale: opts.heightScale,
-    guides: opts.guides,
-    cardsPerGuide: opts.cardsPerGuide,
-    segments: opts.segments,
-    cardWidth: opts.cardWidth,
-    length: opts.length,
+  const empty = (): HairMeshData => ({
+    positions: new Float32Array(),
+    normals: new Float32Array(),
+    tangents: new Float32Array(),
+    indices: new Uint32Array(),
+    jointIndices: new Uint32Array(),
+    jointWeights: new Float32Array(),
+    vertexCount: 0,
   });
-  const eyes = buildAgentAvatarEyes({ buildScale: opts.buildScale, heightScale: opts.heightScale });
+  const hair =
+    opts.includeHair === false
+      ? empty()
+      : buildAgentAvatarHair({
+          buildScale: opts.buildScale,
+          heightScale: opts.heightScale,
+          guides: opts.guides,
+          cardsPerGuide: opts.cardsPerGuide,
+          segments: opts.segments,
+          cardWidth: opts.cardWidth,
+          length: opts.length,
+        });
+  const eyes =
+    opts.includeEyes === false
+      ? empty()
+      : buildAgentAvatarEyes({
+          buildScale: opts.buildScale,
+          heightScale: opts.heightScale,
+        });
+  const garment = opts.garmentStyle
+    ? buildAgentAvatarGarment({
+        style: opts.garmentStyle,
+        buildScale: opts.buildScale,
+        heightScale: opts.heightScale,
+        radialSegments: opts.garmentSegments,
+      })
+    : { cloth: empty(), visor: empty() };
 
   const bodyVC = body.vertexCount;
   const hairVC = hair.vertexCount;
   const hairIdx = offsetIndices(hair.indices, bodyVC);
   const eyeIdx = offsetIndices(eyes.indices, bodyVC + hairVC);
+  const garmentIdx = offsetIndices(garment.cloth.indices, bodyVC + hairVC + eyes.vertexCount);
+  const visorIdx = offsetIndices(
+    garment.visor.indices,
+    bodyVC + hairVC + eyes.vertexCount + garment.cloth.vertexCount
+  );
 
   const mesh: SkinnedMeshData = {
-    positions: catF32(catF32(body.positions, hair.positions), eyes.positions),
-    normals: catF32(catF32(body.normals, hair.normals), eyes.normals),
-    tangents: catF32(catF32(body.tangents, hair.tangents), eyes.tangents),
-    indices: catU32(catU32(body.indices, hairIdx), eyeIdx),
-    jointIndices: catU32(catU32(body.jointIndices, hair.jointIndices), eyes.jointIndices),
-    jointWeights: catF32(catF32(body.jointWeights, hair.jointWeights), eyes.jointWeights),
-    vertexCount: bodyVC + hairVC + eyes.vertexCount,
+    positions: catF32(
+      catF32(
+        catF32(catF32(body.positions, hair.positions), eyes.positions),
+        garment.cloth.positions
+      ),
+      garment.visor.positions
+    ),
+    normals: catF32(
+      catF32(catF32(catF32(body.normals, hair.normals), eyes.normals), garment.cloth.normals),
+      garment.visor.normals
+    ),
+    tangents: catF32(
+      catF32(catF32(catF32(body.tangents, hair.tangents), eyes.tangents), garment.cloth.tangents),
+      garment.visor.tangents
+    ),
+    indices: catU32(catU32(catU32(catU32(body.indices, hairIdx), eyeIdx), garmentIdx), visorIdx),
+    jointIndices: catU32(
+      catU32(
+        catU32(catU32(body.jointIndices, hair.jointIndices), eyes.jointIndices),
+        garment.cloth.jointIndices
+      ),
+      garment.visor.jointIndices
+    ),
+    jointWeights: catF32(
+      catF32(
+        catF32(catF32(body.jointWeights, hair.jointWeights), eyes.jointWeights),
+        garment.cloth.jointWeights
+      ),
+      garment.visor.jointWeights
+    ),
+    vertexCount:
+      bodyVC + hairVC + eyes.vertexCount + garment.cloth.vertexCount + garment.visor.vertexCount,
   };
 
   const hairStart = body.indices.length;
   const eyeStart = hairStart + hair.indices.length;
+  const garmentStart = eyeStart + eyes.indices.length;
+  const visorStart = garmentStart + garment.cloth.indices.length;
   return {
     mesh,
     bodyRange: { indexStart: 0, indexCount: body.indices.length },
     hairRange: { indexStart: hairStart, indexCount: hair.indices.length },
     eyeRange: { indexStart: eyeStart, indexCount: eyes.indices.length },
+    garmentRange: {
+      indexStart: garmentStart,
+      indexCount: garment.cloth.indices.length,
+    },
+    visorRange: { indexStart: visorStart, indexCount: garment.visor.indices.length },
   };
 }

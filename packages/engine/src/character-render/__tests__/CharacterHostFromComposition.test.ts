@@ -56,7 +56,13 @@ describe('buildCharacterHostFromComposition', () => {
     const make = (hex: string) =>
       buildCharacterHostFromComposition({
         objects: [
-          { name: 'A', traits: [{ name: 'body', config: {} }, { name: 'hair', config: { style: 'short', color: hex } }] },
+          {
+            name: 'A',
+            traits: [
+              { name: 'body', config: {} },
+              { name: 'hair', config: { style: 'short', color: hex } },
+            ],
+          },
         ],
       });
     const dark = make('#1a0e08');
@@ -64,7 +70,9 @@ describe('buildCharacterHostFromComposition', () => {
     expect(dark.report.mapped).toContain('@hair(color)');
 
     const melaninOf = (r: ReturnType<typeof make>): number => {
-      const g = r.host?.getDrawSpec().materialGroups?.find((x) => x.material.shadingModel === 'marschner-hair');
+      const g = r.host
+        ?.getDrawSpec()
+        .materialGroups?.find((x) => x.material.shadingModel === 'marschner-hair');
       return g && g.material.shadingModel === 'marschner-hair' ? g.material.melanin : NaN;
     };
     // Darker authored hair → more eumelanin: the .holo colour reaches the draw spec, not a constant.
@@ -93,12 +101,57 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.report.mapped).toContain('@subsurface_scattering(scatter_color)');
     expect(skin?.material.shadingModel).toBe('skin-sss');
     if (skin?.material.shadingModel === 'skin-sss') {
-      expect(skin.material.scatterColor).toEqual([
-        0x6f / 255,
-        0x9f / 255,
-        0xb3 / 255,
-      ]);
+      expect(skin.material.scatterColor).toEqual([0x6f / 255, 0x9f / 255, 0xb3 / 255]);
     }
+  });
+
+  it('@clothing and @lod produce faceless woven garment geometry with authored topology', () => {
+    const make = (lodLevel: number) =>
+      buildCharacterHostFromComposition(
+        {
+          objects: [
+            {
+              name: 'Stormglass',
+              traits: [
+                { name: 'body', config: { height: 2.05, build_scale: 1.15 } },
+                {
+                  name: 'clothing',
+                  config: {
+                    style: 'stormglass_hooded_tunic',
+                    color: '#557789',
+                  },
+                },
+                {
+                  name: 'lod',
+                  config: {
+                    levels: [
+                      { level: 0, distance: 0, garment_segments: 24 },
+                      { level: 1, distance: 12, garment_segments: 14 },
+                      { level: 2, distance: 28, garment_segments: 8 },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        { lodLevel }
+      );
+
+    const lod0 = make(0);
+    const lod2 = make(2);
+    const groups = lod0.host?.getDrawSpec().materialGroups ?? [];
+    expect(lod0.report.mapped).toContain('@clothing(style=stormglass_hooded_tunic)');
+    expect(lod0.report.mapped).toContain('@lod(level=0)');
+    expect(lod0.lod).toEqual({ level: 0, distance: 0, garmentSegments: 24 });
+    expect(groups.map((group) => group.material.shadingModel)).toEqual([
+      'skin-sss',
+      'woven-cloth',
+      'lambert',
+    ]);
+    expect(lod0.host!.getDrawSpec().mesh.vertexCount).toBeGreaterThan(
+      lod2.host!.getDrawSpec().mesh.vertexCount
+    );
   });
 
   it('@skeleton(rig) is validated: matching rig → mapped, unsupported rig → stubbed', () => {
@@ -115,7 +168,15 @@ describe('buildCharacterHostFromComposition', () => {
 
   it('non-bipedal locomotion (fly) degrades to idle and is recorded as stubbed', () => {
     const comp: ParsedComposition = {
-      objects: [{ name: 'Drone', traits: [{ name: 'body', config: {} }, { name: 'locomotion', config: { mode: 'fly' } }] }],
+      objects: [
+        {
+          name: 'Drone',
+          traits: [
+            { name: 'body', config: {} },
+            { name: 'locomotion', config: { mode: 'fly' } },
+          ],
+        },
+      ],
     };
     const r = buildCharacterHostFromComposition(comp);
     expect(r.ok).toBe(true);
@@ -132,7 +193,11 @@ describe('buildCharacterHostFromComposition', () => {
     const comp: ParsedComposition = {
       objects: [
         { name: 'Prop', traits: [] },
-        { id: 'hero', name: 'Hero', traits: [{ name: 'skeleton', config: { rig: 'humanoid_65' } }] },
+        {
+          id: 'hero',
+          name: 'Hero',
+          traits: [{ name: 'skeleton', config: { rig: 'humanoid_65' } }],
+        },
       ],
     };
     const r = buildCharacterHostFromComposition(comp, { objectId: 'hero' });

@@ -41,11 +41,19 @@ export interface CharacterDrawSpecBundle {
   };
   /** jointCount × 16 column-major floats (skin = worldPose · inverseBind). */
   jointMatrices: number[];
-  material: { color: number; metalness: number; roughness: number; emissive: number; opacity: number };
+  material: {
+    color: number;
+    metalness: number;
+    roughness: number;
+    emissive: number;
+    opacity: number;
+  };
   /** Column-major 4×4 root placement matrix (16 floats). */
   modelMatrix: number[];
   /** Per-region materials (skin / hair / eye), or null for a single-material body. */
   materialGroups: unknown[] | null;
+  /** Present when the source authors @lod and this compile selects one declared tier. */
+  lod?: { level: number; distance: number; garmentSegments: number };
   /** Honest mapped/stubbed report from the authoring bridge. */
   report: unknown;
 }
@@ -97,8 +105,11 @@ export class CharacterWebGPUCompiler {
 
     const entityIdOverride =
       typeof this.options.entityId === 'string' ? (this.options.entityId as string) : undefined;
+    const lodLevel =
+      typeof this.options.lodLevel === 'number' ? (this.options.lodLevel as number) : undefined;
     const result = CharacterRender.buildCharacterHostFromComposition(parsed, {
       entityId: entityIdOverride,
+      lodLevel,
     });
     if (!result.ok || !result.host) {
       throw new Error(
@@ -126,6 +137,7 @@ export class CharacterWebGPUCompiler {
       material: spec.material,
       modelMatrix: num(spec.modelMatrix),
       materialGroups: spec.materialGroups ?? null,
+      ...(result.lod ? { lod: result.lod } : {}),
       report: result.report,
     };
     return JSON.stringify(bundle);

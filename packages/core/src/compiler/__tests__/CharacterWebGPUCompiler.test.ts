@@ -91,6 +91,42 @@ describe('CharacterWebGPUCompiler', () => {
     expect((JSON.parse(out) as CharacterDrawSpecBundle).entityId).toBe('brittney');
   });
 
+  it('selects source-authored character LOD topology without fabricating tiers', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits!.push(
+      {
+        type: 'ObjectTrait',
+        name: 'clothing',
+        config: { style: 'stormglass_hooded_tunic', color: '#557789' },
+      },
+      {
+        type: 'ObjectTrait',
+        name: 'lod',
+        config: {
+          levels: [
+            { level: 0, distance: 0, garment_segments: 24 },
+            { level: 2, distance: 28, garment_segments: 8 },
+          ],
+        },
+      }
+    );
+    const lod0 = JSON.parse(
+      await new CharacterWebGPUCompiler({ lodLevel: 0 }).compile(composition)
+    ) as CharacterDrawSpecBundle;
+    const lod2 = JSON.parse(
+      await new CharacterWebGPUCompiler({ lodLevel: 2 }).compile(composition)
+    ) as CharacterDrawSpecBundle;
+
+    expect(lod0.lod).toEqual({ level: 0, distance: 0, garmentSegments: 24 });
+    expect(lod2.lod).toEqual({ level: 2, distance: 28, garmentSegments: 8 });
+    expect(lod0.vertexCount).toBeGreaterThan(lod2.vertexCount);
+    expect(
+      (lod0.materialGroups as Array<{ material: { shadingModel: string } }>).map(
+        (group) => group.material.shadingModel
+      )
+    ).toEqual(['skin-sss', 'woven-cloth', 'lambert']);
+  });
+
   it('throws on a composition with no character object (no fabricated body — false case)', async () => {
     await expect(new CharacterWebGPUCompiler().compile(emptyComp())).rejects.toThrow(
       /no character object/
