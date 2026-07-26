@@ -1,11 +1,14 @@
 {
   "name": "@holoscript/registry",
-  "private": true,
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "HoloScript package registry and team workspace API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
     "dev": "tsc --watch",
