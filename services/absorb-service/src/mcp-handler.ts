@@ -25,7 +25,7 @@ export function getSessionUserId(sessionId: string): string | undefined {
   return sessionUserMap.get(sessionId);
 }
 
-function getToolCount(): number {
+export function getRegisteredToolCount(): number {
   // Report the actual count registered on the last MCP server setup.
   // Zero means no MCP session has initialized yet — discovery clients should
   // still receive a valid number without a hardcoded guess.
@@ -72,15 +72,12 @@ async function createMcpServer(): Promise<McpServer> {
       mcpModule.handleGraphRagTool ?? mcpModule.graphRagToolHandler,
     );
 
-    _lastRegisteredToolCount = registeredTools.size;
   } catch (e: any) {
     console.warn('[mcp] Failed to register absorb MCP tools:', e.message);
-    // Keep the previous known count rather than clobbering to 0 on a transient
-    // import failure; operators can still see a stale-but-useful number.
-    if (registeredTools.size > 0) {
-      _lastRegisteredToolCount = registeredTools.size;
-    }
   }
+  // Fail closed on observability: zero is more useful than a stale count from a
+  // prior request when the current runtime closure cannot be imported.
+  _lastRegisteredToolCount = registeredTools.size;
 
   // The package exports standard JSON Schema definitions. Register them on the
   // SDK's low-level server rather than passing them to McpServer.tool(), whose
@@ -127,6 +124,23 @@ async function createMcpServer(): Promise<McpServer> {
   });
 
   return server;
+}
+
+/**
+ * Resolve the complete package-backed tool registry before the HTTP listener is
+ * admitted. Railway should roll back a broken image instead of serving a
+ * healthy-looking process whose MCP inventory is empty.
+ */
+export async function assertMcpToolInventoryReady(): Promise<number> {
+  const server = await createMcpServer();
+  const count = getRegisteredToolCount();
+  await server.close().catch(() => {});
+  if (count < 1) {
+    throw new Error(
+      'HoloAbsorb MCP tool inventory is empty; verify the packaged workspace runtime closure',
+    );
+  }
+  return count;
 }
 
 export async function handleMcpSse(req: Request, res: Response): Promise<void> {
@@ -279,7 +293,7 @@ export function handleMcpDiscovery(req: Request, res: Response): void {
       },
     },
     capabilities: {
-      tools: { count: getToolCount() },
+      tools: { count: getRegisteredToolCount() },
       resources: false,
       prompts: false,
     },

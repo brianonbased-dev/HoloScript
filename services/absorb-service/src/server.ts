@@ -21,6 +21,8 @@ import {
   handleMcpDelete,
   handleMcpDiscovery,
   getActiveSessionCount,
+  getRegisteredToolCount,
+  assertMcpToolInventoryReady,
 } from './mcp-handler.js';
 
 const app = express();
@@ -218,6 +220,7 @@ app.get('/health', (_req, res) => {
     // Secondary probe: COUNT on moltbook table (slow/missing table ≠ Postgres down).
     moltbookAgentCountProbe: _cachedMoltbookProbeStatus,
     mcpSessions: getActiveSessionCount(),
+    mcpTools: getRegisteredToolCount(),
     moltbookActiveAgents: _cachedMoltbookAgentCount,
     moltbookProbeLastError: _cachedMoltbookProbeStatus === 'error' ? _lastMoltbookProbeError : null,
     diagnostics,
@@ -294,6 +297,8 @@ async function start(): Promise<void> {
     'OPENROUTER_API_KEY',
     'XAI_API_KEY',
   ]);
+  const mcpTools = await assertMcpToolInventoryReady();
+  console.log(`[absorb-service] HoloAbsorb MCP inventory ready: ${mcpTools} tools`);
   await ensureMoltbookSchema();
   await backgroundHealthProbe();
   startBackgroundHealthProbes();
