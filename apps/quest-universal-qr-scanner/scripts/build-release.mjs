@@ -140,8 +140,15 @@ export async function main(argv = process.argv.slice(2)) {
   // Windows batch files must run through cmd.exe. Pass the absolute path and avoid shell:true.
   const cmd = isWin ? 'cmd.exe' : gradlewPath;
   const args = isWin
-    ? ['/c', gradlewPath, ':app:assembleRelease', '--console=plain', '--no-daemon']
-    : [':app:assembleRelease', '--console=plain', '--no-daemon'];
+    ? [
+        '/c',
+        gradlewPath,
+        ':app:testDebugUnitTest',
+        ':app:assembleRelease',
+        '--console=plain',
+        '--no-daemon',
+      ]
+    : [':app:testDebugUnitTest', ':app:assembleRelease', '--console=plain', '--no-daemon'];
 
   try {
     const result = spawnSync(cmd, args, {

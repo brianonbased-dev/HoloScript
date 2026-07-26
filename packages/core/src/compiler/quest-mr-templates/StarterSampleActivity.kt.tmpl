@@ -65,7 +65,7 @@ internal object QrPayloadFacts {
     return lines.size >= 3 &&
         lines.first().trim().equals(begin, ignoreCase = true) &&
         lines.last().trim().equals(end, ignoreCase = true) &&
-        lines.subList(1, lines.lastIndex).any { line ->
+        lines.subList(1, lines.lastIndex).all { line ->
           val separator = line.indexOf(':')
           separator > 0 && separator < line.lastIndex
         }
@@ -93,10 +93,10 @@ internal object QrPayloadFacts {
     if (trimmed.startsWith("BEGIN:VEVENT", ignoreCase = true)) {
       return validStructuredEnvelope(trimmed, "BEGIN:VEVENT", "END:VEVENT")
     }
-    val declaresWebUrl =
-        trimmed.startsWith("http://", ignoreCase = true) ||
-            trimmed.startsWith("https://", ignoreCase = true)
-    if (!declaresWebUrl) return true
+    val declaresWebScheme =
+        trimmed.startsWith("http:", ignoreCase = true) ||
+            trimmed.startsWith("https:", ignoreCase = true)
+    if (!declaresWebScheme) return true
     val uri = try { URI(trimmed).parseServerAuthority() } catch (_: Exception) { return false }
     val validPort = uri.port == -1 || uri.port in 1..65535
     return (uri.scheme.equals("http", true) || uri.scheme.equals("https", true)) &&
