@@ -134,7 +134,9 @@ describe('holo_impact_analysis traversal budgets', () => {
       truncationReasons: [],
       resolvedChangedFiles: ['src/f0.ts'],
       unresolvedChangedFiles: [],
-      communityGrouping: 'directory-fallback',
+      // Parser-light file nodes now warm graph context during index hydration,
+      // so the authoritative cache already owns a deterministic community map.
+      communityGrouping: 'cached',
       communityGroupingComplete: true,
       ungroupedAffectedFiles: 0,
       traversal: {

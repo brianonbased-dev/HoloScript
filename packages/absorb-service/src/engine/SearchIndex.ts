@@ -20,4 +20,12 @@ export interface SymbolSearchIndex {
     topK: number,
     filters?: SymbolSearchFilters
   ): Promise<SearchResult[]>;
+  /** Optional exact-name/path + vector fusion used by HoloAbsorb retrieval. */
+  searchHybrid?(query: string, topK?: number): Promise<SearchResult[]>;
+  /** Filtered counterpart to searchHybrid(). */
+  searchHybridWithFilters?(
+    query: string,
+    topK: number,
+    filters?: SymbolSearchFilters
+  ): Promise<SearchResult[]>;
 }

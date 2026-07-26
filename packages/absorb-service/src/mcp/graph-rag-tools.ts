@@ -5,7 +5,7 @@
  * over absorbed codebases using Graph RAG (embeddings + graph traversal).
  *
  * Tools:
- * - holo_semantic_search: Vector search over symbol signatures
+ * - holo_semantic_search: Hybrid exact-name, lexical, and vector search
  * - holo_ask_codebase: Natural language Q&A with graph-enriched context
  */
 
@@ -79,7 +79,7 @@ export const graphRagTools: Tool[] = [
   {
     name: 'holo_semantic_search',
     description:
-      'Semantic vector search over an absorbed codebase. Searches symbol signatures, doc comments, and file paths using embedding similarity. Returns ranked results with scores. Requires a prior holo_absorb_repo call in the same session.',
+      'Hybrid search over an absorbed codebase. Fuses exact symbol/file names and lexical path evidence with HoloEmbed similarity, including parser-light files such as shell scripts. Returns ranked results with score receipts. Requires a prior holo_absorb_repo call in the same session.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -512,8 +512,12 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
 
   try {
     const results = hasFilters
-      ? await resolvedIndex.index.searchWithFilters(query, topK, filters)
-      : await resolvedIndex.index.search(query, topK);
+      ? resolvedIndex.index.searchHybridWithFilters
+        ? await resolvedIndex.index.searchHybridWithFilters(query, topK, filters)
+        : await resolvedIndex.index.searchWithFilters(query, topK, filters)
+      : resolvedIndex.index.searchHybrid
+        ? await resolvedIndex.index.searchHybrid(query, topK)
+        : await resolvedIndex.index.search(query, topK);
 
     return {
       query,
@@ -529,6 +533,10 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
         line: r.symbol.line,
         language: r.symbol.language,
         score: r.score,
+        vectorScore: r.vectorScore ?? null,
+        lexicalScore: r.lexicalScore ?? null,
+        exactMatch: r.exactMatch ?? false,
+        matchKind: r.matchKind ?? 'semantic',
         signature: r.symbol.signature ?? null,
         docComment: r.symbol.docComment?.split('\n')[0] ?? null,
       })),

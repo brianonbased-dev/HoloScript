@@ -30,9 +30,9 @@ export interface GraphRAGOptions {
   maxDepth?: number;
   /** Scoring weights */
   weights?: {
-    semantic?: number; // default: 0.6
-    connections?: number; // default: 0.2
-    impact?: number; // default: 0.2
+    semantic?: number; // default: 0.96
+    connections?: number; // default: 0.02
+    impact?: number; // default: 0.02
   };
   /** Filter results to specific language */
   language?: string;
@@ -84,6 +84,12 @@ export interface EnrichedResult {
   callees: string[];
   /** Number of files affected if this symbol changes */
   impactRadius: number;
+  /** Exact lexical/file-name match from the hybrid retrieval stage. */
+  exactMatch?: boolean;
+  /** Raw vector score before lexical fusion. */
+  vectorScore?: number;
+  /** Lexical score before fusion. */
+  lexicalScore?: number;
 }
 
 /**
@@ -149,9 +155,9 @@ export class GraphRAGEngine {
    */
   async query(naturalLanguage: string, options: GraphRAGOptions = {}): Promise<GraphRAGResult> {
     const topK = options.topK ?? 20;
-    const wSemantic = options.weights?.semantic ?? 0.6;
-    const wConnections = options.weights?.connections ?? 0.2;
-    const wImpact = options.weights?.impact ?? 0.2;
+    const wSemantic = options.weights?.semantic ?? 0.96;
+    const wConnections = options.weights?.connections ?? 0.02;
+    const wImpact = options.weights?.impact ?? 0.02;
 
     // 1. Semantic search
     const filters = {
@@ -160,9 +166,16 @@ export class GraphRAGEngine {
       file: options.file,
     };
     const hasFilters = filters.language || filters.type || filters.file;
-    const semanticResults = hasFilters
-      ? await this.index.searchWithFilters(naturalLanguage, topK, filters)
-      : await this.index.search(naturalLanguage, topK);
+    let semanticResults: SearchResult[];
+    if (hasFilters) {
+      semanticResults = this.index.searchHybridWithFilters
+        ? await this.index.searchHybridWithFilters(naturalLanguage, topK, filters)
+        : await this.index.searchWithFilters(naturalLanguage, topK, filters);
+    } else {
+      semanticResults = this.index.searchHybrid
+        ? await this.index.searchHybrid(naturalLanguage, topK)
+        : await this.index.search(naturalLanguage, topK);
+    }
 
     if (semanticResults.length === 0) {
       return {
@@ -209,8 +222,10 @@ export class GraphRAGEngine {
 
       const connectionScore = metrics.callers.length / maxCallers;
       const impactScore = metrics.impact / maxImpact;
+      const totalWeight = Math.max(0.0001, wSemantic + wConnections + wImpact);
       const combinedScore =
-        wSemantic * sr.score + wConnections * connectionScore + wImpact * impactScore;
+        (wSemantic * sr.score + wConnections * connectionScore + wImpact * impactScore) /
+        totalWeight;
 
       enriched.push({
         symbol: sr.symbol,
@@ -225,11 +240,18 @@ export class GraphRAGEngine {
           c.calleeOwner ? `${c.calleeOwner}.${c.calleeName}` : c.calleeName
         ),
         impactRadius: metrics.impact,
+        exactMatch: sr.exactMatch,
+        vectorScore: sr.vectorScore,
+        lexicalScore: sr.lexicalScore,
       });
     }
 
-    // Re-rank by combined score
-    enriched.sort((a, b) => b.score - a.score);
+    // Named targets are an intent boundary: graph centrality may enrich them,
+    // but it must not bury them beneath unrelated high-degree symbols.
+    enriched.sort((a, b) => {
+      if (a.exactMatch !== b.exactMatch) return a.exactMatch ? -1 : 1;
+      return b.score - a.score;
+    });
 
     return {
       query: naturalLanguage,

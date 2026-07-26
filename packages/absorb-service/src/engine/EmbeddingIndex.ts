@@ -10,13 +10,42 @@
 import type { ExternalSymbolDefinition } from './types';
 import type { CodebaseGraph } from './CodebaseGraph';
 import type { EmbeddingProvider } from './providers/EmbeddingProvider';
+import {
+  fuseHybridScore,
+  HybridLexicalIndex,
+  type HybridMatchKind,
+} from './HybridRetrieval';
 import * as path from 'path';
 import * as os from 'os';
+import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 
 // ESM-compatible __dirname
 const __filename_esm = fileURLToPath(import.meta.url);
 const __dirname_esm = path.dirname(__filename_esm);
+
+function resolveEmbeddingWorkerFile(): string | null {
+  const currentExt = path.extname(__filename_esm).toLowerCase();
+  const extensions =
+    currentExt === '.cjs'
+      ? ['.cjs', '.js', '.ts']
+      : currentExt === '.ts'
+        ? ['.ts', '.js', '.cjs']
+        : ['.js', '.cjs', '.ts'];
+  const directories = [
+    path.join(__dirname_esm, 'workers'),
+    path.join(__dirname_esm, '..', 'workers'),
+    path.join(__dirname_esm, '..', '..', 'dist', 'workers'),
+  ];
+
+  for (const extension of extensions) {
+    for (const directory of directories) {
+      const candidate = path.join(directory, `embedding-worker${extension}`);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+  return null;
+}
 
 // Dynamic import for worker pool (graceful degradation if not available)
 let WorkerPool: typeof import('./workers/WorkerPool').WorkerPool | null;
@@ -99,6 +128,14 @@ export interface SearchResult {
   file: string;
   /** Symbol type */
   type: string;
+  /** Raw vector similarity before hybrid fusion. */
+  vectorScore?: number;
+  /** Exact-name/path and lexical overlap score. */
+  lexicalScore?: number;
+  /** True when the query explicitly names the symbol or file stem. */
+  exactMatch?: boolean;
+  /** Stable diagnostic for agents and benchmark ablations. */
+  matchKind?: HybridMatchKind;
 }
 
 interface GraphTextContext {
@@ -247,6 +284,7 @@ const DEFAULT_GRAPH_TEXT_TERMS: Record<GraphTextTerm, boolean> = {
 
 export class EmbeddingIndex {
   private entries: IndexedSymbol[] = [];
+  private lexicalIndex?: HybridLexicalIndex;
   private provider: EmbeddingProvider;
   private batchSize: number;
   private useWorkers: boolean;
@@ -275,7 +313,11 @@ export class EmbeddingIndex {
     // Initialize worker pool for parallel embedding (Phase 9 Extension)
     if (this.useWorkers && WorkerPool) {
       try {
-        const workerFile = path.join(__dirname_esm, 'workers', 'embedding-worker.js');
+        const workerFile = resolveEmbeddingWorkerFile();
+        if (!workerFile) {
+          this.useWorkers = false;
+          return;
+        }
         this.workerPool = new WorkerPool(workerFile, this.concurrentBatches);
       } catch (err) {
         console.warn(
@@ -309,9 +351,10 @@ export class EmbeddingIndex {
     onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void
   ): Promise<void> {
     this.entries = [];
+    this.lexicalIndex = undefined;
     this.startTime = Date.now(); // Reset timer for ETA calculation
 
-    const symbols = graph.getAllSymbols();
+    const symbols = this.getIndexableSymbols(graph);
     const totalBatches = Math.ceil(symbols.length / this.batchSize);
 
     if (this.useWorkers && this.workerPool) {
@@ -345,7 +388,7 @@ export class EmbeddingIndex {
       else reusableByText.set(entry.text, [entry]);
     }
 
-    const symbols = graph.getAllSymbols();
+    const symbols = this.getIndexableSymbols(graph);
     const totalBatches = Math.ceil(symbols.length / this.batchSize);
     const graphTextContext = this.createGraphTextContext(graph);
     const nextEntries: IndexedSymbol[] = [];
@@ -405,6 +448,7 @@ export class EmbeddingIndex {
     }
 
     this.entries = nextEntries;
+    this.lexicalIndex = undefined;
     return {
       kind: 'EmbeddingRefreshReceipt',
       previousSymbols,
@@ -627,9 +671,82 @@ export class EmbeddingIndex {
   }
 
   /**
+   * Hybrid retrieval over the same HoloEmbed index.
+   *
+   * The pure-vector search() methods remain available for honest ablations.
+   */
+  async searchHybrid(query: string, topK = 10): Promise<SearchResult[]> {
+    return this.searchHybridWithFilters(query, topK);
+  }
+
+  async searchHybridWithFilters(
+    query: string,
+    topK: number,
+    filters?: { language?: string; type?: string; file?: string }
+  ): Promise<SearchResult[]> {
+    if (this.entries.length === 0 || topK <= 0) return [];
+
+    const [queryEmbedding] = await this.getEmbeddings([query]);
+    const queryVec = new Float32Array(queryEmbedding);
+    const lexicalScores = this.getLexicalIndex().score(query);
+    const scored: Array<{
+      idx: number;
+      score: number;
+      vectorScore: number;
+      lexicalScore: number;
+      exactMatch: boolean;
+      matchKind: HybridMatchKind;
+    }> = [];
+
+    for (let i = 0; i < this.entries.length; i++) {
+      const entry = this.entries[i];
+      const sym = entry.symbol;
+      if (filters?.language && sym.language !== filters.language) continue;
+      if (filters?.type && sym.type !== filters.type) continue;
+      if (filters?.file && !sym.filePath.includes(filters.file)) continue;
+
+      const vectorScore = this.cosineSimilarity(queryVec, entry.embedding);
+      const lexical = lexicalScores.get(i) ?? {
+        score: 0,
+        exactMatch: false,
+        matchKind: 'semantic' as const,
+      };
+      scored.push({
+        idx: i,
+        score: fuseHybridScore(vectorScore, lexical.score, lexical.exactMatch),
+        vectorScore,
+        lexicalScore: lexical.score,
+        exactMatch: lexical.exactMatch,
+        matchKind: lexical.matchKind,
+      });
+    }
+
+    scored.sort((a, b) => {
+      if (a.exactMatch !== b.exactMatch) return a.exactMatch ? -1 : 1;
+      if (b.score !== a.score) return b.score - a.score;
+      return b.vectorScore - a.vectorScore;
+    });
+
+    return this.pickDiverseTopResults(scored, topK).map((item) => {
+      const entry = this.entries[item.idx];
+      return {
+        symbol: entry.symbol,
+        score: Math.round(item.score * 10_000) / 10_000,
+        file: entry.symbol.filePath,
+        type: entry.symbol.type,
+        vectorScore: Math.round(item.vectorScore * 10_000) / 10_000,
+        lexicalScore: item.lexicalScore,
+        exactMatch: item.exactMatch,
+        matchKind: item.matchKind,
+      };
+    });
+  }
+
+  /**
    * Add new symbols incrementally (e.g., after change detection).
    */
   async addSymbols(symbols: ExternalSymbolDefinition[], graph?: CodebaseGraph): Promise<void> {
+    this.lexicalIndex = undefined;
     const graphTextContext = this.createGraphTextContext(graph);
     const texts = this.symbolsToTexts(symbols, graphTextContext);
 
@@ -656,6 +773,7 @@ export class EmbeddingIndex {
    */
   removeSymbols(filePath: string): void {
     this.entries = this.entries.filter((e) => e.symbol.filePath !== filePath);
+    this.lexicalIndex = undefined;
   }
 
   /** Number of indexed symbols */
@@ -793,6 +911,51 @@ export class EmbeddingIndex {
 
   private startTime = 0;
 
+  private getLexicalIndex(): HybridLexicalIndex {
+    if (!this.lexicalIndex) {
+      this.lexicalIndex = new HybridLexicalIndex(this.entries);
+    }
+    return this.lexicalIndex;
+  }
+
+  /**
+   * Declarations already carry their file path into the index. Files with no
+   * parsed declarations need an explicit node or they are invisible to
+   * retrieval (common for shell, PowerShell, Markdown, and configuration).
+   */
+  private getIndexableSymbols(graph: CodebaseGraph): ExternalSymbolDefinition[] {
+    const symbols = graph.getAllSymbols();
+    if (
+      typeof graph.getFilePaths !== 'function' ||
+      typeof graph.getSymbolsInFile !== 'function' ||
+      typeof graph.getFile !== 'function'
+    ) {
+      return symbols;
+    }
+
+    const fileNodes: ExternalSymbolDefinition[] = [];
+    for (const filePath of graph.getFilePaths()) {
+      if (graph.getSymbolsInFile(filePath).length > 0) continue;
+      const file = graph.getFile(filePath);
+      const basename = filePath.replace(/\\/g, '/').split('/').pop() ?? filePath;
+      fileNodes.push({
+        name: basename,
+        type: 'file',
+        language: file?.language ?? 'plaintext',
+        visibility: 'internal',
+        filePath,
+        line: 1,
+        column: 0,
+        isExported: false,
+        signature: `file ${filePath}`,
+        docComment: file?.docComment,
+        lineCount: file?.loc,
+      });
+    }
+
+    return fileNodes.length > 0 ? [...symbols, ...fileNodes] : symbols;
+  }
+
   /**
    * Estimate remaining time based on current progress.
    * @returns Estimated seconds remaining
@@ -862,11 +1025,11 @@ export class EmbeddingIndex {
     return symbols.map((symbol) => this.symbolToText(symbol, context));
   }
 
-  private pickDiverseTopResults(
-    scored: Array<{ idx: number; score: number }>,
+  private pickDiverseTopResults<T extends { idx: number; score: number }>(
+    scored: T[],
     topK: number
-  ): Array<{ idx: number; score: number }> {
-    const selected: Array<{ idx: number; score: number }> = [];
+  ): T[] {
+    const selected: T[] = [];
     const selectedIndexes = new Set<number>();
     const seenFiles = new Set<string>();
 

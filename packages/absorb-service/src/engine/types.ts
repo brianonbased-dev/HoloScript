@@ -42,6 +42,7 @@ export type SupportedLanguage =
 
 /** Symbol types for external language constructs beyond .holo */
 export type ExternalSymbolType =
+  | 'file'
   | 'class'
   | 'interface'
   | 'enum'

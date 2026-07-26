@@ -427,6 +427,10 @@ export async function main(argv = process.argv.slice(2)) {
             pAt5: metricDelta(accuracy, legacyAccuracy, 'semantic-only', 'p_at_5'),
             mrr: metricDelta(accuracy, legacyAccuracy, 'semantic-only', 'mrr'),
           },
+          hybrid: {
+            pAt5: metricDelta(accuracy, legacyAccuracy, 'hybrid', 'p_at_5'),
+            mrr: metricDelta(accuracy, legacyAccuracy, 'hybrid', 'mrr'),
+          },
           graphRag: {
             pAt5: metricDelta(accuracy, legacyAccuracy, 'graph-rag', 'p_at_5'),
             mrr: metricDelta(accuracy, legacyAccuracy, 'graph-rag', 'mrr'),

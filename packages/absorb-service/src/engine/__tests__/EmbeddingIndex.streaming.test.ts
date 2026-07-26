@@ -483,6 +483,60 @@ describe('EmbeddingIndex streaming batches', () => {
     ]);
   });
 
+  it('indexes parser-light files and returns an explicitly named shell file in the top result', async () => {
+    const provider: EmbeddingProvider = {
+      name: 'adversarial-vector-provider',
+      getEmbeddings: vi.fn(async (texts: string[]) =>
+        texts.map((text) => {
+          if (text === 'safe-commit') return [1, 0];
+          if (text.includes('safe-commit')) return [0, 1];
+          return [1, 0];
+        })
+      ),
+    };
+    const unrelated = makeNamedSymbol('repoRoot', 'src/repo-root.ts');
+    const graph = makeGraph([
+      makeScannedFile('src/repo-root.ts', [unrelated]),
+      {
+        path: 'scripts/safe-commit.ps1',
+        language: 'plaintext',
+        symbols: [],
+        imports: [],
+        calls: [],
+        loc: 48,
+        sizeBytes: 1200,
+        docComment: 'Atomic commit wrapper using explicit paths.',
+      },
+      {
+        path: 'scripts/safe-commit.sh',
+        language: 'plaintext',
+        symbols: [],
+        imports: [],
+        calls: [],
+        loc: 42,
+        sizeBytes: 1000,
+        docComment: 'POSIX atomic commit wrapper using explicit paths.',
+      },
+    ]);
+    const index = new EmbeddingIndex({ provider, batchSize: 10, useWorkers: false });
+
+    await index.buildIndex(graph);
+    const vectorOnly = await index.search('safe-commit', 3);
+    const hybrid = await index.searchHybrid('safe-commit', 3);
+
+    expect(index.size).toBe(3);
+    expect(vectorOnly[0]?.file).toBe('src/repo-root.ts');
+    expect(hybrid.slice(0, 2).map((result) => result.file).sort()).toEqual([
+      'scripts/safe-commit.ps1',
+      'scripts/safe-commit.sh',
+    ]);
+    expect(hybrid[0]).toMatchObject({
+      type: 'file',
+      exactMatch: true,
+      matchKind: 'exact-name',
+    });
+  });
+
   it('does not give generic interactive scenes the codebase scene compiler alias', async () => {
     const embeddedTexts: string[] = [];
     const provider: EmbeddingProvider = {

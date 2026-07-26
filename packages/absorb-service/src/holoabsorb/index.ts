@@ -154,6 +154,7 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'packages/holoembed/src/index.ts',
       'packages/absorb-service/src/engine/providers/HoloEmbedProvider.ts',
       'packages/absorb-service/src/engine/EmbeddingIndex.ts',
+      'packages/absorb-service/src/engine/HybridRetrieval.ts',
     ],
   },
   {
@@ -161,11 +162,12 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
     name: 'HoloAbsorb GraphRAG',
     canonicalOwner: 'packages/absorb-service/src/engine/GraphRAGEngine.ts',
     responsibility:
-      'Graph-aware retrieval, semantic reranking, citations, query enrichment, and codebase answers.',
+      'Graph-aware hybrid retrieval, exact-name-preserving reranking, citations, query enrichment, and codebase answers.',
     entrypoints: ['@holoscript/absorb-service/gev', '@holoscript/absorb-service/mcp'],
     toolNames: ['holo_ask_codebase', 'absorb_query'],
     evidencePaths: [
       'packages/absorb-service/src/engine/GraphRAGEngine.ts',
+      'packages/absorb-service/src/engine/HybridRetrieval.ts',
       'packages/absorb-service/src/mcp/graph-rag-tools.ts',
     ],
   },
@@ -272,6 +274,7 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'packages/absorb-service/src/holoabsorb/index.ts',
       'packages/absorb-service/scripts/audit-holoabsorb.mjs',
       'packages/absorb-service/scripts/bench-holoabsorb.mjs',
+      'packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs',
       'packages/absorb-service/scripts/bench-holoabsorb-refresh.mjs',
       'research/paper-5-graphrag-icse.tex',
       'research/paper-26-main.tex',

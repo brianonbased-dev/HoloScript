@@ -99,6 +99,37 @@ describe('TwoTowerSearchIndex', () => {
     expect(first?.score).toBe(6);
   });
 
+  it('preserves exact-name recall when the vector tower prefers another symbol', async () => {
+    const queryProvider = new StaticQueryProvider(new Map([['safe-commit', [1, 0]]]));
+    const index = new TwoTowerSearchIndex({
+      queryProvider,
+      entries: [
+        {
+          symbol: makeSymbol({
+            name: 'safe-commit.ps1',
+            type: 'file',
+            language: 'plaintext',
+            filePath: 'scripts/safe-commit.ps1',
+          }),
+          embedding: [0, 1],
+          text: 'plaintext file safe-commit.ps1 in scripts/safe-commit.ps1',
+        },
+        {
+          symbol: makeSymbol({ name: 'repoRoot', filePath: 'src/repo-root.ts' }),
+          embedding: [1, 0],
+        },
+      ],
+    });
+
+    const [first] = await index.searchHybrid('safe-commit', 2);
+
+    expect(first).toMatchObject({
+      file: 'scripts/safe-commit.ps1',
+      exactMatch: true,
+      matchKind: 'exact-name',
+    });
+  });
+
   it('can back GraphRAGEngine through the search-index contract', async () => {
     const queryProvider = new StaticQueryProvider(new Map([['find target', [1, 0, 0]]]));
     const index = new TwoTowerSearchIndex({

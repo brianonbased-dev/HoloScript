@@ -99,7 +99,10 @@ packages.
   event/provenance edges, community detection, impact analysis, and
   HoloGraph/HoloEmbed manifests.
 - **HoloEmbed** -- the keyless embedding lane exposed through
-  `HoloEmbedProvider` and the GEV entry point. The workspace
+  `HoloEmbedProvider` and the GEV entry point. HoloAbsorb hybrid retrieval
+  preserves exact symbol/file names, adds file nodes for parser-light sources
+  such as shell scripts, and then fuses that lexical evidence with HoloEmbed.
+  The workspace
   `packages/holoembed` implementation remains only for existing engine,
   benchmark, and research call sites during migration.
 - **HoloLlama** -- the owned-model serving lane at `packages/holollama`.
@@ -109,6 +112,13 @@ packages.
 
 The full boundary is documented in
 [`docs/architecture/absorb-intelligence-spine.md`](../../docs/architecture/absorb-intelligence-spine.md).
+
+Repeatable evidence:
+
+```bash
+pnpm --filter @holoscript/absorb-service benchmark:holoabsorb
+pnpm --filter @holoscript/absorb-service benchmark:holoabsorb-hybrid -- --repo <repo>
+```
 
 ## Sub-path Exports
 

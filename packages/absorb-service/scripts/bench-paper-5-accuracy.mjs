@@ -9,7 +9,7 @@
  *
  * ## What this measures
  *
- * Three retrieval systems are scored on a bootstrap labeled query set whose
+ * Four retrieval systems are scored on a bootstrap labeled query set whose
  * gold answers are real file paths inside
  * `packages/absorb-service/src/engine/` (the GraphRAG implementation itself).
  *
@@ -21,9 +21,11 @@
  *                       corpus, ranked by cosine similarity. The legacy
  *                       StructuralEmbeddingProvider is selectable explicitly.
  *
- *   3. Graph RAG    — GraphRAGEngine over the same index, which fuses
- *                       semantic score with graph connection and impact
- *                       weights (see GraphRAGEngine.query()).
+ *   3. Hybrid       — exact-name/path + lexical evidence fused with the
+ *                       HoloEmbed vector score.
+ *
+ *   4. Graph RAG    — GraphRAGEngine over the hybrid index, which adds
+ *                       bounded graph connection and impact evidence.
  *
  * A "BM25" primitive is not a separate shipped baseline in absorb-service —
  * the lexical scorer below is the closest in-tree analog and is marked as
@@ -325,6 +327,22 @@ async function semanticSearch(index, query, topK) {
 }
 
 /**
+ * Production HoloAbsorb hybrid ranker. Falls back to vector search only for
+ * legacy index implementations so benchmark artifacts remain replayable.
+ */
+async function hybridSearch(index, query, topK) {
+  const raw = index.searchHybrid
+    ? await index.searchHybrid(query, topK * 4)
+    : await index.search(query, topK * 4);
+  const fileBest = new Map();
+  for (const r of raw) {
+    const prev = fileBest.get(r.file);
+    if (!prev || r.score > prev.score) fileBest.set(r.file, { file: r.file, score: r.score });
+  }
+  return [...fileBest.values()].sort((a, b) => b.score - a.score).slice(0, topK);
+}
+
+/**
  * GraphRAG ranker via GraphRAGEngine.query().
  *
  * Uses the same EmbeddingIndex as semantic-only, but re-ranks by the
@@ -471,6 +489,12 @@ export async function main(argv = process.argv.slice(2), config = {}) {
       label: 'Semantic-only (RAG)',
       kind: 'embedding',
       run: async (q) => semanticSearch(index, q, options.topK),
+    },
+    {
+      name: 'hybrid',
+      label: 'HoloAbsorb hybrid (exact + lexical + HoloEmbed)',
+      kind: 'hybrid',
+      run: async (q) => hybridSearch(index, q, options.topK),
     },
     {
       name: 'graph-rag',

@@ -139,6 +139,21 @@ export type {
   SearchResult,
 } from './EmbeddingIndex';
 export type { SymbolSearchFilters, SymbolSearchIndex } from './SearchIndex';
+export {
+  createLexicalDocument,
+  createLexicalQuery,
+  fuseHybridScore,
+  HybridLexicalIndex,
+  scoreLexicalDocument,
+  scoreLexicalMatch,
+} from './HybridRetrieval';
+export type {
+  HybridMatchKind,
+  HybridLexicalEntry,
+  LexicalDocument,
+  LexicalMatchScore,
+  LexicalQuery,
+} from './HybridRetrieval';
 export { TwoTowerSearchIndex } from './TwoTowerSearchIndex';
 export type {
   TwoTowerScoreMode,
