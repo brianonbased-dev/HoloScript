@@ -2,6 +2,12 @@
 
 Node service for **HoloGram Sprint 0c**: depth (optional ONNX Depth Anything V2 Small via `onnxruntime-node`, else luminance), **Playwright** quilt + stereo views, **ffmpeg** stereo MP4 + parallax WebM, then **POST** multipart to Studio `/api/hologram/upload`.
 
+## Installation
+
+```bash
+pnpm add @holoscript/hologram-worker
+```
+
 ## HTTP
 
 - `GET /health` — liveness
@@ -41,7 +47,7 @@ Pin a vetted `.onnx` artifact and set `HOLOGRAM_ONNX_MODEL_PATH`. Preprocess in 
 
 - Attach a small volume at `/app/.cache` (or set `HOLOGRAM_CACHE_DIR` if you add model download later).
 - Set `STUDIO_INTERNAL_URL`, `HOLOGRAM_WORKER_TOKEN`, and `HOLOGRAM_SHARE_BASE_URL` on **both** worker and Studio.
-- Register the deployed service ID under **W.GOLD.034** when the ID is known.
+- Record the deployed service ID in your operator-owned service registry.
 
 ## Local
 
@@ -72,3 +78,32 @@ node packages/hologram-worker/scripts/verify-neural-depth.mjs          # falsifi
   (MAE + correlation) — a relabeled-luminance "neural" map would fail it.
   Measured 2026-05-24: MAE 0.357, Pearson −0.47 (real monocular depth is
   anti-correlated with the naive brightness proxy).
+
+## Validation gate
+
+Before deploying or publishing, run the worker build and tests, then exercise
+the deterministic luminance lane without a private model or Studio upload:
+
+```bash
+pnpm --filter @holoscript/hologram-worker build
+pnpm --filter @holoscript/hologram-worker test
+HOLOGRAM_WORKER_DEPTH_BACKEND=luminance node packages/hologram-worker/dist/server.js
+curl --fail http://127.0.0.1:8790/health
+```
+
+The health response is a liveness receipt only. Validate `/render` separately
+with `skipUpload: true` before enabling an operator-owned Studio URL and bearer
+credential.
+
+## Package boundary and release posture
+
+This public package targets external operators running a dedicated render
+worker. Callers bring their own Studio endpoint, credentials, cache, model
+artifact, Playwright browser, and ffmpeg runtime; no founder-local adapter or
+private workspace default ships in the package.
+
+Release posture: v0-preview. Known limitations include the luminance fallback's
+lower depth quality, platform-specific native dependencies in ONNX and Sharp,
+and the separate browser/ffmpeg provisioning steps. Pin the worker version and
+retain the deterministic luminance lane as the rollback path when a neural model
+or native media dependency is unsupported on the deployment host.

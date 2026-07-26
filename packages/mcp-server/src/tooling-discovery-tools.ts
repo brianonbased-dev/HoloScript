@@ -152,11 +152,11 @@ export interface ToolManifestEntry {
   tags: string[];
   /**
    * The Holo* brand this tool belongs to (e.g. "HoloKey", "HoloTunnel"), when
-   * known. Sourced from ai-ecosystem/config/holon-registry.json (schema
-   * holon-registry.v1) via the HOLON_TOOL_PREFIXES table below — see
-   * inferHolon() for the matching rule. Board task_1783967615617_deaf: before
-   * this field existed, an agent calling get_tool_manifest / suggest_tools_for_goal
-   * had no way to learn that e.g. holo_secrets_grant/_resolve/_revoke are the
+   * known. Derived from the holon-registry.v1 contract via the
+   * HOLON_TOOL_PREFIXES table below — see inferHolon() for the matching rule.
+   * Before this field existed, an agent calling get_tool_manifest /
+   * suggest_tools_for_goal had no way to learn that e.g.
+   * holo_secrets_grant/_resolve/_revoke are the
    * HoloKey holon, or that holo_tunnel_create/_status/_close are HoloTunnel —
    * the brand-to-tool mapping lived ONLY in the ecosystem glossary, invisible
    * from the tool manifest itself. Absent when no mapping is known; this is
@@ -172,10 +172,10 @@ export interface ToolManifestEntry {
 
 /**
  * Tool-name-prefix -> holon brand mapping, curated from
- * ai-ecosystem/config/holon-registry.json entries' own `code_root`/`notes`
- * evidence (each row below is backed by an exact tool-name citation already
- * recorded there as of 2026-07-15). Deliberately NOT exhaustive across all 50
- * registered holons — only prefixes with clear, already-documented tool-name
+ * holon-registry.v1 entries' own `code_root`/`notes` evidence (each row below
+ * is backed by an exact tool-name citation in that operator-owned registry).
+ * Deliberately NOT exhaustive across all registered holons — only prefixes
+ * with clear, already-documented tool-name
  * evidence are listed; extend as more mappings are curated. Exact-name rows
  * (no shared prefix with a sibling tool) are listed as a full tool name.
  */

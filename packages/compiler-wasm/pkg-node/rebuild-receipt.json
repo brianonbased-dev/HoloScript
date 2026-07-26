@@ -5,7 +5,6 @@
   "sourceCommit": "a526e35fb1a9746957f65267d6036f977c59f796+working-tree-kotlin-unknown-v1",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
-    "$env:Path = 'C:\\Users\\josep\\.cargo\\bin;' + $env:Path",
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
   ],
   "toolchain": {

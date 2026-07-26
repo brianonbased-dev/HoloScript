@@ -1,0 +1,21 @@
+{
+  "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
+  "generatedAt": "2026-07-26T18:58:56Z",
+  "sourcePath": "packages/compiler-wasm/src",
+  "sourceCommit": "01299a17102ab0b6d2b850ae3b49e3c1b304e214+public-consumption-working-tree",
+  "artifactPath": "packages/compiler-wasm/pkg",
+  "commands": [
+    "wasm-pack build --target web --out-dir pkg --release"
+  ],
+  "toolchain": {
+    "rustc": "1.91.0",
+    "cargo": "1.91.0",
+    "wasmPack": "0.14.0"
+  },
+  "result": {
+    "rebuilt": true,
+    "wasmBytes": 345153,
+    "wasmSha256": "4dc33724a8c0d5ee63304580bcfc5b86c2a2eedad90e23c317c06f4f097cf7ab",
+    "note": "Committed the browser target so clean public-consumption and portable workspace builds can validate the package without requiring wasm-pack."
+  }
+}

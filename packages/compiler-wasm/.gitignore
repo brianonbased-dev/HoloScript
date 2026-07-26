@@ -1,11 +1,17 @@
 # Rust build
 target/
 
-# WASM build output (generated). Keep pkg/.npmignore tracked so npm publish
-# includes generated artifacts from the working tree.
+# WASM build output. The browser package is committed so clean consumers and
+# portable workspace builds do not require wasm-pack; other targets remain local.
 pkg/*
 !pkg/
 !pkg/.npmignore
+!pkg/holoscript_wasm.js
+!pkg/holoscript_wasm.d.ts
+!pkg/holoscript_wasm_bg.wasm
+!pkg/holoscript_wasm_bg.wasm.d.ts
+!pkg/package.json
+!pkg/rebuild-receipt.json
 pkg-node/
 pkg-bundler/
 

@@ -161,6 +161,14 @@ npm run build:bundler
 npm run test
 ```
 
+The browser package under `pkg/` is committed and verified by `prepack`, so a
+clean workspace build remains consumable when `wasm-pack` is unavailable. When
+`wasm-pack` is installed (on `PATH`, under Cargo's bin directory, or provided as
+`WASM_PACK_BIN`), `npm run build` regenerates the release artifact. Without the
+tool, the build validates the committed JavaScript, declarations, WebAssembly
+binary, package metadata, and rebuild receipt instead of silently skipping the
+package.
+
 > **Note**: `npm run test` locally runs `cargo test || echo '...skipping'` — a
 > friendly no-op when cargo isn't installed, so `pnpm test` at the repo root
 > doesn't hard-fail for contributors without a Rust toolchain. CI does **not**

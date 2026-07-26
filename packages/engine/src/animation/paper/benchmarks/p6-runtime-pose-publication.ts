@@ -54,7 +54,7 @@ export interface Paper6RuntimePoseRun {
 export interface Paper6RuntimePoseArtifact {
   readonly schema_version: 'paper-6-runtime-pose-v1';
   readonly benchmark: 'paper-6-runtime-pose-publication';
-  readonly paper_ref: 'ai-ecosystem/research/paper-6-animation-sca.tex';
+  readonly paper_ref: 'research/paper-6-animation-sca.tex';
   readonly harness: 'packages/engine/src/animation/paper/benchmarks/p6-runtime-pose-publication.ts';
   readonly runtime_path: readonly [
     'MixamoRetargeter.retarget',
@@ -328,7 +328,7 @@ export function runPaper6RuntimePoseBenchmark(): Paper6RuntimePoseArtifact {
   return {
     schema_version: 'paper-6-runtime-pose-v1',
     benchmark: 'paper-6-runtime-pose-publication',
-    paper_ref: 'ai-ecosystem/research/paper-6-animation-sca.tex',
+    paper_ref: 'research/paper-6-animation-sca.tex',
     harness: 'packages/engine/src/animation/paper/benchmarks/p6-runtime-pose-publication.ts',
     runtime_path: [
       'MixamoRetargeter.retarget',
