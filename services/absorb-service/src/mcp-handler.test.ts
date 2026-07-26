@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 
 const mocks = vi.hoisted(() => {
@@ -68,7 +68,12 @@ vi.mock('./middleware/github-identity.js', () => ({
   resolveGitHubToken: vi.fn(),
 }));
 
-import { handleMcpDiscovery, handleMcpStreamableHttp } from './mcp-handler.js';
+import {
+  assertMcpToolInventoryReady,
+  getRegisteredToolCount,
+  handleMcpDiscovery,
+  handleMcpStreamableHttp,
+} from './mcp-handler.js';
 
 function createResponse(): Response & {
   closeHandler?: () => void;
@@ -95,6 +100,10 @@ function createResponse(): Response & {
 }
 
 describe('HoloAbsorb MCP transports', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('handles POST /mcp with an isolated stateless JSON response transport', async () => {
     const body = {
       jsonrpc: '2.0',
@@ -127,6 +136,12 @@ describe('HoloAbsorb MCP transports', () => {
       expect(mocks.transportClose).toHaveBeenCalledTimes(1);
       expect(mocks.serverClose).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('primes a non-empty tool inventory before the service is admitted', async () => {
+    await expect(assertMcpToolInventoryReady()).resolves.toBe(1);
+    expect(getRegisteredToolCount()).toBe(1);
+    expect(mocks.serverClose).toHaveBeenCalledTimes(1);
   });
 
   it('advertises stateless Streamable HTTP first and SSE only as a legacy fallback', () => {

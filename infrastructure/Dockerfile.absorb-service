@@ -48,6 +48,11 @@ COPY packages/core/ packages/core/
 COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/llm-provider/ packages/llm-provider/
+COPY packages/meaning/ packages/meaning/
+COPY packages/uaal/ packages/uaal/
+COPY packages/snn-webgpu/ packages/snn-webgpu/
+COPY packages/holoembed/ packages/holoembed/
+COPY packages/holollama/ packages/holollama/
 # secrets-broker: zero-dep HoloKey vault primitive imported by services/absorb-service/src/boot-secrets.ts.
 # Must be COPYed + built (WITH dts) so the host's `pnpm exec tsc` resolves its types and runtime resolves its js.
 # Omitting it is the W.731 curated-build-list drift (cf. the core-types/marketplace-api notes above).
@@ -75,9 +80,18 @@ RUN cd packages/secrets-broker && pnpm exec tsup
 # docker-drift order gap and types server.ts's config import for real.
 RUN cd packages/config && pnpm exec tsup
 RUN cd packages/llm-provider && pnpm exec tsup --no-dts
+RUN cd packages/meaning && pnpm exec tsup --no-dts
+RUN cd packages/uaal && pnpm exec tsup --no-dts
 RUN cd packages/platform && pnpm exec tsup --no-dts
 RUN cd packages/mesh && pnpm exec tsup --no-dts
+RUN cd packages/snn-webgpu && pnpm exec tsup --no-dts
+RUN cd packages/holoembed && pnpm exec tsup --no-dts
+RUN cd packages/holollama && pnpm exec tsup --no-dts
 RUN cd packages/absorb-service && pnpm exec tsup --no-dts
+# Fail the image build if the deployable MCP entrypoint cannot resolve its
+# complete runtime closure. A successful TypeScript build is insufficient when
+# pnpm workspace symlinks point at a package whose dist/ was never produced.
+RUN node --input-type=module -e "const m=await import('@holoscript/absorb-service/mcp'); const n=['absorbServiceTools','absorbTypescriptTools','codebaseTools','graphRagTools'].reduce((s,k)=>s+(Array.isArray(m[k])?m[k].length:0),0); if(n<1) throw new Error('HoloAbsorb MCP tool inventory is empty'); console.log('HoloAbsorb MCP runtime import OK tools='+n)"
 RUN cd services/absorb-service && pnpm exec tsc
 
 # --- Production stage ---

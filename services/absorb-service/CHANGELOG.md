@@ -1,5 +1,12 @@
 # @holoscript/absorb-service-host
 
+## 6.1.3
+
+### Fixed
+
+- Completed and build-smoked the engine MCP runtime dependency closure, and
+  refuse service admission when the resolved tool inventory is empty.
+
 ## 6.1.2
 
 ### Fixed
