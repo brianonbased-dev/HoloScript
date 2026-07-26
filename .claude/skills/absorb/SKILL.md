@@ -57,9 +57,11 @@ If an agent reports **`Transport closed`**:
 
 1. Probe `http://127.0.0.1:7411/health`. A healthy response proves the graph service, not
    the agent host's cached MCP handle.
-2. Recover the durable service if health is down; reconnect/reload the MCP host if health
-   is up.
-3. If the host cannot reattach in the current task, use `holoscript graph-status`,
+2. Recover the durable service if health is down. Current Codex/Grok proxy leases
+   self-heartbeat while their client pipe is open, so message inactivity or a competing fresh
+   smoke connection must not evict a healthy conversation transport.
+3. If a handle was already closed before that liveness repair, reconnect/reload the MCP host
+   once. If the host cannot reattach in the current task, use `holoscript graph-status`,
    `holoscript query`, or `holoscript impact-analysis`. These commands call the same
    canonical Absorb handlers and workspace cache directly. They are a
    transport-independent degradation path, **not** a second raw repo scanner.
@@ -369,7 +371,7 @@ Filter for precision:
 |---------|-------|-----|
 | `cache_root_mismatch` / "No Graph RAG engine initialized" | Routed to the **remote** FS-blind `holoscript` MCP (`cwd=/app`) | Route to **`holoscript-local`** instead (R.027) — see the `/holoscript-local` skill |
 | `Cannot find module ...graph-rag-tools-HASH.cjs` | The `dist` was rebuilt while the stdio MCP was running | **Restart the MCP client** (W.766) — the live process lost its content-hashed chunks |
-| `Transport closed` while `/health` is healthy | The agent host retained a dead MCP handle | Reload/reconnect the host; meanwhile use `holoscript graph-status/query/impact-analysis`, which reuse the canonical Absorb cache |
+| `Transport closed` while `/health` is healthy | A pre-repair handle was already closed, or the proxy lease heartbeat genuinely stopped | Current proxies preserve healthy idle conversations; reconnect a pre-repair closed handle once, then use `holoscript graph-status/query/impact-analysis` only as the canonical-cache degradation path |
 | Empty results | Graph not loaded | Run `holo_graph_status`, then `holo_absorb_repo` if stale |
 | Shallow/obvious answers | topK too low for a large monorepo (verify package count via `pnpm ls -r --depth -1`) | Bump to `topK: 40` |
 | LLM hallucinates details | Real answer ranked below top 10 | Bump topK or narrow with `file`/`language` filter |
