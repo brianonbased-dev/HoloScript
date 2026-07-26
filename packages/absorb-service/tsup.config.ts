@@ -4,7 +4,12 @@ const shared = {
   format: ['cjs', 'esm'] as import('tsup').Format[],
   shims: true,
   sourcemap: true,
-  splitting: true,
+  // HoloAbsorb is loaded by long-lived MCP hosts. Hashed lazy/shared chunks are
+  // unsafe here: a clean rebuild can delete a chunk that an already-running
+  // process has not required yet, leaving health green but its next tool call
+  // broken with MODULE_NOT_FOUND. Self-contained entry bundles keep the loaded
+  // generation resident while new processes pick up the next build atomically.
+  splitting: false,
   treeshake: false,
   minify: false,
   external: [

@@ -22,6 +22,7 @@ import { pathToFileURL } from 'url';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { mcpAuthHeadersAsync } from '@holoscript/config';
 import {
+  getGraphRAGStateStatus,
   isGraphRAGReady,
   resetGraphRAGState,
   resetGraphRAGStateForTests,
@@ -8242,7 +8243,6 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   const selectedGeneration = readCacheGenerationManifest(activeCacheRoot);
   const cache = getCacheAge(activeCacheRoot);
   const embeddingPolicy = cache.embeddingPolicy ?? buildGraphRAGEmbeddingPolicyReceipt();
-  const { getGraphRAGStateStatus } = await import('./graph-rag-tools');
   const embeddingsFile = getEmbeddingsFile(activeCacheRoot);
   const embeddingsCacheExists = fs.existsSync(embeddingsFile);
   const embeddingsCacheModel = readEmbeddingsCacheModel(activeCacheRoot);
