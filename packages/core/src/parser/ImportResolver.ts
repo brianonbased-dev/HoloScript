@@ -16,6 +16,8 @@
  * @version 1.1.0
  */
 
+import { digestPackageSource } from '@holoscript/platform';
+
 import type { HSPlusCompileResult, HSPlusNode, ASTProgram } from './HoloScriptPlusParser';
 
 // =============================================================================
@@ -45,6 +47,24 @@ export interface ImportResolveOptions {
    * Default: undefined (registry resolution disabled).
    */
   registryBaseUrl?: string;
+  /**
+   * Exact registry pins from a verified PackageLockReceipt.
+   * Registry imports fail closed when a pin is absent.
+   */
+  registryLock?: Record<string, RegistryPackageLockPin>;
+  /** Host-owned cache used for verified offline replay. */
+  registryCache?: Record<string, RegistryPackageCacheEntry>;
+  /** Disable registry network access and require a verified cache hit. */
+  offline?: boolean;
+}
+
+export interface RegistryPackageLockPin {
+  version: string;
+  integrity: string;
+}
+
+export interface RegistryPackageCacheEntry extends RegistryPackageLockPin {
+  source: string;
 }
 
 /** A fully resolved module with its exported bindings */
@@ -307,27 +327,29 @@ export class ImportResolver {
       throw new Error(`Max depth (${maxDepth}) exceeded resolving '${canonicalPath}'`);
     }
 
+    const cacheKey = this._cacheKey(canonicalPath, options);
+
     // ── Cycle detection ──────────────────────────────────────────────────────
-    if (this.inProgress.has(canonicalPath)) {
-      const chain = [...this.inProgress, canonicalPath];
+    if (this.inProgress.has(cacheKey)) {
+      const chain = [...this.inProgress, cacheKey];
       throw new Error(`Circular import detected: ${chain.join(' → ')}`);
     }
 
     // Cache hit — already fully resolved
-    if (this.cache.has(canonicalPath)) {
-      return this.cache.get(canonicalPath)!;
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey)!;
     }
 
-    this.inProgress.add(canonicalPath);
+    this.inProgress.add(cacheKey);
 
     try {
       // ── Read source ─────────────────────────────────────────────────────
       let source: string;
 
       // Registry imports: @username/name pattern
-      if (isRegistryImport(canonicalPath) && options.registryBaseUrl) {
+      if (isRegistryImport(canonicalPath)) {
         try {
-          source = await this._fetchRegistrySource(canonicalPath, options.registryBaseUrl);
+          source = await this._fetchRegistrySource(canonicalPath, options);
         } catch {
           throw new Error(
             `Registry unavailable for '${canonicalPath}' (imported from '${importedBy}')`
@@ -378,7 +400,7 @@ export class ImportResolver {
             : resolveImportPath(subImp.path, baseDir);
         transitiveDeps.push(subPath);
 
-        if (!this.cache.has(subPath)) {
+        if (!this.cache.has(this._cacheKey(subPath, options))) {
           try {
             const subMod = await this._resolveModule(
               subPath,
@@ -418,10 +440,10 @@ export class ImportResolver {
         dependencies: transitiveDeps,
       };
 
-      this.cache.set(canonicalPath, mod);
+      this.cache.set(cacheKey, mod);
       return mod;
     } finally {
-      this.inProgress.delete(canonicalPath);
+      this.inProgress.delete(cacheKey);
     }
   }
 
@@ -465,26 +487,78 @@ export class ImportResolver {
    * Fetch source code from the community registry for @username/name imports.
    * Calls GET {registryBaseUrl}/api/scene/{name} and returns the scene code.
    */
-  private async _fetchRegistrySource(importPath: string, registryBaseUrl: string): Promise<string> {
+  private async _fetchRegistrySource(
+    importPath: string,
+    options: ImportResolveOptions
+  ): Promise<string> {
     const parsed = parseRegistryImport(importPath);
     if (!parsed) {
       throw new Error(`Invalid registry import path: '${importPath}'`);
     }
 
-    // Fetch from registry API: GET /api/registry/@username/name
-    const url = `${registryBaseUrl.replace(/\/$/, '')}/api/registry/${encodeURIComponent(parsed.username)}/${encodeURIComponent(parsed.name)}`;
+    const pin = options.registryLock?.[importPath];
+    if (!pin || !/^sha256:[0-9a-f]{64}$/.test(pin.integrity)) {
+      throw new Error(`Registry lock pin required for '${importPath}'`);
+    }
+
+    const cached = options.registryCache?.[importPath];
+    if (
+      cached &&
+      cached.version === pin.version &&
+      cached.integrity === pin.integrity &&
+      (await digestPackageSource(cached.source)) === pin.integrity
+    ) {
+      return cached.source;
+    }
+    if (options.offline) {
+      throw new Error(`Registry cache miss for '${importPath}' while offline`);
+    }
+    if (!options.registryBaseUrl) {
+      throw new Error(`Registry base URL required for '${importPath}'`);
+    }
+
+    const url = `${options.registryBaseUrl.replace(/\/$/, '')}/api/v1/packages/${encodeURIComponent(parsed.username)}/${encodeURIComponent(parsed.name)}/versions/${encodeURIComponent(pin.version)}`;
 
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Registry returned ${response.status} for '${importPath}'`);
     }
 
-    const data = (await response.json()) as { code?: string };
-    if (!data.code || typeof data.code !== 'string') {
-      throw new Error(`Registry returned no code for '${importPath}'`);
+    const data = (await response.json()) as {
+      specifier?: string;
+      version?: string;
+      integrity?: string;
+      source?: string;
+    };
+    if (
+      data.specifier !== importPath ||
+      data.version !== pin.version ||
+      data.integrity !== pin.integrity ||
+      typeof data.source !== 'string'
+    ) {
+      throw new Error(`Registry response does not match lock pin for '${importPath}'`);
+    }
+    if ((await digestPackageSource(data.source)) !== pin.integrity) {
+      throw new Error(`Registry integrity mismatch for '${importPath}'`);
     }
 
-    return data.code;
+    if (options.registryCache) {
+      options.registryCache[importPath] = {
+        version: pin.version,
+        integrity: pin.integrity,
+        source: data.source,
+      };
+    }
+
+    return data.source;
+  }
+
+  private _cacheKey(canonicalPath: string, options: ImportResolveOptions): string {
+    if (!isRegistryImport(canonicalPath)) return canonicalPath;
+    const pin = options.registryLock?.[canonicalPath];
+    return pin
+      ? `${canonicalPath}#${pin.version}:${pin.integrity}`
+      : `${canonicalPath}#unlocked`;
   }
 
   /**
