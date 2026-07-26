@@ -1134,6 +1134,61 @@ describe('holo_absorb_repo root validation', () => {
     });
   });
 
+  it('creates a large fallback checkpoint before the isolated worker starts', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-worker-checkpoint-relay-repo-');
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-worker-checkpoint-relay-cache-')
+    );
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '2';
+    process.env.ABSORB_REQUIRE_ISOLATION = '1';
+    writeGraphCache(cacheDir, repoDir, Date.now(), getHeadCommit(repoDir), 1);
+
+    class FakeWorker extends EventEmitter {
+      unref(): this {
+        return this;
+      }
+      terminate(): Promise<number> {
+        return Promise.resolve(0);
+      }
+    }
+    let workerArgs: Record<string, unknown> | undefined;
+    setIsolatedAbsorbWorkerFactoryForTests((workerData) => {
+      workerArgs = workerData.args;
+      return new FakeWorker() as unknown as Worker;
+    });
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+    })) as {
+      accepted?: boolean;
+      autoBackground?: boolean;
+      backgroundIsolation?: string;
+      resumeToken?: string;
+      refreshProgressReceipt?: {
+        receiptFile?: string;
+        status?: string;
+        totalCandidateFiles?: number;
+      };
+    };
+
+    expect(accepted).toMatchObject({
+      accepted: true,
+      autoBackground: true,
+      backgroundIsolation: 'worker-thread',
+      refreshProgressReceipt: {
+        status: 'prepared',
+        totalCandidateFiles: 2,
+      },
+    });
+    expect(accepted.resumeToken).toMatch(/^[a-f0-9]{32}$/);
+    expect(workerArgs?.resumeToken).toBe(accepted.resumeToken);
+    expect(fs.existsSync(accepted.refreshProgressReceipt!.receiptFile!)).toBe(true);
+  });
+
   it('never expires an active job and retains terminal status for a full hour', async () => {
     vi.useFakeTimers();
     try {
@@ -3179,6 +3234,185 @@ describe('holo_absorb_repo root validation', () => {
       ).reusedBatchCount
     ).toBeGreaterThanOrEqual(1);
   }, 15_000);
+
+  it('keeps a large small-delta refresh incremental, observable, and source-pinned', async () => {
+    resetCodebaseToolStateForTests();
+    const fixtureCount = 2_000;
+    const changedFixtureCount = 5;
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-delta-scale-cache-'));
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-delta-scale-repo-'));
+    const sourceDir = path.join(repoDir, 'src');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'core.autocrlf', 'false'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    fs.mkdirSync(sourceDir, { recursive: true });
+    for (let index = 0; index < fixtureCount; index++) {
+      fs.writeFileSync(
+        path.join(sourceDir, `fixture-${String(index).padStart(4, '0')}.ts`),
+        `export const fixture${index} = ${index};\n`,
+        'utf-8'
+      );
+    }
+    execFileSync('git', ['add', 'src'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'large fixture baseline'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    const fullStartedAt = Date.now();
+    const baseline = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+      maxFiles: fixtureCount,
+      scanBatchSize: 250,
+    })) as {
+      error?: string;
+      durationMs?: number;
+      graphAuthoritative?: boolean;
+      stats?: { totalFiles?: number };
+    };
+    const fullElapsedMs = baseline.durationMs ?? Date.now() - fullStartedAt;
+    expect(baseline).toMatchObject({
+      graphAuthoritative: true,
+      stats: { totalFiles: fixtureCount },
+    });
+
+    for (let index = 0; index < changedFixtureCount; index++) {
+      fs.writeFileSync(
+        path.join(sourceDir, `fixture-${String(index).padStart(4, '0')}.ts`),
+        `export const fixture${index} = ${index + 10_000};\n`,
+        'utf-8'
+      );
+    }
+    execFileSync('git', ['add', 'src'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'small delta'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    const cacheFile = path.join(cacheDir, 'graph-cache.json');
+    const priorCache = fs.readFileSync(cacheFile, 'utf-8');
+    const originalScanFiles = CodebaseScanner.prototype.scanFiles;
+    let scanDelayMs = 25;
+    let rescannedFileCount = 0;
+    const changedScanSpy = vi
+      .spyOn(CodebaseScanner.prototype, 'scanFiles')
+      .mockImplementation(async function (...args) {
+        rescannedFileCount = (args[1] as string[]).length;
+        await new Promise((resolve) => setTimeout(resolve, scanDelayMs));
+        return originalScanFiles.apply(this, args);
+      });
+    const fullScanSpy = vi.spyOn(CodebaseScanner.prototype, 'scanInBatches');
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      async: true,
+    })) as { accepted?: boolean; jobId?: string };
+    expect(accepted.accepted).toBe(true);
+    expect(fs.readFileSync(cacheFile, 'utf-8')).toBe(priorCache);
+
+    let observableStatus: Record<string, unknown> = {};
+    for (let index = 0; index < 100; index++) {
+      observableStatus = (await handleCodebaseTool('holo_get_absorb_status', {
+        jobId: accepted.jobId,
+      })) as Record<string, unknown>;
+      if (
+        String(observableStatus.phase).includes('Rescanning') ||
+        String(observableStatus.phase).includes('Parsed')
+      ) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(Number(observableStatus.progress)).toBeGreaterThanOrEqual(30);
+    expect(String(observableStatus.phase)).toMatch(/Rescanning|Parsed/);
+
+    const completed = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
+    const result = completed.result as {
+      incremental?: boolean;
+      filesChanged?: number;
+      patchDurationMs?: number;
+      sourcePinValidated?: boolean;
+      sourceAuthorityPins?: Array<{
+        gitCommitHash?: string | null;
+        worktreeFingerprint?: string | null;
+      }>;
+    };
+    expect(completed.status).toBe('complete');
+    expect(result).toMatchObject({
+      incremental: true,
+      filesChanged: changedFixtureCount,
+      sourcePinValidated: true,
+    });
+    expect(result.sourceAuthorityPins?.[0]?.gitCommitHash).toBe(getHeadCommit(repoDir));
+    expect(result.sourceAuthorityPins?.[0]?.worktreeFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(rescannedFileCount).toBe(changedFixtureCount);
+    expect(fullScanSpy).not.toHaveBeenCalled();
+    expect(result.patchDurationMs).toBeLessThan(fullElapsedMs / 2);
+
+    fs.writeFileSync(
+      path.join(sourceDir, 'fixture-0010.ts'),
+      'export const fixture10 = 20010;\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/fixture-0010.ts'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['commit', '-m', 'second small delta'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    const authoritativeCache = fs.readFileSync(cacheFile, 'utf-8');
+    scanDelayMs = 150;
+    const invalidated = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      async: true,
+    })) as { accepted?: boolean; jobId?: string };
+    expect(invalidated.accepted).toBe(true);
+
+    for (let index = 0; index < 100; index++) {
+      const status = (await handleCodebaseTool('holo_get_absorb_status', {
+        jobId: invalidated.jobId,
+      })) as Record<string, unknown>;
+      if (String(status.phase).includes('Rescanning')) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    fs.appendFileSync(
+      path.join(sourceDir, 'fixture-1999.ts'),
+      'export const concurrentDrift = true;\n',
+      'utf-8'
+    );
+
+    const rejected = await waitForAbsorbTerminalStatus(invalidated.jobId!, true);
+    expect(rejected).toMatchObject({
+      status: 'error',
+      result: {
+        error: 'absorb_refresh_source_changed',
+        cachePreserved: true,
+        graphAuthoritative: false,
+      },
+    });
+    expect(fs.readFileSync(cacheFile, 'utf-8')).toBe(authoritativeCache);
+    changedScanSpy.mockRestore();
+  }, 60_000);
 
   it('repairs a git-stale cache through incremental stats without embeddings', async () => {
     resetCodebaseToolStateForTests();

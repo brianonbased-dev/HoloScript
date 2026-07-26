@@ -1798,18 +1798,23 @@ function startBackgroundAbsorbJob(
         const message = errorMessage(err);
         const job = absorbJobs.get(jobId);
         const refreshProgressReceipt = job?.refreshProgressReceipt;
-        const refreshSourceChanged = refreshProgressReceipt?.status === 'invalidated';
+        const refreshSourceChanged =
+          refreshProgressReceipt?.status === 'invalidated' ||
+          err instanceof AbsorbRefreshCommitPinError ||
+          err instanceof AbsorbRefreshWorktreePinError;
         failAbsorbJob(jobId, 'Failed', message, {
-          error: refreshProgressReceipt
-            ? refreshSourceChanged
-              ? 'absorb_refresh_source_changed'
-              : 'absorb_refresh_failed'
-            : 'absorb_failed',
+          error: refreshSourceChanged
+            ? 'absorb_refresh_source_changed'
+            : refreshProgressReceipt
+              ? 'absorb_refresh_failed'
+              : 'absorb_failed',
           message,
           jobId,
-          ...(refreshProgressReceipt && {
+          ...(refreshSourceChanged && {
             cachePreserved: !job?.cacheCommitted,
             graphAuthoritative: false,
+          }),
+          ...(refreshProgressReceipt && {
             resumeToken: refreshProgressReceipt.resumeToken,
             refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(refreshProgressReceipt),
           }),
@@ -6386,12 +6391,15 @@ async function runIncrementalPatch(
   embeddingApiKey?: string,
   embeddingModel?: string,
   scanBatchSize?: number,
-  scanPolicy?: GraphScanPolicy
+  scanPolicy?: GraphScanPolicy,
+  sourcePins?: GraphRootSourcePin[]
 ): Promise<unknown> {
   const { CodebaseScanner, CodebaseGraph, GitChangeDetector } = mod;
   const startTime = Date.now();
   const embeddingPolicy = buildGraphRAGEmbeddingPolicyReceipt();
   const effectiveScanPolicy = normalizeScanPolicy(scanPolicy ?? envelope.scanPolicy);
+  const activeSourcePins =
+    sourcePins ?? (await captureGraphRootSourcePins([rootDir], effectiveScanPolicy));
   const signal = getAbsorbJobSignal(jobId);
   enforceAbsorbJobControl(jobId, 'initializing incremental patch');
 
@@ -6483,16 +6491,12 @@ async function runIncrementalPatch(
   graph.fileHashes = Object.fromEntries(newHashes.map((h: any) => [h.filePath, h.hash]));
 
   if (outputFormat === 'stats') {
-    cachedGraph = graph;
-    cachedRootDir = rootDir;
-    cacheProvenance = 'incremental-patch';
-    cacheTimestamp = Date.now();
-
     const statsOnlyGraphStats = graph.getStats();
     const statsOnlyProvider = embeddingProvider
       ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
       : (envelope.embeddingProvider ?? (await detectBestEmbeddingProvider()));
 
+    await assertGraphRootSourcePinsCurrent(activeSourcePins, effectiveScanPolicy);
     const publishedGeneration = publishCacheGeneration({
       graph,
       rootDir,
@@ -6506,6 +6510,10 @@ async function runIncrementalPatch(
     if (!publishedGeneration) {
       throw new Error('Unable to publish incremental stats cache generation');
     }
+    cachedGraph = graph;
+    cachedRootDir = rootDir;
+    cacheProvenance = 'incremental-patch';
+    cacheTimestamp = Date.now();
     const statsJob = jobId ? absorbJobs.get(jobId) : undefined;
     if (statsJob) statsJob.cacheCommitted = true;
 
@@ -6530,6 +6538,8 @@ async function runIncrementalPatch(
       embeddingPolicy,
       scanPolicy: effectiveScanPolicy,
       gitCommitHash: changes.headCommit,
+      sourcePinValidated: true,
+      sourceAuthorityPins: activeSourcePins,
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
       ...buildAbsorbAuthorityResultFields(semanticIndexReadiness),
@@ -6672,6 +6682,7 @@ async function runIncrementalPatch(
   }
 
   enforceAbsorbJobControl(jobId, 'cache-commit');
+  await assertGraphRootSourcePinsCurrent(activeSourcePins, effectiveScanPolicy);
   cacheTimestamp = Date.now();
   const publishedGeneration = publishCacheGeneration({
     graph,
@@ -6734,6 +6745,8 @@ async function runIncrementalPatch(
     holoSource,
     interactiveScene,
     gitCommitHash: changes.headCommit,
+    sourcePinValidated: true,
+    sourceAuthorityPins: activeSourcePins,
     message: `Incremental update: patched ${filesToRescan.length} files in ${patchDurationMs}ms (${graphStats.totalFiles} total)`,
   };
 
@@ -7115,7 +7128,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     : scaleDecision;
   const runInBackground = requestedBackground || autoBackground.autoBackground;
   if (runInBackground) {
-    if (plan.force && !plan.fromSourceFiles) {
+    if ((plan.force || requiresIsolatedLargeBackground(scaleDecision)) && !plan.fromSourceFiles) {
       try {
         await prepareDurableRefreshCheckpoint(plan);
       } catch (error) {
@@ -7197,9 +7210,15 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     return await executeAbsorbPlan(plan);
   } catch (err) {
     if (isAbsorbCancellation(err, jobId)) return settleCancelledAbsorbJob(jobId, err);
-    if (plan.refreshCheckpoint || resumeToken) {
+    if (
+      plan.refreshCheckpoint ||
+      resumeToken ||
+      err instanceof AbsorbRefreshCommitPinError ||
+      err instanceof AbsorbRefreshWorktreePinError
+    ) {
       const message = errorMessage(err);
-      const refreshProgressReceipt = plan.refreshCheckpoint?.progressReceipt();
+      const refreshProgressReceipt =
+        plan.refreshCheckpoint?.progressReceipt() ?? absorbJobs.get(jobId)?.refreshProgressReceipt;
       const result = {
         error:
           err instanceof AbsorbRefreshCommitPinError || err instanceof AbsorbRefreshWorktreePinError
@@ -7854,7 +7873,15 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     return { ...(result as Record<string, unknown>), jobId };
   }
 
+  // Pin the exact source snapshot around Git change detection. This prevents a
+  // concurrent commit or dirty-worktree edit from slipping between the delta
+  // calculation and the final atomic generation publication.
+  const incrementalSourcePins = await captureGraphRootSourcePins(
+    [primaryRootDir],
+    sameRootScanPolicy
+  );
   const changes = detector.detectChanges(envelope.gitCommitHash ?? null);
+  await assertGraphRootSourcePinsCurrent(incrementalSourcePins, sameRootScanPolicy);
   if (changes.storedCommitMissing) {
     const result = await runFullScan(
       mod,
@@ -8004,6 +8031,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
             await disposeEmbeddingIndex(rebuiltIndex);
           }
           enforceAbsorbJobControl(jobId, 'embedding-cache-commit');
+          await assertGraphRootSourcePinsCurrent(incrementalSourcePins, sameRootScanPolicy);
           const publishedGeneration = publishCacheGeneration({
             graph: cachedGraph,
             rootDir,
@@ -8036,6 +8064,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
 
     if (envelope.gitCommitHash !== changes.headCommit) {
       enforceAbsorbJobControl(jobId, 'graph-cache-commit');
+      await assertGraphRootSourcePinsCurrent(incrementalSourcePins, sameRootScanPolicy);
       (cachedGraph as { gitCommitHash?: string }).gitCommitHash = changes.headCommit;
       (cachedGraph as { fileHashes?: Record<string, string> }).fileHashes = envelope.fileHashes;
       cacheTimestamp = Date.now();
@@ -8119,7 +8148,8 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     embeddingApiKey,
     embeddingModel,
     scanBatchSize,
-    sameRootScanPolicy
+    sameRootScanPolicy,
+    incrementalSourcePins
   );
   return { ...(result as Record<string, unknown>), jobId };
 }
