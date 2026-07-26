@@ -75,6 +75,17 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(dec).toContain('val ch = minOf(480, height)');
   });
 
+  it('redacts decoded payload values when scanner.holo disables payload logging', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const activity = out[Object.keys(out).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    expect(activity).toContain('Log.i(tag, "decoded QR payload")');
+    expect(activity).toContain('Log.i(tag, "entering QR world")');
+    expect(activity).toContain('Log.i(tag, "user opened QR link")');
+    expect(activity).not.toContain('Log.i(tag, "decoded: $text")');
+    expect(activity).not.toContain('Log.i(tag, "entering world: $link")');
+    expect(activity).not.toContain('Log.i(tag, "user opened: $url")');
+  });
+
   it('ScannerContent.kt carries values from the parsed trait configs', () => {
     const out = new QuestCompiler().compile(parsed.ast!, '');
     const content = out[Object.keys(out).find((k) => k.endsWith('ScannerContent.kt'))!];

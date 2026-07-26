@@ -14,7 +14,7 @@
  * Requires JDK 17 and the Android SDK for a full release build.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, unlinkSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,6 +24,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const appDir = join(here, '..');
 const repoRoot = join(appDir, '..', '..');
 const androidDir = join(appDir, 'android-mr');
+const localSigningPropertiesPath = join(androidDir, 'keystore.properties');
 const generatorPath = join(appDir, 'generate-native.mts');
 const sourceGatePath = join(
   repoRoot,
@@ -33,6 +34,24 @@ const sourceGatePath = join(
 );
 const require = createRequire(import.meta.url);
 const defaultTsxCliPath = require.resolve('tsx/cli');
+const requiredSigningPropertyKeys = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'];
+
+export function hasCompleteSigningProperties(content) {
+  const values = new Map();
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#') || line.startsWith('!')) continue;
+    const equals = line.indexOf('=');
+    if (equals <= 0) continue;
+    values.set(line.slice(0, equals).trim(), line.slice(equals + 1).trim());
+  }
+  return requiredSigningPropertyKeys.every((key) => Boolean(values.get(key)));
+}
+
+function hasLocalSigningProperties() {
+  if (!existsSync(localSigningPropertiesPath)) return false;
+  return hasCompleteSigningProperties(readFileSync(localSigningPropertiesPath, 'utf8'));
+}
 
 function runStep(label, command, args, options, spawn = spawnSync, logger = console) {
   logger.log(`build-release: ${label}`);
@@ -95,14 +114,25 @@ export async function main(argv = process.argv.slice(2)) {
     return;
   }
 
-  const { ok, env: signingEnv, materialized } = await resolveSigningEnv();
-  if (!ok) {
-    console.error(
-      'build-release: signing secrets unresolved. Provision them in HoloKey (see RELEASE.md), or pass\n' +
-        '  KEYSTORE_PASSWORD / KEY_PASSWORD / KEY_ALIAS / ANDROID_KEYSTORE_B64 (or KEYSTORE_FILE) in env.'
+  let signingEnv = {};
+  let materialized = null;
+  if (hasLocalSigningProperties()) {
+    console.log(
+      'build-release: using complete gitignored android-mr/keystore.properties (values redacted).'
     );
-    process.exitCode = 2;
-    return;
+  } else {
+    const resolved = await resolveSigningEnv();
+    if (!resolved.ok) {
+      console.error(
+        'build-release: signing secrets unresolved. Provision them in HoloKey (see RELEASE.md), pass\n' +
+          '  KEYSTORE_PASSWORD / KEY_PASSWORD / KEY_ALIAS / ANDROID_KEYSTORE_B64 (or KEYSTORE_FILE),\n' +
+          '  or provide a complete gitignored android-mr/keystore.properties.'
+      );
+      process.exitCode = 2;
+      return;
+    }
+    signingEnv = resolved.env;
+    materialized = resolved.materialized;
   }
 
   const isWin = process.platform === 'win32';

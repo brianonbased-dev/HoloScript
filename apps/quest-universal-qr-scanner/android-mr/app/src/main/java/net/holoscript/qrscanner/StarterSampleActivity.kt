@@ -247,7 +247,7 @@ class StarterSampleActivity : AppSystemActivity() {
   }
 
   private fun onDecoded(text: String) {
-    Log.i(tag, "decoded: $text")
+    Log.i(tag, "decoded QR payload")
     controller?.pauseScanning() // hold scanning while the result card is shown; resume on dismiss/open
     if (scanSound) playScanTone() // audible confirmation cue (config: @qr_decode.feedback.sound)
     // FUNCTIONAL-CORE / IMPERATIVE-SHELL: the ROUTING DECISION (which of four outcomes a scan is) is
@@ -317,7 +317,7 @@ class StarterSampleActivity : AppSystemActivity() {
   // the physical cameras, independent of what is rendered), so real QRs still scan inside the world —
   // scanning another world link hops worlds.
   private fun enterWorld(link: String) {
-    Log.i(tag, "entering world: $link")
+    Log.i(tag, "entering QR world")
     val worldId = WorldPortal.worldId(link)
     // Prefer the compiled HoloScript world's own name; fall back to the name parsed from the link.
     val name = Worlds.displayName(worldId) ?: WorldPortal.worldName(link)
@@ -460,7 +460,7 @@ class StarterSampleActivity : AppSystemActivity() {
    * bookmarks/settings), so it is the FALLBACK when no browser handles ACTION_VIEW.
    */
   private fun openInQuestBrowser(url: String) {
-    Log.i(tag, "user opened: $url")
+    Log.i(tag, "user opened QR link")
     try {
       startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) // full Quest Browser (tabs/bookmarks/settings)
     } catch (e: Exception) {

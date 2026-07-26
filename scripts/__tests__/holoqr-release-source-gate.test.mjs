@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { runHoloScriptSourceGate } from '../../apps/quest-universal-qr-scanner/scripts/build-release.mjs';
+import {
+  hasCompleteSigningProperties,
+  runHoloScriptSourceGate,
+} from '../../apps/quest-universal-qr-scanner/scripts/build-release.mjs';
 
 const quietLogger = { log() {}, error() {} };
 
@@ -61,4 +64,30 @@ test('HoloQR source gate fails closed when native output verification fails', ()
 
   assert.deepEqual(result, { ok: false, status: 9 });
   assert.equal(calls, 2);
+});
+
+test('HoloQR release accepts a complete redacted local signing property shape', () => {
+  assert.equal(
+    hasCompleteSigningProperties(`
+      # Values stay local and must never be logged.
+      storeFile=../release.keystore
+      storePassword=redacted-store-password
+      keyAlias=holoqr
+      keyPassword=redacted-key-password
+    `),
+    true
+  );
+});
+
+test('HoloQR release rejects incomplete or blank local signing properties', () => {
+  assert.equal(
+    hasCompleteSigningProperties(`
+      storeFile=../release.keystore
+      storePassword=
+      keyAlias=holoqr
+      keyPassword=redacted-key-password
+    `),
+    false
+  );
+  assert.equal(hasCompleteSigningProperties('storeFile=../release.keystore'), false);
 });

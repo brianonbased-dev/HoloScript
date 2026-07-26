@@ -34,6 +34,8 @@ export interface QrDecodeConfig {
   decode_interval_ms: number;
   /** Suppress re-reporting the same value within this window (ms). */
   dedupe_window_ms: number;
+  /** Allow decoded payload values in platform logs. Privacy-safe default is false. */
+  log_payload_values: boolean;
 }
 
 // =============================================================================
@@ -51,6 +53,7 @@ export const qrDecodeHandler: TraitHandler<QrDecodeConfig> = {
     center_crop: { width: 640, height: 480 },
     decode_interval_ms: 200,
     dedupe_window_ms: 2500,
+    log_payload_values: false,
   },
 
   onEvent(node, _config, context, event) {

@@ -62,6 +62,7 @@ export interface QuestMrFeatures {
   centerCropH: number;
   decodeIntervalMs: number;
   dedupeWindowMs: number;
+  logPayloadValues: boolean;
   feedbackSound: boolean; // qr_decode.feedback.sound — beep on decode
   title: string;
   tagline: string;
@@ -119,6 +120,7 @@ function defaults(): QuestMrFeatures {
     centerCropH: 480,
     decodeIntervalMs: 200,
     dedupeWindowMs: 2500,
+    logPayloadValues: false,
     feedbackSound: true,
     title: 'Universal QR Scanner',
     tagline: 'Read any QR code — right in mixed reality',
@@ -145,7 +147,12 @@ function defaults(): QuestMrFeatures {
     contentTypes: [
       { kind: 'url', action: 'open', label: 'Link', prefixes: ['http://', 'https://'] },
       { kind: 'wifi', action: 'copy', label: 'Wi-Fi network', prefixes: ['WIFI:'] },
-      { kind: 'contact', action: 'copy', label: 'Contact card', prefixes: ['BEGIN:VCARD', 'MECARD:'] },
+      {
+        kind: 'contact',
+        action: 'copy',
+        label: 'Contact card',
+        prefixes: ['BEGIN:VCARD', 'MECARD:'],
+      },
       { kind: 'email', action: 'copy', label: 'Email', prefixes: ['mailto:', 'MATMSG:'] },
       { kind: 'phone', action: 'copy', label: 'Phone number', prefixes: ['tel:'] },
       { kind: 'sms', action: 'copy', label: 'Message', prefixes: ['sms:', 'smsto:'] },
@@ -213,6 +220,7 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
           f.centerCropH = vnum(crop.height, f.centerCropH);
           f.decodeIntervalMs = vnum(c.decode_interval_ms, f.decodeIntervalMs);
           f.dedupeWindowMs = vnum(c.dedupe_window_ms, f.dedupeWindowMs);
+          f.logPayloadValues = vbool(c.log_payload_values, f.logPayloadValues);
           f.feedbackSound = vbool(vobj(c.feedback).sound, f.feedbackSound);
           // Universal content classification table → on-device classifyContent() when-arms.
           const cts = varr(c.content_types)
@@ -432,6 +440,15 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     AUTO_IMMERSE: String(f.autoImmerse),
     CONTENT_WHEN: buildContentWhen(f),
     SCAN_SOUND: String(f.feedbackSound),
+    DECODE_LOG: f.logPayloadValues
+      ? 'Log.i(tag, "decoded: $text")'
+      : 'Log.i(tag, "decoded QR payload")',
+    WORLD_LOG: f.logPayloadValues
+      ? 'Log.i(tag, "entering world: $link")'
+      : 'Log.i(tag, "entering QR world")',
+    OPEN_LOG: f.logPayloadValues
+      ? 'Log.i(tag, "user opened: $url")'
+      : 'Log.i(tag, "user opened QR link")',
     // Recognition/naming logic compiled from quest-mr-logic/WorldPortal.logic.hs (.hs → Kotlin via
     // the canonical Rust/WASM grammar). The template owns only the data members + irreducible
     // stdlib helpers; this is the .hs-authored control flow.
