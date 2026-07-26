@@ -46,6 +46,13 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(keys.some((k) => k.endsWith('MainActivity.kt'))).toBe(false);
   });
 
+  it('emits a Meta-store-ready landscape launch activity', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const manifest = out[Object.keys(out).find((k) => k.endsWith('AndroidManifest.xml'))!];
+    expect(manifest).toContain('android:screenOrientation="landscape"');
+    expect(manifest).toContain('android:value="quest3|quest3s"');
+  });
+
   it('PassthroughCameraController.kt is generated from the passthrough_camera trait config', () => {
     const out = new QuestCompiler().compile(parsed.ast!, '');
     const ctl = out[Object.keys(out).find((k) => k.endsWith('PassthroughCameraController.kt'))!];

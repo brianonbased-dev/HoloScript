@@ -958,6 +958,7 @@ export function emitAndroidManifestXml(f: QuestMrFeatures): string {
     <activity
       android:name="net.holoscript.qrscanner.StarterSampleActivity"
       android:launchMode="singleTask"
+      android:screenOrientation="landscape"
       android:excludeFromRecents="true"
       android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode"
       android:exported="true"
