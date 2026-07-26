@@ -817,7 +817,7 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt).toBeUndefined();
   });
 
-  it('inherits cached scan policy on non-forced refresh when policy args are omitted', async () => {
+  it('promotes an implicitly reused capped policy and keeps readiness aligned with authority', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-policy-inherit-cache-'));
     const repoDir = makeTinyGitRepo('holoscript-policy-inherit-repo-');
@@ -827,14 +827,27 @@ describe('holo_absorb_repo root validation', () => {
 
     const initial = (await handleCodebaseTool('holo_absorb_repo', {
       rootDir: repoDir,
-      outputFormat: 'stats',
+      outputFormat: 'graph',
       force: true,
       maxFiles: 1,
     })) as {
       stats?: { totalFiles?: number };
       scanPolicy?: { maxFiles?: number };
       gitCommitHash?: string;
+      graphAuthoritative?: boolean;
+      graphRagReady?: boolean;
+      semanticIndexReady?: boolean;
+      graphCoverage?: { cappedByMaxFiles?: boolean; selectedCandidateCount?: number };
+      semanticIndexReadiness?: {
+        graphAuthoritative?: boolean;
+        graphRagReady?: boolean;
+        semanticIndexReady?: boolean;
+      };
     };
+    const cappedSemanticSearch = (await handleGraphRagTool('holo_semantic_search', {
+      query: 'alpha',
+      useCachedAbsorbIndex: true,
+    })) as { error?: string };
     const oldHead = initial.gitCommitHash;
     execFileSync('git', ['commit', '--allow-empty', '-m', 'head churn'], {
       cwd: repoDir,
@@ -844,7 +857,7 @@ describe('holo_absorb_repo root validation', () => {
 
     const refresh = (await handleCodebaseTool('holo_absorb_repo', {
       rootDir: repoDir,
-      outputFormat: 'stats',
+      outputFormat: 'graph',
       force: false,
     })) as {
       cached?: boolean;
@@ -855,19 +868,47 @@ describe('holo_absorb_repo root validation', () => {
       gitCommitHash?: string;
       repairedIncompleteCache?: boolean;
       policyChanged?: boolean;
+      repairedCappedCache?: boolean;
+      promotedMaxFiles?: number;
+      graphAuthoritative?: boolean;
+      graphRagReady?: boolean;
+      semanticIndexReady?: boolean;
+      graphCoverage?: { cappedByMaxFiles?: boolean; selectedCandidateCount?: number };
     };
 
     expect(oldHead).not.toBe(currentHead);
     expect(initial.stats?.totalFiles).toBe(1);
     expect(initial.scanPolicy?.maxFiles).toBe(1);
-    expect(refresh.cached).toBe(true);
-    expect(refresh.incremental).toBe(false);
-    expect(refresh.filesChanged).toBe(0);
-    expect(refresh.stats?.totalFiles).toBe(1);
-    expect(refresh.scanPolicy?.maxFiles).toBe(1);
+    expect(initial.graphAuthoritative).toBe(false);
+    expect(initial.graphRagReady).toBe(false);
+    expect(initial.semanticIndexReady).toBe(false);
+    expect(initial.graphCoverage).toMatchObject({
+      cappedByMaxFiles: true,
+      selectedCandidateCount: 2,
+    });
+    expect(initial.semanticIndexReadiness).toMatchObject({
+      graphAuthoritative: false,
+      graphRagReady: false,
+      semanticIndexReady: false,
+    });
+    expect(cappedSemanticSearch.error).toContain('No embedding index');
+    expect(refresh.cached).toBeUndefined();
+    expect(refresh.incremental).toBeUndefined();
+    expect(refresh.filesChanged).toBeUndefined();
+    expect(refresh.stats?.totalFiles).toBe(2);
+    expect(refresh.scanPolicy?.maxFiles).toBe(2);
     expect(refresh.gitCommitHash).toBe(currentHead);
-    expect(refresh.repairedIncompleteCache).toBeUndefined();
-    expect(refresh.policyChanged).toBeUndefined();
+    expect(refresh.repairedIncompleteCache).toBe(true);
+    expect(refresh.policyChanged).toBe(true);
+    expect(refresh.repairedCappedCache).toBe(true);
+    expect(refresh.promotedMaxFiles).toBe(2);
+    expect(refresh.graphAuthoritative).toBe(true);
+    expect(refresh.graphRagReady).toBe(true);
+    expect(refresh.semanticIndexReady).toBe(true);
+    expect(refresh.graphCoverage).toMatchObject({
+      cappedByMaxFiles: false,
+      selectedCandidateCount: 2,
+    });
 
     resetCodebaseToolStateForTests();
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
@@ -882,14 +923,14 @@ describe('holo_absorb_repo root validation', () => {
       };
     };
 
-    expect(status.graphAuthoritative).toBe(false);
-    expect(status.diskCache?.freshForCurrentRepo).toBe(false);
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.diskCache?.freshForCurrentRepo).toBe(true);
     expect(status.diskCache?.gitCommitHash).toBe(currentHead);
     expect(status.diskCache?.currentGitCommitHash).toBe(currentHead);
     expect(status.diskCache?.gitCommitMatchesHead).toBe(true);
-    expect(status.diskCache?.scanPolicy?.maxFiles).toBe(1);
-    expect(status.diskCache?.coverage?.cappedByMaxFiles).toBe(true);
-  });
+    expect(status.diskCache?.scanPolicy?.maxFiles).toBe(2);
+    expect(status.diskCache?.coverage?.cappedByMaxFiles).toBe(false);
+  }, 30_000);
 
   it('defaults new scans to a 20k coverage ceiling for the current monorepo scale', async () => {
     resetCodebaseToolStateForTests();
@@ -912,7 +953,7 @@ describe('holo_absorb_repo root validation', () => {
     expect(result.scanPolicy?.maxFiles).toBe(20_000);
   });
 
-  it('uses cached scan policy when a missing stored commit forces a rescan', async () => {
+  it('promotes a cached cap before a missing stored commit forces a rescan', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-policy-rescan-cache-'));
     const repoDir = makeTinyGitRepo('holoscript-policy-rescan-repo-');
@@ -937,11 +978,15 @@ describe('holo_absorb_repo root validation', () => {
       scanPolicy?: { maxFiles?: number };
       gitCommitHash?: string;
       scanPlan?: { totalCandidateFiles?: number };
+      repairedCappedCache?: boolean;
+      promotedMaxFiles?: number;
     };
 
-    expect(refresh.stats?.totalFiles).toBe(1);
-    expect(refresh.scanPolicy?.maxFiles).toBe(1);
-    expect(refresh.scanPlan?.totalCandidateFiles).toBe(1);
+    expect(refresh.stats?.totalFiles).toBe(2);
+    expect(refresh.scanPolicy?.maxFiles).toBe(2);
+    expect(refresh.scanPlan?.totalCandidateFiles).toBe(2);
+    expect(refresh.repairedCappedCache).toBe(true);
+    expect(refresh.promotedMaxFiles).toBe(2);
     expect(refresh.gitCommitHash).toBe(getHeadCommit(repoDir));
   });
 

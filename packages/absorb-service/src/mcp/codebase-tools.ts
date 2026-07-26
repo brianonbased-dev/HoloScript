@@ -1172,6 +1172,9 @@ interface SemanticIndexReadinessReceipt {
   schemaVersion: typeof SEMANTIC_INDEX_READINESS_RECEIPT_SCHEMA;
   kind: 'SemanticIndexReadinessReceipt';
   rootDir: string;
+  graphAuthoritative?: boolean;
+  graphCoverage?: GraphCoverageStatus;
+  authorityCaveats?: string[];
   semanticIndexReady: boolean;
   graphRagReady: boolean;
   embeddingIndexReady: boolean;
@@ -1556,6 +1559,50 @@ function graphCoverageIsComplete(coverage: GraphCoverageStatus): boolean {
 // every call while still failing closed for global queries.
 function graphCoverageMatchesScanPolicy(coverage: GraphCoverageStatus): boolean {
   return !coverage.available || (coverage.complete !== false && coverage.overInclusive !== true);
+}
+
+interface ReuseScanPolicyResolution {
+  policy: GraphScanPolicy;
+  priorCoverage: GraphCoverageStatus;
+  promotedCappedMaxFiles: boolean;
+}
+
+/**
+ * Resolve the scan policy for a same-root cache reuse.
+ *
+ * An explicit maxFiles remains an intentional subset contract. When the caller
+ * omits maxFiles, however, inheriting a previously capped cache silently turns
+ * that old subset into the new request's authority boundary. Promote the cap to
+ * the live Git-visible candidate count so the normal full-scan repair path can
+ * restore whole-repository authority (and auto-background the work when large).
+ */
+function resolveReuseScanPolicy(
+  rootDir: string,
+  graphFileCount: number,
+  requestedPolicy: GraphScanPolicy,
+  maxFilesExplicit: boolean
+): ReuseScanPolicyResolution {
+  const policy = normalizeScanPolicy(requestedPolicy);
+  const priorCoverage = buildGraphCoverageStatus(rootDir, graphFileCount, policy);
+  const selectedCandidateCount = priorCoverage.selectedCandidateCount;
+  if (
+    maxFilesExplicit ||
+    !priorCoverage.available ||
+    priorCoverage.cappedByMaxFiles !== true ||
+    !Number.isFinite(selectedCandidateCount) ||
+    Number(selectedCandidateCount) <= 0
+  ) {
+    return { policy, priorCoverage, promotedCappedMaxFiles: false };
+  }
+
+  return {
+    policy: normalizeScanPolicy({
+      ...policy,
+      maxFiles: Math.max(policy.maxFiles ?? DEFAULT_SCAN_MAX_FILES, Number(selectedCandidateCount)),
+    }),
+    priorCoverage,
+    promotedCappedMaxFiles: true,
+  };
 }
 
 /**
@@ -1951,11 +1998,29 @@ function buildGraphUnavailableReceipt(options: {
   };
 }
 
-function buildStatsOnlySemanticIndexReceipt(rootDir: string): SemanticIndexReadinessReceipt {
+function buildSemanticAuthorityFields(
+  graphCoverage?: GraphCoverageStatus
+): Pick<
+  SemanticIndexReadinessReceipt,
+  'graphAuthoritative' | 'graphCoverage' | 'authorityCaveats'
+> {
+  if (!graphCoverage) return {};
+  return {
+    graphAuthoritative: graphCoverageIsComplete(graphCoverage),
+    graphCoverage,
+    authorityCaveats: buildCoverageAuthorityCaveats(graphCoverage),
+  };
+}
+
+function buildStatsOnlySemanticIndexReceipt(
+  rootDir: string,
+  graphCoverage?: GraphCoverageStatus
+): SemanticIndexReadinessReceipt {
   return {
     schemaVersion: SEMANTIC_INDEX_READINESS_RECEIPT_SCHEMA,
     kind: 'SemanticIndexReadinessReceipt',
     rootDir,
+    ...buildSemanticAuthorityFields(graphCoverage),
     semanticIndexReady: false,
     graphRagReady: false,
     embeddingIndexReady: false,
@@ -1979,9 +2044,14 @@ function buildSemanticIndexReadinessReceipt(
     embeddingBuildError?: unknown;
     embeddingFailureReason?: 'embeddingBuildFailed' | 'embeddingLoadFailed';
     graphRagReadyOverride?: boolean;
+    graphCoverage?: GraphCoverageStatus;
   }
 ): SemanticIndexReadinessReceipt {
-  const graphRagReady = options.graphRagReadyOverride ?? isGraphRAGReady();
+  const graphAuthoritative =
+    options.graphCoverage === undefined || graphCoverageIsComplete(options.graphCoverage);
+  const graphRagReady =
+    (options.graphRagReadyOverride ?? isGraphRAGReady()) && graphAuthoritative;
+  const authorityFields = buildSemanticAuthorityFields(options.graphCoverage);
   const failureMessage =
     options.embeddingBuildError === undefined
       ? undefined
@@ -1994,6 +2064,7 @@ function buildSemanticIndexReadinessReceipt(
       schemaVersion: SEMANTIC_INDEX_READINESS_RECEIPT_SCHEMA,
       kind: 'SemanticIndexReadinessReceipt',
       rootDir,
+      ...authorityFields,
       semanticIndexReady: false,
       graphRagReady: false,
       embeddingIndexReady: false,
@@ -2019,6 +2090,7 @@ function buildSemanticIndexReadinessReceipt(
     schemaVersion: SEMANTIC_INDEX_READINESS_RECEIPT_SCHEMA,
     kind: 'SemanticIndexReadinessReceipt',
     rootDir,
+    ...authorityFields,
     semanticIndexReady: graphRagReady,
     graphRagReady,
     embeddingIndexReady: graphRagReady,
@@ -2028,11 +2100,26 @@ function buildSemanticIndexReadinessReceipt(
     graphProvider: 'holograph',
     message: graphRagReady
       ? 'HoloGraph cache and HoloEmbed semantic index are ready for this absorb result.'
-      : 'HoloGraph cache was updated, but no HoloEmbed semantic index is ready for this absorb result.',
+      : !graphAuthoritative
+        ? 'HoloEmbed completed, but HoloGraph coverage is capped or incomplete, so semantic readiness is withheld for this absorb result.'
+        : 'HoloGraph cache was updated, but no HoloEmbed semantic index is ready for this absorb result.',
     nextStep: graphRagReady
       ? 'Use holo_semantic_search or holo_ask_codebase with the current GraphRAG index.'
-      : 'Run holo_absorb_repo with outputFormat "graph" or "holo" and verify semanticIndexReady before relying on semantic tools.',
+      : !graphAuthoritative
+        ? 'Rerun holo_absorb_repo without an explicit maxFiles cap (or set maxFiles to the full Git-visible candidate count) before relying on semantic tools.'
+        : 'Run holo_absorb_repo with outputFormat "graph" or "holo" and verify semanticIndexReady before relying on semantic tools.',
     createdAt: new Date().toISOString(),
+  };
+}
+
+function buildAbsorbAuthorityResultFields(
+  receipt: SemanticIndexReadinessReceipt
+): Record<string, unknown> {
+  if (receipt.graphAuthoritative === undefined) return {};
+  return {
+    graphAuthoritative: receipt.graphAuthoritative,
+    graphCoverage: receipt.graphCoverage,
+    authorityCaveats: receipt.authorityCaveats ?? [],
   };
 }
 
@@ -4103,7 +4190,17 @@ async function runFullScan(
       totalSymbols: stats.totalSymbols,
     });
     if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
-    const semanticIndexReadiness = buildStatsOnlySemanticIndexReceipt(primaryRootDir);
+    const graphCoverage = inlineSourceFiles
+      ? undefined
+      : buildGraphCoverageStatus(
+          primaryRootDir,
+          Number(stats.totalFiles ?? 0),
+          effectiveScanPolicy
+        );
+    const semanticIndexReadiness = buildStatsOnlySemanticIndexReceipt(
+      primaryRootDir,
+      graphCoverage
+    );
     resetGraphRAGState();
     recordPhaseMetric('stats-response');
     const result = {
@@ -4123,6 +4220,7 @@ async function runFullScan(
       diagnostics,
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+      ...buildAbsorbAuthorityResultFields(semanticIndexReadiness),
       semanticIndexReadiness,
       embeddingSkipped: true,
       embeddingSkipReason: 'outputFormat:stats',
@@ -4240,10 +4338,18 @@ async function runFullScan(
       totalSymbols: stats.totalSymbols,
     });
   }
+  const graphCoverage = inlineSourceFiles
+    ? undefined
+    : buildGraphCoverageStatus(
+        primaryRootDir,
+        Number(stats.totalFiles ?? 0),
+        effectiveScanPolicy
+      );
   const semanticIndexReadiness = buildSemanticIndexReadinessReceipt(primaryRootDir, {
     priorGraphRagReady: priorGraphRagReadyForEmbedding,
     embeddingBuildError,
     graphRagReadyOverride: preparedEmbeddingIndex !== null && embeddingBuildError === undefined,
+    graphCoverage,
   });
 
   // Sync with mesh (Phase 9)
@@ -4264,6 +4370,7 @@ async function runFullScan(
       scanPolicy: normalizeScanPolicy(scanPolicy),
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+      ...buildAbsorbAuthorityResultFields(semanticIndexReadiness),
       semanticIndexReadiness,
       embeddingSkipped: semanticIndexReadiness.embeddingSkipped,
       ...(semanticIndexReadiness.embeddingSkipReason && {
@@ -4306,6 +4413,7 @@ async function runFullScan(
       scanPolicy: effectiveScanPolicy,
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+      ...buildAbsorbAuthorityResultFields(semanticIndexReadiness),
       semanticIndexReadiness,
       embeddingSkipped: semanticIndexReadiness.embeddingSkipped,
       ...(semanticIndexReadiness.embeddingSkipReason && {
@@ -4349,7 +4457,7 @@ async function runFullScan(
   cachedGraph = graph;
   cachedRootDir = primaryRootDir;
   cacheProvenance = localCodebaseSnapshotReceipt ? 'local-codebase-snapshot-receipt' : 'fresh-scan';
-  if (preparedEmbeddingIndex) {
+  if (preparedEmbeddingIndex && semanticIndexReadiness.graphAuthoritative !== false) {
     setGraphRAGState(
       preparedEmbeddingIndex,
       new mod.GraphRAGEngine(graph, preparedEmbeddingIndex),
@@ -4529,7 +4637,12 @@ async function runIncrementalPatch(
 
     if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
     const patchDurationMs = Date.now() - startTime;
-    const semanticIndexReadiness = buildStatsOnlySemanticIndexReceipt(rootDir);
+    const graphCoverage = buildGraphCoverageStatus(
+      rootDir,
+      Number(statsOnlyGraphStats.totalFiles ?? 0),
+      effectiveScanPolicy
+    );
+    const semanticIndexReadiness = buildStatsOnlySemanticIndexReceipt(rootDir, graphCoverage);
     resetGraphRAGState();
     const result = {
       incremental: true,
@@ -4545,6 +4658,7 @@ async function runIncrementalPatch(
       gitCommitHash: changes.headCommit,
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+      ...buildAbsorbAuthorityResultFields(semanticIndexReadiness),
       semanticIndexReadiness,
       embeddingSkipped: true,
       embeddingSkipReason: 'outputFormat:stats',
@@ -4630,6 +4744,11 @@ async function runIncrementalPatch(
   }
 
   const graphStats = graph.getStats();
+  const graphCoverage = buildGraphCoverageStatus(
+    rootDir,
+    Number(graphStats.totalFiles ?? 0),
+    effectiveScanPolicy
+  );
   const detectedProvider = embeddingProvider
     ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
     : await detectBestEmbeddingProvider();
@@ -4686,7 +4805,7 @@ async function runIncrementalPatch(
   cachedGraph = graph;
   cachedRootDir = rootDir;
   cacheProvenance = 'incremental-patch';
-  if (preparedEmbeddingIndex) {
+  if (preparedEmbeddingIndex && graphCoverageIsComplete(graphCoverage)) {
     setGraphRAGState(
       preparedEmbeddingIndex,
       new mod.GraphRAGEngine(graph, preparedEmbeddingIndex),
@@ -4704,6 +4823,7 @@ async function runIncrementalPatch(
   const semanticIndexReadiness = buildSemanticIndexReadinessReceipt(rootDir, {
     priorGraphRagReady: priorGraphRagReadyForEmbedding,
     embeddingBuildError,
+    graphCoverage,
   });
 
   const result = {
@@ -4719,6 +4839,7 @@ async function runIncrementalPatch(
     scanPolicy: effectiveScanPolicy,
     graphRagReady: semanticIndexReadiness.graphRagReady,
     semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+    ...buildAbsorbAuthorityResultFields(semanticIndexReadiness),
     semanticIndexReadiness,
     embeddingSkipped: semanticIndexReadiness.embeddingSkipped,
     ...(semanticIndexReadiness.embeddingSkipReason && {
@@ -4914,6 +5035,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   }
   const scanPolicy = scanPolicyResult.policy;
   const scanPolicyExplicit = scanPolicyArgsProvided(args);
+  const maxFilesExplicit = args.maxFiles !== undefined;
   const embeddingProvider = args.embeddingProvider as string | undefined;
   const embeddingApiKey = args.embeddingApiKey as string | undefined;
   const embeddingModel = args.embeddingModel as string | undefined;
@@ -4941,6 +5063,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     includeBuildArtifacts,
     scanPolicy,
     scanPolicyExplicit,
+    maxFilesExplicit,
     outputFormat,
     layout,
     interactive,
@@ -5051,6 +5174,7 @@ interface AbsorbExecutionPlan {
   includeBuildArtifacts: boolean;
   scanPolicy: GraphScanPolicy;
   scanPolicyExplicit: boolean;
+  maxFilesExplicit: boolean;
   outputFormat: string;
   layout: string;
   interactive: boolean;
@@ -5157,10 +5281,20 @@ async function buildAutoBackgroundDecision(
   const existingCacheMatchesRoot =
     existingCache?.version === 2 &&
     rootMatchesCurrentRepo(existingCache.rootDir, plan.primaryRootDir);
-  const effectiveScanPolicy =
+  const requestedScanPolicy =
     existingCacheMatchesRoot && !plan.scanPolicyExplicit && !plan.force
       ? normalizeScanPolicy(existingCache.scanPolicy)
       : plan.scanPolicy;
+  const reusePolicyResolution =
+    existingCacheMatchesRoot && existingCache
+      ? resolveReuseScanPolicy(
+          plan.primaryRootDir,
+          getEnvelopeGraphFileCount(existingCache),
+          requestedScanPolicy,
+          plan.maxFilesExplicit
+        )
+      : undefined;
+  const effectiveScanPolicy = reusePolicyResolution?.policy ?? requestedScanPolicy;
   const effectiveMaxFiles = plan.maxFiles ?? effectiveScanPolicy.maxFiles ?? DEFAULT_SCAN_MAX_FILES;
   const effectiveIncludeBuildArtifacts =
     plan.includeBuildArtifacts || effectiveScanPolicy.includeBuildArtifacts === true;
@@ -5235,6 +5369,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     includeBuildArtifacts,
     scanPolicy,
     scanPolicyExplicit,
+    maxFilesExplicit,
     outputFormat,
     layout,
     interactive,
@@ -5398,11 +5533,17 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     getEnvelopeGraphFileCount(envelope),
     envelope.scanPolicy
   );
-  const sameRootScanPolicy = scanPolicyExplicit
+  const requestedSameRootScanPolicy = scanPolicyExplicit
     ? scanPolicy
     : normalizeScanPolicy(envelope.scanPolicy);
-  const cachePolicyChanged =
-    scanPolicyExplicit && !scanPoliciesEqual(envelope.scanPolicy, scanPolicy);
+  const reusePolicyResolution = resolveReuseScanPolicy(
+    primaryRootDir,
+    getEnvelopeGraphFileCount(envelope),
+    requestedSameRootScanPolicy,
+    maxFilesExplicit
+  );
+  const sameRootScanPolicy = reusePolicyResolution.policy;
+  const cachePolicyChanged = !scanPoliciesEqual(envelope.scanPolicy, sameRootScanPolicy);
   if (cachePolicyChanged || !graphCoverageMatchesScanPolicy(envelopeCoverage)) {
     const result = await runFullScan(
       mod,
@@ -5428,6 +5569,10 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       repairedIncompleteCache: true,
       priorCoverage: envelopeCoverage,
       policyChanged: cachePolicyChanged,
+      ...(reusePolicyResolution.promotedCappedMaxFiles && {
+        repairedCappedCache: true,
+        promotedMaxFiles: sameRootScanPolicy.maxFiles,
+      }),
     };
   }
 
@@ -5486,6 +5631,14 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
   // PATH 4: FAST PATH - Zero changes
   // ═══════════════════════════════════════════════════════════════════════════
   if (totalChanges === 0) {
+    const zeroChangeCoverage = buildGraphCoverageStatus(
+      primaryRootDir,
+      getEnvelopeGraphFileCount(envelope),
+      sameRootScanPolicy
+    );
+    const zeroChangeGraphAuthoritative = graphCoverageIsComplete(zeroChangeCoverage);
+    if (!zeroChangeGraphAuthoritative) resetGraphRAGState();
+
     // Ensure cached graph is in session memory
     if (!cachedGraph) {
       try {
@@ -5526,7 +5679,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     // This is the zero-change mirror of the incremental path's loadEmbeddingsCache.
     const priorGraphRagReadyForHydrate = isGraphRAGReady();
     let embeddingLoadError: unknown;
-    if (outputFormat !== 'stats' && !isGraphRAGReady()) {
+    if (outputFormat !== 'stats' && zeroChangeGraphAuthoritative && !isGraphRAGReady()) {
       try {
         const { GraphRAGEngine } = mod;
         const providerName = embeddingProvider
@@ -5632,11 +5785,12 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
 
     const semanticIndexReadiness =
       outputFormat === 'stats'
-        ? buildStatsOnlySemanticIndexReceipt(rootDir)
+        ? buildStatsOnlySemanticIndexReceipt(rootDir, zeroChangeCoverage)
         : buildSemanticIndexReadinessReceipt(rootDir, {
             priorGraphRagReady: priorGraphRagReadyForHydrate,
             embeddingBuildError: embeddingLoadError,
             embeddingFailureReason: embeddingLoadError ? 'embeddingLoadFailed' : undefined,
+            graphCoverage: zeroChangeCoverage,
           });
 
     return {
@@ -5650,6 +5804,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
       gitCommitHash: changes.headCommit,
       graphRagReady: semanticIndexReadiness.graphRagReady,
       semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
+      ...buildAbsorbAuthorityResultFields(semanticIndexReadiness),
       semanticIndexReadiness,
       embeddingSkipped: semanticIndexReadiness.embeddingSkipped,
       ...(semanticIndexReadiness.embeddingSkipReason && {
