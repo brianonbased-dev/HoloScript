@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -6,6 +7,8 @@ import test from 'node:test';
 
 import {
   SmokeFail,
+  PUBLIC_SOLVER_HEALTH_ENDPOINT,
+  SOLVER_HEALTH_SCHEMA,
   buildSolverRequest,
   runHostAdmission,
   runSolverSmoke,
@@ -13,6 +16,48 @@ import {
 
 const RECEIPT_HASH = `sha256:${'ab'.repeat(32)}`;
 const SIGNER = `0x${'12'.repeat(20)}`;
+
+function canonicalize(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`)
+    .join(',')}}`;
+}
+
+function healthResponse(overrides = {}) {
+  const payload = {
+    schemaVersion: SOLVER_HEALTH_SCHEMA,
+    status: 'healthy',
+    success: true,
+    service: '@holoscript/mcp-server',
+    tool: 'solve_thermal',
+    solver: '@holoscript/engine.Simulation.ThermalSolver',
+    execution: 'in-process-one-step',
+    zeroSpend: true,
+    spendUsd: 0,
+    credentialUsed: false,
+    steps: 1,
+    gridResolution: [3, 3, 3],
+    caelTraceId: 'cael:health-test:final-hash',
+    traceHash: 'final-hash',
+    device: 'CPU-native-linux-x64',
+    generatedAt: '2026-07-26T15:00:00.000Z',
+    ...overrides,
+  };
+  return {
+    ok: true,
+    status: 200,
+    text: async () =>
+      JSON.stringify({
+        ...payload,
+        receiptHash: `sha256:${createHash('sha256')
+          .update(canonicalize(payload), 'utf8')
+          .digest('hex')}`,
+      }),
+  };
+}
 
 function solverResponse(overrides = {}) {
   const inner = {
@@ -54,6 +99,85 @@ function admission() {
     signerAddress: SIGNER,
   };
 }
+
+test('default deployed health path is exact, zero-spend, and credential-free', async () => {
+  let admissionCalls = 0;
+  let keyCalls = 0;
+  let fetchCalls = 0;
+  const result = await runSolverSmoke(
+    {},
+    {
+      admitImpl: async () => {
+        admissionCalls += 1;
+        return admission();
+      },
+      resolveKeyImpl: () => {
+        keyCalls += 1;
+        return 'must-not-be-read';
+      },
+      fetchImpl: async (endpoint, init) => {
+        fetchCalls += 1;
+        assert.equal(endpoint, PUBLIC_SOLVER_HEALTH_ENDPOINT);
+        assert.equal(init.method, 'GET');
+        assert.equal(init.body, undefined);
+        assert.equal(init.headers['x-mcp-api-key'], undefined);
+        assert.equal(init.headers['x-holoshell-admission-receipt'], undefined);
+        return healthResponse();
+      },
+    }
+  );
+
+  assert.equal(result.zeroSpendHealth, true);
+  assert.equal(result.trace, 'cael:health-test:final-hash');
+  assert.equal(result.device, 'CPU-native-linux-x64');
+  assert.match(result.receiptHash, /^sha256:[a-f0-9]{64}$/u);
+  assert.equal(admissionCalls, 0);
+  assert.equal(keyCalls, 0);
+  assert.equal(fetchCalls, 1);
+});
+
+test('a different remote endpoint cannot inherit zero-spend health authority', async () => {
+  let keyCalls = 0;
+  let fetchCalls = 0;
+  await assert.rejects(
+    runSolverSmoke(
+      { endpoint: `${PUBLIC_SOLVER_HEALTH_ENDPOINT}/` },
+      {
+        admitImpl: async () => {
+          throw new SmokeFail('paid path remained admission-gated', null, 2);
+        },
+        resolveKeyImpl: () => {
+          keyCalls += 1;
+          return 'must-not-be-read';
+        },
+        fetchImpl: async () => {
+          fetchCalls += 1;
+          return healthResponse();
+        },
+      }
+    ),
+    /paid path remained admission-gated/u
+  );
+  assert.equal(keyCalls, 0);
+  assert.equal(fetchCalls, 0);
+});
+
+test('deployed health path rejects a tampered receipt', async () => {
+  await assert.rejects(
+    runSolverSmoke(
+      {},
+      {
+        fetchImpl: async () => {
+          const response = healthResponse();
+          const receipt = JSON.parse(await response.text());
+          receipt.device = 'CPU-stub';
+          return { ...response, text: async () => JSON.stringify(receipt) };
+        },
+      }
+    ),
+    /receipt hash mismatch/u
+  );
+});
 
 test('admission refusal cannot resolve the MCP key or fetch', async () => {
   let keyCalls = 0;

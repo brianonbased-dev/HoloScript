@@ -39,6 +39,7 @@ import { listSkillResources, readSkillResource } from './skill-resources';
 import { PluginManager } from './PluginManager';
 import { handleCompilerTool, handleCompileToTarget } from './compiler-tools';
 import { verifyCaelResult } from './verify-cael';
+import { runSolverHealthProbe, SOLVER_HEALTH_SCHEMA } from './solver-health';
 import {
   renderPreview,
   createShareLink,
@@ -1200,6 +1201,66 @@ const httpServer = http.createServer(async (req, res) => {
         },
       })
     );
+    return;
+  }
+
+  // Bounded deployed-solver health proof. This endpoint accepts no caller
+  // inputs, resolves no credential, and runs one tiny in-process thermal step.
+  // Paid/arbitrary solve requests remain exclusively behind the authenticated
+  // /mcp path and its HoloShell admission receipt.
+  if (url === '/api/health/solver') {
+    if (req.method !== 'GET') {
+      res.writeHead(405, {
+        'Content-Type': 'application/json; charset=utf-8',
+        Allow: 'GET',
+      });
+      res.end(JSON.stringify({ error: 'method_not_allowed', allowed: ['GET'] }));
+      return;
+    }
+
+    const rl = getRateLimit(`solver-health:${clientIP}`, PUBLIC_ANON_RATE_LIMIT);
+    setRateLimitHeaders(res, rl);
+    if (rl.remaining === 0) {
+      res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          schemaVersion: SOLVER_HEALTH_SCHEMA,
+          status: 'rate_limited',
+          success: false,
+          retry_after_seconds: Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        })
+      );
+      return;
+    }
+
+    try {
+      const receipt = await runSolverHealthProbe();
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(JSON.stringify(receipt));
+    } catch (error) {
+      console.error(
+        '[solver-health] bounded solve_thermal probe failed:',
+        error instanceof Error ? error.message : error
+      );
+      res.writeHead(503, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(
+        JSON.stringify({
+          schemaVersion: SOLVER_HEALTH_SCHEMA,
+          status: 'degraded',
+          success: false,
+          zeroSpend: true,
+          spendUsd: 0,
+          credentialUsed: false,
+          error: 'solver_probe_failed',
+        })
+      );
+    }
     return;
   }
 

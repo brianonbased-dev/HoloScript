@@ -2,10 +2,16 @@
 /**
  * solver-smoke-check.mjs — fail loud if the deployed solver path is broken.
  *
- * A non-loopback endpoint is unreachable until the host HoloShell gate emits a
- * registered-seat-signed receipt bound to this exact endpoint, tool, request
- * hash, board task, free-first proof, persisted cap, and ledger headroom. Only
- * after that receipt exists does this process resolve HOLOSCRIPT_MCP_API_KEY.
+ * The default deployed-health endpoint is an exact, zero-spend GET route that
+ * accepts no caller input and returns a hash-bound receipt from one real solver
+ * step. Any paid/arbitrary non-loopback MCP request remains unreachable until
+ * the host HoloShell gate emits a registered-seat-signed receipt bound to the
+ * endpoint, tool, request hash, board task, free-first proof, persisted cap,
+ * and ledger headroom. Only after that receipt exists does this process resolve
+ * HOLOSCRIPT_MCP_API_KEY.
+ *
+ * Default deployed-health usage:
+ *   pnpm check:solver-smoke
  *
  * Local zero-spend usage (the endpoint is structurally pinned to loopback
  * before an optional local-auth key is resolved):
@@ -38,6 +44,10 @@ export const CONFIG = {
   sources: [],
   initialTemperature: 20,
 };
+
+export const PUBLIC_SOLVER_HEALTH_ENDPOINT =
+  'https://mcp.holoscript.net/api/health/solver';
+export const SOLVER_HEALTH_SCHEMA = 'holoscript.solver-health.v1';
 
 export class SmokeFail extends Error {
   constructor(message, detail, code = 1) {
@@ -122,6 +132,18 @@ export function buildSolverRequest(endpoint) {
   };
 }
 
+export function buildSolverHealthRequest(endpoint = PUBLIC_SOLVER_HEALTH_ENDPOINT) {
+  return {
+    requestHash: sha256(
+      canonicalize({
+        endpoint,
+        method: 'GET',
+        schemaVersion: SOLVER_HEALTH_SCHEMA,
+      })
+    ),
+  };
+}
+
 export function isLoopbackEndpoint(endpoint) {
   try {
     const hostname = new URL(endpoint).hostname.toLowerCase();
@@ -129,6 +151,73 @@ export function isLoopbackEndpoint(endpoint) {
   } catch {
     return false;
   }
+}
+
+export function isPublicSolverHealthEndpoint(endpoint) {
+  try {
+    const candidate = new URL(endpoint);
+    const expected = new URL(PUBLIC_SOLVER_HEALTH_ENDPOINT);
+    return (
+      candidate.protocol === expected.protocol &&
+      candidate.hostname === expected.hostname &&
+      candidate.port === expected.port &&
+      candidate.pathname === expected.pathname &&
+      candidate.username === '' &&
+      candidate.password === '' &&
+      candidate.search === '' &&
+      candidate.hash === ''
+    );
+  } catch {
+    return false;
+  }
+}
+
+function validateSolverResult(result, raw) {
+  if (result.success !== true) {
+    throw new SmokeFail('solver returned success!=true', result.error || JSON.stringify(result));
+  }
+  const trace = result.caelTraceId || result.cael_trace_id;
+  if (typeof trace !== 'string' || !trace.startsWith('cael')) {
+    throw new SmokeFail(
+      'no real caelTraceId (solver did not genuinely execute)',
+      JSON.stringify(result).slice(0, 300)
+    );
+  }
+  const device = result._device || result.device || result?.result_summary?.device;
+  if (typeof device !== 'string' || device.length === 0 || device === 'CPU-stub') {
+    throw new SmokeFail(
+      device === 'CPU-stub'
+        ? 'solver fell back to CPU-stub (no real physics ran — billing edge)'
+        : 'solver response did not identify its execution device',
+      raw.slice(0, 300)
+    );
+  }
+  return { trace, device };
+}
+
+function validateHealthReceipt(receipt, raw) {
+  if (
+    receipt?.schemaVersion !== SOLVER_HEALTH_SCHEMA ||
+    receipt?.status !== 'healthy' ||
+    receipt?.zeroSpend !== true ||
+    receipt?.spendUsd !== 0 ||
+    receipt?.credentialUsed !== false ||
+    receipt?.steps !== 1
+  ) {
+    throw new SmokeFail('invalid zero-spend solver health receipt', raw.slice(0, 600));
+  }
+  if (!/^sha256:[a-f0-9]{64}$/u.test(String(receipt.receiptHash || ''))) {
+    throw new SmokeFail('solver health receipt has no valid receiptHash', raw.slice(0, 600));
+  }
+  const { receiptHash, ...payload } = receipt;
+  const expectedReceiptHash = sha256(canonicalize(payload));
+  if (receiptHash !== expectedReceiptHash) {
+    throw new SmokeFail(
+      'solver health receipt hash mismatch',
+      `expected=${expectedReceiptHash} actual=${receiptHash}`
+    );
+  }
+  return validateSolverResult(receipt, raw);
 }
 
 function sanitizedAdmissionEnv(surface, handle, env = process.env, home = homedir()) {
@@ -233,13 +322,14 @@ export function runHostAdmission(options = {}, dependencies = {}) {
 }
 
 export async function runSolverSmoke(options = {}, dependencies = {}) {
-  const endpoint = options.endpoint || 'https://mcp.holoscript.net/mcp';
+  const endpoint = options.endpoint || PUBLIC_SOLVER_HEALTH_ENDPOINT;
   const timeoutMs = Number(options.timeoutMs || 60_000);
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new SmokeFail('timeout-ms must be a positive number', null, 2);
   }
 
   const zeroSpendLocal = options.zeroSpendLocal === true;
+  const zeroSpendHealth = isPublicSolverHealthEndpoint(endpoint);
   if (zeroSpendLocal && !isLoopbackEndpoint(endpoint)) {
     throw new SmokeFail(
       '--zero-spend-local is restricted to loopback endpoints',
@@ -248,8 +338,10 @@ export async function runSolverSmoke(options = {}, dependencies = {}) {
     );
   }
 
-  const request = buildSolverRequest(endpoint);
-  const admission = zeroSpendLocal
+  const request = zeroSpendHealth
+    ? buildSolverHealthRequest(endpoint)
+    : buildSolverRequest(endpoint);
+  const admission = zeroSpendLocal || zeroSpendHealth
     ? null
     : await (dependencies.admitImpl || runHostAdmission)(
         {
@@ -261,23 +353,28 @@ export async function runSolverSmoke(options = {}, dependencies = {}) {
         dependencies
       );
 
-  const keyResolver = zeroSpendLocal
-    ? dependencies.resolveLocalKeyImpl || resolveLocalKey
-    : dependencies.resolveKeyImpl || resolveKey;
-  const key = keyResolver({
-    env: dependencies.env || process.env,
-    home: dependencies.home || homedir(),
-    cwd: dependencies.cwd || process.cwd(),
-  });
-  if (!zeroSpendLocal && !key) {
-    throw new SmokeFail(
-      'no HOLOSCRIPT_MCP_API_KEY (env, ~/.ai-ecosystem/.env, or <repo>/.env)',
-      null,
-      2
-    );
+  let key = null;
+  if (!zeroSpendHealth) {
+    const keyResolver = zeroSpendLocal
+      ? dependencies.resolveLocalKeyImpl || resolveLocalKey
+      : dependencies.resolveKeyImpl || resolveKey;
+    key = keyResolver({
+      env: dependencies.env || process.env,
+      home: dependencies.home || homedir(),
+      cwd: dependencies.cwd || process.cwd(),
+    });
+    if (!zeroSpendLocal && !key) {
+      throw new SmokeFail(
+        'no HOLOSCRIPT_MCP_API_KEY (env, ~/.ai-ecosystem/.env, or <repo>/.env)',
+        null,
+        2
+      );
+    }
   }
 
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = zeroSpendHealth
+    ? { Accept: 'application/json' }
+    : { 'Content-Type': 'application/json' };
   if (key) headers['x-mcp-api-key'] = key;
   if (admission) {
     headers['x-holoshell-admission-receipt'] = admission.receiptHash;
@@ -287,9 +384,9 @@ export async function runSolverSmoke(options = {}, dependencies = {}) {
   let response;
   try {
     response = await (dependencies.fetchImpl || fetch)(endpoint, {
-      method: 'POST',
+      method: zeroSpendHealth ? 'GET' : 'POST',
       headers,
-      body: JSON.stringify(request.body),
+      ...(zeroSpendHealth ? {} : { body: JSON.stringify(request.body) }),
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
@@ -308,6 +405,21 @@ export async function runSolverSmoke(options = {}, dependencies = {}) {
   } catch {
     throw new SmokeFail('response was not JSON', raw);
   }
+
+  if (zeroSpendHealth) {
+    const { trace, device } = validateHealthReceipt(envelope, raw);
+    return {
+      ok: true,
+      trace,
+      device,
+      requestHash: request.requestHash,
+      receiptHash: envelope.receiptHash,
+      zeroSpendHealth: true,
+      zeroSpendLocal: false,
+      admission: null,
+    };
+  }
+
   if (envelope.error) {
     throw new SmokeFail('JSON-RPC error envelope', JSON.stringify(envelope.error));
   }
@@ -344,6 +456,7 @@ export async function runSolverSmoke(options = {}, dependencies = {}) {
     trace,
     device: device || null,
     requestHash: request.requestHash,
+    zeroSpendHealth: false,
     zeroSpendLocal,
     admission,
   };
@@ -351,7 +464,7 @@ export async function runSolverSmoke(options = {}, dependencies = {}) {
 
 function parseArgs(args = process.argv.slice(2)) {
   return {
-    endpoint: argVal(args, '--endpoint', 'https://mcp.holoscript.net/mcp'),
+    endpoint: argVal(args, '--endpoint', PUBLIC_SOLVER_HEALTH_ENDPOINT),
     timeoutMs: Number(argVal(args, '--timeout-ms', '60000')),
     taskId: argVal(args, '--task-id'),
     maxSpendUsd: argVal(args, '--max-spend-usd'),
@@ -369,7 +482,9 @@ if (isMain) {
     .then((result) => {
       const admission = result.admission
         ? ` admission=${result.admission.receiptHash} signer=${result.admission.signerAddress}`
-        : ' zero-spend-local=true';
+        : result.zeroSpendHealth
+          ? ` zero-spend-health=true receipt=${result.receiptHash}`
+          : ' zero-spend-local=true';
       console.log(
         `[solver-smoke] OK — solve_thermal genuine execution. caelTraceId=${result.trace}` +
           `${result.device ? ` device=${result.device}` : ''}${admission}`
