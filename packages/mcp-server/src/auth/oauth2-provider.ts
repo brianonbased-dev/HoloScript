@@ -96,6 +96,42 @@ export const OAUTH2_SCOPES = {
 export type OAuth2Scope = keyof typeof OAUTH2_SCOPES;
 
 /**
+ * Scopes an unauthenticated RFC 7591 client may request.
+ *
+ * `admin` remains available to trusted, explicitly provisioned clients, but it
+ * must never be advertised to or self-assigned by a dynamic public client.
+ */
+export const OAUTH2_PUBLIC_SCOPES = {
+  'tools:read': OAUTH2_SCOPES['tools:read'],
+  'tools:execute': OAUTH2_SCOPES['tools:execute'],
+  'tasks:read': OAUTH2_SCOPES['tasks:read'],
+  'tasks:write': OAUTH2_SCOPES['tasks:write'],
+} as const;
+
+export const OAUTH2_PUBLIC_SCOPE_NAMES = Object.keys(OAUTH2_PUBLIC_SCOPES);
+
+export function getInvalidPublicOAuthScopes(scopes: string[]): string[] {
+  const allowed = new Set(OAUTH2_PUBLIC_SCOPE_NAMES);
+  return scopes.filter((scope) => !allowed.has(scope));
+}
+
+export function getInvalidOAuthRedirectUris(redirectUris: string[]): string[] {
+  return redirectUris.filter((redirectUri) => {
+    try {
+      const parsed = new URL(redirectUri);
+      if (parsed.hash || parsed.username || parsed.password) return true;
+      if (parsed.protocol === 'https:') return false;
+      if (parsed.protocol !== 'http:') return true;
+
+      const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+      return !['127.0.0.1', '::1', 'localhost'].includes(hostname);
+    } catch {
+      return true;
+    }
+  });
+}
+
+/**
  * Maps the new scope names to the existing security/oauth21 scope names.
  * This allows the new provider to coexist with the existing Gate 2 authorization.
  */
@@ -333,7 +369,7 @@ export class OAuth2Provider {
           state: state || undefined,
           code_challenge: codeChallenge,
           code_challenge_method: 'S256',
-          available_scopes: Object.entries(OAUTH2_SCOPES).map(([name, description]) => ({
+          available_scopes: Object.entries(OAUTH2_PUBLIC_SCOPES).map(([name, description]) => ({
             name,
             description,
             requested: requestedScopes.includes(name),
@@ -481,18 +517,18 @@ export class OAuth2Provider {
   ): Promise<{ status: number; body: Record<string, unknown>; headers?: Record<string, string> }> {
     const code = body.code as string;
     const clientId = body.client_id as string;
-    const clientSecret = body.client_secret as string;
+    const clientSecret = body.client_secret as string | undefined;
     const redirectUri = body.redirect_uri as string;
     const codeVerifier = body.code_verifier as string;
     const agentId = body.agent_id as string | undefined;
 
-    if (!code || !clientId || !clientSecret || !redirectUri || !codeVerifier) {
+    if (!code || !clientId || !redirectUri || !codeVerifier) {
       return {
         status: 400,
         body: {
           error: 'invalid_request',
           error_description:
-            'Missing required parameters: code, client_id, client_secret, redirect_uri, code_verifier',
+            'Missing required parameters: code, client_id, redirect_uri, code_verifier',
         },
       };
     }
@@ -538,7 +574,11 @@ export class OAuth2Provider {
         body: { error: 'invalid_client', error_description: 'Invalid client' },
       };
     }
-    if (!this.store.safeCompare(this.store.hashSecret(clientSecret), client.clientSecretHash)) {
+    if (
+      client.clientType === 'confidential' &&
+      (!clientSecret ||
+        !this.store.safeCompare(this.store.hashSecret(clientSecret), client.clientSecretHash))
+    ) {
       return {
         status: 400,
         body: { error: 'invalid_client', error_description: 'Invalid client credentials' },
@@ -646,14 +686,14 @@ export class OAuth2Provider {
   ): Promise<{ status: number; body: Record<string, unknown>; headers?: Record<string, string> }> {
     const refreshTokenValue = body.refresh_token as string;
     const clientId = body.client_id as string;
-    const clientSecret = body.client_secret as string;
+    const clientSecret = body.client_secret as string | undefined;
 
-    if (!refreshTokenValue || !clientId || !clientSecret) {
+    if (!refreshTokenValue || !clientId) {
       return {
         status: 400,
         body: {
           error: 'invalid_request',
-          error_description: 'Missing refresh_token, client_id, or client_secret',
+          error_description: 'Missing refresh_token or client_id',
         },
       };
     }
@@ -709,7 +749,11 @@ export class OAuth2Provider {
         body: { error: 'invalid_client', error_description: 'Invalid client' },
       };
     }
-    if (!this.store.safeCompare(this.store.hashSecret(clientSecret), client.clientSecretHash)) {
+    if (
+      client.clientType === 'confidential' &&
+      (!clientSecret ||
+        !this.store.safeCompare(this.store.hashSecret(clientSecret), client.clientSecretHash))
+    ) {
       return {
         status: 400,
         body: { error: 'invalid_client', error_description: 'Invalid client credentials' },
@@ -955,9 +999,9 @@ export class OAuth2Provider {
       registration_endpoint: `${this.config.issuer}/oauth/register`,
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code', 'client_credentials', 'refresh_token'],
-      token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic'],
+      token_endpoint_auth_methods_supported: ['none', 'client_secret_post', 'client_secret_basic'],
       code_challenge_methods_supported: ['S256'],
-      scopes_supported: Object.keys(OAUTH2_SCOPES),
+      scopes_supported: OAUTH2_PUBLIC_SCOPE_NAMES,
       dpop_signing_alg_values_supported: ['ES256', 'RS256'],
       service_documentation: 'https://github.com/buildwithholoscript/HoloScript',
     };

@@ -88,7 +88,21 @@ import {
   recordConsumerGeneration,
 } from './security/consumer-spend-guard';
 import { ensureMcpOtelTracer, withMcpToolExecutionSpan } from './telemetry/mcp-tool-tracing';
-import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
+import {
+  getInvalidOAuthRedirectUris,
+  getInvalidPublicOAuthScopes,
+  getOAuth2Provider,
+  OAUTH2_PUBLIC_SCOPES,
+  OAUTH2_PUBLIC_SCOPE_NAMES,
+  OAUTH2_SCOPES,
+} from './auth/oauth2-provider';
+import {
+  acceptsHtml,
+  buildOAuthCallbackUri,
+  OAUTH_CONSENT_SECURITY_HEADERS,
+  renderOAuthConsentPage,
+  resolveOAuthIssuer,
+} from './auth/oauth-browser';
 import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
 import {
@@ -194,6 +208,13 @@ const IS_RAILWAY = Boolean(
   process.env.RAILWAY_PROJECT_ID ||
   process.env.RAILWAY_ENVIRONMENT
 );
+
+const OAUTH_ISSUER = resolveOAuthIssuer({
+  configuredIssuer: process.env.OAUTH_ISSUER || process.env.HOLOSCRIPT_MCP_PUBLIC_URL,
+  railwayPublicDomain: process.env.RAILWAY_PUBLIC_DOMAIN,
+  bindHost: BIND_HOST,
+  port: PORT,
+});
 /** SSE MCP session mode: off on Railway unless opted in (multi-replica routing can split GET/POST). */
 const ALLOW_SSE_TRANSPORT = process.env.MCP_ENABLE_SSE === 'true' || !IS_RAILWAY;
 
@@ -262,10 +283,12 @@ if (process.env.DATABASE_URL) {
 
 // Initialize security services
 const oauth = getOAuth21Service({
+  issuer: OAUTH_ISSUER,
   legacyApiKey: HOLOSCRIPT_API_KEY,
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
 });
 const oauth2 = getOAuth2Provider({
+  issuer: OAUTH_ISSUER,
   legacyApiKey: HOLOSCRIPT_API_KEY,
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
   backend: tokenBackend,
@@ -1365,13 +1388,11 @@ const httpServer = http.createServer(async (req, res) => {
   // .well-known/mcp discovery endpoint (MCP specification)
   if (url === '/.well-known/mcp' || url === '/.well-known/mcp.json') {
     const allTools = [...tools, ...PluginManager.getTools()];
-    const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
-      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-      : `http://localhost:${PORT}`;
+    const baseUrl = OAUTH_ISSUER;
 
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600',
+      'Cache-Control': 'no-store',
     });
     res.end(
       JSON.stringify({
@@ -1383,17 +1404,24 @@ const httpServer = http.createServer(async (req, res) => {
         transport: {
           type: ALLOW_SSE_TRANSPORT ? 'sse' : 'streamable-http',
           url: `${baseUrl}/mcp`,
-          authentication: {
-            type: 'oauth2',
-            flows: ['authorization_code', 'client_credentials'],
-            authorizationEndpoint: `${baseUrl}/oauth/authorize`,
-            tokenEndpoint: `${baseUrl}/oauth/token`,
-            registrationEndpoint: `${baseUrl}/oauth/register`,
-            introspectionEndpoint: `${baseUrl}/oauth/introspect`,
-            scopes: Object.keys(OAUTH2_SCOPES),
-            legacyScopes: Object.keys(SCOPE_CATEGORIES),
-            legacyBearerSupported: true,
-          },
+          authentication: TRUST_LOOPBACK_MCP
+            ? {
+                type: 'none',
+                trustBoundary: 'loopback',
+                scopes: ['tools:codebase'],
+                note: 'Loopback MCP requests are admitted without browser OAuth.',
+              }
+            : {
+                type: 'oauth2',
+                flows: ['authorization_code', 'client_credentials'],
+                authorizationEndpoint: `${baseUrl}/oauth/authorize`,
+                tokenEndpoint: `${baseUrl}/oauth/token`,
+                registrationEndpoint: `${baseUrl}/oauth/register`,
+                introspectionEndpoint: `${baseUrl}/oauth/introspect`,
+                scopes: OAUTH2_PUBLIC_SCOPE_NAMES,
+                legacyScopes: Object.keys(SCOPE_CATEGORIES),
+                legacyBearerSupported: true,
+              },
         },
         capabilities: {
           tools: { count: allTools.length },
@@ -1453,7 +1481,7 @@ const httpServer = http.createServer(async (req, res) => {
   ) {
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600',
+      'Cache-Control': 'no-store',
     });
     res.end(JSON.stringify(oauth.getOpenIDConfiguration(), null, 2));
     return;
@@ -1847,12 +1875,58 @@ const httpServer = http.createServer(async (req, res) => {
   if (url === '/oauth/register' && req.method === 'POST') {
     try {
       const body = await parseJsonBody(req);
-      const clientName = (body.client_name as string) || 'unnamed-client';
-      const redirectUris = (body.redirect_uris as string[]) || [];
-      const scopes = (body.scope as string)?.split(' ') || ['tools:read'];
-      const clientType = (
-        body.token_endpoint_auth_method === 'none' ? 'public' : 'confidential'
-      ) as 'confidential' | 'public';
+      const clientName = String(body.client_name || 'unnamed-client')
+        .trim()
+        .slice(0, 120);
+      const redirectUris = Array.isArray(body.redirect_uris)
+        ? body.redirect_uris.filter((uri): uri is string => typeof uri === 'string')
+        : [];
+      if (redirectUris.length === 0) {
+        throw new Error('At least one redirect_uri is required');
+      }
+      const invalidRedirectUris = getInvalidOAuthRedirectUris(redirectUris);
+      if (invalidRedirectUris.length > 0) {
+        throw new Error(
+          'redirect_uris must use HTTPS, except for HTTP loopback callbacks on localhost, 127.0.0.1, or ::1'
+        );
+      }
+
+      const scopes = String(body.scope || 'tools:read')
+        .split(' ')
+        .filter(Boolean);
+      const invalidScopes = getInvalidPublicOAuthScopes(scopes);
+      if (invalidScopes.length > 0) {
+        throw new Error(
+          `Dynamic clients cannot request reserved or unknown scopes: ${invalidScopes.join(', ')}`
+        );
+      }
+
+      const tokenEndpointAuthMethod = String(
+        body.token_endpoint_auth_method || 'client_secret_basic'
+      );
+      if (
+        !['none', 'client_secret_post', 'client_secret_basic'].includes(tokenEndpointAuthMethod)
+      ) {
+        throw new Error(`Unsupported token_endpoint_auth_method: ${tokenEndpointAuthMethod}`);
+      }
+      const clientType = (tokenEndpointAuthMethod === 'none' ? 'public' : 'confidential') as
+        | 'confidential'
+        | 'public';
+      const grantTypes = Array.isArray(body.grant_types)
+        ? body.grant_types.filter((grantType): grantType is string => typeof grantType === 'string')
+        : clientType === 'public'
+          ? ['authorization_code', 'refresh_token']
+          : ['authorization_code', 'client_credentials', 'refresh_token'];
+      const unsupportedGrantTypes = grantTypes.filter(
+        (grantType) =>
+          !['authorization_code', 'client_credentials', 'refresh_token'].includes(grantType)
+      );
+      if (unsupportedGrantTypes.length > 0) {
+        throw new Error(`Unsupported grant_types: ${unsupportedGrantTypes.join(', ')}`);
+      }
+      if (clientType === 'public' && grantTypes.includes('client_credentials')) {
+        throw new Error('Public clients cannot use the client_credentials grant');
+      }
       const rateLimit = (body.rate_limit as number) || 60;
 
       // Register with legacy provider (backwards compat)
@@ -1895,16 +1969,16 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(
         JSON.stringify({
           client_id: clientId,
-          client_secret: clientSecret,
+          ...(clientType === 'confidential' ? { client_secret: clientSecret } : {}),
           client_name: body.client_name,
           redirect_uris: redirectUris,
-          token_endpoint_auth_method: 'client_secret_post',
-          grant_types: ['authorization_code', 'client_credentials', 'refresh_token'],
+          token_endpoint_auth_method: tokenEndpointAuthMethod,
+          grant_types: grantTypes,
           response_types: ['code'],
-          scope: (body.scope as string) || 'tools:read',
-          scopes_supported: Object.keys(OAUTH2_SCOPES),
+          scope: scopes.join(' '),
+          scopes_supported: OAUTH2_PUBLIC_SCOPE_NAMES,
           client_id_issued_at: Math.floor(Date.now() / 1000),
-          client_secret_expires_at: 0,
+          ...(clientType === 'confidential' ? { client_secret_expires_at: 0 } : {}),
         })
       );
     } catch (err) {
@@ -1920,9 +1994,6 @@ const httpServer = http.createServer(async (req, res) => {
     try {
       const queryString = req.url?.split('?')[1] || '';
       const params = new URLSearchParams(queryString);
-      const host = req.headers.host || `localhost:${PORT}`;
-      const protocol = req.headers['x-forwarded-proto'] || 'http';
-      const baseUrl = `${protocol}://${host}`;
       const responseType = params.get('response_type');
       const clientId = params.get('client_id');
       const redirectUri = params.get('redirect_uri');
@@ -2046,7 +2117,33 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      if (acceptsHtml(req.headers.accept)) {
+        const requestedScopeDetails = requestedScopes.map((name) => ({
+          name,
+          description: OAUTH2_SCOPES[name as keyof typeof OAUTH2_SCOPES] || 'HoloScript capability',
+        }));
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          ...OAUTH_CONSENT_SECURITY_HEADERS,
+        });
+        res.end(
+          renderOAuthConsentPage({
+            clientId,
+            clientName: client.clientName,
+            redirectUri,
+            scopes: requestedScopeDetails,
+            state: state || undefined,
+            codeChallenge,
+            codeChallengeMethod: 'S256',
+          })
+        );
+        return;
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
       res.end(
         JSON.stringify(
           {
@@ -2058,7 +2155,7 @@ const httpServer = http.createServer(async (req, res) => {
               state: state || undefined,
               code_challenge: codeChallenge,
               code_challenge_method: 'S256',
-              available_scopes: Object.entries(OAUTH2_SCOPES).map(([name, description]) => ({
+              available_scopes: Object.entries(OAUTH2_PUBLIC_SCOPES).map(([name, description]) => ({
                 name,
                 description,
                 requested: requestedScopes.includes(name),
@@ -2067,9 +2164,9 @@ const httpServer = http.createServer(async (req, res) => {
             instructions:
               'POST to /oauth/authorize with the same parameters to obtain an authorization code.',
             _links: {
-              authorize: `${baseUrl}/oauth/authorize`,
-              token: `${baseUrl}/oauth/token`,
-              register: `${baseUrl}/oauth/register`,
+              authorize: `${OAUTH_ISSUER}/oauth/authorize`,
+              token: `${OAUTH_ISSUER}/oauth/token`,
+              register: `${OAUTH_ISSUER}/oauth/register`,
             },
           },
           null,
@@ -2086,26 +2183,95 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /oauth/authorize — Authorization code (with PKCE)
   if (url === '/oauth/authorize' && req.method === 'POST') {
+    const isBrowserForm = String(req.headers['content-type'] || '')
+      .toLowerCase()
+      .includes('application/x-www-form-urlencoded');
     try {
       const body = await parseJsonBody(req);
+      const clientId = body.client_id as string;
+      const redirectUri = body.redirect_uri as string;
+      const state = body.state as string | undefined;
+      const requestedScopes = String(body.scope || 'tools:read')
+        .split(' ')
+        .filter(Boolean);
+      const codeChallenge = body.code_challenge as string;
+      const codeChallengeMethod = body.code_challenge_method as string;
+
+      if (!clientId || !redirectUri || !codeChallenge || codeChallengeMethod !== 'S256') {
+        throw new Error(
+          'Missing or invalid client_id, redirect_uri, code_challenge, or code_challenge_method'
+        );
+      }
+
+      await ensureClientHydrated(clientId);
+      const client = oauth.getClient(clientId);
+      if (!client) {
+        throw new Error('Unknown client_id');
+      }
+      if (!client.redirectUris.includes(redirectUri)) {
+        throw new Error('Invalid redirect_uri');
+      }
+      const invalidScopes = requestedScopes.filter(
+        (scope) => !client.scopes.includes(scope) && !client.scopes.includes('admin')
+      );
+      if (invalidScopes.length > 0) {
+        throw new Error(`Scopes not authorized for client: ${invalidScopes.join(', ')}`);
+      }
+
+      if (body.decision === 'deny') {
+        if (isBrowserForm) {
+          res.writeHead(302, {
+            Location: buildOAuthCallbackUri(redirectUri, {
+              error: 'access_denied',
+              errorDescription: 'The resource owner denied the authorization request.',
+              state,
+            }),
+            ...OAUTH_CONSENT_SECURITY_HEADERS,
+          });
+          res.end();
+        } else {
+          res.writeHead(400, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+          });
+          res.end(
+            JSON.stringify({
+              error: 'access_denied',
+              error_description: 'The resource owner denied the authorization request.',
+              state,
+            })
+          );
+        }
+        return;
+      }
+
       const code = oauth.createAuthorizationCode({
-        clientId: body.client_id as string,
-        redirectUri: body.redirect_uri as string,
-        scopes: ((body.scope as string) || '').split(' ').filter(Boolean),
-        codeChallenge: body.code_challenge as string,
+        clientId,
+        redirectUri,
+        scopes: requestedScopes,
+        codeChallenge,
         codeChallengeMethod: 'S256',
       });
 
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(
-        JSON.stringify({
-          code,
-          state: body.state || undefined,
-        })
-      );
+      if (isBrowserForm) {
+        res.writeHead(302, {
+          Location: buildOAuthCallbackUri(redirectUri, { code, state }),
+          ...OAUTH_CONSENT_SECURITY_HEADERS,
+        });
+        res.end();
+      } else {
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(JSON.stringify({ code, state }));
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.writeHead(400, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
       res.end(JSON.stringify({ error: 'invalid_request', error_description: message }));
     }
     return;

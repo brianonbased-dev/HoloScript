@@ -16,7 +16,7 @@
  */
 
 import { randomUUID, createHash, createHmac, timingSafeEqual } from 'crypto';
-import { expandScopes, OAUTH2_SCOPES } from '../auth/oauth2-provider';
+import { expandScopes, OAUTH2_PUBLIC_SCOPE_NAMES } from '../auth/oauth2-provider';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
@@ -323,7 +323,10 @@ export class OAuth21Service {
 
     // Validate requested scopes against client's allowed scopes
     const invalidScopes = params.scopes.filter(
-      (s) => !client.scopes.includes(s) && !client.scopes.includes('admin:*')
+      (s) =>
+        !client.scopes.includes(s) &&
+        !client.scopes.includes('admin') &&
+        !client.scopes.includes('admin:*')
     );
     if (invalidScopes.length > 0) {
       throw new Error(`Scopes not authorized for client: ${invalidScopes.join(', ')}`);
@@ -354,7 +357,7 @@ export class OAuth21Service {
   exchangeAuthorizationCode(params: {
     code: string;
     clientId: string;
-    clientSecret: string;
+    clientSecret?: string;
     redirectUri: string;
     codeVerifier: string;
     agentId?: string;
@@ -377,7 +380,10 @@ export class OAuth21Service {
     // Verify client credentials
     const client = clients.get(params.clientId);
     if (!client) throw new Error('Invalid client');
-    if (!safeCompare(hashSecret(params.clientSecret), client.clientSecret)) {
+    if (
+      client.clientType === 'confidential' &&
+      (!params.clientSecret || !safeCompare(hashSecret(params.clientSecret), client.clientSecret))
+    ) {
       throw new Error('Invalid client credentials');
     }
 
@@ -418,7 +424,10 @@ export class OAuth21Service {
 
     const requestedScopes = params.scopes || client.scopes;
     const invalidScopes = requestedScopes.filter(
-      (s) => !client.scopes.includes(s) && !client.scopes.includes('admin:*')
+      (s) =>
+        !client.scopes.includes(s) &&
+        !client.scopes.includes('admin') &&
+        !client.scopes.includes('admin:*')
     );
     if (invalidScopes.length > 0) {
       throw new Error(`Scopes not authorized: ${invalidScopes.join(', ')}`);
@@ -435,7 +444,7 @@ export class OAuth21Service {
   refreshAccessToken(params: {
     refreshToken: string;
     clientId: string;
-    clientSecret: string;
+    clientSecret?: string;
     dpopThumbprint?: string;
   }): TokenResponse {
     const stored = refreshTokens.get(params.refreshToken);
@@ -459,7 +468,10 @@ export class OAuth21Service {
     // Verify client
     const client = clients.get(params.clientId);
     if (!client) throw new Error('Invalid client');
-    if (!safeCompare(hashSecret(params.clientSecret), client.clientSecret)) {
+    if (
+      client.clientType === 'confidential' &&
+      (!params.clientSecret || !safeCompare(hashSecret(params.clientSecret), client.clientSecret))
+    ) {
       throw new Error('Invalid client credentials');
     }
 
@@ -697,9 +709,9 @@ export class OAuth21Service {
         'refresh_token',
         'urn:ietf:params:oauth:grant-type:device_code',
       ],
-      token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic'],
+      token_endpoint_auth_methods_supported: ['none', 'client_secret_post', 'client_secret_basic'],
       code_challenge_methods_supported: ['S256'],
-      scopes_supported: Object.keys(OAUTH2_SCOPES),
+      scopes_supported: OAUTH2_PUBLIC_SCOPE_NAMES,
       dpop_signing_alg_values_supported: ['ES256', 'RS256'],
       service_documentation: 'https://github.com/buildwithholoscript/HoloScript',
     };

@@ -224,6 +224,34 @@ describe('OAuth21Service', () => {
       expect(response.scope).toBe('tools:read');
     });
 
+    it('allows a public PKCE client to exchange a code without a client secret', () => {
+      const { clientId } = oauth.registerClient({
+        clientName: 'codex-public-client',
+        redirectUris: ['http://127.0.0.1:55071/callback/codex'],
+        scopes: ['tools:read'],
+        clientType: 'public',
+      });
+      const codeVerifier = 'public-client-verifier-with-sufficient-entropy-1234567890';
+      const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
+      const code = oauth.createAuthorizationCode({
+        clientId,
+        redirectUri: 'http://127.0.0.1:55071/callback/codex',
+        scopes: ['tools:read'],
+        codeChallenge,
+        codeChallengeMethod: 'S256',
+      });
+
+      const response = oauth.exchangeAuthorizationCode({
+        code,
+        clientId,
+        redirectUri: 'http://127.0.0.1:55071/callback/codex',
+        codeVerifier,
+      });
+
+      expect(response.access_token).toBeTruthy();
+      expect(response.scope).toBe('tools:read');
+    });
+
     it('should reject authorization code reuse', () => {
       const { clientId, clientSecret } = oauth.registerClient({
         clientName: 'reuse-test',

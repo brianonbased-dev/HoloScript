@@ -22,6 +22,9 @@ import {
 import {
   OAuth2Provider,
   resetOAuth2Provider,
+  getInvalidOAuthRedirectUris,
+  getInvalidPublicOAuthScopes,
+  OAUTH2_PUBLIC_SCOPE_NAMES,
   OAUTH2_SCOPES,
   SCOPE_BRIDGE,
   expandScopes,
@@ -1176,7 +1179,32 @@ describe('OAuth2Provider', () => {
       expect(config.scopes_supported).toContain('tools:execute');
       expect(config.scopes_supported).toContain('tasks:read');
       expect(config.scopes_supported).toContain('tasks:write');
-      expect(config.scopes_supported).toContain('admin');
+      expect(config.scopes_supported).not.toContain('admin');
+      expect(config.token_endpoint_auth_methods_supported).toContain('none');
+    });
+  });
+
+  describe('Dynamic client admission policy', () => {
+    it('keeps admin reserved for trusted provisioning', () => {
+      expect(OAUTH2_PUBLIC_SCOPE_NAMES).not.toContain('admin');
+      expect(getInvalidPublicOAuthScopes(['tools:read', 'admin'])).toEqual(['admin']);
+    });
+
+    it('accepts HTTPS and loopback callbacks but rejects unsafe redirect URIs', () => {
+      expect(
+        getInvalidOAuthRedirectUris([
+          'https://agent.example/callback',
+          'http://127.0.0.1:55071/callback/codex',
+          'http://[::1]:55071/callback/codex',
+        ])
+      ).toEqual([]);
+      expect(
+        getInvalidOAuthRedirectUris([
+          'http://agent.example/callback',
+          'javascript:alert(1)',
+          'https://agent.example/callback#fragment',
+        ])
+      ).toHaveLength(3);
     });
   });
 
