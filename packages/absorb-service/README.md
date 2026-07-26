@@ -924,9 +924,13 @@ export {
 
 ## Production Deployment
 
-The service runs at `https://absorb.holoscript.net` on Railway with 28 MCP
-tools exposed via `POST /mcp` (JSON-RPC). SSE transport is not supported due
-to Railway CDN splitting sessions across edge nodes.
+The service runs at `https://absorb.holoscript.net` on Railway with the live MCP
+tool inventory exposed through stateless Streamable HTTP at `POST /mcp`
+(JSON-RPC). Stateless requests are the canonical path because Railway can route
+consecutive requests across different replicas. The legacy `GET /mcp` SSE +
+`POST /mcp/messages` flow remains available for compatibility, but agents
+should prefer `POST /mcp` so reconnects do not depend on in-memory session
+affinity.
 
 Auth: `ABSORB_API_KEY` as Bearer token. Admin/founder tier has all tools free,
 no rate limits, no credit costs.

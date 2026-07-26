@@ -1,5 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { resolveGitHubToken } from './middleware/github-identity.js';
@@ -33,66 +38,93 @@ async function createMcpServer(): Promise<McpServer> {
     version: SERVICE_VERSION,
   });
 
-  // Register absorb tools
-  let registeredCount = 0;
+  type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<unknown>;
+  const registeredTools = new Map<string, { definition: any; handler: ToolHandler }>();
+
+  const addToolFamily = (definitions: unknown, handler: unknown) => {
+    if (!Array.isArray(definitions) || typeof handler !== 'function') return;
+    for (const definition of definitions) {
+      if (!definition || typeof definition.name !== 'string') continue;
+      registeredTools.set(definition.name, {
+        definition,
+        handler: handler as ToolHandler,
+      });
+    }
+  };
+
   try {
     const mcpModule = (await import('@holoscript/absorb-service/mcp')) as Record<string, any>;
 
-    const absorbServiceTools = (mcpModule.absorbServiceTools ?? []) as any[];
-    const handleAbsorbServiceTool =
-      mcpModule.handleAbsorbServiceTool ?? mcpModule.absorbServiceToolHandler;
+    addToolFamily(
+      mcpModule.absorbServiceTools,
+      mcpModule.handleAbsorbServiceTool ?? mcpModule.absorbServiceToolHandler,
+    );
+    addToolFamily(
+      mcpModule.absorbTypescriptTools,
+      mcpModule.handleAbsorbTypescriptTool ?? mcpModule.absorbTypescriptToolHandler,
+    );
+    addToolFamily(
+      mcpModule.codebaseTools,
+      mcpModule.handleCodebaseTool ?? mcpModule.codebaseToolHandler,
+    );
+    addToolFamily(
+      mcpModule.graphRagTools,
+      mcpModule.handleGraphRagTool ?? mcpModule.graphRagToolHandler,
+    );
 
-    for (const tool of absorbServiceTools) {
-      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? (tool.inputSchema as any) : {}, async (params: any) => {
-        const result = await handleAbsorbServiceTool(tool.name, params);
-        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
-      });
-      registeredCount++;
-    }
-
-    const absorbTypescriptTools = (mcpModule.absorbTypescriptTools ?? []) as any[];
-    const handleAbsorbTypescriptTool =
-      mcpModule.handleAbsorbTypescriptTool ?? mcpModule.absorbTypescriptToolHandler;
-
-    for (const tool of absorbTypescriptTools) {
-      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? (tool.inputSchema as any) : {}, async (params: any) => {
-        const result = await handleAbsorbTypescriptTool(tool.name, params);
-        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
-      });
-      registeredCount++;
-    }
-
-    const codebaseTools = (mcpModule.codebaseTools ?? []) as any[];
-    const handleCodebaseTool = mcpModule.handleCodebaseTool ?? mcpModule.codebaseToolHandler;
-
-    for (const tool of codebaseTools) {
-      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? (tool.inputSchema as any) : {}, async (params: any) => {
-        const result = await handleCodebaseTool(tool.name, params);
-        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
-      });
-      registeredCount++;
-    }
-
-    const graphRagTools = (mcpModule.graphRagTools ?? []) as any[];
-    const handleGraphRagTool = mcpModule.handleGraphRagTool ?? mcpModule.graphRagToolHandler;
-
-    for (const tool of graphRagTools) {
-      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? (tool.inputSchema as any) : {}, async (params: any) => {
-        const result = await handleGraphRagTool(tool.name, params);
-        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
-      });
-      registeredCount++;
-    }
-
-    _lastRegisteredToolCount = registeredCount;
+    _lastRegisteredToolCount = registeredTools.size;
   } catch (e: any) {
     console.warn('[mcp] Failed to register absorb MCP tools:', e.message);
     // Keep the previous known count rather than clobbering to 0 on a transient
     // import failure; operators can still see a stale-but-useful number.
-    if (registeredCount > 0) {
-      _lastRegisteredToolCount = registeredCount;
+    if (registeredTools.size > 0) {
+      _lastRegisteredToolCount = registeredTools.size;
     }
   }
+
+  // The package exports standard JSON Schema definitions. Register them on the
+  // SDK's low-level server rather than passing them to McpServer.tool(), whose
+  // high-level overload accepts Zod schemas only. The old mismatch caused the
+  // first nested schema to abort the entire live tool registration loop.
+  server.server.registerCapabilities({
+    tools: {
+      listChanged: true,
+    },
+  });
+  server.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [...registeredTools.values()].map(({ definition }) => definition),
+  }));
+
+  server.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const name = request.params.name;
+    const entry = registeredTools.get(name);
+    if (!entry) {
+      return {
+        content: [{ type: 'text' as const, text: `Unknown HoloAbsorb tool: ${name}` }],
+        isError: true,
+      };
+    }
+
+    try {
+      const result = await entry.handler(
+        name,
+        (request.params.arguments ?? {}) as Record<string, unknown>,
+      );
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: error instanceof Error ? error.message : String(error),
+          },
+        ],
+        isError: true,
+      };
+    }
+  });
 
   return server;
 }
@@ -115,6 +147,53 @@ export async function handleMcpSse(req: Request, res: Response): Promise<void> {
   const server = await createMcpServer();
   await server.connect(transport);
   await transport.start();
+}
+
+/**
+ * POST /mcp — canonical stateless Streamable HTTP transport.
+ *
+ * A transport and MCP server are created per request deliberately. Railway may
+ * route consecutive requests to different replicas, so correctness cannot
+ * depend on an in-memory session map or a sticky edge. `enableJsonResponse`
+ * keeps ordinary initialize/list/call requests as bounded JSON responses while
+ * remaining protocol-compatible with Streamable HTTP clients.
+ */
+export async function handleMcpStreamableHttp(req: Request, res: Response): Promise<void> {
+  const server = await createMcpServer();
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
+
+  let closed = false;
+  const close = async () => {
+    if (closed) return;
+    closed = true;
+    await transport.close().catch(() => {});
+    await server.close().catch(() => {});
+  };
+
+  res.on('close', () => {
+    void close();
+  });
+
+  try {
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (error: any) {
+    console.error('[mcp] Streamable HTTP POST error:', error.message);
+    if (!res.headersSent) {
+      res.status(500).json({
+        jsonrpc: '2.0',
+        id: req.body?.id ?? null,
+        error: {
+          code: -32603,
+          message: 'Internal MCP transport error',
+        },
+      });
+    }
+    await close();
+  }
 }
 
 // POST /mcp/messages — Handle incoming JSON-RPC messages from the client
@@ -181,14 +260,22 @@ export function handleMcpDiscovery(req: Request, res: Response): void {
   res.json({
     mcpVersion: '2025-03-26',
     name: 'absorb-service',
+    productName: 'HoloAbsorb',
     version: SERVICE_VERSION,
     description: 'HoloScript Codebase Intelligence & Recursive Self-Improvement Service — scan codebases, build knowledge graphs, run GraphRAG queries, and execute recursive improvement pipelines.',
     transport: {
-      type: 'sse',
+      type: 'streamableHttp',
       url: `${baseUrl}/mcp`,
       authentication: {
         type: 'bearer',
         headerName: 'Authorization',
+      },
+      stateless: true,
+      fallback: {
+        type: 'sse',
+        url: `${baseUrl}/mcp`,
+        messagesUrl: `${baseUrl}/mcp/messages`,
+        lifecycle: 'legacy',
       },
     },
     capabilities: {
@@ -219,4 +306,3 @@ export function handleMcpDiscovery(req: Request, res: Response): void {
 export function getActiveSessionCount(): number {
   return transports.size;
 }
-
