@@ -1,0 +1,430 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.rebenchmark.v1",
+  "productName": "HoloAbsorb",
+  "status": "pass",
+  "startedAt": "2026-07-26T21:18:08.881Z",
+  "completedAt": "2026-07-26T21:18:36.455Z",
+  "repo": {
+    "root": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript",
+    "commit": "3ac2f45ee118271ef51bfb4451896fe121f9b5ac",
+    "worktreeDirtyAtStart": true,
+    "worktreeStatusAtStart": "M .bench-logs/2026-04-27-paper-10-depth-distribution-50xk.md\n M .bench-logs/2026-04-27-paper-12-scene-suite-overhead.md\n M .bench-logs/paper-trait-conflict-census.json\n M .bench-logs/paper-trait-conflict-families.json\n M .bench-logs/paper-trait-imperative-baseline.json\n M .bench-logs/paper-trait-inventory.json\n M .bench-logs/paper-trait-order-independence.json\n M .bench-logs/paper-trait-semiring-overhead.json\n M .bench-logs/paper-trait-wasm-ts-parity.json\n M examples/gold-game/knowledge-mountain-coords.json\n M packages/compiler-wasm/src/parser.rs\n M packages/core/src/compiler/gltf/__tests__/extensions.prod.test.ts\n M packages/core/src/traits/pillar/__tests__/fixtures/jepa-eval-bench.json\n M packages/engine/src/simulation/__tests__/fixtures/world-model-receipt.json\n M packages/python-bindings/holoscript.egg-info/PKG-INFO\n M packages/python-bindings/holoscript.egg-info/SOURCES.txt\n M packages/studio/.holo-manifest.json\n M packages/studio/next-env.d.ts\n M packages/studio/src/app/auth/signin/page.tsx\n M packages/studio/src/app/pipeline/page.tsx\n M packages/studio/src/app/playground/embodied/page.tsx\n M packages/studio/src/app/playground/pipeline/page.tsx\n M packages/studio/src/app/projects/page.tsx\n M packages/studio/src/app/settings/page.tsx\n M packages/studio/src/components/panels/native/adminDashboard.native.tsx\n M packages/studio/src/components/panels/native/compilerExport.native.tsx\n M packages/studio/src/components/panels/native/honestMetrics.native.tsx\n M research/paper-10-hs-core-pldi.tex\n M research/paper-37-quantum-receipt-chain.tex\n M services/holoscript-net-v2/public/scenes/baked-manifest.json\n M services/holoscript-net-v2/public/scenes/garden.refreshed.baked.json\n M services/holoscript-net-v2/public/scenes/garden.seedable.baked.json\n M services/holoscript-net-v2/public/scenes/lotus-pond.baked.json\n M services/holoscript-net-v2/src/app/compile/page.tsx\n M services/holoscript-net-v2/src/app/ecosystem/page.tsx\n M services/holoscript-net-v2/src/app/lotus/page.tsx\n M services/holoscript-net-v2/src/app/page.tsx\n?? .build-logs/\n?? .holo-ci-last-workload\n?? .lotus-start.err\n?? .lotus2.err\n?? .tmp-holo-results.json\n?? .tmp-holo-worker.cjs\n?? .tmp-holo-worker2.cjs\n?? docs/bugs/2026-07-13-a006-quiet.md\n?? experiments/holoshell-human-os-frontier/native-holoshell-capability-envelope.hsplus\n?? experiments/holoshell-human-os-frontier/native-terminal-event-stream.hsplus\n?? experiments/holoshell-human-os-frontier/native-visual-operating-layer.hsplus\n?? packages/agent-protocol/holoscript-agent-protocol-8.0.7.tgz\n?? packages/core/holoscript-core-8.0.16.tgz\n?? packages/framework/holoscript-framework-6.1.4.tgz\n?? packages/holoscript-agent/holoscript-holoscript-agent-2.0.7.tgz\n?? packages/holoscript-agent/holoscript-holoscript-agent-2.1.17.tgz\n?? packages/holoscript-agent/holoscript-holoscript-agent-2.1.18.tgz\n?? packages/llm-provider/holoscript-llm-provider-1.2.1.tgz\n?? packages/llm-provider/llm-provider-dist.zip\n?? packages/studio/public/s23-view.html\n?? packages/studio/public/s23.ply\n?? research/comment.cut\n?? research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/\n?? research/holoabsorb-artifacts/2026-07-26-rebenchmark/\n?? research/holoabsorb-artifacts/2026-07-26-refresh-current/\n?? research/holoabsorb-artifacts/2026-07-26-visual-graph/paper-5-regression.json\n?? research/holoabsorb-artifacts/2026-07-26-visual-graph/visual-focus-ablation.json\n?? research/paper-29-algebraic-trust-composition-pldi.aux\n?? research/paper-29-algebraic-trust-composition-pldi.out\n?? research/paper-29-algebraic-trust-toolsandbox/.lake/\n?? research/paper-29-algebraic-trust-toolsandbox/lake-manifest.json\n?? research/paper-37-quantum-receipt-chain.aux\n?? research/paper-37-quantum-receipt-chain.bbl\n?? research/paper-37-quantum-receipt-chain.blg\n?? research/paper-37-quantum-receipt-chain.out\n?? scripts/analysis/\n?? scripts/debug/debug-full-example.d.mts\n?? scripts/debug/debug-full-example.mjs\n?? scripts/debug/debug-logic.d.mts\n?? scripts/debug/debug-logic.mjs\n?? scripts/debug/test-circular-config.js\n?? scripts/debug/test-config-inheritance.js\n?? scripts/debug/test-holo-parser.d.mts\n?? scripts/debug/test-holo-parser.mjs\n?? scripts/debug/verify-usable.d.mts\n?? scripts/debug/verify-usable.mjs\n?? scripts/extract-scene-presets.mjs\n?? t.name).join('\n?? t.name).join(,)))"
+  },
+  "hardware": {
+    "hostname": "Work",
+    "platform": "win32 10.0.26200",
+    "architecture": "x64",
+    "node": "v24.15.0",
+    "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "logicalCpuCount": 16,
+    "totalMemoryBytes": 34069385216,
+    "freeMemoryBytesAtStart": 14162677760,
+    "gpuInventory": [
+      "NVIDIA GeForce RTX 3060 Laptop GPU, 610.62, 6144 MiB"
+    ],
+    "nvidiaSmiStatus": "available"
+  },
+  "options": {
+    "outDir": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark",
+    "board": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/live-board-snapshot.json",
+    "skipBuild": true,
+    "withXenova": false,
+    "paper5Trials": 100,
+    "paper5MaxFiles": 500,
+    "help": false
+  },
+  "steps": [
+    {
+      "id": "holoabsorb-umbrella-audit",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T21:18:09.102Z",
+      "durationMs": 409,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/audit-holoabsorb.mjs --out=research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/holoabsorb-umbrella-audit.json --board=research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/live-board-snapshot.json",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/holoabsorb-umbrella-audit.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/holoabsorb-umbrella-audit.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "holoabsorb-refresh-benchmark",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T21:18:09.514Z",
+      "durationMs": 7319,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-holoabsorb-refresh.mjs --out=research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/holoabsorb-refresh-benchmark.json",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/holoabsorb-refresh-benchmark.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/holoabsorb-refresh-benchmark.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-5-accuracy-holoembed",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T21:18:16.834Z",
+      "durationMs": 7618,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-paper-5-accuracy.mjs --out=research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-accuracy-holoembed.json --max-files=500 --provider=holoembed",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-accuracy-holoembed.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-accuracy-holoembed.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-5-accuracy-structural",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T21:18:24.452Z",
+      "durationMs": 7403,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-paper-5-accuracy.mjs --out=research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-accuracy-structural.json --max-files=500 --provider=structural",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-accuracy-structural.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-accuracy-structural.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-5-timing",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T21:18:31.857Z",
+      "durationMs": 292,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-paper-5-gpu.mjs --out=research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.json --trials=100 --queries=30 --max-symbols=384",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-26-holograph",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T21:18:32.149Z",
+      "durationMs": 3042,
+      "command": "pnpm.cmd --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Benchmark.test.ts --reporter=verbose --testNamePattern=EventEdge",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-26-holograph.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-26-holograph.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-26-holoembed",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T21:18:35.192Z",
+      "durationMs": 1257,
+      "command": "pnpm.cmd --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Table2NLRecall.test.ts --reporter=verbose",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-26-holoembed.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-26-holoembed.stderr.log",
+      "spawnError": null
+    }
+  ],
+  "summaries": {
+    "umbrellaAuditStatus": "pass",
+    "refreshBenchmark": {
+      "status": "pass",
+      "fixture": {
+        "files": 120,
+        "symbolsPerFile": 24,
+        "changedFiles": 15,
+        "initialHead": "1f36ab4d5555c1ce8653561e46d6fa058839a22f",
+        "refreshedHead": "730e631d0292b1253c5c699cac71447dd314c4ab",
+        "retainedAt": null
+      },
+      "measurements": {
+        "initial": {
+          "durationMs": 2141.205,
+          "responseBytes": 5655,
+          "peakRssDeltaBytes": 142524416,
+          "totalFiles": 120,
+          "totalSymbols": 2880
+        },
+        "refreshed": {
+          "durationMs": 2956.818,
+          "responseBytes": 5865,
+          "peakRssDeltaBytes": 80560128,
+          "embeddingRefresh": {
+            "kind": "EmbeddingRefreshReceipt",
+            "previousSymbols": 2880,
+            "totalSymbols": 2895,
+            "reusedSymbols": 2880,
+            "embeddedSymbols": 15,
+            "retiredSymbols": 0,
+            "reuseRatio": 0.994819,
+            "batchCount": 91
+          }
+        },
+        "graphCacheBytes": 1097399,
+        "freshProcessStatus": {
+          "graphAuthoritative": true,
+          "freshForCurrentRepo": true,
+          "gitCommitMatchesHead": true
+        },
+        "freshProcessQuery": {
+          "totalFiles": 120,
+          "totalSymbols": 2895,
+          "totalImports": 0,
+          "totalCalls": 15,
+          "totalEventEdges": 0,
+          "totalLoc": 3015,
+          "filesByLanguage": {
+            "typescript": 120
+          },
+          "symbolsByType": {
+            "function": 2895
+          },
+          "communities": 1
+        }
+      },
+      "checks": {
+        "boundedDelta": true,
+        "initialGraphNotInlined": true,
+        "refreshedGraphNotInlined": true,
+        "initialResponseBounded": true,
+        "refreshedResponseBounded": true,
+        "graphCacheLargerThanResponse": true,
+        "changedSymbolReuse": true,
+        "peakRssBounded": true,
+        "freshProcessStatus": true,
+        "freshProcessQuery": true
+      }
+    },
+    "paper5Accuracy": {
+      "current": {
+        "status": "completed",
+        "bootstrap": true,
+        "embeddingProvider": "HoloEmbedProvider (sovereign structural + subword embeddings)",
+        "corpus": {
+          "root": "packages/absorb-service",
+          "files": 154,
+          "symbols": 7458,
+          "max_files": 500
+        },
+        "querySet": {
+          "n": 10,
+          "categories": {
+            "lookup": 4,
+            "reasoning": 6
+          },
+          "gold_files_in_corpus": 10,
+          "gold_files_missing": []
+        },
+        "systems": [
+          {
+            "name": "keyword-only",
+            "status": "ok",
+            "pAt5": 0.18,
+            "mrr": 0.761,
+            "runtimeMs": 72
+          },
+          {
+            "name": "semantic-only",
+            "status": "ok",
+            "pAt5": 0.14,
+            "mrr": 0.484,
+            "runtimeMs": 177
+          },
+          {
+            "name": "hybrid",
+            "status": "ok",
+            "pAt5": 0.18,
+            "mrr": 0.867,
+            "runtimeMs": 233
+          },
+          {
+            "name": "graph-rag",
+            "status": "ok",
+            "pAt5": 0.18,
+            "mrr": 0.867,
+            "runtimeMs": 189
+          },
+          {
+            "name": "bm25",
+            "status": "skipped",
+            "pAt5": null,
+            "mrr": null,
+            "runtimeMs": null
+          }
+        ]
+      },
+      "legacyFloor": {
+        "status": "completed",
+        "bootstrap": true,
+        "embeddingProvider": "StructuralEmbeddingProvider (legacy deterministic floor)",
+        "corpus": {
+          "root": "packages/absorb-service",
+          "files": 154,
+          "symbols": 7458,
+          "max_files": 500
+        },
+        "querySet": {
+          "n": 10,
+          "categories": {
+            "lookup": 4,
+            "reasoning": 6
+          },
+          "gold_files_in_corpus": 10,
+          "gold_files_missing": []
+        },
+        "systems": [
+          {
+            "name": "keyword-only",
+            "status": "ok",
+            "pAt5": 0.18,
+            "mrr": 0.711,
+            "runtimeMs": 63
+          },
+          {
+            "name": "semantic-only",
+            "status": "ok",
+            "pAt5": 0,
+            "mrr": 0.021,
+            "runtimeMs": 102
+          },
+          {
+            "name": "hybrid",
+            "status": "ok",
+            "pAt5": 0.16,
+            "mrr": 0.75,
+            "runtimeMs": 165
+          },
+          {
+            "name": "graph-rag",
+            "status": "ok",
+            "pAt5": 0.16,
+            "mrr": 0.75,
+            "runtimeMs": 116
+          },
+          {
+            "name": "bm25",
+            "status": "skipped",
+            "pAt5": null,
+            "mrr": null,
+            "runtimeMs": null
+          }
+        ]
+      },
+      "currentMinusLegacy": {
+        "semanticOnly": {
+          "pAt5": 0.14,
+          "mrr": 0.463
+        },
+        "hybrid": {
+          "pAt5": 0.02,
+          "mrr": 0.117
+        },
+        "graphRag": {
+          "pAt5": 0.02,
+          "mrr": 0.117
+        }
+      }
+    },
+    "paper5Timing": {
+      "status": "completed",
+      "captureClass": "ci-reference",
+      "trials": 100,
+      "stages": {
+        "keyword": {
+          "median_ms": 0.088,
+          "mean_ms": 0.11,
+          "stdev_ms": 0.112,
+          "p95_ms": 0.168,
+          "min_ms": 0.035,
+          "max_ms": 0.718
+        },
+        "graphTraversal": {
+          "median_ms": 0.004,
+          "mean_ms": 0.006,
+          "stdev_ms": 0.016,
+          "p95_ms": 0.008,
+          "min_ms": 0.003,
+          "max_ms": 0.165
+        },
+        "embeddingGen": {
+          "median_ms": 0.194,
+          "mean_ms": 0.214,
+          "stdev_ms": 0.085,
+          "p95_ms": 0.264,
+          "min_ms": 0.174,
+          "max_ms": 0.731
+        },
+        "vectorSearch": {
+          "median_ms": 0.088,
+          "mean_ms": 0.136,
+          "stdev_ms": 0.2,
+          "p95_ms": 0.296,
+          "min_ms": 0.086,
+          "max_ms": 1.899
+        },
+        "envelopeBuild": {
+          "median_ms": 0.004,
+          "mean_ms": 0.007,
+          "stdev_ms": 0.012,
+          "p95_ms": 0.011,
+          "min_ms": 0.004,
+          "max_ms": 0.125
+        },
+        "endToEnd": {
+          "median_ms": 0.388,
+          "mean_ms": 0.476,
+          "stdev_ms": 0.326,
+          "p95_ms": 0.884,
+          "min_ms": 0.324,
+          "max_ms": 3.344
+        }
+      }
+    },
+    "paper26": {
+      "status": "pass",
+      "xenovaAblation": "skipped-by-default",
+      "outputs": [
+        "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-26-holograph.stdout.log",
+        "research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-26-holoembed.stdout.log"
+      ],
+      "holoGraphMeasurements": [
+        {
+          "files": 50,
+          "symbols": 200,
+          "events": 10,
+          "holoGraphQueryUs": 0.13,
+          "embeddingQueryUs": 315.1,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0.05,
+          "speedup": 2423.9
+        },
+        {
+          "files": 500,
+          "symbols": 2000,
+          "events": 50,
+          "holoGraphQueryUs": 0.09,
+          "embeddingQueryUs": 2182.4,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0.013,
+          "speedup": 24248.8
+        },
+        {
+          "files": 2000,
+          "symbols": 8000,
+          "events": 100,
+          "holoGraphQueryUs": 0.09,
+          "embeddingQueryUs": 10588,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0,
+          "speedup": 117644.6
+        }
+      ],
+      "nlCodeRecallAt10": {
+        "structural": 0.1,
+        "holoembed": 1
+      }
+    }
+  },
+  "claimBoundaries": [
+    "Paper 5 accuracy remains a deterministic 10-query bootstrap. It does not satisfy the >=50-query publication target.",
+    "Paper 5 timing is a bounded synthetic GraphRAG workload unless captureClass is an explicitly verified hardware capture.",
+    "Paper 26 HoloGraph event latency uses synthetic event corpora.",
+    "Paper 26 HoloEmbed recall uses name-derived NL queries over a 50-symbol synthetic corpus.",
+    "The changed-symbol refresh benchmark uses a deterministic synthetic Git corpus and does not claim production-monorepo throughput.",
+    "The optional Xenova model-download ablation was not run; no Xenova comparison is claimed.",
+    "A dirty-worktree flag is recorded because peer changes may coexist in this shared repository."
+  ],
+  "residualGaps": [
+    "Expand Paper 5 from 10 hand-authored queries to at least 50 independently labeled dependency, impact, and reasoning queries.",
+    "Replace or supplement the Paper 5 structural bootstrap with the current HoloEmbed hybrid retrieval path.",
+    "Run target-hardware timing captures separately on verified RTX 3060 and Jetson/Orin lanes.",
+    "Reconcile the paper prose and strict claim map only after the corresponding measured receipt exists."
+  ]
+}
