@@ -15,7 +15,21 @@ function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposit
 }
 
 function readGLBJson(binary: Uint8Array): {
-  meshes?: Array<{ extensions?: Record<string, unknown> }>;
+  accessors?: Array<{ count?: number }>;
+  meshes?: Array<{
+    extensions?: Record<string, unknown>;
+    primitives?: Array<{ indices?: number }>;
+  }>;
+  nodes?: Array<{
+    name?: string;
+    mesh?: number;
+    translation?: number[];
+    rotation?: number[];
+    scale?: number[];
+    children?: number[];
+    extensions?: Record<string, { ids?: number[] }>;
+  }>;
+  scenes?: Array<{ nodes?: number[] }>;
   extensionsUsed?: string[];
 } {
   const view = new DataView(binary.buffer, binary.byteOffset, binary.byteLength);
@@ -58,7 +72,105 @@ describe('GLTFPipeline', () => {
     expect(view.getUint32(0, true)).toBe(0x46546c67);
   });
 
-  it('declares mesh extensions used by generated GLB LODs', () => {
+  it('emits node-level MSFT_lod groups in generated GLBs', () => {
+    const result = pipeline.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'anchor',
+            properties: [{ type: 'ObjectProperty', key: 'geometry', value: 'none' }],
+            traits: [],
+          },
+          {
+            type: 'Object',
+            name: 'lod_subject',
+            properties: [{ type: 'ObjectProperty', key: 'geometry', value: 'sphere' }],
+            traits: [],
+          },
+        ],
+      }),
+      'test-token'
+    );
+    const json = readGLBJson(result.binary!);
+
+    expect(json.extensionsUsed).toContain('MSFT_lod');
+    expect(json.meshes?.every((mesh) => mesh.extensions?.MSFT_lod === undefined)).toBe(true);
+
+    const highestLodNodeIndex =
+      json.nodes?.findIndex((node) => node.name === 'lod_subject') ?? -1;
+    expect(highestLodNodeIndex).toBeGreaterThanOrEqual(0);
+
+    const highestLodNode = json.nodes?.[highestLodNodeIndex];
+    const lodNodeIds = highestLodNode?.extensions?.MSFT_lod?.ids;
+    expect(lodNodeIds).toHaveLength(2);
+    if (!lodNodeIds || !json.nodes) {
+      throw new Error('Expected node-level MSFT_lod ids');
+    }
+
+    const lowerLodNodes = lodNodeIds.map((nodeId) => json.nodes?.[nodeId]);
+    expect(lowerLodNodes.every((node) => node?.mesh !== undefined)).toBe(true);
+    expect(lodNodeIds).not.toEqual(lowerLodNodes.map((node) => node?.mesh));
+    for (const lowerLodNode of lowerLodNodes) {
+      expect(lowerLodNode?.translation).toEqual(highestLodNode?.translation);
+      expect(lowerLodNode?.rotation).toEqual(highestLodNode?.rotation);
+      expect(lowerLodNode?.scale).toEqual(highestLodNode?.scale);
+    }
+
+    const triangleCount = (
+      node: NonNullable<typeof json.nodes>[number] | undefined
+    ): number => {
+      if (node?.mesh === undefined) return 0;
+      const primitives = json.meshes?.[node.mesh]?.primitives ?? [];
+      return primitives.reduce((total, primitive) => {
+        if (primitive.indices === undefined) return total;
+        return total + (json.accessors?.[primitive.indices]?.count ?? 0) / 3;
+      }, 0);
+    };
+    const lodTriangleCounts = [highestLodNode, ...lowerLodNodes].map(triangleCount);
+    expect(lodTriangleCounts[1]).toBeLessThan(lodTriangleCounts[0]);
+    expect(lodTriangleCounts[2]).toBeLessThan(lodTriangleCounts[1]);
+
+    expect(json.scenes?.[0]?.nodes).toContain(highestLodNodeIndex);
+    const childNodeIds = json.nodes.flatMap((node) => node.children ?? []);
+    for (const lodNodeId of lodNodeIds) {
+      expect(json.scenes?.[0]?.nodes).not.toContain(lodNodeId);
+      expect(childNodeIds).not.toContain(lodNodeId);
+    }
+  });
+
+  it('does not attach MSFT_lod to mesh nodes with children', () => {
+    const result = pipeline.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'parent',
+            properties: [{ type: 'ObjectProperty', key: 'geometry', value: 'sphere' }],
+            traits: [],
+            children: [
+              {
+                type: 'Object',
+                name: 'child',
+                properties: [{ type: 'ObjectProperty', key: 'geometry', value: 'sphere' }],
+                traits: [],
+              },
+            ],
+          },
+        ],
+      }),
+      'test-token'
+    );
+    const json = readGLBJson(result.binary!);
+    const parentNode = json.nodes?.find((node) => node.name === 'parent');
+    const childNode = json.nodes?.find((node) => node.name === 'child');
+
+    expect(parentNode?.children).toHaveLength(1);
+    expect(parentNode?.extensions?.MSFT_lod).toBeUndefined();
+    expect(childNode?.extensions?.MSFT_lod?.ids).toHaveLength(2);
+  });
+
+  it('does not emit MSFT_lod groups for non-reducing meshes', () => {
     const result = pipeline.compile(
       makeComposition({
         objects: [
@@ -73,9 +185,11 @@ describe('GLTFPipeline', () => {
       'test-token'
     );
     const json = readGLBJson(result.binary!);
+    const cubeNode = json.nodes?.find((node) => node.name === 'cube');
 
-    expect(json.meshes?.[0]?.extensions?.MSFT_lod).toBeDefined();
-    expect(json.extensionsUsed).toContain('MSFT_lod');
+    expect(cubeNode?.extensions?.MSFT_lod).toBeUndefined();
+    expect(json.extensionsUsed ?? []).not.toContain('MSFT_lod');
+    expect(json.meshes).toHaveLength(1);
   });
 
   // =========== glTF JSON output ===========

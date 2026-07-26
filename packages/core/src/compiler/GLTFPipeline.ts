@@ -75,6 +75,7 @@ const gltfNodePool = new ASTNodePool<GLTFNode>(
     node.children = undefined;
     node.camera = undefined;
     node.extras = undefined;
+    node.extensions = undefined;
   },
   0 // Was 10000 — demand-allocate instead of pre-allocating
 );
@@ -119,6 +120,7 @@ export interface GLTFNode {
   children?: number[];
   camera?: number;
   extras?: Record<string, unknown>; // glTF spec allows custom data in extras
+  extensions?: Record<string, unknown>;
 }
 
 export interface GLTFMesh {
@@ -1039,15 +1041,26 @@ export class GLTFPipeline extends CompilerBase {
   private generateLODs(): void {
     const ratios = [0.5, 0.25]; // LOD1 = 50%, LOD2 = 25%
     const originalCount = this.meshes.length;
-
-    // LOD coverage thresholds (screen coverage at which to switch)
-    const coverages: number[] = [];
+    const originalNodes = [...this.nodes];
 
     for (let mi = 0; mi < originalCount; mi++) {
       const mesh = this.meshes[mi];
-      const lodIds: number[] = [];
+      const highestLodNodes = originalNodes.filter(
+        (node) => node.mesh === mi && (!node.children || node.children.length === 0)
+      );
+      if (highestLodNodes.length === 0) continue;
+
+      const lodMeshIds: number[] = [];
+      let previousTriangleCount = mesh.primitives.reduce((total, primitive) => {
+        if (primitive.indices === undefined) return total;
+        return total + (this.accessors[primitive.indices]?.count ?? 0) / 3;
+      }, 0);
+      if (previousTriangleCount <= 0) continue;
 
       for (const ratio of ratios) {
+        const candidates: Array<{ geometry: GeometryData; material?: number }> = [];
+        let candidateTriangleCount = 0;
+
         for (const prim of mesh.primitives) {
           const posIdx = prim.attributes.POSITION;
           const nrmIdx = prim.attributes.NORMAL;
@@ -1103,36 +1116,60 @@ export class GLTFPipeline extends CompilerBase {
 
           const geom: GeometryData = { positions, normals, uvs, indices };
           const decimated = decimateGeometry(geom, ratio);
+          candidates.push({ geometry: decimated, material: prim.material });
+          candidateTriangleCount += decimated.indices.length / 3;
+        }
 
-          // Write decimated mesh
-          const lodMeshIndex = this.meshes.length;
-          const lodPrim: GLTFPrimitive = { attributes: {}, material: prim.material };
-          lodPrim.attributes.POSITION = this.createAccessor(decimated.positions, 'VEC3', true);
-          lodPrim.attributes.NORMAL = this.createAccessor(decimated.normals, 'VEC3');
-          lodPrim.attributes.TEXCOORD_0 = this.createAccessor(decimated.uvs, 'VEC2');
-          lodPrim.indices = this.createAccessor(decimated.indices, 'SCALAR');
+        if (
+          candidates.length === 0 ||
+          candidateTriangleCount <= 0 ||
+          candidateTriangleCount >= previousTriangleCount
+        ) {
+          continue;
+        }
 
-          this.meshes.push({ name: `LOD${ratio}_mesh${mi}`, primitives: [lodPrim] } as GLTFMesh);
-          lodIds.push(lodMeshIndex);
+        const lodPrimitives = candidates.map(({ geometry, material }) => {
+          const lodPrim: GLTFPrimitive = { attributes: {}, material };
+          lodPrim.attributes.POSITION = this.createAccessor(geometry.positions, 'VEC3', true);
+          lodPrim.attributes.NORMAL = this.createAccessor(geometry.normals, 'VEC3');
+          lodPrim.attributes.TEXCOORD_0 = this.createAccessor(geometry.uvs, 'VEC2');
+          lodPrim.indices = this.createAccessor(geometry.indices, 'SCALAR');
+          return lodPrim;
+        });
+
+        const lodMeshIndex = this.meshes.length;
+        this.meshes.push({
+          name: `LOD${ratio}_mesh${mi}`,
+          primitives: lodPrimitives,
+        } as GLTFMesh);
+        lodMeshIds.push(lodMeshIndex);
+        previousTriangleCount = candidateTriangleCount;
+      }
+
+      for (const highestLodNode of highestLodNodes) {
+        const lodNodeIds = lodMeshIds.map((lodMeshId, lodIndex) => {
+          const lodNode: GLTFNode = {
+            name: `${highestLodNode.name}_LOD${lodIndex + 1}`,
+            mesh: lodMeshId,
+          };
+          if (highestLodNode.translation) lodNode.translation = [...highestLodNode.translation];
+          if (highestLodNode.rotation) lodNode.rotation = [...highestLodNode.rotation];
+          if (highestLodNode.scale) lodNode.scale = [...highestLodNode.scale];
+
+          const lodNodeId = this.nodes.length;
+          this.nodes.push(lodNode);
+          return lodNodeId;
+        });
+
+        if (lodNodeIds.length > 0) {
+          highestLodNode.extensions = {
+            ...highestLodNode.extensions,
+            MSFT_lod: { ids: lodNodeIds },
+          };
         }
       }
-
-      if (lodIds.length > 0) {
-        // Store LOD mesh IDs on the original mesh as extension data
-        (mesh as unknown as Record<string, unknown>)['extensions'] = {
-          MSFT_lod: { ids: lodIds },
-        };
-        coverages.push(0.5, 0.2); // switch at 50% and 20% screen coverage
-      }
-    }
-
-    // Store LOD extension metadata for buildDocument
-    if (coverages.length > 0) {
-      this._lodCoverages = coverages;
     }
   }
-
-  private _lodCoverages: number[] | null = null;
 
   /**
    * Build skeleton hierarchy and embed as glTF skin.
@@ -1202,8 +1239,6 @@ export class GLTFPipeline extends CompilerBase {
       },
     ];
 
-    // Store joint index offset so skinMeshes can reference bone indices correctly
-    this._jointStartIndex = jointStartIndex;
   }
 
   private _skins: Array<{
@@ -1211,7 +1246,6 @@ export class GLTFPipeline extends CompilerBase {
     joints: number[];
     inverseBindMatrices: number;
   }> | null = null;
-  private _jointStartIndex = 0;
 
   /**
    * Skin all mesh nodes to the skeleton.
@@ -1219,17 +1253,15 @@ export class GLTFPipeline extends CompilerBase {
    * normalized inverse-distance weights. Writes JOINTS_0 (Uint8) and
    * WEIGHTS_0 (Float32) attributes into each mesh primitive.
    */
-  private skinMeshes(): void {
+  private skinMeshes(sourceNodeCount: number): void {
     if (!this._skins || this._skins.length === 0) return;
 
     const bones = DRAGON_SKELETON;
     const bonePositions = bones.map((b) => b.position);
 
-    // Determine how many nodes existed before LOD generation added extra meshes.
-    // We only skin original mesh nodes, not LOD copies.
-    const originalNodeCount = this._jointStartIndex; // joints were appended right after original nodes
-
-    for (let ni = 0; ni < originalNodeCount; ni++) {
+    // Preserve the pre-LOD behavior: generated lower-detail meshes remain
+    // unbound, while original source mesh nodes receive skinning attributes.
+    for (let ni = 0; ni < sourceNodeCount; ni++) {
       const node = this.nodes[ni];
       if (node.mesh === undefined) continue;
 
@@ -1331,6 +1363,8 @@ export class GLTFPipeline extends CompilerBase {
     // Post-process: smooth normals across adjacent meshes
     this.smoothNormalsGlobal();
 
+    const sourceNodeCount = this.nodes.length;
+
     // Generate LOD meshes
     this.generateLODs();
 
@@ -1338,7 +1372,7 @@ export class GLTFPipeline extends CompilerBase {
     this.buildSkeleton();
 
     // Skin meshes to skeleton (bind vertices to nearest bones)
-    this.skinMeshes();
+    this.skinMeshes(sourceNodeCount);
 
     // Create buffer
     const buffer = this.bufferData.slice(0, this.bufferByteLength);
