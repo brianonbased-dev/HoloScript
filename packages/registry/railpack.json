@@ -1,0 +1,6 @@
+{
+  "provider": "node",
+  "packages": {
+    "node": "22"
+  }
+}
