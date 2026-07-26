@@ -1,0 +1,80 @@
+{
+  "schema_version": "paper-5-gpu-bench-v2",
+  "benchmark": "paper-5-graphrag-gpu",
+  "status": "completed",
+  "capture_class": "ci-reference",
+  "runner": "packages/absorb-service/scripts/bench-paper-5-gpu.mjs",
+  "paper_ref": "ai-ecosystem/research/paper-5-graphrag-icse.tex",
+  "ran_at": "2026-07-26T16:02:19.828Z",
+  "setup_ms": 110.26,
+  "trials": 100,
+  "query_count": 30,
+  "symbol_count": 384,
+  "vector_dim": 128,
+  "hardware": {
+    "os": "win32 10.0.26200",
+    "node": "v24.15.0",
+    "totalMemoryGb": 31.73,
+    "gpuName": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "driverVersion": "610.62",
+    "isRtx3060": true,
+    "nvidiaSmi": "available"
+  },
+  "stages": {
+    "keyword": {
+      "median_ms": 0.089,
+      "mean_ms": 0.105,
+      "stdev_ms": 0.094,
+      "p95_ms": 0.215,
+      "min_ms": 0.029,
+      "max_ms": 0.66
+    },
+    "graphTraversal": {
+      "median_ms": 0.004,
+      "mean_ms": 0.006,
+      "stdev_ms": 0.009,
+      "p95_ms": 0.008,
+      "min_ms": 0.003,
+      "max_ms": 0.094
+    },
+    "embeddingGen": {
+      "median_ms": 0.195,
+      "mean_ms": 0.227,
+      "stdev_ms": 0.112,
+      "p95_ms": 0.416,
+      "min_ms": 0.178,
+      "max_ms": 0.885
+    },
+    "vectorSearch": {
+      "median_ms": 0.089,
+      "mean_ms": 0.128,
+      "stdev_ms": 0.156,
+      "p95_ms": 0.188,
+      "min_ms": 0.085,
+      "max_ms": 1.426
+    },
+    "envelopeBuild": {
+      "median_ms": 0.004,
+      "mean_ms": 0.007,
+      "stdev_ms": 0.01,
+      "p95_ms": 0.012,
+      "min_ms": 0.004,
+      "max_ms": 0.1
+    },
+    "endToEnd": {
+      "median_ms": 0.391,
+      "mean_ms": 0.475,
+      "stdev_ms": 0.255,
+      "p95_ms": 0.847,
+      "min_ms": 0.311,
+      "max_ms": 2.386
+    }
+  },
+  "envelope_hashes_observed": 30,
+  "markdown_table": "| Stage | Median ms | p95 ms |\n|---|---:|---:|\n| Keyword (layer 1) | 0.089 | 0.215 |\n| Graph traversal (layer 2) | 0.004 | 0.008 |\n| Embedding gen (layer 3) | 0.195 | 0.416 |\n| Vector search (layer 3) | 0.089 | 0.188 |\n| Envelope build | 0.004 | 0.012 |\n| End-to-end (layer 3 path) | 0.391 | 0.847 |",
+  "latex_rows": "Keyword (layer~1) & 0.1 & 0.2 \\\\\nGraph traversal (layer~2) & 0.0 & 0.0 \\\\\nEmbedding gen (layer~3, CI) & 0.2 & 0.4 \\\\\nVector search (layer~3) & 0.1 & 0.2 \\\\\nEnvelope build & 0.0 & 0.0 \\\\\n\\textbf{End-to-end (layer~3 path)} & 0.4 & 0.8 \\\\",
+  "notes": [
+    "Bounded CI artifact path for the Paper 5 GraphRAG timing table.",
+    "Use PAPER5_ACCEPT_RTX3060_CAPTURE=1 on a verified RTX 3060 rig to label a capture artifact."
+  ]
+}

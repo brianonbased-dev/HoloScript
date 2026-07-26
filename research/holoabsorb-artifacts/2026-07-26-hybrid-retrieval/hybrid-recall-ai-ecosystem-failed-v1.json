@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.hybrid-recall.v1",
+  "productName": "HoloAbsorb",
+  "status": "fail",
+  "startedAt": "2026-07-26T15:52:28.640Z",
+  "completedAt": "2026-07-26T15:54:48.446Z",
+  "repo": {
+    "root": "C:\\Users\\josep\\.ai-ecosystem",
+    "head": "fbaa8444fe55979137b66adc149782b1452c4a1b",
+    "dirty": true
+  },
+  "corpus": {
+    "maxFiles": 10000,
+    "files": 8524,
+    "graphSymbols": 107966,
+    "indexedEntries": 113676,
+    "parserLightFileEntries": 5710
+  },
+  "measurements": {
+    "setupMs": 138340.634,
+    "baselineRssBytes": 64954368,
+    "peakRssBytes": 1530769408,
+    "peakRssDeltaBytes": 1465815040,
+    "queries": [
+      {
+        "query": "safe-commit",
+        "durationMs": 1089.571,
+        "results": [
+          {
+            "rank": 1,
+            "file": "scripts/__tests__/safe-commit-parity.test.mjs",
+            "type": "constant",
+            "score": 1,
+            "vectorScore": 0.5974,
+            "lexicalScore": 1,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 2,
+            "file": "scripts/safe-commit.ps1",
+            "type": "file",
+            "score": 1,
+            "vectorScore": 0.4991,
+            "lexicalScore": 1,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 3,
+            "file": "scripts/safe-commit.sh",
+            "type": "file",
+            "score": 1,
+            "vectorScore": 0.4746,
+            "lexicalScore": 1,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 4,
+            "file": "hooks/lib/commit-hash.mjs",
+            "type": "constant",
+            "score": 0.7078,
+            "vectorScore": 0.5514,
+            "lexicalScore": 0.775,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          },
+          {
+            "rank": 5,
+            "file": "hooks/pre-commit-safe-commit-parity.sh",
+            "type": "file",
+            "score": 0.6895,
+            "vectorScore": 0.5811,
+            "lexicalScore": 0.575,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          }
+        ]
+      },
+      {
+        "query": "safe-commit atomic wrapper that uses git commit --only with explicit paths",
+        "durationMs": 325.214,
+        "results": [
+          {
+            "rank": 1,
+            "file": "scripts/p17-sesl-fleet-launch-packet.mjs",
+            "type": "function",
+            "score": 1,
+            "vectorScore": 0.6588,
+            "lexicalScore": 1.1583,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 2,
+            "file": "scripts/__tests__/safe-commit-parity.test.mjs",
+            "type": "constant",
+            "score": 1,
+            "vectorScore": 0.6548,
+            "lexicalScore": 1.1583,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 3,
+            "file": "scripts/holoai-academy-semantic-webgpu-browser.mjs",
+            "type": "constant",
+            "score": 1,
+            "vectorScore": 0.6378,
+            "lexicalScore": 1.1583,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 4,
+            "file": "scripts/safe-commit.sh",
+            "type": "file",
+            "score": 1,
+            "vectorScore": 0.6305,
+            "lexicalScore": 1.1583,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 5,
+            "file": "scripts/_archive/2026-07-03-mjs-sprawl/sync-founder-account.mjs",
+            "type": "function",
+            "score": 1,
+            "vectorScore": 0.6163,
+            "lexicalScore": 1.1583,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          }
+        ]
+      }
+    ]
+  },
+  "checks": [
+    {
+      "query": "safe-commit",
+      "requiredFilesInTop3": [
+        "scripts/safe-commit.ps1",
+        "scripts/safe-commit.sh"
+      ],
+      "pass": true
+    },
+    {
+      "query": "safe-commit atomic wrapper that uses git commit --only with explicit paths",
+      "requiredFilesInTop3": [],
+      "pass": false
+    }
+  ],
+  "hardware": {
+    "os": "win32 10.0.26200",
+    "node": "v24.15.0",
+    "cpuCount": 16,
+    "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "totalMemoryBytes": 34069385216,
+    "embeddingExecution": "cpu"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.refresh-benchmark.v1",
+  "productName": "HoloAbsorb",
+  "status": "fail",
+  "completedAt": "2026-07-26T15:59:34.708Z",
+  "repositoryCommit": "e71cb94250432986fcd8b005e2069852edc62b0c",
+  "fixture": {
+    "files": 120,
+    "symbolsPerFile": 24,
+    "changedFiles": 15,
+    "initialHead": "fd6c08fa2672fe31cfb94678d2189f2688a232c4",
+    "refreshedHead": "b00e01c73bb407fb5ed5258911759d0cc3a20b3b",
+    "retainedAt": null
+  },
+  "thresholds": {
+    "maxChangedFiles": 20,
+    "maxResponseBytes": 65536,
+    "maxPeakRssDeltaBytes": 536870912
+  },
+  "measurements": {
+    "initial": {
+      "durationMs": 1771.578,
+      "responseBytes": 6013,
+      "peakRssDeltaBytes": 110178304,
+      "totalFiles": 120,
+      "totalSymbols": 2880
+    },
+    "refreshed": {
+      "durationMs": 1557.951,
+      "responseBytes": 6014,
+      "peakRssDeltaBytes": 54153216,
+      "embeddingRefresh": null
+    },
+    "graphCacheBytes": 1097319,
+    "freshProcessStatus": {
+      "graphAuthoritative": true,
+      "freshForCurrentRepo": true,
+      "gitCommitMatchesHead": true
+    },
+    "freshProcessQuery": {
+      "totalFiles": 120,
+      "totalSymbols": 2895,
+      "totalImports": 0,
+      "totalCalls": 15,
+      "totalEventEdges": 0,
+      "totalLoc": 3015,
+      "filesByLanguage": {
+        "typescript": 120
+      },
+      "symbolsByType": {
+        "function": 2895
+      },
+      "communities": 1
+    }
+  },
+  "checks": {
+    "boundedDelta": true,
+    "initialGraphNotInlined": true,
+    "refreshedGraphNotInlined": true,
+    "initialResponseBounded": true,
+    "refreshedResponseBounded": true,
+    "graphCacheLargerThanResponse": true,
+    "changedSymbolReuse": false,
+    "peakRssBounded": true,
+    "freshProcessStatus": true,
+    "freshProcessQuery": false
+  },
+  "claimBoundary": "This deterministic local corpus proves bounded-delta reuse and compact MCP-shaped results; it is not a production-monorepo throughput claim."
+}

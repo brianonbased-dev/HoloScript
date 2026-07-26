@@ -1,0 +1,430 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.rebenchmark.v1",
+  "productName": "HoloAbsorb",
+  "status": "pass",
+  "startedAt": "2026-07-26T16:01:57.296Z",
+  "completedAt": "2026-07-26T16:02:24.692Z",
+  "repo": {
+    "root": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript",
+    "commit": "e71cb94250432986fcd8b005e2069852edc62b0c",
+    "worktreeDirtyAtStart": true,
+    "worktreeStatusAtStart": "M .bench-logs/2026-04-27-paper-10-depth-distribution-50xk.md\n M .bench-logs/2026-04-27-paper-12-scene-suite-overhead.md\n M .bench-logs/paper-trait-conflict-census.json\n M .bench-logs/paper-trait-conflict-families.json\n M .bench-logs/paper-trait-imperative-baseline.json\n M .bench-logs/paper-trait-inventory.json\n M .bench-logs/paper-trait-order-independence.json\n M .bench-logs/paper-trait-semiring-overhead.json\n M .bench-logs/paper-trait-wasm-ts-parity.json\n M examples/gold-game/knowledge-mountain-coords.json\n M packages/absorb-service/README.md\n M packages/absorb-service/package.json\n M packages/absorb-service/scripts/bench-holoabsorb.mjs\n M packages/absorb-service/scripts/bench-paper-5-accuracy.mjs\n M packages/absorb-service/src/build-lifecycle.test.ts\n M packages/absorb-service/src/engine/EmbeddingIndex.ts\n M packages/absorb-service/src/engine/GraphRAGEngine.ts\n M packages/absorb-service/src/engine/SearchIndex.ts\n M packages/absorb-service/src/engine/TwoTowerSearchIndex.ts\n M packages/absorb-service/src/engine/__tests__/EmbeddingIndex.streaming.test.ts\n M packages/absorb-service/src/engine/__tests__/TwoTowerSearchIndex.test.ts\n M packages/absorb-service/src/engine/index.ts\n M packages/absorb-service/src/engine/types.ts\n M packages/absorb-service/src/gev/index.ts\n M packages/absorb-service/src/holoabsorb/index.ts\n M packages/absorb-service/src/mcp/codebase-tools.impact.test.ts\n M packages/absorb-service/src/mcp/graph-rag-tools.ts\n M packages/compiler-wasm/src/parser.rs\n M packages/core/src/compiler/gltf/__tests__/extensions.prod.test.ts\n M packages/core/src/traits/pillar/__tests__/fixtures/jepa-eval-bench.json\n M packages/engine/src/simulation/__tests__/fixtures/world-model-receipt.json\n A packages/mcp-server/src/__tests__/solver-health.test.ts\n M packages/mcp-server/src/examples-catalog.ts\n M packages/mcp-server/src/http-server.ts\n A packages/mcp-server/src/solver-health.ts\n M packages/studio/.holo-manifest.json\n M packages/studio/next-env.d.ts\n M packages/studio/src/app/auth/signin/page.tsx\n M packages/studio/src/app/pipeline/page.tsx\n M packages/studio/src/app/playground/embodied/page.tsx\n M packages/studio/src/app/playground/pipeline/page.tsx\n M packages/studio/src/app/projects/page.tsx\n M packages/studio/src/app/settings/page.tsx\n M packages/studio/src/components/panels/native/adminDashboard.native.tsx\n M packages/studio/src/components/panels/native/compilerExport.native.tsx\n M packages/studio/src/components/panels/native/honestMetrics.native.tsx\n M research/paper-10-hs-core-pldi.tex\n M research/paper-37-quantum-receipt-chain.tex\n M scripts/__tests__/solver-smoke-check.test.mjs\n M scripts/holo-ci/solver-smoke-check.mjs\n M services/holoscript-net-v2/public/scenes/baked-manifest.json\n M services/holoscript-net-v2/public/scenes/garden.refreshed.baked.json\n M services/holoscript-net-v2/public/scenes/garden.seedable.baked.json\n M services/holoscript-net-v2/public/scenes/lotus-pond.baked.json\n M services/holoscript-net-v2/src/app/compile/page.tsx\n M services/holoscript-net-v2/src/app/ecosystem/page.tsx\n M services/holoscript-net-v2/src/app/lotus/page.tsx\n M services/holoscript-net-v2/src/app/page.tsx\n?? .build-logs/\n?? .holo-ci-last-workload\n?? .lotus-start.err\n?? .lotus2.err\n?? .tmp-holo-results.json\n?? .tmp-holo-worker.cjs\n?? .tmp-holo-worker2.cjs\n?? docs/bugs/2026-07-13-a006-quiet.md\n?? experiments/holoshell-human-os-frontier/native-holoshell-capability-envelope.hsplus\n?? experiments/holoshell-human-os-frontier/native-terminal-event-stream.hsplus\n?? experiments/holoshell-human-os-frontier/native-visual-operating-layer.hsplus\n?? packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs\n?? packages/absorb-service/src/engine/HybridRetrieval.ts\n?? packages/absorb-service/src/engine/__tests__/GraphRAGEngine.hybrid.test.ts\n?? packages/absorb-service/src/engine/__tests__/HybridRetrieval.test.ts\n?? packages/agent-protocol/holoscript-agent-protocol-8.0.7.tgz\n?? packages/core/holoscript-core-8.0.16.tgz\n?? packages/framework/holoscript-framework-6.1.4.tgz\n?? packages/holoscript-agent/holoscript-holoscript-agent-2.0.7.tgz\n?? packages/holoscript-agent/holoscript-holoscript-agent-2.1.17.tgz\n?? packages/holoscript-agent/holoscript-holoscript-agent-2.1.18.tgz\n?? packages/llm-provider/holoscript-llm-provider-1.2.1.tgz\n?? packages/llm-provider/llm-provider-dist.zip\n?? packages/studio/public/s23-view.html\n?? packages/studio/public/s23.ply\n?? research/comment.cut\n?? research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/\n?? research/holoabsorb-artifacts/2026-07-26-rebenchmark/\n?? research/holoabsorb-artifacts/2026-07-26-refresh-current/\n?? research/paper-29-algebraic-trust-composition-pldi.aux\n?? research/paper-29-algebraic-trust-composition-pldi.out\n?? research/paper-29-algebraic-trust-toolsandbox/.lake/\n?? research/paper-29-algebraic-trust-toolsandbox/lake-manifest.json\n?? research/paper-37-quantum-receipt-chain.aux\n?? research/paper-37-quantum-receipt-chain.bbl\n?? research/paper-37-quantum-receipt-chain.blg\n?? research/paper-37-quantum-receipt-chain.out\n?? scripts/analysis/\n?? scripts/debug/debug-full-example.d.mts\n?? scripts/debug/debug-full-example.mjs\n?? scripts/debug/debug-logic.d.mts\n?? scripts/debug/debug-logic.mjs\n?? scripts/debug/test-circular-config.js\n?? scripts/debug/test-config-inheritance.js\n?? scripts/debug/test-holo-parser.d.mts\n?? scripts/debug/test-holo-parser.mjs\n?? scripts/debug/verify-usable.d.mts\n?? scripts/debug/verify-usable.mjs\n?? scripts/extract-scene-presets.mjs\n?? t.name).join('\n?? t.name).join(,)))"
+  },
+  "hardware": {
+    "hostname": "Work",
+    "platform": "win32 10.0.26200",
+    "architecture": "x64",
+    "node": "v24.15.0",
+    "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "logicalCpuCount": 16,
+    "totalMemoryBytes": 34069385216,
+    "freeMemoryBytesAtStart": 11678691328,
+    "gpuInventory": [
+      "NVIDIA GeForce RTX 3060 Laptop GPU, 610.62, 6144 MiB"
+    ],
+    "nvidiaSmiStatus": "available"
+  },
+  "options": {
+    "outDir": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2",
+    "board": "research/holoabsorb-artifacts/2026-07-26-board-snapshot.json",
+    "skipBuild": true,
+    "withXenova": false,
+    "paper5Trials": 100,
+    "paper5MaxFiles": 500,
+    "help": false
+  },
+  "steps": [
+    {
+      "id": "holoabsorb-umbrella-audit",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T16:01:57.529Z",
+      "durationMs": 489,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/audit-holoabsorb.mjs --out=research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/holoabsorb-umbrella-audit.json --board=research/holoabsorb-artifacts/2026-07-26-board-snapshot.json",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/holoabsorb-umbrella-audit.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/holoabsorb-umbrella-audit.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "holoabsorb-refresh-benchmark",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T16:01:58.022Z",
+      "durationMs": 7179,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-holoabsorb-refresh.mjs --out=research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/holoabsorb-refresh-benchmark.json",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/holoabsorb-refresh-benchmark.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/holoabsorb-refresh-benchmark.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-5-accuracy-holoembed",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T16:02:05.202Z",
+      "durationMs": 7389,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-paper-5-accuracy.mjs --out=research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-5-accuracy-holoembed.json --max-files=500 --provider=holoembed",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-5-accuracy-holoembed.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-5-accuracy-holoembed.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-5-accuracy-structural",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T16:02:12.592Z",
+      "durationMs": 6948,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-paper-5-accuracy.mjs --out=research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-5-accuracy-structural.json --max-files=500 --provider=structural",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-5-accuracy-structural.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-5-accuracy-structural.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-5-timing",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T16:02:19.541Z",
+      "durationMs": 297,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-paper-5-gpu.mjs --out=research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-5-timing.json --trials=100 --queries=30 --max-symbols=384",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-5-timing.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-5-timing.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-26-holograph",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T16:02:19.839Z",
+      "durationMs": 3578,
+      "command": "pnpm.cmd --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Benchmark.test.ts --reporter=verbose --testNamePattern=EventEdge",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-26-holograph.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-26-holograph.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-26-holoembed",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-26T16:02:23.419Z",
+      "durationMs": 1267,
+      "command": "pnpm.cmd --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Table2NLRecall.test.ts --reporter=verbose",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-26-holoembed.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-26-holoembed.stderr.log",
+      "spawnError": null
+    }
+  ],
+  "summaries": {
+    "umbrellaAuditStatus": "pass",
+    "refreshBenchmark": {
+      "status": "pass",
+      "fixture": {
+        "files": 120,
+        "symbolsPerFile": 24,
+        "changedFiles": 15,
+        "initialHead": "02e6df853f772cd6d73b70f2f7c50df954d2a3dd",
+        "refreshedHead": "9a6f8956834a96942f6f42eb1fd43930f316ed99",
+        "retainedAt": null
+      },
+      "measurements": {
+        "initial": {
+          "durationMs": 1996.161,
+          "responseBytes": 5654,
+          "peakRssDeltaBytes": 146370560,
+          "totalFiles": 120,
+          "totalSymbols": 2880
+        },
+        "refreshed": {
+          "durationMs": 3024.652,
+          "responseBytes": 5866,
+          "peakRssDeltaBytes": 81612800,
+          "embeddingRefresh": {
+            "kind": "EmbeddingRefreshReceipt",
+            "previousSymbols": 2880,
+            "totalSymbols": 2895,
+            "reusedSymbols": 2880,
+            "embeddedSymbols": 15,
+            "retiredSymbols": 0,
+            "reuseRatio": 0.994819,
+            "batchCount": 91
+          }
+        },
+        "graphCacheBytes": 1097399,
+        "freshProcessStatus": {
+          "graphAuthoritative": true,
+          "freshForCurrentRepo": true,
+          "gitCommitMatchesHead": true
+        },
+        "freshProcessQuery": {
+          "totalFiles": 120,
+          "totalSymbols": 2895,
+          "totalImports": 0,
+          "totalCalls": 15,
+          "totalEventEdges": 0,
+          "totalLoc": 3015,
+          "filesByLanguage": {
+            "typescript": 120
+          },
+          "symbolsByType": {
+            "function": 2895
+          },
+          "communities": 1
+        }
+      },
+      "checks": {
+        "boundedDelta": true,
+        "initialGraphNotInlined": true,
+        "refreshedGraphNotInlined": true,
+        "initialResponseBounded": true,
+        "refreshedResponseBounded": true,
+        "graphCacheLargerThanResponse": true,
+        "changedSymbolReuse": true,
+        "peakRssBounded": true,
+        "freshProcessStatus": true,
+        "freshProcessQuery": true
+      }
+    },
+    "paper5Accuracy": {
+      "current": {
+        "status": "completed",
+        "bootstrap": true,
+        "embeddingProvider": "HoloEmbedProvider (sovereign structural + subword embeddings)",
+        "corpus": {
+          "root": "packages/absorb-service",
+          "files": 154,
+          "symbols": 7392,
+          "max_files": 500
+        },
+        "querySet": {
+          "n": 10,
+          "categories": {
+            "lookup": 4,
+            "reasoning": 6
+          },
+          "gold_files_in_corpus": 10,
+          "gold_files_missing": []
+        },
+        "systems": [
+          {
+            "name": "keyword-only",
+            "status": "ok",
+            "pAt5": 0.18,
+            "mrr": 0.711,
+            "runtimeMs": 69
+          },
+          {
+            "name": "semantic-only",
+            "status": "ok",
+            "pAt5": 0.14,
+            "mrr": 0.484,
+            "runtimeMs": 178
+          },
+          {
+            "name": "hybrid",
+            "status": "ok",
+            "pAt5": 0.18,
+            "mrr": 0.867,
+            "runtimeMs": 231
+          },
+          {
+            "name": "graph-rag",
+            "status": "ok",
+            "pAt5": 0.18,
+            "mrr": 0.867,
+            "runtimeMs": 185
+          },
+          {
+            "name": "bm25",
+            "status": "skipped",
+            "pAt5": null,
+            "mrr": null,
+            "runtimeMs": null
+          }
+        ]
+      },
+      "legacyFloor": {
+        "status": "completed",
+        "bootstrap": true,
+        "embeddingProvider": "StructuralEmbeddingProvider (legacy deterministic floor)",
+        "corpus": {
+          "root": "packages/absorb-service",
+          "files": 154,
+          "symbols": 7392,
+          "max_files": 500
+        },
+        "querySet": {
+          "n": 10,
+          "categories": {
+            "lookup": 4,
+            "reasoning": 6
+          },
+          "gold_files_in_corpus": 10,
+          "gold_files_missing": []
+        },
+        "systems": [
+          {
+            "name": "keyword-only",
+            "status": "ok",
+            "pAt5": 0.18,
+            "mrr": 0.711,
+            "runtimeMs": 70
+          },
+          {
+            "name": "semantic-only",
+            "status": "ok",
+            "pAt5": 0,
+            "mrr": 0.022,
+            "runtimeMs": 100
+          },
+          {
+            "name": "hybrid",
+            "status": "ok",
+            "pAt5": 0.16,
+            "mrr": 0.75,
+            "runtimeMs": 152
+          },
+          {
+            "name": "graph-rag",
+            "status": "ok",
+            "pAt5": 0.16,
+            "mrr": 0.75,
+            "runtimeMs": 109
+          },
+          {
+            "name": "bm25",
+            "status": "skipped",
+            "pAt5": null,
+            "mrr": null,
+            "runtimeMs": null
+          }
+        ]
+      },
+      "currentMinusLegacy": {
+        "semanticOnly": {
+          "pAt5": 0.14,
+          "mrr": 0.462
+        },
+        "hybrid": {
+          "pAt5": 0.02,
+          "mrr": 0.117
+        },
+        "graphRag": {
+          "pAt5": 0.02,
+          "mrr": 0.117
+        }
+      }
+    },
+    "paper5Timing": {
+      "status": "completed",
+      "captureClass": "ci-reference",
+      "trials": 100,
+      "stages": {
+        "keyword": {
+          "median_ms": 0.089,
+          "mean_ms": 0.105,
+          "stdev_ms": 0.094,
+          "p95_ms": 0.215,
+          "min_ms": 0.029,
+          "max_ms": 0.66
+        },
+        "graphTraversal": {
+          "median_ms": 0.004,
+          "mean_ms": 0.006,
+          "stdev_ms": 0.009,
+          "p95_ms": 0.008,
+          "min_ms": 0.003,
+          "max_ms": 0.094
+        },
+        "embeddingGen": {
+          "median_ms": 0.195,
+          "mean_ms": 0.227,
+          "stdev_ms": 0.112,
+          "p95_ms": 0.416,
+          "min_ms": 0.178,
+          "max_ms": 0.885
+        },
+        "vectorSearch": {
+          "median_ms": 0.089,
+          "mean_ms": 0.128,
+          "stdev_ms": 0.156,
+          "p95_ms": 0.188,
+          "min_ms": 0.085,
+          "max_ms": 1.426
+        },
+        "envelopeBuild": {
+          "median_ms": 0.004,
+          "mean_ms": 0.007,
+          "stdev_ms": 0.01,
+          "p95_ms": 0.012,
+          "min_ms": 0.004,
+          "max_ms": 0.1
+        },
+        "endToEnd": {
+          "median_ms": 0.391,
+          "mean_ms": 0.475,
+          "stdev_ms": 0.255,
+          "p95_ms": 0.847,
+          "min_ms": 0.311,
+          "max_ms": 2.386
+        }
+      }
+    },
+    "paper26": {
+      "status": "pass",
+      "xenovaAblation": "skipped-by-default",
+      "outputs": [
+        "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-26-holograph.stdout.log",
+        "research/holoabsorb-artifacts/2026-07-26-hybrid-retrieval/unified-v2/paper-26-holoembed.stdout.log"
+      ],
+      "holoGraphMeasurements": [
+        {
+          "files": 50,
+          "symbols": 200,
+          "events": 10,
+          "holoGraphQueryUs": 0.25,
+          "embeddingQueryUs": 575.9,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0.05,
+          "speedup": 2303.4
+        },
+        {
+          "files": 500,
+          "symbols": 2000,
+          "events": 50,
+          "holoGraphQueryUs": 0.17,
+          "embeddingQueryUs": 3705,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0.013,
+          "speedup": 21794.2
+        },
+        {
+          "files": 2000,
+          "symbols": 8000,
+          "events": 100,
+          "holoGraphQueryUs": 0.145,
+          "embeddingQueryUs": 10547.1,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0,
+          "speedup": 72738.3
+        }
+      ],
+      "nlCodeRecallAt10": {
+        "structural": 0.1,
+        "holoembed": 1
+      }
+    }
+  },
+  "claimBoundaries": [
+    "Paper 5 accuracy remains a deterministic 10-query bootstrap. It does not satisfy the >=50-query publication target.",
+    "Paper 5 timing is a bounded synthetic GraphRAG workload unless captureClass is an explicitly verified hardware capture.",
+    "Paper 26 HoloGraph event latency uses synthetic event corpora.",
+    "Paper 26 HoloEmbed recall uses name-derived NL queries over a 50-symbol synthetic corpus.",
+    "The changed-symbol refresh benchmark uses a deterministic synthetic Git corpus and does not claim production-monorepo throughput.",
+    "The optional Xenova model-download ablation was not run; no Xenova comparison is claimed.",
+    "A dirty-worktree flag is recorded because peer changes may coexist in this shared repository."
+  ],
+  "residualGaps": [
+    "Expand Paper 5 from 10 hand-authored queries to at least 50 independently labeled dependency, impact, and reasoning queries.",
+    "Replace or supplement the Paper 5 structural bootstrap with the current HoloEmbed hybrid retrieval path.",
+    "Run target-hardware timing captures separately on verified RTX 3060 and Jetson/Orin lanes.",
+    "Reconcile the paper prose and strict claim map only after the corresponding measured receipt exists."
+  ]
+}

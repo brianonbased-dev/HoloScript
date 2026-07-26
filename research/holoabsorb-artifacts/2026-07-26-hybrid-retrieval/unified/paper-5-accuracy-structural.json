@@ -1,0 +1,2150 @@
+{
+  "schema_version": "paper-5-accuracy-bench-v2",
+  "benchmark": "paper-5-graphrag-accuracy",
+  "status": "completed",
+  "runner": "packages/absorb-service/scripts/bench-paper-5-accuracy.mjs",
+  "paper_ref": "ai-ecosystem/research/paper-5-graphrag-icse.tex",
+  "paper_table": "tab:accuracy",
+  "ran_at": "2026-07-26T15:59:42.677Z",
+  "setup_ms": 6607,
+  "bootstrap": true,
+  "scope_note": "Bootstrap accuracy floor on N=10 queries against the absorb-service GraphRAG implementation. The full Paper 5 Table III evaluation targets >=50 labeled queries spanning Dependency / Impact / Reasoning categories with multi-annotator gold answers; this run is a deterministic CI-reproducible floor, not the full evaluation.",
+  "corpus": {
+    "root": "packages/absorb-service",
+    "files": 154,
+    "symbols": 7386,
+    "max_files": 500
+  },
+  "query_set": {
+    "n": 10,
+    "categories": {
+      "lookup": 4,
+      "reasoning": 6
+    },
+    "gold_files_in_corpus": 10,
+    "gold_files_missing": []
+  },
+  "metrics": {
+    "top_k": 10,
+    "p_at": 5
+  },
+  "embedding_provider": "StructuralEmbeddingProvider (legacy deterministic floor)",
+  "hardware": {
+    "os": "win32 10.0.26200",
+    "node": "v24.15.0",
+    "totalMemoryGb": 31.73,
+    "cpuCount": 16,
+    "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "gpuName": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "driverVersion": "610.62",
+    "nvidiaSmi": "available"
+  },
+  "systems": [
+    {
+      "name": "keyword-only",
+      "label": "Keyword-only",
+      "kind": "lexical",
+      "status": "ok",
+      "n_queries": 10,
+      "p_at_5": 0.18,
+      "mrr": 0.761,
+      "runtime_ms": 64,
+      "first_error": null,
+      "queries": [
+        {
+          "id": "q01",
+          "category": "lookup",
+          "query": "graph rag engine combining semantic and graph search",
+          "gold": "src/engine/GraphRAGEngine.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/GraphRAGEngine.ts",
+              "score": 6
+            },
+            {
+              "file": "../../src/engine/visualization/GraphRAGVisualizer.ts",
+              "score": 6
+            },
+            {
+              "file": "../../src/engine/visualization/GraphTooltipGenerator.ts",
+              "score": 6
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 6
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 5
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 5
+            },
+            {
+              "file": "../../src/engine/HoloEmitter.ts",
+              "score": 5
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/engine/adapters/HoloAdapter.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 4
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q02",
+          "category": "lookup",
+          "query": "embedding index cosine similarity search",
+          "gold": "src/engine/EmbeddingIndex.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/engine/providers/XenovaEmbeddingProvider.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/engine/TwoTowerSearchIndex.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/GraphRAGEngine.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/HoloEmitter.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/HoloGraphHoloEmbedManifest.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/providers/OllamaEmbeddingProvider.ts",
+              "score": 2
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q03",
+          "category": "lookup",
+          "query": "codebase scanner tree sitter walk project",
+          "gold": "src/engine/CodebaseScanner.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/adapters/HoloAdapter.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/engine/adapters/TreeSitterTraitAdapter.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/AdapterManager.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/adapters/BaseAdapter.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/HoloEmitter.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-cancellation.test.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/pipeline/pipelineOrchestrator.ts",
+              "score": 2
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 0.5,
+          "first_hit_rank": 2
+        },
+        {
+          "id": "q04",
+          "category": "lookup",
+          "query": "codebase graph callers callees impact radius",
+          "gold": "src/engine/CodebaseGraph.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 5
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.callers.test.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/visualization/GraphTooltipGenerator.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.impact.test.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/analysis/ReferenceGraph.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/benchmark/SyntheticGraphFactory.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/BrainCoordNodeMapper.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 2
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q05",
+          "category": "reasoning",
+          "query": "holo embed provider sovereign subword vectors no api",
+          "gold": "src/engine/providers/HoloEmbedProvider.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/providers/StructuralEmbeddingProvider.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/engine/providers/XenovaEmbeddingProvider.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/pipeline/llmProvider.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/HoloGraphHoloEmbedManifest.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/providers/EmbeddingProvider.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/providers/EmbeddingProviderFactory.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/providers/HoloDistillStudentProvider.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/providers/HoloEmbedProvider.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/providers/OllamaEmbeddingProvider.ts",
+              "score": 3
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0.111,
+          "first_hit_rank": 9
+        },
+        {
+          "id": "q06",
+          "category": "reasoning",
+          "query": "openai embedding provider api key model selection",
+          "gold": "src/engine/providers/OpenAIEmbeddingProvider.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/providers/OpenAIEmbeddingProvider.ts",
+              "score": 6
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 5
+            },
+            {
+              "file": "../../src/engine/providers/OllamaEmbeddingProvider.ts",
+              "score": 4
+            },
+            {
+              "file": "../../src/engine/providers/EmbeddingProviderFactory.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/providers/StructuralEmbeddingProvider.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/providers/XenovaEmbeddingProvider.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/workers/embedding-worker.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/pipeline/llmProvider.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/daemon/daemon-prompt-profiles.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 2
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q07",
+          "category": "reasoning",
+          "query": "community detection cluster files together",
+          "gold": "src/engine/CommunityDetector.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/CommunityDetector.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/KnowledgeExtractor.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/TraitCommunityDetector.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 2
+            },
+            {
+              "file": "../../benchmark-providers.mjs",
+              "score": 1
+            },
+            {
+              "file": "../../src/analysis/DeadCodeDetection.test.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/analysis/DeprecationRegistry.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/analysis/NoDeadCodeRule.ts",
+              "score": 1
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 0.5,
+          "first_hit_rank": 2
+        },
+        {
+          "id": "q08",
+          "category": "reasoning",
+          "query": "git change detector incremental updates",
+          "gold": "src/engine/GitChangeDetector.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/GitChangeDetector.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 3
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/CommunityDetector.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/analysis/ComplexityMetrics.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/engine/providers/StructuralEmbeddingProvider.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/engine/TraitCommunityDetector.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/engine/visualization/GraphRAGVisualizer.ts",
+              "score": 1
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 0.5,
+          "first_hit_rank": 2
+        },
+        {
+          "id": "q09",
+          "category": "reasoning",
+          "query": "provenance integrity guard envelope hashing",
+          "gold": "src/engine/ProvenanceIntegrityGuard.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/ProvenanceIntegrityGuard.ts",
+              "score": 3
+            },
+            {
+              "file": "../../benchmark-local.mjs",
+              "score": 1
+            },
+            {
+              "file": "../../src/analysis/ReferenceGraph.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/engine/ClaimNetworkGraph.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/engine/TraitCommunityDetector.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/engine/types.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/ingest/types.ts",
+              "score": 1
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q10",
+          "category": "reasoning",
+          "query": "knowledge extractor docstrings comments",
+          "gold": "src/engine/KnowledgeExtractor.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/KnowledgeExtractor.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/mcp/knowledge-extraction-tools.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/self-improvement/GRPOPromptExtractor.ts",
+              "score": 2
+            },
+            {
+              "file": "../../src/analysis/ComplexityMetrics.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/daemon/daemon-grpo-runner.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/engine/adapters/HoloAdapter.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/engine/HoloEmitter.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/mcp/knowledge-tools.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/mcp/oracle-tools.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/schema.ts",
+              "score": 1
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        }
+      ]
+    },
+    {
+      "name": "semantic-only",
+      "label": "Semantic-only (RAG)",
+      "kind": "embedding",
+      "status": "ok",
+      "n_queries": 10,
+      "p_at_5": 0,
+      "mrr": 0.02,
+      "runtime_ms": 97,
+      "first_error": null,
+      "queries": [
+        {
+          "id": "q01",
+          "category": "lookup",
+          "query": "graph rag engine combining semantic and graph search",
+          "gold": "src/engine/GraphRAGEngine.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/providers/EmbeddingProviderFactory.ts",
+              "score": 0.668
+            },
+            {
+              "file": "../../src/engine/ClaimNetworkGraph.ts",
+              "score": 0.666
+            },
+            {
+              "file": "../../src/analysis/ReferenceGraph.ts",
+              "score": 0.664
+            },
+            {
+              "file": "../../src/mcp/graph-rag-embedding-policy.ts",
+              "score": 0.663
+            },
+            {
+              "file": "../../src/mcp/absorb-typescript-tools.ts",
+              "score": 0.655
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.653
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-status-payload.test.ts",
+              "score": 0.652
+            },
+            {
+              "file": "../../src/credits/pricing.ts",
+              "score": 0.651
+            },
+            {
+              "file": "../../src/self-improvement/GRPOPromptExtractor.ts",
+              "score": 0.649
+            },
+            {
+              "file": "../../src/engine/visualization/CodebaseTheme.ts",
+              "score": 0.648
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q02",
+          "category": "lookup",
+          "query": "embedding index cosine similarity search",
+          "gold": "src/engine/EmbeddingIndex.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/DeprecatedInventory.ts",
+              "score": 0.721
+            },
+            {
+              "file": "../../src/credits/meteredLLMProvider.ts",
+              "score": 0.703
+            },
+            {
+              "file": "../../src/engine/CommunityDetector.ts",
+              "score": 0.701
+            },
+            {
+              "file": "../../src/pipeline/llmProvider.ts",
+              "score": 0.699
+            },
+            {
+              "file": "../../src/self-improvement/FleetSelfImproveIO.ts",
+              "score": 0.684
+            },
+            {
+              "file": "../../src/mcp/knowledge-tools.ts",
+              "score": 0.68
+            },
+            {
+              "file": "../../src/self-improvement/GRPORewardOrchestrator.ts",
+              "score": 0.678
+            },
+            {
+              "file": "../../src/self-improvement/ForgettingDetector.ts",
+              "score": 0.675
+            },
+            {
+              "file": "../../src/self-improvement/ProvenanceCalibrationRewards.ts",
+              "score": 0.663
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.661
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q03",
+          "category": "lookup",
+          "query": "codebase scanner tree sitter walk project",
+          "gold": "src/engine/CodebaseScanner.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 0.68
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.669
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.666
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-status-payload.test.ts",
+              "score": 0.665
+            },
+            {
+              "file": "../../src/self-improvement/SelfImproveCommand.ts",
+              "score": 0.663
+            },
+            {
+              "file": "../../src/engine/ClaimNetworkGraph.ts",
+              "score": 0.645
+            },
+            {
+              "file": "../../src/analysis/NoDeadCodeRule.ts",
+              "score": 0.645
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.643
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.643
+            },
+            {
+              "file": "../../src/engine/CommunityDetector.ts",
+              "score": 0.637
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q04",
+          "category": "lookup",
+          "query": "codebase graph callers callees impact radius",
+          "gold": "src/engine/CodebaseGraph.ts",
+          "retrieved": [
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.696
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.671
+            },
+            {
+              "file": "../../src/engine/providers/EmbeddingProvider.ts",
+              "score": 0.663
+            },
+            {
+              "file": "../../src/pipeline/LegacyImporter.ts",
+              "score": 0.66
+            },
+            {
+              "file": "../../src/self-improvement/FleetSelfImproveIO.ts",
+              "score": 0.654
+            },
+            {
+              "file": "../../src/mcp/absorb-refresh-checkpoint.test.ts",
+              "score": 0.645
+            },
+            {
+              "file": "../../src/self-improvement/GRPOPromptExtractor.ts",
+              "score": 0.645
+            },
+            {
+              "file": "../../src/analysis/ReferenceGraph.ts",
+              "score": 0.642
+            },
+            {
+              "file": "../../src/self-improvement/PackageToolRuntime.ts",
+              "score": 0.636
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.635
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0.1,
+          "first_hit_rank": 10
+        },
+        {
+          "id": "q05",
+          "category": "reasoning",
+          "query": "holo embed provider sovereign subword vectors no api",
+          "gold": "src/engine/providers/HoloEmbedProvider.ts",
+          "retrieved": [
+            {
+              "file": "../../src/self-improvement/QualityScore.ts",
+              "score": 0.717
+            },
+            {
+              "file": "../../src/engine/adapters/TreeSitterTraitAdapter.ts",
+              "score": 0.704
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.696
+            },
+            {
+              "file": "../../src/engine/HoloEmitter.ts",
+              "score": 0.692
+            },
+            {
+              "file": "../../src/engine/providers/StructuralEmbeddingProvider.ts",
+              "score": 0.689
+            },
+            {
+              "file": "../../src/holoabsorb/index.ts",
+              "score": 0.684
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.impact.test.ts",
+              "score": 0.684
+            },
+            {
+              "file": "../../src/self-improvement/FocusedDPOSplitter.ts",
+              "score": 0.672
+            },
+            {
+              "file": "../../src/engine/workers/WorkerPool.ts",
+              "score": 0.669
+            },
+            {
+              "file": "../../src/mcp/absorb-refresh-checkpoint.ts",
+              "score": 0.663
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q06",
+          "category": "reasoning",
+          "query": "openai embedding provider api key model selection",
+          "gold": "src/engine/providers/OpenAIEmbeddingProvider.ts",
+          "retrieved": [
+            {
+              "file": "../../src/analysis/ReachabilityAnalyzer.ts",
+              "score": 0.752
+            },
+            {
+              "file": "../../src/self-improvement/GRPOPromptExtractor.ts",
+              "score": 0.688
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.677
+            },
+            {
+              "file": "../../src/holoabsorb/index.ts",
+              "score": 0.667
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.662
+            },
+            {
+              "file": "../../src/engine/visualization/GraphRAGVisualizer.ts",
+              "score": 0.659
+            },
+            {
+              "file": "../../src/analysis/ReachabilityAnalyzer.test.ts",
+              "score": 0.658
+            },
+            {
+              "file": "../../src/engine/layouts/LayeredLayout.ts",
+              "score": 0.655
+            },
+            {
+              "file": "../../src/engine/providers/StructuralEmbeddingProvider.ts",
+              "score": 0.65
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 0.65
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q07",
+          "category": "reasoning",
+          "query": "community detection cluster files together",
+          "gold": "src/engine/CommunityDetector.ts",
+          "retrieved": [
+            {
+              "file": "../../src/pipeline/types.ts",
+              "score": 0.689
+            },
+            {
+              "file": "../../src/analysis/DeprecationRegistry.ts",
+              "score": 0.687
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.682
+            },
+            {
+              "file": "../../src/self-improvement/FocusedDPOSplitter.ts",
+              "score": 0.672
+            },
+            {
+              "file": "../../src/self-improvement/SelfImproveHarvester.ts",
+              "score": 0.672
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.671
+            },
+            {
+              "file": "../../src/engine/ClaimNetworkGraph.ts",
+              "score": 0.659
+            },
+            {
+              "file": "../../src/analysis/ReferenceGraph.ts",
+              "score": 0.656
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.653
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.651
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q08",
+          "category": "reasoning",
+          "query": "git change detector incremental updates",
+          "gold": "src/engine/GitChangeDetector.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 0.674
+            },
+            {
+              "file": "../../src/mcp/absorb-refresh-checkpoint.test.ts",
+              "score": 0.669
+            },
+            {
+              "file": "../../src/engine/HybridRetrieval.ts",
+              "score": 0.664
+            },
+            {
+              "file": "../../src/self-improvement/FocusedDPOSplitter.ts",
+              "score": 0.653
+            },
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 0.649
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.649
+            },
+            {
+              "file": "../../src/pipeline/feedbackEngine.ts",
+              "score": 0.645
+            },
+            {
+              "file": "../../src/self-improvement/OPLoRAConfig.ts",
+              "score": 0.644
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.644
+            },
+            {
+              "file": "../../src/self-improvement/GRPOConfig.ts",
+              "score": 0.643
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q09",
+          "category": "reasoning",
+          "query": "provenance integrity guard envelope hashing",
+          "gold": "src/engine/ProvenanceIntegrityGuard.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.673
+            },
+            {
+              "file": "../../src/mcp/absorb-tools.ts",
+              "score": 0.673
+            },
+            {
+              "file": "../../benchmark-local.mjs",
+              "score": 0.666
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.666
+            },
+            {
+              "file": "../../src/engine/HoloEmitter.ts",
+              "score": 0.665
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 0.66
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.659
+            },
+            {
+              "file": "../../src/mcp/graph-rag-embedding-policy.ts",
+              "score": 0.656
+            },
+            {
+              "file": "../../src/engine/types.ts",
+              "score": 0.645
+            },
+            {
+              "file": "../../src/self-improvement/GRPOPromptExtractor.ts",
+              "score": 0.645
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q10",
+          "category": "reasoning",
+          "query": "knowledge extractor docstrings comments",
+          "gold": "src/engine/KnowledgeExtractor.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 0.712
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.abort.test.ts",
+              "score": 0.708
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.687
+            },
+            {
+              "file": "../../src/engine/adapters/index.ts",
+              "score": 0.686
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.684
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.673
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 0.662
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.66
+            },
+            {
+              "file": "../../src/engine/HybridRetrieval.ts",
+              "score": 0.654
+            },
+            {
+              "file": "../../src/engine/KnowledgeExtractor.ts",
+              "score": 0.653
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0.1,
+          "first_hit_rank": 10
+        }
+      ]
+    },
+    {
+      "name": "hybrid",
+      "label": "HoloAbsorb hybrid (exact + lexical + HoloEmbed)",
+      "kind": "hybrid",
+      "status": "ok",
+      "n_queries": 10,
+      "p_at_5": 0.16,
+      "mrr": 0.75,
+      "runtime_ms": 153,
+      "first_error": null,
+      "queries": [
+        {
+          "id": "q01",
+          "category": "lookup",
+          "query": "graph rag engine combining semantic and graph search",
+          "gold": "src/engine/GraphRAGEngine.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/GraphRAGEngine.ts",
+              "score": 0.999
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.999
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.999
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.742
+            },
+            {
+              "file": "../../src/mcp/graph-rag-embedding-policy.ts",
+              "score": 0.725
+            },
+            {
+              "file": "../../src/analysis/ReferenceGraph.ts",
+              "score": 0.72
+            },
+            {
+              "file": "../../src/engine/ClaimNetworkGraph.ts",
+              "score": 0.711
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.705
+            },
+            {
+              "file": "../../src/engine/visualization/GraphRAGVisualizer.ts",
+              "score": 0.697
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.holollama.test.ts",
+              "score": 0.692
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q02",
+          "category": "lookup",
+          "query": "embedding index cosine similarity search",
+          "gold": "src/engine/EmbeddingIndex.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 1
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.999
+            },
+            {
+              "file": "../../src/engine/TwoTowerSearchIndex.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/engine/adapters/index.ts",
+              "score": 0.722
+            },
+            {
+              "file": "../../src/engine/DeprecatedInventory.ts",
+              "score": 0.721
+            },
+            {
+              "file": "../../src/holoabsorb/index.ts",
+              "score": 0.711
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-status-payload.test.ts",
+              "score": 0.708
+            },
+            {
+              "file": "../../src/gev/index.ts",
+              "score": 0.705
+            },
+            {
+              "file": "../../src/credits/meteredLLMProvider.ts",
+              "score": 0.703
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 0.701
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q03",
+          "category": "lookup",
+          "query": "codebase scanner tree sitter walk project",
+          "gold": "src/engine/CodebaseScanner.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/engine/AdapterManager.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 0.717
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.702
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-status-payload.test.ts",
+              "score": 0.687
+            },
+            {
+              "file": "../../benchmark-providers.mjs",
+              "score": 0.673
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.67
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.669
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.666
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q04",
+          "category": "lookup",
+          "query": "codebase graph callers callees impact radius",
+          "gold": "src/engine/CodebaseGraph.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.746
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.callers.test.ts",
+              "score": 0.731
+            },
+            {
+              "file": "../../src/engine/visualization/GraphSelectionManager.ts",
+              "score": 0.717
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.709
+            },
+            {
+              "file": "../../src/analysis/ReferenceGraph.ts",
+              "score": 0.701
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 0.663
+            },
+            {
+              "file": "../../src/engine/providers/EmbeddingProvider.ts",
+              "score": 0.663
+            },
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 0.661
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q05",
+          "category": "reasoning",
+          "query": "holo embed provider sovereign subword vectors no api",
+          "gold": "src/engine/providers/HoloEmbedProvider.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/workers/embedding-worker.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/engine/providers/HoloEmbedProvider.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/engine/providers/EmbeddingProviderFactory.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/engine/HoloEmitter.ts",
+              "score": 0.742
+            },
+            {
+              "file": "../../src/engine/providers/StructuralEmbeddingProvider.ts",
+              "score": 0.724
+            },
+            {
+              "file": "../../src/self-improvement/QualityScore.ts",
+              "score": 0.717
+            },
+            {
+              "file": "../../src/engine/adapters/TreeSitterTraitAdapter.ts",
+              "score": 0.704
+            },
+            {
+              "file": "../../src/engine/adapters/HoloAdapter.ts",
+              "score": 0.699
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.696
+            },
+            {
+              "file": "../../src/engine/providers/HoloDistillStudentProvider.ts",
+              "score": 0.69
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 0.5,
+          "first_hit_rank": 2
+        },
+        {
+          "id": "q06",
+          "category": "reasoning",
+          "query": "openai embedding provider api key model selection",
+          "gold": "src/engine/providers/OpenAIEmbeddingProvider.ts",
+          "retrieved": [
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/engine/providers/EmbeddingProvider.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/mcp/absorb-tools.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.998
+            },
+            {
+              "file": "../../src/analysis/ReachabilityAnalyzer.ts",
+              "score": 0.752
+            },
+            {
+              "file": "../../src/engine/providers/StructuralEmbeddingProvider.ts",
+              "score": 0.729
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.717
+            },
+            {
+              "file": "../../src/self-improvement/GRPOPromptExtractor.ts",
+              "score": 0.688
+            },
+            {
+              "file": "../../src/engine/workers/embedding-worker.ts",
+              "score": 0.681
+            },
+            {
+              "file": "../../src/self-improvement/run-self-improve.ts",
+              "score": 0.68
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q07",
+          "category": "reasoning",
+          "query": "community detection cluster files together",
+          "gold": "src/engine/CommunityDetector.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/GraphRAGEngine.ts",
+              "score": 0.69
+            },
+            {
+              "file": "../../src/pipeline/types.ts",
+              "score": 0.689
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.689
+            },
+            {
+              "file": "../../src/analysis/DeprecationRegistry.ts",
+              "score": 0.687
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.682
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.impact.test.ts",
+              "score": 0.679
+            },
+            {
+              "file": "../../src/self-improvement/FocusedDPOSplitter.ts",
+              "score": 0.672
+            },
+            {
+              "file": "../../src/self-improvement/SelfImproveHarvester.ts",
+              "score": 0.672
+            },
+            {
+              "file": "../../src/engine/ClaimNetworkGraph.ts",
+              "score": 0.659
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 0.657
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q08",
+          "category": "reasoning",
+          "query": "git change detector incremental updates",
+          "gold": "src/engine/GitChangeDetector.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/GitChangeDetector.ts",
+              "score": 0.999
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.999
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 0.674
+            },
+            {
+              "file": "../../src/mcp/absorb-refresh-checkpoint.test.ts",
+              "score": 0.669
+            },
+            {
+              "file": "../../src/engine/HybridRetrieval.ts",
+              "score": 0.664
+            },
+            {
+              "file": "../../src/self-improvement/ForgettingDetector.ts",
+              "score": 0.658
+            },
+            {
+              "file": "../../src/engine/CommunityDetector.ts",
+              "score": 0.654
+            },
+            {
+              "file": "../../src/self-improvement/FocusedDPOSplitter.ts",
+              "score": 0.653
+            },
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 0.649
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.649
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q09",
+          "category": "reasoning",
+          "query": "provenance integrity guard envelope hashing",
+          "gold": "src/engine/ProvenanceIntegrityGuard.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/ProvenanceIntegrityGuard.ts",
+              "score": 0.999
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.673
+            },
+            {
+              "file": "../../src/mcp/absorb-tools.ts",
+              "score": 0.673
+            },
+            {
+              "file": "../../benchmark-local.mjs",
+              "score": 0.671
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.666
+            },
+            {
+              "file": "../../src/engine/HoloEmitter.ts",
+              "score": 0.665
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 0.66
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.659
+            },
+            {
+              "file": "../../src/mcp/graph-rag-embedding-policy.ts",
+              "score": 0.656
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.651
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q10",
+          "category": "reasoning",
+          "query": "knowledge extractor docstrings comments",
+          "gold": "src/engine/KnowledgeExtractor.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/KnowledgeExtractor.ts",
+              "score": 0.999
+            },
+            {
+              "file": "../../src/self-improvement/FleetSelfImproveIO.ts",
+              "score": 0.725
+            },
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 0.712
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.abort.test.ts",
+              "score": 0.708
+            },
+            {
+              "file": "../../src/self-improvement/GRPOPromptExtractor.ts",
+              "score": 0.69
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.687
+            },
+            {
+              "file": "../../src/engine/adapters/index.ts",
+              "score": 0.686
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.684
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.673
+            },
+            {
+              "file": "../../src/mcp/knowledge-tools.ts",
+              "score": 0.667
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        }
+      ]
+    },
+    {
+      "name": "graph-rag",
+      "label": "Graph RAG",
+      "kind": "graph-rag",
+      "status": "ok",
+      "n_queries": 10,
+      "p_at_5": 0.16,
+      "mrr": 0.75,
+      "runtime_ms": 107,
+      "first_error": null,
+      "queries": [
+        {
+          "id": "q01",
+          "category": "lookup",
+          "query": "graph rag engine combining semantic and graph search",
+          "gold": "src/engine/GraphRAGEngine.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/GraphRAGEngine.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.713
+            },
+            {
+              "file": "../../src/mcp/graph-rag-embedding-policy.ts",
+              "score": 0.696
+            },
+            {
+              "file": "../../src/analysis/ReferenceGraph.ts",
+              "score": 0.691
+            },
+            {
+              "file": "../../src/engine/ClaimNetworkGraph.ts",
+              "score": 0.683
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.677
+            },
+            {
+              "file": "../../src/engine/visualization/GraphRAGVisualizer.ts",
+              "score": 0.669
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.holollama.test.ts",
+              "score": 0.665
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q02",
+          "category": "lookup",
+          "query": "embedding index cosine similarity search",
+          "gold": "src/engine/EmbeddingIndex.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.981
+            },
+            {
+              "file": "../../src/engine/TwoTowerSearchIndex.ts",
+              "score": 0.98
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/engine/adapters/index.ts",
+              "score": 0.724
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-status-payload.test.ts",
+              "score": 0.706
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 0.699
+            },
+            {
+              "file": "../../benchmark-providers.mjs",
+              "score": 0.694
+            },
+            {
+              "file": "../../src/engine/DeprecatedInventory.ts",
+              "score": 0.692
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.685
+            },
+            {
+              "file": "../../src/holoabsorb/index.ts",
+              "score": 0.682
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q03",
+          "category": "lookup",
+          "query": "codebase scanner tree sitter walk project",
+          "gold": "src/engine/CodebaseScanner.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 0.958
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.958
+            },
+            {
+              "file": "../../src/engine/AdapterManager.ts",
+              "score": 0.958
+            },
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 0.688
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.674
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-status-payload.test.ts",
+              "score": 0.66
+            },
+            {
+              "file": "../../benchmark-providers.mjs",
+              "score": 0.646
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.643
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.642
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.64
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q04",
+          "category": "lookup",
+          "query": "codebase graph callers callees impact radius",
+          "gold": "src/engine/CodebaseGraph.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.958
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 0.958
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.716
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.704
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.callers.test.ts",
+              "score": 0.702
+            },
+            {
+              "file": "../../src/engine/visualization/GraphSelectionManager.ts",
+              "score": 0.689
+            },
+            {
+              "file": "../../src/analysis/ReferenceGraph.ts",
+              "score": 0.673
+            },
+            {
+              "file": "../../src/self-improvement/GRPOPromptExtractor.ts",
+              "score": 0.646
+            },
+            {
+              "file": "../../src/engine/HoloGraphHoloEmbedManifest.ts",
+              "score": 0.643
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 0.636
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q05",
+          "category": "reasoning",
+          "query": "holo embed provider sovereign subword vectors no api",
+          "gold": "src/engine/providers/HoloEmbedProvider.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/workers/embedding-worker.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/engine/providers/HoloEmbedProvider.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/engine/providers/EmbeddingProviderFactory.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/engine/providers/StructuralEmbeddingProvider.ts",
+              "score": 0.735
+            },
+            {
+              "file": "../../src/engine/HoloEmitter.ts",
+              "score": 0.712
+            },
+            {
+              "file": "../../src/self-improvement/QualityScore.ts",
+              "score": 0.688
+            },
+            {
+              "file": "../../src/engine/adapters/TreeSitterTraitAdapter.ts",
+              "score": 0.676
+            },
+            {
+              "file": "../../src/engine/adapters/HoloAdapter.ts",
+              "score": 0.671
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.668
+            },
+            {
+              "file": "../../src/engine/providers/HoloDistillStudentProvider.ts",
+              "score": 0.663
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 0.5,
+          "first_hit_rank": 2
+        },
+        {
+          "id": "q06",
+          "category": "reasoning",
+          "query": "openai embedding provider api key model selection",
+          "gold": "src/engine/providers/OpenAIEmbeddingProvider.ts",
+          "retrieved": [
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.958
+            },
+            {
+              "file": "../../src/engine/providers/EmbeddingProvider.ts",
+              "score": 0.958
+            },
+            {
+              "file": "../../src/mcp/absorb-tools.ts",
+              "score": 0.958
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.958
+            },
+            {
+              "file": "../../src/analysis/ReachabilityAnalyzer.ts",
+              "score": 0.722
+            },
+            {
+              "file": "../../src/engine/providers/StructuralEmbeddingProvider.ts",
+              "score": 0.7
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.688
+            },
+            {
+              "file": "../../src/self-improvement/GRPOPromptExtractor.ts",
+              "score": 0.661
+            },
+            {
+              "file": "../../src/pipeline/LegacyImporter.ts",
+              "score": 0.659
+            },
+            {
+              "file": "../../src/engine/workers/embedding-worker.ts",
+              "score": 0.654
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q07",
+          "category": "reasoning",
+          "query": "community detection cluster files together",
+          "gold": "src/engine/CommunityDetector.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/GraphRAGEngine.ts",
+              "score": 0.663
+            },
+            {
+              "file": "../../src/pipeline/types.ts",
+              "score": 0.662
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.662
+            },
+            {
+              "file": "../../src/analysis/DeprecationRegistry.ts",
+              "score": 0.659
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.absorb-root.test.ts",
+              "score": 0.655
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.impact.test.ts",
+              "score": 0.652
+            },
+            {
+              "file": "../../src/self-improvement/FocusedDPOSplitter.ts",
+              "score": 0.645
+            },
+            {
+              "file": "../../src/self-improvement/SelfImproveHarvester.ts",
+              "score": 0.645
+            },
+            {
+              "file": "../../src/engine/ClaimNetworkGraph.ts",
+              "score": 0.633
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 0.63
+            }
+          ],
+          "p_at_5": 0,
+          "rr": 0,
+          "first_hit_rank": null
+        },
+        {
+          "id": "q08",
+          "category": "reasoning",
+          "query": "git change detector incremental updates",
+          "gold": "src/engine/GitChangeDetector.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/GitChangeDetector.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/analysis/ReferenceGraph.ts",
+              "score": 0.648
+            },
+            {
+              "file": "../../src/engine/CodebaseScanner.ts",
+              "score": 0.647
+            },
+            {
+              "file": "../../src/mcp/absorb-refresh-checkpoint.test.ts",
+              "score": 0.642
+            },
+            {
+              "file": "../../src/engine/HybridRetrieval.ts",
+              "score": 0.637
+            },
+            {
+              "file": "../../src/self-improvement/ForgettingDetector.ts",
+              "score": 0.631
+            },
+            {
+              "file": "../../src/engine/CommunityDetector.ts",
+              "score": 0.628
+            },
+            {
+              "file": "../../src/self-improvement/FocusedDPOSplitter.ts",
+              "score": 0.627
+            },
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 0.623
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q09",
+          "category": "reasoning",
+          "query": "provenance integrity guard envelope hashing",
+          "gold": "src/engine/ProvenanceIntegrityGuard.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/ProvenanceIntegrityGuard.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.646
+            },
+            {
+              "file": "../../src/mcp/absorb-tools.ts",
+              "score": 0.646
+            },
+            {
+              "file": "../../benchmark-local.mjs",
+              "score": 0.645
+            },
+            {
+              "file": "../../src/self-improvement/ProvenanceCalibrationRewards.ts",
+              "score": 0.64
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.64
+            },
+            {
+              "file": "../../src/engine/HoloEmitter.ts",
+              "score": 0.639
+            },
+            {
+              "file": "../../src/daemon/daemon-actions.ts",
+              "score": 0.634
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.632
+            },
+            {
+              "file": "../../src/mcp/graph-rag-embedding-policy.ts",
+              "score": 0.63
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        },
+        {
+          "id": "q10",
+          "category": "reasoning",
+          "query": "knowledge extractor docstrings comments",
+          "gold": "src/engine/KnowledgeExtractor.ts",
+          "retrieved": [
+            {
+              "file": "../../src/engine/KnowledgeExtractor.ts",
+              "score": 0.959
+            },
+            {
+              "file": "../../src/self-improvement/FleetSelfImproveIO.ts",
+              "score": 0.696
+            },
+            {
+              "file": "../../src/engine/visualization/CodebaseSceneCompiler.ts",
+              "score": 0.683
+            },
+            {
+              "file": "../../src/mcp/codebase-tools.abort.test.ts",
+              "score": 0.68
+            },
+            {
+              "file": "../../src/self-improvement/GRPOPromptExtractor.ts",
+              "score": 0.663
+            },
+            {
+              "file": "../../src/engine/EmbeddingIndex.ts",
+              "score": 0.66
+            },
+            {
+              "file": "../../src/engine/adapters/index.ts",
+              "score": 0.659
+            },
+            {
+              "file": "../../src/mcp/graph-rag-tools.ts",
+              "score": 0.657
+            },
+            {
+              "file": "../../src/engine/CodebaseGraph.ts",
+              "score": 0.646
+            },
+            {
+              "file": "../../src/holoabsorb/index.ts",
+              "score": 0.642
+            }
+          ],
+          "p_at_5": 0.2,
+          "rr": 1,
+          "first_hit_rank": 1
+        }
+      ]
+    },
+    {
+      "name": "bm25",
+      "label": "BM25 (skipped — not shipped in absorb-service)",
+      "kind": "lexical",
+      "status": "skipped",
+      "reason": "No standalone BM25 primitive exists in @holoscript/absorb-service. The keyword-only system above is the closest in-tree lexical baseline (token overlap on symbol name + file + signature)."
+    }
+  ],
+  "notes": [
+    "Legacy structural-floor mode: vectors encode symbol structure without name-derived HoloEmbed subwords.",
+    "Keyword-only acts as the lexical/BM25-analog baseline; a true BM25 implementation is not shipped in absorb-service.",
+    "No LLM is invoked — the engine returns ranked enriched results, not generated answers, so accuracy is measured on retrieval not synthesis.",
+    "IMPORTANT: StructuralEmbeddingProvider encodes AST-structural features rather than NL-text semantics. Treat these results as a legacy floor.",
+    "Keyword-only MRR is meaningful here even when P@5 looks low: it shows the gold file IS being ranked highly, just not always at rank 1, and there are other valid related files in the top-5 (e.g. GraphRAGVisualizer for a \"graph rag engine\" query)."
+  ]
+}
