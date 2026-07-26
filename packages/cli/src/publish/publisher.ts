@@ -7,7 +7,13 @@
  */
 
 import { readFileSync, existsSync, unlinkSync, readdirSync } from 'fs';
-import { join, extname } from 'path';
+import { extname, join, relative, resolve } from 'path';
+import {
+  PACKAGE_IR_SCHEMA_VERSION,
+  validatePackageIR,
+  type PackageDependencySpec,
+  type PackageIR,
+} from '@holoscript/platform';
 import { validateForPublish } from './validator';
 import { packPackage } from './packager';
 
@@ -250,6 +256,9 @@ export class PackagePublisher {
   ): Promise<RegistryResponse> {
     // Read package.json for full metadata
     const pkgJson = JSON.parse(readFileSync(join(this.cwd, 'package.json'), 'utf-8'));
+    if (pkgJson.holoscript?.artifact === 'library') {
+      return this.uploadLibraryPackage(pkgJson, name, version, token);
+    }
 
     // Find the primary .holo source file
     const source = this.readHoloSource(pkgJson);
@@ -308,11 +317,16 @@ export class PackagePublisher {
         return { success: false, error: errorMessage };
       }
 
-      const result = (await response.json()) as { id?: string; message?: string };
+      const result = (await response.json()) as {
+        id?: string;
+        message?: string;
+        data?: { traitId?: string };
+      };
+      const traitId = result.id || result.data?.traitId;
       return {
         success: true,
         message: result.message,
-        url: `${this.options.registry}/api/v1/traits/${result.id}`,
+        url: traitId ? `${this.options.registry}/api/v1/traits/${traitId}` : undefined,
       };
     } catch (err: unknown) {
       const code = err instanceof Error ? (err as NodeJS.ErrnoException).code : undefined;
@@ -323,25 +337,148 @@ export class PackagePublisher {
     }
   }
 
-  /** Find and read the primary .holo source file from the package */
+  private async uploadLibraryPackage(
+    pkgJson: any,
+    name: string,
+    version: string,
+    token: string
+  ): Promise<RegistryResponse> {
+    const declaredEntrypoint = pkgJson.holoscript?.entrypoint;
+    if (typeof declaredEntrypoint !== 'string' || declaredEntrypoint.length === 0) {
+      return {
+        success: false,
+        error: 'Native library packages require holoscript.entrypoint',
+      };
+    }
+
+    const entrypointPath = resolve(this.cwd, declaredEntrypoint);
+    const relativeEntrypoint = relative(this.cwd, entrypointPath).replace(/\\/g, '/');
+    if (
+      relativeEntrypoint.startsWith('../') ||
+      !['.holo', '.hs', '.hsplus'].includes(extname(entrypointPath))
+    ) {
+      return {
+        success: false,
+        error: 'holoscript.entrypoint must be a package-relative .holo, .hs, or .hsplus file',
+      };
+    }
+    if (!existsSync(entrypointPath)) {
+      return { success: false, error: `HoloScript entrypoint not found: ${declaredEntrypoint}` };
+    }
+
+    const dependencyRanges = pkgJson.holoscriptDependencies || {};
+    const dependencies = Object.fromEntries(
+      Object.entries(dependencyRanges).map(([dependency, range]) => [
+        dependency,
+        {
+          range: String(range),
+          source: { kind: 'registry' },
+        } satisfies PackageDependencySpec,
+      ])
+    );
+    const repository =
+      typeof pkgJson.repository === 'string' ? pkgJson.repository : pkgJson.repository?.url;
+    const owner =
+      typeof pkgJson.author === 'string'
+        ? pkgJson.author
+        : pkgJson.author?.name || name.split('/')[0].replace(/^@/, '');
+    const sourceEntrypoint = relativeEntrypoint.startsWith('./')
+      ? relativeEntrypoint
+      : `./${relativeEntrypoint}`;
+    const packageIR: PackageIR = {
+      schemaVersion: PACKAGE_IR_SCHEMA_VERSION,
+      name,
+      version,
+      kind: 'library',
+      supportTier: pkgJson.holoscript.supportTier || 'preview',
+      entrypoints: {
+        source: sourceEntrypoint,
+        exports: pkgJson.holoscript.exports,
+      },
+      dependencies,
+      compatibility: pkgJson.holoscript.compatibility || {
+        holoscript: '*',
+        targets: ['node'],
+      },
+      capabilities: pkgJson.holoscript.capabilities || [],
+      provenance: {
+        license: pkgJson.license || 'UNLICENSED',
+        repository: repository || '',
+        owner,
+        documentation: pkgJson.homepage,
+      },
+    };
+    const validation = validatePackageIR(packageIR);
+    if (!validation.valid) {
+      return { success: false, error: `Invalid PackageIR: ${validation.errors.join('; ')}` };
+    }
+
+    const response = await fetch(`${this.options.registry}/api/v1/packages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'User-Agent': 'holoscript-cli/1.0.0',
+      },
+      body: JSON.stringify({
+        packageIR,
+        source: readFileSync(entrypointPath, 'utf-8'),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      try {
+        const errorJson = JSON.parse(errorText);
+        return { success: false, error: errorJson.error || errorJson.message || errorText };
+      } catch {
+        return { success: false, error: errorText || `HTTP ${response.status}` };
+      }
+    }
+
+    const result = (await response.json()) as {
+      specifier: string;
+      version: string;
+      sourceUrl: string;
+    };
+    return {
+      success: true,
+      url: `${this.options.registry}${result.sourceUrl}`,
+      message: `Published ${result.specifier}@${result.version}`,
+    };
+  }
+
+  /** Find and read the primary native HoloScript source file from the package. */
   private readHoloSource(pkgJson: any): string {
-    // 1. Check package.json "main" field
-    if (pkgJson.main) {
+    // 1. Check package.json "main" only when it is native HoloScript source.
+    if (pkgJson.main && ['.holo', '.hs', '.hsplus'].includes(extname(pkgJson.main))) {
       const mainPath = join(this.cwd, pkgJson.main);
       if (existsSync(mainPath)) return readFileSync(mainPath, 'utf-8');
     }
 
-    // 2. Look for .holo files in common locations
-    const candidates = ['index.holo', 'src/index.holo', 'trait.holo'];
+    // 2. Look for native sources in common locations.
+    const candidates = [
+      'index.holo',
+      'index.hs',
+      'index.hsplus',
+      'src/index.holo',
+      'src/index.hs',
+      'src/index.hsplus',
+      'trait.holo',
+      'trait.hs',
+      'trait.hsplus',
+    ];
     for (const c of candidates) {
       const p = join(this.cwd, c);
       if (existsSync(p)) return readFileSync(p, 'utf-8');
     }
 
-    // 3. Scan for any .holo file in src/ or root
+    // 3. Scan for any native HoloScript file in src/ or root.
     for (const dir of [join(this.cwd, 'src'), this.cwd]) {
       try {
-        const files = readdirSync(dir).filter((f) => extname(f) === '.holo');
+        const files = readdirSync(dir).filter((file) =>
+          ['.holo', '.hs', '.hsplus'].includes(extname(file))
+        );
         if (files.length > 0) return readFileSync(join(dir, files[0]), 'utf-8');
       } catch {
         /* skip */
