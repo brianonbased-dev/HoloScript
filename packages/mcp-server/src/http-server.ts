@@ -136,6 +136,7 @@ import {
 } from './ops/railway-autoscale-loop.js';
 import { maybeStartPredictiveCloudflareLbLoop } from './ops/predictive-cloudflare-lb.js';
 import { maybeStartKeepAliveLoop, getKeepAliveStatus } from './ops/keep-alive.js';
+import { isTrustedLoopbackMcpPeer, resolveMcpBindHost } from './http-bind-host';
 
 // Initialize native agent compositions
 loadNativeAgentCompositions();
@@ -180,6 +181,8 @@ interface RevenueDistributionResult {
 }
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
+const BIND_HOST = resolveMcpBindHost();
+const TRUST_LOOPBACK_MCP = process.env.MCP_TRUST_LOOPBACK === 'true';
 const HOLOSCRIPT_API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
 const SERVICE_NAME = 'holoscript-mcp';
 declare const __SERVICE_VERSION__: string;
@@ -3017,6 +3020,25 @@ const httpServer = http.createServer(async (req, res) => {
 
       const params = (body.params as Record<string, unknown>) || {};
       const name = typeof params.name === 'string' ? params.name : '';
+      if (
+        !auth.active &&
+        isTrustedLoopbackMcpPeer({
+          enabled: TRUST_LOOPBACK_MCP,
+          bindHost: BIND_HOST,
+          remoteAddress: req.socket.remoteAddress,
+        })
+      ) {
+        // Explicit local-custody mode: the server is reachable only through a
+        // loopback listener and the TCP peer is loopback too. Grant the narrow
+        // codebase scope used by Absorb; every other tool remains denied by the
+        // normal triple-gate scope check.
+        auth = {
+          active: true,
+          scopes: ['tools:codebase'],
+          agentId: 'sovereign-loopback',
+        };
+        res.setHeader('X-Auth-Mode', 'sovereign-loopback');
+      }
       const isFreeTool =
         method === 'tools/call' &&
         (PUBLIC_ANON_TOOLS.has(name) || name === 'parse_hs' || name === 'health');
@@ -4416,7 +4438,7 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     console.warn('[emergence] corpus hydration failed (continuing):', e);
   }
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, BIND_HOST, () => {
     const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
     ensureMcpOtelTracer();
     const otlp = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
@@ -4424,7 +4446,7 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     console.info(
       `   Transport: Streamable HTTP (default)${ALLOW_SSE_TRANSPORT ? ' + SSE session mode enabled' : ' (SSE session mode disabled on Railway)'}`
     );
-    console.info(`   Port: ${PORT}`);
+    console.info(`   Bind: ${BIND_HOST}:${PORT}`);
     console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
     console.info(
       `   Sizing: ${SERVER_SIZING.profile} (${SERVER_SIZING.recommendedConsumer}, body=${SERVER_SIZING.requestBodyMaxBytes}B, pgPool=${SERVER_SIZING.postgresPoolMax}, tools=${SERVER_SIZING.maxConcurrentToolCalls}, timeout=${SERVER_SIZING.toolTimeoutMs}ms, oauth=${RATE_LIMIT}/min, anon=${PUBLIC_ANON_RATE_LIMIT}/min, gen=${CONSUMER_GEN_RATE_LIMIT}/min/${CONSUMER_GEN_DAILY_QUOTA}/day)`

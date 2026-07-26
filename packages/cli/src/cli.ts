@@ -15,6 +15,7 @@ import { publishPackage } from './publish';
 import { fmtCommand } from './commands/fmt';
 import { hologramCommand } from './commands/hologram';
 import { quickstartCommand } from './commands/quickstart';
+import { executeCanonicalCodebaseQuery } from './commands/codebase-query';
 import { runPhysicsSmoke, printSmokeReceipt } from './smoke';
 import { runHeadlessExperimentSources } from './headless-experiment';
 import {
@@ -4912,6 +4913,52 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           hint: 'Wrap the question in quotes. Example: `holoscript query "what calls buildIndex"`. Add `--with-llm --llm openai` for a synthesised answer. GraphRAG embeddings use HoloEmbed.',
         });
         process.exit(1);
+      }
+
+      // The default CLI fallback shares the exact Absorb handlers, graph state,
+      // and workspace cache used by MCP. Keep the old standalone engine only as
+      // an explicit compatibility escape hatch while downstream scripts migrate.
+      if (process.env.HOLOSCRIPT_QUERY_ENGINE !== 'legacy') {
+        try {
+          const result = await executeCanonicalCodebaseQuery(options);
+          const error = typeof result.error === 'string' ? result.error : undefined;
+          if (error) {
+            console.error(`\x1b[31mQuery error: ${error}\x1b[0m`);
+            if (result.hint) console.error(String(result.hint));
+            if (options.json) printJson(result);
+            process.exit(1);
+          }
+
+          if (options.json) {
+            printJson(result);
+          } else if (typeof result.answer === 'string') {
+            console.log(result.answer);
+            const citations = Array.isArray(result.citations) ? result.citations : [];
+            for (const citation of citations) {
+              const item = asRecord(citation);
+              console.log(
+                `  ${String(item.file ?? '?')}:${String(item.line ?? '')} ${String(item.name ?? '')}`
+              );
+            }
+          } else {
+            const results = Array.isArray(result.results) ? result.results : [];
+            for (const [index, match] of results.entries()) {
+              const item = asRecord(match);
+              console.log(
+                `${String(index + 1).padStart(2)}. ${Number(item.score ?? 0).toFixed(3)}  ` +
+                  `${String(item.file ?? '?')}:${String(item.line ?? '')}  ${String(item.name ?? '')}`
+              );
+            }
+            if (results.length === 0) console.log('No GraphRAG results.');
+          }
+          process.exit(0);
+        } catch (err: unknown) {
+          console.error(
+            `\x1b[31mQuery error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+          );
+          if (options.verbose && err instanceof Error && err.stack) console.error(err.stack);
+          process.exit(1);
+        }
       }
 
       try {

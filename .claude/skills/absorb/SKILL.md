@@ -41,6 +41,22 @@ shared state (board, knowledge, seats) and public-repo lanes. If you just rebuil
 `dist`, **restart the MCP client** before calling it (W.766 — a live stdio server loses its
 content-hashed chunks when the dist is rebuilt underneath it).
 
+For several agents, prefer one supervised Streamable HTTP service at
+`http://127.0.0.1:7411/mcp`. Every client then reuses one warm in-memory graph instead of
+spawning a worker and graph state per task. The maintainer ecosystem keeps this service
+durable with `node scripts/local-service-supervisor.mjs recover holoscript-local-mcp`.
+
+If an agent reports **`Transport closed`**:
+
+1. Probe `http://127.0.0.1:7411/health`. A healthy response proves the graph service, not
+   the agent host's cached MCP handle.
+2. Recover the durable service if health is down; reconnect/reload the MCP host if health
+   is up.
+3. If the host cannot reattach in the current task, use `holoscript graph-status`,
+   `holoscript query`, or `holoscript impact-analysis`. These commands call the same
+   canonical Absorb handlers and workspace cache directly. They are a
+   transport-independent degradation path, **not** a second raw repo scanner.
+
 ## When to Use This Skill
 
 Absorb turns any codebase into a queryable knowledge graph with semantic search,
@@ -344,6 +360,7 @@ Filter for precision:
 |---------|-------|-----|
 | `cache_root_mismatch` / "No Graph RAG engine initialized" | Routed to the **remote** FS-blind `holoscript` MCP (`cwd=/app`) | Route to **`holoscript-local`** instead (R.027) — see the `/holoscript-local` skill |
 | `Cannot find module ...graph-rag-tools-HASH.cjs` | The `dist` was rebuilt while the stdio MCP was running | **Restart the MCP client** (W.766) — the live process lost its content-hashed chunks |
+| `Transport closed` while `/health` is healthy | The agent host retained a dead MCP handle | Reload/reconnect the host; meanwhile use `holoscript graph-status/query/impact-analysis`, which reuse the canonical Absorb cache |
 | Empty results | Graph not loaded | Run `holo_graph_status`, then `holo_absorb_repo` if stale |
 | Shallow/obvious answers | topK too low for a large monorepo (verify package count via `pnpm ls -r --depth -1`) | Bump to `topK: 40` |
 | LLM hallucinates details | Real answer ranked below top 10 | Bump topK or narrow with `file`/`language` filter |
@@ -405,7 +422,7 @@ Filter for precision:
 - **STAY SOVEREIGN**: HoloEmbed embeddings + HoloLlama synthesis by default; foreign OpenAI/nomic/anthropic are explicit opt-in only (F.106 / D.117 / D.118)
 - **ALWAYS** call `holo_graph_status` before any scan or query operation
 - **NEVER** use `force: true` on `holo_absorb_repo` unless `holo_graph_status` says cache is corrupt
-- **RESTART after rebuild**: if you rebuilt `packages/*/dist`, restart the MCP client before querying (W.766)
+- **RECOVER after rebuild**: shared HTTP and supervised stdio processes recover independently; only a host that already cached a closed handle needs a host reconnect (W.766)
 - **Cache TTL**: 24 hours. Incremental re-scan detects changes via git content hashes.
 - **Cost awareness**: Free tools for local ops. Paid tools deduct credits. Check with `absorb_check_credits`.
 - **Graph cache**: one mutable local lane per physical workspace under

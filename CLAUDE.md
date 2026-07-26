@@ -133,7 +133,8 @@ User is new to HoloScript?
 User is modifying TypeScript (packages/*)?
   → YES → PRE-REFACTOR: call holo_graph_status (check cache) → holo_absorb_repo (force=false uses cache)
   → THEN  → call holo_impact_analysis to find blast radius → pnpm test first → edit → pnpm test again → explicit git add
-  → CLI fallback: npx tsx packages/cli/src/cli.ts absorb <package-path> --json
+  → CLI fallback: npx tsx packages/cli/src/cli.ts query "<question>" --dir <package-path> --json
+    (same canonical Absorb handlers/cache as MCP; no duplicate raw scanner)
   → NO  ↓
 
 User is writing docs?
@@ -141,15 +142,16 @@ User is writing docs?
 
 MCP tools unavailable / tool call errors?
   → Step 1: DETECT   → any tool call returns error or tool not in schema
-  → Step 2: DIAGNOSE → npx tsx packages/mcp-server/src/index.ts --help (exit 0 = binary OK)
-  → Step 3: START    → npx tsx packages/mcp-server/src/index.ts (background process)
-  → Step 4: VERIFY   → retry: holo_graph_status({}) or list_traits({})
-  → Step 5: FALLBACK → if server still won't start, use CLI equivalents:
+  → Step 2: DIAGNOSE → GET http://127.0.0.1:7411/health
+  → Step 3: RECOVER  → node <AI_ECOSYSTEM>/scripts/local-service-supervisor.mjs recover holoscript-local-mcp
+  → Step 4: REATTACH → retry holo_graph_status({}); if health is up but the handle is closed, reload/reconnect the MCP host
+  → Step 5: FALLBACK → if this host cannot reattach, use transport-independent CLI equivalents:
        holo_absorb_repo    → npx tsx packages/cli/src/cli.ts absorb <dir> --json
-       holo_query_codebase → npx tsx packages/cli/src/cli.ts query "<question>"
+       holo_query_codebase → npx tsx packages/cli/src/cli.ts query "<question>" --dir <dir> --json
        validate_holoscript → npx tsx packages/cli/src/cli.ts parse <file>
        suggest_traits / generate_* → no CLI equivalent; skip or notify user
-  → Step 6: NOTIFY   → "Start MCP server: npx tsx packages/mcp-server/src/index.ts"
+     The query fallback uses the canonical Absorb handlers and workspace cache, not a second scanner/index.
+  → Step 6: REPORT   → distinguish service health from host-handle health
 ```
 
 ---

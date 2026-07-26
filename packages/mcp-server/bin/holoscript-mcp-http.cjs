@@ -3,6 +3,7 @@
 
 const optionMap = new Map([
   ['--size', 'MCP_SERVER_SIZE'],
+  ['--host', 'MCP_BIND_HOST'],
   ['--port', 'PORT'],
   ['--max-body-bytes', 'MCP_REQUEST_BODY_MAX_BYTES'],
   ['--pg-pool-max', 'MCP_POSTGRES_POOL_MAX'],
@@ -24,6 +25,7 @@ Usage:
 
 Options:
   --size <tiny|small|standard|large|xlarge|laptop|jetson|vast|fleet>
+  --host <address>
   --port <number>
   --max-body-bytes <bytes>
   --pg-pool-max <connections>
