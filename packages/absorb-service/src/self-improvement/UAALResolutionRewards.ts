@@ -7,8 +7,8 @@
  * typed reason) match the verdict the CANONICAL resolver reaches on the
  * same oracle IR?
  *
- * SSOT: ai-ecosystem/research/2026-07-13_uaal-resolver-verdicts-as-grpo-rewards.md
- * (B2). The family is DATA in the batch context (`kwargs.uaalResolution`),
+ * Design source: the uAAL resolver-verdict GRPO reward contract (B2).
+ * The family is DATA in the batch context (`kwargs.uaalResolution`),
  * never a branch in this file — adding family #15 to the verifier
  * (`RESOLVERS` in `@holoscript/uaal`'s verifier.ts) is the only change
  * needed; this term requires zero edits.

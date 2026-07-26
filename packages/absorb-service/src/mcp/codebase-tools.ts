@@ -7319,7 +7319,7 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
 
   // Root-match gate: a raw string !== forces a needless full re-scan when the
   // only difference is path casing or a trailing slash (e.g. the merged cache's
-  // rootDir "C:/Users/Josep/..." vs a request "C:\\Users\\josep\\..."). Normalize
+  // rootDir "C:/workspace/Repo/..." vs a request "c:\\workspace\\repo\\..."). Normalize
   // both sides (case-insensitive on win32, slash/trailing-slash agnostic) so the
   // fast-hydrate path is reached when they refer to the same repo.
   const envelopeRootDirs = envelope.rootDirs ?? [envelope.rootDir];

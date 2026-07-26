@@ -8,6 +8,7 @@ const requiredFiles = [
   'pkg/holoscript_wasm.d.ts',
   'pkg/holoscript_wasm_bg.wasm',
   'pkg/package.json',
+  'pkg/rebuild-receipt.json',
   'README.md',
   'LICENSE',
 ];
@@ -39,4 +40,6 @@ if (missing.length > 0 || empty.length > 0) {
   process.exit(1);
 }
 
-console.log('WASM package artifacts present.');
+if (process.env.npm_lifecycle_event !== 'prepack') {
+  console.log('WASM package artifacts present.');
+}

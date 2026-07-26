@@ -36,7 +36,7 @@ export interface Paper6AblationRow {
 export interface Paper6AblationArtifact {
   readonly schema_version: 'paper-6-ablation-v2';
   readonly benchmark: 'paper-6-ablation-publication';
-  readonly paper_ref: 'ai-ecosystem/research/paper-6-animation-sca.tex';
+  readonly paper_ref: 'research/paper-6-animation-sca.tex';
   readonly harness: 'packages/engine/src/animation/paper/benchmarks/p6-ablation-publication.ts';
   readonly source_clip_id: string;
   readonly frames: number;
@@ -285,7 +285,7 @@ export function runPaper6AblationBenchmark(): Paper6AblationArtifact {
   return {
     schema_version: 'paper-6-ablation-v2',
     benchmark: 'paper-6-ablation-publication',
-    paper_ref: 'ai-ecosystem/research/paper-6-animation-sca.tex',
+    paper_ref: 'research/paper-6-animation-sca.tex',
     harness: 'packages/engine/src/animation/paper/benchmarks/p6-ablation-publication.ts',
     source_clip_id: source.id,
     frames: SAMPLE_TIMES.length,

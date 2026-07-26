@@ -9,7 +9,7 @@
  *        REPLAYS, step by step, through a typed exact-rational semiring and
  *        lands exactly on the claimed answer, within the contract bound?
  *        Ports the CPU-proven machinery in
- *        ai-ecosystem/scripts/n1-provenance-objective/provenance_objective.py
+ *        the N1 provenance-objective reference implementation
  *        (same op table, same wire format as n1_corpus's derivation JSON).
  *
  *   Z_m — faithful-calibration (RLMF, arXiv 2606.32032):

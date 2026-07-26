@@ -3,6 +3,11 @@
   "version": "0.1.4",
   "description": "Railway hologram render worker — ONNX depth, Playwright quilt, ffmpeg stereo/parallax; uploads to Studio",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/hologram-worker"
+  },
   "type": "module",
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
