@@ -3642,7 +3642,7 @@ describe('HoloMesh HTTP Routes', () => {
       expect(doneRes._body.code).toBe('verification_evidence_rejected');
     });
 
-    it('PATCH /board/:taskId requires commit anchoring on code-tagged tasks (trust-audit 2026-07-13)', async () => {
+    it('PATCH /board/:taskId requires a top-level commit on coder tasks (trust-audit 2026-07-25)', async () => {
       const createReq = mockReq(
         'POST',
         '/api/holomesh/team',
@@ -3656,7 +3656,7 @@ describe('HoloMesh HTTP Routes', () => {
       const addReq = mockReq(
         'POST',
         `/api/holomesh/team/${tid}/board`,
-        { tasks: [{ title: 'code task', description: 'test', priority: 1, tags: ['typescript'] }] },
+        { tasks: [{ title: 'code task', description: 'test', priority: 1, role: 'coder' }] },
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const addRes = mockRes();
@@ -3673,11 +3673,16 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
       expect(claimRes._status).toBe(200);
 
-      // Unanchored prose on a code-tagged task → rejected.
+      // A sha-like token hidden in prose is not a top-level commit anchor.
       const badDoneReq = mockReq(
         'PATCH',
         `/api/holomesh/team/${tid}/board/${taskId}`,
-        { action: 'done', summary: 'closed', verification_evidence: 'it works now, trust me — verified manually' },
+        {
+          action: 'done',
+          summary: 'closed',
+          verification_evidence:
+            'pnpm vitest run passed; commit e4bff84ee; receipt path receipts/fake.json',
+        },
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const badDoneRes = mockRes();

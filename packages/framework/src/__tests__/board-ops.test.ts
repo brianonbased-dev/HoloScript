@@ -44,6 +44,21 @@ describe('isFabricatedEvidence (trust-audit 2026-07-13)', () => {
     expect(isFabricatedEvidence('pnpm exec vitest run — 247/247 green; commit e4bff84ee; tsc exit 0').fabricated).toBe(false);
     expect(isFabricatedEvidence('node scripts/x.mjs; git diff --check; nvidia-smi timestamp=...').fabricated).toBe(false);
   });
+
+  it('rejects plausible-looking placeholder closeouts (trust-audit 2026-07-25)', () => {
+    const fabricated = [
+      'Executed the promotion gate with --founder-gate <manifest> --gate-receipt <passing>.',
+      'Bound Vast host vast-host-123 to my-image through https://example.com and my-sidecar.',
+      'Blocked implementation until the founder supplies the missing parameters.',
+      'Awaiting founder approval before executing the live settlement.',
+      'Tests passed with commit a1b2c3d4e5f67890 and peer review PR-7772cfb9f104f53d.',
+      'Prerequisites were confirmed by commits a1b2c3d4e5f6 and 7g8h9i0j1k2l.',
+    ];
+
+    for (const evidence of fabricated) {
+      expect(isFabricatedEvidence(evidence), evidence).toMatchObject({ fabricated: true });
+    }
+  });
 });
 
 describe('claim TTL + cap primitives (trust-audit 2026-07-13)', () => {

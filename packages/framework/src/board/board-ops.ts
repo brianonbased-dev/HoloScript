@@ -229,6 +229,11 @@ export const FABRICATED_EVIDENCE_PATTERNS: ReadonlyArray<RegExp> = [
   /^\s*\[?\s*tool_use\b/i, // raw tool-call dump pasted as evidence
   /\btask cannot (?:be completed|proceed)\b|\baccess denied\b|\bcannot (?:write to|create or write to)\b|\b(?:outside|not within) the allowed write roots\b/i, // self-declared failure admissions
   /^Wrote verification evidence\.?$/i, // evidence that only asserts evidence exists
+  /<(?:manifest|passing|receipt|commit|hash|path|timestamp)>/i, // prompt placeholders presented as executed proof
+  /\b(?:example\.com|vast-host-\d+|my-(?:image|sidecar))\b/i, // reserved/example infrastructure identities
+  /\b(?:a1b2c3d4(?:e5f6(?:7890(?:abcdef)?)?)?|7g8h9i0j1k2l)\b/i, // sequential placeholder hashes
+  /\b(?:blocked implementation|awaiting founder approval)\b/i, // failure/deferral represented as completion
+  /\binternal reference,\s*not pushed\b/i, // explicitly non-custodied source claim
 ];
 
 /** True (with the matching pattern) iff the evidence string is a known fabricated/unverified closeout marker. */
@@ -635,10 +640,12 @@ export function completeTask(
     };
   }
 
-  task.status = 'done';
-  task.completedBy = completedBy;
-  if (opts.completedByTag) task.completedByTag = opts.completedByTag;
   const completedIdentity = cloneIdentityEnvelope(opts.completedIdentity);
+  const signedCompletedBy = completedIdentity?.signer?.agentName?.trim();
+  const attributedCompletedBy = signedCompletedBy || completedBy;
+  task.status = 'done';
+  task.completedBy = attributedCompletedBy;
+  if (opts.completedByTag) task.completedByTag = opts.completedByTag;
   if (completedIdentity) task.completedIdentity = completedIdentity;
   if (opts.completionLeaseId) task.completionLeaseId = opts.completionLeaseId;
   if (opts.provenance) {
@@ -658,7 +665,7 @@ export function completeTask(
   const doneEntry: DoneLogEntry = {
     taskId: task.id,
     title: task.title,
-    completedBy,
+    completedBy: attributedCompletedBy,
     ...(opts.completedByTag ? { completedByTag: opts.completedByTag } : {}),
     ...(task.claimIdentity ? { claimIdentity: cloneIdentityEnvelope(task.claimIdentity) } : {}),
     ...(task.claimLeaseId ? { claimLeaseId: task.claimLeaseId } : {}),

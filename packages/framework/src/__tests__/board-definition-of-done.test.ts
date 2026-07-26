@@ -78,4 +78,30 @@ describe('board Definition-of-Done discipline', () => {
       'pnpm vitest board-definition-of-done.test.ts passed'
     );
   });
+
+  it('attributes completion to the signed identity instead of a misleading display name', () => {
+    const board = [
+      task({
+        description: 'Implement the board discipline.\n\n## Done when:\n- Targeted tests pass.',
+      }),
+    ];
+
+    const { result } = completeTask(board, 'task_dod', 'Founder', {
+      commit: 'abc1234',
+      verificationEvidence: 'pnpm vitest board-definition-of-done.test.ts passed',
+      completedIdentity: {
+        schema: 'holomesh.identity-envelope.v1',
+        signer: {
+          agentId: 'agent_grok',
+          agentName: 'grok1-x402',
+          surface: 'grok-hardware',
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.task?.completedBy).toBe('grok1-x402');
+    expect(result.doneEntry?.completedBy).toBe('grok1-x402');
+    expect(result.doneEntry?.completedIdentity?.signer?.agentName).toBe('grok1-x402');
+  });
 });

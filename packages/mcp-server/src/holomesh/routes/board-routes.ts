@@ -2735,25 +2735,26 @@ export async function handleBoardRoutes(
           return true;
         }
         const doneTarget = team.taskBoard.find((t) => t.id === taskId);
-        // Commit-anchoring for code tasks (trust-audit 2026-07-13): a completion on a
-        // code-tagged task must carry a commit hash, a sha-like token, a receipt/file
-        // path, or the explicit trace-only marker ('0000000' + named command).
+        // Commit custody for implementation work (trust-audit 2026-07-25): coder-role
+        // and code-tagged tasks must carry the top-level commit field. A sha or receipt
+        // path embedded in prose is self-asserted and cannot bind the done row to source.
+        // No-change verification work uses the explicit 0000000 trace-only contract.
         const CODE_TASK_TAGS = new Set(['holoscript-native', 'typescript', 'code', 'uaal']);
-        const isCodeTask = (doneTarget?.tags ?? []).some((t) =>
-          CODE_TASK_TAGS.has(t.toLowerCase())
-        );
+        const isCodeTask =
+          doneTarget?.role?.toLowerCase() === 'coder' ||
+          (doneTarget?.tags ?? []).some((t) => CODE_TASK_TAGS.has(t.toLowerCase()));
         if (isCodeTask) {
           const commitParam = typeof body.commit === 'string' ? body.commit.trim() : '';
           const hasCommit = /^[0-9a-f]{7,40}$/i.test(commitParam);
-          const evidenceHasSha = /\b[0-9a-f]{7,40}\b/i.test(verificationEvidence);
-          const evidenceHasReceiptPath =
-            /\b[\w./\\-]+\.(json|md|jsonl|log|txt)\b|\breceipts?\//i.test(verificationEvidence);
           const traceOnlyContract =
-            /\b0{7}\b/.test(commitParam) || /\b0{7}\b/.test(verificationEvidence);
-          if (!hasCommit && !evidenceHasSha && !evidenceHasReceiptPath && !traceOnlyContract) {
+            commitParam === '0000000' &&
+            /\b(?:pnpm|npm|node|vitest|cargo|pytest|git|curl|ssh)\b/i.test(
+              verificationEvidence
+            );
+          if (!hasCommit && !traceOnlyContract) {
             json(res, 400, {
               error:
-                'Code-tagged tasks require commit-anchored completion: supply a commit hash, or evidence naming a sha / receipt / artifact path, or the explicit trace-only marker (0000000 + the command run).',
+                'Coder/code-tagged tasks require source-custodied completion: supply the top-level commit field, or use commit=0000000 with the concrete no-change verification command. Sha-like prose and unverified receipt paths are not commit custody.',
               code: 'verification_evidence_unanchored',
               task_tags: doneTarget?.tags ?? [],
             });
