@@ -28,6 +28,11 @@ struct Material {
   scatterColor : vec4<f32>,  // rgb subsurface tint (linear); w = roughness
   scatterDist  : vec4<f32>,  // rgb per-channel relative scatter radius; w unused
   params       : vec4<f32>,  // x = specularF0, y = thickness, z = transmitStrength, w = ambient
+  texFlags     : vec4<f32>,  // xyz = albedo/normal/roughness enabled; w = UV repeat
+  albedoTile   : array<vec4<f32>, 4>,
+  normalXTile  : array<vec4<f32>, 4>,
+  normalYTile  : array<vec4<f32>, 4>,
+  roughTile    : array<vec4<f32>, 4>,
 };
 @group(1) @binding(0) var<uniform> mat : Material;
 
@@ -37,6 +42,7 @@ struct VSIn {
   @location(2) jointIndex : u32,
   @location(3) jointWeight : f32,
   @location(4) tangent : vec4<f32>,   // xyz strand-flow tangent; w = strandT
+  @location(5) uv : vec2<f32>,
 };
 struct VSOut {
   @builtin(position) clip : vec4<f32>,
@@ -44,6 +50,7 @@ struct VSOut {
   @location(1) wP : vec3<f32>,
   @location(2) wT : vec3<f32>,        // skinned tangent (hair)
   @location(3) strandT : f32,         // 0 root → 1 tip (hair)
+  @location(4) uv : vec2<f32>,
 };
 
 @vertex
@@ -56,6 +63,7 @@ fn vs(in : VSIn) -> VSOut {
   o.wN = (skin * vec4<f32>(in.normal, 0.0)).xyz;
   o.wT = (skin * vec4<f32>(in.tangent.xyz, 0.0)).xyz; // tangent rides the bone too
   o.strandT = in.tangent.w;
+  o.uv = in.uv;
   return o;
 }
 
@@ -178,9 +186,24 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
 
 // ── Woven cloth: broad rough specular + grazing fibre sheen + micro-weave breakup. ──
 // Material packing: scatterColor = (roughness, sheen, weaveScale, rimStrength).
+fn sampleTile(tile : array<vec4<f32>, 4>, uv : vec2<f32>) -> f32 {
+  let wrapped = fract(uv);
+  let column = u32(clamp(floor(wrapped.x * 4.0), 0.0, 3.0));
+  let row = u32(clamp(floor(wrapped.y * 4.0), 0.0, 3.0));
+  return tile[row][column];
+}
+
 @fragment
 fn fs_woven_cloth(in : VSOut) -> @location(0) vec4<f32> {
-  let N = normalize(in.wN);
+  let baseN = normalize(in.wN);
+  let repeat = clamp(mat.texFlags.w, 1.0, 16.0);
+  let tiledUv = in.uv * repeat;
+  let normalX = sampleTile(mat.normalXTile, tiledUv) * 2.0 - 1.0;
+  let normalY = sampleTile(mat.normalYTile, tiledUv) * 2.0 - 1.0;
+  let tangent = normalize(in.wT);
+  let bitangent = normalize(cross(baseN, tangent));
+  let mappedN = normalize(tangent * normalX + bitangent * normalY + baseN);
+  let N = normalize(mix(baseN, mappedN, mat.texFlags.y));
   let L = normalize(frame.lightDir.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
   let H = normalize(L + V);
@@ -188,7 +211,8 @@ fn fs_woven_cloth(in : VSOut) -> @location(0) vec4<f32> {
   let ndv = max(dot(N, V), 0.0);
   let ndh = max(dot(N, H), 0.0);
 
-  let rough = clamp(mat.scatterColor.x, 0.08, 1.0);
+  let mappedRough = sampleTile(mat.roughTile, tiledUv);
+  let rough = clamp(mix(mat.scatterColor.x, mappedRough, mat.texFlags.z), 0.08, 1.0);
   let sheenStrength = clamp(mat.scatterColor.y, 0.0, 1.0);
   let weaveScale = max(mat.scatterColor.z, 1.0);
   let rimStrength = clamp(mat.scatterColor.w, 0.0, 1.0);
@@ -203,7 +227,8 @@ fn fs_woven_cloth(in : VSOut) -> @location(0) vec4<f32> {
   let fibreSheen = pow(1.0 - ndv, 3.0) * sheenStrength;
   let rim = pow(1.0 - ndv, 4.0) * rimStrength;
 
-  var col = mat.color.rgb * weave * (0.18 + 0.82 * ndl);
+  let albedo = mix(1.0, sampleTile(mat.albedoTile, tiledUv), mat.texFlags.x);
+  var col = mat.color.rgb * albedo * weave * (0.18 + 0.82 * ndl);
   col += mat.color.rgb * fibreSheen * 0.35;
   col += vec3<f32>(roughSpec + rim * 0.12);
   col = col / (col + vec3<f32>(1.0));

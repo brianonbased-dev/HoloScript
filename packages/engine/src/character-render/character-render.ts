@@ -85,9 +85,12 @@ export interface CharacterRenderOptions {
   heightScale?: number;
 }
 
-/** Pack a CharacterMaterialSpec into the 16-float Material uniform (see skin-skinning.wgsl). */
-function fillMaterial(m: CharacterMaterialSpec): Float32Array<ArrayBuffer> {
-  const out = new Float32Array(16);
+/** Pack a CharacterMaterialSpec into the 84-float Material uniform (see skin-skinning.wgsl). */
+export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<ArrayBuffer> {
+  const out = new Float32Array(84);
+  out.fill(1, 20, 36); // neutral albedo tile
+  out.fill(0.5, 36, 68); // neutral tangent-space normal X/Y
+  out.fill(m.roughness, 68, 84); // neutral roughness tile
   out[0] = ((m.color >> 16) & 0xff) / 255;
   out[1] = ((m.color >> 8) & 0xff) / 255;
   out[2] = (m.color & 0xff) / 255;
@@ -117,8 +120,34 @@ function fillMaterial(m: CharacterMaterialSpec): Float32Array<ArrayBuffer> {
     out[5] = m.sheen;
     out[6] = m.weaveScale;
     out[7] = m.rimStrength;
+    const tile = m.textureTile;
+    if (
+      tile?.size === 4 &&
+      tile.albedo.length === 16 &&
+      tile.normalXY.length === 32 &&
+      tile.roughness.length === 16
+    ) {
+      out[16] = 1;
+      out[17] = 1;
+      out[18] = 1;
+      out[19] = Math.max(1, Math.min(16, tile.repeat));
+      for (let index = 0; index < 16; index += 1) {
+        out[20 + index] = Math.max(0, Math.min(2, tile.albedo[index]));
+        out[36 + index] = Math.max(
+          0,
+          Math.min(1, 0.5 + (tile.normalXY[index * 2] - 0.5) * tile.normalScale)
+        );
+        out[52 + index] = Math.max(
+          0,
+          Math.min(1, 0.5 + (tile.normalXY[index * 2 + 1] - 0.5) * tile.normalScale)
+        );
+        out[68 + index] = Math.max(0.08, Math.min(1, tile.roughness[index]));
+      }
+    } else {
+      out[19] = 1;
+    }
   }
-  // lambert: leaves 4..15 zero (fs_lambert reads only color).
+  // Non-cloth models leave texture flags disabled; their fragment entry points ignore the tile.
   return out;
 }
 
@@ -162,6 +191,7 @@ export async function renderCharacter(
     { arrayStride: 4, attributes: [{ shaderLocation: 2, offset: 0, format: 'uint32' }] },
     { arrayStride: 4, attributes: [{ shaderLocation: 3, offset: 0, format: 'float32' }] },
     { arrayStride: 16, attributes: [{ shaderLocation: 4, offset: 0, format: 'float32x4' }] },
+    { arrayStride: 8, attributes: [{ shaderLocation: 5, offset: 0, format: 'float32x2' }] },
   ];
 
   const pipelineCache = new Map<string, GPURenderPipeline>();
@@ -227,6 +257,12 @@ export async function renderCharacter(
     usage: BUF_VERTEX | BUF_COPY_DST,
   });
   device.queue.writeBuffer(tanBuf, 0, mesh.tangents);
+  const uvData = mesh.uvs ?? new Float32Array(mesh.vertexCount * 2);
+  const uvBuf = device.createBuffer({
+    size: uvData.byteLength,
+    usage: BUF_VERTEX | BUF_COPY_DST,
+  });
+  device.queue.writeBuffer(uvBuf, 0, uvData);
   const idxBuf = device.createBuffer({
     size: mesh.indices.byteLength,
     usage: BUF_INDEX | BUF_COPY_DST,
@@ -318,13 +354,14 @@ export async function renderCharacter(
   pass.setVertexBuffer(2, jiBuf);
   pass.setVertexBuffer(3, jwBuf);
   pass.setVertexBuffer(4, tanBuf);
+  pass.setVertexBuffer(5, uvBuf);
   pass.setIndexBuffer(idxBuf, 'uint32');
   pass.setBindGroup(0, frameBindGroup);
 
   const matBufs: GPUBuffer[] = [];
   for (const g of ordered) {
     const pipe = getPipeline(g.material.shadingModel, !!g.transparent);
-    const matData = fillMaterial(g.material);
+    const matData = packCharacterMaterial(g.material);
     const matBuf = device.createBuffer({
       size: matData.byteLength,
       usage: BUF_UNIFORM | BUF_COPY_DST,
@@ -368,6 +405,7 @@ export async function renderCharacter(
   jiBuf.destroy();
   jwBuf.destroy();
   tanBuf.destroy();
+  uvBuf.destroy();
   idxBuf.destroy();
   frameBuf.destroy();
   jointBuf.destroy();

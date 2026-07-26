@@ -23,6 +23,7 @@
 import skinSkinningWGSL from '../rendering/webgpu/shaders/skin-skinning.wgsl?raw';
 import type { CharacterDrawSpec, MaterialGroup, ShadingModel } from '../native-render/draw-spec';
 import type { CharacterHost } from './CharacterHost';
+import { packCharacterMaterial } from './character-render';
 import { multiply, type Mat4 } from './skin-math';
 
 // ── Type shims for the experimental WebGPU-WebXR binding (not yet in lib.dom; no `any`). ──
@@ -193,6 +194,7 @@ export class XRCharacterRenderer {
     ji: GPUBuffer;
     jw: GPUBuffer;
     tan: GPUBuffer;
+    uv: GPUBuffer;
     idx: GPUBuffer;
   } | null = null;
   private jointBuf: GPUBuffer | null = null;
@@ -295,6 +297,7 @@ export class XRCharacterRenderer {
       pass.setVertexBuffer(2, this.geo!.ji);
       pass.setVertexBuffer(3, this.geo!.jw);
       pass.setVertexBuffer(4, this.geo!.tan);
+      pass.setVertexBuffer(5, this.geo!.uv);
       pass.setIndexBuffer(this.geo!.idx, 'uint32');
       pass.setBindGroup(0, er.frameBindGroup);
       groups.forEach((g, i) => {
@@ -354,6 +357,7 @@ export class XRCharacterRenderer {
       ji: mk(mesh.jointIndices, BUF_VERTEX),
       jw: mk(mesh.jointWeights, BUF_VERTEX),
       tan: mk(mesh.tangents, BUF_VERTEX),
+      uv: mk(mesh.uvs ?? new Float32Array(mesh.vertexCount * 2), BUF_VERTEX),
       idx: mk(mesh.indices, BUF_INDEX),
     };
     this.jointBuf = mk(spec.jointMatrices, BUF_STORAGE);
@@ -416,6 +420,10 @@ export class XRCharacterRenderer {
               arrayStride: 16,
               attributes: [{ shaderLocation: 4, offset: 0, format: 'float32x4' }],
             },
+            {
+              arrayStride: 8,
+              attributes: [{ shaderLocation: 5, offset: 0, format: 'float32x2' }],
+            },
           ],
         },
         fragment: {
@@ -449,18 +457,7 @@ export class XRCharacterRenderer {
 
   private matBindGroup(i: number, g: MaterialGroup): GPUBindGroup {
     // Rebuild per frame (materials may change); cheap for the small group count.
-    const m = g.material;
-    const data = new Float32Array(16);
-    data[0] = ((m.color >> 16) & 0xff) / 255;
-    data[1] = ((m.color >> 8) & 0xff) / 255;
-    data[2] = (m.color & 0xff) / 255;
-    data[3] = m.opacity;
-    if (m.shadingModel === 'woven-cloth') {
-      data[4] = m.roughness;
-      data[5] = m.sheen;
-      data[6] = m.weaveScale;
-      data[7] = m.rimStrength;
-    }
+    const data = packCharacterMaterial(g.material);
     const buf = this.device.createBuffer({
       size: data.byteLength,
       usage: BUF_UNIFORM | BUF_COPY_DST,

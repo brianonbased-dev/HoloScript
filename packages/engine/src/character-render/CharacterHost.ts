@@ -27,6 +27,7 @@ import type {
   RefractiveEyeMaterialSpec,
   BaseMaterialSpec,
   WovenClothMaterialSpec,
+  WovenClothTextureTile,
 } from '../native-render/draw-spec';
 import {
   computeBindWorld,
@@ -37,7 +38,12 @@ import {
   type AvatarPose,
 } from './AgentAvatarMesh';
 import { buildCharacterMesh, type CharacterMeshData } from './AgentAvatarHair';
-import type { SovereignGarmentStyle } from './AgentAvatarGarment';
+import type { SovereignGarmentStyle, SovereignMantleStyle } from './AgentAvatarGarment';
+import {
+  DeterministicClothSimulation,
+  type ClothSimulationConfig,
+  type ClothSimulationReceipt,
+} from './AgentAvatarCloth';
 import {
   fromRotationTranslation,
   fromTranslation,
@@ -78,6 +84,12 @@ export interface CharacterHostOptions {
   garmentColor?: number;
   /** Authored radial topology selected by @lod. */
   garmentSegments?: number;
+  /** Optional detachable public/story mantle selected by @clothing(mantle_style). */
+  mantleStyle?: SovereignMantleStyle;
+  /** Packed 0xRRGGBB mantle base colour. */
+  mantleColor?: number;
+  /** Source-authored deterministic cloth dynamics. Omission keeps the rest-pose garment. */
+  clothSimulation?: Partial<ClothSimulationConfig>;
   /** Procedural hair can be suppressed by a closed hood. */
   includeHair?: boolean;
   /** Procedural eyes can be suppressed by a faceless visor. */
@@ -140,7 +152,10 @@ export class CharacterHost {
   private readonly hairMaterial: MarschnerHairMaterialSpec;
   private readonly eyeMaterial: RefractiveEyeMaterialSpec;
   private readonly garmentMaterial: WovenClothMaterialSpec;
+  private readonly mantleMaterial: WovenClothMaterialSpec;
   private readonly visorMaterial: BaseMaterialSpec;
+  private readonly clothSimulation: DeterministicClothSimulation | null;
+  private lastClothReceipt: ClothSimulationReceipt | null = null;
   private modelMatrix: Mat4;
   private pose: Map<string, Quat> = new Map();
   // D.102 portable mind (opt-in via bindMind; body renders identically with or without it).
@@ -156,6 +171,7 @@ export class CharacterHost {
       buildScale: opts.buildScale,
       garmentStyle: opts.garmentStyle,
       garmentSegments: opts.garmentSegments,
+      mantleStyle: opts.mantleStyle,
       includeHair: opts.includeHair,
       includeEyes: opts.includeEyes,
     });
@@ -195,6 +211,17 @@ export class CharacterHost {
       weaveScale: 18,
       rimStrength: 0.32,
     };
+    this.mantleMaterial = {
+      shadingModel: 'woven-cloth',
+      color: opts.mantleColor ?? 0xd6d1c7,
+      metalness: 0,
+      roughness: 0.64,
+      emissive: 0,
+      opacity: 1,
+      sheen: 0.58,
+      weaveScale: 14,
+      rimStrength: 0.44,
+    };
     this.visorMaterial = {
       shadingModel: 'lambert',
       color: 0x07111f,
@@ -203,6 +230,14 @@ export class CharacterHost {
       emissive: 0,
       opacity: 1,
     };
+    this.clothSimulation = opts.clothSimulation
+      ? new DeterministicClothSimulation(
+          this.built.mesh.positions,
+          this.built.mesh.indices,
+          this.built.clothSimulationWeights,
+          opts.clothSimulation
+        )
+      : null;
     const p = opts.position ?? [0, 0, 0];
     this.modelMatrix = fromTranslation(p[0], p[1], p[2]);
   }
@@ -243,6 +278,35 @@ export class CharacterHost {
   }
 
   /**
+   * Deterministically sample authored cloth dynamics at absolute time. Sampling the same time
+   * always restarts from the same bind-space state and emits the same position digest.
+   */
+  sampleClothSimulation(timeSeconds: number): ClothSimulationReceipt | null {
+    if (!this.clothSimulation) return null;
+    const sampled = this.clothSimulation.sample(timeSeconds);
+    this.built.mesh.positions = sampled.positions;
+    this.lastClothReceipt = sampled.receipt;
+    return { ...sampled.receipt };
+  }
+
+  /** Latest deterministic cloth receipt, or null when the source did not author cloth dynamics. */
+  getClothSimulationReceipt(): ClothSimulationReceipt | null {
+    return this.lastClothReceipt ? { ...this.lastClothReceipt } : null;
+  }
+
+  /** Apply a source-resolved local UV texture tile to the detachable mantle material. */
+  setMantleTextureTile(textureTile: WovenClothTextureTile | undefined): void {
+    this.mantleMaterial.textureTile = textureTile
+      ? {
+          ...textureTile,
+          albedo: [...textureTile.albedo],
+          normalXY: [...textureTile.normalXY],
+          roughness: [...textureTile.roughness],
+        }
+      : undefined;
+  }
+
+  /**
    * Emit the current frame's pure-data character draw spec for the native WebGPU renderer.
    * The body renders as a single SSS-skin material group; `material` remains the lambert
    * fallback for callers that render without material groups.
@@ -254,6 +318,7 @@ export class CharacterHost {
       { ...this.built.eyeRange, material: this.eyeMaterial },
       { ...this.built.garmentRange, material: this.garmentMaterial },
       { ...this.built.visorRange, material: this.visorMaterial },
+      { ...this.built.mantleRange, material: this.mantleMaterial },
     ].filter((group) => group.indexCount > 0);
     return {
       entityId: this.entityId,

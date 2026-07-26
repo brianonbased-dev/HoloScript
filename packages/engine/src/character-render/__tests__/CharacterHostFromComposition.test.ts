@@ -154,6 +154,68 @@ describe('buildCharacterHostFromComposition', () => {
     );
   });
 
+  it('maps deterministic cloth plus a detachable UV-mapped OpenAI mantle', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'OpenAI',
+          traits: [
+            { name: 'body', config: { height: 2.05, build_scale: 1.15 } },
+            {
+              name: 'clothing',
+              config: {
+                style: 'stormglass_hooded_tunic',
+                mantle_style: 'openai_recursive_interlock',
+                mantle_color: '#d6d1c7',
+                mantle_detachable: true,
+                mantle_albedo_map: 'assets/openai-albedo.texture.json',
+                mantle_normal_map: 'assets/openai-normal.texture.json',
+                mantle_roughness_map: 'assets/openai-roughness.texture.json',
+              },
+            },
+            {
+              name: 'cloth_simulation',
+              config: {
+                solver: 'xpbd',
+                fixed_step_hz: 120,
+                iterations: 5,
+                wind: [0.3, 0.02, 0.18],
+                max_displacement: 0.18,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.mapped).toContain('@clothing(mantle_style=openai_recursive_interlock)');
+    expect(result.report.mapped).toContain('@cloth_simulation(solver=xpbd)');
+    expect(result.mantle).toEqual({
+      style: 'openai_recursive_interlock',
+      detachable: true,
+      albedoMap: 'assets/openai-albedo.texture.json',
+      normalMap: 'assets/openai-normal.texture.json',
+      roughnessMap: 'assets/openai-roughness.texture.json',
+    });
+    expect(result.cloth?.fixedStepHz).toBe(120);
+    const spec = result.host!.getDrawSpec();
+    expect(spec.mesh.uvs?.length).toBe(spec.mesh.vertexCount * 2);
+    expect(spec.materialGroups?.map((group) => group.material.shadingModel)).toEqual([
+      'skin-sss',
+      'woven-cloth',
+      'lambert',
+      'woven-cloth',
+    ]);
+
+    const first = result.host!.sampleClothSimulation(0.5);
+    const firstPositions = Array.from(result.host!.getDrawSpec().mesh.positions);
+    const replay = result.host!.sampleClothSimulation(0.5);
+    expect(first?.dynamicVertexCount).toBeGreaterThan(0);
+    expect(first?.maxDisplacement).toBeGreaterThan(0.001);
+    expect(replay?.positionDigest).toBe(first?.positionDigest);
+    expect(Array.from(result.host!.getDrawSpec().mesh.positions)).toEqual(firstPositions);
+  });
+
   it('@skeleton(rig) is validated: matching rig → mapped, unsupported rig → stubbed', () => {
     const ok = buildCharacterHostFromComposition({
       objects: [{ name: 'A', traits: [{ name: 'skeleton', config: { rig: 'humanoid_65' } }] }],

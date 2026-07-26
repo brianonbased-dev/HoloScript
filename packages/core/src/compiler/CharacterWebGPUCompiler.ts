@@ -35,6 +35,7 @@ export interface CharacterDrawSpecBundle {
     positions: number[];
     normals: number[];
     tangents: number[];
+    uvs?: number[];
     indices: number[];
     jointIndices: number[];
     jointWeights: number[];
@@ -54,6 +55,10 @@ export interface CharacterDrawSpecBundle {
   materialGroups: unknown[] | null;
   /** Present when the source authors @lod and this compile selects one declared tier. */
   lod?: { level: number; distance: number; garmentSegments: number };
+  /** Present when source-authored deterministic cloth simulation is operative. */
+  cloth?: unknown;
+  /** Present when a detachable public/story mantle is authored. */
+  mantle?: unknown;
   /** Honest mapped/stubbed report from the authoring bridge. */
   report: unknown;
 }
@@ -129,6 +134,7 @@ export class CharacterWebGPUCompiler {
         positions: num(spec.mesh.positions),
         normals: num(spec.mesh.normals),
         tangents: num(spec.mesh.tangents),
+        ...(spec.mesh.uvs ? { uvs: num(spec.mesh.uvs) } : {}),
         indices: num(spec.mesh.indices),
         jointIndices: num(spec.mesh.jointIndices),
         jointWeights: num(spec.mesh.jointWeights),
@@ -138,6 +144,8 @@ export class CharacterWebGPUCompiler {
       modelMatrix: num(spec.modelMatrix),
       materialGroups: spec.materialGroups ?? null,
       ...(result.lod ? { lod: result.lod } : {}),
+      ...(result.cloth ? { cloth: result.cloth } : {}),
+      ...(result.mantle ? { mantle: result.mantle } : {}),
       report: result.report,
     };
     return JSON.stringify(bundle);

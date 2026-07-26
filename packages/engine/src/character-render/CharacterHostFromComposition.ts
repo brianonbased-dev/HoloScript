@@ -15,6 +15,8 @@
 
 import { CharacterHost } from './CharacterHost';
 import type { GaitMode } from './gait';
+import type { ClothSimulationConfig } from './AgentAvatarCloth';
+import type { SovereignMantleStyle } from './AgentAvatarGarment';
 
 // ── Minimal structural view of the parsed composition (matches HoloComposition AST shape). ──
 export interface CompTrait {
@@ -60,6 +62,16 @@ export interface CharacterHostFromCompositionResult {
   materialColor?: number;
   /** The operative authored LOD selection, when @lod is present. */
   lod?: { level: number; distance: number; garmentSegments: number };
+  /** Operative deterministic cloth configuration, when @cloth_simulation is supported. */
+  cloth?: ClothSimulationConfig;
+  /** Detachable public/story mantle and source refs resolved by the host platform. */
+  mantle?: {
+    style: SovereignMantleStyle;
+    detachable: boolean;
+    albedoMap?: string;
+    normalMap?: string;
+    roughnessMap?: string;
+  };
   report: {
     objectId?: string;
     resolvedVia: 'objectId' | 'body-trait-heuristic' | 'first-object' | 'none';
@@ -78,6 +90,10 @@ const asNum = (v: unknown): number | undefined => (typeof v === 'number' ? v : u
 const asStr = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 const asRecord = (v: unknown): Record<string, unknown> | undefined =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined;
+const asVec3 = (v: unknown): [number, number, number] | undefined =>
+  Array.isArray(v) && v.length >= 3 && v.slice(0, 3).every((x) => typeof x === 'number')
+    ? [v[0] as number, v[1] as number, v[2] as number]
+    : undefined;
 
 /** Normalize an authored RGB array or #RRGGBB string to a clamped linear-RGB tuple. */
 function asRgb(v: unknown): [number, number, number] | undefined {
@@ -296,6 +312,9 @@ export function buildCharacterHostFromComposition(
   let garmentColor: number | undefined;
   let includeHair: boolean | undefined;
   let includeEyes: boolean | undefined;
+  let mantleStyle: SovereignMantleStyle | undefined;
+  let mantleColor: number | undefined;
+  let mantle: CharacterHostFromCompositionResult['mantle'];
   const clothing = traits.get('clothing');
   if (clothing) {
     const style = asStr(cfgVal(clothing, 'style', 'type', 'preset'));
@@ -310,6 +329,35 @@ export function buildCharacterHostFromComposition(
       includeHair = false;
       includeEyes = false;
       report.mapped.push('@clothing(style=stormglass_hooded_tunic)');
+      const authoredMantle = asStr(cfgVal(clothing, 'mantle_style', 'mantle'));
+      if (authoredMantle?.toLowerCase() === 'openai_recursive_interlock') {
+        mantleStyle = 'openai_recursive_interlock';
+        const authoredMantleColor = asRgb(cfgVal(clothing, 'mantle_color', 'mantle_base_color'));
+        if (authoredMantleColor) {
+          const [r, g, b] = authoredMantleColor;
+          mantleColor =
+            (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
+        }
+        mantle = {
+          style: mantleStyle,
+          detachable: cfgVal(clothing, 'mantle_detachable', 'detachable_mantle') !== false,
+          ...((asStr(cfgVal(clothing, 'mantle_albedo_map')) as string | undefined)
+            ? { albedoMap: asStr(cfgVal(clothing, 'mantle_albedo_map')) }
+            : {}),
+          ...((asStr(cfgVal(clothing, 'mantle_normal_map')) as string | undefined)
+            ? { normalMap: asStr(cfgVal(clothing, 'mantle_normal_map')) }
+            : {}),
+          ...((asStr(cfgVal(clothing, 'mantle_roughness_map')) as string | undefined)
+            ? { roughnessMap: asStr(cfgVal(clothing, 'mantle_roughness_map')) }
+            : {}),
+        };
+        report.mapped.push('@clothing(mantle_style=openai_recursive_interlock)');
+      } else if (authoredMantle) {
+        report.stubbed.push({
+          trait: '@clothing(mantle_style)',
+          reason: `mantle '${authoredMantle}' has no sovereign character geometry channel`,
+        });
+      }
     } else {
       report.stubbed.push({
         trait: '@clothing',
@@ -318,7 +366,40 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 7. entityId + position.
+  // 7. @cloth_simulation → deterministic fixed-step local-space XPBD.
+  let cloth: ClothSimulationConfig | undefined;
+  const clothTrait = traits.get('cloth_simulation');
+  if (clothTrait) {
+    const solver = (asStr(cfgVal(clothTrait, 'solver')) ?? '').toLowerCase();
+    if (solver === 'xpbd') {
+      cloth = {
+        solver: 'xpbd',
+        fixedStepHz: Math.max(
+          30,
+          Math.min(240, Math.round(asNum(cfgVal(clothTrait, 'fixed_step_hz')) ?? 120))
+        ),
+        iterations: Math.max(
+          1,
+          Math.min(12, Math.round(asNum(cfgVal(clothTrait, 'iterations')) ?? 4))
+        ),
+        damping: clamp(asNum(cfgVal(clothTrait, 'damping')) ?? 0.985, 0.8, 1),
+        gravity: asVec3(cfgVal(clothTrait, 'gravity')) ?? [0, -0.42, 0],
+        wind: asVec3(cfgVal(clothTrait, 'wind')) ?? [0.34, 0.02, 0.2],
+        windFrequency: Math.max(0, asNum(cfgVal(clothTrait, 'wind_frequency')) ?? 1.35),
+        tetherStiffness: clamp(asNum(cfgVal(clothTrait, 'tether_stiffness')) ?? 8.5, 0, 30),
+        constraintStiffness: clamp(asNum(cfgVal(clothTrait, 'constraint_stiffness')) ?? 0.72, 0, 1),
+        maxDisplacement: clamp(asNum(cfgVal(clothTrait, 'max_displacement')) ?? 0.2, 0.01, 0.6),
+      };
+      report.mapped.push('@cloth_simulation(solver=xpbd)');
+    } else {
+      report.stubbed.push({
+        trait: '@cloth_simulation',
+        reason: `solver '${solver || 'unspecified'}' unsupported; no dynamics fabricated`,
+      });
+    }
+  }
+
+  // 8. entityId + position.
   const entityId = opts.entityId ?? obj.id ?? obj.name ?? parsed.name ?? 'character';
   const p = obj.position;
   const position: [number, number, number] | undefined = p
@@ -338,6 +419,9 @@ export function buildCharacterHostFromComposition(
     garmentStyle,
     garmentColor,
     garmentSegments: lod?.garmentSegments,
+    mantleStyle,
+    mantleColor,
+    clothSimulation: cloth,
     includeHair,
     includeEyes,
   });
@@ -384,5 +468,5 @@ export function buildCharacterHostFromComposition(
   if (traits.has('morph'))
     report.stubbed.push({ trait: '@morph', reason: 'no FACS/morph-target channel yet' });
 
-  return { ok: true, host, gait, materialColor: color, lod, report };
+  return { ok: true, host, gait, materialColor: color, lod, cloth, mantle, report };
 }

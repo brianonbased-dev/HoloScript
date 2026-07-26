@@ -22,7 +22,11 @@ import {
   computeBindWorld,
   type AgentAvatarMeshOptions,
 } from './AgentAvatarMesh';
-import { buildAgentAvatarGarment, type SovereignGarmentStyle } from './AgentAvatarGarment';
+import {
+  buildAgentAvatarGarment,
+  type SovereignGarmentStyle,
+  type SovereignMantleStyle,
+} from './AgentAvatarGarment';
 import { getTranslation, type Vec3 } from './skin-math';
 
 const HEAD_INDEX = HUMANOID_BONE_NAMES.indexOf('head');
@@ -245,6 +249,9 @@ export interface CharacterMeshData {
   eyeRange: { indexStart: number; indexCount: number };
   garmentRange: { indexStart: number; indexCount: number };
   visorRange: { indexStart: number; indexCount: number };
+  mantleRange: { indexStart: number; indexCount: number };
+  /** One authored mobility value per combined mesh vertex for deterministic cloth dynamics. */
+  clothSimulationWeights: Float32Array<ArrayBuffer>;
 }
 
 /** Offset a set of mesh-local indices by a vertex base (for concatenation). */
@@ -263,6 +270,7 @@ export function buildCharacterMesh(
     HairOptions & {
       garmentStyle?: SovereignGarmentStyle;
       garmentSegments?: number;
+      mantleStyle?: SovereignMantleStyle;
       includeHair?: boolean;
       includeEyes?: boolean;
     } = {}
@@ -302,8 +310,13 @@ export function buildCharacterMesh(
         buildScale: opts.buildScale,
         heightScale: opts.heightScale,
         radialSegments: opts.garmentSegments,
+        mantleStyle: opts.mantleStyle,
       })
-    : { cloth: empty(), visor: empty() };
+    : {
+        cloth: { ...empty(), uvs: new Float32Array(), clothWeights: new Float32Array() },
+        visor: { ...empty(), uvs: new Float32Array(), clothWeights: new Float32Array() },
+        mantle: { ...empty(), uvs: new Float32Array(), clothWeights: new Float32Array() },
+      };
 
   const bodyVC = body.vertexCount;
   const hairVC = hair.vertexCount;
@@ -314,46 +327,98 @@ export function buildCharacterMesh(
     garment.visor.indices,
     bodyVC + hairVC + eyes.vertexCount + garment.cloth.vertexCount
   );
+  const mantleIdx = offsetIndices(
+    garment.mantle.indices,
+    bodyVC + hairVC + eyes.vertexCount + garment.cloth.vertexCount + garment.visor.vertexCount
+  );
+  const zeroUv = (vertexCount: number): Float32Array<ArrayBuffer> =>
+    new Float32Array(vertexCount * 2);
+  const zeroWeight = (vertexCount: number): Float32Array<ArrayBuffer> =>
+    new Float32Array(vertexCount);
 
   const mesh: SkinnedMeshData = {
     positions: catF32(
       catF32(
-        catF32(catF32(body.positions, hair.positions), eyes.positions),
-        garment.cloth.positions
+        catF32(
+          catF32(catF32(body.positions, hair.positions), eyes.positions),
+          garment.cloth.positions
+        ),
+        garment.visor.positions
       ),
-      garment.visor.positions
+      garment.mantle.positions
     ),
     normals: catF32(
-      catF32(catF32(catF32(body.normals, hair.normals), eyes.normals), garment.cloth.normals),
-      garment.visor.normals
+      catF32(
+        catF32(catF32(catF32(body.normals, hair.normals), eyes.normals), garment.cloth.normals),
+        garment.visor.normals
+      ),
+      garment.mantle.normals
     ),
     tangents: catF32(
-      catF32(catF32(catF32(body.tangents, hair.tangents), eyes.tangents), garment.cloth.tangents),
-      garment.visor.tangents
+      catF32(
+        catF32(catF32(catF32(body.tangents, hair.tangents), eyes.tangents), garment.cloth.tangents),
+        garment.visor.tangents
+      ),
+      garment.mantle.tangents
     ),
-    indices: catU32(catU32(catU32(catU32(body.indices, hairIdx), eyeIdx), garmentIdx), visorIdx),
+    uvs: catF32(
+      catF32(
+        catF32(
+          catF32(catF32(zeroUv(bodyVC), zeroUv(hairVC)), zeroUv(eyes.vertexCount)),
+          garment.cloth.uvs
+        ),
+        garment.visor.uvs
+      ),
+      garment.mantle.uvs
+    ),
+    indices: catU32(
+      catU32(catU32(catU32(catU32(body.indices, hairIdx), eyeIdx), garmentIdx), visorIdx),
+      mantleIdx
+    ),
     jointIndices: catU32(
       catU32(
-        catU32(catU32(body.jointIndices, hair.jointIndices), eyes.jointIndices),
-        garment.cloth.jointIndices
+        catU32(
+          catU32(catU32(body.jointIndices, hair.jointIndices), eyes.jointIndices),
+          garment.cloth.jointIndices
+        ),
+        garment.visor.jointIndices
       ),
-      garment.visor.jointIndices
+      garment.mantle.jointIndices
     ),
     jointWeights: catF32(
       catF32(
-        catF32(catF32(body.jointWeights, hair.jointWeights), eyes.jointWeights),
-        garment.cloth.jointWeights
+        catF32(
+          catF32(catF32(body.jointWeights, hair.jointWeights), eyes.jointWeights),
+          garment.cloth.jointWeights
+        ),
+        garment.visor.jointWeights
       ),
-      garment.visor.jointWeights
+      garment.mantle.jointWeights
     ),
     vertexCount:
-      bodyVC + hairVC + eyes.vertexCount + garment.cloth.vertexCount + garment.visor.vertexCount,
+      bodyVC +
+      hairVC +
+      eyes.vertexCount +
+      garment.cloth.vertexCount +
+      garment.visor.vertexCount +
+      garment.mantle.vertexCount,
   };
+  const clothSimulationWeights = catF32(
+    catF32(
+      catF32(
+        catF32(catF32(zeroWeight(bodyVC), zeroWeight(hairVC)), zeroWeight(eyes.vertexCount)),
+        garment.cloth.clothWeights
+      ),
+      garment.visor.clothWeights
+    ),
+    garment.mantle.clothWeights
+  );
 
   const hairStart = body.indices.length;
   const eyeStart = hairStart + hair.indices.length;
   const garmentStart = eyeStart + eyes.indices.length;
   const visorStart = garmentStart + garment.cloth.indices.length;
+  const mantleStart = visorStart + garment.visor.indices.length;
   return {
     mesh,
     bodyRange: { indexStart: 0, indexCount: body.indices.length },
@@ -364,5 +429,7 @@ export function buildCharacterMesh(
       indexCount: garment.cloth.indices.length,
     },
     visorRange: { indexStart: visorStart, indexCount: garment.visor.indices.length },
+    mantleRange: { indexStart: mantleStart, indexCount: garment.mantle.indices.length },
+    clothSimulationWeights,
   };
 }

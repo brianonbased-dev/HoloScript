@@ -127,6 +127,52 @@ describe('CharacterWebGPUCompiler', () => {
     ).toEqual(['skin-sss', 'woven-cloth', 'lambert']);
   });
 
+  it('serializes UVs, deterministic cloth metadata, and detachable mantle refs', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits!.push(
+      {
+        type: 'ObjectTrait',
+        name: 'clothing',
+        config: {
+          style: 'stormglass_hooded_tunic',
+          mantle_style: 'openai_recursive_interlock',
+          mantle_detachable: true,
+          mantle_albedo_map: 'assets/openai-albedo.texture.json',
+          mantle_normal_map: 'assets/openai-normal.texture.json',
+          mantle_roughness_map: 'assets/openai-roughness.texture.json',
+        },
+      },
+      {
+        type: 'ObjectTrait',
+        name: 'cloth_simulation',
+        config: {
+          solver: 'xpbd',
+          fixed_step_hz: 120,
+          iterations: 5,
+          wind: [0.3, 0.02, 0.18],
+        },
+      }
+    );
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    expect(bundle.mesh.uvs?.length).toBe(bundle.vertexCount * 2);
+    expect(bundle.cloth).toMatchObject({ solver: 'xpbd', fixedStepHz: 120, iterations: 5 });
+    expect(bundle.mantle).toEqual({
+      style: 'openai_recursive_interlock',
+      detachable: true,
+      albedoMap: 'assets/openai-albedo.texture.json',
+      normalMap: 'assets/openai-normal.texture.json',
+      roughnessMap: 'assets/openai-roughness.texture.json',
+    });
+    expect(
+      (bundle.materialGroups as Array<{ material: { shadingModel: string } }>).map(
+        (group) => group.material.shadingModel
+      )
+    ).toEqual(['skin-sss', 'woven-cloth', 'lambert', 'woven-cloth']);
+  });
+
   it('throws on a composition with no character object (no fabricated body — false case)', async () => {
     await expect(new CharacterWebGPUCompiler().compile(emptyComp())).rejects.toThrow(
       /no character object/

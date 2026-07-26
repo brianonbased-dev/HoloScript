@@ -223,7 +223,26 @@ export interface RefractiveEyeMaterialSpec extends MaterialSpec {
   ior: number;
 }
 
-/** Rough woven cloth with grazing-angle sheen and world-space micro-weave breakup. */
+/**
+ * Compact local texture tile carried as pure data. Four-by-four texels keep character draw
+ * specs deterministic and provider-independent while proving authored UV/material-map flow.
+ * Full-resolution imported textures remain the glTF material-map path.
+ */
+export interface WovenClothTextureTile {
+  size: 4;
+  /** Sixteen authored luminance values, row-major, multiplied into the base colour. */
+  albedo: number[];
+  /** Thirty-two authored tangent-space XY values (0..1), row-major pairs. */
+  normalXY: number[];
+  /** Sixteen authored roughness values, row-major. */
+  roughness: number[];
+  /** UV repeats over the surface, clamped by the renderer to 1..16. */
+  repeat: number;
+  /** Tangent-space normal response, 0..2. */
+  normalScale: number;
+}
+
+/** Rough woven cloth with grazing-angle sheen and optional local UV-mapped material detail. */
 export interface WovenClothMaterialSpec extends MaterialSpec {
   shadingModel: 'woven-cloth';
   /** Broad highlight width, 0.05..1. */
@@ -234,6 +253,8 @@ export interface WovenClothMaterialSpec extends MaterialSpec {
   weaveScale: number;
   /** Cloth rim response at grazing angles, 0..1. */
   rimStrength: number;
+  /** Optional source-resolved local texture tile sampled through mesh UVs. */
+  textureTile?: WovenClothTextureTile;
 }
 
 export type CharacterMaterialSpec =
