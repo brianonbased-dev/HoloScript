@@ -1,0 +1,655 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.hybrid-recall.v2",
+  "productName": "HoloAbsorb",
+  "status": "pass",
+  "startedAt": "2026-07-26T17:25:54.075Z",
+  "completedAt": "2026-07-26T17:28:57.848Z",
+  "implementation": {
+    "root": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript",
+    "head": "d2ab4f88df37f8023adf1a0fbe22bba78b6867ef",
+    "dirty": true
+  },
+  "repo": {
+    "root": "C:\\Users\\josep\\.ai-ecosystem",
+    "head": "2ff86293bccb5b96764f8a4be95e487d14e1c2fe",
+    "dirty": true
+  },
+  "corpus": {
+    "maxFiles": 9000,
+    "files": 8529,
+    "graphSymbols": 108003,
+    "indexedEntries": 113717,
+    "parserLightFileEntries": 5714
+  },
+  "measurements": {
+    "setupMs": 149823.715,
+    "baselineRssBytes": 65335296,
+    "peakRssBytes": 1328021504,
+    "peakRssDeltaBytes": 1262686208,
+    "queries": [
+      {
+        "query": "safe-commit",
+        "durationMs": 2078.494,
+        "results": [
+          {
+            "rank": 1,
+            "file": "scripts/__tests__/safe-commit-parity.test.mjs",
+            "type": "constant",
+            "score": 1,
+            "vectorScore": 0.5974,
+            "lexicalScore": 1,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 2,
+            "file": "scripts/safe-commit.ps1",
+            "type": "file",
+            "score": 1,
+            "vectorScore": 0.4991,
+            "lexicalScore": 1,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 3,
+            "file": "scripts/safe-commit.sh",
+            "type": "file",
+            "score": 1,
+            "vectorScore": 0.4746,
+            "lexicalScore": 1,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 4,
+            "file": "hooks/lib/commit-hash.mjs",
+            "type": "constant",
+            "score": 0.7078,
+            "vectorScore": 0.5514,
+            "lexicalScore": 0.775,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          },
+          {
+            "rank": 5,
+            "file": "hooks/pre-commit-safe-commit-parity.sh",
+            "type": "file",
+            "score": 0.6895,
+            "vectorScore": 0.5811,
+            "lexicalScore": 0.575,
+            "exactMatch": false,
+            "matchKind": "lexical"
+          }
+        ]
+      },
+      {
+        "query": "safe-commit atomic wrapper that uses git commit --only with explicit paths",
+        "durationMs": 945.448,
+        "results": [
+          {
+            "rank": 1,
+            "file": "scripts/__tests__/safe-commit-parity.test.mjs",
+            "type": "constant",
+            "score": 0.9981,
+            "vectorScore": 0.6548,
+            "lexicalScore": 0.8125,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 2,
+            "file": "scripts/safe-commit.sh",
+            "type": "file",
+            "score": 0.9981,
+            "vectorScore": 0.6305,
+            "lexicalScore": 0.8125,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 3,
+            "file": "scripts/safe-commit.ps1",
+            "type": "file",
+            "score": 0.9981,
+            "vectorScore": 0.6048,
+            "lexicalScore": 0.8125,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 4,
+            "file": "scripts/p17-sesl-fleet-launch-packet.mjs",
+            "type": "function",
+            "score": 0.9979,
+            "vectorScore": 0.6588,
+            "lexicalScore": 0.7875,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          },
+          {
+            "rank": 5,
+            "file": "scripts/holoai-academy-semantic-webgpu-browser.mjs",
+            "type": "constant",
+            "score": 0.9979,
+            "vectorScore": 0.6378,
+            "lexicalScore": 0.7875,
+            "exactMatch": true,
+            "matchKind": "exact-name"
+          }
+        ]
+      }
+    ],
+    "visualDisambiguation": {
+      "methodology": "For each real-repository duplicate symbol name, select the lowest-ranked same-name candidate by its collision-safe graph.holo node ID, then compare GraphRAG rank before and after the explicit visual-focus receipt.",
+      "summary": {
+        "cases": 20,
+        "baselineMrr": 0.32,
+        "focusedMrr": 1,
+        "baselineTop1Rate": 0,
+        "focusedTop1Rate": 1,
+        "meanRankGain": 5.75,
+        "meanResolutionRate": 1,
+        "coldSelectionIndexMs": 533.113,
+        "warmSelectionIndexMs": 0.057,
+        "warmSelectionIndexSpeedup": 9402.344
+      },
+      "check": {
+        "minimumCases": 5,
+        "measuredCases": 20,
+        "focusedMrrImproves": true,
+        "focusedTop1AtLeast80Percent": true,
+        "fullSelectionResolution": true,
+        "pass": true
+      },
+      "cases": [
+        {
+          "query": "__dirname",
+          "selectedNodeId": "__dirname__1g2d47d",
+          "selectedFile": "hooks/pretooluse/__tests__/lookahead-gate.test.mjs",
+          "baselineRank": 20,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.05,
+          "reciprocalRankAfter": 1,
+          "rankGain": 19,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "__dirnameLocal",
+          "selectedNodeId": "__dirnameLocal__12elwtt",
+          "selectedFile": "scripts/task-tier-router.mjs",
+          "baselineRank": 2,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfter": 1,
+          "rankGain": 1,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "__filename",
+          "selectedNodeId": "__filename__1ewrla0",
+          "selectedFile": "scripts/holoai-academy-semantic-webgpu-vqa-counterfactual-layouts.mjs",
+          "baselineRank": 20,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.05,
+          "reciprocalRankAfter": 1,
+          "rankGain": 19,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_canonical_json",
+          "selectedNodeId": "_canonical_json__6pz4vs",
+          "selectedFile": "packages/holorepo-py/holoscript_holorepo/identity.py",
+          "baselineRank": 7,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.143,
+          "reciprocalRankAfter": 1,
+          "rankGain": 6,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9682,
+            "semanticScore": 1,
+            "connectionScore": 0.0714,
+            "impactScore": 0.0513,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_clean_text",
+          "selectedNodeId": "_clean_text__43vo85",
+          "selectedFile": "packages/holorepo-py/holoscript_holorepo/identity.py",
+          "baselineRank": 9,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.111,
+          "reciprocalRankAfter": 1,
+          "rankGain": 8,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.977,
+            "semanticScore": 1,
+            "connectionScore": 0.5412,
+            "impactScore": 0.1,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_collect_portable_violations",
+          "selectedNodeId": "_collect_portable_violations__1pon46m",
+          "selectedFile": "packages/holorepo-py/holoscript_holorepo/identity.py",
+          "baselineRank": 4,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.25,
+          "reciprocalRankAfter": 1,
+          "rankGain": 3,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9683,
+            "semanticScore": 1,
+            "connectionScore": 0.0995,
+            "impactScore": 0.0286,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_communities",
+          "selectedNodeId": "_communities__jhik2k",
+          "selectedFile": "holotune/recipes/holodistill-gat/train-vision-scratch.py",
+          "baselineRank": 2,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfter": 1,
+          "rankGain": 1,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9715,
+            "semanticScore": 1,
+            "connectionScore": 0.0345,
+            "impactScore": 0.2857,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_constant_step_sequence",
+          "selectedNodeId": "_constant_step_sequence__1jzd7o7",
+          "selectedFile": "packages/holoserve-py/holoscript_holoserve/epistemic_router.py",
+          "baselineRank": 2,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfter": 1,
+          "rankGain": 1,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_contradictory_constraint",
+          "selectedNodeId": "_contradictory_constraint__1gy6in6",
+          "selectedFile": "packages/holoserve-py/holoscript_holoserve/consumer_payload_broker.py",
+          "baselineRank": 2,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfter": 1,
+          "rankGain": 1,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_device_family",
+          "selectedNodeId": "_device_family__1b9fewq",
+          "selectedFile": "scripts/quantum-scaleup/jetson_qasm_gpu_exec.py",
+          "baselineRank": 2,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfter": 1,
+          "rankGain": 1,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9861,
+            "semanticScore": 1,
+            "connectionScore": 1,
+            "impactScore": 0.1818,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_find_latest_file",
+          "selectedNodeId": "_find_latest_file__1hqyqwr",
+          "selectedFile": "scripts/ml_billing_executor.py",
+          "baselineRank": 2,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfter": 1,
+          "rankGain": 1,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9669,
+            "semanticScore": 1,
+            "connectionScore": 0.0362,
+            "impactScore": 0.0105,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_first_json_object",
+          "selectedNodeId": "_first_json_object__12simhx",
+          "selectedFile": "scripts/exp-grpo/s0_reward_tune.py",
+          "baselineRank": 2,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfter": 1,
+          "rankGain": 1,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9879,
+            "semanticScore": 1,
+            "connectionScore": 1,
+            "impactScore": 0.2857,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_fixture_digest",
+          "selectedNodeId": "_fixture_digest__1hyjtlh",
+          "selectedFile": "packages/holorepo-py/holoscript_holorepo/lifecycle.py",
+          "baselineRank": 4,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.25,
+          "reciprocalRankAfter": 1,
+          "rankGain": 3,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9676,
+            "semanticScore": 1,
+            "connectionScore": 0.0485,
+            "impactScore": 0.04,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_gpu_name",
+          "selectedNodeId": "_gpu_name__1rkcvjq",
+          "selectedFile": "scripts/quantum_simulate.py",
+          "baselineRank": 2,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfter": 1,
+          "rankGain": 1,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9664,
+            "semanticScore": 1,
+            "connectionScore": 0.009,
+            "impactScore": 0.0105,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_kill_process_tree",
+          "selectedNodeId": "_kill_process_tree__1swcvua",
+          "selectedFile": "scripts/ml_billing_executor.py",
+          "baselineRank": 3,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.333,
+          "reciprocalRankAfter": 1,
+          "rankGain": 2,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9715,
+            "semanticScore": 1,
+            "connectionScore": 0.1667,
+            "impactScore": 0.1538,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_ledger_path",
+          "selectedNodeId": "_ledger_path__9282mu",
+          "selectedFile": "scripts/anchor_base.py",
+          "baselineRank": 19,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.053,
+          "reciprocalRankAfter": 1,
+          "rankGain": 18,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9876,
+            "semanticScore": 1,
+            "connectionScore": 0.6,
+            "impactScore": 0.6667,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_load",
+          "selectedNodeId": "_load__1mntaaf",
+          "selectedFile": "holotune/recipes/holodistill-gat/tower-c-holollama-experiment.py",
+          "baselineRank": 10,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.1,
+          "reciprocalRankAfter": 1,
+          "rankGain": 9,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9698,
+            "semanticScore": 1,
+            "connectionScore": 0.1111,
+            "impactScore": 0.1071,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_LocalApp",
+          "selectedNodeId": "_LocalApp__54ia57",
+          "selectedFile": "scripts/vast-serverless/qwen-coder/model_server.py",
+          "baselineRank": 2,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfter": 1,
+          "rankGain": 1,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9719,
+            "semanticScore": 1,
+            "connectionScore": 0.25,
+            "impactScore": 0.0909,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_malformed",
+          "selectedNodeId": "_malformed__2ynok5",
+          "selectedFile": "scripts/exp-grpo/uaal_resolution_reward.py",
+          "baselineRank": 2,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfter": 1,
+          "rankGain": 1,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 1,
+            "semanticScore": 1,
+            "connectionScore": 1,
+            "impactScore": 1,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "_norm",
+          "selectedNodeId": "_norm__tk4jch",
+          "selectedFile": "holotune/recipes/holodistill-gat/tower-c-holollama-experiment.py",
+          "baselineRank": 19,
+          "focusedRank": 1,
+          "reciprocalRankBefore": 0.053,
+          "reciprocalRankAfter": 1,
+          "rankGain": 18,
+          "resolutionRate": 1,
+          "focusedScoreReceipt": {
+            "score": 0.9746,
+            "semanticScore": 1,
+            "connectionScore": 0.36,
+            "impactScore": 0.1429,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "query": "safe-commit",
+      "requiredFilesInTop3": [
+        "scripts/safe-commit.ps1",
+        "scripts/safe-commit.sh"
+      ],
+      "pass": true
+    },
+    {
+      "query": "safe-commit atomic wrapper that uses git commit --only with explicit paths",
+      "requiredFilesInTop3": [
+        "scripts/safe-commit.ps1",
+        "scripts/safe-commit.sh"
+      ],
+      "pass": true
+    }
+  ],
+  "hardware": {
+    "os": "win32 10.0.26200",
+    "node": "v24.15.0",
+    "cpuCount": 16,
+    "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "totalMemoryBytes": 34069385216,
+    "embeddingExecution": "cpu"
+  }
+}
