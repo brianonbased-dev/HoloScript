@@ -60,7 +60,10 @@ async function main() {
     CodebaseGraph,
     CodebaseScanner,
     EmbeddingIndex,
+    GraphRAGEngine,
+    GraphSelectionManager,
     HoloEmbedProvider,
+    makeSymbolObjectId,
   } = await import(pathToFileURL(enginePath).href);
   const repoRoot = resolve(options.repo);
   const outPath = resolve(options.out);
@@ -114,6 +117,15 @@ async function main() {
     });
   }
 
+  const visualDisambiguation = await benchmarkVisualDisambiguation({
+    graph,
+    index,
+    GraphRAGEngine,
+    GraphSelectionManager,
+    makeSymbolObjectId,
+    topK: Math.max(options.topK, 20),
+  });
+
   clearInterval(sampler);
   await index.dispose();
   await scanner.dispose();
@@ -126,9 +138,10 @@ async function main() {
       pass: requiredFiles.every((file) => top3.includes(file)),
     };
   });
-  const status = checks.every((check) => check.pass) ? 'pass' : 'fail';
+  const status =
+    checks.every((check) => check.pass) && visualDisambiguation.check.pass ? 'pass' : 'fail';
   const artifact = {
-    schemaVersion: 'holoscript.holoabsorb.hybrid-recall.v1',
+    schemaVersion: 'holoscript.holoabsorb.hybrid-recall.v2',
     productName: 'HoloAbsorb',
     status,
     startedAt,
@@ -151,6 +164,7 @@ async function main() {
       peakRssBytes: peakRss,
       peakRssDeltaBytes: Math.max(0, peakRss - baselineRss),
       queries: queryResults,
+      visualDisambiguation,
     },
     checks,
     hardware: {
@@ -164,8 +178,144 @@ async function main() {
   };
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, `${JSON.stringify(artifact, null, 2)}\n`, 'utf8');
-  console.log(JSON.stringify({ status, outPath, corpus: artifact.corpus, checks }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status,
+        outPath,
+        corpus: artifact.corpus,
+        checks,
+        visualDisambiguation: visualDisambiguation.summary,
+      },
+      null,
+      2
+    )
+  );
   process.exitCode = status === 'pass' ? 0 : 1;
+}
+
+async function benchmarkVisualDisambiguation({
+  graph,
+  index,
+  GraphRAGEngine,
+  GraphSelectionManager,
+  makeSymbolObjectId,
+  topK,
+}) {
+  const symbolsByName = new Map();
+  for (const symbol of graph.getAllSymbols()) {
+    if (!symbol.name || symbol.name.length < 3) continue;
+    const symbols = symbolsByName.get(symbol.name) ?? [];
+    symbols.push(symbol);
+    symbolsByName.set(symbol.name, symbols);
+  }
+
+  const duplicateNames = Array.from(symbolsByName.entries())
+    .filter(([, symbols]) => new Set(symbols.map((symbol) => symbol.filePath)).size > 1)
+    .map(([name]) => name)
+    .sort((a, b) => a.localeCompare(b));
+  const engine = new GraphRAGEngine(graph, index);
+  const coldIndexStart = performance.now();
+  new GraphSelectionManager(graph);
+  const coldSelectionIndexMs = performance.now() - coldIndexStart;
+  const warmIndexStart = performance.now();
+  new GraphSelectionManager(graph);
+  const warmSelectionIndexMs = performance.now() - warmIndexStart;
+  const cases = [];
+
+  for (const query of duplicateNames) {
+    if (cases.length >= 20) break;
+    const baseline = await engine.query(query, { topK });
+    const sameName = baseline.results.filter((result) => result.symbol.name === query);
+    if (sameName.length < 2) continue;
+
+    // Deliberately choose the lowest-ranked same-name result. The benchmark
+    // measures whether explicit visual intent can recover the selected overload,
+    // not whether ambient retrieval happened to guess the user's target.
+    const target = sameName[sameName.length - 1].symbol;
+    const targetId = symbolIdentity(target);
+    const manager = new GraphSelectionManager(graph);
+    manager.select(makeSymbolObjectId(target));
+    const visualFocus = manager.getVisualFocus();
+    const focused = await engine.query(query, { topK, visualFocus });
+    const baselineRank = rankOf(baseline.results, targetId);
+    const focusedRank = rankOf(focused.results, targetId);
+    if (baselineRank === 0 || focusedRank === 0) continue;
+
+    cases.push({
+      query,
+      selectedNodeId: makeSymbolObjectId(target),
+      selectedFile: target.filePath.replace(/\\/g, '/'),
+      baselineRank,
+      focusedRank,
+      reciprocalRankBefore: round(1 / baselineRank),
+      reciprocalRankAfter: round(1 / focusedRank),
+      rankGain: baselineRank - focusedRank,
+      resolutionRate: visualFocus.resolutionRate,
+      focusedScoreReceipt: focused.results[focusedRank - 1]
+        ? {
+            score: focused.results[focusedRank - 1].score,
+            semanticScore: focused.results[focusedRank - 1].semanticScore,
+            connectionScore: focused.results[focusedRank - 1].connectionScore,
+            impactScore: focused.results[focusedRank - 1].impactScore,
+            visualScore: focused.results[focusedRank - 1].visualScore,
+            visualReasons: focused.results[focusedRank - 1].visualReasons,
+          }
+        : null,
+    });
+  }
+
+  const baselineMrr = mean(cases.map((item) => 1 / item.baselineRank));
+  const focusedMrr = mean(cases.map((item) => 1 / item.focusedRank));
+  const baselineTop1 = mean(cases.map((item) => (item.baselineRank === 1 ? 1 : 0)));
+  const focusedTop1 = mean(cases.map((item) => (item.focusedRank === 1 ? 1 : 0)));
+  const meanRankGain = mean(cases.map((item) => item.rankGain));
+  const meanResolutionRate = mean(cases.map((item) => item.resolutionRate));
+  const check = {
+    minimumCases: 5,
+    measuredCases: cases.length,
+    focusedMrrImproves: focusedMrr > baselineMrr,
+    focusedTop1AtLeast80Percent: focusedTop1 >= 0.8,
+    fullSelectionResolution: meanResolutionRate === 1,
+    pass:
+      cases.length >= 5 &&
+      focusedMrr > baselineMrr &&
+      focusedTop1 >= 0.8 &&
+      meanResolutionRate === 1,
+  };
+
+  return {
+    methodology:
+      'For each real-repository duplicate symbol name, select the lowest-ranked same-name candidate by its collision-safe graph.holo node ID, then compare GraphRAG rank before and after the explicit visual-focus receipt.',
+    summary: {
+      cases: cases.length,
+      baselineMrr: round(baselineMrr),
+      focusedMrr: round(focusedMrr),
+      baselineTop1Rate: round(baselineTop1),
+      focusedTop1Rate: round(focusedTop1),
+      meanRankGain: round(meanRankGain),
+      meanResolutionRate: round(meanResolutionRate),
+      coldSelectionIndexMs: round(coldSelectionIndexMs),
+      warmSelectionIndexMs: round(warmSelectionIndexMs),
+      warmSelectionIndexSpeedup:
+        warmSelectionIndexMs > 0 ? round(coldSelectionIndexMs / warmSelectionIndexMs) : null,
+    },
+    check,
+    cases,
+  };
+}
+
+function symbolIdentity(symbol) {
+  return `${symbol.filePath}:${symbol.line}:${symbol.owner ?? ''}:${symbol.name}`;
+}
+
+function rankOf(results, identity) {
+  const index = results.findIndex((result) => symbolIdentity(result.symbol) === identity);
+  return index < 0 ? 0 : index + 1;
+}
+
+function mean(values) {
+  return values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function round(value) {

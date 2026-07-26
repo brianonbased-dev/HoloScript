@@ -8,8 +8,17 @@
 // GraphSelectionManager (GraphSelectionManager.ts):
 //   selectedIds: Set<String>  — current multi-selection
 //
-// SelectionSubgraph { nodes: String[], edges: [{from, to, type: import|call}], symbols: ExternalSymbolDefinition[] }
-// SelectionContext  { text: String (formatted for AI), symbolCount, fileCount, communities: String[] }
+// SelectionSubgraph { nodes, edges, symbols, unresolved_node_ids }
+// SelectionContext  { text, symbol_count, file_count, communities, visual_focus }
+// VisualGraphFocusReceipt {
+//   selected_node_ids, selected_symbol_keys, selected_files, selected_communities,
+//   neighbor_node_ids, unresolved_node_ids, citations, selected_edge_count,
+//   resolution_rate
+// }
+//
+// Scene node IDs are collision-safe identities (symbol__stable_hash). A visible
+// selection must resolve by that identity and file:line provenance, never by
+// taking the first same-name symbol in the graph.
 //
 // Operations:
 //   select(nodeId)           → Bool (true if newly added)
@@ -20,7 +29,7 @@
 //   expandNHops(n)           → adds all nodes within N import/call hops
 
 @trait graph_selection_manager {
-  capability_tags: ["graph_selection_manager", "multi_select", "subgraph_extraction", "ai_context", "n_hop_expansion", "codebase_visualization", "absorb_service"]
+  capability_tags: ["graph_selection_manager", "multi_select", "subgraph_extraction", "ai_context", "visual_focus_receipt", "n_hop_expansion", "codebase_visualization", "holoabsorb"]
 
   @on_spawn(graph_ref) => {
     manager = init_graph_selection_manager(graph_ref)
@@ -60,6 +69,17 @@
     return ctx
   }
 
+  // Convert current visual intent into bounded, cited GraphRAG evidence.
+  @on_get_visual_focus(max_neighbors) => {
+    focus = manager.get_visual_focus(max_neighbors)
+    emit("visual_focus_receipted", {
+      resolved: focus.citations.size
+      unresolved: focus.unresolved_node_ids.size
+      resolution_rate: focus.resolution_rate
+    })
+    return focus
+  }
+
   // Expand selection by N import/call hops
   @on_expand_n_hops(n) => {
     added_count = manager.expand_n_hops(n)
@@ -68,9 +88,11 @@
   }
 
   @receipt graph_selection_manager_config {
-    type: "GraphSelectionManagerReceipt"
+    type: "VisualGraphFocusReceipt"
+    schema: "holoscript.holoabsorb.visual-graph-focus.v1"
     edge_types: ["import", "call"]
-    context_use: "SelectionContext.text is formatted for AI query input"
+    identity: "collision-safe scene node plus file:line citation"
+    context_use: "explicit visual selection is a bounded GraphRAG scoring signal"
     timestamp: now()
   }
 }

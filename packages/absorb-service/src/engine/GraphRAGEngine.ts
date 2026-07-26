@@ -18,6 +18,8 @@ import type { ExternalSymbolDefinition, CallEdge } from './types';
 import type { CodebaseGraph, CallChain, CallChainOptions } from './CodebaseGraph';
 import type { SearchResult } from './EmbeddingIndex';
 import type { SymbolSearchIndex } from './SearchIndex';
+import type { VisualGraphFocus } from './visualization/GraphSelectionManager';
+import { makeSymbolObjectId } from './SymbolObjectId';
 
 // =============================================================================
 // TYPES
@@ -33,7 +35,10 @@ export interface GraphRAGOptions {
     semantic?: number; // default: 0.96
     connections?: number; // default: 0.02
     impact?: number; // default: 0.02
+    visual?: number; // default: 0.18 when explicit visual focus is supplied
   };
+  /** Explicit, receipted selection from the spatial codebase graph. */
+  visualFocus?: VisualGraphFocus;
   /** Filter results to specific language */
   language?: string;
   /** Filter results to specific symbol type */
@@ -61,6 +66,8 @@ export interface GraphRAGResult {
   totalMatches: number;
   /** Related communities discovered */
   communities: string[];
+  /** Visual evidence applied to reranking, when explicitly supplied. */
+  visualFocus?: VisualGraphFocus;
 }
 
 export interface EnrichedResult {
@@ -74,6 +81,12 @@ export interface EnrichedResult {
   connectionScore: number;
   /** Impact radius score */
   impactScore: number;
+  /** Explicit visual-selection relevance score. */
+  visualScore: number;
+  /** Machine-readable reasons contributing to visualScore. */
+  visualReasons: Array<
+    'selected-node' | 'selected-file' | 'direct-neighbor' | 'selected-community'
+  >;
   /** File path */
   file: string;
   /** Community this symbol belongs to */
@@ -120,6 +133,8 @@ export interface LLMAnswer {
   citations: Array<{ name: string; file: string; line: number }>;
   /** Graph context used to generate the answer */
   context: EnrichedResult[];
+  /** Visual graph evidence applied to retrieval, when supplied. */
+  visualFocus?: VisualGraphFocus;
 }
 
 export interface TraceWithContextOptions {
@@ -158,6 +173,17 @@ export class GraphRAGEngine {
     const wSemantic = options.weights?.semantic ?? 0.96;
     const wConnections = options.weights?.connections ?? 0.02;
     const wImpact = options.weights?.impact ?? 0.02;
+    const visualFocus = options.visualFocus;
+    const visualFocusReady = Boolean(
+      visualFocus &&
+      visualFocus.resolutionRate > 0 &&
+      visualFocus.selectedNodeIds.length > visualFocus.unresolvedNodeIds.length
+    );
+    const wVisual = visualFocusReady ? (options.weights?.visual ?? 0.18) : 0;
+    const selectedNodeIds = new Set(visualFocus?.selectedNodeIds ?? []);
+    const selectedFiles = new Set(visualFocus?.selectedFiles ?? []);
+    const selectedCommunities = new Set(visualFocus?.selectedCommunities ?? []);
+    const neighborNodeIds = new Set(visualFocus?.neighborNodeIds ?? []);
 
     // 1. Semantic search
     const filters = {
@@ -183,6 +209,7 @@ export class GraphRAGEngine {
         results: [],
         totalMatches: 0,
         communities: [],
+        ...(visualFocusReady && visualFocus ? { visualFocus } : {}),
       };
     }
 
@@ -198,6 +225,8 @@ export class GraphRAGEngine {
       callees: CallEdge[];
       impact: number;
       community?: string;
+      visualScore: number;
+      visualReasons: EnrichedResult['visualReasons'];
     }> = [];
 
     for (const sr of semanticResults) {
@@ -207,12 +236,31 @@ export class GraphRAGEngine {
       const callees = this.graph.getCalleesOf(callerId);
       const impact = this.graph.getSymbolImpact(sym.name, sym.owner).size;
       const community = this.graph.getCommunityForFile(sym.filePath);
+      const sceneNodeId = makeSymbolObjectId(sym);
+      const visualReasons: EnrichedResult['visualReasons'] = [];
+      let visualScore = 0;
+      if (selectedNodeIds.has(sceneNodeId)) {
+        visualScore = 1;
+        visualReasons.push('selected-node');
+      }
+      if (selectedFiles.has(sym.filePath)) {
+        visualScore = Math.max(visualScore, 0.8);
+        visualReasons.push('selected-file');
+      }
+      if (neighborNodeIds.has(sceneNodeId)) {
+        visualScore = Math.max(visualScore, 0.65);
+        visualReasons.push('direct-neighbor');
+      }
+      if (community && selectedCommunities.has(community)) {
+        visualScore = Math.max(visualScore, 0.25);
+        visualReasons.push('selected-community');
+      }
 
       if (callers.length > maxCallers) maxCallers = callers.length;
       if (impact > maxImpact) maxImpact = impact;
       if (community) communitySet.add(community);
 
-      rawMetrics.push({ callers, callees, impact, community });
+      rawMetrics.push({ callers, callees, impact, community, visualScore, visualReasons });
     }
 
     // Second pass: compute normalized scores
@@ -222,9 +270,12 @@ export class GraphRAGEngine {
 
       const connectionScore = metrics.callers.length / maxCallers;
       const impactScore = metrics.impact / maxImpact;
-      const totalWeight = Math.max(0.0001, wSemantic + wConnections + wImpact);
+      const totalWeight = Math.max(0.0001, wSemantic + wConnections + wImpact + wVisual);
       const combinedScore =
-        (wSemantic * sr.score + wConnections * connectionScore + wImpact * impactScore) /
+        (wSemantic * sr.score +
+          wConnections * connectionScore +
+          wImpact * impactScore +
+          wVisual * metrics.visualScore) /
         totalWeight;
 
       enriched.push({
@@ -233,6 +284,8 @@ export class GraphRAGEngine {
         semanticScore: sr.score,
         connectionScore: Math.round(connectionScore * 10000) / 10000,
         impactScore: Math.round(impactScore * 10000) / 10000,
+        visualScore: Math.round(metrics.visualScore * 10000) / 10000,
+        visualReasons: metrics.visualReasons,
         file: sr.file,
         community: metrics.community,
         callers: metrics.callers.map((c) => c.callerId),
@@ -258,6 +311,7 @@ export class GraphRAGEngine {
       results: enriched,
       totalMatches: enriched.length,
       communities: Array.from(communitySet),
+      ...(visualFocusReady && visualFocus ? { visualFocus } : {}),
     };
   }
 
@@ -289,6 +343,9 @@ export class GraphRAGEngine {
         r.community ? `   Module: ${r.community}` : '',
         `   Impact radius: ${r.impactRadius} files`,
         `   Relevance: ${r.score}`,
+        r.visualReasons.length > 0
+          ? `   Visual focus: ${r.visualScore} (${r.visualReasons.join(', ')})`
+          : '',
       ];
       return parts.filter(Boolean).join('\n');
     });
@@ -319,6 +376,7 @@ export class GraphRAGEngine {
       answer,
       citations,
       context: topResults,
+      ...(ragResult.visualFocus ? { visualFocus: ragResult.visualFocus } : {}),
     };
   }
 
@@ -358,6 +416,8 @@ export class GraphRAGEngine {
           semanticScore: 1,
           connectionScore: 0,
           impactScore: 0,
+          visualScore: 0,
+          visualReasons: [],
           file: sym.filePath,
           community: this.graph.getCommunityForFile(sym.filePath),
           callers: callers.map((c) => c.callerId),

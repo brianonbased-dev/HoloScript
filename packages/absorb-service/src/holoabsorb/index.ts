@@ -162,7 +162,7 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
     name: 'HoloAbsorb GraphRAG',
     canonicalOwner: 'packages/absorb-service/src/engine/GraphRAGEngine.ts',
     responsibility:
-      'Graph-aware hybrid retrieval, exact-name-preserving reranking, citations, query enrichment, and codebase answers.',
+      'Graph-aware hybrid retrieval, exact-name-preserving reranking, explicit visual-focus scoring, citations, query enrichment, and codebase answers.',
     entrypoints: ['@holoscript/absorb-service/gev', '@holoscript/absorb-service/mcp'],
     toolNames: ['holo_ask_codebase', 'absorb_query'],
     evidencePaths: [
@@ -194,12 +194,13 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
     name: 'HoloAbsorb Spatial Output',
     canonicalOwner: 'packages/absorb-service/src/engine/HoloEmitter.ts',
     responsibility:
-      'Agent manifests, .holo codebase worlds, interactive layouts, render jobs, and spatial graph visualization.',
+      'Agent manifests, .holo codebase worlds, interactive layouts, collision-safe selection receipts, render jobs, and spatial graph visualization that agents can feed back into retrieval.',
     entrypoints: ['@holoscript/absorb-service/engine', '@holoscript/absorb-service/mcp'],
-    toolNames: ['absorb_run_render'],
+    toolNames: ['holo_visual_graph_context', 'absorb_run_render'],
     evidencePaths: [
       'packages/absorb-service/src/engine/HoloEmitter.ts',
       'packages/absorb-service/src/engine/visualization/CodebaseSceneCompiler.ts',
+      'packages/absorb-service/src/engine/visualization/GraphSelectionManager.ts',
     ],
   },
   {
@@ -409,25 +410,29 @@ const WORKSTREAMS: readonly HoloAbsorbWorkstream[] = [
     id: 'paper-evidence',
     ownerCapability: 'evidence',
     boardTags: ['holoabsorb', 'paper-evidence', 'benchmark'],
-    completionEvidence: 'Timestamped receipt with hardware, commit, commands, outputs, and limitations.',
+    completionEvidence:
+      'Timestamped receipt with hardware, commit, commands, outputs, and limitations.',
   },
   {
     id: 'fleet-lifecycle',
     ownerCapability: 'service-host',
     boardTags: ['absorb', 'fleet', 'jetson'],
-    completionEvidence: 'Owned-metal lifecycle and workload receipts with a safe resource envelope.',
+    completionEvidence:
+      'Owned-metal lifecycle and workload receipts with a safe resource envelope.',
   },
   {
     id: 'promotion',
     ownerCapability: 'service-host',
     boardTags: ['absorb', 'promotion'],
-    completionEvidence: 'Public API canaries, fleet-consumption decision, package build, and deploy receipts.',
+    completionEvidence:
+      'Public API canaries, fleet-consumption decision, package build, and deploy receipts.',
   },
   {
     id: 'self-improvement',
     ownerCapability: 'self-improvement',
     boardTags: ['absorb', 'grpo', 'self-improvement'],
-    completionEvidence: 'Non-zero reward coverage, regression tests, and a replayable improvement receipt.',
+    completionEvidence:
+      'Non-zero reward coverage, regression tests, and a replayable improvement receipt.',
   },
 ];
 

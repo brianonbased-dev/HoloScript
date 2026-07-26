@@ -13,6 +13,10 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
+import {
+  GraphSelectionManager,
+  type VisualGraphFocus,
+} from '../engine/visualization/GraphSelectionManager';
 import type {
   HoloLlamaBundleSummary,
   HoloLlamaProfile,
@@ -119,6 +123,28 @@ export const graphRagTools: Tool[] = [
     },
   },
   {
+    name: 'holo_visual_graph_context',
+    description:
+      'Resolve collision-safe node IDs selected in a HoloAbsorb graph.holo scene into cited symbols, bounded graph neighbors, and a machine-readable visual-focus receipt for agents. The receipt can be passed to holo_ask_codebase through visualNodeIds.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selectedNodeIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Collision-safe scene object IDs selected from graph.holo (for example parser__abc123).',
+        },
+        maxNeighbors: {
+          type: 'number',
+          description:
+            'Maximum direct call/import neighbors to include in the receipt (default: 100).',
+        },
+      },
+      required: ['selectedNodeIds'],
+    },
+  },
+  {
     name: 'holo_ask_codebase',
     description:
       'Ask a natural language question about an absorbed codebase. Uses Graph RAG: combines semantic search with knowledge graph traversal to generate an accurate, cited answer. Returns the answer, citations (file:line), and supporting graph data. Requires a prior holo_absorb_repo call.',
@@ -141,6 +167,12 @@ export const graphRagTools: Tool[] = [
         type: {
           type: 'string',
           description: 'Filter context to specific symbol type',
+        },
+        visualNodeIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Optional collision-safe node IDs selected in graph.holo. Resolved selections add an explicit, receipted visual-focus score without overriding exact-name intent.',
         },
         llmProvider: {
           type: 'string',
@@ -233,13 +265,20 @@ export async function handleGraphRagTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
-  if ((name === 'holo_semantic_search' || name === 'holo_ask_codebase') && !isGraphRAGReady()) {
+  if (
+    (name === 'holo_semantic_search' ||
+      name === 'holo_visual_graph_context' ||
+      name === 'holo_ask_codebase') &&
+    !isGraphRAGReady()
+  ) {
     await hydrateCachedGraphRAGStateFromCodebaseTools();
   }
 
   switch (name) {
     case 'holo_semantic_search':
       return handleSemanticSearch(args);
+    case 'holo_visual_graph_context':
+      return handleVisualGraphContext(args);
     case 'holo_ask_codebase':
       return handleAskCodebase(args);
     default:
@@ -646,7 +685,60 @@ function contextPayload(context: EnrichedResult[]): Array<Record<string, unknown
     callees: r.callees.slice(0, 3),
     impactRadius: r.impactRadius,
     community: r.community ?? null,
+    visualScore: r.visualScore,
+    visualReasons: r.visualReasons,
   }));
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string' && item.length > 0);
+}
+
+function buildVisualFocus(
+  graph: GraphRAGEngine['graph'],
+  nodeIds: string[],
+  maxNeighbors = 100
+): VisualGraphFocus | undefined {
+  if (nodeIds.length === 0) return undefined;
+  const manager = new GraphSelectionManager(graph);
+  for (const nodeId of nodeIds) manager.select(nodeId);
+  return manager.getVisualFocus(undefined, maxNeighbors);
+}
+
+function handleVisualGraphContext(args: Record<string, unknown>): Record<string, unknown> {
+  if (!cachedGraphRAGEngine) {
+    return {
+      error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
+      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+    };
+  }
+
+  const selectedNodeIds = readStringArray(args.selectedNodeIds);
+  const maxNeighbors =
+    typeof args.maxNeighbors === 'number' && Number.isFinite(args.maxNeighbors)
+      ? Math.max(0, Math.floor(args.maxNeighbors))
+      : 100;
+  const manager = new GraphSelectionManager(cachedGraphRAGEngine.graph);
+  for (const nodeId of selectedNodeIds) manager.select(nodeId);
+  const context = manager.getSelectionContext();
+  const visualFocus = manager.getVisualFocus(undefined, maxNeighbors);
+
+  return {
+    selectedNodeIds,
+    context: context.text,
+    symbolCount: context.symbolCount,
+    fileCount: context.fileCount,
+    communities: context.communities,
+    visualGraphEvidence: visualFocus,
+    quality: {
+      resolutionRate: visualFocus.resolutionRate,
+      resolvedNodeCount: visualFocus.citations.length,
+      unresolvedNodeCount: visualFocus.unresolvedNodeIds.length,
+      directNeighborCount: visualFocus.neighborNodeIds.length,
+      selectedEdgeCount: visualFocus.selectedEdgeCount,
+    },
+  };
 }
 
 async function buildExtractiveCodebaseAnswer(options: {
@@ -657,6 +749,7 @@ async function buildExtractiveCodebaseAnswer(options: {
   type?: string;
   effectiveProvider?: string;
   holoLlamaReceipt?: HoloLlamaSynthesisReceipt;
+  visualFocus?: VisualGraphFocus;
   fallbackReason: string;
 }): Promise<Record<string, unknown>> {
   const {
@@ -667,9 +760,10 @@ async function buildExtractiveCodebaseAnswer(options: {
     type,
     effectiveProvider,
     holoLlamaReceipt,
+    visualFocus,
     fallbackReason,
   } = options;
-  const ragResult = await engine.query(question, { topK, language, type });
+  const ragResult = await engine.query(question, { topK, language, type, visualFocus });
   const context = ragResult.results.slice(0, 10);
 
   if (context.length === 0) {
@@ -738,6 +832,7 @@ async function buildExtractiveCodebaseAnswer(options: {
         : {}),
     },
     context: contextPayload(context),
+    ...(ragResult.visualFocus ? { visualGraphEvidence: ragResult.visualFocus } : {}),
     llmProvider: effectiveProvider ?? 'ollama',
     ...(holoLlamaReceipt ? { holoLlamaReceipt } : {}),
     fallback: 'extractive-graphrag',
@@ -760,6 +855,10 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
   const llmProvider = args.llmProvider as LLMProviderName | undefined;
   const llmApiKey = args.llmApiKey as string | undefined;
   const llmModel = args.llmModel as string | undefined;
+  const visualFocus = buildVisualFocus(
+    cachedGraphRAGEngine.graph,
+    readStringArray(args.visualNodeIds)
+  );
   const effectiveProvider = llmProvider ?? (await detectDefaultLLMProvider());
   let holoLlamaReceipt: HoloLlamaSynthesisReceipt | undefined;
 
@@ -843,6 +942,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       topK,
       language,
       type,
+      visualFocus,
     });
 
     // Provenance integrity guard: validate every cited file:line resolves
@@ -898,7 +998,10 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         callees: r.callees.slice(0, 3),
         impactRadius: r.impactRadius,
         community: r.community ?? null,
+        visualScore: r.visualScore,
+        visualReasons: r.visualReasons,
       })),
+      ...(answer.visualFocus ? { visualGraphEvidence: answer.visualFocus } : {}),
       llmProvider: effectiveProvider ?? 'ollama',
       ...(holoLlamaReceipt ? { holoLlamaReceipt } : {}),
     };
@@ -948,6 +1051,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
             topK,
             language,
             type,
+            visualFocus,
           });
 
           // Provenance integrity guard (same as primary path)
@@ -998,7 +1102,10 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
               callees: r.callees.slice(0, 3),
               impactRadius: r.impactRadius,
               community: r.community ?? null,
+              visualScore: r.visualScore,
+              visualReasons: r.visualReasons,
             })),
+            ...(fbAnswer.visualFocus ? { visualGraphEvidence: fbAnswer.visualFocus } : {}),
             llmProvider: fb,
             fallbackFrom: 'anthropic',
           };
@@ -1017,6 +1124,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         type,
         effectiveProvider,
         holoLlamaReceipt,
+        visualFocus,
         fallbackReason: failureReason,
       });
     } catch (fallbackErr: unknown) {

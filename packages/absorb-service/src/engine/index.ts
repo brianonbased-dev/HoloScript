@@ -223,8 +223,17 @@ export type {
   InteractiveSceneComposition,
   EnricherOptions,
 } from './visualization/InteractiveSceneEnricher';
-export { GraphSelectionManager } from './visualization/GraphSelectionManager';
-export type { SelectionSubgraph, SelectionContext } from './visualization/GraphSelectionManager';
+export {
+  GraphSelectionManager,
+  VISUAL_GRAPH_FOCUS_SCHEMA,
+} from './visualization/GraphSelectionManager';
+export type {
+  SelectionSubgraph,
+  SelectionContext,
+  VisualGraphCitation,
+  VisualGraphFocus,
+} from './visualization/GraphSelectionManager';
+export { makeSymbolObjectId, sanitizeHoloId } from './SymbolObjectId';
 export { GraphRAGVisualizer } from './visualization/GraphRAGVisualizer';
 export type { RAGSearchResult, ImpactNode } from './visualization/GraphRAGVisualizer';
 export { GraphTooltipGenerator } from './visualization/GraphTooltipGenerator';
