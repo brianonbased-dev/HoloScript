@@ -1043,6 +1043,53 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt).toBeUndefined();
   });
 
+  it('uses the persisted worktree fingerprint for repeated matching-HEAD status checks', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-status-fingerprint-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-status-fingerprint-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    const absorbed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+    })) as { error?: string };
+    expect(absorbed.error).toBeUndefined();
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      fileHashFreshness?: {
+        checked?: boolean;
+        fresh?: boolean;
+        verificationMode?: string;
+      };
+    };
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.fileHashFreshness).toMatchObject({
+      checked: true,
+      fresh: true,
+      verificationMode: 'git-worktree-fingerprint',
+    });
+
+    fs.appendFileSync(path.join(repoDir, 'src', 'alpha.ts'), '\nexport const changed = true;\n');
+    const changed = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      fileHashFreshness?: {
+        fresh?: boolean;
+        verificationMode?: string;
+        modifiedFileSample?: string[];
+      };
+    };
+    expect(changed.graphAuthoritative).toBe(false);
+    expect(changed.fileHashFreshness).toMatchObject({
+      fresh: false,
+      verificationMode: 'full-file-hash',
+      modifiedFileSample: ['src/alpha.ts'],
+    });
+  });
+
   it('invalidates a matching-HEAD cache when the dirty worktree changes after scanning', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-dirty-hash-cache-'));

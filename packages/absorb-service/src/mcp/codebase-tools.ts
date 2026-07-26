@@ -1218,6 +1218,7 @@ interface GraphFileHashFreshnessStatus {
   checked: boolean;
   fresh: boolean;
   reason: GraphFileHashFreshnessReason;
+  verificationMode?: 'full-file-hash' | 'git-worktree-fingerprint';
   storedFileCount: number;
   checkedFileCount: number;
   modifiedFileCount: number;
@@ -1711,6 +1712,7 @@ function buildGraphFileHashFreshnessStatus(
       checked: true,
       fresh,
       reason: fresh ? 'all_hashes_match' : 'hash_mismatch',
+      verificationMode: 'full-file-hash',
       storedFileCount: entries.length,
       checkedFileCount,
       modifiedFileCount: modified.length,
@@ -1725,6 +1727,24 @@ function buildGraphFileHashFreshnessStatus(
       err instanceof Error ? err.message : String(err)
     );
   }
+}
+
+function buildWorktreeFingerprintFreshnessStatus(
+  fileHashes?: Record<string, string> | null
+): GraphFileHashFreshnessStatus {
+  const storedFileCount = fileHashes ? Object.keys(fileHashes).length : 0;
+  return {
+    checked: true,
+    fresh: true,
+    reason: 'all_hashes_match',
+    verificationMode: 'git-worktree-fingerprint',
+    storedFileCount,
+    checkedFileCount: storedFileCount,
+    modifiedFileCount: 0,
+    deletedFileCount: 0,
+    modifiedFileSample: [],
+    deletedFileSample: [],
+  };
 }
 
 function fileHashesBridgeHeadMismatch(options: {
@@ -6091,6 +6111,16 @@ async function handleGraphStatus(): Promise<unknown> {
   const activeGitCommitHash =
     ((cachedGraph as { gitCommitHash?: string } | null)?.gitCommitHash ?? cache.gitCommitHash) ||
     null;
+  const activeScanPolicy = normalizeScanPolicy(
+    (cachedGraph as { scanPolicy?: GraphScanPolicy } | null)?.scanPolicy ?? cache.scanPolicy
+  );
+  const currentWorktreeFingerprint =
+    cacheMatchesCwd || diskCacheMatchesCwd
+      ? buildGitWorktreeFingerprint(currentCwd, activeScanPolicy)
+      : null;
+  const activeWorktreeFingerprint =
+    (cachedGraph as { worktreeFingerprint?: string } | null)?.worktreeFingerprint ??
+    cache.worktreeFingerprint;
   const diskGraphFileCount =
     cache.fileHashCount ??
     Number((cache.stats as { totalFiles?: unknown } | undefined)?.totalFiles ?? 0);
@@ -6127,13 +6157,23 @@ async function handleGraphStatus(): Promise<unknown> {
     workspaceGitCommitHash
   );
   const diskHeadMatchesWorkspace = cacheGitMatchesHead(cache.gitCommitHash, workspaceGitCommitHash);
+  const activeWorktreeFingerprintMatches =
+    activeHeadMatchesWorkspace &&
+    Boolean(activeWorktreeFingerprint) &&
+    currentWorktreeFingerprint === activeWorktreeFingerprint;
+  const diskWorktreeFingerprintMatches =
+    diskHeadMatchesWorkspace &&
+    Boolean(cache.worktreeFingerprint) &&
+    currentWorktreeFingerprint === cache.worktreeFingerprint;
   const activeFileHashes =
     ((cachedGraph as { fileHashes?: Record<string, string> } | null)?.fileHashes ??
       cache.fileHashes) ||
     undefined;
   const activeSameRootFileHashFreshness =
     cacheMatchesCwd && activeFreshByAge && activeCoverageComplete
-      ? buildGraphFileHashFreshnessStatus(cacheRootDir, activeFileHashes)
+      ? activeWorktreeFingerprintMatches
+        ? buildWorktreeFingerprintFreshnessStatus(activeFileHashes)
+        : buildGraphFileHashFreshnessStatus(cacheRootDir, activeFileHashes)
       : buildSkippedFileHashFreshnessStatus('not_checked', activeFileHashes);
   const activeAndDiskShareFileSnapshot =
     activeAndDiskShareCoverage &&
@@ -6143,7 +6183,9 @@ async function handleGraphStatus(): Promise<unknown> {
     diskCacheMatchesCwd && diskCacheFreshByAge && diskCoverageComplete
       ? activeAndDiskShareFileSnapshot
         ? activeSameRootFileHashFreshness
-        : buildGraphFileHashFreshnessStatus(cache.rootDir, cache.fileHashes)
+        : diskWorktreeFingerprintMatches
+          ? buildWorktreeFingerprintFreshnessStatus(cache.fileHashes)
+          : buildGraphFileHashFreshnessStatus(cache.rootDir, cache.fileHashes)
       : buildSkippedFileHashFreshnessStatus('not_checked', cache.fileHashes);
   const activeSameRootFileHashFreshForHeadMismatch =
     cacheMatchesCwd &&
