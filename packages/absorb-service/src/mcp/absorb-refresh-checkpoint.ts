@@ -43,8 +43,18 @@ export interface AbsorbRefreshProgressReceipt {
   selectedFilesHash: string;
   scanPolicyHash: string;
   status: AbsorbRefreshStatus;
+  /**
+   * Progress receipts are observational and never establish graph authority.
+   * This remains false even after a successful publish.
+   */
   authoritative: false;
   cachePublished: boolean;
+  /**
+   * True only after the graph and embedding generation passed their final
+   * source pin and were atomically published. Optional for v1 receipt
+   * compatibility; newly written receipts always include it.
+   */
+  publishedGraphAuthoritative?: boolean;
   priorAuthoritativeCachePreserved: boolean;
   resumable: boolean;
   totalCandidateFiles: number;
@@ -430,6 +440,7 @@ export class AbsorbRefreshCheckpoint {
       status: 'interrupted',
       resumable: true,
       cachePublished: false,
+      publishedGraphAuthoritative: false,
       priorAuthoritativeCachePreserved: true,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -443,6 +454,7 @@ export class AbsorbRefreshCheckpoint {
       status: 'invalidated',
       resumable: contentAddressedResumeAvailable,
       cachePublished: false,
+      publishedGraphAuthoritative: false,
       priorAuthoritativeCachePreserved: true,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -453,6 +465,7 @@ export class AbsorbRefreshCheckpoint {
       status: 'complete',
       resumable: false,
       cachePublished: true,
+      publishedGraphAuthoritative: true,
       priorAuthoritativeCachePreserved: false,
       progressPercent: 100,
       remainingCandidateFiles: 0,
@@ -472,6 +485,7 @@ export class AbsorbRefreshCheckpoint {
       status: 'prepared',
       resumable: true,
       cachePublished: false,
+      publishedGraphAuthoritative: false,
       priorAuthoritativeCachePreserved: true,
       ownerProcessId: process.pid,
       resumeMode: options.resumeMode,
@@ -673,6 +687,7 @@ export function prepareAbsorbRefreshCheckpoint(
     status: 'prepared',
     authoritative: false,
     cachePublished: false,
+    publishedGraphAuthoritative: false,
     priorAuthoritativeCachePreserved: true,
     resumable: true,
     totalCandidateFiles: options.scanPlan.totalFiles,

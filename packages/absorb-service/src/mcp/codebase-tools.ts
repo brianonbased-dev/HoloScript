@@ -3961,10 +3961,17 @@ export const codebaseTools: Tool[] = [
   {
     name: 'holo_graph_status',
     description:
-      'Check the status of the codebase knowledge graph: whether it is loaded in memory, whether a disk cache exists, cache age, and scan statistics. Use this before running queries to confirm the graph is ready.',
+      'Check the status of the codebase knowledge graph: whether it is loaded in memory, whether a disk cache exists, cache age, and scan statistics. Repeated polls reuse a bounded status snapshot to avoid re-reading and re-hashing a large repository. Use forceRefresh for an immediate filesystem recheck.',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        forceRefresh: {
+          type: 'boolean',
+          description:
+            'Bypass the bounded graph-status snapshot and immediately re-check repository coverage, HEAD, worktree hashes, and cache generations.',
+          default: false,
+        },
+      },
     },
   },
   {
@@ -4043,9 +4050,29 @@ let cacheProvenance:
   | 'local-codebase-snapshot-receipt'
   | null = null;
 let cacheTimestamp = 0;
+const DEFAULT_GRAPH_STATUS_SNAPSHOT_TTL_MS = 5_000;
+const MAX_GRAPH_STATUS_SNAPSHOT_TTL_MS = 30_000;
+type GraphStatusSnapshot = Record<string, unknown>;
+interface GraphStatusSnapshotCacheEntry {
+  key: string;
+  computedAt: number;
+  value: GraphStatusSnapshot;
+}
+let graphStatusSnapshotCache: GraphStatusSnapshotCacheEntry | null = null;
+let graphStatusSnapshotInFlight:
+  | {
+      key: string;
+      promise: Promise<GraphStatusSnapshot>;
+    }
+  | null = null;
 // Guards the background GraphRAG embedding warm so concurrent cold loads don't
 // kick off duplicate builds (the build is fired-and-forgotten in ensureCachedGraph).
 let graphRAGWarmInProgress = false;
+
+function invalidateGraphStatusSnapshot(): void {
+  graphStatusSnapshotCache = null;
+  graphStatusSnapshotInFlight = null;
+}
 
 function invalidateInMemoryGraphAfterIsolatedRefresh(): void {
   cachedGraph = null;
@@ -4054,6 +4081,7 @@ function invalidateInMemoryGraphAfterIsolatedRefresh(): void {
   cacheProvenance = null;
   cacheTimestamp = 0;
   graphRAGWarmInProgress = false;
+  invalidateGraphStatusSnapshot();
   resetGraphRAGState();
 }
 
@@ -4063,6 +4091,7 @@ export function resetCodebaseToolStateForTests(skipDiskAutoload = true): void {
   cacheAutoLoaded = skipDiskAutoload;
   cacheProvenance = null;
   cacheTimestamp = 0;
+  invalidateGraphStatusSnapshot();
   for (const job of absorbJobs.values()) {
     if (
       !job.abortController.signal.aborted &&
@@ -4456,7 +4485,7 @@ export async function handleCodebaseTool(
     case 'holo_detect_changes':
       return handleDetectChanges(args);
     case 'holo_graph_status':
-      return handleGraphStatus();
+      return handleGraphStatus(args);
     case 'holo_detect_drift':
       return handleDetectDrift(args);
     case 'holo_resolve_symbol':
@@ -7074,8 +7103,119 @@ async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown
 
 // ── Graph Status ─────────────────────────────────────────────────────────────
 
-async function handleGraphStatus(): Promise<unknown> {
+function graphStatusSnapshotTtlMs(): number {
+  const configured = Number(process.env.ABSORB_GRAPH_STATUS_SNAPSHOT_TTL_MS);
+  if (!Number.isFinite(configured)) return DEFAULT_GRAPH_STATUS_SNAPSHOT_TTL_MS;
+  return Math.max(0, Math.min(MAX_GRAPH_STATUS_SNAPSHOT_TTL_MS, Math.floor(configured)));
+}
+
+function graphStatusFileGeneration(filePath: string): string {
+  try {
+    const stat = fs.statSync(filePath);
+    return `${stat.size}:${stat.mtimeMs}`;
+  } catch {
+    return 'missing';
+  }
+}
+
+function buildGraphStatusSnapshotKey(currentCwd: string): string {
+  const activeCacheRoot = cachedRootDir || currentCwd;
+  const cachePaths = resolveCodebaseCachePaths(activeCacheRoot);
+  const refreshGeneration = Array.from(absorbJobs.values())
+    .map(
+      (job) =>
+        `${job.jobId}:${job.status}:${job.progress}:${job.filesProcessed}:${
+          job.refreshProgressReceipt?.updatedAt ?? ''
+        }`
+    )
+    .sort()
+    .join('|');
+  return [
+    currentCwd,
+    activeCacheRoot,
+    cachedGraph === null ? 'cold' : 'loaded',
+    cacheTimestamp,
+    graphStatusFileGeneration(cachePaths.graphFile),
+    graphStatusFileGeneration(cachePaths.embeddingsFile),
+    refreshGeneration,
+  ].join('\n');
+}
+
+function withGraphStatusSnapshotMetadata(
+  value: GraphStatusSnapshot,
+  options: {
+    cacheHit: boolean;
+    coalesced: boolean;
+    computedAt: number;
+    ttlMs: number;
+  }
+): GraphStatusSnapshot {
+  return {
+    ...value,
+    statusSnapshot: {
+      cacheHit: options.cacheHit,
+      coalesced: options.coalesced,
+      computedAt: new Date(options.computedAt).toISOString(),
+      ageMs: Math.max(0, Date.now() - options.computedAt),
+      ttlMs: options.ttlMs,
+      forceRefreshAvailable: true,
+    },
+  };
+}
+
+async function handleGraphStatus(args: Record<string, unknown>): Promise<unknown> {
   const currentCwd = resolveWorkspaceRoot();
+  const forceRefresh = args.forceRefresh === true;
+  const ttlMs = graphStatusSnapshotTtlMs();
+  const key = buildGraphStatusSnapshotKey(currentCwd);
+  const now = Date.now();
+
+  if (
+    !forceRefresh &&
+    ttlMs > 0 &&
+    graphStatusSnapshotCache?.key === key &&
+    now - graphStatusSnapshotCache.computedAt < ttlMs
+  ) {
+    return withGraphStatusSnapshotMetadata(graphStatusSnapshotCache.value, {
+      cacheHit: true,
+      coalesced: false,
+      computedAt: graphStatusSnapshotCache.computedAt,
+      ttlMs,
+    });
+  }
+
+  if (!forceRefresh && graphStatusSnapshotInFlight?.key === key) {
+    const value = await graphStatusSnapshotInFlight.promise;
+    const computedAt =
+      graphStatusSnapshotCache?.key === key ? graphStatusSnapshotCache.computedAt : Date.now();
+    return withGraphStatusSnapshotMetadata(value, {
+      cacheHit: true,
+      coalesced: true,
+      computedAt,
+      ttlMs,
+    });
+  }
+
+  const promise = computeGraphStatus(currentCwd);
+  graphStatusSnapshotInFlight = { key, promise };
+  try {
+    const value = await promise;
+    const computedAt = Date.now();
+    graphStatusSnapshotCache = { key, computedAt, value };
+    return withGraphStatusSnapshotMetadata(value, {
+      cacheHit: false,
+      coalesced: false,
+      computedAt,
+      ttlMs,
+    });
+  } finally {
+    if (graphStatusSnapshotInFlight?.promise === promise) {
+      graphStatusSnapshotInFlight = null;
+    }
+  }
+}
+
+async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapshot> {
   const activeCacheRoot = cachedRootDir || currentCwd;
   const activeCachePaths = resolveCodebaseCachePaths(activeCacheRoot);
   const cache = getCacheAge(activeCacheRoot);

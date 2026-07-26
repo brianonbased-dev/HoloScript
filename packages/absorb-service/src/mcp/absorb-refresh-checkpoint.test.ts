@@ -46,6 +46,34 @@ describe('AbsorbRefreshCheckpoint', () => {
     expect(fs.readFileSync(targetPath, 'utf-8')).toBe('{"status":"ready"}');
   });
 
+  it('distinguishes a non-authoritative progress receipt from its published graph', () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-authority-'));
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeFixture(rootDir, 'src/a.txt', 'a\n');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const scanPlan = scanner.planScan({ rootDir, maxFiles: 1 }, 1);
+    const checkpoint = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan,
+      targetGitCommitHash: 'a'.repeat(40),
+      targetWorktreeFingerprint: null,
+      scanPolicyHash: 'policy-v1',
+      maxFiles: 1,
+      workspaceCandidateFiles: 1,
+    });
+
+    checkpoint.markComplete();
+    expect(checkpoint.progressReceipt()).toMatchObject({
+      status: 'complete',
+      authoritative: false,
+      cachePublished: true,
+      publishedGraphAuthoritative: true,
+      priorAuthoritativeCachePreserved: false,
+    });
+  });
+
   it('persists a bounded non-authoritative progress receipt and resumes completed batches', async () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-checkpoint-'));
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));

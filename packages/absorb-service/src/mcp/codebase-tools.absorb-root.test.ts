@@ -1674,7 +1674,9 @@ describe('holo_absorb_repo root validation', () => {
     });
 
     fs.appendFileSync(path.join(repoDir, 'src', 'alpha.ts'), '\nexport const changed = true;\n');
-    const changed = (await handleCodebaseTool('holo_graph_status', {})) as {
+    const changed = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
       graphAuthoritative?: boolean;
       fileHashFreshness?: {
         fresh?: boolean;
@@ -2905,6 +2907,40 @@ describe('holo_absorb_repo root validation', () => {
       kind: 'GraphUnavailableReceipt',
       reason: 'cache_missing',
       authoritative: false,
+    });
+  });
+
+  it('memoizes bounded graph status polls and supports an explicit fresh check', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-status-snapshot-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+
+    const first = (await handleCodebaseTool('holo_graph_status', {})) as {
+      statusSnapshot?: { cacheHit?: boolean; coalesced?: boolean; forceRefreshAvailable?: boolean };
+    };
+    const repeated = (await handleCodebaseTool('holo_graph_status', {})) as {
+      statusSnapshot?: { cacheHit?: boolean; coalesced?: boolean; forceRefreshAvailable?: boolean };
+    };
+    const forced = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      statusSnapshot?: { cacheHit?: boolean; coalesced?: boolean; forceRefreshAvailable?: boolean };
+    };
+
+    expect(first.statusSnapshot).toMatchObject({
+      cacheHit: false,
+      coalesced: false,
+      forceRefreshAvailable: true,
+    });
+    expect(repeated.statusSnapshot).toMatchObject({
+      cacheHit: true,
+      coalesced: false,
+      forceRefreshAvailable: true,
+    });
+    expect(forced.statusSnapshot).toMatchObject({
+      cacheHit: false,
+      coalesced: false,
+      forceRefreshAvailable: true,
     });
   });
 
