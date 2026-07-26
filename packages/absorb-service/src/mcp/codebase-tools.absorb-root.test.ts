@@ -452,6 +452,7 @@ describe('holo_absorb_repo root validation', () => {
       rootDir: repoDir,
       outputFormat: 'stats',
       async: true,
+      maxRssMb: 1,
     })) as {
       accepted?: boolean;
       backgroundIsolation?: string;
@@ -480,19 +481,59 @@ describe('holo_absorb_repo root validation', () => {
       phase: 'Running in isolated worker',
       backgroundIsolation: 'worker-thread',
       requestEventLoopIsolated: true,
+      memory: null,
+      memoryAvailable: false,
+      memoryBudget: {
+        maxRssMb: 1,
+        peakRssMb: 0,
+        exceeded: false,
+      },
     });
 
     worker.emit('message', {
       type: 'telemetry',
       memory: { rssMb: 321, heapUsedMb: 123 },
+      workerStatus: {
+        status: 'scanning',
+        progress: 37,
+        phase: 'Building semantic index',
+        filesProcessed: 3,
+        totalFiles: 7,
+        memoryBudget: {
+          maxRssMb: 1,
+          peakRssMb: 321,
+          peakHeapUsedMb: 123,
+          exceeded: false,
+          headroomExhausted: false,
+        },
+        scanPlan: {
+          kind: 'AbsorbScanPlan',
+          mode: 'module-batched',
+          selectionMode: 'git-visible',
+          totalCandidateFiles: 7,
+          batchCount: 2,
+          batchDetailsOmitted: 2,
+        },
+      },
     });
     const withWorkerTelemetry = (await handleCodebaseTool('holo_get_absorb_status', {
       jobId: accepted.jobId,
     })) as Record<string, unknown>;
     expect(withWorkerTelemetry).toMatchObject({
+      status: 'scanning',
+      progress: 37,
+      phase: 'Building semantic index',
+      filesProcessed: 3,
+      totalFiles: 7,
       memoryScope: 'isolated-worker',
+      memoryAvailable: true,
       memory: { rssMb: 321, heapUsedMb: 123 },
-      memoryBudget: { peakRssMb: 321, peakHeapUsedMb: 123 },
+      memoryBudget: {
+        maxRssMb: 1,
+        peakRssMb: 321,
+        peakHeapUsedMb: 123,
+        exceeded: false,
+      },
     });
 
     worker.emit('message', {
@@ -544,6 +585,127 @@ describe('holo_absorb_repo root validation', () => {
       memoryBudget: { peakRssMb: 350, peakHeapUsedMb: 140 },
       filesProcessed: 7,
       totalFiles: 7,
+    });
+  });
+
+  it('preserves a worker-owned memory cancellation as the terminal receipt', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-worker-memory-cancel-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-worker-memory-cancel-cache-')
+    );
+
+    class FakeWorker extends EventEmitter {
+      terminated = false;
+
+      unref(): this {
+        return this;
+      }
+
+      terminate(): Promise<number> {
+        this.terminated = true;
+        return Promise.resolve(0);
+      }
+    }
+
+    const worker = new FakeWorker();
+    setIsolatedAbsorbWorkerFactoryForTests(() => worker as unknown as Worker);
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      async: true,
+      maxRssMb: 128,
+    })) as { jobId?: string };
+
+    worker.emit('message', {
+      type: 'telemetry',
+      memory: { rssMb: 196, heapUsedMb: 96 },
+      workerStatus: {
+        status: 'cancelling',
+        progress: 64,
+        phase: 'Building semantic index',
+        memoryBudget: {
+          maxRssMb: 128,
+          peakRssMb: 196,
+          peakHeapUsedMb: 96,
+          exceeded: true,
+          exceededResource: 'rss',
+          exceededAtPhase: 'Building semantic index',
+          headroomExhausted: false,
+        },
+      },
+    });
+    const live = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: accepted.jobId,
+    })) as Record<string, unknown>;
+    expect(live).toMatchObject({
+      status: 'scanning',
+      progress: 64,
+      phase: 'Building semantic index',
+      memoryScope: 'isolated-worker',
+      memoryBudget: {
+        maxRssMb: 128,
+        peakRssMb: 196,
+        exceeded: true,
+        exceededResource: 'rss',
+      },
+    });
+    expect(worker.terminated).toBe(false);
+
+    worker.emit('message', {
+      type: 'complete',
+      result: {
+        kind: 'AbsorbCancellationReceipt',
+        error: 'absorb_cancelled',
+        cancelled: true,
+        reason: 'memory_budget_exceeded',
+        message: 'Absorb rss memory budget exceeded during Building semantic index',
+        phaseAtRequest: 'Building semantic index',
+        requestedAt: new Date().toISOString(),
+        cachePreserved: true,
+        cacheCommitted: false,
+      },
+      workerStatus: {
+        status: 'cancelled',
+        memory: { rssMb: 196, heapUsedMb: 96 },
+        memoryBudget: {
+          maxRssMb: 128,
+          peakRssMb: 196,
+          peakHeapUsedMb: 96,
+          exceeded: true,
+          exceededResource: 'rss',
+          exceededAtPhase: 'Building semantic index',
+          headroomExhausted: false,
+        },
+      },
+    });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    const terminal = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: accepted.jobId,
+      includeResult: true,
+    })) as Record<string, unknown>;
+    expect(terminal).toMatchObject({
+      status: 'cancelled',
+      cancellation: {
+        reason: 'memory_budget_exceeded',
+        phaseAtRequest: 'Building semantic index',
+      },
+      memoryScope: 'isolated-worker',
+      memoryBudget: {
+        maxRssMb: 128,
+        peakRssMb: 196,
+        exceeded: true,
+        exceededResource: 'rss',
+      },
+      result: {
+        kind: 'AbsorbCancellationReceipt',
+        error: 'absorb_cancelled',
+        cancelled: true,
+        reason: 'memory_budget_exceeded',
+        cachePreserved: true,
+        cacheCommitted: false,
+      },
     });
   });
 
@@ -1144,7 +1306,8 @@ describe('holo_absorb_repo root validation', () => {
     expect(rejected).toMatchObject({
       accepted: false,
       async: false,
-      error: 'absorb_background_isolation_unavailable',
+      error: 'absorb_worker_unavailable',
+      legacyError: 'absorb_background_isolation_unavailable',
       status: 'error',
       cachePreserved: true,
     });
@@ -1156,7 +1319,8 @@ describe('holo_absorb_repo root validation', () => {
       status: 'error',
       phase: 'Worker isolation unavailable',
       result: {
-        error: 'absorb_background_isolation_unavailable',
+        error: 'absorb_worker_unavailable',
+        legacyError: 'absorb_background_isolation_unavailable',
         cachePreserved: true,
       },
     });

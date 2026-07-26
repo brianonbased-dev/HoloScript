@@ -1389,22 +1389,45 @@ const ISOLATED_ABSORB_WORKER_SOURCE = `
     };
   };
 
-  const reportMemory = () => {
+  let mod;
+  let telemetryInFlight = false;
+  const reportTelemetry = async () => {
+    if (telemetryInFlight) return;
+    telemetryInFlight = true;
     const memory = process.memoryUsage();
-    parentPort.postMessage({
-      type: 'telemetry',
-      memory: {
-        rssMb: Math.round(memory.rss / 1024 / 1024),
-        heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
-      },
-    });
+    try {
+      const innerJobId =
+        workerData.args && typeof workerData.args.__writerJobId === 'string'
+          ? workerData.args.__writerJobId
+          : undefined;
+      const workerStatus =
+        mod && innerJobId
+          ? await mod.handleCodebaseTool('holo_get_absorb_status', {
+              jobId: innerJobId,
+            })
+          : undefined;
+      parentPort.postMessage({
+        type: 'telemetry',
+        memory: {
+          rssMb: Math.round(memory.rss / 1024 / 1024),
+          heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
+        },
+        workerStatus: compact(workerStatus),
+      });
+    } catch {
+      // Telemetry must never terminate the owning scan. The terminal worker
+      // result remains the authoritative success/cancellation/error receipt.
+    } finally {
+      telemetryInFlight = false;
+    }
   };
-  const telemetryTimer = setInterval(reportMemory, 250);
+  const telemetryTimer = setInterval(() => void reportTelemetry(), 250);
   telemetryTimer.unref();
-  reportMemory();
+  void reportTelemetry();
 
   try {
-    const mod = await import(workerData.moduleUrl);
+    mod = await import(workerData.moduleUrl);
+    void reportTelemetry();
     const result = await mod.handleCodebaseTool('holo_absorb_repo', {
       ...workerData.args,
       async: false,
@@ -1485,10 +1508,95 @@ function startIsolatedBackgroundAbsorbJob(jobId: string, args: Record<string, un
 
   job.backgroundWorker = worker;
   job.backgroundIsolation = 'worker-thread';
+  // createAbsorbJob runs in the request host before the worker exists. Drop
+  // that host snapshot now: only telemetry produced by the allocation-owning
+  // worker may contribute to an isolated job's measured peaks and outcome.
+  job.memoryBudget.peakRssMb = 0;
+  job.memoryBudget.peakHeapUsedMb = 0;
   job.status = 'scanning';
   job.progress = 1;
   job.phase = 'Running in isolated worker';
   let settled = false;
+
+  const mergeWorkerStatus = (
+    activeJob: AbsorbJob,
+    workerStatus: Record<string, unknown> | undefined,
+    reportedMemory?: Partial<AbsorbMemorySnapshot>
+  ): void => {
+    const statusMemory =
+      workerStatus && typeof workerStatus.memory === 'object' && workerStatus.memory !== null
+        ? (workerStatus.memory as Partial<AbsorbMemorySnapshot>)
+        : undefined;
+    const workerMemory = reportedMemory ?? statusMemory;
+    if (Number.isFinite(workerMemory?.rssMb) && Number.isFinite(workerMemory?.heapUsedMb)) {
+      activeJob.workerMemory = {
+        rssMb: Number(workerMemory!.rssMb),
+        heapUsedMb: Number(workerMemory!.heapUsedMb),
+      };
+      activeJob.memoryBudget.peakRssMb = Math.max(
+        activeJob.memoryBudget.peakRssMb,
+        activeJob.workerMemory.rssMb
+      );
+      activeJob.memoryBudget.peakHeapUsedMb = Math.max(
+        activeJob.memoryBudget.peakHeapUsedMb,
+        activeJob.workerMemory.heapUsedMb
+      );
+    }
+    if (
+      workerStatus &&
+      typeof workerStatus.memoryBudget === 'object' &&
+      workerStatus.memoryBudget !== null
+    ) {
+      const workerBudget = workerStatus.memoryBudget as AbsorbMemoryBudgetTelemetry;
+      activeJob.memoryBudget = {
+        ...activeJob.memoryBudget,
+        ...workerBudget,
+        peakRssMb: Math.max(
+          activeJob.memoryBudget.peakRssMb,
+          workerBudget.peakRssMb ?? 0,
+          activeJob.workerMemory?.rssMb ?? 0
+        ),
+        peakHeapUsedMb: Math.max(
+          activeJob.memoryBudget.peakHeapUsedMb,
+          workerBudget.peakHeapUsedMb ?? 0,
+          activeJob.workerMemory?.heapUsedMb ?? 0
+        ),
+      };
+    }
+    if (workerStatus && Array.isArray(workerStatus.phaseMetrics)) {
+      activeJob.phaseMetrics = workerStatus.phaseMetrics as AbsorbPhaseMetric[];
+    }
+    if (workerStatus && typeof workerStatus.phase === 'string') {
+      activeJob.phase = workerStatus.phase;
+    }
+    if (workerStatus && typeof workerStatus.progress === 'number') {
+      activeJob.progress = Math.max(activeJob.progress, workerStatus.progress);
+    }
+    if (workerStatus && typeof workerStatus.filesProcessed === 'number') {
+      activeJob.filesProcessed = workerStatus.filesProcessed;
+    }
+    if (workerStatus && typeof workerStatus.totalFiles === 'number') {
+      activeJob.totalFiles = workerStatus.totalFiles;
+    }
+    if (
+      workerStatus?.scanPlan &&
+      typeof workerStatus.scanPlan === 'object' &&
+      Array.isArray((workerStatus.scanPlan as Partial<AbsorbScanPlanReceipt>).batches)
+    ) {
+      // Periodic worker telemetry intentionally uses compact status and omits
+      // batch details. Only the terminal includePlan status may replace the
+      // parent's full plan; otherwise the next parent poll would compact an
+      // already-compact plan and dereference a missing batches array.
+      activeJob.scanPlan = workerStatus.scanPlan as AbsorbScanPlanReceipt;
+    }
+    if (
+      workerStatus?.refreshProgressReceipt &&
+      typeof workerStatus.refreshProgressReceipt === 'object'
+    ) {
+      activeJob.refreshProgressReceipt =
+        workerStatus.refreshProgressReceipt as AbsorbRefreshProgressReceipt;
+    }
+  };
 
   worker.on('message', (message: unknown) => {
     if (settled) return;
@@ -1501,21 +1609,12 @@ function startIsolatedBackgroundAbsorbJob(jobId: string, args: Record<string, un
     };
     if (payload.type === 'telemetry') {
       const memory = payload.memory as Partial<AbsorbMemorySnapshot> | undefined;
+      const workerStatus =
+        typeof payload.workerStatus === 'object' && payload.workerStatus !== null
+          ? (payload.workerStatus as Record<string, unknown>)
+          : undefined;
       const activeJob = absorbJobs.get(jobId);
-      if (activeJob && Number.isFinite(memory?.rssMb) && Number.isFinite(memory?.heapUsedMb)) {
-        activeJob.workerMemory = {
-          rssMb: Number(memory!.rssMb),
-          heapUsedMb: Number(memory!.heapUsedMb),
-        };
-        activeJob.memoryBudget.peakRssMb = Math.max(
-          activeJob.memoryBudget.peakRssMb,
-          activeJob.workerMemory.rssMb
-        );
-        activeJob.memoryBudget.peakHeapUsedMb = Math.max(
-          activeJob.memoryBudget.peakHeapUsedMb,
-          activeJob.workerMemory.heapUsedMb
-        );
-      }
+      if (activeJob) mergeWorkerStatus(activeJob, workerStatus, memory);
       return;
     }
     if (payload.type === 'error') {
@@ -1553,56 +1652,7 @@ function startIsolatedBackgroundAbsorbJob(jobId: string, args: Record<string, un
       typeof payload.workerStatus === 'object' && payload.workerStatus !== null
         ? (payload.workerStatus as Record<string, unknown>)
         : undefined;
-    const workerMemory =
-      workerStatus && typeof workerStatus.memory === 'object' && workerStatus.memory !== null
-        ? (workerStatus.memory as Partial<AbsorbMemorySnapshot>)
-        : undefined;
-    if (Number.isFinite(workerMemory?.rssMb) && Number.isFinite(workerMemory?.heapUsedMb)) {
-      activeJob.workerMemory = {
-        rssMb: Number(workerMemory!.rssMb),
-        heapUsedMb: Number(workerMemory!.heapUsedMb),
-      };
-    }
-    if (
-      workerStatus &&
-      typeof workerStatus.memoryBudget === 'object' &&
-      workerStatus.memoryBudget !== null
-    ) {
-      const workerBudget = workerStatus.memoryBudget as AbsorbMemoryBudgetTelemetry;
-      activeJob.memoryBudget = {
-        ...activeJob.memoryBudget,
-        ...workerBudget,
-        peakRssMb: Math.max(
-          activeJob.memoryBudget.peakRssMb,
-          workerBudget.peakRssMb ?? 0,
-          activeJob.workerMemory?.rssMb ?? 0
-        ),
-        peakHeapUsedMb: Math.max(
-          activeJob.memoryBudget.peakHeapUsedMb,
-          workerBudget.peakHeapUsedMb ?? 0,
-          activeJob.workerMemory?.heapUsedMb ?? 0
-        ),
-      };
-    }
-    if (workerStatus && Array.isArray(workerStatus.phaseMetrics)) {
-      activeJob.phaseMetrics = workerStatus.phaseMetrics as AbsorbPhaseMetric[];
-    }
-    if (workerStatus && typeof workerStatus.filesProcessed === 'number') {
-      activeJob.filesProcessed = workerStatus.filesProcessed;
-    }
-    if (workerStatus && typeof workerStatus.totalFiles === 'number') {
-      activeJob.totalFiles = workerStatus.totalFiles;
-    }
-    if (workerStatus?.scanPlan && typeof workerStatus.scanPlan === 'object') {
-      activeJob.scanPlan = workerStatus.scanPlan as AbsorbScanPlanReceipt;
-    }
-    if (
-      workerStatus?.refreshProgressReceipt &&
-      typeof workerStatus.refreshProgressReceipt === 'object'
-    ) {
-      activeJob.refreshProgressReceipt =
-        workerStatus.refreshProgressReceipt as AbsorbRefreshProgressReceipt;
-    }
+    mergeWorkerStatus(activeJob, workerStatus);
     if (resultError === 'absorb_cancelled' || workerStatus?.status === 'cancelled') {
       const resultRecord = result as Record<string, unknown>;
       const completedAt = Date.now();
@@ -1705,7 +1755,8 @@ function startBackgroundAbsorbJob(
     const message =
       'Large background absorb requires worker isolation, but the worker could not be started; the request event loop was not used as a fallback.';
     failAbsorbJob(jobId, 'Worker isolation unavailable', message, {
-      error: 'absorb_background_isolation_unavailable',
+      error: 'absorb_worker_unavailable',
+      legacyError: 'absorb_background_isolation_unavailable',
       message,
       jobId,
       cachePreserved: true,
@@ -6751,7 +6802,8 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       return {
         accepted: false,
         async: false,
-        error: 'absorb_background_isolation_unavailable',
+        error: 'absorb_worker_unavailable',
+        legacyError: 'absorb_background_isolation_unavailable',
         jobId,
         status: absorbJobs.get(jobId)?.status ?? 'error',
         rootDir: primaryRootDir,
@@ -8696,6 +8748,8 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
     updateAbsorbMemoryBudget(job, job.phase);
   }
 
+  const isolatedWorkerMemory =
+    job.backgroundIsolation === 'worker-thread' ? (job.workerMemory ?? null) : undefined;
   const response: Record<string, unknown> = {
     jobId,
     status: job.status,
@@ -8709,7 +8763,12 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
       backgroundIsolation: job.backgroundIsolation,
       requestEventLoopIsolated: job.backgroundIsolation === 'worker-thread',
     }),
-    memory: job.workerMemory ?? readAbsorbMemorySnapshot(),
+    memory:
+      job.backgroundIsolation === 'worker-thread'
+        ? isolatedWorkerMemory
+        : readAbsorbMemorySnapshot(),
+    memoryAvailable:
+      job.backgroundIsolation === 'worker-thread' ? isolatedWorkerMemory !== null : true,
     memoryScope: job.backgroundIsolation === 'worker-thread' ? 'isolated-worker' : 'request-host',
     ...(job.backgroundIsolation === 'worker-thread' && {
       rssScope: 'shared-worker-thread-process',
