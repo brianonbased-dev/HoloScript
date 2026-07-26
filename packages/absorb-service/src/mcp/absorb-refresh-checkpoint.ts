@@ -98,6 +98,38 @@ export interface CompactAbsorbRefreshProgressReceipt extends Omit<
   latestCompletedBatch?: AbsorbRefreshCompletedBatch;
 }
 
+const TRANSIENT_ATOMIC_REPLACE_CODES = new Set(['EACCES', 'EBUSY', 'EPERM']);
+const ATOMIC_REPLACE_RETRY_DELAYS_MS = [2, 4, 8, 16, 32, 50];
+const atomicReplaceSleepBuffer = new Int32Array(new SharedArrayBuffer(4));
+
+function isTransientAtomicReplaceError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    TRANSIENT_ATOMIC_REPLACE_CODES.has(String((error as NodeJS.ErrnoException).code ?? ''))
+  );
+}
+
+export function replaceFileWithRetry(
+  temporaryPath: string,
+  targetPath: string,
+  renameFile: typeof fs.renameSync = fs.renameSync
+): void {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      renameFile(temporaryPath, targetPath);
+      return;
+    } catch (error) {
+      const delayMs = ATOMIC_REPLACE_RETRY_DELAYS_MS[attempt];
+      if (delayMs === undefined || !isTransientAtomicReplaceError(error)) throw error;
+      // Windows readers can briefly hold a sharing lock on the destination.
+      // Keep the fully-written temp file and retry the atomic replace instead
+      // of failing the entire resumable scan because an agent polled status.
+      Atomics.wait(atomicReplaceSleepBuffer, 0, 0, delayMs);
+    }
+  }
+}
+
 function atomicWriteFileSync(targetPath: string, data: string): void {
   const directory = path.dirname(targetPath);
   fs.mkdirSync(directory, { recursive: true });
@@ -107,7 +139,7 @@ function atomicWriteFileSync(targetPath: string, data: string): void {
   );
   try {
     fs.writeFileSync(temporaryPath, data, 'utf-8');
-    fs.renameSync(temporaryPath, targetPath);
+    replaceFileWithRetry(temporaryPath, targetPath);
   } catch (error) {
     try {
       if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);

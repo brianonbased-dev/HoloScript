@@ -5873,7 +5873,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       force,
       embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
       memoryBudget: { ...absorbJobs.get(jobId)!.memoryBudget },
-      scanPolicy,
+      scanPolicy: plan.scanPolicy,
       ...(plan.refreshCheckpoint && {
         resumeToken: plan.refreshCheckpoint.progressReceipt().resumeToken,
         refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(

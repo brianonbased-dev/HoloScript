@@ -7,6 +7,7 @@ import {
   ABSORB_REFRESH_PROGRESS_RECEIPT_SCHEMA,
   compactAbsorbRefreshProgressReceipt,
   prepareAbsorbRefreshCheckpoint,
+  replaceFileWithRetry,
 } from './absorb-refresh-checkpoint';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
@@ -23,6 +24,28 @@ afterEach(() => {
 });
 
 describe('AbsorbRefreshCheckpoint', () => {
+  it('retries transient Windows sharing violations during atomic receipt replacement', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-retry-'));
+    const temporaryPath = path.join(directory, 'receipt.json.tmp');
+    const targetPath = path.join(directory, 'receipt.json');
+    fs.writeFileSync(temporaryPath, '{"status":"ready"}', 'utf-8');
+    const originalRenameSync = fs.renameSync.bind(fs);
+    let attempts = 0;
+    const transientRename: typeof fs.renameSync = (oldPath, newPath) => {
+      attempts += 1;
+      if (attempts <= 2) {
+        const error = new Error('synthetic sharing violation') as NodeJS.ErrnoException;
+        error.code = 'EPERM';
+        throw error;
+      }
+      originalRenameSync(oldPath, newPath);
+    };
+
+    replaceFileWithRetry(temporaryPath, targetPath, transientRename);
+    expect(attempts).toBe(3);
+    expect(fs.readFileSync(targetPath, 'utf-8')).toBe('{"status":"ready"}');
+  });
+
   it('persists a bounded non-authoritative progress receipt and resumes completed batches', async () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-checkpoint-'));
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));
