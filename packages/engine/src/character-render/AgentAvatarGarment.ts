@@ -246,13 +246,14 @@ function pushMantlePanel(target: MeshAccum, buildScale: number, segments: number
   const jointIndex = BONE_INDEX.get('spine2') ?? 0;
   for (let row = 0; row < rows; row += 1) {
     const v01 = row / (rows - 1);
-    const y = 1.42 - v01 * 0.9;
-    const halfWidth = (0.25 - v01 * 0.025) * buildScale;
     const clothWeight = Math.pow(v01, 1.35);
     for (let column = 0; column <= columns; column += 1) {
       const u01 = column / columns;
+      const centerArc = Math.sin(u01 * Math.PI) ** 2;
+      const y = 1.42 - v01 * 0.78 - v01 * centerArc * 0.12;
+      const halfWidth = (0.34 * (1 - v01) + 0.15 * v01) * buildScale;
       const x = (u01 * 2 - 1) * halfWidth;
-      const z = (0.188 + 0.018 * Math.cos((u01 - 0.5) * Math.PI)) * buildScale;
+      const z = (0.19 + 0.026 * Math.cos((u01 - 0.5) * Math.PI)) * buildScale;
       target.positions.push(x, y, z);
       target.normals.push(0, 0, 1);
       target.tangents.push(1, 0, 0, 0);
