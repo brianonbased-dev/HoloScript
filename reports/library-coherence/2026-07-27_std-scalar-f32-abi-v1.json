@@ -1,0 +1,159 @@
+{
+  "schema": "holoscript.library-coherence.std-scalar-f32-abi.v1",
+  "generatedAt": "2026-07-27T01:56:05.765Z",
+  "status": "pass",
+  "objective": "Extend the executable standard-library ABI with an IEEE-754 binary32 subset authored in HoloScript and prove operation-by-operation f32 rounding across Node, browser-WASM to UAAL, and owned-metal.",
+  "repository": {
+    "canonical": "https://github.com/brianonbased-dev/HoloScript",
+    "implementationCommit": "5879017031267414787fe7a12d31a6cccdf89ba8",
+    "branch": "main"
+  },
+  "abi": {
+    "id": "hs.std.scalar.f32.v1",
+    "source": "packages/std/src/abi/scalar-f32-v1.hs",
+    "sourceSha256": "0dc38c61137a2fea5e34ce11724df035ee5e984da87588e622694a967c2068f2",
+    "authoredBy": "HoloScript source",
+    "functions": [
+      "std_math_clamp_f32",
+      "std_math_lerp_f32",
+      "std_math_inverse_lerp_f32",
+      "std_math_remap_f32"
+    ],
+    "contract": {
+      "inputs": "finite IEEE-754 binary32 values",
+      "rounding": "parameters, literals, every intermediate arithmetic result, and returns use binary32",
+      "inverseLerpAndRemapRequireNonZeroInputSpan": true,
+      "excluded": [
+        "NaN semantics",
+        "infinity semantics",
+        "signed-zero preservation",
+        "division-by-zero semantics"
+      ]
+    }
+  },
+  "compiler": {
+    "ownedMetal": {
+      "scalarContract": "hs-machine-v37",
+      "moduleComposedContract": "hs-machine-v38",
+      "lowering": [
+        "f32 parameters",
+        "f32 results",
+        "f32 locals",
+        "finite f32 literals",
+        "fadd",
+        "fsub",
+        "fmul",
+        "fdiv",
+        "fcmp",
+        "direct calls"
+      ],
+      "retainsF64Subset": true,
+      "processEntryRemainsIntegral": true
+    },
+    "browserWasm": {
+      "execAbi": "hs.f32.binary.v1",
+      "literalRounding": "compiler emits f32-rounded numeric literals",
+      "handlerRounding": "embedding handler rounds operands and every arithmetic result with Math.fround",
+      "implicitNumericCoercion": false,
+      "artifactBytes": 401351,
+      "artifactSha256": "f05ee0fde6a84415c38e613551d9faa409171d0f025b575487b496d8936922c2",
+      "repeatBuildSha256Matched": true,
+      "browserAndNodeArtifactsMatch": true
+    }
+  },
+  "conformance": {
+    "schema": "holoscript.std.math-abi-conformance.v4",
+    "expectedDigest": 165,
+    "targets": {
+      "node": {
+        "runtime": "v24.15.0",
+        "result": 165,
+        "binary32Results": {
+          "clampInside": 1.0000001192092896,
+          "lerp": 16777216,
+          "inverseLerp": 0.10000000149011612,
+          "remap": 10.800000190734863
+        }
+      },
+      "browserWasmToUaal": {
+        "result": 165,
+        "instructionCount": 514,
+        "bytecodeSha256": "4f1b33ba008c4e31ff15834e809714cf7e81c5a02d27f1c755fb8a8f656d7ccb",
+        "receiptHashMatches": true,
+        "replayValid": true
+      },
+      "ownedMetal": {
+        "result": 165,
+        "machineContract": "hs-machine-v38",
+        "objectBytes": 4047,
+        "objectSha256": "c36872038801d8c79a67be17d06ab3c2dab218607c35a25b1212d46fc495e7d7"
+      }
+    }
+  },
+  "published": {
+    "npm": [
+      {
+        "name": "@holoscript/std",
+        "version": "7.0.6",
+        "integrity": "sha512-iznj6NHjoywt9hBm5hl40ZL67KmqP21GJNPqUjhc2UQH6K+pGRlMnKhoCJlS2mk5/GFw1W8HeAdHqje/3sf4uQ==",
+        "shasum": "182a56c558c1e121db5a251db8bb325952bbf156",
+        "candidateTarballSha256": "06eb528402ef656573a9375c66156b6d25a356d32704db5c0cb8d64e0cd1550d"
+      },
+      {
+        "name": "@holoscript/wasm",
+        "version": "6.1.5",
+        "integrity": "sha512-vIxeNQvW0eyY0wDgORXHS+dhvfpuhBO0xHua35xBN9HAK+PEpn0e0i/V+3pru3NKrSrYJtHJxezmG3lBzAPcMw==",
+        "shasum": "a86b2cbbf09902f1baf541911426d20c0b04ba05",
+        "candidateTarballSha256": "9a15369357b16edc862da8de8c616ca97a99f2ac56b9d06ca581b108ad9efc56"
+      }
+    ],
+    "immutableTarballsInspectedBeforePublish": true,
+    "coldTarballConsumerPassed": true,
+    "registryReadbackMatched": true
+  },
+  "publicConsumer": {
+    "canonicalRoot": "C:/Holo",
+    "commit": "5c097a7df9533d88715fd8e27afac75936b336af",
+    "remoteConfigured": false,
+    "exactPublicPackages": 9,
+    "localSourceUsed": false,
+    "coldInstall": "pass",
+    "publishedStdF32SourceResolved": true,
+    "publishedWasmCompiledF32ToUaal": true,
+    "f32ExecInstructionCount": 9,
+    "publishedUaalExecutedAndReplayed": true,
+    "bytecodeSha256": "4e197d183fdb2d00c6dc3611c00eef248327ea4252e9426f607b2a5f90aa9d2d",
+    "registryRestart": "pass",
+    "processGuardedOfflineReplay": "pass",
+    "ephemeralConsumerRemoved": true
+  },
+  "validation": {
+    "stdTests": "25 files, 1043 passed",
+    "wasmTests": "290 passed",
+    "nativeTests": "93 passed across unit, module, and smoke targets",
+    "specCorpus": "41/41",
+    "packageCatalog": "pass, candidates=19, nativeLibraries=1",
+    "packageDocMold": "pass",
+    "safeCommitGates": "pass",
+    "canonicalConsumerAdapterTests": "41 passed",
+    "canonicalConsumerFrozenLockfile": "pass"
+  },
+  "boundaries": {
+    "provesFiniteScalarF32Math": true,
+    "provesOperationByOperationF32Rounding": true,
+    "provesHoloScriptAuthoredSource": true,
+    "provesNodeExecution": true,
+    "provesBrowserWasmCompilerAndUaalExecution": true,
+    "provesBrowserReceiptHashingAndReplay": true,
+    "provesOwnedMetalNativeExecutable": true,
+    "provesNonFiniteFloatingPointEdgeSemantics": false,
+    "provesAggregateVectorCallingConvention": false,
+    "provesImmutableCollectionsParity": false,
+    "provesOsAirGap": false
+  },
+  "remainingGaps": [
+    "Define a stable cross-target aggregate and value calling convention for Vec3 and other value types.",
+    "Prove immutable collections from HoloScript source across the same three targets.",
+    "Add dedicated NaN, infinity, signed-zero, and division-by-zero contracts before expanding the floating-point claim."
+  ]
+}
