@@ -84,7 +84,7 @@ def main():
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    ckpt = torch.load(ckpt_path, map_location=device)
+    ckpt = torch.load(ckpt_path, map_location=device, weights_only=True)
     config = ckpt.get("config", {})
     model = GPT(
         int(ckpt.get("vocab_size") or meta["vocab_size"]),
