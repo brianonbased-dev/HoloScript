@@ -1,28 +1,28 @@
 {
   "schema": "holoscript.std-abi-conformance.wasm.v0",
-  "generatedAtISO": "2026-07-27T18:07:36.466Z",
+  "generatedAtISO": "2026-07-27T18:30:36.433Z",
   "target": "browser-wasm",
   "executionRuntime": "node-webassembly",
   "wasmArtifact": {
     "path": "packages/compiler-wasm/pkg-node",
-    "sha256": "sha256:3e03d7764585f31ade856153f03c26db4fca446c3d1b990545134e168c6c547e",
+    "sha256": "sha256:6a3aa2aad0796204816c8aa46f745cd5c260c991eee1820c277a802e4201131a",
     "byteIdenticalWebArtifact": {
       "path": "packages/compiler-wasm/pkg",
-      "sha256": "sha256:3e03d7764585f31ade856153f03c26db4fca446c3d1b990545134e168c6c547e",
+      "sha256": "sha256:6a3aa2aad0796204816c8aa46f745cd5c260c991eee1820c277a802e4201131a",
       "matches": true
     }
   },
-  "evaluatorExport": "evaluate_trait_handler_v2",
-  "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins",
+  "evaluatorExport": "evaluate_trait_handler_v3",
+  "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings",
   "sources": {
-    "traitProjectionSha256": "sha256:7ddf6d707a77f69cf2d9d4c44a668e192bb376891f042de0b95bc3135a55a85a",
-    "vectorsSha256": "sha256:b02127c81510b2c9ac10b486f3489d02c211214e75fc0b90ba3a864147071a20",
-    "manifestSha256": "sha256:6f7b76da486e73b72eb9e240bd2ce0bd7da7f096c575333072ae323a10eba952",
+    "traitProjectionSha256": "sha256:cef7935728bdcf98f28c06e4b05f7a691449000864468930a502de8a14e71c49",
+    "vectorsSha256": "sha256:6d7a2efc1de7423f6779beadc4008eafb97f2f36068c19ecc599be030cee9f5a",
+    "manifestSha256": "sha256:bec660bf929ba8a4653c65b27ab2d143e413449bee1047c373b75c3ec0224fa3",
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:7ddf6d707a77f69cf2d9d4c44a668e192bb376891f042de0b95bc3135a55a85a"
+      "sha256": "sha256:cef7935728bdcf98f28c06e4b05f7a691449000864468930a502de8a14e71c49"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:b02127c81510b2c9ac10b486f3489d02c211214e75fc0b90ba3a864147071a20"
+      "sha256": "sha256:6d7a2efc1de7423f6779beadc4008eafb97f2f36068c19ecc599be030cee9f5a"
     }
   },
   "environment": {
@@ -31,16 +31,10 @@
     "platform": "win32"
   },
   "summary": {
-    "vectors": 69,
-    "passed": 69,
+    "vectors": 75,
+    "passed": 75,
     "failed": 0,
     "excludedOps": [
-      {
-        "op": "on_quat_slerp",
-        "trait": "std_math",
-        "reason": "delegates to math.quat_slerp via get_std_math_lib(), a host binding with no implementation anywhere in the repo (verified 2026-07-26); a pure inline projection needs branch-heavy shortest-path/near-parallel handling beyond a reviewable single expression",
-        "unlock": "define the std host-ABI binding surface with per-target bindings, or admit a bounded local-binding statement form in the engine lane so the pure slerp projection stays reviewable"
-      },
       {
         "op": "*",
         "trait": "std_list",
@@ -681,6 +675,78 @@
       }
     },
     {
+      "id": "qslerp-mid",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:90c0b43d66c20aa27a70eefd9e5ce796aa42f1a70edab125f60301b48affdf48",
+      "actual": {
+        "w": 0.9238795325112867,
+        "x": 0,
+        "y": 0,
+        "z": 0.38268343236508984
+      }
+    },
+    {
+      "id": "qslerp-quarter-general",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:83084f48f05a47e40626ae4c2243770befd3fd43ef824ec4875dff7f6ff0f5d5",
+      "actual": {
+        "w": 0.889117318538694,
+        "x": 0.17870630796170991,
+        "y": 0.21613343763264042,
+        "z": 0.31777837561756156
+      }
+    },
+    {
+      "id": "qslerp-shortest-nlerp",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:3361c4e7ea453f7a050ffd60bc84307957733d76909bae2601375dd208557bf4",
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qslerp-shortest-spherical",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:3de15e73536aa77a408ab4537992e0a326a85f2361f178c351081d0bb2a377f1",
+      "actual": {
+        "w": 0.6668859288553503,
+        "x": 0.4616902584383194,
+        "y": 0.3847418820319328,
+        "z": 0.4360407996361905
+      }
+    },
+    {
+      "id": "qslerp-near-parallel",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:f47bb4fbfb7c8fe41266c8c817323a3736d16c138fbf7c9e8e6030c445f88263",
+      "actual": {
+        "w": 0.9991095955268614,
+        "x": 0.010501677514422186,
+        "y": 0.02050327514720522,
+        "z": 0.030504872779988257
+      }
+    },
+    {
+      "id": "qslerp-t0-positive",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:fca35c15f623f9be34ae5c9d2b442215ba0d5792d84f5f37ddcc65af017f77a0",
+      "actual": {
+        "w": 0.9,
+        "x": 0.1,
+        "y": 0.2,
+        "z": 0.3
+      }
+    },
+    {
       "id": "quat-identity",
       "op": "on_quat_identity",
       "pass": true,
@@ -745,5 +811,5 @@
     "provesBrowserExecution": false,
     "note": "Executed in Node's WebAssembly runtime against the byte-identical wasm shipped for browsers; a browser smoke run is a separate receipt."
   },
-  "receiptHash": "sha256:aff5a4731e36049d7bf48ec35b8f5c8ee06db91109959ae487c0849be0322623"
+  "receiptHash": "sha256:e196d70933a599b7f89e1e4fe04552fdc177611beef5cb7dc217c192c69a899f"
 }

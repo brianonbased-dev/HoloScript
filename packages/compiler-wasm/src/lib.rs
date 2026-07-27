@@ -280,6 +280,28 @@ pub fn evaluate_trait_handler_v2(
     eval::evaluate_trait_handler_v2_json(source, trait_name, handler_name, args_json)
 }
 
+/// Evaluate one `@on_<handler>` trait-handler body under the v3 deterministic
+/// subset id (`holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings`).
+///
+/// v3 is an HONEST ALIAS of [`evaluate_trait_handler_v2`]: identical internals
+/// and evaluation mode (numeric builtin table ON). This lane's statement
+/// walker has admitted the v3 grammar's bounded local bindings — bare
+/// `name = expr` assignment, reassignment including inside if/else branches,
+/// use-before-assign fail-closed as `unknown-identifier` — since v1, so the
+/// v2 build already implements the v3 grammar. The engine lane is only now
+/// gaining local bindings under the shared v3 id; this export exists so
+/// receipts on both lanes pin ONE shared subset id
+/// (`eval::DETERMINISTIC_SUBSET_V3`) through an honestly-named export.
+#[wasm_bindgen]
+pub fn evaluate_trait_handler_v3(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+) -> String {
+    eval::evaluate_trait_handler_v3_json(source, trait_name, handler_name, args_json)
+}
+
 /// Compile top-level `.hs` functions to a UAAL bytecode packet.
 ///
 /// This mirrors [`compile_to_kotlin`]'s JSON boundary but targets the stack-based

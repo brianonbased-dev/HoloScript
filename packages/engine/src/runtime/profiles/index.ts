@@ -69,6 +69,7 @@ export {
 export {
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V2,
+  ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V3,
   DeterministicHsplusActionRuntime,
   createDeterministicHsplusActionRuntime,
   type DeterministicHsplusActionRuntimeOptions,

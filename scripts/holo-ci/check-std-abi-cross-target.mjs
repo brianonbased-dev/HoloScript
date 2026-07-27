@@ -230,5 +230,5 @@ if (problems.length > 0) {
   fail(`${problems.length} cross-target problem(s); receipt at ${outPath}`);
 }
 console.log(
-  `[std-abi-cross-target] OK: ${comparedVectors} vectors exactly equal across ${receipts.length} targets; receipt at ${outPath}`
+  `[std-abi-cross-target] OK: ${comparedVectors} vectors equal across ${receipts.length} targets (${comparedVectors - toleranceBoundedVectors} exact, ${toleranceBoundedVectors} within declared tolerance); receipt at ${outPath}`
 );

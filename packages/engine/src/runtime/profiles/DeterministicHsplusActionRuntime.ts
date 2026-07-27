@@ -30,6 +30,9 @@ export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET =
 export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V2 =
   'holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins' as const;
 
+export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V3 =
+  'holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings' as const;
+
 export interface DeterministicHsplusActionRuntimeOptions {
   /**
    * Admit the v2 whitelisted deterministic numeric builtin table
@@ -38,6 +41,17 @@ export interface DeterministicHsplusActionRuntimeOptions {
    * pinned receipt contract and must not change behavior.
    */
   numericBuiltins?: boolean;
+  /**
+   * Admit bounded local bindings: plain `name = expr` assignments to bare
+   * identifiers that are not parameters, `state`, or builtin names.
+   * Reassignment is allowed, use-before-assign fails closed at validation,
+   * locals never outlive the invocation, and only the plain `=` operator is
+   * admitted for locals. Implies the v3 subset id, raises the composition
+   * AST-node budget from 512 to 4096 (v1/v2 budgets stay pinned), and,
+   * together with numericBuiltins, matches the wasm evaluator's admitted
+   * grammar.
+   */
+  localBindings?: boolean;
 }
 
 const NUMERIC_BUILTINS: ReadonlyMap<string, { arity: number; apply: (args: number[]) => number }> =
@@ -55,6 +69,7 @@ const NUMERIC_BUILTINS: ReadonlyMap<string, { arity: number; apply: (args: numbe
 const MAX_SOURCE_BYTES = 256 * 1024;
 const MAX_CANONICAL_VALUE_BYTES = 1024 * 1024;
 const MAX_AST_NODES = 512;
+const MAX_AST_NODES_V3 = 4096;
 const MAX_AST_DEPTH = 32;
 const MAX_EVENT_NAME_LENGTH = 128;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -79,10 +94,13 @@ interface EvaluationEnvironment {
   state: HeadlessJsonObject;
   args: HeadlessJsonObject;
   numericBuiltins: boolean;
+  localBindings: boolean;
+  locals: HeadlessJsonObject;
 }
 
 interface AstBudget {
   nodes: number;
+  limit: number;
 }
 
 interface StatementFlow {
@@ -310,7 +328,7 @@ function extractStructuredState(
 
 function consumeBudget(budget: AstBudget, depth: number, label: string): void {
   budget.nodes++;
-  if (budget.nodes > MAX_AST_NODES) fail(`${label} exceeds ${MAX_AST_NODES} AST nodes`);
+  if (budget.nodes > budget.limit) fail(`${label} exceeds ${budget.limit} AST nodes`);
   if (depth > MAX_AST_DEPTH) fail(`${label} exceeds AST depth ${MAX_AST_DEPTH}`);
 }
 
@@ -334,7 +352,9 @@ function validateExpression(
   params: ReadonlySet<string>,
   budget: AstBudget,
   depth: number,
-  admitBuiltins: boolean
+  admitBuiltins: boolean,
+  admitLocals: boolean,
+  locals: Set<string>
 ): void {
   consumeBudget(budget, depth, 'action expression');
   switch (expression.type) {
@@ -357,7 +377,7 @@ function validateExpression(
         );
       }
       expression.arguments.forEach((argument) =>
-        validateExpression(argument, params, budget, depth + 1, admitBuiltins)
+        validateExpression(argument, params, budget, depth + 1, admitBuiltins, admitLocals, locals)
       );
       return;
     }
@@ -365,7 +385,7 @@ function validateExpression(
       toStrictJson(expression.value, 'literal');
       return;
     case 'Identifier':
-      if (!params.has(expression.name)) {
+      if (!params.has(expression.name) && !(admitLocals && locals.has(expression.name))) {
         fail(`expression references undeclared parameter "${expression.name}"`);
       }
       return;
@@ -376,7 +396,7 @@ function validateExpression(
         consumeBudget(budget, depth + extraDepth, 'member access');
       }
       path.forEach((part) => assertSafeKey(part, 'member access'));
-      if (path[0] !== 'state' && !params.has(path[0])) {
+      if (path[0] !== 'state' && !params.has(path[0]) && !(admitLocals && locals.has(path[0]))) {
         fail(`member access root "${path[0]}" is not declared state or a parameter`);
       }
       return;
@@ -401,18 +421,20 @@ function validateExpression(
       if (!allowed.has(expression.operator)) {
         fail(`binary operator "${expression.operator}" is unsupported`);
       }
-      validateExpression(expression.left, params, budget, depth + 1, admitBuiltins);
-      validateExpression(expression.right, params, budget, depth + 1, admitBuiltins);
+      validateExpression(expression.left, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+      validateExpression(expression.right, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
       return;
     }
     case 'UnaryExpression':
       if (expression.operator !== '!' && expression.operator !== '-') {
         fail(`unary operator "${String(expression.operator)}" is unsupported`);
       }
-      validateExpression(expression.argument, params, budget, depth + 1, admitBuiltins);
+      validateExpression(expression.argument, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
       return;
     case 'ArrayExpression':
-      expression.elements.forEach((child) => validateExpression(child, params, budget, depth + 1, admitBuiltins));
+      expression.elements.forEach((child) =>
+        validateExpression(child, params, budget, depth + 1, admitBuiltins, admitLocals, locals)
+      );
       return;
     case 'ObjectExpression': {
       const keys = new Set<string>();
@@ -422,14 +444,14 @@ function validateExpression(
           fail(`object expression contains duplicate key "${property.key}"`);
         }
         keys.add(property.key);
-        validateExpression(property.value, params, budget, depth + 1, admitBuiltins);
+        validateExpression(property.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
       });
       return;
     }
     case 'ConditionalExpression':
-      validateExpression(expression.test, params, budget, depth + 1, admitBuiltins);
-      validateExpression(expression.consequent, params, budget, depth + 1, admitBuiltins);
-      validateExpression(expression.alternate, params, budget, depth + 1, admitBuiltins);
+      validateExpression(expression.test, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+      validateExpression(expression.consequent, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+      validateExpression(expression.alternate, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
       return;
     default:
       fail(`expression type "${String((expression as { type?: unknown }).type)}" is not admitted`);
@@ -441,18 +463,39 @@ function validateStatements(
   params: ReadonlySet<string>,
   budget: AstBudget,
   depth: number,
-  admitBuiltins: boolean
+  admitBuiltins: boolean,
+  admitLocals: boolean,
+  locals: Set<string>
 ): void {
   for (const statement of statements) {
     consumeBudget(budget, depth, 'action body');
     switch (statement.type) {
       case 'Assignment': {
         const path = statement.target.split('.');
+        if (path.length === 1) {
+          if (!admitLocals) {
+            fail(`assignment target "${statement.target}" must be declared state`);
+          }
+          const name = statement.target;
+          assertSafeKey(name, 'local binding');
+          if (params.has(name)) {
+            fail(`local binding "${name}" cannot reassign a parameter`);
+          }
+          if (RESERVED_PARAMETER_NAMES.has(name) || NUMERIC_BUILTINS.has(name)) {
+            fail(`local binding "${name}" collides with a reserved or builtin name`);
+          }
+          if (statement.operator !== '=') {
+            fail(`local binding "${name}" admits only the plain = operator`);
+          }
+          validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+          locals.add(name);
+          break;
+        }
         if (path.length < 2 || path[0] !== 'state') {
           fail(`assignment target "${statement.target}" must be declared state`);
         }
         path.forEach((part) => assertSafeKey(part, 'assignment target'));
-        validateExpression(statement.value, params, budget, depth + 1, admitBuiltins);
+        validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
         break;
       }
       case 'EmitStatement':
@@ -463,15 +506,15 @@ function validateStatements(
         ) {
           fail('event name is empty, too long, or contains control characters');
         }
-        if (statement.data) validateExpression(statement.data, params, budget, depth + 1, admitBuiltins);
+        if (statement.data) validateExpression(statement.data, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
         break;
       case 'ReturnStatement':
-        if (statement.value) validateExpression(statement.value, params, budget, depth + 1, admitBuiltins);
+        if (statement.value) validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
         break;
       case 'IfStatement':
-        validateExpression(statement.condition, params, budget, depth + 1, admitBuiltins);
-        validateStatements(statement.consequent, params, budget, depth + 1, admitBuiltins);
-        validateStatements(statement.alternate ?? [], params, budget, depth + 1, admitBuiltins);
+        validateExpression(statement.condition, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+        validateStatements(statement.consequent, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+        validateStatements(statement.alternate ?? [], params, budget, depth + 1, admitBuiltins, admitLocals, locals);
         break;
       default:
         fail(`statement type "${String((statement as { type?: unknown }).type)}" is not admitted`);
@@ -482,10 +525,14 @@ function validateStatements(
 function validateActions(
   rawActions: ReadonlyMap<string, RawHsplusAction>,
   structuredActions: readonly HoloAction[],
-  admitBuiltins: boolean
+  admitBuiltins: boolean,
+  admitLocals: boolean
 ): Map<string, HoloAction> {
   const actions = new Map<string, HoloAction>();
-  const budget: AstBudget = { nodes: 0 };
+  const budget: AstBudget = {
+    nodes: 0,
+    limit: admitLocals ? MAX_AST_NODES_V3 : MAX_AST_NODES,
+  };
   for (const action of structuredActions) {
     assertSafeKey(action.name, 'structured action');
     if (action.async) fail(`async action "${action.name}" is not admitted`);
@@ -507,7 +554,8 @@ function validateActions(
     }
     if (actions.has(action.name)) fail(`duplicate structured action "${action.name}"`);
     if (action.body.length === 0) fail(`action "${action.name}" has an empty structured body`);
-    validateStatements(action.body, new Set(params), budget, 0, admitBuiltins);
+    const locals = new Set<string>();
+    validateStatements(action.body, new Set(params), budget, 0, admitBuiltins, admitLocals, locals);
     actions.set(action.name, action);
   }
 
@@ -559,8 +607,14 @@ function readMember(
   environment: EvaluationEnvironment
 ): HeadlessJsonValue {
   const [root, ...parts] = path;
-  let value: HeadlessJsonValue | undefined =
-    root === 'state' ? environment.state : environment.args[root];
+  let value: HeadlessJsonValue | undefined;
+  if (root === 'state') {
+    value = environment.state;
+  } else if (Object.prototype.hasOwnProperty.call(environment.args, root)) {
+    value = environment.args[root];
+  } else {
+    value = environment.locals[root];
+  }
   for (const part of parts) {
     if (!isRecord(value) || !Object.prototype.hasOwnProperty.call(value, part)) {
       fail(`member path "${path.join('.')}" is missing`);
@@ -603,10 +657,16 @@ function evaluateExpression(
     case 'Literal':
       return toStrictJson(expression.value, 'literal result');
     case 'Identifier': {
-      if (!Object.prototype.hasOwnProperty.call(environment.args, expression.name)) {
-        fail(`parameter "${expression.name}" is unavailable`);
+      if (Object.prototype.hasOwnProperty.call(environment.args, expression.name)) {
+        return environment.args[expression.name];
       }
-      return environment.args[expression.name];
+      if (
+        environment.localBindings &&
+        Object.prototype.hasOwnProperty.call(environment.locals, expression.name)
+      ) {
+        return environment.locals[expression.name];
+      }
+      fail(`parameter "${expression.name}" is unavailable`);
     }
     case 'MemberExpression': {
       const path = memberPath(expression);
@@ -697,6 +757,19 @@ function evaluateExpression(
 }
 
 function applyAssignment(statement: HoloAssignment, environment: EvaluationEnvironment): void {
+  if (!statement.target.includes('.')) {
+    if (!environment.localBindings) {
+      fail(`assignment target "${statement.target}" must be declared state`);
+    }
+    if (statement.operator !== '=') {
+      fail(`local binding "${statement.target}" admits only the plain = operator`);
+    }
+    environment.locals[statement.target] = toStrictJson(
+      evaluateExpression(statement.value, environment),
+      `local binding ${statement.target}`
+    );
+    return;
+  }
   const path = statement.target.split('.').slice(1);
   let target: HeadlessJsonObject = environment.state;
   for (const part of path.slice(0, -1)) {
@@ -832,10 +905,12 @@ export class DeterministicHsplusActionRuntime {
   private readonly actions: ReadonlyMap<string, HoloAction>;
   private readonly initial: HeadlessJsonObject;
   private readonly numericBuiltins: boolean;
+  private readonly localBindings: boolean;
   private state: HeadlessJsonObject;
 
   constructor(source: string, options?: DeterministicHsplusActionRuntimeOptions) {
     this.numericBuiltins = options?.numericBuiltins === true;
+    this.localBindings = options?.localBindings === true;
     if (typeof source !== 'string' || source.trim().length === 0) {
       fail('source must be a non-empty string');
     }
@@ -867,13 +942,15 @@ export class DeterministicHsplusActionRuntime {
     this.actions = validateActions(
       rawActions,
       structured.ast.logic?.actions ?? [],
-      this.numericBuiltins
+      this.numericBuiltins,
+      this.localBindings
     );
     this.initial = cloneObject(structuredState, 'initial state');
     this.state = cloneObject(this.initial, 'runtime state');
   }
 
   get subsetId(): string {
+    if (this.localBindings) return ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V3;
     return this.numericBuiltins
       ? ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V2
       : ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET;
@@ -906,7 +983,13 @@ export class DeterministicHsplusActionRuntime {
     const emittedEvents: HeadlessJsonValue[] = [];
     const flow = executeStatements(
       action.body,
-      { state: workingState, args, numericBuiltins: this.numericBuiltins },
+      {
+        state: workingState,
+        args,
+        numericBuiltins: this.numericBuiltins,
+        localBindings: this.localBindings,
+        locals: {},
+      },
       emittedEvents
     );
     if (!flow.returned) fail(`action "${action.name}" completed without an explicit return`);

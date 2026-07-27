@@ -11,6 +11,7 @@ export const parse_pretty: (a: number, b: number, c: number) => void;
 export const validate: (a: number, b: number) => number;
 export const validate_detailed: (a: number, b: number, c: number) => void;
 export const version: (a: number) => void;
+export const evaluate_trait_handler_v3: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
 export const __wbindgen_export: (a: number, b: number, c: number) => void;
 export const __wbindgen_export2: (a: number, b: number) => number;
 export const __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;

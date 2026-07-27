@@ -4,10 +4,12 @@
  *
  * Executes the generated @trait projection of the std math conformance ops in a
  * REAL WebAssembly runtime — the committed compiler-wasm pkg-node artifact's
- * `evaluate_trait_handler_v2` export (deterministic subset v2: v1 plus the
- * whitelisted numeric builtin table sqrt/sin/cos/acos/min/max/abs/floor),
- * running inside Node's WebAssembly engine — and compares every vector in the
- * frozen corpus against its expected value.
+ * `evaluate_trait_handler_v3` export (deterministic subset v3: the SHARED
+ * engine+wasm id for v2 semantics — the whitelisted numeric builtin table
+ * sqrt/sin/cos/acos/min/max/abs/floor — plus bounded local bindings, which the
+ * wasm statement walker has admitted since v1; v3 is an honest alias of the v2
+ * mode in this lane), running inside Node's WebAssembly engine — and compares
+ * every vector in the frozen corpus against its expected value.
  * The wasm binary executed here is byte-identical to the `--target web` build
  * shipped for browsers (both artifacts are hashed into the receipt), so this
  * leg proves the browser-shipped binary executes the std ABI subset, without
@@ -89,10 +91,11 @@ if (!existsSync(artifactJs) || !existsSync(artifactWasm)) {
   misconfigured(`wasm execution artifact (${artifactDirRel}) not found — build it before running`);
 }
 
-// Evaluator pin: the v2 export runs the deterministic subset below (v1 plus
-// the whitelisted numeric builtin table); both ids are recorded in the receipt.
-const EVALUATOR_EXPORT = 'evaluate_trait_handler_v2';
-const SUBSET_ID = 'holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins';
+// Evaluator pin: the v3 export runs the shared engine+wasm deterministic
+// subset (v2 numeric builtins plus bounded local bindings — an honest alias of
+// the v2 mode in the wasm lane); export name and id are recorded in the receipt.
+const EVALUATOR_EXPORT = 'evaluate_trait_handler_v3';
+const SUBSET_ID = 'holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings';
 
 const wasm = require(artifactJs);
 if (typeof wasm[EVALUATOR_EXPORT] !== 'function') {

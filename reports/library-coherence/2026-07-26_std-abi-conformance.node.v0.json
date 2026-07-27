@@ -1,11 +1,11 @@
 {
   "schema": "holoscript.std-abi-conformance.node.v0",
-  "generatedAtISO": "2026-07-27T18:01:16.921Z",
+  "generatedAtISO": "2026-07-27T18:22:42.607Z",
   "target": "node",
   "executionRuntime": {
     "engine": "DeterministicHsplusActionRuntime",
     "enginePackageVersion": "6.1.5",
-    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings",
     "executedProjection": "packages/std/conformance/generated/std-abi-conformance.action.hsplus"
   },
   "referenceTwin": {
@@ -15,16 +15,16 @@
   },
   "sources": {
     "packages/std/conformance/std-abi-ops.v0.json": {
-      "sha256": "sha256:e3afa475a5c6ab084c6c4b372c36cc81676b8e4697a8aeb4e75217695aaaccb8"
+      "sha256": "sha256:849d3f8190af2b3bfa69241af7bcea29716c8a39eebcaece7677727293e92268"
     },
     "packages/std/conformance/generated/std-abi-conformance.action.hsplus": {
-      "sha256": "sha256:1477bb4aedfc71713bf1240535fdb96e2ae837cebf133134afa98619356871b8"
+      "sha256": "sha256:b2e6e73558f5c5969856e8d7130978306ac3f816f8290a02aee3400b4222fbbb"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:7ddf6d707a77f69cf2d9d4c44a668e192bb376891f042de0b95bc3135a55a85a"
+      "sha256": "sha256:cef7935728bdcf98f28c06e4b05f7a691449000864468930a502de8a14e71c49"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:b02127c81510b2c9ac10b486f3489d02c211214e75fc0b90ba3a864147071a20"
+      "sha256": "sha256:6d7a2efc1de7423f6779beadc4008eafb97f2f36068c19ecc599be030cee9f5a"
     },
     "packages/std/src/math.hsplus": {
       "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
@@ -39,17 +39,11 @@
     "platform": "win32"
   },
   "summary": {
-    "ops": 15,
-    "vectors": 69,
-    "passed": 69,
+    "ops": 16,
+    "vectors": 75,
+    "passed": 75,
     "failed": 0,
     "excludedOps": [
-      {
-        "op": "on_quat_slerp",
-        "trait": "std_math",
-        "reason": "delegates to math.quat_slerp via get_std_math_lib(), a host binding with no implementation anywhere in the repo (verified 2026-07-26); a pure inline projection needs branch-heavy shortest-path/near-parallel handling beyond a reviewable single expression",
-        "unlock": "define the std host-ABI binding surface with per-target bindings, or admit a bounded local-binding statement form in the engine lane so the pure slerp projection stays reviewable"
-      },
       {
         "op": "*",
         "trait": "std_list",
@@ -690,6 +684,78 @@
       }
     },
     {
+      "id": "qslerp-mid",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "valueCanonicalHash": "sha256:7487be8c159bb07d3beb614a1de08eecf0d008d0f45da8cab6447f23fe3625bd",
+      "actual": {
+        "w": 0.9238795325112867,
+        "x": 0,
+        "y": 0,
+        "z": 0.38268343236508984
+      }
+    },
+    {
+      "id": "qslerp-quarter-general",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "valueCanonicalHash": "sha256:3c4d72e872bd859339578dc3dd1d229f53f3846b6abc3f697d960769735a8e7c",
+      "actual": {
+        "w": 0.889117318538694,
+        "x": 0.17870630796170991,
+        "y": 0.21613343763264042,
+        "z": 0.31777837561756156
+      }
+    },
+    {
+      "id": "qslerp-shortest-nlerp",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "valueCanonicalHash": "sha256:24d932417158ecd91694b044c95ae4ed3ebbd4e8f2bea3a2d1b9f12a6ab11669",
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qslerp-shortest-spherical",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "valueCanonicalHash": "sha256:28347a8e896343c7f762cdb92b6c64ab346a60fadd5b8f80b14f27b172b98231",
+      "actual": {
+        "w": 0.6668859288553503,
+        "x": 0.4616902584383194,
+        "y": 0.3847418820319328,
+        "z": 0.4360407996361905
+      }
+    },
+    {
+      "id": "qslerp-near-parallel",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "valueCanonicalHash": "sha256:6f9d8c83544460d9a83bd20fd62539948a741592d9d6e47dac25e5ec47e74137",
+      "actual": {
+        "w": 0.9991095955268614,
+        "x": 0.010501677514422186,
+        "y": 0.02050327514720522,
+        "z": 0.030504872779988257
+      }
+    },
+    {
+      "id": "qslerp-t0-positive",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "valueCanonicalHash": "sha256:397d8de51799101925badfc478b767d1b5deb5d3e67a3aa6e298169eda14ecc4",
+      "actual": {
+        "w": 0.9,
+        "x": 0.1,
+        "y": 0.2,
+        "z": 0.3
+      }
+    },
+    {
       "id": "quat-identity",
       "op": "on_quat_identity",
       "pass": true,
@@ -757,5 +823,5 @@
     "provesPackagedHandlerExecution": false,
     "note": "The executed source is the generated conformance projection of the packaged @trait handlers, in the engine deterministic action subset. The packaged math.hsplus trait bodies are hash-bound in sources but are not directly executable by any runtime in this repository today; ops whose packaged bodies delegate to host bindings are marked host-delegation-rewrite and their projections are recorded in the ops SSOT. Cross-target equality is claimed only by the separate cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:25309dfb0b5976f63bd27702d4af67699d85902bdd2576ef2391251d4534798f"
+  "receiptHash": "sha256:acf2019ad5e75567e81e398627b74882f12c3bee2c6bac833b7016f7fa37b0c1"
 }

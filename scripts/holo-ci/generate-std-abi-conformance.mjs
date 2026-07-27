@@ -134,14 +134,20 @@ const traitLines = [`@trait ${ops.conformanceTrait} {`];
 for (const op of ops.ops) {
   const params = op.params.join(', ');
   actionLines.push(`    action ${op.action}(${params}) {`);
-  actionLines.push(`      return ${op.body}`);
+  if (op.statements) {
+    for (const statement of op.statements) actionLines.push(`      ${statement}`);
+  } else {
+    actionLines.push(`      return ${op.body}`);
+  }
   actionLines.push('    }');
   actionLines.push('');
   const traitHeader = op.params.length
     ? `  @${op.op}(${params}) => {`
     : `  @${op.op} => {`;
   traitLines.push(traitHeader);
-  if (op.traitBody) {
+  if (op.statements) {
+    for (const statement of op.statements) traitLines.push(`    ${statement}`);
+  } else if (op.traitBody) {
     for (const statement of op.traitBody) traitLines.push(`    ${statement}`);
   } else {
     traitLines.push(`    return ${op.body}`);
@@ -198,6 +204,7 @@ const runtimeModule = require(runtimeModulePath);
 const { createDeterministicHsplusActionRuntime } = runtimeModule;
 const runtime = createDeterministicHsplusActionRuntime(actionSource, {
   numericBuiltins: ops.numericBuiltins === true,
+  localBindings: ops.localBindings === true,
 });
 
 let gateFailures = 0;

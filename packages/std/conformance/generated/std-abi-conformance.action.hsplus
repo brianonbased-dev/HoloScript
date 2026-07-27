@@ -13,7 +13,10 @@ composition "std-math-conformance" {
     }
 
     action smoothstep(edge0, edge1, x) {
-      return { value: ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * (3 - 2 * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0)))) }
+      t = (x - edge0) / (edge1 - edge0)
+      if (t < 0) { t = 0 }
+      if (t > 1) { t = 1 }
+      return { value: t * t * (3 - 2 * t) }
     }
 
     action remap(value, in_min, in_max, out_min, out_max) {
@@ -45,7 +48,9 @@ composition "std-math-conformance" {
     }
 
     action vec3_normalize(v) {
-      return sqrt(v.x * v.x + v.y * v.y + v.z * v.z) < 0.000001 ? { x: 0.0, y: 0.0, z: 0.0 } : { x: v.x / sqrt(v.x * v.x + v.y * v.y + v.z * v.z), y: v.y / sqrt(v.x * v.x + v.y * v.y + v.z * v.z), z: v.z / sqrt(v.x * v.x + v.y * v.y + v.z * v.z) }
+      len = sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+      if (len < 0.000001) { return { x: 0.0, y: 0.0, z: 0.0 } }
+      return { x: v.x / len, y: v.y / len, z: v.z / len }
     }
 
     action vec3_distance(a, b) {
@@ -54,6 +59,36 @@ composition "std-math-conformance" {
 
     action quat_from_axis_angle(axis, angle_rad) {
       return { x: axis.x * sin(angle_rad * 0.5), y: axis.y * sin(angle_rad * 0.5), z: axis.z * sin(angle_rad * 0.5), w: cos(angle_rad * 0.5) }
+    }
+
+    action quat_slerp(a, b, t) {
+      dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
+      bx = b.x
+      by = b.y
+      bz = b.z
+      bw = b.w
+      if (dot < 0) {
+        bx = 0.0 - b.x
+        by = 0.0 - b.y
+        bz = 0.0 - b.z
+        bw = 0.0 - b.w
+        dot = 0.0 - dot
+      }
+      if (dot > 0.9995) {
+        lx = a.x + (bx - a.x) * t
+        ly = a.y + (by - a.y) * t
+        lz = a.z + (bz - a.z) * t
+        lw = a.w + (bw - a.w) * t
+        len = sqrt(lx * lx + ly * ly + lz * lz + lw * lw)
+        return { x: lx / len, y: ly / len, z: lz / len, w: lw / len }
+      }
+      theta0 = acos(dot)
+      theta = theta0 * t
+      sinTheta = sin(theta)
+      sinTheta0 = sin(theta0)
+      s0 = cos(theta) - dot * sinTheta / sinTheta0
+      s1 = sinTheta / sinTheta0
+      return { x: a.x * s0 + bx * s1, y: a.y * s0 + by * s1, z: a.z * s0 + bz * s1, w: a.w * s0 + bw * s1 }
     }
 
     action quat_identity() {

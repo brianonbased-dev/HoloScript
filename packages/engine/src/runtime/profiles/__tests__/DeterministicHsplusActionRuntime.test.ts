@@ -458,3 +458,123 @@ describe('DeterministicHsplusActionRuntime v2 numeric builtins', () => {
     ).toThrow(/requires exactly 1 argument/);
   });
 });
+
+describe('DeterministicHsplusActionRuntime v3 local bindings', () => {
+  const SLERP_SOURCE = `composition "Slerp Probe" {
+  state {
+    touched: 0
+  }
+
+  logic {
+    action quat_slerp(a, b, t) {
+      dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
+      bx = b.x
+      by = b.y
+      bz = b.z
+      bw = b.w
+      if (dot < 0) {
+        bx = 0.0 - b.x
+        by = 0.0 - b.y
+        bz = 0.0 - b.z
+        bw = 0.0 - b.w
+        dot = 0.0 - dot
+      }
+      if (dot > 0.9995) {
+        lx = a.x + (bx - a.x) * t
+        ly = a.y + (by - a.y) * t
+        lz = a.z + (bz - a.z) * t
+        lw = a.w + (bw - a.w) * t
+        len = sqrt(lx * lx + ly * ly + lz * lz + lw * lw)
+        return { x: lx / len, y: ly / len, z: lz / len, w: lw / len }
+      }
+      theta0 = acos(dot)
+      theta = theta0 * t
+      sinTheta = sin(theta)
+      sinTheta0 = sin(theta0)
+      s0 = cos(theta) - dot * sinTheta / sinTheta0
+      s1 = sinTheta / sinTheta0
+      return { x: a.x * s0 + bx * s1, y: a.y * s0 + by * s1, z: a.z * s0 + bz * s1, w: a.w * s0 + bw * s1 }
+    }
+  }
+}`;
+
+  function observation(entrypoint: string, args: Record<string, unknown>) {
+    return {
+      kind: 'observation',
+      scheduleEntryId: `v3-${entrypoint}`,
+      order: 0,
+      tick: 0,
+      phase: 'test',
+      entrypoint,
+      args,
+    } as HeadlessExperimentScheduleEntry;
+  }
+
+  it('executes the pure slerp projection under the v3 subset id', () => {
+    const runtime = createDeterministicHsplusActionRuntime(SLERP_SOURCE, {
+      numericBuiltins: true,
+      localBindings: true,
+    });
+    expect(runtime.subsetId).toBe(
+      'holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings'
+    );
+    const identity = { x: 0, y: 0, z: 0, w: 1 };
+    const zQuarter = { x: 0, y: 0, z: 0.7071067811865476, w: 0.7071067811865476 };
+    const mid = runtime.invoke(
+      observation('quat_slerp', { a: identity, b: zQuarter, t: 0.5 })
+    ).value as Record<string, number>;
+    expect(mid.w).toBeCloseTo(0.9238795325112867, 12);
+    expect(mid.z).toBeCloseTo(0.3826834323650898, 12);
+    expect(mid.x).toBe(0);
+    expect(mid.y).toBe(0);
+  });
+
+  it('takes the shortest-path negation and nlerp branches', () => {
+    const runtime = createDeterministicHsplusActionRuntime(SLERP_SOURCE, {
+      numericBuiltins: true,
+      localBindings: true,
+    });
+    const a = { x: 0.5, y: 0.5, z: 0.5, w: 0.5 };
+    const negated = { x: -0.5, y: -0.5, z: -0.5, w: -0.5 };
+    const shortest = runtime.invoke(
+      observation('quat_slerp', { a, b: negated, t: 0.25 })
+    ).value as Record<string, number>;
+    expect(shortest.x).toBeCloseTo(0.5, 12);
+    expect(shortest.w).toBeCloseTo(0.5, 12);
+  });
+
+  it('fails closed on use-before-assign and parameter reassignment', () => {
+    expect(() =>
+      createDeterministicHsplusActionRuntime(
+        `composition "X" {
+  state { touched: 0 }
+  logic {
+    action f(x) { return { value: ghost + x } }
+  }
+}`,
+        { numericBuiltins: true, localBindings: true }
+      )
+    ).toThrow(/undeclared parameter "ghost"/);
+    expect(() =>
+      createDeterministicHsplusActionRuntime(
+        `composition "X" {
+  state { touched: 0 }
+  logic {
+    action f(x) { x = 1
+      return { value: x } }
+  }
+}`,
+        { numericBuiltins: true, localBindings: true }
+      )
+    ).toThrow(/cannot reassign a parameter/);
+  });
+
+  it('keeps locals closed in v1 and v2 modes', () => {
+    expect(() =>
+      createDeterministicHsplusActionRuntime(SLERP_SOURCE, { numericBuiltins: true })
+    ).toThrow(/must be declared state/);
+    expect(() => createDeterministicHsplusActionRuntime(SLERP_SOURCE)).toThrow(
+      /must be declared state/
+    );
+  });
+});

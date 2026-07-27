@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T18:04:45Z",
+  "generatedAt": "2026-07-27T18:27:44Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "7bf4f3e1e604f1f7ed7b7c0626d830bf48dfe1f5",
+  "sourceCommit": "53b68ebf39e0769ac452391e5a340c0a7411350e",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "wasm-pack build --target web --out-dir pkg --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 468166,
-    "wasmSha256": "3e03d7764585f31ade856153f03c26db4fca446c3d1b990545134e168c6c547e",
-    "previousWasmSha256": "596e71b10ff6891f58645ec11f90f53e2c50974927aa42c5bb07965e7e9303a6",
+    "wasmBytes": 468195,
+    "wasmSha256": "6a3aa2aad0796204816c8aa46f745cd5c260c991eee1820c277a802e4201131a",
+    "previousWasmSha256": "3e03d7764585f31ade856153f03c26db4fca446c3d1b990545134e168c6c547e",
     "repeatBuildSha256Matched": true,
-    "note": "Built in a clean git worktree at sourceCommit plus uncommitted deltas to exactly src/eval.rs and src/lib.rs: builtins-v2 evaluation mode (holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins; bare-identifier sqrt/sin/cos/acos/min/max/abs/floor through checked_number) and the evaluate_trait_handler_v2 export; v1 export behavior unchanged. Two release web builds and two release nodejs builds produced the same SHA-256; browser and Node artifacts are byte-identical."
+    "note": "Built in a clean git worktree at sourceCommit plus uncommitted deltas to exactly src/eval.rs and src/lib.rs: the evaluate_trait_handler_v3 export, an HONEST ALIAS of the v2 evaluation mode under the shared subset id holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings (the wasm statement walker has admitted bounded local bindings — bare assignment, reassignment inside if branches, use-before-assign fail-closed — since v1; the engine lane is gaining them now, so both lanes pin one shared v3 id). No evaluation-semantics change; v1/v2 exports untouched. Two release web builds and two release nodejs builds produced the same SHA-256; browser and Node artifacts are byte-identical."
   }
 }

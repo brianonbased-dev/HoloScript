@@ -160,6 +160,50 @@ export function evaluate_trait_handler_v2(source, trait_name, handler_name, args
     }
 }
 
+/**
+ * Evaluate one `@on_<handler>` trait-handler body under the v3 deterministic
+ * subset id (`holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings`).
+ *
+ * v3 is an HONEST ALIAS of [`evaluate_trait_handler_v2`]: identical internals
+ * and evaluation mode (numeric builtin table ON). This lane's statement
+ * walker has admitted the v3 grammar's bounded local bindings — bare
+ * `name = expr` assignment, reassignment including inside if/else branches,
+ * use-before-assign fail-closed as `unknown-identifier` — since v1, so the
+ * v2 build already implements the v3 grammar. The engine lane is only now
+ * gaining local bindings under the shared v3 id; this export exists so
+ * receipts on both lanes pin ONE shared subset id
+ * (`eval::DETERMINISTIC_SUBSET_V3`) through an honestly-named export.
+ * @param {string} source
+ * @param {string} trait_name
+ * @param {string} handler_name
+ * @param {string} args_json
+ * @returns {string}
+ */
+export function evaluate_trait_handler_v3(source, trait_name, handler_name, args_json) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.evaluate_trait_handler_v2(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred5_0 = r0;
+        deferred5_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export(deferred5_0, deferred5_1, 1);
+    }
+}
+
 export function init() {
     wasm.init();
 }

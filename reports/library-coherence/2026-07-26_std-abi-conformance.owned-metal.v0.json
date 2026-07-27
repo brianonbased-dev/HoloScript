@@ -1,19 +1,19 @@
 {
   "schema": "holoscript.std-abi-conformance.owned-metal.v0",
-  "generatedAtISO": "2026-07-27T18:08:36.843Z",
+  "generatedAtISO": "2026-07-27T18:30:38.938Z",
   "target": "owned-metal",
   "executionRuntime": {
     "engine": "compiler-wasm evaluate_trait_handler_v2 (WebAssembly)",
     "evaluatorExport": "evaluate_trait_handler_v2",
     "executedProjection": "std-abi-conformance.trait.hsplus (bundle copy, pin-verified)",
-    "wasmArtifactSha256": "sha256:3e03d7764585f31ade856153f03c26db4fca446c3d1b990545134e168c6c547e"
+    "wasmArtifactSha256": "sha256:6a3aa2aad0796204816c8aa46f745cd5c260c991eee1820c277a802e4201131a"
   },
   "sources": {
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:b02127c81510b2c9ac10b486f3489d02c211214e75fc0b90ba3a864147071a20"
+      "sha256": "sha256:6d7a2efc1de7423f6779beadc4008eafb97f2f36068c19ecc599be030cee9f5a"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:7ddf6d707a77f69cf2d9d4c44a668e192bb376891f042de0b95bc3135a55a85a"
+      "sha256": "sha256:cef7935728bdcf98f28c06e4b05f7a691449000864468930a502de8a14e71c49"
     }
   },
   "environment": {
@@ -25,8 +25,8 @@
     "cpus": "Cortex-A78AE"
   },
   "summary": {
-    "vectors": 69,
-    "passed": 69,
+    "vectors": 75,
+    "passed": 75,
     "failed": 0
   },
   "results": [
@@ -585,6 +585,72 @@
       }
     },
     {
+      "id": "qslerp-mid",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.9238795325112867,
+        "x": 0,
+        "y": 0,
+        "z": 0.38268343236508984
+      }
+    },
+    {
+      "id": "qslerp-quarter-general",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.889117318538694,
+        "x": 0.17870630796170991,
+        "y": 0.21613343763264042,
+        "z": 0.31777837561756156
+      }
+    },
+    {
+      "id": "qslerp-shortest-nlerp",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qslerp-shortest-spherical",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.6668859288553503,
+        "x": 0.4616902584383194,
+        "y": 0.3847418820319328,
+        "z": 0.4360407996361905
+      }
+    },
+    {
+      "id": "qslerp-near-parallel",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.9991095955268614,
+        "x": 0.010501677514422186,
+        "y": 0.02050327514720522,
+        "z": 0.030504872779988257
+      }
+    },
+    {
+      "id": "qslerp-t0-positive",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.9,
+        "x": 0.1,
+        "y": 0.2,
+        "z": 0.3
+      }
+    },
+    {
       "id": "quat-identity",
       "op": "on_quat_identity",
       "pass": true,
@@ -645,5 +711,5 @@
     "provesNodeDeterministicSubsetExecution": false,
     "note": "Executed the generated trait projection through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:0723f77dfaf37969ffeb8276c98f1261fb70def5d94bd9e7a5f45ff189e88f70"
+  "receiptHash": "sha256:addfdc9a01b98b5438e1d403315c3431286c55c02424a019c4111f1d645a957f"
 }

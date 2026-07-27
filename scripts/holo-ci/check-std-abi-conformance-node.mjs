@@ -181,7 +181,10 @@ function runVector(runtime, vector, expectedOverride) {
 
 // --- Self-test ---------------------------------------------------------------
 
-const runtimeOptions = { numericBuiltins: opsDefinition.numericBuiltins === true };
+const runtimeOptions = {
+  numericBuiltins: opsDefinition.numericBuiltins === true,
+  localBindings: opsDefinition.localBindings === true,
+};
 
 if (selfTest) {
   const runtime = createDeterministicHsplusActionRuntime(actionSource, runtimeOptions);

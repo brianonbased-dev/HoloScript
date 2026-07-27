@@ -37,6 +37,16 @@
 //! and unknown callees remain refused in both modes; everything outside
 //! `CallExpression` behaves byte-for-byte identically to v1.
 //!
+//! A third export — `evaluate_trait_handler_v3`, subset id
+//! `holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings` —
+//! is an HONEST ALIAS of the v2 evaluation mode (no third `EvalMode`). This
+//! lane's statement walker has admitted bounded local bindings (bare
+//! `name = expr` assignment, reassignment including inside if/else branches,
+//! use-before-assign fail-closed as `unknown-identifier`) since v1; the engine
+//! lane is only now gaining local bindings, under v3 as the shared subset id.
+//! Exporting v3 here lets receipts on both lanes pin ONE shared id without
+//! pretending the wasm grammar grew.
+//!
 //! Error/result boundary follows the crate convention of always returning JSON:
 //! `{"ok":true,"value":<json>}` or `{"ok":false,"error":{"code":"…","message":"…"}}`.
 
@@ -51,6 +61,16 @@ pub const DETERMINISTIC_SUBSET: &str = "holoscript-engine-hsplus-deterministic-a
 /// numeric builtin table (the engine lane exports the same id).
 pub const DETERMINISTIC_SUBSET_V2: &str =
     "holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins";
+
+/// Subset identifier for the v3 evaluation mode — the SHARED engine+wasm id
+/// for "v2 semantics plus bounded local bindings". In this lane v3 is an
+/// honest ALIAS of [`DETERMINISTIC_SUBSET_V2`]'s mode: the statement walker
+/// has admitted bounded local bindings (bare `name = expr` assignment,
+/// reassignment, if/else, use-before-assign fail-closed) since v1, so no new
+/// `EvalMode` field exists — same builtin table, same walkers, one shared id
+/// for receipts.
+pub const DETERMINISTIC_SUBSET_V3: &str =
+    "holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings";
 
 /// Evaluation mode threaded through the statement/expression walkers. v1 keeps
 /// `numeric_builtins` off (every `CallExpression` is `unsupported-call`, same
@@ -127,6 +147,20 @@ pub fn evaluate_trait_handler_json(
 /// Public JSON boundary used by the `evaluate_trait_handler_v2` wasm export
 /// (numeric builtin table ON — [`DETERMINISTIC_SUBSET_V2`]).
 pub fn evaluate_trait_handler_v2_json(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+) -> String {
+    evaluate_with_mode_json(source, trait_name, handler_name, args_json, MODE_V2)
+}
+
+/// Public JSON boundary used by the `evaluate_trait_handler_v3` wasm export
+/// ([`DETERMINISTIC_SUBSET_V3`]). v3 is an honest alias of the v2 mode: the
+/// statement walker has admitted the v3 grammar's bounded local bindings since
+/// v1, so this runs [`MODE_V2`] unchanged (numeric builtins ON) under the
+/// shared v3 subset id.
+pub fn evaluate_trait_handler_v3_json(
     source: &str,
     trait_name: &str,
     handler_name: &str,
@@ -1778,5 +1812,209 @@ mod tests {
                 "body: {body}"
             );
         }
+    }
+
+    // ===== v3 local bindings (honest alias of the v2 mode) =====
+
+    fn run_v3(
+        source: &str,
+        trait_name: &str,
+        handler: &str,
+        args: serde_json::Value,
+    ) -> serde_json::Value {
+        let raw = evaluate_trait_handler_v3_json(source, trait_name, handler, &args.to_string());
+        serde_json::from_str(&raw).expect("v3 evaluator must always return JSON")
+    }
+
+    /// Same serialize→parse round trip the evaluator output takes before the
+    /// test reads it back (see `v2_each_unary_builtin_happy_path` for why a
+    /// directly-computed f64 can compare one ulp off without this).
+    fn json_roundtrip_f64(value: f64) -> f64 {
+        serde_json::from_str::<serde_json::Value>(&serde_json::json!(value).to_string())
+            .expect("serialized f64 must re-parse")
+            .as_f64()
+            .expect("round-tripped f64 must stay a number")
+    }
+
+    /// Slerp-shaped fixture locking in the v3 grammar this lane has admitted
+    /// since v1: bare local bindings (dot/bx/by/bz/bw), reassignment INSIDE the
+    /// shortest-path if branch (`bx = 0.0 - b.x`, `dot = 0.0 - dot`) that
+    /// persists after the block, a near-parallel branch with locals lx..lw +
+    /// len and sqrt + division, and a spherical branch with acos/sin/cos and
+    /// division. `on_use_before_assign` reads a local whose only assignment
+    /// sits in a conditionally-taken branch.
+    const SLERP_TRAIT: &str = r#"
+@trait std_quat_conformance {
+  @on_slerp(a, b, t) => {
+    dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
+    bx = b.x
+    by = b.y
+    bz = b.z
+    bw = b.w
+    if (dot < 0) {
+      bx = 0.0 - b.x
+      by = 0.0 - b.y
+      bz = 0.0 - b.z
+      bw = 0.0 - b.w
+      dot = 0.0 - dot
+    }
+    if (dot > 0.9995) {
+      lx = a.x + (bx - a.x) * t
+      ly = a.y + (by - a.y) * t
+      lz = a.z + (bz - a.z) * t
+      lw = a.w + (bw - a.w) * t
+      len = sqrt(lx * lx + ly * ly + lz * lz + lw * lw)
+      return { x: lx / len, y: ly / len, z: lz / len, w: lw / len }
+    }
+    theta0 = acos(dot)
+    sinTheta0 = sin(theta0)
+    theta = theta0 * t
+    s0 = cos(theta) - dot * sin(theta) / sinTheta0
+    s1 = sin(theta) / sinTheta0
+    return { x: a.x * s0 + bx * s1, y: a.y * s0 + by * s1, z: a.z * s0 + bz * s1, w: a.w * s0 + bw * s1 }
+  }
+  @on_use_before_assign(a, b, t) => {
+    if (t > 0.5) { picked = a.w }
+    return { value: picked }
+  }
+}
+"#;
+
+    fn slerp_args(a: [f64; 4], b: [f64; 4], t: f64) -> serde_json::Value {
+        serde_json::json!({
+            "a": {"x": a[0], "y": a[1], "z": a[2], "w": a[3]},
+            "b": {"x": b[0], "y": b[1], "z": b[2], "w": b[3]},
+            "t": t,
+        })
+    }
+
+    fn assert_quat(result: &serde_json::Value, expected: [f64; 4]) {
+        let value = expect_ok(result);
+        for (key, component) in ["x", "y", "z", "w"].iter().zip(expected) {
+            assert_eq!(
+                value[*key].as_f64().unwrap(),
+                json_roundtrip_f64(component),
+                "component {key}: {result}"
+            );
+        }
+    }
+
+    /// Mirror of the fixture's spherical tail, operation-ordered exactly like
+    /// the evaluator walks it (left-associative, no FMA contraction).
+    fn spherical_expected(a: [f64; 4], b: [f64; 4], dot: f64, t: f64) -> [f64; 4] {
+        let theta0 = dot.acos();
+        let sin_theta0 = theta0.sin();
+        let theta = theta0 * t;
+        let s0 = theta.cos() - dot * theta.sin() / sin_theta0;
+        let s1 = theta.sin() / sin_theta0;
+        [
+            a[0] * s0 + b[0] * s1,
+            a[1] * s0 + b[1] * s1,
+            a[2] * s0 + b[2] * s1,
+            a[3] * s0 + b[3] * s1,
+        ]
+    }
+
+    fn quat_dot(a: [f64; 4], b: [f64; 4]) -> f64 {
+        a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
+    }
+
+    #[test]
+    fn v3_subset_id_pinned_and_is_honest_alias_of_v2() {
+        assert_eq!(
+            DETERMINISTIC_SUBSET_V3,
+            "holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings"
+        );
+        // Same mode, same walkers: the v3 boundary output must be BYTE-identical
+        // to v2 on the same program and args.
+        let args = slerp_args([0.0, 0.0, 0.0, 1.0], [0.6, 0.0, 0.0, 0.8], 0.5).to_string();
+        let v2 = evaluate_trait_handler_v2_json(SLERP_TRAIT, "std_quat_conformance", "on_slerp", &args);
+        let v3 = evaluate_trait_handler_v3_json(SLERP_TRAIT, "std_quat_conformance", "on_slerp", &args);
+        assert_eq!(v2, v3);
+    }
+
+    #[test]
+    fn v3_slerp_spherical_branch_acos_sin_cos_division() {
+        // dot = 0.8: no negation, below the 0.9995 nlerp threshold → the
+        // spherical branch runs acos/sin/cos over locals and divides.
+        let (a, b, t) = ([0.0, 0.0, 0.0, 1.0], [0.6, 0.0, 0.0, 0.8], 0.5);
+        let dot = quat_dot(a, b);
+        assert!(dot > 0.0 && dot < 0.9995, "fixture must take the spherical branch");
+        let result = run_v3(
+            SLERP_TRAIT,
+            "std_quat_conformance",
+            "on_slerp",
+            slerp_args(a, b, t),
+        );
+        assert_quat(&result, spherical_expected(a, b, dot, t));
+    }
+
+    #[test]
+    fn v3_slerp_shortest_path_branch_reassigns_locals_inside_if() {
+        // (a) dot = -0.9 < 0: the negation branch REASSIGNS the already-bound
+        // locals bx/by/bz/bw and dot inside the if block, and the spherical
+        // tail then consumes the reassigned values — proving branch-local
+        // reassignment persists after the block. Every component is non-zero
+        // so no intermediate product can produce a fail-closed -0.0.
+        let (a, b, t) = ([0.5, 0.5, 0.5, 0.5], [-0.8, -0.2, -0.4, -0.4], 0.5);
+        let dot_in = quat_dot(a, b);
+        assert!(dot_in < 0.0, "fixture must take the negation branch");
+        let negated = [0.0 - b[0], 0.0 - b[1], 0.0 - b[2], 0.0 - b[3]];
+        let dot = 0.0 - dot_in;
+        assert!(dot < 0.9995, "fixture must fall through to the spherical branch");
+        let result = run_v3(
+            SLERP_TRAIT,
+            "std_quat_conformance",
+            "on_slerp",
+            slerp_args(a, b, t),
+        );
+        assert_quat(&result, spherical_expected(a, negated, dot, t));
+    }
+
+    #[test]
+    fn v3_slerp_nlerp_branch_locals_sqrt_division() {
+        // dot = 0.99995 > 0.9995: the near-parallel branch binds fresh locals
+        // lx..lw + len inside the if block, normalizes via sqrt, and divides.
+        let (a, b, t) = ([0.0, 0.0, 0.0, 1.0], [0.01, 0.0, 0.0, 0.99995], 0.5);
+        let dot = quat_dot(a, b);
+        assert!(dot > 0.9995, "fixture must take the nlerp branch");
+        let lx = a[0] + (b[0] - a[0]) * t;
+        let ly = a[1] + (b[1] - a[1]) * t;
+        let lz = a[2] + (b[2] - a[2]) * t;
+        let lw = a[3] + (b[3] - a[3]) * t;
+        let len = (lx * lx + ly * ly + lz * lz + lw * lw).sqrt();
+        let result = run_v3(
+            SLERP_TRAIT,
+            "std_quat_conformance",
+            "on_slerp",
+            slerp_args(a, b, t),
+        );
+        assert_quat(&result, [lx / len, ly / len, lz / len, lw / len]);
+    }
+
+    #[test]
+    fn v3_use_before_assign_is_structured_unknown_identifier() {
+        // (b) Use-before-assign fails CLOSED as a structured error: `picked` is
+        // only assigned in the untaken branch, so the later read reports
+        // unknown-identifier (locals and params share one binding namespace).
+        // Taken branch first: assignment inside the if persists after the block.
+        let ok = run_v3(
+            SLERP_TRAIT,
+            "std_quat_conformance",
+            "on_use_before_assign",
+            slerp_args([0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], 0.75),
+        );
+        assert_eq!(expect_ok(&ok), &serde_json::json!({"value": 1.0}));
+        let result = run_v3(
+            SLERP_TRAIT,
+            "std_quat_conformance",
+            "on_use_before_assign",
+            slerp_args([0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], 0.25),
+        );
+        let error = expect_err(&result, "unknown-identifier");
+        assert!(
+            error["message"].as_str().unwrap().contains("picked"),
+            "{result}"
+        );
     }
 }

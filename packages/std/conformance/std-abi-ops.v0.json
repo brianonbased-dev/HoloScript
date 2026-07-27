@@ -10,6 +10,7 @@
   "referenceModule": "packages/std/dist/math.js",
   "sharedGrammar": "Object-literal returns over: number/string/boolean/null literals, parameter identifiers, non-computed member access, binary + - * /, comparisons, && ||, unary ! -, plus the v2 whitelisted deterministic numeric builtin table (sqrt, sin, cos, acos, abs, floor, min, max over finite f64, fail-closed on non-finite or negative-zero results; subset id holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins in both lanes). No other calls, no loops, no host bindings. The two executable projections have measured, non-identical grammars: the engine deterministic action subset accepts ternary expressions but restricts assignment to declared state, while the compiler-wasm trait evaluator accepts local assignment and if/else statements but has no ternary or ===/!== production. Ops whose default body uses ternary or locals therefore carry an equivalent traitBody statement form; cross-target conformance is claimed on produced values over the shared vector corpus, not on shared surface syntax. Builtin results that depend on libm transcendentals (sin/cos/acos) may differ by ulps between the JS engine and the Rust-libm-in-wasm lane, so those vectors carry an explicit non-zero tolerance; sqrt is IEEE-754 correctly rounded and stays exact.",
   "numericBuiltins": true,
+  "localBindings": true,
   "vectorPolicy": "Every vector must produce finite, non-negative-zero values under IEEE-754 double semantics with strict source-order evaluation. Expected values are computed from the TypeScript reference twin at generation time and verified bit-exact against the engine deterministic runtime before admission; tolerance 0 means exact equality including key sets.",
   "ops": [
     {
@@ -58,8 +59,7 @@
       "rewriteOf": "math.clamp via get_std_math_lib()",
       "resultShape": "scalar",
       "reference": ["smoothstep"],
-      "body": "{ value: ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * (3 - 2 * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0)))) }",
-      "traitBody": [
+      "statements": [
         "t = (x - edge0) / (edge1 - edge0)",
         "if (t < 0) { t = 0 }",
         "if (t > 1) { t = 1 }",
@@ -193,8 +193,7 @@
       "kind": "pure",
       "resultShape": "vec3",
       "reference": ["vec3Math", "normalize"],
-      "body": "sqrt(v.x * v.x + v.y * v.y + v.z * v.z) < 0.000001 ? { x: 0.0, y: 0.0, z: 0.0 } : { x: v.x / sqrt(v.x * v.x + v.y * v.y + v.z * v.z), y: v.y / sqrt(v.x * v.x + v.y * v.y + v.z * v.z), z: v.z / sqrt(v.x * v.x + v.y * v.y + v.z * v.z) }",
-      "traitBody": [
+      "statements": [
         "len = sqrt(v.x * v.x + v.y * v.y + v.z * v.z)",
         "if (len < 0.000001) { return { x: 0.0, y: 0.0, z: 0.0 } }",
         "return { x: v.x / len, y: v.y / len, z: v.z / len }"
@@ -245,6 +244,54 @@
       ]
     },
     {
+      "op": "on_quat_slerp",
+      "action": "quat_slerp",
+      "params": ["a", "b", "t"],
+      "kind": "host-delegation-rewrite",
+      "rewriteOf": "math.quat_slerp via get_std_math_lib()",
+      "resultShape": "quat",
+      "reference": ["quatMath", "slerp"],
+      "toleranceNote": "acos/sin/cos compound through divisions; JS engine vs Rust-libm-in-wasm may differ by ulps. Negation uses binary 0.0 - b.x (not unary minus) so zero components stay positive zero under the fail-closed lanes.",
+      "tolerance": 1e-15,
+      "statements": [
+        "dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w",
+        "bx = b.x",
+        "by = b.y",
+        "bz = b.z",
+        "bw = b.w",
+        "if (dot < 0) {",
+        "  bx = 0.0 - b.x",
+        "  by = 0.0 - b.y",
+        "  bz = 0.0 - b.z",
+        "  bw = 0.0 - b.w",
+        "  dot = 0.0 - dot",
+        "}",
+        "if (dot > 0.9995) {",
+        "  lx = a.x + (bx - a.x) * t",
+        "  ly = a.y + (by - a.y) * t",
+        "  lz = a.z + (bz - a.z) * t",
+        "  lw = a.w + (bw - a.w) * t",
+        "  len = sqrt(lx * lx + ly * ly + lz * lz + lw * lw)",
+        "  return { x: lx / len, y: ly / len, z: lz / len, w: lw / len }",
+        "}",
+        "theta0 = acos(dot)",
+        "theta = theta0 * t",
+        "sinTheta = sin(theta)",
+        "sinTheta0 = sin(theta0)",
+        "s0 = cos(theta) - dot * sinTheta / sinTheta0",
+        "s1 = sinTheta / sinTheta0",
+        "return { x: a.x * s0 + bx * s1, y: a.y * s0 + by * s1, z: a.z * s0 + bz * s1, w: a.w * s0 + bw * s1 }"
+      ],
+      "vectors": [
+        { "id": "qslerp-mid", "args": { "a": { "x": 0, "y": 0, "z": 0, "w": 1 }, "b": { "x": 0, "y": 0, "z": 0.7071067811865476, "w": 0.7071067811865476 }, "t": 0.5 } },
+        { "id": "qslerp-quarter-general", "args": { "a": { "x": 0.1, "y": 0.2, "z": 0.3, "w": 0.9 }, "b": { "x": 0.4, "y": 0.25, "z": 0.35, "w": 0.8 }, "t": 0.25 } },
+        { "id": "qslerp-shortest-nlerp", "args": { "a": { "x": 0.5, "y": 0.5, "z": 0.5, "w": 0.5 }, "b": { "x": -0.5, "y": -0.5, "z": -0.5, "w": -0.5 }, "t": 0.25 } },
+        { "id": "qslerp-shortest-spherical", "args": { "a": { "x": 0.5, "y": 0.5, "z": 0.5, "w": 0.5 }, "b": { "x": -0.4, "y": -0.25, "z": -0.35, "w": -0.8 }, "t": 0.5 } },
+        { "id": "qslerp-near-parallel", "args": { "a": { "x": 0.01, "y": 0.02, "z": 0.03, "w": 0.999 }, "b": { "x": 0.011, "y": 0.021, "z": 0.031, "w": 0.9989 }, "t": 0.5 } },
+        { "id": "qslerp-t0-positive", "args": { "a": { "x": 0.1, "y": 0.2, "z": 0.3, "w": 0.9 }, "b": { "x": 0.4, "y": 0.25, "z": 0.35, "w": 0.8 }, "t": 0 } }
+      ]
+    },
+    {
       "op": "on_quat_identity",
       "action": "quat_identity",
       "params": [],
@@ -273,12 +320,6 @@
     }
   ],
   "excluded": [
-    {
-      "op": "on_quat_slerp",
-      "trait": "std_math",
-      "reason": "delegates to math.quat_slerp via get_std_math_lib(), a host binding with no implementation anywhere in the repo (verified 2026-07-26); a pure inline projection needs branch-heavy shortest-path/near-parallel handling beyond a reviewable single expression",
-      "unlock": "define the std host-ABI binding surface with per-target bindings, or admit a bounded local-binding statement form in the engine lane so the pure slerp projection stays reviewable"
-    },
     {
       "op": "*",
       "trait": "std_list",
