@@ -165,9 +165,12 @@ allocation, whole-owner moves across parameters and returns, explicit drop, and
 automatic cleanup. A local `let view: &[T] = &owner` may read
 `load(view[index])` through the bounds-checked `OP_HS_BUFFER_LOAD` handler under
 `uaal.buffer.borrow.v1`. A function may also accept an immutable `view: &[T]`
-parameter while its caller passes `&owner`; the owner remains live and reusable
-after the call returns. No owner token is copied or transferred into the view.
-Mutable slices, stores, subranges, borrowed returns, stored or escaping aliases,
+parameter while its caller passes `&owner`, and that parameter may be forwarded
+as `callee(view)` to another exactly typed immutable slice parameter. Each
+forwarding step remains synchronous and non-escaping; the original owner stays
+live and reusable after the nested call returns. No owner token is copied or
+transferred into any view. Mutable slices, stores, subranges, borrowed returns,
+stored or escaping aliases (including forwarding a local borrow variable),
 non-owner arguments, element-type mismatches, and move/drop conflicts within the
 same call fail closed.
 

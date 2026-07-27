@@ -1,14 +1,14 @@
 {
   "schema": "holoscript.std-abi-conformance.wasm.v0",
-  "generatedAtISO": "2026-07-27T18:30:36.433Z",
+  "generatedAtISO": "2026-07-27T18:35:36.842Z",
   "target": "browser-wasm",
   "executionRuntime": "node-webassembly",
   "wasmArtifact": {
     "path": "packages/compiler-wasm/pkg-node",
-    "sha256": "sha256:6a3aa2aad0796204816c8aa46f745cd5c260c991eee1820c277a802e4201131a",
+    "sha256": "sha256:13fac3299f29c632b308acfd075049e81d4c85a2134cc3c6ecf08457e14aacf7",
     "byteIdenticalWebArtifact": {
       "path": "packages/compiler-wasm/pkg",
-      "sha256": "sha256:6a3aa2aad0796204816c8aa46f745cd5c260c991eee1820c277a802e4201131a",
+      "sha256": "sha256:13fac3299f29c632b308acfd075049e81d4c85a2134cc3c6ecf08457e14aacf7",
       "matches": true
     }
   },
@@ -811,5 +811,5 @@
     "provesBrowserExecution": false,
     "note": "Executed in Node's WebAssembly runtime against the byte-identical wasm shipped for browsers; a browser smoke run is a separate receipt."
   },
-  "receiptHash": "sha256:e196d70933a599b7f89e1e4fe04552fdc177611beef5cb7dc217c192c69a899f"
+  "receiptHash": "sha256:5a7e2c80cb6cde027fde9a70b8e67c58320de265b018c63f689243aebfb4c002"
 }

@@ -1,6 +1,6 @@
 {
   "schema": "holoscript.std-abi-conformance.cross-target.v0",
-  "generatedAtISO": "2026-07-27T18:31:05.847Z",
+  "generatedAtISO": "2026-07-27T18:35:49.292Z",
   "targets": [
     {
       "target": "node",
@@ -20,7 +20,7 @@
       "target": "browser-wasm",
       "schema": "holoscript.std-abi-conformance.wasm.v0",
       "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-27_std-abi-conformance.wasm.v0.json",
-      "receiptSha256": "sha256:5ff30f542bae62f208f8d958522bb0798d77fd5ba6e8e21fbb0e78a00aece546",
+      "receiptSha256": "sha256:7484c8720e11db97141c320542e2dfe13e30c81e8e23d7d049e94a8b4ca34372",
       "vectors": 75,
       "passed": 75,
       "failed": 0,
@@ -34,7 +34,7 @@
       "target": "owned-metal",
       "schema": "holoscript.std-abi-conformance.owned-metal.v0",
       "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-26_std-abi-conformance.owned-metal.v0.json",
-      "receiptSha256": "sha256:9865ff6cc667b145951f38a11a00aa18f5a8009f639a2dc75e7e65ab1acb6166",
+      "receiptSha256": "sha256:cbbf8cce57fa00aaf320169cbc8518a6814fedaf9e17d9b9eeb0540a91755197",
       "vectors": 75,
       "passed": 75,
       "failed": 0,
@@ -58,5 +58,5 @@
   "claimBoundary": {
     "note": "Equality is claimed only for the targets, corpus pin, and vector set named above. Each per-target receipt carries its own execution claim boundary; this receipt adds only cross-target value agreement."
   },
-  "receiptHash": "sha256:bcbdafdfb369ea73fa4f6bcfd72058b8774b3736356a4b1ec6dc7b915ae3e4ec"
+  "receiptHash": "sha256:02d1cd8001c9fb84df1484cc94962443f7cfc81198cfd360d36f212e4ce32982"
 }

@@ -336,9 +336,20 @@ function readReceipt(receiptFile: string): AbsorbRefreshProgressReceipt {
 }
 
 export function compactAbsorbRefreshProgressReceipt(
-  receipt: AbsorbRefreshProgressReceipt,
+  receipt: AbsorbRefreshProgressReceipt | CompactAbsorbRefreshProgressReceipt,
   includeCompletedBatches = false
 ): AbsorbRefreshProgressReceipt | CompactAbsorbRefreshProgressReceipt {
+  // Isolated-worker telemetry is intentionally compact. The parent stores the
+  // latest telemetry snapshot so cancellation/status can survive a worker
+  // exit, which means those response paths may receive an already-compacted
+  // receipt. Keep compaction idempotent instead of dereferencing the omitted
+  // completedBatches array and crashing the MCP host during recovery.
+  if (
+    !('completedBatches' in receipt) ||
+    !Array.isArray((receipt as Partial<AbsorbRefreshProgressReceipt>).completedBatches)
+  ) {
+    return structuredClone(receipt);
+  }
   if (includeCompletedBatches) return structuredClone(receipt);
   const { completedBatches, ...compact } = structuredClone(receipt);
   return {

@@ -157,6 +157,7 @@ struct UaalBorrowedAggregate {
 struct UaalBorrowedBuffer {
     owner: String,
     element_type: String,
+    forwardable_parameter: bool,
 }
 
 #[derive(Debug)]
@@ -579,6 +580,7 @@ impl<'a> UaalEmitter<'a> {
                         UaalBorrowedBuffer {
                             owner: param.clone(),
                             element_type: element_type.to_string(),
+                            forwardable_parameter: true,
                         },
                     );
                     continue;
@@ -1196,6 +1198,28 @@ impl<'a> UaalEmitter<'a> {
                 "mutable borrowed slice parameters are not admitted by uaal.buffer.borrow.v1",
             ));
         }
+        if let AstNode::Identifier(view) = argument {
+            if let Some(borrowed) = self.current_borrowed_buffers.get(&view.name) {
+                if !borrowed.forwardable_parameter {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-006",
+                        "uaal.buffer.borrow.v1",
+                        "only immutable borrowed slice parameters may be forwarded; stored local aliases remain non-escaping load-only views",
+                    ));
+                }
+                if borrowed.element_type != expected_element_type {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-006",
+                        "uaal.buffer.borrow.v1",
+                        format!(
+                            "borrowed slice argument expects `[{expected_element_type}]`, but forwarded parameter `{}` stores `[{}]`",
+                            view.name, borrowed.element_type
+                        ),
+                    ));
+                }
+                return Ok(view.name.clone());
+            }
+        }
         let AstNode::UnaryExpression(borrow) = argument else {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-006",
@@ -1575,6 +1599,7 @@ impl<'a> UaalEmitter<'a> {
         Ok(UaalBorrowedBuffer {
             owner: owner.name.clone(),
             element_type: actual_element_type,
+            forwardable_parameter: false,
         })
     }
 
@@ -3570,6 +3595,69 @@ function main(): i32 {
     }
 
     #[test]
+    fn lowers_nested_forwarding_of_call_scoped_shared_buffer_slice_parameters() {
+        let bytecode = compile_source_to_uaal(
+            r#"function read(view: &[i32], index: i32): i32 {
+  return load(view[index])
+}
+function relay(view: &[i32], index: i32): i32 {
+  return read(view, index)
+}
+function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let first: i32 = relay(&values, 0)
+  let second: i32 = relay(&values, 1)
+  drop(values)
+  return first + second
+}"#,
+        )
+        .expect("a shared slice parameter should forward without transferring its affine owner");
+
+        let opcodes = bytecode
+            .instructions
+            .iter()
+            .map(|instruction| instruction.op_code)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_ALLOC)
+                .count(),
+            1
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_MOVE)
+                .count(),
+            0,
+            "nested shared calls must preserve the original owner"
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_LOAD)
+                .count(),
+            1,
+            "the terminal reader body should contain one indexed load"
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_DROP)
+                .count(),
+            1,
+            "only the original caller may clean up the owner"
+        );
+        for slot in ["__hs::relay::view", "__hs::read::view"] {
+            assert!(bytecode.instructions.iter().any(|instruction| {
+                instruction.op_code == OP_STATE_GET
+                    && instruction.operands.first() == Some(&Value::from(slot))
+            }));
+        }
+    }
+
+    #[test]
     fn call_scoped_shared_owned_buffer_slice_parameters_fail_closed() {
         for (source, expected) in [
             (
@@ -3595,6 +3683,24 @@ function main(): i32 {
   return read(&value)
 }"#,
                 "borrowed slice argument requires `&owner` for a local owned buffer",
+            ),
+            (
+                r#"function read(view: &[i32]): i32 { return load(view[0]) }
+function main(): i32 {
+  let values: [i32] = buffer(1, 5)
+  let local: &[i32] = &values
+  return read(local)
+}"#,
+                "only immutable borrowed slice parameters may be forwarded",
+            ),
+            (
+                r#"function read(view: &[f32]): f32 { return load(view[0]) }
+function relay(view: &[i32]): f32 { return read(view) }
+function main(): f32 {
+  let values: [i32] = buffer(1, 5)
+  return relay(&values)
+}"#,
+                "argument 1 to `read` has incompatible type: expected `&[f32]`, found `&[i32]`",
             ),
             (
                 r#"function combine(view: &[i32], owned: [i32]): i32 {
