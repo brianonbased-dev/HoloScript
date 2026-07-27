@@ -267,6 +267,63 @@ describe('AbsorbRefreshCheckpoint', () => {
     });
   });
 
+  it('adopts the compatible checkpoint with the most completed work', async () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-best-repo-'));
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-best-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeFixture(rootDir, 'src/a.txt', 'a\n');
+    writeFixture(rootDir, 'src/b.txt', 'b\n');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const scanPlan = scanner.planScan({ rootDir, maxFiles: 2 }, 1);
+    const checkpointOptions = {
+      rootDir,
+      scanPlan,
+      targetGitCommitHash: 'a'.repeat(40),
+      targetWorktreeFingerprint: null,
+      scanPolicyHash: 'policy-v1',
+      maxFiles: 2,
+    };
+    const completeScan = prepareAbsorbRefreshCheckpoint(checkpointOptions);
+    for (const batch of scanPlan.batches) {
+      const inputSha256 = completeScan.captureBatchInput(batch);
+      const result = await scanner.scanFiles(rootDir, batch.files);
+      expect(completeScan.persistBatch(batch, result, inputSha256)).toBe(true);
+    }
+    completeScan.markScanned();
+
+    const newerPartial = prepareAbsorbRefreshCheckpoint(checkpointOptions);
+    const partialBatch = scanPlan.batches[0];
+    const partialInputSha256 = newerPartial.captureBatchInput(partialBatch);
+    const partialResult = await scanner.scanFiles(rootDir, partialBatch.files);
+    expect(newerPartial.persistBatch(partialBatch, partialResult, partialInputSha256)).toBe(true);
+    newerPartial.markInterrupted(new Error('newer partial retry'));
+
+    const leaseFile = resolveCodebaseCachePaths(rootDir).writerLeaseFile;
+    const token = 'best-progress-writer-token';
+    fs.writeFileSync(
+      leaseFile,
+      JSON.stringify({
+        schemaVersion: 'holoscript.absorb-writer-lease.v1',
+        kind: 'AbsorbWriterLease',
+        token,
+        rootDirs: [rootDir],
+      }),
+      'utf-8'
+    );
+
+    const adopted = prepareAbsorbRefreshCheckpoint({
+      ...checkpointOptions,
+      reuseLatest: true,
+      writerLeaseProof: { leaseFile, token },
+    });
+    expect(adopted.progressReceipt()).toMatchObject({
+      resumeToken: completeScan.progressReceipt().resumeToken,
+      completedBatchCount: 2,
+      completedCandidateFiles: 2,
+    });
+  });
+
   it('enforces the byte ceiling before directory count becomes pressure', () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-byte-cap-'));
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));

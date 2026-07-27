@@ -5791,6 +5791,7 @@ async function runFullScan(
         (scanner.planScan(scanOptions, scanBatchSize) as PlannedScannerScanPlan);
       if (!activeRefreshCheckpoint) {
         const coverage = buildGraphCoverageStatusForRoots(rootDirs, 0, effectiveScanPolicy);
+        const writerLease = jobId ? absorbJobs.get(jobId)?.writerLease : undefined;
         activeRefreshCheckpoint = prepareAbsorbRefreshCheckpoint({
           rootDir: primaryRootDir,
           scanPlan: scanPlan as ScanPlan,
@@ -5800,6 +5801,12 @@ async function runFullScan(
           maxFiles: effectiveMaxFiles,
           workspaceCandidateFiles: coverage.selectedCandidateCount ?? undefined,
           reuseLatest: true,
+          ...(writerLease && {
+            writerLeaseProof: {
+              leaseFile: writerLease.leaseFile,
+              token: writerLease.record.token,
+            },
+          }),
         });
       }
       const scanRefreshCheckpoint = activeRefreshCheckpoint;
