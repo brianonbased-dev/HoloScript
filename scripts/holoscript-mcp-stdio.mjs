@@ -27,6 +27,37 @@ export const LAUNCHER_PATH = fileURLToPath(import.meta.url);
 
 export const BUILD_GROUPS = [
   {
+    id: 'core-types',
+    label: '@holoscript/core-types',
+    filter: '@holoscript/core-types',
+    requiredFiles: [
+      'packages/core-types/dist/index.js',
+      'packages/core-types/dist/index.cjs',
+      'packages/core-types/dist/index.d.ts',
+      'packages/core-types/dist/ans.js',
+    ],
+  },
+  {
+    id: 'agent-protocol',
+    label: '@holoscript/agent-protocol',
+    filter: '@holoscript/agent-protocol',
+    requiredFiles: [
+      'packages/agent-protocol/dist/index.js',
+      'packages/agent-protocol/dist/index.cjs',
+      'packages/agent-protocol/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'platform',
+    label: '@holoscript/platform',
+    filter: '@holoscript/platform',
+    requiredFiles: [
+      'packages/platform/dist/index.js',
+      'packages/platform/dist/index.cjs',
+      'packages/platform/dist/index.d.ts',
+    ],
+  },
+  {
     id: 'core',
     label: '@holoscript/core',
     filter: '@holoscript/core',
@@ -38,6 +69,176 @@ export const BUILD_GROUPS = [
     ],
   },
   {
+    id: 'secrets-broker',
+    label: '@holoscript/secrets-broker',
+    filter: '@holoscript/secrets-broker',
+    requiredFiles: [
+      'packages/secrets-broker/dist/index.js',
+      'packages/secrets-broker/dist/index.cjs',
+      'packages/secrets-broker/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'config',
+    label: '@holoscript/config',
+    filter: '@holoscript/config',
+    requiredFiles: [
+      'packages/config/dist/index.js',
+      'packages/config/dist/index.cjs',
+      'packages/config/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'llm-provider',
+    label: '@holoscript/llm-provider',
+    filter: '@holoscript/llm-provider',
+    requiredFiles: [
+      'packages/llm-provider/dist/index.js',
+      'packages/llm-provider/dist/index.cjs',
+      'packages/llm-provider/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'framework',
+    label: '@holoscript/framework',
+    filter: '@holoscript/framework',
+    requiredFiles: [
+      'packages/framework/dist/index.js',
+      'packages/framework/dist/index.cjs',
+      'packages/framework/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'crdt-spatial',
+    label: '@holoscript/crdt-spatial',
+    filter: '@holoscript/crdt-spatial',
+    requiredFiles: [
+      'packages/crdt-spatial/dist/index.js',
+      'packages/crdt-spatial/dist/index.cjs',
+      'packages/crdt-spatial/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'snn-webgpu',
+    label: '@holoscript/snn-webgpu',
+    filter: '@holoscript/snn-webgpu',
+    requiredFiles: [
+      'packages/snn-webgpu/dist/index.js',
+      'packages/snn-webgpu/dist/index.cjs',
+      'packages/snn-webgpu/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'holoembed',
+    label: '@holoscript/holoembed',
+    filter: '@holoscript/holoembed',
+    requiredFiles: [
+      'packages/holoembed/dist/index.js',
+      'packages/holoembed/dist/index.cjs',
+      'packages/holoembed/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'engine',
+    label: '@holoscript/engine',
+    filter: '@holoscript/engine',
+    requiredFiles: [
+      'packages/engine/dist/index.js',
+      'packages/engine/dist/index.cjs',
+      'packages/engine/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'runtime',
+    label: '@holoscript/runtime',
+    filter: '@holoscript/runtime',
+    requiredFiles: [
+      'packages/runtime/dist/index.js',
+      'packages/runtime/dist/index.cjs',
+      'packages/runtime/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'hololand-platform',
+    label: '@holoscript/hololand-platform',
+    filter: '@holoscript/hololand-platform',
+    requiredFiles: [
+      'packages/hololand-platform/dist/index.js',
+      'packages/hololand-platform/dist/index.cjs',
+      'packages/hololand-platform/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'holomap',
+    label: '@holoscript/holomap',
+    filter: '@holoscript/holomap',
+    requiredFiles: [
+      'packages/holomap/dist/index.js',
+      'packages/holomap/dist/index.cjs',
+      'packages/holomap/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'mesh',
+    label: '@holoscript/mesh',
+    filter: '@holoscript/mesh',
+    requiredFiles: [
+      'packages/mesh/dist/index.js',
+      'packages/mesh/dist/index.cjs',
+      'packages/mesh/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'holo-vm',
+    label: '@holoscript/holo-vm',
+    filter: '@holoscript/holo-vm',
+    requiredFiles: [
+      'packages/holo-vm/dist/index.js',
+      'packages/holo-vm/dist/index.cjs',
+      'packages/holo-vm/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'security-sandbox',
+    label: '@holoscript/security-sandbox',
+    filter: '@holoscript/security-sandbox',
+    requiredFiles: [
+      'packages/security-sandbox/dist/index.js',
+      'packages/security-sandbox/dist/index.mjs',
+      'packages/security-sandbox/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'holollama',
+    label: '@holoscript/holollama',
+    filter: '@holoscript/holollama',
+    requiredFiles: [
+      'packages/holollama/dist/index.js',
+      'packages/holollama/dist/index.cjs',
+      'packages/holollama/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'meaning',
+    label: '@holoscript/meaning',
+    filter: '@holoscript/meaning',
+    requiredFiles: [
+      'packages/meaning/dist/index.js',
+      'packages/meaning/dist/index.cjs',
+      'packages/meaning/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'uaal',
+    label: '@holoscript/uaal',
+    filter: '@holoscript/uaal',
+    requiredFiles: [
+      'packages/uaal/dist/index.js',
+      'packages/uaal/dist/index.cjs',
+      'packages/uaal/dist/index.d.ts',
+    ],
+  },
+  {
     id: 'absorb-service',
     label: '@holoscript/absorb-service',
     filter: '@holoscript/absorb-service',
@@ -45,6 +246,27 @@ export const BUILD_GROUPS = [
       'packages/absorb-service/dist/index.js',
       'packages/absorb-service/dist/mcp/index.js',
       'packages/absorb-service/dist/mcp/index.cjs',
+    ],
+  },
+  {
+    id: 'memory',
+    label: '@holoscript/memory',
+    filter: '@holoscript/memory',
+    requiredFiles: [
+      'packages/memory/dist/index.js',
+      'packages/memory/dist/index.cjs',
+      'packages/memory/dist/index.d.ts',
+    ],
+  },
+  {
+    id: 'wasm',
+    label: '@holoscript/wasm',
+    filter: '@holoscript/wasm',
+    requiredFiles: [
+      'packages/compiler-wasm/pkg/holoscript_wasm.js',
+      'packages/compiler-wasm/pkg/holoscript_wasm.d.ts',
+      'packages/compiler-wasm/pkg-node/holoscript_wasm.js',
+      'packages/compiler-wasm/pkg-node/holoscript_wasm.d.ts',
     ],
   },
   {
@@ -172,7 +394,30 @@ function runImportProbe() {
   const probe = `
 await import('@holoscript/core');
 await import('@holoscript/core/compiler');
+await import('@holoscript/core-types/ans');
+await import('@holoscript/agent-protocol');
+await import('@holoscript/platform');
+await import('@holoscript/framework');
+await import('@holoscript/crdt-spatial');
+await import('@holoscript/engine');
+await import('@holoscript/runtime');
+await import('@holoscript/hololand-platform');
+await import('@holoscript/holomap');
+await import('@holoscript/mesh');
+await import('@holoscript/holo-vm');
+await import('@holoscript/security-sandbox');
+await import('@holoscript/secrets-broker');
+await import('@holoscript/config');
+await import('@holoscript/llm-provider');
+await import('@holoscript/snn-webgpu');
+await import('@holoscript/holoembed');
+await import('@holoscript/holollama');
+await import('@holoscript/meaning');
+await import('@holoscript/uaal');
 await import('@holoscript/absorb-service/mcp');
+await import('@holoscript/memory');
+await import('@holoscript/wasm/node');
+await import('./packages/mcp-server/dist/index.mjs');
 `;
   const result = spawnSync(process.execPath, ['--input-type=module', '-e', probe], {
     cwd: ROOT,

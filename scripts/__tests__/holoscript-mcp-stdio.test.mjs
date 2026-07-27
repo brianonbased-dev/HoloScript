@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
+import { readFileSync } from 'node:fs';
 import { PassThrough } from 'node:stream';
 import {
   BUILD_GROUPS,
@@ -32,16 +33,49 @@ function nextTurn() {
 test('local MCP launcher tracks the required build groups in dependency order', () => {
   assert.deepEqual(
     BUILD_GROUPS.map((group) => group.id),
-    ['core', 'absorb-service', 'mcp-server']
+    [
+      'core-types',
+      'agent-protocol',
+      'platform',
+      'core',
+      'secrets-broker',
+      'config',
+      'llm-provider',
+      'framework',
+      'crdt-spatial',
+      'snn-webgpu',
+      'holoembed',
+      'engine',
+      'runtime',
+      'hololand-platform',
+      'holomap',
+      'mesh',
+      'holo-vm',
+      'security-sandbox',
+      'holollama',
+      'meaning',
+      'uaal',
+      'absorb-service',
+      'memory',
+      'wasm',
+      'mcp-server',
+    ]
   );
+  const core = BUILD_GROUPS.find((group) => group.id === 'core');
   assert.ok(
-    BUILD_GROUPS[0].requiredFiles.includes('packages/core/dist/index.cjs'),
+    core.requiredFiles.includes('packages/core/dist/index.cjs'),
     'core CJS package root is required for CJS local MCP consumers'
   );
 });
 
 test('missingBuildGroups reports only groups with missing sentinel files', () => {
-  const missing = new Set(['packages/core/dist/index.cjs', 'packages/mcp-server/dist/index.js']);
+  const missing = new Set([
+    'packages/core-types/dist/ans.js',
+    'packages/platform/dist/index.js',
+    'packages/core/dist/index.cjs',
+    'packages/config/dist/index.js',
+    'packages/mcp-server/dist/index.js',
+  ]);
   const exists = (file) => {
     const normalized = String(file).replace(/\\/g, '/');
     return ![...missing].some((suffix) => normalized.endsWith(suffix));
@@ -49,7 +83,22 @@ test('missingBuildGroups reports only groups with missing sentinel files', () =>
 
   assert.deepEqual(
     missingBuildGroups(exists, 'C:/repo').map((group) => group.id),
-    ['core', 'mcp-server']
+    ['core-types', 'platform', 'core', 'config', 'mcp-server']
+  );
+});
+
+test('repair groups cover every direct MCP workspace dependency', () => {
+  const manifest = JSON.parse(
+    readFileSync(new URL('../../packages/mcp-server/package.json', import.meta.url), 'utf8')
+  );
+  const workspaceDependencies = Object.entries(manifest.dependencies)
+    .filter(([, version]) => String(version).startsWith('workspace:'))
+    .map(([name]) => name);
+  const coveredFilters = new Set(BUILD_GROUPS.map((group) => group.filter));
+
+  assert.deepEqual(
+    workspaceDependencies.filter((name) => !coveredFilters.has(name)),
+    []
   );
 });
 
