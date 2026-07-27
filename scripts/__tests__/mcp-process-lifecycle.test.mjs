@@ -146,6 +146,36 @@ test('connection ceiling evicts only the least-recently-active owned roots', () 
   );
 });
 
+test('connection ceiling preserves healthy open leases that self-heartbeat', () => {
+  const nowMs = Date.parse('2026-07-19T12:00:00.000Z');
+  const minute = 60 * 1000;
+  const processes = [20, 18, 12, 8, 4, 1].map((ageMinutes, index) =>
+    ownedProcess(index + 1, nowMs - ageMinutes * minute)
+  );
+  const leases = processes.map((item) => ({
+    schema: MCP_PROCESS_LEASE_SCHEMA,
+    role: 'holoscript-mcp-stdio',
+    pid: item.pid,
+    scriptPath,
+    startedAtMs: item.startedAt,
+    lastActivityAtMs: nowMs - minute,
+  }));
+
+  const plan = buildOwnedMcpProcessReapPlan({
+    processes,
+    leases,
+    role: 'holoscript-mcp-stdio',
+    scriptPath,
+    currentPid: 6,
+    nowMs,
+    staleAfterMs: 4 * 60 * minute,
+    maxConnectionsPerParent: 4,
+    capacityIdleAfterMs: 10 * minute,
+  });
+
+  assert.deepEqual(plan, []);
+});
+
 test('lease writes activity and removes its own file on close', () => {
   const leaseDir = mkdtempSync(join(tmpdir(), 'holoscript-mcp-lease-test-'));
   let nowMs = 100_000;
@@ -165,6 +195,57 @@ test('lease writes activity and removes its own file on close', () => {
     lifecycle.touch();
     assert.equal(JSON.parse(readFileSync(lifecycle.leasePath, 'utf8')).lastActivityAtMs, nowMs);
     lifecycle.close();
+    assert.throws(() => readFileSync(lifecycle.leasePath, 'utf8'), /ENOENT/);
+  } finally {
+    rmSync(leaseDir, { recursive: true, force: true });
+  }
+});
+
+test('lease self-heartbeats while open and clears the timer on close', () => {
+  const leaseDir = mkdtempSync(join(tmpdir(), 'holoscript-mcp-heartbeat-test-'));
+  let nowMs = 100_000;
+  let scheduled = null;
+  let intervalMs = null;
+  let cleared = null;
+  let unrefCalled = false;
+  const timer = {
+    unref() {
+      unrefCalled = true;
+    },
+  };
+  try {
+    const lifecycle = openMcpProcessLease({
+      role: 'holoscript-mcp-stdio',
+      scriptPath,
+      leaseDir,
+      pid: 56,
+      parentPid: 44,
+      startedAtMs: 90_000,
+      now: () => nowMs,
+      heartbeatIntervalMs: 5_000,
+      setIntervalImpl: (callback, delay) => {
+        scheduled = callback;
+        intervalMs = delay;
+        return timer;
+      },
+      clearIntervalImpl: (handle) => {
+        cleared = handle;
+      },
+      registerProcessHooks: false,
+    });
+
+    assert.equal(intervalMs, 5_000);
+    assert.equal(unrefCalled, true);
+    assert.equal(lifecycle.lease.heartbeatIntervalMs, 5_000);
+    nowMs += 5_000;
+    scheduled();
+    assert.equal(
+      JSON.parse(readFileSync(lifecycle.leasePath, 'utf8')).lastActivityAtMs,
+      nowMs
+    );
+
+    lifecycle.close();
+    assert.equal(cleared, timer);
     assert.throws(() => readFileSync(lifecycle.leasePath, 'utf8'), /ENOENT/);
   } finally {
     rmSync(leaseDir, { recursive: true, force: true });

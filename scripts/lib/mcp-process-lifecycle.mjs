@@ -9,6 +9,7 @@ export const MCP_PROCESS_REAP_RECEIPT_SCHEMA = 'holoscript.mcp-process-reap-rece
 export const DEFAULT_MCP_PROCESS_STALE_AFTER_MS = 4 * 60 * 60 * 1000;
 export const DEFAULT_MCP_MAX_CONNECTIONS_PER_PARENT = 4;
 export const DEFAULT_MCP_CAPACITY_IDLE_AFTER_MS = 10 * 60 * 1000;
+export const DEFAULT_MCP_PROCESS_HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
 function finitePositiveNumber(value, fallback) {
   const parsed = Number(value);
@@ -333,6 +334,12 @@ export function openMcpProcessLease({
   parentPid = process.ppid,
   now = Date.now,
   startedAtMs = now() - process.uptime() * 1000,
+  heartbeatIntervalMs = finitePositiveNumber(
+    process.env.HOLOSCRIPT_MCP_HEARTBEAT_INTERVAL_MS,
+    DEFAULT_MCP_PROCESS_HEARTBEAT_INTERVAL_MS
+  ),
+  setIntervalImpl = setInterval,
+  clearIntervalImpl = clearInterval,
   registerProcessHooks = true,
 } = {}) {
   if (!role || !scriptPath) throw new Error('role and scriptPath are required');
@@ -347,9 +354,11 @@ export function openMcpProcessLease({
     scriptPath: normalizeProcessPath(scriptPath),
     startedAtMs,
     lastActivityAtMs: now(),
+    heartbeatIntervalMs,
   };
   let closed = false;
   let lastWriteAt = 0;
+  let heartbeatTimer = null;
 
   const persist = (force = false) => {
     if (closed) return;
@@ -366,11 +375,17 @@ export function openMcpProcessLease({
   const close = () => {
     if (closed) return;
     closed = true;
+    if (heartbeatTimer !== null) {
+      clearIntervalImpl(heartbeatTimer);
+      heartbeatTimer = null;
+    }
     rmSync(leasePath, { force: true });
   };
   persist(true);
+  heartbeatTimer = setIntervalImpl(touch, heartbeatIntervalMs);
+  heartbeatTimer?.unref?.();
   if (registerProcessHooks) process.once('exit', close);
-  return { lease, leasePath, touch, close };
+  return { lease, leasePath, touch, close, heartbeatIntervalMs };
 }
 
 export function startMcpProcessLifecycle(options) {

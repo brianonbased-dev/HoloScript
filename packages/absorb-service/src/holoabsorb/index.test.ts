@@ -63,6 +63,21 @@ describe('HoloAbsorb product manifest', () => {
     expect(audit.checks.every((check) => check.status === 'pass')).toBe(true);
   });
 
+  it('owns the resilient stdio lease lifecycle under transport authority', () => {
+    const manifest = buildHoloAbsorbManifest();
+    const transport = manifest.capabilities.find(
+      (capability) => capability.id === 'transport-authority'
+    );
+
+    expect(transport?.evidencePaths).toEqual(
+      expect.arrayContaining([
+        'scripts/holoscript-mcp-stdio.mjs',
+        'scripts/lib/mcp-process-lifecycle.mjs',
+        'scripts/__tests__/mcp-process-lifecycle.test.mjs',
+      ])
+    );
+  });
+
   it('freezes external literal-pixel confirmation without claiming results', () => {
     const manifest = buildHoloAbsorbManifest();
     const paper = manifest.papers.find((entry) => entry.id === 'paper-5-graphrag');

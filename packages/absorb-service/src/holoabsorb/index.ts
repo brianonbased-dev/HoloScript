@@ -215,6 +215,9 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'packages/absorb-service/src/mcp/codebase-tools.ts',
       'packages/absorb-service/src/mcp/codebase-cache-storage.ts',
       'packages/absorb-service/src/engine/workers/WorkerPool.ts',
+      'scripts/holoscript-mcp-stdio.mjs',
+      'scripts/lib/mcp-process-lifecycle.mjs',
+      'scripts/__tests__/mcp-process-lifecycle.test.mjs',
     ],
   },
   {
