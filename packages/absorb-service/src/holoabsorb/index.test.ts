@@ -101,6 +101,14 @@ describe('HoloAbsorb product manifest', () => {
     expect(protocol.dataset.minimumQueries).toBeGreaterThanOrEqual(90);
     expect(protocol.claimBoundary.publicationReady).toBe(false);
     expect(protocol.claimBoundary.literalPixelVisionMeasured).toBe(false);
+    const evidence = manifest.capabilities.find((capability) => capability.id === 'evidence');
+    expect(evidence?.evidencePaths).toEqual(
+      expect.arrayContaining([
+        'packages/absorb-service/scripts/audit-paper-5-visual-v4.mjs',
+        'packages/absorb-service/scripts/prepare-paper-5-visual-v4.mjs',
+        'packages/absorb-service/scripts/lib/paper-5-visual-v4.mjs',
+      ])
+    );
   });
 
   it('reports missing observed surfaces instead of claiming completeness', () => {
