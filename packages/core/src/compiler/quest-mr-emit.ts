@@ -864,7 +864,6 @@ dependencies {
   implementation(libs.meta.spatial.sdk.toolkit)
   implementation(libs.meta.spatial.sdk.vr)
   implementation(libs.meta.spatial.sdk.isdk)
-  implementation(libs.meta.spatial.sdk.castinputforward)
   implementation(libs.meta.spatial.sdk.hotreload)
   implementation(libs.meta.spatial.sdk.datamodelinspector)
   implementation(libs.meta.spatial.sdk.uiset)
@@ -918,8 +917,9 @@ export function emitProguardRules(): string {
  * @generated AndroidManifest.xml — the Horizon-submission manifest. Reproduces the committed Meta-sample
  * manifest with the store-readiness changes: versionCode/Name from the spec, android:icon on
  * <application>, supportedDevices = quest3|quest3s, PASSTHROUGH required, and the launcher activity
- * excluded from recents. Everything else (permissions, features, meta-data, the horizonos sdk tag, the
- * VR-category intent-filter) is byte-identical to the reference.
+ * excluded from recents. The compiler also rejects storage/media permissions contributed by
+ * transitive SDK manifests: this target processes camera frames in memory and never reads or writes
+ * the user's media library.
  */
 export function emitAndroidManifestXml(f: QuestMrFeatures): string {
   return `<?xml version="1.0" encoding="utf-8" ?>
@@ -927,6 +927,7 @@ export function emitAndroidManifestXml(f: QuestMrFeatures): string {
 <manifest
   xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:horizonos="http://schemas.horizonos/sdk"
+  xmlns:tools="http://schemas.android.com/tools"
   android:versionCode="${f.versionCode}"
   android:versionName="${f.versionName}"
   android:installLocation="auto"
@@ -964,6 +965,17 @@ export function emitAndroidManifestXml(f: QuestMrFeatures): string {
   <uses-permission android:name="android.permission.INTERNET" />
   <!-- Passthrough camera for QR scanning (Camera2 PCA, Horizon OS v76+) -->
   <uses-permission android:name="horizonos.permission.HEADSET_CAMERA" />
+  <!--
+    Least privilege: optional SDK artifacts can declare legacy or broad media access. HoloQR keeps
+    camera frames in memory and requests none of these capabilities, so remove them during merging.
+  -->
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
+  <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" tools:node="remove" />
+  <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
+  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+  <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" tools:node="remove" />
+  <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" tools:node="remove" />
   <uses-feature android:name="android.hardware.camera2.any" android:required="false" />
   <uses-feature
     android:name="com.oculus.feature.RENDER_MODEL"

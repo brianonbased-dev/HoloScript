@@ -53,6 +53,29 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(manifest).toContain('android:value="quest3|quest3s"');
   });
 
+  it('removes unrequested storage and media permissions from transitive SDK manifests', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const manifest = out[Object.keys(out).find((k) => k.endsWith('AndroidManifest.xml'))!];
+    const gradle = out[Object.keys(out).find((k) => k.endsWith('app/build.gradle.kts'))!];
+    const denied = [
+      'android.permission.WRITE_EXTERNAL_STORAGE',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.READ_MEDIA_AUDIO',
+      'android.permission.READ_MEDIA_VIDEO',
+      'android.permission.READ_MEDIA_IMAGES',
+      'android.permission.ACCESS_MEDIA_LOCATION',
+      'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
+    ];
+
+    expect(manifest).toContain('xmlns:tools="http://schemas.android.com/tools"');
+    for (const permission of denied) {
+      expect(manifest).toContain(
+        `<uses-permission android:name="${permission}" tools:node="remove" />`
+      );
+    }
+    expect(gradle).not.toContain('implementation(libs.meta.spatial.sdk.castinputforward)');
+  });
+
   it('shrinks release builds so unused transitive SDK bytecode is not submitted', () => {
     const out = new QuestCompiler().compile(parsed.ast!, '');
     const gradle = out[Object.keys(out).find((k) => k.endsWith('app/build.gradle.kts'))!];
