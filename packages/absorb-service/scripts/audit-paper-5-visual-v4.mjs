@@ -8,6 +8,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -68,6 +69,15 @@ function readJsonIfPresent(path) {
   return path && existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
 }
 
+function gitValue(args) {
+  const result = spawnSync('git', args, {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
 export function main(argv = process.argv.slice(2)) {
   const options = parseArgs(argv);
   if (options.help) {
@@ -78,6 +88,8 @@ export function main(argv = process.argv.slice(2)) {
   const protocol = JSON.parse(protocolRaw);
   const dataset = readJsonIfPresent(options.dataset);
   const executionPlan = readJsonIfPresent(options.executionPlan) ?? dataset?.executionPlan ?? null;
+  const repoCommit = gitValue(['rev-parse', 'HEAD']);
+  const trackedStatusAtStart = gitValue(['status', '--short', '--untracked-files=no']);
   const datasetAudit = auditPaper5VisualV4Dataset({ protocol, protocolRaw, dataset });
   const executionAudit = auditPaper5VisualV4ExecutionPlan({ protocol, executionPlan });
 
@@ -122,6 +134,11 @@ export function main(argv = process.argv.slice(2)) {
     kind: 'Paper5VisualV4ReadinessReceipt',
     status,
     capturedAt: new Date().toISOString(),
+    repo: {
+      commit: repoCommit,
+      trackedWorktreeDirtyAtStart: Boolean(trackedStatusAtStart),
+      trackedStatusAtStart,
+    },
     protocol: {
       id: protocol.protocolId,
       path: relative(repoRoot, options.protocol).replace(/\\/gu, '/'),
