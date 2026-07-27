@@ -1,11 +1,11 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T07:36:14Z",
+  "generatedAt": "2026-07-27T07:46:06Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "fba85a892e204a2d7fef5386e106aa63a1ed120c plus the pending aggregate-reference ABI source; built before the source-and-artifact commit",
+  "sourceCommit": "9d9c1440f6b4e18bc1f4ac0da4c4c5daeb042b33",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
-    "wasm-pack build --target nodejs --out-dir pkg-node --release"
+    "Get-FileHash packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm -Algorithm SHA256"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -13,12 +13,12 @@
     "wasmPack": "0.14.0"
   },
   "result": {
-    "rebuilt": true,
-    "artifactBytesChanged": true,
+    "rebuilt": false,
+    "artifactBytesChanged": false,
     "wasmBytes": 444528,
     "wasmSha256": "fba6d30ccfffc5e17a9a0816fa4687d377061c700fe2ed2408824b84270eb775",
-    "previousWasmSha256": "bcc5b526a9196a949a3b39e4bdb9f9f338a27409414807d6a35b6771439987bc",
+    "previousWasmSha256": "fba6d30ccfffc5e17a9a0816fa4687d377061c700fe2ed2408824b84270eb775",
     "repeatBuildSha256Matched": true,
-    "note": "Two release nodejs builds produced the same SHA-256. The artifact includes the prior hs.buffer.owned.v1 lowering and pending hs.aggregate.ref.v1 lowering; target-specific wasm-bindgen output makes the Node and web artifacts distinct despite equal byte counts."
+    "note": "Post-source verification pins the final aggregate-reference compiler commit. The previously rebuilt artifact already contained those exact pending source bytes, so the verified SHA-256 is byte-identical."
   }
 }
