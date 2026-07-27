@@ -205,6 +205,7 @@ async function main() {
     throw new Error('--endpoint and --model are required unless --prepare-only is set');
   }
 
+  const setupMs = performance.now() - setupStarted;
   const observations = [];
   const expected = cases.length * 2 * options.trials;
   const requestBatchSize = Number(protocol.agentProtocol.requestBatchSize ?? 1);
@@ -331,7 +332,8 @@ async function main() {
       expectedRequests,
       completedRequests,
       invalidResponses: invalidCount,
-      setupMs: round(performance.now() - setupStarted),
+      setupMs: round(setupMs),
+      wallMs: round(performance.now() - setupStarted),
     },
     summary,
     observations,

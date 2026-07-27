@@ -286,6 +286,9 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'packages/absorb-service/benchmarks/paper-5-retrieval-v1.json',
       'packages/absorb-service/benchmarks/paper-5-visual-agent-study-v1.json',
       'packages/absorb-service/benchmarks/paper-5-visual-agent-study-v2.json',
+      'research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/README.md',
+      'research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/packets.json',
+      'research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/result.json',
     ],
   },
 ];
@@ -385,7 +388,7 @@ const PAPERS: readonly HoloAbsorbPaperEvidence[] = [
       'node packages/absorb-service/scripts/bench-paper-5-gpu.mjs',
     ],
     claimBoundary:
-      'The accuracy harness uses 54 frozen held-out, source-audited queries with multi-relevance labels and bootstrap confidence intervals. The preregistered visual-agent study measures blinded selection from a gold-complete ten-candidate view, not end-to-end retrieval or literal pixel vision. Both lanes still lack independent multi-human annotation and external-codebase replication. The timing harness is synthetic unless explicitly captured on verified target hardware.',
+      'The accuracy harness uses 54 frozen held-out, source-audited queries with multi-relevance labels and bootstrap confidence intervals. The preregistered Qwen3-4B pilot measured blinded selection from a gold-complete eight-candidate view; its structured visual-graph arm did not support the hypothesis and exceeded the invalid-response ceiling. This is model-specific negative evidence, not end-to-end retrieval or literal pixel vision. Both lanes still lack independent multi-human annotation and external-codebase replication. The timing harness is synthetic unless explicitly captured on verified target hardware.',
     requiredReceiptKinds: ['accuracy-json', 'timing-json', 'hardware-inventory', 'claim-boundary'],
   },
   {

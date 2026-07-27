@@ -119,7 +119,17 @@ Repeatable evidence:
 pnpm --filter @holoscript/absorb-service benchmark:holoabsorb
 pnpm --filter @holoscript/absorb-service benchmark:holoabsorb-checkpoints -- --repo <repo>
 pnpm --filter @holoscript/absorb-service benchmark:holoabsorb-hybrid -- --repo <repo>
+pnpm --filter @holoscript/absorb-service benchmark:paper5-visual-agent -- --prepare-only
 ```
+
+The first preregistered owned-model visual-agent pilot is preserved under
+`research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2`.
+Its structured visual-graph arm did **not** improve aggregate ranking on
+Qwen3-4B and exceeded the invalid-response ceiling. That negative result is a
+representation and agent-evaluation input, not evidence that a correct
+user-selected visual node is ineffective; the separate four-arm focus
+evaluation still verifies deterministic correct/stale/wrong selection
+behavior.
 
 ## Sub-path Exports
 
