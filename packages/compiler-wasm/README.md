@@ -36,7 +36,9 @@ HoloScript, compiled to WebAssembly.
   `move`, `action`, `on_*` event blocks
 
 - **UAAL lowering** - `compile_to_uaal` emits executable bytecode for typed
-  function kernels, including i32 and finite scalar f64 arithmetic/comparisons
+  function kernels, including i32, finite scalar f32/f64 arithmetic, and affine
+  POD aggregate values, owned buffers, and immutable local or call-scoped buffer
+  reads
 
 ## Installation
 
@@ -141,9 +143,33 @@ Validate and return detailed error information.
 
 Compile the supported typed function subset to a UAAL bytecode JSON packet.
 Numeric `EXEC` instructions identify their host ABI as `hs.i32.binary.v1` or
-`hs.f64.binary.v1`; the embedding UAAL VM must register the matching handler.
-The f64 v1 seam proves finite operands only and does not claim NaN, infinity,
-signed-zero preservation, or division-by-zero semantics.
+the distinct `hs.f32.binary.v1` / `hs.f64.binary.v1` contracts; the embedding
+UAAL VM must register the matching handler. The f32 handler must round literals,
+operands, and every arithmetic result to IEEE-754 binary32 rather than inheriting
+JavaScript binary64 arithmetic. Both floating-point v1 seams prove finite operands
+only and do not claim NaN, infinity, signed-zero preservation, or division-by-zero
+semantics.
+
+Flat records whose explicitly typed fields are `i32`, `f32`, `f64`, or `bool`
+cross UAAL calls and returns as one affine stack value under
+`hs.aggregate.value.v1`. `hs.aggregate.value.v2` adds finite recursive layouts
+whose leaves use those same scalar POD types. Recursive construction carries
+child layout descriptors, while `project_path` validates every nested record
+boundary before returning a scalar leaf. Whole-value copies and nested-record
+loads are rejected in favor of `move(...)` or a scalar leaf projection; cyclic
+by-value layouts, owned buffers, and mutable or borrowed aggregate transfer
+remain outside the value ABI.
+
+Owned scalar buffers use the separate `hs.buffer.owned.v1` contract for
+allocation, whole-owner moves across parameters and returns, explicit drop, and
+automatic cleanup. A local `let view: &[T] = &owner` may read
+`load(view[index])` through the bounds-checked `OP_HS_BUFFER_LOAD` handler under
+`uaal.buffer.borrow.v1`. A function may also accept an immutable `view: &[T]`
+parameter while its caller passes `&owner`; the owner remains live and reusable
+after the call returns. No owner token is copied or transferred into the view.
+Mutable slices, stores, subranges, borrowed returns, stored or escaping aliases,
+non-owner arguments, element-type mismatches, and move/drop conflicts within the
+same call fail closed.
 
 ### `version(): string`
 

@@ -3882,6 +3882,40 @@ describe('holo_absorb_repo root validation', () => {
     expect(graphEnvelope.embeddingCacheBytes).toBe(originalEmbeddingStat.size);
     expect(graphEnvelope.embeddingCacheMtimeMs).toBe(originalEmbeddingStat.mtimeMs);
 
+    // A fleet transfer through tar commonly rounds mtimes to whole seconds.
+    // The immutable generation manifest still binds the selected embedding
+    // digest and byte length to the graph, so transport precision loss must
+    // not make an otherwise intact semantic index unavailable.
+    const transportRoundedMtime = Math.floor(originalEmbeddingStat.mtimeMs / 1000) * 1000;
+    fs.utimesSync(
+      embeddingsCachePath,
+      originalEmbeddingStat.atime,
+      new Date(transportRoundedMtime)
+    );
+    resetCodebaseToolStateForTests(false);
+    const originalCwdAfterTransport = process.cwd();
+    try {
+      process.chdir(repoDir);
+      const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+        semanticIndexReady?: boolean;
+        semanticIndex?: {
+          diskEmbeddingGenerationMatchesGraph?: boolean;
+          diskEmbeddingGenerationStat?: { verification?: string };
+          diskHydratable?: boolean;
+        };
+      };
+      expect(status.semanticIndexReady).toBe(true);
+      expect(status.semanticIndex).toMatchObject({
+        diskEmbeddingGenerationMatchesGraph: true,
+        diskEmbeddingGenerationStat: {
+          verification: 'immutable-generation-manifest',
+        },
+        diskHydratable: true,
+      });
+    } finally {
+      process.chdir(originalCwdAfterTransport);
+    }
+
     // Simulate a crash after a different embedding generation replaced the
     // binary but before the graph envelope committed. The graph remains usable,
     // while the unbound semantic generation must be rejected.

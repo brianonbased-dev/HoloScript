@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.transport-promotion.v1",
+  "kind": "HoloAbsorbTransportPromotionReceipt",
+  "status": "pass",
+  "capturedAt": "2026-07-27T01:38:03.319Z",
+  "officialProductName": "HoloAbsorb",
+  "hosted": {
+    "deploymentId": "d2d242bd-666b-4315-8fa4-e56f8c8b6957",
+    "sourceCommit": "bd316538892b2318d476b73499c8257f83f2ac70",
+    "state": "SUCCESS",
+    "receiptId": "rcpt-5f07ad3a74b23637a955a580",
+    "receiptSha256": "b3a3ec8e023b1ce550b4df06ad594648289ebd424d0899592aecb8ab2c8b94a0",
+    "canary": {
+      "healthy": true,
+      "version": "6.1.3",
+      "databaseConnected": true,
+      "statelessInitialization": true,
+      "umbrellaAudit": "pass"
+    }
+  },
+  "jetson": {
+    "sourceCommit": "bd316538892b2318d476b73499c8257f83f2ac70",
+    "mcp": {
+      "version": "8.0.14",
+      "tools": 429,
+      "oldPid": 2234630,
+      "newPid": 2253420,
+      "active": true
+    },
+    "llama": {
+      "pidBefore": 1823127,
+      "pidAfter": 1823127,
+      "active": true
+    },
+    "manifest": {
+      "productName": "HoloAbsorb",
+      "audit": "pass",
+      "declaredTools": 28
+    },
+    "graph": {
+      "generationId": "80c9de82bd48d9898f72503dcb186c5d",
+      "authoritative": true,
+      "graphRAGReady": true,
+      "semanticIndexReady": true,
+      "files": 20117,
+      "expectedFiles": 20117,
+      "coverageRatio": 1,
+      "coverageComplete": true,
+      "cappedByMaxFiles": false,
+      "extraGraphFiles": 0,
+      "symbols": 364699,
+      "calls": 1008853,
+      "imports": 35115,
+      "loc": 6389285
+    }
+  },
+  "generation": {
+    "builderRuntimeCommit": "4b27706fa27f16b102828feab00b4d8c69afea6a",
+    "scanBatches": 179,
+    "reusedScanBatches": 179,
+    "durationMs": 111702,
+    "measuredPeakRssBytes": 5367595008,
+    "dockerMemoryLimitBytes": 8589934592,
+    "nodeOldSpaceLimitMiB": 4096,
+    "applicationMaxRssMiB": 7680,
+    "graph": {
+      "bytes": 344922679,
+      "sha256": "ea2346d2ea6bffb0d60aecf6939fe5300ff6cffe5951e910284734958399bcda"
+    },
+    "embeddings": {
+      "bytes": 1423987049,
+      "sha256": "f97414a7b87611f8a82fd6b6d5364b6c9c3c78e7ec09576a84485bf93f84de05"
+    },
+    "promotionArchive": {
+      "bytes": 1768913920,
+      "sha256": "c8615e8d4f98a6f9476eba800656a61a13fe2ab566e4c81ffa9d2b1f17c809e7"
+    }
+  },
+  "transportRegression": {
+    "failure": "archive timestamp precision loss",
+    "contentDigestChanged": false,
+    "repairDigestVerified": true,
+    "fixCommit": "23f284b180aa7a93f872aff2cf001b2b8efae46d",
+    "verification": [
+      "targeted regression passed",
+      "existing changed-generation rejection passed",
+      "eslint passed",
+      "typescript passed",
+      "live fail-closed canary passed"
+    ]
+  },
+  "claimBoundary": {
+    "gpuAccelerationClaimed": false,
+    "arbitraryVisualSelectionCorrectnessClaimed": false,
+    "publicationScaleRetrievalClaimed": false,
+    "paper5MinimumIndependentQueriesRemaining": 50
+  }
+}

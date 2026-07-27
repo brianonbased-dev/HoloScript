@@ -1,0 +1,3192 @@
+{
+  "schemaVersion": "holoscript.paper5.visual-agent-study-result.v1",
+  "kind": "Paper5VisualAgentStudyResult",
+  "status": "fail",
+  "hypothesis": "not-supported",
+  "protocol": {
+    "id": "holoabsorb-paper5-visual-agent-study-v2-compact-batched",
+    "sha256": "fcdbe0619b9f2132a9c7aeb7b0b5981a8cf3ee000405b2a2da0a656897a26d7c",
+    "frozenAt": "2026-07-27T05:50:00.000Z"
+  },
+  "packets": {
+    "path": "research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/packets.json",
+    "sha256": "da465183516456b39eccf8eb6ee29b66447aa3f510f88396b4bee713011936e6"
+  },
+  "dataset": {
+    "id": "holoabsorb-paper5-source-audited-v1",
+    "sha256": "f34a3664fd8c39ff5cc5b38201b72d8d02b6633990f2c67f4e43cc03bd1314dd",
+    "auditStatus": "pass"
+  },
+  "repo": {
+    "commit": "6b1b40c3ccc349024395816f4b8d7b7155c19528",
+    "worktreeDirtyAtStart": false,
+    "dirtyPathCountAtStart": 0
+  },
+  "model": {
+    "endpoint": "http://192.168.0.119:18080",
+    "name": "/mnt/nvme/holo/models/qwen3-4b-instruct.gguf",
+    "temperature": 0,
+    "maxTokens": 512,
+    "requestBatchSize": 4,
+    "trialsPerArm": 1,
+    "statelessRequests": true
+  },
+  "corpus": {
+    "files": 125,
+    "symbols": 6555,
+    "scanErrors": 0,
+    "sceneObjects": 6555,
+    "sceneEdges": 131,
+    "provider": "holoembed"
+  },
+  "execution": {
+    "expectedResponses": 108,
+    "completedResponses": 108,
+    "expectedRequests": 28,
+    "completedRequests": 28,
+    "invalidResponses": 4,
+    "setupMs": 297347.519
+  },
+  "summary": {
+    "pairedQueries": 54,
+    "arms": {
+      "text": {
+        "precisionAt5": 0.2,
+        "mrr": 0.888889,
+        "invalidResponseRate": 0,
+        "unknownCandidateRate": 0,
+        "meanConfidence": 0.876296,
+        "meanLatencyMs": 2152.385889
+      },
+      "visual": {
+        "precisionAt5": 0.162963,
+        "mrr": 0.814815,
+        "invalidResponseRate": 0.074074,
+        "unknownCandidateRate": 0,
+        "meanConfidence": 0.85,
+        "meanLatencyMs": 2860.403074
+      }
+    },
+    "pairedDelta": {
+      "precisionAt5": {
+        "estimate": -0.037037,
+        "ci95": [
+          -0.062963,
+          -0.011111
+        ],
+        "resamples": 2000
+      },
+      "mrr": {
+        "estimate": -0.074074,
+        "ci95": [
+          -0.185185,
+          0.037037
+        ],
+        "resamples": 2000
+      },
+      "invalidResponseRate": 0.074074
+    },
+    "byCategory": {
+      "dependency": {
+        "queries": 18,
+        "text": {
+          "precisionAt5": 0.233333,
+          "mrr": 0.944444,
+          "invalidResponseRate": 0,
+          "unknownCandidateRate": 0,
+          "meanConfidence": 0.847778,
+          "meanLatencyMs": 2158.968889
+        },
+        "visual": {
+          "precisionAt5": 0.133333,
+          "mrr": 0.666667,
+          "invalidResponseRate": 0.222222,
+          "unknownCandidateRate": 0,
+          "meanConfidence": 0.733333,
+          "meanLatencyMs": 2715.812
+        }
+      },
+      "impact": {
+        "queries": 18,
+        "text": {
+          "precisionAt5": 0.2,
+          "mrr": 0.888889,
+          "invalidResponseRate": 0,
+          "unknownCandidateRate": 0,
+          "meanConfidence": 0.933889,
+          "meanLatencyMs": 2123.053778
+        },
+        "visual": {
+          "precisionAt5": 0.177778,
+          "mrr": 0.888889,
+          "invalidResponseRate": 0,
+          "unknownCandidateRate": 0,
+          "meanConfidence": 0.905556,
+          "meanLatencyMs": 2737.111111
+        }
+      },
+      "reasoning": {
+        "queries": 18,
+        "text": {
+          "precisionAt5": 0.166667,
+          "mrr": 0.833333,
+          "invalidResponseRate": 0,
+          "unknownCandidateRate": 0,
+          "meanConfidence": 0.847222,
+          "meanLatencyMs": 2175.135
+        },
+        "visual": {
+          "precisionAt5": 0.177778,
+          "mrr": 0.888889,
+          "invalidResponseRate": 0,
+          "unknownCandidateRate": 0,
+          "meanConfidence": 0.911111,
+          "meanLatencyMs": 3128.286111
+        }
+      }
+    },
+    "preregisteredHypothesis": "not-supported"
+  },
+  "observations": [
+    {
+      "caseId": "dependency-01",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_39d0cf81c8b5"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2721.072,
+      "requestLatencyMs": 10884.287,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2689,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "dependency-02",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_16dae651a5ad"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2af2a1c8bcb8e138b6d47d12bd5e79d701cee295ac6a91753a30bf379735a370",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.9}",
+      "latencyMs": 2721.072,
+      "requestLatencyMs": 10884.287,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2689,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-03",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_df36ed6b8d0b"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2af2a1c8bcb8e138b6d47d12bd5e79d701cee295ac6a91753a30bf379735a370",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.9}",
+      "latencyMs": 2721.072,
+      "requestLatencyMs": 10884.287,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2689,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-04",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_9ab9ed86cf35"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2af2a1c8bcb8e138b6d47d12bd5e79d701cee295ac6a91753a30bf379735a370",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.9}",
+      "latencyMs": 2721.072,
+      "requestLatencyMs": 10884.287,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2689,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-01",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_8dbb0720d462"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "2c7a4c05d7bb5c43b10f04d196813f8b6dd00b913d978004c3a1cfac5aca7e66",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c7\"],\"confidence\":0.95}",
+      "latencyMs": 2115.172,
+      "requestLatencyMs": 8460.688,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1514,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-02",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_988ab8a8b41b"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "fc2b975e9e6f2997d3444fdae47c30eb658708022f79c0ccd5bc640f417d4320",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.95}",
+      "latencyMs": 2115.172,
+      "requestLatencyMs": 8460.688,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1514,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-03",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_ee1241d70aea"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "cbcd1bce500c55b3e34d84db6c6ee1e54b9bc54afed08f0c587a7a08cb2c8723",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.95}",
+      "latencyMs": 2115.172,
+      "requestLatencyMs": 8460.688,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1514,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-04",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_8b25037683fb"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "fe920a330f61df10a01099cf4394e066c534f66c8202f8a48eaa154486d5ce1c",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.95}",
+      "latencyMs": 2115.172,
+      "requestLatencyMs": 8460.688,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1514,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-05",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_ca1a758f2215"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.5,
+      "responseSha256": "1936aebb7139d9ce269233866266f8311e861081dab807b16f56c83533b9c662",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c1\"],\"confidence\":0.5}",
+      "latencyMs": 2093.562,
+      "requestLatencyMs": 8374.247,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1540,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-06",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_16dae651a5ad"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.5,
+      "responseSha256": "2b7a77e29abc96b60f86944be81135f9e3e7f0e36b6bdbd502eedee33878965d",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.5}",
+      "latencyMs": 2093.562,
+      "requestLatencyMs": 8374.247,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1540,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "dependency-07",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_0bfc6e2ffc46"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.5,
+      "responseSha256": "f50fa0bf068b6a352c41b22ddf0b27e7e9d715048c1e758b9aaccb809d2e28c7",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.5}",
+      "latencyMs": 2093.562,
+      "requestLatencyMs": 8374.247,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1540,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-08",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_d240f3b2ee83"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.5,
+      "responseSha256": "f50fa0bf068b6a352c41b22ddf0b27e7e9d715048c1e758b9aaccb809d2e28c7",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.5}",
+      "latencyMs": 2093.562,
+      "requestLatencyMs": 8374.247,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1540,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-05",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": false,
+      "error": "invalid-json:missing-json-object",
+      "rankedCandidateIds": [],
+      "unknownCandidateIds": [],
+      "confidence": null,
+      "responseSha256": "bc56b594c5cc4e2dac04fa978d45acafe7a78e5c16c84167faf3704d01e052d9",
+      "responsePreview": "[\"c1\"]",
+      "latencyMs": 2605.797,
+      "requestLatencyMs": 10423.189,
+      "requestCaseCount": 4,
+      "attempts": 2,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2744,
+        "completionTokens": 37
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "dependency-06",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": false,
+      "error": "invalid-json:missing-json-object",
+      "rankedCandidateIds": [],
+      "unknownCandidateIds": [],
+      "confidence": null,
+      "responseSha256": "408c03ff86ac4c20a97c70986fd2a9f8d6f300e75777dcdb713512a432169aa2",
+      "responsePreview": "[\"c8\"]",
+      "latencyMs": 2605.797,
+      "requestLatencyMs": 10423.189,
+      "requestCaseCount": 4,
+      "attempts": 2,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2744,
+        "completionTokens": 37
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "dependency-07",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": false,
+      "error": "invalid-json:missing-json-object",
+      "rankedCandidateIds": [],
+      "unknownCandidateIds": [],
+      "confidence": null,
+      "responseSha256": "253d69e3cefba99d2341a8ba3690a8a01ae17940019af5ac05704f7944111f43",
+      "responsePreview": "[\"c7\"]",
+      "latencyMs": 2605.797,
+      "requestLatencyMs": 10423.189,
+      "requestCaseCount": 4,
+      "attempts": 2,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2744,
+        "completionTokens": 37
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "dependency-08",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": false,
+      "error": "invalid-json:missing-json-object",
+      "rankedCandidateIds": [],
+      "unknownCandidateIds": [],
+      "confidence": null,
+      "responseSha256": "408c03ff86ac4c20a97c70986fd2a9f8d6f300e75777dcdb713512a432169aa2",
+      "responsePreview": "[\"c8\"]",
+      "latencyMs": 2605.797,
+      "requestLatencyMs": 10423.189,
+      "requestCaseCount": 4,
+      "attempts": 2,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2744,
+        "completionTokens": 37
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "dependency-09",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_f4641bf8961b"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "87d85149bb8254b01dd51d220adf391f9275805b0d9fb7d3f64a5676bcc9bce6",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.98}",
+      "latencyMs": 2269.846,
+      "requestLatencyMs": 9079.384,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1519,
+        "completionTokens": 93
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-10",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_22bb4c6f3237",
+        "cand_e5283907f328"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.96,
+      "responseSha256": "96dd4e6e1d83f4dcffa6a09d155a5bda0d9c8ff9ae857ccad983b8362c27e311",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\",\"c6\"],\"confidence\":0.96}",
+      "latencyMs": 2269.846,
+      "requestLatencyMs": 9079.384,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1519,
+        "completionTokens": 93
+      },
+      "precisionAt5": 0.4,
+      "reciprocalRank": 1,
+      "hits": 2,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-11",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_edeca2280547",
+        "cand_3019097d137c"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.94,
+      "responseSha256": "da61183f7f61dad8d9d909ad3f049f4c8a959500c1cee1584aae7d4ae1a89e0e",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\",\"c8\"],\"confidence\":0.94}",
+      "latencyMs": 2269.846,
+      "requestLatencyMs": 9079.384,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1519,
+        "completionTokens": 93
+      },
+      "precisionAt5": 0.4,
+      "reciprocalRank": 1,
+      "hits": 2,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-12",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_36d5899d97c4",
+        "cand_3b6239376bf6"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.92,
+      "responseSha256": "30c06b99ec6cf0141b2c8c07fa8df62d0c0ec0844f4c557b0b327d6d59c1abbe",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\",\"c5\"],\"confidence\":0.92}",
+      "latencyMs": 2269.846,
+      "requestLatencyMs": 9079.384,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1519,
+        "completionTokens": 93
+      },
+      "precisionAt5": 0.4,
+      "reciprocalRank": 1,
+      "hits": 2,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-09",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_f4641bf8961b"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "e06ec49b58f07cb6210becbceb7eb2c3f4830667adf43ba8d976a891e91994b9",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.95}",
+      "latencyMs": 2751.226,
+      "requestLatencyMs": 11004.904,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2688,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-10",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_22bb4c6f3237"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "4a8a5e63c678562bef23d35b8e767548cbd9c6d8d4abb5dacbd80f949670b5ce",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.95}",
+      "latencyMs": 2751.226,
+      "requestLatencyMs": 11004.904,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2688,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-11",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_edeca2280547"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "e06ec49b58f07cb6210becbceb7eb2c3f4830667adf43ba8d976a891e91994b9",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.95}",
+      "latencyMs": 2751.226,
+      "requestLatencyMs": 11004.904,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2688,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-12",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_36d5899d97c4"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "6d245f5543977ebe3fedba41bffa70c7fba7d02ab7e36a95587d28306fb44d75",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\"],\"confidence\":0.95}",
+      "latencyMs": 2751.226,
+      "requestLatencyMs": 11004.904,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2688,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-13",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_f1e210100521"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "12d5cf588285d1def012c6ad1a5e98d620f486175e2ef8dff048c81d78cb05e8",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.98}",
+      "latencyMs": 2719.846,
+      "requestLatencyMs": 10879.382,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2658,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-14",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_5d6a5762a5d0"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.97,
+      "responseSha256": "4ca092bd6a7fb38c85e19126586f247824ebbe6b47b839a3fcad43427179b5d8",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.97}",
+      "latencyMs": 2719.846,
+      "requestLatencyMs": 10879.382,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2658,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-15",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_7e1e6990602f"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.99,
+      "responseSha256": "2ae6a9c6b0d371399f698c909f3c34252ecdaf72ab6824159dbb7073d6ee110c",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.99}",
+      "latencyMs": 2719.846,
+      "requestLatencyMs": 10879.382,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2658,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "dependency-16",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_94c6a09266b9"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.96,
+      "responseSha256": "eb45e7323bb515b5f28cc92b2970f54fa1f59a46fb77ffc031c512296cb6c7f2",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.96}",
+      "latencyMs": 2719.846,
+      "requestLatencyMs": 10879.382,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2658,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-13",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_f1e210100521"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "032c69be732b00743fa7f75258e40178d4c0c4005bf8c23b27410df5d89c01a6",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\"],\"confidence\":0.98}",
+      "latencyMs": 2108.032,
+      "requestLatencyMs": 8432.127,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1482,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-14",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_5d6a5762a5d0"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.97,
+      "responseSha256": "c5275e71adf4ceaa4540b10570bf7ba1fa82fa74d6ddab12f3532d00b6f00b77",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.97}",
+      "latencyMs": 2108.032,
+      "requestLatencyMs": 8432.127,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1482,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-15",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_d1a3e2cedd82"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.96,
+      "responseSha256": "9e09d28fbc851fddd53150aca432fb2992f888d99d5f24dbe22530e551c2dace",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.96}",
+      "latencyMs": 2108.032,
+      "requestLatencyMs": 8432.127,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1482,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-16",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_94c6a09266b9"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "2c7a4c05d7bb5c43b10f04d196813f8b6dd00b913d978004c3a1cfac5aca7e66",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c7\"],\"confidence\":0.95}",
+      "latencyMs": 2108.032,
+      "requestLatencyMs": 8432.127,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1482,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-17",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_cfb721088594"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "cbcd1bce500c55b3e34d84db6c6ee1e54b9bc54afed08f0c587a7a08cb2c8723",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.95}",
+      "latencyMs": 2846.426,
+      "requestLatencyMs": 11385.705,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2840,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-18",
+      "category": "dependency",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_16dae651a5ad"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "fe920a330f61df10a01099cf4394e066c534f66c8202f8a48eaa154486d5ce1c",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.95}",
+      "latencyMs": 2846.426,
+      "requestLatencyMs": 11385.705,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2840,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-01",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_16dae651a5ad"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "4a8a5e63c678562bef23d35b8e767548cbd9c6d8d4abb5dacbd80f949670b5ce",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.95}",
+      "latencyMs": 2846.426,
+      "requestLatencyMs": 11385.705,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2840,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-02",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_8dbb0720d462"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "e06ec49b58f07cb6210becbceb7eb2c3f4830667adf43ba8d976a891e91994b9",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.95}",
+      "latencyMs": 2846.426,
+      "requestLatencyMs": 11385.705,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2840,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-17",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_cfb721088594",
+        "cand_b6888ea26f58"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "39d42ff4360beca7c49c4750ad48a39558f53d367bdb56fbf15d909cdeeb8a0e",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\",\"c4\"],\"confidence\":0.9}",
+      "latencyMs": 2257.496,
+      "requestLatencyMs": 9029.983,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1616,
+        "completionTokens": 89
+      },
+      "precisionAt5": 0.4,
+      "reciprocalRank": 1,
+      "hits": 2,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "dependency-18",
+      "category": "dependency",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_c64439e7221d"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2af2a1c8bcb8e138b6d47d12bd5e79d701cee295ac6a91753a30bf379735a370",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.9}",
+      "latencyMs": 2257.496,
+      "requestLatencyMs": 9029.983,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1616,
+        "completionTokens": 89
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-01",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_16dae651a5ad",
+        "cand_868471fbfbde"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "247a104c78c1c59d8c3e0fad1850ceee1dccfbc721e1eaf10fb5f290e0843f71",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\",\"c4\"],\"confidence\":0.9}",
+      "latencyMs": 2257.496,
+      "requestLatencyMs": 9029.983,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1616,
+        "completionTokens": 89
+      },
+      "precisionAt5": 0.4,
+      "reciprocalRank": 1,
+      "hits": 2,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-02",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_8dbb0720d462",
+        "cand_c6eceaec74ec"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "aa30b9cbde224dbd7c9cccb042126d032f66dc261e6eab6942b41ebe8d4d50bb",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\",\"c2\"],\"confidence\":0.9}",
+      "latencyMs": 2257.496,
+      "requestLatencyMs": 9029.983,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1616,
+        "completionTokens": 89
+      },
+      "precisionAt5": 0.4,
+      "reciprocalRank": 1,
+      "hits": 2,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-03",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_8dbb0720d462"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2033.183,
+      "requestLatencyMs": 8132.73,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1478,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-04",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_3b6239376bf6"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2e97cb7aaad75a9b024f290b0c5e0be92b1c4200c6d65d5397cd89b4ae9830b4",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\"],\"confidence\":0.9}",
+      "latencyMs": 2033.183,
+      "requestLatencyMs": 8132.73,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1478,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-05",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_ab126b48c2f7"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "e4f67b57fd31e84da74fec4fe4721845d470ee6a7664e821d9f03b1f3443f7ba",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.9}",
+      "latencyMs": 2033.183,
+      "requestLatencyMs": 8132.73,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1478,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-06",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_a0fd1652e421"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "c60a9450d5fbc489fde1fca86ea73a18b69164b182cdf88a6a52217ebdb25e98",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.9}",
+      "latencyMs": 2033.183,
+      "requestLatencyMs": 8132.73,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1478,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-03",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_8dbb0720d462"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "c60a9450d5fbc489fde1fca86ea73a18b69164b182cdf88a6a52217ebdb25e98",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.9}",
+      "latencyMs": 2688.392,
+      "requestLatencyMs": 10753.568,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2705,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-04",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_45af4052d036"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2e97cb7aaad75a9b024f290b0c5e0be92b1c4200c6d65d5397cd89b4ae9830b4",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\"],\"confidence\":0.9}",
+      "latencyMs": 2688.392,
+      "requestLatencyMs": 10753.568,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2705,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-05",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_ab126b48c2f7"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "daed6cc61a2b27476c3011a739c8bfb22a727ec44fe1561e4698b2443b5d6729",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c7\"],\"confidence\":0.9}",
+      "latencyMs": 2688.392,
+      "requestLatencyMs": 10753.568,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2705,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-06",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_a0fd1652e421"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2688.392,
+      "requestLatencyMs": 10753.568,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2705,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-07",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_d240f3b2ee83"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.92,
+      "responseSha256": "e4515cf5bf0110c6cc9c41ec523cb15727456f829ac2250b6bf2ccdb5e542c60",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.92}",
+      "latencyMs": 2811.045,
+      "requestLatencyMs": 11244.178,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2815,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-08",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_3ead1fef9440"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.88,
+      "responseSha256": "3034d97d3e2ba8b250f78d7b67a2007c91150a7a87365a1595d3ff66c064ca5b",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.88}",
+      "latencyMs": 2811.045,
+      "requestLatencyMs": 11244.178,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2815,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-09",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_cfb721088594"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.91,
+      "responseSha256": "4f67a6ea7957652dbcea2a613cda08c11dfb7982a90bb3a13bfb590a473c21b0",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.91}",
+      "latencyMs": 2811.045,
+      "requestLatencyMs": 11244.178,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2815,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-10",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_b6888ea26f58"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.89,
+      "responseSha256": "4f4bfc96041aa4e39f6fdfe4a3075ef5e709684db78e7ad22c03234c7357c018",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\"],\"confidence\":0.89}",
+      "latencyMs": 2811.045,
+      "requestLatencyMs": 11244.178,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2815,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-07",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_d240f3b2ee83"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "96be66c2f2108b14b48ee5cdce64b10f264ecce63f179e5306e532c52293b994",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.98}",
+      "latencyMs": 2169.023,
+      "requestLatencyMs": 8676.094,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1596,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-08",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_3ead1fef9440"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "cbcd1bce500c55b3e34d84db6c6ee1e54b9bc54afed08f0c587a7a08cb2c8723",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.95}",
+      "latencyMs": 2169.023,
+      "requestLatencyMs": 8676.094,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1596,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-09",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_cfb721088594"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.97,
+      "responseSha256": "4ca092bd6a7fb38c85e19126586f247824ebbe6b47b839a3fcad43427179b5d8",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.97}",
+      "latencyMs": 2169.023,
+      "requestLatencyMs": 8676.094,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1596,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-10",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_b6888ea26f58"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.99,
+      "responseSha256": "2ae6a9c6b0d371399f698c909f3c34252ecdaf72ab6824159dbb7073d6ee110c",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.99}",
+      "latencyMs": 2169.023,
+      "requestLatencyMs": 8676.094,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1596,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-11",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_39d0cf81c8b5"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2698.045,
+      "requestLatencyMs": 10792.181,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2729,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "impact-12",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_5d6a5762a5d0"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "e4f67b57fd31e84da74fec4fe4721845d470ee6a7664e821d9f03b1f3443f7ba",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.9}",
+      "latencyMs": 2698.045,
+      "requestLatencyMs": 10792.181,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2729,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-13",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_0bfc6e2ffc46"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "5af37f5424eec27ad79c2010d3a5f500d149190629b641dc153c431c04ba2d06",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.9}",
+      "latencyMs": 2698.045,
+      "requestLatencyMs": 10792.181,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2729,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "impact-14",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_16dae651a5ad"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2e97cb7aaad75a9b024f290b0c5e0be92b1c4200c6d65d5397cd89b4ae9830b4",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\"],\"confidence\":0.9}",
+      "latencyMs": 2698.045,
+      "requestLatencyMs": 10792.181,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2729,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-11",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_3e04685f1017"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "5af37f5424eec27ad79c2010d3a5f500d149190629b641dc153c431c04ba2d06",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.9}",
+      "latencyMs": 2076.253,
+      "requestLatencyMs": 8305.013,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1534,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "impact-12",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_9ab9ed86cf35"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "c60a9450d5fbc489fde1fca86ea73a18b69164b182cdf88a6a52217ebdb25e98",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.9}",
+      "latencyMs": 2076.253,
+      "requestLatencyMs": 8305.013,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1534,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "impact-13",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_4c8700ad269f"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2076.253,
+      "requestLatencyMs": 8305.013,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1534,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-14",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_bfd307957bbc"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "daed6cc61a2b27476c3011a739c8bfb22a727ec44fe1561e4698b2443b5d6729",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c7\"],\"confidence\":0.9}",
+      "latencyMs": 2076.253,
+      "requestLatencyMs": 8305.013,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1534,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-15",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_9d2039ca4c96"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "e297cca125f066c8db0e15dae5e1930f62c9955b8a8a4813f9182ffb46716a0b",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.98}",
+      "latencyMs": 2146.535,
+      "requestLatencyMs": 8586.141,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1565,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-16",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_94c6a09266b9"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "87d85149bb8254b01dd51d220adf391f9275805b0d9fb7d3f64a5676bcc9bce6",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.98}",
+      "latencyMs": 2146.535,
+      "requestLatencyMs": 8586.141,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1565,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-17",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_75f0979828e2"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "12d5cf588285d1def012c6ad1a5e98d620f486175e2ef8dff048c81d78cb05e8",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.98}",
+      "latencyMs": 2146.535,
+      "requestLatencyMs": 8586.141,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1565,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-18",
+      "category": "impact",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_3019097d137c"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "12d5cf588285d1def012c6ad1a5e98d620f486175e2ef8dff048c81d78cb05e8",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.98}",
+      "latencyMs": 2146.535,
+      "requestLatencyMs": 8586.141,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1565,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-15",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_9d2039ca4c96"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "daed6cc61a2b27476c3011a739c8bfb22a727ec44fe1561e4698b2443b5d6729",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c7\"],\"confidence\":0.9}",
+      "latencyMs": 2696.305,
+      "requestLatencyMs": 10785.221,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2729,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-16",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_94c6a09266b9"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2696.305,
+      "requestLatencyMs": 10785.221,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2729,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-17",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_c64439e7221d"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2af2a1c8bcb8e138b6d47d12bd5e79d701cee295ac6a91753a30bf379735a370",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.9}",
+      "latencyMs": 2696.305,
+      "requestLatencyMs": 10785.221,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2729,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "impact-18",
+      "category": "impact",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_3019097d137c"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2e97cb7aaad75a9b024f290b0c5e0be92b1c4200c6d65d5397cd89b4ae9830b4",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\"],\"confidence\":0.9}",
+      "latencyMs": 2696.305,
+      "requestLatencyMs": 10785.221,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2729,
+        "completionTokens": 80
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-01",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_262205f92ce5"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "e4f67b57fd31e84da74fec4fe4721845d470ee6a7664e821d9f03b1f3443f7ba",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.9}",
+      "latencyMs": 2725.834,
+      "requestLatencyMs": 10903.338,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2674,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "reasoning-02",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_21d146b3e476"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "e4f67b57fd31e84da74fec4fe4721845d470ee6a7664e821d9f03b1f3443f7ba",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.9}",
+      "latencyMs": 2725.834,
+      "requestLatencyMs": 10903.338,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2674,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-03",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_8dbb0720d462"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2725.834,
+      "requestLatencyMs": 10903.338,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2674,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-04",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_df36ed6b8d0b"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "e4f67b57fd31e84da74fec4fe4721845d470ee6a7664e821d9f03b1f3443f7ba",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.9}",
+      "latencyMs": 2725.834,
+      "requestLatencyMs": 10903.338,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2674,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-01",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_262205f92ce5"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "2c7a4c05d7bb5c43b10f04d196813f8b6dd00b913d978004c3a1cfac5aca7e66",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c7\"],\"confidence\":0.95}",
+      "latencyMs": 2186.786,
+      "requestLatencyMs": 8747.143,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1509,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "reasoning-02",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_21d146b3e476"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "2c7a4c05d7bb5c43b10f04d196813f8b6dd00b913d978004c3a1cfac5aca7e66",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c7\"],\"confidence\":0.95}",
+      "latencyMs": 2186.786,
+      "requestLatencyMs": 8747.143,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1509,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-03",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_9d2039ca4c96"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "e06ec49b58f07cb6210becbceb7eb2c3f4830667adf43ba8d976a891e91994b9",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.95}",
+      "latencyMs": 2186.786,
+      "requestLatencyMs": 8747.143,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1509,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "reasoning-04",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_ee1241d70aea"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.95,
+      "responseSha256": "cbcd1bce500c55b3e34d84db6c6ee1e54b9bc54afed08f0c587a7a08cb2c8723",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.95}",
+      "latencyMs": 2186.786,
+      "requestLatencyMs": 8747.143,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1509,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-05",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_6208b5f410e8"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.5,
+      "responseSha256": "1936aebb7139d9ce269233866266f8311e861081dab807b16f56c83533b9c662",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c1\"],\"confidence\":0.5}",
+      "latencyMs": 2134.839,
+      "requestLatencyMs": 8539.356,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1529,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-06",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_9ab9ed86cf35"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.5,
+      "responseSha256": "9f32b9726dd346467b6f482a303d3e0a42cc78c98ac6d9c617b7f7b2c3972410",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.5}",
+      "latencyMs": 2134.839,
+      "requestLatencyMs": 8539.356,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1529,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-07",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_cfb721088594"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.5,
+      "responseSha256": "2b7a77e29abc96b60f86944be81135f9e3e7f0e36b6bdbd502eedee33878965d",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.5}",
+      "latencyMs": 2134.839,
+      "requestLatencyMs": 8539.356,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1529,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-08",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_b6888ea26f58"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.5,
+      "responseSha256": "9f32b9726dd346467b6f482a303d3e0a42cc78c98ac6d9c617b7f7b2c3972410",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.5}",
+      "latencyMs": 2134.839,
+      "requestLatencyMs": 8539.356,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1529,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-05",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_be769f412da5"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2761.116,
+      "requestLatencyMs": 11044.465,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2682,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-06",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_1a0ab78747ef"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "5af37f5424eec27ad79c2010d3a5f500d149190629b641dc153c431c04ba2d06",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.9}",
+      "latencyMs": 2761.116,
+      "requestLatencyMs": 11044.465,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2682,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-07",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_cfb721088594"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2922c06d28171cb17425ba9c110a5f5817e41d003f07cb44734f0adaeedc0515",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c1\"],\"confidence\":0.9}",
+      "latencyMs": 2761.116,
+      "requestLatencyMs": 11044.465,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2682,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-08",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_b6888ea26f58"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2e97cb7aaad75a9b024f290b0c5e0be92b1c4200c6d65d5397cd89b4ae9830b4",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\"],\"confidence\":0.9}",
+      "latencyMs": 2761.116,
+      "requestLatencyMs": 11044.465,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2682,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-09",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_988ab8a8b41b"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "c60a9450d5fbc489fde1fca86ea73a18b69164b182cdf88a6a52217ebdb25e98",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.9}",
+      "latencyMs": 2123.058,
+      "requestLatencyMs": 8492.23,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1513,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-10",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_f280a59875cf"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2123.058,
+      "requestLatencyMs": 8492.23,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1513,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-11",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_5d6a5762a5d0"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2123.058,
+      "requestLatencyMs": 8492.23,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1513,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-12",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_a0fd1652e421"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2123.058,
+      "requestLatencyMs": 8492.23,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1513,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-09",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_262205f92ce5"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2af2a1c8bcb8e138b6d47d12bd5e79d701cee295ac6a91753a30bf379735a370",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.9}",
+      "latencyMs": 4355.644,
+      "requestLatencyMs": 17422.576,
+      "requestCaseCount": 4,
+      "attempts": 2,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2686,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-10",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_16dae651a5ad"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "2922c06d28171cb17425ba9c110a5f5817e41d003f07cb44734f0adaeedc0515",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c1\"],\"confidence\":0.9}",
+      "latencyMs": 4355.644,
+      "requestLatencyMs": 17422.576,
+      "requestCaseCount": 4,
+      "attempts": 2,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2686,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-11",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_5d6a5762a5d0"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "c60a9450d5fbc489fde1fca86ea73a18b69164b182cdf88a6a52217ebdb25e98",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.9}",
+      "latencyMs": 4355.644,
+      "requestLatencyMs": 17422.576,
+      "requestCaseCount": 4,
+      "attempts": 2,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2686,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-12",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_a0fd1652e421"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "c60a9450d5fbc489fde1fca86ea73a18b69164b182cdf88a6a52217ebdb25e98",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.9}",
+      "latencyMs": 4355.644,
+      "requestLatencyMs": 17422.576,
+      "requestCaseCount": 4,
+      "attempts": 2,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2686,
+        "completionTokens": 84
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-13",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_d240f3b2ee83"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "33367f6cbf654216baa85b702a6c2ceee66af936d67725c4be872d22cda606c7",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c7\"],\"confidence\":0.98}",
+      "latencyMs": 2836.523,
+      "requestLatencyMs": 11346.09,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2733,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-14",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_0bfc6e2ffc46"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.97,
+      "responseSha256": "4ca092bd6a7fb38c85e19126586f247824ebbe6b47b839a3fcad43427179b5d8",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.97}",
+      "latencyMs": 2836.523,
+      "requestLatencyMs": 11346.09,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2733,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "reasoning-15",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_9d2039ca4c96"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.96,
+      "responseSha256": "e3ee0c1b818bc13e5112cb9a67f79934c7263bf3a0912e17ab3b9a850e363ce8",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c4\"],\"confidence\":0.96}",
+      "latencyMs": 2836.523,
+      "requestLatencyMs": 11346.09,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2733,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-16",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_94c6a09266b9"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.99,
+      "responseSha256": "d5e827d5ea7dce37d6c8c76e0cec723701c332878068cba07022bdb369bf2da9",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.99}",
+      "latencyMs": 2836.523,
+      "requestLatencyMs": 11346.09,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 2733,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-13",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_d240f3b2ee83"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "e297cca125f066c8db0e15dae5e1930f62c9955b8a8a4813f9182ffb46716a0b",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c2\"],\"confidence\":0.98}",
+      "latencyMs": 2216.562,
+      "requestLatencyMs": 8866.248,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1560,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-14",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_0bfc6e2ffc46"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.97,
+      "responseSha256": "c5275e71adf4ceaa4540b10570bf7ba1fa82fa74d6ddab12f3532d00b6f00b77",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.97}",
+      "latencyMs": 2216.562,
+      "requestLatencyMs": 8866.248,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1560,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0,
+      "reciprocalRank": 0,
+      "hits": 0,
+      "firstHitRank": null
+    },
+    {
+      "caseId": "reasoning-15",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_9d2039ca4c96"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.96,
+      "responseSha256": "95599ef00ff7c4b0188eb96c1996c8af1cdd37dd911d88ceb322ec01fb712730",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c5\"],\"confidence\":0.96}",
+      "latencyMs": 2216.562,
+      "requestLatencyMs": 8866.248,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1560,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-16",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_94c6a09266b9"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.99,
+      "responseSha256": "0fca88fbf11b0ccd2a566ab21958c5bc711cd1ee832dee0854d10d1306dd60ca",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c7\"],\"confidence\":0.99}",
+      "latencyMs": 2216.562,
+      "requestLatencyMs": 8866.248,
+      "requestCaseCount": 4,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1560,
+        "completionTokens": 88
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-17",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_f1e210100521"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.9,
+      "responseSha256": "064674fd7455baed0bb1d2c27444948b82c52de7e8f90ec7bb862c673659db53",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c3\"],\"confidence\":0.9}",
+      "latencyMs": 2796.341,
+      "requestLatencyMs": 5592.682,
+      "requestCaseCount": 2,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1436,
+        "completionTokens": 44
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-18",
+      "category": "reasoning",
+      "arm": "visual",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_3019097d137c"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.8,
+      "responseSha256": "972078831b08baadd31e3d27d91f047931b4941f484a439f36992d9c4b56625e",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c1\"],\"confidence\":0.8}",
+      "latencyMs": 2796.341,
+      "requestLatencyMs": 5592.682,
+      "requestCaseCount": 2,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 1436,
+        "completionTokens": 44
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-17",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_f1e210100521"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.98,
+      "responseSha256": "87d85149bb8254b01dd51d220adf391f9275805b0d9fb7d3f64a5676bcc9bce6",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c6\"],\"confidence\":0.98}",
+      "latencyMs": 2253.725,
+      "requestLatencyMs": 4507.449,
+      "requestCaseCount": 2,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 841,
+        "completionTokens": 46
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    },
+    {
+      "caseId": "reasoning-18",
+      "category": "reasoning",
+      "arm": "text",
+      "trial": 0,
+      "valid": true,
+      "error": null,
+      "rankedCandidateIds": [
+        "cand_3019097d137c"
+      ],
+      "unknownCandidateIds": [],
+      "confidence": 0.97,
+      "responseSha256": "b748fe6162d0fb633872a495129cb69f8580de6455a662fcabd87e68c868ae81",
+      "responsePreview": "{\"rankedCandidateIds\":[\"c8\"],\"confidence\":0.97}",
+      "latencyMs": 2253.725,
+      "requestLatencyMs": 4507.449,
+      "requestCaseCount": 2,
+      "attempts": 1,
+      "requestMetadata": {
+        "finishReason": "stop",
+        "promptTokens": 841,
+        "completionTokens": 46
+      },
+      "precisionAt5": 0.2,
+      "reciprocalRank": 1,
+      "hits": 1,
+      "firstHitRank": 1
+    }
+  ],
+  "claimBoundary": {
+    "pilotPublicationReady": false,
+    "reason": "A single owned 4B model run is model-specific pilot evidence. Publication claims require at least three independently operated agent families, three trials per arm, independent multi-human relevance annotation, and external-codebase replication.",
+    "literalPixelVisionMeasured": false,
+    "measuredSurface": "agent-readable structured projection of the canonical visual graph",
+    "nextGate": "Add a screenshot or interactive viewport arm for a vision-capable agent after the structured visual-graph pilot is frozen."
+  },
+  "publicationReady": false,
+  "hardware": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "logicalCpus": 16,
+    "totalMemoryBytes": 34069385216,
+    "embeddingExecution": "cpu",
+    "synthesisExecution": "remote-owned-endpoint"
+  },
+  "ranAt": "2026-07-27T06:05:45.944Z",
+  "receiptSha256": "c7d9bd3e7f54e84d091fe96cdb15c65cdab050e88c94b01503cc444bd70befec"
+}

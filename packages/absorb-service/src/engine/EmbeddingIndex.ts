@@ -825,22 +825,21 @@ export class EmbeddingIndex {
     const metaJson = JSON.stringify(metadata);
     const metaBuffer = Buffer.from(metaJson, 'utf-8');
 
-    // Concatenate all embeddings into a single Float32Array buffer
+    // Allocate the final payload once. The previous three-buffer path kept the
+    // embedding buffer and its Buffer.concat copy live together, adding a full
+    // index-sized memory spike at the cache publication boundary.
     const totalFloats = this.entries.length * dimension;
-    const embeddingsBuffer = Buffer.alloc(totalFloats * 4);
-    let offset = 0;
+    const output = Buffer.allocUnsafe(4 + metaBuffer.length + totalFloats * 4);
+    output.writeUInt32LE(metaBuffer.length, 0);
+    metaBuffer.copy(output, 4);
+    let offset = 4 + metaBuffer.length;
     for (const entry of this.entries) {
       for (let i = 0; i < entry.embedding.length; i++) {
-        embeddingsBuffer.writeFloatLE(entry.embedding[i], offset);
+        output.writeFloatLE(entry.embedding[i], offset);
         offset += 4;
       }
     }
-
-    // Header: 4 bytes for metadata JSON length
-    const header = Buffer.alloc(4);
-    header.writeUInt32LE(metaBuffer.length);
-
-    return Buffer.concat([header, metaBuffer, embeddingsBuffer]);
+    return output;
   }
 
   /**

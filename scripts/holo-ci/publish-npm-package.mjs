@@ -9,6 +9,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   copyFileSync,
   existsSync,
@@ -32,6 +33,7 @@ const args = process.argv.slice(2);
 const packageIdx = args.indexOf('--package');
 const PACKAGE_NAME = packageIdx >= 0 ? args[packageIdx + 1] : null;
 const PUBLISH = args.includes('--publish');
+const PROVENANCE_ONLY = args.includes('--provenance-only');
 const ACCESS = valueAfter('--access') || 'public';
 const TAG = valueAfter('--tag') || 'latest';
 const REGISTRY = valueAfter('--registry') || process.env.npm_config_registry || null;
@@ -77,6 +79,80 @@ function runNpm(cmdArgs, opts = {}) {
     },
     ...opts,
   });
+}
+
+function runGit(cmdArgs, opts = {}) {
+  return execFileSync('git', cmdArgs, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: opts.stdio || ['ignore', 'pipe', 'pipe'],
+    timeout: opts.timeout || 60_000,
+    ...opts,
+  }).trim();
+}
+
+function sha256File(file) {
+  return createHash('sha256').update(readFileSync(file)).digest('hex');
+}
+
+function assertReleaseProvenance(record) {
+  const head = runGit(['rev-parse', 'HEAD']);
+  const originMain = runGit(['rev-parse', 'origin/main']);
+  if (head !== originMain) {
+    throw new Error(
+      `release provenance requires HEAD ${head} to equal fetched origin/main ${originMain}`
+    );
+  }
+
+  const relativePackageDir = record.dir.slice(ROOT.length + 1).replaceAll('\\', '/');
+  const packageStatus = runGit(['status', '--porcelain', '--', relativePackageDir]);
+  if (packageStatus) {
+    throw new Error(
+      `release provenance requires a clean package path; dirty entries:\n${packageStatus}`
+    );
+  }
+
+  if (record.name === '@holoscript/wasm') {
+    const webWasm = join(record.dir, 'pkg', 'holoscript_wasm_bg.wasm');
+    const nodeWasm = join(record.dir, 'pkg-node', 'holoscript_wasm_bg.wasm');
+    const webReceipt = readJson(join(record.dir, 'pkg', 'rebuild-receipt.json'));
+    const nodeReceipt = readJson(join(record.dir, 'pkg-node', 'rebuild-receipt.json'));
+    const sourceCommit = String(webReceipt.sourceCommit || '');
+    if (!/^[0-9a-f]{40}$/u.test(sourceCommit) || nodeReceipt.sourceCommit !== sourceCommit) {
+      throw new Error('WASM rebuild receipts must name the same full sourceCommit');
+    }
+    try {
+      runGit(['merge-base', '--is-ancestor', sourceCommit, head]);
+    } catch {
+      throw new Error(`WASM receipt sourceCommit ${sourceCommit} is not an ancestor of ${head}`);
+    }
+    const webSha256 = sha256File(webWasm);
+    const nodeSha256 = sha256File(nodeWasm);
+    if (
+      webSha256 !== nodeSha256 ||
+      webReceipt.result?.wasmSha256 !== webSha256 ||
+      nodeReceipt.result?.wasmSha256 !== nodeSha256 ||
+      webReceipt.result?.repeatBuildSha256Matched !== true ||
+      nodeReceipt.result?.repeatBuildSha256Matched !== true
+    ) {
+      throw new Error(
+        'WASM browser/Node artifacts must be byte-identical and match deterministic rebuild receipts'
+      );
+    }
+    execFileSync(process.execPath, [join(ROOT, 'scripts', 'holo-ci', 'check-compiler-wasm-drift.mjs')], {
+      cwd: ROOT,
+      stdio: 'inherit',
+      timeout: 60_000,
+    });
+    console.log(
+      `[publish-npm-package] provenance PASS ${record.name} source=${sourceCommit.slice(0, 12)} head=${head.slice(0, 12)} wasm=${webSha256.slice(0, 12)}`
+    );
+    return;
+  }
+
+  console.log(
+    `[publish-npm-package] provenance PASS ${record.name} head=${head.slice(0, 12)}`
+  );
 }
 
 function discoverPackageJsons(dir, out = []) {
@@ -162,6 +238,13 @@ const record = packages.get(PACKAGE_NAME);
 if (!record) {
   console.error(`[publish-npm-package] package not found in workspace: ${PACKAGE_NAME}`);
   process.exit(2);
+}
+
+if (PUBLISH || PROVENANCE_ONLY) {
+  assertReleaseProvenance(record);
+}
+if (PROVENANCE_ONLY) {
+  process.exit(0);
 }
 
 const manifestBackupDir = mkdtempSync(join(tmpdir(), 'holo-npm-publish-'));

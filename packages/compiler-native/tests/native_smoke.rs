@@ -17,10 +17,10 @@ use holoscript_native::{
     BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT,
     BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
     BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
-    CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
-    NATIVE_AGGREGATE_ABI_VERSION, NATIVE_MEANING_GAP_REASON_ABI_VERSION,
-    OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
-    UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
+    CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT,
+    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION,
+    NATIVE_MEANING_GAP_REASON_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
+    OWNED_BUFFER_ABI_VERSION, UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -69,6 +69,63 @@ const F64_EXIT_FIVE: &str = r#"
             return 5
         }
         return 1
+    }
+"#;
+const F32_EXIT_FIVE: &str = r#"
+    function blend(start: f32, end: f32, amount: f32): f32 {
+        return start + (end - start) * amount
+    }
+
+    function tenth(value: f32): f32 {
+        return value / 10.0
+    }
+
+    function main(): i32 {
+        let rounded_midpoint: f32 = blend(16777216.0, 16777218.0, 0.5)
+        let rounded_tenth: f32 = tenth(1.0)
+        if (rounded_midpoint == 16777216.0 && rounded_tenth == 0.10000000149011612) {
+            return 5
+        }
+        return 1
+    }
+"#;
+const F64_DIVISION_BY_ZERO_TRAPS: &str = r#"
+    function divide(numerator: f64, denominator: f64): f64 {
+        return numerator / denominator
+    }
+
+    function main(): i32 {
+        let value: f64 = divide(1.0, 0.0)
+        if (value == 0.0) {
+            return 0
+        }
+        return 0
+    }
+"#;
+const F32_OVERFLOW_TRAPS: &str = r#"
+    function multiply(left: f32, right: f32): f32 {
+        return left * right
+    }
+
+    function main(): i32 {
+        let value: f32 = multiply(3.4e38, 2.0)
+        if (value == 0.0) {
+            return 0
+        }
+        return 0
+    }
+"#;
+const FLOAT_RECURSIVE_AGGREGATE_EXIT_FIVE: &str = r#"
+    struct Vec3I32 { x: i32, y: i32, z: i32 }
+    struct Aabb3I32 { min: Vec3I32, max: Vec3I32 }
+
+    function blend(start: f32, end: f32, amount: f32): f32 {
+        return start + (end - start) * amount
+    }
+
+    function main(): i32 {
+        slot bounds: Aabb3I32 = Aabb3I32(Vec3I32(1, 2, 3), Vec3I32(4, 7, 9))
+        return load(bounds.max.y) - load(bounds.min.y)
     }
 "#;
 const STACK_SLOT_EXIT_FIVE: &str = include_str!("../../../examples/native/stack-slot-exit-five.hs");
@@ -391,6 +448,67 @@ fn compiles_f64_signatures_arithmetic_and_comparisons() {
     assert_eq!(status.code(), Some(5));
 
     fs::remove_file(&artifact.executable).expect("remove f64 smoke-test executable");
+}
+
+#[test]
+fn compiles_f32_with_single_precision_rounding() {
+    let executable = scratch_executable("native-f32");
+
+    let artifact = compile_executable(F32_EXIT_FIVE, &executable, &NativeCompileOptions::host())
+        .expect("f32 signatures should compile to a native executable");
+
+    assert_eq!(artifact.machine_contract, "hs-machine-v37");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("f32 native HoloScript executable should run");
+    assert_eq!(status.code(), Some(5));
+
+    fs::remove_file(&artifact.executable).expect("remove f32 smoke-test executable");
+}
+
+#[test]
+fn finite_float_contract_traps_division_by_zero_and_overflow() {
+    for (name, source) in [
+        ("native-f64-zero-divisor", F64_DIVISION_BY_ZERO_TRAPS),
+        ("native-f32-overflow", F32_OVERFLOW_TRAPS),
+    ] {
+        let executable = scratch_executable(name);
+        let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+            .expect("finite-only floating source should compile to a guarded native executable");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("guarded native HoloScript executable should run");
+        assert!(
+            !status.success(),
+            "{name} must trap before a non-finite value becomes observable"
+        );
+        fs::remove_file(&artifact.executable).expect("remove guarded float executable");
+    }
+}
+
+#[test]
+fn composes_f32_with_recursive_by_value_aggregates() {
+    let executable = scratch_executable("native-float-recursive-aggregate");
+
+    let artifact = compile_executable(
+        FLOAT_RECURSIVE_AGGREGATE_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("f32 and recursive by-value aggregates should compose");
+
+    assert_eq!(FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT, "hs-machine-v39");
+    assert_eq!(
+        artifact.machine_contract,
+        FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
+    );
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("composed float and aggregate executable should run");
+    assert_eq!(status.code(), Some(5));
+
+    fs::remove_file(&artifact.executable)
+        .expect("remove composed float and aggregate smoke-test executable");
 }
 
 #[test]

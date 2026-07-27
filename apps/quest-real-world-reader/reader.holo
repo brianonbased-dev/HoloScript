@@ -1,0 +1,118 @@
+// HoloRead — real-world text reader for Meta Quest 3 / 3S.
+//
+// This composition is the product source of truth. The Quest compiler lowers the declared camera,
+// OCR, magnification, speech, privacy, and panel semantics into the bounded Horizon OS bridge.
+// Generated Kotlin under android-mr/ is compiler output and must never become an alternate source.
+
+composition "HoloRead" {
+  environment {
+    surface: "immersive_mr"
+    runtime: "meta_spatial_sdk"
+    passthrough: true
+    reference_space: "local_floor"
+    target_devices: ["quest3", "quest3s"]
+    min_horizon_os: 74
+    package: "net.holoscript.holoread"
+    icon: {
+      background: "#0B1020"
+      primary: "#67E8F9"
+      accent: "#F8FAFC"
+    }
+    version: {
+      code: 1
+      name: "0.1.0"
+    }
+  }
+
+  object "camera_sensor" {
+    @passthrough_camera {
+      permission: "horizonos.permission.HEADSET_CAMERA"
+      camera_source: 0
+      camera_position: 0
+      capture: "max"
+      frame_width: 1280
+      frame_height: 1280
+      format: "YUV_420_888"
+      plane: "luminance"
+      preview_downscale: 4
+    }
+  }
+
+  object "text_engine" {
+    @document_ocr {
+      engine: "mlkit_bundled"
+      language_hints: ["en"]
+      confidence_min: 0.0
+      output_format: "text"
+      deskew: false
+      interval_ms: 600
+      center_crop_fraction: 0.72
+      min_text_chars: 2
+      local_only: true
+      discard_frames: true
+      log_text_values: false
+    }
+  }
+
+  object "reader_result" {
+    @magnifiable {
+      min_scale: 1.0
+      max_scale: 3.0
+      trigger: "button"
+      smooth_zoom: true
+      zoom_speed: 2.0
+      lens_mode: false
+      preserve_aspect: true
+    }
+
+    @speech_synthesis {
+      backend: "android_tts"
+      voice_id: "system-default"
+      language: "en-US"
+      speed: 1.0
+      pitch: 0.0
+      volume: 1.0
+      ssml: false
+      lip_sync: false
+    }
+  }
+
+  object "reader_panel" {
+    @spatial_panel {
+      place: { x: 0.0, y: 1.3, z: 1.5 }
+      size: { width: 1.3, height: 1.15 }
+      follow_head: true
+      follow_distance: 1.2
+      title: "HoloRead"
+      viewfinder: { height_dp: 330 }
+    }
+  }
+
+  object "camera_consent" {
+    @consent_gate {
+      scope: ["camera_processing"]
+      expiry_ms: 0
+      require_explicit: true
+      audit_log: false
+      purpose: "Read text from the center of the passthrough camera view on this device"
+    }
+  }
+
+  object "welcome" {
+    @onboarding {
+      title: "HoloRead"
+      tagline: "Read real-world text without leaving mixed reality"
+      how_to_use: [
+        { context: "Aim", icon: "focus", text: "Place a sign, menu, label, whiteboard, or screen inside the frame." },
+        { context: "Read", icon: "text", text: "Press Read text. Only that requested frame is recognized." },
+        { context: "Use", icon: "accessibility", text: "Enlarge, copy, or listen to the recognized text." }
+      ]
+      aim_tip: "Large, well-lit text works best. Small or blurred text may not be readable through passthrough."
+      privacy_note: "Recognition runs on-device. Frames and recognized text are not transmitted or saved."
+      start_action: "Enable camera"
+      scan_action: "Read text"
+      copy_action: "Copy"
+      speak_action: "Listen"
+    }
+  }
+}

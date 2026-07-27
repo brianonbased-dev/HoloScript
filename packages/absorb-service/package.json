@@ -85,6 +85,8 @@
     "benchmark:holoabsorb": "node scripts/bench-holoabsorb.mjs",
     "benchmark:holoabsorb-checkpoints": "node scripts/bench-holoabsorb-checkpoint-retention.mjs",
     "benchmark:holoabsorb-hybrid": "node scripts/bench-holoabsorb-hybrid.mjs",
+    "benchmark:holoabsorb-transport": "node scripts/bench-holoabsorb-transport.mjs",
+    "benchmark:paper5-visual-agent": "node scripts/bench-paper-5-visual-agent-study.mjs",
     "generate:language-registry": "tsx scripts/check-language-registry.mjs --write",
     "check:language-registry": "tsx scripts/check-language-registry.mjs",
     "generate:language-traits": "tsx scripts/gen-language-traits.mjs",

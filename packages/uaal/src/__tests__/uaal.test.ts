@@ -56,6 +56,19 @@ describe('UAALOpCode', () => {
     expect(UAALOpCode.RET).toBe(0x33);
   });
 
+  it('should reserve explicit HoloScript owned-buffer opcodes', () => {
+    expect(UAALOpCode.OP_HS_BUFFER_ALLOC).toBe(0xb7);
+    expect(UAALOpCode.OP_HS_BUFFER_MOVE).toBe(0xb8);
+    expect(UAALOpCode.OP_HS_BUFFER_LOAD).toBe(0xb9);
+    expect(UAALOpCode.OP_HS_BUFFER_STORE).toBe(0xba);
+    expect(UAALOpCode.OP_HS_BUFFER_DROP).toBe(0xbb);
+    expect(UAALOpCode.OP_HS_BUFFER_LENGTH).toBe(0xbc);
+    expect(UAALOpCode.OP_HS_AGGREGATE_BORROW).toBe(0xbd);
+    expect(UAALOpCode.OP_HS_AGGREGATE_LOAD).toBe(0xbe);
+    expect(UAALOpCode.OP_HS_AGGREGATE_STORE).toBe(0xbf);
+    expect(getUAALOpcodeName(UAALOpCode.OP_HS_BUFFER_ALLOC)).toBe('OP_HS_BUFFER_ALLOC');
+  });
+
   it('should return opcode names', () => {
     expect(getUAALOpcodeName(UAALOpCode.INTAKE)).toBe('INTAKE');
     expect(getUAALOpcodeName(UAALOpCode.HALT)).toBe('HALT');

@@ -30,6 +30,10 @@ const world = new World();
 Parsing and compilation of `.hs` / `.hsplus` / `.holo` sources live in
 `@holoscript/core`; this package runs the compiled result.
 
+The VM bridge treats `@holoscript/uaal` as an optional same-major peer. Install
+it when using cognitive-agent execution; importing the rest of the engine does
+not require UAAL.
+
 ## Package boundary & release posture
 
 This is a **v0-preview** runtime engine for developers building spatial,

@@ -14,7 +14,7 @@ This catalog is the deterministic view of the npm v1 release candidates and comp
 | `@holoscript/cli` | `8.0.12` | user-cli | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/cli` |
 | `@holoscript/core` | `8.0.18` | language-core | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/core` |
 | `@holoscript/domain-plugin-template` | `0.1.1` | domain-plugin-template | candidate | laptop-windows, jetson-orin, vast-linux-gpu | release-candidate | `packages/plugins/domain-plugin-template` |
-| `@holoscript/engine` | `6.1.4` | spatial-engine-runtime | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/engine` |
+| `@holoscript/engine` | `6.1.5` | spatial-engine-runtime | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/engine` |
 | `@holoscript/formatter` | `6.0.4` | language-formatter | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/formatter` |
 | `@holoscript/framework` | `6.1.5` | agent-framework | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/framework` |
 | `@holoscript/holoembed` | `6.1.2` | structural-nl-code-embeddings | candidate | laptop-windows, jetson-orin, vast-linux-gpu | release-candidate | `packages/holoembed` |
@@ -37,7 +37,7 @@ Receipt lane semantics:
 
 | Package | Version | Support tier | Entrypoint | Targets | Execution conformance | Runtime boundary |
 | --- | --- | --- | --- | --- | --- | --- |
-| `@holoscript/std` | `7.0.5` | preview | `./src/math.hsplus` | node, browser-wasm, owned-metal | node ✓ 50/50; browser-wasm ✓ 50/50; owned-metal ✓ 50/50; cross-target EQUAL | Executable ABI parity is proven for scalar i32 clamp/sign/step, component-projected i32 Vec3 dot/cross/length-squared, and finite scalar f64 clamp/lerp/inverse-lerp/remap across Node, browser-WASM to UAAL, and owned-metal, and receipt-proven for the 11-op math conformance projection (50 vectors, cross-target exact value equality) across node, browser-wasm, and owned-metal. Non-finite floating-point edge semantics, aggregate vector calling conventions, quaternion, noise, sqrt/trig ops, direct packaged-handler execution, and collections parity remain preview. |
+| `@holoscript/std` | `7.0.8` | preview | `./src/math.hsplus` | node, browser-wasm, owned-metal | node ✓ 50/50; browser-wasm ✓ 50/50; owned-metal ✓ 50/50; cross-target EQUAL | Executable ABI parity is proven for scalar i32 clamp/sign/step, affine aggregate-valued i32 Vec3 construction/dot/cross/length-squared, recursively nested immutable-POD i32 AABB construction/size/volume, finite scalar f32 clamp/lerp/inverse-lerp/remap with operation-by-operation binary32 rounding, and finite scalar f64 clamp/lerp/inverse-lerp/remap across Node, browser-WASM to UAAL, and owned-metal. The packaged UAAL host adapter executes numeric, hs.aggregate.value.v1 flat-record, and hs.aggregate.value.v2 recursive-record instructions. The existing 11-op math conformance projection remains receipt-proven (50 vectors, cross-target exact value equality). Owned-buffer fields, borrowed or mutable aggregate transfer, Non-finite floating-point edge semantics, quaternion, noise, sqrt/trig ops, and collections parity remain preview. |
 
 A compiler-native artifact declaration proves package metadata and shipped source paths. It does not by itself prove execution parity, registry deployment, authorship, or reproducible builds.
 

@@ -2,9 +2,10 @@
 //
 // Executable cross-target subset of @holoscript/std scalar floating-point math.
 //
-// This first contract covers finite IEEE-754 binary64 inputs. Callers must provide
-// a non-zero input span to inverse-lerp and remap. NaN, infinity, signed-zero
-// preservation, and division-by-zero behavior remain outside this ABI proof.
+// Inputs and every arithmetic result must remain finite IEEE-754 binary64 values.
+// The browser-WASM/UAAL host and owned-metal backend fail closed on
+// non-finite inputs, division by zero, and overflow before the value crosses the ABI
+// boundary. Signed-zero preservation remains outside this proof.
 
 export function std_math_clamp_f64(value: f64, minimum: f64, maximum: f64): f64 {
   if (value < minimum) {

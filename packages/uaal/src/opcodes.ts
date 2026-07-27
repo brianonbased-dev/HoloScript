@@ -130,6 +130,15 @@ export enum UAALOpCode {
   OP_EVAL_METRIC = 0xb4,
   OP_RESIZE_ZONE = 0xb5,
   OP_EMIT_SIGNAL = 0xb6,
+  OP_HS_BUFFER_ALLOC = 0xb7,
+  OP_HS_BUFFER_MOVE = 0xb8,
+  OP_HS_BUFFER_LOAD = 0xb9,
+  OP_HS_BUFFER_STORE = 0xba,
+  OP_HS_BUFFER_DROP = 0xbb,
+  OP_HS_BUFFER_LENGTH = 0xbc,
+  OP_HS_AGGREGATE_BORROW = 0xbd,
+  OP_HS_AGGREGATE_LOAD = 0xbe,
+  OP_HS_AGGREGATE_STORE = 0xbf,
 
   // ── Native Orchestration ──────────────────────────────────────────────────
   OP_GRAPH_START = 0xc0,

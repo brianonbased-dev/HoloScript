@@ -9,6 +9,7 @@ export const MCP_PROCESS_REAP_RECEIPT_SCHEMA = 'holoscript.mcp-process-reap-rece
 export const DEFAULT_MCP_PROCESS_STALE_AFTER_MS = 4 * 60 * 60 * 1000;
 export const DEFAULT_MCP_MAX_CONNECTIONS_PER_PARENT = 4;
 export const DEFAULT_MCP_CAPACITY_IDLE_AFTER_MS = 10 * 60 * 1000;
+export const DEFAULT_MCP_PROCESS_HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
 function finitePositiveNumber(value, fallback) {
   const parsed = Number(value);
@@ -115,11 +116,22 @@ export function readMcpProcessLeases(leaseDir) {
   return leases;
 }
 
-function matchingLease(processInfo, leases, role, scriptPath) {
+function indexMatchingLeases(leases, role, scriptPath) {
   const expectedPath = normalizeProcessPath(scriptPath);
-  return leases.find((lease) => {
-    if (lease.role !== role || Number(lease.pid) !== processInfo.pid) return false;
-    if (normalizeProcessPath(lease.scriptPath) !== expectedPath) return false;
+  const leasesByPid = new Map();
+  for (const lease of leases) {
+    if (lease.role !== role || normalizeProcessPath(lease.scriptPath) !== expectedPath) continue;
+    const pid = Number(lease.pid);
+    if (!Number.isInteger(pid) || pid <= 0) continue;
+    const matches = leasesByPid.get(pid) ?? [];
+    matches.push(lease);
+    leasesByPid.set(pid, matches);
+  }
+  return leasesByPid;
+}
+
+function matchingLease(processInfo, leasesByPid) {
+  return (leasesByPid.get(processInfo.pid) ?? []).find((lease) => {
     const leaseStart = Number(lease.startedAtMs);
     return Number.isFinite(leaseStart) && Math.abs(leaseStart - processInfo.startedAt) <= 10_000;
   });
@@ -147,6 +159,7 @@ export function buildOwnedMcpProcessReapPlan({
     capacityIdleAfterMs,
     DEFAULT_MCP_CAPACITY_IDLE_AFTER_MS
   );
+  const leasesByPid = indexMatchingLeases(leases, role, scriptPath);
   const candidates = [];
   const owned = [];
   for (const raw of processes) {
@@ -155,7 +168,7 @@ export function buildOwnedMcpProcessReapPlan({
     if (!Number.isFinite(item.startedAt)) continue;
     if (!commandLineOwnsNodeScript(item.commandLine, scriptPath)) continue;
 
-    const lease = matchingLease(item, leases, role, scriptPath);
+    const lease = matchingLease(item, leasesByPid);
     const lastActivityAtMs = lease ? Number(lease.lastActivityAtMs) : item.startedAt;
     const idleMs = Math.max(0, nowMs - lastActivityAtMs);
     const parentDead = item.parentAlive === false;
@@ -333,6 +346,12 @@ export function openMcpProcessLease({
   parentPid = process.ppid,
   now = Date.now,
   startedAtMs = now() - process.uptime() * 1000,
+  heartbeatIntervalMs = finitePositiveNumber(
+    process.env.HOLOSCRIPT_MCP_HEARTBEAT_INTERVAL_MS,
+    DEFAULT_MCP_PROCESS_HEARTBEAT_INTERVAL_MS
+  ),
+  setIntervalImpl = setInterval,
+  clearIntervalImpl = clearInterval,
   registerProcessHooks = true,
 } = {}) {
   if (!role || !scriptPath) throw new Error('role and scriptPath are required');
@@ -347,9 +366,11 @@ export function openMcpProcessLease({
     scriptPath: normalizeProcessPath(scriptPath),
     startedAtMs,
     lastActivityAtMs: now(),
+    heartbeatIntervalMs,
   };
   let closed = false;
   let lastWriteAt = 0;
+  let heartbeatTimer = null;
 
   const persist = (force = false) => {
     if (closed) return;
@@ -366,11 +387,17 @@ export function openMcpProcessLease({
   const close = () => {
     if (closed) return;
     closed = true;
+    if (heartbeatTimer !== null) {
+      clearIntervalImpl(heartbeatTimer);
+      heartbeatTimer = null;
+    }
     rmSync(leasePath, { force: true });
   };
   persist(true);
+  heartbeatTimer = setIntervalImpl(touch, heartbeatIntervalMs);
+  heartbeatTimer?.unref?.();
   if (registerProcessHooks) process.once('exit', close);
-  return { lease, leasePath, touch, close };
+  return { lease, leasePath, touch, close, heartbeatIntervalMs };
 }
 
 export function startMcpProcessLifecycle(options) {

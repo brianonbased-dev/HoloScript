@@ -10,6 +10,18 @@ import {
   lerp,
   inverseLerp,
   remap,
+  clampF32,
+  lerpF32,
+  inverseLerpF32,
+  remapF32,
+  clampFiniteF32,
+  lerpFiniteF32,
+  inverseLerpFiniteF32,
+  remapFiniteF32,
+  clampFiniteF64,
+  lerpFiniteF64,
+  inverseLerpFiniteF64,
+  remapFiniteF64,
   smoothstep,
   smootherstep,
   degToRad,
@@ -19,6 +31,34 @@ import {
   sign,
   step,
 } from '../math.js';
+
+describe('finite-only floating ABI references', () => {
+  it('matches the finite f32 and f64 reference results', () => {
+    expect(clampFiniteF32(1.00000007, 0, 2)).toBe(1.0000001192092896);
+    expect(lerpFiniteF32(16_777_216, 16_777_218, 0.5)).toBe(16_777_216);
+    expect(inverseLerpFiniteF32(0, 10, 1)).toBe(0.10000000149011612);
+    expect(remapFiniteF32(0.1, 0, 1, 10, 18)).toBe(10.800000190734863);
+    expect(clampFiniteF64(1.25, 0, 2)).toBe(1.25);
+    expect(lerpFiniteF64(2, 10, 0.25)).toBe(4);
+    expect(inverseLerpFiniteF64(2, 10, 4)).toBe(0.25);
+    expect(remapFiniteF64(0.25, 0, 1, 10, 18)).toBe(12);
+  });
+
+  it('fails closed on non-finite inputs, zero divisors, and overflow results', () => {
+    expect(() => clampFiniteF64(Number.NaN, 0, 1)).toThrow('requires finite f64');
+    expect(() => lerpFiniteF64(Number.MAX_VALUE, -Number.MAX_VALUE, 2)).toThrow(
+      'produced a non-finite f64 result'
+    );
+    expect(() => inverseLerpFiniteF64(1, 1, 1)).toThrow('rejects division by zero');
+    expect(() => clampFiniteF32(Number.POSITIVE_INFINITY, 0, 1)).toThrow(
+      'requires finite rounded f32'
+    );
+    expect(() => lerpFiniteF32(3.4e38, -3.4e38, 2)).toThrow(
+      'produced a non-finite rounded f32 result'
+    );
+    expect(() => inverseLerpFiniteF32(1, 1, 1)).toThrow('rejects division by zero');
+  });
+});
 
 describe('Math Constants', () => {
   it('PI should be Math.PI', () => {
@@ -122,6 +162,19 @@ describe('remap', () => {
   it('should handle inverted output ranges', () => {
     expect(remap(0, 0, 10, 100, 0)).toBe(100);
     expect(remap(10, 0, 10, 100, 0)).toBe(0);
+  });
+});
+
+describe('binary32 math', () => {
+  it('rounds interpolation after every arithmetic operation', () => {
+    expect(lerpF32(16_777_216, 16_777_218, 0.5)).toBe(16_777_216);
+    expect(lerp(16_777_216, 16_777_218, 0.5)).toBe(16_777_217);
+  });
+
+  it('keeps clamp, inverse-lerp, and remap results in binary32', () => {
+    expect(clampF32(1.00000007, 0, 2)).toBe(Math.fround(1.00000007));
+    expect(inverseLerpF32(0, 10, 1)).toBe(Math.fround(0.1));
+    expect(remapF32(0.1, 0, 1, 10, 18)).toBe(Math.fround(10.8));
   });
 });
 

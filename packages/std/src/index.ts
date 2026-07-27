@@ -73,6 +73,18 @@ export {
   lerp,
   inverseLerp,
   remap,
+  clampF32,
+  lerpF32,
+  inverseLerpF32,
+  remapF32,
+  clampFiniteF32,
+  lerpFiniteF32,
+  inverseLerpFiniteF32,
+  remapFiniteF32,
+  clampFiniteF64,
+  lerpFiniteF64,
+  inverseLerpFiniteF64,
+  remapFiniteF64,
   smoothstep,
   smootherstep,
   sign,
@@ -93,6 +105,28 @@ export {
 
 // Re-export with alternate names for convenience
 export { degToRad as toRadians, radToDeg as toDegrees } from './math.js';
+
+// UAAL host adapter for versioned std arithmetic and aggregate-value ABIs
+export {
+  HOLOSCRIPT_I32_BINARY_ABI,
+  HOLOSCRIPT_F32_BINARY_ABI,
+  HOLOSCRIPT_F64_BINARY_ABI,
+  HOLOSCRIPT_AGGREGATE_VALUE_ABI,
+  HOLOSCRIPT_AGGREGATE_VALUE_ABI_V2,
+  HOLOSCRIPT_AGGREGATE_REFERENCE_ABI,
+  HOLOSCRIPT_OWNED_BUFFER_ABI,
+  registerHoloScriptStdUaalAggregateReferenceHandlers,
+  registerHoloScriptStdUaalExecHandler,
+  registerHoloScriptStdUaalOwnedBufferHandlers,
+} from './uaal-abi.js';
+export type {
+  HoloScriptStdUaalOperand,
+  HoloScriptStdUaalVmProxy,
+  HoloScriptStdUaalExecHandler,
+  HoloScriptStdUaalVm,
+  HoloScriptStdUaalOwnedBufferOpcodes,
+  HoloScriptStdUaalAggregateReferenceOpcodes,
+} from './uaal-abi.js';
 
 // Collections
 export {

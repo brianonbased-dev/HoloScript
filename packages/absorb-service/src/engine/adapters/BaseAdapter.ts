@@ -154,7 +154,16 @@ export function extractFileDocComment(rootNode: SyntaxNode): string | undefined 
 function getPreviousSibling(node: SyntaxNode): SyntaxNode | null {
   if (!node.parent) return null;
   const siblings = node.parent.namedChildren;
-  const idx = siblings.indexOf(node);
+  // Native tree-sitter bindings may create a fresh JavaScript wrapper every
+  // time `namedChildren` is read. Object identity (`indexOf(node)`) therefore
+  // intermittently fails on large files and silently drops doc comments.
+  // Byte offsets are the stable identity exposed by every supported binding.
+  const idx = siblings.findIndex(
+    (sibling) =>
+      sibling.startIndex === node.startIndex &&
+      sibling.endPosition.row === node.endPosition.row &&
+      sibling.endPosition.column === node.endPosition.column
+  );
   return idx > 0 ? siblings[idx - 1] : null;
 }
 

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.refresh-benchmark.v1",
+  "productName": "HoloAbsorb",
+  "status": "pass",
+  "completedAt": "2026-07-27T17:41:13.952Z",
+  "repositoryCommit": "f77bacda3fb1ce9dc0128c86e0d0b37aa62e0c2d",
+  "fixture": {
+    "files": 120,
+    "symbolsPerFile": 24,
+    "changedFiles": 15,
+    "initialHead": "0a2433e3639c1845e7eae497208cde9925e45fbc",
+    "refreshedHead": "5e3ed07786ebf151f06d719c4ac9501e2739f378",
+    "retainedAt": null
+  },
+  "thresholds": {
+    "maxChangedFiles": 20,
+    "maxResponseBytes": 65536,
+    "maxPeakRssDeltaBytes": 536870912
+  },
+  "measurements": {
+    "initial": {
+      "durationMs": 2517.088,
+      "responseBytes": 6435,
+      "peakRssDeltaBytes": 142618624,
+      "totalFiles": 120,
+      "totalSymbols": 2880
+    },
+    "refreshed": {
+      "durationMs": 3199.138,
+      "responseBytes": 6646,
+      "peakRssDeltaBytes": 71188480,
+      "embeddingRefresh": {
+        "kind": "EmbeddingRefreshReceipt",
+        "previousSymbols": 2880,
+        "totalSymbols": 2895,
+        "reusedSymbols": 2880,
+        "embeddedSymbols": 15,
+        "retiredSymbols": 0,
+        "reuseRatio": 0.994819,
+        "batchCount": 91
+      }
+    },
+    "graphCacheBytes": 1098066,
+    "freshProcessStatus": {
+      "graphAuthoritative": true,
+      "freshForCurrentRepo": true,
+      "gitCommitMatchesHead": true
+    },
+    "freshProcessQuery": {
+      "totalFiles": 120,
+      "totalSymbols": 2895,
+      "totalImports": 0,
+      "totalCalls": 15,
+      "totalEventEdges": 0,
+      "totalLoc": 3015,
+      "filesByLanguage": {
+        "typescript": 120
+      },
+      "symbolsByType": {
+        "function": 2895
+      },
+      "communities": 1
+    }
+  },
+  "checks": {
+    "boundedDelta": true,
+    "initialGraphNotInlined": true,
+    "refreshedGraphNotInlined": true,
+    "initialResponseBounded": true,
+    "refreshedResponseBounded": true,
+    "graphCacheLargerThanResponse": true,
+    "changedSymbolReuse": true,
+    "peakRssBounded": true,
+    "freshProcessStatus": true,
+    "freshProcessQuery": true
+  },
+  "claimBoundary": "This deterministic local corpus proves bounded-delta reuse and compact MCP-shaped results; it is not a production-monorepo throughput claim."
+}

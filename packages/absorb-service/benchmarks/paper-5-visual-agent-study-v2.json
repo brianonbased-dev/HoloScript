@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "holoscript.paper5.visual-agent-study-protocol.v2",
+  "protocolId": "holoabsorb-paper5-visual-agent-study-v2-compact-batched",
+  "frozenAt": "2026-07-27T05:50:00.000Z",
+  "supersedesForRuntime": "holoabsorb-paper5-visual-agent-study-v1",
+  "runtimeAmendment": {
+    "outcomeInspectedBeforeFreeze": false,
+    "reason": "The v1 pilot was stopped before a result artifact or accuracy summary existed. Read-only slot telemetry measured 2163 text-arm and 3778 visual-arm prompt tokens on a one-slot Jetson endpoint, making 108 independent requests operationally unreasonable.",
+    "unchanged": [
+      "dataset",
+      "paired text and structured visual-graph arms",
+      "gold-hidden scoring",
+      "metrics",
+      "bootstrap protocol",
+      "success thresholds",
+      "claim boundaries"
+    ],
+    "changed": [
+      "candidate count 10 to 8",
+      "bounded signatures replaced by at most four symbol names",
+      "visual payload reduced to coordinates, opaque community, degrees, candidate neighbors, and candidate edges",
+      "four same-arm queries per stateless request batch",
+      "maximum completion tokens 192 to 512 for four answers"
+    ]
+  },
+  "dataset": {
+    "path": "packages/absorb-service/benchmarks/paper-5-retrieval-v1.json",
+    "sha256": "f34a3664fd8c39ff5cc5b38201b72d8d02b6633990f2c67f4e43cc03bd1314dd",
+    "queries": 54,
+    "categories": {
+      "dependency": 18,
+      "impact": 18,
+      "reasoning": 18
+    }
+  },
+  "design": {
+    "unit": "query",
+    "pairing": "within-query",
+    "arms": [
+      {
+        "id": "text",
+        "description": "Question plus shuffled compact candidate cards containing paths and at most four symbol names."
+      },
+      {
+        "id": "visual",
+        "description": "The same compact candidate cards plus a structured observation projected from the canonical CodebaseSceneCompiler graph.holo scene."
+      }
+    ],
+    "candidateCount": 8,
+    "candidateConstruction": "Include every source-audited relevant file, then fill the remaining slots with label-blind HoloEmbed GraphRAG hard negatives from src/ that resolve to canonical CodebaseSceneCompiler nodes. Relevance labels are used only to guarantee answer presence and are never serialized into an agent prompt.",
+    "candidateScope": "controlled-navigation",
+    "candidateScopeBoundary": "Because every relevant file is inserted into the candidate set, this protocol measures agent selection and ranking from a bounded view. It does not measure end-to-end retrieval recall.",
+    "counterbalancing": "Two deterministic SHA-256 orders are reversed across arms and swapped for half of the queries. Text and visual cases never share a request.",
+    "promptEncoding": "compact-v2",
+    "visualSource": "packages/absorb-service/src/engine/visualization/CodebaseSceneCompiler.ts",
+    "promptInjectionBoundary": "Raw source bodies, doc comments, and signatures are excluded. Candidate evidence is limited to normalized paths, symbol names, and generated graph metadata."
+  },
+  "agentProtocol": {
+    "responseSchema": {
+      "answers": "object keyed by query ID",
+      "rankedCandidateIds": "array of one to five candidate IDs in descending relevance order",
+      "confidence": "number from 0 to 1"
+    },
+    "temperature": 0,
+    "maxTokens": 512,
+    "requestBatchSize": 4,
+    "sameArmPerBatch": true,
+    "statelessRequests": true,
+    "pilotTrialsPerArm": 1,
+    "publicationTrialsPerArm": 3,
+    "publicationMinimumIndependentAgentFamilies": 3
+  },
+  "metrics": {
+    "primary": [
+      "precision_at_5",
+      "mean_reciprocal_rank"
+    ],
+    "quality": [
+      "valid_response_rate",
+      "unknown_candidate_rate",
+      "mean_confidence",
+      "mean_latency_ms"
+    ],
+    "precisionAt": 5,
+    "bootstrapResamples": 2000,
+    "bootstrapSeed": 270727,
+    "confidenceLevel": 0.95,
+    "bootstrapUnit": "query"
+  },
+  "preregisteredSuccess": {
+    "visualPrecisionAt5DeltaLower95CIGreaterThan": 0,
+    "visualMrrDeltaLower95CIGreaterThan": 0,
+    "visualInvalidResponseRateIncreaseAtMost": 0.02,
+    "interpretation": "Both paired accuracy confidence intervals must exclude zero in the positive direction, and structured graph context may not increase invalid responses by more than two percentage points."
+  },
+  "admission": {
+    "minimumQueries": 54,
+    "requireAllCategories": true,
+    "requireSameCandidatesAcrossArms": true,
+    "requireGoldAbsentFromPrompts": true,
+    "requireAllRelevantFilesPresent": true,
+    "requireEveryCandidateHasVisualNode": true,
+    "requireDeterministicPacketHash": true,
+    "requireCompleteResponsesForPilot": true
+  },
+  "claimBoundary": {
+    "pilotPublicationReady": false,
+    "reason": "A single owned 4B model run is model-specific pilot evidence. Publication claims require at least three independently operated agent families, three trials per arm, independent multi-human relevance annotation, and external-codebase replication.",
+    "literalPixelVisionMeasured": false,
+    "measuredSurface": "agent-readable structured projection of the canonical visual graph",
+    "nextGate": "Add a screenshot or interactive viewport arm for a vision-capable agent after the structured visual-graph pilot is frozen."
+  }
+}

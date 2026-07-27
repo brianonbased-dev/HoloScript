@@ -1,0 +1,225 @@
+{
+  "schemaVersion": "holoscript.paper5.visual-agent-study-protocol.v4",
+  "protocolId": "holoabsorb-paper5-visual-agent-confirmation-v4-external-pixel-factorial",
+  "frozenAt": "2026-07-27T08:05:00.000Z",
+  "follows": {
+    "protocolId": "holoabsorb-paper5-visual-agent-followup-v3-relational-constrained",
+    "resultPath": "research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json",
+    "outcomeInspectedBeforeFreeze": true,
+    "carriedForwardFindings": [
+      "strict JSON Schema eliminated invalid responses in the v3 engineering run",
+      "explicit relational summaries produced a diagnostic gain on the outcome-exposed corpus",
+      "raw coordinates and opaque topology did not establish an accuracy benefit",
+      "no prior study supplied literal image pixels to a vision-capable agent"
+    ]
+  },
+  "studyClass": {
+    "kind": "confirmatory-preregistration",
+    "knownOutcomeDataset": false,
+    "superiorityClaimEligible": "only-after-all-confirmation-gates-pass",
+    "executionStatus": "blocked-awaiting-external-corpus-and-independent-annotation",
+    "reason": "The design is frozen before external corpus labels, packets, model responses, or outcomes are available. Creating this protocol does not satisfy the confirmation gates."
+  },
+  "dataset": {
+    "status": "not-yet-authored",
+    "minimumExternalCodebases": 3,
+    "minimumQueries": 90,
+    "queriesPerCodebase": 30,
+    "categoriesPerCodebase": {
+      "dependency": 10,
+      "impact": 10,
+      "reasoning": 10
+    },
+    "eligibility": [
+      "codebase is not HoloScript, ai-ecosystem, Hololand, or a repository used to design v1 through v3",
+      "codebase has a machine-verifiable commit hash and a license permitting research analysis",
+      "codebase contains at least 500 tracked source files and more than one internal module boundary",
+      "no benchmark author may inspect model outcomes before the corpus and protocol receipt are sealed"
+    ],
+    "annotation": {
+      "minimumIndependentAnnotatorsPerQuery": 2,
+      "requireAdjudicatorForDisagreement": true,
+      "requireMultiRelevanceLabels": true,
+      "requireEvidenceLinesOrSymbols": true,
+      "annotatorAccessToModelOutputs": false,
+      "minimumInterAnnotatorAgreement": 0.7,
+      "agreementMetric": "Krippendorff alpha over binary file relevance"
+    },
+    "custody": {
+      "requireRepositoryCommitHashes": true,
+      "requireCorpusSha256": true,
+      "requireAnnotationReceiptSha256": true,
+      "requireProtocolHashBeforePacketGeneration": true,
+      "requireSealedConfirmatorySplit": true,
+      "calibrationFraction": 0.2,
+      "confirmatoryFraction": 0.8
+    }
+  },
+  "design": {
+    "unit": "query",
+    "pairing": "within-query-four-arm-factorial",
+    "factors": [
+      {
+        "id": "structured-relations",
+        "levels": [
+          "absent",
+          "present"
+        ]
+      },
+      {
+        "id": "literal-pixels",
+        "levels": [
+          "absent",
+          "present"
+        ]
+      }
+    ],
+    "arms": [
+      {
+        "id": "text",
+        "structuredRelations": false,
+        "literalPixels": false,
+        "description": "Question plus compact candidate cards containing aliases, normalized paths, and at most four symbol names."
+      },
+      {
+        "id": "relations",
+        "structuredRelations": true,
+        "literalPixels": false,
+        "description": "The text arm plus the label-blind v3 relational projection."
+      },
+      {
+        "id": "pixels",
+        "structuredRelations": false,
+        "literalPixels": true,
+        "description": "The text arm plus a deterministic rendered graph image delivered as actual image bytes to a vision-capable agent."
+      },
+      {
+        "id": "relations-pixels",
+        "structuredRelations": true,
+        "literalPixels": true,
+        "description": "The relational arm plus the identical deterministic rendered graph image."
+      }
+    ],
+    "candidateCount": 8,
+    "candidateConstruction": "For controlled navigation, include every independently annotated relevant file, then fill with label-blind HoloEmbed hard negatives that resolve to canonical CodebaseSceneCompiler nodes.",
+    "candidateScope": "controlled-navigation",
+    "candidateScopeBoundary": "Every relevant file is inserted into the candidate set. This study measures selection and ranking from a bounded view, not end-to-end retrieval recall.",
+    "counterbalancing": "Generate one deterministic candidate permutation per query, rotate it across arms with a query-derived offset, and independently rotate arm request order by trial.",
+    "promptInjectionBoundary": "Raw source bodies, doc comments, signatures, gold candidate IDs, relevance labels, and prior outcomes are excluded from all prompts.",
+    "relationalProjection": {
+      "implementation": "packages/absorb-service/src/engine/GraphRAGEngine.ts",
+      "allowedInputs": [
+        "query text",
+        "declared query category",
+        "candidate aliases",
+        "candidate paths",
+        "candidate symbol names",
+        "candidate import adjacency",
+        "candidate external import degrees",
+        "opaque community membership"
+      ],
+      "excludedInputs": [
+        "gold candidate IDs",
+        "relevance labels",
+        "source bodies",
+        "doc comments",
+        "function signatures",
+        "v1 through v3 outcomes"
+      ]
+    },
+    "visualProjection": {
+      "implementation": "packages/absorb-service/src/engine/visualization/CodebaseSceneCompiler.ts",
+      "renderer": "deterministic-fixed-camera",
+      "width": 1600,
+      "height": 900,
+      "format": "png",
+      "background": "fixed",
+      "camera": "fixed-per-candidate-count",
+      "nodeLabels": "candidate aliases only",
+      "pathTextInPixels": false,
+      "edgeLabels": "typed legend plus color and arrow direction",
+      "sameImageAcrossPixelArms": true,
+      "requireImageSha256PerQuery": true,
+      "requireRenderReceipt": true,
+      "requireActualImageContentPart": true,
+      "forbidBase64OrAltTextOnlySubstitution": true,
+      "accessibilityAltText": "Graph image with candidate aliases only; it must not enumerate edges or communities in prose."
+    }
+  },
+  "agentProtocol": {
+    "responseFormat": "json_schema",
+    "temperature": 0,
+    "maxTokens": 512,
+    "requestBatchSize": 1,
+    "statelessRequests": true,
+    "trialsPerArm": 3,
+    "minimumIndependentVisionCapableAgentFamilies": 3,
+    "sameModelVersionAcrossArms": true,
+    "requireProviderModelVersionReceipt": true,
+    "requireImageInputReceiptForPixelArms": true,
+    "responseSchema": {
+      "rankedCandidateIds": "array of one to five unique candidate aliases in descending relevance order",
+      "confidence": "number from 0 to 1",
+      "additionalProperties": false
+    }
+  },
+  "metrics": {
+    "primary": [
+      "literal_pixels_main_effect_precision_at_5",
+      "literal_pixels_main_effect_mean_reciprocal_rank"
+    ],
+    "secondary": [
+      "structured_relations_main_effect_precision_at_5",
+      "structured_relations_main_effect_mean_reciprocal_rank",
+      "relations_by_pixels_interaction_precision_at_5",
+      "relations_by_pixels_interaction_mean_reciprocal_rank"
+    ],
+    "quality": [
+      "valid_response_rate",
+      "unknown_candidate_rate",
+      "mean_confidence",
+      "mean_latency_ms",
+      "image_input_receipt_rate"
+    ],
+    "precisionAt": 5,
+    "bootstrapResamples": 10000,
+    "bootstrapSeed": 27072704,
+    "confidenceLevel": 0.95,
+    "bootstrapUnit": "codebase-then-query",
+    "multipleComparisonCorrection": "Holm-Bonferroni over two primary metrics"
+  },
+  "confirmationGate": {
+    "literalPixelsPrecisionAt5DeltaLower95CIGreaterThan": 0,
+    "literalPixelsMrrDeltaLower95CIGreaterThan": 0,
+    "literalPixelsInvalidResponseRateIncreaseAtMost": 0.02,
+    "minimumIndependentVisionCapableAgentFamilies": 3,
+    "minimumFamiliesPassingBothPrimaryMetrics": 2,
+    "minimumExternalCodebases": 3,
+    "minimumQueries": 90,
+    "trialsPerArm": 3,
+    "requireIndependentMultiHumanAnnotation": true,
+    "requireAllPixelRequestsCarryVerifiedImageBytes": true,
+    "requireDeterministicImageHashes": true,
+    "requireNoOutcomeInspectionBeforeSeal": true
+  },
+  "admission": {
+    "requireAllCategoriesPerCodebase": true,
+    "requireSameCandidatesAcrossArms": true,
+    "requireGoldAbsentFromPrompts": true,
+    "requireAllRelevantFilesPresent": true,
+    "requireEveryCandidateHasVisualNode": true,
+    "requireDeterministicPacketHash": true,
+    "requireDeterministicImageHash": true,
+    "requireCompleteResponses": true,
+    "requireProtocolDatasetAndAnnotationHashes": true,
+    "requireCalibrationAndConfirmatorySplitSeparation": true
+  },
+  "claimBoundary": {
+    "publicationReady": false,
+    "superiorityClaimEligible": false,
+    "literalPixelVisionMeasured": false,
+    "measuredSurface": "none until an admitted v4 run supplies actual image bytes and passes all custody gates",
+    "reason": "This file freezes the external confirmatory design only. No external corpus, independent annotations, rendered packets, multimodal responses, or results exist yet.",
+    "allowedCurrentClaim": "HoloAbsorb has a preregistered external multi-codebase factorial protocol designed to isolate the incremental effect of literal graph pixels from structured relational text."
+  }
+}
