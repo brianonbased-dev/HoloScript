@@ -15,8 +15,9 @@
  *
  * Admission gates (generation fails closed):
  *   - every expected value must be finite and free of negative zero;
- *   - the action projection must construct in the deterministic runtime and
- *     every vector must execute to a bit-exact match with the reference twin.
+ *   - the action projection and hash-bound packaged traits must construct in
+ *     their deterministic engine runtimes, and every Node-admitted vector must
+ *     execute to a bit-exact match with the reference twin.
  *
  * Generated artifacts are deterministic: no timestamps, sorted keys where
  * ordering is not semantic. Receipts carry timestamps; these files carry only
@@ -165,9 +166,7 @@ for (const op of ops.ops) {
   }
   actionLines.push('    }');
   actionLines.push('');
-  const traitHeader = op.params.length
-    ? `  @${op.op}(${params}) => {`
-    : `  @${op.op} => {`;
+  const traitHeader = op.params.length ? `  @${op.op}(${params}) => {` : `  @${op.op} => {`;
   traitLines.push(traitHeader);
   if (op.statements) {
     for (const statement of op.statements) traitLines.push(`    ${statement}`);
@@ -194,13 +193,14 @@ for (const op of ops.ops) {
   const isHostOp = op.kind === 'host-binding';
   const referenceFn = isHostOp ? null : resolveReference(op.reference);
   const host = isHostOp ? resolveHostFunction(op.hostRef, op.op) : null;
-  const twinFn =
-    isHostOp && host.declared.twinRef ? resolveReference(host.declared.twinRef) : null;
+  const twinFn = isHostOp && host.declared.twinRef ? resolveReference(host.declared.twinRef) : null;
   for (const vector of op.vectors) {
     const args = vector.args;
+    const expectArgs = vector.expectArgs ?? args;
     const orderedArgs = op.params.map((param) => {
-      if (!(param in args)) fail(`${op.op}/${vector.id}: missing arg ${param}`);
-      return args[param];
+      if (!(param in args)) fail(`${op.op}/${vector.id}: missing runtime arg ${param}`);
+      if (!(param in expectArgs)) fail(`${op.op}/${vector.id}: missing expectation arg ${param}`);
+      return expectArgs[param];
     });
     let expected;
     if (isHostOp) {
@@ -211,9 +211,7 @@ for (const op of ops.ops) {
         const twinMismatches = [];
         valuesExactlyEqual(hostRaw, twinRaw, `${op.op}/${vector.id}.twin`, twinMismatches);
         if (twinMismatches.length > 0) {
-          fail(
-            `${op.op}/${vector.id}: binding disagrees with twin: ${twinMismatches.join('; ')}`
-          );
+          fail(`${op.op}/${vector.id}: binding disagrees with twin: ${twinMismatches.join('; ')}`);
         }
       }
     } else {
@@ -222,12 +220,14 @@ for (const op of ops.ops) {
     }
     assertCleanValue(expected, `${op.op}/${vector.id}.expected`);
     assertCleanValue(args, `${op.op}/${vector.id}.args`);
+    assertCleanValue(expectArgs, `${op.op}/${vector.id}.expectArgs`);
     vectors.push({
       id: vector.id,
       op: op.op,
       action: op.action,
       kind: op.kind,
       args,
+      ...(vector.expectArgs ? { expectArgs } : {}),
       expected,
       tolerance: op.tolerance ?? 0,
     });
@@ -235,27 +235,32 @@ for (const op of ops.ops) {
 }
 
 // --- Packaged-handler vectors (executed from shipped source bytes) -----------
-// The engine lane cannot parse the @trait form, so these vectors carry an
-// explicit target list and receive no engine admission run; their admission is
-// the reference computation itself (binding or twin) plus the clean-value
-// gates. The wasm-evaluator targets execute the hash-bound packaged sources
-// directly under the v5 packaged-factories subset.
+// Node consumes the canonical HoloScriptPlusParser @trait AST through the v7
+// deterministic trait adapter; wasm targets consume the same hash-bound sources
+// through the cumulative v6 evaluator. Both statically lift whitelisted
+// on_spawn factories without executing lifecycle side effects.
 
 if (ops.packagedExecution) {
   for (const handler of ops.packagedExecution.handlers) {
     let expectFn;
     if (handler.expectRef.host) {
-      expectFn = resolveHostFunction(handler.expectRef.host, `${handler.trait}.${handler.handler}`).fn;
+      expectFn = resolveHostFunction(
+        handler.expectRef.host,
+        `${handler.trait}.${handler.handler}`
+      ).fn;
     } else {
       expectFn = resolveReference(handler.expectRef.twin);
     }
     for (const vector of handler.vectors) {
-      const referenceArgs = vector.expectArgs ?? vector.args;
+      const expectArgs = vector.expectArgs ?? vector.args;
       const orderedArgs = handler.params.map((param) => {
-        if (!(param in referenceArgs)) {
-          fail(`${handler.handler}/${vector.id}: missing arg ${param}`);
+        if (!(param in vector.args)) {
+          fail(`${handler.handler}/${vector.id}: missing runtime arg ${param}`);
         }
-        return referenceArgs[param];
+        if (!(param in expectArgs)) {
+          fail(`${handler.handler}/${vector.id}: missing expectation arg ${param}`);
+        }
+        return expectArgs[param];
       });
       let expected = expectFn(...structuredClone(orderedArgs));
       if (handler.wrap) {
@@ -263,6 +268,7 @@ if (ops.packagedExecution) {
       }
       assertCleanValue(expected, `${handler.handler}/${vector.id}.expected`);
       assertCleanValue(vector.args, `${handler.handler}/${vector.id}.args`);
+      assertCleanValue(expectArgs, `${handler.handler}/${vector.id}.expectArgs`);
       vectors.push({
         id: vector.id,
         op: handler.handler,
@@ -271,6 +277,7 @@ if (ops.packagedExecution) {
         packaged: true,
         trait: handler.trait,
         args: vector.args,
+        ...(vector.expectArgs ? { expectArgs } : {}),
         expected,
         tolerance: handler.tolerance ?? 0,
         targets: ops.packagedExecution.targets,
@@ -281,34 +288,60 @@ if (ops.packagedExecution) {
 
 // --- Admission gate: execute the action projection in the engine runtime ----
 
-const runtimeModulePath = join(
-  repoRoot,
-  'packages',
-  'engine',
-  'dist',
-  'runtime',
-  'index.cjs'
-);
+const runtimeModulePath = join(repoRoot, 'packages', 'engine', 'dist', 'runtime', 'index.cjs');
 const runtimeModule = require(runtimeModulePath);
-const { createDeterministicHsplusActionRuntime } = runtimeModule;
+const {
+  createDeterministicHsplusActionRuntime,
+  createDeterministicHsplusTraitRuntime,
+  ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7,
+} = runtimeModule;
 const runtime = createDeterministicHsplusActionRuntime(actionSource, {
   numericBuiltins: ops.numericBuiltins === true,
   localBindings: ops.localBindings === true,
   ...(ops.hostBindings === true ? { hostBindings } : {}),
+  nullCoalescing: ops.nullCoalescing === true,
 });
+if (typeof createDeterministicHsplusTraitRuntime !== 'function') {
+  fail('engine dist does not export createDeterministicHsplusTraitRuntime');
+}
+if (ops.packagedExecution?.engineSubsetId !== ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7) {
+  fail(
+    `packaged engine subset mismatch: ops=${ops.packagedExecution?.engineSubsetId}, runtime=${ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7}`
+  );
+}
+const packagedRuntimes = new Map(
+  Object.entries(ops.packagedExecution?.sources ?? {}).map(([traitName, sourcePath]) => [
+    traitName,
+    createDeterministicHsplusTraitRuntime(
+      readFileSync(join(repoRoot, ...sourcePath.split('/')), 'utf8'),
+      traitName,
+      { hostBindings }
+    ),
+  ])
+);
 
 let gateFailures = 0;
 for (const vector of vectors) {
-  if (vector.packaged) continue;
-  const result = runtime.invoke({
-    kind: 'observation',
-    scheduleEntryId: `gen-gate-${vector.id}`,
-    order: 0,
-    tick: 0,
-    phase: 'generation-admission',
-    entrypoint: vector.action,
-    args: vector.args,
-  });
+  const vectorRuntime = vector.packaged ? packagedRuntimes.get(vector.trait) : runtime;
+  if (!vectorRuntime) {
+    fail(`${vector.id}: no deterministic runtime for packaged trait ${vector.trait}`);
+  }
+  let result;
+  try {
+    result = vectorRuntime.invoke({
+      kind: 'observation',
+      scheduleEntryId: `gen-gate-${vector.id}`,
+      order: 0,
+      tick: 0,
+      phase: 'generation-admission',
+      entrypoint: vector.packaged ? vector.op : vector.action,
+      args: vector.args,
+    });
+  } catch (error) {
+    fail(
+      `${vector.id}: deterministic ${vector.packaged ? 'packaged-source' : 'projection'} admission threw: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
   const mismatches = [];
   valuesExactlyEqual(result.value, vector.expected, vector.id, mismatches);
   if (mismatches.length > 0) {
@@ -326,9 +359,7 @@ if (gateFailures > 0) {
 
 mkdirSync(generatedDir, { recursive: true });
 
-const vectorsJsonl = `${vectors
-  .map((vector) => JSON.stringify(vector))
-  .join('\n')}\n`;
+const vectorsJsonl = `${vectors.map((vector) => JSON.stringify(vector)).join('\n')}\n`;
 const actionPath = join(generatedDir, 'std-abi-conformance.action.hsplus');
 const traitPath = join(generatedDir, 'std-abi-conformance.trait.hsplus');
 const vectorsPath = join(generatedDir, 'std-abi-vectors.v0.jsonl');
@@ -362,9 +393,7 @@ const manifest = {
       sha256: sha256(readFileSync(join(repoRoot, 'packages', 'std', 'src', 'math.hsplus'))),
     },
     'packages/std/src/collections.hsplus': {
-      sha256: sha256(
-        readFileSync(join(repoRoot, 'packages', 'std', 'src', 'collections.hsplus'))
-      ),
+      sha256: sha256(readFileSync(join(repoRoot, 'packages', 'std', 'src', 'collections.hsplus'))),
     },
     'packages/std/conformance/host-abi/std-host-abi.v0.json': {
       sha256: sha256(
@@ -391,11 +420,8 @@ const manifest = {
   },
 };
 
-writeFileSync(
-  join(generatedDir, 'manifest.json'),
-  `${JSON.stringify(manifest, null, 2)}\n`
-);
+writeFileSync(join(generatedDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 
 console.log(
-  `[generate-std-abi-conformance] OK: ${ops.ops.length} ops, ${vectors.length} vectors, admission gate exact-match, artifacts written to packages/std/conformance/generated/`
+  `[generate-std-abi-conformance] OK: ${ops.ops.length} ops, ${vectors.length} vectors, projection and packaged-source admission exact-match, artifacts written to packages/std/conformance/generated/`
 );

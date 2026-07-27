@@ -203,6 +203,12 @@ class HoloLexer {
       this.advance();
       return true;
     }
+    if (char === '?' && next === '?') {
+      this.addToken('NULL_COALESCE', '??');
+      this.advance();
+      this.advance();
+      return true;
+    }
 
     // Single-character operators
     const singleChar: Record<string, TokenType> = {

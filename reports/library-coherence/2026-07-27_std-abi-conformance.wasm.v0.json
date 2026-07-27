@@ -1,22 +1,22 @@
 {
   "schema": "holoscript.std-abi-conformance.wasm.v0",
-  "generatedAtISO": "2026-07-27T23:52:21.638Z",
+  "generatedAtISO": "2026-07-27T22:10:03.127Z",
   "target": "browser-wasm",
   "executionRuntime": "node-webassembly",
   "wasmArtifact": {
     "path": "packages/compiler-wasm/pkg-node",
-    "sha256": "sha256:fff120ca5315826a0ac27c74f69023fda3f2c5ca84843555fad06629814b651a",
+    "sha256": "sha256:fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
     "byteIdenticalWebArtifact": {
       "path": "packages/compiler-wasm/pkg",
-      "sha256": "sha256:fff120ca5315826a0ac27c74f69023fda3f2c5ca84843555fad06629814b651a",
+      "sha256": "sha256:fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
       "matches": true
     }
   },
-  "evaluatorExport": "evaluate_trait_handler_v4",
-  "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings",
+  "evaluatorExport": "evaluate_trait_handler_v6",
+  "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
   "packagedExecution": {
-    "evaluatorExport": "evaluate_trait_handler_v5",
-    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories",
+    "evaluatorExport": "evaluate_trait_handler_v6",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
     "sources": {
       "packages/std/src/math.hsplus": {
         "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
@@ -26,7 +26,7 @@
       }
     },
     "vectors": 45,
-    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the v5 packaged-factories subset: factory aliases statically lifted from @on_spawn, on_spawn side effects not executed, callback handlers out of scope; ?? null-coalescing joined the v5 subset (JSON-null defaulting, short-circuit). The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only."
+    "claim": "These vectors execute the SHIPPED packaged handler bodies from hash-bound source bytes. The engine v7 adapter consumes the canonical HoloScriptPlusParser @trait AST and reparses each preserved authored body through the structured deterministic evaluator; the wasm lane uses its cumulative v6 evaluator. Both statically lift whitelisted factory aliases from @on_spawn, do not execute on_spawn side effects, and preserve strict short-circuiting ?? defaults. Callback handlers remain out of scope."
   },
   "hostAbi": {
     "schema": "holoscript.std-host-abi.v0",
@@ -34,14 +34,14 @@
     "descriptorSha256": "sha256:475a487b4fb164d24d5b53e9f0eeb23641efa614c51dea924ad74dcf3da5fbe7"
   },
   "sources": {
-    "traitProjectionSha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9",
-    "vectorsSha256": "sha256:8713b66508387e67c41143ca9681c4f3326b8aa858d6235d9fb59bc3faa7ea91",
-    "manifestSha256": "sha256:8593533f6fe713ee78b1dea9ae826d76210ed96e90adb9dae126a3c201ef624e",
+    "traitProjectionSha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8",
+    "vectorsSha256": "sha256:8faa4f40af85a6eb6164387781a83d0277446a0e1d710ee07c0448d162794021",
+    "manifestSha256": "sha256:0a4bfcad1c9535ae9a05784b5c49ac9b4ae9b4b490583aec7eb6ede12384391c",
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
+      "sha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:8713b66508387e67c41143ca9681c4f3326b8aa858d6235d9fb59bc3faa7ea91"
+      "sha256": "sha256:8faa4f40af85a6eb6164387781a83d0277446a0e1d710ee07c0448d162794021"
     }
   },
   "environment": {
@@ -50,27 +50,27 @@
     "platform": "win32"
   },
   "summary": {
-    "vectors": 168,
-    "passed": 168,
+    "vectors": 170,
+    "passed": 170,
     "failed": 0,
     "excludedOps": [
       {
         "op": "*",
         "trait": "std_list",
-        "reason": "every handler delegates to get_std_collections_lib(), uses ?? defaults, or takes callback parameters (fn/predicate/comparator) — all outside the shared subset; the host collections ABI has no binding implementation anywhere in the repo",
-        "unlock": "define the std host-ABI binding surface for collections with per-target bindings, plus higher-order-function semantics in the deterministic subset"
+        "reason": "the executable corpus covers deterministic JSON host delegations, including ?? defaults; remaining exclusions are callback parameters, non-JSON iterable semantics, lifecycle effects, and deferred thin wrappers",
+        "unlock": "define higher-order callback semantics in the deterministic subset and an explicit iterable ABI"
       },
       {
         "op": "*",
         "trait": "std_map",
-        "reason": "same host-delegation boundary as std_list",
-        "unlock": "same as std_list"
+        "reason": "representative deterministic JSON host delegations are covered; callback-bearing and deferred representative handlers remain excluded",
+        "unlock": "define higher-order callback semantics and expand the representative packaged corpus"
       },
       {
         "op": "*",
         "trait": "std_set",
-        "reason": "same host-delegation boundary as std_list",
-        "unlock": "same as std_list"
+        "reason": "representative deterministic JSON host delegations are covered; deferred representative handlers remain excluded",
+        "unlock": "expand the representative packaged corpus"
       }
     ]
   },
@@ -890,6 +890,21 @@
       }
     },
     {
+      "id": "hrange-default-step",
+      "op": "on_host_list_range",
+      "pass": true,
+      "expectedHash": "sha256:d25839a629724fbed7178b139b9e32ca7c2e9638e9715b330cb04f5e7d660132",
+      "actual": {
+        "value": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
       "id": "hrange-up",
       "op": "on_host_list_range",
       "pass": true,
@@ -1070,6 +1085,15 @@
       "expectedHash": "sha256:f32d4354160a457984a54414824b84c196a5ddf65d6ee6c992317a5fb7a53b0c",
       "actual": {
         "value": -1
+      }
+    },
+    {
+      "id": "hjoin-default-separator",
+      "op": "on_host_list_join",
+      "pass": true,
+      "expectedHash": "sha256:c4dfe2fd7ba3fcb227bbf7fa3078d36656e4e81619b521dfba1b55d6e5e3df5d",
+      "actual": {
+        "value": "a,b,c"
       }
     },
     {
@@ -1602,6 +1626,53 @@
       }
     },
     {
+      "id": "pkg-lrange-default-step",
+      "op": "on_range",
+      "pass": true,
+      "expectedHash": "sha256:7f2c5f390b0c7e30e5a644380decea0554bbb62cfc03eff193d13a8c1a117708",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lrange-explicit-step",
+      "op": "on_range",
+      "pass": true,
+      "expectedHash": "sha256:2c9cc32262e3a74b2e4fe3f7637722f90c60d62142d1c1ca2ddc335ca99ae1ed",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        8,
+        6,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "pkg-ljoin-default-separator",
+      "op": "on_join",
+      "pass": true,
+      "expectedHash": "sha256:1b28d531ba89d6542cbffca65e20946ef37079573c9c7a7654083597383cf9b6",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "a,b,3"
+    },
+    {
+      "id": "pkg-ljoin-explicit-separator",
+      "op": "on_join",
+      "pass": true,
+      "expectedHash": "sha256:1d340a69dbc44d7e47bf3f634cbb8704cdd59b540f28b7c0821dd51ced831133",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "a-b-3"
+    },
+    {
       "id": "pkg-lreverse",
       "op": "on_reverse",
       "pass": true,
@@ -1840,57 +1911,11 @@
         1,
         3
       ]
-    },
-    {
-      "id": "pkg-lrange-default-step",
-      "op": "on_range",
-      "pass": true,
-      "expectedHash": "sha256:7f2c5f390b0c7e30e5a644380decea0554bbb62cfc03eff193d13a8c1a117708",
-      "packaged": true,
-      "trait": "std_list",
-      "actual": [
-        0,
-        1,
-        2,
-        3,
-        4
-      ]
-    },
-    {
-      "id": "pkg-lrange-explicit",
-      "op": "on_range",
-      "pass": true,
-      "expectedHash": "sha256:c33e53d28d32d9e72ded5b8b5b738b16010835fc788324dab95f7015bf2fd356",
-      "packaged": true,
-      "trait": "std_list",
-      "actual": [
-        10,
-        8,
-        6
-      ]
-    },
-    {
-      "id": "pkg-ljoin-default-sep",
-      "op": "on_join",
-      "pass": true,
-      "expectedHash": "sha256:8182b0c87856adae1cbee709c79b3b3355383dd0a5512b3ed1fd15852b97423c",
-      "packaged": true,
-      "trait": "std_list",
-      "actual": "a,b,c"
-    },
-    {
-      "id": "pkg-ljoin-dash",
-      "op": "on_join",
-      "pass": true,
-      "expectedHash": "sha256:0aa14f0317322b6ad888328051c8963660b3af3c9dc169d049597f08816ac427",
-      "packaged": true,
-      "trait": "std_list",
-      "actual": "1-2.5-3"
     }
   ],
   "claimBoundary": {
     "provesBrowserExecution": false,
     "note": "Executed in Node's WebAssembly runtime against the byte-identical wasm shipped for browsers; a browser smoke run is a separate receipt."
   },
-  "receiptHash": "sha256:a794a82105142736ba0a13aeeb362c3663817baa2bf600be44af7ea50dcf5c49"
+  "receiptHash": "sha256:4278d6f28e065b677e0c5f4ac1bc894b644c957a0b2d95fb4e7842692756e59f"
 }

@@ -4,16 +4,16 @@
   "opsFile": "packages/std/conformance/std-abi-ops.v0.json",
   "files": {
     "packages/std/conformance/std-abi-ops.v0.json": {
-      "sha256": "sha256:05031d54f3acbbd17310a9b273340b15dff35ef3d3c46f06701ad922ba52db39"
+      "sha256": "sha256:01b41df8125b870eb3d4a76e4bb7cf6f5fef45a5cd68cda7952b789a4fe07368"
     },
     "packages/std/conformance/generated/std-abi-conformance.action.hsplus": {
-      "sha256": "sha256:d17cad005542ec0edb93372cd6858ac3f5d3f5a92f822bf317dbd65910e63116"
+      "sha256": "sha256:9b71d000b17f23273a6d02886ec722a04d7f23c780f6ffacda4c48da0294ad42"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
+      "sha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:8713b66508387e67c41143ca9681c4f3326b8aa858d6235d9fb59bc3faa7ea91"
+      "sha256": "sha256:8faa4f40af85a6eb6164387781a83d0277446a0e1d710ee07c0448d162794021"
     },
     "packages/std/src/math.hsplus": {
       "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
@@ -30,8 +30,8 @@
   },
   "counts": {
     "ops": 40,
-    "vectors": 168,
-    "projectionVectors": 123,
+    "vectors": 170,
+    "projectionVectors": 125,
     "packagedHandlers": 38,
     "packagedVectors": 45,
     "excluded": 3

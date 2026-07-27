@@ -1,12 +1,27 @@
 {
   "schema": "holoscript.std-abi-conformance.node.v0",
-  "generatedAtISO": "2026-07-27T23:52:21.242Z",
+  "generatedAtISO": "2026-07-27T22:09:49.600Z",
   "target": "node",
   "executionRuntime": {
     "engine": "DeterministicHsplusActionRuntime",
-    "enginePackageVersion": "6.1.5",
-    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings",
-    "executedProjection": "packages/std/conformance/generated/std-abi-conformance.action.hsplus"
+    "enginePackageVersion": "6.1.6",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
+    "executedProjection": "packages/std/conformance/generated/std-abi-conformance.action.hsplus",
+    "packagedTraitEngine": "DeterministicHsplusTraitRuntime",
+    "packagedSubsetId": "holoscript-engine-hsplus-deterministic-action-subset-v7-packaged-traits"
+  },
+  "packagedExecution": {
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v7-packaged-traits",
+    "sources": {
+      "packages/std/src/math.hsplus": {
+        "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
+      },
+      "packages/std/src/collections.hsplus": {
+        "sha256": "sha256:a7447f7f67c9dfd2b7e3be433f7c90436c3a1c749e858d6fd4399e6b1d7af673"
+      }
+    },
+    "vectors": 45,
+    "claim": "The engine consumed the hash-bound packaged source through HoloScriptPlusParser, statically lifted whitelisted factory aliases without executing on_spawn, reparsed each preserved authored handler body through the structured deterministic evaluator, and executed it under the cumulative v7 subset."
   },
   "referenceTwin": {
     "module": "packages/std/dist/math.js",
@@ -15,16 +30,16 @@
   },
   "sources": {
     "packages/std/conformance/std-abi-ops.v0.json": {
-      "sha256": "sha256:05031d54f3acbbd17310a9b273340b15dff35ef3d3c46f06701ad922ba52db39"
+      "sha256": "sha256:01b41df8125b870eb3d4a76e4bb7cf6f5fef45a5cd68cda7952b789a4fe07368"
     },
     "packages/std/conformance/generated/std-abi-conformance.action.hsplus": {
-      "sha256": "sha256:d17cad005542ec0edb93372cd6858ac3f5d3f5a92f822bf317dbd65910e63116"
+      "sha256": "sha256:9b71d000b17f23273a6d02886ec722a04d7f23c780f6ffacda4c48da0294ad42"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
+      "sha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:8713b66508387e67c41143ca9681c4f3326b8aa858d6235d9fb59bc3faa7ea91"
+      "sha256": "sha256:8faa4f40af85a6eb6164387781a83d0277446a0e1d710ee07c0448d162794021"
     },
     "packages/std/src/math.hsplus": {
       "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
@@ -52,29 +67,28 @@
   },
   "summary": {
     "ops": 40,
-    "vectors": 123,
-    "passed": 123,
+    "vectors": 170,
+    "passed": 170,
     "failed": 0,
-    "skippedByTarget": 45,
-    "skippedByTargetReason": "packaged-handler vectors execute shipped @trait sources, a form the engine deterministic runtime does not parse; they run on the wasm-evaluator targets only",
+    "skippedByTarget": 0,
     "excludedOps": [
       {
         "op": "*",
         "trait": "std_list",
-        "reason": "every handler delegates to get_std_collections_lib(), uses ?? defaults, or takes callback parameters (fn/predicate/comparator) — all outside the shared subset; the host collections ABI has no binding implementation anywhere in the repo",
-        "unlock": "define the std host-ABI binding surface for collections with per-target bindings, plus higher-order-function semantics in the deterministic subset"
+        "reason": "the executable corpus covers deterministic JSON host delegations, including ?? defaults; remaining exclusions are callback parameters, non-JSON iterable semantics, lifecycle effects, and deferred thin wrappers",
+        "unlock": "define higher-order callback semantics in the deterministic subset and an explicit iterable ABI"
       },
       {
         "op": "*",
         "trait": "std_map",
-        "reason": "same host-delegation boundary as std_list",
-        "unlock": "same as std_list"
+        "reason": "representative deterministic JSON host delegations are covered; callback-bearing and deferred representative handlers remain excluded",
+        "unlock": "define higher-order callback semantics and expand the representative packaged corpus"
       },
       {
         "op": "*",
         "trait": "std_set",
-        "reason": "same host-delegation boundary as std_list",
-        "unlock": "same as std_list"
+        "reason": "representative deterministic JSON host delegations are covered; deferred representative handlers remain excluded",
+        "unlock": "expand the representative packaged corpus"
       }
     ]
   },
@@ -82,6 +96,7 @@
     {
       "id": "lerp-mid",
       "op": "on_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
       "actual": {
@@ -91,6 +106,7 @@
     {
       "id": "lerp-start",
       "op": "on_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:49c987621f206f09e5fbe23b516b55a36f838cb14867961f1d84a554d3a35b6b",
       "actual": {
@@ -100,6 +116,7 @@
     {
       "id": "lerp-end",
       "op": "on_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:07953a67895cdbe07665002609a1c24dc503557aadb8db223e398fd2e7593132",
       "actual": {
@@ -109,6 +126,7 @@
     {
       "id": "lerp-signed",
       "op": "on_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:65e3e354e4f6da71cc9878cc4719ebe24853cd2da61128a5ce830df569327dd0",
       "actual": {
@@ -118,6 +136,7 @@
     {
       "id": "lerp-fractional",
       "op": "on_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:f3d01953f83fd65fd3ced14c952014f33ffa6d31e96a0d7bdcb489504973fd6e",
       "actual": {
@@ -127,6 +146,7 @@
     {
       "id": "clamp-inside",
       "op": "on_clamp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
       "actual": {
@@ -136,6 +156,7 @@
     {
       "id": "clamp-below",
       "op": "on_clamp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
@@ -145,6 +166,7 @@
     {
       "id": "clamp-above",
       "op": "on_clamp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:a9c584f4ba45a8095ab3c1dc364c168e09006b78402318909271a8895ad8c9a5",
       "actual": {
@@ -154,6 +176,7 @@
     {
       "id": "clamp-fractional",
       "op": "on_clamp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:68da71bdd6fb631e3752113b5e21644440fdbb640467f34eca0d1e239b103907",
       "actual": {
@@ -163,6 +186,7 @@
     {
       "id": "clamp-degenerate-range",
       "op": "on_clamp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:9d709bba0358da8fdf5600bb3692fa32d0aa2a19a08152cf4307e0b4240e71ac",
       "actual": {
@@ -172,6 +196,7 @@
     {
       "id": "smoothstep-quarter",
       "op": "on_smoothstep",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
       "actual": {
@@ -181,6 +206,7 @@
     {
       "id": "smoothstep-below-edge",
       "op": "on_smoothstep",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
@@ -190,6 +216,7 @@
     {
       "id": "smoothstep-above-edge",
       "op": "on_smoothstep",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
       "actual": {
@@ -199,6 +226,7 @@
     {
       "id": "smoothstep-wide-range",
       "op": "on_smoothstep",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
       "actual": {
@@ -208,6 +236,7 @@
     {
       "id": "smoothstep-offset-range",
       "op": "on_smoothstep",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
       "actual": {
@@ -217,6 +246,7 @@
     {
       "id": "remap-mid",
       "op": "on_remap",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:b3ff35319045aae558b55e787ba2ece9f2edb99905342c076ee98f9f834a36fe",
       "actual": {
@@ -226,6 +256,7 @@
     {
       "id": "remap-low-edge",
       "op": "on_remap",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:a9c584f4ba45a8095ab3c1dc364c168e09006b78402318909271a8895ad8c9a5",
       "actual": {
@@ -235,6 +266,7 @@
     {
       "id": "remap-signed-out",
       "op": "on_remap",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
@@ -244,6 +276,7 @@
     {
       "id": "remap-expand",
       "op": "on_remap",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:07953a67895cdbe07665002609a1c24dc503557aadb8db223e398fd2e7593132",
       "actual": {
@@ -253,6 +286,7 @@
     {
       "id": "remap-degrees",
       "op": "on_remap",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:c3201745e51019dd67d6d52f91c5ce47375cc89faa453a2d74805766d104975b",
       "actual": {
@@ -262,6 +296,7 @@
     {
       "id": "deg2rad-zero",
       "op": "on_deg_to_rad",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
@@ -271,6 +306,7 @@
     {
       "id": "deg2rad-half-turn",
       "op": "on_deg_to_rad",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:31a41bcf8d1b809fb4ec548ffa177891c57f5ead03f4e4ab299a8d98d8115bd9",
       "actual": {
@@ -280,6 +316,7 @@
     {
       "id": "deg2rad-quarter-turn",
       "op": "on_deg_to_rad",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:26ee119068557061a4f0d224a1803865c7554d62dabb8c30caf6a8cf92714026",
       "actual": {
@@ -289,6 +326,7 @@
     {
       "id": "deg2rad-full-turn",
       "op": "on_deg_to_rad",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:76a484ac879a700be60c17eaebc8c482752baf4aa8b024c285345e590a5479f9",
       "actual": {
@@ -298,6 +336,7 @@
     {
       "id": "deg2rad-one-radian",
       "op": "on_deg_to_rad",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
       "actual": {
@@ -307,6 +346,7 @@
     {
       "id": "rad2deg-zero",
       "op": "on_rad_to_deg",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
@@ -316,6 +356,7 @@
     {
       "id": "rad2deg-pi",
       "op": "on_rad_to_deg",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:62378053df4337279c981b7ca793aff5f926763a9bbd1bd597d83c1fcbb77006",
       "actual": {
@@ -325,6 +366,7 @@
     {
       "id": "rad2deg-half-pi",
       "op": "on_rad_to_deg",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:fc6296b76cc2f0af3813ce38df2ba83e71f32eea8f24c7971e1c7cc1a1c8f755",
       "actual": {
@@ -334,6 +376,7 @@
     {
       "id": "rad2deg-tau",
       "op": "on_rad_to_deg",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:55dc8b779accbf812fcc4e9d158c0440df288bdf50053758ebc8e9f6fa8569e1",
       "actual": {
@@ -343,6 +386,7 @@
     {
       "id": "rad2deg-one",
       "op": "on_rad_to_deg",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:09fb5fdd9d8dcc373b8f830d89b8a03d0bff3dc043f5c72b17737a95eeb56d2f",
       "actual": {
@@ -352,6 +396,7 @@
     {
       "id": "dot-basic",
       "op": "on_vec3_dot",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:b933ac6266196e74ee34e23a38c28fef1ee6115f37981f96ec90578f594e937a",
       "actual": {
@@ -361,6 +406,7 @@
     {
       "id": "dot-orthogonal",
       "op": "on_vec3_dot",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
@@ -370,6 +416,7 @@
     {
       "id": "dot-fractional",
       "op": "on_vec3_dot",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:827d22168a228126ef43590fdafdb5baa54fff5d74066eb4526ab384c741e506",
       "actual": {
@@ -379,6 +426,7 @@
     {
       "id": "dot-ones",
       "op": "on_vec3_dot",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:d428e15b36ff064e22b6f8db60bd7a59bcfc07a04ccd0f15d9a96dc060c72e3c",
       "actual": {
@@ -388,6 +436,7 @@
     {
       "id": "dot-negative",
       "op": "on_vec3_dot",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:bea2fc65f4b20033fe6d180fd2acb49923a17e314e8b6330ee6bfbbef70dd680",
       "actual": {
@@ -397,6 +446,7 @@
     {
       "id": "cross-basis",
       "op": "on_vec3_cross",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:283753ed40e3875ab019d55a36a6111df2761bc6f2078d5df196f688c34693b4",
       "actual": {
@@ -408,6 +458,7 @@
     {
       "id": "cross-general",
       "op": "on_vec3_cross",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
       "actual": {
@@ -419,6 +470,7 @@
     {
       "id": "cross-fractional",
       "op": "on_vec3_cross",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:54a75194d5faabc67b6f81f862196a6814e8aa9395e90ff5efe01f66427a3fba",
       "actual": {
@@ -430,6 +482,7 @@
     {
       "id": "cross-sequential",
       "op": "on_vec3_cross",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
       "actual": {
@@ -441,6 +494,7 @@
     {
       "id": "cross-parallel",
       "op": "on_vec3_cross",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:35461afe4a2d42dcc8948534195c5e79c22332615508a7a0627de91e52c3b5c8",
       "actual": {
@@ -452,6 +506,7 @@
     {
       "id": "vlerp-mid",
       "op": "on_vec3_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:f3ff8d804e9661ca21c32a5391cc62daf1c2dca047dcd377e8e796212bd8e0e0",
       "actual": {
@@ -463,6 +518,7 @@
     {
       "id": "vlerp-start",
       "op": "on_vec3_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:bd15c4f7a60dfdd589b642ef04c905ea126c83b40116c0c62143616499066a12",
       "actual": {
@@ -474,6 +530,7 @@
     {
       "id": "vlerp-end",
       "op": "on_vec3_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:7161f7bf5e9490c07b4ee0c2dc9d05bc1c32a3eec2d6f793587127d25c06a702",
       "actual": {
@@ -485,6 +542,7 @@
     {
       "id": "vlerp-quarter",
       "op": "on_vec3_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:6666813a18a95580a37cdd3b2e7b521a7dbd0a4292a3e0a691d6f39c27655ed4",
       "actual": {
@@ -496,6 +554,7 @@
     {
       "id": "vlerp-fractional-t",
       "op": "on_vec3_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:162488e26f24c738808c67b7f7c8bf54ce1b988236a8eaa8d5adeb71701dbfd6",
       "actual": {
@@ -507,6 +566,7 @@
     {
       "id": "vlen-345",
       "op": "on_vec3_length",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
       "actual": {
@@ -516,6 +576,7 @@
     {
       "id": "vlen-122",
       "op": "on_vec3_length",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:d428e15b36ff064e22b6f8db60bd7a59bcfc07a04ccd0f15d9a96dc060c72e3c",
       "actual": {
@@ -525,6 +586,7 @@
     {
       "id": "vlen-236",
       "op": "on_vec3_length",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:9d709bba0358da8fdf5600bb3692fa32d0aa2a19a08152cf4307e0b4240e71ac",
       "actual": {
@@ -534,6 +596,7 @@
     {
       "id": "vlen-unit",
       "op": "on_vec3_length",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
       "actual": {
@@ -543,6 +606,7 @@
     {
       "id": "vlen-fractional",
       "op": "on_vec3_length",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:08538985f27f70319116ea038c85d6567a0c3e48e22a8057412bbcc517ee4ee6",
       "actual": {
@@ -552,6 +616,7 @@
     {
       "id": "vnorm-345",
       "op": "on_vec3_normalize",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:cba0cdb8d7bfbfc02363847be339164850d856fdf4ebc7ef7711909baf727ec2",
       "actual": {
@@ -563,6 +628,7 @@
     {
       "id": "vnorm-zero",
       "op": "on_vec3_normalize",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:35461afe4a2d42dcc8948534195c5e79c22332615508a7a0627de91e52c3b5c8",
       "actual": {
@@ -574,6 +640,7 @@
     {
       "id": "vnorm-ones",
       "op": "on_vec3_normalize",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:d0b00d86b122992a0691f2460b7e12be6440a4859961bbe7f0becaee4eaac0a5",
       "actual": {
@@ -585,6 +652,7 @@
     {
       "id": "vnorm-axis",
       "op": "on_vec3_normalize",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:38bb7ef226d764d43fb42c67f1061bb50e89b94674e9803d0bdc56a6147bc3f6",
       "actual": {
@@ -596,6 +664,7 @@
     {
       "id": "vnorm-512",
       "op": "on_vec3_normalize",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:68d48d78e0adfdf77380ead478ebe8d4542cbf760cef3bb581284757017c3c74",
       "actual": {
@@ -607,6 +676,7 @@
     {
       "id": "vdist-345",
       "op": "on_vec3_distance",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
       "actual": {
@@ -616,6 +686,7 @@
     {
       "id": "vdist-same",
       "op": "on_vec3_distance",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
@@ -625,6 +696,7 @@
     {
       "id": "vdist-diagonal",
       "op": "on_vec3_distance",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:3b9246b7546705c8ce13c00715e383c5028af8604ecc15ddacd02c9dbf3f6270",
       "actual": {
@@ -634,6 +706,7 @@
     {
       "id": "vdist-mixed",
       "op": "on_vec3_distance",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:dec2b1e39579f14a9d7efee92af9c597de903cf75cc1a7b3fab626f18038859f",
       "actual": {
@@ -643,6 +716,7 @@
     {
       "id": "vdist-236",
       "op": "on_vec3_distance",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:9d709bba0358da8fdf5600bb3692fa32d0aa2a19a08152cf4307e0b4240e71ac",
       "actual": {
@@ -652,6 +726,7 @@
     {
       "id": "qaxis-z-quarter",
       "op": "on_quat_from_axis_angle",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:8f2bea253e84ce1f35b58ab19cca476cb952f5323c9eaa287ee68c9bd9009584",
       "actual": {
@@ -664,6 +739,7 @@
     {
       "id": "qaxis-x-third",
       "op": "on_quat_from_axis_angle",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:d29fe23d626da7dd8cee1a25e5ae01ade7296261e069c7eb68b6419e868cbf95",
       "actual": {
@@ -676,6 +752,7 @@
     {
       "id": "qaxis-y-one",
       "op": "on_quat_from_axis_angle",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:85d7718e9fa7c044dab151e29e78cd29b86e9be06e009d60e0aa782033d43446",
       "actual": {
@@ -688,6 +765,7 @@
     {
       "id": "qaxis-diagonal",
       "op": "on_quat_from_axis_angle",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:3e93d482864fd38798fef21b2328ec33684e43f3688704e3a1baedc6e2ab74f4",
       "actual": {
@@ -700,6 +778,7 @@
     {
       "id": "qslerp-mid",
       "op": "on_quat_slerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:7487be8c159bb07d3beb614a1de08eecf0d008d0f45da8cab6447f23fe3625bd",
       "actual": {
@@ -712,6 +791,7 @@
     {
       "id": "qslerp-quarter-general",
       "op": "on_quat_slerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:3c4d72e872bd859339578dc3dd1d229f53f3846b6abc3f697d960769735a8e7c",
       "actual": {
@@ -724,6 +804,7 @@
     {
       "id": "qslerp-shortest-nlerp",
       "op": "on_quat_slerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:24d932417158ecd91694b044c95ae4ed3ebbd4e8f2bea3a2d1b9f12a6ab11669",
       "actual": {
@@ -736,6 +817,7 @@
     {
       "id": "qslerp-shortest-spherical",
       "op": "on_quat_slerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:28347a8e896343c7f762cdb92b6c64ab346a60fadd5b8f80b14f27b172b98231",
       "actual": {
@@ -748,6 +830,7 @@
     {
       "id": "qslerp-near-parallel",
       "op": "on_quat_slerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:6f9d8c83544460d9a83bd20fd62539948a741592d9d6e47dac25e5ec47e74137",
       "actual": {
@@ -760,6 +843,7 @@
     {
       "id": "qslerp-t0-positive",
       "op": "on_quat_slerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:397d8de51799101925badfc478b767d1b5deb5d3e67a3aa6e298169eda14ecc4",
       "actual": {
@@ -772,6 +856,7 @@
     {
       "id": "quat-identity",
       "op": "on_quat_identity",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:90e7abdf8c447efdeeb2a4baa4d86fe684e6243b81da3af854245e8036d8abf9",
       "actual": {
@@ -784,6 +869,7 @@
     {
       "id": "qmul-identity-left",
       "op": "on_quat_multiply",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:24d932417158ecd91694b044c95ae4ed3ebbd4e8f2bea3a2d1b9f12a6ab11669",
       "actual": {
@@ -796,6 +882,7 @@
     {
       "id": "qmul-identity-right",
       "op": "on_quat_multiply",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:24d932417158ecd91694b044c95ae4ed3ebbd4e8f2bea3a2d1b9f12a6ab11669",
       "actual": {
@@ -808,6 +895,7 @@
     {
       "id": "qmul-general",
       "op": "on_quat_multiply",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:4f3247ca843aa4ee3261002095cd5c503e9f5664775224ebbe72658b5e0ec545",
       "actual": {
@@ -820,6 +908,7 @@
     {
       "id": "qmul-half-turns",
       "op": "on_quat_multiply",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:6c58962898d8e10592250ab53632e4b83aa0a020a53c741d49255b8f2743c206",
       "actual": {
@@ -832,6 +921,7 @@
     {
       "id": "hclamp-above",
       "op": "on_host_clamp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:a9c584f4ba45a8095ab3c1dc364c168e09006b78402318909271a8895ad8c9a5",
       "actual": {
@@ -841,6 +931,7 @@
     {
       "id": "hclamp-inside",
       "op": "on_host_clamp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:68da71bdd6fb631e3752113b5e21644440fdbb640467f34eca0d1e239b103907",
       "actual": {
@@ -850,6 +941,7 @@
     {
       "id": "hlerp-mid",
       "op": "on_host_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
       "actual": {
@@ -859,6 +951,7 @@
     {
       "id": "hlerp-frac",
       "op": "on_host_lerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:f3d01953f83fd65fd3ced14c952014f33ffa6d31e96a0d7bdcb489504973fd6e",
       "actual": {
@@ -868,6 +961,7 @@
     {
       "id": "hslerp-mid",
       "op": "on_host_quat_slerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:fd488e943aa2e512dad37571b1fdab0c12ebfc48981c7273d4c918ceec28dd0b",
       "actual": {
@@ -882,6 +976,7 @@
     {
       "id": "hslerp-general",
       "op": "on_host_quat_slerp",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:a8f6c027434c468089d140be5313abb58be24eed397604389bc0993d893c098b",
       "actual": {
@@ -894,8 +989,25 @@
       }
     },
     {
+      "id": "hrange-default-step",
+      "op": "on_host_list_range",
+      "execution": "projection",
+      "pass": true,
+      "valueCanonicalHash": "sha256:d25839a629724fbed7178b139b9e32ca7c2e9638e9715b330cb04f5e7d660132",
+      "actual": {
+        "value": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
       "id": "hrange-up",
       "op": "on_host_list_range",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:d25839a629724fbed7178b139b9e32ca7c2e9638e9715b330cb04f5e7d660132",
       "actual": {
@@ -911,6 +1023,7 @@
     {
       "id": "hrange-down",
       "op": "on_host_list_range",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:5ddb350ee60967202f1ad60320120e8be72153a04979bf98d56e11a360c4560c",
       "actual": {
@@ -924,6 +1037,7 @@
     {
       "id": "hrepeat-str",
       "op": "on_host_list_repeat",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:b5e9fbe051fa4f8ca4380534f5be11083d905453e083f73759a6d0a85fb863cd",
       "actual": {
@@ -937,6 +1051,7 @@
     {
       "id": "hrepeat-zero",
       "op": "on_host_list_repeat",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:99bcfca61a865fe7ac5bb675250de956e8e0fb175d59adac80bb2fb177154a2c",
       "actual": {
@@ -946,6 +1061,7 @@
     {
       "id": "hreverse-nums",
       "op": "on_host_list_reverse",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:6e794437ff47de309d520ae92409cf34b7518fcc13c5d9ae11b614e327ca17d2",
       "actual": {
@@ -960,6 +1076,7 @@
     {
       "id": "hreverse-mixed",
       "op": "on_host_list_reverse",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:c64f16b2387f481be40fe8c6b81f4cb9d6fe507bad2735d9824723bd8f72bf0d",
       "actual": {
@@ -973,6 +1090,7 @@
     {
       "id": "hflatten-nested",
       "op": "on_host_list_flatten",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:3f5decddbd2553e79b1334b9b93a33442687b0466a58949edba33faef6152516",
       "actual": {
@@ -987,6 +1105,7 @@
     {
       "id": "hflatten-flat",
       "op": "on_host_list_flatten",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:7c7ec933c4eb5852ff73742661f089a5a7bcb6d05005e6bb26895959c080dc26",
       "actual": {
@@ -1000,6 +1119,7 @@
     {
       "id": "hunique-dupes",
       "op": "on_host_list_unique",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:9dfd2d83a544f190bdf93605ff6d857ad356107ee5a89d04845c98966cfe04f5",
       "actual": {
@@ -1013,6 +1133,7 @@
     {
       "id": "hunique-strings",
       "op": "on_host_list_unique",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:75adeb552c110b810d3c0b0cf6cf8ee08b5e9f8892d1fa185db9a9ded604a992",
       "actual": {
@@ -1025,6 +1146,7 @@
     {
       "id": "hget-mid",
       "op": "on_host_list_get",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:e6c58fba679eee5ed1eb4106ccc6326427262d7964fde981e9e22779edf2c554",
       "actual": {
@@ -1034,6 +1156,7 @@
     {
       "id": "hget-first",
       "op": "on_host_list_get",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:da1fa454c2b3e417928b12414a470b10a5c5151532a990a6c4b19d801d42c259",
       "actual": {
@@ -1043,6 +1166,7 @@
     {
       "id": "hcontains-yes",
       "op": "on_host_list_contains",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:8c5aaab6e1efdec7f7f9f65cc0de77461c36a46e6b7c9ee7a35299dd6e8449ee",
       "actual": {
@@ -1052,6 +1176,7 @@
     {
       "id": "hcontains-no",
       "op": "on_host_list_contains",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:1e544d43b574a8e36402bd746d6a6260b4e1169718052ad5354a5b58c6ad01c5",
       "actual": {
@@ -1061,6 +1186,7 @@
     {
       "id": "hindexof-hit",
       "op": "on_host_list_index_of",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
       "actual": {
@@ -1070,6 +1196,7 @@
     {
       "id": "hindexof-miss",
       "op": "on_host_list_index_of",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:f32d4354160a457984a54414824b84c196a5ddf65d6ee6c992317a5fb7a53b0c",
       "actual": {
@@ -1077,8 +1204,19 @@
       }
     },
     {
+      "id": "hjoin-default-separator",
+      "op": "on_host_list_join",
+      "execution": "projection",
+      "pass": true,
+      "valueCanonicalHash": "sha256:c4dfe2fd7ba3fcb227bbf7fa3078d36656e4e81619b521dfba1b55d6e5e3df5d",
+      "actual": {
+        "value": "a,b,c"
+      }
+    },
+    {
       "id": "hjoin-dash",
       "op": "on_host_list_join",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:b6f8701770c83f7a820b648b6e502bf5bb3c350058b1b824a6776f3db3ea629c",
       "actual": {
@@ -1088,6 +1226,7 @@
     {
       "id": "hjoin-nums",
       "op": "on_host_list_join",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:4dc44d25b0fe00d022c05a06c65e319bfac4f3539cc39defb6f1e00ac8fe64f7",
       "actual": {
@@ -1097,6 +1236,7 @@
     {
       "id": "hzip-even",
       "op": "on_host_list_zip",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:0656de277c9d2badffa0fa67f295c4ee3793c4e977c3f6eb6305f51332a5dfe6",
       "actual": {
@@ -1115,6 +1255,7 @@
     {
       "id": "hzip-uneven",
       "op": "on_host_list_zip",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:c551595fed9ab98b1056dbbc365cfdd8ddaf2c180f37f7d4c9453a3e685eabef",
       "actual": {
@@ -1129,6 +1270,7 @@
     {
       "id": "hchunk-2",
       "op": "on_host_list_chunk",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:823340c3703549fbca3eaa0c6da55e5a9e9422b5d10388485eb0d2d74cea13a0",
       "actual": {
@@ -1150,6 +1292,7 @@
     {
       "id": "hchunk-big",
       "op": "on_host_list_chunk",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:168b4db401a857e942f2cc9a116e2a67f7e6e92fc298b30cf7528c0955e0fd41",
       "actual": {
@@ -1164,6 +1307,7 @@
     {
       "id": "hmapset-new",
       "op": "on_host_map_set",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:4626c53c4710a519a0ac00f0f0be2f70182a5930d690984513c49c3ba4459799",
       "actual": {
@@ -1176,6 +1320,7 @@
     {
       "id": "hmapset-overwrite",
       "op": "on_host_map_set",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:c2350acf60852d7da6f1bc81a6d3857bb2b68e1a748010a3098d33470ba6061a",
       "actual": {
@@ -1187,6 +1332,7 @@
     {
       "id": "hmapget-hit",
       "op": "on_host_map_get",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:49c987621f206f09e5fbe23b516b55a36f838cb14867961f1d84a554d3a35b6b",
       "actual": {
@@ -1196,6 +1342,7 @@
     {
       "id": "hmapget-nested",
       "op": "on_host_map_get",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:90b4538ae68205e89bc71c21e0e61d07f358c2783aeb272a7855c0570e55f942",
       "actual": {
@@ -1207,6 +1354,7 @@
     {
       "id": "hmapkeys-sorted",
       "op": "on_host_map_keys",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:e70f5a82f3950291664adc68c38eaac5d83fc2426643dbb49404547ea21d67fa",
       "actual": {
@@ -1220,6 +1368,7 @@
     {
       "id": "hmapkeys-empty",
       "op": "on_host_map_keys",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:99bcfca61a865fe7ac5bb675250de956e8e0fb175d59adac80bb2fb177154a2c",
       "actual": {
@@ -1229,6 +1378,7 @@
     {
       "id": "hmapmerge-bwins",
       "op": "on_host_map_merge",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:de25848781bd35f4e894d2542b3fb2da435c20d7719a1078618ba807cd306651",
       "actual": {
@@ -1242,6 +1392,7 @@
     {
       "id": "hmapmerge-empty",
       "op": "on_host_map_merge",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:00191d4d07450ffc2105f4919c18a4c882bd7888b675bbcc2169e94f44651c44",
       "actual": {
@@ -1253,6 +1404,7 @@
     {
       "id": "hmapsize-3",
       "op": "on_host_map_size",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:d428e15b36ff064e22b6f8db60bd7a59bcfc07a04ccd0f15d9a96dc060c72e3c",
       "actual": {
@@ -1262,6 +1414,7 @@
     {
       "id": "hmapsize-0",
       "op": "on_host_map_size",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
@@ -1271,6 +1424,7 @@
     {
       "id": "hsetadd-new",
       "op": "on_host_set_add",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:7c7ec933c4eb5852ff73742661f089a5a7bcb6d05005e6bb26895959c080dc26",
       "actual": {
@@ -1284,6 +1438,7 @@
     {
       "id": "hsetadd-dupe",
       "op": "on_host_set_add",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:50a15f5305d210a1fe11e43d0f1b312bfc87d6d8fadeda9b516f550a113d3911",
       "actual": {
@@ -1296,6 +1451,7 @@
     {
       "id": "hsethas-yes",
       "op": "on_host_set_has",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:8c5aaab6e1efdec7f7f9f65cc0de77461c36a46e6b7c9ee7a35299dd6e8449ee",
       "actual": {
@@ -1305,6 +1461,7 @@
     {
       "id": "hsethas-no",
       "op": "on_host_set_has",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:1e544d43b574a8e36402bd746d6a6260b4e1169718052ad5354a5b58c6ad01c5",
       "actual": {
@@ -1314,6 +1471,7 @@
     {
       "id": "hsetunion-overlap",
       "op": "on_host_set_union",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:3f5decddbd2553e79b1334b9b93a33442687b0466a58949edba33faef6152516",
       "actual": {
@@ -1328,6 +1486,7 @@
     {
       "id": "hsetunion-strings",
       "op": "on_host_set_union",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:e70f5a82f3950291664adc68c38eaac5d83fc2426643dbb49404547ea21d67fa",
       "actual": {
@@ -1341,6 +1500,7 @@
     {
       "id": "hsetinter-common",
       "op": "on_host_set_intersection",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:56d304f4ede9a9235faf444c89cf6b0a8fa550263458e7cb54743c29306dfe7c",
       "actual": {
@@ -1353,6 +1513,7 @@
     {
       "id": "hsetinter-none",
       "op": "on_host_set_intersection",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:99bcfca61a865fe7ac5bb675250de956e8e0fb175d59adac80bb2fb177154a2c",
       "actual": {
@@ -1362,6 +1523,7 @@
     {
       "id": "hsetdiff-some",
       "op": "on_host_set_difference",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:22ca83915ea21f247f10dcf202ac0a12f072a9a39e271f53112410c4463069b2",
       "actual": {
@@ -1374,19 +1536,487 @@
     {
       "id": "hsetdiff-all",
       "op": "on_host_set_difference",
+      "execution": "projection",
       "pass": true,
       "valueCanonicalHash": "sha256:99bcfca61a865fe7ac5bb675250de956e8e0fb175d59adac80bb2fb177154a2c",
       "actual": {
         "value": []
       }
+    },
+    {
+      "id": "pkg-clamp-above",
+      "op": "on_clamp",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5",
+      "actual": 10
+    },
+    {
+      "id": "pkg-clamp-inside",
+      "op": "on_clamp",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+      "actual": 3
+    },
+    {
+      "id": "pkg-lerp-mid",
+      "op": "on_lerp",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+      "actual": 5
+    },
+    {
+      "id": "pkg-lerp-frac",
+      "op": "on_lerp",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:914204c25f3f144ddec3469c61a6faea695c87590ab78a5eb25b0f3904cf84e0",
+      "actual": 2.2
+    },
+    {
+      "id": "pkg-smoothstep-quarter",
+      "op": "on_smoothstep",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:c58f7e4851eb4844304fda0b6775020202c338e6632c63bd86ec2bc28d432401",
+      "actual": 0.15625
+    },
+    {
+      "id": "pkg-smoothstep-offset",
+      "op": "on_smoothstep",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:c58f7e4851eb4844304fda0b6775020202c338e6632c63bd86ec2bc28d432401",
+      "actual": 0.15625
+    },
+    {
+      "id": "pkg-remap-mid",
+      "op": "on_remap",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:1a6562590ef19d1045d06c4055742d38288e9e6dcd71ccde5cee80f1d5a774eb",
+      "actual": 50
+    },
+    {
+      "id": "pkg-deg2rad-half",
+      "op": "on_deg_to_rad",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:f0a1b7875844c3ae0d28f3cc44e9a6241da33e2623a69f0a71263158dffb4e87",
+      "actual": 3.141592653589793
+    },
+    {
+      "id": "pkg-rad2deg-pi",
+      "op": "on_rad_to_deg",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:7b69759630f869f2723875f873935fed29d2d12b10ef763c1c33b8e0004cb405",
+      "actual": 180
+    },
+    {
+      "id": "pkg-vlen-345",
+      "op": "on_vec3_length",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+      "actual": 5
+    },
+    {
+      "id": "pkg-vlen-236",
+      "op": "on_vec3_length",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+      "actual": 7
+    },
+    {
+      "id": "pkg-vnorm-345",
+      "op": "on_vec3_normalize",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:cba0cdb8d7bfbfc02363847be339164850d856fdf4ebc7ef7711909baf727ec2",
+      "actual": {
+        "x": 0.6,
+        "y": 0.8,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-vnorm-zero",
+      "op": "on_vec3_normalize",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:35461afe4a2d42dcc8948534195c5e79c22332615508a7a0627de91e52c3b5c8",
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-vdot-basic",
+      "op": "on_vec3_dot",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:e29c9c180c6279b0b02abd6a1801c7c04082cf486ec027aa13515e4f3884bb6b",
+      "actual": 32
+    },
+    {
+      "id": "pkg-vcross-general",
+      "op": "on_vec3_cross",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "pkg-vlerp-mid",
+      "op": "on_vec3_lerp",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:f3ff8d804e9661ca21c32a5391cc62daf1c2dca047dcd377e8e796212bd8e0e0",
+      "actual": {
+        "x": 5,
+        "y": 10,
+        "z": 15
+      }
+    },
+    {
+      "id": "pkg-vdist-345",
+      "op": "on_vec3_distance",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+      "actual": 5
+    },
+    {
+      "id": "pkg-qidentity",
+      "op": "on_quat_identity",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:90e7abdf8c447efdeeb2a4baa4d86fe684e6243b81da3af854245e8036d8abf9",
+      "actual": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-qmul-general",
+      "op": "on_quat_multiply",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:4f3247ca843aa4ee3261002095cd5c503e9f5664775224ebbe72658b5e0ec545",
+      "actual": {
+        "w": 0.525,
+        "x": 0.435,
+        "y": 0.47000000000000003,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "pkg-qaxis-z-quarter",
+      "op": "on_quat_from_axis_angle",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:8f2bea253e84ce1f35b58ab19cca476cb952f5323c9eaa287ee68c9bd9009584",
+      "actual": {
+        "w": 0.7071067811865476,
+        "x": 0,
+        "y": 0,
+        "z": 0.7071067811865475
+      }
+    },
+    {
+      "id": "pkg-qslerp-mid",
+      "op": "on_quat_slerp",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:7487be8c159bb07d3beb614a1de08eecf0d008d0f45da8cab6447f23fe3625bd",
+      "actual": {
+        "w": 0.9238795325112867,
+        "x": 0,
+        "y": 0,
+        "z": 0.38268343236508984
+      }
+    },
+    {
+      "id": "pkg-lrange-default-step",
+      "op": "on_range",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:7f2c5f390b0c7e30e5a644380decea0554bbb62cfc03eff193d13a8c1a117708",
+      "actual": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lrange-explicit-step",
+      "op": "on_range",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:2c9cc32262e3a74b2e4fe3f7637722f90c60d62142d1c1ca2ddc335ca99ae1ed",
+      "actual": [
+        8,
+        6,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "pkg-ljoin-default-separator",
+      "op": "on_join",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:1b28d531ba89d6542cbffca65e20946ef37079573c9c7a7654083597383cf9b6",
+      "actual": "a,b,3"
+    },
+    {
+      "id": "pkg-ljoin-explicit-separator",
+      "op": "on_join",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:1d340a69dbc44d7e47bf3f634cbb8704cdd59b540f28b7c0821dd51ced831133",
+      "actual": "a-b-3"
+    },
+    {
+      "id": "pkg-lreverse",
+      "op": "on_reverse",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:645df3cb5a5e94f93e31cd6f50cc78a55f50923bd4c691f1ab5c85277a651326",
+      "actual": [
+        4,
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "pkg-lflatten",
+      "op": "on_flatten",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:f6bd10506e9a4daed7c03eda2f2fde54be3bd58eee49dab471c18a888ffbdb6f",
+      "actual": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lunique",
+      "op": "on_unique",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:51bda7ab4e44726cde71fcb6e4b515357059bb6b6dd5146d1fc50f73f11678c6",
+      "actual": [
+        3,
+        1,
+        2
+      ]
+    },
+    {
+      "id": "pkg-lget",
+      "op": "on_get",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b",
+      "actual": 20
+    },
+    {
+      "id": "pkg-lfirst",
+      "op": "on_first",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:ba2df4903a2c14e86dc3bcca58911b44ac1d2514b7227bf6eb08cfb978f55a1b",
+      "actual": "x"
+    },
+    {
+      "id": "pkg-llast",
+      "op": "on_last",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:2bc983a5942276eb00a75e2113a69694318cd28c7de0fc83c0598d9db50eb777",
+      "actual": "y"
+    },
+    {
+      "id": "pkg-lcontains",
+      "op": "on_contains",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "actual": true
+    },
+    {
+      "id": "pkg-lindexof",
+      "op": "on_index_of",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "actual": 1
+    },
+    {
+      "id": "pkg-llength",
+      "op": "on_length",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+      "actual": 3
+    },
+    {
+      "id": "pkg-lisempty",
+      "op": "on_is_empty",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "actual": true
+    },
+    {
+      "id": "pkg-lzip",
+      "op": "on_zip",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:2abdd03b9c7c716d17e92019de41c0f0a51476c76a166cd908ab0544fd5223e4",
+      "actual": [
+        [
+          1,
+          "x"
+        ],
+        [
+          2,
+          "y"
+        ]
+      ]
+    },
+    {
+      "id": "pkg-lchunk",
+      "op": "on_chunk",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:1dd1a08e7a06987aef9472a406ded6d7d1ffec2c9bcca8ee5616d18609f8166a",
+      "actual": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5
+        ]
+      ]
+    },
+    {
+      "id": "pkg-mset",
+      "op": "on_set",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "actual": {
+        "a": 1,
+        "b": 2
+      }
+    },
+    {
+      "id": "pkg-mkeys",
+      "op": "on_keys",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:0473ef2dc0d324ab659d3580c1134e9d812035905c4781fdd6d529b0c6860e13",
+      "actual": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "pkg-mmerge",
+      "op": "on_merge",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:01c2fbcb7a3bad04680445a61ce56ea5c1b5fe25bc774132c6771a96b43a17f7",
+      "actual": {
+        "x": 1,
+        "y": 9,
+        "z": 3
+      }
+    },
+    {
+      "id": "pkg-msize",
+      "op": "on_size",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+      "actual": 2
+    },
+    {
+      "id": "pkg-sadd",
+      "op": "on_add",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:a615eeaee21de5179de080de8c3052c8da901138406ba71c38c032845f7d54f4",
+      "actual": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pkg-sunion",
+      "op": "on_union",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:f6bd10506e9a4daed7c03eda2f2fde54be3bd58eee49dab471c18a888ffbdb6f",
+      "actual": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-sinter",
+      "op": "on_intersection",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:18b058689d010062a25cd7fb949b2abfea1757d2de45ca3abdda17db956e506b",
+      "actual": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pkg-sdiff",
+      "op": "on_difference",
+      "execution": "packaged-source",
+      "pass": true,
+      "valueCanonicalHash": "sha256:2335c54ffe3749ceafac20eea51040b4fa52beab7682f26d5d1bb75d1878478b",
+      "actual": [
+        1,
+        3
+      ]
     }
   ],
   "claimBoundary": {
     "provesNodeDeterministicSubsetExecution": true,
     "provesBrowserWasmExecution": false,
     "provesOwnedMetalExecution": false,
-    "provesPackagedHandlerExecution": false,
-    "note": "The executed source is the generated conformance projection of the packaged @trait handlers, in the engine deterministic action subset. The packaged math.hsplus trait bodies are hash-bound in sources but are not directly executable by any runtime in this repository today; ops whose packaged bodies delegate to host bindings are marked host-delegation-rewrite and their projections are recorded in the ops SSOT. Cross-target equality is claimed only by the separate cross-target checker over sibling receipts."
+    "provesPackagedHandlerExecution": true,
+    "note": "Projection vectors execute the generated action source. Packaged vectors execute preserved handler bodies parsed from hash-bound math.hsplus and collections.hsplus source through the engine v7 trait adapter. This receipt does not prove browser or owned-metal execution; cross-target equality remains the separate cross-target checker’s claim."
   },
-  "receiptHash": "sha256:acd018638c1a820b0a8a837a8739aac2f5f32a350aa273680ae0a20fd9662d28"
+  "receiptHash": "sha256:e6d6b5d17aba355f56a0b96f31ceb0ea14f123e299d19c571359073059fbe776"
 }

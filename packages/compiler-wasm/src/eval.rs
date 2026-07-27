@@ -103,6 +103,14 @@
 //!   statically lifted — `emit(...)` calls and every other on_spawn statement
 //!   are ignored by the pre-pass.
 //!
+//! A sixth mode — `evaluate_trait_handler_v6`, subset id
+//! `holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing` —
+//! admits the v5 grammar PLUS binary null coalescing (`left ?? right`). The left
+//! operand is evaluated exactly once; every non-null JSON value (including
+//! `false`, `0`, and the empty string) is preserved without evaluating the
+//! right operand, while `null` evaluates and returns the right operand. This is
+//! strict null semantics, never truthiness. The v1–v5 modes stay pinned.
+//!
 //! Error/result boundary follows the crate convention of always returning JSON:
 //! `{"ok":true,"value":<json>}` or `{"ok":false,"error":{"code":"…","message":"…"}}`.
 
@@ -143,29 +151,37 @@ pub const DETERMINISTIC_SUBSET_V4: &str =
 pub const DETERMINISTIC_SUBSET_V5: &str =
     "holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories";
 
+/// Subset identifier for the v6 evaluation mode: the v5 packaged-factories
+/// grammar plus strict, source-ordered, short-circuiting null coalescing.
+pub const DETERMINISTIC_SUBSET_V6: &str =
+    "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing";
+
 /// Evaluation mode threaded through the statement/expression walkers. v1 keeps
 /// `numeric_builtins` off (every `CallExpression` is `unsupported-call`, same
 /// code and message as before the mode existed); v2 turns the builtin table on;
 /// v4 additionally turns `host_bindings` on, admitting non-computed member
 /// callees as host-binding calls; v5 additionally turns `factories` on,
 /// admitting whitelisted zero-argument factory calls, handle locals, and the
-/// on_spawn factory-alias pre-pass.
+/// on_spawn factory-alias pre-pass; v6 additionally turns null coalescing on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct EvalMode {
     numeric_builtins: bool,
     host_bindings: bool,
     factories: bool,
+    null_coalescing: bool,
 }
 
 const MODE_V1: EvalMode = EvalMode {
     numeric_builtins: false,
     host_bindings: false,
     factories: false,
+    null_coalescing: false,
 };
 const MODE_V2: EvalMode = EvalMode {
     numeric_builtins: true,
     host_bindings: false,
     factories: false,
+    null_coalescing: false,
 };
 /// v4: v3 grammar (numeric builtins + the local bindings this walker has
 /// admitted since v1) PLUS host-binding member calls in callee position.
@@ -173,6 +189,7 @@ const MODE_V4: EvalMode = EvalMode {
     numeric_builtins: true,
     host_bindings: true,
     factories: false,
+    null_coalescing: false,
 };
 /// v5: the v4 grammar PLUS packaged factory calls, handle locals, and the
 /// on_spawn factory-alias pre-pass.
@@ -180,6 +197,14 @@ const MODE_V5: EvalMode = EvalMode {
     numeric_builtins: true,
     host_bindings: true,
     factories: true,
+    null_coalescing: false,
+};
+/// v6: the cumulative v5 grammar PLUS strict null coalescing.
+const MODE_V6: EvalMode = EvalMode {
+    numeric_builtins: true,
+    host_bindings: true,
+    factories: true,
+    null_coalescing: true,
 };
 
 /// The v5 whitelisted factory table: (factory name, backing host namespaces).
@@ -190,7 +215,10 @@ const MODE_V5: EvalMode = EvalMode {
 /// handle must expose all three).
 const FACTORIES: &[(&str, &[&str])] = &[
     ("get_std_math_lib", &["math"]),
-    ("get_std_collections_lib", &["list_lib", "map_lib", "set_lib"]),
+    (
+        "get_std_collections_lib",
+        &["list_lib", "map_lib", "set_lib"],
+    ),
 ];
 
 /// Callee-position lookup result for one `ns.fn` host-binding reference.
@@ -410,6 +438,29 @@ pub fn evaluate_trait_handler_v5_json(
         args_json,
         &EvalCtx {
             mode: MODE_V5,
+            host: Some(host),
+        },
+    )
+}
+
+/// Public JSON boundary for the v6 null-coalescing mode
+/// ([`DETERMINISTIC_SUBSET_V6`]): the cumulative v5 packaged-factories grammar
+/// plus strict, short-circuiting `??`. The `evaluate_trait_handler_v6` wasm
+/// export wires the same js_sys-backed dispatcher used by v4/v5.
+pub fn evaluate_trait_handler_v6_json(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    host: &dyn HostDispatcher,
+) -> String {
+    evaluate_with_ctx_json(
+        source,
+        trait_name,
+        handler_name,
+        args_json,
+        &EvalCtx {
+            mode: MODE_V6,
             host: Some(host),
         },
     )
@@ -849,7 +900,10 @@ fn eval_expr(
         AstNode::Identifier(id) => scope.get(&id.name).cloned().ok_or_else(|| {
             err(
                 "unknown-identifier",
-                format!("identifier \"{}\" is not a bound parameter or local", id.name),
+                format!(
+                    "identifier \"{}\" is not a bound parameter or local",
+                    id.name
+                ),
             )
         }),
         AstNode::MemberExpression(member) => {
@@ -972,7 +1026,10 @@ fn eval_expr(
         }
         other => Err(err(
             "unsupported-node",
-            format!("expression {} is not in the deterministic subset v0", node_kind(other)),
+            format!(
+                "expression {} is not in the deterministic subset v0",
+                node_kind(other)
+            ),
         )),
     }
 }
@@ -1063,11 +1120,7 @@ fn eval_handle_call(
     scope: &BTreeMap<String, Value>,
     ctx: &EvalCtx,
 ) -> Result<Value, EvalError> {
-    let Some((_, namespace)) = handle
-        .functions
-        .iter()
-        .find(|(name, _)| name == function)
-    else {
+    let Some((_, namespace)) = handle.functions.iter().find(|(name, _)| name == function) else {
         return Err(err(
             "unknown-host-binding",
             format!(
@@ -1232,7 +1285,10 @@ fn eval_host_call(
     }
     let args_json = marshal_host_args(&call.arguments, scope, ctx)?;
     let context = format!("host binding {}.{}", root.name, function.name);
-    host_outcome_to_value(host.invoke(&root.name, &function.name, &args_json), &context)
+    host_outcome_to_value(
+        host.invoke(&root.name, &function.name, &args_json),
+        &context,
+    )
 }
 
 /// Evaluate one whitelisted numeric builtin call (v2 mode only). Admission is
@@ -1400,6 +1456,14 @@ fn eval_binary(
             };
             Ok(Value::Bool(right))
         }
+        "??" if ctx.mode.null_coalescing => {
+            let left = eval_expr(&binary.left, scope, ctx)?;
+            if matches!(left, Value::Null) {
+                eval_expr(&binary.right, scope, ctx)
+            } else {
+                Ok(left)
+            }
+        }
         "+" => {
             let left = eval_expr(&binary.left, scope, ctx)?;
             let right = eval_expr(&binary.right, scope, ctx)?;
@@ -1450,31 +1514,6 @@ fn eval_binary(
                 "<=" => left <= right,
                 _ => left >= right,
             }))
-        }
-        // Null-coalescing joins the subset with v5 packaged execution: the
-        // packaged std sources default JSON-null arguments (`step ?? 1`,
-        // `sep ?? ","`) — strict JSON has no undefined, so null is the only
-        // absent-value form. Short-circuits like the logical operators;
-        // namespace handles cannot flow through.
-        "??" if ctx.mode.factories => {
-            let left = eval_expr(&binary.left, scope, ctx)?;
-            if find_handle(&left).is_some() {
-                return Err(err(
-                    "namespace-handle-escape",
-                    "a namespace handle cannot flow through ??",
-                ));
-            }
-            if matches!(left, Value::Null) {
-                let right = eval_expr(&binary.right, scope, ctx)?;
-                if find_handle(&right).is_some() {
-                    return Err(err(
-                        "namespace-handle-escape",
-                        "a namespace handle cannot flow through ??",
-                    ));
-                }
-                return Ok(right);
-            }
-            Ok(left)
         }
         other => Err(err(
             "unsupported-operator",
@@ -1659,7 +1698,10 @@ mod js_host {
             return text;
         }
         match js_sys::JSON::stringify(thrown) {
-            Ok(text) => format!("host function threw a non-Error value: {}", String::from(text)),
+            Ok(text) => format!(
+                "host function threw a non-Error value: {}",
+                String::from(text)
+            ),
             Err(_) => "host function threw a non-Error, non-serializable value".to_string(),
         }
     }
@@ -1795,6 +1837,23 @@ pub fn evaluate_trait_handler_v5_js(
         bindings: host_bindings,
     };
     evaluate_trait_handler_v5_json(source, trait_name, handler_name, args_json, &dispatcher)
+}
+
+/// Wasm-boundary entry used by the `evaluate_trait_handler_v6` export
+/// ([`DETERMINISTIC_SUBSET_V6`]): same js_sys-backed dispatcher as v4/v5,
+/// with null coalescing enabled in the evaluator mode.
+#[cfg(target_arch = "wasm32")]
+pub fn evaluate_trait_handler_v6_js(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    host_bindings: &wasm_bindgen::JsValue,
+) -> String {
+    let dispatcher = js_host::JsHostDispatcher {
+        bindings: host_bindings,
+    };
+    evaluate_trait_handler_v6_json(source, trait_name, handler_name, args_json, &dispatcher)
 }
 
 #[cfg(test)]
@@ -2784,8 +2843,10 @@ mod tests {
         // Same mode, same walkers: the v3 boundary output must be BYTE-identical
         // to v2 on the same program and args.
         let args = slerp_args([0.0, 0.0, 0.0, 1.0], [0.6, 0.0, 0.0, 0.8], 0.5).to_string();
-        let v2 = evaluate_trait_handler_v2_json(SLERP_TRAIT, "std_quat_conformance", "on_slerp", &args);
-        let v3 = evaluate_trait_handler_v3_json(SLERP_TRAIT, "std_quat_conformance", "on_slerp", &args);
+        let v2 =
+            evaluate_trait_handler_v2_json(SLERP_TRAIT, "std_quat_conformance", "on_slerp", &args);
+        let v3 =
+            evaluate_trait_handler_v3_json(SLERP_TRAIT, "std_quat_conformance", "on_slerp", &args);
         assert_eq!(v2, v3);
     }
 
@@ -2795,7 +2856,10 @@ mod tests {
         // spherical branch runs acos/sin/cos over locals and divides.
         let (a, b, t) = ([0.0, 0.0, 0.0, 1.0], [0.6, 0.0, 0.0, 0.8], 0.5);
         let dot = quat_dot(a, b);
-        assert!(dot > 0.0 && dot < 0.9995, "fixture must take the spherical branch");
+        assert!(
+            dot > 0.0 && dot < 0.9995,
+            "fixture must take the spherical branch"
+        );
         let result = run_v3(
             SLERP_TRAIT,
             "std_quat_conformance",
@@ -2817,7 +2881,10 @@ mod tests {
         assert!(dot_in < 0.0, "fixture must take the negation branch");
         let negated = [0.0 - b[0], 0.0 - b[1], 0.0 - b[2], 0.0 - b[3]];
         let dot = 0.0 - dot_in;
-        assert!(dot < 0.9995, "fixture must fall through to the spherical branch");
+        assert!(
+            dot < 0.9995,
+            "fixture must fall through to the spherical branch"
+        );
         let result = run_v3(
             SLERP_TRAIT,
             "std_quat_conformance",
@@ -2879,16 +2946,17 @@ mod tests {
     /// Mock [`HostDispatcher`]: namespaces `math.clamp` (computes, proving the
     /// canonical-JSON argument marshalling round-trips), `map_lib.map_get`
     /// (always throws like the real binding on an absent key),
-    /// `list_lib.list_reverse` + `set_lib.set_union` (compute, so v5 union
-    /// handles are exercised end to end), and `weird.*` (returns hostile
-    /// results so the re-entry rails are exercised).
+    /// `list_lib.list_range` / `list_join` / `list_reverse` +
+    /// `set_lib.set_union` (compute, so v5/v6 union handles are exercised end
+    /// to end), and `weird.*` (returns hostile results so the re-entry rails
+    /// are exercised).
     struct MockHost;
 
     /// One (namespace → functions) table backing both `lookup` and the v5
     /// `functions` enumeration seam, so the two can never disagree.
     const MOCK_NAMESPACES: &[(&str, &[&str])] = &[
         ("math", &["clamp"]),
-        ("list_lib", &["list_range", "list_reverse"]),
+        ("list_lib", &["list_join", "list_range", "list_reverse"]),
         ("map_lib", &["map_get"]),
         ("set_lib", &["set_union"]),
         ("weird", &["badjson", "proto", "undef"]),
@@ -2910,7 +2978,12 @@ mod tests {
                 .map(|(_, functions)| functions.iter().map(|f| f.to_string()).collect())
         }
 
-        fn invoke(&self, namespace: &str, function: &str, args_json: &[String]) -> HostInvokeOutcome {
+        fn invoke(
+            &self,
+            namespace: &str,
+            function: &str,
+            args_json: &[String],
+        ) -> HostInvokeOutcome {
             match (namespace, function) {
                 ("math", "clamp") => {
                     // Each argument must arrive as its own strict-JSON string
@@ -2922,34 +2995,66 @@ mod tests {
                                 .expect("clamp argument must marshal as a JSON number")
                         })
                         .collect();
-                    assert_eq!(parsed.len(), 3, "clamp receives exactly the call's arguments");
+                    assert_eq!(
+                        parsed.len(),
+                        3,
+                        "clamp receives exactly the call's arguments"
+                    );
                     let clamped = parsed[1].max(parsed[2].min(parsed[0]));
                     HostInvokeOutcome::Value(serde_json::json!(clamped).to_string())
-                }
-                ("list_lib", "list_range") => {
-                    let parsed: Vec<f64> = args_json
-                        .iter()
-                        .map(|arg| {
-                            serde_json::from_str::<f64>(arg)
-                                .expect("list_range argument must marshal as a JSON number")
-                        })
-                        .collect();
-                    assert_eq!(parsed.len(), 3, "list_range receives exactly the call's arguments");
-                    let (start, end, step) = (parsed[0], parsed[1], parsed[2]);
-                    assert!(step != 0.0, "mock list_range requires a nonzero step");
-                    let mut out: Vec<f64> = Vec::new();
-                    let mut i = start;
-                    while if step > 0.0 { i < end } else { i > end } {
-                        out.push(i);
-                        i += step;
-                    }
-                    HostInvokeOutcome::Value(serde_json::json!(out).to_string())
                 }
                 ("list_lib", "list_reverse") => {
                     let mut items: Vec<serde_json::Value> = serde_json::from_str(&args_json[0])
                         .expect("list_reverse argument must marshal as a JSON array");
                     items.reverse();
                     HostInvokeOutcome::Value(serde_json::Value::Array(items).to_string())
+                }
+                ("list_lib", "list_range") => {
+                    let integer_arg = |index: usize, label: &str| {
+                        let value: f64 = serde_json::from_str(&args_json[index])
+                            .unwrap_or_else(|_| panic!("list_range {label} must be numeric"));
+                        assert!(
+                            value.is_finite() && value.fract() == 0.0,
+                            "list_range {label} must be an integer"
+                        );
+                        value as i64
+                    };
+                    let start = integer_arg(0, "start");
+                    let end = integer_arg(1, "end");
+                    let step = integer_arg(2, "step");
+                    assert_ne!(step, 0, "list_range step is nonzero");
+                    let mut out = Vec::new();
+                    let mut value = start;
+                    while if step > 0 { value < end } else { value > end } {
+                        out.push(value);
+                        value += step;
+                    }
+                    HostInvokeOutcome::Value(serde_json::json!(out).to_string())
+                }
+                ("list_lib", "list_join") => {
+                    let items: Vec<serde_json::Value> = serde_json::from_str(&args_json[0])
+                        .expect("list_join items must marshal as a JSON array");
+                    let separator: String = serde_json::from_str(&args_json[1])
+                        .expect("list_join separator must marshal as a JSON string");
+                    let joined = items
+                        .iter()
+                        .map(|item| match item {
+                            serde_json::Value::String(value) => value.clone(),
+                            serde_json::Value::Number(value) => {
+                                let value = value
+                                    .as_f64()
+                                    .expect("list_join number must round-trip through f64");
+                                if value.fract() == 0.0 {
+                                    format!("{value:.0}")
+                                } else {
+                                    value.to_string()
+                                }
+                            }
+                            other => panic!("list_join mock received unsupported item {other}"),
+                        })
+                        .collect::<Vec<_>>()
+                        .join(&separator);
+                    HostInvokeOutcome::Value(serde_json::json!(joined).to_string())
                 }
                 ("set_lib", "set_union") => {
                     let a: Vec<f64> = serde_json::from_str(&args_json[0])
@@ -2984,8 +3089,13 @@ mod tests {
         handler: &str,
         args: serde_json::Value,
     ) -> serde_json::Value {
-        let raw =
-            evaluate_trait_handler_v4_json(source, trait_name, handler, &args.to_string(), &MockHost);
+        let raw = evaluate_trait_handler_v4_json(
+            source,
+            trait_name,
+            handler,
+            &args.to_string(),
+            &MockHost,
+        );
         serde_json::from_str(&raw).expect("v4 evaluator must always return JSON")
     }
 
@@ -3038,10 +3148,16 @@ mod tests {
 "#;
         let result = run_v4(source, "t", "on_ns", serde_json::json!({"a": 1.0}));
         let error = expect_err(&result, "unknown-host-binding");
-        assert!(error["message"].as_str().unwrap().contains("nope"), "{result}");
+        assert!(
+            error["message"].as_str().unwrap().contains("nope"),
+            "{result}"
+        );
         let result = run_v4(source, "t", "on_fn", serde_json::json!({"a": 1.0}));
         let error = expect_err(&result, "unknown-host-binding");
-        assert!(error["message"].as_str().unwrap().contains("math"), "{result}");
+        assert!(
+            error["message"].as_str().unwrap().contains("math"),
+            "{result}"
+        );
     }
 
     #[test]
@@ -3063,7 +3179,10 @@ mod tests {
             let result = run_v4(source, "t", handler, serde_json::json!({"a": 1.0}));
             let error = expect_err(&result, "unsupported-call");
             assert!(
-                error["message"].as_str().unwrap().contains("numeric-builtin table"),
+                error["message"]
+                    .as_str()
+                    .unwrap()
+                    .contains("numeric-builtin table"),
                 "{result}"
             );
         }
@@ -3099,7 +3218,10 @@ mod tests {
         let result = run_v4(param_shadow, "t", "on_f", serde_json::json!({"math": 1.0}));
         let error = expect_err(&result, "unsupported-call");
         assert!(
-            error["message"].as_str().unwrap().contains("bound parameter or local"),
+            error["message"]
+                .as_str()
+                .unwrap()
+                .contains("bound parameter or local"),
             "{result}"
         );
         // Same precedence for locals.
@@ -3125,11 +3247,17 @@ mod tests {
 "#;
         let result = run_v4(source, "t", "on_computed", serde_json::json!({"a": 1.0}));
         let error = expect_err(&result, "unsupported-call");
-        assert!(error["message"].as_str().unwrap().contains("computed"), "{result}");
+        assert!(
+            error["message"].as_str().unwrap().contains("computed"),
+            "{result}"
+        );
         let result = run_v4(source, "t", "on_nested", serde_json::json!({"a": 1.0}));
         let error = expect_err(&result, "unsupported-call");
         assert!(
-            error["message"].as_str().unwrap().contains("bare namespace identifier"),
+            error["message"]
+                .as_str()
+                .unwrap()
+                .contains("bare namespace identifier"),
             "{result}"
         );
     }
@@ -3172,7 +3300,8 @@ mod tests {
         // host-binding call executes — and v3 itself still refuses member
         // callees, so the grammar only grew under the v4 id.
         let args = serde_json::json!({"a": 2.0, "b": 3.0, "t": 3.0}).to_string();
-        let v3 = evaluate_trait_handler_v3_json(MATH_TRAIT, "std_math_conformance", "on_lerp", &args);
+        let v3 =
+            evaluate_trait_handler_v3_json(MATH_TRAIT, "std_math_conformance", "on_lerp", &args);
         let v4 = evaluate_trait_handler_v4_json(
             MATH_TRAIT,
             "std_math_conformance",
@@ -3214,6 +3343,22 @@ mod tests {
         run_v5_with(&MockHost, source, trait_name, handler, args)
     }
 
+    fn run_v6(
+        source: &str,
+        trait_name: &str,
+        handler: &str,
+        args: serde_json::Value,
+    ) -> serde_json::Value {
+        let raw = evaluate_trait_handler_v6_json(
+            source,
+            trait_name,
+            handler,
+            &args.to_string(),
+            &MockHost,
+        );
+        serde_json::from_str(&raw).expect("v6 evaluator must always return JSON")
+    }
+
     /// Configurable mock for v5 construction-time paths (collision / missing
     /// namespace): `(namespace, functions)` rows back lookup + enumeration;
     /// invoke always throws because these tests must fail BEFORE any invoke.
@@ -3235,7 +3380,12 @@ mod tests {
                 .map(|(_, functions)| functions.iter().map(|f| f.to_string()).collect())
         }
 
-        fn invoke(&self, namespace: &str, function: &str, _args_json: &[String]) -> HostInvokeOutcome {
+        fn invoke(
+            &self,
+            namespace: &str,
+            function: &str,
+            _args_json: &[String],
+        ) -> HostInvokeOutcome {
             HostInvokeOutcome::Threw(format!(
                 "table host never invokes (got {namespace}.{function})"
             ))
@@ -3392,7 +3542,13 @@ mod tests {
 
     #[test]
     fn v5_handle_escape_paths_fail_closed() {
-        for handler in ["on_return", "on_object", "on_array", "on_compare", "on_host_arg"] {
+        for handler in [
+            "on_return",
+            "on_object",
+            "on_array",
+            "on_compare",
+            "on_host_arg",
+        ] {
             let result = run_v5(
                 ESCAPE_TRAIT,
                 "std_escape_conformance",
@@ -3401,7 +3557,10 @@ mod tests {
             );
             let error = expect_err(&result, "namespace-handle-escape");
             assert!(
-                error["message"].as_str().unwrap().contains("get_std_math_lib"),
+                error["message"]
+                    .as_str()
+                    .unwrap()
+                    .contains("get_std_math_lib"),
                 "handler {handler}: {result}"
             );
         }
@@ -3431,7 +3590,12 @@ mod tests {
   }
 }
 "#;
-        let result = run_v5(source, "factory_edges", "on_arity", serde_json::json!({"x": 1.0}));
+        let result = run_v5(
+            source,
+            "factory_edges",
+            "on_arity",
+            serde_json::json!({"x": 1.0}),
+        );
         expect_err(&result, "factory-arity");
         // A factory name shadowed by a bound parameter is NOT a factory call:
         // it falls through to the builtin table's refusal (bound names take
@@ -3444,7 +3608,10 @@ mod tests {
         );
         let error = expect_err(&result, "unsupported-call");
         assert!(
-            error["message"].as_str().unwrap().contains("numeric-builtin table"),
+            error["message"]
+                .as_str()
+                .unwrap()
+                .contains("numeric-builtin table"),
             "{result}"
         );
     }
@@ -3468,7 +3635,10 @@ mod tests {
         let error = expect_err(&result, "namespace-collision");
         let message = error["message"].as_str().unwrap();
         assert!(message.contains("shared"), "{result}");
-        assert!(message.contains("list_lib") && message.contains("set_lib"), "{result}");
+        assert!(
+            message.contains("list_lib") && message.contains("set_lib"),
+            "{result}"
+        );
     }
 
     #[test]
@@ -3525,8 +3695,12 @@ mod tests {
 
     fn packaged_source(relative: &str) -> String {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative);
-        std::fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("packaged source {} must be readable: {error}", path.display()))
+        std::fs::read_to_string(&path).unwrap_or_else(|error| {
+            panic!(
+                "packaged source {} must be readable: {error}",
+                path.display()
+            )
+        })
     }
 
     fn packaged_handler<'a>(
@@ -3535,12 +3709,16 @@ mod tests {
         handler_name: &str,
     ) -> &'a GameEventBlockNode {
         for node in &ast.body {
-            let AstNode::Trait(trait_node) = node else { continue };
+            let AstNode::Trait(trait_node) = node else {
+                continue;
+            };
             if trait_node.name != trait_name {
                 continue;
             }
             for member in &trait_node.members {
-                let AstNode::GameEventBlock(handler) = member else { continue };
+                let AstNode::GameEventBlock(handler) = member else {
+                    continue;
+                };
                 if handler.name == handler_name {
                     return handler;
                 }
@@ -3564,9 +3742,13 @@ mod tests {
             let ast = crate::parse_ast(source)
                 .unwrap_or_else(|d| panic!("packaged {label} must parse: {d:?}"));
             for node in &ast.body {
-                let AstNode::Trait(trait_node) = node else { continue };
+                let AstNode::Trait(trait_node) = node else {
+                    continue;
+                };
                 for member in &trait_node.members {
-                    let AstNode::GameEventBlock(handler) = member else { continue };
+                    let AstNode::GameEventBlock(handler) = member else {
+                        continue;
+                    };
                     if handler.parsed_body.is_none() {
                         unparsed.push(format!("{label}:{}.{}", trait_node.name, handler.name));
                     }
@@ -3589,7 +3771,8 @@ mod tests {
             "the NO-PAREN header `@on_quat_identity =>` must produce a zero-param handler"
         );
         assert!(identity.parsed_body.as_ref().is_some_and(|b| !b.is_empty()));
-        let collections_ast = crate::parse_ast(&collections).expect("collections.hsplus must parse");
+        let collections_ast =
+            crate::parse_ast(&collections).expect("collections.hsplus must parse");
         let reverse = packaged_handler(&collections_ast, "std_list", "on_reverse");
         assert!(reverse.parsed_body.as_ref().is_some_and(|b| !b.is_empty()));
 
@@ -3631,45 +3814,105 @@ mod tests {
         );
         assert_eq!(expect_ok(&result), &serde_json::json!([1.0, 2.0, 3.0]));
 
-        // (4) `??` joined the v5 subset: the packaged on_range defaults its
-        // JSON-null step through `step ?? 1` and executes; an explicit step
-        // short-circuits the right operand.
+        // (4) OUT-OF-SCOPE packaged shapes stay structured errors, never
+        // panics: `??` (on_range) parses but its operator is refused at
+        // evaluation.
         let result = run_v5(
             &collections,
             "std_list",
             "on_range",
             serde_json::json!({"start": 0.0, "end": 3.0, "step": null}),
         );
-        assert_eq!(expect_ok(&result), &serde_json::json!([0.0, 1.0, 2.0]));
-        let result = run_v5(
-            &collections,
-            "std_list",
-            "on_range",
-            serde_json::json!({"start": 0.0, "end": 4.0, "step": 2.0}),
+        let error = expect_err(&result, "unsupported-operator");
+        assert!(
+            error["message"].as_str().unwrap().contains("??"),
+            "{result}"
         );
-        assert_eq!(expect_ok(&result), &serde_json::json!([0.0, 2.0]));
     }
 
     #[test]
-    fn null_coalescing_stays_closed_below_v5() {
-        // The `??` operator is a v5 admission; the pinned v2–v4 subsets keep
-        // refusing it so their receipt contracts do not drift.
+    fn v6_subset_id_and_null_coalescing_semantics_are_pinned() {
+        assert_eq!(
+            DETERMINISTIC_SUBSET_V6,
+            "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing"
+        );
         let source = r#"
-@trait t {
-  @on_f(x) => {
-    return { value: x ?? 1 }
-  }
+@trait null_coalescing {
+  @on_fallback(value, fallback) => { return value ?? fallback }
+  @on_lazy(value) => { return value ?? missing }
 }
 "#;
-        let result: serde_json::Value = serde_json::from_str(&evaluate_trait_handler_v4_json(
+        let null = run_v6(
             source,
-            "t",
-            "on_f",
-            "{\"x\":null}",
-            &MockHost,
-        ))
-        .expect("v4 boundary returns JSON");
-        let error = expect_err(&result, "unsupported-operator");
-        assert!(error["message"].as_str().unwrap().contains("??"), "{result}");
+            "null_coalescing",
+            "on_fallback",
+            serde_json::json!({"value": null, "fallback": "fallback"}),
+        );
+        assert_eq!(expect_ok(&null), &serde_json::json!("fallback"));
+
+        for (value, expected) in [
+            (serde_json::json!(false), serde_json::json!(false)),
+            (serde_json::json!(0), serde_json::json!(0.0)),
+            (serde_json::json!(""), serde_json::json!("")),
+        ] {
+            let result = run_v6(
+                source,
+                "null_coalescing",
+                "on_lazy",
+                serde_json::json!({"value": value.clone()}),
+            );
+            assert_eq!(expect_ok(&result), &expected);
+        }
+
+        // v5 remains a pinned receipt contract: adding v6 does not silently
+        // expand the already-shipped v5 operator set.
+        let v5 = run_v5(
+            source,
+            "null_coalescing",
+            "on_fallback",
+            serde_json::json!({"value": null, "fallback": "fallback"}),
+        );
+        expect_err(&v5, "unsupported-operator");
+    }
+
+    #[test]
+    fn v6_executes_packaged_range_and_join_defaults_as_authored() {
+        let collections = packaged_source("../std/src/collections.hsplus");
+
+        let default_range = run_v6(
+            &collections,
+            "std_list",
+            "on_range",
+            serde_json::json!({"start": 0, "end": 4, "step": null}),
+        );
+        assert_eq!(
+            expect_ok(&default_range),
+            &serde_json::json!([0.0, 1.0, 2.0, 3.0])
+        );
+        let explicit_range = run_v6(
+            &collections,
+            "std_list",
+            "on_range",
+            serde_json::json!({"start": 6, "end": 0, "step": -2}),
+        );
+        assert_eq!(
+            expect_ok(&explicit_range),
+            &serde_json::json!([6.0, 4.0, 2.0])
+        );
+
+        let default_join = run_v6(
+            &collections,
+            "std_list",
+            "on_join",
+            serde_json::json!({"lst": ["a", "b", 3], "sep": null}),
+        );
+        assert_eq!(expect_ok(&default_join), &serde_json::json!("a,b,3"));
+        let explicit_join = run_v6(
+            &collections,
+            "std_list",
+            "on_join",
+            serde_json::json!({"lst": ["a", "b", 3], "sep": "-"}),
+        );
+        assert_eq!(expect_ok(&explicit_join), &serde_json::json!("a-b-3"));
     }
 }

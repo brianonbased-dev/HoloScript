@@ -1,14 +1,14 @@
 {
   "schema": "holoscript.std-abi-conformance.cross-target.v0",
-  "generatedAtISO": "2026-07-27T23:54:24.668Z",
+  "generatedAtISO": "2026-07-27T22:57:29.152Z",
   "targets": [
     {
       "target": "node",
       "schema": "holoscript.std-abi-conformance.node.v0",
-      "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-26_std-abi-conformance.node.v0.json",
-      "receiptSha256": "sha256:ee7fded0e94a2c7991bb118aff54dffd8380b384225d61b07f4744b6be4f020f",
-      "vectors": 123,
-      "passed": 123,
+      "path": "reports/library-coherence/2026-07-26_std-abi-conformance.node.v0.json",
+      "receiptSha256": "sha256:1853de3a3910fe66e274c907c0dfb1556342526cbf374d00c7c94fdd9ed990c3",
+      "vectors": 170,
+      "passed": 170,
       "failed": 0,
       "environment": {
         "node": "v24.15.0",
@@ -19,10 +19,10 @@
     {
       "target": "browser-wasm",
       "schema": "holoscript.std-abi-conformance.wasm.v0",
-      "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-27_std-abi-conformance.wasm.v0.json",
-      "receiptSha256": "sha256:047c9dd38b2c057bcc90dac4b99a5bd3ebab25823ee61e8dcf426c6119e6e521",
-      "vectors": 168,
-      "passed": 168,
+      "path": "reports/library-coherence/2026-07-27_std-abi-conformance.wasm.v0.json",
+      "receiptSha256": "sha256:9947a4a1ee4ccabf944476e450fd932f362d9592655e530054e0d0f8fb1e0c4b",
+      "vectors": 170,
+      "passed": 170,
       "failed": 0,
       "environment": {
         "node": "v24.15.0",
@@ -33,10 +33,10 @@
     {
       "target": "owned-metal",
       "schema": "holoscript.std-abi-conformance.owned-metal.v0",
-      "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-26_std-abi-conformance.owned-metal.v0.json",
-      "receiptSha256": "sha256:9c7caceac31d41f0f449e429243052fb3f6e1ee6545237d8f26331248f2485de",
-      "vectors": 168,
-      "passed": 168,
+      "path": "reports/library-coherence/2026-07-26_std-abi-conformance.owned-metal.v0.json",
+      "receiptSha256": "sha256:771156b9576e6c7909fc1fa2ec7ab8faafdb489fc7fcc825fa394e23a88eaece",
+      "vectors": 170,
+      "passed": 170,
       "failed": 0,
       "environment": {
         "node": "v20.20.2",
@@ -50,7 +50,7 @@
   ],
   "comparison": {
     "method": "per-vector equality across the targets each vector declares (default: all): exact (Object.is, recursive, key-set strict) for tolerance-0 vectors; absolute-difference bound for vectors whose corpus entry declares a non-zero tolerance (libm transcendental ulp variance)",
-    "comparedVectors": 168,
+    "comparedVectors": 170,
     "toleranceBoundedVectors": 11,
     "targetScopedVectors": 45,
     "problems": []
@@ -59,5 +59,5 @@
   "claimBoundary": {
     "note": "Equality is claimed only for the targets, corpus pin, and vector set named above. Each per-target receipt carries its own execution claim boundary; this receipt adds only cross-target value agreement."
   },
-  "receiptHash": "sha256:dd89578d44fa0bf8c12d01e3133eff41e38926368372da57720ba50d31832fc6"
+  "receiptHash": "sha256:24950f7e6ce869625ddb8e23d2ef33b172000e43ad74d7463409655715156576"
 }

@@ -767,6 +767,57 @@ describe('HoloCompositionParser', () => {
       const result = parseHolo(source);
       expect(result.success).toBe(true);
     });
+
+    it('parses null coalescing below logical OR and above conditional expressions', () => {
+      const source = `
+        composition "Test" {
+          logic {
+            action choose(a, b, fallback) {
+              return a || b ?? fallback ? "present" : "missing"
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      const statement = result.ast?.logic?.actions[0].body[0];
+      expect(statement?.type).toBe('ReturnStatement');
+      if (
+        statement?.type !== 'ReturnStatement' ||
+        statement.value?.type !== 'ConditionalExpression'
+      ) {
+        throw new Error('expected conditional return expression');
+      }
+      expect(statement.value.test).toMatchObject({
+        type: 'BinaryExpression',
+        operator: '??',
+        left: {
+          type: 'BinaryExpression',
+          operator: '||',
+        },
+      });
+    });
+
+    it('parses semicolon-separated action statements without source normalization', () => {
+      const source = `
+        composition "Test" {
+          logic {
+            action distance(a, b) {
+              dx = a.x - b.x; dy = a.y - b.y; dz = a.z - b.z;
+              return dx * dx + dy * dy + dz * dz
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.ast?.logic?.actions[0].body.map((statement) => statement.type)).toEqual([
+        'Assignment',
+        'Assignment',
+        'Assignment',
+        'ReturnStatement',
+      ]);
+    });
   });
 
   describe('Imports', () => {

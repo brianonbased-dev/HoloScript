@@ -50,6 +50,7 @@ export type TokenType =
   | 'HASH'
   | 'SEMICOLON'
   | 'QUESTION'
+  | 'NULL_COALESCE'
   | 'NEWLINE'
   | 'EOF'
   // Keywords

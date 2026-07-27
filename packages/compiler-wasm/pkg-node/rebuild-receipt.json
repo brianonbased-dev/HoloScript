@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T23:52:16Z",
+  "generatedAt": "2026-07-27T21:44:53Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "working tree (eval.rs null-coalescing v5 admission) over HEAD 607c98162; clean-worktree build",
+  "sourceCommit": "1b3782765d46ddc386c002401c5a53b3b28ad932",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 511775,
-    "wasmSha256": "fff120ca5315826a0ac27c74f69023fda3f2c5ca84843555fad06629814b651a",
-    "previousWasmSha256": "7f2617ed2da3daa9ae1bd1f1806a0cbec17d79bc02bfa34d5af0816d009dcac2",
+    "wasmBytes": 512760,
+    "wasmSha256": "fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
+    "previousWasmSha256": "5f814a5671a2986277935d818267143ae5c4d806e48c3f630257d9c7902fd564",
     "repeatBuildSha256Matched": true,
-    "note": "Adds ?? null-coalescing to the v5 packaged-factories subset (JSON-null defaulting with short-circuit; namespace handles cannot flow through) — unlocks the packaged on_range/on_join handlers. v2-v4 keep refusing ?? (test-pinned). Clean-worktree build; peer-dirty parser.rs not baked in; repeat builds and node/web artifacts byte-identical."
+    "note": "Clean current-main rebuild adding the cumulative v6 deterministic evaluator with strict, short-circuiting null coalescing while keeping v1-v5 pinned. A repeat Node build reproduced the SHA-256, and two web builds from the same source were byte-identical."
   }
 }

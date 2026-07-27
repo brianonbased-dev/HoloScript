@@ -1,0 +1,170 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.transport-resilience.v1",
+  "kind": "HoloAbsorbTransportResilienceBenchmark",
+  "status": "pass",
+  "capturedAt": "2026-07-27T23:21:45.804Z",
+  "productName": "HoloAbsorb",
+  "repo": {
+    "commit": "dbf269281910417e304f9c151848072b17a04acb",
+    "worktreeStatus": "?? research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/"
+  },
+  "runtime": {
+    "node": "v24.15.0",
+    "platform": "win32",
+    "architecture": "x64",
+    "rssAtStartBytes": 63021056,
+    "rssAtEndBytes": 137572352
+  },
+  "options": {
+    "out": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-transport-resilience.json",
+    "iterations": 25,
+    "maxConnections": 4096
+  },
+  "performanceByScale": [
+    {
+      "connections": 64,
+      "iterations": 25,
+      "candidateCount": 0,
+      "medianMs": 0.487,
+      "p95Ms": 1.262,
+      "p99Ms": 1.445,
+      "maxRssBytes": 67272704
+    },
+    {
+      "connections": 256,
+      "iterations": 25,
+      "candidateCount": 0,
+      "medianMs": 1.518,
+      "p95Ms": 1.938,
+      "p99Ms": 2.283,
+      "maxRssBytes": 68030464
+    },
+    {
+      "connections": 1024,
+      "iterations": 25,
+      "candidateCount": 0,
+      "medianMs": 5.702,
+      "p95Ms": 6.891,
+      "p99Ms": 6.912,
+      "maxRssBytes": 81903616
+    },
+    {
+      "connections": 4096,
+      "iterations": 25,
+      "candidateCount": 0,
+      "medianMs": 21.735,
+      "p95Ms": 28.102,
+      "p99Ms": 28.706,
+      "maxRssBytes": 137162752
+    }
+  ],
+  "faults": {
+    "capacityPressure": {
+      "connections": 6,
+      "ceiling": 4,
+      "idleGraceMs": 600000,
+      "candidates": []
+    },
+    "faultInjection": {
+      "expected": {
+        "parentDeadPid": 1005,
+        "expiredPid": 1006
+      },
+      "receipt": {
+        "schema": "holoscript.mcp-process-reap-receipt.v1",
+        "role": "holoscript-mcp-stdio",
+        "scriptPath": "c:/users/josep/.scratch/holoabsorb-hardening-20260727/scripts/holoscript-mcp-stdio.mjs",
+        "generatedAt": "2026-07-27T17:20:00.000Z",
+        "staleAfterMs": 14400000,
+        "maxConnectionsPerParent": 4,
+        "capacityIdleAfterMs": 600000,
+        "observedProcesses": 6,
+        "candidates": [
+          {
+            "pid": 1005,
+            "parentPid": 7000,
+            "startedAtMs": 1785153600000,
+            "lastActivityAtMs": 1785154800000,
+            "idleMs": 18000000,
+            "role": "holoscript-mcp-stdio",
+            "scriptPath": "c:/users/josep/.scratch/holoabsorb-hardening-20260727/scripts/holoscript-mcp-stdio.mjs",
+            "reason": "parent_dead"
+          },
+          {
+            "pid": 1006,
+            "parentPid": 7000,
+            "startedAtMs": 1785153600000,
+            "lastActivityAtMs": 1785154800000,
+            "idleMs": 18000000,
+            "role": "holoscript-mcp-stdio",
+            "scriptPath": "c:/users/josep/.scratch/holoabsorb-hardening-20260727/scripts/holoscript-mcp-stdio.mjs",
+            "reason": "lease_expired"
+          }
+        ],
+        "actions": [
+          {
+            "killed": true,
+            "reason": "parent_dead",
+            "pid": 1005
+          },
+          {
+            "killed": true,
+            "reason": "lease_expired",
+            "pid": 1006
+          }
+        ],
+        "leasesPruned": 2
+      }
+    },
+    "registryAfterReap": {
+      "retainedLeasePids": [
+        1001,
+        1002,
+        1003,
+        1004
+      ],
+      "retainedLeaseCount": 4
+    },
+    "timerLifecycle": {
+      "opened": 6,
+      "unrefed": 6,
+      "cleared": 6
+    }
+  },
+  "checks": [
+    {
+      "id": "healthy-heartbeats-survive-capacity-pressure",
+      "pass": true
+    },
+    {
+      "id": "dead-parent-reaped",
+      "pass": true
+    },
+    {
+      "id": "expired-lease-reaped",
+      "pass": true
+    },
+    {
+      "id": "faulted-leases-pruned",
+      "pass": true
+    },
+    {
+      "id": "heartbeat-timers-unref-and-close",
+      "pass": true
+    },
+    {
+      "id": "largest-registry-has-no-false-positive",
+      "pass": true
+    },
+    {
+      "id": "largest-registry-p95-under-one-second",
+      "pass": true
+    }
+  ],
+  "failedChecks": [],
+  "claimBoundary": [
+    "This receipt is a deterministic synthetic lifecycle benchmark; it does not claim network throughput or end-to-end MCP request latency.",
+    "No real processes are terminated. Fault actions are injected through the canonical ownership-checked reaper interface.",
+    "The one-second p95 guardrail detects severe registry-scaling regressions; it is not a production latency service-level objective."
+  ]
+}

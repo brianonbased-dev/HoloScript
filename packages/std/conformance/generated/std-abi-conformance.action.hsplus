@@ -112,7 +112,7 @@ composition "std-math-conformance" {
     }
 
     action host_list_range(start, end, step) {
-      return { value: list_lib.list_range(start, end, step) }
+      return { value: list_lib.list_range(start, end, step ?? 1) }
     }
 
     action host_list_repeat(value, count) {
@@ -144,7 +144,7 @@ composition "std-math-conformance" {
     }
 
     action host_list_join(lst, sep) {
-      return { value: list_lib.list_join(lst, sep) }
+      return { value: list_lib.list_join(lst, sep ?? ",") }
     }
 
     action host_list_zip(a, b) {

@@ -25,6 +25,7 @@ const OP_RET: u16 = 0x33;
 const OP_HS_BUFFER_ALLOC: u16 = 0xb7;
 const OP_HS_BUFFER_MOVE: u16 = 0xb8;
 const OP_HS_BUFFER_LOAD: u16 = 0xb9;
+const OP_HS_BUFFER_STORE: u16 = 0xba;
 const OP_HS_BUFFER_DROP: u16 = 0xbb;
 const OP_HS_AGGREGATE_BORROW: u16 = 0xbd;
 const OP_HS_AGGREGATE_LOAD: u16 = 0xbe;
@@ -157,6 +158,7 @@ struct UaalBorrowedAggregate {
 struct UaalBorrowedBuffer {
     owner: String,
     element_type: String,
+    mutable: bool,
     forwardable_parameter: bool,
 }
 
@@ -567,19 +569,13 @@ impl<'a> UaalEmitter<'a> {
                     .and_then(|annotation| annotation.as_deref())
                     .and_then(borrowed_slice_element_type)
                 {
-                    if mutable {
-                        return Err(Self::target_capability_error(
-                            "HS-UAAL-CAP-006",
-                            "uaal.buffer.borrow.v1",
-                            "mutable borrowed slice parameters are not admitted by uaal.buffer.borrow.v1",
-                        ));
-                    }
                     Self::validate_owned_buffer_element_type(param, element_type)?;
                     self.current_borrowed_buffers.insert(
                         param.clone(),
                         UaalBorrowedBuffer {
                             owner: param.clone(),
                             element_type: element_type.to_string(),
+                            mutable,
                             forwardable_parameter: true,
                         },
                     );
@@ -1127,8 +1123,9 @@ impl<'a> UaalEmitter<'a> {
             if let Some(expected) =
                 expected.filter(|annotation| borrowed_slice_element_type(annotation).is_some())
             {
-                borrowed_owned_roots
-                    .insert(self.preflight_owned_buffer_reference_argument(argument, expected)?);
+                let (owner_name, _) =
+                    self.preflight_owned_buffer_reference_argument(argument, expected)?;
+                borrowed_owned_roots.insert(owner_name);
             }
         }
         for owner_name in borrowed_owned_roots {
@@ -1141,7 +1138,7 @@ impl<'a> UaalEmitter<'a> {
                     "HS-UAAL-CAP-006",
                     "uaal.buffer.borrow.v1",
                     format!(
-                        "owned buffer `{owner_name}` cannot be shared-borrowed and moved or dropped in one call"
+                        "owned buffer `{owner_name}` cannot be borrowed and moved or dropped in one call"
                     ),
                 ));
             }
@@ -1184,20 +1181,13 @@ impl<'a> UaalEmitter<'a> {
         &self,
         argument: &AstNode,
         expected_annotation: &str,
-    ) -> Result<String, UaalEmitError> {
+    ) -> Result<(String, bool), UaalEmitError> {
         let (expected_mutable, expected_element_type) =
             borrowed_slice_element_type(expected_annotation).ok_or_else(|| {
                 UaalEmitError::new(format!(
                     "internal borrowed-slice annotation mismatch: `{expected_annotation}`"
                 ))
             })?;
-        if expected_mutable {
-            return Err(Self::target_capability_error(
-                "HS-UAAL-CAP-006",
-                "uaal.buffer.borrow.v1",
-                "mutable borrowed slice parameters are not admitted by uaal.buffer.borrow.v1",
-            ));
-        }
         if let AstNode::Identifier(view) = argument {
             if let Some(borrowed) = self.current_borrowed_buffers.get(&view.name) {
                 if !borrowed.forwardable_parameter {
@@ -1217,37 +1207,76 @@ impl<'a> UaalEmitter<'a> {
                         ),
                     ));
                 }
-                return Ok(view.name.clone());
+                if expected_mutable && !borrowed.mutable {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-006",
+                        "uaal.buffer.borrow.v1",
+                        format!(
+                            "cannot forward shared borrowed slice parameter `{}` to mutable parameter",
+                            view.name
+                        ),
+                    ));
+                }
+                if !expected_mutable && borrowed.mutable {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-006",
+                        "uaal.buffer.borrow.v1",
+                        format!(
+                            "cannot forward mutable borrowed slice parameter `{}` to shared parameter without an explicit reborrow",
+                            view.name
+                        ),
+                    ));
+                }
+                return Ok((view.name.clone(), expected_mutable));
             }
         }
         let AstNode::UnaryExpression(borrow) = argument else {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-006",
                 "uaal.buffer.borrow.v1",
-                "borrowed slice arguments require an explicit `&owner` call borrow",
+                if expected_mutable {
+                    "mutable borrowed slice arguments require an explicit `&mut owner` call borrow"
+                } else {
+                    "borrowed slice arguments require an explicit `&owner` call borrow"
+                },
             ));
         };
-        if borrow.operator == "&mut" {
+        if expected_mutable && borrow.operator != "&mut" {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-006",
+                "uaal.buffer.borrow.v1",
+                "mutable borrowed slice arguments require an explicit `&mut owner` call borrow",
+            ));
+        }
+        if !expected_mutable && borrow.operator == "&mut" {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-006",
                 "uaal.buffer.borrow.v1",
                 "shared borrowed slice arguments require `&owner`, not `&mut owner`",
             ));
         }
-        if borrow.operator != "&"
+        if borrow.operator != if expected_mutable { "&mut" } else { "&" }
             || matches!(borrow.argument.as_ref(), AstNode::MemberExpression(_))
         {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-006",
                 "uaal.buffer.borrow.v1",
-                "borrowed slice argument requires `&owner` for a local owned buffer",
+                if expected_mutable {
+                    "mutable borrowed slice argument requires `&mut owner` for a local owned buffer"
+                } else {
+                    "borrowed slice argument requires `&owner` for a local owned buffer"
+                },
             ));
         }
         let AstNode::Identifier(owner) = borrow.argument.as_ref() else {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-006",
                 "uaal.buffer.borrow.v1",
-                "borrowed slice argument requires `&owner` for a local owned buffer",
+                if expected_mutable {
+                    "mutable borrowed slice argument requires `&mut owner` for a local owned buffer"
+                } else {
+                    "borrowed slice argument requires `&owner` for a local owned buffer"
+                },
             ));
         };
         let actual_element_type = self
@@ -1258,7 +1287,11 @@ impl<'a> UaalEmitter<'a> {
                 Self::target_capability_error(
                     "HS-UAAL-CAP-006",
                     "uaal.buffer.borrow.v1",
-                    "borrowed slice argument requires `&owner` for a local owned buffer",
+                    if expected_mutable {
+                        "mutable borrowed slice argument requires `&mut owner` for a local owned buffer"
+                    } else {
+                        "borrowed slice argument requires `&owner` for a local owned buffer"
+                    },
                 )
             })?;
         self.require_owned_buffer_available(&owner.name, "call borrow")?;
@@ -1272,7 +1305,7 @@ impl<'a> UaalEmitter<'a> {
                 ),
             ));
         }
-        Ok(owner.name.clone())
+        Ok((owner.name.clone(), expected_mutable))
     }
 
     fn emit_owned_buffer_reference_argument(
@@ -1281,17 +1314,19 @@ impl<'a> UaalEmitter<'a> {
         expected_annotation: &str,
         call_borrows: &mut HashMap<String, bool>,
     ) -> Result<(), UaalEmitError> {
-        let owner_name =
+        let (owner_name, mutable) =
             self.preflight_owned_buffer_reference_argument(argument, expected_annotation)?;
         let slot = Self::slot_key(self.current_function_name()?, &owner_name);
-        if call_borrows.get(&slot).is_some_and(|mutable| *mutable) {
-            return Err(Self::target_capability_error(
-                "HS-UAAL-CAP-006",
-                "uaal.buffer.borrow.v1",
-                format!("shared buffer borrow alias conflict for `{slot}` in one call"),
-            ));
+        if let Some(existing_mutable) = call_borrows.get(&slot) {
+            if mutable || *existing_mutable {
+                return Err(Self::target_capability_error(
+                    "HS-UAAL-CAP-006",
+                    "uaal.buffer.borrow.v1",
+                    format!("buffer borrow alias conflict for `{slot}` in one call"),
+                ));
+            }
         }
-        call_borrows.insert(slot.clone(), false);
+        call_borrows.insert(slot.clone(), mutable);
         self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
         Ok(())
     }
@@ -1599,6 +1634,7 @@ impl<'a> UaalEmitter<'a> {
         Ok(UaalBorrowedBuffer {
             owner: owner.name.clone(),
             element_type: actual_element_type,
+            mutable: false,
             forwardable_parameter: false,
         })
     }
@@ -1940,18 +1976,48 @@ impl<'a> UaalEmitter<'a> {
                 "borrowed aggregate `store` requires a named scalar field projection",
             ));
         };
-        if member.computed
-            && matches!(
-                member.object.as_ref(),
-                AstNode::Identifier(root)
-                    if self.current_borrowed_buffers.contains_key(&root.name)
-            )
-        {
-            return Err(Self::target_capability_error(
-                "HS-UAAL-CAP-006",
-                "uaal.buffer.borrow.v1",
-                "immutable borrowed slices cannot be used with `store`; mutable slices are not admitted by uaal.buffer.borrow.v1",
-            ));
+        if member.computed {
+            if let AstNode::Identifier(root) = member.object.as_ref() {
+                if let Some(borrowed) = self.current_borrowed_buffers.get(&root.name).cloned() {
+                    if matches!(
+                        member.property.as_ref(),
+                        AstNode::BinaryExpression(range) if range.operator == ".."
+                    ) {
+                        return Err(Self::target_capability_error(
+                            "HS-UAAL-CAP-006",
+                            "uaal.buffer.borrow.v1",
+                            "borrowed subranges are not admitted by uaal.buffer.borrow.v1",
+                        ));
+                    }
+                    if !borrowed.mutable {
+                        return Err(Self::target_capability_error(
+                            "HS-UAAL-CAP-006",
+                            "uaal.buffer.borrow.v1",
+                            format!("cannot store through shared borrowed slice `{}`", root.name),
+                        ));
+                    }
+                    let slot = Self::slot_key(self.current_function_name()?, &borrowed.owner);
+                    self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
+                    self.emit_expression_with_expected(&member.property, Some("i32"))?;
+                    self.emit_expression_with_expected(
+                        &call.arguments[1],
+                        Some(&borrowed.element_type),
+                    )?;
+                    self.emit_op(OP_HS_BUFFER_STORE, vec![Value::from(borrowed.element_type)]);
+                    return Ok(());
+                }
+                if self.current_owned_buffers.contains_key(&root.name) {
+                    self.require_owned_buffer_available(&root.name, "write")?;
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-006",
+                        "uaal.buffer.borrow.v1",
+                        format!(
+                            "owned buffer `{}` must be written through a mutable borrowed slice",
+                            root.name
+                        ),
+                    ));
+                }
+            }
         }
         let projection = self.resolve_aggregate_field_projection(member)?;
         let borrowed = self
@@ -3658,16 +3724,180 @@ function main(): i32 {
     }
 
     #[test]
-    fn call_scoped_shared_owned_buffer_slice_parameters_fail_closed() {
+    fn lowers_call_scoped_mutable_owned_buffer_slice_parameters() {
+        let bytecode = compile_source_to_uaal(
+            r#"function write(view: &mut [i32], index: i32, value: i32): i32 {
+  store(view[index], value)
+  return load(view[index])
+}
+function read(view: &[i32], index: i32): i32 {
+  return load(view[index])
+}
+function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let changed: i32 = write(&mut values, 1, 9)
+  let observed: i32 = read(&values, 1)
+  drop(values)
+  return changed + observed
+}"#,
+        )
+        .expect("an exclusive call-scoped slice should mutate without transferring its owner");
+
+        let opcodes = bytecode
+            .instructions
+            .iter()
+            .map(|instruction| instruction.op_code)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_ALLOC)
+                .count(),
+            1
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_MOVE)
+                .count(),
+            0,
+            "exclusive slice calls must not transfer ownership"
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_STORE)
+                .count(),
+            1,
+            "the writer body should contain one indexed store"
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_LOAD)
+                .count(),
+            2,
+            "the writer and reader bodies should each contain one indexed load"
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_DROP)
+                .count(),
+            1,
+            "the caller must retain cleanup authority after the exclusive call ends"
+        );
+    }
+
+    #[test]
+    fn lowers_nested_forwarding_of_call_scoped_mutable_buffer_slice_parameters() {
+        let bytecode = compile_source_to_uaal(
+            r#"function write(view: &mut [i32], index: i32, value: i32): i32 {
+  store(view[index], value)
+  return load(view[index])
+}
+function relay(view: &mut [i32], index: i32, value: i32): i32 {
+  return write(view, index, value)
+}
+function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let changed: i32 = relay(&mut values, 0, 7)
+  drop(values)
+  return changed
+}"#,
+        )
+        .expect("an exclusive slice parameter should forward without transferring ownership");
+
+        let opcodes = bytecode
+            .instructions
+            .iter()
+            .map(|instruction| instruction.op_code)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_STORE)
+                .count(),
+            1
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_MOVE)
+                .count(),
+            0
+        );
+        for slot in ["__hs::relay::view", "__hs::write::view"] {
+            assert!(bytecode.instructions.iter().any(|instruction| {
+                instruction.op_code == OP_STATE_GET
+                    && instruction.operands.first() == Some(&Value::from(slot))
+            }));
+        }
+    }
+
+    #[test]
+    fn call_scoped_mutable_owned_buffer_slice_parameters_fail_closed() {
         for (source, expected) in [
             (
-                r#"function read(view: &mut [i32]): i32 { return load(view[0]) }
+                r#"function write(view: &mut [i32]): i32 { return load(view[0]) }
+function main(): i32 {
+  let values: [i32] = buffer(1, 5)
+  return write(&values)
+}"#,
+                "mutable borrowed slice arguments require an explicit `&mut owner` call borrow",
+            ),
+            (
+                r#"function read(view: &[i32]): i32 { return load(view[0]) }
 function main(): i32 {
   let values: [i32] = buffer(1, 5)
   return read(&mut values)
 }"#,
-                "mutable borrowed slice parameters are not admitted",
+                "shared borrowed slice arguments require `&owner`, not `&mut owner`",
             ),
+            (
+                r#"function read(view: &[i32]): i32 {
+  store(view[0], 9)
+  return load(view[0])
+}
+function main(): i32 {
+  let values: [i32] = buffer(1, 5)
+  return read(&values)
+}"#,
+                "cannot store through shared borrowed slice `view`",
+            ),
+            (
+                r#"function combine(writer: &mut [i32], reader: &[i32]): i32 {
+  store(writer[0], 9)
+  return load(reader[0])
+}
+function main(): i32 {
+  let values: [i32] = buffer(1, 5)
+  return combine(&mut values, &values)
+}"#,
+                "buffer borrow alias conflict",
+            ),
+            (
+                r#"function write(view: &mut [i32]): i32 {
+  store(view[0], 9)
+  return load(view[0])
+}
+function relay(view: &[i32]): i32 { return write(view) }
+function main(): i32 {
+  let values: [i32] = buffer(1, 5)
+  return relay(&values)
+}"#,
+                "expected `&mut [i32]`, found `&[i32]`",
+            ),
+        ] {
+            let error = compile_source_to_uaal(source)
+                .expect_err("unsupported mutable slice boundaries must fail closed");
+            assert!(error.message.contains(expected), "{}", error.message);
+        }
+    }
+
+    #[test]
+    fn call_scoped_shared_owned_buffer_slice_parameters_fail_closed() {
+        for (source, expected) in [
             (
                 r#"function read(view: &[f32]): f32 { return load(view[0]) }
 function main(): f32 {
@@ -3711,7 +3941,7 @@ function main(): i32 {
   let values: [i32] = buffer(1, 5)
   return combine(&values, move(values))
 }"#,
-                "owned buffer `values` cannot be shared-borrowed and moved or dropped in one call",
+                "owned buffer `values` cannot be borrowed and moved or dropped in one call",
             ),
             (
                 r#"function escape(view: &[i32]): &[i32] { return view }

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
- * Real-repository HoloAbsorb hybrid exact-name recall benchmark.
+ * Real-repository HoloAbsorb hybrid recall and visual-focus benchmark.
  *
- * This is intentionally separate from the small Paper 5 bootstrap: it proves
- * that parser-light tracked files are present in a real graph/index and that
- * exact-name fusion survives adversarial vector ranking.
+ * Full mode proves that parser-light tracked files are present in a real
+ * graph/index and that exact-name fusion survives adversarial vector ranking.
+ * Visual-focus-only mode keeps the same real graph/index pipeline but omits the
+ * repository-specific safe-commit assertions so a bounded package corpus can
+ * remeasure visual disambiguation without indexing an entire monorepo.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { cpus, platform, release, totalmem } from 'node:os';
@@ -20,6 +22,7 @@ function parseArgs(argv) {
     out: '.bench-logs/holoabsorb-hybrid-recall.json',
     maxFiles: 10_000,
     topK: 5,
+    visualFocusOnly: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const raw = argv[index];
@@ -30,6 +33,7 @@ function parseArgs(argv) {
     if (flag === '--out') options.out = value;
     if (flag === '--max-files') options.maxFiles = positiveInt(value, flag);
     if (flag === '--top-k') options.topK = positiveInt(value, flag);
+    if (flag === '--visual-focus-only') options.visualFocusOnly = true;
   }
   return options;
 }
@@ -69,10 +73,12 @@ async function main() {
   } = await import(pathToFileURL(enginePath).href);
   const repoRoot = resolve(options.repo);
   const outPath = resolve(options.out);
-  const queries = [
-    'safe-commit',
-    'safe-commit atomic wrapper that uses git commit --only with explicit paths',
-  ];
+  const queries = options.visualFocusOnly
+    ? []
+    : [
+        'safe-commit',
+        'safe-commit atomic wrapper that uses git commit --only with explicit paths',
+      ];
   const startedAt = new Date().toISOString();
   const baselineRss = process.memoryUsage().rss;
   let peakRss = baselineRss;
@@ -138,17 +144,21 @@ async function main() {
   await index.dispose();
   await scanner.dispose();
   const requiredFiles = ['scripts/safe-commit.ps1', 'scripts/safe-commit.sh'];
-  const checks = queryResults.map((run) => {
-    const top3 = run.results.slice(0, 3).map((result) => result.file);
-    return {
-      query: run.query,
-      requiredFilesInTop3: requiredFiles.filter((file) => top3.includes(file)),
-      pass: requiredFiles.every((file) => top3.includes(file)),
-    };
-  });
+  const checks = options.visualFocusOnly
+    ? []
+    : queryResults.map((run) => {
+        const top3 = run.results.slice(0, 3).map((result) => result.file);
+        return {
+          query: run.query,
+          requiredFilesInTop3: requiredFiles.filter((file) => top3.includes(file)),
+          pass: requiredFiles.every((file) => top3.includes(file)),
+        };
+      });
   const cappedByMaxFiles = coveragePlan.totalFiles > options.maxFiles;
   checks.push({
-    query: 'whole-repo-corpus-coverage',
+    query: options.visualFocusOnly
+      ? 'selected-root-corpus-coverage'
+      : 'whole-repo-corpus-coverage',
     selectedCandidateFiles: coveragePlan.totalFiles,
     scannedFiles: scanResult.files.length,
     cappedByMaxFiles,
@@ -160,8 +170,14 @@ async function main() {
   const status =
     checks.every((check) => check.pass) && visualDisambiguation.check.pass ? 'pass' : 'fail';
   const artifact = {
-    schemaVersion: 'holoscript.holoabsorb.hybrid-recall.v3',
+    schemaVersion: 'holoscript.holoabsorb.hybrid-recall.v4',
     productName: 'HoloAbsorb',
+    benchmarkProfile: options.visualFocusOnly
+      ? 'real-code-visual-focus'
+      : 'whole-repository-hybrid-recall',
+    claimBoundary: options.visualFocusOnly
+      ? 'Package-scoped real-code measurement of graph.holo structured selection over duplicate symbols. It does not claim whole-monorepo retrieval coverage or measure literal pixels, rendering, or human visual perception.'
+      : 'Whole-selected-root hybrid exact-name recall plus graph.holo structured-selection disambiguation. Coverage is only claimed when the selected Git-tracked root is uncapped.',
     status,
     startedAt,
     completedAt: new Date().toISOString(),

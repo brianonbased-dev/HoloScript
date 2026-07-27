@@ -39,6 +39,8 @@ function parseArgs(argv) {
     paper5Trials: 100,
     paper5MaxFiles: 500,
     paper5Dataset: 'packages/absorb-service/benchmarks/paper-5-retrieval-v1.json',
+    hybridRepo: 'packages/absorb-service',
+    hybridMaxFiles: 2_000,
     help: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -54,6 +56,8 @@ function parseArgs(argv) {
     if (flag === '--paper5-trials') options.paper5Trials = positiveInt(value, flag);
     if (flag === '--paper5-max-files') options.paper5MaxFiles = positiveInt(value, flag);
     if (flag === '--paper5-dataset') options.paper5Dataset = value;
+    if (flag === '--hybrid-repo') options.hybridRepo = value;
+    if (flag === '--hybrid-max-files') options.hybridMaxFiles = positiveInt(value, flag);
   }
   return options;
 }
@@ -78,6 +82,9 @@ function usage() {
     '  --paper5-trials=N       Paper 5 timing samples (default 100)',
     '  --paper5-max-files=N    Paper 5 accuracy scan cap (default 500)',
     '  --paper5-dataset=PATH   Frozen Paper 5 retrieval corpus',
+    '  --hybrid-repo=PATH      Real-code root for the visual-focus ablation',
+    '                           (default packages/absorb-service)',
+    '  --hybrid-max-files=N    Full-corpus ceiling for that root (default 2000)',
     '  --help                  Show this message',
   ].join('\n');
 }
@@ -335,6 +342,22 @@ export async function main(argv = process.argv.slice(2)) {
     })
   );
 
+  const hybridBenchmarkPath = resolve(outDir, 'holoabsorb-hybrid-visual-focus.json');
+  steps.push(
+    runStep({
+      id: 'holoabsorb-hybrid-visual-focus',
+      command: node,
+      args: [
+        'packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs',
+        '--visual-focus-only',
+        `--repo=${resolve(repoRoot, options.hybridRepo)}`,
+        `--max-files=${options.hybridMaxFiles}`,
+        `--out=${relative(repoRoot, hybridBenchmarkPath).replace(/\\/g, '/')}`,
+      ],
+      outDir,
+    })
+  );
+
   const paper5AccuracyPath = resolve(outDir, 'paper-5-accuracy-holoembed.json');
   steps.push(
     runStep({
@@ -445,6 +468,7 @@ export async function main(argv = process.argv.slice(2)) {
   const umbrellaAudit = safeJson(umbrellaAuditPath);
   const transportBenchmark = safeJson(transportBenchmarkPath);
   const refreshBenchmark = safeJson(refreshBenchmarkPath);
+  const hybridBenchmark = safeJson(hybridBenchmarkPath);
   const paper26HoloGraphMeasurements = parsePaper26HoloGraph(
     safeText(resolve(outDir, 'paper-26-holograph.stdout.log'))
   );
@@ -453,7 +477,7 @@ export async function main(argv = process.argv.slice(2)) {
   );
   const failedSteps = steps.filter((step) => step.status === 'fail');
   const receipt = {
-    schemaVersion: 'holoscript.holoabsorb.rebenchmark.v2',
+    schemaVersion: 'holoscript.holoabsorb.rebenchmark.v3',
     productName: 'HoloAbsorb',
     status: failedSteps.length === 0 ? 'pass' : 'fail',
     startedAt,
@@ -487,6 +511,26 @@ export async function main(argv = process.argv.slice(2)) {
             fixture: refreshBenchmark.fixture,
             measurements: refreshBenchmark.measurements,
             checks: refreshBenchmark.checks,
+          }
+        : null,
+      hybridVisualFocus: hybridBenchmark
+        ? {
+            status: hybridBenchmark.status,
+            benchmarkProfile: hybridBenchmark.benchmarkProfile,
+            claimBoundary: hybridBenchmark.claimBoundary,
+            implementation: hybridBenchmark.implementation,
+            repo: hybridBenchmark.repo,
+            corpus: hybridBenchmark.corpus,
+            checks: hybridBenchmark.checks,
+            visualDisambiguation: hybridBenchmark.measurements?.visualDisambiguation
+              ? {
+                  methodology: hybridBenchmark.measurements.visualDisambiguation.methodology,
+                  claimBoundary: hybridBenchmark.measurements.visualDisambiguation.claimBoundary,
+                  caseSet: hybridBenchmark.measurements.visualDisambiguation.caseSet,
+                  summary: hybridBenchmark.measurements.visualDisambiguation.summary,
+                  check: hybridBenchmark.measurements.visualDisambiguation.check,
+                }
+              : null,
           }
         : null,
       paper5Accuracy: {
@@ -540,6 +584,8 @@ export async function main(argv = process.argv.slice(2)) {
       'Paper 26 HoloEmbed recall uses name-derived NL queries over a 50-symbol synthetic corpus.',
       'The changed-symbol refresh benchmark uses a deterministic synthetic Git corpus and does not claim production-monorepo throughput.',
       'The transport-resilience benchmark is a deterministic synthetic lifecycle workload and does not claim network throughput or end-to-end MCP latency.',
+      'The visual-focus ablation is package-scoped real code, not a whole-monorepo retrieval claim. It freezes fixed duplicate-symbol targets before applying any visual selection; correct, stale, and wrong-but-resolved selections are separate arms over the same case set.',
+      'Visual focus is collision-safe graph.holo selection intent and structured graph evidence, not literal image-pixel vision. Wrong resolved selections may steer retrieval and are reported as caller intent rather than hidden model accuracy.',
       options.withXenova
         ? 'The optional Xenova ablation was attempted and its subprocess result is recorded.'
         : 'The optional Xenova model-download ablation was not run; no Xenova comparison is claimed.',
@@ -548,7 +594,7 @@ export async function main(argv = process.argv.slice(2)) {
     residualGaps: [
       'Commission independent multi-human relevance annotation without exposing system rankings to annotators.',
       'Replicate the frozen protocol on at least one external codebase and report inter-annotator agreement.',
-      'Add separate graph and provenance ablations; the current four-system comparison does not isolate each graph signal.',
+      'Add separate non-visual graph and provenance ablations; the visual-focus arm isolates only explicit graph.holo selection intent.',
       'Run target-hardware timing captures separately on verified RTX 3060 and Jetson/Orin lanes.',
       'Reconcile the paper prose and strict claim map only after the corresponding measured receipt exists.',
     ],

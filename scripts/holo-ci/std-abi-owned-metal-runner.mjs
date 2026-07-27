@@ -47,6 +47,12 @@ function fail(message) {
 // --- Verify bundle pins ------------------------------------------------------
 
 const manifest = JSON.parse(readFileSync(join(bundleDir, 'bundle-manifest.json'), 'utf8'));
+if (!/^[0-9a-f]{40}$/.test(manifest.sourceCommit || '')) {
+  fail('bundle manifest must pin a full 40-character HoloScript source commit');
+}
+if (!manifest.files?.['std-abi-owned-metal-runner.mjs']?.sha256) {
+  fail('bundle manifest must pin the owned-metal runner itself');
+}
 for (const [name, pin] of Object.entries(manifest.files)) {
   const actual = sha256(readFileSync(join(bundleDir, ...name.split('/'))));
   if (actual !== pin.sha256) {
@@ -62,20 +68,29 @@ const vectors = readFileSync(join(bundleDir, 'std-abi-vectors.v0.jsonl'), 'utf8'
 
 const wasm = require(join(bundleDir, 'pkg-node', 'holoscript_wasm.js'));
 const evaluatorExport =
-  typeof wasm.evaluate_trait_handler_v4 === 'function'
-    ? 'evaluate_trait_handler_v4'
-    : typeof wasm.evaluate_trait_handler_v3 === 'function'
-      ? 'evaluate_trait_handler_v3'
-      : typeof wasm.evaluate_trait_handler_v2 === 'function'
-        ? 'evaluate_trait_handler_v2'
-        : 'evaluate_trait_handler';
+  typeof wasm.evaluate_trait_handler_v6 === 'function'
+    ? 'evaluate_trait_handler_v6'
+    : typeof wasm.evaluate_trait_handler_v4 === 'function'
+      ? 'evaluate_trait_handler_v4'
+      : typeof wasm.evaluate_trait_handler_v3 === 'function'
+        ? 'evaluate_trait_handler_v3'
+        : typeof wasm.evaluate_trait_handler_v2 === 'function'
+          ? 'evaluate_trait_handler_v2'
+          : 'evaluate_trait_handler';
 if (typeof wasm[evaluatorExport] !== 'function') {
   fail('pkg-node artifact has no trait-handler evaluator export');
 }
+const packagedEvaluatorExport =
+  typeof wasm.evaluate_trait_handler_v6 === 'function'
+    ? 'evaluate_trait_handler_v6'
+    : typeof wasm.evaluate_trait_handler_v5 === 'function'
+      ? 'evaluate_trait_handler_v5'
+      : null;
 let hostBindings = null;
 if (
+  evaluatorExport === 'evaluate_trait_handler_v6' ||
   evaluatorExport === 'evaluate_trait_handler_v4' ||
-  typeof wasm.evaluate_trait_handler_v5 === 'function'
+  packagedEvaluatorExport
 ) {
   const { createStdHostBindings } = await import(
     pathToFileURL(join(bundleDir, 'std-host-binding.mjs')).href
@@ -83,7 +98,7 @@ if (
   hostBindings = createStdHostBindings();
 }
 const packagedSources = {};
-if (typeof wasm.evaluate_trait_handler_v5 === 'function' && manifest.packagedSources) {
+if (packagedEvaluatorExport && manifest.packagedSources) {
   for (const [trait, bundleName] of Object.entries(manifest.packagedSources)) {
     packagedSources[trait] = readFileSync(join(bundleDir, bundleName), 'utf8');
   }
@@ -137,14 +152,17 @@ for (const vector of runnable) {
   try {
     let raw;
     if (vector.packaged) {
-      raw = wasm.evaluate_trait_handler_v5(
+      raw = wasm[packagedEvaluatorExport](
         packagedSources[vector.trait],
         vector.trait,
         vector.op,
         JSON.stringify(vector.args),
         hostBindings
       );
-    } else if (evaluatorExport === 'evaluate_trait_handler_v4') {
+    } else if (
+      evaluatorExport === 'evaluate_trait_handler_v6' ||
+      evaluatorExport === 'evaluate_trait_handler_v4'
+    ) {
       raw = wasm[evaluatorExport](
         traitSource,
         traitName,
@@ -185,6 +203,7 @@ const receipt = {
     evaluatorExport,
     executedProjection: 'std-abi-conformance.trait.hsplus (bundle copy, pin-verified)',
     wasmArtifactSha256: manifest.files['pkg-node/holoscript_wasm_bg.wasm']?.sha256 || 'unpinned',
+    sourceCommit: manifest.sourceCommit,
   },
   sources: {
     'packages/std/conformance/generated/std-abi-vectors.v0.jsonl': {
@@ -223,16 +242,18 @@ const receipt = {
   ...(packagedReady
     ? {
         packagedExecution: {
-          evaluatorExport: 'evaluate_trait_handler_v5',
-          subsetId: 'holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories',
+          evaluatorExport: packagedEvaluatorExport,
+          subsetId:
+            packagedEvaluatorExport === 'evaluate_trait_handler_v6'
+              ? 'holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing'
+              : 'holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories',
           sources: Object.fromEntries(
             Object.entries(manifest.packagedSources).map(([trait, bundleName]) => [
               trait,
               { bundleFile: bundleName, sha256: manifest.files[bundleName]?.sha256 },
             ])
           ),
-          claim:
-            'packaged-handler vectors executed the shipped @trait source bytes (bundle-pinned) on this hardware via the v5 packaged-factories subset',
+          claim: `packaged-handler vectors executed the shipped @trait source bytes (bundle-pinned) on this hardware via ${packagedEvaluatorExport}`,
         },
       }
     : {}),
@@ -240,7 +261,7 @@ const receipt = {
   claimBoundary: {
     provesOwnedMetalWasmExecution: true,
     provesNodeDeterministicSubsetExecution: false,
-    note: 'Executed the generated trait projection through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts.',
+    note: `Executed the self-pinned runner and generated trait projection from HoloScript ${manifest.sourceCommit} through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts.`,
   },
 };
 

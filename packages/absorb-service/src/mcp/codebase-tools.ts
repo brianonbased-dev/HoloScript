@@ -139,17 +139,22 @@ interface AbsorbMemoryBudgetLimits {
   maxRssMb?: number;
   maxHeapUsedMb?: number;
   cacheCommitHeadroomMb?: number;
+  minSystemFreeMb?: number;
 }
 
 interface AbsorbMemoryBudgetTelemetry extends AbsorbMemoryBudgetLimits {
   peakRssMb: number;
   peakHeapUsedMb: number;
+  minObservedSystemFreeMb: number;
+  systemTotalMb: number;
   exceeded: boolean;
   exceededResource?: 'rss' | 'heap' | 'rss_and_heap';
   exceededAtPhase?: string;
   headroomExhausted: boolean;
   headroomResource?: 'rss' | 'heap' | 'rss_and_heap';
   headroomExhaustedAtPhase?: string;
+  systemReserveExhausted: boolean;
+  systemReserveExhaustedAtPhase?: string;
   effectiveMaxRssBeforeCacheCommitMb?: number;
   effectiveMaxHeapUsedBeforeCacheCommitMb?: number;
 }
@@ -157,7 +162,33 @@ interface AbsorbMemoryBudgetTelemetry extends AbsorbMemoryBudgetLimits {
 type AbsorbCancellationReason =
   | 'cancel_requested'
   | 'memory_budget_exceeded'
-  | 'cache_commit_headroom_exhausted';
+  | 'cache_commit_headroom_exhausted'
+  | 'system_memory_reserve_exhausted';
+
+interface AbsorbSourceDriftRetryPolicy {
+  enabled: boolean;
+  strictResumeToken: boolean;
+  maxRetries: number;
+  debounceMs: number;
+  checkIntervalMs: number;
+  maxCheckOverheadRatio: number;
+}
+
+interface AbsorbSourceDriftRetryTelemetry extends AbsorbSourceDriftRetryPolicy {
+  detectionCount: number;
+  retryCount: number;
+  headCheckCount: number;
+  headCheckDurationMs: number;
+  maxHeadCheckDurationMs: number;
+  effectiveCheckIntervalMs: number;
+  exhausted: boolean;
+  lastDetectedAt?: string;
+  lastExpectedCommit?: string;
+  lastObservedCommit?: string | null;
+  lastRootDir?: string;
+  lastDebounceDurationMs?: number;
+  lastHeadCheckDurationMs?: number;
+}
 
 interface AbsorbCancellationState {
   reason: AbsorbCancellationReason;
@@ -210,6 +241,13 @@ function hasMeshAuthHeaders(headers: Record<string, string>): boolean {
 const DEFAULT_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = 1_000;
 const DEFAULT_CACHE_COMMIT_HEADROOM_RATIO = 0.125;
 const DEFAULT_CACHE_COMMIT_HEADROOM_MAX_MB = 512;
+const DEFAULT_SYSTEM_MEMORY_RESERVE_RATIO = 0.1;
+const DEFAULT_SYSTEM_MEMORY_RESERVE_MIN_MB = 512;
+const DEFAULT_SYSTEM_MEMORY_RESERVE_MAX_MB = 2_048;
+const DEFAULT_SOURCE_DRIFT_MAX_RETRIES = 3;
+const DEFAULT_SOURCE_DRIFT_DEBOUNCE_MS = 750;
+const DEFAULT_SOURCE_DRIFT_CHECK_INTERVAL_MS = 1_000;
+const DEFAULT_SOURCE_DRIFT_CHECK_MAX_OVERHEAD_PERCENT = 4;
 
 function readPositiveEnvMs(name: string, fallback: number): number {
   const raw = Number(process.env[name]);
@@ -219,6 +257,36 @@ function readPositiveEnvMs(name: string, fallback: number): number {
 function readPositiveEnvInt(name: string, fallback: number): number {
   const raw = Number(process.env[name]);
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : fallback;
+}
+
+function effectiveSystemMemoryBytes(): { free: number; total: number } {
+  const processMemory = process as typeof process & {
+    availableMemory?: () => number;
+    constrainedMemory?: () => number;
+  };
+  const osTotal = os.totalmem();
+  const constrained = processMemory.constrainedMemory?.();
+  const total =
+    Number.isFinite(constrained) && Number(constrained) > 0
+      ? Math.min(osTotal, Number(constrained))
+      : osTotal;
+  const osFree = os.freemem();
+  const processAvailable = processMemory.availableMemory?.();
+  const free =
+    Number.isFinite(processAvailable) && Number(processAvailable) >= 0
+      ? Math.min(osFree, Number(processAvailable))
+      : osFree;
+  return { free, total };
+}
+
+function defaultSystemMemoryReserveMb(): number {
+  const totalMb = effectiveSystemMemoryBytes().total / 1024 / 1024;
+  return Math.round(
+    Math.min(
+      DEFAULT_SYSTEM_MEMORY_RESERVE_MAX_MB,
+      Math.max(DEFAULT_SYSTEM_MEMORY_RESERVE_MIN_MB, totalMb * DEFAULT_SYSTEM_MEMORY_RESERVE_RATIO)
+    )
+  );
 }
 
 function resolveAbsorbMemoryBudget(
@@ -239,6 +307,17 @@ function resolveAbsorbMemoryBudget(
     maxRssMb: readLimit('maxRssMb', 'ABSORB_MAX_RSS_MB'),
     maxHeapUsedMb: readLimit('maxHeapUsedMb', 'ABSORB_MAX_HEAP_USED_MB'),
   };
+  const rawSystemReserve = args.minSystemFreeMb ?? process.env.ABSORB_MIN_SYSTEM_FREE_MB;
+  if (rawSystemReserve === undefined || rawSystemReserve === '') {
+    limits.minSystemFreeMb = defaultSystemMemoryReserveMb();
+  } else {
+    const value = Number(rawSystemReserve);
+    if (!Number.isFinite(value) || value < 0) {
+      errors.push('minSystemFreeMb must be a non-negative number when provided.');
+    } else if (value > 0) {
+      limits.minSystemFreeMb = value;
+    }
+  }
   const rawHeadroom = args.cacheCommitHeadroomMb ?? process.env.ABSORB_CACHE_COMMIT_HEADROOM_MB;
   if (rawHeadroom !== undefined && rawHeadroom !== '') {
     const value = Number(rawHeadroom);
@@ -261,6 +340,63 @@ function resolveAbsorbMemoryBudget(
   return errors.length > 0 ? { valid: false, errors } : { valid: true, limits };
 }
 
+function resolveAbsorbSourceDriftRetryPolicy(
+  args: Record<string, unknown>,
+  strictResumeToken: boolean
+): { valid: true; policy: AbsorbSourceDriftRetryPolicy } | { valid: false; errors: string[] } {
+  const errors: string[] = [];
+  if (args.autoRetrySourceDrift !== undefined && typeof args.autoRetrySourceDrift !== 'boolean') {
+    errors.push('autoRetrySourceDrift must be a boolean when provided.');
+  }
+  const readNonNegativeInt = (key: string, envName: string, fallback: number): number => {
+    const raw = args[key] ?? process.env[envName];
+    if (raw === undefined || raw === '') return fallback;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0 || !Number.isInteger(value)) {
+      errors.push(`${key} must be a non-negative integer when provided.`);
+      return fallback;
+    }
+    return value;
+  };
+  const requestedEnabled =
+    args.autoRetrySourceDrift !== false && !envFlagDisabled('ABSORB_AUTO_RETRY_SOURCE_DRIFT');
+  const policy: AbsorbSourceDriftRetryPolicy = {
+    enabled: requestedEnabled && !strictResumeToken,
+    strictResumeToken,
+    maxRetries: readNonNegativeInt(
+      'maxSourceDriftRetries',
+      'ABSORB_SOURCE_DRIFT_MAX_RETRIES',
+      DEFAULT_SOURCE_DRIFT_MAX_RETRIES
+    ),
+    debounceMs: readNonNegativeInt(
+      'sourceDriftDebounceMs',
+      'ABSORB_SOURCE_DRIFT_DEBOUNCE_MS',
+      DEFAULT_SOURCE_DRIFT_DEBOUNCE_MS
+    ),
+    checkIntervalMs: readNonNegativeInt(
+      'sourceDriftCheckIntervalMs',
+      'ABSORB_SOURCE_DRIFT_CHECK_INTERVAL_MS',
+      DEFAULT_SOURCE_DRIFT_CHECK_INTERVAL_MS
+    ),
+    maxCheckOverheadRatio: (() => {
+      const raw =
+        args.sourceDriftCheckMaxOverheadPercent ??
+        process.env.ABSORB_SOURCE_DRIFT_CHECK_MAX_OVERHEAD_PERCENT ??
+        DEFAULT_SOURCE_DRIFT_CHECK_MAX_OVERHEAD_PERCENT;
+      const value = Number(raw);
+      if (!Number.isFinite(value) || value < 0 || value > 100) {
+        errors.push(
+          'sourceDriftCheckMaxOverheadPercent must be a number between 0 and 100 when provided.'
+        );
+        return DEFAULT_SOURCE_DRIFT_CHECK_MAX_OVERHEAD_PERCENT / 100;
+      }
+      return value / 100;
+    })(),
+  };
+  if (policy.maxRetries === 0) policy.enabled = false;
+  return errors.length > 0 ? { valid: false, errors } : { valid: true, policy };
+}
+
 function envFlagDisabled(name: string): boolean {
   const raw = process.env[name]?.trim().toLowerCase();
   return raw === '0' || raw === 'false' || raw === 'off' || raw === 'no';
@@ -277,6 +413,14 @@ function readAbsorbMemorySnapshot(): AbsorbMemorySnapshot {
   return {
     rssMb: Math.round(memory.rss / 1024 / 1024),
     heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
+  };
+}
+
+function readSystemMemorySnapshot(): { freeMb: number; totalMb: number } {
+  const memory = effectiveSystemMemoryBytes();
+  return {
+    freeMb: Math.round(memory.free / 1024 / 1024),
+    totalMb: Math.round(memory.total / 1024 / 1024),
   };
 }
 
@@ -584,6 +728,7 @@ interface AbsorbJob {
   backgroundWorker?: Worker;
   backgroundIsolation?: 'worker-thread' | 'inline-fallback';
   workerMemory?: AbsorbMemorySnapshot;
+  sourceDriftRetry: AbsorbSourceDriftRetryTelemetry;
 }
 
 interface AbsorbWriterLeaseRecord {
@@ -734,6 +879,7 @@ function buildAbsorbWriterPolicyHash(options: {
   inlineSourceFiles?: SourceFileEntry[];
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
   resumeToken?: string;
+  sourceDriftRetryPolicy: AbsorbSourceDriftRetryPolicy;
 }): string {
   const normalizedScanPolicy = normalizeScanPolicy(options.scanPolicy);
   const inlineSourceDigest = options.inlineSourceFiles
@@ -769,6 +915,7 @@ function buildAbsorbWriterPolicyHash(options: {
         inlineSourceDigest,
         localCodebaseSnapshotReceipt: options.localCodebaseSnapshotReceipt,
         resumeToken: options.resumeToken,
+        sourceDriftRetryPolicy: options.sourceDriftRetryPolicy,
       })
     )
     .digest('hex');
@@ -966,13 +1113,17 @@ function acquireAbsorbWriterLease(options: {
 
 function createAbsorbMemoryBudget(limits: AbsorbMemoryBudgetLimits): AbsorbMemoryBudgetTelemetry {
   const current = readAbsorbMemorySnapshot();
+  const system = readSystemMemorySnapshot();
   const headroom = limits.cacheCommitHeadroomMb ?? 0;
   return {
     ...limits,
     peakRssMb: current.rssMb,
     peakHeapUsedMb: current.heapUsedMb,
+    minObservedSystemFreeMb: system.freeMb,
+    systemTotalMb: system.totalMb,
     exceeded: false,
     headroomExhausted: false,
+    systemReserveExhausted: false,
     ...(limits.maxRssMb !== undefined && {
       effectiveMaxRssBeforeCacheCommitMb: Math.max(0, limits.maxRssMb - headroom),
     }),
@@ -988,8 +1139,14 @@ function updateAbsorbMemoryBudget(job: AbsorbJob, phase: string): void {
   // healthy worker because an unrelated MCP request raised parent RSS.
   if (job.backgroundIsolation === 'worker-thread') return;
   const current = readAbsorbMemorySnapshot();
+  const system = readSystemMemorySnapshot();
   job.memoryBudget.peakRssMb = Math.max(job.memoryBudget.peakRssMb, current.rssMb);
   job.memoryBudget.peakHeapUsedMb = Math.max(job.memoryBudget.peakHeapUsedMb, current.heapUsedMb);
+  job.memoryBudget.minObservedSystemFreeMb = Math.min(
+    job.memoryBudget.minObservedSystemFreeMb,
+    system.freeMb
+  );
+  job.memoryBudget.systemTotalMb = system.totalMb;
 
   const rssExceeded =
     job.memoryBudget.maxRssMb !== undefined && current.rssMb > job.memoryBudget.maxRssMb;
@@ -1002,7 +1159,16 @@ function updateAbsorbMemoryBudget(job: AbsorbJob, phase: string): void {
   const heapHeadroomExhausted =
     job.memoryBudget.effectiveMaxHeapUsedBeforeCacheCommitMb !== undefined &&
     current.heapUsedMb > job.memoryBudget.effectiveMaxHeapUsedBeforeCacheCommitMb;
-  if (!rssExceeded && !heapExceeded && !rssHeadroomExhausted && !heapHeadroomExhausted) {
+  const systemReserveExhausted =
+    job.memoryBudget.minSystemFreeMb !== undefined &&
+    system.freeMb < job.memoryBudget.minSystemFreeMb;
+  if (
+    !rssExceeded &&
+    !heapExceeded &&
+    !rssHeadroomExhausted &&
+    !heapHeadroomExhausted &&
+    !systemReserveExhausted
+  ) {
     return;
   }
 
@@ -1022,19 +1188,116 @@ function updateAbsorbMemoryBudget(job: AbsorbJob, phase: string): void {
           : 'heap';
     job.memoryBudget.headroomExhaustedAtPhase ??= phase;
   }
+  if (systemReserveExhausted) {
+    job.memoryBudget.systemReserveExhausted = true;
+    job.memoryBudget.systemReserveExhaustedAtPhase ??= phase;
+  }
   if (!job.abortController.signal.aborted) {
     const hardLimitExceeded = rssExceeded || heapExceeded;
     const resource = hardLimitExceeded
       ? job.memoryBudget.exceededResource
       : job.memoryBudget.headroomResource;
+    const reason: AbsorbCancellationReason = hardLimitExceeded
+      ? 'memory_budget_exceeded'
+      : systemReserveExhausted
+        ? 'system_memory_reserve_exhausted'
+        : 'cache_commit_headroom_exhausted';
     requestAbsorbCancellation(
       job,
-      hardLimitExceeded ? 'memory_budget_exceeded' : 'cache_commit_headroom_exhausted',
+      reason,
       hardLimitExceeded
         ? `Absorb ${resource} memory budget exceeded during ${phase}`
-        : `Absorb ${resource} cache-commit headroom exhausted during ${phase}; preserving the prior authoritative cache`
+        : systemReserveExhausted
+          ? `Absorb host memory reserve fell to ${system.freeMb} MiB during ${phase}, below the ${job.memoryBudget.minSystemFreeMb} MiB floor; preserving the prior authoritative cache`
+          : `Absorb ${resource} cache-commit headroom exhausted during ${phase}; preserving the prior authoritative cache`
     );
   }
+}
+
+function enforceAbsorbPreflightResourceGuard(jobId: string): void {
+  const job = absorbJobs.get(jobId);
+  if (!job || job.memoryBudget.minSystemFreeMb === undefined) return;
+  const system = readSystemMemorySnapshot();
+  job.memoryBudget.minObservedSystemFreeMb = Math.min(
+    job.memoryBudget.minObservedSystemFreeMb,
+    system.freeMb
+  );
+  job.memoryBudget.systemTotalMb = system.totalMb;
+  if (system.freeMb >= job.memoryBudget.minSystemFreeMb) return;
+
+  job.memoryBudget.systemReserveExhausted = true;
+  job.memoryBudget.systemReserveExhaustedAtPhase ??= 'preflight resource guard';
+  requestAbsorbCancellation(
+    job,
+    'system_memory_reserve_exhausted',
+    `Absorb host memory reserve is ${system.freeMb} MiB before planning, below the ${job.memoryBudget.minSystemFreeMb} MiB floor; preserving the prior authoritative cache`
+  );
+  const reason = job.abortController.signal.reason;
+  if (reason instanceof Error) throw reason;
+  throw new AbsorbCancelledError(
+    job.jobId,
+    'system_memory_reserve_exhausted',
+    'preflight resource guard',
+    job.cancellation?.message ?? 'Absorb host memory reserve exhausted before planning'
+  );
+}
+
+function createAbsorbSourceDriftRetryTelemetry(
+  policy: AbsorbSourceDriftRetryPolicy
+): AbsorbSourceDriftRetryTelemetry {
+  return {
+    ...policy,
+    detectionCount: 0,
+    retryCount: 0,
+    headCheckCount: 0,
+    headCheckDurationMs: 0,
+    maxHeadCheckDurationMs: 0,
+    effectiveCheckIntervalMs: policy.checkIntervalMs,
+    exhausted: false,
+  };
+}
+
+function recordAbsorbSourceHeadCheck(
+  jobId: string | undefined,
+  durationMs: number,
+  effectiveCheckIntervalMs: number
+): void {
+  if (!jobId) return;
+  const job = absorbJobs.get(jobId);
+  if (!job) return;
+  const roundedDurationMs = Math.round(Math.max(0, durationMs) * 1000) / 1000;
+  job.sourceDriftRetry.headCheckCount += 1;
+  job.sourceDriftRetry.headCheckDurationMs =
+    Math.round((job.sourceDriftRetry.headCheckDurationMs + roundedDurationMs) * 1000) / 1000;
+  job.sourceDriftRetry.maxHeadCheckDurationMs = Math.max(
+    job.sourceDriftRetry.maxHeadCheckDurationMs,
+    roundedDurationMs
+  );
+  job.sourceDriftRetry.effectiveCheckIntervalMs = effectiveCheckIntervalMs;
+  job.sourceDriftRetry.lastHeadCheckDurationMs = roundedDurationMs;
+}
+
+function recordAbsorbSourceDrift(
+  jobId: string | undefined,
+  error: AbsorbRefreshCommitPinError
+): AbsorbSourceDriftRetryTelemetry | undefined {
+  if (!jobId) return undefined;
+  const job = absorbJobs.get(jobId);
+  if (!job) return undefined;
+  job.sourceDriftRetry.detectionCount += 1;
+  job.sourceDriftRetry.lastDetectedAt = new Date().toISOString();
+  job.sourceDriftRetry.lastExpectedCommit = error.expectedCommit;
+  job.sourceDriftRetry.lastObservedCommit = error.actualCommit;
+  job.sourceDriftRetry.lastRootDir = error.rootDir;
+  return job.sourceDriftRetry;
+}
+
+function recordAbsorbSourceDriftRetry(jobId: string | undefined, debounceDurationMs: number): void {
+  if (!jobId) return;
+  const job = absorbJobs.get(jobId);
+  if (!job) return;
+  job.sourceDriftRetry.retryCount += 1;
+  job.sourceDriftRetry.lastDebounceDurationMs = debounceDurationMs;
 }
 
 function requestAbsorbCancellation(
@@ -1123,6 +1386,7 @@ function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, 
       resumeToken: job.refreshProgressReceipt.resumeToken,
     }),
     memoryBudget: { ...job.memoryBudget },
+    sourceDriftRetry: { ...job.sourceDriftRetry },
   };
   job.result = receipt;
   releaseAbsorbWriterLease(job);
@@ -1325,7 +1589,8 @@ function failAbsorbJob(
  */
 function createAbsorbJob(
   rootDir: string,
-  memoryBudget: AbsorbMemoryBudgetLimits = {},
+  memoryBudget: AbsorbMemoryBudgetLimits,
+  sourceDriftRetryPolicy: AbsorbSourceDriftRetryPolicy,
   writerKey?: string,
   writerPolicyHash?: string,
   writerLease?: AbsorbWriterLease,
@@ -1347,6 +1612,7 @@ function createAbsorbJob(
     phaseMetrics: [],
     abortController: new AbortController(),
     memoryBudget: createAbsorbMemoryBudget(memoryBudget),
+    sourceDriftRetry: createAbsorbSourceDriftRetryTelemetry(sourceDriftRetryPolicy),
     cacheCommitted: false,
   });
 
@@ -1574,6 +1840,16 @@ function startIsolatedBackgroundAbsorbJob(jobId: string, args: Record<string, un
     }
     if (workerStatus && Array.isArray(workerStatus.phaseMetrics)) {
       activeJob.phaseMetrics = workerStatus.phaseMetrics as AbsorbPhaseMetric[];
+    }
+    if (
+      workerStatus &&
+      typeof workerStatus.sourceDriftRetry === 'object' &&
+      workerStatus.sourceDriftRetry !== null
+    ) {
+      activeJob.sourceDriftRetry = {
+        ...activeJob.sourceDriftRetry,
+        ...(workerStatus.sourceDriftRetry as Partial<AbsorbSourceDriftRetryTelemetry>),
+      };
     }
     if (workerStatus && typeof workerStatus.phase === 'string') {
       activeJob.phase = workerStatus.phase;
@@ -2723,6 +2999,67 @@ async function assertGraphRootSourcePinsCurrent(
       );
     }
   }
+}
+
+async function assertGraphRootHeadPinsCurrent(pins: GraphRootSourcePin[]): Promise<void> {
+  for (const pin of pins) {
+    const currentCommit = await getCurrentGitCommit(pin.rootDir);
+    if (pin.gitCommitHash !== currentCommit) {
+      throw new AbsorbRefreshCommitPinError(
+        pin.gitCommitHash ?? 'no git commit',
+        currentCommit,
+        pin.rootDir
+      );
+    }
+  }
+}
+
+async function waitForAbortableDelay(delayMs: number, signal?: AbortSignal): Promise<void> {
+  if (delayMs <= 0) return;
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, delayMs);
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      reject(
+        signal?.reason instanceof Error
+          ? signal.reason
+          : new Error('Absorb source-drift debounce cancelled')
+      );
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+    if (signal?.aborted) onAbort();
+  });
+}
+
+async function waitForAbsorbSourceDriftDebounce(
+  rootDirs: string[],
+  debounceMs: number,
+  signal?: AbortSignal
+): Promise<number> {
+  if (debounceMs <= 0) return 0;
+  const startedAt = Date.now();
+  const maxWaitMs = Math.max(debounceMs, debounceMs * 4);
+  let stableSince = Date.now();
+  let observedHeads = await Promise.all(
+    canonicalizeRootSet(rootDirs).map((rootDir) => getCurrentGitCommit(rootDir))
+  );
+
+  while (Date.now() - stableSince < debounceMs && Date.now() - startedAt < maxWaitMs) {
+    const remainingQuietMs = debounceMs - (Date.now() - stableSince);
+    await waitForAbortableDelay(Math.max(1, Math.min(250, remainingQuietMs)), signal);
+    const currentHeads = await Promise.all(
+      canonicalizeRootSet(rootDirs).map((rootDir) => getCurrentGitCommit(rootDir))
+    );
+    if (currentHeads.some((head, index) => head !== observedHeads[index])) {
+      observedHeads = currentHeads;
+      stableSince = Date.now();
+    }
+  }
+  return Date.now() - startedAt;
 }
 
 function buildGraphRootAuthorityPins(
@@ -4716,6 +5053,12 @@ export const codebaseTools: Tool[] = [
           description:
             'Memory reserve in MiB held below configured RSS/heap caps for graph and embedding serialization plus atomic cache publication. Near-cap jobs cancel cooperatively before touching the prior cache. Defaults to 12.5% of the smallest configured cap, capped at 512 MiB; set ABSORB_CACHE_COMMIT_HEADROOM_MB or pass 0 to disable.',
         },
+        minSystemFreeMb: {
+          type: 'number',
+          minimum: 0,
+          description:
+            'Minimum host free-memory reserve in MiB. The job checks this before planning and throughout scan/embedding work, then cancels cooperatively before the host enters OOM pressure. Defaults to 10% of physical memory, bounded to 512-2048 MiB; set ABSORB_MIN_SYSTEM_FREE_MB or pass 0 to disable.',
+        },
         exclude: {
           type: 'array',
           items: { type: 'string' },
@@ -4780,6 +5123,37 @@ export const codebaseTools: Tool[] = [
           type: 'string',
           description:
             'Resume a previously interrupted forced scan from its durable progress receipt. Repository root, scan policy, batch plan, and selected file set must match; when HEAD or worktree state changed, only batches whose source-content digest still matches are reused.',
+        },
+        autoRetrySourceDrift: {
+          type: 'boolean',
+          description:
+            'Automatically replan a forced refresh when HEAD advances, reusing byte-identical checkpoint batches after a quiet debounce. Defaults to true for automatic refreshes. Caller-supplied resumeToken requests remain strict and never auto-rebase.',
+          default: true,
+        },
+        maxSourceDriftRetries: {
+          type: 'number',
+          minimum: 0,
+          description:
+            'Maximum automatic HEAD-drift replans for one job. Defaults to 3; pass 0 to disable.',
+        },
+        sourceDriftDebounceMs: {
+          type: 'number',
+          minimum: 0,
+          description:
+            'Required quiet period before replanning after HEAD drift. Defaults to 750ms.',
+        },
+        sourceDriftCheckIntervalMs: {
+          type: 'number',
+          minimum: 0,
+          description:
+            'Minimum interval between cheap HEAD-only checks at scan batch boundaries. Defaults to 1000ms; pass 0 to check every batch.',
+        },
+        sourceDriftCheckMaxOverheadPercent: {
+          type: 'number',
+          minimum: 0,
+          maximum: 100,
+          description:
+            'Maximum target share of refresh time spent on HEAD-only checks. Defaults to 4%; expensive Git probes automatically widen the effective interval. Pass 0 to disable adaptive throttling. sourceDriftCheckIntervalMs:0 still checks every batch.',
         },
         includeBuildArtifacts: {
           type: 'boolean',
@@ -5467,6 +5841,14 @@ async function ensureCachedGraph(): Promise<{
             createAbsorbJob(
               rootForWarm,
               {},
+              {
+                enabled: false,
+                strictResumeToken: false,
+                maxRetries: 0,
+                debounceMs: 0,
+                checkIntervalMs: 0,
+                maxCheckOverheadRatio: 0,
+              },
               warmWriterKey,
               warmPolicyHash,
               acquisition.lease,
@@ -5630,7 +6012,8 @@ async function runFullScan(
   preparedScanPlan?: PlannedScannerScanPlan,
   refreshCheckpoint?: AbsorbRefreshCheckpoint,
   targetGitCommitHash?: string | null,
-  targetWorktreeFingerprint?: string | null
+  targetWorktreeFingerprint?: string | null,
+  sourceDriftRetryPolicy?: AbsorbSourceDriftRetryPolicy
 ): Promise<unknown> {
   const {
     CodebaseScanner,
@@ -5737,6 +6120,34 @@ async function runFullScan(
       throw error;
     }
   };
+  let lastBatchHeadCheckAt = 0;
+  let effectiveHeadCheckIntervalMs =
+    sourceDriftRetryPolicy?.checkIntervalMs ?? DEFAULT_SOURCE_DRIFT_CHECK_INTERVAL_MS;
+  const enforceRefreshHeadPinBetweenBatches = async (): Promise<void> => {
+    if (rootSourcePins.length === 0) return;
+    const configuredCheckIntervalMs =
+      sourceDriftRetryPolicy?.checkIntervalMs ?? DEFAULT_SOURCE_DRIFT_CHECK_INTERVAL_MS;
+    const now = Date.now();
+    if (lastBatchHeadCheckAt > 0 && now - lastBatchHeadCheckAt < effectiveHeadCheckIntervalMs) {
+      return;
+    }
+    lastBatchHeadCheckAt = now;
+    const checkStartedAt = process.hrtime.bigint();
+    try {
+      await assertGraphRootHeadPinsCurrent(rootSourcePins);
+    } finally {
+      const durationMs = Number(process.hrtime.bigint() - checkStartedAt) / 1_000_000;
+      const maxCheckOverheadRatio = sourceDriftRetryPolicy?.maxCheckOverheadRatio ?? 0;
+      if (configuredCheckIntervalMs > 0 && maxCheckOverheadRatio > 0) {
+        effectiveHeadCheckIntervalMs = Math.max(
+          configuredCheckIntervalMs,
+          effectiveHeadCheckIntervalMs,
+          Math.ceil(durationMs / maxCheckOverheadRatio)
+        );
+      }
+      recordAbsorbSourceHeadCheck(jobId, durationMs, effectiveHeadCheckIntervalMs);
+    }
+  };
 
   if (jobId) trackAbsorbProgress(jobId, 'Discovering files', 5);
 
@@ -5823,7 +6234,7 @@ async function runFullScan(
         loadBatchResult: (batch: PlannedScannerBatch) =>
           scanRefreshCheckpoint.loadBatchResult(batch, batchInputHashes.get(batch.index) ?? null),
         onBatchResume: scanRefreshCheckpoint
-          ? (batch: PlannedScannerBatch, _result: ScanResult, totalBatches: number) => {
+          ? async (batch: PlannedScannerBatch, _result: ScanResult, totalBatches: number) => {
               setAbsorbJobRefreshProgress(jobId, scanRefreshCheckpoint.progressReceipt());
               if (jobId) {
                 trackAbsorbProgress(
@@ -5832,6 +6243,7 @@ async function runFullScan(
                   10 + (batch.index / Math.max(totalBatches, 1)) * 50
                 );
               }
+              await enforceRefreshHeadPinBetweenBatches();
             }
           : undefined,
         onBatchStart: (batch: PlannedScannerBatch, totalBatches: number) => {
@@ -5864,6 +6276,7 @@ async function runFullScan(
               10 + (batch.index / Math.max(totalBatches, 1)) * 50
             );
           }
+          await enforceRefreshHeadPinBetweenBatches();
         },
         onProgress: (processed: number, total: number, file: string) => {
           if (jobId) {
@@ -6918,6 +7331,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     };
   }
   const resumeToken = (args.resumeToken as string | undefined)?.trim() || undefined;
+  const explicitResumeToken = Boolean(resumeToken) && args.__autoGeneratedResumeToken !== true;
   if (resumeToken && fromSourceFiles) {
     return {
       error: 'resume_token_validation_failed',
@@ -6955,6 +7369,15 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       errors: memoryBudgetResult.errors,
     };
   }
+  const sourceDriftRetryResult = resolveAbsorbSourceDriftRetryPolicy(args, explicitResumeToken);
+  if (!sourceDriftRetryResult.valid) {
+    return {
+      error: 'source_drift_retry_validation_failed',
+      message: sourceDriftRetryResult.errors.join('; '),
+      errors: sourceDriftRetryResult.errors,
+    };
+  }
+  const sourceDriftRetryPolicy = sourceDriftRetryResult.policy;
   const runningInsideIsolatedWorker = args.__isolatedBackgroundWorker === true;
 
   // Inline uploads with an explicit provenance root publish to that root's
@@ -6978,6 +7401,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
           inlineSourceFiles,
           localCodebaseSnapshotReceipt,
           resumeToken,
+          sourceDriftRetryPolicy,
         })
     : undefined;
   const activeWriter = findActiveAbsorbWriter(writerKey);
@@ -7089,11 +7513,18 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const jobId = createAbsorbJob(
     primaryRootDir,
     memoryBudgetResult.limits,
+    sourceDriftRetryPolicy,
     writerKey,
     writerPolicyHash,
     writerLease,
     requestedJobId
   );
+  try {
+    enforceAbsorbPreflightResourceGuard(jobId);
+  } catch (error) {
+    if (isAbsorbCancellation(error, jobId)) return settleCancelledAbsorbJob(jobId, error);
+    throw error;
+  }
 
   const plan: AbsorbExecutionPlan = {
     mod,
@@ -7120,6 +7551,8 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     localCodebaseSnapshotReceipt,
     fromSourceFiles,
     resumeToken,
+    explicitResumeToken,
+    sourceDriftRetryPolicy,
   };
 
   const requestedBackground =
@@ -7157,6 +7590,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       buildIsolatedAbsorbWorkerArgs(args, plan, {
         ...(plan.refreshCheckpoint && {
           resumeToken: plan.refreshCheckpoint.progressReceipt().resumeToken,
+          __autoGeneratedResumeToken: !plan.explicitResumeToken,
         }),
       }),
       requiresIsolatedLargeBackground(scaleDecision)
@@ -7193,6 +7627,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       force,
       embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
       memoryBudget: { ...absorbJobs.get(jobId)!.memoryBudget },
+      sourceDriftRetry: { ...absorbJobs.get(jobId)!.sourceDriftRetry },
       ...(recoveredStaleWriterLease && { recoveredStaleWriterLease: true }),
       scanPolicy: plan.scanPolicy,
       ...(plan.refreshCheckpoint && {
@@ -7282,6 +7717,8 @@ interface AbsorbExecutionPlan {
   localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
   fromSourceFiles: boolean;
   resumeToken?: string;
+  explicitResumeToken: boolean;
+  sourceDriftRetryPolicy: AbsorbSourceDriftRetryPolicy;
   preparedScanPlan?: PlannedScannerScanPlan;
   refreshCheckpoint?: AbsorbRefreshCheckpoint;
   targetGitCommitHash?: string | null;
@@ -7313,6 +7750,12 @@ function buildIsolatedAbsorbWorkerArgs(
     includeUntracked: policy.includeUntracked !== false,
     maxFiles: plan.maxFiles ?? policy.maxFiles ?? DEFAULT_SCAN_MAX_FILES,
     maxFileSize: policy.maxFileSize ?? plan.maxFileSize,
+    minSystemFreeMb: absorbJobs.get(plan.jobId)?.memoryBudget.minSystemFreeMb ?? 0,
+    autoRetrySourceDrift: plan.sourceDriftRetryPolicy.enabled,
+    maxSourceDriftRetries: plan.sourceDriftRetryPolicy.maxRetries,
+    sourceDriftDebounceMs: plan.sourceDriftRetryPolicy.debounceMs,
+    sourceDriftCheckIntervalMs: plan.sourceDriftRetryPolicy.checkIntervalMs,
+    sourceDriftCheckMaxOverheadPercent: plan.sourceDriftRetryPolicy.maxCheckOverheadRatio * 100,
     ...(writerLease && {
       __writerJobId: plan.jobId,
       __writerLeaseToken: writerLease.record.token,
@@ -7610,17 +8053,14 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
     inlineSourceFiles,
     localCodebaseSnapshotReceipt,
     fromSourceFiles,
-    preparedScanPlan,
-    refreshCheckpoint,
-    targetGitCommitHash,
-    targetWorktreeFingerprint,
+    sourceDriftRetryPolicy,
   } = plan;
   const { CodebaseGraph, GitChangeDetector } = mod;
   const signal = getAbsorbJobSignal(jobId);
   try {
     enforceAbsorbJobControl(jobId, 'initializing');
   } catch (error) {
-    const activeCheckpoint = plan.refreshCheckpoint ?? refreshCheckpoint;
+    const activeCheckpoint = plan.refreshCheckpoint;
     if (activeCheckpoint) {
       activeCheckpoint.markInterrupted(error);
       setAbsorbJobRefreshProgress(jobId, activeCheckpoint.progressReceipt());
@@ -7632,53 +8072,88 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
   // PATH 1: force=true → FULL SCAN
   // ═══════════════════════════════════════════════════════════════════════════
   if (force) {
-    if (!fromSourceFiles && !refreshCheckpoint) {
-      await prepareDurableRefreshCheckpoint(plan);
-    }
-    const activeCheckpoint = plan.refreshCheckpoint ?? refreshCheckpoint;
-    try {
-      const result = await runFullScan(
-        mod,
-        effectiveRootDirs,
-        languages,
-        maxFiles,
-        includeBuildArtifacts,
-        outputFormat,
-        layout,
-        interactive,
-        jobId,
-        embeddingProvider,
-        embeddingApiKey,
-        embeddingModel,
-        inlineSourceFiles,
-        localCodebaseSnapshotReceipt,
-        scanBatchSize,
-        scanPolicy,
-        plan.preparedScanPlan ?? preparedScanPlan,
-        activeCheckpoint,
-        plan.targetGitCommitHash ?? targetGitCommitHash,
-        plan.targetWorktreeFingerprint ?? targetWorktreeFingerprint
-      );
-      return {
-        ...(result as Record<string, unknown>),
-        jobId,
-        fromSourceFiles,
-        fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
-        ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
-      };
-    } catch (error) {
-      if (activeCheckpoint) {
-        if (
-          error instanceof AbsorbRefreshCommitPinError ||
-          error instanceof AbsorbRefreshWorktreePinError
-        ) {
-          activeCheckpoint.markInvalidated(error);
-        } else {
-          activeCheckpoint.markInterrupted(error);
-        }
-        setAbsorbJobRefreshProgress(jobId, activeCheckpoint.progressReceipt());
+    while (true) {
+      if (!fromSourceFiles && !plan.refreshCheckpoint) {
+        await prepareDurableRefreshCheckpoint(plan);
       }
-      throw error;
+      const activeCheckpoint = plan.refreshCheckpoint;
+      try {
+        const result = await runFullScan(
+          mod,
+          effectiveRootDirs,
+          languages,
+          maxFiles,
+          includeBuildArtifacts,
+          outputFormat,
+          layout,
+          interactive,
+          jobId,
+          embeddingProvider,
+          embeddingApiKey,
+          embeddingModel,
+          inlineSourceFiles,
+          localCodebaseSnapshotReceipt,
+          scanBatchSize,
+          scanPolicy,
+          plan.preparedScanPlan,
+          activeCheckpoint,
+          plan.targetGitCommitHash,
+          plan.targetWorktreeFingerprint,
+          sourceDriftRetryPolicy
+        );
+        return {
+          ...(result as Record<string, unknown>),
+          jobId,
+          fromSourceFiles,
+          fromLocalCodebaseSnapshotReceipt: Boolean(localCodebaseSnapshotReceipt),
+          ...(localCodebaseSnapshotReceipt && { localCodebaseSnapshotReceipt }),
+          sourceDriftRetry: { ...absorbJobs.get(jobId)?.sourceDriftRetry },
+        };
+      } catch (error) {
+        if (activeCheckpoint) {
+          if (
+            error instanceof AbsorbRefreshCommitPinError ||
+            error instanceof AbsorbRefreshWorktreePinError
+          ) {
+            activeCheckpoint.markInvalidated(error);
+          } else {
+            activeCheckpoint.markInterrupted(error);
+          }
+          setAbsorbJobRefreshProgress(jobId, activeCheckpoint.progressReceipt());
+        }
+
+        if (error instanceof AbsorbRefreshCommitPinError) {
+          const telemetry = recordAbsorbSourceDrift(jobId, error);
+          const canRetry =
+            sourceDriftRetryPolicy.enabled &&
+            !plan.explicitResumeToken &&
+            (telemetry?.retryCount ?? 0) < sourceDriftRetryPolicy.maxRetries;
+          if (sourceDriftRetryPolicy.enabled && !canRetry && telemetry) {
+            telemetry.exhausted = true;
+          }
+          if (canRetry) {
+            const retryNumber = (telemetry?.retryCount ?? 0) + 1;
+            trackAbsorbProgress(
+              jobId,
+              `HEAD drift detected; waiting to replan refresh (${retryNumber}/${sourceDriftRetryPolicy.maxRetries})`,
+              10
+            );
+            const debounceDurationMs = await waitForAbsorbSourceDriftDebounce(
+              effectiveRootDirs,
+              sourceDriftRetryPolicy.debounceMs,
+              signal
+            );
+            recordAbsorbSourceDriftRetry(jobId, debounceDurationMs);
+            plan.resumeToken = undefined;
+            plan.preparedScanPlan = undefined;
+            plan.refreshCheckpoint = undefined;
+            plan.targetGitCommitHash = undefined;
+            plan.targetWorktreeFingerprint = undefined;
+            continue;
+          }
+        }
+        throw error;
+      }
     }
   }
 
@@ -9122,7 +9597,7 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
               ? 'immutable-generation-manifest'
               : hasStatBoundEmbeddingGeneration
                 ? 'graph-bound-stat'
-              : 'legacy-digest-fallback',
+                : 'legacy-digest-fallback',
           }
         : null,
       diskHydratable: diskSemanticIndexHydratable,
@@ -9356,6 +9831,7 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
       heapScope: 'isolated-worker-isolate',
     }),
     memoryBudget: { ...job.memoryBudget },
+    sourceDriftRetry: { ...job.sourceDriftRetry },
     phaseMetrics: job.phaseMetrics,
   };
 

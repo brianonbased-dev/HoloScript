@@ -34,7 +34,7 @@ const borrowedBufferReadExamplePath = join(
   repoRoot,
   'examples',
   'native',
-  'owned-buffer-transfer-exit-five.hs'
+  'owned-buffer-mutable-slice-exit-nine.hs'
 );
 const expectedDigest = 207;
 
@@ -413,6 +413,9 @@ function browserHtml(source, finiteFailureProbes, borrowedBufferReadSource) {
           load: borrowedBufferCompiled.instructions.filter(
             (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_LOAD
           ).length,
+          store: borrowedBufferCompiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_STORE
+          ).length,
           drop: borrowedBufferCompiled.instructions.filter(
             (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_DROP
           ).length,
@@ -592,10 +595,11 @@ async function executeBrowserWasm(source) {
       result.ownedBufferInstructionCounts?.move < 1 ||
       result.ownedBufferInstructionCounts?.drop < 1 ||
       result.borrowedBufferReadProbe?.status !== 'HALTED' ||
-      result.borrowedBufferReadProbe?.value !== 5 ||
+      result.borrowedBufferReadProbe?.value !== 9 ||
       result.borrowedBufferReadProbe?.instructionCounts?.allocate !== 1 ||
       result.borrowedBufferReadProbe?.instructionCounts?.move !== 3 ||
-      result.borrowedBufferReadProbe?.instructionCounts?.load !== 1 ||
+      result.borrowedBufferReadProbe?.instructionCounts?.load !== 2 ||
+      result.borrowedBufferReadProbe?.instructionCounts?.store !== 1 ||
       result.borrowedBufferReadProbe?.instructionCounts?.drop !== 1 ||
       result.borrowedBufferReadProbe?.receiptHashMatches !== true ||
       result.borrowedBufferReadProbe?.replayValid !== true ||
@@ -998,11 +1002,19 @@ console.log(
         provesOwnedBufferParameterAndReturnTransfer: true,
         provesImmutableOwnedBufferBorrowedElementRead: {
           target: 'browser-wasm/uaal',
-          source: 'examples/native/owned-buffer-transfer-exit-five.hs',
+          source: 'examples/native/owned-buffer-mutable-slice-exit-nine.hs',
+          receipt: browserWasm.borrowedBufferReadProbe,
+        },
+        provesMutableOwnedBufferBorrowedElementStore: {
+          target: 'browser-wasm/uaal',
+          source: 'examples/native/owned-buffer-mutable-slice-exit-nine.hs',
           receipt: browserWasm.borrowedBufferReadProbe,
         },
         provesCallScopedSharedOwnedBufferSliceParameters: true,
         provesNestedNonEscapingSharedOwnedBufferSliceForwarding: true,
+        provesCallScopedMutableOwnedBufferSliceParameters: true,
+        provesNestedNonEscapingMutableOwnedBufferSliceForwarding: true,
+        provesSharedReuseAfterExclusiveOwnedBufferSliceCall: true,
         ownedBufferValueAbi: 'hs.buffer.owned.v1',
         borrowedBufferAbi: 'uaal.buffer.borrow.v1',
         provesCallScopedSharedAndMutableAggregateReferences: true,
@@ -1038,7 +1050,8 @@ console.log(
           'affine whole-value moves',
           'owned buffers support allocation, whole-owner moves across parameters and returns, explicit drop, and automatic local or parameter cleanup',
           'immutable local and call-scoped borrowed slices support bounds-checked scalar element reads without owner transfer; immutable slice parameters may forward synchronously to exactly typed immutable slice parameters',
-          'no owned-buffer aggregate fields, mutable slices, subranges, borrowed returns, stored or escaping aliases (including forwarding local borrow variables), or buffer element stores',
+          'exclusive call-scoped mutable slices support bounds-checked scalar element load/store without owner transfer; mutable slice parameters may forward synchronously to exactly typed mutable slice parameters',
+          'no owned-buffer aggregate fields, local mutable slice aliases, implicit mutable-to-shared reborrows, subranges, borrowed returns, stored or escaping aliases (including forwarding local borrow variables), or direct buffer element stores through an owner',
           'call-scoped shared and mutable aggregate parameters support layout-checked scalar field load/store',
           'no borrowed aggregate returns, stored reference locals, or escaping leases',
         ],

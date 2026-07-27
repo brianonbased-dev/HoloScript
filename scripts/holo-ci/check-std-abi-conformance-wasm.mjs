@@ -4,9 +4,8 @@
  *
  * Executes the generated @trait projection of the std math conformance ops in a
  * REAL WebAssembly runtime — the committed compiler-wasm pkg-node artifact's
- * `evaluate_trait_handler_v4` export (deterministic subset v4: the v3 grammar —
- * numeric builtins plus bounded local bindings — PLUS host-binding member
- * calls `ns.fn(args)` into the injected std host-ABI binding object), running
+ * `evaluate_trait_handler_v6` export (the cumulative v5 grammar plus strict
+ * short-circuiting null coalescing and host-binding calls), running
  * inside Node's WebAssembly engine — and compares every vector in the frozen
  * corpus against its expected value. The host-binding object is the canonical
  * createStdHostBindings() from packages/std/conformance/host-abi/
@@ -100,16 +99,18 @@ if (!existsSync(artifactJs) || !existsSync(artifactWasm)) {
   misconfigured(`wasm execution artifact (${artifactDirRel}) not found — build it before running`);
 }
 if (!existsSync(bindingModulePath) || !existsSync(descriptorPath)) {
-  misconfigured(`std host-ABI surface (${hostAbiDirRel}) not found — binding module and descriptor are required`);
+  misconfigured(
+    `std host-ABI surface (${hostAbiDirRel}) not found — binding module and descriptor are required`
+  );
 }
 
-// Evaluator pin: the v4 export runs the shared engine+wasm deterministic
-// subset v4 (v3 grammar plus host-binding member calls into the injected
+// Evaluator pin: the v6 export runs the shared engine+wasm deterministic
+// subset v6 (v5 grammar plus null coalescing and host calls into the injected
 // createStdHostBindings() object — every ns.fn(args) call crosses the
 // guest/host WebAssembly boundary as canonical JSON); export name, id, and
 // the host-ABI pins are recorded in the receipt.
-const EVALUATOR_EXPORT = 'evaluate_trait_handler_v4';
-const SUBSET_ID = 'holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings';
+const EVALUATOR_EXPORT = 'evaluate_trait_handler_v6';
+const SUBSET_ID = 'holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing';
 const STD_HOST_ABI_SCHEMA = 'holoscript.std-host-abi.v0';
 
 const wasm = require(artifactJs);
@@ -260,7 +261,8 @@ if (manifest.schema !== 'holoscript.std-abi-conformance-manifest.v0') {
 // Pin verification covers every manifest-listed file (same contract as the node
 // leg) whenever the default generated inputs are in play. Overridden projection
 // or vectors paths are recorded by sha in the receipt but not pinned.
-const usingDefaults = projectionPath === defaultProjectionPath && vectorsPath === defaultVectorsPath;
+const usingDefaults =
+  projectionPath === defaultProjectionPath && vectorsPath === defaultVectorsPath;
 if (usingDefaults) {
   for (const [relPath, pin] of Object.entries(manifest.files)) {
     const absolute = join(repoRoot, ...relPath.split('/'));
@@ -307,7 +309,12 @@ if (manifest.opsFile) {
 
 // --- Full run ----------------------------------------------------------------
 
-const PACKAGED_EVALUATOR_EXPORT = 'evaluate_trait_handler_v5';
+const PACKAGED_EVALUATOR_EXPORT = 'evaluate_trait_handler_v6';
+if (packagedExecutionSpec?.wasmSubsetId !== SUBSET_ID) {
+  misconfigured(
+    `packaged wasm subset mismatch: ops=${packagedExecutionSpec?.wasmSubsetId}, runtime=${SUBSET_ID}`
+  );
+}
 const packagedSources = {};
 if (packagedExecutionSpec && typeof wasm[PACKAGED_EVALUATOR_EXPORT] === 'function') {
   for (const [trait, relPath] of Object.entries(packagedExecutionSpec.sources)) {
@@ -361,7 +368,7 @@ const receipt = {
     ? {
         packagedExecution: {
           evaluatorExport: PACKAGED_EVALUATOR_EXPORT,
-          subsetId: 'holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories',
+          subsetId: SUBSET_ID,
           sources: Object.fromEntries(
             Object.entries(packagedExecutionSpec.sources).map(([trait, relPath]) => [
               relPath,
@@ -410,7 +417,7 @@ const receipt = {
   results,
   claimBoundary: {
     provesBrowserExecution: false,
-    note: 'Executed in Node\'s WebAssembly runtime against the byte-identical wasm shipped for browsers; a browser smoke run is a separate receipt.',
+    note: "Executed in Node's WebAssembly runtime against the byte-identical wasm shipped for browsers; a browser smoke run is a separate receipt.",
   },
 };
 

@@ -376,6 +376,26 @@ pub fn evaluate_trait_handler_v5(
     eval::evaluate_trait_handler_v5_js(source, trait_name, handler_name, args_json, &host_bindings)
 }
 
+/// Evaluate one `@on_<handler>` trait-handler body under the v6 deterministic
+/// subset (`holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing`).
+///
+/// v6 is cumulative over v5 and admits exactly one new expression operator:
+/// `left ?? right`. The left operand is evaluated once; if it is `null`, the
+/// right operand is evaluated and returned. Every other strict-JSON value —
+/// including `false`, `0`, and `""` — is returned without evaluating the
+/// right operand. The v1–v5 exports remain behaviorally pinned.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn evaluate_trait_handler_v6(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    host_bindings: JsValue,
+) -> String {
+    eval::evaluate_trait_handler_v6_js(source, trait_name, handler_name, args_json, &host_bindings)
+}
+
 /// Compile top-level `.hs` functions to a UAAL bytecode packet.
 ///
 /// This mirrors [`compile_to_kotlin`]'s JSON boundary but targets the stack-based

@@ -1,0 +1,1389 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.hybrid-recall.v4",
+  "productName": "HoloAbsorb",
+  "benchmarkProfile": "real-code-visual-focus",
+  "claimBoundary": "Package-scoped real-code measurement of graph.holo structured selection over duplicate symbols. It does not claim whole-monorepo retrieval coverage or measure literal pixels, rendering, or human visual perception.",
+  "status": "pass",
+  "startedAt": "2026-07-27T23:22:31.151Z",
+  "completedAt": "2026-07-27T23:22:48.607Z",
+  "implementation": {
+    "root": "C:\\Users\\josep\\.scratch\\holoabsorb-hardening-20260727",
+    "head": "dbf269281910417e304f9c151848072b17a04acb",
+    "dirty": true,
+    "benchmarkSourcePaths": [
+      "packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs",
+      "packages/absorb-service/src/engine/__tests__/VisualGraphAgentContext.test.ts"
+    ],
+    "benchmarkSourceDirty": false
+  },
+  "repo": {
+    "root": "C:\\Users\\josep\\.scratch\\holoabsorb-hardening-20260727\\packages\\absorb-service",
+    "head": "dbf269281910417e304f9c151848072b17a04acb",
+    "dirty": true
+  },
+  "corpus": {
+    "maxFiles": 2000,
+    "selectedCandidateFiles": 335,
+    "files": 335,
+    "selectionMode": "git-tracked",
+    "coverageRatio": 1,
+    "cappedByMaxFiles": false,
+    "coverageInventoryLimit": 1000000,
+    "coverageInventoryCapped": false,
+    "graphSymbols": 12008,
+    "indexedEntries": 12035,
+    "parserLightFileEntries": 27
+  },
+  "measurements": {
+    "setupMs": 14436.104,
+    "baselineRssBytes": 68702208,
+    "peakRssBytes": 565473280,
+    "peakRssDeltaBytes": 496771072,
+    "queries": [],
+    "visualDisambiguation": {
+      "methodology": "Freeze a real-repository duplicate-symbol case set from the no-selection ranking, hold the lowest-ranked same-name symbol as the target, and reuse it across four arms: no selection, the correct collision-safe graph.holo node ID, an unresolved stale ID, and a different resolved same-name node.",
+      "claimBoundary": "Correct selection measures whether visible graph intent can improve retrieval of a fixed target. Stale/unresolved selection must fail closed to the no-selection order. Wrong-but-resolved selection is valid caller-supplied intent: its steering and target-rank harm are reported diagnostically and are not mislabeled as model accuracy.",
+      "caseSet": {
+        "digestAlgorithm": "sha256",
+        "digest": "bb397e4eedbea55533cb1591f4135359011321db486b571e2ea61eb7019272db",
+        "frozenBeforeVisualArms": true,
+        "reusedAcrossAllArms": true,
+        "targetRule": "lowest-ranked same-name result in the no-selection arm",
+        "wrongSelectionRule": "highest-ranked different same-name result from a different file in the no-selection arm",
+        "samplingRule": "duplicate names matching a public-identifier shape, ordered by a stable SHA-256 digest instead of lexicographic prefix"
+      },
+      "summary": {
+        "cases": 20,
+        "arms": {
+          "noSelection": {
+            "mrr": 0.304,
+            "top1Rate": 0,
+            "meanTargetRank": 5.1,
+            "meanQueryMs": 40.143,
+            "p95QueryMs": 40.308,
+            "resolutionRate": null
+          },
+          "correctSelection": {
+            "mrr": 0.975,
+            "top1Rate": 0.95,
+            "meanTargetRank": 1.05,
+            "meanQueryMs": 34.195,
+            "p95QueryMs": 39.721,
+            "resolutionRate": 1
+          },
+          "staleUnresolved": {
+            "mrr": 0.304,
+            "top1Rate": 0,
+            "meanTargetRank": 5.1,
+            "meanQueryMs": 33.512,
+            "p95QueryMs": 38.139,
+            "resolutionRate": 0
+          },
+          "wrongResolved": {
+            "mrr": 0.327,
+            "top1Rate": 0,
+            "meanTargetRank": 4.5,
+            "meanQueryMs": 33.794,
+            "p95QueryMs": 38.387,
+            "resolutionRate": 1
+          }
+        },
+        "baselineMrr": 0.304,
+        "focusedMrr": 0.975,
+        "correctMrr": 0.975,
+        "staleMrr": 0.304,
+        "wrongMrr": 0.327,
+        "baselineTop1Rate": 0,
+        "focusedTop1Rate": 0.95,
+        "correctTop1Rate": 0.95,
+        "staleTop1Rate": 0,
+        "wrongTop1Rate": 0,
+        "meanRankGain": 4.05,
+        "meanCorrectRankGain": 4.05,
+        "meanResolutionRate": 1,
+        "correctResolutionRate": 1,
+        "staleResolutionRate": 0,
+        "wrongResolutionRate": 1,
+        "staleExactRankingMatchRate": 1,
+        "harmfulOverrideRate": 0.05,
+        "wrongSelectionFollowRate": 1,
+        "wrongFixedTargetBoostRate": 0.5,
+        "wrongSelectionIsolationRate": 0.5,
+        "meanWrongTargetRankDelta": -0.6,
+        "coldSelectionIndexMs": 27.497,
+        "warmSelectionIndexMs": 0.032,
+        "warmSelectionIndexSpeedup": 870.155
+      },
+      "check": {
+        "minimumCases": 5,
+        "measuredCases": 20,
+        "correctMrrImproves": true,
+        "correctTop1AtLeast80Percent": true,
+        "correctSelectionFullyResolved": true,
+        "staleSelectionFullyUnresolved": true,
+        "staleRankingBaselineEquivalent": true,
+        "wrongSelectionFullyResolved": true,
+        "pass": true
+      },
+      "cases": [
+        {
+          "query": "queue",
+          "fixedTarget": {
+            "nodeId": "queue__1d3t9cj",
+            "file": "src/analysis/SimpleReferenceGraph.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "queue__1yewtyp",
+            "file": "src/engine/layouts/LayeredLayout.ts"
+          },
+          "staleNodeId": "queue__1d3t9cj:stale",
+          "baselineRank": 4,
+          "correctRank": 1,
+          "staleRank": 4,
+          "wrongRank": 4,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.25,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 3,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 150.869,
+            "correctSelection": 32.727,
+            "staleUnresolved": 31.876,
+            "wrongResolved": 37.877
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8136,
+            "visualScore": 0,
+            "visualReasons": []
+          }
+        },
+        {
+          "query": "serialize",
+          "fixedTarget": {
+            "nodeId": "CodebaseGraph.serialize__1wn48fr",
+            "file": "src/engine/CodebaseGraph.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "EmbeddingIndex.serialize__tgl0y2",
+            "file": "src/engine/EmbeddingIndex.ts"
+          },
+          "staleNodeId": "CodebaseGraph.serialize__1wn48fr:stale",
+          "baselineRank": 19,
+          "correctRank": 1,
+          "staleRank": 19,
+          "wrongRank": 19,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.053,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 18,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 36.459,
+            "correctSelection": 40.534,
+            "staleUnresolved": 32.589,
+            "wrongResolved": 31.176
+          },
+          "correctScoreReceipt": {
+            "score": 0.6124,
+            "semanticScore": 0.5653,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.6931,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.4599,
+            "visualScore": 0,
+            "visualReasons": []
+          }
+        },
+        {
+          "query": "datasetAudit",
+          "fixedTarget": {
+            "nodeId": "datasetAudit__1cpenl3",
+            "file": "scripts/audit-paper-5-visual-v4.mjs"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "datasetAudit__uhw7hx",
+            "file": "scripts/prepare-paper-5-visual-v4.mjs"
+          },
+          "staleNodeId": "datasetAudit__1cpenl3:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 32.56,
+            "correctSelection": 32.103,
+            "staleUnresolved": 34.133,
+            "wrongResolved": 33.682
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8517,
+            "visualScore": 0.25,
+            "visualReasons": [
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "reset",
+          "fixedTarget": {
+            "nodeId": "OPLoRAMonitor.reset__15nkt7p",
+            "file": "src/self-improvement/OPLoRAMonitor.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "ForgettingDetector.reset__1aljrdh",
+            "file": "src/self-improvement/ForgettingDetector.ts"
+          },
+          "staleNodeId": "OPLoRAMonitor.reset__15nkt7p:stale",
+          "baselineRank": 6,
+          "correctRank": 2,
+          "staleRank": 6,
+          "wrongRank": 5,
+          "wrongSelectedBaselineRank": 2,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.167,
+          "reciprocalRankAfterCorrectSelection": 0.5,
+          "correctRankGain": 4,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": -1,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 40.308,
+            "correctSelection": 31.14,
+            "staleUnresolved": 32.075,
+            "wrongResolved": 38.46
+          },
+          "correctScoreReceipt": {
+            "score": 0.5191,
+            "semanticScore": 0.4505,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.5953,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.4046,
+            "visualScore": 0.25,
+            "visualReasons": [
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "isConnected",
+          "fixedTarget": {
+            "nodeId": "isConnected__bb8lkc",
+            "file": "src/engine/visualization/GraphSelectionManager.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "isConnected__1gtbt1a",
+            "file": "src/engine/visualization/CodebaseSceneCompiler.ts"
+          },
+          "staleNodeId": "isConnected__bb8lkc:stale",
+          "baselineRank": 6,
+          "correctRank": 1,
+          "staleRank": 6,
+          "wrongRank": 7,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.167,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 5,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 1,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 32.885,
+            "correctSelection": 35.978,
+            "staleUnresolved": 32.194,
+            "wrongResolved": 32.134
+          },
+          "correctScoreReceipt": {
+            "score": 0.5988,
+            "semanticScore": 0.5485,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.6441,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.4462,
+            "visualScore": 0,
+            "visualReasons": []
+          }
+        },
+        {
+          "query": "targetHead",
+          "fixedTarget": {
+            "nodeId": "targetHead__1gtnonm",
+            "file": "src/mcp/codebase-tools.absorb-root.test.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "targetHead__k0zggp",
+            "file": "src/mcp/codebase-tools.absorb-20k.test.ts"
+          },
+          "staleNodeId": "targetHead__1gtnonm:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 31.706,
+            "correctSelection": 32.785,
+            "staleUnresolved": 43.6,
+            "wrongResolved": 35.658
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8517,
+            "visualScore": 0.25,
+            "visualReasons": [
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "json",
+          "fixedTarget": {
+            "nodeId": "json__tgvcmv",
+            "file": "src/daemon/daemon-actions.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "json__nr3xj6",
+            "file": "scripts/bench-paper-5-visual-agent-study.mjs"
+          },
+          "staleNodeId": "json__tgvcmv:stale",
+          "baselineRank": 3,
+          "correctRank": 1,
+          "staleRank": 3,
+          "wrongRank": 3,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.333,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 2,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 34.571,
+            "correctSelection": 32.637,
+            "staleUnresolved": 38.139,
+            "wrongResolved": 34.312
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8136,
+            "visualScore": 0,
+            "visualReasons": []
+          }
+        },
+        {
+          "query": "started",
+          "fixedTarget": {
+            "nodeId": "started__xgvr7m",
+            "file": "src/self-improvement/FleetSelfImproveIO.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "started__5m579v",
+            "file": "src/engine/__tests__/CodebaseScanner.batched.test.ts"
+          },
+          "staleNodeId": "started__xgvr7m:stale",
+          "baselineRank": 5,
+          "correctRank": 1,
+          "staleRank": 5,
+          "wrongRank": 5,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.2,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 4,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 36.686,
+            "correctSelection": 33.14,
+            "staleUnresolved": 30.947,
+            "wrongResolved": 35.617
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8136,
+            "visualScore": 0,
+            "visualReasons": []
+          }
+        },
+        {
+          "query": "workspaceRoot",
+          "fixedTarget": {
+            "nodeId": "workspaceRoot__b1ic36",
+            "file": "src/mcp/codebase-tools.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "workspaceRoot__ux8wxd",
+            "file": "src/mcp/codebase-cache-storage.ts"
+          },
+          "staleNodeId": "workspaceRoot__b1ic36:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 37.61,
+            "correctSelection": 39.721,
+            "staleUnresolved": 32.899,
+            "wrongResolved": 32.809
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8517,
+            "visualScore": 0.25,
+            "visualReasons": [
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "escaped",
+          "fixedTarget": {
+            "nodeId": "escaped__tagp6a",
+            "file": "src/self-improvement/FocusedDPOSplitter.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "escaped__r2utg1",
+            "file": "src/mcp/codebase-tools.ts"
+          },
+          "staleNodeId": "escaped__tagp6a:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 36.581,
+            "correctSelection": 30.95,
+            "staleUnresolved": 36.853,
+            "wrongResolved": 38.387
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8136,
+            "visualScore": 0,
+            "visualReasons": []
+          }
+        },
+        {
+          "query": "mulberry32",
+          "fixedTarget": {
+            "nodeId": "mulberry32__bbti7t",
+            "file": "scripts/bench-paper-5-accuracy.mjs"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "mulberry32__1b2aymo",
+            "file": "scripts/lib/paper-5-visual-agent-study.mjs"
+          },
+          "staleNodeId": "mulberry32__bbti7t:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 30.927,
+            "correctSelection": 31.09,
+            "staleUnresolved": 32.339,
+            "wrongResolved": 31.177
+          },
+          "correctScoreReceipt": {
+            "score": 0.9726,
+            "semanticScore": 1,
+            "connectionScore": 0.25,
+            "impactScore": 0.1333,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9726,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8201,
+            "visualScore": 0,
+            "visualReasons": []
+          }
+        },
+        {
+          "query": "originalWorkspaceRoot",
+          "fixedTarget": {
+            "nodeId": "originalWorkspaceRoot__sxgnvt",
+            "file": "src/mcp/codebase-tools.absorb-20k.test.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "originalWorkspaceRoot__1sozvki",
+            "file": "src/mcp/codebase-tools.absorb-cancellation.test.ts"
+          },
+          "staleNodeId": "originalWorkspaceRoot__sxgnvt:stale",
+          "baselineRank": 4,
+          "correctRank": 1,
+          "staleRank": 4,
+          "wrongRank": 4,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.25,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 3,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 32.102,
+            "correctSelection": 33.224,
+            "staleUnresolved": 33.556,
+            "wrongResolved": 31.34
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8136,
+            "visualScore": 0,
+            "visualReasons": []
+          }
+        },
+        {
+          "query": "passRate",
+          "fixedTarget": {
+            "nodeId": "passRate__4ynhsc",
+            "file": "src/self-improvement/SelfImproveHarvester.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "passRate__15p0are",
+            "file": "src/self-improvement/__tests__/integration/self-improve-pipeline-integration.test.ts"
+          },
+          "staleNodeId": "passRate__4ynhsc:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 33.064,
+            "correctSelection": 30.229,
+            "staleUnresolved": 32.552,
+            "wrongResolved": 31.135
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8517,
+            "visualScore": 0.25,
+            "visualReasons": [
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "sym",
+          "fixedTarget": {
+            "nodeId": "sym__1pu91ez",
+            "file": "src/engine/GraphRAGEngine.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "sym__mil0bb",
+            "file": "src/engine/visualization/GraphSelectionManager.ts"
+          },
+          "staleNodeId": "sym__1pu91ez:stale",
+          "baselineRank": 10,
+          "correctRank": 1,
+          "staleRank": 10,
+          "wrongRank": 3,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.1,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 9,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": -7,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 32.546,
+            "correctSelection": 36.827,
+            "staleUnresolved": 31.498,
+            "wrongResolved": 32.425
+          },
+          "correctScoreReceipt": {
+            "score": 0.9729,
+            "semanticScore": 1,
+            "connectionScore": 0.1027,
+            "impactScore": 0.3,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9729,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8585,
+            "visualScore": 0.25,
+            "visualReasons": [
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "lineCount",
+          "fixedTarget": {
+            "nodeId": "lineCount__eh73ho",
+            "file": "src/engine/adapters/HoloAdapter.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "lineCount__hp0g1v",
+            "file": "src/engine/adapters/BaseAdapter.ts"
+          },
+          "staleNodeId": "lineCount__eh73ho:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 31.794,
+            "correctSelection": 33.354,
+            "staleUnresolved": 31.602,
+            "wrongResolved": 33.683
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8517,
+            "visualScore": 0.25,
+            "visualReasons": [
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "manifest",
+          "fixedTarget": {
+            "nodeId": "manifest__pqpkio",
+            "file": "src/engine/HoloGraphHoloEmbedManifest.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "manifest__13ji8wb",
+            "file": "src/holoabsorb/index.test.ts"
+          },
+          "staleNodeId": "manifest__pqpkio:stale",
+          "baselineRank": 9,
+          "correctRank": 1,
+          "staleRank": 9,
+          "wrongRank": 9,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.111,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 8,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 39.223,
+            "correctSelection": 38.856,
+            "staleUnresolved": 34.686,
+            "wrongResolved": 32.107
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8136,
+            "visualScore": 0,
+            "visualReasons": []
+          }
+        },
+        {
+          "query": "accepted",
+          "fixedTarget": {
+            "nodeId": "accepted__kei12b",
+            "file": "src/mcp/codebase-tools.absorb-root.test.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "accepted__19ul0a9",
+            "file": "src/self-improvement/FocusedDPOSplitter.b3.test.ts"
+          },
+          "staleNodeId": "accepted__kei12b:stale",
+          "baselineRank": 7,
+          "correctRank": 1,
+          "staleRank": 7,
+          "wrongRank": 7,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.143,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 6,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 38.358,
+            "correctSelection": 36.154,
+            "staleUnresolved": 32.933,
+            "wrongResolved": 36.807
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8136,
+            "visualScore": 0,
+            "visualReasons": []
+          }
+        },
+        {
+          "query": "queries",
+          "fixedTarget": {
+            "nodeId": "queries__1kp80vm",
+            "file": "scripts/lib/paper-5-visual-v4.mjs"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "queries__hmvi5c",
+            "file": "scripts/bench-paper-5-gpu.mjs"
+          },
+          "staleNodeId": "queries__1kp80vm:stale",
+          "baselineRank": 7,
+          "correctRank": 1,
+          "staleRank": 7,
+          "wrongRank": 5,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.143,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 6,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": -2,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 31.984,
+            "correctSelection": 32.639,
+            "staleUnresolved": 32.978,
+            "wrongResolved": 31.164
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8517,
+            "visualScore": 0.25,
+            "visualReasons": [
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "sourceFiles",
+          "fixedTarget": {
+            "nodeId": "sourceFiles__1jqlb6j",
+            "file": "src/mcp/codebase-tools.absorb-root.test.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "sourceFiles__1r6j1wd",
+            "file": "src/mcp/codebase-tools.ts"
+          },
+          "staleNodeId": "sourceFiles__1jqlb6j:stale",
+          "baselineRank": 6,
+          "correctRank": 1,
+          "staleRank": 6,
+          "wrongRank": 3,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.167,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 5,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": -3,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 31.491,
+            "correctSelection": 33.414,
+            "staleUnresolved": 30.095,
+            "wrongResolved": 34.116
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8517,
+            "visualScore": 0.25,
+            "visualReasons": [
+              "selected-community"
+            ]
+          }
+        },
+        {
+          "query": "FIX_MARKER",
+          "fixedTarget": {
+            "nodeId": "FIX_MARKER__ql3x27",
+            "file": "src/self-improvement/__tests__/GRPOPromptExtractor.test.ts"
+          },
+          "suppliedWrongSelection": {
+            "nodeId": "FIX_MARKER__1pfbrtd",
+            "file": "src/self-improvement/GRPOPromptExtractor.test.ts"
+          },
+          "staleNodeId": "FIX_MARKER__ql3x27:stale",
+          "baselineRank": 2,
+          "correctRank": 1,
+          "staleRank": 2,
+          "wrongRank": 2,
+          "wrongSelectedBaselineRank": 1,
+          "wrongSelectedRank": 1,
+          "reciprocalRankBefore": 0.5,
+          "reciprocalRankAfterCorrectSelection": 1,
+          "correctRankGain": 1,
+          "staleRankDelta": 0,
+          "wrongTargetRankDelta": 0,
+          "staleExactRankingMatch": true,
+          "resolutionRates": {
+            "correct": 1,
+            "stale": 0,
+            "wrong": 1
+          },
+          "latencyMs": {
+            "noSelection": 31.129,
+            "correctSelection": 36.39,
+            "staleUnresolved": 32.705,
+            "wrongResolved": 31.817
+          },
+          "correctScoreReceipt": {
+            "score": 0.9661,
+            "semanticScore": 1,
+            "connectionScore": 0,
+            "impactScore": 0,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongScoreReceipt": {
+            "score": 0.9661,
+            "visualScore": 1,
+            "visualReasons": [
+              "selected-node",
+              "selected-file",
+              "selected-community"
+            ]
+          },
+          "wrongFixedTargetReceipt": {
+            "score": 0.8517,
+            "visualScore": 0.25,
+            "visualReasons": [
+              "selected-community"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "query": "selected-root-corpus-coverage",
+      "selectedCandidateFiles": 335,
+      "scannedFiles": 335,
+      "cappedByMaxFiles": false,
+      "pass": true
+    }
+  ],
+  "hardware": {
+    "os": "win32 10.0.26200",
+    "node": "v24.15.0",
+    "cpuCount": 16,
+    "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "totalMemoryBytes": 34069385216,
+    "embeddingExecution": "cpu"
+  }
+}

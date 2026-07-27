@@ -1,19 +1,20 @@
 {
   "schema": "holoscript.std-abi-conformance.owned-metal.v0",
-  "generatedAtISO": "2026-07-27T23:54:00.778Z",
+  "generatedAtISO": "2026-07-27T22:54:55.846Z",
   "target": "owned-metal",
   "executionRuntime": {
-    "engine": "compiler-wasm evaluate_trait_handler_v4 (WebAssembly)",
-    "evaluatorExport": "evaluate_trait_handler_v4",
+    "engine": "compiler-wasm evaluate_trait_handler_v6 (WebAssembly)",
+    "evaluatorExport": "evaluate_trait_handler_v6",
     "executedProjection": "std-abi-conformance.trait.hsplus (bundle copy, pin-verified)",
-    "wasmArtifactSha256": "sha256:fff120ca5315826a0ac27c74f69023fda3f2c5ca84843555fad06629814b651a"
+    "wasmArtifactSha256": "sha256:fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
+    "sourceCommit": "cf273cc44a8d77c5b1653ed700e33ac9967bb4bd"
   },
   "sources": {
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:8713b66508387e67c41143ca9681c4f3326b8aa858d6235d9fb59bc3faa7ea91"
+      "sha256": "sha256:8faa4f40af85a6eb6164387781a83d0277446a0e1d710ee07c0448d162794021"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
+      "sha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8"
     }
   },
   "hostAbi": {
@@ -31,15 +32,15 @@
     "cpus": "Cortex-A78AE"
   },
   "summary": {
-    "vectors": 168,
-    "passed": 168,
+    "vectors": 170,
+    "passed": 170,
     "failed": 0,
     "packagedVectors": 45,
     "packagedSkipped": 0
   },
   "packagedExecution": {
-    "evaluatorExport": "evaluate_trait_handler_v5",
-    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories",
+    "evaluatorExport": "evaluate_trait_handler_v6",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
     "sources": {
       "std_math": {
         "bundleFile": "math.hsplus",
@@ -58,7 +59,7 @@
         "sha256": "sha256:a7447f7f67c9dfd2b7e3be433f7c90436c3a1c749e858d6fd4399e6b1d7af673"
       }
     },
-    "claim": "packaged-handler vectors executed the shipped @trait source bytes (bundle-pinned) on this hardware via the v5 packaged-factories subset"
+    "claim": "packaged-handler vectors executed the shipped @trait source bytes (bundle-pinned) on this hardware via evaluate_trait_handler_v6"
   },
   "results": [
     {
@@ -795,6 +796,20 @@
       }
     },
     {
+      "id": "hrange-default-step",
+      "op": "on_host_list_range",
+      "pass": true,
+      "actual": {
+        "value": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
       "id": "hrange-up",
       "op": "on_host_list_range",
       "pass": true,
@@ -959,6 +974,14 @@
       "pass": true,
       "actual": {
         "value": -1
+      }
+    },
+    {
+      "id": "hjoin-default-separator",
+      "op": "on_host_list_join",
+      "pass": true,
+      "actual": {
+        "value": "a,b,c"
       }
     },
     {
@@ -1444,6 +1467,49 @@
       }
     },
     {
+      "id": "pkg-lrange-default-step",
+      "op": "on_range",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lrange-explicit-step",
+      "op": "on_range",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        8,
+        6,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "pkg-ljoin-default-separator",
+      "op": "on_join",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "a,b,3"
+    },
+    {
+      "id": "pkg-ljoin-explicit-separator",
+      "op": "on_join",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "a-b-3"
+    },
+    {
       "id": "pkg-lreverse",
       "op": "on_reverse",
       "pass": true,
@@ -1662,54 +1728,12 @@
         1,
         3
       ]
-    },
-    {
-      "id": "pkg-lrange-default-step",
-      "op": "on_range",
-      "pass": true,
-      "packaged": true,
-      "trait": "std_list",
-      "actual": [
-        0,
-        1,
-        2,
-        3,
-        4
-      ]
-    },
-    {
-      "id": "pkg-lrange-explicit",
-      "op": "on_range",
-      "pass": true,
-      "packaged": true,
-      "trait": "std_list",
-      "actual": [
-        10,
-        8,
-        6
-      ]
-    },
-    {
-      "id": "pkg-ljoin-default-sep",
-      "op": "on_join",
-      "pass": true,
-      "packaged": true,
-      "trait": "std_list",
-      "actual": "a,b,c"
-    },
-    {
-      "id": "pkg-ljoin-dash",
-      "op": "on_join",
-      "pass": true,
-      "packaged": true,
-      "trait": "std_list",
-      "actual": "1-2.5-3"
     }
   ],
   "claimBoundary": {
     "provesOwnedMetalWasmExecution": true,
     "provesNodeDeterministicSubsetExecution": false,
-    "note": "Executed the generated trait projection through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts."
+    "note": "Executed the self-pinned runner and generated trait projection from HoloScript cf273cc44a8d77c5b1653ed700e33ac9967bb4bd through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:f6730fa4f93415b61fb42b6dee1ac087df5aa4b6e3d2d339a26ac7195e2f4d59"
+  "receiptHash": "sha256:77a0f1799a21c18270ba0c575e9d7b5bb719f14553fa6a05273f02e99aa1d4a1"
 }

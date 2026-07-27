@@ -110,7 +110,7 @@
   }
 
   @on_host_list_range(start, end, step) => {
-    return { value: list_lib.list_range(start, end, step) }
+    return { value: list_lib.list_range(start, end, step ?? 1) }
   }
 
   @on_host_list_repeat(value, count) => {
@@ -142,7 +142,7 @@
   }
 
   @on_host_list_join(lst, sep) => {
-    return { value: list_lib.list_join(lst, sep) }
+    return { value: list_lib.list_join(lst, sep ?? ",") }
   }
 
   @on_host_list_zip(a, b) => {

@@ -17,7 +17,7 @@
 
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -47,6 +47,13 @@ function sha256(buffer) {
 function fail(message) {
   console.error(`[std-abi-cross-target] FAIL: ${message}`);
   process.exit(1);
+}
+
+function durableReceiptPath(path) {
+  const repoRelative = relative(repoRoot, path).replace(/\\/g, '/');
+  return repoRelative !== '..' && !repoRelative.startsWith('../')
+    ? repoRelative
+    : path.replace(/\\/g, '/');
 }
 
 function valuesEqual(a, b, tolerance, path, mismatches) {
@@ -185,6 +192,10 @@ if (selfTest) {
       `self-test failed: agreeing receipts problems=${agree.problems.length}, diverging receipts problems=${diverge.problems.length}`
     );
   }
+  const fixturePath = join(repoRoot, 'reports', 'fixture.json');
+  if (durableReceiptPath(fixturePath) !== 'reports/fixture.json') {
+    fail('self-test failed: repository receipt path was not made portable');
+  }
   console.log('[std-abi-cross-target] self-test OK: agreement passes, divergence goes red');
   process.exit(0);
 }
@@ -202,8 +213,10 @@ const receipts = receiptPaths.map((path) => {
   return { path, raw, receipt };
 });
 
-const { problems, comparedVectors, toleranceBoundedVectors, targetScopedVectors } =
-  compareReceipts(receipts, loadCorpusVectorMeta());
+const { problems, comparedVectors, toleranceBoundedVectors, targetScopedVectors } = compareReceipts(
+  receipts,
+  loadCorpusVectorMeta()
+);
 
 const crossReceipt = {
   schema: 'holoscript.std-abi-conformance.cross-target.v0',
@@ -211,7 +224,7 @@ const crossReceipt = {
   targets: receipts.map((entry) => ({
     target: entry.receipt.target,
     schema: entry.receipt.schema,
-    path: entry.path.replace(/\\/g, '/'),
+    path: durableReceiptPath(entry.path),
     receiptSha256: sha256(Buffer.from(entry.raw)),
     vectors: entry.receipt.summary?.vectors,
     passed: entry.receipt.summary?.passed,
