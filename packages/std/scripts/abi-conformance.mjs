@@ -1,6 +1,14 @@
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { basename, delimiter, dirname, join, resolve } from 'node:path';
@@ -13,6 +21,7 @@ const scalarF32AbiPath = join(packageRoot, 'src', 'abi', 'scalar-f32-v1.hs');
 const scalarF64AbiPath = join(packageRoot, 'src', 'abi', 'scalar-f64-v1.hs');
 const vectorAbiPath = join(packageRoot, 'src', 'abi', 'vector-v1.hs');
 const stdMathPath = join(packageRoot, 'dist', 'math.js');
+const stdUaalAbiPath = join(packageRoot, 'dist', 'uaal-abi.js');
 const wasmRoot = join(repoRoot, 'packages', 'compiler-wasm', 'pkg');
 const wasmJsPath = join(wasmRoot, 'holoscript_wasm.js');
 const wasmBinaryPath = join(wasmRoot, 'holoscript_wasm_bg.wasm');
@@ -201,59 +210,6 @@ function browserHtml(source) {
       const source = ${JSON.stringify(source)};
       const output = document.querySelector('#result');
 
-      function registerHsNumericBinaryHandler(vm, execOpcode) {
-        vm.registerHandler(execOpcode, (proxy, operands) => {
-          const [abi, operator] = operands;
-          if (
-            (abi !== 'hs.i32.binary.v1' &&
-              abi !== 'hs.f32.binary.v1' &&
-              abi !== 'hs.f64.binary.v1') ||
-            typeof operator !== 'string'
-          ) {
-            throw new Error('unsupported HoloScript EXEC ABI: ' + String(abi));
-          }
-          const right = proxy.pop();
-          const left = proxy.pop();
-          if (typeof left !== 'number' || typeof right !== 'number') {
-            throw new Error(String(abi) + ' requires numeric operands');
-          }
-          const isI32 = abi === 'hs.i32.binary.v1';
-          const isF32 = abi === 'hs.f32.binary.v1';
-          if (!isI32 && (!Number.isFinite(left) || !Number.isFinite(right))) {
-            throw new Error(String(abi) + ' conformance requires finite operands');
-          }
-          const roundedLeft = isF32 ? Math.fround(left) : left;
-          const roundedRight = isF32 ? Math.fround(right) : right;
-          const pushArithmetic = (value) => proxy.push(isF32 ? Math.fround(value) : value);
-          switch (operator) {
-            case '+':
-              if (isI32) proxy.push((left + right) | 0);
-              else pushArithmetic(roundedLeft + roundedRight);
-              break;
-            case '-':
-              if (isI32) proxy.push((left - right) | 0);
-              else pushArithmetic(roundedLeft - roundedRight);
-              break;
-            case '*':
-              if (isI32) proxy.push(Math.imul(left, right));
-              else pushArithmetic(roundedLeft * roundedRight);
-              break;
-            case '/':
-              if (isI32) throw new Error('hs.i32.binary.v1 does not support division');
-              if (roundedRight === 0) throw new Error(String(abi) + ' conformance rejects division by zero');
-              pushArithmetic(roundedLeft / roundedRight);
-              break;
-            case '==': proxy.push(roundedLeft === roundedRight); break;
-            case '!=': proxy.push(roundedLeft !== roundedRight); break;
-            case '<': proxy.push(roundedLeft < roundedRight); break;
-            case '<=': proxy.push(roundedLeft <= roundedRight); break;
-            case '>': proxy.push(roundedLeft > roundedRight); break;
-            case '>=': proxy.push(roundedLeft >= roundedRight); break;
-            default: throw new Error('unsupported ' + String(abi) + ' operator: ' + operator);
-          }
-        });
-      }
-
       try {
         const { default: initWasm, compile_to_uaal } = await import('/wasm/holoscript_wasm.js');
         const {
@@ -262,11 +218,17 @@ function browserHtml(source) {
           computeUAALBytecodeSha256,
           replayUAALLog,
         } = await import('/uaal/index.js');
+        const { registerHoloScriptStdUaalExecHandler } = await import('/std/uaal-abi.js');
         await initWasm('/wasm/holoscript_wasm_bg.wasm');
         const compiled = JSON.parse(compile_to_uaal(source));
         if (compiled.error) throw new Error(compiled.error);
+        const aggregateInstructionCount = compiled.instructions.filter(
+          (instruction) =>
+            instruction.opCode === UAALOpCode.EXEC &&
+            instruction.operands?.[0] === 'hs.aggregate.value.v1'
+        ).length;
         const vm = new UAALVirtualMachine({ recordLog: true });
-        registerHsNumericBinaryHandler(vm, UAALOpCode.EXEC);
+        registerHoloScriptStdUaalExecHandler(vm, UAALOpCode.EXEC);
         const result = await vm.execute(compiled);
         const log = vm.exportLog();
         const bytecodeSha256 = computeUAALBytecodeSha256(compiled);
@@ -275,6 +237,7 @@ function browserHtml(source) {
           status: result.taskStatus,
           value: result.stackTop,
           instructionCount: compiled.instructions.length,
+          aggregateInstructionCount,
           bytecodeSha256,
           receiptHashMatches: bytecodeSha256 === log.bytecodeSha256,
           replayValid: replay.valid,
@@ -312,7 +275,18 @@ async function executeBrowserWasm(source) {
       '/uaal/index.js',
       { body: readFileSync(uaalBundlePath), contentType: 'application/javascript; charset=utf-8' },
     ],
+    [
+      '/std/uaal-abi.js',
+      { body: readFileSync(stdUaalAbiPath), contentType: 'application/javascript; charset=utf-8' },
+    ],
   ]);
+  for (const file of readdirSync(join(packageRoot, 'dist'))) {
+    if (!file.endsWith('.js')) continue;
+    routeMap.set(`/std/${file}`, {
+      body: readFileSync(join(packageRoot, 'dist', file)),
+      contentType: 'application/javascript; charset=utf-8',
+    });
+  }
   let holdResponse;
   let releaseRequested = false;
   const releaseHold = () => {
@@ -376,6 +350,7 @@ async function executeBrowserWasm(source) {
       result.wasm !== true ||
       result.receiptHashMatches !== true ||
       result.replayValid !== true ||
+      result.aggregateInstructionCount < 1 ||
       !/^[0-9a-f]{64}$/.test(result.bytecodeSha256)
     ) {
       throw new Error(`browser-WASM result mismatch: ${JSON.stringify(result)}`);
@@ -386,6 +361,7 @@ async function executeBrowserWasm(source) {
       compiler: '@holoscript/wasm web artifact',
       execution: '@holoscript/uaal browser ESM',
       instructionCount: result.instructionCount,
+      aggregateInstructionCount: result.aggregateInstructionCount,
       bytecodeSha256: result.bytecodeSha256,
       receiptHashMatches: result.receiptHashMatches,
       replayValid: result.replayValid,
@@ -476,6 +452,7 @@ async function executeNode() {
   return {
     runtime: process.version,
     implementation: '@holoscript/std/dist/math.js',
+    aggregateRepresentation: 'Vec3 object values',
     floatingPointResults,
     binary32Results,
     result,
@@ -546,6 +523,7 @@ requireFile(scalarF32AbiPath, 'scalar f32 ABI source');
 requireFile(scalarF64AbiPath, 'scalar f64 ABI source');
 requireFile(vectorAbiPath, 'vector ABI source');
 requireFile(stdMathPath, 'built Node std math implementation');
+requireFile(stdUaalAbiPath, 'built std UAAL ABI host adapter');
 requireFile(wasmJsPath, 'browser WASM JavaScript bridge');
 requireFile(wasmBinaryPath, 'browser WASM compiler');
 requireFile(wasmReceiptPath, 'browser WASM rebuild receipt');
@@ -569,7 +547,7 @@ if (!results.every((value) => value === expectedDigest)) {
 console.log(
   JSON.stringify(
     {
-      schema: 'holoscript.std.math-abi-conformance.v4',
+      schema: 'holoscript.std.math-abi-conformance.v5',
       status: 'pass',
       abis: [
         {
@@ -581,6 +559,13 @@ console.log(
           id: 'hs.std.vector.i32.v1',
           source: 'packages/std/src/abi/vector-v1.hs',
           sourceSha256: sha256(vectorAbiSource),
+        },
+        {
+          id: 'hs.std.vector.aggregate.i32.v1',
+          source: 'packages/std/src/abi/vector-v1.hs',
+          sourceSha256: sha256(vectorAbiSource),
+          valueAbi: 'hs.aggregate.value.v1',
+          layout: 'StdVec3I32{x:i32,y:i32,z:i32}',
         },
         {
           id: 'hs.std.scalar.f32.v1',
@@ -615,7 +600,17 @@ console.log(
         provesBrowserReceiptReplay: true,
         provesOwnedMetalNativeExecutable: true,
         provesNonFiniteFloatingPointEdgeSemantics: false,
-        provesAggregateVectorCallingConvention: false,
+        provesAggregateVectorCallingConvention: true,
+        provesAggregateValueAbi: 'hs.aggregate.value.v1',
+        provesAggregateLayout: 'StdVec3I32{x:i32,y:i32,z:i32}',
+        aggregateValueLimits: [
+          'flat records only',
+          'explicit scalar POD fields only',
+          'affine whole-value moves',
+          'no nested records',
+          'no owned buffers',
+          'no mutable or borrowed aggregate transfer',
+        ],
         provesQuaternionMath: false,
         provesCollections: false,
         provesOsAirGap: false,

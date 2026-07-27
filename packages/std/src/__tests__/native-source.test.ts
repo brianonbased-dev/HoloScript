@@ -61,6 +61,18 @@ describe('@holoscript/std native source tracer', () => {
           provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
         }),
         expect.objectContaining({
+          id: 'hs.std.vector.aggregate.i32.v1',
+          functions: [
+            'std_math_vec3_make_i32',
+            'std_math_vec3_dot_value_i32',
+            'std_math_vec3_cross_value_i32',
+            'std_math_vec3_length_sq_value_i32',
+          ],
+          valueAbi: 'hs.aggregate.value.v1',
+          layout: 'StdVec3I32{x:i32,y:i32,z:i32}',
+          provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
+        }),
+        expect.objectContaining({
           id: 'hs.std.scalar.f32.v1',
           functions: [
             'std_math_clamp_f32',
@@ -115,8 +127,14 @@ describe('@holoscript/std native source tracer', () => {
     expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
   });
 
-  it('keeps the vector ABI component-based, target-neutral, and explicit', () => {
+  it('keeps the vector ABI aggregate-valued, affine, target-neutral, and compatible', () => {
     const source = readFileSync(join(packageRoot, 'src', 'abi', 'vector-v1.hs'), 'utf8');
+    expect(source).toContain('struct StdVec3I32 { x: i32, y: i32, z: i32 }');
+    expect(source).toContain('export function std_math_vec3_make_i32');
+    expect(source).toContain('export function std_math_vec3_dot_value_i32');
+    expect(source).toContain('export function std_math_vec3_cross_value_i32');
+    expect(source).toContain('export function std_math_vec3_length_sq_value_i32');
+    expect(source).toContain('return move(result)');
     expect(source).toContain('export function std_math_vec3_dot_i32');
     expect(source).toContain('export function std_math_vec3_cross_x_i32');
     expect(source).toContain('export function std_math_vec3_cross_y_i32');

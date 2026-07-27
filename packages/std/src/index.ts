@@ -98,6 +98,21 @@ export {
 // Re-export with alternate names for convenience
 export { degToRad as toRadians, radToDeg as toDegrees } from './math.js';
 
+// UAAL host adapter for versioned std arithmetic and aggregate-value ABIs
+export {
+  HOLOSCRIPT_I32_BINARY_ABI,
+  HOLOSCRIPT_F32_BINARY_ABI,
+  HOLOSCRIPT_F64_BINARY_ABI,
+  HOLOSCRIPT_AGGREGATE_VALUE_ABI,
+  registerHoloScriptStdUaalExecHandler,
+} from './uaal-abi.js';
+export type {
+  HoloScriptStdUaalOperand,
+  HoloScriptStdUaalVmProxy,
+  HoloScriptStdUaalExecHandler,
+  HoloScriptStdUaalVm,
+} from './uaal-abi.js';
+
 // Collections
 export {
   List,

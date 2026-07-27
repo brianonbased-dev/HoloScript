@@ -36,7 +36,8 @@ HoloScript, compiled to WebAssembly.
   `move`, `action`, `on_*` event blocks
 
 - **UAAL lowering** - `compile_to_uaal` emits executable bytecode for typed
-  function kernels, including i32 plus finite scalar f32/f64 arithmetic and comparisons
+  function kernels, including i32, finite scalar f32/f64 arithmetic, and affine
+  flat-POD aggregate values
 
 ## Installation
 
@@ -147,6 +148,13 @@ operands, and every arithmetic result to IEEE-754 binary32 rather than inheritin
 JavaScript binary64 arithmetic. Both floating-point v1 seams prove finite operands
 only and do not claim NaN, infinity, signed-zero preservation, or division-by-zero
 semantics.
+
+Flat records whose explicitly typed fields are `i32`, `f32`, `f64`, or `bool`
+cross UAAL calls and returns as one affine stack value under
+`hs.aggregate.value.v1`. Construction and field projection carry the semantic
+layout identifier and field descriptor. Whole-value copies are rejected in favor
+of `move(...)`; nested records, owned buffers, and mutable or borrowed aggregate
+transfer remain outside this first value ABI.
 
 ### `version(): string`
 

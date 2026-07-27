@@ -4,6 +4,7 @@ export default defineConfig({
   entry: [
     'src/index.ts',
     'src/math.ts',
+    'src/uaal-abi.ts',
     'src/collections.ts',
     'src/string.ts',
     'src/time.ts',

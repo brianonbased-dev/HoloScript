@@ -10,7 +10,10 @@ use std::collections::{HashMap, HashSet};
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::ast::{Ast, AstNode, BinaryExpression, CallExpression, FunctionNode};
+use crate::ast::{
+    Ast, AstNode, BinaryExpression, CallExpression, FunctionNode, MemberExpression,
+    StructDeclarationNode,
+};
 use crate::kotlin_emit::{check_semantics, find_owned_buffer_annotation, SemanticDiagnostic};
 
 const OP_PUSH: u16 = 0x01;
@@ -41,6 +44,14 @@ const HS_F32_BINARY_ABI: &str = "hs.f32.binary.v1";
 /// Stack order matches the i32 ABI. The host preserves JavaScript/JSON's IEEE-754 binary64
 /// values without integer coercion. The first conformance contract covers finite operands.
 const HS_F64_BINARY_ABI: &str = "hs.f64.binary.v1";
+
+/// Host-handler ABI for flat, explicitly typed POD aggregate values.
+///
+/// A record occupies one UAAL operand-stack entry. `construct` pops one value per declared field
+/// and pushes an immutable, layout-tagged record; `project` pops that record and pushes one
+/// layout-checked scalar field. Whole-record calls therefore preserve native HoloScript arity
+/// instead of projecting records into unrelated scalar parameters.
+const HS_AGGREGATE_VALUE_ABI: &str = "hs.aggregate.value.v1";
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct UaalBytecode {
@@ -89,6 +100,19 @@ struct PendingCall {
     target: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct UaalAggregateField {
+    name: String,
+    type_annotation: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct UaalAggregateLayout {
+    name: String,
+    fields: Vec<UaalAggregateField>,
+    schema_id: String,
+}
+
 #[derive(Debug)]
 struct UaalEmitter<'a> {
     functions: Vec<&'a FunctionNode>,
@@ -96,12 +120,14 @@ struct UaalEmitter<'a> {
     function_params: HashMap<String, Vec<String>>,
     function_param_types: HashMap<String, Vec<Option<String>>>,
     function_return_types: HashMap<String, Option<String>>,
+    aggregate_layouts: HashMap<String, UaalAggregateLayout>,
     entry_points: HashMap<String, usize>,
     pending_calls: Vec<PendingCall>,
     instructions: Vec<UaalInstruction>,
     current_function: Option<String>,
     current_bindings: HashSet<String>,
     current_binding_types: HashMap<String, Option<String>>,
+    current_moved_aggregates: HashSet<String>,
 }
 
 pub fn compile_source_to_uaal(source: &str) -> Result<UaalBytecode, UaalEmitError> {
@@ -161,6 +187,7 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         .iter()
         .map(|function| (function.name.clone(), function.return_type.clone()))
         .collect::<HashMap<_, _>>();
+    let aggregate_layouts = collect_aggregate_layouts(ast)?;
 
     validate_imports_resolved(ast, &function_names)?;
 
@@ -170,12 +197,14 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         function_params,
         function_param_types,
         function_return_types,
+        aggregate_layouts,
         entry_points: HashMap::new(),
         pending_calls: Vec::new(),
         instructions: Vec::new(),
         current_function: None,
         current_bindings: HashSet::new(),
         current_binding_types: HashMap::new(),
+        current_moved_aggregates: HashSet::new(),
     };
 
     emitter.emit_bootstrap()?;
@@ -213,6 +242,86 @@ fn collect_functions(ast: &Ast) -> Result<Vec<&FunctionNode>, UaalEmitError> {
         }
     }
     Ok(functions)
+}
+
+fn collect_aggregate_layouts(
+    ast: &Ast,
+) -> Result<HashMap<String, UaalAggregateLayout>, UaalEmitError> {
+    let mut layouts = HashMap::new();
+    for node in &ast.body {
+        let structure = match node {
+            AstNode::StructDeclaration(structure) => structure,
+            AstNode::Export(export) => match export.declaration.as_ref() {
+                AstNode::StructDeclaration(structure) => structure,
+                _ => continue,
+            },
+            _ => continue,
+        };
+        let layout = UaalAggregateLayout::from_declaration(structure)?;
+        layouts.insert(layout.name.clone(), layout);
+    }
+    Ok(layouts)
+}
+
+impl UaalAggregateLayout {
+    fn from_declaration(structure: &StructDeclarationNode) -> Result<Self, UaalEmitError> {
+        if structure.field_types.len() != structure.fields.len()
+            || structure.field_types.iter().any(Option::is_none)
+        {
+            return Err(UaalEmitter::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                format!(
+                    "aggregate `{}` requires explicit field types; the first contract admits flat scalar POD fields only",
+                    structure.name
+                ),
+            ));
+        }
+
+        let fields = structure
+            .fields
+            .iter()
+            .zip(&structure.field_types)
+            .map(|(name, type_annotation)| {
+                let type_annotation = type_annotation
+                    .as_deref()
+                    .expect("field type completeness checked above")
+                    .trim();
+                if !matches!(type_annotation, "i32" | "f32" | "f64" | "bool" | "Boolean") {
+                    return Err(UaalEmitter::target_capability_error(
+                        "HS-UAAL-CAP-003",
+                        "uaal.aggregate.value.v1",
+                        format!(
+                            "field `{}` of aggregate `{}` has unsupported type `{}`; the first contract admits flat scalar POD fields only",
+                            name, structure.name, type_annotation
+                        ),
+                    ));
+                }
+                Ok(UaalAggregateField {
+                    name: name.clone(),
+                    type_annotation: if type_annotation == "Boolean" {
+                        "bool".to_string()
+                    } else {
+                        type_annotation.to_string()
+                    },
+                })
+            })
+            .collect::<Result<Vec<_>, UaalEmitError>>()?;
+        let schema_id = format!(
+            "{}{{{}}}",
+            structure.name,
+            fields
+                .iter()
+                .map(|field| format!("{}:{}", field.name, field.type_annotation))
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+        Ok(Self {
+            name: structure.name.clone(),
+            fields,
+            schema_id,
+        })
+    }
 }
 
 fn validate_imports_resolved(
@@ -262,6 +371,7 @@ impl<'a> UaalEmitter<'a> {
                     (name.clone(), type_annotation)
                 })
                 .collect();
+            self.current_moved_aggregates.clear();
 
             for param in function.params.iter().rev() {
                 self.emit_op(
@@ -277,6 +387,7 @@ impl<'a> UaalEmitter<'a> {
             self.current_function = None;
             self.current_bindings.clear();
             self.current_binding_types.clear();
+            self.current_moved_aggregates.clear();
         }
         Ok(())
     }
@@ -309,12 +420,46 @@ impl<'a> UaalEmitter<'a> {
             AstNode::If(if_node) => self.emit_if(if_node),
             AstNode::While(while_node) => self.emit_while(while_node),
             AstNode::VariableDeclaration(var) => {
+                if var
+                    .type_annotation
+                    .as_deref()
+                    .is_some_and(|annotation| self.aggregate_layouts.contains_key(annotation))
+                {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-003",
+                        "uaal.aggregate.value.v1",
+                        format!(
+                            "aggregate local `{}` must use addressable `slot` storage so affine move state is explicit",
+                            var.name
+                        ),
+                    ));
+                }
                 self.emit_expression_with_expected(&var.value, var.type_annotation.as_deref())?;
                 let slot = Self::slot_key(self.current_function_name()?, &var.name);
                 self.current_bindings.insert(var.name.clone());
                 self.current_binding_types
                     .insert(var.name.clone(), var.type_annotation.clone());
                 self.emit_op(OP_STATE_SET, vec![Value::from(slot)]);
+                Ok(())
+            }
+            AstNode::StackSlotDeclaration(slot) => {
+                if !self.aggregate_layouts.contains_key(&slot.type_annotation) {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-003",
+                        "uaal.aggregate.value.v1",
+                        format!(
+                            "stack slot `{}` uses unsupported type `{}`; compile_to_uaal currently admits slots only for flat POD aggregates",
+                            slot.name, slot.type_annotation
+                        ),
+                    ));
+                }
+                self.emit_expression_with_expected(&slot.value, Some(&slot.type_annotation))?;
+                let key = Self::slot_key(self.current_function_name()?, &slot.name);
+                self.current_bindings.insert(slot.name.clone());
+                self.current_binding_types
+                    .insert(slot.name.clone(), Some(slot.type_annotation.clone()));
+                self.current_moved_aggregates.remove(&slot.name);
+                self.emit_op(OP_STATE_SET, vec![Value::from(key)]);
                 Ok(())
             }
             AstNode::Assignment(assignment) => {
@@ -338,6 +483,15 @@ impl<'a> UaalEmitter<'a> {
                         "assignment to unknown slot `{}` in compile_to_uaal",
                         target
                     )));
+                }
+                if self.binding_aggregate_layout(target).is_some() {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-003",
+                        "uaal.aggregate.value.v1",
+                        format!(
+                            "aggregate slot `{target}` is affine and cannot be overwritten by scalar assignment lowering"
+                        ),
+                    ));
                 }
                 let expected = self
                     .current_binding_types
@@ -401,12 +555,27 @@ impl<'a> UaalEmitter<'a> {
                         identifier.name
                     )));
                 }
+                if self.binding_aggregate_layout(&identifier.name).is_some() {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-003",
+                        "uaal.aggregate.value.v1",
+                        format!(
+                            "aggregate value `{}` requires explicit `move({})`; implicit copies are forbidden",
+                            identifier.name, identifier.name
+                        ),
+                    ));
+                }
                 let slot = Self::slot_key(self.current_function_name()?, &identifier.name);
                 self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
                 Ok(())
             }
             AstNode::BinaryExpression(binary) => self.emit_binary_expression(binary, expected_type),
             AstNode::CallExpression(call) => self.emit_call_expression(call),
+            AstNode::MemberExpression(_) => Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                "aggregate fields must be projected with `load(record.field)`",
+            )),
             other => Err(UaalEmitError::new(format!(
                 "unsupported expression node for compile_to_uaal: {}",
                 node_kind(other)
@@ -425,6 +594,15 @@ impl<'a> UaalEmitter<'a> {
             }
         };
 
+        if self.aggregate_layouts.contains_key(callee) {
+            return self.emit_aggregate_constructor(callee, &call.arguments);
+        }
+        if callee == "load" {
+            return self.emit_aggregate_load(call);
+        }
+        if callee == "move" {
+            return self.emit_aggregate_move(call);
+        }
         if !self.function_names.contains(callee) {
             return Err(UaalEmitError::new(format!(
                 "unresolved function call `{}` in compile_to_uaal",
@@ -460,24 +638,243 @@ impl<'a> UaalEmitter<'a> {
         Ok(())
     }
 
+    fn emit_aggregate_constructor(
+        &mut self,
+        aggregate_name: &str,
+        arguments: &[AstNode],
+    ) -> Result<(), UaalEmitError> {
+        let layout = self
+            .aggregate_layouts
+            .get(aggregate_name)
+            .cloned()
+            .ok_or_else(|| UaalEmitError::new("internal aggregate layout lookup failed"))?;
+        if arguments.len() != layout.fields.len() {
+            return Err(UaalEmitError::new(format!(
+                "arity mismatch constructing aggregate `{aggregate_name}` in compile_to_uaal: expected {}, got {}",
+                layout.fields.len(),
+                arguments.len()
+            )));
+        }
+        for (argument, field) in arguments.iter().zip(&layout.fields) {
+            self.emit_expression_with_expected(argument, Some(&field.type_annotation))?;
+        }
+        self.emit_op(
+            OP_EXEC,
+            vec![
+                Value::from(HS_AGGREGATE_VALUE_ABI),
+                Value::from("construct"),
+                Value::from(layout.schema_id),
+                Value::Array(
+                    layout
+                        .fields
+                        .iter()
+                        .map(|field| Value::from(field.name.clone()))
+                        .collect(),
+                ),
+                Value::Array(
+                    layout
+                        .fields
+                        .iter()
+                        .map(|field| Value::from(field.type_annotation.clone()))
+                        .collect(),
+                ),
+            ],
+        );
+        Ok(())
+    }
+
+    fn emit_aggregate_load(&mut self, call: &CallExpression) -> Result<(), UaalEmitError> {
+        if call.arguments.len() != 1 {
+            return Err(UaalEmitError::new(format!(
+                "aggregate `load` in compile_to_uaal expects 1 argument, got {}",
+                call.arguments.len()
+            )));
+        }
+        let AstNode::MemberExpression(member) = &call.arguments[0] else {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                "the first aggregate `load` contract requires a named scalar field projection",
+            ));
+        };
+        let (root_name, layout, field_index, field) =
+            self.resolve_aggregate_field_projection(member)?;
+        if self.current_moved_aggregates.contains(&root_name) {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                format!("aggregate `{root_name}` was already moved before `load`"),
+            ));
+        }
+        let slot = Self::slot_key(self.current_function_name()?, &root_name);
+        self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
+        self.emit_op(
+            OP_EXEC,
+            vec![
+                Value::from(HS_AGGREGATE_VALUE_ABI),
+                Value::from("project"),
+                Value::from(layout.schema_id),
+                Value::from(field.name),
+                Value::from(field_index),
+                Value::from(field.type_annotation),
+            ],
+        );
+        Ok(())
+    }
+
+    fn emit_aggregate_move(&mut self, call: &CallExpression) -> Result<(), UaalEmitError> {
+        if call.arguments.len() != 1 {
+            return Err(UaalEmitError::new(format!(
+                "aggregate `move` in compile_to_uaal expects 1 argument, got {}",
+                call.arguments.len()
+            )));
+        }
+        let AstNode::Identifier(identifier) = &call.arguments[0] else {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                "the first aggregate value contract moves only a complete named aggregate root",
+            ));
+        };
+        if self.binding_aggregate_layout(&identifier.name).is_none() {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                format!(
+                    "`move({})` requires a binding with a supported flat POD aggregate type",
+                    identifier.name
+                ),
+            ));
+        }
+        if self.current_moved_aggregates.contains(&identifier.name) {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                format!("aggregate `{}` was already moved", identifier.name),
+            ));
+        }
+        let slot = Self::slot_key(self.current_function_name()?, &identifier.name);
+        self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
+        self.current_moved_aggregates
+            .insert(identifier.name.clone());
+        Ok(())
+    }
+
+    fn resolve_aggregate_field_projection(
+        &self,
+        member: &MemberExpression,
+    ) -> Result<(String, UaalAggregateLayout, usize, UaalAggregateField), UaalEmitError> {
+        if member.computed {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                "computed aggregate field access is unavailable; use a declared field name",
+            ));
+        }
+        let AstNode::Identifier(root) = member.object.as_ref() else {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                "nested aggregate projection is outside the first flat POD value contract",
+            ));
+        };
+        let AstNode::Identifier(property) = member.property.as_ref() else {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                "aggregate projection requires a named field",
+            ));
+        };
+        let layout = self
+            .binding_aggregate_layout(&root.name)
+            .cloned()
+            .ok_or_else(|| {
+                Self::target_capability_error(
+                    "HS-UAAL-CAP-003",
+                    "uaal.aggregate.value.v1",
+                    format!(
+                        "binding `{}` does not have a supported flat POD aggregate type",
+                        root.name
+                    ),
+                )
+            })?;
+        let (field_index, field) = layout
+            .fields
+            .iter()
+            .enumerate()
+            .find(|(_, field)| field.name == property.name)
+            .map(|(index, field)| (index, field.clone()))
+            .ok_or_else(|| {
+                Self::target_capability_error(
+                    "HS-UAAL-CAP-003",
+                    "uaal.aggregate.value.v1",
+                    format!(
+                        "aggregate `{}` has no field `{}`",
+                        layout.name, property.name
+                    ),
+                )
+            })?;
+        Ok((root.name.clone(), layout, field_index, field))
+    }
+
+    fn binding_aggregate_layout(&self, name: &str) -> Option<&UaalAggregateLayout> {
+        self.current_binding_types
+            .get(name)
+            .and_then(|annotation| annotation.as_deref())
+            .and_then(|annotation| self.aggregate_layouts.get(annotation))
+    }
+
+    fn aggregate_load_field_type(&self, node: &AstNode) -> Option<String> {
+        let AstNode::CallExpression(call) = node else {
+            return None;
+        };
+        let AstNode::Identifier(callee) = call.callee.as_ref() else {
+            return None;
+        };
+        if callee.name != "load" || call.arguments.len() != 1 {
+            return None;
+        }
+        let AstNode::MemberExpression(member) = &call.arguments[0] else {
+            return None;
+        };
+        let (_, layout, field_index, _) = self.resolve_aggregate_field_projection(member).ok()?;
+        layout
+            .fields
+            .get(field_index)
+            .map(|field| field.type_annotation.clone())
+    }
+
     fn emit_if(&mut self, if_node: &crate::ast::IfNode) -> Result<(), UaalEmitError> {
         self.emit_expression_with_expected(&if_node.test, Some("bool"))?;
+        let moved_before = self.current_moved_aggregates.clone();
 
         let jump_to_consequent = self.emit_op(OP_JUMP_IF, Vec::new());
 
         if let Some(alternate) = &if_node.alternate {
+            self.current_moved_aggregates = moved_before.clone();
             for statement in alternate {
                 self.emit_statement(statement)?;
             }
         }
+        let alternate_moved = self.current_moved_aggregates.clone();
 
         let jump_to_end = self.emit_op(OP_JUMP, Vec::new());
         let consequent_start = self.instructions.len();
         self.instructions[jump_to_consequent].operands = vec![Value::from(consequent_start)];
 
+        self.current_moved_aggregates = moved_before.clone();
         for statement in &if_node.consequent {
             self.emit_statement(statement)?;
         }
+        let consequent_moved = self.current_moved_aggregates.clone();
+        if consequent_moved != alternate_moved {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                "aggregate move state differs across `if` branches; both paths must transfer the same whole values",
+            ));
+        }
+        self.current_moved_aggregates = consequent_moved;
 
         let end = self.instructions.len();
         self.instructions[jump_to_end].operands = vec![Value::from(end)];
@@ -487,6 +884,7 @@ impl<'a> UaalEmitter<'a> {
     fn emit_while(&mut self, while_node: &crate::ast::WhileNode) -> Result<(), UaalEmitError> {
         let condition_start = self.instructions.len();
         self.emit_expression_with_expected(&while_node.test, Some("bool"))?;
+        let moved_before = self.current_moved_aggregates.clone();
 
         let jump_to_body = self.emit_op(OP_JUMP_IF, Vec::new());
         let jump_to_end = self.emit_op(OP_JUMP, Vec::new());
@@ -496,6 +894,14 @@ impl<'a> UaalEmitter<'a> {
         for statement in &while_node.body {
             self.emit_statement(statement)?;
         }
+        if self.current_moved_aggregates != moved_before {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                "aggregate move state changes inside `while`; loop-carried affine values are not in the first UAAL aggregate contract",
+            ));
+        }
+        self.current_moved_aggregates = moved_before;
         self.emit_op(OP_JUMP, vec![Value::from(condition_start)]);
 
         let end = self.instructions.len();
@@ -704,6 +1110,14 @@ impl<'a> UaalEmitter<'a> {
                 .and_then(|annotation| annotation.as_deref())
                 .and_then(annotation_type),
             AstNode::CallExpression(call) => {
+                if let Some(field_type) = self.aggregate_load_field_type(node) {
+                    return match field_type.as_str() {
+                        "i32" => Some("i32"),
+                        "f32" => Some("f32"),
+                        "f64" => Some("f64"),
+                        _ => None,
+                    };
+                }
                 let AstNode::Identifier(callee) = call.callee.as_ref() else {
                     return None;
                 };
@@ -746,6 +1160,9 @@ impl<'a> UaalEmitter<'a> {
                     == Some(expected)
             }
             AstNode::CallExpression(call) => {
+                if let Some(field_type) = self.aggregate_load_field_type(node) {
+                    return field_type == expected;
+                }
                 let AstNode::Identifier(callee) = call.callee.as_ref() else {
                     return false;
                 };
@@ -777,6 +1194,9 @@ impl<'a> UaalEmitter<'a> {
                 .and_then(|annotation| annotation.as_deref())
                 .is_some_and(is_bool_annotation),
             AstNode::CallExpression(call) => {
+                if let Some(field_type) = self.aggregate_load_field_type(node) {
+                    return is_bool_annotation(&field_type);
+                }
                 let AstNode::Identifier(callee) = call.callee.as_ref() else {
                     return false;
                 };
@@ -1103,8 +1523,7 @@ function main(): i32 {
             .iter()
             .filter(|instruction| {
                 instruction.op_code == OP_EXEC
-                    && instruction.operands.first()
-                        == Some(&Value::from("hs.f64.binary.v1"))
+                    && instruction.operands.first() == Some(&Value::from("hs.f64.binary.v1"))
             })
             .collect::<Vec<_>>();
         assert_eq!(f64_binary_instructions.len(), 6);
@@ -1146,8 +1565,7 @@ function main(): i32 {
             .iter()
             .filter(|instruction| {
                 instruction.op_code == OP_EXEC
-                    && instruction.operands.first()
-                        == Some(&Value::from("hs.f32.binary.v1"))
+                    && instruction.operands.first() == Some(&Value::from("hs.f32.binary.v1"))
             })
             .collect::<Vec<_>>();
         assert_eq!(f32_binary_instructions.len(), 7);
@@ -1532,5 +1950,114 @@ function main() {
         assert!(json.contains(r#""version":1"#), "{json}");
         assert!(json.contains(r#""opCode":1"#), "{json}");
         assert!(json.contains(r#""opCode":255"#), "{json}");
+    }
+
+    #[test]
+    fn lowers_flat_pod_aggregate_calls_and_returns_as_single_affine_values() {
+        let bytecode = compile(
+            r#"struct Vec3I32 { x: i32, y: i32, z: i32 }
+
+function make(x: i32, y: i32, z: i32): Vec3I32 {
+  slot value: Vec3I32 = Vec3I32(x, y, z)
+  return move(value)
+}
+
+function dot(left: Vec3I32, right: Vec3I32): i32 {
+  return load(left.x) * load(right.x) +
+    load(left.y) * load(right.y) +
+    load(left.z) * load(right.z)
+}
+
+function main(): i32 {
+  slot left: Vec3I32 = make(1, 2, 3)
+  slot right: Vec3I32 = make(4, 5, 6)
+  return dot(move(left), move(right))
+}"#,
+        );
+
+        let aggregate_instructions = bytecode
+            .instructions
+            .iter()
+            .filter(|instruction| {
+                instruction.op_code == OP_EXEC
+                    && instruction.operands.first() == Some(&Value::from("hs.aggregate.value.v1"))
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            aggregate_instructions
+                .iter()
+                .filter(|instruction| instruction.operands[1] == Value::from("construct"))
+                .count(),
+            1,
+            "the reusable constructor body must create one aggregate per call"
+        );
+        assert_eq!(
+            aggregate_instructions
+                .iter()
+                .filter(|instruction| instruction.operands[1] == Value::from("project"))
+                .count(),
+            6
+        );
+        assert!(aggregate_instructions.iter().all(|instruction| {
+            instruction.operands[2] == Value::from("Vec3I32{x:i32,y:i32,z:i32}")
+        }));
+    }
+
+    #[test]
+    fn aggregate_value_lowering_rejects_implicit_copies_and_unbalanced_branch_moves() {
+        let implicit_copy = compile_source_to_uaal(
+            r#"struct Packet { code: i32 }
+function consume(packet: Packet): i32 { return load(packet.code) }
+function main(): i32 {
+  slot packet: Packet = Packet(5)
+  return consume(packet)
+}"#,
+        )
+        .expect_err("aggregate calls must use an explicit affine move");
+        assert!(
+            implicit_copy
+                .message
+                .contains("aggregate value `packet` requires explicit `move(packet)`"),
+            "{}",
+            implicit_copy.message
+        );
+
+        let branch_move = compile_source_to_uaal(
+            r#"struct Packet { code: i32 }
+function consume(packet: Packet): i32 { return load(packet.code) }
+function main(): i32 {
+  slot packet: Packet = Packet(5)
+  if (true) {
+    let consumed: i32 = consume(move(packet))
+  }
+  return 5
+}"#,
+        )
+        .expect_err("moves that occur on only one branch must fail closed");
+        assert!(
+            branch_move
+                .message
+                .contains("aggregate move state differs across `if` branches"),
+            "{}",
+            branch_move.message
+        );
+    }
+
+    #[test]
+    fn aggregate_value_lowering_rejects_nested_and_owned_layouts() {
+        for (source, expected) in [
+            (
+                "struct Inner { value: i32 } struct Outer { inner: Inner } function main(): i32 { return 5 }",
+                "flat scalar POD fields",
+            ),
+            (
+                "struct Packet { values: [i32] } function main(): i32 { return 5 }",
+                "owned buffer type `[i32]`",
+            ),
+        ] {
+            let error = compile_source_to_uaal(source)
+                .expect_err("unsupported aggregate layouts must fail closed");
+            assert!(error.message.contains(expected), "{}", error.message);
+        }
     }
 }
