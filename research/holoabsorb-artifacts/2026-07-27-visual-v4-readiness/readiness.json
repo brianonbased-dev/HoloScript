@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "holoscript.paper5.visual-v4-readiness.v1",
+  "kind": "Paper5VisualV4ReadinessReceipt",
+  "status": "blocked",
+  "capturedAt": "2026-07-27T18:02:16.046Z",
+  "repo": {
+    "commit": "c42705ef321d0a0cff9ba28ff0c2ecadb8802d52",
+    "trackedWorktreeDirtyAtStart": false,
+    "trackedStatusAtStart": ""
+  },
+  "protocol": {
+    "id": "holoabsorb-paper5-visual-agent-confirmation-v4-external-pixel-factorial",
+    "path": "packages/absorb-service/benchmarks/paper-5-visual-agent-study-v4.json",
+    "sha256": "ed76e7dba0143d5bab497f7cbf3f912c5577d25087d021ac90be1984b99d5953"
+  },
+  "inputs": {
+    "datasetPath": null,
+    "executionPlanPath": null
+  },
+  "implementation": {
+    "status": "pass",
+    "checks": [
+      {
+        "id": "deterministic-png-renderer",
+        "pass": true,
+        "detail": {
+          "schemaVersion": "holoscript.paper5.visual-v4-render-receipt.v1",
+          "mimeType": "image/png",
+          "width": 1600,
+          "height": 900,
+          "bytes": 9373,
+          "sha256": "7f67c5e02af55e6ae698f1344deebfa37ce3869b2cc97200243558bc24e448a5",
+          "renderer": "holoabsorb-deterministic-rgb-v1",
+          "nodeLabels": [
+            "c1",
+            "c2",
+            "c3",
+            "c4",
+            "c5",
+            "c6",
+            "c7",
+            "c8"
+          ],
+          "relationCount": 1
+        }
+      },
+      {
+        "id": "actual-image-content-part",
+        "pass": true,
+        "detail": {
+          "schemaVersion": "holoscript.paper5.visual-v4-image-input-receipt.v1",
+          "mimeType": "image/png",
+          "bytes": 9373,
+          "sha256": "7f67c5e02af55e6ae698f1344deebfa37ce3869b2cc97200243558bc24e448a5",
+          "contentPartSha256": "23a8ccdb8b024cb8467fd88790418675f4fb02f6b914e30ff0ef75c18521b30c",
+          "actualImageBytes": true
+        }
+      }
+    ]
+  },
+  "dataset": {
+    "schemaVersion": "holoscript.paper5.visual-v4-dataset-audit.v1",
+    "status": "blocked",
+    "protocolSha256": "ed76e7dba0143d5bab497f7cbf3f912c5577d25087d021ac90be1984b99d5953",
+    "checks": [
+      {
+        "id": "protocol-schema",
+        "pass": true,
+        "detail": "holoscript.paper5.visual-agent-study-protocol.v4"
+      },
+      {
+        "id": "dataset-present",
+        "pass": false,
+        "detail": "dataset not supplied"
+      }
+    ],
+    "errors": [
+      "dataset-not-supplied"
+    ],
+    "counts": {
+      "repositories": 0,
+      "queries": 0
+    }
+  },
+  "execution": {
+    "schemaVersion": "holoscript.paper5.visual-v4-execution-plan-audit.v1",
+    "status": "blocked",
+    "checks": [
+      {
+        "id": "independent-vision-family-count",
+        "pass": false,
+        "detail": {
+          "observed": 0,
+          "minimum": 3
+        }
+      },
+      {
+        "id": "vision-and-version-receipts",
+        "pass": false,
+        "detail": {
+          "receiptedFamilies": 0,
+          "minimum": 3,
+          "ineligible": []
+        }
+      },
+      {
+        "id": "trials-per-arm",
+        "pass": false,
+        "detail": null
+      }
+    ],
+    "errors": [
+      "independent-vision-family-count",
+      "vision-and-version-receipts",
+      "trials-per-arm"
+    ]
+  },
+  "blockers": [
+    "dataset-not-supplied",
+    "independent-vision-family-count",
+    "vision-and-version-receipts",
+    "trials-per-arm"
+  ],
+  "claimBoundary": [
+    "A PASS implementation check proves deterministic PNG bytes and a verified multimodal content part only.",
+    "READY requires a sealed external dataset, independent annotations, and three independently receipted vision-capable model families.",
+    "BLOCKED is not a failed hypothesis and does not authorize a visual-accuracy claim."
+  ]
+}
