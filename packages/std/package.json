@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/std",
-  "version": "7.0.3",
+  "version": "7.0.4",
   "description": "HoloScript Standard Library - Core types and utilities",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -11,6 +11,7 @@
     "src/math.hsplus",
     "src/collections.hsplus",
     "src/abi/scalar-v1.hs",
+    "src/abi/vector-v1.hs",
     "LICENSE",
     "README.md"
   ],
@@ -33,6 +34,7 @@
     "./native/math.hsplus": "./src/math.hsplus",
     "./native/collections.hsplus": "./src/collections.hsplus",
     "./native/abi/scalar-v1.hs": "./src/abi/scalar-v1.hs",
+    "./native/abi/vector-v1.hs": "./src/abi/vector-v1.hs",
     "./string": {
       "types": "./dist/string.d.ts",
       "import": "./dist/string.js",
@@ -83,7 +85,8 @@
     "exports": {
       "./math": "./src/math.hsplus",
       "./collections": "./src/collections.hsplus",
-      "./abi/scalar-v1": "./src/abi/scalar-v1.hs"
+      "./abi/scalar-v1": "./src/abi/scalar-v1.hs",
+      "./abi/vector-v1": "./src/abi/vector-v1.hs"
     },
     "supportTier": "experimental",
     "compatibility": {
@@ -97,6 +100,7 @@
     "capabilities": [
       "std_math",
       "std_math_scalar_i32_v1",
+      "std_math_vector_i32_v1",
       "std_collections"
     ],
     "abi": {
@@ -113,7 +117,39 @@
         "owned-metal"
       ]
     },
-    "runtimeBoundary": "Executable scalar i32 math ABI v1 parity is proven for clamp, sign, and step across Node, browser-WASM to UAAL, and owned-metal. Floating-point, vector, quaternion, noise, and collections parity remain preview."
+    "abis": [
+      {
+        "id": "hs.std.scalar.i32.v1",
+        "entrypoint": "./src/abi/scalar-v1.hs",
+        "functions": [
+          "std_math_clamp_i32",
+          "std_math_sign_i32",
+          "std_math_step_i32"
+        ],
+        "provenTargets": [
+          "node",
+          "browser-wasm-uaal",
+          "owned-metal"
+        ]
+      },
+      {
+        "id": "hs.std.vector.i32.v1",
+        "entrypoint": "./src/abi/vector-v1.hs",
+        "functions": [
+          "std_math_vec3_dot_i32",
+          "std_math_vec3_cross_x_i32",
+          "std_math_vec3_cross_y_i32",
+          "std_math_vec3_cross_z_i32",
+          "std_math_vec3_length_sq_i32"
+        ],
+        "provenTargets": [
+          "node",
+          "browser-wasm-uaal",
+          "owned-metal"
+        ]
+      }
+    ],
+    "runtimeBoundary": "Executable i32 math ABI parity is proven for scalar clamp/sign/step and Vec3 dot/cross/length-squared across Node, browser-WASM to UAAL, and owned-metal. Floating-point, aggregate vector calling conventions, quaternion, noise, and collections parity remain preview."
   },
   "author": "Brian X Base Team",
   "license": "MIT",

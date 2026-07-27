@@ -8,13 +8,19 @@ const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const packageJson = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
 
 describe('@holoscript/std native source tracer', () => {
-  it('ships compiler-visible sources and the executable scalar ABI under an explicit boundary', () => {
+  it('ships compiler-visible sources and executable i32 ABIs under an explicit boundary', () => {
     expect(packageJson.files).toEqual(
-      expect.arrayContaining(['src/math.hsplus', 'src/collections.hsplus', 'src/abi/scalar-v1.hs'])
+      expect.arrayContaining([
+        'src/math.hsplus',
+        'src/collections.hsplus',
+        'src/abi/scalar-v1.hs',
+        'src/abi/vector-v1.hs',
+      ])
     );
     expect(packageJson.exports['./native/math.hsplus']).toBe('./src/math.hsplus');
     expect(packageJson.exports['./native/collections.hsplus']).toBe('./src/collections.hsplus');
     expect(packageJson.exports['./native/abi/scalar-v1.hs']).toBe('./src/abi/scalar-v1.hs');
+    expect(packageJson.exports['./native/abi/vector-v1.hs']).toBe('./src/abi/vector-v1.hs');
     expect(packageJson.holoscript).toMatchObject({
       artifact: 'library',
       supportTier: 'experimental',
@@ -23,6 +29,7 @@ describe('@holoscript/std native source tracer', () => {
         './math': './src/math.hsplus',
         './collections': './src/collections.hsplus',
         './abi/scalar-v1': './src/abi/scalar-v1.hs',
+        './abi/vector-v1': './src/abi/vector-v1.hs',
       },
       abi: {
         id: 'hs.std.scalar.i32.v1',
@@ -30,8 +37,23 @@ describe('@holoscript/std native source tracer', () => {
         provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
       },
     });
+    expect(packageJson.holoscript.abis).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'hs.std.vector.i32.v1',
+          functions: [
+            'std_math_vec3_dot_i32',
+            'std_math_vec3_cross_x_i32',
+            'std_math_vec3_cross_y_i32',
+            'std_math_vec3_cross_z_i32',
+            'std_math_vec3_length_sq_i32',
+          ],
+          provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
+        }),
+      ])
+    );
     expect(packageJson.holoscript.runtimeBoundary).toContain(
-      'Executable scalar i32 math ABI v1 parity is proven'
+      'Executable i32 math ABI parity is proven'
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain('collections parity remain preview');
   });
@@ -52,6 +74,17 @@ describe('@holoscript/std native source tracer', () => {
     expect(source).toContain('export function std_math_sign_i32');
     expect(source).toContain('export function std_math_step_i32');
     expect(source).not.toContain('get_std_math_lib');
+    expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
+  });
+
+  it('keeps the vector ABI component-based, target-neutral, and explicit', () => {
+    const source = readFileSync(join(packageRoot, 'src', 'abi', 'vector-v1.hs'), 'utf8');
+    expect(source).toContain('export function std_math_vec3_dot_i32');
+    expect(source).toContain('export function std_math_vec3_cross_x_i32');
+    expect(source).toContain('export function std_math_vec3_cross_y_i32');
+    expect(source).toContain('export function std_math_vec3_cross_z_i32');
+    expect(source).toContain('export function std_math_vec3_length_sq_i32');
+    expect(source).not.toMatch(/\bf32\b|\bf64\b/);
     expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
   });
 });

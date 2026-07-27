@@ -61,7 +61,9 @@ The v2 cold harness proves the current public release cohort, including a fresh-
 
 `hs.std.scalar.i32.v1` is the first executable cross-target subset. It exposes `clamp`, `sign`, and `step` semantics through typed HoloScript functions. The conformance gate executes the existing package implementation on Node, compiles the same shipped HoloScript source with the committed browser WebAssembly compiler and executes its UAAL bytecode in Chromium, then compiles and runs a host executable through `holoscriptc`/Cranelift.
 
-Current boundary: parity is proved only for the declared i32 scalar subset. The wider `.hsplus` math and collections sources remain experimental previews; floating-point, vectors, quaternions, noise, collections, browser receipt hashing, and a generally stable systems ABI are not proved.
+`hs.std.vector.i32.v1` extends that executable subset with component-projected Vec3 dot, cross, and squared-length semantics. Explicit components preserve cross-target execution while the compilers still lack an aggregate vector calling convention. The browser lane now records and replays UAAL derivations with a universal synchronous SHA-256 implementation; the former `node:crypto` import-map shim is gone.
+
+Current boundary: parity is proved only for the declared i32 scalar and component-projected Vec3 subsets. The wider `.hsplus` math and collections sources remain experimental previews; floating-point, aggregate vectors, quaternions, noise, collections, and a generally stable systems ABI are not proved.
 
 ## Release and catalog truth
 
@@ -90,6 +92,7 @@ The narrative package index remains a discovery guide. Release counts, receipt l
 | `6b58a8318` | Public native-library dependency release cohort                         |
 | `a9a773d32` | Fresh-registry public Meaning dependency closure                        |
 | `311e061f1` | Scalar std ABI v1 and three-target executable conformance               |
+| pending     | Vec3 i32 ABI v1 and browser-native UAAL receipt hashing                |
 
 ## Acceptance status
 
@@ -102,6 +105,8 @@ The narrative package index remains a discovery guide. Release counts, receipt l
 | All npm v1 candidates admitted to release checks       | Shipped                           | 19-candidate closure and consumption/architecture checks                                                                                                                                                              |
 | Native std source distributed                          | Experimental                      | npm pack inspection and static/parser parity                                                                                                                                                                          |
 | Scalar std ABI v1 execution parity                     | Shipped experimental subset       | `reports/library-coherence/2026-07-26_std-scalar-abi-v1.json`: Node implementation, browser WebAssembly compiler plus in-browser UAAL execution, and owned-metal native executable all return the same 42-case digest |
+| Vec3 i32 ABI v1 execution parity                       | Implemented, validation pending   | Component-projected dot, cross, and squared-length conformance across the same three targets; durable receipt pending current validation                                         |
+| Browser-native UAAL receipt hashing                    | Implemented, validation pending   | Universal synchronous SHA-256 removes the `node:crypto` import-map shim; browser receipt and replay proof pending current validation                                              |
 | Package contract projected to WIT                      | Shipped as ABI                    | `wasm-tools` component embedding/new/validation                                                                                                                                                                       |
 | One cold external end-to-end native consumer           | Shipped for public release cohort | Fresh packed CLI/platform/core plus public `@holoscript/meaning@0.1.2`, standalone registry restart, exact digest resolve, and process-guarded offline replay                                                         |
 | Production native registry deployment                  | Open                              | Requires configured public registry, auth, storage, and operational receipts                                                                                                                                          |
@@ -110,6 +115,6 @@ The narrative package index remains a discovery guide. Release counts, receipt l
 ## Next gates
 
 1. Deploy the native package routes behind the intended production registry host and capture auth, persistence, restart, and rollback receipts.
-2. Extend executable std ABI conformance to floating-point/vector math and immutable collections without erasing target-specific semantics.
-3. Remove the browser UAAL `node:crypto` compatibility shim by shipping a browser-native receipt-hashing path.
+2. Add compiler-level floating-point and aggregate value support before claiming floating-point/vector ABI parity.
+3. Extend executable std ABI conformance to immutable collections without erasing target-specific semantics.
 4. Promote additional native libraries only after their source, compatibility, support tier, and runtime boundary appear in the generated catalog.

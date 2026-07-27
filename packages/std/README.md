@@ -18,6 +18,7 @@ npm install @holoscript/std
 | `@holoscript/std/string`                  | String manipulation                    |
 | `@holoscript/std/time`                    | Timers & scheduling                    |
 | `@holoscript/std/native/abi/scalar-v1.hs` | Executable cross-target i32 scalar ABI |
+| `@holoscript/std/native/abi/vector-v1.hs` | Executable cross-target i32 Vec3 ABI   |
 
 ## Core Types
 
@@ -203,15 +204,17 @@ pipe(5, double, addOne, toString); // '11'
 
 `@holoscript/std/native/abi/scalar-v1.hs` is the first executable cross-target standard-library ABI. Its contract ID is `hs.std.scalar.i32.v1`, and it exports `std_math_clamp_i32`, `std_math_sign_i32`, and `std_math_step_i32`.
 
+`@holoscript/std/native/abi/vector-v1.hs` adds the `hs.std.vector.i32.v1` contract. It projects Vec3 values into explicit `i32` component arguments and exports dot, cross-component, and squared-length entrypoints. This component projection is intentional: current compiler targets do not yet expose a stable aggregate vector calling convention.
+
 The conformance gate executes the existing JavaScript implementation on Node, loads the committed browser WebAssembly compiler in headless Chromium and executes its UAAL bytecode in that browser, then compiles the same HoloScript source with `holoscriptc` and runs the generated host executable:
 
 ```bash
 pnpm --filter @holoscript/std run test:abi
 ```
 
-This proves only the declared i32 scalar subset. Floating-point operations, vectors, quaternions, noise, collections, OS-level air-gap behavior, and a general stable systems ABI remain outside the proof.
+This proves only the declared i32 scalar and component-projected Vec3 subsets. Floating-point operations, an aggregate vector calling convention, quaternions, noise, collections, OS-level air-gap behavior, and a general stable systems ABI remain outside the proof.
 
-**Known limitations:** `@holoscript/std/fs` assumes a Node.js-like filesystem (`fs`/`path`) and is not usable in a browser bundle; import the browser-safe entry points (`math`, `collections`, `string`, `time`) instead if you need this library client-side. The browser ABI gate uses UAAL with derivation logging disabled because that package's optional receipt hashing still imports Node `crypto`. Interfaces may change before a v1 release.
+**Known limitations:** `@holoscript/std/fs` assumes a Node.js-like filesystem (`fs`/`path`) and is not usable in a browser bundle; import the browser-safe entry points (`math`, `collections`, `string`, `time`) instead if you need this library client-side. The browser ABI gate enables UAAL derivation logging and verifies its universal SHA-256 receipt plus hermetic replay without a Node `crypto` compatibility shim. Interfaces may change before a v1 release.
 
 ## License
 

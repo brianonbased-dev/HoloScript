@@ -25,7 +25,7 @@ This catalog is the deterministic view of the npm v1 release candidates and comp
 | `@holoscript/memory` | `0.3.0` | sovereign-memory-client | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/memory` |
 | `@holoscript/platform` | `6.1.4` | platform-control-plane | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/platform` |
 | `@holoscript/snn-webgpu` | `8.0.6` | spiking-neural-network-webgpu | candidate | laptop-windows, jetson-orin, vast-linux-gpu | release-candidate | `packages/snn-webgpu` |
-| `@holoscript/uaal` | `8.6.0` | semantic-agent-vm | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/uaal` |
+| `@holoscript/uaal` | `8.6.1` | semantic-agent-vm | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/uaal` |
 | `@holoscript/xr-embodiment` | `6.1.3` | xr-embodiment | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/xr-embodiment` |
 
 Receipt lane semantics:
@@ -37,7 +37,7 @@ Receipt lane semantics:
 
 | Package | Version | Support tier | Entrypoint | Targets | Runtime boundary |
 | --- | --- | --- | --- | --- | --- |
-| `@holoscript/std` | `7.0.3` | experimental | `./src/math.hsplus` | node, browser-wasm, owned-metal | Executable scalar i32 math ABI v1 parity is proven for clamp, sign, and step across Node, browser-WASM to UAAL, and owned-metal. Floating-point, vector, quaternion, noise, and collections parity remain preview. |
+| `@holoscript/std` | `7.0.4` | experimental | `./src/math.hsplus` | node, browser-wasm, owned-metal | Executable i32 math ABI parity is proven for scalar clamp/sign/step and Vec3 dot/cross/length-squared across Node, browser-WASM to UAAL, and owned-metal. Floating-point, aggregate vector calling conventions, quaternion, noise, and collections parity remain preview. |
 
 A compiler-native artifact declaration proves package metadata and shipped source paths. It does not by itself prove execution parity, registry deployment, authorship, or reproducible builds.
 

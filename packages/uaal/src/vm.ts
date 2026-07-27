@@ -12,8 +12,6 @@
  *   - Handlers: pluggable opcode implementations
  */
 
-import { createHash } from 'node:crypto';
-
 import {
   UAALOpCode,
   UAALBytecode,
@@ -21,6 +19,7 @@ import {
   UAALOperand,
   getUAALOpcodeName,
 } from './opcodes';
+import { sha256Bytes } from './sha256';
 
 // =============================================================================
 // VM STATE
@@ -253,7 +252,7 @@ export function computeUAALBytecodeSha256(bytecode: UAALBytecode): string {
       operands: cloneJsonSafe(instr.operands ?? [], LOG_VALUE_DEPTH),
     })),
   });
-  return createHash('sha256').update(canonical).digest('hex');
+  return sha256Bytes(new TextEncoder().encode(canonical));
 }
 
 // =============================================================================
