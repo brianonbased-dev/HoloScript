@@ -1,16 +1,16 @@
 {
   "schema": "holoscript.std-abi-conformance.owned-metal.v0",
-  "generatedAtISO": "2026-07-27T20:40:08.240Z",
+  "generatedAtISO": "2026-07-27T23:54:00.778Z",
   "target": "owned-metal",
   "executionRuntime": {
     "engine": "compiler-wasm evaluate_trait_handler_v4 (WebAssembly)",
     "evaluatorExport": "evaluate_trait_handler_v4",
     "executedProjection": "std-abi-conformance.trait.hsplus (bundle copy, pin-verified)",
-    "wasmArtifactSha256": "sha256:7f2617ed2da3daa9ae1bd1f1806a0cbec17d79bc02bfa34d5af0816d009dcac2"
+    "wasmArtifactSha256": "sha256:fff120ca5315826a0ac27c74f69023fda3f2c5ca84843555fad06629814b651a"
   },
   "sources": {
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:8f57b889de465c0ecaa72ef1fe63b507a4183f4108cba834f390b06d2e56e7a4"
+      "sha256": "sha256:8713b66508387e67c41143ca9681c4f3326b8aa858d6235d9fb59bc3faa7ea91"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
       "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
@@ -31,10 +31,10 @@
     "cpus": "Cortex-A78AE"
   },
   "summary": {
-    "vectors": 164,
-    "passed": 164,
+    "vectors": 168,
+    "passed": 168,
     "failed": 0,
-    "packagedVectors": 41,
+    "packagedVectors": 45,
     "packagedSkipped": 0
   },
   "packagedExecution": {
@@ -1662,6 +1662,48 @@
         1,
         3
       ]
+    },
+    {
+      "id": "pkg-lrange-default-step",
+      "op": "on_range",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lrange-explicit",
+      "op": "on_range",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        10,
+        8,
+        6
+      ]
+    },
+    {
+      "id": "pkg-ljoin-default-sep",
+      "op": "on_join",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "a,b,c"
+    },
+    {
+      "id": "pkg-ljoin-dash",
+      "op": "on_join",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "1-2.5-3"
     }
   ],
   "claimBoundary": {
@@ -1669,5 +1711,5 @@
     "provesNodeDeterministicSubsetExecution": false,
     "note": "Executed the generated trait projection through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:3c6df23cd6a5d0ae4b1dff7ad86d491a44499e744a6b9157a2078c06b5ec253f"
+  "receiptHash": "sha256:f6730fa4f93415b61fb42b6dee1ac087df5aa4b6e3d2d339a26ac7195e2f4d59"
 }
