@@ -1,0 +1,1752 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.rebenchmark.v3",
+  "productName": "HoloAbsorb",
+  "status": "pass",
+  "startedAt": "2026-07-27T23:20:18.228Z",
+  "completedAt": "2026-07-27T23:23:44.731Z",
+  "repo": {
+    "root": "C:\\Users\\josep\\.scratch\\holoabsorb-hardening-20260727",
+    "commit": "dbf269281910417e304f9c151848072b17a04acb",
+    "worktreeDirtyAtStart": false,
+    "worktreeStatusAtStart": ""
+  },
+  "hardware": {
+    "hostname": "Work",
+    "platform": "win32 10.0.26200",
+    "architecture": "x64",
+    "node": "v24.15.0",
+    "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "logicalCpuCount": 16,
+    "totalMemoryBytes": 34069385216,
+    "freeMemoryBytesAtStart": 7573078016,
+    "gpuInventory": [
+      "NVIDIA GeForce RTX 3060 Laptop GPU, 610.62, 6144 MiB"
+    ],
+    "nvidiaSmiStatus": "available"
+  },
+  "options": {
+    "outDir": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2",
+    "board": "research/holoabsorb-artifacts/2026-07-26-board-snapshot.json",
+    "skipBuild": false,
+    "withXenova": false,
+    "paper5Trials": 100,
+    "paper5MaxFiles": 500,
+    "paper5Dataset": "packages/absorb-service/benchmarks/paper-5-retrieval-v1.json",
+    "hybridRepo": "packages/absorb-service",
+    "hybridMaxFiles": 2000,
+    "help": false
+  },
+  "steps": [
+    {
+      "id": "absorb-service-build",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:20:18.467Z",
+      "durationMs": 45429,
+      "command": "pnpm.cmd --filter @holoscript/absorb-service build",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/absorb-service-build.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/absorb-service-build.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "scan-determinism",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:21:03.904Z",
+      "durationMs": 40233,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/verify-scan-determinism.mjs --out=research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/scan-determinism.json",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/scan-determinism.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/scan-determinism.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-5-dataset-audit",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:21:44.142Z",
+      "durationMs": 117,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/verify-paper-5-dataset.mjs --dataset=packages/absorb-service/benchmarks/paper-5-retrieval-v1.json --out=research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-dataset-audit.json",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-dataset-audit.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-dataset-audit.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "holoabsorb-umbrella-audit",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:21:44.265Z",
+      "durationMs": 653,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/audit-holoabsorb.mjs --out=research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-umbrella-audit.json --board=research/holoabsorb-artifacts/2026-07-26-board-snapshot.json",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-umbrella-audit.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-umbrella-audit.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "holoabsorb-transport-resilience",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:21:44.922Z",
+      "durationMs": 1074,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-holoabsorb-transport.mjs --out=research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-transport-resilience.json",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-transport-resilience.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-transport-resilience.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "holoabsorb-refresh-benchmark",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:21:46.001Z",
+      "durationMs": 45025,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-holoabsorb-refresh.mjs --out=research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-refresh-benchmark.json",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-refresh-benchmark.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-refresh-benchmark.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "holoabsorb-hybrid-visual-focus",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:22:31.032Z",
+      "durationMs": 18022,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs --visual-focus-only --repo=C:\\Users\\josep\\.scratch\\holoabsorb-hardening-20260727\\packages\\absorb-service --max-files=2000 --out=research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-hybrid-visual-focus.json",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-hybrid-visual-focus.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/holoabsorb-hybrid-visual-focus.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-5-accuracy-holoembed",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:22:49.059Z",
+      "durationMs": 26548,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-paper-5-accuracy.mjs --out=research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-accuracy-holoembed.json --max-files=500 --dataset=packages/absorb-service/benchmarks/paper-5-retrieval-v1.json --provider=holoembed",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-accuracy-holoembed.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-accuracy-holoembed.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-5-accuracy-structural",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:23:15.613Z",
+      "durationMs": 23946,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-paper-5-accuracy.mjs --out=research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-accuracy-structural.json --max-files=500 --dataset=packages/absorb-service/benchmarks/paper-5-retrieval-v1.json --provider=structural",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-accuracy-structural.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-accuracy-structural.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-5-timing",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:23:39.565Z",
+      "durationMs": 330,
+      "command": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" packages/absorb-service/scripts/bench-paper-5-gpu.mjs --out=research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-timing.json --trials=100 --queries=30 --max-symbols=384",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-timing.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-5-timing.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-26-holograph",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:23:39.899Z",
+      "durationMs": 3053,
+      "command": "pnpm.cmd --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Benchmark.test.ts --reporter=verbose --testNamePattern=EventEdge",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-26-holograph.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-26-holograph.stderr.log",
+      "spawnError": null
+    },
+    {
+      "id": "paper-26-holoembed",
+      "status": "pass",
+      "exitCode": 0,
+      "startedAt": "2026-07-27T23:23:42.957Z",
+      "durationMs": 1751,
+      "command": "pnpm.cmd --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Table2NLRecall.test.ts --reporter=verbose",
+      "stdoutPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-26-holoembed.stdout.log",
+      "stderrPath": "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-26-holoembed.stderr.log",
+      "spawnError": null
+    }
+  ],
+  "summaries": {
+    "scanDeterminism": {
+      "schemaVersion": "holoscript.absorb.scan-determinism.v1",
+      "status": "pass",
+      "packageRoot": "C:\\Users\\josep\\.scratch\\holoabsorb-hardening-20260727\\packages\\absorb-service",
+      "first": {
+        "files": 125,
+        "sha256": "8ea8c74dcfbb8f4a8e8164a18e91a8b240807533f702a48c919be968eda96e45"
+      },
+      "second": {
+        "files": 125,
+        "sha256": "8ea8c74dcfbb8f4a8e8164a18e91a8b240807533f702a48c919be968eda96e45"
+      },
+      "differences": []
+    },
+    "umbrellaAuditStatus": "pass",
+    "transportResilience": {
+      "status": "pass",
+      "performanceByScale": [
+        {
+          "connections": 64,
+          "iterations": 25,
+          "candidateCount": 0,
+          "medianMs": 0.487,
+          "p95Ms": 1.262,
+          "p99Ms": 1.445,
+          "maxRssBytes": 67272704
+        },
+        {
+          "connections": 256,
+          "iterations": 25,
+          "candidateCount": 0,
+          "medianMs": 1.518,
+          "p95Ms": 1.938,
+          "p99Ms": 2.283,
+          "maxRssBytes": 68030464
+        },
+        {
+          "connections": 1024,
+          "iterations": 25,
+          "candidateCount": 0,
+          "medianMs": 5.702,
+          "p95Ms": 6.891,
+          "p99Ms": 6.912,
+          "maxRssBytes": 81903616
+        },
+        {
+          "connections": 4096,
+          "iterations": 25,
+          "candidateCount": 0,
+          "medianMs": 21.735,
+          "p95Ms": 28.102,
+          "p99Ms": 28.706,
+          "maxRssBytes": 137162752
+        }
+      ],
+      "checks": [
+        {
+          "id": "healthy-heartbeats-survive-capacity-pressure",
+          "pass": true
+        },
+        {
+          "id": "dead-parent-reaped",
+          "pass": true
+        },
+        {
+          "id": "expired-lease-reaped",
+          "pass": true
+        },
+        {
+          "id": "faulted-leases-pruned",
+          "pass": true
+        },
+        {
+          "id": "heartbeat-timers-unref-and-close",
+          "pass": true
+        },
+        {
+          "id": "largest-registry-has-no-false-positive",
+          "pass": true
+        },
+        {
+          "id": "largest-registry-p95-under-one-second",
+          "pass": true
+        }
+      ],
+      "failedChecks": []
+    },
+    "refreshBenchmark": {
+      "status": "pass",
+      "fixture": {
+        "files": 120,
+        "symbolsPerFile": 24,
+        "changedFiles": 15,
+        "initialHead": "296170343f2405e8eff6156942b5813c9f8c673c",
+        "refreshedHead": "9d192a60122875647d28709d90c0c455f934bc03",
+        "churnHead": "e3c85996ea862a8d910d9ab31d1664094fa651a8",
+        "churnCommits": 3,
+        "churnTriggerBatches": 1,
+        "visualFiles": 40,
+        "visualSymbolsPerFile": 8,
+        "retainedAt": null
+      },
+      "measurements": {
+        "initial": {
+          "durationMs": 3203.05,
+          "responseBytes": 6786,
+          "peakRssDeltaBytes": 142516224,
+          "totalFiles": 120,
+          "totalSymbols": 2880
+        },
+        "refreshed": {
+          "durationMs": 3661.648,
+          "responseBytes": 6993,
+          "peakRssDeltaBytes": 78307328,
+          "embeddingRefresh": {
+            "kind": "EmbeddingRefreshReceipt",
+            "previousSymbols": 2880,
+            "totalSymbols": 2895,
+            "reusedSymbols": 2880,
+            "embeddedSymbols": 15,
+            "retiredSymbols": 0,
+            "reuseRatio": 0.994819,
+            "batchCount": 91
+          }
+        },
+        "memoryGuard": {
+          "durationMs": 11.544,
+          "requestedMinSystemFreeMb": 7933,
+          "reason": "system_memory_reserve_exhausted",
+          "phaseAtRequest": "Initializing",
+          "guardPhase": "preflight resource guard",
+          "cachePreserved": true,
+          "cacheHashBefore": "2f06aba82d16fa512fdf2616361838e8868f61fa0225d872439be35b71199829",
+          "cacheHashAfter": "2f06aba82d16fa512fdf2616361838e8868f61fa0225d872439be35b71199829"
+        },
+        "churn": {
+          "durationMs": 10323.188,
+          "events": [
+            {
+              "index": 1,
+              "file": "src/module-119.ts",
+              "receiptResumeToken": "19ca9d3743504a01a517343fcbd7907c",
+              "completedBatchCountAtCommit": 1,
+              "beforeHead": "9d192a60122875647d28709d90c0c455f934bc03",
+              "afterHead": "a6e39d7021c23bda14b301fa6cf66f44ad2242d2",
+              "committedAt": "2026-07-27T23:21:56.099Z"
+            },
+            {
+              "index": 2,
+              "file": "src/module-118.ts",
+              "receiptResumeToken": "19ca9d3743504a01a517343fcbd7907c",
+              "completedBatchCountAtCommit": 2,
+              "beforeHead": "a6e39d7021c23bda14b301fa6cf66f44ad2242d2",
+              "afterHead": "63d9fc02dc62f323c714d427bdfcdd703989c60a",
+              "committedAt": "2026-07-27T23:21:57.594Z"
+            },
+            {
+              "index": 3,
+              "file": "src/module-117.ts",
+              "receiptResumeToken": "19ca9d3743504a01a517343fcbd7907c",
+              "completedBatchCountAtCommit": 3,
+              "beforeHead": "63d9fc02dc62f323c714d427bdfcdd703989c60a",
+              "afterHead": "e3c85996ea862a8d910d9ab31d1664094fa651a8",
+              "committedAt": "2026-07-27T23:21:58.814Z"
+            }
+          ],
+          "controllerErrors": [],
+          "sourceDriftRetry": {
+            "enabled": true,
+            "strictResumeToken": false,
+            "maxRetries": 4,
+            "debounceMs": 25,
+            "checkIntervalMs": 0,
+            "maxCheckOverheadRatio": 0.04,
+            "detectionCount": 3,
+            "retryCount": 3,
+            "headCheckCount": 38,
+            "headCheckDurationMs": 2271,
+            "maxHeadCheckDurationMs": 150.596,
+            "effectiveCheckIntervalMs": 0,
+            "exhausted": false,
+            "lastHeadCheckDurationMs": 108.99,
+            "lastDetectedAt": "2026-07-27T23:21:58.921Z",
+            "lastExpectedCommit": "63d9fc02dc62f323c714d427bdfcdd703989c60a",
+            "lastObservedCommit": "e3c85996ea862a8d910d9ab31d1664094fa651a8",
+            "lastRootDir": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoabsorb-refresh-bench-xignC7",
+            "lastDebounceDurationMs": 46
+          },
+          "refreshProgressReceipt": {
+            "schemaVersion": "holoscript.absorb-refresh-progress-receipt.v1",
+            "kind": "AbsorbRefreshProgressReceipt",
+            "resumeToken": "19ca9d3743504a01a517343fcbd7907c",
+            "rootDir": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoabsorb-refresh-bench-xignC7",
+            "targetGitCommitHash": "e3c85996ea862a8d910d9ab31d1664094fa651a8",
+            "targetWorktreeFingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "planHash": "0521b2b01f00a958a6692d921479645e209e388935adb489c88f3d1d2f80a21f",
+            "selectedFilesHash": "996998d72dbb3aa5bf217f73d42c3ba606f2f0bda2939ec4b88d7aabf51df847",
+            "scanPolicyHash": "{\"maxFiles\":20000}",
+            "status": "complete",
+            "authoritative": false,
+            "cachePublished": true,
+            "publishedGraphAuthoritative": true,
+            "priorAuthoritativeCachePreserved": false,
+            "resumable": false,
+            "totalCandidateFiles": 120,
+            "totalBatches": 30,
+            "completedBatchCount": 30,
+            "completedCandidateFiles": 120,
+            "remainingCandidateFiles": 0,
+            "progressPercent": 100,
+            "resumeMode": "content-addressed-overlay",
+            "reusedBatchCount": 3,
+            "invalidatedBatchCount": 0,
+            "selection": {
+              "maxFiles": 20000,
+              "workspaceCandidateFiles": 120,
+              "selectedCandidateFiles": 120,
+              "truncated": false,
+              "truncationReason": null
+            },
+            "receiptFile": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoabsorb-refresh-cache-b6WLcm\\absorb-refreshes\\19ca9d3743504a01a517343fcbd7907c\\progress-receipt.json",
+            "checkpointDirectory": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoabsorb-refresh-cache-b6WLcm\\absorb-refreshes\\19ca9d3743504a01a517343fcbd7907c",
+            "ownerProcessId": 15184,
+            "ownerHost": "Work",
+            "ownerWriterLeaseSha256": "e1ce0ceea00a67490a0497c19b3ef596b7c138d4c397fc94f603d6a01956f689",
+            "createdAt": "2026-07-27T23:21:55.463Z",
+            "updatedAt": "2026-07-27T23:22:05.411Z",
+            "baseTargetGitCommitHash": "63d9fc02dc62f323c714d427bdfcdd703989c60a",
+            "baseTargetWorktreeFingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "targetLag": {
+              "sourceResumeToken": "19ca9d3743504a01a517343fcbd7907c",
+              "sourceTargetGitCommitHash": "63d9fc02dc62f323c714d427bdfcdd703989c60a",
+              "targetGitCommitHash": "e3c85996ea862a8d910d9ab31d1664094fa651a8",
+              "sourceTargetWorktreeFingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "targetWorktreeFingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "sourceSelectedCandidateFiles": 120,
+              "targetSelectedCandidateFiles": 120,
+              "selectedCandidateFileDelta": 0
+            },
+            "completedBatchesOmitted": 30,
+            "latestCompletedBatch": {
+              "index": 30,
+              "label": "src (30/30)",
+              "candidateFiles": 4,
+              "scannedFiles": 4,
+              "resultFile": "batch-00030.json",
+              "sha256": "96855325eb54b82599fbb2d6ecc81e6f05683bf79f2a5f119f5e64bd5fb92426",
+              "inputSha256": "b8fcfb96071fb5d904850670f68a640605097ab347888e24a9bf467c8987f745"
+            }
+          },
+          "observedCheckpointReceipts": [
+            {
+              "resumeToken": "a55eab5ece7f450baecd4c87494d42b0",
+              "status": "complete",
+              "targetGitCommitHash": "296170343f2405e8eff6156942b5813c9f8c673c",
+              "completedBatchCount": 2,
+              "totalBatches": 2,
+              "resumeMode": "new",
+              "reusedBatchCount": 0,
+              "invalidatedBatchCount": 0,
+              "priorAuthoritativeCachePreserved": false,
+              "cachePublished": true
+            },
+            {
+              "resumeToken": "d1a5ba5d514f4b02bfceb5a5ff074b39",
+              "status": "complete",
+              "targetGitCommitHash": "9d192a60122875647d28709d90c0c455f934bc03",
+              "completedBatchCount": 2,
+              "totalBatches": 2,
+              "resumeMode": "new",
+              "reusedBatchCount": 0,
+              "invalidatedBatchCount": 0,
+              "priorAuthoritativeCachePreserved": false,
+              "cachePublished": true
+            },
+            {
+              "resumeToken": "19ca9d3743504a01a517343fcbd7907c",
+              "status": "complete",
+              "targetGitCommitHash": "e3c85996ea862a8d910d9ab31d1664094fa651a8",
+              "completedBatchCount": 30,
+              "totalBatches": 30,
+              "resumeMode": "content-addressed-overlay",
+              "reusedBatchCount": 3,
+              "invalidatedBatchCount": 0,
+              "priorAuthoritativeCachePreserved": false,
+              "cachePublished": true
+            }
+          ]
+        },
+        "headChecks": [
+          {
+            "label": "control-single-check",
+            "intervalMs": 1000000000,
+            "durationMs": 4979.569,
+            "totalBatches": 120,
+            "headCheckCount": 1,
+            "headCheckDurationMs": 58.472,
+            "maxHeadCheckDurationMs": 58.472,
+            "effectiveCheckIntervalMs": 1000000000,
+            "headCheckOverheadRatio": 0.011742
+          },
+          {
+            "label": "production-default",
+            "intervalMs": 1000,
+            "durationMs": 5034.954,
+            "totalBatches": 120,
+            "headCheckCount": 3,
+            "headCheckDurationMs": 182.545,
+            "maxHeadCheckDurationMs": 78.05,
+            "effectiveCheckIntervalMs": 1952,
+            "headCheckOverheadRatio": 0.036256
+          },
+          {
+            "label": "eager-every-batch",
+            "intervalMs": 0,
+            "durationMs": 11377.943,
+            "totalBatches": 120,
+            "headCheckCount": 120,
+            "headCheckDurationMs": 6901.651,
+            "maxHeadCheckDurationMs": 162.041,
+            "effectiveCheckIntervalMs": 0,
+            "headCheckOverheadRatio": 0.606582
+          }
+        ],
+        "visual": {
+          "durationMs": 2336.602,
+          "totalFiles": 40,
+          "totalSymbols": 320,
+          "totalImports": 39,
+          "holoSourceBytes": 20797,
+          "topology": {
+            "expectedFiles": 40,
+            "visibleExpectedFiles": 40,
+            "fileCoverage": 1,
+            "sceneObjects": 50,
+            "sceneEdges": 39,
+            "expectedVisibleEdges": 39,
+            "matchedEdges": 39,
+            "spuriousEdges": 0,
+            "edgeRecall": 1,
+            "edgePrecision": 1,
+            "endpointIntegrity": true,
+            "finitePositionRatio": 1,
+            "uniquePositionRatio": 1
+          }
+        },
+        "graphCacheBytes": 1136261,
+        "freshProcessStatus": {
+          "graphAuthoritative": true,
+          "freshForCurrentRepo": true,
+          "gitCommitMatchesHead": true
+        },
+        "freshProcessQuery": {
+          "totalFiles": 120,
+          "totalSymbols": 2898,
+          "totalImports": 119,
+          "totalCalls": 137,
+          "totalEventEdges": 0,
+          "totalLoc": 3137,
+          "filesByLanguage": {
+            "typescript": 120
+          },
+          "symbolsByType": {
+            "function": 2898
+          },
+          "communities": 0
+        }
+      },
+      "checks": {
+        "boundedDelta": true,
+        "initialGraphNotInlined": true,
+        "refreshedGraphNotInlined": true,
+        "initialResponseBounded": true,
+        "refreshedResponseBounded": true,
+        "graphCacheLargerThanResponse": true,
+        "changedSymbolReuse": true,
+        "peakRssBounded": true,
+        "memoryGuardRefusedBeforePlanning": true,
+        "memoryGuardPreservedCache": true,
+        "churnCommitsApplied": true,
+        "churnRecoveredAtLatestHead": true,
+        "churnReusedCheckpointWork": true,
+        "headCheckTelemetryPresent": true,
+        "defaultHeadChecksRateLimited": true,
+        "defaultHeadCheckOverheadBounded": true,
+        "eagerHeadChecksCoverBatches": true,
+        "freshProcessStatus": true,
+        "freshProcessQuery": true,
+        "visualFileCoverage": true,
+        "visualEdgeRecall": true,
+        "visualEdgePrecision": true,
+        "visualEndpointIntegrity": true,
+        "visualFinitePositions": true
+      }
+    },
+    "hybridVisualFocus": {
+      "status": "pass",
+      "benchmarkProfile": "real-code-visual-focus",
+      "claimBoundary": "Package-scoped real-code measurement of graph.holo structured selection over duplicate symbols. It does not claim whole-monorepo retrieval coverage or measure literal pixels, rendering, or human visual perception.",
+      "implementation": {
+        "root": "C:\\Users\\josep\\.scratch\\holoabsorb-hardening-20260727",
+        "head": "dbf269281910417e304f9c151848072b17a04acb",
+        "dirty": true,
+        "benchmarkSourcePaths": [
+          "packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs",
+          "packages/absorb-service/src/engine/__tests__/VisualGraphAgentContext.test.ts"
+        ],
+        "benchmarkSourceDirty": false
+      },
+      "repo": {
+        "root": "C:\\Users\\josep\\.scratch\\holoabsorb-hardening-20260727\\packages\\absorb-service",
+        "head": "dbf269281910417e304f9c151848072b17a04acb",
+        "dirty": true
+      },
+      "corpus": {
+        "maxFiles": 2000,
+        "selectedCandidateFiles": 335,
+        "files": 335,
+        "selectionMode": "git-tracked",
+        "coverageRatio": 1,
+        "cappedByMaxFiles": false,
+        "coverageInventoryLimit": 1000000,
+        "coverageInventoryCapped": false,
+        "graphSymbols": 12008,
+        "indexedEntries": 12035,
+        "parserLightFileEntries": 27
+      },
+      "checks": [
+        {
+          "query": "selected-root-corpus-coverage",
+          "selectedCandidateFiles": 335,
+          "scannedFiles": 335,
+          "cappedByMaxFiles": false,
+          "pass": true
+        }
+      ],
+      "visualDisambiguation": {
+        "methodology": "Freeze a real-repository duplicate-symbol case set from the no-selection ranking, hold the lowest-ranked same-name symbol as the target, and reuse it across four arms: no selection, the correct collision-safe graph.holo node ID, an unresolved stale ID, and a different resolved same-name node.",
+        "claimBoundary": "Correct selection measures whether visible graph intent can improve retrieval of a fixed target. Stale/unresolved selection must fail closed to the no-selection order. Wrong-but-resolved selection is valid caller-supplied intent: its steering and target-rank harm are reported diagnostically and are not mislabeled as model accuracy.",
+        "caseSet": {
+          "digestAlgorithm": "sha256",
+          "digest": "bb397e4eedbea55533cb1591f4135359011321db486b571e2ea61eb7019272db",
+          "frozenBeforeVisualArms": true,
+          "reusedAcrossAllArms": true,
+          "targetRule": "lowest-ranked same-name result in the no-selection arm",
+          "wrongSelectionRule": "highest-ranked different same-name result from a different file in the no-selection arm",
+          "samplingRule": "duplicate names matching a public-identifier shape, ordered by a stable SHA-256 digest instead of lexicographic prefix"
+        },
+        "summary": {
+          "cases": 20,
+          "arms": {
+            "noSelection": {
+              "mrr": 0.304,
+              "top1Rate": 0,
+              "meanTargetRank": 5.1,
+              "meanQueryMs": 40.143,
+              "p95QueryMs": 40.308,
+              "resolutionRate": null
+            },
+            "correctSelection": {
+              "mrr": 0.975,
+              "top1Rate": 0.95,
+              "meanTargetRank": 1.05,
+              "meanQueryMs": 34.195,
+              "p95QueryMs": 39.721,
+              "resolutionRate": 1
+            },
+            "staleUnresolved": {
+              "mrr": 0.304,
+              "top1Rate": 0,
+              "meanTargetRank": 5.1,
+              "meanQueryMs": 33.512,
+              "p95QueryMs": 38.139,
+              "resolutionRate": 0
+            },
+            "wrongResolved": {
+              "mrr": 0.327,
+              "top1Rate": 0,
+              "meanTargetRank": 4.5,
+              "meanQueryMs": 33.794,
+              "p95QueryMs": 38.387,
+              "resolutionRate": 1
+            }
+          },
+          "baselineMrr": 0.304,
+          "focusedMrr": 0.975,
+          "correctMrr": 0.975,
+          "staleMrr": 0.304,
+          "wrongMrr": 0.327,
+          "baselineTop1Rate": 0,
+          "focusedTop1Rate": 0.95,
+          "correctTop1Rate": 0.95,
+          "staleTop1Rate": 0,
+          "wrongTop1Rate": 0,
+          "meanRankGain": 4.05,
+          "meanCorrectRankGain": 4.05,
+          "meanResolutionRate": 1,
+          "correctResolutionRate": 1,
+          "staleResolutionRate": 0,
+          "wrongResolutionRate": 1,
+          "staleExactRankingMatchRate": 1,
+          "harmfulOverrideRate": 0.05,
+          "wrongSelectionFollowRate": 1,
+          "wrongFixedTargetBoostRate": 0.5,
+          "wrongSelectionIsolationRate": 0.5,
+          "meanWrongTargetRankDelta": -0.6,
+          "coldSelectionIndexMs": 27.497,
+          "warmSelectionIndexMs": 0.032,
+          "warmSelectionIndexSpeedup": 870.155
+        },
+        "check": {
+          "minimumCases": 5,
+          "measuredCases": 20,
+          "correctMrrImproves": true,
+          "correctTop1AtLeast80Percent": true,
+          "correctSelectionFullyResolved": true,
+          "staleSelectionFullyUnresolved": true,
+          "staleRankingBaselineEquivalent": true,
+          "wrongSelectionFullyResolved": true,
+          "pass": true
+        }
+      }
+    },
+    "paper5Accuracy": {
+      "datasetAudit": {
+        "schemaVersion": "holoscript.paper5.retrieval-dataset-audit.v1",
+        "kind": "Paper5RetrievalDatasetAudit",
+        "generatedAt": "2026-07-27T23:21:44.245Z",
+        "status": "pass",
+        "dataset": {
+          "path": "packages/absorb-service/benchmarks/paper-5-retrieval-v1.json",
+          "sha256": "f34a3664fd8c39ff5cc5b38201b72d8d02b6633990f2c67f4e43cc03bd1314dd",
+          "datasetId": "holoabsorb-paper5-source-audited-v1",
+          "sourceCommit": "ca8da44d2b7a9e221d39b84886e3b0e65c7660f8",
+          "frozenAt": "2026-07-27T02:50:00.000Z"
+        },
+        "counts": {
+          "queries": 54,
+          "categories": {
+            "dependency": 18,
+            "impact": 18,
+            "reasoning": 18
+          },
+          "goldFiles": 160,
+          "verifiedAnchors": 173
+        },
+        "protocol": {
+          "minimumQueryCount": 50,
+          "minimumCategoryCount": 15,
+          "requiredCategories": [
+            "dependency",
+            "impact",
+            "reasoning"
+          ],
+          "rankingsHiddenFromVerifier": true,
+          "multiHumanAnnotator": false
+        },
+        "errors": [],
+        "warnings": []
+      },
+      "current": {
+        "status": "completed",
+        "bootstrap": false,
+        "evaluationStage": "source-audited-held-out",
+        "publicationReady": false,
+        "dataset": {
+          "id": "holoabsorb-paper5-source-audited-v1",
+          "path": "packages/absorb-service/benchmarks/paper-5-retrieval-v1.json",
+          "sha256": "f34a3664fd8c39ff5cc5b38201b72d8d02b6633990f2c67f4e43cc03bd1314dd",
+          "auditStatus": "pass"
+        },
+        "embeddingProvider": "HoloEmbedProvider (sovereign structural + subword embeddings)",
+        "corpus": {
+          "root": "packages/absorb-service",
+          "files": 125,
+          "symbols": 6646,
+          "max_files": 500,
+          "deterministic_scan": "sequential",
+          "symbol_corpus_sha256": "b8b0ea7594a073f9d1098ca43cfdb3c8440efbb073dddecf3be77d301cb3b46b",
+          "scan_errors": []
+        },
+        "querySet": {
+          "n": 54,
+          "categories": {
+            "dependency": 18,
+            "impact": 18,
+            "reasoning": 18
+          },
+          "relevance_judgments": 160,
+          "gold_files_in_corpus": 160,
+          "gold_files_missing": []
+        },
+        "systems": [
+          {
+            "name": "keyword-only",
+            "status": "ok",
+            "pAt5": 0.2,
+            "mrr": 0.449,
+            "confidenceIntervals": {
+              "p_at_5": {
+                "mean": 0.2,
+                "ci_lower": 0.159,
+                "ci_upper": 0.241,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0.449,
+                "ci_lower": 0.35,
+                "ci_upper": 0.548,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "deltaVsKeyword": {
+              "p_at_5": {
+                "mean": 0,
+                "ci_lower": 0,
+                "ci_upper": 0,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0,
+                "ci_lower": 0,
+                "ci_upper": 0,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "byCategory": {
+              "dependency": {
+                "p_at_5": {
+                  "mean": 0.189,
+                  "ci_lower": 0.111,
+                  "ci_upper": 0.278,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.506,
+                  "ci_lower": 0.314,
+                  "ci_upper": 0.701,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "impact": {
+                "p_at_5": {
+                  "mean": 0.211,
+                  "ci_lower": 0.133,
+                  "ci_upper": 0.278,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.419,
+                  "ci_lower": 0.263,
+                  "ci_upper": 0.583,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "reasoning": {
+                "p_at_5": {
+                  "mean": 0.2,
+                  "ci_lower": 0.133,
+                  "ci_upper": 0.267,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.421,
+                  "ci_lower": 0.272,
+                  "ci_upper": 0.586,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              }
+            },
+            "runtimeMs": 643
+          },
+          {
+            "name": "semantic-only",
+            "status": "ok",
+            "pAt5": 0.093,
+            "mrr": 0.24,
+            "confidenceIntervals": {
+              "p_at_5": {
+                "mean": 0.093,
+                "ci_lower": 0.063,
+                "ci_upper": 0.122,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0.24,
+                "ci_lower": 0.16,
+                "ci_upper": 0.326,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "deltaVsKeyword": {
+              "p_at_5": {
+                "mean": -0.107,
+                "ci_lower": -0.152,
+                "ci_upper": -0.063,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": -0.208,
+                "ci_lower": -0.324,
+                "ci_upper": -0.088,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "byCategory": {
+              "dependency": {
+                "p_at_5": {
+                  "mean": 0.089,
+                  "ci_lower": 0.033,
+                  "ci_upper": 0.144,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.209,
+                  "ci_lower": 0.082,
+                  "ci_upper": 0.365,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "impact": {
+                "p_at_5": {
+                  "mean": 0.1,
+                  "ci_lower": 0.056,
+                  "ci_upper": 0.144,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.271,
+                  "ci_lower": 0.136,
+                  "ci_upper": 0.421,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "reasoning": {
+                "p_at_5": {
+                  "mean": 0.089,
+                  "ci_lower": 0.033,
+                  "ci_upper": 0.144,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.242,
+                  "ci_lower": 0.108,
+                  "ci_upper": 0.405,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              }
+            },
+            "runtimeMs": 1342
+          },
+          {
+            "name": "hybrid",
+            "status": "ok",
+            "pAt5": 0.185,
+            "mrr": 0.458,
+            "confidenceIntervals": {
+              "p_at_5": {
+                "mean": 0.185,
+                "ci_lower": 0.144,
+                "ci_upper": 0.23,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0.458,
+                "ci_lower": 0.351,
+                "ci_upper": 0.574,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "deltaVsKeyword": {
+              "p_at_5": {
+                "mean": -0.015,
+                "ci_lower": -0.063,
+                "ci_upper": 0.033,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0.01,
+                "ci_lower": -0.141,
+                "ci_upper": 0.162,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "byCategory": {
+              "dependency": {
+                "p_at_5": {
+                  "mean": 0.189,
+                  "ci_lower": 0.111,
+                  "ci_upper": 0.256,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.369,
+                  "ci_lower": 0.21,
+                  "ci_upper": 0.555,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "impact": {
+                "p_at_5": {
+                  "mean": 0.211,
+                  "ci_lower": 0.133,
+                  "ci_upper": 0.278,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.595,
+                  "ci_lower": 0.405,
+                  "ci_upper": 0.775,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "reasoning": {
+                "p_at_5": {
+                  "mean": 0.156,
+                  "ci_lower": 0.089,
+                  "ci_upper": 0.233,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.411,
+                  "ci_lower": 0.236,
+                  "ci_upper": 0.591,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              }
+            },
+            "runtimeMs": 1403
+          },
+          {
+            "name": "graph-rag",
+            "status": "ok",
+            "pAt5": 0.193,
+            "mrr": 0.463,
+            "confidenceIntervals": {
+              "p_at_5": {
+                "mean": 0.193,
+                "ci_lower": 0.152,
+                "ci_upper": 0.233,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0.463,
+                "ci_lower": 0.351,
+                "ci_upper": 0.574,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "deltaVsKeyword": {
+              "p_at_5": {
+                "mean": -0.007,
+                "ci_lower": -0.059,
+                "ci_upper": 0.037,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0.015,
+                "ci_lower": -0.134,
+                "ci_upper": 0.165,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "byCategory": {
+              "dependency": {
+                "p_at_5": {
+                  "mean": 0.178,
+                  "ci_lower": 0.111,
+                  "ci_upper": 0.244,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.328,
+                  "ci_lower": 0.177,
+                  "ci_upper": 0.487,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "impact": {
+                "p_at_5": {
+                  "mean": 0.244,
+                  "ci_lower": 0.167,
+                  "ci_upper": 0.322,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.644,
+                  "ci_lower": 0.449,
+                  "ci_upper": 0.833,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "reasoning": {
+                "p_at_5": {
+                  "mean": 0.156,
+                  "ci_lower": 0.089,
+                  "ci_upper": 0.233,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.419,
+                  "ci_lower": 0.236,
+                  "ci_upper": 0.605,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              }
+            },
+            "runtimeMs": 1216
+          },
+          {
+            "name": "bm25",
+            "status": "skipped",
+            "pAt5": null,
+            "mrr": null,
+            "confidenceIntervals": null,
+            "deltaVsKeyword": null,
+            "byCategory": null,
+            "runtimeMs": null
+          }
+        ]
+      },
+      "legacyFloor": {
+        "status": "completed",
+        "bootstrap": false,
+        "evaluationStage": "source-audited-held-out",
+        "publicationReady": false,
+        "dataset": {
+          "id": "holoabsorb-paper5-source-audited-v1",
+          "path": "packages/absorb-service/benchmarks/paper-5-retrieval-v1.json",
+          "sha256": "f34a3664fd8c39ff5cc5b38201b72d8d02b6633990f2c67f4e43cc03bd1314dd",
+          "auditStatus": "pass"
+        },
+        "embeddingProvider": "StructuralEmbeddingProvider (legacy deterministic floor)",
+        "corpus": {
+          "root": "packages/absorb-service",
+          "files": 125,
+          "symbols": 6646,
+          "max_files": 500,
+          "deterministic_scan": "sequential",
+          "symbol_corpus_sha256": "b8b0ea7594a073f9d1098ca43cfdb3c8440efbb073dddecf3be77d301cb3b46b",
+          "scan_errors": []
+        },
+        "querySet": {
+          "n": 54,
+          "categories": {
+            "dependency": 18,
+            "impact": 18,
+            "reasoning": 18
+          },
+          "relevance_judgments": 160,
+          "gold_files_in_corpus": 160,
+          "gold_files_missing": []
+        },
+        "systems": [
+          {
+            "name": "keyword-only",
+            "status": "ok",
+            "pAt5": 0.2,
+            "mrr": 0.449,
+            "confidenceIntervals": {
+              "p_at_5": {
+                "mean": 0.2,
+                "ci_lower": 0.159,
+                "ci_upper": 0.241,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0.449,
+                "ci_lower": 0.35,
+                "ci_upper": 0.548,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "deltaVsKeyword": {
+              "p_at_5": {
+                "mean": 0,
+                "ci_lower": 0,
+                "ci_upper": 0,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0,
+                "ci_lower": 0,
+                "ci_upper": 0,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "byCategory": {
+              "dependency": {
+                "p_at_5": {
+                  "mean": 0.189,
+                  "ci_lower": 0.111,
+                  "ci_upper": 0.278,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.506,
+                  "ci_lower": 0.314,
+                  "ci_upper": 0.701,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "impact": {
+                "p_at_5": {
+                  "mean": 0.211,
+                  "ci_lower": 0.133,
+                  "ci_upper": 0.278,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.419,
+                  "ci_lower": 0.263,
+                  "ci_upper": 0.583,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "reasoning": {
+                "p_at_5": {
+                  "mean": 0.2,
+                  "ci_lower": 0.133,
+                  "ci_upper": 0.267,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.421,
+                  "ci_lower": 0.272,
+                  "ci_upper": 0.586,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              }
+            },
+            "runtimeMs": 750
+          },
+          {
+            "name": "semantic-only",
+            "status": "ok",
+            "pAt5": 0.059,
+            "mrr": 0.175,
+            "confidenceIntervals": {
+              "p_at_5": {
+                "mean": 0.059,
+                "ci_lower": 0.033,
+                "ci_upper": 0.089,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0.175,
+                "ci_lower": 0.097,
+                "ci_upper": 0.26,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "deltaVsKeyword": {
+              "p_at_5": {
+                "mean": -0.141,
+                "ci_lower": -0.189,
+                "ci_upper": -0.093,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": -0.273,
+                "ci_lower": -0.398,
+                "ci_upper": -0.147,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "byCategory": {
+              "dependency": {
+                "p_at_5": {
+                  "mean": 0.067,
+                  "ci_lower": 0.022,
+                  "ci_upper": 0.111,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.2,
+                  "ci_lower": 0.061,
+                  "ci_upper": 0.375,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "impact": {
+                "p_at_5": {
+                  "mean": 0.067,
+                  "ci_lower": 0.011,
+                  "ci_upper": 0.133,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.156,
+                  "ci_lower": 0.025,
+                  "ci_upper": 0.311,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "reasoning": {
+                "p_at_5": {
+                  "mean": 0.044,
+                  "ci_lower": 0.011,
+                  "ci_upper": 0.089,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.17,
+                  "ci_lower": 0.04,
+                  "ci_upper": 0.324,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              }
+            },
+            "runtimeMs": 656
+          },
+          {
+            "name": "hybrid",
+            "status": "ok",
+            "pAt5": 0.148,
+            "mrr": 0.419,
+            "confidenceIntervals": {
+              "p_at_5": {
+                "mean": 0.148,
+                "ci_lower": 0.111,
+                "ci_upper": 0.185,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0.419,
+                "ci_lower": 0.305,
+                "ci_upper": 0.536,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "deltaVsKeyword": {
+              "p_at_5": {
+                "mean": -0.052,
+                "ci_lower": -0.1,
+                "ci_upper": -0.004,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": -0.03,
+                "ci_lower": -0.182,
+                "ci_upper": 0.124,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "byCategory": {
+              "dependency": {
+                "p_at_5": {
+                  "mean": 0.178,
+                  "ci_lower": 0.1,
+                  "ci_upper": 0.244,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.33,
+                  "ci_lower": 0.181,
+                  "ci_upper": 0.507,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "impact": {
+                "p_at_5": {
+                  "mean": 0.156,
+                  "ci_lower": 0.089,
+                  "ci_upper": 0.244,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.537,
+                  "ci_lower": 0.315,
+                  "ci_upper": 0.741,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "reasoning": {
+                "p_at_5": {
+                  "mean": 0.111,
+                  "ci_lower": 0.067,
+                  "ci_upper": 0.156,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.39,
+                  "ci_lower": 0.205,
+                  "ci_upper": 0.576,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              }
+            },
+            "runtimeMs": 675
+          },
+          {
+            "name": "graph-rag",
+            "status": "ok",
+            "pAt5": 0.137,
+            "mrr": 0.39,
+            "confidenceIntervals": {
+              "p_at_5": {
+                "mean": 0.137,
+                "ci_lower": 0.104,
+                "ci_upper": 0.174,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": 0.39,
+                "ci_lower": 0.279,
+                "ci_upper": 0.503,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "deltaVsKeyword": {
+              "p_at_5": {
+                "mean": -0.063,
+                "ci_lower": -0.111,
+                "ci_upper": -0.018,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              },
+              "mrr": {
+                "mean": -0.059,
+                "ci_lower": -0.205,
+                "ci_upper": 0.087,
+                "n": 54,
+                "resamples": 2000,
+                "confidence": 0.95
+              }
+            },
+            "byCategory": {
+              "dependency": {
+                "p_at_5": {
+                  "mean": 0.167,
+                  "ci_lower": 0.1,
+                  "ci_upper": 0.233,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.33,
+                  "ci_lower": 0.172,
+                  "ci_upper": 0.498,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "impact": {
+                "p_at_5": {
+                  "mean": 0.144,
+                  "ci_lower": 0.078,
+                  "ci_upper": 0.211,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.503,
+                  "ci_lower": 0.295,
+                  "ci_upper": 0.714,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              },
+              "reasoning": {
+                "p_at_5": {
+                  "mean": 0.1,
+                  "ci_lower": 0.056,
+                  "ci_upper": 0.144,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                },
+                "mrr": {
+                  "mean": 0.337,
+                  "ci_lower": 0.16,
+                  "ci_upper": 0.525,
+                  "n": 18,
+                  "resamples": 2000,
+                  "confidence": 0.95
+                }
+              }
+            },
+            "runtimeMs": 645
+          },
+          {
+            "name": "bm25",
+            "status": "skipped",
+            "pAt5": null,
+            "mrr": null,
+            "confidenceIntervals": null,
+            "deltaVsKeyword": null,
+            "byCategory": null,
+            "runtimeMs": null
+          }
+        ]
+      },
+      "currentMinusLegacy": {
+        "semanticOnly": {
+          "pAt5": 0.034,
+          "mrr": 0.065
+        },
+        "hybrid": {
+          "pAt5": 0.037,
+          "mrr": 0.039
+        },
+        "graphRag": {
+          "pAt5": 0.056,
+          "mrr": 0.073
+        }
+      }
+    },
+    "paper5Timing": {
+      "status": "completed",
+      "captureClass": "ci-reference",
+      "trials": 100,
+      "stages": {
+        "keyword": {
+          "median_ms": 0.101,
+          "mean_ms": 0.121,
+          "stdev_ms": 0.117,
+          "p95_ms": 0.186,
+          "min_ms": 0.031,
+          "max_ms": 0.841
+        },
+        "graphTraversal": {
+          "median_ms": 0.006,
+          "mean_ms": 0.015,
+          "stdev_ms": 0.075,
+          "p95_ms": 0.013,
+          "min_ms": 0.003,
+          "max_ms": 0.755
+        },
+        "embeddingGen": {
+          "median_ms": 0.214,
+          "mean_ms": 0.255,
+          "stdev_ms": 0.124,
+          "p95_ms": 0.409,
+          "min_ms": 0.191,
+          "max_ms": 0.914
+        },
+        "vectorSearch": {
+          "median_ms": 0.1,
+          "mean_ms": 0.15,
+          "stdev_ms": 0.213,
+          "p95_ms": 0.331,
+          "min_ms": 0.092,
+          "max_ms": 1.902
+        },
+        "envelopeBuild": {
+          "median_ms": 0.005,
+          "mean_ms": 0.008,
+          "stdev_ms": 0.011,
+          "p95_ms": 0.014,
+          "min_ms": 0.004,
+          "max_ms": 0.101
+        },
+        "endToEnd": {
+          "median_ms": 0.43,
+          "mean_ms": 0.552,
+          "stdev_ms": 0.327,
+          "p95_ms": 1.093,
+          "min_ms": 0.346,
+          "max_ms": 3.03
+        }
+      }
+    },
+    "paper26": {
+      "status": "pass",
+      "xenovaAblation": "skipped-by-default",
+      "outputs": [
+        "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-26-holograph.stdout.log",
+        "research/holoabsorb-artifacts/2026-07-27-holorepo-visual-focus-v2/paper-26-holoembed.stdout.log"
+      ],
+      "holoGraphMeasurements": [
+        {
+          "files": 50,
+          "symbols": 200,
+          "events": 10,
+          "holoGraphQueryUs": 0.16,
+          "embeddingQueryUs": 327.2,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0.05,
+          "speedup": 2045.1
+        },
+        {
+          "files": 500,
+          "symbols": 2000,
+          "events": 50,
+          "holoGraphQueryUs": 0.155,
+          "embeddingQueryUs": 2164.4,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0.013,
+          "speedup": 13964.2
+        },
+        {
+          "files": 2000,
+          "symbols": 8000,
+          "events": 100,
+          "holoGraphQueryUs": 0.095,
+          "embeddingQueryUs": 11413.8,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0,
+          "speedup": 120145
+        }
+      ],
+      "nlCodeRecallAt10": {
+        "structural": 0.1,
+        "holoembed": 1
+      }
+    }
+  },
+  "claimBoundaries": [
+    "The accuracy arms are admitted only after two identical sequential scans produce the same source-corpus SHA-256.",
+    "Paper 5 accuracy uses 54 frozen held-out queries, balanced across dependency, impact, and reasoning, with executable source-anchor verification and multi-relevance judgments.",
+    "Paper 5 labels are not independently assigned by multiple human annotators and have not been replicated on an external codebase; this receipt is not publication-ready.",
+    "Paper 5 timing is a bounded synthetic GraphRAG workload unless captureClass is an explicitly verified hardware capture.",
+    "Paper 26 HoloGraph event latency uses synthetic event corpora.",
+    "Paper 26 HoloEmbed recall uses name-derived NL queries over a 50-symbol synthetic corpus.",
+    "The changed-symbol refresh benchmark uses a deterministic synthetic Git corpus and does not claim production-monorepo throughput.",
+    "The transport-resilience benchmark is a deterministic synthetic lifecycle workload and does not claim network throughput or end-to-end MCP latency.",
+    "The visual-focus ablation is package-scoped real code, not a whole-monorepo retrieval claim. It freezes fixed duplicate-symbol targets before applying any visual selection; correct, stale, and wrong-but-resolved selections are separate arms over the same case set.",
+    "Visual focus is collision-safe graph.holo selection intent and structured graph evidence, not literal image-pixel vision. Wrong resolved selections may steer retrieval and are reported as caller intent rather than hidden model accuracy.",
+    "The optional Xenova model-download ablation was not run; no Xenova comparison is claimed.",
+    "A dirty-worktree flag is recorded because peer changes may coexist in this shared repository."
+  ],
+  "residualGaps": [
+    "Commission independent multi-human relevance annotation without exposing system rankings to annotators.",
+    "Replicate the frozen protocol on at least one external codebase and report inter-annotator agreement.",
+    "Add separate non-visual graph and provenance ablations; the visual-focus arm isolates only explicit graph.holo selection intent.",
+    "Run target-hardware timing captures separately on verified RTX 3060 and Jetson/Orin lanes.",
+    "Reconcile the paper prose and strict claim map only after the corresponding measured receipt exists."
+  ]
+}
