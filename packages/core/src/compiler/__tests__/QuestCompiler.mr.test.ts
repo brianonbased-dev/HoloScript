@@ -53,6 +53,29 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(manifest).toContain('android:value="quest3|quest3s"');
   });
 
+  it('shrinks release builds so unused transitive SDK bytecode is not submitted', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const gradle = out[Object.keys(out).find((k) => k.endsWith('app/build.gradle.kts'))!];
+    const proguard = out[Object.keys(out).find((k) => k.endsWith('app/proguard-rules.pro'))!];
+    expect(gradle).toContain('isMinifyEnabled = true');
+    expect(gradle).toContain('isShrinkResources = true');
+    expect(gradle).toContain('proguard-android-optimize.txt');
+    expect(proguard).toContain('-dontwarn horizonos.app.container.**');
+    expect(proguard).toContain('-dontwarn vros.os.**');
+    expect(proguard).toContain(
+      '-keepclasseswithmembers,includedescriptorclasses class com.meta.spatial.**',
+    );
+    expect(proguard).toContain('native <methods>;');
+    expect(proguard).toContain(
+      '-keepclassmembers,includedescriptorclasses class com.meta.spatial.**',
+    );
+    expect(proguard).toContain('*** native*(...);');
+    expect(proguard).toContain('-keep class com.meta.spatial.**.R { *; }');
+    expect(proguard).toContain('-keep class com.meta.spatial.**.R$* { *; }');
+    expect(proguard).toContain('-keep class com.meta.spatial.toolkit.** { *; }');
+    expect(proguard).toContain('-keep class com.meta.spatial.isdk.** { *; }');
+  });
+
   it('PassthroughCameraController.kt is generated from the passthrough_camera trait config', () => {
     const out = new QuestCompiler().compile(parsed.ast!, '');
     const ctl = out[Object.keys(out).find((k) => k.endsWith('PassthroughCameraController.kt'))!];

@@ -22,8 +22,8 @@ composition "UniversalQrScanner" {
       holo_color: "#7FD8FF"
     }
     version: {
-      code: 1
-      name: "1.0.0"
+      code: 2
+      name: "1.0.1"
     }
   }
 
