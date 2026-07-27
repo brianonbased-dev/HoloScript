@@ -37,7 +37,8 @@ HoloScript, compiled to WebAssembly.
 
 - **UAAL lowering** - `compile_to_uaal` emits executable bytecode for typed
   function kernels, including i32, finite scalar f32/f64 arithmetic, and affine
-  POD aggregate values, owned buffers, and immutable function-scoped buffer reads
+  POD aggregate values, owned buffers, and immutable local or call-scoped buffer
+  reads
 
 ## Installation
 
@@ -163,9 +164,12 @@ Owned scalar buffers use the separate `hs.buffer.owned.v1` contract for
 allocation, whole-owner moves across parameters and returns, explicit drop, and
 automatic cleanup. A local `let view: &[T] = &owner` may read
 `load(view[index])` through the bounds-checked `OP_HS_BUFFER_LOAD` handler under
-`uaal.buffer.borrow.v1`. The first borrowed-buffer slice is immutable and
-function-scoped: mutable slices, stores, subranges, slice parameters or returns,
-and escaping borrows fail closed.
+`uaal.buffer.borrow.v1`. A function may also accept an immutable `view: &[T]`
+parameter while its caller passes `&owner`; the owner remains live and reusable
+after the call returns. No owner token is copied or transferred into the view.
+Mutable slices, stores, subranges, borrowed returns, stored or escaping aliases,
+non-owner arguments, element-type mismatches, and move/drop conflicts within the
+same call fail closed.
 
 ### `version(): string`
 

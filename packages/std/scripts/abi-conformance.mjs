@@ -594,7 +594,7 @@ async function executeBrowserWasm(source) {
       result.borrowedBufferReadProbe?.status !== 'HALTED' ||
       result.borrowedBufferReadProbe?.value !== 5 ||
       result.borrowedBufferReadProbe?.instructionCounts?.allocate !== 1 ||
-      result.borrowedBufferReadProbe?.instructionCounts?.move !== 4 ||
+      result.borrowedBufferReadProbe?.instructionCounts?.move !== 3 ||
       result.borrowedBufferReadProbe?.instructionCounts?.load !== 1 ||
       result.borrowedBufferReadProbe?.instructionCounts?.drop !== 1 ||
       result.borrowedBufferReadProbe?.receiptHashMatches !== true ||
@@ -1001,6 +1001,7 @@ console.log(
           source: 'examples/native/owned-buffer-transfer-exit-five.hs',
           receipt: browserWasm.borrowedBufferReadProbe,
         },
+        provesCallScopedSharedOwnedBufferSliceParameters: true,
         ownedBufferValueAbi: 'hs.buffer.owned.v1',
         borrowedBufferAbi: 'uaal.buffer.borrow.v1',
         provesCallScopedSharedAndMutableAggregateReferences: true,
@@ -1035,8 +1036,8 @@ console.log(
           'explicit scalar or declared aggregate fields only',
           'affine whole-value moves',
           'owned buffers support allocation, whole-owner moves across parameters and returns, explicit drop, and automatic local or parameter cleanup',
-          'immutable function-scoped borrowed slices support bounds-checked scalar element reads',
-          'no owned-buffer aggregate fields, mutable slices, subranges, slice parameters or returns, escaping borrows, or buffer element stores',
+          'immutable local and call-scoped borrowed slices support bounds-checked scalar element reads without owner transfer',
+          'no owned-buffer aggregate fields, mutable slices, subranges, borrowed returns, stored or escaping aliases, or buffer element stores',
           'call-scoped shared and mutable aggregate parameters support layout-checked scalar field load/store',
           'no borrowed aggregate returns, stored reference locals, or escaping leases',
         ],
