@@ -29,6 +29,7 @@ import { teamStore, teamPresenceStore, persistTeamDurable, reloadTeam } from './
 import { broadcastToTeam } from './team-room';
 import { recordTeamModeChange } from './mode-provenance';
 import { normalizePresenceSurface, getPresenceTtlMs, pruneStalePresence } from './utils';
+import { resolveMcpBoardAgent } from './identity/mcp-board-agent-binding';
 
 // ── Helper: get team from in-memory store ──
 
@@ -757,12 +758,10 @@ function compactDoneLogEntry(entry: DoneLogEntry) {
 async function handleBoardClaim(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   const taskId = args.task_id as string;
-  const effectiveAgentId =
-    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
-  const effectiveAgentName =
-    typeof args.agent_name === 'string' && args.agent_name.trim()
-      ? args.agent_name.trim()
-      : effectiveAgentId;
+  const __bound = resolveMcpBoardAgent(args);
+  if (!__bound.ok) return { error: __bound.error };
+  const effectiveAgentId = __bound.agentId;
+  const effectiveAgentName = __bound.agentName;
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!taskId) return { error: '"task_id" is required.' };
@@ -826,12 +825,10 @@ async function handleBoardComplete(
     typeof args.verification_evidence === 'string'
       ? args.verification_evidence.trim().slice(0, 2000)
       : '';
-  const effectiveAgentId =
-    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
-  const effectiveAgentName =
-    typeof args.agent_name === 'string' && args.agent_name.trim()
-      ? args.agent_name.trim()
-      : effectiveAgentId;
+  const __bound = resolveMcpBoardAgent(args);
+  if (!__bound.ok) return { error: __bound.error };
+  const effectiveAgentId = __bound.agentId;
+  const effectiveAgentName = __bound.agentName;
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!taskId) return { error: '"task_id" is required.' };
@@ -873,8 +870,9 @@ async function handleBoardAppendCommit(
   const taskId = args.task_id as string;
   const commit = (args.commit as string | undefined)?.trim();
   const summary = args.summary as string | undefined;
-  const effectiveAgentId =
-    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
+  const __bound = resolveMcpBoardAgent(args);
+  if (!__bound.ok) return { error: __bound.error };
+  const effectiveAgentId = __bound.agentId;
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!taskId) return { error: '"task_id" is required.' };
@@ -1010,12 +1008,10 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
 async function handleSuggest(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   const title = args.title as string;
-  const effectiveAgentId =
-    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
-  const effectiveAgentName =
-    typeof args.agent_name === 'string' && args.agent_name.trim()
-      ? args.agent_name.trim()
-      : effectiveAgentId;
+  const __bound = resolveMcpBoardAgent(args);
+  if (!__bound.ok) return { error: __bound.error };
+  const effectiveAgentId = __bound.agentId;
+  const effectiveAgentName = __bound.agentName;
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!title) return { error: '"title" is required.' };
@@ -1045,12 +1041,10 @@ async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<
   const teamId = args.team_id as string;
   const sugId = args.suggestion_id as string;
   const value = args.value as number;
-  const effectiveAgentId =
-    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
-  const effectiveAgentName =
-    typeof args.agent_name === 'string' && args.agent_name.trim()
-      ? args.agent_name.trim()
-      : effectiveAgentId;
+  const __bound = resolveMcpBoardAgent(args);
+  if (!__bound.ok) return { error: __bound.error };
+  const effectiveAgentId = __bound.agentId;
+  const effectiveAgentName = __bound.agentName;
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!sugId) return { error: '"suggestion_id" is required.' };

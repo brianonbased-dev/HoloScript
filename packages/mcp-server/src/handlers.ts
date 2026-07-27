@@ -815,6 +815,16 @@ export async function handleTool(
 
   // HoloMesh spatial mesh tools
   if (name.startsWith('holomesh_')) {
+    // Slice A (research/2026-07-26_holomesh-mcp-identity-gap.md): stamp the verified
+    // authenticated principal onto args so board mutation handlers can bind
+    // `agent_id` to the caller instead of trusting it verbatim. Authoritative:
+    // delete any caller-supplied value first. The synthetic 'stdio-local' bridge is
+    // NOT a real principal -> stdio stays local-trust (no stamp).
+    delete (args as Record<string, unknown>).__authAgentId;
+    const authPrincipal = effectiveSigningCtx?.signer;
+    if (typeof authPrincipal === 'string' && authPrincipal && authPrincipal !== 'stdio-local') {
+      (args as Record<string, unknown>).__authAgentId = authPrincipal;
+    }
     const { handleHoloMeshTool } = await import('./holomesh/index');
     return handleHoloMeshTool(name, args);
   }
