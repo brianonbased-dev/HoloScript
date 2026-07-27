@@ -542,5 +542,6 @@ export const advancedClothHandler = {
     const instance = node.__advanced_cloth_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+    else if (typeof instance.step === 'function') instance.step(dt);
   },
 } as const satisfies TraitHandler;
