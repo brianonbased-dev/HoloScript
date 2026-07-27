@@ -1,0 +1,239 @@
+{
+  "schema": "holoscript.std-abi-ops.v0",
+  "trait": "std_math",
+  "conformanceTrait": "std_math_conformance",
+  "conformanceComposition": "std-math-conformance",
+  "packagedSources": {
+    "math": "packages/std/src/math.hsplus",
+    "collections": "packages/std/src/collections.hsplus"
+  },
+  "referenceModule": "packages/std/dist/math.js",
+  "sharedGrammar": "Single-expression object-literal returns over: number/string/boolean/null literals, parameter identifiers, non-computed member access, binary + - * /, comparisons, && ||, unary ! -, conditional (ternary) expressions. No function calls, no local assignment, no loops, no host bindings. This is the intersection of the engine deterministic action subset (holoscript-engine-hsplus-deterministic-action-subset-v1) and the compiler-wasm trait-handler evaluator subset.",
+  "vectorPolicy": "Every vector must produce finite, non-negative-zero values under IEEE-754 double semantics with strict source-order evaluation. Expected values are computed from the TypeScript reference twin at generation time and verified bit-exact against the engine deterministic runtime before admission; tolerance 0 means exact equality including key sets.",
+  "ops": [
+    {
+      "op": "on_lerp",
+      "action": "lerp",
+      "params": ["a", "b", "t"],
+      "kind": "pure",
+      "resultShape": "scalar",
+      "reference": ["lerp"],
+      "body": "{ value: a + (b - a) * t }",
+      "vectors": [
+        { "id": "lerp-mid", "args": { "a": 0, "b": 10, "t": 0.5 } },
+        { "id": "lerp-start", "args": { "a": 2, "b": 4, "t": 0 } },
+        { "id": "lerp-end", "args": { "a": 2, "b": 4, "t": 1 } },
+        { "id": "lerp-signed", "args": { "a": -5, "b": 5, "t": 0.75 } },
+        { "id": "lerp-fractional", "args": { "a": 1.5, "b": 3.25, "t": 0.4 } }
+      ]
+    },
+    {
+      "op": "on_clamp",
+      "action": "clamp",
+      "params": ["value", "min", "max"],
+      "kind": "host-delegation-rewrite",
+      "rewriteOf": "math.clamp via get_std_math_lib()",
+      "resultShape": "scalar",
+      "reference": ["clamp"],
+      "body": "{ value: value < min ? min : (value > max ? max : value) }",
+      "vectors": [
+        { "id": "clamp-inside", "args": { "value": 5, "min": 0, "max": 10 } },
+        { "id": "clamp-below", "args": { "value": -3, "min": 0, "max": 10 } },
+        { "id": "clamp-above", "args": { "value": 42, "min": 0, "max": 10 } },
+        { "id": "clamp-fractional", "args": { "value": 0.25, "min": 0.5, "max": 0.75 } },
+        { "id": "clamp-degenerate-range", "args": { "value": 7, "min": 7, "max": 7 } }
+      ]
+    },
+    {
+      "op": "on_smoothstep",
+      "action": "smoothstep",
+      "params": ["edge0", "edge1", "x"],
+      "kind": "host-delegation-rewrite",
+      "rewriteOf": "math.clamp via get_std_math_lib()",
+      "resultShape": "scalar",
+      "reference": ["smoothstep"],
+      "body": "{ value: ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * (3 - 2 * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0)))) }",
+      "vectors": [
+        { "id": "smoothstep-quarter", "args": { "edge0": 0, "edge1": 1, "x": 0.25 } },
+        { "id": "smoothstep-below-edge", "args": { "edge0": 0, "edge1": 1, "x": -1 } },
+        { "id": "smoothstep-above-edge", "args": { "edge0": 0, "edge1": 1, "x": 2 } },
+        { "id": "smoothstep-wide-range", "args": { "edge0": 0, "edge1": 10, "x": 2.5 } },
+        { "id": "smoothstep-offset-range", "args": { "edge0": 2, "edge1": 6, "x": 3 } }
+      ]
+    },
+    {
+      "op": "on_remap",
+      "action": "remap",
+      "params": ["value", "in_min", "in_max", "out_min", "out_max"],
+      "kind": "host-delegation-rewrite",
+      "rewriteOf": "math.lerp via get_std_math_lib()",
+      "resultShape": "scalar",
+      "reference": ["remap"],
+      "body": "{ value: out_min + (out_max - out_min) * ((value - in_min) / (in_max - in_min)) }",
+      "vectors": [
+        { "id": "remap-mid", "args": { "value": 5, "in_min": 0, "in_max": 10, "out_min": 0, "out_max": 100 } },
+        { "id": "remap-low-edge", "args": { "value": 0, "in_min": 0, "in_max": 10, "out_min": 10, "out_max": 20 } },
+        { "id": "remap-signed-out", "args": { "value": 7.5, "in_min": 5, "in_max": 10, "out_min": -1, "out_max": 1 } },
+        { "id": "remap-expand", "args": { "value": 2, "in_min": 1, "in_max": 3, "out_min": 0, "out_max": 8 } },
+        { "id": "remap-degrees", "args": { "value": 0.3, "in_min": 0, "in_max": 1, "out_min": 0, "out_max": 360 } }
+      ]
+    },
+    {
+      "op": "on_deg_to_rad",
+      "action": "deg_to_rad",
+      "params": ["degrees"],
+      "kind": "pure",
+      "resultShape": "scalar",
+      "reference": ["degToRad"],
+      "body": "{ value: degrees * 0.017453292519943295 }",
+      "vectors": [
+        { "id": "deg2rad-zero", "args": { "degrees": 0 } },
+        { "id": "deg2rad-half-turn", "args": { "degrees": 180 } },
+        { "id": "deg2rad-quarter-turn", "args": { "degrees": 90 } },
+        { "id": "deg2rad-full-turn", "args": { "degrees": 360 } },
+        { "id": "deg2rad-one-radian", "args": { "degrees": 57.29577951308232 } }
+      ]
+    },
+    {
+      "op": "on_rad_to_deg",
+      "action": "rad_to_deg",
+      "params": ["radians"],
+      "kind": "pure",
+      "resultShape": "scalar",
+      "reference": ["radToDeg"],
+      "body": "{ value: radians * 57.29577951308232 }",
+      "vectors": [
+        { "id": "rad2deg-zero", "args": { "radians": 0 } },
+        { "id": "rad2deg-pi", "args": { "radians": 3.141592653589793 } },
+        { "id": "rad2deg-half-pi", "args": { "radians": 1.5707963267948966 } },
+        { "id": "rad2deg-tau", "args": { "radians": 6.283185307179586 } },
+        { "id": "rad2deg-one", "args": { "radians": 1 } }
+      ]
+    },
+    {
+      "op": "on_vec3_dot",
+      "action": "vec3_dot",
+      "params": ["a", "b"],
+      "kind": "pure",
+      "resultShape": "scalar",
+      "reference": ["vec3Math", "dot"],
+      "body": "{ value: a.x * b.x + a.y * b.y + a.z * b.z }",
+      "vectors": [
+        { "id": "dot-basic", "args": { "a": { "x": 1, "y": 2, "z": 3 }, "b": { "x": 4, "y": 5, "z": 6 } } },
+        { "id": "dot-orthogonal", "args": { "a": { "x": 1, "y": 0, "z": 0 }, "b": { "x": 0, "y": 1, "z": 0 } } },
+        { "id": "dot-fractional", "args": { "a": { "x": 0.5, "y": -1, "z": 2 }, "b": { "x": 3, "y": 0.25, "z": -0.75 } } },
+        { "id": "dot-ones", "args": { "a": { "x": 1, "y": 1, "z": 1 }, "b": { "x": 1, "y": 1, "z": 1 } } },
+        { "id": "dot-negative", "args": { "a": { "x": -2, "y": -3, "z": -4 }, "b": { "x": 1, "y": 2, "z": 3 } } }
+      ]
+    },
+    {
+      "op": "on_vec3_cross",
+      "action": "vec3_cross",
+      "params": ["a", "b"],
+      "kind": "pure",
+      "resultShape": "vec3",
+      "reference": ["vec3Math", "cross"],
+      "body": "{ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }",
+      "vectors": [
+        { "id": "cross-basis", "args": { "a": { "x": 1, "y": 0, "z": 0 }, "b": { "x": 0, "y": 1, "z": 0 } } },
+        { "id": "cross-general", "args": { "a": { "x": 2, "y": 3, "z": 4 }, "b": { "x": 5, "y": 6, "z": 7 } } },
+        { "id": "cross-fractional", "args": { "a": { "x": 0.5, "y": 1.25, "z": -2 }, "b": { "x": 3, "y": -0.75, "z": 0.25 } } },
+        { "id": "cross-sequential", "args": { "a": { "x": 1, "y": 2, "z": 3 }, "b": { "x": 4, "y": 5, "z": 6 } } },
+        { "id": "cross-parallel", "args": { "a": { "x": 1, "y": 1, "z": 1 }, "b": { "x": 2, "y": 2, "z": 2 } } }
+      ]
+    },
+    {
+      "op": "on_vec3_lerp",
+      "action": "vec3_lerp",
+      "params": ["a", "b", "t"],
+      "kind": "pure",
+      "resultShape": "vec3",
+      "reference": ["vec3Math", "lerp"],
+      "body": "{ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t }",
+      "vectors": [
+        { "id": "vlerp-mid", "args": { "a": { "x": 0, "y": 0, "z": 0 }, "b": { "x": 10, "y": 20, "z": 30 }, "t": 0.5 } },
+        { "id": "vlerp-start", "args": { "a": { "x": 1, "y": 2, "z": 3 }, "b": { "x": 4, "y": 5, "z": 6 }, "t": 0 } },
+        { "id": "vlerp-end", "args": { "a": { "x": 1, "y": 2, "z": 3 }, "b": { "x": 4, "y": 5, "z": 6 }, "t": 1 } },
+        { "id": "vlerp-quarter", "args": { "a": { "x": -4, "y": 8, "z": 0.5 }, "b": { "x": 4, "y": -8, "z": 2.5 }, "t": 0.25 } },
+        { "id": "vlerp-fractional-t", "args": { "a": { "x": 1.5, "y": 2.5, "z": 3.5 }, "b": { "x": 2.5, "y": 3.5, "z": 4.5 }, "t": 0.4 } }
+      ]
+    },
+    {
+      "op": "on_quat_identity",
+      "action": "quat_identity",
+      "params": [],
+      "kind": "pure",
+      "resultShape": "quat",
+      "reference": ["quatMath", "identity"],
+      "body": "{ x: 0.0, y: 0.0, z: 0.0, w: 1.0 }",
+      "vectors": [
+        { "id": "quat-identity", "args": {} }
+      ]
+    },
+    {
+      "op": "on_quat_multiply",
+      "action": "quat_multiply",
+      "params": ["a", "b"],
+      "kind": "pure",
+      "resultShape": "quat",
+      "reference": ["quatMath", "multiply"],
+      "body": "{ x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x, z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w, w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z }",
+      "vectors": [
+        { "id": "qmul-identity-left", "args": { "a": { "x": 0, "y": 0, "z": 0, "w": 1 }, "b": { "x": 0.5, "y": 0.5, "z": 0.5, "w": 0.5 } } },
+        { "id": "qmul-identity-right", "args": { "a": { "x": 0.5, "y": 0.5, "z": 0.5, "w": 0.5 }, "b": { "x": 0, "y": 0, "z": 0, "w": 1 } } },
+        { "id": "qmul-general", "args": { "a": { "x": 0.1, "y": 0.2, "z": 0.3, "w": 0.9 }, "b": { "x": 0.4, "y": 0.25, "z": 0.35, "w": 0.8 } } },
+        { "id": "qmul-half-turns", "args": { "a": { "x": 0.7071067811865476, "y": 0, "z": 0, "w": 0.7071067811865476 }, "b": { "x": 0, "y": 0.7071067811865476, "z": 0, "w": 0.7071067811865476 } } }
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "op": "on_vec3_length",
+      "trait": "std_math",
+      "reason": "body calls sqrt(); no function calls exist in the shared deterministic subset v1",
+      "unlock": "versioned subset extension adding a whitelisted pure numeric builtin table (sqrt/sin/cos/min/max/abs/floor) to both the engine runtime and the wasm evaluator"
+    },
+    {
+      "op": "on_vec3_normalize",
+      "trait": "std_math",
+      "reason": "body calls sqrt(); also returns early inside an if block guarding the near-zero branch",
+      "unlock": "same numeric builtin extension as on_vec3_length"
+    },
+    {
+      "op": "on_vec3_distance",
+      "trait": "std_math",
+      "reason": "body uses local assignment (dx/dy/dz) and sqrt(); deterministic runtime restricts assignment targets to declared state",
+      "unlock": "same numeric builtin extension plus local-binding support or a rewrite to a single expression"
+    },
+    {
+      "op": "on_quat_slerp",
+      "trait": "std_math",
+      "reason": "delegates to math.quat_slerp via get_std_math_lib(), a host binding that does not exist in the repo",
+      "unlock": "define the std host-ABI binding surface and provide per-target bindings, or inline a pure implementation once trig builtins exist"
+    },
+    {
+      "op": "on_quat_from_axis_angle",
+      "trait": "std_math",
+      "reason": "body uses local assignment and sin()/cos()",
+      "unlock": "same numeric builtin extension as on_vec3_length"
+    },
+    {
+      "op": "*",
+      "trait": "std_list",
+      "reason": "every handler delegates to get_std_collections_lib(), uses ?? defaults, or takes callback parameters (fn/predicate/comparator) — all outside the shared subset; the host collections ABI has no binding implementation anywhere in the repo",
+      "unlock": "define the std host-ABI binding surface for collections with per-target bindings, plus higher-order-function semantics in the deterministic subset"
+    },
+    {
+      "op": "*",
+      "trait": "std_map",
+      "reason": "same host-delegation boundary as std_list",
+      "unlock": "same as std_list"
+    },
+    {
+      "op": "*",
+      "trait": "std_set",
+      "reason": "same host-delegation boundary as std_list",
+      "unlock": "same as std_list"
+    }
+  ]
+}

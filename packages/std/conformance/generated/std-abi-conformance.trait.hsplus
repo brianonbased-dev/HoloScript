@@ -1,0 +1,45 @@
+@trait std_math_conformance {
+  @on_lerp(a, b, t) => {
+    return { value: a + (b - a) * t }
+  }
+
+  @on_clamp(value, min, max) => {
+    return { value: value < min ? min : (value > max ? max : value) }
+  }
+
+  @on_smoothstep(edge0, edge1, x) => {
+    return { value: ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * (3 - 2 * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0)))) }
+  }
+
+  @on_remap(value, in_min, in_max, out_min, out_max) => {
+    return { value: out_min + (out_max - out_min) * ((value - in_min) / (in_max - in_min)) }
+  }
+
+  @on_deg_to_rad(degrees) => {
+    return { value: degrees * 0.017453292519943295 }
+  }
+
+  @on_rad_to_deg(radians) => {
+    return { value: radians * 57.29577951308232 }
+  }
+
+  @on_vec3_dot(a, b) => {
+    return { value: a.x * b.x + a.y * b.y + a.z * b.z }
+  }
+
+  @on_vec3_cross(a, b) => {
+    return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }
+  }
+
+  @on_vec3_lerp(a, b, t) => {
+    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t }
+  }
+
+  @on_quat_identity => {
+    return { x: 0.0, y: 0.0, z: 0.0, w: 1.0 }
+  }
+
+  @on_quat_multiply(a, b) => {
+    return { x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x, z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w, w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z }
+  }
+}

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -87,26 +88,109 @@ function buildCatalog() {
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  const conformance = gatherConformanceEvidence();
+
   const nativeLibraries = [...manifests.entries()]
     .filter(([, record]) => record.manifest.holoscript?.artifact === 'library')
     .map(([name, record]) => {
       const native = record.manifest.holoscript;
+      const declaredTargets = native.compatibility?.targets || [];
+      const conformanceSummary = summarizeConformance(declaredTargets, conformance);
       return {
         name,
         version: record.manifest.version || 'missing',
         supportTier: native.supportTier || 'unspecified',
         entrypoint: native.entrypoint || 'missing',
-        targets: native.compatibility?.targets?.join(', ') || 'unspecified',
+        targets: declaredTargets.join(', ') || 'unspecified',
+        conformance: conformanceSummary.cell,
         runtimeBoundary: native.runtimeBoundary || 'not declared',
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  for (const row of nativeLibraries) {
+    const tier = row.supportTier;
+    const gatedTiers = new Set(['preview', 'stable', 'supported']);
+    if (gatedTiers.has(tier)) {
+      const declaredTargets = row.targets.split(', ').filter(Boolean);
+      const summary = summarizeConformance(declaredTargets, conformance);
+      if (!summary.allTargetsPass || !summary.crossTargetEqual) {
+        errors.push(
+          `${row.name}: support tier "${tier}" requires fresh passing conformance receipts for every declared target plus a cross-target EQUAL receipt (have: ${summary.cell})`
+        );
+      }
+    }
+  }
 
   if (new Set(candidates.map((candidate) => candidate.name)).size !== candidates.length) {
     errors.push('release candidate names are not unique');
   }
 
   return { candidates, nativeLibraries, errors };
+}
+
+function sha256File(path) {
+  return `sha256:${createHash('sha256').update(readFileSync(path)).digest('hex')}`;
+}
+
+function gatherConformanceEvidence() {
+  const reportsDir = join(ROOT, 'reports', 'library-coherence');
+  const vectorsPin = 'packages/std/conformance/generated/std-abi-vectors.v0.jsonl';
+  const vectorsPath = join(ROOT, ...vectorsPin.split('/'));
+  const currentVectorsSha = existsSync(vectorsPath) ? sha256File(vectorsPath) : null;
+
+  const perTarget = new Map();
+  let crossTarget = null;
+  if (!existsSync(reportsDir)) return { perTarget, crossTarget, currentVectorsSha };
+
+  for (const entry of readdirSync(reportsDir)) {
+    if (!entry.endsWith('.json')) continue;
+    let receipt;
+    try {
+      receipt = readJson(join(reportsDir, entry));
+    } catch {
+      continue;
+    }
+    const schema = String(receipt.schema || '');
+    if (schema === 'holoscript.std-abi-conformance.cross-target.v0') {
+      crossTarget = receipt;
+      continue;
+    }
+    if (!schema.startsWith('holoscript.std-abi-conformance.')) continue;
+    const pinned = receipt.sources?.[vectorsPin]?.sha256;
+    const fresh = Boolean(currentVectorsSha && pinned === currentVectorsSha);
+    const passed = receipt.summary?.failed === 0 && (receipt.summary?.vectors ?? 0) > 0;
+    perTarget.set(receipt.target, {
+      fresh,
+      passed,
+      vectors: receipt.summary?.vectors ?? 0,
+      passedCount: receipt.summary?.passed ?? 0,
+    });
+  }
+  return { perTarget, crossTarget, currentVectorsSha };
+}
+
+function summarizeConformance(declaredTargets, conformance) {
+  if (declaredTargets.length === 0) {
+    return { cell: 'no declared targets', allTargetsPass: false, crossTargetEqual: false };
+  }
+  const parts = [];
+  let allTargetsPass = true;
+  for (const target of declaredTargets) {
+    const evidence = conformance.perTarget.get(target);
+    if (evidence && evidence.passed && evidence.fresh) {
+      parts.push(`${target} ✓ ${evidence.passedCount}/${evidence.vectors}`);
+    } else if (evidence && evidence.passed && !evidence.fresh) {
+      parts.push(`${target} stale-pin`);
+      allTargetsPass = false;
+    } else {
+      parts.push(`${target} —`);
+      allTargetsPass = false;
+    }
+  }
+  const crossTargetEqual = conformance.crossTarget?.verdict === 'EQUAL';
+  parts.push(crossTargetEqual ? 'cross-target EQUAL' : 'cross-target —');
+  return { cell: parts.join('; '), allTargetsPass, crossTargetEqual };
 }
 
 function renderMarkdown(catalog) {
@@ -133,14 +217,16 @@ function renderMarkdown(catalog) {
     '',
     `## Compiler-native library artifacts (${catalog.nativeLibraries.length})`,
     '',
-    '| Package | Version | Support tier | Entrypoint | Targets | Runtime boundary |',
-    '| --- | --- | --- | --- | --- | --- |',
+    '| Package | Version | Support tier | Entrypoint | Targets | Execution conformance | Runtime boundary |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
     ...catalog.nativeLibraries.map(
       (row) =>
-        `| \`${escapeCell(row.name)}\` | \`${escapeCell(row.version)}\` | ${escapeCell(row.supportTier)} | \`${escapeCell(row.entrypoint)}\` | ${escapeCell(row.targets)} | ${escapeCell(row.runtimeBoundary)} |`
+        `| \`${escapeCell(row.name)}\` | \`${escapeCell(row.version)}\` | ${escapeCell(row.supportTier)} | \`${escapeCell(row.entrypoint)}\` | ${escapeCell(row.targets)} | ${escapeCell(row.conformance)} | ${escapeCell(row.runtimeBoundary)} |`
     ),
     '',
     'A compiler-native artifact declaration proves package metadata and shipped source paths. It does not by itself prove execution parity, registry deployment, authorship, or reproducible builds.',
+    '',
+    'Execution conformance is derived from `holoscript.std-abi-conformance.*` receipts in `reports/library-coherence/` whose pinned vector corpus matches the current generated corpus. Support tiers above `experimental` are gate-checked: every declared target needs a fresh passing receipt and the cross-target receipt must be EQUAL, otherwise catalog generation fails.',
     '',
     '## Canonical inputs',
     '',
