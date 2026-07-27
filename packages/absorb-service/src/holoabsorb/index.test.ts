@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   HOLOABSORB_MANIFEST_SCHEMA,
@@ -60,6 +61,30 @@ describe('HoloAbsorb product manifest', () => {
     expect(audit.status).toBe('pass');
     expect(audit.errors).toEqual([]);
     expect(audit.checks.every((check) => check.status === 'pass')).toBe(true);
+  });
+
+  it('freezes external literal-pixel confirmation without claiming results', () => {
+    const manifest = buildHoloAbsorbManifest();
+    const paper = manifest.papers.find((entry) => entry.id === 'paper-5-graphrag');
+    const protocol = JSON.parse(
+      readFileSync(
+        new URL('../../benchmarks/paper-5-visual-agent-study-v4.json', import.meta.url),
+        'utf8'
+      )
+    );
+
+    expect(
+      manifest.capabilities
+        .find((capability) => capability.id === 'evidence')
+        ?.evidencePaths
+    ).toContain('packages/absorb-service/benchmarks/paper-5-visual-agent-study-v4.json');
+    expect(paper?.claimBoundary).toContain('four-arm factorial confirmation');
+    expect(protocol.design.arms).toHaveLength(4);
+    expect(protocol.design.visualProjection.requireActualImageContentPart).toBe(true);
+    expect(protocol.dataset.minimumExternalCodebases).toBeGreaterThanOrEqual(3);
+    expect(protocol.dataset.minimumQueries).toBeGreaterThanOrEqual(90);
+    expect(protocol.claimBoundary.publicationReady).toBe(false);
+    expect(protocol.claimBoundary.literalPixelVisionMeasured).toBe(false);
   });
 
   it('reports missing observed surfaces instead of claiming completeness', () => {

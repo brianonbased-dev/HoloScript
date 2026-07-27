@@ -287,6 +287,7 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'packages/absorb-service/benchmarks/paper-5-visual-agent-study-v1.json',
       'packages/absorb-service/benchmarks/paper-5-visual-agent-study-v2.json',
       'packages/absorb-service/benchmarks/paper-5-visual-agent-study-v3.json',
+      'packages/absorb-service/benchmarks/paper-5-visual-agent-study-v4.json',
       'research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/README.md',
       'research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/packets.json',
       'research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/result.json',
@@ -392,7 +393,7 @@ const PAPERS: readonly HoloAbsorbPaperEvidence[] = [
       'node packages/absorb-service/scripts/bench-paper-5-gpu.mjs',
     ],
     claimBoundary:
-      'The accuracy harness uses 54 frozen held-out, source-audited queries with multi-relevance labels and bootstrap confidence intervals. The preregistered Qwen3-4B v2 pilot measured blinded selection from a gold-complete eight-candidate view; its raw structured visual-graph arm did not support the hypothesis and exceeded the invalid-response ceiling. The outcome-exposed v3 engineering follow-up eliminated invalid responses with strict JSON Schema and found diagnostic Precision@5 gains for explicit relational graph summaries, but it is ineligible for a superiority claim. These are model-specific controlled-navigation results, not end-to-end retrieval or literal pixel vision. Confirmation still requires independently annotated external codebases and independent model-family replication. The timing harness is synthetic unless explicitly captured on verified target hardware.',
+      'The accuracy harness uses 54 frozen held-out, source-audited queries with multi-relevance labels and bootstrap confidence intervals. The preregistered Qwen3-4B v2 pilot measured blinded selection from a gold-complete eight-candidate view; its raw structured visual-graph arm did not support the hypothesis and exceeded the invalid-response ceiling. The outcome-exposed v3 engineering follow-up eliminated invalid responses with strict JSON Schema and found diagnostic Precision@5 gains for explicit relational graph summaries, but it is ineligible for a superiority claim. The frozen v4 protocol specifies an external multi-codebase four-arm factorial confirmation that isolates literal image pixels from structured relational text, but it has no dataset or results yet. Existing measurements are model-specific controlled-navigation results, not end-to-end retrieval or literal pixel vision. The timing harness is synthetic unless explicitly captured on verified target hardware.',
     requiredReceiptKinds: ['accuracy-json', 'timing-json', 'hardware-inventory', 'claim-boundary'],
   },
   {
