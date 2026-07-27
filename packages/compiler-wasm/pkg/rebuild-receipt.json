@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T08:57:51Z",
+  "generatedAt": "2026-07-27T11:20:00Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "d9f7c1d47a4cf9af90f97fcea72fb46343b5b97c",
+  "sourceCommit": "028ffeebf03da39bd5d89b437a20a9033146b943",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "wasm-pack build --target web --out-dir pkg --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 445903,
-    "wasmSha256": "42ddf7dabd9bd815a1924f66362d6b4f749bfff9dc8eae7dc570d6238c13cbc2",
-    "previousWasmSha256": "fba6d30ccfffc5e17a9a0816fa4687d377061c700fe2ed2408824b84270eb775",
+    "wasmBytes": 453285,
+    "wasmSha256": "4639cb6552524aa9dd848046601fe817b1b72d2638df00567094c5f4b9a1a13f",
+    "previousWasmSha256": "42ddf7dabd9bd815a1924f66362d6b4f749bfff9dc8eae7dc570d6238c13cbc2",
     "repeatBuildSha256Matched": true,
-    "note": "Exact source commit adds affine owned-buffer parameter and return transfer with deterministic callee cleanup. Two release web builds and two release nodejs builds produced the same SHA-256; browser and Node artifacts are byte-identical."
+    "note": "Exact source commit adds immutable function-scoped borrowed-slice reads over affine owned buffers. Two release web builds and two release nodejs builds produced the same SHA-256; browser and Node artifacts are byte-identical."
   }
 }
