@@ -44,10 +44,23 @@ function std_read_borrowed(packet: &StdBorrowPacket): i32 {
   return load(packet.code)
 }
 
+function std_make_owned_buffer(fill: i32): [i32] {
+  let values: [i32] = buffer(3, fill)
+  return move(values)
+}
+
+function std_relay_owned_buffer(values: [i32]): [i32] {
+  return move(values)
+}
+
+function std_consume_owned_buffer(values: [i32]): i32 {
+  return 5
+}
+
 function main(): i32 {
-  let owned_values: [i32] = buffer(3, 5)
-  let moved_values: [i32] = move(owned_values)
-  drop(moved_values)
+  let owned_values: [i32] = std_make_owned_buffer(5)
+  let relayed_values: [i32] = std_relay_owned_buffer(move(owned_values))
+  let owned_transfer_result: i32 = std_consume_owned_buffer(move(relayed_values))
   slot borrow_packet: StdBorrowPacket = StdBorrowPacket(5)
   let borrow_write: i32 = std_write_borrowed(&mut borrow_packet)
   let borrow_read: i32 = std_read_borrowed(&borrow_packet)
@@ -88,7 +101,7 @@ function main(): i32 {
   let f32_lerp: f32 = std_math_lerp_f32(16777216.0, 16777218.0, 0.5)
   let f32_inverse: f32 = std_math_inverse_lerp_f32(0.0, 10.0, 1.0)
   let f32_remap: f32 = std_math_remap_f32(0.1, 0.0, 1.0, 10.0, 18.0)
-  if (borrow_write == 9 && borrow_read == 9 && bounds_volume == 60 && collection_digest == 42 && f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
+  if (owned_transfer_result == 5 && borrow_write == 9 && borrow_read == 9 && bounds_volume == 60 && collection_digest == 42 && f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
     return i32_digest + 46 + collection_digest
   }
   return 1
@@ -915,6 +928,7 @@ console.log(
         provesBrowserReceiptReplay: true,
         provesOwnedMetalNativeExecutable: true,
         provesLocalOwnedBufferAllocationMoveAndDrop: true,
+        provesOwnedBufferParameterAndReturnTransfer: true,
         ownedBufferValueAbi: 'hs.buffer.owned.v1',
         provesCallScopedSharedAndMutableAggregateReferences: true,
         aggregateReferenceAbi: 'hs.aggregate.ref.v1',
@@ -947,8 +961,8 @@ console.log(
           'recursive immutable POD records',
           'explicit scalar or declared aggregate fields only',
           'affine whole-value moves',
-          'local owned buffers support allocation, whole-owner move, explicit drop, and automatic return cleanup',
-          'no owned-buffer parameters, returns, aggregate fields, or borrowed element access',
+          'owned buffers support allocation, whole-owner moves across parameters and returns, explicit drop, and automatic local or parameter cleanup',
+          'no owned-buffer aggregate fields or borrowed element access',
           'call-scoped shared and mutable aggregate parameters support layout-checked scalar field load/store',
           'no borrowed aggregate returns, stored reference locals, or escaping leases',
         ],

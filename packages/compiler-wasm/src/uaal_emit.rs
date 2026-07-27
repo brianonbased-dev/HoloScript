@@ -194,7 +194,7 @@ pub fn compile_source_to_uaal_json(source: &str) -> Result<String, UaalEmitError
 
 pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
     check_semantics(ast)?;
-    reject_pending_owned_transfer_surfaces(ast)?;
+    reject_pending_owned_aggregate_surfaces(ast)?;
 
     let functions = collect_functions(ast)?;
     if functions.is_empty() {
@@ -282,37 +282,9 @@ fn aggregate_reference_annotation(annotation: &str) -> Option<(bool, &str)> {
     (!pointee.is_empty() && !pointee.starts_with('[')).then_some((mutable, pointee))
 }
 
-fn reject_pending_owned_transfer_surfaces(ast: &Ast) -> Result<(), UaalEmitError> {
+fn reject_pending_owned_aggregate_surfaces(ast: &Ast) -> Result<(), UaalEmitError> {
     fn reject_node(node: &AstNode) -> Result<(), UaalEmitError> {
         match node {
-            AstNode::Function(function) => {
-                if let Some(annotation) = function
-                    .return_type
-                    .as_deref()
-                    .filter(|annotation| owned_buffer_element_type(annotation).is_some())
-                {
-                    return Err(UaalEmitError::new(format!(
-                        "owned buffer type `{annotation}` in return type of function `{}` requires allocator, move, and drop opcodes for the pending owned-transfer ABI; compile_to_uaal does not erase affine ownership",
-                        function.name
-                    )));
-                }
-                for (index, annotation) in function.param_types.iter().enumerate() {
-                    if let Some(annotation) = annotation
-                        .as_deref()
-                        .filter(|annotation| owned_buffer_element_type(annotation).is_some())
-                    {
-                        let parameter = function
-                            .params
-                            .get(index)
-                            .map(String::as_str)
-                            .unwrap_or("<unknown>");
-                        return Err(UaalEmitError::new(format!(
-                            "owned buffer type `{annotation}` in parameter `{parameter}` of function `{}` requires allocator, move, and drop opcodes for the pending owned-transfer ABI; compile_to_uaal does not erase affine ownership",
-                            function.name
-                        )));
-                    }
-                }
-            }
             AstNode::StructDeclaration(structure) => {
                 for (index, annotation) in structure.field_types.iter().enumerate() {
                     if let Some(annotation) = annotation
@@ -542,6 +514,18 @@ impl<'a> UaalEmitter<'a> {
             self.current_owned_buffer_order.clear();
             self.current_borrowed_aggregates.clear();
             for (index, param) in function.params.iter().enumerate() {
+                if let Some(element_type) = function
+                    .param_types
+                    .get(index)
+                    .and_then(|annotation| annotation.as_deref())
+                    .and_then(owned_buffer_element_type)
+                {
+                    Self::validate_owned_buffer_element_type(param, element_type)?;
+                    self.current_owned_buffers
+                        .insert(param.clone(), element_type.to_string());
+                    self.current_owned_buffer_order.push(param.clone());
+                    continue;
+                }
                 let Some((mutable, layout)) = function
                     .param_types
                     .get(index)
@@ -579,8 +563,10 @@ impl<'a> UaalEmitter<'a> {
             for statement in &function.body {
                 self.emit_statement(statement)?;
             }
-            self.emit_owned_buffer_cleanup()?;
-            self.emit_op(OP_RET, Vec::new());
+            if !matches!(function.body.last(), Some(AstNode::Return(_))) {
+                self.emit_owned_buffer_cleanup()?;
+                self.emit_op(OP_RET, Vec::new());
+            }
             self.current_function = None;
             self.current_bindings.clear();
             self.current_binding_types.clear();
@@ -819,7 +805,20 @@ impl<'a> UaalEmitter<'a> {
                 Ok(())
             }
             AstNode::BinaryExpression(binary) => self.emit_binary_expression(binary, expected_type),
-            AstNode::CallExpression(call) => self.emit_call_expression(call),
+            AstNode::CallExpression(call) => {
+                let is_owned_move = matches!(
+                    call.callee.as_ref(),
+                    AstNode::Identifier(identifier) if identifier.name == "move"
+                );
+                if let Some(element_type) = expected_type
+                    .and_then(owned_buffer_element_type)
+                    .filter(|_| !is_owned_move)
+                {
+                    self.emit_owned_buffer_returning_call(call, element_type)
+                } else {
+                    self.emit_call_expression(call)
+                }
+            }
             AstNode::MemberExpression(_) => Err(Self::target_capability_error(
                 "HS-UAAL-CAP-003",
                 "uaal.aggregate.value.v1",
@@ -874,6 +873,86 @@ impl<'a> UaalEmitter<'a> {
                 "`buffer(count, fill)` is valid only as the initializer of an explicitly typed owned-buffer `let` binding",
             ));
         }
+        if !self.function_names.contains(callee) {
+            return Err(UaalEmitError::new(format!(
+                "unresolved function call `{}` in compile_to_uaal",
+                callee
+            )));
+        }
+        if self
+            .function_return_types
+            .get(callee)
+            .and_then(|annotation| annotation.as_deref())
+            .and_then(owned_buffer_element_type)
+            .is_some()
+        {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-004",
+                "uaal.buffer.owned.v1",
+                format!(
+                    "owned-buffer return from `{callee}` must initialize an explicitly typed owner or flow into an owned return/parameter"
+                ),
+            ));
+        }
+        self.emit_user_function_call(callee, call)
+    }
+
+    fn emit_owned_buffer_returning_call(
+        &mut self,
+        call: &CallExpression,
+        expected_element_type: &str,
+    ) -> Result<(), UaalEmitError> {
+        let AstNode::Identifier(callee) = call.callee.as_ref() else {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-004",
+                "uaal.buffer.owned.v1",
+                "owned-buffer calls require a named function",
+            ));
+        };
+        let return_annotation = self
+            .function_return_types
+            .get(&callee.name)
+            .and_then(|annotation| annotation.as_deref())
+            .ok_or_else(|| {
+                Self::target_capability_error(
+                    "HS-UAAL-CAP-004",
+                    "uaal.buffer.owned.v1",
+                    format!(
+                        "function `{}` does not declare an owned-buffer return",
+                        callee.name
+                    ),
+                )
+            })?;
+        let actual_element_type =
+            owned_buffer_element_type(return_annotation).ok_or_else(|| {
+                Self::target_capability_error(
+                    "HS-UAAL-CAP-004",
+                    "uaal.buffer.owned.v1",
+                    format!(
+                        "function `{}` returns `{return_annotation}`, not an owned buffer",
+                        callee.name
+                    ),
+                )
+            })?;
+        if actual_element_type != expected_element_type {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-004",
+                "uaal.buffer.owned.v1",
+                format!(
+                    "owned-buffer call `{}` returns `[{actual_element_type}]`, expected `[{expected_element_type}]`",
+                    callee.name
+                ),
+            ));
+        }
+        Self::validate_owned_buffer_element_type(&callee.name, actual_element_type)?;
+        self.emit_user_function_call(&callee.name, call)
+    }
+
+    fn emit_user_function_call(
+        &mut self,
+        callee: &str,
+        call: &CallExpression,
+    ) -> Result<(), UaalEmitError> {
         if !self.function_names.contains(callee) {
             return Err(UaalEmitError::new(format!(
                 "unresolved function call `{}` in compile_to_uaal",
@@ -1100,15 +1179,7 @@ impl<'a> UaalEmitter<'a> {
         element_type: &str,
         initializer: &AstNode,
     ) -> Result<(), UaalEmitError> {
-        if !matches!(element_type, "i32" | "f32" | "f64" | "bool") {
-            return Err(Self::target_capability_error(
-                "HS-UAAL-CAP-004",
-                "uaal.buffer.owned.v1",
-                format!(
-                    "owned buffer `{owner_name}` uses unsupported UAAL element type `{element_type}`; supported types are i32, f32, f64, and bool"
-                ),
-            ));
-        }
+        Self::validate_owned_buffer_element_type(owner_name, element_type)?;
         let AstNode::CallExpression(call) = initializer else {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-004",
@@ -1130,6 +1201,9 @@ impl<'a> UaalEmitter<'a> {
         if callee.name == "move" {
             return self.emit_owned_buffer_move(call);
         }
+        if self.function_names.contains(&callee.name) {
+            return self.emit_owned_buffer_returning_call(call, element_type);
+        }
         if callee.name != "buffer" || call.arguments.len() != 2 {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-004",
@@ -1146,6 +1220,22 @@ impl<'a> UaalEmitter<'a> {
             vec![Value::from(element_type.to_string())],
         );
         Ok(())
+    }
+
+    fn validate_owned_buffer_element_type(
+        owner_name: &str,
+        element_type: &str,
+    ) -> Result<(), UaalEmitError> {
+        if matches!(element_type, "i32" | "f32" | "f64" | "bool") {
+            return Ok(());
+        }
+        Err(Self::target_capability_error(
+            "HS-UAAL-CAP-004",
+            "uaal.buffer.owned.v1",
+            format!(
+                "owned buffer `{owner_name}` uses unsupported UAAL element type `{element_type}`; supported types are i32, f32, f64, and bool"
+            ),
+        ))
     }
 
     fn owned_buffer_element(&self, owner_name: &str) -> Result<String, UaalEmitError> {
@@ -2202,10 +2292,10 @@ function main() {
         assert_eq!(bytecode.version, 1);
         assert_eq!(
             ops,
-            vec![OP_CALL, OP_HALT, OP_PUSH, OP_RET, OP_RET, OP_CALL, OP_RET, OP_RET]
+            vec![OP_CALL, OP_HALT, OP_PUSH, OP_RET, OP_CALL, OP_RET]
         );
-        assert_eq!(bytecode.instructions[0].operands, vec![Value::from(5)]);
-        assert_eq!(bytecode.instructions[5].operands, vec![Value::from(2)]);
+        assert_eq!(bytecode.instructions[0].operands, vec![Value::from(4)]);
+        assert_eq!(bytecode.instructions[4].operands, vec![Value::from(2)]);
     }
 
     #[test]
@@ -2234,14 +2324,12 @@ function main() {
                 OP_STATE_SET,
                 OP_STATE_GET,
                 OP_RET,
-                OP_RET,
                 OP_PUSH,
                 OP_CALL,
-                OP_RET,
                 OP_RET
             ]
         );
-        assert_eq!(bytecode.instructions[0].operands, vec![Value::from(6)]);
+        assert_eq!(bytecode.instructions[0].operands, vec![Value::from(5)]);
         assert_eq!(
             bytecode.instructions[2].operands,
             vec![Value::from("__hs::echo::x")]
@@ -2250,8 +2338,8 @@ function main() {
             bytecode.instructions[3].operands,
             vec![Value::from("__hs::echo::x")]
         );
-        assert_eq!(bytecode.instructions[6].operands, vec![Value::from(42.0)]);
-        assert_eq!(bytecode.instructions[7].operands, vec![Value::from(2)]);
+        assert_eq!(bytecode.instructions[5].operands, vec![Value::from(42.0)]);
+        assert_eq!(bytecode.instructions[6].operands, vec![Value::from(2)]);
     }
 
     #[test]
@@ -2827,18 +2915,107 @@ function main(): i32 { return decide(true) }"#,
     }
 
     #[test]
-    fn rejects_owned_transfer_abi_until_ownership_opcodes_exist() {
-        let error = compile_source_to_uaal(
-            r#"function relay(values: [i32]): [i32] {
+    fn lowers_owned_buffer_parameters_and_returns_as_single_owner_transfers() {
+        let bytecode = compile_source_to_uaal(
+            r#"function make_values(fill: i32): [i32] {
+  let values: [i32] = buffer(2, fill)
   return move(values)
 }
-function main(): i32 { return 5 }"#,
+function relay(values: [i32]): [i32] {
+  return move(values)
+}
+function consume(values: [i32]): i32 {
+  return 5
+}
+function main(): i32 {
+  let initial: [i32] = make_values(5)
+  let values: [i32] = relay(move(initial))
+  return consume(move(values))
+}"#,
         )
-        .expect_err("compile_to_uaal must not erase the owned return ABI");
+        .expect("owned parameters and returns should preserve one live owner across each call");
 
-        assert!(error.message.contains(
-            "owned buffer type `[i32]` in return type of function `relay` requires allocator, move, and drop opcodes"
-        ));
+        let opcodes = bytecode
+            .instructions
+            .iter()
+            .map(|instruction| instruction.op_code)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_ALLOC)
+                .count(),
+            1,
+            "the reusable producer body must allocate exactly one owner"
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_MOVE)
+                .count(),
+            4,
+            "producer return, relay argument/return, and consumer argument must each transfer once"
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_DROP)
+                .count(),
+            1,
+            "the final consumer must receive one automatic parameter cleanup"
+        );
+    }
+
+    #[test]
+    fn rejects_implicit_owned_call_copy_and_caller_use_after_transfer() {
+        for (source, expected) in [
+            (
+                r#"function consume(values: [i32]): i32 {
+  drop(values)
+  return 5
+}
+function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  return consume(values)
+}"#,
+                "requires explicit `move` or `drop`",
+            ),
+            (
+                r#"function consume(values: [i32]): i32 {
+  drop(values)
+  return 5
+}
+function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let result: i32 = consume(move(values))
+  drop(values)
+  return result
+}"#,
+                "was already moved or dropped before `drop`",
+            ),
+            (
+                r#"function make_values(fill: i32): [i32] {
+  let values: [i32] = buffer(2, fill)
+  return move(values)
+}
+function main(): i32 {
+  make_values(5)
+  return 5
+}"#,
+                "must initialize an explicitly typed owner",
+            ),
+            (
+                r#"function relay(values: [i32]): [i32] {
+  return values
+}
+function main(): i32 { return 5 }"#,
+                "requires explicit `move` or `drop`",
+            ),
+        ] {
+            let error = compile_source_to_uaal(source)
+                .expect_err("owned call boundaries must remain affine");
+            assert!(error.message.contains(expected), "{}", error.message);
+        }
     }
 
     #[test]
