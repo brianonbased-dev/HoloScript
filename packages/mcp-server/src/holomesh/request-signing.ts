@@ -120,7 +120,7 @@ export function isFreshTimestamp(timestamp: string, nowMs: number = Date.now()):
 }
 
 /** Address-equality check that's case-insensitive (Ethereum addresses are checksummed). */
-function addressesEqual(a: string, b: string): boolean {
+export function addressesEqual(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
 }
 

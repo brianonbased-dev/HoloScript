@@ -10,6 +10,7 @@ import {
   persistTeamDurable,
   reloadTeam,
 } from '../state';
+import { checkSignerIdentityBinding } from '../identity/board-signer-binding';
 import {
   json,
   parseJsonBody,
@@ -1790,6 +1791,11 @@ export async function handleBoardRoutes(
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
     }
+    const fleetBind = checkSignerIdentityBinding(signingCtx, caller.id, caller);
+    if (!fleetBind.ok) {
+      json(res, fleetBind.status, { error: fleetBind.error });
+      return true;
+    }
     if (!isRecord(effectiveBody)) {
       json(res, 400, { error: 'JSON object body required' });
       return true;
@@ -2013,6 +2019,11 @@ export async function handleBoardRoutes(
       return true;
     }
 
+    const compactBind = checkSignerIdentityBinding(signingCtx, caller.id, caller);
+    if (!compactBind.ok) {
+      json(res, compactBind.status, { error: compactBind.error });
+      return true;
+    }
     const body = effectiveBody;
     const dryRun = body.dryRun === true || body.dry_run === true;
     const manifestCandidate = body.manifest ?? body.archiveManifest ?? body.archive_manifest;
@@ -2268,6 +2279,11 @@ export async function handleBoardRoutes(
       return true;
     }
     const body: any = effectiveBody;
+    const boardBind = checkSignerIdentityBinding(signingCtx, caller.id, caller);
+    if (!boardBind.ok) {
+      json(res, boardBind.status, { error: boardBind.error });
+      return true;
+    }
     const tasksBody = body.tasks || body;
     if (!tasksBody || !Array.isArray(tasksBody) || tasksBody.length === 0) {
       json(res, 400, { error: 'Expected an array of tasks' });
@@ -2354,6 +2370,11 @@ export async function handleBoardRoutes(
       return true;
     }
     const body: any = effectiveBody;
+    const scoutBind = checkSignerIdentityBinding(signingCtx, caller.id, caller);
+    if (!scoutBind.ok) {
+      json(res, scoutBind.status, { error: scoutBind.error });
+      return true;
+    }
     const todoContent = body.todo_content as string;
 
     if (!team.taskBoard) team.taskBoard = [];
@@ -2491,6 +2512,13 @@ export async function handleBoardRoutes(
       return true;
     }
     const body: any = effectiveBody;
+    const patchWrittenAgentId =
+      typeof body.agentId === 'string' && body.agentId.trim() ? body.agentId.trim() : caller.id;
+    const patchBind = checkSignerIdentityBinding(signingCtx, patchWrittenAgentId, caller);
+    if (!patchBind.ok) {
+      json(res, patchBind.status, { error: patchBind.error });
+      return true;
+    }
     const requestIdentityEnvelope = identityEnvelopeFromBody(body);
     const rawAction = body.action as string;
     // Alias normalization: `remove` and `archive` map to `delete` so the
