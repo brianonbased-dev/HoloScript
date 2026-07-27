@@ -47,6 +47,12 @@ function fail(message) {
 // --- Verify bundle pins ------------------------------------------------------
 
 const manifest = JSON.parse(readFileSync(join(bundleDir, 'bundle-manifest.json'), 'utf8'));
+if (!/^[0-9a-f]{40}$/.test(manifest.sourceCommit || '')) {
+  fail('bundle manifest must pin a full 40-character HoloScript source commit');
+}
+if (!manifest.files?.['std-abi-owned-metal-runner.mjs']?.sha256) {
+  fail('bundle manifest must pin the owned-metal runner itself');
+}
 for (const [name, pin] of Object.entries(manifest.files)) {
   const actual = sha256(readFileSync(join(bundleDir, ...name.split('/'))));
   if (actual !== pin.sha256) {
@@ -197,6 +203,7 @@ const receipt = {
     evaluatorExport,
     executedProjection: 'std-abi-conformance.trait.hsplus (bundle copy, pin-verified)',
     wasmArtifactSha256: manifest.files['pkg-node/holoscript_wasm_bg.wasm']?.sha256 || 'unpinned',
+    sourceCommit: manifest.sourceCommit,
   },
   sources: {
     'packages/std/conformance/generated/std-abi-vectors.v0.jsonl': {
@@ -254,7 +261,7 @@ const receipt = {
   claimBoundary: {
     provesOwnedMetalWasmExecution: true,
     provesNodeDeterministicSubsetExecution: false,
-    note: 'Executed the generated trait projection through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts.',
+    note: `Executed the self-pinned runner and generated trait projection from HoloScript ${manifest.sourceCommit} through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts.`,
   },
 };
 
