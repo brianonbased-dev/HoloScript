@@ -35,8 +35,8 @@ android {
     // HorizonOS is Android 14 (API level 34)
     //noinspection OldTargetApi,ExpiredTargetSdkVersion
     targetSdk = 34
-    versionCode = 2
-    versionName = "1.0.1"
+    versionCode = 3
+    versionName = "1.0.2"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -118,7 +118,6 @@ dependencies {
   implementation(libs.meta.spatial.sdk.toolkit)
   implementation(libs.meta.spatial.sdk.vr)
   implementation(libs.meta.spatial.sdk.isdk)
-  implementation(libs.meta.spatial.sdk.castinputforward)
   implementation(libs.meta.spatial.sdk.hotreload)
   implementation(libs.meta.spatial.sdk.datamodelinspector)
   implementation(libs.meta.spatial.sdk.uiset)
