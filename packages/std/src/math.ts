@@ -44,6 +44,49 @@ export function remap(
   return lerp(outMin, outMax, inverseLerp(inMin, inMax, value));
 }
 
+/** Clamp after coercing every input to IEEE-754 binary32. */
+export function clampF32(value: number, min: number, max: number): number {
+  const roundedValue = Math.fround(value);
+  const roundedMin = Math.fround(min);
+  const roundedMax = Math.fround(max);
+  return roundedValue < roundedMin
+    ? roundedMin
+    : roundedValue > roundedMax
+      ? roundedMax
+      : roundedValue;
+}
+
+/** Linear interpolation with binary32 rounding after every arithmetic operation. */
+export function lerpF32(a: number, b: number, t: number): number {
+  const start = Math.fround(a);
+  const end = Math.fround(b);
+  const amount = Math.fround(t);
+  const delta = Math.fround(end - start);
+  const scaled = Math.fround(delta * amount);
+  return Math.fround(start + scaled);
+}
+
+/** Inverse linear interpolation with binary32 rounding after each subtraction and division. */
+export function inverseLerpF32(a: number, b: number, value: number): number {
+  const start = Math.fround(a);
+  const end = Math.fround(b);
+  const roundedValue = Math.fround(value);
+  const numerator = Math.fround(roundedValue - start);
+  const denominator = Math.fround(end - start);
+  return Math.fround(numerator / denominator);
+}
+
+/** Remap using the same operation-by-operation binary32 contract as the native ABI. */
+export function remapF32(
+  value: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number
+): number {
+  return lerpF32(outMin, outMax, inverseLerpF32(inMin, inMax, value));
+}
+
 export function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
   return t * t * (3 - 2 * t);

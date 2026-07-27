@@ -10,6 +10,10 @@ import {
   lerp,
   inverseLerp,
   remap,
+  clampF32,
+  lerpF32,
+  inverseLerpF32,
+  remapF32,
   smoothstep,
   smootherstep,
   degToRad,
@@ -122,6 +126,19 @@ describe('remap', () => {
   it('should handle inverted output ranges', () => {
     expect(remap(0, 0, 10, 100, 0)).toBe(100);
     expect(remap(10, 0, 10, 100, 0)).toBe(0);
+  });
+});
+
+describe('binary32 math', () => {
+  it('rounds interpolation after every arithmetic operation', () => {
+    expect(lerpF32(16_777_216, 16_777_218, 0.5)).toBe(16_777_216);
+    expect(lerp(16_777_216, 16_777_218, 0.5)).toBe(16_777_217);
+  });
+
+  it('keeps clamp, inverse-lerp, and remap results in binary32', () => {
+    expect(clampF32(1.00000007, 0, 2)).toBe(Math.fround(1.00000007));
+    expect(inverseLerpF32(0, 10, 1)).toBe(Math.fround(0.1));
+    expect(remapF32(0.1, 0, 1, 10, 18)).toBe(Math.fround(10.8));
   });
 });
 

@@ -206,6 +206,8 @@ pipe(5, double, addOne, toString); // '11'
 
 `@holoscript/std/native/abi/vector-v1.hs` adds the `hs.std.vector.i32.v1` contract. It projects Vec3 values into explicit `i32` component arguments and exports dot, cross-component, and squared-length entrypoints. This component projection is intentional: current compiler targets do not yet expose a stable aggregate vector calling convention.
 
+`@holoscript/std/native/abi/scalar-f32-v1.hs` adds the `hs.std.scalar.f32.v1` contract for finite IEEE-754 binary32 inputs. It exports scalar clamp, lerp, inverse-lerp, and remap, with literals, parameters, intermediate arithmetic results, and returns rounded to binary32. Inverse-lerp and remap require a non-zero input span; NaN, infinity, signed-zero preservation, and division-by-zero behavior remain outside the first proof.
+
 `@holoscript/std/native/abi/scalar-f64-v1.hs` adds the `hs.std.scalar.f64.v1` contract for finite IEEE-754 binary64 inputs. It exports scalar clamp, lerp, inverse-lerp, and remap. Inverse-lerp and remap require a non-zero input span; NaN, infinity, signed-zero preservation, and division-by-zero behavior remain outside the first proof.
 
 The conformance gate executes the existing JavaScript implementation on Node, loads the committed browser WebAssembly compiler in headless Chromium and executes its UAAL bytecode in that browser, then compiles the same HoloScript source with `holoscriptc` and runs the generated host executable:
@@ -214,7 +216,7 @@ The conformance gate executes the existing JavaScript implementation on Node, lo
 pnpm --filter @holoscript/std run test:abi
 ```
 
-This proves the declared i32 scalar subset, component-projected Vec3 subset, and finite f64 scalar subset. Non-finite floating-point edge semantics, an aggregate vector calling convention, quaternions, noise, collections, OS-level air-gap behavior, and a general stable systems ABI remain outside the proof.
+This proves the declared i32 scalar subset, component-projected Vec3 subset, finite f32 scalar subset with operation-by-operation binary32 rounding, and finite f64 scalar subset. Non-finite floating-point edge semantics, an aggregate vector calling convention, quaternions, noise, collections, OS-level air-gap behavior, and a general stable systems ABI remain outside the proof.
 
 **Known limitations:** `@holoscript/std/fs` assumes a Node.js-like filesystem (`fs`/`path`) and is not usable in a browser bundle; import the browser-safe entry points (`math`, `collections`, `string`, `time`) instead if you need this library client-side. The browser ABI gate enables UAAL derivation logging and verifies its universal SHA-256 receipt plus hermetic replay without a Node `crypto` compatibility shim. Interfaces may change before a v1 release.
 

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/std",
-  "version": "7.0.5",
+  "version": "7.0.6",
   "description": "HoloScript Standard Library - Core types and utilities",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -11,6 +11,7 @@
     "src/math.hsplus",
     "src/collections.hsplus",
     "src/abi/scalar-v1.hs",
+    "src/abi/scalar-f32-v1.hs",
     "src/abi/scalar-f64-v1.hs",
     "src/abi/vector-v1.hs",
     "LICENSE",
@@ -35,6 +36,7 @@
     "./native/math.hsplus": "./src/math.hsplus",
     "./native/collections.hsplus": "./src/collections.hsplus",
     "./native/abi/scalar-v1.hs": "./src/abi/scalar-v1.hs",
+    "./native/abi/scalar-f32-v1.hs": "./src/abi/scalar-f32-v1.hs",
     "./native/abi/scalar-f64-v1.hs": "./src/abi/scalar-f64-v1.hs",
     "./native/abi/vector-v1.hs": "./src/abi/vector-v1.hs",
     "./string": {
@@ -88,6 +90,7 @@
       "./math": "./src/math.hsplus",
       "./collections": "./src/collections.hsplus",
       "./abi/scalar-v1": "./src/abi/scalar-v1.hs",
+      "./abi/scalar-f32-v1": "./src/abi/scalar-f32-v1.hs",
       "./abi/scalar-f64-v1": "./src/abi/scalar-f64-v1.hs",
       "./abi/vector-v1": "./src/abi/vector-v1.hs"
     },
@@ -103,6 +106,7 @@
     "capabilities": [
       "std_math",
       "std_math_scalar_i32_v1",
+      "std_math_scalar_f32_v1",
       "std_math_scalar_f64_v1",
       "std_math_vector_i32_v1",
       "std_collections"
@@ -153,6 +157,21 @@
         ]
       },
       {
+        "id": "hs.std.scalar.f32.v1",
+        "entrypoint": "./src/abi/scalar-f32-v1.hs",
+        "functions": [
+          "std_math_clamp_f32",
+          "std_math_lerp_f32",
+          "std_math_inverse_lerp_f32",
+          "std_math_remap_f32"
+        ],
+        "provenTargets": [
+          "node",
+          "browser-wasm-uaal",
+          "owned-metal"
+        ]
+      },
+      {
         "id": "hs.std.scalar.f64.v1",
         "entrypoint": "./src/abi/scalar-f64-v1.hs",
         "functions": [
@@ -168,7 +187,7 @@
         ]
       }
     ],
-    "runtimeBoundary": "Executable ABI parity is proven for scalar i32 clamp/sign/step, component-projected i32 Vec3 dot/cross/length-squared, and finite scalar f64 clamp/lerp/inverse-lerp/remap across Node, browser-WASM to UAAL, and owned-metal, and receipt-proven for the 11-op math conformance projection (50 vectors, cross-target exact value equality) across node, browser-wasm, and owned-metal. Non-finite floating-point edge semantics, aggregate vector calling conventions, quaternion, noise, sqrt/trig ops, direct packaged-handler execution, and collections parity remain preview."
+    "runtimeBoundary": "Executable ABI parity is proven for scalar i32 clamp/sign/step, component-projected i32 Vec3 dot/cross/length-squared, finite scalar f32 clamp/lerp/inverse-lerp/remap with operation-by-operation binary32 rounding, and finite scalar f64 clamp/lerp/inverse-lerp/remap across Node, browser-WASM to UAAL, and owned-metal. The existing 11-op math conformance projection remains receipt-proven (50 vectors, cross-target exact value equality). Non-finite floating-point edge semantics, aggregate vector calling conventions, quaternion, noise, sqrt/trig ops, direct packaged-handler execution, and collections parity remain preview."
   },
   "author": "Brian X Base Team",
   "license": "MIT",

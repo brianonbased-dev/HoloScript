@@ -71,6 +71,24 @@ const F64_EXIT_FIVE: &str = r#"
         return 1
     }
 "#;
+const F32_EXIT_FIVE: &str = r#"
+    function blend(start: f32, end: f32, amount: f32): f32 {
+        return start + (end - start) * amount
+    }
+
+    function tenth(value: f32): f32 {
+        return value / 10.0
+    }
+
+    function main(): i32 {
+        let rounded_midpoint: f32 = blend(16777216.0, 16777218.0, 0.5)
+        let rounded_tenth: f32 = tenth(1.0)
+        if (rounded_midpoint == 16777216.0 && rounded_tenth == 0.10000000149011612) {
+            return 5
+        }
+        return 1
+    }
+"#;
 const STACK_SLOT_EXIT_FIVE: &str = include_str!("../../../examples/native/stack-slot-exit-five.hs");
 const I64_STACK_SLOT_EXIT_FIVE: &str = r#"
     function main(): i64 {
@@ -391,6 +409,22 @@ fn compiles_f64_signatures_arithmetic_and_comparisons() {
     assert_eq!(status.code(), Some(5));
 
     fs::remove_file(&artifact.executable).expect("remove f64 smoke-test executable");
+}
+
+#[test]
+fn compiles_f32_with_single_precision_rounding() {
+    let executable = scratch_executable("native-f32");
+
+    let artifact = compile_executable(F32_EXIT_FIVE, &executable, &NativeCompileOptions::host())
+        .expect("f32 signatures should compile to a native executable");
+
+    assert_eq!(artifact.machine_contract, "hs-machine-v37");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("f32 native HoloScript executable should run");
+    assert_eq!(status.code(), Some(5));
+
+    fs::remove_file(&artifact.executable).expect("remove f32 smoke-test executable");
 }
 
 #[test]

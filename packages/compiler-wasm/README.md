@@ -36,7 +36,7 @@ HoloScript, compiled to WebAssembly.
   `move`, `action`, `on_*` event blocks
 
 - **UAAL lowering** - `compile_to_uaal` emits executable bytecode for typed
-  function kernels, including i32 and finite scalar f64 arithmetic/comparisons
+  function kernels, including i32 plus finite scalar f32/f64 arithmetic and comparisons
 
 ## Installation
 
@@ -141,9 +141,12 @@ Validate and return detailed error information.
 
 Compile the supported typed function subset to a UAAL bytecode JSON packet.
 Numeric `EXEC` instructions identify their host ABI as `hs.i32.binary.v1` or
-`hs.f64.binary.v1`; the embedding UAAL VM must register the matching handler.
-The f64 v1 seam proves finite operands only and does not claim NaN, infinity,
-signed-zero preservation, or division-by-zero semantics.
+the distinct `hs.f32.binary.v1` / `hs.f64.binary.v1` contracts; the embedding
+UAAL VM must register the matching handler. The f32 handler must round literals,
+operands, and every arithmetic result to IEEE-754 binary32 rather than inheriting
+JavaScript binary64 arithmetic. Both floating-point v1 seams prove finite operands
+only and do not claim NaN, infinity, signed-zero preservation, or division-by-zero
+semantics.
 
 ### `version(): string`
 

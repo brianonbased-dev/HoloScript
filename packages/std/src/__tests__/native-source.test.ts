@@ -14,6 +14,7 @@ describe('@holoscript/std native source tracer', () => {
         'src/math.hsplus',
         'src/collections.hsplus',
         'src/abi/scalar-v1.hs',
+        'src/abi/scalar-f32-v1.hs',
         'src/abi/scalar-f64-v1.hs',
         'src/abi/vector-v1.hs',
       ])
@@ -21,6 +22,9 @@ describe('@holoscript/std native source tracer', () => {
     expect(packageJson.exports['./native/math.hsplus']).toBe('./src/math.hsplus');
     expect(packageJson.exports['./native/collections.hsplus']).toBe('./src/collections.hsplus');
     expect(packageJson.exports['./native/abi/scalar-v1.hs']).toBe('./src/abi/scalar-v1.hs');
+    expect(packageJson.exports['./native/abi/scalar-f32-v1.hs']).toBe(
+      './src/abi/scalar-f32-v1.hs'
+    );
     expect(packageJson.exports['./native/abi/scalar-f64-v1.hs']).toBe(
       './src/abi/scalar-f64-v1.hs'
     );
@@ -33,6 +37,7 @@ describe('@holoscript/std native source tracer', () => {
         './math': './src/math.hsplus',
         './collections': './src/collections.hsplus',
         './abi/scalar-v1': './src/abi/scalar-v1.hs',
+        './abi/scalar-f32-v1': './src/abi/scalar-f32-v1.hs',
         './abi/scalar-f64-v1': './src/abi/scalar-f64-v1.hs',
         './abi/vector-v1': './src/abi/vector-v1.hs',
       },
@@ -56,6 +61,16 @@ describe('@holoscript/std native source tracer', () => {
           provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
         }),
         expect.objectContaining({
+          id: 'hs.std.scalar.f32.v1',
+          functions: [
+            'std_math_clamp_f32',
+            'std_math_lerp_f32',
+            'std_math_inverse_lerp_f32',
+            'std_math_remap_f32',
+          ],
+          provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
+        }),
+        expect.objectContaining({
           id: 'hs.std.scalar.f64.v1',
           functions: [
             'std_math_clamp_f64',
@@ -66,6 +81,9 @@ describe('@holoscript/std native source tracer', () => {
           provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
         }),
       ])
+    );
+    expect(packageJson.holoscript.runtimeBoundary).toContain(
+      'operation-by-operation binary32 rounding'
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain('finite scalar f64');
     expect(packageJson.holoscript.runtimeBoundary).toContain(
@@ -114,6 +132,17 @@ describe('@holoscript/std native source tracer', () => {
     expect(source).toContain('export function std_math_lerp_f64');
     expect(source).toContain('export function std_math_inverse_lerp_f64');
     expect(source).toContain('export function std_math_remap_f64');
+    expect(source).toContain('NaN, infinity, signed-zero');
+    expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
+  });
+
+  it('keeps the f32 ABI finite, target-neutral, and explicit about binary32 rounding', () => {
+    const source = readFileSync(join(packageRoot, 'src', 'abi', 'scalar-f32-v1.hs'), 'utf8');
+    expect(source).toContain('export function std_math_clamp_f32');
+    expect(source).toContain('export function std_math_lerp_f32');
+    expect(source).toContain('export function std_math_inverse_lerp_f32');
+    expect(source).toContain('export function std_math_remap_f32');
+    expect(source).toContain('intermediate arithmetic result');
     expect(source).toContain('NaN, infinity, signed-zero');
     expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
   });

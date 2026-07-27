@@ -30,6 +30,12 @@ const OP_HALT: u16 = 0xff;
 /// result. Arithmetic results use wrapping i32 semantics. Comparisons push bool.
 const HS_I32_BINARY_ABI: &str = "hs.i32.binary.v1";
 
+/// Host-handler ABI used for scalar f32 arithmetic/comparison on UAAL's generic EXEC seam.
+///
+/// The emitter rounds literals to binary32. The embedding host must round both operands and
+/// every arithmetic result to binary32 so JavaScript's default binary64 arithmetic cannot leak.
+const HS_F32_BINARY_ABI: &str = "hs.f32.binary.v1";
+
 /// Host-handler ABI used for scalar f64 arithmetic/comparison on UAAL's generic EXEC seam.
 ///
 /// Stack order matches the i32 ABI. The host preserves JavaScript/JSON's IEEE-754 binary64
@@ -361,7 +367,23 @@ impl<'a> UaalEmitter<'a> {
                 Ok(())
             }
             AstNode::Number(value) => {
-                self.emit_op(OP_PUSH, vec![Value::from(value.value)]);
+                let emitted = if expected_type == Some("f32") {
+                    let rounded = value.value as f32;
+                    if !rounded.is_finite() {
+                        return Err(Self::target_capability_error(
+                            "HS-UAAL-CAP-001",
+                            "uaal.expression.f32.binary.v1",
+                            format!(
+                                "numeric literal `{}` is not representable as finite `f32`",
+                                value.raw
+                            ),
+                        ));
+                    }
+                    f64::from(rounded)
+                } else {
+                    value.value
+                };
+                self.emit_op(OP_PUSH, vec![Value::from(emitted)]);
                 Ok(())
             }
             AstNode::Boolean(value) => {
@@ -499,7 +521,7 @@ impl<'a> UaalEmitter<'a> {
                 "HS-UAAL-CAP-001",
                 "uaal.expression.numeric.binary.v2",
                 format!(
-                    "operator `{}` is unavailable; supported operators are `+`, `-`, `*`, f64 `/`, `==`, `!=`, `<`, `<=`, `>`, and `>=`",
+                    "operator `{}` is unavailable; supported operators are `+`, `-`, `*`, floating-point `/`, `==`, `!=`, `<`, `<=`, `>`, and `>=`",
                     binary.operator
                 ),
             ));
@@ -510,7 +532,7 @@ impl<'a> UaalEmitter<'a> {
                 "HS-UAAL-CAP-001",
                 "uaal.expression.numeric.binary.v2",
                 format!(
-                    "operator `{}` has no proven result width; annotate the containing return, local, or parameter as `i32` or `f64`",
+                    "operator `{}` has no proven result width; annotate the containing return, local, or parameter as `i32`, `f32`, or `f64`",
                     binary.operator
                 ),
             ));
@@ -535,12 +557,12 @@ impl<'a> UaalEmitter<'a> {
             self.infer_numeric_operand_type(binary)?
         } else {
             let expected = expected_type.expect("arithmetic width is checked above");
-            if !matches!(expected, "i32" | "f64") {
+            if !matches!(expected, "i32" | "f32" | "f64") {
                 return Err(Self::target_capability_error(
                     "HS-UAAL-CAP-001",
                     "uaal.expression.numeric.binary.v2",
                     format!(
-                        "operator `{}` requires an explicit `i32` or `f64` result, but this expression requires `{expected}`",
+                        "operator `{}` requires an explicit `i32`, `f32`, or `f64` result, but this expression requires `{expected}`",
                         binary.operator
                     ),
                 ));
@@ -548,11 +570,11 @@ impl<'a> UaalEmitter<'a> {
             expected
         };
 
-        if binary.operator == "/" && operand_type != "f64" {
+        if binary.operator == "/" && !matches!(operand_type, "f32" | "f64") {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-001",
-                "uaal.expression.f64.binary.v1",
-                "operator `/` is available only for explicitly typed `f64` expressions",
+                "uaal.expression.float.binary.v1",
+                "operator `/` is available only for explicitly typed `f32` or `f64` expressions",
             ));
         }
 
@@ -574,10 +596,10 @@ impl<'a> UaalEmitter<'a> {
 
         self.emit_expression_with_expected(&binary.left, Some(operand_type))?;
         self.emit_expression_with_expected(&binary.right, Some(operand_type))?;
-        let abi = if operand_type == "f64" {
-            HS_F64_BINARY_ABI
-        } else {
-            HS_I32_BINARY_ABI
+        let abi = match operand_type {
+            "f32" => HS_F32_BINARY_ABI,
+            "f64" => HS_F64_BINARY_ABI,
+            _ => HS_I32_BINARY_ABI,
         };
         self.emit_op(
             OP_EXEC,
@@ -671,6 +693,7 @@ impl<'a> UaalEmitter<'a> {
     fn known_numeric_expression_type(&self, node: &AstNode) -> Option<&'static str> {
         let annotation_type = |annotation: &str| match annotation {
             "i32" => Some("i32"),
+            "f32" => Some("f32"),
             "f64" => Some("f64"),
             _ => None,
         };
@@ -706,6 +729,9 @@ impl<'a> UaalEmitter<'a> {
 
     fn is_proven_numeric_expression(&self, node: &AstNode, expected: &str) -> bool {
         match node {
+            AstNode::Number(value) if expected == "f32" => {
+                value.value.is_finite() && (value.value as f32).is_finite()
+            }
             AstNode::Number(value) if expected == "f64" => value.value.is_finite(),
             AstNode::Number(value) if expected == "i32" => {
                 value.value.is_finite()
@@ -729,7 +755,7 @@ impl<'a> UaalEmitter<'a> {
                     == Some(expected)
             }
             AstNode::BinaryExpression(binary) => {
-                let operator_supported = if expected == "f64" {
+                let operator_supported = if matches!(expected, "f32" | "f64") {
                     matches!(binary.operator.as_str(), "+" | "-" | "*" | "/")
                 } else {
                     matches!(binary.operator.as_str(), "+" | "-" | "*")
@@ -1088,6 +1114,63 @@ function main(): i32 {
                 .map(|instruction| instruction.operands[1].as_str().unwrap())
                 .collect::<Vec<_>>(),
             vec!["-", "*", "+", "/", "==", ">="]
+        );
+    }
+
+    #[test]
+    fn lowers_f32_with_rounded_literals_and_a_distinct_exec_abi() {
+        let bytecode = compile(
+            r#"function rounded_literal(): f32 {
+  return 16777217.0
+}
+
+function blend(start: f32, end: f32, amount: f32): f32 {
+  return start + (end - start) * amount
+}
+
+function tenth(value: f32): f32 {
+  return value / 10.0
+}
+
+function main(): i32 {
+  let midpoint: f32 = blend(16777216.0, 16777218.0, 0.5)
+  if (rounded_literal() == 16777216.0 && midpoint == 16777216.0 && tenth(1.0) == 0.10000000149011612) {
+    return 5
+  }
+  return 1
+}"#,
+        );
+
+        let f32_binary_instructions = bytecode
+            .instructions
+            .iter()
+            .filter(|instruction| {
+                instruction.op_code == OP_EXEC
+                    && instruction.operands.first()
+                        == Some(&Value::from("hs.f32.binary.v1"))
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(f32_binary_instructions.len(), 7);
+        assert_eq!(
+            f32_binary_instructions
+                .iter()
+                .map(|instruction| instruction.operands[1].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            vec!["-", "*", "+", "/", "==", "==", "=="]
+        );
+        assert!(
+            bytecode.instructions.iter().any(|instruction| {
+                instruction.op_code == OP_PUSH
+                    && instruction.operands == vec![Value::from(16_777_216.0)]
+            }),
+            "f32 literal 16777217.0 must be rounded before entering UAAL"
+        );
+        assert!(
+            bytecode.instructions.iter().all(|instruction| {
+                instruction.op_code != OP_PUSH
+                    || instruction.operands != vec![Value::from(16_777_217.0)]
+            }),
+            "unrounded f32 literal must never enter UAAL"
         );
     }
 

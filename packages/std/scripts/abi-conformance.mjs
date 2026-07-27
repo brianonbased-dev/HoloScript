@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(packageRoot, '..', '..');
 const scalarAbiPath = join(packageRoot, 'src', 'abi', 'scalar-v1.hs');
+const scalarF32AbiPath = join(packageRoot, 'src', 'abi', 'scalar-f32-v1.hs');
 const scalarF64AbiPath = join(packageRoot, 'src', 'abi', 'scalar-f64-v1.hs');
 const vectorAbiPath = join(packageRoot, 'src', 'abi', 'vector-v1.hs');
 const stdMathPath = join(packageRoot, 'dist', 'math.js');
@@ -18,7 +19,7 @@ const wasmBinaryPath = join(wasmRoot, 'holoscript_wasm_bg.wasm');
 const wasmReceiptPath = join(wasmRoot, 'rebuild-receipt.json');
 const uaalBundlePath = join(repoRoot, 'packages', 'uaal', 'dist', 'index.js');
 const nativeManifestPath = join(repoRoot, 'packages', 'compiler-native', 'Cargo.toml');
-const expectedDigest = 136;
+const expectedDigest = 165;
 
 const selfTest = `
 function main(): i32 {
@@ -43,8 +44,13 @@ function main(): i32 {
   let f64_lerp: f64 = std_math_lerp_f64(2.0, 10.0, 0.25)
   let f64_inverse: f64 = std_math_inverse_lerp_f64(2.0, 10.0, 4.0)
   let f64_remap: f64 = std_math_remap_f64(0.25, 0.0, 1.0, 10.0, 18.0)
-  if (f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0) {
-    return i32_digest + 17
+  let f32_below: f32 = std_math_clamp_f32(0.0 - 1.5, 0.0, 2.0)
+  let f32_inside: f32 = std_math_clamp_f32(1.00000007, 0.0, 2.0)
+  let f32_lerp: f32 = std_math_lerp_f32(16777216.0, 16777218.0, 0.5)
+  let f32_inverse: f32 = std_math_inverse_lerp_f32(0.0, 10.0, 1.0)
+  let f32_remap: f32 = std_math_remap_f32(0.1, 0.0, 1.0, 10.0, 18.0)
+  if (f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
+    return i32_digest + 46
   }
   return 1
 }
@@ -199,7 +205,9 @@ function browserHtml(source) {
         vm.registerHandler(execOpcode, (proxy, operands) => {
           const [abi, operator] = operands;
           if (
-            (abi !== 'hs.i32.binary.v1' && abi !== 'hs.f64.binary.v1') ||
+            (abi !== 'hs.i32.binary.v1' &&
+              abi !== 'hs.f32.binary.v1' &&
+              abi !== 'hs.f64.binary.v1') ||
             typeof operator !== 'string'
           ) {
             throw new Error('unsupported HoloScript EXEC ABI: ' + String(abi));
@@ -210,24 +218,37 @@ function browserHtml(source) {
             throw new Error(String(abi) + ' requires numeric operands');
           }
           const isI32 = abi === 'hs.i32.binary.v1';
+          const isF32 = abi === 'hs.f32.binary.v1';
           if (!isI32 && (!Number.isFinite(left) || !Number.isFinite(right))) {
-            throw new Error('hs.f64.binary.v1 conformance requires finite operands');
+            throw new Error(String(abi) + ' conformance requires finite operands');
           }
+          const roundedLeft = isF32 ? Math.fround(left) : left;
+          const roundedRight = isF32 ? Math.fround(right) : right;
+          const pushArithmetic = (value) => proxy.push(isF32 ? Math.fround(value) : value);
           switch (operator) {
-            case '+': proxy.push(isI32 ? (left + right) | 0 : left + right); break;
-            case '-': proxy.push(isI32 ? (left - right) | 0 : left - right); break;
-            case '*': proxy.push(isI32 ? Math.imul(left, right) : left * right); break;
+            case '+':
+              if (isI32) proxy.push((left + right) | 0);
+              else pushArithmetic(roundedLeft + roundedRight);
+              break;
+            case '-':
+              if (isI32) proxy.push((left - right) | 0);
+              else pushArithmetic(roundedLeft - roundedRight);
+              break;
+            case '*':
+              if (isI32) proxy.push(Math.imul(left, right));
+              else pushArithmetic(roundedLeft * roundedRight);
+              break;
             case '/':
               if (isI32) throw new Error('hs.i32.binary.v1 does not support division');
-              if (right === 0) throw new Error('hs.f64.binary.v1 conformance rejects division by zero');
-              proxy.push(left / right);
+              if (roundedRight === 0) throw new Error(String(abi) + ' conformance rejects division by zero');
+              pushArithmetic(roundedLeft / roundedRight);
               break;
-            case '==': proxy.push(left === right); break;
-            case '!=': proxy.push(left !== right); break;
-            case '<': proxy.push(left < right); break;
-            case '<=': proxy.push(left <= right); break;
-            case '>': proxy.push(left > right); break;
-            case '>=': proxy.push(left >= right); break;
+            case '==': proxy.push(roundedLeft === roundedRight); break;
+            case '!=': proxy.push(roundedLeft !== roundedRight); break;
+            case '<': proxy.push(roundedLeft < roundedRight); break;
+            case '<=': proxy.push(roundedLeft <= roundedRight); break;
+            case '>': proxy.push(roundedLeft > roundedRight); break;
+            case '>=': proxy.push(roundedLeft >= roundedRight); break;
             default: throw new Error('unsupported ' + String(abi) + ' operator: ' + operator);
           }
         });
@@ -378,9 +399,19 @@ async function executeBrowserWasm(source) {
 }
 
 async function executeNode() {
-  const { clamp, inverseLerp, lerp, remap, sign, step, vec3Math } = await import(
-    pathToFileURL(stdMathPath).href
-  );
+  const {
+    clamp,
+    clampF32,
+    inverseLerp,
+    inverseLerpF32,
+    lerp,
+    lerpF32,
+    remap,
+    remapF32,
+    sign,
+    step,
+    vec3Math,
+  } = await import(pathToFileURL(stdMathPath).href);
   const below = clamp(-7, 0, 9);
   const inside = clamp(4, 0, 9);
   const above = clamp(12, 0, 9);
@@ -425,7 +456,20 @@ async function executeNode() {
     floatingPointResults.lerp === 4 &&
     floatingPointResults.inverseLerp === 0.25 &&
     floatingPointResults.remap === 12;
-  const result = floatingPointMatches ? i32Digest + 17 : 1;
+  const binary32Results = {
+    below: clampF32(-1.5, 0, 2),
+    inside: clampF32(1.00000007, 0, 2),
+    lerp: lerpF32(16_777_216, 16_777_218, 0.5),
+    inverseLerp: inverseLerpF32(0, 10, 1),
+    remap: remapF32(0.1, 0, 1, 10, 18),
+  };
+  const binary32Matches =
+    binary32Results.below === 0 &&
+    binary32Results.inside === 1.0000001192092896 &&
+    binary32Results.lerp === 16_777_216 &&
+    binary32Results.inverseLerp === 0.10000000149011612 &&
+    binary32Results.remap === 10.800000190734863;
+  const result = floatingPointMatches && binary32Matches ? i32Digest + 46 : 1;
   if (result !== expectedDigest) {
     throw new Error(`Node std result mismatch: expected ${expectedDigest}, received ${result}`);
   }
@@ -433,6 +477,7 @@ async function executeNode() {
     runtime: process.version,
     implementation: '@holoscript/std/dist/math.js',
     floatingPointResults,
+    binary32Results,
     result,
   };
 }
@@ -497,6 +542,7 @@ function executeOwnedMetal(source) {
 }
 
 requireFile(scalarAbiPath, 'scalar ABI source');
+requireFile(scalarF32AbiPath, 'scalar f32 ABI source');
 requireFile(scalarF64AbiPath, 'scalar f64 ABI source');
 requireFile(vectorAbiPath, 'vector ABI source');
 requireFile(stdMathPath, 'built Node std math implementation');
@@ -507,9 +553,10 @@ requireFile(uaalBundlePath, 'built UAAL browser execution bundle');
 requireFile(nativeManifestPath, 'owned-metal compiler manifest');
 
 const scalarAbiSource = readFileSync(scalarAbiPath, 'utf8');
+const scalarF32AbiSource = readFileSync(scalarF32AbiPath, 'utf8');
 const scalarF64AbiSource = readFileSync(scalarF64AbiPath, 'utf8');
 const vectorAbiSource = readFileSync(vectorAbiPath, 'utf8');
-const executableSource = `${scalarAbiSource.trim()}\n${scalarF64AbiSource.trim()}\n${vectorAbiSource.trim()}\n${selfTest.trim()}\n`;
+const executableSource = `${scalarAbiSource.trim()}\n${scalarF32AbiSource.trim()}\n${scalarF64AbiSource.trim()}\n${vectorAbiSource.trim()}\n${selfTest.trim()}\n`;
 const wasmReceipt = JSON.parse(readFileSync(wasmReceiptPath, 'utf8'));
 const node = await executeNode();
 const browserWasm = await executeBrowserWasm(executableSource);
@@ -522,7 +569,7 @@ if (!results.every((value) => value === expectedDigest)) {
 console.log(
   JSON.stringify(
     {
-      schema: 'holoscript.std.math-abi-conformance.v3',
+      schema: 'holoscript.std.math-abi-conformance.v4',
       status: 'pass',
       abis: [
         {
@@ -534,6 +581,11 @@ console.log(
           id: 'hs.std.vector.i32.v1',
           source: 'packages/std/src/abi/vector-v1.hs',
           sourceSha256: sha256(vectorAbiSource),
+        },
+        {
+          id: 'hs.std.scalar.f32.v1',
+          source: 'packages/std/src/abi/scalar-f32-v1.hs',
+          sourceSha256: sha256(scalarF32AbiSource),
         },
         {
           id: 'hs.std.scalar.f64.v1',
@@ -555,6 +607,8 @@ console.log(
       boundaries: {
         provesScalarI32Math: ['clamp', 'sign', 'step'],
         provesVectorI32Math: ['vec3.dot', 'vec3.cross', 'vec3.lengthSquared'],
+        provesFiniteScalarF32Math: ['clamp', 'lerp', 'inverseLerp', 'remap'],
+        provesOperationByOperationF32Rounding: true,
         provesFiniteScalarF64Math: ['clamp', 'lerp', 'inverseLerp', 'remap'],
         provesBrowserWasmCompilerAndUaalExecution: true,
         provesBrowserNativeReceiptHashing: true,

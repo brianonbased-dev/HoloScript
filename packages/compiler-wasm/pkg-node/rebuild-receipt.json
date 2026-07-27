@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T01:05:00Z",
+  "generatedAt": "2026-07-27T01:42:38Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "merge of 15568d53d (eval.rs + lib.rs evaluate_trait_handler) and e99acf576 (uaal_emit.rs finite f64 ABI); built pre-merge-commit from the union source",
+  "sourceCommit": "origin/main 15650146e477b48fa033bce460189439c8fcc289 plus the pending scalar f32 ABI source; built before the source-and-artifact commit",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 400894,
-    "wasmSha256": "3a6f1bf292360af58b8f5b28f39f2174f12b8d9d33efe8ca066b879cfe4fd135",
-    "previousWasmSha256": "1236bcce16093e99ac6d86a5d6cf3ff8a31594038fd1e9e43e9b472abc2588d4",
+    "wasmBytes": 401351,
+    "wasmSha256": "f05ee0fde6a84415c38e613551d9faa409171d0f025b575487b496d8936922c2",
+    "previousWasmSha256": "3a6f1bf292360af58b8f5b28f39f2174f12b8d9d33efe8ca066b879cfe4fd135",
     "repeatBuildSha256Matched": true,
-    "note": "Merge rebuild in a clean worktree at e99acf576 with exactly two files copied in from the merge working tree: src/eval.rs and src/lib.rs (the deterministic trait-handler evaluator + its wasm export). Combines the evaluator with the finite f64 UAAL ABI emitter landed by the peer lane. The dirty main-tree parser.rs (uncommitted peer formatting edits) was NOT baked in. Repeat nodejs build reproduced the same SHA-256 and the --target web build of the same source is byte-identical."
+    "note": "Clean-worktree rebuild adds hs.f32.binary.v1 emission with binary32-rounded literals. Two release nodejs builds and two release web builds produced the same SHA-256; the Node and web artifacts are byte-identical."
   }
 }
