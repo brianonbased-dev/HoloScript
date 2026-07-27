@@ -24,6 +24,7 @@ const OP_CALL: u16 = 0x32;
 const OP_RET: u16 = 0x33;
 const OP_HS_BUFFER_ALLOC: u16 = 0xb7;
 const OP_HS_BUFFER_MOVE: u16 = 0xb8;
+const OP_HS_BUFFER_LOAD: u16 = 0xb9;
 const OP_HS_BUFFER_DROP: u16 = 0xbb;
 const OP_HS_AGGREGATE_BORROW: u16 = 0xbd;
 const OP_HS_AGGREGATE_LOAD: u16 = 0xbe;
@@ -152,6 +153,12 @@ struct UaalBorrowedAggregate {
     mutable: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct UaalBorrowedBuffer {
+    owner: String,
+    element_type: String,
+}
+
 #[derive(Debug)]
 struct UaalEmitter<'a> {
     functions: Vec<&'a FunctionNode>,
@@ -170,7 +177,9 @@ struct UaalEmitter<'a> {
     current_owned_buffers: HashMap<String, String>,
     current_unavailable_owned_buffers: HashSet<String>,
     current_owned_buffer_order: Vec<String>,
+    current_borrowed_buffers: HashMap<String, UaalBorrowedBuffer>,
     current_borrowed_aggregates: HashMap<String, UaalBorrowedAggregate>,
+    current_control_flow_depth: usize,
 }
 
 pub fn compile_source_to_uaal(source: &str) -> Result<UaalBytecode, UaalEmitError> {
@@ -247,7 +256,9 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         current_owned_buffers: HashMap::new(),
         current_unavailable_owned_buffers: HashSet::new(),
         current_owned_buffer_order: Vec::new(),
+        current_borrowed_buffers: HashMap::new(),
         current_borrowed_aggregates: HashMap::new(),
+        current_control_flow_depth: 0,
     };
 
     emitter.emit_bootstrap()?;
@@ -266,6 +277,24 @@ fn owned_buffer_element_type(annotation: &str) -> Option<&str> {
         None
     } else {
         Some(inner)
+    }
+}
+
+fn borrowed_slice_element_type(annotation: &str) -> Option<(bool, &str)> {
+    let mut rest = annotation.strip_prefix('&')?.trim_start();
+    if rest.starts_with('\'') {
+        rest = rest.split_once(' ')?.1.trim_start();
+    }
+    let (mutable, pointee) = if let Some(pointee) = rest.strip_prefix("mut ") {
+        (true, pointee.trim_start())
+    } else {
+        (false, rest)
+    };
+    let inner = pointee.strip_prefix('[')?.strip_suffix(']')?;
+    if inner.is_empty() || inner.contains(';') {
+        None
+    } else {
+        Some((mutable, inner))
     }
 }
 
@@ -512,7 +541,30 @@ impl<'a> UaalEmitter<'a> {
             self.current_owned_buffers.clear();
             self.current_unavailable_owned_buffers.clear();
             self.current_owned_buffer_order.clear();
+            self.current_borrowed_buffers.clear();
             self.current_borrowed_aggregates.clear();
+            self.current_control_flow_depth = 0;
+            if function
+                .return_type
+                .as_deref()
+                .and_then(borrowed_slice_element_type)
+                .is_some()
+                || function.param_types.iter().any(|annotation| {
+                    annotation
+                        .as_deref()
+                        .and_then(borrowed_slice_element_type)
+                        .is_some()
+                })
+            {
+                return Err(Self::target_capability_error(
+                    "HS-UAAL-CAP-006",
+                    "uaal.buffer.borrow.v1",
+                    format!(
+                        "borrowed-slice parameters and returns are not admitted by uaal.buffer.borrow.v1; function `{}` may create an immutable slice only as a non-escaping local",
+                        function.name
+                    ),
+                ));
+            }
             for (index, param) in function.params.iter().enumerate() {
                 if let Some(element_type) = function
                     .param_types
@@ -574,7 +626,9 @@ impl<'a> UaalEmitter<'a> {
             self.current_owned_buffers.clear();
             self.current_unavailable_owned_buffers.clear();
             self.current_owned_buffer_order.clear();
+            self.current_borrowed_buffers.clear();
             self.current_borrowed_aggregates.clear();
+            self.current_control_flow_depth = 0;
         }
         Ok(())
     }
@@ -608,6 +662,50 @@ impl<'a> UaalEmitter<'a> {
             AstNode::If(if_node) => self.emit_if(if_node),
             AstNode::While(while_node) => self.emit_while(while_node),
             AstNode::VariableDeclaration(var) => {
+                if let Some((mutable, element_type)) = var
+                    .type_annotation
+                    .as_deref()
+                    .and_then(borrowed_slice_element_type)
+                {
+                    if mutable {
+                        return Err(Self::target_capability_error(
+                            "HS-UAAL-CAP-006",
+                            "uaal.buffer.borrow.v1",
+                            "mutable borrowed slices are not admitted by uaal.buffer.borrow.v1",
+                        ));
+                    }
+                    if var.mutable {
+                        return Err(Self::target_capability_error(
+                            "HS-UAAL-CAP-006",
+                            "uaal.buffer.borrow.v1",
+                            format!(
+                                "borrowed slice `{}` must use immutable `let` storage",
+                                var.name
+                            ),
+                        ));
+                    }
+                    if self.current_control_flow_depth != 0 {
+                        return Err(Self::target_capability_error(
+                            "HS-UAAL-CAP-006",
+                            "uaal.buffer.borrow.v1",
+                            format!(
+                                "borrowed slice `{}` must be declared in the straight-line function body; conditional and loop-local borrow lifetimes are not admitted",
+                                var.name
+                            ),
+                        ));
+                    }
+                    let borrowed = self.emit_owned_buffer_borrow_initializer(
+                        &var.name,
+                        element_type,
+                        &var.value,
+                    )?;
+                    self.current_bindings.insert(var.name.clone());
+                    self.current_binding_types
+                        .insert(var.name.clone(), var.type_annotation.clone());
+                    self.current_borrowed_buffers
+                        .insert(var.name.clone(), borrowed);
+                    return Ok(());
+                }
                 if let Some(element_type) = var
                     .type_annotation
                     .as_deref()
@@ -708,6 +806,15 @@ impl<'a> UaalEmitter<'a> {
                         ),
                     ));
                 }
+                if self.current_borrowed_buffers.contains_key(target) {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-006",
+                        "uaal.buffer.borrow.v1",
+                        format!(
+                            "borrowed slice alias `{target}` is immutable and cannot be reassigned"
+                        ),
+                    ));
+                }
                 if self.binding_aggregate_layout(target).is_some() {
                     return Err(Self::target_capability_error(
                         "HS-UAAL-CAP-003",
@@ -778,6 +885,16 @@ impl<'a> UaalEmitter<'a> {
                         "unresolved slot `{}` in compile_to_uaal",
                         identifier.name
                     )));
+                }
+                if self.current_borrowed_buffers.contains_key(&identifier.name) {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-006",
+                        "uaal.buffer.borrow.v1",
+                        format!(
+                            "borrowed slice `{}` cannot escape its function-scoped `load(view[index])` use",
+                            identifier.name
+                        ),
+                    ));
                 }
                 if self.current_owned_buffers.contains_key(&identifier.name) {
                     self.require_owned_buffer_available(&identifier.name, "read")?;
@@ -1222,6 +1339,71 @@ impl<'a> UaalEmitter<'a> {
         Ok(())
     }
 
+    fn emit_owned_buffer_borrow_initializer(
+        &self,
+        view_name: &str,
+        expected_element_type: &str,
+        initializer: &AstNode,
+    ) -> Result<UaalBorrowedBuffer, UaalEmitError> {
+        let AstNode::UnaryExpression(borrow) = initializer else {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-006",
+                "uaal.buffer.borrow.v1",
+                format!(
+                    "borrowed slice `{view_name}` must be initialized from a complete named owner with `&owner`"
+                ),
+            ));
+        };
+        if borrow.operator == "&mut" {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-006",
+                "uaal.buffer.borrow.v1",
+                "mutable borrowed slices are not admitted by uaal.buffer.borrow.v1",
+            ));
+        }
+        if borrow.operator != "&" {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-006",
+                "uaal.buffer.borrow.v1",
+                format!(
+                    "borrowed slice `{view_name}` must be initialized from a complete named owner with `&owner`"
+                ),
+            ));
+        }
+        if matches!(borrow.argument.as_ref(), AstNode::MemberExpression(_)) {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-006",
+                "uaal.buffer.borrow.v1",
+                "borrowed subranges are not admitted by uaal.buffer.borrow.v1",
+            ));
+        }
+        let AstNode::Identifier(owner) = borrow.argument.as_ref() else {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-006",
+                "uaal.buffer.borrow.v1",
+                format!(
+                    "borrowed slice `{view_name}` must be initialized from a complete named owner with `&owner`"
+                ),
+            ));
+        };
+        let actual_element_type = self.owned_buffer_element(&owner.name)?;
+        self.require_owned_buffer_available(&owner.name, "borrow")?;
+        if actual_element_type != expected_element_type {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-006",
+                "uaal.buffer.borrow.v1",
+                format!(
+                    "borrowed slice `{view_name}` expects `[{expected_element_type}]`, but owner `{}` stores `[{actual_element_type}]`",
+                    owner.name
+                ),
+            ));
+        }
+        Ok(UaalBorrowedBuffer {
+            owner: owner.name.clone(),
+            element_type: actual_element_type,
+        })
+    }
+
     fn validate_owned_buffer_element_type(
         owner_name: &str,
         element_type: &str,
@@ -1268,6 +1450,31 @@ impl<'a> UaalEmitter<'a> {
         Ok(())
     }
 
+    fn active_owned_buffer_borrow(&self, owner_name: &str) -> Option<&str> {
+        self.current_borrowed_buffers
+            .iter()
+            .filter(|(_, borrowed)| borrowed.owner == owner_name)
+            .map(|(view_name, _)| view_name.as_str())
+            .min()
+    }
+
+    fn require_no_active_owned_buffer_borrow(
+        &self,
+        owner_name: &str,
+        operation: &str,
+    ) -> Result<(), UaalEmitError> {
+        if let Some(view_name) = self.active_owned_buffer_borrow(owner_name) {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-006",
+                "uaal.buffer.borrow.v1",
+                format!(
+                    "owned buffer `{owner_name}` has active immutable borrow `{view_name}` and cannot be {operation}"
+                ),
+            ));
+        }
+        Ok(())
+    }
+
     fn emit_owned_buffer_move(&mut self, call: &CallExpression) -> Result<(), UaalEmitError> {
         if call.arguments.len() != 1 {
             return Err(UaalEmitError::new(format!(
@@ -1284,6 +1491,7 @@ impl<'a> UaalEmitter<'a> {
         };
         let element_type = self.owned_buffer_element(&identifier.name)?;
         self.require_owned_buffer_available(&identifier.name, "move")?;
+        self.require_no_active_owned_buffer_borrow(&identifier.name, "moved")?;
         let slot = Self::slot_key(self.current_function_name()?, &identifier.name);
         self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
         self.emit_op(OP_HS_BUFFER_MOVE, vec![Value::from(element_type)]);
@@ -1308,6 +1516,7 @@ impl<'a> UaalEmitter<'a> {
         };
         let element_type = self.owned_buffer_element(&identifier.name)?;
         self.require_owned_buffer_available(&identifier.name, "drop")?;
+        self.require_no_active_owned_buffer_borrow(&identifier.name, "dropped")?;
         let slot = Self::slot_key(self.current_function_name()?, &identifier.name);
         self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
         self.emit_op(OP_HS_BUFFER_DROP, vec![Value::from(element_type)]);
@@ -1399,6 +1608,38 @@ impl<'a> UaalEmitter<'a> {
                 "the first aggregate `load` contract requires a named scalar field projection",
             ));
         };
+        if member.computed {
+            if let AstNode::Identifier(root) = member.object.as_ref() {
+                if let Some(borrowed) = self.current_borrowed_buffers.get(&root.name).cloned() {
+                    if matches!(
+                        member.property.as_ref(),
+                        AstNode::BinaryExpression(range) if range.operator == ".."
+                    ) {
+                        return Err(Self::target_capability_error(
+                            "HS-UAAL-CAP-006",
+                            "uaal.buffer.borrow.v1",
+                            "borrowed subranges are not admitted by uaal.buffer.borrow.v1",
+                        ));
+                    }
+                    let slot = Self::slot_key(self.current_function_name()?, &borrowed.owner);
+                    self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
+                    self.emit_expression_with_expected(&member.property, Some("i32"))?;
+                    self.emit_op(OP_HS_BUFFER_LOAD, vec![Value::from(borrowed.element_type)]);
+                    return Ok(());
+                }
+                if self.current_owned_buffers.contains_key(&root.name) {
+                    self.require_owned_buffer_available(&root.name, "read")?;
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-006",
+                        "uaal.buffer.borrow.v1",
+                        format!(
+                            "owned buffer `{}` must be read through an immutable borrowed slice",
+                            root.name
+                        ),
+                    ));
+                }
+            }
+        }
         let projection = self.resolve_aggregate_field_projection(member)?;
         if self
             .current_borrowed_aggregates
@@ -1500,6 +1741,19 @@ impl<'a> UaalEmitter<'a> {
                 "borrowed aggregate `store` requires a named scalar field projection",
             ));
         };
+        if member.computed
+            && matches!(
+                member.object.as_ref(),
+                AstNode::Identifier(root)
+                    if self.current_borrowed_buffers.contains_key(&root.name)
+            )
+        {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-006",
+                "uaal.buffer.borrow.v1",
+                "immutable borrowed slices cannot be used with `store`; mutable slices are not admitted by uaal.buffer.borrow.v1",
+            ));
+        }
         let projection = self.resolve_aggregate_field_projection(member)?;
         let borrowed = self
             .current_borrowed_aggregates
@@ -1711,12 +1965,14 @@ impl<'a> UaalEmitter<'a> {
         self.emit_expression_with_expected(&if_node.test, Some("bool"))?;
         let moved_before = self.current_moved_aggregates.clone();
         let unavailable_owned_before = self.current_unavailable_owned_buffers.clone();
+        let control_flow_depth_before = self.current_control_flow_depth;
 
         let jump_to_consequent = self.emit_op(OP_JUMP_IF, Vec::new());
 
         if let Some(alternate) = &if_node.alternate {
             self.current_moved_aggregates = moved_before.clone();
             self.current_unavailable_owned_buffers = unavailable_owned_before.clone();
+            self.current_control_flow_depth = control_flow_depth_before + 1;
             for statement in alternate {
                 self.emit_statement(statement)?;
             }
@@ -1730,9 +1986,11 @@ impl<'a> UaalEmitter<'a> {
 
         self.current_moved_aggregates = moved_before.clone();
         self.current_unavailable_owned_buffers = unavailable_owned_before;
+        self.current_control_flow_depth = control_flow_depth_before + 1;
         for statement in &if_node.consequent {
             self.emit_statement(statement)?;
         }
+        self.current_control_flow_depth = control_flow_depth_before;
         let consequent_moved = self.current_moved_aggregates.clone();
         if consequent_moved != alternate_moved {
             return Err(Self::target_capability_error(
@@ -1762,15 +2020,18 @@ impl<'a> UaalEmitter<'a> {
         self.emit_expression_with_expected(&while_node.test, Some("bool"))?;
         let moved_before = self.current_moved_aggregates.clone();
         let unavailable_owned_before = self.current_unavailable_owned_buffers.clone();
+        let control_flow_depth_before = self.current_control_flow_depth;
 
         let jump_to_body = self.emit_op(OP_JUMP_IF, Vec::new());
         let jump_to_end = self.emit_op(OP_JUMP, Vec::new());
         let body_start = self.instructions.len();
         self.instructions[jump_to_body].operands = vec![Value::from(body_start)];
 
+        self.current_control_flow_depth = control_flow_depth_before + 1;
         for statement in &while_node.body {
             self.emit_statement(statement)?;
         }
+        self.current_control_flow_depth = control_flow_depth_before;
         if self.current_moved_aggregates != moved_before {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-003",
@@ -2964,6 +3225,122 @@ function main(): i32 {
             1,
             "the final consumer must receive one automatic parameter cleanup"
         );
+    }
+
+    #[test]
+    fn lowers_immutable_owned_buffer_slice_reads_without_copying_owner() {
+        let bytecode = compile_source_to_uaal(include_str!(
+            "../../../examples/native/owned-buffer-transfer-exit-five.hs"
+        ))
+        .expect("an immutable function-scoped slice should read one owned-buffer element");
+
+        let opcodes = bytecode
+            .instructions
+            .iter()
+            .map(|instruction| instruction.op_code)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_ALLOC)
+                .count(),
+            1
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_MOVE)
+                .count(),
+            4
+        );
+        assert_eq!(
+            opcodes.iter().filter(|opcode| **opcode == 0xb9).count(),
+            1,
+            "the indexed read must lower to one OP_HS_BUFFER_LOAD"
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|opcode| **opcode == OP_HS_BUFFER_DROP)
+                .count(),
+            1,
+            "the callee must clean up the final owner after the borrow ends"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_or_escaping_owned_buffer_slice_borrows() {
+        for (source, expected) in [
+            (
+                r#"function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let view: &[f32] = &values
+  return 5
+}"#,
+                "borrowed slice `view` expects `[f32]`, but owner `values` stores `[i32]`",
+            ),
+            (
+                r#"function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let moved: [i32] = move(values)
+  let view: &[i32] = &values
+  return 5
+}"#,
+                "was already moved or dropped before `borrow`",
+            ),
+            (
+                r#"function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let view: &[i32] = &values
+  let moved: [i32] = move(values)
+  return 5
+}"#,
+                "has active immutable borrow `view` and cannot be moved",
+            ),
+            (
+                r#"function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let view: &[i32] = &values
+  drop(values)
+  return 5
+}"#,
+                "has active immutable borrow `view` and cannot be dropped",
+            ),
+            (
+                r#"function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let view: &mut [i32] = &mut values
+  return 5
+}"#,
+                "mutable borrowed slices are not admitted by uaal.buffer.borrow.v1",
+            ),
+            (
+                r#"function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  return load(values[0])
+}"#,
+                "owned buffer `values` must be read through an immutable borrowed slice",
+            ),
+            (
+                r#"function read(view: &[i32]): i32 {
+  return load(view[0])
+}
+function main(): i32 { return 5 }"#,
+                "borrowed-slice parameters and returns are not admitted by uaal.buffer.borrow.v1",
+            ),
+            (
+                r#"function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let view: &[i32] = &values[0..1]
+  return load(view[0])
+}"#,
+                "borrowed subranges are not admitted by uaal.buffer.borrow.v1",
+            ),
+        ] {
+            let error = compile_source_to_uaal(source)
+                .expect_err("unsupported or ownership-invalid buffer borrows must fail closed");
+            assert!(error.message.contains(expected), "{}", error.message);
+        }
     }
 
     #[test]

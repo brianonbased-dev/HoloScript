@@ -30,6 +30,12 @@ const wasmBinaryPath = join(wasmRoot, 'holoscript_wasm_bg.wasm');
 const wasmReceiptPath = join(wasmRoot, 'rebuild-receipt.json');
 const uaalBundlePath = join(repoRoot, 'packages', 'uaal', 'dist', 'index.js');
 const nativeManifestPath = join(repoRoot, 'packages', 'compiler-native', 'Cargo.toml');
+const borrowedBufferReadExamplePath = join(
+  repoRoot,
+  'examples',
+  'native',
+  'owned-buffer-transfer-exit-five.hs'
+);
 const expectedDigest = 207;
 
 const selfTest = `
@@ -308,7 +314,7 @@ function runBrowser(command, url, profilePath) {
   });
 }
 
-function browserHtml(source, finiteFailureProbes) {
+function browserHtml(source, finiteFailureProbes, borrowedBufferReadSource) {
   return `<!doctype html>
 <html>
   <head>
@@ -320,6 +326,7 @@ function browserHtml(source, finiteFailureProbes) {
     <script type="module">
       const source = ${JSON.stringify(source)};
       const finiteFailureProbes = ${JSON.stringify(finiteFailureProbes)};
+      const borrowedBufferReadSource = ${JSON.stringify(borrowedBufferReadSource)};
       const output = document.querySelector('#result');
 
       try {
@@ -357,6 +364,9 @@ function browserHtml(source, finiteFailureProbes) {
           move: compiled.instructions.filter(
             (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_MOVE
           ).length,
+          load: compiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_LOAD
+          ).length,
           drop: compiled.instructions.filter(
             (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_DROP
           ).length,
@@ -391,6 +401,47 @@ function browserHtml(source, finiteFailureProbes) {
         const log = vm.exportLog();
         const bytecodeSha256 = computeUAALBytecodeSha256(compiled);
         const replay = await replayUAALLog(compiled, log);
+        const borrowedBufferCompiled = JSON.parse(compile_to_uaal(borrowedBufferReadSource));
+        if (borrowedBufferCompiled.error) throw new Error(borrowedBufferCompiled.error);
+        const borrowedBufferInstructionCounts = {
+          allocate: borrowedBufferCompiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_ALLOC
+          ).length,
+          move: borrowedBufferCompiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_MOVE
+          ).length,
+          load: borrowedBufferCompiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_LOAD
+          ).length,
+          drop: borrowedBufferCompiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_DROP
+          ).length,
+        };
+        const borrowedBufferVm = new UAALVirtualMachine({ recordLog: true });
+        registerHoloScriptStdUaalOwnedBufferHandlers(borrowedBufferVm, {
+          allocate: UAALOpCode.OP_HS_BUFFER_ALLOC,
+          move: UAALOpCode.OP_HS_BUFFER_MOVE,
+          load: UAALOpCode.OP_HS_BUFFER_LOAD,
+          store: UAALOpCode.OP_HS_BUFFER_STORE,
+          drop: UAALOpCode.OP_HS_BUFFER_DROP,
+          length: UAALOpCode.OP_HS_BUFFER_LENGTH,
+        });
+        const borrowedBufferResult = await borrowedBufferVm.execute(borrowedBufferCompiled);
+        const borrowedBufferLog = borrowedBufferVm.exportLog();
+        const borrowedBufferBytecodeSha256 = computeUAALBytecodeSha256(borrowedBufferCompiled);
+        const borrowedBufferReplay = await replayUAALLog(
+          borrowedBufferCompiled,
+          borrowedBufferLog
+        );
+        const borrowedBufferReadProbe = {
+          status: borrowedBufferResult.taskStatus,
+          value: borrowedBufferResult.stackTop,
+          instructionCounts: borrowedBufferInstructionCounts,
+          bytecodeSha256: borrowedBufferBytecodeSha256,
+          receiptHashMatches:
+            borrowedBufferBytecodeSha256 === borrowedBufferLog.bytecodeSha256,
+          replayValid: borrowedBufferReplay.valid,
+        };
         const nonFiniteFailureProbes = [];
         for (const probe of finiteFailureProbes) {
           const probeCompiled = JSON.parse(compile_to_uaal(probe.source));
@@ -419,6 +470,7 @@ function browserHtml(source, finiteFailureProbes) {
           bytecodeSha256,
           receiptHashMatches: bytecodeSha256 === log.bytecodeSha256,
           replayValid: replay.valid,
+          borrowedBufferReadProbe,
           nonFiniteFailureProbes,
           lastSteps: result.taskStatus === 'ERROR' ? log.steps.slice(-8) : undefined,
           wasm: typeof WebAssembly === 'object',
@@ -440,7 +492,11 @@ function browserHtml(source, finiteFailureProbes) {
 async function executeBrowserWasm(source) {
   const command = browserCommand();
   const profilePath = mkdtempSync(join(tmpdir(), 'holoscript-std-abi-browser-'));
-  const html = browserHtml(source, nonFiniteFailureProbes);
+  const html = browserHtml(
+    source,
+    nonFiniteFailureProbes,
+    readFileSync(borrowedBufferReadExamplePath, 'utf8')
+  );
   const routeMap = new Map([
     ['/index.html', { body: html, contentType: 'text/html; charset=utf-8' }],
     [
@@ -535,6 +591,15 @@ async function executeBrowserWasm(source) {
       result.ownedBufferInstructionCounts?.allocate < 1 ||
       result.ownedBufferInstructionCounts?.move < 1 ||
       result.ownedBufferInstructionCounts?.drop < 1 ||
+      result.borrowedBufferReadProbe?.status !== 'HALTED' ||
+      result.borrowedBufferReadProbe?.value !== 5 ||
+      result.borrowedBufferReadProbe?.instructionCounts?.allocate !== 1 ||
+      result.borrowedBufferReadProbe?.instructionCounts?.move !== 4 ||
+      result.borrowedBufferReadProbe?.instructionCounts?.load !== 1 ||
+      result.borrowedBufferReadProbe?.instructionCounts?.drop !== 1 ||
+      result.borrowedBufferReadProbe?.receiptHashMatches !== true ||
+      result.borrowedBufferReadProbe?.replayValid !== true ||
+      !/^[0-9a-f]{64}$/.test(result.borrowedBufferReadProbe?.bytecodeSha256 ?? '') ||
       result.aggregateReferenceInstructionCounts?.borrow < 4 ||
       result.aggregateReferenceInstructionCounts?.load < 2 ||
       result.aggregateReferenceInstructionCounts?.store < 1 ||
@@ -560,6 +625,7 @@ async function executeBrowserWasm(source) {
       bytecodeSha256: result.bytecodeSha256,
       receiptHashMatches: result.receiptHashMatches,
       replayValid: result.replayValid,
+      borrowedBufferReadProbe: result.borrowedBufferReadProbe,
       nonFiniteFailureProbes: result.nonFiniteFailureProbes,
       result: result.value,
     };
@@ -836,6 +902,7 @@ requireFile(wasmBinaryPath, 'browser WASM compiler');
 requireFile(wasmReceiptPath, 'browser WASM rebuild receipt');
 requireFile(uaalBundlePath, 'built UAAL browser execution bundle');
 requireFile(nativeManifestPath, 'owned-metal compiler manifest');
+requireFile(borrowedBufferReadExamplePath, 'owned-buffer borrowed-read example');
 
 const scalarAbiSource = readFileSync(scalarAbiPath, 'utf8');
 const scalarF32AbiSource = readFileSync(scalarF32AbiPath, 'utf8');
@@ -858,7 +925,7 @@ if (!results.every((value) => value === expectedDigest)) {
 console.log(
   JSON.stringify(
     {
-      schema: 'holoscript.std.math-abi-conformance.v10',
+      schema: 'holoscript.std.math-abi-conformance.v11',
       status: 'pass',
       abis: [
         {
@@ -929,7 +996,13 @@ console.log(
         provesOwnedMetalNativeExecutable: true,
         provesLocalOwnedBufferAllocationMoveAndDrop: true,
         provesOwnedBufferParameterAndReturnTransfer: true,
+        provesImmutableOwnedBufferBorrowedElementRead: {
+          target: 'browser-wasm/uaal',
+          source: 'examples/native/owned-buffer-transfer-exit-five.hs',
+          receipt: browserWasm.borrowedBufferReadProbe,
+        },
         ownedBufferValueAbi: 'hs.buffer.owned.v1',
+        borrowedBufferAbi: 'uaal.buffer.borrow.v1',
         provesCallScopedSharedAndMutableAggregateReferences: true,
         aggregateReferenceAbi: 'hs.aggregate.ref.v1',
         provesNonFiniteFloatingPointEdgeSemantics: {
@@ -962,7 +1035,8 @@ console.log(
           'explicit scalar or declared aggregate fields only',
           'affine whole-value moves',
           'owned buffers support allocation, whole-owner moves across parameters and returns, explicit drop, and automatic local or parameter cleanup',
-          'no owned-buffer aggregate fields or borrowed element access',
+          'immutable function-scoped borrowed slices support bounds-checked scalar element reads',
+          'no owned-buffer aggregate fields, mutable slices, subranges, slice parameters or returns, escaping borrows, or buffer element stores',
           'call-scoped shared and mutable aggregate parameters support layout-checked scalar field load/store',
           'no borrowed aggregate returns, stored reference locals, or escaping leases',
         ],
