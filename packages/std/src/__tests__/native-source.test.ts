@@ -17,6 +17,7 @@ describe('@holoscript/std native source tracer', () => {
         'src/abi/scalar-f32-v1.hs',
         'src/abi/scalar-f64-v1.hs',
         'src/abi/vector-v1.hs',
+        'src/abi/collections-list3-v1.hs',
       ])
     );
     expect(packageJson.exports['./native/math.hsplus']).toBe('./src/math.hsplus');
@@ -25,6 +26,9 @@ describe('@holoscript/std native source tracer', () => {
     expect(packageJson.exports['./native/abi/scalar-f32-v1.hs']).toBe('./src/abi/scalar-f32-v1.hs');
     expect(packageJson.exports['./native/abi/scalar-f64-v1.hs']).toBe('./src/abi/scalar-f64-v1.hs');
     expect(packageJson.exports['./native/abi/vector-v1.hs']).toBe('./src/abi/vector-v1.hs');
+    expect(packageJson.exports['./native/abi/collections-list3-v1.hs']).toBe(
+      './src/abi/collections-list3-v1.hs'
+    );
     expect(packageJson.holoscript).toMatchObject({
       artifact: 'library',
       supportTier: 'preview',
@@ -36,6 +40,7 @@ describe('@holoscript/std native source tracer', () => {
         './abi/scalar-f32-v1': './src/abi/scalar-f32-v1.hs',
         './abi/scalar-f64-v1': './src/abi/scalar-f64-v1.hs',
         './abi/vector-v1': './src/abi/vector-v1.hs',
+        './abi/collections-list3-v1': './src/abi/collections-list3-v1.hs',
       },
       abi: {
         id: 'hs.std.scalar.i32.v1',
@@ -100,6 +105,19 @@ describe('@holoscript/std native source tracer', () => {
           ],
           provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
         }),
+        expect.objectContaining({
+          id: 'hs.std.collections.list3.i32.v1',
+          functions: [
+            'std_collections_list3_make_i32',
+            'std_collections_list3_sum_i32',
+            'std_collections_list3_replace_second_i32',
+            'std_collections_list3_reverse_i32',
+            'std_collections_list3_weighted_digest_i32',
+          ],
+          valueAbi: 'hs.aggregate.value.v1',
+          layout: 'StdList3I32{first:i32,second:i32,third:i32}',
+          provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
+        }),
       ])
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain(
@@ -113,7 +131,12 @@ describe('@holoscript/std native source tracer', () => {
     expect(packageJson.holoscript.runtimeBoundary).toContain(
       '50 vectors, cross-target exact value equality'
     );
-    expect(packageJson.holoscript.runtimeBoundary).toContain('collections parity remain preview');
+    expect(packageJson.holoscript.runtimeBoundary).toContain(
+      'immutable fixed-size List3<i32> projection'
+    );
+    expect(packageJson.holoscript.runtimeBoundary).toContain(
+      'general List, Map, and Set parity remain preview'
+    );
   });
 
   it.each([
@@ -154,6 +177,24 @@ describe('@holoscript/std native source tracer', () => {
     expect(source).toContain('export function std_math_vec3_cross_z_i32');
     expect(source).toContain('export function std_math_vec3_length_sq_i32');
     expect(source).not.toMatch(/\bf32\b|\bf64\b/);
+    expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
+  });
+
+  it('keeps the List3 ABI immutable, fixed-size, target-neutral, and explicit', () => {
+    const source = readFileSync(
+      join(packageRoot, 'src', 'abi', 'collections-list3-v1.hs'),
+      'utf8'
+    );
+    expect(source).toContain('struct StdList3I32 { first: i32, second: i32, third: i32 }');
+    expect(source).toContain('export function std_collections_list3_make_i32');
+    expect(source).toContain('export function std_collections_list3_sum_i32');
+    expect(source).toContain('export function std_collections_list3_replace_second_i32');
+    expect(source).toContain('export function std_collections_list3_reverse_i32');
+    expect(source).toContain('export function std_collections_list3_weighted_digest_i32');
+    expect(source).toContain('return move(result)');
+    expect(source).toContain('fixed-size');
+    expect(source).toContain('general List, Map, or Set');
+    expect(source).not.toContain('store(');
     expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
   });
 

@@ -20,7 +20,9 @@ const scalarAbiPath = join(packageRoot, 'src', 'abi', 'scalar-v1.hs');
 const scalarF32AbiPath = join(packageRoot, 'src', 'abi', 'scalar-f32-v1.hs');
 const scalarF64AbiPath = join(packageRoot, 'src', 'abi', 'scalar-f64-v1.hs');
 const vectorAbiPath = join(packageRoot, 'src', 'abi', 'vector-v1.hs');
+const collectionsList3AbiPath = join(packageRoot, 'src', 'abi', 'collections-list3-v1.hs');
 const stdMathPath = join(packageRoot, 'dist', 'math.js');
+const stdCollectionsPath = join(packageRoot, 'dist', 'collections.js');
 const stdUaalAbiPath = join(packageRoot, 'dist', 'uaal-abi.js');
 const wasmRoot = join(repoRoot, 'packages', 'compiler-wasm', 'pkg');
 const wasmJsPath = join(wasmRoot, 'holoscript_wasm.js');
@@ -28,7 +30,7 @@ const wasmBinaryPath = join(wasmRoot, 'holoscript_wasm_bg.wasm');
 const wasmReceiptPath = join(wasmRoot, 'rebuild-receipt.json');
 const uaalBundlePath = join(repoRoot, 'packages', 'uaal', 'dist', 'index.js');
 const nativeManifestPath = join(repoRoot, 'packages', 'compiler-native', 'Cargo.toml');
-const expectedDigest = 165;
+const expectedDigest = 207;
 
 const selfTest = `
 struct StdBorrowPacket { code: i32 }
@@ -67,6 +69,13 @@ function main(): i32 {
   slot bounds_max: StdVec3I32 = std_math_vec3_make_i32(4, 6, 8)
   slot bounds: StdAabb3I32 = std_math_aabb3_make_i32(move(bounds_min), move(bounds_max))
   let bounds_volume: i32 = std_math_aabb3_volume_value_i32(move(bounds))
+  slot collection_original: StdList3I32 = std_collections_list3_make_i32(2, 4, 6)
+  let collection_original_sum: i32 = std_collections_list3_sum_i32(move(collection_original))
+  slot collection_update_source: StdList3I32 = std_collections_list3_make_i32(2, 4, 6)
+  slot collection_updated: StdList3I32 = std_collections_list3_replace_second_i32(move(collection_update_source), 9)
+  slot collection_reversed: StdList3I32 = std_collections_list3_reverse_i32(move(collection_updated))
+  let collection_weighted: i32 = std_collections_list3_weighted_digest_i32(move(collection_reversed))
+  let collection_digest: i32 = collection_original_sum + collection_weighted
   let i32_digest: i32 = scalar_digest + dot + (cross_x + 4) * 2 + (cross_y + 1) * 3 + (cross_z + 5) * 4 + length_sq
   let f64_below: f64 = std_math_clamp_f64(0.0 - 1.5, 0.0, 2.0)
   let f64_inside: f64 = std_math_clamp_f64(1.25, 0.0, 2.0)
@@ -79,8 +88,8 @@ function main(): i32 {
   let f32_lerp: f32 = std_math_lerp_f32(16777216.0, 16777218.0, 0.5)
   let f32_inverse: f32 = std_math_inverse_lerp_f32(0.0, 10.0, 1.0)
   let f32_remap: f32 = std_math_remap_f32(0.1, 0.0, 1.0, 10.0, 18.0)
-  if (borrow_write == 9 && borrow_read == 9 && bounds_volume == 60 && f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
-    return i32_digest + 46
+  if (borrow_write == 9 && borrow_read == 9 && bounds_volume == 60 && collection_digest == 42 && f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
+    return i32_digest + 46 + collection_digest
   }
   return 1
 }
@@ -458,6 +467,7 @@ async function executeBrowserWasm(source) {
 }
 
 async function executeNode() {
+  const { List } = await import(pathToFileURL(stdCollectionsPath).href);
   const {
     aabbMath,
     clamp,
@@ -499,6 +509,19 @@ async function executeNode() {
     max: { x: 4, y: 6, z: 8 },
   });
   const boundsVolume = boundsSize.x * boundsSize.y * boundsSize.z;
+  const collectionOriginal = List.of(2, 4, 6);
+  const collectionOriginalSum = collectionOriginal.sum();
+  const collectionUpdated = collectionOriginal.update(1, 9);
+  const collectionReversed = collectionUpdated.reverse();
+  const collectionWeighted =
+    collectionReversed.get(0) +
+    collectionReversed.get(1) * 2 +
+    collectionReversed.get(2) * 3;
+  const collectionDigest = collectionOriginalSum + collectionWeighted;
+  const collectionOriginalPreserved =
+    collectionOriginal.get(0) === 2 &&
+    collectionOriginal.get(1) === 4 &&
+    collectionOriginal.get(2) === 6;
   const i32Digest =
     scalarDigest + dot + (cross.x + 4) * 2 + (cross.y + 1) * 3 + (cross.z + 5) * 4 + lengthSq;
   const floatingPointResults = {
@@ -530,16 +553,30 @@ async function executeNode() {
     binary32Results.inverseLerp === 0.10000000149011612 &&
     binary32Results.remap === 10.800000190734863;
   const result =
-    boundsVolume === 60 && floatingPointMatches && binary32Matches ? i32Digest + 46 : 1;
+    boundsVolume === 60 &&
+    collectionDigest === 42 &&
+    collectionOriginalPreserved &&
+    floatingPointMatches &&
+    binary32Matches
+      ? i32Digest + 46 + collectionDigest
+      : 1;
   if (result !== expectedDigest) {
     throw new Error(`Node std result mismatch: expected ${expectedDigest}, received ${result}`);
   }
   return {
     runtime: process.version,
-    implementation: '@holoscript/std/dist/math.js',
+    implementation: ['@holoscript/std/dist/math.js', '@holoscript/std/dist/collections.js'],
     aggregateRepresentation: 'Vec3 object values',
     nestedAggregateRepresentation: 'AABB object containing Vec3 values',
     nestedAggregateVolume: boundsVolume,
+    immutableCollectionProjection: {
+      layout: 'StdList3I32{first:i32,second:i32,third:i32}',
+      original: collectionOriginal.toArray(),
+      updated: collectionUpdated.toArray(),
+      reversed: collectionReversed.toArray(),
+      originalPreserved: collectionOriginalPreserved,
+      digest: collectionDigest,
+    },
     floatingPointResults,
     binary32Results,
     result,
@@ -609,7 +646,9 @@ requireFile(scalarAbiPath, 'scalar ABI source');
 requireFile(scalarF32AbiPath, 'scalar f32 ABI source');
 requireFile(scalarF64AbiPath, 'scalar f64 ABI source');
 requireFile(vectorAbiPath, 'vector ABI source');
+requireFile(collectionsList3AbiPath, 'immutable List3 ABI source');
 requireFile(stdMathPath, 'built Node std math implementation');
+requireFile(stdCollectionsPath, 'built Node std collections implementation');
 requireFile(stdUaalAbiPath, 'built std UAAL ABI host adapter');
 requireFile(wasmJsPath, 'browser WASM JavaScript bridge');
 requireFile(wasmBinaryPath, 'browser WASM compiler');
@@ -621,7 +660,8 @@ const scalarAbiSource = readFileSync(scalarAbiPath, 'utf8');
 const scalarF32AbiSource = readFileSync(scalarF32AbiPath, 'utf8');
 const scalarF64AbiSource = readFileSync(scalarF64AbiPath, 'utf8');
 const vectorAbiSource = readFileSync(vectorAbiPath, 'utf8');
-const executableSource = `${scalarAbiSource.trim()}\n${scalarF32AbiSource.trim()}\n${scalarF64AbiSource.trim()}\n${vectorAbiSource.trim()}\n${selfTest.trim()}\n`;
+const collectionsList3AbiSource = readFileSync(collectionsList3AbiPath, 'utf8');
+const executableSource = `${scalarAbiSource.trim()}\n${scalarF32AbiSource.trim()}\n${scalarF64AbiSource.trim()}\n${vectorAbiSource.trim()}\n${collectionsList3AbiSource.trim()}\n${selfTest.trim()}\n`;
 const wasmReceipt = JSON.parse(readFileSync(wasmReceiptPath, 'utf8'));
 const node = await executeNode();
 const browserWasm = await executeBrowserWasm(executableSource);
@@ -634,7 +674,7 @@ if (!results.every((value) => value === expectedDigest)) {
 console.log(
   JSON.stringify(
     {
-      schema: 'holoscript.std.math-abi-conformance.v8',
+      schema: 'holoscript.std.math-abi-conformance.v9',
       status: 'pass',
       abis: [
         {
@@ -661,6 +701,13 @@ console.log(
           valueAbi: 'hs.aggregate.value.v2',
           layout:
             'StdAabb3I32{min:StdVec3I32{x:i32,y:i32,z:i32},max:StdVec3I32{x:i32,y:i32,z:i32}}',
+        },
+        {
+          id: 'hs.std.collections.list3.i32.v1',
+          source: 'packages/std/src/abi/collections-list3-v1.hs',
+          sourceSha256: sha256(collectionsList3AbiSource),
+          valueAbi: 'hs.aggregate.value.v1',
+          layout: 'StdList3I32{first:i32,second:i32,third:i32}',
         },
         {
           id: 'hs.std.scalar.f32.v1',
@@ -705,6 +752,17 @@ console.log(
         provesNestedAggregateValueAbi: 'hs.aggregate.value.v2',
         provesNestedAggregateLayout:
           'StdAabb3I32{min:StdVec3I32{x:i32,y:i32,z:i32},max:StdVec3I32{x:i32,y:i32,z:i32}}',
+        provesImmutableFixedSizeList3I32: true,
+        collectionValueAbi: 'hs.aggregate.value.v1',
+        collectionLayout: 'StdList3I32{first:i32,second:i32,third:i32}',
+        collectionOperations: ['construct', 'sum', 'persistent replace second', 'reverse', 'digest'],
+        collectionLimits: [
+          'fixed size of three i32 values',
+          'no dynamic indexing',
+          'no variable-length allocation',
+          'no iteration ABI',
+          'no general List, Map, or Set parity',
+        ],
         aggregateValueLimits: [
           'recursive immutable POD records',
           'explicit scalar or declared aggregate fields only',
@@ -715,7 +773,7 @@ console.log(
           'no borrowed aggregate returns, stored reference locals, or escaping leases',
         ],
         provesQuaternionMath: false,
-        provesCollections: false,
+        provesCollections: ['immutable fixed-size List3<i32> projection'],
         provesOsAirGap: false,
       },
     },

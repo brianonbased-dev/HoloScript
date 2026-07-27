@@ -14,6 +14,7 @@
     "src/abi/scalar-f32-v1.hs",
     "src/abi/scalar-f64-v1.hs",
     "src/abi/vector-v1.hs",
+    "src/abi/collections-list3-v1.hs",
     "LICENSE",
     "README.md"
   ],
@@ -44,6 +45,7 @@
     "./native/abi/scalar-f32-v1.hs": "./src/abi/scalar-f32-v1.hs",
     "./native/abi/scalar-f64-v1.hs": "./src/abi/scalar-f64-v1.hs",
     "./native/abi/vector-v1.hs": "./src/abi/vector-v1.hs",
+    "./native/abi/collections-list3-v1.hs": "./src/abi/collections-list3-v1.hs",
     "./string": {
       "types": "./dist/string.d.ts",
       "import": "./dist/string.js",
@@ -97,7 +99,8 @@
       "./abi/scalar-v1": "./src/abi/scalar-v1.hs",
       "./abi/scalar-f32-v1": "./src/abi/scalar-f32-v1.hs",
       "./abi/scalar-f64-v1": "./src/abi/scalar-f64-v1.hs",
-      "./abi/vector-v1": "./src/abi/vector-v1.hs"
+      "./abi/vector-v1": "./src/abi/vector-v1.hs",
+      "./abi/collections-list3-v1": "./src/abi/collections-list3-v1.hs"
     },
     "supportTier": "preview",
     "compatibility": {
@@ -116,6 +119,7 @@
       "std_math_vector_i32_v1",
       "std_math_vector_aggregate_i32_v1",
       "std_math_aabb3_aggregate_i32_v1",
+      "std_collections_list3_i32_v1",
       "std_uaal_exec_host_adapter",
       "std_uaal_owned_buffer_host_adapter",
       "std_uaal_aggregate_reference_host_adapter",
@@ -200,6 +204,24 @@
         ]
       },
       {
+        "id": "hs.std.collections.list3.i32.v1",
+        "entrypoint": "./src/abi/collections-list3-v1.hs",
+        "functions": [
+          "std_collections_list3_make_i32",
+          "std_collections_list3_sum_i32",
+          "std_collections_list3_replace_second_i32",
+          "std_collections_list3_reverse_i32",
+          "std_collections_list3_weighted_digest_i32"
+        ],
+        "valueAbi": "hs.aggregate.value.v1",
+        "layout": "StdList3I32{first:i32,second:i32,third:i32}",
+        "provenTargets": [
+          "node",
+          "browser-wasm-uaal",
+          "owned-metal"
+        ]
+      },
+      {
         "id": "hs.buffer.owned.v1",
         "valueAbi": "hs.buffer.owned.v1",
         "opcodes": [
@@ -273,7 +295,7 @@
         ]
       }
     ],
-    "runtimeBoundary": "Executable ABI parity is proven for scalar i32 clamp/sign/step, affine aggregate-valued i32 Vec3 construction/dot/cross/length-squared, recursively nested immutable-POD i32 AABB construction/size/volume, local owned-buffer allocation/whole-owner move/explicit drop/automatic return cleanup, call-scoped shared and mutable aggregate parameters with scalar field load/store, finite scalar f32 clamp/lerp/inverse-lerp/remap with operation-by-operation binary32 rounding, and finite scalar f64 clamp/lerp/inverse-lerp/remap across the explicitly named targets. The packaged UAAL host adapter executes numeric, hs.aggregate.value.v1 flat-record, hs.aggregate.value.v2 recursive-record, hs.buffer.owned.v1 token/cell, and hs.aggregate.ref.v1 call-scoped lease instructions. Mutable aggregate stores rebuild frozen value envelopes and atomically replace one addressable state root; static and runtime checks reject same-call aliases, mutability escalation, conflicting leases, stale tokens, layout mismatch, and invalid scalar stores. The existing 11-op math conformance projection remains receipt-proven (50 vectors, cross-target exact value equality). Owned-buffer parameters, returns, aggregate fields, borrowed buffer element access, borrowed aggregate returns, stored reference locals, escaping leases, Non-finite floating-point edge semantics, quaternion, noise, sqrt/trig ops, and collections parity remain preview."
+    "runtimeBoundary": "Executable ABI parity is proven for scalar i32 clamp/sign/step, affine aggregate-valued i32 Vec3 construction/dot/cross/length-squared, recursively nested immutable-POD i32 AABB construction/size/volume, an immutable fixed-size List3<i32> projection with construction/sum/persistent replacement/reversal/digest, local owned-buffer allocation/whole-owner move/explicit drop/automatic return cleanup, call-scoped shared and mutable aggregate parameters with scalar field load/store, finite scalar f32 clamp/lerp/inverse-lerp/remap with operation-by-operation binary32 rounding, and finite scalar f64 clamp/lerp/inverse-lerp/remap across the explicitly named targets. The packaged UAAL host adapter executes numeric, hs.aggregate.value.v1 flat-record, hs.aggregate.value.v2 recursive-record, hs.buffer.owned.v1 token/cell, and hs.aggregate.ref.v1 call-scoped lease instructions. Mutable aggregate stores rebuild frozen value envelopes and atomically replace one addressable state root; static and runtime checks reject same-call aliases, mutability escalation, conflicting leases, stale tokens, layout mismatch, and invalid scalar stores. The existing 11-op math conformance projection remains receipt-proven (50 vectors, cross-target exact value equality). Owned-buffer parameters, returns, aggregate fields, borrowed buffer element access, borrowed aggregate returns, stored reference locals, escaping leases, Non-finite floating-point edge semantics, quaternion, noise, sqrt/trig ops, dynamic indexing, variable-length allocation, iteration, and general List, Map, and Set parity remain preview."
   },
   "author": "Brian X Base Team",
   "license": "MIT",
