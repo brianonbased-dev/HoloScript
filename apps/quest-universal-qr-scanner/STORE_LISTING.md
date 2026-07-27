@@ -1,8 +1,9 @@
 # HoloQR — Meta Horizon Store Listing
 
-This is the prepared listing for Meta app `1114952721709215`, submission
+This is the submitted listing for Meta app `1114952721709215`, submission
 `1114952735042547`. It describes the behavior compiled from [`scanner.holo`](./scanner.holo);
-do not add claims that are not present in the source or proven on a headset.
+do not add claims that are not present in the source or proven on a headset. Future product scope
+belongs in [`roadmap.md`](./roadmap.md), not in the store claims below.
 
 ## Commercial settings
 
@@ -72,7 +73,7 @@ HoloQR requires the Headset cameras permission and supports Meta Quest 3 and Que
 - Privacy policy target:
   `https://raw.githubusercontent.com/brianonbased-dev/HoloScript/main/apps/quest-universal-qr-scanner/PRIVACY.md`
 - Support target: `https://github.com/brianonbased-dev/HoloScript/issues`
-- Contact email: requires founder confirmation before it is entered or published
+- Submission contact: configured in Meta's private dashboard and intentionally not duplicated here
 
 ## Reviewer notes
 
@@ -97,13 +98,13 @@ Review flow:
 | Hero cover, 3000×900           | `store-assets/cover-hero-3000x900.png`        | Ready                    |
 | Icon, 512×512                  | `store-assets/icon-512.png`                   | Ready                    |
 | Spatial foreground, 180×180    | `store-assets/icon-spatialized-180.png`       | Optional; ready          |
-| Screenshots, five at 2560×1440 | On-headset capture from the release candidate | **Required; missing**    |
+| Screenshots, five at 2560×1440 | On-headset capture from the release candidate | Submitted to Meta        |
 | Trailer                        | None                                          | Optional; omitted for v1 |
 
-## Release blockers
+## Current review state
 
-- Upload the signed APK to the Production channel and pass Meta's binary validation.
-- Install that exact channel build on Quest 3 or 3S and run the headset smoke/performance matrix.
-- Capture five distinct 2560×1440 images from actual in-experience content.
-- Replace the contact placeholder in `PRIVACY.md` with a founder-approved public address.
-- Complete the IARC questionnaire, app-sharing preference, pricing tier, and submission contact.
+- Metadata: `Submitted`
+- Native binary: HoloQR `1.0.2`, `Submitted`
+- Submission date: 2026-07-26
+- Review date: not assigned
+- Next dashboard action: after approval, choose immediate release or schedule the release

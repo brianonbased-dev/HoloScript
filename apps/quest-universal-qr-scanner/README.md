@@ -5,15 +5,20 @@ decodes them on-device, opens ordinary links in Quest Browser, and enters HoloSc
 world links.
 
 This is a HoloScript-authored app, not a native app with a HoloScript label. The source of truth is
-[`scanner.holo`](./scanner.holo) plus [`worlds/`](./worlds). The immersive Quest project under
-[`android-mr/`](./android-mr) is compiler output and a bounded native bridge for platform APIs.
+[`scanner.holo`](./scanner.holo), [`scanner-lifecycle.hsplus`](./scanner-lifecycle.hsplus), and
+[`worlds/`](./worlds). The immersive Quest project under [`android-mr/`](./android-mr) is compiler
+output and a bounded native bridge for platform APIs.
+
+Current store state: HoloQR `1.0.2` (`versionCode 3`) was submitted to Meta Horizon Store review on
+2026-07-26. See [`roadmap.md`](./roadmap.md) for the post-launch product sequence and the
+HoloScript-language gates that every future version must pass.
 
 ## Release invariant
 
 The only supported shipping path is:
 
 ```text
-scanner.holo + worlds/*.holo
+scanner.holo + scanner-lifecycle.hsplus + worlds/*.holo
   -> HoloCompositionParser + QuestCompiler
   -> generated android-mr sources
   -> independent golden-diff verification
@@ -97,7 +102,8 @@ store-signed artifact.
 
 ## Change the app
 
-Edit [`scanner.holo`](./scanner.holo) or a world under [`worlds/`](./worlds), then run:
+Edit [`scanner.holo`](./scanner.holo), [`scanner-lifecycle.hsplus`](./scanner-lifecycle.hsplus), or
+a world under [`worlds/`](./worlds), then run:
 
 ```bash
 pnpm holoqr:generate-native

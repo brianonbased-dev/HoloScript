@@ -1,18 +1,25 @@
-# Universal QR Scanner — Release Runbook (Meta Horizon Store)
+# HoloQR — Release Runbook (Meta Horizon Store)
 
-The app is **signed-release ready**. Everything below the "Engineering: DONE" line is verified
-on-device; the two **Founder-only** steps remain because they require your signing-key custody and
-your Meta developer identity — neither can (or should) be done by an agent.
+## Current store state
+
+- HoloQR `1.0.2` (`versionCode 3`) was submitted to Meta Horizon Store review on 2026-07-26.
+- Submission metadata and the native binary both report `Submitted`; no review date is assigned yet.
+- Meta submission: `1114952735042547`; submitted binary: `1168245949713225`.
+- After approval, Meta requires a separate immediate-or-scheduled release choice.
+
+The custody and submission procedures below remain the runbook for future updates. Product sequencing
+is in [`roadmap.md`](./roadmap.md).
 
 > Native principle (F.126): the app icon, `build.gradle.kts`, and `AndroidManifest.xml` are
 > **`@generated` from `scanner.holo`** by the quest compiler. To change app metadata (version, icon
 > colors, name), edit `scanner.holo` and recompile — never hand-edit `android-mr/`. The canonical
-> signed-build command compiles `scanner.holo` plus `worlds/*.holo`, verifies the materialization
-> independently, and only then accesses signing custody or invokes Gradle.
+> signed-build command compiles `scanner.holo`, `scanner-lifecycle.hsplus`, and `worlds/*.holo`,
+> verifies the materialization independently, and only then accesses signing custody or invokes
+> Gradle.
 
 ---
 
-## Engineering: DONE ✅ (verified on-device, commit `1753203ca`)
+## Engineering baseline
 
 - **App icon** — emitted `ic_launcher.xml` (HoloScript QR-glyph + holo-lens mark), wired as
   `android:icon`. Colors come from `scanner.holo` `environment.icon { background / qr_color / holo_color }`.
@@ -23,9 +30,9 @@ your Meta developer identity — neither can (or should) be done by an agent.
   `HEADSET_CAMERA` permission, version from `scanner.holo` `environment.version { code / name }`.
 - **64-bit only** — emitted gradle `ndk { abiFilters += "arm64-v8a" }` strips 32-bit/x86 native libs
   (VRC.Quest.Packaging.6; a 32-bit binary fails review).
-- **Verified:** `assembleDebug` GREEN · `assembleRelease` GREEN → signed `app-release.apk` (~120 MB,
-  under Horizon's 1 GB) · **v2 signature verified** · **APK contains only `lib/arm64-v8a`** · golden
-  drift gate green.
+- **Verified:** `assembleDebug` GREEN · `assembleRelease` GREEN → signed `app-release.apk`
+  (99,985,969 bytes, under Horizon's 1 GB) · **v2 signature verified** · **APK contains only
+  `lib/arm64-v8a`** · golden drift gate green.
 
 > **Horizon developer app:** `1114952721709215` (already created in the dashboard — the upload target).
 
@@ -33,26 +40,28 @@ your Meta developer identity — neither can (or should) be done by an agent.
 
 Review runs **Technical → Content → Publishing**. Mandatory technical VRCs and our status:
 
-| VRC               | Requirement                                    | Status                                                                                                                                                                                             |
-| ----------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Packaging.2       | APK v2 signature                               | ✅ verified v2                                                                                                                                                                                     |
-| Packaging.6       | 64-bit (arm64-v8a) only                        | ✅ fixed — arm64-only                                                                                                                                                                              |
-| Packaging.1       | Manifest conforms (VR category, version)       | ✅ emitted                                                                                                                                                                                         |
-| Packaging.5       | APK < 1 GB                                     | ✅ ~120 MB                                                                                                                                                                                         |
-| Functional.14     | Passthrough app launches in passthrough        | ✅ `enablePassthrough(true)` on scene-ready                                                                                                                                                        |
-| Functional.1 / 5  | No crashes; responds to head tracking          | ▶ playtest (BETA channel)                                                                                                                                                                          |
-| Performance.1 / 3 | Hits refresh rate; graphics ≤ 4 s or VR loader | ▶ playtest (lightweight panel + passthrough)                                                                                                                                                       |
-| Security.2        | Minimum permissions                            | ⚠ manifest declares `HAND_TRACKING`/`RENDER_MODEL` (Spatial-SDK starter inheritance) the scanner may not use — trim after a headset test confirms controller input still works; not a hard blocker |
-| Security.1        | Entitlement check                              | ➖ **recommended, NOT required** — no Platform SDK integration needed                                                                                                                              |
+| VRC               | Requirement                                    | Status                                                                                                |
+| ----------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Packaging.2       | APK v2 signature                               | ✅ verified v2                                                                                        |
+| Packaging.6       | 64-bit (arm64-v8a) only                        | ✅ fixed — arm64-only                                                                                 |
+| Packaging.1       | Manifest conforms (VR category, version)       | ✅ emitted                                                                                            |
+| Packaging.5       | APK < 1 GB                                     | ✅ 99,985,969 bytes                                                                                   |
+| Functional.14     | Passthrough app launches in passthrough        | ✅ `enablePassthrough(true)` on scene-ready                                                           |
+| Functional.1 / 5  | No crashes; responds to head tracking          | ✅ submitted candidate is installed and running on Quest 3                                            |
+| Performance.1 / 3 | Hits refresh rate; graphics ≤ 4 s or VR loader | ✅ headset smoke completed for the submitted candidate                                                |
+| Security.2        | Minimum permissions                            | ✅ generated manifest removes unrequested storage and media permissions from transitive SDK manifests |
+| Security.1        | Entitlement check                              | ➖ **recommended, NOT required** — no Platform SDK integration needed                                 |
 
-**Founder/submission-side (not build):** Data Use Checkup (declare the passthrough camera — "frames decoded on-device, not stored/transmitted"), Content Guidelines, IARC age rating, and the listing assets. Use a **Release Channel (ALPHA/BETA)** to install on-headset with no review before the public submission.
+The current submission's Data Use Checkup, Content Guidelines, IARC age rating, listing assets,
+sharing choice, pricing, and reviewer contact are complete. For future candidates, use a
+**Release Channel (ALPHA/BETA)** to install the exact build on-headset before public submission.
 
-Current version: `versionCode 1` / `versionName "1.0.0"` (bump both in `scanner.holo`'s `version` block
+Current version: `versionCode 3` / `versionName "1.0.2"` (bump both in `scanner.holo`'s `version` block
 for each store re-upload — Horizon requires a strictly higher `versionCode` each time).
 
 ---
 
-## Founder step 1 — Production signing keystore (custody, via HoloKey)
+## Signing custody and recovery
 
 The release key signs every present and future build. **If it is ever lost, you can NEVER ship an
 update** — Meta has no key recovery (unlike Google Play). It is yours to own and back up. The
@@ -116,7 +125,7 @@ unnecessary with HoloKey.
 
 ---
 
-## Founder step 2 — Horizon Store submission (your Meta account)
+## Horizon Store update workflow
 
 The upload is a public commitment under your developer identity, so it's yours. As of 2026 "App Lab"
 is merged into the single Meta Horizon Store — every public title goes through review; there is no
