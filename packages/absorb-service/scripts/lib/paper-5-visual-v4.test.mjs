@@ -186,10 +186,10 @@ test('requires three independently receipted vision families and three trials', 
     'pass'
   );
   executionPlan.modelFamilies.pop();
-  assert.equal(
-    auditPaper5VisualV4ExecutionPlan({ protocol, executionPlan }).status,
-    'blocked'
-  );
+  const blocked = auditPaper5VisualV4ExecutionPlan({ protocol, executionPlan });
+  assert.equal(blocked.status, 'blocked');
+  assert.ok(blocked.errors.includes('independent-vision-family-count'));
+  assert.ok(blocked.errors.includes('vision-and-version-receipts'));
 });
 
 test('prepares one sealed packet with one deterministic PNG for both pixel arms', () => {

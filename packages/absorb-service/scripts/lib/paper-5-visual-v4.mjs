@@ -611,8 +611,12 @@ export function auditPaper5VisualV4ExecutionPlan({ protocol, executionPlan }) {
     },
     {
       id: 'vision-and-version-receipts',
-      pass: ineligible.length === 0,
-      detail: ineligible,
+      pass: families.length >= minimumFamilies && ineligible.length === 0,
+      detail: {
+        receiptedFamilies: families.length - ineligible.length,
+        minimum: minimumFamilies,
+        ineligible,
+      },
     },
     {
       id: 'trials-per-arm',
