@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "holoscript.absorb.scan-determinism.v1",
+  "status": "pass",
+  "packageRoot": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoscript-absorb-checkpoint-6339f24\\packages\\absorb-service",
+  "first": {
+    "files": 125,
+    "sha256": "cc943deb0613891f182e251cb7ed1541589a770ae8effb1370064ba74a0eeec3"
+  },
+  "second": {
+    "files": 125,
+    "sha256": "cc943deb0613891f182e251cb7ed1541589a770ae8effb1370064ba74a0eeec3"
+  },
+  "differences": []
+}
