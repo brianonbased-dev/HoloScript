@@ -290,7 +290,7 @@ const receipt = {
     provesBrowserWasmExecution: false,
     provesOwnedMetalExecution: false,
     provesPackagedHandlerExecution: false,
-    note: 'The executed source is the generated conformance projection of the packaged @trait handlers, in the engine deterministic action subset. The packaged math.hsplus trait bodies are hash-bound in sources but are not directly executable by any runtime in this repository today; ops whose packaged bodies delegate to host bindings are marked host-delegation-rewrite and their projections are recorded in the ops SSOT. Cross-target equality is claimed only by the separate cross-target checker over sibling receipts.',
+    note: 'This Node lane executes the generated conformance projection in the engine deterministic action subset, not the packaged @trait source. The sibling WASM evaluator receipt executes hash-bound packaged math.hsplus and collections.hsplus handlers where packagedExecution admits them. Ops whose packaged bodies delegate to host bindings are marked host-delegation-rewrite and their projections are recorded in the ops SSOT. Cross-target equality is claimed only by the separate cross-target checker over sibling receipts.',
   },
 };
 
