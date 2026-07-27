@@ -1,0 +1,187 @@
+{
+  "schema": "holoscript.std-aggregate-value-abi.v1",
+  "generatedAt": "2026-07-27T03:28:52.717Z",
+  "status": "pass",
+  "positioning": "HoloScript is a general-purpose systems programming language. This receipt proves one bounded aggregate-value ABI slice; it does not claim that the broader systems ABI is complete.",
+  "source": {
+    "repository": "https://github.com/brianonbased-dev/HoloScript",
+    "implementationCommit": "5d85d46c6c4c2b2f16be9fe860937c4784300c41",
+    "branch": "main",
+    "consumerRoot": "C:/Holo",
+    "consumerCommit": "6709b4c",
+    "localSourceUsedByConsumer": false
+  },
+  "contracts": {
+    "aggregateValueAbi": "hs.aggregate.value.v1",
+    "standardLibraryAbi": "hs.std.vector.aggregate.i32.v1",
+    "semanticLayout": "StdVec3I32{x:i32,y:i32,z:i32}",
+    "wholeValueCallArity": 1,
+    "ownership": "affine whole-value move",
+    "admittedFields": [
+      "i32",
+      "f32",
+      "f64",
+      "bool"
+    ],
+    "operations": [
+      "construct",
+      "project",
+      "call",
+      "return"
+    ],
+    "compilerFailClosed": [
+      "implicit aggregate copy",
+      "aggregate let binding instead of addressable slot",
+      "branch move-state imbalance",
+      "loop-carried aggregate move-state change",
+      "nested aggregate layout",
+      "owned-buffer field",
+      "mutable aggregate transfer",
+      "borrowed aggregate transfer"
+    ]
+  },
+  "artifacts": {
+    "compilerWasmVersion": "6.1.6",
+    "stdVersion": "7.0.7",
+    "webWasm": {
+      "path": "packages/compiler-wasm/pkg/holoscript_wasm_bg.wasm",
+      "bytes": 416821,
+      "sha256": "6e6d36dd840adaef32f28f4fb89d516091d8d61edb6893a8dea4c7ad28bc4678"
+    },
+    "nodeWasm": {
+      "path": "packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm",
+      "bytes": 416821,
+      "sha256": "6e6d36dd840adaef32f28f4fb89d516091d8d61edb6893a8dea4c7ad28bc4678"
+    },
+    "repeatBuildSha256Matched": true,
+    "webAndNodeArtifactsByteIdentical": true,
+    "packagedHostAdapter": "@holoscript/std/uaal-abi",
+    "standardLibrarySource": "@holoscript/std/native/abi/vector-v1.hs"
+  },
+  "crossTargetConformance": {
+    "schema": "holoscript.std.math-abi-conformance.v5",
+    "expectedDigest": 165,
+    "node": {
+      "result": 165,
+      "aggregateRepresentation": "Vec3 object values"
+    },
+    "browserWasmUaal": {
+      "result": 165,
+      "instructionCount": 637,
+      "aggregateInstructionCount": 29,
+      "bytecodeSha256": "7a630df4efe4d31aaa68f13f4a3d622050e7cc6de8e1aedc19728ec0198e45f3",
+      "receiptHashMatches": true,
+      "replayValid": true
+    },
+    "ownedMetal": {
+      "result": 165,
+      "machineContract": "hs-machine-v38",
+      "objectBytes": 7458,
+      "objectSha256": "53bf893a27d104a2a7bf3abe45c46516e082159bd37a619298bff3b293029ad9"
+    }
+  },
+  "validation": {
+    "hostedHoloScriptValidator": {
+      "validator": "rust-wasm",
+      "valid": true,
+      "warnings": 0
+    },
+    "compilerWasmRustTests": {
+      "passed": 293,
+      "failed": 0
+    },
+    "compilerNativeRustTests": {
+      "passed": 82,
+      "failed": 0
+    },
+    "stdVitest": {
+      "filesPassed": 26,
+      "testsPassed": 1045,
+      "failed": 0
+    },
+    "wasmApiVitest": {
+      "passed": 52,
+      "failed": 0,
+      "prerequisitesBuilt": [
+        "@holoscript/core-types",
+        "@holoscript/platform",
+        "@holoscript/core"
+      ]
+    },
+    "executableSpecCorpus": {
+      "passed": 41,
+      "total": 41,
+      "authorityWasmSha256": "6e6d36dd840adaef32f28f4fb89d516091d8d61edb6893a8dea4c7ad28bc4678"
+    },
+    "packageCatalog": {
+      "check": "pass",
+      "selfTest": "pass"
+    },
+    "canonicalConsumerAdapterTests": {
+      "passed": 41,
+      "failed": 0
+    },
+    "targetedHoloGraph": {
+      "jobId": "absorb-1785122899594-61k72d0",
+      "resumeToken": "c4624c012cfc4de8b43e204be541827b",
+      "gitCommitHash": "5d85d46c6c4c2b2f16be9fe860937c4784300c41",
+      "filesProcessed": 89,
+      "symbols": 3206,
+      "coverageRatio": 1,
+      "graphAuthoritative": true,
+      "semanticIndexReady": true,
+      "embeddingProvider": "holoembed"
+    }
+  },
+  "publicRegistry": {
+    "@holoscript/std@7.0.7": {
+      "integrity": "sha512-fCpBBccJ3N3OLO5RqxniN6fsL32KMuYRPOgL2fu679mWuJGSfF4c2rwvEglccdLNVYEprFg5vzsyZ5D+5odyhA==",
+      "shasum": "29ef15a325714584904e7c3334882772d3cf0b20"
+    },
+    "@holoscript/wasm@6.1.6": {
+      "integrity": "sha512-HqGNMGbB4SBQmV45x+d7qcmQK9xotAv+X+FyRhYsrJjz14rUI+BpmOU5HKJFEIIBLb5Zg/9GN8CI7ZkQBOYsug==",
+      "shasum": "27ea7737aba9bbfc5bd15175a6c9730ca68e6688"
+    }
+  },
+  "canonicalConsumer": {
+    "receipt": "C:/Holo/runtime/receipts/native-library-public-consumption.json",
+    "schema": "holosystem.native-library-public-consumption.v2",
+    "status": "pass",
+    "installedFrom": "https://registry.npmjs.org",
+    "checkoutImports": [],
+    "aggregateExecInstructionCount": 29,
+    "aggregateLayouts": [
+      "StdVec3I32{x:i32,y:i32,z:i32}"
+    ],
+    "executionResult": 7,
+    "bytecodeSha256": "1b4074c2affaa492186bb70cbd32411b86e8439e230b67bfc615bca16cd304a2",
+    "bytecodeReceiptMatches": true,
+    "bytecodeReplayValid": true,
+    "ephemeralEnvironmentRemoved": true
+  },
+  "boundaries": {
+    "provesFlatPodAggregateCallsAndReturns": true,
+    "provesSemanticRecordParityAcrossTargets": true,
+    "provesIdenticalNativeAndUaalByteLayout": false,
+    "provesNestedAggregateTransfer": false,
+    "provesOwnedAggregateTransfer": false,
+    "provesBorrowedOrMutableAggregateTransfer": false,
+    "provesImmutableCollectionsParity": false,
+    "provesNonFiniteFloatingPointEdgeSemantics": false,
+    "provesGeneralStableSystemsAbi": false,
+    "provesOsAirGap": false
+  },
+  "remainingWork": [
+    "nested aggregate layouts and layout composition",
+    "owned-buffer fields with explicit ownership opcodes",
+    "borrowed and mutable aggregate transfer",
+    "immutable collection calling parity",
+    "non-finite floating-point edge contracts"
+  ],
+  "nonBlockingBaselineObservation": {
+    "command": "pnpm --filter @holoscript/core... run build",
+    "status": "failed outside scoped dependency closure",
+    "failure": "@holoscript/alphafold-plugin TS5096 allowImportingTsExtensions configuration",
+    "scopedResolution": "The WASM adapter suite passed after directly building its declared core-types, platform, and core prerequisites. No aggregate ABI file depends on the failing plugin."
+  }
+}
