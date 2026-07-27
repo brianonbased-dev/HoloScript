@@ -57,6 +57,18 @@ const checks = [
     ],
     forbidden: [],
   },
+  {
+    id: 'A7',
+    description: 'HoloQR roadmap preserves source authorship and release admission',
+    file: 'apps/quest-universal-qr-scanner/roadmap.md',
+    required: [
+      /scanner-lifecycle\.hsplus/i,
+      /pnpm check:holoqr-born-from-source/i,
+      /does not ship unless HoloScript\s+materially authors its behavior and builds the native app/i,
+      /Submitted\*{0,2}\s+means Meta has the candidate; it does not mean approved or released/i,
+    ],
+    forbidden: [],
+  },
 ];
 
 let failed = false;
@@ -90,6 +102,22 @@ for (const check of checks) {
   } else {
     console.log(`[x] ${check.id} ${check.description}`);
   }
+}
+
+const scannerSource = read('apps/quest-universal-qr-scanner/scanner.holo');
+const holoqrRoadmap = read('apps/quest-universal-qr-scanner/roadmap.md');
+const versionCode = scannerSource?.match(/\bcode:\s*(\d+)/)?.[1];
+const versionName = scannerSource?.match(/\bname:\s*"([^"]+)"/)?.[1];
+const roadmapTracksSourceVersion =
+  Boolean(versionCode) &&
+  Boolean(versionName) &&
+  holoqrRoadmap?.includes(`\`${versionName}\` (\`versionCode ${versionCode}\`)`);
+
+if (!roadmapTracksSourceVersion) {
+  failed = true;
+  console.log('[ ] A8 HoloQR roadmap current release matches scanner.holo version metadata');
+} else {
+  console.log('[x] A8 HoloQR roadmap current release matches scanner.holo version metadata');
 }
 
 if (failed) {
