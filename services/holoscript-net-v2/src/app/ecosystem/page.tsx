@@ -9,6 +9,7 @@ function EcosystemComponent() {
 
 
 
+
   return (
     <div className="holoscript-2d-root w-full h-full">
       <main className="relative z-10 min-h-screen flex flex-col">
@@ -48,7 +49,7 @@ function EcosystemComponent() {
       {`One language. Many front doors.`}
 
     </h1>
-<h4 className="text-xl text-gray-400 text-xl text-gray-300 max-w-2xl mx-auto pt-5">
+<h4 className="text-xl text-xl text-gray-300 max-w-2xl mx-auto pt-5">
       {`The live surfaces of the HoloScript ecosystem — author, compile, query, and publish. Every one is running right now.`}
 
     </h4>
@@ -102,7 +103,7 @@ function EcosystemComponent() {
     </section>
 <footer className="relative z-10 px-6 md:px-10 py-8 text-center">
 
-      <span className="text-sm text-gray-500 text-sm text-gray-500">
+      <span className="text-sm text-sm text-gray-500">
       {`This page is a HoloScript composition, compiled to the web by HoloScript.`}
 
     </span>

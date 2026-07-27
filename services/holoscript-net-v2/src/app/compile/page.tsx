@@ -9,6 +9,7 @@ function CompileTargetsComponent() {
 
 
 
+
   return (
     <div className="holoscript-2d-root w-full h-full">
       <main className="relative z-10 min-h-screen flex flex-col">
@@ -48,7 +49,7 @@ function CompileTargetsComponent() {
       {`Describe it once. Compile it everywhere.`}
 
     </h1>
-<h4 className="text-xl text-gray-400 text-xl text-gray-300 max-w-2xl mx-auto pt-5">
+<h4 className="text-xl text-xl text-gray-300 max-w-2xl mx-auto pt-5">
       {`One HoloScript source compiles to game engines, the browser, XR headsets, robotics, IoT, and AI agents — from a single source of truth. Every target below is also a live MCP tool an agent can call.`}
 
     </h4>
@@ -232,7 +233,7 @@ function CompileTargetsComponent() {
     </section>
 <section className="relative z-10 px-6 md:px-10 py-12 text-center max-w-3xl mx-auto flex flex-col items-center gap-4">
 
-      <h4 className="text-xl text-gray-400 text-lg text-gray-300">
+      <h4 className="text-xl text-lg text-gray-300">
       {`Every target is exposed as an MCP tool — AI agents compile HoloScript to all of them, live.`}
 
     </h4>
@@ -243,7 +244,7 @@ function CompileTargetsComponent() {
     </section>
 <footer className="relative z-10 px-6 md:px-10 py-8 text-center">
 
-      <span className="text-sm text-gray-500 text-sm text-gray-500">
+      <span className="text-sm text-sm text-gray-500">
       {`This page is a HoloScript composition, compiled to the web by HoloScript.`}
 
     </span>

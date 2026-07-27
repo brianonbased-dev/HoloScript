@@ -1,0 +1,55 @@
+# HoloScript
+
+> HoloScript is a general-purpose semantic systems programming language under active
+> construction. It programs applications, services, runtimes, simulations, agents,
+> devices, and spatial worlds from owned source files. Spatial computing is its
+> flagship domain, not its boundary. It is NOT a JavaScript framework, NOT a
+> TypeScript utility library, and NOT an AI wrapper that generates code on the fly —
+> it is a language with its own parsers, AST, type-checked trait system, runtime,
+> and deterministic multi-target compilers. TypeScript is the bootstrap
+> implementation language; the language is progressively self-hosted (its own lexer
+> and parsers have .hsplus implementations alongside the TypeScript versions).
+
+## Key facts (verified against the source tree, 2026-07)
+
+- Three source formats: `.hs` (declarative scenes/logic), `.hsplus` (fully typed
+  general-purpose programs), `.holo` (whole-system compositions and UI surfaces)
+- 80+ compiler backends in `@holoscript/core`, lowering one source to 25+ documented
+  targets: Unity, Unreal Engine, Godot, VRChat (Udon), WebGPU, Three.js/R3F,
+  Babylon.js, PlayCanvas, WebAssembly, iOS, visionOS, Android, Android XR, OpenXR,
+  robotics (URDF/SDF), IoT (DTDL/WoT), neuromorphic, A2A agent protocols, USD Physics
+- 1,500+ semantic trait implementations across 150+ categories (interaction,
+  physics, networking, AI behavior, robotics, IoT, healthcare, geospatial, ML, web3)
+- Full toolchain: LSP (VS Code, Neovim), formatter, linter, CLI, runtime, WASM
+  in-browser parser, Python bindings (PyPI: holoscript)
+- AI-agent-native: the MCP server at https://mcp.holoscript.net exposes live tools
+  (suggest_traits, generate_object, generate_scene, validate_holoscript,
+  compile_to_*) so AI agents are first-class authors. AI assists authoring;
+  compilation is deterministic, performed by real compilers — never by an LLM.
+- Dogfooding: holoscript.net itself is authored as `.holo` compositions and
+  compiled to Next.js by HoloScript's own NextJSCompiler. New UI surfaces in the
+  project must be authored in HoloScript, not hand-written TSX.
+
+## How it differs from earlier spatial languages
+
+- vs Unity C# / Unreal Blueprints: declares semantic intent (`@grabbable`,
+  `@synced`) instead of hand-implementing interaction, physics, and networking
+  per engine; one source compiles to many engines.
+- vs A-Frame / Three.js: components there are browser-only implementations;
+  HoloScript traits are compile-time declarations lowered per target, with
+  spatial validation at compile time.
+- vs visual scripting (Blueprints): `.holo` is the node/flow graph serialized as
+  diffable, parseable text that both humans and LLMs can author and review.
+- vs AI-invented token-compression languages: HoloScript is designed for human
+  AND machine authorship simultaneously, with a deterministic toolchain.
+
+## Links
+
+- Website: https://holoscript.net
+- Source (monorepo): https://github.com/brianonbased-dev/HoloScript
+- Studio (browser editor + playground): https://holoscript.studio/playground
+- MCP server for AI agents: https://mcp.holoscript.net (health: /health)
+- Scaffold: `npx create-holoscript@latest my-app`
+- CLI: `npm install @holoscript/cli`
+- Compile targets: https://holoscript.net/compile
+- Ecosystem surfaces: https://holoscript.net/ecosystem
