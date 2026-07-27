@@ -62,7 +62,7 @@ afterEach(() => {
 
 describe('20k authoritative absorb refresh verifier', () => {
   it.runIf(RUN_20K_VERIFIER)(
-    'interrupts once, resumes exact HEAD, and prunes files outside the selected set',
+    'interrupts once, advances checkout, overlays unchanged batches, and publishes the new pin',
     async () => {
       const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-absorb-20k-repo-'));
       const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-absorb-20k-cache-'));
@@ -206,6 +206,14 @@ describe('20k authoritative absorb refresh verifier', () => {
       expect(fs.readFileSync(cacheFile, 'utf-8')).toBe(baselineCache);
       expectMonotonicProgress(interruptedProgressSamples);
 
+      git(rootDir, ['mv', 'src/fixture-19999.txt', 'src/fixture-renamed-after-checkpoint.txt']);
+      git(rootDir, ['commit', '-m', 'advance checkout during interrupted refresh']);
+      const publishedTargetHead = execFileSync('git', ['rev-parse', 'HEAD'], {
+        cwd: rootDir,
+        encoding: 'utf-8',
+        windowsHide: true,
+      }).trim();
+
       scanSpy.mockRestore();
       const resumedAt = Date.now();
       const resumedProgressSamples: number[] = [];
@@ -216,12 +224,9 @@ describe('20k authoritative absorb refresh verifier', () => {
         maxFiles: 20_000,
         scanBatchSize: 250,
         background: true,
-        resumeToken: accepted.resumeToken,
       })) as { accepted?: boolean; jobId?: string; resumeToken?: string };
-      expect(resumed).toMatchObject({
-        accepted: true,
-        resumeToken: accepted.resumeToken,
-      });
+      expect(resumed).toMatchObject({ accepted: true });
+      expect(resumed.resumeToken).not.toBe(accepted.resumeToken);
 
       const completed = await waitForStatus(
         resumed.jobId!,
@@ -232,23 +237,33 @@ describe('20k authoritative absorb refresh verifier', () => {
       const resumeElapsedMs = Date.now() - resumedAt;
       expect(completed.refreshProgressReceipt).toMatchObject({
         status: 'complete',
-        targetGitCommitHash: targetHead,
+        targetGitCommitHash: publishedTargetHead,
         totalCandidateFiles: 20_000,
         completedCandidateFiles: 20_000,
         remainingCandidateFiles: 0,
         cachePublished: true,
         resumable: false,
+        resumeMode: 'content-addressed-overlay',
+        targetLag: {
+          sourceResumeToken: accepted.resumeToken,
+          sourceTargetGitCommitHash: targetHead,
+          targetGitCommitHash: publishedTargetHead,
+          sourceSelectedCandidateFiles: 20_000,
+          targetSelectedCandidateFiles: 20_000,
+          selectedCandidateFileDelta: 0,
+        },
       });
 
       const cache = JSON.parse(fs.readFileSync(cacheFile, 'utf-8')) as {
         gitCommitHash?: string;
         fileHashes?: Record<string, string>;
       };
-      expect(cache.gitCommitHash).toBe(targetHead);
+      expect(cache.gitCommitHash).toBe(publishedTargetHead);
       expect(Object.keys(cache.fileHashes ?? {})).toHaveLength(20_000);
-      expect(
-        Object.keys(cache.fileHashes ?? {}).filter((file) => file.includes('fixture-2000'))
-      ).toHaveLength(0);
+      expect(cache.fileHashes?.['src/fixture-19999.txt']).toBeUndefined();
+      expect(cache.fileHashes?.['src/fixture-renamed-after-checkpoint.txt']).toMatch(
+        /^[a-f0-9]{64}$/
+      );
 
       const status = (await handleCodebaseTool('holo_graph_status', {})) as {
         graphAuthoritative?: boolean;

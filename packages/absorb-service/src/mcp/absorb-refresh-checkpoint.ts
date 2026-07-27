@@ -43,6 +43,17 @@ export interface AbsorbRefreshCompletedBatch {
 
 export type AbsorbRefreshResumeMode = 'new' | 'exact' | 'content-addressed-overlay';
 
+export interface AbsorbRefreshTargetLag {
+  sourceResumeToken: string;
+  sourceTargetGitCommitHash: string | null;
+  targetGitCommitHash: string | null;
+  sourceTargetWorktreeFingerprint: string | null;
+  targetWorktreeFingerprint: string | null;
+  sourceSelectedCandidateFiles: number;
+  targetSelectedCandidateFiles: number;
+  selectedCandidateFileDelta: number;
+}
+
 export interface AbsorbRefreshProgressReceipt {
   schemaVersion: typeof ABSORB_REFRESH_PROGRESS_RECEIPT_SCHEMA;
   kind: 'AbsorbRefreshProgressReceipt';
@@ -78,6 +89,11 @@ export interface AbsorbRefreshProgressReceipt {
   resumeMode?: AbsorbRefreshResumeMode;
   baseTargetGitCommitHash?: string | null;
   baseTargetWorktreeFingerprint?: string | null;
+  /**
+   * Provenance for work reused from an older target. This makes checkout lag
+   * explicit without granting the older checkpoint graph authority.
+   */
+  targetLag?: AbsorbRefreshTargetLag;
   reusedBatchCount?: number;
   invalidatedBatchCount?: number;
   selection: {
@@ -121,8 +137,9 @@ export interface PrepareAbsorbRefreshCheckpointOptions {
   workspaceCandidateFiles?: number;
   resumeToken?: string;
   /**
-   * Adopt the newest compatible non-terminal checkpoint when no explicit
-   * resumeToken is supplied. Source digests still gate every reused batch.
+   * Adopt the best compatible non-terminal checkpoint when no explicit
+   * resumeToken is supplied. An exact plan keeps its token; plan drift creates
+   * a new provenance-linked overlay. Source digests gate every reused batch.
    */
   reuseLatest?: boolean;
   /**
@@ -482,7 +499,10 @@ export function pruneAbsorbRefreshCheckpoints(
     options.maxDirectories,
     ABSORB_REFRESH_RETENTION_DEFAULTS.maxDirectories
   );
-  const maxBytes = finiteRetentionValue(options.maxBytes, ABSORB_REFRESH_RETENTION_DEFAULTS.maxBytes);
+  const maxBytes = finiteRetentionValue(
+    options.maxBytes,
+    ABSORB_REFRESH_RETENTION_DEFAULTS.maxBytes
+  );
   const terminalMaxAgeMs = finiteRetentionValue(
     options.terminalMaxAgeMs,
     ABSORB_REFRESH_RETENTION_DEFAULTS.terminalMaxAgeMs
@@ -865,6 +885,16 @@ export class AbsorbRefreshCheckpoint {
       ...(targetChanged && {
         baseTargetGitCommitHash: this.receipt.targetGitCommitHash,
         baseTargetWorktreeFingerprint: this.receipt.targetWorktreeFingerprint,
+        targetLag: {
+          sourceResumeToken: this.receipt.resumeToken,
+          sourceTargetGitCommitHash: this.receipt.targetGitCommitHash,
+          targetGitCommitHash: options.targetGitCommitHash,
+          sourceTargetWorktreeFingerprint: this.receipt.targetWorktreeFingerprint,
+          targetWorktreeFingerprint: options.targetWorktreeFingerprint,
+          sourceSelectedCandidateFiles: this.receipt.selection.selectedCandidateFiles,
+          targetSelectedCandidateFiles: this.receipt.selection.selectedCandidateFiles,
+          selectedCandidateFileDelta: 0,
+        },
       }),
       targetGitCommitHash: options.targetGitCommitHash,
       targetWorktreeFingerprint: options.targetWorktreeFingerprint,
@@ -952,9 +982,7 @@ function findLatestCompatibleCheckpoint(options: {
     return null;
   }
 
-  let bestCompatible:
-    | { receipt: AbsorbRefreshProgressReceipt; modifiedAt: number }
-    | undefined;
+  let bestCompatible: { receipt: AbsorbRefreshProgressReceipt; modifiedAt: number } | undefined;
   for (const candidate of receiptFiles) {
     let receipt: AbsorbRefreshProgressReceipt;
     try {
@@ -962,6 +990,7 @@ function findLatestCompatibleCheckpoint(options: {
     } catch {
       continue;
     }
+    if (!RESUME_TOKEN_PATTERN.test(receipt.resumeToken)) continue;
     const compatible =
       normalizeRoot(receipt.rootDir) === normalizeRoot(options.rootDir) &&
       receipt.planHash === options.planHash &&
@@ -984,6 +1013,226 @@ function findLatestCompatibleCheckpoint(options: {
     }
   }
   return bestCompatible?.receipt ?? null;
+}
+
+function findBestContentAddressedOverlaySource(options: {
+  rootDir: string;
+  scanPlan: ScanPlan;
+  planHash: string;
+  selectedFilesHash: string;
+  scanPolicyHash: string;
+  writerLeaseAuthorizesAdoption: boolean;
+}): AbsorbRefreshProgressReceipt | null {
+  const refreshDirectory = path.join(
+    resolveCodebaseCachePaths(options.rootDir).directory,
+    'absorb-refreshes'
+  );
+  const currentBatchDigests = new Set(
+    options.scanPlan.batches
+      .map((batch) => buildBatchInputSha256(options.scanPlan, batch))
+      .filter((digest): digest is string => typeof digest === 'string')
+  );
+  if (currentBatchDigests.size === 0) return null;
+
+  let receiptFiles: Array<{ receiptFile: string; modifiedAt: number }>;
+  try {
+    receiptFiles = fs
+      .readdirSync(refreshDirectory, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .flatMap((entry) => {
+        const receiptFile = path.join(refreshDirectory, entry.name, 'progress-receipt.json');
+        try {
+          return [{ receiptFile, modifiedAt: fs.statSync(receiptFile).mtimeMs }];
+        } catch {
+          return [];
+        }
+      });
+  } catch {
+    return null;
+  }
+
+  let best:
+    | {
+        receipt: AbsorbRefreshProgressReceipt;
+        reusableBatchCount: number;
+        modifiedAt: number;
+      }
+    | undefined;
+  for (const candidate of receiptFiles) {
+    let receipt: AbsorbRefreshProgressReceipt;
+    try {
+      receipt = readReceipt(candidate.receiptFile);
+    } catch {
+      continue;
+    }
+    if (!RESUME_TOKEN_PATTERN.test(receipt.resumeToken)) continue;
+    if (
+      normalizeRoot(receipt.rootDir) !== normalizeRoot(options.rootDir) ||
+      receipt.scanPolicyHash !== options.scanPolicyHash ||
+      receipt.status === 'complete' ||
+      (receipt.planHash === options.planHash &&
+        receipt.selectedFilesHash === options.selectedFilesHash) ||
+      isActiveRefreshReceipt(receipt, options.writerLeaseAuthorizesAdoption)
+    ) {
+      continue;
+    }
+    const reusableBatchCount = receipt.completedBatches.filter(
+      (entry) => typeof entry.inputSha256 === 'string' && currentBatchDigests.has(entry.inputSha256)
+    ).length;
+    if (reusableBatchCount === 0) continue;
+    if (
+      !best ||
+      reusableBatchCount > best.reusableBatchCount ||
+      (reusableBatchCount === best.reusableBatchCount && candidate.modifiedAt > best.modifiedAt)
+    ) {
+      best = { receipt, reusableBatchCount, modifiedAt: candidate.modifiedAt };
+    }
+  }
+  return best?.receipt ?? null;
+}
+
+function createContentAddressedOverlayCheckpoint(options: {
+  rootDir: string;
+  scanPlan: ScanPlan;
+  planHash: string;
+  selectedFilesHash: string;
+  scanPolicyHash: string;
+  targetGitCommitHash: string | null;
+  targetWorktreeFingerprint: string | null;
+  maxFiles: number;
+  workspaceCandidateFiles?: number;
+  source: AbsorbRefreshProgressReceipt;
+  ownerWriterLeaseSha256?: string;
+}): AbsorbRefreshCheckpoint {
+  const resumeToken = randomUUID().replace(/-/g, '');
+  const paths = checkpointPaths(options.rootDir, resumeToken);
+  const sourcePaths = checkpointPaths(options.rootDir, options.source.resumeToken);
+  fs.mkdirSync(paths.directory, { recursive: true });
+
+  const sourceEntriesByDigest = new Map<string, AbsorbRefreshCompletedBatch[]>();
+  for (const entry of options.source.completedBatches) {
+    if (typeof entry.inputSha256 !== 'string') continue;
+    const entries = sourceEntriesByDigest.get(entry.inputSha256) ?? [];
+    entries.push(entry);
+    sourceEntriesByDigest.set(entry.inputSha256, entries);
+  }
+
+  const completedBatches: AbsorbRefreshCompletedBatch[] = [];
+  for (const batch of options.scanPlan.batches) {
+    const inputSha256 = buildBatchInputSha256(options.scanPlan, batch);
+    if (!inputSha256) continue;
+    const candidates = sourceEntriesByDigest.get(inputSha256);
+    if (!candidates || candidates.length === 0) continue;
+    const sourceEntry = candidates.shift()!;
+    const expectedSourceResultFile = `batch-${String(sourceEntry.index).padStart(5, '0')}.json`;
+    if (sourceEntry.resultFile !== expectedSourceResultFile) continue;
+
+    let serialized: string;
+    let result: ScanResult;
+    try {
+      serialized = fs.readFileSync(
+        path.join(sourcePaths.directory, expectedSourceResultFile),
+        'utf-8'
+      );
+      if (sha256(serialized) !== sourceEntry.sha256) continue;
+      result = JSON.parse(serialized) as ScanResult;
+      validateResumedBatchResult(options.scanPlan, batch, result);
+    } catch {
+      continue;
+    }
+
+    const resultFile = `batch-${String(batch.index).padStart(5, '0')}.json`;
+    atomicWriteFileSync(path.join(paths.directory, resultFile), serialized);
+    completedBatches.push({
+      index: batch.index,
+      label: batch.label,
+      candidateFiles: batch.files.length,
+      scannedFiles: result.files.length,
+      resultFile,
+      sha256: sourceEntry.sha256,
+      inputSha256,
+    });
+  }
+
+  const now = new Date().toISOString();
+  const workspaceCandidateFiles = Number.isFinite(options.workspaceCandidateFiles)
+    ? Math.max(0, Math.floor(options.workspaceCandidateFiles!))
+    : null;
+  const truncated =
+    workspaceCandidateFiles !== null && workspaceCandidateFiles > options.scanPlan.totalFiles;
+  const completedCandidateFiles = completedBatches.reduce(
+    (total, entry) => total + entry.candidateFiles,
+    0
+  );
+  const sourceSelectedCandidateFiles =
+    options.source.selection?.selectedCandidateFiles ?? options.source.totalCandidateFiles;
+  const receipt: AbsorbRefreshProgressReceipt = {
+    schemaVersion: ABSORB_REFRESH_PROGRESS_RECEIPT_SCHEMA,
+    kind: 'AbsorbRefreshProgressReceipt',
+    resumeToken,
+    rootDir: options.rootDir,
+    targetGitCommitHash: options.targetGitCommitHash,
+    targetWorktreeFingerprint: options.targetWorktreeFingerprint,
+    planHash: options.planHash,
+    selectedFilesHash: options.selectedFilesHash,
+    scanPolicyHash: options.scanPolicyHash,
+    status: 'prepared',
+    authoritative: false,
+    cachePublished: false,
+    publishedGraphAuthoritative: false,
+    priorAuthoritativeCachePreserved: true,
+    resumable: true,
+    totalCandidateFiles: options.scanPlan.totalFiles,
+    totalBatches: options.scanPlan.batches.length,
+    completedBatchCount: completedBatches.length,
+    completedCandidateFiles,
+    remainingCandidateFiles: Math.max(0, options.scanPlan.totalFiles - completedCandidateFiles),
+    progressPercent:
+      options.scanPlan.totalFiles === 0
+        ? 100
+        : Number(((completedCandidateFiles / options.scanPlan.totalFiles) * 100).toFixed(2)),
+    completedBatches,
+    resumeMode: 'content-addressed-overlay',
+    baseTargetGitCommitHash: options.source.targetGitCommitHash,
+    baseTargetWorktreeFingerprint: options.source.targetWorktreeFingerprint,
+    targetLag: {
+      sourceResumeToken: options.source.resumeToken,
+      sourceTargetGitCommitHash: options.source.targetGitCommitHash,
+      targetGitCommitHash: options.targetGitCommitHash,
+      sourceTargetWorktreeFingerprint: options.source.targetWorktreeFingerprint,
+      targetWorktreeFingerprint: options.targetWorktreeFingerprint,
+      sourceSelectedCandidateFiles,
+      targetSelectedCandidateFiles: options.scanPlan.totalFiles,
+      selectedCandidateFileDelta: options.scanPlan.totalFiles - sourceSelectedCandidateFiles,
+    },
+    reusedBatchCount: 0,
+    invalidatedBatchCount: Math.max(
+      0,
+      options.source.completedBatches.length - completedBatches.length
+    ),
+    selection: {
+      maxFiles: options.maxFiles,
+      workspaceCandidateFiles,
+      selectedCandidateFiles: options.scanPlan.totalFiles,
+      truncated,
+      truncationReason: truncated ? 'maxFiles' : null,
+    },
+    receiptFile: paths.receiptFile,
+    checkpointDirectory: paths.directory,
+    ownerProcessId: process.pid,
+    ownerHost: os.hostname(),
+    ...(options.ownerWriterLeaseSha256 && {
+      ownerWriterLeaseSha256: options.ownerWriterLeaseSha256,
+    }),
+    createdAt: now,
+    updatedAt: now,
+  };
+  atomicWriteFileSync(paths.receiptFile, JSON.stringify(receipt, null, 2));
+  pruneAbsorbRefreshCheckpoints({
+    rootDir: options.rootDir,
+    preserveResumeTokens: [resumeToken, options.source.resumeToken],
+  });
+  return new AbsorbRefreshCheckpoint(options.scanPlan, receipt);
 }
 
 export function prepareAbsorbRefreshCheckpoint(
@@ -1013,6 +1262,17 @@ export function prepareAbsorbRefreshCheckpoint(
           scanPolicyHash: options.scanPolicyHash,
           targetGitCommitHash: options.targetGitCommitHash,
           targetWorktreeFingerprint: options.targetWorktreeFingerprint,
+          writerLeaseAuthorizesAdoption,
+        })
+      : null;
+  const overlaySource =
+    !options.resumeToken && options.reuseLatest && !reusableReceipt
+      ? findBestContentAddressedOverlaySource({
+          rootDir,
+          scanPlan: options.scanPlan,
+          planHash,
+          selectedFilesHash,
+          scanPolicyHash: options.scanPolicyHash,
           writerLeaseAuthorizesAdoption,
         })
       : null;
@@ -1053,6 +1313,22 @@ export function prepareAbsorbRefreshCheckpoint(
       ownerWriterLeaseSha256,
     });
     return checkpoint;
+  }
+
+  if (overlaySource) {
+    return createContentAddressedOverlayCheckpoint({
+      rootDir,
+      scanPlan: options.scanPlan,
+      planHash,
+      selectedFilesHash,
+      scanPolicyHash: options.scanPolicyHash,
+      targetGitCommitHash: options.targetGitCommitHash,
+      targetWorktreeFingerprint: options.targetWorktreeFingerprint,
+      maxFiles: options.maxFiles,
+      workspaceCandidateFiles: options.workspaceCandidateFiles,
+      source: overlaySource,
+      ownerWriterLeaseSha256,
+    });
   }
 
   fs.mkdirSync(paths.directory, { recursive: true });
