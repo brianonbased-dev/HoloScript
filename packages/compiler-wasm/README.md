@@ -35,6 +35,9 @@ HoloScript, compiled to WebAssembly.
   state machines, achievements, talent trees, imports, exports, functions,
   `move`, `action`, `on_*` event blocks
 
+- **UAAL lowering** - `compile_to_uaal` emits executable bytecode for typed
+  function kernels, including i32 and finite scalar f64 arithmetic/comparisons
+
 ## Installation
 
 ```bash
@@ -133,6 +136,14 @@ Quickly validate if the source code is syntactically correct.
 Validate and return detailed error information.
 
 **Returns:** JSON string with `{ valid: boolean, errors: [...] }`
+
+### `compile_to_uaal(source: string): string`
+
+Compile the supported typed function subset to a UAAL bytecode JSON packet.
+Numeric `EXEC` instructions identify their host ABI as `hs.i32.binary.v1` or
+`hs.f64.binary.v1`; the embedding UAAL VM must register the matching handler.
+The f64 v1 seam proves finite operands only and does not claim NaN, infinity,
+signed-zero preservation, or division-by-zero semantics.
 
 ### `version(): string`
 

@@ -1,0 +1,43 @@
+{
+  "schema": "holoscript.native-registry-public-consumer.v1",
+  "generatedAt": "2026-07-27T00:29:01.709Z",
+  "status": "pass",
+  "sourceRevision": "dcc9b53310df814f0173876316c0d4fe349fd4a2",
+  "deploymentId": "b1d19443-95e2-4740-8366-a28b9a6d0bab",
+  "registry": "https://registry-production-c21b.up.railway.app",
+  "health": {
+    "status": "healthy",
+    "service": "holoscript-registry",
+    "version": "6.1.1",
+    "tokens": 1,
+    "nativePackages": {
+      "count": 3,
+      "durable": true,
+      "authenticatedPublish": true
+    }
+  },
+  "publicConsumer": {
+    "installedFrom": "https://registry.npmjs.org/",
+    "cli": "@holoscript/cli@8.0.12",
+    "compiler": "@holoscript/core@8.0.18",
+    "publishedPackage": "@holoscript/railway-public-cli-canary@0.0.2-public-cli-b1d19443",
+    "publishSuccess": true,
+    "exactPin": {
+      "version": "0.0.2-public-cli-b1d19443",
+      "integrity": "sha256:3db308b62da186ad9abde64ef31f67aef13293f0d57390731e823ae4378120d5"
+    },
+    "compilerErrors": [],
+    "compilerExportResolved": true,
+    "moduleCount": 1,
+    "registryCacheEntries": 1
+  },
+  "boundaries": {
+    "provesProductionDeployment": true,
+    "provesPublicCliPublish": true,
+    "provesPublicCompilerResolution": true,
+    "provesExactDigestPin": true,
+    "provesProcessRestartDurability": false,
+    "provesRollbackExecution": false,
+    "exposesCredential": false
+  }
+}

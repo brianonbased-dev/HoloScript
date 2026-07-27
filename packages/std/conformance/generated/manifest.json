@@ -1,6 +1,6 @@
 {
   "schema": "holoscript.std-abi-conformance-manifest.v0",
-  "stdPackageVersion": "7.0.2",
+  "stdPackageVersion": "7.0.5",
   "opsFile": "packages/std/conformance/std-abi-ops.v0.json",
   "files": {
     "packages/std/conformance/std-abi-ops.v0.json": {

@@ -1,6 +1,6 @@
 {
   "schema": "holoscript.std-abi-conformance.node.v0",
-  "generatedAtISO": "2026-07-27T00:42:57.658Z",
+  "generatedAtISO": "2026-07-27T01:00:10.023Z",
   "target": "node",
   "executionRuntime": {
     "engine": "DeterministicHsplusActionRuntime",
@@ -10,7 +10,7 @@
   },
   "referenceTwin": {
     "module": "packages/std/dist/math.js",
-    "stdPackageVersion": "7.0.2",
+    "stdPackageVersion": "7.0.5",
     "comparison": "three-way: runtime value vs frozen corpus expectation vs live twin recomputation"
   },
   "sources": {
@@ -588,5 +588,5 @@
     "provesPackagedHandlerExecution": false,
     "note": "The executed source is the generated conformance projection of the packaged @trait handlers, in the engine deterministic action subset. The packaged math.hsplus trait bodies are hash-bound in sources but are not directly executable by any runtime in this repository today; ops whose packaged bodies delegate to host bindings are marked host-delegation-rewrite and their projections are recorded in the ops SSOT. Cross-target equality is claimed only by the separate cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:4bacfea6fc880ec118d031c6d8148e96719dc2daa34e5e81fe9608e60605e3e0"
+  "receiptHash": "sha256:42fcc184a6eaa94b7f60e16eaf153c6c9bb5b841a9cabb478e94e5107458a8cd"
 }

@@ -25,7 +25,7 @@ This catalog is the deterministic view of the npm v1 release candidates and comp
 | `@holoscript/memory` | `0.3.0` | sovereign-memory-client | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/memory` |
 | `@holoscript/platform` | `6.1.4` | platform-control-plane | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/platform` |
 | `@holoscript/snn-webgpu` | `8.0.6` | spiking-neural-network-webgpu | candidate | laptop-windows, jetson-orin, vast-linux-gpu | release-candidate | `packages/snn-webgpu` |
-| `@holoscript/uaal` | `8.6.0` | semantic-agent-vm | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/uaal` |
+| `@holoscript/uaal` | `8.6.1` | semantic-agent-vm | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/uaal` |
 | `@holoscript/xr-embodiment` | `6.1.3` | xr-embodiment | fleet | laptop-windows, jetson-orin, vast-linux-gpu | fleet-operational | `packages/xr-embodiment` |
 
 Receipt lane semantics:
@@ -37,7 +37,7 @@ Receipt lane semantics:
 
 | Package | Version | Support tier | Entrypoint | Targets | Execution conformance | Runtime boundary |
 | --- | --- | --- | --- | --- | --- | --- |
-| `@holoscript/std` | `7.0.2` | preview | `./src/math.hsplus` | node, browser-wasm, owned-metal | node ✓ 50/50; browser-wasm ✓ 50/50; owned-metal ✓ 50/50; cross-target EQUAL | Executable ABI conformance is receipt-proven for the 11-op math conformance projection across node, browser-wasm, and owned-metal targets (50 vectors, cross-target exact equality); direct packaged-handler execution, sqrt/trig ops, and collections host-ABI parity are not yet claimed. |
+| `@holoscript/std` | `7.0.5` | preview | `./src/math.hsplus` | node, browser-wasm, owned-metal | node ✓ 50/50; browser-wasm ✓ 50/50; owned-metal ✓ 50/50; cross-target EQUAL | Executable ABI parity is proven for scalar i32 clamp/sign/step, component-projected i32 Vec3 dot/cross/length-squared, and finite scalar f64 clamp/lerp/inverse-lerp/remap across Node, browser-WASM to UAAL, and owned-metal, and receipt-proven for the 11-op math conformance projection (50 vectors, cross-target exact value equality) across node, browser-wasm, and owned-metal. Non-finite floating-point edge semantics, aggregate vector calling conventions, quaternion, noise, sqrt/trig ops, direct packaged-handler execution, and collections parity remain preview. |
 
 A compiler-native artifact declaration proves package metadata and shipped source paths. It does not by itself prove execution parity, registry deployment, authorship, or reproducible builds.
 

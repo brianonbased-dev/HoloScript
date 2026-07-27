@@ -1,0 +1,125 @@
+{
+  "schema": "holoscript.native-registry-production.v1",
+  "generatedAt": "2026-07-27T00:34:03.1598056Z",
+  "status": "pass",
+  "source": {
+    "repository": "https://github.com/brianonbased-dev/HoloScript",
+    "revision": "dcc9b53310df814f0173876316c0d4fe349fd4a2",
+    "registryImplementation": "e8f916dc8fe142ad3a2e0ad82cc9809b44cf6fa1",
+    "railpackConfiguration": "dcc9b53310df814f0173876316c0d4fe349fd4a2"
+  },
+  "railway": {
+    "projectId": "45da3535-e14d-4022-a57e-1e5a96ee48d0",
+    "environmentId": "9cccd9a6-12e3-483f-b382-dba1efbb229d",
+    "serviceId": "17e48904-fdde-4743-91fa-7cd39034c6a1",
+    "serviceInstanceId": "fd1d7e3f-59e9-4017-8790-026e7daf9a2e",
+    "registry": "https://registry-production-c21b.up.railway.app",
+    "sourceDeploymentId": "b1d19443-95e2-4740-8366-a28b9a6d0bab",
+    "activeRestoredDeploymentId": "de3d95bb-b0c5-4127-b02e-e18500e1c6ae",
+    "containerImageDigest": "sha256:d370622f91ed41d93fe1a102d88a07e5a4b8429c47b83d6e99f90cc375b22667",
+    "provider": "node",
+    "nodeVersion": "22",
+    "buildCommand": "corepack pnpm --filter @holoscript/core-types build && corepack pnpm --filter @holoscript/platform build && corepack pnpm --filter @holoscript/registry build",
+    "healthcheckPath": "/health",
+    "healthcheckTimeoutSeconds": 120,
+    "volume": {
+      "id": "8ebf063f-5e30-486b-b039-a89f1416bbba",
+      "name": "registry-data",
+      "mountPath": "/app/data",
+      "storePath": "/app/data/native-packages.json"
+    }
+  },
+  "healthReadback": {
+    "status": "healthy",
+    "service": "holoscript-registry",
+    "version": "6.1.1",
+    "tokens": 1,
+    "nativePackages": {
+      "count": 3,
+      "durable": true,
+      "authenticatedPublish": true
+    }
+  },
+  "nativeHttpContract": {
+    "package": "@holoscript/railway-deploy-canary@0.0.1-b1d19443",
+    "unauthenticatedPublishStatus": 401,
+    "namespaceSpoofStatus": 403,
+    "authenticatedPublishStatus": 201,
+    "duplicateImmutableVersionStatus": 409,
+    "resolveStatus": 200,
+    "exactVersionStatus": 200,
+    "exactIntegrity": "sha256:ef05f84ea88fb212780054996ccbf05544a5bf04080a852e2a6110f77c693028",
+    "exactSourceDigestMatchesIntegrity": true
+  },
+  "processRestart": {
+    "deploymentId": "b1d19443-95e2-4740-8366-a28b9a6d0bab",
+    "restartAccepted": true,
+    "uptimeSecondsBefore": 136.242074533,
+    "uptimeSecondsAfter": 0.33243112,
+    "exactVersionStatusAfterRestart": 200,
+    "integrityStableAfterRestart": true
+  },
+  "rollbackAndRestore": {
+    "rollbackSourceDeploymentId": "6c55cee3-8d8d-4e69-ab53-1a5d337f1e31",
+    "rollbackAccepted": true,
+    "rollbackDeploymentId": "58221113-14e9-4177-9691-0d38fb508611",
+    "rollbackDeploymentStatus": "SUCCESS",
+    "rollbackHealthVersion": "3.9.0",
+    "restoreSourceDeploymentId": "b1d19443-95e2-4740-8366-a28b9a6d0bab",
+    "restoreAccepted": true,
+    "restoreDeploymentId": "de3d95bb-b0c5-4127-b02e-e18500e1c6ae",
+    "restoreDeploymentStatus": "SUCCESS",
+    "restoreHealthVersion": "6.1.1",
+    "exactVersionStatusAfterRestore": 200,
+    "exactIntegrityAfterRestore": "sha256:3db308b62da186ad9abde64ef31f67aef13293f0d57390731e823ae4378120d5",
+    "integrityStableAfterRollbackAndRestore": true
+  },
+  "publicColdConsumer": {
+    "receipt": "reports/library-coherence/2026-07-26_native-registry-public-consumer.v1.json",
+    "installedFrom": "https://registry.npmjs.org/",
+    "cli": "@holoscript/cli@8.0.12",
+    "compiler": "@holoscript/core@8.0.18",
+    "publishedPackage": "@holoscript/railway-public-cli-canary@0.0.2-public-cli-b1d19443",
+    "publishSuccess": true,
+    "exactIntegrity": "sha256:3db308b62da186ad9abde64ef31f67aef13293f0d57390731e823ae4378120d5",
+    "compilerErrors": [],
+    "compilerExportResolved": true,
+    "moduleCount": 1,
+    "registryCacheEntries": 1
+  },
+  "failedCandidates": [
+    {
+      "deploymentId": "e730c047",
+      "reason": "Rust-only provider did not contain pnpm",
+      "promoted": false
+    },
+    {
+      "deploymentId": "f0ae7082",
+      "reason": "Node provider build omitted @holoscript/platform output",
+      "promoted": false
+    },
+    {
+      "deploymentId": "39e84e91",
+      "reason": "Provider-chain build omitted @holoscript/core-types output",
+      "promoted": false
+    }
+  ],
+  "boundaries": {
+    "provesAuthenticatedNamespacePublish": true,
+    "provesNamespaceSpoofRejection": true,
+    "provesImmutableVersionRejection": true,
+    "provesExactDigestRead": true,
+    "provesProcessRestartDurability": true,
+    "provesRollbackExecution": true,
+    "provesRestoreToCurrentSource": true,
+    "provesPublicCliPublish": true,
+    "provesPublicCompilerResolution": true,
+    "provesCredentialValue": false,
+    "provesGitHubIntegrationFreshness": false
+  },
+  "credentialHandling": {
+    "bootstrapTokenPresent": true,
+    "bootstrapTokenValueRecorded": false,
+    "walletVariablesReadOrWritten": false
+  }
+}

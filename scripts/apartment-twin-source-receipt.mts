@@ -4,13 +4,19 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HoloCompositionParser } from '../packages/core/src/parser/HoloCompositionParser';
-import type { HoloComposition, HoloObjectDecl, HoloValue } from '../packages/core/src/parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloValue,
+} from '../packages/core/src/parser/HoloCompositionTypes';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..');
 
-export const APARTMENT_TWIN_SOURCE_RECEIPT_SCHEMA = 'holoscript.apartment-twin-source-receipt.v0.1.0';
-export const DEFAULT_APARTMENT_TWIN_SOURCE = 'apps/quest-universal-qr-scanner/worlds/apartment-twin.holo';
+export const APARTMENT_TWIN_SOURCE_RECEIPT_SCHEMA =
+  'holoscript.apartment-twin-source-receipt.v0.1.0';
+export const DEFAULT_APARTMENT_TWIN_SOURCE =
+  'apps/quest-universal-qr-scanner/worlds/apartment-twin.holo';
 
 type ObjectRecord = {
   name: string;
@@ -43,8 +49,8 @@ function objectProperties(object: HoloObjectDecl): Record<string, HoloValue> {
   return out;
 }
 
-function envProperties(composition: HoloComposition | null): Record<string, HoloValue> {
-  const out: Record<string, HoloValue> = {};
+function envProperties(composition: HoloComposition | null): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
   for (const prop of composition?.environment?.properties ?? []) out[prop.key] = prop.value;
   return out;
 }
@@ -55,7 +61,7 @@ function recordsWithProperty(objects: HoloObjectDecl[], property: string): Objec
     .filter((object) => object.properties[property] != null);
 }
 
-function stringValue(value: HoloValue | undefined): string {
+function stringValue(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
 
@@ -63,7 +69,12 @@ function hasCoordinateFrameReference(record: ObjectRecord): boolean {
   return stringValue(record.properties.coordinate_frame_id).length > 0;
 }
 
-function pushIf(condition: boolean, failures: ReceiptFailure[], rule: string, message: string): void {
+function pushIf(
+  condition: boolean,
+  failures: ReceiptFailure[],
+  rule: string,
+  message: string
+): void {
   if (!condition) failures.push({ rule, message });
 }
 
@@ -87,27 +98,53 @@ export function buildApartmentTwinSourceReceipt(options: ReceiptOptions = {}) {
     });
   }
 
-  const coordinateFrames = recordsWithProperty(objects, 'coordinate_frame_id')
-    .filter((record) => record.name.toLowerCase().includes('coordinateframe'));
+  const coordinateFrames = recordsWithProperty(objects, 'coordinate_frame_id').filter((record) =>
+    record.name.toLowerCase().includes('coordinateframe')
+  );
   const zones = recordsWithProperty(objects, 'zone_id');
   const anchors = recordsWithProperty(objects, 'anchor_id');
   const surfaces = recordsWithProperty(objects, 'surface_id');
   const reconstructionRefs = recordsWithProperty(objects, 'reconstruction_asset');
   const fallbacks = recordsWithProperty(objects, 'fallback_mode');
 
-  pushIf(composition?.name === 'ApartmentTwin', failures, 'composition_name', 'composition name must be ApartmentTwin');
+  pushIf(
+    composition?.name === 'ApartmentTwin',
+    failures,
+    'composition_name',
+    'composition name must be ApartmentTwin'
+  );
   pushIf(
     stringValue(env.coordinate_frame) === 'apartment-local-floor-v0',
     failures,
     'environment_coordinate_frame',
-    'environment must declare coordinate_frame apartment-local-floor-v0',
+    'environment must declare coordinate_frame apartment-local-floor-v0'
   );
-  pushIf(coordinateFrames.length >= 1, failures, 'coordinate_frame_missing', 'at least one coordinate frame object is required');
+  pushIf(
+    coordinateFrames.length >= 1,
+    failures,
+    'coordinate_frame_missing',
+    'at least one coordinate frame object is required'
+  );
   pushIf(zones.length >= 3, failures, 'zones_missing', 'at least three room zones are required');
   pushIf(anchors.length >= 3, failures, 'anchors_missing', 'at least three anchors are required');
-  pushIf(surfaces.length >= 4, failures, 'surfaces_missing', 'at least four surface proxies are required');
-  pushIf(reconstructionRefs.length >= 1, failures, 'reconstruction_asset_missing', 'at least one reconstruction asset ref is required');
-  pushIf(fallbacks.length >= 1, failures, 'fallback_missing', 'at least one graceful fallback declaration is required');
+  pushIf(
+    surfaces.length >= 4,
+    failures,
+    'surfaces_missing',
+    'at least four surface proxies are required'
+  );
+  pushIf(
+    reconstructionRefs.length >= 1,
+    failures,
+    'reconstruction_asset_missing',
+    'at least one reconstruction asset ref is required'
+  );
+  pushIf(
+    fallbacks.length >= 1,
+    failures,
+    'fallback_missing',
+    'at least one graceful fallback declaration is required'
+  );
 
   for (const collection of [zones, anchors, surfaces, reconstructionRefs, fallbacks]) {
     for (const record of collection) {
@@ -115,7 +152,7 @@ export function buildApartmentTwinSourceReceipt(options: ReceiptOptions = {}) {
         hasCoordinateFrameReference(record),
         failures,
         'object_coordinate_frame_missing',
-        `${record.name} must reference coordinate_frame_id`,
+        `${record.name} must reference coordinate_frame_id`
       );
     }
   }
@@ -143,7 +180,8 @@ export function buildApartmentTwinSourceReceipt(options: ReceiptOptions = {}) {
     questWorld: {
       worldId: 'apartment-twin',
       uri: 'holoscript://world/apartment-twin',
-      generatedKotlin: 'apps/quest-universal-qr-scanner/android-mr/app/src/main/java/net/holoscript/qrscanner/World_apartment_twin.kt',
+      generatedKotlin:
+        'apps/quest-universal-qr-scanner/android-mr/app/src/main/java/net/holoscript/qrscanner/World_apartment_twin.kt',
     },
     contract: {
       coordinateFrame: stringValue(env.coordinate_frame),
@@ -209,7 +247,9 @@ function parseArgs(argv = process.argv.slice(2)) {
     else if (arg === '--json') args.json = true;
     else if (arg === '--check') args.check = true;
     else if (arg === '--help' || arg === '-h') {
-      console.log('Usage: tsx scripts/apartment-twin-source-receipt.mts [--check] [--json] [--out <receipt>] [--source <path>]');
+      console.log(
+        'Usage: tsx scripts/apartment-twin-source-receipt.mts [--check] [--json] [--out <receipt>] [--source <path>]'
+      );
       process.exit(0);
     } else {
       throw new Error(`Unknown option: ${arg}`);
@@ -230,7 +270,7 @@ function main(): void {
   if (args.json || receipt.status !== 'pass') console.log(JSON.stringify(receipt, null, 2));
   else {
     console.log(
-      `PASS apartment-twin-source: zones=${receipt.counts.zones} anchors=${receipt.counts.anchors} surfaces=${receipt.counts.surfaces} reconstructionRefs=${receipt.counts.reconstructionRefs}`,
+      `PASS apartment-twin-source: zones=${receipt.counts.zones} anchors=${receipt.counts.anchors} surfaces=${receipt.counts.surfaces} reconstructionRefs=${receipt.counts.reconstructionRefs}`
     );
   }
   if (args.check && receipt.status !== 'pass') process.exit(1);

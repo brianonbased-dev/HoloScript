@@ -1,0 +1,151 @@
+{
+  "schema": "holoscript.std.math-i32-abi-conformance.v2",
+  "generatedAt": "2026-07-27T00:20:45.057Z",
+  "status": "pass",
+  "sourceRevision": "92d51b2aee11ed6513953fb344aaf8684b6fe638",
+  "packages": {
+    "@holoscript/std": {
+      "version": "7.0.4",
+      "registryIntegrity": "sha512-iaTC6OozYutwibalAV5advOsmbGe7kaSDHS9dZi4bcJf+wi9mIDRuCQZn4Nj+Ofx2PV8ZgUkCshmPlrWkoNGpg=="
+    },
+    "@holoscript/uaal": {
+      "version": "8.6.1",
+      "registryIntegrity": "sha512-QglNH5QaFmm0oOczOD+wMzDD3mIiADCoWPdNr/8xR1l6BX3GKOyYXb39Ixt9qoreAJLZzqx9h5EM7QuJVyJUEQ==",
+      "publishedDependencies": {
+        "@holoscript/meaning": "^0.1.2"
+      }
+    }
+  },
+  "abis": [
+    {
+      "id": "hs.std.scalar.i32.v1",
+      "source": "packages/std/src/abi/scalar-v1.hs",
+      "sourceSha256": "f1653a8a366ec325fe17e363f6637384b64be34430b57fc9003caa2946101539",
+      "functions": [
+        "std_math_clamp_i32",
+        "std_math_sign_i32",
+        "std_math_step_i32"
+      ]
+    },
+    {
+      "id": "hs.std.vector.i32.v1",
+      "source": "packages/std/src/abi/vector-v1.hs",
+      "sourceSha256": "03f990139e8a94b665f874f2b8291bccdef34689dbb43560b8bbc5998db289c5",
+      "functions": [
+        "std_math_vec3_dot_i32",
+        "std_math_vec3_cross_x_i32",
+        "std_math_vec3_cross_y_i32",
+        "std_math_vec3_cross_z_i32",
+        "std_math_vec3_length_sq_i32"
+      ]
+    }
+  ],
+  "expectedDigest": 119,
+  "targets": {
+    "node": {
+      "runtime": "v24.15.0",
+      "implementation": "@holoscript/std/dist/math.js",
+      "result": 119
+    },
+    "browserWasm": {
+      "browserExecutable": "chrome.exe",
+      "browserVersion": "150.0.7871.182",
+      "compiler": "@holoscript/wasm web artifact",
+      "execution": "@holoscript/uaal browser ESM",
+      "instructionCount": 264,
+      "bytecodeSha256": "eb4af809a347d4b67106de078e2f16ea26d5444453ce155d1a18cdbda61fccb8",
+      "receiptHashMatches": true,
+      "replayValid": true,
+      "wasmBytes": 345153,
+      "wasmSha256": "4dc33724a8c0d5ee63304580bcfc5b86c2a2eedad90e23c317c06f4f097cf7ab",
+      "result": 119
+    },
+    "ownedMetal": {
+      "compiler": "holoscriptc",
+      "machineContract": "hs-machine-v33",
+      "objectBytes": 1478,
+      "objectSha256": "a13d7932dd89f7b1ee81fb425f9cd62199bf8abea2336e8382c218b6963d49e7",
+      "result": 119
+    }
+  },
+  "validation": {
+    "crossTargetCommand": "pnpm --filter @holoscript/std run test:abi",
+    "stdTests": {
+      "files": 25,
+      "tests": 1039,
+      "status": "pass"
+    },
+    "uaalTests": {
+      "files": 9,
+      "tests": 150,
+      "status": "pass"
+    },
+    "packageCatalog": {
+      "candidates": 19,
+      "nativeLibraries": 1,
+      "status": "pass"
+    },
+    "packageDryRun": {
+      "stdVectorSourceIncluded": true,
+      "uaalNodeCryptoImportAbsent": true,
+      "status": "pass"
+    },
+    "publicConsumer": {
+      "root": "C:/Holo",
+      "sourceRevision": "939d91c",
+      "exactPublicPackages": 7,
+      "localSourceUsed": false,
+      "publicInstall": "pass",
+      "registryRestart": "pass",
+      "onlineResolve": "pass",
+      "processGuardedOfflineReplay": "pass",
+      "publishedStdVectorSourceAndNodeSemantics": "pass",
+      "publishedUaalReceiptHashingAndReplay": "pass",
+      "adapterTests": {
+        "passed": 41,
+        "failed": 0
+      }
+    },
+    "hardwareAudit": {
+      "command": "pnpm check:codex-hardware",
+      "status": "pass",
+      "wasmSimd": "available",
+      "chromeVersion": "150.0.7871.182"
+    },
+    "mcpValidation": {
+      "localStatus": "scope-denied",
+      "localReason": "sovereign loopback granted tools:codebase while parse_hs requires tools:read",
+      "hostedGenericParserStatus": "not-authoritative-for-systems-function-syntax",
+      "authoritativeValidation": "browser-WASM compiler and owned-metal holoscriptc both compiled and executed the source"
+    }
+  },
+  "boundaries": {
+    "provesScalarI32Math": [
+      "clamp",
+      "sign",
+      "step"
+    ],
+    "provesVectorI32Math": [
+      "vec3.dot",
+      "vec3.cross",
+      "vec3.lengthSquared"
+    ],
+    "provesBrowserWasmCompilerAndUaalExecution": true,
+    "provesBrowserNativeReceiptHashing": true,
+    "provesBrowserReceiptReplay": true,
+    "provesOwnedMetalNativeExecutable": true,
+    "provesPublicRegistryArtifacts": true,
+    "provesFloatingPointMath": false,
+    "provesAggregateVectorCallingConvention": false,
+    "provesQuaternionMath": false,
+    "provesCollectionsRuntimeParity": false,
+    "provesOsAirGap": false,
+    "provesGeneralStableSystemsAbi": false
+  },
+  "openGaps": [
+    "compiler-native MachineType currently exposes Bool, I32, and I64 but not F32 or F64",
+    "compiler-wasm UAAL lowering currently exposes the hs.i32.binary.v1 arithmetic host ABI",
+    "@holoscript/engine@6.1.4 declares the older @holoscript/uaal@8.0.6 peer exactly; C:/Holo consumption passes with 8.6.1 but pnpm reports the peer mismatch",
+    "immutable collections still lack executable cross-target ABI parity"
+  ]
+}

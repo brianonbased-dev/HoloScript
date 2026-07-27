@@ -1,5 +1,4 @@
-import { HoloScriptPlusParser } from '@holoscript/core';
-import { ASTNode } from '@holoscript/platform';
+import { HoloScriptPlusParser, type HSPlusNode } from '@holoscript/core';
 
 export class V43Generator {
   private endpoint: string;
@@ -48,7 +47,7 @@ export class V43Generator {
   /**
    * Synthesizes prompt into dynamically parsable AST Nodes ready for WebGL injection.
    */
-  async generateAST(prompt: string): Promise<ASTNode[]> {
+  async generateAST(prompt: string): Promise<HSPlusNode[]> {
     const code = await this.generateHoloScript(prompt);
     const parser = new HoloScriptPlusParser();
     const result = parser.parse(code);

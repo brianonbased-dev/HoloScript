@@ -8,11 +8,13 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { join, resolve } from 'path';
+import { dirname, join, resolve } from 'path';
 import { EdgeCompiler } from '../packages/core/src/compiler/EdgeCompiler';
 import { createTestCompilerToken } from '../packages/core/src/compiler/CompilerBase';
-import { HoloScriptPlusParser } from '../packages/core/src/parser/HoloScriptPlusParser';
-import type { HoloComposition, HoloObjectTrait } from '../packages/core/src/parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectTrait,
+} from '../packages/core/src/parser/HoloCompositionTypes';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const SRC = join(ROOT, 'compositions', 'jetson-orin-brain.hsplus');
@@ -21,7 +23,11 @@ const OUT_DIR = join(ROOT, '.bench-logs', 'jetson-bundle');
 const raw = readFileSync(SRC, 'utf-8');
 
 // Strip the preamble text before #version — the parser expects HoloScript source
-const hsSource = raw.slice(raw.indexOf('#version'));
+const versionOffset = raw.lastIndexOf('\n#version');
+if (versionOffset < 0) {
+  throw new Error(`Unable to find the HoloScript source marker in ${SRC}`);
+}
+const hsSource = raw.slice(versionOffset + 1);
 
 // Extract trait names from the brain-format `traits [ "name1", "name2" ]` block.
 // HoloCompositionParser handles @DecoratorName style but silently skips the
@@ -37,18 +43,40 @@ function extractBrainTraits(src: string): string[] {
 
 const brainTraitNames = extractBrainTraits(hsSource);
 
-const parser = new HoloScriptPlusParser();
-const composition = parser.parse(hsSource) as HoloComposition;
-
 // Inject brain traits as HoloObjectTrait objects so EdgeCompiler.collectTraitNames() sees them
-if (brainTraitNames.length > 0) {
-  const injected: HoloObjectTrait[] = brainTraitNames.map((name) => ({
-    type: 'ObjectTrait' as const,
-    name,
-    config: {},
-    args: [],
-  }));
-  composition.traits = [...(composition.traits ?? []), ...injected];
+const injected: HoloObjectTrait[] = brainTraitNames.map((name) => ({
+  type: 'ObjectTrait' as const,
+  name,
+  config: {},
+  args: [],
+}));
+
+const composition: HoloComposition = {
+  type: 'Composition',
+  name: 'jetson-orin-brain',
+  templates: [],
+  objects: [],
+  spatialGroups: [],
+  lights: [],
+  imports: [],
+  timelines: [],
+  audio: [],
+  zones: [],
+  transitions: [],
+  conditionals: [],
+  iterators: [],
+  npcs: [],
+  quests: [],
+  abilities: [],
+  dialogues: [],
+  stateMachines: [],
+  achievements: [],
+  talentTrees: [],
+  shapes: [],
+  traits: injected,
+};
+
+if (injected.length > 0) {
   console.log(`Injected ${injected.length} brain traits: ${brainTraitNames.join(', ')}`);
 }
 
@@ -78,6 +106,7 @@ console.log('Files:');
 
 for (const file of bundle.files) {
   const dest = join(OUT_DIR, file.path);
+  mkdirSync(dirname(dest), { recursive: true });
   writeFileSync(dest, file.content, 'utf-8');
   console.log(`  wrote ${file.path} (${file.content.length} chars)`);
 }

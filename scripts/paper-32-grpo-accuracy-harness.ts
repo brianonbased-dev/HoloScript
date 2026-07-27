@@ -19,7 +19,11 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { HSPlusNode, TraitContext, TraitEvent } from '../packages/core/src/traits/TraitTypes.js';
+import type {
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+} from '../packages/core/src/traits/TraitTypes.js';
 import {
   COORDINATION_SYNC_PILLAR,
   ECONOMICS_BUDGET_PILLAR,
@@ -30,8 +34,14 @@ import {
   type Pillar,
   type PillarContext,
 } from '../packages/core/src/traits/pillar/PillarRegistry.js';
-import { sliceEmitterHandler, type SliceEmitterConfig } from '../packages/core/src/traits/pillar/SliceEmitter.js';
-import type { BrainCoord, PillarSlice } from '../packages/core/src/traits/pillar/SemanticCollaborationContract.js';
+import {
+  sliceEmitterHandler,
+  type SliceEmitterConfig,
+} from '../packages/core/src/traits/pillar/SliceEmitter.js';
+import type {
+  BrainCoord,
+  PillarSlice,
+} from '../packages/core/src/traits/pillar/SemanticCollaborationContract.js';
 import { createLatentIntegrityLayer } from '../packages/core/src/traits/pillar/LatentIntegrityLayer.js';
 import {
   uAALComposedAgentHandler,
@@ -86,7 +96,14 @@ const PILLARS: Pillar[] = [
   ECONOMICS_BUDGET_PILLAR,
   STORAGE_CAPACITY_PILLAR,
 ];
-const VARIANTS = ['valid', 'valid', 'missing_signature', 'high_tolerance', 'hash_mismatch', 'latent_anomaly'];
+const VARIANTS = [
+  'valid',
+  'valid',
+  'missing_signature',
+  'high_tolerance',
+  'hash_mismatch',
+  'latent_anomaly',
+];
 
 async function main(): Promise<void> {
   const cfg = parseArgs();
@@ -99,7 +116,10 @@ async function main(): Promise<void> {
   const sampleCount = Math.min(cfg.samples, sourceReceipts.length);
   const uaalSmoke = runUaalSmoke(Math.min(64, sampleCount));
   const samples = generateSamples(sourceReceipts.slice(0, sampleCount), cfg.seed);
-  const splitIndex = Math.max(1, Math.min(samples.length - 1, Math.floor(samples.length * cfg.trainRatio)));
+  const splitIndex = Math.max(
+    1,
+    Math.min(samples.length - 1, Math.floor(samples.length * cfg.trainRatio))
+  );
   const train = samples.slice(0, splitIndex);
   const test = samples.slice(splitIndex);
 
@@ -180,7 +200,8 @@ async function main(): Promise<void> {
       sourceReceiptCount: sourceReceipts.length,
       outputPath: relative(REPO_ROOT, outPath).replace(/\\/g, '/'),
       otsStatus: 'not_anchored_by_harness',
-      otsReason: 'anchor_ots.py/CLI is not part of this HoloScript harness; do not treat the JSON as Bitcoin-anchored until a real .ots sidecar exists.',
+      otsReason:
+        'anchor_ots.py/CLI is not part of this HoloScript harness; do not treat the JSON as Bitcoin-anchored until a real .ots sidecar exists.',
     },
   };
 
@@ -237,7 +258,10 @@ async function collectSourceReceipts(): Promise<SourceReceipt[]> {
   for (const root of roots) {
     if (existsSync(root)) await walkReceiptFiles(root, paths);
   }
-  const fixture = resolve(REPO_ROOT, 'packages/engine/src/simulation/__tests__/fixtures/world-model-receipt.json');
+  const fixture = resolve(
+    REPO_ROOT,
+    'packages/engine/src/simulation/__tests__/fixtures/world-model-receipt.json'
+  );
   if (existsSync(fixture)) paths.unshift(fixture);
   paths.sort((a, b) => relative(REPO_ROOT, a).localeCompare(relative(REPO_ROOT, b)));
 
@@ -286,7 +310,7 @@ function runUaalSmoke(ticks: number): Record<string, unknown> {
   uAALComposedAgentHandler.onDetach?.(node, cfg, ctx);
   const trainingSlices = events
     .filter((event) => event.name === 'emitter:training_slice')
-    .map((event) => ((event.payload as { slice?: { slice?: PillarSlice } }).slice?.slice))
+    .map((event) => (event.payload as { slice?: { slice?: PillarSlice } }).slice?.slice)
     .filter(Boolean) as PillarSlice[];
   const unique = new Set(trainingSlices.map(fingerprintSlice));
   return {
@@ -312,7 +336,8 @@ function generateSamples(sources: SourceReceipt[], seed: number): Sample[] {
   const emittedSlices: Array<{ slice: PillarSlice; brainCoord: BrainCoord }> = [];
   const emitterCtx = makeCtx((name, payload) => {
     if (name !== 'emitter:training_slice') return;
-    const training = (payload as { slice?: { slice?: PillarSlice; brain_coord?: BrainCoord } }).slice;
+    const training = (payload as { slice?: { slice?: PillarSlice; brain_coord?: BrainCoord } })
+      .slice;
     if (training?.slice && training.brain_coord) {
       emittedSlices.push({ slice: training.slice, brainCoord: training.brain_coord });
     }
@@ -379,7 +404,9 @@ function generateSamples(sources: SourceReceipt[], seed: number): Sample[] {
   sliceEmitterHandler.onDetach?.(emitterNode, emitterConfig, emitterCtx);
 
   if (emittedSlices.length !== samples.length) {
-    throw new Error(`SliceEmitter emitted ${emittedSlices.length} slices for ${samples.length} samples.`);
+    throw new Error(
+      `SliceEmitter emitted ${emittedSlices.length} slices for ${samples.length} samples.`
+    );
   }
   return samples;
 }
@@ -437,29 +464,43 @@ function applyVariant(receipt: Record<string, unknown>, variant: string): Record
   } else if (variant === 'high_tolerance') {
     clone.tolerance = '0.2';
   } else if (variant === 'hash_mismatch') {
-    if (typeof clone.ground_truth_hash === 'string') clone.ground_truth_hash = `${clone.ground_truth_hash}-corrupt`;
+    if (typeof clone.ground_truth_hash === 'string')
+      clone.ground_truth_hash = `${clone.ground_truth_hash}-corrupt`;
     if (typeof clone.receiptHash === 'string') clone.receiptHash = `${clone.receiptHash}-corrupt`;
   }
   return clone;
 }
 
-function extractReceiptFeatures(receipt: Record<string, unknown>, variant: string): Record<string, string | number | boolean> {
+function extractReceiptFeatures(
+  receipt: Record<string, unknown>,
+  variant: string
+): Record<string, string | number | boolean> {
   const tolerance = Number.parseFloat(String(receipt.tolerance ?? '0.03'));
-  const hasWmrHash = typeof receipt.receiptHash === 'string' && /^wmr-(sha-)?[a-z0-9-]+$/i.test(receipt.receiptHash);
-  const hasCorpusSignature = typeof receipt.signature === 'string' && /^sig:[a-f0-9]{16,}$/i.test(receipt.signature);
+  const hasWmrHash =
+    typeof receipt.receiptHash === 'string' && /^wmr-(sha-)?[a-z0-9-]+$/i.test(receipt.receiptHash);
+  const hasCorpusSignature =
+    typeof receipt.signature === 'string' && /^sig:[a-f0-9]{16,}$/i.test(receipt.signature);
   const hasGroundTruthHash =
-    typeof receipt.ground_truth_hash === 'string' && /^sha256:[a-z0-9]{8,}$/i.test(receipt.ground_truth_hash);
+    typeof receipt.ground_truth_hash === 'string' &&
+    /^sha256:[a-z0-9]{8,}$/i.test(receipt.ground_truth_hash);
   const deltaError = Number.parseFloat(String(receipt.delta_error ?? '0'));
-  const confidence = receipt.confidence_bound as { lo?: number; hi?: number; coverage?: number } | undefined;
+  const confidence = receipt.confidence_bound as
+    | { lo?: number; hi?: number; coverage?: number }
+    | undefined;
   return {
     sourceSchema: hasWmrHash ? 'world_model_receipt' : 'paper26_minimal_receipt',
     hasWmrHash,
     hasCorpusSignature,
     hasGroundTruthHash,
     toleranceOk: Number.isFinite(tolerance) && tolerance <= 0.03,
-    toleranceBin: Number.isFinite(tolerance) ? (tolerance <= 0.03 ? 'le_003' : 'gt_003') : 'missing',
+    toleranceBin: Number.isFinite(tolerance)
+      ? tolerance <= 0.03
+        ? 'le_003'
+        : 'gt_003'
+      : 'missing',
     deltaErrorBin: Number.isFinite(deltaError) && deltaError <= 0.03 ? 'low' : 'high_or_missing',
-    confidenceCoverageOk: typeof confidence?.coverage === 'number' ? confidence.coverage >= 0.9 : true,
+    confidenceCoverageOk:
+      typeof confidence?.coverage === 'number' ? confidence.coverage >= 0.9 : true,
     variant,
   };
 }
@@ -478,7 +519,13 @@ function verifyAdmission(
 
 function promptFor(source: SourceReceipt): string {
   const receipt = source.receipt;
-  const solver = String(receipt.solver ?? receipt.solver_ground_truth?.['solverType'] ?? 'unknown-solver');
+  const solverGroundTruth =
+    receipt.solver_ground_truth !== null &&
+    typeof receipt.solver_ground_truth === 'object' &&
+    !Array.isArray(receipt.solver_ground_truth)
+      ? (receipt.solver_ground_truth as Record<string, unknown>)
+      : undefined;
+  const solver = String(receipt.solver ?? solverGroundTruth?.solverType ?? 'unknown-solver');
   return [
     'Decide whether this HoloScript world-model training sample should be admitted for GRPO verifier training.',
     'Corpus identity and episode id are redacted to avoid split leakage.',
@@ -499,7 +546,9 @@ function treatmentFeatures(sample: Sample): string[] {
   features.push(`pillar:${sample.slice.pillar_id}`);
   features.push(`p1:${quantize(sample.slice.pos_1)}`);
   features.push(`p2:${quantize(sample.slice.pos_2)}`);
-  features.push(`brain_x:${sample.brainCoord.mni_x > 0 ? 'left' : sample.brainCoord.mni_x < 0 ? 'right' : 'mid'}`);
+  features.push(
+    `brain_x:${sample.brainCoord.mni_x > 0 ? 'left' : sample.brainCoord.mni_x < 0 ? 'right' : 'mid'}`
+  );
   for (const [key, value] of Object.entries(sample.receiptFeatures)) {
     if (key === 'variant') continue;
     features.push(`receipt:${key}=${value}`);
@@ -551,7 +600,11 @@ function trainAndEvaluate(
   return metrics(predictions);
 }
 
-function uniqueFeatureIds(features: string[], vocab: Map<string, number>, update: boolean): number[] {
+function uniqueFeatureIds(
+  features: string[],
+  vocab: Map<string, number>,
+  update: boolean
+): number[] {
   const ids = new Set<number>();
   for (const feature of features) {
     let id = vocab.get(feature);

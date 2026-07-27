@@ -4,13 +4,18 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HoloCompositionParser } from '../packages/core/src/parser/HoloCompositionParser';
-import type { HoloComposition, HoloObjectDecl, HoloValue } from '../packages/core/src/parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloValue,
+} from '../packages/core/src/parser/HoloCompositionTypes';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..');
 
 export const TINY_GAME_RECEIPT_SCHEMA = 'holoscript.tiny-game-receipt.v0.1.0';
-export const DEFAULT_GAME_SOURCE = 'apps/quest-universal-qr-scanner/worlds/apartment-signal-hunt.holo';
+export const DEFAULT_GAME_SOURCE =
+  'apps/quest-universal-qr-scanner/worlds/apartment-signal-hunt.holo';
 export const DEFAULT_TWIN_SOURCE = 'apps/quest-universal-qr-scanner/worlds/apartment-twin.holo';
 
 type Failure = { rule: string; message: string };
@@ -66,17 +71,17 @@ function props(object: HoloObjectDecl): Record<string, HoloValue> {
   return out;
 }
 
-function env(composition: HoloComposition | null): Record<string, HoloValue> {
-  const out: Record<string, HoloValue> = {};
+function env(composition: HoloComposition | null): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
   for (const prop of composition?.environment?.properties ?? []) out[prop.key] = prop.value;
   return out;
 }
 
-function stringValue(value: HoloValue | undefined): string {
+function stringValue(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
 
-function numberValue(value: HoloValue | undefined, fallback = 0): number {
+function numberValue(value: unknown, fallback = 0): number {
   return typeof value === 'number' ? value : fallback;
 }
 
@@ -102,41 +107,115 @@ export function buildTinyGameReceipt(options: Options = {}) {
   const twin = parseSource(readSource(root, twinPath, options.twinText));
   const failures: Failure[] = [];
 
-  if (!game.success) failures.push({ rule: 'game_parse_failed', message: `${gamePath} did not parse` });
-  if (!twin.success) failures.push({ rule: 'twin_parse_failed', message: `${twinPath} did not parse` });
+  if (!game.success)
+    failures.push({ rule: 'game_parse_failed', message: `${gamePath} did not parse` });
+  if (!twin.success)
+    failures.push({ rule: 'twin_parse_failed', message: `${twinPath} did not parse` });
 
   const gameEnv = env(game.ast);
   const twinEnv = env(twin.ast);
   const beacons = recordsWith(game.ast, 'beacon_id').sort(
-    (a, b) => numberValue(a.properties.sequence_index) - numberValue(b.properties.sequence_index),
+    (a, b) => numberValue(a.properties.sequence_index) - numberValue(b.properties.sequence_index)
   );
   const sequenceRules = recordsWith(game.ast, 'ordered_beacons');
   const timers = recordsWith(game.ast, 'time_limit_seconds');
   const receiptRules = recordsWith(game.ast, 'receipt_schema');
-  const twinAnchors = new Map(recordsWith(twin.ast, 'anchor_id').map((record) => [stringValue(record.properties.anchor_id), record]));
-  const twinZones = new Map(recordsWith(twin.ast, 'zone_id').map((record) => [stringValue(record.properties.zone_id), record]));
+  const twinAnchors = new Map(
+    recordsWith(twin.ast, 'anchor_id').map((record) => [
+      stringValue(record.properties.anchor_id),
+      record,
+    ])
+  );
+  const twinZones = new Map(
+    recordsWith(twin.ast, 'zone_id').map((record) => [
+      stringValue(record.properties.zone_id),
+      record,
+    ])
+  );
 
-  pushIf(game.ast?.name === 'ApartmentSignalHunt', failures, 'game_name', 'game composition must be ApartmentSignalHunt');
-  pushIf(twin.ast?.name === 'ApartmentTwin', failures, 'twin_name', 'twin composition must be ApartmentTwin');
-  pushIf(stringValue(gameEnv.parent_twin) === 'apartment-twin', failures, 'parent_twin_missing', 'game must target apartment-twin');
-  pushIf(stringValue(twinEnv.coordinate_frame) === 'apartment-local-floor-v0', failures, 'twin_coordinate_frame_missing', 'twin coordinate frame missing');
-  pushIf(stringValue(gameEnv.objective).length >= 20, failures, 'objective_missing', 'readable objective required');
-  pushIf(beacons.length >= 3, failures, 'beacons_missing', 'at least three ordered beacons required');
-  pushIf(sequenceRules.length >= 1, failures, 'sequence_rule_missing', 'ordered sequence rule required');
+  pushIf(
+    game.ast?.name === 'ApartmentSignalHunt',
+    failures,
+    'game_name',
+    'game composition must be ApartmentSignalHunt'
+  );
+  pushIf(
+    twin.ast?.name === 'ApartmentTwin',
+    failures,
+    'twin_name',
+    'twin composition must be ApartmentTwin'
+  );
+  pushIf(
+    stringValue(gameEnv.parent_twin) === 'apartment-twin',
+    failures,
+    'parent_twin_missing',
+    'game must target apartment-twin'
+  );
+  pushIf(
+    stringValue(twinEnv.coordinate_frame) === 'apartment-local-floor-v0',
+    failures,
+    'twin_coordinate_frame_missing',
+    'twin coordinate frame missing'
+  );
+  pushIf(
+    stringValue(gameEnv.objective).length >= 20,
+    failures,
+    'objective_missing',
+    'readable objective required'
+  );
+  pushIf(
+    beacons.length >= 3,
+    failures,
+    'beacons_missing',
+    'at least three ordered beacons required'
+  );
+  pushIf(
+    sequenceRules.length >= 1,
+    failures,
+    'sequence_rule_missing',
+    'ordered sequence rule required'
+  );
   pushIf(timers.length >= 1, failures, 'timer_rule_missing', 'timer rule required');
-  pushIf(receiptRules.some((rule) => rule.properties.receipt_schema === 'TinyGameReceipt/v0.1.0'), failures, 'completion_receipt_missing', 'TinyGameReceipt rule required');
+  pushIf(
+    receiptRules.some((rule) => rule.properties.receipt_schema === 'TinyGameReceipt/v0.1.0'),
+    failures,
+    'completion_receipt_missing',
+    'TinyGameReceipt rule required'
+  );
 
   const beaconIds = new Set(beacons.map((beacon) => stringValue(beacon.properties.beacon_id)));
-  const orderedBeaconIds = sequenceRules.flatMap((rule) => arrayValue(rule.properties.ordered_beacons).map(String));
+  const orderedBeaconIds = sequenceRules.flatMap((rule) =>
+    arrayValue(rule.properties.ordered_beacons).map(String)
+  );
   for (const expected of orderedBeaconIds) {
-    pushIf(beaconIds.has(expected), failures, 'sequence_beacon_missing', `ordered beacon ${expected} has no beacon object`);
+    pushIf(
+      beaconIds.has(expected),
+      failures,
+      'sequence_beacon_missing',
+      `ordered beacon ${expected} has no beacon object`
+    );
   }
   for (const beacon of beacons) {
     const anchorId = stringValue(beacon.properties.target_anchor_id);
     const zoneId = stringValue(beacon.properties.target_zone_id);
-    pushIf(twinAnchors.has(anchorId), failures, 'beacon_anchor_missing', `${beacon.name} target anchor ${anchorId} missing from twin`);
-    pushIf(twinZones.has(zoneId), failures, 'beacon_zone_missing', `${beacon.name} target zone ${zoneId} missing from twin`);
-    pushIf(stringValue(beacon.properties.feedback).length > 0, failures, 'beacon_feedback_missing', `${beacon.name} needs feedback`);
+    pushIf(
+      twinAnchors.has(anchorId),
+      failures,
+      'beacon_anchor_missing',
+      `${beacon.name} target anchor ${anchorId} missing from twin`
+    );
+    pushIf(
+      twinZones.has(zoneId),
+      failures,
+      'beacon_zone_missing',
+      `${beacon.name} target zone ${zoneId} missing from twin`
+    );
+    pushIf(
+      stringValue(beacon.properties.feedback).length > 0,
+      failures,
+      'beacon_feedback_missing',
+      `${beacon.name} needs feedback`
+    );
   }
 
   const score = beacons.reduce((sum, beacon) => sum + numberValue(beacon.properties.points), 0);
@@ -168,7 +247,8 @@ export function buildTinyGameReceipt(options: Options = {}) {
     questWorld: {
       worldId: 'apartment-signal-hunt',
       uri: 'holoscript://world/apartment-signal-hunt',
-      generatedKotlin: 'apps/quest-universal-qr-scanner/android-mr/app/src/main/java/net/holoscript/qrscanner/World_apartment_signal_hunt.kt',
+      generatedKotlin:
+        'apps/quest-universal-qr-scanner/android-mr/app/src/main/java/net/holoscript/qrscanner/World_apartment_signal_hunt.kt',
     },
     game: {
       id: stringValue(gameEnv.game_id),
@@ -233,7 +313,9 @@ function parseArgs(argv = process.argv.slice(2)) {
     else if (arg === '--json') args.json = true;
     else if (arg === '--check') args.check = true;
     else if (arg === '--help' || arg === '-h') {
-      console.log('Usage: tsx scripts/apartment-tiny-game-receipt.mts [--check] [--json] [--out <receipt>] [--game <path>] [--twin <path>]');
+      console.log(
+        'Usage: tsx scripts/apartment-tiny-game-receipt.mts [--check] [--json] [--out <receipt>] [--game <path>] [--twin <path>]'
+      );
       process.exit(0);
     } else {
       throw new Error(`Unknown option: ${arg}`);
@@ -253,7 +335,9 @@ function main(): void {
   if (args.out) writeJson(resolve(args.out), receipt);
   if (args.json || receipt.status !== 'pass') console.log(JSON.stringify(receipt, null, 2));
   else {
-    console.log(`PASS apartment-tiny-game: beacons=${receipt.counts.beacons} score=${receipt.simulatedRun.score}`);
+    console.log(
+      `PASS apartment-tiny-game: beacons=${receipt.counts.beacons} score=${receipt.simulatedRun.score}`
+    );
   }
   if (args.check && receipt.status !== 'pass') process.exit(1);
 }

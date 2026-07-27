@@ -7355,6 +7355,7 @@ async function prepareDurableRefreshCheckpoint(
     plan.scanPolicy
   );
   const coverage = buildGraphCoverageStatusForRoots(plan.effectiveRootDirs, 0, plan.scanPolicy);
+  const writerLease = absorbJobs.get(plan.jobId)?.writerLease;
   const checkpoint = prepareAbsorbRefreshCheckpoint({
     rootDir: plan.primaryRootDir,
     scanPlan: scanPlan as ScanPlan,
@@ -7365,6 +7366,12 @@ async function prepareDurableRefreshCheckpoint(
     workspaceCandidateFiles: coverage.selectedCandidateCount ?? undefined,
     resumeToken: plan.resumeToken,
     reuseLatest: !plan.resumeToken,
+    ...(writerLease && {
+      writerLeaseProof: {
+        leaseFile: writerLease.leaseFile,
+        token: writerLease.record.token,
+      },
+    }),
   });
   plan.preparedScanPlan = scanPlan;
   plan.targetGitCommitHash = targetGitCommitHash;

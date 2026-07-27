@@ -53,6 +53,9 @@
 //! with explicit relative imports, named exports, aliases, cycle rejection, and isolated symbols.
 //! `hs-machine-v34` adds inline, tagged `Uncertain<T>` scalar fields, canonical meaning-gap reason
 //! codes, explicit `known(...)` / `unknown(...)` construction, and fail-closed `??`/honesty reads.
+//! `hs-machine-v35` adds scalar IEEE-754 `f64` parameters, returns, locals, finite literals,
+//! arithmetic, comparisons, and direct calls while keeping process entry results integral.
+//! `hs-machine-v36` composes the v33 deterministic module loader with v35 scalar f64 lowering.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
 
 mod project;
@@ -65,7 +68,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use cranelift::codegen::ir::{
-    condcodes::IntCC, types, AbiParam, InstBuilder, MemFlags, StackSlot, StackSlotData,
+    condcodes::{FloatCC, IntCC},
+    types, AbiParam, InstBuilder, MemFlags, StackSlot, StackSlotData,
     StackSlotKind, TrapCode, Type, UserFuncName, Value,
 };
 use cranelift::codegen::settings;
@@ -113,6 +117,8 @@ pub const COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT: &str = "hs-machine-v31"
 pub const CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT: &str = "hs-machine-v32";
 pub const MULTI_FILE_MODULE_MACHINE_CONTRACT: &str = "hs-machine-v33";
 pub const UNCERTAIN_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v34";
+pub const FLOAT64_MACHINE_CONTRACT: &str = "hs-machine-v35";
+pub const FLOAT64_MODULE_MACHINE_CONTRACT: &str = "hs-machine-v36";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const NATIVE_MEANING_GAP_REASON_ABI_VERSION: u32 = 1;
@@ -325,7 +331,9 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
-    let machine_contract = if has_uncertain_aggregate_machine_metadata(&ast) {
+    let machine_contract = if has_f64_machine_metadata(&ast) {
+        FLOAT64_MACHINE_CONTRACT
+    } else if has_uncertain_aggregate_machine_metadata(&ast) {
         UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
     } else if has_conditional_borrow_summary_machine_metadata(&ast) {
         CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
@@ -400,7 +408,12 @@ fn compile_unit(
 }
 
 fn compile_ast_unit(ast: Ast) -> Result<CompiledObject, NativeCompileError> {
-    if has_uncertain_aggregate_machine_metadata(&ast) {
+    if has_f64_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, FLOAT64_MACHINE_CONTRACT, true)?,
+            machine_contract: FLOAT64_MACHINE_CONTRACT,
+        })
+    } else if has_uncertain_aggregate_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, UNCERTAIN_AGGREGATE_MACHINE_CONTRACT, true)?,
             machine_contract: UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
@@ -690,8 +703,11 @@ fn compile_project_unit(
 ) -> Result<CompiledObject, NativeCompileError> {
     let ast = project::load_project_ast(entry)?;
     let carries_uncertainty = has_uncertain_aggregate_machine_metadata(&ast);
+    let carries_f64 = has_f64_machine_metadata(&ast);
     let mut compiled = compile_ast_unit(ast)?;
-    if !carries_uncertainty {
+    if carries_f64 {
+        compiled.machine_contract = FLOAT64_MODULE_MACHINE_CONTRACT;
+    } else if !carries_uncertainty {
         compiled.machine_contract = MULTI_FILE_MODULE_MACHINE_CONTRACT;
     }
     Ok(compiled)
@@ -838,6 +854,27 @@ fn has_typed_machine_metadata(ast: &Ast) -> bool {
                 matches!(
                     statement,
                     AstNode::VariableDeclaration(local) if local.type_annotation.is_some()
+                )
+            })
+    })
+}
+
+fn has_f64_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| {
+        let AstNode::Function(function) = node else {
+            return false;
+        };
+        function.return_type.as_deref() == Some("f64")
+            || function
+                .param_types
+                .iter()
+                .flatten()
+                .any(|annotation| annotation == "f64")
+            || function.body.iter().any(|statement| {
+                matches!(
+                    statement,
+                    AstNode::VariableDeclaration(local)
+                        if local.type_annotation.as_deref() == Some("f64")
                 )
             })
     })
@@ -2455,6 +2492,7 @@ enum MachineType {
     Bool,
     I32,
     I64,
+    F64,
 }
 
 impl MachineType {
@@ -2467,8 +2505,11 @@ impl MachineType {
             "bool" if bool_enabled(machine_contract) => Ok(Self::Bool),
             "i32" => Ok(Self::I32),
             "i64" => Ok(Self::I64),
+            "f64" if f64_enabled(machine_contract) => Ok(Self::F64),
             other => {
-                let supported = if bool_enabled(machine_contract) {
+                let supported = if f64_enabled(machine_contract) {
+                    "`bool`, `i32`, `i64`, and `f64`"
+                } else if bool_enabled(machine_contract) {
                     "`bool`, `i32`, and `i64`"
                 } else {
                     "`i32` and `i64`"
@@ -2485,6 +2526,7 @@ impl MachineType {
             Self::Bool => types::I8,
             Self::I32 => types::I32,
             Self::I64 => types::I64,
+            Self::F64 => types::F64,
         }
     }
 
@@ -2493,6 +2535,7 @@ impl MachineType {
             Self::Bool => "bool",
             Self::I32 => "i32",
             Self::I64 => "i64",
+            Self::F64 => "f64",
         }
     }
 
@@ -2501,6 +2544,7 @@ impl MachineType {
             Self::Bool => 1,
             Self::I32 => 4,
             Self::I64 => 8,
+            Self::F64 => 8,
         }
     }
 
@@ -2509,6 +2553,7 @@ impl MachineType {
             Self::Bool => 0,
             Self::I32 => 2,
             Self::I64 => 3,
+            Self::F64 => 3,
         }
     }
 }
@@ -2516,7 +2561,8 @@ impl MachineType {
 fn latest_reference_contract(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
+        FLOAT64_MACHINE_CONTRACT
+            | UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_SUBOBJECT_RETURN_MACHINE_CONTRACT
             | BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_BUFFER_ELEMENT_RETURN_MACHINE_CONTRACT
@@ -2525,6 +2571,10 @@ fn latest_reference_contract(machine_contract: &str) -> bool {
             | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
             | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
     )
+}
+
+fn f64_enabled(machine_contract: &str) -> bool {
+    machine_contract == FLOAT64_MACHINE_CONTRACT
 }
 
 fn bool_enabled(machine_contract: &str) -> bool {
@@ -5012,6 +5062,9 @@ fn lower_typed_ast_to_object(
             MachineResult::Scalar(MachineType::Bool) => builder.ins().uextend(types::I32, value),
             MachineResult::Scalar(MachineType::I32) => value,
             MachineResult::Scalar(MachineType::I64) => builder.ins().ireduce(types::I32, value),
+            MachineResult::Scalar(MachineType::F64) => {
+                unreachable!("typed main cannot return a floating-point process exit code")
+            }
             MachineResult::Owned(_)
             | MachineResult::Aggregate { .. }
             | MachineResult::AggregateReference { .. }
@@ -16995,6 +17048,24 @@ fn lower_typed_expression(
 ) -> Result<TypedValue, NativeCompileError> {
     let value = match node {
         AstNode::Number(number) => {
+            if expected == MachineType::F64 {
+                let value = number.raw.parse::<f64>().map_err(|_| {
+                    NativeCompileError::new(format!(
+                        "{machine_contract} {context} requires a finite `f64` literal; found `{}`",
+                        number.raw
+                    ))
+                })?;
+                if !value.is_finite() {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} {context} requires a finite `f64` literal; found `{}`",
+                        number.raw
+                    )));
+                }
+                return Ok(TypedValue {
+                    value: builder.ins().f64const(value),
+                    machine_type: MachineType::F64,
+                });
+            }
             let value = match expected {
                 MachineType::Bool => {
                     return Err(NativeCompileError::new(format!(
@@ -17014,6 +17085,7 @@ fn lower_typed_expression(
                         number.raw
                     ))
                 })?,
+                MachineType::F64 => unreachable!("f64 literals return above"),
             };
             TypedValue {
                 value: builder.ins().iconst(expected.ir_type(), value),
@@ -17089,7 +17161,11 @@ fn lower_typed_expression(
                 memory_enabled,
             )?;
             TypedValue {
-                value: builder.ins().ineg(argument.value),
+                value: if expected == MachineType::F64 {
+                    builder.ins().fneg(argument.value)
+                } else {
+                    builder.ins().ineg(argument.value)
+                },
                 machine_type: expected,
             }
         }
@@ -17223,13 +17299,18 @@ fn lower_typed_expression(
                 machine_contract,
                 memory_enabled,
             )?;
-            let value = match binary.operator.as_str() {
-                "+" => builder.ins().iadd(left.value, right.value),
-                "-" => builder.ins().isub(left.value, right.value),
-                "*" => builder.ins().imul(left.value, right.value),
-                operator => {
+            let value = match (expected, binary.operator.as_str()) {
+                (MachineType::F64, "+") => builder.ins().fadd(left.value, right.value),
+                (MachineType::F64, "-") => builder.ins().fsub(left.value, right.value),
+                (MachineType::F64, "*") => builder.ins().fmul(left.value, right.value),
+                (MachineType::F64, "/") => builder.ins().fdiv(left.value, right.value),
+                (_, "+") => builder.ins().iadd(left.value, right.value),
+                (_, "-") => builder.ins().isub(left.value, right.value),
+                (_, "*") => builder.ins().imul(left.value, right.value),
+                (_, operator) => {
                     return Err(NativeCompileError::new(format!(
-                        "{machine_contract} does not support binary operator `{operator}`"
+                        "{machine_contract} does not support binary operator `{operator}` for `{}`",
+                        expected.name()
                     )));
                 }
             };
@@ -18463,7 +18544,7 @@ fn lower_typed_comparison(
     };
     if operand_type == MachineType::Bool && !matches!(binary.operator.as_str(), "==" | "!=") {
         return Err(NativeCompileError::new(format!(
-            "{machine_contract} ordering comparison `{}` requires integer operands",
+            "{machine_contract} ordering comparison `{}` requires numeric operands",
             binary.operator
         )));
     }
@@ -18496,17 +18577,31 @@ fn lower_typed_comparison(
         machine_contract,
         memory_enabled,
     )?;
-    let condition = match binary.operator.as_str() {
-        "==" => IntCC::Equal,
-        "!=" => IntCC::NotEqual,
-        "<" => IntCC::SignedLessThan,
-        "<=" => IntCC::SignedLessThanOrEqual,
-        ">" => IntCC::SignedGreaterThan,
-        ">=" => IntCC::SignedGreaterThanOrEqual,
-        _ => unreachable!("comparison operators are filtered by the caller"),
+    let value = if operand_type == MachineType::F64 {
+        let condition = match binary.operator.as_str() {
+            "==" => FloatCC::Equal,
+            "!=" => FloatCC::NotEqual,
+            "<" => FloatCC::LessThan,
+            "<=" => FloatCC::LessThanOrEqual,
+            ">" => FloatCC::GreaterThan,
+            ">=" => FloatCC::GreaterThanOrEqual,
+            _ => unreachable!("comparison operators are filtered by the caller"),
+        };
+        builder.ins().fcmp(condition, left.value, right.value)
+    } else {
+        let condition = match binary.operator.as_str() {
+            "==" => IntCC::Equal,
+            "!=" => IntCC::NotEqual,
+            "<" => IntCC::SignedLessThan,
+            "<=" => IntCC::SignedLessThanOrEqual,
+            ">" => IntCC::SignedGreaterThan,
+            ">=" => IntCC::SignedGreaterThanOrEqual,
+            _ => unreachable!("comparison operators are filtered by the caller"),
+        };
+        builder.ins().icmp(condition, left.value, right.value)
     };
     Ok(TypedValue {
-        value: builder.ins().icmp(condition, left.value, right.value),
+        value,
         machine_type: MachineType::Bool,
     })
 }

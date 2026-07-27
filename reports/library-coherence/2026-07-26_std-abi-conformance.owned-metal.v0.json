@@ -1,11 +1,11 @@
 {
   "schema": "holoscript.std-abi-conformance.owned-metal.v0",
-  "generatedAtISO": "2026-07-27T00:43:14.258Z",
+  "generatedAtISO": "2026-07-27T01:00:17.504Z",
   "target": "owned-metal",
   "executionRuntime": {
     "engine": "compiler-wasm evaluate_trait_handler (WebAssembly)",
     "executedProjection": "std-abi-conformance.trait.hsplus (bundle copy, pin-verified)",
-    "wasmArtifactSha256": "sha256:1236bcce16093e99ac6d86a5d6cf3ff8a31594038fd1e9e43e9b472abc2588d4"
+    "wasmArtifactSha256": "sha256:3a6f1bf292360af58b8f5b28f39f2174f12b8d9d33efe8ca066b879cfe4fd135"
   },
   "sources": {
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
@@ -470,5 +470,5 @@
     "provesNodeDeterministicSubsetExecution": false,
     "note": "Executed the generated trait projection through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:4fef327f9c8cffcc6a077befdf89db8d6411673127111cdea14dfd01673d76e1"
+  "receiptHash": "sha256:42253e311bddfafebc726fc1817b9d33af756009ffedcff3774ca43e72ec905f"
 }

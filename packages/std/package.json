@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/std",
-  "version": "7.0.2",
+  "version": "7.0.5",
   "description": "HoloScript Standard Library - Core types and utilities",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -10,6 +10,9 @@
     "dist",
     "src/math.hsplus",
     "src/collections.hsplus",
+    "src/abi/scalar-v1.hs",
+    "src/abi/scalar-f64-v1.hs",
+    "src/abi/vector-v1.hs",
     "LICENSE",
     "README.md"
   ],
@@ -31,6 +34,9 @@
     },
     "./native/math.hsplus": "./src/math.hsplus",
     "./native/collections.hsplus": "./src/collections.hsplus",
+    "./native/abi/scalar-v1.hs": "./src/abi/scalar-v1.hs",
+    "./native/abi/scalar-f64-v1.hs": "./src/abi/scalar-f64-v1.hs",
+    "./native/abi/vector-v1.hs": "./src/abi/vector-v1.hs",
     "./string": {
       "types": "./dist/string.d.ts",
       "import": "./dist/string.js",
@@ -62,6 +68,7 @@
     "watch": "tsc -w",
     "clean": "rm -rf dist",
     "test": "vitest run --passWithNoTests",
+    "test:abi": "pnpm --dir ../.. --filter @holoscript/meaning run build && pnpm --dir ../.. --filter @holoscript/uaal run build && pnpm run build && node scripts/abi-conformance.mjs",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "keywords": [
@@ -79,15 +86,89 @@
     "entrypoint": "./src/math.hsplus",
     "exports": {
       "./math": "./src/math.hsplus",
-      "./collections": "./src/collections.hsplus"
+      "./collections": "./src/collections.hsplus",
+      "./abi/scalar-v1": "./src/abi/scalar-v1.hs",
+      "./abi/scalar-f64-v1": "./src/abi/scalar-f64-v1.hs",
+      "./abi/vector-v1": "./src/abi/vector-v1.hs"
     },
     "supportTier": "preview",
     "compatibility": {
       "holoscript": ">=8.0.0",
-      "targets": ["node", "browser-wasm", "owned-metal"]
+      "targets": [
+        "node",
+        "browser-wasm",
+        "owned-metal"
+      ]
     },
-    "capabilities": ["std_math", "std_collections"],
-    "runtimeBoundary": "Executable ABI conformance is receipt-proven for the 11-op math conformance projection across node, browser-wasm, and owned-metal targets (50 vectors, cross-target exact equality); direct packaged-handler execution, sqrt/trig ops, and collections host-ABI parity are not yet claimed."
+    "capabilities": [
+      "std_math",
+      "std_math_scalar_i32_v1",
+      "std_math_scalar_f64_v1",
+      "std_math_vector_i32_v1",
+      "std_collections"
+    ],
+    "abi": {
+      "id": "hs.std.scalar.i32.v1",
+      "entrypoint": "./src/abi/scalar-v1.hs",
+      "functions": [
+        "std_math_clamp_i32",
+        "std_math_sign_i32",
+        "std_math_step_i32"
+      ],
+      "provenTargets": [
+        "node",
+        "browser-wasm-uaal",
+        "owned-metal"
+      ]
+    },
+    "abis": [
+      {
+        "id": "hs.std.scalar.i32.v1",
+        "entrypoint": "./src/abi/scalar-v1.hs",
+        "functions": [
+          "std_math_clamp_i32",
+          "std_math_sign_i32",
+          "std_math_step_i32"
+        ],
+        "provenTargets": [
+          "node",
+          "browser-wasm-uaal",
+          "owned-metal"
+        ]
+      },
+      {
+        "id": "hs.std.vector.i32.v1",
+        "entrypoint": "./src/abi/vector-v1.hs",
+        "functions": [
+          "std_math_vec3_dot_i32",
+          "std_math_vec3_cross_x_i32",
+          "std_math_vec3_cross_y_i32",
+          "std_math_vec3_cross_z_i32",
+          "std_math_vec3_length_sq_i32"
+        ],
+        "provenTargets": [
+          "node",
+          "browser-wasm-uaal",
+          "owned-metal"
+        ]
+      },
+      {
+        "id": "hs.std.scalar.f64.v1",
+        "entrypoint": "./src/abi/scalar-f64-v1.hs",
+        "functions": [
+          "std_math_clamp_f64",
+          "std_math_lerp_f64",
+          "std_math_inverse_lerp_f64",
+          "std_math_remap_f64"
+        ],
+        "provenTargets": [
+          "node",
+          "browser-wasm-uaal",
+          "owned-metal"
+        ]
+      }
+    ],
+    "runtimeBoundary": "Executable ABI parity is proven for scalar i32 clamp/sign/step, component-projected i32 Vec3 dot/cross/length-squared, and finite scalar f64 clamp/lerp/inverse-lerp/remap across Node, browser-WASM to UAAL, and owned-metal, and receipt-proven for the 11-op math conformance projection (50 vectors, cross-target exact value equality) across node, browser-wasm, and owned-metal. Non-finite floating-point edge semantics, aggregate vector calling conventions, quaternion, noise, sqrt/trig ops, direct packaged-handler execution, and collections parity remain preview."
   },
   "author": "Brian X Base Team",
   "license": "MIT",

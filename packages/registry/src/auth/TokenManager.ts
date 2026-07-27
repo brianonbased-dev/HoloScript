@@ -37,6 +37,10 @@ export interface CreateTokenOptions {
   expiresIn?: number;
 }
 
+export interface RegisterTokenOptions extends CreateTokenOptions {
+  createdAt?: Date;
+}
+
 export interface ValidateResult {
   valid: boolean;
   record?: TokenRecord;
@@ -51,26 +55,44 @@ export class TokenManager {
   private tokens: Map<string, TokenRecord> = new Map();
 
   /**
-   * Generate a new registry token.
-   * Returns the raw token (shown once) and the stored record.
+   * Register an externally managed raw token without retaining the secret.
+   *
+   * This is used for stable deployment credentials supplied by the runtime
+   * environment. Re-registering the same token is idempotent.
    */
-  create(options: CreateTokenOptions): { rawToken: string; record: TokenRecord } {
-    const rawToken = 'hls_' + randomBytes(24).toString('hex');
-    const id = createHash('sha256').update(rawToken).digest('hex').slice(0, 16);
+  register(rawToken: string, options: RegisterTokenOptions): TokenRecord {
+    if (!rawToken.trim()) throw new Error('Raw token is required');
 
+    const id = createHash('sha256').update(rawToken).digest('hex').slice(0, 16);
+    const existing = this.tokens.get(id);
+    if (existing) return existing;
+
+    const createdAt = options.createdAt ?? new Date();
     const record: TokenRecord = {
       id,
       token: this.hash(rawToken),
       name: options.name,
       orgScope: options.orgScope,
       permissions: options.permissions ?? ['read'],
-      createdAt: new Date(),
-      expiresAt: options.expiresIn ? new Date(Date.now() + options.expiresIn * 1000) : undefined,
+      createdAt,
+      expiresAt: options.expiresIn
+        ? new Date(createdAt.getTime() + options.expiresIn * 1000)
+        : undefined,
       readonly: options.readonly ?? false,
       revoked: false,
     };
 
     this.tokens.set(id, record);
+    return record;
+  }
+
+  /**
+   * Generate a new registry token.
+   * Returns the raw token (shown once) and the stored record.
+   */
+  create(options: CreateTokenOptions): { rawToken: string; record: TokenRecord } {
+    const rawToken = 'hls_' + randomBytes(24).toString('hex');
+    const record = this.register(rawToken, options);
     return { rawToken, record };
   }
 

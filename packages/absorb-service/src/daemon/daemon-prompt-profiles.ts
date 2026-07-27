@@ -1,4 +1,4 @@
-export type DaemonProvider = 'openrouter' | 'anthropic' | 'xai' | 'openai' | 'ollama';
+export type DaemonProvider = 'openrouter' | 'anthropic' | 'xai' | 'openai' | 'ollama' | 'sovereign';
 export type DaemonToolProfile = 'claude-hsplus' | 'grok-hsplus' | 'standard';
 
 export interface DaemonPromptContext {
@@ -51,6 +51,11 @@ function modelStyleGuideFor(provider: DaemonProvider): string {
       return [
         'Model profile: local Ollama model.',
         'Keep patches conservative and simple to maximize local model reliability.',
+      ].join(' ');
+    case 'sovereign':
+      return [
+        'Model profile: sovereign provider resolver.',
+        'Keep edits provider-portable because the runtime may select owned metal or a cloud fallback.',
       ].join(' ');
     case 'anthropic':
     default:

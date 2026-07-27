@@ -3,6 +3,7 @@ import DataLoader from 'dataloader';
 import { randomUUID } from 'crypto';
 import { CompileInput, CompilePayload, CompilerTarget } from '../types/GraphQLTypes.js';
 import { publishCompilationProgress } from '../services/pubsub.js';
+import { normalizeParserWarnings } from './parser-result-normalizers.js';
 
 interface CompilationRequest {
   code: string;
@@ -20,7 +21,7 @@ function stringifyCompileOutput(output: unknown): string {
  */
 function createCompilationLoader() {
   return new DataLoader<CompilationRequest, CompilePayload>(
-    async (requests) => {
+    async (requests): Promise<CompilePayload[]> => {
       // Dynamic import to avoid ESM/CJS issues
       const core = await import('@holoscript/core');
       const { HoloScriptPlusParser } = core;
@@ -165,7 +166,7 @@ function createCompilationLoader() {
               success: true,
               output,
               errors: [],
-              warnings: parseResult.warnings || [],
+              warnings: normalizeParserWarnings(parseResult.warnings),
               metadata: {
                 compilationTime,
                 outputSize: output.length,

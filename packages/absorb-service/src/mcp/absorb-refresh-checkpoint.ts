@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { createHash, randomUUID } from 'crypto';
 import type { PlannedScanBatch, ScanPlan } from '../engine/CodebaseScanner';
@@ -89,9 +90,25 @@ export interface AbsorbRefreshProgressReceipt {
   receiptFile: string;
   checkpointDirectory: string;
   ownerProcessId: number;
+  /**
+   * Host identity prevents container-local PID values (especially PID 1) from
+   * being mistaken for the owner of a checkpoint created on another host.
+   * Optional for v1 receipt compatibility.
+   */
+  ownerHost?: string;
+  /**
+   * Audit-only digest of the single-writer lease token held when this receipt
+   * was adopted. The raw lease token is never copied into progress receipts.
+   */
+  ownerWriterLeaseSha256?: string;
   createdAt: string;
   updatedAt: string;
   error?: string;
+}
+
+export interface AbsorbRefreshWriterLeaseProof {
+  leaseFile: string;
+  token: string;
 }
 
 export interface PrepareAbsorbRefreshCheckpointOptions {
@@ -108,6 +125,13 @@ export interface PrepareAbsorbRefreshCheckpointOptions {
    * resumeToken is supplied. Source digests still gate every reused batch.
    */
   reuseLatest?: boolean;
+  /**
+   * Internal proof that this caller currently owns the workspace's durable
+   * single-writer lease. A matching live lease authorizes parent/worker
+   * checkpoint handoff and recovery from a dead container whose PID was
+   * recycled in another PID namespace.
+   */
+  writerLeaseProof?: AbsorbRefreshWriterLeaseProof;
 }
 
 export interface CompactAbsorbRefreshProgressReceipt extends Omit<
@@ -336,11 +360,54 @@ function isProcessAlive(processId: number): boolean {
   }
 }
 
-function isActiveRefreshReceipt(receipt: AbsorbRefreshProgressReceipt): boolean {
-  return (
-    ACTIVE_REFRESH_STATUSES.has(receipt.status) &&
-    (receipt.ownerProcessId === process.pid || isProcessAlive(receipt.ownerProcessId))
-  );
+function writerLeaseProofIsCurrent(
+  proof: AbsorbRefreshWriterLeaseProof | undefined,
+  rootDir: string
+): boolean {
+  if (
+    !proof ||
+    typeof proof.leaseFile !== 'string' ||
+    proof.leaseFile.length === 0 ||
+    typeof proof.token !== 'string' ||
+    proof.token.length === 0
+  ) {
+    return false;
+  }
+  try {
+    const lease = JSON.parse(fs.readFileSync(proof.leaseFile, 'utf-8')) as {
+      schemaVersion?: unknown;
+      kind?: unknown;
+      token?: unknown;
+      rootDirs?: unknown;
+    };
+    return (
+      lease.schemaVersion === 'holoscript.absorb-writer-lease.v1' &&
+      lease.kind === 'AbsorbWriterLease' &&
+      lease.token === proof.token &&
+      Array.isArray(lease.rootDirs) &&
+      lease.rootDirs.some(
+        (leaseRoot) =>
+          typeof leaseRoot === 'string' && normalizeRoot(leaseRoot) === normalizeRoot(rootDir)
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isActiveRefreshReceipt(
+  receipt: AbsorbRefreshProgressReceipt,
+  writerLeaseAuthorizesAdoption = false
+): boolean {
+  if (writerLeaseAuthorizesAdoption) return false;
+  if (!ACTIVE_REFRESH_STATUSES.has(receipt.status)) return false;
+  if (receipt.ownerHost && receipt.ownerHost !== os.hostname()) {
+    // A PID is meaningful only inside its host namespace. A remote receipt is
+    // conservatively protected; the durable writer lease is the authority that
+    // permits immediate takeover after a crashed container.
+    return true;
+  }
+  return receipt.ownerProcessId === process.pid || isProcessAlive(receipt.ownerProcessId);
 }
 
 function finiteRetentionValue(value: number | undefined, fallback: number): number {
@@ -623,6 +690,7 @@ export class AbsorbRefreshCheckpoint {
       resumable: true,
       error: undefined,
       ownerProcessId: process.pid,
+      ownerHost: os.hostname(),
     });
   }
 
@@ -766,6 +834,7 @@ export class AbsorbRefreshCheckpoint {
     targetGitCommitHash: string | null;
     targetWorktreeFingerprint: string | null;
     resumeMode: Exclude<AbsorbRefreshResumeMode, 'new'>;
+    ownerWriterLeaseSha256?: string;
   }): void {
     const targetChanged =
       this.receipt.targetGitCommitHash !== options.targetGitCommitHash ||
@@ -777,6 +846,8 @@ export class AbsorbRefreshCheckpoint {
       publishedGraphAuthoritative: false,
       priorAuthoritativeCachePreserved: true,
       ownerProcessId: process.pid,
+      ownerHost: os.hostname(),
+      ownerWriterLeaseSha256: options.ownerWriterLeaseSha256,
       resumeMode: options.resumeMode,
       reusedBatchCount: 0,
       invalidatedBatchCount: 0,
@@ -846,6 +917,7 @@ function findLatestCompatibleCheckpoint(options: {
   scanPolicyHash: string;
   targetGitCommitHash: string | null;
   targetWorktreeFingerprint: string | null;
+  writerLeaseAuthorizesAdoption: boolean;
 }): AbsorbRefreshProgressReceipt | null {
   const refreshDirectory = path.join(
     resolveCodebaseCachePaths(options.rootDir).directory,
@@ -885,9 +957,7 @@ function findLatestCompatibleCheckpoint(options: {
       ((receipt.targetGitCommitHash === options.targetGitCommitHash &&
         receipt.targetWorktreeFingerprint === options.targetWorktreeFingerprint) ||
         receipt.completedBatches.every((entry) => typeof entry.inputSha256 === 'string')) &&
-      !(
-        isActiveRefreshReceipt(receipt)
-      );
+      !isActiveRefreshReceipt(receipt, options.writerLeaseAuthorizesAdoption);
     if (compatible) return receipt;
   }
   return null;
@@ -897,6 +967,13 @@ export function prepareAbsorbRefreshCheckpoint(
   options: PrepareAbsorbRefreshCheckpointOptions
 ): AbsorbRefreshCheckpoint {
   const rootDir = path.resolve(options.rootDir);
+  const writerLeaseAuthorizesAdoption = writerLeaseProofIsCurrent(
+    options.writerLeaseProof,
+    rootDir
+  );
+  const ownerWriterLeaseSha256 = writerLeaseAuthorizesAdoption
+    ? sha256(options.writerLeaseProof!.token)
+    : undefined;
   if (options.resumeToken) validateResumeToken(options.resumeToken);
   pruneAbsorbRefreshCheckpoints({
     rootDir,
@@ -913,6 +990,7 @@ export function prepareAbsorbRefreshCheckpoint(
           scanPolicyHash: options.scanPolicyHash,
           targetGitCommitHash: options.targetGitCommitHash,
           targetWorktreeFingerprint: options.targetWorktreeFingerprint,
+          writerLeaseAuthorizesAdoption,
         })
       : null;
   const resumeToken =
@@ -929,7 +1007,7 @@ export function prepareAbsorbRefreshCheckpoint(
     if (receipt.selectedFilesHash !== selectedFilesHash) errors.push('selected file set');
     if (receipt.scanPolicyHash !== options.scanPolicyHash) errors.push('scan policy');
     if (receipt.status === 'complete') errors.push('completed checkpoint');
-    if (isActiveRefreshReceipt(receipt)) {
+    if (isActiveRefreshReceipt(receipt, writerLeaseAuthorizesAdoption)) {
       errors.push(`active owner process ${receipt.ownerProcessId}`);
     }
     const targetChanged =
@@ -949,6 +1027,7 @@ export function prepareAbsorbRefreshCheckpoint(
       targetGitCommitHash: options.targetGitCommitHash,
       targetWorktreeFingerprint: options.targetWorktreeFingerprint,
       resumeMode: targetChanged ? 'content-addressed-overlay' : 'exact',
+      ownerWriterLeaseSha256,
     });
     return checkpoint;
   }
@@ -996,6 +1075,8 @@ export function prepareAbsorbRefreshCheckpoint(
     receiptFile: paths.receiptFile,
     checkpointDirectory: paths.directory,
     ownerProcessId: process.pid,
+    ownerHost: os.hostname(),
+    ...(ownerWriterLeaseSha256 && { ownerWriterLeaseSha256 }),
     createdAt: now,
     updatedAt: now,
   };

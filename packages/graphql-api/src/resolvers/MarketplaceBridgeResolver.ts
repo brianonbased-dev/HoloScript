@@ -16,6 +16,7 @@ import {
   CompileTraitPayload,
   CompilerTarget,
 } from '../types/GraphQLTypes.js';
+import { normalizeParserWarnings } from './parser-result-normalizers.js';
 
 /**
  * Base URL of the Marketplace API.
@@ -261,7 +262,7 @@ export class MarketplaceBridgeResolver {
         success: true,
         output: compiledOutput,
         errors: [],
-        warnings: parseResult.warnings || [],
+        warnings: normalizeParserWarnings(parseResult.warnings),
         metadata: {
           compilationTime,
           outputSize: compiledOutput.length,

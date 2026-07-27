@@ -1,0 +1,149 @@
+{
+  "schema": "holoscript.production-dependency-audit-receipt.v1",
+  "generatedAt": "2026-07-26T22:10:04.0375734Z",
+  "sourceTask": "task_1785084741122_0a8d",
+  "sourceReceipt": "cael-ci-v1:85b04976069bb2c3d0790284198d337ef92b4d22e5f3d869051f0aa3d8baf52d",
+  "repository": {
+    "name": "HoloScript",
+    "baseCommit": "d3a4954c356ef3a853698882f7a15fb6ea79c9cc"
+  },
+  "threatModel": {
+    "assets": [
+      "Studio and Studio API authentication availability",
+      "passwordless email account integrity",
+      "build-system filesystem boundaries",
+      "process memory availability"
+    ],
+    "adversaries": [
+      "unauthenticated caller sending a malformed Bearer header",
+      "attacker requesting a magic link with a Unicode homoglyph separator",
+      "untrusted source-map input traversing filesystem paths",
+      "untrusted brace input causing unbounded expansion"
+    ],
+    "outOfScope": [
+      "moderate and low advisories below the requested high audit threshold",
+      "runtime services that do not consume the audited production lockfile"
+    ]
+  },
+  "ownerTrace": [
+    {
+      "owners": [
+        "packages/studio",
+        "services/studio-api"
+      ],
+      "directDependency": "next-auth",
+      "from": "4.24.14",
+      "to": "4.24.15",
+      "advisories": [
+        "GHSA-xmf8-cvqr-rfgj",
+        "GHSA-7rqj-j65f-68wh"
+      ]
+    },
+    {
+      "owners": [
+        "packages/studio",
+        "services/studio-api"
+      ],
+      "directDependency": "@auth/drizzle-adapter",
+      "from": "1.11.1",
+      "to": "1.11.3",
+      "transitiveDependency": "@auth/core",
+      "transitiveFrom": "0.41.1",
+      "transitiveTo": "0.41.3",
+      "advisories": [
+        "GHSA-xmf8-cvqr-rfgj",
+        "GHSA-7rqj-j65f-68wh"
+      ]
+    },
+    {
+      "owners": [
+        "packages/holomesh-web",
+        "packages/marketplace-web",
+        "packages/studio",
+        "packages/ui",
+        "services/holoscript-net",
+        "services/holoscript-net-v2",
+        "next via the root pnpm override"
+      ],
+      "dependency": "postcss",
+      "from": "8.5.15",
+      "to": "8.5.18",
+      "advisories": [
+        "GHSA-r28c-9q8g-f849"
+      ]
+    },
+    {
+      "owner": "root pnpm override",
+      "dependency": "brace-expansion",
+      "from": "5.0.7",
+      "to": "5.0.8",
+      "advisories": [
+        "GHSA-mh99-v99m-4gvg"
+      ]
+    }
+  ],
+  "validation": {
+    "packageManager": {
+      "expected": "pnpm@9.15.9",
+      "corepack": "9.15.9",
+      "bare": "9.15.9",
+      "status": "PASS"
+    },
+    "lockfile": {
+      "command": "pnpm install --frozen-lockfile",
+      "status": "PASS",
+      "vulnerableVersionEntriesRemaining": 0
+    },
+    "productionAudit": {
+      "command": "node scripts/holo-ci/security-audit.mjs --prod --audit-level=high",
+      "low": 2,
+      "moderate": 8,
+      "high": 0,
+      "critical": 0,
+      "status": "PASS"
+    },
+    "directAdvisoryProbes": [
+      {
+        "advisory": "GHSA-xmf8-cvqr-rfgj",
+        "boundary": "next-auth@4.24.15 getToken() with malformed percent-encoded Bearer value",
+        "expected": "returns null without throwing",
+        "status": "PASS"
+      },
+      {
+        "advisory": "GHSA-7rqj-j65f-68wh",
+        "boundary": "@auth/core@0.41.3 defaultNormalizer with a fullwidth commercial-at homoglyph that canonicalizes to a second separator",
+        "expected": "normalizes before validation and rejects",
+        "status": "PASS"
+      }
+    ],
+    "applicationAuthTests": [
+      {
+        "surface": "packages/studio",
+        "tests": 8,
+        "files": 3,
+        "status": "PASS"
+      },
+      {
+        "surface": "services/studio-api",
+        "tests": 7,
+        "files": 3,
+        "status": "PASS"
+      }
+    ],
+    "broaderTestBoundary": {
+      "status": "NOT_COUNTED",
+      "reason": "Unrelated broad Studio route bundles require additional compiled workspace packages (llm-provider and core-types). Their bootstrap failures were not treated as auth validation results."
+    }
+  },
+  "advisorySources": [
+    "https://github.com/advisories/GHSA-xmf8-cvqr-rfgj",
+    "https://github.com/advisories/GHSA-7rqj-j65f-68wh",
+    "https://github.com/advisories/GHSA-r28c-9q8g-f849",
+    "https://github.com/advisories/GHSA-mh99-v99m-4gvg"
+  ],
+  "nonClaims": [
+    "This receipt proves the production dependency graph at audit-level high, not a universal application security assessment.",
+    "The remaining two low and eight moderate advisories are outside this task's high-or-critical acceptance boundary.",
+    "Passing dependency and focused auth tests does not prove every deployment has identical environment configuration."
+  ]
+}

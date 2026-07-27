@@ -12,6 +12,7 @@
  *     sha, step truncation, log version
  */
 import { describe, it, expect } from 'vitest';
+import { createHash } from 'node:crypto';
 import { UAALVirtualMachine, replayUAALLog, computeUAALBytecodeSha256 } from '../vm';
 import type { VMProxy } from '../vm';
 import { UAALOpCode } from '../opcodes';
@@ -82,6 +83,20 @@ describe('recordLog off by default', () => {
   it('exportLog throws before any execute() completes', () => {
     const vm = new UAALVirtualMachine({ recordLog: true });
     expect(() => vm.exportLog()).toThrow(/before execute/);
+  });
+});
+
+describe('universal bytecode receipt hashing', () => {
+  it('matches Node SHA-256 without requiring Node crypto in production code', () => {
+    const bytecode = controlFlowProgram();
+    const canonical =
+      '{"instructions":[{"opCode":1,"operands":[true]},{"opCode":49,"operands":[3]},' +
+      '{"opCode":1,"operands":["not-taken"]},{"opCode":50,"operands":[6]},' +
+      '{"opCode":1,"operands":["after"]},{"opCode":255,"operands":[]},' +
+      '{"opCode":1,"operands":["sub"]},{"opCode":51,"operands":[]}],"version":2}';
+    expect(computeUAALBytecodeSha256(bytecode)).toBe(
+      createHash('sha256').update(canonical).digest('hex')
+    );
   });
 });
 
