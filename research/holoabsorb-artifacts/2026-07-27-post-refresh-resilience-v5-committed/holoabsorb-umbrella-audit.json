@@ -1,0 +1,194 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.repository-audit.v1",
+  "productName": "HoloAbsorb",
+  "status": "pass",
+  "auditedAt": "2026-07-27T21:37:23.316Z",
+  "repoRoot": "C:\\Users\\josep\\.scratch\\holoabsorb-hardening-20260727",
+  "manifestAudit": {
+    "schemaVersion": "holoscript.holoabsorb.audit.v1",
+    "productName": "HoloAbsorb",
+    "status": "pass",
+    "checks": [
+      {
+        "id": "unique-capability-owners",
+        "status": "pass",
+        "detail": "10 capabilities have unique owners."
+      },
+      {
+        "id": "unique-tool-ownership",
+        "status": "pass",
+        "detail": "28 tools have one declared capability owner."
+      },
+      {
+        "id": "explicit-aliases",
+        "status": "pass",
+        "detail": "10 compatibility and substrate aliases are explicit."
+      },
+      {
+        "id": "capability-evidence",
+        "status": "pass",
+        "detail": "10 capabilities declare evidence paths."
+      },
+      {
+        "id": "paper-claim-boundaries",
+        "status": "pass",
+        "detail": "2 papers declare commands, receipts, and claim boundaries."
+      },
+      {
+        "id": "workstream-ownership",
+        "status": "pass",
+        "detail": "6 workstreams map to capability owners and evidence."
+      },
+      {
+        "id": "observed-tools",
+        "status": "pass",
+        "detail": "Every declared HoloAbsorb tool is present on the observed tool surface."
+      },
+      {
+        "id": "observed-paths",
+        "status": "pass",
+        "detail": "Every declared HoloAbsorb evidence path exists in the observed repository."
+      }
+    ],
+    "errors": [],
+    "summary": {
+      "capabilityCount": 10,
+      "aliasCount": 10,
+      "paperCount": 2,
+      "workstreamCount": 6,
+      "declaredToolCount": 28,
+      "declaredEvidencePathCount": 54
+    }
+  },
+  "threadAudit": {
+    "schemaVersion": "holoscript.holoabsorb.thread-audit.v1",
+    "status": "pass",
+    "source": "HoloMesh board team_1777834718247_unr35n filtered by absorb",
+    "capturedAt": "2026-07-26T05:57:00.000Z",
+    "taskCount": 13,
+    "coverageCount": 6,
+    "relationCount": 3,
+    "missingWorkstreams": [],
+    "duplicateTaskIds": [],
+    "danglingReferences": [],
+    "umbrellaPresent": true,
+    "relations": [
+      {
+        "type": "overlap-candidate",
+        "taskIds": [
+          "task_1783461928336_vxjh",
+          "task_1783462811392_lfx2"
+        ],
+        "disposition": "Consolidate into one HoloAbsorb promotion gate after public API canaries; retain the other ID as linked provenance."
+      },
+      {
+        "type": "parent-child",
+        "taskIds": [
+          "task_1784945249114_y2vc",
+          "task_1784947559807_d45f"
+        ],
+        "disposition": "Checkpoint reuse is implementation; retention benchmark and compaction is its measured follow-up, not duplicate work."
+      },
+      {
+        "type": "source-reconciliation-required",
+        "taskIds": [
+          "task_1785041541852_ggzk",
+          "task_1785041541852_fzm1"
+        ],
+        "disposition": "Audit current source and commits before implementation because recent resilience work may already satisfy part of each task."
+      }
+    ],
+    "errors": []
+  },
+  "observed": {
+    "toolCount": 28,
+    "toolNames": [
+      "absorb_query",
+      "absorb_diff",
+      "absorb_list_projects",
+      "absorb_create_project",
+      "absorb_delete_project",
+      "absorb_check_credits",
+      "absorb_run_absorb",
+      "absorb_run_improve",
+      "absorb_run_query_ai",
+      "absorb_run_render",
+      "absorb_run_pipeline",
+      "absorb_typescript",
+      "absorb_suggest_holoscript_transform",
+      "holo_absorb_manifest",
+      "holo_absorb_repo",
+      "holo_cancel_absorb",
+      "holo_query_codebase",
+      "holo_impact_analysis",
+      "holo_detect_changes",
+      "holo_graph_status",
+      "holo_detect_drift",
+      "holo_resolve_symbol",
+      "holo_get_absorb_status",
+      "holo_semantic_search",
+      "holo_visual_graph_context",
+      "holo_ask_codebase",
+      "holo_oracle_consult",
+      "absorb_extract_knowledge"
+    ],
+    "evidencePathCount": 54,
+    "evidencePaths": [
+      "packages/absorb-service/src/ingest/index.ts",
+      "packages/absorb-service/src/engine/CodebaseScanner.ts",
+      "packages/absorb-service/src/mcp/codebase-tools.ts",
+      "packages/absorb-service/src/engine/CodebaseGraph.ts",
+      "packages/absorb-service/src/engine/__tests__/EventEdge.test.ts",
+      "packages/absorb-service/src/gev/index.ts",
+      "packages/holoembed/src/index.ts",
+      "packages/absorb-service/src/engine/providers/HoloEmbedProvider.ts",
+      "packages/absorb-service/src/engine/EmbeddingIndex.ts",
+      "packages/absorb-service/src/engine/HybridRetrieval.ts",
+      "packages/absorb-service/src/engine/GraphRAGEngine.ts",
+      "packages/absorb-service/src/mcp/graph-rag-tools.ts",
+      "packages/absorb-service/src/pipeline/index.ts",
+      "packages/absorb-service/src/pipeline/llmProvider.ts",
+      "packages/absorb-service/src/mcp/oracle-tools.ts",
+      "packages/absorb-service/src/engine/HoloEmitter.ts",
+      "packages/absorb-service/src/engine/visualization/CodebaseSceneCompiler.ts",
+      "packages/absorb-service/src/engine/visualization/GraphSelectionManager.ts",
+      "packages/absorb-service/src/mcp/codebase-cache-storage.ts",
+      "packages/absorb-service/src/engine/workers/WorkerPool.ts",
+      "scripts/holoscript-mcp-stdio.mjs",
+      "scripts/lib/mcp-process-lifecycle.mjs",
+      "scripts/__tests__/mcp-process-lifecycle.test.mjs",
+      "packages/absorb-service/scripts/bench-holoabsorb-transport.mjs",
+      "packages/absorb-service/src/self-improvement/index.ts",
+      "packages/absorb-service/src/daemon/index.ts",
+      "services/absorb-service/package.json",
+      "packages/absorb-service/src/mcp/absorb-tools.ts",
+      "packages/absorb-service/src/credits/index.ts",
+      "packages/absorb-service/src/holoabsorb/index.ts",
+      "packages/absorb-service/scripts/audit-holoabsorb.mjs",
+      "packages/absorb-service/scripts/bench-holoabsorb.mjs",
+      "packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs",
+      "packages/absorb-service/scripts/bench-holoabsorb-refresh.mjs",
+      "packages/absorb-service/scripts/audit-paper-5-visual-v4.mjs",
+      "packages/absorb-service/scripts/prepare-paper-5-visual-v4.mjs",
+      "packages/absorb-service/scripts/lib/paper-5-visual-v4.mjs",
+      "packages/absorb-service/scripts/verify-paper-5-dataset.mjs",
+      "packages/absorb-service/scripts/verify-scan-determinism.mjs",
+      "packages/absorb-service/scripts/bench-paper-5-accuracy.mjs",
+      "packages/absorb-service/scripts/bench-paper-5-visual-agent-study.mjs",
+      "packages/absorb-service/scripts/lib/paper-5-visual-agent-study.mjs",
+      "packages/absorb-service/scripts/bench-paper-5-gpu.mjs",
+      "packages/absorb-service/benchmarks/paper-5-retrieval-v1.json",
+      "packages/absorb-service/benchmarks/paper-5-visual-agent-study-v1.json",
+      "packages/absorb-service/benchmarks/paper-5-visual-agent-study-v2.json",
+      "packages/absorb-service/benchmarks/paper-5-visual-agent-study-v3.json",
+      "packages/absorb-service/benchmarks/paper-5-visual-agent-study-v4.json",
+      "research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/README.md",
+      "research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/packets.json",
+      "research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/result.json",
+      "research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/README.md",
+      "research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/packets.json",
+      "research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json"
+    ]
+  },
+  "errors": []
+}
