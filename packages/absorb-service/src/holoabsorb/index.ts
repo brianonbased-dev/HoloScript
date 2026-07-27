@@ -277,8 +277,11 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'packages/absorb-service/scripts/bench-holoabsorb.mjs',
       'packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs',
       'packages/absorb-service/scripts/bench-holoabsorb-refresh.mjs',
-      'research/paper-5-graphrag-icse.tex',
-      'research/paper-26-main.tex',
+      'packages/absorb-service/scripts/verify-paper-5-dataset.mjs',
+      'packages/absorb-service/scripts/verify-scan-determinism.mjs',
+      'packages/absorb-service/scripts/bench-paper-5-accuracy.mjs',
+      'packages/absorb-service/scripts/bench-paper-5-gpu.mjs',
+      'packages/absorb-service/benchmarks/paper-5-retrieval-v1.json',
     ],
   },
 ];
@@ -370,19 +373,20 @@ const PAPERS: readonly HoloAbsorbPaperEvidence[] = [
   {
     id: 'paper-5-graphrag',
     title: 'Graph-Augmented Retrieval for Codebase Intelligence',
-    sourcePath: 'research/paper-5-graphrag-icse.tex',
+    sourcePath: 'ai-ecosystem/research/paper-5-graphrag-icse.tex',
     benchmarkCommands: [
+      'node packages/absorb-service/scripts/verify-paper-5-dataset.mjs',
       'node packages/absorb-service/scripts/bench-paper-5-accuracy.mjs',
       'node packages/absorb-service/scripts/bench-paper-5-gpu.mjs',
     ],
     claimBoundary:
-      'The accuracy harness is a deterministic 10-query bootstrap, not the full publication-size labeled evaluation. The timing harness is synthetic unless explicitly captured on verified target hardware.',
+      'The accuracy harness uses 54 frozen held-out, source-audited queries with multi-relevance labels and bootstrap confidence intervals. It still lacks independent multi-human annotation and external-codebase replication. The timing harness is synthetic unless explicitly captured on verified target hardware.',
     requiredReceiptKinds: ['accuracy-json', 'timing-json', 'hardware-inventory', 'claim-boundary'],
   },
   {
     id: 'paper-26-holograph',
     title: 'HoloGraph Structural Event Retrieval and HoloEmbed Recall',
-    sourcePath: 'research/paper-26-main.tex',
+    sourcePath: 'ai-ecosystem/research/paper-26-main.tex',
     benchmarkCommands: [
       'pnpm --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Benchmark.test.ts',
       'pnpm --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Table2NLRecall.test.ts',

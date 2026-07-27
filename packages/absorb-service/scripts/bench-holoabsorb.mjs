@@ -38,6 +38,7 @@ function parseArgs(argv) {
     withXenova: false,
     paper5Trials: 100,
     paper5MaxFiles: 500,
+    paper5Dataset: 'packages/absorb-service/benchmarks/paper-5-retrieval-v1.json',
     help: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -52,6 +53,7 @@ function parseArgs(argv) {
     if (flag === '--board') options.board = value;
     if (flag === '--paper5-trials') options.paper5Trials = positiveInt(value, flag);
     if (flag === '--paper5-max-files') options.paper5MaxFiles = positiveInt(value, flag);
+    if (flag === '--paper5-dataset') options.paper5Dataset = value;
   }
   return options;
 }
@@ -75,6 +77,7 @@ function usage() {
     '  --with-xenova           Include the optional Paper 26 model-download ablation',
     '  --paper5-trials=N       Paper 5 timing samples (default 100)',
     '  --paper5-max-files=N    Paper 5 accuracy scan cap (default 500)',
+    '  --paper5-dataset=PATH   Frozen Paper 5 retrieval corpus',
     '  --help                  Show this message',
   ].join('\n');
 }
@@ -165,6 +168,16 @@ function summarizePaper5Accuracy(artifact) {
   return {
     status: artifact.status,
     bootstrap: artifact.bootstrap,
+    evaluationStage: artifact.evaluation_stage,
+    publicationReady: artifact.publication_ready,
+    dataset: artifact.dataset
+      ? {
+          id: artifact.dataset.id,
+          path: artifact.dataset.path,
+          sha256: artifact.dataset.sha256,
+          auditStatus: artifact.dataset.audit?.status ?? null,
+        }
+      : null,
     embeddingProvider: artifact.embedding_provider,
     corpus: artifact.corpus,
     querySet: artifact.query_set,
@@ -173,6 +186,9 @@ function summarizePaper5Accuracy(artifact) {
       status: system.status,
       pAt5: system.p_at_5 ?? null,
       mrr: system.mrr ?? null,
+      confidenceIntervals: system.confidence_intervals ?? null,
+      deltaVsKeyword: system.delta_vs_keyword ?? null,
+      byCategory: system.by_category ?? null,
       runtimeMs: system.runtime_ms ?? null,
     })),
   };
@@ -251,6 +267,33 @@ export async function main(argv = process.argv.slice(2)) {
     );
   }
 
+  const scanDeterminismPath = resolve(outDir, 'scan-determinism.json');
+  steps.push(
+    runStep({
+      id: 'scan-determinism',
+      command: node,
+      args: [
+        'packages/absorb-service/scripts/verify-scan-determinism.mjs',
+        `--out=${relative(repoRoot, scanDeterminismPath).replace(/\\/g, '/')}`,
+      ],
+      outDir,
+    })
+  );
+
+  const paper5DatasetAuditPath = resolve(outDir, 'paper-5-dataset-audit.json');
+  steps.push(
+    runStep({
+      id: 'paper-5-dataset-audit',
+      command: node,
+      args: [
+        'packages/absorb-service/scripts/verify-paper-5-dataset.mjs',
+        `--dataset=${options.paper5Dataset}`,
+        `--out=${relative(repoRoot, paper5DatasetAuditPath).replace(/\\/g, '/')}`,
+      ],
+      outDir,
+    })
+  );
+
   const umbrellaAuditPath = resolve(outDir, 'holoabsorb-umbrella-audit.json');
   const auditArgs = [
     'packages/absorb-service/scripts/audit-holoabsorb.mjs',
@@ -288,6 +331,7 @@ export async function main(argv = process.argv.slice(2)) {
         'packages/absorb-service/scripts/bench-paper-5-accuracy.mjs',
         `--out=${relative(repoRoot, paper5AccuracyPath).replace(/\\/g, '/')}`,
         `--max-files=${options.paper5MaxFiles}`,
+        `--dataset=${options.paper5Dataset}`,
         '--provider=holoembed',
       ],
       outDir,
@@ -303,6 +347,7 @@ export async function main(argv = process.argv.slice(2)) {
         'packages/absorb-service/scripts/bench-paper-5-accuracy.mjs',
         `--out=${relative(repoRoot, paper5LegacyAccuracyPath).replace(/\\/g, '/')}`,
         `--max-files=${options.paper5MaxFiles}`,
+        `--dataset=${options.paper5Dataset}`,
         '--provider=structural',
       ],
       outDir,
@@ -381,6 +426,8 @@ export async function main(argv = process.argv.slice(2)) {
 
   const accuracy = safeJson(paper5AccuracyPath);
   const legacyAccuracy = safeJson(paper5LegacyAccuracyPath);
+  const paper5DatasetAudit = safeJson(paper5DatasetAuditPath);
+  const scanDeterminism = safeJson(scanDeterminismPath);
   const timing = safeJson(paper5TimingPath);
   const umbrellaAudit = safeJson(umbrellaAuditPath);
   const refreshBenchmark = safeJson(refreshBenchmarkPath);
@@ -392,7 +439,7 @@ export async function main(argv = process.argv.slice(2)) {
   );
   const failedSteps = steps.filter((step) => step.status === 'fail');
   const receipt = {
-    schemaVersion: 'holoscript.holoabsorb.rebenchmark.v1',
+    schemaVersion: 'holoscript.holoabsorb.rebenchmark.v2',
     productName: 'HoloAbsorb',
     status: failedSteps.length === 0 ? 'pass' : 'fail',
     startedAt,
@@ -410,6 +457,7 @@ export async function main(argv = process.argv.slice(2)) {
     },
     steps,
     summaries: {
+      scanDeterminism,
       umbrellaAuditStatus: umbrellaAudit?.status ?? null,
       refreshBenchmark: refreshBenchmark
         ? {
@@ -420,6 +468,7 @@ export async function main(argv = process.argv.slice(2)) {
           }
         : null,
       paper5Accuracy: {
+        datasetAudit: paper5DatasetAudit,
         current: summarizePaper5Accuracy(accuracy),
         legacyFloor: summarizePaper5Accuracy(legacyAccuracy),
         currentMinusLegacy: {
@@ -461,7 +510,9 @@ export async function main(argv = process.argv.slice(2)) {
       },
     },
     claimBoundaries: [
-      'Paper 5 accuracy remains a deterministic 10-query bootstrap. It does not satisfy the >=50-query publication target.',
+      'The accuracy arms are admitted only after two identical sequential scans produce the same source-corpus SHA-256.',
+      'Paper 5 accuracy uses 54 frozen held-out queries, balanced across dependency, impact, and reasoning, with executable source-anchor verification and multi-relevance judgments.',
+      'Paper 5 labels are not independently assigned by multiple human annotators and have not been replicated on an external codebase; this receipt is not publication-ready.',
       'Paper 5 timing is a bounded synthetic GraphRAG workload unless captureClass is an explicitly verified hardware capture.',
       'Paper 26 HoloGraph event latency uses synthetic event corpora.',
       'Paper 26 HoloEmbed recall uses name-derived NL queries over a 50-symbol synthetic corpus.',
@@ -472,8 +523,9 @@ export async function main(argv = process.argv.slice(2)) {
       'A dirty-worktree flag is recorded because peer changes may coexist in this shared repository.',
     ],
     residualGaps: [
-      'Expand Paper 5 from 10 hand-authored queries to at least 50 independently labeled dependency, impact, and reasoning queries.',
-      'Replace or supplement the Paper 5 structural bootstrap with the current HoloEmbed hybrid retrieval path.',
+      'Commission independent multi-human relevance annotation without exposing system rankings to annotators.',
+      'Replicate the frozen protocol on at least one external codebase and report inter-annotator agreement.',
+      'Add separate graph and provenance ablations; the current four-system comparison does not isolate each graph signal.',
       'Run target-hardware timing captures separately on verified RTX 3060 and Jetson/Orin lanes.',
       'Reconcile the paper prose and strict claim map only after the corresponding measured receipt exists.',
     ],

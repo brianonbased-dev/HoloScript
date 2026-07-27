@@ -1,0 +1,1051 @@
+{
+  "schemaVersion": "holoscript.paper5.retrieval-dataset.v1",
+  "datasetId": "holoabsorb-paper5-source-audited-v1",
+  "frozenAt": "2026-07-27T02:50:00.000Z",
+  "sourceCommit": "ca8da44d2b7a9e221d39b84886e3b0e65c7660f8",
+  "split": {
+    "name": "held-out-evaluation",
+    "trainingQueries": 0,
+    "evaluationQueries": 54,
+    "noTrainingOnEvaluationQueries": true,
+    "freezeRule": "The dataset and metric protocol are committed before any ranking output is admitted."
+  },
+  "labeling": {
+    "curator": "codex-hardware/source-review",
+    "verification": "packages/absorb-service/scripts/verify-paper-5-dataset.mjs",
+    "independentExecutableVerification": true,
+    "multiHumanAnnotator": false,
+    "boundary": "The executable verifier reads only the frozen dataset and source anchors before ranking. This is source-audited independent verification, not independent multi-human annotation."
+  },
+  "metricProtocol": {
+    "topK": 10,
+    "precisionAt": 5,
+    "bootstrapResamples": 2000,
+    "confidenceLevel": 0.95,
+    "seed": 260727
+  },
+  "claimBoundary": {
+    "publicationReady": false,
+    "reason": "The corpus clears the 50-query and multi-relevance implementation gates but still lacks independent multi-human annotators and external-codebase replication."
+  },
+  "queries": [
+    {
+      "id": "dependency-01",
+      "category": "dependency",
+      "query": "Which components combine semantic candidates with caller and impact evidence for a natural-language code question?",
+      "gold": [
+        {
+          "file": "src/engine/GraphRAGEngine.ts",
+          "anchors": ["export class GraphRAGEngine"]
+        },
+        {
+          "file": "src/engine/EmbeddingIndex.ts",
+          "anchors": ["export class EmbeddingIndex"]
+        },
+        {
+          "file": "src/engine/CodebaseGraph.ts",
+          "anchors": ["export class CodebaseGraph"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-02",
+      "category": "dependency",
+      "query": "Which files define the vector backend contract, choose an implementation, and provide the sovereign default?",
+      "gold": [
+        {
+          "file": "src/engine/providers/EmbeddingProvider.ts",
+          "anchors": ["export interface EmbeddingProvider"]
+        },
+        {
+          "file": "src/engine/providers/EmbeddingProviderFactory.ts",
+          "anchors": ["export async function createEmbeddingProvider"]
+        },
+        {
+          "file": "src/engine/providers/HoloEmbedProvider.ts",
+          "anchors": ["export class HoloEmbedProvider"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-03",
+      "category": "dependency",
+      "query": "Which components coordinate repository walking with language-specific parser selection?",
+      "gold": [
+        {
+          "file": "src/engine/CodebaseScanner.ts",
+          "anchors": ["export class CodebaseScanner"]
+        },
+        {
+          "file": "src/engine/AdapterManager.ts",
+          "anchors": ["export class AdapterManager"]
+        },
+        {
+          "file": "src/engine/adapters/index.ts",
+          "anchors": ["export function getAdapterForFile"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-04",
+      "category": "dependency",
+      "query": "Which files turn declarative parser capability descriptions into parser behavior across generated registries?",
+      "gold": [
+        {
+          "file": "src/engine/adapters/TreeSitterTraitAdapter.ts",
+          "anchors": ["export class TreeSitterTraitAdapter"]
+        },
+        {
+          "file": "src/engine/adapters/language-traits.ts",
+          "anchors": ["export interface LanguageTrait"]
+        },
+        {
+          "file": "src/engine/adapters/language-traits.generated.ts",
+          "anchors": ["export const LANGUAGE_TRAITS"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-05",
+      "category": "dependency",
+      "query": "Which files parse native source syntax and convert tree nodes into shared symbol records?",
+      "gold": [
+        {
+          "file": "src/engine/adapters/HoloAdapter.ts",
+          "anchors": ["export class HoloAdapter"]
+        },
+        {
+          "file": "src/engine/adapters/BaseAdapter.ts",
+          "anchors": ["export function nodeToSymbol"]
+        },
+        {
+          "file": "src/engine/types.ts",
+          "anchors": ["export interface ExternalSymbolDefinition"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-06",
+      "category": "dependency",
+      "query": "Which components fuse exact-name, lexical, and vector evidence before structural enrichment?",
+      "gold": [
+        {
+          "file": "src/engine/HybridRetrieval.ts",
+          "anchors": ["export class HybridLexicalIndex", "export function fuseHybridScore"]
+        },
+        {
+          "file": "src/engine/EmbeddingIndex.ts",
+          "anchors": ["export class EmbeddingIndex"]
+        },
+        {
+          "file": "src/engine/GraphRAGEngine.ts",
+          "anchors": ["export class GraphRAGEngine"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-07",
+      "category": "dependency",
+      "query": "Which files compile a symbol relationship model into themed scene objects and metadata?",
+      "gold": [
+        {
+          "file": "src/engine/visualization/CodebaseSceneCompiler.ts",
+          "anchors": ["export class CodebaseSceneCompiler"]
+        },
+        {
+          "file": "src/engine/visualization/CodebaseSceneTypes.ts",
+          "anchors": ["export interface SceneComposition"]
+        },
+        {
+          "file": "src/engine/visualization/CodebaseTheme.ts",
+          "anchors": ["export class CodebaseTheme"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-08",
+      "category": "dependency",
+      "query": "Which components bind collision-safe scene selections back to cited symbols and structural context?",
+      "gold": [
+        {
+          "file": "src/engine/visualization/GraphSelectionManager.ts",
+          "anchors": ["export class GraphSelectionManager"]
+        },
+        {
+          "file": "src/engine/SymbolObjectId.ts",
+          "anchors": ["export function makeSymbolObjectId"]
+        },
+        {
+          "file": "src/engine/visualization/GraphRAGVisualizer.ts",
+          "anchors": ["export class GraphRAGVisualizer"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-09",
+      "category": "dependency",
+      "query": "Which files add interaction events, explanatory annotations, and rendered connections to a generated scene?",
+      "gold": [
+        {
+          "file": "src/engine/visualization/InteractiveSceneEnricher.ts",
+          "anchors": ["export class InteractiveSceneEnricher"]
+        },
+        {
+          "file": "src/engine/visualization/GraphTooltipGenerator.ts",
+          "anchors": ["export class GraphTooltipGenerator"]
+        },
+        {
+          "file": "src/engine/visualization/EdgeRenderer.ts",
+          "anchors": ["export class EdgeRenderer"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-10",
+      "category": "dependency",
+      "query": "Which files calculate force-based or layered coordinates consumed by the scene compiler?",
+      "gold": [
+        {
+          "file": "src/engine/layouts/ForceDirectedLayout.ts",
+          "anchors": ["export function forceDirectedLayout"]
+        },
+        {
+          "file": "src/engine/layouts/LayeredLayout.ts",
+          "anchors": ["export function layeredLayout"]
+        },
+        {
+          "file": "src/engine/visualization/CodebaseSceneCompiler.ts",
+          "anchors": ["export class CodebaseSceneCompiler"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-11",
+      "category": "dependency",
+      "query": "Which components schedule isolated parsing jobs and return scanned file payloads to the repository walk?",
+      "gold": [
+        {
+          "file": "src/engine/workers/WorkerPool.ts",
+          "anchors": ["export class WorkerPool"]
+        },
+        {
+          "file": "src/engine/workers/parse-worker.ts",
+          "anchors": ["parentPort?.on('message'"]
+        },
+        {
+          "file": "src/engine/CodebaseScanner.ts",
+          "anchors": ["export class CodebaseScanner"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-12",
+      "category": "dependency",
+      "query": "Which components schedule isolated vector jobs and assemble the searchable symbol matrix?",
+      "gold": [
+        {
+          "file": "src/engine/workers/WorkerPool.ts",
+          "anchors": ["export class WorkerPool"]
+        },
+        {
+          "file": "src/engine/workers/embedding-worker.ts",
+          "anchors": ["parentPort?.on('message'"]
+        },
+        {
+          "file": "src/engine/EmbeddingIndex.ts",
+          "anchors": ["export class EmbeddingIndex"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-13",
+      "category": "dependency",
+      "query": "Which files detect changed source content and apply it to an existing symbol relationship snapshot?",
+      "gold": [
+        {
+          "file": "src/engine/GitChangeDetector.ts",
+          "anchors": ["export class GitChangeDetector"]
+        },
+        {
+          "file": "src/engine/CodebaseGraph.ts",
+          "anchors": ["export class CodebaseGraph"]
+        },
+        {
+          "file": "src/engine/CodebaseScanner.ts",
+          "anchors": ["export class CodebaseScanner"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-14",
+      "category": "dependency",
+      "query": "Which components derive structural clusters and trait-oriented groups from the same symbol relationships?",
+      "gold": [
+        {
+          "file": "src/engine/CommunityDetector.ts",
+          "anchors": ["export class CommunityDetector"]
+        },
+        {
+          "file": "src/engine/TraitCommunityDetector.ts",
+          "anchors": ["export class TraitCommunityDetector"]
+        },
+        {
+          "file": "src/engine/CodebaseGraph.ts",
+          "anchors": ["export class CodebaseGraph"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-15",
+      "category": "dependency",
+      "query": "Which files extract reusable knowledge from symbols and expose that extraction through local tools?",
+      "gold": [
+        {
+          "file": "src/engine/KnowledgeExtractor.ts",
+          "anchors": ["export class KnowledgeExtractor"]
+        },
+        {
+          "file": "src/mcp/knowledge-extraction-tools.ts",
+          "anchors": ["export const knowledgeExtractionTools"]
+        },
+        {
+          "file": "src/engine/CodebaseGraph.ts",
+          "anchors": ["export class CodebaseGraph"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-16",
+      "category": "dependency",
+      "query": "Which files validate cited source ranges and attach them to semantic answer handling?",
+      "gold": [
+        {
+          "file": "src/engine/ProvenanceIntegrityGuard.ts",
+          "anchors": ["export function validateCitations"]
+        },
+        {
+          "file": "src/mcp/graph-rag-tools.ts",
+          "anchors": ["export const graphRagTools"]
+        },
+        {
+          "file": "src/engine/GraphRAGEngine.ts",
+          "anchors": ["export class GraphRAGEngine"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-17",
+      "category": "dependency",
+      "query": "Which files own workspace-scoped cache paths, durable refresh receipts, and the local scan tool surface?",
+      "gold": [
+        {
+          "file": "src/mcp/codebase-cache-storage.ts",
+          "anchors": ["export function resolveCodebaseCachePaths"]
+        },
+        {
+          "file": "src/mcp/absorb-refresh-checkpoint.ts",
+          "anchors": ["export class AbsorbRefreshCheckpoint"]
+        },
+        {
+          "file": "src/mcp/codebase-tools.ts",
+          "anchors": ["export const codebaseTools"]
+        }
+      ]
+    },
+    {
+      "id": "dependency-18",
+      "category": "dependency",
+      "query": "Which files enforce the sovereign vector policy, construct the selected backend, and bind model identity to a release manifest?",
+      "gold": [
+        {
+          "file": "src/mcp/graph-rag-embedding-policy.ts",
+          "anchors": ["export function requireNativeGraphRAGProvider"]
+        },
+        {
+          "file": "src/engine/providers/EmbeddingProviderFactory.ts",
+          "anchors": ["export async function createEmbeddingProvider"]
+        },
+        {
+          "file": "src/engine/HoloGraphHoloEmbedManifest.ts",
+          "anchors": ["export const HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA"]
+        }
+      ]
+    },
+    {
+      "id": "impact-01",
+      "category": "impact",
+      "query": "If the common vector backend interface changes, which factory and concrete implementations require review?",
+      "gold": [
+        {
+          "file": "src/engine/providers/EmbeddingProvider.ts",
+          "anchors": ["export interface EmbeddingProvider"]
+        },
+        {
+          "file": "src/engine/providers/EmbeddingProviderFactory.ts",
+          "anchors": ["export async function createEmbeddingProvider"]
+        },
+        {
+          "file": "src/engine/providers/HoloEmbedProvider.ts",
+          "anchors": ["implements EmbeddingProvider"]
+        },
+        {
+          "file": "src/engine/providers/OpenAIEmbeddingProvider.ts",
+          "anchors": ["implements EmbeddingProvider"]
+        }
+      ]
+    },
+    {
+      "id": "impact-02",
+      "category": "impact",
+      "query": "If the normalized scanner record shape changes, which scanner, relationship store, and emitter paths consume it?",
+      "gold": [
+        {
+          "file": "src/engine/types.ts",
+          "anchors": ["export interface ExternalSymbolDefinition"]
+        },
+        {
+          "file": "src/engine/CodebaseScanner.ts",
+          "anchors": ["ScanResult shape expected by CodebaseGraph"]
+        },
+        {
+          "file": "src/engine/CodebaseGraph.ts",
+          "anchors": ["ExternalSymbolDefinition"]
+        },
+        {
+          "file": "src/engine/HoloEmitter.ts",
+          "anchors": ["ExternalSymbolDefinition"]
+        }
+      ]
+    },
+    {
+      "id": "impact-03",
+      "category": "impact",
+      "query": "If caller and import traversal semantics change, which ranking, clustering, and scene-generation paths are affected?",
+      "gold": [
+        {
+          "file": "src/engine/CodebaseGraph.ts",
+          "anchors": ["export class CodebaseGraph"]
+        },
+        {
+          "file": "src/engine/GraphRAGEngine.ts",
+          "anchors": ["CodebaseGraph"]
+        },
+        {
+          "file": "src/engine/CommunityDetector.ts",
+          "anchors": ["import type { ImportEdge, CallEdge }"]
+        },
+        {
+          "file": "src/engine/visualization/CodebaseSceneCompiler.ts",
+          "anchors": ["CodebaseGraph"]
+        }
+      ]
+    },
+    {
+      "id": "impact-04",
+      "category": "impact",
+      "query": "If vector search result fields change, which enrichment and local semantic query handlers need coordinated updates?",
+      "gold": [
+        {
+          "file": "src/engine/EmbeddingIndex.ts",
+          "anchors": ["export interface SearchResult"]
+        },
+        {
+          "file": "src/engine/GraphRAGEngine.ts",
+          "anchors": ["EmbeddingIndex"]
+        },
+        {
+          "file": "src/mcp/graph-rag-tools.ts",
+          "anchors": ["EmbeddingIndex"]
+        }
+      ]
+    },
+    {
+      "id": "impact-05",
+      "category": "impact",
+      "query": "If enriched answer result fields change, which visual and tool-facing consumers must remain compatible?",
+      "gold": [
+        {
+          "file": "src/engine/GraphRAGEngine.ts",
+          "anchors": ["export interface EnrichedResult"]
+        },
+        {
+          "file": "src/engine/visualization/GraphRAGVisualizer.ts",
+          "anchors": ["export interface RAGSearchResult"]
+        },
+        {
+          "file": "src/mcp/graph-rag-tools.ts",
+          "anchors": ["GraphRAGEngine"]
+        }
+      ]
+    },
+    {
+      "id": "impact-06",
+      "category": "impact",
+      "query": "If collision-safe scene identifiers change, which compilation and selection paths must be updated together?",
+      "gold": [
+        {
+          "file": "src/engine/SymbolObjectId.ts",
+          "anchors": ["export function makeSymbolObjectId"]
+        },
+        {
+          "file": "src/engine/visualization/CodebaseSceneCompiler.ts",
+          "anchors": ["makeSymbolObjectId"]
+        },
+        {
+          "file": "src/engine/visualization/GraphSelectionManager.ts",
+          "anchors": ["makeSymbolObjectId"]
+        }
+      ]
+    },
+    {
+      "id": "impact-07",
+      "category": "impact",
+      "query": "If the visual focus receipt contract changes, which selection and semantic answer surfaces need review?",
+      "gold": [
+        {
+          "file": "src/engine/visualization/GraphSelectionManager.ts",
+          "anchors": ["VISUAL_GRAPH_FOCUS_SCHEMA"]
+        },
+        {
+          "file": "src/mcp/graph-rag-tools.ts",
+          "anchors": ["GraphSelectionManager"]
+        }
+      ]
+    },
+    {
+      "id": "impact-08",
+      "category": "impact",
+      "query": "If repository scan options or batching semantics change, which planner and local absorption surface require retesting?",
+      "gold": [
+        {
+          "file": "src/engine/types.ts",
+          "anchors": ["export interface ScanOptions"]
+        },
+        {
+          "file": "src/engine/CodebaseScanner.ts",
+          "anchors": ["export interface ScanPlan"]
+        },
+        {
+          "file": "src/mcp/codebase-tools.ts",
+          "anchors": ["CodebaseScanner"]
+        }
+      ]
+    },
+    {
+      "id": "impact-09",
+      "category": "impact",
+      "query": "If workspace cache identity or layout changes, which resolver and scan orchestration code must agree?",
+      "gold": [
+        {
+          "file": "src/mcp/codebase-cache-storage.ts",
+          "anchors": ["export type CodebaseCacheLayout"]
+        },
+        {
+          "file": "src/mcp/codebase-tools.ts",
+          "anchors": ["resolveCodebaseCachePaths"]
+        }
+      ]
+    },
+    {
+      "id": "impact-10",
+      "category": "impact",
+      "query": "If durable refresh receipt fields change, which checkpoint and orchestration paths must migrate atomically?",
+      "gold": [
+        {
+          "file": "src/mcp/absorb-refresh-checkpoint.ts",
+          "anchors": ["export interface AbsorbRefreshProgressReceipt"]
+        },
+        {
+          "file": "src/mcp/codebase-tools.ts",
+          "anchors": ["AbsorbRefreshProgressReceipt"]
+        }
+      ]
+    },
+    {
+      "id": "impact-11",
+      "category": "impact",
+      "query": "If emitted and listened event relationships change shape, which scanner and graph paths create and consume that contract?",
+      "gold": [
+        {
+          "file": "src/engine/types.ts",
+          "anchors": ["export interface EventEdge"]
+        },
+        {
+          "file": "src/engine/CodebaseGraph.ts",
+          "anchors": ["EventEdge"]
+        },
+        {
+          "file": "src/engine/CodebaseScanner.ts",
+          "anchors": ["extractEmitSites", "extractListenSites"]
+        }
+      ]
+    },
+    {
+      "id": "impact-12",
+      "category": "impact",
+      "query": "If cluster identifiers or membership scoring changes, which structural and trait-specific consumers are affected?",
+      "gold": [
+        {
+          "file": "src/engine/CommunityDetector.ts",
+          "anchors": ["export class CommunityDetector"]
+        },
+        {
+          "file": "src/engine/TraitCommunityDetector.ts",
+          "anchors": ["export class TraitCommunityDetector"]
+        },
+        {
+          "file": "src/engine/GraphRAGEngine.ts",
+          "anchors": ["community"]
+        }
+      ]
+    },
+    {
+      "id": "impact-13",
+      "category": "impact",
+      "query": "If scene coordinates or edge point shapes change, which layout, connection rendering, and interaction paths require updates?",
+      "gold": [
+        {
+          "file": "src/engine/visualization/CodebaseSceneTypes.ts",
+          "anchors": ["export interface SceneObject"]
+        },
+        {
+          "file": "src/engine/visualization/EdgeRenderer.ts",
+          "anchors": ["export interface EdgePoint"]
+        },
+        {
+          "file": "src/engine/visualization/InteractiveSceneEnricher.ts",
+          "anchors": ["SceneComposition"]
+        }
+      ]
+    },
+    {
+      "id": "impact-14",
+      "category": "impact",
+      "query": "If the allowed shared vector backend policy changes, which enforcement and construction paths must remain aligned?",
+      "gold": [
+        {
+          "file": "src/mcp/graph-rag-embedding-policy.ts",
+          "anchors": ["NATIVE_GRAPH_RAG_PROVIDER"]
+        },
+        {
+          "file": "src/mcp/codebase-tools.ts",
+          "anchors": ["requireNativeGraphRAGProvider"]
+        },
+        {
+          "file": "src/engine/providers/EmbeddingProviderFactory.ts",
+          "anchors": ["createEmbeddingProvider"]
+        }
+      ]
+    },
+    {
+      "id": "impact-15",
+      "category": "impact",
+      "query": "If extracted knowledge entry fields change, which engine and tool surfaces must update their handoff?",
+      "gold": [
+        {
+          "file": "src/engine/KnowledgeExtractor.ts",
+          "anchors": ["export interface KnowledgeEntry"]
+        },
+        {
+          "file": "src/mcp/knowledge-extraction-tools.ts",
+          "anchors": ["KnowledgeExtractor"]
+        },
+        {
+          "file": "src/mcp/knowledge-tools.ts",
+          "anchors": ["export interface KnowledgeToolsDeps"]
+        }
+      ]
+    },
+    {
+      "id": "impact-16",
+      "category": "impact",
+      "query": "If citation validation rules change, which answer filtering and semantic tool paths need coordinated regression tests?",
+      "gold": [
+        {
+          "file": "src/engine/ProvenanceIntegrityGuard.ts",
+          "anchors": ["export function filterAnswerCitations"]
+        },
+        {
+          "file": "src/mcp/graph-rag-tools.ts",
+          "anchors": ["validateCitations"]
+        }
+      ]
+    },
+    {
+      "id": "impact-17",
+      "category": "impact",
+      "query": "If the two-tower release metadata changes, which manifest loader and searchable index contract need synchronized validation?",
+      "gold": [
+        {
+          "file": "src/engine/HoloGraphHoloEmbedManifest.ts",
+          "anchors": ["export interface HoloGraphHoloEmbedManifest"]
+        },
+        {
+          "file": "src/engine/TwoTowerSearchIndex.ts",
+          "anchors": ["export class TwoTowerSearchIndex"]
+        },
+        {
+          "file": "src/engine/SearchIndex.ts",
+          "anchors": ["export interface SymbolSearchIndex"]
+        }
+      ]
+    },
+    {
+      "id": "impact-18",
+      "category": "impact",
+      "query": "If worker count defaults or telemetry change, which parsing and vector build consumers require resource regression tests?",
+      "gold": [
+        {
+          "file": "src/engine/workers/WorkerPool.ts",
+          "anchors": ["export function getDefaultWorkerPoolSize", "export interface WorkerPoolTelemetry"]
+        },
+        {
+          "file": "src/engine/CodebaseScanner.ts",
+          "anchors": ["WorkerPool"]
+        },
+        {
+          "file": "src/engine/EmbeddingIndex.ts",
+          "anchors": ["WorkerPool"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-01",
+      "category": "reasoning",
+      "query": "How are vector matches enriched with structural neighbors and impact before results are returned?",
+      "gold": [
+        {
+          "file": "src/engine/GraphRAGEngine.ts",
+          "anchors": ["export class GraphRAGEngine"]
+        },
+        {
+          "file": "src/engine/CodebaseGraph.ts",
+          "anchors": ["export class CodebaseGraph"]
+        },
+        {
+          "file": "src/engine/EmbeddingIndex.ts",
+          "anchors": ["export class EmbeddingIndex"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-02",
+      "category": "reasoning",
+      "query": "How does retrieval combine exact symbols, lexical overlap, and semantic similarity without silently replacing the native vector space?",
+      "gold": [
+        {
+          "file": "src/engine/HybridRetrieval.ts",
+          "anchors": ["export function scoreLexicalMatch", "export function fuseHybridScore"]
+        },
+        {
+          "file": "src/engine/EmbeddingIndex.ts",
+          "anchors": ["searchHybrid"]
+        },
+        {
+          "file": "src/mcp/graph-rag-embedding-policy.ts",
+          "anchors": ["externalFallbacksAllowed"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-03",
+      "category": "reasoning",
+      "query": "How are callers, callees, sibling symbols, communities, and file documentation added to searchable text?",
+      "gold": [
+        {
+          "file": "src/engine/EmbeddingIndex.ts",
+          "anchors": ["export type GraphTextTerm"]
+        },
+        {
+          "file": "src/engine/CodebaseGraph.ts",
+          "anchors": ["getCallers", "getCallees"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-04",
+      "category": "reasoning",
+      "query": "How does a repository walk decide which language parser handles each source file?",
+      "gold": [
+        {
+          "file": "src/engine/CodebaseScanner.ts",
+          "anchors": ["export class CodebaseScanner"]
+        },
+        {
+          "file": "src/engine/AdapterManager.ts",
+          "anchors": ["export class AdapterManager"]
+        },
+        {
+          "file": "src/engine/adapters/index.ts",
+          "anchors": ["export function detectLanguage"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-05",
+      "category": "reasoning",
+      "query": "How does native source parsing preserve declarations, ownership, documentation, and visibility in shared symbols?",
+      "gold": [
+        {
+          "file": "src/engine/adapters/HoloAdapter.ts",
+          "anchors": ["export class HoloAdapter"]
+        },
+        {
+          "file": "src/engine/adapters/BaseAdapter.ts",
+          "anchors": ["export function extractDocComment", "export function extractVisibility"]
+        },
+        {
+          "file": "src/engine/types.ts",
+          "anchors": ["export interface ExternalSymbolDefinition"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-06",
+      "category": "reasoning",
+      "query": "How can one generic tree parser interpret symbols, imports, calls, and events for several languages?",
+      "gold": [
+        {
+          "file": "src/engine/adapters/TreeSitterTraitAdapter.ts",
+          "anchors": ["export class TreeSitterTraitAdapter"]
+        },
+        {
+          "file": "src/engine/adapters/language-traits.ts",
+          "anchors": ["export interface SymbolRule", "export interface CallRule"]
+        },
+        {
+          "file": "src/engine/adapters/language-traits.generated.ts",
+          "anchors": ["export const LANGUAGE_TRAITS"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-07",
+      "category": "reasoning",
+      "query": "How does local absorption decide whether a disk graph is fresh and authoritative for the current workspace?",
+      "gold": [
+        {
+          "file": "src/mcp/codebase-tools.ts",
+          "anchors": ["graphAuthoritative", "fileHashFreshness"]
+        },
+        {
+          "file": "src/mcp/codebase-cache-storage.ts",
+          "anchors": ["resolveCodebaseCachePathsForRoots"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-08",
+      "category": "reasoning",
+      "query": "How does an interrupted refresh resume completed batches while preserving a single durable writer?",
+      "gold": [
+        {
+          "file": "src/mcp/absorb-refresh-checkpoint.ts",
+          "anchors": ["export class AbsorbRefreshCheckpoint", "AbsorbRefreshWriterLeaseProof"]
+        },
+        {
+          "file": "src/mcp/codebase-tools.ts",
+          "anchors": ["refreshProgressReceipt", "writerLease"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-09",
+      "category": "reasoning",
+      "query": "How does the default offline vector backend combine structural features with subword signals?",
+      "gold": [
+        {
+          "file": "src/engine/providers/HoloEmbedProvider.ts",
+          "anchors": ["ABSORB_HOLOEMBED_STRUCTURAL_WEIGHT", "export class HoloEmbedProvider"]
+        },
+        {
+          "file": "src/engine/providers/StructuralEmbeddingProvider.ts",
+          "anchors": ["export class StructuralEmbeddingProvider"]
+        },
+        {
+          "file": "src/engine/providers/EmbeddingProviderFactory.ts",
+          "anchors": ["case 'holoembed'"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-10",
+      "category": "reasoning",
+      "query": "How are cloud, local server, and browser transformer vector backends kept explicit rather than auto-selected?",
+      "gold": [
+        {
+          "file": "src/engine/providers/OpenAIEmbeddingProvider.ts",
+          "anchors": ["export class OpenAIEmbeddingProvider"]
+        },
+        {
+          "file": "src/engine/providers/OllamaEmbeddingProvider.ts",
+          "anchors": ["export class OllamaEmbeddingProvider"]
+        },
+        {
+          "file": "src/engine/providers/XenovaEmbeddingProvider.ts",
+          "anchors": ["export class XenovaEmbeddingProvider"]
+        },
+        {
+          "file": "src/engine/providers/EmbeddingProviderFactory.ts",
+          "anchors": ["EXPLICIT OPT-IN ONLY"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-11",
+      "category": "reasoning",
+      "query": "How do structural clusters and trait co-occurrence provide context for search and navigation?",
+      "gold": [
+        {
+          "file": "src/engine/CommunityDetector.ts",
+          "anchors": ["export class CommunityDetector"]
+        },
+        {
+          "file": "src/engine/TraitCommunityDetector.ts",
+          "anchors": ["export class TraitCommunityDetector"]
+        },
+        {
+          "file": "src/engine/GraphRAGEngine.ts",
+          "anchors": ["community"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-12",
+      "category": "reasoning",
+      "query": "How are duplicate symbol names converted into stable scene identifiers and resolved back to the intended node?",
+      "gold": [
+        {
+          "file": "src/engine/SymbolObjectId.ts",
+          "anchors": ["export function makeSymbolObjectId"]
+        },
+        {
+          "file": "src/engine/visualization/GraphSelectionManager.ts",
+          "anchors": ["export class GraphSelectionManager"]
+        },
+        {
+          "file": "src/engine/visualization/CodebaseSceneCompiler.ts",
+          "anchors": ["makeSymbolObjectId"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-13",
+      "category": "reasoning",
+      "query": "How does selecting a visual node add cited focus without overriding exact textual intent?",
+      "gold": [
+        {
+          "file": "src/engine/visualization/GraphSelectionManager.ts",
+          "anchors": ["export interface VisualGraphFocus"]
+        },
+        {
+          "file": "src/engine/visualization/GraphRAGVisualizer.ts",
+          "anchors": ["export class GraphRAGVisualizer"]
+        },
+        {
+          "file": "src/mcp/graph-rag-tools.ts",
+          "anchors": ["visualNodeIds"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-14",
+      "category": "reasoning",
+      "query": "How is a relationship snapshot transformed into a navigable composition with layouts and typed scene records?",
+      "gold": [
+        {
+          "file": "src/engine/HoloEmitter.ts",
+          "anchors": ["export class HoloEmitter"]
+        },
+        {
+          "file": "src/engine/layouts/ForceDirectedLayout.ts",
+          "anchors": ["export function forceDirectedLayout"]
+        },
+        {
+          "file": "src/engine/layouts/LayeredLayout.ts",
+          "anchors": ["export function layeredLayout"]
+        },
+        {
+          "file": "src/engine/visualization/CodebaseSceneTypes.ts",
+          "anchors": ["export interface SceneComposition"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-15",
+      "category": "reasoning",
+      "query": "How are source comments and structural patterns converted into publishable knowledge entries?",
+      "gold": [
+        {
+          "file": "src/engine/KnowledgeExtractor.ts",
+          "anchors": ["export class KnowledgeExtractor"]
+        },
+        {
+          "file": "src/mcp/knowledge-extraction-tools.ts",
+          "anchors": ["knowledgeExtractionTools"]
+        },
+        {
+          "file": "src/mcp/knowledge-tools.ts",
+          "anchors": ["getKnowledgeToolDefinitions"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-16",
+      "category": "reasoning",
+      "query": "How are generated answers prevented from citing missing files or invalid source ranges?",
+      "gold": [
+        {
+          "file": "src/engine/ProvenanceIntegrityGuard.ts",
+          "anchors": ["export function validateCitations", "export function filterAnswerCitations"]
+        },
+        {
+          "file": "src/mcp/graph-rag-tools.ts",
+          "anchors": ["validateCitations"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-17",
+      "category": "reasoning",
+      "query": "How does an incremental refresh detect changed files, rescan them, and preserve reusable graph state?",
+      "gold": [
+        {
+          "file": "src/engine/GitChangeDetector.ts",
+          "anchors": ["export class GitChangeDetector"]
+        },
+        {
+          "file": "src/engine/CodebaseScanner.ts",
+          "anchors": ["scanInBatches"]
+        },
+        {
+          "file": "src/engine/CodebaseGraph.ts",
+          "anchors": ["patchFromChanges"]
+        },
+        {
+          "file": "src/mcp/absorb-refresh-checkpoint.ts",
+          "anchors": ["prepareAbsorbRefreshCheckpoint"]
+        }
+      ]
+    },
+    {
+      "id": "reasoning-18",
+      "category": "reasoning",
+      "query": "How are parser and vector jobs bounded for concurrency while exposing telemetry and fallback behavior?",
+      "gold": [
+        {
+          "file": "src/engine/workers/WorkerPool.ts",
+          "anchors": ["export class WorkerPool", "export interface WorkerPoolTelemetry"]
+        },
+        {
+          "file": "src/engine/CodebaseScanner.ts",
+          "anchors": ["WorkerPool"]
+        },
+        {
+          "file": "src/engine/EmbeddingIndex.ts",
+          "anchors": ["WorkerPool"]
+        }
+      ]
+    }
+  ]
+}

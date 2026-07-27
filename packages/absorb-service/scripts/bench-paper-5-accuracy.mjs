@@ -9,9 +9,9 @@
  *
  * ## What this measures
  *
- * Four retrieval systems are scored on a bootstrap labeled query set whose
- * gold answers are real file paths inside
- * `packages/absorb-service/src/engine/` (the GraphRAG implementation itself).
+ * Four retrieval systems are scored on a frozen, held-out, source-audited
+ * query set whose multi-relevance answers are real file paths inside
+ * `packages/absorb-service/src/`.
  *
  *   1. Keyword-only  — case-insensitive token overlap over symbol name +
  *                       file path + signature, ranked by overlap count.
@@ -33,108 +33,38 @@
  *
  * ## Metrics
  *
- *   Precision@5 = (# of top-5 results whose file matches the gold file) / 5
- *   Reciprocal rank = 1 / (rank of first gold-file hit in topK), or 0 if absent
+ *   Precision@5 = (# of top-5 results matching any relevant file) / 5
+ *   Reciprocal rank = 1 / (rank of first relevant-file hit in topK), or 0
  *   MRR = mean of reciprocal rank across queries
+ *   95% confidence intervals = deterministic non-parametric bootstrap
  *
  * ## Scope honesty
  *
- * The bootstrap set is N=10 queries. The full Paper 5 Table III would
- * benefit from N>=50 labeled queries across Dependency / Impact / Reasoning
- * categories. The artifact records `bootstrap: true` and a `scope_note`
- * so reviewers can see the floor vs the eventual full evaluation.
+ * The v1 corpus has N=54 queries balanced across Dependency / Impact /
+ * Reasoning. Labels are independently executable against source anchors before
+ * retrieval runs, but they are not independently labeled by multiple humans
+ * and have not yet been replicated on an external codebase. The artifact keeps
+ * that publication boundary explicit.
  *
  * No fabricated numbers: if a system errors (e.g. embedding build crashes
  * because the corpus failed to scan), it is reported as `skipped` with the
  * error string. Numbers are emitted only for systems that actually ran.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, resolve, relative } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { spawnSync } from 'node:child_process';
 import { platform, release, totalmem, cpus } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import {
+  DEFAULT_PAPER_5_DATASET,
+  requirePaper5Dataset,
+} from './verify-paper-5-dataset.mjs';
 
 const DEFAULT_OUT = '.bench-logs/paper-5-accuracy-bench.json';
 const DEFAULT_TOP_K = 10;
 const DEFAULT_P_AT = 5;
-
-// =============================================================================
-// BOOTSTRAP LABELED QUERY SET
-// =============================================================================
-//
-// Each query targets a real symbol/file inside packages/absorb-service/src/.
-// Gold answers are RELATIVE file paths (POSIX form) so they match the scan
-// output regardless of OS path separators.
-//
-// Selection rationale:
-//   - All gold files are non-test source files in absorb-service/src/.
-//   - Queries span Paper 5's three categories: lookup (find X),
-//     dependency/impact (who calls X), and reasoning (how does X work).
-//   - Verified to exist on disk at write time via direct `ls`.
-
-const QUERY_SET = [
-  {
-    id: 'q01',
-    category: 'lookup',
-    query: 'graph rag engine combining semantic and graph search',
-    goldFile: 'src/engine/GraphRAGEngine.ts',
-  },
-  {
-    id: 'q02',
-    category: 'lookup',
-    query: 'embedding index cosine similarity search',
-    goldFile: 'src/engine/EmbeddingIndex.ts',
-  },
-  {
-    id: 'q03',
-    category: 'lookup',
-    query: 'codebase scanner tree sitter walk project',
-    goldFile: 'src/engine/CodebaseScanner.ts',
-  },
-  {
-    id: 'q04',
-    category: 'lookup',
-    query: 'codebase graph callers callees impact radius',
-    goldFile: 'src/engine/CodebaseGraph.ts',
-  },
-  {
-    id: 'q05',
-    category: 'reasoning',
-    query: 'holo embed provider sovereign subword vectors no api',
-    goldFile: 'src/engine/providers/HoloEmbedProvider.ts',
-  },
-  {
-    id: 'q06',
-    category: 'reasoning',
-    query: 'openai embedding provider api key model selection',
-    goldFile: 'src/engine/providers/OpenAIEmbeddingProvider.ts',
-  },
-  {
-    id: 'q07',
-    category: 'reasoning',
-    query: 'community detection cluster files together',
-    goldFile: 'src/engine/CommunityDetector.ts',
-  },
-  {
-    id: 'q08',
-    category: 'reasoning',
-    query: 'git change detector incremental updates',
-    goldFile: 'src/engine/GitChangeDetector.ts',
-  },
-  {
-    id: 'q09',
-    category: 'reasoning',
-    query: 'provenance integrity guard envelope hashing',
-    goldFile: 'src/engine/ProvenanceIntegrityGuard.ts',
-  },
-  {
-    id: 'q10',
-    category: 'reasoning',
-    query: 'knowledge extractor docstrings comments',
-    goldFile: 'src/engine/KnowledgeExtractor.ts',
-  },
-];
 
 // =============================================================================
 // ARG PARSING
@@ -147,6 +77,7 @@ function parseArgs(argv) {
     pAt: DEFAULT_P_AT,
     maxFiles: 200,
     provider: 'holoembed',
+    dataset: DEFAULT_PAPER_5_DATASET,
     help: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -159,6 +90,7 @@ function parseArgs(argv) {
     if (flag === 'top-k') out.topK = positiveInt(value, flag);
     if (flag === 'p-at') out.pAt = positiveInt(value, flag);
     if (flag === 'max-files') out.maxFiles = positiveInt(value, flag);
+    if (flag === 'dataset') out.dataset = value || DEFAULT_PAPER_5_DATASET;
     if (flag === 'provider') {
       if (!['holoembed', 'structural'].includes(value)) {
         throw new Error('--provider must be holoembed or structural');
@@ -188,6 +120,7 @@ function usage() {
     '  --p-at=N          precision cutoff (default 5)',
     '  --max-files=N     scanner max files cap (default 200)',
     '  --provider=NAME    holoembed (default) or structural (legacy floor)',
+    '  --dataset=PATH     frozen retrieval corpus (default package v1 dataset)',
     '  --help            show this message',
   ].join('\n');
 }
@@ -229,16 +162,40 @@ async function loadCorpus(repoRoot, maxFiles, providerName) {
   }
 
   const rootDir = resolve(repoRoot, 'packages/absorb-service');
-  const scanner = new CodebaseScanner();
+  // Benchmark runs must be reproducible across provider arms. The production
+  // scanner can use workers, but sequential parsing removes worker scheduling
+  // as a source of corpus variance while preserving scanner semantics.
+  const scanner = new CodebaseScanner(undefined, false);
   const scanResult = await scanner.scan({
     rootDir,
     languages: ['typescript'],
     maxFiles,
-    exclude: ['node_modules', 'dist', '__tests__', '.test.', '.spec.', 'scripts'],
+    exclude: ['node_modules', 'dist', '__tests__', 'scripts'],
+    excludeNameFragments: ['.test.', '.spec.'],
   });
 
   const graph = new CodebaseGraph();
   graph.buildFromScanResult(scanResult);
+  const keywordSymbols = (graph.getAllSymbols?.() ?? []).map((symbol) => ({
+    name: symbol.name ?? '',
+    filePath: symbol.filePath ?? '',
+    signature: symbol.signature ?? '',
+    docComment: symbol.docComment ?? '',
+  }));
+  const corpusFingerprint = createHash('sha256')
+    .update(
+      JSON.stringify(
+        keywordSymbols
+          .map((symbol) => [
+            symbol.filePath,
+            symbol.name,
+            symbol.signature,
+            symbol.docComment,
+          ])
+          .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+      )
+    )
+    .digest('hex');
 
   const provider =
     providerName === 'structural'
@@ -249,7 +206,16 @@ async function loadCorpus(repoRoot, maxFiles, providerName) {
 
   const engine = new GraphRAGEngine(graph, index);
 
-  return { scanner, scanResult, graph, index, engine, rootDir };
+  return {
+    scanner,
+    scanResult,
+    graph,
+    index,
+    engine,
+    rootDir,
+    keywordSymbols,
+    corpusFingerprint,
+  };
 }
 
 function pathToFileUrl(p) {
@@ -257,6 +223,14 @@ function pathToFileUrl(p) {
   // Node's import() accepts file URLs for absolute paths.
   const normalized = p.replace(/\\/g, '/');
   return normalized.startsWith('/') ? `file://${normalized}` : `file:///${normalized}`;
+}
+
+function artifactFilePath(file, packageRoot) {
+  const normalized = String(file).replace(/\\/g, '/');
+  if (!/^(?:[a-z]:\/|\/)/iu.test(normalized)) {
+    return normalized.replace(/^\.\//u, '');
+  }
+  return relative(packageRoot, file).replace(/\\/g, '/');
 }
 
 // =============================================================================
@@ -271,16 +245,14 @@ function pathToFileUrl(p) {
  * Symbols are then grouped to top-K distinct files (highest-scoring symbol
  * per file wins). Ties broken by file path order for determinism.
  */
-function keywordSearch(graph, scanResult, query, topK) {
+function keywordSearch(keywordSymbols, scanResult, query, topK) {
   const tokens = query
     .toLowerCase()
     .split(/[^a-z0-9]+/g)
     .filter((t) => t.length >= 3);
 
   const fileBest = new Map(); // file -> best score
-  const allSymbols = graph.getAllSymbols ? graph.getAllSymbols() : [];
-
-  for (const sym of allSymbols) {
+  for (const sym of keywordSymbols) {
     const haystack = [sym.name ?? '', sym.filePath ?? '', sym.signature ?? '', sym.docComment ?? '']
       .join(' ')
       .toLowerCase();
@@ -362,14 +334,17 @@ async function graphRagSearch(engine, query, topK) {
 // SCORING
 // =============================================================================
 
-function scoreQuery(retrieved, goldFile, pAt, repoRoot) {
-  // Normalize gold file to absolute, then compare via suffix match so
+function scoreQuery(retrieved, goldFiles, pAt, repoRoot) {
+  // Normalize relevant files to absolute, then compare via suffix match so
   // both relative and absolute scanner outputs work.
-  const goldAbs = resolve(repoRoot, 'packages/absorb-service', goldFile).replace(/\\/g, '/');
   const norm = (p) => p.replace(/\\/g, '/');
+  const relevant = goldFiles.map((goldFile) => ({
+    relative: goldFile,
+    absolute: resolve(repoRoot, 'packages/absorb-service', goldFile).replace(/\\/g, '/'),
+  }));
   const hits = retrieved.map((r) => {
     const np = norm(r.file);
-    return np.endsWith(goldFile) || np === goldAbs;
+    return relevant.some((gold) => np.endsWith(gold.relative) || np === gold.absolute);
   });
 
   const top = hits.slice(0, pAt);
@@ -380,6 +355,83 @@ function scoreQuery(retrieved, goldFile, pAt, repoRoot) {
   const rr = firstHitIdx >= 0 ? 1 / (firstHitIdx + 1) : 0;
 
   return { p, rr, firstHitIdx };
+}
+
+function mulberry32(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function quantile(sorted, probability) {
+  if (sorted.length === 0) return null;
+  const position = (sorted.length - 1) * probability;
+  const lower = Math.floor(position);
+  const upper = Math.ceil(position);
+  if (lower === upper) return sorted[lower];
+  const weight = position - lower;
+  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+}
+
+function bootstrapMean(values, protocol, seedOffset = 0) {
+  const finite = values.filter(Number.isFinite);
+  if (finite.length === 0) {
+    return {
+      mean: null,
+      ci_lower: null,
+      ci_upper: null,
+      n: 0,
+      resamples: protocol.bootstrapResamples,
+      confidence: protocol.confidence,
+    };
+  }
+  const rng = mulberry32((protocol.seed + seedOffset) >>> 0);
+  const estimates = [];
+  for (let sample = 0; sample < protocol.bootstrapResamples; sample += 1) {
+    let total = 0;
+    for (let index = 0; index < finite.length; index += 1) {
+      total += finite[Math.floor(rng() * finite.length)];
+    }
+    estimates.push(total / finite.length);
+  }
+  estimates.sort((a, b) => a - b);
+  const alpha = (1 - protocol.confidence) / 2;
+  return {
+    mean: round(finite.reduce((sum, value) => sum + value, 0) / finite.length),
+    ci_lower: round(quantile(estimates, alpha)),
+    ci_upper: round(quantile(estimates, 1 - alpha)),
+    n: finite.length,
+    resamples: protocol.bootstrapResamples,
+    confidence: protocol.confidence,
+  };
+}
+
+function metricSummary(perQuery, metricKey, protocol, seedOffset = 0) {
+  return bootstrapMean(
+    perQuery.map((query) => query[metricKey]).filter(Number.isFinite),
+    protocol,
+    seedOffset
+  );
+}
+
+function categoryMetrics(perQuery, metricKey, protocol, seedOffset = 0) {
+  const categories = [...new Set(perQuery.map((query) => query.category))].sort();
+  return Object.fromEntries(
+    categories.map((category, categoryIndex) => [
+      category,
+      metricSummary(
+        perQuery.filter((query) => query.category === category),
+        metricKey,
+        protocol,
+        seedOffset + (categoryIndex + 1) * 101
+      ),
+    ])
+  );
 }
 
 // =============================================================================
@@ -421,8 +473,47 @@ export async function main(argv = process.argv.slice(2), config = {}) {
   }
 
   const repoRoot = config.cwd ?? process.cwd();
+  if (config.defaultDataset && options.dataset === DEFAULT_PAPER_5_DATASET) {
+    options.dataset = config.defaultDataset;
+  }
+  const datasetPath = resolve(repoRoot, options.dataset);
+  let dataset;
+  let datasetAudit;
+  try {
+    ({ dataset, receipt: datasetAudit } = requirePaper5Dataset(datasetPath));
+  } catch (err) {
+    const artifact = {
+      schema_version: 'paper-5-accuracy-bench-v3',
+      benchmark: 'paper-5-graphrag-accuracy',
+      status: 'dataset_audit_failed',
+      ran_at: new Date().toISOString(),
+      dataset: relative(repoRoot, datasetPath).replace(/\\/g, '/'),
+      error: String(err?.stack ?? err),
+    };
+    const outPath = resolve(repoRoot, options.out);
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, `${JSON.stringify(artifact, null, 2)}\n`, 'utf8');
+    console.error(`[paper-5-accuracy-bench] dataset_audit_failed -> ${outPath}`);
+    return 1;
+  }
+  const querySet = dataset.queries;
+  const bootstrapProtocol = {
+    bootstrapResamples: dataset.metricProtocol.bootstrapResamples,
+    confidence: dataset.metricProtocol.confidenceLevel,
+    seed: dataset.metricProtocol.seed,
+  };
+  if (
+    options.topK !== dataset.metricProtocol.topK ||
+    options.pAt !== dataset.metricProtocol.precisionAt
+  ) {
+    throw new Error(
+      `Metric protocol drift: dataset requires topK=${dataset.metricProtocol.topK} ` +
+        `and p@${dataset.metricProtocol.precisionAt}`
+    );
+  }
   console.error(
-    `[paper-5-accuracy-bench] queries=${QUERY_SET.length} topK=${options.topK} p@${options.pAt} maxFiles=${options.maxFiles} provider=${options.provider}`
+    `[paper-5-accuracy-bench] dataset=${dataset.datasetId} queries=${querySet.length} ` +
+      `topK=${options.topK} p@${options.pAt} maxFiles=${options.maxFiles} provider=${options.provider}`
   );
 
   const hardware = detectHardware();
@@ -436,10 +527,11 @@ export async function main(argv = process.argv.slice(2), config = {}) {
   } catch (err) {
     // Hard fail — without a corpus, no system can produce honest numbers.
     const artifact = {
-      schema_version: 'paper-5-accuracy-bench-v2',
+      schema_version: 'paper-5-accuracy-bench-v3',
       benchmark: 'paper-5-graphrag-accuracy',
       status: 'setup_failed',
       ran_at: ranAt,
+      dataset_audit: datasetAudit,
       hardware,
       error: String(err?.stack ?? err),
       notes: [
@@ -454,26 +546,57 @@ export async function main(argv = process.argv.slice(2), config = {}) {
     return 1;
   }
   const setupMs = Math.round(performance.now() - setupStart);
-  const { scanResult, graph, index, engine } = bundle;
+  const { scanResult, graph, index, engine, keywordSymbols, corpusFingerprint } = bundle;
 
   console.error(
     `[paper-5-accuracy-bench] corpus: ${scanResult.files?.length ?? 0} files, ${
       (graph.getAllSymbols?.() ?? []).length
-    } symbols, setup ${setupMs}ms`
+    } symbols, ${scanResult.errors?.length ?? 0} scan errors, setup ${setupMs}ms`
   );
 
   // ── 2. Verify every gold file is actually in the scanned corpus ──────────
   const scannedPaths = new Set((scanResult.files ?? []).map((f) => f.path.replace(/\\/g, '/')));
-  const goldCheck = QUERY_SET.map((q) => {
-    const found = [...scannedPaths].some((p) => p.endsWith(q.goldFile));
-    return { id: q.id, gold: q.goldFile, in_corpus: found };
-  });
+  const goldCheck = querySet.flatMap((q) =>
+    q.gold.map((judgment) => {
+      const found = [...scannedPaths].some((path) => path.endsWith(judgment.file));
+      return { id: q.id, gold: judgment.file, in_corpus: found };
+    })
+  );
   const missingGold = goldCheck.filter((g) => !g.in_corpus);
-  if (missingGold.length > 0) {
+  const scanErrors = scanResult.errors ?? [];
+  if (missingGold.length > 0 || scanErrors.length > 0) {
     console.error(
-      `[paper-5-accuracy-bench] WARN ${missingGold.length}/${QUERY_SET.length} gold files NOT in scanned corpus`
+      `[paper-5-accuracy-bench] FAIL missing-gold=${missingGold.length}/${goldCheck.length} ` +
+        `scan-errors=${scanErrors.length}`
     );
     for (const m of missingGold) console.error(`  - ${m.id}: ${m.gold}`);
+    try {
+      await index.dispose?.();
+    } catch {
+      /* best-effort */
+    }
+    const artifact = {
+      schema_version: 'paper-5-accuracy-bench-v3',
+      benchmark: 'paper-5-graphrag-accuracy',
+      status: 'corpus_validation_failed',
+      ran_at: ranAt,
+      dataset_audit: datasetAudit,
+      corpus: {
+        root: 'packages/absorb-service',
+        files: scanResult.files?.length ?? 0,
+        symbols: (graph.getAllSymbols?.() ?? []).length,
+        max_files: options.maxFiles,
+        scan_errors: scanErrors,
+      },
+      gold_files_missing: missingGold,
+      error:
+        'The benchmark requires every frozen relevance judgment in a corpus with zero scan errors.',
+    };
+    const outPath = resolve(repoRoot, options.out);
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, `${JSON.stringify(artifact, null, 2)}\n`, 'utf8');
+    console.error(`[paper-5-accuracy-bench] corpus_validation_failed -> ${outPath}`);
+    return 1;
   }
 
   // ── 3. Run each system ───────────────────────────────────────────────────
@@ -482,7 +605,7 @@ export async function main(argv = process.argv.slice(2), config = {}) {
       name: 'keyword-only',
       label: 'Keyword-only',
       kind: 'lexical',
-      run: async (q) => keywordSearch(graph, scanResult, q, options.topK),
+      run: async (q) => keywordSearch(keywordSymbols, scanResult, q, options.topK),
     },
     {
       name: 'semantic-only',
@@ -505,43 +628,42 @@ export async function main(argv = process.argv.slice(2), config = {}) {
   ];
 
   const systems = [];
-  for (const sys of systemDefs) {
+  for (const [systemIndex, sys] of systemDefs.entries()) {
     const sysStart = performance.now();
     const perQuery = [];
-    let totalP = 0;
-    let totalRr = 0;
     let nOk = 0;
     let sysError = null;
 
-    for (const q of QUERY_SET) {
+    for (const q of querySet) {
+      const goldFiles = q.gold.map((judgment) => judgment.file);
       try {
         const retrieved = await sys.run(q.query);
-        const { p, rr, firstHitIdx } = scoreQuery(retrieved, q.goldFile, options.pAt, repoRoot);
+        const { p, rr, firstHitIdx } = scoreQuery(
+          retrieved,
+          goldFiles,
+          options.pAt,
+          repoRoot
+        );
         perQuery.push({
           id: q.id,
           category: q.category,
           query: q.query,
-          gold: q.goldFile,
+          gold: goldFiles,
           retrieved: retrieved.map((r) => ({
-            file: relative(resolve(repoRoot, 'packages/absorb-service'), r.file).replace(
-              /\\/g,
-              '/'
-            ),
+            file: artifactFilePath(r.file, resolve(repoRoot, 'packages/absorb-service')),
             score: round(r.score),
           })),
           [`p_at_${options.pAt}`]: round(p),
           rr: round(rr),
           first_hit_rank: firstHitIdx >= 0 ? firstHitIdx + 1 : null,
         });
-        totalP += p;
-        totalRr += rr;
         nOk += 1;
       } catch (err) {
         perQuery.push({
           id: q.id,
           category: q.category,
           query: q.query,
-          gold: q.goldFile,
+          gold: goldFiles,
           error: String(err?.message ?? err),
         });
         sysError = sysError ?? String(err?.message ?? err);
@@ -549,26 +671,100 @@ export async function main(argv = process.argv.slice(2), config = {}) {
     }
 
     const sysMs = Math.round(performance.now() - sysStart);
+    const precisionKey = `p_at_${options.pAt}`;
+    const precision = metricSummary(
+      perQuery,
+      precisionKey,
+      bootstrapProtocol,
+      systemIndex * 10_000
+    );
+    const mrr = metricSummary(perQuery, 'rr', bootstrapProtocol, systemIndex * 10_000 + 1);
+    const precisionByCategory = categoryMetrics(
+      perQuery,
+      precisionKey,
+      bootstrapProtocol,
+      systemIndex * 10_000 + 1_000
+    );
+    const mrrByCategory = categoryMetrics(
+      perQuery,
+      'rr',
+      bootstrapProtocol,
+      systemIndex * 10_000 + 2_000
+    );
     systems.push({
       name: sys.name,
       label: sys.label,
       kind: sys.kind,
-      status: nOk > 0 ? 'ok' : 'failed',
+      status: nOk === querySet.length ? 'ok' : nOk > 0 ? 'partial' : 'failed',
       n_queries: nOk,
-      [`p_at_${options.pAt}`]: nOk > 0 ? round(totalP / nOk) : null,
-      mrr: nOk > 0 ? round(totalRr / nOk) : null,
+      n_expected: querySet.length,
+      [precisionKey]: precision.mean,
+      mrr: mrr.mean,
+      confidence_intervals: {
+        [precisionKey]: precision,
+        mrr,
+      },
+      by_category: Object.fromEntries(
+        Object.keys(countBy(querySet, (q) => q.category)).map((category) => [
+          category,
+          {
+            [precisionKey]: precisionByCategory[category],
+            mrr: mrrByCategory[category],
+          },
+        ])
+      ),
       runtime_ms: sysMs,
       first_error: sysError,
       queries: perQuery,
     });
     console.error(
       `[paper-5-accuracy-bench] ${sys.name}: p@${options.pAt}=${
-        nOk > 0 ? round(totalP / nOk) : 'n/a'
-      } mrr=${nOk > 0 ? round(totalRr / nOk) : 'n/a'} (${sysMs}ms)`
+        precision.mean ?? 'n/a'
+      } [${precision.ci_lower ?? 'n/a'}, ${precision.ci_upper ?? 'n/a'}] mrr=${
+        mrr.mean ?? 'n/a'
+      } [${mrr.ci_lower ?? 'n/a'}, ${mrr.ci_upper ?? 'n/a'}] (${sysMs}ms)`
     );
   }
 
   // ── 4. BM25 / dedicated lexical baseline note ────────────────────────────
+  const keywordBaseline = systems.find((system) => system.name === 'keyword-only');
+  const precisionMetricKey = `p_at_${options.pAt}`;
+  if (keywordBaseline?.status === 'ok') {
+    const baselineById = new Map(keywordBaseline.queries.map((query) => [query.id, query]));
+    for (const [systemIndex, system] of systems.entries()) {
+      const paired = system.queries
+        .map((query) => {
+          const baseline = baselineById.get(query.id);
+          if (!baseline) return null;
+          if (
+            !Number.isFinite(query[precisionMetricKey]) ||
+            !Number.isFinite(baseline[precisionMetricKey]) ||
+            !Number.isFinite(query.rr) ||
+            !Number.isFinite(baseline.rr)
+          ) {
+            return null;
+          }
+          return {
+            p: query[precisionMetricKey] - baseline[precisionMetricKey],
+            rr: query.rr - baseline.rr,
+          };
+        })
+        .filter(Boolean);
+      system.delta_vs_keyword = {
+        [precisionMetricKey]: bootstrapMean(
+          paired.map((entry) => entry.p),
+          bootstrapProtocol,
+          50_000 + systemIndex * 1_000
+        ),
+        mrr: bootstrapMean(
+          paired.map((entry) => entry.rr),
+          bootstrapProtocol,
+          50_001 + systemIndex * 1_000
+        ),
+      };
+    }
+  }
+
   const bm25Note = {
     name: 'bm25',
     label: 'BM25 (skipped — not shipped in absorb-service)',
@@ -587,35 +783,61 @@ export async function main(argv = process.argv.slice(2), config = {}) {
   }
 
   // ── 6. Emit artifact ─────────────────────────────────────────────────────
+  const measuredSystems = systems.filter((system) => system.name !== 'bm25');
+  const allSystemsCompleted = measuredSystems.every((system) => system.status === 'ok');
   const artifact = {
-    schema_version: 'paper-5-accuracy-bench-v2',
+    schema_version: 'paper-5-accuracy-bench-v3',
     benchmark: 'paper-5-graphrag-accuracy',
-    status: 'completed',
+    status: allSystemsCompleted ? 'completed' : 'partial_failure',
     runner: 'packages/absorb-service/scripts/bench-paper-5-accuracy.mjs',
     paper_ref: 'ai-ecosystem/research/paper-5-graphrag-icse.tex',
     paper_table: 'tab:accuracy',
     ran_at: ranAt,
     setup_ms: setupMs,
-    bootstrap: true,
+    evaluation_stage: 'source-audited-held-out',
+    publication_ready: false,
+    bootstrap: false,
+    bootstrap_confidence_intervals: true,
     scope_note:
-      'Bootstrap accuracy floor on N=' +
-      QUERY_SET.length +
-      ' queries against the absorb-service GraphRAG implementation. The full Paper 5 Table III evaluation targets >=50 labeled queries spanning Dependency / Impact / Reasoning categories with multi-annotator gold answers; this run is a deterministic CI-reproducible floor, not the full evaluation.',
+      'Held-out source-audited evaluation on N=' +
+      querySet.length +
+      ' queries balanced across Dependency / Impact / Reasoning with multi-relevance judgments. ' +
+      'The executable pre-ranking audit verifies every label against current source anchors. ' +
+      'This is not independently labeled by multiple humans and has not been replicated on an external codebase, so it is not publication-ready.',
+    dataset: {
+      path: relative(repoRoot, datasetPath).replace(/\\/g, '/'),
+      id: dataset.datasetId,
+      frozen_at: dataset.frozenAt,
+      source_commit: dataset.sourceCommit,
+      sha256: datasetAudit.dataset.sha256,
+      split: dataset.split,
+      labeling: dataset.labeling,
+      claim_boundary: dataset.claimBoundary,
+      audit: datasetAudit,
+    },
     corpus: {
       root: 'packages/absorb-service',
       files: scanResult.files?.length ?? 0,
       symbols: (graph.getAllSymbols?.() ?? []).length,
       max_files: options.maxFiles,
+      deterministic_scan: 'sequential',
+      symbol_corpus_sha256: corpusFingerprint,
+      scan_errors: scanErrors,
     },
     query_set: {
-      n: QUERY_SET.length,
-      categories: countBy(QUERY_SET, (q) => q.category),
+      n: querySet.length,
+      categories: countBy(querySet, (q) => q.category),
+      relevance_judgments: goldCheck.length,
       gold_files_in_corpus: goldCheck.filter((g) => g.in_corpus).length,
       gold_files_missing: missingGold,
     },
     metrics: {
       top_k: options.topK,
       p_at: options.pAt,
+      bootstrap_resamples: bootstrapProtocol.bootstrapResamples,
+      confidence_level: bootstrapProtocol.confidence,
+      seed: bootstrapProtocol.seed,
+      paired_delta_baseline: 'keyword-only',
     },
     embedding_provider:
       options.provider === 'structural'
@@ -631,8 +853,9 @@ export async function main(argv = process.argv.slice(2), config = {}) {
       'No LLM is invoked — the engine returns ranked enriched results, not generated answers, so accuracy is measured on retrieval not synthesis.',
       options.provider === 'structural'
         ? 'IMPORTANT: StructuralEmbeddingProvider encodes AST-structural features rather than NL-text semantics. Treat these results as a legacy floor.'
-        : 'IMPORTANT: HoloEmbed is the current sovereign shared GraphRAG provider. This remains a 10-query bootstrap and must not be presented as the full Paper 5 evaluation.',
-      'Keyword-only MRR is meaningful here even when P@5 looks low: it shows the gold file IS being ranked highly, just not always at rank 1, and there are other valid related files in the top-5 (e.g. GraphRAGVisualizer for a "graph rag engine" query).',
+        : 'IMPORTANT: HoloEmbed is the current sovereign shared GraphRAG provider. The corpus clears the 50-query implementation gate but not the independent multi-human annotation or external-replication gates.',
+      'Precision@5 uses the conventional fixed denominator of five. Queries have two to five audited relevant files, so the maximum attainable per-query precision depends on the frozen relevance set.',
+      'Confidence intervals are deterministic non-parametric bootstrap intervals over held-out queries. Delta intervals are paired against the keyword-only baseline.',
     ],
   };
 
@@ -649,7 +872,7 @@ export async function main(argv = process.argv.slice(2), config = {}) {
 
   console.log(`-> ${outPath}`);
   console.log(`-> ${tsPath}`);
-  return 0;
+  return allSystemsCompleted ? 0 : 1;
 }
 
 function round(value) {
