@@ -9,6 +9,7 @@ function HoloscriptNetComponent() {
 
 
 
+
   return (
     <div className="holoscript-2d-root w-full h-full">
       <main className="relative z-10 min-h-screen flex flex-col">
@@ -49,7 +50,7 @@ function HoloscriptNetComponent() {
       {`Build your own games and apps. No code. Your data stays yours.`}
 
     </h1>
-<h4 className="text-xl text-gray-400 max-w-2xl mx-auto text-gray-300">
+<h4 className="text-xl max-w-2xl mx-auto text-gray-300">
       {`HoloScript lets anyone create games, apps, and worlds without writing code and without handing their data to Big Tech. You describe what you want; HoloScript builds it, you own it, and it runs anywhere — so no platform can lock you in.`}
 
     </h4>
@@ -69,9 +70,89 @@ function HoloscriptNetComponent() {
     </a>
     </div>
     </section>
+<section className="relative z-10 px-6 md:px-10 pb-24 max-w-5xl mx-auto w-full flex flex-col gap-8">
+
+      <h2 className="text-3xl font-bold text-3xl font-bold tracking-tight text-center bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent">
+      {`What HoloScript actually is`}
+
+    </h2>
+<h4 className="text-xl text-gray-300 text-center max-w-2xl mx-auto">
+      {`Not a no-code toy and not an AI wrapper — a real programming language with a real toolchain, designed so humans and AI agents can author it together.`}
+
+    </h4>
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+
+      <div className="flex flex-col gap-2 p-6 rounded-2xl border border-white/15">
+
+      <p className="text-lg font-semibold text-white">
+      {`A real language`}
+
+    </p>
+<p className="text-sm text-gray-400">
+      {`Three source formats — .hs for declarative scenes and logic, .hsplus for fully typed programs, .holo for whole-system compositions — with its own lexer, parsers, AST, LSP, formatter, linter, runtime, and CLI.`}
+
+    </p>
+    </div>
+<div className="flex flex-col gap-2 p-6 rounded-2xl border border-white/15">
+
+      <p className="text-lg font-semibold text-white">
+      {`Deterministic compilers`}
+
+    </p>
+<p className="text-sm text-gray-400">
+      {`80+ compiler backends lower one source to 25+ documented targets: Unity, Unreal, Godot, VRChat, WebGPU, WebAssembly, iOS, visionOS, Android XR, OpenXR, robotics (URDF/SDF), and IoT. Compilation is deterministic — not an LLM guessing.`}
+
+    </p>
+    </div>
+<div className="flex flex-col gap-2 p-6 rounded-2xl border border-white/15">
+
+      <p className="text-lg font-semibold text-white">
+      {`Semantic traits`}
+
+    </p>
+<p className="text-sm text-gray-400">
+      {`1,500+ trait implementations across 150+ categories — @grabbable, @synced, @npc, @digital_twin — declare intent once and each compiler emits the correct platform implementation.`}
+
+    </p>
+    </div>
+<div className="flex flex-col gap-2 p-6 rounded-2xl border border-white/15">
+
+      <p className="text-lg font-semibold text-white">
+      {`AI agents are first-class authors`}
+
+    </p>
+<p className="text-sm text-gray-400">
+      {`The MCP server at mcp.holoscript.net gives any AI agent live tools to suggest traits, generate, validate, and compile HoloScript. AI helps write the source; real compilers build it.`}
+
+    </p>
+    </div>
+<div className="flex flex-col gap-2 p-6 rounded-2xl border border-white/15">
+
+      <p className="text-lg font-semibold text-white">
+      {`Self-hosting in progress`}
+
+    </p>
+<p className="text-sm text-gray-400">
+      {`The language is progressively rewritten in itself — HoloScript's own lexer and parsers have .hsplus implementations alongside the TypeScript bootstrap. This page is a .holo composition compiled to the web by HoloScript's own compiler.`}
+
+    </p>
+    </div>
+<div className="flex flex-col gap-2 p-6 rounded-2xl border border-white/15">
+
+      <a className="text-lg font-semibold text-white" href="https://github.com/brianonbased-dev/HoloScript">
+      {`Open source →`}
+
+    </a>
+<p className="text-sm text-gray-400">
+      {`The full monorepo — core language, compilers, MCP server, runtime, LSP, and this website — is public on GitHub. Machine-readable project facts live at /llms.txt.`}
+
+    </p>
+    </div>
+    </div>
+    </section>
 <footer className="relative z-10 px-6 md:px-10 py-8 text-center">
 
-      <span className="text-sm text-gray-500 text-gray-500">
+      <span className="text-sm text-gray-500">
       {`This page is a HoloScript composition, compiled to the web by HoloScript.`}
 
     </span>

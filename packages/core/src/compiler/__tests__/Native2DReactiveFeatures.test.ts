@@ -320,6 +320,36 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       expect(r).not.toContain('text-gray-500');
     });
 
+    it('keeps bg-gradient-to-* alongside bg-clip-text (utilities, not colors)', () => {
+      const c = comp([
+        obj('Title', [
+          trait('text', { variant: 'h1', content: 'x' }),
+          trait('theme', {
+            className:
+              'bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent',
+          }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('bg-gradient-to-r'); // direction is not a color — must survive bg-clip-text
+      expect(r).toContain('bg-clip-text');
+      expect(r).toContain('from-fuchsia-300');
+      expect(r).toContain('text-transparent');
+    });
+
+    it('keeps bg utility tokens (cover/center/no-repeat) alongside a bg color', () => {
+      const c = comp([
+        obj('HeroBg', [
+          trait('theme', { className: 'bg-cover bg-center bg-no-repeat bg-studio-panel' }),
+        ]),
+      ]);
+      const r = react(c);
+      expect(r).toContain('bg-cover');
+      expect(r).toContain('bg-center');
+      expect(r).toContain('bg-no-repeat');
+      expect(r).toContain('bg-studio-panel'); // the actual color also survives
+    });
+
     it('keeps border SIDE/WIDTH tokens alongside a border color (not deduped as color)', () => {
       const c = comp([
         obj('Card', [trait('theme', { className: 'border-l-2 border-studio-accent' })]),

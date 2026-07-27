@@ -2159,6 +2159,20 @@ export default ${safeName}Component;${contractExport}
       if (Native2DCompiler.TEXT_SIZE_TOKENS.has(`text-${rest}`)) return null; // font-size, not color
       if (['left', 'center', 'right', 'justify', 'start', 'end'].includes(rest)) return null; // align
     }
+    // bg- utilities that are not colors: gradient direction, clip, origin,
+    // repeat, blend, attachment, size, and position (bg-gradient-to-r,
+    // bg-clip-text, bg-cover, bg-center, ...). Treating these as the "bg"
+    // color family made resolveColorConflicts drop bg-gradient-to-* whenever
+    // bg-clip-text followed it, silently killing gradient text.
+    if (prop === 'bg') {
+      if (
+        /^(gradient-to-[trbl]{1,2}|none|clip-.+|origin-.+|(no-)?repeat(-[xy]|-round|-space)?|blend-.+|auto|cover|contain|fixed|local|scroll|center|top|bottom|left|right|(top|bottom)-(left|right)|(left|right)-(top|bottom))$/.test(
+          rest
+        )
+      ) {
+        return null;
+      }
+    }
     // border/divide side+width (border-l, border-x-2, border-b, divide-y) and any
     // numeric width (border-2, ring-4) are NOT colors — a color is <prop>-<name>.
     if (prop === 'border' || prop === 'divide') {

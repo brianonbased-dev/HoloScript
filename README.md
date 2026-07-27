@@ -14,6 +14,17 @@ Think of it as three practical pieces:
 - runtimes and VMs that execute that source without requiring an external engine
 - compilers that lower the same program into native, sovereign, and compatibility targets
 
+## Facts at a glance
+
+Verified against this source tree (counts drift upward; verify with the commands in [CLAUDE.md](CLAUDE.md) Knowledge Pack):
+
+- **Three source formats**: `.hs` (declarative scenes/logic), `.hsplus` (fully typed programs), `.holo` (whole-system compositions and UI surfaces)
+- **80+ compiler backends** in `@holoscript/core` lowering one source to **25+ documented targets** — Unity, Unreal, Godot, VRChat (Udon), WebGPU, Three.js/R3F, Babylon.js, PlayCanvas, WASM, iOS, visionOS, Android XR, OpenXR, robotics (URDF/SDF), IoT (DTDL/WoT), neuromorphic, A2A ([docs/compilers/](docs/compilers/))
+- **1,500+ semantic trait implementations** across 150+ categories ([docs/traits/](docs/traits/))
+- **Full toolchain**: hand-built lexer/parsers/AST, LSP, formatter, linter, CLI, runtime, in-browser WASM parser, Python bindings
+- **Deterministic compilation**: AI agents author HoloScript through [MCP tools](https://mcp.holoscript.net); real compilers — not an LLM — produce the output
+- **Progressive self-hosting**: the language's own lexer and parsers have `.hsplus` implementations alongside the TypeScript bootstrap, and [holoscript.net](https://holoscript.net) is authored in `.holo` and compiled by HoloScript's own NextJSCompiler
+
 Use this to connect an AI coding agent to HoloScript tools:
 
 ```json

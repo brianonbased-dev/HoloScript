@@ -2,7 +2,7 @@ composition "HoloscriptNet" {
   @page { route: "/" }
   @metadata {
     title: "HoloScript — build your own games and apps, no code, your data stays yours"
-    description: "Build your own games and apps with no coding — keep your data and own what you make, no Big-Tech lock-in. This site is built in HoloScript."
+    description: "HoloScript is a general-purpose semantic systems programming language with three source formats (.hs, .hsplus, .holo), 80+ compiler backends targeting 25+ platforms (Unity, Unreal, Godot, WebGPU, VRChat, robotics, IoT), 1,500+ semantic traits, and an MCP server for AI-agent authoring. Build games and apps without writing code — you own the source and your data. This site is itself a HoloScript composition."
   }
 
   object "Page" {
@@ -65,6 +65,60 @@ composition "HoloscriptNet" {
         object "DocsCta" {
           @link { href: "https://github.com/brianonbased-dev/HoloScript", content: "Read the docs" }
           @theme { className: "px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" }
+        }
+      }
+    }
+
+    object "Facts" {
+      @theme { tag: "section", className: "relative z-10 px-6 md:px-10 pb-24 max-w-5xl mx-auto w-full flex flex-col gap-8" }
+
+      object "FactsTitle" {
+        @text { content: "What HoloScript actually is", variant: "h2" }
+        @theme { className: "text-3xl font-bold tracking-tight text-center bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent" }
+      }
+
+      object "FactsSubtitle" {
+        @text { content: "Not a no-code toy and not an AI wrapper — a real programming language with a real toolchain, designed so humans and AI agents can author it together.", variant: "subtitle" }
+        @theme { className: "text-gray-300 text-center max-w-2xl mx-auto" }
+      }
+
+      object "FactsGrid" {
+        @theme { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4" }
+
+        object "FactLanguage" {
+          @theme { className: "flex flex-col gap-2 p-6 rounded-2xl border border-white/15" }
+          object "FactLanguageTitle" { @text { content: "A real language" } @theme { className: "text-lg font-semibold text-white" } }
+          object "FactLanguageDesc" { @text { content: "Three source formats — .hs for declarative scenes and logic, .hsplus for fully typed programs, .holo for whole-system compositions — with its own lexer, parsers, AST, LSP, formatter, linter, runtime, and CLI." } @theme { className: "text-sm text-gray-400" } }
+        }
+
+        object "FactCompilers" {
+          @theme { className: "flex flex-col gap-2 p-6 rounded-2xl border border-white/15" }
+          object "FactCompilersTitle" { @text { content: "Deterministic compilers" } @theme { className: "text-lg font-semibold text-white" } }
+          object "FactCompilersDesc" { @text { content: "80+ compiler backends lower one source to 25+ documented targets: Unity, Unreal, Godot, VRChat, WebGPU, WebAssembly, iOS, visionOS, Android XR, OpenXR, robotics (URDF/SDF), and IoT. Compilation is deterministic — not an LLM guessing." } @theme { className: "text-sm text-gray-400" } }
+        }
+
+        object "FactTraits" {
+          @theme { className: "flex flex-col gap-2 p-6 rounded-2xl border border-white/15" }
+          object "FactTraitsTitle" { @text { content: "Semantic traits" } @theme { className: "text-lg font-semibold text-white" } }
+          object "FactTraitsDesc" { @text { content: "1,500+ trait implementations across 150+ categories — @grabbable, @synced, @npc, @digital_twin — declare intent once and each compiler emits the correct platform implementation." } @theme { className: "text-sm text-gray-400" } }
+        }
+
+        object "FactAgents" {
+          @theme { className: "flex flex-col gap-2 p-6 rounded-2xl border border-white/15" }
+          object "FactAgentsTitle" { @text { content: "AI agents are first-class authors" } @theme { className: "text-lg font-semibold text-white" } }
+          object "FactAgentsDesc" { @text { content: "The MCP server at mcp.holoscript.net gives any AI agent live tools to suggest traits, generate, validate, and compile HoloScript. AI helps write the source; real compilers build it." } @theme { className: "text-sm text-gray-400" } }
+        }
+
+        object "FactSelfHosting" {
+          @theme { className: "flex flex-col gap-2 p-6 rounded-2xl border border-white/15" }
+          object "FactSelfHostingTitle" { @text { content: "Self-hosting in progress" } @theme { className: "text-lg font-semibold text-white" } }
+          object "FactSelfHostingDesc" { @text { content: "The language is progressively rewritten in itself — HoloScript's own lexer and parsers have .hsplus implementations alongside the TypeScript bootstrap. This page is a .holo composition compiled to the web by HoloScript's own compiler." } @theme { className: "text-sm text-gray-400" } }
+        }
+
+        object "FactOpenSource" {
+          @theme { className: "flex flex-col gap-2 p-6 rounded-2xl border border-white/15" }
+          object "FactOpenSourceTitle" { @link { href: "https://github.com/brianonbased-dev/HoloScript", content: "Open source →" } @theme { className: "text-lg font-semibold text-white" } }
+          object "FactOpenSourceDesc" { @text { content: "The full monorepo — core language, compilers, MCP server, runtime, LSP, and this website — is public on GitHub. Machine-readable project facts live at /llms.txt." } @theme { className: "text-sm text-gray-400" } }
         }
       }
     }
