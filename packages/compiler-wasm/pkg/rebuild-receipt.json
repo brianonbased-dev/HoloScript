@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T11:20:00Z",
+  "generatedAt": "2026-07-27T17:36:28Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "028ffeebf03da39bd5d89b437a20a9033146b943",
+  "sourceCommit": "32ee2e284773bad9beaae1ce53cdf5d0631767d0",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "wasm-pack build --target web --out-dir pkg --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 453285,
-    "wasmSha256": "4639cb6552524aa9dd848046601fe817b1b72d2638df00567094c5f4b9a1a13f",
-    "previousWasmSha256": "42ddf7dabd9bd815a1924f66362d6b4f749bfff9dc8eae7dc570d6238c13cbc2",
+    "wasmBytes": 457001,
+    "wasmSha256": "596e71b10ff6891f58645ec11f90f53e2c50974927aa42c5bb07965e7e9303a6",
+    "previousWasmSha256": "4639cb6552524aa9dd848046601fe817b1b72d2638df00567094c5f4b9a1a13f",
     "repeatBuildSha256Matched": true,
-    "note": "Exact source commit adds immutable function-scoped borrowed-slice reads over affine owned buffers. Two release web builds and two release nodejs builds produced the same SHA-256; browser and Node artifacts are byte-identical."
+    "note": "Exact source commit adds call-scoped shared borrowed-slice parameters over affine owned buffers. Two release web builds and two release nodejs builds produced the same SHA-256; browser and Node artifacts are byte-identical."
   }
 }
