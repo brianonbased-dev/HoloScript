@@ -25,6 +25,29 @@ describe('ConfabulationValidator — derived .holo schema registration', () => {
     expect(strategy?.enumValues).toContain('bandit');
   });
 
+  it('registers the native Quest OCR and speech backends from trait source', () => {
+    const v = new ConfabulationValidator({ includeDerivedSchemas: true });
+    const documentOcr = v.getTraitSchema('document_ocr');
+    const speechSynthesis = v.getTraitSchema('speech_synthesis');
+
+    expect(documentOcr?.properties.find((p) => p.name === 'engine')?.enumValues).toContain(
+      'mlkit_bundled'
+    );
+    expect(documentOcr?.properties.map((p) => p.name)).toEqual(
+      expect.arrayContaining([
+        'interval_ms',
+        'center_crop_fraction',
+        'min_text_chars',
+        'local_only',
+        'discard_frames',
+        'log_text_values',
+      ])
+    );
+    expect(speechSynthesis?.properties.find((p) => p.name === 'backend')?.enumValues).toContain(
+      'android_tts'
+    );
+  });
+
   it('lets hand-written built-ins win over derived on name conflict', () => {
     const v = new ConfabulationValidator({ includeDerivedSchemas: true });
     // `grabbable` is both a built-in (rich, with per-prop descriptions) and a .holo trait.

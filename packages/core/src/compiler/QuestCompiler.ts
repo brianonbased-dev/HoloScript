@@ -24,6 +24,7 @@
 import { CompilerBase } from './CompilerBase';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import { isImmersiveMr, emitQuestMrFiles } from './quest-mr-emit';
+import { emitQuestReaderFiles, isQuestReader } from './quest-reader-emit';
 
 export interface QuestCompilerOptions {
   packageName?: string;
@@ -79,6 +80,11 @@ export class QuestCompiler extends CompilerBase {
     outputPath?: string
   ): Record<string, string> {
     this.validateCompilerAccess(agentToken, outputPath);
+    // @document_ocr selects the real-world reader bridge. Keep this ahead of the generic MR
+    // scanner dispatch so each product has a distinct native application and package identity.
+    if (isQuestReader(composition)) {
+      return emitQuestReaderFiles(composition);
+    }
     // surface: immersive_mr → native Meta Spatial SDK app (trait-dispatch over the parsed composition).
     if (isImmersiveMr(composition)) {
       return emitQuestMrFiles(composition);
@@ -95,7 +101,8 @@ export class QuestCompiler extends CompilerBase {
       'android/app/src/main/res/values/themes.xml': this.emitThemesXml(),
       'android/app/src/main/res/layout/activity_main.xml': this.emitActivityMainXml(),
       'android/app/src/main/res/drawable/ic_launcher.xml': this.emitIcLauncherXml(),
-      'android/app/src/main/java/net/holoscript/qrscanner/MainActivity.kt': this.emitMainActivityKt(),
+      'android/app/src/main/java/net/holoscript/qrscanner/MainActivity.kt':
+        this.emitMainActivityKt(),
       'android/app/src/main/java/net/holoscript/qrscanner/PassthroughCameraController.kt':
         this.emitPassthroughControllerKt(),
     };

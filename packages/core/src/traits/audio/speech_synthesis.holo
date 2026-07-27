@@ -8,7 +8,7 @@
     speed: number = 1.0,
     pitch: number = 0.0,
     volume: number = 1.0,
-    backend: enum("elevenlabs" | "openai" | "azure" | "web_speech" | "holoscript") = "web_speech",
+    backend: enum("elevenlabs" | "openai" | "azure" | "web_speech" | "holoscript" | "android_tts") = "web_speech",
     ssml: boolean = false,
     lip_sync: boolean = false
   },

@@ -1,0 +1,30 @@
+// HoloRead one-shot recognition lifecycle.
+//
+// The graph makes the expensive OCR pass user-triggered and prevents a second capture while the
+// current frame is being recognized. Platform effects remain in the generated Quest bridge.
+
+state_machine ReaderLifecycle {
+  input scan_requested: trigger = false
+  input capture_ready: trigger = false
+  input recognition_succeeded: trigger = false
+  input recognition_failed: trigger = false
+  input dismissed: trigger = false
+
+  initial: idle
+
+  state idle {}
+  state capturing {}
+  state recognizing {}
+  state result {}
+  state error {}
+
+  idle -> capturing when scan_requested
+  capturing -> recognizing when capture_ready
+  capturing -> error when recognition_failed
+  recognizing -> result when recognition_succeeded
+  recognizing -> error when recognition_failed
+  result -> capturing when scan_requested
+  error -> capturing when scan_requested
+  result -> idle when dismissed
+  error -> idle when dismissed
+}
