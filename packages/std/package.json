@@ -117,6 +117,7 @@
       "std_math_vector_aggregate_i32_v1",
       "std_math_aabb3_aggregate_i32_v1",
       "std_uaal_exec_host_adapter",
+      "std_uaal_owned_buffer_host_adapter",
       "std_collections"
     ],
     "abi": {
@@ -198,6 +199,28 @@
         ]
       },
       {
+        "id": "hs.buffer.owned.v1",
+        "valueAbi": "hs.buffer.owned.v1",
+        "opcodes": [
+          "OP_HS_BUFFER_ALLOC",
+          "OP_HS_BUFFER_MOVE",
+          "OP_HS_BUFFER_LOAD",
+          "OP_HS_BUFFER_STORE",
+          "OP_HS_BUFFER_DROP",
+          "OP_HS_BUFFER_LENGTH"
+        ],
+        "provenCompilerSubset": [
+          "local allocation",
+          "whole-owner move",
+          "explicit drop",
+          "automatic return cleanup"
+        ],
+        "provenTargets": [
+          "browser-wasm-uaal",
+          "owned-metal"
+        ]
+      },
+      {
         "id": "hs.std.scalar.f32.v1",
         "entrypoint": "./src/abi/scalar-f32-v1.hs",
         "functions": [
@@ -228,7 +251,7 @@
         ]
       }
     ],
-    "runtimeBoundary": "Executable ABI parity is proven for scalar i32 clamp/sign/step, affine aggregate-valued i32 Vec3 construction/dot/cross/length-squared, recursively nested immutable-POD i32 AABB construction/size/volume, finite scalar f32 clamp/lerp/inverse-lerp/remap with operation-by-operation binary32 rounding, and finite scalar f64 clamp/lerp/inverse-lerp/remap across Node, browser-WASM to UAAL, and owned-metal. The packaged UAAL host adapter executes numeric, hs.aggregate.value.v1 flat-record, and hs.aggregate.value.v2 recursive-record instructions. The existing 11-op math conformance projection remains receipt-proven (50 vectors, cross-target exact value equality). Owned-buffer fields, borrowed or mutable aggregate transfer, Non-finite floating-point edge semantics, quaternion, noise, sqrt/trig ops, and collections parity remain preview."
+    "runtimeBoundary": "Executable ABI parity is proven for scalar i32 clamp/sign/step, affine aggregate-valued i32 Vec3 construction/dot/cross/length-squared, recursively nested immutable-POD i32 AABB construction/size/volume, local owned-buffer allocation/whole-owner move/explicit drop/automatic return cleanup, finite scalar f32 clamp/lerp/inverse-lerp/remap with operation-by-operation binary32 rounding, and finite scalar f64 clamp/lerp/inverse-lerp/remap across the explicitly named targets. The packaged UAAL host adapter executes numeric, hs.aggregate.value.v1 flat-record, hs.aggregate.value.v2 recursive-record, and hs.buffer.owned.v1 token/cell instructions with runtime stale-owner, double-drop, type, and bounds guards. The existing 11-op math conformance projection remains receipt-proven (50 vectors, cross-target exact value equality). Owned-buffer parameters, returns, aggregate fields, borrowed element access, mutable or borrowed aggregate transfer, Non-finite floating-point edge semantics, quaternion, noise, sqrt/trig ops, and collections parity remain preview."
   },
   "author": "Brian X Base Team",
   "license": "MIT",

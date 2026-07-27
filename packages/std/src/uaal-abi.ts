@@ -10,6 +10,7 @@ export const HOLOSCRIPT_F32_BINARY_ABI = 'hs.f32.binary.v1' as const;
 export const HOLOSCRIPT_F64_BINARY_ABI = 'hs.f64.binary.v1' as const;
 export const HOLOSCRIPT_AGGREGATE_VALUE_ABI = 'hs.aggregate.value.v1' as const;
 export const HOLOSCRIPT_AGGREGATE_VALUE_ABI_V2 = 'hs.aggregate.value.v2' as const;
+export const HOLOSCRIPT_OWNED_BUFFER_ABI = 'hs.buffer.owned.v1' as const;
 
 type HoloScriptAggregateValueAbi =
   | typeof HOLOSCRIPT_AGGREGATE_VALUE_ABI
@@ -38,12 +39,104 @@ export interface HoloScriptStdUaalVm {
   registerHandler(opcode: number, handler: HoloScriptStdUaalExecHandler): void;
 }
 
+export interface HoloScriptStdUaalOwnedBufferOpcodes {
+  readonly allocate: number;
+  readonly move: number;
+  readonly load: number;
+  readonly store: number;
+  readonly drop: number;
+  readonly length: number;
+}
+
+interface OwnedBufferToken extends Record<string, unknown> {
+  readonly abi: typeof HOLOSCRIPT_OWNED_BUFFER_ABI;
+  readonly token: number;
+  readonly elementType: string;
+  readonly length: number;
+}
+
+interface OwnedBufferCell {
+  readonly elementType: string;
+  readonly values: HoloScriptStdUaalOperand[];
+  currentToken: number;
+  dropped: boolean;
+}
+
 interface AggregateEnvelope extends Record<string, unknown> {
   readonly abi: HoloScriptAggregateValueAbi;
   readonly layout: string;
   readonly fields: readonly string[];
   readonly types: readonly string[];
   readonly values: readonly HoloScriptStdUaalOperand[];
+}
+
+function requireOwnedBufferElement(
+  value: HoloScriptStdUaalOperand,
+  elementType: string,
+  context: string
+): void {
+  if (elementType === 'i32') {
+    if (
+      typeof value !== 'number' ||
+      !Number.isInteger(value) ||
+      value < -2_147_483_648 ||
+      value > 2_147_483_647
+    ) {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} ${context} requires i32`);
+    }
+    return;
+  }
+  if (elementType === 'f32') {
+    if (typeof value !== 'number' || !Number.isFinite(value) || Math.fround(value) !== value) {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} ${context} requires finite rounded f32`);
+    }
+    return;
+  }
+  if (elementType === 'f64') {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} ${context} requires finite f64`);
+    }
+    return;
+  }
+  if (elementType === 'bool') {
+    if (typeof value !== 'boolean') {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} ${context} requires bool`);
+    }
+    return;
+  }
+  throw new Error(
+    `${HOLOSCRIPT_OWNED_BUFFER_ABI} rejects unsupported element type \`${elementType}\``
+  );
+}
+
+function requireOwnedBufferElementType(operands: HoloScriptStdUaalOperand[]): string {
+  const elementType = operands[0];
+  if (
+    elementType !== 'i32' &&
+    elementType !== 'f32' &&
+    elementType !== 'f64' &&
+    elementType !== 'bool'
+  ) {
+    throw new Error(
+      `${HOLOSCRIPT_OWNED_BUFFER_ABI} requires an i32, f32, f64, or bool element type`
+    );
+  }
+  return elementType;
+}
+
+function isOwnedBufferToken(value: HoloScriptStdUaalOperand): value is OwnedBufferToken {
+  return (
+    value !== null &&
+    !Array.isArray(value) &&
+    typeof value === 'object' &&
+    value.abi === HOLOSCRIPT_OWNED_BUFFER_ABI &&
+    typeof value.token === 'number' &&
+    Number.isInteger(value.token) &&
+    typeof value.elementType === 'string' &&
+    typeof value.length === 'number' &&
+    Number.isInteger(value.length) &&
+    value.length >= 0
+  );
 }
 
 function requireStringArray(
@@ -354,5 +447,124 @@ export function registerHoloScriptStdUaalExecHandler(
       throw new Error(`unsupported HoloScript EXEC ABI: ${String(abi)}`);
     }
     executeNumericAbi(proxy, abi, operator);
+  });
+}
+
+/**
+ * Register the explicit owned-buffer opcodes emitted by HoloScript's UAAL compiler.
+ *
+ * Each frozen operand token names one affine owner. A move rotates that token without cloning
+ * its backing cell, while stale-token, double-drop, type, and bounds checks fail closed at the
+ * host boundary even for malformed bytecode that bypassed the compiler's static ownership pass.
+ */
+export function registerHoloScriptStdUaalOwnedBufferHandlers(
+  vm: HoloScriptStdUaalVm,
+  opcodes: HoloScriptStdUaalOwnedBufferOpcodes
+): void {
+  let nextToken = 1;
+  const cells = new Map<number, OwnedBufferCell>();
+
+  const makeToken = (cell: OwnedBufferCell): OwnedBufferToken => {
+    const tokenId = nextToken;
+    nextToken += 1;
+    cell.currentToken = tokenId;
+    cells.set(tokenId, cell);
+    return Object.freeze({
+      abi: HOLOSCRIPT_OWNED_BUFFER_ABI,
+      token: tokenId,
+      elementType: cell.elementType,
+      length: cell.values.length,
+    });
+  };
+
+  const requireActive = (
+    value: HoloScriptStdUaalOperand,
+    elementType: string
+  ): { token: OwnedBufferToken; cell: OwnedBufferCell } => {
+    if (!isOwnedBufferToken(value)) {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} requires an owned-buffer token`);
+    }
+    const cell = cells.get(value.token);
+    if (!cell || cell.elementType !== elementType || value.elementType !== elementType) {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} token element-type mismatch`);
+    }
+    if (cell.dropped) {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} owner was already dropped`);
+    }
+    if (cell.currentToken !== value.token) {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} stale owner used after move`);
+    }
+    return { token: value, cell };
+  };
+
+  const requireIndex = (value: HoloScriptStdUaalOperand, length: number): number => {
+    if (typeof value !== 'number' || !Number.isInteger(value)) {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} index requires i32`);
+    }
+    if (value < 0 || value >= length) {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} index is out of bounds`);
+    }
+    return value;
+  };
+
+  vm.registerHandler(opcodes.allocate, (proxy, operands) => {
+    const elementType = requireOwnedBufferElementType(operands);
+    const fill = proxy.pop();
+    const length = proxy.pop();
+    if (
+      typeof length !== 'number' ||
+      !Number.isInteger(length) ||
+      length < 0 ||
+      length > 0x7fff_ffff
+    ) {
+      throw new Error(`${HOLOSCRIPT_OWNED_BUFFER_ABI} length requires non-negative i32`);
+    }
+    requireOwnedBufferElement(fill, elementType, 'fill');
+    const cell: OwnedBufferCell = {
+      elementType,
+      values: new Array<HoloScriptStdUaalOperand>(length).fill(fill),
+      currentToken: 0,
+      dropped: false,
+    };
+    proxy.push(makeToken(cell));
+  });
+
+  vm.registerHandler(opcodes.move, (proxy, operands) => {
+    const elementType = requireOwnedBufferElementType(operands);
+    const { cell } = requireActive(proxy.pop(), elementType);
+    proxy.push(makeToken(cell));
+  });
+
+  vm.registerHandler(opcodes.load, (proxy, operands) => {
+    const elementType = requireOwnedBufferElementType(operands);
+    const rawIndex = proxy.pop();
+    const { cell } = requireActive(proxy.pop(), elementType);
+    const index = requireIndex(rawIndex, cell.values.length);
+    const value = cell.values[index];
+    requireOwnedBufferElement(value, elementType, `element ${index}`);
+    proxy.push(value);
+  });
+
+  vm.registerHandler(opcodes.store, (proxy, operands) => {
+    const elementType = requireOwnedBufferElementType(operands);
+    const value = proxy.pop();
+    const rawIndex = proxy.pop();
+    const { cell } = requireActive(proxy.pop(), elementType);
+    const index = requireIndex(rawIndex, cell.values.length);
+    requireOwnedBufferElement(value, elementType, `element ${index}`);
+    cell.values[index] = value;
+  });
+
+  vm.registerHandler(opcodes.drop, (proxy, operands) => {
+    const elementType = requireOwnedBufferElementType(operands);
+    const { cell } = requireActive(proxy.pop(), elementType);
+    cell.dropped = true;
+    cell.values.length = 0;
+  });
+
+  vm.registerHandler(opcodes.length, (proxy, operands) => {
+    const elementType = requireOwnedBufferElementType(operands);
+    const { cell } = requireActive(proxy.pop(), elementType);
+    proxy.push(cell.values.length);
   });
 }

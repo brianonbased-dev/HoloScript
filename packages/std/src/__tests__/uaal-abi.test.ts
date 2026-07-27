@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   HOLOSCRIPT_AGGREGATE_VALUE_ABI,
   HOLOSCRIPT_AGGREGATE_VALUE_ABI_V2,
+  registerHoloScriptStdUaalOwnedBufferHandlers,
   registerHoloScriptStdUaalExecHandler,
   type HoloScriptStdUaalExecHandler,
   type HoloScriptStdUaalOperand,
@@ -216,5 +217,94 @@ describe('HoloScript std UAAL EXEC ABI', () => {
         [vecLayout, 'Other{x:i32}'],
       ])
     ).toThrow('nested layout mismatch');
+  });
+});
+
+describe('HoloScript std UAAL owned-buffer ABI', () => {
+  const opcodes = {
+    allocate: 0xb7,
+    move: 0xb8,
+    load: 0xb9,
+    store: 0xba,
+    drop: 0xbb,
+    length: 0xbc,
+  } as const;
+
+  function handlers(): Map<number, HoloScriptStdUaalExecHandler> {
+    const registered = new Map<number, HoloScriptStdUaalExecHandler>();
+    registerHoloScriptStdUaalOwnedBufferHandlers(
+      {
+        registerHandler(opcode, handler) {
+          registered.set(opcode, handler);
+        },
+      },
+      opcodes
+    );
+    return registered;
+  }
+
+  it('allocates, moves, mutates, reads, measures, and drops without copying storage', () => {
+    const registered = handlers();
+    const proxy = new TestProxy();
+
+    proxy.push(3);
+    proxy.push(5);
+    registered.get(opcodes.allocate)?.(proxy, ['i32']);
+    const original = proxy.pop();
+
+    proxy.push(original);
+    registered.get(opcodes.move)?.(proxy, ['i32']);
+    const moved = proxy.pop();
+    expect(moved).not.toBe(original);
+
+    proxy.push(moved);
+    proxy.push(1);
+    proxy.push(9);
+    registered.get(opcodes.store)?.(proxy, ['i32']);
+
+    proxy.push(moved);
+    proxy.push(1);
+    registered.get(opcodes.load)?.(proxy, ['i32']);
+    expect(proxy.pop()).toBe(9);
+
+    proxy.push(moved);
+    registered.get(opcodes.length)?.(proxy, ['i32']);
+    expect(proxy.pop()).toBe(3);
+
+    proxy.push(moved);
+    registered.get(opcodes.drop)?.(proxy, ['i32']);
+  });
+
+  it('fails closed on stale owners, bounds violations, malformed fills, and double drop', () => {
+    const registered = handlers();
+    const proxy = new TestProxy();
+
+    proxy.push(2);
+    proxy.push(7);
+    registered.get(opcodes.allocate)?.(proxy, ['i32']);
+    const original = proxy.pop();
+    proxy.push(original);
+    registered.get(opcodes.move)?.(proxy, ['i32']);
+    const moved = proxy.pop();
+
+    proxy.push(original);
+    proxy.push(0);
+    expect(() => registered.get(opcodes.load)?.(proxy, ['i32'])).toThrow('stale owner');
+
+    proxy.stack.length = 0;
+    proxy.push(moved);
+    proxy.push(2);
+    expect(() => registered.get(opcodes.load)?.(proxy, ['i32'])).toThrow('out of bounds');
+
+    proxy.stack.length = 0;
+    proxy.push(moved);
+    registered.get(opcodes.drop)?.(proxy, ['i32']);
+    proxy.push(moved);
+    expect(() => registered.get(opcodes.drop)?.(proxy, ['i32'])).toThrow('already dropped');
+
+    proxy.stack.length = 0;
+    proxy.push(1);
+    proxy.push(1.5);
+    expect(() => registered.get(opcodes.allocate)?.(proxy, ['i32'])).toThrow('requires i32');
   });
 });
