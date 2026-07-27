@@ -58,6 +58,7 @@
 //! `hs-machine-v36` composes the v33 deterministic module loader with v35 scalar f64 lowering.
 //! `hs-machine-v37` adds scalar IEEE-754 `f32` with single-precision literals and operations
 //! while retaining the v35 f64 subset. `hs-machine-v38` composes that float lowering with modules.
+//! `hs-machine-v39` composes the v38 float surface with recursively laid-out by-value aggregates.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
 
 mod project;
@@ -123,6 +124,7 @@ pub const FLOAT64_MACHINE_CONTRACT: &str = "hs-machine-v35";
 pub const FLOAT64_MODULE_MACHINE_CONTRACT: &str = "hs-machine-v36";
 pub const FLOAT32_MACHINE_CONTRACT: &str = "hs-machine-v37";
 pub const FLOAT32_MODULE_MACHINE_CONTRACT: &str = "hs-machine-v38";
+pub const FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v39";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const NATIVE_MEANING_GAP_REASON_ABI_VERSION: u32 = 1;
@@ -335,7 +337,12 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
-    let machine_contract = if has_f32_machine_metadata(&ast) {
+    let carries_recursive_aggregate = has_recursive_aggregate_machine_metadata(&ast);
+    let machine_contract = if carries_recursive_aggregate
+        && (has_f32_machine_metadata(&ast) || has_f64_machine_metadata(&ast))
+    {
+        FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
+    } else if has_f32_machine_metadata(&ast) {
         FLOAT32_MACHINE_CONTRACT
     } else if has_f64_machine_metadata(&ast) {
         FLOAT64_MACHINE_CONTRACT
@@ -414,7 +421,18 @@ fn compile_unit(
 }
 
 fn compile_ast_unit(ast: Ast) -> Result<CompiledObject, NativeCompileError> {
-    if has_f32_machine_metadata(&ast) {
+    if has_recursive_aggregate_machine_metadata(&ast)
+        && (has_f32_machine_metadata(&ast) || has_f64_machine_metadata(&ast))
+    {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(
+                &ast,
+                FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT,
+                true,
+            )?,
+            machine_contract: FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT,
+        })
+    } else if has_f32_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, FLOAT32_MACHINE_CONTRACT, true)?,
             machine_contract: FLOAT32_MACHINE_CONTRACT,
@@ -714,10 +732,13 @@ fn compile_project_unit(
 ) -> Result<CompiledObject, NativeCompileError> {
     let ast = project::load_project_ast(entry)?;
     let carries_uncertainty = has_uncertain_aggregate_machine_metadata(&ast);
+    let carries_recursive_aggregate = has_recursive_aggregate_machine_metadata(&ast);
     let carries_f32 = has_f32_machine_metadata(&ast);
     let carries_f64 = has_f64_machine_metadata(&ast);
     let mut compiled = compile_ast_unit(ast)?;
-    if carries_f32 {
+    if carries_recursive_aggregate && (carries_f32 || carries_f64) {
+        compiled.machine_contract = FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT;
+    } else if carries_f32 {
         compiled.machine_contract = FLOAT32_MODULE_MACHINE_CONTRACT;
     } else if carries_f64 {
         compiled.machine_contract = FLOAT64_MODULE_MACHINE_CONTRACT;
@@ -920,6 +941,28 @@ fn has_aggregate_machine_metadata(ast: &Ast) -> bool {
         matches!(
             node,
             AstNode::StructDeclaration(structure) if !structure.field_types.is_empty()
+        )
+    })
+}
+
+fn has_recursive_aggregate_machine_metadata(ast: &Ast) -> bool {
+    let aggregate_names = ast
+        .body
+        .iter()
+        .filter_map(|node| match node {
+            AstNode::StructDeclaration(structure) => Some(structure.name.as_str()),
+            _ => None,
+        })
+        .collect::<HashSet<_>>();
+    ast.body.iter().any(|node| {
+        matches!(
+            node,
+            AstNode::StructDeclaration(structure)
+                if structure
+                    .field_types
+                    .iter()
+                    .flatten()
+                    .any(|annotation| aggregate_names.contains(annotation.as_str()))
         )
     })
 }
@@ -2608,7 +2651,8 @@ impl MachineType {
 fn latest_reference_contract(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        FLOAT32_MACHINE_CONTRACT
+        FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
+            | FLOAT32_MACHINE_CONTRACT
             | FLOAT64_MACHINE_CONTRACT
             | UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
             | BORROWED_AGGREGATE_SUBOBJECT_RETURN_MACHINE_CONTRACT
@@ -2624,12 +2668,17 @@ fn latest_reference_contract(machine_contract: &str) -> bool {
 fn f64_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        FLOAT64_MACHINE_CONTRACT | FLOAT32_MACHINE_CONTRACT
+        FLOAT64_MACHINE_CONTRACT
+            | FLOAT32_MACHINE_CONTRACT
+            | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
     )
 }
 
 fn f32_enabled(machine_contract: &str) -> bool {
-    machine_contract == FLOAT32_MACHINE_CONTRACT
+    matches!(
+        machine_contract,
+        FLOAT32_MACHINE_CONTRACT | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
+    )
 }
 
 fn bool_enabled(machine_contract: &str) -> bool {
@@ -3355,6 +3404,7 @@ fn resolve_aggregate_layout(
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     | UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
+                    | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} field `{field_name}` uses unsupported nested aggregate type `{type_name}` in struct `{}`",

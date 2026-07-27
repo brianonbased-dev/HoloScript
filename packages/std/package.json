@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/std",
-  "version": "7.0.7",
+  "version": "7.0.8",
   "description": "HoloScript Standard Library - Core types and utilities",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -115,6 +115,7 @@
       "std_math_scalar_f64_v1",
       "std_math_vector_i32_v1",
       "std_math_vector_aggregate_i32_v1",
+      "std_math_aabb3_aggregate_i32_v1",
       "std_uaal_exec_host_adapter",
       "std_collections"
     ],
@@ -181,6 +182,22 @@
         ]
       },
       {
+        "id": "hs.std.aabb3.aggregate.i32.v1",
+        "entrypoint": "./src/abi/vector-v1.hs",
+        "functions": [
+          "std_math_aabb3_make_i32",
+          "std_math_aabb3_size_value_i32",
+          "std_math_aabb3_volume_value_i32"
+        ],
+        "valueAbi": "hs.aggregate.value.v2",
+        "layout": "StdAabb3I32{min:StdVec3I32{x:i32,y:i32,z:i32},max:StdVec3I32{x:i32,y:i32,z:i32}}",
+        "provenTargets": [
+          "node",
+          "browser-wasm-uaal",
+          "owned-metal"
+        ]
+      },
+      {
         "id": "hs.std.scalar.f32.v1",
         "entrypoint": "./src/abi/scalar-f32-v1.hs",
         "functions": [
@@ -211,7 +228,7 @@
         ]
       }
     ],
-    "runtimeBoundary": "Executable ABI parity is proven for scalar i32 clamp/sign/step, affine aggregate-valued flat-POD i32 Vec3 construction/dot/cross/length-squared, finite scalar f32 clamp/lerp/inverse-lerp/remap with operation-by-operation binary32 rounding, and finite scalar f64 clamp/lerp/inverse-lerp/remap across Node, browser-WASM to UAAL, and owned-metal. The packaged UAAL host adapter executes numeric and hs.aggregate.value.v1 instructions. The existing 11-op math conformance projection remains receipt-proven (50 vectors, cross-target exact value equality). Nested, owned, borrowed, or mutable aggregate transfer; Non-finite floating-point edge semantics; quaternion, noise, sqrt/trig ops; and collections parity remain preview."
+    "runtimeBoundary": "Executable ABI parity is proven for scalar i32 clamp/sign/step, affine aggregate-valued i32 Vec3 construction/dot/cross/length-squared, recursively nested immutable-POD i32 AABB construction/size/volume, finite scalar f32 clamp/lerp/inverse-lerp/remap with operation-by-operation binary32 rounding, and finite scalar f64 clamp/lerp/inverse-lerp/remap across Node, browser-WASM to UAAL, and owned-metal. The packaged UAAL host adapter executes numeric, hs.aggregate.value.v1 flat-record, and hs.aggregate.value.v2 recursive-record instructions. The existing 11-op math conformance projection remains receipt-proven (50 vectors, cross-target exact value equality). Owned-buffer fields, borrowed or mutable aggregate transfer, Non-finite floating-point edge semantics, quaternion, noise, sqrt/trig ops, and collections parity remain preview."
   },
   "author": "Brian X Base Team",
   "license": "MIT",

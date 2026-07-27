@@ -53,6 +53,13 @@ const HS_F64_BINARY_ABI: &str = "hs.f64.binary.v1";
 /// instead of projecting records into unrelated scalar parameters.
 const HS_AGGREGATE_VALUE_ABI: &str = "hs.aggregate.value.v1";
 
+/// Host-handler ABI for recursively nested, explicitly typed POD aggregate values.
+///
+/// Nested records remain one UAAL operand-stack entry. Constructors carry recursive semantic
+/// layout descriptors, while `project_path` validates every record boundary before returning a
+/// scalar leaf. The v1 flat-record instruction shape remains unchanged.
+const HS_AGGREGATE_VALUE_ABI_V2: &str = "hs.aggregate.value.v2";
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct UaalBytecode {
     pub version: u8,
@@ -111,6 +118,26 @@ struct UaalAggregateLayout {
     name: String,
     fields: Vec<UaalAggregateField>,
     schema_id: String,
+    contains_nested: bool,
+}
+
+impl UaalAggregateLayout {
+    fn value_abi(&self) -> &'static str {
+        if self.contains_nested {
+            HS_AGGREGATE_VALUE_ABI_V2
+        } else {
+            HS_AGGREGATE_VALUE_ABI
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct UaalAggregateProjection {
+    root_name: String,
+    root_layout: UaalAggregateLayout,
+    field_names: Vec<String>,
+    field_indices: Vec<usize>,
+    leaf: UaalAggregateField,
 }
 
 #[derive(Debug)]
@@ -247,7 +274,7 @@ fn collect_functions(ast: &Ast) -> Result<Vec<&FunctionNode>, UaalEmitError> {
 fn collect_aggregate_layouts(
     ast: &Ast,
 ) -> Result<HashMap<String, UaalAggregateLayout>, UaalEmitError> {
-    let mut layouts = HashMap::new();
+    let mut declarations = HashMap::new();
     for node in &ast.body {
         let structure = match node {
             AstNode::StructDeclaration(structure) => structure,
@@ -257,71 +284,110 @@ fn collect_aggregate_layouts(
             },
             _ => continue,
         };
-        let layout = UaalAggregateLayout::from_declaration(structure)?;
-        layouts.insert(layout.name.clone(), layout);
+        declarations.insert(structure.name.clone(), structure);
+    }
+
+    let mut layouts = HashMap::new();
+    let mut resolving = Vec::new();
+    let names = declarations.keys().cloned().collect::<Vec<_>>();
+    for name in names {
+        resolve_aggregate_layout(&name, &declarations, &mut layouts, &mut resolving)?;
     }
     Ok(layouts)
 }
 
-impl UaalAggregateLayout {
-    fn from_declaration(structure: &StructDeclarationNode) -> Result<Self, UaalEmitError> {
-        if structure.field_types.len() != structure.fields.len()
-            || structure.field_types.iter().any(Option::is_none)
-        {
-            return Err(UaalEmitter::target_capability_error(
-                "HS-UAAL-CAP-003",
-                "uaal.aggregate.value.v1",
-                format!(
-                    "aggregate `{}` requires explicit field types; the first contract admits flat scalar POD fields only",
-                    structure.name
-                ),
-            ));
+fn resolve_aggregate_layout(
+    name: &str,
+    declarations: &HashMap<String, &StructDeclarationNode>,
+    layouts: &mut HashMap<String, UaalAggregateLayout>,
+    resolving: &mut Vec<String>,
+) -> Result<UaalAggregateLayout, UaalEmitError> {
+    if let Some(layout) = layouts.get(name) {
+        return Ok(layout.clone());
+    }
+
+    if let Some(cycle_start) = resolving.iter().position(|entry| entry == name) {
+        let mut cycle = resolving[cycle_start..].to_vec();
+        cycle.push(name.to_string());
+        return Err(UaalEmitter::target_capability_error(
+            "HS-UAAL-CAP-003",
+            "uaal.aggregate.value.v2",
+            format!(
+                "recursive by-value aggregate cycle `{}` has no finite POD layout",
+                cycle.join(" -> ")
+            ),
+        ));
+    }
+
+    let structure = declarations.get(name).copied().ok_or_else(|| {
+        UaalEmitter::target_capability_error(
+            "HS-UAAL-CAP-003",
+            "uaal.aggregate.value.v2",
+            format!("aggregate layout `{name}` is not declared"),
+        )
+    })?;
+    if structure.field_types.len() != structure.fields.len()
+        || structure.field_types.iter().any(Option::is_none)
+    {
+        return Err(UaalEmitter::target_capability_error(
+            "HS-UAAL-CAP-003",
+            "uaal.aggregate.value.v2",
+            format!(
+                "aggregate `{}` requires explicit field types; recursive POD fields must resolve to scalars or declared aggregates",
+                structure.name
+            ),
+        ));
+    }
+
+    resolving.push(name.to_string());
+    let result = (|| {
+        let mut contains_nested = false;
+        let mut schema_fields = Vec::with_capacity(structure.fields.len());
+        let mut fields = Vec::with_capacity(structure.fields.len());
+        for (field_name, type_annotation) in structure.fields.iter().zip(&structure.field_types) {
+            let type_annotation = type_annotation
+                .as_deref()
+                .expect("field type completeness checked above")
+                .trim();
+            let normalized_type = if type_annotation == "Boolean" {
+                "bool"
+            } else {
+                type_annotation
+            };
+            let descriptor = if matches!(normalized_type, "i32" | "f32" | "f64" | "bool") {
+                normalized_type.to_string()
+            } else if declarations.contains_key(normalized_type) {
+                contains_nested = true;
+                resolve_aggregate_layout(normalized_type, declarations, layouts, resolving)?
+                    .schema_id
+            } else {
+                return Err(UaalEmitter::target_capability_error(
+                    "HS-UAAL-CAP-003",
+                    "uaal.aggregate.value.v2",
+                    format!(
+                        "field `{field_name}` of aggregate `{}` has unsupported type `{type_annotation}`; recursive POD fields must resolve to scalars or declared aggregates",
+                        structure.name
+                    ),
+                ));
+            };
+            fields.push(UaalAggregateField {
+                name: field_name.clone(),
+                type_annotation: normalized_type.to_string(),
+            });
+            schema_fields.push(format!("{field_name}:{descriptor}"));
         }
 
-        let fields = structure
-            .fields
-            .iter()
-            .zip(&structure.field_types)
-            .map(|(name, type_annotation)| {
-                let type_annotation = type_annotation
-                    .as_deref()
-                    .expect("field type completeness checked above")
-                    .trim();
-                if !matches!(type_annotation, "i32" | "f32" | "f64" | "bool" | "Boolean") {
-                    return Err(UaalEmitter::target_capability_error(
-                        "HS-UAAL-CAP-003",
-                        "uaal.aggregate.value.v1",
-                        format!(
-                            "field `{}` of aggregate `{}` has unsupported type `{}`; the first contract admits flat scalar POD fields only",
-                            name, structure.name, type_annotation
-                        ),
-                    ));
-                }
-                Ok(UaalAggregateField {
-                    name: name.clone(),
-                    type_annotation: if type_annotation == "Boolean" {
-                        "bool".to_string()
-                    } else {
-                        type_annotation.to_string()
-                    },
-                })
-            })
-            .collect::<Result<Vec<_>, UaalEmitError>>()?;
-        let schema_id = format!(
-            "{}{{{}}}",
-            structure.name,
-            fields
-                .iter()
-                .map(|field| format!("{}:{}", field.name, field.type_annotation))
-                .collect::<Vec<_>>()
-                .join(",")
-        );
-        Ok(Self {
+        Ok(UaalAggregateLayout {
             name: structure.name.clone(),
             fields,
-            schema_id,
+            schema_id: format!("{}{{{}}}", structure.name, schema_fields.join(",")),
+            contains_nested,
         })
-    }
+    })();
+    resolving.pop();
+    let layout = result?;
+    layouts.insert(name.to_string(), layout.clone());
+    Ok(layout)
 }
 
 fn validate_imports_resolved(
@@ -446,9 +512,9 @@ impl<'a> UaalEmitter<'a> {
                 if !self.aggregate_layouts.contains_key(&slot.type_annotation) {
                     return Err(Self::target_capability_error(
                         "HS-UAAL-CAP-003",
-                        "uaal.aggregate.value.v1",
+                        "uaal.aggregate.value.v2",
                         format!(
-                            "stack slot `{}` uses unsupported type `{}`; compile_to_uaal currently admits slots only for flat POD aggregates",
+                            "stack slot `{}` uses unsupported type `{}`; compile_to_uaal currently admits slots only for recursively laid-out POD aggregates",
                             slot.name, slot.type_annotation
                         ),
                     ));
@@ -658,10 +724,20 @@ impl<'a> UaalEmitter<'a> {
         for (argument, field) in arguments.iter().zip(&layout.fields) {
             self.emit_expression_with_expected(argument, Some(&field.type_annotation))?;
         }
+        let field_descriptors = layout
+            .fields
+            .iter()
+            .map(|field| {
+                self.aggregate_layouts
+                    .get(&field.type_annotation)
+                    .map(|nested| nested.schema_id.clone())
+                    .unwrap_or_else(|| field.type_annotation.clone())
+            })
+            .collect::<Vec<_>>();
         self.emit_op(
             OP_EXEC,
             vec![
-                Value::from(HS_AGGREGATE_VALUE_ABI),
+                Value::from(layout.value_abi()),
                 Value::from("construct"),
                 Value::from(layout.schema_id),
                 Value::Array(
@@ -671,13 +747,7 @@ impl<'a> UaalEmitter<'a> {
                         .map(|field| Value::from(field.name.clone()))
                         .collect(),
                 ),
-                Value::Array(
-                    layout
-                        .fields
-                        .iter()
-                        .map(|field| Value::from(field.type_annotation.clone()))
-                        .collect(),
-                ),
+                Value::Array(field_descriptors.into_iter().map(Value::from).collect()),
             ],
         );
         Ok(())
@@ -697,28 +767,59 @@ impl<'a> UaalEmitter<'a> {
                 "the first aggregate `load` contract requires a named scalar field projection",
             ));
         };
-        let (root_name, layout, field_index, field) =
-            self.resolve_aggregate_field_projection(member)?;
-        if self.current_moved_aggregates.contains(&root_name) {
+        let projection = self.resolve_aggregate_field_projection(member)?;
+        if self
+            .current_moved_aggregates
+            .contains(&projection.root_name)
+        {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-003",
-                "uaal.aggregate.value.v1",
-                format!("aggregate `{root_name}` was already moved before `load`"),
+                "uaal.aggregate.value.v2",
+                format!(
+                    "aggregate `{}` was already moved before `load`",
+                    projection.root_name
+                ),
             ));
         }
-        let slot = Self::slot_key(self.current_function_name()?, &root_name);
+        let slot = Self::slot_key(self.current_function_name()?, &projection.root_name);
         self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
-        self.emit_op(
-            OP_EXEC,
-            vec![
-                Value::from(HS_AGGREGATE_VALUE_ABI),
-                Value::from("project"),
-                Value::from(layout.schema_id),
-                Value::from(field.name),
-                Value::from(field_index),
-                Value::from(field.type_annotation),
-            ],
-        );
+        if projection.root_layout.contains_nested {
+            self.emit_op(
+                OP_EXEC,
+                vec![
+                    Value::from(HS_AGGREGATE_VALUE_ABI_V2),
+                    Value::from("project_path"),
+                    Value::from(projection.root_layout.schema_id),
+                    Value::Array(
+                        projection
+                            .field_names
+                            .into_iter()
+                            .map(Value::from)
+                            .collect(),
+                    ),
+                    Value::Array(
+                        projection
+                            .field_indices
+                            .into_iter()
+                            .map(Value::from)
+                            .collect(),
+                    ),
+                    Value::from(projection.leaf.type_annotation),
+                ],
+            );
+        } else {
+            self.emit_op(
+                OP_EXEC,
+                vec![
+                    Value::from(HS_AGGREGATE_VALUE_ABI),
+                    Value::from("project"),
+                    Value::from(projection.root_layout.schema_id),
+                    Value::from(projection.field_names[0].clone()),
+                    Value::from(projection.field_indices[0]),
+                    Value::from(projection.leaf.type_annotation),
+                ],
+            );
+        }
         Ok(())
     }
 
@@ -739,9 +840,9 @@ impl<'a> UaalEmitter<'a> {
         if self.binding_aggregate_layout(&identifier.name).is_none() {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-003",
-                "uaal.aggregate.value.v1",
+                "uaal.aggregate.value.v2",
                 format!(
-                    "`move({})` requires a binding with a supported flat POD aggregate type",
+                    "`move({})` requires a binding with a supported POD aggregate type",
                     identifier.name
                 ),
             ));
@@ -763,58 +864,76 @@ impl<'a> UaalEmitter<'a> {
     fn resolve_aggregate_field_projection(
         &self,
         member: &MemberExpression,
-    ) -> Result<(String, UaalAggregateLayout, usize, UaalAggregateField), UaalEmitError> {
-        if member.computed {
-            return Err(Self::target_capability_error(
-                "HS-UAAL-CAP-003",
-                "uaal.aggregate.value.v1",
-                "computed aggregate field access is unavailable; use a declared field name",
-            ));
-        }
-        let AstNode::Identifier(root) = member.object.as_ref() else {
-            return Err(Self::target_capability_error(
-                "HS-UAAL-CAP-003",
-                "uaal.aggregate.value.v1",
-                "nested aggregate projection is outside the first flat POD value contract",
-            ));
-        };
-        let AstNode::Identifier(property) = member.property.as_ref() else {
-            return Err(Self::target_capability_error(
-                "HS-UAAL-CAP-003",
-                "uaal.aggregate.value.v1",
-                "aggregate projection requires a named field",
-            ));
-        };
-        let layout = self
-            .binding_aggregate_layout(&root.name)
+    ) -> Result<UaalAggregateProjection, UaalEmitError> {
+        let (root_name, field_names) = flatten_aggregate_member_path(member)?;
+        let root_layout = self
+            .binding_aggregate_layout(&root_name)
             .cloned()
             .ok_or_else(|| {
                 Self::target_capability_error(
                     "HS-UAAL-CAP-003",
-                    "uaal.aggregate.value.v1",
-                    format!(
-                        "binding `{}` does not have a supported flat POD aggregate type",
-                        root.name
-                    ),
+                    "uaal.aggregate.value.v2",
+                    format!("binding `{root_name}` does not have a supported POD aggregate type"),
                 )
             })?;
-        let (field_index, field) = layout
-            .fields
-            .iter()
-            .enumerate()
-            .find(|(_, field)| field.name == property.name)
-            .map(|(index, field)| (index, field.clone()))
-            .ok_or_else(|| {
-                Self::target_capability_error(
-                    "HS-UAAL-CAP-003",
-                    "uaal.aggregate.value.v1",
-                    format!(
-                        "aggregate `{}` has no field `{}`",
-                        layout.name, property.name
-                    ),
-                )
-            })?;
-        Ok((root.name.clone(), layout, field_index, field))
+        let mut current_layout = root_layout.clone();
+        let mut field_indices = Vec::with_capacity(field_names.len());
+        let mut leaf = None;
+        for (path_index, field_name) in field_names.iter().enumerate() {
+            let (field_index, field) = current_layout
+                .fields
+                .iter()
+                .enumerate()
+                .find(|(_, field)| field.name == *field_name)
+                .map(|(index, field)| (index, field.clone()))
+                .ok_or_else(|| {
+                    Self::target_capability_error(
+                        "HS-UAAL-CAP-003",
+                        "uaal.aggregate.value.v2",
+                        format!(
+                            "aggregate `{}` has no field `{field_name}`",
+                            current_layout.name
+                        ),
+                    )
+                })?;
+            field_indices.push(field_index);
+            let nested_layout = self.aggregate_layouts.get(&field.type_annotation);
+            let is_leaf = path_index + 1 == field_names.len();
+            if is_leaf {
+                if nested_layout.is_some() {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-003",
+                        "uaal.aggregate.value.v2",
+                        format!(
+                            "nested aggregate field `{}.{}` cannot be copied by `load`; project a scalar leaf or move the complete root",
+                            root_name,
+                            field_names.join(".")
+                        ),
+                    ));
+                }
+                leaf = Some(field);
+            } else {
+                current_layout = nested_layout.cloned().ok_or_else(|| {
+                    Self::target_capability_error(
+                        "HS-UAAL-CAP-003",
+                        "uaal.aggregate.value.v2",
+                        format!(
+                            "cannot project through scalar field `{}.{}`",
+                            root_name,
+                            field_names[..=path_index].join(".")
+                        ),
+                    )
+                })?;
+            }
+        }
+
+        Ok(UaalAggregateProjection {
+            root_name,
+            root_layout,
+            field_names,
+            field_indices,
+            leaf: leaf.expect("aggregate member path always contains a leaf"),
+        })
     }
 
     fn binding_aggregate_layout(&self, name: &str) -> Option<&UaalAggregateLayout> {
@@ -837,11 +956,9 @@ impl<'a> UaalEmitter<'a> {
         let AstNode::MemberExpression(member) = &call.arguments[0] else {
             return None;
         };
-        let (_, layout, field_index, _) = self.resolve_aggregate_field_projection(member).ok()?;
-        layout
-            .fields
-            .get(field_index)
-            .map(|field| field.type_annotation.clone())
+        self.resolve_aggregate_field_projection(member)
+            .ok()
+            .map(|projection| projection.leaf.type_annotation)
     }
 
     fn emit_if(&mut self, if_node: &crate::ast::IfNode) -> Result<(), UaalEmitError> {
@@ -1260,6 +1377,59 @@ impl<'a> UaalEmitter<'a> {
     fn slot_key(function_name: &str, name: &str) -> String {
         format!("__hs::{function_name}::{name}")
     }
+}
+
+fn flatten_aggregate_member_path(
+    member: &MemberExpression,
+) -> Result<(String, Vec<String>), UaalEmitError> {
+    fn visit(node: &AstNode, fields: &mut Vec<String>) -> Result<String, UaalEmitError> {
+        match node {
+            AstNode::Identifier(identifier) => Ok(identifier.name.clone()),
+            AstNode::MemberExpression(member) => {
+                if member.computed {
+                    return Err(UaalEmitter::target_capability_error(
+                        "HS-UAAL-CAP-003",
+                        "uaal.aggregate.value.v2",
+                        "computed aggregate field access is unavailable; use declared field names",
+                    ));
+                }
+                let root = visit(member.object.as_ref(), fields)?;
+                let AstNode::Identifier(property) = member.property.as_ref() else {
+                    return Err(UaalEmitter::target_capability_error(
+                        "HS-UAAL-CAP-003",
+                        "uaal.aggregate.value.v2",
+                        "aggregate projection requires a named field",
+                    ));
+                };
+                fields.push(property.name.clone());
+                Ok(root)
+            }
+            _ => Err(UaalEmitter::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v2",
+                "aggregate projection must start from a named aggregate root",
+            )),
+        }
+    }
+
+    if member.computed {
+        return Err(UaalEmitter::target_capability_error(
+            "HS-UAAL-CAP-003",
+            "uaal.aggregate.value.v2",
+            "computed aggregate field access is unavailable; use declared field names",
+        ));
+    }
+    let mut fields = Vec::new();
+    let root = visit(member.object.as_ref(), &mut fields)?;
+    let AstNode::Identifier(property) = member.property.as_ref() else {
+        return Err(UaalEmitter::target_capability_error(
+            "HS-UAAL-CAP-003",
+            "uaal.aggregate.value.v2",
+            "aggregate projection requires a named field",
+        ));
+    };
+    fields.push(property.name.clone());
+    Ok((root, fields))
 }
 
 fn is_bool_annotation(annotation: &str) -> bool {
@@ -2044,15 +2214,96 @@ function main(): i32 {
     }
 
     #[test]
-    fn aggregate_value_lowering_rejects_nested_and_owned_layouts() {
+    fn lowers_recursive_pod_aggregate_construction_and_scalar_projection_paths() {
+        let bytecode = compile(
+            r#"struct Vec3I32 { x: i32, y: i32, z: i32 }
+struct Aabb3I32 { min: Vec3I32, max: Vec3I32 }
+
+function make_vec(x: i32, y: i32, z: i32): Vec3I32 {
+  slot value: Vec3I32 = Vec3I32(x, y, z)
+  return move(value)
+}
+
+function make_bounds(min: Vec3I32, max: Vec3I32): Aabb3I32 {
+  slot value: Aabb3I32 = Aabb3I32(move(min), move(max))
+  return move(value)
+}
+
+function volume(bounds: Aabb3I32): i32 {
+  return (load(bounds.max.x) - load(bounds.min.x)) *
+    (load(bounds.max.y) - load(bounds.min.y)) *
+    (load(bounds.max.z) - load(bounds.min.z))
+}
+
+function main(): i32 {
+  slot min: Vec3I32 = make_vec(1, 2, 3)
+  slot max: Vec3I32 = make_vec(4, 6, 8)
+  slot bounds: Aabb3I32 = make_bounds(move(min), move(max))
+  return volume(move(bounds))
+}"#,
+        );
+
+        let flat_instructions = bytecode
+            .instructions
+            .iter()
+            .filter(|instruction| {
+                instruction.op_code == OP_EXEC
+                    && instruction.operands.first() == Some(&Value::from(HS_AGGREGATE_VALUE_ABI))
+            })
+            .collect::<Vec<_>>();
+        let nested_instructions = bytecode
+            .instructions
+            .iter()
+            .filter(|instruction| {
+                instruction.op_code == OP_EXEC
+                    && instruction.operands.first() == Some(&Value::from(HS_AGGREGATE_VALUE_ABI_V2))
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            flat_instructions
+                .iter()
+                .filter(|instruction| instruction.operands[1] == Value::from("construct"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            nested_instructions
+                .iter()
+                .filter(|instruction| instruction.operands[1] == Value::from("construct"))
+                .count(),
+            1
+        );
+        let projections = nested_instructions
+            .iter()
+            .filter(|instruction| instruction.operands[1] == Value::from("project_path"))
+            .collect::<Vec<_>>();
+        assert_eq!(projections.len(), 6);
+        assert!(projections.iter().all(|instruction| {
+            instruction.operands[2]
+                == Value::from(
+                    "Aabb3I32{min:Vec3I32{x:i32,y:i32,z:i32},max:Vec3I32{x:i32,y:i32,z:i32}}",
+                )
+                && instruction.operands[3]
+                    .as_array()
+                    .is_some_and(|path| path.len() == 2)
+        }));
+    }
+
+    #[test]
+    fn aggregate_value_lowering_rejects_cycles_owned_fields_and_nested_copies() {
         for (source, expected) in [
             (
-                "struct Inner { value: i32 } struct Outer { inner: Inner } function main(): i32 { return 5 }",
-                "flat scalar POD fields",
+                "struct Node { next: Node } function main(): i32 { return 5 }",
+                "recursive by-value aggregate cycle `Node -> Node`",
             ),
             (
                 "struct Packet { values: [i32] } function main(): i32 { return 5 }",
                 "owned buffer type `[i32]`",
+            ),
+            (
+                "struct Inner { value: i32 } struct Outer { inner: Inner } function main(): i32 { slot inner: Inner = Inner(5) slot outer: Outer = Outer(move(inner)) return load(outer.inner) }",
+                "cannot be copied by `load`",
             ),
         ] {
             let error = compile_source_to_uaal(source)

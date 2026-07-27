@@ -17,10 +17,10 @@ use holoscript_native::{
     BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT,
     BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
     BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
-    CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
-    NATIVE_AGGREGATE_ABI_VERSION, NATIVE_MEANING_GAP_REASON_ABI_VERSION,
-    OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
-    UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
+    CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT,
+    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION,
+    NATIVE_MEANING_GAP_REASON_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
+    OWNED_BUFFER_ABI_VERSION, UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -87,6 +87,19 @@ const F32_EXIT_FIVE: &str = r#"
             return 5
         }
         return 1
+    }
+"#;
+const FLOAT_RECURSIVE_AGGREGATE_EXIT_FIVE: &str = r#"
+    struct Vec3I32 { x: i32, y: i32, z: i32 }
+    struct Aabb3I32 { min: Vec3I32, max: Vec3I32 }
+
+    function blend(start: f32, end: f32, amount: f32): f32 {
+        return start + (end - start) * amount
+    }
+
+    function main(): i32 {
+        slot bounds: Aabb3I32 = Aabb3I32(Vec3I32(1, 2, 3), Vec3I32(4, 7, 9))
+        return load(bounds.max.y) - load(bounds.min.y)
     }
 "#;
 const STACK_SLOT_EXIT_FIVE: &str = include_str!("../../../examples/native/stack-slot-exit-five.hs");
@@ -425,6 +438,31 @@ fn compiles_f32_with_single_precision_rounding() {
     assert_eq!(status.code(), Some(5));
 
     fs::remove_file(&artifact.executable).expect("remove f32 smoke-test executable");
+}
+
+#[test]
+fn composes_f32_with_recursive_by_value_aggregates() {
+    let executable = scratch_executable("native-float-recursive-aggregate");
+
+    let artifact = compile_executable(
+        FLOAT_RECURSIVE_AGGREGATE_EXIT_FIVE,
+        &executable,
+        &NativeCompileOptions::host(),
+    )
+    .expect("f32 and recursive by-value aggregates should compose");
+
+    assert_eq!(FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT, "hs-machine-v39");
+    assert_eq!(
+        artifact.machine_contract,
+        FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
+    );
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("composed float and aggregate executable should run");
+    assert_eq!(status.code(), Some(5));
+
+    fs::remove_file(&artifact.executable)
+        .expect("remove composed float and aggregate smoke-test executable");
 }
 
 #[test]

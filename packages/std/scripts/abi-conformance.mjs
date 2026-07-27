@@ -46,6 +46,10 @@ function main(): i32 {
   let cross_y: i32 = std_math_vec3_cross_y_i32(1, 2, 3, 4, 5, 6)
   let cross_z: i32 = std_math_vec3_cross_z_i32(1, 2, 3, 4, 5, 6)
   let length_sq: i32 = std_math_vec3_length_sq_i32(1, 2, 3)
+  slot bounds_min: StdVec3I32 = std_math_vec3_make_i32(1, 2, 3)
+  slot bounds_max: StdVec3I32 = std_math_vec3_make_i32(4, 6, 8)
+  slot bounds: StdAabb3I32 = std_math_aabb3_make_i32(move(bounds_min), move(bounds_max))
+  let bounds_volume: i32 = std_math_aabb3_volume_value_i32(move(bounds))
   let i32_digest: i32 = scalar_digest + dot + (cross_x + 4) * 2 + (cross_y + 1) * 3 + (cross_z + 5) * 4 + length_sq
   let f64_below: f64 = std_math_clamp_f64(0.0 - 1.5, 0.0, 2.0)
   let f64_inside: f64 = std_math_clamp_f64(1.25, 0.0, 2.0)
@@ -58,7 +62,7 @@ function main(): i32 {
   let f32_lerp: f32 = std_math_lerp_f32(16777216.0, 16777218.0, 0.5)
   let f32_inverse: f32 = std_math_inverse_lerp_f32(0.0, 10.0, 1.0)
   let f32_remap: f32 = std_math_remap_f32(0.1, 0.0, 1.0, 10.0, 18.0)
-  if (f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
+  if (bounds_volume == 60 && f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
     return i32_digest + 46
   }
   return 1
@@ -222,11 +226,18 @@ function browserHtml(source) {
         await initWasm('/wasm/holoscript_wasm_bg.wasm');
         const compiled = JSON.parse(compile_to_uaal(source));
         if (compiled.error) throw new Error(compiled.error);
-        const aggregateInstructionCount = compiled.instructions.filter(
+        const flatAggregateInstructionCount = compiled.instructions.filter(
           (instruction) =>
             instruction.opCode === UAALOpCode.EXEC &&
             instruction.operands?.[0] === 'hs.aggregate.value.v1'
         ).length;
+        const nestedAggregateInstructionCount = compiled.instructions.filter(
+          (instruction) =>
+            instruction.opCode === UAALOpCode.EXEC &&
+            instruction.operands?.[0] === 'hs.aggregate.value.v2'
+        ).length;
+        const aggregateInstructionCount =
+          flatAggregateInstructionCount + nestedAggregateInstructionCount;
         const vm = new UAALVirtualMachine({ recordLog: true });
         registerHoloScriptStdUaalExecHandler(vm, UAALOpCode.EXEC);
         const result = await vm.execute(compiled);
@@ -238,6 +249,8 @@ function browserHtml(source) {
           value: result.stackTop,
           instructionCount: compiled.instructions.length,
           aggregateInstructionCount,
+          flatAggregateInstructionCount,
+          nestedAggregateInstructionCount,
           bytecodeSha256,
           receiptHashMatches: bytecodeSha256 === log.bytecodeSha256,
           replayValid: replay.valid,
@@ -351,6 +364,7 @@ async function executeBrowserWasm(source) {
       result.receiptHashMatches !== true ||
       result.replayValid !== true ||
       result.aggregateInstructionCount < 1 ||
+      result.nestedAggregateInstructionCount < 1 ||
       !/^[0-9a-f]{64}$/.test(result.bytecodeSha256)
     ) {
       throw new Error(`browser-WASM result mismatch: ${JSON.stringify(result)}`);
@@ -362,6 +376,8 @@ async function executeBrowserWasm(source) {
       execution: '@holoscript/uaal browser ESM',
       instructionCount: result.instructionCount,
       aggregateInstructionCount: result.aggregateInstructionCount,
+      flatAggregateInstructionCount: result.flatAggregateInstructionCount,
+      nestedAggregateInstructionCount: result.nestedAggregateInstructionCount,
       bytecodeSha256: result.bytecodeSha256,
       receiptHashMatches: result.receiptHashMatches,
       replayValid: result.replayValid,
@@ -376,6 +392,7 @@ async function executeBrowserWasm(source) {
 
 async function executeNode() {
   const {
+    aabbMath,
     clamp,
     clampF32,
     inverseLerp,
@@ -410,13 +427,13 @@ async function executeNode() {
   const dot = vec3Math.dot(vectorA, vectorB);
   const cross = vec3Math.cross(vectorA, vectorB);
   const lengthSq = vec3Math.lengthSq(vectorA);
+  const boundsSize = aabbMath.size({
+    min: { x: 1, y: 2, z: 3 },
+    max: { x: 4, y: 6, z: 8 },
+  });
+  const boundsVolume = boundsSize.x * boundsSize.y * boundsSize.z;
   const i32Digest =
-    scalarDigest +
-    dot +
-    (cross.x + 4) * 2 +
-    (cross.y + 1) * 3 +
-    (cross.z + 5) * 4 +
-    lengthSq;
+    scalarDigest + dot + (cross.x + 4) * 2 + (cross.y + 1) * 3 + (cross.z + 5) * 4 + lengthSq;
   const floatingPointResults = {
     below: clamp(-1.5, 0, 2),
     inside: clamp(1.25, 0, 2),
@@ -445,7 +462,8 @@ async function executeNode() {
     binary32Results.lerp === 16_777_216 &&
     binary32Results.inverseLerp === 0.10000000149011612 &&
     binary32Results.remap === 10.800000190734863;
-  const result = floatingPointMatches && binary32Matches ? i32Digest + 46 : 1;
+  const result =
+    boundsVolume === 60 && floatingPointMatches && binary32Matches ? i32Digest + 46 : 1;
   if (result !== expectedDigest) {
     throw new Error(`Node std result mismatch: expected ${expectedDigest}, received ${result}`);
   }
@@ -453,6 +471,8 @@ async function executeNode() {
     runtime: process.version,
     implementation: '@holoscript/std/dist/math.js',
     aggregateRepresentation: 'Vec3 object values',
+    nestedAggregateRepresentation: 'AABB object containing Vec3 values',
+    nestedAggregateVolume: boundsVolume,
     floatingPointResults,
     binary32Results,
     result,
@@ -547,7 +567,7 @@ if (!results.every((value) => value === expectedDigest)) {
 console.log(
   JSON.stringify(
     {
-      schema: 'holoscript.std.math-abi-conformance.v5',
+      schema: 'holoscript.std.math-abi-conformance.v6',
       status: 'pass',
       abis: [
         {
@@ -566,6 +586,14 @@ console.log(
           sourceSha256: sha256(vectorAbiSource),
           valueAbi: 'hs.aggregate.value.v1',
           layout: 'StdVec3I32{x:i32,y:i32,z:i32}',
+        },
+        {
+          id: 'hs.std.aabb3.aggregate.i32.v1',
+          source: 'packages/std/src/abi/vector-v1.hs',
+          sourceSha256: sha256(vectorAbiSource),
+          valueAbi: 'hs.aggregate.value.v2',
+          layout:
+            'StdAabb3I32{min:StdVec3I32{x:i32,y:i32,z:i32},max:StdVec3I32{x:i32,y:i32,z:i32}}',
         },
         {
           id: 'hs.std.scalar.f32.v1',
@@ -603,11 +631,13 @@ console.log(
         provesAggregateVectorCallingConvention: true,
         provesAggregateValueAbi: 'hs.aggregate.value.v1',
         provesAggregateLayout: 'StdVec3I32{x:i32,y:i32,z:i32}',
+        provesNestedAggregateValueAbi: 'hs.aggregate.value.v2',
+        provesNestedAggregateLayout:
+          'StdAabb3I32{min:StdVec3I32{x:i32,y:i32,z:i32},max:StdVec3I32{x:i32,y:i32,z:i32}}',
         aggregateValueLimits: [
-          'flat records only',
-          'explicit scalar POD fields only',
+          'recursive immutable POD records',
+          'explicit scalar or declared aggregate fields only',
           'affine whole-value moves',
-          'no nested records',
           'no owned buffers',
           'no mutable or borrowed aggregate transfer',
         ],
