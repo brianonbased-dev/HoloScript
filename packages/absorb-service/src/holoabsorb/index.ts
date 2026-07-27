@@ -280,8 +280,11 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'packages/absorb-service/scripts/verify-paper-5-dataset.mjs',
       'packages/absorb-service/scripts/verify-scan-determinism.mjs',
       'packages/absorb-service/scripts/bench-paper-5-accuracy.mjs',
+      'packages/absorb-service/scripts/bench-paper-5-visual-agent-study.mjs',
+      'packages/absorb-service/scripts/lib/paper-5-visual-agent-study.mjs',
       'packages/absorb-service/scripts/bench-paper-5-gpu.mjs',
       'packages/absorb-service/benchmarks/paper-5-retrieval-v1.json',
+      'packages/absorb-service/benchmarks/paper-5-visual-agent-study-v1.json',
     ],
   },
 ];
@@ -377,10 +380,11 @@ const PAPERS: readonly HoloAbsorbPaperEvidence[] = [
     benchmarkCommands: [
       'node packages/absorb-service/scripts/verify-paper-5-dataset.mjs',
       'node packages/absorb-service/scripts/bench-paper-5-accuracy.mjs',
+      'node packages/absorb-service/scripts/bench-paper-5-visual-agent-study.mjs --prepare-only',
       'node packages/absorb-service/scripts/bench-paper-5-gpu.mjs',
     ],
     claimBoundary:
-      'The accuracy harness uses 54 frozen held-out, source-audited queries with multi-relevance labels and bootstrap confidence intervals. It still lacks independent multi-human annotation and external-codebase replication. The timing harness is synthetic unless explicitly captured on verified target hardware.',
+      'The accuracy harness uses 54 frozen held-out, source-audited queries with multi-relevance labels and bootstrap confidence intervals. The preregistered visual-agent study measures blinded selection from a gold-complete ten-candidate view, not end-to-end retrieval or literal pixel vision. Both lanes still lack independent multi-human annotation and external-codebase replication. The timing harness is synthetic unless explicitly captured on verified target hardware.',
     requiredReceiptKinds: ['accuracy-json', 'timing-json', 'hardware-inventory', 'claim-boundary'],
   },
   {
