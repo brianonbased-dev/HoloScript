@@ -152,7 +152,7 @@ physicsVerdict.valid = false;
 const projectedObjectCount: number = verifiedWorldProvenance.result.objectCount;
 const planSchema: 'holoscript.hs-plan-kernel-execution-provenance.v1' =
   HS_PLAN_KERNEL_EXECUTION_PROVENANCE_SCHEMA;
-const instructionCount: 5 = verifiedPlanProvenance.bytecode.instructionCount;
+const instructionCount: 4 = verifiedPlanProvenance.bytecode.instructionCount;
 const traceCount: 4 = verifiedPlanProvenance.vm.trace.executedInstructionCount;
 const programCounters: readonly [0, 2, 3, 1] = verifiedPlanProvenance.vm.trace.programCounters;
 const opcodes: readonly [50, 1, 51, 255] = verifiedPlanProvenance.vm.trace.opcodes;

@@ -67,10 +67,16 @@ describe('native .hs deterministic plan kernel', () => {
       },
     ];
     const source = sourceForPlan(records);
-    const first = await executeHsPlanKernel(source);
-    const second = await executeHsPlanKernel(source);
     const wasm = await import('@holoscript/wasm/node');
     const bytecode = JSON.parse(wasm.compile_to_uaal(source)) as UAALBytecode;
+    expect(bytecode.instructions.map((instruction) => instruction.opCode)).toEqual([
+      UAALOpCode.CALL,
+      UAALOpCode.HALT,
+      UAALOpCode.PUSH,
+      UAALOpCode.RET,
+    ]);
+    const first = await executeHsPlanKernel(source);
+    const second = await executeHsPlanKernel(source);
 
     expect(first.count).toBe(2);
     expect(first.data).toEqual(records);
@@ -84,7 +90,7 @@ describe('native .hs deterministic plan kernel', () => {
       },
       bytecode: {
         version: 1,
-        instructionCount: 5,
+        instructionCount: 4,
         hashAlgorithm: 'sha256-uaal-bytecode-canonical-v1',
         sha256: computeUAALBytecodeSha256(bytecode),
       },
