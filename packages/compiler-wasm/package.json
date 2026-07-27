@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/wasm",
-  "version": "6.1.7",
+  "version": "6.1.8",
   "description": "HoloScript parser compiled to WebAssembly for high-performance browser execution",
   "main": "pkg/holoscript_wasm.js",
   "types": "pkg/holoscript_wasm.d.ts",
