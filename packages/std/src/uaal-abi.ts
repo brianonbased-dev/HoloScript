@@ -11,6 +11,7 @@ export const HOLOSCRIPT_F64_BINARY_ABI = 'hs.f64.binary.v1' as const;
 export const HOLOSCRIPT_AGGREGATE_VALUE_ABI = 'hs.aggregate.value.v1' as const;
 export const HOLOSCRIPT_AGGREGATE_VALUE_ABI_V2 = 'hs.aggregate.value.v2' as const;
 export const HOLOSCRIPT_OWNED_BUFFER_ABI = 'hs.buffer.owned.v1' as const;
+export const HOLOSCRIPT_AGGREGATE_REFERENCE_ABI = 'hs.aggregate.ref.v1' as const;
 
 type HoloScriptAggregateValueAbi =
   | typeof HOLOSCRIPT_AGGREGATE_VALUE_ABI
@@ -28,6 +29,11 @@ export interface HoloScriptStdUaalVmProxy {
   push(value: HoloScriptStdUaalOperand): void;
   pop(): HoloScriptStdUaalOperand;
   peek(): HoloScriptStdUaalOperand;
+  getState(): {
+    context: Record<string, HoloScriptStdUaalOperand>;
+  };
+  getContext(key: string): HoloScriptStdUaalOperand;
+  setContext(key: string, value: HoloScriptStdUaalOperand): void;
 }
 
 export type HoloScriptStdUaalExecHandler = (
@@ -46,6 +52,30 @@ export interface HoloScriptStdUaalOwnedBufferOpcodes {
   readonly store: number;
   readonly drop: number;
   readonly length: number;
+}
+
+export interface HoloScriptStdUaalAggregateReferenceOpcodes {
+  readonly borrow: number;
+  readonly load: number;
+  readonly store: number;
+}
+
+interface AggregateReferenceToken extends Record<string, unknown> {
+  readonly abi: typeof HOLOSCRIPT_AGGREGATE_REFERENCE_ABI;
+  readonly borrow: number;
+  readonly layout: string;
+  readonly rootKey: string;
+  readonly mutable: boolean;
+}
+
+interface AggregateReferenceLease {
+  readonly token: AggregateReferenceToken;
+  active: boolean;
+}
+
+interface AggregateRootLeases {
+  shared: number;
+  exclusive: boolean;
 }
 
 interface OwnedBufferToken extends Record<string, unknown> {
@@ -139,10 +169,26 @@ function isOwnedBufferToken(value: HoloScriptStdUaalOperand): value is OwnedBuff
   );
 }
 
+function isAggregateReferenceToken(
+  value: HoloScriptStdUaalOperand
+): value is AggregateReferenceToken {
+  return (
+    value !== null &&
+    !Array.isArray(value) &&
+    typeof value === 'object' &&
+    value.abi === HOLOSCRIPT_AGGREGATE_REFERENCE_ABI &&
+    typeof value.borrow === 'number' &&
+    Number.isInteger(value.borrow) &&
+    typeof value.layout === 'string' &&
+    typeof value.rootKey === 'string' &&
+    typeof value.mutable === 'boolean'
+  );
+}
+
 function requireStringArray(
   value: HoloScriptStdUaalOperand | undefined,
   label: string,
-  abi: HoloScriptAggregateValueAbi
+  abi: string
 ): string[] {
   if (!Array.isArray(value) || !value.every((entry) => typeof entry === 'string')) {
     throw new Error(`${abi} ${label} must be a string array`);
@@ -153,7 +199,7 @@ function requireStringArray(
 function requireIndexArray(
   value: HoloScriptStdUaalOperand | undefined,
   label: string,
-  abi: HoloScriptAggregateValueAbi
+  abi: string
 ): number[] {
   if (
     !Array.isArray(value) ||
@@ -168,7 +214,7 @@ function requireScalarField(
   value: HoloScriptStdUaalOperand,
   type: string,
   field: string,
-  abi: HoloScriptAggregateValueAbi
+  abi: string
 ): void {
   switch (type) {
     case 'i32':
@@ -566,5 +612,264 @@ export function registerHoloScriptStdUaalOwnedBufferHandlers(
     const elementType = requireOwnedBufferElementType(operands);
     const { cell } = requireActive(proxy.pop(), elementType);
     proxy.push(cell.values.length);
+  });
+}
+
+/**
+ * Register call-scoped aggregate-reference handlers without weakening immutable value ABIs.
+ *
+ * Borrow tokens point at an addressable UAAL state key. Mutable stores rebuild and freeze the
+ * aggregate path before atomically replacing that state value, so value envelopes remain
+ * immutable while shared and exclusive calls observe one addressable root.
+ */
+export function registerHoloScriptStdUaalAggregateReferenceHandlers(
+  vm: HoloScriptStdUaalVm,
+  opcodes: HoloScriptStdUaalAggregateReferenceOpcodes
+): void {
+  let nextBorrow = 1;
+  const leases = new Map<number, AggregateReferenceLease>();
+  const rootLeases = new Map<string, AggregateRootLeases>();
+
+  const rootValue = (
+    proxy: HoloScriptStdUaalVmProxy,
+    token: AggregateReferenceToken
+  ): AggregateEnvelope => {
+    const root = proxy.getContext(token.rootKey);
+    if (!isAggregateEnvelope(root) || root.layout !== token.layout) {
+      throw new Error(
+        `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} root layout mismatch for \`${token.rootKey}\``
+      );
+    }
+    return root;
+  };
+
+  const requireActive = (
+    value: HoloScriptStdUaalOperand
+  ): { token: AggregateReferenceToken; lease: AggregateReferenceLease } => {
+    if (!isAggregateReferenceToken(value)) {
+      throw new Error(`${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} requires a borrow token`);
+    }
+    const lease = leases.get(value.borrow);
+    if (!lease || !lease.active) {
+      throw new Error(`${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} stale borrow token`);
+    }
+    if (
+      lease.token.rootKey !== value.rootKey ||
+      lease.token.layout !== value.layout ||
+      lease.token.mutable !== value.mutable
+    ) {
+      throw new Error(`${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} borrow token mismatch`);
+    }
+    return { token: value, lease };
+  };
+
+  const projection = (
+    operands: HoloScriptStdUaalOperand[]
+  ): { fields: string[]; indices: number[]; leafType: string } => {
+    const fields = requireStringArray(
+      operands[0],
+      'projection fields',
+      HOLOSCRIPT_AGGREGATE_REFERENCE_ABI
+    );
+    const indices = requireIndexArray(
+      operands[1],
+      'projection indices',
+      HOLOSCRIPT_AGGREGATE_REFERENCE_ABI
+    );
+    const leafType = operands[2];
+    if (fields.length === 0 || fields.length !== indices.length || typeof leafType !== 'string') {
+      throw new Error(
+        `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} projection metadata is malformed`
+      );
+    }
+    return { fields, indices, leafType };
+  };
+
+  const readPath = (
+    root: AggregateEnvelope,
+    fields: string[],
+    indices: number[],
+    leafType: string
+  ): HoloScriptStdUaalOperand => {
+    let current = root;
+    for (let depth = 0; depth < fields.length; depth += 1) {
+      const field = fields[depth];
+      const index = indices[depth];
+      if (
+        index >= current.values.length ||
+        current.fields[index] !== field ||
+        index < 0
+      ) {
+        throw new Error(
+          `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} projection descriptor mismatch at \`${field}\``
+        );
+      }
+      const value = current.values[index];
+      const descriptor = current.types[index];
+      const isLeaf = depth + 1 === fields.length;
+      if (isLeaf) {
+        if (descriptor !== leafType) {
+          throw new Error(
+            `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} projection leaf descriptor mismatch at \`${field}\``
+          );
+        }
+        requireScalarField(
+          value,
+          leafType,
+          fields.join('.'),
+          HOLOSCRIPT_AGGREGATE_REFERENCE_ABI
+        );
+        return value;
+      }
+      if (!isAggregateEnvelope(value) || value.layout !== descriptor) {
+        throw new Error(
+          `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} nested layout mismatch at \`${field}\``
+        );
+      }
+      current = value;
+    }
+    throw new Error(`${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} empty projection path`);
+  };
+
+  const replacePath = (
+    current: AggregateEnvelope,
+    fields: string[],
+    indices: number[],
+    leafType: string,
+    replacement: HoloScriptStdUaalOperand,
+    depth = 0
+  ): AggregateEnvelope => {
+    const field = fields[depth];
+    const index = indices[depth];
+    if (
+      index < 0 ||
+      index >= current.values.length ||
+      current.fields[index] !== field
+    ) {
+      throw new Error(
+        `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} projection descriptor mismatch at \`${field}\``
+      );
+    }
+    const descriptor = current.types[index];
+    const values = [...current.values];
+    const isLeaf = depth + 1 === fields.length;
+    if (isLeaf) {
+      if (descriptor !== leafType) {
+        throw new Error(
+          `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} projection leaf descriptor mismatch at \`${field}\``
+        );
+      }
+      requireScalarField(
+        replacement,
+        leafType,
+        fields.join('.'),
+        HOLOSCRIPT_AGGREGATE_REFERENCE_ABI
+      );
+      values[index] = replacement;
+    } else {
+      const nested = values[index];
+      if (!isAggregateEnvelope(nested) || nested.layout !== descriptor) {
+        throw new Error(
+          `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} nested layout mismatch at \`${field}\``
+        );
+      }
+      values[index] = replacePath(
+        nested,
+        fields,
+        indices,
+        leafType,
+        replacement,
+        depth + 1
+      );
+    }
+    return Object.freeze({
+      abi: current.abi,
+      layout: current.layout,
+      fields: current.fields,
+      types: current.types,
+      values: Object.freeze(values),
+    });
+  };
+
+  vm.registerHandler(opcodes.borrow, (proxy, operands) => {
+    const operation = operands[0];
+    if (operation === 'acquire') {
+      const layout = operands[1];
+      const rootKey = operands[2];
+      const mutable = operands[3];
+      if (
+        typeof layout !== 'string' ||
+        typeof rootKey !== 'string' ||
+        typeof mutable !== 'boolean'
+      ) {
+        throw new Error(`${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} acquire metadata is malformed`);
+      }
+      const root = proxy.getContext(rootKey);
+      if (!isAggregateEnvelope(root) || root.layout !== layout) {
+        throw new Error(
+          `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} cannot borrow root \`${rootKey}\` as \`${layout}\``
+        );
+      }
+      const state = rootLeases.get(rootKey) ?? { shared: 0, exclusive: false };
+      if ((mutable && (state.exclusive || state.shared > 0)) || (!mutable && state.exclusive)) {
+        throw new Error(
+          `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} borrow conflict for \`${rootKey}\``
+        );
+      }
+      if (mutable) state.exclusive = true;
+      else state.shared += 1;
+      rootLeases.set(rootKey, state);
+      const token = Object.freeze({
+        abi: HOLOSCRIPT_AGGREGATE_REFERENCE_ABI,
+        borrow: nextBorrow,
+        layout,
+        rootKey,
+        mutable,
+      });
+      nextBorrow += 1;
+      leases.set(token.borrow, { token, active: true });
+      proxy.push(token);
+      return;
+    }
+    if (operation === 'release') {
+      const { token, lease } = requireActive(proxy.pop());
+      const state = rootLeases.get(token.rootKey);
+      if (!state) {
+        throw new Error(`${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} missing root lease`);
+      }
+      if (token.mutable) state.exclusive = false;
+      else state.shared -= 1;
+      if (!state.exclusive && state.shared === 0) rootLeases.delete(token.rootKey);
+      else rootLeases.set(token.rootKey, state);
+      lease.active = false;
+      return;
+    }
+    throw new Error(
+      `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} does not support borrow operation \`${String(operation)}\``
+    );
+  });
+
+  vm.registerHandler(opcodes.load, (proxy, operands) => {
+    const { token } = requireActive(proxy.pop());
+    const { fields, indices, leafType } = projection(operands);
+    proxy.push(readPath(rootValue(proxy, token), fields, indices, leafType));
+  });
+
+  vm.registerHandler(opcodes.store, (proxy, operands) => {
+    const replacement = proxy.pop();
+    const { token } = requireActive(proxy.pop());
+    if (!token.mutable) {
+      throw new Error(
+        `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} store requires an exclusive borrow`
+      );
+    }
+    const { fields, indices, leafType } = projection(operands);
+    proxy.setContext(token.rootKey, replacePath(
+      rootValue(proxy, token),
+      fields,
+      indices,
+      leafType,
+      replacement
+    ));
   });
 }

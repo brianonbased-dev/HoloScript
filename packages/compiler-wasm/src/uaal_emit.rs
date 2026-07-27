@@ -25,6 +25,9 @@ const OP_RET: u16 = 0x33;
 const OP_HS_BUFFER_ALLOC: u16 = 0xb7;
 const OP_HS_BUFFER_MOVE: u16 = 0xb8;
 const OP_HS_BUFFER_DROP: u16 = 0xbb;
+const OP_HS_AGGREGATE_BORROW: u16 = 0xbd;
+const OP_HS_AGGREGATE_LOAD: u16 = 0xbe;
+const OP_HS_AGGREGATE_STORE: u16 = 0xbf;
 const OP_STATE_SET: u16 = 0xcb;
 const OP_STATE_GET: u16 = 0xcc;
 const OP_HALT: u16 = 0xff;
@@ -143,6 +146,12 @@ struct UaalAggregateProjection {
     leaf: UaalAggregateField,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct UaalBorrowedAggregate {
+    layout: String,
+    mutable: bool,
+}
+
 #[derive(Debug)]
 struct UaalEmitter<'a> {
     functions: Vec<&'a FunctionNode>,
@@ -161,6 +170,7 @@ struct UaalEmitter<'a> {
     current_owned_buffers: HashMap<String, String>,
     current_unavailable_owned_buffers: HashSet<String>,
     current_owned_buffer_order: Vec<String>,
+    current_borrowed_aggregates: HashMap<String, UaalBorrowedAggregate>,
 }
 
 pub fn compile_source_to_uaal(source: &str) -> Result<UaalBytecode, UaalEmitError> {
@@ -237,6 +247,7 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         current_owned_buffers: HashMap::new(),
         current_unavailable_owned_buffers: HashSet::new(),
         current_owned_buffer_order: Vec::new(),
+        current_borrowed_aggregates: HashMap::new(),
     };
 
     emitter.emit_bootstrap()?;
@@ -256,6 +267,19 @@ fn owned_buffer_element_type(annotation: &str) -> Option<&str> {
     } else {
         Some(inner)
     }
+}
+
+fn aggregate_reference_annotation(annotation: &str) -> Option<(bool, &str)> {
+    let mut rest = annotation.strip_prefix('&')?.trim_start();
+    if rest.starts_with('\'') {
+        rest = rest.split_once(' ')?.1.trim_start();
+    }
+    let (mutable, pointee) = if let Some(pointee) = rest.strip_prefix("mut ") {
+        (true, pointee)
+    } else {
+        (false, rest)
+    };
+    (!pointee.is_empty() && !pointee.starts_with('[')).then_some((mutable, pointee))
 }
 
 fn reject_pending_owned_transfer_surfaces(ast: &Ast) -> Result<(), UaalEmitError> {
@@ -516,6 +540,34 @@ impl<'a> UaalEmitter<'a> {
             self.current_owned_buffers.clear();
             self.current_unavailable_owned_buffers.clear();
             self.current_owned_buffer_order.clear();
+            self.current_borrowed_aggregates.clear();
+            for (index, param) in function.params.iter().enumerate() {
+                let Some((mutable, layout)) = function
+                    .param_types
+                    .get(index)
+                    .and_then(|annotation| annotation.as_deref())
+                    .and_then(aggregate_reference_annotation)
+                else {
+                    continue;
+                };
+                if !self.aggregate_layouts.contains_key(layout) {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-005",
+                        "uaal.aggregate.ref.v1",
+                        format!(
+                            "parameter `{param}` of function `{}` borrows unsupported aggregate type `{layout}`",
+                            function.name
+                        ),
+                    ));
+                }
+                self.current_borrowed_aggregates.insert(
+                    param.clone(),
+                    UaalBorrowedAggregate {
+                        layout: layout.to_string(),
+                        mutable,
+                    },
+                );
+            }
 
             for param in function.params.iter().rev() {
                 self.emit_op(
@@ -536,6 +588,7 @@ impl<'a> UaalEmitter<'a> {
             self.current_owned_buffers.clear();
             self.current_unavailable_owned_buffers.clear();
             self.current_owned_buffer_order.clear();
+            self.current_borrowed_aggregates.clear();
         }
         Ok(())
     }
@@ -796,6 +849,9 @@ impl<'a> UaalEmitter<'a> {
         if callee == "load" {
             return self.emit_aggregate_load(call);
         }
+        if callee == "store" {
+            return self.emit_borrowed_aggregate_store(call);
+        }
         if callee == "drop" {
             return self.emit_owned_buffer_drop(call);
         }
@@ -843,14 +899,199 @@ impl<'a> UaalEmitter<'a> {
             .get(callee)
             .cloned()
             .unwrap_or_else(|| vec![None; call.arguments.len()]);
+        let param_names = self
+            .function_params
+            .get(callee)
+            .cloned()
+            .unwrap_or_default();
+        let mut call_borrows = HashMap::new();
+        let mut acquired_params = Vec::new();
         for (index, argument) in call.arguments.iter().enumerate() {
             let expected = param_types
                 .get(index)
                 .and_then(|annotation| annotation.as_deref());
-            self.emit_expression_with_expected(argument, expected)?;
+            if let Some(expected) =
+                expected.filter(|annotation| aggregate_reference_annotation(annotation).is_some())
+            {
+                if self.emit_aggregate_reference_argument(argument, expected, &mut call_borrows)? {
+                    acquired_params.push(index);
+                }
+            } else {
+                self.emit_expression_with_expected(argument, expected)?;
+            }
         }
         self.emit_call(callee);
+        for index in acquired_params.into_iter().rev() {
+            let parameter = param_names.get(index).ok_or_else(|| {
+                UaalEmitError::new(format!(
+                    "internal parameter metadata mismatch releasing borrow for `{callee}`"
+                ))
+            })?;
+            let slot = Self::slot_key(callee, parameter);
+            self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
+            self.emit_op(OP_HS_AGGREGATE_BORROW, vec![Value::from("release")]);
+        }
         Ok(())
+    }
+
+    fn emit_aggregate_reference_argument(
+        &mut self,
+        argument: &AstNode,
+        expected_annotation: &str,
+        call_borrows: &mut HashMap<String, bool>,
+    ) -> Result<bool, UaalEmitError> {
+        let (expected_mutable, expected_layout) =
+            aggregate_reference_annotation(expected_annotation).ok_or_else(|| {
+                UaalEmitError::new(format!(
+                    "internal aggregate-reference annotation mismatch: `{expected_annotation}`"
+                ))
+            })?;
+        let expected_schema = self
+            .aggregate_layouts
+            .get(expected_layout)
+            .map(|layout| layout.schema_id.clone())
+            .ok_or_else(|| {
+                Self::target_capability_error(
+                    "HS-UAAL-CAP-005",
+                    "uaal.aggregate.ref.v1",
+                    format!("unsupported borrowed aggregate layout `{expected_layout}`"),
+                )
+            })?;
+
+        let (root_key, acquired) = match argument {
+            AstNode::UnaryExpression(borrow) => {
+                let requested_mutable = match borrow.operator.as_str() {
+                    "&" => false,
+                    "&mut" => true,
+                    _ => {
+                        return Err(Self::target_capability_error(
+                            "HS-UAAL-CAP-005",
+                            "uaal.aggregate.ref.v1",
+                            "aggregate reference arguments require `&root` or `&mut root`",
+                        ));
+                    }
+                };
+                if requested_mutable != expected_mutable {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-005",
+                        "uaal.aggregate.ref.v1",
+                        format!(
+                            "aggregate reference argument mutability does not match `{expected_annotation}`"
+                        ),
+                    ));
+                }
+                let AstNode::Identifier(identifier) = borrow.argument.as_ref() else {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-005",
+                        "uaal.aggregate.ref.v1",
+                        "the first aggregate-reference ABI borrows a complete named stack-slot root",
+                    ));
+                };
+                let actual_layout = self
+                    .binding_aggregate_layout(&identifier.name)
+                    .map(|layout| layout.name.clone())
+                    .ok_or_else(|| {
+                        Self::target_capability_error(
+                            "HS-UAAL-CAP-005",
+                            "uaal.aggregate.ref.v1",
+                            format!("`{}` is not an addressable aggregate root", identifier.name),
+                        )
+                    })?;
+                if actual_layout != expected_layout {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-005",
+                        "uaal.aggregate.ref.v1",
+                        format!(
+                            "aggregate reference argument expects `{expected_layout}`, found `{actual_layout}`"
+                        ),
+                    ));
+                }
+                if self.current_moved_aggregates.contains(&identifier.name) {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-005",
+                        "uaal.aggregate.ref.v1",
+                        format!(
+                            "aggregate `{}` was already moved before borrow",
+                            identifier.name
+                        ),
+                    ));
+                }
+                let slot = Self::slot_key(self.current_function_name()?, &identifier.name);
+                self.emit_op(
+                    OP_HS_AGGREGATE_BORROW,
+                    vec![
+                        Value::from("acquire"),
+                        Value::from(expected_schema),
+                        Value::from(slot.clone()),
+                        Value::from(expected_mutable),
+                    ],
+                );
+                (slot, true)
+            }
+            AstNode::Identifier(identifier) => {
+                let borrowed = self
+                    .current_borrowed_aggregates
+                    .get(&identifier.name)
+                    .cloned()
+                    .ok_or_else(|| {
+                        Self::target_capability_error(
+                            "HS-UAAL-CAP-005",
+                            "uaal.aggregate.ref.v1",
+                            format!(
+                                "aggregate reference argument `{}` must use an explicit borrow",
+                                identifier.name
+                            ),
+                        )
+                    })?;
+                if borrowed.layout != expected_layout {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-005",
+                        "uaal.aggregate.ref.v1",
+                        format!(
+                            "forwarded aggregate reference `{}` has layout `{}`, expected `{expected_layout}`",
+                            identifier.name, borrowed.layout
+                        ),
+                    ));
+                }
+                if borrowed.mutable != expected_mutable {
+                    let mode = if borrowed.mutable {
+                        "mutable"
+                    } else {
+                        "shared"
+                    };
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-005",
+                        "uaal.aggregate.ref.v1",
+                        format!(
+                            "cannot forward {mode} aggregate reference `{}` as `{expected_annotation}`",
+                            identifier.name
+                        ),
+                    ));
+                }
+                let slot = Self::slot_key(self.current_function_name()?, &identifier.name);
+                self.emit_op(OP_STATE_GET, vec![Value::from(slot.clone())]);
+                (slot, false)
+            }
+            _ => {
+                return Err(Self::target_capability_error(
+                    "HS-UAAL-CAP-005",
+                    "uaal.aggregate.ref.v1",
+                    "aggregate reference arguments require an explicit root borrow or forwarded reference parameter",
+                ));
+            }
+        };
+
+        if let Some(existing_mutable) = call_borrows.get(&root_key) {
+            if expected_mutable || *existing_mutable {
+                return Err(Self::target_capability_error(
+                    "HS-UAAL-CAP-005",
+                    "uaal.aggregate.ref.v1",
+                    format!("aggregate borrow alias conflict for `{root_key}` in one call"),
+                ));
+            }
+        }
+        call_borrows.insert(root_key, expected_mutable);
+        Ok(acquired)
     }
 
     fn emit_owned_buffer_initializer(
@@ -1070,6 +1311,34 @@ impl<'a> UaalEmitter<'a> {
         };
         let projection = self.resolve_aggregate_field_projection(member)?;
         if self
+            .current_borrowed_aggregates
+            .contains_key(&projection.root_name)
+        {
+            let slot = Self::slot_key(self.current_function_name()?, &projection.root_name);
+            self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
+            self.emit_op(
+                OP_HS_AGGREGATE_LOAD,
+                vec![
+                    Value::Array(
+                        projection
+                            .field_names
+                            .into_iter()
+                            .map(Value::from)
+                            .collect(),
+                    ),
+                    Value::Array(
+                        projection
+                            .field_indices
+                            .into_iter()
+                            .map(Value::from)
+                            .collect(),
+                    ),
+                    Value::from(projection.leaf.type_annotation),
+                ],
+            );
+            return Ok(());
+        }
+        if self
             .current_moved_aggregates
             .contains(&projection.root_name)
         {
@@ -1124,6 +1393,74 @@ impl<'a> UaalEmitter<'a> {
         Ok(())
     }
 
+    fn emit_borrowed_aggregate_store(
+        &mut self,
+        call: &CallExpression,
+    ) -> Result<(), UaalEmitError> {
+        if call.arguments.len() != 2 {
+            return Err(UaalEmitError::new(format!(
+                "borrowed aggregate `store` in compile_to_uaal expects 2 arguments, got {}",
+                call.arguments.len()
+            )));
+        }
+        let AstNode::MemberExpression(member) = &call.arguments[0] else {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-005",
+                "uaal.aggregate.ref.v1",
+                "borrowed aggregate `store` requires a named scalar field projection",
+            ));
+        };
+        let projection = self.resolve_aggregate_field_projection(member)?;
+        let borrowed = self
+            .current_borrowed_aggregates
+            .get(&projection.root_name)
+            .cloned()
+            .ok_or_else(|| {
+                Self::target_capability_error(
+                    "HS-UAAL-CAP-005",
+                    "uaal.aggregate.ref.v1",
+                    "aggregate `store` requires a mutable aggregate-reference parameter",
+                )
+            })?;
+        if !borrowed.mutable {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-005",
+                "uaal.aggregate.ref.v1",
+                format!(
+                    "cannot store through shared aggregate reference `{}`",
+                    projection.root_name
+                ),
+            ));
+        }
+        let slot = Self::slot_key(self.current_function_name()?, &projection.root_name);
+        self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
+        self.emit_expression_with_expected(
+            &call.arguments[1],
+            Some(&projection.leaf.type_annotation),
+        )?;
+        self.emit_op(
+            OP_HS_AGGREGATE_STORE,
+            vec![
+                Value::Array(
+                    projection
+                        .field_names
+                        .into_iter()
+                        .map(Value::from)
+                        .collect(),
+                ),
+                Value::Array(
+                    projection
+                        .field_indices
+                        .into_iter()
+                        .map(Value::from)
+                        .collect(),
+                ),
+                Value::from(projection.leaf.type_annotation),
+            ],
+        );
+        Ok(())
+    }
+
     fn emit_aggregate_move(&mut self, call: &CallExpression) -> Result<(), UaalEmitError> {
         if call.arguments.len() != 1 {
             return Err(UaalEmitError::new(format!(
@@ -1138,6 +1475,19 @@ impl<'a> UaalEmitter<'a> {
                 "the first aggregate value contract moves only a complete named aggregate root",
             ));
         };
+        if self
+            .current_borrowed_aggregates
+            .contains_key(&identifier.name)
+        {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-005",
+                "uaal.aggregate.ref.v1",
+                format!(
+                    "borrowed aggregate `{}` cannot be moved by the callee",
+                    identifier.name
+                ),
+            ));
+        }
         if self.binding_aggregate_layout(&identifier.name).is_none() {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-003",
@@ -1241,6 +1591,11 @@ impl<'a> UaalEmitter<'a> {
         self.current_binding_types
             .get(name)
             .and_then(|annotation| annotation.as_deref())
+            .and_then(|annotation| {
+                aggregate_reference_annotation(annotation)
+                    .map(|(_, layout)| layout)
+                    .or(Some(annotation))
+            })
             .and_then(|annotation| self.aggregate_layouts.get(annotation))
     }
 
@@ -2484,6 +2839,72 @@ function main(): i32 { return 5 }"#,
         assert!(error.message.contains(
             "owned buffer type `[i32]` in return type of function `relay` requires allocator, move, and drop opcodes"
         ));
+    }
+
+    #[test]
+    fn lowers_call_scoped_shared_and_mutable_aggregate_references() {
+        let bytecode = compile_source_to_uaal(
+            r#"struct Packet { code: i32 }
+function write(packet: &mut Packet): i32 {
+  store(packet.code, 9)
+  return load(packet.code)
+}
+function read(packet: &Packet): i32 {
+  return load(packet.code)
+}
+function main(): i32 {
+  slot packet: Packet = Packet(5)
+  let changed: i32 = write(&mut packet)
+  return changed + read(&packet)
+}"#,
+        )
+        .expect("aggregate references should cross calls without copying their roots");
+
+        let opcodes = bytecode
+            .instructions
+            .iter()
+            .map(|instruction| instruction.op_code)
+            .collect::<Vec<_>>();
+        assert!(
+            opcodes.contains(&0xbd),
+            "borrow opcode missing: {opcodes:?}"
+        );
+        assert!(
+            opcodes.contains(&0xbe),
+            "borrowed load opcode missing: {opcodes:?}"
+        );
+        assert!(
+            opcodes.contains(&0xbf),
+            "borrowed store opcode missing: {opcodes:?}"
+        );
+    }
+
+    #[test]
+    fn rejects_aggregate_reference_alias_conflicts_and_mutability_escalation() {
+        for (source, expected) in [
+            (
+                r#"struct Packet { code: i32 }
+function combine(first: &mut Packet, second: &Packet): i32 { return 5 }
+function main(): i32 {
+  slot packet: Packet = Packet(5)
+  return combine(&mut packet, &packet)
+}"#,
+                "aggregate borrow alias conflict",
+            ),
+            (
+                r#"struct Packet { code: i32 }
+function write(packet: &mut Packet): i32 { return 5 }
+function relay(packet: &Packet): i32 { return write(packet) }
+function main(): i32 {
+  slot packet: Packet = Packet(5)
+  return relay(&packet)
+}"#,
+                "expected `&mut Packet`, found `&Packet`",
+            ),
+        ] {
+            let error = compile_source_to_uaal(source).expect_err(expected);
+            assert!(error.message.contains(expected), "{}", error.message);
+        }
     }
 
     #[test]

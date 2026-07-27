@@ -136,6 +136,9 @@ export enum UAALOpCode {
   OP_HS_BUFFER_STORE = 0xba,
   OP_HS_BUFFER_DROP = 0xbb,
   OP_HS_BUFFER_LENGTH = 0xbc,
+  OP_HS_AGGREGATE_BORROW = 0xbd,
+  OP_HS_AGGREGATE_LOAD = 0xbe,
+  OP_HS_AGGREGATE_STORE = 0xbf,
 
   // ── Native Orchestration ──────────────────────────────────────────────────
   OP_GRAPH_START = 0xc0,

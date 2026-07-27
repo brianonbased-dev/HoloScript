@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   HOLOSCRIPT_AGGREGATE_VALUE_ABI,
   HOLOSCRIPT_AGGREGATE_VALUE_ABI_V2,
+  registerHoloScriptStdUaalAggregateReferenceHandlers,
   registerHoloScriptStdUaalOwnedBufferHandlers,
   registerHoloScriptStdUaalExecHandler,
   type HoloScriptStdUaalExecHandler,
@@ -11,6 +12,7 @@ import {
 
 class TestProxy {
   readonly stack: HoloScriptStdUaalOperand[] = [];
+  readonly context: Record<string, HoloScriptStdUaalOperand> = {};
 
   push(value: HoloScriptStdUaalOperand): void {
     this.stack.push(value);
@@ -26,6 +28,18 @@ class TestProxy {
     const value = this.stack.at(-1);
     if (value === undefined) throw new Error('stack underflow');
     return value;
+  }
+
+  getState(): { context: Record<string, HoloScriptStdUaalOperand> } {
+    return { context: this.context };
+  }
+
+  getContext(key: string): HoloScriptStdUaalOperand {
+    return this.context[key] ?? null;
+  }
+
+  setContext(key: string, value: HoloScriptStdUaalOperand): void {
+    this.context[key] = value;
   }
 }
 
@@ -306,5 +320,96 @@ describe('HoloScript std UAAL owned-buffer ABI', () => {
     proxy.push(1);
     proxy.push(1.5);
     expect(() => registered.get(opcodes.allocate)?.(proxy, ['i32'])).toThrow('requires i32');
+  });
+});
+
+describe('HoloScript std UAAL aggregate-reference ABI', () => {
+  const opcodes = {
+    borrow: 0xbd,
+    load: 0xbe,
+    store: 0xbf,
+  } as const;
+  const layout = 'Packet{code:i32}';
+
+  function handlers(): Map<number, HoloScriptStdUaalExecHandler> {
+    const registered = new Map<number, HoloScriptStdUaalExecHandler>();
+    registerHoloScriptStdUaalAggregateReferenceHandlers(
+      {
+        registerHandler(opcode, handler) {
+          registered.set(opcode, handler);
+        },
+      },
+      opcodes
+    );
+    return registered;
+  }
+
+  function aggregate(proxy: TestProxy, value: number): HoloScriptStdUaalOperand {
+    let exec: HoloScriptStdUaalExecHandler | undefined;
+    registerHoloScriptStdUaalExecHandler(
+      {
+        registerHandler(_opcode, handler) {
+          exec = handler;
+        },
+      },
+      0x20
+    );
+    proxy.push(value);
+    exec?.(proxy, [
+      HOLOSCRIPT_AGGREGATE_VALUE_ABI,
+      'construct',
+      layout,
+      ['code'],
+      ['i32'],
+    ]);
+    return proxy.pop();
+  }
+
+  it('mutates through an exclusive call-scoped token while preserving frozen values', () => {
+    const registered = handlers();
+    const proxy = new TestProxy();
+    const rootKey = 'main::packet';
+    proxy.context[rootKey] = aggregate(proxy, 5);
+
+    registered.get(opcodes.borrow)?.(proxy, ['acquire', layout, rootKey, true]);
+    const writer = proxy.pop();
+    proxy.push(writer);
+    proxy.push(9);
+    registered.get(opcodes.store)?.(proxy, [['code'], [0], 'i32']);
+
+    proxy.push(writer);
+    registered.get(opcodes.load)?.(proxy, [['code'], [0], 'i32']);
+    expect(proxy.pop()).toBe(9);
+    expect(Object.isFrozen(proxy.context[rootKey])).toBe(true);
+
+    proxy.push(writer);
+    registered.get(opcodes.borrow)?.(proxy, ['release']);
+  });
+
+  it('rejects mutable access through shared tokens, alias conflicts, and stale tokens', () => {
+    const registered = handlers();
+    const proxy = new TestProxy();
+    const rootKey = 'main::packet';
+    proxy.context[rootKey] = aggregate(proxy, 5);
+
+    registered.get(opcodes.borrow)?.(proxy, ['acquire', layout, rootKey, false]);
+    const reader = proxy.pop();
+    proxy.push(reader);
+    proxy.push(9);
+    expect(() =>
+      registered.get(opcodes.store)?.(proxy, [['code'], [0], 'i32'])
+    ).toThrow('requires an exclusive borrow');
+
+    proxy.stack.length = 0;
+    expect(() =>
+      registered.get(opcodes.borrow)?.(proxy, ['acquire', layout, rootKey, true])
+    ).toThrow('borrow conflict');
+
+    proxy.push(reader);
+    registered.get(opcodes.borrow)?.(proxy, ['release']);
+    proxy.push(reader);
+    expect(() => registered.get(opcodes.load)?.(proxy, [['code'], [0], 'i32'])).toThrow(
+      'stale borrow token'
+    );
   });
 });

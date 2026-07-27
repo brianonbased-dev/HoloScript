@@ -65,9 +65,8 @@ export interface VMResult {
 //   waits on the wall clock), and ANY opcode with a registered custom
 //   handler may perform arbitrary external work (LLM calls etc.) through
 //   VMProxy. For those steps the recorder captures the step's complete stack
-//   effects — every push/pop/peek the step performed, which is the only
-//   channel through which handlers or the nondeterministic built-ins can
-//   influence execution — and marks the step `injected`. Replay does NOT
+//   effects — every push/pop/peek and explicit context write the step
+//   performed through VMProxy — and marks the step `injected`. Replay does NOT
 //   re-call the handler or re-read the clock: it applies the recorded
 //   effects (and skips OP_DELAY's sleep entirely). That injection is what
 //   makes replay hermetic.
@@ -113,8 +112,9 @@ const NONDETERMINISTIC_OPCODES: ReadonlySet<UAALOpCode> = new Set([
  * peeked value at capture time.
  */
 export interface UAALRecordedEffect {
-  op: 'push' | 'pop' | 'peek';
+  op: 'push' | 'pop' | 'peek' | 'context-set';
   value: UAALOperand;
+  key?: string;
 }
 
 /**
@@ -143,7 +143,7 @@ export interface UAALLogStep {
   injected?: boolean;
   /** Why the step was injected. */
   source?: 'handler' | 'builtin-nondeterministic';
-  /** Complete ordered stack effects of an injected step. */
+  /** Complete ordered stack and explicit context effects of an injected step. */
   effects?: UAALRecordedEffect[];
   /** True when the instruction threw (execution ended with ERROR). */
   threw?: boolean;
@@ -268,6 +268,8 @@ export interface VMProxy {
   pop(): UAALOperand;
   peek(): UAALOperand;
   getState(): VMState;
+  getContext(key: string): UAALOperand;
+  setContext(key: string, value: UAALOperand): void;
 }
 
 /** Custom opcode handler function */
@@ -573,6 +575,21 @@ export class UAALVirtualMachine {
     return value;
   }
 
+  getContext(key: string): UAALOperand {
+    return this.state.context[key] ?? null;
+  }
+
+  setContext(key: string, value: UAALOperand): void {
+    this.state.context[key] = value;
+    if (this.effectCapture) {
+      this.effectCapture.push({
+        op: 'context-set',
+        key,
+        value: cloneJsonSafe(value, LOG_VALUE_DEPTH) as UAALOperand,
+      });
+    }
+  }
+
   // ── Instruction Execution ─────────────────────────────────────────────────
 
   /**
@@ -628,8 +645,16 @@ export class UAALVirtualMachine {
               this.push(cloneJsonSafe(effect.value, LOG_VALUE_DEPTH) as UAALOperand);
             } else if (effect.op === 'pop') {
               this.pop();
-            } else {
+            } else if (effect.op === 'peek') {
               this.peek();
+            } else {
+              if (typeof effect.key !== 'string') {
+                throw new Error(`replay: context-set effect at step ${stepIndex} has no key`);
+              }
+              this.setContext(
+                effect.key,
+                cloneJsonSafe(effect.value, LOG_VALUE_DEPTH) as UAALOperand
+              );
             }
           }
         } finally {
@@ -695,6 +720,8 @@ export class UAALVirtualMachine {
         pop: () => this.pop(),
         peek: () => this.peek(),
         getState: () => this.getState(),
+        getContext: (key) => this.getContext(key),
+        setContext: (key, value) => this.setContext(key, value),
       };
       await handler(proxy, operands);
       return false;

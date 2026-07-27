@@ -31,10 +31,24 @@ const nativeManifestPath = join(repoRoot, 'packages', 'compiler-native', 'Cargo.
 const expectedDigest = 165;
 
 const selfTest = `
+struct StdBorrowPacket { code: i32 }
+
+function std_write_borrowed(packet: &mut StdBorrowPacket): i32 {
+  store(packet.code, 9)
+  return load(packet.code)
+}
+
+function std_read_borrowed(packet: &StdBorrowPacket): i32 {
+  return load(packet.code)
+}
+
 function main(): i32 {
   let owned_values: [i32] = buffer(3, 5)
   let moved_values: [i32] = move(owned_values)
   drop(moved_values)
+  slot borrow_packet: StdBorrowPacket = StdBorrowPacket(5)
+  let borrow_write: i32 = std_write_borrowed(&mut borrow_packet)
+  let borrow_read: i32 = std_read_borrowed(&borrow_packet)
   let below: i32 = std_math_clamp_i32(0 - 7, 0, 9)
   let inside: i32 = std_math_clamp_i32(4, 0, 9)
   let above: i32 = std_math_clamp_i32(12, 0, 9)
@@ -65,7 +79,7 @@ function main(): i32 {
   let f32_lerp: f32 = std_math_lerp_f32(16777216.0, 16777218.0, 0.5)
   let f32_inverse: f32 = std_math_inverse_lerp_f32(0.0, 10.0, 1.0)
   let f32_remap: f32 = std_math_remap_f32(0.1, 0.0, 1.0, 10.0, 18.0)
-  if (bounds_volume == 60 && f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
+  if (borrow_write == 9 && borrow_read == 9 && bounds_volume == 60 && f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
     return i32_digest + 46
   }
   return 1
@@ -227,6 +241,7 @@ function browserHtml(source) {
         } = await import('/uaal/index.js');
         const {
           registerHoloScriptStdUaalExecHandler,
+          registerHoloScriptStdUaalAggregateReferenceHandlers,
           registerHoloScriptStdUaalOwnedBufferHandlers,
         } = await import('/std/uaal-abi.js');
         await initWasm('/wasm/holoscript_wasm_bg.wasm');
@@ -255,6 +270,17 @@ function browserHtml(source) {
             (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_DROP
           ).length,
         };
+        const aggregateReferenceInstructionCounts = {
+          borrow: compiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_AGGREGATE_BORROW
+          ).length,
+          load: compiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_AGGREGATE_LOAD
+          ).length,
+          store: compiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_AGGREGATE_STORE
+          ).length,
+        };
         const vm = new UAALVirtualMachine({ recordLog: true });
         registerHoloScriptStdUaalExecHandler(vm, UAALOpCode.EXEC);
         registerHoloScriptStdUaalOwnedBufferHandlers(vm, {
@@ -264,6 +290,11 @@ function browserHtml(source) {
           store: UAALOpCode.OP_HS_BUFFER_STORE,
           drop: UAALOpCode.OP_HS_BUFFER_DROP,
           length: UAALOpCode.OP_HS_BUFFER_LENGTH,
+        });
+        registerHoloScriptStdUaalAggregateReferenceHandlers(vm, {
+          borrow: UAALOpCode.OP_HS_AGGREGATE_BORROW,
+          load: UAALOpCode.OP_HS_AGGREGATE_LOAD,
+          store: UAALOpCode.OP_HS_AGGREGATE_STORE,
         });
         const result = await vm.execute(compiled);
         const log = vm.exportLog();
@@ -277,9 +308,11 @@ function browserHtml(source) {
           flatAggregateInstructionCount,
           nestedAggregateInstructionCount,
           ownedBufferInstructionCounts,
+          aggregateReferenceInstructionCounts,
           bytecodeSha256,
           receiptHashMatches: bytecodeSha256 === log.bytecodeSha256,
           replayValid: replay.valid,
+          lastSteps: result.taskStatus === 'ERROR' ? log.steps.slice(-8) : undefined,
           wasm: typeof WebAssembly === 'object',
           userAgent: navigator.userAgent,
         });
@@ -394,6 +427,9 @@ async function executeBrowserWasm(source) {
       result.ownedBufferInstructionCounts?.allocate < 1 ||
       result.ownedBufferInstructionCounts?.move < 1 ||
       result.ownedBufferInstructionCounts?.drop < 1 ||
+      result.aggregateReferenceInstructionCounts?.borrow < 4 ||
+      result.aggregateReferenceInstructionCounts?.load < 2 ||
+      result.aggregateReferenceInstructionCounts?.store < 1 ||
       !/^[0-9a-f]{64}$/.test(result.bytecodeSha256)
     ) {
       throw new Error(`browser-WASM result mismatch: ${JSON.stringify(result)}`);
@@ -408,6 +444,7 @@ async function executeBrowserWasm(source) {
       flatAggregateInstructionCount: result.flatAggregateInstructionCount,
       nestedAggregateInstructionCount: result.nestedAggregateInstructionCount,
       ownedBufferInstructionCounts: result.ownedBufferInstructionCounts,
+      aggregateReferenceInstructionCounts: result.aggregateReferenceInstructionCounts,
       bytecodeSha256: result.bytecodeSha256,
       receiptHashMatches: result.receiptHashMatches,
       replayValid: result.replayValid,
@@ -597,7 +634,7 @@ if (!results.every((value) => value === expectedDigest)) {
 console.log(
   JSON.stringify(
     {
-      schema: 'holoscript.std.math-abi-conformance.v7',
+      schema: 'holoscript.std.math-abi-conformance.v8',
       status: 'pass',
       abis: [
         {
@@ -659,6 +696,8 @@ console.log(
         provesOwnedMetalNativeExecutable: true,
         provesLocalOwnedBufferAllocationMoveAndDrop: true,
         ownedBufferValueAbi: 'hs.buffer.owned.v1',
+        provesCallScopedSharedAndMutableAggregateReferences: true,
+        aggregateReferenceAbi: 'hs.aggregate.ref.v1',
         provesNonFiniteFloatingPointEdgeSemantics: false,
         provesAggregateVectorCallingConvention: true,
         provesAggregateValueAbi: 'hs.aggregate.value.v1',
@@ -672,7 +711,8 @@ console.log(
           'affine whole-value moves',
           'local owned buffers support allocation, whole-owner move, explicit drop, and automatic return cleanup',
           'no owned-buffer parameters, returns, aggregate fields, or borrowed element access',
-          'no mutable or borrowed aggregate transfer',
+          'call-scoped shared and mutable aggregate parameters support layout-checked scalar field load/store',
+          'no borrowed aggregate returns, stored reference locals, or escaping leases',
         ],
         provesQuaternionMath: false,
         provesCollections: false,

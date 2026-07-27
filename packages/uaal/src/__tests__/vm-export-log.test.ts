@@ -147,6 +147,27 @@ describe('round-trip: export → replay → valid', () => {
     expect(verdict.valid).toBe(true);
   });
 
+  it('records and replays explicit custom-handler context writes', async () => {
+    const bytecode = program(
+      instr(UAALOpCode.OP_EMIT_SIGNAL),
+      instr(UAALOpCode.OP_STATE_GET, 'updated'),
+      instr(UAALOpCode.HALT)
+    );
+    const vm = new UAALVirtualMachine({ recordLog: true });
+    vm.registerHandler(UAALOpCode.OP_EMIT_SIGNAL, (proxy) => {
+      proxy.setContext('updated', 9);
+    });
+    const result = await vm.execute(bytecode);
+    expect(result.stackTop).toBe(9);
+
+    const log = vm.exportLog();
+    expect(log.steps[0].effects).toEqual([
+      { op: 'context-set', key: 'updated', value: 9 },
+    ]);
+    const verdict = await replayUAALLog(bytecode, log);
+    expect(verdict.valid).toBe(true);
+  });
+
   it('replays an ERROR run (deterministic throw) as valid', async () => {
     const bytecode = program(
       instr(UAALOpCode.PUSH, false),
