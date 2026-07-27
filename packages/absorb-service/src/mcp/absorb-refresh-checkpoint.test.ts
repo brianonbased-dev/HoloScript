@@ -438,6 +438,7 @@ describe('AbsorbRefreshCheckpoint', () => {
       latestCompletedBatch: { index: firstBatch.index },
     });
     expect('completedBatches' in compact).toBe(false);
+    expect(compactAbsorbRefreshProgressReceipt(compact)).toEqual(compact);
 
     const resumed = prepareAbsorbRefreshCheckpoint({
       rootDir,
