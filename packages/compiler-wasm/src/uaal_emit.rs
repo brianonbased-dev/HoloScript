@@ -30,6 +30,12 @@ const OP_HALT: u16 = 0xff;
 /// result. Arithmetic results use wrapping i32 semantics. Comparisons push bool.
 const HS_I32_BINARY_ABI: &str = "hs.i32.binary.v1";
 
+/// Host-handler ABI used for scalar f64 arithmetic/comparison on UAAL's generic EXEC seam.
+///
+/// Stack order matches the i32 ABI. The host preserves JavaScript/JSON's IEEE-754 binary64
+/// values without integer coercion. The first conformance contract covers finite operands.
+const HS_F64_BINARY_ABI: &str = "hs.f64.binary.v1";
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct UaalBytecode {
     pub version: u8,
@@ -484,72 +490,98 @@ impl<'a> UaalEmitter<'a> {
             return self.emit_logical_expression(binary, expected_type);
         }
 
-        let result_type = if matches!(
+        let is_comparison = matches!(
             binary.operator.as_str(),
             "==" | "!=" | "<" | "<=" | ">" | ">="
-        ) {
-            "bool"
-        } else if matches!(binary.operator.as_str(), "+" | "-" | "*") {
-            "i32"
-        } else {
+        );
+        if !is_comparison && !matches!(binary.operator.as_str(), "+" | "-" | "*" | "/") {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-001",
-                "uaal.expression.i32.binary.v1",
+                "uaal.expression.numeric.binary.v2",
                 format!(
-                    "operator `{}` is unavailable; supported operators are `+`, `-`, `*`, `==`, `!=`, `<`, `<=`, `>`, and `>=`",
-                    binary.operator
-                ),
-            ));
-        };
-
-        if result_type == "i32" && expected_type.is_none() {
-            return Err(Self::target_capability_error(
-                "HS-UAAL-CAP-001",
-                "uaal.expression.i32.binary.v1",
-                format!(
-                    "operator `{}` has no proven result width; annotate the containing return, local, or parameter as `i32` because untyped numeric source may carry non-i32 semantics",
+                    "operator `{}` is unavailable; supported operators are `+`, `-`, `*`, f64 `/`, `==`, `!=`, `<`, `<=`, `>`, and `>=`",
                     binary.operator
                 ),
             ));
         }
 
-        if let Some(expected) = expected_type {
-            if expected != result_type {
+        if !is_comparison && expected_type.is_none() {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-001",
+                "uaal.expression.numeric.binary.v2",
+                format!(
+                    "operator `{}` has no proven result width; annotate the containing return, local, or parameter as `i32` or `f64`",
+                    binary.operator
+                ),
+            ));
+        }
+
+        if is_comparison {
+            if let Some(expected) = expected_type {
+                if !is_bool_annotation(expected) {
+                    return Err(Self::target_capability_error(
+                        "HS-UAAL-CAP-001",
+                        "uaal.expression.numeric.binary.v2",
+                        format!(
+                            "operator `{}` produces `bool`, but this expression requires `{expected}`",
+                            binary.operator
+                        ),
+                    ));
+                }
+            }
+        }
+
+        let operand_type = if is_comparison {
+            self.infer_numeric_operand_type(binary)?
+        } else {
+            let expected = expected_type.expect("arithmetic width is checked above");
+            if !matches!(expected, "i32" | "f64") {
                 return Err(Self::target_capability_error(
                     "HS-UAAL-CAP-001",
-                    "uaal.expression.i32.binary.v1",
+                    "uaal.expression.numeric.binary.v2",
                     format!(
-                        "operator `{}` produces `{result_type}`, but this expression requires `{expected}`",
+                        "operator `{}` requires an explicit `i32` or `f64` result, but this expression requires `{expected}`",
                         binary.operator
                     ),
                 ));
             }
+            expected
+        };
+
+        if binary.operator == "/" && operand_type != "f64" {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-001",
+                "uaal.expression.f64.binary.v1",
+                "operator `/` is available only for explicitly typed `f64` expressions",
+            ));
         }
 
         for (side, operand) in [
             ("left", binary.left.as_ref()),
             ("right", binary.right.as_ref()),
         ] {
-            if !self.is_proven_i32_expression(operand) {
+            if !self.is_proven_numeric_expression(operand, operand_type) {
                 return Err(Self::target_capability_error(
                     "HS-UAAL-CAP-001",
-                    "uaal.expression.i32.binary.v1",
+                    "uaal.expression.numeric.binary.v2",
                     format!(
-                        "{side} operand of `{}` is not proven `i32`; annotate parameters, locals, and callee returns because the cognitive VM's numeric host ABI cannot preserve untyped or i64 semantics",
-                        binary.operator
+                        "{side} operand of `{}` is not proven `{operand_type}`; annotate parameters, locals, and callee returns because compile_to_uaal does not erase numeric widths",
+                        binary.operator,
                     ),
                 ));
             }
         }
 
-        self.emit_expression_with_expected(&binary.left, Some("i32"))?;
-        self.emit_expression_with_expected(&binary.right, Some("i32"))?;
+        self.emit_expression_with_expected(&binary.left, Some(operand_type))?;
+        self.emit_expression_with_expected(&binary.right, Some(operand_type))?;
+        let abi = if operand_type == "f64" {
+            HS_F64_BINARY_ABI
+        } else {
+            HS_I32_BINARY_ABI
+        };
         self.emit_op(
             OP_EXEC,
-            vec![
-                Value::from(HS_I32_BINARY_ABI),
-                Value::from(binary.operator.clone()),
-            ],
+            vec![Value::from(abi), Value::from(binary.operator.clone())],
         );
         Ok(())
     }
@@ -616,9 +648,66 @@ impl<'a> UaalEmitter<'a> {
         Ok(())
     }
 
-    fn is_proven_i32_expression(&self, node: &AstNode) -> bool {
+    fn infer_numeric_operand_type(
+        &self,
+        binary: &BinaryExpression,
+    ) -> Result<&'static str, UaalEmitError> {
+        let left = self.known_numeric_expression_type(&binary.left);
+        let right = self.known_numeric_expression_type(&binary.right);
+        match (left, right) {
+            (Some(left), Some(right)) if left != right => Err(Self::target_capability_error(
+                "HS-UAAL-CAP-001",
+                "uaal.expression.numeric.binary.v2",
+                format!(
+                    "operator `{}` has incompatible `{left}` and `{right}` operands; implicit numeric coercions are forbidden",
+                    binary.operator
+                ),
+            )),
+            (Some(known), _) | (_, Some(known)) => Ok(known),
+            (None, None) => Ok("i32"),
+        }
+    }
+
+    fn known_numeric_expression_type(&self, node: &AstNode) -> Option<&'static str> {
+        let annotation_type = |annotation: &str| match annotation {
+            "i32" => Some("i32"),
+            "f64" => Some("f64"),
+            _ => None,
+        };
         match node {
-            AstNode::Number(value) => {
+            AstNode::Identifier(identifier) => self
+                .current_binding_types
+                .get(&identifier.name)
+                .and_then(|annotation| annotation.as_deref())
+                .and_then(annotation_type),
+            AstNode::CallExpression(call) => {
+                let AstNode::Identifier(callee) = call.callee.as_ref() else {
+                    return None;
+                };
+                self.function_return_types
+                    .get(&callee.name)
+                    .and_then(|annotation| annotation.as_deref())
+                    .and_then(annotation_type)
+            }
+            AstNode::BinaryExpression(binary)
+                if matches!(binary.operator.as_str(), "+" | "-" | "*" | "/") =>
+            {
+                let left = self.known_numeric_expression_type(&binary.left);
+                let right = self.known_numeric_expression_type(&binary.right);
+                match (left, right) {
+                    (Some(left), Some(right)) if left == right => Some(left),
+                    (Some(known), None) | (None, Some(known)) => Some(known),
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn is_proven_numeric_expression(&self, node: &AstNode, expected: &str) -> bool {
+        match node {
+            AstNode::Number(value) if expected == "f64" => value.value.is_finite(),
+            AstNode::Number(value) if expected == "i32" => {
                 value.value.is_finite()
                     && value.value.fract() == 0.0
                     && value.value >= i32::MIN as f64
@@ -628,7 +717,7 @@ impl<'a> UaalEmitter<'a> {
                 self.current_binding_types
                     .get(&identifier.name)
                     .and_then(|annotation| annotation.as_deref())
-                    == Some("i32")
+                    == Some(expected)
             }
             AstNode::CallExpression(call) => {
                 let AstNode::Identifier(callee) = call.callee.as_ref() else {
@@ -637,12 +726,17 @@ impl<'a> UaalEmitter<'a> {
                 self.function_return_types
                     .get(&callee.name)
                     .and_then(|annotation| annotation.as_deref())
-                    == Some("i32")
+                    == Some(expected)
             }
             AstNode::BinaryExpression(binary) => {
-                matches!(binary.operator.as_str(), "+" | "-" | "*")
-                    && self.is_proven_i32_expression(&binary.left)
-                    && self.is_proven_i32_expression(&binary.right)
+                let operator_supported = if expected == "f64" {
+                    matches!(binary.operator.as_str(), "+" | "-" | "*" | "/")
+                } else {
+                    matches!(binary.operator.as_str(), "+" | "-" | "*")
+                };
+                operator_supported
+                    && self.is_proven_numeric_expression(&binary.left, expected)
+                    && self.is_proven_numeric_expression(&binary.right, expected)
             }
             _ => false,
         }
@@ -955,6 +1049,45 @@ function main(): i32 {
             back_edge.is_some(),
             "bounded while lowering must contain a real backward jump: {:?}",
             bytecode.instructions
+        );
+    }
+
+    #[test]
+    fn lowers_f64_arithmetic_and_comparisons_to_the_typed_exec_abi() {
+        let bytecode = compile(
+            r#"function blend(start: f64, end: f64, amount: f64): f64 {
+  return start + (end - start) * amount
+}
+
+function half(value: f64): f64 {
+  return value / 2.0
+}
+
+function main(): i32 {
+  let blended: f64 = blend(2.0, 8.0, 0.5)
+  if (blended == 5.0 && half(10.0) >= 5.0) {
+    return 5
+  }
+  return 1
+}"#,
+        );
+
+        let f64_binary_instructions = bytecode
+            .instructions
+            .iter()
+            .filter(|instruction| {
+                instruction.op_code == OP_EXEC
+                    && instruction.operands.first()
+                        == Some(&Value::from("hs.f64.binary.v1"))
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(f64_binary_instructions.len(), 6);
+        assert_eq!(
+            f64_binary_instructions
+                .iter()
+                .map(|instruction| instruction.operands[1].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            vec!["-", "*", "+", "/", "==", ">="]
         );
     }
 

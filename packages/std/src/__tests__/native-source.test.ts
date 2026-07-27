@@ -8,18 +8,22 @@ const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const packageJson = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
 
 describe('@holoscript/std native source tracer', () => {
-  it('ships compiler-visible sources and executable i32 ABIs under an explicit boundary', () => {
+  it('ships compiler-visible sources and executable numeric ABIs under an explicit boundary', () => {
     expect(packageJson.files).toEqual(
       expect.arrayContaining([
         'src/math.hsplus',
         'src/collections.hsplus',
         'src/abi/scalar-v1.hs',
+        'src/abi/scalar-f64-v1.hs',
         'src/abi/vector-v1.hs',
       ])
     );
     expect(packageJson.exports['./native/math.hsplus']).toBe('./src/math.hsplus');
     expect(packageJson.exports['./native/collections.hsplus']).toBe('./src/collections.hsplus');
     expect(packageJson.exports['./native/abi/scalar-v1.hs']).toBe('./src/abi/scalar-v1.hs');
+    expect(packageJson.exports['./native/abi/scalar-f64-v1.hs']).toBe(
+      './src/abi/scalar-f64-v1.hs'
+    );
     expect(packageJson.exports['./native/abi/vector-v1.hs']).toBe('./src/abi/vector-v1.hs');
     expect(packageJson.holoscript).toMatchObject({
       artifact: 'library',
@@ -29,6 +33,7 @@ describe('@holoscript/std native source tracer', () => {
         './math': './src/math.hsplus',
         './collections': './src/collections.hsplus',
         './abi/scalar-v1': './src/abi/scalar-v1.hs',
+        './abi/scalar-f64-v1': './src/abi/scalar-f64-v1.hs',
         './abi/vector-v1': './src/abi/vector-v1.hs',
       },
       abi: {
@@ -50,10 +55,21 @@ describe('@holoscript/std native source tracer', () => {
           ],
           provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
         }),
+        expect.objectContaining({
+          id: 'hs.std.scalar.f64.v1',
+          functions: [
+            'std_math_clamp_f64',
+            'std_math_lerp_f64',
+            'std_math_inverse_lerp_f64',
+            'std_math_remap_f64',
+          ],
+          provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
+        }),
       ])
     );
+    expect(packageJson.holoscript.runtimeBoundary).toContain('finite scalar f64');
     expect(packageJson.holoscript.runtimeBoundary).toContain(
-      'Executable i32 math ABI parity is proven'
+      'Non-finite floating-point edge semantics'
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain('collections parity remain preview');
   });
@@ -85,6 +101,16 @@ describe('@holoscript/std native source tracer', () => {
     expect(source).toContain('export function std_math_vec3_cross_z_i32');
     expect(source).toContain('export function std_math_vec3_length_sq_i32');
     expect(source).not.toMatch(/\bf32\b|\bf64\b/);
+    expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
+  });
+
+  it('keeps the f64 ABI finite, target-neutral, and explicit about excluded edges', () => {
+    const source = readFileSync(join(packageRoot, 'src', 'abi', 'scalar-f64-v1.hs'), 'utf8');
+    expect(source).toContain('export function std_math_clamp_f64');
+    expect(source).toContain('export function std_math_lerp_f64');
+    expect(source).toContain('export function std_math_inverse_lerp_f64');
+    expect(source).toContain('export function std_math_remap_f64');
+    expect(source).toContain('NaN, infinity, signed-zero');
     expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
   });
 });

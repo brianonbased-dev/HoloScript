@@ -53,6 +53,24 @@ const I64_EXIT_FIVE: &str = r#"
         return result
     }
 "#;
+const F64_EXIT_FIVE: &str = r#"
+    function blend(start: f64, end: f64, amount: f64): f64 {
+        return start + (end - start) * amount
+    }
+
+    function half(value: f64): f64 {
+        return value / 2.0
+    }
+
+    function main(): i32 {
+        let blended: f64 = blend(2.0, 8.0, 0.5)
+        let halved: f64 = half(10.0)
+        if (blended == 5.0 && halved >= 5.0 && halved < 5.5) {
+            return 5
+        }
+        return 1
+    }
+"#;
 const STACK_SLOT_EXIT_FIVE: &str = include_str!("../../../examples/native/stack-slot-exit-five.hs");
 const I64_STACK_SLOT_EXIT_FIVE: &str = r#"
     function main(): i64 {
@@ -357,6 +375,22 @@ fn compiles_i64_signatures_through_the_process_adapter() {
     assert_eq!(status.code(), Some(5));
 
     fs::remove_file(&artifact.executable).expect("remove i64 smoke-test executable");
+}
+
+#[test]
+fn compiles_f64_signatures_arithmetic_and_comparisons() {
+    let executable = scratch_executable("native-f64");
+
+    let artifact = compile_executable(F64_EXIT_FIVE, &executable, &NativeCompileOptions::host())
+        .expect("f64 signatures should compile to a native executable");
+
+    assert_eq!(artifact.machine_contract, "hs-machine-v35");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("f64 native HoloScript executable should run");
+    assert_eq!(status.code(), Some(5));
+
+    fs::remove_file(&artifact.executable).expect("remove f64 smoke-test executable");
 }
 
 #[test]
@@ -2854,7 +2888,7 @@ fn control_flow_contract_enforces_types_and_edge_scopes() {
     .expect_err("ordering comparisons must remain integer-only");
     assert!(bool_ordering
         .to_string()
-        .contains("ordering comparison `<` requires integer operands"));
+        .contains("ordering comparison `<` requires numeric operands"));
 
     let bool_main = compile_object("function main(): bool { return true }", &options)
         .expect_err("the process entry point must return an integer exit status");

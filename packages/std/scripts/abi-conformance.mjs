@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(packageRoot, '..', '..');
 const scalarAbiPath = join(packageRoot, 'src', 'abi', 'scalar-v1.hs');
+const scalarF64AbiPath = join(packageRoot, 'src', 'abi', 'scalar-f64-v1.hs');
 const vectorAbiPath = join(packageRoot, 'src', 'abi', 'vector-v1.hs');
 const stdMathPath = join(packageRoot, 'dist', 'math.js');
 const wasmRoot = join(repoRoot, 'packages', 'compiler-wasm', 'pkg');
@@ -17,7 +18,7 @@ const wasmBinaryPath = join(wasmRoot, 'holoscript_wasm_bg.wasm');
 const wasmReceiptPath = join(wasmRoot, 'rebuild-receipt.json');
 const uaalBundlePath = join(repoRoot, 'packages', 'uaal', 'dist', 'index.js');
 const nativeManifestPath = join(repoRoot, 'packages', 'compiler-native', 'Cargo.toml');
-const expectedDigest = 119;
+const expectedDigest = 136;
 
 const selfTest = `
 function main(): i32 {
@@ -35,7 +36,17 @@ function main(): i32 {
   let cross_y: i32 = std_math_vec3_cross_y_i32(1, 2, 3, 4, 5, 6)
   let cross_z: i32 = std_math_vec3_cross_z_i32(1, 2, 3, 4, 5, 6)
   let length_sq: i32 = std_math_vec3_length_sq_i32(1, 2, 3)
-  return scalar_digest + dot + (cross_x + 4) * 2 + (cross_y + 1) * 3 + (cross_z + 5) * 4 + length_sq
+  let i32_digest: i32 = scalar_digest + dot + (cross_x + 4) * 2 + (cross_y + 1) * 3 + (cross_z + 5) * 4 + length_sq
+  let f64_below: f64 = std_math_clamp_f64(0.0 - 1.5, 0.0, 2.0)
+  let f64_inside: f64 = std_math_clamp_f64(1.25, 0.0, 2.0)
+  let f64_above: f64 = std_math_clamp_f64(3.0, 0.0, 2.0)
+  let f64_lerp: f64 = std_math_lerp_f64(2.0, 10.0, 0.25)
+  let f64_inverse: f64 = std_math_inverse_lerp_f64(2.0, 10.0, 4.0)
+  let f64_remap: f64 = std_math_remap_f64(0.25, 0.0, 1.0, 10.0, 18.0)
+  if (f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0) {
+    return i32_digest + 17
+  }
+  return 1
 }
 `;
 
@@ -184,28 +195,40 @@ function browserHtml(source) {
       const source = ${JSON.stringify(source)};
       const output = document.querySelector('#result');
 
-      function registerHsI32BinaryHandler(vm, execOpcode) {
+      function registerHsNumericBinaryHandler(vm, execOpcode) {
         vm.registerHandler(execOpcode, (proxy, operands) => {
           const [abi, operator] = operands;
-          if (abi !== 'hs.i32.binary.v1' || typeof operator !== 'string') {
+          if (
+            (abi !== 'hs.i32.binary.v1' && abi !== 'hs.f64.binary.v1') ||
+            typeof operator !== 'string'
+          ) {
             throw new Error('unsupported HoloScript EXEC ABI: ' + String(abi));
           }
           const right = proxy.pop();
           const left = proxy.pop();
           if (typeof left !== 'number' || typeof right !== 'number') {
-            throw new Error('hs.i32.binary.v1 requires numeric operands');
+            throw new Error(String(abi) + ' requires numeric operands');
+          }
+          const isI32 = abi === 'hs.i32.binary.v1';
+          if (!isI32 && (!Number.isFinite(left) || !Number.isFinite(right))) {
+            throw new Error('hs.f64.binary.v1 conformance requires finite operands');
           }
           switch (operator) {
-            case '+': proxy.push((left + right) | 0); break;
-            case '-': proxy.push((left - right) | 0); break;
-            case '*': proxy.push(Math.imul(left, right)); break;
+            case '+': proxy.push(isI32 ? (left + right) | 0 : left + right); break;
+            case '-': proxy.push(isI32 ? (left - right) | 0 : left - right); break;
+            case '*': proxy.push(isI32 ? Math.imul(left, right) : left * right); break;
+            case '/':
+              if (isI32) throw new Error('hs.i32.binary.v1 does not support division');
+              if (right === 0) throw new Error('hs.f64.binary.v1 conformance rejects division by zero');
+              proxy.push(left / right);
+              break;
             case '==': proxy.push(left === right); break;
             case '!=': proxy.push(left !== right); break;
             case '<': proxy.push(left < right); break;
             case '<=': proxy.push(left <= right); break;
             case '>': proxy.push(left > right); break;
             case '>=': proxy.push(left >= right); break;
-            default: throw new Error('unsupported hs.i32.binary.v1 operator: ' + operator);
+            default: throw new Error('unsupported ' + String(abi) + ' operator: ' + operator);
           }
         });
       }
@@ -222,7 +245,7 @@ function browserHtml(source) {
         const compiled = JSON.parse(compile_to_uaal(source));
         if (compiled.error) throw new Error(compiled.error);
         const vm = new UAALVirtualMachine({ recordLog: true });
-        registerHsI32BinaryHandler(vm, UAALOpCode.EXEC);
+        registerHsNumericBinaryHandler(vm, UAALOpCode.EXEC);
         const result = await vm.execute(compiled);
         const log = vm.exportLog();
         const bytecodeSha256 = computeUAALBytecodeSha256(compiled);
@@ -355,7 +378,9 @@ async function executeBrowserWasm(source) {
 }
 
 async function executeNode() {
-  const { clamp, sign, step, vec3Math } = await import(pathToFileURL(stdMathPath).href);
+  const { clamp, inverseLerp, lerp, remap, sign, step, vec3Math } = await import(
+    pathToFileURL(stdMathPath).href
+  );
   const below = clamp(-7, 0, 9);
   const inside = clamp(4, 0, 9);
   const above = clamp(12, 0, 9);
@@ -378,19 +403,36 @@ async function executeNode() {
   const dot = vec3Math.dot(vectorA, vectorB);
   const cross = vec3Math.cross(vectorA, vectorB);
   const lengthSq = vec3Math.lengthSq(vectorA);
-  const result =
+  const i32Digest =
     scalarDigest +
     dot +
     (cross.x + 4) * 2 +
     (cross.y + 1) * 3 +
     (cross.z + 5) * 4 +
     lengthSq;
+  const floatingPointResults = {
+    below: clamp(-1.5, 0, 2),
+    inside: clamp(1.25, 0, 2),
+    above: clamp(3, 0, 2),
+    lerp: lerp(2, 10, 0.25),
+    inverseLerp: inverseLerp(2, 10, 4),
+    remap: remap(0.25, 0, 1, 10, 18),
+  };
+  const floatingPointMatches =
+    floatingPointResults.below === 0 &&
+    floatingPointResults.inside === 1.25 &&
+    floatingPointResults.above === 2 &&
+    floatingPointResults.lerp === 4 &&
+    floatingPointResults.inverseLerp === 0.25 &&
+    floatingPointResults.remap === 12;
+  const result = floatingPointMatches ? i32Digest + 17 : 1;
   if (result !== expectedDigest) {
     throw new Error(`Node std result mismatch: expected ${expectedDigest}, received ${result}`);
   }
   return {
     runtime: process.version,
     implementation: '@holoscript/std/dist/math.js',
+    floatingPointResults,
     result,
   };
 }
@@ -455,6 +497,7 @@ function executeOwnedMetal(source) {
 }
 
 requireFile(scalarAbiPath, 'scalar ABI source');
+requireFile(scalarF64AbiPath, 'scalar f64 ABI source');
 requireFile(vectorAbiPath, 'vector ABI source');
 requireFile(stdMathPath, 'built Node std math implementation');
 requireFile(wasmJsPath, 'browser WASM JavaScript bridge');
@@ -464,8 +507,9 @@ requireFile(uaalBundlePath, 'built UAAL browser execution bundle');
 requireFile(nativeManifestPath, 'owned-metal compiler manifest');
 
 const scalarAbiSource = readFileSync(scalarAbiPath, 'utf8');
+const scalarF64AbiSource = readFileSync(scalarF64AbiPath, 'utf8');
 const vectorAbiSource = readFileSync(vectorAbiPath, 'utf8');
-const executableSource = `${scalarAbiSource.trim()}\n${vectorAbiSource.trim()}\n${selfTest.trim()}\n`;
+const executableSource = `${scalarAbiSource.trim()}\n${scalarF64AbiSource.trim()}\n${vectorAbiSource.trim()}\n${selfTest.trim()}\n`;
 const wasmReceipt = JSON.parse(readFileSync(wasmReceiptPath, 'utf8'));
 const node = await executeNode();
 const browserWasm = await executeBrowserWasm(executableSource);
@@ -478,7 +522,7 @@ if (!results.every((value) => value === expectedDigest)) {
 console.log(
   JSON.stringify(
     {
-      schema: 'holoscript.std.math-i32-abi-conformance.v2',
+      schema: 'holoscript.std.math-abi-conformance.v3',
       status: 'pass',
       abis: [
         {
@@ -490,6 +534,11 @@ console.log(
           id: 'hs.std.vector.i32.v1',
           source: 'packages/std/src/abi/vector-v1.hs',
           sourceSha256: sha256(vectorAbiSource),
+        },
+        {
+          id: 'hs.std.scalar.f64.v1',
+          source: 'packages/std/src/abi/scalar-f64-v1.hs',
+          sourceSha256: sha256(scalarF64AbiSource),
         },
       ],
       expectedDigest,
@@ -506,11 +555,12 @@ console.log(
       boundaries: {
         provesScalarI32Math: ['clamp', 'sign', 'step'],
         provesVectorI32Math: ['vec3.dot', 'vec3.cross', 'vec3.lengthSquared'],
+        provesFiniteScalarF64Math: ['clamp', 'lerp', 'inverseLerp', 'remap'],
         provesBrowserWasmCompilerAndUaalExecution: true,
         provesBrowserNativeReceiptHashing: true,
         provesBrowserReceiptReplay: true,
         provesOwnedMetalNativeExecutable: true,
-        provesFloatingPointMath: false,
+        provesNonFiniteFloatingPointEdgeSemantics: false,
         provesAggregateVectorCallingConvention: false,
         provesQuaternionMath: false,
         provesCollections: false,

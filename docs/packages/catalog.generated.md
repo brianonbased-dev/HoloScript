@@ -37,7 +37,7 @@ Receipt lane semantics:
 
 | Package | Version | Support tier | Entrypoint | Targets | Runtime boundary |
 | --- | --- | --- | --- | --- | --- |
-| `@holoscript/std` | `7.0.4` | experimental | `./src/math.hsplus` | node, browser-wasm, owned-metal | Executable i32 math ABI parity is proven for scalar clamp/sign/step and Vec3 dot/cross/length-squared across Node, browser-WASM to UAAL, and owned-metal. Floating-point, aggregate vector calling conventions, quaternion, noise, and collections parity remain preview. |
+| `@holoscript/std` | `7.0.5` | experimental | `./src/math.hsplus` | node, browser-wasm, owned-metal | Executable ABI parity is proven for scalar i32 clamp/sign/step, component-projected i32 Vec3 dot/cross/length-squared, and finite scalar f64 clamp/lerp/inverse-lerp/remap across Node, browser-WASM to UAAL, and owned-metal. Non-finite floating-point edge semantics, aggregate vector calling conventions, quaternion, noise, and collections parity remain preview. |
 
 A compiler-native artifact declaration proves package metadata and shipped source paths. It does not by itself prove execution parity, registry deployment, authorship, or reproducible builds.
 
