@@ -3,10 +3,10 @@
  * Paper 5 structured visual-graph agent study.
  *
  * This is a controlled navigation experiment, not an end-to-end retrieval
- * benchmark. Every relevant file is present in the ten-candidate set. The
- * blinded agent receives either text candidate cards or the same cards plus a
- * structured projection from CodebaseSceneCompiler's canonical graph.holo
- * scene. Gold labels never enter the request payload.
+ * benchmark. Every relevant file is present in the protocol-defined candidate
+ * set. The blinded agent receives protocol-defined text or graph projections.
+ * Gold labels never enter the request payload. The v3 known-outcome dataset is
+ * an engineering corpus and cannot support a superiority claim.
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -17,15 +17,20 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_PAPER_5_DATASET, requirePaper5Dataset } from './verify-paper-5-dataset.mjs';
 import {
+  buildAgentBatchJsonSchema,
   buildAgentBatchPrompt,
+  buildRelationalObservation,
   candidateId,
+  counterbalancedArmOrders,
   counterbalancedOrders,
   normalizePath,
   parseAgentBatchResponse,
   parseAgentResponse,
+  protocolArmIds,
   scoreRanking,
   sha256,
   stableOrder,
+  summarizeMultiArmObservations,
   summarizeObservations,
   validateStudyManifest,
 } from './lib/paper-5-visual-agent-study.mjs';
@@ -33,7 +38,7 @@ import {
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(scriptDir, '..');
 const repoRoot = resolve(packageRoot, '../..');
-const DEFAULT_PROTOCOL = resolve(packageRoot, 'benchmarks/paper-5-visual-agent-study-v2.json');
+const DEFAULT_PROTOCOL = resolve(packageRoot, 'benchmarks/paper-5-visual-agent-study-v3.json');
 const DEFAULT_PACKETS_OUT = '.bench-logs/paper-5-visual-agent-packets.json';
 const DEFAULT_RESULTS_OUT = '.bench-logs/paper-5-visual-agent-results.json';
 
@@ -117,10 +122,12 @@ async function main() {
     ![
       'holoscript.paper5.visual-agent-study-protocol.v1',
       'holoscript.paper5.visual-agent-study-protocol.v2',
+      'holoscript.paper5.visual-agent-study-protocol.v3',
     ].includes(protocol.schemaVersion)
   ) {
     throw new Error('visual-agent protocol schema mismatch');
   }
+  const armIds = protocolArmIds(protocol);
   if (options.candidateCount !== protocol.design.candidateCount) {
     throw new Error(
       `candidate count drift: CLI=${options.candidateCount} protocol=${protocol.design.candidateCount}`
@@ -165,7 +172,10 @@ async function main() {
     }
   }
   const packetCore = {
-    schemaVersion: 'holoscript.paper5.visual-agent-packets.v1',
+    schemaVersion:
+      protocol.schemaVersion === 'holoscript.paper5.visual-agent-study-protocol.v3'
+        ? 'holoscript.paper5.visual-agent-packets.v2'
+        : 'holoscript.paper5.visual-agent-packets.v1',
     protocolId: protocol.protocolId,
     protocolSha256: sha256(protocolRaw),
     datasetId: dataset.datasetId,
@@ -207,12 +217,12 @@ async function main() {
 
   const setupMs = performance.now() - setupStarted;
   const observations = [];
-  const expected = cases.length * 2 * options.trials;
+  const expected = cases.length * armIds.length * options.trials;
   const requestBatchSize = Number(protocol.agentProtocol.requestBatchSize ?? 1);
   let completedRequests = 0;
   let expectedRequests = 0;
   for (let trial = 0; trial < options.trials; trial += 1) {
-    const jobs = buildRequestJobs(cases, requestBatchSize, trial);
+    const jobs = buildRequestJobs(cases, armIds, requestBatchSize, trial);
     expectedRequests += jobs.length;
     for (const job of jobs) {
       const prompt = buildAgentBatchPrompt(job.cases, job.arm, protocol);
@@ -234,6 +244,17 @@ async function main() {
             timeoutMs: options.requestTimeoutMs,
             maxTokens: protocol.agentProtocol.maxTokens,
             seed: protocol.metrics.bootstrapSeed + trial,
+            responseFormat:
+              protocol.agentProtocol.responseFormat === 'json_schema'
+                ? {
+                    type: 'json_schema',
+                    json_schema: {
+                      name: `holoabsorb_ranking_${job.arm}`,
+                      strict: true,
+                      schema: buildAgentBatchJsonSchema(job.cases, job.arm),
+                    },
+                  }
+                : undefined,
           });
           parsedByCase = parseAgentBatchResponse(response.content, job.cases, job.arm);
           requestMetadata = response.metadata;
@@ -286,17 +307,22 @@ async function main() {
     }
   }
 
-  const summary = summarizeObservations(observations, protocol);
+  const isV3 = protocol.schemaVersion === 'holoscript.paper5.visual-agent-study-protocol.v3';
+  const summary = isV3
+    ? summarizeMultiArmObservations(observations, protocol)
+    : summarizeObservations(observations, protocol);
   const invalidCount = observations.filter((item) => !item.valid).length;
   const executionPass =
     observations.length === expected &&
     summary.pairedQueries === cases.length &&
     invalidCount === 0;
   const resultCore = {
-    schemaVersion: 'holoscript.paper5.visual-agent-study-result.v1',
+    schemaVersion: isV3
+      ? 'holoscript.paper5.visual-agent-study-result.v2'
+      : 'holoscript.paper5.visual-agent-study-result.v1',
     kind: 'Paper5VisualAgentStudyResult',
     status: executionPass ? 'pass' : 'fail',
-    hypothesis: summary.preregisteredHypothesis,
+    hypothesis: isV3 ? 'not-applicable-known-development-corpus' : summary.preregisteredHypothesis,
     protocol: {
       id: protocol.protocolId,
       sha256: sha256(protocolRaw),
@@ -322,6 +348,7 @@ async function main() {
       temperature: protocol.agentProtocol.temperature,
       maxTokens: protocol.agentProtocol.maxTokens,
       requestBatchSize,
+      responseFormat: protocol.agentProtocol.responseFormat ?? 'prompt-only',
       trialsPerArm: options.trials,
       statelessRequests: true,
     },
@@ -356,8 +383,11 @@ async function main() {
   writeJson(options.out, result);
   console.log(
     `[visual-agent] ${result.status.toUpperCase()} hypothesis=${result.hypothesis} ` +
-      `textP@5=${summary.arms.text.precisionAt5} visualP@5=${summary.arms.visual.precisionAt5} ` +
-      `textMRR=${summary.arms.text.mrr} visualMRR=${summary.arms.visual.mrr}`
+      armIds
+        .map(
+          (arm) => `${arm}P@5=${summary.arms[arm].precisionAt5} ${arm}MRR=${summary.arms[arm].mrr}`
+        )
+        .join(' ')
   );
   if (!executionPass) process.exitCode = 1;
 }
@@ -474,6 +504,61 @@ function buildStudyCase({
   const cards = candidateFiles.map((file) =>
     buildCandidateCard(file, fileByRelative.get(file), graph, sceneIndex, protocol)
   );
+  if (protocol.schemaVersion === 'holoscript.paper5.visual-agent-study-protocol.v3') {
+    const armIds = protocolArmIds(protocol);
+    const orders = counterbalancedArmOrders(cards, query.id, armIds);
+    const topologyObservation = buildVisualObservation(
+      orders.topology,
+      graph,
+      sceneIndex,
+      fileByRelative,
+      rootDir,
+      protocol
+    );
+    const relationSource = buildVisualObservation(
+      orders.relations,
+      graph,
+      sceneIndex,
+      fileByRelative,
+      rootDir,
+      protocol
+    );
+    return {
+      id: query.id,
+      category: query.category,
+      query: query.query,
+      candidateSetSha256: sha256(JSON.stringify(cards.map((card) => card.candidateId).sort())),
+      counterbalance: {
+        arms: armIds,
+        orderSha256: Object.fromEntries(
+          armIds.map((arm) => [
+            arm,
+            sha256(JSON.stringify(orders[arm].map((candidate) => candidate.candidateId))),
+          ])
+        ),
+      },
+      scoringKey: {
+        goldCandidateIds: goldFiles.map(candidateId).sort(),
+      },
+      arms: {
+        text: {
+          candidates: orders.text,
+        },
+        topology: {
+          candidates: orders.topology,
+          visualGraphObservation: topologyObservation,
+        },
+        relations: {
+          candidates: orders.relations,
+          relationalGraphObservation: buildRelationalObservation(
+            orders.relations,
+            relationSource,
+            query
+          ),
+        },
+      },
+    };
+  }
   const orders = counterbalancedOrders(cards, query.id);
   const graphObservation = buildVisualObservation(
     orders.visual,
@@ -513,7 +598,7 @@ function buildCandidateCard(file, graphFile, graph, sceneIndex, protocol) {
     symbolCount: symbols.length,
     representativeType: representative?.properties?.symbolType ?? null,
   };
-  if (protocol?.design?.promptEncoding === 'compact-v2') {
+  if (['compact-v2', 'compact-v3'].includes(protocol?.design?.promptEncoding)) {
     return {
       ...base,
       symbolNames: symbols.slice(0, 4).map((symbol) => sanitizeEvidence(symbol.name, 80)),
@@ -530,7 +615,7 @@ function buildCandidateCard(file, graphFile, graph, sceneIndex, protocol) {
 }
 
 function buildVisualObservation(candidates, graph, sceneIndex, fileByRelative, rootDir, protocol) {
-  const compact = protocol?.design?.promptEncoding === 'compact-v2';
+  const compact = ['compact-v2', 'compact-v3'].includes(protocol?.design?.promptEncoding);
   const candidateIdByFile = new Map(
     candidates.map((candidate) => [candidate.file, candidate.candidateId])
   );
@@ -601,16 +686,16 @@ function buildVisualObservation(candidates, graph, sceneIndex, fileByRelative, r
   };
 }
 
-function buildRequestJobs(cases, batchSize, trial) {
+function buildRequestJobs(cases, armIds, batchSize, trial) {
   const jobs = [];
   for (let offset = 0; offset < cases.length; offset += batchSize) {
     const batch = cases.slice(offset, offset + batchSize);
-    const firstArm =
-      Number.parseInt(sha256(`${trial}:${offset}:batch-arm-order`).slice(0, 2), 16) % 2 === 0
-        ? 'text'
-        : 'visual';
-    const secondArm = firstArm === 'text' ? 'visual' : 'text';
-    jobs.push({ arm: firstArm, cases: batch }, { arm: secondArm, cases: batch });
+    const orderedArms = [...armIds].sort((a, b) =>
+      sha256(`${trial}:${offset}:batch-arm-order:${a}`).localeCompare(
+        sha256(`${trial}:${offset}:batch-arm-order:${b}`)
+      )
+    );
+    jobs.push(...orderedArms.map((arm) => ({ arm, cases: batch })));
   }
   return jobs;
 }
@@ -632,7 +717,15 @@ function indexScene(scene, rootDir) {
   };
 }
 
-async function callOpenAICompatible({ endpoint, model, prompt, timeoutMs, maxTokens, seed }) {
+async function callOpenAICompatible({
+  endpoint,
+  model,
+  prompt,
+  timeoutMs,
+  maxTokens,
+  seed,
+  responseFormat,
+}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -653,6 +746,7 @@ async function callOpenAICompatible({ endpoint, model, prompt, timeoutMs, maxTok
         max_tokens: maxTokens,
         seed,
         stream: false,
+        ...(responseFormat ? { response_format: responseFormat } : {}),
       }),
       signal: controller.signal,
     });

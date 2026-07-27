@@ -1,18 +1,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  buildAgentBatchJsonSchema,
   buildAgentBatchPrompt,
   buildAgentPrompt,
+  buildRelationalObservation,
   candidateId,
+  counterbalancedArmOrders,
   counterbalancedOrders,
   parseAgentBatchResponse,
   parseAgentResponse,
+  protocolArmIds,
   scoreRanking,
+  summarizeMultiArmObservations,
   summarizeObservations,
   validateStudyManifest,
 } from './paper-5-visual-agent-study.mjs';
 
 const protocol = {
+  schemaVersion: 'holoscript.paper5.visual-agent-study-protocol.v1',
   protocolId: 'visual-test',
   design: { candidateCount: 2 },
   admission: { minimumQueries: 1, requireAllCategories: false },
@@ -22,6 +28,27 @@ const protocol = {
     visualMrrDeltaLower95CIGreaterThan: 0,
     visualInvalidResponseRateIncreaseAtMost: 0.02,
   },
+};
+
+const v3Protocol = {
+  schemaVersion: 'holoscript.paper5.visual-agent-study-protocol.v3',
+  protocolId: 'visual-test-v3',
+  design: {
+    candidateCount: 2,
+    promptEncoding: 'compact-v3',
+    arms: [{ id: 'text' }, { id: 'topology' }, { id: 'relations' }],
+  },
+  admission: { minimumQueries: 1, requireAllCategories: false },
+  metrics: {
+    bootstrapResamples: 2000,
+    bootstrapSeed: 11,
+    pairwiseComparisons: [
+      { id: 'topology-vs-text', treatment: 'topology', control: 'text' },
+      { id: 'relations-vs-text', treatment: 'relations', control: 'text' },
+      { id: 'relations-vs-topology', treatment: 'relations', control: 'topology' },
+    ],
+  },
+  engineeringGate: { maximumInvalidResponses: 0 },
 };
 
 function candidate(file) {
@@ -38,6 +65,21 @@ test('counterbalances identical candidate sets without changing IDs', () => {
   assert.deepEqual(
     orders.text.map((item) => item.candidateId),
     [...orders.visual].reverse().map((item) => item.candidateId)
+  );
+});
+
+test('rotates identical candidate sets across every v3 arm', () => {
+  const candidates = [candidate('a.ts'), candidate('b.ts'), candidate('c.ts')];
+  const arms = protocolArmIds(v3Protocol);
+  const orders = counterbalancedArmOrders(candidates, 'dependency-01', arms);
+  const reference = orders.text.map((item) => item.candidateId).sort();
+  assert.deepEqual(arms, ['text', 'topology', 'relations']);
+  for (const arm of arms) {
+    assert.deepEqual(orders[arm].map((item) => item.candidateId).sort(), reference);
+  }
+  assert.equal(
+    new Set(arms.map((arm) => orders[arm].map((item) => item.candidateId).join(','))).size,
+    3
   );
 });
 
@@ -89,6 +131,81 @@ test('builds and parses same-arm blinded batches', () => {
   );
   assert.equal(parsed['dependency-01'].valid, true);
   assert.deepEqual(parsed['dependency-01'].rankedCandidateIds, [a.candidateId]);
+});
+
+test('builds a strict case-keyed JSON schema from arm-local aliases', () => {
+  const studyCases = [
+    {
+      id: 'dependency-01',
+      arms: { relations: { candidates: [candidate('a.ts'), candidate('b.ts')] } },
+    },
+    {
+      id: 'impact-01',
+      arms: { relations: { candidates: [candidate('c.ts'), candidate('d.ts')] } },
+    },
+  ];
+  const schema = buildAgentBatchJsonSchema(studyCases, 'relations');
+  assert.deepEqual(schema.properties.answers.required, ['dependency-01', 'impact-01']);
+  assert.equal(schema.additionalProperties, false);
+  assert.equal(schema.properties.answers.additionalProperties, false);
+  assert.deepEqual(
+    schema.properties.answers.properties['dependency-01'].properties.rankedCandidateIds.items.enum,
+    ['c1', 'c2']
+  );
+  assert.doesNotMatch(JSON.stringify(schema), /gold|relevance|cand_/iu);
+});
+
+test('projects directional relations without coordinates or labels', () => {
+  const a = candidate('a.ts');
+  const b = candidate('b.ts');
+  const relation = buildRelationalObservation(
+    [a, b],
+    {
+      nodes: [
+        {
+          candidateId: a.candidateId,
+          community: 'community_one',
+          position: [1, 2, 3],
+          importDegree: { outgoing: 3, incoming: 0 },
+          visibleCandidateNeighbors: { importsTo: [b.candidateId], importedBy: [] },
+        },
+        {
+          candidateId: b.candidateId,
+          community: 'community_one',
+          position: [2, 2, 3],
+          importDegree: { outgoing: 0, incoming: 2 },
+          visibleCandidateNeighbors: { importsTo: [], importedBy: [a.candidateId] },
+        },
+      ],
+    },
+    { category: 'dependency' }
+  );
+  assert.deepEqual(relation.relations, [
+    {
+      fromCandidateId: a.candidateId,
+      toCandidateId: b.candidateId,
+      type: 'imports',
+    },
+  ]);
+  assert.equal(relation.nodes[0].externalImportsTo, 2);
+  assert.equal(relation.focus.emphasis, 'dependency-direction');
+  assert.doesNotMatch(JSON.stringify(relation), /position|gold|relevanceLabel/iu);
+
+  const studyCase = {
+    id: 'dependency-01',
+    category: 'dependency',
+    query: 'Which file imports the other?',
+    arms: {
+      relations: {
+        candidates: [a, b],
+        relationalGraphObservation: relation,
+      },
+    },
+  };
+  const prompt = buildAgentBatchPrompt([studyCase], 'relations', v3Protocol);
+  assert.match(prompt, /"type":"imports"/u);
+  assert.match(prompt, /"from":"c1","to":"c2"/u);
+  assert.doesNotMatch(prompt, /position|goldCandidateIds|cand_/iu);
 });
 
 test('uses a fixed Precision@5 denominator and first-hit reciprocal rank', () => {
@@ -164,4 +281,72 @@ test('summarizes paired query-level deltas deterministically', () => {
   assert.deepEqual(first, second);
   assert.equal(first.preregisteredHypothesis, 'supported');
   assert.deepEqual(first.pairedDelta.precisionAt5.ci95, [0.2, 0.2]);
+});
+
+test('validates and summarizes v3 multi-arm diagnostics without claim promotion', () => {
+  const a = candidate('a.ts');
+  const b = candidate('b.ts');
+  const visualNodes = [
+    {
+      candidateId: a.candidateId,
+      sceneNodeId: 'node-a',
+      position: [0, 0, 0],
+      community: 'community_one',
+      importDegree: { outgoing: 1, incoming: 0 },
+      visibleCandidateNeighbors: { importsTo: [b.candidateId], importedBy: [] },
+    },
+    {
+      candidateId: b.candidateId,
+      sceneNodeId: 'node-b',
+      position: [1, 0, 0],
+      community: 'community_one',
+      importDegree: { outgoing: 0, incoming: 1 },
+      visibleCandidateNeighbors: { importsTo: [], importedBy: [a.candidateId] },
+    },
+  ];
+  const relation = buildRelationalObservation(
+    [b, a],
+    { nodes: visualNodes },
+    { category: 'dependency' }
+  );
+  const studyCase = {
+    id: 'dependency-01',
+    category: 'dependency',
+    query: 'Which file imports the other?',
+    scoringKey: { goldCandidateIds: [a.candidateId, b.candidateId] },
+    arms: {
+      text: { candidates: [a, b] },
+      topology: {
+        candidates: [b, a],
+        visualGraphObservation: { nodes: visualNodes, edges: [] },
+      },
+      relations: {
+        candidates: [b, a],
+        relationalGraphObservation: relation,
+      },
+    },
+  };
+  const manifest = {
+    schemaVersion: 'holoscript.paper5.visual-agent-packets.v2',
+    protocolId: v3Protocol.protocolId,
+    cases: [studyCase],
+  };
+  assert.deepEqual(validateStudyManifest(manifest, v3Protocol).errors, []);
+
+  const observations = ['text', 'topology', 'relations'].map((arm, index) => ({
+    caseId: studyCase.id,
+    category: studyCase.category,
+    arm,
+    precisionAt5: index * 0.1,
+    reciprocalRank: index * 0.5,
+    valid: true,
+    unknownCandidateIds: [],
+    confidence: 0.5,
+    latencyMs: 10,
+  }));
+  const summary = summarizeMultiArmObservations(observations, v3Protocol);
+  assert.equal(summary.pairedQueries, 1);
+  assert.equal(summary.engineeringGate, 'pass');
+  assert.equal(summary.superiorityClaimEligible, false);
+  assert.equal(summary.pairwise['relations-vs-text'].precisionAt5.estimate, 0.2);
 });

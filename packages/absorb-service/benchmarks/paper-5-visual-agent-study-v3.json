@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "holoscript.paper5.visual-agent-study-protocol.v3",
+  "protocolId": "holoabsorb-paper5-visual-agent-followup-v3-relational-constrained",
+  "frozenAt": "2026-07-27T06:55:00.000Z",
+  "follows": {
+    "protocolId": "holoabsorb-paper5-visual-agent-study-v2-compact-batched",
+    "resultPath": "research/holoabsorb-artifacts/2026-07-26-paper5-visual-agent-pilot-qwen3-4b-v2/result.json",
+    "resultReceiptSha256": "c7d9bd3e7f54e84d091fe96cdb15c65cdab050e88c94b01503cc444bd70befec",
+    "outcomeInspectedBeforeFreeze": true,
+    "observedFailureModes": [
+      "one visual dependency batch returned a single candidate array instead of a case-keyed object",
+      "raw coordinates, opaque communities, degrees, and candidate adjacency did not improve aggregate ranking on Qwen3-4B"
+    ]
+  },
+  "studyClass": {
+    "kind": "engineering-follow-up",
+    "knownOutcomeDataset": true,
+    "superiorityClaimEligible": false,
+    "reason": "All 54 query outcomes were exposed by v2. This follow-up may diagnose representation and format reliability on the same corpus, but it cannot provide a fresh confirmatory superiority claim."
+  },
+  "dataset": {
+    "path": "packages/absorb-service/benchmarks/paper-5-retrieval-v1.json",
+    "sha256": "f34a3664fd8c39ff5cc5b38201b72d8d02b6633990f2c67f4e43cc03bd1314dd",
+    "queries": 54,
+    "categories": {
+      "dependency": 18,
+      "impact": 18,
+      "reasoning": 18
+    },
+    "confirmationRequirement": "Use a newly authored, independently annotated external-codebase corpus whose labels and outcomes were not available while designing v3."
+  },
+  "design": {
+    "unit": "query",
+    "pairing": "within-query",
+    "arms": [
+      {
+        "id": "text",
+        "description": "Question plus compact candidate cards containing paths and at most four symbol names."
+      },
+      {
+        "id": "topology",
+        "description": "The same cards plus the v2 raw topology projection: positions, opaque communities, degrees, and candidate adjacency."
+      },
+      {
+        "id": "relations",
+        "description": "The same cards plus a query-adaptive relational projection with explicit import direction, external degree, community peers, and bounded graph-role summaries; coordinates are excluded."
+      }
+    ],
+    "candidateCount": 8,
+    "candidateConstruction": "Reuse the v2 label-blind controlled-navigation construction: include every source-audited relevant file, then fill with HoloEmbed GraphRAG hard negatives that resolve to canonical CodebaseSceneCompiler nodes.",
+    "candidateScope": "controlled-navigation",
+    "candidateScopeBoundary": "Every relevant file is inserted into the candidate set, so this measures selection and ranking from a bounded view, not end-to-end retrieval recall.",
+    "counterbalancing": "Generate one deterministic candidate permutation per query and rotate it across arms with a query-derived offset. Arm request order is independently rotated per batch and trial.",
+    "promptEncoding": "compact-v3",
+    "visualSource": "packages/absorb-service/src/engine/visualization/CodebaseSceneCompiler.ts",
+    "relationalProjection": {
+      "labelBlind": true,
+      "queryAdaptive": true,
+      "allowedInputs": [
+        "query text",
+        "declared query category",
+        "candidate paths",
+        "candidate symbol names",
+        "candidate import adjacency",
+        "candidate external import degrees",
+        "opaque community membership"
+      ],
+      "excludedInputs": [
+        "gold candidate IDs",
+        "relevance labels",
+        "source bodies",
+        "doc comments",
+        "function signatures",
+        "v2 outcomes"
+      ]
+    },
+    "promptInjectionBoundary": "Raw source bodies, doc comments, and signatures are excluded. Candidate evidence is limited to normalized paths, symbol names, and generated graph metadata."
+  },
+  "agentProtocol": {
+    "responseFormat": "json_schema",
+    "responseSchema": {
+      "answers": "object with exactly one required property per query ID",
+      "rankedCandidateIds": "array of one to five unique candidate aliases in descending relevance order",
+      "confidence": "number from 0 to 1",
+      "additionalProperties": false
+    },
+    "temperature": 0,
+    "maxTokens": 512,
+    "requestBatchSize": 4,
+    "sameArmPerBatch": true,
+    "statelessRequests": true,
+    "engineeringTrialsPerArm": 1,
+    "confirmationTrialsPerArm": 3,
+    "confirmationMinimumIndependentAgentFamilies": 3
+  },
+  "metrics": {
+    "primary": [
+      "precision_at_5",
+      "mean_reciprocal_rank"
+    ],
+    "quality": [
+      "valid_response_rate",
+      "unknown_candidate_rate",
+      "mean_confidence",
+      "mean_latency_ms"
+    ],
+    "precisionAt": 5,
+    "bootstrapResamples": 2000,
+    "bootstrapSeed": 270727,
+    "confidenceLevel": 0.95,
+    "bootstrapUnit": "query",
+    "pairwiseComparisons": [
+      {
+        "id": "topology-vs-text",
+        "treatment": "topology",
+        "control": "text"
+      },
+      {
+        "id": "relations-vs-text",
+        "treatment": "relations",
+        "control": "text"
+      },
+      {
+        "id": "relations-vs-topology",
+        "treatment": "relations",
+        "control": "topology"
+      }
+    ]
+  },
+  "engineeringGate": {
+    "maximumInvalidResponses": 0,
+    "requireDeterministicPacketHash": true,
+    "interpretation": "On the known development corpus, v3 may pass only the execution and format gate. Accuracy estimates and intervals are diagnostic and cannot support a superiority claim."
+  },
+  "futureConfirmationGate": {
+    "relationsPrecisionAt5DeltaLower95CIGreaterThan": 0,
+    "relationsMrrDeltaLower95CIGreaterThan": 0,
+    "relationsInvalidResponseRateIncreaseAtMost": 0.02,
+    "minimumIndependentAgentFamilies": 3,
+    "trialsPerArm": 3,
+    "requireExternalCodebase": true,
+    "requireIndependentMultiHumanAnnotation": true
+  },
+  "admission": {
+    "minimumQueries": 54,
+    "requireAllCategories": true,
+    "requireSameCandidatesAcrossArms": true,
+    "requireGoldAbsentFromPrompts": true,
+    "requireAllRelevantFilesPresent": true,
+    "requireEveryCandidateHasVisualNode": true,
+    "requireDeterministicPacketHash": true,
+    "requireCompleteResponsesForEngineeringRun": true
+  },
+  "claimBoundary": {
+    "publicationReady": false,
+    "superiorityClaimEligible": false,
+    "literalPixelVisionMeasured": false,
+    "measuredSurface": "agent-readable structured projections of the canonical visual graph",
+    "reason": "The dataset is outcome-exposed and the relational arm was designed in response to v2. A successful v3 engineering run would establish format reliability and motivate confirmation only.",
+    "nextVisionGate": "Render the identical candidate subgraph to a fixed screenshot or interactive viewport and evaluate it with a vision-capable agent on a newly held-out external corpus."
+  }
+}
