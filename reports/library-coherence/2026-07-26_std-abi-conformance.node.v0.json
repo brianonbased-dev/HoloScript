@@ -1,11 +1,11 @@
 {
   "schema": "holoscript.std-abi-conformance.node.v0",
-  "generatedAtISO": "2026-07-27T20:40:04.106Z",
+  "generatedAtISO": "2026-07-27T21:42:31.793Z",
   "target": "node",
   "executionRuntime": {
     "engine": "DeterministicHsplusActionRuntime",
     "enginePackageVersion": "6.1.5",
-    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
     "executedProjection": "packages/std/conformance/generated/std-abi-conformance.action.hsplus"
   },
   "referenceTwin": {
@@ -15,16 +15,16 @@
   },
   "sources": {
     "packages/std/conformance/std-abi-ops.v0.json": {
-      "sha256": "sha256:4f390f120f9d204e5ca1edeb1f9514ddff194a6c9660c73f37cc0428fae0f1ab"
+      "sha256": "sha256:9751b97a1d099fb565bc36f5c4c3d693b88ea0fc08491d5194308346df8f468e"
     },
     "packages/std/conformance/generated/std-abi-conformance.action.hsplus": {
-      "sha256": "sha256:d17cad005542ec0edb93372cd6858ac3f5d3f5a92f822bf317dbd65910e63116"
+      "sha256": "sha256:9b71d000b17f23273a6d02886ec722a04d7f23c780f6ffacda4c48da0294ad42"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
+      "sha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:8f57b889de465c0ecaa72ef1fe63b507a4183f4108cba834f390b06d2e56e7a4"
+      "sha256": "sha256:3d83571dbbf7e93000a9c843faf9689ca044d1bd8c6a97a3135d79c5cf6908e3"
     },
     "packages/std/src/math.hsplus": {
       "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
@@ -52,29 +52,29 @@
   },
   "summary": {
     "ops": 40,
-    "vectors": 123,
-    "passed": 123,
+    "vectors": 125,
+    "passed": 125,
     "failed": 0,
-    "skippedByTarget": 41,
+    "skippedByTarget": 45,
     "skippedByTargetReason": "packaged-handler vectors execute shipped @trait sources, a form the engine deterministic runtime does not parse; they run on the wasm-evaluator targets only",
     "excludedOps": [
       {
         "op": "*",
         "trait": "std_list",
-        "reason": "every handler delegates to get_std_collections_lib(), uses ?? defaults, or takes callback parameters (fn/predicate/comparator) — all outside the shared subset; the host collections ABI has no binding implementation anywhere in the repo",
-        "unlock": "define the std host-ABI binding surface for collections with per-target bindings, plus higher-order-function semantics in the deterministic subset"
+        "reason": "the executable corpus covers deterministic JSON host delegations, including ?? defaults; remaining exclusions are callback parameters, non-JSON iterable semantics, lifecycle effects, and deferred thin wrappers",
+        "unlock": "define higher-order callback semantics in the deterministic subset and an explicit iterable ABI"
       },
       {
         "op": "*",
         "trait": "std_map",
-        "reason": "same host-delegation boundary as std_list",
-        "unlock": "same as std_list"
+        "reason": "representative deterministic JSON host delegations are covered; callback-bearing and deferred representative handlers remain excluded",
+        "unlock": "define higher-order callback semantics and expand the representative packaged corpus"
       },
       {
         "op": "*",
         "trait": "std_set",
-        "reason": "same host-delegation boundary as std_list",
-        "unlock": "same as std_list"
+        "reason": "representative deterministic JSON host delegations are covered; deferred representative handlers remain excluded",
+        "unlock": "expand the representative packaged corpus"
       }
     ]
   },
@@ -894,6 +894,21 @@
       }
     },
     {
+      "id": "hrange-default-step",
+      "op": "on_host_list_range",
+      "pass": true,
+      "valueCanonicalHash": "sha256:d25839a629724fbed7178b139b9e32ca7c2e9638e9715b330cb04f5e7d660132",
+      "actual": {
+        "value": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
       "id": "hrange-up",
       "op": "on_host_list_range",
       "pass": true,
@@ -1074,6 +1089,15 @@
       "valueCanonicalHash": "sha256:f32d4354160a457984a54414824b84c196a5ddf65d6ee6c992317a5fb7a53b0c",
       "actual": {
         "value": -1
+      }
+    },
+    {
+      "id": "hjoin-default-separator",
+      "op": "on_host_list_join",
+      "pass": true,
+      "valueCanonicalHash": "sha256:c4dfe2fd7ba3fcb227bbf7fa3078d36656e4e81619b521dfba1b55d6e5e3df5d",
+      "actual": {
+        "value": "a,b,c"
       }
     },
     {
@@ -1388,5 +1412,5 @@
     "provesPackagedHandlerExecution": false,
     "note": "The executed source is the generated conformance projection of the packaged @trait handlers, in the engine deterministic action subset. The packaged math.hsplus trait bodies are hash-bound in sources but are not directly executable by any runtime in this repository today; ops whose packaged bodies delegate to host bindings are marked host-delegation-rewrite and their projections are recorded in the ops SSOT. Cross-target equality is claimed only by the separate cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:aaf1c48e868bcebee107a52934a6dbe9703193742594e02762e04251b3de4681"
+  "receiptHash": "sha256:660665f17fb63512eb06d57dd62b585b115836638f57ef5d37da8e14c18139f2"
 }

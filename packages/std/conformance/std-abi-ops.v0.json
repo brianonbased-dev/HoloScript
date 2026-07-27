@@ -8,10 +8,11 @@
     "collections": "packages/std/src/collections.hsplus"
   },
   "referenceModule": "packages/std/dist/math.js",
-  "sharedGrammar": "Object-literal returns over: number/string/boolean/null literals, parameter identifiers, non-computed member access, binary + - * /, comparisons, && ||, unary ! -, plus the v2 whitelisted deterministic numeric builtin table (sqrt, sin, cos, acos, abs, floor, min, max over finite f64, fail-closed on non-finite or negative-zero results; subset id holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins in both lanes). No other calls, no loops, no host bindings. The two executable projections have measured, non-identical grammars: the engine deterministic action subset accepts ternary expressions but restricts assignment to declared state, while the compiler-wasm trait evaluator accepts local assignment and if/else statements but has no ternary or ===/!== production. Ops whose default body uses ternary or locals therefore carry an equivalent traitBody statement form; cross-target conformance is claimed on produced values over the shared vector corpus, not on shared surface syntax. Builtin results that depend on libm transcendentals (sin/cos/acos) may differ by ulps between the JS engine and the Rust-libm-in-wasm lane, so those vectors carry an explicit non-zero tolerance; sqrt is IEEE-754 correctly rounded and stays exact.",
+  "sharedGrammar": "The cumulative v6 deterministic subset admits number/string/boolean/null literals, parameter identifiers, bounded locals, non-computed member access, binary + - * /, comparisons, && || and strict short-circuiting ??, unary ! -, the v2 finite-f64 numeric builtin table, and v4 namespace.function host bindings. The engine projection and compiler-wasm trait evaluator retain measured syntax differences: engine accepts ternary expressions and declared-state assignment; wasm accepts local assignment and if/else statements but has no ternary or ===/!== production. Ops with ternary or local bodies therefore carry equivalent traitBody statement forms. Cross-target conformance is claimed on produced values over the shared corpus, not identical surface syntax. The wasm-only packaged lane additionally carries v5 factory-handle lifting while using v6 null coalescing. Builtin results dependent on libm transcendentals may differ by ulps and carry explicit tolerance; sqrt stays exact.",
   "numericBuiltins": true,
   "localBindings": true,
   "hostBindings": true,
+  "nullCoalescing": true,
   "hostAbi": {
     "descriptor": "packages/std/conformance/host-abi/std-host-abi.v0.json",
     "bindingModule": "packages/std/conformance/host-abi/std-host-binding.mjs",
@@ -1336,7 +1337,21 @@
         "list_range"
       ],
       "packagedRef": "list_lib.list_range backs packaged on_range",
+      "body": "{ value: list_lib.list_range(start, end, step ?? 1) }",
       "vectors": [
+        {
+          "id": "hrange-default-step",
+          "args": {
+            "start": 0,
+            "end": 5,
+            "step": null
+          },
+          "expectArgs": {
+            "start": 0,
+            "end": 5,
+            "step": 1
+          }
+        },
         {
           "id": "hrange-up",
           "args": {
@@ -1631,7 +1646,27 @@
         "list_join"
       ],
       "packagedRef": "list_lib.list_join backs packaged on_join",
+      "body": "{ value: list_lib.list_join(lst, sep ?? \",\") }",
       "vectors": [
+        {
+          "id": "hjoin-default-separator",
+          "args": {
+            "lst": [
+              "a",
+              "b",
+              "c"
+            ],
+            "sep": null
+          },
+          "expectArgs": {
+            "lst": [
+              "a",
+              "b",
+              "c"
+            ],
+            "sep": ","
+          }
+        },
         {
           "id": "hjoin-dash",
           "args": {
@@ -2128,20 +2163,20 @@
     {
       "op": "*",
       "trait": "std_list",
-      "reason": "every handler delegates to get_std_collections_lib(), uses ?? defaults, or takes callback parameters (fn/predicate/comparator) — all outside the shared subset; the host collections ABI has no binding implementation anywhere in the repo",
-      "unlock": "define the std host-ABI binding surface for collections with per-target bindings, plus higher-order-function semantics in the deterministic subset"
+      "reason": "the executable corpus covers deterministic JSON host delegations, including ?? defaults; remaining exclusions are callback parameters, non-JSON iterable semantics, lifecycle effects, and deferred thin wrappers",
+      "unlock": "define higher-order callback semantics in the deterministic subset and an explicit iterable ABI"
     },
     {
       "op": "*",
       "trait": "std_map",
-      "reason": "same host-delegation boundary as std_list",
-      "unlock": "same as std_list"
+      "reason": "representative deterministic JSON host delegations are covered; callback-bearing and deferred representative handlers remain excluded",
+      "unlock": "define higher-order callback semantics and expand the representative packaged corpus"
     },
     {
       "op": "*",
       "trait": "std_set",
-      "reason": "same host-delegation boundary as std_list",
-      "unlock": "same as std_list"
+      "reason": "representative deterministic JSON host delegations are covered; deferred representative handlers remain excluded",
+      "unlock": "expand the representative packaged corpus"
     }
   ],
   "packagedExecution": {
@@ -2155,18 +2190,8 @@
       "browser-wasm",
       "owned-metal"
     ],
-    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the v5 packaged-factories subset: factory aliases statically lifted from @on_spawn, on_spawn side effects not executed, ?? and callback handlers out of scope. The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only.",
+    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the cumulative v6 subset: v5 factory aliases are statically lifted from @on_spawn, on_spawn side effects are not executed, and strict short-circuiting ?? defaults execute as authored. Callback handlers remain out of scope. The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only.",
     "excludedHandlers": [
-      {
-        "handler": "on_range",
-        "trait": "std_list",
-        "reason": "?? default outside both grammars"
-      },
-      {
-        "handler": "on_join",
-        "trait": "std_list",
-        "reason": "?? default outside both grammars"
-      },
       {
         "handler": "on_from",
         "trait": "std_list",
@@ -2671,6 +2696,90 @@
                 "w": 0.7071067811865476
               },
               "t": 0.5
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_range",
+        "params": [
+          "start",
+          "end",
+          "step"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_range"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lrange-default-step",
+            "args": {
+              "start": 0,
+              "end": 5,
+              "step": null
+            },
+            "expectArgs": {
+              "start": 0,
+              "end": 5,
+              "step": 1
+            }
+          },
+          {
+            "id": "pkg-lrange-explicit-step",
+            "args": {
+              "start": 8,
+              "end": 0,
+              "step": -2
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_join",
+        "params": [
+          "lst",
+          "sep"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_join"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-ljoin-default-separator",
+            "args": {
+              "lst": [
+                "a",
+                "b",
+                3
+              ],
+              "sep": null
+            },
+            "expectArgs": {
+              "lst": [
+                "a",
+                "b",
+                3
+              ],
+              "sep": ","
+            }
+          },
+          {
+            "id": "pkg-ljoin-explicit-separator",
+            "args": {
+              "lst": [
+                "a",
+                "b",
+                3
+              ],
+              "sep": "-"
             }
           }
         ]

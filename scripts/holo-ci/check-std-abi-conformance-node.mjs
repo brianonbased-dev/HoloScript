@@ -63,10 +63,7 @@ for (const [relPath, pin] of Object.entries(manifest.files)) {
   }
 }
 
-const actionSource = readFileSync(
-  join(generatedDir, 'std-abi-conformance.action.hsplus'),
-  'utf8'
-);
+const actionSource = readFileSync(join(generatedDir, 'std-abi-conformance.action.hsplus'), 'utf8');
 const vectorsRaw = readFileSync(join(generatedDir, 'std-abi-vectors.v0.jsonl'), 'utf8');
 const vectors = vectorsRaw
   .split('\n')
@@ -78,9 +75,7 @@ const opsDefinition = JSON.parse(
 
 // --- Load execution engine and reference twin --------------------------------
 
-const runtimeModule = require(
-  join(repoRoot, 'packages', 'engine', 'dist', 'runtime', 'index.cjs')
-);
+const runtimeModule = require(join(repoRoot, 'packages', 'engine', 'dist', 'runtime', 'index.cjs'));
 const {
   createDeterministicHsplusActionRuntime,
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
@@ -187,7 +182,8 @@ function runVector(runtime, vector, expectedOverride) {
   if (!ref || !ref.fn) {
     mismatches.push('reference: twin function unavailable');
   } else {
-    const orderedArgs = ref.params.map((param) => vector.args[param]);
+    const referenceArgs = vector.expectArgs ?? vector.args;
+    const orderedArgs = ref.params.map((param) => referenceArgs[param]);
     const twinValue = wrapReferenceResult(ref.resultShape, ref.fn(...orderedArgs));
     compareValues(twinValue, expected, vector.tolerance, 'twin', mismatches);
   }
@@ -205,6 +201,7 @@ const runtimeOptions = {
   numericBuiltins: opsDefinition.numericBuiltins === true,
   localBindings: opsDefinition.localBindings === true,
   ...(hostBindings ? { hostBindings } : {}),
+  nullCoalescing: opsDefinition.nullCoalescing === true,
 };
 
 if (selfTest) {
@@ -218,7 +215,9 @@ if (selfTest) {
   if (!good.pass || bad.pass) {
     fail(`self-test failed: clean vector pass=${good.pass}, poisoned vector pass=${bad.pass}`);
   }
-  console.log('[std-abi-conformance-node] self-test OK: clean vector passes, poisoned expectation goes red');
+  console.log(
+    '[std-abi-conformance-node] self-test OK: clean vector passes, poisoned expectation goes red'
+  );
   process.exit(0);
 }
 
@@ -247,8 +246,7 @@ const receipt = {
     engine: 'DeterministicHsplusActionRuntime',
     enginePackageVersion: enginePackageJson.version,
     subsetId: runtime.subsetId ?? ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
-    executedProjection:
-      'packages/std/conformance/generated/std-abi-conformance.action.hsplus',
+    executedProjection: 'packages/std/conformance/generated/std-abi-conformance.action.hsplus',
   },
   referenceTwin: {
     module: 'packages/std/dist/math.js',

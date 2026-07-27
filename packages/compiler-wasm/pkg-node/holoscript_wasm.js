@@ -327,6 +327,48 @@ function evaluate_trait_handler_v5(source, trait_name, handler_name, args_json, 
 }
 exports.evaluate_trait_handler_v5 = evaluate_trait_handler_v5;
 
+/**
+ * Evaluate one `@on_<handler>` trait-handler body under the v6 deterministic
+ * subset (`holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing`).
+ *
+ * v6 is cumulative over v5 and admits exactly one new expression operator:
+ * `left ?? right`. The left operand is evaluated once; if it is `null`, the
+ * right operand is evaluated and returned. Every other strict-JSON value —
+ * including `false`, `0`, and `""` — is returned without evaluating the
+ * right operand. The v1–v5 exports remain behaviorally pinned.
+ * @param {string} source
+ * @param {string} trait_name
+ * @param {string} handler_name
+ * @param {string} args_json
+ * @param {any} host_bindings
+ * @returns {string}
+ */
+function evaluate_trait_handler_v6(source, trait_name, handler_name, args_json, host_bindings) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.evaluate_trait_handler_v6(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, addHeapObject(host_bindings));
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred5_0 = r0;
+        deferred5_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred5_0, deferred5_1, 1);
+    }
+}
+exports.evaluate_trait_handler_v6 = evaluate_trait_handler_v6;
+
 function init() {
     wasm.init();
 }

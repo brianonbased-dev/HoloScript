@@ -36,6 +36,9 @@ export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V3 =
 export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V4 =
   'holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings' as const;
 
+export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V6 =
+  'holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing' as const;
+
 export type DeterministicHostBindings = Readonly<
   Record<string, Readonly<Record<string, (...args: HeadlessJsonValue[]) => unknown>>>
 >;
@@ -70,6 +73,15 @@ export interface DeterministicHsplusActionRuntimeOptions {
    * and a host throw fails the invocation closed.
    */
   hostBindings?: DeterministicHostBindings;
+  /**
+   * Admit strict, short-circuiting null coalescing (`left ?? right`) under the
+   * cumulative v6 subset id. Only `null` selects the right operand; false, zero,
+   * and the empty string stay present. Requires the cumulative v4 engine
+   * features (numericBuiltins, localBindings, and hostBindings). The wasm lane's
+   * target-scoped v5 packaged-factory mode has no engine equivalent because the
+   * engine parser still cannot consume the packaged @trait surface directly.
+   */
+  nullCoalescing?: boolean;
 }
 
 const NUMERIC_BUILTINS: ReadonlyMap<string, { arity: number; apply: (args: number[]) => number }> =
@@ -115,6 +127,7 @@ interface EvaluationEnvironment {
   localBindings: boolean;
   locals: HeadlessJsonObject;
   hostBindings: DeterministicHostBindings | null;
+  nullCoalescing: boolean;
 }
 
 function assertFiniteNumbers(value: unknown, label: string): void {
@@ -392,7 +405,8 @@ function validateExpression(
   admitBuiltins: boolean,
   admitLocals: boolean,
   locals: Set<string>,
-  hostNamespaces: ReadonlyMap<string, ReadonlySet<string>> | null
+  hostNamespaces: ReadonlyMap<string, ReadonlySet<string>> | null,
+  admitNullCoalescing: boolean
 ): void {
   consumeBudget(budget, depth, 'action expression');
   switch (expression.type) {
@@ -418,7 +432,17 @@ function validateExpression(
           fail(`"${namespace}.${functionName}" is not a declared host-binding function`);
         }
         expression.arguments.forEach((argument) =>
-          validateExpression(argument, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces)
+          validateExpression(
+            argument,
+            params,
+            budget,
+            depth + 1,
+            admitBuiltins,
+            admitLocals,
+            locals,
+            hostNamespaces,
+            admitNullCoalescing
+          )
         );
         return;
       }
@@ -440,7 +464,17 @@ function validateExpression(
         );
       }
       expression.arguments.forEach((argument) =>
-        validateExpression(argument, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces)
+        validateExpression(
+          argument,
+          params,
+          budget,
+          depth + 1,
+          admitBuiltins,
+          admitLocals,
+          locals,
+          hostNamespaces,
+          admitNullCoalescing
+        )
       );
       return;
     }
@@ -481,22 +515,63 @@ function validateExpression(
         '&&',
         '||',
       ]);
+      if (admitNullCoalescing) allowed.add('??');
       if (!allowed.has(expression.operator)) {
         fail(`binary operator "${expression.operator}" is unsupported`);
       }
-      validateExpression(expression.left, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
-      validateExpression(expression.right, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+      validateExpression(
+        expression.left,
+        params,
+        budget,
+        depth + 1,
+        admitBuiltins,
+        admitLocals,
+        locals,
+        hostNamespaces,
+        admitNullCoalescing
+      );
+      validateExpression(
+        expression.right,
+        params,
+        budget,
+        depth + 1,
+        admitBuiltins,
+        admitLocals,
+        locals,
+        hostNamespaces,
+        admitNullCoalescing
+      );
       return;
     }
     case 'UnaryExpression':
       if (expression.operator !== '!' && expression.operator !== '-') {
         fail(`unary operator "${String(expression.operator)}" is unsupported`);
       }
-      validateExpression(expression.argument, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+      validateExpression(
+        expression.argument,
+        params,
+        budget,
+        depth + 1,
+        admitBuiltins,
+        admitLocals,
+        locals,
+        hostNamespaces,
+        admitNullCoalescing
+      );
       return;
     case 'ArrayExpression':
       expression.elements.forEach((child) =>
-        validateExpression(child, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces)
+        validateExpression(
+          child,
+          params,
+          budget,
+          depth + 1,
+          admitBuiltins,
+          admitLocals,
+          locals,
+          hostNamespaces,
+          admitNullCoalescing
+        )
       );
       return;
     case 'ObjectExpression': {
@@ -507,14 +582,54 @@ function validateExpression(
           fail(`object expression contains duplicate key "${property.key}"`);
         }
         keys.add(property.key);
-        validateExpression(property.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+        validateExpression(
+          property.value,
+          params,
+          budget,
+          depth + 1,
+          admitBuiltins,
+          admitLocals,
+          locals,
+          hostNamespaces,
+          admitNullCoalescing
+        );
       });
       return;
     }
     case 'ConditionalExpression':
-      validateExpression(expression.test, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
-      validateExpression(expression.consequent, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
-      validateExpression(expression.alternate, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+      validateExpression(
+        expression.test,
+        params,
+        budget,
+        depth + 1,
+        admitBuiltins,
+        admitLocals,
+        locals,
+        hostNamespaces,
+        admitNullCoalescing
+      );
+      validateExpression(
+        expression.consequent,
+        params,
+        budget,
+        depth + 1,
+        admitBuiltins,
+        admitLocals,
+        locals,
+        hostNamespaces,
+        admitNullCoalescing
+      );
+      validateExpression(
+        expression.alternate,
+        params,
+        budget,
+        depth + 1,
+        admitBuiltins,
+        admitLocals,
+        locals,
+        hostNamespaces,
+        admitNullCoalescing
+      );
       return;
     default:
       fail(`expression type "${String((expression as { type?: unknown }).type)}" is not admitted`);
@@ -529,7 +644,8 @@ function validateStatements(
   admitBuiltins: boolean,
   admitLocals: boolean,
   locals: Set<string>,
-  hostNamespaces: ReadonlyMap<string, ReadonlySet<string>> | null
+  hostNamespaces: ReadonlyMap<string, ReadonlySet<string>> | null,
+  admitNullCoalescing: boolean
 ): void {
   for (const statement of statements) {
     consumeBudget(budget, depth, 'action body');
@@ -551,7 +667,17 @@ function validateStatements(
           if (statement.operator !== '=') {
             fail(`local binding "${name}" admits only the plain = operator`);
           }
-          validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+          validateExpression(
+            statement.value,
+            params,
+            budget,
+            depth + 1,
+            admitBuiltins,
+            admitLocals,
+            locals,
+            hostNamespaces,
+            admitNullCoalescing
+          );
           locals.add(name);
           break;
         }
@@ -559,7 +685,17 @@ function validateStatements(
           fail(`assignment target "${statement.target}" must be declared state`);
         }
         path.forEach((part) => assertSafeKey(part, 'assignment target'));
-        validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+        validateExpression(
+          statement.value,
+          params,
+          budget,
+          depth + 1,
+          admitBuiltins,
+          admitLocals,
+          locals,
+          hostNamespaces,
+          admitNullCoalescing
+        );
         break;
       }
       case 'EmitStatement':
@@ -570,15 +706,67 @@ function validateStatements(
         ) {
           fail('event name is empty, too long, or contains control characters');
         }
-        if (statement.data) validateExpression(statement.data, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+        if (statement.data)
+          validateExpression(
+            statement.data,
+            params,
+            budget,
+            depth + 1,
+            admitBuiltins,
+            admitLocals,
+            locals,
+            hostNamespaces,
+            admitNullCoalescing
+          );
         break;
       case 'ReturnStatement':
-        if (statement.value) validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+        if (statement.value)
+          validateExpression(
+            statement.value,
+            params,
+            budget,
+            depth + 1,
+            admitBuiltins,
+            admitLocals,
+            locals,
+            hostNamespaces,
+            admitNullCoalescing
+          );
         break;
       case 'IfStatement':
-        validateExpression(statement.condition, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
-        validateStatements(statement.consequent, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
-        validateStatements(statement.alternate ?? [], params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+        validateExpression(
+          statement.condition,
+          params,
+          budget,
+          depth + 1,
+          admitBuiltins,
+          admitLocals,
+          locals,
+          hostNamespaces,
+          admitNullCoalescing
+        );
+        validateStatements(
+          statement.consequent,
+          params,
+          budget,
+          depth + 1,
+          admitBuiltins,
+          admitLocals,
+          locals,
+          hostNamespaces,
+          admitNullCoalescing
+        );
+        validateStatements(
+          statement.alternate ?? [],
+          params,
+          budget,
+          depth + 1,
+          admitBuiltins,
+          admitLocals,
+          locals,
+          hostNamespaces,
+          admitNullCoalescing
+        );
         break;
       default:
         fail(`statement type "${String((statement as { type?: unknown }).type)}" is not admitted`);
@@ -591,7 +779,8 @@ function validateActions(
   structuredActions: readonly HoloAction[],
   admitBuiltins: boolean,
   admitLocals: boolean,
-  hostNamespaces: ReadonlyMap<string, ReadonlySet<string>> | null
+  hostNamespaces: ReadonlyMap<string, ReadonlySet<string>> | null,
+  admitNullCoalescing: boolean
 ): Map<string, HoloAction> {
   const actions = new Map<string, HoloAction>();
   const budget: AstBudget = {
@@ -620,7 +809,17 @@ function validateActions(
     if (actions.has(action.name)) fail(`duplicate structured action "${action.name}"`);
     if (action.body.length === 0) fail(`action "${action.name}" has an empty structured body`);
     const locals = new Set<string>();
-    validateStatements(action.body, new Set(params), budget, 0, admitBuiltins, admitLocals, locals, hostNamespaces);
+    validateStatements(
+      action.body,
+      new Set(params),
+      budget,
+      0,
+      admitBuiltins,
+      admitLocals,
+      locals,
+      hostNamespaces,
+      admitNullCoalescing
+    );
     actions.set(action.name, action);
   }
 
@@ -771,6 +970,12 @@ function evaluateExpression(
     }
     case 'BinaryExpression': {
       const left = evaluateExpression(expression.left, environment);
+      if (expression.operator === '??') {
+        if (!environment.nullCoalescing) {
+          fail('binary operator "??" is unsupported');
+        }
+        return left === null ? evaluateExpression(expression.right, environment) : left;
+      }
       if (expression.operator === '&&') {
         return booleanValue(left, 'logical and')
           ? booleanValue(evaluateExpression(expression.right, environment), 'logical and')
@@ -1003,12 +1208,20 @@ export class DeterministicHsplusActionRuntime {
   private readonly numericBuiltins: boolean;
   private readonly localBindings: boolean;
   private readonly hostBindings: DeterministicHostBindings | null;
+  private readonly nullCoalescing: boolean;
   private state: HeadlessJsonObject;
 
   constructor(source: string, options?: DeterministicHsplusActionRuntimeOptions) {
     this.numericBuiltins = options?.numericBuiltins === true;
     this.localBindings = options?.localBindings === true;
     this.hostBindings = options?.hostBindings ?? null;
+    this.nullCoalescing = options?.nullCoalescing === true;
+    if (
+      this.nullCoalescing &&
+      (!this.numericBuiltins || !this.localBindings || this.hostBindings === null)
+    ) {
+      fail('nullCoalescing requires numericBuiltins, localBindings, and hostBindings');
+    }
     if (this.hostBindings) {
       for (const [namespace, fns] of Object.entries(this.hostBindings)) {
         assertSafeKey(namespace, 'host-binding namespace');
@@ -1059,13 +1272,15 @@ export class DeterministicHsplusActionRuntime {
       structured.ast.logic?.actions ?? [],
       this.numericBuiltins,
       this.localBindings,
-      hostNamespaces
+      hostNamespaces,
+      this.nullCoalescing
     );
     this.initial = cloneObject(structuredState, 'initial state');
     this.state = cloneObject(this.initial, 'runtime state');
   }
 
   get subsetId(): string {
+    if (this.nullCoalescing) return ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V6;
     if (this.hostBindings) return ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V4;
     if (this.localBindings) return ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V3;
     return this.numericBuiltins
@@ -1107,6 +1322,7 @@ export class DeterministicHsplusActionRuntime {
         localBindings: this.localBindings,
         locals: {},
         hostBindings: this.hostBindings,
+        nullCoalescing: this.nullCoalescing,
       },
       emittedEvents
     );

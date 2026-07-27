@@ -138,6 +138,18 @@ export function evaluate_trait_handler_v4(source: string, trait_name: string, ha
  */
 export function evaluate_trait_handler_v5(source: string, trait_name: string, handler_name: string, args_json: string, host_bindings: any): string;
 
+/**
+ * Evaluate one `@on_<handler>` trait-handler body under the v6 deterministic
+ * subset (`holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing`).
+ *
+ * v6 is cumulative over v5 and admits exactly one new expression operator:
+ * `left ?? right`. The left operand is evaluated once; if it is `null`, the
+ * right operand is evaluated and returned. Every other strict-JSON value —
+ * including `false`, `0`, and `""` — is returned without evaluating the
+ * right operand. The v1–v5 exports remain behaviorally pinned.
+ */
+export function evaluate_trait_handler_v6(source: string, trait_name: string, handler_name: string, args_json: string, host_bindings: any): string;
+
 export function init(): void;
 
 /**
@@ -184,6 +196,7 @@ export interface InitOutput {
     readonly evaluate_trait_handler_v2: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
     readonly evaluate_trait_handler_v4: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
     readonly evaluate_trait_handler_v5: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
+    readonly evaluate_trait_handler_v6: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
     readonly init: () => void;
     readonly parse: (a: number, b: number, c: number) => void;
     readonly parse_pretty: (a: number, b: number, c: number) => void;

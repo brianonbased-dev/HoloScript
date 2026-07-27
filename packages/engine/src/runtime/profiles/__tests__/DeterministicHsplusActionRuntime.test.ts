@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { HeadlessExperimentScheduleEntry } from '../HeadlessExecutionLedger';
 import {
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
+  ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V6,
   createDeterministicHsplusActionRuntime,
 } from '../DeterministicHsplusActionRuntime';
 
@@ -404,13 +405,13 @@ describe('DeterministicHsplusActionRuntime v2 numeric builtins', () => {
     expect(runtime.subsetId).toBe(
       'holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins'
     );
-    expect(
-      runtime.invoke(observation('vec3_length', { v: { x: 3, y: 4, z: 0 } })).value
-    ).toEqual({ value: 5 });
+    expect(runtime.invoke(observation('vec3_length', { v: { x: 3, y: 4, z: 0 } })).value).toEqual({
+      value: 5,
+    });
     expect(runtime.invoke(observation('half_cos', { angle: 0 })).value).toEqual({ value: 1 });
-    expect(
-      runtime.invoke(observation('clamped', { value: 42, lo: 0, hi: 10 })).value
-    ).toEqual({ value: 10 });
+    expect(runtime.invoke(observation('clamped', { value: 42, lo: 0, hi: 10 })).value).toEqual({
+      value: 10,
+    });
   });
 
   it('keeps the v1 subset closed to every call including table members', () => {
@@ -520,9 +521,8 @@ describe('DeterministicHsplusActionRuntime v3 local bindings', () => {
     );
     const identity = { x: 0, y: 0, z: 0, w: 1 };
     const zQuarter = { x: 0, y: 0, z: 0.7071067811865476, w: 0.7071067811865476 };
-    const mid = runtime.invoke(
-      observation('quat_slerp', { a: identity, b: zQuarter, t: 0.5 })
-    ).value as Record<string, number>;
+    const mid = runtime.invoke(observation('quat_slerp', { a: identity, b: zQuarter, t: 0.5 }))
+      .value as Record<string, number>;
     expect(mid.w).toBeCloseTo(0.9238795325112867, 12);
     expect(mid.z).toBeCloseTo(0.3826834323650898, 12);
     expect(mid.x).toBe(0);
@@ -536,9 +536,8 @@ describe('DeterministicHsplusActionRuntime v3 local bindings', () => {
     });
     const a = { x: 0.5, y: 0.5, z: 0.5, w: 0.5 };
     const negated = { x: -0.5, y: -0.5, z: -0.5, w: -0.5 };
-    const shortest = runtime.invoke(
-      observation('quat_slerp', { a, b: negated, t: 0.25 })
-    ).value as Record<string, number>;
+    const shortest = runtime.invoke(observation('quat_slerp', { a, b: negated, t: 0.25 }))
+      .value as Record<string, number>;
     expect(shortest.x).toBeCloseTo(0.5, 12);
     expect(shortest.w).toBeCloseTo(0.5, 12);
   });
@@ -611,9 +610,7 @@ describe('DeterministicHsplusActionRuntime v4 host bindings', () => {
     },
     set_lib: {
       set_union: (a: unknown[], b: unknown[]) =>
-        [...new Set([...a, ...b].map((x) => JSON.stringify(x)))]
-          .sort()
-          .map((x) => JSON.parse(x)),
+        [...new Set([...a, ...b].map((x) => JSON.stringify(x)))].sort().map((x) => JSON.parse(x)),
     },
     map_lib: {
       map_get: (m: Record<string, unknown>, key: string) => {
@@ -649,9 +646,9 @@ describe('DeterministicHsplusActionRuntime v4 host bindings', () => {
     expect(runtime.invoke(observation('clamped', { value: 42, lo: 0, hi: 10 })).value).toEqual({
       value: 10,
     });
-    expect(
-      runtime.invoke(observation('union_sorted', { a: [3, 1, 2], b: [2, 4] })).value
-    ).toEqual({ value: [1, 2, 3, 4] });
+    expect(runtime.invoke(observation('union_sorted', { a: [3, 1, 2], b: [2, 4] })).value).toEqual({
+      value: [1, 2, 3, 4],
+    });
     expect(runtime.invoke(observation('mixed', { v: 7, lo: 0, hi: 5 })).value).toEqual({
       value: 10,
     });
@@ -708,5 +705,77 @@ describe('DeterministicHsplusActionRuntime v4 host bindings', () => {
         { numericBuiltins: true, hostBindings: bindings }
       )
     ).toThrow(/undeclared parameter "math"/);
+  });
+});
+
+describe('DeterministicHsplusActionRuntime v6 null coalescing', () => {
+  const NULL_COALESCING_SOURCE = `composition "Null Coalescing Probe" {
+  state {
+    touched: 0
+  }
+
+  logic {
+    action fallback(value, fallback) {
+      return { allowed: true, outcome: "ok", value: value ?? fallback }
+    }
+
+    action lazy(value) {
+      return { allowed: true, outcome: "ok", value: value ?? (1 / 0) }
+    }
+  }
+}`;
+
+  const v6Options = {
+    numericBuiltins: true,
+    localBindings: true,
+    hostBindings: {
+      probe: {
+        identity: (value: unknown) => value,
+      },
+    },
+    nullCoalescing: true,
+  } as const;
+
+  it('uses strict null semantics and evaluates the right operand lazily', () => {
+    expect(ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V6).toBe(
+      'holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing'
+    );
+    const runtime = createDeterministicHsplusActionRuntime(NULL_COALESCING_SOURCE, v6Options);
+    expect(runtime.subsetId).toBe(ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V6);
+
+    expect(
+      runtime.invoke(scheduleEntry('fallback', { args: { value: null, fallback: 'default' } }))
+        .value
+    ).toEqual({ allowed: true, outcome: 'ok', value: 'default' });
+    for (const value of [false, 0, '']) {
+      expect(runtime.invoke(scheduleEntry('lazy', { args: { value } })).value).toEqual({
+        allowed: true,
+        outcome: 'ok',
+        value,
+      });
+    }
+    expect(() => runtime.invoke(scheduleEntry('lazy', { args: { value: null } }))).toThrow(
+      /division by zero/
+    );
+  });
+
+  it('keeps earlier subsets pinned and requires the cumulative v6 rails', () => {
+    expect(() =>
+      createDeterministicHsplusActionRuntime(NULL_COALESCING_SOURCE, {
+        numericBuiltins: true,
+        localBindings: true,
+        hostBindings: v6Options.hostBindings,
+      })
+    ).toThrow(/binary operator "\?\?" is unsupported/);
+
+    for (const options of [
+      { nullCoalescing: true },
+      { numericBuiltins: true, nullCoalescing: true },
+      { numericBuiltins: true, localBindings: true, nullCoalescing: true },
+    ]) {
+      expect(() => createDeterministicHsplusActionRuntime(NULL_COALESCING_SOURCE, options)).toThrow(
+        /requires numericBuiltins, localBindings, and hostBindings/
+      );
+    }
   });
 });

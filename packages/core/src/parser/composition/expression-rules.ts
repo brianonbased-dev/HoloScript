@@ -137,7 +137,7 @@ export function parseExpression(api: ExpressionParserApi): HoloExpression {
 
 function parseConditionalExpr(api: ExpressionParserApi): HoloExpression {
   const startLoc = api.currentLocation();
-  const expr = parseOrExpr(api);
+  const expr = parseNullCoalescingExpr(api);
 
   if (api.match('QUESTION')) {
     const consequent = parseExpression(api);
@@ -153,6 +153,19 @@ function parseConditionalExpr(api: ExpressionParserApi): HoloExpression {
   }
 
   return expr;
+}
+
+/**
+ * HoloScript keeps null coalescing below logical OR and above the conditional
+ * expression, matching the established HoloScript+ grammar.
+ */
+function parseNullCoalescingExpr(api: ExpressionParserApi): HoloExpression {
+  let left = parseOrExpr(api);
+  while (api.match('NULL_COALESCE')) {
+    const right = parseOrExpr(api);
+    left = { type: 'BinaryExpression', operator: '??', left, right };
+  }
+  return left;
 }
 
 function parseOrExpr(api: ExpressionParserApi): HoloExpression {
