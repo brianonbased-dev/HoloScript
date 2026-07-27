@@ -15,15 +15,13 @@ import { dirname, relative, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { DEFAULT_PAPER_5_DATASET, requirePaper5Dataset } from './verify-paper-5-dataset.mjs';
 import {
-  DEFAULT_PAPER_5_DATASET,
-  requirePaper5Dataset,
-} from './verify-paper-5-dataset.mjs';
-import {
-  buildAgentPrompt,
+  buildAgentBatchPrompt,
   candidateId,
   counterbalancedOrders,
   normalizePath,
+  parseAgentBatchResponse,
   parseAgentResponse,
   scoreRanking,
   sha256,
@@ -35,10 +33,7 @@ import {
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(scriptDir, '..');
 const repoRoot = resolve(packageRoot, '../..');
-const DEFAULT_PROTOCOL = resolve(
-  packageRoot,
-  'benchmarks/paper-5-visual-agent-study-v1.json'
-);
+const DEFAULT_PROTOCOL = resolve(packageRoot, 'benchmarks/paper-5-visual-agent-study-v2.json');
 const DEFAULT_PACKETS_OUT = '.bench-logs/paper-5-visual-agent-packets.json';
 const DEFAULT_RESULTS_OUT = '.bench-logs/paper-5-visual-agent-results.json';
 
@@ -50,7 +45,7 @@ function parseArgs(argv) {
     out: DEFAULT_RESULTS_OUT,
     repo: repoRoot,
     maxFiles: 200,
-    candidateCount: 10,
+    candidateCount: 8,
     endpoint: '',
     model: '',
     trials: 1,
@@ -101,7 +96,7 @@ function usage() {
     '  --out=PATH                 scored result artifact',
     '  --repo=PATH                HoloScript repository root',
     '  --max-files=N              scanner cap for absorb-service (default 200)',
-    '  --candidate-count=N        fixed candidate count (default 10)',
+    '  --candidate-count=N        fixed candidate count (default 8)',
     '  --endpoint=URL             OpenAI-compatible base, /v1, or chat-completions URL',
     '  --model=NAME               exact served model name',
     '  --trials=N                 stateless trials per arm (default 1)',
@@ -119,7 +114,10 @@ async function main() {
   const protocolRaw = readFileSync(options.protocol, 'utf8');
   const protocol = JSON.parse(protocolRaw);
   if (
-    protocol.schemaVersion !== 'holoscript.paper5.visual-agent-study-protocol.v1'
+    ![
+      'holoscript.paper5.visual-agent-study-protocol.v1',
+      'holoscript.paper5.visual-agent-study-protocol.v2',
+    ].includes(protocol.schemaVersion)
   ) {
     throw new Error('visual-agent protocol schema mismatch');
   }
@@ -159,6 +157,7 @@ async function main() {
       sceneIndex,
       rootDir: corpus.rootDir,
       candidateCount: options.candidateCount,
+      protocol,
     });
     cases.push(studyCase);
     if ((queryIndex + 1) % 9 === 0 || queryIndex + 1 === dataset.queries.length) {
@@ -208,45 +207,51 @@ async function main() {
 
   const observations = [];
   const expected = cases.length * 2 * options.trials;
+  const requestBatchSize = Number(protocol.agentProtocol.requestBatchSize ?? 1);
+  let completedRequests = 0;
+  let expectedRequests = 0;
   for (let trial = 0; trial < options.trials; trial += 1) {
-    for (const studyCase of cases) {
-      const armOrder =
-        Number.parseInt(sha256(`${studyCase.id}:${trial}:arm-order`).slice(0, 2), 16) %
-          2 ===
-        0
-          ? ['text', 'visual']
-          : ['visual', 'text'];
-      for (const arm of armOrder) {
-        const prompt = buildAgentPrompt(studyCase, arm, protocol);
-        const validCandidateIds = studyCase.arms[arm].candidates.map(
+    const jobs = buildRequestJobs(cases, requestBatchSize, trial);
+    expectedRequests += jobs.length;
+    for (const job of jobs) {
+      const prompt = buildAgentBatchPrompt(job.cases, job.arm, protocol);
+      const started = performance.now();
+      let parsedByCase;
+      let attempts = 0;
+      let requestMetadata = null;
+      let lastError = null;
+      while (
+        attempts < 2 &&
+        (!parsedByCase || Object.values(parsedByCase).some((parsed) => !parsed.valid))
+      ) {
+        attempts += 1;
+        try {
+          const response = await callOpenAICompatible({
+            endpoint: options.endpoint,
+            model: options.model,
+            prompt,
+            timeoutMs: options.requestTimeoutMs,
+            maxTokens: protocol.agentProtocol.maxTokens,
+            seed: protocol.metrics.bootstrapSeed + trial,
+          });
+          parsedByCase = parseAgentBatchResponse(response.content, job.cases, job.arm);
+          requestMetadata = response.metadata;
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : String(error);
+        }
+      }
+      const requestLatencyMs = performance.now() - started;
+      for (const studyCase of job.cases) {
+        const validCandidateIds = studyCase.arms[job.arm].candidates.map(
           (candidate) => candidate.candidateId
         );
-        const started = performance.now();
-        let parsed;
-        let attempts = 0;
-        let requestMetadata = null;
-        let lastError = null;
-        while (attempts < 2 && !parsed?.valid) {
-          attempts += 1;
-          try {
-            const response = await callOpenAICompatible({
-              endpoint: options.endpoint,
-              model: options.model,
-              prompt,
-              timeoutMs: options.requestTimeoutMs,
-              maxTokens: protocol.agentProtocol.maxTokens,
-              seed: protocol.metrics.bootstrapSeed + trial,
-            });
-            parsed = parseAgentResponse(response.content, validCandidateIds);
-            requestMetadata = response.metadata;
-          } catch (error) {
-            lastError = error instanceof Error ? error.message : String(error);
-          }
-        }
-        if (!parsed) {
-          parsed = parseAgentResponse('', validCandidateIds);
-          parsed.error = `request-failed:${lastError ?? 'unknown'}`;
-        }
+        const parsed =
+          parsedByCase?.[studyCase.id] ??
+          (() => {
+            const failed = parseAgentResponse('', validCandidateIds);
+            failed.error = `request-failed:${lastError ?? 'unknown'}`;
+            return failed;
+          })();
         const score = scoreRanking(
           parsed.rankedCandidateIds,
           studyCase.scoringKey.goldCandidateIds,
@@ -255,7 +260,7 @@ async function main() {
         observations.push({
           caseId: studyCase.id,
           category: studyCase.category,
-          arm,
+          arm: job.arm,
           trial,
           valid: parsed.valid,
           error: parsed.error,
@@ -264,15 +269,19 @@ async function main() {
           confidence: parsed.confidence,
           responseSha256: parsed.responseSha256,
           responsePreview: parsed.responsePreview,
-          latencyMs: round(performance.now() - started),
+          latencyMs: round(requestLatencyMs / job.cases.length),
+          requestLatencyMs: round(requestLatencyMs),
+          requestCaseCount: job.cases.length,
           attempts,
           requestMetadata,
           ...score,
         });
-        if (observations.length % 10 === 0 || observations.length === expected) {
-          console.log(`[visual-agent] responses ${observations.length}/${expected}`);
-        }
       }
+      completedRequests += 1;
+      console.log(
+        `[visual-agent] requests ${completedRequests}/${expectedRequests} ` +
+          `responses=${observations.length}/${expected}`
+      );
     }
   }
 
@@ -311,6 +320,7 @@ async function main() {
       name: options.model,
       temperature: protocol.agentProtocol.temperature,
       maxTokens: protocol.agentProtocol.maxTokens,
+      requestBatchSize,
       trialsPerArm: options.trials,
       statelessRequests: true,
     },
@@ -318,6 +328,8 @@ async function main() {
     execution: {
       expectedResponses: expected,
       completedResponses: observations.length,
+      expectedRequests,
+      completedRequests,
       invalidResponses: invalidCount,
       setupMs: round(performance.now() - setupStarted),
     },
@@ -349,9 +361,7 @@ async function main() {
 }
 
 async function loadCorpus(root, maxFiles) {
-  const engineUrl = pathToFileUrl(
-    resolve(root, 'packages/absorb-service/dist/engine/index.js')
-  );
+  const engineUrl = pathToFileUrl(resolve(root, 'packages/absorb-service/dist/engine/index.js'));
   const mod = await import(engineUrl);
   const {
     CodebaseGraph,
@@ -410,6 +420,7 @@ function buildStudyCase({
   sceneIndex,
   rootDir,
   candidateCount,
+  protocol,
 }) {
   const fileByRelative = new Map(
     graph.getFilePaths().map((file) => [relativeFile(file, rootDir), file])
@@ -452,13 +463,14 @@ function buildStudyCase({
     throw new Error(`${query.id}: unable to build ${candidateCount} candidates`);
   }
   for (const file of goldFiles) {
-    if (!fileByRelative.has(file)) throw new Error(`${query.id}: gold file absent from graph: ${file}`);
+    if (!fileByRelative.has(file))
+      throw new Error(`${query.id}: gold file absent from graph: ${file}`);
     if (!sceneIndex.fileRepresentative.has(file)) {
       throw new Error(`${query.id}: gold file absent from visual scene: ${file}`);
     }
   }
   const cards = candidateFiles.map((file) =>
-    buildCandidateCard(file, fileByRelative.get(file), graph, sceneIndex, rootDir)
+    buildCandidateCard(file, fileByRelative.get(file), graph, sceneIndex, protocol)
   );
   const orders = counterbalancedOrders(cards, query.id);
   const graphObservation = buildVisualObservation(
@@ -466,15 +478,14 @@ function buildStudyCase({
     graph,
     sceneIndex,
     fileByRelative,
-    rootDir
+    rootDir,
+    protocol
   );
   return {
     id: query.id,
     category: query.category,
     query: query.query,
-    candidateSetSha256: sha256(
-      JSON.stringify(cards.map((card) => card.candidateId).sort())
-    ),
+    candidateSetSha256: sha256(JSON.stringify(cards.map((card) => card.candidateId).sort())),
     counterbalanceSwap: orders.swap,
     scoringKey: {
       goldCandidateIds: goldFiles.map(candidateId).sort(),
@@ -491,23 +502,33 @@ function buildStudyCase({
   };
 }
 
-function buildCandidateCard(file, graphFile, graph, sceneIndex, rootDir) {
+function buildCandidateCard(file, graphFile, graph, sceneIndex, protocol) {
   const symbols = graphFile ? graph.getSymbolsInFile(graphFile) : [];
   const representative = sceneIndex.fileRepresentative.get(file);
-  return {
+  const base = {
     candidateId: candidateId(file),
     file,
+    symbolCount: symbols.length,
+    representativeType: representative?.properties?.symbolType ?? null,
+  };
+  if (protocol?.design?.promptEncoding === 'compact-v2') {
+    return {
+      ...base,
+      symbolNames: symbols.slice(0, 4).map((symbol) => sanitizeEvidence(symbol.name, 80)),
+    };
+  }
+  return {
+    ...base,
     symbols: symbols.slice(0, 8).map((symbol) => ({
       name: sanitizeEvidence(symbol.name, 100),
       type: sanitizeEvidence(symbol.type, 60),
       signature: sanitizeEvidence(symbol.signature, 220),
     })),
-    symbolCount: symbols.length,
-    representativeType: representative?.properties?.symbolType ?? null,
   };
 }
 
-function buildVisualObservation(candidates, graph, sceneIndex, fileByRelative, rootDir) {
+function buildVisualObservation(candidates, graph, sceneIndex, fileByRelative, rootDir, protocol) {
+  const compact = protocol?.design?.promptEncoding === 'compact-v2';
   const candidateIdByFile = new Map(
     candidates.map((candidate) => [candidate.file, candidate.candidateId])
   );
@@ -521,20 +542,16 @@ function buildVisualObservation(candidates, graph, sceneIndex, fileByRelative, r
           .filter(Boolean)
       : [];
     const importedBy = graphFile
-      ? graph.getImportedBy(graphFile).map((item) => relativeFile(item, rootDir)).filter(Boolean)
+      ? graph
+          .getImportedBy(graphFile)
+          .map((item) => relativeFile(item, rootDir))
+          .filter(Boolean)
       : [];
-    return {
+    const base = {
       candidateId: candidate.candidateId,
       sceneNodeId: object?.name ?? null,
       position: object?.position ?? null,
-      community: object ? sceneIndex.communityByNode.get(object.name) ?? null : null,
-      visualStyle: object
-        ? {
-            geometry: object.geometry,
-            color: object.color,
-            scale: object.scale,
-          }
-        : null,
+      community: object ? opaqueCommunity(sceneIndex.communityByNode.get(object.name)) : null,
       importDegree: {
         outgoing: importsTo.length,
         incoming: importedBy.length,
@@ -543,6 +560,17 @@ function buildVisualObservation(candidates, graph, sceneIndex, fileByRelative, r
         importsTo: importsTo.map((file) => candidateIdByFile.get(file)).filter(Boolean),
         importedBy: importedBy.map((file) => candidateIdByFile.get(file)).filter(Boolean),
       },
+    };
+    if (compact) return base;
+    return {
+      ...base,
+      visualStyle: object
+        ? {
+            geometry: object.geometry,
+            color: object.color,
+            scale: object.scale,
+          }
+        : null,
       boundedExternalNeighbors: {
         importsTo: importsTo.slice(0, 6),
         importedBy: importedBy.slice(0, 6),
@@ -550,9 +578,7 @@ function buildVisualObservation(candidates, graph, sceneIndex, fileByRelative, r
     };
   });
   const sceneNodeToCandidate = new Map(
-    nodes
-      .filter((node) => node.sceneNodeId)
-      .map((node) => [node.sceneNodeId, node.candidateId])
+    nodes.filter((node) => node.sceneNodeId).map((node) => [node.sceneNodeId, node.candidateId])
   );
   const edges = sceneIndex.edges
     .map((edge) => ({
@@ -573,6 +599,20 @@ function buildVisualObservation(candidates, graph, sceneIndex, fileByRelative, r
   };
 }
 
+function buildRequestJobs(cases, batchSize, trial) {
+  const jobs = [];
+  for (let offset = 0; offset < cases.length; offset += batchSize) {
+    const batch = cases.slice(offset, offset + batchSize);
+    const firstArm =
+      Number.parseInt(sha256(`${trial}:${offset}:batch-arm-order`).slice(0, 2), 16) % 2 === 0
+        ? 'text'
+        : 'visual';
+    const secondArm = firstArm === 'text' ? 'visual' : 'text';
+    jobs.push({ arm: firstArm, cases: batch }, { arm: secondArm, cases: batch });
+  }
+  return jobs;
+}
+
 function indexScene(scene, rootDir) {
   const communityByNode = new Map();
   for (const group of scene.spatialGroups ?? []) {
@@ -590,14 +630,7 @@ function indexScene(scene, rootDir) {
   };
 }
 
-async function callOpenAICompatible({
-  endpoint,
-  model,
-  prompt,
-  timeoutMs,
-  maxTokens,
-  seed,
-}) {
+async function callOpenAICompatible({ endpoint, model, prompt, timeoutMs, maxTokens, seed }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -672,6 +705,10 @@ function sanitizeEvidence(value, maxLength) {
     .replace(/\s+/gu, ' ')
     .trim()
     .slice(0, maxLength);
+}
+
+function opaqueCommunity(value) {
+  return value ? `community_${createHash('sha256').update(value).digest('hex').slice(0, 8)}` : null;
 }
 
 function pathToFileUrl(path) {

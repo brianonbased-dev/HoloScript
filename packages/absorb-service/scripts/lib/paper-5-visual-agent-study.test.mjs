@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  buildAgentBatchPrompt,
   buildAgentPrompt,
   candidateId,
   counterbalancedOrders,
+  parseAgentBatchResponse,
   parseAgentResponse,
   scoreRanking,
   summarizeObservations,
@@ -48,6 +50,45 @@ test('parses JSON after a bounded think block and rejects unknown IDs', () => {
   assert.equal(parsed.valid, true);
   assert.deepEqual(parsed.rankedCandidateIds, [valid]);
   assert.deepEqual(parsed.unknownCandidateIds, ['cand_unknown']);
+});
+
+test('builds and parses same-arm blinded batches', () => {
+  const a = candidate('a.ts');
+  const b = candidate('b.ts');
+  const studyCase = {
+    id: 'dependency-01',
+    category: 'dependency',
+    query: 'Which candidate is relevant?',
+    arms: {
+      text: { candidates: [a, b] },
+      visual: {
+        candidates: [b, a],
+        visualGraphObservation: { nodes: [], edges: [] },
+      },
+    },
+  };
+  const compactProtocol = {
+    ...protocol,
+    design: { ...protocol.design, promptEncoding: 'compact-v2' },
+  };
+  const prompt = buildAgentBatchPrompt([studyCase], 'text', compactProtocol);
+  assert.doesNotMatch(prompt, /goldCandidateIds|scoringKey|relevanceLabel/iu);
+  assert.match(prompt, /"rankedCandidateIds":\["c1"\]/u);
+  assert.doesNotMatch(prompt, /cand_example/u);
+  const parsed = parseAgentBatchResponse(
+    JSON.stringify({
+      answers: {
+        'dependency-01': {
+          rankedCandidateIds: [a.candidateId],
+          confidence: 0.7,
+        },
+      },
+    }),
+    [studyCase],
+    'text'
+  );
+  assert.equal(parsed['dependency-01'].valid, true);
+  assert.deepEqual(parsed['dependency-01'].rankedCandidateIds, [a.candidateId]);
 });
 
 test('uses a fixed Precision@5 denominator and first-hit reciprocal rank', () => {

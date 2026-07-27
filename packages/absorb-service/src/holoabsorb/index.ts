@@ -285,6 +285,7 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'packages/absorb-service/scripts/bench-paper-5-gpu.mjs',
       'packages/absorb-service/benchmarks/paper-5-retrieval-v1.json',
       'packages/absorb-service/benchmarks/paper-5-visual-agent-study-v1.json',
+      'packages/absorb-service/benchmarks/paper-5-visual-agent-study-v2.json',
     ],
   },
 ];
