@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-26T21:51:59.1695231Z",
+  "generatedAt": "2026-07-27T00:50:00.446Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "9b2dc4ddf40c169df7d9c0dca2b2f64ca2677280",
+  "sourceCommit": "62c345718933b6555e2e20513960154600ce38c5",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 345153,
-    "wasmSha256": "4dc33724a8c0d5ee63304580bcfc5b86c2a2eedad90e23c317c06f4f097cf7ab",
-    "previousWasmSha256": "a7dc159739a7b99c714d81e3c17f327f2c6217204d7937e507065c0f70e44128",
+    "wasmBytes": 346734,
+    "wasmSha256": "507223a320510d38f7d84bbfe5b0825cee19dbbf7ab265c43d4307421fcd7b04",
+    "previousWasmSha256": "4dc33724a8c0d5ee63304580bcfc5b86c2a2eedad90e23c317c06f4f097cf7ab",
     "repeatBuildSha256Matched": true,
-    "note": "Rebuilt the Node verifier-of-record after the parser-parity source change. A second release rebuild produced the same SHA-256, proving the recorded artifact is stable on this toolchain."
+    "note": "Rebuilt twice after adding typed f64 UAAL lowering; the Node artifact was byte-stable and matches the browser target."
   }
 }
