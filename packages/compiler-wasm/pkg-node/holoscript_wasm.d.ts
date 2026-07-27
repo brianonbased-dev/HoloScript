@@ -29,6 +29,26 @@ export function compile_to_kotlin(source: string, indent: string): string;
  */
 export function compile_to_uaal(source: string): string;
 
+/**
+ * Evaluate one `@on_<handler>` trait-handler body deterministically — the
+ * WebAssembly execution leg of the std ABI conformance suite.
+ *
+ * Executes the BODY of the `@on_*` handler named `handler_name` inside the
+ * top-level `@trait <trait_name> { … }` definition in `source`, binding the
+ * handler parameters BY NAME from `args_json` (a JSON object). The admitted
+ * semantics are the deterministic subset mirrored from the engine runtime
+ * (`holoscript-engine-hsplus-deterministic-action-subset-v1`): f64 IEEE-754
+ * arithmetic, source-ordered evaluation, no function calls, fail closed on
+ * division by zero, non-finite results, negative zero, unknown identifiers,
+ * and any node outside the subset. See `eval.rs` for the full contract.
+ *
+ * # Returns
+ * Always a JSON string: `{"ok":true,"value":<json>}` on success, or
+ * `{"ok":false,"error":{"code":"…","message":"…"}}` on any failure — same
+ * always-JSON boundary convention as [`parse`] and [`validate_detailed`].
+ */
+export function evaluate_trait_handler(source: string, trait_name: string, handler_name: string, args_json: string): string;
+
 export function init(): void;
 
 /**

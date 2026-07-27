@@ -1,36 +1,27 @@
 {
-  "schema": "holoscript.std-abi-conformance.node.v0",
-  "generatedAtISO": "2026-07-27T00:42:57.658Z",
-  "target": "node",
-  "executionRuntime": {
-    "engine": "DeterministicHsplusActionRuntime",
-    "enginePackageVersion": "6.1.4",
-    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v1",
-    "executedProjection": "packages/std/conformance/generated/std-abi-conformance.action.hsplus"
+  "schema": "holoscript.std-abi-conformance.wasm.v0",
+  "generatedAtISO": "2026-07-27T00:42:58.588Z",
+  "target": "browser-wasm",
+  "executionRuntime": "node-webassembly",
+  "wasmArtifact": {
+    "path": "packages/compiler-wasm/pkg-node",
+    "sha256": "sha256:1236bcce16093e99ac6d86a5d6cf3ff8a31594038fd1e9e43e9b472abc2588d4",
+    "byteIdenticalWebArtifact": {
+      "path": "packages/compiler-wasm/pkg",
+      "sha256": "sha256:1236bcce16093e99ac6d86a5d6cf3ff8a31594038fd1e9e43e9b472abc2588d4",
+      "matches": true
+    }
   },
-  "referenceTwin": {
-    "module": "packages/std/dist/math.js",
-    "stdPackageVersion": "7.0.2",
-    "comparison": "three-way: runtime value vs frozen corpus expectation vs live twin recomputation"
-  },
+  "evaluatorExport": "evaluate_trait_handler",
   "sources": {
-    "packages/std/conformance/std-abi-ops.v0.json": {
-      "sha256": "sha256:e3975d1462bca20f2aa157e06bdcd67e1f9d21b6dddaf3ebdfff4b12b116485c"
-    },
-    "packages/std/conformance/generated/std-abi-conformance.action.hsplus": {
-      "sha256": "sha256:59f7b10953d46483bfb9f2a51913a26b0bb6dcb76568a90231c659d7875f8efb"
-    },
+    "traitProjectionSha256": "sha256:4d704cd8acb07a06210db34e0155267fc542a54c81120f4f184910d07cf07c53",
+    "vectorsSha256": "sha256:40a87145d82f0a65f0323bd91fdf04b6a36e05581bf8b3ee70bd4bdc205af7da",
+    "manifestSha256": "sha256:58a8820f7371c4d88bde1cb2b2d7e1472841aaa8d842ac40e3c8755feddc2bdc",
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
       "sha256": "sha256:4d704cd8acb07a06210db34e0155267fc542a54c81120f4f184910d07cf07c53"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
       "sha256": "sha256:40a87145d82f0a65f0323bd91fdf04b6a36e05581bf8b3ee70bd4bdc205af7da"
-    },
-    "packages/std/src/math.hsplus": {
-      "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
-    },
-    "packages/std/src/collections.hsplus": {
-      "sha256": "sha256:a7447f7f67c9dfd2b7e3be433f7c90436c3a1c749e858d6fd4399e6b1d7af673"
     }
   },
   "environment": {
@@ -39,7 +30,6 @@
     "platform": "win32"
   },
   "summary": {
-    "ops": 11,
     "vectors": 50,
     "passed": 50,
     "failed": 0,
@@ -99,7 +89,7 @@
       "id": "lerp-mid",
       "op": "on_lerp",
       "pass": true,
-      "valueCanonicalHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
+      "expectedHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
       "actual": {
         "value": 5
       }
@@ -108,7 +98,7 @@
       "id": "lerp-start",
       "op": "on_lerp",
       "pass": true,
-      "valueCanonicalHash": "sha256:49c987621f206f09e5fbe23b516b55a36f838cb14867961f1d84a554d3a35b6b",
+      "expectedHash": "sha256:49c987621f206f09e5fbe23b516b55a36f838cb14867961f1d84a554d3a35b6b",
       "actual": {
         "value": 2
       }
@@ -117,7 +107,7 @@
       "id": "lerp-end",
       "op": "on_lerp",
       "pass": true,
-      "valueCanonicalHash": "sha256:07953a67895cdbe07665002609a1c24dc503557aadb8db223e398fd2e7593132",
+      "expectedHash": "sha256:07953a67895cdbe07665002609a1c24dc503557aadb8db223e398fd2e7593132",
       "actual": {
         "value": 4
       }
@@ -126,7 +116,7 @@
       "id": "lerp-signed",
       "op": "on_lerp",
       "pass": true,
-      "valueCanonicalHash": "sha256:65e3e354e4f6da71cc9878cc4719ebe24853cd2da61128a5ce830df569327dd0",
+      "expectedHash": "sha256:65e3e354e4f6da71cc9878cc4719ebe24853cd2da61128a5ce830df569327dd0",
       "actual": {
         "value": 2.5
       }
@@ -135,7 +125,7 @@
       "id": "lerp-fractional",
       "op": "on_lerp",
       "pass": true,
-      "valueCanonicalHash": "sha256:f3d01953f83fd65fd3ced14c952014f33ffa6d31e96a0d7bdcb489504973fd6e",
+      "expectedHash": "sha256:f3d01953f83fd65fd3ced14c952014f33ffa6d31e96a0d7bdcb489504973fd6e",
       "actual": {
         "value": 2.2
       }
@@ -144,7 +134,7 @@
       "id": "clamp-inside",
       "op": "on_clamp",
       "pass": true,
-      "valueCanonicalHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
+      "expectedHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
       "actual": {
         "value": 5
       }
@@ -153,7 +143,7 @@
       "id": "clamp-below",
       "op": "on_clamp",
       "pass": true,
-      "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
         "value": 0
       }
@@ -162,7 +152,7 @@
       "id": "clamp-above",
       "op": "on_clamp",
       "pass": true,
-      "valueCanonicalHash": "sha256:a9c584f4ba45a8095ab3c1dc364c168e09006b78402318909271a8895ad8c9a5",
+      "expectedHash": "sha256:a9c584f4ba45a8095ab3c1dc364c168e09006b78402318909271a8895ad8c9a5",
       "actual": {
         "value": 10
       }
@@ -171,7 +161,7 @@
       "id": "clamp-fractional",
       "op": "on_clamp",
       "pass": true,
-      "valueCanonicalHash": "sha256:68da71bdd6fb631e3752113b5e21644440fdbb640467f34eca0d1e239b103907",
+      "expectedHash": "sha256:68da71bdd6fb631e3752113b5e21644440fdbb640467f34eca0d1e239b103907",
       "actual": {
         "value": 0.5
       }
@@ -180,7 +170,7 @@
       "id": "clamp-degenerate-range",
       "op": "on_clamp",
       "pass": true,
-      "valueCanonicalHash": "sha256:9d709bba0358da8fdf5600bb3692fa32d0aa2a19a08152cf4307e0b4240e71ac",
+      "expectedHash": "sha256:9d709bba0358da8fdf5600bb3692fa32d0aa2a19a08152cf4307e0b4240e71ac",
       "actual": {
         "value": 7
       }
@@ -189,7 +179,7 @@
       "id": "smoothstep-quarter",
       "op": "on_smoothstep",
       "pass": true,
-      "valueCanonicalHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
+      "expectedHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
       "actual": {
         "value": 0.15625
       }
@@ -198,7 +188,7 @@
       "id": "smoothstep-below-edge",
       "op": "on_smoothstep",
       "pass": true,
-      "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
         "value": 0
       }
@@ -207,7 +197,7 @@
       "id": "smoothstep-above-edge",
       "op": "on_smoothstep",
       "pass": true,
-      "valueCanonicalHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
+      "expectedHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
       "actual": {
         "value": 1
       }
@@ -216,7 +206,7 @@
       "id": "smoothstep-wide-range",
       "op": "on_smoothstep",
       "pass": true,
-      "valueCanonicalHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
+      "expectedHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
       "actual": {
         "value": 0.15625
       }
@@ -225,7 +215,7 @@
       "id": "smoothstep-offset-range",
       "op": "on_smoothstep",
       "pass": true,
-      "valueCanonicalHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
+      "expectedHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
       "actual": {
         "value": 0.15625
       }
@@ -234,7 +224,7 @@
       "id": "remap-mid",
       "op": "on_remap",
       "pass": true,
-      "valueCanonicalHash": "sha256:b3ff35319045aae558b55e787ba2ece9f2edb99905342c076ee98f9f834a36fe",
+      "expectedHash": "sha256:b3ff35319045aae558b55e787ba2ece9f2edb99905342c076ee98f9f834a36fe",
       "actual": {
         "value": 50
       }
@@ -243,7 +233,7 @@
       "id": "remap-low-edge",
       "op": "on_remap",
       "pass": true,
-      "valueCanonicalHash": "sha256:a9c584f4ba45a8095ab3c1dc364c168e09006b78402318909271a8895ad8c9a5",
+      "expectedHash": "sha256:a9c584f4ba45a8095ab3c1dc364c168e09006b78402318909271a8895ad8c9a5",
       "actual": {
         "value": 10
       }
@@ -252,7 +242,7 @@
       "id": "remap-signed-out",
       "op": "on_remap",
       "pass": true,
-      "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
         "value": 0
       }
@@ -261,7 +251,7 @@
       "id": "remap-expand",
       "op": "on_remap",
       "pass": true,
-      "valueCanonicalHash": "sha256:07953a67895cdbe07665002609a1c24dc503557aadb8db223e398fd2e7593132",
+      "expectedHash": "sha256:07953a67895cdbe07665002609a1c24dc503557aadb8db223e398fd2e7593132",
       "actual": {
         "value": 4
       }
@@ -270,7 +260,7 @@
       "id": "remap-degrees",
       "op": "on_remap",
       "pass": true,
-      "valueCanonicalHash": "sha256:c3201745e51019dd67d6d52f91c5ce47375cc89faa453a2d74805766d104975b",
+      "expectedHash": "sha256:c3201745e51019dd67d6d52f91c5ce47375cc89faa453a2d74805766d104975b",
       "actual": {
         "value": 108
       }
@@ -279,7 +269,7 @@
       "id": "deg2rad-zero",
       "op": "on_deg_to_rad",
       "pass": true,
-      "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
         "value": 0
       }
@@ -288,7 +278,7 @@
       "id": "deg2rad-half-turn",
       "op": "on_deg_to_rad",
       "pass": true,
-      "valueCanonicalHash": "sha256:31a41bcf8d1b809fb4ec548ffa177891c57f5ead03f4e4ab299a8d98d8115bd9",
+      "expectedHash": "sha256:31a41bcf8d1b809fb4ec548ffa177891c57f5ead03f4e4ab299a8d98d8115bd9",
       "actual": {
         "value": 3.141592653589793
       }
@@ -297,7 +287,7 @@
       "id": "deg2rad-quarter-turn",
       "op": "on_deg_to_rad",
       "pass": true,
-      "valueCanonicalHash": "sha256:26ee119068557061a4f0d224a1803865c7554d62dabb8c30caf6a8cf92714026",
+      "expectedHash": "sha256:26ee119068557061a4f0d224a1803865c7554d62dabb8c30caf6a8cf92714026",
       "actual": {
         "value": 1.5707963267948966
       }
@@ -306,7 +296,7 @@
       "id": "deg2rad-full-turn",
       "op": "on_deg_to_rad",
       "pass": true,
-      "valueCanonicalHash": "sha256:76a484ac879a700be60c17eaebc8c482752baf4aa8b024c285345e590a5479f9",
+      "expectedHash": "sha256:76a484ac879a700be60c17eaebc8c482752baf4aa8b024c285345e590a5479f9",
       "actual": {
         "value": 6.283185307179586
       }
@@ -315,7 +305,7 @@
       "id": "deg2rad-one-radian",
       "op": "on_deg_to_rad",
       "pass": true,
-      "valueCanonicalHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
+      "expectedHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
       "actual": {
         "value": 1
       }
@@ -324,7 +314,7 @@
       "id": "rad2deg-zero",
       "op": "on_rad_to_deg",
       "pass": true,
-      "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
         "value": 0
       }
@@ -333,7 +323,7 @@
       "id": "rad2deg-pi",
       "op": "on_rad_to_deg",
       "pass": true,
-      "valueCanonicalHash": "sha256:62378053df4337279c981b7ca793aff5f926763a9bbd1bd597d83c1fcbb77006",
+      "expectedHash": "sha256:62378053df4337279c981b7ca793aff5f926763a9bbd1bd597d83c1fcbb77006",
       "actual": {
         "value": 180
       }
@@ -342,7 +332,7 @@
       "id": "rad2deg-half-pi",
       "op": "on_rad_to_deg",
       "pass": true,
-      "valueCanonicalHash": "sha256:fc6296b76cc2f0af3813ce38df2ba83e71f32eea8f24c7971e1c7cc1a1c8f755",
+      "expectedHash": "sha256:fc6296b76cc2f0af3813ce38df2ba83e71f32eea8f24c7971e1c7cc1a1c8f755",
       "actual": {
         "value": 90
       }
@@ -351,7 +341,7 @@
       "id": "rad2deg-tau",
       "op": "on_rad_to_deg",
       "pass": true,
-      "valueCanonicalHash": "sha256:55dc8b779accbf812fcc4e9d158c0440df288bdf50053758ebc8e9f6fa8569e1",
+      "expectedHash": "sha256:55dc8b779accbf812fcc4e9d158c0440df288bdf50053758ebc8e9f6fa8569e1",
       "actual": {
         "value": 360
       }
@@ -360,7 +350,7 @@
       "id": "rad2deg-one",
       "op": "on_rad_to_deg",
       "pass": true,
-      "valueCanonicalHash": "sha256:09fb5fdd9d8dcc373b8f830d89b8a03d0bff3dc043f5c72b17737a95eeb56d2f",
+      "expectedHash": "sha256:09fb5fdd9d8dcc373b8f830d89b8a03d0bff3dc043f5c72b17737a95eeb56d2f",
       "actual": {
         "value": 57.29577951308232
       }
@@ -369,7 +359,7 @@
       "id": "dot-basic",
       "op": "on_vec3_dot",
       "pass": true,
-      "valueCanonicalHash": "sha256:b933ac6266196e74ee34e23a38c28fef1ee6115f37981f96ec90578f594e937a",
+      "expectedHash": "sha256:b933ac6266196e74ee34e23a38c28fef1ee6115f37981f96ec90578f594e937a",
       "actual": {
         "value": 32
       }
@@ -378,7 +368,7 @@
       "id": "dot-orthogonal",
       "op": "on_vec3_dot",
       "pass": true,
-      "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
       "actual": {
         "value": 0
       }
@@ -387,7 +377,7 @@
       "id": "dot-fractional",
       "op": "on_vec3_dot",
       "pass": true,
-      "valueCanonicalHash": "sha256:827d22168a228126ef43590fdafdb5baa54fff5d74066eb4526ab384c741e506",
+      "expectedHash": "sha256:827d22168a228126ef43590fdafdb5baa54fff5d74066eb4526ab384c741e506",
       "actual": {
         "value": -0.25
       }
@@ -396,7 +386,7 @@
       "id": "dot-ones",
       "op": "on_vec3_dot",
       "pass": true,
-      "valueCanonicalHash": "sha256:d428e15b36ff064e22b6f8db60bd7a59bcfc07a04ccd0f15d9a96dc060c72e3c",
+      "expectedHash": "sha256:d428e15b36ff064e22b6f8db60bd7a59bcfc07a04ccd0f15d9a96dc060c72e3c",
       "actual": {
         "value": 3
       }
@@ -405,7 +395,7 @@
       "id": "dot-negative",
       "op": "on_vec3_dot",
       "pass": true,
-      "valueCanonicalHash": "sha256:bea2fc65f4b20033fe6d180fd2acb49923a17e314e8b6330ee6bfbbef70dd680",
+      "expectedHash": "sha256:bea2fc65f4b20033fe6d180fd2acb49923a17e314e8b6330ee6bfbbef70dd680",
       "actual": {
         "value": -20
       }
@@ -414,7 +404,7 @@
       "id": "cross-basis",
       "op": "on_vec3_cross",
       "pass": true,
-      "valueCanonicalHash": "sha256:283753ed40e3875ab019d55a36a6111df2761bc6f2078d5df196f688c34693b4",
+      "expectedHash": "sha256:283753ed40e3875ab019d55a36a6111df2761bc6f2078d5df196f688c34693b4",
       "actual": {
         "x": 0,
         "y": 0,
@@ -425,7 +415,7 @@
       "id": "cross-general",
       "op": "on_vec3_cross",
       "pass": true,
-      "valueCanonicalHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
+      "expectedHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
       "actual": {
         "x": -3,
         "y": 6,
@@ -436,7 +426,7 @@
       "id": "cross-fractional",
       "op": "on_vec3_cross",
       "pass": true,
-      "valueCanonicalHash": "sha256:54a75194d5faabc67b6f81f862196a6814e8aa9395e90ff5efe01f66427a3fba",
+      "expectedHash": "sha256:54a75194d5faabc67b6f81f862196a6814e8aa9395e90ff5efe01f66427a3fba",
       "actual": {
         "x": -1.1875,
         "y": -6.125,
@@ -447,7 +437,7 @@
       "id": "cross-sequential",
       "op": "on_vec3_cross",
       "pass": true,
-      "valueCanonicalHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
+      "expectedHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
       "actual": {
         "x": -3,
         "y": 6,
@@ -458,7 +448,7 @@
       "id": "cross-parallel",
       "op": "on_vec3_cross",
       "pass": true,
-      "valueCanonicalHash": "sha256:35461afe4a2d42dcc8948534195c5e79c22332615508a7a0627de91e52c3b5c8",
+      "expectedHash": "sha256:35461afe4a2d42dcc8948534195c5e79c22332615508a7a0627de91e52c3b5c8",
       "actual": {
         "x": 0,
         "y": 0,
@@ -469,7 +459,7 @@
       "id": "vlerp-mid",
       "op": "on_vec3_lerp",
       "pass": true,
-      "valueCanonicalHash": "sha256:f3ff8d804e9661ca21c32a5391cc62daf1c2dca047dcd377e8e796212bd8e0e0",
+      "expectedHash": "sha256:f3ff8d804e9661ca21c32a5391cc62daf1c2dca047dcd377e8e796212bd8e0e0",
       "actual": {
         "x": 5,
         "y": 10,
@@ -480,7 +470,7 @@
       "id": "vlerp-start",
       "op": "on_vec3_lerp",
       "pass": true,
-      "valueCanonicalHash": "sha256:bd15c4f7a60dfdd589b642ef04c905ea126c83b40116c0c62143616499066a12",
+      "expectedHash": "sha256:bd15c4f7a60dfdd589b642ef04c905ea126c83b40116c0c62143616499066a12",
       "actual": {
         "x": 1,
         "y": 2,
@@ -491,7 +481,7 @@
       "id": "vlerp-end",
       "op": "on_vec3_lerp",
       "pass": true,
-      "valueCanonicalHash": "sha256:7161f7bf5e9490c07b4ee0c2dc9d05bc1c32a3eec2d6f793587127d25c06a702",
+      "expectedHash": "sha256:7161f7bf5e9490c07b4ee0c2dc9d05bc1c32a3eec2d6f793587127d25c06a702",
       "actual": {
         "x": 4,
         "y": 5,
@@ -502,7 +492,7 @@
       "id": "vlerp-quarter",
       "op": "on_vec3_lerp",
       "pass": true,
-      "valueCanonicalHash": "sha256:6666813a18a95580a37cdd3b2e7b521a7dbd0a4292a3e0a691d6f39c27655ed4",
+      "expectedHash": "sha256:6666813a18a95580a37cdd3b2e7b521a7dbd0a4292a3e0a691d6f39c27655ed4",
       "actual": {
         "x": -2,
         "y": 4,
@@ -513,7 +503,7 @@
       "id": "vlerp-fractional-t",
       "op": "on_vec3_lerp",
       "pass": true,
-      "valueCanonicalHash": "sha256:162488e26f24c738808c67b7f7c8bf54ce1b988236a8eaa8d5adeb71701dbfd6",
+      "expectedHash": "sha256:162488e26f24c738808c67b7f7c8bf54ce1b988236a8eaa8d5adeb71701dbfd6",
       "actual": {
         "x": 1.9,
         "y": 2.9,
@@ -524,7 +514,7 @@
       "id": "quat-identity",
       "op": "on_quat_identity",
       "pass": true,
-      "valueCanonicalHash": "sha256:90e7abdf8c447efdeeb2a4baa4d86fe684e6243b81da3af854245e8036d8abf9",
+      "expectedHash": "sha256:ae4521a018cf2320f1ece95ba13cdc13bb3fdebe7807353b5bc15de37ddfa585",
       "actual": {
         "w": 1,
         "x": 0,
@@ -536,7 +526,7 @@
       "id": "qmul-identity-left",
       "op": "on_quat_multiply",
       "pass": true,
-      "valueCanonicalHash": "sha256:24d932417158ecd91694b044c95ae4ed3ebbd4e8f2bea3a2d1b9f12a6ab11669",
+      "expectedHash": "sha256:3361c4e7ea453f7a050ffd60bc84307957733d76909bae2601375dd208557bf4",
       "actual": {
         "w": 0.5,
         "x": 0.5,
@@ -548,7 +538,7 @@
       "id": "qmul-identity-right",
       "op": "on_quat_multiply",
       "pass": true,
-      "valueCanonicalHash": "sha256:24d932417158ecd91694b044c95ae4ed3ebbd4e8f2bea3a2d1b9f12a6ab11669",
+      "expectedHash": "sha256:3361c4e7ea453f7a050ffd60bc84307957733d76909bae2601375dd208557bf4",
       "actual": {
         "w": 0.5,
         "x": 0.5,
@@ -560,7 +550,7 @@
       "id": "qmul-general",
       "op": "on_quat_multiply",
       "pass": true,
-      "valueCanonicalHash": "sha256:4f3247ca843aa4ee3261002095cd5c503e9f5664775224ebbe72658b5e0ec545",
+      "expectedHash": "sha256:5d597c24ab9cb723541de11b52efb6b0d7fb7b14a06685ea6b627701e81462e5",
       "actual": {
         "w": 0.525,
         "x": 0.435,
@@ -572,7 +562,7 @@
       "id": "qmul-half-turns",
       "op": "on_quat_multiply",
       "pass": true,
-      "valueCanonicalHash": "sha256:6c58962898d8e10592250ab53632e4b83aa0a020a53c741d49255b8f2743c206",
+      "expectedHash": "sha256:fd812f4ee6efe4149d5ee1b77790312d8e27831954362f799a36dc0a1847d31c",
       "actual": {
         "w": 0.5000000000000001,
         "x": 0.5000000000000001,
@@ -582,11 +572,8 @@
     }
   ],
   "claimBoundary": {
-    "provesNodeDeterministicSubsetExecution": true,
-    "provesBrowserWasmExecution": false,
-    "provesOwnedMetalExecution": false,
-    "provesPackagedHandlerExecution": false,
-    "note": "The executed source is the generated conformance projection of the packaged @trait handlers, in the engine deterministic action subset. The packaged math.hsplus trait bodies are hash-bound in sources but are not directly executable by any runtime in this repository today; ops whose packaged bodies delegate to host bindings are marked host-delegation-rewrite and their projections are recorded in the ops SSOT. Cross-target equality is claimed only by the separate cross-target checker over sibling receipts."
+    "provesBrowserExecution": false,
+    "note": "Executed in Node's WebAssembly runtime against the byte-identical wasm shipped for browsers; a browser smoke run is a separate receipt."
   },
-  "receiptHash": "sha256:4bacfea6fc880ec118d031c6d8148e96719dc2daa34e5e81fe9608e60605e3e0"
+  "receiptHash": "sha256:48f8ae70fbb70d5c8096d2ee7601873c782b1981ad267b268f794aab259a910c"
 }

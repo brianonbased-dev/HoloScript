@@ -1,0 +1,474 @@
+{
+  "schema": "holoscript.std-abi-conformance.owned-metal.v0",
+  "generatedAtISO": "2026-07-27T00:43:14.258Z",
+  "target": "owned-metal",
+  "executionRuntime": {
+    "engine": "compiler-wasm evaluate_trait_handler (WebAssembly)",
+    "executedProjection": "std-abi-conformance.trait.hsplus (bundle copy, pin-verified)",
+    "wasmArtifactSha256": "sha256:1236bcce16093e99ac6d86a5d6cf3ff8a31594038fd1e9e43e9b472abc2588d4"
+  },
+  "sources": {
+    "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
+      "sha256": "sha256:40a87145d82f0a65f0323bd91fdf04b6a36e05581bf8b3ee70bd4bdc205af7da"
+    },
+    "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
+      "sha256": "sha256:4d704cd8acb07a06210db34e0155267fc542a54c81120f4f184910d07cf07c53"
+    }
+  },
+  "environment": {
+    "node": "v20.20.2",
+    "arch": "arm64",
+    "platform": "linux",
+    "hostLabel": "jetson-orin",
+    "hostname": "holojetson",
+    "cpus": "Cortex-A78AE"
+  },
+  "summary": {
+    "vectors": 50,
+    "passed": 50,
+    "failed": 0
+  },
+  "results": [
+    {
+      "id": "lerp-mid",
+      "op": "on_lerp",
+      "pass": true,
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "lerp-start",
+      "op": "on_lerp",
+      "pass": true,
+      "actual": {
+        "value": 2
+      }
+    },
+    {
+      "id": "lerp-end",
+      "op": "on_lerp",
+      "pass": true,
+      "actual": {
+        "value": 4
+      }
+    },
+    {
+      "id": "lerp-signed",
+      "op": "on_lerp",
+      "pass": true,
+      "actual": {
+        "value": 2.5
+      }
+    },
+    {
+      "id": "lerp-fractional",
+      "op": "on_lerp",
+      "pass": true,
+      "actual": {
+        "value": 2.2
+      }
+    },
+    {
+      "id": "clamp-inside",
+      "op": "on_clamp",
+      "pass": true,
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "clamp-below",
+      "op": "on_clamp",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "clamp-above",
+      "op": "on_clamp",
+      "pass": true,
+      "actual": {
+        "value": 10
+      }
+    },
+    {
+      "id": "clamp-fractional",
+      "op": "on_clamp",
+      "pass": true,
+      "actual": {
+        "value": 0.5
+      }
+    },
+    {
+      "id": "clamp-degenerate-range",
+      "op": "on_clamp",
+      "pass": true,
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "smoothstep-quarter",
+      "op": "on_smoothstep",
+      "pass": true,
+      "actual": {
+        "value": 0.15625
+      }
+    },
+    {
+      "id": "smoothstep-below-edge",
+      "op": "on_smoothstep",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "smoothstep-above-edge",
+      "op": "on_smoothstep",
+      "pass": true,
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "smoothstep-wide-range",
+      "op": "on_smoothstep",
+      "pass": true,
+      "actual": {
+        "value": 0.15625
+      }
+    },
+    {
+      "id": "smoothstep-offset-range",
+      "op": "on_smoothstep",
+      "pass": true,
+      "actual": {
+        "value": 0.15625
+      }
+    },
+    {
+      "id": "remap-mid",
+      "op": "on_remap",
+      "pass": true,
+      "actual": {
+        "value": 50
+      }
+    },
+    {
+      "id": "remap-low-edge",
+      "op": "on_remap",
+      "pass": true,
+      "actual": {
+        "value": 10
+      }
+    },
+    {
+      "id": "remap-signed-out",
+      "op": "on_remap",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "remap-expand",
+      "op": "on_remap",
+      "pass": true,
+      "actual": {
+        "value": 4
+      }
+    },
+    {
+      "id": "remap-degrees",
+      "op": "on_remap",
+      "pass": true,
+      "actual": {
+        "value": 108
+      }
+    },
+    {
+      "id": "deg2rad-zero",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "deg2rad-half-turn",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "actual": {
+        "value": 3.141592653589793
+      }
+    },
+    {
+      "id": "deg2rad-quarter-turn",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "actual": {
+        "value": 1.5707963267948966
+      }
+    },
+    {
+      "id": "deg2rad-full-turn",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "actual": {
+        "value": 6.283185307179586
+      }
+    },
+    {
+      "id": "deg2rad-one-radian",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "rad2deg-zero",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "rad2deg-pi",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "actual": {
+        "value": 180
+      }
+    },
+    {
+      "id": "rad2deg-half-pi",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "actual": {
+        "value": 90
+      }
+    },
+    {
+      "id": "rad2deg-tau",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "actual": {
+        "value": 360
+      }
+    },
+    {
+      "id": "rad2deg-one",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "actual": {
+        "value": 57.29577951308232
+      }
+    },
+    {
+      "id": "dot-basic",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "actual": {
+        "value": 32
+      }
+    },
+    {
+      "id": "dot-orthogonal",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "dot-fractional",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "actual": {
+        "value": -0.25
+      }
+    },
+    {
+      "id": "dot-ones",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "actual": {
+        "value": 3
+      }
+    },
+    {
+      "id": "dot-negative",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "actual": {
+        "value": -20
+      }
+    },
+    {
+      "id": "cross-basis",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "cross-general",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "cross-fractional",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "actual": {
+        "x": -1.1875,
+        "y": -6.125,
+        "z": -4.125
+      }
+    },
+    {
+      "id": "cross-sequential",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "cross-parallel",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vlerp-mid",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "actual": {
+        "x": 5,
+        "y": 10,
+        "z": 15
+      }
+    },
+    {
+      "id": "vlerp-start",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "actual": {
+        "x": 1,
+        "y": 2,
+        "z": 3
+      }
+    },
+    {
+      "id": "vlerp-end",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "actual": {
+        "x": 4,
+        "y": 5,
+        "z": 6
+      }
+    },
+    {
+      "id": "vlerp-quarter",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "actual": {
+        "x": -2,
+        "y": 4,
+        "z": 1
+      }
+    },
+    {
+      "id": "vlerp-fractional-t",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "actual": {
+        "x": 1.9,
+        "y": 2.9,
+        "z": 3.9
+      }
+    },
+    {
+      "id": "quat-identity",
+      "op": "on_quat_identity",
+      "pass": true,
+      "actual": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "qmul-identity-left",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qmul-identity-right",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qmul-general",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "actual": {
+        "w": 0.525,
+        "x": 0.435,
+        "y": 0.47000000000000003,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qmul-half-turns",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "actual": {
+        "w": 0.5000000000000001,
+        "x": 0.5000000000000001,
+        "y": 0.5000000000000001,
+        "z": 0.5000000000000001
+      }
+    }
+  ],
+  "claimBoundary": {
+    "provesOwnedMetalWasmExecution": true,
+    "provesNodeDeterministicSubsetExecution": false,
+    "note": "Executed the generated trait projection through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts."
+  },
+  "receiptHash": "sha256:4fef327f9c8cffcc6a077befdf89db8d6411673127111cdea14dfd01673d76e1"
+}

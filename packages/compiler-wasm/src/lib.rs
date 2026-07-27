@@ -33,6 +33,7 @@
 //! (full-grammar TS parser) automatically when WASM is unavailable.
 
 pub mod ast;
+pub mod eval;
 mod kotlin_emit;
 mod lexer;
 mod parser;
@@ -230,6 +231,32 @@ pub fn compile_to_kotlin(source: &str, indent: &str) -> String {
 #[doc(hidden)]
 pub fn __compile_to_kotlin(source: &str, indent: &str) -> Result<String, String> {
     kotlin_emit::compile_source_to_kotlin(source, indent).map_err(|e| e.message)
+}
+
+/// Evaluate one `@on_<handler>` trait-handler body deterministically — the
+/// WebAssembly execution leg of the std ABI conformance suite.
+///
+/// Executes the BODY of the `@on_*` handler named `handler_name` inside the
+/// top-level `@trait <trait_name> { … }` definition in `source`, binding the
+/// handler parameters BY NAME from `args_json` (a JSON object). The admitted
+/// semantics are the deterministic subset mirrored from the engine runtime
+/// (`holoscript-engine-hsplus-deterministic-action-subset-v1`): f64 IEEE-754
+/// arithmetic, source-ordered evaluation, no function calls, fail closed on
+/// division by zero, non-finite results, negative zero, unknown identifiers,
+/// and any node outside the subset. See `eval.rs` for the full contract.
+///
+/// # Returns
+/// Always a JSON string: `{"ok":true,"value":<json>}` on success, or
+/// `{"ok":false,"error":{"code":"…","message":"…"}}` on any failure — same
+/// always-JSON boundary convention as [`parse`] and [`validate_detailed`].
+#[wasm_bindgen]
+pub fn evaluate_trait_handler(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+) -> String {
+    eval::evaluate_trait_handler_json(source, trait_name, handler_name, args_json)
 }
 
 /// Compile top-level `.hs` functions to a UAAL bytecode packet.

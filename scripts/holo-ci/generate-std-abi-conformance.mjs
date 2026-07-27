@@ -141,7 +141,11 @@ for (const op of ops.ops) {
     ? `  @${op.op}(${params}) => {`
     : `  @${op.op} => {`;
   traitLines.push(traitHeader);
-  traitLines.push(`    return ${op.body}`);
+  if (op.traitBody) {
+    for (const statement of op.traitBody) traitLines.push(`    ${statement}`);
+  } else {
+    traitLines.push(`    return ${op.body}`);
+  }
   traitLines.push('  }');
   traitLines.push('');
 }

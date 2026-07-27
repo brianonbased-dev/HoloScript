@@ -1,0 +1,61 @@
+{
+  "schema": "holoscript.std-abi-conformance.cross-target.v0",
+  "generatedAtISO": "2026-07-27T00:44:29.504Z",
+  "targets": [
+    {
+      "target": "node",
+      "schema": "holoscript.std-abi-conformance.node.v0",
+      "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-26_std-abi-conformance.node.v0.json",
+      "receiptSha256": "sha256:a744f13b34f969249393a6609bd7ab39ce4d9af6806ff15e82ed573f18e9325a",
+      "vectors": 50,
+      "passed": 50,
+      "failed": 0,
+      "environment": {
+        "node": "v24.15.0",
+        "arch": "x64",
+        "platform": "win32"
+      }
+    },
+    {
+      "target": "browser-wasm",
+      "schema": "holoscript.std-abi-conformance.wasm.v0",
+      "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-27_std-abi-conformance.wasm.v0.json",
+      "receiptSha256": "sha256:dba8e68a9974838ad080402cdc80e48f045c9d07c4044c303afb8b9e41ffb888",
+      "vectors": 50,
+      "passed": 50,
+      "failed": 0,
+      "environment": {
+        "node": "v24.15.0",
+        "arch": "x64",
+        "platform": "win32"
+      }
+    },
+    {
+      "target": "owned-metal",
+      "schema": "holoscript.std-abi-conformance.owned-metal.v0",
+      "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-26_std-abi-conformance.owned-metal.v0.json",
+      "receiptSha256": "sha256:fba58fa4b2b906542672c6762939a921478c49b76529fb3784f96faf578683a8",
+      "vectors": 50,
+      "passed": 50,
+      "failed": 0,
+      "environment": {
+        "node": "v20.20.2",
+        "arch": "arm64",
+        "platform": "linux",
+        "hostLabel": "jetson-orin",
+        "hostname": "holojetson",
+        "cpus": "Cortex-A78AE"
+      }
+    }
+  ],
+  "comparison": {
+    "method": "exact value equality (Object.is, recursive, key-set strict) across targets per vector id",
+    "comparedVectors": 50,
+    "problems": []
+  },
+  "verdict": "EQUAL",
+  "claimBoundary": {
+    "note": "Equality is claimed only for the targets, corpus pin, and vector set named above. Each per-target receipt carries its own execution claim boundary; this receipt adds only cross-target value agreement."
+  },
+  "receiptHash": "sha256:088ddcbf1295c27ea4c232eed47795efa283dd172f06a2f9a39f2a613044e75f"
+}

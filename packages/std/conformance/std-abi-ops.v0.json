@@ -8,7 +8,7 @@
     "collections": "packages/std/src/collections.hsplus"
   },
   "referenceModule": "packages/std/dist/math.js",
-  "sharedGrammar": "Single-expression object-literal returns over: number/string/boolean/null literals, parameter identifiers, non-computed member access, binary + - * /, comparisons, && ||, unary ! -, conditional (ternary) expressions. No function calls, no local assignment, no loops, no host bindings. This is the intersection of the engine deterministic action subset (holoscript-engine-hsplus-deterministic-action-subset-v1) and the compiler-wasm trait-handler evaluator subset.",
+  "sharedGrammar": "Object-literal returns over: number/string/boolean/null literals, parameter identifiers, non-computed member access, binary + - * /, comparisons, && ||, unary ! -. No function calls, no loops, no host bindings. The two executable projections have measured, non-identical grammars: the engine deterministic action subset (holoscript-engine-hsplus-deterministic-action-subset-v1) accepts ternary expressions but restricts assignment to declared state, while the compiler-wasm trait evaluator accepts local assignment and if/else statements but has no ternary or ===/!== production. Ops whose default body uses ternary therefore carry an equivalent traitBody statement form; cross-target conformance is claimed on produced values over the shared vector corpus, not on shared surface syntax.",
   "vectorPolicy": "Every vector must produce finite, non-negative-zero values under IEEE-754 double semantics with strict source-order evaluation. Expected values are computed from the TypeScript reference twin at generation time and verified bit-exact against the engine deterministic runtime before admission; tolerance 0 means exact equality including key sets.",
   "ops": [
     {
@@ -36,6 +36,11 @@
       "resultShape": "scalar",
       "reference": ["clamp"],
       "body": "{ value: value < min ? min : (value > max ? max : value) }",
+      "traitBody": [
+        "if (value < min) { return { value: min } }",
+        "if (value > max) { return { value: max } }",
+        "return { value: value }"
+      ],
       "vectors": [
         { "id": "clamp-inside", "args": { "value": 5, "min": 0, "max": 10 } },
         { "id": "clamp-below", "args": { "value": -3, "min": 0, "max": 10 } },
@@ -53,6 +58,12 @@
       "resultShape": "scalar",
       "reference": ["smoothstep"],
       "body": "{ value: ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * (3 - 2 * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0)))) }",
+      "traitBody": [
+        "t = (x - edge0) / (edge1 - edge0)",
+        "if (t < 0) { t = 0 }",
+        "if (t > 1) { t = 1 }",
+        "return { value: t * t * (3 - 2 * t) }"
+      ],
       "vectors": [
         { "id": "smoothstep-quarter", "args": { "edge0": 0, "edge1": 1, "x": 0.25 } },
         { "id": "smoothstep-below-edge", "args": { "edge0": 0, "edge1": 1, "x": -1 } },

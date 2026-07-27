@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-07-26T18:58:56Z",
+  "generatedAt": "2026-07-27T00:35:51Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "01299a17102ab0b6d2b850ae3b49e3c1b304e214+public-consumption-working-tree",
+  "sourceCommit": "556d8239f08e6b081b2c3bfad7facc9b4ce05bdd",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "wasm-pack build --target web --out-dir pkg --release"
@@ -14,8 +14,11 @@
   },
   "result": {
     "rebuilt": true,
-    "wasmBytes": 345153,
-    "wasmSha256": "4dc33724a8c0d5ee63304580bcfc5b86c2a2eedad90e23c317c06f4f097cf7ab",
-    "note": "Committed the browser target so clean public-consumption and portable workspace builds can validate the package without requiring wasm-pack."
+    "artifactBytesChanged": true,
+    "wasmBytes": 399313,
+    "wasmSha256": "1236bcce16093e99ac6d86a5d6cf3ff8a31594038fd1e9e43e9b472abc2588d4",
+    "previousWasmSha256": "4dc33724a8c0d5ee63304580bcfc5b86c2a2eedad90e23c317c06f4f097cf7ab",
+    "repeatBuildSha256Matched": true,
+    "note": "Rebuilt in a clean worktree at HEAD 556d8239f with exactly two working-tree deltas copied in: src/eval.rs (new deterministic trait-handler evaluator, the std ABI conformance wasm leg) and src/lib.rs (mod wiring + the evaluate_trait_handler wasm export). A second release rebuild produced the same SHA-256, byte-identical to the --target nodejs artifact, so the browser-shipped wasm is provably the same binary the Node conformance leg executes."
   }
 }

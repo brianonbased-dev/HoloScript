@@ -18,7 +18,7 @@ describe('@holoscript/std native source tracer', () => {
     );
     expect(packageJson.holoscript).toMatchObject({
       artifact: 'library',
-      supportTier: 'experimental',
+      supportTier: 'preview',
       entrypoint: './src/math.hsplus',
       exports: {
         './math': './src/math.hsplus',
@@ -26,8 +26,9 @@ describe('@holoscript/std native source tracer', () => {
       },
     });
     expect(packageJson.holoscript.runtimeBoundary).toContain(
-      'host std ABI execution parity is not yet claimed'
+      'collections host-ABI parity are not yet claimed'
     );
+    expect(packageJson.holoscript.runtimeBoundary).toContain('receipt-proven');
   });
 
   it.each([

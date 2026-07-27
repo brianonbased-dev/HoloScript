@@ -81,13 +81,13 @@
       "./math": "./src/math.hsplus",
       "./collections": "./src/collections.hsplus"
     },
-    "supportTier": "experimental",
+    "supportTier": "preview",
     "compatibility": {
       "holoscript": ">=8.0.0",
       "targets": ["node", "browser-wasm", "owned-metal"]
     },
     "capabilities": ["std_math", "std_collections"],
-    "runtimeBoundary": "Declarative native-source preview; host std ABI execution parity is not yet claimed."
+    "runtimeBoundary": "Executable ABI conformance is receipt-proven for the 11-op math conformance projection across node, browser-wasm, and owned-metal targets (50 vectors, cross-target exact equality); direct packaged-handler execution, sqrt/trig ops, and collections host-ABI parity are not yet claimed."
   },
   "author": "Brian X Base Team",
   "license": "MIT",

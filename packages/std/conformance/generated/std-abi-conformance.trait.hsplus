@@ -4,11 +4,16 @@
   }
 
   @on_clamp(value, min, max) => {
-    return { value: value < min ? min : (value > max ? max : value) }
+    if (value < min) { return { value: min } }
+    if (value > max) { return { value: max } }
+    return { value: value }
   }
 
   @on_smoothstep(edge0, edge1, x) => {
-    return { value: ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0))) * (3 - 2 * ((x - edge0) / (edge1 - edge0) < 0 ? 0 : ((x - edge0) / (edge1 - edge0) > 1 ? 1 : (x - edge0) / (edge1 - edge0)))) }
+    t = (x - edge0) / (edge1 - edge0)
+    if (t < 0) { t = 0 }
+    if (t > 1) { t = 1 }
+    return { value: t * t * (3 - 2 * t) }
   }
 
   @on_remap(value, in_min, in_max, out_min, out_max) => {

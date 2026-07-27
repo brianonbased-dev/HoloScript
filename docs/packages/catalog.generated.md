@@ -37,7 +37,7 @@ Receipt lane semantics:
 
 | Package | Version | Support tier | Entrypoint | Targets | Execution conformance | Runtime boundary |
 | --- | --- | --- | --- | --- | --- | --- |
-| `@holoscript/std` | `7.0.2` | experimental | `./src/math.hsplus` | node, browser-wasm, owned-metal | node ✓ 50/50; browser-wasm —; owned-metal —; cross-target — | Declarative native-source preview; host std ABI execution parity is not yet claimed. |
+| `@holoscript/std` | `7.0.2` | preview | `./src/math.hsplus` | node, browser-wasm, owned-metal | node ✓ 50/50; browser-wasm ✓ 50/50; owned-metal ✓ 50/50; cross-target EQUAL | Executable ABI conformance is receipt-proven for the 11-op math conformance projection across node, browser-wasm, and owned-metal targets (50 vectors, cross-target exact equality); direct packaged-handler execution, sqrt/trig ops, and collections host-ABI parity are not yet claimed. |
 
 A compiler-native artifact declaration proves package metadata and shipped source paths. It does not by itself prove execution parity, registry deployment, authorship, or reproducible builds.
 

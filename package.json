@@ -179,6 +179,8 @@
     "gen:std-abi-conformance": "node scripts/holo-ci/generate-std-abi-conformance.mjs",
     "check:std-abi-node": "node scripts/holo-ci/check-std-abi-conformance-node.mjs",
     "check:std-abi-node:test": "node scripts/holo-ci/check-std-abi-conformance-node.mjs --self-test",
+    "check:std-abi-wasm": "node scripts/holo-ci/check-std-abi-conformance-wasm.mjs",
+    "check:std-abi-wasm:test": "node scripts/holo-ci/check-std-abi-conformance-wasm.mjs --self-test",
     "check:std-abi-cross-target": "node scripts/holo-ci/check-std-abi-cross-target.mjs",
     "check:std-abi-cross-target:test": "node scripts/holo-ci/check-std-abi-cross-target.mjs --self-test",
     "check:package-consumption": "node scripts/holo-ci/check-package-consumption-matrix.mjs",

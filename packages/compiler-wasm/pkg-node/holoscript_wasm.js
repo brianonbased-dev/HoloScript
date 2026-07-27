@@ -71,6 +71,55 @@ function compile_to_uaal(source) {
 }
 exports.compile_to_uaal = compile_to_uaal;
 
+/**
+ * Evaluate one `@on_<handler>` trait-handler body deterministically — the
+ * WebAssembly execution leg of the std ABI conformance suite.
+ *
+ * Executes the BODY of the `@on_*` handler named `handler_name` inside the
+ * top-level `@trait <trait_name> { … }` definition in `source`, binding the
+ * handler parameters BY NAME from `args_json` (a JSON object). The admitted
+ * semantics are the deterministic subset mirrored from the engine runtime
+ * (`holoscript-engine-hsplus-deterministic-action-subset-v1`): f64 IEEE-754
+ * arithmetic, source-ordered evaluation, no function calls, fail closed on
+ * division by zero, non-finite results, negative zero, unknown identifiers,
+ * and any node outside the subset. See `eval.rs` for the full contract.
+ *
+ * # Returns
+ * Always a JSON string: `{"ok":true,"value":<json>}` on success, or
+ * `{"ok":false,"error":{"code":"…","message":"…"}}` on any failure — same
+ * always-JSON boundary convention as [`parse`] and [`validate_detailed`].
+ * @param {string} source
+ * @param {string} trait_name
+ * @param {string} handler_name
+ * @param {string} args_json
+ * @returns {string}
+ */
+function evaluate_trait_handler(source, trait_name, handler_name, args_json) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.evaluate_trait_handler(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred5_0 = r0;
+        deferred5_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export(deferred5_0, deferred5_1, 1);
+    }
+}
+exports.evaluate_trait_handler = evaluate_trait_handler;
+
 function init() {
     wasm.init();
 }
