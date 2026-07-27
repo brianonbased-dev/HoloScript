@@ -9011,6 +9011,12 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   const hasStatBoundEmbeddingGeneration =
     typeof cache.embeddingCacheBytes === 'number' &&
     typeof cache.embeddingCacheMtimeMs === 'number';
+  const selectedGenerationManifestMatchesGraph =
+    selectedGeneration !== null &&
+    selectedGeneration.embeddingsFile === embeddingsFile &&
+    typeof cache.embeddingCacheSha256 === 'string' &&
+    selectedGeneration.manifest.embeddingCacheSha256 === cache.embeddingCacheSha256 &&
+    embeddingsCacheStat?.size === cache.embeddingCacheBytes;
   const legacyEmbeddingIdentity =
     cache.embeddingCacheSha256 && !hasStatBoundEmbeddingGeneration
       ? readEmbeddingsCacheIdentity(activeCacheRoot, activeRootSetSelection)
@@ -9021,7 +9027,8 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
       : typeof cache.embeddingCacheSha256 === 'string' &&
         (hasStatBoundEmbeddingGeneration
           ? embeddingsCacheStat?.size === cache.embeddingCacheBytes &&
-            embeddingsCacheStat?.mtimeMs === cache.embeddingCacheMtimeMs
+            (embeddingsCacheStat?.mtimeMs === cache.embeddingCacheMtimeMs ||
+              selectedGenerationManifestMatchesGraph)
           : legacyEmbeddingIdentity?.sha256 === cache.embeddingCacheSha256);
   const diskSemanticIndexHydratable =
     embeddingsCacheExists &&
@@ -9111,8 +9118,10 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
         ? {
             bytes: embeddingsCacheStat.size,
             mtimeMs: embeddingsCacheStat.mtimeMs,
-            verification: hasStatBoundEmbeddingGeneration
-              ? 'graph-bound-stat'
+            verification: selectedGenerationManifestMatchesGraph
+              ? 'immutable-generation-manifest'
+              : hasStatBoundEmbeddingGeneration
+                ? 'graph-bound-stat'
               : 'legacy-digest-fallback',
           }
         : null,
