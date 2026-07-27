@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T18:04:45Z",
+  "generatedAt": "2026-07-27T18:14:50Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "7bf4f3e1e604f1f7ed7b7c0626d830bf48dfe1f5",
+  "sourceCommit": "e658e6c43fb02183824f363d735e9556327bafb7",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 468166,
-    "wasmSha256": "3e03d7764585f31ade856153f03c26db4fca446c3d1b990545134e168c6c547e",
-    "previousWasmSha256": "596e71b10ff6891f58645ec11f90f53e2c50974927aa42c5bb07965e7e9303a6",
+    "wasmBytes": 468748,
+    "wasmSha256": "6097916535e112222ac002d7ff167be18f41368d0d4f184ea080b120dcd4a67b",
+    "previousWasmSha256": "3e03d7764585f31ade856153f03c26db4fca446c3d1b990545134e168c6c547e",
     "repeatBuildSha256Matched": true,
-    "note": "Built in a clean git worktree at sourceCommit plus uncommitted deltas to exactly src/eval.rs and src/lib.rs: builtins-v2 evaluation mode (holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins; bare-identifier sqrt/sin/cos/acos/min/max/abs/floor through checked_number) and the evaluate_trait_handler_v2 export; v1 export behavior unchanged. Two release nodejs builds and two release web builds produced the same SHA-256; browser and Node artifacts are byte-identical."
+    "note": "Exact source commit combines builtins-v2 evaluation with immutable borrowed-slice parameter forwarding through nested non-escaping shared calls without transferring the affine owner. Two release nodejs builds and two release web builds produced the same SHA-256; browser and Node artifacts are byte-identical."
   }
 }
