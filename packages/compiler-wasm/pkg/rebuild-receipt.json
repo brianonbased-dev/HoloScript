@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T20:36:31Z",
+  "generatedAt": "2026-07-27T20:47:00Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "working tree (v5 packaged-factories eval.rs + lib.rs) over HEAD 16c27a5b4; clean-worktree build",
+  "sourceCommit": "75bf64fc71cd2d246c199b042b235cd4e2f1479d plus the pre-rebase call-scoped mutable-slice compiler patch",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "wasm-pack build --target web --out-dir pkg --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 511037,
-    "wasmSha256": "7f2617ed2da3daa9ae1bd1f1806a0cbec17d79bc02bfa34d5af0816d009dcac2",
-    "previousWasmSha256": "cbe6a0e06d991979d0dbd3c8c37c8ab4e987e0f91ff5e34315b6f46417a369c3",
+    "wasmBytes": 513064,
+    "wasmSha256": "5f814a5671a2986277935d818267143ae5c4d806e48c3f630257d9c7902fd564",
+    "previousWasmSha256": "7f2617ed2da3daa9ae1bd1f1806a0cbec17d79bc02bfa34d5af0816d009dcac2",
     "repeatBuildSha256Matched": true,
-    "note": "Adds evaluate_trait_handler_v5 (deterministic-action-subset-v5-packaged-factories): whitelisted zero-arg factory calls (get_std_math_lib / get_std_collections_lib) evaluate to opaque namespace handles (collections = collision-checked union of list_lib+map_lib+set_lib via the new HostDispatcher::functions enumeration seam), handle-valued locals dispatch member calls, handles never escape (namespace-handle-escape on return/embed/compare/host-arg), and the @on_spawn factory-alias pre-pass statically lifts `alias = factory()` bindings without executing on_spawn side effects — the packaged @holoscript/std .hsplus sources now execute as authored. v1-v4 exports untouched; serde_json float_roundtrip retained. Built in a clean worktree with eval.rs + lib.rs copied in; peer-dirty parser.rs not baked in; repeat builds and node/web artifacts byte-identical."
+    "note": "Clean current-main union rebuild combining the v5 packaged-factory evaluator with exact-typed call-scoped &mut [T] parameters, indexed store/load, nested mutable forwarding, and exclusive alias checks. The borrowed view never transfers or escapes its owner. A repeat web build reproduced the SHA-256, and the Node build of the same source is byte-identical."
   }
 }

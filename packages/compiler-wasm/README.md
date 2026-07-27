@@ -37,8 +37,8 @@ HoloScript, compiled to WebAssembly.
 
 - **UAAL lowering** - `compile_to_uaal` emits executable bytecode for typed
   function kernels, including i32, finite scalar f32/f64 arithmetic, and affine
-  POD aggregate values, owned buffers, and immutable local or call-scoped buffer
-  reads
+  POD aggregate values, owned buffers, immutable local or call-scoped buffer
+  reads, and exclusive call-scoped buffer mutation
 
 ## Installation
 
@@ -164,13 +164,18 @@ Owned scalar buffers use the separate `hs.buffer.owned.v1` contract for
 allocation, whole-owner moves across parameters and returns, explicit drop, and
 automatic cleanup. A local `let view: &[T] = &owner` may read
 `load(view[index])` through the bounds-checked `OP_HS_BUFFER_LOAD` handler under
-`uaal.buffer.borrow.v1`. A function may also accept an immutable `view: &[T]`
-parameter while its caller passes `&owner`, and that parameter may be forwarded
-as `callee(view)` to another exactly typed immutable slice parameter. Each
-forwarding step remains synchronous and non-escaping; the original owner stays
-live and reusable after the nested call returns. No owner token is copied or
-transferred into any view. Mutable slices, stores, subranges, borrowed returns,
-stored or escaping aliases (including forwarding a local borrow variable),
+`uaal.buffer.borrow.v1`. A function may accept an immutable `view: &[T]`
+parameter while its caller passes `&owner`, or a mutable `view: &mut [T]`
+parameter while its caller passes `&mut owner`. Immutable views may load indexed
+elements. Mutable views may also use `store(view[index], value)`. Either
+parameter may be forwarded as `callee(view)` to another exactly typed slice
+parameter. Each forwarding step remains synchronous and non-escaping; the
+original owner stays live and reusable after the exclusive call returns. No
+owner token is copied or transferred into any view. A mutable borrow conflicts
+with every other borrow of the same owner within one call, while multiple shared
+borrows remain valid. Local mutable slice aliases, mutable-to-shared implicit
+reborrows, subranges, borrowed returns, stored or escaping aliases (including
+forwarding a local borrow variable), direct element stores through an owner,
 non-owner arguments, element-type mismatches, and move/drop conflicts within the
 same call fail closed.
 
