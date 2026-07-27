@@ -941,6 +941,9 @@ function findLatestCompatibleCheckpoint(options: {
     return null;
   }
 
+  let bestCompatible:
+    | { receipt: AbsorbRefreshProgressReceipt; modifiedAt: number }
+    | undefined;
   for (const candidate of receiptFiles) {
     let receipt: AbsorbRefreshProgressReceipt;
     try {
@@ -958,9 +961,18 @@ function findLatestCompatibleCheckpoint(options: {
         receipt.targetWorktreeFingerprint === options.targetWorktreeFingerprint) ||
         receipt.completedBatches.every((entry) => typeof entry.inputSha256 === 'string')) &&
       !isActiveRefreshReceipt(receipt, options.writerLeaseAuthorizesAdoption);
-    if (compatible) return receipt;
+    if (!compatible) continue;
+    const currentProgress = receipt.completedCandidateFiles;
+    const bestProgress = bestCompatible?.receipt.completedCandidateFiles ?? -1;
+    if (
+      !bestCompatible ||
+      currentProgress > bestProgress ||
+      (currentProgress === bestProgress && candidate.modifiedAt > bestCompatible.modifiedAt)
+    ) {
+      bestCompatible = { receipt, modifiedAt: candidate.modifiedAt };
+    }
   }
-  return null;
+  return bestCompatible?.receipt ?? null;
 }
 
 export function prepareAbsorbRefreshCheckpoint(
