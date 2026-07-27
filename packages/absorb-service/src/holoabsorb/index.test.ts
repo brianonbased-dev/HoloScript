@@ -95,6 +95,10 @@ describe('HoloAbsorb product manifest', () => {
         ?.evidencePaths
     ).toContain('packages/absorb-service/benchmarks/paper-5-visual-agent-study-v4.json');
     expect(paper?.claimBoundary).toContain('four-arm factorial confirmation');
+    expect(paper?.benchmarkCommands).toContain(
+      'node packages/absorb-service/scripts/bench-holoabsorb-hybrid.mjs --visual-focus-only --repo=packages/absorb-service --max-files=2000'
+    );
+    expect(paper?.claimBoundary).toContain('wrong-resolved arms');
     expect(protocol.design.arms).toHaveLength(4);
     expect(protocol.design.visualProjection.requireActualImageContentPart).toBe(true);
     expect(protocol.dataset.minimumExternalCodebases).toBeGreaterThanOrEqual(3);
