@@ -1,0 +1,157 @@
+{
+  "schema": "holoscript.library-coherence.std-scalar-f64-abi.v1",
+  "generatedAt": "2026-07-27T01:00:00.000Z",
+  "status": "pass",
+  "objective": "Extend the executable standard-library ABI beyond scalar i32 with a finite scalar IEEE-754 binary64 subset authored in HoloScript and proven across Node, browser-WASM to UAAL, and owned-metal.",
+  "repository": {
+    "canonical": "https://github.com/brianonbased-dev/HoloScript",
+    "implementationCommit": "62c345718933b6555e2e20513960154600ce38c5",
+    "receiptCommit": "e8479a4e1b81c1465d6eb47f44762b95d6c275f8",
+    "branch": "main"
+  },
+  "abi": {
+    "id": "hs.std.scalar.f64.v1",
+    "source": "packages/std/src/abi/scalar-f64-v1.hs",
+    "sourceSha256": "bba22e344f51c0d5d5a0e801686953fa6d0f0955af275e149546530665580b42",
+    "authoredBy": "HoloScript source",
+    "functions": [
+      "std_math_clamp_f64",
+      "std_math_lerp_f64",
+      "std_math_inverse_lerp_f64",
+      "std_math_remap_f64"
+    ],
+    "contract": {
+      "inputs": "finite IEEE-754 binary64 values",
+      "inverseLerpAndRemapRequireNonZeroInputSpan": true,
+      "excluded": [
+        "NaN semantics",
+        "infinity semantics",
+        "signed-zero preservation",
+        "division-by-zero semantics"
+      ]
+    }
+  },
+  "compiler": {
+    "ownedMetal": {
+      "scalarContract": "hs-machine-v35",
+      "moduleComposedContract": "hs-machine-v36",
+      "lowering": [
+        "f64 parameters",
+        "f64 results",
+        "f64 locals",
+        "finite f64 literals",
+        "fadd",
+        "fsub",
+        "fmul",
+        "fdiv",
+        "fcmp",
+        "direct calls"
+      ],
+      "processEntryRemainsIntegral": true
+    },
+    "browserWasm": {
+      "execAbi": "hs.f64.binary.v1",
+      "numericWidthsAreExplicit": true,
+      "implicitI32F64Coercion": false,
+      "artifactBytes": 346734,
+      "artifactSha256": "507223a320510d38f7d84bbfe5b0825cee19dbbf7ab265c43d4307421fcd7b04",
+      "repeatBuildSha256Matched": true,
+      "browserAndNodeArtifactsMatch": true
+    }
+  },
+  "conformance": {
+    "schema": "holoscript.std.math-abi-conformance.v3",
+    "expectedDigest": 136,
+    "targets": {
+      "node": {
+        "runtime": "v24.15.0",
+        "result": 136,
+        "floatingPointResults": {
+          "clampBelow": 0,
+          "clampInside": 1.25,
+          "clampAbove": 2,
+          "lerp": 4,
+          "inverseLerp": 0.25,
+          "remap": 12
+        }
+      },
+      "browserWasmToUaal": {
+        "result": 136,
+        "instructionCount": 397,
+        "bytecodeSha256": "527a4125faff65efe7c8612288f3bdb2e5cc52ccd37388868ac509b2dc81da4a",
+        "receiptHashMatches": true,
+        "replayValid": true
+      },
+      "ownedMetal": {
+        "result": 136,
+        "machineContract": "hs-machine-v36",
+        "objectBytes": 2931,
+        "objectSha256": "5250b418ec513c5f8e720e55387c5d16ae5e5b3613d75f3f2499f3895f32fc26"
+      }
+    }
+  },
+  "published": {
+    "npm": [
+      {
+        "name": "@holoscript/std",
+        "version": "7.0.5",
+        "integrity": "sha512-4XoZeffaYBrrFQ4PN9A8tfeFp7XHSpcx+jaLrTGzgWVGn1Ttqbiw+c9SDaHZxkrHAJefkBiyDRZQ6rN7QldQoA==",
+        "shasum": "4f93f56df1677a3a0ee504d39838a762fa3d618c"
+      },
+      {
+        "name": "@holoscript/wasm",
+        "version": "6.1.4",
+        "tag": "latest",
+        "integrity": "sha512-nDKR0ZdHGBgoSnKbkWDw9kvYDDyWAjvbfRH7I+RSWRYlG0IisMd3AjD6HTFYkZfCN8MvaZLK3bE+0iAG5d2VkQ==",
+        "shasum": "9677032f65818b5ad6f1e3f7b2756e643435a304"
+      }
+    ],
+    "immutableTarballsInspectedBeforePublish": true,
+    "registryReadbackMatched": true
+  },
+  "publicConsumer": {
+    "canonicalRoot": "C:/Holo",
+    "commit": "10d9fe5",
+    "remoteConfigured": false,
+    "exactPublicPackages": 8,
+    "localSourceUsed": false,
+    "coldInstall": "pass",
+    "publishedStdF64SourceResolved": true,
+    "publishedWasmCompiledF64ToUaal": true,
+    "publishedUaalExecutedAndReplayed": true,
+    "registryRestart": "pass",
+    "processGuardedOfflineReplay": "pass",
+    "ephemeralConsumerRemoved": true
+  },
+  "validation": {
+    "stdTests": "25 files, 1040 passed",
+    "wasmTests": "252 passed",
+    "nativeTests": "81 passed",
+    "specCorpus": "41/41",
+    "packageCatalog": "pass, candidates=19, nativeLibraries=1",
+    "packageArchitecture": "pass",
+    "packageStewardship": "pass",
+    "safeCommitGates": "pass",
+    "canonicalConsumerAdapterTests": "41 passed"
+  },
+  "boundaries": {
+    "provesFiniteScalarF64Math": true,
+    "provesHoloScriptAuthoredSource": true,
+    "provesNodeExecution": true,
+    "provesBrowserWasmCompilerAndUaalExecution": true,
+    "provesBrowserReceiptHashingAndReplay": true,
+    "provesOwnedMetalNativeExecutable": true,
+    "provesNonFiniteFloatingPointEdgeSemantics": false,
+    "provesF32": false,
+    "provesAggregateVectorCallingConvention": false,
+    "provesImmutableCollectionsParity": false,
+    "provesOsAirGap": false
+  },
+  "remainingGaps": [
+    "Add an explicit f32 machine and UAAL ABI contract.",
+    "Define a stable cross-target aggregate calling convention for Vec3 and other value types.",
+    "Prove immutable collections from HoloScript source across the same three targets.",
+    "Reconcile @holoscript/engine's exact @holoscript/uaal@8.0.6 peer declaration with the published 8.6.1 runtime used by the canonical consumer.",
+    "Add dedicated NaN, infinity, signed-zero, and division-by-zero contracts before expanding the f64 claim."
+  ]
+}
