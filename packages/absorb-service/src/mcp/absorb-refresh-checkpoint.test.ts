@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { createHash } from 'crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CodebaseScanner } from '../engine/CodebaseScanner';
 import {
@@ -11,6 +12,7 @@ import {
   pruneAbsorbRefreshCheckpoints,
   replaceFileWithRetry,
 } from './absorb-refresh-checkpoint';
+import { resolveCodebaseCachePaths } from './codebase-cache-storage';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
 
@@ -188,6 +190,81 @@ describe('AbsorbRefreshCheckpoint', () => {
     expect(fs.existsSync(live.progressReceipt().checkpointDirectory)).toBe(true);
     expect(fs.existsSync(preserved.progressReceipt().checkpointDirectory)).toBe(true);
     expect(fs.existsSync(disposable.progressReceipt().checkpointDirectory)).toBe(false);
+  });
+
+  it('requires the current writer lease to adopt an active checkpoint across PID namespaces', () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-owner-repo-'));
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-owner-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeFixture(rootDir, 'src/a.txt', 'a\n');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const scanPlan = scanner.planScan({ rootDir, maxFiles: 1 }, 1);
+    const checkpoint = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan,
+      targetGitCommitHash: 'a'.repeat(40),
+      targetWorktreeFingerprint: null,
+      scanPolicyHash: 'policy-v1',
+      maxFiles: 1,
+    });
+    checkpoint.markScanning();
+    const receipt = checkpoint.progressReceipt();
+    fs.writeFileSync(
+      receipt.receiptFile,
+      JSON.stringify(
+        {
+          ...receipt,
+          ownerProcessId: 1,
+          ownerHost: 'retired-container-host',
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    expect(() =>
+      prepareAbsorbRefreshCheckpoint({
+        rootDir,
+        scanPlan,
+        targetGitCommitHash: 'a'.repeat(40),
+        targetWorktreeFingerprint: null,
+        scanPolicyHash: 'policy-v1',
+        maxFiles: 1,
+        resumeToken: receipt.resumeToken,
+      })
+    ).toThrow(/active owner process 1/);
+
+    const leaseFile = resolveCodebaseCachePaths(rootDir).writerLeaseFile;
+    const token = 'current-exclusive-writer-token';
+    fs.writeFileSync(
+      leaseFile,
+      JSON.stringify({
+        schemaVersion: 'holoscript.absorb-writer-lease.v1',
+        kind: 'AbsorbWriterLease',
+        token,
+        rootDirs: [rootDir],
+      }),
+      'utf-8'
+    );
+
+    const adopted = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan,
+      targetGitCommitHash: 'a'.repeat(40),
+      targetWorktreeFingerprint: null,
+      scanPolicyHash: 'policy-v1',
+      maxFiles: 1,
+      resumeToken: receipt.resumeToken,
+      writerLeaseProof: { leaseFile, token },
+    });
+    expect(adopted.progressReceipt()).toMatchObject({
+      status: 'prepared',
+      ownerProcessId: process.pid,
+      ownerHost: os.hostname(),
+      ownerWriterLeaseSha256: createHash('sha256').update(token).digest('hex'),
+    });
   });
 
   it('enforces the byte ceiling before directory count becomes pressure', () => {
