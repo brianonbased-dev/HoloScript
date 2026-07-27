@@ -1,26 +1,25 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
+# @generated from scanner.holo by the quest compiler — edit the spec, not here.
 #
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
+# Meta Spatial SDK references Horizon OS framework classes that are present on Quest at runtime.
+# R8 cannot resolve them against the public Android SDK, so suppress only those platform warnings.
+-dontwarn horizonos.app.container.**
+-dontwarn vros.os.**
 
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Meta's native libraries register JNI methods by their Java class and method names.
+# Preserve only that external ABI while allowing unrelated SDK code to be optimized away.
+-keepclasseswithmembers,includedescriptorclasses class com.meta.spatial.** {
+    native <methods>;
+}
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Meta native code also invokes Java callback methods whose names begin with native.
+-keepclassmembers,includedescriptorclasses class com.meta.spatial.** {
+    *** native*(...);
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Meta ISDK locates Spatial SDK Android resource classes with reflection.
+-keep class com.meta.spatial.**.R { *; }
+-keep class com.meta.spatial.**.R$* { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Meta ISDK also resolves Toolkit and ISDK component types by class name.
+-keep class com.meta.spatial.toolkit.** { *; }
+-keep class com.meta.spatial.isdk.** { *; }

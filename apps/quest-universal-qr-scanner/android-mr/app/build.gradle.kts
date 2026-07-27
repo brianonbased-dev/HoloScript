@@ -35,8 +35,8 @@ android {
     // HorizonOS is Android 14 (API level 34)
     //noinspection OldTargetApi,ExpiredTargetSdkVersion
     targetSdk = 34
-    versionCode = 1
-    versionName = "1.0.0"
+    versionCode = 2
+    versionName = "1.0.1"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -71,7 +71,10 @@ android {
 
   buildTypes {
     release {
-      isMinifyEnabled = false
+      // Meta's release scanner inspects every bundled class, including unreachable code in
+      // transitive SDK dependencies. R8 removes that dead bytecode and reduces the release APK.
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       val rel = signingConfigs.getByName("release")
       if (rel.storeFile != null) signingConfig = rel
