@@ -5,7 +5,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AdvancedClothSystem } from '../AdvancedClothTrait';
+import type { HSPlusNode, TraitContext } from '../TraitTypes';
+import { advancedClothHandler, AdvancedClothSystem } from '../AdvancedClothTrait';
 
 describe('AdvancedClothSystem', () => {
   let cloth: AdvancedClothSystem;
@@ -159,5 +160,38 @@ describe('AdvancedClothSystem', () => {
     expect(cloth.getParticles().length).toBe(0);
     expect(cloth.getConstraints().length).toBe(0);
     expect(cloth.isInitialized()).toBe(false);
+  });
+});
+
+describe('advancedClothHandler lifecycle', () => {
+  let node: HSPlusNode & { __advanced_cloth_instance?: AdvancedClothSystem };
+  let ctx: TraitContext;
+
+  beforeEach(() => {
+    node = { id: 'advanced-cloth-handler-test' } as HSPlusNode & {
+      __advanced_cloth_instance?: AdvancedClothSystem;
+    };
+    ctx = { emit: () => {} } as unknown as TraitContext;
+  });
+
+  it('onUpdate steps the PBD solver through the trait lifecycle', () => {
+    advancedClothHandler.onAttach(
+      node,
+      { width: 5, height: 5, size: { width: 1, height: 1 } },
+      ctx
+    );
+    const system = node.__advanced_cloth_instance!;
+
+    advancedClothHandler.onUpdate(node, {}, ctx, 0.016);
+    const before = system.getAllParticles()[5].position[1];
+    advancedClothHandler.onUpdate(node, {}, ctx, 0.016);
+    advancedClothHandler.onUpdate(node, {}, ctx, 0.016);
+
+    expect(system.isInitialized()).toBe(true);
+    expect(system.getAllParticles()[5].position[1]).toBeLessThan(before);
+  });
+
+  it('onUpdate is a safe no-op before attach', () => {
+    expect(() => advancedClothHandler.onUpdate(node, {}, ctx, 0.016)).not.toThrow();
   });
 });
