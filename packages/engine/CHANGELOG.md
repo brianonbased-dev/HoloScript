@@ -1,5 +1,13 @@
 # @holoscript/engine
 
+## 6.1.5
+
+### Patch Changes
+
+- Publish the optional `@holoscript/uaal` peer as a same-major compatibility
+  range instead of freezing it to the workspace version present at pack time.
+  The VM bridge is exercised against `@holoscript/uaal@8.6.1`.
+
 ## 6.1.3
 
 ### Patch Changes

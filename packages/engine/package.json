@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/engine",
-  "version": "6.1.4",
+  "version": "6.1.5",
   "description": "Engine runtime extracted from @holoscript/core — rendering, physics, animation, ECS, and 20+ subsystems for spatial computing.",
   "type": "module",
   "main": "./dist/index.js",
@@ -842,7 +842,7 @@
     "three": "^0.182.0"
   },
   "peerDependencies": {
-    "@holoscript/uaal": "workspace:*",
+    "@holoscript/uaal": "workspace:^",
     "puppeteer": "^23.0.0"
   },
   "peerDependenciesMeta": {
