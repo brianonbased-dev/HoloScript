@@ -3235,7 +3235,7 @@ describe('holo_absorb_repo root validation', () => {
     ).toBeGreaterThanOrEqual(1);
   }, 15_000);
 
-  it('reuses completed graph and embedding work after final-pin rejection without publishing stale files', async () => {
+  it('reuses completed graph and embedding work across plan drift without publishing stale files', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-resume-publish-cache-'));
     const repoDir = makeTinyGitRepo('holoscript-resume-publish-repo-');
@@ -3283,6 +3283,7 @@ describe('holo_absorb_repo root validation', () => {
       cwd: repoDir,
       windowsHide: true,
     });
+    const rejectedTargetHead = getHeadCommit(repoDir);
 
     let markEmbeddingRefreshStarted!: () => void;
     let releaseEmbeddingRefresh!: () => void;
@@ -3327,11 +3328,17 @@ describe('holo_absorb_repo root validation', () => {
       totalBatches: 3,
     });
 
-    fs.appendFileSync(
-      path.join(repoDir, 'src', 'beta.ts'),
-      '\nexport const driftedAfterCheckpoint = true;\n',
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'delta.ts'),
+      'export const addedAfterCheckpoint = true;\n',
       'utf-8'
     );
+    execFileSync('git', ['add', 'src/delta.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'advance checkout after scan'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    const publishedTargetHead = getHeadCommit(repoDir);
     releaseEmbeddingRefresh();
 
     const rejected = await waitForAbsorbTerminalStatus(rejectedAttempt.jobId!, true);
@@ -3361,14 +3368,13 @@ describe('holo_absorb_repo root validation', () => {
       scanBatchSize: 1,
       maxFiles: 20_000,
     })) as { accepted?: boolean; jobId?: string; resumeToken?: string };
-    expect(resumedAttempt).toMatchObject({
-      accepted: true,
-      resumeToken: (
-        rejected.refreshProgressReceipt as {
-          resumeToken?: string;
-        }
-      ).resumeToken,
-    });
+    const rejectedResumeToken = (
+      rejected.refreshProgressReceipt as {
+        resumeToken?: string;
+      }
+    ).resumeToken;
+    expect(resumedAttempt).toMatchObject({ accepted: true });
+    expect(resumedAttempt.resumeToken).not.toBe(rejectedResumeToken);
 
     const completed = await waitForAbsorbTerminalStatus(resumedAttempt.jobId!, true);
     expect(completed).toMatchObject({
@@ -3376,11 +3382,19 @@ describe('holo_absorb_repo root validation', () => {
       refreshProgressReceipt: {
         status: 'complete',
         resumeMode: 'content-addressed-overlay',
-        completedBatchCount: 3,
-        reusedBatchCount: 2,
-        invalidatedBatchCount: 1,
+        completedBatchCount: 4,
+        reusedBatchCount: 3,
+        invalidatedBatchCount: 0,
         cachePublished: true,
         publishedGraphAuthoritative: true,
+        targetLag: {
+          sourceResumeToken: rejectedResumeToken,
+          sourceTargetGitCommitHash: rejectedTargetHead,
+          targetGitCommitHash: publishedTargetHead,
+          sourceSelectedCandidateFiles: 3,
+          targetSelectedCandidateFiles: 4,
+          selectedCandidateFileDelta: 1,
+        },
       },
       result: {
         graphAuthoritative: true,
@@ -3404,19 +3418,17 @@ describe('holo_absorb_repo root validation', () => {
       .slice(scanCallsBeforeResume)
       .flatMap((call) => call[1] as string[])
       .map((filePath) => path.relative(repoDir, filePath).replace(/\\/g, '/'));
-    expect(resumedScanFiles).toEqual(['src/beta.ts']);
+    expect(resumedScanFiles).toEqual(['src/delta.ts']);
 
-    const publishedEnvelope = JSON.parse(
-      fs.readFileSync(cachePaths.graphFile, 'utf-8')
-    ) as {
+    const publishedEnvelope = JSON.parse(fs.readFileSync(cachePaths.graphFile, 'utf-8')) as {
       graphJson: string;
       fileHashes?: Record<string, string>;
     };
     const publishedGraph = CodebaseGraph.deserialize(publishedEnvelope.graphJson);
     expect(publishedGraph.findSymbolsByName('committedBeforeRefresh')).toHaveLength(1);
-    expect(publishedGraph.findSymbolsByName('driftedAfterCheckpoint')).toHaveLength(1);
-    expect(publishedEnvelope.fileHashes?.['src/beta.ts']).toBe(
-      sha256(fs.readFileSync(path.join(repoDir, 'src', 'beta.ts'), 'utf-8'))
+    expect(publishedGraph.findSymbolsByName('addedAfterCheckpoint')).toHaveLength(1);
+    expect(publishedEnvelope.fileHashes?.['src/delta.ts']).toBe(
+      sha256(fs.readFileSync(path.join(repoDir, 'src', 'delta.ts'), 'utf-8'))
     );
 
     simulateAbsorbProcessRestartForTests();

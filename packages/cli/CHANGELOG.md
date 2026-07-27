@@ -1,5 +1,14 @@
 # @holoscript/cli
 
+## 8.0.13
+
+### Patch Changes
+
+- Track the Rust/WASM compiler's four-instruction constant plan kernel after
+  explicit returns stopped emitting an unreachable trailing `RET`. The exact
+  bytecode, provenance, source-backed verification, and public receipt types
+  now agree on `[CALL, HALT, PUSH, RET]`.
+
 ## 8.0.11
 
 ### Patch Changes

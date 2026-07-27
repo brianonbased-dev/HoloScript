@@ -25,6 +25,7 @@ export const HS_PLAN_KERNEL_UAAL_LIMITS = Object.freeze({
 });
 export const HS_PLAN_KERNEL_TRACE_PROGRAM_COUNTERS = Object.freeze([0, 2, 3, 1] as const);
 export const HS_PLAN_KERNEL_TRACE_OPCODES = Object.freeze([50, 1, 51, 255] as const);
+const HS_PLAN_KERNEL_BYTECODE_INSTRUCTION_COUNT = 4 as const;
 
 const MAX_SOURCE_BYTES = 256 * 1024;
 const MAX_PARSER_PACKET_BYTES = 1024 * 1024;
@@ -76,7 +77,7 @@ export interface HsPlanKernelExecutionProvenance {
   };
   bytecode: {
     version: 1;
-    instructionCount: 5;
+    instructionCount: typeof HS_PLAN_KERNEL_BYTECODE_INSTRUCTION_COUNT;
     hashAlgorithm: 'sha256-uaal-bytecode-canonical-v1';
     sha256: string;
   };
@@ -281,7 +282,6 @@ function expectedKernelOpcodes(uaal: typeof import('@holoscript/uaal')): readonl
     uaal.UAALOpCode.HALT,
     uaal.UAALOpCode.PUSH,
     uaal.UAALOpCode.RET,
-    uaal.UAALOpCode.RET,
   ] as const;
 }
 
@@ -431,7 +431,7 @@ export async function executeHsPlanKernel(source: string): Promise<HsPlanKernelE
       },
       bytecode: {
         version: 1,
-        instructionCount: 5,
+        instructionCount: HS_PLAN_KERNEL_BYTECODE_INSTRUCTION_COUNT,
         hashAlgorithm: uaal.UAAL_BYTECODE_HASH_ALGORITHM,
         sha256: bytecodeHash,
       },
@@ -539,7 +539,7 @@ export async function verifyHsPlanKernelExecutionProvenance(
     assertExpectedVmProfile(provenance.vm.profile);
     if (
       provenance.bytecode.version !== 1 ||
-      provenance.bytecode.instructionCount !== 5 ||
+      provenance.bytecode.instructionCount !== HS_PLAN_KERNEL_BYTECODE_INSTRUCTION_COUNT ||
       provenance.bytecode.hashAlgorithm !== 'sha256-uaal-bytecode-canonical-v1' ||
       provenance.vm.trace.schema !== HS_PLAN_KERNEL_TRACE_SCHEMA ||
       provenance.vm.trace.executionLogVersion !== 'uaal.execution-log.v0' ||

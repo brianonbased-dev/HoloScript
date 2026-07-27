@@ -553,6 +553,87 @@ describe('AbsorbRefreshCheckpoint', () => {
     ).toThrow(/scan plan|selected file set/);
   });
 
+  it('creates a provenance-linked overlay when checkout churn changes the scan plan', async () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-plan-drift-'));
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeFixture(rootDir, 'src/a.txt', 'a\n');
+    writeFixture(rootDir, 'src/b.txt', 'b\n');
+
+    const scanner = new CodebaseScanner(undefined, false);
+    const firstPlan = scanner.planScan({ rootDir, maxFiles: 10 }, 1);
+    const first = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan: firstPlan,
+      targetGitCommitHash: 'a'.repeat(40),
+      targetWorktreeFingerprint: null,
+      scanPolicyHash: 'policy-v1',
+      maxFiles: 10,
+    });
+    for (const batch of firstPlan.batches) {
+      const inputSha256 = first.captureBatchInput(batch);
+      const result = await scanner.scanFiles(rootDir, batch.files);
+      expect(first.persistBatch(batch, result, inputSha256)).toBe(true);
+    }
+    first.markInterrupted(new Error('checkout advanced'));
+    const firstReceipt = first.progressReceipt();
+
+    writeFixture(rootDir, 'src/a.txt', 'a changed\n');
+    writeFixture(rootDir, 'src/c.txt', 'c\n');
+    const changedPlan = scanner.planScan({ rootDir, maxFiles: 10 }, 1);
+
+    expect(() =>
+      prepareAbsorbRefreshCheckpoint({
+        rootDir,
+        scanPlan: changedPlan,
+        targetGitCommitHash: 'b'.repeat(40),
+        targetWorktreeFingerprint: 'new-plan',
+        scanPolicyHash: 'policy-v1',
+        maxFiles: 10,
+        resumeToken: firstReceipt.resumeToken,
+      })
+    ).toThrow(/scan plan|selected file set/);
+
+    const overlaid = prepareAbsorbRefreshCheckpoint({
+      rootDir,
+      scanPlan: changedPlan,
+      targetGitCommitHash: 'b'.repeat(40),
+      targetWorktreeFingerprint: 'new-plan',
+      scanPolicyHash: 'policy-v1',
+      maxFiles: 10,
+      reuseLatest: true,
+    });
+    expect(overlaid.progressReceipt()).toMatchObject({
+      resumeMode: 'content-addressed-overlay',
+      completedBatchCount: 1,
+      completedCandidateFiles: 1,
+      invalidatedBatchCount: 1,
+      targetLag: {
+        sourceResumeToken: firstReceipt.resumeToken,
+        sourceTargetGitCommitHash: 'a'.repeat(40),
+        targetGitCommitHash: 'b'.repeat(40),
+        sourceSelectedCandidateFiles: 2,
+        targetSelectedCandidateFiles: 3,
+        selectedCandidateFileDelta: 1,
+      },
+    });
+    expect(overlaid.progressReceipt().resumeToken).not.toBe(firstReceipt.resumeToken);
+
+    const unchangedBatch = changedPlan.batches.find((batch) =>
+      batch.files.some((filePath) => filePath.endsWith('b.txt'))
+    )!;
+    const changedBatch = changedPlan.batches.find((batch) =>
+      batch.files.some((filePath) => filePath.endsWith('a.txt'))
+    )!;
+    const addedBatch = changedPlan.batches.find((batch) =>
+      batch.files.some((filePath) => filePath.endsWith('c.txt'))
+    )!;
+    expect(overlaid.loadBatchResult(unchangedBatch)).not.toBeNull();
+    expect(overlaid.loadBatchResult(changedBatch)).toBeNull();
+    expect(overlaid.loadBatchResult(addedBatch)).toBeNull();
+    expect(overlaid.progressReceipt().reusedBatchCount).toBe(1);
+  });
+
   it('does not checkpoint a batch whose source bytes changed during its scan window', async () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-race-'));
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-refresh-cache-'));
