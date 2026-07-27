@@ -171,17 +171,23 @@ interface AbsorbSourceDriftRetryPolicy {
   maxRetries: number;
   debounceMs: number;
   checkIntervalMs: number;
+  maxCheckOverheadRatio: number;
 }
 
 interface AbsorbSourceDriftRetryTelemetry extends AbsorbSourceDriftRetryPolicy {
   detectionCount: number;
   retryCount: number;
+  headCheckCount: number;
+  headCheckDurationMs: number;
+  maxHeadCheckDurationMs: number;
+  effectiveCheckIntervalMs: number;
   exhausted: boolean;
   lastDetectedAt?: string;
   lastExpectedCommit?: string;
   lastObservedCommit?: string | null;
   lastRootDir?: string;
   lastDebounceDurationMs?: number;
+  lastHeadCheckDurationMs?: number;
 }
 
 interface AbsorbCancellationState {
@@ -241,6 +247,7 @@ const DEFAULT_SYSTEM_MEMORY_RESERVE_MAX_MB = 2_048;
 const DEFAULT_SOURCE_DRIFT_MAX_RETRIES = 3;
 const DEFAULT_SOURCE_DRIFT_DEBOUNCE_MS = 750;
 const DEFAULT_SOURCE_DRIFT_CHECK_INTERVAL_MS = 1_000;
+const DEFAULT_SOURCE_DRIFT_CHECK_MAX_OVERHEAD_PERCENT = 4;
 
 function readPositiveEnvMs(name: string, fallback: number): number {
   const raw = Number(process.env[name]);
@@ -371,6 +378,20 @@ function resolveAbsorbSourceDriftRetryPolicy(
       'ABSORB_SOURCE_DRIFT_CHECK_INTERVAL_MS',
       DEFAULT_SOURCE_DRIFT_CHECK_INTERVAL_MS
     ),
+    maxCheckOverheadRatio: (() => {
+      const raw =
+        args.sourceDriftCheckMaxOverheadPercent ??
+        process.env.ABSORB_SOURCE_DRIFT_CHECK_MAX_OVERHEAD_PERCENT ??
+        DEFAULT_SOURCE_DRIFT_CHECK_MAX_OVERHEAD_PERCENT;
+      const value = Number(raw);
+      if (!Number.isFinite(value) || value < 0 || value > 100) {
+        errors.push(
+          'sourceDriftCheckMaxOverheadPercent must be a number between 0 and 100 when provided.'
+        );
+        return DEFAULT_SOURCE_DRIFT_CHECK_MAX_OVERHEAD_PERCENT / 100;
+      }
+      return value / 100;
+    })(),
   };
   if (policy.maxRetries === 0) policy.enabled = false;
   return errors.length > 0 ? { valid: false, errors } : { valid: true, policy };
@@ -1228,8 +1249,32 @@ function createAbsorbSourceDriftRetryTelemetry(
     ...policy,
     detectionCount: 0,
     retryCount: 0,
+    headCheckCount: 0,
+    headCheckDurationMs: 0,
+    maxHeadCheckDurationMs: 0,
+    effectiveCheckIntervalMs: policy.checkIntervalMs,
     exhausted: false,
   };
+}
+
+function recordAbsorbSourceHeadCheck(
+  jobId: string | undefined,
+  durationMs: number,
+  effectiveCheckIntervalMs: number
+): void {
+  if (!jobId) return;
+  const job = absorbJobs.get(jobId);
+  if (!job) return;
+  const roundedDurationMs = Math.round(Math.max(0, durationMs) * 1000) / 1000;
+  job.sourceDriftRetry.headCheckCount += 1;
+  job.sourceDriftRetry.headCheckDurationMs =
+    Math.round((job.sourceDriftRetry.headCheckDurationMs + roundedDurationMs) * 1000) / 1000;
+  job.sourceDriftRetry.maxHeadCheckDurationMs = Math.max(
+    job.sourceDriftRetry.maxHeadCheckDurationMs,
+    roundedDurationMs
+  );
+  job.sourceDriftRetry.effectiveCheckIntervalMs = effectiveCheckIntervalMs;
+  job.sourceDriftRetry.lastHeadCheckDurationMs = roundedDurationMs;
 }
 
 function recordAbsorbSourceDrift(
@@ -5103,6 +5148,13 @@ export const codebaseTools: Tool[] = [
           description:
             'Minimum interval between cheap HEAD-only checks at scan batch boundaries. Defaults to 1000ms; pass 0 to check every batch.',
         },
+        sourceDriftCheckMaxOverheadPercent: {
+          type: 'number',
+          minimum: 0,
+          maximum: 100,
+          description:
+            'Maximum target share of refresh time spent on HEAD-only checks. Defaults to 4%; expensive Git probes automatically widen the effective interval. Pass 0 to disable adaptive throttling. sourceDriftCheckIntervalMs:0 still checks every batch.',
+        },
         includeBuildArtifacts: {
           type: 'boolean',
           description:
@@ -5795,6 +5847,7 @@ async function ensureCachedGraph(): Promise<{
                 maxRetries: 0,
                 debounceMs: 0,
                 checkIntervalMs: 0,
+                maxCheckOverheadRatio: 0,
               },
               warmWriterKey,
               warmPolicyHash,
@@ -6068,14 +6121,32 @@ async function runFullScan(
     }
   };
   let lastBatchHeadCheckAt = 0;
+  let effectiveHeadCheckIntervalMs =
+    sourceDriftRetryPolicy?.checkIntervalMs ?? DEFAULT_SOURCE_DRIFT_CHECK_INTERVAL_MS;
   const enforceRefreshHeadPinBetweenBatches = async (): Promise<void> => {
     if (rootSourcePins.length === 0) return;
-    const checkIntervalMs =
+    const configuredCheckIntervalMs =
       sourceDriftRetryPolicy?.checkIntervalMs ?? DEFAULT_SOURCE_DRIFT_CHECK_INTERVAL_MS;
     const now = Date.now();
-    if (lastBatchHeadCheckAt > 0 && now - lastBatchHeadCheckAt < checkIntervalMs) return;
+    if (lastBatchHeadCheckAt > 0 && now - lastBatchHeadCheckAt < effectiveHeadCheckIntervalMs) {
+      return;
+    }
     lastBatchHeadCheckAt = now;
-    await assertGraphRootHeadPinsCurrent(rootSourcePins);
+    const checkStartedAt = process.hrtime.bigint();
+    try {
+      await assertGraphRootHeadPinsCurrent(rootSourcePins);
+    } finally {
+      const durationMs = Number(process.hrtime.bigint() - checkStartedAt) / 1_000_000;
+      const maxCheckOverheadRatio = sourceDriftRetryPolicy?.maxCheckOverheadRatio ?? 0;
+      if (configuredCheckIntervalMs > 0 && maxCheckOverheadRatio > 0) {
+        effectiveHeadCheckIntervalMs = Math.max(
+          configuredCheckIntervalMs,
+          effectiveHeadCheckIntervalMs,
+          Math.ceil(durationMs / maxCheckOverheadRatio)
+        );
+      }
+      recordAbsorbSourceHeadCheck(jobId, durationMs, effectiveHeadCheckIntervalMs);
+    }
   };
 
   if (jobId) trackAbsorbProgress(jobId, 'Discovering files', 5);
@@ -7684,6 +7755,7 @@ function buildIsolatedAbsorbWorkerArgs(
     maxSourceDriftRetries: plan.sourceDriftRetryPolicy.maxRetries,
     sourceDriftDebounceMs: plan.sourceDriftRetryPolicy.debounceMs,
     sourceDriftCheckIntervalMs: plan.sourceDriftRetryPolicy.checkIntervalMs,
+    sourceDriftCheckMaxOverheadPercent: plan.sourceDriftRetryPolicy.maxCheckOverheadRatio * 100,
     ...(writerLease && {
       __writerJobId: plan.jobId,
       __writerLeaseToken: writerLease.record.token,
@@ -9525,7 +9597,7 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
               ? 'immutable-generation-manifest'
               : hasStatBoundEmbeddingGeneration
                 ? 'graph-bound-stat'
-              : 'legacy-digest-fallback',
+                : 'legacy-digest-fallback',
           }
         : null,
       diskHydratable: diskSemanticIndexHydratable,

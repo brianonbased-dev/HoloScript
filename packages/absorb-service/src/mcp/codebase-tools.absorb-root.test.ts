@@ -3297,6 +3297,10 @@ describe('holo_absorb_repo root validation', () => {
       sourceDriftRetry?: {
         detectionCount?: number;
         retryCount?: number;
+        headCheckCount?: number;
+        headCheckDurationMs?: number;
+        maxHeadCheckDurationMs?: number;
+        effectiveCheckIntervalMs?: number;
         exhausted?: boolean;
       };
       refreshProgressReceipt?: {
@@ -3316,6 +3320,10 @@ describe('holo_absorb_repo root validation', () => {
       retryCount: 1,
       exhausted: false,
     });
+    expect(result.sourceDriftRetry?.headCheckCount).toBeGreaterThan(0);
+    expect(result.sourceDriftRetry?.headCheckDurationMs).toBeGreaterThanOrEqual(0);
+    expect(result.sourceDriftRetry?.maxHeadCheckDurationMs).toBeGreaterThanOrEqual(0);
+    expect(result.sourceDriftRetry?.effectiveCheckIntervalMs).toBe(0);
     expect(result.refreshProgressReceipt).toMatchObject({
       status: 'complete',
       resumeMode: 'content-addressed-overlay',

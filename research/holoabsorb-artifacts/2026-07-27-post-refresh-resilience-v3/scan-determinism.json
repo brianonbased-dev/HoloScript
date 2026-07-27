@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "holoscript.absorb.scan-determinism.v1",
+  "status": "pass",
+  "packageRoot": "C:\\Users\\josep\\.scratch\\holoabsorb-hardening-20260727\\packages\\absorb-service",
+  "first": {
+    "files": 125,
+    "sha256": "374efaeb8733d173a6d9bc1ee4e5c087662028699722512bbeed862fd4c1ab0b"
+  },
+  "second": {
+    "files": 125,
+    "sha256": "374efaeb8733d173a6d9bc1ee4e5c087662028699722512bbeed862fd4c1ab0b"
+  },
+  "differences": []
+}
