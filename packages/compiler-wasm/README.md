@@ -151,10 +151,13 @@ semantics.
 
 Flat records whose explicitly typed fields are `i32`, `f32`, `f64`, or `bool`
 cross UAAL calls and returns as one affine stack value under
-`hs.aggregate.value.v1`. Construction and field projection carry the semantic
-layout identifier and field descriptor. Whole-value copies are rejected in favor
-of `move(...)`; nested records, owned buffers, and mutable or borrowed aggregate
-transfer remain outside this first value ABI.
+`hs.aggregate.value.v1`. `hs.aggregate.value.v2` adds finite recursive layouts
+whose leaves use those same scalar POD types. Recursive construction carries
+child layout descriptors, while `project_path` validates every nested record
+boundary before returning a scalar leaf. Whole-value copies and nested-record
+loads are rejected in favor of `move(...)` or a scalar leaf projection; cyclic
+by-value layouts, owned buffers, and mutable or borrowed aggregate transfer
+remain outside the value ABI.
 
 ### `version(): string`
 

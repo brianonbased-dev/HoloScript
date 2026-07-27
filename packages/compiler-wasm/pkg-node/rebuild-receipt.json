@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T03:03:04Z",
+  "generatedAt": "2026-07-27T05:45:24Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "origin/main 4a41f7fe94fd931221bccb3a8c5566ef358a6441 plus the pending aggregate-value ABI source; built before the source-and-artifact commit",
+  "sourceCommit": "origin/main b95002c6d7e519466a0d96f96a3f851422137f69 plus the pending recursive aggregate-value ABI source; built before the source-and-artifact commit",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 416821,
-    "wasmSha256": "6e6d36dd840adaef32f28f4fb89d516091d8d61edb6893a8dea4c7ad28bc4678",
-    "previousWasmSha256": "f05ee0fde6a84415c38e613551d9faa409171d0f025b575487b496d8936922c2",
+    "wasmBytes": 423669,
+    "wasmSha256": "bcc5b526a9196a949a3b39e4bdb9f9f338a27409414807d6a35b6771439987bc",
+    "previousWasmSha256": "6e6d36dd840adaef32f28f4fb89d516091d8d61edb6893a8dea4c7ad28bc4678",
     "repeatBuildSha256Matched": true,
-    "note": "Clean-worktree rebuild adds hs.aggregate.value.v1 construction and field projection for affine flat-POD values. Two release nodejs builds and two release web builds produced the same SHA-256; the Node and web artifacts are byte-identical."
+    "note": "Clean-worktree rebuild adds hs.aggregate.value.v2 recursive POD construction and scalar projection paths while retaining the v1 flat ABI. Two release nodejs builds and two release web builds produced the same SHA-256; the Node and web artifacts are byte-identical."
   }
 }

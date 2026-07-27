@@ -22,12 +22,8 @@ describe('@holoscript/std native source tracer', () => {
     expect(packageJson.exports['./native/math.hsplus']).toBe('./src/math.hsplus');
     expect(packageJson.exports['./native/collections.hsplus']).toBe('./src/collections.hsplus');
     expect(packageJson.exports['./native/abi/scalar-v1.hs']).toBe('./src/abi/scalar-v1.hs');
-    expect(packageJson.exports['./native/abi/scalar-f32-v1.hs']).toBe(
-      './src/abi/scalar-f32-v1.hs'
-    );
-    expect(packageJson.exports['./native/abi/scalar-f64-v1.hs']).toBe(
-      './src/abi/scalar-f64-v1.hs'
-    );
+    expect(packageJson.exports['./native/abi/scalar-f32-v1.hs']).toBe('./src/abi/scalar-f32-v1.hs');
+    expect(packageJson.exports['./native/abi/scalar-f64-v1.hs']).toBe('./src/abi/scalar-f64-v1.hs');
     expect(packageJson.exports['./native/abi/vector-v1.hs']).toBe('./src/abi/vector-v1.hs');
     expect(packageJson.holoscript).toMatchObject({
       artifact: 'library',
@@ -70,6 +66,18 @@ describe('@holoscript/std native source tracer', () => {
           ],
           valueAbi: 'hs.aggregate.value.v1',
           layout: 'StdVec3I32{x:i32,y:i32,z:i32}',
+          provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
+        }),
+        expect.objectContaining({
+          id: 'hs.std.aabb3.aggregate.i32.v1',
+          functions: [
+            'std_math_aabb3_make_i32',
+            'std_math_aabb3_size_value_i32',
+            'std_math_aabb3_volume_value_i32',
+          ],
+          valueAbi: 'hs.aggregate.value.v2',
+          layout:
+            'StdAabb3I32{min:StdVec3I32{x:i32,y:i32,z:i32},max:StdVec3I32{x:i32,y:i32,z:i32}}',
           provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
         }),
         expect.objectContaining({
@@ -130,10 +138,15 @@ describe('@holoscript/std native source tracer', () => {
   it('keeps the vector ABI aggregate-valued, affine, target-neutral, and compatible', () => {
     const source = readFileSync(join(packageRoot, 'src', 'abi', 'vector-v1.hs'), 'utf8');
     expect(source).toContain('struct StdVec3I32 { x: i32, y: i32, z: i32 }');
+    expect(source).toContain('struct StdAabb3I32 { min: StdVec3I32, max: StdVec3I32 }');
     expect(source).toContain('export function std_math_vec3_make_i32');
     expect(source).toContain('export function std_math_vec3_dot_value_i32');
     expect(source).toContain('export function std_math_vec3_cross_value_i32');
     expect(source).toContain('export function std_math_vec3_length_sq_value_i32');
+    expect(source).toContain('export function std_math_aabb3_make_i32');
+    expect(source).toContain('export function std_math_aabb3_size_value_i32');
+    expect(source).toContain('export function std_math_aabb3_volume_value_i32');
+    expect(source).toContain('load(bounds.max.x)');
     expect(source).toContain('return move(result)');
     expect(source).toContain('export function std_math_vec3_dot_i32');
     expect(source).toContain('export function std_math_vec3_cross_x_i32');

@@ -204,9 +204,9 @@ pipe(5, double, addOne, toString); // '11'
 
 `@holoscript/std/native/abi/scalar-v1.hs` is the first executable cross-target standard-library ABI. Its contract ID is `hs.std.scalar.i32.v1`, and it exports `std_math_clamp_i32`, `std_math_sign_i32`, and `std_math_step_i32`.
 
-`@holoscript/std/native/abi/vector-v1.hs` now carries both `hs.std.vector.i32.v1` compatibility entrypoints and the `hs.std.vector.aggregate.i32.v1` value contract. `StdVec3I32{x:i32,y:i32,z:i32}` crosses calls and returns as one affine flat-POD value under `hs.aggregate.value.v1`; the compatibility functions construct, move, and project those values internally. Nested records, owned buffers, and mutable or borrowed aggregate transfer are deliberately rejected by this first contract.
+`@holoscript/std/native/abi/vector-v1.hs` carries `hs.std.vector.i32.v1` compatibility entrypoints, the flat `hs.std.vector.aggregate.i32.v1` value contract, and the recursively nested `hs.std.aabb3.aggregate.i32.v1` contract. `StdVec3I32{x:i32,y:i32,z:i32}` crosses calls and returns as one affine value under `hs.aggregate.value.v1`. `StdAabb3I32` nests two of those vectors under `hs.aggregate.value.v2`; construction preserves both child records and size/volume read validated scalar paths such as `bounds.max.x`. Cyclic layouts, owned-buffer fields, and mutable or borrowed aggregate transfer remain rejected.
 
-`@holoscript/std/uaal-abi` is the packaged UAAL host adapter for the numeric binary contracts and `hs.aggregate.value.v1`. Aggregate construction produces frozen record envelopes, while projection verifies the semantic layout, field index, and scalar type before pushing a value.
+`@holoscript/std/uaal-abi` is the packaged UAAL host adapter for the numeric binary contracts plus `hs.aggregate.value.v1` and `hs.aggregate.value.v2`. Aggregate construction produces frozen record envelopes. Flat projection verifies the semantic layout, field index, and scalar type; recursive projection additionally verifies every nested envelope boundary before pushing a scalar leaf.
 
 `@holoscript/std/native/abi/scalar-f32-v1.hs` adds the `hs.std.scalar.f32.v1` contract for finite IEEE-754 binary32 inputs. It exports scalar clamp, lerp, inverse-lerp, and remap, with literals, parameters, intermediate arithmetic results, and returns rounded to binary32. Inverse-lerp and remap require a non-zero input span; NaN, infinity, signed-zero preservation, and division-by-zero behavior remain outside the first proof.
 
@@ -218,7 +218,7 @@ The conformance gate executes the existing JavaScript implementation on Node, lo
 pnpm --filter @holoscript/std run test:abi
 ```
 
-This proves the declared i32 scalar subset, affine aggregate-valued flat-POD Vec3 subset, finite f32 scalar subset with operation-by-operation binary32 rounding, and finite f64 scalar subset. Nested or owned aggregates, mutable or borrowed aggregate transfer, non-finite floating-point edge semantics, quaternions, noise, collections, OS-level air-gap behavior, and a general stable systems ABI remain outside the proof.
+This proves the declared i32 scalar subset, affine aggregate-valued Vec3 subset, recursively nested immutable-POD AABB subset, finite f32 scalar subset with operation-by-operation binary32 rounding, and finite f64 scalar subset. Owned-buffer fields, mutable or borrowed aggregate transfer, non-finite floating-point edge semantics, quaternions, noise, collections, OS-level air-gap behavior, and a general stable systems ABI remain outside the proof.
 
 **Known limitations:** `@holoscript/std/fs` assumes a Node.js-like filesystem (`fs`/`path`) and is not usable in a browser bundle; import the browser-safe entry points (`math`, `collections`, `string`, `time`) instead if you need this library client-side. The browser ABI gate enables UAAL derivation logging and verifies its universal SHA-256 receipt plus hermetic replay without a Node `crypto` compatibility shim. Interfaces may change before a v1 release.
 
