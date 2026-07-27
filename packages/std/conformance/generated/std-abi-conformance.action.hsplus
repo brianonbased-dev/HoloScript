@@ -40,6 +40,22 @@ composition "std-math-conformance" {
       return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t }
     }
 
+    action vec3_length(v) {
+      return { value: sqrt(v.x * v.x + v.y * v.y + v.z * v.z) }
+    }
+
+    action vec3_normalize(v) {
+      return sqrt(v.x * v.x + v.y * v.y + v.z * v.z) < 0.000001 ? { x: 0.0, y: 0.0, z: 0.0 } : { x: v.x / sqrt(v.x * v.x + v.y * v.y + v.z * v.z), y: v.y / sqrt(v.x * v.x + v.y * v.y + v.z * v.z), z: v.z / sqrt(v.x * v.x + v.y * v.y + v.z * v.z) }
+    }
+
+    action vec3_distance(a, b) {
+      return { value: sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + (a.z - b.z) * (a.z - b.z)) }
+    }
+
+    action quat_from_axis_angle(axis, angle_rad) {
+      return { x: axis.x * sin(angle_rad * 0.5), y: axis.y * sin(angle_rad * 0.5), z: axis.z * sin(angle_rad * 0.5), w: cos(angle_rad * 0.5) }
+    }
+
     action quat_identity() {
       return { x: 0.0, y: 0.0, z: 0.0, w: 1.0 }
     }

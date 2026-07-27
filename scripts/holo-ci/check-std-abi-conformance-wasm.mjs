@@ -4,8 +4,10 @@
  *
  * Executes the generated @trait projection of the std math conformance ops in a
  * REAL WebAssembly runtime — the committed compiler-wasm pkg-node artifact's
- * `evaluate_trait_handler` export, running inside Node's WebAssembly engine —
- * and compares every vector in the frozen corpus against its expected value.
+ * `evaluate_trait_handler_v2` export (deterministic subset v2: v1 plus the
+ * whitelisted numeric builtin table sqrt/sin/cos/acos/min/max/abs/floor),
+ * running inside Node's WebAssembly engine — and compares every vector in the
+ * frozen corpus against its expected value.
  * The wasm binary executed here is byte-identical to the `--target web` build
  * shipped for browsers (both artifacts are hashed into the receipt), so this
  * leg proves the browser-shipped binary executes the std ABI subset, without
@@ -87,10 +89,15 @@ if (!existsSync(artifactJs) || !existsSync(artifactWasm)) {
   misconfigured(`wasm execution artifact (${artifactDirRel}) not found — build it before running`);
 }
 
+// Evaluator pin: the v2 export runs the deterministic subset below (v1 plus
+// the whitelisted numeric builtin table); both ids are recorded in the receipt.
+const EVALUATOR_EXPORT = 'evaluate_trait_handler_v2';
+const SUBSET_ID = 'holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins';
+
 const wasm = require(artifactJs);
-if (typeof wasm.evaluate_trait_handler !== 'function') {
+if (typeof wasm[EVALUATOR_EXPORT] !== 'function') {
   misconfigured(
-    'pkg-node artifact does not export evaluate_trait_handler — rebuild packages/compiler-wasm'
+    `pkg-node artifact does not export ${EVALUATOR_EXPORT} — rebuild packages/compiler-wasm`
   );
 }
 
@@ -147,7 +154,7 @@ function runVector(projectionSource, traitName, vector, expectedOverride) {
   let envelope;
   try {
     envelope = JSON.parse(
-      wasm.evaluate_trait_handler(
+      wasm[EVALUATOR_EXPORT](
         projectionSource,
         traitName,
         vector.op,
@@ -290,7 +297,8 @@ const receipt = {
       matches: webWasmSha !== null && webWasmSha === wasmSha,
     },
   },
-  evaluatorExport: 'evaluate_trait_handler',
+  evaluatorExport: EVALUATOR_EXPORT,
+  subsetId: SUBSET_ID,
   sources: {
     traitProjectionSha256: sha256(projectionBytes),
     vectorsSha256: sha256(vectorsBytes),

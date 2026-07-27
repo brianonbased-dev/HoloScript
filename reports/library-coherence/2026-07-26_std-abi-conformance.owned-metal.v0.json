@@ -1,18 +1,19 @@
 {
   "schema": "holoscript.std-abi-conformance.owned-metal.v0",
-  "generatedAtISO": "2026-07-27T01:00:17.504Z",
+  "generatedAtISO": "2026-07-27T18:08:36.843Z",
   "target": "owned-metal",
   "executionRuntime": {
-    "engine": "compiler-wasm evaluate_trait_handler (WebAssembly)",
+    "engine": "compiler-wasm evaluate_trait_handler_v2 (WebAssembly)",
+    "evaluatorExport": "evaluate_trait_handler_v2",
     "executedProjection": "std-abi-conformance.trait.hsplus (bundle copy, pin-verified)",
-    "wasmArtifactSha256": "sha256:3a6f1bf292360af58b8f5b28f39f2174f12b8d9d33efe8ca066b879cfe4fd135"
+    "wasmArtifactSha256": "sha256:3e03d7764585f31ade856153f03c26db4fca446c3d1b990545134e168c6c547e"
   },
   "sources": {
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:40a87145d82f0a65f0323bd91fdf04b6a36e05581bf8b3ee70bd4bdc205af7da"
+      "sha256": "sha256:b02127c81510b2c9ac10b486f3489d02c211214e75fc0b90ba3a864147071a20"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:4d704cd8acb07a06210db34e0155267fc542a54c81120f4f184910d07cf07c53"
+      "sha256": "sha256:7ddf6d707a77f69cf2d9d4c44a668e192bb376891f042de0b95bc3135a55a85a"
     }
   },
   "environment": {
@@ -24,8 +25,8 @@
     "cpus": "Cortex-A78AE"
   },
   "summary": {
-    "vectors": 50,
-    "passed": 50,
+    "vectors": 69,
+    "passed": 69,
     "failed": 0
   },
   "results": [
@@ -410,6 +411,180 @@
       }
     },
     {
+      "id": "vlen-345",
+      "op": "on_vec3_length",
+      "pass": true,
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "vlen-122",
+      "op": "on_vec3_length",
+      "pass": true,
+      "actual": {
+        "value": 3
+      }
+    },
+    {
+      "id": "vlen-236",
+      "op": "on_vec3_length",
+      "pass": true,
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "vlen-unit",
+      "op": "on_vec3_length",
+      "pass": true,
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "vlen-fractional",
+      "op": "on_vec3_length",
+      "pass": true,
+      "actual": {
+        "value": 0.8660254037844386
+      }
+    },
+    {
+      "id": "vnorm-345",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "actual": {
+        "x": 0.6,
+        "y": 0.8,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-zero",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-ones",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "actual": {
+        "x": 0.5773502691896258,
+        "y": 0.5773502691896258,
+        "z": 0.5773502691896258
+      }
+    },
+    {
+      "id": "vnorm-axis",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "actual": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-512",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "actual": {
+        "x": 0,
+        "y": 0.38461538461538464,
+        "z": 0.9230769230769231
+      }
+    },
+    {
+      "id": "vdist-345",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "vdist-same",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "vdist-diagonal",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "actual": {
+        "value": 1.7320508075688772
+      }
+    },
+    {
+      "id": "vdist-mixed",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "actual": {
+        "value": 3.5355339059327378
+      }
+    },
+    {
+      "id": "vdist-236",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "qaxis-z-quarter",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "actual": {
+        "w": 0.7071067811865476,
+        "x": 0,
+        "y": 0,
+        "z": 0.7071067811865475
+      }
+    },
+    {
+      "id": "qaxis-x-third",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "actual": {
+        "w": 0.8660254037844387,
+        "x": 0.49999999999999994,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "qaxis-y-one",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "actual": {
+        "w": 0.8775825618903728,
+        "x": 0,
+        "y": 0.479425538604203,
+        "z": 0
+      }
+    },
+    {
+      "id": "qaxis-diagonal",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "actual": {
+        "w": 0.5000000000000001,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
       "id": "quat-identity",
       "op": "on_quat_identity",
       "pass": true,
@@ -470,5 +645,5 @@
     "provesNodeDeterministicSubsetExecution": false,
     "note": "Executed the generated trait projection through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:42253e311bddfafebc726fc1817b9d33af756009ffedcff3774ca43e72ec905f"
+  "receiptHash": "sha256:0723f77dfaf37969ffeb8276c98f1261fb70def5d94bd9e7a5f45ff189e88f70"
 }

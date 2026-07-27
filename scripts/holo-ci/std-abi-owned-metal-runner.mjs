@@ -61,8 +61,12 @@ const vectors = readFileSync(join(bundleDir, 'std-abi-vectors.v0.jsonl'), 'utf8'
   .map((line) => JSON.parse(line));
 
 const wasm = require(join(bundleDir, 'pkg-node', 'holoscript_wasm.js'));
-if (typeof wasm.evaluate_trait_handler !== 'function') {
-  fail('pkg-node artifact has no evaluate_trait_handler export');
+const evaluatorExport =
+  typeof wasm.evaluate_trait_handler_v2 === 'function'
+    ? 'evaluate_trait_handler_v2'
+    : 'evaluate_trait_handler';
+if (typeof wasm[evaluatorExport] !== 'function') {
+  fail('pkg-node artifact has no trait-handler evaluator export');
 }
 const traitName = manifest.conformanceTrait || 'std_math_conformance';
 
@@ -103,7 +107,7 @@ for (const vector of vectors) {
   const outcome = { id: vector.id, op: vector.op, pass: false };
   let parsed;
   try {
-    const raw = wasm.evaluate_trait_handler(
+    const raw = wasm[evaluatorExport](
       traitSource,
       traitName,
       vector.op,
@@ -135,7 +139,8 @@ const receipt = {
   generatedAtISO: new Date().toISOString(),
   target: 'owned-metal',
   executionRuntime: {
-    engine: 'compiler-wasm evaluate_trait_handler (WebAssembly)',
+    engine: `compiler-wasm ${evaluatorExport} (WebAssembly)`,
+    evaluatorExport,
     executedProjection: 'std-abi-conformance.trait.hsplus (bundle copy, pin-verified)',
     wasmArtifactSha256: manifest.files['pkg-node/holoscript_wasm_bg.wasm']?.sha256 || 'unpinned',
   },

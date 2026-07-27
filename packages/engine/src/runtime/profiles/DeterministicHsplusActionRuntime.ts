@@ -27,6 +27,31 @@ import {
 export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET =
   'holoscript-engine-hsplus-deterministic-action-subset-v1' as const;
 
+export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V2 =
+  'holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins' as const;
+
+export interface DeterministicHsplusActionRuntimeOptions {
+  /**
+   * Admit the v2 whitelisted deterministic numeric builtin table
+   * (sqrt/sin/cos/acos/abs/floor/min/max over finite f64, fail-closed on
+   * non-finite or negative-zero results). Off by default: the v1 subset is a
+   * pinned receipt contract and must not change behavior.
+   */
+  numericBuiltins?: boolean;
+}
+
+const NUMERIC_BUILTINS: ReadonlyMap<string, { arity: number; apply: (args: number[]) => number }> =
+  new Map([
+    ['sqrt', { arity: 1, apply: ([x]: number[]) => Math.sqrt(x) }],
+    ['sin', { arity: 1, apply: ([x]: number[]) => Math.sin(x) }],
+    ['cos', { arity: 1, apply: ([x]: number[]) => Math.cos(x) }],
+    ['acos', { arity: 1, apply: ([x]: number[]) => Math.acos(x) }],
+    ['abs', { arity: 1, apply: ([x]: number[]) => Math.abs(x) }],
+    ['floor', { arity: 1, apply: ([x]: number[]) => Math.floor(x) }],
+    ['min', { arity: 2, apply: ([a, b]: number[]) => Math.min(a, b) }],
+    ['max', { arity: 2, apply: ([a, b]: number[]) => Math.max(a, b) }],
+  ]);
+
 const MAX_SOURCE_BYTES = 256 * 1024;
 const MAX_CANONICAL_VALUE_BYTES = 1024 * 1024;
 const MAX_AST_NODES = 512;
@@ -53,6 +78,7 @@ interface RawHsplusAction {
 interface EvaluationEnvironment {
   state: HeadlessJsonObject;
   args: HeadlessJsonObject;
+  numericBuiltins: boolean;
 }
 
 interface AstBudget {
@@ -307,10 +333,34 @@ function validateExpression(
   expression: HoloExpression,
   params: ReadonlySet<string>,
   budget: AstBudget,
-  depth: number
+  depth: number,
+  admitBuiltins: boolean
 ): void {
   consumeBudget(budget, depth, 'action expression');
   switch (expression.type) {
+    case 'CallExpression': {
+      if (!admitBuiltins) {
+        fail('function calls are not admitted in the v1 deterministic subset');
+      }
+      if (expression.callee.type !== 'Identifier') {
+        fail('builtin calls must use a bare identifier callee');
+      }
+      const builtin = NUMERIC_BUILTINS.get(expression.callee.name);
+      if (!builtin) {
+        fail(
+          `call target "${expression.callee.name}" is not in the v2 numeric builtin table (sqrt, sin, cos, acos, abs, floor, min, max)`
+        );
+      }
+      if (expression.arguments.length !== builtin.arity) {
+        fail(
+          `builtin "${expression.callee.name}" requires exactly ${builtin.arity} argument(s), got ${expression.arguments.length}`
+        );
+      }
+      expression.arguments.forEach((argument) =>
+        validateExpression(argument, params, budget, depth + 1, admitBuiltins)
+      );
+      return;
+    }
     case 'Literal':
       toStrictJson(expression.value, 'literal');
       return;
@@ -351,18 +401,18 @@ function validateExpression(
       if (!allowed.has(expression.operator)) {
         fail(`binary operator "${expression.operator}" is unsupported`);
       }
-      validateExpression(expression.left, params, budget, depth + 1);
-      validateExpression(expression.right, params, budget, depth + 1);
+      validateExpression(expression.left, params, budget, depth + 1, admitBuiltins);
+      validateExpression(expression.right, params, budget, depth + 1, admitBuiltins);
       return;
     }
     case 'UnaryExpression':
       if (expression.operator !== '!' && expression.operator !== '-') {
         fail(`unary operator "${String(expression.operator)}" is unsupported`);
       }
-      validateExpression(expression.argument, params, budget, depth + 1);
+      validateExpression(expression.argument, params, budget, depth + 1, admitBuiltins);
       return;
     case 'ArrayExpression':
-      expression.elements.forEach((child) => validateExpression(child, params, budget, depth + 1));
+      expression.elements.forEach((child) => validateExpression(child, params, budget, depth + 1, admitBuiltins));
       return;
     case 'ObjectExpression': {
       const keys = new Set<string>();
@@ -372,14 +422,14 @@ function validateExpression(
           fail(`object expression contains duplicate key "${property.key}"`);
         }
         keys.add(property.key);
-        validateExpression(property.value, params, budget, depth + 1);
+        validateExpression(property.value, params, budget, depth + 1, admitBuiltins);
       });
       return;
     }
     case 'ConditionalExpression':
-      validateExpression(expression.test, params, budget, depth + 1);
-      validateExpression(expression.consequent, params, budget, depth + 1);
-      validateExpression(expression.alternate, params, budget, depth + 1);
+      validateExpression(expression.test, params, budget, depth + 1, admitBuiltins);
+      validateExpression(expression.consequent, params, budget, depth + 1, admitBuiltins);
+      validateExpression(expression.alternate, params, budget, depth + 1, admitBuiltins);
       return;
     default:
       fail(`expression type "${String((expression as { type?: unknown }).type)}" is not admitted`);
@@ -390,7 +440,8 @@ function validateStatements(
   statements: readonly HoloStatement[],
   params: ReadonlySet<string>,
   budget: AstBudget,
-  depth: number
+  depth: number,
+  admitBuiltins: boolean
 ): void {
   for (const statement of statements) {
     consumeBudget(budget, depth, 'action body');
@@ -401,7 +452,7 @@ function validateStatements(
           fail(`assignment target "${statement.target}" must be declared state`);
         }
         path.forEach((part) => assertSafeKey(part, 'assignment target'));
-        validateExpression(statement.value, params, budget, depth + 1);
+        validateExpression(statement.value, params, budget, depth + 1, admitBuiltins);
         break;
       }
       case 'EmitStatement':
@@ -412,15 +463,15 @@ function validateStatements(
         ) {
           fail('event name is empty, too long, or contains control characters');
         }
-        if (statement.data) validateExpression(statement.data, params, budget, depth + 1);
+        if (statement.data) validateExpression(statement.data, params, budget, depth + 1, admitBuiltins);
         break;
       case 'ReturnStatement':
-        if (statement.value) validateExpression(statement.value, params, budget, depth + 1);
+        if (statement.value) validateExpression(statement.value, params, budget, depth + 1, admitBuiltins);
         break;
       case 'IfStatement':
-        validateExpression(statement.condition, params, budget, depth + 1);
-        validateStatements(statement.consequent, params, budget, depth + 1);
-        validateStatements(statement.alternate ?? [], params, budget, depth + 1);
+        validateExpression(statement.condition, params, budget, depth + 1, admitBuiltins);
+        validateStatements(statement.consequent, params, budget, depth + 1, admitBuiltins);
+        validateStatements(statement.alternate ?? [], params, budget, depth + 1, admitBuiltins);
         break;
       default:
         fail(`statement type "${String((statement as { type?: unknown }).type)}" is not admitted`);
@@ -430,7 +481,8 @@ function validateStatements(
 
 function validateActions(
   rawActions: ReadonlyMap<string, RawHsplusAction>,
-  structuredActions: readonly HoloAction[]
+  structuredActions: readonly HoloAction[],
+  admitBuiltins: boolean
 ): Map<string, HoloAction> {
   const actions = new Map<string, HoloAction>();
   const budget: AstBudget = { nodes: 0 };
@@ -455,7 +507,7 @@ function validateActions(
     }
     if (actions.has(action.name)) fail(`duplicate structured action "${action.name}"`);
     if (action.body.length === 0) fail(`action "${action.name}" has an empty structured body`);
-    validateStatements(action.body, new Set(params), budget, 0);
+    validateStatements(action.body, new Set(params), budget, 0, admitBuiltins);
     actions.set(action.name, action);
   }
 
@@ -524,6 +576,30 @@ function evaluateExpression(
   environment: EvaluationEnvironment
 ): HeadlessJsonValue {
   switch (expression.type) {
+    case 'CallExpression': {
+      if (!environment.numericBuiltins) {
+        fail('function calls are not admitted in the v1 deterministic subset');
+      }
+      if (expression.callee.type !== 'Identifier') {
+        fail('builtin calls must use a bare identifier callee');
+      }
+      const builtin = NUMERIC_BUILTINS.get(expression.callee.name);
+      if (!builtin) {
+        fail(
+          `call target "${expression.callee.name}" is not in the v2 numeric builtin table (sqrt, sin, cos, acos, abs, floor, min, max)`
+        );
+      }
+      const args = expression.arguments.map((argument) =>
+        numeric(
+          evaluateExpression(argument, environment),
+          `builtin "${(expression.callee as { name: string }).name}" argument`
+        )
+      );
+      if (args.length !== builtin.arity) {
+        fail(`builtin "${expression.callee.name}" requires exactly ${builtin.arity} argument(s)`);
+      }
+      return finiteResult(builtin.apply(args), `builtin "${expression.callee.name}"`);
+    }
     case 'Literal':
       return toStrictJson(expression.value, 'literal result');
     case 'Identifier': {
@@ -755,9 +831,11 @@ function validateActionDecision(
 export class DeterministicHsplusActionRuntime {
   private readonly actions: ReadonlyMap<string, HoloAction>;
   private readonly initial: HeadlessJsonObject;
+  private readonly numericBuiltins: boolean;
   private state: HeadlessJsonObject;
 
-  constructor(source: string) {
+  constructor(source: string, options?: DeterministicHsplusActionRuntimeOptions) {
+    this.numericBuiltins = options?.numericBuiltins === true;
     if (typeof source !== 'string' || source.trim().length === 0) {
       fail('source must be a non-empty string');
     }
@@ -786,9 +864,19 @@ export class DeterministicHsplusActionRuntime {
       fail('HoloScript+ and structured parser state disagree');
     }
 
-    this.actions = validateActions(rawActions, structured.ast.logic?.actions ?? []);
+    this.actions = validateActions(
+      rawActions,
+      structured.ast.logic?.actions ?? [],
+      this.numericBuiltins
+    );
     this.initial = cloneObject(structuredState, 'initial state');
     this.state = cloneObject(this.initial, 'runtime state');
+  }
+
+  get subsetId(): string {
+    return this.numericBuiltins
+      ? ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V2
+      : ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET;
   }
 
   get initialState(): HeadlessJsonObject {
@@ -816,7 +904,11 @@ export class DeterministicHsplusActionRuntime {
     const before = cloneObject(this.state, `${action.name} pre-state`);
     const workingState = cloneObject(before, `${action.name} transaction state`);
     const emittedEvents: HeadlessJsonValue[] = [];
-    const flow = executeStatements(action.body, { state: workingState, args }, emittedEvents);
+    const flow = executeStatements(
+      action.body,
+      { state: workingState, args, numericBuiltins: this.numericBuiltins },
+      emittedEvents
+    );
     if (!flow.returned) fail(`action "${action.name}" completed without an explicit return`);
     const value = toStrictJson(flow.value, `${action.name} result`);
     const after = cloneObject(workingState, `${action.name} post-state`);
@@ -835,7 +927,8 @@ export class DeterministicHsplusActionRuntime {
 }
 
 export function createDeterministicHsplusActionRuntime(
-  source: string
+  source: string,
+  options?: DeterministicHsplusActionRuntimeOptions
 ): DeterministicHsplusActionRuntime {
-  return new DeterministicHsplusActionRuntime(source);
+  return new DeterministicHsplusActionRuntime(source, options);
 }

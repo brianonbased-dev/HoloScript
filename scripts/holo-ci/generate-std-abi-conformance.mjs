@@ -179,7 +179,7 @@ for (const op of ops.ops) {
       kind: op.kind,
       args,
       expected,
-      tolerance: 0,
+      tolerance: op.tolerance ?? 0,
     });
   }
 }
@@ -196,7 +196,9 @@ const runtimeModulePath = join(
 );
 const runtimeModule = require(runtimeModulePath);
 const { createDeterministicHsplusActionRuntime } = runtimeModule;
-const runtime = createDeterministicHsplusActionRuntime(actionSource);
+const runtime = createDeterministicHsplusActionRuntime(actionSource, {
+  numericBuiltins: ops.numericBuiltins === true,
+});
 
 let gateFailures = 0;
 for (const vector of vectors) {

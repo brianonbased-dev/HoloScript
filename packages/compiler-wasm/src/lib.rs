@@ -259,6 +259,27 @@ pub fn evaluate_trait_handler(
     eval::evaluate_trait_handler_json(source, trait_name, handler_name, args_json)
 }
 
+/// Evaluate one `@on_<handler>` trait-handler body in the v2 deterministic
+/// subset (`holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins`).
+///
+/// Identical contract to [`evaluate_trait_handler`] with exactly ONE extension:
+/// calls whose callee is a BARE identifier in the whitelisted numeric builtin
+/// table `{sqrt, sin, cos, acos, min, max, abs, floor}` (exact arity, every
+/// argument a number) are computed in f64 via Rust std and pass through the
+/// same checked-number gate — non-finite and negative-zero results fail closed,
+/// so `sqrt(-1)` / `acos(2)` are structured errors. Member calls
+/// (`math.sqrt(x)`) and callees outside the table remain `unsupported-call`.
+/// Everything outside `CallExpression` behaves byte-for-byte as in v1.
+#[wasm_bindgen]
+pub fn evaluate_trait_handler_v2(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+) -> String {
+    eval::evaluate_trait_handler_v2_json(source, trait_name, handler_name, args_json)
+}
+
 /// Compile top-level `.hs` functions to a UAAL bytecode packet.
 ///
 /// This mirrors [`compile_to_kotlin`]'s JSON boundary but targets the stack-based

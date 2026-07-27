@@ -40,6 +40,25 @@
     return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t }
   }
 
+  @on_vec3_length(v) => {
+    return { value: sqrt(v.x * v.x + v.y * v.y + v.z * v.z) }
+  }
+
+  @on_vec3_normalize(v) => {
+    len = sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+    if (len < 0.000001) { return { x: 0.0, y: 0.0, z: 0.0 } }
+    return { x: v.x / len, y: v.y / len, z: v.z / len }
+  }
+
+  @on_vec3_distance(a, b) => {
+    return { value: sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + (a.z - b.z) * (a.z - b.z)) }
+  }
+
+  @on_quat_from_axis_angle(axis, angle_rad) => {
+    s = sin(angle_rad * 0.5)
+    return { x: axis.x * s, y: axis.y * s, z: axis.z * s, w: cos(angle_rad * 0.5) }
+  }
+
   @on_quat_identity => {
     return { x: 0.0, y: 0.0, z: 0.0, w: 1.0 }
   }

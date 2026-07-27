@@ -8,7 +8,8 @@
     "collections": "packages/std/src/collections.hsplus"
   },
   "referenceModule": "packages/std/dist/math.js",
-  "sharedGrammar": "Object-literal returns over: number/string/boolean/null literals, parameter identifiers, non-computed member access, binary + - * /, comparisons, && ||, unary ! -. No function calls, no loops, no host bindings. The two executable projections have measured, non-identical grammars: the engine deterministic action subset (holoscript-engine-hsplus-deterministic-action-subset-v1) accepts ternary expressions but restricts assignment to declared state, while the compiler-wasm trait evaluator accepts local assignment and if/else statements but has no ternary or ===/!== production. Ops whose default body uses ternary therefore carry an equivalent traitBody statement form; cross-target conformance is claimed on produced values over the shared vector corpus, not on shared surface syntax.",
+  "sharedGrammar": "Object-literal returns over: number/string/boolean/null literals, parameter identifiers, non-computed member access, binary + - * /, comparisons, && ||, unary ! -, plus the v2 whitelisted deterministic numeric builtin table (sqrt, sin, cos, acos, abs, floor, min, max over finite f64, fail-closed on non-finite or negative-zero results; subset id holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins in both lanes). No other calls, no loops, no host bindings. The two executable projections have measured, non-identical grammars: the engine deterministic action subset accepts ternary expressions but restricts assignment to declared state, while the compiler-wasm trait evaluator accepts local assignment and if/else statements but has no ternary or ===/!== production. Ops whose default body uses ternary or locals therefore carry an equivalent traitBody statement form; cross-target conformance is claimed on produced values over the shared vector corpus, not on shared surface syntax. Builtin results that depend on libm transcendentals (sin/cos/acos) may differ by ulps between the JS engine and the Rust-libm-in-wasm lane, so those vectors carry an explicit non-zero tolerance; sqrt is IEEE-754 correctly rounded and stays exact.",
+  "numericBuiltins": true,
   "vectorPolicy": "Every vector must produce finite, non-negative-zero values under IEEE-754 double semantics with strict source-order evaluation. Expected values are computed from the TypeScript reference twin at generation time and verified bit-exact against the engine deterministic runtime before admission; tolerance 0 means exact equality including key sets.",
   "ops": [
     {
@@ -170,6 +171,80 @@
       ]
     },
     {
+      "op": "on_vec3_length",
+      "action": "vec3_length",
+      "params": ["v"],
+      "kind": "pure",
+      "resultShape": "scalar",
+      "reference": ["vec3Math", "length"],
+      "body": "{ value: sqrt(v.x * v.x + v.y * v.y + v.z * v.z) }",
+      "vectors": [
+        { "id": "vlen-345", "args": { "v": { "x": 3, "y": 4, "z": 0 } } },
+        { "id": "vlen-122", "args": { "v": { "x": 1, "y": 2, "z": 2 } } },
+        { "id": "vlen-236", "args": { "v": { "x": 2, "y": 3, "z": 6 } } },
+        { "id": "vlen-unit", "args": { "v": { "x": 1, "y": 0, "z": 0 } } },
+        { "id": "vlen-fractional", "args": { "v": { "x": 0.5, "y": 0.5, "z": 0.5 } } }
+      ]
+    },
+    {
+      "op": "on_vec3_normalize",
+      "action": "vec3_normalize",
+      "params": ["v"],
+      "kind": "pure",
+      "resultShape": "vec3",
+      "reference": ["vec3Math", "normalize"],
+      "body": "sqrt(v.x * v.x + v.y * v.y + v.z * v.z) < 0.000001 ? { x: 0.0, y: 0.0, z: 0.0 } : { x: v.x / sqrt(v.x * v.x + v.y * v.y + v.z * v.z), y: v.y / sqrt(v.x * v.x + v.y * v.y + v.z * v.z), z: v.z / sqrt(v.x * v.x + v.y * v.y + v.z * v.z) }",
+      "traitBody": [
+        "len = sqrt(v.x * v.x + v.y * v.y + v.z * v.z)",
+        "if (len < 0.000001) { return { x: 0.0, y: 0.0, z: 0.0 } }",
+        "return { x: v.x / len, y: v.y / len, z: v.z / len }"
+      ],
+      "vectors": [
+        { "id": "vnorm-345", "args": { "v": { "x": 3, "y": 4, "z": 0 } } },
+        { "id": "vnorm-zero", "args": { "v": { "x": 0, "y": 0, "z": 0 } } },
+        { "id": "vnorm-ones", "args": { "v": { "x": 1, "y": 1, "z": 1 } } },
+        { "id": "vnorm-axis", "args": { "v": { "x": 2, "y": 0, "z": 0 } } },
+        { "id": "vnorm-512", "args": { "v": { "x": 0, "y": 5, "z": 12 } } }
+      ]
+    },
+    {
+      "op": "on_vec3_distance",
+      "action": "vec3_distance",
+      "params": ["a", "b"],
+      "kind": "pure",
+      "resultShape": "scalar",
+      "reference": ["vec3Math", "distance"],
+      "body": "{ value: sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + (a.z - b.z) * (a.z - b.z)) }",
+      "vectors": [
+        { "id": "vdist-345", "args": { "a": { "x": 0, "y": 0, "z": 0 }, "b": { "x": 3, "y": 4, "z": 0 } } },
+        { "id": "vdist-same", "args": { "a": { "x": 1, "y": 2, "z": 3 }, "b": { "x": 1, "y": 2, "z": 3 } } },
+        { "id": "vdist-diagonal", "args": { "a": { "x": 1, "y": 1, "z": 1 }, "b": { "x": 2, "y": 2, "z": 2 } } },
+        { "id": "vdist-mixed", "args": { "a": { "x": -2, "y": 1, "z": 0.5 }, "b": { "x": 0.5, "y": -1, "z": 2 } } },
+        { "id": "vdist-236", "args": { "a": { "x": 0, "y": 0, "z": 0 }, "b": { "x": 2, "y": 3, "z": 6 } } }
+      ]
+    },
+    {
+      "op": "on_quat_from_axis_angle",
+      "action": "quat_from_axis_angle",
+      "params": ["axis", "angle_rad"],
+      "kind": "pure",
+      "resultShape": "quat",
+      "reference": ["quatMath", "fromAxisAngle"],
+      "toleranceNote": "sin/cos are not correctly-rounded-guaranteed across libm implementations; JS engine vs Rust-libm-in-wasm may differ by ulps",
+      "body": "{ x: axis.x * sin(angle_rad * 0.5), y: axis.y * sin(angle_rad * 0.5), z: axis.z * sin(angle_rad * 0.5), w: cos(angle_rad * 0.5) }",
+      "traitBody": [
+        "s = sin(angle_rad * 0.5)",
+        "return { x: axis.x * s, y: axis.y * s, z: axis.z * s, w: cos(angle_rad * 0.5) }"
+      ],
+      "tolerance": 1e-15,
+      "vectors": [
+        { "id": "qaxis-z-quarter", "args": { "axis": { "x": 0, "y": 0, "z": 1 }, "angle_rad": 1.5707963267948966 } },
+        { "id": "qaxis-x-third", "args": { "axis": { "x": 1, "y": 0, "z": 0 }, "angle_rad": 1.0471975511965976 } },
+        { "id": "qaxis-y-one", "args": { "axis": { "x": 0, "y": 1, "z": 0 }, "angle_rad": 1 } },
+        { "id": "qaxis-diagonal", "args": { "axis": { "x": 0.5773502691896258, "y": 0.5773502691896258, "z": 0.5773502691896258 }, "angle_rad": 2.0943951023931953 } }
+      ]
+    },
+    {
       "op": "on_quat_identity",
       "action": "quat_identity",
       "params": [],
@@ -199,34 +274,10 @@
   ],
   "excluded": [
     {
-      "op": "on_vec3_length",
-      "trait": "std_math",
-      "reason": "body calls sqrt(); no function calls exist in the shared deterministic subset v1",
-      "unlock": "versioned subset extension adding a whitelisted pure numeric builtin table (sqrt/sin/cos/min/max/abs/floor) to both the engine runtime and the wasm evaluator"
-    },
-    {
-      "op": "on_vec3_normalize",
-      "trait": "std_math",
-      "reason": "body calls sqrt(); also returns early inside an if block guarding the near-zero branch",
-      "unlock": "same numeric builtin extension as on_vec3_length"
-    },
-    {
-      "op": "on_vec3_distance",
-      "trait": "std_math",
-      "reason": "body uses local assignment (dx/dy/dz) and sqrt(); deterministic runtime restricts assignment targets to declared state",
-      "unlock": "same numeric builtin extension plus local-binding support or a rewrite to a single expression"
-    },
-    {
       "op": "on_quat_slerp",
       "trait": "std_math",
-      "reason": "delegates to math.quat_slerp via get_std_math_lib(), a host binding that does not exist in the repo",
-      "unlock": "define the std host-ABI binding surface and provide per-target bindings, or inline a pure implementation once trig builtins exist"
-    },
-    {
-      "op": "on_quat_from_axis_angle",
-      "trait": "std_math",
-      "reason": "body uses local assignment and sin()/cos()",
-      "unlock": "same numeric builtin extension as on_vec3_length"
+      "reason": "delegates to math.quat_slerp via get_std_math_lib(), a host binding with no implementation anywhere in the repo (verified 2026-07-26); a pure inline projection needs branch-heavy shortest-path/near-parallel handling beyond a reviewable single expression",
+      "unlock": "define the std host-ABI binding surface with per-target bindings, or admit a bounded local-binding statement form in the engine lane so the pure slerp projection stays reviewable"
     },
     {
       "op": "*",

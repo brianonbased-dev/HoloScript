@@ -49,6 +49,21 @@ export function compile_to_uaal(source: string): string;
  */
 export function evaluate_trait_handler(source: string, trait_name: string, handler_name: string, args_json: string): string;
 
+/**
+ * Evaluate one `@on_<handler>` trait-handler body in the v2 deterministic
+ * subset (`holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins`).
+ *
+ * Identical contract to [`evaluate_trait_handler`] with exactly ONE extension:
+ * calls whose callee is a BARE identifier in the whitelisted numeric builtin
+ * table `{sqrt, sin, cos, acos, min, max, abs, floor}` (exact arity, every
+ * argument a number) are computed in f64 via Rust std and pass through the
+ * same checked-number gate — non-finite and negative-zero results fail closed,
+ * so `sqrt(-1)` / `acos(2)` are structured errors. Member calls
+ * (`math.sqrt(x)`) and callees outside the table remain `unsupported-call`.
+ * Everything outside `CallExpression` behaves byte-for-byte as in v1.
+ */
+export function evaluate_trait_handler_v2(source: string, trait_name: string, handler_name: string, args_json: string): string;
+
 export function init(): void;
 
 /**
@@ -92,6 +107,7 @@ export interface InitOutput {
     readonly compile_to_kotlin: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly compile_to_uaal: (a: number, b: number, c: number) => void;
     readonly evaluate_trait_handler: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
+    readonly evaluate_trait_handler_v2: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
     readonly init: () => void;
     readonly parse: (a: number, b: number, c: number) => void;
     readonly parse_pretty: (a: number, b: number, c: number) => void;

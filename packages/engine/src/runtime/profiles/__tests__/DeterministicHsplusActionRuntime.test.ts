@@ -359,3 +359,102 @@ describe('DeterministicHsplusActionRuntime', () => {
     expect(run()).toEqual(run());
   });
 });
+
+describe('DeterministicHsplusActionRuntime v2 numeric builtins', () => {
+  const BUILTIN_SOURCE = `composition "Builtin Probe" {
+  state {
+    touched: 0
+  }
+
+  logic {
+    action vec3_length(v) {
+      return { value: sqrt(v.x * v.x + v.y * v.y + v.z * v.z) }
+    }
+
+    action half_cos(angle) {
+      return { value: cos(angle * 0.5) }
+    }
+
+    action bad_domain(x) {
+      return { value: sqrt(x) }
+    }
+
+    action clamped(value, lo, hi) {
+      return { value: max(lo, min(hi, value)) }
+    }
+  }
+}`;
+
+  function observation(entrypoint: string, args: Record<string, unknown>) {
+    return {
+      kind: 'observation',
+      scheduleEntryId: `v2-${entrypoint}`,
+      order: 0,
+      tick: 0,
+      phase: 'test',
+      entrypoint,
+      args,
+    } as HeadlessExperimentScheduleEntry;
+  }
+
+  it('executes whitelisted builtins under the v2 subset id', () => {
+    const runtime = createDeterministicHsplusActionRuntime(BUILTIN_SOURCE, {
+      numericBuiltins: true,
+    });
+    expect(runtime.subsetId).toBe(
+      'holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins'
+    );
+    expect(
+      runtime.invoke(observation('vec3_length', { v: { x: 3, y: 4, z: 0 } })).value
+    ).toEqual({ value: 5 });
+    expect(runtime.invoke(observation('half_cos', { angle: 0 })).value).toEqual({ value: 1 });
+    expect(
+      runtime.invoke(observation('clamped', { value: 42, lo: 0, hi: 10 })).value
+    ).toEqual({ value: 10 });
+  });
+
+  it('keeps the v1 subset closed to every call including table members', () => {
+    expect(() => createDeterministicHsplusActionRuntime(BUILTIN_SOURCE)).toThrow(
+      /function calls are not admitted in the v1 deterministic subset/
+    );
+    const v1 = createDeterministicHsplusActionRuntime(`composition "V1" {
+  state { touched: 0 }
+  logic {
+    action plain(a, b) { return { value: a + b } }
+  }
+}`);
+    expect(v1.subsetId).toBe('holoscript-engine-hsplus-deterministic-action-subset-v1');
+    expect(v1.invoke(observation('plain', { a: 2, b: 3 })).value).toEqual({ value: 5 });
+  });
+
+  it('fail-closes on domain errors and rejects non-table or member callees', () => {
+    const runtime = createDeterministicHsplusActionRuntime(BUILTIN_SOURCE, {
+      numericBuiltins: true,
+    });
+    expect(() => runtime.invoke(observation('bad_domain', { x: -1 }))).toThrow(
+      /produced an unsupported number/
+    );
+    expect(() =>
+      createDeterministicHsplusActionRuntime(
+        `composition "X" {
+  state { touched: 0 }
+  logic {
+    action f(x) { return { value: tan(x) } }
+  }
+}`,
+        { numericBuiltins: true }
+      )
+    ).toThrow(/not in the v2 numeric builtin table/);
+    expect(() =>
+      createDeterministicHsplusActionRuntime(
+        `composition "X" {
+  state { touched: 0 }
+  logic {
+    action f(x) { return { value: sqrt(x, x) } }
+  }
+}`,
+        { numericBuiltins: true }
+      )
+    ).toThrow(/requires exactly 1 argument/);
+  });
+});

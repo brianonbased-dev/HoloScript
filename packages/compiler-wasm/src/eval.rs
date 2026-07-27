@@ -26,6 +26,17 @@
 //! - Structured errors on: division by zero, non-finite results, negative zero
 //!   in any produced value, unknown identifiers/members, unsupported nodes.
 //!
+//! A second evaluation mode — `evaluate_trait_handler_v2`, subset id
+//! `holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins` —
+//! admits exactly ONE extension over v1: `CallExpression`s whose callee is a
+//! BARE identifier in the whitelisted numeric builtin table
+//! `{sqrt, sin, cos, acos, min, max, abs, floor}`, exact arity, every argument
+//! a number, computed in f64 via Rust std and passed through the same
+//! `checked_number` gate (non-finite and negative-zero results fail closed, so
+//! `sqrt(-1)` / `acos(2)` are structured errors). Member calls (`math.sqrt(x)`)
+//! and unknown callees remain refused in both modes; everything outside
+//! `CallExpression` behaves byte-for-byte identically to v1.
+//!
 //! Error/result boundary follows the crate convention of always returning JSON:
 //! `{"ok":true,"value":<json>}` or `{"ok":false,"error":{"code":"…","message":"…"}}`.
 
@@ -35,6 +46,39 @@ use std::collections::BTreeMap;
 /// Subset identifier this evaluator mirrors (kept in sync with the engine's
 /// `ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET`).
 pub const DETERMINISTIC_SUBSET: &str = "holoscript-engine-hsplus-deterministic-action-subset-v1";
+
+/// Subset identifier for the v2 evaluation mode: v1 plus the whitelisted
+/// numeric builtin table (the engine lane exports the same id).
+pub const DETERMINISTIC_SUBSET_V2: &str =
+    "holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins";
+
+/// Evaluation mode threaded through the statement/expression walkers. v1 keeps
+/// `numeric_builtins` off (every `CallExpression` is `unsupported-call`, same
+/// code and message as before the mode existed); v2 turns the builtin table on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct EvalMode {
+    numeric_builtins: bool,
+}
+
+const MODE_V1: EvalMode = EvalMode {
+    numeric_builtins: false,
+};
+const MODE_V2: EvalMode = EvalMode {
+    numeric_builtins: true,
+};
+
+/// The v2 whitelisted numeric builtin table: (name, exact arity). Callees are
+/// admitted ONLY as bare identifiers — member calls never reach the table.
+const NUMERIC_BUILTINS: &[(&str, usize)] = &[
+    ("sqrt", 1),
+    ("sin", 1),
+    ("cos", 1),
+    ("acos", 1),
+    ("min", 2),
+    ("max", 2),
+    ("abs", 1),
+    ("floor", 1),
+];
 
 /// Keys the engine runtime refuses everywhere (prototype-pollution guard). The
 /// Rust value model has no prototype chain, but the conformance legs must agree
@@ -69,14 +113,36 @@ enum Flow {
     Return(Value),
 }
 
-/// Public JSON boundary used by the `evaluate_trait_handler` wasm export.
+/// Public JSON boundary used by the `evaluate_trait_handler` wasm export (v1:
+/// numeric builtins OFF — behavior identical to before the mode existed).
 pub fn evaluate_trait_handler_json(
     source: &str,
     trait_name: &str,
     handler_name: &str,
     args_json: &str,
 ) -> String {
-    match evaluate(source, trait_name, handler_name, args_json) {
+    evaluate_with_mode_json(source, trait_name, handler_name, args_json, MODE_V1)
+}
+
+/// Public JSON boundary used by the `evaluate_trait_handler_v2` wasm export
+/// (numeric builtin table ON — [`DETERMINISTIC_SUBSET_V2`]).
+pub fn evaluate_trait_handler_v2_json(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+) -> String {
+    evaluate_with_mode_json(source, trait_name, handler_name, args_json, MODE_V2)
+}
+
+fn evaluate_with_mode_json(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    mode: EvalMode,
+) -> String {
+    match evaluate(source, trait_name, handler_name, args_json, mode) {
         Ok(value) => serde_json::json!({ "ok": true, "value": value_to_json(&value) }).to_string(),
         Err(error) => serde_json::json!({
             "ok": false,
@@ -91,6 +157,7 @@ fn evaluate(
     trait_name: &str,
     handler_name: &str,
     args_json: &str,
+    mode: EvalMode,
 ) -> Result<Value, EvalError> {
     let ast = crate::parse_ast(source).map_err(|diagnostics| {
         let detail = diagnostics
@@ -116,7 +183,7 @@ fn evaluate(
     };
 
     let scope = bind_args(&handler.params, handler_name, args_json)?;
-    run_handler(body, scope, handler_name)
+    run_handler(body, scope, handler_name, mode)
 }
 
 fn find_handler<'a>(
@@ -321,8 +388,9 @@ fn run_handler(
     body: &[AstNode],
     mut scope: BTreeMap<String, Value>,
     handler_name: &str,
+    mode: EvalMode,
 ) -> Result<Value, EvalError> {
-    match exec_block(body, &mut scope)? {
+    match exec_block(body, &mut scope, mode)? {
         Flow::Return(value) => Ok(value),
         Flow::Normal => Err(err(
             "no-return",
@@ -334,35 +402,40 @@ fn run_handler(
 fn exec_block(
     statements: &[AstNode],
     scope: &mut BTreeMap<String, Value>,
+    mode: EvalMode,
 ) -> Result<Flow, EvalError> {
     for statement in statements {
-        if let Flow::Return(value) = exec_statement(statement, scope)? {
+        if let Flow::Return(value) = exec_statement(statement, scope, mode)? {
             return Ok(Flow::Return(value));
         }
     }
     Ok(Flow::Normal)
 }
 
-fn exec_statement(node: &AstNode, scope: &mut BTreeMap<String, Value>) -> Result<Flow, EvalError> {
+fn exec_statement(
+    node: &AstNode,
+    scope: &mut BTreeMap<String, Value>,
+    mode: EvalMode,
+) -> Result<Flow, EvalError> {
     match node {
         AstNode::Return(ret) => {
             let value = match ret.argument.as_ref() {
-                Some(argument) => eval_expr(argument, scope)?,
+                Some(argument) => eval_expr(argument, scope, mode)?,
                 None => Value::Null,
             };
             Ok(Flow::Return(value))
         }
         AstNode::If(node) => {
-            let Value::Bool(test) = eval_expr(&node.test, scope)? else {
+            let Value::Bool(test) = eval_expr(&node.test, scope, mode)? else {
                 return Err(err(
                     "type-mismatch",
                     "if condition requires a boolean (no truthiness in the deterministic subset)",
                 ));
             };
             if test {
-                exec_block(&node.consequent, scope)
+                exec_block(&node.consequent, scope, mode)
             } else if let Some(alternate) = node.alternate.as_ref() {
-                exec_block(alternate, scope)
+                exec_block(alternate, scope, mode)
             } else {
                 Ok(Flow::Normal)
             }
@@ -392,7 +465,7 @@ fn exec_statement(node: &AstNode, scope: &mut BTreeMap<String, Value>) -> Result
                     ),
                 ));
             }
-            let value = eval_expr(&node.value, scope)?;
+            let value = eval_expr(&node.value, scope, mode)?;
             scope.insert(target.name.clone(), value);
             Ok(Flow::Normal)
         }
@@ -407,7 +480,11 @@ fn exec_statement(node: &AstNode, scope: &mut BTreeMap<String, Value>) -> Result
     }
 }
 
-fn eval_expr(node: &AstNode, scope: &BTreeMap<String, Value>) -> Result<Value, EvalError> {
+fn eval_expr(
+    node: &AstNode,
+    scope: &BTreeMap<String, Value>,
+    mode: EvalMode,
+) -> Result<Value, EvalError> {
     match node {
         AstNode::Number(n) => checked_number(n.value, "number literal"),
         AstNode::String(s) => Ok(Value::Str(s.value.clone())),
@@ -435,7 +512,7 @@ fn eval_expr(node: &AstNode, scope: &BTreeMap<String, Value>) -> Result<Value, E
                     format!("member access uses unsafe key \"{}\"", property.name),
                 ));
             }
-            let object = eval_expr(&member.object, scope)?;
+            let object = eval_expr(&member.object, scope, mode)?;
             let Value::Obj(entries) = object else {
                 return Err(err(
                     "type-mismatch",
@@ -456,7 +533,7 @@ fn eval_expr(node: &AstNode, scope: &BTreeMap<String, Value>) -> Result<Value, E
         AstNode::ObjectLiteral(object) => {
             let mut entries: Vec<(String, Value)> = Vec::with_capacity(object.properties.len());
             for property in &object.properties {
-                eval_object_property(property, scope, &mut entries)?;
+                eval_object_property(property, scope, mode, &mut entries)?;
             }
             Ok(Value::Obj(entries))
         }
@@ -469,20 +546,21 @@ fn eval_expr(node: &AstNode, scope: &BTreeMap<String, Value>) -> Result<Value, E
                         "spread elements are not in the deterministic subset",
                     ));
                 }
-                items.push(eval_expr(element, scope)?);
+                items.push(eval_expr(element, scope, mode)?);
             }
             Ok(Value::Arr(items))
         }
-        AstNode::BinaryExpression(binary) => eval_binary(binary, scope),
+        AstNode::BinaryExpression(binary) => eval_binary(binary, scope, mode),
         AstNode::UnaryExpression(unary) => match unary.operator.as_str() {
             "!" => {
-                let Value::Bool(argument) = eval_expr(&unary.argument, scope)? else {
+                let Value::Bool(argument) = eval_expr(&unary.argument, scope, mode)? else {
                     return Err(err("type-mismatch", "logical not requires a boolean"));
                 };
                 Ok(Value::Bool(!argument))
             }
             "-" => {
-                let argument = numeric_operand(eval_expr(&unary.argument, scope)?, "negation")?;
+                let argument =
+                    numeric_operand(eval_expr(&unary.argument, scope, mode)?, "negation")?;
                 checked_number(-argument, "negation")
             }
             other => Err(err(
@@ -490,10 +568,17 @@ fn eval_expr(node: &AstNode, scope: &BTreeMap<String, Value>) -> Result<Value, E
                 format!("unary operator \"{other}\" is not in the deterministic subset"),
             )),
         },
-        AstNode::CallExpression(_) => Err(err(
-            "unsupported-call",
-            "function calls are not in the deterministic subset v0 (no host library, no math builtins)",
-        )),
+        AstNode::CallExpression(call) => {
+            if !mode.numeric_builtins {
+                // v1 behavior, byte-for-byte: every call is refused with the
+                // same code and message as before the v2 mode existed.
+                return Err(err(
+                    "unsupported-call",
+                    "function calls are not in the deterministic subset v0 (no host library, no math builtins)",
+                ));
+            }
+            eval_builtin_call(call, scope, mode)
+        }
         other => Err(err(
             "unsupported-node",
             format!("expression {} is not in the deterministic subset v0", node_kind(other)),
@@ -501,9 +586,98 @@ fn eval_expr(node: &AstNode, scope: &BTreeMap<String, Value>) -> Result<Value, E
     }
 }
 
+/// Evaluate one whitelisted numeric builtin call (v2 mode only). Admission is
+/// strictly: bare-identifier callee in [`NUMERIC_BUILTINS`], exact arity,
+/// every argument a number; the f64 result passes through [`checked_number`]
+/// so domain errors (`sqrt(-1)`, `acos(2)` → NaN) fail closed as `non-finite`.
+fn eval_builtin_call(
+    call: &crate::ast::CallExpression,
+    scope: &BTreeMap<String, Value>,
+    mode: EvalMode,
+) -> Result<Value, EvalError> {
+    let table_names = || {
+        NUMERIC_BUILTINS
+            .iter()
+            .map(|(name, _)| *name)
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    let AstNode::Identifier(callee) = call.callee.as_ref() else {
+        // Member calls (math.sqrt(x)) and computed callees stay refused in v2:
+        // only BARE identifiers reach the builtin table.
+        return Err(err(
+            "unsupported-call",
+            format!(
+                "only bare-identifier calls into the v2 numeric-builtin table ({}) are admitted \
+                 — member calls are not",
+                table_names()
+            ),
+        ));
+    };
+    let Some((_, arity)) = NUMERIC_BUILTINS
+        .iter()
+        .find(|(name, _)| *name == callee.name)
+    else {
+        return Err(err(
+            "unsupported-call",
+            format!(
+                "\"{}\" is not in the v2 numeric-builtin table ({})",
+                callee.name,
+                table_names()
+            ),
+        ));
+    };
+    if call.arguments.len() != *arity {
+        return Err(err(
+            "builtin-arity",
+            format!(
+                "builtin \"{}\" takes exactly {} argument{}, got {}",
+                callee.name,
+                arity,
+                if *arity == 1 { "" } else { "s" },
+                call.arguments.len()
+            ),
+        ));
+    }
+    let mut operands = Vec::with_capacity(call.arguments.len());
+    for (index, argument) in call.arguments.iter().enumerate() {
+        let Value::Num(operand) = eval_expr(argument, scope, mode)? else {
+            return Err(err(
+                "type-mismatch",
+                format!(
+                    "builtin \"{}\" argument {} must evaluate to a number",
+                    callee.name,
+                    index + 1
+                ),
+            ));
+        };
+        operands.push(operand);
+    }
+    let result = match callee.name.as_str() {
+        "sqrt" => operands[0].sqrt(),
+        "sin" => operands[0].sin(),
+        "cos" => operands[0].cos(),
+        "acos" => operands[0].acos(),
+        "min" => operands[0].min(operands[1]),
+        "max" => operands[0].max(operands[1]),
+        "abs" => operands[0].abs(),
+        "floor" => operands[0].floor(),
+        // Unreachable while the table and this match agree; fail closed rather
+        // than panic in wasm if they ever drift.
+        other => {
+            return Err(err(
+                "unsupported-call",
+                format!("builtin \"{other}\" is in the table but has no evaluation rule"),
+            ))
+        }
+    };
+    checked_number(result, &format!("builtin {}", callee.name))
+}
+
 fn eval_object_property(
     property: &PropertyNode,
     scope: &BTreeMap<String, Value>,
+    mode: EvalMode,
     entries: &mut Vec<(String, Value)>,
 ) -> Result<(), EvalError> {
     if property.optional || property.default_value.is_some() {
@@ -531,7 +705,7 @@ fn eval_object_property(
             format!("object literal contains duplicate key \"{}\"", property.key),
         ));
     }
-    let value = eval_expr(&property.value, scope)?;
+    let value = eval_expr(&property.value, scope, mode)?;
     entries.push((property.key.clone(), value));
     Ok(())
 }
@@ -539,36 +713,37 @@ fn eval_object_property(
 fn eval_binary(
     binary: &crate::ast::BinaryExpression,
     scope: &BTreeMap<String, Value>,
+    mode: EvalMode,
 ) -> Result<Value, EvalError> {
     match binary.operator.as_str() {
         // Logical operators short-circuit exactly like the engine runtime.
         "&&" => {
-            let Value::Bool(left) = eval_expr(&binary.left, scope)? else {
+            let Value::Bool(left) = eval_expr(&binary.left, scope, mode)? else {
                 return Err(err("type-mismatch", "logical and requires booleans"));
             };
             if !left {
                 return Ok(Value::Bool(false));
             }
-            let Value::Bool(right) = eval_expr(&binary.right, scope)? else {
+            let Value::Bool(right) = eval_expr(&binary.right, scope, mode)? else {
                 return Err(err("type-mismatch", "logical and requires booleans"));
             };
             Ok(Value::Bool(right))
         }
         "||" => {
-            let Value::Bool(left) = eval_expr(&binary.left, scope)? else {
+            let Value::Bool(left) = eval_expr(&binary.left, scope, mode)? else {
                 return Err(err("type-mismatch", "logical or requires booleans"));
             };
             if left {
                 return Ok(Value::Bool(true));
             }
-            let Value::Bool(right) = eval_expr(&binary.right, scope)? else {
+            let Value::Bool(right) = eval_expr(&binary.right, scope, mode)? else {
                 return Err(err("type-mismatch", "logical or requires booleans"));
             };
             Ok(Value::Bool(right))
         }
         "+" => {
-            let left = eval_expr(&binary.left, scope)?;
-            let right = eval_expr(&binary.right, scope)?;
+            let left = eval_expr(&binary.left, scope, mode)?;
+            let right = eval_expr(&binary.right, scope, mode)?;
             match (left, right) {
                 (Value::Num(l), Value::Num(r)) => checked_number(l + r, "addition"),
                 (Value::Str(l), Value::Str(r)) => Ok(Value::Str(format!("{l}{r}"))),
@@ -579,18 +754,18 @@ fn eval_binary(
             }
         }
         "-" => {
-            let left = numeric_operand(eval_expr(&binary.left, scope)?, "subtraction")?;
-            let right = numeric_operand(eval_expr(&binary.right, scope)?, "subtraction")?;
+            let left = numeric_operand(eval_expr(&binary.left, scope, mode)?, "subtraction")?;
+            let right = numeric_operand(eval_expr(&binary.right, scope, mode)?, "subtraction")?;
             checked_number(left - right, "subtraction")
         }
         "*" => {
-            let left = numeric_operand(eval_expr(&binary.left, scope)?, "multiplication")?;
-            let right = numeric_operand(eval_expr(&binary.right, scope)?, "multiplication")?;
+            let left = numeric_operand(eval_expr(&binary.left, scope, mode)?, "multiplication")?;
+            let right = numeric_operand(eval_expr(&binary.right, scope, mode)?, "multiplication")?;
             checked_number(left * right, "multiplication")
         }
         "/" => {
-            let left = numeric_operand(eval_expr(&binary.left, scope)?, "division")?;
-            let right = numeric_operand(eval_expr(&binary.right, scope)?, "division")?;
+            let left = numeric_operand(eval_expr(&binary.left, scope, mode)?, "division")?;
+            let right = numeric_operand(eval_expr(&binary.right, scope, mode)?, "division")?;
             if right == 0.0 {
                 return Err(err("division-by-zero", "division by zero is not admitted"));
             }
@@ -600,16 +775,16 @@ fn eval_binary(
         // triple-equals token), but the engine admits them as aliases of `==`/`!=`,
         // so keep the mapping total for AST-level callers.
         "==" | "===" => Ok(Value::Bool(primitive_equal(
-            &eval_expr(&binary.left, scope)?,
-            &eval_expr(&binary.right, scope)?,
+            &eval_expr(&binary.left, scope, mode)?,
+            &eval_expr(&binary.right, scope, mode)?,
         )?)),
         "!=" | "!==" => Ok(Value::Bool(!primitive_equal(
-            &eval_expr(&binary.left, scope)?,
-            &eval_expr(&binary.right, scope)?,
+            &eval_expr(&binary.left, scope, mode)?,
+            &eval_expr(&binary.right, scope, mode)?,
         )?)),
         "<" | ">" | "<=" | ">=" => {
-            let left = numeric_operand(eval_expr(&binary.left, scope)?, "comparison")?;
-            let right = numeric_operand(eval_expr(&binary.right, scope)?, "comparison")?;
+            let left = numeric_operand(eval_expr(&binary.left, scope, mode)?, "comparison")?;
+            let right = numeric_operand(eval_expr(&binary.right, scope, mode)?, "comparison")?;
             Ok(Value::Bool(match binary.operator.as_str() {
                 "<" => left < right,
                 ">" => left > right,
@@ -1371,6 +1546,237 @@ mod tests {
             let raw =
                 evaluate_trait_handler_json(&one_arg_trait("return { v: a }"), "t", "on_f", args);
             serde_json::from_str::<serde_json::Value>(&raw).expect("output must be JSON");
+        }
+    }
+
+    // ===== v2 numeric builtins =====
+
+    fn run_v2(
+        source: &str,
+        trait_name: &str,
+        handler: &str,
+        args: serde_json::Value,
+    ) -> serde_json::Value {
+        let raw = evaluate_trait_handler_v2_json(source, trait_name, handler, &args.to_string());
+        serde_json::from_str(&raw).expect("v2 evaluator must always return JSON")
+    }
+
+    fn eval_ab_v2(body: &str, a: serde_json::Value, b: serde_json::Value) -> serde_json::Value {
+        run_v2(
+            &one_arg_trait(body),
+            "t",
+            "on_f",
+            serde_json::json!({"a": a, "b": b}),
+        )
+    }
+
+    const VEC3_TRAIT: &str = r#"
+@trait std_math_builtins {
+  @on_len(v) => {
+    return { value: sqrt(v.x * v.x + v.y * v.y + v.z * v.z) }
+  }
+  @on_normalize(v) => {
+    len = sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+    if (len == 0) { return { x: 0, y: 0, z: 0 } }
+    return { x: v.x / len, y: v.y / len, z: v.z / len }
+  }
+}
+"#;
+
+    #[test]
+    fn v2_subset_id_is_pinned() {
+        assert_eq!(
+            DETERMINISTIC_SUBSET_V2,
+            "holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins"
+        );
+    }
+
+    #[test]
+    fn v2_sqrt_vec3_length() {
+        let result = run_v2(
+            VEC3_TRAIT,
+            "std_math_builtins",
+            "on_len",
+            serde_json::json!({"v": {"x": 3.0, "y": 4.0, "z": 0.0}}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!({"value": 5.0}));
+    }
+
+    #[test]
+    fn v2_statement_form_locals_and_builtins_mirror_vec3_normalize() {
+        // len = sqrt(...) into a local, then if/return — the vec3_normalize
+        // traitBody shape.
+        let result = run_v2(
+            VEC3_TRAIT,
+            "std_math_builtins",
+            "on_normalize",
+            serde_json::json!({"v": {"x": 3.0, "y": 4.0, "z": 0.0}}),
+        );
+        assert_eq!(
+            expect_ok(&result),
+            &serde_json::json!({"x": 0.6, "y": 0.8, "z": 0.0})
+        );
+        // Zero-length guard branch executes.
+        let zero = run_v2(
+            VEC3_TRAIT,
+            "std_math_builtins",
+            "on_normalize",
+            serde_json::json!({"v": {"x": 0.0, "y": 0.0, "z": 0.0}}),
+        );
+        assert_eq!(
+            expect_ok(&zero),
+            &serde_json::json!({"x": 0.0, "y": 0.0, "z": 0.0})
+        );
+    }
+
+    #[test]
+    fn v2_each_unary_builtin_happy_path() {
+        // The expectation is pushed through the SAME serialize→parse JSON round
+        // trip as the evaluator output the test reads back: serde_json without
+        // the `float_roundtrip` feature re-parses 17-significant-digit floats
+        // (e.g. acos(0.5) = 1.0471975511965979) one ulp off, so comparing a
+        // directly-computed f64 against the re-parsed value spuriously fails.
+        // The evaluator's own JSON boundary emits full-precision Ryu output;
+        // only this test harness re-parses it.
+        fn json_roundtrip(value: f64) -> f64 {
+            serde_json::from_str::<serde_json::Value>(&serde_json::json!(value).to_string())
+                .expect("serialized f64 must re-parse")
+                .as_f64()
+                .expect("round-tripped f64 must stay a number")
+        }
+        for (body, input, expected) in [
+            ("return { value: sqrt(a) }", 2.25, 1.5),
+            ("return { value: sin(a) }", 2.25, 2.25_f64.sin()),
+            ("return { value: cos(a) }", 2.25, 2.25_f64.cos()),
+            ("return { value: acos(a) }", 0.5, 0.5_f64.acos()),
+            ("return { value: abs(a) }", -3.5, 3.5),
+            ("return { value: floor(a) }", 2.75, 2.0),
+        ] {
+            let result = eval_ab_v2(body, serde_json::json!(input), serde_json::json!(0.0));
+            assert_eq!(
+                expect_ok(&result)["value"].as_f64().unwrap(),
+                json_roundtrip(expected),
+                "body: {body}"
+            );
+        }
+    }
+
+    #[test]
+    fn v2_min_max_two_arity() {
+        let result = eval_ab_v2(
+            "return { lo: min(a, b), hi: max(a, b) }",
+            serde_json::json!(3.0),
+            serde_json::json!(-2.0),
+        );
+        assert_eq!(
+            expect_ok(&result),
+            &serde_json::json!({"lo": -2.0, "hi": 3.0})
+        );
+    }
+
+    #[test]
+    fn v2_builtin_arguments_are_full_expressions_including_nested_builtins() {
+        let result = eval_ab_v2(
+            "return { value: sqrt(max(a, b) + 12) }",
+            serde_json::json!(4.0),
+            serde_json::json!(2.0),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!({"value": 4.0}));
+    }
+
+    #[test]
+    fn v2_domain_errors_fail_closed() {
+        // sqrt(-1) and acos(2) produce NaN in f64 — checked_number turns both
+        // into structured non-finite errors instead of admitting NaN.
+        let result = eval_ab_v2(
+            "return { value: sqrt(a) }",
+            serde_json::json!(-1.0),
+            serde_json::json!(0.0),
+        );
+        expect_err(&result, "non-finite");
+        let result = eval_ab_v2(
+            "return { value: acos(a) }",
+            serde_json::json!(2.0),
+            serde_json::json!(0.0),
+        );
+        expect_err(&result, "non-finite");
+    }
+
+    #[test]
+    fn v2_arity_errors() {
+        let result = eval_ab_v2(
+            "return { value: sqrt(a, b) }",
+            serde_json::json!(1.0),
+            serde_json::json!(2.0),
+        );
+        expect_err(&result, "builtin-arity");
+        let result = eval_ab_v2(
+            "return { value: min(a) }",
+            serde_json::json!(1.0),
+            serde_json::json!(2.0),
+        );
+        expect_err(&result, "builtin-arity");
+    }
+
+    #[test]
+    fn v2_non_number_argument_fails_closed() {
+        let result = eval_ab_v2(
+            "return { value: sqrt(a) }",
+            serde_json::json!("nope"),
+            serde_json::json!(0.0),
+        );
+        expect_err(&result, "type-mismatch");
+    }
+
+    #[test]
+    fn v2_unknown_callee_names_the_table() {
+        let result = eval_ab_v2(
+            "return { value: tan(a) }",
+            serde_json::json!(1.0),
+            serde_json::json!(0.0),
+        );
+        let error = expect_err(&result, "unsupported-call");
+        let message = error["message"].as_str().unwrap();
+        assert!(message.contains("v2 numeric-builtin table"), "{message}");
+        assert!(message.contains("sqrt"), "{message}");
+    }
+
+    #[test]
+    fn v2_member_calls_stay_rejected() {
+        // math.sqrt(x): callee is a MemberExpression, never reaches the table.
+        let result = eval_ab_v2(
+            "return { value: math.sqrt(a) }",
+            serde_json::json!(4.0),
+            serde_json::json!(0.0),
+        );
+        expect_err(&result, "unsupported-call");
+    }
+
+    #[test]
+    fn v2_matches_v1_outside_call_expressions() {
+        let args = serde_json::json!({"a": 2.0, "b": 3.0, "t": 3.0});
+        let v1 = run(MATH_TRAIT, "std_math_conformance", "on_lerp", args.clone());
+        let v2 = run_v2(MATH_TRAIT, "std_math_conformance", "on_lerp", args);
+        assert_eq!(v1, v2);
+    }
+
+    #[test]
+    fn v1_still_rejects_every_call_including_table_members() {
+        // Guard: the v1 entrypoint must keep refusing ALL CallExpressions —
+        // including names in the v2 table — with the exact pre-v2 code+message.
+        for body in [
+            "return { value: sqrt(a) }",
+            "return { value: min(a, b) }",
+            "return { value: floor(a) }",
+            "return { value: math.sqrt(a) }",
+        ] {
+            let result = eval_ab(body, serde_json::json!(4.0), serde_json::json!(2.0));
+            let error = expect_err(&result, "unsupported-call");
+            assert_eq!(
+                error["message"],
+                "function calls are not in the deterministic subset v0 (no host library, no math builtins)",
+                "body: {body}"
+            );
         }
     }
 }

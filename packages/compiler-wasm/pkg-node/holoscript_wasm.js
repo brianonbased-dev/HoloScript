@@ -120,6 +120,50 @@ function evaluate_trait_handler(source, trait_name, handler_name, args_json) {
 }
 exports.evaluate_trait_handler = evaluate_trait_handler;
 
+/**
+ * Evaluate one `@on_<handler>` trait-handler body in the v2 deterministic
+ * subset (`holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins`).
+ *
+ * Identical contract to [`evaluate_trait_handler`] with exactly ONE extension:
+ * calls whose callee is a BARE identifier in the whitelisted numeric builtin
+ * table `{sqrt, sin, cos, acos, min, max, abs, floor}` (exact arity, every
+ * argument a number) are computed in f64 via Rust std and pass through the
+ * same checked-number gate — non-finite and negative-zero results fail closed,
+ * so `sqrt(-1)` / `acos(2)` are structured errors. Member calls
+ * (`math.sqrt(x)`) and callees outside the table remain `unsupported-call`.
+ * Everything outside `CallExpression` behaves byte-for-byte as in v1.
+ * @param {string} source
+ * @param {string} trait_name
+ * @param {string} handler_name
+ * @param {string} args_json
+ * @returns {string}
+ */
+function evaluate_trait_handler_v2(source, trait_name, handler_name, args_json) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.evaluate_trait_handler_v2(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred5_0 = r0;
+        deferred5_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export(deferred5_0, deferred5_1, 1);
+    }
+}
+exports.evaluate_trait_handler_v2 = evaluate_trait_handler_v2;
+
 function init() {
     wasm.init();
 }

@@ -181,8 +181,10 @@ function runVector(runtime, vector, expectedOverride) {
 
 // --- Self-test ---------------------------------------------------------------
 
+const runtimeOptions = { numericBuiltins: opsDefinition.numericBuiltins === true };
+
 if (selfTest) {
-  const runtime = createDeterministicHsplusActionRuntime(actionSource);
+  const runtime = createDeterministicHsplusActionRuntime(actionSource, runtimeOptions);
   const sample = vectors[0];
   const good = runVector(runtime, sample);
   const poisoned = JSON.parse(JSON.stringify(sample.expected));
@@ -198,7 +200,7 @@ if (selfTest) {
 
 // --- Full run ----------------------------------------------------------------
 
-const runtime = createDeterministicHsplusActionRuntime(actionSource);
+const runtime = createDeterministicHsplusActionRuntime(actionSource, runtimeOptions);
 const results = vectors.map((vector) => runVector(runtime, vector));
 const failed = results.filter((result) => !result.pass);
 
@@ -216,7 +218,7 @@ const receipt = {
   executionRuntime: {
     engine: 'DeterministicHsplusActionRuntime',
     enginePackageVersion: enginePackageJson.version,
-    subsetId: ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
+    subsetId: runtime.subsetId ?? ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
     executedProjection:
       'packages/std/conformance/generated/std-abi-conformance.action.hsplus',
   },

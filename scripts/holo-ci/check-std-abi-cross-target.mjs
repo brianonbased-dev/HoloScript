@@ -49,7 +49,7 @@ function fail(message) {
   process.exit(1);
 }
 
-function exactEqual(a, b, path, mismatches) {
+function valuesEqual(a, b, tolerance, path, mismatches) {
   if (typeof a !== typeof b) {
     mismatches.push(`${path}: type ${typeof a} vs ${typeof b}`);
     return;
@@ -61,7 +61,13 @@ function exactEqual(a, b, path, mismatches) {
       mismatches.push(`${path}: keys [${aKeys}] vs [${bKeys}]`);
       return;
     }
-    for (const key of aKeys) exactEqual(a[key], b[key], `${path}.${key}`, mismatches);
+    for (const key of aKeys) valuesEqual(a[key], b[key], tolerance, `${path}.${key}`, mismatches);
+    return;
+  }
+  if (typeof a === 'number' && tolerance > 0) {
+    if (Math.abs(a - b) > tolerance) {
+      mismatches.push(`${path}: |${a} - ${b}| > ${tolerance}`);
+    }
     return;
   }
   if (!Object.is(a, b)) {
@@ -69,7 +75,29 @@ function exactEqual(a, b, path, mismatches) {
   }
 }
 
-function compareReceipts(receipts) {
+function loadCorpusToleranceMap() {
+  const vectorsPath = join(
+    repoRoot,
+    'packages',
+    'std',
+    'conformance',
+    'generated',
+    'std-abi-vectors.v0.jsonl'
+  );
+  const map = new Map();
+  try {
+    for (const line of readFileSync(vectorsPath, 'utf8').split('\n')) {
+      if (!line.trim()) continue;
+      const vector = JSON.parse(line);
+      map.set(vector.id, vector.tolerance ?? 0);
+    }
+  } catch {
+    // no corpus available (e.g. self-test fixtures) — exact comparison for everything
+  }
+  return map;
+}
+
+function compareReceipts(receipts, toleranceById = new Map()) {
   const problems = [];
   const vectorsPin = 'packages/std/conformance/generated/std-abi-vectors.v0.jsonl';
 
@@ -93,8 +121,11 @@ function compareReceipts(receipts) {
 
   const [first, ...rest] = byTarget;
   let comparedVectors = 0;
+  let toleranceBoundedVectors = 0;
   if (first) {
     for (const [id, firstResult] of first.results) {
+      const tolerance = toleranceById.get(id) ?? 0;
+      if (tolerance > 0) toleranceBoundedVectors += 1;
       for (const other of rest) {
         const otherResult = other.results.get(id);
         if (!otherResult) {
@@ -102,7 +133,7 @@ function compareReceipts(receipts) {
           continue;
         }
         const mismatches = [];
-        exactEqual(firstResult.actual, otherResult.actual, id, mismatches);
+        valuesEqual(firstResult.actual, otherResult.actual, tolerance, id, mismatches);
         if (mismatches.length > 0) {
           problems.push(
             `${first.target} vs ${other.target} diverge on ${id}: ${mismatches.join('; ')}`
@@ -118,7 +149,7 @@ function compareReceipts(receipts) {
     }
   }
 
-  return { problems, comparedVectors };
+  return { problems, comparedVectors, toleranceBoundedVectors };
 }
 
 if (selfTest) {
@@ -156,7 +187,10 @@ const receipts = receiptPaths.map((path) => {
   return { path, raw, receipt };
 });
 
-const { problems, comparedVectors } = compareReceipts(receipts);
+const { problems, comparedVectors, toleranceBoundedVectors } = compareReceipts(
+  receipts,
+  loadCorpusToleranceMap()
+);
 
 const crossReceipt = {
   schema: 'holoscript.std-abi-conformance.cross-target.v0',
@@ -172,8 +206,10 @@ const crossReceipt = {
     environment: entry.receipt.environment,
   })),
   comparison: {
-    method: 'exact value equality (Object.is, recursive, key-set strict) across targets per vector id',
+    method:
+      'per-vector equality across targets: exact (Object.is, recursive, key-set strict) for tolerance-0 vectors; absolute-difference bound for vectors whose corpus entry declares a non-zero tolerance (libm transcendental ulp variance)',
     comparedVectors,
+    toleranceBoundedVectors,
     problems,
   },
   verdict: problems.length === 0 ? 'EQUAL' : 'DIVERGED',

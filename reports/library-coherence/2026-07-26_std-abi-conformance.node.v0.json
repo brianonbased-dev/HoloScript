@@ -1,30 +1,30 @@
 {
   "schema": "holoscript.std-abi-conformance.node.v0",
-  "generatedAtISO": "2026-07-27T01:00:10.023Z",
+  "generatedAtISO": "2026-07-27T18:01:16.921Z",
   "target": "node",
   "executionRuntime": {
     "engine": "DeterministicHsplusActionRuntime",
-    "enginePackageVersion": "6.1.4",
-    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v1",
+    "enginePackageVersion": "6.1.5",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins",
     "executedProjection": "packages/std/conformance/generated/std-abi-conformance.action.hsplus"
   },
   "referenceTwin": {
     "module": "packages/std/dist/math.js",
-    "stdPackageVersion": "7.0.5",
+    "stdPackageVersion": "7.0.10",
     "comparison": "three-way: runtime value vs frozen corpus expectation vs live twin recomputation"
   },
   "sources": {
     "packages/std/conformance/std-abi-ops.v0.json": {
-      "sha256": "sha256:e3975d1462bca20f2aa157e06bdcd67e1f9d21b6dddaf3ebdfff4b12b116485c"
+      "sha256": "sha256:e3afa475a5c6ab084c6c4b372c36cc81676b8e4697a8aeb4e75217695aaaccb8"
     },
     "packages/std/conformance/generated/std-abi-conformance.action.hsplus": {
-      "sha256": "sha256:59f7b10953d46483bfb9f2a51913a26b0bb6dcb76568a90231c659d7875f8efb"
+      "sha256": "sha256:1477bb4aedfc71713bf1240535fdb96e2ae837cebf133134afa98619356871b8"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:4d704cd8acb07a06210db34e0155267fc542a54c81120f4f184910d07cf07c53"
+      "sha256": "sha256:7ddf6d707a77f69cf2d9d4c44a668e192bb376891f042de0b95bc3135a55a85a"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:40a87145d82f0a65f0323bd91fdf04b6a36e05581bf8b3ee70bd4bdc205af7da"
+      "sha256": "sha256:b02127c81510b2c9ac10b486f3489d02c211214e75fc0b90ba3a864147071a20"
     },
     "packages/std/src/math.hsplus": {
       "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
@@ -39,40 +39,16 @@
     "platform": "win32"
   },
   "summary": {
-    "ops": 11,
-    "vectors": 50,
-    "passed": 50,
+    "ops": 15,
+    "vectors": 69,
+    "passed": 69,
     "failed": 0,
     "excludedOps": [
       {
-        "op": "on_vec3_length",
-        "trait": "std_math",
-        "reason": "body calls sqrt(); no function calls exist in the shared deterministic subset v1",
-        "unlock": "versioned subset extension adding a whitelisted pure numeric builtin table (sqrt/sin/cos/min/max/abs/floor) to both the engine runtime and the wasm evaluator"
-      },
-      {
-        "op": "on_vec3_normalize",
-        "trait": "std_math",
-        "reason": "body calls sqrt(); also returns early inside an if block guarding the near-zero branch",
-        "unlock": "same numeric builtin extension as on_vec3_length"
-      },
-      {
-        "op": "on_vec3_distance",
-        "trait": "std_math",
-        "reason": "body uses local assignment (dx/dy/dz) and sqrt(); deterministic runtime restricts assignment targets to declared state",
-        "unlock": "same numeric builtin extension plus local-binding support or a rewrite to a single expression"
-      },
-      {
         "op": "on_quat_slerp",
         "trait": "std_math",
-        "reason": "delegates to math.quat_slerp via get_std_math_lib(), a host binding that does not exist in the repo",
-        "unlock": "define the std host-ABI binding surface and provide per-target bindings, or inline a pure implementation once trig builtins exist"
-      },
-      {
-        "op": "on_quat_from_axis_angle",
-        "trait": "std_math",
-        "reason": "body uses local assignment and sin()/cos()",
-        "unlock": "same numeric builtin extension as on_vec3_length"
+        "reason": "delegates to math.quat_slerp via get_std_math_lib(), a host binding with no implementation anywhere in the repo (verified 2026-07-26); a pure inline projection needs branch-heavy shortest-path/near-parallel handling beyond a reviewable single expression",
+        "unlock": "define the std host-ABI binding surface with per-target bindings, or admit a bounded local-binding statement form in the engine lane so the pure slerp projection stays reviewable"
       },
       {
         "op": "*",
@@ -521,6 +497,199 @@
       }
     },
     {
+      "id": "vlen-345",
+      "op": "on_vec3_length",
+      "pass": true,
+      "valueCanonicalHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "vlen-122",
+      "op": "on_vec3_length",
+      "pass": true,
+      "valueCanonicalHash": "sha256:d428e15b36ff064e22b6f8db60bd7a59bcfc07a04ccd0f15d9a96dc060c72e3c",
+      "actual": {
+        "value": 3
+      }
+    },
+    {
+      "id": "vlen-236",
+      "op": "on_vec3_length",
+      "pass": true,
+      "valueCanonicalHash": "sha256:9d709bba0358da8fdf5600bb3692fa32d0aa2a19a08152cf4307e0b4240e71ac",
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "vlen-unit",
+      "op": "on_vec3_length",
+      "pass": true,
+      "valueCanonicalHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "vlen-fractional",
+      "op": "on_vec3_length",
+      "pass": true,
+      "valueCanonicalHash": "sha256:08538985f27f70319116ea038c85d6567a0c3e48e22a8057412bbcc517ee4ee6",
+      "actual": {
+        "value": 0.8660254037844386
+      }
+    },
+    {
+      "id": "vnorm-345",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "valueCanonicalHash": "sha256:cba0cdb8d7bfbfc02363847be339164850d856fdf4ebc7ef7711909baf727ec2",
+      "actual": {
+        "x": 0.6,
+        "y": 0.8,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-zero",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "valueCanonicalHash": "sha256:35461afe4a2d42dcc8948534195c5e79c22332615508a7a0627de91e52c3b5c8",
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-ones",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "valueCanonicalHash": "sha256:d0b00d86b122992a0691f2460b7e12be6440a4859961bbe7f0becaee4eaac0a5",
+      "actual": {
+        "x": 0.5773502691896258,
+        "y": 0.5773502691896258,
+        "z": 0.5773502691896258
+      }
+    },
+    {
+      "id": "vnorm-axis",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "valueCanonicalHash": "sha256:38bb7ef226d764d43fb42c67f1061bb50e89b94674e9803d0bdc56a6147bc3f6",
+      "actual": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-512",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "valueCanonicalHash": "sha256:68d48d78e0adfdf77380ead478ebe8d4542cbf760cef3bb581284757017c3c74",
+      "actual": {
+        "x": 0,
+        "y": 0.38461538461538464,
+        "z": 0.9230769230769231
+      }
+    },
+    {
+      "id": "vdist-345",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "valueCanonicalHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "vdist-same",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "valueCanonicalHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "vdist-diagonal",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "valueCanonicalHash": "sha256:3b9246b7546705c8ce13c00715e383c5028af8604ecc15ddacd02c9dbf3f6270",
+      "actual": {
+        "value": 1.7320508075688772
+      }
+    },
+    {
+      "id": "vdist-mixed",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "valueCanonicalHash": "sha256:dec2b1e39579f14a9d7efee92af9c597de903cf75cc1a7b3fab626f18038859f",
+      "actual": {
+        "value": 3.5355339059327378
+      }
+    },
+    {
+      "id": "vdist-236",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "valueCanonicalHash": "sha256:9d709bba0358da8fdf5600bb3692fa32d0aa2a19a08152cf4307e0b4240e71ac",
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "qaxis-z-quarter",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "valueCanonicalHash": "sha256:8f2bea253e84ce1f35b58ab19cca476cb952f5323c9eaa287ee68c9bd9009584",
+      "actual": {
+        "w": 0.7071067811865476,
+        "x": 0,
+        "y": 0,
+        "z": 0.7071067811865475
+      }
+    },
+    {
+      "id": "qaxis-x-third",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "valueCanonicalHash": "sha256:d29fe23d626da7dd8cee1a25e5ae01ade7296261e069c7eb68b6419e868cbf95",
+      "actual": {
+        "w": 0.8660254037844387,
+        "x": 0.49999999999999994,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "qaxis-y-one",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "valueCanonicalHash": "sha256:85d7718e9fa7c044dab151e29e78cd29b86e9be06e009d60e0aa782033d43446",
+      "actual": {
+        "w": 0.8775825618903728,
+        "x": 0,
+        "y": 0.479425538604203,
+        "z": 0
+      }
+    },
+    {
+      "id": "qaxis-diagonal",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "valueCanonicalHash": "sha256:3e93d482864fd38798fef21b2328ec33684e43f3688704e3a1baedc6e2ab74f4",
+      "actual": {
+        "w": 0.5000000000000001,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
       "id": "quat-identity",
       "op": "on_quat_identity",
       "pass": true,
@@ -588,5 +757,5 @@
     "provesPackagedHandlerExecution": false,
     "note": "The executed source is the generated conformance projection of the packaged @trait handlers, in the engine deterministic action subset. The packaged math.hsplus trait bodies are hash-bound in sources but are not directly executable by any runtime in this repository today; ops whose packaged bodies delegate to host bindings are marked host-delegation-rewrite and their projections are recorded in the ops SSOT. Cross-target equality is claimed only by the separate cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:42fcc184a6eaa94b7f60e16eaf153c6c9bb5b841a9cabb478e94e5107458a8cd"
+  "receiptHash": "sha256:25309dfb0b5976f63bd27702d4af67699d85902bdd2576ef2391251d4534798f"
 }
