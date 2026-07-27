@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T20:47:00Z",
+  "generatedAt": "2026-07-27T21:44:53Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "bc243f9a48e32b7030cbd211f53210f8942111fa",
+  "sourceCommit": "1b3782765d46ddc386c002401c5a53b3b28ad932",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "wasm-pack build --target web --out-dir pkg --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 513064,
-    "wasmSha256": "5f814a5671a2986277935d818267143ae5c4d806e48c3f630257d9c7902fd564",
-    "previousWasmSha256": "7f2617ed2da3daa9ae1bd1f1806a0cbec17d79bc02bfa34d5af0816d009dcac2",
+    "wasmBytes": 512760,
+    "wasmSha256": "fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
+    "previousWasmSha256": "5f814a5671a2986277935d818267143ae5c4d806e48c3f630257d9c7902fd564",
     "repeatBuildSha256Matched": true,
-    "note": "Clean current-main union rebuild combining the v5 packaged-factory evaluator with exact-typed call-scoped &mut [T] parameters, indexed store/load, nested mutable forwarding, and exclusive alias checks. The borrowed view never transfers or escapes its owner. A repeat web build reproduced the SHA-256, and the Node build of the same source is byte-identical."
+    "note": "Clean current-main rebuild adding the cumulative v6 deterministic evaluator with strict, short-circuiting null coalescing while keeping v1-v5 pinned. A repeat web build reproduced the SHA-256, and two Node builds from the same source were byte-identical."
   }
 }
