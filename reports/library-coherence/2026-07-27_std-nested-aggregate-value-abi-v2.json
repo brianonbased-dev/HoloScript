@@ -1,0 +1,168 @@
+{
+  "schema": "holoscript.std.nested-aggregate-value-abi.v2",
+  "generatedAt": "2026-07-27T06:20:00.000Z",
+  "status": "pass",
+  "sourceRevision": "ac76b408ce70c2ae0fd2c8bf560def788344024b",
+  "objective": "Prove recursive immutable plain-old-data record calls and returns from authored HoloScript source across Node, browser WebAssembly plus UAAL, and owned-metal native execution, then consume the exact public packages from C:/Holo.",
+  "abi": {
+    "id": "hs.std.aabb3.aggregate.i32.v1",
+    "valueEnvelope": "hs.aggregate.value.v2",
+    "source": "packages/std/src/abi/vector-v1.hs",
+    "sourceSha256": "ed1d3670acae53581364d8012b92c1d0cbd23649a5a67e09004abcaac0477e03",
+    "rootLayout": "StdAabb3I32{min:StdVec3I32{x:i32,y:i32,z:i32},max:StdVec3I32{x:i32,y:i32,z:i32}}",
+    "functions": [
+      "std_math_aabb3_make_i32",
+      "std_math_aabb3_size_value_i32",
+      "std_math_aabb3_volume_value_i32"
+    ],
+    "compilerContract": {
+      "flatCompatibilityEnvelope": "hs.aggregate.value.v1",
+      "recursiveEnvelope": "hs.aggregate.value.v2",
+      "recursiveProjection": "project_path",
+      "nativeMachineContract": "hs-machine-v39",
+      "failClosedCases": [
+        "recursive record cycles",
+        "owned fields nested inside by-value aggregates",
+        "nested aggregate copies"
+      ]
+    }
+  },
+  "packages": {
+    "@holoscript/std": {
+      "version": "7.0.8",
+      "distTag": "latest",
+      "integrity": "sha512-RIleD7UbdQnezAZuNWJ6lY0+L2f45dW+bc+WUhSjTGZTcJlTBsaZT8hnFGAXBLn/RL0m6bKQgz3SGYLJKrBh2Q==",
+      "shasum": "7510bad074c010cee1cfcd116f7f943aef82ae49"
+    },
+    "@holoscript/wasm": {
+      "version": "6.1.7",
+      "distTag": "latest",
+      "integrity": "sha512-Xih6Lhv2bl20Ni9udiAf6uTWXm03xfOf/4oJfxKOjMnDLkU4OKgaSah7Mq8qhtUMX1PjmQo9NePWtDm4wqODcQ==",
+      "shasum": "b16133a8363d7ab39b4b235001a7f526d1aaf54a"
+    }
+  },
+  "targets": {
+    "node": {
+      "result": 165,
+      "status": "pass"
+    },
+    "browserWasm": {
+      "result": 165,
+      "instructionCount": 722,
+      "aggregateInstructionCount": 43,
+      "flatAggregateInstructionCount": 30,
+      "nestedAggregateInstructionCount": 13,
+      "bytecodeSha256": "3436c35a57993d6accfbb0313e67f58e2167383ea2a07366f8f8db9c09fe81f3",
+      "nestedVolume": 60,
+      "wasmBytes": 423669,
+      "wasmSha256": "bcc5b526a9196a949a3b39e4bdb9f9f338a27409414807d6a35b6771439987bc",
+      "webNodeArtifactsByteIdentical": true,
+      "repeatBuildByteIdentical": true,
+      "status": "pass"
+    },
+    "ownedMetal": {
+      "result": 165,
+      "machineContract": "hs-machine-v39",
+      "objectBytes": 9375,
+      "objectSha256": "7ea72d0e144a70b9f7e73030013920f619487345b5a94ba2bc4b532bc041c307",
+      "status": "pass"
+    }
+  },
+  "validation": {
+    "std": {
+      "files": 26,
+      "tests": 1047,
+      "status": "pass"
+    },
+    "compilerWasmRust": {
+      "tests": 294,
+      "status": "pass"
+    },
+    "compilerWasmApi": {
+      "tests": 57,
+      "status": "pass",
+      "prerequisiteNote": "The first run exposed two missing built workspace prerequisites. After building core-types, platform, and core, the unchanged API suite passed 57 of 57; the prerequisite miss is not classified as an ABI failure."
+    },
+    "nativeCompiler": {
+      "libraryTests": 3,
+      "moduleTests": 8,
+      "smokeTests": 83,
+      "status": "pass"
+    },
+    "strictSpecCorpus": {
+      "passed": 41,
+      "failed": 0,
+      "status": "pass"
+    },
+    "packageCatalog": {
+      "candidates": 19,
+      "nativeLibraries": 1,
+      "status": "pass"
+    },
+    "packageDryRuns": {
+      "std": "pass",
+      "wasm": "pass"
+    },
+    "publicConsumer": {
+      "root": "C:/Holo",
+      "sourceRevision": "133763d9e1b33cd59890e9d4e911e7db795be6fa",
+      "receipt": "C:/Holo/runtime/receipts/native-library-public-consumption.json",
+      "publicPackages": 9,
+      "localSourceUsed": false,
+      "publishedNestedAggregateValueAbi": true,
+      "nestedAggregateInstructionCount": 13,
+      "nestedLayout": "StdAabb3I32{min:StdVec3I32{x:i32,y:i32,z:i32},max:StdVec3I32{x:i32,y:i32,z:i32}}",
+      "programStackTop": 7,
+      "publicInstall": "pass",
+      "registryRestart": "pass",
+      "onlineResolve": "pass",
+      "processGuardedOfflineReplay": "pass",
+      "adapterTests": {
+        "passed": 41,
+        "failed": 0
+      }
+    }
+  },
+  "provenance": {
+    "holograph": {
+      "jobId": "absorb-1785132304354-w84ny84",
+      "resumeToken": "63e6d4eec12746bab0d9776bc646cb65",
+      "rootSetId": "559126fd49a64c1ba1a3f509b7d327d5096bc356bc7afb463bb092bf2e8fe380",
+      "revision": "ac76b408ce70c2ae0fd2c8bf560def788344024b",
+      "files": 95,
+      "symbols": 3864,
+      "graphAuthoritative": true,
+      "semanticReady": true,
+      "caveats": []
+    },
+    "holorepo": {
+      "touchedReceipt": "sha256:6e550dca66d752397708fa891bac1f485f9de19c11579fd19b2e431d0f39a4ef",
+      "capsuleReceipt": "sha256:59e9ed8b56340df1076bc9afe815f6c12d0f926ac911e4d37e2b1ada5091e7eb",
+      "promotionEligible": true,
+      "blockers": []
+    }
+  },
+  "boundaries": {
+    "provesAuthoredHoloScriptSource": true,
+    "provesRecursiveImmutablePodRecords": true,
+    "provesFlatAggregateBackwardCompatibility": true,
+    "provesCrossTargetExecutableParity": true,
+    "provesExactPublicRegistryConsumption": true,
+    "provesOwnedBufferOpcodesOrFields": false,
+    "provesBorrowedOrMutableAggregateTransfer": false,
+    "provesNestedAggregateCopies": false,
+    "provesRecursiveRecordCycles": false,
+    "provesImmutableCollectionAbi": false,
+    "provesNonFiniteFloatingPointParity": false,
+    "provesOsLevelAirGap": false,
+    "provesGeneralStableSystemsAbi": false
+  },
+  "openGaps": [
+    "owned-buffer opcodes and owned fields in aggregate values",
+    "borrowed and mutable aggregate transfer",
+    "nested aggregate copy semantics",
+    "recursive aggregate cycles",
+    "immutable collection executable parity",
+    "non-finite floating-point parity"
+  ]
+}
