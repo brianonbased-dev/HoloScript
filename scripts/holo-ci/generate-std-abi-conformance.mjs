@@ -250,11 +250,12 @@ if (ops.packagedExecution) {
       expectFn = resolveReference(handler.expectRef.twin);
     }
     for (const vector of handler.vectors) {
+      const referenceArgs = vector.expectArgs ?? vector.args;
       const orderedArgs = handler.params.map((param) => {
-        if (!(param in vector.args)) {
+        if (!(param in referenceArgs)) {
           fail(`${handler.handler}/${vector.id}: missing arg ${param}`);
         }
-        return vector.args[param];
+        return referenceArgs[param];
       });
       let expected = expectFn(...structuredClone(orderedArgs));
       if (handler.wrap) {

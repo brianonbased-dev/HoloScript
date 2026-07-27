@@ -2155,18 +2155,8 @@
       "browser-wasm",
       "owned-metal"
     ],
-    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the v5 packaged-factories subset: factory aliases statically lifted from @on_spawn, on_spawn side effects not executed, ?? and callback handlers out of scope. The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only.",
+    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the v5 packaged-factories subset: factory aliases statically lifted from @on_spawn, on_spawn side effects not executed, callback handlers out of scope; ?? null-coalescing joined the v5 subset (JSON-null defaulting, short-circuit). The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only.",
     "excludedHandlers": [
-      {
-        "handler": "on_range",
-        "trait": "std_list",
-        "reason": "?? default outside both grammars"
-      },
-      {
-        "handler": "on_join",
-        "trait": "std_list",
-        "reason": "?? default outside both grammars"
-      },
       {
         "handler": "on_from",
         "trait": "std_list",
@@ -3207,6 +3197,92 @@
               "s_b": [
                 2
               ]
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_range",
+        "params": [
+          "start",
+          "end",
+          "step"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_range"
+          ]
+        },
+        "packagedRef": "list_lib.list_range with step ?? 1 default",
+        "vectors": [
+          {
+            "id": "pkg-lrange-default-step",
+            "args": {
+              "start": 0,
+              "end": 5,
+              "step": null
+            },
+            "expectArgs": {
+              "start": 0,
+              "end": 5,
+              "step": 1
+            }
+          },
+          {
+            "id": "pkg-lrange-explicit",
+            "args": {
+              "start": 10,
+              "end": 4,
+              "step": -2
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_join",
+        "params": [
+          "lst",
+          "sep"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_join"
+          ]
+        },
+        "packagedRef": "list_lib.list_join with sep ?? \",\" default",
+        "vectors": [
+          {
+            "id": "pkg-ljoin-default-sep",
+            "args": {
+              "lst": [
+                "a",
+                "b",
+                "c"
+              ],
+              "sep": null
+            },
+            "expectArgs": {
+              "lst": [
+                "a",
+                "b",
+                "c"
+              ],
+              "sep": ","
+            }
+          },
+          {
+            "id": "pkg-ljoin-dash",
+            "args": {
+              "lst": [
+                1,
+                2.5,
+                3
+              ],
+              "sep": "-"
             }
           }
         ]

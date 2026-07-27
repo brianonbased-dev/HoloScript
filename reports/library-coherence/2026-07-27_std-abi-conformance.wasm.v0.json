@@ -1,14 +1,14 @@
 {
   "schema": "holoscript.std-abi-conformance.wasm.v0",
-  "generatedAtISO": "2026-07-27T20:40:04.577Z",
+  "generatedAtISO": "2026-07-27T23:52:21.638Z",
   "target": "browser-wasm",
   "executionRuntime": "node-webassembly",
   "wasmArtifact": {
     "path": "packages/compiler-wasm/pkg-node",
-    "sha256": "sha256:7f2617ed2da3daa9ae1bd1f1806a0cbec17d79bc02bfa34d5af0816d009dcac2",
+    "sha256": "sha256:fff120ca5315826a0ac27c74f69023fda3f2c5ca84843555fad06629814b651a",
     "byteIdenticalWebArtifact": {
       "path": "packages/compiler-wasm/pkg",
-      "sha256": "sha256:7f2617ed2da3daa9ae1bd1f1806a0cbec17d79bc02bfa34d5af0816d009dcac2",
+      "sha256": "sha256:fff120ca5315826a0ac27c74f69023fda3f2c5ca84843555fad06629814b651a",
       "matches": true
     }
   },
@@ -25,8 +25,8 @@
         "sha256": "sha256:a7447f7f67c9dfd2b7e3be433f7c90436c3a1c749e858d6fd4399e6b1d7af673"
       }
     },
-    "vectors": 41,
-    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the v5 packaged-factories subset: factory aliases statically lifted from @on_spawn, on_spawn side effects not executed, ?? and callback handlers out of scope. The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only."
+    "vectors": 45,
+    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the v5 packaged-factories subset: factory aliases statically lifted from @on_spawn, on_spawn side effects not executed, callback handlers out of scope; ?? null-coalescing joined the v5 subset (JSON-null defaulting, short-circuit). The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only."
   },
   "hostAbi": {
     "schema": "holoscript.std-host-abi.v0",
@@ -35,13 +35,13 @@
   },
   "sources": {
     "traitProjectionSha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9",
-    "vectorsSha256": "sha256:8f57b889de465c0ecaa72ef1fe63b507a4183f4108cba834f390b06d2e56e7a4",
-    "manifestSha256": "sha256:33785917ece48b93403315c648f4472a03e8b8b273f6dcd3b4c0653a165836c6",
+    "vectorsSha256": "sha256:8713b66508387e67c41143ca9681c4f3326b8aa858d6235d9fb59bc3faa7ea91",
+    "manifestSha256": "sha256:8593533f6fe713ee78b1dea9ae826d76210ed96e90adb9dae126a3c201ef624e",
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
       "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:8f57b889de465c0ecaa72ef1fe63b507a4183f4108cba834f390b06d2e56e7a4"
+      "sha256": "sha256:8713b66508387e67c41143ca9681c4f3326b8aa858d6235d9fb59bc3faa7ea91"
     }
   },
   "environment": {
@@ -50,8 +50,8 @@
     "platform": "win32"
   },
   "summary": {
-    "vectors": 164,
-    "passed": 164,
+    "vectors": 168,
+    "passed": 168,
     "failed": 0,
     "excludedOps": [
       {
@@ -1840,11 +1840,57 @@
         1,
         3
       ]
+    },
+    {
+      "id": "pkg-lrange-default-step",
+      "op": "on_range",
+      "pass": true,
+      "expectedHash": "sha256:7f2c5f390b0c7e30e5a644380decea0554bbb62cfc03eff193d13a8c1a117708",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lrange-explicit",
+      "op": "on_range",
+      "pass": true,
+      "expectedHash": "sha256:c33e53d28d32d9e72ded5b8b5b738b16010835fc788324dab95f7015bf2fd356",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        10,
+        8,
+        6
+      ]
+    },
+    {
+      "id": "pkg-ljoin-default-sep",
+      "op": "on_join",
+      "pass": true,
+      "expectedHash": "sha256:8182b0c87856adae1cbee709c79b3b3355383dd0a5512b3ed1fd15852b97423c",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "a,b,c"
+    },
+    {
+      "id": "pkg-ljoin-dash",
+      "op": "on_join",
+      "pass": true,
+      "expectedHash": "sha256:0aa14f0317322b6ad888328051c8963660b3af3c9dc169d049597f08816ac427",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "1-2.5-3"
     }
   ],
   "claimBoundary": {
     "provesBrowserExecution": false,
     "note": "Executed in Node's WebAssembly runtime against the byte-identical wasm shipped for browsers; a browser smoke run is a separate receipt."
   },
-  "receiptHash": "sha256:d1bbf86476d2a3483000323bbc6b0774578e8e9f9541edc5f63ada37e1df2547"
+  "receiptHash": "sha256:a794a82105142736ba0a13aeeb362c3663817baa2bf600be44af7ea50dcf5c49"
 }

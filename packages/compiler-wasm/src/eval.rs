@@ -1451,6 +1451,31 @@ fn eval_binary(
                 _ => left >= right,
             }))
         }
+        // Null-coalescing joins the subset with v5 packaged execution: the
+        // packaged std sources default JSON-null arguments (`step ?? 1`,
+        // `sep ?? ","`) — strict JSON has no undefined, so null is the only
+        // absent-value form. Short-circuits like the logical operators;
+        // namespace handles cannot flow through.
+        "??" if ctx.mode.factories => {
+            let left = eval_expr(&binary.left, scope, ctx)?;
+            if find_handle(&left).is_some() {
+                return Err(err(
+                    "namespace-handle-escape",
+                    "a namespace handle cannot flow through ??",
+                ));
+            }
+            if matches!(left, Value::Null) {
+                let right = eval_expr(&binary.right, scope, ctx)?;
+                if find_handle(&right).is_some() {
+                    return Err(err(
+                        "namespace-handle-escape",
+                        "a namespace handle cannot flow through ??",
+                    ));
+                }
+                return Ok(right);
+            }
+            Ok(left)
+        }
         other => Err(err(
             "unsupported-operator",
             format!("binary operator \"{other}\" is not in the deterministic subset"),
@@ -2863,9 +2888,6 @@ mod tests {
     /// `functions` enumeration seam, so the two can never disagree.
     const MOCK_NAMESPACES: &[(&str, &[&str])] = &[
         ("math", &["clamp"]),
-        // list_range resolves but is never reached: its packaged argument
-        // uses `??`, which fails at argument evaluation (see the reality
-        // check) — resolution happens BEFORE arguments, mirroring v4.
         ("list_lib", &["list_range", "list_reverse"]),
         ("map_lib", &["map_get"]),
         ("set_lib", &["set_union"]),
@@ -2903,6 +2925,25 @@ mod tests {
                     assert_eq!(parsed.len(), 3, "clamp receives exactly the call's arguments");
                     let clamped = parsed[1].max(parsed[2].min(parsed[0]));
                     HostInvokeOutcome::Value(serde_json::json!(clamped).to_string())
+                }
+                ("list_lib", "list_range") => {
+                    let parsed: Vec<f64> = args_json
+                        .iter()
+                        .map(|arg| {
+                            serde_json::from_str::<f64>(arg)
+                                .expect("list_range argument must marshal as a JSON number")
+                        })
+                        .collect();
+                    assert_eq!(parsed.len(), 3, "list_range receives exactly the call's arguments");
+                    let (start, end, step) = (parsed[0], parsed[1], parsed[2]);
+                    assert!(step != 0.0, "mock list_range requires a nonzero step");
+                    let mut out: Vec<f64> = Vec::new();
+                    let mut i = start;
+                    while if step > 0.0 { i < end } else { i > end } {
+                        out.push(i);
+                        i += step;
+                    }
+                    HostInvokeOutcome::Value(serde_json::json!(out).to_string())
                 }
                 ("list_lib", "list_reverse") => {
                     let mut items: Vec<serde_json::Value> = serde_json::from_str(&args_json[0])
@@ -3590,15 +3631,44 @@ mod tests {
         );
         assert_eq!(expect_ok(&result), &serde_json::json!([1.0, 2.0, 3.0]));
 
-        // (4) OUT-OF-SCOPE packaged shapes stay structured errors, never
-        // panics: `??` (on_range) parses but its operator is refused at
-        // evaluation.
+        // (4) `??` joined the v5 subset: the packaged on_range defaults its
+        // JSON-null step through `step ?? 1` and executes; an explicit step
+        // short-circuits the right operand.
         let result = run_v5(
             &collections,
             "std_list",
             "on_range",
             serde_json::json!({"start": 0.0, "end": 3.0, "step": null}),
         );
+        assert_eq!(expect_ok(&result), &serde_json::json!([0.0, 1.0, 2.0]));
+        let result = run_v5(
+            &collections,
+            "std_list",
+            "on_range",
+            serde_json::json!({"start": 0.0, "end": 4.0, "step": 2.0}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!([0.0, 2.0]));
+    }
+
+    #[test]
+    fn null_coalescing_stays_closed_below_v5() {
+        // The `??` operator is a v5 admission; the pinned v2–v4 subsets keep
+        // refusing it so their receipt contracts do not drift.
+        let source = r#"
+@trait t {
+  @on_f(x) => {
+    return { value: x ?? 1 }
+  }
+}
+"#;
+        let result: serde_json::Value = serde_json::from_str(&evaluate_trait_handler_v4_json(
+            source,
+            "t",
+            "on_f",
+            "{\"x\":null}",
+            &MockHost,
+        ))
+        .expect("v4 boundary returns JSON");
         let error = expect_err(&result, "unsupported-operator");
         assert!(error["message"].as_str().unwrap().contains("??"), "{result}");
     }

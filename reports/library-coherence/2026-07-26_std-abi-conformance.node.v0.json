@@ -1,6 +1,6 @@
 {
   "schema": "holoscript.std-abi-conformance.node.v0",
-  "generatedAtISO": "2026-07-27T20:40:04.106Z",
+  "generatedAtISO": "2026-07-27T23:52:21.242Z",
   "target": "node",
   "executionRuntime": {
     "engine": "DeterministicHsplusActionRuntime",
@@ -15,7 +15,7 @@
   },
   "sources": {
     "packages/std/conformance/std-abi-ops.v0.json": {
-      "sha256": "sha256:4f390f120f9d204e5ca1edeb1f9514ddff194a6c9660c73f37cc0428fae0f1ab"
+      "sha256": "sha256:05031d54f3acbbd17310a9b273340b15dff35ef3d3c46f06701ad922ba52db39"
     },
     "packages/std/conformance/generated/std-abi-conformance.action.hsplus": {
       "sha256": "sha256:d17cad005542ec0edb93372cd6858ac3f5d3f5a92f822bf317dbd65910e63116"
@@ -24,7 +24,7 @@
       "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:8f57b889de465c0ecaa72ef1fe63b507a4183f4108cba834f390b06d2e56e7a4"
+      "sha256": "sha256:8713b66508387e67c41143ca9681c4f3326b8aa858d6235d9fb59bc3faa7ea91"
     },
     "packages/std/src/math.hsplus": {
       "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
@@ -55,7 +55,7 @@
     "vectors": 123,
     "passed": 123,
     "failed": 0,
-    "skippedByTarget": 41,
+    "skippedByTarget": 45,
     "skippedByTargetReason": "packaged-handler vectors execute shipped @trait sources, a form the engine deterministic runtime does not parse; they run on the wasm-evaluator targets only",
     "excludedOps": [
       {
@@ -1388,5 +1388,5 @@
     "provesPackagedHandlerExecution": false,
     "note": "The executed source is the generated conformance projection of the packaged @trait handlers, in the engine deterministic action subset. The packaged math.hsplus trait bodies are hash-bound in sources but are not directly executable by any runtime in this repository today; ops whose packaged bodies delegate to host bindings are marked host-delegation-rewrite and their projections are recorded in the ops SSOT. Cross-target equality is claimed only by the separate cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:aaf1c48e868bcebee107a52934a6dbe9703193742594e02762e04251b3de4681"
+  "receiptHash": "sha256:acd018638c1a820b0a8a837a8739aac2f5f32a350aa273680ae0a20fd9662d28"
 }
