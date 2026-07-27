@@ -92,7 +92,7 @@ The narrative package index remains a discovery guide. Release counts, receipt l
 | `6b58a8318` | Public native-library dependency release cohort                         |
 | `a9a773d32` | Fresh-registry public Meaning dependency closure                        |
 | `311e061f1` | Scalar std ABI v1 and three-target executable conformance               |
-| pending     | Vec3 i32 ABI v1 and browser-native UAAL receipt hashing                |
+| `92d51b2ae` | Vec3 i32 ABI v1 and browser-native UAAL receipt hashing                |
 
 ## Acceptance status
 
@@ -105,16 +105,17 @@ The narrative package index remains a discovery guide. Release counts, receipt l
 | All npm v1 candidates admitted to release checks       | Shipped                           | 19-candidate closure and consumption/architecture checks                                                                                                                                                              |
 | Native std source distributed                          | Experimental                      | npm pack inspection and static/parser parity                                                                                                                                                                          |
 | Scalar std ABI v1 execution parity                     | Shipped experimental subset       | `reports/library-coherence/2026-07-26_std-scalar-abi-v1.json`: Node implementation, browser WebAssembly compiler plus in-browser UAAL execution, and owned-metal native executable all return the same 42-case digest |
-| Vec3 i32 ABI v1 execution parity                       | Implemented, validation pending   | Component-projected dot, cross, and squared-length conformance across the same three targets; durable receipt pending current validation                                         |
-| Browser-native UAAL receipt hashing                    | Implemented, validation pending   | Universal synchronous SHA-256 removes the `node:crypto` import-map shim; browser receipt and replay proof pending current validation                                              |
+| Vec3 i32 ABI v1 execution parity                       | Shipped experimental subset       | `reports/library-coherence/2026-07-26_std-vector-i32-abi-v1.json`: component-projected dot, cross, and squared-length return digest 119 across Node, browser-WASM/UAAL, and owned metal |
+| Browser-native UAAL receipt hashing                    | Shipped                           | The same receipt records a 64-hex browser SHA-256, matching execution log, valid replay, and no `node:crypto` import-map shim                                                       |
 | Package contract projected to WIT                      | Shipped as ABI                    | `wasm-tools` component embedding/new/validation                                                                                                                                                                       |
 | One cold external end-to-end native consumer           | Shipped for public release cohort | Fresh packed CLI/platform/core plus public `@holoscript/meaning@0.1.2`, standalone registry restart, exact digest resolve, and process-guarded offline replay                                                         |
 | Production native registry deployment                  | Open                              | Requires configured public registry, auth, storage, and operational receipts                                                                                                                                          |
-| Wider native std runtime execution parity              | Open                              | Requires executable floating-point, vector, quaternion, noise, and collections ABI tests across supported targets                                                                                                     |
+| Wider native std runtime execution parity              | Open                              | Requires executable floating-point, aggregate-vector, quaternion, noise, and collections ABI tests across supported targets                                                                                            |
 
 ## Next gates
 
 1. Deploy the native package routes behind the intended production registry host and capture auth, persistence, restart, and rollback receipts.
 2. Add compiler-level floating-point and aggregate value support before claiming floating-point/vector ABI parity.
 3. Extend executable std ABI conformance to immutable collections without erasing target-specific semantics.
-4. Promote additional native libraries only after their source, compatibility, support tier, and runtime boundary appear in the generated catalog.
+4. Reconcile the exact `@holoscript/engine@6.1.4` UAAL peer pin with the published compatible UAAL range and validate the public consumer graph.
+5. Promote additional native libraries only after their source, compatibility, support tier, and runtime boundary appear in the generated catalog.
