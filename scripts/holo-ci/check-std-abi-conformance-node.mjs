@@ -97,15 +97,35 @@ function resolveReference(refPath) {
   return typeof target === 'function' ? target : null;
 }
 
+const hostBindingModuleUrl = pathToFileURL(
+  join(repoRoot, 'packages', 'std', 'conformance', 'host-abi', 'std-host-binding.mjs')
+).href;
+const { createStdHostBindings } =
+  opsDefinition.hostBindings === true ? await import(hostBindingModuleUrl) : {};
+const hostBindings = createStdHostBindings ? createStdHostBindings() : null;
+
 const referenceByOp = new Map(
-  opsDefinition.ops.map((op) => [
-    op.op,
-    { fn: resolveReference(op.reference), params: op.params, resultShape: op.resultShape },
-  ])
+  opsDefinition.ops.map((op) => {
+    if (op.kind === 'host-binding') {
+      const [namespace, name] = op.hostRef;
+      return [
+        op.op,
+        {
+          fn: hostBindings?.[namespace]?.[name] ?? null,
+          params: op.params,
+          resultShape: 'host',
+        },
+      ];
+    }
+    return [
+      op.op,
+      { fn: resolveReference(op.reference), params: op.params, resultShape: op.resultShape },
+    ];
+  })
 );
 
 function wrapReferenceResult(resultShape, raw) {
-  if (resultShape === 'scalar') return { value: raw };
+  if (resultShape === 'host' || resultShape === 'scalar') return { value: raw };
   if (resultShape === 'vec3') return { x: raw.x, y: raw.y, z: raw.z };
   return { x: raw.x, y: raw.y, z: raw.z, w: raw.w };
 }
@@ -184,6 +204,7 @@ function runVector(runtime, vector, expectedOverride) {
 const runtimeOptions = {
   numericBuiltins: opsDefinition.numericBuiltins === true,
   localBindings: opsDefinition.localBindings === true,
+  ...(hostBindings ? { hostBindings } : {}),
 };
 
 if (selfTest) {
@@ -231,6 +252,19 @@ const receipt = {
     comparison: 'three-way: runtime value vs frozen corpus expectation vs live twin recomputation',
   },
   sources: manifest.files,
+  ...(hostBindings
+    ? {
+        hostAbi: {
+          schema: 'holoscript.std-host-abi.v0',
+          descriptorSha256:
+            manifest.files['packages/std/conformance/host-abi/std-host-abi.v0.json']?.sha256,
+          bindingModuleSha256:
+            manifest.files['packages/std/conformance/host-abi/std-host-binding.mjs']?.sha256,
+          claim:
+            'host-binding vectors call the one canonical JS binding from guest code; equality across targets proves guest-independent marshalling agreement, not independent host implementations',
+        },
+      }
+    : {}),
   environment: {
     node: process.version,
     arch: process.arch,

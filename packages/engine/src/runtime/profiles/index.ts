@@ -70,7 +70,9 @@ export {
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V2,
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V3,
+  ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V4,
   DeterministicHsplusActionRuntime,
   createDeterministicHsplusActionRuntime,
   type DeterministicHsplusActionRuntimeOptions,
+  type DeterministicHostBindings,
 } from './DeterministicHsplusActionRuntime';

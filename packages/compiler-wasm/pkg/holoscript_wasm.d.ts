@@ -80,6 +80,30 @@ export function evaluate_trait_handler_v2(source: string, trait_name: string, ha
  */
 export function evaluate_trait_handler_v3(source: string, trait_name: string, handler_name: string, args_json: string): string;
 
+/**
+ * Evaluate one `@on_<handler>` trait-handler body under the v4 deterministic
+ * subset (`holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings`).
+ *
+ * v4 admits the v3 grammar PLUS host-binding calls: a `CallExpression` whose
+ * callee is a NON-COMPUTED member expression `ns.fn`, where `ns` is a bare
+ * identifier naming a namespace OWN-present on `host_bindings` (the
+ * `{ math, list_lib, map_lib, set_lib }` object produced by
+ * createStdHostBindings() in
+ * `packages/std/conformance/host-abi/std-host-binding.mjs`) and `fn` a
+ * function on it. Every evaluated argument marshals guest→host as canonical
+ * strict JSON (`JSON.parse` of the serde serialization), the host is invoked
+ * via `Reflect.get` + `Function.apply`, and the result marshals back through
+ * `JSON.stringify` before re-entering the evaluator's rails (finite numbers,
+ * no negative zero, safe keys, strict JSON only). A host-side throw becomes
+ * `{"ok":false,"error":{"code":"host-binding-error",…}}` carrying the thrown
+ * message text; unknown namespaces/functions are `unknown-host-binding`; an
+ * undefined or non-JSON-serializable host result is `invalid-host-result` —
+ * structured errors, never panics. Bare-identifier calls stay builtins-only,
+ * namespaces are never values, and bound parameters/locals take precedence
+ * over namespaces in callee-root position. The v1/v2/v3 exports are untouched.
+ */
+export function evaluate_trait_handler_v4(source: string, trait_name: string, handler_name: string, args_json: string, host_bindings: any): string;
+
 export function init(): void;
 
 /**
@@ -124,6 +148,7 @@ export interface InitOutput {
     readonly compile_to_uaal: (a: number, b: number, c: number) => void;
     readonly evaluate_trait_handler: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
     readonly evaluate_trait_handler_v2: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
+    readonly evaluate_trait_handler_v4: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
     readonly init: () => void;
     readonly parse: (a: number, b: number, c: number) => void;
     readonly parse_pretty: (a: number, b: number, c: number) => void;
@@ -131,9 +156,10 @@ export interface InitOutput {
     readonly validate_detailed: (a: number, b: number, c: number) => void;
     readonly version: (a: number) => void;
     readonly evaluate_trait_handler_v3: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
-    readonly __wbindgen_export: (a: number, b: number, c: number) => void;
-    readonly __wbindgen_export2: (a: number, b: number) => number;
-    readonly __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export: (a: number, b: number) => number;
+    readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export3: (a: number) => void;
+    readonly __wbindgen_export4: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_start: () => void;
 }

@@ -1,0 +1,67 @@
+{
+  "schema": "holoscript.std-host-abi.v0",
+  "title": "HoloScript std host-ABI binding surface v0",
+  "boundary": "Host functions the packaged @holoscript/std native traits reach through get_std_math_lib() / get_std_collections_lib(). Every call crosses the guest/host boundary as canonical strict JSON: arguments marshal guest-to-host as JSON values, results marshal host-to-guest as JSON values and are re-validated on re-entry (finite numbers, no negative zero, safe keys). All functions are pure and total over their documented domain; everything outside the domain is a structured fail-closed error, never a coercion, undefined, or NaN.",
+  "factories": {
+    "get_std_math_lib": ["math"],
+    "get_std_collections_lib": ["list_lib", "map_lib", "set_lib"]
+  },
+  "valueForms": {
+    "number": "finite IEEE-754 double, negative zero rejected",
+    "list": "JSON array; elements are any strict-JSON values under the same rails",
+    "map": "JSON object; string keys only; semantically unordered — key-order-observing operations return ascending key order",
+    "set": "JSON array in canonical set form: deduplicated and sorted ascending by the canonical JSON encoding of each element; set-typed inputs are re-canonicalized defensively",
+    "quat": "JSON object { x, y, z, w } of numbers",
+    "equality": "structural: two values are equal when their canonical JSON encodings are identical"
+  },
+  "referenceOracle": "packages/std TypeScript twin (math.ts / collections.ts). The binding is twin-derived with fail-closed rails added; where the twin uses JS reference identity (indexOf/includes/Set dedupe) the ABI hardens to structural equality, so twin agreement is asserted only on vectors whose semantics coincide (scalar elements). Functions with twinRef null are binding-defined.",
+  "namespaces": {
+    "math": {
+      "clamp": { "params": ["value:number", "min:number", "max:number"], "returns": "number", "twinRef": ["clamp"], "semantics": "min <= result <= max via max(min, min(max, value))" },
+      "lerp": { "params": ["a:number", "b:number", "t:number"], "returns": "number", "twinRef": ["lerp"], "semantics": "a + (b - a) * t, unclamped" },
+      "quat_slerp": { "params": ["a:quat", "b:quat", "t:number"], "returns": "quat", "twinRef": ["quatMath", "slerp"], "semantics": "shortest-path spherical interpolation with nlerp fallback above dot 0.9995, mirroring the twin term order" }
+    },
+    "list_lib": {
+      "list_of": { "params": ["items:list"], "returns": "list", "twinRef": null, "semantics": "identity over the already-JSON argument array" },
+      "list_range": { "params": ["start:number", "end:number", "step:number"], "returns": "list", "twinRef": null, "semantics": "start inclusive, end exclusive, sign-aware like the twin loop; step 0 or step sign moving away from end is an error", "errors": ["zero-step"] },
+      "list_repeat": { "params": ["value:any", "count:number"], "returns": "list", "twinRef": null, "semantics": "count copies; count must be a non-negative integer", "errors": ["bad-count"] },
+      "list_reverse": { "params": ["lst:list"], "returns": "list", "twinRef": null, "semantics": "reversed copy" },
+      "list_flatten": { "params": ["lst:list"], "returns": "list", "twinRef": null, "semantics": "one level of nesting removed; non-array elements pass through" },
+      "list_unique": { "params": ["lst:list"], "returns": "list", "twinRef": null, "semantics": "first occurrence kept, structural equality" },
+      "list_get": { "params": ["lst:list", "index:number"], "returns": "any", "twinRef": null, "semantics": "zero-based; index must be an integer within bounds", "errors": ["out-of-range"] },
+      "list_first": { "params": ["lst:list"], "returns": "any", "twinRef": null, "semantics": "first element; empty list is an error", "errors": ["empty-list"] },
+      "list_last": { "params": ["lst:list"], "returns": "any", "twinRef": null, "semantics": "last element; empty list is an error", "errors": ["empty-list"] },
+      "list_contains": { "params": ["lst:list", "item:any"], "returns": "boolean", "twinRef": null, "semantics": "structural membership" },
+      "list_index_of": { "params": ["lst:list", "item:any"], "returns": "number", "twinRef": null, "semantics": "first structural match, -1 when absent" },
+      "list_length": { "params": ["lst:list"], "returns": "number", "twinRef": null, "semantics": "element count" },
+      "list_is_empty": { "params": ["lst:list"], "returns": "boolean", "twinRef": null, "semantics": "length == 0" },
+      "list_join": { "params": ["lst:list", "sep:string"], "returns": "string", "twinRef": null, "semantics": "elements must be strings or numbers; anything else is an error (no implicit toString)", "errors": ["unjoinable-element"] },
+      "list_zip": { "params": ["a:list", "b:list"], "returns": "list", "twinRef": null, "semantics": "pairs [a[i], b[i]] up to the shorter length" },
+      "list_chunk": { "params": ["lst:list", "size:number"], "returns": "list", "twinRef": null, "semantics": "consecutive sublists of at most size; size must be a positive integer", "errors": ["bad-size"] }
+    },
+    "map_lib": {
+      "map_set": { "params": ["m:map", "key:string", "value:any"], "returns": "map", "twinRef": null, "semantics": "copy with key set" },
+      "map_get": { "params": ["m:map", "key:string"], "returns": "any", "twinRef": null, "semantics": "value at key; absent key is an error (the twin returns undefined, which does not exist in strict JSON)", "errors": ["missing-key"] },
+      "map_has": { "params": ["m:map", "key:string"], "returns": "boolean", "twinRef": null, "semantics": "key presence" },
+      "map_delete": { "params": ["m:map", "key:string"], "returns": "map", "twinRef": null, "semantics": "copy without key; deleting an absent key is a no-op" },
+      "map_keys": { "params": ["m:map"], "returns": "list", "twinRef": null, "semantics": "ascending key order" },
+      "map_values": { "params": ["m:map"], "returns": "list", "twinRef": null, "semantics": "values in ascending key order" },
+      "map_entries": { "params": ["m:map"], "returns": "list", "twinRef": null, "semantics": "[key, value] pairs in ascending key order" },
+      "map_merge": { "params": ["a:map", "b:map"], "returns": "map", "twinRef": null, "semantics": "b wins on key collisions, like the twin" },
+      "map_size": { "params": ["m:map"], "returns": "number", "twinRef": null, "semantics": "key count" }
+    },
+    "set_lib": {
+      "set_add": { "params": ["s:set", "item:any"], "returns": "set", "twinRef": null, "semantics": "canonical set with item included" },
+      "set_has": { "params": ["s:set", "item:any"], "returns": "boolean", "twinRef": null, "semantics": "structural membership" },
+      "set_delete": { "params": ["s:set", "item:any"], "returns": "set", "twinRef": null, "semantics": "canonical set with item removed" },
+      "set_union": { "params": ["a:set", "b:set"], "returns": "set", "twinRef": null, "semantics": "canonical union" },
+      "set_intersection": { "params": ["a:set", "b:set"], "returns": "set", "twinRef": null, "semantics": "canonical intersection" },
+      "set_difference": { "params": ["a:set", "b:set"], "returns": "set", "twinRef": null, "semantics": "canonical a-minus-b" },
+      "set_size": { "params": ["s:set"], "returns": "number", "twinRef": null, "semantics": "element count after canonicalization" }
+    }
+  },
+  "excludedHigherOrder": {
+    "reason": "list_map, list_flat_map, list_filter, list_reduce, list_sort(comparator), map_map_values, and map_filter take function-valued parameters; the deterministic subsets have no function values or closures",
+    "unlock": "a bounded guest-callback design (host re-enters the guest evaluator per element) or declarative predicate/projection mini-expressions"
+  }
+}

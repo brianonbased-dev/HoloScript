@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T18:35:35Z",
+  "generatedAt": "2026-07-27T20:09:53Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "merge of 8f4fce329 (eval.rs v3 local-bindings alias) and 425db6f7a (uaal_emit.rs forwarded shared slice parameters); built pre-merge-commit from the union source",
+  "sourceCommit": "working tree (v4 host-binding eval.rs + lib.rs + Cargo.toml float_roundtrip) over HEAD f414d1dc8; clean-worktree build",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 468777,
-    "wasmSha256": "13fac3299f29c632b308acfd075049e81d4c85a2134cc3c6ecf08457e14aacf7",
-    "previousWasmSha256": "6a3aa2aad0796204816c8aa46f745cd5c260c991eee1820c277a802e4201131a",
+    "wasmBytes": 494705,
+    "wasmSha256": "cbe6a0e06d991979d0dbd3c8c37c8ab4e987e0f91ff5e34315b6f46417a369c3",
+    "previousWasmSha256": "fd8c088e66dc706897b2e5060a827dade78679e03c920ce83513a76049659279",
     "repeatBuildSha256Matched": true,
-    "note": "Merge rebuild in a clean worktree at 425db6f7a with exactly src/eval.rs and src/lib.rs copied in from 8f4fce329. Combines the v3 local-bindings evaluator alias with the forwarded shared-slice parameter emitter. Dirty main-tree parser.rs (uncommitted peer edits) not baked in. Repeat nodejs build reproduced the SHA-256 and the web build of the same source is byte-identical."
+    "note": "Adds serde_json float_roundtrip to the crate so every f64 crossing the guest boundary (source literals, args_json, host-binding results) parses exactly; fixes a 1-ulp lossy re-parse class caught by the host-ABI conformance corpus (hslerp vectors). Built in a clean worktree with eval.rs, lib.rs, and Cargo.toml copied in; peer-dirty parser.rs not baked in; repeat builds and node/web artifacts byte-identical."
   }
 }

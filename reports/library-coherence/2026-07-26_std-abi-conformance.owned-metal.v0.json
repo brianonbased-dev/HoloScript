@@ -1,20 +1,26 @@
 {
   "schema": "holoscript.std-abi-conformance.owned-metal.v0",
-  "generatedAtISO": "2026-07-27T18:35:46.958Z",
+  "generatedAtISO": "2026-07-27T20:10:12.892Z",
   "target": "owned-metal",
   "executionRuntime": {
-    "engine": "compiler-wasm evaluate_trait_handler_v2 (WebAssembly)",
-    "evaluatorExport": "evaluate_trait_handler_v2",
+    "engine": "compiler-wasm evaluate_trait_handler_v4 (WebAssembly)",
+    "evaluatorExport": "evaluate_trait_handler_v4",
     "executedProjection": "std-abi-conformance.trait.hsplus (bundle copy, pin-verified)",
-    "wasmArtifactSha256": "sha256:13fac3299f29c632b308acfd075049e81d4c85a2134cc3c6ecf08457e14aacf7"
+    "wasmArtifactSha256": "sha256:cbe6a0e06d991979d0dbd3c8c37c8ab4e987e0f91ff5e34315b6f46417a369c3"
   },
   "sources": {
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:6d7a2efc1de7423f6779beadc4008eafb97f2f36068c19ecc599be030cee9f5a"
+      "sha256": "sha256:3d205049f9bc71e5099bca619c850079b97379e44d91e2dfc1a5a5fb56b0a3ce"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
-      "sha256": "sha256:cef7935728bdcf98f28c06e4b05f7a691449000864468930a502de8a14e71c49"
+      "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
     }
+  },
+  "hostAbi": {
+    "schema": "holoscript.std-host-abi.v0",
+    "bindingModuleSha256": "sha256:e006c979de0ca1d28d90eebdb2c30ed632b5bb7bbbfecd79476a29b7f3b3ded1",
+    "descriptorSha256": "sha256:475a487b4fb164d24d5b53e9f0eeb23641efa614c51dea924ad74dcf3da5fbe7",
+    "claim": "host-binding vectors cross the wasm guest/host boundary into the bundled canonical JS binding on this hardware"
   },
   "environment": {
     "node": "v20.20.2",
@@ -25,8 +31,8 @@
     "cpus": "Cortex-A78AE"
   },
   "summary": {
-    "vectors": 75,
-    "passed": 75,
+    "vectors": 123,
+    "passed": 123,
     "failed": 0
   },
   "results": [
@@ -704,6 +710,509 @@
         "y": 0.5000000000000001,
         "z": 0.5000000000000001
       }
+    },
+    {
+      "id": "hclamp-above",
+      "op": "on_host_clamp",
+      "pass": true,
+      "actual": {
+        "value": 10
+      }
+    },
+    {
+      "id": "hclamp-inside",
+      "op": "on_host_clamp",
+      "pass": true,
+      "actual": {
+        "value": 0.5
+      }
+    },
+    {
+      "id": "hlerp-mid",
+      "op": "on_host_lerp",
+      "pass": true,
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "hlerp-frac",
+      "op": "on_host_lerp",
+      "pass": true,
+      "actual": {
+        "value": 2.2
+      }
+    },
+    {
+      "id": "hslerp-mid",
+      "op": "on_host_quat_slerp",
+      "pass": true,
+      "actual": {
+        "value": {
+          "w": 0.9238795325112867,
+          "x": 0,
+          "y": 0,
+          "z": 0.38268343236508984
+        }
+      }
+    },
+    {
+      "id": "hslerp-general",
+      "op": "on_host_quat_slerp",
+      "pass": true,
+      "actual": {
+        "value": {
+          "w": 0.889117318538694,
+          "x": 0.17870630796170991,
+          "y": 0.21613343763264042,
+          "z": 0.31777837561756156
+        }
+      }
+    },
+    {
+      "id": "hrange-up",
+      "op": "on_host_list_range",
+      "pass": true,
+      "actual": {
+        "value": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hrange-down",
+      "op": "on_host_list_range",
+      "pass": true,
+      "actual": {
+        "value": [
+          10,
+          8,
+          6
+        ]
+      }
+    },
+    {
+      "id": "hrepeat-str",
+      "op": "on_host_list_repeat",
+      "pass": true,
+      "actual": {
+        "value": [
+          "ha",
+          "ha",
+          "ha"
+        ]
+      }
+    },
+    {
+      "id": "hrepeat-zero",
+      "op": "on_host_list_repeat",
+      "pass": true,
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "hreverse-nums",
+      "op": "on_host_list_reverse",
+      "pass": true,
+      "actual": {
+        "value": [
+          4,
+          3,
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "id": "hreverse-mixed",
+      "op": "on_host_list_reverse",
+      "pass": true,
+      "actual": {
+        "value": [
+          true,
+          1,
+          "a"
+        ]
+      }
+    },
+    {
+      "id": "hflatten-nested",
+      "op": "on_host_list_flatten",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hflatten-flat",
+      "op": "on_host_list_flatten",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hunique-dupes",
+      "op": "on_host_list_unique",
+      "pass": true,
+      "actual": {
+        "value": [
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "hunique-strings",
+      "op": "on_host_list_unique",
+      "pass": true,
+      "actual": {
+        "value": [
+          "b",
+          "a"
+        ]
+      }
+    },
+    {
+      "id": "hget-mid",
+      "op": "on_host_list_get",
+      "pass": true,
+      "actual": {
+        "value": 20
+      }
+    },
+    {
+      "id": "hget-first",
+      "op": "on_host_list_get",
+      "pass": true,
+      "actual": {
+        "value": "x"
+      }
+    },
+    {
+      "id": "hcontains-yes",
+      "op": "on_host_list_contains",
+      "pass": true,
+      "actual": {
+        "value": true
+      }
+    },
+    {
+      "id": "hcontains-no",
+      "op": "on_host_list_contains",
+      "pass": true,
+      "actual": {
+        "value": false
+      }
+    },
+    {
+      "id": "hindexof-hit",
+      "op": "on_host_list_index_of",
+      "pass": true,
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "hindexof-miss",
+      "op": "on_host_list_index_of",
+      "pass": true,
+      "actual": {
+        "value": -1
+      }
+    },
+    {
+      "id": "hjoin-dash",
+      "op": "on_host_list_join",
+      "pass": true,
+      "actual": {
+        "value": "a-b-c"
+      }
+    },
+    {
+      "id": "hjoin-nums",
+      "op": "on_host_list_join",
+      "pass": true,
+      "actual": {
+        "value": "1,2.5,3"
+      }
+    },
+    {
+      "id": "hzip-even",
+      "op": "on_host_list_zip",
+      "pass": true,
+      "actual": {
+        "value": [
+          [
+            1,
+            "x"
+          ],
+          [
+            2,
+            "y"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hzip-uneven",
+      "op": "on_host_list_zip",
+      "pass": true,
+      "actual": {
+        "value": [
+          [
+            1,
+            "x"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hchunk-2",
+      "op": "on_host_list_chunk",
+      "pass": true,
+      "actual": {
+        "value": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hchunk-big",
+      "op": "on_host_list_chunk",
+      "pass": true,
+      "actual": {
+        "value": [
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hmapset-new",
+      "op": "on_host_map_set",
+      "pass": true,
+      "actual": {
+        "value": {
+          "a": 1,
+          "b": 2
+        }
+      }
+    },
+    {
+      "id": "hmapset-overwrite",
+      "op": "on_host_map_set",
+      "pass": true,
+      "actual": {
+        "value": {
+          "a": 9
+        }
+      }
+    },
+    {
+      "id": "hmapget-hit",
+      "op": "on_host_map_get",
+      "pass": true,
+      "actual": {
+        "value": 2
+      }
+    },
+    {
+      "id": "hmapget-nested",
+      "op": "on_host_map_get",
+      "pass": true,
+      "actual": {
+        "value": {
+          "deep": true
+        }
+      }
+    },
+    {
+      "id": "hmapkeys-sorted",
+      "op": "on_host_map_keys",
+      "pass": true,
+      "actual": {
+        "value": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "id": "hmapkeys-empty",
+      "op": "on_host_map_keys",
+      "pass": true,
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "hmapmerge-bwins",
+      "op": "on_host_map_merge",
+      "pass": true,
+      "actual": {
+        "value": {
+          "x": 1,
+          "y": 9,
+          "z": 3
+        }
+      }
+    },
+    {
+      "id": "hmapmerge-empty",
+      "op": "on_host_map_merge",
+      "pass": true,
+      "actual": {
+        "value": {
+          "k": "v"
+        }
+      }
+    },
+    {
+      "id": "hmapsize-3",
+      "op": "on_host_map_size",
+      "pass": true,
+      "actual": {
+        "value": 3
+      }
+    },
+    {
+      "id": "hmapsize-0",
+      "op": "on_host_map_size",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "hsetadd-new",
+      "op": "on_host_set_add",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hsetadd-dupe",
+      "op": "on_host_set_add",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "hsethas-yes",
+      "op": "on_host_set_has",
+      "pass": true,
+      "actual": {
+        "value": true
+      }
+    },
+    {
+      "id": "hsethas-no",
+      "op": "on_host_set_has",
+      "pass": true,
+      "actual": {
+        "value": false
+      }
+    },
+    {
+      "id": "hsetunion-overlap",
+      "op": "on_host_set_union",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hsetunion-strings",
+      "op": "on_host_set_union",
+      "pass": true,
+      "actual": {
+        "value": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "id": "hsetinter-common",
+      "op": "on_host_set_intersection",
+      "pass": true,
+      "actual": {
+        "value": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hsetinter-none",
+      "op": "on_host_set_intersection",
+      "pass": true,
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "hsetdiff-some",
+      "op": "on_host_set_difference",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hsetdiff-all",
+      "op": "on_host_set_difference",
+      "pass": true,
+      "actual": {
+        "value": []
+      }
     }
   ],
   "claimBoundary": {
@@ -711,5 +1220,5 @@
     "provesNodeDeterministicSubsetExecution": false,
     "note": "Executed the generated trait projection through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:ad16ad5846bb3b5b23fd11652786ac1a347ddaa3c009a6189502145c29bc6377"
+  "receiptHash": "sha256:c9ef34a578f6264d4844c73b96654d81f6e9f781a2c47c58cf214da032f3332e"
 }

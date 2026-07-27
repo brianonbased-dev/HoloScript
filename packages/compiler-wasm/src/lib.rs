@@ -302,6 +302,38 @@ pub fn evaluate_trait_handler_v3(
     eval::evaluate_trait_handler_v3_json(source, trait_name, handler_name, args_json)
 }
 
+/// Evaluate one `@on_<handler>` trait-handler body under the v4 deterministic
+/// subset (`holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings`).
+///
+/// v4 admits the v3 grammar PLUS host-binding calls: a `CallExpression` whose
+/// callee is a NON-COMPUTED member expression `ns.fn`, where `ns` is a bare
+/// identifier naming a namespace OWN-present on `host_bindings` (the
+/// `{ math, list_lib, map_lib, set_lib }` object produced by
+/// createStdHostBindings() in
+/// `packages/std/conformance/host-abi/std-host-binding.mjs`) and `fn` a
+/// function on it. Every evaluated argument marshals guest→host as canonical
+/// strict JSON (`JSON.parse` of the serde serialization), the host is invoked
+/// via `Reflect.get` + `Function.apply`, and the result marshals back through
+/// `JSON.stringify` before re-entering the evaluator's rails (finite numbers,
+/// no negative zero, safe keys, strict JSON only). A host-side throw becomes
+/// `{"ok":false,"error":{"code":"host-binding-error",…}}` carrying the thrown
+/// message text; unknown namespaces/functions are `unknown-host-binding`; an
+/// undefined or non-JSON-serializable host result is `invalid-host-result` —
+/// structured errors, never panics. Bare-identifier calls stay builtins-only,
+/// namespaces are never values, and bound parameters/locals take precedence
+/// over namespaces in callee-root position. The v1/v2/v3 exports are untouched.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn evaluate_trait_handler_v4(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    host_bindings: JsValue,
+) -> String {
+    eval::evaluate_trait_handler_v4_js(source, trait_name, handler_name, args_json, &host_bindings)
+}
+
 /// Compile top-level `.hs` functions to a UAAL bytecode packet.
 ///
 /// This mirrors [`compile_to_kotlin`]'s JSON boundary but targets the stack-based

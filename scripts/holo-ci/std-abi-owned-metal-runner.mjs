@@ -22,7 +22,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const bundleDir = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -62,11 +62,22 @@ const vectors = readFileSync(join(bundleDir, 'std-abi-vectors.v0.jsonl'), 'utf8'
 
 const wasm = require(join(bundleDir, 'pkg-node', 'holoscript_wasm.js'));
 const evaluatorExport =
-  typeof wasm.evaluate_trait_handler_v2 === 'function'
-    ? 'evaluate_trait_handler_v2'
-    : 'evaluate_trait_handler';
+  typeof wasm.evaluate_trait_handler_v4 === 'function'
+    ? 'evaluate_trait_handler_v4'
+    : typeof wasm.evaluate_trait_handler_v3 === 'function'
+      ? 'evaluate_trait_handler_v3'
+      : typeof wasm.evaluate_trait_handler_v2 === 'function'
+        ? 'evaluate_trait_handler_v2'
+        : 'evaluate_trait_handler';
 if (typeof wasm[evaluatorExport] !== 'function') {
   fail('pkg-node artifact has no trait-handler evaluator export');
+}
+let hostBindings = null;
+if (evaluatorExport === 'evaluate_trait_handler_v4') {
+  const { createStdHostBindings } = await import(
+    pathToFileURL(join(bundleDir, 'std-host-binding.mjs')).href
+  );
+  hostBindings = createStdHostBindings();
 }
 const traitName = manifest.conformanceTrait || 'std_math_conformance';
 
@@ -107,12 +118,16 @@ for (const vector of vectors) {
   const outcome = { id: vector.id, op: vector.op, pass: false };
   let parsed;
   try {
-    const raw = wasm[evaluatorExport](
-      traitSource,
-      traitName,
-      vector.op,
-      JSON.stringify(vector.args)
-    );
+    const raw =
+      evaluatorExport === 'evaluate_trait_handler_v4'
+        ? wasm[evaluatorExport](
+            traitSource,
+            traitName,
+            vector.op,
+            JSON.stringify(vector.args),
+            hostBindings
+          )
+        : wasm[evaluatorExport](traitSource, traitName, vector.op, JSON.stringify(vector.args));
     parsed = JSON.parse(raw);
   } catch (error) {
     outcome.error = String((error && error.message) || error);
@@ -152,6 +167,17 @@ const receipt = {
       sha256: manifest.files['std-abi-conformance.trait.hsplus'].sha256,
     },
   },
+  ...(hostBindings
+    ? {
+        hostAbi: {
+          schema: 'holoscript.std-host-abi.v0',
+          bindingModuleSha256: manifest.files['std-host-binding.mjs']?.sha256,
+          descriptorSha256: manifest.files['std-host-abi.v0.json']?.sha256,
+          claim:
+            'host-binding vectors cross the wasm guest/host boundary into the bundled canonical JS binding on this hardware',
+        },
+      }
+    : {}),
   environment: {
     node: process.version,
     arch: process.arch,

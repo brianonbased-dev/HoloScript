@@ -578,3 +578,135 @@ describe('DeterministicHsplusActionRuntime v3 local bindings', () => {
     );
   });
 });
+
+describe('DeterministicHsplusActionRuntime v4 host bindings', () => {
+  const HOST_SOURCE = `composition "Host Probe" {
+  state {
+    touched: 0
+  }
+
+  logic {
+    action clamped(value, lo, hi) {
+      return { value: math.clamp(value, lo, hi) }
+    }
+
+    action union_sorted(a, b) {
+      return { value: set_lib.set_union(a, b) }
+    }
+
+    action missing(m) {
+      return { value: map_lib.map_get(m, "absent") }
+    }
+
+    action mixed(v, lo, hi) {
+      c = math.clamp(v, lo, hi)
+      return { value: c * 2 }
+    }
+  }
+}`;
+
+  const bindings = {
+    math: {
+      clamp: (value: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, value)),
+    },
+    set_lib: {
+      set_union: (a: unknown[], b: unknown[]) =>
+        [...new Set([...a, ...b].map((x) => JSON.stringify(x)))]
+          .sort()
+          .map((x) => JSON.parse(x)),
+    },
+    map_lib: {
+      map_get: (m: Record<string, unknown>, key: string) => {
+        if (!Object.prototype.hasOwnProperty.call(m, key)) {
+          throw new Error(`missing-key: ${key}`);
+        }
+        return m[key];
+      },
+    },
+  };
+
+  function observation(entrypoint: string, args: Record<string, unknown>) {
+    return {
+      kind: 'observation',
+      scheduleEntryId: `v4-${entrypoint}`,
+      order: 0,
+      tick: 0,
+      phase: 'test',
+      entrypoint,
+      args,
+    } as HeadlessExperimentScheduleEntry;
+  }
+
+  it('dispatches namespace.function calls through injected bindings under v4', () => {
+    const runtime = createDeterministicHsplusActionRuntime(HOST_SOURCE, {
+      numericBuiltins: true,
+      localBindings: true,
+      hostBindings: bindings,
+    });
+    expect(runtime.subsetId).toBe(
+      'holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings'
+    );
+    expect(runtime.invoke(observation('clamped', { value: 42, lo: 0, hi: 10 })).value).toEqual({
+      value: 10,
+    });
+    expect(
+      runtime.invoke(observation('union_sorted', { a: [3, 1, 2], b: [2, 4] })).value
+    ).toEqual({ value: [1, 2, 3, 4] });
+    expect(runtime.invoke(observation('mixed', { v: 7, lo: 0, hi: 5 })).value).toEqual({
+      value: 10,
+    });
+  });
+
+  it('fails closed on host throws, undefined results, and undeclared functions', () => {
+    const runtime = createDeterministicHsplusActionRuntime(HOST_SOURCE, {
+      numericBuiltins: true,
+      localBindings: true,
+      hostBindings: bindings,
+    });
+    expect(() => runtime.invoke(observation('missing', { m: {} }))).toThrow(/missing-key/);
+    expect(() =>
+      createDeterministicHsplusActionRuntime(
+        `composition "X" {
+  state { touched: 0 }
+  logic {
+    action f(x) { return { value: math.nope(x) } }
+  }
+}`,
+        { numericBuiltins: true, localBindings: true, hostBindings: bindings }
+      )
+    ).toThrow(/not a declared host-binding function/);
+    const badBinding = createDeterministicHsplusActionRuntime(
+      `composition "X" {
+  state { touched: 0 }
+  logic {
+    action f(x) { return { value: math.clamp(x, 0, 1) } }
+  }
+}`,
+      {
+        numericBuiltins: true,
+        hostBindings: { math: { clamp: () => undefined as unknown as number } },
+      }
+    );
+    expect(() => badBinding.invoke(observation('f', { x: 0.5 }))).toThrow(/returned undefined/);
+  });
+
+  it('keeps member calls closed without injected bindings and namespaces non-values', () => {
+    expect(() =>
+      createDeterministicHsplusActionRuntime(HOST_SOURCE, {
+        numericBuiltins: true,
+        localBindings: true,
+      })
+    ).toThrow(/host-binding calls are not admitted/);
+    expect(() =>
+      createDeterministicHsplusActionRuntime(
+        `composition "X" {
+  state { touched: 0 }
+  logic {
+    action f(x) { return { value: math } }
+  }
+}`,
+        { numericBuiltins: true, hostBindings: bindings }
+      )
+    ).toThrow(/undeclared parameter "math"/);
+  });
+});

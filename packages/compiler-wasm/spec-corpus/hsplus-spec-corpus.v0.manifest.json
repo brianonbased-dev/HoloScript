@@ -30,7 +30,7 @@
   "verifier_of_record": "packages/compiler-wasm pkg-node validate_detailed (committed ready-to-run WASM authority artifact)",
   "authority": {
     "artifact": "packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm",
-    "wasmSha256": "sha256:13fac3299f29c632b308acfd075049e81d4c85a2134cc3c6ecf08457e14aacf7",
+    "wasmSha256": "sha256:cbe6a0e06d991979d0dbd3c8c37c8ab4e987e0f91ff5e34315b6f46417a369c3",
     "rebuild_receipt": "packages/compiler-wasm/pkg-node/rebuild-receipt.json",
     "note": "The authority build every verdict in this corpus release was verified against. If the artifact hash no longer matches, rerun this script: all-verdicts-hold means the spec is stable under the new build (re-pin with --update-manifest); any drift means the language moved."
   }

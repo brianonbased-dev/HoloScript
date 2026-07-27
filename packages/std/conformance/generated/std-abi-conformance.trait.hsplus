@@ -96,4 +96,100 @@
   @on_quat_multiply(a, b) => {
     return { x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x, z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w, w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z }
   }
+
+  @on_host_clamp(value, min, max) => {
+    return { value: math.clamp(value, min, max) }
+  }
+
+  @on_host_lerp(a, b, t) => {
+    return { value: math.lerp(a, b, t) }
+  }
+
+  @on_host_quat_slerp(a, b, t) => {
+    return { value: math.quat_slerp(a, b, t) }
+  }
+
+  @on_host_list_range(start, end, step) => {
+    return { value: list_lib.list_range(start, end, step) }
+  }
+
+  @on_host_list_repeat(value, count) => {
+    return { value: list_lib.list_repeat(value, count) }
+  }
+
+  @on_host_list_reverse(lst) => {
+    return { value: list_lib.list_reverse(lst) }
+  }
+
+  @on_host_list_flatten(lst) => {
+    return { value: list_lib.list_flatten(lst) }
+  }
+
+  @on_host_list_unique(lst) => {
+    return { value: list_lib.list_unique(lst) }
+  }
+
+  @on_host_list_get(lst, index) => {
+    return { value: list_lib.list_get(lst, index) }
+  }
+
+  @on_host_list_contains(lst, item) => {
+    return { value: list_lib.list_contains(lst, item) }
+  }
+
+  @on_host_list_index_of(lst, item) => {
+    return { value: list_lib.list_index_of(lst, item) }
+  }
+
+  @on_host_list_join(lst, sep) => {
+    return { value: list_lib.list_join(lst, sep) }
+  }
+
+  @on_host_list_zip(a, b) => {
+    return { value: list_lib.list_zip(a, b) }
+  }
+
+  @on_host_list_chunk(lst, size) => {
+    return { value: list_lib.list_chunk(lst, size) }
+  }
+
+  @on_host_map_set(m, key, value) => {
+    return { value: map_lib.map_set(m, key, value) }
+  }
+
+  @on_host_map_get(m, key) => {
+    return { value: map_lib.map_get(m, key) }
+  }
+
+  @on_host_map_keys(m) => {
+    return { value: map_lib.map_keys(m) }
+  }
+
+  @on_host_map_merge(a, b) => {
+    return { value: map_lib.map_merge(a, b) }
+  }
+
+  @on_host_map_size(m) => {
+    return { value: map_lib.map_size(m) }
+  }
+
+  @on_host_set_add(s, item) => {
+    return { value: set_lib.set_add(s, item) }
+  }
+
+  @on_host_set_has(s, item) => {
+    return { value: set_lib.set_has(s, item) }
+  }
+
+  @on_host_set_union(a, b) => {
+    return { value: set_lib.set_union(a, b) }
+  }
+
+  @on_host_set_intersection(a, b) => {
+    return { value: set_lib.set_intersection(a, b) }
+  }
+
+  @on_host_set_difference(a, b) => {
+    return { value: set_lib.set_difference(a, b) }
+  }
 }

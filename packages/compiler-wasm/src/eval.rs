@@ -47,6 +47,28 @@
 //! Exporting v3 here lets receipts on both lanes pin ONE shared id without
 //! pretending the wasm grammar grew.
 //!
+//! A fourth mode — `evaluate_trait_handler_v4`, subset id
+//! `holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings` —
+//! admits the v3 grammar PLUS host-binding calls: a `CallExpression` whose
+//! callee is a NON-COMPUTED member expression `ns.fn`, where `ns` is a bare
+//! identifier naming a namespace OWN-present on the injected host-binding
+//! object and `fn` a function on it. Bound parameters/locals take precedence
+//! (a bound name in callee-root position makes the call a member call on a
+//! VALUE, which stays refused as `unsupported-call`); namespaces are never
+//! values (a namespace root in value position, or a bare namespace identifier
+//! expression, stays `unknown-identifier`); bare-identifier calls stay
+//! builtins-only. Marshalling is canonical strict JSON over the boundary in
+//! BOTH directions — each evaluated argument serializes via serde_json, the
+//! host result re-enters through the same rails as handler args (finite
+//! numbers, `-0` normalized, dangerous keys refused, strict JSON only). A
+//! host-side throw becomes `host-binding-error` carrying the thrown message
+//! text; unknown namespace/function is `unknown-host-binding`; an undefined
+//! or non-JSON-serializable host result is `invalid-host-result`. All of these
+//! are structured errors, never panics. The JS boundary itself sits behind the
+//! [`HostDispatcher`] seam, so native `cargo test` covers the v4 grammar,
+//! admission rules, and error mapping with a mock dispatcher — only the
+//! js_sys-backed dispatcher is wasm32-gated.
+//!
 //! Error/result boundary follows the crate convention of always returning JSON:
 //! `{"ok":true,"value":<json>}` or `{"ok":false,"error":{"code":"…","message":"…"}}`.
 
@@ -72,20 +94,79 @@ pub const DETERMINISTIC_SUBSET_V2: &str =
 pub const DETERMINISTIC_SUBSET_V3: &str =
     "holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings";
 
+/// Subset identifier for the v4 evaluation mode: the v3 grammar plus
+/// host-binding member calls (`ns.fn(args)`) into an injected host-binding
+/// object, marshalled as canonical JSON over the boundary (the engine lane
+/// exports the same id).
+pub const DETERMINISTIC_SUBSET_V4: &str =
+    "holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings";
+
 /// Evaluation mode threaded through the statement/expression walkers. v1 keeps
 /// `numeric_builtins` off (every `CallExpression` is `unsupported-call`, same
-/// code and message as before the mode existed); v2 turns the builtin table on.
+/// code and message as before the mode existed); v2 turns the builtin table on;
+/// v4 additionally turns `host_bindings` on, admitting non-computed member
+/// callees as host-binding calls.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct EvalMode {
     numeric_builtins: bool,
+    host_bindings: bool,
 }
 
 const MODE_V1: EvalMode = EvalMode {
     numeric_builtins: false,
+    host_bindings: false,
 };
 const MODE_V2: EvalMode = EvalMode {
     numeric_builtins: true,
+    host_bindings: false,
 };
+/// v4: v3 grammar (numeric builtins + the local bindings this walker has
+/// admitted since v1) PLUS host-binding member calls in callee position.
+const MODE_V4: EvalMode = EvalMode {
+    numeric_builtins: true,
+    host_bindings: true,
+};
+
+/// Callee-position lookup result for one `ns.fn` host-binding reference.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HostLookup {
+    /// The injected host-binding object has no OWN namespace `ns`.
+    UnknownNamespace,
+    /// Namespace `ns` exists but has no OWN function `fn`.
+    UnknownFunction,
+    /// `ns.fn` resolves to a callable host function.
+    Found,
+}
+
+/// Outcome of invoking one resolved host-binding function.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HostInvokeOutcome {
+    /// Host returned a value; the payload is its JSON serialization
+    /// (JSON.stringify output on the wasm boundary).
+    Value(String),
+    /// Host function threw; the payload is the thrown error's message text.
+    Threw(String),
+    /// Host returned undefined or a value JSON cannot serialize.
+    NotSerializable(String),
+}
+
+/// The marshalling seam between the evaluator and the injected host-binding
+/// object. On wasm32 the implementation crosses the real JS boundary via
+/// js_sys (see `js_host`); native tests and embedders inject their own, so
+/// the v4 grammar, admission rules, and error mapping are covered by plain
+/// `cargo test` without a live JS host. Callee resolution ([`Self::lookup`])
+/// happens BEFORE argument evaluation, mirroring source order.
+pub trait HostDispatcher {
+    fn lookup(&self, namespace: &str, function: &str) -> HostLookup;
+    fn invoke(&self, namespace: &str, function: &str, args_json: &[String]) -> HostInvokeOutcome;
+}
+
+/// Context threaded through the walkers: the evaluation mode plus the
+/// (v4-only) host dispatcher. v1–v3 run with `host: None`.
+struct EvalCtx<'h> {
+    mode: EvalMode,
+    host: Option<&'h dyn HostDispatcher>,
+}
 
 /// The v2 whitelisted numeric builtin table: (name, exact arity). Callees are
 /// admitted ONLY as bare identifiers — member calls never reach the table.
@@ -176,7 +257,48 @@ fn evaluate_with_mode_json(
     args_json: &str,
     mode: EvalMode,
 ) -> String {
-    match evaluate(source, trait_name, handler_name, args_json, mode) {
+    evaluate_with_ctx_json(
+        source,
+        trait_name,
+        handler_name,
+        args_json,
+        &EvalCtx { mode, host: None },
+    )
+}
+
+/// Public JSON boundary for the v4 host-binding mode
+/// ([`DETERMINISTIC_SUBSET_V4`]): the v3 grammar plus member-callee calls into
+/// the injected host-binding object, reached through the [`HostDispatcher`]
+/// seam. The `evaluate_trait_handler_v4` wasm export wires the js_sys-backed
+/// dispatcher over the real JS boundary; native callers (tests, embedders)
+/// inject their own.
+pub fn evaluate_trait_handler_v4_json(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    host: &dyn HostDispatcher,
+) -> String {
+    evaluate_with_ctx_json(
+        source,
+        trait_name,
+        handler_name,
+        args_json,
+        &EvalCtx {
+            mode: MODE_V4,
+            host: Some(host),
+        },
+    )
+}
+
+fn evaluate_with_ctx_json(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    ctx: &EvalCtx,
+) -> String {
+    match evaluate(source, trait_name, handler_name, args_json, ctx) {
         Ok(value) => serde_json::json!({ "ok": true, "value": value_to_json(&value) }).to_string(),
         Err(error) => serde_json::json!({
             "ok": false,
@@ -191,7 +313,7 @@ fn evaluate(
     trait_name: &str,
     handler_name: &str,
     args_json: &str,
-    mode: EvalMode,
+    ctx: &EvalCtx,
 ) -> Result<Value, EvalError> {
     let ast = crate::parse_ast(source).map_err(|diagnostics| {
         let detail = diagnostics
@@ -217,7 +339,7 @@ fn evaluate(
     };
 
     let scope = bind_args(&handler.params, handler_name, args_json)?;
-    run_handler(body, scope, handler_name, mode)
+    run_handler(body, scope, handler_name, ctx)
 }
 
 fn find_handler<'a>(
@@ -422,9 +544,9 @@ fn run_handler(
     body: &[AstNode],
     mut scope: BTreeMap<String, Value>,
     handler_name: &str,
-    mode: EvalMode,
+    ctx: &EvalCtx,
 ) -> Result<Value, EvalError> {
-    match exec_block(body, &mut scope, mode)? {
+    match exec_block(body, &mut scope, ctx)? {
         Flow::Return(value) => Ok(value),
         Flow::Normal => Err(err(
             "no-return",
@@ -436,10 +558,10 @@ fn run_handler(
 fn exec_block(
     statements: &[AstNode],
     scope: &mut BTreeMap<String, Value>,
-    mode: EvalMode,
+    ctx: &EvalCtx,
 ) -> Result<Flow, EvalError> {
     for statement in statements {
-        if let Flow::Return(value) = exec_statement(statement, scope, mode)? {
+        if let Flow::Return(value) = exec_statement(statement, scope, ctx)? {
             return Ok(Flow::Return(value));
         }
     }
@@ -449,27 +571,27 @@ fn exec_block(
 fn exec_statement(
     node: &AstNode,
     scope: &mut BTreeMap<String, Value>,
-    mode: EvalMode,
+    ctx: &EvalCtx,
 ) -> Result<Flow, EvalError> {
     match node {
         AstNode::Return(ret) => {
             let value = match ret.argument.as_ref() {
-                Some(argument) => eval_expr(argument, scope, mode)?,
+                Some(argument) => eval_expr(argument, scope, ctx)?,
                 None => Value::Null,
             };
             Ok(Flow::Return(value))
         }
         AstNode::If(node) => {
-            let Value::Bool(test) = eval_expr(&node.test, scope, mode)? else {
+            let Value::Bool(test) = eval_expr(&node.test, scope, ctx)? else {
                 return Err(err(
                     "type-mismatch",
                     "if condition requires a boolean (no truthiness in the deterministic subset)",
                 ));
             };
             if test {
-                exec_block(&node.consequent, scope, mode)
+                exec_block(&node.consequent, scope, ctx)
             } else if let Some(alternate) = node.alternate.as_ref() {
-                exec_block(alternate, scope, mode)
+                exec_block(alternate, scope, ctx)
             } else {
                 Ok(Flow::Normal)
             }
@@ -499,7 +621,7 @@ fn exec_statement(
                     ),
                 ));
             }
-            let value = eval_expr(&node.value, scope, mode)?;
+            let value = eval_expr(&node.value, scope, ctx)?;
             scope.insert(target.name.clone(), value);
             Ok(Flow::Normal)
         }
@@ -517,7 +639,7 @@ fn exec_statement(
 fn eval_expr(
     node: &AstNode,
     scope: &BTreeMap<String, Value>,
-    mode: EvalMode,
+    ctx: &EvalCtx,
 ) -> Result<Value, EvalError> {
     match node {
         AstNode::Number(n) => checked_number(n.value, "number literal"),
@@ -546,7 +668,7 @@ fn eval_expr(
                     format!("member access uses unsafe key \"{}\"", property.name),
                 ));
             }
-            let object = eval_expr(&member.object, scope, mode)?;
+            let object = eval_expr(&member.object, scope, ctx)?;
             let Value::Obj(entries) = object else {
                 return Err(err(
                     "type-mismatch",
@@ -567,7 +689,7 @@ fn eval_expr(
         AstNode::ObjectLiteral(object) => {
             let mut entries: Vec<(String, Value)> = Vec::with_capacity(object.properties.len());
             for property in &object.properties {
-                eval_object_property(property, scope, mode, &mut entries)?;
+                eval_object_property(property, scope, ctx, &mut entries)?;
             }
             Ok(Value::Obj(entries))
         }
@@ -580,21 +702,21 @@ fn eval_expr(
                         "spread elements are not in the deterministic subset",
                     ));
                 }
-                items.push(eval_expr(element, scope, mode)?);
+                items.push(eval_expr(element, scope, ctx)?);
             }
             Ok(Value::Arr(items))
         }
-        AstNode::BinaryExpression(binary) => eval_binary(binary, scope, mode),
+        AstNode::BinaryExpression(binary) => eval_binary(binary, scope, ctx),
         AstNode::UnaryExpression(unary) => match unary.operator.as_str() {
             "!" => {
-                let Value::Bool(argument) = eval_expr(&unary.argument, scope, mode)? else {
+                let Value::Bool(argument) = eval_expr(&unary.argument, scope, ctx)? else {
                     return Err(err("type-mismatch", "logical not requires a boolean"));
                 };
                 Ok(Value::Bool(!argument))
             }
             "-" => {
                 let argument =
-                    numeric_operand(eval_expr(&unary.argument, scope, mode)?, "negation")?;
+                    numeric_operand(eval_expr(&unary.argument, scope, ctx)?, "negation")?;
                 checked_number(-argument, "negation")
             }
             other => Err(err(
@@ -603,7 +725,7 @@ fn eval_expr(
             )),
         },
         AstNode::CallExpression(call) => {
-            if !mode.numeric_builtins {
+            if !ctx.mode.numeric_builtins {
                 // v1 behavior, byte-for-byte: every call is refused with the
                 // same code and message as before the v2 mode existed.
                 return Err(err(
@@ -611,12 +733,126 @@ fn eval_expr(
                     "function calls are not in the deterministic subset v0 (no host library, no math builtins)",
                 ));
             }
-            eval_builtin_call(call, scope, mode)
+            if ctx.mode.host_bindings {
+                if let AstNode::MemberExpression(member) = call.callee.as_ref() {
+                    // v4: member callees are host-binding calls (`ns.fn`).
+                    // Bare-identifier callees fall through to the builtin
+                    // table unchanged.
+                    return eval_host_call(call, member, scope, ctx);
+                }
+            }
+            eval_builtin_call(call, scope, ctx)
         }
         other => Err(err(
             "unsupported-node",
             format!("expression {} is not in the deterministic subset v0", node_kind(other)),
         )),
+    }
+}
+
+/// Evaluate one host-binding call (v4 mode): the callee is a NON-COMPUTED
+/// member expression `ns.fn` whose root must be a bare identifier that is
+/// neither a bound parameter nor a local (bound names take precedence and keep
+/// the v3 semantics: member calls on VALUES stay refused). Callee resolution
+/// happens before argument evaluation; arguments then evaluate in source order
+/// and marshal guest→host as canonical strict JSON (one JSON string per
+/// argument). The host result marshals back as JSON and re-enters through the
+/// same rails as handler arguments ([`json_to_value`]: finite numbers, `-0`
+/// normalized, dangerous keys refused). Host throws, unknown bindings, and
+/// non-JSON results are structured errors, never panics.
+fn eval_host_call(
+    call: &crate::ast::CallExpression,
+    member: &crate::ast::MemberExpression,
+    scope: &BTreeMap<String, Value>,
+    ctx: &EvalCtx,
+) -> Result<Value, EvalError> {
+    if member.computed {
+        return Err(err(
+            "unsupported-call",
+            "computed member callees are not in the deterministic subset — host-binding calls \
+             are non-computed `ns.fn` only",
+        ));
+    }
+    let AstNode::Identifier(function) = member.property.as_ref() else {
+        return Err(err("unsupported-call", "malformed member callee property"));
+    };
+    let AstNode::Identifier(root) = member.object.as_ref() else {
+        return Err(err(
+            "unsupported-call",
+            "host-binding callee root must be a bare namespace identifier — nested member \
+             callees are not admitted",
+        ));
+    };
+    if scope.contains_key(&root.name) {
+        return Err(err(
+            "unsupported-call",
+            format!(
+                "\"{}\" is a bound parameter or local here — member calls on values are not in \
+                 the deterministic subset (host namespaces resolve only when the callee root is \
+                 unbound)",
+                root.name
+            ),
+        ));
+    }
+    if !is_safe_identifier(&root.name) || !is_safe_identifier(&function.name) {
+        return Err(err(
+            "unsafe-key",
+            format!(
+                "host-binding callee \"{}.{}\" uses an unsafe identifier",
+                root.name, function.name
+            ),
+        ));
+    }
+    let Some(host) = ctx.host else {
+        // The public v4 entry points always install a dispatcher; fail closed
+        // (never panic) if a future caller wires the mode without one.
+        return Err(err(
+            "unknown-host-binding",
+            "v4 host-binding mode is active but no host-binding object was injected",
+        ));
+    };
+    match host.lookup(&root.name, &function.name) {
+        HostLookup::UnknownNamespace => {
+            return Err(err(
+                "unknown-host-binding",
+                format!(
+                    "namespace \"{}\" is not present in the injected host-binding object",
+                    root.name
+                ),
+            ));
+        }
+        HostLookup::UnknownFunction => {
+            return Err(err(
+                "unknown-host-binding",
+                format!(
+                    "namespace \"{}\" has no host function \"{}\"",
+                    root.name, function.name
+                ),
+            ));
+        }
+        HostLookup::Found => {}
+    }
+    let mut args_json = Vec::with_capacity(call.arguments.len());
+    for argument in &call.arguments {
+        let value = eval_expr(argument, scope, ctx)?;
+        args_json.push(value_to_json(&value).to_string());
+    }
+    let context = format!("host binding {}.{}", root.name, function.name);
+    match host.invoke(&root.name, &function.name, &args_json) {
+        HostInvokeOutcome::Threw(message) => Err(err("host-binding-error", message)),
+        HostInvokeOutcome::NotSerializable(detail) => Err(err(
+            "invalid-host-result",
+            format!("{context} returned a non-JSON-serializable result: {detail}"),
+        )),
+        HostInvokeOutcome::Value(json) => {
+            let parsed: serde_json::Value = serde_json::from_str(&json).map_err(|error| {
+                err(
+                    "invalid-host-result",
+                    format!("{context} returned text that is not strict JSON: {error}"),
+                )
+            })?;
+            json_to_value(&parsed, &context)
+        }
     }
 }
 
@@ -627,7 +863,7 @@ fn eval_expr(
 fn eval_builtin_call(
     call: &crate::ast::CallExpression,
     scope: &BTreeMap<String, Value>,
-    mode: EvalMode,
+    ctx: &EvalCtx,
 ) -> Result<Value, EvalError> {
     let table_names = || {
         NUMERIC_BUILTINS
@@ -675,7 +911,7 @@ fn eval_builtin_call(
     }
     let mut operands = Vec::with_capacity(call.arguments.len());
     for (index, argument) in call.arguments.iter().enumerate() {
-        let Value::Num(operand) = eval_expr(argument, scope, mode)? else {
+        let Value::Num(operand) = eval_expr(argument, scope, ctx)? else {
             return Err(err(
                 "type-mismatch",
                 format!(
@@ -711,7 +947,7 @@ fn eval_builtin_call(
 fn eval_object_property(
     property: &PropertyNode,
     scope: &BTreeMap<String, Value>,
-    mode: EvalMode,
+    ctx: &EvalCtx,
     entries: &mut Vec<(String, Value)>,
 ) -> Result<(), EvalError> {
     if property.optional || property.default_value.is_some() {
@@ -739,7 +975,7 @@ fn eval_object_property(
             format!("object literal contains duplicate key \"{}\"", property.key),
         ));
     }
-    let value = eval_expr(&property.value, scope, mode)?;
+    let value = eval_expr(&property.value, scope, ctx)?;
     entries.push((property.key.clone(), value));
     Ok(())
 }
@@ -747,37 +983,37 @@ fn eval_object_property(
 fn eval_binary(
     binary: &crate::ast::BinaryExpression,
     scope: &BTreeMap<String, Value>,
-    mode: EvalMode,
+    ctx: &EvalCtx,
 ) -> Result<Value, EvalError> {
     match binary.operator.as_str() {
         // Logical operators short-circuit exactly like the engine runtime.
         "&&" => {
-            let Value::Bool(left) = eval_expr(&binary.left, scope, mode)? else {
+            let Value::Bool(left) = eval_expr(&binary.left, scope, ctx)? else {
                 return Err(err("type-mismatch", "logical and requires booleans"));
             };
             if !left {
                 return Ok(Value::Bool(false));
             }
-            let Value::Bool(right) = eval_expr(&binary.right, scope, mode)? else {
+            let Value::Bool(right) = eval_expr(&binary.right, scope, ctx)? else {
                 return Err(err("type-mismatch", "logical and requires booleans"));
             };
             Ok(Value::Bool(right))
         }
         "||" => {
-            let Value::Bool(left) = eval_expr(&binary.left, scope, mode)? else {
+            let Value::Bool(left) = eval_expr(&binary.left, scope, ctx)? else {
                 return Err(err("type-mismatch", "logical or requires booleans"));
             };
             if left {
                 return Ok(Value::Bool(true));
             }
-            let Value::Bool(right) = eval_expr(&binary.right, scope, mode)? else {
+            let Value::Bool(right) = eval_expr(&binary.right, scope, ctx)? else {
                 return Err(err("type-mismatch", "logical or requires booleans"));
             };
             Ok(Value::Bool(right))
         }
         "+" => {
-            let left = eval_expr(&binary.left, scope, mode)?;
-            let right = eval_expr(&binary.right, scope, mode)?;
+            let left = eval_expr(&binary.left, scope, ctx)?;
+            let right = eval_expr(&binary.right, scope, ctx)?;
             match (left, right) {
                 (Value::Num(l), Value::Num(r)) => checked_number(l + r, "addition"),
                 (Value::Str(l), Value::Str(r)) => Ok(Value::Str(format!("{l}{r}"))),
@@ -788,18 +1024,18 @@ fn eval_binary(
             }
         }
         "-" => {
-            let left = numeric_operand(eval_expr(&binary.left, scope, mode)?, "subtraction")?;
-            let right = numeric_operand(eval_expr(&binary.right, scope, mode)?, "subtraction")?;
+            let left = numeric_operand(eval_expr(&binary.left, scope, ctx)?, "subtraction")?;
+            let right = numeric_operand(eval_expr(&binary.right, scope, ctx)?, "subtraction")?;
             checked_number(left - right, "subtraction")
         }
         "*" => {
-            let left = numeric_operand(eval_expr(&binary.left, scope, mode)?, "multiplication")?;
-            let right = numeric_operand(eval_expr(&binary.right, scope, mode)?, "multiplication")?;
+            let left = numeric_operand(eval_expr(&binary.left, scope, ctx)?, "multiplication")?;
+            let right = numeric_operand(eval_expr(&binary.right, scope, ctx)?, "multiplication")?;
             checked_number(left * right, "multiplication")
         }
         "/" => {
-            let left = numeric_operand(eval_expr(&binary.left, scope, mode)?, "division")?;
-            let right = numeric_operand(eval_expr(&binary.right, scope, mode)?, "division")?;
+            let left = numeric_operand(eval_expr(&binary.left, scope, ctx)?, "division")?;
+            let right = numeric_operand(eval_expr(&binary.right, scope, ctx)?, "division")?;
             if right == 0.0 {
                 return Err(err("division-by-zero", "division by zero is not admitted"));
             }
@@ -809,16 +1045,16 @@ fn eval_binary(
         // triple-equals token), but the engine admits them as aliases of `==`/`!=`,
         // so keep the mapping total for AST-level callers.
         "==" | "===" => Ok(Value::Bool(primitive_equal(
-            &eval_expr(&binary.left, scope, mode)?,
-            &eval_expr(&binary.right, scope, mode)?,
+            &eval_expr(&binary.left, scope, ctx)?,
+            &eval_expr(&binary.right, scope, ctx)?,
         )?)),
         "!=" | "!==" => Ok(Value::Bool(!primitive_equal(
-            &eval_expr(&binary.left, scope, mode)?,
-            &eval_expr(&binary.right, scope, mode)?,
+            &eval_expr(&binary.left, scope, ctx)?,
+            &eval_expr(&binary.right, scope, ctx)?,
         )?)),
         "<" | ">" | "<=" | ">=" => {
-            let left = numeric_operand(eval_expr(&binary.left, scope, mode)?, "comparison")?;
-            let right = numeric_operand(eval_expr(&binary.right, scope, mode)?, "comparison")?;
+            let left = numeric_operand(eval_expr(&binary.left, scope, ctx)?, "comparison")?;
+            let right = numeric_operand(eval_expr(&binary.right, scope, ctx)?, "comparison")?;
             Ok(Value::Bool(match binary.operator.as_str() {
                 "<" => left < right,
                 ">" => left > right,
@@ -939,6 +1175,164 @@ fn node_kind(node: &AstNode) -> &'static str {
         AstNode::Comment(_) => "Comment",
         AstNode::FrameDeclaration(_) => "FrameDeclaration",
     }
+}
+
+/// js_sys-backed [`HostDispatcher`]: the REAL guest→host boundary crossing.
+/// Namespaces and functions resolve as OWN properties of the injected
+/// host-binding object (`Object.getOwnPropertyDescriptor` — the prototype
+/// chain is deliberately never consulted, so `math.hasOwnProperty` /
+/// `math.constructor` can never reach a callable), and every value crosses as
+/// canonical JSON via `JSON.parse` / `JSON.stringify`. Only compiled for
+/// wasm32; native tests cover the evaluator side of the seam with a mock.
+#[cfg(target_arch = "wasm32")]
+mod js_host {
+    use super::{HostDispatcher, HostInvokeOutcome, HostLookup};
+    use wasm_bindgen::{JsCast, JsValue};
+
+    pub(super) struct JsHostDispatcher<'a> {
+        pub(super) bindings: &'a JsValue,
+    }
+
+    /// Own-property read that never throws: existence via the STATIC
+    /// `Object.getOwnPropertyDescriptor` binding (safe even for
+    /// null-prototype or exotic objects), value via `Reflect.get`.
+    fn own_property(object: &JsValue, key: &str) -> Option<JsValue> {
+        if !object.is_object() {
+            return None;
+        }
+        let as_object: &js_sys::Object = object.unchecked_ref();
+        let descriptor =
+            js_sys::Object::get_own_property_descriptor(as_object, &JsValue::from_str(key));
+        if descriptor.is_undefined() {
+            return None;
+        }
+        js_sys::Reflect::get(object, &JsValue::from_str(key)).ok()
+    }
+
+    fn namespace_object(bindings: &JsValue, namespace: &str) -> Option<JsValue> {
+        let value = own_property(bindings, namespace)?;
+        if value.is_object() {
+            Some(value)
+        } else {
+            None
+        }
+    }
+
+    fn function_of(namespace_obj: &JsValue, function: &str) -> Option<js_sys::Function> {
+        own_property(namespace_obj, function)?
+            .dyn_into::<js_sys::Function>()
+            .ok()
+    }
+
+    /// Extract the message text of a thrown JS value: `Error.message` when it
+    /// is an Error (the StdHostAbiError path), the string itself when a bare
+    /// string was thrown, otherwise a JSON rendering — never a panic.
+    fn thrown_message(thrown: &JsValue) -> String {
+        if let Some(error) = thrown.dyn_ref::<js_sys::Error>() {
+            return String::from(error.message());
+        }
+        if let Some(text) = thrown.as_string() {
+            return text;
+        }
+        match js_sys::JSON::stringify(thrown) {
+            Ok(text) => format!("host function threw a non-Error value: {}", String::from(text)),
+            Err(_) => "host function threw a non-Error, non-serializable value".to_string(),
+        }
+    }
+
+    impl HostDispatcher for JsHostDispatcher<'_> {
+        fn lookup(&self, namespace: &str, function: &str) -> HostLookup {
+            let Some(namespace_obj) = namespace_object(self.bindings, namespace) else {
+                return HostLookup::UnknownNamespace;
+            };
+            if function_of(&namespace_obj, function).is_none() {
+                return HostLookup::UnknownFunction;
+            }
+            HostLookup::Found
+        }
+
+        fn invoke(
+            &self,
+            namespace: &str,
+            function: &str,
+            args_json: &[String],
+        ) -> HostInvokeOutcome {
+            let Some(namespace_obj) = namespace_object(self.bindings, namespace) else {
+                return HostInvokeOutcome::Threw(format!(
+                    "namespace \"{namespace}\" disappeared between lookup and invoke"
+                ));
+            };
+            let Some(callable) = function_of(&namespace_obj, function) else {
+                return HostInvokeOutcome::Threw(format!(
+                    "function \"{namespace}.{function}\" disappeared between lookup and invoke"
+                ));
+            };
+            let arguments = js_sys::Array::new();
+            for arg in args_json {
+                match js_sys::JSON::parse(arg) {
+                    Ok(value) => {
+                        arguments.push(&value);
+                    }
+                    Err(_) => {
+                        // Unreachable while args come from serde_json; fail
+                        // closed rather than panic if that ever drifts.
+                        return HostInvokeOutcome::NotSerializable(format!(
+                            "argument JSON for \"{namespace}.{function}\" failed to parse at \
+                             the boundary"
+                        ));
+                    }
+                }
+            }
+            match callable.apply(&namespace_obj, &arguments) {
+                Err(thrown) => HostInvokeOutcome::Threw(thrown_message(&thrown)),
+                Ok(result) => {
+                    if result.is_undefined() {
+                        return HostInvokeOutcome::NotSerializable(
+                            "host function returned undefined (not a JSON value)".to_string(),
+                        );
+                    }
+                    match js_sys::JSON::stringify(&result) {
+                        Err(thrown) => HostInvokeOutcome::NotSerializable(format!(
+                            "JSON.stringify of the host result threw: {}",
+                            thrown_message(&thrown)
+                        )),
+                        Ok(text) => {
+                            let text = String::from(text);
+                            if text == "undefined" {
+                                // JSON.stringify yields JS undefined for
+                                // functions/symbols; a genuine string result
+                                // would carry quotes ("\"undefined\"").
+                                return HostInvokeOutcome::NotSerializable(
+                                    "host result is not JSON-serializable (JSON.stringify \
+                                     returned undefined)"
+                                        .to_string(),
+                                );
+                            }
+                            HostInvokeOutcome::Value(text)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Wasm-boundary entry used by the `evaluate_trait_handler_v4` export
+/// ([`DETERMINISTIC_SUBSET_V4`]): wires the js_sys-backed dispatcher over the
+/// injected host-binding object (the `{ math, list_lib, map_lib, set_lib }`
+/// value produced by createStdHostBindings()).
+#[cfg(target_arch = "wasm32")]
+pub fn evaluate_trait_handler_v4_js(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    host_bindings: &wasm_bindgen::JsValue,
+) -> String {
+    let dispatcher = js_host::JsHostDispatcher {
+        bindings: host_bindings,
+    };
+    evaluate_trait_handler_v4_json(source, trait_name, handler_name, args_json, &dispatcher)
 }
 
 #[cfg(test)]
@@ -2016,5 +2410,271 @@ mod tests {
             error["message"].as_str().unwrap().contains("picked"),
             "{result}"
         );
+    }
+
+    // ===== v4 host bindings (native seam tests — mock dispatcher, no JS host) =====
+
+    /// Mock [`HostDispatcher`]: namespaces `math.clamp` (computes, proving the
+    /// canonical-JSON argument marshalling round-trips), `map_lib.map_get`
+    /// (always throws like the real binding on an absent key), and `weird.*`
+    /// (returns hostile results so the re-entry rails are exercised).
+    struct MockHost;
+
+    impl HostDispatcher for MockHost {
+        fn lookup(&self, namespace: &str, function: &str) -> HostLookup {
+            match namespace {
+                "math" => match function {
+                    "clamp" => HostLookup::Found,
+                    _ => HostLookup::UnknownFunction,
+                },
+                "map_lib" => match function {
+                    "map_get" => HostLookup::Found,
+                    _ => HostLookup::UnknownFunction,
+                },
+                "weird" => HostLookup::Found,
+                _ => HostLookup::UnknownNamespace,
+            }
+        }
+
+        fn invoke(&self, namespace: &str, function: &str, args_json: &[String]) -> HostInvokeOutcome {
+            match (namespace, function) {
+                ("math", "clamp") => {
+                    // Each argument must arrive as its own strict-JSON string
+                    // in source order.
+                    let parsed: Vec<f64> = args_json
+                        .iter()
+                        .map(|arg| {
+                            serde_json::from_str::<f64>(arg)
+                                .expect("clamp argument must marshal as a JSON number")
+                        })
+                        .collect();
+                    assert_eq!(parsed.len(), 3, "clamp receives exactly the call's arguments");
+                    let clamped = parsed[1].max(parsed[2].min(parsed[0]));
+                    HostInvokeOutcome::Value(serde_json::json!(clamped).to_string())
+                }
+                ("map_lib", "map_get") => HostInvokeOutcome::Threw(
+                    "std-host-abi missing-key: key \"absent\" is absent".to_string(),
+                ),
+                ("weird", "undef") => {
+                    HostInvokeOutcome::NotSerializable("returned undefined".to_string())
+                }
+                ("weird", "badjson") => HostInvokeOutcome::Value("not json at all".to_string()),
+                ("weird", "proto") => HostInvokeOutcome::Value(r#"{"__proto__":1}"#.to_string()),
+                other => HostInvokeOutcome::Threw(format!("mock: unexpected invoke {other:?}")),
+            }
+        }
+    }
+
+    fn run_v4(
+        source: &str,
+        trait_name: &str,
+        handler: &str,
+        args: serde_json::Value,
+    ) -> serde_json::Value {
+        let raw =
+            evaluate_trait_handler_v4_json(source, trait_name, handler, &args.to_string(), &MockHost);
+        serde_json::from_str(&raw).expect("v4 evaluator must always return JSON")
+    }
+
+    const CLAMP_TRAIT: &str = r#"
+@trait std_host_conformance {
+  @on_clamp(value, lo, hi) => {
+    return { value: math.clamp(value, lo, hi) }
+  }
+  @on_clamp_in_expr(value, lo, hi) => {
+    return { value: math.clamp(value, lo, hi) + 1 }
+  }
+}
+"#;
+
+    #[test]
+    fn v4_subset_id_is_pinned() {
+        assert_eq!(
+            DETERMINISTIC_SUBSET_V4,
+            "holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings"
+        );
+    }
+
+    #[test]
+    fn v4_member_callee_marshals_args_and_result_over_the_seam() {
+        let result = run_v4(
+            CLAMP_TRAIT,
+            "std_host_conformance",
+            "on_clamp",
+            serde_json::json!({"value": 42.0, "lo": 0.0, "hi": 10.0}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!({"value": 10.0}));
+        // The re-entered host result is a first-class Value: it feeds
+        // downstream arithmetic under the same rails.
+        let result = run_v4(
+            CLAMP_TRAIT,
+            "std_host_conformance",
+            "on_clamp_in_expr",
+            serde_json::json!({"value": 42.0, "lo": 0.0, "hi": 10.0}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!({"value": 11.0}));
+    }
+
+    #[test]
+    fn v4_unknown_namespace_and_function_fail_closed() {
+        let source = r#"
+@trait t {
+  @on_ns(a) => { return { value: nope.f(a) } }
+  @on_fn(a) => { return { value: math.nope(a) } }
+}
+"#;
+        let result = run_v4(source, "t", "on_ns", serde_json::json!({"a": 1.0}));
+        let error = expect_err(&result, "unknown-host-binding");
+        assert!(error["message"].as_str().unwrap().contains("nope"), "{result}");
+        let result = run_v4(source, "t", "on_fn", serde_json::json!({"a": 1.0}));
+        let error = expect_err(&result, "unknown-host-binding");
+        assert!(error["message"].as_str().unwrap().contains("math"), "{result}");
+    }
+
+    #[test]
+    fn v4_bare_identifier_calls_stay_builtins_only() {
+        // Builtin table still works in v4…
+        let source = r#"
+@trait t {
+  @on_ok(a) => { return { value: sqrt(a) } }
+  @on_clamp(a) => { return { value: clamp(a, a, a) } }
+  @on_nope(a) => { return { value: nope(a) } }
+}
+"#;
+        let ok = run_v4(source, "t", "on_ok", serde_json::json!({"a": 4.0}));
+        assert_eq!(expect_ok(&ok), &serde_json::json!({"value": 2.0}));
+        // …and bare identifiers NEVER resolve as host namespaces/functions:
+        // clamp exists on the mock host's math namespace but not in the
+        // builtin table, so the bare call is refused like any unknown callee.
+        for handler in ["on_clamp", "on_nope"] {
+            let result = run_v4(source, "t", handler, serde_json::json!({"a": 1.0}));
+            let error = expect_err(&result, "unsupported-call");
+            assert!(
+                error["message"].as_str().unwrap().contains("numeric-builtin table"),
+                "{result}"
+            );
+        }
+    }
+
+    #[test]
+    fn v4_namespaces_are_not_values() {
+        // A bare namespace identifier in value position…
+        let source = r#"
+@trait t {
+  @on_bare(a) => { return { value: math } }
+  @on_member(a) => { return { value: math.clamp } }
+}
+"#;
+        let result = run_v4(source, "t", "on_bare", serde_json::json!({"a": 1.0}));
+        expect_err(&result, "unknown-identifier");
+        // …and a MemberExpression VALUE with a namespace root both stay errors:
+        // namespace resolution happens ONLY in callee position.
+        let result = run_v4(source, "t", "on_member", serde_json::json!({"a": 1.0}));
+        expect_err(&result, "unknown-identifier");
+    }
+
+    #[test]
+    fn v4_bound_names_take_precedence_over_namespaces() {
+        // A parameter named `math` shadows nothing — but in callee-root
+        // position a BOUND name makes the call a member call on a value,
+        // which stays outside the subset.
+        let param_shadow = r#"
+@trait t {
+  @on_f(math) => { return { value: math.clamp(math, math, math) } }
+}
+"#;
+        let result = run_v4(param_shadow, "t", "on_f", serde_json::json!({"math": 1.0}));
+        let error = expect_err(&result, "unsupported-call");
+        assert!(
+            error["message"].as_str().unwrap().contains("bound parameter or local"),
+            "{result}"
+        );
+        // Same precedence for locals.
+        let local_shadow = r#"
+@trait t {
+  @on_f(a) => {
+    math = a
+    return { value: math.clamp(a, a, a) }
+  }
+}
+"#;
+        let result = run_v4(local_shadow, "t", "on_f", serde_json::json!({"a": 1.0}));
+        expect_err(&result, "unsupported-call");
+    }
+
+    #[test]
+    fn v4_computed_and_nested_member_callees_fail_closed() {
+        let source = r#"
+@trait t {
+  @on_computed(a) => { return { value: math["clamp"](a, a, a) } }
+  @on_nested(a) => { return { value: math.inner.clamp(a, a, a) } }
+}
+"#;
+        let result = run_v4(source, "t", "on_computed", serde_json::json!({"a": 1.0}));
+        let error = expect_err(&result, "unsupported-call");
+        assert!(error["message"].as_str().unwrap().contains("computed"), "{result}");
+        let result = run_v4(source, "t", "on_nested", serde_json::json!({"a": 1.0}));
+        let error = expect_err(&result, "unsupported-call");
+        assert!(
+            error["message"].as_str().unwrap().contains("bare namespace identifier"),
+            "{result}"
+        );
+    }
+
+    #[test]
+    fn v4_host_throw_becomes_host_binding_error() {
+        let source = r#"
+@trait t {
+  @on_g(m) => { return { value: map_lib.map_get(m, "absent") } }
+}
+"#;
+        let result = run_v4(source, "t", "on_g", serde_json::json!({"m": {}}));
+        let error = expect_err(&result, "host-binding-error");
+        assert!(
+            error["message"].as_str().unwrap().contains("missing-key"),
+            "{result}"
+        );
+    }
+
+    #[test]
+    fn v4_host_result_reentry_rails_fail_closed() {
+        let source = r#"
+@trait t {
+  @on_badjson(a) => { return { value: weird.badjson(a) } }
+  @on_proto(a) => { return { value: weird.proto(a) } }
+  @on_undef(a) => { return { value: weird.undef(a) } }
+}
+"#;
+        let result = run_v4(source, "t", "on_badjson", serde_json::json!({"a": 1.0}));
+        expect_err(&result, "invalid-host-result");
+        let result = run_v4(source, "t", "on_proto", serde_json::json!({"a": 1.0}));
+        expect_err(&result, "unsafe-key");
+        let result = run_v4(source, "t", "on_undef", serde_json::json!({"a": 1.0}));
+        expect_err(&result, "invalid-host-result");
+    }
+
+    #[test]
+    fn v4_matches_v3_outside_member_callee_calls() {
+        // Same program, same args: byte-identical boundary output when no
+        // host-binding call executes — and v3 itself still refuses member
+        // callees, so the grammar only grew under the v4 id.
+        let args = serde_json::json!({"a": 2.0, "b": 3.0, "t": 3.0}).to_string();
+        let v3 = evaluate_trait_handler_v3_json(MATH_TRAIT, "std_math_conformance", "on_lerp", &args);
+        let v4 = evaluate_trait_handler_v4_json(
+            MATH_TRAIT,
+            "std_math_conformance",
+            "on_lerp",
+            &args,
+            &MockHost,
+        );
+        assert_eq!(v3, v4);
+        let raw = evaluate_trait_handler_v3_json(
+            "@trait t { @on_f(a) => { return { value: math.clamp(a, a, a) } } }",
+            "t",
+            "on_f",
+            &serde_json::json!({"a": 1.0}).to_string(),
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        expect_err(&parsed, "unsupported-call");
     }
 }

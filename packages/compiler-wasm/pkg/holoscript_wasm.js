@@ -25,9 +25,9 @@ export function compile_to_kotlin(source, indent) {
     let deferred3_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(indent, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr1 = passStringToWasm0(indent, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len1 = WASM_VECTOR_LEN;
         wasm.compile_to_kotlin(retptr, ptr0, len0, ptr1, len1);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
@@ -37,7 +37,7 @@ export function compile_to_kotlin(source, indent) {
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export(deferred3_0, deferred3_1, 1);
+        wasm.__wbindgen_export4(deferred3_0, deferred3_1, 1);
     }
 }
 
@@ -55,7 +55,7 @@ export function compile_to_uaal(source) {
     let deferred2_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
         wasm.compile_to_uaal(retptr, ptr0, len0);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
@@ -65,7 +65,7 @@ export function compile_to_uaal(source) {
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export(deferred2_0, deferred2_1, 1);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
     }
 }
 
@@ -97,13 +97,13 @@ export function evaluate_trait_handler(source, trait_name, handler_name, args_js
     let deferred5_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len3 = WASM_VECTOR_LEN;
         wasm.evaluate_trait_handler(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
@@ -113,7 +113,7 @@ export function evaluate_trait_handler(source, trait_name, handler_name, args_js
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export(deferred5_0, deferred5_1, 1);
+        wasm.__wbindgen_export4(deferred5_0, deferred5_1, 1);
     }
 }
 
@@ -140,13 +140,13 @@ export function evaluate_trait_handler_v2(source, trait_name, handler_name, args
     let deferred5_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len3 = WASM_VECTOR_LEN;
         wasm.evaluate_trait_handler_v2(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
@@ -156,7 +156,7 @@ export function evaluate_trait_handler_v2(source, trait_name, handler_name, args
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export(deferred5_0, deferred5_1, 1);
+        wasm.__wbindgen_export4(deferred5_0, deferred5_1, 1);
     }
 }
 
@@ -184,13 +184,13 @@ export function evaluate_trait_handler_v3(source, trait_name, handler_name, args
     let deferred5_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len3 = WASM_VECTOR_LEN;
         wasm.evaluate_trait_handler_v2(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
@@ -200,7 +200,60 @@ export function evaluate_trait_handler_v3(source, trait_name, handler_name, args
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export(deferred5_0, deferred5_1, 1);
+        wasm.__wbindgen_export4(deferred5_0, deferred5_1, 1);
+    }
+}
+
+/**
+ * Evaluate one `@on_<handler>` trait-handler body under the v4 deterministic
+ * subset (`holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings`).
+ *
+ * v4 admits the v3 grammar PLUS host-binding calls: a `CallExpression` whose
+ * callee is a NON-COMPUTED member expression `ns.fn`, where `ns` is a bare
+ * identifier naming a namespace OWN-present on `host_bindings` (the
+ * `{ math, list_lib, map_lib, set_lib }` object produced by
+ * createStdHostBindings() in
+ * `packages/std/conformance/host-abi/std-host-binding.mjs`) and `fn` a
+ * function on it. Every evaluated argument marshals guest→host as canonical
+ * strict JSON (`JSON.parse` of the serde serialization), the host is invoked
+ * via `Reflect.get` + `Function.apply`, and the result marshals back through
+ * `JSON.stringify` before re-entering the evaluator's rails (finite numbers,
+ * no negative zero, safe keys, strict JSON only). A host-side throw becomes
+ * `{"ok":false,"error":{"code":"host-binding-error",…}}` carrying the thrown
+ * message text; unknown namespaces/functions are `unknown-host-binding`; an
+ * undefined or non-JSON-serializable host result is `invalid-host-result` —
+ * structured errors, never panics. Bare-identifier calls stay builtins-only,
+ * namespaces are never values, and bound parameters/locals take precedence
+ * over namespaces in callee-root position. The v1/v2/v3 exports are untouched.
+ * @param {string} source
+ * @param {string} trait_name
+ * @param {string} handler_name
+ * @param {string} args_json
+ * @param {any} host_bindings
+ * @returns {string}
+ */
+export function evaluate_trait_handler_v4(source, trait_name, handler_name, args_json, host_bindings) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.evaluate_trait_handler_v4(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, addHeapObject(host_bindings));
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred5_0 = r0;
+        deferred5_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred5_0, deferred5_1, 1);
     }
 }
 
@@ -224,7 +277,7 @@ export function parse(source) {
     let deferred2_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
         wasm.parse(retptr, ptr0, len0);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
@@ -234,7 +287,7 @@ export function parse(source) {
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export(deferred2_0, deferred2_1, 1);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
     }
 }
 
@@ -248,7 +301,7 @@ export function parse_pretty(source) {
     let deferred2_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
         wasm.parse_pretty(retptr, ptr0, len0);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
@@ -258,7 +311,7 @@ export function parse_pretty(source) {
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export(deferred2_0, deferred2_1, 1);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
     }
 }
 
@@ -271,7 +324,7 @@ export function parse_pretty(source) {
  * @returns {boolean}
  */
 export function validate(source) {
-    const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+    const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.validate(ptr0, len0);
     return ret !== 0;
@@ -287,7 +340,7 @@ export function validate_detailed(source) {
     let deferred2_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
         wasm.validate_detailed(retptr, ptr0, len0);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
@@ -297,7 +350,7 @@ export function validate_detailed(source) {
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export(deferred2_0, deferred2_1, 1);
+        wasm.__wbindgen_export4(deferred2_0, deferred2_1, 1);
     }
 }
 
@@ -318,16 +371,41 @@ export function version() {
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export(deferred1_0, deferred1_1, 1);
+        wasm.__wbindgen_export4(deferred1_0, deferred1_1, 1);
     }
 }
 
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbg___wbindgen_is_function_0095a73b8b156f76: function(arg0) {
+            const ret = typeof(getObject(arg0)) === 'function';
+            return ret;
+        },
+        __wbg___wbindgen_is_object_5ae8e5880f2c1fbd: function(arg0) {
+            const val = getObject(arg0);
+            const ret = typeof(val) === 'object' && val !== null;
+            return ret;
+        },
+        __wbg___wbindgen_is_undefined_9e4d92534c42d778: function(arg0) {
+            const ret = getObject(arg0) === undefined;
+            return ret;
+        },
+        __wbg___wbindgen_string_get_72fb696202c56729: function(arg0, arg1) {
+            const obj = getObject(arg1);
+            const ret = typeof(obj) === 'string' ? obj : undefined;
+            var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+            var len1 = WASM_VECTOR_LEN;
+            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        },
         __wbg___wbindgen_throw_be289d5034ed271b: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
+        __wbg_apply_ada2ee1a60ac7b3c: function() { return handleError(function (arg0, arg1, arg2) {
+            const ret = getObject(arg0).apply(getObject(arg1), getObject(arg2));
+            return addHeapObject(ret);
+        }, arguments); },
         __wbg_error_7534b8e9a36f1ab4: function(arg0, arg1) {
             let deferred0_0;
             let deferred0_1;
@@ -336,19 +414,62 @@ function __wbg_get_imports() {
                 deferred0_1 = arg1;
                 console.error(getStringFromWasm0(arg0, arg1));
             } finally {
-                wasm.__wbindgen_export(deferred0_0, deferred0_1, 1);
+                wasm.__wbindgen_export4(deferred0_0, deferred0_1, 1);
             }
+        },
+        __wbg_getOwnPropertyDescriptor_03ccfd856865081b: function(arg0, arg1) {
+            const ret = Object.getOwnPropertyDescriptor(getObject(arg0), getObject(arg1));
+            return addHeapObject(ret);
+        },
+        __wbg_get_b3ed3ad4be2bc8ac: function() { return handleError(function (arg0, arg1) {
+            const ret = Reflect.get(getObject(arg0), getObject(arg1));
+            return addHeapObject(ret);
+        }, arguments); },
+        __wbg_instanceof_Error_8573fe0b0b480f46: function(arg0) {
+            let result;
+            try {
+                result = getObject(arg0) instanceof Error;
+            } catch (_) {
+                result = false;
+            }
+            const ret = result;
+            return ret;
+        },
+        __wbg_message_9ddc4b9a62a7c379: function(arg0) {
+            const ret = getObject(arg0).message;
+            return addHeapObject(ret);
+        },
+        __wbg_new_3eb36ae241fe6f44: function() {
+            const ret = new Array();
+            return addHeapObject(ret);
         },
         __wbg_new_8a6f238a6ece86ea: function() {
             const ret = new Error();
             return addHeapObject(ret);
         },
+        __wbg_parse_708461a1feddfb38: function() { return handleError(function (arg0, arg1) {
+            const ret = JSON.parse(getStringFromWasm0(arg0, arg1));
+            return addHeapObject(ret);
+        }, arguments); },
+        __wbg_push_8ffdcb2063340ba5: function(arg0, arg1) {
+            const ret = getObject(arg0).push(getObject(arg1));
+            return ret;
+        },
         __wbg_stack_0ed75d68575b0f3c: function(arg0, arg1) {
             const ret = getObject(arg1).stack;
-            const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+            const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_export, wasm.__wbindgen_export2);
             const len1 = WASM_VECTOR_LEN;
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        },
+        __wbg_stringify_8d1cc6ff383e8bae: function() { return handleError(function (arg0) {
+            const ret = JSON.stringify(getObject(arg0));
+            return addHeapObject(ret);
+        }, arguments); },
+        __wbindgen_cast_0000000000000001: function(arg0, arg1) {
+            // Cast intrinsic for `Ref(String) -> Externref`.
+            const ret = getStringFromWasm0(arg0, arg1);
+            return addHeapObject(ret);
         },
         __wbindgen_object_drop_ref: function(arg0) {
             takeObject(arg0);
@@ -398,10 +519,22 @@ function getUint8ArrayMemory0() {
 
 function getObject(idx) { return heap[idx]; }
 
+function handleError(f, args) {
+    try {
+        return f.apply(this, args);
+    } catch (e) {
+        wasm.__wbindgen_export3(addHeapObject(e));
+    }
+}
+
 let heap = new Array(128).fill(undefined);
 heap.push(undefined, null, true, false);
 
 let heap_next = heap.length;
+
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
 
 function passStringToWasm0(arg, malloc, realloc) {
     if (realloc === undefined) {

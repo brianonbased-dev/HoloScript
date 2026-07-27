@@ -96,6 +96,18 @@ if (ops.schema !== 'holoscript.std-abi-ops.v0') {
 const reference = await import(
   pathToFileURL(join(repoRoot, 'packages', 'std', 'dist', 'math.js')).href
 );
+const { createStdHostBindings } = await import(
+  pathToFileURL(
+    join(repoRoot, 'packages', 'std', 'conformance', 'host-abi', 'std-host-binding.mjs')
+  ).href
+);
+const hostBindings = createStdHostBindings();
+const hostAbiDescriptor = JSON.parse(
+  readFileSync(
+    join(repoRoot, 'packages', 'std', 'conformance', 'host-abi', 'std-host-abi.v0.json'),
+    'utf8'
+  )
+);
 
 function resolveReference(refPath) {
   let target = reference;
@@ -106,6 +118,15 @@ function resolveReference(refPath) {
     fail(`reference ${refPath.join('.')} is not a function`);
   }
   return target;
+}
+
+function resolveHostFunction(hostRef, label) {
+  const [namespace, name] = hostRef;
+  const fn = hostBindings[namespace]?.[name];
+  if (typeof fn !== 'function') fail(`${label}: host binding ${namespace}.${name} is missing`);
+  const declared = hostAbiDescriptor.namespaces?.[namespace]?.[name];
+  if (!declared) fail(`${label}: ${namespace}.${name} is not declared in the host-ABI descriptor`);
+  return { fn, declared };
 }
 
 function wrapReferenceResult(resultShape, raw, path) {
@@ -132,6 +153,9 @@ const actionLines = [
 const traitLines = [`@trait ${ops.conformanceTrait} {`];
 
 for (const op of ops.ops) {
+  if (op.kind === 'host-binding' && !op.body && !op.statements) {
+    op.body = `{ value: ${op.hostRef[0]}.${op.hostRef[1]}(${op.params.join(', ')}) }`;
+  }
   const params = op.params.join(', ');
   actionLines.push(`    action ${op.action}(${params}) {`);
   if (op.statements) {
@@ -167,15 +191,35 @@ const traitSource = traitLines.join('\n');
 
 const vectors = [];
 for (const op of ops.ops) {
-  const referenceFn = resolveReference(op.reference);
+  const isHostOp = op.kind === 'host-binding';
+  const referenceFn = isHostOp ? null : resolveReference(op.reference);
+  const host = isHostOp ? resolveHostFunction(op.hostRef, op.op) : null;
+  const twinFn =
+    isHostOp && host.declared.twinRef ? resolveReference(host.declared.twinRef) : null;
   for (const vector of op.vectors) {
     const args = vector.args;
     const orderedArgs = op.params.map((param) => {
       if (!(param in args)) fail(`${op.op}/${vector.id}: missing arg ${param}`);
       return args[param];
     });
-    const raw = referenceFn(...orderedArgs);
-    const expected = wrapReferenceResult(op.resultShape, raw, `${op.op}/${vector.id}`);
+    let expected;
+    if (isHostOp) {
+      const hostRaw = host.fn(...structuredClone(orderedArgs));
+      expected = { value: hostRaw };
+      if (twinFn) {
+        const twinRaw = twinFn(...structuredClone(orderedArgs));
+        const twinMismatches = [];
+        valuesExactlyEqual(hostRaw, twinRaw, `${op.op}/${vector.id}.twin`, twinMismatches);
+        if (twinMismatches.length > 0) {
+          fail(
+            `${op.op}/${vector.id}: binding disagrees with twin: ${twinMismatches.join('; ')}`
+          );
+        }
+      }
+    } else {
+      const raw = referenceFn(...orderedArgs);
+      expected = wrapReferenceResult(op.resultShape, raw, `${op.op}/${vector.id}`);
+    }
     assertCleanValue(expected, `${op.op}/${vector.id}.expected`);
     assertCleanValue(args, `${op.op}/${vector.id}.args`);
     vectors.push({
@@ -205,6 +249,7 @@ const { createDeterministicHsplusActionRuntime } = runtimeModule;
 const runtime = createDeterministicHsplusActionRuntime(actionSource, {
   numericBuiltins: ops.numericBuiltins === true,
   localBindings: ops.localBindings === true,
+  ...(ops.hostBindings === true ? { hostBindings } : {}),
 });
 
 let gateFailures = 0;
@@ -273,6 +318,20 @@ const manifest = {
     'packages/std/src/collections.hsplus': {
       sha256: sha256(
         readFileSync(join(repoRoot, 'packages', 'std', 'src', 'collections.hsplus'))
+      ),
+    },
+    'packages/std/conformance/host-abi/std-host-abi.v0.json': {
+      sha256: sha256(
+        readFileSync(
+          join(repoRoot, 'packages', 'std', 'conformance', 'host-abi', 'std-host-abi.v0.json')
+        )
+      ),
+    },
+    'packages/std/conformance/host-abi/std-host-binding.mjs': {
+      sha256: sha256(
+        readFileSync(
+          join(repoRoot, 'packages', 'std', 'conformance', 'host-abi', 'std-host-binding.mjs')
+        )
       ),
     },
   },

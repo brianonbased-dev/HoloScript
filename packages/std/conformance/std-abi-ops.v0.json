@@ -11,32 +11,85 @@
   "sharedGrammar": "Object-literal returns over: number/string/boolean/null literals, parameter identifiers, non-computed member access, binary + - * /, comparisons, && ||, unary ! -, plus the v2 whitelisted deterministic numeric builtin table (sqrt, sin, cos, acos, abs, floor, min, max over finite f64, fail-closed on non-finite or negative-zero results; subset id holoscript-engine-hsplus-deterministic-action-subset-v2-numeric-builtins in both lanes). No other calls, no loops, no host bindings. The two executable projections have measured, non-identical grammars: the engine deterministic action subset accepts ternary expressions but restricts assignment to declared state, while the compiler-wasm trait evaluator accepts local assignment and if/else statements but has no ternary or ===/!== production. Ops whose default body uses ternary or locals therefore carry an equivalent traitBody statement form; cross-target conformance is claimed on produced values over the shared vector corpus, not on shared surface syntax. Builtin results that depend on libm transcendentals (sin/cos/acos) may differ by ulps between the JS engine and the Rust-libm-in-wasm lane, so those vectors carry an explicit non-zero tolerance; sqrt is IEEE-754 correctly rounded and stays exact.",
   "numericBuiltins": true,
   "localBindings": true,
+  "hostBindings": true,
+  "hostAbi": {
+    "descriptor": "packages/std/conformance/host-abi/std-host-abi.v0.json",
+    "bindingModule": "packages/std/conformance/host-abi/std-host-binding.mjs",
+    "claim": "host-binding ops execute guest-side delegation calls across the guest/host boundary into the one canonical JS binding; cross-target equality proves guest-independent marshalling agreement, not independent host implementations"
+  },
   "vectorPolicy": "Every vector must produce finite, non-negative-zero values under IEEE-754 double semantics with strict source-order evaluation. Expected values are computed from the TypeScript reference twin at generation time and verified bit-exact against the engine deterministic runtime before admission; tolerance 0 means exact equality including key sets.",
   "ops": [
     {
       "op": "on_lerp",
       "action": "lerp",
-      "params": ["a", "b", "t"],
+      "params": [
+        "a",
+        "b",
+        "t"
+      ],
       "kind": "pure",
       "resultShape": "scalar",
-      "reference": ["lerp"],
+      "reference": [
+        "lerp"
+      ],
       "body": "{ value: a + (b - a) * t }",
       "vectors": [
-        { "id": "lerp-mid", "args": { "a": 0, "b": 10, "t": 0.5 } },
-        { "id": "lerp-start", "args": { "a": 2, "b": 4, "t": 0 } },
-        { "id": "lerp-end", "args": { "a": 2, "b": 4, "t": 1 } },
-        { "id": "lerp-signed", "args": { "a": -5, "b": 5, "t": 0.75 } },
-        { "id": "lerp-fractional", "args": { "a": 1.5, "b": 3.25, "t": 0.4 } }
+        {
+          "id": "lerp-mid",
+          "args": {
+            "a": 0,
+            "b": 10,
+            "t": 0.5
+          }
+        },
+        {
+          "id": "lerp-start",
+          "args": {
+            "a": 2,
+            "b": 4,
+            "t": 0
+          }
+        },
+        {
+          "id": "lerp-end",
+          "args": {
+            "a": 2,
+            "b": 4,
+            "t": 1
+          }
+        },
+        {
+          "id": "lerp-signed",
+          "args": {
+            "a": -5,
+            "b": 5,
+            "t": 0.75
+          }
+        },
+        {
+          "id": "lerp-fractional",
+          "args": {
+            "a": 1.5,
+            "b": 3.25,
+            "t": 0.4
+          }
+        }
       ]
     },
     {
       "op": "on_clamp",
       "action": "clamp",
-      "params": ["value", "min", "max"],
+      "params": [
+        "value",
+        "min",
+        "max"
+      ],
       "kind": "host-delegation-rewrite",
       "rewriteOf": "math.clamp via get_std_math_lib()",
       "resultShape": "scalar",
-      "reference": ["clamp"],
+      "reference": [
+        "clamp"
+      ],
       "body": "{ value: value < min ? min : (value > max ? max : value) }",
       "traitBody": [
         "if (value < min) { return { value: min } }",
@@ -44,21 +97,62 @@
         "return { value: value }"
       ],
       "vectors": [
-        { "id": "clamp-inside", "args": { "value": 5, "min": 0, "max": 10 } },
-        { "id": "clamp-below", "args": { "value": -3, "min": 0, "max": 10 } },
-        { "id": "clamp-above", "args": { "value": 42, "min": 0, "max": 10 } },
-        { "id": "clamp-fractional", "args": { "value": 0.25, "min": 0.5, "max": 0.75 } },
-        { "id": "clamp-degenerate-range", "args": { "value": 7, "min": 7, "max": 7 } }
+        {
+          "id": "clamp-inside",
+          "args": {
+            "value": 5,
+            "min": 0,
+            "max": 10
+          }
+        },
+        {
+          "id": "clamp-below",
+          "args": {
+            "value": -3,
+            "min": 0,
+            "max": 10
+          }
+        },
+        {
+          "id": "clamp-above",
+          "args": {
+            "value": 42,
+            "min": 0,
+            "max": 10
+          }
+        },
+        {
+          "id": "clamp-fractional",
+          "args": {
+            "value": 0.25,
+            "min": 0.5,
+            "max": 0.75
+          }
+        },
+        {
+          "id": "clamp-degenerate-range",
+          "args": {
+            "value": 7,
+            "min": 7,
+            "max": 7
+          }
+        }
       ]
     },
     {
       "op": "on_smoothstep",
       "action": "smoothstep",
-      "params": ["edge0", "edge1", "x"],
+      "params": [
+        "edge0",
+        "edge1",
+        "x"
+      ],
       "kind": "host-delegation-rewrite",
       "rewriteOf": "math.clamp via get_std_math_lib()",
       "resultShape": "scalar",
-      "reference": ["smoothstep"],
+      "reference": [
+        "smoothstep"
+      ],
       "statements": [
         "t = (x - edge0) / (edge1 - edge0)",
         "if (t < 0) { t = 0 }",
@@ -66,169 +160,731 @@
         "return { value: t * t * (3 - 2 * t) }"
       ],
       "vectors": [
-        { "id": "smoothstep-quarter", "args": { "edge0": 0, "edge1": 1, "x": 0.25 } },
-        { "id": "smoothstep-below-edge", "args": { "edge0": 0, "edge1": 1, "x": -1 } },
-        { "id": "smoothstep-above-edge", "args": { "edge0": 0, "edge1": 1, "x": 2 } },
-        { "id": "smoothstep-wide-range", "args": { "edge0": 0, "edge1": 10, "x": 2.5 } },
-        { "id": "smoothstep-offset-range", "args": { "edge0": 2, "edge1": 6, "x": 3 } }
+        {
+          "id": "smoothstep-quarter",
+          "args": {
+            "edge0": 0,
+            "edge1": 1,
+            "x": 0.25
+          }
+        },
+        {
+          "id": "smoothstep-below-edge",
+          "args": {
+            "edge0": 0,
+            "edge1": 1,
+            "x": -1
+          }
+        },
+        {
+          "id": "smoothstep-above-edge",
+          "args": {
+            "edge0": 0,
+            "edge1": 1,
+            "x": 2
+          }
+        },
+        {
+          "id": "smoothstep-wide-range",
+          "args": {
+            "edge0": 0,
+            "edge1": 10,
+            "x": 2.5
+          }
+        },
+        {
+          "id": "smoothstep-offset-range",
+          "args": {
+            "edge0": 2,
+            "edge1": 6,
+            "x": 3
+          }
+        }
       ]
     },
     {
       "op": "on_remap",
       "action": "remap",
-      "params": ["value", "in_min", "in_max", "out_min", "out_max"],
+      "params": [
+        "value",
+        "in_min",
+        "in_max",
+        "out_min",
+        "out_max"
+      ],
       "kind": "host-delegation-rewrite",
       "rewriteOf": "math.lerp via get_std_math_lib()",
       "resultShape": "scalar",
-      "reference": ["remap"],
+      "reference": [
+        "remap"
+      ],
       "body": "{ value: out_min + (out_max - out_min) * ((value - in_min) / (in_max - in_min)) }",
       "vectors": [
-        { "id": "remap-mid", "args": { "value": 5, "in_min": 0, "in_max": 10, "out_min": 0, "out_max": 100 } },
-        { "id": "remap-low-edge", "args": { "value": 0, "in_min": 0, "in_max": 10, "out_min": 10, "out_max": 20 } },
-        { "id": "remap-signed-out", "args": { "value": 7.5, "in_min": 5, "in_max": 10, "out_min": -1, "out_max": 1 } },
-        { "id": "remap-expand", "args": { "value": 2, "in_min": 1, "in_max": 3, "out_min": 0, "out_max": 8 } },
-        { "id": "remap-degrees", "args": { "value": 0.3, "in_min": 0, "in_max": 1, "out_min": 0, "out_max": 360 } }
+        {
+          "id": "remap-mid",
+          "args": {
+            "value": 5,
+            "in_min": 0,
+            "in_max": 10,
+            "out_min": 0,
+            "out_max": 100
+          }
+        },
+        {
+          "id": "remap-low-edge",
+          "args": {
+            "value": 0,
+            "in_min": 0,
+            "in_max": 10,
+            "out_min": 10,
+            "out_max": 20
+          }
+        },
+        {
+          "id": "remap-signed-out",
+          "args": {
+            "value": 7.5,
+            "in_min": 5,
+            "in_max": 10,
+            "out_min": -1,
+            "out_max": 1
+          }
+        },
+        {
+          "id": "remap-expand",
+          "args": {
+            "value": 2,
+            "in_min": 1,
+            "in_max": 3,
+            "out_min": 0,
+            "out_max": 8
+          }
+        },
+        {
+          "id": "remap-degrees",
+          "args": {
+            "value": 0.3,
+            "in_min": 0,
+            "in_max": 1,
+            "out_min": 0,
+            "out_max": 360
+          }
+        }
       ]
     },
     {
       "op": "on_deg_to_rad",
       "action": "deg_to_rad",
-      "params": ["degrees"],
+      "params": [
+        "degrees"
+      ],
       "kind": "pure",
       "resultShape": "scalar",
-      "reference": ["degToRad"],
+      "reference": [
+        "degToRad"
+      ],
       "body": "{ value: degrees * 0.017453292519943295 }",
       "vectors": [
-        { "id": "deg2rad-zero", "args": { "degrees": 0 } },
-        { "id": "deg2rad-half-turn", "args": { "degrees": 180 } },
-        { "id": "deg2rad-quarter-turn", "args": { "degrees": 90 } },
-        { "id": "deg2rad-full-turn", "args": { "degrees": 360 } },
-        { "id": "deg2rad-one-radian", "args": { "degrees": 57.29577951308232 } }
+        {
+          "id": "deg2rad-zero",
+          "args": {
+            "degrees": 0
+          }
+        },
+        {
+          "id": "deg2rad-half-turn",
+          "args": {
+            "degrees": 180
+          }
+        },
+        {
+          "id": "deg2rad-quarter-turn",
+          "args": {
+            "degrees": 90
+          }
+        },
+        {
+          "id": "deg2rad-full-turn",
+          "args": {
+            "degrees": 360
+          }
+        },
+        {
+          "id": "deg2rad-one-radian",
+          "args": {
+            "degrees": 57.29577951308232
+          }
+        }
       ]
     },
     {
       "op": "on_rad_to_deg",
       "action": "rad_to_deg",
-      "params": ["radians"],
+      "params": [
+        "radians"
+      ],
       "kind": "pure",
       "resultShape": "scalar",
-      "reference": ["radToDeg"],
+      "reference": [
+        "radToDeg"
+      ],
       "body": "{ value: radians * 57.29577951308232 }",
       "vectors": [
-        { "id": "rad2deg-zero", "args": { "radians": 0 } },
-        { "id": "rad2deg-pi", "args": { "radians": 3.141592653589793 } },
-        { "id": "rad2deg-half-pi", "args": { "radians": 1.5707963267948966 } },
-        { "id": "rad2deg-tau", "args": { "radians": 6.283185307179586 } },
-        { "id": "rad2deg-one", "args": { "radians": 1 } }
+        {
+          "id": "rad2deg-zero",
+          "args": {
+            "radians": 0
+          }
+        },
+        {
+          "id": "rad2deg-pi",
+          "args": {
+            "radians": 3.141592653589793
+          }
+        },
+        {
+          "id": "rad2deg-half-pi",
+          "args": {
+            "radians": 1.5707963267948966
+          }
+        },
+        {
+          "id": "rad2deg-tau",
+          "args": {
+            "radians": 6.283185307179586
+          }
+        },
+        {
+          "id": "rad2deg-one",
+          "args": {
+            "radians": 1
+          }
+        }
       ]
     },
     {
       "op": "on_vec3_dot",
       "action": "vec3_dot",
-      "params": ["a", "b"],
+      "params": [
+        "a",
+        "b"
+      ],
       "kind": "pure",
       "resultShape": "scalar",
-      "reference": ["vec3Math", "dot"],
+      "reference": [
+        "vec3Math",
+        "dot"
+      ],
       "body": "{ value: a.x * b.x + a.y * b.y + a.z * b.z }",
       "vectors": [
-        { "id": "dot-basic", "args": { "a": { "x": 1, "y": 2, "z": 3 }, "b": { "x": 4, "y": 5, "z": 6 } } },
-        { "id": "dot-orthogonal", "args": { "a": { "x": 1, "y": 0, "z": 0 }, "b": { "x": 0, "y": 1, "z": 0 } } },
-        { "id": "dot-fractional", "args": { "a": { "x": 0.5, "y": -1, "z": 2 }, "b": { "x": 3, "y": 0.25, "z": -0.75 } } },
-        { "id": "dot-ones", "args": { "a": { "x": 1, "y": 1, "z": 1 }, "b": { "x": 1, "y": 1, "z": 1 } } },
-        { "id": "dot-negative", "args": { "a": { "x": -2, "y": -3, "z": -4 }, "b": { "x": 1, "y": 2, "z": 3 } } }
+        {
+          "id": "dot-basic",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 2,
+              "z": 3
+            },
+            "b": {
+              "x": 4,
+              "y": 5,
+              "z": 6
+            }
+          }
+        },
+        {
+          "id": "dot-orthogonal",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 0,
+              "z": 0
+            },
+            "b": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            }
+          }
+        },
+        {
+          "id": "dot-fractional",
+          "args": {
+            "a": {
+              "x": 0.5,
+              "y": -1,
+              "z": 2
+            },
+            "b": {
+              "x": 3,
+              "y": 0.25,
+              "z": -0.75
+            }
+          }
+        },
+        {
+          "id": "dot-ones",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "b": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          }
+        },
+        {
+          "id": "dot-negative",
+          "args": {
+            "a": {
+              "x": -2,
+              "y": -3,
+              "z": -4
+            },
+            "b": {
+              "x": 1,
+              "y": 2,
+              "z": 3
+            }
+          }
+        }
       ]
     },
     {
       "op": "on_vec3_cross",
       "action": "vec3_cross",
-      "params": ["a", "b"],
+      "params": [
+        "a",
+        "b"
+      ],
       "kind": "pure",
       "resultShape": "vec3",
-      "reference": ["vec3Math", "cross"],
+      "reference": [
+        "vec3Math",
+        "cross"
+      ],
       "body": "{ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }",
       "vectors": [
-        { "id": "cross-basis", "args": { "a": { "x": 1, "y": 0, "z": 0 }, "b": { "x": 0, "y": 1, "z": 0 } } },
-        { "id": "cross-general", "args": { "a": { "x": 2, "y": 3, "z": 4 }, "b": { "x": 5, "y": 6, "z": 7 } } },
-        { "id": "cross-fractional", "args": { "a": { "x": 0.5, "y": 1.25, "z": -2 }, "b": { "x": 3, "y": -0.75, "z": 0.25 } } },
-        { "id": "cross-sequential", "args": { "a": { "x": 1, "y": 2, "z": 3 }, "b": { "x": 4, "y": 5, "z": 6 } } },
-        { "id": "cross-parallel", "args": { "a": { "x": 1, "y": 1, "z": 1 }, "b": { "x": 2, "y": 2, "z": 2 } } }
+        {
+          "id": "cross-basis",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 0,
+              "z": 0
+            },
+            "b": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            }
+          }
+        },
+        {
+          "id": "cross-general",
+          "args": {
+            "a": {
+              "x": 2,
+              "y": 3,
+              "z": 4
+            },
+            "b": {
+              "x": 5,
+              "y": 6,
+              "z": 7
+            }
+          }
+        },
+        {
+          "id": "cross-fractional",
+          "args": {
+            "a": {
+              "x": 0.5,
+              "y": 1.25,
+              "z": -2
+            },
+            "b": {
+              "x": 3,
+              "y": -0.75,
+              "z": 0.25
+            }
+          }
+        },
+        {
+          "id": "cross-sequential",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 2,
+              "z": 3
+            },
+            "b": {
+              "x": 4,
+              "y": 5,
+              "z": 6
+            }
+          }
+        },
+        {
+          "id": "cross-parallel",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "b": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        }
       ]
     },
     {
       "op": "on_vec3_lerp",
       "action": "vec3_lerp",
-      "params": ["a", "b", "t"],
+      "params": [
+        "a",
+        "b",
+        "t"
+      ],
       "kind": "pure",
       "resultShape": "vec3",
-      "reference": ["vec3Math", "lerp"],
+      "reference": [
+        "vec3Math",
+        "lerp"
+      ],
       "body": "{ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t }",
       "vectors": [
-        { "id": "vlerp-mid", "args": { "a": { "x": 0, "y": 0, "z": 0 }, "b": { "x": 10, "y": 20, "z": 30 }, "t": 0.5 } },
-        { "id": "vlerp-start", "args": { "a": { "x": 1, "y": 2, "z": 3 }, "b": { "x": 4, "y": 5, "z": 6 }, "t": 0 } },
-        { "id": "vlerp-end", "args": { "a": { "x": 1, "y": 2, "z": 3 }, "b": { "x": 4, "y": 5, "z": 6 }, "t": 1 } },
-        { "id": "vlerp-quarter", "args": { "a": { "x": -4, "y": 8, "z": 0.5 }, "b": { "x": 4, "y": -8, "z": 2.5 }, "t": 0.25 } },
-        { "id": "vlerp-fractional-t", "args": { "a": { "x": 1.5, "y": 2.5, "z": 3.5 }, "b": { "x": 2.5, "y": 3.5, "z": 4.5 }, "t": 0.4 } }
+        {
+          "id": "vlerp-mid",
+          "args": {
+            "a": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "b": {
+              "x": 10,
+              "y": 20,
+              "z": 30
+            },
+            "t": 0.5
+          }
+        },
+        {
+          "id": "vlerp-start",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 2,
+              "z": 3
+            },
+            "b": {
+              "x": 4,
+              "y": 5,
+              "z": 6
+            },
+            "t": 0
+          }
+        },
+        {
+          "id": "vlerp-end",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 2,
+              "z": 3
+            },
+            "b": {
+              "x": 4,
+              "y": 5,
+              "z": 6
+            },
+            "t": 1
+          }
+        },
+        {
+          "id": "vlerp-quarter",
+          "args": {
+            "a": {
+              "x": -4,
+              "y": 8,
+              "z": 0.5
+            },
+            "b": {
+              "x": 4,
+              "y": -8,
+              "z": 2.5
+            },
+            "t": 0.25
+          }
+        },
+        {
+          "id": "vlerp-fractional-t",
+          "args": {
+            "a": {
+              "x": 1.5,
+              "y": 2.5,
+              "z": 3.5
+            },
+            "b": {
+              "x": 2.5,
+              "y": 3.5,
+              "z": 4.5
+            },
+            "t": 0.4
+          }
+        }
       ]
     },
     {
       "op": "on_vec3_length",
       "action": "vec3_length",
-      "params": ["v"],
+      "params": [
+        "v"
+      ],
       "kind": "pure",
       "resultShape": "scalar",
-      "reference": ["vec3Math", "length"],
+      "reference": [
+        "vec3Math",
+        "length"
+      ],
       "body": "{ value: sqrt(v.x * v.x + v.y * v.y + v.z * v.z) }",
       "vectors": [
-        { "id": "vlen-345", "args": { "v": { "x": 3, "y": 4, "z": 0 } } },
-        { "id": "vlen-122", "args": { "v": { "x": 1, "y": 2, "z": 2 } } },
-        { "id": "vlen-236", "args": { "v": { "x": 2, "y": 3, "z": 6 } } },
-        { "id": "vlen-unit", "args": { "v": { "x": 1, "y": 0, "z": 0 } } },
-        { "id": "vlen-fractional", "args": { "v": { "x": 0.5, "y": 0.5, "z": 0.5 } } }
+        {
+          "id": "vlen-345",
+          "args": {
+            "v": {
+              "x": 3,
+              "y": 4,
+              "z": 0
+            }
+          }
+        },
+        {
+          "id": "vlen-122",
+          "args": {
+            "v": {
+              "x": 1,
+              "y": 2,
+              "z": 2
+            }
+          }
+        },
+        {
+          "id": "vlen-236",
+          "args": {
+            "v": {
+              "x": 2,
+              "y": 3,
+              "z": 6
+            }
+          }
+        },
+        {
+          "id": "vlen-unit",
+          "args": {
+            "v": {
+              "x": 1,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        {
+          "id": "vlen-fractional",
+          "args": {
+            "v": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0.5
+            }
+          }
+        }
       ]
     },
     {
       "op": "on_vec3_normalize",
       "action": "vec3_normalize",
-      "params": ["v"],
+      "params": [
+        "v"
+      ],
       "kind": "pure",
       "resultShape": "vec3",
-      "reference": ["vec3Math", "normalize"],
+      "reference": [
+        "vec3Math",
+        "normalize"
+      ],
       "statements": [
         "len = sqrt(v.x * v.x + v.y * v.y + v.z * v.z)",
         "if (len < 0.000001) { return { x: 0.0, y: 0.0, z: 0.0 } }",
         "return { x: v.x / len, y: v.y / len, z: v.z / len }"
       ],
       "vectors": [
-        { "id": "vnorm-345", "args": { "v": { "x": 3, "y": 4, "z": 0 } } },
-        { "id": "vnorm-zero", "args": { "v": { "x": 0, "y": 0, "z": 0 } } },
-        { "id": "vnorm-ones", "args": { "v": { "x": 1, "y": 1, "z": 1 } } },
-        { "id": "vnorm-axis", "args": { "v": { "x": 2, "y": 0, "z": 0 } } },
-        { "id": "vnorm-512", "args": { "v": { "x": 0, "y": 5, "z": 12 } } }
+        {
+          "id": "vnorm-345",
+          "args": {
+            "v": {
+              "x": 3,
+              "y": 4,
+              "z": 0
+            }
+          }
+        },
+        {
+          "id": "vnorm-zero",
+          "args": {
+            "v": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        {
+          "id": "vnorm-ones",
+          "args": {
+            "v": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          }
+        },
+        {
+          "id": "vnorm-axis",
+          "args": {
+            "v": {
+              "x": 2,
+              "y": 0,
+              "z": 0
+            }
+          }
+        },
+        {
+          "id": "vnorm-512",
+          "args": {
+            "v": {
+              "x": 0,
+              "y": 5,
+              "z": 12
+            }
+          }
+        }
       ]
     },
     {
       "op": "on_vec3_distance",
       "action": "vec3_distance",
-      "params": ["a", "b"],
+      "params": [
+        "a",
+        "b"
+      ],
       "kind": "pure",
       "resultShape": "scalar",
-      "reference": ["vec3Math", "distance"],
+      "reference": [
+        "vec3Math",
+        "distance"
+      ],
       "body": "{ value: sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + (a.z - b.z) * (a.z - b.z)) }",
       "vectors": [
-        { "id": "vdist-345", "args": { "a": { "x": 0, "y": 0, "z": 0 }, "b": { "x": 3, "y": 4, "z": 0 } } },
-        { "id": "vdist-same", "args": { "a": { "x": 1, "y": 2, "z": 3 }, "b": { "x": 1, "y": 2, "z": 3 } } },
-        { "id": "vdist-diagonal", "args": { "a": { "x": 1, "y": 1, "z": 1 }, "b": { "x": 2, "y": 2, "z": 2 } } },
-        { "id": "vdist-mixed", "args": { "a": { "x": -2, "y": 1, "z": 0.5 }, "b": { "x": 0.5, "y": -1, "z": 2 } } },
-        { "id": "vdist-236", "args": { "a": { "x": 0, "y": 0, "z": 0 }, "b": { "x": 2, "y": 3, "z": 6 } } }
+        {
+          "id": "vdist-345",
+          "args": {
+            "a": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "b": {
+              "x": 3,
+              "y": 4,
+              "z": 0
+            }
+          }
+        },
+        {
+          "id": "vdist-same",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 2,
+              "z": 3
+            },
+            "b": {
+              "x": 1,
+              "y": 2,
+              "z": 3
+            }
+          }
+        },
+        {
+          "id": "vdist-diagonal",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "b": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            }
+          }
+        },
+        {
+          "id": "vdist-mixed",
+          "args": {
+            "a": {
+              "x": -2,
+              "y": 1,
+              "z": 0.5
+            },
+            "b": {
+              "x": 0.5,
+              "y": -1,
+              "z": 2
+            }
+          }
+        },
+        {
+          "id": "vdist-236",
+          "args": {
+            "a": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "b": {
+              "x": 2,
+              "y": 3,
+              "z": 6
+            }
+          }
+        }
       ]
     },
     {
       "op": "on_quat_from_axis_angle",
       "action": "quat_from_axis_angle",
-      "params": ["axis", "angle_rad"],
+      "params": [
+        "axis",
+        "angle_rad"
+      ],
       "kind": "pure",
       "resultShape": "quat",
-      "reference": ["quatMath", "fromAxisAngle"],
+      "reference": [
+        "quatMath",
+        "fromAxisAngle"
+      ],
       "toleranceNote": "sin/cos are not correctly-rounded-guaranteed across libm implementations; JS engine vs Rust-libm-in-wasm may differ by ulps",
       "body": "{ x: axis.x * sin(angle_rad * 0.5), y: axis.y * sin(angle_rad * 0.5), z: axis.z * sin(angle_rad * 0.5), w: cos(angle_rad * 0.5) }",
       "traitBody": [
@@ -237,20 +893,67 @@
       ],
       "tolerance": 1e-15,
       "vectors": [
-        { "id": "qaxis-z-quarter", "args": { "axis": { "x": 0, "y": 0, "z": 1 }, "angle_rad": 1.5707963267948966 } },
-        { "id": "qaxis-x-third", "args": { "axis": { "x": 1, "y": 0, "z": 0 }, "angle_rad": 1.0471975511965976 } },
-        { "id": "qaxis-y-one", "args": { "axis": { "x": 0, "y": 1, "z": 0 }, "angle_rad": 1 } },
-        { "id": "qaxis-diagonal", "args": { "axis": { "x": 0.5773502691896258, "y": 0.5773502691896258, "z": 0.5773502691896258 }, "angle_rad": 2.0943951023931953 } }
+        {
+          "id": "qaxis-z-quarter",
+          "args": {
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "angle_rad": 1.5707963267948966
+          }
+        },
+        {
+          "id": "qaxis-x-third",
+          "args": {
+            "axis": {
+              "x": 1,
+              "y": 0,
+              "z": 0
+            },
+            "angle_rad": 1.0471975511965976
+          }
+        },
+        {
+          "id": "qaxis-y-one",
+          "args": {
+            "axis": {
+              "x": 0,
+              "y": 1,
+              "z": 0
+            },
+            "angle_rad": 1
+          }
+        },
+        {
+          "id": "qaxis-diagonal",
+          "args": {
+            "axis": {
+              "x": 0.5773502691896258,
+              "y": 0.5773502691896258,
+              "z": 0.5773502691896258
+            },
+            "angle_rad": 2.0943951023931953
+          }
+        }
       ]
     },
     {
       "op": "on_quat_slerp",
       "action": "quat_slerp",
-      "params": ["a", "b", "t"],
+      "params": [
+        "a",
+        "b",
+        "t"
+      ],
       "kind": "host-delegation-rewrite",
       "rewriteOf": "math.quat_slerp via get_std_math_lib()",
       "resultShape": "quat",
-      "reference": ["quatMath", "slerp"],
+      "reference": [
+        "quatMath",
+        "slerp"
+      ],
       "toleranceNote": "acos/sin/cos compound through divisions; JS engine vs Rust-libm-in-wasm may differ by ulps. Negation uses binary 0.0 - b.x (not unary minus) so zero components stay positive zero under the fail-closed lanes.",
       "tolerance": 1e-15,
       "statements": [
@@ -283,12 +986,114 @@
         "return { x: a.x * s0 + bx * s1, y: a.y * s0 + by * s1, z: a.z * s0 + bz * s1, w: a.w * s0 + bw * s1 }"
       ],
       "vectors": [
-        { "id": "qslerp-mid", "args": { "a": { "x": 0, "y": 0, "z": 0, "w": 1 }, "b": { "x": 0, "y": 0, "z": 0.7071067811865476, "w": 0.7071067811865476 }, "t": 0.5 } },
-        { "id": "qslerp-quarter-general", "args": { "a": { "x": 0.1, "y": 0.2, "z": 0.3, "w": 0.9 }, "b": { "x": 0.4, "y": 0.25, "z": 0.35, "w": 0.8 }, "t": 0.25 } },
-        { "id": "qslerp-shortest-nlerp", "args": { "a": { "x": 0.5, "y": 0.5, "z": 0.5, "w": 0.5 }, "b": { "x": -0.5, "y": -0.5, "z": -0.5, "w": -0.5 }, "t": 0.25 } },
-        { "id": "qslerp-shortest-spherical", "args": { "a": { "x": 0.5, "y": 0.5, "z": 0.5, "w": 0.5 }, "b": { "x": -0.4, "y": -0.25, "z": -0.35, "w": -0.8 }, "t": 0.5 } },
-        { "id": "qslerp-near-parallel", "args": { "a": { "x": 0.01, "y": 0.02, "z": 0.03, "w": 0.999 }, "b": { "x": 0.011, "y": 0.021, "z": 0.031, "w": 0.9989 }, "t": 0.5 } },
-        { "id": "qslerp-t0-positive", "args": { "a": { "x": 0.1, "y": 0.2, "z": 0.3, "w": 0.9 }, "b": { "x": 0.4, "y": 0.25, "z": 0.35, "w": 0.8 }, "t": 0 } }
+        {
+          "id": "qslerp-mid",
+          "args": {
+            "a": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "b": {
+              "x": 0,
+              "y": 0,
+              "z": 0.7071067811865476,
+              "w": 0.7071067811865476
+            },
+            "t": 0.5
+          }
+        },
+        {
+          "id": "qslerp-quarter-general",
+          "args": {
+            "a": {
+              "x": 0.1,
+              "y": 0.2,
+              "z": 0.3,
+              "w": 0.9
+            },
+            "b": {
+              "x": 0.4,
+              "y": 0.25,
+              "z": 0.35,
+              "w": 0.8
+            },
+            "t": 0.25
+          }
+        },
+        {
+          "id": "qslerp-shortest-nlerp",
+          "args": {
+            "a": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0.5,
+              "w": 0.5
+            },
+            "b": {
+              "x": -0.5,
+              "y": -0.5,
+              "z": -0.5,
+              "w": -0.5
+            },
+            "t": 0.25
+          }
+        },
+        {
+          "id": "qslerp-shortest-spherical",
+          "args": {
+            "a": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0.5,
+              "w": 0.5
+            },
+            "b": {
+              "x": -0.4,
+              "y": -0.25,
+              "z": -0.35,
+              "w": -0.8
+            },
+            "t": 0.5
+          }
+        },
+        {
+          "id": "qslerp-near-parallel",
+          "args": {
+            "a": {
+              "x": 0.01,
+              "y": 0.02,
+              "z": 0.03,
+              "w": 0.999
+            },
+            "b": {
+              "x": 0.011,
+              "y": 0.021,
+              "z": 0.031,
+              "w": 0.9989
+            },
+            "t": 0.5
+          }
+        },
+        {
+          "id": "qslerp-t0-positive",
+          "args": {
+            "a": {
+              "x": 0.1,
+              "y": 0.2,
+              "z": 0.3,
+              "w": 0.9
+            },
+            "b": {
+              "x": 0.4,
+              "y": 0.25,
+              "z": 0.35,
+              "w": 0.8
+            },
+            "t": 0
+          }
+        }
       ]
     },
     {
@@ -297,25 +1102,1025 @@
       "params": [],
       "kind": "pure",
       "resultShape": "quat",
-      "reference": ["quatMath", "identity"],
+      "reference": [
+        "quatMath",
+        "identity"
+      ],
       "body": "{ x: 0.0, y: 0.0, z: 0.0, w: 1.0 }",
       "vectors": [
-        { "id": "quat-identity", "args": {} }
+        {
+          "id": "quat-identity",
+          "args": {}
+        }
       ]
     },
     {
       "op": "on_quat_multiply",
       "action": "quat_multiply",
-      "params": ["a", "b"],
+      "params": [
+        "a",
+        "b"
+      ],
       "kind": "pure",
       "resultShape": "quat",
-      "reference": ["quatMath", "multiply"],
+      "reference": [
+        "quatMath",
+        "multiply"
+      ],
       "body": "{ x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x, z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w, w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z }",
       "vectors": [
-        { "id": "qmul-identity-left", "args": { "a": { "x": 0, "y": 0, "z": 0, "w": 1 }, "b": { "x": 0.5, "y": 0.5, "z": 0.5, "w": 0.5 } } },
-        { "id": "qmul-identity-right", "args": { "a": { "x": 0.5, "y": 0.5, "z": 0.5, "w": 0.5 }, "b": { "x": 0, "y": 0, "z": 0, "w": 1 } } },
-        { "id": "qmul-general", "args": { "a": { "x": 0.1, "y": 0.2, "z": 0.3, "w": 0.9 }, "b": { "x": 0.4, "y": 0.25, "z": 0.35, "w": 0.8 } } },
-        { "id": "qmul-half-turns", "args": { "a": { "x": 0.7071067811865476, "y": 0, "z": 0, "w": 0.7071067811865476 }, "b": { "x": 0, "y": 0.7071067811865476, "z": 0, "w": 0.7071067811865476 } } }
+        {
+          "id": "qmul-identity-left",
+          "args": {
+            "a": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "b": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0.5,
+              "w": 0.5
+            }
+          }
+        },
+        {
+          "id": "qmul-identity-right",
+          "args": {
+            "a": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0.5,
+              "w": 0.5
+            },
+            "b": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            }
+          }
+        },
+        {
+          "id": "qmul-general",
+          "args": {
+            "a": {
+              "x": 0.1,
+              "y": 0.2,
+              "z": 0.3,
+              "w": 0.9
+            },
+            "b": {
+              "x": 0.4,
+              "y": 0.25,
+              "z": 0.35,
+              "w": 0.8
+            }
+          }
+        },
+        {
+          "id": "qmul-half-turns",
+          "args": {
+            "a": {
+              "x": 0.7071067811865476,
+              "y": 0,
+              "z": 0,
+              "w": 0.7071067811865476
+            },
+            "b": {
+              "x": 0,
+              "y": 0.7071067811865476,
+              "z": 0,
+              "w": 0.7071067811865476
+            }
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_clamp",
+      "action": "host_clamp",
+      "params": [
+        "value",
+        "min",
+        "max"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "math",
+        "clamp"
+      ],
+      "packagedRef": "math.clamp backs packaged on_clamp and on_smoothstep",
+      "vectors": [
+        {
+          "id": "hclamp-above",
+          "args": {
+            "value": 42,
+            "min": 0,
+            "max": 10
+          }
+        },
+        {
+          "id": "hclamp-inside",
+          "args": {
+            "value": 0.5,
+            "min": 0.25,
+            "max": 0.75
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_lerp",
+      "action": "host_lerp",
+      "params": [
+        "a",
+        "b",
+        "t"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "math",
+        "lerp"
+      ],
+      "packagedRef": "math.lerp backs packaged on_remap",
+      "vectors": [
+        {
+          "id": "hlerp-mid",
+          "args": {
+            "a": 0,
+            "b": 10,
+            "t": 0.5
+          }
+        },
+        {
+          "id": "hlerp-frac",
+          "args": {
+            "a": 1.5,
+            "b": 3.25,
+            "t": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_quat_slerp",
+      "action": "host_quat_slerp",
+      "params": [
+        "a",
+        "b",
+        "t"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "math",
+        "quat_slerp"
+      ],
+      "packagedRef": "math.quat_slerp backs packaged on_quat_slerp",
+      "vectors": [
+        {
+          "id": "hslerp-mid",
+          "args": {
+            "a": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "b": {
+              "x": 0,
+              "y": 0,
+              "z": 0.7071067811865476,
+              "w": 0.7071067811865476
+            },
+            "t": 0.5
+          }
+        },
+        {
+          "id": "hslerp-general",
+          "args": {
+            "a": {
+              "x": 0.1,
+              "y": 0.2,
+              "z": 0.3,
+              "w": 0.9
+            },
+            "b": {
+              "x": 0.4,
+              "y": 0.25,
+              "z": 0.35,
+              "w": 0.8
+            },
+            "t": 0.25
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_range",
+      "action": "host_list_range",
+      "params": [
+        "start",
+        "end",
+        "step"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_range"
+      ],
+      "packagedRef": "list_lib.list_range backs packaged on_range",
+      "vectors": [
+        {
+          "id": "hrange-up",
+          "args": {
+            "start": 0,
+            "end": 5,
+            "step": 1
+          }
+        },
+        {
+          "id": "hrange-down",
+          "args": {
+            "start": 10,
+            "end": 4,
+            "step": -2
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_repeat",
+      "action": "host_list_repeat",
+      "params": [
+        "value",
+        "count"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_repeat"
+      ],
+      "packagedRef": "list_lib.list_repeat backs packaged on_repeat",
+      "vectors": [
+        {
+          "id": "hrepeat-str",
+          "args": {
+            "value": "ha",
+            "count": 3
+          }
+        },
+        {
+          "id": "hrepeat-zero",
+          "args": {
+            "value": 7,
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_reverse",
+      "action": "host_list_reverse",
+      "params": [
+        "lst"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_reverse"
+      ],
+      "packagedRef": "list_lib.list_reverse backs packaged on_reverse",
+      "vectors": [
+        {
+          "id": "hreverse-nums",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3,
+              4
+            ]
+          }
+        },
+        {
+          "id": "hreverse-mixed",
+          "args": {
+            "lst": [
+              "a",
+              1,
+              true
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_flatten",
+      "action": "host_list_flatten",
+      "params": [
+        "lst"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_flatten"
+      ],
+      "packagedRef": "list_lib.list_flatten backs packaged on_flatten",
+      "vectors": [
+        {
+          "id": "hflatten-nested",
+          "args": {
+            "lst": [
+              [
+                1,
+                2
+              ],
+              [
+                3
+              ],
+              4
+            ]
+          }
+        },
+        {
+          "id": "hflatten-flat",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_unique",
+      "action": "host_list_unique",
+      "params": [
+        "lst"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_unique"
+      ],
+      "packagedRef": "list_lib.list_unique backs packaged on_unique",
+      "vectors": [
+        {
+          "id": "hunique-dupes",
+          "args": {
+            "lst": [
+              3,
+              1,
+              3,
+              2,
+              1
+            ]
+          }
+        },
+        {
+          "id": "hunique-strings",
+          "args": {
+            "lst": [
+              "b",
+              "a",
+              "b"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_get",
+      "action": "host_list_get",
+      "params": [
+        "lst",
+        "index"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_get"
+      ],
+      "packagedRef": "list_lib.list_get backs packaged on_get",
+      "vectors": [
+        {
+          "id": "hget-mid",
+          "args": {
+            "lst": [
+              10,
+              20,
+              30
+            ],
+            "index": 1
+          }
+        },
+        {
+          "id": "hget-first",
+          "args": {
+            "lst": [
+              "x",
+              "y"
+            ],
+            "index": 0
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_contains",
+      "action": "host_list_contains",
+      "params": [
+        "lst",
+        "item"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_contains"
+      ],
+      "packagedRef": "list_lib.list_contains backs packaged on_contains",
+      "vectors": [
+        {
+          "id": "hcontains-yes",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3
+            ],
+            "item": 2
+          }
+        },
+        {
+          "id": "hcontains-no",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3
+            ],
+            "item": 9
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_index_of",
+      "action": "host_list_index_of",
+      "params": [
+        "lst",
+        "item"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_index_of"
+      ],
+      "packagedRef": "list_lib.list_index_of backs packaged on_index_of",
+      "vectors": [
+        {
+          "id": "hindexof-hit",
+          "args": {
+            "lst": [
+              "a",
+              "b",
+              "c"
+            ],
+            "item": "b"
+          }
+        },
+        {
+          "id": "hindexof-miss",
+          "args": {
+            "lst": [
+              "a",
+              "b"
+            ],
+            "item": "z"
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_join",
+      "action": "host_list_join",
+      "params": [
+        "lst",
+        "sep"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_join"
+      ],
+      "packagedRef": "list_lib.list_join backs packaged on_join",
+      "vectors": [
+        {
+          "id": "hjoin-dash",
+          "args": {
+            "lst": [
+              "a",
+              "b",
+              "c"
+            ],
+            "sep": "-"
+          }
+        },
+        {
+          "id": "hjoin-nums",
+          "args": {
+            "lst": [
+              1,
+              2.5,
+              3
+            ],
+            "sep": ","
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_zip",
+      "action": "host_list_zip",
+      "params": [
+        "a",
+        "b"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_zip"
+      ],
+      "packagedRef": "list_lib.list_zip backs packaged on_zip",
+      "vectors": [
+        {
+          "id": "hzip-even",
+          "args": {
+            "a": [
+              1,
+              2
+            ],
+            "b": [
+              "x",
+              "y"
+            ]
+          }
+        },
+        {
+          "id": "hzip-uneven",
+          "args": {
+            "a": [
+              1,
+              2,
+              3
+            ],
+            "b": [
+              "x"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_list_chunk",
+      "action": "host_list_chunk",
+      "params": [
+        "lst",
+        "size"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "list_lib",
+        "list_chunk"
+      ],
+      "packagedRef": "list_lib.list_chunk backs packaged on_chunk",
+      "vectors": [
+        {
+          "id": "hchunk-2",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "size": 2
+          }
+        },
+        {
+          "id": "hchunk-big",
+          "args": {
+            "lst": [
+              1,
+              2
+            ],
+            "size": 5
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_map_set",
+      "action": "host_map_set",
+      "params": [
+        "m",
+        "key",
+        "value"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "map_lib",
+        "map_set"
+      ],
+      "packagedRef": "map_lib.map_set backs packaged on_set",
+      "vectors": [
+        {
+          "id": "hmapset-new",
+          "args": {
+            "m": {
+              "a": 1
+            },
+            "key": "b",
+            "value": 2
+          }
+        },
+        {
+          "id": "hmapset-overwrite",
+          "args": {
+            "m": {
+              "a": 1
+            },
+            "key": "a",
+            "value": 9
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_map_get",
+      "action": "host_map_get",
+      "params": [
+        "m",
+        "key"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "map_lib",
+        "map_get"
+      ],
+      "packagedRef": "map_lib.map_get backs packaged on_get (map)",
+      "vectors": [
+        {
+          "id": "hmapget-hit",
+          "args": {
+            "m": {
+              "a": 1,
+              "b": 2
+            },
+            "key": "b"
+          }
+        },
+        {
+          "id": "hmapget-nested",
+          "args": {
+            "m": {
+              "a": {
+                "deep": true
+              }
+            },
+            "key": "a"
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_map_keys",
+      "action": "host_map_keys",
+      "params": [
+        "m"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "map_lib",
+        "map_keys"
+      ],
+      "packagedRef": "map_lib.map_keys backs packaged on_keys",
+      "vectors": [
+        {
+          "id": "hmapkeys-sorted",
+          "args": {
+            "m": {
+              "b": 1,
+              "a": 2,
+              "c": 3
+            }
+          }
+        },
+        {
+          "id": "hmapkeys-empty",
+          "args": {
+            "m": {}
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_map_merge",
+      "action": "host_map_merge",
+      "params": [
+        "a",
+        "b"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "map_lib",
+        "map_merge"
+      ],
+      "packagedRef": "map_lib.map_merge backs packaged on_merge",
+      "vectors": [
+        {
+          "id": "hmapmerge-bwins",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 2
+            },
+            "b": {
+              "y": 9,
+              "z": 3
+            }
+          }
+        },
+        {
+          "id": "hmapmerge-empty",
+          "args": {
+            "a": {},
+            "b": {
+              "k": "v"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_map_size",
+      "action": "host_map_size",
+      "params": [
+        "m"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "map_lib",
+        "map_size"
+      ],
+      "packagedRef": "map_lib.map_size backs packaged on_size (map)",
+      "vectors": [
+        {
+          "id": "hmapsize-3",
+          "args": {
+            "m": {
+              "a": 1,
+              "b": 2,
+              "c": 3
+            }
+          }
+        },
+        {
+          "id": "hmapsize-0",
+          "args": {
+            "m": {}
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_set_add",
+      "action": "host_set_add",
+      "params": [
+        "s",
+        "item"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "set_lib",
+        "set_add"
+      ],
+      "packagedRef": "set_lib.set_add backs packaged on_add",
+      "vectors": [
+        {
+          "id": "hsetadd-new",
+          "args": {
+            "s": [
+              1,
+              3
+            ],
+            "item": 2
+          }
+        },
+        {
+          "id": "hsetadd-dupe",
+          "args": {
+            "s": [
+              1,
+              2
+            ],
+            "item": 2
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_set_has",
+      "action": "host_set_has",
+      "params": [
+        "s",
+        "item"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "set_lib",
+        "set_has"
+      ],
+      "packagedRef": "set_lib.set_has backs packaged on_has (set)",
+      "vectors": [
+        {
+          "id": "hsethas-yes",
+          "args": {
+            "s": [
+              1,
+              2,
+              3
+            ],
+            "item": 3
+          }
+        },
+        {
+          "id": "hsethas-no",
+          "args": {
+            "s": [
+              1,
+              2
+            ],
+            "item": 5
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_set_union",
+      "action": "host_set_union",
+      "params": [
+        "a",
+        "b"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "set_lib",
+        "set_union"
+      ],
+      "packagedRef": "set_lib.set_union backs packaged on_union",
+      "vectors": [
+        {
+          "id": "hsetunion-overlap",
+          "args": {
+            "a": [
+              3,
+              1,
+              2
+            ],
+            "b": [
+              2,
+              4
+            ]
+          }
+        },
+        {
+          "id": "hsetunion-strings",
+          "args": {
+            "a": [
+              "b",
+              "a"
+            ],
+            "b": [
+              "c",
+              "a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_set_intersection",
+      "action": "host_set_intersection",
+      "params": [
+        "a",
+        "b"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "set_lib",
+        "set_intersection"
+      ],
+      "packagedRef": "set_lib.set_intersection backs packaged on_intersection",
+      "vectors": [
+        {
+          "id": "hsetinter-common",
+          "args": {
+            "a": [
+              1,
+              2,
+              3
+            ],
+            "b": [
+              2,
+              3,
+              4
+            ]
+          }
+        },
+        {
+          "id": "hsetinter-none",
+          "args": {
+            "a": [
+              1
+            ],
+            "b": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "op": "on_host_set_difference",
+      "action": "host_set_difference",
+      "params": [
+        "a",
+        "b"
+      ],
+      "kind": "host-binding",
+      "resultShape": "host",
+      "hostRef": [
+        "set_lib",
+        "set_difference"
+      ],
+      "packagedRef": "set_lib.set_difference backs packaged on_difference",
+      "vectors": [
+        {
+          "id": "hsetdiff-some",
+          "args": {
+            "a": [
+              1,
+              2,
+              3
+            ],
+            "b": [
+              2
+            ]
+          }
+        },
+        {
+          "id": "hsetdiff-all",
+          "args": {
+            "a": [
+              1,
+              2
+            ],
+            "b": [
+              1,
+              2
+            ]
+          }
+        }
       ]
     }
   ],

@@ -33,6 +33,13 @@ export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V2 =
 export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V3 =
   'holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings' as const;
 
+export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V4 =
+  'holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings' as const;
+
+export type DeterministicHostBindings = Readonly<
+  Record<string, Readonly<Record<string, (...args: HeadlessJsonValue[]) => unknown>>>
+>;
+
 export interface DeterministicHsplusActionRuntimeOptions {
   /**
    * Admit the v2 whitelisted deterministic numeric builtin table
@@ -52,6 +59,17 @@ export interface DeterministicHsplusActionRuntimeOptions {
    * grammar.
    */
   localBindings?: boolean;
+  /**
+   * Inject the std host-ABI binding surface (v4 subset id): namespace objects
+   * of pure host functions, e.g. the object returned by
+   * createStdHostBindings() in packages/std/conformance/host-abi. Guest code
+   * may then call `ns.fn(args…)` for declared namespace/function pairs only.
+   * Namespaces exist solely in callee position — they are not values, cannot
+   * be read, stored, or shadowed. Arguments cross as strict JSON; results are
+   * re-validated on re-entry (strict JSON, finite numbers, no negative zero)
+   * and a host throw fails the invocation closed.
+   */
+  hostBindings?: DeterministicHostBindings;
 }
 
 const NUMERIC_BUILTINS: ReadonlyMap<string, { arity: number; apply: (args: number[]) => number }> =
@@ -96,6 +114,25 @@ interface EvaluationEnvironment {
   numericBuiltins: boolean;
   localBindings: boolean;
   locals: HeadlessJsonObject;
+  hostBindings: DeterministicHostBindings | null;
+}
+
+function assertFiniteNumbers(value: unknown, label: string): void {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || Object.is(value, -0)) {
+      fail(`${label} contains a non-finite or negative-zero number`);
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((child, index) => assertFiniteNumbers(child, `${label}[${index}]`));
+    return;
+  }
+  if (isRecord(value)) {
+    for (const [key, child] of Object.entries(value)) {
+      assertFiniteNumbers(child, `${label}.${key}`);
+    }
+  }
 }
 
 interface AstBudget {
@@ -354,11 +391,37 @@ function validateExpression(
   depth: number,
   admitBuiltins: boolean,
   admitLocals: boolean,
-  locals: Set<string>
+  locals: Set<string>,
+  hostNamespaces: ReadonlyMap<string, ReadonlySet<string>> | null
 ): void {
   consumeBudget(budget, depth, 'action expression');
   switch (expression.type) {
     case 'CallExpression': {
+      if (expression.callee.type === 'MemberExpression') {
+        if (!hostNamespaces) {
+          fail('host-binding calls are not admitted without injected host bindings');
+        }
+        if (expression.callee.computed || expression.callee.object.type !== 'Identifier') {
+          fail('host-binding calls must use a bare namespace.function callee');
+        }
+        const functionName = expression.callee.property;
+        assertSafeKey(functionName, 'host-binding callee');
+        const namespace = expression.callee.object.name;
+        if (params.has(namespace) || (admitLocals && locals.has(namespace))) {
+          fail(`host-binding namespace "${namespace}" is shadowed by a parameter or local`);
+        }
+        const fns = hostNamespaces.get(namespace);
+        if (!fns) {
+          fail(`"${namespace}" is not an injected host-binding namespace`);
+        }
+        if (!fns.has(functionName)) {
+          fail(`"${namespace}.${functionName}" is not a declared host-binding function`);
+        }
+        expression.arguments.forEach((argument) =>
+          validateExpression(argument, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces)
+        );
+        return;
+      }
       if (!admitBuiltins) {
         fail('function calls are not admitted in the v1 deterministic subset');
       }
@@ -377,7 +440,7 @@ function validateExpression(
         );
       }
       expression.arguments.forEach((argument) =>
-        validateExpression(argument, params, budget, depth + 1, admitBuiltins, admitLocals, locals)
+        validateExpression(argument, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces)
       );
       return;
     }
@@ -421,19 +484,19 @@ function validateExpression(
       if (!allowed.has(expression.operator)) {
         fail(`binary operator "${expression.operator}" is unsupported`);
       }
-      validateExpression(expression.left, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
-      validateExpression(expression.right, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+      validateExpression(expression.left, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+      validateExpression(expression.right, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
       return;
     }
     case 'UnaryExpression':
       if (expression.operator !== '!' && expression.operator !== '-') {
         fail(`unary operator "${String(expression.operator)}" is unsupported`);
       }
-      validateExpression(expression.argument, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+      validateExpression(expression.argument, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
       return;
     case 'ArrayExpression':
       expression.elements.forEach((child) =>
-        validateExpression(child, params, budget, depth + 1, admitBuiltins, admitLocals, locals)
+        validateExpression(child, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces)
       );
       return;
     case 'ObjectExpression': {
@@ -444,14 +507,14 @@ function validateExpression(
           fail(`object expression contains duplicate key "${property.key}"`);
         }
         keys.add(property.key);
-        validateExpression(property.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+        validateExpression(property.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
       });
       return;
     }
     case 'ConditionalExpression':
-      validateExpression(expression.test, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
-      validateExpression(expression.consequent, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
-      validateExpression(expression.alternate, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+      validateExpression(expression.test, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+      validateExpression(expression.consequent, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+      validateExpression(expression.alternate, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
       return;
     default:
       fail(`expression type "${String((expression as { type?: unknown }).type)}" is not admitted`);
@@ -465,7 +528,8 @@ function validateStatements(
   depth: number,
   admitBuiltins: boolean,
   admitLocals: boolean,
-  locals: Set<string>
+  locals: Set<string>,
+  hostNamespaces: ReadonlyMap<string, ReadonlySet<string>> | null
 ): void {
   for (const statement of statements) {
     consumeBudget(budget, depth, 'action body');
@@ -487,7 +551,7 @@ function validateStatements(
           if (statement.operator !== '=') {
             fail(`local binding "${name}" admits only the plain = operator`);
           }
-          validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+          validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
           locals.add(name);
           break;
         }
@@ -495,7 +559,7 @@ function validateStatements(
           fail(`assignment target "${statement.target}" must be declared state`);
         }
         path.forEach((part) => assertSafeKey(part, 'assignment target'));
-        validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+        validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
         break;
       }
       case 'EmitStatement':
@@ -506,15 +570,15 @@ function validateStatements(
         ) {
           fail('event name is empty, too long, or contains control characters');
         }
-        if (statement.data) validateExpression(statement.data, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+        if (statement.data) validateExpression(statement.data, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
         break;
       case 'ReturnStatement':
-        if (statement.value) validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+        if (statement.value) validateExpression(statement.value, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
         break;
       case 'IfStatement':
-        validateExpression(statement.condition, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
-        validateStatements(statement.consequent, params, budget, depth + 1, admitBuiltins, admitLocals, locals);
-        validateStatements(statement.alternate ?? [], params, budget, depth + 1, admitBuiltins, admitLocals, locals);
+        validateExpression(statement.condition, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+        validateStatements(statement.consequent, params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
+        validateStatements(statement.alternate ?? [], params, budget, depth + 1, admitBuiltins, admitLocals, locals, hostNamespaces);
         break;
       default:
         fail(`statement type "${String((statement as { type?: unknown }).type)}" is not admitted`);
@@ -526,7 +590,8 @@ function validateActions(
   rawActions: ReadonlyMap<string, RawHsplusAction>,
   structuredActions: readonly HoloAction[],
   admitBuiltins: boolean,
-  admitLocals: boolean
+  admitLocals: boolean,
+  hostNamespaces: ReadonlyMap<string, ReadonlySet<string>> | null
 ): Map<string, HoloAction> {
   const actions = new Map<string, HoloAction>();
   const budget: AstBudget = {
@@ -555,7 +620,7 @@ function validateActions(
     if (actions.has(action.name)) fail(`duplicate structured action "${action.name}"`);
     if (action.body.length === 0) fail(`action "${action.name}" has an empty structured body`);
     const locals = new Set<string>();
-    validateStatements(action.body, new Set(params), budget, 0, admitBuiltins, admitLocals, locals);
+    validateStatements(action.body, new Set(params), budget, 0, admitBuiltins, admitLocals, locals, hostNamespaces);
     actions.set(action.name, action);
   }
 
@@ -631,6 +696,37 @@ function evaluateExpression(
 ): HeadlessJsonValue {
   switch (expression.type) {
     case 'CallExpression': {
+      if (expression.callee.type === 'MemberExpression') {
+        const callee = expression.callee;
+        if (!environment.hostBindings || callee.computed || callee.object.type !== 'Identifier') {
+          fail('host-binding calls must use a declared namespace.function callee');
+        }
+        const namespaceName = callee.object.name;
+        const functionName = callee.property;
+        const namespace = environment.hostBindings[namespaceName];
+        const hostFunction = namespace?.[functionName];
+        if (typeof hostFunction !== 'function') {
+          fail(`"${namespaceName}.${functionName}" is not a declared host-binding function`);
+        }
+        const callArgs = expression.arguments.map((argument) =>
+          evaluateExpression(argument, environment)
+        );
+        let hostResult: unknown;
+        try {
+          hostResult = hostFunction(...callArgs);
+        } catch (error) {
+          fail(
+            `host binding "${namespaceName}.${functionName}" failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+        }
+        if (hostResult === undefined) {
+          fail(`host binding "${namespaceName}.${functionName}" returned undefined`);
+        }
+        assertFiniteNumbers(hostResult, `host binding "${namespaceName}.${functionName}" result`);
+        return toStrictJson(hostResult, `host binding "${namespaceName}.${functionName}" result`);
+      }
       if (!environment.numericBuiltins) {
         fail('function calls are not admitted in the v1 deterministic subset');
       }
@@ -906,11 +1002,22 @@ export class DeterministicHsplusActionRuntime {
   private readonly initial: HeadlessJsonObject;
   private readonly numericBuiltins: boolean;
   private readonly localBindings: boolean;
+  private readonly hostBindings: DeterministicHostBindings | null;
   private state: HeadlessJsonObject;
 
   constructor(source: string, options?: DeterministicHsplusActionRuntimeOptions) {
     this.numericBuiltins = options?.numericBuiltins === true;
     this.localBindings = options?.localBindings === true;
+    this.hostBindings = options?.hostBindings ?? null;
+    if (this.hostBindings) {
+      for (const [namespace, fns] of Object.entries(this.hostBindings)) {
+        assertSafeKey(namespace, 'host-binding namespace');
+        if (RESERVED_PARAMETER_NAMES.has(namespace) || NUMERIC_BUILTINS.has(namespace)) {
+          fail(`host-binding namespace "${namespace}" collides with a reserved or builtin name`);
+        }
+        for (const name of Object.keys(fns)) assertSafeKey(name, `host binding ${namespace}`);
+      }
+    }
     if (typeof source !== 'string' || source.trim().length === 0) {
       fail('source must be a non-empty string');
     }
@@ -939,17 +1046,27 @@ export class DeterministicHsplusActionRuntime {
       fail('HoloScript+ and structured parser state disagree');
     }
 
+    const hostNamespaces = this.hostBindings
+      ? new Map(
+          Object.entries(this.hostBindings).map(([namespace, fns]) => [
+            namespace,
+            new Set(Object.keys(fns)),
+          ])
+        )
+      : null;
     this.actions = validateActions(
       rawActions,
       structured.ast.logic?.actions ?? [],
       this.numericBuiltins,
-      this.localBindings
+      this.localBindings,
+      hostNamespaces
     );
     this.initial = cloneObject(structuredState, 'initial state');
     this.state = cloneObject(this.initial, 'runtime state');
   }
 
   get subsetId(): string {
+    if (this.hostBindings) return ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V4;
     if (this.localBindings) return ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V3;
     return this.numericBuiltins
       ? ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V2
@@ -989,6 +1106,7 @@ export class DeterministicHsplusActionRuntime {
         numericBuiltins: this.numericBuiltins,
         localBindings: this.localBindings,
         locals: {},
+        hostBindings: this.hostBindings,
       },
       emittedEvents
     );

@@ -4,12 +4,16 @@
  *
  * Executes the generated @trait projection of the std math conformance ops in a
  * REAL WebAssembly runtime — the committed compiler-wasm pkg-node artifact's
- * `evaluate_trait_handler_v3` export (deterministic subset v3: the SHARED
- * engine+wasm id for v2 semantics — the whitelisted numeric builtin table
- * sqrt/sin/cos/acos/min/max/abs/floor — plus bounded local bindings, which the
- * wasm statement walker has admitted since v1; v3 is an honest alias of the v2
- * mode in this lane), running inside Node's WebAssembly engine — and compares
- * every vector in the frozen corpus against its expected value.
+ * `evaluate_trait_handler_v4` export (deterministic subset v4: the v3 grammar —
+ * numeric builtins plus bounded local bindings — PLUS host-binding member
+ * calls `ns.fn(args)` into the injected std host-ABI binding object), running
+ * inside Node's WebAssembly engine — and compares every vector in the frozen
+ * corpus against its expected value. The host-binding object is the canonical
+ * createStdHostBindings() from packages/std/conformance/host-abi/
+ * std-host-binding.mjs, so every `math.*` / `list_lib.*` / `map_lib.*` /
+ * `set_lib.*` call a vector makes crosses the actual guest/host WebAssembly
+ * boundary as canonical JSON — the boundary crossing IS the ABI under test;
+ * the receipt pins the binding module and descriptor by sha (hostAbi section).
  * The wasm binary executed here is byte-identical to the `--target web` build
  * shipped for browsers (both artifacts are hashed into the receipt), so this
  * leg proves the browser-shipped binary executes the std ABI subset, without
@@ -30,6 +34,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createStdHostBindings } from '../../packages/std/conformance/host-abi/std-host-binding.mjs';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..', '..');
@@ -87,15 +92,25 @@ const artifactJs = join(repoRoot, artifactDirRel, 'holoscript_wasm.js');
 const artifactWasm = join(repoRoot, artifactDirRel, 'holoscript_wasm_bg.wasm');
 const webArtifactWasm = join(repoRoot, webArtifactDirRel, 'holoscript_wasm_bg.wasm');
 
+const hostAbiDirRel = 'packages/std/conformance/host-abi';
+const bindingModulePath = join(repoRoot, hostAbiDirRel, 'std-host-binding.mjs');
+const descriptorPath = join(repoRoot, hostAbiDirRel, 'std-host-abi.v0.json');
+
 if (!existsSync(artifactJs) || !existsSync(artifactWasm)) {
   misconfigured(`wasm execution artifact (${artifactDirRel}) not found — build it before running`);
 }
+if (!existsSync(bindingModulePath) || !existsSync(descriptorPath)) {
+  misconfigured(`std host-ABI surface (${hostAbiDirRel}) not found — binding module and descriptor are required`);
+}
 
-// Evaluator pin: the v3 export runs the shared engine+wasm deterministic
-// subset (v2 numeric builtins plus bounded local bindings — an honest alias of
-// the v2 mode in the wasm lane); export name and id are recorded in the receipt.
-const EVALUATOR_EXPORT = 'evaluate_trait_handler_v3';
-const SUBSET_ID = 'holoscript-engine-hsplus-deterministic-action-subset-v3-local-bindings';
+// Evaluator pin: the v4 export runs the shared engine+wasm deterministic
+// subset v4 (v3 grammar plus host-binding member calls into the injected
+// createStdHostBindings() object — every ns.fn(args) call crosses the
+// guest/host WebAssembly boundary as canonical JSON); export name, id, and
+// the host-ABI pins are recorded in the receipt.
+const EVALUATOR_EXPORT = 'evaluate_trait_handler_v4';
+const SUBSET_ID = 'holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings';
+const STD_HOST_ABI_SCHEMA = 'holoscript.std-host-abi.v0';
 
 const wasm = require(artifactJs);
 if (typeof wasm[EVALUATOR_EXPORT] !== 'function') {
@@ -103,6 +118,11 @@ if (typeof wasm[EVALUATOR_EXPORT] !== 'function') {
     `pkg-node artifact does not export ${EVALUATOR_EXPORT} — rebuild packages/compiler-wasm`
   );
 }
+
+// The canonical host-binding object every vector executes against. Created
+// once; the binding functions are pure, so shared state cannot leak between
+// vectors.
+const hostBindings = createStdHostBindings();
 
 // --- Shared evaluation + comparison ------------------------------------------
 
@@ -161,7 +181,8 @@ function runVector(projectionSource, traitName, vector, expectedOverride) {
         projectionSource,
         traitName,
         vector.op,
-        JSON.stringify(vector.args ?? {})
+        JSON.stringify(vector.args ?? {}),
+        hostBindings
       )
     );
   } catch (error) {
@@ -186,24 +207,26 @@ function runVector(projectionSource, traitName, vector, expectedOverride) {
 
 // --- Self-test ---------------------------------------------------------------
 // Embedded fixture: independent of the generated corpus, exercises the REAL
-// wasm evaluator, and proves a deliberately wrong expectation goes red.
+// wasm evaluator AND the real host-binding boundary (math.clamp crosses the
+// guest/host WebAssembly boundary via the injected createStdHostBindings()
+// object), and proves a deliberately wrong expectation goes red.
 
 if (selfTest) {
   const fixtureProjection = [
     '@trait self_test_conformance {',
-    '  @on_lerp(a, b, t) => {',
-    '    return { value: a + (b - a) * t }',
+    '  @on_clamp(value, lo, hi) => {',
+    '    return { value: math.clamp(value, lo, hi) }',
     '  }',
     '}',
     '',
   ].join('\n');
   const fixtureVector = {
-    id: 'self-test-lerp',
-    op: 'on_lerp',
-    args: { a: 0, b: 10, t: 0.5 },
-    expected: { value: 5 },
+    id: 'self-test-host-clamp',
+    op: 'on_clamp',
+    args: { value: 42, lo: 0, hi: 10 },
+    expected: { value: 10 },
     tolerance: 0,
-    kind: 'pure',
+    kind: 'host-binding',
   };
   const traitName = traitNameOf(fixtureProjection);
   const good = runVector(fixtureProjection, traitName, fixtureVector);
@@ -215,7 +238,7 @@ if (selfTest) {
     );
   }
   console.log(
-    '[std-abi-conformance-wasm] self-test OK: clean vector passes in the wasm runtime, poisoned expectation goes red'
+    '[std-abi-conformance-wasm] self-test OK: clean host-binding vector crosses the wasm boundary and passes, poisoned expectation goes red'
   );
   process.exit(0);
 }
@@ -302,6 +325,11 @@ const receipt = {
   },
   evaluatorExport: EVALUATOR_EXPORT,
   subsetId: SUBSET_ID,
+  hostAbi: {
+    schema: STD_HOST_ABI_SCHEMA,
+    bindingModuleSha256: sha256(readFileSync(bindingModulePath)),
+    descriptorSha256: sha256(readFileSync(descriptorPath)),
+  },
   sources: {
     traitProjectionSha256: sha256(projectionBytes),
     vectorsSha256: sha256(vectorsBytes),
