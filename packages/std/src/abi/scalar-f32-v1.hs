@@ -3,9 +3,10 @@
 // Executable cross-target subset of @holoscript/std single-precision math.
 //
 // Every parameter, literal, intermediate arithmetic result, and return uses
-// IEEE-754 binary32 rounding. Callers must provide a non-zero input span to
-// inverse-lerp and remap. NaN, infinity, signed-zero preservation, and
-// division-by-zero behavior remain outside this ABI proof.
+// IEEE-754 binary32 rounding. Inputs and every arithmetic result must remain
+// finite. The browser-WASM/UAAL host and owned-metal backend fail closed on
+// non-finite inputs, division by zero, and overflow before the value crosses
+// the ABI boundary. Signed-zero preservation remains outside this proof.
 
 export function std_math_clamp_f32(value: f32, minimum: f32, maximum: f32): f32 {
   if (value < minimum) {

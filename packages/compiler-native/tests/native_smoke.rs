@@ -89,6 +89,32 @@ const F32_EXIT_FIVE: &str = r#"
         return 1
     }
 "#;
+const F64_DIVISION_BY_ZERO_TRAPS: &str = r#"
+    function divide(numerator: f64, denominator: f64): f64 {
+        return numerator / denominator
+    }
+
+    function main(): i32 {
+        let value: f64 = divide(1.0, 0.0)
+        if (value == 0.0) {
+            return 0
+        }
+        return 0
+    }
+"#;
+const F32_OVERFLOW_TRAPS: &str = r#"
+    function multiply(left: f32, right: f32): f32 {
+        return left * right
+    }
+
+    function main(): i32 {
+        let value: f32 = multiply(3.4e38, 2.0)
+        if (value == 0.0) {
+            return 0
+        }
+        return 0
+    }
+"#;
 const FLOAT_RECURSIVE_AGGREGATE_EXIT_FIVE: &str = r#"
     struct Vec3I32 { x: i32, y: i32, z: i32 }
     struct Aabb3I32 { min: Vec3I32, max: Vec3I32 }
@@ -438,6 +464,26 @@ fn compiles_f32_with_single_precision_rounding() {
     assert_eq!(status.code(), Some(5));
 
     fs::remove_file(&artifact.executable).expect("remove f32 smoke-test executable");
+}
+
+#[test]
+fn finite_float_contract_traps_division_by_zero_and_overflow() {
+    for (name, source) in [
+        ("native-f64-zero-divisor", F64_DIVISION_BY_ZERO_TRAPS),
+        ("native-f32-overflow", F32_OVERFLOW_TRAPS),
+    ] {
+        let executable = scratch_executable(name);
+        let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+            .expect("finite-only floating source should compile to a guarded native executable");
+        let status = Command::new(&artifact.executable)
+            .status()
+            .expect("guarded native HoloScript executable should run");
+        assert!(
+            !status.success(),
+            "{name} must trap before a non-finite value becomes observable"
+        );
+        fs::remove_file(&artifact.executable).expect("remove guarded float executable");
+    }
 }
 
 #[test]

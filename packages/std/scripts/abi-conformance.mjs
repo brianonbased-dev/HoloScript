@@ -95,8 +95,76 @@ function main(): i32 {
 }
 `;
 
+const nonFiniteFailureProbes = [
+  {
+    id: 'f64-zero-divisor',
+    source: `
+function finite_probe(left: f64, right: f64): f64 {
+  return left / right
+}
+function main(): i32 {
+  let value: f64 = finite_probe(1.0, 0.0)
+  if (value == 0.0) { return 0 }
+  return 0
+}
+`,
+  },
+  {
+    id: 'f64-overflow',
+    source: `
+function finite_probe(left: f64, right: f64): f64 {
+  return left * right
+}
+function main(): i32 {
+  let value: f64 = finite_probe(1.0e308, 1.0e308)
+  if (value == 0.0) { return 0 }
+  return 0
+}
+`,
+  },
+  {
+    id: 'f32-zero-divisor',
+    source: `
+function finite_probe(left: f32, right: f32): f32 {
+  return left / right
+}
+function main(): i32 {
+  let value: f32 = finite_probe(1.0, 0.0)
+  if (value == 0.0) { return 0 }
+  return 0
+}
+`,
+  },
+  {
+    id: 'f32-overflow',
+    source: `
+function finite_probe(left: f32, right: f32): f32 {
+  return left * right
+}
+function main(): i32 {
+  let value: f32 = finite_probe(3.4e38, 2.0)
+  if (value == 0.0) { return 0 }
+  return 0
+}
+`,
+  },
+];
+
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
+}
+
+function captureExpectedFailure(id, action, expectedMessage) {
+  try {
+    action();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes(expectedMessage)) {
+      throw new Error(`${id} failed with an unexpected diagnostic: ${message}`);
+    }
+    return { id, rejected: true, diagnostic: message };
+  }
+  throw new Error(`${id} did not fail closed`);
 }
 
 function requireFile(path, purpose) {
@@ -227,7 +295,7 @@ function runBrowser(command, url, profilePath) {
   });
 }
 
-function browserHtml(source) {
+function browserHtml(source, finiteFailureProbes) {
   return `<!doctype html>
 <html>
   <head>
@@ -238,6 +306,7 @@ function browserHtml(source) {
     <pre id="result">pending</pre>
     <script type="module">
       const source = ${JSON.stringify(source)};
+      const finiteFailureProbes = ${JSON.stringify(finiteFailureProbes)};
       const output = document.querySelector('#result');
 
       try {
@@ -309,6 +378,22 @@ function browserHtml(source) {
         const log = vm.exportLog();
         const bytecodeSha256 = computeUAALBytecodeSha256(compiled);
         const replay = await replayUAALLog(compiled, log);
+        const nonFiniteFailureProbes = [];
+        for (const probe of finiteFailureProbes) {
+          const probeCompiled = JSON.parse(compile_to_uaal(probe.source));
+          if (probeCompiled.error) throw new Error(probeCompiled.error);
+          const probeVm = new UAALVirtualMachine({ recordLog: true });
+          registerHoloScriptStdUaalExecHandler(probeVm, UAALOpCode.EXEC);
+          const probeResult = await probeVm.execute(probeCompiled);
+          const probeLog = probeVm.exportLog();
+          const probeReplay = await replayUAALLog(probeCompiled, probeLog);
+          nonFiniteFailureProbes.push({
+            id: probe.id,
+            status: probeResult.taskStatus,
+            replayValid: probeReplay.valid,
+            instructionCount: probeCompiled.instructions.length,
+          });
+        }
         output.textContent = JSON.stringify({
           status: result.taskStatus,
           value: result.stackTop,
@@ -321,6 +406,7 @@ function browserHtml(source) {
           bytecodeSha256,
           receiptHashMatches: bytecodeSha256 === log.bytecodeSha256,
           replayValid: replay.valid,
+          nonFiniteFailureProbes,
           lastSteps: result.taskStatus === 'ERROR' ? log.steps.slice(-8) : undefined,
           wasm: typeof WebAssembly === 'object',
           userAgent: navigator.userAgent,
@@ -341,7 +427,7 @@ function browserHtml(source) {
 async function executeBrowserWasm(source) {
   const command = browserCommand();
   const profilePath = mkdtempSync(join(tmpdir(), 'holoscript-std-abi-browser-'));
-  const html = browserHtml(source);
+  const html = browserHtml(source, nonFiniteFailureProbes);
   const routeMap = new Map([
     ['/index.html', { body: html, contentType: 'text/html; charset=utf-8' }],
     [
@@ -439,6 +525,10 @@ async function executeBrowserWasm(source) {
       result.aggregateReferenceInstructionCounts?.borrow < 4 ||
       result.aggregateReferenceInstructionCounts?.load < 2 ||
       result.aggregateReferenceInstructionCounts?.store < 1 ||
+      result.nonFiniteFailureProbes?.length !== nonFiniteFailureProbes.length ||
+      result.nonFiniteFailureProbes.some(
+        (probe) => probe.status !== 'ERROR' || probe.replayValid !== true
+      ) ||
       !/^[0-9a-f]{64}$/.test(result.bytecodeSha256)
     ) {
       throw new Error(`browser-WASM result mismatch: ${JSON.stringify(result)}`);
@@ -457,6 +547,7 @@ async function executeBrowserWasm(source) {
       bytecodeSha256: result.bytecodeSha256,
       receiptHashMatches: result.receiptHashMatches,
       replayValid: result.replayValid,
+      nonFiniteFailureProbes: result.nonFiniteFailureProbes,
       result: result.value,
     };
   } finally {
@@ -471,13 +562,14 @@ async function executeNode() {
   const {
     aabbMath,
     clamp,
-    clampF32,
-    inverseLerp,
-    inverseLerpF32,
-    lerp,
-    lerpF32,
-    remap,
-    remapF32,
+    clampFiniteF32,
+    clampFiniteF64,
+    inverseLerpFiniteF32,
+    inverseLerpFiniteF64,
+    lerpFiniteF32,
+    lerpFiniteF64,
+    remapFiniteF32,
+    remapFiniteF64,
     sign,
     step,
     vec3Math,
@@ -525,12 +617,12 @@ async function executeNode() {
   const i32Digest =
     scalarDigest + dot + (cross.x + 4) * 2 + (cross.y + 1) * 3 + (cross.z + 5) * 4 + lengthSq;
   const floatingPointResults = {
-    below: clamp(-1.5, 0, 2),
-    inside: clamp(1.25, 0, 2),
-    above: clamp(3, 0, 2),
-    lerp: lerp(2, 10, 0.25),
-    inverseLerp: inverseLerp(2, 10, 4),
-    remap: remap(0.25, 0, 1, 10, 18),
+    below: clampFiniteF64(-1.5, 0, 2),
+    inside: clampFiniteF64(1.25, 0, 2),
+    above: clampFiniteF64(3, 0, 2),
+    lerp: lerpFiniteF64(2, 10, 0.25),
+    inverseLerp: inverseLerpFiniteF64(2, 10, 4),
+    remap: remapFiniteF64(0.25, 0, 1, 10, 18),
   };
   const floatingPointMatches =
     floatingPointResults.below === 0 &&
@@ -540,11 +632,11 @@ async function executeNode() {
     floatingPointResults.inverseLerp === 0.25 &&
     floatingPointResults.remap === 12;
   const binary32Results = {
-    below: clampF32(-1.5, 0, 2),
-    inside: clampF32(1.00000007, 0, 2),
-    lerp: lerpF32(16_777_216, 16_777_218, 0.5),
-    inverseLerp: inverseLerpF32(0, 10, 1),
-    remap: remapF32(0.1, 0, 1, 10, 18),
+    below: clampFiniteF32(-1.5, 0, 2),
+    inside: clampFiniteF32(1.00000007, 0, 2),
+    lerp: lerpFiniteF32(16_777_216, 16_777_218, 0.5),
+    inverseLerp: inverseLerpFiniteF32(0, 10, 1),
+    remap: remapFiniteF32(0.1, 0, 1, 10, 18),
   };
   const binary32Matches =
     binary32Results.below === 0 &&
@@ -552,6 +644,28 @@ async function executeNode() {
     binary32Results.lerp === 16_777_216 &&
     binary32Results.inverseLerp === 0.10000000149011612 &&
     binary32Results.remap === 10.800000190734863;
+  const nonFiniteFailureProbes = [
+    captureExpectedFailure(
+      'f64-zero-divisor',
+      () => inverseLerpFiniteF64(1, 1, 1),
+      'rejects division by zero'
+    ),
+    captureExpectedFailure(
+      'f64-overflow',
+      () => lerpFiniteF64(Number.MAX_VALUE, -Number.MAX_VALUE, 2),
+      'produced a non-finite f64 result'
+    ),
+    captureExpectedFailure(
+      'f32-zero-divisor',
+      () => inverseLerpFiniteF32(1, 1, 1),
+      'rejects division by zero'
+    ),
+    captureExpectedFailure(
+      'f32-overflow',
+      () => lerpFiniteF32(3.4e38, -3.4e38, 2),
+      'produced a non-finite rounded f32 result'
+    ),
+  ];
   const result =
     boundsVolume === 60 &&
     collectionDigest === 42 &&
@@ -579,6 +693,7 @@ async function executeNode() {
     },
     floatingPointResults,
     binary32Results,
+    nonFiniteFailureProbes,
     result,
   };
 }
@@ -642,6 +757,59 @@ function executeOwnedMetal(source) {
   }
 }
 
+function executeOwnedMetalFailureProbe(probe) {
+  const scratchPath = mkdtempSync(join(tmpdir(), `holoscript-std-${probe.id}-`));
+  const sourcePath = join(scratchPath, 'main.hs');
+  const executablePath = join(
+    scratchPath,
+    process.platform === 'win32' ? `${probe.id}.exe` : probe.id
+  );
+  try {
+    writeFileSync(sourcePath, probe.source, 'utf8');
+    const stdout = execFileSync(
+      cargoCommand(),
+      [
+        'run',
+        '--quiet',
+        '--manifest-path',
+        nativeManifestPath,
+        '--bin',
+        'holoscriptc',
+        '--',
+        sourcePath,
+        '-o',
+        executablePath,
+      ],
+      {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        maxBuffer: 1024 * 1024,
+      }
+    );
+    const compileReceipt = JSON.parse(stdout);
+    const execution = spawnSync(executablePath, [], {
+      cwd: scratchPath,
+      encoding: 'utf8',
+      timeout: 30_000,
+      windowsHide: true,
+    });
+    if (execution.error) throw execution.error;
+    if (!execution.signal && execution.status === 0) {
+      throw new Error(`${probe.id} returned success instead of trapping`);
+    }
+    return {
+      id: probe.id,
+      rejected: true,
+      exitStatus: execution.status,
+      signal: execution.signal,
+      machineContract: compileReceipt.machine_contract ?? compileReceipt.machineContract,
+      objectSha256: compileReceipt.object_sha256,
+    };
+  } finally {
+    rmSync(scratchPath, { recursive: true, force: true });
+  }
+}
+
 requireFile(scalarAbiPath, 'scalar ABI source');
 requireFile(scalarF32AbiPath, 'scalar f32 ABI source');
 requireFile(scalarF64AbiPath, 'scalar f64 ABI source');
@@ -665,7 +833,10 @@ const executableSource = `${scalarAbiSource.trim()}\n${scalarF32AbiSource.trim()
 const wasmReceipt = JSON.parse(readFileSync(wasmReceiptPath, 'utf8'));
 const node = await executeNode();
 const browserWasm = await executeBrowserWasm(executableSource);
-const ownedMetal = executeOwnedMetal(executableSource);
+const ownedMetal = {
+  ...executeOwnedMetal(executableSource),
+  nonFiniteFailureProbes: nonFiniteFailureProbes.map(executeOwnedMetalFailureProbe),
+};
 const results = [node.result, browserWasm.result, ownedMetal.result];
 if (!results.every((value) => value === expectedDigest)) {
   throw new Error(`cross-target ABI mismatch: ${JSON.stringify(results)}`);
@@ -674,7 +845,7 @@ if (!results.every((value) => value === expectedDigest)) {
 console.log(
   JSON.stringify(
     {
-      schema: 'holoscript.std.math-abi-conformance.v9',
+      schema: 'holoscript.std.math-abi-conformance.v10',
       status: 'pass',
       abis: [
         {
@@ -713,11 +884,13 @@ console.log(
           id: 'hs.std.scalar.f32.v1',
           source: 'packages/std/src/abi/scalar-f32-v1.hs',
           sourceSha256: sha256(scalarF32AbiSource),
+          failureContract: 'finite-input-and-result-or-fail-closed',
         },
         {
           id: 'hs.std.scalar.f64.v1',
           source: 'packages/std/src/abi/scalar-f64-v1.hs',
           sourceSha256: sha256(scalarF64AbiSource),
+          failureContract: 'finite-input-and-result-or-fail-closed',
         },
       ],
       expectedDigest,
@@ -745,7 +918,14 @@ console.log(
         ownedBufferValueAbi: 'hs.buffer.owned.v1',
         provesCallScopedSharedAndMutableAggregateReferences: true,
         aggregateReferenceAbi: 'hs.aggregate.ref.v1',
-        provesNonFiniteFloatingPointEdgeSemantics: false,
+        provesNonFiniteFloatingPointEdgeSemantics: {
+          contract: 'finite-input-and-result-or-fail-closed',
+          widths: ['f32', 'f64'],
+          rejected: ['non-finite input', 'division by zero', 'overflow result'],
+          browserWasmUaalFailureReceipts: browserWasm.nonFiniteFailureProbes,
+          ownedMetalFailureReceipts: ownedMetal.nonFiniteFailureProbes,
+          signedZeroPreservation: false,
+        },
         provesAggregateVectorCallingConvention: true,
         provesAggregateValueAbi: 'hs.aggregate.value.v1',
         provesAggregateLayout: 'StdVec3I32{x:i32,y:i32,z:i32}',

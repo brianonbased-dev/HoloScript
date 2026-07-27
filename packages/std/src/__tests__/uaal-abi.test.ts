@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   HOLOSCRIPT_AGGREGATE_VALUE_ABI,
   HOLOSCRIPT_AGGREGATE_VALUE_ABI_V2,
+  HOLOSCRIPT_F32_BINARY_ABI,
+  HOLOSCRIPT_F64_BINARY_ABI,
   registerHoloScriptStdUaalAggregateReferenceHandlers,
   registerHoloScriptStdUaalOwnedBufferHandlers,
   registerHoloScriptStdUaalExecHandler,
@@ -44,6 +46,32 @@ class TestProxy {
 }
 
 describe('HoloScript std UAAL EXEC ABI', () => {
+  it('fails closed before a floating result becomes non-finite', () => {
+    let handler: HoloScriptStdUaalExecHandler | undefined;
+    registerHoloScriptStdUaalExecHandler(
+      {
+        registerHandler(_opcode, registered) {
+          handler = registered;
+        },
+      },
+      0x20
+    );
+
+    const f64 = new TestProxy();
+    f64.push(Number.MAX_VALUE);
+    f64.push(2);
+    expect(() => handler?.(f64, [HOLOSCRIPT_F64_BINARY_ABI, '*'])).toThrow(
+      'produced a non-finite result'
+    );
+
+    const f32 = new TestProxy();
+    f32.push(Math.fround(3.4e38));
+    f32.push(2);
+    expect(() => handler?.(f32, [HOLOSCRIPT_F32_BINARY_ABI, '*'])).toThrow(
+      'produced a non-finite result'
+    );
+  });
+
   it('constructs and projects a layout-checked immutable aggregate value', () => {
     let handler: HoloScriptStdUaalExecHandler | undefined;
     registerHoloScriptStdUaalExecHandler(

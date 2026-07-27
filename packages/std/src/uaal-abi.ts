@@ -424,7 +424,11 @@ function executeNumericAbi(proxy: HoloScriptStdUaalVmProxy, abi: string, operato
   const roundedLeft = isF32 ? Math.fround(left) : left;
   const roundedRight = isF32 ? Math.fround(right) : right;
   const pushArithmetic = (value: number): void => {
-    proxy.push(isF32 ? Math.fround(value) : value);
+    const roundedValue = isF32 ? Math.fround(value) : value;
+    if (!Number.isFinite(roundedValue)) {
+      throw new Error(`${abi} produced a non-finite result`);
+    }
+    proxy.push(roundedValue);
   };
   switch (operator) {
     case '+':

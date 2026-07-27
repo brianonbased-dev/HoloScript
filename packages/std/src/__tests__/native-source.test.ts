@@ -93,6 +93,14 @@ describe('@holoscript/std native source tracer', () => {
             'std_math_inverse_lerp_f32',
             'std_math_remap_f32',
           ],
+          failureContract: 'finite-input-and-result-or-fail-closed',
+          provenFailures: ['non-finite input', 'division by zero', 'overflow result'],
+          nodeReferenceFunctions: [
+            'clampFiniteF32',
+            'lerpFiniteF32',
+            'inverseLerpFiniteF32',
+            'remapFiniteF32',
+          ],
           provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
         }),
         expect.objectContaining({
@@ -102,6 +110,14 @@ describe('@holoscript/std native source tracer', () => {
             'std_math_lerp_f64',
             'std_math_inverse_lerp_f64',
             'std_math_remap_f64',
+          ],
+          failureContract: 'finite-input-and-result-or-fail-closed',
+          provenFailures: ['non-finite input', 'division by zero', 'overflow result'],
+          nodeReferenceFunctions: [
+            'clampFiniteF64',
+            'lerpFiniteF64',
+            'inverseLerpFiniteF64',
+            'remapFiniteF64',
           ],
           provenTargets: ['node', 'browser-wasm-uaal', 'owned-metal'],
         }),
@@ -125,7 +141,13 @@ describe('@holoscript/std native source tracer', () => {
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain('finite scalar f64');
     expect(packageJson.holoscript.runtimeBoundary).toContain(
-      'Non-finite floating-point edge semantics'
+      'finite-input-and-result-or-fail-closed'
+    );
+    expect(packageJson.holoscript.runtimeBoundary).toContain(
+      'reject non-finite inputs, division by zero, and overflow results'
+    );
+    expect(packageJson.holoscript.runtimeBoundary).toContain(
+      'signed-zero preservation remains unproven'
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain('receipt-proven');
     expect(packageJson.holoscript.runtimeBoundary).toContain(
@@ -204,7 +226,8 @@ describe('@holoscript/std native source tracer', () => {
     expect(source).toContain('export function std_math_lerp_f64');
     expect(source).toContain('export function std_math_inverse_lerp_f64');
     expect(source).toContain('export function std_math_remap_f64');
-    expect(source).toContain('NaN, infinity, signed-zero');
+    expect(source).toContain('non-finite inputs, division by zero, and overflow');
+    expect(source).toContain('Signed-zero preservation remains outside');
     expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
   });
 
@@ -215,7 +238,8 @@ describe('@holoscript/std native source tracer', () => {
     expect(source).toContain('export function std_math_inverse_lerp_f32');
     expect(source).toContain('export function std_math_remap_f32');
     expect(source).toContain('intermediate arithmetic result');
-    expect(source).toContain('NaN, infinity, signed-zero');
+    expect(source).toContain('non-finite inputs, division by zero, and overflow');
+    expect(source).toContain('Signed-zero preservation remains outside');
     expect(source).not.toMatch(/[A-Za-z]:[/\\]|\/Users\//);
   });
 });

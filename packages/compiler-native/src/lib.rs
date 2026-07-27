@@ -59,6 +59,8 @@
 //! `hs-machine-v37` adds scalar IEEE-754 `f32` with single-precision literals and operations
 //! while retaining the v35 f64 subset. `hs-machine-v38` composes that float lowering with modules.
 //! `hs-machine-v39` composes the v38 float surface with recursively laid-out by-value aggregates.
+//! The v35/v37/v39 finite-float contracts trap on non-finite parameters, division-by-zero results,
+//! and arithmetic overflow before a non-finite value can cross a function or storage boundary.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
 
 mod project;
@@ -2681,6 +2683,26 @@ fn f32_enabled(machine_contract: &str) -> bool {
     )
 }
 
+fn trap_non_finite_float(
+    builder: &mut FunctionBuilder<'_>,
+    value: Value,
+    machine_type: MachineType,
+) {
+    if !machine_type.is_float() {
+        return;
+    }
+    let unordered = builder.ins().fcmp(FloatCC::Unordered, value, value);
+    builder.ins().trapnz(unordered, TrapCode::unwrap_user(13));
+    let magnitude = builder.ins().fabs(value);
+    let maximum = match machine_type {
+        MachineType::F32 => builder.ins().f32const(f32::MAX),
+        MachineType::F64 => builder.ins().f64const(f64::MAX),
+        _ => unreachable!("finite floating guard requires f32 or f64"),
+    };
+    let infinite = builder.ins().fcmp(FloatCC::GreaterThan, magnitude, maximum);
+    builder.ins().trapnz(infinite, TrapCode::unwrap_user(13));
+}
+
 fn bool_enabled(machine_contract: &str) -> bool {
     if latest_reference_contract(machine_contract) {
         return true;
@@ -4942,6 +4964,7 @@ fn lower_typed_ast_to_object(
                         let value = block_params
                             .next()
                             .expect("scalar parameter must have one ABI value");
+                        trap_non_finite_float(&mut builder, value, machine_type);
                         locals.insert(
                             name.clone(),
                             TypedValue {
@@ -17445,6 +17468,7 @@ fn lower_typed_expression(
                     )));
                 }
             };
+            trap_non_finite_float(builder, value, expected);
             TypedValue {
                 value,
                 machine_type: expected,

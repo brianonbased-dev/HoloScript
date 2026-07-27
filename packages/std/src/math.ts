@@ -87,6 +87,141 @@ export function remapF32(
   return lerpF32(outMin, outMax, inverseLerpF32(inMin, inMax, value));
 }
 
+function requireFiniteF64(value: number, context: string): number {
+  if (!Number.isFinite(value)) {
+    throw new Error(`${context} requires finite f64`);
+  }
+  return value;
+}
+
+function requireFiniteF64Result(value: number, context: string): number {
+  if (!Number.isFinite(value)) {
+    throw new Error(`${context} produced a non-finite f64 result`);
+  }
+  return value;
+}
+
+function requireFiniteF32(value: number, context: string): number {
+  const rounded = Math.fround(value);
+  if (!Number.isFinite(rounded)) {
+    throw new Error(`${context} requires finite rounded f32`);
+  }
+  return rounded;
+}
+
+function requireFiniteF32Result(value: number, context: string): number {
+  const rounded = Math.fround(value);
+  if (!Number.isFinite(rounded)) {
+    throw new Error(`${context} produced a non-finite rounded f32 result`);
+  }
+  return rounded;
+}
+
+/** Finite-only f64 clamp reference for `hs.std.scalar.f64.v1`. */
+export function clampFiniteF64(value: number, min: number, max: number): number {
+  return requireFiniteF64Result(
+    clamp(
+      requireFiniteF64(value, 'clampFiniteF64'),
+      requireFiniteF64(min, 'clampFiniteF64'),
+      requireFiniteF64(max, 'clampFiniteF64')
+    ),
+    'clampFiniteF64'
+  );
+}
+
+/** Finite-only f64 interpolation reference for `hs.std.scalar.f64.v1`. */
+export function lerpFiniteF64(a: number, b: number, t: number): number {
+  return requireFiniteF64Result(
+    lerp(
+      requireFiniteF64(a, 'lerpFiniteF64'),
+      requireFiniteF64(b, 'lerpFiniteF64'),
+      requireFiniteF64(t, 'lerpFiniteF64')
+    ),
+    'lerpFiniteF64'
+  );
+}
+
+/** Finite-only f64 inverse interpolation reference with a fail-closed divisor. */
+export function inverseLerpFiniteF64(a: number, b: number, value: number): number {
+  const start = requireFiniteF64(a, 'inverseLerpFiniteF64');
+  const end = requireFiniteF64(b, 'inverseLerpFiniteF64');
+  const finiteValue = requireFiniteF64(value, 'inverseLerpFiniteF64');
+  const denominator = requireFiniteF64Result(end - start, 'inverseLerpFiniteF64');
+  if (denominator === 0) {
+    throw new Error('inverseLerpFiniteF64 rejects division by zero');
+  }
+  return requireFiniteF64Result((finiteValue - start) / denominator, 'inverseLerpFiniteF64');
+}
+
+/** Finite-only f64 remap reference for `hs.std.scalar.f64.v1`. */
+export function remapFiniteF64(
+  value: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number
+): number {
+  return lerpFiniteF64(
+    requireFiniteF64(outMin, 'remapFiniteF64'),
+    requireFiniteF64(outMax, 'remapFiniteF64'),
+    inverseLerpFiniteF64(inMin, inMax, requireFiniteF64(value, 'remapFiniteF64'))
+  );
+}
+
+/** Finite-only binary32 clamp reference for `hs.std.scalar.f32.v1`. */
+export function clampFiniteF32(value: number, min: number, max: number): number {
+  return requireFiniteF32Result(
+    clampF32(
+      requireFiniteF32(value, 'clampFiniteF32'),
+      requireFiniteF32(min, 'clampFiniteF32'),
+      requireFiniteF32(max, 'clampFiniteF32')
+    ),
+    'clampFiniteF32'
+  );
+}
+
+/** Finite-only binary32 interpolation reference for `hs.std.scalar.f32.v1`. */
+export function lerpFiniteF32(a: number, b: number, t: number): number {
+  return requireFiniteF32Result(
+    lerpF32(
+      requireFiniteF32(a, 'lerpFiniteF32'),
+      requireFiniteF32(b, 'lerpFiniteF32'),
+      requireFiniteF32(t, 'lerpFiniteF32')
+    ),
+    'lerpFiniteF32'
+  );
+}
+
+/** Finite-only binary32 inverse interpolation reference with a fail-closed divisor. */
+export function inverseLerpFiniteF32(a: number, b: number, value: number): number {
+  const start = requireFiniteF32(a, 'inverseLerpFiniteF32');
+  const end = requireFiniteF32(b, 'inverseLerpFiniteF32');
+  const roundedValue = requireFiniteF32(value, 'inverseLerpFiniteF32');
+  const denominator = requireFiniteF32Result(end - start, 'inverseLerpFiniteF32');
+  if (denominator === 0) {
+    throw new Error('inverseLerpFiniteF32 rejects division by zero');
+  }
+  return requireFiniteF32Result(
+    Math.fround(Math.fround(roundedValue - start) / denominator),
+    'inverseLerpFiniteF32'
+  );
+}
+
+/** Finite-only binary32 remap reference for `hs.std.scalar.f32.v1`. */
+export function remapFiniteF32(
+  value: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number
+): number {
+  return lerpFiniteF32(
+    requireFiniteF32(outMin, 'remapFiniteF32'),
+    requireFiniteF32(outMax, 'remapFiniteF32'),
+    inverseLerpFiniteF32(inMin, inMax, requireFiniteF32(value, 'remapFiniteF32'))
+  );
+}
+
 export function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
   return t * t * (3 - 2 * t);
