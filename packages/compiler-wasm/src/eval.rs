@@ -69,6 +69,40 @@
 //! admission rules, and error mapping with a mock dispatcher — only the
 //! js_sys-backed dispatcher is wasm32-gated.
 //!
+//! A fifth mode — `evaluate_trait_handler_v5`, subset id
+//! `holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories` —
+//! admits the v4 grammar PLUS what the REAL packaged `@holoscript/std` sources
+//! (`packages/std/src/math.hsplus`, `collections.hsplus`) need to execute as
+//! authored:
+//!
+//! - **Factory calls**: bare-identifier zero-argument calls in the whitelisted
+//!   factory table ([`FACTORIES`]) evaluate to an opaque NAMESPACE HANDLE:
+//!   `get_std_math_lib()` → the injected `math` namespace;
+//!   `get_std_collections_lib()` → the UNION of the injected `list_lib` +
+//!   `map_lib` + `set_lib` namespaces (one handle exposing all their
+//!   functions; any function-name collision across the three is a structured
+//!   `namespace-collision` error at handle CONSTRUCTION, which requires the
+//!   [`HostDispatcher::functions`] enumeration seam). A factory name shadowed
+//!   by a bound parameter/local is NOT a factory call (bound names take
+//!   precedence, same rule as v4 namespaces) and falls through to the builtin
+//!   table's refusal.
+//! - **Handle locals**: locals may hold handles; a member-callee whose ROOT
+//!   identifier resolves to a handle-valued local dispatches the named
+//!   function on that handle (same canonical-JSON marshalling and re-entry
+//!   rails as v4). Root resolution precedence stays params → locals → (v4
+//!   ambient namespaces still work when the root is unbound).
+//! - **Handles never escape**: a handle is an evaluator-internal value.
+//!   Returning one (even nested in an object/array), embedding one in an
+//!   object or array literal, comparing one, or passing one as a host-call
+//!   argument is a structured `namespace-handle-escape` error.
+//! - **@on_spawn factory pre-pass**: when invoking handler H of trait T, if T
+//!   has an `@on_spawn` whose parsed body contains statements of the exact
+//!   shape `<alias> = <factory>()`, those aliases are pre-bound as handle
+//!   locals BEFORE H executes (handler params take precedence over aliases).
+//!   on_spawn side effects are not executed; only factory-alias bindings are
+//!   statically lifted — `emit(...)` calls and every other on_spawn statement
+//!   are ignored by the pre-pass.
+//!
 //! Error/result boundary follows the crate convention of always returning JSON:
 //! `{"ok":true,"value":<json>}` or `{"ok":false,"error":{"code":"…","message":"…"}}`.
 
@@ -101,31 +135,63 @@ pub const DETERMINISTIC_SUBSET_V3: &str =
 pub const DETERMINISTIC_SUBSET_V4: &str =
     "holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings";
 
+/// Subset identifier for the v5 evaluation mode: the v4 grammar plus packaged
+/// factory calls (`get_std_math_lib()` / `get_std_collections_lib()` → opaque
+/// namespace handles), handle-valued locals in member-callee root position,
+/// and the `@on_spawn` factory-alias pre-pass — everything the packaged
+/// `@holoscript/std` `.hsplus` sources need to execute as authored.
+pub const DETERMINISTIC_SUBSET_V5: &str =
+    "holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories";
+
 /// Evaluation mode threaded through the statement/expression walkers. v1 keeps
 /// `numeric_builtins` off (every `CallExpression` is `unsupported-call`, same
 /// code and message as before the mode existed); v2 turns the builtin table on;
 /// v4 additionally turns `host_bindings` on, admitting non-computed member
-/// callees as host-binding calls.
+/// callees as host-binding calls; v5 additionally turns `factories` on,
+/// admitting whitelisted zero-argument factory calls, handle locals, and the
+/// on_spawn factory-alias pre-pass.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct EvalMode {
     numeric_builtins: bool,
     host_bindings: bool,
+    factories: bool,
 }
 
 const MODE_V1: EvalMode = EvalMode {
     numeric_builtins: false,
     host_bindings: false,
+    factories: false,
 };
 const MODE_V2: EvalMode = EvalMode {
     numeric_builtins: true,
     host_bindings: false,
+    factories: false,
 };
 /// v4: v3 grammar (numeric builtins + the local bindings this walker has
 /// admitted since v1) PLUS host-binding member calls in callee position.
 const MODE_V4: EvalMode = EvalMode {
     numeric_builtins: true,
     host_bindings: true,
+    factories: false,
 };
+/// v5: the v4 grammar PLUS packaged factory calls, handle locals, and the
+/// on_spawn factory-alias pre-pass.
+const MODE_V5: EvalMode = EvalMode {
+    numeric_builtins: true,
+    host_bindings: true,
+    factories: true,
+};
+
+/// The v5 whitelisted factory table: (factory name, backing host namespaces).
+/// A factory call evaluates to a namespace handle over the UNION of its
+/// backing namespaces — `get_std_math_lib` over the injected `math` namespace,
+/// `get_std_collections_lib` over `list_lib` + `map_lib` + `set_lib` (the
+/// packaged `@on_spawn` bodies bind ONE alias per trait, so the collections
+/// handle must expose all three).
+const FACTORIES: &[(&str, &[&str])] = &[
+    ("get_std_math_lib", &["math"]),
+    ("get_std_collections_lib", &["list_lib", "map_lib", "set_lib"]),
+];
 
 /// Callee-position lookup result for one `ns.fn` host-binding reference.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -159,6 +225,11 @@ pub enum HostInvokeOutcome {
 pub trait HostDispatcher {
     fn lookup(&self, namespace: &str, function: &str) -> HostLookup;
     fn invoke(&self, namespace: &str, function: &str, args_json: &[String]) -> HostInvokeOutcome;
+    /// v5 enumeration seam: the OWN function-valued property names of
+    /// `namespace`, or `None` when the namespace is absent from the injected
+    /// host-binding object. Required so union handles can detect function-name
+    /// collisions at CONSTRUCTION time (a lookup-only seam cannot enumerate).
+    fn functions(&self, namespace: &str) -> Option<Vec<String>>;
 }
 
 /// Context threaded through the walkers: the evaluation mode plus the
@@ -194,6 +265,34 @@ enum Value {
     Null,
     Arr(Vec<Value>),
     Obj(Vec<(String, Value)>),
+    /// v5 opaque namespace handle produced by a whitelisted factory call. An
+    /// evaluator-INTERNAL value: it may sit in a local and serve as a
+    /// member-callee root, but it must never escape (return / object / array
+    /// embedding, comparison, host-call argument are all structured
+    /// `namespace-handle-escape` errors) and it never serializes.
+    NsHandle(NsHandle),
+}
+
+/// Resolved namespace handle: the factory that produced it plus its function
+/// table `(function, owning namespace)`, enumerated and collision-checked at
+/// construction, sorted by function name for deterministic dispatch.
+#[derive(Debug, Clone, PartialEq)]
+struct NsHandle {
+    factory: &'static str,
+    functions: Vec<(String, String)>,
+}
+
+/// First namespace handle reachable in `value`, if any. Escape guards use this
+/// so their structured errors can name the producing factory. Nesting a handle
+/// inside an object/array is itself refused at literal construction, so the
+/// recursion is defensive rather than reachable depth.
+fn find_handle(value: &Value) -> Option<&NsHandle> {
+    match value {
+        Value::NsHandle(handle) => Some(handle),
+        Value::Arr(items) => items.iter().find_map(find_handle),
+        Value::Obj(entries) => entries.iter().find_map(|(_, item)| find_handle(item)),
+        _ => None,
+    }
 }
 
 #[derive(Debug)]
@@ -291,6 +390,31 @@ pub fn evaluate_trait_handler_v4_json(
     )
 }
 
+/// Public JSON boundary for the v5 packaged-factories mode
+/// ([`DETERMINISTIC_SUBSET_V5`]): the v4 grammar plus factory calls, handle
+/// locals, and the `@on_spawn` factory-alias pre-pass — the mode that executes
+/// the packaged `@holoscript/std` `.hsplus` sources as authored. The
+/// `evaluate_trait_handler_v5` wasm export wires the js_sys-backed dispatcher;
+/// native callers (tests, embedders) inject their own.
+pub fn evaluate_trait_handler_v5_json(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    host: &dyn HostDispatcher,
+) -> String {
+    evaluate_with_ctx_json(
+        source,
+        trait_name,
+        handler_name,
+        args_json,
+        &EvalCtx {
+            mode: MODE_V5,
+            host: Some(host),
+        },
+    )
+}
+
 fn evaluate_with_ctx_json(
     source: &str,
     trait_name: &str,
@@ -324,7 +448,7 @@ fn evaluate(
         err("parse-error", format!("source failed to parse: {detail}"))
     })?;
 
-    let handler = find_handler(&ast.body, trait_name, handler_name)?;
+    let (trait_node, handler) = find_handler(&ast.body, trait_name, handler_name)?;
 
     let Some(body) = handler.parsed_body.as_ref() else {
         return Err(err(
@@ -338,15 +462,77 @@ fn evaluate(
         ));
     };
 
-    let scope = bind_args(&handler.params, handler_name, args_json)?;
+    let mut scope = bind_args(&handler.params, handler_name, args_json)?;
+    if ctx.mode.factories {
+        prebind_spawn_factory_aliases(trait_node, &handler.params, &mut scope, ctx)?;
+    }
     run_handler(body, scope, handler_name, ctx)
+}
+
+/// v5 `@on_spawn` factory pre-pass: statically scan the trait's `@on_spawn`
+/// parsed body for statements of the EXACT shape `<alias> = <factory>()` (bare
+/// `=` assignment to a bare identifier, zero-argument bare-identifier call
+/// whose callee is in [`FACTORIES`]) and pre-bind each alias as a handle local
+/// before the invoked handler executes. on_spawn side effects are not
+/// executed; only factory-alias bindings are statically lifted — `emit(...)`
+/// calls and every other on_spawn statement shape are ignored. Handler
+/// parameters take precedence over aliases (params → locals); a later alias
+/// assignment overwrites an earlier one, mirroring execution order.
+fn prebind_spawn_factory_aliases(
+    trait_node: &TraitNode,
+    params: &[String],
+    scope: &mut BTreeMap<String, Value>,
+    ctx: &EvalCtx,
+) -> Result<(), EvalError> {
+    for member in &trait_node.members {
+        let AstNode::GameEventBlock(spawn) = member else {
+            continue;
+        };
+        if spawn.name != "on_spawn" {
+            continue;
+        }
+        let Some(body) = spawn.parsed_body.as_ref() else {
+            continue;
+        };
+        for statement in body {
+            let AstNode::Assignment(assignment) = statement else {
+                continue;
+            };
+            if assignment.operator != "=" {
+                continue;
+            }
+            let AstNode::Identifier(alias) = assignment.target.as_ref() else {
+                continue;
+            };
+            let AstNode::CallExpression(call) = assignment.value.as_ref() else {
+                continue;
+            };
+            if !call.arguments.is_empty() {
+                continue;
+            }
+            let AstNode::Identifier(callee) = call.callee.as_ref() else {
+                continue;
+            };
+            let Some((factory, namespaces)) =
+                FACTORIES.iter().find(|(name, _)| *name == callee.name)
+            else {
+                continue;
+            };
+            if !is_safe_identifier(&alias.name) || params.iter().any(|p| p == &alias.name) {
+                continue;
+            }
+            let handle = construct_factory_handle(factory, namespaces, ctx)?;
+            scope.insert(alias.name.clone(), Value::NsHandle(handle));
+        }
+    }
+    Ok(())
 }
 
 fn find_handler<'a>(
     top_level: &'a [AstNode],
     trait_name: &str,
     handler_name: &str,
-) -> Result<&'a GameEventBlockNode, EvalError> {
+) -> Result<(&'a TraitNode, &'a GameEventBlockNode), EvalError> {
     let mut traits: Vec<&TraitNode> = Vec::new();
     for node in top_level {
         if let AstNode::Trait(t) = node {
@@ -394,7 +580,7 @@ fn find_handler<'a>(
             ),
         ));
     }
-    Ok(handlers[0])
+    Ok((traits[0], handlers[0]))
 }
 
 fn is_safe_identifier(name: &str) -> bool {
@@ -537,6 +723,10 @@ fn value_to_json(value: &Value) -> serde_json::Value {
             }
             serde_json::Value::Object(map)
         }
+        // Unreachable: every path that serializes a value (handler return,
+        // host-call arguments) refuses handles first (namespace-handle-escape).
+        // Fail closed to null rather than panic in wasm if that ever drifts.
+        Value::NsHandle(_) => serde_json::Value::Null,
     }
 }
 
@@ -579,6 +769,16 @@ fn exec_statement(
                 Some(argument) => eval_expr(argument, scope, ctx)?,
                 None => Value::Null,
             };
+            if let Some(handle) = find_handle(&value) {
+                return Err(err(
+                    "namespace-handle-escape",
+                    format!(
+                        "returning a namespace handle (from {}()) is not admitted — namespace \
+                         handles never escape the handler",
+                        handle.factory
+                    ),
+                ));
+            }
             Ok(Flow::Return(value))
         }
         AstNode::If(node) => {
@@ -702,7 +902,18 @@ fn eval_expr(
                         "spread elements are not in the deterministic subset",
                     ));
                 }
-                items.push(eval_expr(element, scope, ctx)?);
+                let item = eval_expr(element, scope, ctx)?;
+                if let Some(handle) = find_handle(&item) {
+                    return Err(err(
+                        "namespace-handle-escape",
+                        format!(
+                            "embedding a namespace handle (from {}()) in an array literal is not \
+                             admitted — namespace handles never escape the handler",
+                            handle.factory
+                        ),
+                    ));
+                }
+                items.push(item);
             }
             Ok(Value::Arr(items))
         }
@@ -741,6 +952,22 @@ fn eval_expr(
                     return eval_host_call(call, member, scope, ctx);
                 }
             }
+            if ctx.mode.factories {
+                // v5: a bare-identifier zero-argument call in the factory
+                // table constructs a namespace handle — unless the name is
+                // shadowed by a bound parameter/local (bound names take
+                // precedence, same rule as v4 namespaces; the shadowed call
+                // then falls through to the builtin table's refusal).
+                if let AstNode::Identifier(callee) = call.callee.as_ref() {
+                    if !scope.contains_key(&callee.name) {
+                        if let Some((factory, namespaces)) =
+                            FACTORIES.iter().find(|(name, _)| *name == callee.name)
+                        {
+                            return eval_factory_call(call, factory, namespaces, ctx);
+                        }
+                    }
+                }
+            }
             eval_builtin_call(call, scope, ctx)
         }
         other => Err(err(
@@ -750,10 +977,172 @@ fn eval_expr(
     }
 }
 
+/// Evaluate one v5 factory call: zero arguments required, then construct the
+/// namespace handle over the factory's backing namespaces.
+fn eval_factory_call(
+    call: &crate::ast::CallExpression,
+    factory: &'static str,
+    namespaces: &'static [&'static str],
+    ctx: &EvalCtx,
+) -> Result<Value, EvalError> {
+    if !call.arguments.is_empty() {
+        return Err(err(
+            "factory-arity",
+            format!(
+                "factory \"{factory}\" takes exactly 0 arguments, got {}",
+                call.arguments.len()
+            ),
+        ));
+    }
+    Ok(Value::NsHandle(construct_factory_handle(
+        factory, namespaces, ctx,
+    )?))
+}
+
+/// Construct one namespace handle: enumerate the OWN functions of every
+/// backing namespace through the [`HostDispatcher::functions`] seam, refuse a
+/// missing namespace (`unknown-host-binding`) and any function-name collision
+/// across the union (`namespace-collision`), and pin the resulting
+/// `(function, namespace)` table sorted by function name. Names that are not
+/// safe identifiers are dropped at construction — the member-callee grammar
+/// could never dispatch them anyway, and they must not trigger collisions.
+fn construct_factory_handle(
+    factory: &'static str,
+    namespaces: &[&str],
+    ctx: &EvalCtx,
+) -> Result<NsHandle, EvalError> {
+    let Some(host) = ctx.host else {
+        // The public v5 entry point always installs a dispatcher; fail closed
+        // (never panic) if a future caller wires the mode without one.
+        return Err(err(
+            "unknown-host-binding",
+            "v5 factory mode is active but no host-binding object was injected",
+        ));
+    };
+    let mut functions: Vec<(String, String)> = Vec::new();
+    for namespace in namespaces {
+        let Some(mut names) = host.functions(namespace) else {
+            return Err(err(
+                "unknown-host-binding",
+                format!(
+                    "factory \"{factory}\": namespace \"{namespace}\" is not present in the \
+                     injected host-binding object"
+                ),
+            ));
+        };
+        names.sort();
+        names.dedup();
+        for name in names {
+            if !is_safe_identifier(&name) {
+                continue;
+            }
+            if let Some((_, owner)) = functions.iter().find(|(existing, _)| existing == &name) {
+                return Err(err(
+                    "namespace-collision",
+                    format!(
+                        "factory \"{factory}\": function \"{name}\" exists in both \"{owner}\" \
+                         and \"{namespace}\" — the union handle cannot be constructed"
+                    ),
+                ));
+            }
+            functions.push((name, (*namespace).to_string()));
+        }
+    }
+    functions.sort();
+    Ok(NsHandle { factory, functions })
+}
+
+/// Dispatch one member call whose root resolved to a handle-valued local (v5):
+/// resolve the function in the handle's construction-pinned table BEFORE
+/// argument evaluation (source-order mirror of the v4 lookup), then marshal
+/// and invoke through the same rails as an ambient v4 host call.
+fn eval_handle_call(
+    call: &crate::ast::CallExpression,
+    handle: &NsHandle,
+    function: &str,
+    scope: &BTreeMap<String, Value>,
+    ctx: &EvalCtx,
+) -> Result<Value, EvalError> {
+    let Some((_, namespace)) = handle
+        .functions
+        .iter()
+        .find(|(name, _)| name == function)
+    else {
+        return Err(err(
+            "unknown-host-binding",
+            format!(
+                "the namespace handle from {}() has no function \"{function}\"",
+                handle.factory
+            ),
+        ));
+    };
+    let Some(host) = ctx.host else {
+        return Err(err(
+            "unknown-host-binding",
+            "v5 factory mode is active but no host-binding object was injected",
+        ));
+    };
+    let args_json = marshal_host_args(&call.arguments, scope, ctx)?;
+    let context = format!(
+        "host binding {namespace}.{function} (via {}() handle)",
+        handle.factory
+    );
+    host_outcome_to_value(host.invoke(namespace, function, &args_json), &context)
+}
+
+/// Evaluate host-call arguments in source order and marshal each as canonical
+/// strict JSON. A namespace handle in argument position is a structured
+/// `namespace-handle-escape` error — handles never cross the boundary.
+fn marshal_host_args(
+    arguments: &[AstNode],
+    scope: &BTreeMap<String, Value>,
+    ctx: &EvalCtx,
+) -> Result<Vec<String>, EvalError> {
+    let mut args_json = Vec::with_capacity(arguments.len());
+    for argument in arguments {
+        let value = eval_expr(argument, scope, ctx)?;
+        if let Some(handle) = find_handle(&value) {
+            return Err(err(
+                "namespace-handle-escape",
+                format!(
+                    "passing a namespace handle (from {}()) as a host-binding argument is not \
+                     admitted — namespace handles never escape the handler",
+                    handle.factory
+                ),
+            ));
+        }
+        args_json.push(value_to_json(&value).to_string());
+    }
+    Ok(args_json)
+}
+
+/// Map one [`HostInvokeOutcome`] back into the evaluator: throws become
+/// `host-binding-error`, non-JSON results `invalid-host-result`, and a value
+/// re-enters through the same rails as handler arguments ([`json_to_value`]).
+fn host_outcome_to_value(outcome: HostInvokeOutcome, context: &str) -> Result<Value, EvalError> {
+    match outcome {
+        HostInvokeOutcome::Threw(message) => Err(err("host-binding-error", message)),
+        HostInvokeOutcome::NotSerializable(detail) => Err(err(
+            "invalid-host-result",
+            format!("{context} returned a non-JSON-serializable result: {detail}"),
+        )),
+        HostInvokeOutcome::Value(json) => {
+            let parsed: serde_json::Value = serde_json::from_str(&json).map_err(|error| {
+                err(
+                    "invalid-host-result",
+                    format!("{context} returned text that is not strict JSON: {error}"),
+                )
+            })?;
+            json_to_value(&parsed, context)
+        }
+    }
+}
+
 /// Evaluate one host-binding call (v4 mode): the callee is a NON-COMPUTED
 /// member expression `ns.fn` whose root must be a bare identifier that is
 /// neither a bound parameter nor a local (bound names take precedence and keep
-/// the v3 semantics: member calls on VALUES stay refused). Callee resolution
+/// the v3 semantics: member calls on VALUES stay refused — except, in v5, a
+/// HANDLE-valued local, which dispatches on the handle). Callee resolution
 /// happens before argument evaluation; arguments then evaluate in source order
 /// and marshal guest→host as canonical strict JSON (one JSON string per
 /// argument). The host result marshals back as JSON and re-enters through the
@@ -783,7 +1172,16 @@ fn eval_host_call(
              callees are not admitted",
         ));
     };
-    if scope.contains_key(&root.name) {
+    if let Some(bound) = scope.get(&root.name) {
+        if ctx.mode.factories {
+            if let Value::NsHandle(handle) = bound {
+                // v5: a handle-valued local in callee-root position dispatches
+                // the named function on the handle. Non-handle bound values
+                // keep the v4 refusal below; params → locals precedence is
+                // preserved because both live in the one binding namespace.
+                return eval_handle_call(call, handle, &function.name, scope, ctx);
+            }
+        }
         return Err(err(
             "unsupported-call",
             format!(
@@ -832,28 +1230,9 @@ fn eval_host_call(
         }
         HostLookup::Found => {}
     }
-    let mut args_json = Vec::with_capacity(call.arguments.len());
-    for argument in &call.arguments {
-        let value = eval_expr(argument, scope, ctx)?;
-        args_json.push(value_to_json(&value).to_string());
-    }
+    let args_json = marshal_host_args(&call.arguments, scope, ctx)?;
     let context = format!("host binding {}.{}", root.name, function.name);
-    match host.invoke(&root.name, &function.name, &args_json) {
-        HostInvokeOutcome::Threw(message) => Err(err("host-binding-error", message)),
-        HostInvokeOutcome::NotSerializable(detail) => Err(err(
-            "invalid-host-result",
-            format!("{context} returned a non-JSON-serializable result: {detail}"),
-        )),
-        HostInvokeOutcome::Value(json) => {
-            let parsed: serde_json::Value = serde_json::from_str(&json).map_err(|error| {
-                err(
-                    "invalid-host-result",
-                    format!("{context} returned text that is not strict JSON: {error}"),
-                )
-            })?;
-            json_to_value(&parsed, &context)
-        }
-    }
+    host_outcome_to_value(host.invoke(&root.name, &function.name, &args_json), &context)
 }
 
 /// Evaluate one whitelisted numeric builtin call (v2 mode only). Admission is
@@ -976,6 +1355,16 @@ fn eval_object_property(
         ));
     }
     let value = eval_expr(&property.value, scope, ctx)?;
+    if let Some(handle) = find_handle(&value) {
+        return Err(err(
+            "namespace-handle-escape",
+            format!(
+                "embedding a namespace handle (from {}()) in an object literal (key \"{}\") is \
+                 not admitted — namespace handles never escape the handler",
+                handle.factory, property.key
+            ),
+        ));
+    }
     entries.push((property.key.clone(), value));
     Ok(())
 }
@@ -1073,6 +1462,16 @@ fn eval_binary(
 /// are a structured error; mismatched PRIMITIVE types compare unequal (JS `===`
 /// semantics), they do not error.
 fn primitive_equal(left: &Value, right: &Value) -> Result<bool, EvalError> {
+    if let Some(handle) = find_handle(left).or_else(|| find_handle(right)) {
+        return Err(err(
+            "namespace-handle-escape",
+            format!(
+                "comparing a namespace handle (from {}()) is not admitted — namespace handles \
+                 never escape the handler",
+                handle.factory
+            ),
+        ));
+    }
     if matches!(left, Value::Obj(_) | Value::Arr(_))
         || matches!(right, Value::Obj(_) | Value::Arr(_))
     {
@@ -1251,6 +1650,27 @@ mod js_host {
             HostLookup::Found
         }
 
+        /// v5 enumeration seam: OWN string-keyed property names of the
+        /// namespace object (`Object.getOwnPropertyNames` — symbols excluded,
+        /// prototype chain never consulted) filtered to function values.
+        /// Sorted for deterministic union-handle construction.
+        fn functions(&self, namespace: &str) -> Option<Vec<String>> {
+            let namespace_obj = namespace_object(self.bindings, namespace)?;
+            let as_object: &js_sys::Object = namespace_obj.unchecked_ref();
+            let names = js_sys::Object::get_own_property_names(as_object);
+            let mut out = Vec::new();
+            for name in names.iter() {
+                let Some(key) = name.as_string() else {
+                    continue;
+                };
+                if function_of(&namespace_obj, &key).is_some() {
+                    out.push(key);
+                }
+            }
+            out.sort();
+            Some(out)
+        }
+
         fn invoke(
             &self,
             namespace: &str,
@@ -1333,6 +1753,23 @@ pub fn evaluate_trait_handler_v4_js(
         bindings: host_bindings,
     };
     evaluate_trait_handler_v4_json(source, trait_name, handler_name, args_json, &dispatcher)
+}
+
+/// Wasm-boundary entry used by the `evaluate_trait_handler_v5` export
+/// ([`DETERMINISTIC_SUBSET_V5`]): same js_sys-backed dispatcher as v4 (plus
+/// its enumeration seam) over the injected host-binding object.
+#[cfg(target_arch = "wasm32")]
+pub fn evaluate_trait_handler_v5_js(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    host_bindings: &wasm_bindgen::JsValue,
+) -> String {
+    let dispatcher = js_host::JsHostDispatcher {
+        bindings: host_bindings,
+    };
+    evaluate_trait_handler_v5_json(source, trait_name, handler_name, args_json, &dispatcher)
 }
 
 #[cfg(test)]
@@ -2416,24 +2853,39 @@ mod tests {
 
     /// Mock [`HostDispatcher`]: namespaces `math.clamp` (computes, proving the
     /// canonical-JSON argument marshalling round-trips), `map_lib.map_get`
-    /// (always throws like the real binding on an absent key), and `weird.*`
-    /// (returns hostile results so the re-entry rails are exercised).
+    /// (always throws like the real binding on an absent key),
+    /// `list_lib.list_reverse` + `set_lib.set_union` (compute, so v5 union
+    /// handles are exercised end to end), and `weird.*` (returns hostile
+    /// results so the re-entry rails are exercised).
     struct MockHost;
+
+    /// One (namespace → functions) table backing both `lookup` and the v5
+    /// `functions` enumeration seam, so the two can never disagree.
+    const MOCK_NAMESPACES: &[(&str, &[&str])] = &[
+        ("math", &["clamp"]),
+        // list_range resolves but is never reached: its packaged argument
+        // uses `??`, which fails at argument evaluation (see the reality
+        // check) — resolution happens BEFORE arguments, mirroring v4.
+        ("list_lib", &["list_range", "list_reverse"]),
+        ("map_lib", &["map_get"]),
+        ("set_lib", &["set_union"]),
+        ("weird", &["badjson", "proto", "undef"]),
+    ];
 
     impl HostDispatcher for MockHost {
         fn lookup(&self, namespace: &str, function: &str) -> HostLookup {
-            match namespace {
-                "math" => match function {
-                    "clamp" => HostLookup::Found,
-                    _ => HostLookup::UnknownFunction,
-                },
-                "map_lib" => match function {
-                    "map_get" => HostLookup::Found,
-                    _ => HostLookup::UnknownFunction,
-                },
-                "weird" => HostLookup::Found,
-                _ => HostLookup::UnknownNamespace,
+            match MOCK_NAMESPACES.iter().find(|(name, _)| *name == namespace) {
+                None => HostLookup::UnknownNamespace,
+                Some((_, functions)) if functions.contains(&function) => HostLookup::Found,
+                Some(_) => HostLookup::UnknownFunction,
             }
+        }
+
+        fn functions(&self, namespace: &str) -> Option<Vec<String>> {
+            MOCK_NAMESPACES
+                .iter()
+                .find(|(name, _)| *name == namespace)
+                .map(|(_, functions)| functions.iter().map(|f| f.to_string()).collect())
         }
 
         fn invoke(&self, namespace: &str, function: &str, args_json: &[String]) -> HostInvokeOutcome {
@@ -2451,6 +2903,26 @@ mod tests {
                     assert_eq!(parsed.len(), 3, "clamp receives exactly the call's arguments");
                     let clamped = parsed[1].max(parsed[2].min(parsed[0]));
                     HostInvokeOutcome::Value(serde_json::json!(clamped).to_string())
+                }
+                ("list_lib", "list_reverse") => {
+                    let mut items: Vec<serde_json::Value> = serde_json::from_str(&args_json[0])
+                        .expect("list_reverse argument must marshal as a JSON array");
+                    items.reverse();
+                    HostInvokeOutcome::Value(serde_json::Value::Array(items).to_string())
+                }
+                ("set_lib", "set_union") => {
+                    let a: Vec<f64> = serde_json::from_str(&args_json[0])
+                        .expect("set_union argument 1 must marshal as a JSON number array");
+                    let b: Vec<f64> = serde_json::from_str(&args_json[1])
+                        .expect("set_union argument 2 must marshal as a JSON number array");
+                    let mut out: Vec<f64> = Vec::new();
+                    for item in a.into_iter().chain(b) {
+                        if !out.contains(&item) {
+                            out.push(item);
+                        }
+                    }
+                    out.sort_by(f64::total_cmp);
+                    HostInvokeOutcome::Value(serde_json::json!(out).to_string())
                 }
                 ("map_lib", "map_get") => HostInvokeOutcome::Threw(
                     "std-host-abi missing-key: key \"absent\" is absent".to_string(),
@@ -2676,5 +3148,458 @@ mod tests {
         );
         let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
         expect_err(&parsed, "unsupported-call");
+    }
+
+    // ===== v5 packaged factories (native seam tests — mock dispatcher, no JS host) =====
+
+    fn run_v5_with(
+        host: &dyn HostDispatcher,
+        source: &str,
+        trait_name: &str,
+        handler: &str,
+        args: serde_json::Value,
+    ) -> serde_json::Value {
+        let raw =
+            evaluate_trait_handler_v5_json(source, trait_name, handler, &args.to_string(), host);
+        serde_json::from_str(&raw).expect("v5 evaluator must always return JSON")
+    }
+
+    fn run_v5(
+        source: &str,
+        trait_name: &str,
+        handler: &str,
+        args: serde_json::Value,
+    ) -> serde_json::Value {
+        run_v5_with(&MockHost, source, trait_name, handler, args)
+    }
+
+    /// Configurable mock for v5 construction-time paths (collision / missing
+    /// namespace): `(namespace, functions)` rows back lookup + enumeration;
+    /// invoke always throws because these tests must fail BEFORE any invoke.
+    struct TableHost(&'static [(&'static str, &'static [&'static str])]);
+
+    impl HostDispatcher for TableHost {
+        fn lookup(&self, namespace: &str, function: &str) -> HostLookup {
+            match self.0.iter().find(|(name, _)| *name == namespace) {
+                None => HostLookup::UnknownNamespace,
+                Some((_, functions)) if functions.contains(&function) => HostLookup::Found,
+                Some(_) => HostLookup::UnknownFunction,
+            }
+        }
+
+        fn functions(&self, namespace: &str) -> Option<Vec<String>> {
+            self.0
+                .iter()
+                .find(|(name, _)| *name == namespace)
+                .map(|(_, functions)| functions.iter().map(|f| f.to_string()).collect())
+        }
+
+        fn invoke(&self, namespace: &str, function: &str, _args_json: &[String]) -> HostInvokeOutcome {
+            HostInvokeOutcome::Threw(format!(
+                "table host never invokes (got {namespace}.{function})"
+            ))
+        }
+    }
+
+    const FACTORY_TRAIT: &str = r#"
+@trait std_factory_conformance {
+  @on_clamp(x) => {
+    m = get_std_math_lib()
+    return m.clamp(x, 0, 10)
+  }
+  @on_list_reverse(lst) => {
+    c = get_std_collections_lib()
+    return c.list_reverse(lst)
+  }
+  @on_both(lst, s_a, s_b) => {
+    c = get_std_collections_lib()
+    r = c.list_reverse(lst)
+    u = c.set_union(s_a, s_b)
+    return { reversed: r, union: u }
+  }
+  @on_unknown_fn(lst) => {
+    c = get_std_collections_lib()
+    return c.no_such_fn(lst)
+  }
+  @on_zero => { return 7 }
+}
+"#;
+
+    const SPAWN_TRAIT: &str = r#"
+@trait std_spawn_conformance {
+  @on_spawn => {
+    m2 = get_std_math_lib()
+    emit("std_spawn_ready", {})
+  }
+  @on_clamp(value, min, max) => {
+    return m2.clamp(value, min, max)
+  }
+}
+"#;
+
+    const ESCAPE_TRAIT: &str = r#"
+@trait std_escape_conformance {
+  @on_return(x) => {
+    m = get_std_math_lib()
+    return m
+  }
+  @on_object(x) => {
+    m = get_std_math_lib()
+    return { h: m }
+  }
+  @on_array(x) => {
+    m = get_std_math_lib()
+    return [m]
+  }
+  @on_compare(x) => {
+    m = get_std_math_lib()
+    return m == m
+  }
+  @on_host_arg(x) => {
+    m = get_std_math_lib()
+    return math.clamp(m, 0, 1)
+  }
+}
+"#;
+
+    #[test]
+    fn v5_subset_id_is_pinned() {
+        assert_eq!(
+            DETERMINISTIC_SUBSET_V5,
+            "holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories"
+        );
+    }
+
+    #[test]
+    fn v5_factory_call_returns_working_handle_and_bare_return_works() {
+        // `m = get_std_math_lib()` then a BARE return of the member-call
+        // result (a plain number, not an object wrapper) — the packaged
+        // handlers' exact shape.
+        let result = run_v5(
+            FACTORY_TRAIT,
+            "std_factory_conformance",
+            "on_clamp",
+            serde_json::json!({"x": 42.0}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!(10.0));
+    }
+
+    #[test]
+    fn v5_union_handle_dispatches_across_all_three_namespaces() {
+        let result = run_v5(
+            FACTORY_TRAIT,
+            "std_factory_conformance",
+            "on_list_reverse",
+            serde_json::json!({"lst": [1.0, 2.0, 3.0]}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!([3.0, 2.0, 1.0]));
+        // ONE handle local serving both list_lib and set_lib functions.
+        let result = run_v5(
+            FACTORY_TRAIT,
+            "std_factory_conformance",
+            "on_both",
+            serde_json::json!({"lst": [1.0, 2.0], "s_a": [3.0, 1.0], "s_b": [2.0, 1.0]}),
+        );
+        assert_eq!(
+            expect_ok(&result),
+            &serde_json::json!({"reversed": [2.0, 1.0], "union": [1.0, 2.0, 3.0]})
+        );
+        // A function no backing namespace exposes names the producing factory.
+        let result = run_v5(
+            FACTORY_TRAIT,
+            "std_factory_conformance",
+            "on_unknown_fn",
+            serde_json::json!({"lst": []}),
+        );
+        let error = expect_err(&result, "unknown-host-binding");
+        assert!(
+            error["message"]
+                .as_str()
+                .unwrap()
+                .contains("get_std_collections_lib"),
+            "{result}"
+        );
+    }
+
+    #[test]
+    fn v5_on_spawn_prepass_binds_aliases_without_executing_spawn() {
+        // The fixture mirrors the packaged shape: @on_spawn binds the alias
+        // AND emits; the invoked handler uses the alias without binding it.
+        // `m2` is NOT an ambient namespace, so success proves the pre-pass
+        // bound it — and proves emit() never executed (a bare `emit` call is
+        // outside every admitted grammar and would fail the evaluation).
+        let result = run_v5(
+            SPAWN_TRAIT,
+            "std_spawn_conformance",
+            "on_clamp",
+            serde_json::json!({"value": 42.0, "min": 0.0, "max": 10.0}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!(10.0));
+        // The pre-pass is v5-only: the same program under v4 has no `m2`
+        // binding, so the callee root falls through to ambient-namespace
+        // resolution and fails closed.
+        let raw = evaluate_trait_handler_v4_json(
+            SPAWN_TRAIT,
+            "std_spawn_conformance",
+            "on_clamp",
+            &serde_json::json!({"value": 42.0, "min": 0.0, "max": 10.0}).to_string(),
+            &MockHost,
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        expect_err(&parsed, "unknown-host-binding");
+    }
+
+    #[test]
+    fn v5_handle_escape_paths_fail_closed() {
+        for handler in ["on_return", "on_object", "on_array", "on_compare", "on_host_arg"] {
+            let result = run_v5(
+                ESCAPE_TRAIT,
+                "std_escape_conformance",
+                handler,
+                serde_json::json!({"x": 1.0}),
+            );
+            let error = expect_err(&result, "namespace-handle-escape");
+            assert!(
+                error["message"].as_str().unwrap().contains("get_std_math_lib"),
+                "handler {handler}: {result}"
+            );
+        }
+    }
+
+    #[test]
+    fn v5_zero_param_no_paren_handler_invocable_with_empty_args() {
+        let result = run_v5(
+            FACTORY_TRAIT,
+            "std_factory_conformance",
+            "on_zero",
+            serde_json::json!({}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!(7.0));
+    }
+
+    #[test]
+    fn v5_factory_arity_and_bound_name_shadowing() {
+        let source = r#"
+@trait factory_edges {
+  @on_arity(x) => {
+    m = get_std_math_lib(x)
+    return x
+  }
+  @on_shadow(get_std_math_lib) => {
+    return get_std_math_lib()
+  }
+}
+"#;
+        let result = run_v5(source, "factory_edges", "on_arity", serde_json::json!({"x": 1.0}));
+        expect_err(&result, "factory-arity");
+        // A factory name shadowed by a bound parameter is NOT a factory call:
+        // it falls through to the builtin table's refusal (bound names take
+        // precedence, mirroring the v4 namespace rule).
+        let result = run_v5(
+            source,
+            "factory_edges",
+            "on_shadow",
+            serde_json::json!({"get_std_math_lib": 1.0}),
+        );
+        let error = expect_err(&result, "unsupported-call");
+        assert!(
+            error["message"].as_str().unwrap().contains("numeric-builtin table"),
+            "{result}"
+        );
+    }
+
+    #[test]
+    fn v5_union_collision_fails_at_handle_construction() {
+        // `shared` exists in both list_lib and set_lib: the union handle must
+        // refuse CONSTRUCTION (invoke never runs — TableHost would throw).
+        let host = TableHost(&[
+            ("list_lib", &["list_reverse", "shared"]),
+            ("map_lib", &["map_get"]),
+            ("set_lib", &["shared"]),
+        ]);
+        let result = run_v5_with(
+            &host,
+            FACTORY_TRAIT,
+            "std_factory_conformance",
+            "on_list_reverse",
+            serde_json::json!({"lst": []}),
+        );
+        let error = expect_err(&result, "namespace-collision");
+        let message = error["message"].as_str().unwrap();
+        assert!(message.contains("shared"), "{result}");
+        assert!(message.contains("list_lib") && message.contains("set_lib"), "{result}");
+    }
+
+    #[test]
+    fn v5_missing_backing_namespace_fails_closed() {
+        let host = TableHost(&[("math", &["clamp"])]);
+        let result = run_v5_with(
+            &host,
+            FACTORY_TRAIT,
+            "std_factory_conformance",
+            "on_list_reverse",
+            serde_json::json!({"lst": []}),
+        );
+        let error = expect_err(&result, "unknown-host-binding");
+        assert!(
+            error["message"].as_str().unwrap().contains("list_lib"),
+            "{result}"
+        );
+    }
+
+    #[test]
+    fn v5_matches_v4_outside_factories() {
+        // Same program, same args: byte-identical boundary output when no
+        // factory construct executes.
+        let args = serde_json::json!({"a": 2.0, "b": 3.0, "t": 3.0}).to_string();
+        let v4 = evaluate_trait_handler_v4_json(
+            MATH_TRAIT,
+            "std_math_conformance",
+            "on_lerp",
+            &args,
+            &MockHost,
+        );
+        let v5 = evaluate_trait_handler_v5_json(
+            MATH_TRAIT,
+            "std_math_conformance",
+            "on_lerp",
+            &args,
+            &MockHost,
+        );
+        assert_eq!(v4, v5);
+        // …and v4 itself still refuses factory calls, so the grammar only
+        // grew under the v5 id.
+        let raw = evaluate_trait_handler_v4_json(
+            FACTORY_TRAIT,
+            "std_factory_conformance",
+            "on_clamp",
+            &serde_json::json!({"x": 1.0}).to_string(),
+            &MockHost,
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        expect_err(&parsed, "unsupported-call");
+    }
+
+    // ===== v5 reality check: the REAL packaged @holoscript/std sources =====
+
+    fn packaged_source(relative: &str) -> String {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative);
+        std::fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("packaged source {} must be readable: {error}", path.display()))
+    }
+
+    fn packaged_handler<'a>(
+        ast: &'a crate::ast::Ast,
+        trait_name: &str,
+        handler_name: &str,
+    ) -> &'a GameEventBlockNode {
+        for node in &ast.body {
+            let AstNode::Trait(trait_node) = node else { continue };
+            if trait_node.name != trait_name {
+                continue;
+            }
+            for member in &trait_node.members {
+                let AstNode::GameEventBlock(handler) = member else { continue };
+                if handler.name == handler_name {
+                    return handler;
+                }
+            }
+        }
+        panic!("packaged trait {trait_name} must declare @{handler_name}");
+    }
+
+    #[test]
+    fn v5_reality_check_packaged_std_sources_parse_and_execute() {
+        let math = packaged_source("../std/src/math.hsplus");
+        let collections = packaged_source("../std/src/collections.hsplus");
+
+        // (1) Statement-parse census over EVERY handler of every packaged
+        // trait. Empirical finding pinned here: all packaged handler bodies
+        // parse as statements — including the `??` handlers (the grammar has
+        // a null-coalescing production) and the callback-delegation handlers.
+        // Anything landing in `unparsed` is a regression to report.
+        let mut unparsed = Vec::new();
+        for (label, source) in [("math.hsplus", &math), ("collections.hsplus", &collections)] {
+            let ast = crate::parse_ast(source)
+                .unwrap_or_else(|d| panic!("packaged {label} must parse: {d:?}"));
+            for node in &ast.body {
+                let AstNode::Trait(trait_node) = node else { continue };
+                for member in &trait_node.members {
+                    let AstNode::GameEventBlock(handler) = member else { continue };
+                    if handler.parsed_body.is_none() {
+                        unparsed.push(format!("{label}:{}.{}", trait_node.name, handler.name));
+                    }
+                }
+            }
+        }
+        assert!(
+            unparsed.is_empty(),
+            "packaged handler bodies failed the statement parse: {unparsed:?}"
+        );
+
+        // (2) Pinned specifics from the conformance program.
+        let math_ast = crate::parse_ast(&math).expect("math.hsplus must parse");
+        let clamp = packaged_handler(&math_ast, "std_math", "on_clamp");
+        assert_eq!(clamp.params, ["value", "min", "max"]);
+        assert!(clamp.parsed_body.as_ref().is_some_and(|b| !b.is_empty()));
+        let identity = packaged_handler(&math_ast, "std_math", "on_quat_identity");
+        assert!(
+            identity.params.is_empty(),
+            "the NO-PAREN header `@on_quat_identity =>` must produce a zero-param handler"
+        );
+        assert!(identity.parsed_body.as_ref().is_some_and(|b| !b.is_empty()));
+        let collections_ast = crate::parse_ast(&collections).expect("collections.hsplus must parse");
+        let reverse = packaged_handler(&collections_ast, "std_list", "on_reverse");
+        assert!(reverse.parsed_body.as_ref().is_some_and(|b| !b.is_empty()));
+
+        // (3) DIRECT execution of the packaged sources, as authored — the
+        // whole point of v5. The on_spawn pre-pass lifts `math` / `list_lib`
+        // / `set_lib` aliases; emit() is not executed.
+        let result = run_v5(
+            &math,
+            "std_math",
+            "on_clamp",
+            serde_json::json!({"value": 42.0, "min": 0.0, "max": 10.0}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!(10.0));
+        let result = run_v5(&math, "std_math", "on_quat_identity", serde_json::json!({}));
+        assert_eq!(
+            expect_ok(&result),
+            &serde_json::json!({"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0})
+        );
+        // Pure-arithmetic packaged handler (no factory involvement) under v5.
+        let result = run_v5(
+            &math,
+            "std_math",
+            "on_lerp",
+            serde_json::json!({"a": 2.0, "b": 3.0, "t": 3.0}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!(5.0));
+        let result = run_v5(
+            &collections,
+            "std_list",
+            "on_reverse",
+            serde_json::json!({"lst": [1.0, 2.0, 3.0]}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!([3.0, 2.0, 1.0]));
+        let result = run_v5(
+            &collections,
+            "std_set",
+            "on_union",
+            serde_json::json!({"s_a": [3.0, 1.0], "s_b": [2.0, 1.0]}),
+        );
+        assert_eq!(expect_ok(&result), &serde_json::json!([1.0, 2.0, 3.0]));
+
+        // (4) OUT-OF-SCOPE packaged shapes stay structured errors, never
+        // panics: `??` (on_range) parses but its operator is refused at
+        // evaluation.
+        let result = run_v5(
+            &collections,
+            "std_list",
+            "on_range",
+            serde_json::json!({"start": 0.0, "end": 3.0, "step": null}),
+        );
+        let error = expect_err(&result, "unsupported-operator");
+        assert!(error["message"].as_str().unwrap().contains("??"), "{result}");
     }
 }

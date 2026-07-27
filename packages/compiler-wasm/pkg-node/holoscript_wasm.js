@@ -263,6 +263,70 @@ function evaluate_trait_handler_v4(source, trait_name, handler_name, args_json, 
 }
 exports.evaluate_trait_handler_v4 = evaluate_trait_handler_v4;
 
+/**
+ * Evaluate one `@on_<handler>` trait-handler body under the v5 deterministic
+ * subset (`holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories`).
+ *
+ * v5 admits the v4 grammar PLUS everything the REAL packaged `@holoscript/std`
+ * sources (`packages/std/src/math.hsplus`, `collections.hsplus`) need to
+ * execute as authored:
+ *
+ * - **Factory calls**: bare-identifier zero-argument calls
+ *   `get_std_math_lib()` / `get_std_collections_lib()` evaluate to an opaque
+ *   namespace handle — the injected `math` namespace, respectively the UNION
+ *   of the injected `list_lib` + `map_lib` + `set_lib` namespaces (one handle
+ *   exposing all their functions; a function-name collision across the three
+ *   is a structured `namespace-collision` error at handle construction).
+ * - **Handle locals**: a member-callee whose root identifier resolves to a
+ *   handle-valued local dispatches the named function on that handle, with
+ *   the same canonical-JSON marshalling and error mapping as v4; v4 ambient
+ *   namespaces still work when the root is unbound (params → locals →
+ *   namespaces precedence).
+ * - **Handles never escape**: returning a handle, embedding one in an
+ *   object/array, comparing one, or passing one as a host-call argument is a
+ *   structured `namespace-handle-escape` error; handles never serialize.
+ * - **@on_spawn factory pre-pass**: if the trait has an `@on_spawn` whose
+ *   body contains statements of the exact shape `<alias> = <factory>()`, the
+ *   aliases are pre-bound as handle locals before the invoked handler runs.
+ *   on_spawn side effects are not executed; only factory-alias bindings are
+ *   statically lifted — `emit(...)` and every other on_spawn statement are
+ *   ignored by the pre-pass.
+ *
+ * The v1–v4 exports are untouched; everything outside the factory constructs
+ * behaves byte-for-byte as v4.
+ * @param {string} source
+ * @param {string} trait_name
+ * @param {string} handler_name
+ * @param {string} args_json
+ * @param {any} host_bindings
+ * @returns {string}
+ */
+function evaluate_trait_handler_v5(source, trait_name, handler_name, args_json, host_bindings) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(handler_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(args_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.evaluate_trait_handler_v5(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, addHeapObject(host_bindings));
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred5_0 = r0;
+        deferred5_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred5_0, deferred5_1, 1);
+    }
+}
+exports.evaluate_trait_handler_v5 = evaluate_trait_handler_v5;
+
 function init() {
     wasm.init();
 }
@@ -433,6 +497,14 @@ function __wbg_get_imports() {
             const ret = Object.getOwnPropertyDescriptor(getObject(arg0), getObject(arg1));
             return addHeapObject(ret);
         },
+        __wbg_getOwnPropertyNames_05dd9ca098e20e06: function(arg0) {
+            const ret = Object.getOwnPropertyNames(getObject(arg0));
+            return addHeapObject(ret);
+        },
+        __wbg_get_9b94d73e6221f75c: function(arg0, arg1) {
+            const ret = getObject(arg0)[arg1 >>> 0];
+            return addHeapObject(ret);
+        },
         __wbg_get_b3ed3ad4be2bc8ac: function() { return handleError(function (arg0, arg1) {
             const ret = Reflect.get(getObject(arg0), getObject(arg1));
             return addHeapObject(ret);
@@ -445,6 +517,10 @@ function __wbg_get_imports() {
                 result = false;
             }
             const ret = result;
+            return ret;
+        },
+        __wbg_length_35a7bace40f36eac: function(arg0) {
+            const ret = getObject(arg0).length;
             return ret;
         },
         __wbg_message_9ddc4b9a62a7c379: function(arg0) {

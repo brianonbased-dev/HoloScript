@@ -2143,5 +2143,1074 @@
       "reason": "same host-delegation boundary as std_list",
       "unlock": "same as std_list"
     }
-  ]
+  ],
+  "packagedExecution": {
+    "sources": {
+      "std_math": "packages/std/src/math.hsplus",
+      "std_list": "packages/std/src/collections.hsplus",
+      "std_map": "packages/std/src/collections.hsplus",
+      "std_set": "packages/std/src/collections.hsplus"
+    },
+    "targets": [
+      "browser-wasm",
+      "owned-metal"
+    ],
+    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the v5 packaged-factories subset: factory aliases statically lifted from @on_spawn, on_spawn side effects not executed, ?? and callback handlers out of scope. The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only.",
+    "excludedHandlers": [
+      {
+        "handler": "on_range",
+        "trait": "std_list",
+        "reason": "?? default outside both grammars"
+      },
+      {
+        "handler": "on_join",
+        "trait": "std_list",
+        "reason": "?? default outside both grammars"
+      },
+      {
+        "handler": "on_from",
+        "trait": "std_list",
+        "reason": "binding has no list_from; twin iterable semantics not JSON-expressible"
+      },
+      {
+        "handler": "on_map/on_flat_map/on_filter/on_reduce/on_sort",
+        "trait": "std_list",
+        "reason": "callback parameters (higher-order)"
+      },
+      {
+        "handler": "on_map_values/on_filter_entries",
+        "trait": "std_map",
+        "reason": "callback parameters (higher-order)"
+      },
+      {
+        "handler": "on_spawn",
+        "trait": "*",
+        "reason": "lifecycle side effects; factory aliases statically lifted instead"
+      },
+      {
+        "handler": "on_to_set/on_to_array/on_repeat/on_of",
+        "trait": "std_list",
+        "reason": "thin identity/constructor wrappers deferred to keep the packaged corpus focused; bindings exist"
+      },
+      {
+        "handler": "on_delete/on_values/on_entries/on_has (map), on_delete/on_has/on_to_array (set), on_first/on_last duplicates",
+        "trait": "std_map/std_set",
+        "reason": "representative subset in v0 packaged corpus; the host-binding delegation ops already cover these functions"
+      }
+    ],
+    "handlers": [
+      {
+        "trait": "std_math",
+        "handler": "on_clamp",
+        "params": [
+          "value",
+          "min",
+          "max"
+        ],
+        "expectRef": {
+          "host": [
+            "math",
+            "clamp"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-clamp-above",
+            "args": {
+              "value": 42,
+              "min": 0,
+              "max": 10
+            }
+          },
+          {
+            "id": "pkg-clamp-inside",
+            "args": {
+              "value": 3,
+              "min": 0,
+              "max": 10
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_lerp",
+        "params": [
+          "a",
+          "b",
+          "t"
+        ],
+        "expectRef": {
+          "twin": [
+            "lerp"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lerp-mid",
+            "args": {
+              "a": 0,
+              "b": 10,
+              "t": 0.5
+            }
+          },
+          {
+            "id": "pkg-lerp-frac",
+            "args": {
+              "a": 1.5,
+              "b": 3.25,
+              "t": 0.4
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_smoothstep",
+        "params": [
+          "edge0",
+          "edge1",
+          "x"
+        ],
+        "expectRef": {
+          "twin": [
+            "smoothstep"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-smoothstep-quarter",
+            "args": {
+              "edge0": 0,
+              "edge1": 1,
+              "x": 0.25
+            }
+          },
+          {
+            "id": "pkg-smoothstep-offset",
+            "args": {
+              "edge0": 2,
+              "edge1": 6,
+              "x": 3
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_remap",
+        "params": [
+          "value",
+          "in_min",
+          "in_max",
+          "out_min",
+          "out_max"
+        ],
+        "expectRef": {
+          "twin": [
+            "remap"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-remap-mid",
+            "args": {
+              "value": 5,
+              "in_min": 0,
+              "in_max": 10,
+              "out_min": 0,
+              "out_max": 100
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_deg_to_rad",
+        "params": [
+          "degrees"
+        ],
+        "expectRef": {
+          "twin": [
+            "degToRad"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-deg2rad-half",
+            "args": {
+              "degrees": 180
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_rad_to_deg",
+        "params": [
+          "radians"
+        ],
+        "expectRef": {
+          "twin": [
+            "radToDeg"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-rad2deg-pi",
+            "args": {
+              "radians": 3.141592653589793
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_vec3_length",
+        "params": [
+          "v"
+        ],
+        "expectRef": {
+          "twin": [
+            "vec3Math",
+            "length"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-vlen-345",
+            "args": {
+              "v": {
+                "x": 3,
+                "y": 4,
+                "z": 0
+              }
+            }
+          },
+          {
+            "id": "pkg-vlen-236",
+            "args": {
+              "v": {
+                "x": 2,
+                "y": 3,
+                "z": 6
+              }
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_vec3_normalize",
+        "params": [
+          "v"
+        ],
+        "expectRef": {
+          "twin": [
+            "vec3Math",
+            "normalize"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-vnorm-345",
+            "args": {
+              "v": {
+                "x": 3,
+                "y": 4,
+                "z": 0
+              }
+            }
+          },
+          {
+            "id": "pkg-vnorm-zero",
+            "args": {
+              "v": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              }
+            }
+          }
+        ],
+        "wrap": "vec3",
+        "wrapNote": "the twin vec3() helper returns a hybrid array with non-enumerable x/y/z shims on the zero branch; the packaged handler returns a plain {x,y,z} object, which is the conformance target shape"
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_vec3_dot",
+        "params": [
+          "a",
+          "b"
+        ],
+        "expectRef": {
+          "twin": [
+            "vec3Math",
+            "dot"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-vdot-basic",
+            "args": {
+              "a": {
+                "x": 1,
+                "y": 2,
+                "z": 3
+              },
+              "b": {
+                "x": 4,
+                "y": 5,
+                "z": 6
+              }
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_vec3_cross",
+        "params": [
+          "a",
+          "b"
+        ],
+        "expectRef": {
+          "twin": [
+            "vec3Math",
+            "cross"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-vcross-general",
+            "args": {
+              "a": {
+                "x": 2,
+                "y": 3,
+                "z": 4
+              },
+              "b": {
+                "x": 5,
+                "y": 6,
+                "z": 7
+              }
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_vec3_lerp",
+        "params": [
+          "a",
+          "b",
+          "t"
+        ],
+        "expectRef": {
+          "twin": [
+            "vec3Math",
+            "lerp"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-vlerp-mid",
+            "args": {
+              "a": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "b": {
+                "x": 10,
+                "y": 20,
+                "z": 30
+              },
+              "t": 0.5
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_vec3_distance",
+        "params": [
+          "a",
+          "b"
+        ],
+        "expectRef": {
+          "twin": [
+            "vec3Math",
+            "distance"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-vdist-345",
+            "args": {
+              "a": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "b": {
+                "x": 3,
+                "y": 4,
+                "z": 0
+              }
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_quat_identity",
+        "params": [],
+        "expectRef": {
+          "twin": [
+            "quatMath",
+            "identity"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-qidentity",
+            "args": {}
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_quat_multiply",
+        "params": [
+          "a",
+          "b"
+        ],
+        "expectRef": {
+          "twin": [
+            "quatMath",
+            "multiply"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-qmul-general",
+            "args": {
+              "a": {
+                "x": 0.1,
+                "y": 0.2,
+                "z": 0.3,
+                "w": 0.9
+              },
+              "b": {
+                "x": 0.4,
+                "y": 0.25,
+                "z": 0.35,
+                "w": 0.8
+              }
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_quat_from_axis_angle",
+        "params": [
+          "axis",
+          "angle_rad"
+        ],
+        "expectRef": {
+          "twin": [
+            "quatMath",
+            "fromAxisAngle"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-qaxis-z-quarter",
+            "args": {
+              "axis": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              },
+              "angle_rad": 1.5707963267948966
+            }
+          }
+        ],
+        "tolerance": 1e-15
+      },
+      {
+        "trait": "std_math",
+        "handler": "on_quat_slerp",
+        "params": [
+          "a",
+          "b",
+          "t"
+        ],
+        "expectRef": {
+          "host": [
+            "math",
+            "quat_slerp"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-qslerp-mid",
+            "args": {
+              "a": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "b": {
+                "x": 0,
+                "y": 0,
+                "z": 0.7071067811865476,
+                "w": 0.7071067811865476
+              },
+              "t": 0.5
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_reverse",
+        "params": [
+          "lst"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_reverse"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lreverse",
+            "args": {
+              "lst": [
+                1,
+                2,
+                3,
+                4
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_flatten",
+        "params": [
+          "lst"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_flatten"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lflatten",
+            "args": {
+              "lst": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  3
+                ],
+                4
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_unique",
+        "params": [
+          "lst"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_unique"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lunique",
+            "args": {
+              "lst": [
+                3,
+                1,
+                3,
+                2,
+                1
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_get",
+        "params": [
+          "lst",
+          "index"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_get"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lget",
+            "args": {
+              "lst": [
+                10,
+                20,
+                30
+              ],
+              "index": 1
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_first",
+        "params": [
+          "lst"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_first"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lfirst",
+            "args": {
+              "lst": [
+                "x",
+                "y"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_last",
+        "params": [
+          "lst"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_last"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-llast",
+            "args": {
+              "lst": [
+                "x",
+                "y"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_contains",
+        "params": [
+          "lst",
+          "item"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_contains"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lcontains",
+            "args": {
+              "lst": [
+                1,
+                2,
+                3
+              ],
+              "item": 2
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_index_of",
+        "params": [
+          "lst",
+          "item"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_index_of"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lindexof",
+            "args": {
+              "lst": [
+                "a",
+                "b",
+                "c"
+              ],
+              "item": "b"
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_length",
+        "params": [
+          "lst"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_length"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-llength",
+            "args": {
+              "lst": [
+                1,
+                2,
+                3
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_is_empty",
+        "params": [
+          "lst"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_is_empty"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lisempty",
+            "args": {
+              "lst": []
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_zip",
+        "params": [
+          "lst_a",
+          "lst_b"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_zip"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lzip",
+            "args": {
+              "lst_a": [
+                1,
+                2
+              ],
+              "lst_b": [
+                "x",
+                "y"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_list",
+        "handler": "on_chunk",
+        "params": [
+          "lst",
+          "size"
+        ],
+        "expectRef": {
+          "host": [
+            "list_lib",
+            "list_chunk"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-lchunk",
+            "args": {
+              "lst": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "size": 2
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_map",
+        "handler": "on_set",
+        "params": [
+          "m",
+          "key",
+          "value"
+        ],
+        "expectRef": {
+          "host": [
+            "map_lib",
+            "map_set"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-mset",
+            "args": {
+              "m": {
+                "a": 1
+              },
+              "key": "b",
+              "value": 2
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_map",
+        "handler": "on_keys",
+        "params": [
+          "m"
+        ],
+        "expectRef": {
+          "host": [
+            "map_lib",
+            "map_keys"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-mkeys",
+            "args": {
+              "m": {
+                "b": 1,
+                "a": 2
+              }
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_map",
+        "handler": "on_merge",
+        "params": [
+          "m_a",
+          "m_b"
+        ],
+        "expectRef": {
+          "host": [
+            "map_lib",
+            "map_merge"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-mmerge",
+            "args": {
+              "m_a": {
+                "x": 1,
+                "y": 2
+              },
+              "m_b": {
+                "y": 9,
+                "z": 3
+              }
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_map",
+        "handler": "on_size",
+        "params": [
+          "m"
+        ],
+        "expectRef": {
+          "host": [
+            "map_lib",
+            "map_size"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-msize",
+            "args": {
+              "m": {
+                "a": 1,
+                "b": 2
+              }
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_set",
+        "handler": "on_add",
+        "params": [
+          "s",
+          "item"
+        ],
+        "expectRef": {
+          "host": [
+            "set_lib",
+            "set_add"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-sadd",
+            "args": {
+              "s": [
+                1,
+                3
+              ],
+              "item": 2
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_set",
+        "handler": "on_union",
+        "params": [
+          "s_a",
+          "s_b"
+        ],
+        "expectRef": {
+          "host": [
+            "set_lib",
+            "set_union"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-sunion",
+            "args": {
+              "s_a": [
+                3,
+                1,
+                2
+              ],
+              "s_b": [
+                2,
+                4
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_set",
+        "handler": "on_intersection",
+        "params": [
+          "s_a",
+          "s_b"
+        ],
+        "expectRef": {
+          "host": [
+            "set_lib",
+            "set_intersection"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-sinter",
+            "args": {
+              "s_a": [
+                1,
+                2,
+                3
+              ],
+              "s_b": [
+                2,
+                3,
+                4
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "trait": "std_set",
+        "handler": "on_difference",
+        "params": [
+          "s_a",
+          "s_b"
+        ],
+        "expectRef": {
+          "host": [
+            "set_lib",
+            "set_difference"
+          ]
+        },
+        "vectors": [
+          {
+            "id": "pkg-sdiff",
+            "args": {
+              "s_a": [
+                1,
+                2,
+                3
+              ],
+              "s_b": [
+                2
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
 }

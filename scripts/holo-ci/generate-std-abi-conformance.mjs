@@ -234,6 +234,50 @@ for (const op of ops.ops) {
   }
 }
 
+// --- Packaged-handler vectors (executed from shipped source bytes) -----------
+// The engine lane cannot parse the @trait form, so these vectors carry an
+// explicit target list and receive no engine admission run; their admission is
+// the reference computation itself (binding or twin) plus the clean-value
+// gates. The wasm-evaluator targets execute the hash-bound packaged sources
+// directly under the v5 packaged-factories subset.
+
+if (ops.packagedExecution) {
+  for (const handler of ops.packagedExecution.handlers) {
+    let expectFn;
+    if (handler.expectRef.host) {
+      expectFn = resolveHostFunction(handler.expectRef.host, `${handler.trait}.${handler.handler}`).fn;
+    } else {
+      expectFn = resolveReference(handler.expectRef.twin);
+    }
+    for (const vector of handler.vectors) {
+      const orderedArgs = handler.params.map((param) => {
+        if (!(param in vector.args)) {
+          fail(`${handler.handler}/${vector.id}: missing arg ${param}`);
+        }
+        return vector.args[param];
+      });
+      let expected = expectFn(...structuredClone(orderedArgs));
+      if (handler.wrap) {
+        expected = wrapReferenceResult(handler.wrap, expected, `${handler.handler}/${vector.id}`);
+      }
+      assertCleanValue(expected, `${handler.handler}/${vector.id}.expected`);
+      assertCleanValue(vector.args, `${handler.handler}/${vector.id}.args`);
+      vectors.push({
+        id: vector.id,
+        op: handler.handler,
+        action: null,
+        kind: 'packaged-handler',
+        packaged: true,
+        trait: handler.trait,
+        args: vector.args,
+        expected,
+        tolerance: handler.tolerance ?? 0,
+        targets: ops.packagedExecution.targets,
+      });
+    }
+  }
+}
+
 // --- Admission gate: execute the action projection in the engine runtime ----
 
 const runtimeModulePath = join(
@@ -254,6 +298,7 @@ const runtime = createDeterministicHsplusActionRuntime(actionSource, {
 
 let gateFailures = 0;
 for (const vector of vectors) {
+  if (vector.packaged) continue;
   const result = runtime.invoke({
     kind: 'observation',
     scheduleEntryId: `gen-gate-${vector.id}`,
@@ -338,6 +383,9 @@ const manifest = {
   counts: {
     ops: ops.ops.length,
     vectors: vectors.length,
+    projectionVectors: vectors.filter((vector) => !vector.packaged).length,
+    packagedHandlers: ops.packagedExecution?.handlers.length ?? 0,
+    packagedVectors: vectors.filter((vector) => vector.packaged).length,
     excluded: ops.excluded.length,
   },
 };

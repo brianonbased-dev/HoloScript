@@ -75,7 +75,7 @@ function valuesEqual(a, b, tolerance, path, mismatches) {
   }
 }
 
-function loadCorpusToleranceMap() {
+function loadCorpusVectorMeta() {
   const vectorsPath = join(
     repoRoot,
     'packages',
@@ -89,15 +89,18 @@ function loadCorpusToleranceMap() {
     for (const line of readFileSync(vectorsPath, 'utf8').split('\n')) {
       if (!line.trim()) continue;
       const vector = JSON.parse(line);
-      map.set(vector.id, vector.tolerance ?? 0);
+      map.set(vector.id, {
+        tolerance: vector.tolerance ?? 0,
+        targets: Array.isArray(vector.targets) ? vector.targets : null,
+      });
     }
   } catch {
-    // no corpus available (e.g. self-test fixtures) — exact comparison for everything
+    // no corpus available (e.g. self-test fixtures) — exact comparison, all targets
   }
   return map;
 }
 
-function compareReceipts(receipts, toleranceById = new Map()) {
+function compareReceipts(receipts, vectorMeta = new Map()) {
   const problems = [];
   const vectorsPin = 'packages/std/conformance/generated/std-abi-vectors.v0.jsonl';
 
@@ -119,37 +122,49 @@ function compareReceipts(receipts, toleranceById = new Map()) {
     results: new Map((entry.receipt.results || []).map((result) => [result.id, result])),
   }));
 
-  const [first, ...rest] = byTarget;
+  const allIds = new Set();
+  for (const entry of byTarget) for (const id of entry.results.keys()) allIds.add(id);
+  for (const id of vectorMeta.keys()) allIds.add(id);
+
   let comparedVectors = 0;
   let toleranceBoundedVectors = 0;
-  if (first) {
-    for (const [id, firstResult] of first.results) {
-      const tolerance = toleranceById.get(id) ?? 0;
-      if (tolerance > 0) toleranceBoundedVectors += 1;
-      for (const other of rest) {
-        const otherResult = other.results.get(id);
-        if (!otherResult) {
-          problems.push(`${other.target}: vector ${id} missing`);
-          continue;
-        }
-        const mismatches = [];
-        valuesEqual(firstResult.actual, otherResult.actual, tolerance, id, mismatches);
-        if (mismatches.length > 0) {
-          problems.push(
-            `${first.target} vs ${other.target} diverge on ${id}: ${mismatches.join('; ')}`
-          );
-        }
-      }
-      comparedVectors += 1;
+  let targetScopedVectors = 0;
+  for (const id of allIds) {
+    const meta = vectorMeta.get(id) ?? { tolerance: 0, targets: null };
+    const eligible = meta.targets
+      ? byTarget.filter((entry) => meta.targets.includes(entry.target))
+      : byTarget;
+    if (meta.targets) targetScopedVectors += 1;
+    if (eligible.length === 0) continue;
+    const carriers = eligible.filter((entry) => entry.results.has(id));
+    for (const entry of eligible) {
+      if (!entry.results.has(id)) problems.push(`${entry.target}: vector ${id} missing`);
     }
-    for (const other of rest) {
-      for (const id of other.results.keys()) {
-        if (!first.results.has(id)) problems.push(`${first.target}: vector ${id} missing`);
+    if (carriers.length < 2) {
+      if (carriers.length === 1 && eligible.length === 1) comparedVectors += 1;
+      continue;
+    }
+    if (meta.tolerance > 0) toleranceBoundedVectors += 1;
+    const [anchor, ...others] = carriers;
+    for (const other of others) {
+      const mismatches = [];
+      valuesEqual(
+        anchor.results.get(id).actual,
+        other.results.get(id).actual,
+        meta.tolerance,
+        id,
+        mismatches
+      );
+      if (mismatches.length > 0) {
+        problems.push(
+          `${anchor.target} vs ${other.target} diverge on ${id}: ${mismatches.join('; ')}`
+        );
       }
     }
+    comparedVectors += 1;
   }
 
-  return { problems, comparedVectors, toleranceBoundedVectors };
+  return { problems, comparedVectors, toleranceBoundedVectors, targetScopedVectors };
 }
 
 if (selfTest) {
@@ -187,10 +202,8 @@ const receipts = receiptPaths.map((path) => {
   return { path, raw, receipt };
 });
 
-const { problems, comparedVectors, toleranceBoundedVectors } = compareReceipts(
-  receipts,
-  loadCorpusToleranceMap()
-);
+const { problems, comparedVectors, toleranceBoundedVectors, targetScopedVectors } =
+  compareReceipts(receipts, loadCorpusVectorMeta());
 
 const crossReceipt = {
   schema: 'holoscript.std-abi-conformance.cross-target.v0',
@@ -207,9 +220,10 @@ const crossReceipt = {
   })),
   comparison: {
     method:
-      'per-vector equality across targets: exact (Object.is, recursive, key-set strict) for tolerance-0 vectors; absolute-difference bound for vectors whose corpus entry declares a non-zero tolerance (libm transcendental ulp variance)',
+      'per-vector equality across the targets each vector declares (default: all): exact (Object.is, recursive, key-set strict) for tolerance-0 vectors; absolute-difference bound for vectors whose corpus entry declares a non-zero tolerance (libm transcendental ulp variance)',
     comparedVectors,
     toleranceBoundedVectors,
+    targetScopedVectors,
     problems,
   },
   verdict: problems.length === 0 ? 'EQUAL' : 'DIVERGED',

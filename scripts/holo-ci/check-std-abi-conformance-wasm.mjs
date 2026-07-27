@@ -165,19 +165,21 @@ function compareValues(actual, expected, tolerance, path, mismatches) {
   }
 }
 
-function runVector(projectionSource, traitName, vector, expectedOverride) {
+function runVector(projectionSource, traitName, vector, expectedOverride, evaluatorExport) {
+  const exportName = evaluatorExport ?? EVALUATOR_EXPORT;
   const expected = expectedOverride ?? vector.expected;
   const outcome = {
     id: vector.id,
     op: vector.op,
     pass: false,
     expectedHash: sha256(Buffer.from(JSON.stringify(expected))),
+    ...(vector.packaged ? { packaged: true, trait: vector.trait } : {}),
   };
 
   let envelope;
   try {
     envelope = JSON.parse(
-      wasm[EVALUATOR_EXPORT](
+      wasm[exportName](
         projectionSource,
         traitName,
         vector.op,
@@ -288,11 +290,14 @@ const vectors = vectorsBytes
 if (vectors.length === 0) misconfigured('vectors file contains no vectors');
 
 let excludedOps = [];
+let packagedExecutionSpec = null;
 if (manifest.opsFile) {
   const opsPath = join(repoRoot, ...String(manifest.opsFile).split('/'));
   if (existsSync(opsPath)) {
     try {
-      excludedOps = JSON.parse(readFileSync(opsPath, 'utf8')).excluded ?? [];
+      const opsDefinition = JSON.parse(readFileSync(opsPath, 'utf8'));
+      excludedOps = opsDefinition.excluded ?? [];
+      packagedExecutionSpec = opsDefinition.packagedExecution ?? null;
     } catch {
       // The ops SSOT is optional context for the receipt; the corpus itself is authoritative.
       excludedOps = [];
@@ -302,8 +307,35 @@ if (manifest.opsFile) {
 
 // --- Full run ----------------------------------------------------------------
 
+const PACKAGED_EVALUATOR_EXPORT = 'evaluate_trait_handler_v5';
+const packagedSources = {};
+if (packagedExecutionSpec && typeof wasm[PACKAGED_EVALUATOR_EXPORT] === 'function') {
+  for (const [trait, relPath] of Object.entries(packagedExecutionSpec.sources)) {
+    packagedSources[trait] = readFileSync(join(repoRoot, ...relPath.split('/')), 'utf8');
+  }
+}
+const packagedReady = Object.keys(packagedSources).length > 0;
+
 const traitName = traitNameOf(projectionSource);
-const results = vectors.map((vector) => runVector(projectionSource, traitName, vector));
+const results = vectors
+  .filter((vector) => !vector.packaged || packagedReady)
+  .map((vector) =>
+    vector.packaged
+      ? runVector(
+          packagedSources[vector.trait],
+          vector.trait,
+          vector,
+          undefined,
+          PACKAGED_EVALUATOR_EXPORT
+        )
+      : runVector(projectionSource, traitName, vector)
+  );
+const packagedSkipped = vectors.filter((vector) => vector.packaged && !packagedReady).length;
+if (packagedSkipped > 0) {
+  console.error(
+    `[std-abi-conformance-wasm] WARNING: ${packagedSkipped} packaged-handler vectors skipped (no ${PACKAGED_EVALUATOR_EXPORT} export or no packagedExecution spec) — the receipt will not claim packaged-handler execution`
+  );
+}
 const failed = results.filter((result) => !result.pass);
 
 const wasmSha = sha256(readFileSync(artifactWasm));
@@ -325,6 +357,22 @@ const receipt = {
   },
   evaluatorExport: EVALUATOR_EXPORT,
   subsetId: SUBSET_ID,
+  ...(packagedReady
+    ? {
+        packagedExecution: {
+          evaluatorExport: PACKAGED_EVALUATOR_EXPORT,
+          subsetId: 'holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories',
+          sources: Object.fromEntries(
+            Object.entries(packagedExecutionSpec.sources).map(([trait, relPath]) => [
+              relPath,
+              { sha256: sha256(readFileSync(join(repoRoot, ...relPath.split('/')))) },
+            ])
+          ),
+          vectors: results.filter((result) => result.packaged).length,
+          claim: packagedExecutionSpec.claim,
+        },
+      }
+    : {}),
   hostAbi: {
     schema: STD_HOST_ABI_SCHEMA,
     bindingModuleSha256: sha256(readFileSync(bindingModulePath)),

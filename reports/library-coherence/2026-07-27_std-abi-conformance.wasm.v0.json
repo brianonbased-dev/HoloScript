@@ -1,19 +1,33 @@
 {
   "schema": "holoscript.std-abi-conformance.wasm.v0",
-  "generatedAtISO": "2026-07-27T20:09:56.924Z",
+  "generatedAtISO": "2026-07-27T20:40:04.577Z",
   "target": "browser-wasm",
   "executionRuntime": "node-webassembly",
   "wasmArtifact": {
     "path": "packages/compiler-wasm/pkg-node",
-    "sha256": "sha256:cbe6a0e06d991979d0dbd3c8c37c8ab4e987e0f91ff5e34315b6f46417a369c3",
+    "sha256": "sha256:7f2617ed2da3daa9ae1bd1f1806a0cbec17d79bc02bfa34d5af0816d009dcac2",
     "byteIdenticalWebArtifact": {
       "path": "packages/compiler-wasm/pkg",
-      "sha256": "sha256:cbe6a0e06d991979d0dbd3c8c37c8ab4e987e0f91ff5e34315b6f46417a369c3",
+      "sha256": "sha256:7f2617ed2da3daa9ae1bd1f1806a0cbec17d79bc02bfa34d5af0816d009dcac2",
       "matches": true
     }
   },
   "evaluatorExport": "evaluate_trait_handler_v4",
   "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v4-host-bindings",
+  "packagedExecution": {
+    "evaluatorExport": "evaluate_trait_handler_v5",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories",
+    "sources": {
+      "packages/std/src/math.hsplus": {
+        "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
+      },
+      "packages/std/src/collections.hsplus": {
+        "sha256": "sha256:a7447f7f67c9dfd2b7e3be433f7c90436c3a1c749e858d6fd4399e6b1d7af673"
+      }
+    },
+    "vectors": 41,
+    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the v5 packaged-factories subset: factory aliases statically lifted from @on_spawn, on_spawn side effects not executed, ?? and callback handlers out of scope. The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only."
+  },
   "hostAbi": {
     "schema": "holoscript.std-host-abi.v0",
     "bindingModuleSha256": "sha256:e006c979de0ca1d28d90eebdb2c30ed632b5bb7bbbfecd79476a29b7f3b3ded1",
@@ -21,13 +35,13 @@
   },
   "sources": {
     "traitProjectionSha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9",
-    "vectorsSha256": "sha256:3d205049f9bc71e5099bca619c850079b97379e44d91e2dfc1a5a5fb56b0a3ce",
-    "manifestSha256": "sha256:c60abe2882ebd8e24c5464cf112af75ac7967c242b6c9e481226381fd00146b7",
+    "vectorsSha256": "sha256:8f57b889de465c0ecaa72ef1fe63b507a4183f4108cba834f390b06d2e56e7a4",
+    "manifestSha256": "sha256:33785917ece48b93403315c648f4472a03e8b8b273f6dcd3b4c0653a165836c6",
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
       "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:3d205049f9bc71e5099bca619c850079b97379e44d91e2dfc1a5a5fb56b0a3ce"
+      "sha256": "sha256:8f57b889de465c0ecaa72ef1fe63b507a4183f4108cba834f390b06d2e56e7a4"
     }
   },
   "environment": {
@@ -36,8 +50,8 @@
     "platform": "win32"
   },
   "summary": {
-    "vectors": 123,
-    "passed": 123,
+    "vectors": 164,
+    "passed": 164,
     "failed": 0,
     "excludedOps": [
       {
@@ -1361,11 +1375,476 @@
       "actual": {
         "value": []
       }
+    },
+    {
+      "id": "pkg-clamp-above",
+      "op": "on_clamp",
+      "pass": true,
+      "expectedHash": "sha256:4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 10
+    },
+    {
+      "id": "pkg-clamp-inside",
+      "op": "on_clamp",
+      "pass": true,
+      "expectedHash": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 3
+    },
+    {
+      "id": "pkg-lerp-mid",
+      "op": "on_lerp",
+      "pass": true,
+      "expectedHash": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-lerp-frac",
+      "op": "on_lerp",
+      "pass": true,
+      "expectedHash": "sha256:914204c25f3f144ddec3469c61a6faea695c87590ab78a5eb25b0f3904cf84e0",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 2.2
+    },
+    {
+      "id": "pkg-smoothstep-quarter",
+      "op": "on_smoothstep",
+      "pass": true,
+      "expectedHash": "sha256:c58f7e4851eb4844304fda0b6775020202c338e6632c63bd86ec2bc28d432401",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 0.15625
+    },
+    {
+      "id": "pkg-smoothstep-offset",
+      "op": "on_smoothstep",
+      "pass": true,
+      "expectedHash": "sha256:c58f7e4851eb4844304fda0b6775020202c338e6632c63bd86ec2bc28d432401",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 0.15625
+    },
+    {
+      "id": "pkg-remap-mid",
+      "op": "on_remap",
+      "pass": true,
+      "expectedHash": "sha256:1a6562590ef19d1045d06c4055742d38288e9e6dcd71ccde5cee80f1d5a774eb",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 50
+    },
+    {
+      "id": "pkg-deg2rad-half",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "expectedHash": "sha256:f0a1b7875844c3ae0d28f3cc44e9a6241da33e2623a69f0a71263158dffb4e87",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 3.141592653589793
+    },
+    {
+      "id": "pkg-rad2deg-pi",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "expectedHash": "sha256:7b69759630f869f2723875f873935fed29d2d12b10ef763c1c33b8e0004cb405",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 180
+    },
+    {
+      "id": "pkg-vlen-345",
+      "op": "on_vec3_length",
+      "pass": true,
+      "expectedHash": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-vlen-236",
+      "op": "on_vec3_length",
+      "pass": true,
+      "expectedHash": "sha256:7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 7
+    },
+    {
+      "id": "pkg-vnorm-345",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "expectedHash": "sha256:cba0cdb8d7bfbfc02363847be339164850d856fdf4ebc7ef7711909baf727ec2",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 0.6,
+        "y": 0.8,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-vnorm-zero",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "expectedHash": "sha256:35461afe4a2d42dcc8948534195c5e79c22332615508a7a0627de91e52c3b5c8",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-vdot-basic",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "expectedHash": "sha256:e29c9c180c6279b0b02abd6a1801c7c04082cf486ec027aa13515e4f3884bb6b",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 32
+    },
+    {
+      "id": "pkg-vcross-general",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "expectedHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "pkg-vlerp-mid",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "expectedHash": "sha256:f3ff8d804e9661ca21c32a5391cc62daf1c2dca047dcd377e8e796212bd8e0e0",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 5,
+        "y": 10,
+        "z": 15
+      }
+    },
+    {
+      "id": "pkg-vdist-345",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "expectedHash": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-qidentity",
+      "op": "on_quat_identity",
+      "pass": true,
+      "expectedHash": "sha256:ae4521a018cf2320f1ece95ba13cdc13bb3fdebe7807353b5bc15de37ddfa585",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-qmul-general",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "expectedHash": "sha256:5d597c24ab9cb723541de11b52efb6b0d7fb7b14a06685ea6b627701e81462e5",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.525,
+        "x": 0.435,
+        "y": 0.47000000000000003,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "pkg-qaxis-z-quarter",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "expectedHash": "sha256:dc15ffbd68614839ba0fbd666321587edf302234186bf98c28259243b0b63f13",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.7071067811865476,
+        "x": 0,
+        "y": 0,
+        "z": 0.7071067811865475
+      }
+    },
+    {
+      "id": "pkg-qslerp-mid",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:90c0b43d66c20aa27a70eefd9e5ce796aa42f1a70edab125f60301b48affdf48",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.9238795325112867,
+        "x": 0,
+        "y": 0,
+        "z": 0.38268343236508984
+      }
+    },
+    {
+      "id": "pkg-lreverse",
+      "op": "on_reverse",
+      "pass": true,
+      "expectedHash": "sha256:645df3cb5a5e94f93e31cd6f50cc78a55f50923bd4c691f1ab5c85277a651326",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        4,
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "pkg-lflatten",
+      "op": "on_flatten",
+      "pass": true,
+      "expectedHash": "sha256:f6bd10506e9a4daed7c03eda2f2fde54be3bd58eee49dab471c18a888ffbdb6f",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lunique",
+      "op": "on_unique",
+      "pass": true,
+      "expectedHash": "sha256:51bda7ab4e44726cde71fcb6e4b515357059bb6b6dd5146d1fc50f73f11678c6",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        3,
+        1,
+        2
+      ]
+    },
+    {
+      "id": "pkg-lget",
+      "op": "on_get",
+      "pass": true,
+      "expectedHash": "sha256:f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 20
+    },
+    {
+      "id": "pkg-lfirst",
+      "op": "on_first",
+      "pass": true,
+      "expectedHash": "sha256:ba2df4903a2c14e86dc3bcca58911b44ac1d2514b7227bf6eb08cfb978f55a1b",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "x"
+    },
+    {
+      "id": "pkg-llast",
+      "op": "on_last",
+      "pass": true,
+      "expectedHash": "sha256:2bc983a5942276eb00a75e2113a69694318cd28c7de0fc83c0598d9db50eb777",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "y"
+    },
+    {
+      "id": "pkg-lcontains",
+      "op": "on_contains",
+      "pass": true,
+      "expectedHash": "sha256:b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": true
+    },
+    {
+      "id": "pkg-lindexof",
+      "op": "on_index_of",
+      "pass": true,
+      "expectedHash": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 1
+    },
+    {
+      "id": "pkg-llength",
+      "op": "on_length",
+      "pass": true,
+      "expectedHash": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 3
+    },
+    {
+      "id": "pkg-lisempty",
+      "op": "on_is_empty",
+      "pass": true,
+      "expectedHash": "sha256:b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": true
+    },
+    {
+      "id": "pkg-lzip",
+      "op": "on_zip",
+      "pass": true,
+      "expectedHash": "sha256:2abdd03b9c7c716d17e92019de41c0f0a51476c76a166cd908ab0544fd5223e4",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        [
+          1,
+          "x"
+        ],
+        [
+          2,
+          "y"
+        ]
+      ]
+    },
+    {
+      "id": "pkg-lchunk",
+      "op": "on_chunk",
+      "pass": true,
+      "expectedHash": "sha256:1dd1a08e7a06987aef9472a406ded6d7d1ffec2c9bcca8ee5616d18609f8166a",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5
+        ]
+      ]
+    },
+    {
+      "id": "pkg-mset",
+      "op": "on_set",
+      "pass": true,
+      "expectedHash": "sha256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "a": 1,
+        "b": 2
+      }
+    },
+    {
+      "id": "pkg-mkeys",
+      "op": "on_keys",
+      "pass": true,
+      "expectedHash": "sha256:0473ef2dc0d324ab659d3580c1134e9d812035905c4781fdd6d529b0c6860e13",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "pkg-mmerge",
+      "op": "on_merge",
+      "pass": true,
+      "expectedHash": "sha256:01c2fbcb7a3bad04680445a61ce56ea5c1b5fe25bc774132c6771a96b43a17f7",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "x": 1,
+        "y": 9,
+        "z": 3
+      }
+    },
+    {
+      "id": "pkg-msize",
+      "op": "on_size",
+      "pass": true,
+      "expectedHash": "sha256:d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": 2
+    },
+    {
+      "id": "pkg-sadd",
+      "op": "on_add",
+      "pass": true,
+      "expectedHash": "sha256:a615eeaee21de5179de080de8c3052c8da901138406ba71c38c032845f7d54f4",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pkg-sunion",
+      "op": "on_union",
+      "pass": true,
+      "expectedHash": "sha256:f6bd10506e9a4daed7c03eda2f2fde54be3bd58eee49dab471c18a888ffbdb6f",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-sinter",
+      "op": "on_intersection",
+      "pass": true,
+      "expectedHash": "sha256:18b058689d010062a25cd7fb949b2abfea1757d2de45ca3abdda17db956e506b",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pkg-sdiff",
+      "op": "on_difference",
+      "pass": true,
+      "expectedHash": "sha256:2335c54ffe3749ceafac20eea51040b4fa52beab7682f26d5d1bb75d1878478b",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        3
+      ]
     }
   ],
   "claimBoundary": {
     "provesBrowserExecution": false,
     "note": "Executed in Node's WebAssembly runtime against the byte-identical wasm shipped for browsers; a browser smoke run is a separate receipt."
   },
-  "receiptHash": "sha256:1a752a337ea8ccbec5ce8a4c124d542aade932de28b3d5829aebb518bc2b2a8b"
+  "receiptHash": "sha256:d1bbf86476d2a3483000323bbc6b0774578e8e9f9541edc5f63ada37e1df2547"
 }

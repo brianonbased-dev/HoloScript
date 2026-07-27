@@ -1,12 +1,12 @@
 {
   "schema": "holoscript.std-abi-conformance.cross-target.v0",
-  "generatedAtISO": "2026-07-27T20:10:15.708Z",
+  "generatedAtISO": "2026-07-27T20:40:20.663Z",
   "targets": [
     {
       "target": "node",
       "schema": "holoscript.std-abi-conformance.node.v0",
       "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-26_std-abi-conformance.node.v0.json",
-      "receiptSha256": "sha256:e1d3fee167a33c28a71f64dfbf42b9d309131dbbe2308b551e47a759cfb84376",
+      "receiptSha256": "sha256:586469d4e085764befbc12c5cba4cede9eba3cc7dbd42dcc65f10266ac482598",
       "vectors": 123,
       "passed": 123,
       "failed": 0,
@@ -20,9 +20,9 @@
       "target": "browser-wasm",
       "schema": "holoscript.std-abi-conformance.wasm.v0",
       "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-27_std-abi-conformance.wasm.v0.json",
-      "receiptSha256": "sha256:2890ec1dbadcc32be06c031e3a02ac738fb2c666b309bfd20472c1b4c5710cf5",
-      "vectors": 123,
-      "passed": 123,
+      "receiptSha256": "sha256:ff2a9f31e0a90ebe52c80bfa6dcf0ed3c2cabefb95267037fa9d80cb0c4b3f71",
+      "vectors": 164,
+      "passed": 164,
       "failed": 0,
       "environment": {
         "node": "v24.15.0",
@@ -34,9 +34,9 @@
       "target": "owned-metal",
       "schema": "holoscript.std-abi-conformance.owned-metal.v0",
       "path": "C:/Users/Josep/Documents/GitHub/HoloScript/reports/library-coherence/2026-07-26_std-abi-conformance.owned-metal.v0.json",
-      "receiptSha256": "sha256:e87c725f4a0581919c7a635f25073ff178fb83a94fd2a37a72d0201ae3c64f6a",
-      "vectors": 123,
-      "passed": 123,
+      "receiptSha256": "sha256:e01826b8a6fb4c075d2743e2c916fe01524d63f1f71ea759a72286b5b5d8b27a",
+      "vectors": 164,
+      "passed": 164,
       "failed": 0,
       "environment": {
         "node": "v20.20.2",
@@ -49,14 +49,15 @@
     }
   ],
   "comparison": {
-    "method": "per-vector equality across targets: exact (Object.is, recursive, key-set strict) for tolerance-0 vectors; absolute-difference bound for vectors whose corpus entry declares a non-zero tolerance (libm transcendental ulp variance)",
-    "comparedVectors": 123,
-    "toleranceBoundedVectors": 10,
+    "method": "per-vector equality across the targets each vector declares (default: all): exact (Object.is, recursive, key-set strict) for tolerance-0 vectors; absolute-difference bound for vectors whose corpus entry declares a non-zero tolerance (libm transcendental ulp variance)",
+    "comparedVectors": 164,
+    "toleranceBoundedVectors": 11,
+    "targetScopedVectors": 41,
     "problems": []
   },
   "verdict": "EQUAL",
   "claimBoundary": {
     "note": "Equality is claimed only for the targets, corpus pin, and vector set named above. Each per-target receipt carries its own execution claim boundary; this receipt adds only cross-target value agreement."
   },
-  "receiptHash": "sha256:b78298eb8fcaa4fcf2101901841cae3c23ada43769944dccc630a1b91cc80a20"
+  "receiptHash": "sha256:9591fd0f56d4f26ad60ebc75db7d02fad27639b4eb1706c5470d9b2b83be3ee6"
 }

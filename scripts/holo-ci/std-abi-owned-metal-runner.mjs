@@ -73,12 +73,22 @@ if (typeof wasm[evaluatorExport] !== 'function') {
   fail('pkg-node artifact has no trait-handler evaluator export');
 }
 let hostBindings = null;
-if (evaluatorExport === 'evaluate_trait_handler_v4') {
+if (
+  evaluatorExport === 'evaluate_trait_handler_v4' ||
+  typeof wasm.evaluate_trait_handler_v5 === 'function'
+) {
   const { createStdHostBindings } = await import(
     pathToFileURL(join(bundleDir, 'std-host-binding.mjs')).href
   );
   hostBindings = createStdHostBindings();
 }
+const packagedSources = {};
+if (typeof wasm.evaluate_trait_handler_v5 === 'function' && manifest.packagedSources) {
+  for (const [trait, bundleName] of Object.entries(manifest.packagedSources)) {
+    packagedSources[trait] = readFileSync(join(bundleDir, bundleName), 'utf8');
+  }
+}
+const packagedReady = Object.keys(packagedSources).length > 0;
 const traitName = manifest.conformanceTrait || 'std_math_conformance';
 
 // --- Comparison --------------------------------------------------------------
@@ -114,20 +124,37 @@ function compareValues(actual, expected, tolerance, path, mismatches) {
 // --- Execute -----------------------------------------------------------------
 
 const results = [];
-for (const vector of vectors) {
-  const outcome = { id: vector.id, op: vector.op, pass: false };
+const runnable = vectors.filter((vector) => !vector.packaged || packagedReady);
+const packagedSkipped = vectors.length - runnable.length;
+for (const vector of runnable) {
+  const outcome = {
+    id: vector.id,
+    op: vector.op,
+    pass: false,
+    ...(vector.packaged ? { packaged: true, trait: vector.trait } : {}),
+  };
   let parsed;
   try {
-    const raw =
-      evaluatorExport === 'evaluate_trait_handler_v4'
-        ? wasm[evaluatorExport](
-            traitSource,
-            traitName,
-            vector.op,
-            JSON.stringify(vector.args),
-            hostBindings
-          )
-        : wasm[evaluatorExport](traitSource, traitName, vector.op, JSON.stringify(vector.args));
+    let raw;
+    if (vector.packaged) {
+      raw = wasm.evaluate_trait_handler_v5(
+        packagedSources[vector.trait],
+        vector.trait,
+        vector.op,
+        JSON.stringify(vector.args),
+        hostBindings
+      );
+    } else if (evaluatorExport === 'evaluate_trait_handler_v4') {
+      raw = wasm[evaluatorExport](
+        traitSource,
+        traitName,
+        vector.op,
+        JSON.stringify(vector.args),
+        hostBindings
+      );
+    } else {
+      raw = wasm[evaluatorExport](traitSource, traitName, vector.op, JSON.stringify(vector.args));
+    }
     parsed = JSON.parse(raw);
   } catch (error) {
     outcome.error = String((error && error.message) || error);
@@ -187,10 +214,28 @@ const receipt = {
     cpus: os.cpus()[0]?.model || 'unknown',
   },
   summary: {
-    vectors: vectors.length,
+    vectors: runnable.length,
     passed: results.length - failed.length,
     failed: failed.length,
+    packagedVectors: results.filter((result) => result.packaged).length,
+    packagedSkipped,
   },
+  ...(packagedReady
+    ? {
+        packagedExecution: {
+          evaluatorExport: 'evaluate_trait_handler_v5',
+          subsetId: 'holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories',
+          sources: Object.fromEntries(
+            Object.entries(manifest.packagedSources).map(([trait, bundleName]) => [
+              trait,
+              { bundleFile: bundleName, sha256: manifest.files[bundleName]?.sha256 },
+            ])
+          ),
+          claim:
+            'packaged-handler vectors executed the shipped @trait source bytes (bundle-pinned) on this hardware via the v5 packaged-factories subset',
+        },
+      }
+    : {}),
   results,
   claimBoundary: {
     provesOwnedMetalWasmExecution: true,

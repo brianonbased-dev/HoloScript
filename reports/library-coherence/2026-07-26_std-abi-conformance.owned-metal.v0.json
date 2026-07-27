@@ -1,16 +1,16 @@
 {
   "schema": "holoscript.std-abi-conformance.owned-metal.v0",
-  "generatedAtISO": "2026-07-27T20:10:12.892Z",
+  "generatedAtISO": "2026-07-27T20:40:08.240Z",
   "target": "owned-metal",
   "executionRuntime": {
     "engine": "compiler-wasm evaluate_trait_handler_v4 (WebAssembly)",
     "evaluatorExport": "evaluate_trait_handler_v4",
     "executedProjection": "std-abi-conformance.trait.hsplus (bundle copy, pin-verified)",
-    "wasmArtifactSha256": "sha256:cbe6a0e06d991979d0dbd3c8c37c8ab4e987e0f91ff5e34315b6f46417a369c3"
+    "wasmArtifactSha256": "sha256:7f2617ed2da3daa9ae1bd1f1806a0cbec17d79bc02bfa34d5af0816d009dcac2"
   },
   "sources": {
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:3d205049f9bc71e5099bca619c850079b97379e44d91e2dfc1a5a5fb56b0a3ce"
+      "sha256": "sha256:8f57b889de465c0ecaa72ef1fe63b507a4183f4108cba834f390b06d2e56e7a4"
     },
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
       "sha256": "sha256:9aa03e334a18aead0c1295b57dc727fdf79833047875636caa3ae1bf759b32d9"
@@ -31,9 +31,34 @@
     "cpus": "Cortex-A78AE"
   },
   "summary": {
-    "vectors": 123,
-    "passed": 123,
-    "failed": 0
+    "vectors": 164,
+    "passed": 164,
+    "failed": 0,
+    "packagedVectors": 41,
+    "packagedSkipped": 0
+  },
+  "packagedExecution": {
+    "evaluatorExport": "evaluate_trait_handler_v5",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories",
+    "sources": {
+      "std_math": {
+        "bundleFile": "math.hsplus",
+        "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
+      },
+      "std_list": {
+        "bundleFile": "collections.hsplus",
+        "sha256": "sha256:a7447f7f67c9dfd2b7e3be433f7c90436c3a1c749e858d6fd4399e6b1d7af673"
+      },
+      "std_map": {
+        "bundleFile": "collections.hsplus",
+        "sha256": "sha256:a7447f7f67c9dfd2b7e3be433f7c90436c3a1c749e858d6fd4399e6b1d7af673"
+      },
+      "std_set": {
+        "bundleFile": "collections.hsplus",
+        "sha256": "sha256:a7447f7f67c9dfd2b7e3be433f7c90436c3a1c749e858d6fd4399e6b1d7af673"
+      }
+    },
+    "claim": "packaged-handler vectors executed the shipped @trait source bytes (bundle-pinned) on this hardware via the v5 packaged-factories subset"
   },
   "results": [
     {
@@ -1213,6 +1238,430 @@
       "actual": {
         "value": []
       }
+    },
+    {
+      "id": "pkg-clamp-above",
+      "op": "on_clamp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 10
+    },
+    {
+      "id": "pkg-clamp-inside",
+      "op": "on_clamp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 3
+    },
+    {
+      "id": "pkg-lerp-mid",
+      "op": "on_lerp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-lerp-frac",
+      "op": "on_lerp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 2.2
+    },
+    {
+      "id": "pkg-smoothstep-quarter",
+      "op": "on_smoothstep",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 0.15625
+    },
+    {
+      "id": "pkg-smoothstep-offset",
+      "op": "on_smoothstep",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 0.15625
+    },
+    {
+      "id": "pkg-remap-mid",
+      "op": "on_remap",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 50
+    },
+    {
+      "id": "pkg-deg2rad-half",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 3.141592653589793
+    },
+    {
+      "id": "pkg-rad2deg-pi",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 180
+    },
+    {
+      "id": "pkg-vlen-345",
+      "op": "on_vec3_length",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-vlen-236",
+      "op": "on_vec3_length",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 7
+    },
+    {
+      "id": "pkg-vnorm-345",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 0.6,
+        "y": 0.8,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-vnorm-zero",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-vdot-basic",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 32
+    },
+    {
+      "id": "pkg-vcross-general",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "pkg-vlerp-mid",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 5,
+        "y": 10,
+        "z": 15
+      }
+    },
+    {
+      "id": "pkg-vdist-345",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-qidentity",
+      "op": "on_quat_identity",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-qmul-general",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.525,
+        "x": 0.435,
+        "y": 0.47000000000000003,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "pkg-qaxis-z-quarter",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.7071067811865476,
+        "x": 0,
+        "y": 0,
+        "z": 0.7071067811865475
+      }
+    },
+    {
+      "id": "pkg-qslerp-mid",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.9238795325112867,
+        "x": 0,
+        "y": 0,
+        "z": 0.38268343236508984
+      }
+    },
+    {
+      "id": "pkg-lreverse",
+      "op": "on_reverse",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        4,
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "pkg-lflatten",
+      "op": "on_flatten",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lunique",
+      "op": "on_unique",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        3,
+        1,
+        2
+      ]
+    },
+    {
+      "id": "pkg-lget",
+      "op": "on_get",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 20
+    },
+    {
+      "id": "pkg-lfirst",
+      "op": "on_first",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "x"
+    },
+    {
+      "id": "pkg-llast",
+      "op": "on_last",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "y"
+    },
+    {
+      "id": "pkg-lcontains",
+      "op": "on_contains",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": true
+    },
+    {
+      "id": "pkg-lindexof",
+      "op": "on_index_of",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 1
+    },
+    {
+      "id": "pkg-llength",
+      "op": "on_length",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 3
+    },
+    {
+      "id": "pkg-lisempty",
+      "op": "on_is_empty",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": true
+    },
+    {
+      "id": "pkg-lzip",
+      "op": "on_zip",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        [
+          1,
+          "x"
+        ],
+        [
+          2,
+          "y"
+        ]
+      ]
+    },
+    {
+      "id": "pkg-lchunk",
+      "op": "on_chunk",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5
+        ]
+      ]
+    },
+    {
+      "id": "pkg-mset",
+      "op": "on_set",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "a": 1,
+        "b": 2
+      }
+    },
+    {
+      "id": "pkg-mkeys",
+      "op": "on_keys",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "pkg-mmerge",
+      "op": "on_merge",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "x": 1,
+        "y": 9,
+        "z": 3
+      }
+    },
+    {
+      "id": "pkg-msize",
+      "op": "on_size",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": 2
+    },
+    {
+      "id": "pkg-sadd",
+      "op": "on_add",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pkg-sunion",
+      "op": "on_union",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-sinter",
+      "op": "on_intersection",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pkg-sdiff",
+      "op": "on_difference",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        3
+      ]
     }
   ],
   "claimBoundary": {
@@ -1220,5 +1669,5 @@
     "provesNodeDeterministicSubsetExecution": false,
     "note": "Executed the generated trait projection through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts."
   },
-  "receiptHash": "sha256:c9ef34a578f6264d4844c73b96654d81f6e9f781a2c47c58cf214da032f3332e"
+  "receiptHash": "sha256:3c6df23cd6a5d0ae4b1dff7ad86d491a44499e744a6b9157a2078c06b5ec253f"
 }

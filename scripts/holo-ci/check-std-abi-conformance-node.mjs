@@ -225,7 +225,11 @@ if (selfTest) {
 // --- Full run ----------------------------------------------------------------
 
 const runtime = createDeterministicHsplusActionRuntime(actionSource, runtimeOptions);
-const results = vectors.map((vector) => runVector(runtime, vector));
+const nodeVectors = vectors.filter(
+  (vector) => !Array.isArray(vector.targets) || vector.targets.includes('node')
+);
+const skippedByTarget = vectors.length - nodeVectors.length;
+const results = nodeVectors.map((vector) => runVector(runtime, vector));
 const failed = results.filter((result) => !result.pass);
 
 const stdPackageJson = JSON.parse(
@@ -272,9 +276,14 @@ const receipt = {
   },
   summary: {
     ops: opsDefinition.ops.length,
-    vectors: vectors.length,
+    vectors: nodeVectors.length,
     passed: results.length - failed.length,
     failed: failed.length,
+    skippedByTarget,
+    skippedByTargetReason:
+      skippedByTarget > 0
+        ? 'packaged-handler vectors execute shipped @trait sources, a form the engine deterministic runtime does not parse; they run on the wasm-evaluator targets only'
+        : undefined,
     excludedOps: opsDefinition.excluded,
   },
   results,
@@ -301,5 +310,5 @@ if (failed.length > 0) {
   process.exit(1);
 }
 console.log(
-  `[std-abi-conformance-node] OK: ${results.length}/${vectors.length} vectors passed on node ${process.version} (${process.arch}); receipt at ${outPath}`
+  `[std-abi-conformance-node] OK: ${results.length}/${nodeVectors.length} vectors passed on node ${process.version} (${process.arch})${skippedByTarget > 0 ? ` (${skippedByTarget} packaged-handler vectors target-scoped to the wasm lanes)` : ''}; receipt at ${outPath}`
 );

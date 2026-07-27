@@ -334,6 +334,48 @@ pub fn evaluate_trait_handler_v4(
     eval::evaluate_trait_handler_v4_js(source, trait_name, handler_name, args_json, &host_bindings)
 }
 
+/// Evaluate one `@on_<handler>` trait-handler body under the v5 deterministic
+/// subset (`holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories`).
+///
+/// v5 admits the v4 grammar PLUS everything the REAL packaged `@holoscript/std`
+/// sources (`packages/std/src/math.hsplus`, `collections.hsplus`) need to
+/// execute as authored:
+///
+/// - **Factory calls**: bare-identifier zero-argument calls
+///   `get_std_math_lib()` / `get_std_collections_lib()` evaluate to an opaque
+///   namespace handle — the injected `math` namespace, respectively the UNION
+///   of the injected `list_lib` + `map_lib` + `set_lib` namespaces (one handle
+///   exposing all their functions; a function-name collision across the three
+///   is a structured `namespace-collision` error at handle construction).
+/// - **Handle locals**: a member-callee whose root identifier resolves to a
+///   handle-valued local dispatches the named function on that handle, with
+///   the same canonical-JSON marshalling and error mapping as v4; v4 ambient
+///   namespaces still work when the root is unbound (params → locals →
+///   namespaces precedence).
+/// - **Handles never escape**: returning a handle, embedding one in an
+///   object/array, comparing one, or passing one as a host-call argument is a
+///   structured `namespace-handle-escape` error; handles never serialize.
+/// - **@on_spawn factory pre-pass**: if the trait has an `@on_spawn` whose
+///   body contains statements of the exact shape `<alias> = <factory>()`, the
+///   aliases are pre-bound as handle locals before the invoked handler runs.
+///   on_spawn side effects are not executed; only factory-alias bindings are
+///   statically lifted — `emit(...)` and every other on_spawn statement are
+///   ignored by the pre-pass.
+///
+/// The v1–v4 exports are untouched; everything outside the factory constructs
+/// behaves byte-for-byte as v4.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn evaluate_trait_handler_v5(
+    source: &str,
+    trait_name: &str,
+    handler_name: &str,
+    args_json: &str,
+    host_bindings: JsValue,
+) -> String {
+    eval::evaluate_trait_handler_v5_js(source, trait_name, handler_name, args_json, &host_bindings)
+}
+
 /// Compile top-level `.hs` functions to a UAAL bytecode packet.
 ///
 /// This mirrors [`compile_to_kotlin`]'s JSON boundary but targets the stack-based
