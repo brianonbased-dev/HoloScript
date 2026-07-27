@@ -309,6 +309,19 @@ export async function main(argv = process.argv.slice(2)) {
     })
   );
 
+  const transportBenchmarkPath = resolve(outDir, 'holoabsorb-transport-resilience.json');
+  steps.push(
+    runStep({
+      id: 'holoabsorb-transport-resilience',
+      command: node,
+      args: [
+        'packages/absorb-service/scripts/bench-holoabsorb-transport.mjs',
+        `--out=${relative(repoRoot, transportBenchmarkPath).replace(/\\/g, '/')}`,
+      ],
+      outDir,
+    })
+  );
+
   const refreshBenchmarkPath = resolve(outDir, 'holoabsorb-refresh-benchmark.json');
   steps.push(
     runStep({
@@ -430,6 +443,7 @@ export async function main(argv = process.argv.slice(2)) {
   const scanDeterminism = safeJson(scanDeterminismPath);
   const timing = safeJson(paper5TimingPath);
   const umbrellaAudit = safeJson(umbrellaAuditPath);
+  const transportBenchmark = safeJson(transportBenchmarkPath);
   const refreshBenchmark = safeJson(refreshBenchmarkPath);
   const paper26HoloGraphMeasurements = parsePaper26HoloGraph(
     safeText(resolve(outDir, 'paper-26-holograph.stdout.log'))
@@ -459,6 +473,14 @@ export async function main(argv = process.argv.slice(2)) {
     summaries: {
       scanDeterminism,
       umbrellaAuditStatus: umbrellaAudit?.status ?? null,
+      transportResilience: transportBenchmark
+        ? {
+            status: transportBenchmark.status,
+            performanceByScale: transportBenchmark.performanceByScale,
+            checks: transportBenchmark.checks,
+            failedChecks: transportBenchmark.failedChecks,
+          }
+        : null,
       refreshBenchmark: refreshBenchmark
         ? {
             status: refreshBenchmark.status,
@@ -517,6 +539,7 @@ export async function main(argv = process.argv.slice(2)) {
       'Paper 26 HoloGraph event latency uses synthetic event corpora.',
       'Paper 26 HoloEmbed recall uses name-derived NL queries over a 50-symbol synthetic corpus.',
       'The changed-symbol refresh benchmark uses a deterministic synthetic Git corpus and does not claim production-monorepo throughput.',
+      'The transport-resilience benchmark is a deterministic synthetic lifecycle workload and does not claim network throughput or end-to-end MCP latency.',
       options.withXenova
         ? 'The optional Xenova ablation was attempted and its subprocess result is recorded.'
         : 'The optional Xenova model-download ablation was not run; no Xenova comparison is claimed.',

@@ -218,6 +218,7 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'scripts/holoscript-mcp-stdio.mjs',
       'scripts/lib/mcp-process-lifecycle.mjs',
       'scripts/__tests__/mcp-process-lifecycle.test.mjs',
+      'packages/absorb-service/scripts/bench-holoabsorb-transport.mjs',
     ],
   },
   {
