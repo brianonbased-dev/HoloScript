@@ -104,13 +104,17 @@ export {
   HOLOSCRIPT_F32_BINARY_ABI,
   HOLOSCRIPT_F64_BINARY_ABI,
   HOLOSCRIPT_AGGREGATE_VALUE_ABI,
+  HOLOSCRIPT_AGGREGATE_VALUE_ABI_V2,
+  HOLOSCRIPT_OWNED_BUFFER_ABI,
   registerHoloScriptStdUaalExecHandler,
+  registerHoloScriptStdUaalOwnedBufferHandlers,
 } from './uaal-abi.js';
 export type {
   HoloScriptStdUaalOperand,
   HoloScriptStdUaalVmProxy,
   HoloScriptStdUaalExecHandler,
   HoloScriptStdUaalVm,
+  HoloScriptStdUaalOwnedBufferOpcodes,
 } from './uaal-abi.js';
 
 // Collections

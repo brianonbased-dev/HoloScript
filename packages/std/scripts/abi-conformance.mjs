@@ -32,6 +32,9 @@ const expectedDigest = 165;
 
 const selfTest = `
 function main(): i32 {
+  let owned_values: [i32] = buffer(3, 5)
+  let moved_values: [i32] = move(owned_values)
+  drop(moved_values)
   let below: i32 = std_math_clamp_i32(0 - 7, 0, 9)
   let inside: i32 = std_math_clamp_i32(4, 0, 9)
   let above: i32 = std_math_clamp_i32(12, 0, 9)
@@ -222,7 +225,10 @@ function browserHtml(source) {
           computeUAALBytecodeSha256,
           replayUAALLog,
         } = await import('/uaal/index.js');
-        const { registerHoloScriptStdUaalExecHandler } = await import('/std/uaal-abi.js');
+        const {
+          registerHoloScriptStdUaalExecHandler,
+          registerHoloScriptStdUaalOwnedBufferHandlers,
+        } = await import('/std/uaal-abi.js');
         await initWasm('/wasm/holoscript_wasm_bg.wasm');
         const compiled = JSON.parse(compile_to_uaal(source));
         if (compiled.error) throw new Error(compiled.error);
@@ -238,8 +244,27 @@ function browserHtml(source) {
         ).length;
         const aggregateInstructionCount =
           flatAggregateInstructionCount + nestedAggregateInstructionCount;
+        const ownedBufferInstructionCounts = {
+          allocate: compiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_ALLOC
+          ).length,
+          move: compiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_MOVE
+          ).length,
+          drop: compiled.instructions.filter(
+            (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_DROP
+          ).length,
+        };
         const vm = new UAALVirtualMachine({ recordLog: true });
         registerHoloScriptStdUaalExecHandler(vm, UAALOpCode.EXEC);
+        registerHoloScriptStdUaalOwnedBufferHandlers(vm, {
+          allocate: UAALOpCode.OP_HS_BUFFER_ALLOC,
+          move: UAALOpCode.OP_HS_BUFFER_MOVE,
+          load: UAALOpCode.OP_HS_BUFFER_LOAD,
+          store: UAALOpCode.OP_HS_BUFFER_STORE,
+          drop: UAALOpCode.OP_HS_BUFFER_DROP,
+          length: UAALOpCode.OP_HS_BUFFER_LENGTH,
+        });
         const result = await vm.execute(compiled);
         const log = vm.exportLog();
         const bytecodeSha256 = computeUAALBytecodeSha256(compiled);
@@ -251,6 +276,7 @@ function browserHtml(source) {
           aggregateInstructionCount,
           flatAggregateInstructionCount,
           nestedAggregateInstructionCount,
+          ownedBufferInstructionCounts,
           bytecodeSha256,
           receiptHashMatches: bytecodeSha256 === log.bytecodeSha256,
           replayValid: replay.valid,
@@ -365,6 +391,9 @@ async function executeBrowserWasm(source) {
       result.replayValid !== true ||
       result.aggregateInstructionCount < 1 ||
       result.nestedAggregateInstructionCount < 1 ||
+      result.ownedBufferInstructionCounts?.allocate < 1 ||
+      result.ownedBufferInstructionCounts?.move < 1 ||
+      result.ownedBufferInstructionCounts?.drop < 1 ||
       !/^[0-9a-f]{64}$/.test(result.bytecodeSha256)
     ) {
       throw new Error(`browser-WASM result mismatch: ${JSON.stringify(result)}`);
@@ -378,6 +407,7 @@ async function executeBrowserWasm(source) {
       aggregateInstructionCount: result.aggregateInstructionCount,
       flatAggregateInstructionCount: result.flatAggregateInstructionCount,
       nestedAggregateInstructionCount: result.nestedAggregateInstructionCount,
+      ownedBufferInstructionCounts: result.ownedBufferInstructionCounts,
       bytecodeSha256: result.bytecodeSha256,
       receiptHashMatches: result.receiptHashMatches,
       replayValid: result.replayValid,
@@ -567,7 +597,7 @@ if (!results.every((value) => value === expectedDigest)) {
 console.log(
   JSON.stringify(
     {
-      schema: 'holoscript.std.math-abi-conformance.v6',
+      schema: 'holoscript.std.math-abi-conformance.v7',
       status: 'pass',
       abis: [
         {
@@ -627,6 +657,8 @@ console.log(
         provesBrowserNativeReceiptHashing: true,
         provesBrowserReceiptReplay: true,
         provesOwnedMetalNativeExecutable: true,
+        provesLocalOwnedBufferAllocationMoveAndDrop: true,
+        ownedBufferValueAbi: 'hs.buffer.owned.v1',
         provesNonFiniteFloatingPointEdgeSemantics: false,
         provesAggregateVectorCallingConvention: true,
         provesAggregateValueAbi: 'hs.aggregate.value.v1',
@@ -638,7 +670,8 @@ console.log(
           'recursive immutable POD records',
           'explicit scalar or declared aggregate fields only',
           'affine whole-value moves',
-          'no owned buffers',
+          'local owned buffers support allocation, whole-owner move, explicit drop, and automatic return cleanup',
+          'no owned-buffer parameters, returns, aggregate fields, or borrowed element access',
           'no mutable or borrowed aggregate transfer',
         ],
         provesQuaternionMath: false,
