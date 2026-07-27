@@ -1,10 +1,11 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T05:45:24Z",
+  "generatedAt": "2026-07-27T08:57:51Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "origin/main b95002c6d7e519466a0d96f96a3f851422137f69 plus the pending recursive aggregate-value ABI source; built before the source-and-artifact commit",
+  "sourceCommit": "d9f7c1d47a4cf9af90f97fcea72fb46343b5b97c",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
+    "wasm-pack build --target web --out-dir pkg --release",
     "wasm-pack build --target web --out-dir pkg --release"
   ],
   "toolchain": {
@@ -15,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 423669,
-    "wasmSha256": "bcc5b526a9196a949a3b39e4bdb9f9f338a27409414807d6a35b6771439987bc",
-    "previousWasmSha256": "6e6d36dd840adaef32f28f4fb89d516091d8d61edb6893a8dea4c7ad28bc4678",
+    "wasmBytes": 445903,
+    "wasmSha256": "42ddf7dabd9bd815a1924f66362d6b4f749bfff9dc8eae7dc570d6238c13cbc2",
+    "previousWasmSha256": "fba6d30ccfffc5e17a9a0816fa4687d377061c700fe2ed2408824b84270eb775",
     "repeatBuildSha256Matched": true,
-    "note": "Clean-worktree rebuild adds hs.aggregate.value.v2 recursive POD construction and scalar projection paths while retaining the v1 flat ABI. Two release web builds and two release nodejs builds produced the same SHA-256; the web and Node artifacts are byte-identical."
+    "note": "Exact source commit adds affine owned-buffer parameter and return transfer with deterministic callee cleanup. Two release web builds and two release nodejs builds produced the same SHA-256; browser and Node artifacts are byte-identical."
   }
 }
