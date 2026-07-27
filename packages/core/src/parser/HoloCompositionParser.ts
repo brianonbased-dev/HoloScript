@@ -2768,12 +2768,12 @@ export class HoloCompositionParser {
   private parseStatementBlock(): HoloStatement[] {
     const statements: HoloStatement[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipStatementSeparators();
       if (this.check('RBRACE')) break;
 
       const stmt = this.parseStatement();
       if (stmt) statements.push(stmt);
-      this.skipNewlines();
+      this.skipStatementSeparators();
     }
     return statements;
   }
@@ -3901,6 +3901,13 @@ export class HoloCompositionParser {
   private skipNewlines(): void {
     while (this.match('NEWLINE')) {
       // Skip all newlines
+    }
+  }
+
+  private skipStatementSeparators(): void {
+    this.skipNewlines();
+    while (this.match('SEMICOLON')) {
+      this.skipNewlines();
     }
   }
 

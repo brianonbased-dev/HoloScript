@@ -310,6 +310,11 @@ if (manifest.opsFile) {
 // --- Full run ----------------------------------------------------------------
 
 const PACKAGED_EVALUATOR_EXPORT = 'evaluate_trait_handler_v6';
+if (packagedExecutionSpec?.wasmSubsetId !== SUBSET_ID) {
+  misconfigured(
+    `packaged wasm subset mismatch: ops=${packagedExecutionSpec?.wasmSubsetId}, runtime=${SUBSET_ID}`
+  );
+}
 const packagedSources = {};
 if (packagedExecutionSpec && typeof wasm[PACKAGED_EVALUATOR_EXPORT] === 'function') {
   for (const [trait, relPath] of Object.entries(packagedExecutionSpec.sources)) {

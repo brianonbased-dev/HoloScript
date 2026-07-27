@@ -8,7 +8,7 @@
     "collections": "packages/std/src/collections.hsplus"
   },
   "referenceModule": "packages/std/dist/math.js",
-  "sharedGrammar": "The cumulative v6 deterministic subset admits number/string/boolean/null literals, parameter identifiers, bounded locals, non-computed member access, binary + - * /, comparisons, && || and strict short-circuiting ??, unary ! -, the v2 finite-f64 numeric builtin table, and v4 namespace.function host bindings. The engine projection and compiler-wasm trait evaluator retain measured syntax differences: engine accepts ternary expressions and declared-state assignment; wasm accepts local assignment and if/else statements but has no ternary or ===/!== production. Ops with ternary or local bodies therefore carry equivalent traitBody statement forms. Cross-target conformance is claimed on produced values over the shared corpus, not identical surface syntax. The wasm-only packaged lane additionally carries v5 factory-handle lifting while using v6 null coalescing. Builtin results dependent on libm transcendentals may differ by ulps and carry explicit tolerance; sqrt stays exact.",
+  "sharedGrammar": "The cumulative v6 projection subset admits number/string/boolean/null literals, parameter identifiers, bounded locals, non-computed member access, binary + - * /, comparisons, && || and strict short-circuiting ??, unary ! -, the v2 finite-f64 numeric builtin table, and v4 namespace.function host bindings. The engine projection and compiler-wasm trait evaluator retain measured syntax differences: engine accepts ternary expressions and declared-state assignment; wasm accepts local assignment and if/else statements but has no ternary or ===/!== production. Ops with ternary or local bodies therefore carry equivalent traitBody statement forms. Cross-target conformance is claimed on produced values over the shared corpus, not identical surface syntax. Packaged handlers execute through the wasm v6 evaluator and the engine v7 packaged-trait adapter; both statically lift whitelisted v5 factory aliases without executing on_spawn side effects. Builtin results dependent on libm transcendentals may differ by ulps and carry explicit tolerance; sqrt stays exact.",
   "numericBuiltins": true,
   "localBindings": true,
   "hostBindings": true,
@@ -2187,10 +2187,13 @@
       "std_set": "packages/std/src/collections.hsplus"
     },
     "targets": [
+      "node",
       "browser-wasm",
       "owned-metal"
     ],
-    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the cumulative v6 subset: v5 factory aliases are statically lifted from @on_spawn, on_spawn side effects are not executed, and strict short-circuiting ?? defaults execute as authored. Callback handlers remain out of scope. The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only.",
+    "engineSubsetId": "holoscript-engine-hsplus-deterministic-action-subset-v7-packaged-traits",
+    "wasmSubsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
+    "claim": "These vectors execute the SHIPPED packaged handler bodies from hash-bound source bytes. The engine v7 adapter consumes the canonical HoloScriptPlusParser @trait AST and reparses each preserved authored body through the structured deterministic evaluator; the wasm lane uses its cumulative v6 evaluator. Both statically lift whitelisted factory aliases from @on_spawn, do not execute on_spawn side effects, and preserve strict short-circuiting ?? defaults. Callback handlers remain out of scope.",
     "excludedHandlers": [
       {
         "handler": "on_from",

@@ -1,6 +1,6 @@
 {
   "schema": "holoscript.std-abi-conformance.wasm.v0",
-  "generatedAtISO": "2026-07-27T21:42:32.549Z",
+  "generatedAtISO": "2026-07-27T22:10:03.127Z",
   "target": "browser-wasm",
   "executionRuntime": "node-webassembly",
   "wasmArtifact": {
@@ -26,7 +26,7 @@
       }
     },
     "vectors": 45,
-    "claim": "These vectors execute the SHIPPED packaged handler bodies (hash-bound source bytes) under the cumulative v6 subset: v5 factory aliases are statically lifted from @on_spawn, on_spawn side effects are not executed, and strict short-circuiting ?? defaults execute as authored. Callback handlers remain out of scope. The engine lane cannot parse the @trait form and stays on projections; packaged-handler execution is claimed for the wasm-evaluator targets only."
+    "claim": "These vectors execute the SHIPPED packaged handler bodies from hash-bound source bytes. The engine v7 adapter consumes the canonical HoloScriptPlusParser @trait AST and reparses each preserved authored body through the structured deterministic evaluator; the wasm lane uses its cumulative v6 evaluator. Both statically lift whitelisted factory aliases from @on_spawn, do not execute on_spawn side effects, and preserve strict short-circuiting ?? defaults. Callback handlers remain out of scope."
   },
   "hostAbi": {
     "schema": "holoscript.std-host-abi.v0",
@@ -35,13 +35,13 @@
   },
   "sources": {
     "traitProjectionSha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8",
-    "vectorsSha256": "sha256:3d83571dbbf7e93000a9c843faf9689ca044d1bd8c6a97a3135d79c5cf6908e3",
-    "manifestSha256": "sha256:305e876488cd738e9ee72b2c2aaeba6d9e84fc71f084800e8e176250ab4c4de9",
+    "vectorsSha256": "sha256:8faa4f40af85a6eb6164387781a83d0277446a0e1d710ee07c0448d162794021",
+    "manifestSha256": "sha256:0a4bfcad1c9535ae9a05784b5c49ac9b4ae9b4b490583aec7eb6ede12384391c",
     "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
       "sha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:3d83571dbbf7e93000a9c843faf9689ca044d1bd8c6a97a3135d79c5cf6908e3"
+      "sha256": "sha256:8faa4f40af85a6eb6164387781a83d0277446a0e1d710ee07c0448d162794021"
     }
   },
   "environment": {
@@ -1917,5 +1917,5 @@
     "provesBrowserExecution": false,
     "note": "Executed in Node's WebAssembly runtime against the byte-identical wasm shipped for browsers; a browser smoke run is a separate receipt."
   },
-  "receiptHash": "sha256:a79f36bfcabb64a8c48ce407e8dfe5974ce18bcb7402c60f7fa8b7434723edf8"
+  "receiptHash": "sha256:4278d6f28e065b677e0c5f4ac1bc894b644c957a0b2d95fb4e7842692756e59f"
 }

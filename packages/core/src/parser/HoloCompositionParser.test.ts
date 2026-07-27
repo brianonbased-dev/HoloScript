@@ -797,6 +797,27 @@ describe('HoloCompositionParser', () => {
         },
       });
     });
+
+    it('parses semicolon-separated action statements without source normalization', () => {
+      const source = `
+        composition "Test" {
+          logic {
+            action distance(a, b) {
+              dx = a.x - b.x; dy = a.y - b.y; dz = a.z - b.z;
+              return dx * dx + dy * dy + dz * dz
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.ast?.logic?.actions[0].body.map((statement) => statement.type)).toEqual([
+        'Assignment',
+        'Assignment',
+        'Assignment',
+        'ReturnStatement',
+      ]);
+    });
   });
 
   describe('Imports', () => {

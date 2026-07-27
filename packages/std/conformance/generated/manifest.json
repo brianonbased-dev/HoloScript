@@ -4,7 +4,7 @@
   "opsFile": "packages/std/conformance/std-abi-ops.v0.json",
   "files": {
     "packages/std/conformance/std-abi-ops.v0.json": {
-      "sha256": "sha256:9751b97a1d099fb565bc36f5c4c3d693b88ea0fc08491d5194308346df8f468e"
+      "sha256": "sha256:01b41df8125b870eb3d4a76e4bb7cf6f5fef45a5cd68cda7952b789a4fe07368"
     },
     "packages/std/conformance/generated/std-abi-conformance.action.hsplus": {
       "sha256": "sha256:9b71d000b17f23273a6d02886ec722a04d7f23c780f6ffacda4c48da0294ad42"
@@ -13,7 +13,7 @@
       "sha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:3d83571dbbf7e93000a9c843faf9689ca044d1bd8c6a97a3135d79c5cf6908e3"
+      "sha256": "sha256:8faa4f40af85a6eb6164387781a83d0277446a0e1d710ee07c0448d162794021"
     },
     "packages/std/src/math.hsplus": {
       "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"

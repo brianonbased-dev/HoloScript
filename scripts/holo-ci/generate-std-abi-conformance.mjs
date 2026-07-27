@@ -15,8 +15,9 @@
  *
  * Admission gates (generation fails closed):
  *   - every expected value must be finite and free of negative zero;
- *   - the action projection must construct in the deterministic runtime and
- *     every vector must execute to a bit-exact match with the reference twin.
+ *   - the action projection and hash-bound packaged traits must construct in
+ *     their deterministic engine runtimes, and every Node-admitted vector must
+ *     execute to a bit-exact match with the reference twin.
  *
  * Generated artifacts are deterministic: no timestamps, sorted keys where
  * ordering is not semantic. Receipts carry timestamps; these files carry only
@@ -234,11 +235,10 @@ for (const op of ops.ops) {
 }
 
 // --- Packaged-handler vectors (executed from shipped source bytes) -----------
-// The engine lane cannot parse the @trait form, so these vectors carry an
-// explicit target list and receive no engine admission run; their admission is
-// the reference computation itself (binding or twin) plus the clean-value
-// gates. The wasm-evaluator targets execute the hash-bound packaged sources
-// directly under the cumulative v6 subset (v5 factories plus ??).
+// Node consumes the canonical HoloScriptPlusParser @trait AST through the v7
+// deterministic trait adapter; wasm targets consume the same hash-bound sources
+// through the cumulative v6 evaluator. Both statically lift whitelisted
+// on_spawn factories without executing lifecycle side effects.
 
 if (ops.packagedExecution) {
   for (const handler of ops.packagedExecution.handlers) {
@@ -290,26 +290,58 @@ if (ops.packagedExecution) {
 
 const runtimeModulePath = join(repoRoot, 'packages', 'engine', 'dist', 'runtime', 'index.cjs');
 const runtimeModule = require(runtimeModulePath);
-const { createDeterministicHsplusActionRuntime } = runtimeModule;
+const {
+  createDeterministicHsplusActionRuntime,
+  createDeterministicHsplusTraitRuntime,
+  ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7,
+} = runtimeModule;
 const runtime = createDeterministicHsplusActionRuntime(actionSource, {
   numericBuiltins: ops.numericBuiltins === true,
   localBindings: ops.localBindings === true,
   ...(ops.hostBindings === true ? { hostBindings } : {}),
   nullCoalescing: ops.nullCoalescing === true,
 });
+if (typeof createDeterministicHsplusTraitRuntime !== 'function') {
+  fail('engine dist does not export createDeterministicHsplusTraitRuntime');
+}
+if (ops.packagedExecution?.engineSubsetId !== ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7) {
+  fail(
+    `packaged engine subset mismatch: ops=${ops.packagedExecution?.engineSubsetId}, runtime=${ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7}`
+  );
+}
+const packagedRuntimes = new Map(
+  Object.entries(ops.packagedExecution?.sources ?? {}).map(([traitName, sourcePath]) => [
+    traitName,
+    createDeterministicHsplusTraitRuntime(
+      readFileSync(join(repoRoot, ...sourcePath.split('/')), 'utf8'),
+      traitName,
+      { hostBindings }
+    ),
+  ])
+);
 
 let gateFailures = 0;
 for (const vector of vectors) {
-  if (vector.packaged) continue;
-  const result = runtime.invoke({
-    kind: 'observation',
-    scheduleEntryId: `gen-gate-${vector.id}`,
-    order: 0,
-    tick: 0,
-    phase: 'generation-admission',
-    entrypoint: vector.action,
-    args: vector.args,
-  });
+  const vectorRuntime = vector.packaged ? packagedRuntimes.get(vector.trait) : runtime;
+  if (!vectorRuntime) {
+    fail(`${vector.id}: no deterministic runtime for packaged trait ${vector.trait}`);
+  }
+  let result;
+  try {
+    result = vectorRuntime.invoke({
+      kind: 'observation',
+      scheduleEntryId: `gen-gate-${vector.id}`,
+      order: 0,
+      tick: 0,
+      phase: 'generation-admission',
+      entrypoint: vector.packaged ? vector.op : vector.action,
+      args: vector.args,
+    });
+  } catch (error) {
+    fail(
+      `${vector.id}: deterministic ${vector.packaged ? 'packaged-source' : 'projection'} admission threw: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
   const mismatches = [];
   valuesExactlyEqual(result.value, vector.expected, vector.id, mismatches);
   if (mismatches.length > 0) {
@@ -391,5 +423,5 @@ const manifest = {
 writeFileSync(join(generatedDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 
 console.log(
-  `[generate-std-abi-conformance] OK: ${ops.ops.length} ops, ${vectors.length} vectors, admission gate exact-match, artifacts written to packages/std/conformance/generated/`
+  `[generate-std-abi-conformance] OK: ${ops.ops.length} ops, ${vectors.length} vectors, projection and packaged-source admission exact-match, artifacts written to packages/std/conformance/generated/`
 );

@@ -39,6 +39,9 @@ export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V4 =
 export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V6 =
   'holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing' as const;
 
+export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7 =
+  'holoscript-engine-hsplus-deterministic-action-subset-v7-packaged-traits' as const;
+
 export type DeterministicHostBindings = Readonly<
   Record<string, Readonly<Record<string, (...args: HeadlessJsonValue[]) => unknown>>>
 >;
@@ -77,11 +80,18 @@ export interface DeterministicHsplusActionRuntimeOptions {
    * Admit strict, short-circuiting null coalescing (`left ?? right`) under the
    * cumulative v6 subset id. Only `null` selects the right operand; false, zero,
    * and the empty string stay present. Requires the cumulative v4 engine
-   * features (numericBuiltins, localBindings, and hostBindings). The wasm lane's
-   * target-scoped v5 packaged-factory mode has no engine equivalent because the
-   * engine parser still cannot consume the packaged @trait surface directly.
+   * features (numericBuiltins, localBindings, and hostBindings).
    */
   nullCoalescing?: boolean;
+}
+
+export interface DeterministicHsplusTraitRuntimeOptions {
+  /**
+   * Canonical pure host bindings used by statically lifted packaged factories.
+   * The runtime never calls a factory or executes `@on_spawn`; it constructs
+   * escape-proof namespace views from this injected table.
+   */
+  hostBindings: DeterministicHostBindings;
 }
 
 const NUMERIC_BUILTINS: ReadonlyMap<string, { arity: number; apply: (args: number[]) => number }> =
@@ -105,6 +115,10 @@ const MAX_EVENT_NAME_LENGTH = 128;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 const RESERVED_PARAMETER_NAMES = new Set(['state']);
+const PACKAGED_FACTORIES: ReadonlyMap<string, readonly string[]> = new Map([
+  ['get_std_math_lib', ['math']],
+  ['get_std_collections_lib', ['list_lib', 'map_lib', 'set_lib']],
+]);
 
 interface HsplusNodeLike {
   type?: unknown;
@@ -118,6 +132,11 @@ interface RawHsplusAction {
   name: string;
   params: string[];
   body: string;
+}
+
+interface RawHsplusTrait {
+  name: string;
+  handlers: ReadonlyMap<string, RawHsplusAction>;
 }
 
 interface EvaluationEnvironment {
@@ -357,6 +376,218 @@ function extractRawActions(nodes: HsplusNodeLike[]): Map<string, RawHsplusAction
   }
   if (actions.size === 0) fail('source must declare at least one logic action');
   return actions;
+}
+
+function topLevelHsplusNodes(root: unknown): HsplusNodeLike[] {
+  if (!isRecord(root)) return [];
+  const node = root as HsplusNodeLike;
+  if (node.type === 'fragment') {
+    return Array.isArray(node.children)
+      ? node.children.filter((child): child is HsplusNodeLike => isRecord(child))
+      : [];
+  }
+  return [node];
+}
+
+function extractTraitHandler(
+  directive: Record<string, unknown>,
+  traitName: string,
+  index: number
+): RawHsplusAction | null {
+  let name: unknown;
+  let params: unknown;
+  let body: unknown;
+
+  if (directive.type === 'lifecycle') {
+    name = directive.hook;
+    params = directive.params;
+    body = directive.body;
+  } else if (
+    directive.type === 'trait' &&
+    typeof directive.name === 'string' &&
+    directive.name.startsWith('on_')
+  ) {
+    name = directive.name;
+    const config = directive.config;
+    if (!isRecord(config)) {
+      fail(`@trait "${traitName}" handler ${index} has malformed config`);
+    }
+    body = config.body;
+    params = Object.entries(config)
+      .filter(([key]) => key !== 'body')
+      .map(([key, value]) => {
+        if (value !== true) {
+          fail(
+            `@trait "${traitName}" handler "${String(name)}" parameter "${key}" has an unsupported declaration`
+          );
+        }
+        return key;
+      });
+  } else {
+    return null;
+  }
+
+  if (
+    typeof name !== 'string' ||
+    !name.startsWith('on_') ||
+    !IDENTIFIER.test(name) ||
+    DANGEROUS_KEYS.has(name) ||
+    !Array.isArray(params) ||
+    !params.every(
+      (param) =>
+        typeof param === 'string' &&
+        IDENTIFIER.test(param) &&
+        !DANGEROUS_KEYS.has(param) &&
+        !RESERVED_PARAMETER_NAMES.has(param)
+    ) ||
+    typeof body !== 'string' ||
+    body.trim().length === 0
+  ) {
+    fail(`@trait "${traitName}" handler ${index} has an unsupported signature`);
+  }
+  if (new Set(params).size !== params.length) {
+    fail(`@trait "${traitName}" handler "${name}" contains duplicate parameters`);
+  }
+  assertNoComputedStateAccess(body, name);
+  return { name, params: [...params], body };
+}
+
+function extractRawTraits(root: unknown): Map<string, RawHsplusTrait> {
+  const traits = new Map<string, RawHsplusTrait>();
+  for (const node of topLevelHsplusNodes(root)) {
+    const directives = Array.isArray(node.directives) ? node.directives : [];
+    const traitMarkers = directives.filter(
+      (directive) => isRecord(directive) && directive.type === 'trait' && directive.name === 'trait'
+    );
+    if (traitMarkers.length === 0) continue;
+    if (traitMarkers.length !== 1) {
+      fail('packaged source contains an ambiguous top-level @trait marker');
+    }
+    if (
+      typeof node.type !== 'string' ||
+      !IDENTIFIER.test(node.type) ||
+      DANGEROUS_KEYS.has(node.type)
+    ) {
+      fail('packaged source contains an unsafe top-level @trait name');
+    }
+    if (traits.has(node.type)) {
+      fail(`packaged source declares duplicate @trait "${node.type}"`);
+    }
+    const handlers = new Map<string, RawHsplusAction>();
+    for (const [index, directive] of directives.entries()) {
+      if (!isRecord(directive)) continue;
+      const handler = extractTraitHandler(directive, node.type, index);
+      if (!handler) continue;
+      if (handlers.has(handler.name)) {
+        fail(`@trait "${node.type}" declares duplicate handler "${handler.name}"`);
+      }
+      handlers.set(handler.name, handler);
+    }
+    if (handlers.size === 0) {
+      fail(`@trait "${node.type}" declares no handlers`);
+    }
+    traits.set(node.type, { name: node.type, handlers });
+  }
+  if (traits.size === 0) fail('source must declare at least one top-level @trait');
+  return traits;
+}
+
+function syntheticActionSource(
+  traitName: string,
+  action: RawHsplusAction,
+  purpose: 'handler' | 'spawn'
+): string {
+  const indentedBody = action.body
+    .split(/\r?\n/)
+    .map((line) => `      ${line}`)
+    .join('\n');
+  return `composition "Deterministic ${purpose} ${traitName}.${action.name}" {
+  state {
+    __deterministic_trait_state: null
+  }
+  logic {
+    action ${action.name}(${action.params.join(', ')}) {
+${indentedBody}
+    }
+  }
+}
+`;
+}
+
+function parseSpawnFactoryAliases(
+  trait: RawHsplusTrait,
+  handlerParams: readonly string[]
+): Map<string, readonly string[]> {
+  const aliases = new Map<string, readonly string[]>();
+  const spawn = trait.handlers.get('on_spawn');
+  if (!spawn) return aliases;
+
+  const structured = parseHolo(syntheticActionSource(trait.name, spawn, 'spawn'));
+  if (!structured.success || !structured.ast) {
+    fail(
+      `@trait "${trait.name}" on_spawn structured parse failed: ${structured.errors
+        .map((error: { message: string }) => error.message)
+        .join('; ')}`
+    );
+  }
+  const action = structured.ast.logic?.actions?.[0];
+  if (!action || action.name !== 'on_spawn') {
+    fail(`@trait "${trait.name}" on_spawn did not preserve its structured action`);
+  }
+
+  for (const statement of action.body) {
+    if (
+      statement.type !== 'Assignment' ||
+      statement.operator !== '=' ||
+      !IDENTIFIER.test(statement.target) ||
+      DANGEROUS_KEYS.has(statement.target) ||
+      statement.value.type !== 'CallExpression' ||
+      statement.value.callee.type !== 'Identifier' ||
+      statement.value.arguments.length !== 0
+    ) {
+      continue;
+    }
+    const namespaces = PACKAGED_FACTORIES.get(statement.value.callee.name);
+    if (!namespaces || handlerParams.includes(statement.target)) continue;
+    aliases.set(statement.target, namespaces);
+  }
+  return aliases;
+}
+
+function bindPackagedFactoryAliases(
+  trait: RawHsplusTrait,
+  handler: RawHsplusAction,
+  hostBindings: DeterministicHostBindings
+): DeterministicHostBindings {
+  const aliases = parseSpawnFactoryAliases(trait, handler.params);
+  const bound: Record<
+    string,
+    Readonly<Record<string, (...args: HeadlessJsonValue[]) => unknown>>
+  > = { ...hostBindings };
+
+  for (const [alias, namespaces] of aliases) {
+    const merged: Record<string, (...args: HeadlessJsonValue[]) => unknown> = {};
+    const owners = new Map<string, string>();
+    for (const namespace of namespaces) {
+      const functions = hostBindings[namespace];
+      if (!functions) {
+        fail(`factory alias "${alias}" requires missing host-binding namespace "${namespace}"`);
+      }
+      for (const [name, fn] of Object.entries(functions)) {
+        assertSafeKey(name, `factory alias "${alias}"`);
+        const owner = owners.get(name);
+        if (owner) {
+          fail(
+            `factory alias "${alias}" has function collision "${name}" between "${owner}" and "${namespace}"`
+          );
+        }
+        owners.set(name, namespace);
+        merged[name] = fn;
+      }
+    }
+    bound[alias] = Object.freeze(merged);
+  }
+  return Object.freeze(bound);
 }
 
 function extractStructuredState(
@@ -1343,9 +1574,101 @@ export class DeterministicHsplusActionRuntime {
   }
 }
 
+/**
+ * Engine-native adapter for shipped top-level `@trait` source.
+ *
+ * The canonical HoloScriptPlusParser consumes the original source bytes and
+ * preserves each authored handler body. Each invoked body is then parsed by
+ * the same structured action parser/evaluator used above. Approved zero-arg
+ * std factories are statically lifted from `@on_spawn`; no lifecycle side
+ * effect is executed.
+ */
+export class DeterministicHsplusTraitRuntime {
+  private readonly trait: RawHsplusTrait;
+  private readonly hostBindings: DeterministicHostBindings;
+  private readonly handlerRuntimes = new Map<string, DeterministicHsplusActionRuntime>();
+
+  constructor(source: string, traitName: string, options: DeterministicHsplusTraitRuntimeOptions) {
+    if (typeof source !== 'string' || source.trim().length === 0) {
+      fail('trait source must be a non-empty string');
+    }
+    if (new TextEncoder().encode(source).byteLength > MAX_SOURCE_BYTES) {
+      fail(`trait source exceeds ${MAX_SOURCE_BYTES} bytes`);
+    }
+    assertSafeKey(traitName, 'trait name');
+    if (!options?.hostBindings) {
+      fail('packaged trait runtime requires hostBindings');
+    }
+
+    const hsplus = new HoloScriptPlusParser().parse(source);
+    if (hsplus.errors.length > 0 || !hsplus.ast?.root) {
+      fail(`HoloScript+ parse failed: ${hsplus.errors.map((error) => error.message).join('; ')}`);
+    }
+    const traits = extractRawTraits(hsplus.ast.root);
+    const trait = traits.get(traitName);
+    if (!trait) fail(`no top-level @trait named "${traitName}"`);
+    this.trait = trait;
+    this.hostBindings = options.hostBindings;
+  }
+
+  get subsetId(): string {
+    return ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7;
+  }
+
+  get traitName(): string {
+    return this.trait.name;
+  }
+
+  get initialState(): HeadlessJsonObject {
+    return {};
+  }
+
+  getState(): HeadlessJsonObject {
+    return {};
+  }
+
+  invoke(entry: HeadlessExperimentScheduleEntry): HeadlessExperimentInvocationResult {
+    if (entry.kind !== 'observation') {
+      fail('packaged trait handlers are admitted as deterministic observations only');
+    }
+    const handler = this.trait.handlers.get(entry.entrypoint);
+    if (!handler) {
+      fail(`@trait "${this.trait.name}" has no handler "${entry.entrypoint}"`);
+    }
+    let runtime = this.handlerRuntimes.get(handler.name);
+    if (!runtime) {
+      const aliasedHostBindings = bindPackagedFactoryAliases(
+        this.trait,
+        handler,
+        this.hostBindings
+      );
+      runtime = new DeterministicHsplusActionRuntime(
+        syntheticActionSource(this.trait.name, handler, 'handler'),
+        {
+          numericBuiltins: true,
+          localBindings: true,
+          hostBindings: aliasedHostBindings,
+          nullCoalescing: true,
+        }
+      );
+      this.handlerRuntimes.set(handler.name, runtime);
+    }
+    const result = runtime.invoke(entry);
+    return { ...result, state: {} };
+  }
+}
+
 export function createDeterministicHsplusActionRuntime(
   source: string,
   options?: DeterministicHsplusActionRuntimeOptions
 ): DeterministicHsplusActionRuntime {
   return new DeterministicHsplusActionRuntime(source, options);
+}
+
+export function createDeterministicHsplusTraitRuntime(
+  source: string,
+  traitName: string,
+  options: DeterministicHsplusTraitRuntimeOptions
+): DeterministicHsplusTraitRuntime {
+  return new DeterministicHsplusTraitRuntime(source, traitName, options);
 }

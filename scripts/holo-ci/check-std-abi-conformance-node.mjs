@@ -2,9 +2,9 @@
 /**
  * Node-target std ABI conformance runner.
  *
- * Executes the generated action projection of the std math conformance ops in
- * the engine DeterministicHsplusActionRuntime, compares every vector against
- * both the frozen corpus expectation and a live recomputation from the
+ * Executes both the generated action projection and the hash-bound packaged
+ * @trait sources in the engine deterministic runtimes, compares every vector
+ * against the frozen corpus expectation and a live recomputation from the
  * TypeScript reference twin, and writes a target execution receipt.
  *
  * Fail-closed behaviors:
@@ -78,9 +78,21 @@ const opsDefinition = JSON.parse(
 const runtimeModule = require(join(repoRoot, 'packages', 'engine', 'dist', 'runtime', 'index.cjs'));
 const {
   createDeterministicHsplusActionRuntime,
+  createDeterministicHsplusTraitRuntime,
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
+  ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7,
   canonicalizeHeadlessValue,
 } = runtimeModule;
+if (typeof createDeterministicHsplusTraitRuntime !== 'function') {
+  fail('engine dist does not export createDeterministicHsplusTraitRuntime');
+}
+if (
+  opsDefinition.packagedExecution?.engineSubsetId !== ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7
+) {
+  fail(
+    `packaged engine subset mismatch: ops=${opsDefinition.packagedExecution?.engineSubsetId}, runtime=${ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7}`
+  );
+}
 
 const reference = await import(
   pathToFileURL(join(repoRoot, 'packages', 'std', 'dist', 'math.js')).href
@@ -125,6 +137,41 @@ function wrapReferenceResult(resultShape, raw) {
   return { x: raw.x, y: raw.y, z: raw.z, w: raw.w };
 }
 
+function packagedReferenceKey(trait, handler) {
+  return `${trait}.${handler}`;
+}
+
+const packagedReferenceByHandler = new Map(
+  (opsDefinition.packagedExecution?.handlers ?? []).map((handler) => {
+    const fn = handler.expectRef.host
+      ? hostBindings?.[handler.expectRef.host[0]]?.[handler.expectRef.host[1]]
+      : resolveReference(handler.expectRef.twin);
+    return [
+      packagedReferenceKey(handler.trait, handler.handler),
+      {
+        fn: typeof fn === 'function' ? fn : null,
+        params: handler.params,
+        wrap: handler.wrap,
+      },
+    ];
+  })
+);
+
+function createPackagedRuntimes() {
+  return new Map(
+    Object.entries(opsDefinition.packagedExecution?.sources ?? {}).map(
+      ([traitName, sourcePath]) => [
+        traitName,
+        createDeterministicHsplusTraitRuntime(
+          readFileSync(join(repoRoot, ...sourcePath.split('/')), 'utf8'),
+          traitName,
+          { hostBindings }
+        ),
+      ]
+    )
+  );
+}
+
 // --- Comparison --------------------------------------------------------------
 
 function compareValues(actual, expected, tolerance, path, mismatches) {
@@ -157,7 +204,12 @@ function compareValues(actual, expected, tolerance, path, mismatches) {
 
 function runVector(runtime, vector, expectedOverride) {
   const expected = expectedOverride ?? vector.expected;
-  const outcome = { id: vector.id, op: vector.op, pass: false };
+  const outcome = {
+    id: vector.id,
+    op: vector.op,
+    execution: vector.packaged ? 'packaged-source' : 'projection',
+    pass: false,
+  };
   let runtimeValue;
   try {
     const result = runtime.invoke({
@@ -166,7 +218,7 @@ function runVector(runtime, vector, expectedOverride) {
       order: 0,
       tick: 0,
       phase: 'std-abi-conformance',
-      entrypoint: vector.action,
+      entrypoint: vector.packaged ? vector.op : vector.action,
       args: vector.args,
     });
     runtimeValue = result.value;
@@ -178,13 +230,20 @@ function runVector(runtime, vector, expectedOverride) {
   const mismatches = [];
   compareValues(runtimeValue, expected, vector.tolerance, 'value', mismatches);
 
-  const ref = referenceByOp.get(vector.op);
+  const ref = vector.packaged
+    ? packagedReferenceByHandler.get(packagedReferenceKey(vector.trait, vector.op))
+    : referenceByOp.get(vector.op);
   if (!ref || !ref.fn) {
     mismatches.push('reference: twin function unavailable');
   } else {
     const referenceArgs = vector.expectArgs ?? vector.args;
     const orderedArgs = ref.params.map((param) => referenceArgs[param]);
-    const twinValue = wrapReferenceResult(ref.resultShape, ref.fn(...orderedArgs));
+    const rawTwinValue = ref.fn(...orderedArgs);
+    const twinValue = vector.packaged
+      ? ref.wrap
+        ? wrapReferenceResult(ref.wrap, rawTwinValue)
+        : rawTwinValue
+      : wrapReferenceResult(ref.resultShape, rawTwinValue);
     compareValues(twinValue, expected, vector.tolerance, 'twin', mismatches);
   }
 
@@ -206,17 +265,25 @@ const runtimeOptions = {
 
 if (selfTest) {
   const runtime = createDeterministicHsplusActionRuntime(actionSource, runtimeOptions);
-  const sample = vectors[0];
-  const good = runVector(runtime, sample);
-  const poisoned = JSON.parse(JSON.stringify(sample.expected));
-  const firstKey = Object.keys(poisoned)[0];
-  poisoned[firstKey] = typeof poisoned[firstKey] === 'number' ? poisoned[firstKey] + 1 : 'poisoned';
-  const bad = runVector(runtime, sample, poisoned);
-  if (!good.pass || bad.pass) {
-    fail(`self-test failed: clean vector pass=${good.pass}, poisoned vector pass=${bad.pass}`);
+  const packagedRuntimes = createPackagedRuntimes();
+  const samples = [
+    vectors.find((vector) => !vector.packaged),
+    vectors.find((vector) => vector.packaged),
+  ];
+  for (const sample of samples) {
+    if (!sample) fail('self-test requires both projection and packaged-source vectors');
+    const sampleRuntime = sample.packaged ? packagedRuntimes.get(sample.trait) : runtime;
+    if (!sampleRuntime) fail(`self-test has no packaged runtime for ${sample.trait}`);
+    const good = runVector(sampleRuntime, sample);
+    const bad = runVector(sampleRuntime, sample, '__poisoned_expectation__');
+    if (!good.pass || bad.pass) {
+      fail(
+        `self-test failed for ${sample.id}: clean vector pass=${good.pass}, poisoned vector pass=${bad.pass}`
+      );
+    }
   }
   console.log(
-    '[std-abi-conformance-node] self-test OK: clean vector passes, poisoned expectation goes red'
+    '[std-abi-conformance-node] self-test OK: projection and packaged-source vectors pass clean and go red under poisoned expectations'
   );
   process.exit(0);
 }
@@ -224,11 +291,16 @@ if (selfTest) {
 // --- Full run ----------------------------------------------------------------
 
 const runtime = createDeterministicHsplusActionRuntime(actionSource, runtimeOptions);
+const packagedRuntimes = createPackagedRuntimes();
 const nodeVectors = vectors.filter(
   (vector) => !Array.isArray(vector.targets) || vector.targets.includes('node')
 );
 const skippedByTarget = vectors.length - nodeVectors.length;
-const results = nodeVectors.map((vector) => runVector(runtime, vector));
+const results = nodeVectors.map((vector) => {
+  const vectorRuntime = vector.packaged ? packagedRuntimes.get(vector.trait) : runtime;
+  if (!vectorRuntime) fail(`${vector.id}: no packaged runtime for trait ${vector.trait}`);
+  return runVector(vectorRuntime, vector);
+});
 const failed = results.filter((result) => !result.pass);
 
 const stdPackageJson = JSON.parse(
@@ -247,6 +319,20 @@ const receipt = {
     enginePackageVersion: enginePackageJson.version,
     subsetId: runtime.subsetId ?? ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
     executedProjection: 'packages/std/conformance/generated/std-abi-conformance.action.hsplus',
+    packagedTraitEngine: 'DeterministicHsplusTraitRuntime',
+    packagedSubsetId: ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7,
+  },
+  packagedExecution: {
+    subsetId: ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7,
+    sources: Object.fromEntries(
+      Object.values(opsDefinition.packagedExecution?.sources ?? {}).map((sourcePath) => [
+        sourcePath,
+        manifest.files[sourcePath],
+      ])
+    ),
+    vectors: nodeVectors.filter((vector) => vector.packaged).length,
+    claim:
+      'The engine consumed the hash-bound packaged source through HoloScriptPlusParser, statically lifted whitelisted factory aliases without executing on_spawn, reparsed each preserved authored handler body through the structured deterministic evaluator, and executed it under the cumulative v7 subset.',
   },
   referenceTwin: {
     module: 'packages/std/dist/math.js',
@@ -279,9 +365,7 @@ const receipt = {
     failed: failed.length,
     skippedByTarget,
     skippedByTargetReason:
-      skippedByTarget > 0
-        ? 'packaged-handler vectors execute shipped @trait sources, a form the engine deterministic runtime does not parse; they run on the wasm-evaluator targets only'
-        : undefined,
+      skippedByTarget > 0 ? 'some corpus vectors do not declare the Node target' : undefined,
     excludedOps: opsDefinition.excluded,
   },
   results,
@@ -289,8 +373,8 @@ const receipt = {
     provesNodeDeterministicSubsetExecution: true,
     provesBrowserWasmExecution: false,
     provesOwnedMetalExecution: false,
-    provesPackagedHandlerExecution: false,
-    note: 'This Node lane executes the generated conformance projection in the engine deterministic action subset, not the packaged @trait source. The sibling WASM evaluator receipt executes hash-bound packaged math.hsplus and collections.hsplus handlers where packagedExecution admits them. Ops whose packaged bodies delegate to host bindings are marked host-delegation-rewrite and their projections are recorded in the ops SSOT. Cross-target equality is claimed only by the separate cross-target checker over sibling receipts.',
+    provesPackagedHandlerExecution: true,
+    note: 'Projection vectors execute the generated action source. Packaged vectors execute preserved handler bodies parsed from hash-bound math.hsplus and collections.hsplus source through the engine v7 trait adapter. This receipt does not prove browser or owned-metal execution; cross-target equality remains the separate cross-target checker’s claim.',
   },
 };
 
@@ -308,5 +392,5 @@ if (failed.length > 0) {
   process.exit(1);
 }
 console.log(
-  `[std-abi-conformance-node] OK: ${results.length}/${nodeVectors.length} vectors passed on node ${process.version} (${process.arch})${skippedByTarget > 0 ? ` (${skippedByTarget} packaged-handler vectors target-scoped to the wasm lanes)` : ''}; receipt at ${outPath}`
+  `[std-abi-conformance-node] OK: ${results.length}/${nodeVectors.length} vectors passed on node ${process.version} (${process.arch}), including ${nodeVectors.filter((vector) => vector.packaged).length} packaged-source vectors${skippedByTarget > 0 ? ` (${skippedByTarget} vector(s) target-scoped elsewhere)` : ''}; receipt at ${outPath}`
 );
