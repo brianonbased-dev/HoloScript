@@ -217,6 +217,90 @@ describe('CharacterWebGPUCompiler', () => {
     expect(report.stubbed).toEqual([]);
   });
 
+  it('serializes operative anatomy, crown-flow, and analytic skin receipts', async () => {
+    const baseline = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(characterComp())
+    ) as CharacterDrawSpecBundle;
+    const composition = characterComp();
+    composition.objects[0]!.traits = composition.objects[0]!.traits!.map((trait) => {
+      if (trait.name === 'body') {
+        return {
+          ...trait,
+          config: {
+            ...trait.config,
+            shoulder_scale: 1.12,
+            torso_scale: 0.94,
+          },
+        };
+      }
+      if (trait.name === 'subsurface_scattering') {
+        return {
+          ...trait,
+          config: {
+            ...trait.config,
+            microdetail_profile: 'analytic_pore_v1',
+            microdetail_scale: 96,
+            microdetail_strength: 0.09,
+          },
+        };
+      }
+      if (trait.name === 'hair') {
+        return {
+          ...trait,
+          config: {
+            ...trait.config,
+            style: 'cropped_coils',
+            groom_profile: 'scalp_flow_v1',
+            crown_whorl: 0.42,
+          },
+        };
+      }
+      return trait;
+    });
+    composition.objects[0]!.traits!.push({
+      type: 'ObjectTrait',
+      name: 'face',
+      config: {
+        topology: 'neutral_anatomical_v2',
+        face_width: 0.95,
+        face_length: 1.07,
+        jaw_taper: 0.3,
+      },
+    });
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    const report = bundle.report as { mapped: string[]; stubbed: unknown[] };
+    const skinGroup = (
+      bundle.materialGroups as Array<{
+        material: { shadingModel: string; microdetailProfile?: string };
+      }>
+    ).find((group) => group.material.shadingModel === 'skin-sss');
+
+    expect(bundle.mesh.positions).not.toEqual(baseline.mesh.positions);
+    expect(bundle.anatomy).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-anatomy.v1',
+      faceWidth: 0.95,
+      faceLength: 1.07,
+      jawTaper: 0.3,
+      shoulderScale: 1.12,
+      torsoScale: 0.94,
+    });
+    expect(bundle.skin).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v1',
+      shadingModel: 'skin-sss',
+      microdetailProfile: 'analytic-pore-v1',
+      microdetailScale: 96,
+      microdetailStrength: 0.09,
+      roughness: 0.45,
+    });
+    expect((bundle.groom as { crownWhorl: number }).crownWhorl).toBe(0.42);
+    expect(skinGroup?.material.microdetailProfile).toBe('analytic-pore-v1');
+    expect(report.mapped).toContain('@hair(crown_whorl=0.42)');
+    expect(report.stubbed).toEqual([]);
+  });
+
   it('serializes source-authored neutral anatomical facial topology', async () => {
     const composition = characterComp();
     composition.objects[0]!.traits!.push(

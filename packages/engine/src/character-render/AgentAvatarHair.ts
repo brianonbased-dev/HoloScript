@@ -99,6 +99,8 @@ export interface AgentAvatarGroomGeometryReceipt {
   rootLift: number;
   tipTaper: number;
   hairlineBias: number;
+  /** Signed crown-flow rotation around the scalp normal (-1..1). */
+  crownWhorl: number;
   requestedGuideCount: number;
   emittedGuideCount: number;
   cardCount: number;
@@ -259,6 +261,10 @@ export interface HairOptions {
   heightScale?: number;
   /** Face topology whose scalp surface the opt-in groom follows. */
   faceTopology?: AgentAvatarMeshOptions['faceTopology'];
+  /** Neutral-head width multiplier used to align the scalp and eyes. */
+  faceWidth?: AgentAvatarMeshOptions['faceWidth'];
+  /** Neutral-head length multiplier used to align the scalp shell. */
+  faceLength?: AgentAvatarMeshOptions['faceLength'];
   /** Deterministic source-authored geometry profile (default `medium_wavy`). */
   style?: AgentAvatarHairStyle;
   /** Scalp guide roots (default comes from the selected style profile). */
@@ -279,6 +285,8 @@ export interface HairOptions {
   tipTaper?: number;
   /** Additional front-hairline retraction, clamped to 0..0.3. */
   hairlineBias?: number;
+  /** Signed crown-flow rotation around the scalp normal, clamped to -1..1. */
+  crownWhorl?: number;
 }
 
 // ── small vec helpers ──
@@ -322,6 +330,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const rootLift = scalpFlow ? clamp(o.rootLift ?? 0.003, 0, 0.02) * bs : 0;
   const tipTaper = scalpFlow ? clamp(o.tipTaper ?? 0.12, 0.02, 1) : 1;
   const hairlineBias = scalpFlow ? clamp(o.hairlineBias ?? 0.12, 0, 0.3) : 0;
+  const crownWhorl = scalpFlow ? clamp(o.crownWhorl ?? 0, -1, 1) : 0;
+  const faceWidth = clamp(o.faceWidth ?? 1, 0.84, 1.2);
+  const faceLength = clamp(o.faceLength ?? 1, 0.86, 1.16);
 
   const bind = computeBindWorld();
   const head = getTranslation(bind.get('head')!); // scalp base, world-bind y≈1.51
@@ -329,7 +340,11 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const center = add(head, v(0, (neutralScalp ? 0.104 : 0.06) * bs, 0));
   const shellR = headR + 0.006 * bs; // sit just off the skull
   const scalpRadius = neutralScalp
-    ? v((0.09 * 1.06 + 0.006) * bs, (0.2 * 0.62 + 0.006) * bs, (0.09 * 1.08 + 0.006) * bs)
+    ? v(
+        (0.09 * 1.06 * faceWidth + 0.006) * bs,
+        (0.2 * 0.62 * faceLength + 0.006) * bs,
+        (0.09 * 1.08 + 0.006) * bs
+      )
     : v(shellR, shellR, shellR);
   const scalpNormal = (dir: Vec3): Vec3 =>
     nrm(v(dir.x / scalpRadius.x, dir.y / scalpRadius.y, dir.z / scalpRadius.z));
@@ -411,7 +426,12 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
         const normal = scalpNormal(dir);
         const desired = v(profile.sweepX * 0.45, -0.32, -1 + profile.sweepZ);
         const projected = sub(desired, scl(normal, dot(desired, normal)));
-        const tangent = len(projected) > 1e-6 ? nrm(projected) : topFlow;
+        const crownT = clamp((dir.y - 0.35) / 0.6, 0, 1);
+        const crownWeight = crownT * crownT * (3 - 2 * crownT);
+        const whorl = cross(v(0, 1, 0), normal);
+        const crownFlow =
+          len(whorl) > 1e-6 ? add(projected, scl(nrm(whorl), crownWhorl * crownWeight)) : projected;
+        const tangent = len(crownFlow) > 1e-6 ? nrm(crownFlow) : topFlow;
         pushHairVertex(
           scalpPoint(dir, capLift),
           normal,
@@ -464,8 +484,14 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     const side = nrm(cross(rootNormal, v(0, 1, 0)));
     const authoredBack = v(profile.sweepX * 0.45, -0.32, -1 + profile.sweepZ);
     const projectedBack = sub(authoredBack, scl(rootNormal, dot(authoredBack, rootNormal)));
-    const scalpTangent =
-      len(projectedBack) > 1e-6 ? nrm(projectedBack) : nrm(cross(side, rootNormal));
+    const crownT = clamp((dir.y - 0.35) / 0.6, 0, 1);
+    const crownWeight = crownT * crownT * (3 - 2 * crownT);
+    const whorl = cross(v(0, 1, 0), rootNormal);
+    const crownFlow =
+      len(whorl) > 1e-6
+        ? add(projectedBack, scl(nrm(whorl), crownWhorl * crownWeight))
+        : projectedBack;
+    const scalpTangent = len(crownFlow) > 1e-6 ? nrm(crownFlow) : nrm(cross(side, rootNormal));
     for (let i = 0; i < segs; i++) {
       const u = i / (segs - 1);
       const wave =
@@ -542,6 +568,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
       rootLift: rootLift / bs,
       tipTaper,
       hairlineBias,
+      crownWhorl,
       requestedGuideCount: guideCount,
       emittedGuideCount,
       cardCount: emittedGuideCount * cardsPerGuide,
@@ -567,6 +594,7 @@ export function buildAgentAvatarEyes(
     faceTopology?: AgentAvatarMeshOptions['faceTopology'];
     orbitalProfile?: AgentAvatarMeshOptions['orbitalProfile'];
     eyeRecess?: number;
+    faceWidth?: AgentAvatarMeshOptions['faceWidth'];
   } = {}
 ): HairMeshData {
   const bs = o.buildScale ?? 1;
@@ -580,7 +608,7 @@ export function buildAgentAvatarEyes(
   const eyeRecess =
     o.orbitalProfile === 'recessed-lids-v1' ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
   const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85) - r * eyeRecess;
-  const eyeX = 0.035 * bs;
+  const eyeX = 0.035 * bs * clamp(o.faceWidth ?? 1, 0.84, 1.2);
   const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
 
   const positions: number[] = [];
@@ -647,6 +675,7 @@ export function buildAgentAvatarOcularRegions(
     faceTopology?: AgentAvatarMeshOptions['faceTopology'];
     orbitalProfile?: AgentAvatarMeshOptions['orbitalProfile'];
     eyeRecess?: number;
+    faceWidth?: AgentAvatarMeshOptions['faceWidth'];
     irisScale?: number;
     pupilScale?: number;
   } = {}
@@ -662,7 +691,7 @@ export function buildAgentAvatarOcularRegions(
   const eyeRecess =
     o.orbitalProfile === 'recessed-lids-v1' ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
   const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85) - radius * eyeRecess;
-  const eyeX = 0.035 * bs;
+  const eyeX = 0.035 * bs * clamp(o.faceWidth ?? 1, 0.84, 1.2);
   const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
   const irisScale = Math.max(0.34, Math.min(0.62, o.irisScale ?? 0.48));
   const pupilScale = Math.max(0.2, Math.min(0.72, o.pupilScale ?? 0.42));
@@ -846,6 +875,7 @@ function catU32(a: Uint32Array, b: Uint32Array): Uint32Array<ArrayBuffer> {
 export interface CharacterMeshData {
   mesh: SkinnedMeshData;
   groom?: AgentAvatarGroomGeometryReceipt;
+  anatomy: AgentAvatarMeshData['anatomy'];
   ocularProfile: AgentAvatarOcularProfile;
   orbital: AgentAvatarMeshData['orbital'];
   bodyVertexRange: { vertexStart: number; vertexCount: number };
@@ -903,6 +933,8 @@ export function buildCharacterMesh(
           buildScale: opts.buildScale,
           heightScale: opts.heightScale,
           faceTopology: opts.faceTopology,
+          faceWidth: opts.faceWidth,
+          faceLength: opts.faceLength,
           guides: opts.guides,
           cardsPerGuide: opts.cardsPerGuide,
           segments: opts.segments,
@@ -913,6 +945,7 @@ export function buildCharacterMesh(
           rootLift: opts.rootLift,
           tipTaper: opts.tipTaper,
           hairlineBias: opts.hairlineBias,
+          crownWhorl: opts.crownWhorl,
         });
   const ocularProfile = opts.ocularProfile ?? 'legacy-composite-v1';
   const emptyOcular = (): OcularMeshData => ({
@@ -930,6 +963,7 @@ export function buildCharacterMesh(
             faceTopology: opts.faceTopology,
             orbitalProfile: opts.orbitalProfile,
             eyeRecess: opts.eyeRecess,
+            faceWidth: opts.faceWidth,
             irisScale: opts.irisScale,
             pupilScale: opts.pupilScale,
           })
@@ -940,6 +974,7 @@ export function buildCharacterMesh(
               faceTopology: opts.faceTopology,
               orbitalProfile: opts.orbitalProfile,
               eyeRecess: opts.eyeRecess,
+              faceWidth: opts.faceWidth,
             }),
             uvs: new Float32Array(),
             regionRanges: { sclera: [], iris: [], pupil: [], cornea: [] },
@@ -1072,6 +1107,7 @@ export function buildCharacterMesh(
   return {
     mesh,
     ...(hair.groom ? { groom: hair.groom } : {}),
+    anatomy: body.anatomy,
     ocularProfile,
     orbital: body.orbital,
     bodyVertexRange: { vertexStart: 0, vertexCount: bodyVC },

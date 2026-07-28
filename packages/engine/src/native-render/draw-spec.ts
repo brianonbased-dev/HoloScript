@@ -205,6 +205,12 @@ export interface SkinSSSMaterialSpec extends MaterialSpec {
   transmitStrength: number;
   /** Ambient floor. */
   ambient: number;
+  /** Provider-independent analytic surface detail. Omission preserves the smooth legacy path. */
+  microdetailProfile?: 'none' | 'analytic-pore-v1';
+  /** Analytic pore frequency in inverse metres (20..180 when enabled). */
+  microdetailScale?: number;
+  /** Bounded roughness/normal-response amplitude (0..0.2). */
+  microdetailStrength?: number;
 }
 
 /** Source-authored hair-card edge treatment. `opaque-v1` preserves the legacy solid-card path. */

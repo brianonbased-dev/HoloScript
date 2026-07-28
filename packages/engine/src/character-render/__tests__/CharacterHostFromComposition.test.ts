@@ -14,6 +14,7 @@ import {
   getSovereignMantleCatalogEntry,
   listSovereignMantleStyles,
 } from '../AgentAvatarMantleCatalog';
+import { packCharacterMaterial } from '../character-render';
 
 describe('buildCharacterHostFromComposition', () => {
   it('maps @body/@subsurface_scattering/@locomotion from a template-using object', () => {
@@ -243,6 +244,126 @@ describe('buildCharacterHostFromComposition', () => {
     if (skin?.material.shadingModel === 'skin-sss') {
       expect(skin.material.scatterColor).toEqual([0x6f / 255, 0x9f / 255, 0xb3 / 255]);
     }
+  });
+
+  it('maps bounded anatomy, crown-flow, and analytic skin microdetail into exact native receipts', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3IResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                height: 1.82,
+                build_scale: 1.02,
+                shoulder_scale: 1.12,
+                torso_scale: 0.94,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                face_width: 0.95,
+                face_length: 1.07,
+                jaw_taper: 0.3,
+              },
+            },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                color: '#b9785f',
+                scatter_color: '#b85f4c',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 96,
+                microdetail_strength: 0.09,
+              },
+            },
+            {
+              name: 'hair',
+              config: {
+                style: 'cropped_coils',
+                groom_profile: 'scalp_flow_v1',
+                crown_whorl: 0.42,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const skinGroup = result.host
+      ?.getDrawSpec()
+      .materialGroups?.find((group) => group.material.shadingModel === 'skin-sss');
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.anatomy).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-anatomy.v1',
+      faceWidth: 0.95,
+      faceLength: 1.07,
+      jawTaper: 0.3,
+      shoulderScale: 1.12,
+      torsoScale: 0.94,
+    });
+    expect(result.skin).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v1',
+      shadingModel: 'skin-sss',
+      microdetailProfile: 'analytic-pore-v1',
+      microdetailScale: 96,
+      microdetailStrength: 0.09,
+      roughness: 0.45,
+    });
+    expect(result.groom?.crownWhorl).toBe(0.42);
+    expect(result.face).toMatchObject({
+      faceWidth: 0.95,
+      faceLength: 1.07,
+      jawTaper: 0.3,
+    });
+    expect(result.report.mapped).toContain('@body(shoulder_scale=1.12,torso_scale=0.94)');
+    expect(result.report.mapped).toContain('@face(face_width=0.95,face_length=1.07,jaw_taper=0.3)');
+    expect(result.report.mapped).toContain('@hair(crown_whorl=0.42)');
+    expect(result.report.mapped).toContain(
+      '@subsurface_scattering(microdetail_profile=analytic-pore-v1,' +
+        'microdetail_scale=96,microdetail_strength=0.09)'
+    );
+    expect(skinGroup?.material.shadingModel).toBe('skin-sss');
+    if (skinGroup?.material.shadingModel === 'skin-sss') {
+      expect(skinGroup.material.microdetailProfile).toBe('analytic-pore-v1');
+      const packed = packCharacterMaterial(skinGroup.material);
+      expect(packed[11]).toBeCloseTo(0.09);
+      expect(packed[19]).toBe(96);
+    }
+  });
+
+  it('fails closed when anatomy, groom, or microdetail controls lack their native profiles', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'UnsupportedH3IControls',
+          traits: [
+            { name: 'body', config: {} },
+            { name: 'face', config: { topology: 'procedural_head_v1', jaw_taper: 0.3 } },
+            { name: 'hair', config: { crown_whorl: 0.5 } },
+            { name: 'subsurface_scattering', config: { microdetail_strength: 0.1 } },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@face(proportions)',
+      reason: 'face proportion controls require topology neutral_anatomical_v2',
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@hair(groom_controls)',
+      reason: 'groom controls require a supported @hair(groom_profile)',
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@subsurface_scattering(microdetail_controls)',
+      reason: 'microdetail controls require a supported microdetail_profile',
+    });
+    expect(result.anatomy).toBeUndefined();
+    expect(result.skin).toBeUndefined();
   });
 
   it('@face selects the neutral anatomical topology and receipts it through morph output', () => {

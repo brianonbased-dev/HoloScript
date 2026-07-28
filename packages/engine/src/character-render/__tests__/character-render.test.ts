@@ -58,6 +58,17 @@ function pixelDiff(a: PixelGrid, b: PixelGrid): number {
   return n;
 }
 
+function absoluteChannelDiff(a: PixelGrid, b: PixelGrid): number {
+  let sum = 0;
+  for (let i = 0; i < a.data.length; i += 4) {
+    sum +=
+      Math.abs(a.data[i] - b.data[i]) +
+      Math.abs(a.data[i + 1] - b.data[i + 1]) +
+      Math.abs(a.data[i + 2] - b.data[i + 2]);
+  }
+  return sum;
+}
+
 const itGpu = GPU_LIVE ? it : it.skip;
 
 describe('character-render — native WebGPU GPU-skinned humanoid', () => {
@@ -107,5 +118,22 @@ describe('character-render — material groups (skin-SSS) + lambert fallback', (
     // Same silhouette, different shading → many pixels differ but the figure area is similar.
     expect(pixelDiff(skin, lambert)).toBeGreaterThan(50);
     expect(figurePixels(skin)).toBeGreaterThan(150);
+  });
+
+  itGpu('source-authored analytic pore response changes native skin pixels', async () => {
+    const smooth = new CharacterHost({ entityId: 'microdetail-proof' });
+    const detailed = new CharacterHost({
+      entityId: 'microdetail-proof',
+      skinMicrodetailProfile: 'analytic-pore-v1',
+      skinMicrodetailScale: 96,
+      skinMicrodetailStrength: 0.12,
+    });
+    const smoothPixels = await renderCharacter(testDevice!, smooth.getDrawSpec(), { size: 128 });
+    const detailedPixels = await renderCharacter(testDevice!, detailed.getDrawSpec(), {
+      size: 128,
+    });
+
+    expect(figurePixels(detailedPixels)).toBeGreaterThan(150);
+    expect(absoluteChannelDiff(smoothPixels, detailedPixels)).toBeGreaterThan(100);
   });
 });

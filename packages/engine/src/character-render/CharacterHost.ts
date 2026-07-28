@@ -35,6 +35,7 @@ import {
   computeJointPalette,
   colorForEntity,
   JOINT_COUNT,
+  type AgentAvatarAnatomyReceipt,
   type AgentAvatarFaceTopology,
   type AgentAvatarOrbitalProfile,
   type AvatarPose,
@@ -92,6 +93,16 @@ export interface CharacterHostOptions {
   lidOpening?: number;
   /** Outer-canthus rise as a fraction of the eyeball radius (-0.25..0.25). */
   canthalTilt?: number;
+  /** Neutral-head width multiplier (0.84..1.2). */
+  faceWidth?: number;
+  /** Neutral-head vertical-length multiplier (0.86..1.16). */
+  faceLength?: number;
+  /** Lower-face width reduction (0.08..0.38). */
+  jawTaper?: number;
+  /** Bind-space shoulder/arm span multiplier (0.85..1.25). */
+  shoulderScale?: number;
+  /** Hips/spine thickness multiplier (0.85..1.2). */
+  torsoScale?: number;
   /** Packed 0xRRGGBB accent/fallback colour; defaults to a deterministic colour from `entityId`. */
   color?: number;
   /** Skin base colour 0xRRGGBB for the SSS material (default warm skin #e8c4a0). */
@@ -101,6 +112,12 @@ export interface CharacterHostOptions {
    * human-skin preset; non-human/sovereign bodies can provide their own material response.
    */
   skinScatterColor?: [number, number, number];
+  /** Provider-independent native skin microdetail profile. */
+  skinMicrodetailProfile?: AgentAvatarSkinMicrodetailProfile;
+  /** Analytic pore frequency in inverse metres. */
+  skinMicrodetailScale?: number;
+  /** Bounded analytic roughness-response amplitude. */
+  skinMicrodetailStrength?: number;
   /** Hair eumelanin 0..1 (0 = white/blond, ~0.9 = black). Default 0.7 (dark brown). */
   melanin?: number;
   /** Hair pheomelanin/redness 0..1. Default 0.2. */
@@ -123,6 +140,8 @@ export interface CharacterHostOptions {
   hairTipTaper?: number;
   /** Source-authored front hairline retraction. */
   hairlineBias?: number;
+  /** Signed crown-flow rotation around the scalp normal. */
+  hairCrownWhorl?: number;
   /** Source-authored analytic hair-card coverage profile. */
   hairCoverageProfile?: MarschnerHairMaterialSpec['coverageProfile'];
   /** Visible normalized card half-width (0.2..1). */
@@ -165,6 +184,17 @@ export interface CharacterHostOptions {
   includeEyes?: boolean;
 }
 
+export type AgentAvatarSkinMicrodetailProfile = 'none' | 'analytic-pore-v1';
+
+export interface AgentAvatarSkinMaterialReceipt {
+  schemaVersion: 'holoscript.agent-avatar-skin-material.v1';
+  shadingModel: 'skin-sss';
+  microdetailProfile: AgentAvatarSkinMicrodetailProfile;
+  microdetailScale: number;
+  microdetailStrength: number;
+  roughness: number;
+}
+
 /** Human-skin SSS preset (SubsurfaceScattering.ts humanSkin + SkinSSRenderer defaults). */
 const HUMAN_SKIN: Omit<SkinSSSMaterialSpec, 'color'> = {
   shadingModel: 'skin-sss',
@@ -178,6 +208,9 @@ const HUMAN_SKIN: Omit<SkinSSSMaterialSpec, 'color'> = {
   thickness: 0.3,
   transmitStrength: 0.4,
   ambient: 0.12,
+  microdetailProfile: 'none',
+  microdetailScale: 0,
+  microdetailStrength: 0,
 };
 
 /** Kajiya-Kay hair preset; melanin/redness set per-host. */
@@ -260,6 +293,11 @@ export class CharacterHost {
       eyeRecess: opts.eyeRecess,
       lidOpening: opts.lidOpening,
       canthalTilt: opts.canthalTilt,
+      faceWidth: opts.faceWidth,
+      faceLength: opts.faceLength,
+      jawTaper: opts.jawTaper,
+      shoulderScale: opts.shoulderScale,
+      torsoScale: opts.torsoScale,
       garmentStyle: opts.garmentStyle,
       garmentSegments: opts.garmentSegments,
       mantleStyle: opts.mantleStyle,
@@ -277,6 +315,7 @@ export class CharacterHost {
       rootLift: opts.hairRootLift,
       tipTaper: opts.hairTipTaper,
       hairlineBias: opts.hairlineBias,
+      crownWhorl: opts.hairCrownWhorl,
     });
     this.deformationBasePositions = new Float32Array(this.built.mesh.positions);
     this.bindWorld = computeBindWorld();
@@ -297,6 +336,15 @@ export class CharacterHost {
       ...(opts.skinScatterColor
         ? { scatterColor: [...opts.skinScatterColor] as [number, number, number] }
         : {}),
+      microdetailProfile: opts.skinMicrodetailProfile ?? HUMAN_SKIN.microdetailProfile,
+      microdetailScale:
+        opts.skinMicrodetailProfile === 'analytic-pore-v1'
+          ? Math.max(20, Math.min(180, opts.skinMicrodetailScale ?? 80))
+          : 0,
+      microdetailStrength:
+        opts.skinMicrodetailProfile === 'analytic-pore-v1'
+          ? Math.max(0, Math.min(0.2, opts.skinMicrodetailStrength ?? 0.06))
+          : 0,
     };
     this.hairMaterial = {
       ...HAIR_BASE,
@@ -451,6 +499,23 @@ export class CharacterHost {
           material: this.getHairMaterialReceipt(),
         }
       : null;
+  }
+
+  /** Exact clamped native face and upper-body proportions used by the emitted geometry. */
+  getAnatomyReceipt(): AgentAvatarAnatomyReceipt {
+    return { ...this.built.anatomy };
+  }
+
+  /** Exact native skin-surface response derived from @subsurface_scattering. */
+  getSkinMaterialReceipt(): AgentAvatarSkinMaterialReceipt {
+    return {
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v1',
+      shadingModel: 'skin-sss',
+      microdetailProfile: this.skinMaterial.microdetailProfile ?? 'none',
+      microdetailScale: this.skinMaterial.microdetailScale ?? 0,
+      microdetailStrength: this.skinMaterial.microdetailStrength ?? 0,
+      roughness: this.skinMaterial.roughness,
+    };
   }
 
   /** Source-derived native hair response joined to geometry and compiler receipts. */

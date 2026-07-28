@@ -220,6 +220,29 @@ describe('hair — procedural geometry (pure data)', () => {
     expect(resolveAgentAvatarGroomProfile('billboard_wig_v9')).toBeUndefined();
   });
 
+  it('turns source-authored crown whorl into deterministic de-clumped scalp-flow topology', () => {
+    const common = {
+      style: 'cropped_coils' as const,
+      guides: 72,
+      cardsPerGuide: 1,
+      segments: 5,
+      groomProfile: 'scalp-flow-v1' as const,
+      faceTopology: 'neutral-anatomical-v2' as const,
+      faceWidth: 0.95,
+      faceLength: 1.06,
+    };
+    const baseline = buildAgentAvatarHair(common);
+    const authored = buildAgentAvatarHair({ ...common, crownWhorl: 0.42 });
+    const replay = buildAgentAvatarHair({ ...common, crownWhorl: 0.42 });
+
+    expect(baseline.groom?.crownWhorl).toBe(0);
+    expect(authored.groom?.crownWhorl).toBe(0.42);
+    expect(Array.from(authored.positions)).not.toEqual(Array.from(baseline.positions));
+    expect(Array.from(replay.positions)).toEqual(Array.from(authored.positions));
+    expect(replay.groom).toEqual(authored.groom);
+    expect(authored.groom!.rootTangentRadialDotP95).toBeLessThan(0.01);
+  });
+
   it('aligns scalp-flow roots and cap to the neutral anatomical head ellipsoid', () => {
     const legacySurface = buildAgentAvatarHair({
       groomProfile: 'scalp-flow-v1',

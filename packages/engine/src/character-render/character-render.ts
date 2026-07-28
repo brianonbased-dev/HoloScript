@@ -96,6 +96,7 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
   out[2] = (m.color & 0xff) / 255;
   out[3] = m.opacity;
   if (m.shadingModel === 'skin-sss') {
+    const microdetailEnabled = m.microdetailProfile === 'analytic-pore-v1';
     out[4] = m.scatterColor[0];
     out[5] = m.scatterColor[1];
     out[6] = m.scatterColor[2];
@@ -103,11 +104,12 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
     out[8] = m.scatterRadii[0];
     out[9] = m.scatterRadii[1];
     out[10] = m.scatterRadii[2];
-    out[11] = 0;
+    out[11] = microdetailEnabled ? Math.max(0, Math.min(0.2, m.microdetailStrength ?? 0)) : 0;
     out[12] = m.specularF0;
     out[13] = m.thickness;
     out[14] = m.transmitStrength;
     out[15] = m.ambient;
+    out[19] = microdetailEnabled ? Math.max(20, Math.min(180, m.microdetailScale ?? 80)) : 0;
   } else if (m.shadingModel === 'marschner-hair') {
     out[4] = m.melanin;
     out[5] = m.melaninRedness;

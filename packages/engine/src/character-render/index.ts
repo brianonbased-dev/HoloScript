@@ -22,6 +22,7 @@ export {
   AGENT_AVATAR_ORBITAL_PROFILES,
   type AgentAvatarMeshData,
   type AgentAvatarMeshOptions,
+  type AgentAvatarAnatomyReceipt,
   type AgentAvatarFaceTopology,
   type AgentAvatarOrbitalProfile,
   type AgentAvatarOrbitalGeometryReceipt,
@@ -96,6 +97,8 @@ export {
 
 export {
   CharacterHost,
+  type AgentAvatarSkinMaterialReceipt,
+  type AgentAvatarSkinMicrodetailProfile,
   type CharacterHostOptions,
   type CharacterWorldState,
 } from './CharacterHost';

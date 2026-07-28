@@ -165,4 +165,52 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
       );
     }
   });
+
+  it('applies and receipts bounded neutral-face and upper-body proportions', () => {
+    const baseline = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+    });
+    const authored = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceWidth: 0.94,
+      faceLength: 1.08,
+      jawTaper: 0.31,
+      shoulderScale: 1.14,
+      torsoScale: 0.93,
+    });
+    const spanForJoint = (mesh: typeof authored, bone: string) => {
+      const joint = BONE_ORDER.indexOf(bone);
+      let minX = Infinity;
+      let maxX = -Infinity;
+      for (let vertex = 0; vertex < mesh.vertexCount; vertex++) {
+        if (mesh.jointIndices[vertex] !== joint) continue;
+        minX = Math.min(minX, mesh.positions[vertex * 3]);
+        maxX = Math.max(maxX, mesh.positions[vertex * 3]);
+      }
+      return maxX - minX;
+    };
+
+    expect(baseline.anatomy).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-anatomy.v1',
+      faceWidth: 1,
+      faceLength: 1,
+      jawTaper: 0.22,
+      shoulderScale: 1,
+      torsoScale: 1,
+    });
+    expect(authored.anatomy).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-anatomy.v1',
+      faceWidth: 0.94,
+      faceLength: 1.08,
+      jawTaper: 0.31,
+      shoulderScale: 1.14,
+      torsoScale: 0.93,
+    });
+    expect(Array.from(authored.positions)).not.toEqual(Array.from(baseline.positions));
+    expect(spanForJoint(authored, 'head')).toBeLessThan(spanForJoint(baseline, 'head'));
+    expect(spanForJoint(authored, 'left_upper_arm')).toBeGreaterThan(
+      spanForJoint(baseline, 'left_upper_arm')
+    );
+    expect(spanForJoint(authored, 'spine')).toBeLessThan(spanForJoint(baseline, 'spine'));
+  });
 });

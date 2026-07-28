@@ -14,9 +14,17 @@
  * @module character-render
  */
 
-import { CharacterHost } from './CharacterHost';
+import {
+  CharacterHost,
+  type AgentAvatarSkinMaterialReceipt,
+  type AgentAvatarSkinMicrodetailProfile,
+} from './CharacterHost';
 import type { HairCoverageProfile } from '../native-render/draw-spec';
-import type { AgentAvatarFaceTopology, AgentAvatarOrbitalProfile } from './AgentAvatarMesh';
+import type {
+  AgentAvatarAnatomyReceipt,
+  AgentAvatarFaceTopology,
+  AgentAvatarOrbitalProfile,
+} from './AgentAvatarMesh';
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
 import {
@@ -108,6 +116,9 @@ export interface CharacterHostFromCompositionResult {
     eyeRecess?: number;
     lidOpening?: number;
     canthalTilt?: number;
+    faceWidth?: number;
+    faceLength?: number;
+    jawTaper?: number;
     ocularProfile?: AgentAvatarOcularProfile;
     irisScale?: number;
     pupilScale?: number;
@@ -115,6 +126,10 @@ export interface CharacterHostFromCompositionResult {
     scleraColor?: number;
     corneaIor?: number;
   };
+  /** Exact native face and upper-body proportions when source-authored controls are operative. */
+  anatomy?: AgentAvatarAnatomyReceipt;
+  /** Exact native skin-surface response when a supported profile is source-authored. */
+  skin?: AgentAvatarSkinMaterialReceipt;
   /** Derived native groom geometry evidence when hair is operative. */
   groom?: AgentAvatarGroomGeometryReceipt;
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
@@ -416,6 +431,9 @@ export function buildCharacterHostFromComposition(
   // 3. @body → heightScale / buildScale (height authored in METRES; reference = 1.75 m).
   let heightScale = 1;
   let buildScale = 1;
+  let shoulderScale = 1;
+  let torsoScale = 1;
+  let anatomyAuthored = false;
   const body = traits.get('body');
   if (body) {
     report.mapped.push('@body');
@@ -426,6 +444,14 @@ export function buildCharacterHostFromComposition(
     }
     const b = asNum(cfgVal(body, 'build_scale', 'thickness'));
     if (b !== undefined) buildScale = clamp(b, bounds.min, bounds.max);
+    const authoredShoulderScale = asNum(body.config.shoulder_scale ?? body.config.shoulderScale);
+    const authoredTorsoScale = asNum(body.config.torso_scale ?? body.config.torsoScale);
+    if (authoredShoulderScale !== undefined || authoredTorsoScale !== undefined) {
+      shoulderScale = clamp(authoredShoulderScale ?? 1, 0.85, 1.25);
+      torsoScale = clamp(authoredTorsoScale ?? 1, 0.85, 1.2);
+      anatomyAuthored = true;
+      report.mapped.push(`@body(shoulder_scale=${shoulderScale},torso_scale=${torsoScale})`);
+    }
   }
 
   // 4. @face → a source-selectable native facial topology. The legacy cap remains the default;
@@ -438,6 +464,12 @@ export function buildCharacterHostFromComposition(
   let eyeRecess: number | undefined;
   let lidOpening: number | undefined;
   let canthalTilt: number | undefined;
+  let faceWidth = 1;
+  let faceLength = 1;
+  let jawTaper = 0.22;
+  let authoredFaceWidth: number | undefined;
+  let authoredFaceLength: number | undefined;
+  let authoredJawTaper: number | undefined;
   let ocularProfile: AgentAvatarOcularProfile | undefined;
   let irisScale: number | undefined;
   let pupilScale: number | undefined;
@@ -464,6 +496,22 @@ export function buildCharacterHostFromComposition(
           Math.min(24, Math.round(asNum(cfgVal(faceTrait, 'vertical_segments')) ?? 14))
         );
         faceTearline = cfgVal(faceTrait, 'tearline', 'include_tearline') !== false;
+        authoredFaceWidth = asNum(faceTrait.config.face_width ?? faceTrait.config.faceWidth);
+        authoredFaceLength = asNum(faceTrait.config.face_length ?? faceTrait.config.faceLength);
+        authoredJawTaper = asNum(faceTrait.config.jaw_taper ?? faceTrait.config.jawTaper);
+        if (
+          authoredFaceWidth !== undefined ||
+          authoredFaceLength !== undefined ||
+          authoredJawTaper !== undefined
+        ) {
+          faceWidth = clamp(authoredFaceWidth ?? 1, 0.84, 1.2);
+          faceLength = clamp(authoredFaceLength ?? 1, 0.86, 1.16);
+          jawTaper = clamp(authoredJawTaper ?? 0.22, 0.08, 0.38);
+          anatomyAuthored = true;
+          report.mapped.push(
+            `@face(face_width=${faceWidth},face_length=${faceLength},jaw_taper=${jawTaper})`
+          );
+        }
         const authoredOrbitalProfile = asStr(cfgVal(faceTrait, 'orbital_profile', 'eyelid_profile'))
           ?.toLowerCase()
           .replace(/_/g, '-');
@@ -487,6 +535,18 @@ export function buildCharacterHostFromComposition(
             reason: `profile '${authoredOrbitalProfile}' has no native orbital geometry channel`,
           });
         }
+      } else if (
+        faceTrait.config.face_width !== undefined ||
+        faceTrait.config.faceWidth !== undefined ||
+        faceTrait.config.face_length !== undefined ||
+        faceTrait.config.faceLength !== undefined ||
+        faceTrait.config.jaw_taper !== undefined ||
+        faceTrait.config.jawTaper !== undefined
+      ) {
+        report.stubbed.push({
+          trait: '@face(proportions)',
+          reason: 'face proportion controls require topology neutral_anatomical_v2',
+        });
       }
       const authoredOcularProfile = asStr(cfgVal(faceTrait, 'ocular_profile', 'eye_profile'))
         ?.toLowerCase()
@@ -517,6 +577,9 @@ export function buildCharacterHostFromComposition(
         ...(eyeRecess === undefined ? {} : { eyeRecess }),
         ...(lidOpening === undefined ? {} : { lidOpening }),
         ...(canthalTilt === undefined ? {} : { canthalTilt }),
+        ...(authoredFaceWidth === undefined ? {} : { faceWidth }),
+        ...(authoredFaceLength === undefined ? {} : { faceLength }),
+        ...(authoredJawTaper === undefined ? {} : { jawTaper }),
         ...(ocularProfile === undefined ? {} : { ocularProfile }),
         ...(irisScale === undefined ? {} : { irisScale }),
         ...(pupilScale === undefined ? {} : { pupilScale }),
@@ -554,6 +617,54 @@ export function buildCharacterHostFromComposition(
   if (skinScatterColor) {
     report.mapped.push('@subsurface_scattering(scatter_color)');
   }
+  let skinMicrodetailProfile: AgentAvatarSkinMicrodetailProfile | undefined;
+  let skinMicrodetailScale: number | undefined;
+  let skinMicrodetailStrength: number | undefined;
+  const authoredSkinMicrodetailProfile = asStr(
+    sss?.config.microdetail_profile ?? sss?.config.microdetailProfile
+  )
+    ?.trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  const authoredSkinMicrodetailScale = asNum(
+    sss?.config.microdetail_scale ?? sss?.config.microdetailScale
+  );
+  const authoredSkinMicrodetailStrength = asNum(
+    sss?.config.microdetail_strength ?? sss?.config.microdetailStrength
+  );
+  if (
+    authoredSkinMicrodetailProfile === 'analytic-pore-v1' ||
+    authoredSkinMicrodetailProfile === 'none'
+  ) {
+    skinMicrodetailProfile = authoredSkinMicrodetailProfile;
+    skinMicrodetailScale =
+      skinMicrodetailProfile === 'analytic-pore-v1'
+        ? clamp(authoredSkinMicrodetailScale ?? 80, 20, 180)
+        : 0;
+    skinMicrodetailStrength =
+      skinMicrodetailProfile === 'analytic-pore-v1'
+        ? clamp(authoredSkinMicrodetailStrength ?? 0.06, 0, 0.2)
+        : 0;
+    report.mapped.push(
+      `@subsurface_scattering(microdetail_profile=${skinMicrodetailProfile},` +
+        `microdetail_scale=${skinMicrodetailScale},` +
+        `microdetail_strength=${skinMicrodetailStrength})`
+    );
+  } else if (authoredSkinMicrodetailProfile) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(microdetail_profile)',
+      reason: `profile '${authoredSkinMicrodetailProfile}' has no native skin material channel`,
+    });
+  }
+  if (
+    !skinMicrodetailProfile &&
+    (authoredSkinMicrodetailScale !== undefined || authoredSkinMicrodetailStrength !== undefined)
+  ) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(microdetail_controls)',
+      reason: 'microdetail controls require a supported microdetail_profile',
+    });
+  }
 
   // 6. @hair(color/style) → authored Marschner response plus deterministic card geometry.
   //    Unknown style names are recorded as unsupported rather than borrowing the default.
@@ -565,6 +676,7 @@ export function buildCharacterHostFromComposition(
   let hairRootLift: number | undefined;
   let hairTipTaper: number | undefined;
   let hairlineBias: number | undefined;
+  let hairCrownWhorl: number | undefined;
   let hairCoverageProfile: HairCoverageProfile | undefined;
   let hairStrandCoverage: number | undefined;
   let hairEdgeSoftness: number | undefined;
@@ -602,6 +714,7 @@ export function buildCharacterHostFromComposition(
     hairRootLift = asNum(cfgVal(hair, 'root_lift', 'rootLift'));
     hairTipTaper = asNum(cfgVal(hair, 'tip_taper', 'tipTaper'));
     hairlineBias = asNum(cfgVal(hair, 'hairline_bias', 'hairlineBias'));
+    hairCrownWhorl = asNum(hair.config.crown_whorl ?? hair.config.crownWhorl);
     if (authoredCoverageProfile) {
       hairCoverageProfile = resolveAgentAvatarHairCoverageProfile(authoredCoverageProfile);
       if (!hairCoverageProfile) {
@@ -712,11 +825,16 @@ export function buildCharacterHostFromComposition(
             `tip_taper=${hairTipTaper ?? 'profile-default'},` +
             `hairline_bias=${hairlineBias ?? 'profile-default'})`
         );
+        if (hairCrownWhorl !== undefined) {
+          hairCrownWhorl = clamp(hairCrownWhorl, -1, 1);
+          report.mapped.push(`@hair(crown_whorl=${hairCrownWhorl})`);
+        }
       } else if (
         hairCardWidth !== undefined ||
         hairRootLift !== undefined ||
         hairTipTaper !== undefined ||
-        hairlineBias !== undefined
+        hairlineBias !== undefined ||
+        hairCrownWhorl !== undefined
       ) {
         report.stubbed.push({
           trait: '@hair(groom_controls)',
@@ -798,6 +916,11 @@ export function buildCharacterHostFromComposition(
     eyeRecess,
     lidOpening,
     canthalTilt,
+    faceWidth,
+    faceLength,
+    jawTaper,
+    shoulderScale,
+    torsoScale,
     ocularProfile,
     irisScale,
     pupilScale,
@@ -806,6 +929,9 @@ export function buildCharacterHostFromComposition(
     corneaIor,
     skinTone: color,
     skinScatterColor,
+    skinMicrodetailProfile,
+    skinMicrodetailScale,
+    skinMicrodetailStrength,
     melanin,
     melaninRedness,
     hairStyle,
@@ -817,6 +943,7 @@ export function buildCharacterHostFromComposition(
     hairRootLift: hairGroomProfile ? hairRootLift : undefined,
     hairTipTaper: hairGroomProfile ? hairTipTaper : undefined,
     hairlineBias: hairGroomProfile ? hairlineBias : undefined,
+    hairCrownWhorl: hairGroomProfile ? hairCrownWhorl : undefined,
     hairCoverageProfile,
     hairStrandCoverage: hairCoverageProfile ? hairStrandCoverage : undefined,
     hairEdgeSoftness: hairCoverageProfile ? hairEdgeSoftness : undefined,
@@ -906,6 +1033,8 @@ export function buildCharacterHostFromComposition(
 
   const groom =
     hair && includeHair !== false ? (host.getGroomGeometryReceipt() ?? undefined) : undefined;
+  const anatomy = anatomyAuthored ? host.getAnatomyReceipt() : undefined;
+  const skin = skinMicrodetailProfile ? host.getSkinMaterialReceipt() : undefined;
   return {
     ok: true,
     host,
@@ -914,6 +1043,8 @@ export function buildCharacterHostFromComposition(
     lod,
     cloth,
     face,
+    anatomy,
+    skin,
     groom,
     morph,
     mantle,

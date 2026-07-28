@@ -73,6 +73,10 @@ export interface CharacterDrawSpecBundle {
   cloth?: unknown;
   /** Present when source-authored native facial topology is operative. */
   face?: unknown;
+  /** Present when source-authored native face/upper-body proportions are operative. */
+  anatomy?: unknown;
+  /** Present when a source-authored native skin microdetail profile is operative. */
+  skin?: unknown;
   /** Present when source-authored native procedural groom geometry is operative. */
   groom?: unknown;
   /** Present when source-authored native procedural-head morph targets are operative. */
@@ -155,6 +159,8 @@ export class CharacterWebGPUCompiler {
     // compatible across that normal source/declaration skew.
     const morph = 'morph' in result ? result.morph : undefined;
     const face = 'face' in result ? result.face : undefined;
+    const anatomy = 'anatomy' in result ? result.anatomy : undefined;
+    const skin = 'skin' in result ? result.skin : undefined;
     const groom = 'groom' in result ? result.groom : undefined;
     const bundle: CharacterDrawSpecBundle = {
       format: 'character-webgpu/drawspec',
@@ -178,6 +184,8 @@ export class CharacterWebGPUCompiler {
       ...(result.lod ? { lod: result.lod } : {}),
       ...(result.cloth ? { cloth: result.cloth } : {}),
       ...(face ? { face } : {}),
+      ...(anatomy ? { anatomy } : {}),
+      ...(skin ? { skin } : {}),
       ...(groom ? { groom } : {}),
       ...(morph ? { morph } : {}),
       ...(result.mantle ? { mantle: result.mantle } : {}),

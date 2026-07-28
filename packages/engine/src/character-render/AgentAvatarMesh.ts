@@ -58,6 +58,8 @@ export interface AgentAvatarMeshData {
   boneOrder: readonly string[];
   /** Present only when the neutral anatomical head emitted operative orbital geometry. */
   orbital?: AgentAvatarOrbitalGeometryReceipt;
+  /** Exact clamped proportions used by the native procedural body and face builders. */
+  anatomy: AgentAvatarAnatomyReceipt;
 }
 
 export type AgentAvatarFaceTopology = 'procedural-head-v1' | 'neutral-anatomical-v2';
@@ -74,6 +76,15 @@ export interface AgentAvatarOrbitalGeometryReceipt {
   canthalTilt: number;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
+}
+
+export interface AgentAvatarAnatomyReceipt {
+  schemaVersion: 'holoscript.agent-avatar-anatomy.v1';
+  faceWidth: number;
+  faceLength: number;
+  jawTaper: number;
+  shoulderScale: number;
+  torsoScale: number;
 }
 
 export interface AgentAvatarMeshOptions {
@@ -99,6 +110,16 @@ export interface AgentAvatarMeshOptions {
   lidOpening?: number;
   /** Outer-canthus rise as a fraction of the eyeball radius (-0.25..0.25). */
   canthalTilt?: number;
+  /** Neutral-head width multiplier (0.84..1.2). */
+  faceWidth?: number;
+  /** Neutral-head vertical-length multiplier (0.86..1.16). */
+  faceLength?: number;
+  /** Lower-face width reduction from forehead to chin (0.08..0.38). */
+  jawTaper?: number;
+  /** Bind-space shoulder/arm span multiplier (0.85..1.25). */
+  shoulderScale?: number;
+  /** Hips/spine thickness multiplier, independent of global build scale (0.85..1.2). */
+  torsoScale?: number;
 }
 
 /** Pose = per-bone LOCAL rotation applied at the joint (absent ⇒ identity / bind). */
@@ -183,7 +204,7 @@ export function computeJointPalette(
 // Per-bone segment radius (thickness) heuristic — keyed by canonical name
 // ---------------------------------------------------------------------------
 
-function radiusFor(name: string, buildScale: number): number {
+function radiusFor(name: string, buildScale: number, torsoScale = 1): number {
   const r =
     name === 'hips'
       ? 0.11
@@ -206,7 +227,9 @@ function radiusFor(name: string, buildScale: number): number {
                       : /_(thumb|index|middle|ring|pinky)_/.test(name)
                         ? 0.012
                         : 0.04;
-  return r * buildScale;
+  const upperBodyScale =
+    name === 'hips' || name === 'spine' || name === 'spine1' || name === 'spine2' ? torsoScale : 1;
+  return r * buildScale * upperBodyScale;
 }
 
 // ---------------------------------------------------------------------------
@@ -535,15 +558,18 @@ function pushNeutralAnatomicalHead(
   orbitalProfile: AgentAvatarOrbitalProfile,
   eyeRecess: number,
   lidOpening: number,
-  canthalTilt: number
+  canthalTilt: number,
+  faceWidth: number,
+  faceLength: number,
+  jawTaperAmount: number
 ): AgentAvatarOrbitalGeometryReceipt | undefined {
   const center = {
     x: headBase.x,
     y: headBase.y + headLength * 0.52,
     z: headBase.z,
   };
-  const radiusX = radius * 1.06;
-  const radiusY = headLength * 0.62;
+  const radiusX = radius * 1.06 * faceWidth;
+  const radiusY = headLength * 0.62 * faceLength;
   const radiusZ = radius * 1.08;
   const base = acc.positions.length / 3;
 
@@ -552,7 +578,7 @@ function pushNeutralAnatomicalHead(
     const normalizedY = Math.cos(theta);
     const ring = Math.sin(theta);
     const lowerFace = Math.max(0, -normalizedY);
-    const jawTaper = 1 - lowerFace * 0.22;
+    const jawTaper = 1 - lowerFace * jawTaperAmount;
     for (let longitude = 0; longitude <= radialSegments; longitude++) {
       const phi = (longitude / radialSegments) * Math.PI * 2;
       const cos = Math.cos(phi);
@@ -615,7 +641,7 @@ function pushNeutralAnatomicalHead(
         pushOrbitalLidShell(
           acc,
           {
-            x: headBase.x + side * 0.035 * buildScale,
+            x: headBase.x + side * 0.035 * buildScale * faceWidth,
             y: eyeY,
             z: eyeCenterZ,
           },
@@ -629,7 +655,7 @@ function pushNeutralAnatomicalHead(
       }
     } else {
       const eyeZ = headBase.z + radius * 1.045;
-      for (const eyeX of [-0.035 * buildScale, 0.035 * buildScale]) {
+      for (const eyeX of [-0.035 * buildScale * faceWidth, 0.035 * buildScale * faceWidth]) {
         const eyeCenter = {
           x: headBase.x + eyeX,
           y: eyeY,
@@ -714,6 +740,11 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   );
   const lidOpening = clampFloat(opts.lidOpening, 0.56, 0.42, 0.78);
   const canthalTilt = clampFloat(opts.canthalTilt, 0.12, -0.25, 0.25);
+  const faceWidth = clampFloat(opts.faceWidth, 1, 0.84, 1.2);
+  const faceLength = clampFloat(opts.faceLength, 1, 0.86, 1.16);
+  const jawTaper = clampFloat(opts.jawTaper, 0.22, 0.08, 0.38);
+  const shoulderScale = clampFloat(opts.shoulderScale, 1, 0.85, 1.25);
+  const torsoScale = clampFloat(opts.torsoScale, 1, 0.85, 1.2);
   const bindWorld = computeBindWorld();
   const acc: MeshAccum = {
     positions: [],
@@ -733,10 +764,21 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   // One box per segment (parent-joint → this-joint), weighted to the PARENT bone it represents.
   for (const bone of HUMANOID_65_SKELETON) {
     if (!bone.parent) continue;
-    const a = getTranslation(bindWorld.get(bone.parent)!);
-    const b = getTranslation(bindWorld.get(bone.name)!);
+    const a0 = getTranslation(bindWorld.get(bone.parent)!);
+    const b0 = getTranslation(bindWorld.get(bone.name)!);
+    const upperLimb =
+      bone.parent.endsWith('_shoulder') ||
+      bone.parent.endsWith('_upper_arm') ||
+      bone.parent.endsWith('_forearm') ||
+      bone.parent.endsWith('_hand') ||
+      bone.name.endsWith('_shoulder') ||
+      bone.name.endsWith('_upper_arm') ||
+      bone.name.endsWith('_forearm') ||
+      bone.name.endsWith('_hand');
+    const a = upperLimb ? { ...a0, x: a0.x * shoulderScale } : a0;
+    const b = upperLimb ? { ...b0, x: b0.x * shoulderScale } : b0;
     const jointIdx = BONE_INDEX.get(bone.parent) ?? 0;
-    pushBox(acc, a, b, radiusFor(bone.parent, buildScale), jointIdx);
+    pushBox(acc, a, b, radiusFor(bone.parent, buildScale, torsoScale), jointIdx);
   }
 
   // Cap boxes for leaf bones with length>0 (mainly the head), extruded +Y in world-bind.
@@ -750,7 +792,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
           acc,
           a,
           bone.length,
-          radiusFor(bone.name, buildScale),
+          radiusFor(bone.name, buildScale, torsoScale),
           jointIdx,
           faceRadialSegments,
           faceVerticalSegments,
@@ -758,10 +800,13 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
           orbitalProfile,
           eyeRecess,
           lidOpening,
-          canthalTilt
+          canthalTilt,
+          faceWidth,
+          faceLength,
+          jawTaper
         );
       } else {
-        pushBox(acc, a, b, radiusFor(bone.name, buildScale), jointIdx);
+        pushBox(acc, a, b, radiusFor(bone.name, buildScale, torsoScale), jointIdx);
       }
     }
   }
@@ -786,6 +831,14 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     vertexCount: acc.positions.length / 3,
     jointCount: JOINT_COUNT,
     boneOrder: BONE_ORDER,
+    anatomy: {
+      schemaVersion: 'holoscript.agent-avatar-anatomy.v1',
+      faceWidth,
+      faceLength,
+      jawTaper,
+      shoulderScale,
+      torsoScale,
+    },
     ...(orbital ? { orbital } : {}),
   };
 }

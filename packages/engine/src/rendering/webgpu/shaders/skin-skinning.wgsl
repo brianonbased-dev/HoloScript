@@ -26,9 +26,9 @@ struct Frame {
 struct Material {
   color        : vec4<f32>,  // rgb baseColor (linear); a = opacity
   scatterColor : vec4<f32>,  // rgb subsurface tint (linear); w = roughness
-  scatterDist  : vec4<f32>,  // rgb per-channel relative scatter radius; w unused
+  scatterDist  : vec4<f32>,  // rgb scatter radius; w = analytic skin-microdetail strength
   params       : vec4<f32>,  // x = specularF0, y = thickness, z = transmitStrength, w = ambient
-  texFlags     : vec4<f32>,  // xyz = albedo/normal/roughness enabled; w = UV repeat
+  texFlags     : vec4<f32>,  // xyz = texture flags; w = skin microdetail scale / cloth UV repeat
   albedoTile   : array<vec4<f32>, 4>,
   normalXTile  : array<vec4<f32>, 4>,
   normalYTile  : array<vec4<f32>, 4>,
@@ -51,6 +51,7 @@ struct VSOut {
   @location(2) wT : vec3<f32>,        // skinned tangent (hair)
   @location(3) strandT : f32,         // 0 root → 1 tip (hair)
   @location(4) uv : vec2<f32>,
+  @location(5) bodyP : vec3<f32>,      // posed body-local position for attached microdetail
 };
 
 @vertex
@@ -64,6 +65,7 @@ fn vs(in : VSIn) -> VSOut {
   o.wT = (skin * vec4<f32>(in.tangent.xyz, 0.0)).xyz; // tangent rides the bone too
   o.strandT = in.tangent.w;
   o.uv = in.uv;
+  o.bodyP = sp.xyz;
   return o;
 }
 
@@ -79,6 +81,19 @@ fn fs_lambert(in : VSOut) -> @location(0) vec4<f32> {
 
 fn fresnel(cosT : f32, f0 : f32) -> f32 {
   return f0 + (1.0 - f0) * pow(saturate(1.0 - cosT), 5.0);
+}
+
+// Two incommensurate analytic waves avoid a repeating axis-aligned grid while keeping the
+// source-derived microdetail deterministic, texture-free, and cheap enough for a bounded lane.
+fn analyticPoreSignal(p : vec3<f32>) -> f32 {
+  let primary = sin(p.x) * sin(p.y * 1.37) * sin(p.z * 0.83);
+  let q = vec3<f32>(
+    p.y * 0.71 + p.z * 0.19,
+    p.z * 1.11 + p.x * 0.17,
+    p.x * 0.91 + p.y * 0.13
+  );
+  let secondary = sin(q.x) * sin(q.y) * sin(q.z);
+  return 0.5 + 0.5 * (primary * 0.62 + secondary * 0.38);
 }
 
 // ── Skin: single-pass subsurface approximation of the CPU Burley model. ──
@@ -105,14 +120,23 @@ fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
   let backLobe = pow(saturate(dot(-V, L)), 3.0);
   let transmit = mat.scatterColor.rgb * backLobe * mat.params.z * (1.0 - mat.params.y);
 
+  // Source-authored analytic pore response. A zero strength or scale is exactly the legacy path.
+  let microStrength = clamp(mat.scatterDist.w, 0.0, 0.2);
+  let microScale = max(mat.texFlags.w, 0.0);
+  let pore = select(0.5, analyticPoreSignal(in.bodyP * microScale), microScale > 0.0);
+
   // Specular: roughness→Beckmann-ish exponent (clamped so pow() never NaNs).
-  let rough = clamp(mat.scatterColor.w, 0.05, 1.0);
+  let rough = clamp(mat.scatterColor.w + (pore - 0.5) * microStrength, 0.05, 1.0);
   let H = normalize(L + V);
   let ndh = max(dot(N, H), 0.0);
   let expo = 2.0 / (rough * rough) - 2.0;
   let spec = pow(ndh, expo) * fresnel(max(dot(V, H), 0.0), mat.params.x);
 
-  var color = mat.color.rgb * (vec3<f32>(mat.params.w) + sss) + transmit + vec3<f32>(spec);
+  let microAlbedo = 1.0 + (pore - 0.5) * microStrength * 0.35;
+  var color =
+    mat.color.rgb * microAlbedo * (vec3<f32>(mat.params.w) + sss) +
+    transmit +
+    vec3<f32>(spec);
   color = color / (color + vec3<f32>(1.0)); // Reinhard
   return vec4<f32>(color, mat.color.a);
 }
