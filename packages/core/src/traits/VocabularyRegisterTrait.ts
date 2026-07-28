@@ -19,7 +19,7 @@
  * @version 0.1.0-skeleton
  */
 
-import type { TraitHandler, TraitContext, TraitEvent, HSPlusNode } from './TraitTypes';
+import type { TraitHandler, HSPlusNode } from './TraitTypes';
 import { extractPayload } from './TraitTypes';
 import type { Pillar, PillarContext, PillarSlice } from './pillar/PillarRegistry';
 
@@ -34,6 +34,9 @@ export interface VocabularyEntry {
   synonyms?: string[];
   antonyms?: string[];
   usageExample?: string;
+  category?: string;
+  relationships?: string[];
+  allergenNotice?: string;
 }
 
 export interface VocabularyRegister {
@@ -166,6 +169,36 @@ export const DEFAULT_REGISTERS: VocabularyRegister[] = [
       },
     ],
   },
+  {
+    name: 'menu-ingredients',
+    description:
+      'Plain-language menu vocabulary with ingredient relationships and uncertainty-aware allergen notes.',
+    toneHint: 'Explain what a menu term means and how its likely ingredients form the dish.',
+    entries: [
+      {
+        term: 'ramen',
+        category: 'noodle dish',
+        definition:
+          'A Japanese noodle dish built from broth, wheat noodles, seasoning, and toppings.',
+        relationships: ['broth', 'wheat noodles', 'seasoning', 'toppings'],
+        allergenNotice: 'May contain wheat, soy, egg, fish, shellfish, or sesame.',
+      },
+      {
+        term: 'aioli',
+        category: 'sauce',
+        definition: 'A garlic-and-oil sauce; many modern versions also use egg.',
+        relationships: ['garlic', 'oil', 'egg may be present'],
+        allergenNotice: 'May contain egg.',
+      },
+      {
+        term: 'tahini',
+        category: 'ingredient',
+        definition: 'A paste made from ground sesame seeds.',
+        relationships: ['sesame', 'hummus', 'dressings', 'sauces'],
+        allergenNotice: 'Contains sesame.',
+      },
+    ],
+  },
 ];
 
 // =============================================================================
@@ -234,9 +267,7 @@ export const vocabularyRegisterHandler: TraitHandler<VocabularyRegisterConfig> =
       domain: 'language',
       axis_vocabulary: ['register_diversity', 'injection_rate'] as const,
       generate(ctx: PillarContext): PillarSlice {
-        const state = (node as any).__vocabularyRegisterState as
-          | VocabularyRegisterState
-          | undefined;
+        const state = node.__vocabularyRegisterState as VocabularyRegisterState | undefined;
         const activeReg = state?.registers?.get(state.activeName ?? '');
         const diversity = activeReg
           ? Math.min(1, (activeReg.entries?.length ?? 2) / 12)
@@ -318,7 +349,7 @@ export const vocabularyRegisterHandler: TraitHandler<VocabularyRegisterConfig> =
           pillar_id: 'vocabulary_register',
           pillar_domain: 'language' as const,
         },
-        agent_id: (context as any).agentId ?? 'local',
+        agent_id: (context as { agentId?: string }).agentId ?? 'local',
         sim_step: Date.now(),
       });
       return;
@@ -339,6 +370,31 @@ export const vocabularyRegisterHandler: TraitHandler<VocabularyRegisterConfig> =
         context.emit?.('vocabulary_register_load_failed', {
           node,
           reason: 'invalid_register_shape',
+        });
+      }
+      return;
+    }
+
+    if (event.type === 'vocabulary_explain') {
+      const payload = extractPayload(event);
+      const term = String(payload.term ?? '').trim();
+      const active = state.registers.get(state.activeName);
+      const entry = active?.entries.find(
+        (candidate) => candidate.term.toLocaleLowerCase() === term.toLocaleLowerCase()
+      );
+      if (entry) {
+        context.emit?.('vocabulary_explained', {
+          queryId: payload.queryId,
+          node,
+          register: state.activeName,
+          entry,
+        });
+      } else {
+        context.emit?.('vocabulary_explain_unknown', {
+          queryId: payload.queryId,
+          node,
+          register: state.activeName,
+          term,
         });
       }
       return;

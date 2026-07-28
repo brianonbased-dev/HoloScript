@@ -14,8 +14,14 @@
     register_vocabulary_term(term, definition)
   }
 
-  @on_lookup(term) => {
-    return lookup_vocabulary_term(term)
+  @on_lookup(term, include_relationships) => {
+    explanation = lookup_vocabulary_term(term)
+    emit("vocabulary_explained", {
+      term,
+      explanation,
+      include_relationships
+    })
+    return explanation
   }
 
   @receipt vocabulary_register_trait_config {

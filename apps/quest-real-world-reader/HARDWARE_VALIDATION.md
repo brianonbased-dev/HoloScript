@@ -1,5 +1,40 @@
 # HoloRead Quest 3 validation
 
+## Version 0.2 host release evidence
+
+Date: 2026-07-28
+
+Package: `net.holoscript.holoread`
+
+Version: `0.2.0` (`versionCode=2`)
+
+- The born-from-source gate byte-matched all 17 emitted files; all 10 Kotlin source and test files
+  are compiler output with no alternate native source.
+- The HoloRead compiler and vocabulary suites passed 18 tests.
+- The Android `ContextEngineTest` suite passed two tests.
+- The scoped `@holoscript/core` build passed.
+- Gradle assembled a signed, minified release APK after the source gate.
+- APK: `android-mr/app/build/outputs/apk/release/app-release.apk`
+- APK SHA-256: `AD4745B915989C12EDAE7070DC75EA5F8378748B80D5A0778F76BD629C1B8DBD`
+- APK size: 97,748,718 bytes.
+- `apksigner verify --verbose --print-certs`: PASS using APK Signature Scheme v2; one signer.
+- Merged manifest: headset camera, optional hand tracking, `INTERNET`, and
+  `ACCESS_NETWORK_STATE` are present. Storage and media-read permissions are absent;
+  `allowBackup=false` and `usesCleartextTraffic=false`.
+- Static security review found no custom hostname verifier, embedded WebView, app-owned HTTP
+  client, recognized-text logging, or frame/text file output.
+- The repository-wide core test command remained baseline-red after its dependency build pass:
+  unrelated runtime suites cannot resolve optional `@holoscript/engine`,
+  `@holoscript/openusd-plugin`, and `@holoscript/platform` peers, and the daemon suite times out
+  behind the missing platform artifact. The HoloRead-scoped suites, strict core typecheck, and
+  core build are green.
+
+Headset install and the new context/source/translation interaction pass are **PENDING** for 0.2.0:
+ADB did not expose a connected device during this host build. Do not promote the 0.1.0 headset
+result below into a 0.2.0 hardware claim.
+
+## Version 0.1 headset evidence
+
 Date: 2026-07-26
 
 Device: Meta Quest 3 (`2G0YC5ZG03033W`), Android 14 / API 34

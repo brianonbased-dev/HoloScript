@@ -13,16 +13,7 @@ import { compileHoloRead } from './generate-native.mts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const androidDirectory = join(here, 'android-mr');
-const kotlinDirectory = join(
-  androidDirectory,
-  'app',
-  'src',
-  'main',
-  'java',
-  'net',
-  'holoscript',
-  'holoread'
-);
+const androidSourceDirectory = join(androidDirectory, 'app', 'src');
 
 const normalize = (value: string): string => value.replace(/\r\n/g, '\n');
 const emitted = compileHoloRead();
@@ -44,9 +35,17 @@ const emittedKotlin = new Set(
     .filter((path) => path.endsWith('.kt'))
     .map((path) => path.replace(/\\/g, '/'))
 );
-for (const entry of readdirSync(kotlinDirectory, { withFileTypes: true })) {
-  if (!entry.isFile() || !entry.name.endsWith('.kt')) continue;
-  const absolute = join(kotlinDirectory, entry.name);
+function kotlinFiles(directory: string): string[] {
+  const files: string[] = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const absolute = join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...kotlinFiles(absolute));
+    else if (entry.isFile() && entry.name.endsWith('.kt')) files.push(absolute);
+  }
+  return files;
+}
+
+for (const absolute of kotlinFiles(androidSourceDirectory)) {
   const relativePath = relative(androidDirectory, absolute).replace(/\\/g, '/');
   if (!emittedKotlin.has(relativePath)) failures.push(`UNAUTHORED KOTLIN ${relativePath}`);
 }

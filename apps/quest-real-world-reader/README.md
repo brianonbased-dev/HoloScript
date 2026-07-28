@@ -2,22 +2,31 @@
 
 HoloRead turns practical text in the physical world into a first-class Quest input. Aim the
 passthrough camera at a sign, menu, label, whiteboard, or monitor; request one recognition pass;
-then enlarge, copy, or hear the result.
+then enlarge, copy, hear, explain, source, or translate the result.
 
 The product source of truth is [`reader.holo`](./reader.holo) plus
 [`reader-lifecycle.hsplus`](./reader-lifecycle.hsplus). `QuestCompiler` lowers those programs into
 the generated project under `android-mr/`. The Kotlin is a bounded bridge to Camera2, bundled ML
-Kit OCR, Android text-to-speech/clipboard, and Meta Spatial SDK; it is not a second product source.
+Kit OCR, ML Kit language identification and translation, Android text-to-speech/clipboard, and
+Meta Spatial SDK; it is not a second product source.
 
-## First tracer slice
+## Version 0.2 context and translation
 
 - Audience: Quest 3/3S owners who need to use real-world text without removing the headset.
 - Must have: explicit camera enablement, one-shot local OCR, targeting preview, magnification,
-  copy, listen, and retry.
-- Non-goals: translation, cloud AI, background capture, saved scans, navigation assistance, and
-  claims about small-text accuracy before headset measurement.
-- Privacy contract: bundled on-device model, no network permission, no frame or text persistence,
-  no recognized-value logging.
+  copy, listen, retry, word explanations, menu/ingredient connections, trusted learning sources,
+  and explicit on-device translation.
+- Context contract: the HoloScript-authored menu vocabulary explains definitions, ingredient
+  relationships, and recipe variability without pretending to determine allergy safety.
+- Learning-source contract: Wikipedia articles, Wikimedia Commons images, and YouTube searches
+  open in the external browser only after a user selects a source. Only the selected term is
+  placed in the allowlisted URL.
+- Translation contract: language identification is bundled. A translation model is downloaded
+  over Wi-Fi only after a user selects a target language; translation then runs on-device.
+- Non-goals: cloud AI, background capture, saved scans, navigation assistance, medical or allergy
+  guarantees, and claims about small-text accuracy before headset measurement.
+- Privacy contract: camera frames and recognized text are not persisted or logged. Network access
+  exists only for user-requested translation-model downloads and external-browser source links.
 - Go/no-go evidence: the generated APK must run on Quest 3 and read a practical printed-text test
   chart. Fine-print or blurred-text failure remains an optical boundary, not a software success.
 

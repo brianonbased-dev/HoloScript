@@ -8,6 +8,12 @@ state_machine ReaderLifecycle {
   input capture_ready: trigger = false
   input recognition_succeeded: trigger = false
   input recognition_failed: trigger = false
+  input context_requested: trigger = false
+  input context_ready: trigger = false
+  input context_failed: trigger = false
+  input translation_requested: trigger = false
+  input translation_succeeded: trigger = false
+  input translation_failed: trigger = false
   input dismissed: trigger = false
 
   initial: idle
@@ -16,6 +22,8 @@ state_machine ReaderLifecycle {
   state capturing {}
   state recognizing {}
   state result {}
+  state explaining {}
+  state translating {}
   state error {}
 
   idle -> capturing when scan_requested
@@ -23,6 +31,12 @@ state_machine ReaderLifecycle {
   capturing -> error when recognition_failed
   recognizing -> result when recognition_succeeded
   recognizing -> error when recognition_failed
+  result -> explaining when context_requested
+  explaining -> result when context_ready
+  explaining -> result when context_failed
+  result -> translating when translation_requested
+  translating -> result when translation_succeeded
+  translating -> result when translation_failed
   result -> capturing when scan_requested
   error -> capturing when scan_requested
   result -> idle when dismissed

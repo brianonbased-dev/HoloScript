@@ -3,12 +3,29 @@
  *
  * This is a bounded bridge lowering. Product behavior and policy are collected from the existing
  * sovereign trait vocabulary: @passthrough_camera, @document_ocr, @magnifiable,
- * @speech_synthesis, @spatial_panel, @consent_gate, and @onboarding. Kotlin owns only Horizon OS,
- * Camera2, ML Kit, Android TTS/clipboard, and Meta Spatial SDK calls.
+ * @speech_synthesis, @vocabulary_register, @translation, @spatial_panel, @consent_gate, and
+ * @onboarding. Kotlin owns only Horizon OS, Camera2, ML Kit, Android TTS/clipboard/intents, and
+ * Meta Spatial SDK calls.
  */
 import type { HoloComposition, HoloObjectTrait, HoloValue } from '../parser/HoloCompositionTypes';
 
 type Obj = Record<string, HoloValue>;
+type LearningSourceKind = 'article' | 'image' | 'video';
+
+interface QuestReaderVocabularyEntry {
+  term: string;
+  category: string;
+  definition: string;
+  relationships: string[];
+  allergenNotice: string;
+}
+
+interface QuestReaderLearningSource {
+  kind: LearningSourceKind;
+  label: string;
+  host: string;
+  path: string;
+}
 const vstr = (value: HoloValue | undefined, fallback: string): string =>
   typeof value === 'string' ? value : fallback;
 const vnum = (value: HoloValue | undefined, fallback: number): number =>
@@ -60,8 +77,28 @@ export interface QuestReaderFeatures {
   scanAction: string;
   copyAction: string;
   speakAction: string;
+  explainAction: string;
+  translateAction: string;
+  sourceAction: string;
+  sourceNotice: string;
+  translationNote: string;
   consentExplicit: boolean;
   consentPurpose: string;
+  learningConsentExplicit: boolean;
+  learningConsentPurpose: string;
+  vocabularyEntries: QuestReaderVocabularyEntry[];
+  relationshipMode: string;
+  allergenDisclaimer: string;
+  learningSources: QuestReaderLearningSource[];
+  openSources: string;
+  shareTerm: string;
+  translationProvider: string;
+  translationSourceLanguage: string;
+  translationTargetLanguages: string[];
+  translationModelDownload: string;
+  translationDownloadNetwork: string;
+  translationLocalOnly: boolean;
+  translationLogTextValues: boolean;
 }
 
 function defaults(): QuestReaderFeatures {
@@ -106,8 +143,28 @@ function defaults(): QuestReaderFeatures {
     scanAction: 'Read text',
     copyAction: 'Copy',
     speakAction: 'Listen',
+    explainAction: 'Explain',
+    translateAction: 'Translate',
+    sourceAction: 'Sources',
+    sourceNotice: 'Opening a source shares only the selected term with your browser.',
+    translationNote: 'Translation stays on-device after its language model is downloaded.',
     consentExplicit: false,
     consentPurpose: '',
+    learningConsentExplicit: false,
+    learningConsentPurpose: '',
+    vocabularyEntries: [],
+    relationshipMode: '',
+    allergenDisclaimer: '',
+    learningSources: [],
+    openSources: '',
+    shareTerm: '',
+    translationProvider: '',
+    translationSourceLanguage: '',
+    translationTargetLanguages: [],
+    translationModelDownload: '',
+    translationDownloadNetwork: '',
+    translationLocalOnly: true,
+    translationLogTextValues: false,
   };
 }
 
@@ -173,6 +230,59 @@ export function collectQuestReaderFeatures(composition: HoloComposition): QuestR
           features.speechRate = vnum(config.speed, features.speechRate);
           features.speechPitch = vnum(config.pitch, features.speechPitch);
           break;
+        case 'vocabulary_register':
+          features.relationshipMode = vstr(config.relationship_mode, features.relationshipMode);
+          features.allergenDisclaimer = vstr(
+            config.allergen_disclaimer,
+            features.allergenDisclaimer
+          );
+          features.vocabularyEntries = varr(config.seed_entries).map((value) => {
+            const entry = vobj(value);
+            return {
+              term: vstr(entry.term, ''),
+              category: vstr(entry.category, ''),
+              definition: vstr(entry.definition, ''),
+              relationships: varr(entry.relationships).filter(
+                (relationship): relationship is string => typeof relationship === 'string'
+              ),
+              allergenNotice: vstr(entry.allergen_notice, ''),
+            };
+          });
+          features.learningSources = varr(config.source_templates).map((value) => {
+            const source = vobj(value);
+            return {
+              kind: vstr(source.kind, '') as LearningSourceKind,
+              label: vstr(source.label, ''),
+              host: vstr(source.host, ''),
+              path: vstr(source.path, ''),
+            };
+          });
+          features.openSources = vstr(config.open_sources, features.openSources);
+          features.shareTerm = vstr(config.share_term, features.shareTerm);
+          break;
+        case 'translation':
+          features.translationProvider = vstr(config.provider, features.translationProvider);
+          features.translationSourceLanguage = vstr(
+            config.source_language,
+            features.translationSourceLanguage
+          );
+          features.translationTargetLanguages = varr(config.target_languages).filter(
+            (language): language is string => typeof language === 'string'
+          );
+          features.translationModelDownload = vstr(
+            config.model_download,
+            features.translationModelDownload
+          );
+          features.translationDownloadNetwork = vstr(
+            config.download_network,
+            features.translationDownloadNetwork
+          );
+          features.translationLocalOnly = vbool(config.local_only, features.translationLocalOnly);
+          features.translationLogTextValues = vbool(
+            config.log_text_values,
+            features.translationLogTextValues
+          );
+          break;
         case 'spatial_panel': {
           const place = vobj(config.place);
           const size = vobj(config.size);
@@ -193,6 +303,13 @@ export function collectQuestReaderFeatures(composition: HoloComposition): QuestR
             features.consentExplicit = vbool(config.require_explicit, false);
             features.consentPurpose = vstr(config.purpose, '');
           }
+          if (
+            scopes.includes('translation_model_download') &&
+            scopes.includes('external_learning_sources')
+          ) {
+            features.learningConsentExplicit = vbool(config.require_explicit, false);
+            features.learningConsentPurpose = vstr(config.purpose, '');
+          }
           break;
         }
         case 'onboarding':
@@ -204,6 +321,11 @@ export function collectQuestReaderFeatures(composition: HoloComposition): QuestR
           features.scanAction = vstr(config.scan_action, features.scanAction);
           features.copyAction = vstr(config.copy_action, features.copyAction);
           features.speakAction = vstr(config.speak_action, features.speakAction);
+          features.explainAction = vstr(config.explain_action, features.explainAction);
+          features.translateAction = vstr(config.translate_action, features.translateAction);
+          features.sourceAction = vstr(config.source_action, features.sourceAction);
+          features.sourceNotice = vstr(config.source_notice, features.sourceNotice);
+          features.translationNote = vstr(config.translation_note, features.translationNote);
           break;
       }
     }
@@ -257,6 +379,77 @@ function validateFeatures(features: QuestReaderFeatures): void {
   ) {
     throw new Error('quest-reader-emit: invalid magnification bounds');
   }
+  if (
+    features.relationshipMode !== 'menu_ingredient_graph' ||
+    features.vocabularyEntries.length === 0 ||
+    features.allergenDisclaimer.trim().length === 0
+  ) {
+    throw new Error(
+      'quest-reader-emit: @vocabulary_register requires menu_ingredient_graph entries and an allergen disclaimer'
+    );
+  }
+  const terms = new Set<string>();
+  for (const entry of features.vocabularyEntries) {
+    const term = entry.term.trim().toLocaleLowerCase('en-US');
+    if (
+      term.length === 0 ||
+      entry.category.trim().length === 0 ||
+      entry.definition.trim().length === 0 ||
+      entry.relationships.length === 0 ||
+      entry.allergenNotice.trim().length === 0
+    ) {
+      throw new Error('quest-reader-emit: every vocabulary entry requires complete context');
+    }
+    if (terms.has(term)) {
+      throw new Error(`quest-reader-emit: duplicate vocabulary term "${entry.term}"`);
+    }
+    terms.add(term);
+  }
+  const approvedSources = new Map<LearningSourceKind, string>([
+    ['article', 'en.wikipedia.org'],
+    ['image', 'commons.wikimedia.org'],
+    ['video', 'www.youtube.com'],
+  ]);
+  if (
+    features.learningSources.length !== approvedSources.size ||
+    features.openSources !== 'external_browser' ||
+    features.shareTerm !== 'explicit_user_action' ||
+    !features.learningConsentExplicit ||
+    features.learningConsentPurpose.trim().length === 0
+  ) {
+    throw new Error(
+      'quest-reader-emit: learning sources require one approved source per kind, an external browser, and explicit term sharing'
+    );
+  }
+  for (const source of features.learningSources) {
+    if (approvedSources.get(source.kind) !== source.host) {
+      throw new Error(`quest-reader-emit: unapproved learning source host "${source.host}"`);
+    }
+    if (
+      source.label.trim().length === 0 ||
+      !source.path.startsWith('/') ||
+      !source.path.includes('{term}')
+    ) {
+      throw new Error('quest-reader-emit: invalid learning source template');
+    }
+  }
+  const supportedTranslationTargets = new Set(['en', 'es', 'fr', 'de', 'it', 'ja', 'ko', 'zh']);
+  if (
+    features.translationProvider !== 'mlkit_on_device' ||
+    features.translationSourceLanguage !== 'auto' ||
+    features.translationModelDownload !== 'explicit_user_action' ||
+    features.translationDownloadNetwork !== 'wifi' ||
+    !features.translationLocalOnly ||
+    features.translationLogTextValues ||
+    features.translationTargetLanguages.length === 0 ||
+    features.translationTargetLanguages.some(
+      (language) => !supportedTranslationTargets.has(language)
+    )
+  ) {
+    throw new Error(
+      'quest-reader-emit: translation must be local ML Kit, auto-detected, explicit, Wi-Fi-only, and use supported targets'
+    );
+  }
 }
 
 const kotlinString = (value: string): string =>
@@ -285,8 +478,13 @@ export function emitQuestReaderFiles(composition: HoloComposition): Record<strin
     [`${sourceDirectory}/ReaderContent.kt`]: emitReaderContent(features),
     [`${sourceDirectory}/TextRecognizer.kt`]: emitTextRecognizer(features),
     [`${sourceDirectory}/PassthroughCameraController.kt`]: emitCameraController(features),
+    [`${sourceDirectory}/ContextEngine.kt`]: emitContextEngine(features),
+    [`${sourceDirectory}/TranslationController.kt`]: emitTranslationController(features),
+    [`${sourceDirectory}/LearningSourceRouter.kt`]: emitLearningSourceRouter(features),
     [`${sourceDirectory}/ReaderPanel.kt`]: emitReaderPanel(features),
     [`${sourceDirectory}/ReaderActivity.kt`]: emitReaderActivity(features),
+    [`app/src/test/java/${features.packageName.replace(/\./g, '/')}/ContextEngineTest.kt`]:
+      emitContextEngineTest(features),
     'app/src/main/res/values/strings.xml': emitStrings(features),
     'app/src/main/res/values/styles.xml': emitStyles(),
     'app/src/main/res/values/ids.xml': emitIds(),
@@ -311,6 +509,12 @@ object ReaderContent {
   const val scanAction = ${kotlinString(features.scanAction)}
   const val copyAction = ${kotlinString(features.copyAction)}
   const val speakAction = ${kotlinString(features.speakAction)}
+  const val explainAction = ${kotlinString(features.explainAction)}
+  const val translateAction = ${kotlinString(features.translateAction)}
+  const val sourceAction = ${kotlinString(features.sourceAction)}
+  const val sourceNotice = ${kotlinString(features.sourceNotice)}
+  const val translationNote = ${kotlinString(features.translationNote)}
+  const val allergenDisclaimer = ${kotlinString(features.allergenDisclaimer)}
   const val minTextChars = ${Math.floor(features.minTextChars)}
   const val minMagnification = ${floatLiteral(features.minMagnification)}
   const val maxMagnification = ${floatLiteral(features.maxMagnification)}
@@ -320,6 +524,9 @@ object ReaderContent {
   const val panelX = ${floatLiteral(features.panelX)}
   const val panelY = ${floatLiteral(features.panelY)}
   const val panelZ = ${floatLiteral(features.panelZ)}
+  val targetLanguages = listOf(${features.translationTargetLanguages
+    .map((language) => kotlinString(language))
+    .join(', ')})
 }
 `;
 }
@@ -349,6 +556,271 @@ class TextRecognizer : AutoCloseable {
 
   override fun close() {
     client.close()
+  }
+}
+`;
+}
+
+function emitContextEngine(features: QuestReaderFeatures): string {
+  const entries = features.vocabularyEntries
+    .map(
+      (entry) => `    VocabularyEntry(
+        term = ${kotlinString(entry.term)},
+        category = ${kotlinString(entry.category)},
+        definition = ${kotlinString(entry.definition)},
+        relationships = listOf(${entry.relationships
+          .map((relationship) => kotlinString(relationship))
+          .join(', ')}),
+        allergenNotice = ${kotlinString(entry.allergenNotice)},
+    )`
+    )
+    .join(',\n');
+
+  return `// @generated from reader.holo @vocabulary_register. DO NOT EDIT.
+package ${features.packageName}
+
+import java.util.Locale
+
+data class VocabularyEntry(
+    val term: String,
+    val category: String,
+    val definition: String,
+    val relationships: List<String>,
+    val allergenNotice: String,
+)
+
+object ContextEngine {
+  const val allergenDisclaimer = ${kotlinString(features.allergenDisclaimer)}
+  private val entries =
+      listOf(
+${entries}
+      )
+
+  fun findTerms(text: String): List<String> {
+    val known = entries.filter { containsTerm(text, it.term) }.map { it.term }
+    val words =
+        normalized(text)
+            .split(' ')
+            .asSequence()
+            .filter { it.length >= 3 }
+            .filterNot { it in STOP_WORDS }
+            .distinct()
+            .take(12)
+            .toList()
+    return (known + words).distinct().take(12)
+  }
+
+  fun explain(term: String): VocabularyEntry? =
+      entries.firstOrNull { normalized(it.term) == normalized(term) }
+
+  fun analyzeMenu(text: String): List<VocabularyEntry> =
+      entries.filter { containsTerm(text, it.term) }
+
+  private fun containsTerm(text: String, term: String): Boolean =
+      (" " + normalized(text) + " ").contains(" " + normalized(term) + " ")
+
+  private fun normalized(value: String): String =
+      value
+          .lowercase(Locale.ROOT)
+          .replace(Regex("[^\\\\p{L}\\\\p{M}\\\\p{N}]+"), " ")
+          .trim()
+          .replace(Regex("\\\\s+"), " ")
+
+  private val STOP_WORDS =
+      setOf("and", "the", "with", "from", "for", "your", "this", "that", "are", "our")
+}
+`;
+}
+
+function emitTranslationController(features: QuestReaderFeatures): string {
+  return `// @generated from reader.holo @translation(provider="mlkit_on_device"). DO NOT EDIT.
+package ${features.packageName}
+
+import com.google.mlkit.common.model.DownloadConditions
+import com.google.mlkit.nl.languageid.LanguageIdentification
+import com.google.mlkit.nl.languageid.LanguageIdentifier
+import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.Translator
+import com.google.mlkit.nl.translate.TranslatorOptions
+
+class TranslationController : AutoCloseable {
+  private val languageIdentifier: LanguageIdentifier = LanguageIdentification.getClient()
+  private var activeTranslator: Translator? = null
+
+  fun translate(
+      text: String,
+      targetTag: String,
+      onStatus: (String) -> Unit,
+      onSuccess: (String) -> Unit,
+      onError: (String) -> Unit,
+  ) {
+    if (text.isBlank()) {
+      onError("There is no recognized text to translate")
+      return
+    }
+    if (targetTag !in ReaderContent.targetLanguages) {
+      onError("That translation language is not allowed by this HoloScript program")
+      return
+    }
+    languageIdentifier
+        .identifyLanguage(text)
+        .addOnSuccessListener { identifiedTag ->
+          val sourceTag = if (identifiedTag == "und") "en" else identifiedTag
+          val sourceLanguage = TranslateLanguage.fromLanguageTag(sourceTag)
+          val targetLanguage = TranslateLanguage.fromLanguageTag(targetTag)
+          if (sourceLanguage == null || targetLanguage == null) {
+            onError("This language pair is not supported on this device")
+          } else if (sourceLanguage == targetLanguage) {
+            onStatus("The text is already in the selected language")
+            onSuccess(text)
+          } else {
+            translateWithModel(text, sourceLanguage, targetLanguage, onStatus, onSuccess, onError)
+          }
+        }
+        .addOnFailureListener { onError("Language detection failed") }
+  }
+
+  private fun translateWithModel(
+      text: String,
+      sourceLanguage: String,
+      targetLanguage: String,
+      onStatus: (String) -> Unit,
+      onSuccess: (String) -> Unit,
+      onError: (String) -> Unit,
+  ) {
+    activeTranslator?.close()
+    val options =
+        TranslatorOptions.Builder()
+            .setSourceLanguage(sourceLanguage)
+            .setTargetLanguage(targetLanguage)
+            .build()
+    val translator = Translation.getClient(options)
+    activeTranslator = translator
+    val conditions = DownloadConditions.Builder().requireWifi().build()
+    onStatus("Preparing an on-device language model over Wi-Fi")
+    translator
+        .downloadModelIfNeeded(conditions)
+        .addOnSuccessListener {
+          onStatus("Translating on device")
+          translator
+              .translate(text)
+              .addOnSuccessListener { translated ->
+                onSuccess(translated)
+                release(translator)
+              }
+              .addOnFailureListener {
+                onError("Translation failed")
+                release(translator)
+              }
+        }
+        .addOnFailureListener {
+          onError("Language model download failed. Connect to Wi-Fi and try again.")
+          release(translator)
+        }
+  }
+
+  private fun release(translator: Translator) {
+    translator.close()
+    if (activeTranslator === translator) activeTranslator = null
+  }
+
+  override fun close() {
+    languageIdentifier.close()
+    activeTranslator?.close()
+    activeTranslator = null
+  }
+}
+`;
+}
+
+function emitContextEngineTest(features: QuestReaderFeatures): string {
+  return `// @generated from reader.holo @vocabulary_register acceptance contract. DO NOT EDIT.
+package ${features.packageName}
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class ContextEngineTest {
+  @Test
+  fun menuTermsConnectToIngredientContext() {
+    val terms = ContextEngine.findTerms("Ramen with tahini")
+    val insights = ContextEngine.analyzeMenu("Ramen with tahini")
+
+    assertTrue(terms.contains("ramen"))
+    assertTrue(terms.contains("tahini"))
+    assertEquals(listOf("ramen", "tahini"), insights.map { it.term })
+    assertTrue(insights.first().relationships.isNotEmpty())
+  }
+
+  @Test
+  fun unknownWordsAbstainLocally() {
+    assertEquals(null, ContextEngine.explain("not-a-menu-term"))
+  }
+}
+`;
+}
+
+function emitLearningSourceRouter(features: QuestReaderFeatures): string {
+  const templates = features.learningSources
+    .map((source) => {
+      const [path, queryString = ''] = source.path.split('?', 2);
+      const query = Array.from(new URLSearchParams(queryString).entries())
+        .map(([key, value]) => `${kotlinString(key)} to ${kotlinString(value.replace(/\+/g, ' '))}`)
+        .join(', ');
+      return `    SourceTemplate(
+        kind = ${kotlinString(source.kind)},
+        label = ${kotlinString(source.label)},
+        host = ${kotlinString(source.host)},
+        path = ${kotlinString(path)},
+        query = listOf(${query}),
+    )`;
+    })
+    .join(',\n');
+  const hosts = features.learningSources.map((source) => kotlinString(source.host)).join(', ');
+
+  return `// @generated from reader.holo trusted source templates. DO NOT EDIT.
+package ${features.packageName}
+
+import android.net.Uri
+
+data class LearningSource(val kind: String, val label: String, val uri: Uri)
+
+private data class SourceTemplate(
+    val kind: String,
+    val label: String,
+    val host: String,
+    val path: String,
+    val query: List<Pair<String, String>>,
+)
+
+object LearningSourceRouter {
+  private val ALLOWED_HOSTS = setOf(${hosts})
+  private val templates =
+      listOf(
+${templates}
+      )
+
+  fun sourcesFor(term: String): List<LearningSource> {
+    require(term.isNotBlank()) { "A selected term is required" }
+    return templates.map { template ->
+      LearningSource(template.kind, template.label, buildUri(template, term))
+    }
+  }
+
+  fun uriFor(kind: String, term: String): Uri =
+      sourcesFor(term).firstOrNull { it.kind == kind }?.uri
+          ?: error("Unknown learning source kind")
+
+  private fun buildUri(template: SourceTemplate, term: String): Uri {
+    val host = template.host.lowercase()
+    require(host in ALLOWED_HOSTS) { "Learning source host is not allowed" }
+    val builder = Uri.Builder().scheme("https").authority(host).path(template.path)
+    template.query.forEach { (key, value) ->
+      builder.appendQueryParameter(key, value.replace("{term}", term))
+    }
+    return builder.build()
   }
 }
 `;
@@ -652,6 +1124,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -687,10 +1160,20 @@ object ReaderState {
   var preview by mutableStateOf<ImageBitmap?>(null)
   var recognizedText by mutableStateOf("")
   var magnification by mutableFloatStateOf(ReaderContent.minMagnification)
+  var contextTerms by mutableStateOf<List<String>>(emptyList())
+  var selectedTerm by mutableStateOf("")
+  var explanation by mutableStateOf("")
+  var menuInsights by mutableStateOf<List<VocabularyEntry>>(emptyList())
+  var selectedTargetLanguage by mutableStateOf("es")
+  var translatedText by mutableStateOf("")
+  var translationStatus by mutableStateOf("")
   var onEnable: (() -> Unit)? = null
   var onRead: (() -> Unit)? = null
   var onCopy: ((String) -> Unit)? = null
   var onSpeak: ((String) -> Unit)? = null
+  var onExplain: ((String) -> Unit)? = null
+  var onTranslate: ((String, String) -> Unit)? = null
+  var onOpenSource: ((String, String) -> Unit)? = null
 
   fun updatePreview(bitmap: Bitmap) {
     preview = bitmap.asImageBitmap()
@@ -788,7 +1271,10 @@ private fun ResultScreen() {
   )
   Spacer(Modifier.size(20.dp))
   val text = ReaderState.recognizedText
-  Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+  Row(
+      modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+      horizontalArrangement = Arrangement.spacedBy(10.dp),
+  ) {
     Button(onClick = { ReaderState.onCopy?.invoke(text) }) { Text(ReaderContent.copyAction) }
     Button(onClick = { ReaderState.onSpeak?.invoke(text) }) { Text(ReaderContent.speakAction) }
     Button(
@@ -811,8 +1297,169 @@ private fun ResultScreen() {
     }
   }
   Spacer(Modifier.size(12.dp))
+  Text(
+      "Words and context",
+      modifier = Modifier.fillMaxWidth(),
+      fontSize = 21.sp,
+      fontWeight = FontWeight.Bold,
+  )
+  Spacer(Modifier.size(8.dp))
+  Row(
+      modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+  ) {
+    ReaderState.contextTerms.forEach { term ->
+      Button(
+          onClick = {
+            ReaderState.selectedTerm = term
+            ReaderState.onExplain?.invoke(term)
+          }
+      ) {
+        Text(term)
+      }
+    }
+  }
+  if (ReaderState.selectedTerm.isNotBlank()) {
+    Spacer(Modifier.size(10.dp))
+    Text(
+        ReaderState.selectedTerm,
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF67E8F9),
+    )
+    Text(
+        ReaderState.explanation,
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 17.sp,
+    )
+    Spacer(Modifier.size(8.dp))
+    Text(
+        ReaderContent.sourceNotice,
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 14.sp,
+    )
+    Spacer(Modifier.size(6.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+      Button(
+          onClick = {
+            ReaderState.onOpenSource?.invoke("article", ReaderState.selectedTerm)
+          }
+      ) {
+        Text("Article")
+      }
+      Button(
+          onClick = {
+            ReaderState.onOpenSource?.invoke("image", ReaderState.selectedTerm)
+          }
+      ) {
+        Text("Images")
+      }
+      Button(
+          onClick = {
+            ReaderState.onOpenSource?.invoke("video", ReaderState.selectedTerm)
+          }
+      ) {
+        Text("Video")
+      }
+    }
+  }
+  if (ReaderState.menuInsights.isNotEmpty()) {
+    Spacer(Modifier.size(16.dp))
+    Text(
+        "Menu connections",
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 21.sp,
+        fontWeight = FontWeight.Bold,
+    )
+    ReaderState.menuInsights.forEach { entry ->
+      Spacer(Modifier.size(8.dp))
+      Text(
+          entry.term + " · " + entry.category,
+          modifier = Modifier.fillMaxWidth(),
+          fontSize = 18.sp,
+          fontWeight = FontWeight.Bold,
+      )
+      Text(entry.definition, modifier = Modifier.fillMaxWidth(), fontSize = 16.sp)
+      Text(
+          "How it connects: " + entry.relationships.joinToString("; "),
+          modifier = Modifier.fillMaxWidth(),
+          fontSize = 15.sp,
+      )
+      Text(
+          entry.allergenNotice,
+          modifier = Modifier.fillMaxWidth(),
+          fontSize = 15.sp,
+          color = Color(0xFFFBBF24),
+      )
+    }
+    Spacer(Modifier.size(8.dp))
+    Text(
+        "Ingredients vary. " + ReaderContent.allergenDisclaimer,
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 14.sp,
+        color = Color(0xFFFBBF24),
+    )
+  }
+  Spacer(Modifier.size(16.dp))
+  Text(
+      ReaderContent.translateAction,
+      modifier = Modifier.fillMaxWidth(),
+      fontSize = 21.sp,
+      fontWeight = FontWeight.Bold,
+  )
+  Text(ReaderContent.translationNote, modifier = Modifier.fillMaxWidth(), fontSize = 14.sp)
+  Spacer(Modifier.size(8.dp))
+  Row(
+      modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+  ) {
+    ReaderContent.targetLanguages.forEach { language ->
+      Button(onClick = { ReaderState.selectedTargetLanguage = language }) {
+        Text(languageLabel(language))
+      }
+    }
+  }
+  Spacer(Modifier.size(8.dp))
+  Button(
+      onClick = {
+        ReaderState.onTranslate?.invoke(text, ReaderState.selectedTargetLanguage)
+      }
+  ) {
+    Text(ReaderContent.translateAction + " to " + languageLabel(ReaderState.selectedTargetLanguage))
+  }
+  if (ReaderState.translationStatus.isNotBlank()) {
+    Spacer(Modifier.size(8.dp))
+    Text(ReaderState.translationStatus, modifier = Modifier.fillMaxWidth(), fontSize = 15.sp)
+  }
+  if (ReaderState.translatedText.isNotBlank()) {
+    Spacer(Modifier.size(8.dp))
+    Text(
+        ReaderState.translatedText,
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+    )
+  }
+  Spacer(Modifier.size(16.dp))
   Button(onClick = { ReaderState.onRead?.invoke() }) { Text("Read again") }
 }
+
+private fun languageLabel(tag: String): String =
+    when (tag) {
+      "en" -> "English"
+      "es" -> "Spanish"
+      "fr" -> "French"
+      "de" -> "German"
+      "it" -> "Italian"
+      "ja" -> "Japanese"
+      "ko" -> "Korean"
+      "zh" -> "Chinese"
+      else -> tag
+    }
 
 @Composable
 private fun ErrorScreen() {
@@ -830,6 +1477,7 @@ package ${features.packageName}
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -860,6 +1508,7 @@ class ReaderActivity : AppSystemActivity(), TextToSpeech.OnInitListener {
   private var sceneReady = false
   private var textToSpeech: TextToSpeech? = null
   private var speechReady = false
+  private val translationController = TranslationController()
   private val lifecycle = ReaderLifecycleMachine()
 
   override fun registerFeatures(): List<SpatialFeature> =
@@ -895,6 +1544,61 @@ class ReaderActivity : AppSystemActivity(), TextToSpeech.OnInitListener {
         textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "holoread-result")
       } else {
         ReaderState.status = "Speech is not ready"
+      }
+    }
+    ReaderState.onExplain = { term ->
+      val transition = lifecycle.fireContextRequested()
+      if (transition?.to == ReaderLifecycleMachine.State.EXPLAINING) {
+        val entry = ContextEngine.explain(term)
+        ReaderState.selectedTerm = term
+        ReaderState.explanation =
+            if (entry == null) {
+              "No local definition is available yet. Open a trusted source to learn more."
+            } else {
+              entry.definition + " How it connects: " + entry.relationships.joinToString("; ")
+            }
+        if (entry == null) lifecycle.fireContextFailed() else lifecycle.fireContextReady()
+      }
+    }
+    ReaderState.onTranslate = { text, targetLanguage ->
+      val transition = lifecycle.fireTranslationRequested()
+      if (transition?.to != ReaderLifecycleMachine.State.TRANSLATING) {
+        ReaderState.translationStatus = "Finish the current action before translating"
+      } else {
+        ReaderState.translatedText = ""
+        translationController.translate(
+            text = text,
+            targetTag = targetLanguage,
+            onStatus = { message ->
+              runOnUiThread { ReaderState.translationStatus = message }
+            },
+            onSuccess = { translated ->
+              runOnUiThread {
+                lifecycle.fireTranslationSucceeded()
+                ReaderState.translatedText = translated
+                ReaderState.translationStatus = "Translated on device"
+              }
+            },
+            onError = { message ->
+              runOnUiThread {
+                lifecycle.fireTranslationFailed()
+                ReaderState.translationStatus = message
+              }
+            },
+        )
+      }
+    }
+    ReaderState.onOpenSource = { kind, term ->
+      try {
+        val uri = LearningSourceRouter.uriFor(kind, term)
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+        if (intent.resolveActivity(packageManager) == null) {
+          ReaderState.status = "No external browser is available"
+        } else {
+          startActivity(intent)
+        }
+      } catch (_: IllegalArgumentException) {
+        ReaderState.status = "That learning source is not allowed"
       }
     }
   }
@@ -985,6 +1689,17 @@ class ReaderActivity : AppSystemActivity(), TextToSpeech.OnInitListener {
                       lifecycle.fireRecognitionSucceeded()
                       ReaderState.recognizedText = text
                       ReaderState.magnification = ReaderContent.minMagnification
+                      ReaderState.contextTerms = ContextEngine.findTerms(text)
+                      ReaderState.menuInsights = ContextEngine.analyzeMenu(text)
+                      ReaderState.selectedTerm = ReaderState.contextTerms.firstOrNull().orEmpty()
+                      ReaderState.explanation =
+                          ContextEngine.explain(ReaderState.selectedTerm)?.let { entry ->
+                            entry.definition +
+                                " How it connects: " +
+                                entry.relationships.joinToString("; ")
+                          } ?: "Select a word to see local context or open a trusted source."
+                      ReaderState.translatedText = ""
+                      ReaderState.translationStatus = ""
                       ReaderState.screen = ReaderScreen.RESULT
                       ReaderState.status = "Text recognized"
                     } else {
@@ -1030,6 +1745,7 @@ class ReaderActivity : AppSystemActivity(), TextToSpeech.OnInitListener {
     textToSpeech?.stop()
     textToSpeech?.shutdown()
     textToSpeech = null
+    translationController.close()
     super.onSpatialShutdown()
   }
 
@@ -1202,6 +1918,9 @@ dependencies {
 
   // Bundled model: no Google Play Services, account, network, or first-run model download.
   implementation("com.google.mlkit:text-recognition:16.0.1")
+  // Language identification is bundled; translation models download only after the user taps.
+  implementation("com.google.mlkit:language-id:17.0.6")
+  implementation("com.google.mlkit:translate:17.0.3")
 
   implementation(libs.meta.spatial.sdk.base)
   implementation(libs.meta.spatial.sdk.compose)
@@ -1254,8 +1973,9 @@ function emitManifest(features: QuestReaderFeatures): string {
   <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
   <uses-permission android:name="${xmlEscape(features.permission)}" />
 
-  <!-- HoloRead is local-only. Remove network/media permissions from every transitive manifest. -->
-  <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+  <!-- Internet is used only for an explicit on-device translation-model download. Learning
+       sources open in the external browser; HoloRead performs no article, image, or video fetch. -->
+  <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
   <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" tools:node="remove" />
@@ -1264,6 +1984,7 @@ function emitManifest(features: QuestReaderFeatures): string {
 
   <application
       android:allowBackup="false"
+      android:usesCleartextTraffic="false"
       android:icon="@drawable/ic_launcher"
       android:label="@string/app_name">
     <meta-data android:name="com.oculus.supportedDevices" android:value="quest3|quest3s" />

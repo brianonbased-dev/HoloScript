@@ -3,7 +3,14 @@
   category: "i18n",
   description: "Internationalisation translation. fallback_locale is the locale used when a key is missing from the active locale (default: en). Port of TranslationTrait.ts (handler name: translation).",
   props: {
-    fallback_locale: string = "en"
+    fallback_locale: string = "en",
+    provider: enum("bundle" | "mlkit_on_device") = "bundle",
+    source_language: string = "auto",
+    target_languages: list<string> = [],
+    model_download: enum("none" | "explicit_user_action") = "none",
+    download_network: enum("any" | "wifi") = "wifi",
+    local_only: boolean = true,
+    log_text_values: boolean = false
   },
   events: {
     on_loaded: "translation:loaded",

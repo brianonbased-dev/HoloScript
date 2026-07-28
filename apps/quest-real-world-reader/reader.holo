@@ -19,8 +19,8 @@ composition "HoloRead" {
       accent: "#F8FAFC"
     }
     version: {
-      code: 1
-      name: "0.1.0"
+      code: 2
+      name: "0.2.0"
     }
   }
 
@@ -77,6 +77,110 @@ composition "HoloRead" {
     }
   }
 
+  object "context_engine" {
+    @vocabulary_register {
+      active_register: "menu-ingredients"
+      max_injected_entries: 24
+      prepend_tone_hint: false
+      relationship_mode: "menu_ingredient_graph"
+      unknown_term_behavior: "trusted_sources"
+      allergen_disclaimer: "Recipes and preparation vary. For allergies, verify ingredients and cross-contact with the restaurant or packaging."
+      seed_entries: [
+        {
+          term: "aioli"
+          category: "sauce"
+          definition: "A garlic-and-oil sauce; many modern versions also use egg."
+          relationships: ["often served with seafood, vegetables, or sandwiches", "egg may be present"]
+          allergen_notice: "May contain egg."
+        },
+        {
+          term: "pesto"
+          category: "sauce"
+          definition: "A sauce commonly made with basil, oil, hard cheese, garlic, and nuts."
+          relationships: ["commonly paired with pasta", "nuts and milk may be present"]
+          allergen_notice: "Often contains tree nuts and milk."
+        },
+        {
+          term: "carbonara"
+          category: "pasta dish"
+          definition: "An Italian pasta dish commonly made with egg, hard cheese, cured pork, and black pepper."
+          relationships: ["egg and cheese create the sauce", "preparation varies by restaurant"]
+          allergen_notice: "Commonly contains egg, milk, and wheat."
+        },
+        {
+          term: "ramen"
+          category: "noodle dish"
+          definition: "A Japanese noodle dish built from broth, wheat noodles, seasoning, and toppings."
+          relationships: ["broth, noodles, seasoning, and toppings form the dish", "broth and toppings vary widely"]
+          allergen_notice: "May contain wheat, soy, egg, fish, shellfish, or sesame."
+        },
+        {
+          term: "pad thai"
+          category: "noodle dish"
+          definition: "A Thai stir-fried rice-noodle dish commonly balancing sweet, sour, salty, and savory flavors."
+          relationships: ["often includes tamarind, egg, peanuts, and a protein", "ingredients vary"]
+          allergen_notice: "May contain peanuts, egg, fish, shellfish, or soy."
+        },
+        {
+          term: "tahini"
+          category: "ingredient"
+          definition: "A paste made from ground sesame seeds."
+          relationships: ["used in hummus, dressings, sauces, and desserts", "contributes richness and sesame flavor"]
+          allergen_notice: "Contains sesame."
+        },
+        {
+          term: "ceviche"
+          category: "seafood dish"
+          definition: "A dish of seafood cured in citrus juice and combined with seasonings."
+          relationships: ["citrus changes the seafood texture", "it is not a heat-cooking process"]
+          allergen_notice: "Contains seafood; preparation and raw-food risk vary."
+        },
+        {
+          term: "mole"
+          category: "sauce"
+          definition: "A family of Mexican sauces made from layered chiles, spices, and other ingredients."
+          relationships: ["recipes may include nuts, seeds, fruit, bread, or chocolate", "there is no single universal recipe"]
+          allergen_notice: "May contain nuts, sesame, wheat, or other allergens."
+        }
+      ]
+      source_templates: [
+        {
+          kind: "article"
+          label: "Wikipedia article"
+          host: "en.wikipedia.org"
+          path: "/wiki/Special:Search?search={term}"
+        },
+        {
+          kind: "image"
+          label: "Wikimedia Commons images"
+          host: "commons.wikimedia.org"
+          path: "/wiki/Special:MediaSearch?type=image&search={term}"
+        },
+        {
+          kind: "video"
+          label: "YouTube explainers"
+          host: "www.youtube.com"
+          path: "/results?search_query={term}+explained"
+        }
+      ]
+      open_sources: "external_browser"
+      share_term: "explicit_user_action"
+    }
+  }
+
+  object "translation_engine" {
+    @translation {
+      fallback_locale: "en"
+      provider: "mlkit_on_device"
+      source_language: "auto"
+      target_languages: ["en", "es", "fr", "de", "it", "ja", "ko", "zh"]
+      model_download: "explicit_user_action"
+      download_network: "wifi"
+      local_only: true
+      log_text_values: false
+    }
+  }
+
   object "reader_panel" {
     @spatial_panel {
       place: { x: 0.0, y: 1.3, z: 1.5 }
@@ -98,6 +202,16 @@ composition "HoloRead" {
     }
   }
 
+  object "learning_consent" {
+    @consent_gate {
+      scope: ["translation_model_download", "external_learning_sources"]
+      expiry_ms: 0
+      require_explicit: true
+      audit_log: false
+      purpose: "Download a chosen translation model or open a selected term in an external learning source"
+    }
+  }
+
   object "welcome" {
     @onboarding {
       title: "HoloRead"
@@ -113,6 +227,11 @@ composition "HoloRead" {
       scan_action: "Read text"
       copy_action: "Copy"
       speak_action: "Listen"
+      explain_action: "Explain"
+      translate_action: "Translate"
+      source_action: "Sources"
+      source_notice: "Opening an external source shares only the selected term with your browser."
+      translation_note: "Translation stays on-device after a language model is downloaded over Wi-Fi."
     }
   }
 }

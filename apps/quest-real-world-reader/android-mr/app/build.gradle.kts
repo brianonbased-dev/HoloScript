@@ -23,8 +23,8 @@ android {
     applicationId = "net.holoscript.holoread"
     minSdk = 34
     targetSdk = 34
-    versionCode = 1
-    versionName = "0.1.0"
+    versionCode = 2
+    versionName = "0.2.0"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     ndk { abiFilters += "arm64-v8a" }
   }
@@ -80,6 +80,9 @@ dependencies {
 
   // Bundled model: no Google Play Services, account, network, or first-run model download.
   implementation("com.google.mlkit:text-recognition:16.0.1")
+  // Language identification is bundled; translation models download only after the user taps.
+  implementation("com.google.mlkit:language-id:17.0.6")
+  implementation("com.google.mlkit:translate:17.0.3")
 
   implementation(libs.meta.spatial.sdk.base)
   implementation(libs.meta.spatial.sdk.compose)

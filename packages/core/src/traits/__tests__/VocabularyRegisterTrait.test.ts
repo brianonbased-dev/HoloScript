@@ -18,8 +18,7 @@ describe('VocabularyRegisterTrait', () => {
     ctx = createMockContext();
   });
 
-  it('ships all 6 default registers', () => {
-    expect(DEFAULT_REGISTERS).toHaveLength(6);
+  it('ships a menu and ingredient education register', () => {
     const names = DEFAULT_REGISTERS.map((r) => r.name);
     expect(names).toContain('medieval-fantasy');
     expect(names).toContain('sci-fi-remnant');
@@ -27,6 +26,7 @@ describe('VocabularyRegisterTrait', () => {
     expect(names).toContain('ancient-formal');
     expect(names).toContain('criminal-underworld');
     expect(names).toContain('scholarly-archaic');
+    expect(names).toContain('menu-ingredients');
   });
 
   it('emits ready with active register', () => {
@@ -94,5 +94,31 @@ describe('VocabularyRegisterTrait', () => {
       register: 'pirate',
     });
     expect(getEventCount(ctx, 'vocabulary_switched')).toBe(1);
+  });
+
+  it('explains a term with relationships and allergen uncertainty', () => {
+    attachTrait(vocabularyRegisterHandler, node, { active_register: 'menu-ingredients' }, ctx);
+    sendEvent(vocabularyRegisterHandler, node, { active_register: 'menu-ingredients' }, ctx, {
+      type: 'vocabulary_explain',
+      term: 'ramen',
+      queryId: 'q-1',
+    });
+
+    const ev = getLastEvent(ctx, 'vocabulary_explained');
+    expect(ev.queryId).toBe('q-1');
+    expect(ev.entry.term).toBe('ramen');
+    expect(ev.entry.relationships).toContain('broth');
+    expect(ev.entry.allergenNotice).toMatch(/may/i);
+  });
+
+  it('abstains when a term is not in the active register', () => {
+    attachTrait(vocabularyRegisterHandler, node, { active_register: 'menu-ingredients' }, ctx);
+    sendEvent(vocabularyRegisterHandler, node, { active_register: 'menu-ingredients' }, ctx, {
+      type: 'vocabulary_explain',
+      term: 'not-a-real-menu-term',
+      queryId: 'q-2',
+    });
+
+    expect(getEventCount(ctx, 'vocabulary_explain_unknown')).toBe(1);
   });
 });

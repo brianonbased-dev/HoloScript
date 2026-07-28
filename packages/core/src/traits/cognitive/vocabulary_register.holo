@@ -1,11 +1,18 @@
 @trait {
   name: "@vocabulary_register",
   category: "cognitive",
-  description: "LLM context middleware that injects a domain-specific vocabulary register into prompts. Ships six built-in registers (medieval-fantasy, sci-fi-remnant, modern-corporate, ancient-formal, criminal-underworld, scholarly-archaic) and accepts runtime additions via vocabulary_register_load. Hot-swappable. Port of VocabularyRegisterTrait.ts (handler name: vocabulary_register).",
+  description: "Composable vocabulary knowledge with definitions, usage, relationships, and uncertainty-aware notes. Registers can inject language context or answer explicit term explanations. Includes a menu-ingredients register and accepts runtime additions via vocabulary_register_load. Hot-swappable. Port of VocabularyRegisterTrait.ts (handler name: vocabulary_register).",
   props: {
     active_register: string = "modern-corporate",
     max_injected_entries: number = 20,
-    prepend_tone_hint: boolean = true
+    prepend_tone_hint: boolean = true,
+    relationship_mode: enum("none" | "menu_ingredient_graph") = "none",
+    unknown_term_behavior: enum("abstain" | "trusted_sources") = "abstain",
+    allergen_disclaimer: string = "",
+    seed_entries: list<{ term: string, category: string, definition: string, relationships: list<string>, allergen_notice: string }> = [],
+    source_templates: list<{ kind: enum("article" | "image" | "video"), label: string, host: string, path: string }> = [],
+    open_sources: enum("disabled" | "external_browser") = "disabled",
+    share_term: enum("never" | "explicit_user_action") = "never"
   },
   events: {
     attached: "vocabulary_register_attached",
@@ -15,7 +22,10 @@
     on_loaded: "vocabulary_register_loaded",
     load: "vocabulary_register_load",
     switch: "vocabulary_register_switch",
-    inject: "vocabulary_register_inject"
+    inject: "vocabulary_register_inject",
+    explain: "vocabulary_explain",
+    on_explained: "vocabulary_explained",
+    on_unknown: "vocabulary_explain_unknown"
   },
   behaviors: ["@dialogue", "@language_adapter", "@neural_link"]
 }

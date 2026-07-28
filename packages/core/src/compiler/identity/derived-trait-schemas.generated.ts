@@ -26792,6 +26792,37 @@ export const DERIVED_TRAIT_SCHEMAS: TraitSchema[] = [
         name: 'fallback_locale',
         type: 'string',
       },
+      {
+        name: 'provider',
+        type: 'enum',
+        enumValues: ['bundle', 'mlkit_on_device'],
+      },
+      {
+        name: 'source_language',
+        type: 'string',
+      },
+      {
+        name: 'target_languages',
+        type: 'any',
+      },
+      {
+        name: 'model_download',
+        type: 'enum',
+        enumValues: ['none', 'explicit_user_action'],
+      },
+      {
+        name: 'download_network',
+        type: 'enum',
+        enumValues: ['any', 'wifi'],
+      },
+      {
+        name: 'local_only',
+        type: 'boolean',
+      },
+      {
+        name: 'log_text_values',
+        type: 'boolean',
+      },
     ],
   },
   {
@@ -28057,6 +28088,38 @@ export const DERIVED_TRAIT_SCHEMAS: TraitSchema[] = [
       {
         name: 'prepend_tone_hint',
         type: 'boolean',
+      },
+      {
+        name: 'relationship_mode',
+        type: 'enum',
+        enumValues: ['none', 'menu_ingredient_graph'],
+      },
+      {
+        name: 'unknown_term_behavior',
+        type: 'enum',
+        enumValues: ['abstain', 'trusted_sources'],
+      },
+      {
+        name: 'allergen_disclaimer',
+        type: 'string',
+      },
+      {
+        name: 'seed_entries',
+        type: 'any',
+      },
+      {
+        name: 'source_templates',
+        type: 'any',
+      },
+      {
+        name: 'open_sources',
+        type: 'enum',
+        enumValues: ['disabled', 'external_browser'],
+      },
+      {
+        name: 'share_term',
+        type: 'enum',
+        enumValues: ['never', 'explicit_user_action'],
       },
     ],
   },

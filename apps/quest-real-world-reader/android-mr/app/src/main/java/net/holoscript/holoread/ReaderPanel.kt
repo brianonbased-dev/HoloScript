@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -48,10 +49,20 @@ object ReaderState {
   var preview by mutableStateOf<ImageBitmap?>(null)
   var recognizedText by mutableStateOf("")
   var magnification by mutableFloatStateOf(ReaderContent.minMagnification)
+  var contextTerms by mutableStateOf<List<String>>(emptyList())
+  var selectedTerm by mutableStateOf("")
+  var explanation by mutableStateOf("")
+  var menuInsights by mutableStateOf<List<VocabularyEntry>>(emptyList())
+  var selectedTargetLanguage by mutableStateOf("es")
+  var translatedText by mutableStateOf("")
+  var translationStatus by mutableStateOf("")
   var onEnable: (() -> Unit)? = null
   var onRead: (() -> Unit)? = null
   var onCopy: ((String) -> Unit)? = null
   var onSpeak: ((String) -> Unit)? = null
+  var onExplain: ((String) -> Unit)? = null
+  var onTranslate: ((String, String) -> Unit)? = null
+  var onOpenSource: ((String, String) -> Unit)? = null
 
   fun updatePreview(bitmap: Bitmap) {
     preview = bitmap.asImageBitmap()
@@ -149,7 +160,10 @@ private fun ResultScreen() {
   )
   Spacer(Modifier.size(20.dp))
   val text = ReaderState.recognizedText
-  Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+  Row(
+      modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+      horizontalArrangement = Arrangement.spacedBy(10.dp),
+  ) {
     Button(onClick = { ReaderState.onCopy?.invoke(text) }) { Text(ReaderContent.copyAction) }
     Button(onClick = { ReaderState.onSpeak?.invoke(text) }) { Text(ReaderContent.speakAction) }
     Button(
@@ -172,8 +186,169 @@ private fun ResultScreen() {
     }
   }
   Spacer(Modifier.size(12.dp))
+  Text(
+      "Words and context",
+      modifier = Modifier.fillMaxWidth(),
+      fontSize = 21.sp,
+      fontWeight = FontWeight.Bold,
+  )
+  Spacer(Modifier.size(8.dp))
+  Row(
+      modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+  ) {
+    ReaderState.contextTerms.forEach { term ->
+      Button(
+          onClick = {
+            ReaderState.selectedTerm = term
+            ReaderState.onExplain?.invoke(term)
+          }
+      ) {
+        Text(term)
+      }
+    }
+  }
+  if (ReaderState.selectedTerm.isNotBlank()) {
+    Spacer(Modifier.size(10.dp))
+    Text(
+        ReaderState.selectedTerm,
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF67E8F9),
+    )
+    Text(
+        ReaderState.explanation,
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 17.sp,
+    )
+    Spacer(Modifier.size(8.dp))
+    Text(
+        ReaderContent.sourceNotice,
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 14.sp,
+    )
+    Spacer(Modifier.size(6.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+      Button(
+          onClick = {
+            ReaderState.onOpenSource?.invoke("article", ReaderState.selectedTerm)
+          }
+      ) {
+        Text("Article")
+      }
+      Button(
+          onClick = {
+            ReaderState.onOpenSource?.invoke("image", ReaderState.selectedTerm)
+          }
+      ) {
+        Text("Images")
+      }
+      Button(
+          onClick = {
+            ReaderState.onOpenSource?.invoke("video", ReaderState.selectedTerm)
+          }
+      ) {
+        Text("Video")
+      }
+    }
+  }
+  if (ReaderState.menuInsights.isNotEmpty()) {
+    Spacer(Modifier.size(16.dp))
+    Text(
+        "Menu connections",
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 21.sp,
+        fontWeight = FontWeight.Bold,
+    )
+    ReaderState.menuInsights.forEach { entry ->
+      Spacer(Modifier.size(8.dp))
+      Text(
+          entry.term + " · " + entry.category,
+          modifier = Modifier.fillMaxWidth(),
+          fontSize = 18.sp,
+          fontWeight = FontWeight.Bold,
+      )
+      Text(entry.definition, modifier = Modifier.fillMaxWidth(), fontSize = 16.sp)
+      Text(
+          "How it connects: " + entry.relationships.joinToString("; "),
+          modifier = Modifier.fillMaxWidth(),
+          fontSize = 15.sp,
+      )
+      Text(
+          entry.allergenNotice,
+          modifier = Modifier.fillMaxWidth(),
+          fontSize = 15.sp,
+          color = Color(0xFFFBBF24),
+      )
+    }
+    Spacer(Modifier.size(8.dp))
+    Text(
+        "Ingredients vary. " + ReaderContent.allergenDisclaimer,
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 14.sp,
+        color = Color(0xFFFBBF24),
+    )
+  }
+  Spacer(Modifier.size(16.dp))
+  Text(
+      ReaderContent.translateAction,
+      modifier = Modifier.fillMaxWidth(),
+      fontSize = 21.sp,
+      fontWeight = FontWeight.Bold,
+  )
+  Text(ReaderContent.translationNote, modifier = Modifier.fillMaxWidth(), fontSize = 14.sp)
+  Spacer(Modifier.size(8.dp))
+  Row(
+      modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+  ) {
+    ReaderContent.targetLanguages.forEach { language ->
+      Button(onClick = { ReaderState.selectedTargetLanguage = language }) {
+        Text(languageLabel(language))
+      }
+    }
+  }
+  Spacer(Modifier.size(8.dp))
+  Button(
+      onClick = {
+        ReaderState.onTranslate?.invoke(text, ReaderState.selectedTargetLanguage)
+      }
+  ) {
+    Text(ReaderContent.translateAction + " to " + languageLabel(ReaderState.selectedTargetLanguage))
+  }
+  if (ReaderState.translationStatus.isNotBlank()) {
+    Spacer(Modifier.size(8.dp))
+    Text(ReaderState.translationStatus, modifier = Modifier.fillMaxWidth(), fontSize = 15.sp)
+  }
+  if (ReaderState.translatedText.isNotBlank()) {
+    Spacer(Modifier.size(8.dp))
+    Text(
+        ReaderState.translatedText,
+        modifier = Modifier.fillMaxWidth(),
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+    )
+  }
+  Spacer(Modifier.size(16.dp))
   Button(onClick = { ReaderState.onRead?.invoke() }) { Text("Read again") }
 }
+
+private fun languageLabel(tag: String): String =
+    when (tag) {
+      "en" -> "English"
+      "es" -> "Spanish"
+      "fr" -> "French"
+      "de" -> "German"
+      "it" -> "Italian"
+      "ja" -> "Japanese"
+      "ko" -> "Korean"
+      "zh" -> "Chinese"
+      else -> tag
+    }
 
 @Composable
 private fun ErrorScreen() {

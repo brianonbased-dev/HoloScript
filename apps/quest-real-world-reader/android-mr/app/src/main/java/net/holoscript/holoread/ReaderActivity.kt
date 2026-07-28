@@ -4,6 +4,7 @@ package net.holoscript.holoread
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -34,6 +35,7 @@ class ReaderActivity : AppSystemActivity(), TextToSpeech.OnInitListener {
   private var sceneReady = false
   private var textToSpeech: TextToSpeech? = null
   private var speechReady = false
+  private val translationController = TranslationController()
   private val lifecycle = ReaderLifecycleMachine()
 
   override fun registerFeatures(): List<SpatialFeature> =
@@ -69,6 +71,61 @@ class ReaderActivity : AppSystemActivity(), TextToSpeech.OnInitListener {
         textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "holoread-result")
       } else {
         ReaderState.status = "Speech is not ready"
+      }
+    }
+    ReaderState.onExplain = { term ->
+      val transition = lifecycle.fireContextRequested()
+      if (transition?.to == ReaderLifecycleMachine.State.EXPLAINING) {
+        val entry = ContextEngine.explain(term)
+        ReaderState.selectedTerm = term
+        ReaderState.explanation =
+            if (entry == null) {
+              "No local definition is available yet. Open a trusted source to learn more."
+            } else {
+              entry.definition + " How it connects: " + entry.relationships.joinToString("; ")
+            }
+        if (entry == null) lifecycle.fireContextFailed() else lifecycle.fireContextReady()
+      }
+    }
+    ReaderState.onTranslate = { text, targetLanguage ->
+      val transition = lifecycle.fireTranslationRequested()
+      if (transition?.to != ReaderLifecycleMachine.State.TRANSLATING) {
+        ReaderState.translationStatus = "Finish the current action before translating"
+      } else {
+        ReaderState.translatedText = ""
+        translationController.translate(
+            text = text,
+            targetTag = targetLanguage,
+            onStatus = { message ->
+              runOnUiThread { ReaderState.translationStatus = message }
+            },
+            onSuccess = { translated ->
+              runOnUiThread {
+                lifecycle.fireTranslationSucceeded()
+                ReaderState.translatedText = translated
+                ReaderState.translationStatus = "Translated on device"
+              }
+            },
+            onError = { message ->
+              runOnUiThread {
+                lifecycle.fireTranslationFailed()
+                ReaderState.translationStatus = message
+              }
+            },
+        )
+      }
+    }
+    ReaderState.onOpenSource = { kind, term ->
+      try {
+        val uri = LearningSourceRouter.uriFor(kind, term)
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+        if (intent.resolveActivity(packageManager) == null) {
+          ReaderState.status = "No external browser is available"
+        } else {
+          startActivity(intent)
+        }
+      } catch (_: IllegalArgumentException) {
+        ReaderState.status = "That learning source is not allowed"
       }
     }
   }
@@ -159,6 +216,17 @@ class ReaderActivity : AppSystemActivity(), TextToSpeech.OnInitListener {
                       lifecycle.fireRecognitionSucceeded()
                       ReaderState.recognizedText = text
                       ReaderState.magnification = ReaderContent.minMagnification
+                      ReaderState.contextTerms = ContextEngine.findTerms(text)
+                      ReaderState.menuInsights = ContextEngine.analyzeMenu(text)
+                      ReaderState.selectedTerm = ReaderState.contextTerms.firstOrNull().orEmpty()
+                      ReaderState.explanation =
+                          ContextEngine.explain(ReaderState.selectedTerm)?.let { entry ->
+                            entry.definition +
+                                " How it connects: " +
+                                entry.relationships.joinToString("; ")
+                          } ?: "Select a word to see local context or open a trusted source."
+                      ReaderState.translatedText = ""
+                      ReaderState.translationStatus = ""
                       ReaderState.screen = ReaderScreen.RESULT
                       ReaderState.status = "Text recognized"
                     } else {
@@ -204,6 +272,7 @@ class ReaderActivity : AppSystemActivity(), TextToSpeech.OnInitListener {
     textToSpeech?.stop()
     textToSpeech?.shutdown()
     textToSpeech = null
+    translationController.close()
     super.onSpatialShutdown()
   }
 

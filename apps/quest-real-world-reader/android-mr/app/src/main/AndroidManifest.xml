@@ -4,8 +4,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:horizonos="http://schemas.horizonos/sdk"
     xmlns:tools="http://schemas.android.com/tools"
-    android:versionCode="1"
-    android:versionName="0.1.0"
+    android:versionCode="2"
+    android:versionName="0.2.0"
     android:installLocation="auto">
 
   <horizonos:uses-horizonos-sdk horizonos:minSdkVersion="74" horizonos:targetSdkVersion="74" />
@@ -17,8 +17,9 @@
   <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
   <uses-permission android:name="horizonos.permission.HEADSET_CAMERA" />
 
-  <!-- HoloRead is local-only. Remove network/media permissions from every transitive manifest. -->
-  <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+  <!-- Internet is used only for an explicit on-device translation-model download. Learning
+       sources open in the external browser; HoloRead performs no article, image, or video fetch. -->
+  <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
   <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" tools:node="remove" />
@@ -27,6 +28,7 @@
 
   <application
       android:allowBackup="false"
+      android:usesCleartextTraffic="false"
       android:icon="@drawable/ic_launcher"
       android:label="@string/app_name">
     <meta-data android:name="com.oculus.supportedDevices" android:value="quest3|quest3s" />
