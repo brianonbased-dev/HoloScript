@@ -19,6 +19,7 @@ import type {
   TaskDecompositionPlan,
   SubagentEvent,
   HoloMeshIdentityEnvelope,
+  TaskWorkUnitContract,
 } from './board-types';
 import {
   normalizeTitle,
@@ -37,6 +38,7 @@ import {
   cloneSubagentEvent,
   validateTaskDecompositionPlan,
   validateSubagentEvent,
+  normalizeTaskWorkUnitContract,
 } from './board-types';
 
 // ── Task Operations ──
@@ -979,6 +981,7 @@ export function delegateTask(
 export type SkippedTaskReason =
   | 'duplicate'
   | 'empty_title'
+  | 'invalid_work_unit'
   | 'invalid_artifact'
   | 'invalid_environment'
   | 'invalid_policy'
@@ -1073,6 +1076,20 @@ export function addTasksToBoard(
       continue;
     }
 
+    const inputWorkUnit = (t as unknown as {
+      workUnit?: unknown;
+      work_unit?: unknown;
+    }).workUnit ?? (t as unknown as { work_unit?: unknown }).work_unit;
+    let normalizedWorkUnit: TaskWorkUnitContract | undefined;
+    if (inputWorkUnit !== undefined) {
+      const normalization = normalizeTaskWorkUnitContract(inputWorkUnit);
+      if (!normalization.ok) {
+        skipped.push({ title, reason: 'invalid_work_unit' });
+        continue;
+      }
+      normalizedWorkUnit = normalization.value;
+    }
+
     const artifactErrors = (t.artifacts ?? []).flatMap((artifact) =>
       validateArtifactReceipt(artifact)
     );
@@ -1146,6 +1163,7 @@ export function addTasksToBoard(
     if ((t as { required_tags?: string[] }).required_tags?.length) {
       task.required_tags = [...(t as { required_tags?: string[] }).required_tags!];
     }
+    if (normalizedWorkUnit) task.workUnit = normalizedWorkUnit;
     if (t.artifacts?.length) task.artifacts = t.artifacts.map(cloneArtifactReceipt);
     if (t.environment) task.environment = cloneTaskEnvironmentProfile(t.environment);
     if (t.environmentReceipt) {

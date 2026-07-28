@@ -463,6 +463,73 @@ export interface TaskCoordinationTimeline {
   events: SubagentEvent[];
 }
 
+/**
+ * Producer-authored execution contract carried with a board task.
+ *
+ * The canonical field names and validation policy live with the producer
+ * surface. The board owns lossless, bounded transport of that contract, so it
+ * intentionally permits producer extensions while preserving the common
+ * execution fields used by HoloMesh runners.
+ */
+export interface TaskWorkUnitContract {
+  [field: string]: unknown;
+  intent?: string;
+  source_evidence?: string;
+  producer_surface?: string;
+  decision_context?: string | null;
+  depends_on?: string[];
+  executor_lane?: string;
+  allowed_actions?: string[];
+  forbidden_actions?: string[];
+  done_criteria?: string;
+  verification_mode?: string;
+  verifier_command_or_receipt?: string;
+  retry_policy?: Record<string, unknown>;
+  closeout_sink?: string;
+  reward_learning_sink?: string;
+}
+
+export const TASK_WORK_UNIT_MAX_SERIALIZED_CHARS = 32_000;
+
+export interface TaskWorkUnitNormalizationResult {
+  ok: boolean;
+  value?: TaskWorkUnitContract;
+  errors: string[];
+}
+
+/**
+ * Deep-clone and bound a producer-validated WorkUnit before durable board
+ * storage. Semantic validation stays producer-owned; this transport gate
+ * rejects malformed, cyclic, or oversized envelopes instead of silently
+ * dropping them.
+ */
+export function normalizeTaskWorkUnitContract(value: unknown): TaskWorkUnitNormalizationResult {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { ok: false, errors: ['workUnit must be a non-array object'] };
+  }
+
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(value);
+  } catch {
+    return { ok: false, errors: ['workUnit must be JSON-serializable'] };
+  }
+  if (serialized.length > TASK_WORK_UNIT_MAX_SERIALIZED_CHARS) {
+    return {
+      ok: false,
+      errors: [
+        `workUnit exceeds ${TASK_WORK_UNIT_MAX_SERIALIZED_CHARS} serialized characters`,
+      ],
+    };
+  }
+
+  const cloned = JSON.parse(serialized) as unknown;
+  if (!cloned || typeof cloned !== 'object' || Array.isArray(cloned)) {
+    return { ok: false, errors: ['workUnit must normalize to a non-array object'] };
+  }
+  return { ok: true, value: cloned as TaskWorkUnitContract, errors: [] };
+}
+
 export interface TeamTask {
   id: string;
   title: string;
@@ -541,6 +608,8 @@ export interface TeamTask {
   tags?: string[];
   /** Capability tags that a claiming agent MUST have in their heartbeat presence. Enforced server-side on claim. */
   required_tags?: string[];
+  /** Typed producer execution contract preserved losslessly by board POST/GET/PATCH. */
+  workUnit?: TaskWorkUnitContract;
   /** Files, traces, screenshots, benchmark logs, patches, or render/test outputs produced for this task. */
   artifacts?: ArtifactReceipt[];
   /** Declarative runtime expectations for this task. */

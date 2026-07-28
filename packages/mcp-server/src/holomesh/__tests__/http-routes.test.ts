@@ -3248,6 +3248,74 @@ describe('HoloMesh HTTP Routes', () => {
       expect(fetched.tags).toEqual(inputTags);
     });
 
+    it('POST/GET/PATCH board routes preserve a typed WorkUnit contract', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `board-workunit-roundtrip-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const workUnit = {
+        intent: 'Verify one read-only board task.',
+        executor_lane: 'owned-local',
+        allowed_actions: ['run-check'],
+        done_criteria: 'The verifier exits zero without changing files.',
+        verification_mode: 'read-only-no-mutation',
+        verifier_command_or_receipt: 'pnpm run check:board',
+        retry_policy: { maxAttempts: 2, onFailure: 'requeue' },
+      };
+      const postReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: [{
+            title: 'WorkUnit roundtrip task',
+            description: 'verifies the typed execution contract survives board persistence',
+            priority: 1,
+            workUnit,
+          }],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const postRes = mockRes();
+      await handleHoloMeshRoute(postReq, postRes, `/api/holomesh/team/${tid}/board`);
+
+      expect(postRes._status).toBe(201);
+      expect(postRes._body.tasks[0].workUnit).toEqual(workUnit);
+      const taskId = postRes._body.tasks[0].id;
+
+      const updatedWorkUnit = {
+        ...workUnit,
+        verifier_command_or_receipt: 'pnpm run check:board:focused',
+      };
+      const patchReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'update', workUnit: updatedWorkUnit },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const patchRes = mockRes();
+      await handleHoloMeshRoute(
+        patchReq,
+        patchRes,
+        `/api/holomesh/team/${tid}/board/${taskId}`
+      );
+      expect(patchRes._status).toBe(200);
+      expect(patchRes._body.task.workUnit).toEqual(updatedWorkUnit);
+
+      const getReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/board`);
+      const fetched = (getRes._body.tasks || []).find((t: { id: string }) => t.id === taskId);
+      expect(fetched?.workUnit).toEqual(updatedWorkUnit);
+    });
+
     it('GET /api/holomesh/team/:id/board/:taskId returns a fresh active task by id', async () => {
       const createReq = mockReq(
         'POST',

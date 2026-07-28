@@ -49,6 +49,43 @@ describe('board operations phase-0 hygiene', () => {
     });
   });
 
+  it('preserves a bounded WorkUnit contract without sharing producer references', () => {
+    const workUnit = {
+      intent: 'Run one bounded owned-metal verification.',
+      executor_lane: 'owned-local',
+      allowed_actions: ['run-check'],
+      done_criteria: 'The verifier exits zero.',
+      verification_mode: 'read-only-no-mutation',
+      verifier_command_or_receipt: 'pnpm run check:board',
+      retry_policy: { maxAttempts: 2, onFailure: 'requeue' },
+    };
+    const result = addTasksToBoard([], [], [{
+      title: 'typed work unit',
+      description: 'Preserve the producer contract.',
+      priority: 1,
+      workUnit,
+    }]);
+
+    expect(result.skipped).toEqual([]);
+    expect(result.added[0].workUnit).toEqual(workUnit);
+    expect(result.added[0].workUnit).not.toBe(workUnit);
+    expect(result.added[0].workUnit?.retry_policy).not.toBe(workUnit.retry_policy);
+  });
+
+  it('rejects malformed WorkUnit envelopes instead of silently stripping them', () => {
+    const result = addTasksToBoard([], [], [{
+      title: 'malformed work unit',
+      description: 'This row must not materialize.',
+      priority: 1,
+      workUnit: [] as never,
+    }]);
+
+    expect(result.added).toEqual([]);
+    expect(result.skipped).toEqual([
+      { title: 'malformed work unit', reason: 'invalid_work_unit' },
+    ]);
+  });
+
   it('uses one claim gate for heartbeat, cap, and required tag failures', () => {
     const board = [
       task({ id: 'candidate', required_tags: ['edge'] }),

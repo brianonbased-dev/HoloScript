@@ -64,6 +64,7 @@ import {
   type TaskOrchestrationAgentRef,
   type TaskPolicyEvent,
   type HoloMeshIdentityEnvelope,
+  normalizeTaskWorkUnitContract,
 } from '@holoscript/framework';
 import type {
   Team,
@@ -3018,9 +3019,20 @@ export async function handleBoardRoutes(
         if (Array.isArray(body.tags)) {
           updates.tags = (body.tags as unknown[]).slice(0, 50).map((t) => String(t).slice(0, 100));
         }
+        if (body.workUnit !== undefined || body.work_unit !== undefined) {
+          const normalization = normalizeTaskWorkUnitContract(body.workUnit ?? body.work_unit);
+          if (!normalization.ok) {
+            json(res, 400, {
+              error: 'invalid_work_unit',
+              reasons: normalization.errors,
+            });
+            return true;
+          }
+          updates.workUnit = normalization.value;
+        }
         if (Object.keys(updates).filter((k) => k !== '_prevDescription').length === 0) {
           json(res, 400, {
-            error: 'No updatable fields provided: supply title, description, priority, and/or tags',
+            error: 'No updatable fields provided: supply title, description, priority, tags, and/or workUnit',
           });
           return true;
         }
