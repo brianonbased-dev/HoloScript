@@ -70,6 +70,14 @@ export interface CharacterHostFromCompositionOptions {
   lodLevel?: number;
 }
 
+export interface CharacterLODTransitionReceipt {
+  schemaVersion: 'holoscript.character-lod-transition.v1';
+  selectionMode: 'distance' | 'screen-size' | 'manual';
+  mode: 'instant' | 'crossfade' | 'dither';
+  durationSeconds: number;
+  hysteresisBand: number;
+}
+
 export interface CharacterHostFromCompositionResult {
   ok: boolean;
   host?: CharacterHost;
@@ -85,6 +93,8 @@ export interface CharacterHostFromCompositionResult {
     hairGuides?: number;
     hairCardsPerGuide?: number;
     hairSegments?: number;
+    /** Source-authored switching semantics shared by every selected tier. */
+    transition?: CharacterLODTransitionReceipt;
   };
   /** Operative deterministic cloth configuration, when @cloth_simulation is supported. */
   cloth?: ClothSimulationConfig;
@@ -139,6 +149,60 @@ const asVec3 = (v: unknown): [number, number, number] | undefined =>
   Array.isArray(v) && v.length >= 3 && v.slice(0, 3).every((x) => typeof x === 'number')
     ? [v[0] as number, v[1] as number, v[2] as number]
     : undefined;
+
+function authoredLODTransition(
+  trait: TraitRec,
+  report: CharacterHostFromCompositionResult['report']
+): CharacterLODTransitionReceipt | undefined {
+  const authoredKeys = ['mode', 'hysteresis', 'fade_mode', 'fade_duration_ms'];
+  if (!authoredKeys.some((key) => trait.config[key] !== undefined)) return undefined;
+
+  const selectionSource = (asStr(cfgVal(trait, 'mode')) ?? 'screen_size')
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  const selectionMode =
+    selectionSource === 'distance' ||
+    selectionSource === 'screen-size' ||
+    selectionSource === 'manual'
+      ? selectionSource
+      : undefined;
+  const fadeSource = (asStr(cfgVal(trait, 'fade_mode')) ?? 'cross_fade')
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  const mode =
+    fadeSource === 'instant'
+      ? 'instant'
+      : fadeSource === 'cross-fade' || fadeSource === 'crossfade'
+        ? 'crossfade'
+        : fadeSource === 'dither'
+          ? 'dither'
+          : undefined;
+  if (!selectionMode || !mode) {
+    report.stubbed.push({
+      trait: '@lod(transition)',
+      reason:
+        `unsupported mode '${selectionSource}' or fade_mode '${fadeSource}'; ` +
+        'native character transition receipt omitted',
+    });
+    return undefined;
+  }
+
+  const durationMilliseconds = clamp(asNum(cfgVal(trait, 'fade_duration_ms')) ?? 200, 1, 5000);
+  const transition: CharacterLODTransitionReceipt = {
+    schemaVersion: 'holoscript.character-lod-transition.v1',
+    selectionMode,
+    mode,
+    durationSeconds: durationMilliseconds / 1000,
+    hysteresisBand: clamp(asNum(cfgVal(trait, 'hysteresis')) ?? 0.05, 0, 100),
+  };
+  report.mapped.push(
+    `@lod(transition=${transition.mode},duration_s=${transition.durationSeconds},` +
+      `hysteresis=${transition.hysteresisBand},selection=${transition.selectionMode})`
+  );
+  return transition;
+}
 
 /** Normalize an authored RGB array or #RRGGBB string to a clamped linear-RGB tuple. */
 function asRgb(v: unknown): [number, number, number] | undefined {
@@ -291,6 +355,7 @@ export function buildCharacterHostFromComposition(
   let lod: CharacterHostFromCompositionResult['lod'];
   const lodTrait = traits.get('lod');
   if (lodTrait) {
+    const transition = authoredLODTransition(lodTrait, report);
     const requestedLevel = Math.max(0, Math.round(opts.lodLevel ?? 0));
     const levels = cfgVal(lodTrait, 'levels');
     const authored = Array.isArray(levels)
@@ -326,6 +391,7 @@ export function buildCharacterHostFromComposition(
         ...(hairGuides === undefined ? {} : { hairGuides }),
         ...(hairCardsPerGuide === undefined ? {} : { hairCardsPerGuide }),
         ...(hairSegments === undefined ? {} : { hairSegments }),
+        ...(transition ? { transition } : {}),
       };
       report.mapped.push(`@lod(level=${requestedLevel})`);
       if (

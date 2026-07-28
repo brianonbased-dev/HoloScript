@@ -61,6 +61,13 @@ export interface CharacterDrawSpecBundle {
     hairGuides?: number;
     hairCardsPerGuide?: number;
     hairSegments?: number;
+    transition?: {
+      schemaVersion: 'holoscript.character-lod-transition.v1';
+      selectionMode: 'distance' | 'screen-size' | 'manual';
+      mode: 'instant' | 'crossfade' | 'dither';
+      durationSeconds: number;
+      hysteresisBand: number;
+    };
   };
   /** Present when source-authored deterministic cloth simulation is operative. */
   cloth?: unknown;

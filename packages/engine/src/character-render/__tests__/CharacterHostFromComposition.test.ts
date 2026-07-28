@@ -443,6 +443,10 @@ describe('buildCharacterHostFromComposition', () => {
                 {
                   name: 'lod',
                   config: {
+                    mode: 'distance',
+                    hysteresis: 0.65,
+                    fade_mode: 'dither',
+                    fade_duration_ms: 260,
                     levels: [
                       {
                         level: 0,
@@ -488,6 +492,13 @@ describe('buildCharacterHostFromComposition', () => {
       hairGuides: 168,
       hairCardsPerGuide: 2,
       hairSegments: 7,
+      transition: {
+        schemaVersion: 'holoscript.character-lod-transition.v1',
+        selectionMode: 'distance',
+        mode: 'dither',
+        durationSeconds: 0.26,
+        hysteresisBand: 0.65,
+      },
     });
     expect(lod2.lod).toEqual({
       level: 2,
@@ -496,9 +507,19 @@ describe('buildCharacterHostFromComposition', () => {
       hairGuides: 48,
       hairCardsPerGuide: 1,
       hairSegments: 3,
+      transition: {
+        schemaVersion: 'holoscript.character-lod-transition.v1',
+        selectionMode: 'distance',
+        mode: 'dither',
+        durationSeconds: 0.26,
+        hysteresisBand: 0.65,
+      },
     });
     expect(lod0.report.mapped).toContain(
       '@lod(hair_guides=168,hair_cards_per_guide=2,hair_segments=7)'
+    );
+    expect(lod0.report.mapped).toContain(
+      '@lod(transition=dither,duration_s=0.26,hysteresis=0.65,selection=distance)'
     );
     expect(lod0.host!.getDrawSpec().mesh.vertexCount).toBeGreaterThan(
       lod1.host!.getDrawSpec().mesh.vertexCount
@@ -506,6 +527,36 @@ describe('buildCharacterHostFromComposition', () => {
     expect(lod1.host!.getDrawSpec().mesh.vertexCount).toBeGreaterThan(
       lod2.host!.getDrawSpec().mesh.vertexCount
     );
+  });
+
+  it('@lod fails closed instead of deriving unsupported character transition semantics', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'UnsupportedTransition',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'lod',
+              config: {
+                mode: 'neural_guess',
+                fade_mode: 'magic_blur',
+                levels: [{ level: 0, distance: 0, garment_segments: 24 }],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.lod?.transition).toBeUndefined();
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@lod(transition)',
+      reason:
+        "unsupported mode 'neural-guess' or fade_mode 'magic-blur'; " +
+        'native character transition receipt omitted',
+    });
   });
 
   it('maps deterministic cloth plus a detachable UV-mapped OpenAI mantle', () => {

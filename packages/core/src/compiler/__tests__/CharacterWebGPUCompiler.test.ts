@@ -349,6 +349,10 @@ describe('CharacterWebGPUCompiler', () => {
       type: 'ObjectTrait',
       name: 'lod',
       config: {
+        mode: 'distance',
+        hysteresis: 0.65,
+        fade_mode: 'dither',
+        fade_duration_ms: 260,
         levels: [
           {
             level: 0,
@@ -383,6 +387,13 @@ describe('CharacterWebGPUCompiler', () => {
       hairGuides: 112,
       hairCardsPerGuide: 2,
       hairSegments: 4,
+      transition: {
+        schemaVersion: 'holoscript.character-lod-transition.v1',
+        selectionMode: 'distance',
+        mode: 'dither',
+        durationSeconds: 0.26,
+        hysteresisBand: 0.65,
+      },
     });
     expect(lod2.lod).toEqual({
       level: 2,
@@ -391,6 +402,13 @@ describe('CharacterWebGPUCompiler', () => {
       hairGuides: 36,
       hairCardsPerGuide: 1,
       hairSegments: 2,
+      transition: {
+        schemaVersion: 'holoscript.character-lod-transition.v1',
+        selectionMode: 'distance',
+        mode: 'dither',
+        durationSeconds: 0.26,
+        hysteresisBand: 0.65,
+      },
     });
     expect(lod0.vertexCount).toBeGreaterThan(lod2.vertexCount);
     expect(
