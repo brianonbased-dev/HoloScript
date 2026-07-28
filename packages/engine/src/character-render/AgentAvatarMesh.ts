@@ -493,12 +493,12 @@ function pushNeutralAnatomicalHead(
     acc,
     {
       x: center.x,
-      y: center.y - radiusY * 0.03,
-      z: faceZ + radiusZ * 0.12,
+      y: center.y - radiusY * 0.075,
+      z: faceZ + radiusZ * 0.075,
     },
-    radiusX * 0.14,
-    radiusY * 0.28,
-    radiusZ * 0.15,
+    radiusX * 0.12,
+    radiusY * 0.21,
+    radiusZ * 0.08,
     7,
     10,
     jointIdx
