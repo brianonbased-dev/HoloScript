@@ -207,10 +207,7 @@ describe('@holoscript/std native source tracer', () => {
   });
 
   it('keeps the List3 ABI immutable, fixed-size, target-neutral, and explicit', () => {
-    const source = readFileSync(
-      join(packageRoot, 'src', 'abi', 'collections-list3-v1.hs'),
-      'utf8'
-    );
+    const source = readFileSync(join(packageRoot, 'src', 'abi', 'collections-list3-v1.hs'), 'utf8');
     expect(source).toContain('struct StdList3I32 { first: i32, second: i32, third: i32 }');
     expect(source).toContain('export function std_collections_list3_make_i32');
     expect(source).toContain('export function std_collections_list3_sum_i32');

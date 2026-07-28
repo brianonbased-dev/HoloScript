@@ -29,17 +29,35 @@ function tinyState(): HoloRunnerS0StateDictInput {
     state: {
       'tok.weight': { shape: [vocab, width], data: head },
       'pos.weight': { shape: [block, width], data: seq(block * width, 0.017, 5) },
-      'blocks.0.ln1.weight': { shape: [width], data: seq(width, 0.007, 2).map((value) => 1 + value) },
+      'blocks.0.ln1.weight': {
+        shape: [width],
+        data: seq(width, 0.007, 2).map((value) => 1 + value),
+      },
       'blocks.0.ln1.bias': { shape: [width], data: seq(width, 0.011, 4) },
-      'blocks.0.attn.in_proj_weight': { shape: [3 * width, width], data: seq(3 * width * width, 0.013, 7) },
+      'blocks.0.attn.in_proj_weight': {
+        shape: [3 * width, width],
+        data: seq(3 * width * width, 0.013, 7),
+      },
       'blocks.0.attn.in_proj_bias': { shape: [3 * width], data: seq(3 * width, 0.019, 11) },
-      'blocks.0.attn.out_proj.weight': { shape: [width, width], data: seq(width * width, 0.015, 13) },
+      'blocks.0.attn.out_proj.weight': {
+        shape: [width, width],
+        data: seq(width * width, 0.015, 13),
+      },
       'blocks.0.attn.out_proj.bias': { shape: [width], data: seq(width, 0.021, 17) },
-      'blocks.0.ln2.weight': { shape: [width], data: seq(width, 0.006, 3).map((value) => 1 + value) },
+      'blocks.0.ln2.weight': {
+        shape: [width],
+        data: seq(width, 0.006, 3).map((value) => 1 + value),
+      },
       'blocks.0.ln2.bias': { shape: [width], data: seq(width, 0.01, 5) },
-      'blocks.0.mlp.0.weight': { shape: [4 * width, width], data: seq(4 * width * width, 0.009, 19) },
+      'blocks.0.mlp.0.weight': {
+        shape: [4 * width, width],
+        data: seq(4 * width * width, 0.009, 19),
+      },
       'blocks.0.mlp.0.bias': { shape: [4 * width], data: seq(4 * width, 0.014, 23) },
-      'blocks.0.mlp.2.weight': { shape: [width, 4 * width], data: seq(width * 4 * width, 0.008, 29) },
+      'blocks.0.mlp.2.weight': {
+        shape: [width, 4 * width],
+        data: seq(width * 4 * width, 0.008, 29),
+      },
       'blocks.0.mlp.2.bias': { shape: [width], data: seq(width, 0.012, 31) },
       'lnf.weight': { shape: [width], data: seq(width, 0.005, 37).map((value) => 1 + value) },
       'lnf.bias': { shape: [width], data: seq(width, 0.009, 41) },
@@ -49,13 +67,22 @@ function tinyState(): HoloRunnerS0StateDictInput {
 }
 
 function maxAbsDiff(left: Float32Array | readonly number[], right: readonly number[]): number {
-  return right.reduce((max, expected, index) => Math.max(max, Math.abs((left[index] ?? 0) - expected)), 0);
+  return right.reduce(
+    (max, expected, index) => Math.max(max, Math.abs((left[index] ?? 0) - expected)),
+    0
+  );
 }
 
 describe('@holoscript/holo-runtime', () => {
   it('loads HoloRunner S0 state_dict keys and rejects missing tensors', () => {
     const loaded = loadHoloRunnerS0StateDict(tinyState());
-    expect(loaded.config).toMatchObject({ vocabSize: 8, nLayer: 1, nHead: 2, nEmbd: 4, blockSize: 4 });
+    expect(loaded.config).toMatchObject({
+      vocabSize: 8,
+      nLayer: 1,
+      nHead: 2,
+      nEmbd: 4,
+      blockSize: 4,
+    });
     expect(loaded.sourceKeys).toContain('blocks.0.attn.in_proj_weight');
 
     const broken = tinyState();
@@ -88,12 +115,14 @@ describe('@holoscript/holo-runtime', () => {
   });
 
   it('exposes CPU kernels and confirms PyTorch GELU is erf, not tanh approximation', () => {
-    expect(Array.from(matmul(new Float32Array([1, 2, 3, 4]), 2, 2, new Float32Array([5, 6, 7, 8]), 2))).toEqual([
-      19, 22, 43, 50,
-    ]);
+    expect(
+      Array.from(matmul(new Float32Array([1, 2, 3, 4]), 2, 2, new Float32Array([5, 6, 7, 8]), 2))
+    ).toEqual([19, 22, 43, 50]);
     expect(softmaxArray([0, 0])).toEqual([0.5, 0.5]);
 
-    const erfExpected = [-0.13206221163272858, -0.1542687714099884, 0, 0.5800294876098633, 1.3997890949249268];
+    const erfExpected = [
+      -0.13206221163272858, -0.1542687714099884, 0, 0.5800294876098633, 1.3997890949249268,
+    ];
     const values = [-1.25, -0.5, 0, 0.75, 1.5];
     const erfValues = values.map(geluErf);
     const tanhValues = values.map(geluTanhApprox);
@@ -121,7 +150,9 @@ describe('@holoscript/holo-runtime', () => {
     const merges: Array<[string, string, string]> = [['97', '98', '97+98']];
     const tokens = tokenizer.encode('ab ab', merges);
 
-    expect(tokenizer.modulePath.replace(/\\/g, '/')).toContain('/.ai-ecosystem/scripts/holorunner-tokenizer-v0.mjs');
+    expect(tokenizer.modulePath.replace(/\\/g, '/')).toContain(
+      '/.ai-ecosystem/scripts/holorunner-tokenizer-v0.mjs'
+    );
     expect(tokenizer.decode(tokens)).toBe('ab ab');
     expect(tokenizer.decodeIdsToText(tokenizer.encodeTextToIds('ab', merges), merges)).toBe('ab');
   });

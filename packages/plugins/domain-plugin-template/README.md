@@ -20,4 +20,3 @@ Before publishing or expanding this package, run:
 pnpm run build:package-release-closure
 pnpm run check:npm-v1-release:built
 ```
-

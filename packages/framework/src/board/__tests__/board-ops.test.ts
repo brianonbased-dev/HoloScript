@@ -30,13 +30,18 @@ describe('board operations phase-0 hygiene', () => {
     expect(normalizeTaskPriority('low')).toMatchObject({ priority: 6, prioritySortKey: 6 });
     expect(normalizeTaskPriority(99)).toMatchObject({ priority: 10, prioritySortKey: 10 });
 
-    const result = addTasksToBoard([], [], [
-      {
-        title: 'mixed priority',
-        description: 'Mixed priority should canonicalize.\n\n## Done when:\n- Priority is numeric.',
-        priority: 'P1' as never,
-      },
-    ]);
+    const result = addTasksToBoard(
+      [],
+      [],
+      [
+        {
+          title: 'mixed priority',
+          description:
+            'Mixed priority should canonicalize.\n\n## Done when:\n- Priority is numeric.',
+          priority: 'P1' as never,
+        },
+      ]
+    );
     expect(result.added[0]).toMatchObject({
       priority: 1,
       prioritySortKey: 1,

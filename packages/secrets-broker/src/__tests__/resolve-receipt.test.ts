@@ -68,7 +68,9 @@ describe('createResolveReceiptSink (emit → seal → persist wire)', () => {
     expect(sink.head()).toBeNull();
 
     sink.audit(audit({ outcome: 'allowed', at: '2026-06-08T00:00:00.000Z' }));
-    sink.audit(audit({ outcome: 'denied', reason: 'AuthRequiredError', at: '2026-06-08T00:00:01.000Z' }));
+    sink.audit(
+      audit({ outcome: 'denied', reason: 'AuthRequiredError', at: '2026-06-08T00:00:01.000Z' })
+    );
 
     expect(sink.size()).toBe(2);
     expect(sink.head()).toMatch(/^sha256:[0-9a-f]{64}$/);
@@ -85,7 +87,9 @@ describe('createResolveReceiptSink (emit → seal → persist wire)', () => {
     sink.audit(audit({ at: '2026-06-08T00:00:00.000Z' }));
     sink.audit(audit({ at: '2026-06-08T00:00:01.000Z' }));
     sink.audit(audit({ at: '2026-06-08T00:00:02.000Z' }));
-    const tampered = sink.chain().map((r, i) => (i === 1 ? { ...r, outcome: 'denied' as const } : r));
+    const tampered = sink
+      .chain()
+      .map((r, i) => (i === 1 ? { ...r, outcome: 'denied' as const } : r));
     expect(verifyResolveReceiptChain(tampered)).toEqual({ ok: false, brokenAt: 1 });
   });
 
@@ -125,7 +129,17 @@ describe('createResolveReceiptSink (emit → seal → persist wire)', () => {
     sink.audit(audit());
     const keys = Object.keys(sink.chain()[0]).sort();
     expect(keys).toEqual(
-      ['at', 'event', 'outcome', 'ownerId', 'prevHash', 'purpose', 'reason', 'receiptHash', 'ref'].sort()
+      [
+        'at',
+        'event',
+        'outcome',
+        'ownerId',
+        'prevHash',
+        'purpose',
+        'reason',
+        'receiptHash',
+        'ref',
+      ].sort()
     );
   });
 });

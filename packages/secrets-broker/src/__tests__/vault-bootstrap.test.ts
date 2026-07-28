@@ -58,7 +58,7 @@ describe('createHoloKeyVault — Phase 0: turn the vault on', () => {
     expect(got.value).toBe('sk-test-abc123');
   });
 
-  it('owner-isolation: a different owner cannot resolve another owner\'s secret', async () => {
+  it("owner-isolation: a different owner cannot resolve another owner's secret", async () => {
     const vault = createHoloKeyVault({ env: devKekEnv({ NODE_ENV: 'test' }) })!;
     const { ref } = await vault.store.put({ ownerId: 'service:a', name: 'K', value: 'v' });
     await expect(
@@ -102,7 +102,11 @@ describe('createHoloKeyVault — resolve-receipt chain (the emit → seal → pe
 
   /** Put a secret, then drive one allowed + two denied resolves through the vault. */
   async function driveResolves(vault: NonNullable<ReturnType<typeof createHoloKeyVault>>) {
-    const { ref } = await vault.store.put({ ownerId: owner, name: 'OPENAI_API_KEY', value: 'sk-test-abc123' });
+    const { ref } = await vault.store.put({
+      ownerId: owner,
+      name: 'OPENAI_API_KEY',
+      value: 'sk-test-abc123',
+    });
     await vault.resolver.resolve({ authenticatedOwnerId: owner, ref }); // allowed
     await vault.resolver.resolve({ authenticatedOwnerId: 'service:other', ref }).catch(() => {}); // denied (owner mismatch)
     await vault.resolver.resolve({ authenticatedOwnerId: '', ref: 'vault:X' }).catch(() => {}); // denied (no auth)

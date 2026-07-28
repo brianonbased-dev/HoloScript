@@ -242,20 +242,24 @@ export class TBLiteBackend implements QmSolver {
       const parsed = JSON.parse(jsonRaw) as Record<string, unknown>;
 
       return {
-        total_energy: typeof parsed['total energy'] === 'number' ? parsed['total energy'] : undefined,
+        total_energy:
+          typeof parsed['total energy'] === 'number' ? parsed['total energy'] : undefined,
         converged: true,
-        scf_iterations: typeof parsed['number of iterations taken for SCC'] === 'number'
-          ? (parsed['number of iterations taken for SCC'] as number)
-          : undefined,
+        scf_iterations:
+          typeof parsed['number of iterations taken for SCC'] === 'number'
+            ? (parsed['number of iterations taken for SCC'] as number)
+            : undefined,
         dipole_moment: Array.isArray(parsed['dipole'])
           ? (parsed['dipole'] as [number, number, number])
           : undefined,
-        gradient_norm: typeof parsed['gradient norm'] === 'number'
-          ? (parsed['gradient norm'] as number)
-          : undefined,
-        opt_steps: typeof parsed['optimization steps'] === 'number'
-          ? (parsed['optimization steps'] as number)
-          : undefined,
+        gradient_norm:
+          typeof parsed['gradient norm'] === 'number'
+            ? (parsed['gradient norm'] as number)
+            : undefined,
+        opt_steps:
+          typeof parsed['optimization steps'] === 'number'
+            ? (parsed['optimization steps'] as number)
+            : undefined,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

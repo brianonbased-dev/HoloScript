@@ -55,7 +55,11 @@ export function StatCard({ title, value, format, trend, loading }: StatCardProps
           {isNegative && <TrendingDown className="w-4 h-4 text-studio-error" />}
           <span
             className={`text-sm font-medium ${
-              isPositive ? 'text-studio-success' : isNegative ? 'text-studio-error' : 'text-studio-muted'
+              isPositive
+                ? 'text-studio-success'
+                : isNegative
+                  ? 'text-studio-error'
+                  : 'text-studio-muted'
             }`}
           >
             {isPositive && '+'}

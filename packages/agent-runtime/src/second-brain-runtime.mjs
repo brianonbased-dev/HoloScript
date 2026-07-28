@@ -46,7 +46,10 @@ function finiteNumberOrNull(value) {
 
 function stringList(value) {
   if (!Array.isArray(value)) return [];
-  return value.map((item) => cleanText(item)).filter(Boolean).slice(0, 200);
+  return value
+    .map((item) => cleanText(item))
+    .filter(Boolean)
+    .slice(0, 200);
 }
 
 function record(value) {

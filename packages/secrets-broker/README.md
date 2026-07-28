@@ -103,11 +103,11 @@ The plaintext token secret is returned once at mint time. Servers persist only t
 
 ## Trust tiers
 
-| Trust tier  | Surfaces (default)                               | Capabilities |
-| ----------- | ------------------------------------------------ | ------------ |
-| `full`      | `claude`, `cursor`, `copilot`, `gemini`, `codex` | Full mesh/protocol/GitHub command set |
+| Trust tier  | Surfaces (default)                               | Capabilities                                                                  |
+| ----------- | ------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `full`      | `claude`, `cursor`, `copilot`, `gemini`, `codex` | Full mesh/protocol/GitHub command set                                         |
 | `reduced`   | `mobile`, `headless`                             | Read, message, knowledge write, suggestion vote, protocol lookup, GitHub read |
-| `read-only` | Opt-in                                           | Read, protocol lookup, GitHub read |
+| `read-only` | Opt-in                                           | Read, protocol lookup, GitHub read                                            |
 
 A surface can step down its trust tier, but cannot escalate above its default.
 

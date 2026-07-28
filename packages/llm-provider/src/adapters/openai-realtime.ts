@@ -377,7 +377,9 @@ function base64ToBytes(b64: string): Uint8Array {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : undefined;
+  return typeof value === 'object' && value !== null
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 function str(value: unknown): string | undefined {

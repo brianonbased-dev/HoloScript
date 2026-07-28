@@ -28,7 +28,10 @@ function createMockMesh(
         this.z = z;
         return this;
       }),
-      copy: vi.fn(function (this: Record<string, number>, source: { x: number; y: number; z: number }) {
+      copy: vi.fn(function (
+        this: Record<string, number>,
+        source: { x: number; y: number; z: number }
+      ) {
         this.x = source.x;
         this.y = source.y;
         this.z = source.z;
@@ -45,14 +48,23 @@ function createMockMesh(
       y: quaternion.y,
       z: quaternion.z,
       w: quaternion.w,
-      set: vi.fn(function (this: Record<string, number>, x: number, y: number, z: number, w: number) {
+      set: vi.fn(function (
+        this: Record<string, number>,
+        x: number,
+        y: number,
+        z: number,
+        w: number
+      ) {
         this.x = x;
         this.y = y;
         this.z = z;
         this.w = w;
         return this;
       }),
-      copy: vi.fn(function (this: Record<string, number>, source: { x: number; y: number; z: number; w: number }) {
+      copy: vi.fn(function (
+        this: Record<string, number>,
+        source: { x: number; y: number; z: number; w: number }
+      ) {
         this.x = source.x;
         this.y = source.y;
         this.z = source.z;

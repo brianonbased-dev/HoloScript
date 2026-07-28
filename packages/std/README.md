@@ -10,16 +10,16 @@ npm install @holoscript/std
 
 ## Entry Points
 
-| Import                                    | Description                            |
-| ----------------------------------------- | -------------------------------------- |
-| `@holoscript/std`                         | All utilities                          |
-| `@holoscript/std/math`                    | Math & vector operations               |
-| `@holoscript/std/collections`             | Immutable collections                  |
-| `@holoscript/std/string`                  | String manipulation                    |
-| `@holoscript/std/time`                    | Timers & scheduling                    |
-| `@holoscript/std/native/abi/scalar-v1.hs` | Executable cross-target i32 scalar ABI |
-| `@holoscript/std/native/abi/vector-v1.hs` | Executable cross-target i32 Vec3 ABI   |
-| `@holoscript/std/native/abi/collections-list3-v1.hs` | Executable immutable List3 i32 ABI |
+| Import                                               | Description                            |
+| ---------------------------------------------------- | -------------------------------------- |
+| `@holoscript/std`                                    | All utilities                          |
+| `@holoscript/std/math`                               | Math & vector operations               |
+| `@holoscript/std/collections`                        | Immutable collections                  |
+| `@holoscript/std/string`                             | String manipulation                    |
+| `@holoscript/std/time`                               | Timers & scheduling                    |
+| `@holoscript/std/native/abi/scalar-v1.hs`            | Executable cross-target i32 scalar ABI |
+| `@holoscript/std/native/abi/vector-v1.hs`            | Executable cross-target i32 Vec3 ABI   |
+| `@holoscript/std/native/abi/collections-list3-v1.hs` | Executable immutable List3 i32 ABI     |
 
 ## Core Types
 

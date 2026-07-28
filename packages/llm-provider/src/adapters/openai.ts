@@ -343,8 +343,7 @@ export function resolveOpenAIToolControls(
 ): { toolChoice: 'auto' | 'required' | 'none'; parallelToolCalls: boolean } {
   return {
     toolChoice: request.provider?.openai?.toolChoice ?? 'auto',
-    parallelToolCalls:
-      request.provider?.openai?.parallelToolCalls ?? defaultParallelToolCalls,
+    parallelToolCalls: request.provider?.openai?.parallelToolCalls ?? defaultParallelToolCalls,
   };
 }
 
@@ -356,10 +355,11 @@ function parseOpenAIUsage(value: unknown): TokenUsage {
   const reportedTotal = numberField(usage.total_tokens) ?? numberField(usage.totalTokens);
   const promptTokens = reportedPrompt ?? 0;
   const completionTokens = reportedCompletion ?? 0;
-  const totalTokens =
-    reportedTotal ?? promptTokens + completionTokens;
+  const totalTokens = reportedTotal ?? promptTokens + completionTokens;
 
-  return reportedPrompt === undefined && reportedCompletion === undefined && reportedTotal === undefined
+  return reportedPrompt === undefined &&
+    reportedCompletion === undefined &&
+    reportedTotal === undefined
     ? { promptTokens, completionTokens, totalTokens, reported: false }
     : { promptTokens, completionTokens, totalTokens };
 }
@@ -386,9 +386,7 @@ function mapOpenAIResponseFinishReason(
   return 'stop';
 }
 
-export function toolSpecsToOpenAIChatCompletionTools(
-  tools: ToolSpec[] = []
-): OpenAIResponseTool[] {
+export function toolSpecsToOpenAIChatCompletionTools(tools: ToolSpec[] = []): OpenAIResponseTool[] {
   return tools.map((tool) => ({
     type: 'function',
     function: {

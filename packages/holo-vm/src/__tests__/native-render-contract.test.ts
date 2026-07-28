@@ -108,13 +108,18 @@ describe('native render contract golden fixtures', () => {
     ['adapter-interaction-only', 'interaction'],
     ['adapter-timing-only', 'timing'],
     ['adapter-xr-only', 'xr'],
-  ] as const)('rejects %s because the semantic is owned by the adapter', (fixtureName, semantic) => {
-    const receipt = evaluateNativeRenderFixture(loadFixture(fixtureName));
+  ] as const)(
+    'rejects %s because the semantic is owned by the adapter',
+    (fixtureName, semantic) => {
+      const receipt = evaluateNativeRenderFixture(loadFixture(fixtureName));
 
-    expect(receipt.ok).toBe(false);
-    expect(failureFor(receipt.failures, 'ADAPTER_OWNED_SEMANTIC', semantic)).toBeDefined();
-    expect(failureFor(receipt.failures, 'SEMANTIC_NOT_DECLARED_IN_NATIVE_SOURCE', semantic)).toBeDefined();
-  });
+      expect(receipt.ok).toBe(false);
+      expect(failureFor(receipt.failures, 'ADAPTER_OWNED_SEMANTIC', semantic)).toBeDefined();
+      expect(
+        failureFor(receipt.failures, 'SEMANTIC_NOT_DECLARED_IN_NATIVE_SOURCE', semantic)
+      ).toBeDefined();
+    }
+  );
 
   it('rejects an R3F baseline semantic when JSX becomes the owner', () => {
     const fixture = loadFixture('r3f-baseline-source-owned');

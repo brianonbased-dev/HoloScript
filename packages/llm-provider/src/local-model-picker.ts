@@ -166,7 +166,10 @@ async function probeToolCall(baseURL: string, model: string, timeoutMs: number):
   const rawArgs = create.function?.arguments;
   let args: Record<string, unknown>;
   try {
-    args = typeof rawArgs === 'string' ? (JSON.parse(rawArgs) as Record<string, unknown>) : ((rawArgs ?? {}) as Record<string, unknown>);
+    args =
+      typeof rawArgs === 'string'
+        ? (JSON.parse(rawArgs) as Record<string, unknown>)
+        : ((rawArgs ?? {}) as Record<string, unknown>);
   } catch {
     return false;
   }

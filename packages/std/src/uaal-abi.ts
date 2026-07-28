@@ -682,9 +682,7 @@ export function registerHoloScriptStdUaalAggregateReferenceHandlers(
     );
     const leafType = operands[2];
     if (fields.length === 0 || fields.length !== indices.length || typeof leafType !== 'string') {
-      throw new Error(
-        `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} projection metadata is malformed`
-      );
+      throw new Error(`${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} projection metadata is malformed`);
     }
     return { fields, indices, leafType };
   };
@@ -699,11 +697,7 @@ export function registerHoloScriptStdUaalAggregateReferenceHandlers(
     for (let depth = 0; depth < fields.length; depth += 1) {
       const field = fields[depth];
       const index = indices[depth];
-      if (
-        index >= current.values.length ||
-        current.fields[index] !== field ||
-        index < 0
-      ) {
+      if (index >= current.values.length || current.fields[index] !== field || index < 0) {
         throw new Error(
           `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} projection descriptor mismatch at \`${field}\``
         );
@@ -717,12 +711,7 @@ export function registerHoloScriptStdUaalAggregateReferenceHandlers(
             `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} projection leaf descriptor mismatch at \`${field}\``
           );
         }
-        requireScalarField(
-          value,
-          leafType,
-          fields.join('.'),
-          HOLOSCRIPT_AGGREGATE_REFERENCE_ABI
-        );
+        requireScalarField(value, leafType, fields.join('.'), HOLOSCRIPT_AGGREGATE_REFERENCE_ABI);
         return value;
       }
       if (!isAggregateEnvelope(value) || value.layout !== descriptor) {
@@ -745,11 +734,7 @@ export function registerHoloScriptStdUaalAggregateReferenceHandlers(
   ): AggregateEnvelope => {
     const field = fields[depth];
     const index = indices[depth];
-    if (
-      index < 0 ||
-      index >= current.values.length ||
-      current.fields[index] !== field
-    ) {
+    if (index < 0 || index >= current.values.length || current.fields[index] !== field) {
       throw new Error(
         `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} projection descriptor mismatch at \`${field}\``
       );
@@ -777,14 +762,7 @@ export function registerHoloScriptStdUaalAggregateReferenceHandlers(
           `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} nested layout mismatch at \`${field}\``
         );
       }
-      values[index] = replacePath(
-        nested,
-        fields,
-        indices,
-        leafType,
-        replacement,
-        depth + 1
-      );
+      values[index] = replacePath(nested, fields, indices, leafType, replacement, depth + 1);
     }
     return Object.freeze({
       abi: current.abi,
@@ -816,9 +794,7 @@ export function registerHoloScriptStdUaalAggregateReferenceHandlers(
       }
       const state = rootLeases.get(rootKey) ?? { shared: 0, exclusive: false };
       if ((mutable && (state.exclusive || state.shared > 0)) || (!mutable && state.exclusive)) {
-        throw new Error(
-          `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} borrow conflict for \`${rootKey}\``
-        );
+        throw new Error(`${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} borrow conflict for \`${rootKey}\``);
       }
       if (mutable) state.exclusive = true;
       else state.shared += 1;
@@ -863,17 +839,12 @@ export function registerHoloScriptStdUaalAggregateReferenceHandlers(
     const replacement = proxy.pop();
     const { token } = requireActive(proxy.pop());
     if (!token.mutable) {
-      throw new Error(
-        `${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} store requires an exclusive borrow`
-      );
+      throw new Error(`${HOLOSCRIPT_AGGREGATE_REFERENCE_ABI} store requires an exclusive borrow`);
     }
     const { fields, indices, leafType } = projection(operands);
-    proxy.setContext(token.rootKey, replacePath(
-      rootValue(proxy, token),
-      fields,
-      indices,
-      leafType,
-      replacement
-    ));
+    proxy.setContext(
+      token.rootKey,
+      replacePath(rootValue(proxy, token), fields, indices, leafType, replacement)
+    );
   });
 }

@@ -148,7 +148,8 @@ export const HOLOLLAMA_BRAIN_CONSUMER_PROFILE_DEFINITIONS: Record<
     id: 'laptop-owned-metal',
     label: 'Laptop owned-metal Brain runtime',
     deviceClass: 'laptop',
-    description: 'Founder laptop Brain consumer for local validation, desktop work, and overflow reasoning.',
+    description:
+      'Founder laptop Brain consumer for local validation, desktop work, and overflow reasoning.',
     holoLlamaProfile: 'laptop-windows',
     deviceAliases: ['laptop', 'windows', 'rtx3060', 'laptop-rtx3060', 'workstation'],
   },
@@ -167,7 +168,8 @@ export const HOLOLLAMA_BRAIN_DEFINITIONS: Record<HoloLlamaBrainId, HoloLlamaBrai
     id: 'audio',
     displayName: 'Audio Brain',
     identityName: 'audio',
-    description: 'Game music, sound effects, ambience, spatial audio, and audio implementation planning.',
+    description:
+      'Game music, sound effects, ambience, spatial audio, and audio implementation planning.',
     packageName: '@holoscript/audio',
     version: '0.1.0',
     compositionStem: 'audio',
@@ -194,7 +196,8 @@ export const HOLOLLAMA_BRAIN_DEFINITIONS: Record<HoloLlamaBrainId, HoloLlamaBrai
     id: 'confounder',
     displayName: 'Confounder Brain',
     identityName: 'confounder',
-    description: 'Causal-claim guardrail for separating evidence, correlation, and unsupported improvement claims.',
+    description:
+      'Causal-claim guardrail for separating evidence, correlation, and unsupported improvement claims.',
     packageName: '@holoscript/confounder',
     version: '0.1.0',
     compositionStem: 'confounder',
@@ -202,7 +205,15 @@ export const HOLOLLAMA_BRAIN_DEFINITIONS: Record<HoloLlamaBrainId, HoloLlamaBrai
     instructionPath: 'skills/confounder/SKILL.md',
     trust: 'canonical',
     consumerProfileIds: ['jetson-edge', 'laptop-owned-metal', 'vast-sovereign-overflow'],
-    terms: ['caused', 'causal', 'causality', 'improved', 'correlation', 'confounder', 'unsupported claim'],
+    terms: [
+      'caused',
+      'causal',
+      'causality',
+      'improved',
+      'correlation',
+      'confounder',
+      'unsupported claim',
+    ],
   },
   'game-design': {
     id: 'game-design',
@@ -216,13 +227,23 @@ export const HOLOLLAMA_BRAIN_DEFINITIONS: Record<HoloLlamaBrainId, HoloLlamaBrai
     instructionPath: 'skills/game-design/SKILL.md',
     trust: 'canonical',
     consumerProfileIds: ['jetson-edge', 'laptop-owned-metal', 'vast-sovereign-overflow'],
-    terms: ['mechanic', 'loop', 'progression', 'balance', 'quest', 'reward', 'player', 'game design'],
+    terms: [
+      'mechanic',
+      'loop',
+      'progression',
+      'balance',
+      'quest',
+      'reward',
+      'player',
+      'game design',
+    ],
   },
   gamedev: {
     id: 'gamedev',
     displayName: 'GameDev Brain',
     identityName: 'gamedev',
-    description: 'Umbrella game-development Brain for general interactive, runtime, and playable work.',
+    description:
+      'Umbrella game-development Brain for general interactive, runtime, and playable work.',
     packageName: '@holoscript/gamedev',
     version: '0.1.0',
     compositionStem: 'gamedev',
@@ -230,13 +251,24 @@ export const HOLOLLAMA_BRAIN_DEFINITIONS: Record<HoloLlamaBrainId, HoloLlamaBrai
     instructionPath: 'skills/gamedev/SKILL.md',
     trust: 'canonical',
     consumerProfileIds: ['jetson-edge', 'laptop-owned-metal', 'vast-sovereign-overflow'],
-    terms: ['game', 'playable', 'unity', 'unreal', 'godot', 'webxr', 'runtime', 'prototype', 'interactive'],
+    terms: [
+      'game',
+      'playable',
+      'unity',
+      'unreal',
+      'godot',
+      'webxr',
+      'runtime',
+      'prototype',
+      'interactive',
+    ],
   },
   journalist: {
     id: 'journalist',
     displayName: 'Journalist Brain',
     identityName: 'journalist',
-    description: 'Investigative fact checking, claim verification, and evidence-backed shipped-work reporting.',
+    description:
+      'Investigative fact checking, claim verification, and evidence-backed shipped-work reporting.',
     packageName: '@holoscript/journalist',
     version: '0.1.0',
     compositionStem: 'journalist',
@@ -250,7 +282,8 @@ export const HOLOLLAMA_BRAIN_DEFINITIONS: Record<HoloLlamaBrainId, HoloLlamaBrai
     id: 'look-dev',
     displayName: 'Look Dev Brain',
     identityName: 'look-dev',
-    description: 'Rendered visuals, materials, lighting, composition, and visual-quality direction.',
+    description:
+      'Rendered visuals, materials, lighting, composition, and visual-quality direction.',
     packageName: '@holoscript/look-dev',
     version: '0.1.0',
     compositionStem: 'look-dev',
@@ -258,7 +291,17 @@ export const HOLOLLAMA_BRAIN_DEFINITIONS: Record<HoloLlamaBrainId, HoloLlamaBrai
     instructionPath: 'skills/look-dev/SKILL.md',
     trust: 'canonical',
     consumerProfileIds: ['jetson-edge', 'laptop-owned-metal', 'vast-sovereign-overflow'],
-    terms: ['render', 'visual', 'lighting', 'material', 'shader', 'look', 'composition', 'style', 'scene'],
+    terms: [
+      'render',
+      'visual',
+      'lighting',
+      'material',
+      'shader',
+      'look',
+      'composition',
+      'style',
+      'scene',
+    ],
   },
   narrative: {
     id: 'narrative',
@@ -272,13 +315,24 @@ export const HOLOLLAMA_BRAIN_DEFINITIONS: Record<HoloLlamaBrainId, HoloLlamaBrai
     instructionPath: 'skills/narrative/SKILL.md',
     trust: 'canonical',
     consumerProfileIds: ['jetson-edge', 'laptop-owned-metal', 'vast-sovereign-overflow'],
-    terms: ['story', 'lore', 'dialogue', 'character', 'quest', 'plot', 'narrative', 'voice', 'script'],
+    terms: [
+      'story',
+      'lore',
+      'dialogue',
+      'character',
+      'quest',
+      'plot',
+      'narrative',
+      'voice',
+      'script',
+    ],
   },
   netcode: {
     id: 'netcode',
     displayName: 'Netcode Brain',
     identityName: 'netcode',
-    description: 'Multiplayer architecture, shared sessions, authority, synchronization, and latency planning.',
+    description:
+      'Multiplayer architecture, shared sessions, authority, synchronization, and latency planning.',
     packageName: '@holoscript/netcode',
     version: '0.1.0',
     compositionStem: 'netcode',
@@ -286,13 +340,23 @@ export const HOLOLLAMA_BRAIN_DEFINITIONS: Record<HoloLlamaBrainId, HoloLlamaBrai
     instructionPath: 'skills/netcode/SKILL.md',
     trust: 'canonical',
     consumerProfileIds: ['jetson-edge', 'laptop-owned-metal', 'vast-sovereign-overflow'],
-    terms: ['multiplayer', 'network', 'netcode', 'replication', 'sync', 'latency', 'session', 'server authority'],
+    terms: [
+      'multiplayer',
+      'network',
+      'netcode',
+      'replication',
+      'sync',
+      'latency',
+      'session',
+      'server authority',
+    ],
   },
   'quantum-lab': {
     id: 'quantum-lab',
     displayName: 'Quantum Lab Brain',
     identityName: 'quantum-lab',
-    description: 'Quantum experiments, circuits, VQE, QPU/simulator routing, and hardware-backed receipts.',
+    description:
+      'Quantum experiments, circuits, VQE, QPU/simulator routing, and hardware-backed receipts.',
     packageName: '@holoscript/quantum-lab',
     version: '0.1.0',
     compositionStem: 'quantum-lab',
@@ -329,7 +393,10 @@ export function profileIdForHoloLlamaDevice(
   return undefined;
 }
 
-export function scoreHoloLlamaBrain(task: string, brain: HoloLlamaBrainDefinition): HoloLlamaBrainScore {
+export function scoreHoloLlamaBrain(
+  task: string,
+  brain: HoloLlamaBrainDefinition
+): HoloLlamaBrainScore {
   const normalizedTask = normalizeText(task);
   const matches = brain.terms.filter((term) => normalizedTask.includes(normalizeText(term)));
   if (normalizedTask.includes(normalizeText(brain.id)) && !matches.includes(brain.id)) {
@@ -353,29 +420,38 @@ export function scoreHoloLlamaBrains(task: string): HoloLlamaBrainScore[] {
     });
 }
 
-export function selectHoloLlamaBrain(options: SelectHoloLlamaBrainOptions): HoloLlamaBrainSelection {
+export function selectHoloLlamaBrain(
+  options: SelectHoloLlamaBrainOptions
+): HoloLlamaBrainSelection {
   const task = String(options.task || '').trim();
   if (!task) throw new Error('selectHoloLlamaBrain requires a non-empty task');
 
   const explicitBrain = normalizeSelector(options.requestedBrain ?? options.brain);
   const explicitSkill = normalizeSelector(options.requestedSkill ?? options.skill);
   const requested = explicitBrain || explicitSkill || 'auto';
-  const selectionPolicy = explicitBrain && explicitBrain !== 'auto'
-    ? 'explicit-brain'
-    : explicitSkill && explicitSkill !== 'auto'
-    ? 'explicit-skill-alias'
-    : 'keyword-score-default';
-  const explicitId = explicitBrain && explicitBrain !== 'auto'
-    ? assertBrainId(explicitBrain)
-    : explicitSkill && explicitSkill !== 'auto'
-    ? assertBrainId(explicitSkill)
-    : undefined;
+  const selectionPolicy =
+    explicitBrain && explicitBrain !== 'auto'
+      ? 'explicit-brain'
+      : explicitSkill && explicitSkill !== 'auto'
+        ? 'explicit-skill-alias'
+        : 'keyword-score-default';
+  const explicitId =
+    explicitBrain && explicitBrain !== 'auto'
+      ? assertBrainId(explicitBrain)
+      : explicitSkill && explicitSkill !== 'auto'
+        ? assertBrainId(explicitSkill)
+        : undefined;
 
   const scored = scoreHoloLlamaBrains(task);
   const selectedId = explicitId ?? (scored[0]?.value ? scored[0].id : DEFAULT_BRAIN_ID);
   const selected = HOLOLLAMA_BRAIN_DEFINITIONS[selectedId];
   const selectedScore = explicitId
-    ? { id: selectedId, value: 1000, matches: [requested], reason: `${selectionPolicy} requested ${requested}` }
+    ? {
+        id: selectedId,
+        value: 1000,
+        matches: [requested],
+        reason: `${selectionPolicy} requested ${requested}`,
+      }
     : (scored.find((score) => score.id === selectedId) ?? scoreHoloLlamaBrain(task, selected));
   const profileId = resolveBrainConsumerProfileId(options, selected);
   const selectedConsumerProfile = HOLOLLAMA_BRAIN_CONSUMER_PROFILE_DEFINITIONS[profileId];
@@ -468,7 +544,8 @@ function assertBrainId(value: string): HoloLlamaBrainId {
 }
 
 function assertBrainConsumerProfileId(value: string): HoloLlamaBrainConsumerProfileId {
-  if (value in HOLOLLAMA_BRAIN_CONSUMER_PROFILE_DEFINITIONS) return value as HoloLlamaBrainConsumerProfileId;
+  if (value in HOLOLLAMA_BRAIN_CONSUMER_PROFILE_DEFINITIONS)
+    return value as HoloLlamaBrainConsumerProfileId;
   throw new Error(`Unknown HoloLlama Brain consumer profile: ${value}`);
 }
 
@@ -481,5 +558,7 @@ function normalizeSelector(value?: string): string {
 }
 
 function normalizeText(value: string): string {
-  return String(value || '').toLowerCase().replace(/[_/]+/g, '-');
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[_/]+/g, '-');
 }

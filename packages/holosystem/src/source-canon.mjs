@@ -4,11 +4,7 @@ import { readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 
 export const HOLOSYSTEM_SOURCE_CANON_SCHEMA = 'holoscript.holosystem.source-canon.v1';
-export const HOLOSCRIPT_CANONICAL_SOURCE_EXTENSIONS = Object.freeze([
-  '.holo',
-  '.hs',
-  '.hsplus',
-]);
+export const HOLOSCRIPT_CANONICAL_SOURCE_EXTENSIONS = Object.freeze(['.holo', '.hs', '.hsplus']);
 
 const KNOWN_OPTIONS = new Set(['repository', 'trackedFiles', 'now']);
 const PORTABLE_ID = /^[a-z0-9][a-z0-9._-]{0,63}$/iu;
@@ -61,7 +57,9 @@ function normalizeTrackedPath(value) {
 }
 
 function sourceExtension(path) {
-  return HOLOSCRIPT_CANONICAL_SOURCE_EXTENSIONS.find((extension) => path.endsWith(extension)) ?? null;
+  return (
+    HOLOSCRIPT_CANONICAL_SOURCE_EXTENSIONS.find((extension) => path.endsWith(extension)) ?? null
+  );
 }
 
 function foreignExtension(path) {
@@ -149,12 +147,14 @@ function buildSourceCanonReport(options, { sources = {}, parser = null } = {}) {
         errors: [{ code: 'parser-threw', message: error?.message ?? String(error) }],
       };
     }
-    const errors = (Array.isArray(parsed?.errors) ? parsed.errors : []).slice(0, 8).map((error) => ({
-      code: error?.code ?? null,
-      message: error?.message ?? String(error),
-      line: Number.isInteger(error?.line) ? error.line : null,
-      column: Number.isInteger(error?.column) ? error.column : null,
-    }));
+    const errors = (Array.isArray(parsed?.errors) ? parsed.errors : [])
+      .slice(0, 8)
+      .map((error) => ({
+        code: error?.code ?? null,
+        message: error?.message ?? String(error),
+        line: Number.isInteger(error?.line) ? error.line : null,
+        column: Number.isInteger(error?.column) ? error.column : null,
+      }));
     const passed = parsed?.success === true && errors.length === 0;
     if (!passed) {
       issues.push({
@@ -255,9 +255,7 @@ export async function inspectGitTrackedSourceCanon({ rootDirectory = process.cwd
     id: PORTABLE_ID.test(idCandidate) ? idCandidate : 'workspace',
     head: runGit(root, ['rev-parse', 'HEAD']).trim(),
   };
-  const trackedFiles = runGit(root, ['ls-files', '-z'])
-    .split('\0')
-    .filter(Boolean);
+  const trackedFiles = runGit(root, ['ls-files', '-z']).split('\0').filter(Boolean);
   const sources = Object.fromEntries(
     trackedFiles
       .map(normalizeTrackedPath)

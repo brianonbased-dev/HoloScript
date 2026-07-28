@@ -196,7 +196,7 @@ save/load, and multiplayer sync are left to your own host application.
 This package does not ship the HoloScript Studio host shell, the plugin
 marketplace, or any founder-local scene/world content — it ships the editor
 UI, node registry, and codegen only, within this package boundary.
-`VisualProjectionManifest`/`createVisualRemixSeed()` describe how a *plugin*
+`VisualProjectionManifest`/`createVisualRemixSeed()` describe how a _plugin_
 can layer a base projection on top of this editor; the projection itself is
 caller-authored, not the package default.
 

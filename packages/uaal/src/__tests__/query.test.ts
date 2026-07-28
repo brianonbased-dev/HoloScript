@@ -97,7 +97,11 @@ describe('queryIR kind filter', () => {
   it('filters each kind', () => {
     expect(ids(queryIR(corpus, { kind: 'entity' }))).toEqual(['e_door', 'e_marin', 'e_door']);
     expect(ids(queryIR(corpus, { kind: 'event' }))).toEqual(['ev_open']);
-    expect(ids(queryIR(corpus, { kind: 'proposition' }))).toEqual(['p_door_open', 'p_wind', 'p_door_shut']);
+    expect(ids(queryIR(corpus, { kind: 'proposition' }))).toEqual([
+      'p_door_open',
+      'p_wind',
+      'p_door_shut',
+    ]);
     expect(ids(queryIR(corpus, { kind: 'belief' }))).toEqual(['b_marin', 'b_ghost']);
   });
 

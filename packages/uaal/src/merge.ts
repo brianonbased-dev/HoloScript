@@ -207,7 +207,7 @@ export function propositionPolarity(prop: Record<string, unknown>): 1 | -1 {
 /** True when two propositions share a statement core but disagree in polarity. */
 export function propositionsContradict(
   a: Record<string, unknown>,
-  b: Record<string, unknown>,
+  b: Record<string, unknown>
 ): boolean {
   const coreA = propositionCore(a);
   if (coreA === null) return false;
@@ -235,7 +235,7 @@ function mergeNodeCollection(
   listB: readonly unknown[],
   nodeKind: Exclude<UAALMergeNodeKind, 'field'>,
   suffix: string,
-  conflicts: UAALMergeConflict[],
+  conflicts: UAALMergeConflict[]
 ): CollectionMergeOutcome {
   const merged: unknown[] = [];
   const retainedA: unknown[] = [];
@@ -320,7 +320,7 @@ function crossContradictions(
   listB: readonly unknown[],
   retainedA: readonly unknown[],
   appendedB: readonly RetainedBNode[],
-  conflicts: UAALMergeConflict[],
+  conflicts: UAALMergeConflict[]
 ): void {
   const aCanonicals = new Set(listA.map((item) => canonical(item)));
   const bCanonicals = new Set(listB.map((item) => canonical(item)));
@@ -342,7 +342,7 @@ function crossContradictions(
           ? idA === idB
             ? idA
             : `${idA}~${idB}`
-          : idA ?? idB ?? propositionCore(x) ?? '';
+          : (idA ?? idB ?? propositionCore(x) ?? '');
       conflicts.push({
         id: conflictId,
         kind: 'contradiction',
@@ -385,7 +385,7 @@ function unionRecordArrays(listA: readonly unknown[], listB: readonly unknown[])
 export function mergeIR(
   a: UAALMergeableIR,
   b: UAALMergeableIR,
-  opts?: UAALMergeOptions,
+  opts?: UAALMergeOptions
 ): UAALMergeResult {
   const docA: Record<string, unknown> = isRecord(a) ? a : {};
   const docB: Record<string, unknown> = isRecord(b) ? b : {};
@@ -417,7 +417,7 @@ export function mergeIR(
       listB,
       nodeKind,
       suffix,
-      conflicts,
+      conflicts
     );
     out[key] = merged;
     if (nodeKind === 'proposition') {
@@ -440,7 +440,11 @@ export function mergeIR(
     }
   }
 
-  const takenKeys = new Set<string>([...Object.keys(docA), ...Object.keys(docB), ...Object.keys(out)]);
+  const takenKeys = new Set<string>([
+    ...Object.keys(docA),
+    ...Object.keys(docB),
+    ...Object.keys(out),
+  ]);
 
   for (const key of auxKeys) {
     const valueA = docA[key];

@@ -573,11 +573,7 @@ interface TraitRegistryBridge {
   traitExists(name: string): boolean;
   queryTrait(name: string, opts?: { target?: string }): TraitInfoResult;
   listTraitsForTarget(target: string): string[];
-  generateTraitForTarget(
-    name: string,
-    target: string,
-    config?: Record<string, unknown>
-  ): string[];
+  generateTraitForTarget(name: string, target: string, config?: Record<string, unknown>): string[];
 }
 
 const requireBridge = createRequire(import.meta.url);

@@ -247,7 +247,10 @@ test('runFrozenProviderEvaluation does not treat distinct labels as isolation pr
 
   assert.equal(serializedRequests.length, 2);
   assert.equal(serializedRequests[0], serializedRequests[1]);
-  assert.deepEqual(receipt.captures.map((capture) => capture.independent), [false, false]);
+  assert.deepEqual(
+    receipt.captures.map((capture) => capture.independent),
+    [false, false]
+  );
   assert.deepEqual(
     receipt.captures.map((capture) => capture.isolation.status),
     ['unverified', 'unverified']

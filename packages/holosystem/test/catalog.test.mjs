@@ -88,7 +88,9 @@ test('catalog keeps rails separate and projects proof, lineage, and activity sta
     mcpHealth: { tools: 9, version: '1.0.0' },
     skills: { ok: true, count: 3 },
     lineage,
-    activeProofBatches: [{ id: 'slice-1', packageCount: 4, status: 'running', secret: 'do-not-project' }],
+    activeProofBatches: [
+      { id: 'slice-1', packageCount: 4, status: 'running', secret: 'do-not-project' },
+    ],
     promotionHistory: [{ id: 'promotion-1', status: 'admitted', secret: 'do-not-project' }],
     evidence: {
       operatingSet: 'consumer/package-manifest.json',
@@ -214,13 +216,16 @@ test('bounded next-work selection excludes active batches and names stop conditi
 test('bounded next-work sends failed artifacts to contract repair first', () => {
   const failedPortfolio = {
     ...portfolio,
-    packages: [...portfolio.packages, {
-      ecosystem: 'npm',
-      name: '@example/failed',
-      expectedVersion: '1.0.0',
-      classification: 'failed',
-      issues: ['import-failed', 'readback-failed'],
-    }],
+    packages: [
+      ...portfolio.packages,
+      {
+        ecosystem: 'npm',
+        name: '@example/failed',
+        expectedVersion: '1.0.0',
+        classification: 'failed',
+        issues: ['import-failed', 'readback-failed'],
+      },
+    ],
   };
   const lineage = buildSourceLineageReceipt({
     portfolio: failedPortfolio,
@@ -242,12 +247,14 @@ test('registry lineage queries the expected artifact and preserves integrity and
   const urls = [];
   const receipt = await discoverSourceLineage({
     portfolio: {
-      packages: [{
-        ecosystem: 'npm',
-        name: '@example/stale',
-        expectedVersion: '2.0.0',
-        observedVersion: '1.9.0',
-      }],
+      packages: [
+        {
+          ecosystem: 'npm',
+          name: '@example/stale',
+          expectedVersion: '2.0.0',
+          observedVersion: '1.9.0',
+        },
+      ],
     },
     fetchImpl: async (url) => {
       urls.push(url);
@@ -308,7 +315,10 @@ test('consumer input rejects local specs and hashes stable public evidence', () 
     '@example/local': 'file:C:/private/package.tgz',
   });
   assert.equal(rejected.ready, false);
-  assert.deepEqual(rejected.issues.map((issue) => issue.name), ['@example/local']);
+  assert.deepEqual(
+    rejected.issues.map((issue) => issue.name),
+    ['@example/local']
+  );
 
   const left = hashConsumerInput({
     dependencies: { b: '2.0.0', a: '1.0.0' },

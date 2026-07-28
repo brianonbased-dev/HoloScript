@@ -31,18 +31,41 @@ function claimedTask(overrides: Partial<TeamTask> = {}): TeamTask {
 
 describe('isFabricatedEvidence (trust-audit 2026-07-13)', () => {
   it('rejects the runner auto-closeout template and its variants', () => {
-    expect(isFabricatedEvidence('Task completed via tool calls. Artifact written (tool_iters:3).').fabricated).toBe(true);
-    expect(isFabricatedEvidence('UNVERIFIED-ARTIFACT-ONLY: wrote /mnt/x.json (tool_iters:3; no commit; no test/receipt evidence).').fabricated).toBe(true);
-    expect(isFabricatedEvidence('Vision analysis complete. Fara-7B caption written to output file (tool_iters:3).').fabricated).toBe(true);
+    expect(
+      isFabricatedEvidence('Task completed via tool calls. Artifact written (tool_iters:3).')
+        .fabricated
+    ).toBe(true);
+    expect(
+      isFabricatedEvidence(
+        'UNVERIFIED-ARTIFACT-ONLY: wrote /mnt/x.json (tool_iters:3; no commit; no test/receipt evidence).'
+      ).fabricated
+    ).toBe(true);
+    expect(
+      isFabricatedEvidence(
+        'Vision analysis complete. Fara-7B caption written to output file (tool_iters:3).'
+      ).fabricated
+    ).toBe(true);
     expect(isFabricatedEvidence('[tool_use read_file {"path":"/tmp/x"}]').fabricated).toBe(true);
-    expect(isFabricatedEvidence('Access denied to agent output directories. Task cannot proceed.').fabricated).toBe(true);
-    expect(isFabricatedEvidence('I cannot write to /mnt/nvme/... — outside the allowed write roots').fabricated).toBe(true);
+    expect(
+      isFabricatedEvidence('Access denied to agent output directories. Task cannot proceed.')
+        .fabricated
+    ).toBe(true);
+    expect(
+      isFabricatedEvidence('I cannot write to /mnt/nvme/... — outside the allowed write roots')
+        .fabricated
+    ).toBe(true);
     expect(isFabricatedEvidence('Wrote verification evidence').fabricated).toBe(true);
   });
 
   it('passes substantive evidence (control)', () => {
-    expect(isFabricatedEvidence('pnpm exec vitest run — 247/247 green; commit e4bff84ee; tsc exit 0').fabricated).toBe(false);
-    expect(isFabricatedEvidence('node scripts/x.mjs; git diff --check; nvidia-smi timestamp=...').fabricated).toBe(false);
+    expect(
+      isFabricatedEvidence('pnpm exec vitest run — 247/247 green; commit e4bff84ee; tsc exit 0')
+        .fabricated
+    ).toBe(false);
+    expect(
+      isFabricatedEvidence('node scripts/x.mjs; git diff --check; nvidia-smi timestamp=...')
+        .fabricated
+    ).toBe(false);
   });
 
   it('rejects plausible-looking placeholder closeouts (trust-audit 2026-07-25)', () => {
@@ -115,7 +138,15 @@ describe('claim TTL + cap primitives (trust-audit 2026-07-13)', () => {
     const r = reopenTask([t], 'r1');
     expect(r.success).toBe(true);
     expect(t.status).toBe('open');
-    for (const f of ['claimedBy', 'claimedByName', 'claimedByTag', 'claimLeaseId', 'claimLeaseExpiresAt', 'claimSessionId', 'claimedAt'] as const) {
+    for (const f of [
+      'claimedBy',
+      'claimedByName',
+      'claimedByTag',
+      'claimLeaseId',
+      'claimLeaseExpiresAt',
+      'claimSessionId',
+      'claimedAt',
+    ] as const) {
       expect(t[f]).toBeUndefined();
     }
   });

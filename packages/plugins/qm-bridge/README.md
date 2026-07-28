@@ -13,11 +13,7 @@ npm install @holoscript/qm-bridge
 ## Use
 
 ```ts
-import {
-  createQmSolver,
-  groupPauliTerms,
-  selectQmBackend,
-} from '@holoscript/qm-bridge';
+import { createQmSolver, groupPauliTerms, selectQmBackend } from '@holoscript/qm-bridge';
 ```
 
 ## Package Surface

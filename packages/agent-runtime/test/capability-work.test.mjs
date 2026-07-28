@@ -58,7 +58,10 @@ test('expired Jetson lease fails over once without duplicate completion', async 
     idempotencyKey: 'failover',
     requiredCapabilities: ['cpu'],
   });
-  const jetson = await store.claim({ id: 'jetson', capabilities: ['cpu', 'edge'] }, { leaseMs: 1000 });
+  const jetson = await store.claim(
+    { id: 'jetson', capabilities: ['cpu', 'edge'] },
+    { leaseMs: 1000 }
+  );
   assert.equal(jetson.attempts, 1);
   assert.equal(await store.claim({ id: 'railway', capabilities: ['cpu', 'cloud'] }), null);
   clock += 1001;
@@ -71,12 +74,16 @@ test('expired Jetson lease fails over once without duplicate completion', async 
     leaseToken: cloud.leaseToken,
     result: { recovered: true },
   });
-  await assert.rejects(() => store.complete({
-    workId: jetson.id,
-    workerId: 'jetson',
-    leaseToken: jetson.leaseToken,
-    result: { duplicate: true },
-  }), /not leased|ownership mismatch/u);
+  await assert.rejects(
+    () =>
+      store.complete({
+        workId: jetson.id,
+        workerId: 'jetson',
+        leaseToken: jetson.leaseToken,
+        result: { duplicate: true },
+      }),
+    /not leased|ownership mismatch/u
+  );
   const completed = await store.list({ status: 'completed' });
   assert.equal(completed.length, 1);
   assert.deepEqual(completed[0].result, { recovered: true });
@@ -110,7 +117,11 @@ test('handler failure is receipted and safely requeues bounded work', async () =
   const receipt = await runCapabilityWorkerTick({
     store,
     worker: { id: 'cloud', capabilities: [] },
-    handlers: { broken: async () => { throw new Error('boom'); } },
+    handlers: {
+      broken: async () => {
+        throw new Error('boom');
+      },
+    },
   });
   assert.equal(receipt.status, 'failed');
   assert.equal(receipt.work.nextStatus, 'queued');
@@ -134,8 +145,15 @@ test('worker tick renews long leases and writes through an optional receipt sink
     worker: { id: 'cloud', capabilities: ['cpu'] },
     leaseMs: 30,
     heartbeatMs: 5,
-    handlers: { slow: async () => new Promise((resolve) => setTimeout(() => resolve({ ok: true }), 18)) },
-    receipts: { async write(value) { written.push(value); return 'receipt:slow'; } },
+    handlers: {
+      slow: async () => new Promise((resolve) => setTimeout(() => resolve({ ok: true }), 18)),
+    },
+    receipts: {
+      async write(value) {
+        written.push(value);
+        return 'receipt:slow';
+      },
+    },
   });
   assert.equal(receipt.status, 'executed');
   assert.ok(renewals >= 1);
@@ -152,26 +170,28 @@ test('Postgres claim SQL reaps terminal leases, scores preferences, and uses SKI
       queries.push({ sql, params });
       if (/RETURNING work\.\*/u.test(sql)) {
         return {
-          rows: [{
-            id: 'work-pg',
-            workspace_id: 'test',
-            idempotency_key: 'pg-claim',
-            kind: 'probe',
-            required_capabilities: ['cpu'],
-            preferred_capabilities: ['cloud'],
-            payload: {},
-            status: 'leased',
-            priority: 5,
-            attempts: 2,
-            max_attempts: 3,
-            lease_owner: 'railway',
-            lease_token: 'token',
-            lease_expires_at: '2026-07-13T00:01:00.000Z',
-            result: null,
-            error: 'prior lease expired',
-            created_at: now,
-            updated_at: now,
-          }],
+          rows: [
+            {
+              id: 'work-pg',
+              workspace_id: 'test',
+              idempotency_key: 'pg-claim',
+              kind: 'probe',
+              required_capabilities: ['cpu'],
+              preferred_capabilities: ['cloud'],
+              payload: {},
+              status: 'leased',
+              priority: 5,
+              attempts: 2,
+              max_attempts: 3,
+              lease_owner: 'railway',
+              lease_token: 'token',
+              lease_expires_at: '2026-07-13T00:01:00.000Z',
+              result: null,
+              error: 'prior lease expired',
+              created_at: now,
+              updated_at: now,
+            },
+          ],
         };
       }
       return { rows: [] };

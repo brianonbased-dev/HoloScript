@@ -45,7 +45,7 @@ const response = await provider.complete(
       openai: { toolChoice: 'required', parallelToolCalls: false },
     },
   },
-  callerSelectedModel,
+  callerSelectedModel
 );
 ```
 
@@ -79,7 +79,7 @@ import { resolveSovereignProviderAsync } from '@holoscript/llm-provider';
 const resolved = await resolveSovereignProviderAsync();
 const response = await resolved.provider.complete(
   { messages: [{ role: 'user', content: 'Return one bounded next action.' }] },
-  resolved.model,
+  resolved.model
 );
 ```
 
@@ -134,4 +134,4 @@ at your own nodes before use.
 **Known limitations:** provider capability manifests track a moving vendor
 target and may lag the latest model releases; cost-guard figures are heuristic
 estimates, not billed amounts; local/fleet routing assumes reachable endpoints
-that *you* supply. Interfaces may change before the v1 release.
+that _you_ supply. Interfaces may change before the v1 release.

@@ -225,7 +225,11 @@ describe('HoloShell cloud permission cleanup receipts', () => {
       absolutePathCaptured: true,
     };
 
-    expect(validateProviderMetadataInventoryWitnessReceipt(witness as unknown as ProviderMetadataInventoryWitnessReceipt)).toEqual(
+    expect(
+      validateProviderMetadataInventoryWitnessReceipt(
+        witness as unknown as ProviderMetadataInventoryWitnessReceipt
+      )
+    ).toEqual(
       expect.arrayContaining([
         'ProviderMetadataInventoryWitnessReceipt.fieldAllowlist[1] contains blocked field: files[].content.',
         'ProviderMetadataInventoryWitnessReceipt.fieldAllowlist[2] contains blocked field: access_token.',
@@ -306,7 +310,10 @@ describe('HoloShell cloud permission cleanup receipts', () => {
       hiddenAutomationUsed: true,
       rawCredentialCaptured: true,
     };
-    const errors = validateCloudPermissionRevokePlanReceipt(plan as unknown as CloudPermissionRevokePlanReceipt, validPack.exposureDiff);
+    const errors = validateCloudPermissionRevokePlanReceipt(
+      plan as unknown as CloudPermissionRevokePlanReceipt,
+      validPack.exposureDiff
+    );
     expect(errors).toEqual(
       expect.arrayContaining([
         'CloudPermissionRevokePlanReceipt.bulkMutationRequested must be false.',

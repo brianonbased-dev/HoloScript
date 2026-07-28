@@ -235,7 +235,11 @@ describe('validateProcessHealthReceipt', () => {
   });
 
   it('rejects wrong schema version', () => {
-    const errors = validateProcessHealthReceipt(makeProcessHealth({ schemaVersion: 'wrong' as unknown as typeof HOLOSHELL_SLOW_COMPUTER_CLINIC_RECEIPT_VERSION }));
+    const errors = validateProcessHealthReceipt(
+      makeProcessHealth({
+        schemaVersion: 'wrong' as unknown as typeof HOLOSHELL_SLOW_COMPUTER_CLINIC_RECEIPT_VERSION,
+      })
+    );
     expect(errors.some((e) => e.includes('schemaVersion'))).toBe(true);
   });
 

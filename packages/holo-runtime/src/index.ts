@@ -240,11 +240,23 @@ export class HoloRuntimeDecoder {
       for (let index = 0; index < mlpHidden.length; index += 1) {
         mlpHidden[index] = geluErf(mlpHidden[index] ?? 0);
       }
-      const mlpOut = linearSequence(mlpHidden, tokens, config.nEmbd * 4, block.mlp2Weight, block.mlp2Bias);
+      const mlpOut = linearSequence(
+        mlpHidden,
+        tokens,
+        config.nEmbd * 4,
+        block.mlp2Weight,
+        block.mlp2Bias
+      );
       addInPlace(x, mlpOut);
     }
 
-    const normalized = layerNormSequence(x, tokens, config.nEmbd, weights.lnfWeight, weights.lnfBias);
+    const normalized = layerNormSequence(
+      x,
+      tokens,
+      config.nEmbd,
+      weights.lnfWeight,
+      weights.lnfBias
+    );
     const logits = linearSequence(normalized, tokens, config.nEmbd, weights.headWeight);
     return { logits, shape: [tokens, config.vocabSize] };
   }
@@ -255,7 +267,11 @@ export class HoloRuntimeDecoder {
     return result.logits.slice(result.logits.length - vocab);
   }
 
-  decodeToken(tokenId: number, cache: HoloRuntimeKvCache, position = cache.layers[0]?.length ?? 0): Float32Array {
+  decodeToken(
+    tokenId: number,
+    cache: HoloRuntimeKvCache,
+    position = cache.layers[0]?.length ?? 0
+  ): Float32Array {
     const { config, weights } = this;
     assertTokenId(tokenId, config.vocabSize);
     if (position < 0 || position >= config.blockSize) {
@@ -288,7 +304,10 @@ export class HoloRuntimeDecoder {
     return linearVector(layerNormVector(x, weights.lnfWeight, weights.lnfBias), weights.headWeight);
   }
 
-  prefill(inputIds: readonly number[], cache = this.createKvCache()): { logits: Float32Array; cache: HoloRuntimeKvCache } {
+  prefill(
+    inputIds: readonly number[],
+    cache = this.createKvCache()
+  ): { logits: Float32Array; cache: HoloRuntimeKvCache } {
     assertTokenWindow(inputIds, this.config);
     let logits = this.decodeToken(inputIds[0] ?? 0, cache, 0);
     for (let index = 1; index < inputIds.length; index += 1) {
@@ -337,10 +356,16 @@ export function loadHoloRunnerS0Checkpoint(raw: unknown): LoadedHoloRunnerS0 {
   if (!isTensorMap(model) && !isTensorMap(state)) {
     throw new Error('checkpoint requires model or state tensor map');
   }
-  return loadHoloRunnerS0StateDict({ config, state: isTensorMap(state) ? state : undefined, model: isTensorMap(model) ? model : undefined });
+  return loadHoloRunnerS0StateDict({
+    config,
+    state: isTensorMap(state) ? state : undefined,
+    model: isTensorMap(model) ? model : undefined,
+  });
 }
 
-export async function loadHoloRunnerTokenizer(options: { modulePath?: string } = {}): Promise<HoloRunnerTokenizerBridge> {
+export async function loadHoloRunnerTokenizer(
+  options: { modulePath?: string } = {}
+): Promise<HoloRunnerTokenizerBridge> {
   const modulePath = resolveTokenizerModulePath(options.modulePath);
   const moduleRecord = (await import(pathToFileURL(modulePath).href)) as Record<string, unknown>;
   const encode = moduleRecord.encode;
@@ -418,11 +443,16 @@ export function sampleFromLogits(logits: Float32Array, options: SampleOptions = 
     for (let index = 1; index < logits.length; index += 1) {
       if ((logits[index] ?? -Infinity) > (logits[tokenId] ?? -Infinity)) tokenId = index;
     }
-    return { tokenId, probability: 1, candidates: [{ tokenId, probability: 1, logit: logits[tokenId] ?? 0 }] };
+    return {
+      tokenId,
+      probability: 1,
+      candidates: [{ tokenId, probability: 1, logit: logits[tokenId] ?? 0 }],
+    };
   }
-  const sorted = Array.from(logits, (logit, tokenId) => ({ tokenId, logit: logit / temperature })).sort(
-    (left, right) => right.logit - left.logit
-  );
+  const sorted = Array.from(logits, (logit, tokenId) => ({
+    tokenId,
+    logit: logit / temperature,
+  })).sort((left, right) => right.logit - left.logit);
   const candidates = topK > 0 ? sorted.slice(0, Math.max(1, topK)) : sorted;
   const probabilities = softmaxArray(candidates.map((candidate) => candidate.logit));
   let cursor = Math.min(Math.max(rng(), 0), 0.999999999);
@@ -462,8 +492,10 @@ export function matmul(
   right: Float32Array,
   rightCols: number
 ): Float32Array {
-  if (left.length !== leftRows * leftCols) throw new Error('left matrix shape does not match data length');
-  if (right.length !== leftCols * rightCols) throw new Error('right matrix shape does not match data length');
+  if (left.length !== leftRows * leftCols)
+    throw new Error('left matrix shape does not match data length');
+  if (right.length !== leftCols * rightCols)
+    throw new Error('right matrix shape does not match data length');
   const out = new Float32Array(leftRows * rightCols);
   for (let row = 0; row < leftRows; row += 1) {
     for (let column = 0; column < rightCols; column += 1) {
@@ -515,7 +547,8 @@ export function layerNormVector(
   const scale = 1 / Math.sqrt(variance + epsilon);
   const out = new Float32Array(width);
   for (let index = 0; index < width; index += 1) {
-    out[index] = ((input[index] ?? 0) - mean) * scale * (weight.data[index] ?? 0) + (bias.data[index] ?? 0);
+    out[index] =
+      ((input[index] ?? 0) - mean) * scale * (weight.data[index] ?? 0) + (bias.data[index] ?? 0);
   }
   return out;
 }
@@ -557,9 +590,15 @@ function loadWeights(
     blocks.push({
       ln1Weight: stateTensor(state, `${prefix}.ln1.weight`, [config.nEmbd]),
       ln1Bias: stateTensor(state, `${prefix}.ln1.bias`, [config.nEmbd]),
-      attnInProjWeight: stateTensor(state, `${prefix}.attn.in_proj_weight`, [3 * config.nEmbd, config.nEmbd]),
+      attnInProjWeight: stateTensor(state, `${prefix}.attn.in_proj_weight`, [
+        3 * config.nEmbd,
+        config.nEmbd,
+      ]),
       attnInProjBias: stateTensor(state, `${prefix}.attn.in_proj_bias`, [3 * config.nEmbd]),
-      attnOutProjWeight: stateTensor(state, `${prefix}.attn.out_proj.weight`, [config.nEmbd, config.nEmbd]),
+      attnOutProjWeight: stateTensor(state, `${prefix}.attn.out_proj.weight`, [
+        config.nEmbd,
+        config.nEmbd,
+      ]),
       attnOutProjBias: stateTensor(state, `${prefix}.attn.out_proj.bias`, [config.nEmbd]),
       ln2Weight: stateTensor(state, `${prefix}.ln2.weight`, [config.nEmbd]),
       ln2Bias: stateTensor(state, `${prefix}.ln2.bias`, [config.nEmbd]),
@@ -605,10 +644,14 @@ function tensorFrom(input: TensorInput, name: string, expectedShape: readonly nu
   const data = flattenTensorData(payload);
   const expectedSize = expectedShape.reduce((total, value) => total * value, 1);
   if (data.length !== expectedSize) {
-    throw new Error(`${name} expected ${expectedSize} values for shape [${expectedShape.join(', ')}], got ${data.length}`);
+    throw new Error(
+      `${name} expected ${expectedSize} values for shape [${expectedShape.join(', ')}], got ${data.length}`
+    );
   }
   if (shape.join('x') !== expectedShape.join('x')) {
-    throw new Error(`${name} expected shape [${expectedShape.join(', ')}], got [${shape.join(', ')}]`);
+    throw new Error(
+      `${name} expected shape [${expectedShape.join(', ')}], got [${shape.join(', ')}]`
+    );
   }
   return { data, shape: [...expectedShape] };
 }
@@ -639,7 +682,8 @@ function inferShape(input: TensorInputData): number[] {
   const firstShape = inferShape(input[0] as TensorInputData);
   for (const item of input.slice(1)) {
     const itemShape = inferShape(item as TensorInputData);
-    if (itemShape.join('x') !== firstShape.join('x')) throw new Error('ragged tensor arrays are not supported');
+    if (itemShape.join('x') !== firstShape.join('x'))
+      throw new Error('ragged tensor arrays are not supported');
   }
   return [input.length, ...firstShape];
 }
@@ -675,7 +719,10 @@ function layerNormSequence(
 ): Float32Array {
   const out = new Float32Array(input.length);
   for (let row = 0; row < rows; row += 1) {
-    out.set(layerNormVector(input.slice(row * width, row * width + width), weight, bias), row * width);
+    out.set(
+      layerNormVector(input.slice(row * width, row * width + width), weight, bias),
+      row * width
+    );
   }
   return out;
 }
@@ -690,7 +737,11 @@ function linearSequence(
   const outputWidth = weight.shape[0]!;
   const out = new Float32Array(rows * outputWidth);
   for (let row = 0; row < rows; row += 1) {
-    const vector = linearVector(input.slice(row * inputWidth, row * inputWidth + inputWidth), weight, bias);
+    const vector = linearVector(
+      input.slice(row * inputWidth, row * inputWidth + inputWidth),
+      weight,
+      bias
+    );
     out.set(vector, row * outputWidth);
   }
   return out;
@@ -704,7 +755,7 @@ function linearVector(input: Float32Array, weight: Tensor, bias?: Tensor): Float
   }
   const out = new Float32Array(outputWidth);
   for (let row = 0; row < outputWidth; row += 1) {
-    let sum = bias ? bias.data[row] ?? 0 : 0;
+    let sum = bias ? (bias.data[row] ?? 0) : 0;
     for (let column = 0; column < inputWidth; column += 1) {
       sum += (weight.data[row * inputWidth + column] ?? 0) * (input[column] ?? 0);
     }
@@ -719,7 +770,13 @@ function causalSelfAttentionSequence(
   config: HoloRunnerS0Config,
   block: HoloRunnerS0BlockWeights
 ): Float32Array {
-  const qkv = linearSequence(input, tokens, config.nEmbd, block.attnInProjWeight, block.attnInProjBias);
+  const qkv = linearSequence(
+    input,
+    tokens,
+    config.nEmbd,
+    block.attnInProjWeight,
+    block.attnInProjBias
+  );
   const context = new Float32Array(tokens * config.nEmbd);
   const headDim = config.nEmbd / config.nHead;
   const scale = 1 / Math.sqrt(headDim);
@@ -746,7 +803,13 @@ function causalSelfAttentionSequence(
       }
     }
   }
-  return linearSequence(context, tokens, config.nEmbd, block.attnOutProjWeight, block.attnOutProjBias);
+  return linearSequence(
+    context,
+    tokens,
+    config.nEmbd,
+    block.attnOutProjWeight,
+    block.attnOutProjBias
+  );
 }
 
 function cachedSelfAttention(
@@ -773,7 +836,8 @@ function cachedSelfAttention(
     for (let dim = 0; dim < headDim; dim += 1) {
       let value = 0;
       for (let source = 0; source < layer.length; source += 1) {
-        value += (probs[source] ?? 0) * (layer.values[source * config.nEmbd + head * headDim + dim] ?? 0);
+        value +=
+          (probs[source] ?? 0) * (layer.values[source * config.nEmbd + head * headDim + dim] ?? 0);
       }
       out[head * headDim + dim] = value;
     }
@@ -803,10 +867,9 @@ function erf(x: number): number {
   const t = 1 / (1 + 0.3275911 * ax);
   const y =
     1 -
-    (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t +
-      0.254829592) *
+    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) *
       t *
-      Math.exp(-ax * ax));
+      Math.exp(-ax * ax);
   return sign * y;
 }
 

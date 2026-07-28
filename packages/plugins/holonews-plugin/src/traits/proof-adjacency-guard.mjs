@@ -69,25 +69,25 @@ export function auditReceiptForWallInvariant(receipt) {
     if (!receipt.notProvenWall || receipt.notProvenWall.trim() === '') {
       violations.push(
         `Receipt ${receipt.receiptId}: verdict is "proven" but notProvenWall is absent or empty. ` +
-          `The proof-adjacency wall cannot be rendered — badge will be suppressed on all targets.`,
+          `The proof-adjacency wall cannot be rendered — badge will be suppressed on all targets.`
       );
     }
     if (!receipt.verifyUrl || !receipt.verifyUrl.startsWith('http')) {
       violations.push(
         `Receipt ${receipt.receiptId}: verdict is "proven" but verifyUrl is missing or invalid. ` +
-          `Readers cannot independently re-run the proof.`,
+          `Readers cannot independently re-run the proof.`
       );
     }
     if (!receipt.hashChainValid) {
       violations.push(
         `Receipt ${receipt.receiptId}: verdict is "proven" but hashChainValid is false. ` +
-          `This is a contradictory state — the receipt is structurally corrupt.`,
+          `This is a contradictory state — the receipt is structurally corrupt.`
       );
     }
     if (!receipt.replayValid) {
       violations.push(
         `Receipt ${receipt.receiptId}: verdict is "proven" but replayValid is false. ` +
-          `This is a contradictory state — the receipt is structurally corrupt.`,
+          `This is a contradictory state — the receipt is structurally corrupt.`
       );
     }
   }

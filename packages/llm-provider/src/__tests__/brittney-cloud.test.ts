@@ -161,7 +161,10 @@ describe('BrittneyCloudAdapter — complete()', () => {
     fetchMock = mockFetchSSE(sse);
     vi.stubGlobal('fetch', fetchMock);
 
-    await adapter.complete({ messages: [{ role: 'user', content: 'hard question' }] }, 'brittney-pro');
+    await adapter.complete(
+      { messages: [{ role: 'user', content: 'hard question' }] },
+      'brittney-pro'
+    );
 
     const body = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string);
     expect(body.model).toBeUndefined();

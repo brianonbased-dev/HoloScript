@@ -14,13 +14,16 @@ describe('AgentKitIntegration public safety contract', () => {
   it('rejects simulated settlement from the default live mode', async () => {
     const integration = new AgentKitIntegration(options());
     await expect(integration.trade('agent', 'USDC', 'ETH', 1)).rejects.toThrow(
-      'no audited live settlement implementation',
+      'no audited live settlement implementation'
     );
   });
 
   it('labels explicitly enabled simulation results', async () => {
     const integration = new AgentKitIntegration(options('simulation'));
-    const wallet = await integration.initializeAgentWallet({ agent_id: 'agent', initial_balance: 0 });
+    const wallet = await integration.initializeAgentWallet({
+      agent_id: 'agent',
+      initial_balance: 0,
+    });
     const trade = await integration.trade('agent', 'USDC', 'ETH', 1);
     const payment = await integration.pay_x402('agent', {
       endpoint: 'https://example.test',

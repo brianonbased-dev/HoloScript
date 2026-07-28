@@ -6,7 +6,8 @@
  * validation, runtime/render, interaction, and receipts.
  */
 
-export const ENTERPRISE_PACKAGE_GATE_SCHEMA_VERSION = 'holoscript.enterprise-package-gate.v1' as const;
+export const ENTERPRISE_PACKAGE_GATE_SCHEMA_VERSION =
+  'holoscript.enterprise-package-gate.v1' as const;
 
 export type EnterprisePackageGateSchemaVersion = typeof ENTERPRISE_PACKAGE_GATE_SCHEMA_VERSION;
 
@@ -108,7 +109,7 @@ function nonEmptyArray(value: unknown): value is unknown[] {
 function pushRequiredString(
   errors: EnterprisePackageGateValidationIssue[],
   path: string,
-  value: unknown,
+  value: unknown
 ): void {
   if (!hasText(value)) errors.push({ path, message: 'Expected a non-empty string.' });
 }
@@ -116,7 +117,7 @@ function pushRequiredString(
 function pushRequiredArray(
   errors: EnterprisePackageGateValidationIssue[],
   path: string,
-  value: unknown,
+  value: unknown
 ): void {
   if (!nonEmptyArray(value)) errors.push({ path, message: 'Expected a non-empty array.' });
 }
@@ -130,7 +131,7 @@ function stringArray(value: unknown): string[] {
 }
 
 function manifestRecord(
-  value: unknown,
+  value: unknown
 ): (Partial<EnterprisePackageGateManifest> & Record<string, unknown>) | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Partial<EnterprisePackageGateManifest> & Record<string, unknown>)
@@ -139,7 +140,7 @@ function manifestRecord(
 
 function validateWorkflow(
   errors: EnterprisePackageGateValidationIssue[],
-  workflow: EnterprisePackageWorkflow | undefined,
+  workflow: EnterprisePackageWorkflow | undefined
 ): void {
   if (!workflow || typeof workflow !== 'object') {
     errors.push({ path: 'businessWorkflow', message: 'Expected a workflow object.' });
@@ -153,10 +154,13 @@ function validateWorkflow(
 
 function validatePackages(
   errors: EnterprisePackageGateValidationIssue[],
-  packages: EnterprisePackageDependencyGate[] | undefined,
+  packages: EnterprisePackageDependencyGate[] | undefined
 ): void {
   if (!nonEmptyArray(packages)) {
-    errors.push({ path: 'holoscriptPackages', message: 'Expected at least one HoloScript package.' });
+    errors.push({
+      path: 'holoscriptPackages',
+      message: 'Expected at least one HoloScript package.',
+    });
     return;
   }
   for (const [index, pkg] of packages.entries()) {
@@ -174,7 +178,7 @@ function validatePackages(
 function validateBenchmarkGates(
   errors: EnterprisePackageGateValidationIssue[],
   warnings: EnterprisePackageGateValidationIssue[],
-  gates: EnterprisePackageBenchmarkGate[] | undefined,
+  gates: EnterprisePackageBenchmarkGate[] | undefined
 ): void {
   if (!nonEmptyArray(gates)) {
     errors.push({ path: 'benchmarkGates', message: 'Expected at least one benchmark gate.' });
@@ -197,7 +201,7 @@ function validateBenchmarkGates(
 
 function validatePromotion(
   errors: EnterprisePackageGateValidationIssue[],
-  promotion: EnterprisePackagePromotionGate | undefined,
+  promotion: EnterprisePackagePromotionGate | undefined
 ): void {
   if (!promotion || typeof promotion !== 'object') {
     errors.push({ path: 'promotion', message: 'Expected a promotion gate object.' });
@@ -210,7 +214,7 @@ function validatePromotion(
 
 function validateUpstreamGaps(
   errors: EnterprisePackageGateValidationIssue[],
-  gaps: EnterprisePackageUpstreamGap[] | undefined,
+  gaps: EnterprisePackageUpstreamGap[] | undefined
 ): void {
   for (const [index, gap] of (gaps ?? []).entries()) {
     pushRequiredString(errors, `upstreamGaps.${index}.id`, gap?.id);
@@ -227,7 +231,7 @@ function validateUpstreamGaps(
 }
 
 export function validateEnterprisePackageGateManifest(
-  manifest: unknown,
+  manifest: unknown
 ): EnterprisePackageGateValidationResult {
   const errors: EnterprisePackageGateValidationIssue[] = [];
   const warnings: EnterprisePackageGateValidationIssue[] = [];
@@ -255,10 +259,14 @@ export function validateEnterprisePackageGateManifest(
   pushRequiredString(errors, 'humanUserSurface', candidate.humanUserSurface);
   pushRequiredString(errors, 'sourcePath', candidate.sourcePath);
 
-  if (candidate.packageClass === 'enterprise_business_solution' && candidate.developerPackageSurface !== false) {
+  if (
+    candidate.packageClass === 'enterprise_business_solution' &&
+    candidate.developerPackageSurface !== false
+  ) {
     errors.push({
       path: 'developerPackageSurface',
-      message: 'Enterprise business solutions are deployed room surfaces, not developer package surfaces.',
+      message:
+        'Enterprise business solutions are deployed room surfaces, not developer package surfaces.',
     });
   }
 
@@ -284,9 +292,7 @@ export function validateEnterprisePackageGateManifest(
   };
 }
 
-export function assertEnterprisePackageGateManifest(
-  manifest: EnterprisePackageGateManifest,
-): void {
+export function assertEnterprisePackageGateManifest(manifest: EnterprisePackageGateManifest): void {
   const result = validateEnterprisePackageGateManifest(manifest);
   if (!result.valid) {
     const detail = result.errors.map((issue) => `${issue.path}: ${issue.message}`).join('\n');
@@ -295,7 +301,7 @@ export function assertEnterprisePackageGateManifest(
 }
 
 export function createEnterprisePackageGateAdmission(
-  manifest: EnterprisePackageGateManifest,
+  manifest: EnterprisePackageGateManifest
 ): EnterprisePackageGateAdmission {
   const result = validateEnterprisePackageGateManifest(manifest);
   return {
@@ -311,7 +317,7 @@ export function createEnterprisePackageGateAdmission(
 }
 
 export function cloneEnterprisePackageGateManifest(
-  manifest: EnterprisePackageGateManifest,
+  manifest: EnterprisePackageGateManifest
 ): EnterprisePackageGateManifest {
   return {
     ...manifest,

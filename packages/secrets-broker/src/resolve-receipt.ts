@@ -74,8 +74,10 @@ export function verifyResolveReceiptChain(receipts: readonly SecretResolveReceip
  * (this is that function's first live caller). Read the sealed log with `.chain()` and prove
  * it untampered with `.verify()`.
  */
-export interface ResolveReceiptSink
-  extends ReceiptChainSink<SecretResolveAudit, SecretResolveReceipt> {
+export interface ResolveReceiptSink extends ReceiptChainSink<
+  SecretResolveAudit,
+  SecretResolveReceipt
+> {
   /**
    * Resolver-compatible audit callback: seals each attempt onto the chain. Never throws — the
    * seal is pure and durable persistence is caught — so it is safe as the resolver's

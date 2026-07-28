@@ -16,8 +16,7 @@ export interface AgentWalletServiceOptions {
 function createMockWalletProvider(networkId: string): WalletProvider {
   return {
     getAddress: () =>
-      '0x' +
-      Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
+      '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
     signMessage: async (_msg: string) => '0xabcsignature123',
     getName: () => 'SimulatedCdpWalletProvider',
     getNetwork: () => ({ networkId }),
@@ -43,7 +42,7 @@ export class AgentWalletService {
 
   constructor(
     private networkId: string = 'base-sepolia',
-    options: AgentWalletServiceOptions = {},
+    options: AgentWalletServiceOptions = {}
   ) {
     this.mode = options.mode ?? 'live';
   }
@@ -69,7 +68,7 @@ export class AgentWalletService {
         });
       } else {
         throw new Error(
-          'Live Coinbase CDP wallet initialization requires CDP_API_KEY_ID (or CDP_API_KEY_NAME), CDP_API_KEY_SECRET, and CDP_WALLET_SECRET. Pass { mode: "simulation" } only for explicit non-production use.',
+          'Live Coinbase CDP wallet initialization requires CDP_API_KEY_ID (or CDP_API_KEY_NAME), CDP_API_KEY_SECRET, and CDP_WALLET_SECRET. Pass { mode: "simulation" } only for explicit non-production use.'
         );
       }
 
@@ -94,7 +93,7 @@ export class AgentWalletService {
     }
     if (this.mode !== 'simulation') {
       throw new Error(
-        'Live x402 settlement is not implemented by AgentWalletService. Use an audited CdpEvmWalletProvider transfer flow or explicit simulation mode.',
+        'Live x402 settlement is not implemented by AgentWalletService. Use an audited CdpEvmWalletProvider transfer flow or explicit simulation mode.'
       );
     }
 

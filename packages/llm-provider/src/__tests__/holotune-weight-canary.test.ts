@@ -47,9 +47,7 @@ describe('HoloTune HoloWeight canary', () => {
 
     expect(plan.issues).toEqual([]);
     expect(plan.readiness).toBe(fixture.expected.readiness);
-    expect(fixture.evidence.promotionGate.verdict).toBe(
-      fixture.expected.promotionGateVerdict
-    );
+    expect(fixture.evidence.promotionGate.verdict).toBe(fixture.expected.promotionGateVerdict);
     expect(fixture.evidence.promotionGate.blockers).toEqual(fixture.expected.blockers);
     expect(requirementStatuses).toEqual(fixture.expected.requirementStatuses);
     expect(plan.rollbackHead).toBe(fixture.expected.rollbackHead);
@@ -71,9 +69,7 @@ describe('HoloTune HoloWeight canary', () => {
       `holotune:${fixture.evidence.identity}:${fixture.evidence.version}`
     );
     expect(fixture.graph.base.architecture).toBe(fixture.evidence.baseModel);
-    expect(fixture.graph.base.tokenizerDigest).toBe(
-      fixture.evidence.tokenizerArtifact.digest
-    );
+    expect(fixture.graph.base.tokenizerDigest).toBe(fixture.evidence.tokenizerArtifact.digest);
     expect(fixture.graph.candidateDigest).toBe(fixture.evidence.candidateArtifact.digest);
     expect(delta?.artifact.digest).toBe(fixture.evidence.adapterArtifact.digest);
     expect(

@@ -607,7 +607,7 @@ function nodeToHolo(
   gltf: GltfData,
   inputPath: string,
   indent: number,
-  meshShapeNames?: ReadonlyMap<number, string>,
+  meshShapeNames?: ReadonlyMap<number, string>
 ): string {
   const nodes = gltf.nodes;
   if (!nodes || nodeIndex < 0 || nodeIndex >= nodes.length) {
@@ -763,7 +763,7 @@ function buildHoloComposition(
   gltf: GltfData,
   inputPath: string,
   meshShapeBlocks?: readonly string[],
-  meshShapeNames?: ReadonlyMap<number, string>,
+  meshShapeNames?: ReadonlyMap<number, string>
 ): string {
   const lines: string[] = [];
 

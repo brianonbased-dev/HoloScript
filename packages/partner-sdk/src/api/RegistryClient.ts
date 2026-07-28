@@ -178,7 +178,10 @@ export class RegistryClient {
   }
 
   /** List all versions of a package */
-  async listVersions(params: ListVersionsParams, options?: SDKRequestOptions): Promise<VersionInfo[]> {
+  async listVersions(
+    params: ListVersionsParams,
+    options?: SDKRequestOptions
+  ): Promise<VersionInfo[]> {
     const path = SDKRuntime.interpolatePath('/packages/{name}/versions', params);
     return this.runtime.request<VersionInfo[]>('GET', path, { ...options });
   }
@@ -186,44 +189,75 @@ export class RegistryClient {
   /** Search for packages */
   async search(params: SearchParams, options?: SDKRequestOptions): Promise<SearchResult> {
     const path = '/packages/search';
-    const query = SDKRuntime.pickQuery(params, ["q","page","pageSize","certified","keywords","sort"]);
+    const query = SDKRuntime.pickQuery(params, [
+      'q',
+      'page',
+      'pageSize',
+      'certified',
+      'keywords',
+      'sort',
+    ]);
     return this.runtime.request<SearchResult>('GET', path, { ...options, query });
   }
 
   /** Get download statistics for a package */
-  async getDownloadStats(params: GetDownloadStatsParams, options?: SDKRequestOptions): Promise<DownloadPoint[]> {
+  async getDownloadStats(
+    params: GetDownloadStatsParams,
+    options?: SDKRequestOptions
+  ): Promise<DownloadPoint[]> {
     const path = SDKRuntime.interpolatePath('/packages/{name}/stats/downloads', params);
-    const query = SDKRuntime.pickQuery(params, ["period"]);
+    const query = SDKRuntime.pickQuery(params, ['period']);
     return this.runtime.request<DownloadPoint[]>('GET', path, { ...options, query });
   }
 
   /** Check if a package name is available */
-  async checkNameAvailability(params: CheckNameAvailabilityParams, options?: SDKRequestOptions): Promise<NameAvailability> {
+  async checkNameAvailability(
+    params: CheckNameAvailabilityParams,
+    options?: SDKRequestOptions
+  ): Promise<NameAvailability> {
     const path = SDKRuntime.interpolatePath('/packages/check-name/{name}', params);
     return this.runtime.request<NameAvailability>('GET', path, { ...options });
   }
 
   /** Get partner\'s published packages */
-  async getMyPackages(params?: GetMyPackagesParams, options?: SDKRequestOptions): Promise<MyPackages> {
+  async getMyPackages(
+    params?: GetMyPackagesParams,
+    options?: SDKRequestOptions
+  ): Promise<MyPackages> {
     const path = '/partner/packages';
-    const query = SDKRuntime.pickQuery(params ?? {}, ["page","pageSize"]);
+    const query = SDKRuntime.pickQuery(params ?? {}, ['page', 'pageSize']);
     return this.runtime.request<MyPackages>('GET', path, { ...options, query });
   }
 
   /** Deprecate a package version */
-  async deprecateVersion(params: DeprecateVersionParams, body: DeprecateVersionRequest, options?: SDKRequestOptions): Promise<void> {
-    const path = SDKRuntime.interpolatePath('/packages/{name}/versions/{version}/deprecate', params);
+  async deprecateVersion(
+    params: DeprecateVersionParams,
+    body: DeprecateVersionRequest,
+    options?: SDKRequestOptions
+  ): Promise<void> {
+    const path = SDKRuntime.interpolatePath(
+      '/packages/{name}/versions/{version}/deprecate',
+      params
+    );
     return this.runtime.request<void>('POST', path, { ...options, body });
   }
 
   /** Add or update package keywords */
-  async updateKeywords(params: UpdateKeywordsParams, body: UpdateKeywordsRequest, options?: SDKRequestOptions): Promise<void> {
+  async updateKeywords(
+    params: UpdateKeywordsParams,
+    body: UpdateKeywordsRequest,
+    options?: SDKRequestOptions
+  ): Promise<void> {
     const path = SDKRuntime.interpolatePath('/packages/{name}', params);
     return this.runtime.request<void>('PATCH', path, { ...options, body });
   }
 
   /** Transfer package ownership */
-  async transferOwnership(params: TransferOwnershipParams, body: TransferOwnershipRequest, options?: SDKRequestOptions): Promise<TransferToken> {
+  async transferOwnership(
+    params: TransferOwnershipParams,
+    body: TransferOwnershipRequest,
+    options?: SDKRequestOptions
+  ): Promise<TransferToken> {
     const path = SDKRuntime.interpolatePath('/packages/{name}/transfer', params);
     return this.runtime.request<TransferToken>('POST', path, { ...options, body });
   }

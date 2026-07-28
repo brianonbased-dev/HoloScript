@@ -84,7 +84,7 @@ describe('MemoryConsolidator.compressEpisodes — LLM path', () => {
     // 5 raw episodes: 3 successes in one cluster → >=3 guard passes
     const episodes = [
       ...makeEpisodes('deploy', 'gateway', 3, 3), // cluster A: deploy_gateway
-      ...makeEpisodes('scan', 'node', 2, 1),       // cluster B: scan_node — 2 < 3, skipped
+      ...makeEpisodes('scan', 'node', 2, 1), // cluster B: scan_node — 2 < 3, skipped
     ];
 
     const { newFacts, prunedEpisodes } = await MemoryConsolidator.compressEpisodes(episodes);
@@ -101,7 +101,9 @@ describe('MemoryConsolidator.compressEpisodes — LLM path', () => {
     // And the provider's complete must have been called with a prompt containing
     // the action and entity names
     expect(mockProvider.complete).toHaveBeenCalledOnce();
-    const [req] = mockProvider.complete.mock.calls[0] as [Parameters<typeof mockProvider.complete>[0]];
+    const [req] = mockProvider.complete.mock.calls[0] as [
+      Parameters<typeof mockProvider.complete>[0],
+    ];
     expect(req.messages[0].content).toContain('deploy');
     expect(req.messages[0].content).toContain('gateway');
     expect(req.maxTokens).toBe(80);
@@ -128,7 +130,9 @@ describe('MemoryConsolidator.compressEpisodes — LLM path', () => {
     };
     await MemoryConsolidator.compressEpisodes([...episodes, extra]);
 
-    const [req] = mockProvider.complete.mock.calls[0] as [Parameters<typeof mockProvider.complete>[0]];
+    const [req] = mockProvider.complete.mock.calls[0] as [
+      Parameters<typeof mockProvider.complete>[0],
+    ];
     const promptText = req.messages[0].content as string;
 
     // The prompt must carry the narrative arc framing (match the exact casing in the prompt)
@@ -175,8 +179,20 @@ describe('MemoryConsolidator.compressEpisodes — rule-based fallback', () => {
     // to satisfy the rawEpisodes.length >= 5 short-circuit guard.
     const targetCluster = makeEpisodes('index_rebuild', 'db', 3, 0);
     const filler: EpisodicMemory[] = [
-      { id: 'filler_1', timestamp: Date.now(), action: 'ping', outcome: 'success', entitiesInvolved: ['health'] },
-      { id: 'filler_2', timestamp: Date.now(), action: 'ping', outcome: 'success', entitiesInvolved: ['health'] },
+      {
+        id: 'filler_1',
+        timestamp: Date.now(),
+        action: 'ping',
+        outcome: 'success',
+        entitiesInvolved: ['health'],
+      },
+      {
+        id: 'filler_2',
+        timestamp: Date.now(),
+        action: 'ping',
+        outcome: 'success',
+        entitiesInvolved: ['health'],
+      },
     ];
     const { newFacts } = await MemoryConsolidator.compressEpisodes([...targetCluster, ...filler]);
 
@@ -210,7 +226,9 @@ describe('MemoryConsolidator — >=3-occurrence guard', () => {
   it('skips clusters with fewer than 3 episodes regardless of provider availability', async () => {
     // Resolver should never be called for sub-threshold clusters
     mockResolve.mockResolvedValue({
-      provider: makeMockProvider('should not appear') as unknown as Awaited<ReturnType<typeof mockResolve>>['provider'],
+      provider: makeMockProvider('should not appear') as unknown as Awaited<
+        ReturnType<typeof mockResolve>
+      >['provider'],
       model: 'mock',
       maxTokens: 8192,
       providerName: 'anthropic',

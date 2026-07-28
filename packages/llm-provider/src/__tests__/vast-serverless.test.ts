@@ -73,7 +73,9 @@ describe('VastServerlessAdapter', () => {
     expect(calls[1].body.session_id).toBeNull();
     expect((calls[1].body.payload as Record<string, unknown>).stream).toBe(true);
     expect((calls[1].body.payload as Record<string, unknown>).model).toBe('qwen3:14b');
-    expect(calls.map((call) => call.url)).not.toContain('http://worker.test:8000/telemetry/hardware');
+    expect(calls.map((call) => call.url)).not.toContain(
+      'http://worker.test:8000/telemetry/hardware'
+    );
     expect(calls).toHaveLength(2);
     // 3. SSE → LLMStreamChunk, tool args assembled across fragments
     const types = chunks.map((c) => c.type);
@@ -96,11 +98,15 @@ describe('VastServerlessAdapter', () => {
       'x-holoscript-hardware-source': 'worker:linux-procfs+nvidia-smi',
       'x-holoscript-gpu-source': 'worker:nvidia-smi',
     });
-    expect(decodeHeaderJson(stop.responseHeaders!['x-holoscript-hardware-telemetry']).cpu).toMatchObject({
+    expect(
+      decodeHeaderJson(stop.responseHeaders!['x-holoscript-hardware-telemetry']).cpu
+    ).toMatchObject({
       logicalCores: 16,
       utilizationPct: 32.5,
     });
-    expect(decodeHeaderJson(stop.responseHeaders!['x-holoscript-gpu-end']).utilizationGpuPct).toBe(42);
+    expect(decodeHeaderJson(stop.responseHeaders!['x-holoscript-gpu-end']).utilizationGpuPct).toBe(
+      42
+    );
     const start = chunks.find((c) => c.type === 'tool_use_start') as Extract<
       LLMStreamChunk,
       { type: 'tool_use_start' }
@@ -146,7 +152,10 @@ describe('VastServerlessAdapter', () => {
       vi.fn(async (url: string) => {
         calls.push(url);
         if (url === ROUTE) return json({ url: 'http://worker.test:8000', request_idx: 12 });
-        return sse(['data: {"choices":[{"delta":{"content":"ok"}}],"model":"qwen3:14b"}\n', 'data: [DONE]\n']);
+        return sse([
+          'data: {"choices":[{"delta":{"content":"ok"}}],"model":"qwen3:14b"}\n',
+          'data: [DONE]\n',
+        ]);
       })
     );
     const adapter = new VastServerlessAdapter({
@@ -160,9 +169,15 @@ describe('VastServerlessAdapter', () => {
 
     expect(calls).toEqual([ROUTE, 'http://worker.test:8000/v1/chat/completions']);
     const stop = chunks.at(-1) as Extract<LLMStreamChunk, { type: 'message_stop' }>;
-    expect(stop.responseHeaders?.['x-holoscript-hardware-source']).toBe('worker:vast-serverless-telemetry');
-    expect(stop.responseHeaders?.['x-holoscript-hardware-caveat']).toMatch(/not polling worker \/telemetry endpoints/);
-    expect(stop.responseHeaders?.['x-holoscript-gpu-caveat']).toMatch(/not polling worker \/telemetry endpoints/);
+    expect(stop.responseHeaders?.['x-holoscript-hardware-source']).toBe(
+      'worker:vast-serverless-telemetry'
+    );
+    expect(stop.responseHeaders?.['x-holoscript-hardware-caveat']).toMatch(
+      /not polling worker \/telemetry endpoints/
+    );
+    expect(stop.responseHeaders?.['x-holoscript-gpu-caveat']).toMatch(
+      /not polling worker \/telemetry endpoints/
+    );
   });
 
   it('complete() returns content + parsed tool uses via the envelope', async () => {
@@ -214,10 +229,14 @@ describe('VastServerlessAdapter', () => {
       'x-holoscript-hardware-source': 'worker:linux-procfs+nvidia-smi',
       'x-holoscript-gpu-source': 'worker:nvidia-smi',
     });
-    expect(decodeHeaderJson(res.responseHeaders!['x-holoscript-hardware-telemetry']).cpu).toMatchObject({
+    expect(
+      decodeHeaderJson(res.responseHeaders!['x-holoscript-hardware-telemetry']).cpu
+    ).toMatchObject({
       logicalCores: 8,
     });
-    expect(decodeHeaderJson(res.responseHeaders!['x-holoscript-gpu-end']).utilizationGpuPct).toBe(27);
+    expect(decodeHeaderJson(res.responseHeaders!['x-holoscript-gpu-end']).utilizationGpuPct).toBe(
+      27
+    );
     expect(res.content).toBe('done');
     expect(res.finishReason).toBe('tool_use');
     expect(res.toolUses?.[0]).toMatchObject({ name: 'compile_to_unity', input: { x: 1 } });

@@ -1,17 +1,8 @@
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-import {
-  validatePackageIR,
-  type PackageIR,
-} from '@holoscript/platform';
+import { validatePackageIR, type PackageIR } from '@holoscript/platform';
 import { Router, type Request } from 'express';
 
 const STORE_SCHEMA_VERSION = 'holoscript.library-package-store.v1' as const;
@@ -72,11 +63,7 @@ function satisfies(version: string, range: string): boolean {
     return current[2] >= requested[2];
   }
   if (range.startsWith('~')) {
-    return (
-      current[0] === requested[0] &&
-      current[1] === requested[1] &&
-      current[2] >= requested[2]
-    );
+    return current[0] === requested[0] && current[1] === requested[1] && current[2] >= requested[2];
   }
   return current.every((part, index) => part === requested[index]);
 }
@@ -152,7 +139,10 @@ export class LibraryPackageStore {
 
   get(specifier: string, version: string): LibraryPackageRecord | null {
     const record = this.packages.get(specifier)?.get(version) ?? null;
-    if (record && (!INTEGRITY.test(record.integrity) || digestSource(record.source) !== record.integrity)) {
+    if (
+      record &&
+      (!INTEGRITY.test(record.integrity) || digestSource(record.source) !== record.integrity)
+    ) {
       throw new Error(`Stored package integrity mismatch: ${specifier}@${version}`);
     }
     return record;
@@ -161,7 +151,9 @@ export class LibraryPackageStore {
   resolve(specifier: string, range = '*'): LibraryPackageRecord | null {
     const versions = this.packages.get(specifier);
     if (!versions) return null;
-    const version = [...versions.keys()].filter((candidate) => satisfies(candidate, range)).sort(compareVersions)[0];
+    const version = [...versions.keys()]
+      .filter((candidate) => satisfies(candidate, range))
+      .sort(compareVersions)[0];
     return version ? this.get(specifier, version) : null;
   }
 

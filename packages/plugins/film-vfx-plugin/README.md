@@ -22,16 +22,16 @@ import {
 
 ## Package Surface
 
-| Surface                 | Purpose                                            |
-| ----------------------- | -------------------------------------------------- |
-| `shot_list`             | Shot planning, sequencing, lens, and movement      |
-| `color_grade`           | LUTs, lift/gamma/gain, and color intent            |
-| `dmx_lighting`          | DMX512, Art-Net, and sACN fixture control          |
-| `director_ai`           | Blocking, coverage, motivation, and emotional beat |
-| `virtual_production`    | LED wall, frustum, camera tracking, and sync       |
-| `text_to_universe`      | Text-to-universe rendering bridge                  |
-| Runtime registration    | Registers Film/VFX trait handlers with runtime     |
-| Volumetric CRDT bridge  | Syncs virtual-production metadata into CRDT state  |
+| Surface                | Purpose                                            |
+| ---------------------- | -------------------------------------------------- |
+| `shot_list`            | Shot planning, sequencing, lens, and movement      |
+| `color_grade`          | LUTs, lift/gamma/gain, and color intent            |
+| `dmx_lighting`         | DMX512, Art-Net, and sACN fixture control          |
+| `director_ai`          | Blocking, coverage, motivation, and emotional beat |
+| `virtual_production`   | LED wall, frustum, camera tracking, and sync       |
+| `text_to_universe`     | Text-to-universe rendering bridge                  |
+| Runtime registration   | Registers Film/VFX trait handlers with runtime     |
+| Volumetric CRDT bridge | Syncs virtual-production metadata into CRDT state  |
 
 ## Strategy Role
 

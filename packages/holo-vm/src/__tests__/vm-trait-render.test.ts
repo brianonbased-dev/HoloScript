@@ -32,11 +32,7 @@ const CAM: OrthoCamera = { pixelsPerUnit: 8, centerWorld: { x: 0, y: 0 } };
 const CLEAR = { r: 18, g: 18, b: 22, a: 255 };
 
 /** Build a HoloBytecode with one entity that has Transform + Geometry + Material + traits. */
-function buildEntityBytecode(
-  name: string,
-  color: number,
-  traitIds: HoloTraitId[]
-): HoloBytecode {
+function buildEntityBytecode(name: string, color: number, traitIds: HoloTraitId[]): HoloBytecode {
   const b = new HoloBytecodeBuilder();
   const idx = b.addEntity(name);
 

@@ -69,7 +69,7 @@ export function registerMeshHandlers(vm: UAALVirtualMachine, transport: MeshTran
 /** What a node does when another node calls it. */
 export type MeshRequestHandler = (
   from: string,
-  payload: UAALOperand,
+  payload: UAALOperand
 ) => Promise<UAALOperand> | UAALOperand;
 
 interface MeshEnvelope {

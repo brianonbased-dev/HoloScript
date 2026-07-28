@@ -304,7 +304,10 @@ describe('validateStartupRegistrationRequestReceipt', () => {
     const receipt = makeValidRequestReceipt() as unknown as Record<string, unknown>;
     receipt.schemaVersion = 'wrong';
     const errors: string[] = [];
-    validateStartupRegistrationRequestReceipt(receipt as unknown as StartupRegistrationRequestReceipt, errors);
+    validateStartupRegistrationRequestReceipt(
+      receipt as unknown as StartupRegistrationRequestReceipt,
+      errors
+    );
     expect(errors.some((e) => e.includes('schemaVersion'))).toBe(true);
   });
 
@@ -468,7 +471,9 @@ describe('validateHoloShellStartupGateReceiptPack', () => {
   it('rejects wrong schema version', () => {
     const pack = makeValidRegisteredPack() as unknown as Record<string, unknown>;
     pack.schemaVersion = 'wrong';
-    const errors = validateHoloShellStartupGateReceiptPack(pack as unknown as HoloShellStartupGateReceiptPack);
+    const errors = validateHoloShellStartupGateReceiptPack(
+      pack as unknown as HoloShellStartupGateReceiptPack
+    );
     expect(errors.some((e) => e.includes('schemaVersion'))).toBe(true);
   });
 

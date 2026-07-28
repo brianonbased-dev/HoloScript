@@ -199,7 +199,12 @@ describe('ChainTrait', () => {
     obj.position.set(0, 5, 0);
     scene.add(obj);
 
-    const ctx = makeContext(obj, { segments: 3, segment_length: 0.3, damping: 0.98, gravity: 9.81 });
+    const ctx = makeContext(obj, {
+      segments: 3,
+      segment_length: 0.3,
+      damping: 0.98,
+      gravity: 9.81,
+    });
     ChainTrait.onApply!(ctx);
 
     const nodes = ctx.data.nodes as Array<{ position: THREE.Vector3; prev: THREE.Vector3 }>;
@@ -374,7 +379,10 @@ describe('DeformableTerrainTrait', () => {
 
     // Inject an impact
     (ctx.data.impacts as Array<{ x: number; z: number; depth: number; radius: number }>).push({
-      x: 0, z: 0, depth: 1.0, radius: 1.5,
+      x: 0,
+      z: 0,
+      depth: 1.0,
+      radius: 1.5,
     });
 
     DeformableTerrainTrait.onUpdate!(ctx, 0.016);
@@ -481,7 +489,11 @@ describe('SensorTrait', () => {
   it('onApply fires sensor:ready', () => {
     const obj = new THREE.Object3D();
     const events = collectEvents(obj);
-    const ctx = makeContext(obj, { sensor_id: 'temp-01', poll_interval: 1.0, sensor_type: 'temperature' });
+    const ctx = makeContext(obj, {
+      sensor_id: 'temp-01',
+      poll_interval: 1.0,
+      sensor_type: 'temperature',
+    });
     SensorTrait.onApply!(ctx);
     expect(obj.userData.sensor).toBe(true);
     expect(events.some((e) => e.type === 'sensor:ready')).toBe(true);

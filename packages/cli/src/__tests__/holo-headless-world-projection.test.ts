@@ -56,9 +56,7 @@ describe('deterministic .holo headless world projection', () => {
     expect(first.provenance.provenanceCommitment).toBe(
       'e0c965a93d48b62d1187b6547f1b9f36d6a2039e189de492bedfc2cf435fb0ab'
     );
-    expect(
-      (first.scene.objects as Array<{ id: string }>).map((object) => object.id)
-    ).toEqual([
+    expect((first.scene.objects as Array<{ id: string }>).map((object) => object.id)).toEqual([
       'commons',
       'cistern',
       'resident-1',
@@ -104,10 +102,7 @@ describe('deterministic .holo headless world projection', () => {
     const original = executeHoloWorldProjection(villageSource);
     const whitespaceOnly = executeHoloWorldProjection(`${villageSource}\n`);
     const movedResident = executeHoloWorldProjection(
-      villageSource.replace(
-        'position: [-1.8, 0.55, 1.2]',
-        'position: [-2.1, 0.55, 1.2]'
-      )
+      villageSource.replace('position: [-1.8, 0.55, 1.2]', 'position: [-2.1, 0.55, 1.2]')
     );
 
     expect(whitespaceOnly.provenance.sourceHash).not.toBe(original.provenance.sourceHash);
@@ -203,12 +198,8 @@ describe('deterministic .holo headless world projection', () => {
     const plane = objects.find((object) => object.id === 'plane');
     const cone = objects.find((object) => object.id === 'cone');
     const staticBody = objects.find((object) => object.id === 'static-body');
-    const colliderConflict = objects.find(
-      (object) => object.id === 'collider-conflict'
-    );
-    const layeredAlias = objects.find(
-      (object) => object.id === 'layered-alias'
-    );
+    const colliderConflict = objects.find((object) => object.id === 'collider-conflict');
+    const layeredAlias = objects.find((object) => object.id === 'layered-alias');
 
     expect(body).toMatchObject({
       transform: { scale: [4, 3, 4] },
@@ -279,18 +270,20 @@ describe('deterministic .holo headless world projection', () => {
         }
       }
     }`);
-    const body = (projection.scene.objects as Array<{
-      traitConfigs: {
-        physics: Record<string, unknown>;
-        emissive: Record<string, unknown>;
-      };
-      physics: {
-        massKg: number;
-        kinematic: boolean;
-        friction: number;
-        restitution: number;
-      };
-    }>)[0];
+    const body = (
+      projection.scene.objects as Array<{
+        traitConfigs: {
+          physics: Record<string, unknown>;
+          emissive: Record<string, unknown>;
+        };
+        physics: {
+          massKg: number;
+          kinematic: boolean;
+          friction: number;
+          restitution: number;
+        };
+      }>
+    )[0];
 
     expect(body.physics).toMatchObject({
       massKg: 10,
@@ -541,15 +534,11 @@ describe('deterministic .holo headless world projection', () => {
       geometry: sphere
       ${'}'.repeat(65)}
     }`;
-    expect(() => executeHoloWorldProjection(tooDeepWorld)).toThrow(
-      /object nesting exceeds 64/i
-    );
+    expect(() => executeHoloWorldProjection(tooDeepWorld)).toThrow(/object nesting exceeds 64/i);
     const tooManyObjects = `composition "TooMany" {
       ${Array.from({ length: 2_049 }, (_, index) => `object "n${index}" {}`).join('\n')}
     }`;
-    expect(() => executeHoloWorldProjection(tooManyObjects)).toThrow(
-      /object count exceeds 2048/i
-    );
+    expect(() => executeHoloWorldProjection(tooManyObjects)).toThrow(/object count exceeds 2048/i);
     const tooDeepValue = `${'['.repeat(33)}0${']'.repeat(33)}`;
     expect(() =>
       executeHoloWorldProjection(`composition "TooDeepValue" {

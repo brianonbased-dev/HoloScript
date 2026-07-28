@@ -174,7 +174,9 @@ export const CrowdSimTrait: TraitHandler = {
         if (other === obj || !other.userData.crowdAgent) return;
         const dist = obj.position.distanceTo(other.position);
         if (dist < sepR && dist > 0) {
-          const away = new THREE.Vector3().subVectors(obj.position, other.position).divideScalar(dist);
+          const away = new THREE.Vector3()
+            .subVectors(obj.position, other.position)
+            .divideScalar(dist);
           separation.add(away);
           sepCount++;
         }
@@ -183,7 +185,9 @@ export const CrowdSimTrait: TraitHandler = {
           cohCount++;
         }
         if (dist < aliR && (other.userData as Record<string, unknown>).__crowdVelocity) {
-          alignment.add((other.userData as Record<string, unknown>).__crowdVelocity as THREE.Vector3);
+          alignment.add(
+            (other.userData as Record<string, unknown>).__crowdVelocity as THREE.Vector3
+          );
           aliCount++;
         }
       });
@@ -197,7 +201,12 @@ export const CrowdSimTrait: TraitHandler = {
       steering.addScaledVector(separation, 1.5);
     }
     if (cohCount > 0) {
-      cohesion.divideScalar(cohCount).sub(obj.position).normalize().multiplyScalar(maxSpeed).sub(velocity);
+      cohesion
+        .divideScalar(cohCount)
+        .sub(obj.position)
+        .normalize()
+        .multiplyScalar(maxSpeed)
+        .sub(velocity);
       steering.addScaledVector(cohesion, 1.0);
     }
     if (aliCount > 0) {
@@ -381,9 +390,8 @@ export const AiCompanionTrait: TraitHandler = {
       // Cycle state to reflect server inference pulse
       const states = AI_COMPANION_STATES;
       const currentIdx = states.indexOf(context.data.state as AiCompanionState);
-      const nextState = currentIdx === 0
-        ? ('following' as AiCompanionState)
-        : ('idle' as AiCompanionState);
+      const nextState =
+        currentIdx === 0 ? ('following' as AiCompanionState) : ('idle' as AiCompanionState);
       context.data.state = nextState;
       context.object.userData.aiCompanionState = nextState;
 
@@ -407,7 +415,8 @@ export const AiCompanionTrait: TraitHandler = {
     const mesh = context.object as THREE.Mesh;
     if (mesh.isMesh && mesh.material && 'emissive' in mesh.material) {
       const mat = mesh.material as THREE.MeshStandardMaterial;
-      if (context.data.originalEmissive) mat.emissive = context.data.originalEmissive as THREE.Color;
+      if (context.data.originalEmissive)
+        mat.emissive = context.data.originalEmissive as THREE.Color;
       mat.emissiveIntensity = 0;
     }
     delete context.object.userData.aiCompanion;
@@ -604,8 +613,7 @@ export const GpuPhysicsTrait: TraitHandler = {
   name: 'gpu_physics',
 
   onApply(context: TraitContext) {
-    const shapeType =
-      (context.config.shape as 'box' | 'sphere' | 'plane') ?? 'box';
+    const shapeType = (context.config.shape as 'box' | 'sphere' | 'plane') ?? 'box';
     const mass = (context.config.mass as number) ?? 1.0;
 
     // Register with existing PhysicsWorld as CPU fallback

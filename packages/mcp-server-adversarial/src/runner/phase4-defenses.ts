@@ -86,7 +86,9 @@ class CrossMeshAnchoringMeasurementDefense implements Phase4Defense {
   readonly id = 'cross-mesh-anchoring' as const;
 
   evaluate(observation: DefenseObservation): DefenseDecision {
-    const anchorRatio = clamp01(observation.crossMeshAnchors / Math.max(1, observation.claimedPeerCount));
+    const anchorRatio = clamp01(
+      observation.crossMeshAnchors / Math.max(1, observation.claimedPeerCount)
+    );
     const route = clamp01(observation.routingDiversity);
     const allowed = anchorRatio >= 0.5 && route >= 0.35;
     return {
@@ -136,7 +138,10 @@ export const PHASE4_DEFENSES: Phase4Defense[] = [
   new CanaryProbingMeasurementDefense(),
 ];
 
-export function observationForAttack(spec: RunnableAttack, live: BaselineSummary): DefenseObservation {
+export function observationForAttack(
+  spec: RunnableAttack,
+  live: BaselineSummary
+): DefenseObservation {
   switch (spec.id) {
     case 'whitewasher':
       return {
@@ -222,8 +227,7 @@ export function buildPhase4DefenseRows(
       }
       const decision = defense.evaluate(observationForAttack(spec, live));
       const defendedSuccess = decision.allowed ? live.success_rate : 0;
-      const efficacy =
-        baseline.success_rate > 0 ? 1 - defendedSuccess / baseline.success_rate : 0;
+      const efficacy = baseline.success_rate > 0 ? 1 - defendedSuccess / baseline.success_rate : 0;
       rows.push({
         defense: defense.id,
         attack: spec.id,

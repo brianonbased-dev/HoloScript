@@ -55,8 +55,8 @@ import type { GridBus, GridBranch } from '../energysolver';
 
 const buses3: GridBus[] = [
   { id: 'B1', powerMW: 0, isSlack: true },
-  { id: 'B2', powerMW: 100 },  // 100 MW generator
-  { id: 'B3', powerMW: -80 },  // 80 MW load
+  { id: 'B2', powerMW: 100 }, // 100 MW generator
+  { id: 'B3', powerMW: -80 }, // 80 MW load
 ];
 
 const branches3: GridBranch[] = [
@@ -66,12 +66,12 @@ const branches3: GridBranch[] = [
 ];
 
 // Analytic solution (derived above, baseMVA = 100 assumed by dcLoadFlow):
-const THETA_2 = 6 / 110;        // ≈ 0.054545 rad
-const THETA_3 = -2 / 110;       // ≈ −0.018182 rad
+const THETA_2 = 6 / 110; // ≈ 0.054545 rad
+const THETA_3 = -2 / 110; // ≈ −0.018182 rad
 // Branch flows from (θᵢ − θⱼ) / Xᵢⱼ × baseMVA (100 MVA):
 const BASE_MVA = 100;
-const F12_ANALYTIC = ((0 - THETA_2) / 0.2) * BASE_MVA;   // ≈ −27.27 MW
-const F13_ANALYTIC = ((0 - THETA_3) / 0.25) * BASE_MVA;  // ≈ +7.27 MW
+const F12_ANALYTIC = ((0 - THETA_2) / 0.2) * BASE_MVA; // ≈ −27.27 MW
+const F13_ANALYTIC = ((0 - THETA_3) / 0.25) * BASE_MVA; // ≈ +7.27 MW
 const F23_ANALYTIC = ((THETA_2 - THETA_3) / 0.1) * BASE_MVA; // ≈ +72.73 MW
 
 describe('dcLoadFlow — 3-bus meshed network (analytic)', () => {
@@ -138,9 +138,7 @@ describe('dcLoadFlow — 2-bus radial (basic sanity)', () => {
     { id: 'S', powerMW: 0, isSlack: true },
     { id: 'L', powerMW: -50 },
   ];
-  const radialBranches: GridBranch[] = [
-    { fromBusId: 'S', toBusId: 'L', reactancePu: 0.1 },
-  ];
+  const radialBranches: GridBranch[] = [{ fromBusId: 'S', toBusId: 'L', reactancePu: 0.1 }];
 
   it('slack angle = 0', () => {
     const r = dcLoadFlow(radialBuses, radialBranches);

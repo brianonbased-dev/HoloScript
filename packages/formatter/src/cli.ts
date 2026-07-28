@@ -30,7 +30,9 @@ interface CliOptions {
 
 function readPackageVersion(): string {
   try {
-    const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8')) as {
+    const packageJson = JSON.parse(
+      readFileSync(join(__dirname, '..', 'package.json'), 'utf-8')
+    ) as {
       version?: unknown;
     };
     return typeof packageJson.version === 'string' ? packageJson.version : '0.0.0';

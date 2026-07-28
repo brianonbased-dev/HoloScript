@@ -59,7 +59,15 @@ function makeSkinnedTriangleGlb(): ArrayBuffer {
     buffers: [{ byteLength: binLen }],
     bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: binLen }],
     accessors: [
-      { bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3', min: [0, 0, 0], max: [1, 1, 0] },
+      {
+        bufferView: 0,
+        byteOffset: 0,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [0, 0, 0],
+        max: [1, 1, 0],
+      },
       { bufferView: 0, byteOffset: 36, componentType: 5126, count: 3, type: 'VEC3' },
       { bufferView: 0, byteOffset: 72, componentType: 5121, count: 3, type: 'VEC4' },
       { bufferView: 0, byteOffset: 84, componentType: 5126, count: 3, type: 'VEC4' },
@@ -69,7 +77,11 @@ function makeSkinnedTriangleGlb(): ArrayBuffer {
     meshes: [
       {
         primitives: [
-          { attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 }, indices: 4, mode: 4 },
+          {
+            attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 },
+            indices: 4,
+            mode: 4,
+          },
         ],
       },
     ],
@@ -105,7 +117,10 @@ describe('Track-0 GLB decompression boundary', () => {
   });
 
   it('isGlbCompressed: detects EXT_meshopt_compression via extensionsUsed', () => {
-    const glb = buildGlb({ asset: { version: '2.0' }, extensionsUsed: ['EXT_meshopt_compression'] }, new ArrayBuffer(0));
+    const glb = buildGlb(
+      { asset: { version: '2.0' }, extensionsUsed: ['EXT_meshopt_compression'] },
+      new ArrayBuffer(0)
+    );
     expect(isGlbCompressed(glb)).toBe(true);
   });
 

@@ -37,7 +37,13 @@ const store = new KnowledgeStore({
 
 // Local-first: works with no remote configured.
 store.publish(
-  { type: 'wisdom', content: 'Always use strict TypeScript', domain: 'compilation', confidence: 0.9, source: 'agent-a' },
+  {
+    type: 'wisdom',
+    content: 'Always use strict TypeScript',
+    domain: 'compilation',
+    confidence: 0.9,
+    source: 'agent-a',
+  },
   'agent-a'
 );
 
@@ -48,9 +54,9 @@ const hits = await store.semanticSearch('typescript');
 
 ## Configuration
 
-| Env var | Purpose | Default when unset |
-|---|---|---|
-| `HOLOMESH_WORKSPACE` | Workspace scope tag sent with remote knowledge calls | `'default'` |
+| Env var              | Purpose                                                     | Default when unset        |
+| -------------------- | ----------------------------------------------------------- | ------------------------- |
+| `HOLOMESH_WORKSPACE` | Workspace scope tag sent with remote knowledge calls        | `'default'`               |
 | `HOLOSCRIPT_API_KEY` | Auth key for the remote orchestrator (self-improve scanner) | none (remote calls no-op) |
 
 The remote URL and key are passed in through `KnowledgeConfig` / `AbsorbScanConfig`
@@ -72,7 +78,7 @@ workspace is used, **not** the maintainer's workspace. Nothing here is the
 package default: no host, key, path, or private state ships baked in.
 
 **Known limitations:** the knowledge store's remote federation targets a
-knowledge-store HTTP contract (`/knowledge/query`, `/knowledge/sync`) that *you*
+knowledge-store HTTP contract (`/knowledge/query`, `/knowledge/sync`) that _you_
 provide or point at; with no remote configured the store runs local-only and
 remote-dependent methods degrade gracefully to empty/no-op results. The
 self-improve scanner reports improvement tasks — it does not apply changes.

@@ -372,7 +372,10 @@ const SAMPLING_PARAMS_UNSUPPORTED: ReadonlySet<string> = new Set([
 ]);
 
 function supportsSamplingParams(model: string): boolean {
-  return getAnthropicModelMetadata(model)?.supportsSamplingParams ?? !SAMPLING_PARAMS_UNSUPPORTED.has(model);
+  return (
+    getAnthropicModelMetadata(model)?.supportsSamplingParams ??
+    !SAMPLING_PARAMS_UNSUPPORTED.has(model)
+  );
 }
 
 /** Opus 4.6/4.7 and Sonnet 4.5/4.6 — default adaptive + summarized unless caller disables. */

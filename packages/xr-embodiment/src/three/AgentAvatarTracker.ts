@@ -29,7 +29,7 @@ export function colourForEntity(entityId: string): number {
 /** Shortest-arc angular lerp (radians) so facing turns the short way. */
 function lerpAngle(from: number, to: number, t: number): number {
   const tau = Math.PI * 2;
-  let d = ((to - from) % tau + tau) % tau;
+  let d = (((to - from) % tau) + tau) % tau;
   if (d > Math.PI) d -= tau;
   return from + d * t;
 }

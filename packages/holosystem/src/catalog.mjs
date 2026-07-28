@@ -25,9 +25,11 @@ function hashReceipt(value) {
 }
 
 function exactPublicVersion(value) {
-  return typeof value === 'string'
-    && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value)
-    && !/^(?:file|workspace|link|portal|git|https?):/iu.test(value);
+  return (
+    typeof value === 'string' &&
+    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value) &&
+    !/^(?:file|workspace|link|portal|git|https?):/iu.test(value)
+  );
 }
 
 export function inspectPublicDependencySpecs(dependencies = {}) {
@@ -130,7 +132,8 @@ function countRail(items) {
 
 function packageFailureCategories(portfolio) {
   const gaps = list(portfolio?.packages).filter((row) => row.classification !== 'passing');
-  const issueCount = (prefix) => gaps.filter((row) => list(row.issues).some((issue) => issue.startsWith(prefix))).length;
+  const issueCount = (prefix) =>
+    gaps.filter((row) => list(row.issues).some((issue) => issue.startsWith(prefix))).length;
   return {
     total: gaps.length,
     missing: gaps.filter((row) => row.classification === 'missing').length,
@@ -144,32 +147,38 @@ function packageFailureCategories(portfolio) {
 }
 
 function projectProofBatches(value) {
-  return list(value).slice(-25).map((batch) => ({
-    id: typeof batch?.id === 'string' ? batch.id : null,
-    status: typeof batch?.status === 'string' ? batch.status : 'unknown',
-    generatedAt: typeof batch?.generatedAt === 'string' ? batch.generatedAt : null,
-    packages: list(batch?.packages).slice(0, 100).map((item) => (
-      typeof item === 'string'
-        ? item
-        : { ecosystem: item?.ecosystem || null, name: item?.name || null }
-    )),
-    summary: {
-      total: Number(batch?.summary?.total ?? batch?.packageCount) || 0,
-      passing: Number(batch?.summary?.passing ?? batch?.passing) || 0,
-      failed: Number(batch?.summary?.failed ?? batch?.failed) || 0,
-    },
-    receiptHash: typeof batch?.receiptHash === 'string' ? batch.receiptHash : null,
-  }));
+  return list(value)
+    .slice(-25)
+    .map((batch) => ({
+      id: typeof batch?.id === 'string' ? batch.id : null,
+      status: typeof batch?.status === 'string' ? batch.status : 'unknown',
+      generatedAt: typeof batch?.generatedAt === 'string' ? batch.generatedAt : null,
+      packages: list(batch?.packages)
+        .slice(0, 100)
+        .map((item) =>
+          typeof item === 'string'
+            ? item
+            : { ecosystem: item?.ecosystem || null, name: item?.name || null }
+        ),
+      summary: {
+        total: Number(batch?.summary?.total ?? batch?.packageCount) || 0,
+        passing: Number(batch?.summary?.passing ?? batch?.passing) || 0,
+        failed: Number(batch?.summary?.failed ?? batch?.failed) || 0,
+      },
+      receiptHash: typeof batch?.receiptHash === 'string' ? batch.receiptHash : null,
+    }));
 }
 
 function projectPromotionHistory(value) {
-  return list(value).slice(-25).map((attempt) => ({
-    id: typeof attempt?.id === 'string' ? attempt.id : null,
-    status: typeof attempt?.status === 'string' ? attempt.status : 'unknown',
-    eligible: attempt?.eligible === true,
-    generatedAt: typeof attempt?.generatedAt === 'string' ? attempt.generatedAt : null,
-    receiptHash: typeof attempt?.receiptHash === 'string' ? attempt.receiptHash : null,
-  }));
+  return list(value)
+    .slice(-25)
+    .map((attempt) => ({
+      id: typeof attempt?.id === 'string' ? attempt.id : null,
+      status: typeof attempt?.status === 'string' ? attempt.status : 'unknown',
+      eligible: attempt?.eligible === true,
+      generatedAt: typeof attempt?.generatedAt === 'string' ? attempt.generatedAt : null,
+      receiptHash: typeof attempt?.receiptHash === 'string' ? attempt.receiptHash : null,
+    }));
 }
 
 export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new Date() }) {
@@ -179,12 +188,14 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
   const artifacts = list(portfolio?.packages).map((row) => {
     const source = metadataByArtifact.get(artifactKey(row.ecosystem, row.name)) || {};
     const sourceRepository = normalizeRepositoryUrl(source.sourceRepository || source.repository);
-    const deprecated = typeof source.deprecated === 'string' && source.deprecated.trim()
-      ? source.deprecated.trim()
-      : null;
-    const successor = typeof source.successor === 'string' && source.successor.trim()
-      ? source.successor.trim()
-      : null;
+    const deprecated =
+      typeof source.deprecated === 'string' && source.deprecated.trim()
+        ? source.deprecated.trim()
+        : null;
+    const successor =
+      typeof source.successor === 'string' && source.successor.trim()
+        ? source.successor.trim()
+        : null;
     const migrationMapped = Boolean(deprecated && successor);
     return {
       ecosystem: row.ecosystem,
@@ -252,18 +263,20 @@ export function selectNextConsumptionWork({
     .filter((row) => !active.has(artifactKey(row.ecosystem, row.name)))
     .map((row) => {
       const source = sourceByArtifact.get(artifactKey(row.ecosystem, row.name));
-      const basePriority = row.classification === 'failed' ? 400 : row.classification === 'stale' ? 300 : 200;
+      const basePriority =
+        row.classification === 'failed' ? 400 : row.classification === 'stale' ? 300 : 200;
       const priority = basePriority + (source?.mapped ? 0 : 25);
       return {
         ecosystem: row.ecosystem,
         name: row.name,
         version: row.expectedVersion || row.observedVersion || null,
         classification: row.classification,
-        action: row.classification === 'failed'
-          ? 'repair-consumer-contract'
-          : row.classification === 'stale'
-            ? 'refresh-cold-consumption'
-            : 'prove-cold-consumption',
+        action:
+          row.classification === 'failed'
+            ? 'repair-consumer-contract'
+            : row.classification === 'stale'
+              ? 'refresh-cold-consumption'
+              : 'prove-cold-consumption',
         priority,
         sourceRepository: source?.sourceRepository || null,
         reasons: [
@@ -273,7 +286,13 @@ export function selectNextConsumptionWork({
         ],
       };
     })
-    .sort((left, right) => right.priority - left.priority || artifactKey(left.ecosystem, left.name).localeCompare(artifactKey(right.ecosystem, right.name)))
+    .sort(
+      (left, right) =>
+        right.priority - left.priority ||
+        artifactKey(left.ecosystem, left.name).localeCompare(
+          artifactKey(right.ecosystem, right.name)
+        )
+    )
     .slice(0, Math.max(1, Math.min(Number(maxCandidates) || 20, 100)));
 
   const receipt = {
@@ -322,42 +341,47 @@ export function buildConsumptionSurfaceCatalog({
   const sourceAudit = seeds?.mcp?.sourceAudit || {};
   const deployedTools = Number(mcpHealth?.tools) || 0;
   const expectedProducts = list(seeds?.github?.products);
-  const discoveryCurrent = portfolio?.scope?.registries?.npm?.declaredComplete === true
-    && portfolio?.scope?.registries?.pypi?.declaredComplete === true
-    && github.length === expectedProducts.length
-    && github.every((item) => item.published)
-    && skills.ok === true
-    && deployedTools > 0;
+  const discoveryCurrent =
+    portfolio?.scope?.registries?.npm?.declaredComplete === true &&
+    portfolio?.scope?.registries?.pypi?.declaredComplete === true &&
+    github.length === expectedProducts.length &&
+    github.every((item) => item.published) &&
+    skills.ok === true &&
+    deployedTools > 0;
   const lineageSummary = lineage?.summary || {
     total: list(portfolio?.packages).length,
     mapped: 0,
     gaps: list(portfolio?.packages).length,
   };
   const findings = [];
-  if (npm.gaps || pypi.gaps) findings.push({
-    id: 'package-cold-consumption-gaps',
-    severity: 'blocking',
-    count: npm.gaps + pypi.gaps,
-    evidence: evidenceRefs.packageAdmission,
-  });
-  if (lineageSummary.gaps) findings.push({
-    id: 'package-source-lineage-gaps',
-    severity: 'attention',
-    count: lineageSummary.gaps,
-    evidence: evidenceRefs.sourceLineage,
-  });
-  if (deployedTools !== Number(sourceAudit.tools || 0)) findings.push({
-    id: 'mcp-deploy-source-count-drift',
-    severity: 'attention',
-    deployedTools,
-    sourceTools: Number(sourceAudit.tools || 0),
-  });
-  if (Number(sourceAudit.orphanTools || 0)) findings.push({
-    id: 'agent-tool-surface-gaps',
-    severity: 'attention',
-    orphanTools: Number(sourceAudit.orphanTools || 0),
-    unbackedCoveredTools: Number(sourceAudit.unbackedCoveredTools || 0),
-  });
+  if (npm.gaps || pypi.gaps)
+    findings.push({
+      id: 'package-cold-consumption-gaps',
+      severity: 'blocking',
+      count: npm.gaps + pypi.gaps,
+      evidence: evidenceRefs.packageAdmission,
+    });
+  if (lineageSummary.gaps)
+    findings.push({
+      id: 'package-source-lineage-gaps',
+      severity: 'attention',
+      count: lineageSummary.gaps,
+      evidence: evidenceRefs.sourceLineage,
+    });
+  if (deployedTools !== Number(sourceAudit.tools || 0))
+    findings.push({
+      id: 'mcp-deploy-source-count-drift',
+      severity: 'attention',
+      deployedTools,
+      sourceTools: Number(sourceAudit.tools || 0),
+    });
+  if (Number(sourceAudit.orphanTools || 0))
+    findings.push({
+      id: 'agent-tool-surface-gaps',
+      severity: 'attention',
+      orphanTools: Number(sourceAudit.orphanTools || 0),
+      unbackedCoveredTools: Number(sourceAudit.unbackedCoveredTools || 0),
+    });
   const nextWork = selectNextConsumptionWork({ portfolio, lineage, activeProofBatches, now });
   const projectedProofBatches = projectProofBatches(activeProofBatches);
   const projectedPromotionHistory = projectPromotionHistory(promotionHistory);
@@ -369,7 +393,11 @@ export function buildConsumptionSurfaceCatalog({
     rails: {
       npm,
       pypi,
-      github: { ...githubRail, dogfooded: 0, evidence: 'public GitHub repository metadata plus README' },
+      github: {
+        ...githubRail,
+        dogfooded: 0,
+        evidence: 'public GitHub repository metadata plus README',
+      },
       services: { ...serviceRail, dogfooded: null, evidence: 'public health endpoints' },
       containers: { ...containerRail, dogfooded: null, evidence: 'public container package pages' },
     },
@@ -463,7 +491,9 @@ function pypiRepository(info) {
 
 function npmMigrationSuccessor(message) {
   if (typeof message !== 'string' || !message.trim()) return null;
-  const match = message.match(/\buse\s+(@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*|[a-z0-9][a-z0-9._-]*)\b/iu);
+  const match = message.match(
+    /\buse\s+(@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*|[a-z0-9][a-z0-9._-]*)\b/iu
+  );
   return match?.[1] || null;
 }
 
@@ -477,7 +507,9 @@ export async function discoverSourceLineage({
   const metadata = await mapConcurrent(list(portfolio?.packages), concurrency, async (artifact) => {
     const version = artifact.expectedVersion || artifact.observedVersion;
     if (artifact.ecosystem === 'npm') {
-      const target = version ? `${encodeURIComponent(artifact.name)}/${encodeURIComponent(version)}` : encodeURIComponent(artifact.name);
+      const target = version
+        ? `${encodeURIComponent(artifact.name)}/${encodeURIComponent(version)}`
+        : encodeURIComponent(artifact.name);
       const response = await request(fetchImpl, `https://registry.npmjs.org/${target}`);
       return {
         ecosystem: 'npm',
@@ -494,7 +526,10 @@ export async function discoverSourceLineage({
       };
     }
     const suffix = version ? `/${encodeURIComponent(version)}` : '';
-    const response = await request(fetchImpl, `https://pypi.org/pypi/${encodeURIComponent(artifact.name)}${suffix}/json`);
+    const response = await request(
+      fetchImpl,
+      `https://pypi.org/pypi/${encodeURIComponent(artifact.name)}${suffix}/json`
+    );
     const files = list(response.body?.urls);
     const digest = files.map((file) => file?.digests?.sha256).find(Boolean);
     return {
@@ -524,55 +559,62 @@ export async function discoverConsumptionSurfaceCatalog({
   now = new Date(),
 }) {
   if (typeof fetchImpl !== 'function') throw new TypeError('A fetch implementation is required.');
-  const github = await Promise.all(list(seeds?.github?.products).map(async (fullName) => {
-    const [metadata, readme] = await Promise.all([
-      request(fetchImpl, `https://api.github.com/repos/${fullName}`),
-      request(fetchImpl, `https://api.github.com/repos/${fullName}/readme`),
-    ]);
-    const repository = metadata.body || {};
-    const published = metadata.ok && repository.private === false;
-    return {
-      name: fullName,
-      published,
-      contractReady: published
-        && repository.archived !== true
-        && repository.fork !== true
-        && Boolean(repository.description)
-        && Boolean(repository.license?.spdx_id)
-        && readme.ok,
-      defaultBranch: repository.default_branch || null,
-      license: repository.license?.spdx_id || null,
-      readme: readme.ok,
-      archived: repository.archived === true,
-      fork: repository.fork === true,
-      url: repository.html_url || `https://github.com/${fullName}`,
-    };
-  }));
-  const services = await Promise.all(list(seeds?.services).map(async (service) => {
-    const probe = await request(fetchImpl, `${service.url}${service.health}`);
-    return {
-      name: service.name,
-      url: service.url,
-      health: service.health,
-      published: true,
-      contractReady: probe.ok,
-      status: probe.status,
-    };
-  }));
-  const containers = await Promise.all(list(seeds?.containers).map(async (container) => {
-    const page = await request(
-      fetchImpl,
-      `https://github.com/users/${container.owner}/packages/container/package/${container.name}`,
-      { json: false }
-    );
-    return {
-      name: container.name,
-      image: container.image,
-      published: page.ok,
-      contractReady: page.ok,
-      status: page.status,
-    };
-  }));
+  const github = await Promise.all(
+    list(seeds?.github?.products).map(async (fullName) => {
+      const [metadata, readme] = await Promise.all([
+        request(fetchImpl, `https://api.github.com/repos/${fullName}`),
+        request(fetchImpl, `https://api.github.com/repos/${fullName}/readme`),
+      ]);
+      const repository = metadata.body || {};
+      const published = metadata.ok && repository.private === false;
+      return {
+        name: fullName,
+        published,
+        contractReady:
+          published &&
+          repository.archived !== true &&
+          repository.fork !== true &&
+          Boolean(repository.description) &&
+          Boolean(repository.license?.spdx_id) &&
+          readme.ok,
+        defaultBranch: repository.default_branch || null,
+        license: repository.license?.spdx_id || null,
+        readme: readme.ok,
+        archived: repository.archived === true,
+        fork: repository.fork === true,
+        url: repository.html_url || `https://github.com/${fullName}`,
+      };
+    })
+  );
+  const services = await Promise.all(
+    list(seeds?.services).map(async (service) => {
+      const probe = await request(fetchImpl, `${service.url}${service.health}`);
+      return {
+        name: service.name,
+        url: service.url,
+        health: service.health,
+        published: true,
+        contractReady: probe.ok,
+        status: probe.status,
+      };
+    })
+  );
+  const containers = await Promise.all(
+    list(seeds?.containers).map(async (container) => {
+      const page = await request(
+        fetchImpl,
+        `https://github.com/users/${container.owner}/packages/container/package/${container.name}`,
+        { json: false }
+      );
+      return {
+        name: container.name,
+        image: container.image,
+        published: page.ok,
+        contractReady: page.ok,
+        status: page.status,
+      };
+    })
+  );
   const [mcp, repository] = await Promise.all([
     request(fetchImpl, seeds?.mcp?.healthUrl),
     request(fetchImpl, `https://api.github.com/repos/${seeds?.mcp?.publicRepository}`),

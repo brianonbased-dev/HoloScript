@@ -1048,7 +1048,8 @@ export const DOMAIN_TAXONOMY: DomainEntry[] = [
     solvers: [],
     toolkit: 'general',
     keywords: ['web', 'nextjs', 'react', 'website', 'webapp', 'frontend', 'api'],
-    description: 'NextJS compiler surfaces, generated R3F SceneIR shells, and API service compilers.',
+    description:
+      'NextJS compiler surfaces, generated R3F SceneIR shells, and API service compilers.',
   },
   {
     id: 'mobile-ios',

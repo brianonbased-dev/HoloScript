@@ -15,8 +15,7 @@ export const DETERMINISTIC_HOLO_WORLD_PROJECTION =
   'holoscript-core-parser-static-object-projection-v2' as const;
 export const HOLO_WORLD_PROJECTION_PROVENANCE_SCHEMA =
   'holoscript.holo-world-projection-provenance.v2' as const;
-export const HOLO_WORLD_PROJECTION_COVERAGE =
-  'static-object-declarations-no-lifecycle-v1' as const;
+export const HOLO_WORLD_PROJECTION_COVERAGE = 'static-object-declarations-no-lifecycle-v1' as const;
 
 const MAX_WORLD_SOURCE_BYTES = 256 * 1024;
 const MAX_WORLD_PROVENANCE_BYTES = 4 * 1024;
@@ -26,8 +25,7 @@ const MAX_STATIC_VALUE_DEPTH = 32;
 const MAX_WORLD_PROJECTED_BYTES = 8 * 1024 * 1024;
 const MAX_WORLD_PROJECTED_NODES = 500_000;
 const MAX_WORLD_PROJECTED_STRUCTURE_DEPTH = 96;
-const HOLO_WORLD_PROJECTION_PARSER =
-  '@holoscript/core/HoloCompositionParser.parse' as const;
+const HOLO_WORLD_PROJECTION_PARSER = '@holoscript/core/HoloCompositionParser.parse' as const;
 const HOLO_WORLD_PROJECTION_PARSER_OPTIONS = Object.freeze({
   locations: true,
   tolerant: false,
@@ -129,27 +127,16 @@ function assertProjectedSize(value: unknown, label: string): void {
       fail(`${label} exceeds ${MAX_WORLD_PROJECTED_NODES} value nodes`);
     }
     if (current.depth > MAX_WORLD_PROJECTED_STRUCTURE_DEPTH) {
-      fail(
-        `${label} structure exceeds depth ${MAX_WORLD_PROJECTED_STRUCTURE_DEPTH}`
-      );
+      fail(`${label} structure exceeds depth ${MAX_WORLD_PROJECTED_STRUCTURE_DEPTH}`);
     }
     if (typeof current.value === 'string') {
       stringCodeUnits += current.value.length;
-    } else if (
-      current.value === null ||
-      typeof current.value === 'boolean'
-    ) {
+    } else if (current.value === null || typeof current.value === 'boolean') {
       // JSON scalar.
-    } else if (
-      typeof current.value === 'number' &&
-      Number.isFinite(current.value)
-    ) {
+    } else if (typeof current.value === 'number' && Number.isFinite(current.value)) {
       // JSON scalar.
     } else if (Array.isArray(current.value)) {
-      if (
-        nodeCount + stack.length + current.value.length >
-        MAX_WORLD_PROJECTED_NODES
-      ) {
+      if (nodeCount + stack.length + current.value.length > MAX_WORLD_PROJECTED_NODES) {
         fail(`${label} exceeds ${MAX_WORLD_PROJECTED_NODES} value nodes`);
       }
       for (const entry of current.value) {
@@ -207,11 +194,7 @@ function assertExactKeys(value: unknown, expected: readonly string[], label: str
 }
 
 function assertSha256(value: unknown, label: string): asserts value is string {
-  if (
-    typeof value !== 'string' ||
-    value.length !== 64 ||
-    !/^[a-f0-9]{64}$/.test(value)
-  ) {
+  if (typeof value !== 'string' || value.length !== 64 || !/^[a-f0-9]{64}$/.test(value)) {
     fail(`${label} must be a lowercase SHA-256 digest`);
   }
 }
@@ -219,8 +202,7 @@ function assertSha256(value: unknown, label: string): asserts value is string {
 function formatParserDiagnostics(diagnostics: HoloParseErrorLike[]): string {
   return diagnostics
     .map((diagnostic) => {
-      const line =
-        typeof diagnostic.loc?.line === 'number' ? `line ${diagnostic.loc.line}: ` : '';
+      const line = typeof diagnostic.loc?.line === 'number' ? `line ${diagnostic.loc.line}: ` : '';
       const code = typeof diagnostic.code === 'string' ? `[${diagnostic.code}] ` : '';
       return `${line}${code}${String(diagnostic.message ?? 'unknown parser diagnostic')}`;
     })
@@ -242,9 +224,7 @@ function stateBlockToRecord(state: unknown): Record<string, unknown> {
   return propertyListToRecord(asRecord(state).properties);
 }
 
-function normalizePhysicsAliasLayer(
-  properties: Record<string, unknown>
-): Record<string, unknown> {
+function normalizePhysicsAliasLayer(properties: Record<string, unknown>): Record<string, unknown> {
   const normalized = { ...properties };
   const massKg = properties.massKg ?? properties.mass_kg ?? properties.mass;
   const shape = properties.shape ?? properties.geometry;
@@ -304,11 +284,7 @@ export function normalizeHeadlessSceneProperties(
       typeof normalized.height === 'number' ||
       typeof normalized.depth === 'number')
   ) {
-    normalized.scale = [
-      normalized.width ?? 1,
-      normalized.height ?? 1,
-      normalized.depth ?? 1,
-    ];
+    normalized.scale = [normalized.width ?? 1, normalized.height ?? 1, normalized.depth ?? 1];
   }
 
   delete normalized.__templateRef;
@@ -323,10 +299,7 @@ function traitListsToMap(...traitLists: unknown[]): Map<string, Record<string, u
       const entry = asRecord(trait);
       if (typeof entry.name !== 'string') continue;
       const rawConfig = { ...asRecord(entry.config) };
-      const config =
-        entry.name === 'physics'
-          ? normalizePhysicsAliasLayer(rawConfig)
-          : rawConfig;
+      const config = entry.name === 'physics' ? normalizePhysicsAliasLayer(rawConfig) : rawConfig;
       if (Array.isArray(entry.args) && entry.args.length > 0) {
         config.args = entry.args;
       }
@@ -514,9 +487,7 @@ const STATIC_PROJECTION_TRAIT_NAMES = new Set([
 ]);
 
 function normalizeStaticIdentifier(key: string): string {
-  return key
-    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-    .toLowerCase();
+  return key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
 }
 
 function isLifecyclePropertyKey(key: string): boolean {
@@ -531,17 +502,11 @@ function isLifecyclePropertyKey(key: string): boolean {
 }
 
 function isStaticPropertyKey(key: string): boolean {
-  return (
-    key === normalizeStaticIdentifier(key) &&
-    STATIC_PROJECTION_PROPERTY_KEYS.has(key)
-  );
+  return key === normalizeStaticIdentifier(key) && STATIC_PROJECTION_PROPERTY_KEYS.has(key);
 }
 
 function isStaticTraitName(name: string): boolean {
-  return (
-    name === normalizeStaticIdentifier(name) &&
-    STATIC_PROJECTION_TRAIT_NAMES.has(name)
-  );
+  return name === normalizeStaticIdentifier(name) && STATIC_PROJECTION_TRAIT_NAMES.has(name);
 }
 
 function assertNoSkippedHoloCharacters(source: string): void {
@@ -552,12 +517,7 @@ function assertNoSkippedHoloCharacters(source: string): void {
     const current = source[index];
     const next = source[index + 1];
 
-    if (
-      current === ' ' ||
-      current === '\t' ||
-      current === '\r' ||
-      current === '\n'
-    ) {
+    if (current === ' ' || current === '\t' || current === '\r' || current === '\n') {
       index += 1;
       continue;
     }
@@ -609,11 +569,7 @@ function assertNoSkippedHoloCharacters(source: string): void {
     if (/[0-9]/.test(current)) {
       index += 1;
       while (index < source.length && /[0-9]/.test(source[index])) index += 1;
-      if (
-        source[index] === '.' &&
-        index + 1 < source.length &&
-        /[0-9]/.test(source[index + 1])
-      ) {
+      if (source[index] === '.' && index + 1 < source.length && /[0-9]/.test(source[index + 1])) {
         index += 1;
         while (index < source.length && /[0-9]/.test(source[index])) index += 1;
       }
@@ -711,9 +667,7 @@ class StaticProjectionTokenParser {
       return;
     }
     const token = this.current();
-    fail(
-      `root token ${token.type} (${JSON.stringify(token.value)}) is not a static declaration`
-    );
+    fail(`root token ${token.type} (${JSON.stringify(token.value)}) is not a static declaration`);
   }
 
   private parseTemplate(): void {
@@ -754,22 +708,14 @@ class StaticProjectionTokenParser {
     const traitNames = new Set<string>();
     if (this.match('USING')) this.expectName(`object ${name} template`);
     while (this.check('AT')) {
-      this.rememberTrait(
-        traitNames,
-        this.parseTrait(`object ${name}`, false),
-        `object ${name}`
-      );
+      this.rememberTrait(traitNames, this.parseTrait(`object ${name}`, false), `object ${name}`);
     }
     this.expect('LBRACE', `object ${name}`);
     while (!this.check('RBRACE')) {
       if (this.check('OBJECT')) {
         this.parseObject(depth + 1);
       } else if (this.check('AT')) {
-        this.rememberTrait(
-          traitNames,
-          this.parseTrait(`object ${name}`, true),
-          `object ${name}`
-        );
+        this.rememberTrait(traitNames, this.parseTrait(`object ${name}`, true), `object ${name}`);
       } else {
         this.rememberProperty(
           propertyNames,
@@ -795,9 +741,7 @@ class StaticProjectionTokenParser {
         this.parseSpatialGroup(depth + 1);
       } else {
         const token = this.current();
-        fail(
-          `spatial group ${name} cannot contain ${token.type} (${JSON.stringify(token.value)})`
-        );
+        fail(`spatial group ${name} cannot contain ${token.type} (${JSON.stringify(token.value)})`);
       }
     }
     this.expect('RBRACE', `spatial group ${name}`);
@@ -844,11 +788,7 @@ class StaticProjectionTokenParser {
     const propertyNames = new Set<string>();
     this.expect('LBRACE', label);
     while (!this.check('RBRACE')) {
-      this.rememberProperty(
-        propertyNames,
-        this.parseProperty(label, depth),
-        label
-      );
+      this.rememberProperty(propertyNames, this.parseProperty(label, depth), label);
       this.match('COMMA');
     }
     this.expect('RBRACE', label);
@@ -889,22 +829,14 @@ class StaticProjectionTokenParser {
     );
   }
 
-  private rememberProperty(
-    propertyNames: Set<string>,
-    propertyName: string,
-    label: string
-  ): void {
+  private rememberProperty(propertyNames: Set<string>, propertyName: string, label: string): void {
     if (propertyNames.has(propertyName)) {
       fail(`${label} repeats static property ${propertyName}`);
     }
     propertyNames.add(propertyName);
   }
 
-  private rememberTrait(
-    traitNames: Set<string>,
-    traitName: string,
-    label: string
-  ): void {
+  private rememberTrait(traitNames: Set<string>, traitName: string, label: string): void {
     if (traitNames.has(traitName)) {
       fail(`${label} repeats static trait ${traitName}`);
     }
@@ -942,19 +874,13 @@ function assertStaticProjectionSource(source: string): void {
       );
     }
     if (token.type === 'IDENTIFIER' && isLifecyclePropertyKey(token.value)) {
-      fail(
-        `source token ${token.value} is outside ${HOLO_WORLD_PROJECTION_COVERAGE}`
-      );
+      fail(`source token ${token.value} is outside ${HOLO_WORLD_PROJECTION_COVERAGE}`);
     }
   }
   new StaticProjectionTokenParser(tokens).parse();
 }
 
-function assertStaticPropertyValue(
-  value: unknown,
-  label: string,
-  depth = 0
-): void {
+function assertStaticPropertyValue(value: unknown, label: string, depth = 0): void {
   if (depth > MAX_STATIC_VALUE_DEPTH) {
     fail(`${label} value nesting exceeds ${MAX_STATIC_VALUE_DEPTH}`);
   }
@@ -1015,11 +941,7 @@ function assertStaticPropertyList(value: unknown, label: string): void {
     if (entry.key === 'scale' && typeof entry.value === 'number') {
       assertOptionalFiniteNumber(entry.value, `${label}[${index}].scale`);
     } else if (['position', 'rotation', 'scale'].includes(entry.key)) {
-      assertOptionalFiniteVector(
-        entry.value,
-        ['x', 'y', 'z'],
-        `${label}[${index}].${entry.key}`
-      );
+      assertOptionalFiniteVector(entry.value, ['x', 'y', 'z'], `${label}[${index}].${entry.key}`);
     }
     if (entry.key === 'quaternion') {
       assertOptionalFiniteVector(
@@ -1050,9 +972,7 @@ function assertStaticTraitDescriptor(value: unknown, label: string): void {
 function assertStaticTraitList(value: unknown, label: string): void {
   if (value === undefined || value === null) return;
   if (!Array.isArray(value)) fail(`${label} must be a trait list`);
-  value.forEach((trait, index) =>
-    assertStaticTraitDescriptor(trait, `${label}[${index}]`)
-  );
+  value.forEach((trait, index) => assertStaticTraitDescriptor(trait, `${label}[${index}]`));
 }
 
 function assertOnlyStaticObjectFields(
@@ -1112,9 +1032,7 @@ function assertStaticObjectDeclaration(
   assertStaticPropertyList(object.properties, `${label}.properties`);
   assertStaticTraitList(object.traits, `${label}.traits`);
   assertTraitOnlyDirectives(object.directives, label);
-  for (const [index, child] of (
-    Array.isArray(object.children) ? object.children : []
-  ).entries()) {
+  for (const [index, child] of (Array.isArray(object.children) ? object.children : []).entries()) {
     assertStaticObjectDeclaration(child, templateNames, `${label}.children[${index}]`);
   }
 }
@@ -1177,13 +1095,12 @@ function assertStaticObjectProjectionAdmission(composition: unknown): void {
     assertTraitOnlyDirectives(template.directives, `template[${index}]`);
   });
 
-  for (const [index, object] of (
-    Array.isArray(root.objects) ? root.objects : []
-  ).entries()) {
+  for (const [index, object] of (Array.isArray(root.objects) ? root.objects : []).entries()) {
     assertStaticObjectDeclaration(object, templateNames, `object[${index}]`);
   }
-  for (const [index, group] of (
-    Array.isArray(root.spatialGroups) ? root.spatialGroups : []
+  for (const [index, group] of (Array.isArray(root.spatialGroups)
+    ? root.spatialGroups
+    : []
   ).entries()) {
     assertStaticSpatialGroup(group, templateNames, `spatialGroup[${index}]`);
   }
@@ -1368,11 +1285,7 @@ function assertOptionalFiniteNumber(value: unknown, label: string): void {
   }
 }
 
-function assertOptionalFiniteVector(
-  value: unknown,
-  axes: readonly string[],
-  label: string
-): void {
+function assertOptionalFiniteVector(value: unknown, axes: readonly string[], label: string): void {
   if (value === undefined || value === null) return;
   if (
     Array.isArray(value) &&
@@ -1385,9 +1298,7 @@ function assertOptionalFiniteVector(
     isRecord(value) &&
     canonicalizeHeadlessValue(Object.keys(value).sort()) ===
       canonicalizeHeadlessValue([...axes].sort()) &&
-    axes.every(
-      (axis) => typeof value[axis] === 'number' && Number.isFinite(value[axis])
-    )
+    axes.every((axis) => typeof value[axis] === 'number' && Number.isFinite(value[axis]))
   ) {
     return;
   }
@@ -1435,11 +1346,7 @@ export function headlessAstToSceneReceipt(ast: unknown): Record<string, unknown>
     assertOptionalFiniteVector(positionValue, ['x', 'y', 'z'], `${id}.position`);
     assertOptionalFiniteVector(rotationValue, ['x', 'y', 'z'], `${id}.rotation`);
     assertOptionalFiniteVector(scaleValue, ['x', 'y', 'z'], `${id}.scale`);
-    assertOptionalFiniteVector(
-      quaternionValue,
-      ['x', 'y', 'z', 'w'],
-      `${id}.quaternion`
-    );
+    assertOptionalFiniteVector(quaternionValue, ['x', 'y', 'z', 'w'], `${id}.quaternion`);
     const physicsConfig =
       node.traits instanceof Map
         ? {
@@ -1486,9 +1393,7 @@ export function headlessAstToSceneReceipt(ast: unknown): Record<string, unknown>
 
     const collidableValue = physicsConfig.collidable ?? properties.collidable;
     const staticValue =
-      traits.includes('static') ||
-      physicsConfig.static === true ||
-      properties.static === true;
+      traits.includes('static') || physicsConfig.static === true || properties.static === true;
     const kinematicValue =
       staticValue ||
       traits.includes('kinematic') ||
@@ -1502,8 +1407,7 @@ export function headlessAstToSceneReceipt(ast: unknown): Record<string, unknown>
       properties.mass ??
       null;
     const frictionValue = physicsConfig.friction ?? properties.friction ?? null;
-    const restitutionValue =
-      physicsConfig.restitution ?? properties.restitution ?? null;
+    const restitutionValue = physicsConfig.restitution ?? properties.restitution ?? null;
     const geometryValue =
       physicsConfig.shape ??
       physicsConfig.geometry ??
@@ -1523,10 +1427,7 @@ export function headlessAstToSceneReceipt(ast: unknown): Record<string, unknown>
       traitConfigs:
         node.traits instanceof Map
           ? Object.fromEntries(
-              [...node.traits.entries()].map(([name, config]) => [
-                name,
-                asRecord(config),
-              ])
+              [...node.traits.entries()].map(([name, config]) => [name, asRecord(config)])
             )
           : {},
       properties,
@@ -1538,17 +1439,12 @@ export function headlessAstToSceneReceipt(ast: unknown): Record<string, unknown>
       },
       physics: {
         declarationOnly: true,
-        collidable:
-          traits.includes('collidable') ||
-          Boolean(collidableValue),
+        collidable: traits.includes('collidable') || Boolean(collidableValue),
         kinematic: kinematicValue,
         massKg: massValue,
         friction: frictionValue,
         restitution: restitutionValue,
-        geometry:
-          typeof geometryValue === 'string'
-            ? geometryValue.toLowerCase()
-            : geometryValue,
+        geometry: typeof geometryValue === 'string' ? geometryValue.toLowerCase() : geometryValue,
       },
     });
 
@@ -1571,9 +1467,7 @@ export function headlessAstToSceneReceipt(ast: unknown): Record<string, unknown>
   };
 }
 
-export function buildHeadlessPosePhysicsReceipt(
-  sceneReceipt: unknown
-): Record<string, unknown> {
+export function buildHeadlessPosePhysicsReceipt(sceneReceipt: unknown): Record<string, unknown> {
   const scene = asRecord(sceneReceipt);
   const objects = Array.isArray(scene.objects) ? scene.objects : [];
 
@@ -1608,10 +1502,7 @@ function provenancePreimage(
 
 export function executeHoloWorldProjection(source: string): HoloWorldProjectionExecution {
   if (typeof source !== 'string') fail('source must be a string');
-  if (
-    source.length > MAX_WORLD_SOURCE_BYTES ||
-    byteLength(source) > MAX_WORLD_SOURCE_BYTES
-  ) {
+  if (source.length > MAX_WORLD_SOURCE_BYTES || byteLength(source) > MAX_WORLD_SOURCE_BYTES) {
     fail(`source exceeds ${MAX_WORLD_SOURCE_BYTES} bytes`);
   }
 
@@ -1741,10 +1632,7 @@ export function verifyHoloWorldProjectionProvenance(
       }
     }
     if (options.expectedPosePhysics !== undefined) {
-      assertProjectedSize(
-        options.expectedPosePhysics,
-        'expected pose/physics projection'
-      );
+      assertProjectedSize(options.expectedPosePhysics, 'expected pose/physics projection');
       if (
         canonicalizeHeadlessValue(observed.posePhysics) !==
         canonicalizeHeadlessValue(options.expectedPosePhysics)

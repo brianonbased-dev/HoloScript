@@ -148,8 +148,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       .replace(/\/v1$/, '');
     this.defaultHoloScriptModel = config.model ?? 'mistral-7b-instruct';
     // Auto-detect Ollama by default port (11434). Can be overridden explicitly.
-    this.useNativeOllamaApi =
-      config.nativeOllamaApi ?? this.localBaseURL.includes(':11434');
+    this.useNativeOllamaApi = config.nativeOllamaApi ?? this.localBaseURL.includes(':11434');
   }
 
   protected getDefaultModel(): string {
@@ -274,8 +273,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
         // Override via HOLOSCRIPT_LLM_NUM_CTX or HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX.
         ...((): { num_ctx: number } => {
           const raw =
-            process.env.HOLOSCRIPT_LLM_NUM_CTX ??
-            process.env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX;
+            process.env.HOLOSCRIPT_LLM_NUM_CTX ?? process.env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX;
           const n = raw ? parseInt(raw, 10) : NaN;
           return { num_ctx: Number.isFinite(n) && n > 0 ? n : 16384 };
         })(),
@@ -342,9 +340,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       stream: false,
       ...this._thinkParam(model),
       ...(request.grammar ? { grammar: request.grammar } : {}),
-      ...(request.holoPipeline !== undefined
-        ? { holo_pipeline: request.holoPipeline }
-        : {}),
+      ...(request.holoPipeline !== undefined ? { holo_pipeline: request.holoPipeline } : {}),
       ...(filteredTools.length > 0 ? { tools: this.mapToolsToOllama(filteredTools) } : {}),
     });
 
@@ -426,7 +422,10 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     raw: unknown,
     model: string,
     content: string,
-    rawToolCalls: Array<{ id?: string; function?: { name?: string; index?: number; arguments?: unknown } }>,
+    rawToolCalls: Array<{
+      id?: string;
+      function?: { name?: string; index?: number; arguments?: unknown };
+    }>,
     responseModel: string | undefined,
     finishReasonStr: string | undefined,
     completionTokens: number,
@@ -447,7 +446,11 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       let input: Record<string, unknown> = {};
       const rawArgs = fn.arguments;
       if (typeof rawArgs === 'string') {
-        try { input = JSON.parse(rawArgs) as Record<string, unknown>; } catch { input = {}; }
+        try {
+          input = JSON.parse(rawArgs) as Record<string, unknown>;
+        } catch {
+          input = {};
+        }
       } else if (rawArgs && typeof rawArgs === 'object') {
         input = rawArgs as Record<string, unknown>;
       }
@@ -798,9 +801,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       stream: true,
       ...this._thinkParam(model),
       ...(request.grammar ? { grammar: request.grammar } : {}),
-      ...(request.holoPipeline !== undefined
-        ? { holo_pipeline: request.holoPipeline }
-        : {}),
+      ...(request.holoPipeline !== undefined ? { holo_pipeline: request.holoPipeline } : {}),
       ...(filteredTools.length > 0 ? { tools: this.mapToolsToOllama(filteredTools) } : {}),
     });
 

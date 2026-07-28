@@ -33,9 +33,15 @@ describe('agent attribute claim contract', () => {
     ]);
 
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain('agentAttributeClaims[0].behaviorRefs must include observed behavior');
-    expect(result.errors).toContain('agentAttributeClaims[0].persistence is required for human-like attributes');
-    expect(result.errors).toContain('agentAttributeClaims[0].falsifier is required for human-like attributes');
+    expect(result.errors).toContain(
+      'agentAttributeClaims[0].behaviorRefs must include observed behavior'
+    );
+    expect(result.errors).toContain(
+      'agentAttributeClaims[0].persistence is required for human-like attributes'
+    );
+    expect(result.errors).toContain(
+      'agentAttributeClaims[0].falsifier is required for human-like attributes'
+    );
     expect(result.errors).toContain('agentAttributeClaims[0].costOrPriority is required for care');
   });
 

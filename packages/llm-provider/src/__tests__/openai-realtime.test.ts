@@ -132,7 +132,10 @@ describe('openOpenAIRealtimeSession (mock transport)', () => {
 
     // Server confirms the connection + session.
     mock.emit('open');
-    mock.emit('message', JSON.stringify({ type: 'session.created', session: { id: 'sess_test_1' } }));
+    mock.emit(
+      'message',
+      JSON.stringify({ type: 'session.created', session: { id: 'sess_test_1' } })
+    );
     expect(session.sessionId).toBe('sess_test_1');
 
     // Client drives one turn.
@@ -145,7 +148,10 @@ describe('openOpenAIRealtimeSession (mock transport)', () => {
       JSON.stringify({ type: 'response.output_audio_transcript.delta', delta: 'hello there' })
     );
     const audioBytes = Buffer.from([1, 2, 3, 4]).toString('base64');
-    mock.emit('message', JSON.stringify({ type: 'response.output_audio.delta', delta: audioBytes }));
+    mock.emit(
+      'message',
+      JSON.stringify({ type: 'response.output_audio.delta', delta: audioBytes })
+    );
     mock.emit(
       'message',
       JSON.stringify({
@@ -172,7 +178,11 @@ describe('openOpenAIRealtimeSession (mock transport)', () => {
 
     // transcript + audio mapped from vendor wire events.
     const transcript = events.find((e) => e.type === 'transcript.delta');
-    expect(transcript).toEqual({ type: 'transcript.delta', role: 'assistant', text: 'hello there' });
+    expect(transcript).toEqual({
+      type: 'transcript.delta',
+      role: 'assistant',
+      text: 'hello there',
+    });
 
     const audio = events.find((e) => e.type === 'audio.delta');
     expect(audio?.type).toBe('audio.delta');

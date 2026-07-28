@@ -1041,14 +1041,9 @@ test('exposes executor and asset inspection plus fail-closed launch through the 
     );
     assert.equal(appContainerBlocked.status, 2);
     const appContainerReceipt = JSON.parse(appContainerBlocked.stdout);
-    assert.equal(
-      appContainerReceipt.schema,
-      HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA
-    );
+    assert.equal(appContainerReceipt.schema, HOLOSYSTEM_WHPX_APPCONTAINER_VM_LAUNCH_RECEIPT_SCHEMA);
     assert.equal(appContainerReceipt.verified, false);
-    assert.ok(
-      appContainerReceipt.issues.some((entry) => entry.code === 'vm-launch-field-unknown')
-    );
+    assert.ok(appContainerReceipt.issues.some((entry) => entry.code === 'vm-launch-field-unknown'));
   } finally {
     rmSync(item.cwd, { recursive: true, force: true });
   }

@@ -57,9 +57,7 @@ describe('OpenUSD industrial conformance baseline', () => {
       expect(source).toContain(`object "${objectName}"`);
     }
     expect(source).toContain('dtId: "dt:motor:lineA:m001"');
-    expect(source).toContain(
-      'simulationContract: "fixed_dt_60hz;z_up;semantic_receipts_required"'
-    );
+    expect(source).toContain('simulationContract: "fixed_dt_60hz;z_up;semantic_receipts_required"');
   });
 
   it('keeps semantic hashes deterministic for repeated exports', () => {

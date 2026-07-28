@@ -27,10 +27,7 @@ function stubPhysics(): TraitContext['physicsWorld'] {
   return { addBody: vi.fn() } as unknown as TraitContext['physicsWorld'];
 }
 
-function makeContext(
-  object: THREE.Object3D,
-  config: Record<string, unknown> = {}
-): TraitContext {
+function makeContext(object: THREE.Object3D, config: Record<string, unknown> = {}): TraitContext {
   return { object, physicsWorld: stubPhysics(), config, data: {} };
 }
 
@@ -239,10 +236,13 @@ describe('SharedAnchorTrait', () => {
 
     // Over rate — broadcast fires
     SharedAnchorTrait.onUpdate!(ctx, 0.3);
-    expect(broadcast).toHaveBeenCalledWith('shared_anchors', expect.objectContaining({
-      position: expect.any(Object),
-      orientation: expect.any(Object),
-    }));
+    expect(broadcast).toHaveBeenCalledWith(
+      'shared_anchors',
+      expect.objectContaining({
+        position: expect.any(Object),
+        orientation: expect.any(Object),
+      })
+    );
   });
 
   it('receiver applies incoming transform', () => {
@@ -450,8 +450,9 @@ describe('CoLocatedTrait', () => {
 
   it('counts stable frames when peer is within maxOffset', () => {
     CoLocatedTrait.onApply!(ctx);
-    (obj.parent as THREE.Object3D & { userData: Record<string, unknown> }).userData.coLocationPeers =
-      { peer1: { x: 0.01, y: 0, z: 0 } }; // within 0.1m
+    (
+      obj.parent as THREE.Object3D & { userData: Record<string, unknown> }
+    ).userData.coLocationPeers = { peer1: { x: 0.01, y: 0, z: 0 } }; // within 0.1m
 
     CoLocatedTrait.onUpdate!(ctx, 0.016);
     expect(ctx.data.stableFrameCount).toBe(1);
@@ -459,21 +460,26 @@ describe('CoLocatedTrait', () => {
     expect(ctx.data.stableFrameCount).toBe(2);
     CoLocatedTrait.onUpdate!(ctx, 0.016); // reaches confirmFrames=3
     expect(ctx.object.userData.coLocationConfirmed).toBe(true);
-    expect(broadcast).toHaveBeenCalledWith('co_location', expect.objectContaining({
-      type: 'co_location_confirmed',
-    }));
+    expect(broadcast).toHaveBeenCalledWith(
+      'co_location',
+      expect.objectContaining({
+        type: 'co_location_confirmed',
+      })
+    );
   });
 
   it('resets stable count when peer moves out of range', () => {
     CoLocatedTrait.onApply!(ctx);
-    (obj.parent as THREE.Object3D & { userData: Record<string, unknown> }).userData.coLocationPeers =
-      { peer1: { x: 0.05, y: 0, z: 0 } }; // within range
+    (
+      obj.parent as THREE.Object3D & { userData: Record<string, unknown> }
+    ).userData.coLocationPeers = { peer1: { x: 0.05, y: 0, z: 0 } }; // within range
     CoLocatedTrait.onUpdate!(ctx, 0.016);
     expect(ctx.data.stableFrameCount).toBe(1);
 
     // Peer moves away
-    (obj.parent as THREE.Object3D & { userData: Record<string, unknown> }).userData.coLocationPeers =
-      { peer1: { x: 5, y: 0, z: 0 } };
+    (
+      obj.parent as THREE.Object3D & { userData: Record<string, unknown> }
+    ).userData.coLocationPeers = { peer1: { x: 5, y: 0, z: 0 } };
     CoLocatedTrait.onUpdate!(ctx, 0.016);
     expect(ctx.data.stableFrameCount).toBe(0);
   });
@@ -504,9 +510,12 @@ describe('ShareplayTrait', () => {
 
   it('creates a session_created message on apply when no session_id', () => {
     ShareplayTrait.onApply!(ctx);
-    expect(broadcast).toHaveBeenCalledWith('shareplay', expect.objectContaining({
-      type: 'session_created',
-    }));
+    expect(broadcast).toHaveBeenCalledWith(
+      'shareplay',
+      expect.objectContaining({
+        type: 'session_created',
+      })
+    );
     expect(ctx.object.userData.sessionActive).toBe(true);
     expect(ctx.object.userData.sessionId).toBeTruthy();
   });
@@ -514,10 +523,13 @@ describe('ShareplayTrait', () => {
   it('creates a join_request message when session_id provided', () => {
     ctx = makeContext(obj, { session_id: 'existing-session-xyz' });
     ShareplayTrait.onApply!(ctx);
-    expect(broadcast).toHaveBeenCalledWith('shareplay', expect.objectContaining({
-      type: 'session_join_request',
-      sessionId: 'existing-session-xyz',
-    }));
+    expect(broadcast).toHaveBeenCalledWith(
+      'shareplay',
+      expect.objectContaining({
+        type: 'session_join_request',
+        sessionId: 'existing-session-xyz',
+      })
+    );
   });
 
   it('generates a joinUrl from window.location.origin when available', () => {
@@ -542,9 +554,12 @@ describe('ShareplayTrait', () => {
     ShareplayTrait.onApply!(ctx);
     broadcast.mockClear();
     ShareplayTrait.onRemove!(ctx);
-    expect(broadcast).toHaveBeenCalledWith('shareplay', expect.objectContaining({
-      type: 'session_ended',
-    }));
+    expect(broadcast).toHaveBeenCalledWith(
+      'shareplay',
+      expect.objectContaining({
+        type: 'session_ended',
+      })
+    );
     expect(ctx.object.userData.sessionActive).toBe(false);
   });
 });

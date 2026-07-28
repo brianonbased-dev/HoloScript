@@ -68,10 +68,18 @@
     "@react-three/xr": "^6.6.0"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true },
-    "react-dom": { "optional": true },
-    "@react-three/fiber": { "optional": true },
-    "@react-three/xr": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "@react-three/fiber": {
+      "optional": true
+    },
+    "@react-three/xr": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@react-three/fiber": "^9.5.0",

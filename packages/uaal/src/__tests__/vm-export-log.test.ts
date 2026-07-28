@@ -161,9 +161,7 @@ describe('round-trip: export → replay → valid', () => {
     expect(result.stackTop).toBe(9);
 
     const log = vm.exportLog();
-    expect(log.steps[0].effects).toEqual([
-      { op: 'context-set', key: 'updated', value: 9 },
-    ]);
+    expect(log.steps[0].effects).toEqual([{ op: 'context-set', key: 'updated', value: 9 }]);
     const verdict = await replayUAALLog(bytecode, log);
     expect(verdict.valid).toBe(true);
   });

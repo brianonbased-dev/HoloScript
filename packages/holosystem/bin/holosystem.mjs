@@ -215,7 +215,10 @@ function writeSourceCanonProjection(path, value, { force = false } = {}) {
     !path.endsWith('.hsplus') ||
     /^[A-Za-z]:[\\/]/u.test(path) ||
     /^(?:[\\/]{1,2}|~[\\/])/u.test(path) ||
-    path.replaceAll('\\', '/').split('/').some((segment) => segment === '..' || segment === '.')
+    path
+      .replaceAll('\\', '/')
+      .split('/')
+      .some((segment) => segment === '..' || segment === '.')
   ) {
     throw new Error('--output must be a portable repository-relative .hsplus path.');
   }

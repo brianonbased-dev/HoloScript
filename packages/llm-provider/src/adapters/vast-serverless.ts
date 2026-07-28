@@ -111,7 +111,9 @@ function headerObject(headers: Headers): Record<string, string> {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
+  return value !== null && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 function compactCaveat(value: unknown): string | undefined {
@@ -127,10 +129,7 @@ function headerJson(value: unknown): string | undefined {
   }
 }
 
-function gpuTelemetryHeaders(
-  payload: unknown,
-  fallbackCaveat?: string
-): Record<string, string> {
+function gpuTelemetryHeaders(payload: unknown, fallbackCaveat?: string): Record<string, string> {
   const record = asRecord(payload);
   if (!record && !fallbackCaveat) return {};
 
@@ -311,7 +310,11 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
       }
       requestIdx = route.request_idx ?? requestIdx;
       if (route.url)
-        return { url: route.url.replace(/\/$/, ''), authData: route, requestIdx: route.request_idx };
+        return {
+          url: route.url.replace(/\/$/, ''),
+          authData: route,
+          requestIdx: route.request_idx,
+        };
       if (maxWaitS <= 0 || (Date.now() - t0) / 1000 >= maxWaitS) {
         const latestStatus =
           route.status === undefined ? 'no status' : JSON.stringify(route.status).slice(0, 200);
@@ -400,8 +403,14 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
   ): Record<string, string> {
     const hardwareGpu = gpuTelemetryFromHardware(hardwareTelemetry);
     return {
-      ...gpuTelemetryHeaders(gpuTelemetry ?? hardwareGpu, gpuTelemetry ?? hardwareGpu ? undefined : fallbackCaveat),
-      ...hardwareTelemetryHeaders(hardwareTelemetry, hardwareTelemetry ? undefined : fallbackCaveat),
+      ...gpuTelemetryHeaders(
+        gpuTelemetry ?? hardwareGpu,
+        (gpuTelemetry ?? hardwareGpu) ? undefined : fallbackCaveat
+      ),
+      ...hardwareTelemetryHeaders(
+        hardwareTelemetry,
+        hardwareTelemetry ? undefined : fallbackCaveat
+      ),
     };
   }
 
@@ -506,7 +515,14 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
         ...responseHeaders,
         ...this.completionBoundTelemetryHeaders(undefined, undefined, noCompletionTelemetryCaveat),
       };
-      yield { type: 'message_stop', finishReason: 'stop', usage: this.zeroUsage(), model, requestId, responseHeaders: finalResponseHeaders };
+      yield {
+        type: 'message_stop',
+        finishReason: 'stop',
+        usage: this.zeroUsage(),
+        model,
+        requestId,
+        responseHeaders: finalResponseHeaders,
+      };
       return;
     }
 
@@ -622,7 +638,14 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
         noCompletionTelemetryCaveat
       ),
     };
-    yield { type: 'message_stop', finishReason, usage, model: finalModel, requestId, responseHeaders: finalResponseHeaders };
+    yield {
+      type: 'message_stop',
+      finishReason,
+      usage,
+      model: finalModel,
+      requestId,
+      responseHeaders: finalResponseHeaders,
+    };
     if (streamErrored) {
       throw new LLMProviderError('Stream error during vast serverless completion', this.name);
     }

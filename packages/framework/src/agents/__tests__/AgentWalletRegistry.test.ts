@@ -140,9 +140,9 @@ describe('AgentWalletRegistry', () => {
     it('authorizes and records spend within a configured active wallet rail', async () => {
       registry.registerWallet('agent-1', '0xABC', 8453, 8);
 
-      await expect(
-        registry.authorizeTransaction('agent-1', { action: 'buy' }, 3)
-      ).resolves.toMatch(/^0x/);
+      await expect(registry.authorizeTransaction('agent-1', { action: 'buy' }, 3)).resolves.toMatch(
+        /^0x/
+      );
       expect(registry.getWallet('agent-1')).toMatchObject({
         dailySpendLimitUsd: 8,
         spentTodayUsd: 3,

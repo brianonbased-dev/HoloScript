@@ -188,7 +188,10 @@ describe('validateHoloShellPermissionGateReceiptPack', () => {
       hiddenAutomationUsed: true,
       rawCredentialCaptured: true,
     };
-    const errors = validatePermissionGrantReceipt(grant as unknown as PermissionGrantReceipt, validPack.request);
+    const errors = validatePermissionGrantReceipt(
+      grant as unknown as PermissionGrantReceipt,
+      validPack.request
+    );
     expect(errors).toEqual(
       expect.arrayContaining([
         'PermissionGrantReceipt.hiddenAutomationUsed must be false.',

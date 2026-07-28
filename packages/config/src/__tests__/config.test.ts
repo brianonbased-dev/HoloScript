@@ -172,7 +172,11 @@ describe('auth (server-side)', () => {
 
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ access_token: 'oauth-bearer-token', expires_in: 3600, token_type: 'Bearer' }),
+        json: async () => ({
+          access_token: 'oauth-bearer-token',
+          expires_in: 3600,
+          token_type: 'Bearer',
+        }),
       });
       vi.stubGlobal('fetch', mockFetch);
 
@@ -197,12 +201,15 @@ describe('auth (server-side)', () => {
       process.env.HOLOSCRIPT_MCP_CLIENT_ID = 'bad-client';
       process.env.HOLOSCRIPT_MCP_CLIENT_SECRET = 'bad-secret';
 
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-        ok: false,
-        status: 400,
-        statusText: 'Bad Request',
-        text: async () => '{"error":"invalid_client"}',
-      }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          text: async () => '{"error":"invalid_client"}',
+        })
+      );
 
       await expect(getOAuthToken()).rejects.toThrow('400');
     });
@@ -246,10 +253,13 @@ describe('auth (server-side)', () => {
       process.env.HOLOSCRIPT_MCP_CLIENT_ID = 'test-client-id';
       process.env.HOLOSCRIPT_MCP_CLIENT_SECRET = 'test-client-secret';
 
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ access_token: 'async-bearer-token', expires_in: 3600 }),
-      }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({ access_token: 'async-bearer-token', expires_in: 3600 }),
+        })
+      );
 
       const headers = await mcpAuthHeadersAsync();
       expect(headers['Authorization']).toBe('Bearer async-bearer-token');

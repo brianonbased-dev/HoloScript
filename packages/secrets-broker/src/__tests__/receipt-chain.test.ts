@@ -72,8 +72,9 @@ describe('verifyReceiptChain (generic over accessors)', () => {
 
 describe('createReceiptChainSink (generic over any receipt family)', () => {
   const flush = () => new Promise((r) => setTimeout(r, 0));
-  const newSink = (over: Partial<Parameters<typeof createReceiptChainSink<string, ToyReceipt>>[0]> = {}) =>
-    createReceiptChainSink<string, ToyReceipt>({ seal, accessors: ACC, ...over });
+  const newSink = (
+    over: Partial<Parameters<typeof createReceiptChainSink<string, ToyReceipt>>[0]> = {}
+  ) => createReceiptChainSink<string, ToyReceipt>({ seal, accessors: ACC, ...over });
 
   it('starts empty, then seals each record onto the head and grows a verifiable chain', () => {
     const sink = newSink();

@@ -94,16 +94,8 @@ import {
   HighContrastTrait,
   MotionReducedTrait,
 } from '../traits/AccessibilityTraits';
-import {
-  ModerationTrait,
-  AntiGriefTrait,
-  TokenGatedTrait,
-} from '../traits/ContentSafetyTraits';
-import {
-  DataBindingTrait,
-  WorldStateTrait,
-  SharedWorldTrait,
-} from '../traits/DataSyncTraits';
+import { ModerationTrait, AntiGriefTrait, TokenGatedTrait } from '../traits/ContentSafetyTraits';
+import { DataBindingTrait, WorldStateTrait, SharedWorldTrait } from '../traits/DataSyncTraits';
 import {
   FollowTrait,
   OrbitTrait,

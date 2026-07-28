@@ -19,14 +19,7 @@
  */
 
 import type { GPUContext } from '../gpu-context.js';
-import {
-  ZSTAB,
-  HX,
-  priorLLR,
-  bpOsdDecode,
-  DEFAULT_PRIOR,
-  type BitVector,
-} from './qec-codes.js';
+import { ZSTAB, HX, priorLLR, bpOsdDecode, DEFAULT_PRIOR, type BitVector } from './qec-codes.js';
 
 /** Number of data qubits in the [[9,1,3]] code. */
 export const NVAR = 9;
@@ -290,7 +283,11 @@ export class QECDecoder {
     return syndromes.map((s, i) => {
       const { correction, converged } = unpackCorrection(out[i]);
       if (converged) return { correction, gpuConverged: true, method: 'gpu-bp' };
-      return { correction: bpOsdDecode(HX, s, p).correction, gpuConverged: false, method: 'host-osd0' };
+      return {
+        correction: bpOsdDecode(HX, s, p).correction,
+        gpuConverged: false,
+        method: 'host-osd0',
+      };
     });
   }
 
@@ -364,7 +361,13 @@ export class QECDecoder {
       size: B * 4,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
-    device.queue.writeBuffer(inBuf, 0, batch.buffer as ArrayBuffer, batch.byteOffset, batch.byteLength);
+    device.queue.writeBuffer(
+      inBuf,
+      0,
+      batch.buffer as ArrayBuffer,
+      batch.byteOffset,
+      batch.byteLength
+    );
     const outBuf = device.createBuffer({ size: B * 4, usage: GPUBufferUsage.STORAGE });
     const params = new ArrayBuffer(16);
     new Float32Array(params, 0, 1)[0] = priorLLR(p);

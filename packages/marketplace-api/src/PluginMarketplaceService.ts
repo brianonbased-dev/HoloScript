@@ -1223,9 +1223,8 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
       .update(replayKey)
       .digest('hex')
       .slice(0, 16)}`;
-    const { createHoloHubInstallReceipt, validateHoloHubInstallReceipt } = await import(
-      '@holoscript/framework/economy'
-    );
+    const { createHoloHubInstallReceipt, validateHoloHubInstallReceipt } =
+      await import('@holoscript/framework/economy');
     const receipt: HoloHubInstallReceipt = createHoloHubInstallReceipt({
       schemaVersion: 'holohub.install-receipt.v0.1.0',
       id: receiptId,

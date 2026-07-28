@@ -209,8 +209,7 @@ test('required retrieval fails closed before a provider call when recall is empt
   });
   await assert.rejects(
     planner.plan({ ...plannerInput(), memory: [] }),
-    (error) =>
-      error instanceof ProviderPlannerError && error.code === 'retrieval-evidence-missing'
+    (error) => error instanceof ProviderPlannerError && error.code === 'retrieval-evidence-missing'
   );
   assert.equal(calls, 0);
 });
@@ -356,7 +355,11 @@ test('preserves safe planner telemetry in the runtime receipt while redacting se
   assert.equal(receipt.plan.metadata.usage.promptTokens, 10);
   assert.equal(receipt.plan.metadata.bounds.maxTokens, 100);
   assert.equal(receipt.plan.metadata.apiKey, undefined);
-  assert.equal(receipt.decisionNetwork.nodes.find((node) => node.kind === 'plan').data.metadata.usage.totalTokens, 15);
+  assert.equal(
+    receipt.decisionNetwork.nodes.find((node) => node.kind === 'plan').data.metadata.usage
+      .totalTokens,
+    15
+  );
   assert.equal(JSON.stringify(receipt).includes('sk-raw-secret-value'), false);
   assert.equal(receipts.length, 1);
   assert.match(receipt.memory.storedContentSha256, /^sha256:[a-f0-9]{64}$/u);

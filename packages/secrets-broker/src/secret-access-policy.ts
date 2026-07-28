@@ -82,7 +82,10 @@ function globToRegExp(glob: string): RegExp {
  * allowlist (see module docs). Returns a decision — it does NOT throw; the resolver turns a
  * `{ allowed: false }` into a {@link PolicyDeniedError} so the value boundary stays single-sourced.
  */
-export function checkSecretAccess(policy: SecretAccessPolicy, ref: SecretRef): SecretAccessDecision {
+export function checkSecretAccess(
+  policy: SecretAccessPolicy,
+  ref: SecretRef
+): SecretAccessDecision {
   // block wins — a blocked ref is denied even if an allow entry would admit it.
   if (policy.block) {
     for (const pattern of policy.block) {

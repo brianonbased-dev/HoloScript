@@ -4,10 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  PACKAGE_IR_SCHEMA_VERSION,
-  PACKAGE_LOCK_SCHEMA_VERSION,
-} from '../PackageIR';
+import { PACKAGE_IR_SCHEMA_VERSION, PACKAGE_LOCK_SCHEMA_VERSION } from '../PackageIR';
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const wit = readFileSync(join(packageRoot, 'wit', 'package-ir.wit'), 'utf8');
@@ -20,8 +17,6 @@ describe('PackageIR WIT projection', () => {
     expect(wit).toContain('verify-cached-source: func');
     expect(wit).toContain('verify-lock: func');
     expect(PACKAGE_IR_SCHEMA_VERSION).toBe('holoscript.package-ir.v0.1');
-    expect(PACKAGE_LOCK_SCHEMA_VERSION).toBe(
-      'holoscript.package-lock-receipt.v0.1'
-    );
+    expect(PACKAGE_LOCK_SCHEMA_VERSION).toBe('holoscript.package-lock-receipt.v0.1');
   });
 });

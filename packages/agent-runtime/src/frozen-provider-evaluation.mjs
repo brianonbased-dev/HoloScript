@@ -2,8 +2,7 @@ import { createHash } from 'node:crypto';
 
 export const FROZEN_PROVIDER_EVALUATION_SCHEMA =
   'holoscript.agent-runtime.frozen-provider-evaluation.v2';
-export const FROZEN_PROVIDER_PROMPT_SCHEMA =
-  'holoscript.agent-runtime.frozen-provider-prompt.v1';
+export const FROZEN_PROVIDER_PROMPT_SCHEMA = 'holoscript.agent-runtime.frozen-provider-prompt.v1';
 export const FROZEN_PROVIDER_CONTEXT_ISOLATION_SCHEMA =
   'holoscript.agent-runtime.context-isolation.v1';
 
@@ -88,7 +87,9 @@ export function buildFrozenProviderPrompt({
       `Task: ${task.instruction}`,
       '',
     ]),
-  ].join('\n').trimEnd();
+  ]
+    .join('\n')
+    .trimEnd();
   const snapshot = {
     schema: FROZEN_PROVIDER_PROMPT_SCHEMA,
     id,
@@ -121,7 +122,10 @@ export function redactEvaluationText(value, { secretValues = [] } = {}) {
     .replace(/\b(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9._-]{12,}\b/giu, '[REDACTED_SECRET]')
     .replace(/\bAIza[0-9A-Za-z_-]{30,}\b/gu, '[REDACTED_SECRET]')
     .replace(/\bAKIA[0-9A-Z]{16}\b/gu, '[REDACTED_SECRET]')
-    .replace(/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/gu, '[REDACTED_PRIVATE_KEY]');
+    .replace(
+      /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/gu,
+      '[REDACTED_PRIVATE_KEY]'
+    );
   return {
     text: redacted,
     secretLeakDetected: redacted !== source,
@@ -187,9 +191,9 @@ function usageEvidence(usage) {
   const promptTokens = finiteOrNull(usage?.promptTokens);
   const completionTokens = finiteOrNull(usage?.completionTokens);
   const totalTokens = finiteOrNull(usage?.totalTokens);
-  const reported = !explicitlyUnreported && [promptTokens, completionTokens, totalTokens].some(
-    (value) => value !== null
-  );
+  const reported =
+    !explicitlyUnreported &&
+    [promptTokens, completionTokens, totalTokens].some((value) => value !== null);
   return {
     reported,
     promptTokens: reported ? promptTokens : null,
@@ -199,7 +203,10 @@ function usageEvidence(usage) {
 }
 
 function safeError(error, options) {
-  return redactEvaluationText(error?.message || error || 'unknown error', options).text.slice(0, 1_000);
+  return redactEvaluationText(error?.message || error || 'unknown error', options).text.slice(
+    0,
+    1_000
+  );
 }
 
 function unverifiedContextIsolation(contextLabel) {
@@ -284,7 +291,9 @@ async function prepareContextExecutions({
         model,
       });
     } catch (error) {
-      throw new Error(`${contextLabel}: createContext failed: ${safeError(error, redactionOptions)}`);
+      throw new Error(
+        `${contextLabel}: createContext failed: ${safeError(error, redactionOptions)}`
+      );
     }
     if (typeof context?.complete !== 'function') {
       throw new Error(`${contextLabel}: createContext.complete is required`);
@@ -359,7 +368,10 @@ async function runIndependentContext({
   let parseError = null;
   if (!providerError) {
     try {
-      responses = strictResponses(redactedContent.text, prompt.tasks.map((task) => task.eval_id));
+      responses = strictResponses(
+        redactedContent.text,
+        prompt.tasks.map((task) => task.eval_id)
+      );
     } catch (error) {
       parseError = safeError(error, redactionOptions);
     }
@@ -521,7 +533,9 @@ export async function runFrozenProviderEvaluation({
   }
 
   const verificationStates = captures.map((capture) => capture.verification.ok);
-  const responseHashes = captures.map((capture) => capture.generation.responseSha256).filter(Boolean);
+  const responseHashes = captures
+    .map((capture) => capture.generation.responseSha256)
+    .filter(Boolean);
   const independentCaptures = captures.filter((capture) => capture.independent);
   const isolationEvidenceHashes = independentCaptures
     .map((capture) => capture.isolation.evidenceSha256)
@@ -546,8 +560,7 @@ export async function runFrozenProviderEvaluation({
     allLocallyAccepted: captures.every((capture) => capture.ok),
     retrievalClaimed: false,
     generationObserved: captures.some((capture) => Boolean(capture.generation.responseSha256)),
-    rule:
-      'Context labels and response diversity are not isolation proof. Provider generation, caller-attested context isolation, local acceptance, durable absorption, and provider-only UI behavior are separate evidence states.',
+    rule: 'Context labels and response diversity are not isolation proof. Provider generation, caller-attested context isolation, local acceptance, durable absorption, and provider-only UI behavior are separate evidence states.',
   };
   const absorptionInput = {
     evaluationId: id,
@@ -648,8 +661,7 @@ export async function runFrozenProviderEvaluation({
         claim: claim.text,
         status: 'unverified',
       })),
-      rule:
-        'UI latency, IDE context flow, managed-agent behavior, browser behavior, and provider custody require separate native-surface receipts.',
+      rule: 'UI latency, IDE context flow, managed-agent behavior, browser behavior, and provider custody require separate native-surface receipts.',
     },
     secretLeakDetected,
     nonClaims: [

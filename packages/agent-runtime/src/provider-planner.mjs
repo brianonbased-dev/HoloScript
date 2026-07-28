@@ -79,16 +79,11 @@ function safeUsage(value) {
     completionTokens,
     totalTokens:
       reportedTotal ??
-      (promptTokens !== null && completionTokens !== null
-        ? promptTokens + completionTokens
-        : null),
+      (promptTokens !== null && completionTokens !== null ? promptTokens + completionTokens : null),
   };
 }
 
-function projectEntry(
-  entry,
-  { kind, index, includeContent, includeMetadata, maxContentChars }
-) {
+function projectEntry(entry, { kind, index, includeContent, includeMetadata, maxContentChars }) {
   const source = asRecord(entry) ?? {};
   const actualId = text(source.id);
   if (!actualId) return null;
@@ -138,20 +133,17 @@ function buildTool({ allowedActionTypes, allowedRiskLevels, maxActions }) {
           },
         },
       },
-      required: [
-        'summary',
-        'rationale',
-        'cited_memory_ids',
-        'cited_knowledge_ids',
-        'actions',
-      ],
+      required: ['summary', 'rationale', 'cited_memory_ids', 'cited_knowledge_ids', 'actions'],
     },
   };
 }
 
 function normalizeActions(value, { allowedActionTypes, allowedRiskLevels, maxActions }) {
   if (!Array.isArray(value) || value.length === 0) {
-    throw new ProviderPlannerError('invalid-plan', 'provider tool input requires at least one action');
+    throw new ProviderPlannerError(
+      'invalid-plan',
+      'provider tool input requires at least one action'
+    );
   }
   if (value.length > maxActions) {
     throw new ProviderPlannerError(
@@ -175,7 +167,10 @@ function normalizeActions(value, { allowedActionTypes, allowedRiskLevels, maxAct
     }
     const input = asRecord(action.input);
     if (!input) {
-      throw new ProviderPlannerError('invalid-plan', `provider action ${index} input must be an object`);
+      throw new ProviderPlannerError(
+        'invalid-plan',
+        `provider action ${index} input must be an object`
+      );
     }
     const risk = text(action.risk);
     if (!risk || !allowedRisks.has(risk)) {
@@ -424,7 +419,10 @@ export function createProviderPlannerAdapter({
       const elapsedMs = Math.max(0, now() - startedMs);
       const responseRecord = asRecord(response);
       if (!responseRecord) {
-        throw new ProviderPlannerError('invalid-response', 'provider completion returned no object');
+        throw new ProviderPlannerError(
+          'invalid-response',
+          'provider completion returned no object'
+        );
       }
       const toolUses = Array.isArray(responseRecord.toolUses) ? responseRecord.toolUses : [];
       if (responseRecord.finishReason !== 'tool_use' || toolUses.length !== 1) {
@@ -481,10 +479,7 @@ export function createProviderPlannerAdapter({
       const requestId = text(responseRecord.requestId);
       const requestedProviderName = text(provider.name);
       const reportedProviderName = text(responseRecord.provider);
-      const reportedModel = Object.prototype.hasOwnProperty.call(
-        responseRecord,
-        'reportedModel'
-      )
+      const reportedModel = Object.prototype.hasOwnProperty.call(responseRecord, 'reportedModel')
         ? text(responseRecord.reportedModel)
         : text(responseRecord.model);
 

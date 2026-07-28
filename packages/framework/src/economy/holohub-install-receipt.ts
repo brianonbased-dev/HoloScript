@@ -225,7 +225,10 @@ export function validateHoloHubInstallReceipt(receipt: HoloHubInstallReceipt): s
     if (typeof receipt.signature.trusted !== 'boolean') {
       errors.push('HoloHubInstallSignature.trusted must be a boolean.');
     }
-    if (receipt.signature.status === 'signed' && !isNonEmptyString(receipt.signature.keyFingerprint)) {
+    if (
+      receipt.signature.status === 'signed' &&
+      !isNonEmptyString(receipt.signature.keyFingerprint)
+    ) {
       errors.push('HoloHubInstallSignature.keyFingerprint is required for signed artifacts.');
     }
     validateStringArray('HoloHubInstallSignature.errors', receipt.signature.errors, errors);
@@ -238,7 +241,11 @@ export function validateHoloHubInstallReceipt(receipt: HoloHubInstallReceipt): s
     if (typeof receipt.compatibility.compatible !== 'boolean') {
       errors.push('HoloHubInstallCompatibility.compatible must be a boolean.');
     }
-    validateStringArray('HoloHubInstallCompatibility.warnings', receipt.compatibility.warnings, errors);
+    validateStringArray(
+      'HoloHubInstallCompatibility.warnings',
+      receipt.compatibility.warnings,
+      errors
+    );
     validateStringArray('HoloHubInstallCompatibility.errors', receipt.compatibility.errors, errors);
   }
 
@@ -258,13 +265,21 @@ export function validateHoloHubInstallReceipt(receipt: HoloHubInstallReceipt): s
         }
       }
     }
-    validateStringArray('HoloHubInstallDependencies.conflicts', receipt.dependencies.conflicts, errors);
+    validateStringArray(
+      'HoloHubInstallDependencies.conflicts',
+      receipt.dependencies.conflicts,
+      errors
+    );
   }
 
   if (!receipt.permissions) {
     errors.push('HoloHubInstallReceipt.permissions is required.');
   } else {
-    validateStringArray('HoloHubInstallPermissions.requested', receipt.permissions.requested, errors);
+    validateStringArray(
+      'HoloHubInstallPermissions.requested',
+      receipt.permissions.requested,
+      errors
+    );
     validateStringArray('HoloHubInstallPermissions.granted', receipt.permissions.granted, errors);
     if (!isNonEmptyString(receipt.permissions.trustLevel)) {
       errors.push('HoloHubInstallPermissions.trustLevel is required.');
@@ -300,9 +315,7 @@ export function validateHoloHubInstallReceipt(receipt: HoloHubInstallReceipt): s
   return errors;
 }
 
-export function cloneHoloHubInstallReceipt(
-  receipt: HoloHubInstallReceipt
-): HoloHubInstallReceipt {
+export function cloneHoloHubInstallReceipt(receipt: HoloHubInstallReceipt): HoloHubInstallReceipt {
   return {
     ...receipt,
     artifact: { ...receipt.artifact },
@@ -344,8 +357,6 @@ export function isSupportedHoloHubInstallSignatureStatus(
   return isOneOf(HOLOHUB_INSTALL_SIGNATURE_STATUSES, value);
 }
 
-export function isSupportedHoloHubInstallDecision(
-  value: string
-): value is HoloHubInstallDecision {
+export function isSupportedHoloHubInstallDecision(value: string): value is HoloHubInstallDecision {
   return isOneOf(HOLOHUB_INSTALL_DECISIONS, value);
 }

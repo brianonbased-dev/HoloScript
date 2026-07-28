@@ -117,7 +117,11 @@ function makeSkinnedTriangleGlb(): ArrayBuffer {
     meshes: [
       {
         primitives: [
-          { attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 }, indices: 4, mode: 4 },
+          {
+            attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 },
+            indices: 4,
+            mode: 4,
+          },
         ],
       },
     ],
@@ -159,7 +163,10 @@ describe('Track-0 mesh → .glb export', () => {
 
   // ─── skin re-emit (Track-0 follow-up) ─────────────────────────────────────────
 
-  function riggedMesh(): SkinnedMeshData & { inverseBindMatrices: Float32Array; jointCount: number } {
+  function riggedMesh(): SkinnedMeshData & {
+    inverseBindMatrices: Float32Array;
+    jointCount: number;
+  } {
     // jointCount=2; distinct (non-identity) inverse-binds so we can prove the values survive.
     const ibm = new Float32Array(2 * 16);
     for (let j = 0; j < 2; j++) {
@@ -184,7 +191,9 @@ describe('Track-0 mesh → .glb export', () => {
     expect(prim.attributes.WEIGHTS_0).toBeDefined();
     // dominant joint lands in slot 0; the other three slots are zero
     expect(readU16(g, bin, prim.attributes.JOINTS_0)).toEqual([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]);
-    expect(readF32(g, bin, prim.attributes.WEIGHTS_0)).toEqual([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]);
+    expect(readF32(g, bin, prim.attributes.WEIGHTS_0)).toEqual([
+      1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,
+    ]);
 
     // a real skin: 2 joint nodes, mesh node bound to it, inverse-binds carried verbatim
     expect(g.skins).toBeDefined();

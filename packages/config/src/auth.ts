@@ -279,9 +279,7 @@ export async function getOAuthToken(): Promise<string | undefined> {
   };
 
   if (!data.access_token) {
-    throw new Error(
-      '@holoscript/config: OAuth token response missing access_token field'
-    );
+    throw new Error('@holoscript/config: OAuth token response missing access_token field');
   }
 
   const ttlMs = (data.expires_in ?? 3600) * 1000;

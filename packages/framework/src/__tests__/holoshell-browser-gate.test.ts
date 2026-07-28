@@ -124,7 +124,11 @@ describe('gateDesktopExecution — allowedActions policy', () => {
 describe('gateDesktopExecution — domain policy', () => {
   it('blocks action when target domain is in blockedDomains', () => {
     const token = makeToken({ policy: makePolicy({ blockedDomains: ['evil.com'] }) });
-    const result = gateDesktopExecution({ kind: 'click', url: 'https://evil.com/path' }, token, NOW);
+    const result = gateDesktopExecution(
+      { kind: 'click', url: 'https://evil.com/path' },
+      token,
+      NOW
+    );
     expect(result.admitted).toBe(false);
     expect(result.reason).toMatch(/evil\.com/);
     expect(result.reason).toMatch(/blocked/i);
@@ -139,7 +143,11 @@ describe('gateDesktopExecution — domain policy', () => {
 
   it('admits action when target domain IS in allowedDomains', () => {
     const token = makeToken({ policy: makePolicy({ allowedDomains: ['good.com'] }) });
-    const result = gateDesktopExecution({ kind: 'click', url: 'https://good.com/page' }, token, NOW);
+    const result = gateDesktopExecution(
+      { kind: 'click', url: 'https://good.com/page' },
+      token,
+      NOW
+    );
     expect(result.admitted).toBe(true);
   });
 
@@ -151,7 +159,11 @@ describe('gateDesktopExecution — domain policy', () => {
 
   it('admits any domain when allowedDomains is empty', () => {
     const token = makeToken();
-    const result = gateDesktopExecution({ kind: 'click', url: 'https://anything.example.com/' }, token, NOW);
+    const result = gateDesktopExecution(
+      { kind: 'click', url: 'https://anything.example.com/' },
+      token,
+      NOW
+    );
     expect(result.admitted).toBe(true);
   });
 });
@@ -193,9 +205,16 @@ describe('gateDesktopExecution — valid consent path', () => {
   it('returns admitted:true with tokenId on fully valid token', () => {
     const token = makeToken({
       tokenId: 'tok_valid_999',
-      policy: makePolicy({ allowedDomains: ['app.holoscript.net'], allowedActions: ['click', 'type'] }),
+      policy: makePolicy({
+        allowedDomains: ['app.holoscript.net'],
+        allowedActions: ['click', 'type'],
+      }),
     });
-    const result = gateDesktopExecution({ kind: 'click', url: 'https://app.holoscript.net/dashboard' }, token, NOW);
+    const result = gateDesktopExecution(
+      { kind: 'click', url: 'https://app.holoscript.net/dashboard' },
+      token,
+      NOW
+    );
     expect(result.admitted).toBe(true);
     expect(result.tokenId).toBe('tok_valid_999');
     expect(result.reason).toMatch(/consent verified/);

@@ -20,8 +20,22 @@ const othello: UAALSemanticGateIR = {
     { id: 'b_iago_models_oth', agent: 'iago', prop: 'unfaithful', confidence: 0.9, about: 'b_oth' },
   ],
   perspectives: [
-    { id: 'pv_oth', agent: 'othello', event: 'handkerchief', sees: ['planted'], frames: 'proof of betrayal', feels: ['jealousy'] },
-    { id: 'pv_des', agent: 'desdemona', event: 'handkerchief', sees: ['planted', 'faithful'], frames: 'innocent loss', feels: ['confusion'] },
+    {
+      id: 'pv_oth',
+      agent: 'othello',
+      event: 'handkerchief',
+      sees: ['planted'],
+      frames: 'proof of betrayal',
+      feels: ['jealousy'],
+    },
+    {
+      id: 'pv_des',
+      agent: 'desdemona',
+      event: 'handkerchief',
+      sees: ['planted', 'faithful'],
+      frames: 'innocent loss',
+      feels: ['confusion'],
+    },
   ],
   causal: [
     { cause: 'b_iago', effect: 'b_oth', mechanism: 'deception' },
@@ -78,7 +92,9 @@ describe('semanticGate', () => {
     const result = semanticGate(broken);
 
     expect(result.pass).toBe(false);
-    expect(result.errors).toContain('event handkerchief: perspectives share identical interiority (not multi-perspective)');
+    expect(result.errors).toContain(
+      'event handkerchief: perspectives share identical interiority (not multi-perspective)'
+    );
   });
 
   it('rejects causal cycles', () => {

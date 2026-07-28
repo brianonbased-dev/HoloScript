@@ -949,9 +949,12 @@ function emptyIsolationControls(adapter) {
   return Object.fromEntries(
     isolationControlKeys(adapter).map((key) => [
       key,
-      ['enabledPrivilegeCount', 'capabilityCount', 'filesystemCanaryError', 'networkCanaryError'].includes(
-        key
-      )
+      [
+        'enabledPrivilegeCount',
+        'capabilityCount',
+        'filesystemCanaryError',
+        'networkCanaryError',
+      ].includes(key)
         ? null
         : false,
     ])
@@ -974,9 +977,12 @@ function isolationControlsReady(controls, adapter) {
   return (
     APPCONTAINER_CONTROL_KEYS.every(
       (key) =>
-        ['enabledPrivilegeCount', 'capabilityCount', 'filesystemCanaryError', 'networkCanaryError'].includes(
-          key
-        ) ||
+        [
+          'enabledPrivilegeCount',
+          'capabilityCount',
+          'filesystemCanaryError',
+          'networkCanaryError',
+        ].includes(key) ||
         (key === 'loopbackAccepted' ? controls[key] === false : controls[key] === true)
     ) &&
     controls.capabilityCount === 0 &&
@@ -1511,9 +1517,7 @@ function runVmLaunchWithProcessRunner(
         ...(adapter.hostSandboxed && !adapter.filesystemConfidentiality
           ? ['host-filesystem-confidentiality']
           : []),
-        ...(adapter.hostSandboxed && !adapter.networkIsolation
-          ? ['host-network-isolation']
-          : []),
+        ...(adapter.hostSandboxed && !adapter.networkIsolation ? ['host-network-isolation'] : []),
       ],
     };
   }

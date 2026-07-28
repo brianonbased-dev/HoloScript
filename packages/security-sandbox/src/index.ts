@@ -832,7 +832,13 @@ export class HoloScriptSandbox {
     if (!this.ablation.disableCapabilityCheck) {
       const structuralError = this.preValidateStructure(code);
       if (structuralError) {
-        return this.verifiedLogicFailure('validation', structuralError, source, startTime, codeHash);
+        return this.verifiedLogicFailure(
+          'validation',
+          structuralError,
+          source,
+          startTime,
+          codeHash
+        );
       }
       for (const blocked of HoloScriptSandbox.GLOBALS_BLOCKLIST) {
         if (new RegExp(`\\b${blocked}\\b`).test(code)) {
@@ -926,7 +932,13 @@ export class HoloScriptSandbox {
     codeHash: string
   ): SandboxResult<VerifiedLogicData> {
     if (type === 'validation') {
-      this.log({ source, action: 'reject', success: false, reason: `Validation failed: ${message}`, codeHash });
+      this.log({
+        source,
+        action: 'reject',
+        success: false,
+        reason: `Validation failed: ${message}`,
+        codeHash,
+      });
     }
     return {
       success: false,

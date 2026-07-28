@@ -382,11 +382,16 @@ export class Psi4Backend implements QmSolver {
     // all others → element symbol (NMR inactive or symbol-only convention).
     const nmrIsotopeLabel = (symbol: string): string => {
       switch (symbol) {
-        case 'H': return '1H';
-        case 'C': return '13C';
-        case 'N': return '15N';
-        case 'P': return '31P';
-        default: return symbol;
+        case 'H':
+          return '1H';
+        case 'C':
+          return '13C';
+        case 'N':
+          return '15N';
+        case 'P':
+          return '31P';
+        default:
+          return symbol;
       }
     };
     const nucleusLabels = molecule.atoms.map((a) => nmrIsotopeLabel(a.symbol));
@@ -539,7 +544,11 @@ export class Psi4Backend implements QmSolver {
       if (markerIdx === -1) {
         throw new Error('[psi4] Output did not contain %%QM_RESULT%% marker');
       }
-      const jsonStr = stdout.slice(markerIdx + marker.length).trim().split('\n')[0] ?? '';
+      const jsonStr =
+        stdout
+          .slice(markerIdx + marker.length)
+          .trim()
+          .split('\n')[0] ?? '';
       return JSON.parse(jsonStr) as Psi4RawResult;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

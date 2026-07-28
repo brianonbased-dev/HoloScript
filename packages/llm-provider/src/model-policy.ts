@@ -123,21 +123,112 @@ export interface ModelLibraryEntry {
  */
 export const MODEL_LIBRARY: readonly ModelLibraryEntry[] = [
   // ── LOCAL (Ollama / on-device) ──
-  { id: 'qwen3:4b-instruct-2507', lanes: ['code_local', 'operator'], paramsB: 4, license: 'apache-2.0', tier: 'local', note: 'Proven Hermes tool-calls, non-thinking, 256K — current local default.' },
-  { id: 'qwen3:4b', lanes: ['operator'], paramsB: 4, license: 'apache-2.0', tier: 'local', note: 'Fast operator chat (suppress thinking via /no_think).' },
-  { id: 'qwen3-vl:4b', lanes: ['vision'], paramsB: 4, license: 'apache-2.0', tier: 'local', note: 'GUI/screenshot perception agent; final-output gated for Tower C until thinking-only length regressions clear.' },
-  { id: 'granite4:1b', lanes: ['fleet_worker'], paramsB: 1, license: 'apache-2.0', tier: 'local', note: 'BFCLv3 54.8 (class-leading); CPU/browser-runnable; closes fleet Gap #1.' },
-  { id: 'gemma4:12b', lanes: ['vision'], paramsB: 12, license: 'gemma', tier: 'local', note: 'OCR/doc/chart vision; ~16GB. Do NOT think:false (breaks tool mask).' },
+  {
+    id: 'qwen3:4b-instruct-2507',
+    lanes: ['code_local', 'operator'],
+    paramsB: 4,
+    license: 'apache-2.0',
+    tier: 'local',
+    note: 'Proven Hermes tool-calls, non-thinking, 256K — current local default.',
+  },
+  {
+    id: 'qwen3:4b',
+    lanes: ['operator'],
+    paramsB: 4,
+    license: 'apache-2.0',
+    tier: 'local',
+    note: 'Fast operator chat (suppress thinking via /no_think).',
+  },
+  {
+    id: 'qwen3-vl:4b',
+    lanes: ['vision'],
+    paramsB: 4,
+    license: 'apache-2.0',
+    tier: 'local',
+    note: 'GUI/screenshot perception agent; final-output gated for Tower C until thinking-only length regressions clear.',
+  },
+  {
+    id: 'granite4:1b',
+    lanes: ['fleet_worker'],
+    paramsB: 1,
+    license: 'apache-2.0',
+    tier: 'local',
+    note: 'BFCLv3 54.8 (class-leading); CPU/browser-runnable; closes fleet Gap #1.',
+  },
+  {
+    id: 'gemma4:12b',
+    lanes: ['vision'],
+    paramsB: 12,
+    license: 'gemma',
+    tier: 'local',
+    note: 'OCR/doc/chart vision; ~16GB. Do NOT think:false (breaks tool mask).',
+  },
   // ── FLEET (sovereign GPU / vLLM) ──
-  { id: 'qwen3-coder:30b', lanes: ['code_served'], paramsB: 3.3, license: 'apache-2.0', tier: 'fleet', note: '30B-A3B, purpose-built tool-calls; the served CODE pick.' },
-  { id: 'devstral-small-2', lanes: ['code_served'], paramsB: 24, license: 'apache-2.0', tier: 'fleet', note: 'Mistral 68% SWE-bench; agentic coding on a workstation.' },
-  { id: 'mistral-small-4', lanes: ['operator', 'code_served'], paramsB: 6.5, license: 'apache-2.0', tier: 'fleet', note: 'Native FC+JSON, multimodal; strong all-rounder.' },
-  { id: 'glm-4.5-air', lanes: ['operator'], paramsB: 12, license: 'mit', tier: 'fleet', note: 'Best self-hostable tool-caller (90.6% success, BFCL-v3 76.4).' },
-  { id: 'minimax-m2', lanes: ['operator'], paramsB: 10, license: 'apache-2.0', tier: 'fleet', note: 'Top agentic tool-caller; cheapest via API.' },
-  { id: 'deepseek-v4-pro', lanes: ['reasoning', 'code_served'], paramsB: 49, license: 'mit', tier: 'fleet', note: '1M ctx; leads open agentic real-world; think:false-able.' },
+  {
+    id: 'qwen3-coder:30b',
+    lanes: ['code_served'],
+    paramsB: 3.3,
+    license: 'apache-2.0',
+    tier: 'fleet',
+    note: '30B-A3B, purpose-built tool-calls; the served CODE pick.',
+  },
+  {
+    id: 'devstral-small-2',
+    lanes: ['code_served'],
+    paramsB: 24,
+    license: 'apache-2.0',
+    tier: 'fleet',
+    note: 'Mistral 68% SWE-bench; agentic coding on a workstation.',
+  },
+  {
+    id: 'mistral-small-4',
+    lanes: ['operator', 'code_served'],
+    paramsB: 6.5,
+    license: 'apache-2.0',
+    tier: 'fleet',
+    note: 'Native FC+JSON, multimodal; strong all-rounder.',
+  },
+  {
+    id: 'glm-4.5-air',
+    lanes: ['operator'],
+    paramsB: 12,
+    license: 'mit',
+    tier: 'fleet',
+    note: 'Best self-hostable tool-caller (90.6% success, BFCL-v3 76.4).',
+  },
+  {
+    id: 'minimax-m2',
+    lanes: ['operator'],
+    paramsB: 10,
+    license: 'apache-2.0',
+    tier: 'fleet',
+    note: 'Top agentic tool-caller; cheapest via API.',
+  },
+  {
+    id: 'deepseek-v4-pro',
+    lanes: ['reasoning', 'code_served'],
+    paramsB: 49,
+    license: 'mit',
+    tier: 'fleet',
+    note: '1M ctx; leads open agentic real-world; think:false-able.',
+  },
   // ── CLOUD (frontier BYOK) ──
-  { id: 'claude-opus-4-8', lanes: ['reasoning'], paramsB: 0, license: 'frontier', tier: 'cloud', note: 'Frontier review/reasoning default (F.112 BYOK fallback).' },
-  { id: 'kimi-k2.6', lanes: ['reasoning'], paramsB: 32, license: 'mit', tier: 'cloud', note: 'Open agentic-swarm reasoning co-primary (via Fireworks).' },
+  {
+    id: 'claude-opus-4-8',
+    lanes: ['reasoning'],
+    paramsB: 0,
+    license: 'frontier',
+    tier: 'cloud',
+    note: 'Frontier review/reasoning default (F.112 BYOK fallback).',
+  },
+  {
+    id: 'kimi-k2.6',
+    lanes: ['reasoning'],
+    paramsB: 32,
+    license: 'mit',
+    tier: 'cloud',
+    note: 'Open agentic-swarm reasoning co-primary (via Fireworks).',
+  },
 ];
 
 /** Library entries recommended for a lane. */
@@ -195,7 +286,10 @@ export function isBlacklistedModel(name: string | undefined | null): boolean {
  * in which case `fallback` (default: the safe local default) is returned. Use at
  * any seam that accepts an external/explicit model string.
  */
-export function resolveAllowedModel(requested: string | undefined | null, fallback: string = SAFE_LOCAL_FALLBACK): string {
+export function resolveAllowedModel(
+  requested: string | undefined | null,
+  fallback: string = SAFE_LOCAL_FALLBACK
+): string {
   if (!requested || isBlacklistedModel(requested)) {
     return isBlacklistedModel(fallback) ? LOCAL_DEFAULT_MODEL : fallback;
   }

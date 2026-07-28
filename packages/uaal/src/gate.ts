@@ -100,7 +100,11 @@ export interface UAALSemanticGateResult {
 }
 
 function ids(values: Array<{ id?: string }>): Set<string> {
-  return new Set(values.map((value) => value.id).filter((id): id is string => typeof id === 'string' && id.length > 0));
+  return new Set(
+    values
+      .map((value) => value.id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+  );
 }
 
 function label(prefix: string, id: unknown, index: number): string {
@@ -117,11 +121,19 @@ function has(set: Set<string>, id: unknown, context: string, errors: string[]): 
 }
 
 function edgeSource(edge: UAALSemanticGateCausalLink): string | null {
-  return typeof edge.cause === 'string' ? edge.cause : typeof edge.from === 'string' ? edge.from : null;
+  return typeof edge.cause === 'string'
+    ? edge.cause
+    : typeof edge.from === 'string'
+      ? edge.from
+      : null;
 }
 
 function edgeTarget(edge: UAALSemanticGateCausalLink): string | null {
-  return typeof edge.effect === 'string' ? edge.effect : typeof edge.to === 'string' ? edge.to : null;
+  return typeof edge.effect === 'string'
+    ? edge.effect
+    : typeof edge.to === 'string'
+      ? edge.to
+      : null;
 }
 
 function hasCycle(adjacency: Map<string, string[]>): string | null {
@@ -177,7 +189,12 @@ export function semanticGate(ir: UAALSemanticGateIR): UAALSemanticGateResult {
   ]);
 
   for (const [index, proposition] of (ir.propositions || []).entries()) {
-    has(propositionIds, proposition.negates, `${label('proposition', proposition.id, index)}.negates`, errors);
+    has(
+      propositionIds,
+      proposition.negates,
+      `${label('proposition', proposition.id, index)}.negates`,
+      errors
+    );
   }
 
   for (const [index, event] of (ir.events || []).entries()) {
@@ -216,25 +233,36 @@ export function semanticGate(ir: UAALSemanticGateIR): UAALSemanticGateResult {
     }
   }
 
-  const eventFacts = new Map((ir.events || []).map((event) => [event.id, new Set(event.facts || [])]));
+  const eventFacts = new Map(
+    (ir.events || []).map((event) => [event.id, new Set(event.facts || [])])
+  );
   for (const [index, perspective] of (ir.perspectives || []).entries()) {
     const prefix = label('perspective', perspective.id, index);
     has(entityIds, perspective.agent, `${prefix}.agent`, errors);
     has(eventIds, perspective.event, `${prefix}.event`, errors);
-    const facts = typeof perspective.event === 'string' ? eventFacts.get(perspective.event) || new Set<string>() : new Set<string>();
+    const facts =
+      typeof perspective.event === 'string'
+        ? eventFacts.get(perspective.event) || new Set<string>()
+        : new Set<string>();
     for (const fact of perspective.sees || []) {
       if (!facts.has(fact)) {
-        errors.push(`${prefix}: SEES '${fact}' not in event '${String(perspective.event)}' facts - perception ungrounded`);
+        errors.push(
+          `${prefix}: SEES '${fact}' not in event '${String(perspective.event)}' facts - perception ungrounded`
+        );
       }
     }
   }
 
   for (const event of (ir.events || []).filter((candidate) => candidate.multiPerspective)) {
-    const perspectives = (ir.perspectives || []).filter((perspective) => perspective.event === event.id);
+    const perspectives = (ir.perspectives || []).filter(
+      (perspective) => perspective.event === event.id
+    );
     if (perspectives.length < 2) {
       errors.push(`event ${event.id}: multiPerspective but <2 perspectives`);
     } else if (new Set(perspectives.map(interiorityKey)).size < 2) {
-      errors.push(`event ${event.id}: perspectives share identical interiority (not multi-perspective)`);
+      errors.push(
+        `event ${event.id}: perspectives share identical interiority (not multi-perspective)`
+      );
     }
   }
 
@@ -258,15 +286,25 @@ export function semanticGate(ir: UAALSemanticGateIR): UAALSemanticGateResult {
     const prop = belief.prop;
     if (typeof prop !== 'string') return false;
     const objectivelyTrue = (ir.events || []).some((event) => (event.facts || []).includes(prop));
-    const contradicts = (ir.propositions || []).find((proposition) => proposition.id === prop)?.negates;
-    return !objectivelyTrue || (typeof contradicts === 'string' && (ir.events || []).some((event) => (event.facts || []).includes(contradicts)));
+    const contradicts = (ir.propositions || []).find(
+      (proposition) => proposition.id === prop
+    )?.negates;
+    return (
+      !objectivelyTrue ||
+      (typeof contradicts === 'string' &&
+        (ir.events || []).some((event) => (event.facts || []).includes(contradicts)))
+    );
   });
   const nestedToM = (ir.beliefs || []).filter((belief) => belief.about);
   if (falseBeliefs.length > 0) {
-    richness.push(`${falseBeliefs.length} false belief(s): ${falseBeliefs.map((belief) => belief.id || '?').join(', ')}`);
+    richness.push(
+      `${falseBeliefs.length} false belief(s): ${falseBeliefs.map((belief) => belief.id || '?').join(', ')}`
+    );
   }
   if (nestedToM.length > 0) {
-    richness.push(`${nestedToM.length} nested belief(s): ${nestedToM.map((belief) => belief.id || '?').join(', ')}`);
+    richness.push(
+      `${nestedToM.length} nested belief(s): ${nestedToM.map((belief) => belief.id || '?').join(', ')}`
+    );
   }
 
   return {
@@ -282,7 +320,9 @@ export function semanticGate(ir: UAALSemanticGateIR): UAALSemanticGateResult {
       nestedToM: nestedToM.length,
       falseBeliefs: falseBeliefs.length,
       perspectives: (ir.perspectives || []).length,
-      perspectiveEvents: new Set((ir.perspectives || []).map((perspective) => perspective.event).filter(Boolean)).size,
+      perspectiveEvents: new Set(
+        (ir.perspectives || []).map((perspective) => perspective.event).filter(Boolean)
+      ).size,
       causalLinks: (ir.causal || []).length,
       emotions: (ir.emotions || []).length,
     },

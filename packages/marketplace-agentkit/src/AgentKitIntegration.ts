@@ -69,7 +69,7 @@ export class AgentKitIntegration {
   private assertSimulation(operation: string): void {
     if (this.options.mode !== 'simulation') {
       throw new Error(
-        `${operation} has no audited live settlement implementation. Set mode to "simulation" only for explicit non-production use.`,
+        `${operation} has no audited live settlement implementation. Set mode to "simulation" only for explicit non-production use.`
       );
     }
   }
@@ -80,7 +80,7 @@ export class AgentKitIntegration {
   }): Promise<AgentWallet> {
     const walletService = new AgentWalletService(
       this.options.network === 'ethereum' ? 'base-sepolia' : 'base-sepolia',
-      { mode: this.options.mode },
+      { mode: this.options.mode }
     );
     const liveAddress = await walletService.initialize();
 

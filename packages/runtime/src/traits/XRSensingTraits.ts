@@ -36,7 +36,10 @@ import * as THREE from 'three';
 /** Minimal shape of XRFrame used internally (avoids full lib.dom.d.ts XR). */
 interface XRFrameMinimal {
   getHitTestResults?(source: unknown): XRHitResultMinimal[];
-  getWorldInformation?(): { detectedPlanes?: Set<XRPlaneMinimal>; detectedMeshes?: Set<XRMeshMinimal> } | null;
+  getWorldInformation?(): {
+    detectedPlanes?: Set<XRPlaneMinimal>;
+    detectedMeshes?: Set<XRMeshMinimal>;
+  } | null;
   getLightEstimate?(source: unknown): XRLightEstimateMinimal | null;
   createAnchor?(pose: unknown, space: unknown): Promise<XRAnchorMinimal>;
   trackedAnchors?: Set<XRAnchorMinimal>;
@@ -144,17 +147,17 @@ export const PlaneDetectionTrait: TraitHandler = {
     context.object.userData.nearestPlaneY = null;
 
     // Attempt to acquire a hit-test source from the active XR session
-    const session = getXRSession(context.object) as XRSessionMinimal & {
-      requestHitTestSource?(o: unknown): Promise<unknown>;
-      requestReferenceSpace?(t: string): Promise<unknown>;
-    } | null;
+    const session = getXRSession(context.object) as
+      | (XRSessionMinimal & {
+          requestHitTestSource?(o: unknown): Promise<unknown>;
+          requestReferenceSpace?(t: string): Promise<unknown>;
+        })
+      | null;
 
     if (session?.requestHitTestSource && context.data.hitTest) {
       void session
         .requestReferenceSpace?.('viewer')
-        .then((viewerSpace) =>
-          session.requestHitTestSource?.({ space: viewerSpace })
-        )
+        .then((viewerSpace) => session.requestHitTestSource?.({ space: viewerSpace }))
         .then((src) => {
           context.data.hitTestSource = src;
           context.object.userData.hitTestActive = true;
@@ -328,9 +331,11 @@ export const PersistentAnchorTrait: TraitHandler = {
     context.object.userData.anchorAttached = false;
 
     // Try to create/restore the anchor via the active XR session
-    const session = getXRSession(context.object) as XRSessionMinimal & {
-      requestReferenceSpace?(t: string): Promise<unknown>;
-    } | null;
+    const session = getXRSession(context.object) as
+      | (XRSessionMinimal & {
+          requestReferenceSpace?(t: string): Promise<unknown>;
+        })
+      | null;
 
     if (!session) return;
 
@@ -440,7 +445,8 @@ export const SharedAnchorTrait: TraitHandler = {
 
   onUpdate(context: TraitContext, delta: number) {
     context.data.timeSinceBroadcast = (context.data.timeSinceBroadcast as number) + delta;
-    if ((context.data.timeSinceBroadcast as number) < (context.data.broadcastRate as number)) return;
+    if ((context.data.timeSinceBroadcast as number) < (context.data.broadcastRate as number))
+      return;
     context.data.timeSinceBroadcast = 0;
 
     if (context.data.role === 'creator') {
@@ -459,9 +465,8 @@ export const SharedAnchorTrait: TraitHandler = {
 
       // Dispatch via scene userData broadcast hook (injected by networking layer)
       const scene = context.object.parent;
-      const broadcast = (
-        scene as THREE.Object3D & { userData: Record<string, unknown> }
-      )?.userData?.meshBroadcast as ((channel: string, data: unknown) => void) | undefined;
+      const broadcast = (scene as THREE.Object3D & { userData: Record<string, unknown> })?.userData
+        ?.meshBroadcast as ((channel: string, data: unknown) => void) | undefined;
 
       broadcast?.(context.data.channel as string, payload);
       context.object.userData.anchorSynced = true;
@@ -473,11 +478,7 @@ export const SharedAnchorTrait: TraitHandler = {
       } | null;
 
       if (incoming?.position) {
-        context.object.position.set(
-          incoming.position.x,
-          incoming.position.y,
-          incoming.position.z
-        );
+        context.object.position.set(incoming.position.x, incoming.position.y, incoming.position.z);
         if (incoming.orientation) {
           context.object.quaternion.set(
             incoming.orientation.x,
@@ -762,12 +763,13 @@ export const OcclusionTrait: TraitHandler = {
       // the renderer with the correct XR depth sensing parameters.
       const scene = context.object.parent;
       if (scene) {
-        (scene as THREE.Object3D & { userData: Record<string, unknown> }).userData
-          .xrDepthOcclusionRequested = true;
-        (scene as THREE.Object3D & { userData: Record<string, unknown> }).userData
-          .xrDepthNear = context.data.depthNear;
-        (scene as THREE.Object3D & { userData: Record<string, unknown> }).userData
-          .xrDepthFar = context.data.depthFar;
+        (
+          scene as THREE.Object3D & { userData: Record<string, unknown> }
+        ).userData.xrDepthOcclusionRequested = true;
+        (scene as THREE.Object3D & { userData: Record<string, unknown> }).userData.xrDepthNear =
+          context.data.depthNear;
+        (scene as THREE.Object3D & { userData: Record<string, unknown> }).userData.xrDepthFar =
+          context.data.depthFar;
       }
       context.data.active = true;
       context.object.userData.occlusionActive = true;
@@ -797,8 +799,9 @@ export const OcclusionTrait: TraitHandler = {
     // Clear scene-level depth occlusion flags
     const scene = context.object.parent;
     if (scene) {
-      (scene as THREE.Object3D & { userData: Record<string, unknown> }).userData
-        .xrDepthOcclusionRequested = false;
+      (
+        scene as THREE.Object3D & { userData: Record<string, unknown> }
+      ).userData.xrDepthOcclusionRequested = false;
     }
 
     context.object.userData.occlusion = false;
@@ -941,16 +944,15 @@ export const ShareplayTrait: TraitHandler = {
     const isCreator = !(context.data.sessionId as string);
     if (isCreator) {
       // Generate a stable session UUID
-      const sessionId =
-        `sp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+      const sessionId = `sp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
       context.data.sessionId = sessionId;
       context.object.userData.sessionId = sessionId;
     }
 
     // Build join URL
-    const baseUrl = (context.data.deepLink as string) || (
-      typeof window !== 'undefined' ? window.location.origin : ''
-    );
+    const baseUrl =
+      (context.data.deepLink as string) ||
+      (typeof window !== 'undefined' ? window.location.origin : '');
     const joinUrl = baseUrl
       ? `${baseUrl}?shareplay=${encodeURIComponent(context.data.sessionId as string)}`
       : '';
@@ -959,9 +961,8 @@ export const ShareplayTrait: TraitHandler = {
 
     // Announce session via HoloMesh
     const scene = context.object.parent;
-    const broadcast = (
-      scene as THREE.Object3D & { userData: Record<string, unknown> }
-    )?.userData?.meshBroadcast as ((ch: string, d: unknown) => void) | undefined;
+    const broadcast = (scene as THREE.Object3D & { userData: Record<string, unknown> })?.userData
+      ?.meshBroadcast as ((ch: string, d: unknown) => void) | undefined;
 
     broadcast?.(context.data.channel as string, {
       type: isCreator ? 'session_created' : 'session_join_request',
@@ -1009,9 +1010,8 @@ export const ShareplayTrait: TraitHandler = {
   onRemove(context: TraitContext) {
     if (context.data.sessionActive) {
       const scene = context.object.parent;
-      const broadcast = (
-        scene as THREE.Object3D & { userData: Record<string, unknown> }
-      )?.userData?.meshBroadcast as ((ch: string, d: unknown) => void) | undefined;
+      const broadcast = (scene as THREE.Object3D & { userData: Record<string, unknown> })?.userData
+        ?.meshBroadcast as ((ch: string, d: unknown) => void) | undefined;
 
       broadcast?.(context.data.channel as string, {
         type: 'session_ended',

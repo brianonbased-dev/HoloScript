@@ -4,10 +4,10 @@
  */
 
 const SDK_AUTH_HEADERS = {
-  "partnerId": "X-Partner-ID",
-  "apiKey": "X-API-Key",
-  "timestamp": "X-Timestamp",
-  "signature": "X-Signature"
+  partnerId: 'X-Partner-ID',
+  apiKey: 'X-API-Key',
+  timestamp: 'X-Timestamp',
+  signature: 'X-Signature',
 } as const;
 const SDK_SIGNATURE_PAYLOAD_TEMPLATE = '{method}:{endpoint}:{timestamp}:{body}';
 
@@ -126,18 +126,15 @@ export class SDKRuntime {
         return await this.execute<T>(method, path, options);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        if (error instanceof SDKAuthenticationError || error instanceof SDKRateLimitError) throw error;
+        if (error instanceof SDKAuthenticationError || error instanceof SDKRateLimitError)
+          throw error;
         if (attempt < retries - 1) await this.sleep(this.retryDelayMs * 2 ** attempt);
       }
     }
     throw lastError ?? new SDKError('Request failed', 0);
   }
 
-  private async execute<T>(
-    method: string,
-    path: string,
-    options: SDKRequestOptions
-  ): Promise<T> {
+  private async execute<T>(method: string, path: string, options: SDKRequestOptions): Promise<T> {
     const url = this.buildUrl(path, options.query);
     const bodyText = options.body === undefined ? undefined : JSON.stringify(options.body);
     const headers = await this.buildHeaders(method, path, bodyText, options.headers);
@@ -158,19 +155,38 @@ export class SDKRuntime {
       if (rateLimit) this.rateLimit = rateLimit;
       if (response.status === 429) {
         const retryAfter = Number(response.headers.get('Retry-After') ?? '60');
-        throw new SDKRateLimitError(envelope?.error?.message ?? 'Rate limit exceeded', response.status, retryAfter, rateLimit);
+        throw new SDKRateLimitError(
+          envelope?.error?.message ?? 'Rate limit exceeded',
+          response.status,
+          retryAfter,
+          rateLimit
+        );
       }
       if (response.status === 401 || response.status === 403) {
-        throw new SDKAuthenticationError(envelope?.error?.message ?? 'Authentication failed', response.status, envelope?.error?.details);
+        throw new SDKAuthenticationError(
+          envelope?.error?.message ?? 'Authentication failed',
+          response.status,
+          envelope?.error?.details
+        );
       }
       if (!response.ok || envelope?.success === false) {
-        throw new SDKError(envelope?.error?.message ?? `Request failed with status ${response.status}`, response.status, envelope?.error?.code, envelope?.error?.details);
+        throw new SDKError(
+          envelope?.error?.message ?? `Request failed with status ${response.status}`,
+          response.status,
+          envelope?.error?.code,
+          envelope?.error?.details
+        );
       }
-      if (envelope && Object.prototype.hasOwnProperty.call(envelope, 'data')) return envelope.data as T;
+      if (envelope && Object.prototype.hasOwnProperty.call(envelope, 'data'))
+        return envelope.data as T;
       return parsed as T;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new SDKError(`Request timed out after ${options.timeoutMs ?? this.timeoutMs}ms`, 0, 'timeout');
+        throw new SDKError(
+          `Request timed out after ${options.timeoutMs ?? this.timeoutMs}ms`,
+          0,
+          'timeout'
+        );
       }
       throw error;
     } finally {
@@ -183,7 +199,7 @@ export class SDKRuntime {
     for (const [key, value] of Object.entries(query ?? {})) {
       if (value === undefined || value === null) continue;
       if (Array.isArray(value)) {
-        url.searchParams.set(key, value.join(","));
+        url.searchParams.set(key, value.join(','));
       } else {
         url.searchParams.set(key, String(value));
       }
@@ -221,8 +237,7 @@ export class SDKRuntime {
     timestamp: string,
     bodyText: string | undefined
   ): string {
-    return SDK_SIGNATURE_PAYLOAD_TEMPLATE
-      .replaceAll('{method}', method)
+    return SDK_SIGNATURE_PAYLOAD_TEMPLATE.replaceAll('{method}', method)
       .replaceAll('{endpoint}', path)
       .replaceAll('{path}', path)
       .replaceAll('{timestamp}', timestamp)

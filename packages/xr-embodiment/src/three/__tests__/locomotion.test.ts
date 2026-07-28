@@ -44,7 +44,11 @@ describe('XRLocomotionController snap-turn (F.118)', () => {
   });
 
   it('rotates continuously when snapTurn is disabled', () => {
-    const c = new XRLocomotionController({ renderer: fakeRenderer(), snapTurn: false, turnRate: 2 });
+    const c = new XRLocomotionController({
+      renderer: fakeRenderer(),
+      snapTurn: false,
+      turnRate: 2,
+    });
     c.turn(1, 0.5);
     expect(c.getYaw()).toBeCloseTo(-1, 5);
     c.turn(1, 0.5); // continuous: keeps accumulating with the stick held

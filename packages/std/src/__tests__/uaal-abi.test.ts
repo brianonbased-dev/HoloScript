@@ -383,13 +383,7 @@ describe('HoloScript std UAAL aggregate-reference ABI', () => {
       0x20
     );
     proxy.push(value);
-    exec?.(proxy, [
-      HOLOSCRIPT_AGGREGATE_VALUE_ABI,
-      'construct',
-      layout,
-      ['code'],
-      ['i32'],
-    ]);
+    exec?.(proxy, [HOLOSCRIPT_AGGREGATE_VALUE_ABI, 'construct', layout, ['code'], ['i32']]);
     return proxy.pop();
   }
 
@@ -424,9 +418,9 @@ describe('HoloScript std UAAL aggregate-reference ABI', () => {
     const reader = proxy.pop();
     proxy.push(reader);
     proxy.push(9);
-    expect(() =>
-      registered.get(opcodes.store)?.(proxy, [['code'], [0], 'i32'])
-    ).toThrow('requires an exclusive borrow');
+    expect(() => registered.get(opcodes.store)?.(proxy, [['code'], [0], 'i32'])).toThrow(
+      'requires an exclusive borrow'
+    );
 
     proxy.stack.length = 0;
     expect(() =>

@@ -34,7 +34,9 @@ describe('install-native-optional', () => {
         warn,
       })
     ).toBe(0);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('optional native binding build failed'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('optional native binding build failed')
+    );
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('build:native'));
   });
 

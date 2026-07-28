@@ -162,12 +162,7 @@ function readHookPayloadFilePath() {
         ? payload.tool_input
         : {};
 
-    return firstString(
-      toolInput.file_path,
-      toolInput.path,
-      payload.file_path,
-      payload.path
-    );
+    return firstString(toolInput.file_path, toolInput.path, payload.file_path, payload.path);
   } catch {
     return '';
   }

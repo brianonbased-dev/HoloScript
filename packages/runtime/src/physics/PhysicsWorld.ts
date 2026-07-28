@@ -219,7 +219,12 @@ export class PhysicsWorld {
       mass: effectiveMass,
       transform: {
         position: [mesh.position.x, mesh.position.y, mesh.position.z] as [number, number, number],
-        rotation: [mesh.quaternion.x, mesh.quaternion.y, mesh.quaternion.z, mesh.quaternion.w] as [number, number, number, number],
+        rotation: [mesh.quaternion.x, mesh.quaternion.y, mesh.quaternion.z, mesh.quaternion.w] as [
+          number,
+          number,
+          number,
+          number,
+        ],
       },
       material: { friction: 0.3, restitution: 0.3 },
     };
@@ -267,7 +272,12 @@ export class PhysicsWorld {
       mass,
       transform: {
         position: [mesh.position.x, mesh.position.y, mesh.position.z] as [number, number, number],
-        rotation: [mesh.quaternion.x, mesh.quaternion.y, mesh.quaternion.z, mesh.quaternion.w] as [number, number, number, number],
+        rotation: [mesh.quaternion.x, mesh.quaternion.y, mesh.quaternion.z, mesh.quaternion.w] as [
+          number,
+          number,
+          number,
+          number,
+        ],
       },
       material: {
         friction: config.friction ?? 0.3,
@@ -521,7 +531,10 @@ export class PhysicsWorld {
 
     const newType = kinematic ? 'kinematic' : 'dynamic';
     const newTypeInt = kinematic ? BODY_KINEMATIC : BODY_DYNAMIC;
-    const shape = this._shapes.get(id) ?? { type: 'box' as const, halfExtents: [0.5, 0.5, 0.5] as [number,number,number] };
+    const shape = this._shapes.get(id) ?? {
+      type: 'box' as const,
+      halfExtents: [0.5, 0.5, 0.5] as [number, number, number],
+    };
 
     // Recreate body with same shape/mass but new type (PhysicsWorldImpl has no setType)
     const newConfig = {
@@ -530,8 +543,17 @@ export class PhysicsWorld {
       shape,
       mass: proxy.mass,
       transform: {
-        position: [state.position[0], state.position[1], state.position[2]] as [number,number,number],
-        rotation: [state.rotation[0], state.rotation[1], state.rotation[2], state.rotation[3]] as [number,number,number,number],
+        position: [state.position[0], state.position[1], state.position[2]] as [
+          number,
+          number,
+          number,
+        ],
+        rotation: [state.rotation[0], state.rotation[1], state.rotation[2], state.rotation[3]] as [
+          number,
+          number,
+          number,
+          number,
+        ],
       },
     };
 
@@ -549,7 +571,10 @@ export class PhysicsWorld {
     if (!state) return;
 
     const newType = mass === 0 ? 'static' : intToNativeType(proxy.type);
-    const shape = this._shapes.get(id) ?? { type: 'box' as const, halfExtents: [0.5, 0.5, 0.5] as [number,number,number] };
+    const shape = this._shapes.get(id) ?? {
+      type: 'box' as const,
+      halfExtents: [0.5, 0.5, 0.5] as [number, number, number],
+    };
 
     const newConfig = {
       id,
@@ -557,8 +582,17 @@ export class PhysicsWorld {
       shape,
       mass,
       transform: {
-        position: [state.position[0], state.position[1], state.position[2]] as [number,number,number],
-        rotation: [state.rotation[0], state.rotation[1], state.rotation[2], state.rotation[3]] as [number,number,number,number],
+        position: [state.position[0], state.position[1], state.position[2]] as [
+          number,
+          number,
+          number,
+        ],
+        rotation: [state.rotation[0], state.rotation[1], state.rotation[2], state.rotation[3]] as [
+          number,
+          number,
+          number,
+          number,
+        ],
       },
     };
 

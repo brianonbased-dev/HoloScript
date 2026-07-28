@@ -16,7 +16,9 @@ describe('AgentWalletService', () => {
 
   it('fails closed when live credentials are absent', async () => {
     const live = new AgentWalletService('base-sepolia');
-    await expect(live.initialize()).rejects.toThrow('Live Coinbase CDP wallet initialization requires');
+    await expect(live.initialize()).rejects.toThrow(
+      'Live Coinbase CDP wallet initialization requires'
+    );
   });
 
   it('should be defined', () => {

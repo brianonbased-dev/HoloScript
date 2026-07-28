@@ -9,10 +9,7 @@
  * The TypeScript wrapper (ClaimKioskTrait.ts) re-exports from this file.
  */
 
-import {
-  buildKioskDisplayModel,
-  auditReceiptForWallInvariant,
-} from './proof-adjacency-guard.mjs';
+import { buildKioskDisplayModel, auditReceiptForWallInvariant } from './proof-adjacency-guard.mjs';
 
 // ── defaultConfig ──────────────────────────────────────────────────────────
 

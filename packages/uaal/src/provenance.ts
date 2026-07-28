@@ -166,7 +166,9 @@ export function validateIdentity(doc: UAALProvenancedDocument, prefix = ''): str
     } else {
       for (const [localId, uri] of Object.entries(doc.entity_uris)) {
         if (typeof uri !== 'string' || !URI_RE.test(uri) || !uri.startsWith('uaal:entity/')) {
-          errors.push(`${p('entity_uris')}["${localId}"]: must be a uaal:entity/<namespace>/<slug> URI`);
+          errors.push(
+            `${p('entity_uris')}["${localId}"]: must be a uaal:entity/<namespace>/<slug> URI`
+          );
         }
       }
     }

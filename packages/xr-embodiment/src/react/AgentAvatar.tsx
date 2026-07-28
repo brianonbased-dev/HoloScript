@@ -10,7 +10,10 @@ import { AgentAvatarTracker, type AgentAvatarOptions } from '../three/AgentAvata
  */
 export interface PortableMind {
   identity(): { wallet?: string; agentId?: string };
-  loadMemory(query?: string, limit?: number): Promise<Array<{ id?: string; content: string; score?: number }>>;
+  loadMemory(
+    query?: string,
+    limit?: number
+  ): Promise<Array<{ id?: string; content: string; score?: number }>>;
 }
 
 export type AgentAvatarProps = Omit<AgentAvatarOptions, 'scene'> & {

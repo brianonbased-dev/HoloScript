@@ -58,16 +58,22 @@ describe('fmt command', () => {
     const sourcePath = join(tempDir, 'world.hs');
     writeFileSync(sourcePath, 'object World {\r\nvalue: 1   \r\n}');
 
-    const beforeWrite = await fmtCommand(fmtOptions({ args: [sourcePath], check: true, quiet: true }));
+    const beforeWrite = await fmtCommand(
+      fmtOptions({ args: [sourcePath], check: true, quiet: true })
+    );
     expect(beforeWrite).toBe(1);
 
-    const writeResult = await fmtCommand(fmtOptions({ args: [sourcePath], write: true, quiet: true }));
+    const writeResult = await fmtCommand(
+      fmtOptions({ args: [sourcePath], write: true, quiet: true })
+    );
     expect(writeResult).toBe(0);
 
     const formatted = readFileSync(sourcePath, 'utf-8');
     expect(formatted).toBe('object World {\n  value: 1\n}\n');
 
-    const afterWrite = await fmtCommand(fmtOptions({ args: [sourcePath], check: true, quiet: true }));
+    const afterWrite = await fmtCommand(
+      fmtOptions({ args: [sourcePath], check: true, quiet: true })
+    );
     expect(afterWrite).toBe(0);
   });
 

@@ -42,17 +42,19 @@ function parseAtomicAmount(amount: string | bigint): bigint {
 export class CdpEvmWalletProvider {
   constructor(
     private readonly account: TransferCapableAccount,
-    private readonly networkId: string,
+    private readonly networkId: string
   ) {}
 
-  static async configureWithWallet(options: ConfigureWalletOptions = {}): Promise<CdpEvmWalletProvider> {
+  static async configureWithWallet(
+    options: ConfigureWalletOptions = {}
+  ): Promise<CdpEvmWalletProvider> {
     const apiKeyId = options.apiKeyId ?? process.env.CDP_API_KEY_ID ?? process.env.CDP_API_KEY_NAME;
     const apiKeySecret = options.apiKeySecret ?? process.env.CDP_API_KEY_SECRET;
     const walletSecret = options.walletSecret ?? process.env.CDP_WALLET_SECRET;
 
     if (!apiKeyId || !apiKeySecret || !walletSecret) {
       throw new Error(
-        'Coinbase CDP configuration requires apiKeyId, apiKeySecret, and walletSecret.',
+        'Coinbase CDP configuration requires apiKeyId, apiKeySecret, and walletSecret.'
       );
     }
 
@@ -103,7 +105,7 @@ export function erc20ActionProvider() {
   return {
     async transfer(
       walletProvider: CdpEvmWalletProvider,
-      options: Erc20TransferOptions,
+      options: Erc20TransferOptions
     ): Promise<string> {
       const result = await walletProvider.transfer(options);
       return result.transactionHash ?? result.userOpHash ?? 'transfer_submitted';

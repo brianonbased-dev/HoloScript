@@ -69,7 +69,9 @@ describe('uAAL mesh transport — fleet agents communicating', () => {
       ],
     });
 
-    expect(router.drain('vast')).toEqual([{ from: 'jetson', payload: { job: 'render', frames: 120 } }]);
+    expect(router.drain('vast')).toEqual([
+      { from: 'jetson', payload: { job: 'render', frames: 120 } },
+    ]);
   });
 
   it('OP_SYNC: a broadcast reaches every peer except the sender', async () => {
@@ -87,15 +89,22 @@ describe('uAAL mesh transport — fleet agents communicating', () => {
       ],
     });
 
-    expect(router.drain('laptop')).toEqual([{ from: 'jetson', payload: { wisdom: 'threshold=0.2' } }]);
-    expect(router.drain('vast')).toEqual([{ from: 'jetson', payload: { wisdom: 'threshold=0.2' } }]);
+    expect(router.drain('laptop')).toEqual([
+      { from: 'jetson', payload: { wisdom: 'threshold=0.2' } },
+    ]);
+    expect(router.drain('vast')).toEqual([
+      { from: 'jetson', payload: { wisdom: 'threshold=0.2' } },
+    ]);
     expect(router.drain('jetson')).toEqual([]); // sender does not receive its own broadcast
   });
 
   it('bidirectional: laptop can call back into jetson (peers, not client/server)', async () => {
     const router = new InMemoryMeshRouter();
     // jetson also serves: it answers a "status" request
-    const jetson = router.connect('jetson', (_from, _payload) => ({ node: 'jetson', healthy: true }));
+    const jetson = router.connect('jetson', (_from, _payload) => ({
+      node: 'jetson',
+      healthy: true,
+    }));
     const laptopVm = new UAALVirtualMachine();
     registerMeshHandlers(laptopVm, router.connect('laptop'));
     void jetson;

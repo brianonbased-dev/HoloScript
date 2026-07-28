@@ -4,10 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  generatePortableParser,
-  runPortableBuild,
-} from '../scripts/build-portable.mjs';
+import { generatePortableParser, runPortableBuild } from '../scripts/build-portable.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const packageRoot = join(__dirname, '..');

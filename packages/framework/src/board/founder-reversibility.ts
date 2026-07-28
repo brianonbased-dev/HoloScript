@@ -118,7 +118,8 @@ export function deriveFounderReversibility(
       actionType,
       authorityRoute: 'platform-control',
       reversible: false,
-      reason: 'missing tool, credential, permission, or platform control must be repaired or routed',
+      reason:
+        'missing tool, credential, permission, or platform control must be repaired or routed',
     };
   }
 

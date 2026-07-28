@@ -298,7 +298,12 @@ export interface DecodeResult {
 }
 
 /** The full CPU decoder: BP, with OSD-0 fallback when BP does not satisfy the syndrome. */
-export function bpOsdDecode(H: CheckMatrix, s: number[], p: number, opts: BpOptions = {}): DecodeResult {
+export function bpOsdDecode(
+  H: CheckMatrix,
+  s: number[],
+  p: number,
+  opts: BpOptions = {}
+): DecodeResult {
   const lambda = priorLLR(p);
   const { e, converged, iters, posterior } = bpMinSum(H, s, lambda, opts);
   if (converged) return { correction: e, method: 'bp', iters };

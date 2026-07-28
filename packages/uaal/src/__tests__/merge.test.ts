@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  mergeIR,
-  propositionCore,
-  propositionPolarity,
-  propositionsContradict,
-} from '../merge';
+import { mergeIR, propositionCore, propositionPolarity, propositionsContradict } from '../merge';
 import type { UAALMergeableIR } from '../merge';
 
 // ---------------------------------------------------------------------------
@@ -143,7 +138,7 @@ describe('mergeIR union semantics', () => {
   it('retains BOTH divergent same-id nodes and records the conflict', () => {
     const { ir, conflicts } = mergeIR(docA, docB);
     const divergence = conflicts.find(
-      (conflict) => conflict.nodeKind === 'entity' && conflict.id === 'e_key',
+      (conflict) => conflict.nodeKind === 'entity' && conflict.id === 'e_key'
     );
     expect(divergence).toBeDefined();
     expect(divergence?.kind).toBe('divergence');
@@ -252,16 +247,24 @@ describe('mergeIR contradiction detection', () => {
 
   it('matches cores via the prop and text fields as well', () => {
     const a: UAALMergeableIR = { propositions: [{ id: 'x1', prop: 'Door Is  Open' }] };
-    const b: UAALMergeableIR = { propositions: [{ id: 'y1', prop: 'door is open', negated: true }] };
-    expect(mergeIR(a, b).conflicts.some((conflict) => conflict.kind === 'contradiction')).toBe(true);
+    const b: UAALMergeableIR = {
+      propositions: [{ id: 'y1', prop: 'door is open', negated: true }],
+    };
+    expect(mergeIR(a, b).conflicts.some((conflict) => conflict.kind === 'contradiction')).toBe(
+      true
+    );
 
     const c: UAALMergeableIR = { propositions: [{ id: 'x2', text: 'rain fell' }] };
     const d: UAALMergeableIR = { propositions: [{ id: 'y2', text: 'rain fell', value: false }] };
-    expect(mergeIR(c, d).conflicts.some((conflict) => conflict.kind === 'contradiction')).toBe(true);
+    expect(mergeIR(c, d).conflicts.some((conflict) => conflict.kind === 'contradiction')).toBe(
+      true
+    );
   });
 
   it('same-id contradictory pair is reported once with kind contradiction', () => {
-    const a: UAALMergeableIR = { propositions: [{ id: 'p1', subject: 'sky', predicate: 'is_blue' }] };
+    const a: UAALMergeableIR = {
+      propositions: [{ id: 'p1', subject: 'sky', predicate: 'is_blue' }],
+    };
     const b: UAALMergeableIR = {
       propositions: [{ id: 'p1', subject: 'sky', predicate: 'is_blue', negated: true }],
     };
@@ -290,7 +293,9 @@ describe('mergeIR contradiction detection', () => {
     expect(mergeIR(a, b).conflicts).toEqual([]);
 
     const c: UAALMergeableIR = { propositions: [{ id: 'q1', subject: 's', predicate: 'p' }] };
-    const d: UAALMergeableIR = { propositions: [{ id: 'q2', negates: 'q1', subject: 'other', predicate: 'p' }] };
+    const d: UAALMergeableIR = {
+      propositions: [{ id: 'q2', negates: 'q1', subject: 'other', predicate: 'p' }],
+    };
     expect(mergeIR(c, d).conflicts).toEqual([]);
   });
 
@@ -299,7 +304,7 @@ describe('mergeIR contradiction detection', () => {
     expect(propositionCore({ text: 'Rain fell' })).toBe('rain fell');
     expect(propositionCore({ subject: 'Sky', predicate: 'is_blue' })).toBe('sky|is_blue|');
     expect(propositionCore({ subject: 'Sky', predicate: 'is_blue', object: 'Today' })).toBe(
-      'sky|is_blue|today',
+      'sky|is_blue|today'
     );
     expect(propositionCore({ id: 'p1' })).toBeNull();
 
@@ -312,8 +317,8 @@ describe('mergeIR contradiction detection', () => {
     expect(
       propositionsContradict(
         { subject: 'sky', predicate: 'is_blue' },
-        { subject: 'sky', predicate: 'is_blue', negated: true },
-      ),
+        { subject: 'sky', predicate: 'is_blue', negated: true }
+      )
     ).toBe(true);
     expect(propositionsContradict({ text: 'a' }, { text: 'b', negated: true })).toBe(false);
   });

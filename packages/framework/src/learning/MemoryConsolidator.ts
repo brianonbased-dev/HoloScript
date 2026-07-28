@@ -47,10 +47,7 @@ export class MemoryConsolidator {
    * Rule-based fallback: derives a SemanticFact from success-rate thresholding.
    * Used when the LLM is unreachable or fails, so consolidation never hard-fails.
    */
-  private static ruleBasedSummary(
-    cluster: EpisodicMemory[],
-    successRate: number
-  ): SemanticFact {
+  private static ruleBasedSummary(cluster: EpisodicMemory[], successRate: number): SemanticFact {
     const sample = cluster[0];
     let rule: string;
     if (successRate > 0.7) {

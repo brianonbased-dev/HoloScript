@@ -56,10 +56,7 @@ const CONTAINER_VARIANT: Record<NonNullable<TabGroupProps['variant']>, string> =
   filled: 'flex',
 };
 
-function tabVariantClass(
-  variant: NonNullable<TabGroupProps['variant']>,
-  active: boolean
-): string {
+function tabVariantClass(variant: NonNullable<TabGroupProps['variant']>, active: boolean): string {
   switch (variant) {
     case 'pill':
       return active

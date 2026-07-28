@@ -68,7 +68,10 @@ function markScenePostFX(
   let root: THREE.Object3D = object;
   while (root.parent) root = root.parent;
 
-  const existing = (root.userData['holoPostFX'] as Array<{ effect: string; config: Record<string, unknown> }> | undefined) ?? [];
+  const existing =
+    (root.userData['holoPostFX'] as
+      | Array<{ effect: string; config: Record<string, unknown> }>
+      | undefined) ?? [];
   // Deduplicate: one entry per effect type
   const filtered = existing.filter((e) => e.effect !== effect);
   root.userData['holoPostFX'] = [...filtered, { effect, config }];
@@ -130,9 +133,19 @@ export const BloomTrait: TraitHandler = {
     });
 
     // Signal scene-level EffectComposer integration
-    markScenePostFX(context.object, 'bloom', { intensity, luminanceThreshold, luminanceSmoothing, radius });
+    markScenePostFX(context.object, 'bloom', {
+      intensity,
+      luminanceThreshold,
+      luminanceSmoothing,
+      radius,
+    });
 
-    context.object.userData['holoBloom'] = { intensity, luminanceThreshold, luminanceSmoothing, radius };
+    context.object.userData['holoBloom'] = {
+      intensity,
+      luminanceThreshold,
+      luminanceSmoothing,
+      radius,
+    };
   },
 
   onRemove(context: TraitContext) {
@@ -219,11 +232,7 @@ export const VolumetricCloudsTrait: TraitHandler = {
       const r2 = seededRandom(i + 1000);
       const r3 = seededRandom(i + 2000);
 
-      const geo = new THREE.SphereGeometry(
-        4 + seededRandom(i + 3000) * 6,
-        8,
-        6
-      );
+      const geo = new THREE.SphereGeometry(4 + seededRandom(i + 3000) * 6, 8, 6);
       const mat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         transparent: true,
@@ -234,11 +243,7 @@ export const VolumetricCloudsTrait: TraitHandler = {
       });
 
       const puff = new THREE.Mesh(geo, mat);
-      puff.position.set(
-        (r - 0.5) * 200,
-        altitude + (r2 - 0.5) * 10,
-        (r3 - 0.5) * 200
-      );
+      puff.position.set((r - 0.5) * 200, altitude + (r2 - 0.5) * 10, (r3 - 0.5) * 200);
       cloudGroup.add(puff);
     }
 
@@ -512,7 +517,10 @@ export const PointCloudTrait: PointCloudTraitHandler = {
     // PLY/XYZ parsing requires an external loader (e.g. PLYLoader from Three
     // addons). Emit a userData signal so an integration can handle it.
     // The fallback placeholder geometry stays visible until the load resolves.
-    devWarn('point_cloud', `External PLY/XYZ loader required for "${_src}". Set userData.holoPointCloudReady=true when loaded.`);
+    devWarn(
+      'point_cloud',
+      `External PLY/XYZ loader required for "${_src}". Set userData.holoPointCloudReady=true when loaded.`
+    );
   },
 
   onRemove(context: TraitContext) {
@@ -553,7 +561,10 @@ export const PhotogrammetryTrait: TraitHandler = {
     context.object.userData['holoPhotogrammetry'] = { src, castShadow, receiveShadow, ready: !src };
 
     if (src) {
-      devWarn('photogrammetry', `External GLTF/OBJ loader required for "${src}". Attach the mesh as a child and set userData.holoPhotogrammetryReady=true.`);
+      devWarn(
+        'photogrammetry',
+        `External GLTF/OBJ loader required for "${src}". Attach the mesh as a child and set userData.holoPhotogrammetryReady=true.`
+      );
     }
   },
 
@@ -671,7 +682,10 @@ export const WebSurfaceTrait: TraitHandler = {
     context.object.userData['holoWebSurface'] = { url, width, height, resolution };
 
     if (url) {
-      devWarn('web_surface', `CSS3DObject / iframe integration required to render "${url}" live. Canvas placeholder shown.`);
+      devWarn(
+        'web_surface',
+        `CSS3DObject / iframe integration required to render "${url}" live. Canvas placeholder shown.`
+      );
     }
   },
 

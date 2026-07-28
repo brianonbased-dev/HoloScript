@@ -87,7 +87,11 @@ function makeSkinnedTriangleGlb(): ArrayBuffer {
     meshes: [
       {
         primitives: [
-          { attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 }, indices: 4, mode: 4 },
+          {
+            attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 },
+            indices: 4,
+            mode: 4,
+          },
         ],
       },
     ],
@@ -157,7 +161,10 @@ function makeTwoMeshGlb(): ArrayBuffer {
       { primitives: [{ attributes: { POSITION: 0 }, indices: 1, mode: 4 }] },
       { primitives: [{ attributes: { POSITION: 2 }, indices: 3, mode: 4 }] },
     ],
-    nodes: [{ name: 'A', mesh: 0 }, { name: 'B', mesh: 1 }],
+    nodes: [
+      { name: 'A', mesh: 0 },
+      { name: 'B', mesh: 1 },
+    ],
   };
   return buildGlb(json, bin);
 }

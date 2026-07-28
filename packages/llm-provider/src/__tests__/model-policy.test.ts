@@ -36,7 +36,14 @@ describe('model-policy SSOT', () => {
 
   it('every per-lane default is non-blacklisted, non-empty, and reachable via laneDefault()', () => {
     const lanes = Object.keys(LANE_DEFAULTS) as ModelLane[];
-    expect(lanes).toEqual(['code_local', 'code_served', 'operator', 'reasoning', 'vision', 'fleet_worker']);
+    expect(lanes).toEqual([
+      'code_local',
+      'code_served',
+      'operator',
+      'reasoning',
+      'vision',
+      'fleet_worker',
+    ]);
     for (const lane of lanes) {
       expect(LANE_DEFAULTS[lane]).toBeTruthy();
       expect(isBlacklistedModel(LANE_DEFAULTS[lane])).toBe(false);
@@ -107,7 +114,9 @@ describe('model-policy SSOT', () => {
 
     it('substitutes a blacklisted model with the fallback', () => {
       expect(resolveAllowedModel('qwen2.5-coder:7b')).toBe(SAFE_LOCAL_FALLBACK);
-      expect(resolveAllowedModel('qwen2.5-coder:7b', FLEET_DEFAULT_MODEL)).toBe(FLEET_DEFAULT_MODEL);
+      expect(resolveAllowedModel('qwen2.5-coder:7b', FLEET_DEFAULT_MODEL)).toBe(
+        FLEET_DEFAULT_MODEL
+      );
     });
 
     it('substitutes the safe local default when BOTH requested and fallback are blacklisted', () => {

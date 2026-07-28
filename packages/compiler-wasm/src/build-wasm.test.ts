@@ -57,10 +57,7 @@ describe('portable compiler-wasm build', () => {
   });
 
   it('uses an explicit wasm-pack binary and propagates the build result', () => {
-    const spawn = vi
-      .fn()
-      .mockReturnValueOnce({ status: 0 })
-      .mockReturnValueOnce({ status: 9 });
+    const spawn = vi.fn().mockReturnValueOnce({ status: 0 }).mockReturnValueOnce({ status: 9 });
     const remove = vi.fn();
 
     expect(
@@ -98,9 +95,8 @@ describe('portable compiler-wasm build', () => {
         cwd: '/repo/packages/compiler-wasm',
       })
     ).toBe(0);
-    expect(remove).toHaveBeenCalledWith(
-      join('/repo/packages/compiler-wasm', 'pkg', '.gitignore'),
-      { force: true }
-    );
+    expect(remove).toHaveBeenCalledWith(join('/repo/packages/compiler-wasm', 'pkg', '.gitignore'), {
+      force: true,
+    });
   });
 });

@@ -18,7 +18,10 @@
  * @module marketplace-api/PluginPackageSpec
  */
 
-import type { HoloHubInstallPaymentStatus, HoloHubInstallReceipt } from '@holoscript/framework/economy';
+import type {
+  HoloHubInstallPaymentStatus,
+  HoloHubInstallReceipt,
+} from '@holoscript/framework/economy';
 import type { TraitCategory, Platform, LicenseType, Author } from './types.js';
 
 type SandboxPermission = string;

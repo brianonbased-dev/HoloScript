@@ -74,16 +74,12 @@ export function runWasmBuild({
   }
 
   const buildEnv = envWithToolDirectory(env, wasmPack, platform);
-  const result = spawn(
-    wasmPack,
-    ['build', '--target', 'web', '--out-dir', 'pkg', '--release'],
-    {
-      cwd,
-      env: buildEnv,
-      shell,
-      stdio: 'inherit',
-    }
-  );
+  const result = spawn(wasmPack, ['build', '--target', 'web', '--out-dir', 'pkg', '--release'], {
+    cwd,
+    env: buildEnv,
+    shell,
+    stdio: 'inherit',
+  });
 
   if (result.error) {
     error(result.error.message);

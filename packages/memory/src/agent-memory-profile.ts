@@ -56,9 +56,9 @@ export function buildAgentMemoryProfile(input: AgentMemoryProfileInput): AgentMe
   if (!agentId) throw new Error('agentId is required');
   const nodeProfile = cleanString(input.nodeProfile) || 'operator-supplied';
   const family = input.family || 'other';
-  const runtimePackage = input.runtimePackage ?? (
-    family === 'holoscript' || family === 'edge' ? HOLOSCRIPT_AGENT_RUNTIME_PACKAGE : null
-  );
+  const runtimePackage =
+    input.runtimePackage ??
+    (family === 'holoscript' || family === 'edge' ? HOLOSCRIPT_AGENT_RUNTIME_PACKAGE : null);
   const jetsonReferenceProfile = /jetson/iu.test(nodeProfile);
   return {
     schema: AGENT_MEMORY_PROFILE_SCHEMA,
@@ -88,7 +88,7 @@ export function memoryEntryFromAgentProfile(
     section?: MemorySection;
     type?: MemoryType;
     confidence?: number;
-  } = {},
+  } = {}
 ): MemoryEntryInput {
   return {
     authorAgent: profile.agentId,

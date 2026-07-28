@@ -28,7 +28,13 @@ function backdate(engine: ConsolidationEngine): void {
 function ingestVerified(engine: ConsolidationEngine, content: string): void {
   engine.ingest(
     'agents',
-    { type: 'wisdom', content, authorDid: 'agent_claude', tags: ['grad-test'], memoryReceipt: makeReceipt() },
+    {
+      type: 'wisdom',
+      content,
+      authorDid: 'agent_claude',
+      tags: ['grad-test'],
+      memoryReceipt: makeReceipt(),
+    },
     'peer-a'
   );
   backdate(engine);
@@ -62,7 +68,11 @@ describe('ConsolidationEngine graduationHook', () => {
     });
 
     // No memoryReceipt → SANITIZE quarantines it; promote count stays 0.
-    engine.ingest('agents', { type: 'wisdom', content: 'No receipt.', authorDid: 'a', tags: [] }, 'peer-a');
+    engine.ingest(
+      'agents',
+      { type: 'wisdom', content: 'No receipt.', authorDid: 'a', tags: [] },
+      'peer-a'
+    );
     backdate(engine);
     const result = engine.runConsolidationCycle('agents');
 

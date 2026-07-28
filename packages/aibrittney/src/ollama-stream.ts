@@ -29,7 +29,12 @@ export async function* streamChatFromOllama(
     response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ model, messages, stream: true, options: { num_ctx: resolveNumCtx() } }),
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: true,
+        options: { num_ctx: resolveNumCtx() },
+      }),
       signal,
     });
   } catch (err) {

@@ -93,7 +93,7 @@ describe('founder authority routing — separate non-Joseph routes', () => {
     expect(deriveFounderReversibility(intent).authorityRoute).toBe(authorityRoute);
   });
 
-  it.each(['force-push main', 'hard reset the shared tree']) (
+  it.each(['force-push main', 'hard reset the shared tree'])(
     'prohibits %s instead of making it approvable',
     (intent) => {
       expect(deriveFounderReversibility(intent)).toMatchObject({

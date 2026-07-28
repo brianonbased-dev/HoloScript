@@ -25,10 +25,7 @@ function stubPhysicsWorld(): TraitContext['physicsWorld'] {
   return { addBody: vi.fn() } as unknown as TraitContext['physicsWorld'];
 }
 
-function makeContext(
-  object: THREE.Object3D,
-  config: Record<string, unknown> = {}
-): TraitContext {
+function makeContext(object: THREE.Object3D, config: Record<string, unknown> = {}): TraitContext {
   return {
     object,
     physicsWorld: stubPhysicsWorld(),
@@ -195,9 +192,15 @@ describe('PositionalTrait', () => {
     ctx.data.audioCtx = audioCtxStub;
     ctx.data.panner = audioCtxStub._pannerStub;
     PositionalTrait.onUpdate!(ctx, 0.016);
-    expect((audioCtxStub._pannerStub.positionX as Record<string, unknown>).setValueAtTime).toHaveBeenCalledWith(3, 0);
-    expect((audioCtxStub._pannerStub.positionY as Record<string, unknown>).setValueAtTime).toHaveBeenCalledWith(1, 0);
-    expect((audioCtxStub._pannerStub.positionZ as Record<string, unknown>).setValueAtTime).toHaveBeenCalledWith(-2, 0);
+    expect(
+      (audioCtxStub._pannerStub.positionX as Record<string, unknown>).setValueAtTime
+    ).toHaveBeenCalledWith(3, 0);
+    expect(
+      (audioCtxStub._pannerStub.positionY as Record<string, unknown>).setValueAtTime
+    ).toHaveBeenCalledWith(1, 0);
+    expect(
+      (audioCtxStub._pannerStub.positionZ as Record<string, unknown>).setValueAtTime
+    ).toHaveBeenCalledWith(-2, 0);
   });
 
   it('onRemove clears userData flags', () => {
@@ -283,9 +286,13 @@ describe('HRTFTrait', () => {
     ctx.data.panner = audioCtxStub._pannerStub;
 
     HRTFTrait.onUpdate!(ctx, 0.016);
-    expect((audioCtxStub._pannerStub.positionX as Record<string, unknown>).setValueAtTime).toHaveBeenCalledWith(1, 0);
+    expect(
+      (audioCtxStub._pannerStub.positionX as Record<string, unknown>).setValueAtTime
+    ).toHaveBeenCalledWith(1, 0);
     // Listener orientation params should have been touched
-    expect((audioCtxStub.listener.forwardX as Record<string, unknown>).setValueAtTime).toHaveBeenCalled();
+    expect(
+      (audioCtxStub.listener.forwardX as Record<string, unknown>).setValueAtTime
+    ).toHaveBeenCalled();
   });
 
   it('onRemove clears userData flags', () => {
@@ -323,7 +330,12 @@ describe('AudioOcclusionTrait', () => {
   it('onUpdate applies gain and filter based on occlusion factor', () => {
     const audioCtxStub = makeAudioContextStub();
     const obj = new THREE.Object3D();
-    const ctx = makeContext(obj, { max_attenuation: -24, cutoff_min: 400, cutoff_max: 20000, update_interval: 0 });
+    const ctx = makeContext(obj, {
+      max_attenuation: -24,
+      cutoff_min: 400,
+      cutoff_max: 20000,
+      update_interval: 0,
+    });
     ctx.data.audioCtx = audioCtxStub;
     ctx.data.gainNode = audioCtxStub._gainStub;
     ctx.data.filterNode = audioCtxStub._filterStub;
@@ -336,9 +348,12 @@ describe('AudioOcclusionTrait', () => {
     ctx.data.occlusionFactor = 1;
     AudioOcclusionTrait.onUpdate!(ctx, 0.016);
     // Gain should be attenuated (not 1)
-    expect((audioCtxStub._gainStub.gain as Record<string, unknown>).setTargetAtTime).toHaveBeenCalled();
+    expect(
+      (audioCtxStub._gainStub.gain as Record<string, unknown>).setTargetAtTime
+    ).toHaveBeenCalled();
     // Filter cutoff should be the minimum
-    const filterCalls = (audioCtxStub._filterStub.frequency as Record<string, unknown>).setTargetAtTime as ReturnType<typeof vi.fn>;
+    const filterCalls = (audioCtxStub._filterStub.frequency as Record<string, unknown>)
+      .setTargetAtTime as ReturnType<typeof vi.fn>;
     expect(filterCalls).toHaveBeenCalled();
     const [cutoffValue] = filterCalls.mock.calls[0] as [number, ...unknown[]];
     expect(cutoffValue).toBeCloseTo(400);
@@ -393,7 +408,9 @@ describe('AudioPortalTrait', () => {
     ctx.data.gain = 0.8;
     AudioPortalTrait.onUpdate!(ctx, 0.016);
     expect(obj.userData.portalBlend).toBeGreaterThan(0);
-    expect((audioCtxStub._gainStub.gain as Record<string, unknown>).setTargetAtTime).toHaveBeenCalled();
+    expect(
+      (audioCtxStub._gainStub.gain as Record<string, unknown>).setTargetAtTime
+    ).toHaveBeenCalled();
   });
 
   it('onRemove clears userData', () => {
@@ -457,7 +474,9 @@ describe('SpatialVoiceTrait', () => {
     ctx.data.maxVolume = 1.0;
 
     SpatialVoiceTrait.onUpdate!(ctx, 0.016);
-    expect((audioCtxStub._gainStub.gain as Record<string, unknown>).setTargetAtTime).toHaveBeenCalled();
+    expect(
+      (audioCtxStub._gainStub.gain as Record<string, unknown>).setTargetAtTime
+    ).toHaveBeenCalled();
     // At distance 10, gain should be partially attenuated
     expect(ctx.data.currentGain as number).toBeLessThan(1.0);
     expect(ctx.data.currentGain as number).toBeGreaterThan(0);
@@ -515,10 +534,18 @@ describe('HeadTrackedAudioTrait', () => {
 
     HeadTrackedAudioTrait.onUpdate!(ctx, 0.016);
 
-    expect((audioCtxStub.listener.positionX as Record<string, unknown>).setValueAtTime).toHaveBeenCalledWith(1, 0);
-    expect((audioCtxStub.listener.positionY as Record<string, unknown>).setValueAtTime).toHaveBeenCalledWith(1.7, 0);
-    expect((audioCtxStub.listener.positionZ as Record<string, unknown>).setValueAtTime).toHaveBeenCalledWith(0, 0);
-    expect((audioCtxStub.listener.forwardX as Record<string, unknown>).setValueAtTime).toHaveBeenCalled();
+    expect(
+      (audioCtxStub.listener.positionX as Record<string, unknown>).setValueAtTime
+    ).toHaveBeenCalledWith(1, 0);
+    expect(
+      (audioCtxStub.listener.positionY as Record<string, unknown>).setValueAtTime
+    ).toHaveBeenCalledWith(1.7, 0);
+    expect(
+      (audioCtxStub.listener.positionZ as Record<string, unknown>).setValueAtTime
+    ).toHaveBeenCalledWith(0, 0);
+    expect(
+      (audioCtxStub.listener.forwardX as Record<string, unknown>).setValueAtTime
+    ).toHaveBeenCalled();
     expect(obj.userData.listenerSynced).toBe(true);
   });
 
@@ -533,7 +560,9 @@ describe('HeadTrackedAudioTrait', () => {
 
     HeadTrackedAudioTrait.onUpdate!(ctx, 0.001);
     // Should NOT have called any listener params
-    expect((audioCtxStub.listener.positionX as Record<string, unknown>).setValueAtTime).not.toHaveBeenCalled();
+    expect(
+      (audioCtxStub.listener.positionX as Record<string, unknown>).setValueAtTime
+    ).not.toHaveBeenCalled();
   });
 
   it('onUpdate is no-op when disabled', () => {
@@ -546,7 +575,9 @@ describe('HeadTrackedAudioTrait', () => {
     ctx.data.timeSinceUpdate = 1;
 
     HeadTrackedAudioTrait.onUpdate!(ctx, 0.016);
-    expect((audioCtxStub.listener.positionX as Record<string, unknown>).setValueAtTime).not.toHaveBeenCalled();
+    expect(
+      (audioCtxStub.listener.positionX as Record<string, unknown>).setValueAtTime
+    ).not.toHaveBeenCalled();
   });
 
   it('onRemove clears userData flags', () => {

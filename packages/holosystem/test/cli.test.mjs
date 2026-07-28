@@ -59,10 +59,7 @@ test('source-canon blocks foreign tracked source and writes only a HoloScript pr
       'status.mjs': 'export const status = "foreign";\n',
     });
 
-    const blocked = run(
-      ['source-canon', '--output', 'source-canon.hsplus', '--json'],
-      { cwd }
-    );
+    const blocked = run(['source-canon', '--output', 'source-canon.hsplus', '--json'], { cwd });
     assert.equal(blocked.status, 2, blocked.stderr);
     const report = JSON.parse(blocked.stdout);
     assert.equal(report.status, 'blocked');
@@ -70,10 +67,7 @@ test('source-canon blocks foreign tracked source and writes only a HoloScript pr
     assert.equal(report.summary.foreignFiles, 1);
     assert.match(readFileSync(join(cwd, 'source-canon.hsplus'), 'utf8'), /foreignFiles: 1/u);
 
-    const wrongFormat = run(
-      ['source-canon', '--output', 'source-canon.json', '--json'],
-      { cwd }
-    );
+    const wrongFormat = run(['source-canon', '--output', 'source-canon.json', '--json'], { cwd });
     assert.equal(wrongFormat.status, 2);
     assert.match(wrongFormat.stderr, /\.hsplus/u);
   } finally {

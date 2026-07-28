@@ -55,10 +55,7 @@ test('blocks foreign authored files without treating generated names as native',
     'package.json',
     'scripts/status.mjs',
   ]);
-  assert.equal(
-    report.issues.filter((issue) => issue.code === 'foreign-source-format').length,
-    5
-  );
+  assert.equal(report.issues.filter((issue) => issue.code === 'foreign-source-format').length, 5);
 });
 
 test('rejects caller-controlled format allowlists and unsafe tracked paths', () => {

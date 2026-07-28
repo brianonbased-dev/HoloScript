@@ -320,9 +320,7 @@ export async function resolveSovereignProviderAsync(
     }
   }
 
-  const fleetConfigured =
-    explicit === 'fleet' ||
-    (auto && Boolean(env('VAST_API_KEY')));
+  const fleetConfigured = explicit === 'fleet' || (auto && Boolean(env('VAST_API_KEY')));
 
   if (fleetConfigured) {
     try {

@@ -172,7 +172,10 @@ function isNativeSource(ref: NativeRenderSourceRef): boolean {
     : false;
 }
 
-function validateChain(fixture: NativeRenderGoldenFixture, failures: NativeRenderContractFailure[]): void {
+function validateChain(
+  fixture: NativeRenderGoldenFixture,
+  failures: NativeRenderContractFailure[]
+): void {
   const stages = new Set(fixture.chain.map((step) => step.stage));
   for (const required of NATIVE_RENDER_CHAIN_STAGES) {
     if (!stages.has(required)) {
@@ -372,10 +375,14 @@ export function evaluateNativeRenderFixture(
   };
 }
 
-export function assertNativeRenderFixture(fixture: NativeRenderGoldenFixture): NativeRenderContractReceipt {
+export function assertNativeRenderFixture(
+  fixture: NativeRenderGoldenFixture
+): NativeRenderContractReceipt {
   const receipt = evaluateNativeRenderFixture(fixture);
   if (!receipt.ok) {
-    const details = receipt.failures.map((failure) => `${failure.code}: ${failure.message}`).join('\n');
+    const details = receipt.failures
+      .map((failure) => `${failure.code}: ${failure.message}`)
+      .join('\n');
     throw new Error(`Native render fixture ${fixture.id} failed:\n${details}`);
   }
   return receipt;

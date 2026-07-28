@@ -16,7 +16,7 @@ const repoRoot = path.resolve(here, '..', '..', '..', '..');
 const fixtureCustomerSuccessGate = path.resolve(
   here,
   'fixtures',
-  'enterprise-package-gate.customer-success.json',
+  'enterprise-package-gate.customer-success.json'
 );
 const siblingHololandCustomerSuccessGate = path.resolve(
   repoRoot,
@@ -26,11 +26,11 @@ const siblingHololandCustomerSuccessGate = path.resolve(
   'holoshell',
   'enterprise-gates',
   'customer-success-room',
-  'package-gate.json',
+  'package-gate.json'
 );
 
 function customerSuccessGate(
-  overrides: Partial<EnterprisePackageGateManifest> = {},
+  overrides: Partial<EnterprisePackageGateManifest> = {}
 ): EnterprisePackageGateManifest {
   return {
     ...readManifest(fixtureCustomerSuccessGate),
@@ -52,7 +52,7 @@ describe('enterprise package gate contract', () => {
 
   it('accepts the HoloLand projection schema through the same HoloScript gate', () => {
     const result = validateEnterprisePackageGateManifest(
-      customerSuccessGate({ schema: 'hololand.enterprise-package-gate.v0.1.0' }),
+      customerSuccessGate({ schema: 'hololand.enterprise-package-gate.v0.1.0' })
     );
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
@@ -75,25 +75,26 @@ describe('enterprise package gate contract', () => {
       expect(admission.status).toBe('pass');
       expect(admission.gateId).toBe('customer-success-room');
       expect(admission.upstreamGaps.map((gap) => gap.primitive)).toContain(
-        'enterprise_package_gate',
+        'enterprise_package_gate'
       );
-    },
+    }
   );
 
   it('rejects developer-facing package surfaces for enterprise business packages', () => {
     const result = validateEnterprisePackageGateManifest(
-      customerSuccessGate({ developerPackageSurface: true }),
+      customerSuccessGate({ developerPackageSurface: true })
     );
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual({
       path: 'developerPackageSurface',
-      message: 'Enterprise business solutions are deployed room surfaces, not developer package surfaces.',
+      message:
+        'Enterprise business solutions are deployed room surfaces, not developer package surfaces.',
     });
   });
 
   it('rejects gates missing source, validation, runtime, render, or interaction receipts', () => {
     const result = validateEnterprisePackageGateManifest(
-      customerSuccessGate({ requiredReceipts: ['source', 'validation'] }),
+      customerSuccessGate({ requiredReceipts: ['source', 'validation'] })
     );
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual(
@@ -101,7 +102,7 @@ describe('enterprise package gate contract', () => {
         { path: 'requiredReceipts', message: 'Missing required receipt: runtime.' },
         { path: 'requiredReceipts', message: 'Missing required receipt: render.' },
         { path: 'requiredReceipts', message: 'Missing required receipt: interaction.' },
-      ]),
+      ])
     );
   });
 
@@ -109,7 +110,7 @@ describe('enterprise package gate contract', () => {
     const result = validateEnterprisePackageGateManifest(
       customerSuccessGate({
         holoscriptPackages: [{ name: '@hololand/local-glue', gates: ['render'] }],
-      }),
+      })
     );
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual({
@@ -130,7 +131,7 @@ describe('enterprise package gate contract', () => {
             localRewriteAllowed: true,
           },
         ],
-      }),
+      })
     );
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual({
@@ -149,7 +150,7 @@ describe('enterprise package gate contract', () => {
             mustProve: ['source_drives_manifest'],
           },
         ],
-      }),
+      })
     );
     expect(result.valid).toBe(true);
     expect(result.warnings).toEqual(
@@ -166,15 +167,13 @@ describe('enterprise package gate contract', () => {
           path: 'benchmarkGates.0.mustProve',
           message: 'Recommended proof obligation missing: interaction_receipt_is_required.',
         },
-      ]),
+      ])
     );
   });
 
   it('throws a path-rich error for invalid manifests in assertion mode', () => {
     expect(() =>
-      assertEnterprisePackageGateManifest(
-        customerSuccessGate({ requiredReceipts: ['source'] }),
-      ),
+      assertEnterprisePackageGateManifest(customerSuccessGate({ requiredReceipts: ['source'] }))
     ).toThrow(/requiredReceipts: Missing required receipt: validation\./);
   });
 
@@ -185,7 +184,14 @@ describe('enterprise package gate contract', () => {
       gateId: 'customer-success-room',
       vertical: 'customer_success',
       status: 'pass',
-      requiredReceipts: ['source', 'validation', 'runtime', 'render', 'interaction', 'hardware_browser'],
+      requiredReceipts: [
+        'source',
+        'validation',
+        'runtime',
+        'render',
+        'interaction',
+        'hardware_browser',
+      ],
     });
   });
 

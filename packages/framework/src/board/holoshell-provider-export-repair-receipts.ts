@@ -711,7 +711,8 @@ export function buildProviderExportWitnessFixtureResult(
     observedAt: fixture.observedAt,
     ...(fixture.linkExpiresAt ? { linkExpiresAt: fixture.linkExpiresAt } : {}),
     adminOrManagedAccountBlock:
-      fixture.providerStatus === 'admin_block' || fixture.providerStatus === 'managed_account_block',
+      fixture.providerStatus === 'admin_block' ||
+      fixture.providerStatus === 'managed_account_block',
     connectedAppAccessInvolved: fixture.connectedAppAccessInvolved ?? false,
     accountMutationPerformed: false,
     rawPrivateDataPublished: false,
@@ -873,7 +874,10 @@ function chooseProviderExportWitnessRepairAction(
   ) {
     return 'manual_provider_ticket';
   }
-  if (failure.failureKind === 'provider_delay' || failure.providerWaitState === 'provider_waiting') {
+  if (
+    failure.failureKind === 'provider_delay' ||
+    failure.providerWaitState === 'provider_waiting'
+  ) {
     return 'wait';
   }
   if (failure.failureKind === 'link_expired') return 're_download_same_link';

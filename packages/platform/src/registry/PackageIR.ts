@@ -112,13 +112,7 @@ const SUPPORT_TIERS = new Set<PackageSupportTier>([
   'deprecated',
   'archived',
 ]);
-const KINDS = new Set<PackageKind>([
-  'library',
-  'application',
-  'template',
-  'trait-pack',
-  'plugin',
-]);
+const KINDS = new Set<PackageKind>(['library', 'application', 'template', 'trait-pack', 'plugin']);
 const TARGETS = new Set<PackageTarget>([
   'node',
   'browser-wasm',

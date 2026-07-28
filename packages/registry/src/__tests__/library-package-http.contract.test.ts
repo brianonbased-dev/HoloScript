@@ -60,12 +60,14 @@ async function startRegistry(storagePath: string): Promise<string> {
 
 afterEach(async () => {
   await Promise.all(
-    servers.splice(0).map(
-      (server) =>
-        new Promise<void>((resolve, reject) =>
-          server.close((error) => (error ? reject(error) : resolve()))
-        )
-    )
+    servers
+      .splice(0)
+      .map(
+        (server) =>
+          new Promise<void>((resolve, reject) =>
+            server.close((error) => (error ? reject(error) : resolve()))
+          )
+      )
   );
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 });

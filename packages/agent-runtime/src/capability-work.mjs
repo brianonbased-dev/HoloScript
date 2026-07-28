@@ -45,24 +45,35 @@ function stableValue(value) {
   return Object.fromEntries(
     Object.entries(value)
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, child]) => [key, stableValue(child)]),
+      .map(([key, child]) => [key, stableValue(child)])
   );
 }
 
 function sha256Stable(value) {
-  return `sha256:${createHash('sha256').update(JSON.stringify(stableValue(value))).digest('hex')}`;
+  return `sha256:${createHash('sha256')
+    .update(JSON.stringify(stableValue(value)))
+    .digest('hex')}`;
 }
 
 export function normalizeCapabilities(values = []) {
-  return [...new Set((Array.isArray(values) ? values : [values])
-    .map((value) => String(value || '').trim().toLowerCase())
-    .filter(Boolean))].sort();
+  return [
+    ...new Set(
+      (Array.isArray(values) ? values : [values])
+        .map((value) =>
+          String(value || '')
+            .trim()
+            .toLowerCase()
+        )
+        .filter(Boolean)
+    ),
+  ].sort();
 }
 
 export function workerCanRun(workItem, worker) {
   const offered = new Set(normalizeCapabilities(worker?.capabilities));
-  return normalizeCapabilities(workItem?.requiredCapabilities)
-    .every((capability) => offered.has(capability));
+  return normalizeCapabilities(workItem?.requiredCapabilities).every((capability) =>
+    offered.has(capability)
+  );
 }
 
 export function createCapabilityWorkItem(input = {}, options = {}) {
@@ -96,15 +107,18 @@ export function createCapabilityWorkItem(input = {}, options = {}) {
 
 function preferredScore(workItem, worker) {
   const offered = new Set(normalizeCapabilities(worker?.capabilities));
-  return normalizeCapabilities(workItem.preferredCapabilities)
-    .filter((capability) => offered.has(capability)).length;
+  return normalizeCapabilities(workItem.preferredCapabilities).filter((capability) =>
+    offered.has(capability)
+  ).length;
 }
 
 function compareCandidates(left, right, worker) {
-  return left.priority - right.priority
-    || preferredScore(right, worker) - preferredScore(left, worker)
-    || epoch(left.createdAt) - epoch(right.createdAt)
-    || left.id.localeCompare(right.id);
+  return (
+    left.priority - right.priority ||
+    preferredScore(right, worker) - preferredScore(left, worker) ||
+    epoch(left.createdAt) - epoch(right.createdAt) ||
+    left.id.localeCompare(right.id)
+  );
 }
 
 function assertLease(workItem, workerId, leaseToken) {
@@ -125,7 +139,8 @@ export function createInMemoryCapabilityWorkStore(options = {}) {
     for (const item of items.values()) {
       if (item.status !== 'leased' || epoch(item.leaseExpiresAt) > current) continue;
       item.status = item.attempts >= item.maxAttempts ? 'failed' : 'queued';
-      item.error = item.status === 'failed' ? 'lease expired after maximum attempts' : 'lease expired';
+      item.error =
+        item.status === 'failed' ? 'lease expired after maximum attempts' : 'lease expired';
       item.leaseOwner = null;
       item.leaseToken = null;
       item.leaseExpiresAt = null;
@@ -209,10 +224,12 @@ export function createInMemoryCapabilityWorkStore(options = {}) {
     async snapshot() {
       releaseExpired();
       const all = [...items.values()];
-      const counts = Object.fromEntries([...WORK_STATUSES].map((status) => [
-        status,
-        all.filter((item) => item.status === status).length,
-      ]));
+      const counts = Object.fromEntries(
+        [...WORK_STATUSES].map((status) => [
+          status,
+          all.filter((item) => item.status === status).length,
+        ])
+      );
       return {
         schema: CAPABILITY_WORK_STORE_SCHEMA,
         generatedAt: iso(now),
@@ -299,7 +316,8 @@ export class PostgresCapabilityWorkStore {
       now: this.now,
       workspaceId: this.workspaceId,
     });
-    const result = await this.pool.query(`
+    const result = await this.pool.query(
+      `
       INSERT INTO ${this.tableName} (
         id, workspace_id, idempotency_key, kind, required_capabilities,
         preferred_capabilities, payload, status, priority, attempts,
@@ -308,21 +326,23 @@ export class PostgresCapabilityWorkStore {
       ON CONFLICT (workspace_id, idempotency_key)
       DO UPDATE SET idempotency_key = EXCLUDED.idempotency_key
       RETURNING *
-    `, [
-      item.id,
-      item.workspaceId,
-      item.idempotencyKey,
-      item.kind,
-      JSON.stringify(item.requiredCapabilities),
-      JSON.stringify(item.preferredCapabilities),
-      JSON.stringify(item.payload),
-      item.status,
-      item.priority,
-      item.attempts,
-      item.maxAttempts,
-      item.createdAt,
-      item.updatedAt,
-    ]);
+    `,
+      [
+        item.id,
+        item.workspaceId,
+        item.idempotencyKey,
+        item.kind,
+        JSON.stringify(item.requiredCapabilities),
+        JSON.stringify(item.preferredCapabilities),
+        JSON.stringify(item.payload),
+        item.status,
+        item.priority,
+        item.attempts,
+        item.maxAttempts,
+        item.createdAt,
+        item.updatedAt,
+      ]
+    );
     return rowToWorkItem(result.rows[0]);
   }
 
@@ -333,7 +353,8 @@ export class PostgresCapabilityWorkStore {
     const leaseExpiresAt = iso(epoch(now) + positiveInteger(options.leaseMs, 60_000));
     const token = randomUUID();
     const capabilities = normalizeCapabilities(worker.capabilities);
-    const result = await this.pool.query(`
+    const result = await this.pool.query(
+      `
       WITH expired_final AS (
         UPDATE ${this.tableName}
         SET status = 'failed', error = 'lease expired after maximum attempts',
@@ -367,38 +388,61 @@ export class PostgresCapabilityWorkStore {
       FROM candidate
       WHERE work.id = candidate.id
       RETURNING work.*
-    `, [this.workspaceId, now, JSON.stringify(capabilities), workerId, token, leaseExpiresAt]);
+    `,
+      [this.workspaceId, now, JSON.stringify(capabilities), workerId, token, leaseExpiresAt]
+    );
     return rowToWorkItem(result.rows[0]);
   }
 
   async renew({ workId, workerId, leaseToken, leaseMs = 60_000 }) {
     const now = iso(this.now);
-    const result = await this.pool.query(`
+    const result = await this.pool.query(
+      `
       UPDATE ${this.tableName}
       SET lease_expires_at = $1, updated_at = $2
       WHERE id = $3 AND workspace_id = $4 AND status = 'leased'
         AND lease_owner = $5 AND lease_token = $6
       RETURNING *
-    `, [iso(epoch(now) + positiveInteger(leaseMs, 60_000)), now, workId, this.workspaceId, workerId, leaseToken]);
+    `,
+      [
+        iso(epoch(now) + positiveInteger(leaseMs, 60_000)),
+        now,
+        workId,
+        this.workspaceId,
+        workerId,
+        leaseToken,
+      ]
+    );
     if (!result.rows[0]) throw new Error('work lease ownership mismatch');
     return rowToWorkItem(result.rows[0]);
   }
 
   async complete({ workId, workerId, leaseToken, result: workResult }) {
-    const result = await this.pool.query(`
+    const result = await this.pool.query(
+      `
       UPDATE ${this.tableName}
       SET status = 'completed', result = $1::jsonb, error = NULL,
           lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL, updated_at = $2
       WHERE id = $3 AND workspace_id = $4 AND status = 'leased'
         AND lease_owner = $5 AND lease_token = $6
       RETURNING *
-    `, [JSON.stringify(workResult ?? null), iso(this.now), workId, this.workspaceId, workerId, leaseToken]);
+    `,
+      [
+        JSON.stringify(workResult ?? null),
+        iso(this.now),
+        workId,
+        this.workspaceId,
+        workerId,
+        leaseToken,
+      ]
+    );
     if (!result.rows[0]) throw new Error('work lease ownership mismatch');
     return rowToWorkItem(result.rows[0]);
   }
 
   async fail({ workId, workerId, leaseToken, error }) {
-    const result = await this.pool.query(`
+    const result = await this.pool.query(
+      `
       UPDATE ${this.tableName}
       SET status = CASE WHEN attempts >= max_attempts THEN 'failed' ELSE 'queued' END,
           error = $1, lease_owner = NULL, lease_token = NULL,
@@ -406,7 +450,9 @@ export class PostgresCapabilityWorkStore {
       WHERE id = $3 AND workspace_id = $4 AND status = 'leased'
         AND lease_owner = $5 AND lease_token = $6
       RETURNING *
-    `, [safeError(error), iso(this.now), workId, this.workspaceId, workerId, leaseToken]);
+    `,
+      [safeError(error), iso(this.now), workId, this.workspaceId, workerId, leaseToken]
+    );
     if (!result.rows[0]) throw new Error('work lease ownership mismatch');
     return rowToWorkItem(result.rows[0]);
   }
@@ -419,21 +465,27 @@ export class PostgresCapabilityWorkStore {
       params.push(filter.status);
       where.push(`status = $${params.length}`);
     }
-    const result = await this.pool.query(`
+    const result = await this.pool.query(
+      `
       SELECT * FROM ${this.tableName}
       WHERE ${where.join(' AND ')}
       ORDER BY priority ASC, created_at ASC, id ASC
-    `, params);
+    `,
+      params
+    );
     return result.rows.map(rowToWorkItem);
   }
 
   async snapshot() {
-    const result = await this.pool.query(`
+    const result = await this.pool.query(
+      `
       SELECT status, COUNT(*)::integer AS count
       FROM ${this.tableName}
       WHERE workspace_id = $1
       GROUP BY status
-    `, [this.workspaceId]);
+    `,
+      [this.workspaceId]
+    );
     const counts = Object.fromEntries([...WORK_STATUSES].map((status) => [status, 0]));
     for (const row of result.rows) counts[row.status] = Number(row.count);
     return {
@@ -457,7 +509,7 @@ export async function createPostgresCapabilityWorkStore(options = {}) {
   if (!pool) {
     const connectionString = String(options.connectionString || '').trim();
     if (!connectionString) throw new Error('connectionString or pool is required');
-    const pg = options.pgModule || await import('pg');
+    const pg = options.pgModule || (await import('pg'));
     const Pool = pg.Pool || pg.default?.Pool;
     if (!Pool) throw new Error('pg Pool export is unavailable');
     pool = new Pool({ connectionString });
@@ -472,22 +524,31 @@ export async function runCapabilityWorkerTick(options = {}) {
   const workerId = String(worker?.id || '').trim();
   if (!workerId) throw new Error('capability worker id is required');
   const startedAt = Date.now();
-  const wallTimeoutMs = positiveInteger(options.wallTimeoutMs, Math.min(positiveInteger(leaseMs, 60_000), 60_000));
-  const workItem = await store.claim({
-    id: workerId,
-    capabilities: normalizeCapabilities(worker.capabilities),
-  }, { leaseMs });
+  const wallTimeoutMs = positiveInteger(
+    options.wallTimeoutMs,
+    Math.min(positiveInteger(leaseMs, 60_000), 60_000)
+  );
+  const workItem = await store.claim(
+    {
+      id: workerId,
+      capabilities: normalizeCapabilities(worker.capabilities),
+    },
+    { leaseMs }
+  );
   if (!workItem) {
-    return persistWorkerReceipt({
-      schema: CAPABILITY_WORK_RECEIPT_SCHEMA,
-      generatedAt: iso(),
-      status: 'idle',
-      worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
-      work: null,
-      bounds: { leaseMs: positiveInteger(leaseMs, 60_000), wallTimeoutMs, timedOut: false },
-      durationMs: Date.now() - startedAt,
-      error: null,
-    }, options.receipts);
+    return persistWorkerReceipt(
+      {
+        schema: CAPABILITY_WORK_RECEIPT_SCHEMA,
+        generatedAt: iso(),
+        status: 'idle',
+        worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
+        work: null,
+        bounds: { leaseMs: positiveInteger(leaseMs, 60_000), wallTimeoutMs, timedOut: false },
+        durationMs: Date.now() - startedAt,
+        error: null,
+      },
+      options.receipts
+    );
   }
   const tokenSha256 = `sha256:${createHash('sha256').update(workItem.leaseToken).digest('hex')}`;
   const inputSha256 = sha256Stable({
@@ -507,7 +568,7 @@ export async function runCapabilityWorkerTick(options = {}) {
   const autoRenew = options.autoRenew !== false && typeof store.renew === 'function';
   const heartbeatMs = positiveInteger(
     options.heartbeatMs,
-    Math.max(1000, Math.floor(positiveInteger(leaseMs, 60_000) / 3)),
+    Math.max(1000, Math.floor(positiveInteger(leaseMs, 60_000) / 3))
   );
   let heartbeatTimer = null;
   let renewChain = Promise.resolve();
@@ -531,21 +592,26 @@ export async function runCapabilityWorkerTick(options = {}) {
     heartbeatTimer.unref?.();
   }
   try {
-    if (typeof handler !== 'function') throw new Error(`no handler registered for work kind ${workItem.kind}`);
+    if (typeof handler !== 'function')
+      throw new Error(`no handler registered for work kind ${workItem.kind}`);
     const controller = new AbortController();
     const timeout = setTimeout(() => {
       timedOut = true;
       controller.abort(new Error(`work handler exceeded wall timeout ${wallTimeoutMs}ms`));
     }, wallTimeoutMs);
     timeout.unref?.();
-    const handlerPromise = Promise.resolve(handler({
-      payload: clone(workItem.payload),
-      workItem: clone({ ...workItem, leaseToken: null }),
-      worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
-      signal: controller.signal,
-    }));
+    const handlerPromise = Promise.resolve(
+      handler({
+        payload: clone(workItem.payload),
+        workItem: clone({ ...workItem, leaseToken: null }),
+        worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
+        signal: controller.signal,
+      })
+    );
     const timeoutPromise = new Promise((_, reject) => {
-      controller.signal.addEventListener('abort', () => reject(controller.signal.reason), { once: true });
+      controller.signal.addEventListener('abort', () => reject(controller.signal.reason), {
+        once: true,
+      });
     });
     let result;
     try {
@@ -561,19 +627,22 @@ export async function runCapabilityWorkerTick(options = {}) {
       leaseToken: workItem.leaseToken,
       result,
     });
-    return persistWorkerReceipt({
-      schema: CAPABILITY_WORK_RECEIPT_SCHEMA,
-      generatedAt: iso(),
-      status: 'executed',
-      worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
-      work: { id: workItem.id, kind: workItem.kind, attempts: completed.attempts },
-      lease: { tokenSha256, fencingAttempt: completed.attempts, rawTokenIncluded: false },
-      evidence: { inputSha256, policySha256 },
-      bounds: { leaseMs: positiveInteger(leaseMs, 60_000), wallTimeoutMs, timedOut: false },
-      durationMs: Date.now() - startedAt,
-      result: clone(result ?? null),
-      error: null,
-    }, options.receipts);
+    return persistWorkerReceipt(
+      {
+        schema: CAPABILITY_WORK_RECEIPT_SCHEMA,
+        generatedAt: iso(),
+        status: 'executed',
+        worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
+        work: { id: workItem.id, kind: workItem.kind, attempts: completed.attempts },
+        lease: { tokenSha256, fencingAttempt: completed.attempts, rawTokenIncluded: false },
+        evidence: { inputSha256, policySha256 },
+        bounds: { leaseMs: positiveInteger(leaseMs, 60_000), wallTimeoutMs, timedOut: false },
+        durationMs: Date.now() - startedAt,
+        result: clone(result ?? null),
+        error: null,
+      },
+      options.receipts
+    );
   } catch (error) {
     const failed = await store.fail({
       workId: workItem.id,
@@ -581,19 +650,27 @@ export async function runCapabilityWorkerTick(options = {}) {
       leaseToken: workItem.leaseToken,
       error,
     });
-    return persistWorkerReceipt({
-      schema: CAPABILITY_WORK_RECEIPT_SCHEMA,
-      generatedAt: iso(),
-      status: 'failed',
-      worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
-      work: { id: workItem.id, kind: workItem.kind, attempts: failed.attempts, nextStatus: failed.status },
-      lease: { tokenSha256, fencingAttempt: failed.attempts, rawTokenIncluded: false },
-      evidence: { inputSha256, policySha256 },
-      bounds: { leaseMs: positiveInteger(leaseMs, 60_000), wallTimeoutMs, timedOut },
-      durationMs: Date.now() - startedAt,
-      result: null,
-      error: safeError(error),
-    }, options.receipts);
+    return persistWorkerReceipt(
+      {
+        schema: CAPABILITY_WORK_RECEIPT_SCHEMA,
+        generatedAt: iso(),
+        status: 'failed',
+        worker: { id: workerId, capabilities: normalizeCapabilities(worker.capabilities) },
+        work: {
+          id: workItem.id,
+          kind: workItem.kind,
+          attempts: failed.attempts,
+          nextStatus: failed.status,
+        },
+        lease: { tokenSha256, fencingAttempt: failed.attempts, rawTokenIncluded: false },
+        evidence: { inputSha256, policySha256 },
+        bounds: { leaseMs: positiveInteger(leaseMs, 60_000), wallTimeoutMs, timedOut },
+        durationMs: Date.now() - startedAt,
+        result: null,
+        error: safeError(error),
+      },
+      options.receipts
+    );
   } finally {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
   }

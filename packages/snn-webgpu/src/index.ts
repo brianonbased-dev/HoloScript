@@ -161,7 +161,12 @@ export type {
 // The math surface (code layout, exact-ML lookup, BP/OSD) is namespaced under `qec` to
 // avoid collisions with generic names (weight, N, xorVec); the GPU class is also flat.
 export * as qec from './qec/index.js';
-export { QECDecoder, unpackCorrection, packSyndrome, tannerEdgesMatchZstab } from './qec/qec-decoder.js';
+export {
+  QECDecoder,
+  unpackCorrection,
+  packSyndrome,
+  tannerEdgesMatchZstab,
+} from './qec/qec-decoder.js';
 export type {
   QecDecodeResult,
   QecValidationReport,

@@ -67,9 +67,7 @@ describe('native library publisher contract', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.url).toBe(
-      'https://registry.test/api/v1/packages/cold/ping/versions/1.0.0'
-    );
+    expect(result.url).toBe('https://registry.test/api/v1/packages/cold/ping/versions/1.0.0');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, request] = fetchMock.mock.calls[0];
     expect(url).toBe('https://registry.test/api/v1/packages');

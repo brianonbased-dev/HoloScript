@@ -276,10 +276,7 @@ describe('resolveSovereignProviderAsync (owned local fleet)', () => {
     }));
     vi.stubGlobal('fetch', fetchSpy);
 
-    await r.provider.complete(
-      { messages: [{ role: 'user', content: 'status?' }] },
-      r.model
-    );
+    await r.provider.complete({ messages: [{ role: 'user', content: 'status?' }] }, r.model);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(fetchSpy.mock.calls[0]?.[0]).toBe('http://127.0.0.1:8099/v1/chat/completions');
   });

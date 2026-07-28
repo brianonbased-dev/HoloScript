@@ -347,15 +347,11 @@ export class QuantumEspressoBackend implements QmSolver {
       const patchedInput = input.replace("outdir = './tmp'", `outdir = '${tmpDir}/tmp'`);
       await fs.writeFile(inputPath, patchedInput, 'utf8');
 
-      const { stdout, stderr } = await execFileAsync(
-        this.pwPath,
-        ['-in', inputPath],
-        {
-          cwd: tmpDir,
-          maxBuffer: 50 * 1024 * 1024,
-          env: { ...process.env, OMP_NUM_THREADS: '1' },
-        }
-      );
+      const { stdout, stderr } = await execFileAsync(this.pwPath, ['-in', inputPath], {
+        cwd: tmpDir,
+        maxBuffer: 50 * 1024 * 1024,
+        env: { ...process.env, OMP_NUM_THREADS: '1' },
+      });
 
       // Write stdout to output file for easier parsing
       await fs.writeFile(outputPath, stdout, 'utf8').catch(() => undefined);
@@ -381,8 +377,7 @@ export class QuantumEspressoBackend implements QmSolver {
       // Convergence:  "convergence has been achieved in   N iterations"
       const convMatch = stdout.match(/convergence has been achieved in\s+(\d+)/i);
       const converged = convMatch !== null;
-      const scfIterations =
-        convMatch?.[1] !== undefined ? parseInt(convMatch[1], 10) : 0;
+      const scfIterations = convMatch?.[1] !== undefined ? parseInt(convMatch[1], 10) : 0;
 
       return {
         total_energy: totalEnergy,

@@ -689,9 +689,7 @@ async function executeNode() {
   const collectionUpdated = collectionOriginal.update(1, 9);
   const collectionReversed = collectionUpdated.reverse();
   const collectionWeighted =
-    collectionReversed.get(0) +
-    collectionReversed.get(1) * 2 +
-    collectionReversed.get(2) * 3;
+    collectionReversed.get(0) + collectionReversed.get(1) * 2 + collectionReversed.get(2) * 3;
   const collectionDigest = collectionOriginalSum + collectionWeighted;
   const collectionOriginalPreserved =
     collectionOriginal.get(0) === 2 &&
@@ -1036,7 +1034,13 @@ console.log(
         provesImmutableFixedSizeList3I32: true,
         collectionValueAbi: 'hs.aggregate.value.v1',
         collectionLayout: 'StdList3I32{first:i32,second:i32,third:i32}',
-        collectionOperations: ['construct', 'sum', 'persistent replace second', 'reverse', 'digest'],
+        collectionOperations: [
+          'construct',
+          'sum',
+          'persistent replace second',
+          'reverse',
+          'digest',
+        ],
         collectionLimits: [
           'fixed size of three i32 values',
           'no dynamic indexing',

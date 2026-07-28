@@ -11,7 +11,10 @@ declare module '@holoscript/core' {
   }
 
   export class MediaPipelineCompiler {
-    render(ast: unknown, options?: Record<string, unknown>): {
+    render(
+      ast: unknown,
+      options?: Record<string, unknown>
+    ): {
       width: number;
       height: number;
       fps: number;
@@ -21,7 +24,10 @@ declare module '@holoscript/core' {
   }
 
   export class CpuPathTracer {
-    render(ast: unknown, options?: Record<string, unknown>): {
+    render(
+      ast: unknown,
+      options?: Record<string, unknown>
+    ): {
       width: number;
       height: number;
     };

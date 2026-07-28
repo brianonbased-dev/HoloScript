@@ -156,7 +156,7 @@ function hasText(value: string | undefined): boolean {
 function pushRequiredString(
   errors: VisualProjectionValidationIssue[],
   path: string,
-  value: string | undefined,
+  value: string | undefined
 ): void {
   if (!hasText(value)) {
     errors.push({ path, message: 'Expected a non-empty string.' });
@@ -166,7 +166,7 @@ function pushRequiredString(
 function checkUniqueIds(
   errors: VisualProjectionValidationIssue[],
   path: string,
-  values: ReadonlyArray<{ id: string }>,
+  values: ReadonlyArray<{ id: string }>
 ): void {
   const seen = new Set<string>();
   for (const item of values) {
@@ -178,7 +178,7 @@ function checkUniqueIds(
 }
 
 export function validateVisualProjectionManifest(
-  manifest: VisualProjectionManifest,
+  manifest: VisualProjectionManifest
 ): VisualProjectionValidationResult {
   const errors: VisualProjectionValidationIssue[] = [];
   const warnings: VisualProjectionValidationIssue[] = [];
@@ -197,7 +197,10 @@ export function validateVisualProjectionManifest(
   pushRequiredString(errors, 'defaultScene.id', manifest.defaultScene?.id);
   pushRequiredString(errors, 'defaultScene.title', manifest.defaultScene?.title);
 
-  if (!Array.isArray(manifest.defaultScene?.viewport) || manifest.defaultScene.viewport.length === 0) {
+  if (
+    !Array.isArray(manifest.defaultScene?.viewport) ||
+    manifest.defaultScene.viewport.length === 0
+  ) {
     errors.push({
       path: 'defaultScene.viewport',
       message: 'Expected at least one target viewport.',

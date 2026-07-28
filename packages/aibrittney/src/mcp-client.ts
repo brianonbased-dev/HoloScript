@@ -50,7 +50,8 @@ export function defaultMcpConfig(overrides: Partial<McpClientConfig> = {}): McpC
     endpoint,
     apiKey,
     timeoutMs: overrides.timeoutMs ?? 60_000,
-    oauthEndpoint: overrides.oauthEndpoint ?? process.env.MCP_OAUTH_ENDPOINT ?? DEFAULT_OAUTH_ENDPOINT,
+    oauthEndpoint:
+      overrides.oauthEndpoint ?? process.env.MCP_OAUTH_ENDPOINT ?? DEFAULT_OAUTH_ENDPOINT,
     fetchImpl: overrides.fetchImpl,
   };
 }
@@ -149,10 +150,7 @@ export class McpClient {
    */
   private async _getToken(): Promise<CachedToken> {
     const now = Date.now();
-    if (
-      this._tokenCache &&
-      this._tokenCache.expiresAt - now > REFRESH_BUFFER_SECS * 1000
-    ) {
+    if (this._tokenCache && this._tokenCache.expiresAt - now > REFRESH_BUFFER_SECS * 1000) {
       return this._tokenCache;
     }
 
@@ -238,12 +236,14 @@ export class McpClient {
       throw new Error(`oauth/register failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
     }
 
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     const clientId = body.client_id as string | undefined;
     const clientSecret = body.client_secret as string | undefined;
 
     if (!clientId || !clientSecret) {
-      throw new Error(`oauth/register: unexpected response shape — ${JSON.stringify(body).slice(0, 200)}`);
+      throw new Error(
+        `oauth/register: unexpected response shape — ${JSON.stringify(body).slice(0, 200)}`
+      );
     }
 
     return { clientId, clientSecret };
@@ -273,7 +273,7 @@ export class McpClient {
       throw new Error(`oauth/token failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
     }
 
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     return this._parseCachedToken(body);
   }
 
@@ -304,14 +304,16 @@ export class McpClient {
       throw new Error(`oauth/token refresh failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
     }
 
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     return this._parseCachedToken(body);
   }
 
   private _parseCachedToken(body: Record<string, unknown>): CachedToken {
     const accessToken = body.access_token as string | undefined;
     if (!accessToken) {
-      throw new Error(`oauth/token: no access_token in response — ${JSON.stringify(body).slice(0, 200)}`);
+      throw new Error(
+        `oauth/token: no access_token in response — ${JSON.stringify(body).slice(0, 200)}`
+      );
     }
     const expiresIn = typeof body.expires_in === 'number' ? body.expires_in : 3600;
     return {

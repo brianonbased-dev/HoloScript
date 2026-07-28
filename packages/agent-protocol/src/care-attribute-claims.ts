@@ -32,7 +32,11 @@ export const HUMAN_LIKE_AGENT_ATTRIBUTE_CLAIMS = [
 
 export type AgentAttributeClaimAttribute = (typeof AGENT_ATTRIBUTE_CLAIM_ATTRIBUTES)[number];
 export type HumanLikeAgentAttributeClaim = (typeof HUMAN_LIKE_AGENT_ATTRIBUTE_CLAIMS)[number];
-export type AgentAttributeClaimPersistence = 'single_event' | 'session' | 'cross_session' | 'durable';
+export type AgentAttributeClaimPersistence =
+  | 'single_event'
+  | 'session'
+  | 'cross_session'
+  | 'durable';
 
 export interface AgentAttributeClaim {
   attribute: AgentAttributeClaimAttribute;
@@ -71,7 +75,9 @@ export function validateAgentAttributeClaims(claims: unknown): AgentAttributeCla
       return;
     }
 
-    const attribute = String(claim.attribute || '').trim().toLowerCase();
+    const attribute = String(claim.attribute || '')
+      .trim()
+      .toLowerCase();
     if (!ATTRIBUTE_SET.has(attribute)) {
       errors.push(`${prefix}.attribute must be canonical`);
     }
@@ -87,7 +93,9 @@ export function validateAgentAttributeClaims(claims: unknown): AgentAttributeCla
       if (!hasText(claim.persistence)) {
         errors.push(`${prefix}.persistence is required for human-like attributes`);
       } else if (!PERSISTENCE_SET.has(claim.persistence)) {
-        errors.push(`${prefix}.persistence must be single_event, session, cross_session, or durable`);
+        errors.push(
+          `${prefix}.persistence must be single_event, session, cross_session, or durable`
+        );
       }
       if (!hasText(claim.falsifier)) {
         errors.push(`${prefix}.falsifier is required for human-like attributes`);
@@ -107,7 +115,9 @@ export function validateAgentAttributeClaims(claims: unknown): AgentAttributeCla
   return { valid: errors.length === 0, errors };
 }
 
-export function normalizeAgentAttributeClaims(claims: AgentAttributeClaim[]): AgentAttributeClaim[] {
+export function normalizeAgentAttributeClaims(
+  claims: AgentAttributeClaim[]
+): AgentAttributeClaim[] {
   return claims.map((claim) => ({
     attribute: claim.attribute,
     claim: claim.claim.trim(),

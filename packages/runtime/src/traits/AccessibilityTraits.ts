@@ -87,12 +87,12 @@ export const AltTextTrait: TraitHandler = {
 // ============================================================================
 
 const CONTRAST_PALETTES: Record<string, { fg: string; bg: string }> = {
-  auto:     { fg: '#FFFFFF', bg: '#000000' },
-  light:    { fg: '#000000', bg: '#FFFFFF' },
-  dark:     { fg: '#FFFFFF', bg: '#000000' },
-  high:     { fg: '#FFFF00', bg: '#000000' },
+  auto: { fg: '#FFFFFF', bg: '#000000' },
+  light: { fg: '#000000', bg: '#FFFFFF' },
+  dark: { fg: '#FFFFFF', bg: '#000000' },
+  high: { fg: '#FFFF00', bg: '#000000' },
   inverted: { fg: '#000000', bg: '#FFFFFF' },
-  off:      { fg: '',        bg: ''        },
+  off: { fg: '', bg: '' },
 };
 
 export const HighContrastTrait: TraitHandler = {

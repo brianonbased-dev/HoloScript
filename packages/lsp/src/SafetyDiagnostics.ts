@@ -43,9 +43,7 @@ interface SafetyASTInput {
 }
 
 function asSafetyASTInput(value: unknown): SafetyASTInput | undefined {
-  return typeof value === 'object' && value !== null
-    ? (value as SafetyASTInput)
-    : undefined;
+  return typeof value === 'object' && value !== null ? (value as SafetyASTInput) : undefined;
 }
 
 function stringValue(value: unknown): string | undefined {

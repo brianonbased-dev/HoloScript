@@ -96,7 +96,7 @@ describe('visual projection contract', () => {
 
   it('accepts the geolocation GIS plugin projection seed', () => {
     const projection = readProjection(
-      'packages/plugins/geolocation-gis-plugin/visual.projection.json',
+      'packages/plugins/geolocation-gis-plugin/visual.projection.json'
     );
 
     const result = validateVisualProjectionManifest(projection);

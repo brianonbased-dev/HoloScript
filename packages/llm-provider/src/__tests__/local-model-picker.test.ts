@@ -53,7 +53,8 @@ function stubOllama(opts: {
                       {
                         function: {
                           name: 'create_object',
-                          arguments: '{"name":"orb-probe","primitive":"sphere","radius":2,"position":[1,2,3]}',
+                          arguments:
+                            '{"name":"orb-probe","primitive":"sphere","radius":2,"position":[1,2,3]}',
                         },
                       },
                     ],
@@ -85,8 +86,18 @@ describe('pickLocalModel', () => {
   it('picks the modern tool-capable model and verifies it behaviorally', async () => {
     stubOllama({
       models: [
-        { name: 'old-coder:7b', paramsB: '7.6B', caps: ['completion', 'tools'], emitsToolCalls: false },
-        { name: 'fresh:4b', paramsB: '4.7B', caps: ['completion', 'tools', 'thinking'], emitsToolCalls: true },
+        {
+          name: 'old-coder:7b',
+          paramsB: '7.6B',
+          caps: ['completion', 'tools'],
+          emitsToolCalls: false,
+        },
+        {
+          name: 'fresh:4b',
+          paramsB: '4.7B',
+          caps: ['completion', 'tools', 'thinking'],
+          emitsToolCalls: true,
+        },
         { name: 'embed:0.5b', paramsB: '0.5B', caps: ['completion'], emitsToolCalls: false },
       ],
     });
@@ -100,8 +111,18 @@ describe('pickLocalModel', () => {
     stubOllama({
       models: [
         // Liar ranks FIRST (modern + bigger) but fails the live probe.
-        { name: 'liar:8b', paramsB: '8B', caps: ['completion', 'tools', 'thinking'], emitsToolCalls: false },
-        { name: 'honest:4b', paramsB: '4B', caps: ['completion', 'tools', 'thinking'], emitsToolCalls: true },
+        {
+          name: 'liar:8b',
+          paramsB: '8B',
+          caps: ['completion', 'tools', 'thinking'],
+          emitsToolCalls: false,
+        },
+        {
+          name: 'honest:4b',
+          paramsB: '4B',
+          caps: ['completion', 'tools', 'thinking'],
+          emitsToolCalls: true,
+        },
       ],
     });
     const c = await pickLocalModel(BOX);
@@ -118,8 +139,18 @@ describe('pickLocalModel', () => {
   it('respects the parameter-size cap', async () => {
     stubOllama({
       models: [
-        { name: 'giant:70b', paramsB: '70B', caps: ['completion', 'tools', 'thinking'], emitsToolCalls: true },
-        { name: 'fit:7b', paramsB: '7.6B', caps: ['completion', 'tools', 'thinking'], emitsToolCalls: true },
+        {
+          name: 'giant:70b',
+          paramsB: '70B',
+          caps: ['completion', 'tools', 'thinking'],
+          emitsToolCalls: true,
+        },
+        {
+          name: 'fit:7b',
+          paramsB: '7.6B',
+          caps: ['completion', 'tools', 'thinking'],
+          emitsToolCalls: true,
+        },
       ],
     });
     const c = await pickLocalModel(BOX);
@@ -142,8 +173,18 @@ describe('pickLocalModel', () => {
     stubOllama({
       models: [
         // Would rank FIRST (modern + bigger) and even passes the probe — but it is blacklisted.
-        { name: 'qwen2.5-coder:7b', paramsB: '7.6B', caps: ['completion', 'tools', 'thinking'], emitsToolCalls: true },
-        { name: 'honest:4b', paramsB: '4B', caps: ['completion', 'tools', 'thinking'], emitsToolCalls: true },
+        {
+          name: 'qwen2.5-coder:7b',
+          paramsB: '7.6B',
+          caps: ['completion', 'tools', 'thinking'],
+          emitsToolCalls: true,
+        },
+        {
+          name: 'honest:4b',
+          paramsB: '4B',
+          caps: ['completion', 'tools', 'thinking'],
+          emitsToolCalls: true,
+        },
       ],
     });
     const c = await pickLocalModel(BOX);
@@ -169,7 +210,12 @@ describe('pickLocalModel', () => {
   it('caches the choice per endpoint until cleared', async () => {
     const spy = stubOllama({
       models: [
-        { name: 'fresh:4b', paramsB: '4.7B', caps: ['completion', 'tools', 'thinking'], emitsToolCalls: true },
+        {
+          name: 'fresh:4b',
+          paramsB: '4.7B',
+          caps: ['completion', 'tools', 'thinking'],
+          emitsToolCalls: true,
+        },
       ],
     });
     await pickLocalModel(BOX);

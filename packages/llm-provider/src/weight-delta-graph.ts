@@ -31,10 +31,7 @@ export type WeightActivationMode = 'global' | 'task_scoped' | 'shadow_only';
 
 export type WeightOutputFormat = 'free_text' | 'json_schema';
 
-export type WeightOutputEnforcement =
-  | 'advisory'
-  | 'constrained_decode'
-  | 'validate_and_reject';
+export type WeightOutputEnforcement = 'advisory' | 'constrained_decode' | 'validate_and_reject';
 
 /**
  * Binds a behavioral output ABI to the exact delta that must obey it. Schema
@@ -378,9 +375,7 @@ function normalizedRoleContract(delta: WeightDelta): WeightRoleContract {
       ? {
           outputContract: {
             format: outputContract.format,
-            ...(outputContract.schemaDigest
-              ? { schemaDigest: outputContract.schemaDigest }
-              : {}),
+            ...(outputContract.schemaDigest ? { schemaDigest: outputContract.schemaDigest } : {}),
             enforcement: outputContract.enforcement,
             maxTokens: outputContract.maxTokens,
             failClosed: outputContract.failClosed,
@@ -744,9 +739,7 @@ function validateGraph(
                 );
               }
 
-              const validEnforcement = WEIGHT_OUTPUT_ENFORCEMENTS.has(
-                outputContract.enforcement
-              );
+              const validEnforcement = WEIGHT_OUTPUT_ENFORCEMENTS.has(outputContract.enforcement);
               if (!validEnforcement) {
                 issue(
                   issues,
@@ -767,10 +760,7 @@ function validateGraph(
                 );
               }
 
-              if (
-                !Number.isInteger(outputContract.maxTokens) ||
-                outputContract.maxTokens <= 0
-              ) {
+              if (!Number.isInteger(outputContract.maxTokens) || outputContract.maxTokens <= 0) {
                 issue(
                   issues,
                   'OUTPUT_MAX_TOKENS_INVALID',

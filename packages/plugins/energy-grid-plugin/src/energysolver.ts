@@ -145,7 +145,8 @@ export function dcLoadFlow(
   // ── Step 1: Build full N×N susceptance matrix B ──────────────────────────
   const B: number[][] = Array.from({ length: n }, () => new Array<number>(n).fill(0));
   for (const br of branches) {
-    if (br.reactancePu === 0) throw new Error(`Zero reactance on branch ${br.fromBusId}→${br.toBusId}`);
+    if (br.reactancePu === 0)
+      throw new Error(`Zero reactance on branch ${br.fromBusId}→${br.toBusId}`);
     const i = busIndex.get(br.fromBusId)!;
     const j = busIndex.get(br.toBusId)!;
     const b_ij = 1 / br.reactancePu;
@@ -216,10 +217,15 @@ function solveGaussianPivot(Ain: number[][], bin: number[]): number[] {
     let maxRow = col;
     for (let row = col + 1; row < n; row++) {
       const v = Math.abs(A[row][col]);
-      if (v > maxVal) { maxVal = v; maxRow = row; }
+      if (v > maxVal) {
+        maxVal = v;
+        maxRow = row;
+      }
     }
     if (maxVal < 1e-12) {
-      throw new Error('[dcLoadFlow] Singular susceptance matrix — check for isolated buses or disconnected network');
+      throw new Error(
+        '[dcLoadFlow] Singular susceptance matrix — check for isolated buses or disconnected network'
+      );
     }
     // Swap rows
     if (maxRow !== col) {

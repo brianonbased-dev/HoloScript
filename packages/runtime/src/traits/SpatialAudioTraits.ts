@@ -131,7 +131,7 @@ export const PositionalTrait: TraitHandler = {
 
     const panner = ctx.createPanner();
     panner.panningModel = 'HRTF';
-    panner.distanceModel = (context.data.rolloff as string) as DistanceModelType;
+    panner.distanceModel = context.data.rolloff as string as DistanceModelType;
     panner.refDistance = context.data.refDistance as number;
     panner.maxDistance = context.data.maxDistance as number;
     panner.coneInnerAngle = context.data.coneInner as number;
@@ -182,7 +182,11 @@ export const PositionalTrait: TraitHandler = {
   onRemove(context: TraitContext) {
     const source = context.data.source as AudioBufferSourceNode | null;
     if (source) {
-      try { source.stop(); } catch { /* already stopped */ }
+      try {
+        source.stop();
+      } catch {
+        /* already stopped */
+      }
       source.disconnect();
     }
     const panner = context.data.panner as PannerNode | null;
@@ -301,13 +305,17 @@ export const AmbisonicsTrait: TraitHandler = {
     const t = ctx.currentTime;
     if (channelNodes[1]) channelNodes[1].gain.setValueAtTime(0.5 + 0.5 * forward.x, t);
     if (channelNodes[2]) channelNodes[2].gain.setValueAtTime(0.5 + 0.5 * forward.y, t);
-    if (channelNodes[3]) channelNodes[3].gain.setValueAtTime(0.5 + 0.5 * (-forward.z), t);
+    if (channelNodes[3]) channelNodes[3].gain.setValueAtTime(0.5 + 0.5 * -forward.z, t);
   },
 
   onRemove(context: TraitContext) {
     const source = context.data.source as AudioBufferSourceNode | null;
     if (source) {
-      try { source.stop(); } catch { /* already stopped */ }
+      try {
+        source.stop();
+      } catch {
+        /* already stopped */
+      }
       source.disconnect();
     }
     const gain = context.data.gainNode as GainNode | null;
@@ -425,10 +433,9 @@ export const HRTFTrait: TraitHandler = {
           listener.upZ.setValueAtTime(up.z, ctx.currentTime);
         } else {
           // Legacy API
-          (listener as AudioListener & { setOrientation?: (...a: number[]) => void }).setOrientation?.(
-            forward.x, forward.y, forward.z,
-            up.x, up.y, up.z
-          );
+          (
+            listener as AudioListener & { setOrientation?: (...a: number[]) => void }
+          ).setOrientation?.(forward.x, forward.y, forward.z, up.x, up.y, up.z);
         }
       }
     });
@@ -437,7 +444,11 @@ export const HRTFTrait: TraitHandler = {
   onRemove(context: TraitContext) {
     const source = context.data.source as AudioBufferSourceNode | null;
     if (source) {
-      try { source.stop(); } catch { /* already stopped */ }
+      try {
+        source.stop();
+      } catch {
+        /* already stopped */
+      }
       source.disconnect();
     }
     const panner = context.data.panner as PannerNode | null;

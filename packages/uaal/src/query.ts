@@ -114,7 +114,7 @@ function valueMatchesAbout(key: string, value: unknown, about: string, depth: nu
   }
   if (isRecord(value)) {
     return Object.entries(value).some(([childKey, child]) =>
-      valueMatchesAbout(childKey, child, about, depth + 1),
+      valueMatchesAbout(childKey, child, about, depth + 1)
     );
   }
   return false;
@@ -131,7 +131,7 @@ export function nodeMatchesAbout(node: Record<string, unknown>, about: string): 
  */
 export function queryIR(
   corpus: ReadonlyArray<UAALQueryableIR | null | undefined> | null | undefined,
-  q?: UAALQuery | null,
+  q?: UAALQuery | null
 ): UAALQueryHit[] {
   if (!Array.isArray(corpus)) return [];
   const query: UAALQuery = isRecord(q) ? (q as UAALQuery) : {};
@@ -174,7 +174,7 @@ export function queryIR(
         hits.push(
           instanceId !== undefined
             ? { docIndex, kind, node: raw, instanceId }
-            : { docIndex, kind, node: raw },
+            : { docIndex, kind, node: raw }
         );
       }
     }

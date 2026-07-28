@@ -47,10 +47,15 @@ function makeCtx(
 }
 
 /** Returns the scene root's holoPostFX array (or empty). */
-function getPostFX(obj: THREE.Object3D): Array<{ effect: string; config: Record<string, unknown> }> {
+function getPostFX(
+  obj: THREE.Object3D
+): Array<{ effect: string; config: Record<string, unknown> }> {
   let root: THREE.Object3D = obj;
   while (root.parent) root = root.parent;
-  return (root.userData['holoPostFX'] as Array<{ effect: string; config: Record<string, unknown> }>) ?? [];
+  return (
+    (root.userData['holoPostFX'] as Array<{ effect: string; config: Record<string, unknown> }>) ??
+    []
+  );
 }
 
 /** Attach obj to a scene so postFX signals reach the root. */
@@ -97,7 +102,10 @@ describe('BloomTrait', () => {
     const ctx = makeCtx(obj, { intensity: 2.0, luminance_threshold: 0.2 });
     BloomTrait.onApply!(ctx);
 
-    expect(ctx.object.userData['holoBloom']).toMatchObject({ intensity: 2.0, luminanceThreshold: 0.2 });
+    expect(ctx.object.userData['holoBloom']).toMatchObject({
+      intensity: 2.0,
+      luminanceThreshold: 0.2,
+    });
   });
 
   it('writes a bloom entry to scene.userData.holoPostFX', () => {
@@ -118,7 +126,11 @@ describe('BloomTrait', () => {
     BloomTrait.onRemove!(ctx);
 
     expect(ctx.object.userData['holoBloom']).toBeUndefined();
-    expect((scene.userData['holoPostFX'] as Array<{ effect: string }> | undefined)?.some((e) => e.effect === 'bloom')).toBeFalsy();
+    expect(
+      (scene.userData['holoPostFX'] as Array<{ effect: string }> | undefined)?.some(
+        (e) => e.effect === 'bloom'
+      )
+    ).toBeFalsy();
   });
 
   it('scales emissiveIntensity on mesh children', () => {
@@ -218,8 +230,12 @@ describe('VolumetricCloudsTrait', () => {
 // ---------------------------------------------------------------------------
 
 describe('VolumetricVideoTrait', () => {
-  beforeEach(() => { stubDocument(); });
-  afterEach(() => { vi.unstubAllGlobals(); });
+  beforeEach(() => {
+    stubDocument();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it('creates a plane child on apply', () => {
     const obj = new THREE.Object3D();
@@ -255,7 +271,10 @@ describe('GaussianSplatTrait', () => {
 
     const placeholder = obj.children.find((c) => c.name === '_holoGaussianSplatPlaceholder');
     expect(placeholder).toBeTruthy();
-    expect(ctx.object.userData['holoGaussianSplat']).toMatchObject({ src: 'scene.splat', ready: false });
+    expect(ctx.object.userData['holoGaussianSplat']).toMatchObject({
+      src: 'scene.splat',
+      ready: false,
+    });
   });
 
   it('writes gaussianSplat to scene postFX', () => {
@@ -417,8 +436,12 @@ describe('ShadowTrait', () => {
 // ---------------------------------------------------------------------------
 
 describe('WebSurfaceTrait', () => {
-  beforeEach(() => { stubDocument(); });
-  afterEach(() => { vi.unstubAllGlobals(); });
+  beforeEach(() => {
+    stubDocument();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it('creates a plane child on apply', () => {
     const obj = new THREE.Object3D();
@@ -450,7 +473,11 @@ describe('SceneReconstructionTrait', () => {
     const ctx = makeCtx(obj, { resolution: 64, update_rate: 10 });
     SceneReconstructionTrait.onApply!(ctx);
 
-    expect(ctx.object.userData['holoSceneReconstruction']).toMatchObject({ resolution: 64, updateRate: 10, ready: false });
+    expect(ctx.object.userData['holoSceneReconstruction']).toMatchObject({
+      resolution: 64,
+      updateRate: 10,
+      ready: false,
+    });
   });
 
   it('tracks recon mesh count on update', () => {
@@ -464,7 +491,9 @@ describe('SceneReconstructionTrait', () => {
     obj.add(recon);
 
     SceneReconstructionTrait.onUpdate!(ctx, 1.1); // exceeds 1/updateRate
-    expect((ctx.object.userData['holoSceneReconstruction'] as { meshCount: number }).meshCount).toBe(1);
+    expect(
+      (ctx.object.userData['holoSceneReconstruction'] as { meshCount: number }).meshCount
+    ).toBe(1);
   });
 
   it('clears userData on remove', () => {
@@ -550,7 +579,7 @@ describe('LensFlareTrait', () => {
     const ctx = makeCtx(obj, { intensity: 1.0 });
     LensFlareTrait.onApply!(ctx);
 
-    const mat = (ctx.data['spriteMat'] as THREE.SpriteMaterial);
+    const mat = ctx.data['spriteMat'] as THREE.SpriteMaterial;
     const before = mat.opacity;
     LensFlareTrait.onUpdate!(ctx, 0.016);
     // Opacity should be close to intensity*0.5 with some jitter

@@ -36,7 +36,8 @@ const MESHOPT_EXT = 'EXT_meshopt_compression';
 /** Read just the JSON chunk of a .glb (no BIN, no decode) — enough to inspect `extensionsUsed`. */
 function readGlbJson(glb: ArrayBuffer): { extensionsUsed?: string[] } {
   const dv = new DataView(glb);
-  if (glb.byteLength < 12 || dv.getUint32(0, true) !== GLB_MAGIC) throw new Error('not a .glb (bad magic)');
+  if (glb.byteLength < 12 || dv.getUint32(0, true) !== GLB_MAGIC)
+    throw new Error('not a .glb (bad magic)');
   const total = Math.min(dv.getUint32(8, true), glb.byteLength);
   let off = 12;
   while (off + 8 <= total) {
@@ -45,7 +46,9 @@ function readGlbJson(glb: ArrayBuffer): { extensionsUsed?: string[] } {
     const start = off + 8;
     if (start + len > total) break;
     if (type === CHUNK_JSON) {
-      return JSON.parse(new TextDecoder().decode(new Uint8Array(glb, start, len))) as { extensionsUsed?: string[] };
+      return JSON.parse(new TextDecoder().decode(new Uint8Array(glb, start, len))) as {
+        extensionsUsed?: string[];
+      };
     }
     off = start + len;
   }
@@ -65,10 +68,12 @@ export function isGlbCompressed(glb: ArrayBuffer): boolean {
  */
 export async function decompressGlb(glb: ArrayBuffer): Promise<ArrayBuffer> {
   await MeshoptDecoder.ready;
-  const io = new NodeIO().registerExtensions([KHRDracoMeshCompression, EXTMeshoptCompression]).registerDependencies({
-    'draco3d.decoder': await draco3d.createDecoderModule(),
-    'meshopt.decoder': MeshoptDecoder,
-  });
+  const io = new NodeIO()
+    .registerExtensions([KHRDracoMeshCompression, EXTMeshoptCompression])
+    .registerDependencies({
+      'draco3d.decoder': await draco3d.createDecoderModule(),
+      'meshopt.decoder': MeshoptDecoder,
+    });
   const doc = await io.readBinary(new Uint8Array(glb)); // decodes compressed attributes into raw accessors
   // Drop the compression extensions so the re-write is plain glTF the native extractor reads.
   for (const ext of doc.getRoot().listExtensionsUsed()) {

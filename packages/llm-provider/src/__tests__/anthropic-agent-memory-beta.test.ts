@@ -44,7 +44,7 @@ describe('agent-memory-2026-07-22 beta migration', () => {
 
   it('mutual-exclusion: drops deprecated managed-agents when agent-memory is present (avoids 400)', () => {
     const out = collectAnthropicBetaHeaders(
-      reqWithBetas([ANTHROPIC_MANAGED_AGENTS_BETA, ANTHROPIC_AGENT_MEMORY_BETA]),
+      reqWithBetas([ANTHROPIC_MANAGED_AGENTS_BETA, ANTHROPIC_AGENT_MEMORY_BETA])
     );
     expect(out).toEqual([ANTHROPIC_AGENT_MEMORY_BETA]);
     expect(out).not.toContain(ANTHROPIC_MANAGED_AGENTS_BETA);
@@ -58,7 +58,11 @@ describe('agent-memory-2026-07-22 beta migration', () => {
 
   it('keeps unrelated betas + agent-memory while dropping only the deprecated predecessor', () => {
     const out = collectAnthropicBetaHeaders(
-      reqWithBetas([ANTHROPIC_FILES_BETA, ANTHROPIC_MANAGED_AGENTS_BETA, ANTHROPIC_AGENT_MEMORY_BETA]),
+      reqWithBetas([
+        ANTHROPIC_FILES_BETA,
+        ANTHROPIC_MANAGED_AGENTS_BETA,
+        ANTHROPIC_AGENT_MEMORY_BETA,
+      ])
     );
     expect(out).toContain(ANTHROPIC_FILES_BETA);
     expect(out).toContain(ANTHROPIC_AGENT_MEMORY_BETA);

@@ -13,9 +13,10 @@ interface FetchCall {
  * Each entry in `responses` is consumed in order.
  * If `responses` runs out the stub throws to make the test fail loudly.
  */
-function makeFetch(
-  responses: Array<{ status: number; body: unknown }>
-): { fetchFn: typeof fetch; calls: FetchCall[] } {
+function makeFetch(responses: Array<{ status: number; body: unknown }>): {
+  fetchFn: typeof fetch;
+  calls: FetchCall[];
+} {
   const calls: FetchCall[] = [];
   let idx = 0;
   const fetchFn = async (url: string | URL, init?: RequestInit): Promise<Response> => {
@@ -60,8 +61,8 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
   it('registers a client, fetches a bearer token, then calls the tool endpoint', async () => {
     const { fetchFn, calls } = makeFetch([
       { status: 200, body: REGISTER_RESPONSE }, // POST /oauth/register
-      { status: 200, body: TOKEN_RESPONSE },     // POST /oauth/token
-      { status: 200, body: { success: true } },  // POST /tools/call
+      { status: 200, body: TOKEN_RESPONSE }, // POST /oauth/token
+      { status: 200, body: { success: true } }, // POST /tools/call
     ]);
 
     const client = new McpClient({
@@ -102,9 +103,9 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
   it('reuses the cached token on subsequent calls without re-registering', async () => {
     const { fetchFn, calls } = makeFetch([
       { status: 200, body: REGISTER_RESPONSE }, // register (once)
-      { status: 200, body: TOKEN_RESPONSE },     // token (once)
-      { status: 200, body: { r: 1 } },           // tool call 1
-      { status: 200, body: { r: 2 } },           // tool call 2
+      { status: 200, body: TOKEN_RESPONSE }, // token (once)
+      { status: 200, body: { r: 1 } }, // tool call 1
+      { status: 200, body: { r: 2 } }, // tool call 2
     ]);
 
     const client = new McpClient({
@@ -126,12 +127,12 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
     const freshTokenResponse = { ...TOKEN_RESPONSE, access_token: 'hs_new_token' };
     const { fetchFn, calls } = makeFetch([
       { status: 200, body: REGISTER_RESPONSE }, // register (only once)
-      { status: 200, body: TOKEN_RESPONSE },     // token
+      { status: 200, body: TOKEN_RESPONSE }, // token
       { status: 401, body: { error: 'invalid_token' } }, // tool call → 401
       // Retry path: token cache cleared, but _oauthClient is preserved —
       // re-issue using the existing client credentials (no re-registration).
       { status: 200, body: freshTokenResponse },
-      { status: 200, body: { ok: true } },       // tool call retry
+      { status: 200, body: { ok: true } }, // tool call retry
     ]);
 
     const client = new McpClient({

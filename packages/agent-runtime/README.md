@@ -100,10 +100,7 @@ read API keys, authorize actions, execute tools, or copy raw prompts, responses,
 request IDs, or headers into receipts.
 
 ```js
-import {
-  createProviderPlannerAdapter,
-  createSecondBrainRuntime,
-} from '@holoscript/agent-runtime';
+import { createProviderPlannerAdapter, createSecondBrainRuntime } from '@holoscript/agent-runtime';
 import { createOpenAIProvider } from '@holoscript/llm-provider';
 
 const provider = createOpenAIProvider({
@@ -186,9 +183,7 @@ import {
 const receipt = await runFrozenProviderEvaluation({
   evaluationId: 'native-routing-v1',
   promptId: 'native-routing-prompt-v1',
-  suite: [
-    { eval_id: 'route_1', instruction: 'Choose the durable implementation route.' },
-  ],
+  suite: [{ eval_id: 'route_1', instruction: 'Choose the durable implementation route.' }],
   provider,
   model: 'caller-selected-model',
   createContext: ({ contextLabel, index, provider }) => ({

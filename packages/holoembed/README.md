@@ -36,12 +36,12 @@ const score = queryVec.reduce((s, v, i) => s + v * docVec[i], 0);
 
 ## Dimensions
 
-| Dims    | Source                | Description                            |
-| ------- | ---------------------- | --------------------------------------- |
-| 0–383   | Structural (topology)  | File path, call-graph, event-chain      |
-| 384–511 | Trigrams (name+sig)    | camelSplit → 128-bin FNV-1a histogram  |
-| 512–639 | Trigrams (docComment)  | Same algorithm on doc text              |
-| 640–767 | Trigrams (eventNames)  | Same algorithm on event name tokens     |
+| Dims    | Source                | Description                           |
+| ------- | --------------------- | ------------------------------------- |
+| 0–383   | Structural (topology) | File path, call-graph, event-chain    |
+| 384–511 | Trigrams (name+sig)   | camelSplit → 128-bin FNV-1a histogram |
+| 512–639 | Trigrams (docComment) | Same algorithm on doc text            |
+| 640–767 | Trigrams (eventNames) | Same algorithm on event name tokens   |
 
 With SNN GPU active, each trigram block is transformed through 128 LIF
 neurons (50ms simulated at dt=1ms) into a spike-rate population code. Falls

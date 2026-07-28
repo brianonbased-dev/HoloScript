@@ -309,10 +309,10 @@ export class QuantinuumBackend implements QmSolver {
       solverConfig: this.qmConfig,
       logicalQubits: raw.logical_qubits ?? 0,
       physicalQubits: raw.physical_qubits ?? 0,
-      codeFamily: raw.code_family ?? (this.config.codeFamily ?? 'steane'),
-      codeDistance: raw.code_distance ?? (this.config.codeDistance ?? 3),
-      rounds: raw.rounds ?? (this.config.rounds ?? 1),
-      physicalErrorRate: raw.physical_error_rate ?? (this.config.physicalErrorRate ?? 1e-3),
+      codeFamily: raw.code_family ?? this.config.codeFamily ?? 'steane',
+      codeDistance: raw.code_distance ?? this.config.codeDistance ?? 3,
+      rounds: raw.rounds ?? this.config.rounds ?? 1,
+      physicalErrorRate: raw.physical_error_rate ?? this.config.physicalErrorRate ?? 1e-3,
       logicalErrorRate: raw.logical_error_rate ?? 0,
       postSelection: {
         used: raw.post_selection_used ?? false,
@@ -342,9 +342,7 @@ export class QuantinuumBackend implements QmSolver {
   async toQecReceipt(result: QuantinuumQECResult): Promise<QecReceipt> {
     const isHw = result.executionBackend === 'quantinuum';
     const suppression =
-      result.logicalErrorRate > 0
-        ? result.physicalErrorRate / result.logicalErrorRate
-        : null;
+      result.logicalErrorRate > 0 ? result.physicalErrorRate / result.logicalErrorRate : null;
     const base = {
       schema: 'cael-quantum-v1.qec' as const,
       kind: 'qec_logical_vqe_receipt' as const,
@@ -433,9 +431,7 @@ export class QuantinuumBackend implements QmSolver {
    * child environment (QUANTINUUM_API_KEY), never the argv JSON, so it cannot leak
    * into process listings or logs. Mirrors the IBM backend's secret discipline.
    */
-  private async _runPythonBridge(
-    input: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
+  private async _runPythonBridge(input: Record<string, unknown>): Promise<Record<string, unknown>> {
     const { execFile } = await import('node:child_process');
     const { promisify } = await import('node:util');
     const execFileAsync = promisify(execFile);
@@ -453,9 +449,7 @@ export class QuantinuumBackend implements QmSolver {
     delete bridgeInput['apiToken'];
 
     const apiToken = this._resolveApiToken();
-    const childEnv = apiToken
-      ? { ...process.env, QUANTINUUM_API_KEY: apiToken }
-      : process.env;
+    const childEnv = apiToken ? { ...process.env, QUANTINUUM_API_KEY: apiToken } : process.env;
 
     const { stdout, stderr } = await execFileAsync(
       pythonExe,
@@ -491,9 +485,31 @@ export class QuantinuumBackend implements QmSolver {
   private _estimateNuclearRepulsion(molecule: MoleculeSpec): number {
     const ANGSTROM_TO_BOHR = 1.8897259886;
     const atomicNumbers: Record<string, number> = {
-      H: 1, He: 2, Li: 3, Be: 4, B: 5, C: 6, N: 7, O: 8, F: 9, Ne: 10,
-      Na: 11, Mg: 12, Al: 13, Si: 14, P: 15, S: 16, Cl: 17, Ar: 18, K: 19, Ca: 20,
-      Fe: 26, Co: 27, Ni: 28, Cu: 29, Zn: 30,
+      H: 1,
+      He: 2,
+      Li: 3,
+      Be: 4,
+      B: 5,
+      C: 6,
+      N: 7,
+      O: 8,
+      F: 9,
+      Ne: 10,
+      Na: 11,
+      Mg: 12,
+      Al: 13,
+      Si: 14,
+      P: 15,
+      S: 16,
+      Cl: 17,
+      Ar: 18,
+      K: 19,
+      Ca: 20,
+      Fe: 26,
+      Co: 27,
+      Ni: 28,
+      Cu: 29,
+      Zn: 30,
     };
     const atoms = molecule.atoms;
     let repulsion = 0;

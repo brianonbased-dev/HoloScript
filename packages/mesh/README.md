@@ -10,17 +10,17 @@ npm install @holoscript/mesh
 
 ## Modules
 
-| Module          | Path                    | Purpose                                                                 |
-| ---------------- | ----------------------- | ------------------------------------------------------------------------ |
-| Network          | `src/network/`           | `NetworkManager`, matchmaking, room/session management, WebRTC/WebSocket transports, delta compression, spatial sharding, anti-cheat |
-| Messaging        | `src/messaging/`          | `ChannelManager`, `AgentMessaging` — typed agent channels with schema-validated messages and broadcast/ack semantics |
-| Collaboration    | `src/collaboration/`      | `CRDTDocument`, `CollaborationSession` — shared-document editing with conflict-free sync |
-| Consensus        | `src/consensus/`          | `ConsensusManager`, `RaftConsensus` — leader election and replicated state for multi-agent coordination |
-| Social           | `src/social/`             | Social-graph primitives layered on the mesh |
-| Sovereign        | `src/sovereign/`          | `LifePod` — signed identity/state survivability across restarts and handoffs |
-| Multiplayer      | `src/multiplayer/`        | Multiplayer session helpers built on the network layer |
-| Sync             | `src/sync/`               | Position quantization, quaternion compression, priority scheduling, jitter buffering for high-frequency state updates |
-| CRDT / GPU / testing / utils | `src/crdt/`, `src/gpu/`, `src/testing/`, `src/utils/` | Supporting primitives shared across the above |
+| Module                       | Path                                                  | Purpose                                                                                                                              |
+| ---------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Network                      | `src/network/`                                        | `NetworkManager`, matchmaking, room/session management, WebRTC/WebSocket transports, delta compression, spatial sharding, anti-cheat |
+| Messaging                    | `src/messaging/`                                      | `ChannelManager`, `AgentMessaging` — typed agent channels with schema-validated messages and broadcast/ack semantics                 |
+| Collaboration                | `src/collaboration/`                                  | `CRDTDocument`, `CollaborationSession` — shared-document editing with conflict-free sync                                             |
+| Consensus                    | `src/consensus/`                                      | `ConsensusManager`, `RaftConsensus` — leader election and replicated state for multi-agent coordination                              |
+| Social                       | `src/social/`                                         | Social-graph primitives layered on the mesh                                                                                          |
+| Sovereign                    | `src/sovereign/`                                      | `LifePod` — signed identity/state survivability across restarts and handoffs                                                         |
+| Multiplayer                  | `src/multiplayer/`                                    | Multiplayer session helpers built on the network layer                                                                               |
+| Sync                         | `src/sync/`                                           | Position quantization, quaternion compression, priority scheduling, jitter buffering for high-frequency state updates                |
+| CRDT / GPU / testing / utils | `src/crdt/`, `src/gpu/`, `src/testing/`, `src/utils/` | Supporting primitives shared across the above                                                                                        |
 
 ## Usage
 
