@@ -117,8 +117,10 @@ function vec3TripleProduct(a: IVector3, b: IVector3, c: IVector3): IVector3 {
  * @param position  Body centre in world space
  * @param direction Query direction in world space (need not be unit length)
  * @param rotation  Body orientation quaternion [qx,qy,qz,qw], optional.
- *                  When provided, box support transforms the direction into
- *                  body-local space before selecting extremal vertices.
+ *                  When provided, box and cylinder support transform the
+ *                  direction into body-local space before selecting extremal
+ *                  vertices/points. (Capsule and cone do not yet -- pre-existing,
+ *                  out of scope here.)
  */
 function shapeSupport(
   shape: CollisionShape,
@@ -1230,6 +1232,22 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       return collision;
     }
 
+    // Exact sphere-cylinder contact avoids the same resting-contact GJK/EPA
+    // degeneracy as the sphere-box fast path. The cylinder query is evaluated
+    // in body-local space, so arbitrary body rotation and x/y/z shape axes are
+    // handled without approximating the cylinder as a box.
+    if (bodyA.shape.type === 'sphere' && bodyB.shape.type === 'cylinder') {
+      return this.checkSphereCylinder(bodyA, bodyB);
+    }
+    if (bodyA.shape.type === 'cylinder' && bodyB.shape.type === 'sphere') {
+      const collision = this.checkSphereCylinder(bodyB, bodyA);
+      if (!collision) return null;
+      for (const contact of collision.contacts) {
+        contact.normal = vec3Negate(contact.normal);
+      }
+      return collision;
+    }
+
     // ---- GJK/EPA for all other convex shape pairs ----
     return this.checkGJKEPA(bodyA, bodyB);
   }
@@ -1349,6 +1367,98 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   }
 
   /**
+   * Exact sphere versus finite oriented-cylinder contact. The returned normal
+   * follows the world convention and points from the sphere body toward the
+   * cylinder body.
+   */
+  private checkSphereCylinder(
+    sphereBody: RigidBody,
+    cylinderBody: RigidBody
+  ): {
+    contacts: Array<{ position: IVector3; normal: IVector3; penetration: number; impulse: number }>;
+  } | null {
+    const spherePosition = sphereBody.position;
+    const cylinderPosition = cylinderBody.position;
+    const cylinderRotation = cylinderBody.rotation;
+    const sphereRadius = (sphereBody.shape as { radius: number }).radius;
+    const cylinder = cylinderBody.shape as {
+      radius: number;
+      height: number;
+      axis?: 'x' | 'y' | 'z';
+    };
+    const halfHeight = cylinder.height / 2;
+    const axis = cylinder.axis ?? 'y';
+    const axisIndex = axis === 'x' ? 0 : axis === 'z' ? 2 : 1;
+    const axisDirection: IVector3 =
+      axisIndex === 0 ? [1, 0, 0] : axisIndex === 2 ? [0, 0, 1] : [0, 1, 0];
+
+    const sphereLocal = inverseRotateVector(
+      vec3Sub(spherePosition, cylinderPosition),
+      cylinderRotation
+    );
+    const axialCoordinate = sphereLocal[axisIndex];
+    const radialLocal = vec3Sub(sphereLocal, vec3Scale(axisDirection, axialCoordinate));
+    const radialDistance = vec3Length(radialLocal);
+    const clampedAxial = Math.max(-halfHeight, Math.min(halfHeight, axialCoordinate));
+    const closestRadial =
+      radialDistance > cylinder.radius
+        ? vec3Scale(radialLocal, cylinder.radius / radialDistance)
+        : radialLocal;
+    const closestLocal = vec3Add(closestRadial, vec3Scale(axisDirection, clampedAxial));
+    const sphereToClosestLocal = vec3Sub(closestLocal, sphereLocal);
+    const distanceSquared = vec3LengthSq(sphereToClosestLocal);
+    if (distanceSquared >= sphereRadius * sphereRadius) return null;
+
+    let normalLocal: IVector3;
+    let penetration: number;
+    if (distanceSquared > 1e-20) {
+      const distance = Math.sqrt(distanceSquared);
+      normalLocal = vec3Scale(sphereToClosestLocal, 1 / distance);
+      penetration = sphereRadius - distance;
+    } else {
+      // The sphere centre is inside or exactly on the cylinder. Select the
+      // nearest cylinder surface, then point the correction normal inward so
+      // subtracting it pushes the sphere out through that surface.
+      const sideDistance = cylinder.radius - radialDistance;
+      const capDistance = halfHeight - Math.abs(axialCoordinate);
+      if (capDistance <= sideDistance) {
+        const outwardSign = axialCoordinate >= 0 ? 1 : -1;
+        normalLocal = vec3Scale(axisDirection, -outwardSign);
+        closestLocal[axisIndex] = outwardSign * halfHeight;
+        penetration = sphereRadius + capDistance;
+      } else {
+        let outwardRadial: IVector3;
+        if (radialDistance > 1e-10) {
+          outwardRadial = vec3Scale(radialLocal, 1 / radialDistance);
+        } else if (axisIndex === 0) {
+          outwardRadial = [0, 1, 0];
+        } else {
+          outwardRadial = [1, 0, 0];
+        }
+        normalLocal = vec3Negate(outwardRadial);
+        const surfaceRadial = vec3Scale(outwardRadial, cylinder.radius);
+        closestLocal[0] = surfaceRadial[0] + axisDirection[0] * axialCoordinate;
+        closestLocal[1] = surfaceRadial[1] + axisDirection[1] * axialCoordinate;
+        closestLocal[2] = surfaceRadial[2] + axisDirection[2] * axialCoordinate;
+        penetration = sphereRadius + sideDistance;
+      }
+    }
+
+    const normal = rotateVector(normalLocal, cylinderRotation);
+    const closestWorld = vec3Add(cylinderPosition, rotateVector(closestLocal, cylinderRotation));
+    return {
+      contacts: [
+        {
+          position: closestWorld,
+          normal,
+          penetration,
+          impulse: 0,
+        },
+      ],
+    };
+  }
+
+  /**
    * GJK/EPA narrowphase collision for arbitrary convex shape pairs.
    *
    * 1. Run GJK to determine overlap (boolean).
@@ -1386,15 +1496,33 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
 
     const penetration = epaResult.penetration;
 
-    // Step 3: Approximate contact point
-    // Use support points on each shape along the contact normal direction
+    // Step 3: Approximate a stable contact point on the shared support plane.
+    //
+    // Averaging the raw support points is unstable when a support direction
+    // is perpendicular to a flat face: components tied at zero select an
+    // arbitrary corner. A box floor queried along +Y, for example, returns
+    // its (+X,+Y,+Z) corner. That false tangential offset creates a huge
+    // lever arm, diverts the normal impulse into angular velocity, and lets
+    // otherwise valid GJK/EPA resting contacts tunnel through the floor.
+    //
+    // Preserve only the support points' scalar coordinates along the contact
+    // normal. When only one body has inverse mass, anchor the tangential
+    // coordinates at that movable body's centre; otherwise use the midpoint.
+    // This keeps the existing one-point manifold approximation while removing
+    // the arbitrary support-corner torque.
     const supportA = shapeSupport(bodyA.shape, posA, normal, rotA);
     const supportB = shapeSupport(bodyB.shape, posB, vec3Negate(normal), rotB);
-    const contactPoint: IVector3 = [
-      (supportA[0] + supportB[0]) / 2,
-      (supportA[1] + supportB[1]) / 2,
-      (supportA[2] + supportB[2]) / 2,
-    ];
+    const supportPlane = (vec3Dot(supportA, normal) + vec3Dot(supportB, normal)) / 2;
+    const tangentialAnchor: IVector3 =
+      bodyA.inverseMass === 0 && bodyB.inverseMass > 0
+        ? posB
+        : bodyB.inverseMass === 0 && bodyA.inverseMass > 0
+          ? posA
+          : vec3Scale(vec3Add(posA, posB), 0.5);
+    const contactPoint = vec3Add(
+      tangentialAnchor,
+      vec3Scale(normal, supportPlane - vec3Dot(tangentialAnchor, normal))
+    );
 
     return {
       contacts: [
@@ -1989,7 +2117,10 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
    *
    * This is the standard tight AABB formula for an oriented box.  Spheres are
    * symmetric so orientation has no effect.  Capsules are treated as spheres
-   * around the full swept segment (conservative, axis-independent).
+   * around the full swept segment (conservative, axis-independent; capsules
+   * do not yet account for orientation -- pre-existing, out of scope here).
+   * Cylinders use the tight oriented-cylinder formula documented on their
+   * case below.
    */
   private getBodyAABB(body: RigidBody): IAABB {
     const pos = body.position;
@@ -2045,9 +2176,20 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
         break;
       case 'cylinder': {
         // Tight world-space AABB for an oriented cylinder.
-        // halfExtent[i] = h*|A_i| + r*sqrt(max(0, 1 - A_i^2))
-        // where A = R * localAxis is the cylinder's unit axis rotated into
-        // world space, h = height/2, r = radius.
+        //
+        // Let h = height/2, r = radius, and A = R * a be the cylinder's local
+        // unit axis `a` (from shape.axis, default 'y') rotated into world
+        // space by the body's orientation quaternion. The cylinder boundary
+        // (lateral tube; the flat end-caps contribute nothing beyond the
+        // tube's t=±h extremes since a linear functional over a disk is
+        // maximized on its boundary) parametrizes as p(t,theta) = t*A +
+        // r*(cos(theta)*U + sin(theta)*V) for an orthonormal basis {A,U,V}.
+        // Projecting onto world axis e_i and maximizing independently over
+        // t and theta gives:
+        //   halfExtent[i] = h*|A_i| + r*sqrt(max(0, 1 - A_i^2))
+        // (the (U_i^2 + V_i^2) = 1 - A_i^2 identity follows from {A,U,V}
+        // being an orthonormal basis for e_i). The max(0, ...) clamp guards
+        // against floating-point roundoff near axis alignment.
         const h = body.shape.height / 2;
         const r = body.shape.radius;
         const axis = body.shape.axis ?? 'y';
