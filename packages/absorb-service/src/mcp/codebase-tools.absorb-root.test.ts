@@ -192,6 +192,22 @@ function hashRepoFiles(rootDir: string, files: string[]): Record<string, string>
   );
 }
 
+function removeFilesFromGraphCache(cacheFile: string, filePaths: string[]): void {
+  const envelope = JSON.parse(fs.readFileSync(cacheFile, 'utf-8')) as {
+    stats: Record<string, unknown>;
+    graphJson: string;
+    fileHashes?: Record<string, string>;
+  };
+  const graph = CodebaseGraph.deserialize(envelope.graphJson);
+  graph.patchFromChanges([], [], filePaths);
+  for (const filePath of filePaths) {
+    delete envelope.fileHashes?.[filePath];
+  }
+  envelope.graphJson = graph.serialize();
+  envelope.stats = graph.getStats() as unknown as Record<string, unknown>;
+  fs.writeFileSync(cacheFile, JSON.stringify(envelope), 'utf-8');
+}
+
 function makeLocalCodebaseSnapshotReceipt(
   files: Array<{ path: string; content: string }>,
   roots = [process.cwd()]
@@ -1866,18 +1882,20 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt).toBeUndefined();
   });
 
-  it('marks a fresh-age disk cache stale when its git hash differs from HEAD', async () => {
+  it('marks a fresh-age disk cache stale when HEAD and cached content both differ', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-git-stale-cache-'));
     const requestedRoot = makeTinyGitRepo('holoscript-git-stale-repo-');
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
     process.env.HOLOSCRIPT_WORKSPACE_ROOT = requestedRoot;
-    writeGraphCache(
+    const staleFileHashes = hashRepoFiles(requestedRoot, ['src/alpha.ts', 'src/beta.ts']);
+    staleFileHashes['src/alpha.ts'] = sha256('stale alpha');
+    writeGraphCacheWithFileHashes(
       cacheDir,
       requestedRoot,
       Date.now() - 5 * 60 * 1000,
       '1111111111111111111111111111111111111111',
-      2
+      staleFileHashes
     );
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
@@ -3180,6 +3198,200 @@ describe('holo_absorb_repo root validation', () => {
     });
   }, 15_000);
 
+  it('repairs only the missing file from a valid incomplete cache without auto-backgrounding', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-delta-repair-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-delta-repair-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    const baseline = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+    })) as {
+      graphAuthoritative?: boolean;
+      stats?: { totalFiles?: number };
+    };
+    expect(baseline).toMatchObject({
+      graphAuthoritative: true,
+      stats: { totalFiles: 2 },
+    });
+
+    const cacheFile = path.join(cacheDir, 'graph-cache.json');
+    removeFilesFromGraphCache(cacheFile, ['src/beta.ts']);
+    fs.appendFileSync(path.join(repoDir, '.git', 'info', 'exclude'), 'node_modules/\n', 'utf-8');
+    const ignoredFile = path.join(repoDir, 'node_modules', 'ignored.ts');
+    fs.mkdirSync(path.dirname(ignoredFile), { recursive: true });
+    fs.writeFileSync(ignoredFile, 'export const ignored = true;\n', 'utf-8');
+    const incompleteEnvelope = JSON.parse(fs.readFileSync(cacheFile, 'utf-8')) as {
+      stats: Record<string, unknown>;
+      graphJson: string;
+      fileHashes?: Record<string, string>;
+    };
+    const incompleteGraph = CodebaseGraph.deserialize(incompleteEnvelope.graphJson);
+    const scanner = new CodebaseScanner();
+    try {
+      const ignoredScan = await scanner.scanFiles(repoDir, [ignoredFile]);
+      incompleteGraph.patchFromChanges(ignoredScan.files, [], []);
+    } finally {
+      await scanner.dispose();
+    }
+    incompleteEnvelope.graphJson = incompleteGraph.serialize();
+    incompleteEnvelope.stats = incompleteGraph.getStats() as unknown as Record<string, unknown>;
+    incompleteEnvelope.fileHashes ??= {};
+    incompleteEnvelope.fileHashes['node_modules/ignored.ts'] = sha256(
+      fs.readFileSync(ignoredFile, 'utf-8')
+    );
+    fs.writeFileSync(cacheFile, JSON.stringify(incompleteEnvelope), 'utf-8');
+    resetCodebaseToolStateForTests(false);
+    process.env.ABSORB_AUTO_BACKGROUND = '1';
+    process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '2';
+
+    const originalScanFiles = CodebaseScanner.prototype.scanFiles;
+    const scanSpy = vi.spyOn(CodebaseScanner.prototype, 'scanFiles').mockImplementation(function (
+      ...args
+    ) {
+      return originalScanFiles.apply(this, args);
+    });
+    const fullScanSpy = vi.spyOn(CodebaseScanner.prototype, 'scanInBatches');
+    const embeddingSpy = vi.spyOn(EmbeddingIndex.prototype, 'buildIndex');
+
+    const repaired = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+    })) as {
+      accepted?: boolean;
+      incremental?: boolean;
+      repairedIncompleteCache?: boolean;
+      repairMode?: string;
+      filesChanged?: number;
+      graphAuthoritative?: boolean;
+      incompleteCacheRepair?: {
+        selectedCandidateFiles?: number;
+        cachedGraphFiles?: number;
+        missingFiles?: number;
+        changedFiles?: number;
+        removedFiles?: number;
+        parsedFiles?: number;
+      };
+    };
+
+    expect(repaired.accepted).toBeUndefined();
+    expect(repaired).toMatchObject({
+      incremental: true,
+      repairedIncompleteCache: true,
+      repairMode: 'authority-safe-delta',
+      filesChanged: 1,
+      graphAuthoritative: true,
+      incompleteCacheRepair: {
+        selectedCandidateFiles: 2,
+        cachedGraphFiles: 2,
+        missingFiles: 1,
+        changedFiles: 0,
+        removedFiles: 1,
+        parsedFiles: 1,
+      },
+    });
+    const rescannedFiles = scanSpy.mock.calls
+      .flatMap((call) => call[1] as string[])
+      .map((filePath) => path.relative(repoDir, filePath).replace(/\\/g, '/'));
+    expect(rescannedFiles).toEqual(['src/beta.ts']);
+    expect(fullScanSpy).not.toHaveBeenCalled();
+    expect(embeddingSpy).not.toHaveBeenCalled();
+
+    simulateAbsorbProcessRestartForTests();
+    const status = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      graphAuthoritative?: boolean;
+      coverage?: { complete?: boolean; graphFileCount?: number };
+      fileHashFreshness?: { fresh?: boolean };
+    };
+    expect(status).toMatchObject({
+      graphAuthoritative: true,
+      coverage: {
+        complete: true,
+        graphFileCount: 2,
+      },
+      fileHashFreshness: {
+        fresh: true,
+      },
+    });
+  }, 30_000);
+
+  it('preserves the incomplete generation when source changes during delta repair', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-delta-pin-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-delta-pin-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    const baseline = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+    })) as {
+      graphAuthoritative?: boolean;
+    };
+    expect(baseline.graphAuthoritative).toBe(true);
+
+    const cacheFile = path.join(cacheDir, 'graph-cache.json');
+    removeFilesFromGraphCache(cacheFile, ['src/beta.ts']);
+    const priorIncompleteCache = fs.readFileSync(cacheFile, 'utf-8');
+    resetCodebaseToolStateForTests(false);
+    process.env.ABSORB_AUTO_BACKGROUND = '1';
+    process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '1';
+
+    const originalScanFiles = CodebaseScanner.prototype.scanFiles;
+    vi.spyOn(CodebaseScanner.prototype, 'scanFiles').mockImplementation(async function (...args) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return originalScanFiles.apply(this, args);
+    });
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+    })) as {
+      accepted?: boolean;
+      autoBackground?: boolean;
+      autoBackgroundReason?: string;
+      jobId?: string;
+      scanPlan?: { totalCandidateFiles?: number };
+    };
+    expect(accepted).toMatchObject({
+      accepted: true,
+      autoBackground: true,
+      autoBackgroundReason: 'incomplete_cache_delta_exceeds_foreground_threshold',
+      scanPlan: {
+        totalCandidateFiles: 1,
+      },
+    });
+
+    for (let index = 0; index < 100; index++) {
+      const status = (await handleCodebaseTool('holo_get_absorb_status', {
+        jobId: accepted.jobId,
+      })) as { phase?: string };
+      if (String(status.phase).match(/Rescanning|Parsed/)) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    fs.appendFileSync(path.join(repoDir, 'src', 'alpha.ts'), '\nexport const drift = true;\n');
+
+    const terminal = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
+    expect(terminal).toMatchObject({
+      status: 'error',
+      result: {
+        error: 'absorb_refresh_source_changed',
+        cachePreserved: true,
+        graphAuthoritative: false,
+      },
+    });
+    expect(String(terminal.error)).toContain('Repository worktree changed during absorb refresh');
+    expect(fs.readFileSync(cacheFile, 'utf-8')).toBe(priorIncompleteCache);
+  }, 30_000);
+
   it('invalidates a non-forced incomplete-cache rebuild when the worktree changes', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-incomplete-pin-cache-'));
@@ -3695,6 +3907,65 @@ describe('holo_absorb_repo root validation', () => {
       stats: { totalFiles: fixtureCount },
     });
 
+    const cacheFile = path.join(cacheDir, 'graph-cache.json');
+    const missingFixturePaths = Array.from(
+      { length: changedFixtureCount },
+      (_, index) => `src/fixture-${String(fixtureCount - index - 1).padStart(4, '0')}.ts`
+    );
+    removeFilesFromGraphCache(cacheFile, missingFixturePaths);
+    resetCodebaseToolStateForTests(false);
+
+    const originalRepairScanFiles = CodebaseScanner.prototype.scanFiles;
+    const repairScanSpy = vi
+      .spyOn(CodebaseScanner.prototype, 'scanFiles')
+      .mockImplementation(function (...args) {
+        return originalRepairScanFiles.apply(this, args);
+      });
+    const repairFullScanSpy = vi.spyOn(CodebaseScanner.prototype, 'scanInBatches');
+    const repairEmbeddingSpy = vi.spyOn(EmbeddingIndex.prototype, 'buildIndex');
+    const repairStartedAt = Date.now();
+    const repaired = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+    })) as {
+      incremental?: boolean;
+      repairedIncompleteCache?: boolean;
+      repairMode?: string;
+      patchDurationMs?: number;
+      graphAuthoritative?: boolean;
+      incompleteCacheRepair?: {
+        selectedCandidateFiles?: number;
+        cachedGraphFiles?: number;
+        missingFiles?: number;
+        changedFiles?: number;
+        removedFiles?: number;
+        parsedFiles?: number;
+      };
+    };
+    const repairElapsedMs = repaired.patchDurationMs ?? Date.now() - repairStartedAt;
+    expect(repaired).toMatchObject({
+      incremental: true,
+      repairedIncompleteCache: true,
+      repairMode: 'authority-safe-delta',
+      graphAuthoritative: true,
+      incompleteCacheRepair: {
+        selectedCandidateFiles: fixtureCount,
+        cachedGraphFiles: fixtureCount - changedFixtureCount,
+        missingFiles: changedFixtureCount,
+        changedFiles: 0,
+        removedFiles: 0,
+        parsedFiles: changedFixtureCount,
+      },
+    });
+    const repairScannedFiles = repairScanSpy.mock.calls.flatMap((call) => call[1] as string[]);
+    expect(repairScannedFiles).toHaveLength(changedFixtureCount);
+    expect(repairFullScanSpy).not.toHaveBeenCalled();
+    expect(repairEmbeddingSpy).not.toHaveBeenCalled();
+    expect(repairElapsedMs).toBeLessThan(fullElapsedMs);
+    repairScanSpy.mockRestore();
+    repairFullScanSpy.mockRestore();
+    repairEmbeddingSpy.mockRestore();
+
     for (let index = 0; index < changedFixtureCount; index++) {
       fs.writeFileSync(
         path.join(sourceDir, `fixture-${String(index).padStart(4, '0')}.ts`),
@@ -3708,7 +3979,6 @@ describe('holo_absorb_repo root validation', () => {
       windowsHide: true,
     });
 
-    const cacheFile = path.join(cacheDir, 'graph-cache.json');
     const priorCache = fs.readFileSync(cacheFile, 'utf-8');
     const originalScanFiles = CodebaseScanner.prototype.scanFiles;
     let scanDelayMs = 25;

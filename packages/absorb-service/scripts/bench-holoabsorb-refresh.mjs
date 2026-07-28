@@ -7,6 +7,7 @@
  * cache. It measures:
  *
  * - changed-symbol embedding reuse and compact MCP-shaped results;
+ * - authority-safe incomplete-cache repair that parses only the missing subset;
  * - automatic refresh recovery while HEAD advances repeatedly;
  * - actual HEAD-check count and time inside the production refresh path;
  * - preflight host-memory refusal without cache replacement; and
@@ -61,6 +62,9 @@ function parseArgs(argv) {
     churnTriggerBatches: 1,
     visualFiles: 40,
     visualSymbolsPerFile: 8,
+    repairScaleFiles: 2_000,
+    repairScaleMissing: 5,
+    repairScaleSymbolsPerFile: 6,
     maxResponseBytes: 64 * 1024,
     maxPeakRssDeltaMb: 512,
     maxDefaultHeadCheckOverheadRatio: 0.05,
@@ -87,6 +91,15 @@ function parseArgs(argv) {
     if (flag === '--visual-symbols-per-file') {
       options.visualSymbolsPerFile = positiveInt(value, flag);
     }
+    if (flag === '--repair-scale-files') {
+      options.repairScaleFiles = positiveInt(value, flag);
+    }
+    if (flag === '--repair-scale-missing') {
+      options.repairScaleMissing = positiveInt(value, flag);
+    }
+    if (flag === '--repair-scale-symbols-per-file') {
+      options.repairScaleSymbolsPerFile = positiveInt(value, flag);
+    }
     if (flag === '--max-response-bytes') options.maxResponseBytes = positiveInt(value, flag);
     if (flag === '--max-peak-rss-delta-mb') {
       options.maxPeakRssDeltaMb = positiveInt(value, flag);
@@ -106,6 +119,9 @@ function parseArgs(argv) {
   }
   if (options.visualFiles < 2 || options.visualFiles > 50) {
     throw new Error('--visual-files must be between 2 and 50 for full default-scene coverage');
+  }
+  if (options.repairScaleMissing > options.repairScaleFiles) {
+    throw new Error('--repair-scale-missing cannot exceed --repair-scale-files');
   }
   return options;
 }
@@ -238,6 +254,23 @@ function readRefreshReceipts(cacheRoot) {
     })
     .filter(Boolean)
     .sort((left, right) => left.receiptMtimeMs - right.receiptMtimeMs);
+}
+
+function removeGraphFilesFromCache(graphCachePath, filePaths, CodebaseGraph) {
+  const envelope = JSON.parse(readFileSync(graphCachePath, 'utf8'));
+  const graph = CodebaseGraph.deserialize(envelope.graphJson);
+  graph.patchFromChanges([], [], filePaths);
+  for (const filePath of filePaths) {
+    if (envelope.fileHashes) delete envelope.fileHashes[filePath];
+  }
+  envelope.graphJson = graph.serialize();
+  envelope.stats = graph.getStats();
+  writeFileSync(graphCachePath, `${JSON.stringify(envelope)}\n`, 'utf8');
+  return {
+    removedFiles: filePaths.length,
+    remainingFiles: envelope.stats.totalFiles,
+    cacheHash: sha256File(graphCachePath),
+  };
 }
 
 function startChurnController({
@@ -380,6 +413,8 @@ export async function main(argv = process.argv.slice(2)) {
   const cacheRoot = mkdtempSync(resolve(tmpdir(), 'holoabsorb-refresh-cache-'));
   const visualFixtureRoot = mkdtempSync(resolve(tmpdir(), 'holoabsorb-visual-bench-'));
   const visualCacheRoot = mkdtempSync(resolve(tmpdir(), 'holoabsorb-visual-cache-'));
+  const repairScaleFixtureRoot = mkdtempSync(resolve(tmpdir(), 'holoabsorb-repair-scale-bench-'));
+  const repairScaleCacheRoot = mkdtempSync(resolve(tmpdir(), 'holoabsorb-repair-scale-cache-'));
   const priorEnvironment = {
     cacheDir: process.env.HOLOSCRIPT_CACHE_DIR,
     cacheLayout: process.env.HOLOSCRIPT_CACHE_LAYOUT,
@@ -399,6 +434,7 @@ export async function main(argv = process.argv.slice(2)) {
       resetCodebaseToolStateForTests,
       simulateAbsorbProcessRestartForTests,
     } = await import('../dist/mcp/codebase-tools.js');
+    const { CodebaseGraph } = await import('../dist/engine/index.js');
     resetCodebaseToolStateForTests();
 
     const initial = await measure(() =>
@@ -422,6 +458,28 @@ export async function main(argv = process.argv.slice(2)) {
     );
 
     const graphCachePath = resolve(cacheRoot, 'graph-cache.json');
+    const incompleteRepairFiles = Array.from(
+      { length: options.changedFiles },
+      (_, index) => `src/module-${options.files - index - 1}.ts`
+    );
+    const incompleteFixture = removeGraphFilesFromCache(
+      graphCachePath,
+      incompleteRepairFiles,
+      CodebaseGraph
+    );
+    simulateAbsorbProcessRestartForTests();
+    const incompleteRepair = await measure(() =>
+      handleCodebaseTool('holo_absorb_repo', {
+        rootDir: fixtureRoot,
+        outputFormat: 'stats',
+        embeddingProvider: 'holoembed',
+      })
+    );
+    const incompleteRepairSpeedup =
+      incompleteRepair.durationMs > 0
+        ? round(refreshed.durationMs / incompleteRepair.durationMs, 3)
+        : null;
+
     const cacheHashBeforeMemoryGuard = sha256File(graphCachePath);
     const unavailableReserveMb = Math.round(freemem() / MIB) + 1024;
     const memoryGuard = await measure(() =>
@@ -518,6 +576,45 @@ export async function main(argv = process.argv.slice(2)) {
       queryType: 'stats',
     });
 
+    createFixture(
+      repairScaleFixtureRoot,
+      options.repairScaleFiles,
+      options.repairScaleSymbolsPerFile
+    );
+    process.env.HOLOSCRIPT_CACHE_DIR = repairScaleCacheRoot;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repairScaleFixtureRoot;
+    resetCodebaseToolStateForTests();
+    const repairScaleBaseline = await measure(() =>
+      handleCodebaseTool('holo_absorb_repo', {
+        rootDir: repairScaleFixtureRoot,
+        outputFormat: 'stats',
+        force: true,
+        minSystemFreeMb: 0,
+      })
+    );
+    const repairScaleCachePath = resolve(repairScaleCacheRoot, 'graph-cache.json');
+    const repairScaleMissingFiles = Array.from(
+      { length: options.repairScaleMissing },
+      (_, index) => `src/module-${String(options.repairScaleFiles - index - 1)}.ts`
+    );
+    const repairScaleFixture = removeGraphFilesFromCache(
+      repairScaleCachePath,
+      repairScaleMissingFiles,
+      CodebaseGraph
+    );
+    simulateAbsorbProcessRestartForTests();
+    const repairScaleDelta = await measure(() =>
+      handleCodebaseTool('holo_absorb_repo', {
+        rootDir: repairScaleFixtureRoot,
+        outputFormat: 'stats',
+        minSystemFreeMb: 0,
+      })
+    );
+    const repairScaleSpeedup =
+      repairScaleDelta.durationMs > 0
+        ? round(repairScaleBaseline.durationMs / repairScaleDelta.durationMs, 3)
+        : null;
+
     createFixture(visualFixtureRoot, options.visualFiles, options.visualSymbolsPerFile);
     process.env.HOLOSCRIPT_CACHE_DIR = visualCacheRoot;
     process.env.HOLOSCRIPT_WORKSPACE_ROOT = visualFixtureRoot;
@@ -552,6 +649,42 @@ export async function main(argv = process.argv.slice(2)) {
         embeddingRefresh.reusedSymbols > 0 &&
         embeddingRefresh.embeddedSymbols > 0 &&
         embeddingRefresh.embeddedSymbols < embeddingRefresh.totalSymbols,
+      incompleteCacheDeltaRepair:
+        incompleteRepair.value?.incremental === true &&
+        incompleteRepair.value?.repairedIncompleteCache === true &&
+        incompleteRepair.value?.repairMode === 'authority-safe-delta',
+      incompleteCacheDeltaBounded:
+        incompleteRepair.value?.incompleteCacheRepair?.selectedCandidateFiles === options.files &&
+        incompleteRepair.value?.incompleteCacheRepair?.cachedGraphFiles ===
+          options.files - options.changedFiles &&
+        incompleteRepair.value?.incompleteCacheRepair?.missingFiles === options.changedFiles &&
+        incompleteRepair.value?.incompleteCacheRepair?.parsedFiles === options.changedFiles,
+      incompleteCacheDeltaAuthoritative:
+        incompleteRepair.value?.graphAuthoritative === true &&
+        incompleteRepair.value?.sourcePinValidated === true,
+      incompleteCacheDeltaSkippedEmbeddings:
+        incompleteRepair.value?.embeddingSkipped === true &&
+        incompleteRepair.value?.embeddingSkipReason === 'outputFormat:stats',
+      incompleteCacheDeltaTimingRecorded:
+        incompleteRepair.durationMs > 0 &&
+        incompleteRepairSpeedup !== null &&
+        Number.isFinite(incompleteRepairSpeedup),
+      repairScaleDeltaBounded:
+        repairScaleDelta.value?.incompleteCacheRepair?.selectedCandidateFiles ===
+          options.repairScaleFiles &&
+        repairScaleDelta.value?.incompleteCacheRepair?.cachedGraphFiles ===
+          options.repairScaleFiles - options.repairScaleMissing &&
+        repairScaleDelta.value?.incompleteCacheRepair?.missingFiles ===
+          options.repairScaleMissing &&
+        repairScaleDelta.value?.incompleteCacheRepair?.parsedFiles === options.repairScaleMissing,
+      repairScaleDeltaAuthoritative:
+        repairScaleDelta.value?.graphAuthoritative === true &&
+        repairScaleDelta.value?.sourcePinValidated === true,
+      repairScaleTimingRecorded:
+        repairScaleBaseline.durationMs > 0 &&
+        repairScaleDelta.durationMs > 0 &&
+        repairScaleSpeedup !== null &&
+        Number.isFinite(repairScaleSpeedup),
       peakRssBounded: refreshed.peakRssDeltaBytes <= options.maxPeakRssDeltaMb * MIB,
       memoryGuardRefusedBeforePlanning:
         memoryGuard.value?.cancelled === true &&
@@ -607,7 +740,7 @@ export async function main(argv = process.argv.slice(2)) {
     };
     const statusValue = Object.values(checks).every(Boolean) ? 'pass' : 'fail';
     const receipt = {
-      schemaVersion: 'holoscript.holoabsorb.refresh-benchmark.v2',
+      schemaVersion: 'holoscript.holoabsorb.refresh-benchmark.v3',
       productName: 'HoloAbsorb',
       status: statusValue,
       completedAt: new Date().toISOString(),
@@ -623,8 +756,15 @@ export async function main(argv = process.argv.slice(2)) {
         churnTriggerBatches: options.churnTriggerBatches,
         visualFiles: options.visualFiles,
         visualSymbolsPerFile: options.visualSymbolsPerFile,
+        repairScaleFiles: options.repairScaleFiles,
+        repairScaleMissing: options.repairScaleMissing,
+        repairScaleSymbolsPerFile: options.repairScaleSymbolsPerFile,
         retainedAt: options.keepFixture
-          ? { refresh: fixtureRoot, visual: visualFixtureRoot }
+          ? {
+              refresh: fixtureRoot,
+              visual: visualFixtureRoot,
+              incompleteRepairScale: repairScaleFixtureRoot,
+            }
           : null,
       },
       thresholds: {
@@ -646,6 +786,28 @@ export async function main(argv = process.argv.slice(2)) {
           responseBytes: refreshedResponseBytes,
           peakRssDeltaBytes: refreshed.peakRssDeltaBytes,
           embeddingRefresh,
+        },
+        incompleteCacheRepair: {
+          durationMs: incompleteRepair.durationMs,
+          fullRefreshToRepairSpeedup: incompleteRepairSpeedup,
+          peakRssDeltaBytes: incompleteRepair.peakRssDeltaBytes,
+          fixture: incompleteFixture,
+          receipt: incompleteRepair.value?.incompleteCacheRepair ?? null,
+          graphAuthoritative: incompleteRepair.value?.graphAuthoritative ?? null,
+          sourcePinValidated: incompleteRepair.value?.sourcePinValidated ?? null,
+          embeddingSkipped: incompleteRepair.value?.embeddingSkipped ?? null,
+          embeddingSkipReason: incompleteRepair.value?.embeddingSkipReason ?? null,
+        },
+        incompleteCacheRepairScale: {
+          baselineDurationMs: repairScaleBaseline.durationMs,
+          repairDurationMs: repairScaleDelta.durationMs,
+          fullRefreshToRepairSpeedup: repairScaleSpeedup,
+          baselinePeakRssDeltaBytes: repairScaleBaseline.peakRssDeltaBytes,
+          repairPeakRssDeltaBytes: repairScaleDelta.peakRssDeltaBytes,
+          fixture: repairScaleFixture,
+          receipt: repairScaleDelta.value?.incompleteCacheRepair ?? null,
+          graphAuthoritative: repairScaleDelta.value?.graphAuthoritative ?? null,
+          sourcePinValidated: repairScaleDelta.value?.sourcePinValidated ?? null,
         },
         memoryGuard: {
           durationMs: memoryGuard.durationMs,
@@ -688,6 +850,7 @@ export async function main(argv = process.argv.slice(2)) {
       checks,
       claimBoundaries: [
         'The refresh, churn, memory, and visual workloads use deterministic temporary repositories and isolated caches; they do not mutate or publish into the live canonical HoloScript graph cache.',
+        'The incomplete-cache lane removes graph entries and their file hashes from an otherwise valid generation, then measures the production authority-safe delta path. Parsed-file counts and exact-set validation are stronger evidence than timing alone.',
         'HEAD-check overhead is measured inside the production source-pin path and is local-host specific; it is not a network or fleet throughput claim.',
         'The visual lane proves file coverage, import-edge fidelity, endpoint integrity, and finite spatial positions on a bounded synthetic graph. It does not prove that literal pixels improve agent answer accuracy.',
         'Literal-pixel agent-accuracy claims remain governed by the separately preregistered Paper 5 visual protocol and its external annotation/model-family custody gates.',
@@ -711,9 +874,11 @@ export async function main(argv = process.argv.slice(2)) {
     if (!options.keepFixture) {
       rmSync(fixtureRoot, { recursive: true, force: true });
       rmSync(visualFixtureRoot, { recursive: true, force: true });
+      rmSync(repairScaleFixtureRoot, { recursive: true, force: true });
     }
     rmSync(cacheRoot, { recursive: true, force: true });
     rmSync(visualCacheRoot, { recursive: true, force: true });
+    rmSync(repairScaleCacheRoot, { recursive: true, force: true });
   }
 }
 
