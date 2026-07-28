@@ -20,6 +20,7 @@ import {
   staticBody,
   sphereShape,
   boxShape,
+  cylinderShape,
   identityQuaternion,
 } from '..';
 import { PhysicsStep, PhysicsBodyState, Vec3 } from '../../PhysicsStep';
@@ -64,6 +65,36 @@ function mkBox(
       rotation: (rotation ?? identityQuaternion()) as IVector3 & [number, number, number, number],
     },
   };
+}
+
+function mkCylinder(
+  id: string,
+  radius: number,
+  height: number,
+  position: IVector3,
+  mass = 1,
+  rotation?: [number, number, number, number],
+  axis: 'x' | 'y' | 'z' = 'y'
+): IRigidBodyConfig {
+  return {
+    id,
+    type: 'dynamic',
+    shape: cylinderShape(radius, height, axis),
+    mass,
+    transform: {
+      position,
+      rotation: (rotation ?? identityQuaternion()) as IVector3 & [number, number, number, number],
+    },
+  };
+}
+
+/** Quaternion for a rotation of `angle` radians about a principal world axis. */
+function axisAngleQuat(axis: 'x' | 'y' | 'z', angle: number): [number, number, number, number] {
+  const s = Math.sin(angle / 2);
+  const c = Math.cos(angle / 2);
+  if (axis === 'x') return [s, 0, 0, c];
+  if (axis === 'y') return [0, s, 0, c];
+  return [0, 0, s, c];
 }
 
 /** Build a Vec3-conformant plain object (x/y/z satisfy the interface). */
@@ -121,7 +152,12 @@ describe('Bug 1 — getBodyAABB must account for box rotation', () => {
   });
 
   it('axis-aligned sphere AABB is unaffected by orientation', () => {
-    const q: [number, number, number, number] = [0, Math.sin(Math.PI / 8), 0, Math.cos(Math.PI / 8)];
+    const q: [number, number, number, number] = [
+      0,
+      Math.sin(Math.PI / 8),
+      0,
+      Math.cos(Math.PI / 8),
+    ];
     const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
     world.createBody(mkSphere('a', 1, [0, 0, 0], 1, q));
     world.createBody(mkSphere('b', 1, [1.5, 0, 0]));
@@ -409,5 +445,320 @@ describe('Bug 6 — PhysicsStep broadphase must detect cross-cell boundary colli
     // Bug: bodies hash to different cells, no collision generated.
     // Fix (multi-cell insert): both cells contain both bodies, collision detected.
     expect(fired.length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bug 8: cylinder broadphase AABB was hardcoded [1,1,1]; rotated-cylinder
+// narrow-phase support (GJK/EPA) ignored body orientation entirely.
+// ---------------------------------------------------------------------------
+
+/**
+ * Numerically probes a body's tight world-space AABB half-extent along one
+ * world axis via the public sphereOverlap query (backed by getBodyAABB).
+ * A point just inside the expected boundary must overlap a tiny probe
+ * sphere; a point just outside must not.
+ */
+function expectAabbHalfExtent(
+  world: ReturnType<typeof createPhysicsWorld>,
+  bodyPosition: IVector3,
+  axisIndex: 0 | 1 | 2,
+  expectedHalfExtent: number,
+  margin = 0.05
+) {
+  const offset: IVector3 = [0, 0, 0];
+  offset[axisIndex] = 1;
+  const inside: IVector3 = [
+    bodyPosition[0] + offset[0] * (expectedHalfExtent - margin),
+    bodyPosition[1] + offset[1] * (expectedHalfExtent - margin),
+    bodyPosition[2] + offset[2] * (expectedHalfExtent - margin),
+  ];
+  const outside: IVector3 = [
+    bodyPosition[0] + offset[0] * (expectedHalfExtent + margin),
+    bodyPosition[1] + offset[1] * (expectedHalfExtent + margin),
+    bodyPosition[2] + offset[2] * (expectedHalfExtent + margin),
+  ];
+  expect(world.sphereOverlap(inside, 0.01).length).toBeGreaterThan(0);
+  expect(world.sphereOverlap(outside, 0.01).length).toBe(0);
+}
+
+describe('Bug 8a — getBodyAABB cylinder case: axis-aligned half-extents', () => {
+  it('radius=1, height=4, axis="y" (default) at identity rotation gives half-extents [r,h,r]', () => {
+    const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
+    world.createBody(mkCylinder('cyl', 1, 4, [0, 0, 0]));
+
+    expectAabbHalfExtent(world, [0, 0, 0], 0, 1); // r
+    expectAabbHalfExtent(world, [0, 0, 0], 1, 2); // h
+    expectAabbHalfExtent(world, [0, 0, 0], 2, 1); // r
+  });
+
+  it('axis="x" at identity rotation gives half-extents [h,r,r]', () => {
+    const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
+    world.createBody(mkCylinder('cyl', 1, 4, [0, 0, 0], 1, undefined, 'x'));
+
+    expectAabbHalfExtent(world, [0, 0, 0], 0, 2); // h
+    expectAabbHalfExtent(world, [0, 0, 0], 1, 1); // r
+    expectAabbHalfExtent(world, [0, 0, 0], 2, 1); // r
+  });
+
+  it('axis="z" at identity rotation gives half-extents [r,r,h]', () => {
+    const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
+    world.createBody(mkCylinder('cyl', 1, 4, [0, 0, 0], 1, undefined, 'z'));
+
+    expectAabbHalfExtent(world, [0, 0, 0], 0, 1); // r
+    expectAabbHalfExtent(world, [0, 0, 0], 1, 1); // r
+    expectAabbHalfExtent(world, [0, 0, 0], 2, 2); // h (height/2 = 4/2 = 2)
+  });
+});
+
+describe('Bug 8b — getBodyAABB cylinder case: rotation swaps which axis gets the h-sized extent', () => {
+  it('a 90° rotation about world X maps axis="y" onto world Z: half-extents [r,r,h]', () => {
+    // Local Y axis (h-direction) rotates onto world Z; unrotated would give
+    // [r,h,r]=[1,2,1] (bug: hardcoded [1,1,1] regardless). Correctly rotated
+    // gives [r,r,h]=[1,1,2] -- h and r swap between the Y and Z slots.
+    const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
+    const q = axisAngleQuat('x', Math.PI / 2);
+    world.createBody(mkCylinder('cyl', 1, 4, [0, 0, 0], 1, q));
+
+    expectAabbHalfExtent(world, [0, 0, 0], 0, 1); // r
+    expectAabbHalfExtent(world, [0, 0, 0], 1, 1); // r
+    expectAabbHalfExtent(world, [0, 0, 0], 2, 2); // h
+  });
+});
+
+describe('Bug 8c — getBodyAABB cylinder case: 45° rotation matches the closed-form formula', () => {
+  it('radius=0.5, height=4 rotated 45° about world Z gives half-extents ~[1.7678,1.7678,0.5]', () => {
+    // halfExtent[i] = h*|A_i| + r*sqrt(max(0,1-A_i^2)); A = R*[0,1,0] = (-sin45,cos45,0).
+    // h*0.70711 + r*sqrt(1-0.5) = 2*0.70711 + 0.5*0.70711 = 1.767767.
+    const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
+    const q = axisAngleQuat('z', Math.PI / 4);
+    world.createBody(mkCylinder('cyl', 0.5, 4, [0, 0, 0], 1, q));
+
+    const expected = 1.767767;
+    expectAabbHalfExtent(world, [0, 0, 0], 0, expected);
+    expectAabbHalfExtent(world, [0, 0, 0], 1, expected);
+    expectAabbHalfExtent(world, [0, 0, 0], 2, 0.5);
+  });
+});
+
+describe('Bug 8d — cylinder broadphase must account for rotation (mirrors the Bug 1 box test)', () => {
+  it('a cylinder rotated 45° around Z still broadphase-detects collision outside its unrotated extents', () => {
+    // Cylinder radius=1,height=2 (h=1) at origin, rotated 45° around Z.
+    // Unrotated AABB half-extent on X = r = 1 (bug: broadphase would use the
+    // hardcoded [1,1,1] AABB regardless of rotation, same numeric value here
+    // by coincidence of r=h=1 -- so this case specifically requires the
+    // *rotation-aware* formula, not just a non-hardcoded one, to detect the
+    // pair). Rotated AABB half-extent on X = h*|A_x|+r*sqrt(1-A_x^2) with
+    // A=(-0.70711,0.70711,0) => 0.70711+0.70711 = 1.41421 (~sqrt(2)).
+    // Second box at x=2.1, halfExtents [1,1,1]: min-X = 1.1.
+    // Overlap exists only because the rotated AABB extends to ~1.414 > 1.1.
+    const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
+    const q = axisAngleQuat('z', Math.PI / 4);
+    world.createBody(mkCylinder('rotated-cyl', 1, 2, [0, 0, 0], 1, q));
+    world.createBody(mkBox('other', [1, 1, 1], [2.1, 0, 0]));
+
+    world.step(1 / 60);
+    const contacts = world.getContacts().filter((c) => c.type === 'begin');
+
+    expect(contacts.length).toBeGreaterThan(0);
+  });
+});
+
+describe('Bug 8e — shapeSupport cylinder case: rotated narrow-phase contact resolves correctly', () => {
+  it('a cylinder lying on its side (axis rotated onto world Z) resolves a correct contact against a static floor', () => {
+    // Exercises GJK/EPA end-to-end with a rotated cylinder support function:
+    // broadphase must find the pair (Bug 8a/8b) AND narrow-phase must place
+    // the contact on the cylinder's curved lateral surface (Bug 8e), not on
+    // its unrotated end-cap.
+    //
+    // NOTE: this is a single-step overlap/contact-sanity check, not a
+    // multi-hundred-step resting-equilibrium check. Investigation for this
+    // fix found that CPU GJK/EPA has a PRE-EXISTING resting-contact
+    // degeneracy for any convex pair that isn't sphere-sphere or sphere-box
+    // (those two have exact, non-GJK fast paths -- see checkSphereBox's own
+    // "avoids GJK/EPA degeneracy at resting contact" comment): a plain
+    // *unrotated* cylinder dropped onto a static box floor also tunnels
+    // through after a few hundred steps of gravity in this engine, with no
+    // rotation involved at all. That instability is a generic GJK/EPA
+    // resting-contact issue affecting cylinder-vs-box (and by the same
+    // mechanism cone-vs-box, etc.), not something this rotation fix
+    // introduces or is scoped to repair -- so this test intentionally does
+    // not assert long-run settling, only that a single overlapping
+    // configuration produces a geometrically sane contact.
+    const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
+    world.createBody({
+      id: 'floor',
+      type: 'static',
+      mass: 0,
+      shape: boxShape([10, 0.5, 10]),
+      transform: { position: [0, -0.5, 0], rotation: identityQuaternion() },
+      material: { friction: 0.6, restitution: 0 },
+    });
+    const q = axisAngleQuat('x', Math.PI / 2); // axis 'y' -> world Z: log lying on its side
+    // Floor top surface is at y=0. The rotated cylinder's curved lateral
+    // surface is 0.5 (radius) below its center on every horizontal axis, so
+    // centering it at y=0.4 overlaps the floor by 0.1 along its side --
+    // *only* correct if the support function actually uses the rotated
+    // frame; the unrotated (buggy) support would instead present a flat
+    // end-cap face (still nominally overlapping, but with a degenerate/
+    // wrong contact geometry) since the pre-fix code ignored `rotation`
+    // entirely for cylinders.
+    world.createBody({
+      ...mkCylinder('log', 0.5, 2, [0, 0.4, 0], 1, q),
+      material: { friction: 0.6, restitution: 0.05 },
+    });
+
+    world.step(1 / 60);
+    const contacts = world.getContacts().filter((c) => c.type === 'begin');
+    expect(contacts.length).toBeGreaterThan(0);
+
+    for (const event of contacts) {
+      expect(event.contacts.length).toBeGreaterThan(0);
+      for (const point of event.contacts) {
+        // Contact normal must be predominantly vertical (a cylinder resting
+        // on its curved side against a flat floor pushes straight up/down,
+        // not sideways) -- a wrong (unrotated) support point would instead
+        // yield a contact normal skewed toward the cylinder's true local Y
+        // axis (world Z after this rotation), which has near-zero Y
+        // component.
+        expect(Math.abs(point.normal[1])).toBeGreaterThan(0.8);
+        // Contact position must be finite and land physically between the
+        // floor's top surface and the cylinder's center, not off in space.
+        expect(Number.isFinite(point.position[0])).toBe(true);
+        expect(Number.isFinite(point.position[1])).toBe(true);
+        expect(Number.isFinite(point.position[2])).toBe(true);
+        expect(point.position[1]).toBeGreaterThan(-0.3);
+        expect(point.position[1]).toBeLessThan(0.5);
+        expect(point.penetration).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+describe('Bug 8f — shapeSupport cylinder case: unrotated behavior is unchanged', () => {
+  it('an identity-rotation cylinder still produces the same axis-aligned broadphase and contact behavior as before the fix', () => {
+    // shapeSupport's rotation-undefined branch is unreachable through the
+    // public API (every call site threads body.rotation, which RigidBody's
+    // getter always returns as a defined quaternion -- confirmed by reading
+    // PhysicsBody.ts). The real "no rotation" case in production is an
+    // identity quaternion, so that is what this test proves is unchanged:
+    // for identity rotation, R=I, so the new local-space-then-rotate-back
+    // logic degenerates to exactly the old world-space-only computation.
+    const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
+    world.createBody(mkCylinder('a', 1, 2, [0, 0, 0], 1, identityQuaternion()));
+    world.createBody(mkCylinder('b', 1, 2, [1.5, 0, 0], 1, identityQuaternion()));
+
+    world.step(1 / 60);
+    const contacts = world.getContacts().filter((c) => c.type === 'begin');
+    // Two axis-aligned radius-1 cylinders 1.5m apart on X overlap (1+1=2 > 1.5).
+    expect(contacts.length).toBeGreaterThan(0);
+  });
+});
+
+describe('Bug 8g — exact sphere-cylinder contact supports off-center grounding', () => {
+  it('grounds a sphere on an off-center point of a cylinder end cap', () => {
+    const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
+    world.createBody({
+      id: 'sphere',
+      type: 'dynamic',
+      mass: 1,
+      shape: sphereShape(0.5),
+      transform: { position: [1.25, 0.45, 0], rotation: identityQuaternion() },
+      material: { friction: 0.6, restitution: 0 },
+    });
+    world.createBody({
+      id: 'platform',
+      type: 'static',
+      mass: 0,
+      shape: cylinderShape(2, 1),
+      transform: { position: [0, -0.5, 0], rotation: identityQuaternion() },
+      material: { friction: 0.6, restitution: 0 },
+    });
+
+    world.step(1 / 60);
+    const contact = world
+      .getContacts()
+      .find((event) => event.type === 'begin' && event.bodyA === 'sphere');
+
+    expect(contact?.bodyB).toBe('platform');
+    expect(contact?.contacts).toHaveLength(1);
+    expect(contact?.contacts[0].position[0]).toBeCloseTo(1.25, 8);
+    expect(contact?.contacts[0].position[1]).toBeCloseTo(0, 8);
+    expect(contact?.contacts[0].position[2]).toBeCloseTo(0, 8);
+    expect(contact?.contacts[0].normal[0]).toBeCloseTo(0, 8);
+    expect(contact?.contacts[0].normal[1]).toBeCloseTo(-1, 8);
+    expect(contact?.contacts[0].normal[2]).toBeCloseTo(0, 8);
+    expect(contact?.contacts[0].penetration).toBeCloseTo(0.05, 8);
+    expect(world.getBody('sphere')?.position[1]).toBeGreaterThan(0.45);
+  });
+
+  it('keeps an off-center sphere grounded across deterministic gravity steps', () => {
+    const world = createPhysicsWorld({
+      gravity: [0, -9.81, 0],
+      fixedTimestep: 1 / 60,
+      maxSubsteps: 1,
+    });
+    world.createBody({
+      id: 'sphere',
+      type: 'dynamic',
+      mass: 1,
+      shape: sphereShape(0.5),
+      transform: { position: [1.25, 0.6, 0], rotation: identityQuaternion() },
+      material: { friction: 0.6, restitution: 0 },
+    });
+    world.createBody({
+      id: 'platform',
+      type: 'static',
+      mass: 0,
+      shape: cylinderShape(2, 1),
+      transform: { position: [0, -0.5, 0], rotation: identityQuaternion() },
+      material: { friction: 0.6, restitution: 0 },
+    });
+
+    for (let step = 0; step < 180; step += 1) {
+      world.step(1 / 60);
+    }
+
+    const sphere = world.getBody('sphere');
+    expect(sphere?.position[0]).toBeCloseTo(1.25, 5);
+    expect(sphere?.position[1]).toBeGreaterThanOrEqual(0.49);
+    expect(sphere?.position[1]).toBeLessThan(0.55);
+    expect(Math.abs(sphere?.linearVelocity[1] ?? Infinity)).toBeLessThan(0.1);
+  });
+
+  it('evaluates an off-center sphere against a rotated cylinder in cylinder-local space', () => {
+    const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
+    world.createBody({
+      id: 'sphere',
+      type: 'dynamic',
+      mass: 1,
+      shape: sphereShape(0.5),
+      transform: { position: [0, 1.25, 1.2], rotation: identityQuaternion() },
+      material: { friction: 0.6, restitution: 0 },
+    });
+    const q = axisAngleQuat('x', Math.PI / 2);
+    world.createBody({
+      id: 'rotated-cylinder',
+      type: 'static',
+      mass: 0,
+      shape: cylinderShape(1, 4),
+      transform: { position: [0, 0, 0], rotation: q },
+      material: { friction: 0.6, restitution: 0 },
+    });
+
+    world.step(1 / 60);
+    const contact = world
+      .getContacts()
+      .find((event) => event.type === 'begin' && event.bodyA === 'sphere');
+
+    expect(contact?.bodyB).toBe('rotated-cylinder');
+    expect(contact?.contacts).toHaveLength(1);
+    expect(contact?.contacts[0].position[0]).toBeCloseTo(0, 8);
+    expect(contact?.contacts[0].position[1]).toBeCloseTo(1, 8);
+    expect(contact?.contacts[0].position[2]).toBeCloseTo(1.2, 8);
+    expect(contact?.contacts[0].normal[0]).toBeCloseTo(0, 8);
+    expect(contact?.contacts[0].normal[1]).toBeCloseTo(-1, 8);
+    expect(contact?.contacts[0].normal[2]).toBeCloseTo(0, 8);
+    expect(contact?.contacts[0].penetration).toBeCloseTo(0.25, 8);
   });
 });

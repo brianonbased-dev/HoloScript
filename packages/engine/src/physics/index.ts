@@ -70,6 +70,7 @@ export {
   boxShape,
   sphereShape,
   capsuleShape,
+  cylinderShape,
   defaultMaterial,
   dynamicBody,
   staticBody,
