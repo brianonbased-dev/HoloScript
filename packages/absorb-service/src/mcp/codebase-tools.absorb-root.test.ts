@@ -18,6 +18,7 @@ import {
   resolveCodebaseCachePathsForRoots,
 } from './codebase-cache-storage';
 import {
+  getGraphRAGStateStatus,
   handleGraphRagTool,
   resetGraphRAGStateForTests,
   setGraphRAGState,
@@ -3883,6 +3884,59 @@ describe('holo_absorb_repo root validation', () => {
       gitCommitHash?: string;
     };
     expect(cache.gitCommitHash).toBe(secondCommit);
+  }, 30_000);
+
+  it('hydrates visual context from an authoritative stats-only graph without HoloEmbed', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-visual-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-visual-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    const absorbed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+    })) as {
+      error?: string;
+      graphAuthoritative?: boolean;
+      semanticIndexReady?: boolean;
+    };
+    expect(absorbed).toMatchObject({
+      graphAuthoritative: true,
+      semanticIndexReady: false,
+    });
+    expect(absorbed.error).toBeUndefined();
+
+    resetCodebaseToolStateForTests(false);
+    const visual = (await handleGraphRagTool('holo_visual_graph_context', {
+      selectedNodeIds: ['alpha'],
+      maxNeighbors: 10,
+    })) as {
+      error?: string;
+      symbolCount?: number;
+      quality?: {
+        resolutionRate?: number;
+        resolvedNodeCount?: number;
+      };
+      graphState?: {
+        rootDir?: string;
+        semanticIndexReady?: boolean;
+      };
+    };
+
+    expect(visual.error).toBeUndefined();
+    expect(visual.symbolCount).toBe(1);
+    expect(visual.quality).toMatchObject({
+      resolutionRate: 1,
+      resolvedNodeCount: 1,
+    });
+    expect(visual.graphState).toMatchObject({
+      rootDir: repoDir,
+      semanticIndexReady: false,
+    });
+    expect(getGraphRAGStateStatus().ready).toBe(false);
+    expect(fs.existsSync(path.join(cacheDir, 'embeddings-cache.bin'))).toBe(false);
   }, 30_000);
 
   it('builds missing HoloEmbed index when a zero-change graph request follows stats-only cache', async () => {

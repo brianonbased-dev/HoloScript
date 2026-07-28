@@ -5535,7 +5535,7 @@ async function hydrateGraphRAGFromDiskEmbeddings(
  *   2. Disk cache (if younger than 24 h)
  *   3. Nothing available → returns loaded=false
  */
-async function ensureCachedGraph(): Promise<{
+async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Promise<{
   loaded: boolean;
   source: 'memory' | 'disk-cache' | 'none';
   ageMs?: number;
@@ -5659,7 +5659,7 @@ async function ensureCachedGraph(): Promise<{
       };
     }
 
-    if (!isGraphRAGReady()) {
+    if (options.warmGraphRAG !== false && !isGraphRAGReady()) {
       try {
         const mod = await loadCodebaseModule();
         await hydrateGraphRAGFromDiskEmbeddings(
@@ -5794,116 +5794,120 @@ async function ensureCachedGraph(): Promise<{
       // Search remains correct after disposeEmbeddingIndex: dispose only ends the
       // worker pool; entries stay intact and query embedding falls back to the
       // provider directly (EmbeddingIndex.getEmbeddings).
-      try {
-        const hydrated = await hydrateGraphRAGFromDiskEmbeddings(
-          mod,
-          cachedGraph,
-          cachedRootDir,
-          cacheTimestamp,
-          envelope.embeddingCacheSha256
-        );
-        if (hydrated) {
-          // GraphRAG is ready from the persisted HoloEmbed index.
-        } else if (!graphRAGWarmInProgress) {
-          const graphForWarm = cachedGraph;
-          const rootForWarm = cachedRootDir;
-          const warmRootDirs = envelope.rootDirs ?? [rootForWarm];
-          const warmWriterKey = buildAbsorbWriterKey(warmRootDirs);
-          const warmPolicyHash = createHash('sha256')
-            .update(
-              stableStringify({
-                kind: 'graph-rag-cache-warm',
-                rootDirs: warmRootDirs.map((entry) => normalizeRootForComparison(entry)).sort(),
-                cacheGenerationId: envelope.cacheGenerationId ?? null,
-                embeddingProvider: envelope.embeddingProvider ?? NATIVE_GRAPH_RAG_PROVIDER,
-              })
-            )
-            .digest('hex');
-          const warmJobId = `absorb-warm-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-          const activeWriter = findActiveAbsorbWriter(warmWriterKey);
-          const acquisition = activeWriter
-            ? null
-            : acquireAbsorbWriterLease({
-                rootDir: rootForWarm,
-                rootDirs: warmRootDirs,
-                writerKey: warmWriterKey,
-                policyHash: warmPolicyHash,
-                jobId: warmJobId,
-              });
-          if (!acquisition || acquisition.outcome === 'occupied') {
-            console.error(
-              `[AbsorbCacheWarm] skipped because writer job ${
-                activeWriter?.jobId ??
-                (acquisition?.outcome === 'occupied' ? acquisition.record.jobId : 'unknown')
-              } owns this workspace`
-            );
-          } else {
-            createAbsorbJob(
-              rootForWarm,
-              {},
-              {
-                enabled: false,
-                strictResumeToken: false,
-                maxRetries: 0,
-                debounceMs: 0,
-                checkIntervalMs: 0,
-                maxCheckOverheadRatio: 0,
-              },
-              warmWriterKey,
-              warmPolicyHash,
-              acquisition.lease,
-              warmJobId
-            );
-            graphRAGWarmInProgress = true;
-            // Fire-and-forget — do not block graph availability on the build.
-            void (async () => {
-              let idx: any = null;
-              try {
-                idx = await createDynamicEmbeddingIndex(mod);
-                trackAbsorbProgress(warmJobId, 'Building missing cached embeddings', 80);
-                await withPhaseTimeout(
-                  idx.buildIndex(graphForWarm),
-                  CACHE_WARM_GRAPH_RAG_TIMEOUT_MS,
-                  'disk-cache GraphRAG embedding rebuild (background)',
-                  () => disposeEmbeddingIndex(idx)
-                );
-                const published = publishCacheGeneration({
-                  graph: graphForWarm,
-                  rootDir: rootForWarm,
-                  rootDirs: envelope.rootDirs ?? [rootForWarm],
-                  stats: envelope.stats,
-                  gitCommitHash: envelope.gitCommitHash,
-                  fileHashes: envelope.fileHashes,
+      if (options.warmGraphRAG !== false) {
+        try {
+          const hydrated = await hydrateGraphRAGFromDiskEmbeddings(
+            mod,
+            cachedGraph,
+            cachedRootDir,
+            cacheTimestamp,
+            envelope.embeddingCacheSha256
+          );
+          if (hydrated) {
+            // GraphRAG is ready from the persisted HoloEmbed index.
+          } else if (!graphRAGWarmInProgress) {
+            const graphForWarm = cachedGraph;
+            const rootForWarm = cachedRootDir;
+            const warmRootDirs = envelope.rootDirs ?? [rootForWarm];
+            const warmWriterKey = buildAbsorbWriterKey(warmRootDirs);
+            const warmPolicyHash = createHash('sha256')
+              .update(
+                stableStringify({
+                  kind: 'graph-rag-cache-warm',
+                  rootDirs: warmRootDirs.map((entry) => normalizeRootForComparison(entry)).sort(),
+                  cacheGenerationId: envelope.cacheGenerationId ?? null,
                   embeddingProvider: envelope.embeddingProvider ?? NATIVE_GRAPH_RAG_PROVIDER,
-                  localCodebaseSnapshotReceipt: envelope.localCodebaseSnapshotReceipt,
-                  scanPolicy: envelope.scanPolicy,
-                  embeddingIndex: idx,
-                  rootAuthorityPins: envelope.rootAuthorityPins,
-                });
-                if (!published) {
-                  throw new Error('Unable to publish background GraphRAG cache generation');
-                }
-                const warmJob = absorbJobs.get(warmJobId);
-                if (warmJob) warmJob.cacheCommitted = true;
-                setGraphRAGState(idx, new GraphRAGEngine(graphForWarm, idx), {
+                })
+              )
+              .digest('hex');
+            const warmJobId = `absorb-warm-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+            const activeWriter = findActiveAbsorbWriter(warmWriterKey);
+            const acquisition = activeWriter
+              ? null
+              : acquireAbsorbWriterLease({
                   rootDir: rootForWarm,
+                  rootDirs: warmRootDirs,
+                  writerKey: warmWriterKey,
+                  policyHash: warmPolicyHash,
+                  jobId: warmJobId,
                 });
-                trackAbsorbProgress(warmJobId, 'Complete', 100);
-              } catch (err) {
-                console.warn(`[AbsorbCacheWarm] background GraphRAG build failed: ${String(err)}`);
-                failAbsorbJob(warmJobId, 'Cache warm failed', errorMessage(err), {
-                  error: 'absorb_cache_warm_failed',
-                  message: errorMessage(err),
-                });
-              } finally {
-                if (idx) await disposeEmbeddingIndex(idx);
-                graphRAGWarmInProgress = false;
-              }
-            })();
+            if (!acquisition || acquisition.outcome === 'occupied') {
+              console.error(
+                `[AbsorbCacheWarm] skipped because writer job ${
+                  activeWriter?.jobId ??
+                  (acquisition?.outcome === 'occupied' ? acquisition.record.jobId : 'unknown')
+                } owns this workspace`
+              );
+            } else {
+              createAbsorbJob(
+                rootForWarm,
+                {},
+                {
+                  enabled: false,
+                  strictResumeToken: false,
+                  maxRetries: 0,
+                  debounceMs: 0,
+                  checkIntervalMs: 0,
+                  maxCheckOverheadRatio: 0,
+                },
+                warmWriterKey,
+                warmPolicyHash,
+                acquisition.lease,
+                warmJobId
+              );
+              graphRAGWarmInProgress = true;
+              // Fire-and-forget — do not block graph availability on the build.
+              void (async () => {
+                let idx: any = null;
+                try {
+                  idx = await createDynamicEmbeddingIndex(mod);
+                  trackAbsorbProgress(warmJobId, 'Building missing cached embeddings', 80);
+                  await withPhaseTimeout(
+                    idx.buildIndex(graphForWarm),
+                    CACHE_WARM_GRAPH_RAG_TIMEOUT_MS,
+                    'disk-cache GraphRAG embedding rebuild (background)',
+                    () => disposeEmbeddingIndex(idx)
+                  );
+                  const published = publishCacheGeneration({
+                    graph: graphForWarm,
+                    rootDir: rootForWarm,
+                    rootDirs: envelope.rootDirs ?? [rootForWarm],
+                    stats: envelope.stats,
+                    gitCommitHash: envelope.gitCommitHash,
+                    fileHashes: envelope.fileHashes,
+                    embeddingProvider: envelope.embeddingProvider ?? NATIVE_GRAPH_RAG_PROVIDER,
+                    localCodebaseSnapshotReceipt: envelope.localCodebaseSnapshotReceipt,
+                    scanPolicy: envelope.scanPolicy,
+                    embeddingIndex: idx,
+                    rootAuthorityPins: envelope.rootAuthorityPins,
+                  });
+                  if (!published) {
+                    throw new Error('Unable to publish background GraphRAG cache generation');
+                  }
+                  const warmJob = absorbJobs.get(warmJobId);
+                  if (warmJob) warmJob.cacheCommitted = true;
+                  setGraphRAGState(idx, new GraphRAGEngine(graphForWarm, idx), {
+                    rootDir: rootForWarm,
+                  });
+                  trackAbsorbProgress(warmJobId, 'Complete', 100);
+                } catch (err) {
+                  console.warn(
+                    `[AbsorbCacheWarm] background GraphRAG build failed: ${String(err)}`
+                  );
+                  failAbsorbJob(warmJobId, 'Cache warm failed', errorMessage(err), {
+                    error: 'absorb_cache_warm_failed',
+                    message: errorMessage(err),
+                  });
+                } finally {
+                  if (idx) await disposeEmbeddingIndex(idx);
+                  graphRAGWarmInProgress = false;
+                }
+              })();
+            }
           }
+        } catch (err) {
+          console.warn(`[AbsorbCacheWarm] GraphRAG warmup skipped: ${String(err)}`);
         }
-      } catch (err) {
-        console.warn(`[AbsorbCacheWarm] GraphRAG warmup skipped: ${String(err)}`);
       }
       return {
         loaded: true,
@@ -5918,6 +5922,26 @@ async function ensureCachedGraph(): Promise<{
     }
   }
   return { loaded: false, source: 'none' };
+}
+
+/**
+ * Load and return only an authoritative structural graph for visual selection.
+ *
+ * This deliberately suppresses GraphRAG warmup: holo_visual_graph_context
+ * needs HoloGraph topology and citations, not a HoloEmbed semantic index.
+ */
+export async function getAuthoritativeGraphForVisualContext(): Promise<{
+  graph: unknown;
+  rootDir: string;
+  timestamp: number;
+} | null> {
+  const state = await ensureCachedGraph({ warmGraphRAG: false });
+  if (!state.loaded || !cachedGraph || !cachedRootDir) return null;
+  return {
+    graph: cachedGraph,
+    rootDir: cachedRootDir,
+    timestamp: cacheTimestamp || Date.now(),
+  };
 }
 
 import * as EngineMod from '../engine/index';
