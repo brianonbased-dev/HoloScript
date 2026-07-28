@@ -190,6 +190,84 @@ describe('buildCharacterHostFromComposition', () => {
     );
   });
 
+  it('@lod carries source-authored native hair topology budgets without a second selector', () => {
+    const make = (lodLevel: number) =>
+      buildCharacterHostFromComposition(
+        {
+          objects: [
+            {
+              name: 'HearthKeeper',
+              traits: [
+                { name: 'body', config: { height: 1.82, build_scale: 1.02 } },
+                { name: 'hair', config: { style: 'cropped_coils', color: '#2d201c' } },
+                {
+                  name: 'lod',
+                  config: {
+                    levels: [
+                      {
+                        level: 0,
+                        distance: 0,
+                        garment_segments: 24,
+                        hair_guides: 168,
+                        hair_cards_per_guide: 2,
+                        hair_segments: 7,
+                      },
+                      {
+                        level: 1,
+                        distance: 8,
+                        garment_segments: 14,
+                        hair_guides: 92,
+                        hair_cards_per_guide: 1,
+                        hair_segments: 5,
+                      },
+                      {
+                        level: 2,
+                        distance: 20,
+                        garment_segments: 8,
+                        hair_guides: 48,
+                        hair_cards_per_guide: 1,
+                        hair_segments: 3,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        { lodLevel }
+      );
+
+    const lod0 = make(0);
+    const lod1 = make(1);
+    const lod2 = make(2);
+    expect(lod0.lod).toEqual({
+      level: 0,
+      distance: 0,
+      garmentSegments: 24,
+      hairGuides: 168,
+      hairCardsPerGuide: 2,
+      hairSegments: 7,
+    });
+    expect(lod2.lod).toEqual({
+      level: 2,
+      distance: 20,
+      garmentSegments: 8,
+      hairGuides: 48,
+      hairCardsPerGuide: 1,
+      hairSegments: 3,
+    });
+    expect(lod0.report.mapped).toContain(
+      '@lod(hair_guides=168,hair_cards_per_guide=2,hair_segments=7)'
+    );
+    expect(lod0.host!.getDrawSpec().mesh.vertexCount).toBeGreaterThan(
+      lod1.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(lod1.host!.getDrawSpec().mesh.vertexCount).toBeGreaterThan(
+      lod2.host!.getDrawSpec().mesh.vertexCount
+    );
+  });
+
   it('maps deterministic cloth plus a detachable UV-mapped OpenAI mantle', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

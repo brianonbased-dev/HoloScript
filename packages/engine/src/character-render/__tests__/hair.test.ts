@@ -115,6 +115,42 @@ describe('hair — procedural geometry (pure data)', () => {
     expect(resolveAgentAvatarHairStyle('Medium Wavy')).toBe('medium_wavy');
     expect(resolveAgentAvatarHairStyle('not_a_style')).toBeUndefined();
   });
+
+  it('source-authored hair topology budgets reduce guides, cards, and curve segments', () => {
+    const lod0 = buildAgentAvatarHair({
+      style: 'cropped_coils',
+      guides: 168,
+      cardsPerGuide: 2,
+      segments: 7,
+    });
+    const lod1 = buildAgentAvatarHair({
+      style: 'cropped_coils',
+      guides: 92,
+      cardsPerGuide: 1,
+      segments: 5,
+    });
+    const lod2 = buildAgentAvatarHair({
+      style: 'cropped_coils',
+      guides: 48,
+      cardsPerGuide: 1,
+      segments: 3,
+    });
+
+    expect(lod0.vertexCount).toBeGreaterThan(lod1.vertexCount);
+    expect(lod1.vertexCount).toBeGreaterThan(lod2.vertexCount);
+    expect(lod0.indices.length).toBeGreaterThan(lod1.indices.length);
+    expect(lod1.indices.length).toBeGreaterThan(lod2.indices.length);
+    expect(
+      Array.from(
+        buildAgentAvatarHair({
+          style: 'cropped_coils',
+          guides: 48,
+          cardsPerGuide: 1,
+          segments: 3,
+        }).positions
+      )
+    ).toEqual(Array.from(lod2.positions));
+  });
 });
 
 describe('hair — rendered (native WebGPU)', () => {

@@ -220,6 +220,63 @@ describe('CharacterWebGPUCompiler', () => {
     ).toEqual(['skin-sss', 'woven-cloth', 'lambert']);
   });
 
+  it('serializes source-authored native hair topology budgets per LOD tier', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits!.push({
+      type: 'ObjectTrait',
+      name: 'lod',
+      config: {
+        levels: [
+          {
+            level: 0,
+            distance: 0,
+            garment_segments: 24,
+            hair_guides: 112,
+            hair_cards_per_guide: 2,
+            hair_segments: 4,
+          },
+          {
+            level: 2,
+            distance: 20,
+            garment_segments: 8,
+            hair_guides: 36,
+            hair_cards_per_guide: 1,
+            hair_segments: 2,
+          },
+        ],
+      },
+    });
+    const lod0 = JSON.parse(
+      await new CharacterWebGPUCompiler({ lodLevel: 0 }).compile(composition)
+    ) as CharacterDrawSpecBundle;
+    const lod2 = JSON.parse(
+      await new CharacterWebGPUCompiler({ lodLevel: 2 }).compile(composition)
+    ) as CharacterDrawSpecBundle;
+
+    expect(lod0.lod).toEqual({
+      level: 0,
+      distance: 0,
+      garmentSegments: 24,
+      hairGuides: 112,
+      hairCardsPerGuide: 2,
+      hairSegments: 4,
+    });
+    expect(lod2.lod).toEqual({
+      level: 2,
+      distance: 20,
+      garmentSegments: 8,
+      hairGuides: 36,
+      hairCardsPerGuide: 1,
+      hairSegments: 2,
+    });
+    expect(lod0.vertexCount).toBeGreaterThan(lod2.vertexCount);
+    expect(
+      (lod0.materialGroups as Array<{ material: { shadingModel: string } }>).map(
+        (group) => group.material.shadingModel
+      )
+    ).toEqual(['skin-sss', 'marschner-hair', 'refractive-eye']);
+  });
+
   it('serializes UVs, deterministic cloth metadata, and detachable mantle refs', async () => {
     const composition = characterComp();
     composition.objects[0]!.traits!.push(

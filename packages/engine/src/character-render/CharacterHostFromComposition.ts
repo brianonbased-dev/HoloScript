@@ -68,7 +68,14 @@ export interface CharacterHostFromCompositionResult {
   /** Packed 0xRRGGBB derived from @subsurface_scattering(color), if present. */
   materialColor?: number;
   /** The operative authored LOD selection, when @lod is present. */
-  lod?: { level: number; distance: number; garmentSegments: number };
+  lod?: {
+    level: number;
+    distance: number;
+    garmentSegments: number;
+    hairGuides?: number;
+    hairCardsPerGuide?: number;
+    hairSegments?: number;
+  };
   /** Operative deterministic cloth configuration, when @cloth_simulation is supported. */
   cloth?: ClothSimulationConfig;
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
@@ -261,12 +268,41 @@ export function buildCharacterHostFromComposition(
         6,
         Math.min(32, Math.round(asNum(selected.garment_segments) ?? 24))
       );
+      const authoredHairGuides = asNum(selected.hair_guides);
+      const authoredHairCardsPerGuide = asNum(selected.hair_cards_per_guide);
+      const authoredHairSegments = asNum(selected.hair_segments);
+      const hairGuides =
+        authoredHairGuides === undefined
+          ? undefined
+          : Math.max(16, Math.min(512, Math.round(authoredHairGuides)));
+      const hairCardsPerGuide =
+        authoredHairCardsPerGuide === undefined
+          ? undefined
+          : Math.max(1, Math.min(4, Math.round(authoredHairCardsPerGuide)));
+      const hairSegments =
+        authoredHairSegments === undefined
+          ? undefined
+          : Math.max(2, Math.min(16, Math.round(authoredHairSegments)));
       lod = {
         level: requestedLevel,
         distance: Math.max(0, asNum(selected.distance) ?? 0),
         garmentSegments,
+        ...(hairGuides === undefined ? {} : { hairGuides }),
+        ...(hairCardsPerGuide === undefined ? {} : { hairCardsPerGuide }),
+        ...(hairSegments === undefined ? {} : { hairSegments }),
       };
       report.mapped.push(`@lod(level=${requestedLevel})`);
+      if (
+        hairGuides !== undefined ||
+        hairCardsPerGuide !== undefined ||
+        hairSegments !== undefined
+      ) {
+        report.mapped.push(
+          `@lod(hair_guides=${hairGuides ?? 'style-default'},` +
+            `hair_cards_per_guide=${hairCardsPerGuide ?? 'style-default'},` +
+            `hair_segments=${hairSegments ?? 'style-default'})`
+        );
+      }
     } else {
       report.stubbed.push({
         trait: '@lod',
@@ -474,6 +510,9 @@ export function buildCharacterHostFromComposition(
     melanin,
     melaninRedness,
     hairStyle,
+    hairGuides: lod?.hairGuides,
+    hairCardsPerGuide: lod?.hairCardsPerGuide,
+    hairSegments: lod?.hairSegments,
     position,
     garmentStyle,
     garmentColor,

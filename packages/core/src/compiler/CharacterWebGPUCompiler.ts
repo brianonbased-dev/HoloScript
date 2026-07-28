@@ -54,7 +54,14 @@ export interface CharacterDrawSpecBundle {
   /** Per-region materials (skin / hair / eye), or null for a single-material body. */
   materialGroups: unknown[] | null;
   /** Present when the source authors @lod and this compile selects one declared tier. */
-  lod?: { level: number; distance: number; garmentSegments: number };
+  lod?: {
+    level: number;
+    distance: number;
+    garmentSegments: number;
+    hairGuides?: number;
+    hairCardsPerGuide?: number;
+    hairSegments?: number;
+  };
   /** Present when source-authored deterministic cloth simulation is operative. */
   cloth?: unknown;
   /** Present when source-authored native procedural-head morph targets are operative. */

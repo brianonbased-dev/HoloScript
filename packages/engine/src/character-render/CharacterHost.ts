@@ -85,6 +85,12 @@ export interface CharacterHostOptions {
   melaninRedness?: number;
   /** Source-authored deterministic procedural hair geometry profile. */
   hairStyle?: AgentAvatarHairStyle;
+  /** Source-authored scalp guide budget selected by @lod. */
+  hairGuides?: number;
+  /** Source-authored cards-per-guide budget selected by @lod. */
+  hairCardsPerGuide?: number;
+  /** Source-authored points-per-guide budget selected by @lod. */
+  hairSegments?: number;
   /** Iris colour 0xRRGGBB (default warm brown #4a3520). */
   irisColor?: number;
   /** Initial world position. */
@@ -189,6 +195,9 @@ export class CharacterHost {
       includeHair: opts.includeHair,
       includeEyes: opts.includeEyes,
       style: opts.hairStyle,
+      guides: opts.hairGuides,
+      cardsPerGuide: opts.hairCardsPerGuide,
+      segments: opts.hairSegments,
     });
     this.deformationBasePositions = new Float32Array(this.built.mesh.positions);
     this.bindWorld = computeBindWorld();
