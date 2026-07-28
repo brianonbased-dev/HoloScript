@@ -758,6 +758,40 @@ interface ExternalAbsorbJobLease {
   record: AbsorbWriterLeaseRecord;
 }
 
+interface AbsorbWriterReceiptRecord {
+  schemaVersion: 'holoscript.absorb-writer-receipt.v1';
+  kind: 'AbsorbWriterReceipt';
+  jobId: string;
+  writerKey: string | null;
+  policyHash: string | null;
+  status: 'complete' | 'error' | 'cancelled';
+  phase: string;
+  progress?: number;
+  filesProcessed?: number;
+  totalFiles?: number;
+  cacheCommitted: boolean;
+  rootDir: string;
+  startedAt: string;
+  completedAt: string;
+  backgroundIsolation?: 'worker-thread' | 'inline-fallback';
+  memoryBudget?: AbsorbMemoryBudgetTelemetry;
+  sourceDriftRetry?: AbsorbSourceDriftRetryTelemetry;
+  phaseMetrics?: AbsorbPhaseMetric[];
+  cancellation?: {
+    reason: string;
+    message: string;
+    phaseAtRequest: string;
+    requestedAt: string;
+    completedAt?: string;
+  };
+  error?: string;
+}
+
+interface LocatedAbsorbWriterReceipt {
+  receipt: AbsorbWriterReceiptRecord;
+  receiptFile: string;
+}
+
 type AbsorbWriterLeaseAcquisition =
   | { outcome: 'acquired'; lease: AbsorbWriterLease; recoveredStaleLease: boolean }
   | {
@@ -771,6 +805,8 @@ const absorbJobs = new Map<string, AbsorbJob>();
 const externalAbsorbJobLeases = new Map<string, ExternalAbsorbJobLease>();
 const ABSORB_TERMINAL_JOB_RETENTION_MS = 60 * 60 * 1000;
 const DEFAULT_ABSORB_WRITER_LEASE_STALE_MS = 6 * 60 * 60 * 1000;
+const ABSORB_RECEIPT_WORKSPACE_SCAN_LIMIT = 2_048;
+const ABSORB_LATEST_RECEIPT_READ_LIMIT = 32;
 
 function isTerminalAbsorbJob(job: AbsorbJob): boolean {
   return job.status === 'complete' || job.status === 'error' || job.status === 'cancelled';
@@ -788,10 +824,29 @@ function releaseAbsorbWriterLease(job: AbsorbJob): void {
     policyHash: job.writerPolicyHash ?? null,
     status: job.status,
     phase: job.phase,
+    progress: job.progress,
+    filesProcessed: job.filesProcessed,
+    totalFiles: job.totalFiles,
     cacheCommitted: job.cacheCommitted,
     rootDir: job.rootDir,
     startedAt: new Date(job.startedAt).toISOString(),
     completedAt: new Date(job.completedAt ?? Date.now()).toISOString(),
+    ...(job.backgroundIsolation && { backgroundIsolation: job.backgroundIsolation }),
+    memoryBudget: { ...job.memoryBudget },
+    sourceDriftRetry: { ...job.sourceDriftRetry },
+    phaseMetrics: job.phaseMetrics.map((metric) => ({ ...metric })),
+    ...(job.cancellation && {
+      cancellation: {
+        reason: job.cancellation.reason,
+        message: job.cancellation.message,
+        phaseAtRequest: job.cancellation.phaseAtRequest,
+        requestedAt: new Date(job.cancellation.requestedAt).toISOString(),
+        ...(job.cancellation.completedAt && {
+          completedAt: new Date(job.cancellation.completedAt).toISOString(),
+        }),
+      },
+    }),
+    ...(job.error && { error: job.error }),
   };
   try {
     atomicWriteFileSync(lease.receiptFile, JSON.stringify(receipt), 'utf-8');
@@ -973,6 +1028,152 @@ function parseAbsorbWriterLease(raw: string): AbsorbWriterLeaseRecord | null {
   } catch {
     return null;
   }
+}
+
+function parseAbsorbWriterReceipt(raw: string): AbsorbWriterReceiptRecord | null {
+  try {
+    const value = JSON.parse(raw) as Partial<AbsorbWriterReceiptRecord>;
+    if (
+      value.schemaVersion !== 'holoscript.absorb-writer-receipt.v1' ||
+      value.kind !== 'AbsorbWriterReceipt' ||
+      typeof value.jobId !== 'string' ||
+      (value.writerKey !== null && typeof value.writerKey !== 'string') ||
+      (value.policyHash !== null && typeof value.policyHash !== 'string') ||
+      !['complete', 'error', 'cancelled'].includes(String(value.status)) ||
+      typeof value.phase !== 'string' ||
+      typeof value.cacheCommitted !== 'boolean' ||
+      typeof value.rootDir !== 'string' ||
+      typeof value.startedAt !== 'string' ||
+      !Number.isFinite(Date.parse(value.startedAt)) ||
+      typeof value.completedAt !== 'string' ||
+      !Number.isFinite(Date.parse(value.completedAt))
+    ) {
+      return null;
+    }
+    return value as AbsorbWriterReceiptRecord;
+  } catch {
+    return null;
+  }
+}
+
+function safeAbsorbReceiptJobId(jobId: string): boolean {
+  return /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,191}$/.test(jobId);
+}
+
+function readLocatedAbsorbWriterReceipt(receiptFile: string): LocatedAbsorbWriterReceipt | null {
+  try {
+    const receipt = parseAbsorbWriterReceipt(fs.readFileSync(receiptFile, 'utf-8'));
+    return receipt ? { receipt, receiptFile } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Terminal writer receipts outlive an MCP worker. Resolve a job ID across the
+ * bounded local workspace cache index so status remains queryable after a
+ * supervisor restart without requiring the caller to remember the root path.
+ */
+function findAbsorbWriterReceipt(
+  jobId: string,
+  preferredRootDir?: string | null
+): LocatedAbsorbWriterReceipt | null {
+  if (!safeAbsorbReceiptJobId(jobId)) return null;
+
+  const rootDir =
+    preferredRootDir || cachedRootDir || process.env.HOLOSCRIPT_WORKSPACE_ROOT || process.cwd();
+  const preferredPaths = resolveCodebaseCachePaths(rootDir);
+  const receiptName = `${jobId}.json`;
+  const candidates = new Set<string>([
+    path.join(preferredPaths.writerReceiptsDirectory, receiptName),
+    path.join(preferredPaths.baseDir, 'writer-receipts', receiptName),
+  ]);
+  const workspacesDirectory = path.join(preferredPaths.baseDir, 'workspaces');
+
+  try {
+    const workspaceEntries = fs
+      .readdirSync(workspacesDirectory, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort()
+      .slice(0, ABSORB_RECEIPT_WORKSPACE_SCAN_LIMIT);
+    for (const workspaceEntry of workspaceEntries) {
+      candidates.add(
+        path.join(workspacesDirectory, workspaceEntry, 'writer-receipts', receiptName)
+      );
+    }
+  } catch {
+    // A flat cache or a fresh install has no workspace index.
+  }
+
+  let latest: LocatedAbsorbWriterReceipt | null = null;
+  let latestCompletedAt = Number.NEGATIVE_INFINITY;
+  for (const candidate of candidates) {
+    const located = readLocatedAbsorbWriterReceipt(candidate);
+    if (!located || located.receipt.jobId !== jobId) continue;
+    const completedAt = Date.parse(located.receipt.completedAt);
+    if (completedAt > latestCompletedAt) {
+      latest = located;
+      latestCompletedAt = completedAt;
+    }
+  }
+  return latest;
+}
+
+function findLatestAbsorbWriterReceiptForRoots(
+  rootDir: string,
+  rootDirs: string[] | undefined,
+  jobPrefix: string
+): LocatedAbsorbWriterReceipt | null {
+  const receiptsDirectory = resolveCachePathsForRoots(rootDir, rootDirs).writerReceiptsDirectory;
+  let receiptNames: string[];
+  try {
+    receiptNames = fs
+      .readdirSync(receiptsDirectory)
+      .filter((name) => name.startsWith(jobPrefix) && name.endsWith('.json'))
+      .sort((left, right) => right.localeCompare(left))
+      .slice(0, ABSORB_LATEST_RECEIPT_READ_LIMIT);
+  } catch {
+    return null;
+  }
+
+  let latest: LocatedAbsorbWriterReceipt | null = null;
+  let latestCompletedAt = Number.NEGATIVE_INFINITY;
+  for (const receiptName of receiptNames) {
+    const located = readLocatedAbsorbWriterReceipt(path.join(receiptsDirectory, receiptName));
+    if (!located || !located.receipt.jobId.startsWith(jobPrefix)) continue;
+    const completedAt = Date.parse(located.receipt.completedAt);
+    if (completedAt > latestCompletedAt) {
+      latest = located;
+      latestCompletedAt = completedAt;
+    }
+  }
+  return latest;
+}
+
+function buildRecoveredAbsorbStatus(
+  located: LocatedAbsorbWriterReceipt,
+  includeResult: boolean
+): Record<string, unknown> {
+  const { receipt, receiptFile } = located;
+  const startedAt = Date.parse(receipt.startedAt);
+  const completedAt = Date.parse(receipt.completedAt);
+  return {
+    ...receipt,
+    progress: receipt.progress ?? 100,
+    filesProcessed: receipt.filesProcessed ?? 0,
+    totalFiles: receipt.totalFiles ?? 0,
+    durationMs: Math.max(0, completedAt - startedAt),
+    embeddingPolicy: buildGraphRAGEmbeddingPolicyReceipt(),
+    recoveredFromReceipt: true,
+    durableTerminalStatus: true,
+    durableReceiptFile: receiptFile,
+    resultAvailable: false,
+    ...(includeResult && {
+      resultUnavailableReason:
+        'The terminal status survived the worker restart, but the result body was not persisted. Query the selected graph cache instead.',
+    }),
+  };
 }
 
 function writerLeaseIsStale(record: AbsorbWriterLeaseRecord | null, leaseFile: string): boolean {
@@ -9632,6 +9833,7 @@ function buildGraphStatusSnapshotKey(currentCwd: string): string {
     cacheTimestamp,
     graphStatusFileGeneration(cachePaths.generationManifestFile),
     graphStatusFileGeneration(selectedGeneration?.graphFile ?? cachePaths.graphFile),
+    graphStatusFileGeneration(cachePaths.writerReceiptsDirectory),
     selectedGeneration
       ? selectedGeneration.embeddingsFile
         ? graphStatusFileGeneration(selectedGeneration.embeddingsFile)
@@ -10099,6 +10301,13 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
         job.jobId.startsWith('absorb-warm-') && rootMatchesCurrentRepo(job.rootDir, activeCacheRoot)
     )
     .sort((left, right) => right.startedAt - left.startedAt)[0];
+  const latestCacheWarmReceipt = latestCacheWarmJob
+    ? null
+    : findLatestAbsorbWriterReceiptForRoots(
+        activeCacheRoot,
+        activeRootSetSelection,
+        'absorb-warm-'
+      );
 
   return {
     inMemory: cachedGraph !== null,
@@ -10143,11 +10352,34 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
           }),
           ...(latestCacheWarmJob.error && { error: latestCacheWarmJob.error }),
         }
-      : {
-          inProgress: false,
-          jobId: null,
-          status: 'idle',
-        },
+      : latestCacheWarmReceipt
+        ? {
+            inProgress: false,
+            jobId: latestCacheWarmReceipt.receipt.jobId,
+            status: latestCacheWarmReceipt.receipt.status,
+            progress: latestCacheWarmReceipt.receipt.progress ?? 100,
+            phase: latestCacheWarmReceipt.receipt.phase,
+            startedAt: latestCacheWarmReceipt.receipt.startedAt,
+            completedAt: latestCacheWarmReceipt.receipt.completedAt,
+            cacheCommitted: latestCacheWarmReceipt.receipt.cacheCommitted,
+            recoveredFromReceipt: true,
+            durableTerminalStatus: true,
+            durableReceiptFile: latestCacheWarmReceipt.receiptFile,
+            ...(latestCacheWarmReceipt.receipt.memoryBudget && {
+              memoryBudget: { ...latestCacheWarmReceipt.receipt.memoryBudget },
+            }),
+            ...(latestCacheWarmReceipt.receipt.cancellation && {
+              cancellation: { ...latestCacheWarmReceipt.receipt.cancellation },
+            }),
+            ...(latestCacheWarmReceipt.receipt.error && {
+              error: latestCacheWarmReceipt.receipt.error,
+            }),
+          }
+        : {
+            inProgress: false,
+            jobId: null,
+            status: 'idle',
+          },
     embeddingPolicy,
     graphRAGReady: semanticIndexReady,
     semanticIndexReady,
@@ -10271,7 +10503,17 @@ async function handleCancelAbsorb(args: Record<string, unknown>): Promise<unknow
   const jobId = typeof args.jobId === 'string' ? args.jobId : '';
   if (!jobId) return { error: 'jobId_required', message: 'jobId must be a non-empty string.' };
   const job = absorbJobs.get(jobId);
-  if (!job) return { error: 'Job not found', jobId };
+  if (!job) {
+    const recovered = findAbsorbWriterReceipt(jobId);
+    if (recovered) {
+      return {
+        accepted: false,
+        ...buildRecoveredAbsorbStatus(recovered, false),
+        message: `Absorb job is already terminal (${recovered.receipt.status}); status recovered from its durable writer receipt.`,
+      };
+    }
+    return { error: 'Job not found', jobId };
+  }
 
   if (job.status === 'complete' || job.status === 'error' || job.status === 'cancelled') {
     return {
@@ -10376,6 +10618,10 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
           retryable: true,
         };
       }
+    }
+    const recovered = findAbsorbWriterReceipt(jobId);
+    if (recovered) {
+      return buildRecoveredAbsorbStatus(recovered, args.includeResult === true);
     }
     return { error: 'Job not found', jobId };
   }

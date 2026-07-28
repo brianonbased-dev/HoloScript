@@ -1243,7 +1243,7 @@ describe('holo_absorb_repo root validation', () => {
     expect(fs.existsSync(accepted.refreshProgressReceipt!.receiptFile!)).toBe(true);
   });
 
-  it('never expires an active job and retains terminal status for a full hour', async () => {
+  it('never expires an active job and recovers terminal status after memory retention', async () => {
     vi.useFakeTimers();
     try {
       resetCodebaseToolStateForTests();
@@ -1285,10 +1285,102 @@ describe('holo_absorb_repo root validation', () => {
       await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
       expect(
         await handleCodebaseTool('holo_get_absorb_status', { jobId: accepted.jobId })
-      ).toMatchObject({ error: 'Job not found' });
+      ).toMatchObject({
+        status: 'complete',
+        progress: 100,
+        recoveredFromReceipt: true,
+        durableTerminalStatus: true,
+        resultAvailable: false,
+      });
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('recovers terminal cache-warm status from its writer receipt after restart', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-durable-warm-status-repo-');
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-durable-warm-status-cache-')
+    );
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    const paths = resolveCodebaseCachePaths(repoDir);
+    const jobId = 'absorb-warm-1785213676007-test';
+    const receiptFile = path.join(paths.writerReceiptsDirectory, `${jobId}.json`);
+    fs.mkdirSync(paths.writerReceiptsDirectory, { recursive: true });
+    fs.writeFileSync(
+      receiptFile,
+      JSON.stringify({
+        schemaVersion: 'holoscript.absorb-writer-receipt.v1',
+        kind: 'AbsorbWriterReceipt',
+        jobId,
+        writerKey: 'writer-key',
+        policyHash: 'policy-hash',
+        status: 'cancelled',
+        phase: 'Cancelled',
+        progress: 100,
+        filesProcessed: 0,
+        totalFiles: 0,
+        cacheCommitted: false,
+        rootDir: repoDir,
+        startedAt: '2026-07-28T04:41:16.107Z',
+        completedAt: '2026-07-28T04:41:16.139Z',
+        cancellation: {
+          reason: 'system_memory_reserve_exhausted',
+          message: 'System memory reserve is below the configured floor.',
+          phaseAtRequest: 'Checking semantic cache warm memory budget',
+          requestedAt: '2026-07-28T04:41:16.120Z',
+          completedAt: '2026-07-28T04:41:16.139Z',
+        },
+      }),
+      'utf-8'
+    );
+    simulateAbsorbProcessRestartForTests();
+
+    const status = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId,
+      includeResult: true,
+    })) as Record<string, unknown>;
+    expect(status).toMatchObject({
+      jobId,
+      status: 'cancelled',
+      recoveredFromReceipt: true,
+      durableTerminalStatus: true,
+      durableReceiptFile: receiptFile,
+      resultAvailable: false,
+      cancellation: {
+        reason: 'system_memory_reserve_exhausted',
+      },
+    });
+    expect(status.resultUnavailableReason).toContain('result body was not persisted');
+
+    const cancel = (await handleCodebaseTool('holo_cancel_absorb', {
+      jobId,
+    })) as Record<string, unknown>;
+    expect(cancel).toMatchObject({
+      accepted: false,
+      jobId,
+      status: 'cancelled',
+      recoveredFromReceipt: true,
+    });
+    expect(cancel.message).toContain('already terminal');
+
+    const graphStatus = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      cacheWarm?: Record<string, unknown>;
+    };
+    expect(graphStatus.cacheWarm).toMatchObject({
+      jobId,
+      status: 'cancelled',
+      inProgress: false,
+      recoveredFromReceipt: true,
+      durableTerminalStatus: true,
+      cancellation: {
+        reason: 'system_memory_reserve_exhausted',
+      },
+    });
   });
 
   it('terminates an isolated background worker when cancellation is requested', async () => {
