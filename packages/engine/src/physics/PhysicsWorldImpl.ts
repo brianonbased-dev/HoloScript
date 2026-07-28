@@ -1496,15 +1496,33 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
 
     const penetration = epaResult.penetration;
 
-    // Step 3: Approximate contact point
-    // Use support points on each shape along the contact normal direction
+    // Step 3: Approximate a stable contact point on the shared support plane.
+    //
+    // Averaging the raw support points is unstable when a support direction
+    // is perpendicular to a flat face: components tied at zero select an
+    // arbitrary corner. A box floor queried along +Y, for example, returns
+    // its (+X,+Y,+Z) corner. That false tangential offset creates a huge
+    // lever arm, diverts the normal impulse into angular velocity, and lets
+    // otherwise valid GJK/EPA resting contacts tunnel through the floor.
+    //
+    // Preserve only the support points' scalar coordinates along the contact
+    // normal. When only one body has inverse mass, anchor the tangential
+    // coordinates at that movable body's centre; otherwise use the midpoint.
+    // This keeps the existing one-point manifold approximation while removing
+    // the arbitrary support-corner torque.
     const supportA = shapeSupport(bodyA.shape, posA, normal, rotA);
     const supportB = shapeSupport(bodyB.shape, posB, vec3Negate(normal), rotB);
-    const contactPoint: IVector3 = [
-      (supportA[0] + supportB[0]) / 2,
-      (supportA[1] + supportB[1]) / 2,
-      (supportA[2] + supportB[2]) / 2,
-    ];
+    const supportPlane = (vec3Dot(supportA, normal) + vec3Dot(supportB, normal)) / 2;
+    const tangentialAnchor: IVector3 =
+      bodyA.inverseMass === 0 && bodyB.inverseMass > 0
+        ? posB
+        : bodyB.inverseMass === 0 && bodyA.inverseMass > 0
+          ? posA
+          : vec3Scale(vec3Add(posA, posB), 0.5);
+    const contactPoint = vec3Add(
+      tangentialAnchor,
+      vec3Scale(normal, supportPlane - vec3Dot(tangentialAnchor, normal))
+    );
 
     return {
       contacts: [

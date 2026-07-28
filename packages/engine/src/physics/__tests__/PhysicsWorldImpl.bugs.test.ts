@@ -9,6 +9,8 @@
  *  5. PhysicsStep positional correction 50/50 split ignores mass
  *  6. PhysicsStep broadphase single-cell insert misses cross-cell collisions
  *  7. Resting sphere-box contacts tunnel and reset sleeping every step
+ *  8. Cylinder broadphase/support/contact ignores shape dimensions or rotation
+ *  9. GJK/EPA flat-face support ties create false corner torque at rest
  */
 
 import { describe, it, expect } from 'vitest';
@@ -571,20 +573,8 @@ describe('Bug 8e — shapeSupport cylinder case: rotated narrow-phase contact re
     // the contact on the cylinder's curved lateral surface (Bug 8e), not on
     // its unrotated end-cap.
     //
-    // NOTE: this is a single-step overlap/contact-sanity check, not a
-    // multi-hundred-step resting-equilibrium check. Investigation for this
-    // fix found that CPU GJK/EPA has a PRE-EXISTING resting-contact
-    // degeneracy for any convex pair that isn't sphere-sphere or sphere-box
-    // (those two have exact, non-GJK fast paths -- see checkSphereBox's own
-    // "avoids GJK/EPA degeneracy at resting contact" comment): a plain
-    // *unrotated* cylinder dropped onto a static box floor also tunnels
-    // through after a few hundred steps of gravity in this engine, with no
-    // rotation involved at all. That instability is a generic GJK/EPA
-    // resting-contact issue affecting cylinder-vs-box (and by the same
-    // mechanism cone-vs-box, etc.), not something this rotation fix
-    // introduces or is scoped to repair -- so this test intentionally does
-    // not assert long-run settling, only that a single overlapping
-    // configuration produces a geometrically sane contact.
+    // This single-step check isolates rotated-cylinder support geometry.
+    // Long-run GJK/EPA resting stability is covered separately by Bug 9.
     const world = createPhysicsWorld({ gravity: [0, 0, 0], maxSubsteps: 1 });
     world.createBody({
       id: 'floor',
@@ -760,5 +750,106 @@ describe('Bug 8g — exact sphere-cylinder contact supports off-center grounding
     expect(contact?.contacts[0].normal[1]).toBeCloseTo(-1, 8);
     expect(contact?.contacts[0].normal[2]).toBeCloseTo(0, 8);
     expect(contact?.contacts[0].penetration).toBeCloseTo(0.25, 8);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bug 9: GJK/EPA support ties must not manufacture a corner contact
+// ---------------------------------------------------------------------------
+
+describe('Bug 9 - non-sphere GJK/EPA contacts settle without false corner torque', () => {
+  it('keeps a box resting on a static box floor for 300 gravity steps', () => {
+    const world = createPhysicsWorld({
+      gravity: [0, -9.81, 0],
+      fixedTimestep: 1 / 60,
+      maxSubsteps: 1,
+      allowSleep: false,
+    });
+    world.createBody({
+      id: 'floor',
+      type: 'static',
+      mass: 0,
+      shape: boxShape([10, 0.5, 10]),
+      transform: { position: [0, -0.5, 0], rotation: identityQuaternion() },
+      material: { friction: 0.6, restitution: 0 },
+    });
+    world.createBody({
+      id: 'box',
+      type: 'dynamic',
+      mass: 1,
+      shape: boxShape([0.5, 0.5, 0.5]),
+      transform: { position: [3, 3, -2], rotation: identityQuaternion() },
+      material: { friction: 0.6, restitution: 0 },
+    });
+
+    let firstContact: IVector3 | undefined;
+    for (let step = 0; step < 300; step += 1) {
+      world.step(1 / 60);
+      firstContact ??= world.getContacts()[0]?.contacts[0]?.position;
+    }
+
+    const box = world.getBody('box');
+    expect(firstContact?.[0]).toBeCloseTo(3, 8);
+    expect(firstContact?.[2]).toBeCloseTo(-2, 8);
+    expect(box?.position[0]).toBeCloseTo(3, 8);
+    expect(box?.position[1]).toBeCloseTo(0.49, 6);
+    expect(box?.position[2]).toBeCloseTo(-2, 8);
+    expect(Math.abs(box?.linearVelocity[1] ?? Infinity)).toBeLessThan(1e-8);
+    expect(Math.abs(box?.angularVelocity[0] ?? Infinity)).toBeLessThan(1e-8);
+    expect(Math.abs(box?.angularVelocity[2] ?? Infinity)).toBeLessThan(1e-8);
+  });
+
+  it.each([
+    {
+      name: 'upright',
+      rotation: identityQuaternion(),
+      expectedY: 0.99,
+    },
+    {
+      name: 'lying on its side',
+      rotation: axisAngleQuat('x', Math.PI / 2),
+      expectedY: 0.49,
+    },
+  ])('keeps a $name cylinder resting on a static floor', ({ rotation, expectedY }) => {
+    const world = createPhysicsWorld({
+      gravity: [0, -9.81, 0],
+      fixedTimestep: 1 / 60,
+      maxSubsteps: 1,
+      allowSleep: false,
+    });
+    // Create the dynamic body first to exercise the reverse body ordering from
+    // the box case above.
+    world.createBody({
+      id: 'cylinder',
+      type: 'dynamic',
+      mass: 1,
+      shape: cylinderShape(0.5, 2),
+      transform: { position: [-2, 3, 1.5], rotation },
+      material: { friction: 0.6, restitution: 0 },
+    });
+    world.createBody({
+      id: 'floor',
+      type: 'static',
+      mass: 0,
+      shape: boxShape([10, 0.5, 10]),
+      transform: { position: [0, -0.5, 0], rotation: identityQuaternion() },
+      material: { friction: 0.6, restitution: 0 },
+    });
+
+    let firstContact: IVector3 | undefined;
+    for (let step = 0; step < 300; step += 1) {
+      world.step(1 / 60);
+      firstContact ??= world.getContacts()[0]?.contacts[0]?.position;
+    }
+
+    const cylinder = world.getBody('cylinder');
+    expect(firstContact?.[0]).toBeCloseTo(-2, 7);
+    expect(firstContact?.[2]).toBeCloseTo(1.5, 7);
+    expect(cylinder?.position[0]).toBeCloseTo(-2, 6);
+    expect(cylinder?.position[1]).toBeCloseTo(expectedY, 5);
+    expect(cylinder?.position[2]).toBeCloseTo(1.5, 6);
+    expect(Math.abs(cylinder?.linearVelocity[1] ?? Infinity)).toBeLessThan(1e-7);
+    expect(Math.abs(cylinder?.angularVelocity[0] ?? Infinity)).toBeLessThan(1e-7);
+    expect(Math.abs(cylinder?.angularVelocity[2] ?? Infinity)).toBeLessThan(1e-7);
   });
 });
