@@ -82,10 +82,10 @@ describe('source-backed deterministic CPU physics receipts', () => {
 
       const receipt = runs[0];
       expect(receipt.receiptCommitment).toBe(
-        '7242b07832ae23e1d6c540cb2c12f99544a901e123875e5db312f72e17190901'
+        '44cd1789119b4dcfcb8f4dad5bf1c1fc81a6f8f23e97901be25650577998080d'
       );
       expect(receipt.result.trajectoryHash).toBe(
-        '2c5e289a9dd56efd4e015f2e344b366ad546fb541877211c592713b1d190cab9'
+        'b4531119dd9b37c2fb85811f2437fb8859bd4f024427bcfffffba347df1c4e2d'
       );
       expect(receipt).toMatchObject({
         schema: HOLO_CPU_PHYSICS_RECEIPT_SCHEMA,
@@ -115,7 +115,7 @@ describe('source-backed deterministic CPU physics receipts', () => {
           canonicalExperimentMutated: false,
           frictionMaterialRegistered: true,
           frictionResponseClaimed: false,
-          cylinderCollisionClaimed: false,
+          cylinderCollisionClaimed: true,
           authoredEulerDegreeConversionExecuted: false,
           nestedObjectTransformCompositionExecuted: false,
           simulationContractClassExecuted: false,
@@ -138,8 +138,10 @@ describe('source-backed deterministic CPU physics receipts', () => {
         authoredMassKg: 0,
         effectiveMassKg: 0,
         shape: {
-          type: 'box',
-          halfExtents: [6, 0.15, 6],
+          type: 'cylinder',
+          radius: 6,
+          height: 0.3,
+          axis: 'y',
         },
       });
       expect(receipt.registration.bodies.find((body) => body.id === 'cistern')).toMatchObject({
@@ -147,6 +149,12 @@ describe('source-backed deterministic CPU physics receipts', () => {
         motionTypeSource: 'explicit-kinematic',
         authoredMassKg: 450,
         effectiveMassKg: 0,
+        shape: {
+          type: 'cylinder',
+          radius: 1.1,
+          height: 1.8,
+          axis: 'y',
+        },
       });
 
       const initialFrame = receipt.observer.frames[0];
@@ -408,20 +416,41 @@ describe('source-backed deterministic CPU physics receipts', () => {
       )
     ).toThrow(/not admitted/);
 
+    const cylinderReceipt = executeHoloCpuPhysicsReceipt(
+      `
+        composition "NativeCylinder" {
+          object "cylinder" @collidable {
+            geometry: "cylinder"
+            radius: 2
+            height: 1
+            @physics { mass: 0 static: true }
+          }
+        }
+      `,
+      { runSeed: 'native-cylinder', steps: 1 }
+    );
+    expect(cylinderReceipt.registration.bodies[0].shape).toEqual({
+      type: 'cylinder',
+      radius: 2,
+      height: 1,
+      axis: 'y',
+    });
+    expect(cylinderReceipt.claimBoundary.cylinderCollisionClaimed).toBe(true);
+
     expect(() =>
       executeHoloCpuPhysicsReceipt(
         `
-          composition "CylinderNeedsProxy" {
-            object "bad-cylinder" @collidable {
+          composition "EllipticCylinder" {
+            object "elliptic-cylinder" @collidable {
               geometry: "cylinder"
-              scale: [10, 1, 10]
+              scale: [4, 1, 2]
               @physics { mass: 0 static: true }
             }
           }
         `,
-        { runSeed: 'cylinder-needs-proxy', steps: 1 }
+        { runSeed: 'elliptic-cylinder', steps: 1 }
       )
-    ).toThrow(/explicit box or sphere collision proxy/);
+    ).toThrow(/requires equal X and Z radii/);
 
     expect(() =>
       executeHoloCpuPhysicsReceipt(

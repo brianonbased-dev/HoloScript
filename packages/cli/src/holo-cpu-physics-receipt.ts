@@ -91,6 +91,12 @@ export type HoloCpuPhysicsShape =
   | {
       readonly type: 'sphere';
       readonly radius: number;
+    }
+  | {
+      readonly type: 'cylinder';
+      readonly radius: number;
+      readonly height: number;
+      readonly axis: 'y';
     };
 
 export interface HoloCpuPhysicsEngineDefaultsSnapshot {
@@ -287,7 +293,7 @@ export interface HoloCpuPhysicsExecutionReceipt {
     readonly canonicalExperimentMutated: false;
     readonly frictionMaterialRegistered: true;
     readonly frictionResponseClaimed: false;
-    readonly cylinderCollisionClaimed: false;
+    readonly cylinderCollisionClaimed: boolean;
     readonly simulationContractClassExecuted: false;
     readonly geometryIntegrityVerified: false;
     readonly unitValidationVerified: false;
@@ -585,9 +591,17 @@ function shapeFromDeclaration(
     };
   }
   if (geometry === 'cylinder') {
-    fail(
-      `${label}.physics.geometry "cylinder" requires an explicit box or sphere collision proxy until the engine cylinder broadphase is repaired`
-    );
+    const radiusX = scale[0] / 2;
+    const radiusZ = scale[2] / 2;
+    if (Math.abs(radiusX - radiusZ) > 1e-9) {
+      fail(`${label}.physics.geometry "cylinder" requires equal X and Z radii`);
+    }
+    return {
+      type: 'cylinder',
+      radius: radiusX,
+      height: scale[1],
+      axis: 'y',
+    };
   }
   fail(`${label}.physics.geometry ${JSON.stringify(geometry)} is not admitted`);
 }
@@ -986,6 +1000,14 @@ function engineShape(registration: HoloCpuPhysicsBodyRegistration): CollisionSha
     return {
       type: 'sphere',
       radius: registration.shape.radius,
+    };
+  }
+  if (registration.shape.type === 'cylinder') {
+    return {
+      type: 'cylinder',
+      radius: registration.shape.radius,
+      height: registration.shape.height,
+      axis: registration.shape.axis,
     };
   }
   fail(`unsupported collision shape for ${registration.id}`);
@@ -1533,7 +1555,9 @@ export function executeHoloCpuPhysicsReceipt(
       canonicalExperimentMutated: false,
       frictionMaterialRegistered: true,
       frictionResponseClaimed: false,
-      cylinderCollisionClaimed: false,
+      cylinderCollisionClaimed: registrations.some(
+        (registration) => registration.shape.type === 'cylinder'
+      ),
       simulationContractClassExecuted: false,
       geometryIntegrityVerified: false,
       unitValidationVerified: false,

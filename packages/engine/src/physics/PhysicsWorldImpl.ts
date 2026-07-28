@@ -74,7 +74,10 @@ function vec3Normalize(v: IVector3): IVector3 {
 }
 
 function rotateVector(v: IVector3, q: IQuaternion): IVector3 {
-  const qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+  const qx = q[0],
+    qy = q[1],
+    qz = q[2],
+    qw = q[3];
   const r00 = 1 - 2 * (qy * qy + qz * qz);
   const r01 = 2 * (qx * qy - qz * qw);
   const r02 = 2 * (qx * qz + qy * qw);
@@ -114,8 +117,10 @@ function vec3TripleProduct(a: IVector3, b: IVector3, c: IVector3): IVector3 {
  * @param position  Body centre in world space
  * @param direction Query direction in world space (need not be unit length)
  * @param rotation  Body orientation quaternion [qx,qy,qz,qw], optional.
- *                  When provided, box support transforms the direction into
- *                  body-local space before selecting extremal vertices.
+ *                  When provided, box and cylinder support transform the
+ *                  direction into body-local space before selecting extremal
+ *                  vertices/points. (Capsule and cone do not yet -- pre-existing,
+ *                  out of scope here.)
  */
 function shapeSupport(
   shape: CollisionShape,
@@ -136,20 +141,28 @@ function shapeSupport(
       if (rotation) {
         // Rotate world direction into body-local frame: localDir = R^T * direction
         // R^T applied to a vector = rotate by conjugate quaternion
-        const qx = rotation[0], qy = rotation[1], qz = rotation[2], qw = rotation[3];
+        const qx = rotation[0],
+          qy = rotation[1],
+          qz = rotation[2],
+          qw = rotation[3];
         // Conjugate quaternion (same rotation, reversed)
-        const cqx = -qx, cqy = -qy, cqz = -qz, cqw = qw;
+        const cqx = -qx,
+          cqy = -qy,
+          cqz = -qz,
+          cqw = qw;
         // Rotate direction by conjugate: q' * v * q
-        const dx = direction[0], dy = direction[1], dz = direction[2];
+        const dx = direction[0],
+          dy = direction[1],
+          dz = direction[2];
         // Quaternion-vector rotation via sandwich product
         const ix = cqw * dx + cqy * dz - cqz * dy;
         const iy = cqw * dy + cqz * dx - cqx * dz;
         const iz = cqw * dz + cqx * dy - cqy * dx;
         const iw = -cqx * dx - cqy * dy - cqz * dz;
         localDir = [
-          ix * cqw + iw * (-cqx) + iy * (-cqz) - iz * (-cqy),
-          iy * cqw + iw * (-cqy) + iz * (-cqx) - ix * (-cqz),
-          iz * cqw + iw * (-cqz) + ix * (-cqy) - iy * (-cqx),
+          ix * cqw + iw * -cqx + iy * -cqz - iz * -cqy,
+          iy * cqw + iw * -cqy + iz * -cqx - ix * -cqz,
+          iz * cqw + iw * -cqz + ix * -cqy - iy * -cqx,
         ];
         // Note: for the conjugate, the rotation of the result is done with the original q.
         // Simplified: use rotation matrix R^T rows (= R columns)
@@ -179,7 +192,10 @@ function shapeSupport(
       ];
       if (rotation) {
         // Rotate support back to world space: worldSupport = R * localSupport
-        const qx = rotation[0], qy = rotation[1], qz = rotation[2], qw = rotation[3];
+        const qx = rotation[0],
+          qy = rotation[1],
+          qz = rotation[2],
+          qw = rotation[3];
         const r00 = 1 - 2 * (qy * qy + qz * qz);
         const r01 = 2 * (qx * qy - qz * qw);
         const r02 = 2 * (qx * qz + qy * qw);
@@ -189,7 +205,9 @@ function shapeSupport(
         const r20 = 2 * (qx * qz - qy * qw);
         const r21 = 2 * (qy * qz + qx * qw);
         const r22 = 1 - 2 * (qx * qx + qy * qy);
-        const lx = localSupport[0], ly = localSupport[1], lz = localSupport[2];
+        const lx = localSupport[0],
+          ly = localSupport[1],
+          lz = localSupport[2];
         return [
           position[0] + r00 * lx + r01 * ly + r02 * lz,
           position[1] + r10 * lx + r11 * ly + r12 * lz,
@@ -232,16 +250,27 @@ function shapeSupport(
       else if (axis === 'z') axisDir = [0, 0, 1];
       else axisDir = [0, 1, 0];
 
-      // Component of direction along axis
-      const dotAxis = vec3Dot(direction, axisDir);
+      // Rotate the query direction into the cylinder's local frame (mirrors
+      // the box case's local-space support pattern above) so the extremal
+      // point can be found using shape.axis directly, then rotate the
+      // resulting local support point back to world space. When `rotation`
+      // is undefined this is a no-op and behavior is byte-identical to the
+      // pre-fix world-space-only logic.
+      const localDir = rotation ? inverseRotateVector(direction, rotation) : direction;
+
+      // Component of localDir along axis
+      const dotAxis = vec3Dot(localDir, axisDir);
       const axisPoint = dotAxis >= 0 ? vec3Scale(axisDir, halfH) : vec3Scale(axisDir, -halfH);
 
-      // Component of direction perpendicular to axis
-      const perpDir = vec3Sub(direction, vec3Scale(axisDir, dotAxis));
+      // Component of localDir perpendicular to axis
+      const perpDir = vec3Sub(localDir, vec3Scale(axisDir, dotAxis));
       const perpLen = vec3Length(perpDir);
       const discPoint: IVector3 = perpLen > 1e-10 ? vec3Scale(perpDir, r / perpLen) : [0, 0, 0];
 
-      return vec3Add(position, vec3Add(axisPoint, discPoint));
+      const localSupport = vec3Add(axisPoint, discPoint);
+      const worldSupport = rotation ? rotateVector(localSupport, rotation) : localSupport;
+
+      return vec3Add(position, worldSupport);
     }
     case 'cone': {
       // Cone along Y-axis: apex at +height/2, base center at -height/2 with given radius
@@ -1203,6 +1232,22 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       return collision;
     }
 
+    // Exact sphere-cylinder contact avoids the same resting-contact GJK/EPA
+    // degeneracy as the sphere-box fast path. The cylinder query is evaluated
+    // in body-local space, so arbitrary body rotation and x/y/z shape axes are
+    // handled without approximating the cylinder as a box.
+    if (bodyA.shape.type === 'sphere' && bodyB.shape.type === 'cylinder') {
+      return this.checkSphereCylinder(bodyA, bodyB);
+    }
+    if (bodyA.shape.type === 'cylinder' && bodyB.shape.type === 'sphere') {
+      const collision = this.checkSphereCylinder(bodyB, bodyA);
+      if (!collision) return null;
+      for (const contact of collision.contacts) {
+        contact.normal = vec3Negate(contact.normal);
+      }
+      return collision;
+    }
+
     // ---- GJK/EPA for all other convex shape pairs ----
     return this.checkGJKEPA(bodyA, bodyB);
   }
@@ -1310,12 +1355,106 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     const normal = rotateVector(normalLocal, boxRotation);
     const closestWorld = vec3Add(boxPosition, rotateVector(closestLocal, boxRotation));
     return {
-      contacts: [{
-        position: closestWorld,
-        normal,
-        penetration,
-        impulse: 0,
-      }],
+      contacts: [
+        {
+          position: closestWorld,
+          normal,
+          penetration,
+          impulse: 0,
+        },
+      ],
+    };
+  }
+
+  /**
+   * Exact sphere versus finite oriented-cylinder contact. The returned normal
+   * follows the world convention and points from the sphere body toward the
+   * cylinder body.
+   */
+  private checkSphereCylinder(
+    sphereBody: RigidBody,
+    cylinderBody: RigidBody
+  ): {
+    contacts: Array<{ position: IVector3; normal: IVector3; penetration: number; impulse: number }>;
+  } | null {
+    const spherePosition = sphereBody.position;
+    const cylinderPosition = cylinderBody.position;
+    const cylinderRotation = cylinderBody.rotation;
+    const sphereRadius = (sphereBody.shape as { radius: number }).radius;
+    const cylinder = cylinderBody.shape as {
+      radius: number;
+      height: number;
+      axis?: 'x' | 'y' | 'z';
+    };
+    const halfHeight = cylinder.height / 2;
+    const axis = cylinder.axis ?? 'y';
+    const axisIndex = axis === 'x' ? 0 : axis === 'z' ? 2 : 1;
+    const axisDirection: IVector3 =
+      axisIndex === 0 ? [1, 0, 0] : axisIndex === 2 ? [0, 0, 1] : [0, 1, 0];
+
+    const sphereLocal = inverseRotateVector(
+      vec3Sub(spherePosition, cylinderPosition),
+      cylinderRotation
+    );
+    const axialCoordinate = sphereLocal[axisIndex];
+    const radialLocal = vec3Sub(sphereLocal, vec3Scale(axisDirection, axialCoordinate));
+    const radialDistance = vec3Length(radialLocal);
+    const clampedAxial = Math.max(-halfHeight, Math.min(halfHeight, axialCoordinate));
+    const closestRadial =
+      radialDistance > cylinder.radius
+        ? vec3Scale(radialLocal, cylinder.radius / radialDistance)
+        : radialLocal;
+    const closestLocal = vec3Add(closestRadial, vec3Scale(axisDirection, clampedAxial));
+    const sphereToClosestLocal = vec3Sub(closestLocal, sphereLocal);
+    const distanceSquared = vec3LengthSq(sphereToClosestLocal);
+    if (distanceSquared >= sphereRadius * sphereRadius) return null;
+
+    let normalLocal: IVector3;
+    let penetration: number;
+    if (distanceSquared > 1e-20) {
+      const distance = Math.sqrt(distanceSquared);
+      normalLocal = vec3Scale(sphereToClosestLocal, 1 / distance);
+      penetration = sphereRadius - distance;
+    } else {
+      // The sphere centre is inside or exactly on the cylinder. Select the
+      // nearest cylinder surface, then point the correction normal inward so
+      // subtracting it pushes the sphere out through that surface.
+      const sideDistance = cylinder.radius - radialDistance;
+      const capDistance = halfHeight - Math.abs(axialCoordinate);
+      if (capDistance <= sideDistance) {
+        const outwardSign = axialCoordinate >= 0 ? 1 : -1;
+        normalLocal = vec3Scale(axisDirection, -outwardSign);
+        closestLocal[axisIndex] = outwardSign * halfHeight;
+        penetration = sphereRadius + capDistance;
+      } else {
+        let outwardRadial: IVector3;
+        if (radialDistance > 1e-10) {
+          outwardRadial = vec3Scale(radialLocal, 1 / radialDistance);
+        } else if (axisIndex === 0) {
+          outwardRadial = [0, 1, 0];
+        } else {
+          outwardRadial = [1, 0, 0];
+        }
+        normalLocal = vec3Negate(outwardRadial);
+        const surfaceRadial = vec3Scale(outwardRadial, cylinder.radius);
+        closestLocal[0] = surfaceRadial[0] + axisDirection[0] * axialCoordinate;
+        closestLocal[1] = surfaceRadial[1] + axisDirection[1] * axialCoordinate;
+        closestLocal[2] = surfaceRadial[2] + axisDirection[2] * axialCoordinate;
+        penetration = sphereRadius + sideDistance;
+      }
+    }
+
+    const normal = rotateVector(normalLocal, cylinderRotation);
+    const closestWorld = vec3Add(cylinderPosition, rotateVector(closestLocal, cylinderRotation));
+    return {
+      contacts: [
+        {
+          position: closestWorld,
+          normal,
+          penetration,
+          impulse: 0,
+        },
+      ],
     };
   }
 
@@ -1357,15 +1496,33 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
 
     const penetration = epaResult.penetration;
 
-    // Step 3: Approximate contact point
-    // Use support points on each shape along the contact normal direction
+    // Step 3: Approximate a stable contact point on the shared support plane.
+    //
+    // Averaging the raw support points is unstable when a support direction
+    // is perpendicular to a flat face: components tied at zero select an
+    // arbitrary corner. A box floor queried along +Y, for example, returns
+    // its (+X,+Y,+Z) corner. That false tangential offset creates a huge
+    // lever arm, diverts the normal impulse into angular velocity, and lets
+    // otherwise valid GJK/EPA resting contacts tunnel through the floor.
+    //
+    // Preserve only the support points' scalar coordinates along the contact
+    // normal. When only one body has inverse mass, anchor the tangential
+    // coordinates at that movable body's centre; otherwise use the midpoint.
+    // This keeps the existing one-point manifold approximation while removing
+    // the arbitrary support-corner torque.
     const supportA = shapeSupport(bodyA.shape, posA, normal, rotA);
     const supportB = shapeSupport(bodyB.shape, posB, vec3Negate(normal), rotB);
-    const contactPoint: IVector3 = [
-      (supportA[0] + supportB[0]) / 2,
-      (supportA[1] + supportB[1]) / 2,
-      (supportA[2] + supportB[2]) / 2,
-    ];
+    const supportPlane = (vec3Dot(supportA, normal) + vec3Dot(supportB, normal)) / 2;
+    const tangentialAnchor: IVector3 =
+      bodyA.inverseMass === 0 && bodyB.inverseMass > 0
+        ? posB
+        : bodyB.inverseMass === 0 && bodyA.inverseMass > 0
+          ? posA
+          : vec3Scale(vec3Add(posA, posB), 0.5);
+    const contactPoint = vec3Add(
+      tangentialAnchor,
+      vec3Scale(normal, supportPlane - vec3Dot(tangentialAnchor, normal))
+    );
 
     return {
       contacts: [
@@ -1401,7 +1558,10 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     n: IVector3
   ): number {
     // Build rotation matrix from quaternion
-    const qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+    const qx = q[0],
+      qy = q[1],
+      qz = q[2],
+      qw = q[3];
     const r00 = 1 - 2 * (qy * qy + qz * qz);
     const r01 = 2 * (qx * qy - qz * qw);
     const r02 = 2 * (qx * qz + qy * qw);
@@ -1476,16 +1636,8 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       const posA = bodyA.position;
       const posB = bodyB.position;
       const contactPt = contact.position;
-      const rA: IVector3 = [
-        contactPt[0] - posA[0],
-        contactPt[1] - posA[1],
-        contactPt[2] - posA[2],
-      ];
-      const rB: IVector3 = [
-        contactPt[0] - posB[0],
-        contactPt[1] - posB[1],
-        contactPt[2] - posB[2],
-      ];
+      const rA: IVector3 = [contactPt[0] - posA[0], contactPt[1] - posA[1], contactPt[2] - posA[2]];
+      const rB: IVector3 = [contactPt[0] - posB[0], contactPt[1] - posB[1], contactPt[2] - posB[2]];
 
       // Relative velocity at contact point (including angular contribution)
       // v_contact = v_linear + ω × r
@@ -1504,8 +1656,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       ];
 
       const relVel: IVector3 = [vB[0] - vA[0], vB[1] - vA[1], vB[2] - vA[2]];
-      const normalVelocity =
-        relVel[0] * normal[0] + relVel[1] * normal[1] + relVel[2] * normal[2];
+      const normalVelocity = relVel[0] * normal[0] + relVel[1] * normal[1] + relVel[2] * normal[2];
 
       // Don't resolve if separating
       if (normalVelocity > 0) continue;
@@ -1534,11 +1685,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       const impulseMag = (-(1 + restitution) * normalVelocity) / denom;
 
       // Apply linear impulse
-      const jn: IVector3 = [
-        normal[0] * impulseMag,
-        normal[1] * impulseMag,
-        normal[2] * impulseMag,
-      ];
+      const jn: IVector3 = [normal[0] * impulseMag, normal[1] * impulseMag, normal[2] * impulseMag];
       bodyA.applySolverImpulse([-jn[0], -jn[1], -jn[2]]);
       bodyB.applySolverImpulse(jn);
 
@@ -1970,7 +2117,10 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
    *
    * This is the standard tight AABB formula for an oriented box.  Spheres are
    * symmetric so orientation has no effect.  Capsules are treated as spheres
-   * around the full swept segment (conservative, axis-independent).
+   * around the full swept segment (conservative, axis-independent; capsules
+   * do not yet account for orientation -- pre-existing, out of scope here).
+   * Cylinders use the tight oriented-cylinder formula documented on their
+   * case below.
    */
   private getBodyAABB(body: RigidBody): IAABB {
     const pos = body.position;
@@ -1981,9 +2131,14 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
         // Rotate box half-extents by the body's orientation quaternion.
         // R[i][j] from quaternion q = [qx, qy, qz, qw]:
         const q = body.rotation; // [qx, qy, qz, qw]
-        const qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+        const qx = q[0],
+          qy = q[1],
+          qz = q[2],
+          qw = q[3];
         const he = body.shape.halfExtents;
-        const hx = he[0], hy = he[1], hz = he[2];
+        const hx = he[0],
+          hy = he[1],
+          hz = he[2];
 
         // Rotation matrix columns (world-space axes expressed in local frame):
         //   R = [[1-2(qy²+qz²), 2(qxqy-qzqw), 2(qxqz+qywq)],
@@ -2019,6 +2174,39 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
           body.shape.radius,
         ];
         break;
+      case 'cylinder': {
+        // Tight world-space AABB for an oriented cylinder.
+        //
+        // Let h = height/2, r = radius, and A = R * a be the cylinder's local
+        // unit axis `a` (from shape.axis, default 'y') rotated into world
+        // space by the body's orientation quaternion. The cylinder boundary
+        // (lateral tube; the flat end-caps contribute nothing beyond the
+        // tube's t=±h extremes since a linear functional over a disk is
+        // maximized on its boundary) parametrizes as p(t,theta) = t*A +
+        // r*(cos(theta)*U + sin(theta)*V) for an orthonormal basis {A,U,V}.
+        // Projecting onto world axis e_i and maximizing independently over
+        // t and theta gives:
+        //   halfExtent[i] = h*|A_i| + r*sqrt(max(0, 1 - A_i^2))
+        // (the (U_i^2 + V_i^2) = 1 - A_i^2 identity follows from {A,U,V}
+        // being an orthonormal basis for e_i). The max(0, ...) clamp guards
+        // against floating-point roundoff near axis alignment.
+        const h = body.shape.height / 2;
+        const r = body.shape.radius;
+        const axis = body.shape.axis ?? 'y';
+        let localAxis: IVector3;
+        if (axis === 'x') localAxis = [1, 0, 0];
+        else if (axis === 'z') localAxis = [0, 0, 1];
+        else localAxis = [0, 1, 0];
+
+        const A = rotateVector(localAxis, body.rotation);
+
+        halfExtents = [
+          h * Math.abs(A[0]) + r * Math.sqrt(Math.max(0, 1 - A[0] * A[0])),
+          h * Math.abs(A[1]) + r * Math.sqrt(Math.max(0, 1 - A[1] * A[1])),
+          h * Math.abs(A[2]) + r * Math.sqrt(Math.max(0, 1 - A[2] * A[2])),
+        ];
+        break;
+      }
       default:
         halfExtents = [1, 1, 1];
     }

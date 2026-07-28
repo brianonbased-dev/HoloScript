@@ -667,6 +667,17 @@ export function capsuleShape(
 }
 
 /**
+ * Create a cylinder collision shape.
+ */
+export function cylinderShape(
+  radius: number,
+  height: number,
+  axis: 'x' | 'y' | 'z' = 'y'
+): ICylinderShape {
+  return { type: 'cylinder', radius, height, axis };
+}
+
+/**
  * Create a dynamic rigid body config
  */
 export function dynamicBody(
