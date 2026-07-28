@@ -184,6 +184,7 @@ describe('CharacterWebGPUCompiler', () => {
     expect(groom).toMatchObject({
       schemaVersion: 'holoscript.agent-avatar-groom-geometry.v1',
       profile: 'scalp-flow-v1',
+      scalpSurface: 'legacy-sphere',
     });
     expect(groom.rootTangentRadialDotP95).toBeLessThan(0.01);
     expect(groom.vertexCount).toBeGreaterThan(0);

@@ -219,6 +219,26 @@ describe('hair — procedural geometry (pure data)', () => {
     expect(resolveAgentAvatarGroomProfile('billboard_wig_v9')).toBeUndefined();
   });
 
+  it('aligns scalp-flow roots and cap to the neutral anatomical head ellipsoid', () => {
+    const legacySurface = buildAgentAvatarHair({
+      groomProfile: 'scalp-flow-v1',
+      guides: 24,
+      cardsPerGuide: 1,
+      segments: 3,
+    });
+    const neutralSurface = buildAgentAvatarHair({
+      groomProfile: 'scalp-flow-v1',
+      faceTopology: 'neutral-anatomical-v2',
+      guides: 24,
+      cardsPerGuide: 1,
+      segments: 3,
+    });
+
+    expect(legacySurface.groom?.scalpSurface).toBe('legacy-sphere');
+    expect(neutralSurface.groom?.scalpSurface).toBe('neutral-anatomical-ellipsoid');
+    expect(neutralSurface.positions[1] - legacySurface.positions[1]).toBeGreaterThan(0.06);
+  });
+
   it('scalp-flow derives tangent, taper, hairline, and topology evidence from emitted geometry', () => {
     const legacy = buildAgentAvatarHair({
       style: 'medium_wavy',
@@ -262,6 +282,7 @@ describe('hair — procedural geometry (pure data)', () => {
       hairlineBias: 0.16,
       requestedGuideCount: 72,
       cardCount: scalpFlow.groom!.emittedGuideCount,
+      scalpSurface: 'legacy-sphere',
       scalpCapVertexCount: 197,
       scalpCapTriangleCount: 364,
       vertexCount: scalpFlow.vertexCount,

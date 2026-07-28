@@ -104,6 +104,7 @@ describe('buildCharacterHostFromComposition', () => {
           name: 'ScalpFlow',
           traits: [
             { name: 'body', config: { height: 1.78 } },
+            { name: 'face', config: { topology: 'neutral_anatomical_v2' } },
             {
               name: 'hair',
               config: {
@@ -129,6 +130,7 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.groom).toMatchObject({
       schemaVersion: 'holoscript.agent-avatar-groom-geometry.v1',
       profile: 'scalp-flow-v1',
+      scalpSurface: 'neutral-anatomical-ellipsoid',
       rootLift: 0.002,
       tipTaper: 0.1,
       hairlineBias: 0.16,
