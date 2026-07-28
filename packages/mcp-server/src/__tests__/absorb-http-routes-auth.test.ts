@@ -29,7 +29,11 @@ function makeRes() {
     res,
     status: () => status,
     json: () => {
-      try { return JSON.parse(payload); } catch (error) { throw new Error(`Invalid JSON test payload: ${String(error)}`); }
+      try {
+        return JSON.parse(payload);
+      } catch (error) {
+        throw new Error(`Invalid JSON test payload: ${String(error)}`);
+      }
     },
   };
 }
@@ -57,7 +61,9 @@ describe('absorb HTTP proxy auth boundary', () => {
   });
 
   it('forwards the caller Authorization header to absorb-service', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
+    );
     vi.stubGlobal('fetch', fetchMock);
     const out = makeRes();
 
@@ -79,7 +85,9 @@ describe('absorb HTTP proxy auth boundary', () => {
   });
 
   it('accepts x-api-key as an explicit caller credential', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
+    );
     vi.stubGlobal('fetch', fetchMock);
     const out = makeRes();
 

@@ -85,7 +85,8 @@ function createSdkBundle(payload: unknown, code: string, sceneName?: string): st
     isRecord(result) && 'output' in result
       ? {
           ...result,
-          output: typeof result.output === 'string' ? parseJsonString(result.output) : result.output,
+          output:
+            typeof result.output === 'string' ? parseJsonString(result.output) : result.output,
         }
       : result;
   const files = isRecord(expandedResult) ? expandedResult.output : undefined;

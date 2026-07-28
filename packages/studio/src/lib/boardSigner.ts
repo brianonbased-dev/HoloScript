@@ -86,7 +86,9 @@ export function canonicalizeBody(value: unknown): string {
 }
 
 /** Build the exact byte-string the server expects to have been signed. */
-export function buildSigningPayload(env: Pick<SignedEnvelope, 'body' | 'nonce' | 'timestamp'>): string {
+export function buildSigningPayload(
+  env: Pick<SignedEnvelope, 'body' | 'nonce' | 'timestamp'>
+): string {
   return canonicalizeBody({ body: env.body, nonce: env.nonce, timestamp: env.timestamp });
 }
 

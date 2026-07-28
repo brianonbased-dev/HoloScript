@@ -31,9 +31,7 @@ const MCP_BASE = (
 const MCP_KEY = process.env.HOLOSCRIPT_API_KEY || process.env.HOLOMESH_API_KEY || '';
 
 const SEAT_ID =
-  process.env.HOLOSHELL_SEAT_ID ||
-  process.env.HOLOMESH_AGENT_SURFACE ||
-  'local-win-x64';
+  process.env.HOLOSHELL_SEAT_ID || process.env.HOLOMESH_AGENT_SURFACE || 'local-win-x64';
 
 export async function GET() {
   const HOLOSHELL_API_URL = resolveHoloShellApiUrl();

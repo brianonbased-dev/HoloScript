@@ -9,7 +9,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Canonical studio domain is holoscript.studio (NOT the legacy studio.holoscript.net
   // subdomain) — keep this consistent with metadata.ts so studio surfaces live on .studio.
   const base =
-    process.env.NEXT_PUBLIC_STUDIO_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://holoscript.studio';
+    process.env.NEXT_PUBLIC_STUDIO_URL ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    'https://holoscript.studio';
   const now = new Date();
 
   return [

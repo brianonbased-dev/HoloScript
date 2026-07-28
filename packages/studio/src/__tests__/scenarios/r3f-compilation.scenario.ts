@@ -16,7 +16,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SceneIRCompiler as R3FCompiler, HoloCompositionParser, HoloScriptPlusParser } from '@holoscript/core';
+import {
+  SceneIRCompiler as R3FCompiler,
+  HoloCompositionParser,
+  HoloScriptPlusParser,
+} from '@holoscript/core';
 import {
   compileHoloToR3F,
   compileHsplusToR3F,

@@ -16,14 +16,18 @@ import { parseHolo } from '@holoscript/core';
  * route and the quest-proof/native precedent: ".Native2DCompiler is not a
  * constructor" while node resolves the same dist exports as functions).
  */
-async function loadNative2DCompiler(): Promise<new () => {
-  compile(ast: never, a: string, b: undefined, opts: { format: string }): unknown;
-}> {
+async function loadNative2DCompiler(): Promise<
+  new () => {
+    compile(ast: never, a: string, b: undefined, opts: { format: string }): unknown;
+  }
+> {
   const mod = (await import('@holoscript/core/compiler')) as Record<string, unknown> & {
     default?: Record<string, unknown>;
   };
   const ctor = (mod.Native2DCompiler ?? mod.default?.Native2DCompiler) as
-    | (new () => { compile(ast: never, a: string, b: undefined, opts: { format: string }): unknown })
+    | (new () => {
+        compile(ast: never, a: string, b: undefined, opts: { format: string }): unknown;
+      })
     | undefined;
   if (typeof ctor !== 'function') {
     throw new Error(
@@ -56,7 +60,11 @@ function safeName(name: string): boolean {
   return /^[A-Za-z0-9._-]+$/.test(name);
 }
 
-function buildHoloSource(manifest: { count: number; generatedAt: string; receipts: ReceiptRow[] }): string {
+function buildHoloSource(manifest: {
+  count: number;
+  generatedAt: string;
+  receipts: ReceiptRow[];
+}): string {
   const rows = manifest.receipts
     .filter((r) => safeName(r.name))
     .map(
@@ -95,10 +103,10 @@ ${rows}
 export async function GET() {
   const manifest = loadManifest();
   if (!manifest) {
-    return new Response(
-      'No receipt manifest — run `pnpm sync:gold-game` in packages/studio.',
-      { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } }
-    );
+    return new Response('No receipt manifest — run `pnpm sync:gold-game` in packages/studio.', {
+      status: 503,
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    });
   }
   let html: string;
   try {

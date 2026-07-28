@@ -54,7 +54,9 @@ function run(cmd, cwd = repoRoot) {
 
 function extractHoloFiles() {
   if (!existsSync(holoFile)) {
-    throw new Error(`studio.ui.holo not found at ${holoFile} — run 'node packages/studio-ui-graph/dist/cli.js generate' first`);
+    throw new Error(
+      `studio.ui.holo not found at ${holoFile} — run 'node packages/studio-ui-graph/dist/cli.js generate' first`
+    );
   }
 
   const content = readFileSync(holoFile, 'utf8');
@@ -94,8 +96,16 @@ function getHoloMtime() {
 // React.lazy patterns) by reading files directly — avoids shell-quoting issues.
 
 const IGNORED_DIRS = new Set([
-  '.git', '.next', 'coverage', 'dist', 'node_modules', 'out',
-  'playwright-report', 'test-results', '__tests__', '__mocks__',
+  '.git',
+  '.next',
+  'coverage',
+  'dist',
+  'node_modules',
+  'out',
+  'playwright-report',
+  'test-results',
+  '__tests__',
+  '__mocks__',
 ]);
 
 function walkFiles(root, predicate = () => true) {
@@ -135,15 +145,16 @@ function collectDynamicImportPaths() {
   // Import expressions: import('@/...') or import("@/...")
   const DYNAMIC_IMPORT_RE = /import\(['"](@\/[^'"]+)['"]\)/g;
 
-  const searchRoots = [
-    join(studioRoot, 'src', 'app'),
-    join(studioRoot, 'src', 'components'),
-  ];
+  const searchRoots = [join(studioRoot, 'src', 'app'), join(studioRoot, 'src', 'components')];
 
   for (const root of searchRoots) {
     for (const file of walkFiles(root, isSourceFile)) {
       let content;
-      try { content = readFileSync(file, 'utf8'); } catch { continue; }
+      try {
+        content = readFileSync(file, 'utf8');
+      } catch {
+        continue;
+      }
       for (const m of content.matchAll(DYNAMIC_IMPORT_RE)) {
         const resolved = resolveAliasToRelative(m[1]);
         if (!resolved) continue;
@@ -218,7 +229,11 @@ function rgFiles(pattern, searchPath) {
       cwd: repoRoot,
       encoding: 'utf8',
       maxBuffer: 8 * 1024 * 1024,
-    }).trim().split('\n').filter(Boolean).map(normalizePath);
+    })
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map(normalizePath);
   } catch {
     return [];
   }
@@ -229,17 +244,17 @@ function secondPassRipgrep(repoRelPath) {
   const absCandidate = normalizePath(join(repoRoot, repoRelPath));
 
   // Search src tree for the basename string
-  const srcHits = rgFiles(base, 'packages/studio/src')
-    .filter((hit) => {
-      const absHit = normalizePath(join(repoRoot, hit));
-      if (absHit === absCandidate) return false; // own file
-      if (TEST_FILE_PATTERN.test(hit)) return false; // test files
-      return true;
-    });
+  const srcHits = rgFiles(base, 'packages/studio/src').filter((hit) => {
+    const absHit = normalizePath(join(repoRoot, hit));
+    if (absHit === absCandidate) return false; // own file
+    if (TEST_FILE_PATTERN.test(hit)) return false; // test files
+    return true;
+  });
 
   // Search panel .holo registry files
-  const panelHits = rgFiles(base, 'packages/studio/src/lib/studio/panels')
-    .filter((h) => h.endsWith('.holo'));
+  const panelHits = rgFiles(base, 'packages/studio/src/lib/studio/panels').filter((h) =>
+    h.endsWith('.holo')
+  );
 
   const allHits = [...new Set([...srcHits, ...panelHits])];
   return allHits;
@@ -268,11 +283,7 @@ const entryStaticImports = collectStaticEntryImports([
 ]);
 
 // Merge all reachable paths
-const reachable = new Set([
-  ...holoReachable,
-  ...dynamicImports,
-  ...entryStaticImports,
-]);
+const reachable = new Set([...holoReachable, ...dynamicImports, ...entryStaticImports]);
 
 // Add explicit well-known entries (roots that are themselves reachable)
 const explicitRoots = [

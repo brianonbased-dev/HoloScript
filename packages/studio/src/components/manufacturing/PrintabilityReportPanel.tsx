@@ -84,9 +84,7 @@ function Badge({
     <div className="flex items-center justify-between text-[11px] py-1.5 border-b border-studio-border/30 last:border-0">
       <span className="text-studio-muted">{label}</span>
       <div
-        className={`flex items-center gap-1 font-medium ${
-          ok ? 'text-green-400' : 'text-red-400'
-        }`}
+        className={`flex items-center gap-1 font-medium ${ok ? 'text-green-400' : 'text-red-400'}`}
       >
         {ok ? (
           <CheckCircle2 className="h-3.5 w-3.5" aria-label="pass" />

@@ -38,9 +38,7 @@ export function GamePreviewCanvas({ result, building = false }: GamePreviewCanva
       {/* Label */}
       <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-2.5 py-1 backdrop-blur text-[10px] text-white/40 font-mono">
         Game Preview
-        {result && (
-          <span className="text-indigo-400/70">{result.report.title}</span>
-        )}
+        {result && <span className="text-indigo-400/70">{result.report.title}</span>}
       </div>
 
       {/* Controls hint */}

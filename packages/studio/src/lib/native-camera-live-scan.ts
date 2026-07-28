@@ -153,7 +153,9 @@ function decodeArCoreDepthPlane(
     typeof (raw as Record<string, unknown>).width !== 'number' ||
     typeof (raw as Record<string, unknown>).height !== 'number'
   ) {
-    throw new Error('nativeFrame.arCoreDepthPlane must be an object with width, height, millimeters16Base64');
+    throw new Error(
+      'nativeFrame.arCoreDepthPlane must be an object with width, height, millimeters16Base64'
+    );
   }
   const plane = raw as NativeCameraArCoreDepthPlane;
   const dw = plane.width;
@@ -199,7 +201,9 @@ function decodeArCoreDepthPlane(
     stride,
     rgb: rgbBytes,
     depthImage16Bits: { width: dw, height: dh, millimeters },
-    ...(confidenceValues ? { rawDepthConfidenceImage: { width: dw, height: dh, values: confidenceValues } } : {}),
+    ...(confidenceValues
+      ? { rawDepthConfidenceImage: { width: dw, height: dh, values: confidenceValues } }
+      : {}),
   });
 
   const depth = new Float32Array(bundleFrame.sceneDepth!.values as Float32Array);

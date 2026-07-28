@@ -81,7 +81,11 @@ describe('registerHoloClawFleetAgent', () => {
     expect(calls[1].url).toBe(`${BASE}/api/holomesh/team/${TEAM}/heartbeat`);
     expect(calls[1].init.method).toBe('POST');
     const hbBody = JSON.parse(calls[1].init.body as string);
-    expect(hbBody).toEqual({ agentId: reg!.agentId, agentName: 'holoclaw-research', role: 'member' });
+    expect(hbBody).toEqual({
+      agentId: reg!.agentId,
+      agentName: 'holoclaw-research',
+      role: 'member',
+    });
   });
 
   it('treats a 404 fleet registry as soft-registered and still heartbeats', async () => {

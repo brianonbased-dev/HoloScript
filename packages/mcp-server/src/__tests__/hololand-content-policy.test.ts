@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  buildContentPolicyConfig,
-  evaluateContentPolicySync,
-} from '@holoscript/core/policy';
+import { buildContentPolicyConfig, evaluateContentPolicySync } from '@holoscript/core/policy';
 import {
   runAdmissionGate,
   toAuditEventInput,

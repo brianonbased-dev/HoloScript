@@ -91,10 +91,12 @@ export function TemplatePicker({ onClose }: TemplatePickerProps) {
   const [loadingTemplates, setLoadingTemplates] = useState(true);
 
   useEffect(() => {
-    import('@/lib/sceneTemplates').then((m) => {
-      setTemplatesList(m.SCENE_TEMPLATES);
-      setSearchFn(() => m.searchTemplates);
-    }).finally(() => setLoadingTemplates(false));
+    import('@/lib/sceneTemplates')
+      .then((m) => {
+        setTemplatesList(m.SCENE_TEMPLATES);
+        setSearchFn(() => m.searchTemplates);
+      })
+      .finally(() => setLoadingTemplates(false));
   }, []);
 
   const setCode = useSceneStore((s) => s.setCode);

@@ -5,117 +5,164 @@ import { useSecurityPresence } from '@/components/coordinator-panels/TraitRuntim
 export function AdminDashboardComponent() {
   const { stats, auditLog } = useSecurityPresence();
 
-
   const recent = auditLog.slice(-20).reverse();
 
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="4f0e9c40712c98d5acd7130f4ac62dd1b4a3c34e6c2d6b7672fbc73a7c578e16">
-      <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
-      
-      <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
-      {`Security & compliance`}
-      
-    </h3>
-<div className="grid grid-cols-2 gap-2">
-      
-      <div style={{"display":"flex","flexDirection":"column","gap":"2px"}} className="rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-accent">
-      
-      <span className="text-sm text-[10px] uppercase tracking-wide text-studio-muted">
-      {`Sessions`}
-      
-    </span>
-<h2 data-holo-projects="stats.sessions.authenticated" className="text-3xl font-bold text-lg font-semibold text-studio-text">
-      {stats?.sessions?.authenticated ?? "0"}
-      
-    </h2>
-<span data-holo-projects="stats.sessions.revoked" className="text-sm text-[10px] text-studio-muted">
-      {`${(stats?.sessions?.revoked ?? 0)} revoked`}
-      
-    </span>
-    </div>
-<div style={{"display":"flex","flexDirection":"column","gap":"2px"}} className="rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-accent">
-      
-      <span className="text-sm text-[10px] uppercase tracking-wide text-studio-muted">
-      {`Agents tracked`}
-      
-    </span>
-<h2 data-holo-projects="stats.agents.tracked" className="text-3xl font-bold text-lg font-semibold text-studio-text">
-      {stats?.agents?.tracked ?? "0"}
-      
-    </h2>
-<span className="text-sm text-[10px] text-studio-muted">
-      {`RBAC scope`}
-      
-    </span>
-    </div>
-<div style={{"display":"flex","flexDirection":"column","gap":"2px"}} className="rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-accent">
-      
-      <span className="text-sm text-[10px] uppercase tracking-wide text-studio-muted">
-      {`Tenants active`}
-      
-    </span>
-<h2 data-holo-projects="stats.tenants.active" className="text-3xl font-bold text-lg font-semibold text-studio-text">
-      {stats?.tenants?.active ?? "0"}
-      
-    </h2>
-<span data-holo-projects="stats.tenants.suspended" className="text-sm text-[10px] text-studio-muted">
-      {`${(stats?.tenants?.suspended ?? 0)} suspended`}
-      
-    </span>
-    </div>
-<div style={{"display":"flex","flexDirection":"column","gap":"2px"}} className="rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-border">
-      
-      <span className="text-sm text-[10px] uppercase tracking-wide text-studio-muted">
-      {`Quotas exceeded`}
-      
-    </span>
-<h2 data-holo-projects="stats.quotas.exceeded" className={`text-3xl font-bold text-lg font-semibold ${(stats?.quotas?.exceeded ?? 0) >= 1 ? "text-studio-error" : "text-studio-text"}`}>
-      {stats?.quotas?.exceeded ?? "0"}
-      
-    </h2>
-<span data-holo-projects="stats.quotas.tracked" className="text-sm text-[10px] text-studio-muted">
-      {`${(stats?.quotas?.tracked ?? 0)} tracked`}
-      
-    </span>
-    </div>
-    </div>
-<h3 className="text-xl font-semibold text-xs font-semibold text-studio-text-secondary">
-      {`Recent audit`}
-      
-    </h3>
-{(auditLog?.length) === 0 && (
-      <span className="text-sm text-[10px] italic text-studio-muted">
-        {`No audit events observed yet.`}
-        
-      </span>
-    )}
-{(auditLog?.length ?? 0) > 0 && (
-      <div style={{"display":"flex","flexDirection":"column","gap":"2px"}} className="max-h-60 overflow-y-auto">
-        
-        {(recent ?? []).map((entry, i) => (
-        <div data-holo-projects="recent" style={{"display":"flex","flexDirection":"row","justifyContent":"space-between","alignItems":"center","gap":"6px"}} className="border-b border-studio-border py-1 text-[11px]" key={i}>
-          
-          <span data-holo-projects="entry.event" className="text-sm text-studio-text-secondary">
-          {entry?.event ?? "—"}
-          
-        </span>
-    <span data-holo-projects="entry.actor" className="text-sm text-studio-muted">
-          {entry?.actor ?? "—"}
-          
-        </span>
-    <span data-holo-projects="entry.outcome" className={`text-sm font-semibold ${(entry?.outcome ?? '') === "denied" ? "text-studio-error" : (entry?.outcome ?? '') === "error" ? "text-studio-error" : (entry?.outcome ?? '') === "success" ? "text-studio-success" : "text-studio-muted"}`}>
-          {entry?.outcome ?? ""}
-          
-        </span>
+    <div
+      className="holoscript-2d-root w-full h-full"
+      data-holo-view-contract="4f0e9c40712c98d5acd7130f4ac62dd1b4a3c34e6c2d6b7672fbc73a7c578e16"
+    >
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+        className="p-3 h-full overflow-y-auto text-xs text-studio-text"
+      >
+        <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
+          {`Security & compliance`}
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}
+            className="rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-accent"
+          >
+            <span className="text-sm text-[10px] uppercase tracking-wide text-studio-muted">
+              {`Sessions`}
+            </span>
+            <h2
+              data-holo-projects="stats.sessions.authenticated"
+              className="text-3xl font-bold text-lg font-semibold text-studio-text"
+            >
+              {stats?.sessions?.authenticated ?? '0'}
+            </h2>
+            <span
+              data-holo-projects="stats.sessions.revoked"
+              className="text-sm text-[10px] text-studio-muted"
+            >
+              {`${stats?.sessions?.revoked ?? 0} revoked`}
+            </span>
+          </div>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}
+            className="rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-accent"
+          >
+            <span className="text-sm text-[10px] uppercase tracking-wide text-studio-muted">
+              {`Agents tracked`}
+            </span>
+            <h2
+              data-holo-projects="stats.agents.tracked"
+              className="text-3xl font-bold text-lg font-semibold text-studio-text"
+            >
+              {stats?.agents?.tracked ?? '0'}
+            </h2>
+            <span className="text-sm text-[10px] text-studio-muted">{`RBAC scope`}</span>
+          </div>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}
+            className="rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-accent"
+          >
+            <span className="text-sm text-[10px] uppercase tracking-wide text-studio-muted">
+              {`Tenants active`}
+            </span>
+            <h2
+              data-holo-projects="stats.tenants.active"
+              className="text-3xl font-bold text-lg font-semibold text-studio-text"
+            >
+              {stats?.tenants?.active ?? '0'}
+            </h2>
+            <span
+              data-holo-projects="stats.tenants.suspended"
+              className="text-sm text-[10px] text-studio-muted"
+            >
+              {`${stats?.tenants?.suspended ?? 0} suspended`}
+            </span>
+          </div>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}
+            className="rounded-md p-2 bg-studio-panel/40 border-l-2 border-studio-border"
+          >
+            <span className="text-sm text-[10px] uppercase tracking-wide text-studio-muted">
+              {`Quotas exceeded`}
+            </span>
+            <h2
+              data-holo-projects="stats.quotas.exceeded"
+              className={`text-3xl font-bold text-lg font-semibold ${(stats?.quotas?.exceeded ?? 0) >= 1 ? 'text-studio-error' : 'text-studio-text'}`}
+            >
+              {stats?.quotas?.exceeded ?? '0'}
+            </h2>
+            <span
+              data-holo-projects="stats.quotas.tracked"
+              className="text-sm text-[10px] text-studio-muted"
+            >
+              {`${stats?.quotas?.tracked ?? 0} tracked`}
+            </span>
+          </div>
         </div>
-      ))}
+        <h3 className="text-xl font-semibold text-xs font-semibold text-studio-text-secondary">
+          {`Recent audit`}
+        </h3>
+        {auditLog?.length === 0 && (
+          <span className="text-sm text-[10px] italic text-studio-muted">
+            {`No audit events observed yet.`}
+          </span>
+        )}
+        {(auditLog?.length ?? 0) > 0 && (
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}
+            className="max-h-60 overflow-y-auto"
+          >
+            {(recent ?? []).map((entry, i) => (
+              <div
+                data-holo-projects="recent"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                className="border-b border-studio-border py-1 text-[11px]"
+                key={i}
+              >
+                <span
+                  data-holo-projects="entry.event"
+                  className="text-sm text-studio-text-secondary"
+                >
+                  {entry?.event ?? '—'}
+                </span>
+                <span data-holo-projects="entry.actor" className="text-sm text-studio-muted">
+                  {entry?.actor ?? '—'}
+                </span>
+                <span
+                  data-holo-projects="entry.outcome"
+                  className={`text-sm font-semibold ${(entry?.outcome ?? '') === 'denied' ? 'text-studio-error' : (entry?.outcome ?? '') === 'error' ? 'text-studio-error' : (entry?.outcome ?? '') === 'success' ? 'text-studio-success' : 'text-studio-muted'}`}
+                >
+                  {entry?.outcome ?? ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    )}
-    </div>
     </div>
   );
 }
 
 export default AdminDashboardComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"AgentsValue","node":"stats.agents.tracked","identity":true},{"element":"AuditActor","node":"entry.actor","identity":true},{"element":"AuditEvent","node":"entry.event","identity":true},{"element":"AuditOutcome","node":"entry.outcome","identity":false},{"element":"AuditRow","node":"recent","identity":false},{"element":"QuotasSub","node":"stats.quotas.tracked","identity":false},{"element":"QuotasValue","node":"stats.quotas.exceeded","identity":false},{"element":"SessionsSub","node":"stats.sessions.revoked","identity":false},{"element":"SessionsValue","node":"stats.sessions.authenticated","identity":true},{"element":"TenantsSub","node":"stats.tenants.suspended","identity":false},{"element":"TenantsValue","node":"stats.tenants.active","identity":true}],"stateRoots":["auditLog","entry","recent","stats"],"contractHash":"4f0e9c40712c98d5acd7130f4ac62dd1b4a3c34e6c2d6b7672fbc73a7c578e16"} as const;
+export const holoViewContract = {
+  version: 'holo-view-contract-v1',
+  projections: [
+    { element: 'AgentsValue', node: 'stats.agents.tracked', identity: true },
+    { element: 'AuditActor', node: 'entry.actor', identity: true },
+    { element: 'AuditEvent', node: 'entry.event', identity: true },
+    { element: 'AuditOutcome', node: 'entry.outcome', identity: false },
+    { element: 'AuditRow', node: 'recent', identity: false },
+    { element: 'QuotasSub', node: 'stats.quotas.tracked', identity: false },
+    { element: 'QuotasValue', node: 'stats.quotas.exceeded', identity: false },
+    { element: 'SessionsSub', node: 'stats.sessions.revoked', identity: false },
+    { element: 'SessionsValue', node: 'stats.sessions.authenticated', identity: true },
+    { element: 'TenantsSub', node: 'stats.tenants.suspended', identity: false },
+    { element: 'TenantsValue', node: 'stats.tenants.active', identity: true },
+  ],
+  stateRoots: ['auditLog', 'entry', 'recent', 'stats'],
+  contractHash: '4f0e9c40712c98d5acd7130f4ac62dd1b4a3c34e6c2d6b7672fbc73a7c578e16',
+} as const;

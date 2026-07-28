@@ -13,10 +13,7 @@ import type { PrintabilityReport } from '../PrintabilityReportPanel';
 // ── fitsBuildVolume heuristic (inline for testability) ─────────────────────────
 // Mirrors the implementation in PrintabilityReportPanel.tsx
 
-function fitsBuildVolume(
-  volumeM3: number,
-  buildVolumeMm: [number, number, number]
-): boolean {
+function fitsBuildVolume(volumeM3: number, buildVolumeMm: [number, number, number]): boolean {
   const edgeLengthMm = Math.cbrt(volumeM3) * 1000;
   const [bx, by, bz] = buildVolumeMm;
   return edgeLengthMm <= bx! && edgeLengthMm <= by! && edgeLengthMm <= bz!;

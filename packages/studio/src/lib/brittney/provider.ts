@@ -291,7 +291,8 @@ function resolveServerless(): ResolvedBrittneyProvider | null {
   const endpointName = process.env.FLEET_SERVERLESS_ENDPOINT || process.env.VAST_QWEN_ENDPOINT_NAME;
   const apiKey = process.env.VAST_API_KEY;
   if (!endpointName || !apiKey) return null;
-  const model = process.env.BRITTNEY_FLEET_MODEL || process.env.VAST_QWEN_MODEL || FLEET_DEFAULT_MODEL;
+  const model =
+    process.env.BRITTNEY_FLEET_MODEL || process.env.VAST_QWEN_MODEL || FLEET_DEFAULT_MODEL;
   const provider = new VastServerlessAdapter({ apiKey, endpointName, model });
   return {
     provider,
@@ -368,8 +369,7 @@ async function upgradeOllamaByDiscovery(
   resolved: ResolvedBrittneyProvider
 ): Promise<ResolvedBrittneyProvider> {
   if (resolved.providerName !== 'ollama' || process.env.BRITTNEY_MODEL) return resolved;
-  const baseURL =
-    process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL || OLLAMA_DEFAULT_BASE_URL;
+  const baseURL = process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL || OLLAMA_DEFAULT_BASE_URL;
   const picked = await pickLocalModel(baseURL, { fallback: OLLAMA_DEFAULT_MODEL });
   // Always log the pick: a benchmark run silently rode the wrong model when
   // this was invisible (gemma4 flaky-probe incident, 2026-06-10).

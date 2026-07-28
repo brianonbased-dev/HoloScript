@@ -104,34 +104,33 @@ const DOMAIN_COLORS: Record<string, string> = {
   default: '#06b6d4',
 };
 
-const TX_TYPE_META: Record<string, { label: string; icon: React.ReactNode; colorClass: string }> =
-  {
-    purchase: {
-      label: 'Buy',
-      icon: <ArrowUpRight className="h-3.5 w-3.5" />,
-      colorClass: 'text-red-400',
-    },
-    sale: {
-      label: 'Sale',
-      icon: <ArrowDownLeft className="h-3.5 w-3.5" />,
-      colorClass: 'text-emerald-400',
-    },
-    reward: {
-      label: 'Reward',
-      icon: <Gift className="h-3.5 w-3.5" />,
-      colorClass: 'text-amber-400',
-    },
-    fee: {
-      label: 'Fee',
-      icon: <Minus className="h-3.5 w-3.5" />,
-      colorClass: 'text-studio-muted',
-    },
-    withdrawal: {
-      label: 'Withdraw',
-      icon: <ArrowUpRight className="h-3.5 w-3.5" />,
-      colorClass: 'text-violet-400',
-    },
-  };
+const TX_TYPE_META: Record<string, { label: string; icon: React.ReactNode; colorClass: string }> = {
+  purchase: {
+    label: 'Buy',
+    icon: <ArrowUpRight className="h-3.5 w-3.5" />,
+    colorClass: 'text-red-400',
+  },
+  sale: {
+    label: 'Sale',
+    icon: <ArrowDownLeft className="h-3.5 w-3.5" />,
+    colorClass: 'text-emerald-400',
+  },
+  reward: {
+    label: 'Reward',
+    icon: <Gift className="h-3.5 w-3.5" />,
+    colorClass: 'text-amber-400',
+  },
+  fee: {
+    label: 'Fee',
+    icon: <Minus className="h-3.5 w-3.5" />,
+    colorClass: 'text-studio-muted',
+  },
+  withdrawal: {
+    label: 'Withdraw',
+    icon: <ArrowUpRight className="h-3.5 w-3.5" />,
+    colorClass: 'text-violet-400',
+  },
+};
 
 function txMeta(type: string) {
   return (
@@ -463,12 +462,10 @@ function StorefrontSection({ earnings }: { earnings: EarningsData | null }) {
                 className="flex items-center justify-between gap-3 rounded-lg border border-studio-border/60 bg-[#111827] px-3 py-2 hover:border-studio-accent/40 transition-colors"
               >
                 <div className="min-w-0">
-                  <div className="text-xs font-mono text-studio-text truncate">
-                    {entry.entryId}
-                  </div>
+                  <div className="text-xs font-mono text-studio-text truncate">{entry.entryId}</div>
                   <div className="text-[10px] text-studio-muted mt-0.5">
-                    {entry.domain ?? entry.entryType ?? 'knowledge'} &middot;{' '}
-                    {entry.sales} {entry.sales === 1 ? 'sale' : 'sales'}
+                    {entry.domain ?? entry.entryType ?? 'knowledge'} &middot; {entry.sales}{' '}
+                    {entry.sales === 1 ? 'sale' : 'sales'}
                   </div>
                 </div>
                 <div className="shrink-0 text-xs font-bold text-emerald-400 font-mono">

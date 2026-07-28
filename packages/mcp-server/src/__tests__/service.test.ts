@@ -17,9 +17,7 @@ describe('import-safe MCP service surface', () => {
     const entrypoints = resolveMcpServiceEntrypoints(moduleDir);
 
     expect(entrypoints.packageRoot).toBe(resolve(moduleDir, '..'));
-    expect(entrypoints.http).toBe(
-      resolve(moduleDir, '..', 'bin', 'holoscript-mcp-http.cjs')
-    );
+    expect(entrypoints.http).toBe(resolve(moduleDir, '..', 'bin', 'holoscript-mcp-http.cjs'));
     expect(entrypoints.stdio).toBe(resolve(moduleDir, '..', 'bin', 'holoscript-mcp.cjs'));
   });
 

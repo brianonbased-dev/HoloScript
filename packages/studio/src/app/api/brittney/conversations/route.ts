@@ -51,11 +51,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '`scope` is required' }, { status: 400 });
   }
   if (scope.length > MAX_SCOPE_CHARS) {
-    return NextResponse.json({ error: `scope exceeds ${MAX_SCOPE_CHARS} characters` }, { status: 413 });
+    return NextResponse.json(
+      { error: `scope exceeds ${MAX_SCOPE_CHARS} characters` },
+      { status: 413 }
+    );
   }
   const title = (body.title ?? '').trim();
   if (title.length > MAX_TITLE_CHARS) {
-    return NextResponse.json({ error: `title exceeds ${MAX_TITLE_CHARS} characters` }, { status: 413 });
+    return NextResponse.json(
+      { error: `title exceeds ${MAX_TITLE_CHARS} characters` },
+      { status: 413 }
+    );
   }
 
   const conversation = await createConversation(auth.user.id, scope, title);

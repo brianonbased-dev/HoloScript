@@ -172,7 +172,13 @@ describe('Admin Routes — scope provisioning (D.100 Axis-1, /founder-ruled 2026
       scopes: ['holomesh', 'mcp', 'tools:read', 'tools:write', 'tools:codebase'],
     });
     expect(res._status).toBe(200);
-    expect(res._body.scopes).toEqual(['holomesh', 'mcp', 'tools:read', 'tools:write', 'tools:codebase']);
+    expect(res._body.scopes).toEqual([
+      'holomesh',
+      'mcp',
+      'tools:read',
+      'tools:write',
+      'tools:codebase',
+    ]);
 
     const record = Array.from(keyRegistry.values()).find((r) => r.agentId === agentId);
     expect(record?.key).toBe(apiKey); // NOT rotated

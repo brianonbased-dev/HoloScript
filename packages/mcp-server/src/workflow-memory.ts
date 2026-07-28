@@ -28,7 +28,10 @@ export interface WorkflowMemoryFieldSchema {
   required?: boolean;
 }
 
-export type WorkflowMemorySchema = Record<string, WorkflowMemoryFieldSchema | WorkflowMemoryValueType>;
+export type WorkflowMemorySchema = Record<
+  string,
+  WorkflowMemoryFieldSchema | WorkflowMemoryValueType
+>;
 
 export interface WorkflowMemoryConfig {
   enabled?: boolean;
@@ -85,7 +88,10 @@ export interface WorkflowMemoryReadResult {
 function defaultMemoryDir(): string {
   return (
     process.env.HOLOSCRIPT_WORKFLOW_MEMORY_DIR ||
-    path.join(process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript'), 'workflow-memory')
+    path.join(
+      process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript'),
+      'workflow-memory'
+    )
   );
 }
 
@@ -150,7 +156,11 @@ function schemaTypeFor(schema: WorkflowMemorySchema, key: string): WorkflowMemor
   return typeof raw === 'string' ? raw : raw.type;
 }
 
-function assertSchemaValue(schema: WorkflowMemorySchema, key: string, value: unknown): WorkflowMemoryValueType {
+function assertSchemaValue(
+  schema: WorkflowMemorySchema,
+  key: string,
+  value: unknown
+): WorkflowMemoryValueType {
   const actual = valueType(value);
   const expected = schemaTypeFor(schema, key);
   if (expected !== 'any' && expected !== actual) {
@@ -403,7 +413,9 @@ export class WorkflowMemoryDocument {
     if (writerAgentId === 'execute_workflow' || writerAgentId === 'system') return;
     if (this.assignedAgentIds.length === 0) return;
     if (!this.assignedAgentIds.includes(writerAgentId)) {
-      throw new Error(`agent "${writerAgentId}" is not assigned to workflow "${this.workflowRunId}".`);
+      throw new Error(
+        `agent "${writerAgentId}" is not assigned to workflow "${this.workflowRunId}".`
+      );
     }
   }
 }
@@ -536,7 +548,9 @@ export function normalizeWorkflowMemoryConfig(
     runId: input.runId ? safeRunId(input.runId) : fallbackRunId,
     schema: normalizeSchema(input.schema),
     assignedAgentIds: Array.isArray(input.assignedAgentIds)
-      ? input.assignedAgentIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+      ? input.assignedAgentIds.filter(
+          (id): id is string => typeof id === 'string' && id.trim().length > 0
+        )
       : [],
     gcOnCompletion: input.gcOnCompletion !== false,
     retentionMs: typeof input.retentionMs === 'number' ? input.retentionMs : undefined,

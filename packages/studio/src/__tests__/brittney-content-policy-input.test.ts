@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  screenInputMessage,
-  resolveBrittneyPolicyConfig,
-} from '../lib/brittney/contentPolicy';
+import { screenInputMessage, resolveBrittneyPolicyConfig } from '../lib/brittney/contentPolicy';
 
 describe('screenInputMessage — Brittney input content-policy gate', () => {
   it('allows a benign user message', () => {
@@ -29,7 +26,7 @@ describe('screenInputMessage — Brittney input content-policy gate', () => {
 
   it('accepts an explicit policy config override', () => {
     const config = resolveBrittneyPolicyConfig({ tier: 'family' });
-    const result = screenInputMessage('Let\'s make a game!', config);
+    const result = screenInputMessage("Let's make a game!", config);
     expect(result.allowed).toBe(true);
   });
 

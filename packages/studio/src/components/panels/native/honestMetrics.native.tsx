@@ -7,69 +7,129 @@ export function HonestMetricsComponent() {
   const [forecast, setForecast] = useState(1580);
   const [aiEstimate, setAiEstimate] = useState(87);
 
-
-
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="f2b121d39295a30e7a82c5ac7772cce6dce9387c284778abae200dc2823ef02d">
-      <div style={{"display":"flex","flexDirection":"column","gap":"10px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
-      
-      <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
-      {`Honest metrics`}
-      
-    </h3>
-<span className="text-sm text-[10px] text-studio-muted">
-      {`Every value carries a provenance receipt — measured / derived° / inferred~ / generative✦`}
-      
-    </span>
-<div style={{"display":"flex","flexDirection":"row","justifyContent":"space-between","alignItems":"center"}} className="rounded-md p-2 bg-studio-panel/40">
-      
-      <span className="text-sm text-[11px] text-studio-text-secondary">
-      {`Active sessions (measured)`}
-      
-    </span>
-<h2 data-holo-provenance='{"source":"securityEventBus","class":"measured","confidence":1}' data-provenance-class="measured" data-holo-projects="sessions" className="text-3xl font-bold text-lg font-semibold text-studio-text">
-      {sessions ?? "0"}
-      
-    </h2>
-    </div>
-<div style={{"display":"flex","flexDirection":"row","justifyContent":"space-between","alignItems":"center"}} className="rounded-md p-2 bg-studio-panel/40">
-      
-      <span className="text-sm text-[11px] text-studio-text-secondary">
-      {`Growth % (derived)`}
-      
-    </span>
-<h2 data-holo-provenance='{"source":"sessions.delta","class":"derived","confidence":1}' data-provenance-class="derived" data-holo-projects="growth" className="text-3xl font-bold text-lg font-semibold text-studio-text">
-      {`${(growth ?? 0)}%`}<sup className="holo-prov-mark" title="provenance: derived">°</sup>
-      
-    </h2>
-    </div>
-<div style={{"display":"flex","flexDirection":"row","justifyContent":"space-between","alignItems":"center"}} className="rounded-md p-2 bg-studio-panel/40">
-      
-      <span className="text-sm text-[11px] text-studio-text-secondary">
-      {`30-day forecast (inferred)`}
-      
-    </span>
-<h2 data-holo-provenance='{"source":"forecast-model-v2","class":"inferred","confidence":0.7}' data-provenance-class="inferred" data-holo-projects="forecast" className="text-3xl font-bold text-lg font-semibold text-studio-text">
-      {forecast ?? "0"}<sup className="holo-prov-mark" title="provenance: inferred">~</sup>
-      
-    </h2>
-    </div>
-<div style={{"display":"flex","flexDirection":"row","justifyContent":"space-between","alignItems":"center"}} className="rounded-md p-2 bg-studio-panel/40">
-      
-      <span className="text-sm text-[11px] text-studio-text-secondary">
-      {`AI sentiment score (generative)`}
-      
-    </span>
-<h2 data-holo-provenance='{"source":"holollama","class":"generative","confidence":0.4}' data-provenance-class="generative" data-holo-projects="aiEstimate" className="text-3xl font-bold text-lg font-semibold text-studio-text">
-      {aiEstimate ?? "0"}<sup className="holo-prov-mark" title="provenance: generative">✦</sup>
-      
-    </h2>
-    </div>
-    </div>
+    <div
+      className="holoscript-2d-root w-full h-full"
+      data-holo-view-contract="f2b121d39295a30e7a82c5ac7772cce6dce9387c284778abae200dc2823ef02d"
+    >
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
+        className="p-3 h-full overflow-y-auto text-xs text-studio-text"
+      >
+        <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
+          {`Honest metrics`}
+        </h3>
+        <span className="text-sm text-[10px] text-studio-muted">
+          {`Every value carries a provenance receipt — measured / derived° / inferred~ / generative✦`}
+        </span>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+          className="rounded-md p-2 bg-studio-panel/40"
+        >
+          <span className="text-sm text-[11px] text-studio-text-secondary">
+            {`Active sessions (measured)`}
+          </span>
+          <h2
+            data-holo-provenance='{"source":"securityEventBus","class":"measured","confidence":1}'
+            data-provenance-class="measured"
+            data-holo-projects="sessions"
+            className="text-3xl font-bold text-lg font-semibold text-studio-text"
+          >
+            {sessions ?? '0'}
+          </h2>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+          className="rounded-md p-2 bg-studio-panel/40"
+        >
+          <span className="text-sm text-[11px] text-studio-text-secondary">
+            {`Growth % (derived)`}
+          </span>
+          <h2
+            data-holo-provenance='{"source":"sessions.delta","class":"derived","confidence":1}'
+            data-provenance-class="derived"
+            data-holo-projects="growth"
+            className="text-3xl font-bold text-lg font-semibold text-studio-text"
+          >
+            {`${growth ?? 0}%`}
+            <sup className="holo-prov-mark" title="provenance: derived">
+              °
+            </sup>
+          </h2>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+          className="rounded-md p-2 bg-studio-panel/40"
+        >
+          <span className="text-sm text-[11px] text-studio-text-secondary">
+            {`30-day forecast (inferred)`}
+          </span>
+          <h2
+            data-holo-provenance='{"source":"forecast-model-v2","class":"inferred","confidence":0.7}'
+            data-provenance-class="inferred"
+            data-holo-projects="forecast"
+            className="text-3xl font-bold text-lg font-semibold text-studio-text"
+          >
+            {forecast ?? '0'}
+            <sup className="holo-prov-mark" title="provenance: inferred">
+              ~
+            </sup>
+          </h2>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+          className="rounded-md p-2 bg-studio-panel/40"
+        >
+          <span className="text-sm text-[11px] text-studio-text-secondary">
+            {`AI sentiment score (generative)`}
+          </span>
+          <h2
+            data-holo-provenance='{"source":"holollama","class":"generative","confidence":0.4}'
+            data-provenance-class="generative"
+            data-holo-projects="aiEstimate"
+            className="text-3xl font-bold text-lg font-semibold text-studio-text"
+          >
+            {aiEstimate ?? '0'}
+            <sup className="holo-prov-mark" title="provenance: generative">
+              ✦
+            </sup>
+          </h2>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default HonestMetricsComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"DerivedValue","node":"growth","identity":false},{"element":"GenerativeValue","node":"aiEstimate","identity":true},{"element":"InferredValue","node":"forecast","identity":true},{"element":"MeasuredValue","node":"sessions","identity":true}],"stateRoots":["aiEstimate","forecast","growth","sessions"],"contractHash":"f2b121d39295a30e7a82c5ac7772cce6dce9387c284778abae200dc2823ef02d"} as const;
+export const holoViewContract = {
+  version: 'holo-view-contract-v1',
+  projections: [
+    { element: 'DerivedValue', node: 'growth', identity: false },
+    { element: 'GenerativeValue', node: 'aiEstimate', identity: true },
+    { element: 'InferredValue', node: 'forecast', identity: true },
+    { element: 'MeasuredValue', node: 'sessions', identity: true },
+  ],
+  stateRoots: ['aiEstimate', 'forecast', 'growth', 'sessions'],
+  contractHash: 'f2b121d39295a30e7a82c5ac7772cce6dce9387c284778abae200dc2823ef02d',
+} as const;

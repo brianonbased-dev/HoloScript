@@ -1126,7 +1126,11 @@ function applyTool(
         }
         setToolHistoryLabel('Apply code', recordHistory);
         store.setCode(newCode);
-        return { tool: toolName, success: true, message: 'Applied HoloScript code to the scene editor.' };
+        return {
+          tool: toolName,
+          success: true,
+          message: 'Applied HoloScript code to the scene editor.',
+        };
       }
 
       default:

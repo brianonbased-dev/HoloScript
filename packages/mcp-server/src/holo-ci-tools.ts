@@ -218,7 +218,7 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
     description:
       'Three-surface semantic closure: one checked-in .holo + .hsplus + .hs product must causally execute every applicable stage with native/UAAL parity; exact target-inapplicable stages are independently allowlisted in its fail-closed HoloMeaning receipt',
     step: [
-      'curl --proto \'=https\' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal',
+      "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal",
       '. "$HOME/.cargo/env"',
       'pnpm run check:three-surface-closure -- --self-test --require-complete',
     ].join('\n'),

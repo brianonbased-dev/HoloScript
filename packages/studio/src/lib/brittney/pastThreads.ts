@@ -77,7 +77,9 @@ export async function fetchPastThreads(
   try {
     const conversations = await listConversations(ownerId, { scope });
     // +1 headroom so excluding the active thread still yields MAX_PAST_THREADS.
-    const candidates = conversations.filter((c) => c.messageCount > 0).slice(0, MAX_PAST_THREADS + 1);
+    const candidates = conversations
+      .filter((c) => c.messageCount > 0)
+      .slice(0, MAX_PAST_THREADS + 1);
 
     const snippets: PastThreadSnippet[] = await Promise.all(
       candidates.map(async (convo, index) => {

@@ -52,9 +52,7 @@ export function resolveWorkspaceFsRoot(workspacePath: string): WorkspaceFsResolu
   return { ok: true, resolved };
 }
 
-export type RelativePathValidation =
-  | { ok: true; relative: string }
-  | { ok: false; error: string };
+export type RelativePathValidation = { ok: true; relative: string } | { ok: false; error: string };
 
 /**
  * Validate a workspace-relative path from a tool call or request body.

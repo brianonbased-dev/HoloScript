@@ -159,9 +159,7 @@ describe('validate_composition', () => {
       expect(result.valid).toBe(true);
       const enumWarn = result.diagnostics.find(
         (d) =>
-          d.severity === 'warning' &&
-          d.code === 'CONFAB_INVALID_ENUM_VALUE' &&
-          d.source === 'rigid'
+          d.severity === 'warning' && d.code === 'CONFAB_INVALID_ENUM_VALUE' && d.source === 'rigid'
       );
       expect(enumWarn).toBeDefined();
     });

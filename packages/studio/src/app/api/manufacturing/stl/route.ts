@@ -29,10 +29,7 @@ import type { Simulation as SimulationNS } from '@holoscript/engine';
 
 // marchingCubes accepts SDFNode | SDFDistanceField; the field variant carries
 // `distances`, so excluding it leaves the plain SDF tree type this route accepts.
-type SDFNode = Exclude<
-  Parameters<typeof SimulationNS.marchingCubes>[0],
-  { distances: unknown }
->;
+type SDFNode = Exclude<Parameters<typeof SimulationNS.marchingCubes>[0], { distances: unknown }>;
 
 /**
  * Load the REAL engine at runtime, bypassing webpack — see the identical
@@ -40,9 +37,9 @@ type SDFNode = Exclude<
  * ESM-external interop proxy make a static import unusable here).
  */
 async function loadSimulation(): Promise<typeof SimulationNS> {
-  const engine = (await import(
-    /* webpackIgnore: true */ '@holoscript/engine'
-  )) as { Simulation: typeof SimulationNS };
+  const engine = (await import(/* webpackIgnore: true */ '@holoscript/engine')) as {
+    Simulation: typeof SimulationNS;
+  };
   return engine.Simulation;
 }
 
@@ -75,8 +72,7 @@ function isResolution(v: unknown): v is [number, number, number] {
   if (!isVec3(v)) return false;
   const [a, b, c] = v as [number, number, number];
   return (
-    Number.isInteger(a) && Number.isInteger(b) && Number.isInteger(c) &&
-    a >= 2 && b >= 2 && c >= 2
+    Number.isInteger(a) && Number.isInteger(b) && Number.isInteger(c) && a >= 2 && b >= 2 && c >= 2
   );
 }
 

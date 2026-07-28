@@ -458,7 +458,10 @@ function buildViaTxEnvelope(overrides: Partial<AttestationMessage> = {}): {
 }
 
 /** Seed the registry with a founder-minted authority attestation directly. */
-function attestAuthority(registry: AttestationRegistry, overrides: Partial<Attestation> = {}): void {
+function attestAuthority(
+  registry: AttestationRegistry,
+  overrides: Partial<Attestation> = {}
+): void {
   registry.attest({
     publicKey: authorityAccount.address,
     seatId: 'attestation-authority-hot-wallet',

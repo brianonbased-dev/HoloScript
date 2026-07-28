@@ -68,9 +68,10 @@ function promptHash(prompt: string): string {
 }
 
 function makeJob(req: http.IncomingMessage, payload: SovereignGeneratePayload): SovereignJobRecord {
-  const prompt = typeof payload.prompt === 'string' && payload.prompt.trim()
-    ? payload.prompt.trim()
-    : 'Untitled HoloScript world';
+  const prompt =
+    typeof payload.prompt === 'string' && payload.prompt.trim()
+      ? payload.prompt.trim()
+      : 'Untitled HoloScript world';
   const outputFormat = normalizeOutputFormat(payload.output_format);
   const qualityPreset = normalizeQuality(payload.quality_preset);
   const job_id = `sg_${randomUUID().replace(/-/g, '').slice(0, 18)}`;
@@ -83,7 +84,8 @@ function makeJob(req: http.IncomingMessage, payload: SovereignGeneratePayload): 
     outputFormat === 'both' ? `${baseUrl}/sovereign/assets/${job_id}/world.ply` : undefined;
   const hash = promptHash(prompt);
   const splatCount = outputFormat === 'mesh' ? undefined : 180_000 + parseInt(hash.slice(0, 4), 16);
-  const triangleCount = outputFormat === 'splat' ? undefined : 72_000 + parseInt(hash.slice(4, 8), 16);
+  const triangleCount =
+    outputFormat === 'splat' ? undefined : 72_000 + parseInt(hash.slice(4, 8), 16);
 
   return {
     job_id,
@@ -169,7 +171,10 @@ function makeMinimalGlb(job: SovereignJobRecord, label: string): Buffer {
   return buffer;
 }
 
-function assetPayload(job: SovereignJobRecord, assetName: string): { mime: string; body: Buffer } | null {
+function assetPayload(
+  job: SovereignJobRecord,
+  assetName: string
+): { mime: string; body: Buffer } | null {
   const hash = String(job.metadata.prompt_hash ?? promptHash(job.prompt));
   if (assetName === 'world.splat') {
     return {
@@ -229,7 +234,10 @@ function assetPayload(job: SovereignJobRecord, assetName: string): { mime: strin
   if (assetName === 'world.glb' || assetName === 'navmesh.glb') {
     return {
       mime: 'model/gltf-binary',
-      body: makeMinimalGlb(job, assetName === 'navmesh.glb' ? 'SovereignNavmesh' : 'SovereignWorld'),
+      body: makeMinimalGlb(
+        job,
+        assetName === 'navmesh.glb' ? 'SovereignNavmesh' : 'SovereignWorld'
+      ),
     };
   }
   return null;

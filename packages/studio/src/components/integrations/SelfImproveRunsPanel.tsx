@@ -91,11 +91,7 @@ function AbortBadge({ reason }: { reason: string | null }) {
         isGood ? 'bg-emerald-500/20 text-emerald-300' : 'bg-studio-border text-studio-muted'
       )}
     >
-      {isGood ? (
-        <CheckCircle2 className="h-2.5 w-2.5" />
-      ) : (
-        <AlertCircle className="h-2.5 w-2.5" />
-      )}
+      {isGood ? <CheckCircle2 className="h-2.5 w-2.5" /> : <AlertCircle className="h-2.5 w-2.5" />}
       {ABORT_LABEL[reason] ?? reason}
     </span>
   );
@@ -157,7 +153,9 @@ export function SelfImproveRunsPanel() {
               {hasRuns && summary?.lastAbortReason && (
                 <>
                   {' · last stop: '}
-                  <span className="font-mono">{ABORT_LABEL[summary.lastAbortReason] ?? summary.lastAbortReason}</span>
+                  <span className="font-mono">
+                    {ABORT_LABEL[summary.lastAbortReason] ?? summary.lastAbortReason}
+                  </span>
                 </>
               )}
             </p>
@@ -205,7 +203,8 @@ export function SelfImproveRunsPanel() {
         <div className="text-xs text-studio-muted italic">
           Post a receipt after a run:{' '}
           <code className="rounded bg-studio-border/40 px-1 text-[11px]">
-            curl -X POST /api/self-improve/status -d &apos;&#123;&quot;proposalsGenerated&quot;:3,...&#125;&apos;
+            curl -X POST /api/self-improve/status -d
+            &apos;&#123;&quot;proposalsGenerated&quot;:3,...&#125;&apos;
           </code>
         </div>
       )}
@@ -215,12 +214,7 @@ export function SelfImproveRunsPanel() {
         <div className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {/* Pass-rate */}
           <div className="flex flex-col rounded-lg border border-studio-border bg-white/[0.02] px-3 py-2">
-            <span
-              className={clsx(
-                'text-lg font-mono',
-                passRateColor(lastReceipt.passRate)
-              )}
-            >
+            <span className={clsx('text-lg font-mono', passRateColor(lastReceipt.passRate))}>
               {lastReceipt.passRate != null ? `${Math.round(lastReceipt.passRate * 100)}%` : '—'}
             </span>
             <span className="text-[10px] uppercase tracking-wide text-studio-muted">
@@ -257,7 +251,9 @@ export function SelfImproveRunsPanel() {
               </span>
               <span className="text-sm text-studio-muted">/ {lastReceipt.proposalsGenerated}</span>
             </div>
-            <span className="text-[10px] uppercase tracking-wide text-studio-muted">proposals passing</span>
+            <span className="text-[10px] uppercase tracking-wide text-studio-muted">
+              proposals passing
+            </span>
           </div>
 
           {/* Abort reason */}

@@ -6,40 +6,63 @@ export function LiveProofComponent() {
   const [capacity, setCapacity] = useState(200);
   const [factor, setFactor] = useState(1.5);
 
-
-
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="f47d23b757a1299199d4e36bd431a5f12913355d5a82f29f8fe750a897972588">
-      <div style={{"display":"flex","flexDirection":"column","gap":"10px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
-      
-      <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
-      {`Live proof — structural margin`}
-      
-    </h3>
-<span className="text-sm text-[10px] text-studio-muted">
-      {`Drag the load; the verdict re-derives from capacity/factor and flips FALSIFIED in-band`}
-      
-    </span>
-<div style={{"display":"flex","flexDirection":"row","alignItems":"center","gap":"8px"}}>
-      
-      <span className="text-sm text-[10px] text-studio-muted">
-      {`Load (kN)`}
-      
-    </span>
-<span data-holo-projects="load" className="text-sm text-[10px] font-semibold text-studio-text">
-      {load ?? "0"}
-      
-    </span>
-<input data-holo-projects="load" className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" value={load} onChange={(e) => setLoad(Number(e.target.value))} type="range" min="0" max="200" step="5" />
-    </div>
-<div data-proof-claim={"capacity >= load * factor"} data-proof-independence="self-referential" data-proof-state={(capacity >= load * factor) ? "pass" : "falsified"} className={`rounded-md p-2 text-xs font-semibold ${(capacity >= load * factor) ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}`}>
-      {(capacity >= load * factor) ? "✓ Structural margin holds" : "✗ Structural margin FALSIFIED"}
-    </div>
-    </div>
+    <div
+      className="holoscript-2d-root w-full h-full"
+      data-holo-view-contract="f47d23b757a1299199d4e36bd431a5f12913355d5a82f29f8fe750a897972588"
+    >
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
+        className="p-3 h-full overflow-y-auto text-xs text-studio-text"
+      >
+        <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
+          {`Live proof — structural margin`}
+        </h3>
+        <span className="text-sm text-[10px] text-studio-muted">
+          {`Drag the load; the verdict re-derives from capacity/factor and flips FALSIFIED in-band`}
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+          <span className="text-sm text-[10px] text-studio-muted">{`Load (kN)`}</span>
+          <span
+            data-holo-projects="load"
+            className="text-sm text-[10px] font-semibold text-studio-text"
+          >
+            {load ?? '0'}
+          </span>
+          <input
+            data-holo-projects="load"
+            className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent"
+            value={load}
+            onChange={(e) => setLoad(Number(e.target.value))}
+            type="range"
+            min="0"
+            max="200"
+            step="5"
+          />
+        </div>
+        <div
+          data-proof-claim={'capacity >= load * factor'}
+          data-proof-independence="self-referential"
+          data-proof-state={capacity >= load * factor ? 'pass' : 'falsified'}
+          className={`rounded-md p-2 text-xs font-semibold ${capacity >= load * factor ? 'bg-studio-success/10 text-studio-success' : 'bg-studio-error/10 text-studio-error'}`}
+        >
+          {capacity >= load * factor
+            ? '✓ Structural margin holds'
+            : '✗ Structural margin FALSIFIED'}
+        </div>
+      </div>
     </div>
   );
 }
 
 export default LiveProofComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"LoadSlider","node":"load","identity":false},{"element":"LoadValue","node":"load","identity":true}],"stateRoots":["capacity","factor","load"],"contractHash":"f47d23b757a1299199d4e36bd431a5f12913355d5a82f29f8fe750a897972588"} as const;
+export const holoViewContract = {
+  version: 'holo-view-contract-v1',
+  projections: [
+    { element: 'LoadSlider', node: 'load', identity: false },
+    { element: 'LoadValue', node: 'load', identity: true },
+  ],
+  stateRoots: ['capacity', 'factor', 'load'],
+  contractHash: 'f47d23b757a1299199d4e36bd431a5f12913355d5a82f29f8fe750a897972588',
+} as const;

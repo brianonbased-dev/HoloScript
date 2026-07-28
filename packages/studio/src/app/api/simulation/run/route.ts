@@ -55,7 +55,12 @@ import type * as EngineNS from '@holoscript/engine';
 // ── Constants ────────────────────────────────────────────────────────────────
 
 /** Allowlisted solver keys. Requests for any other key return 400. */
-const ALLOWED_SOLVERS = ['thermal', 'dem-granular', 'reaction-diffusion', 'molecular-dynamics'] as const;
+const ALLOWED_SOLVERS = [
+  'thermal',
+  'dem-granular',
+  'reaction-diffusion',
+  'molecular-dynamics',
+] as const;
 type AllowedSolver = (typeof ALLOWED_SOLVERS)[number];
 
 const DEFAULT_STEPS = 100;
@@ -81,9 +86,7 @@ const DEFAULT_DT: Record<AllowedSolver, number> = {
  * packages/studio/src/app/api/manufacturing/mesh/route.ts.
  */
 async function loadEngine(): Promise<typeof EngineNS> {
-  return (await import(
-    /* webpackIgnore: true */ '@holoscript/engine'
-  )) as typeof EngineNS;
+  return (await import(/* webpackIgnore: true */ '@holoscript/engine')) as typeof EngineNS;
 }
 
 // ── Validation helpers ────────────────────────────────────────────────────────
@@ -215,7 +218,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const { SimulationSolverFactory } = engine.Simulation as unknown as {
     SimulationSolverFactory: {
-      create: (type: string, cfg: Record<string, unknown>) => {
+      create: (
+        type: string,
+        cfg: Record<string, unknown>
+      ) => {
         step?: (dt: number) => void;
         solve?: () => void;
         dispose: () => void;
@@ -311,7 +317,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // Return the first species' concentration field as the primary scalar field
         const primaryField = s.getConcentrationGrid(0);
         const values = Array.from(primaryField.data) as number[];
-        const resolution: [number, number, number] = [primaryField.nx, primaryField.ny, primaryField.nz];
+        const resolution: [number, number, number] = [
+          primaryField.nx,
+          primaryField.ny,
+          primaryField.nz,
+        ];
         const digest = stateDigest(primaryField.data);
         const stats = s.getStats() as unknown as Record<string, unknown>;
         const wallMs = performance.now() - t0;
@@ -392,7 +402,11 @@ import type {
 
 function buildThermalConfig(cfg: Record<string, unknown>): ThermalConfig {
   // Support both camelCase (gridResolution) and snake_case (grid_resolution)
-  const res = (cfg['gridResolution'] ?? cfg['grid_resolution'] ?? [24, 24, 24]) as [number, number, number];
+  const res = (cfg['gridResolution'] ?? cfg['grid_resolution'] ?? [24, 24, 24]) as [
+    number,
+    number,
+    number,
+  ];
   const dom = (cfg['domainSize'] ?? cfg['domain_size'] ?? [1, 1, 1]) as [number, number, number];
   const clampedRes: [number, number, number] = [
     Math.min(Math.max(2, Math.round(res[0])), MAX_GRID_AXIS),
@@ -448,24 +462,25 @@ function buildThermalConfig(cfg: Record<string, unknown>): ThermalConfig {
     domainSize: dom,
     timeStep: (cfg['time_step'] as number) ?? (cfg['timeStep'] as number) ?? 0.01,
     materials: (cfg['materials'] as Record<string, Record<string, number>>) ?? {},
-    defaultMaterial: (cfg['default_material'] as string) ?? (cfg['defaultMaterial'] as string) ?? 'air',
+    defaultMaterial:
+      (cfg['default_material'] as string) ?? (cfg['defaultMaterial'] as string) ?? 'air',
     boundaryConditions: bcs,
     sources,
-    initialTemperature: (cfg['initial_temperature'] as number) ?? (cfg['initialTemperature'] as number) ?? 20,
+    initialTemperature:
+      (cfg['initial_temperature'] as number) ?? (cfg['initialTemperature'] as number) ?? 20,
   };
 }
 
 function buildDEMConfig(cfg: Record<string, unknown>): DEMConfig {
   const rawRadii = cfg['radii'] as number[] | undefined;
   const rawMasses = cfg['masses'] as number[] | undefined;
-  const boxRaw = cfg['boxBounds'] as [[number, number], [number, number], [number, number]] | undefined;
+  const boxRaw = cfg['boxBounds'] as
+    | [[number, number], [number, number], [number, number]]
+    | undefined;
   const posRaw = cfg['initialPositions'] as number[] | undefined;
   const velRaw = cfg['initialVelocities'] as number[] | undefined;
 
-  const particleCount = Math.min(
-    (cfg['particleCount'] as number) ?? 64,
-    MAX_PARTICLES
-  );
+  const particleCount = Math.min((cfg['particleCount'] as number) ?? 64, MAX_PARTICLES);
 
   return {
     particleCount,
@@ -490,7 +505,11 @@ function buildDEMConfig(cfg: Record<string, unknown>): DEMConfig {
 }
 
 function buildReactionDiffusionConfig(cfg: Record<string, unknown>): ReactionDiffusionConfig {
-  const res = (cfg['gridResolution'] ?? cfg['grid_resolution'] ?? [16, 16, 16]) as [number, number, number];
+  const res = (cfg['gridResolution'] ?? cfg['grid_resolution'] ?? [16, 16, 16]) as [
+    number,
+    number,
+    number,
+  ];
   const clampedRes: [number, number, number] = [
     Math.min(Math.max(2, Math.round(res[0])), MAX_GRID_AXIS),
     Math.min(Math.max(2, Math.round(res[1])), MAX_GRID_AXIS),
@@ -510,10 +529,7 @@ function buildReactionDiffusionConfig(cfg: Record<string, unknown>): ReactionDif
 }
 
 function buildMDConfig(cfg: Record<string, unknown>): MDConfig {
-  const particleCount = Math.min(
-    (cfg['particleCount'] as number) ?? 100,
-    MAX_PARTICLES
-  );
+  const particleCount = Math.min((cfg['particleCount'] as number) ?? 100, MAX_PARTICLES);
 
   return {
     particleCount,

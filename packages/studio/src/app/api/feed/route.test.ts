@@ -17,7 +17,15 @@ describe('/api/feed route', () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          scenes: [{ id: 'scene_1', title: 'A World', description: '', createdAt: 1000, previewUrl: '/scene/scene_1' }],
+          scenes: [
+            {
+              id: 'scene_1',
+              title: 'A World',
+              description: '',
+              createdAt: 1000,
+              previewUrl: '/scene/scene_1',
+            },
+          ],
         }),
     });
 

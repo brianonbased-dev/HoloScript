@@ -31,18 +31,19 @@ describe('holotune MCP tools', () => {
     })) as Record<string, unknown>;
     expect(result.ok).toBe(true);
     expect(result.mcpTools).toEqual(TOOL_NAMES);
-    expect((result.governance as Record<string, unknown>).routineGpuSpendRequiresFounderGate).toBe(false);
-    expect((result.governance as Record<string, unknown>).exactFourRequiresVerifierBoundJosephDecision).toBe(true);
+    expect((result.governance as Record<string, unknown>).routineGpuSpendRequiresFounderGate).toBe(
+      false
+    );
+    expect(
+      (result.governance as Record<string, unknown>).exactFourRequiresVerifierBoundJosephDecision
+    ).toBe(true);
   });
 
   it('curates inline traces into SFT rows and hashes the corpus', async () => {
     const result = (await handleHoloTuneTool('holotune_curate', {
       identity: 'agent-a',
       includeJsonl: true,
-      traceRows: [
-        { system: 'S', user: 'u1', target: 't1' },
-        { user: 'missing target' },
-      ],
+      traceRows: [{ system: 'S', user: 'u1', target: 't1' }, { user: 'missing target' }],
     })) as Record<string, unknown>;
     expect(result.ok).toBe(true);
     expect(result.curatedCount).toBe(1);

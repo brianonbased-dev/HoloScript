@@ -151,7 +151,7 @@ export default function BrittneyAPIKeysPanel() {
           <input
             type="text"
             className="bak-input"
-            placeholder="Label (optional, e.g. &quot;my agent&quot;)"
+            placeholder='Label (optional, e.g. "my agent")'
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => {

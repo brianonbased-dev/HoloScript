@@ -397,9 +397,7 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     buildBody: (args) => ({
       workspacePath: args['workspacePath'],
       message: args['message'],
-      ...(Array.isArray(args['files']) && args['files'].length > 0
-        ? { files: args['files'] }
-        : {}),
+      ...(Array.isArray(args['files']) && args['files'].length > 0 ? { files: args['files'] } : {}),
     }),
   },
 };

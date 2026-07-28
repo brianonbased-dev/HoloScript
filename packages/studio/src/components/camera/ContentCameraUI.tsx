@@ -175,7 +175,11 @@ export function ContentCameraUI() {
                 : 'bg-studio-accent/90 text-white hover:bg-indigo-500 border border-studio-accent/50 backdrop-blur'
             }`}
           >
-            {isRecording ? <StopSquare className="w-3.5 h-3.5 fill-current" /> : <Camera className="w-3.5 h-3.5" />}
+            {isRecording ? (
+              <StopSquare className="w-3.5 h-3.5 fill-current" />
+            ) : (
+              <Camera className="w-3.5 h-3.5" />
+            )}
             {isRecording ? 'STOP' : 'REC'}
           </button>
         </div>
@@ -190,7 +194,11 @@ export function ContentCameraUI() {
               : 'bg-studio-panel/90 text-studio-muted border border-studio-border/60 backdrop-blur'
           }`}
         >
-          {isRecording ? <StopSquare className="w-3.5 h-3.5 fill-current" /> : <Camera className="w-3.5 h-3.5" />}
+          {isRecording ? (
+            <StopSquare className="w-3.5 h-3.5 fill-current" />
+          ) : (
+            <Camera className="w-3.5 h-3.5" />
+          )}
         </button>
 
         {/* Recording timer — always shows when recording regardless of breakpoint */}

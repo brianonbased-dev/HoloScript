@@ -58,7 +58,10 @@ describe('createUserVault — owner-bound HoloKey vault core', () => {
     expect(meta.map((m) => m.name)).toEqual(['OPENAI_API_KEY']);
     expect(JSON.stringify(meta)).not.toContain('sk-secret-value'); // metadata carries no value
 
-    const { deleted } = await vault.store.delete({ ownerId: 'user-A', ref: 'vault:OPENAI_API_KEY' });
+    const { deleted } = await vault.store.delete({
+      ownerId: 'user-A',
+      ref: 'vault:OPENAI_API_KEY',
+    });
     expect(deleted).toBe(true);
     await expect(
       vault.resolver.resolve({ authenticatedOwnerId: 'user-A', ref: 'vault:OPENAI_API_KEY' })

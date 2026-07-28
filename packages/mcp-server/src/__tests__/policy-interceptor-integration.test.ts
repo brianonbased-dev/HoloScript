@@ -30,7 +30,12 @@ describe('PolicyInterceptor gate on holo_secrets_grant (real handler seam)', () 
       ...baseArgs,
       agentId: 'blocked-agent-x',
       capabilityRef: 'cap://daemon/secrets/broker-only',
-    })) as { authError?: boolean; reason?: string; policyReceipt?: { decision?: string }; grant?: unknown };
+    })) as {
+      authError?: boolean;
+      reason?: string;
+      policyReceipt?: { decision?: string };
+      grant?: unknown;
+    };
 
     expect(result.authError).toBe(true);
     expect(result.reason).toBe('agent_denylisted');

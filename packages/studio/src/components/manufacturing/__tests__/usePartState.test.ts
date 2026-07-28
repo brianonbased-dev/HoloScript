@@ -118,7 +118,11 @@ describe('usePartState', () => {
       buildSDF: (params) => ({
         type: 'primitive',
         primitive: 'box',
-        params: { halfX: params['size'] ?? 1, halfY: params['size'] ?? 1, halfZ: params['size'] ?? 1 },
+        params: {
+          halfX: params['size'] ?? 1,
+          halfY: params['size'] ?? 1,
+          halfZ: params['size'] ?? 1,
+        },
       }),
       bounds: { min: [-2, -2, -2], max: [2, 2, 2] },
     };

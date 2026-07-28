@@ -54,7 +54,11 @@ function checkConsumerGenDailyQuota(ip: string) {
   }
   const allowed = bucket.count < CONSUMER_GEN_DAILY_QUOTA;
   if (allowed) bucket.count++;
-  return { allowed, remaining: Math.max(0, CONSUMER_GEN_DAILY_QUOTA - bucket.count), resetAt: bucket.resetAt };
+  return {
+    allowed,
+    remaining: Math.max(0, CONSUMER_GEN_DAILY_QUOTA - bucket.count),
+    resetAt: bucket.resetAt,
+  };
 }
 
 type Response = { status: number; body: Record<string, unknown> };
@@ -103,7 +107,10 @@ async function publicGenerateHandler(
       directIp: clientIP,
     });
     if (!bypass.allowed) {
-      return { status: 429, body: { error: 'bypass_denied', code: bypass.reason || 'bypass_denied' } };
+      return {
+        status: 429,
+        body: { error: 'bypass_denied', code: bypass.reason || 'bypass_denied' },
+      };
     }
   } catch {
     // fail-open on detector's own error only
@@ -139,7 +146,11 @@ async function publicGenerateHandler(
     if (!inputDecision.allowed) {
       return {
         status: 200,
-        body: { success: false, error: 'Input blocked by content policy.', action: inputDecision.action },
+        body: {
+          success: false,
+          error: 'Input blocked by content policy.',
+          action: inputDecision.action,
+        },
       };
     }
   }
@@ -153,7 +164,11 @@ async function publicGenerateHandler(
   // generate_scene -> {code, ...}; generate_world_from_prompt -> {success:true,
   // holoCode, ...} (confirmed live 2026-07-02).
   const generatedCode =
-    typeof gated?.code === 'string' ? gated.code : typeof gated?.holoCode === 'string' ? gated.holoCode : '';
+    typeof gated?.code === 'string'
+      ? gated.code
+      : typeof gated?.holoCode === 'string'
+        ? gated.holoCode
+        : '';
 
   if (!generatedCode) {
     return { status: 502, body: { success: false, error: 'generation_produced_no_code' } };
@@ -166,7 +181,11 @@ async function publicGenerateHandler(
   if (!outputDecision.allowed) {
     return {
       status: 200,
-      body: { success: false, error: 'Output blocked by content policy.', action: outputDecision.action },
+      body: {
+        success: false,
+        error: 'Output blocked by content policy.',
+        action: outputDecision.action,
+      },
     };
   }
 
@@ -174,17 +193,30 @@ async function publicGenerateHandler(
   if (!parsedHolo.success || !parsedHolo.ast) {
     return {
       status: 502,
-      body: { success: false, error: 'generated_output_failed_structural_validation', details: parsedHolo.errors },
+      body: {
+        success: false,
+        error: 'generated_output_failed_structural_validation',
+        details: parsedHolo.errors,
+      },
     };
   }
 
-  const stored = storeSceneMock(generatedCode, { title: 'Consumer-generated scene', description: promptText });
+  const stored = storeSceneMock(generatedCode, {
+    title: 'Consumer-generated scene',
+    description: promptText,
+  });
 
   const { receiptId } = await recordConsumerGenerationMock();
 
   return {
     status: 200,
-    body: { success: true, sceneId: stored.id, previewUrl: `/scene/${stored.id}`, code: generatedCode, receiptId },
+    body: {
+      success: true,
+      sceneId: stored.id,
+      previewUrl: `/scene/${stored.id}`,
+      code: generatedCode,
+      receiptId,
+    },
   };
 }
 
@@ -201,7 +233,12 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
     dailyBuckets.clear();
     checkRateLimitBypassMock.mockResolvedValue({ allowed: true });
     evaluateContentPolicySyncMock.mockReturnValue({ allowed: true, action: 'allow' });
-    checkConsumerGlobalSpendCapMock.mockResolvedValue({ allowed: true, remaining: 199, resetAt: Date.now() + 1000, capValue: 200 });
+    checkConsumerGlobalSpendCapMock.mockResolvedValue({
+      allowed: true,
+      remaining: 199,
+      resetAt: Date.now() + 1000,
+      capValue: 200,
+    });
     recordConsumerGenerationMock.mockResolvedValue({ receiptId: 'receipt_default' });
   });
 
@@ -218,7 +255,10 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ success: false, error: expect.stringContaining('ForkSandboxGate') });
+      expect(res.body).toMatchObject({
+        success: false,
+        error: expect.stringContaining('ForkSandboxGate'),
+      });
       expect(storeSceneMock).not.toHaveBeenCalled();
       expect(recordConsumerGenerationMock).not.toHaveBeenCalled();
     });
@@ -273,7 +313,10 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       for (let i = 0; i < CONSUMER_GEN_DAILY_QUOTA; i++) {
         checkConsumerGenDailyQuota('10.3.0.4');
       }
-      const res = await publicGenerateHandler({ tool: 'generate_scene', arguments: {} }, '10.3.0.4');
+      const res = await publicGenerateHandler(
+        { tool: 'generate_scene', arguments: {} },
+        '10.3.0.4'
+      );
       expect(res.status).toBe(429);
       expect(res.body.error).toBe('daily_quota_exceeded');
       expect(handleToolMock).not.toHaveBeenCalled();
@@ -308,7 +351,10 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ success: false, error: expect.stringContaining('Input blocked') });
+      expect(res.body).toMatchObject({
+        success: false,
+        error: expect.stringContaining('Input blocked'),
+      });
       expect(handleToolMock).not.toHaveBeenCalled();
       expect(recordConsumerGenerationMock).not.toHaveBeenCalled();
     });
@@ -325,7 +371,10 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ success: false, error: expect.stringContaining('Output blocked') });
+      expect(res.body).toMatchObject({
+        success: false,
+        error: expect.stringContaining('Output blocked'),
+      });
       expect(res.body.code).toBeUndefined();
       expect(storeSceneMock).not.toHaveBeenCalled();
       expect(recordConsumerGenerationMock).not.toHaveBeenCalled();
@@ -352,7 +401,9 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       // Real shape when generate_world_from_prompt's own input validation fails
       // (e.g. wrong field name) -- {error: '...'}, no `code`/`holoCode`, no
       // `success:false` (confirmed live 2026-07-02).
-      handleToolMock.mockResolvedValue({ error: 'prompt or at least one multimodal input is required' });
+      handleToolMock.mockResolvedValue({
+        error: 'prompt or at least one multimodal input is required',
+      });
 
       const res = await publicGenerateHandler({
         tool: 'generate_scene',
@@ -370,8 +421,15 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       // generate_scene's real return shape (handlers.ts:1170-1179 ->
       // generateSceneForMCP): plain {code, stats, source, ...}, no `success`
       // field, no MCP content[]-envelope (confirmed live 2026-07-02).
-      handleToolMock.mockResolvedValue({ code: 'composition "Cube" { object "Box" {} }', source: 'heuristic' });
-      parseHoloMock.mockReturnValue({ success: true, ast: { type: 'HoloComposition' }, errors: [] });
+      handleToolMock.mockResolvedValue({
+        code: 'composition "Cube" { object "Box" {} }',
+        source: 'heuristic',
+      });
+      parseHoloMock.mockReturnValue({
+        success: true,
+        ast: { type: 'HoloComposition' },
+        errors: [],
+      });
       storeSceneMock.mockReturnValue({ id: 'scene_abc123' });
       recordConsumerGenerationMock.mockResolvedValue({ receiptId: 'receipt_abc123' });
 
@@ -408,7 +466,11 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
       // (resolveWorldPrompt reads args.prompt only -- confirmed live
       // 2026-07-02: a request with only `description` set hit the tool's own
       // "prompt or at least one multimodal input is required" early return).
-      handleToolMock.mockResolvedValue({ success: true, holoCode: 'composition "World" {}', source: 'heuristic' });
+      handleToolMock.mockResolvedValue({
+        success: true,
+        holoCode: 'composition "World" {}',
+        source: 'heuristic',
+      });
       parseHoloMock.mockReturnValue({ success: true, ast: {}, errors: [] });
       storeSceneMock.mockReturnValue({ id: 'scene_def456' });
 
@@ -475,7 +537,10 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
         capValue: 200,
       });
 
-      const res = await publicGenerateHandler({ tool: 'generate_scene', arguments: {} }, '10.4.0.1');
+      const res = await publicGenerateHandler(
+        { tool: 'generate_scene', arguments: {} },
+        '10.4.0.1'
+      );
 
       expect(res.status).toBe(429);
       expect(res.body.error).toBe('daily_quota_exceeded');
@@ -500,7 +565,11 @@ describe('POST /api/public/generate — WS-1 consumer generation tier', () => {
 
     it('calls recordConsumerGeneration exactly once on a successful generation', async () => {
       handleToolMock.mockResolvedValue({ code: 'composition "Cube" { object "Box" {} }' });
-      parseHoloMock.mockReturnValue({ success: true, ast: { type: 'HoloComposition' }, errors: [] });
+      parseHoloMock.mockReturnValue({
+        success: true,
+        ast: { type: 'HoloComposition' },
+        errors: [],
+      });
       storeSceneMock.mockReturnValue({ id: 'scene_ghi789' });
 
       const res = await publicGenerateHandler({

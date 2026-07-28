@@ -142,29 +142,23 @@ export async function deregisterHoloClawFleetAgent(
 ): Promise<void> {
   // Close presence first so the agent stops being a live dispatch target.
   try {
-    await fetch(
-      `${HOLOMESH_BASE}/api/holomesh/team/${encodeURIComponent(reg.teamId)}/heartbeat`,
-      {
-        method: 'DELETE',
-        headers: headers(clientAuth),
-        body: JSON.stringify({ agentId: reg.agentId, reason }),
-        signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
-      }
-    );
+    await fetch(`${HOLOMESH_BASE}/api/holomesh/team/${encodeURIComponent(reg.teamId)}/heartbeat`, {
+      method: 'DELETE',
+      headers: headers(clientAuth),
+      body: JSON.stringify({ agentId: reg.agentId, reason }),
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+    });
   } catch {
     // non-fatal
   }
 
   // Deregister the fleet record.
   try {
-    await fetch(
-      `${HOLOMESH_BASE}/api/holomesh/agents/fleet/${encodeURIComponent(reg.agentId)}`,
-      {
-        method: 'DELETE',
-        headers: headers(clientAuth),
-        signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
-      }
-    );
+    await fetch(`${HOLOMESH_BASE}/api/holomesh/agents/fleet/${encodeURIComponent(reg.agentId)}`, {
+      method: 'DELETE',
+      headers: headers(clientAuth),
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+    });
   } catch {
     // non-fatal
   }

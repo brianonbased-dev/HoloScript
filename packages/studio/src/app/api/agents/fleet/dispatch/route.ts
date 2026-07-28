@@ -50,7 +50,12 @@ function holomeshHeaders(clientAuth?: string | null): Record<string, string> {
 }
 
 function stringList(value: unknown): string[] {
-  return Array.isArray(value) ? value.map(String).map((s) => s.trim()).filter(Boolean) : [];
+  return Array.isArray(value)
+    ? value
+        .map(String)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
 }
 
 function uniqueStrings(values: string[]): string[] {

@@ -169,7 +169,9 @@ export async function sweepMeshToolRegistry(
       enqueueStoreWrite((backend) => backend.markHealthy(manifest.id, at));
       continue;
     }
-    const lastHealthy = Date.parse(lastHealthyAt.get(manifest.id) ?? manifest.attestation.publishedAt);
+    const lastHealthy = Date.parse(
+      lastHealthyAt.get(manifest.id) ?? manifest.attestation.publishedAt
+    );
     if (Number.isFinite(lastHealthy) && now.getTime() - lastHealthy > ttlMs) {
       registry.delete(manifest.id);
       lastHealthyAt.delete(manifest.id);

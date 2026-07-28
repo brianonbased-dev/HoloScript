@@ -21,7 +21,10 @@ function resetStore() {
 function makeFakeResult(digest: string) {
   return {
     kind: 'scalarField' as const,
-    field: { resolution: [4, 4, 4] as [number, number, number], values: new Array(64).fill(0.5) as number[] },
+    field: {
+      resolution: [4, 4, 4] as [number, number, number],
+      values: new Array(64).fill(0.5) as number[],
+    },
     stats: { maxTemp: 1.23, minTemp: 0.01 },
     runReport: {
       solver: 'thermal',
@@ -118,10 +121,7 @@ describe('useSimState', () => {
   });
 
   it('run() sets error on network failure', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockRejectedValueOnce(new Error('network timeout'))
-    );
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('network timeout')));
 
     await useSimState.getState().run();
 
@@ -136,7 +136,8 @@ describe('useSimState', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce({ ok: true, json: async () => makeFakeResult(digest1) })
         .mockResolvedValueOnce({ ok: true, json: async () => makeFakeResult(digest2) })
     );
@@ -157,7 +158,8 @@ describe('useSimState', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce({ ok: true, json: async () => makeFakeResult(sameDigest) })
         .mockResolvedValueOnce({ ok: true, json: async () => makeFakeResult(sameDigest) })
     );

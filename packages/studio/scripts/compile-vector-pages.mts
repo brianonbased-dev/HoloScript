@@ -64,7 +64,9 @@ function loadAgentAbilityTelemetry(): unknown[] {
   const records: unknown[] = [];
   for (const path of telemetryPaths()) {
     if (!existsSync(path)) {
-      console.warn(`agent-ability telemetry missing: ${path}; using fallback_values for absent slices`);
+      console.warn(
+        `agent-ability telemetry missing: ${path}; using fallback_values for absent slices`
+      );
       continue;
     }
     records.push(...parseTelemetryFile(path));
@@ -72,9 +74,15 @@ function loadAgentAbilityTelemetry(): unknown[] {
   return records;
 }
 
-function prepareComposition(page: { component: string }, composition: HoloComposition): HoloComposition {
+function prepareComposition(
+  page: { component: string },
+  composition: HoloComposition
+): HoloComposition {
   if (page.component !== 'AgentAbility') return composition;
-  return applyPillarDomainRadarTelemetry(composition, loadAgentAbilityTelemetry()) as HoloComposition;
+  return applyPillarDomainRadarTelemetry(
+    composition,
+    loadAgentAbilityTelemetry()
+  ) as HoloComposition;
 }
 
 let failed = 0;
@@ -82,7 +90,10 @@ for (const page of PAGES) {
   const source = readFileSync(page.src, 'utf-8');
   const parsed = parseHolo(source);
   if (!parsed.success || !parsed.ast) {
-    console.error(`✗ parse error in ${page.src}:`, JSON.stringify(parsed.errors ?? []).slice(0, 400));
+    console.error(
+      `✗ parse error in ${page.src}:`,
+      JSON.stringify(parsed.errors ?? []).slice(0, 400)
+    );
     failed++;
     continue;
   }

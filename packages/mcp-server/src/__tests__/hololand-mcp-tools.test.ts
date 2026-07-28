@@ -828,7 +828,13 @@ describe('hololand-mcp-tools', () => {
       encounters: [
         { id: 'oe1', name: 'Kept', trigger: 'on-enter', zoneId: 'oz1' },
         { id: 'oe2', name: 'Zone Orphan', trigger: 'on-enter', zoneId: 'oz2' },
-        { id: 'oe3', name: 'Loot Ref Orphan', trigger: 'on-enter', zoneId: 'oz1', lootTableId: 'ot2' },
+        {
+          id: 'oe3',
+          name: 'Loot Ref Orphan',
+          trigger: 'on-enter',
+          zoneId: 'oz1',
+          lootTableId: 'ot2',
+        },
       ],
       items: [
         { id: 'oi1', name: 'Real Item', category: 'artifact' },

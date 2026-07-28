@@ -39,7 +39,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ scenes: data.scenes ?? [] });
   } catch (err) {
     return NextResponse.json(
-      { scenes: [], error: err instanceof Error ? err.message : 'Failed to load shared worlds feed' },
+      {
+        scenes: [],
+        error: err instanceof Error ? err.message : 'Failed to load shared worlds feed',
+      },
       { status: 502 }
     );
   }

@@ -239,9 +239,8 @@ export async function POST(request: Request) {
       try {
         fs.appendFileSync(
           outboxPath,
-          JSON.stringify(
-            buildEmbodimentActivityEntry({ ...entry.embodiment, status: 'stopped' })
-          ) + '\n'
+          JSON.stringify(buildEmbodimentActivityEntry({ ...entry.embodiment, status: 'stopped' })) +
+            '\n'
         );
       } catch {
         /* best-effort */

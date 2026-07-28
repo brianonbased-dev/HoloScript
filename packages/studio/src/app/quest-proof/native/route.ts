@@ -26,14 +26,18 @@ import { parseHolo } from '@holoscript/core';
  * constructor" while node resolved the same dist exports as functions).
  * Same fix as gold-game/receipts/route.ts.
  */
-async function loadNative2DCompiler(): Promise<new () => {
-  compile(ast: never, a: string, b: undefined, opts: { format: string }): unknown;
-}> {
+async function loadNative2DCompiler(): Promise<
+  new () => {
+    compile(ast: never, a: string, b: undefined, opts: { format: string }): unknown;
+  }
+> {
   const mod = (await import('@holoscript/core/compiler')) as Record<string, unknown> & {
     default?: Record<string, unknown>;
   };
   const ctor = (mod.Native2DCompiler ?? mod.default?.Native2DCompiler) as
-    | (new () => { compile(ast: never, a: string, b: undefined, opts: { format: string }): unknown })
+    | (new () => {
+        compile(ast: never, a: string, b: undefined, opts: { format: string }): unknown;
+      })
     | undefined;
   if (typeof ctor !== 'function') {
     throw new Error(

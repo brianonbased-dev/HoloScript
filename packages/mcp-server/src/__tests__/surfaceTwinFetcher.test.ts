@@ -85,7 +85,10 @@ describe('surfaceTwinFetcher — live StateAuthority round-trip (no fabrication)
     const r = await verifySurfaceAgainstLiveAuthority({
       contract: {
         projections: [
-          proj('Temp', 'reactor.temp', 'reactor-3', { identity: false, transform: { precision: 2 } }),
+          proj('Temp', 'reactor.temp', 'reactor-3', {
+            identity: false,
+            transform: { precision: 2 },
+          }),
         ],
       },
       displayedValues: { 'reactor.temp': '800.00' }, // rendered (800).toFixed(2)

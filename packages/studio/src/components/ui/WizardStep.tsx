@@ -86,8 +86,8 @@ export function WizardStep({
                 i === stepIndex
                   ? 'w-6 bg-emerald-500'
                   : i < stepIndex
-                  ? 'w-1.5 bg-emerald-500/40'
-                  : 'w-1.5 bg-white/20'
+                    ? 'w-1.5 bg-emerald-500/40'
+                    : 'w-1.5 bg-white/20'
               }`}
             />
           ))}
@@ -97,9 +97,7 @@ export function WizardStep({
       {/* Heading */}
       <div className="space-y-1">
         <h3 className="text-base font-semibold text-studio-text">{title}</h3>
-        {description && (
-          <p className="text-sm text-studio-muted">{description}</p>
-        )}
+        {description && <p className="text-sm text-studio-muted">{description}</p>}
       </div>
 
       {/* Body */}

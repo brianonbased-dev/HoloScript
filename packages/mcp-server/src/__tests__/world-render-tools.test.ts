@@ -49,7 +49,9 @@ function snapshotAuthEnv(): Record<(typeof AUTH_ENV_KEYS)[number], string | unde
   >;
 }
 
-function restoreAuthEnv(snapshot: Record<(typeof AUTH_ENV_KEYS)[number], string | undefined>): void {
+function restoreAuthEnv(
+  snapshot: Record<(typeof AUTH_ENV_KEYS)[number], string | undefined>
+): void {
   for (const key of AUTH_ENV_KEYS) {
     if (snapshot[key] === undefined) delete process.env[key];
     else process.env[key] = snapshot[key];

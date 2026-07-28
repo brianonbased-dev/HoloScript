@@ -34,10 +34,7 @@ import {
   type SigningContext,
   type RequireCapabilityOptions,
 } from './holomesh/identity/signing-middleware';
-import {
-  interceptToolCall,
-  type PolicyInterceptorResult,
-} from './policy/PolicyInterceptor';
+import { interceptToolCall, type PolicyInterceptorResult } from './policy/PolicyInterceptor';
 import { randomUUID } from 'crypto';
 
 // Shared in-memory lease adapter for the MCP server process.
@@ -156,11 +153,7 @@ function hasClassicalBrokerScope(signingCtx: SigningContext, capability: Capabil
 
 function hasBrokerScope(signingCtx: SigningContext, capability: Capability): boolean {
   const scopes = new Set((signingCtx.scopes ?? []).map(String));
-  return (
-    scopes.has('admin:*') ||
-    scopes.has('tools:admin') ||
-    scopes.has(String(capability))
-  );
+  return scopes.has('admin:*') || scopes.has('tools:admin') || scopes.has(String(capability));
 }
 
 /**
@@ -187,9 +180,8 @@ export function gateSecretsBrokerTool(
     return null;
   }
   if (!cap) return null; // Tool name unknown to the gate — let downstream reject.
-  const authOptions = options ?? (
-    hasClassicalBrokerScope(signingCtx, cap) ? { allowClassical: true } : undefined
-  );
+  const authOptions =
+    options ?? (hasClassicalBrokerScope(signingCtx, cap) ? { allowClassical: true } : undefined);
   const auth = requireCapability(signingCtx, cap, authOptions);
   if (auth.authorized) return null;
   return { authError: true, reason: auth.reason, tool: name, requiredCapability: cap };

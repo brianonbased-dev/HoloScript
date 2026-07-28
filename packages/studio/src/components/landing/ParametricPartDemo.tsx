@@ -112,32 +112,29 @@ export function ParametricPartDemo() {
   // Debounce timer ref
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchMesh = useCallback(
-    async (radius: number, thick: number) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const sdf = buildMountingPlateSDF(radius, thick);
-        const bounds = { min: [-1.2, -0.8, -1.2], max: [1.2, 0.8, 1.2] };
-        const res = await fetch('/api/manufacturing/mesh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sdf, resolution: [40, 40, 40], bounds }),
-        });
-        if (!res.ok) {
-          const body = (await res.json()) as { error?: string };
-          throw new Error(body.error ?? `HTTP ${res.status}`);
-        }
-        const data = (await res.json()) as MeshResult;
-        setMeshResult(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setLoading(false);
+  const fetchMesh = useCallback(async (radius: number, thick: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const sdf = buildMountingPlateSDF(radius, thick);
+      const bounds = { min: [-1.2, -0.8, -1.2], max: [1.2, 0.8, 1.2] };
+      const res = await fetch('/api/manufacturing/mesh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sdf, resolution: [40, 40, 40], bounds }),
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error?: string };
+        throw new Error(body.error ?? `HTTP ${res.status}`);
       }
-    },
-    []
-  );
+      const data = (await res.json()) as MeshResult;
+      setMeshResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Debounced re-fetch on slider change (300ms)
   useEffect(() => {
@@ -176,9 +173,7 @@ export function ParametricPartDemo() {
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5 border-b border-white/5 bg-white/[0.02]">
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate text-white/50 text-xs font-mono">mounting-plate.holo</span>
-          {loading && (
-            <RefreshCw className="h-3 w-3 shrink-0 text-white/30 animate-spin" />
-          )}
+          {loading && <RefreshCw className="h-3 w-3 shrink-0 text-white/30 animate-spin" />}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {rec && (
@@ -187,15 +182,15 @@ export function ParametricPartDemo() {
                 rec === 'printable'
                   ? 'bg-green-500/10 text-green-400 border-green-500/20'
                   : rec === 'needs-supports'
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                  : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    : 'bg-red-500/10 text-red-400 border-red-500/20'
               }`}
             >
               {rec === 'printable'
                 ? 'Printable'
                 : rec === 'needs-supports'
-                ? 'Needs Supports'
-                : 'Not Printable'}
+                  ? 'Needs Supports'
+                  : 'Not Printable'}
             </span>
           )}
           <button
@@ -227,10 +222,7 @@ export function ParametricPartDemo() {
             <directionalLight position={[3, 4, 3]} intensity={1.2} castShadow />
             <directionalLight position={[-2, -1, -2]} intensity={0.3} />
             {meshResult && meshResult.positions.length > 0 && (
-              <PartMesh
-                positions={meshResult.positions}
-                indices={meshResult.indices}
-              />
+              <PartMesh positions={meshResult.positions} indices={meshResult.indices} />
             )}
             <OrbitControls enablePan={false} enableZoom={false} />
           </Canvas>

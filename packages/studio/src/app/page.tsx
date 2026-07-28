@@ -258,17 +258,11 @@ function PromptHero() {
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
         <span className="text-white/10">·</span>
-        <Link
-          href="/playground"
-          className="text-white/40 hover:text-white/70 transition-colors"
-        >
+        <Link href="/playground" className="text-white/40 hover:text-white/70 transition-colors">
           Playground (no sign-in)
         </Link>
         <span className="text-white/10">·</span>
-        <Link
-          href="/absorb"
-          className="text-white/40 hover:text-white/70 transition-colors"
-        >
+        <Link href="/absorb" className="text-white/40 hover:text-white/70 transition-colors">
           Import repo
         </Link>
       </div>

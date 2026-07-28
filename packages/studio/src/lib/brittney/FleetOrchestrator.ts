@@ -162,7 +162,9 @@ function normalizeTags(tags: string[] | undefined): string[] {
 
 /** Required tags are a hard HoloMesh claim gate, not a soft scoring hint. */
 export function requiredTagsForTask(task: BoardTask): string[] {
-  return Array.from(new Set([...normalizeTags(task.required_tags), ...normalizeTags(task.requiredTags)]));
+  return Array.from(
+    new Set([...normalizeTags(task.required_tags), ...normalizeTags(task.requiredTags)])
+  );
 }
 
 /** Agent capability set used for strict required_tags gating. */
@@ -178,7 +180,9 @@ export function claimCapabilityTagsForAgent(agent: FleetAgent): string[] {
 
 /** Agent capability set used for soft scoring after the hard claim gate passes. */
 export function capabilityTagsForAgent(agent: FleetAgent): string[] {
-  return Array.from(new Set([...claimCapabilityTagsForAgent(agent), ...normalizeTags(agent.skills)]));
+  return Array.from(
+    new Set([...claimCapabilityTagsForAgent(agent), ...normalizeTags(agent.skills)])
+  );
 }
 
 export function missingRequiredTags(task: BoardTask, agent: FleetAgent): string[] {

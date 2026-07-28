@@ -72,11 +72,10 @@ function readPosition(obj) {
 
 async function load() {
   const core = await import('@holoscript/core');
-  const HoloCompositionParser =
-    core.HoloCompositionParser || core.default?.HoloCompositionParser;
-  const HoloScriptPlusParser =
-    core.HoloScriptPlusParser || core.default?.HoloScriptPlusParser;
-  if (!HoloCompositionParser) throw new Error('HoloCompositionParser not exported by @holoscript/core');
+  const HoloCompositionParser = core.HoloCompositionParser || core.default?.HoloCompositionParser;
+  const HoloScriptPlusParser = core.HoloScriptPlusParser || core.default?.HoloScriptPlusParser;
+  if (!HoloCompositionParser)
+    throw new Error('HoloCompositionParser not exported by @holoscript/core');
 
   // PATH from the .holo scene (single source of truth).
   const sceneSrc = readFileSync(join(EXAMPLES, 'playground-brittney.holo'), 'utf8');
@@ -90,7 +89,13 @@ async function load() {
   if (waypoints.length === 0) throw new Error('no Waypoint_* in scene');
 
   // PARAMS from her .hsplus brain (identity + behavior).
-  const params = { entityId: 'brittney', speed: 1.1, dwellMs: 1600, mood: 'friendly', model: 'flagship' };
+  const params = {
+    entityId: 'brittney',
+    speed: 1.1,
+    dwellMs: 1600,
+    mood: 'friendly',
+    model: 'flagship',
+  };
   if (HoloScriptPlusParser) {
     try {
       const brainSrc = readFileSync(join(EXAMPLES, 'agents', 'brittney-playground.hsplus'), 'utf8');
@@ -122,7 +127,10 @@ async function place(entityId, x, z) {
     const r = await fetch(DRIVE_URL, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ entityId, position: { x: +x.toFixed(3), y: RIDE_Y, z: +z.toFixed(3) } }),
+      body: JSON.stringify({
+        entityId,
+        position: { x: +x.toFixed(3), y: RIDE_Y, z: +z.toFixed(3) },
+      }),
     });
     if (!r.ok) console.error(`[brittney] drive HTTP ${r.status}`);
   } catch (e) {
@@ -132,9 +140,13 @@ async function place(entityId, x, z) {
 
 async function travel(entityId, from, to, speed) {
   const dist = Math.hypot(to[0] - from[0], to[2] - from[2]);
-  const steps = Math.max(1, Math.round((dist / speed) * 1000 / STEP_MS));
+  const steps = Math.max(1, Math.round(((dist / speed) * 1000) / STEP_MS));
   for (let i = 1; i <= steps; i++) {
-    await place(entityId, from[0] + ((to[0] - from[0]) * i) / steps, from[2] + ((to[2] - from[2]) * i) / steps);
+    await place(
+      entityId,
+      from[0] + ((to[0] - from[0]) * i) / steps,
+      from[2] + ((to[2] - from[2]) * i) / steps
+    );
     await sleep(STEP_MS);
   }
 }

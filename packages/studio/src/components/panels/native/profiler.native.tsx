@@ -5,65 +5,68 @@ import { useProfiler } from '@/hooks/useProfiler';
 export function ProfilerComponent() {
   const { snap } = useProfiler();
 
-
-
-
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="e851cc9f0e5833b7e21a44e78d71070f93d696cd0d9b642866b11671634b351b">
-      <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto">
-      
-      <div className="grid grid-cols-2 gap-2">
-      
-      <div className="rounded-xl border border-studio-border bg-studio-surface p-2 text-center">
-      
-      <h2 data-holo-projects="snap.fps" className={`text-3xl font-bold text-[15px] font-bold tabular-nums ${(snap?.fps ?? 0) >= 55 ? "text-green-400" : (snap?.fps ?? 0) >= 30 ? "text-yellow-400" : "text-red-400"}`}>
-      {snap?.fps ?? "0"}
-      
-    </h2>
-<span className="text-sm text-[9px] text-studio-muted">
-      {`FPS`}
-      
-    </span>
-    </div>
-<div className="rounded-xl border border-studio-border bg-studio-surface p-2 text-center">
-      
-      <h2 data-holo-projects="snap.frameMs" className="text-3xl font-bold text-[15px] font-bold tabular-nums text-studio-text">
-      {snap?.frameMs ?? "0"}
-      
-    </h2>
-<span className="text-sm text-[9px] text-studio-muted">
-      {`Frame (ms)`}
-      
-    </span>
-    </div>
-<div className="rounded-xl border border-studio-border bg-studio-surface p-2 text-center">
-      
-      <h2 data-holo-projects="snap.avgFrameMs" className="text-3xl font-bold text-[15px] font-bold tabular-nums text-studio-text">
-      {snap?.avgFrameMs ?? "0"}
-      
-    </h2>
-<span className="text-sm text-[9px] text-studio-muted">
-      {`Avg (ms)`}
-      
-    </span>
-    </div>
-<div className="rounded-xl border border-studio-border bg-studio-surface p-2 text-center">
-      
-      <h2 data-holo-projects="snap.p95FrameMs" className={`text-3xl font-bold text-[15px] font-bold tabular-nums ${(snap?.p95FrameMs ?? 0) > 33 ? "text-red-400" : (snap?.p95FrameMs ?? 0) > 16.67 ? "text-yellow-400" : "text-green-400"}`}>
-      {snap?.p95FrameMs ?? "0"}
-      
-    </h2>
-<span className="text-sm text-[9px] text-studio-muted">
-      {`p95 (ms)`}
-      
-    </span>
-    </div>
-    </div>
-    </div>
+    <div
+      className="holoscript-2d-root w-full h-full"
+      data-holo-view-contract="e851cc9f0e5833b7e21a44e78d71070f93d696cd0d9b642866b11671634b351b"
+    >
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+        className="p-3 h-full overflow-y-auto"
+      >
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-studio-border bg-studio-surface p-2 text-center">
+            <h2
+              data-holo-projects="snap.fps"
+              className={`text-3xl font-bold text-[15px] font-bold tabular-nums ${(snap?.fps ?? 0) >= 55 ? 'text-green-400' : (snap?.fps ?? 0) >= 30 ? 'text-yellow-400' : 'text-red-400'}`}
+            >
+              {snap?.fps ?? '0'}
+            </h2>
+            <span className="text-sm text-[9px] text-studio-muted">{`FPS`}</span>
+          </div>
+          <div className="rounded-xl border border-studio-border bg-studio-surface p-2 text-center">
+            <h2
+              data-holo-projects="snap.frameMs"
+              className="text-3xl font-bold text-[15px] font-bold tabular-nums text-studio-text"
+            >
+              {snap?.frameMs ?? '0'}
+            </h2>
+            <span className="text-sm text-[9px] text-studio-muted">{`Frame (ms)`}</span>
+          </div>
+          <div className="rounded-xl border border-studio-border bg-studio-surface p-2 text-center">
+            <h2
+              data-holo-projects="snap.avgFrameMs"
+              className="text-3xl font-bold text-[15px] font-bold tabular-nums text-studio-text"
+            >
+              {snap?.avgFrameMs ?? '0'}
+            </h2>
+            <span className="text-sm text-[9px] text-studio-muted">{`Avg (ms)`}</span>
+          </div>
+          <div className="rounded-xl border border-studio-border bg-studio-surface p-2 text-center">
+            <h2
+              data-holo-projects="snap.p95FrameMs"
+              className={`text-3xl font-bold text-[15px] font-bold tabular-nums ${(snap?.p95FrameMs ?? 0) > 33 ? 'text-red-400' : (snap?.p95FrameMs ?? 0) > 16.67 ? 'text-yellow-400' : 'text-green-400'}`}
+            >
+              {snap?.p95FrameMs ?? '0'}
+            </h2>
+            <span className="text-sm text-[9px] text-studio-muted">{`p95 (ms)`}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default ProfilerComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"AvgValue","node":"snap.avgFrameMs","identity":true},{"element":"FpsValue","node":"snap.fps","identity":false},{"element":"FrameValue","node":"snap.frameMs","identity":true},{"element":"P95Value","node":"snap.p95FrameMs","identity":false}],"stateRoots":["snap"],"contractHash":"e851cc9f0e5833b7e21a44e78d71070f93d696cd0d9b642866b11671634b351b"} as const;
+export const holoViewContract = {
+  version: 'holo-view-contract-v1',
+  projections: [
+    { element: 'AvgValue', node: 'snap.avgFrameMs', identity: true },
+    { element: 'FpsValue', node: 'snap.fps', identity: false },
+    { element: 'FrameValue', node: 'snap.frameMs', identity: true },
+    { element: 'P95Value', node: 'snap.p95FrameMs', identity: false },
+  ],
+  stateRoots: ['snap'],
+  contractHash: 'e851cc9f0e5833b7e21a44e78d71070f93d696cd0d9b642866b11671634b351b',
+} as const;

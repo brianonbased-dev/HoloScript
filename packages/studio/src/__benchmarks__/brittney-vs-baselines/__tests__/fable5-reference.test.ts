@@ -11,7 +11,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { loadAllTasks } from '../tasks';
 import { verifyDeterministically, hasDeterministicVerifier } from '../deterministic-verifier';
-import { makeFable5UltracodeReference, type Fable5ReferenceArtifact } from '../configs/fable5-ultracode';
+import {
+  makeFable5UltracodeReference,
+  type Fable5ReferenceArtifact,
+} from '../configs/fable5-ultracode';
 import type { Task } from '../types';
 
 const REF_DIR = path.join(__dirname, '..', 'reference', 'fable5');

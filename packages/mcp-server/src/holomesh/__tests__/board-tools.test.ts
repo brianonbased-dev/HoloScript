@@ -175,7 +175,10 @@ describe('handleBoardTool validation', () => {
   });
 
   it('holomesh_board_done_log returns error when team_id missing', async () => {
-    const result = (await handleBoardTool('holomesh_board_done_log', {})) as Record<string, unknown>;
+    const result = (await handleBoardTool('holomesh_board_done_log', {})) as Record<
+      string,
+      unknown
+    >;
     expect(result).toBeDefined();
     expect(result!.error).toMatch(/team_id/);
   });
@@ -386,8 +389,26 @@ describe('handleBoardTool with in-memory store', () => {
   it('holomesh_board_list status filter scopes to a single bucket', async () => {
     seedTeam('team-abc2', {
       taskBoard: [
-        { id: 'o1', title: 'Open', description: 'd', status: 'open', priority: 5, prioritySortKey: 5, createdAt: new Date().toISOString() },
-        { id: 'c1', title: 'Claimed', description: 'd', status: 'claimed', priority: 5, prioritySortKey: 5, claimedBy: 'a', claimedAt: new Date().toISOString(), createdAt: new Date().toISOString() },
+        {
+          id: 'o1',
+          title: 'Open',
+          description: 'd',
+          status: 'open',
+          priority: 5,
+          prioritySortKey: 5,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'c1',
+          title: 'Claimed',
+          description: 'd',
+          status: 'claimed',
+          priority: 5,
+          prioritySortKey: 5,
+          claimedBy: 'a',
+          claimedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        },
       ],
     });
     const result = (await handleBoardTool('holomesh_board_list', {
@@ -729,7 +750,7 @@ describe('handleBoardTool with in-memory store', () => {
       agent_id: 'claude1',
     })) as Record<string, unknown>;
     expect(vote1.success).toBe(true);
-    expect(((vote1.suggestion as Record<string, unknown>).votes as unknown[])).toHaveLength(1);
+    expect((vote1.suggestion as Record<string, unknown>).votes as unknown[]).toHaveLength(1);
     expect((vote1.suggestion as Record<string, unknown>).score).toBe(1);
 
     // A second, DIFFERENT real agent voting must ADD a vote, not overwrite the first one.

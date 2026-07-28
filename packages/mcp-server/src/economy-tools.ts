@@ -154,11 +154,13 @@ export const economyTools: Tool[] = [
         creatorId: { type: 'string', description: 'Creator ID with unpaid earnings' },
         recipientWallet: {
           type: 'string',
-          description: 'Seat wallet receiving the payout; must match the x402 authorization recipient',
+          description:
+            'Seat wallet receiving the payout; must match the x402 authorization recipient',
         },
         amountBaseUnits: {
           type: 'number',
-          description: 'USDC base units to pay out (10000 = $0.01). Defaults to unpaid net earnings.',
+          description:
+            'USDC base units to pay out (10000 = $0.01). Defaults to unpaid net earnings.',
         },
         period: {
           type: 'string',
@@ -519,10 +521,7 @@ type CreatorPayoutSettlementReceipt = {
   };
 };
 
-function stringParam(
-  value: unknown,
-  fieldName: string
-): string | EconomyError {
+function stringParam(value: unknown, fieldName: string): string | EconomyError {
   if (typeof value !== 'string' || value.trim() === '') {
     return {
       status: 'error',
@@ -545,9 +544,17 @@ function parseRevenuePeriod(value: unknown, fallback: RevenuePeriod): RevenuePer
   };
 }
 
-function parseSettlementChain(value: unknown, fallback: SettlementChain): SettlementChain | EconomyError {
+function parseSettlementChain(
+  value: unknown,
+  fallback: SettlementChain
+): SettlementChain | EconomyError {
   if (value === undefined || value === null) return fallback;
-  if (value === 'base' || value === 'base-sepolia' || value === 'solana' || value === 'solana-devnet') {
+  if (
+    value === 'base' ||
+    value === 'base-sepolia' ||
+    value === 'solana' ||
+    value === 'solana-devnet'
+  ) {
     return value;
   }
   return {
@@ -572,12 +579,13 @@ function parseAmountBaseUnits(value: unknown, fallback: number): number | Econom
 function completedPayoutTotal(
   payouts: ReturnType<CreatorRevenueAggregator['getCreatorPayouts']>
 ): number {
-  return payouts.reduce((sum, payout) => sum + (payout.status === 'completed' ? payout.amount : 0), 0);
+  return payouts.reduce(
+    (sum, payout) => sum + (payout.status === 'completed' ? payout.amount : 0),
+    0
+  );
 }
 
-async function handleSettleCreatorPayout(
-  args: Record<string, unknown>
-): Promise<
+async function handleSettleCreatorPayout(args: Record<string, unknown>): Promise<
   | {
       status: 'success';
       creatorId: string;

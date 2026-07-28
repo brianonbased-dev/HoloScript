@@ -3,10 +3,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  TIME_TO_WOW_SOURCE,
-  TimeToWowPathPanel,
-} from './TimeToWowPathPanel';
+import { TIME_TO_WOW_SOURCE, TimeToWowPathPanel } from './TimeToWowPathPanel';
 
 describe('TimeToWowPathPanel', () => {
   it('shows the prompt-to-running-project promise and starts the flow', () => {

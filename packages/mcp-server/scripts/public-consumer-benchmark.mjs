@@ -2,15 +2,7 @@
 
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  stat,
-  writeFile,
-} from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -89,9 +81,10 @@ export function compareWithBaseline(metrics, baseline, bounds = DEFAULT_BOUNDS) 
   const packageBytesBaseline = Number(baselineMetrics.package?.bytes || 0);
   const dependencyBaseline = Number(baselineMetrics.install?.dependencyNodes || 0);
   const peerWarningBaseline = Number(baselineMetrics.install?.peerWarningCount || 0);
-  const packageGrowthPercent = packageBytesBaseline > 0
-    ? ((metrics.package.bytes - packageBytesBaseline) / packageBytesBaseline) * 100
-    : 0;
+  const packageGrowthPercent =
+    packageBytesBaseline > 0
+      ? ((metrics.package.bytes - packageBytesBaseline) / packageBytesBaseline) * 100
+      : 0;
 
   const checks = {
     installBounded: metrics.install.elapsedMs <= bounds.installMsMax,
@@ -305,9 +298,10 @@ function findPackageRoot(consumerRoot) {
 }
 
 function importProbeCode(target, moduleKind) {
-  const load = moduleKind === 'esm'
-    ? `await import(${JSON.stringify(target)})`
-    : `require(${JSON.stringify(target)})`;
+  const load =
+    moduleKind === 'esm'
+      ? `await import(${JSON.stringify(target)})`
+      : `require(${JSON.stringify(target)})`;
   return `
     const started = performance.now();
     const loaded = ${load};
@@ -324,17 +318,16 @@ function importProbeCode(target, moduleKind) {
 }
 
 async function probeImport(consumerRoot, target, moduleKind, timeoutMs) {
-  const args = moduleKind === 'esm'
-    ? ['--input-type=module', '-e', importProbeCode(target, moduleKind)]
-    : ['-e', importProbeCode(target, moduleKind)];
+  const args =
+    moduleKind === 'esm'
+      ? ['--input-type=module', '-e', importProbeCode(target, moduleKind)]
+      : ['-e', importProbeCode(target, moduleKind)];
   const result = await runProcess(process.execPath, args, {
     cwd: consumerRoot,
     env: buildServiceEnv(),
     timeoutMs,
   });
-  const markerLine = result.stdout
-    .split(/\r?\n/u)
-    .find((line) => line.startsWith(IMPORT_MARKER));
+  const markerLine = result.stdout.split(/\r?\n/u).find((line) => line.startsWith(IMPORT_MARKER));
   let imported = null;
   if (markerLine) {
     try {
@@ -489,11 +482,19 @@ export async function runBenchmark(options) {
     }
     const spec = options.packCurrent ? await packCurrent(tempRoot) : options.spec;
     if (!spec) throw new Error('Pass --spec <package-or-tarball> or --pack-current.');
-    const installAction = options.manager === 'npm'
-      ? ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--package-lock=false', '--loglevel=warn']
-      : options.manager === 'pnpm'
-        ? ['add', '--ignore-scripts', '--no-lockfile', '--reporter=append-only']
-        : ['add', '--ignore-scripts', '--non-interactive'];
+    const installAction =
+      options.manager === 'npm'
+        ? [
+            'install',
+            '--ignore-scripts',
+            '--no-audit',
+            '--no-fund',
+            '--package-lock=false',
+            '--loglevel=warn',
+          ]
+        : options.manager === 'pnpm'
+          ? ['add', '--ignore-scripts', '--no-lockfile', '--reporter=append-only']
+          : ['add', '--ignore-scripts', '--non-interactive'];
     const manager = managerInvocation(options.manager, installAction, spec);
     const installResult = await runProcess(manager.command, manager.args, {
       cwd: consumerRoot,
@@ -513,11 +514,12 @@ export async function runBenchmark(options) {
     const packageJson = await readJson(join(packageRoot, 'package.json'));
     const packageSize = await measureTree(packageRoot);
     const installWarnings = warningMetrics(`${installResult.stdout}\n${installResult.stderr}`);
-    const listAction = options.manager === 'npm'
-      ? ['ls', '--all', '--json']
-      : options.manager === 'pnpm'
-        ? ['list', '--depth', 'Infinity', '--json']
-        : ['list', '--json'];
+    const listAction =
+      options.manager === 'npm'
+        ? ['ls', '--all', '--json']
+        : options.manager === 'pnpm'
+          ? ['list', '--depth', 'Infinity', '--json']
+          : ['list', '--json'];
     const managerList = managerInvocation(options.manager, listAction);
     const dependencyResult = await runProcess(managerList.command, managerList.args, {
       cwd: consumerRoot,
@@ -527,11 +529,28 @@ export async function runBenchmark(options) {
     });
     let dependencyTree = {};
     try {
-      const jsonLines = String(dependencyResult.stdout || '').trim().split(/\r?\n/u).filter(Boolean);
-      const parsed = JSON.parse(options.manager === 'yarn' ? jsonLines.at(-1) : dependencyResult.stdout || '{}');
-      dependencyTree = options.manager === 'yarn'
-        ? { dependencies: Object.fromEntries((parsed?.data?.trees || []).map((tree) => [tree.name, { dependencies: Object.fromEntries((tree.children || []).map((child) => [child.name, {}])) }])) }
-        : parsed;
+      const jsonLines = String(dependencyResult.stdout || '')
+        .trim()
+        .split(/\r?\n/u)
+        .filter(Boolean);
+      const parsed = JSON.parse(
+        options.manager === 'yarn' ? jsonLines.at(-1) : dependencyResult.stdout || '{}'
+      );
+      dependencyTree =
+        options.manager === 'yarn'
+          ? {
+              dependencies: Object.fromEntries(
+                (parsed?.data?.trees || []).map((tree) => [
+                  tree.name,
+                  {
+                    dependencies: Object.fromEntries(
+                      (tree.children || []).map((child) => [child.name, {}])
+                    ),
+                  },
+                ])
+              ),
+            }
+          : parsed;
     } catch {
       dependencyTree = {};
     }
@@ -547,8 +566,18 @@ export async function runBenchmark(options) {
       },
       package: packageSize,
       imports: {
-        rootEsm: await probeImport(consumerRoot, PACKAGE_NAME, 'esm', DEFAULT_BOUNDS.rootSettleMsMax),
-        rootCjs: await probeImport(consumerRoot, PACKAGE_NAME, 'cjs', DEFAULT_BOUNDS.rootSettleMsMax),
+        rootEsm: await probeImport(
+          consumerRoot,
+          PACKAGE_NAME,
+          'esm',
+          DEFAULT_BOUNDS.rootSettleMsMax
+        ),
+        rootCjs: await probeImport(
+          consumerRoot,
+          PACKAGE_NAME,
+          'cjs',
+          DEFAULT_BOUNDS.rootSettleMsMax
+        ),
         serviceEsm: await probeImport(
           consumerRoot,
           `${PACKAGE_NAME}/service`,
@@ -594,8 +623,7 @@ export async function runBenchmark(options) {
       },
       ok: options.captureBaseline ? false : Boolean(comparison?.ok),
       proofBoundary: {
-        proves:
-          `fresh ${options.manager} install, ESM/CJS root and service import settlement, package/dependency/peer-warning bounds, and packaged HTTP executable health`,
+        proves: `fresh ${options.manager} install, ESM/CJS root and service import settlement, package/dependency/peer-warning bounds, and packaged HTTP executable health`,
         doesNotProve:
           'remote cloud or Jetson execution, provider-native planning, or production load capacity',
       },

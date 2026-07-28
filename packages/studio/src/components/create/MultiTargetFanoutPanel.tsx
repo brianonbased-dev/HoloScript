@@ -171,9 +171,8 @@ export function MultiTargetFanoutPanel({ onDispatch }: MultiTargetFanoutPanelPro
               Same source, six bodies. Omma gets variants; HoloScript gets artifacts.
             </h2>
             <p className="text-[11px] leading-relaxed text-violet-50/75">
-              Dispatch browser, Unity, robot/sim, XR, service/MCP, and asset-pack compiles
-              from one HoloScript source. Each target streams status and lands in a merged
-              proof bundle.
+              Dispatch browser, Unity, robot/sim, XR, service/MCP, and asset-pack compiles from one
+              HoloScript source. Each target streams status and lands in a merged proof bundle.
             </p>
             <button
               type="button"

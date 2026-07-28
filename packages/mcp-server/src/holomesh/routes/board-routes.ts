@@ -202,12 +202,28 @@ const VAST_SPEND_ACCOUNTING_MAX_AGE_MS = 15 * 60 * 1000;
 const VAST_SPEND_ACCOUNTING_CLOCK_SKEW_MS = 30 * 1000;
 const VAST_SPEND_REASON_CODE = /^[a-z][a-z0-9_]{0,95}$/u;
 const VAST_SPEND_ACCOUNTING_FIELDS = new Set([
-  'schema_version', 'provider', 'status', 'observed_at_utc', 'freshness_status',
-  'age_ms', 'max_age_ms', 'rail', 'reset_window', 'vendor_total_usd',
-  'observed_purchased_compute_usd', 'monetary_complete', 'monetary_gap_reasons',
-  'provenance_complete', 'provenance_gap_reasons', 'intentional_gap_captured',
-  'cap_applicable', 'cap_usd', 'observed_admission_verdict',
-  'trusted_admission_verdict', 'trusted_headroom_usd', 'no_paid_actions',
+  'schema_version',
+  'provider',
+  'status',
+  'observed_at_utc',
+  'freshness_status',
+  'age_ms',
+  'max_age_ms',
+  'rail',
+  'reset_window',
+  'vendor_total_usd',
+  'observed_purchased_compute_usd',
+  'monetary_complete',
+  'monetary_gap_reasons',
+  'provenance_complete',
+  'provenance_gap_reasons',
+  'intentional_gap_captured',
+  'cap_applicable',
+  'cap_usd',
+  'observed_admission_verdict',
+  'trusted_admission_verdict',
+  'trusted_headroom_usd',
+  'no_paid_actions',
 ]);
 
 function normalizeVerificationEvidence(value: unknown): string | undefined {
@@ -897,27 +913,35 @@ function isBoundedNonemptyString(value: unknown, maxLength: number): value is st
 }
 
 function validateSpendReasonCodes(value: unknown): value is string[] {
-  return Array.isArray(value) &&
+  return (
+    Array.isArray(value) &&
     value.length <= 32 &&
     value.every((entry) => typeof entry === 'string' && VAST_SPEND_REASON_CODE.test(entry)) &&
-    new Set(value).size === value.length;
+    new Set(value).size === value.length
+  );
 }
 
 function isNullableSpendNumber(value: unknown, signed = false): boolean {
-  return value === null || (
-    typeof value === 'number' &&
-    Number.isFinite(value) &&
-    (signed || value >= 0)
+  return (
+    value === null ||
+    (typeof value === 'number' && Number.isFinite(value) && (signed || value >= 0))
   );
 }
 
 function validateVastSpendAccounting(value: unknown, flowCapturedMs: number): boolean {
   if (!isRecord(value)) return false;
   if (Object.keys(value).some((field) => !VAST_SPEND_ACCOUNTING_FIELDS.has(field))) return false;
-  if ([...VAST_SPEND_ACCOUNTING_FIELDS].some((field) => !Object.prototype.hasOwnProperty.call(value, field))) {
+  if (
+    [...VAST_SPEND_ACCOUNTING_FIELDS].some(
+      (field) => !Object.prototype.hasOwnProperty.call(value, field)
+    )
+  ) {
     return false;
   }
-  if (value.schema_version !== 'holomesh.vast-spend-accounting/v1' || value.provider !== 'vast.ai') {
+  if (
+    value.schema_version !== 'holomesh.vast-spend-accounting/v1' ||
+    value.provider !== 'vast.ai'
+  ) {
     return false;
   }
   if (!['ok', 'captured-provenance-gap', 'missing', 'invalid'].includes(String(value.status))) {
@@ -926,22 +950,37 @@ function validateVastSpendAccounting(value: unknown, flowCapturedMs: number): bo
   if (!['fresh', 'stale', 'missing', 'invalid'].includes(String(value.freshness_status))) {
     return false;
   }
-  if (value.max_age_ms !== VAST_SPEND_ACCOUNTING_MAX_AGE_MS
-    || value.rail !== 'purchased_compute'
-    || value.reset_window !== 'utc_day') return false;
-  if (typeof value.monetary_complete !== 'boolean'
-    || typeof value.provenance_complete !== 'boolean'
-    || typeof value.intentional_gap_captured !== 'boolean'
-    || typeof value.cap_applicable !== 'boolean'
-    || typeof value.no_paid_actions !== 'boolean') return false;
-  if (!validateSpendReasonCodes(value.monetary_gap_reasons)
-    || !validateSpendReasonCodes(value.provenance_gap_reasons)) return false;
-  if (value.monetary_complete !== (value.monetary_gap_reasons.length === 0)
-    || value.provenance_complete !== (value.provenance_gap_reasons.length === 0)) return false;
-  if (!isNullableSpendNumber(value.vendor_total_usd)
-    || !isNullableSpendNumber(value.observed_purchased_compute_usd)
-    || !isNullableSpendNumber(value.cap_usd)
-    || !isNullableSpendNumber(value.trusted_headroom_usd, true)) return false;
+  if (
+    value.max_age_ms !== VAST_SPEND_ACCOUNTING_MAX_AGE_MS ||
+    value.rail !== 'purchased_compute' ||
+    value.reset_window !== 'utc_day'
+  )
+    return false;
+  if (
+    typeof value.monetary_complete !== 'boolean' ||
+    typeof value.provenance_complete !== 'boolean' ||
+    typeof value.intentional_gap_captured !== 'boolean' ||
+    typeof value.cap_applicable !== 'boolean' ||
+    typeof value.no_paid_actions !== 'boolean'
+  )
+    return false;
+  if (
+    !validateSpendReasonCodes(value.monetary_gap_reasons) ||
+    !validateSpendReasonCodes(value.provenance_gap_reasons)
+  )
+    return false;
+  if (
+    value.monetary_complete !== (value.monetary_gap_reasons.length === 0) ||
+    value.provenance_complete !== (value.provenance_gap_reasons.length === 0)
+  )
+    return false;
+  if (
+    !isNullableSpendNumber(value.vendor_total_usd) ||
+    !isNullableSpendNumber(value.observed_purchased_compute_usd) ||
+    !isNullableSpendNumber(value.cap_usd) ||
+    !isNullableSpendNumber(value.trusted_headroom_usd, true)
+  )
+    return false;
 
   const observedVerdicts = [
     null,
@@ -950,68 +989,96 @@ function validateVastSpendAccounting(value: unknown, flowCapturedMs: number): bo
     'not-applicable',
     'blocked-monetary-coverage-incomplete',
   ];
-  if (!observedVerdicts.includes(value.observed_admission_verdict as string | null)
-    || ![null, 'under-cap', 'cap-exceeded'].includes(value.trusted_admission_verdict as string | null)) {
+  if (
+    !observedVerdicts.includes(value.observed_admission_verdict as string | null) ||
+    ![null, 'under-cap', 'cap-exceeded'].includes(value.trusted_admission_verdict as string | null)
+  ) {
     return false;
   }
 
   const freshness = value.freshness_status;
-  const observedAtMs = value.observed_at_utc === null ? null : parseFleetTimestamp(value.observed_at_utc);
+  const observedAtMs =
+    value.observed_at_utc === null ? null : parseFleetTimestamp(value.observed_at_utc);
   if (freshness === 'missing' || freshness === 'invalid') {
     if (value.status !== freshness || observedAtMs !== null || value.age_ms !== null) return false;
-    const sentinelReason = freshness === 'missing'
-      ? 'vendor_spend_accounting_missing'
-      : 'vendor_spend_accounting_invalid';
-    if (value.vendor_total_usd !== null
-      || value.observed_purchased_compute_usd !== null
-      || value.monetary_complete !== false
-      || value.monetary_gap_reasons.length !== 1
-      || value.monetary_gap_reasons[0] !== sentinelReason
-      || value.provenance_complete !== false
-      || value.provenance_gap_reasons.length !== 1
-      || value.provenance_gap_reasons[0] !== sentinelReason
-      || value.intentional_gap_captured !== false
-      || value.cap_applicable !== false
-      || value.cap_usd !== null
-      || value.observed_admission_verdict !== null
-      || value.trusted_admission_verdict !== null
-      || value.trusted_headroom_usd !== null
-      || value.no_paid_actions !== true) return false;
+    const sentinelReason =
+      freshness === 'missing'
+        ? 'vendor_spend_accounting_missing'
+        : 'vendor_spend_accounting_invalid';
+    if (
+      value.vendor_total_usd !== null ||
+      value.observed_purchased_compute_usd !== null ||
+      value.monetary_complete !== false ||
+      value.monetary_gap_reasons.length !== 1 ||
+      value.monetary_gap_reasons[0] !== sentinelReason ||
+      value.provenance_complete !== false ||
+      value.provenance_gap_reasons.length !== 1 ||
+      value.provenance_gap_reasons[0] !== sentinelReason ||
+      value.intentional_gap_captured !== false ||
+      value.cap_applicable !== false ||
+      value.cap_usd !== null ||
+      value.observed_admission_verdict !== null ||
+      value.trusted_admission_verdict !== null ||
+      value.trusted_headroom_usd !== null ||
+      value.no_paid_actions !== true
+    )
+      return false;
   } else {
-    if (!['ok', 'captured-provenance-gap'].includes(String(value.status)) || observedAtMs === null) return false;
+    if (!['ok', 'captured-provenance-gap'].includes(String(value.status)) || observedAtMs === null)
+      return false;
     if (observedAtMs > flowCapturedMs + VAST_SPEND_ACCOUNTING_CLOCK_SKEW_MS) return false;
     if (!isNonnegativeInteger(value.age_ms)) return false;
     const expectedAgeMs = Math.max(0, flowCapturedMs - observedAtMs);
     if (Math.abs(value.age_ms - expectedAgeMs) > MAX_FLEET_FLOW_CAPTURE_DELTA_MS) return false;
-    if ((freshness === 'fresh') !== (value.age_ms <= value.max_age_ms)) return false;
+    if ((freshness === 'fresh') !== value.age_ms <= value.max_age_ms) return false;
   }
 
-  if (value.monetary_complete
-    && (value.vendor_total_usd === null || value.observed_purchased_compute_usd === null)) return false;
-  if (typeof value.vendor_total_usd === 'number'
-    && typeof value.observed_purchased_compute_usd === 'number'
-    && value.observed_purchased_compute_usd + 0.000001 < value.vendor_total_usd) return false;
+  if (
+    value.monetary_complete &&
+    (value.vendor_total_usd === null || value.observed_purchased_compute_usd === null)
+  )
+    return false;
+  if (
+    typeof value.vendor_total_usd === 'number' &&
+    typeof value.observed_purchased_compute_usd === 'number' &&
+    value.observed_purchased_compute_usd + 0.000001 < value.vendor_total_usd
+  )
+    return false;
   if (value.cap_applicable && value.cap_usd === null) return false;
-  if (value.intentional_gap_captured
-    && (!value.monetary_complete || value.provenance_complete || !value.cap_applicable)) return false;
-  if (value.status === 'captured-provenance-gap'
-    && (!value.intentional_gap_captured || !value.monetary_complete || value.provenance_complete)) {
+  if (
+    value.intentional_gap_captured &&
+    (!value.monetary_complete || value.provenance_complete || !value.cap_applicable)
+  )
+    return false;
+  if (
+    value.status === 'captured-provenance-gap' &&
+    (!value.intentional_gap_captured || !value.monetary_complete || value.provenance_complete)
+  ) {
     return false;
   }
 
   const trusted = freshness === 'fresh' && value.monetary_complete && value.cap_applicable;
   if (!trusted) {
-    if (value.trusted_headroom_usd !== null || value.trusted_admission_verdict !== null) return false;
+    if (value.trusted_headroom_usd !== null || value.trusted_admission_verdict !== null)
+      return false;
   } else {
-    if (typeof value.trusted_headroom_usd !== 'number'
-      || typeof value.observed_purchased_compute_usd !== 'number'
-      || typeof value.cap_usd !== 'number') return false;
+    if (
+      typeof value.trusted_headroom_usd !== 'number' ||
+      typeof value.observed_purchased_compute_usd !== 'number' ||
+      typeof value.cap_usd !== 'number'
+    )
+      return false;
     const expectedVerdict = value.trusted_headroom_usd >= 0 ? 'under-cap' : 'cap-exceeded';
-    if (value.trusted_admission_verdict !== expectedVerdict
-      || value.observed_admission_verdict !== expectedVerdict) return false;
-    if (Math.abs(
-      value.observed_purchased_compute_usd + value.trusted_headroom_usd - value.cap_usd
-    ) > 0.01) return false;
+    if (
+      value.trusted_admission_verdict !== expectedVerdict ||
+      value.observed_admission_verdict !== expectedVerdict
+    )
+      return false;
+    if (
+      Math.abs(value.observed_purchased_compute_usd + value.trusted_headroom_usd - value.cap_usd) >
+      0.01
+    )
+      return false;
   }
   return true;
 }
@@ -1376,24 +1443,26 @@ function validateVastResourceFlow(
 
   if (isRecord(value.spend_accounting)) {
     const accounting = value.spend_accounting;
-    const expectedGapStates = accounting.status === 'missing' || accounting.status === 'invalid'
-      ? {
-          vendor_spend_accounting_missing: accounting.status === 'missing',
-          vendor_spend_accounting_invalid: accounting.status === 'invalid',
-          vendor_spend_accounting_stale: false,
-          vendor_spend_monetary_coverage_incomplete: false,
-          vendor_spend_provenance_coverage_incomplete: false,
-        }
-      : {
-          vendor_spend_accounting_missing: false,
-          vendor_spend_accounting_invalid: false,
-          vendor_spend_accounting_stale: accounting.freshness_status === 'stale',
-          vendor_spend_monetary_coverage_incomplete: accounting.monetary_complete !== true,
-          vendor_spend_provenance_coverage_incomplete: accounting.provenance_complete !== true,
-        };
-    if (Object.entries(expectedGapStates).some(
-      ([gap, expected]) => gaps.includes(gap) !== expected
-    )) return false;
+    const expectedGapStates =
+      accounting.status === 'missing' || accounting.status === 'invalid'
+        ? {
+            vendor_spend_accounting_missing: accounting.status === 'missing',
+            vendor_spend_accounting_invalid: accounting.status === 'invalid',
+            vendor_spend_accounting_stale: false,
+            vendor_spend_monetary_coverage_incomplete: false,
+            vendor_spend_provenance_coverage_incomplete: false,
+          }
+        : {
+            vendor_spend_accounting_missing: false,
+            vendor_spend_accounting_invalid: false,
+            vendor_spend_accounting_stale: accounting.freshness_status === 'stale',
+            vendor_spend_monetary_coverage_incomplete: accounting.monetary_complete !== true,
+            vendor_spend_provenance_coverage_incomplete: accounting.provenance_complete !== true,
+          };
+    if (
+      Object.entries(expectedGapStates).some(([gap, expected]) => gaps.includes(gap) !== expected)
+    )
+      return false;
   }
 
   return true;
@@ -1653,7 +1722,9 @@ export async function handleBoardRoutes(
     // limit preserves prior behavior (every task) for existing callers.
     const q = parseQuery(url);
     const statusFilter = q.get('status');
-    const filteredBoard = statusFilter ? fullBoard.filter((t) => t.status === statusFilter) : fullBoard;
+    const filteredBoard = statusFilter
+      ? fullBoard.filter((t) => t.status === statusFilter)
+      : fullBoard;
     const rawLimit = q.get('limit');
     const hasPaging = rawLimit !== null && rawLimit !== '';
     const limit = hasPaging
@@ -1664,7 +1735,9 @@ export async function handleBoardRoutes(
       : null;
     const rawOffset = parseInt(String(q.get('offset') || '0'), 10);
     const offset = Number.isFinite(rawOffset) ? Math.max(0, rawOffset) : 0;
-    const tasks = hasPaging ? filteredBoard.slice(offset, offset + (limit as number)) : filteredBoard;
+    const tasks = hasPaging
+      ? filteredBoard.slice(offset, offset + (limit as number))
+      : filteredBoard;
 
     json(res, 200, {
       success: true,
@@ -2776,9 +2849,7 @@ export async function handleBoardRoutes(
           const hasCommit = /^[0-9a-f]{7,40}$/i.test(commitParam);
           const traceOnlyContract =
             commitParam === '0000000' &&
-            /\b(?:pnpm|npm|node|vitest|cargo|pytest|git|curl|ssh)\b/i.test(
-              verificationEvidence
-            );
+            /\b(?:pnpm|npm|node|vitest|cargo|pytest|git|curl|ssh)\b/i.test(verificationEvidence);
           if (!hasCommit && !traceOnlyContract) {
             json(res, 400, {
               error:

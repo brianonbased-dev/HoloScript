@@ -164,7 +164,15 @@ function buildWatchdogVerdict(serve: ServeStatus | null, nowMs: number): Watchdo
   const verdict: WatchdogVerdict['verdict'] =
     conditions.length === 0 ? 'healthy' : alarm ? 'alarm' : 'observe';
 
-  return { verdict, alarm, conditions, warm, liveEndpoints, freshDemandModels: fresh.length, totalFreshWants };
+  return {
+    verdict,
+    alarm,
+    conditions,
+    warm,
+    liveEndpoints,
+    freshDemandModels: fresh.length,
+    totalFreshWants,
+  };
 }
 
 interface BoardTask {
@@ -391,13 +399,7 @@ function isServiceHealthTask(task: BoardTask): boolean {
 }
 
 function taskTime(task?: BoardTask): string | undefined {
-  return (
-    task?.updatedAt ??
-    task?.completedAt ??
-    task?.timestamp ??
-    task?.createdAt ??
-    undefined
-  );
+  return task?.updatedAt ?? task?.completedAt ?? task?.timestamp ?? task?.createdAt ?? undefined;
 }
 
 function parseDegradedServices(task?: BoardTask): string[] {
@@ -405,7 +407,10 @@ function parseDegradedServices(task?: BoardTask): string[] {
   const text = serviceHealthText(task);
   const degradedLine = text.match(/Degraded services:\s*([^\n]+)/i)?.[1]?.trim();
   if (degradedLine && !/^none$/i.test(degradedLine)) {
-    return degradedLine.split(',').map((item) => item.trim()).filter(Boolean);
+    return degradedLine
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
   const rows = [...text.matchAll(/^([^:\n]+):\s*live=.*?ok=no\s*$/gim)]
     .map((match) => match[1]?.trim())
@@ -423,7 +428,11 @@ function buildServiceHealthStatus(board: BoardState | null): ServiceHealthStatus
     .sort((a, b) => new Date(taskTime(b) ?? 0).getTime() - new Date(taskTime(a) ?? 0).getTime());
   const latest = active[0] ?? recent[0];
   const degradedServices = parseDegradedServices(latest);
-  const details = latest ? serviceHealthText(latest).split(/\r?\n/).filter((line) => /live=|deploy=/.test(line)) : [];
+  const details = latest
+    ? serviceHealthText(latest)
+        .split(/\r?\n/)
+        .filter((line) => /live=|deploy=/.test(line))
+    : [];
 
   if (active.length > 0) {
     return {
@@ -526,7 +535,9 @@ export default function OperationsPage() {
   const [holoshellProcs, setHoloshellProcs] = useState<HoloShellProcess[] | null>(null);
   const [holoshellPending, setHoloshellPending] = useState<HoloShellPending[] | null>(null);
   const [holoshellHistory, setHoloshellHistory] = useState<HoloShellExecution[] | null>(null);
-  const [holoshellAutomations, setHoloshellAutomations] = useState<HoloShellAutomation[] | null>(null);
+  const [holoshellAutomations, setHoloshellAutomations] = useState<HoloShellAutomation[] | null>(
+    null
+  );
   const [holoshellAutomationSummary, setHoloshellAutomationSummary] =
     useState<HoloShellAutomationSummary | null>(null);
   const [machineState, setMachineState] = useState<MachineStateData | null>(null);
@@ -717,17 +728,17 @@ export default function OperationsPage() {
   const serveEndpoints = serve?.endpoints ?? [];
   const serveDemand = serve?.demand ?? [];
   const warmCount = Number(
-    serveCounts.warm ?? serveEndpoints.filter((e) => e.status === 'warm').length,
+    serveCounts.warm ?? serveEndpoints.filter((e) => e.status === 'warm').length
   );
   const now = Date.now();
   const freshDemand = serveDemand.filter(
-    (d) => now - (Number(d.last_want_at) || 0) < SERVE_DEMAND_WINDOW_MS,
+    (d) => now - (Number(d.last_want_at) || 0) < SERVE_DEMAND_WINDOW_MS
   );
   const freshWants = freshDemand.reduce((a, d) => a + (Number(d.want_count) || 0), 0);
   // The load-bearing signal this panel exists for: DARK while demand is live.
   const servingDark = warmCount === 0 && freshDemand.length > 0;
   const topDemand = [...serveDemand].sort(
-    (a, b) => (Number(b.last_want_at) || 0) - (Number(a.last_want_at) || 0),
+    (a, b) => (Number(b.last_want_at) || 0) - (Number(a.last_want_at) || 0)
   )[0];
   const lastWantAgeMin = topDemand
     ? Math.round((now - (Number(topDemand.last_want_at) || 0)) / 60000)
@@ -742,10 +753,10 @@ export default function OperationsPage() {
     errors.serviceHealth && !serviceBoardStatus
       ? 'text-red-400'
       : serviceBoardStatus?.state === 'degraded'
-      ? 'text-amber-300'
-      : serviceBoardStatus?.state === 'ok'
-        ? 'text-emerald-400'
-        : 'text-studio-text';
+        ? 'text-amber-300'
+        : serviceBoardStatus?.state === 'ok'
+          ? 'text-emerald-400'
+          : 'text-studio-text';
 
   // Founder-gate (brick-2): the operate console exposes fleet/CI/Lotus/board
   // internals and is the host for spend-triggering actions. Hide it from
@@ -821,8 +832,16 @@ export default function OperationsPage() {
           <FairnessPanel />
         </div>
       )}
-      {activeTab === 'admin' && <div className="flex-1 overflow-hidden"><PlatformAdminPanel /></div>}
-      {activeTab === 'absorb' && <div className="flex-1 overflow-hidden"><AbsorbAdminPanel /></div>}
+      {activeTab === 'admin' && (
+        <div className="flex-1 overflow-hidden">
+          <PlatformAdminPanel />
+        </div>
+      )}
+      {activeTab === 'absorb' && (
+        <div className="flex-1 overflow-hidden">
+          <AbsorbAdminPanel />
+        </div>
+      )}
       {activeTab === 'fleet' && (
         <div className="flex-1 overflow-hidden p-4">
           <FleetPanel />
@@ -830,824 +849,912 @@ export default function OperationsPage() {
       )}
 
       {activeTab === 'infra' && (
-      <div className="flex-1 overflow-y-auto p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="md:col-span-2">
-          <Card title="Service Health" accent={serviceHealthAccent}>
-            {serviceBoardStatus ? (
-              (() => {
-                const stateLabel =
-                  serviceBoardStatus.state === 'degraded'
-                    ? 'DEGRADED'
-                    : serviceBoardStatus.state === 'ok'
-                      ? 'ALL CLEAR'
-                      : 'NO SIGNAL';
-                const stateTone =
-                  serviceBoardStatus.state === 'degraded'
-                    ? 'bg-amber-500/20 text-amber-200'
-                    : serviceBoardStatus.state === 'ok'
-                      ? 'bg-emerald-500/20 text-emerald-200'
-                      : 'bg-studio-border text-studio-muted';
-                const detailRows = serviceBoardStatus.details.slice(0, 8);
-                return (
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-end gap-6">
-                      <div className="flex min-w-[180px] flex-col">
-                        <span className={`w-fit rounded px-2 py-0.5 text-[11px] font-mono font-semibold ${stateTone}`}>
-                          {stateLabel}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <Card title="Service Health" accent={serviceHealthAccent}>
+                {serviceBoardStatus ? (
+                  (() => {
+                    const stateLabel =
+                      serviceBoardStatus.state === 'degraded'
+                        ? 'DEGRADED'
+                        : serviceBoardStatus.state === 'ok'
+                          ? 'ALL CLEAR'
+                          : 'NO SIGNAL';
+                    const stateTone =
+                      serviceBoardStatus.state === 'degraded'
+                        ? 'bg-amber-500/20 text-amber-200'
+                        : serviceBoardStatus.state === 'ok'
+                          ? 'bg-emerald-500/20 text-emerald-200'
+                          : 'bg-studio-border text-studio-muted';
+                    const detailRows = serviceBoardStatus.details.slice(0, 8);
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-end gap-6">
+                          <div className="flex min-w-[180px] flex-col">
+                            <span
+                              className={`w-fit rounded px-2 py-0.5 text-[11px] font-mono font-semibold ${stateTone}`}
+                            >
+                              {stateLabel}
+                            </span>
+                            <span className="mt-1 text-[10px] uppercase text-studio-muted">
+                              {serviceBoardStatus.updatedAt
+                                ? timeAgo(serviceBoardStatus.updatedAt)
+                                : 'awaiting sweep'}
+                            </span>
+                          </div>
+                          <Stat
+                            label="attention"
+                            value={serviceBoardStatus.degradedServices.length}
+                            tone={
+                              serviceBoardStatus.state === 'degraded'
+                                ? 'text-amber-300'
+                                : 'text-emerald-400'
+                            }
+                          />
+                          <Stat label="active tasks" value={serviceBoardStatus.activeCount} />
+                          <Stat
+                            label="source"
+                            value={serviceBoardStatus.source}
+                            tone="text-studio-muted"
+                          />
+                        </div>
+
+                        {serviceBoardStatus.degradedServices.length > 0 && (
+                          <div className="text-[11px] text-amber-300/90">
+                            Needs attention: {serviceBoardStatus.degradedServices.join(', ')}
+                          </div>
+                        )}
+
+                        {detailRows.length > 0 ? (
+                          <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                            {detailRows.map((line) => {
+                              const name = line.split(':', 1)[0] || line;
+                              const degraded = /ok=no/i.test(line);
+                              const chipTone = degraded
+                                ? 'border-amber-500/40 bg-amber-500/10 text-amber-100'
+                                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100';
+                              return (
+                                <div
+                                  key={line}
+                                  className={`min-w-0 rounded border px-2 py-1.5 ${chipTone}`}
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="truncate text-[11px] font-semibold">
+                                      {name}
+                                    </span>
+                                    <span className="shrink-0 rounded bg-black/20 px-1.5 py-0.5 text-[9px] font-mono">
+                                      {degraded ? 'ATTN' : 'OK'}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 truncate text-[9px] font-mono text-studio-muted">
+                                    {line.replace(`${name}: `, '')}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {serviceBoardStatus.details.length > detailRows.length && (
+                              <div className="rounded border border-studio-border/60 bg-studio-panel/20 px-2 py-1.5 text-[10px] text-studio-muted">
+                                +{serviceBoardStatus.details.length - detailRows.length} more rows
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-studio-muted">
+                            {serviceBoardStatus.state === 'unknown'
+                              ? 'Awaiting A-047 board status.'
+                              : 'No degraded service rows in the latest board status.'}
+                          </div>
+                        )}
+
+                        <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
+                          Source: HoloMesh board task {serviceBoardStatus.latest?.id ?? '(pending)'}{' '}
+                          from A-047 service-health sweep.
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div
+                    className={
+                      errors.serviceHealth ? 'text-xs text-red-400' : 'text-xs text-studio-muted'
+                    }
+                  >
+                    {errors.serviceHealth
+                      ? `Error: ${errors.serviceHealth}`
+                      : 'Loading board status.'}
+                  </div>
+                )}
+              </Card>
+            </div>
+            {/* FLEET WATCHDOG VERDICT — consolidated healthy/alarm/cold-idle verdict
+            across all 3 watchdog conditions (D.081 / F.099). The peer Sovereign-
+            Serving card shows only dark_under_demand; this shows the full verdict
+            the loud-failing cron (serving-fleet-watchdog.mjs) emits. */}
+            <Card
+              title="🩺 Fleet Watchdog Verdict"
+              accent={
+                errors.serve
+                  ? 'text-red-400'
+                  : watchdog?.verdict === 'alarm'
+                    ? 'text-red-400'
+                    : watchdog?.verdict === 'healthy'
+                      ? 'text-emerald-400'
+                      : 'text-studio-text'
+              }
+            >
+              {errors.serve ? (
+                <div className="text-xs text-red-400">Error: {errors.serve}</div>
+              ) : watchdog ? (
+                (() => {
+                  const verdictLabel =
+                    watchdog.verdict === 'alarm'
+                      ? 'ALARM'
+                      : watchdog.verdict === 'healthy'
+                        ? 'HEALTHY'
+                        : 'COLD-IDLE OK';
+                  const verdictTone =
+                    watchdog.verdict === 'alarm'
+                      ? 'bg-red-500/20 text-red-300'
+                      : watchdog.verdict === 'healthy'
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : 'bg-studio-border text-studio-muted';
+                  const sevTone: Record<WatchdogCondition['severity'], string> = {
+                    critical: 'border-red-500/40 bg-red-500/10 text-red-300',
+                    warning: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
+                    info: 'border-studio-border/60 bg-studio-panel/30 text-studio-muted',
+                  };
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${verdictTone}`}
+                        >
+                          {verdictLabel}
                         </span>
-                        <span className="mt-1 text-[10px] uppercase text-studio-muted">
-                          {serviceBoardStatus.updatedAt ? timeAgo(serviceBoardStatus.updatedAt) : 'awaiting sweep'}
+                        <span className="text-[10px] text-studio-muted">
+                          {watchdog.conditions.length === 0
+                            ? 'no alarm conditions'
+                            : `${watchdog.conditions.length} condition${watchdog.conditions.length === 1 ? '' : 's'}`}
                         </span>
                       </div>
-                      <Stat
-                        label="attention"
-                        value={serviceBoardStatus.degradedServices.length}
-                        tone={serviceBoardStatus.state === 'degraded' ? 'text-amber-300' : 'text-emerald-400'}
-                      />
-                      <Stat label="active tasks" value={serviceBoardStatus.activeCount} />
-                      <Stat label="source" value={serviceBoardStatus.source} tone="text-studio-muted" />
+
+                      <div className="flex items-end gap-5">
+                        <Stat
+                          label="warm"
+                          value={watchdog.warm}
+                          tone={
+                            watchdog.warm > 0
+                              ? 'text-emerald-400'
+                              : watchdog.verdict === 'alarm'
+                                ? 'text-red-400'
+                                : 'text-amber-300'
+                          }
+                        />
+                        <Stat label="endpoints" value={watchdog.liveEndpoints} />
+                        <Stat label="fresh wants" value={watchdog.totalFreshWants} />
+                        <Stat label="models w/ demand" value={watchdog.freshDemandModels} />
+                      </div>
+
+                      {watchdog.conditions.length > 0 ? (
+                        <div className="space-y-1">
+                          {watchdog.conditions.map((c) => (
+                            <div
+                              key={c.code}
+                              className={`rounded border p-2 text-[10px] ${sevTone[c.severity]}`}
+                            >
+                              <span className="font-mono font-semibold">
+                                [{c.severity}] {c.code}
+                              </span>{' '}
+                              — {c.detail}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-emerald-400/90">
+                          Serving healthy — no dark-under-demand, no stale workers, serving proof
+                          current.
+                        </div>
+                      )}
+
+                      <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
+                        Mirrors <code>scripts/serving-fleet-watchdog.mjs</code> (3 conditions:
+                        dark_under_demand · stale_workers · no_serving_proof). Verdict matches the
+                        loud-failing cron; that loop also files a board task + room DM on a real
+                        alarm.
+                      </div>
                     </div>
+                  );
+                })()
+              ) : (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              )}
+            </Card>
 
-                    {serviceBoardStatus.degradedServices.length > 0 && (
-                      <div className="text-[11px] text-amber-300/90">
-                        Needs attention: {serviceBoardStatus.degradedServices.join(', ')}
+            {/* LOTUS GATE */}
+            <Card
+              title="🪷 Lotus Genesis Gate"
+              accent={gateOpen ? 'text-emerald-400' : 'text-studio-text'}
+            >
+              {errors.lotus ? (
+                <div className="text-xs text-red-400">Error: {errors.lotus}</div>
+              ) : gate ? (
+                <div className="space-y-3">
+                  <div className="flex items-end gap-6">
+                    <Stat
+                      label="verified RTX benches"
+                      value={`${gate.papers_with_rtx_bench}/${gate.total_papers}`}
+                      tone={gateOpen ? 'text-emerald-400' : 'text-amber-300'}
+                    />
+                    <Stat label="% to bloom" value={`${Math.round(gate.pct)}%`} />
+                  </div>
+                  <div className="text-xs text-studio-muted">{gate.status}</div>
+                  <div className="text-[10px] text-studio-muted">
+                    Fires when: {gate.lotus_fires_when}
+                  </div>
+                  {gate.unverified_legacy?.length > 0 && (
+                    <div className="text-[10px] text-amber-300/80">
+                      {gate.unverified_legacy.length} legacy papers claim a bench but lack verified
+                      evidence (provenance only — not counted): {gate.unverified_legacy.join(', ')}
+                    </div>
+                  )}
+                  <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
+                    Source: orchestrator gate (evidence-required). The public bloom on
+                    holoscript.net derives separately and may differ until single-sourced.
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              )}
+            </Card>
+
+            {/* SOVEREIGN SERVING FLEET — the Brittney-on-BYOK guard (D.081 / F.099) */}
+            <Card
+              title="🤖 Sovereign Serving (Brittney backend)"
+              accent={
+                servingDark
+                  ? 'text-red-400'
+                  : warmCount > 0
+                    ? 'text-emerald-400'
+                    : 'text-studio-text'
+              }
+            >
+              {errors.serve ? (
+                <div className="text-xs text-red-400">Error: {errors.serve}</div>
+              ) : serve ? (
+                <div className="space-y-3">
+                  <div className="flex items-end gap-6">
+                    <Stat
+                      label="warm replicas"
+                      value={warmCount}
+                      tone={
+                        warmCount > 0
+                          ? 'text-emerald-400'
+                          : servingDark
+                            ? 'text-red-400'
+                            : 'text-amber-300'
+                      }
+                    />
+                    <Stat label="live wants (15m)" value={freshWants} />
+                    <Stat
+                      label="models w/ demand"
+                      value={serveCounts.models_with_demand ?? serveDemand.length}
+                    />
+                  </div>
+
+                  {servingDark ? (
+                    <div className="rounded border border-red-500/40 bg-red-500/10 p-2 text-[11px] text-red-300">
+                      🚨 DARK UNDER DEMAND — serving is cold (warm=0) while {freshDemand.length}{' '}
+                      model(s) have live wants. Brittney is on BYOK/local fallback. Re-enable the
+                      keep-warm autoscaler (a-033) or pin BYOK deliberately.
+                    </div>
+                  ) : warmCount > 0 ? (
+                    <div className="text-[11px] text-emerald-400/90">
+                      Serving live — {warmCount} warm replica{warmCount === 1 ? '' : 's'}.
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-studio-muted">
+                      Cold at scale-to-zero (expected when idle). Last want{' '}
+                      {lastWantAgeMin !== null ? `${lastWantAgeMin}m ago` : '—'} → no live demand,
+                      so $0 idle is correct. Proven 21s cold resume on real demand.
+                    </div>
+                  )}
+
+                  {serveDemand.length > 0 && (
+                    <div className="space-y-0.5 border-t border-studio-border/40 pt-1">
+                      {serveDemand.slice(0, 4).map((d) => {
+                        const ageMin = Math.round((now - (Number(d.last_want_at) || 0)) / 60000);
+                        const isFresh =
+                          now - (Number(d.last_want_at) || 0) < SERVE_DEMAND_WINDOW_MS;
+                        return (
+                          <div key={d.model} className="flex justify-between text-[10px] font-mono">
+                            <span className="truncate text-studio-muted">{d.model}</span>
+                            <span className={isFresh ? 'text-amber-300' : 'text-studio-muted'}>
+                              {d.want_count} wants · {ageMin}m ago
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {serveEndpoints.length > 0 && (
+                    <div className="space-y-0.5">
+                      {serveEndpoints.slice(0, 3).map((e, i) => (
+                        <div
+                          key={e.id || i}
+                          className="text-[10px] font-mono text-emerald-400/80 truncate"
+                        >
+                          ▶ {e.id || e.model} · {e.status}
+                          {e.gpu ? ` · ${e.gpu}` : ''}
+                          {typeof e.dph === 'number' ? ` · $${e.dph}/hr` : ''}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* TRIGGER — D.081: action the founder/agent can fire from the surface. */}
+                  <div className="border-t border-studio-border/40 pt-2">
+                    <a
+                      href="https://github.com/brianonbased-dev/ai-ecosystem/blob/main/automations/holoshell-team-automations/registry.json"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block text-[10px] rounded border border-studio-border px-2 py-1 text-studio-muted hover:text-studio-text hover:border-studio-text/40 transition"
+                      title="Re-enable a-033 serving-autoscaler (keep-warm / scale-to-zero) in the HoloShell automation registry"
+                    >
+                      ⚙️ Re-enable keep-warm autoscaler (a-033) →
+                    </a>
+                    <div className="text-[9px] text-studio-muted mt-1">
+                      Watchdog: <code>scripts/serving-fleet-watchdog.mjs --alarm</code> fires a loud
+                      board task + room DM when serving goes dark under demand.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              )}
+            </Card>
+
+            {/* JOB QUEUE BY LANE */}
+            <Card title="⚙️ GPU / CI Queue">
+              {errors.lotus ? (
+                <div className="text-xs text-red-400">Error: {errors.lotus}</div>
+              ) : q ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded border border-studio-border/40 p-2">
+                      <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+                        GPU lane
                       </div>
-                    )}
+                      <div className="flex gap-4">
+                        <Stat label="queued" value={gpuLane?.queued ?? '—'} />
+                        <Stat
+                          label="running"
+                          value={gpuLane?.running ?? '—'}
+                          tone="text-emerald-400"
+                        />
+                      </div>
+                    </div>
+                    <div className="rounded border border-studio-border/40 p-2">
+                      <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+                        CI lane
+                      </div>
+                      <div className="flex gap-4">
+                        <Stat
+                          label="queued"
+                          value={ciLane?.queued ?? '—'}
+                          tone={(ciLane?.queued ?? 0) > 10 ? 'text-amber-300' : 'text-studio-text'}
+                        />
+                        <Stat
+                          label="running"
+                          value={ciLane?.running ?? '—'}
+                          tone="text-emerald-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-studio-muted">
+                    total: {q.queued} queued · {q.running} running · {q.done} done
+                  </div>
+                  {q.running_jobs && q.running_jobs.length > 0 && (
+                    <div className="space-y-0.5">
+                      {q.running_jobs.slice(0, 5).map((j) => (
+                        <div
+                          key={j.id}
+                          className="text-[10px] font-mono text-studio-muted truncate"
+                        >
+                          ▶ {j.tier} {j.paper_id ?? j.id.slice(0, 18)} · {j.age_s}s
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              )}
+            </Card>
 
-                    {detailRows.length > 0 ? (
-                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
-                        {detailRows.map((line) => {
-                          const name = line.split(':', 1)[0] || line;
-                          const degraded = /ok=no/i.test(line);
-                          const chipTone = degraded
-                            ? 'border-amber-500/40 bg-amber-500/10 text-amber-100'
-                            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100';
+            {/* FLEET HEALTH */}
+            <Card title="🛰️ Fleet">
+              {errors.fleet ? (
+                <div className="text-xs text-red-400">Error: {errors.fleet}</div>
+              ) : fleet ? (
+                <div className="space-y-2">
+                  <div className="flex items-end gap-6">
+                    <Stat
+                      label="agents online"
+                      value={fleet.onlineCount ?? '—'}
+                      tone="text-emerald-400"
+                    />
+                    <div className="flex flex-col">
+                      <span
+                        className={`text-lg font-mono ${
+                          fleet.status === 'ok' ? 'text-emerald-400' : 'text-amber-300'
+                        }`}
+                      >
+                        {fleet.status ?? 'unknown'}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider text-studio-muted">
+                        health
+                      </span>
+                    </div>
+                  </div>
+                  {fleet.reasons && fleet.reasons.length > 0 && (
+                    <div className="text-[10px] text-amber-300/80">{fleet.reasons.join(', ')}</div>
+                  )}
+                  <div className="text-[9px] text-studio-muted">
+                    snapshot {timeAgo(fleet.publishedAt)}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              )}
+            </Card>
+
+            {/* BOARD */}
+            <Card title="📋 Board">
+              {errors.board ? (
+                <div className="text-xs text-red-400">Error: {errors.board}</div>
+              ) : board ? (
+                <div className="space-y-3">
+                  <div className="flex items-end gap-5">
+                    <Stat label="open" value={board.open.length} />
+                    <Stat label="claimed" value={board.claimed.length} tone="text-amber-300" />
+                    <Stat
+                      label="blocked"
+                      value={board.blocked.length}
+                      tone={board.blocked.length ? 'text-red-400' : 'text-studio-text'}
+                    />
+                    <Stat label="done" value={board.doneTotal} tone="text-emerald-400" />
+                  </div>
+                  <div className="space-y-0.5">
+                    {board.claimed.slice(0, 5).map((t) => (
+                      <div key={t.id} className="text-[10px] text-studio-muted truncate">
+                        ◗ {t.title}{' '}
+                        <span className="text-studio-accent">
+                          · {t.claimedByName || t.claimedBy || '?'}
+                        </span>
+                      </div>
+                    ))}
+                    {board.open.slice(0, 3).map((t) => (
+                      <div key={t.id} className="text-[10px] text-studio-muted/70 truncate">
+                        ○ {t.title}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              )}
+            </Card>
+
+            {/* STABILIZER-FLEET DECODER (EXP-5-real) */}
+            <Card
+              title="⚛️ Stabilizer-Fleet Decoder"
+              accent={stabilizer?.verdict === 'PROVE' ? 'text-emerald-400' : 'text-studio-text'}
+            >
+              {errors.stabilizer ? (
+                <div className="text-xs text-red-400">Error: {errors.stabilizer}</div>
+              ) : stabilizer ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono ${
+                        stabilizer.provenanceBadge === 'live-fleet'
+                          ? 'bg-emerald-500/20 text-emerald-300'
+                          : 'bg-studio-border text-studio-muted'
+                      }`}
+                    >
+                      {stabilizer.provenanceBadge}
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-studio-border text-studio-text">
+                      grade: {stabilizer.determinismGrade}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono ${
+                        stabilizer.verdict === 'PROVE'
+                          ? 'bg-emerald-500/20 text-emerald-300'
+                          : 'bg-amber-500/20 text-amber-300'
+                      }`}
+                    >
+                      {stabilizer.verdict}
+                    </span>
+                  </div>
+
+                  <div className="flex items-end gap-6">
+                    <Stat
+                      label="provenance err (CSS)"
+                      value={`${(stabilizer.syndrome.cssProvenanceError * 100).toFixed(1)}%`}
+                      tone="text-emerald-400"
+                    />
+                    <Stat
+                      label="provenance err (voting)"
+                      value={`${(stabilizer.syndrome.voteProvenanceError * 100).toFixed(1)}%`}
+                      tone="text-amber-300"
+                    />
+                  </div>
+                  <div className="text-[10px] text-studio-muted">
+                    CSS syndrome gates sycophancy ({stabilizer.syndrome.sycophancyChannel});
+                    value-voting is blind to it.
+                  </div>
+
+                  <div className="flex items-end gap-6">
+                    <Stat
+                      label="threshold p_c (indep)"
+                      value={stabilizer.threshold.independent?.toFixed(3) ?? '—'}
+                    />
+                    <Stat
+                      label="p_c (burst-3)"
+                      value={
+                        stabilizer.threshold.burst3 != null
+                          ? stabilizer.threshold.burst3.toFixed(3)
+                          : stabilizer.threshold.burst3AboveGrid
+                            ? '≥0.2'
+                            : '—'
+                      }
+                      tone="text-emerald-400"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+                      logical error vs p (d=3 / d=5 / d=7)
+                    </div>
+                    <div className="flex gap-3 items-center">
+                      <Sparkline values={stabilizer.curve.d3} color="#ef4444" />
+                      <Sparkline values={stabilizer.curve.d5} color="#f59e0b" />
+                      <Sparkline values={stabilizer.curve.d7} color="#22c55e" />
+                    </div>
+                  </div>
+
+                  {stabilizer.realFleet && (
+                    <div className="rounded border border-emerald-500/30 bg-emerald-500/5 p-2">
+                      <div className="text-[10px] text-emerald-300">
+                        live-fleet verifier · {stabilizer.realFleet.recordsVerified}/
+                        {stabilizer.realFleet.recordsTotal} real CAEL records verify clean
+                        {stabilizer.realFleet.tamperEvident ? ' · tamper-evident' : ''}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1 flex gap-3">
+                    <span>
+                      {stabilizer.syndrome.realVerifier ? '✓ real CAEL verifier' : '✗ verifier'}
+                    </span>
+                    <span>
+                      {stabilizer.syndrome.tamperEvidence ? '✓ tamper-evident' : '✗ tamper'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              )}
+            </Card>
+
+            {/* HOLOSHELL STALE PROCESSES */}
+            <Card title="🖥️ HoloShell — Stale Processes">
+              {errors.holoshellProcs ? (
+                <div className="text-xs text-red-400">Error: {errors.holoshellProcs}</div>
+              ) : holoshellProcs === null ? (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              ) : holoshellProcs.length === 0 ? (
+                <div className="text-xs text-emerald-400">No stale processes ✓</div>
+              ) : (
+                <div className="space-y-1">
+                  {holoshellProcs.map((p) => (
+                    <div key={p.pid} className="text-[10px] font-mono text-amber-300 truncate">
+                      PID {p.pid} · {p.ageSec}s · {p.reason}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* HOLOSHELL PENDING CONSENTS */}
+            <Card title="🔐 HoloShell — Pending Consents">
+              {errors.holoshellPending ? (
+                <div className="text-xs text-red-400">Error: {errors.holoshellPending}</div>
+              ) : holoshellPending === null ? (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              ) : holoshellPending.length === 0 ? (
+                <div className="text-xs text-emerald-400">No pending consents ✓</div>
+              ) : (
+                <div className="space-y-2">
+                  {holoshellPending.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between gap-2 rounded border border-studio-border/40 bg-studio-panel/20 px-2 py-1"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-studio-text truncate">
+                          {c.operation} · {c.targetCount} targets
+                        </div>
+                        <div className="text-[9px] text-studio-muted">{timeAgo(c.timestamp)}</div>
+                      </div>
+                      <button
+                        className="shrink-0 rounded bg-blue-600 px-2 py-0.5 text-[10px] text-white hover:bg-blue-500 disabled:opacity-50"
+                        disabled={approving === c.id}
+                        onClick={() => approveConsent(c.id)}
+                      >
+                        {approving === c.id ? '…' : 'Approve'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* HOLOSHELL AUTOMATIONS */}
+            <Card
+              title="HoloShell - Local Automations"
+              accent={
+                errors.holoshellAutomations
+                  ? 'text-red-400'
+                  : (holoshellAutomationSummary?.stale ?? 0) > 0
+                    ? 'text-amber-300'
+                    : 'text-studio-text'
+              }
+            >
+              {errors.holoshellAutomations ? (
+                <div className="text-xs text-red-400">Error: {errors.holoshellAutomations}</div>
+              ) : holoshellAutomations === null ? (
+                <div className="text-xs text-studio-muted">Loading...</div>
+              ) : holoshellAutomations.length === 0 ? (
+                <div className="text-xs text-studio-muted">No active local automations.</div>
+              ) : (
+                (() => {
+                  const summary = holoshellAutomationSummary ?? {
+                    total: holoshellAutomations.length,
+                    stale: holoshellAutomations.filter((a) => a.staleness?.state === 'stale')
+                      .length,
+                    due: holoshellAutomations.filter((a) => a.staleness?.state === 'due').length,
+                    ok: holoshellAutomations.filter((a) => a.staleness?.state === 'ok').length,
+                    unknown: holoshellAutomations.filter((a) => a.staleness?.state === 'unknown')
+                      .length,
+                  };
+                  const toneFor: Record<HoloShellAutomationStaleness['state'], string> = {
+                    stale: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                    due: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+                    ok: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                    unknown: 'bg-studio-border text-studio-muted border-studio-border',
+                  };
+                  const order: Record<HoloShellAutomationStaleness['state'], number> = {
+                    stale: 0,
+                    due: 1,
+                    unknown: 2,
+                    ok: 3,
+                  };
+                  const ranked = [...holoshellAutomations]
+                    .sort((a, b) => {
+                      const aState = a.staleness?.state ?? 'unknown';
+                      const bState = b.staleness?.state ?? 'unknown';
+                      if (order[aState] !== order[bState]) return order[aState] - order[bState];
+                      return (b.staleness?.ageMs ?? 0) - (a.staleness?.ageMs ?? 0);
+                    })
+                    .slice(0, 8);
+
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-end gap-5">
+                        <Stat label="active" value={summary.total ?? holoshellAutomations.length} />
+                        <Stat
+                          label="stale"
+                          value={summary.stale ?? 0}
+                          tone={(summary.stale ?? 0) > 0 ? 'text-amber-300' : 'text-emerald-400'}
+                        />
+                        <Stat label="due" value={summary.due ?? 0} tone="text-blue-300" />
+                        <Stat label="ok" value={summary.ok ?? 0} tone="text-emerald-400" />
+                      </div>
+
+                      <div className="space-y-1">
+                        {ranked.map((a) => {
+                          const state = a.staleness?.state ?? 'unknown';
                           return (
-                            <div key={line} className={`min-w-0 rounded border px-2 py-1.5 ${chipTone}`}>
+                            <div
+                              key={a.id}
+                              className="rounded border border-studio-border/40 bg-studio-panel/20 px-2 py-1.5"
+                            >
                               <div className="flex items-center justify-between gap-2">
-                                <span className="truncate text-[11px] font-semibold">{name}</span>
-                                <span className="shrink-0 rounded bg-black/20 px-1.5 py-0.5 text-[9px] font-mono">
-                                  {degraded ? 'ATTN' : 'OK'}
+                                <div className="min-w-0">
+                                  <div className="text-[10px] text-studio-text truncate">
+                                    {a.id} - {a.name || a.id}
+                                  </div>
+                                  <div className="text-[9px] text-studio-muted truncate">
+                                    last fired {timeAgo(a.lastFiredAt ?? undefined)}; success{' '}
+                                    {timeAgo(a.lastSuccessAt ?? undefined)}; next{' '}
+                                    {timeUntil(a.nextFire ?? undefined)}
+                                  </div>
+                                </div>
+                                <span
+                                  className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-mono ${toneFor[state]}`}
+                                >
+                                  {state}
                                 </span>
                               </div>
-                              <div className="mt-1 truncate text-[9px] font-mono text-studio-muted">
-                                {line.replace(`${name}: `, '')}
+                              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-studio-muted">
+                                <span>{a.staleness?.label ?? 'unknown cadence'}</span>
+                                <span>
+                                  age {formatDurationMs(a.staleness?.ageMs)} / window{' '}
+                                  {formatDurationMs(a.staleness?.thresholdMs)}
+                                </span>
+                                {a.lastFailureReason && (
+                                  <span className="text-red-300">{a.lastFailureReason}</span>
+                                )}
                               </div>
                             </div>
                           );
                         })}
-                        {serviceBoardStatus.details.length > detailRows.length && (
-                          <div className="rounded border border-studio-border/60 bg-studio-panel/20 px-2 py-1.5 text-[10px] text-studio-muted">
-                            +{serviceBoardStatus.details.length - detailRows.length} more rows
-                          </div>
-                        )}
                       </div>
-                    ) : (
-                      <div className="text-xs text-studio-muted">
-                        {serviceBoardStatus.state === 'unknown'
-                          ? 'Awaiting A-047 board status.'
-                          : 'No degraded service rows in the latest board status.'}
-                      </div>
-                    )}
 
-                    <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
-                      Source: HoloMesh board task {serviceBoardStatus.latest?.id ?? '(pending)'} from A-047
-                      service-health sweep.
+                      <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
+                        Source: <code>scripts/holoshell-team-automations.mjs</code> state and
+                        registry.
+                      </div>
                     </div>
+                  );
+                })()
+              )}
+            </Card>
+
+            {/* MACHINE STATE */}
+            <Card title="🖥️ Machine State">
+              {errors.machineState ? (
+                <div className="space-y-1">
+                  <div className="text-xs text-red-400">Error: {errors.machineState}</div>
+                  <div className="text-[9px] text-studio-muted">
+                    Start holoshell-operate-room-server.mjs or wait for publisher snapshot.
                   </div>
-                );
-              })()
-            ) : (
-              <div className={errors.serviceHealth ? 'text-xs text-red-400' : 'text-xs text-studio-muted'}>
-                {errors.serviceHealth ? `Error: ${errors.serviceHealth}` : 'Loading board status.'}
-              </div>
-            )}
-          </Card>
-        </div>
-        {/* FLEET WATCHDOG VERDICT — consolidated healthy/alarm/cold-idle verdict
-            across all 3 watchdog conditions (D.081 / F.099). The peer Sovereign-
-            Serving card shows only dark_under_demand; this shows the full verdict
-            the loud-failing cron (serving-fleet-watchdog.mjs) emits. */}
-        <Card
-          title="🩺 Fleet Watchdog Verdict"
-          accent={
-            errors.serve
-              ? 'text-red-400'
-              : watchdog?.verdict === 'alarm'
-                ? 'text-red-400'
-                : watchdog?.verdict === 'healthy'
-                  ? 'text-emerald-400'
-                  : 'text-studio-text'
-          }
-        >
-          {errors.serve ? (
-            <div className="text-xs text-red-400">Error: {errors.serve}</div>
-          ) : watchdog ? (
-            (() => {
-              const verdictLabel =
-                watchdog.verdict === 'alarm'
-                  ? 'ALARM'
-                  : watchdog.verdict === 'healthy'
-                    ? 'HEALTHY'
-                    : 'COLD-IDLE OK';
-              const verdictTone =
-                watchdog.verdict === 'alarm'
-                  ? 'bg-red-500/20 text-red-300'
-                  : watchdog.verdict === 'healthy'
-                    ? 'bg-emerald-500/20 text-emerald-300'
-                    : 'bg-studio-border text-studio-muted';
-              const sevTone: Record<WatchdogCondition['severity'], string> = {
-                critical: 'border-red-500/40 bg-red-500/10 text-red-300',
-                warning: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
-                info: 'border-studio-border/60 bg-studio-panel/30 text-studio-muted',
-              };
-              return (
+                </div>
+              ) : machineState === null ? (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              ) : (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${verdictTone}`}>
-                      {verdictLabel}
-                    </span>
-                    <span className="text-[10px] text-studio-muted">
-                      {watchdog.conditions.length === 0
-                        ? 'no alarm conditions'
-                        : `${watchdog.conditions.length} condition${watchdog.conditions.length === 1 ? '' : 's'}`}
-                    </span>
-                  </div>
-
-                  <div className="flex items-end gap-5">
-                    <Stat
-                      label="warm"
-                      value={watchdog.warm}
-                      tone={watchdog.warm > 0 ? 'text-emerald-400' : watchdog.verdict === 'alarm' ? 'text-red-400' : 'text-amber-300'}
-                    />
-                    <Stat label="endpoints" value={watchdog.liveEndpoints} />
-                    <Stat label="fresh wants" value={watchdog.totalFreshWants} />
-                    <Stat label="models w/ demand" value={watchdog.freshDemandModels} />
-                  </div>
-
-                  {watchdog.conditions.length > 0 ? (
-                    <div className="space-y-1">
-                      {watchdog.conditions.map((c) => (
-                        <div
-                          key={c.code}
-                          className={`rounded border p-2 text-[10px] ${sevTone[c.severity]}`}
-                        >
-                          <span className="font-mono font-semibold">[{c.severity}] {c.code}</span>{' '}
-                          — {c.detail}
-                        </div>
-                      ))}
+                  {/* GPU */}
+                  {machineState.snapshot.gpu ? (
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+                        GPU — {machineState.snapshot.gpu.name}
+                      </div>
+                      <div className="flex items-end gap-5">
+                        <Stat
+                          label="VRAM used"
+                          value={`${machineState.snapshot.gpu.usedMB.toLocaleString()} MB`}
+                          tone={
+                            machineState.snapshot.gpu.usedMB / machineState.snapshot.gpu.totalMB >
+                            0.9
+                              ? 'text-red-400'
+                              : 'text-studio-text'
+                          }
+                        />
+                        <Stat
+                          label="VRAM free"
+                          value={`${machineState.snapshot.gpu.freeMB.toLocaleString()} MB`}
+                        />
+                        <Stat
+                          label="util %"
+                          value={`${machineState.snapshot.gpu.utilizationPct}%`}
+                          tone={
+                            machineState.snapshot.gpu.utilizationPct > 80
+                              ? 'text-amber-300'
+                              : 'text-emerald-400'
+                          }
+                        />
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-[11px] text-emerald-400/90">
-                      Serving healthy — no dark-under-demand, no stale workers, serving proof current.
+                    <div className="text-[10px] text-studio-muted">GPU — not detected</div>
+                  )}
+
+                  {/* Host memory */}
+                  {machineState.snapshot.hostMemory && (
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+                        RAM ({machineState.snapshot.hostMemory.source})
+                      </div>
+                      {'totalMB' in machineState.snapshot.hostMemory &&
+                      machineState.snapshot.hostMemory.totalMB ? (
+                        <div className="flex items-end gap-5">
+                          <Stat
+                            label="used"
+                            value={`${((machineState.snapshot.hostMemory.usedMB ?? 0) / 1024).toFixed(1)} GB`}
+                            tone={
+                              (machineState.snapshot.hostMemory.usedMB ?? 0) /
+                                (machineState.snapshot.hostMemory.totalMB ?? 1) >
+                              0.85
+                                ? 'text-amber-300'
+                                : 'text-studio-text'
+                            }
+                          />
+                          <Stat
+                            label="free"
+                            value={`${((machineState.snapshot.hostMemory.freeMB ?? 0) / 1024).toFixed(1)} GB`}
+                            tone="text-emerald-400"
+                          />
+                          <Stat
+                            label="total"
+                            value={`${((machineState.snapshot.hostMemory.totalMB ?? 0) / 1024).toFixed(0)} GB`}
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-studio-muted">
+                          Node heap: {machineState.snapshot.hostMemory.nodeHeapUsedMB ?? '—'} /{' '}
+                          {machineState.snapshot.hostMemory.nodeHeapTotalMB ?? '—'} MB
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
-                    Mirrors <code>scripts/serving-fleet-watchdog.mjs</code> (3 conditions:
-                    dark_under_demand · stale_workers · no_serving_proof). Verdict matches the
-                    loud-failing cron; that loop also files a board task + room DM on a real alarm.
-                  </div>
-                </div>
-              );
-            })()
-          ) : (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          )}
-        </Card>
-
-        {/* LOTUS GATE */}
-        <Card
-          title="🪷 Lotus Genesis Gate"
-          accent={gateOpen ? 'text-emerald-400' : 'text-studio-text'}
-        >
-          {errors.lotus ? (
-            <div className="text-xs text-red-400">Error: {errors.lotus}</div>
-          ) : gate ? (
-            <div className="space-y-3">
-              <div className="flex items-end gap-6">
-                <Stat
-                  label="verified RTX benches"
-                  value={`${gate.papers_with_rtx_bench}/${gate.total_papers}`}
-                  tone={gateOpen ? 'text-emerald-400' : 'text-amber-300'}
-                />
-                <Stat label="% to bloom" value={`${Math.round(gate.pct)}%`} />
-              </div>
-              <div className="text-xs text-studio-muted">{gate.status}</div>
-              <div className="text-[10px] text-studio-muted">
-                Fires when: {gate.lotus_fires_when}
-              </div>
-              {gate.unverified_legacy?.length > 0 && (
-                <div className="text-[10px] text-amber-300/80">
-                  {gate.unverified_legacy.length} legacy papers claim a bench but lack verified
-                  evidence (provenance only — not counted): {gate.unverified_legacy.join(', ')}
-                </div>
-              )}
-              <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
-                Source: orchestrator gate (evidence-required). The public bloom on holoscript.net
-                derives separately and may differ until single-sourced.
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          )}
-        </Card>
-
-        {/* SOVEREIGN SERVING FLEET — the Brittney-on-BYOK guard (D.081 / F.099) */}
-        <Card
-          title="🤖 Sovereign Serving (Brittney backend)"
-          accent={servingDark ? 'text-red-400' : warmCount > 0 ? 'text-emerald-400' : 'text-studio-text'}
-        >
-          {errors.serve ? (
-            <div className="text-xs text-red-400">Error: {errors.serve}</div>
-          ) : serve ? (
-            <div className="space-y-3">
-              <div className="flex items-end gap-6">
-                <Stat
-                  label="warm replicas"
-                  value={warmCount}
-                  tone={warmCount > 0 ? 'text-emerald-400' : servingDark ? 'text-red-400' : 'text-amber-300'}
-                />
-                <Stat label="live wants (15m)" value={freshWants} />
-                <Stat label="models w/ demand" value={serveCounts.models_with_demand ?? serveDemand.length} />
-              </div>
-
-              {servingDark ? (
-                <div className="rounded border border-red-500/40 bg-red-500/10 p-2 text-[11px] text-red-300">
-                  🚨 DARK UNDER DEMAND — serving is cold (warm=0) while {freshDemand.length} model(s)
-                  have live wants. Brittney is on BYOK/local fallback. Re-enable the keep-warm
-                  autoscaler (a-033) or pin BYOK deliberately.
-                </div>
-              ) : warmCount > 0 ? (
-                <div className="text-[11px] text-emerald-400/90">
-                  Serving live — {warmCount} warm replica{warmCount === 1 ? '' : 's'}.
-                </div>
-              ) : (
-                <div className="text-[11px] text-studio-muted">
-                  Cold at scale-to-zero (expected when idle). Last want{' '}
-                  {lastWantAgeMin !== null ? `${lastWantAgeMin}m ago` : '—'} → no live demand, so
-                  $0 idle is correct. Proven 21s cold resume on real demand.
-                </div>
-              )}
-
-              {serveDemand.length > 0 && (
-                <div className="space-y-0.5 border-t border-studio-border/40 pt-1">
-                  {serveDemand.slice(0, 4).map((d) => {
-                    const ageMin = Math.round((now - (Number(d.last_want_at) || 0)) / 60000);
-                    const isFresh = now - (Number(d.last_want_at) || 0) < SERVE_DEMAND_WINDOW_MS;
-                    return (
-                      <div key={d.model} className="flex justify-between text-[10px] font-mono">
-                        <span className="truncate text-studio-muted">{d.model}</span>
-                        <span className={isFresh ? 'text-amber-300' : 'text-studio-muted'}>
-                          {d.want_count} wants · {ageMin}m ago
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {serveEndpoints.length > 0 && (
-                <div className="space-y-0.5">
-                  {serveEndpoints.slice(0, 3).map((e, i) => (
-                    <div key={e.id || i} className="text-[10px] font-mono text-emerald-400/80 truncate">
-                      ▶ {e.id || e.model} · {e.status}
-                      {e.gpu ? ` · ${e.gpu}` : ''}
-                      {typeof e.dph === 'number' ? ` · $${e.dph}/hr` : ''}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* TRIGGER — D.081: action the founder/agent can fire from the surface. */}
-              <div className="border-t border-studio-border/40 pt-2">
-                <a
-                  href="https://github.com/brianonbased-dev/ai-ecosystem/blob/main/automations/holoshell-team-automations/registry.json"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-block text-[10px] rounded border border-studio-border px-2 py-1 text-studio-muted hover:text-studio-text hover:border-studio-text/40 transition"
-                  title="Re-enable a-033 serving-autoscaler (keep-warm / scale-to-zero) in the HoloShell automation registry"
-                >
-                  ⚙️ Re-enable keep-warm autoscaler (a-033) →
-                </a>
-                <div className="text-[9px] text-studio-muted mt-1">
-                  Watchdog: <code>scripts/serving-fleet-watchdog.mjs --alarm</code> fires a loud
-                  board task + room DM when serving goes dark under demand.
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          )}
-        </Card>
-
-        {/* JOB QUEUE BY LANE */}
-        <Card title="⚙️ GPU / CI Queue">
-          {errors.lotus ? (
-            <div className="text-xs text-red-400">Error: {errors.lotus}</div>
-          ) : q ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded border border-studio-border/40 p-2">
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
-                    GPU lane
-                  </div>
-                  <div className="flex gap-4">
-                    <Stat label="queued" value={gpuLane?.queued ?? '—'} />
-                    <Stat label="running" value={gpuLane?.running ?? '—'} tone="text-emerald-400" />
-                  </div>
-                </div>
-                <div className="rounded border border-studio-border/40 p-2">
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
-                    CI lane
-                  </div>
-                  <div className="flex gap-4">
-                    <Stat
-                      label="queued"
-                      value={ciLane?.queued ?? '—'}
-                      tone={(ciLane?.queued ?? 0) > 10 ? 'text-amber-300' : 'text-studio-text'}
-                    />
-                    <Stat label="running" value={ciLane?.running ?? '—'} tone="text-emerald-400" />
-                  </div>
-                </div>
-              </div>
-              <div className="text-[10px] text-studio-muted">
-                total: {q.queued} queued · {q.running} running · {q.done} done
-              </div>
-              {q.running_jobs && q.running_jobs.length > 0 && (
-                <div className="space-y-0.5">
-                  {q.running_jobs.slice(0, 5).map((j) => (
-                    <div key={j.id} className="text-[10px] font-mono text-studio-muted truncate">
-                      ▶ {j.tier} {j.paper_id ?? j.id.slice(0, 18)} · {j.age_s}s
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          )}
-        </Card>
-
-        {/* FLEET HEALTH */}
-        <Card title="🛰️ Fleet">
-          {errors.fleet ? (
-            <div className="text-xs text-red-400">Error: {errors.fleet}</div>
-          ) : fleet ? (
-            <div className="space-y-2">
-              <div className="flex items-end gap-6">
-                <Stat
-                  label="agents online"
-                  value={fleet.onlineCount ?? '—'}
-                  tone="text-emerald-400"
-                />
-                <div className="flex flex-col">
-                  <span
-                    className={`text-lg font-mono ${
-                      fleet.status === 'ok' ? 'text-emerald-400' : 'text-amber-300'
-                    }`}
-                  >
-                    {fleet.status ?? 'unknown'}
-                  </span>
-                  <span className="text-[10px] uppercase tracking-wider text-studio-muted">
-                    health
-                  </span>
-                </div>
-              </div>
-              {fleet.reasons && fleet.reasons.length > 0 && (
-                <div className="text-[10px] text-amber-300/80">{fleet.reasons.join(', ')}</div>
-              )}
-              <div className="text-[9px] text-studio-muted">
-                snapshot {timeAgo(fleet.publishedAt)}
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          )}
-        </Card>
-
-        {/* BOARD */}
-        <Card title="📋 Board">
-          {errors.board ? (
-            <div className="text-xs text-red-400">Error: {errors.board}</div>
-          ) : board ? (
-            <div className="space-y-3">
-              <div className="flex items-end gap-5">
-                <Stat label="open" value={board.open.length} />
-                <Stat label="claimed" value={board.claimed.length} tone="text-amber-300" />
-                <Stat
-                  label="blocked"
-                  value={board.blocked.length}
-                  tone={board.blocked.length ? 'text-red-400' : 'text-studio-text'}
-                />
-                <Stat label="done" value={board.doneTotal} tone="text-emerald-400" />
-              </div>
-              <div className="space-y-0.5">
-                {board.claimed.slice(0, 5).map((t) => (
-                  <div key={t.id} className="text-[10px] text-studio-muted truncate">
-                    ◗ {t.title}{' '}
-                    <span className="text-studio-accent">
-                      · {t.claimedByName || t.claimedBy || '?'}
-                    </span>
-                  </div>
-                ))}
-                {board.open.slice(0, 3).map((t) => (
-                  <div key={t.id} className="text-[10px] text-studio-muted/70 truncate">
-                    ○ {t.title}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          )}
-        </Card>
-
-        {/* STABILIZER-FLEET DECODER (EXP-5-real) */}
-        <Card
-          title="⚛️ Stabilizer-Fleet Decoder"
-          accent={stabilizer?.verdict === 'PROVE' ? 'text-emerald-400' : 'text-studio-text'}
-        >
-          {errors.stabilizer ? (
-            <div className="text-xs text-red-400">Error: {errors.stabilizer}</div>
-          ) : stabilizer ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono ${
-                    stabilizer.provenanceBadge === 'live-fleet'
-                      ? 'bg-emerald-500/20 text-emerald-300'
-                      : 'bg-studio-border text-studio-muted'
-                  }`}
-                >
-                  {stabilizer.provenanceBadge}
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-studio-border text-studio-text">
-                  grade: {stabilizer.determinismGrade}
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono ${
-                    stabilizer.verdict === 'PROVE'
-                      ? 'bg-emerald-500/20 text-emerald-300'
-                      : 'bg-amber-500/20 text-amber-300'
-                  }`}
-                >
-                  {stabilizer.verdict}
-                </span>
-              </div>
-
-              <div className="flex items-end gap-6">
-                <Stat
-                  label="provenance err (CSS)"
-                  value={`${(stabilizer.syndrome.cssProvenanceError * 100).toFixed(1)}%`}
-                  tone="text-emerald-400"
-                />
-                <Stat
-                  label="provenance err (voting)"
-                  value={`${(stabilizer.syndrome.voteProvenanceError * 100).toFixed(1)}%`}
-                  tone="text-amber-300"
-                />
-              </div>
-              <div className="text-[10px] text-studio-muted">
-                CSS syndrome gates sycophancy ({stabilizer.syndrome.sycophancyChannel});
-                value-voting is blind to it.
-              </div>
-
-              <div className="flex items-end gap-6">
-                <Stat
-                  label="threshold p_c (indep)"
-                  value={stabilizer.threshold.independent?.toFixed(3) ?? '—'}
-                />
-                <Stat
-                  label="p_c (burst-3)"
-                  value={
-                    stabilizer.threshold.burst3 != null
-                      ? stabilizer.threshold.burst3.toFixed(3)
-                      : stabilizer.threshold.burst3AboveGrid
-                        ? '≥0.2'
-                        : '—'
-                  }
-                  tone="text-emerald-400"
-                />
-              </div>
-
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
-                  logical error vs p (d=3 / d=5 / d=7)
-                </div>
-                <div className="flex gap-3 items-center">
-                  <Sparkline values={stabilizer.curve.d3} color="#ef4444" />
-                  <Sparkline values={stabilizer.curve.d5} color="#f59e0b" />
-                  <Sparkline values={stabilizer.curve.d7} color="#22c55e" />
-                </div>
-              </div>
-
-              {stabilizer.realFleet && (
-                <div className="rounded border border-emerald-500/30 bg-emerald-500/5 p-2">
-                  <div className="text-[10px] text-emerald-300">
-                    live-fleet verifier · {stabilizer.realFleet.recordsVerified}/
-                    {stabilizer.realFleet.recordsTotal} real CAEL records verify clean
-                    {stabilizer.realFleet.tamperEvident ? ' · tamper-evident' : ''}
-                  </div>
-                </div>
-              )}
-
-              <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1 flex gap-3">
-                <span>
-                  {stabilizer.syndrome.realVerifier ? '✓ real CAEL verifier' : '✗ verifier'}
-                </span>
-                <span>{stabilizer.syndrome.tamperEvidence ? '✓ tamper-evident' : '✗ tamper'}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          )}
-        </Card>
-
-        {/* HOLOSHELL STALE PROCESSES */}
-        <Card title="🖥️ HoloShell — Stale Processes">
-          {errors.holoshellProcs ? (
-            <div className="text-xs text-red-400">Error: {errors.holoshellProcs}</div>
-          ) : holoshellProcs === null ? (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          ) : holoshellProcs.length === 0 ? (
-            <div className="text-xs text-emerald-400">No stale processes ✓</div>
-          ) : (
-            <div className="space-y-1">
-              {holoshellProcs.map((p) => (
-                <div key={p.pid} className="text-[10px] font-mono text-amber-300 truncate">
-                  PID {p.pid} · {p.ageSec}s · {p.reason}
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* HOLOSHELL PENDING CONSENTS */}
-        <Card title="🔐 HoloShell — Pending Consents">
-          {errors.holoshellPending ? (
-            <div className="text-xs text-red-400">Error: {errors.holoshellPending}</div>
-          ) : holoshellPending === null ? (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          ) : holoshellPending.length === 0 ? (
-            <div className="text-xs text-emerald-400">No pending consents ✓</div>
-          ) : (
-            <div className="space-y-2">
-              {holoshellPending.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between gap-2 rounded border border-studio-border/40 bg-studio-panel/20 px-2 py-1"
-                >
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-studio-text truncate">
-                      {c.operation} · {c.targetCount} targets
-                    </div>
-                    <div className="text-[9px] text-studio-muted">{timeAgo(c.timestamp)}</div>
-                  </div>
-                  <button
-                    className="shrink-0 rounded bg-blue-600 px-2 py-0.5 text-[10px] text-white hover:bg-blue-500 disabled:opacity-50"
-                    disabled={approving === c.id}
-                    onClick={() => approveConsent(c.id)}
-                  >
-                    {approving === c.id ? '…' : 'Approve'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* HOLOSHELL AUTOMATIONS */}
-        <Card
-          title="HoloShell - Local Automations"
-          accent={
-            errors.holoshellAutomations
-              ? 'text-red-400'
-              : (holoshellAutomationSummary?.stale ?? 0) > 0
-                ? 'text-amber-300'
-                : 'text-studio-text'
-          }
-        >
-          {errors.holoshellAutomations ? (
-            <div className="text-xs text-red-400">Error: {errors.holoshellAutomations}</div>
-          ) : holoshellAutomations === null ? (
-            <div className="text-xs text-studio-muted">Loading...</div>
-          ) : holoshellAutomations.length === 0 ? (
-            <div className="text-xs text-studio-muted">No active local automations.</div>
-          ) : (
-            (() => {
-              const summary =
-                holoshellAutomationSummary ?? {
-                  total: holoshellAutomations.length,
-                  stale: holoshellAutomations.filter((a) => a.staleness?.state === 'stale').length,
-                  due: holoshellAutomations.filter((a) => a.staleness?.state === 'due').length,
-                  ok: holoshellAutomations.filter((a) => a.staleness?.state === 'ok').length,
-                  unknown: holoshellAutomations.filter((a) => a.staleness?.state === 'unknown').length,
-                };
-              const toneFor: Record<HoloShellAutomationStaleness['state'], string> = {
-                stale: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-                due: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
-                ok: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-                unknown: 'bg-studio-border text-studio-muted border-studio-border',
-              };
-              const order: Record<HoloShellAutomationStaleness['state'], number> = {
-                stale: 0,
-                due: 1,
-                unknown: 2,
-                ok: 3,
-              };
-              const ranked = [...holoshellAutomations]
-                .sort((a, b) => {
-                  const aState = a.staleness?.state ?? 'unknown';
-                  const bState = b.staleness?.state ?? 'unknown';
-                  if (order[aState] !== order[bState]) return order[aState] - order[bState];
-                  return (b.staleness?.ageMs ?? 0) - (a.staleness?.ageMs ?? 0);
-                })
-                .slice(0, 8);
-
-              return (
-                <div className="space-y-3">
-                  <div className="flex items-end gap-5">
-                    <Stat label="active" value={summary.total ?? holoshellAutomations.length} />
-                    <Stat
-                      label="stale"
-                      value={summary.stale ?? 0}
-                      tone={(summary.stale ?? 0) > 0 ? 'text-amber-300' : 'text-emerald-400'}
-                    />
-                    <Stat label="due" value={summary.due ?? 0} tone="text-blue-300" />
-                    <Stat label="ok" value={summary.ok ?? 0} tone="text-emerald-400" />
-                  </div>
-
-                  <div className="space-y-1">
-                    {ranked.map((a) => {
-                      const state = a.staleness?.state ?? 'unknown';
-                      return (
-                        <div
-                          key={a.id}
-                          className="rounded border border-studio-border/40 bg-studio-panel/20 px-2 py-1.5"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <div className="text-[10px] text-studio-text truncate">
-                                {a.id} - {a.name || a.id}
-                              </div>
-                              <div className="text-[9px] text-studio-muted truncate">
-                                last fired {timeAgo(a.lastFiredAt ?? undefined)}; success{' '}
-                                {timeAgo(a.lastSuccessAt ?? undefined)}; next {timeUntil(a.nextFire ?? undefined)}
-                              </div>
-                            </div>
-                            <span
-                              className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-mono ${toneFor[state]}`}
-                            >
-                              {state}
-                            </span>
-                          </div>
-                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-studio-muted">
-                            <span>{a.staleness?.label ?? 'unknown cadence'}</span>
-                            <span>
-                              age {formatDurationMs(a.staleness?.ageMs)} / window{' '}
-                              {formatDurationMs(a.staleness?.thresholdMs)}
-                            </span>
-                            {a.lastFailureReason && <span className="text-red-300">{a.lastFailureReason}</span>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
-                    Source: <code>scripts/holoshell-team-automations.mjs</code> state and registry.
-                  </div>
-                </div>
-              );
-            })()
-          )}
-        </Card>
-
-        {/* MACHINE STATE */}
-        <Card title="🖥️ Machine State">
-          {errors.machineState ? (
-            <div className="space-y-1">
-              <div className="text-xs text-red-400">Error: {errors.machineState}</div>
-              <div className="text-[9px] text-studio-muted">
-                Start holoshell-operate-room-server.mjs or wait for publisher snapshot.
-              </div>
-            </div>
-          ) : machineState === null ? (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          ) : (
-            <div className="space-y-3">
-              {/* GPU */}
-              {machineState.snapshot.gpu ? (
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
-                    GPU — {machineState.snapshot.gpu.name}
-                  </div>
+                  {/* Stale process count */}
                   <div className="flex items-end gap-5">
                     <Stat
-                      label="VRAM used"
-                      value={`${machineState.snapshot.gpu.usedMB.toLocaleString()} MB`}
+                      label="stale procs"
+                      value={machineState.snapshot.staleProcessCount}
                       tone={
-                        machineState.snapshot.gpu.usedMB / machineState.snapshot.gpu.totalMB > 0.9
-                          ? 'text-red-400'
-                          : 'text-studio-text'
+                        machineState.snapshot.staleProcessCount > 0
+                          ? 'text-amber-300'
+                          : 'text-emerald-400'
                       }
                     />
-                    <Stat label="VRAM free" value={`${machineState.snapshot.gpu.freeMB.toLocaleString()} MB`} />
-                    <Stat
-                      label="util %"
-                      value={`${machineState.snapshot.gpu.utilizationPct}%`}
-                      tone={machineState.snapshot.gpu.utilizationPct > 80 ? 'text-amber-300' : 'text-emerald-400'}
-                    />
+                  </div>
+
+                  {/* Source + age */}
+                  <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1 flex gap-3">
+                    <span>source: {machineState._source ?? 'unknown'}</span>
+                    <span>collected {timeAgo(machineState.snapshot.collectedAt)}</span>
+                    {machineState.publishedAt && (
+                      <span>published {timeAgo(machineState.publishedAt)}</span>
+                    )}
                   </div>
                 </div>
+              )}
+            </Card>
+
+            {/* HOLOSHELL EXECUTION HISTORY */}
+            <Card title="📜 HoloShell — Execution History">
+              {errors.holoshellHistory ? (
+                <div className="text-xs text-red-400">Error: {errors.holoshellHistory}</div>
+              ) : holoshellHistory === null ? (
+                <div className="text-xs text-studio-muted">Loading…</div>
+              ) : holoshellHistory.length === 0 ? (
+                <div className="text-xs text-studio-muted">No executions yet.</div>
               ) : (
-                <div className="text-[10px] text-studio-muted">GPU — not detected</div>
-              )}
-
-              {/* Host memory */}
-              {machineState.snapshot.hostMemory && (
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
-                    RAM ({machineState.snapshot.hostMemory.source})
-                  </div>
-                  {'totalMB' in machineState.snapshot.hostMemory && machineState.snapshot.hostMemory.totalMB ? (
-                    <div className="flex items-end gap-5">
-                      <Stat
-                        label="used"
-                        value={`${((machineState.snapshot.hostMemory.usedMB ?? 0) / 1024).toFixed(1)} GB`}
-                        tone={
-                          (machineState.snapshot.hostMemory.usedMB ?? 0) /
-                            (machineState.snapshot.hostMemory.totalMB ?? 1) >
-                          0.85
-                            ? 'text-amber-300'
-                            : 'text-studio-text'
-                        }
-                      />
-                      <Stat
-                        label="free"
-                        value={`${((machineState.snapshot.hostMemory.freeMB ?? 0) / 1024).toFixed(1)} GB`}
-                        tone="text-emerald-400"
-                      />
-                      <Stat
-                        label="total"
-                        value={`${((machineState.snapshot.hostMemory.totalMB ?? 0) / 1024).toFixed(0)} GB`}
-                      />
+                <div className="space-y-0.5">
+                  {holoshellHistory.slice(0, 8).map((e) => (
+                    <div key={e.id} className="text-[10px] font-mono text-studio-muted truncate">
+                      {e.executedAtShort} · killed:{e.summary.killed} err:{e.summary.errors}
                     </div>
-                  ) : (
-                    <div className="text-[10px] text-studio-muted">
-                      Node heap: {machineState.snapshot.hostMemory.nodeHeapUsedMB ?? '—'} /{' '}
-                      {machineState.snapshot.hostMemory.nodeHeapTotalMB ?? '—'} MB
-                    </div>
-                  )}
+                  ))}
                 </div>
               )}
+            </Card>
+          </div>
 
-              {/* Stale process count */}
-              <div className="flex items-end gap-5">
-                <Stat
-                  label="stale procs"
-                  value={machineState.snapshot.staleProcessCount}
-                  tone={machineState.snapshot.staleProcessCount > 0 ? 'text-amber-300' : 'text-emerald-400'}
-                />
-              </div>
-
-              {/* Source + age */}
-              <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1 flex gap-3">
-                <span>source: {machineState._source ?? 'unknown'}</span>
-                <span>collected {timeAgo(machineState.snapshot.collectedAt)}</span>
-                {machineState.publishedAt && <span>published {timeAgo(machineState.publishedAt)}</span>}
-              </div>
-            </div>
-          )}
-        </Card>
-
-        {/* HOLOSHELL EXECUTION HISTORY */}
-        <Card title="📜 HoloShell — Execution History">
-          {errors.holoshellHistory ? (
-            <div className="text-xs text-red-400">Error: {errors.holoshellHistory}</div>
-          ) : holoshellHistory === null ? (
-            <div className="text-xs text-studio-muted">Loading…</div>
-          ) : holoshellHistory.length === 0 ? (
-            <div className="text-xs text-studio-muted">No executions yet.</div>
-          ) : (
-            <div className="space-y-0.5">
-              {holoshellHistory.slice(0, 8).map((e) => (
-                <div key={e.id} className="text-[10px] font-mono text-studio-muted truncate">
-                  {e.executedAtShort} · killed:{e.summary.killed} err:{e.summary.errors}
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </div>
-
-      <p className="mt-5 text-[10px] text-studio-muted">
-        D.081 brick-1 · read-only. Next: founder-gated actions (provision worker, dispatch CI, claim
-        task) and single-sourcing the Lotus gate so the public bloom can&apos;t overclaim past it.
-      </p>
-      </div>
+          <p className="mt-5 text-[10px] text-studio-muted">
+            D.081 brick-1 · read-only. Next: founder-gated actions (provision worker, dispatch CI,
+            claim task) and single-sourcing the Lotus gate so the public bloom can&apos;t overclaim
+            past it.
+          </p>
+        </div>
       )}
     </div>
   );

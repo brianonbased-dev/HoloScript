@@ -258,10 +258,7 @@ describe('POST /api/brittney write-through', () => {
 
   it('persists the partial transcript when the provider dies mid-stream', async () => {
     mockSession('user-wt-5');
-    h.chunks.push(
-      { type: 'text_delta', text: 'partial answer' },
-      { __throw: 'provider exploded' }
-    );
+    h.chunks.push({ type: 'text_delta', text: 'partial answer' }, { __throw: 'provider exploded' });
 
     const res = await POST(
       chatReq({
@@ -307,9 +304,7 @@ describe('POST /api/brittney write-through', () => {
     const rows = await getMessages('user-wt-6', convos[0].id);
     const assistant = rows!.find((m) => m.role === 'assistant');
     expect(assistant).toBeDefined();
-    expect(assistant!.toolCalls).toEqual([
-      { id: 't1', name: 'client_demo_tool', input: { x: 1 } },
-    ]);
+    expect(assistant!.toolCalls).toEqual([{ id: 't1', name: 'client_demo_tool', input: { x: 1 } }]);
   });
 
   it('bounds persisted content and clips oversized tool inputs (direct store call)', async () => {

@@ -41,7 +41,9 @@ function seedTeam() {
 const call = (name: string, args: Record<string, unknown>) =>
   handleBoardTool(name, { team_id: TEAM, ...args }) as Promise<Record<string, unknown>>;
 
-const claimedBy = () => (teamStore.get(TEAM) as unknown as { taskBoard: { claimedBy?: string }[] }).taskBoard[0].claimedBy;
+const claimedBy = () =>
+  (teamStore.get(TEAM) as unknown as { taskBoard: { claimedBy?: string }[] }).taskBoard[0]
+    .claimedBy;
 
 describe('Slice A — principal binding wired into board mutation handlers', () => {
   beforeEach(() => {
@@ -56,13 +58,21 @@ describe('Slice A — principal binding wired into board mutation handlers', () 
 
   it('claim: flag ON + agent_id != principal -> rejected before the claim gate, task not claimed', async () => {
     process.env[FLAG] = '1';
-    const r = await call('holomesh_board_claim', { task_id: 'task-1', __authAgentId: P, agent_id: 'victim' });
+    const r = await call('holomesh_board_claim', {
+      task_id: 'task-1',
+      __authAgentId: P,
+      agent_id: 'victim',
+    });
     expect(r.error).toBe(MISMATCH);
     expect(claimedBy()).toBeUndefined();
   });
 
   it('claim: flag OFF + agent_id != principal -> NOT rejected by the binding', async () => {
-    const r = await call('holomesh_board_claim', { task_id: 'task-1', __authAgentId: P, agent_id: 'victim' });
+    const r = await call('holomesh_board_claim', {
+      task_id: 'task-1',
+      __authAgentId: P,
+      agent_id: 'victim',
+    });
     expect(r.error).not.toBe(MISMATCH);
   });
 
@@ -74,14 +84,21 @@ describe('Slice A — principal binding wired into board mutation handlers', () 
 
   it('complete: flag ON + agent_id != principal -> rejected', async () => {
     process.env[FLAG] = '1';
-    const r = await call('holomesh_board_complete', { task_id: 'task-1', __authAgentId: P, agent_id: 'victim' });
+    const r = await call('holomesh_board_complete', {
+      task_id: 'task-1',
+      __authAgentId: P,
+      agent_id: 'victim',
+    });
     expect(r.error).toBe(MISMATCH);
   });
 
   it('append_commit: flag ON + agent_id != principal -> rejected', async () => {
     process.env[FLAG] = '1';
     const r = await call('holomesh_board_append_commit', {
-      task_id: 'task-1', __authAgentId: P, agent_id: 'victim', commit: 'abc1234',
+      task_id: 'task-1',
+      __authAgentId: P,
+      agent_id: 'victim',
+      commit: 'abc1234',
     });
     expect(r.error).toBe(MISMATCH);
   });
@@ -89,7 +106,10 @@ describe('Slice A — principal binding wired into board mutation handlers', () 
   it('suggest: flag ON + agent_id != principal -> rejected', async () => {
     process.env[FLAG] = '1';
     const r = await call('holomesh_suggest', {
-      __authAgentId: P, agent_id: 'victim', content: 'a process idea', category: 'process',
+      __authAgentId: P,
+      agent_id: 'victim',
+      content: 'a process idea',
+      category: 'process',
     });
     expect(r.error).toBe(MISMATCH);
   });
@@ -97,14 +117,21 @@ describe('Slice A — principal binding wired into board mutation handlers', () 
   it('suggest_vote: flag ON + agent_id != principal -> rejected', async () => {
     process.env[FLAG] = '1';
     const r = await call('holomesh_suggest_vote', {
-      __authAgentId: P, agent_id: 'victim', suggestion_id: 's1', vote: 'up',
+      __authAgentId: P,
+      agent_id: 'victim',
+      suggestion_id: 's1',
+      vote: 'up',
     });
     expect(r.error).toBe(MISMATCH);
   });
 
   it('matching principal passes the binding (reaches handler logic, not the mismatch reject)', async () => {
     process.env[FLAG] = '1';
-    const r = await call('holomesh_board_claim', { task_id: 'task-1', __authAgentId: P, agent_id: P });
+    const r = await call('holomesh_board_claim', {
+      task_id: 'task-1',
+      __authAgentId: P,
+      agent_id: P,
+    });
     expect(r.error).not.toBe(MISMATCH);
   });
 });

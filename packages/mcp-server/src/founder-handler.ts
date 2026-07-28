@@ -308,9 +308,7 @@ function readGoldIndex(): string | null {
 }
 
 function readNorthStar(): string | null {
-  const candidates = [
-    path.join(os.homedir(), '.ai-ecosystem', 'NORTH_STAR.md'),
-  ];
+  const candidates = [path.join(os.homedir(), '.ai-ecosystem', 'NORTH_STAR.md')];
   for (const c of candidates) {
     if (!c) continue;
     const content = safeRead(c, 30000);
@@ -320,9 +318,7 @@ function readNorthStar(): string | null {
 }
 
 function readClaudeMd(): string | null {
-  const candidates = [
-    path.join(os.homedir(), '.claude', 'CLAUDE.md'),
-  ];
+  const candidates = [path.join(os.homedir(), '.claude', 'CLAUDE.md')];
   for (const c of candidates) {
     if (!c) continue;
     const content = safeRead(c, 30000);

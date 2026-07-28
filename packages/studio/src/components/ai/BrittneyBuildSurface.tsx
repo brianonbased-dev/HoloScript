@@ -82,8 +82,7 @@ function toolCallsToToolResults(toolCalls: unknown[]): ToolResult[] {
       typeof e.result === 'object' && e.result !== null
         ? (e.result as Record<string, unknown>)
         : undefined;
-    const tool =
-      typeof e.name === 'string' ? e.name : typeof e.tool === 'string' ? e.tool : 'tool';
+    const tool = typeof e.name === 'string' ? e.name : typeof e.tool === 'string' ? e.tool : 'tool';
     const success =
       typeof result?.success === 'boolean'
         ? result.success
@@ -386,9 +385,7 @@ export function BrittneyBuildSurface() {
         savedHistory.map((m, i) => {
           // Persisted tool traces (write-through qq65) rebuild the tool
           // badges best-effort; absent/malformed traces render text-only.
-          const toolResults = Array.isArray(m.toolCalls)
-            ? toolCallsToToolResults(m.toolCalls)
-            : [];
+          const toolResults = Array.isArray(m.toolCalls) ? toolCallsToToolResults(m.toolCalls) : [];
           return {
             id: `h${i}-${m.timestamp ?? i}`,
             role: m.role,

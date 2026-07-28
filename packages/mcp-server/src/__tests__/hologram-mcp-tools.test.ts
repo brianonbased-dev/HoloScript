@@ -778,9 +778,7 @@ describe('hologram mcp tools', () => {
         representationLane: 'semantic-state',
       });
       // entityId must be deterministic from worldId + hash prefix
-      expect((result as Record<string, unknown>).entityId).toBe(
-        'hologram:world_abc:deadbeef1234'
-      );
+      expect((result as Record<string, unknown>).entityId).toBe('hologram:world_abc:deadbeef1234');
       vi.doUnmock('../networking-tools');
     });
 

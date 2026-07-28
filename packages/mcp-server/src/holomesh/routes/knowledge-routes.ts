@@ -2077,7 +2077,9 @@ export async function handleKnowledgeRoutes(
     const type = typeof body.type === 'string' ? body.type : undefined;
 
     let graphReady = false;
-    let handleGraphRagTool: ((name: string, args: Record<string, unknown>) => Promise<unknown>) | undefined;
+    let handleGraphRagTool:
+      | ((name: string, args: Record<string, unknown>) => Promise<unknown>)
+      | undefined;
     try {
       const absorbMcp = await import('@holoscript/absorb-service/mcp');
       graphReady = absorbMcp.isGraphRAGReady();

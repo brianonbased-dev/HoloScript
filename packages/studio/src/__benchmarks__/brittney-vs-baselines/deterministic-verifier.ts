@@ -1244,15 +1244,15 @@ function verifyF05(objs: ParsedObject[]): VerificationResult[] {
     .filter((c): c is { obj: ParsedObject; mass: number } => c.mass !== undefined);
   const light = crates.find((c) => within(c.mass, 2, 0.01));
   const heavy = crates.find((c) => within(c.mass, 4, 0.01));
-  const plankOk =
-    !!plank && within(plank.position[0], 0, 0.2) && within(plank.position[1], 1, 0.2);
+  const plankOk = !!plank && within(plank.position[0], 0, 0.2) && within(plank.position[1], 1, 0.2);
   let opposite = false;
   let torqueOk = false;
   let torqueNote = 'crates not found';
   if (light && heavy) {
     const d1 = Math.abs(light.obj.position[0]);
     const d2 = Math.abs(heavy.obj.position[0]);
-    opposite = Math.sign(light.obj.position[0]) !== Math.sign(heavy.obj.position[0]) && d1 > 0 && d2 > 0;
+    opposite =
+      Math.sign(light.obj.position[0]) !== Math.sign(heavy.obj.position[0]) && d1 > 0 && d2 > 0;
     const lhs = light.mass * d1;
     const rhs = heavy.mass * d2;
     torqueOk = lhs > 0 && within(lhs, rhs, 0.15 * Math.max(lhs, rhs));
@@ -1262,7 +1262,9 @@ function verifyF05(objs: ParsedObject[]): VerificationResult[] {
     !!plank &&
     !!light &&
     !!heavy &&
-    [light.obj, heavy.obj].every((o) => within(o.position[1], plank.position[1] + plank.scale[1] / 2 + o.scale[1] / 2, 0.5));
+    [light.obj, heavy.obj].every((o) =>
+      within(o.position[1], plank.position[1] + plank.scale[1] / 2 + o.scale[1] / 2, 0.5)
+    );
   return [
     {
       criterion_id: 'plank_centered_on_pivot',
@@ -1290,8 +1292,7 @@ function verifyF06(objs: ParsedObject[]): VerificationResult[] {
   const sizes = [2, 1.5, 1];
   const heights = [1.0, 2.75, 4.0];
   const xs = [0, 0.4, 0.8];
-  const sizesOk =
-    boxes.length === 3 && boxes.every((o, i) => within(o.scale[0], sizes[i], 0.1));
+  const sizesOk = boxes.length === 3 && boxes.every((o, i) => within(o.scale[0], sizes[i], 0.1));
   const heightsOk =
     boxes.length === 3 && boxes.every((o, i) => within(o.position[1], heights[i], 0.15));
   const offsetsOk = boxes.length === 3 && boxes.every((o, i) => within(o.position[0], xs[i], 0.1));
@@ -1350,8 +1351,7 @@ function verifyF07(objs: ParsedObject[]): VerificationResult[] {
 function verifyF08(objs: ParsedObject[]): VerificationResult[] {
   const unit = objs.find((o) => o.name.toLowerCase() === 'unit-ref');
   const orb = objs.find((o) => o.name.toLowerCase() === 'orb-ref');
-  const unitOk =
-    !!unit && dist(unit.position, [0, 0.5, 0]) <= 0.1 && within(unit.scale[0], 1, 0.1);
+  const unitOk = !!unit && dist(unit.position, [0, 0.5, 0]) <= 0.1 && within(unit.scale[0], 1, 0.1);
   const orbOk = !!orb && dist(orb.position, [5, 2, 0]) <= 0.1 && within(orb.radius ?? 0, 2, 0.1);
   return [
     {

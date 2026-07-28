@@ -22,11 +22,31 @@ type ViewKey = keyof typeof VIEW_COMPONENTS;
  * hand-crafted panel (agentMonitor → native/agentMonitor.native ≠ ai/AgentMonitorPanel).
  */
 const RAIL_KEYS: ViewKey[] = [
-  'history', 'aiMaterial', 'share', 'repl', 'registry', 'export',
-  'multiplayer', 'snapshots', 'assetLib', 'templateGallery', 'audio', 'exportV2',
-  'keyframes', 'particles', 'lod', 'parametricSliders',
-  'printabilityReport', 'simParams', 'simRunReport', 'gameParams', 'gameGateLedger',
-  'avatarParams', 'avatarRigLedger', 'plugins', 'sandboxedPlugins',
+  'history',
+  'aiMaterial',
+  'share',
+  'repl',
+  'registry',
+  'export',
+  'multiplayer',
+  'snapshots',
+  'assetLib',
+  'templateGallery',
+  'audio',
+  'exportV2',
+  'keyframes',
+  'particles',
+  'lod',
+  'parametricSliders',
+  'printabilityReport',
+  'simParams',
+  'simRunReport',
+  'gameParams',
+  'gameGateLedger',
+  'avatarParams',
+  'avatarRigLedger',
+  'plugins',
+  'sandboxedPlugins',
 ];
 
 const RAIL_WIDTHS: Partial<Record<ViewKey, 'resizable' | number>> = {
@@ -59,14 +79,15 @@ function capitalize(s: string): string {
  */
 export function useRightRailDescriptors(
   extraProps: RegistryPanelExtraProps = {},
-  manual: RightRailPanelDescriptor[] = [],
+  manual: RightRailPanelDescriptor[] = []
 ): RightRailPanelDescriptor[] {
   const openStates = usePanelVisibilityStore(
     useShallow((s) => {
       const store = s as unknown as Record<string, boolean>;
-      return Object.fromEntries(
-        RAIL_KEYS.map((id) => [id, store[`${id}Open`] ?? false])
-      ) as Record<ViewKey, boolean>;
+      return Object.fromEntries(RAIL_KEYS.map((id) => [id, store[`${id}Open`] ?? false])) as Record<
+        ViewKey,
+        boolean
+      >;
     })
   );
 

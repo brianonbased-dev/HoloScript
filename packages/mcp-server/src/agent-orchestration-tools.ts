@@ -231,8 +231,7 @@ export const agentOrchestrationTools: Tool[] = [
   },
   {
     name: 'workflow_memory_write',
-    description:
-      'Write a typed value to durable Loro workflow memory for one workflow run.',
+    description: 'Write a typed value to durable Loro workflow memory for one workflow run.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -240,7 +239,10 @@ export const agentOrchestrationTools: Tool[] = [
         key: { type: 'string', description: 'Memory key to write.' },
         value: { description: 'JSON-serializable value.' },
         agentId: { type: 'string', description: 'Writing agent ID.' },
-        schema: { type: 'object', description: 'Optional key schema, e.g. {facts:{type:"array"}}.' },
+        schema: {
+          type: 'object',
+          description: 'Optional key schema, e.g. {facts:{type:"array"}}.',
+        },
         assignedAgentIds: {
           type: 'array',
           items: { type: 'string' },
@@ -252,8 +254,7 @@ export const agentOrchestrationTools: Tool[] = [
   },
   {
     name: 'workflow_memory_read',
-    description:
-      'Read one key or the full durable Loro workflow memory snapshot for a run.',
+    description: 'Read one key or the full durable Loro workflow memory snapshot for a run.',
     inputSchema: {
       type: 'object' as const,
       properties: {

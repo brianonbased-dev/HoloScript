@@ -38,21 +38,30 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: '`messages` must be a non-empty array' }, { status: 400 });
   }
   if (body.messages.length > MAX_BATCH) {
-    return NextResponse.json({ error: `messages exceeds batch limit of ${MAX_BATCH}` }, { status: 413 });
+    return NextResponse.json(
+      { error: `messages exceeds batch limit of ${MAX_BATCH}` },
+      { status: 413 }
+    );
   }
 
   const inputs: MessageInput[] = [];
   for (const raw of body.messages) {
     const m = raw as Partial<MessageInput> & { role?: string };
     if (m.role !== 'user' && m.role !== 'assistant') {
-      return NextResponse.json({ error: 'message role must be "user" or "assistant"' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'message role must be "user" or "assistant"' },
+        { status: 400 }
+      );
     }
     // Tool-only assistant turns (server write-through parity, qq65): empty
     // content is valid when the message carries toolCalls — otherwise the
     // client retry queue wedges on a turn the model answered with tools alone.
     const hasToolCalls = Array.isArray(m.toolCalls) && m.toolCalls.length > 0;
     if (typeof m.content !== 'string' || (m.content.length === 0 && !hasToolCalls)) {
-      return NextResponse.json({ error: 'message content must be a non-empty string' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'message content must be a non-empty string' },
+        { status: 400 }
+      );
     }
     if (m.content.length > MAX_CONTENT_CHARS) {
       return NextResponse.json(

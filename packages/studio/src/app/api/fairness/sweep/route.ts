@@ -181,11 +181,7 @@ interface ScenarioSpec {
 
 /** Deterministic two-group cohort: nGroup records per group, with a per-group
  *  mean on the single "score" feature. No RNG — fully reproducible. */
-function buildTwoGroupCohort(
-  nGroup: number,
-  meanA: number,
-  meanB: number
-): FairnessRecord[] {
+function buildTwoGroupCohort(nGroup: number, meanA: number, meanB: number): FairnessRecord[] {
   const out: FairnessRecord[] = [];
   for (let i = 0; i < nGroup; i++) {
     // Deterministic spread in [-0.2, +0.2] around the group mean.
@@ -200,7 +196,12 @@ const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
 
 function curatedScenarios(): Record<string, ScenarioSpec> {
   // Threshold 0.5 on a single feature whose weight is 1 → approved iff score ≥ 0.5.
-  const model: LinearModelArg = { id: 'linear-scorer', weights: { score: 1 }, bias: 0, threshold: 0.5 };
+  const model: LinearModelArg = {
+    id: 'linear-scorer',
+    weights: { score: 1 },
+    bias: 0,
+    threshold: 0.5,
+  };
   return {
     'disparate-impact': {
       id: 'disparate-impact',
@@ -311,7 +312,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         typeof body['protectedAttribute'] === 'string' ? body['protectedAttribute'] : 'group';
     } else {
       const scenarios = curatedScenarios();
-      const requested = typeof body['scenario'] === 'string' ? body['scenario'] : 'disparate-impact';
+      const requested =
+        typeof body['scenario'] === 'string' ? body['scenario'] : 'disparate-impact';
       const scenario = scenarios[requested];
       if (!scenario) {
         return NextResponse.json(

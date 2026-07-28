@@ -91,7 +91,11 @@ describe('surface twin runtime — verifiedView rendered → extracted → twin-
       fetchAuthoritativeState: async () => ({ sessions: 999, errors: 3 }),
     });
     expect(r.verdict).toBe('FALSIFIED');
-    expect(r.divergences[0]).toMatchObject({ node: 'stats.sessions', displayed: '42', authoritative: 999 });
+    expect(r.divergences[0]).toMatchObject({
+      node: 'stats.sessions',
+      displayed: '42',
+      authoritative: 999,
+    });
   });
 
   it('LIVE: an unreachable authority abstains (authority-unavailable), never a false FALSIFIED', async () => {

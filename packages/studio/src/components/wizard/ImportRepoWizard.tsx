@@ -12,13 +12,7 @@
  * Matches StudioSetupWizard's visual language (emerald accent, AnimatedStep, same layout).
  */
 
-import {
-  X,
-  ChevronRight,
-  ChevronLeft,
-  GitBranch,
-  FolderGit2,
-} from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, GitBranch, FolderGit2 } from 'lucide-react';
 import { useImportRepoWizard } from '@/hooks/useImportRepoWizard';
 import { AnimatedStep } from './AnimatedStep';
 import { KIND_META } from './importWizardConstants';

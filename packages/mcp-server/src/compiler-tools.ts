@@ -76,14 +76,25 @@ registerBuiltinDialects();
 
 // Dialects that are internal/meta and should not be surfaced as user-facing export targets.
 const _INTERNAL_DIALECT_NAMES = new Set([
-  'domain-block', 'multi-layer', 'incremental', 'mcp-config',
+  'domain-block',
+  'multi-layer',
+  'incremental',
+  'mcp-config',
   // Registered in DialectRegistry but not yet wired to a compiler-tools switch case:
-  'threejs', 'nextjs-api',
+  'threejs',
+  'nextjs-api',
 ]);
 
 // ExportManager targets not yet migrated to DialectRegistry -- surfaced via legacy path.
 const _LEGACY_EXPORT_TARGETS = [
-  'usd', 'usdz', 'fmu', '3dgs', '3dtiles', 'canvas2d-game', 'code-editor', 'r3f',
+  'usd',
+  'usdz',
+  'fmu',
+  '3dgs',
+  '3dtiles',
+  'canvas2d-game',
+  'code-editor',
+  'r3f',
   'character-webgpu', // authored .holo character -> CharacterDrawSpec (sovereign); compiles via the generic compile tool
 ] as const;
 
@@ -476,7 +487,9 @@ export async function handleCompileToTarget(
   }
 }
 
-export async function handleCompileToR3F(args: Record<string, unknown>): Promise<CompilationResult> {
+export async function handleCompileToR3F(
+  args: Record<string, unknown>
+): Promise<CompilationResult> {
   const {
     code,
     options = {},
@@ -511,9 +524,7 @@ export async function handleCompileToR3F(args: Record<string, unknown>): Promise
 
     trackJob(jobId, 'in_progress', 60);
     const compiler = new SceneIRCompiler(
-      isRecord(options.compilerOptions)
-        ? options.compilerOptions
-        : options
+      isRecord(options.compilerOptions) ? options.compilerOptions : options
     );
     const agentToken = typeof options.agentToken === 'string' ? options.agentToken : undefined;
     const outputPath =
@@ -535,8 +546,7 @@ export async function handleCompileToR3F(args: Record<string, unknown>): Promise
         : emitSceneIRTsx(scene, {
             componentName:
               typeof options.componentName === 'string' ? options.componentName : undefined,
-            sourcePath:
-              typeof options.sourcePath === 'string' ? options.sourcePath : 'mcp:inline',
+            sourcePath: typeof options.sourcePath === 'string' ? options.sourcePath : 'mcp:inline',
             includeCanvas:
               typeof options.includeCanvas === 'boolean' ? options.includeCanvas : true,
           });
@@ -626,7 +636,11 @@ export interface CrossPerceiverVerifyResult {
 export async function handleVerifyCrossPerceiver(
   args: Record<string, unknown>
 ): Promise<CrossPerceiverVerifyResult> {
-  const { code, perceivers, options = {} } = args as {
+  const {
+    code,
+    perceivers,
+    options = {},
+  } = args as {
     code?: string;
     perceivers?: unknown;
     options?: Record<string, unknown>;
@@ -802,7 +816,10 @@ export async function handleStreamWorldTiles(args: Record<string, unknown>): Pro
     throw new Error(`Failed to parse composition: ${errors}`);
   }
 
-  const stream = streamWorldTiles(parseResult.ast, options as Parameters<typeof streamWorldTiles>[1]);
+  const stream = streamWorldTiles(
+    parseResult.ast,
+    options as Parameters<typeof streamWorldTiles>[1]
+  );
   return {
     ...stream,
     metadata: {
@@ -1015,22 +1032,31 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
   categories: Record<string, ExportTarget[]>;
   sovereignty: Record<string, 'sovereign' | 'bridge' | 'mode'>;
 }> {
-  const dialectNames = DialectRegistry.names().filter(
-    (n) => !_INTERNAL_DIALECT_NAMES.has(n),
-  );
-  const legacyNames = Array.from(_LEGACY_EXPORT_TARGETS).filter(
-    (n) => !dialectNames.includes(n),
-  );
+  const dialectNames = DialectRegistry.names().filter((n) => !_INTERNAL_DIALECT_NAMES.has(n));
+  const legacyNames = Array.from(_LEGACY_EXPORT_TARGETS).filter((n) => !dialectNames.includes(n));
   const targets = [...dialectNames, ...legacyNames] as unknown as ExportTarget[];
 
   const categories: Record<string, ExportTarget[]> = {
-    'Game Engines': ['unity', 'unreal', 'pcg-graph', 'godot', 'canvas2d-game'] as unknown as ExportTarget[],
+    'Game Engines': [
+      'unity',
+      'unreal',
+      'pcg-graph',
+      'godot',
+      'canvas2d-game',
+    ] as unknown as ExportTarget[],
     'VR Platforms': ['vrchat', 'openxr'] as unknown as ExportTarget[],
     'Mobile AR': ['android', 'android-xr', 'ios', 'visionos'] as unknown as ExportTarget[],
     // ar, babylon, playcanvas, vrr retired as apex-poison 2026-06-17.
     // r3f is restored as SceneIR -> generated TSX shell, not the retired handwritten JSX compiler.
     'Web Platforms': ['webgpu', 'character-webgpu', 'r3f', 'wasm'] as unknown as ExportTarget[],
-    'Robotics/IoT': ['urdf', 'sdf', 'mjcf', 'mjx', 'embodied-dataset', 'dtdl'] as unknown as ExportTarget[],
+    'Robotics/IoT': [
+      'urdf',
+      'sdf',
+      'mjcf',
+      'mjx',
+      'embodied-dataset',
+      'dtdl',
+    ] as unknown as ExportTarget[],
     '3D Formats': ['usd', 'usdz', 'fmu', '3dgs', '3dtiles'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
     'AI/MCP': [
@@ -1699,7 +1725,10 @@ export const compilerTools: Tool[] = [
               type: 'boolean',
               description: 'Wrap the SceneIR renderer in <Canvas> (default: true)',
             },
-            sourcePath: { type: 'string', description: 'Optional source path comment for receipts' },
+            sourcePath: {
+              type: 'string',
+              description: 'Optional source path comment for receipts',
+            },
           },
         },
       },
@@ -2198,7 +2227,7 @@ export const compilerTools: Tool[] = [
       'element prove what it renders? Re-derives the @verified_view contract that ' +
       'Native2DCompiler enforces and returns EVERY violation at once (compiling would throw ' +
       'on the first). Violations: mismatched-node (@projects names a different path than the ' +
-      "binding — \"says sessions, wired revenue\"), missing-projects (bound element with no " +
+      'binding — "says sessions, wired revenue"), missing-projects (bound element with no ' +
       'receipt), hallucinated-root (projects a state node that does not exist), ' +
       'projects-without-binding (a receipt on an unbound element), no-verified-view (binds ' +
       'data without opting into the gate). DESIGN CONSTRAINT — `complete: false` is ' +
@@ -2359,7 +2388,10 @@ export const compilerTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        code: { type: 'string', description: 'HoloScript composition code with @gaussian_splat data' },
+        code: {
+          type: 'string',
+          description: 'HoloScript composition code with @gaussian_splat data',
+        },
         options: {
           type: 'object',
           properties: {
@@ -2395,7 +2427,10 @@ export const compilerTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        code: { type: 'string', description: 'HoloScript composition code with @gaussian_splat data' },
+        code: {
+          type: 'string',
+          description: 'HoloScript composition code with @gaussian_splat data',
+        },
         options: {
           type: 'object',
           properties: {
@@ -2430,14 +2465,18 @@ export const compilerTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        code: { type: 'string', description: 'HoloScript composition code carrying a @gaussian_train trait' },
+        code: {
+          type: 'string',
+          description: 'HoloScript composition code carrying a @gaussian_train trait',
+        },
         options: {
           type: 'object',
           properties: {
             defaultBackend: {
               type: 'string',
               enum: ['sovereign', 'remote'],
-              description: 'Backend when the trait omits it (default: sovereign — the native trainer)',
+              description:
+                'Backend when the trait omits it (default: sovereign — the native trainer)',
             },
           },
         },
@@ -2578,7 +2617,10 @@ export const compilerTools: Tool[] = [
           type: 'object',
           description: 'BotSwarmCompiler options',
           properties: {
-            bots: { type: 'number', description: 'Default bot count baked into the harness (default: 24)' },
+            bots: {
+              type: 'number',
+              description: 'Default bot count baked into the harness (default: 24)',
+            },
             ticks: { type: 'number', description: 'Default tick count (default: 100)' },
             speedhackRatio: {
               type: 'number',
@@ -2603,7 +2645,10 @@ export const compilerTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        code: { type: 'string', description: 'HoloScript MMO composition (.holo) with dungeon_instance blocks' },
+        code: {
+          type: 'string',
+          description: 'HoloScript MMO composition (.holo) with dungeon_instance blocks',
+        },
       },
       required: ['code'],
     },
@@ -2621,7 +2666,10 @@ export const compilerTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        code: { type: 'string', description: 'HoloScript MMO composition (.holo) with world_shard blocks' },
+        code: {
+          type: 'string',
+          description: 'HoloScript MMO composition (.holo) with world_shard blocks',
+        },
       },
       required: ['code'],
     },
@@ -2675,8 +2723,14 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            serverName: { type: 'string', description: 'MCP server name (default: holoscript-mcp)' },
-            serverVersion: { type: 'string', description: 'Server version string (default: 1.0.0)' },
+            serverName: {
+              type: 'string',
+              description: 'MCP server name (default: holoscript-mcp)',
+            },
+            serverVersion: {
+              type: 'string',
+              description: 'Server version string (default: 1.0.0)',
+            },
             outputKind: {
               type: 'string',
               enum: ['module', 'manifest'],
@@ -2730,7 +2784,10 @@ export const compilerTools: Tool[] = [
           type: 'object',
           properties: {
             viewBox: { type: 'string', description: 'SVG viewBox attribute (e.g. "0 0 800 600").' },
-            includeGrid: { type: 'boolean', description: 'Overlay a grid guide in the output SVG.' },
+            includeGrid: {
+              type: 'boolean',
+              description: 'Overlay a grid guide in the output SVG.',
+            },
           },
         },
       },
@@ -2751,7 +2808,10 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            optimizationLevel: { type: 'number', description: 'Bytecode optimization level (0 = none, 1 = basic, 2 = full).' },
+            optimizationLevel: {
+              type: 'number',
+              description: 'Bytecode optimization level (0 = none, 1 = basic, 2 = full).',
+            },
           },
         },
       },
@@ -2772,7 +2832,11 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            format: { type: 'string', enum: ['json', 'yaml'], description: 'Output format (default: json).' },
+            format: {
+              type: 'string',
+              enum: ['json', 'yaml'],
+              description: 'Output format (default: json).',
+            },
             title: { type: 'string', description: 'API title for the OpenAPI info block.' },
           },
         },
@@ -2801,15 +2865,34 @@ export const compilerTools: Tool[] = [
               enum: ['sdk:typescript', 'sdk:python', 'sdk:react', 'sdk:connectors'],
               description: 'SDK emitter target (default: sdk:typescript).',
             },
-            language: { type: 'string', enum: ['typescript', 'python', 'react', 'connectors'], description: 'Legacy SDK language alias for target.' },
+            language: {
+              type: 'string',
+              enum: ['typescript', 'python', 'react', 'connectors'],
+              description: 'Legacy SDK language alias for target.',
+            },
             clientClassName: { type: 'string', description: 'Generated client class name.' },
             packageName: { type: 'string', description: 'npm package name for the generated SDK.' },
             outputDir: { type: 'string', description: 'Output directory for generated SDK files.' },
-            clientFileName: { type: 'string', description: 'Filename for the generated client (default: <ClientClassName>.ts).' },
-            runtimeFileName: { type: 'string', description: 'Filename for the shared runtime shim (default: sdk-runtime.ts).' },
-            includePackageJson: { type: 'boolean', description: 'Emit a package.json for the generated SDK.' },
-            includeTsConfig: { type: 'boolean', description: 'Emit a tsconfig.json for the generated SDK.' },
-            includeReadme: { type: 'boolean', description: 'Emit a README.md for the generated SDK.' },
+            clientFileName: {
+              type: 'string',
+              description: 'Filename for the generated client (default: <ClientClassName>.ts).',
+            },
+            runtimeFileName: {
+              type: 'string',
+              description: 'Filename for the shared runtime shim (default: sdk-runtime.ts).',
+            },
+            includePackageJson: {
+              type: 'boolean',
+              description: 'Emit a package.json for the generated SDK.',
+            },
+            includeTsConfig: {
+              type: 'boolean',
+              description: 'Emit a tsconfig.json for the generated SDK.',
+            },
+            includeReadme: {
+              type: 'boolean',
+              description: 'Emit a README.md for the generated SDK.',
+            },
           },
         },
       },
@@ -2851,8 +2934,14 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            packageName: { type: 'string', description: 'Dart package name for the generated widget.' },
-            stateful: { type: 'boolean', description: 'Emit a StatefulWidget instead of StatelessWidget.' },
+            packageName: {
+              type: 'string',
+              description: 'Dart package name for the generated widget.',
+            },
+            stateful: {
+              type: 'boolean',
+              description: 'Emit a StatefulWidget instead of StatelessWidget.',
+            },
           },
         },
       },
@@ -2873,8 +2962,14 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            scale: { type: 'number', description: 'Uniform scale factor applied to all geometry (default: 1.0).' },
-            mergeObjects: { type: 'boolean', description: 'Merge all objects into a single STL solid.' },
+            scale: {
+              type: 'number',
+              description: 'Uniform scale factor applied to all geometry (default: 1.0).',
+            },
+            mergeObjects: {
+              type: 'boolean',
+              description: 'Merge all objects into a single STL solid.',
+            },
           },
         },
       },
@@ -2894,7 +2989,10 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            apiVersion: { type: 'string', description: 'Lens Studio API version string (e.g. "5.0").' },
+            apiVersion: {
+              type: 'string',
+              description: 'Lens Studio API version string (e.g. "5.0").',
+            },
           },
         },
       },
@@ -2917,7 +3015,10 @@ export const compilerTools: Tool[] = [
           properties: {
             roomName: { type: 'string', description: 'Colyseus room class name.' },
             tickRate: { type: 'number', description: 'Server tick rate in Hz (default: 20).' },
-            maxClients: { type: 'number', description: 'Maximum concurrent clients per room instance.' },
+            maxClients: {
+              type: 'number',
+              description: 'Maximum concurrent clients per room instance.',
+            },
           },
         },
       },
@@ -2938,7 +3039,10 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            fovDegrees: { type: 'number', description: 'Horizontal field-of-view in degrees for the target glasses display.' },
+            fovDegrees: {
+              type: 'number',
+              description: 'Horizontal field-of-view in degrees for the target glasses display.',
+            },
           },
         },
       },
@@ -2980,8 +3084,14 @@ export const compilerTools: Tool[] = [
         options: {
           type: 'object',
           properties: {
-            chain: { type: 'string', description: 'Target chain identifier (e.g. "ethereum", "polygon", "base").' },
-            royaltyBps: { type: 'number', description: 'ERC-2981 royalty in basis points (e.g. 500 = 5%).' },
+            chain: {
+              type: 'string',
+              description: 'Target chain identifier (e.g. "ethereum", "polygon", "base").',
+            },
+            royaltyBps: {
+              type: 'number',
+              description: 'ERC-2981 royalty in basis points (e.g. 500 = 5%).',
+            },
           },
         },
       },
@@ -2993,7 +3103,7 @@ export const compilerTools: Tool[] = [
   {
     name: 'compile_to_tsl',
     description:
-      'Compile HoloScript to Trait Shader Language (TSL) — SOVEREIGN — native trait-to-shader codegen running on HoloScript\'s WebGPU path.',
+      "Compile HoloScript to Trait Shader Language (TSL) — SOVEREIGN — native trait-to-shader codegen running on HoloScript's WebGPU path.",
     inputSchema: {
       type: 'object',
       properties: {

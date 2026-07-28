@@ -1058,7 +1058,8 @@ const workspaceGitCommit: StudioToolDefinition = {
       properties: {
         message: {
           type: 'string',
-          description: 'Commit message, conventional-commit style, e.g. "feat(ui): add dashboard panel"',
+          description:
+            'Commit message, conventional-commit style, e.g. "feat(ui): add dashboard panel"',
         },
         files: {
           type: 'array',

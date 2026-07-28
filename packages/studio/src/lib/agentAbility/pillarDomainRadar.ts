@@ -98,7 +98,8 @@ function normalizeSeriesKey(value: unknown): string | undefined {
 }
 
 function toNumber(value: unknown): number | undefined {
-  const number = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  const number =
+    typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
   return Number.isFinite(number) ? number : undefined;
 }
 
@@ -119,7 +120,9 @@ function parseValues(value: string): number[] {
 }
 
 function formatValues(values: number[]): string {
-  return values.map((value) => (Number.isInteger(value) ? String(value) : value.toFixed(1))).join(',');
+  return values
+    .map((value) => (Number.isInteger(value) ? String(value) : value.toFixed(1)))
+    .join(',');
 }
 
 function radarScore(slice: PillarDomainSlice): number {
@@ -154,7 +157,8 @@ function eventSlice(record: PillarTelemetryRecord): PillarDomainSlice | undefine
 function eventSeriesKey(record: PillarTelemetryRecord): string {
   const payload = asObject(record.payload);
   const context = asObject(record.context) || asObject(payload?.context);
-  const metadata = asObject(context?.metadata) || asObject(payload?.metadata) || asObject(record.metadata);
+  const metadata =
+    asObject(context?.metadata) || asObject(payload?.metadata) || asObject(record.metadata);
 
   return (
     normalizeSeriesKey(record.series) ||
@@ -204,11 +208,18 @@ function axisDomains(objects: HoloObjectLike[]): string[] {
 }
 
 function seriesObjects(objects: HoloObjectLike[]): HoloObjectLike[] {
-  return objects.filter((obj) => stringProp(obj, 'kind') === 'series' || obj.name.startsWith('series'));
+  return objects.filter(
+    (obj) => stringProp(obj, 'kind') === 'series' || obj.name.startsWith('series')
+  );
 }
 
 function seriesKey(obj: HoloObjectLike): string {
-  return normalizeSeriesKey(stringProp(obj, 'series_key')) || normalizeSeriesKey(stringProp(obj, 'name')) || normalizeSeriesKey(obj.name) || obj.name;
+  return (
+    normalizeSeriesKey(stringProp(obj, 'series_key')) ||
+    normalizeSeriesKey(stringProp(obj, 'name')) ||
+    normalizeSeriesKey(obj.name) ||
+    obj.name
+  );
 }
 
 function fallbackValues(obj: HoloObjectLike): number[] {

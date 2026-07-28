@@ -66,7 +66,8 @@ function asTrimmedString(v: unknown, fallback = ''): string {
 function extractTaskId(json: unknown): string | null {
   if (!json || typeof json !== 'object') return null;
   const j = json as { tasks?: Array<{ id?: unknown }>; task?: { id?: unknown }; id?: unknown };
-  if (Array.isArray(j.tasks) && j.tasks[0] && typeof j.tasks[0].id === 'string') return j.tasks[0].id;
+  if (Array.isArray(j.tasks) && j.tasks[0] && typeof j.tasks[0].id === 'string')
+    return j.tasks[0].id;
   if (j.task && typeof j.task.id === 'string') return j.task.id;
   if (typeof j.id === 'string') return j.id;
   return null;
@@ -188,10 +189,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json(
-      { error: 'board unreachable', detail: msg },
-      { status: 502 }
-    );
+    return NextResponse.json({ error: 'board unreachable', detail: msg }, { status: 502 });
   }
 
   const json = (await upstream.json().catch(() => null)) as unknown;

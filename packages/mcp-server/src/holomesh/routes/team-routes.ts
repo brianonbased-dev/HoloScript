@@ -2138,7 +2138,9 @@ export async function handleTeamRoutes(
   // TTL = 10 minutes. No persistence — the publisher re-pushes every 2 min.
   // Auth: same Bearer key gate as the rest of HoloMesh. Rate-limited to
   // 1 PUT per seat per 30s to prevent floods.
-  const machineStateMatch = pathname.match(/^\/api\/holomesh\/machine-state\/([a-zA-Z0-9_\-]{3,80})$/);
+  const machineStateMatch = pathname.match(
+    /^\/api\/holomesh\/machine-state\/([a-zA-Z0-9_\-]{3,80})$/
+  );
   if (machineStateMatch) {
     const seatId = machineStateMatch[1];
     if (method === 'PUT' || method === 'POST') {
@@ -2156,9 +2158,16 @@ export async function handleTeamRoutes(
         json(res, 400, { error: 'body must be a JSON object' });
         return true;
       }
-      machineStateStore.set(seatId, { snapshot: body as Record<string, unknown>, publishedAt: new Date().toISOString() });
+      machineStateStore.set(seatId, {
+        snapshot: body as Record<string, unknown>,
+        publishedAt: new Date().toISOString(),
+      });
       machineStateRateLimit.set(seatId, now);
-      json(res, 200, { success: true, seatId, publishedAt: machineStateStore.get(seatId)!.publishedAt });
+      json(res, 200, {
+        success: true,
+        seatId,
+        publishedAt: machineStateStore.get(seatId)!.publishedAt,
+      });
       return true;
     }
     if (method === 'GET') {
@@ -2185,5 +2194,8 @@ export async function handleTeamRoutes(
 }
 
 // ── Machine-state in-memory store (module-level, persists across requests) ──
-const machineStateStore = new Map<string, { snapshot: Record<string, unknown>; publishedAt: string }>();
+const machineStateStore = new Map<
+  string,
+  { snapshot: Record<string, unknown>; publishedAt: string }
+>();
 const machineStateRateLimit = new Map<string, number>();

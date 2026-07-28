@@ -4,7 +4,10 @@ import { resolve } from 'node:path';
 import { parseHolo } from '../../../../core/src/parser/HoloCompositionParser';
 import { Vector2DCompiler } from '../../../../core/src/compiler/Vector2DCompiler';
 import type { HoloComposition } from '../../../../core/src/parser/HoloCompositionTypes';
-import { applyPillarDomainRadarTelemetry, normalizePillarTelemetryInput } from './pillarDomainRadar';
+import {
+  applyPillarDomainRadarTelemetry,
+  normalizePillarTelemetryInput,
+} from './pillarDomainRadar';
 
 const composition = {
   objects: [
@@ -54,7 +57,9 @@ const composition = {
 
 function valuesFor(next: typeof composition, seriesName: string): string | undefined {
   const series = next.objects.find((object) => object.name === seriesName);
-  return series?.properties.find((property) => property.key === 'values')?.value as string | undefined;
+  return series?.properties.find((property) => property.key === 'values')?.value as
+    | string
+    | undefined;
 }
 
 describe('pillarDomainRadar', () => {
@@ -109,7 +114,10 @@ describe('pillarDomainRadar', () => {
   });
 
   it('feeds the real agent-ability .holo page before Vector2D compilation', () => {
-    const source = readFileSync(resolve(__dirname, '../../../holo-pages/agent-ability/page.holo'), 'utf-8');
+    const source = readFileSync(
+      resolve(__dirname, '../../../holo-pages/agent-ability/page.holo'),
+      'utf-8'
+    );
     const parsed = parseHolo(source);
     expect(parsed.success).toBe(true);
 

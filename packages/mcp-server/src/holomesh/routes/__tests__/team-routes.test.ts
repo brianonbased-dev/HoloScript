@@ -1140,15 +1140,15 @@ describe('Board Routes — Fleet Snapshot', () => {
     [
       'omitted accounting',
       (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
-        (snapshot.resource_flow as unknown as { spend_accounting?: unknown })
-          .spend_accounting = undefined;
+        (snapshot.resource_flow as unknown as { spend_accounting?: unknown }).spend_accounting =
+          undefined;
       },
     ],
     [
       'unknown receipt identity field',
       (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
-        (snapshot.resource_flow.spend_accounting as unknown as Record<string, unknown>)
-          .receipt_id = `sha256:${'a'.repeat(64)}`;
+        (snapshot.resource_flow.spend_accounting as unknown as Record<string, unknown>).receipt_id =
+          `sha256:${'a'.repeat(64)}`;
       },
     ],
     [
@@ -1175,7 +1175,7 @@ describe('Board Routes — Fleet Snapshot', () => {
       'future observation clamped to fresh age zero',
       (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
         snapshot.resource_flow.spend_accounting.observed_at_utc = new Date(
-          Date.parse(snapshot.captured_at) + 60 * 1000,
+          Date.parse(snapshot.captured_at) + 60 * 1000
         ).toISOString();
         snapshot.resource_flow.spend_accounting.age_ms = 0;
       },
@@ -1183,9 +1183,12 @@ describe('Board Routes — Fleet Snapshot', () => {
     [
       'stale accounting without its visibility gap',
       (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
-        const accounting = snapshot.resource_flow.spend_accounting as unknown as Record<string, unknown>;
+        const accounting = snapshot.resource_flow.spend_accounting as unknown as Record<
+          string,
+          unknown
+        >;
         accounting.observed_at_utc = new Date(
-          Date.parse(snapshot.captured_at) - 16 * 60 * 1000,
+          Date.parse(snapshot.captured_at) - 16 * 60 * 1000
         ).toISOString();
         accounting.age_ms = 16 * 60 * 1000;
         accounting.freshness_status = 'stale';
@@ -1205,7 +1208,10 @@ describe('Board Routes — Fleet Snapshot', () => {
     [
       'missing sentinel that retains trusted monetary values',
       (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
-        const accounting = snapshot.resource_flow.spend_accounting as unknown as Record<string, unknown>;
+        const accounting = snapshot.resource_flow.spend_accounting as unknown as Record<
+          string,
+          unknown
+        >;
         accounting.status = 'missing';
         accounting.freshness_status = 'missing';
         accounting.observed_at_utc = null;
@@ -1215,8 +1221,8 @@ describe('Board Routes — Fleet Snapshot', () => {
     [
       'non-object accounting',
       (snapshot: ReturnType<typeof validV2FleetSnapshot>) => {
-        (snapshot.resource_flow as unknown as { spend_accounting: unknown })
-          .spend_accounting = 'invalid';
+        (snapshot.resource_flow as unknown as { spend_accounting: unknown }).spend_accounting =
+          'invalid';
       },
     ],
   ])('rejects invalid Vast spend accounting: %s', async (_case, mutate) => {
@@ -1880,7 +1886,10 @@ describe('Board Routes — Founder Approval (N3 signed-write path)', () => {
     agentName: string,
     isFounder: boolean
   ): void {
-    const wallet = `0x${agentId.replace(/[^a-zA-Z0-9]/g, '').slice(-4).padStart(40, '0')}`;
+    const wallet = `0x${agentId
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .slice(-4)
+      .padStart(40, '0')}`;
     keyRegistry.set(key, {
       key,
       walletAddress: wallet,

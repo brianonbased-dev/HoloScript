@@ -21,7 +21,15 @@ import { useSimState } from './useSimState';
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function DigestRow({ digest, copied, onCopy }: { digest: string; copied: boolean; onCopy: () => void }) {
+function DigestRow({
+  digest,
+  copied,
+  onCopy,
+}: {
+  digest: string;
+  copied: boolean;
+  onCopy: () => void;
+}) {
   const truncated = digest.length > 16 ? `${digest.slice(0, 8)}…${digest.slice(-8)}` : digest;
   return (
     <div className="flex items-center justify-between text-[11px] py-1.5">
@@ -83,19 +91,15 @@ export function SimRunReportPanel({ onClose }: SimRunReportPanelProps) {
 
   // Numeric stats only — filter out strings, arrays, objects
   const numericStats: Array<[string, number]> = result?.stats
-    ? (Object.entries(result.stats).filter(
-        (entry): entry is [string, number] => {
-          const v = entry[1];
-          return typeof v === 'number' && Number.isFinite(v);
-        }
-      ))
+    ? Object.entries(result.stats).filter((entry): entry is [string, number] => {
+        const v = entry[1];
+        return typeof v === 'number' && Number.isFinite(v);
+      })
     : [];
 
   // Determinism: two runs with the same digest means the result matched the previous
   const showDeterminismBadge =
-    report !== null &&
-    lastDigest !== null &&
-    report.finalStateDigest === lastDigest;
+    report !== null && lastDigest !== null && report.finalStateDigest === lastDigest;
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -123,9 +127,7 @@ export function SimRunReportPanel({ onClose }: SimRunReportPanelProps) {
         {!report ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 px-4 py-8 text-center">
             <Beaker className="h-8 w-8 text-studio-muted/30" aria-hidden="true" />
-            <p className="text-[11px] text-studio-muted/60">
-              Run a simulation to see the report.
-            </p>
+            <p className="text-[11px] text-studio-muted/60">Run a simulation to see the report.</p>
           </div>
         ) : (
           <div className="px-3 py-3 space-y-3">

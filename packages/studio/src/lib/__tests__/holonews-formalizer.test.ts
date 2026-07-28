@@ -30,10 +30,7 @@ function baseSession(overrides: Partial<ScanSession> = {}): ScanSession {
   };
 }
 
-function measuredNativeCamera(
-  poseConfidence = 0.85,
-  anchorRevision = 2
-): NativeCameraScanEvidence {
+function measuredNativeCamera(poseConfidence = 0.85, anchorRevision = 2): NativeCameraScanEvidence {
   return {
     source: 'mediaDevices.getUserMedia',
     startedAtIso: '2026-06-21T00:00:01.000Z',
@@ -274,7 +271,10 @@ describe('formalizerDischarge — honesty boundary (F.123)', () => {
       baseSession({ nativeCamera: sensorlessNativeCamera() }),
       // Active (not finalized) runtime
       baseSession({
-        nativeCamera: { ...measuredNativeCamera(), holomap: { ...measuredNativeCamera().holomap!, runtime: 'active' } },
+        nativeCamera: {
+          ...measuredNativeCamera(),
+          holomap: { ...measuredNativeCamera().holomap!, runtime: 'active' },
+        },
       }),
     ];
 

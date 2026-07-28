@@ -108,7 +108,8 @@ describe('SimRunReportPanel — UI contract (store layer)', () => {
     const sameDigest = 'deterministic-abc123';
     vi.stubGlobal(
       'fetch',
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce({ ok: true, json: async () => makeFakeResult(sameDigest) })
         .mockResolvedValueOnce({ ok: true, json: async () => makeFakeResult(sameDigest) })
     );
@@ -128,7 +129,8 @@ describe('SimRunReportPanel — UI contract (store layer)', () => {
   it('determinism badge absent when digests differ', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce({ ok: true, json: async () => makeFakeResult('digest-A') })
         .mockResolvedValueOnce({ ok: true, json: async () => makeFakeResult('digest-B') })
     );

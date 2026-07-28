@@ -8,6 +8,8 @@ describe('fleet dispatch heartbeat eligibility', () => {
   });
 
   it('accepts a member represented in the live presence set', () => {
-    expect(fleetAgentHeartbeatGated({ agentId: 'live', online: true }, new Set(['live']))).toBe(false);
+    expect(fleetAgentHeartbeatGated({ agentId: 'live', online: true }, new Set(['live']))).toBe(
+      false
+    );
   });
 });

@@ -46,7 +46,8 @@ function NumericInputRow({
       <div className="flex items-center justify-between text-[11px]">
         <span className="text-studio-muted font-medium">{label}</span>
         <span className="text-studio-text font-mono tabular-nums">
-          {format(value)}{unit ? <span className="text-studio-muted ml-1">{unit}</span> : null}
+          {format(value)}
+          {unit ? <span className="text-studio-muted ml-1">{unit}</span> : null}
         </span>
       </div>
       <input
@@ -132,9 +133,7 @@ export function SimParamsPanel({ onClose }: SimParamsPanelProps) {
             </option>
           ))}
         </select>
-        <p className="mt-1 text-[10px] text-studio-muted/50 leading-snug">
-          {preset.description}
-        </p>
+        <p className="mt-1 text-[10px] text-studio-muted/50 leading-snug">{preset.description}</p>
       </div>
 
       {/* Param inputs */}

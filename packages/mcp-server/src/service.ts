@@ -42,9 +42,8 @@ export function startMcpService(
 ): ChildProcess {
   const entrypoints = resolveMcpServiceEntrypoints();
   const entrypoint = kind === 'http' ? entrypoints.http : entrypoints.stdio;
-  const env = options.inheritEnv === false
-    ? { ...options.env }
-    : { ...process.env, ...options.env };
+  const env =
+    options.inheritEnv === false ? { ...options.env } : { ...process.env, ...options.env };
 
   return spawn(options.execPath ?? process.execPath, [entrypoint, ...(options.args ?? [])], {
     cwd: options.cwd ?? entrypoints.packageRoot,

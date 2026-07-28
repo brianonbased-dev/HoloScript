@@ -61,7 +61,7 @@ export const boardTools: Tool[] = [
   {
     name: 'holomesh_board_list',
     description:
-      'List tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles. Pass tags to filter to tasks matching those capability tags. Pass status to scope to one bucket, and limit/offset to page a large board instead of returning everything (omit limit for the full board, today\'s default behavior).',
+      "List tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles. Pass tags to filter to tasks matching those capability tags. Pass status to scope to one bucket, and limit/offset to page a large board instead of returning everything (omit limit for the full board, today's default behavior).",
     inputSchema: {
       type: 'object',
       properties: {
@@ -594,7 +594,9 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
     const team = getTeam(teamId);
     const board = team.taskBoard || [];
     const maintenance = await runBoardMaintenance(teamId, board);
-    const filterTags = Array.isArray(args.tags) ? (args.tags as string[]).map((t) => t.toLowerCase()) : null;
+    const filterTags = Array.isArray(args.tags)
+      ? (args.tags as string[]).map((t) => t.toLowerCase())
+      : null;
     const tagMatch = (t: TeamTask) => {
       if (!filterTags || filterTags.length === 0) return true;
       const taskTags = (t.tags ?? []).map((x) => x.toLowerCase());
@@ -603,9 +605,15 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
     };
     const statusFilter = typeof args.status === 'string' ? args.status : null;
     const wantsBucket = (s: 'open' | 'claimed' | 'blocked') => !statusFilter || statusFilter === s;
-    const openAll = wantsBucket('open') ? board.filter((t: TeamTask) => t.status === 'open' && tagMatch(t)) : [];
-    const claimedAll = wantsBucket('claimed') ? board.filter((t: TeamTask) => t.status === 'claimed' && tagMatch(t)) : [];
-    const blockedAll = wantsBucket('blocked') ? board.filter((t: TeamTask) => t.status === 'blocked' && tagMatch(t)) : [];
+    const openAll = wantsBucket('open')
+      ? board.filter((t: TeamTask) => t.status === 'open' && tagMatch(t))
+      : [];
+    const claimedAll = wantsBucket('claimed')
+      ? board.filter((t: TeamTask) => t.status === 'claimed' && tagMatch(t))
+      : [];
+    const blockedAll = wantsBucket('blocked')
+      ? board.filter((t: TeamTask) => t.status === 'blocked' && tagMatch(t))
+      : [];
 
     // limit/offset are opt-in: omitting them preserves today's behavior (return every
     // matching task). Passing limit pages each bucket independently — the fix for
@@ -613,7 +621,7 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
     const hasPaging = args.limit !== undefined && args.limit !== null;
     const limit = hasPaging ? clampInteger(args.limit, 500, 1, 500) : null;
     const offset = clampInteger(args.offset, 0, 0, Number.MAX_SAFE_INTEGER);
-    const page = <T,>(all: T[]) => {
+    const page = <T>(all: T[]) => {
       if (!hasPaging) return { items: all, total: all.length, hasMore: false };
       const items = all.slice(offset, offset + (limit as number));
       return { items, total: all.length, hasMore: offset + items.length < all.length };
@@ -625,7 +633,11 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
     return {
       success: true,
       board: { open: openPage.items, claimed: claimedPage.items, blocked: blockedPage.items },
-      board_totals: { open: openPage.total, claimed: claimedPage.total, blocked: blockedPage.total },
+      board_totals: {
+        open: openPage.total,
+        claimed: claimedPage.total,
+        blocked: blockedPage.total,
+      },
       done_count: team.doneLog?.length || 0,
       mode: team.mode || 'general',
       objective: team.roomConfig?.objective || '',
@@ -639,7 +651,13 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
       ...(filterTags ? { filtered_by_tags: filterTags } : {}),
       ...(statusFilter ? { filtered_by_status: statusFilter } : {}),
       ...(hasPaging
-        ? { paging: { limit, offset, hasMore: openPage.hasMore || claimedPage.hasMore || blockedPage.hasMore } }
+        ? {
+            paging: {
+              limit,
+              offset,
+              hasMore: openPage.hasMore || claimedPage.hasMore || blockedPage.hasMore,
+            },
+          }
         : {}),
     };
   } catch (err) {
@@ -663,21 +681,22 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
       team.doneLog ?? [],
       tasks as Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>>
     );
-    const warnings = result.warnings.length > 0
-      ? result.warnings
-      : tasks.flatMap((t) => {
-          const raw = String((t as Record<string, unknown>).description || '');
-          // In sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
-          if (raw.length <= 2000) return [];
-          return [
-            {
-              title: String((t as Record<string, unknown>).title || '').slice(0, 200),
-              reason: 'description_truncated' as const,
-              originalLength: raw.length,
-              keptLength: 2000,
-            },
-          ];
-        });
+    const warnings =
+      result.warnings.length > 0
+        ? result.warnings
+        : tasks.flatMap((t) => {
+            const raw = String((t as Record<string, unknown>).description || '');
+            // In sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
+            if (raw.length <= 2000) return [];
+            return [
+              {
+                title: String((t as Record<string, unknown>).title || '').slice(0, 200),
+                reason: 'description_truncated' as const,
+                originalLength: raw.length,
+                keptLength: 2000,
+              },
+            ];
+          });
     team.taskBoard = result.updatedBoard;
     await persistTeamDurable(teamId);
 
@@ -973,23 +992,26 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
     });
 
     const maxTasks = (args.max_tasks as number) || 50;
-    const scopedTasks = tasksBody.slice(0, maxTasks) as Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>>;
+    const scopedTasks = tasksBody.slice(0, maxTasks) as Array<
+      Omit<TeamTask, 'id' | 'status' | 'createdAt'>
+    >;
     const result = addTasksToBoard(team.taskBoard!, team.doneLog ?? [], scopedTasks);
-    const warnings = result.warnings.length > 0
-      ? result.warnings
-      : scopedTasks.flatMap((t: { title?: string; description?: string }) => {
-          const raw = String(t.description || '');
-          // In sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
-          if (raw.length <= 2000) return [];
-          return [
-            {
-              title: String(t.title || '').slice(0, 200),
-              reason: 'description_truncated' as const,
-              originalLength: raw.length,
-              keptLength: 2000,
-            },
-          ];
-        });
+    const warnings =
+      result.warnings.length > 0
+        ? result.warnings
+        : scopedTasks.flatMap((t: { title?: string; description?: string }) => {
+            const raw = String(t.description || '');
+            // In sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
+            if (raw.length <= 2000) return [];
+            return [
+              {
+                title: String(t.title || '').slice(0, 200),
+                reason: 'description_truncated' as const,
+                originalLength: raw.length,
+                keptLength: 2000,
+              },
+            ];
+          });
     team.taskBoard = result.updatedBoard;
     await persistTeamDurable(teamId);
 
@@ -1099,9 +1121,7 @@ async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<st
   if (!teamId) return { error: '"team_id" is required.' };
 
   const agentId =
-    typeof args.agent_id === 'string' && args.agent_id.trim()
-      ? args.agent_id.trim()
-      : 'mcp-agent';
+    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
   const agentName =
     typeof args.agent_name === 'string' && args.agent_name.trim()
       ? args.agent_name.trim()

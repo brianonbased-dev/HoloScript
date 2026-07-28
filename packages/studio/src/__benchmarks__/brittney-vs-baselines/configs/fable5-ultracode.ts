@@ -30,9 +30,7 @@ export interface Fable5ReferenceArtifact {
   scene_mutations: SceneMutation[];
 }
 
-export function makeFable5UltracodeReference(
-  opts: { referenceDir?: string } = {}
-): ConfigRunner {
+export function makeFable5UltracodeReference(opts: { referenceDir?: string } = {}): ConfigRunner {
   const dir = opts.referenceDir ?? path.join(__dirname, '..', 'reference', 'fable5');
   return {
     name: 'fable5-ultracode',

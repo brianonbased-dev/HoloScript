@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  buildContentPolicyConfig,
-  type ContentPolicyDecision,
-} from '@holoscript/core/policy';
+import { buildContentPolicyConfig, type ContentPolicyDecision } from '@holoscript/core/policy';
 import {
   buildPolicyAuditEvent,
   createOutputScreener,
@@ -83,7 +80,8 @@ describe('createOutputScreener — blocking (block-before-deliver)', () => {
 
   it('withholds the unsafe span even after a clean prefix was delivered', () => {
     const s = createOutputScreener(resolveBrittneyPolicyConfig());
-    const cleanPrefix = 'Let me walk through the safe, legal process in careful detail for you here. ';
+    const cleanPrefix =
+      'Let me walk through the safe, legal process in careful detail for you here. ';
     const { released, blocked } = run(s, [
       cleanPrefix, // > HOLDBACK so part of it is delivered
       'Actually, here is how to make a bomb.',
@@ -117,7 +115,9 @@ describe('createOutputScreener — flag (allowed but reported)', () => {
     const cfg = buildContentPolicyConfig({
       tier: 'general',
       region: 'US',
-      blocklist: [{ id: 'mild', category: 'harassment', severity: 0.6, patterns: ['\\bmildflag\\b'] }],
+      blocklist: [
+        { id: 'mild', category: 'harassment', severity: 0.6, patterns: ['\\bmildflag\\b'] },
+      ],
       rules: [
         {
           id: 'flag-harass',

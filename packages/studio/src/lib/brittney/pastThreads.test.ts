@@ -39,7 +39,12 @@ describe('fetchPastThreads', () => {
   });
 
   it('returns titled snippets with role-prefixed excerpts for recent threads', async () => {
-    await seedThread('pt-1', 'workspace:a', 'Plan the rover wheel sim', 'Six wheels, rocker-bogie.');
+    await seedThread(
+      'pt-1',
+      'workspace:a',
+      'Plan the rover wheel sim',
+      'Six wheels, rocker-bogie.'
+    );
     const threads = await fetchPastThreads('pt-1', 'workspace:a');
     expect(threads).toHaveLength(1);
     expect(threads[0].title).toContain('Plan the rover wheel sim');

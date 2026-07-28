@@ -2280,7 +2280,11 @@ export async function generateSemanticUIForMCP(
  * enforceVerifiedViewReceipts pass guarantees completeness even if this template is edited.
  */
 function buildVerifiedSemanticUiHeuristic(description: string): string {
-  const title = description.replace(/["\\\r\n]/g, ' ').trim().slice(0, 80) || 'Semantic surface';
+  const title =
+    description
+      .replace(/["\\\r\n]/g, ' ')
+      .trim()
+      .slice(0, 80) || 'Semantic surface';
   const raw = `composition "SemanticApp" {
   @2d_canvas { projection: "flat-semantic" }
   @verified_view

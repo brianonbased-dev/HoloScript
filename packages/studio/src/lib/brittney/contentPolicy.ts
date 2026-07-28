@@ -51,9 +51,10 @@ const ACTION_RANK: Record<PolicyAction, number> = { allow: 0, flag: 1, escalate:
  * block on every tier regardless. Tier and region are env-overridable so a
  * deployment can tighten without a code change.
  */
-export function resolveBrittneyPolicyConfig(
-  overrides?: { tier?: PolicyTier; region?: string }
-): ContentPolicyConfig {
+export function resolveBrittneyPolicyConfig(overrides?: {
+  tier?: PolicyTier;
+  region?: string;
+}): ContentPolicyConfig {
   const tier = overrides?.tier ?? ((process.env.BRITTNEY_POLICY_TIER as PolicyTier) || 'general');
   const region = overrides?.region ?? (process.env.BRITTNEY_POLICY_REGION || 'GLOBAL');
   return buildContentPolicyConfig({ tier, region });
@@ -122,7 +123,9 @@ export function createOutputScreener(
     }
 
     // allow | flag — release up to a holdback tail (or all of it on flush).
-    const ceiling = flush ? accumulated.length : Math.max(delivered, accumulated.length - HOLDBACK_CHARS);
+    const ceiling = flush
+      ? accumulated.length
+      : Math.max(delivered, accumulated.length - HOLDBACK_CHARS);
     const release = accumulated.slice(delivered, ceiling);
     delivered = ceiling;
     return { release, decision: surfaced, blocked: false };
@@ -176,7 +179,9 @@ export function screenInputMessage(
 }
 
 /** SSE event name for a decision: blocking decisions get a distinct event. */
-export function policyEventType(decision: ContentPolicyDecision): 'policy_blocked' | 'policy_decision' {
+export function policyEventType(
+  decision: ContentPolicyDecision
+): 'policy_blocked' | 'policy_decision' {
   return decision.allowed ? 'policy_decision' : 'policy_blocked';
 }
 

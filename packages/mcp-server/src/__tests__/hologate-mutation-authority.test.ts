@@ -22,7 +22,10 @@ import { handleHololandMcpTool, clearHololandRegistries } from '../hololand-mcp-
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function callMutation(tool: string, args: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+async function callMutation(
+  tool: string,
+  args: Record<string, unknown> = {}
+): Promise<Record<string, unknown>> {
   return (await handleHololandMcpTool(tool, args)) as Record<string, unknown>;
 }
 
@@ -38,7 +41,10 @@ const CREATE_FIXTURES: Record<string, Record<string, unknown>> = {
   create_location_quest: { name: 'Auth Test Quest', placeId: 'p1' },
 };
 
-const UPDATE_FIXTURES: Record<string, (createResult: Record<string, unknown>) => Record<string, unknown>> = {
+const UPDATE_FIXTURES: Record<
+  string,
+  (createResult: Record<string, unknown>) => Record<string, unknown>
+> = {
   update_world: (r) => ({ worldId: r.worldId, name: 'Updated World' }),
   update_shard: (r) => ({ shardId: r.shardId, name: 'Updated Shard' }),
   update_zone: (r) => ({ zoneId: r.zoneId, name: 'Updated Zone' }),
@@ -54,7 +60,10 @@ const CREATE_ID_FIELDS: Record<string, string> = {
   create_location_quest: 'questId',
 };
 
-const DELETE_FIXTURES: Record<string, (createResult: Record<string, unknown>) => Record<string, unknown>> = {
+const DELETE_FIXTURES: Record<
+  string,
+  (createResult: Record<string, unknown>) => Record<string, unknown>
+> = {
   delete_world: (r) => ({ worldId: r.worldId }),
   delete_shard: (r) => ({ shardId: r.shardId }),
   delete_zone: (r) => ({ zoneId: r.zoneId }),
@@ -154,7 +163,16 @@ describe('HoloGate mutation authority — receipt shape invariants', () => {
   it('receipt has all required fields', async () => {
     const result = await callMutation('create_world', { name: 'Shape Test World' });
     const receipt = result.authorityReceipt as Record<string, unknown>;
-    for (const field of ['authorityChecked', 'toolName', 'op', 'resourceKind', 'resourceId', 'requesterId', 'admissionScope', 'ts']) {
+    for (const field of [
+      'authorityChecked',
+      'toolName',
+      'op',
+      'resourceKind',
+      'resourceId',
+      'requesterId',
+      'admissionScope',
+      'ts',
+    ]) {
       expect(receipt[field], `field '${field}' missing`).toBeDefined();
     }
   });

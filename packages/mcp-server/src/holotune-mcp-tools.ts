@@ -12,14 +12,7 @@ import { createHash } from 'node:crypto';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 type JsonRecord = Record<string, unknown>;
-type HoloTuneCommand =
-  | 'status'
-  | 'curate'
-  | 'launch'
-  | 'eval'
-  | 'promote'
-  | 'serve'
-  | 'download';
+type HoloTuneCommand = 'status' | 'curate' | 'launch' | 'eval' | 'promote' | 'serve' | 'download';
 
 const HOLOTUNE_COMMANDS: HoloTuneCommand[] = [
   'status',
@@ -77,10 +70,24 @@ export const holotuneToolDefinitions: Tool[] = [
         gpuBudgetUsd: { type: 'number' },
         dryRun: { type: 'boolean' },
         apply: { type: 'boolean' },
-        signedSeat: { type: 'object', description: 'Receipt binding a registered signing seat to this launch.' },
-        freeFirstReceipt: { type: 'object', description: 'Receipt proving the free/local path was exhausted.' },
-        spendAdmission: { type: 'object', description: 'Active-rail cap, ledger, timeout, teardown, and verifier admission receipt.' },
-        authorityEvidence: { type: 'object', description: 'Typed exact-four evidence. Omit or set all fields false for routine launch.' },
+        signedSeat: {
+          type: 'object',
+          description: 'Receipt binding a registered signing seat to this launch.',
+        },
+        freeFirstReceipt: {
+          type: 'object',
+          description: 'Receipt proving the free/local path was exhausted.',
+        },
+        spendAdmission: {
+          type: 'object',
+          description:
+            'Active-rail cap, ledger, timeout, teardown, and verifier admission receipt.',
+        },
+        authorityEvidence: {
+          type: 'object',
+          description:
+            'Typed exact-four evidence. Omit or set all fields false for routine launch.',
+        },
         founderGate: {
           type: 'object',
           description:
@@ -122,8 +129,15 @@ export const holotuneToolDefinitions: Tool[] = [
         registryAdmission: { type: 'object' },
         dryRun: { type: 'boolean' },
         apply: { type: 'boolean' },
-        authorityEvidence: { type: 'object', description: 'Typed exact-four evidence. Omit or set all fields false for routine promotion.' },
-        founderGate: { type: 'object', description: 'Exact-four pre-vetting manifest only; never routine promotion authority.' },
+        authorityEvidence: {
+          type: 'object',
+          description:
+            'Typed exact-four evidence. Omit or set all fields false for routine promotion.',
+        },
+        founderGate: {
+          type: 'object',
+          description: 'Exact-four pre-vetting manifest only; never routine promotion authority.',
+        },
       },
     },
   },
@@ -188,9 +202,7 @@ function stringArrayArg(args: JsonRecord, key: string): string[] {
 
 function recordArg(args: JsonRecord, key: string): JsonRecord | null {
   const value = args[key];
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as JsonRecord)
-    : null;
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as JsonRecord) : null;
 }
 
 function hashPayload(payload: unknown): string {
@@ -198,7 +210,10 @@ function hashPayload(payload: unknown): string {
 }
 
 function stableVersion(identity: string): string {
-  return `${identity || 'agent'}-${new Date().toISOString().replace(/[^0-9A-Za-z]/g, '').slice(0, 14)}`;
+  return `${identity || 'agent'}-${new Date()
+    .toISOString()
+    .replace(/[^0-9A-Za-z]/g, '')
+    .slice(0, 14)}`;
 }
 
 function operationReceipt(action: HoloTuneCommand, payload: JsonRecord): JsonRecord {
@@ -239,23 +254,33 @@ function founderGateSummary(args: JsonRecord): JsonRecord {
     valid,
     manifestHash: manifestHash || null,
     reviewer: typeof gate.reviewer === 'string' ? gate.reviewer : null,
-    reason: valid ? 'exact-four pre-vetting manifest present' : 'founderGate needs manifestHash and valid:true; it is not an approval receipt',
+    reason: valid
+      ? 'exact-four pre-vetting manifest present'
+      : 'founderGate needs manifestHash and valid:true; it is not an approval receipt',
   };
 }
 
 function controlReceiptSummary(args: JsonRecord, key: string): JsonRecord {
   const receipt = recordArg(args, key);
   if (!receipt) return { present: false, valid: false, reason: `missing ${key}` };
-  const nested = receipt.receipt && typeof receipt.receipt === 'object' && !Array.isArray(receipt.receipt)
-    ? receipt.receipt as JsonRecord
-    : null;
-  const receiptHash = [receipt.receiptHash, receipt.manifestHash, receipt.hash, nested?.receiptHash]
-    .find((value): value is string => typeof value === 'string' && value.length > 0) ?? '';
+  const nested =
+    receipt.receipt && typeof receipt.receipt === 'object' && !Array.isArray(receipt.receipt)
+      ? (receipt.receipt as JsonRecord)
+      : null;
+  const receiptHash =
+    [receipt.receiptHash, receipt.manifestHash, receipt.hash, nested?.receiptHash].find(
+      (value): value is string => typeof value === 'string' && value.length > 0
+    ) ?? '';
   const status = typeof receipt.status === 'string' ? receipt.status.toLowerCase() : '';
-  const valid = receiptHash.length > 0 && (
-    receipt.valid === true || receipt.passed === true || receipt.approved === true ||
-    status === 'pass' || status === 'passed' || status === 'approved' || status === 'admitted'
-  );
+  const valid =
+    receiptHash.length > 0 &&
+    (receipt.valid === true ||
+      receipt.passed === true ||
+      receipt.approved === true ||
+      status === 'pass' ||
+      status === 'passed' ||
+      status === 'approved' ||
+      status === 'admitted');
   return {
     present: true,
     valid,
@@ -265,14 +290,30 @@ function controlReceiptSummary(args: JsonRecord, key: string): JsonRecord {
 }
 
 function exactFourSummary(args: JsonRecord): JsonRecord {
-  const evidence = recordArg(args, 'authorityEvidence') ?? recordArg(args, 'authority_evidence') ?? {};
+  const evidence =
+    recordArg(args, 'authorityEvidence') ?? recordArg(args, 'authority_evidence') ?? {};
   const classes = new Set<string>();
-  if (evidence.exceedsActiveRailCap === true || evidence.exceeds_active_rail_cap === true ||
-      evidence.touchesTreasuryOrCustody === true || evidence.touches_treasury_or_custody === true ||
-      evidence.newWalletOrMintAuthorityMutation === true || evidence.new_wallet_or_mint_authority_mutation === true) classes.add('spend');
-  if (evidence.requiresJosephBodySignaturePresence === true || evidence.requires_joseph_body_signature_presence === true) classes.add('physical');
-  if (evidence.publicCommitmentUnderJosephNameFaceVoice === true || evidence.public_commitment_under_joseph_name_face_voice === true) classes.add('public');
-  if (evidence.governanceTierMutation === true || evidence.governance_tier_mutation === true) classes.add('governance');
+  if (
+    evidence.exceedsActiveRailCap === true ||
+    evidence.exceeds_active_rail_cap === true ||
+    evidence.touchesTreasuryOrCustody === true ||
+    evidence.touches_treasury_or_custody === true ||
+    evidence.newWalletOrMintAuthorityMutation === true ||
+    evidence.new_wallet_or_mint_authority_mutation === true
+  )
+    classes.add('spend');
+  if (
+    evidence.requiresJosephBodySignaturePresence === true ||
+    evidence.requires_joseph_body_signature_presence === true
+  )
+    classes.add('physical');
+  if (
+    evidence.publicCommitmentUnderJosephNameFaceVoice === true ||
+    evidence.public_commitment_under_joseph_name_face_voice === true
+  )
+    classes.add('public');
+  if (evidence.governanceTierMutation === true || evidence.governance_tier_mutation === true)
+    classes.add('governance');
   return { required: classes.size > 0, classes: [...classes] };
 }
 
@@ -318,7 +359,9 @@ function curate(args: JsonRecord): JsonRecord {
   const maxRows = Math.max(0, Math.floor(numberArg(args, 'maxRows', 10_000)));
   const rawRows = Array.isArray(args.traceRows) ? args.traceRows : [];
   const rows = rawRows
-    .filter((row): row is JsonRecord => row !== null && typeof row === 'object' && !Array.isArray(row))
+    .filter(
+      (row): row is JsonRecord => row !== null && typeof row === 'object' && !Array.isArray(row)
+    )
     .filter((row) => typeof row.user === 'string' && typeof row.target === 'string')
     .slice(0, maxRows)
     .map((row) => ({
@@ -351,7 +394,8 @@ function launch(args: JsonRecord): JsonRecord {
       founderGateRequired: true,
       founderGate: gate,
       authority,
-      message: 'Exact-four launch context needs a verifier-bound Joseph decision; a pre-vetting manifest alone cannot authorize spend.',
+      message:
+        'Exact-four launch context needs a verifier-bound Joseph decision; a pre-vetting manifest alone cannot authorize spend.',
     };
   }
   const launchControls = {
@@ -366,7 +410,8 @@ function launch(args: JsonRecord): JsonRecord {
       founderGateRequired: false,
       launchControls,
       authority,
-      message: 'Routine non-dry HoloTune launch requires signed-seat, free-first, and active-cap spend-admission receipts.',
+      message:
+        'Routine non-dry HoloTune launch requires signed-seat, free-first, and active-cap spend-admission receipts.',
     };
   }
 
@@ -386,8 +431,7 @@ function launch(args: JsonRecord): JsonRecord {
     ok: true,
     ...payload,
     spendIntent: !dryRun,
-    command:
-      'node scripts/holotune.mjs launch --identity <id> --corpus <jsonl> --dry-run',
+    command: 'node scripts/holotune.mjs launch --identity <id> --corpus <jsonl> --dry-run',
     receipt: operationReceipt('launch', payload),
   };
 }
@@ -443,7 +487,8 @@ function promote(args: JsonRecord): JsonRecord {
       founderGateRequired: true,
       founderGate: gate,
       authority,
-      message: 'Exact-four promotion context needs a verifier-bound Joseph decision; a pre-vetting manifest alone cannot authorize registry mutation.',
+      message:
+        'Exact-four promotion context needs a verifier-bound Joseph decision; a pre-vetting manifest alone cannot authorize registry mutation.',
     };
   }
   if (!dryRun && !adapterUri) {
@@ -465,7 +510,8 @@ function promote(args: JsonRecord): JsonRecord {
       founderGateRequired: false,
       promotionControls,
       authority,
-      message: 'Routine non-dry promotion requires eval, promotion-gate, and registry-admission receipts.',
+      message:
+        'Routine non-dry promotion requires eval, promotion-gate, and registry-admission receipts.',
     };
   }
 
@@ -495,7 +541,12 @@ function promote(args: JsonRecord): JsonRecord {
 
 /** Sanitize an id segment into a sovereign-devices registry handle fragment. */
 function serveHandleSegment(value: string): string {
-  return value.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'adapter';
+  return (
+    value
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'adapter'
+  );
 }
 
 /**
@@ -514,7 +565,11 @@ function buildLlamaServeSnippet(spec: {
   // Escape values interpolated into double-quoted HoloScript fields: collapse newlines
   // and backslash-escape inner quotes (the lexer accepts \" ), so a stray quote in a URI
   // can't terminate the string early and emit an unparseable @llama_serve block.
-  const esc = (v: string): string => v.replace(/[\r\n]+/g, ' ').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const esc = (v: string): string =>
+    v
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"');
   const lines = ['@llama_serve {', `  model: "${esc(spec.model)}"`];
   if (spec.gguf) lines.push(`  gguf: "${esc(spec.gguf)}"`);
   if (spec.lora) lines.push(`  lora: "${esc(spec.lora)}"`);
@@ -602,10 +657,7 @@ function download(args: JsonRecord): JsonRecord {
   };
 }
 
-export async function handleHoloTuneTool(
-  name: string,
-  args: JsonRecord
-): Promise<unknown | null> {
+export async function handleHoloTuneTool(name: string, args: JsonRecord): Promise<unknown | null> {
   switch (name) {
     case 'holotune_status':
       return status(args);

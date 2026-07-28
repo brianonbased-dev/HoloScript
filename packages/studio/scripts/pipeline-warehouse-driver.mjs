@@ -68,7 +68,8 @@ function readPosition(obj) {
 async function loadStationsFromScene() {
   const core = await import('@holoscript/core');
   const HoloCompositionParser = core.HoloCompositionParser || core.default?.HoloCompositionParser;
-  if (!HoloCompositionParser) throw new Error('HoloCompositionParser not exported by @holoscript/core');
+  if (!HoloCompositionParser)
+    throw new Error('HoloCompositionParser not exported by @holoscript/core');
 
   const res = await fetch(SCENE_URL);
   if (!res.ok) throw new Error(`scene HTTP ${res.status} from ${SCENE_URL}`);

@@ -18,7 +18,11 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { browserPool } from './BrowserPool.js';
 import { faraThink, FARA_DEFAULTS } from '../../../core/src/traits/FaraHandsTrait.js';
-import type { FaraStepResult, FaraAction, FaraHandsConfig } from '../../../core/src/traits/FaraHandsTrait.js';
+import type {
+  FaraStepResult,
+  FaraAction,
+  FaraHandsConfig,
+} from '../../../core/src/traits/FaraHandsTrait.js';
 
 // ── Receipt types (BrowserAbsorptionReceipt-compatible) ──
 
@@ -311,12 +315,8 @@ export async function faraRun(opts: FaraRunOptions): Promise<FaraRunReceipt> {
 // ── Zod schema for MCP tool ──
 
 export const FaraRunSchema = z.object({
-  sessionId: z
-    .string()
-    .describe('Playwright browser session ID (from browser_launch)'),
-  goal: z
-    .string()
-    .describe('Natural-language goal for Fara-7B to accomplish in the browser'),
+  sessionId: z.string().describe('Playwright browser session ID (from browser_launch)'),
+  goal: z.string().describe('Natural-language goal for Fara-7B to accomplish in the browser'),
   maxSteps: z
     .number()
     .int()

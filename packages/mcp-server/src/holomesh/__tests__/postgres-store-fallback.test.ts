@@ -1,18 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  FallbackStateStoreBackend,
-  type StateStoreBackend,
-} from '../state-store';
-import {
-  InviteStore,
-  type InviteRecord,
-  type InviteStoreBackend,
-} from '../invite-store';
-import {
-  PlayerStore,
-  type PlayerStoreBackend,
-  type StoredPlayer,
-} from '../player-store';
+import { FallbackStateStoreBackend, type StateStoreBackend } from '../state-store';
+import { InviteStore, type InviteRecord, type InviteStoreBackend } from '../invite-store';
+import { PlayerStore, type PlayerStoreBackend, type StoredPlayer } from '../player-store';
 import {
   GeoAnchorStore,
   type GeoAnchorStoreBackend,

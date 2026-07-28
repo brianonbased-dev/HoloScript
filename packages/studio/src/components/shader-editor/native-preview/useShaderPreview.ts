@@ -154,7 +154,11 @@ function normalizeFragmentShader(shaderCode?: string): string {
   return source;
 }
 
-function createFallbackEngine(width: number, height: number, shaderCode = ''): BrowserPreviewEngine {
+function createFallbackEngine(
+  width: number,
+  height: number,
+  shaderCode = ''
+): BrowserPreviewEngine {
   return {
     backend: 'svg-fallback',
     width,

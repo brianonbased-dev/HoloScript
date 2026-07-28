@@ -174,9 +174,7 @@ describe('useSceneExport', () => {
       const blob = (global.URL.createObjectURL as any).mock.calls[0][0] as Blob;
       const bundle = JSON.parse(await blob.text());
       expect(bundle.tool).toBe('compile_to_sdk');
-      expect(bundle.files['src/PartnerRegistrySDKClient.ts']).toContain(
-        'PartnerRegistrySDKClient'
-      );
+      expect(bundle.files['src/PartnerRegistrySDKClient.ts']).toContain('PartnerRegistrySDKClient');
       expect(bundle.files['sdk-compiler-receipt.json']).toContain('sdk:typescript');
       expect(bundle.source.code).toBe(code);
       expect(result.current.status).toBe('done');

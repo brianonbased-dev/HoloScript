@@ -14,11 +14,27 @@ import {
 const CATALOG: Array<NamedTool & { input_schema: unknown }> = [
   { name: 'create_object', description: 'Create a 3D object in the scene', input_schema: {} },
   { name: 'add_trait', description: 'Add a trait to an object', input_schema: {} },
-  { name: 'compile_to_unity', description: 'Compile the composition to a Unity project', input_schema: {} },
+  {
+    name: 'compile_to_unity',
+    description: 'Compile the composition to a Unity project',
+    input_schema: {},
+  },
   { name: 'compile_to_unreal', description: 'Compile to Unreal Engine', input_schema: {} },
-  { name: 'sim_run_paid', description: 'Run a paid physics simulation on the GPU fleet', input_schema: {} },
-  { name: 'holo_query_codebase', description: 'Query the codebase graph for callers and symbols', input_schema: {} },
-  { name: 'render_world_on_fleet', description: 'Render the world on the GPU fleet', input_schema: {} },
+  {
+    name: 'sim_run_paid',
+    description: 'Run a paid physics simulation on the GPU fleet',
+    input_schema: {},
+  },
+  {
+    name: 'holo_query_codebase',
+    description: 'Query the codebase graph for callers and symbols',
+    input_schema: {},
+  },
+  {
+    name: 'render_world_on_fleet',
+    description: 'Render the world on the GPU fleet',
+    input_schema: {},
+  },
 ];
 
 describe('FIND_TOOLS_TOOL definition', () => {
@@ -67,7 +83,11 @@ describe('buildSlimDefault', () => {
       description: FIND_TOOLS_TOOL.function.description,
       input_schema: {},
     };
-    const slim = buildSlimDefault(CATALOG, ['create_object', 'add_trait', 'not_in_catalog'], findSpec);
+    const slim = buildSlimDefault(
+      CATALOG,
+      ['create_object', 'add_trait', 'not_in_catalog'],
+      findSpec
+    );
     const names = slim.map((t) => t.name).sort();
     expect(names).toEqual(['add_trait', 'create_object', 'find_tools']);
     // The heavy tools must NOT be in the slim default.
@@ -108,7 +128,11 @@ describe('executeFindTools', () => {
   });
 
   it('never surfaces find_tools itself', () => {
-    const findSpec = { name: FIND_TOOLS_NAME, description: 'find the right tools', input_schema: {} };
+    const findSpec = {
+      name: FIND_TOOLS_NAME,
+      description: 'find the right tools',
+      input_schema: {},
+    };
     const out = executeFindTools({ goal: 'find tools' }, [...CATALOG, findSpec], new Set());
     expect(out.activate.map((t) => t.name)).not.toContain(FIND_TOOLS_NAME);
   });
@@ -122,7 +146,11 @@ describe('executeFindTools', () => {
   });
 
   it('respects the limit arg', () => {
-    const out = executeFindTools({ goal: 'compile render simulation codebase', limit: 2 }, CATALOG, new Set());
+    const out = executeFindTools(
+      { goal: 'compile render simulation codebase', limit: 2 },
+      CATALOG,
+      new Set()
+    );
     expect(out.activate.length).toBeLessThanOrEqual(2);
   });
 });

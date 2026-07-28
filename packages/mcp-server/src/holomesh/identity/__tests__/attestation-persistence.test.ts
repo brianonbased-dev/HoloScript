@@ -60,7 +60,12 @@ describe('AttestationRegistry snapshot/restore', () => {
     fresh.restore({
       attestations: [
         att(ADDR_A),
-        { seatId: 'no-pubkey', authorizedBy: FOUNDER, issuedAt: 'x', expiresAt: null } as Attestation,
+        {
+          seatId: 'no-pubkey',
+          authorizedBy: FOUNDER,
+          issuedAt: 'x',
+          expiresAt: null,
+        } as Attestation,
       ],
       retired: [],
     });
@@ -72,7 +77,11 @@ describe('AttestationRegistry snapshot/restore', () => {
 describe('onChange persistence hook', () => {
   it('fires on attest and retire, not on restore', () => {
     let changes = 0;
-    const reg = new AttestationRegistry({ onChange: () => { changes += 1; } });
+    const reg = new AttestationRegistry({
+      onChange: () => {
+        changes += 1;
+      },
+    });
     reg.attest(att(ADDR_A));
     expect(changes).toBe(1);
     reg.retire(ADDR_A, 'compromise');
@@ -86,7 +95,11 @@ describe('onChange persistence hook', () => {
   });
 
   it('a throwing onChange never breaks the mutation', () => {
-    const reg = new AttestationRegistry({ onChange: () => { throw new Error('disk full'); } });
+    const reg = new AttestationRegistry({
+      onChange: () => {
+        throw new Error('disk full');
+      },
+    });
     expect(() => reg.attest(att(ADDR_A))).not.toThrow();
     expect(reg.isAttested(ADDR_A)).toBe(true);
   });

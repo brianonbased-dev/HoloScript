@@ -55,7 +55,9 @@ afterEach(() => {
 describe('TimelineDriver easing consumption', () => {
   it('honors per-keyframe spring easing from compiler-emitted TimelineEntry props', () => {
     renderToStaticMarkup(
-      <TimelineDriver node={timelineNode([entry('scaleUniform', 0, 0), entry('scaleUniform', 1, 1, 'spring')])} />
+      <TimelineDriver
+        node={timelineNode([entry('scaleUniform', 0, 0), entry('scaleUniform', 1, 1, 'spring')])}
+      />
     );
 
     tick(0);
@@ -66,7 +68,9 @@ describe('TimelineDriver easing consumption', () => {
 
   it('keeps smoothstep as the legacy default when a keyframe has no easing', () => {
     renderToStaticMarkup(
-      <TimelineDriver node={timelineNode([entry('legacySmooth', 0, 0), entry('legacySmooth', 1, 1)])} />
+      <TimelineDriver
+        node={timelineNode([entry('legacySmooth', 0, 0), entry('legacySmooth', 1, 1)])}
+      />
     );
 
     tick(0);

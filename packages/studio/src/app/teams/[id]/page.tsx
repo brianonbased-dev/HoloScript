@@ -147,7 +147,10 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ id: st
   }
 
   const { mode, objective } = board;
-  const slots = (board as BoardData).slots ?? { roles: [], max: Math.max(team.team.members.length, 20) };
+  const slots = (board as BoardData).slots ?? {
+    roles: [],
+    max: Math.max(team.team.members.length, 20),
+  };
   const done = (board as BoardData).done ?? { recent: [], total: 0 };
   const boardColumns = (board as BoardData).board ?? { open: [], claimed: [], blocked: [] };
 

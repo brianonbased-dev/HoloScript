@@ -40,8 +40,7 @@ import { resolveServiceSecret } from './holokey-resolver';
 
 // ── Singleton store ──────────────────────────────────────────────────────────
 
-const HOLO_DATA_DIR =
-  process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
+const HOLO_DATA_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 const MEMORY_STORE_PATH = path.join(HOLO_DATA_DIR, 'memory-store.json');
 const MEMORY_ARCHIVE_PATH = path.join(HOLO_DATA_DIR, 'memory-archive.json');
 
@@ -225,7 +224,8 @@ export const memoryTools: Tool[] = [
         },
         authorAgent: {
           type: 'string',
-          description: 'Agent handle writing this entry (e.g. claude1, cursor2). Defaults to "mcp".',
+          description:
+            'Agent handle writing this entry (e.g. claude1, cursor2). Defaults to "mcp".',
         },
         syncRemote: {
           type: 'boolean',
@@ -526,7 +526,9 @@ async function handleMemoryRecall(args: Record<string, unknown>): Promise<unknow
       : null;
 
   const authorFilter =
-    typeof args.authorAgent === 'string' && args.authorAgent.trim() ? args.authorAgent.trim() : undefined;
+    typeof args.authorAgent === 'string' && args.authorAgent.trim()
+      ? args.authorAgent.trim()
+      : undefined;
 
   // De-silo: recall from the shared sovereign SoT when active; degrade to KnowledgeStore.
   // The SoT preserves the uAA2 section letter, so `type` filters exactly (F stays F,
@@ -678,7 +680,8 @@ interface MemoryCluster {
 }
 
 function handleMemoryFarm(args: Record<string, unknown>): unknown {
-  const minClusterSize = typeof args.minClusterSize === 'number' ? Math.max(1, args.minClusterSize) : 2;
+  const minClusterSize =
+    typeof args.minClusterSize === 'number' ? Math.max(1, args.minClusterSize) : 2;
   const domainFilter = typeof args.domain === 'string' ? args.domain.toLowerCase() : null;
   const typeMnemonic = typeof args.type === 'string' ? args.type.toUpperCase() : null;
   const insightTypeFilter =
@@ -732,8 +735,7 @@ function handleMemoryFarm(args: Record<string, unknown>): unknown {
     const tagPart = parts[2];
     const clusterTags = tagPart ? [tagPart] : [];
 
-    const avgConfidence =
-      group.reduce((sum, e) => sum + e.confidence, 0) / group.length;
+    const avgConfidence = group.reduce((sum, e) => sum + e.confidence, 0) / group.length;
 
     // Deduplicate entry IDs within this cluster
     const uniqueIds = [...new Set(group.map((e) => e.id))];
@@ -743,9 +745,8 @@ function handleMemoryFarm(args: Record<string, unknown>): unknown {
 
     if (uniqueEntries.length < minClusterSize) continue;
 
-    const theme = clusterTags.length > 0
-      ? `${domain}:${clusterTags[0]}`
-      : `${domain}:${insightType}`;
+    const theme =
+      clusterTags.length > 0 ? `${domain}:${clusterTags[0]}` : `${domain}:${insightType}`;
 
     // Avoid duplicate clusters (same set of IDs under different keys)
     const idSetKey = uniqueIds.sort().join(',');
@@ -860,10 +861,7 @@ function handleMemoryGraduate(args: Record<string, unknown>): unknown {
     resolvedCount: resolved.length,
     missingIds,
     tier,
-    status:
-      missingIds.length === 0
-        ? 'ready_for_review'
-        : 'partial_match_check_missing_ids',
+    status: missingIds.length === 0 ? 'ready_for_review' : 'partial_match_check_missing_ids',
     payload,
   };
 }

@@ -148,7 +148,12 @@ describe('evaluatePolicy — pure decision function', () => {
 describe('buildPolicyReceipt — compact receipt linked to tool-call id', () => {
   it('TRUE: receipt carries policyId, decision, caller, action, resource, reason, toolCallId', () => {
     const receipt = buildPolicyReceipt(
-      { callerId: 'agent1', tool: 'holo_secrets_grant', resource: 'secret://x', toolCallId: 'call-abc' },
+      {
+        callerId: 'agent1',
+        tool: 'holo_secrets_grant',
+        resource: 'secret://x',
+        toolCallId: 'call-abc',
+      },
       { decision: 'deny', policyId: 'test-pack', ruleId: 'r-deny', reason: 'agent_denylisted' }
     );
     expect(receipt.policyId).toBe('test-pack');
@@ -162,9 +167,24 @@ describe('buildPolicyReceipt — compact receipt linked to tool-call id', () => 
   });
 
   it('FALSE: two receipts for different decisions on the same call get different receiptIds', () => {
-    const req = { callerId: 'agent1', tool: 'holo_secrets_grant', resource: 'secret://x', toolCallId: 'call-xyz' };
-    const r1 = buildPolicyReceipt(req, { decision: 'allow', policyId: 'p', ruleId: null, reason: 'a' });
-    const r2 = buildPolicyReceipt(req, { decision: 'deny', policyId: 'p', ruleId: null, reason: 'b' });
+    const req = {
+      callerId: 'agent1',
+      tool: 'holo_secrets_grant',
+      resource: 'secret://x',
+      toolCallId: 'call-xyz',
+    };
+    const r1 = buildPolicyReceipt(req, {
+      decision: 'allow',
+      policyId: 'p',
+      ruleId: null,
+      reason: 'a',
+    });
+    const r2 = buildPolicyReceipt(req, {
+      decision: 'deny',
+      policyId: 'p',
+      ruleId: null,
+      reason: 'b',
+    });
     expect(r1.receiptId).not.toBe(r2.receiptId);
   });
 });

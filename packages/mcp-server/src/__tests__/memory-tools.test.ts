@@ -19,7 +19,9 @@ function freshStore(): KnowledgeStore {
   return new KnowledgeStore({ persist: false });
 }
 
-function assertSuccess(result: unknown): asserts result is { success: true } & Record<string, unknown> {
+function assertSuccess(
+  result: unknown
+): asserts result is { success: true } & Record<string, unknown> {
   expect(result).toBeTruthy();
   expect((result as Record<string, unknown>).success).toBe(true);
 }
@@ -94,7 +96,8 @@ describe('holo_memory_store', () => {
 
   it('stores a D-type (Direction) entry and maps to wisdom insight type', async () => {
     const result = await handleMemoryTool('holo_memory_store', {
-      content: 'Push DOES deploy — GitHub↔Railway is RECONNECTED; a broken commit ships immediately.',
+      content:
+        'Push DOES deploy — GitHub↔Railway is RECONNECTED; a broken commit ships immediately.',
       type: 'D',
     });
 
@@ -127,7 +130,8 @@ describe('holo_memory_recall — store → recall round-trip', () => {
 
   it('recalls an entry by keyword after storing it', async () => {
     await handleMemoryTool('holo_memory_store', {
-      content: 'The KnowledgeStore half-life decay ranks older entries lower in fast-decay domains.',
+      content:
+        'The KnowledgeStore half-life decay ranks older entries lower in fast-decay domains.',
       type: 'W',
       domain: 'agents',
       confidence: 0.9,
@@ -222,10 +226,26 @@ describe('holo_memory_stats', () => {
   });
 
   it('counts entries correctly after stores', async () => {
-    await handleMemoryTool('holo_memory_store', { content: 'Alpha wisdom.', type: 'W', authorAgent: 'test' });
-    await handleMemoryTool('holo_memory_store', { content: 'Beta pattern.', type: 'P', authorAgent: 'test' });
-    await handleMemoryTool('holo_memory_store', { content: 'Gamma gotcha.', type: 'G', authorAgent: 'test' });
-    await handleMemoryTool('holo_memory_store', { content: 'Delta feedback as wisdom.', type: 'F', authorAgent: 'test' });
+    await handleMemoryTool('holo_memory_store', {
+      content: 'Alpha wisdom.',
+      type: 'W',
+      authorAgent: 'test',
+    });
+    await handleMemoryTool('holo_memory_store', {
+      content: 'Beta pattern.',
+      type: 'P',
+      authorAgent: 'test',
+    });
+    await handleMemoryTool('holo_memory_store', {
+      content: 'Gamma gotcha.',
+      type: 'G',
+      authorAgent: 'test',
+    });
+    await handleMemoryTool('holo_memory_store', {
+      content: 'Delta feedback as wisdom.',
+      type: 'F',
+      authorAgent: 'test',
+    });
 
     const result = await handleMemoryTool('holo_memory_stats', {});
     assertSuccess(result);
@@ -334,7 +354,9 @@ describe('holo_memory_farm', () => {
   it('returns clusters with correct shape', async () => {
     const result = await handleMemoryTool('holo_memory_farm', { minClusterSize: 1 });
     assertSuccess(result);
-    const r = result as { clusters: Array<{ theme: string; entryIds: string[]; entryCount: number }> };
+    const r = result as {
+      clusters: Array<{ theme: string; entryIds: string[]; entryCount: number }>;
+    };
     expect(Array.isArray(r.clusters)).toBe(true);
     expect(r.clusters.length).toBeGreaterThan(0);
     for (const cluster of r.clusters) {
@@ -345,7 +367,10 @@ describe('holo_memory_farm', () => {
   });
 
   it('clusters the three agents:wisdom entries together', async () => {
-    const result = await handleMemoryTool('holo_memory_farm', { minClusterSize: 2, domain: 'agents' });
+    const result = await handleMemoryTool('holo_memory_farm', {
+      minClusterSize: 2,
+      domain: 'agents',
+    });
     assertSuccess(result);
     const r = result as { clusters: Array<{ entryCount: number; domain: string }> };
     const agentClusters = r.clusters.filter((c) => c.domain === 'agents');

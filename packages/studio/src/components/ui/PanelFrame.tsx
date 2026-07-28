@@ -53,7 +53,9 @@ export function PanelFrame({
   noPadding = false,
 }: PanelFrameProps) {
   return (
-    <div className={`flex flex-col h-full bg-studio-panel text-studio-text text-xs ${className ?? ''}`}>
+    <div
+      className={`flex flex-col h-full bg-studio-panel text-studio-text text-xs ${className ?? ''}`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-studio-border/20 shrink-0">
         <div className="flex items-center gap-1.5">

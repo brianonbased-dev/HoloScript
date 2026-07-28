@@ -872,11 +872,7 @@ function buildJudgePrompt(rubric: string, dimensions: string[]): string {
   );
 }
 
-function parseJudgeOutput(
-  raw: string,
-  dimensions: string[],
-  provider?: string
-): JudgeResult {
+function parseJudgeOutput(raw: string, dimensions: string[], provider?: string): JudgeResult {
   let jsonText = raw.trim();
   // Strip markdown fences if present
   const fenced = jsonText.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
@@ -931,7 +927,11 @@ function parseJudgeOutput(
       verdict: 'FAIL',
       overall_score: 0,
       rubric: '',
-      scores: dimensions.map((d) => ({ dimension: d, score: 0, rationale: 'Judge response unparseable.' })),
+      scores: dimensions.map((d) => ({
+        dimension: d,
+        score: 0,
+        rationale: 'Judge response unparseable.',
+      })),
       summary: 'LLM judge returned non-JSON output — treated as FAIL.',
       provider,
     };
@@ -976,7 +976,11 @@ async function runLLMJudge(output: string, config: LLMJudgeConfig): Promise<Judg
     verdict: 'FAIL',
     overall_score: 0,
     rubric: config.rubric,
-    scores: dimensions.map((d) => ({ dimension: d, score: 0, rationale: 'No LLM provider available.' })),
+    scores: dimensions.map((d) => ({
+      dimension: d,
+      score: 0,
+      rationale: 'No LLM provider available.',
+    })),
     summary: 'No LLM provider available to run judge.',
     provider: undefined,
   };

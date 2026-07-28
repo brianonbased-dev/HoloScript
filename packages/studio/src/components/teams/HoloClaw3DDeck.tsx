@@ -201,7 +201,14 @@ function EmbodiedAvatarNode({
         />
 
         {/* HTML label */}
-        <Html position={[0, -0.85, 0]} center transform sprite zIndexRange={[100, 0]} distanceFactor={8}>
+        <Html
+          position={[0, -0.85, 0]}
+          center
+          transform
+          sprite
+          zIndexRange={[100, 0]}
+          distanceFactor={8}
+        >
           <div className="flex flex-col items-center pointer-events-none select-none">
             <div
               className="px-2 py-1 rounded bg-[#0f172a]/85 backdrop-blur border text-xs font-bold text-white"

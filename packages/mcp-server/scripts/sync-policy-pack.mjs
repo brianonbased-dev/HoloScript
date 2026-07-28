@@ -28,10 +28,10 @@ export function syncPolicyPack({
   return { source, destination, sha256: destinationHash };
 }
 
-const entryUrl = process.argv[1]
-  ? pathToFileURL(resolve(process.argv[1])).href
-  : null;
+const entryUrl = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : null;
 if (entryUrl === import.meta.url) {
   const result = syncPolicyPack();
-  process.stdout.write(`[mcp-server] policy pack -> ${result.destination} sha256:${result.sha256}\n`);
+  process.stdout.write(
+    `[mcp-server] policy pack -> ${result.destination} sha256:${result.sha256}\n`
+  );
 }

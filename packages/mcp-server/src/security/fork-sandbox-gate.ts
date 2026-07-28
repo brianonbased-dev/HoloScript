@@ -56,7 +56,14 @@ const HS010_KEYWORDS = [
 ];
 
 const CANONICAL_COMPILER_VERSIONS = ['7.0.0', '6.0.2', '6.0.1', '6.0.0'];
-const TRUST_TIER_ORDER = ['founder', 'diamond', 'platinum', 'gold', 'verified', 'unverified'] as const;
+const TRUST_TIER_ORDER = [
+  'founder',
+  'diamond',
+  'platinum',
+  'gold',
+  'verified',
+  'unverified',
+] as const;
 const READ_ONLY_VALIDATION_CAPABILITIES = [
   'holoscript:validate',
   'filesystem:read:local-source',
@@ -366,7 +373,10 @@ export async function runForkSandboxGate(
         const readOnlyValidationManifest =
           options.toolName === 'validate_holoscript' &&
           isVerifiedReadOnlyValidationManifest(subject.manifest);
-        if (!readOnlyValidationManifest && (effectiveSource === 'unknown' || effectiveSource === 'generated')) {
+        if (
+          !readOnlyValidationManifest &&
+          (effectiveSource === 'unknown' || effectiveSource === 'generated')
+        ) {
           effectiveSource = 'fork';
         }
       }

@@ -28,14 +28,24 @@ function GateRow({ pass, label, detail }: { pass: boolean; label: string; detail
         <XCircle className="h-3.5 w-3.5 shrink-0 text-amber-400 mt-0.5" aria-hidden="true" />
       )}
       <div className="flex flex-col min-w-0">
-        <span className={`text-[11px] ${pass ? 'text-studio-text' : 'text-amber-400'}`}>{label}</span>
+        <span className={`text-[11px] ${pass ? 'text-studio-text' : 'text-amber-400'}`}>
+          {label}
+        </span>
         <span className="text-[10px] text-studio-muted/60 truncate">{detail}</span>
       </div>
     </div>
   );
 }
 
-function DigestRow({ digest, copied, onCopy }: { digest: string; copied: boolean; onCopy: () => void }) {
+function DigestRow({
+  digest,
+  copied,
+  onCopy,
+}: {
+  digest: string;
+  copied: boolean;
+  onCopy: () => void;
+}) {
   const truncated = digest.length > 16 ? `${digest.slice(0, 8)}…${digest.slice(-8)}` : digest;
   return (
     <div className="flex items-center justify-between text-[11px] py-1.5">
@@ -150,7 +160,9 @@ export function GameGateLedgerPanel({ onClose }: GameGateLedgerPanelProps) {
             <div className="rounded-lg border border-studio-border/60 bg-studio-surface/50 px-3 py-2 space-y-1.5">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-studio-muted">Title</span>
-                <span className="font-mono text-studio-text text-[10px] truncate ml-2">{report.title}</span>
+                <span className="font-mono text-studio-text text-[10px] truncate ml-2">
+                  {report.title}
+                </span>
               </div>
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-studio-muted">Entities</span>

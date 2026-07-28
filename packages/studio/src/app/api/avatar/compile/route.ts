@@ -183,7 +183,8 @@ function deriveRig(traits: Set<string>, expressionCount: number): DerivedRig {
   // No humanoid-avatar traits at all (e.g. junk/empty composition) -> empty rig.
   // The skeleton/rig-integrity gates then fail honestly rather than fabricating
   // a default axial skeleton out of nothing.
-  const hasAnyRigTrait = hasSkeleton || hasLimbs || hasFaceTrait || traits.has('hair') || traits.has('clothing');
+  const hasAnyRigTrait =
+    hasSkeleton || hasLimbs || hasFaceTrait || traits.has('hair') || traits.has('clothing');
 
   const requiredSet = new Set<string>(REQUIRED_BONES);
   const bones: AvatarBone[] = [];
@@ -235,11 +236,7 @@ interface AvatarGate {
   detail: string;
 }
 
-function buildGates(
-  rig: DerivedRig,
-  boneCoverage: number,
-  requiredPresent: number
-): AvatarGate[] {
+function buildGates(rig: DerivedRig, boneCoverage: number, requiredPresent: number): AvatarGate[] {
   const boneCount = rig.bones.length;
   const exprCount = rig.expressions.length;
 
@@ -335,7 +332,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!parsed.success || !parsed.ast) {
     const first = parsed.errors?.[0];
     const msg = first
-      ? `Parse error: ${typeof first === 'string' ? first : (first as { message?: string }).message ?? JSON.stringify(first)}`
+      ? `Parse error: ${typeof first === 'string' ? first : ((first as { message?: string }).message ?? JSON.stringify(first))}`
       : 'Failed to parse composition';
     return NextResponse.json({ error: msg }, { status: 400 });
   }

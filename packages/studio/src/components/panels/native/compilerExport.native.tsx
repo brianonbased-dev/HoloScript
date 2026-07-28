@@ -8,58 +8,130 @@ export function CompilerExportComponent() {
   const targets = compileAST(nodes);
 
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="0b140a688f2e5a31a36b9761893338fd67707fc91f5ec41cbe57ce872a981768">
-      <div style={{"display":"flex","flexDirection":"column","gap":"12px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
-      
-      <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
-      {`Compiler Export`}
-      
-    </h3>
-<div style={{"display":"flex","flexDirection":"row","alignItems":"center","gap":"8px"}}>
-      
-      <span className="text-sm text-[10px] text-studio-muted">
-      {`AST Nodes`}
-      
-    </span>
-<span data-holo-projects="nodes" className="text-sm text-[10px] font-semibold text-studio-text">
-      {nodes ?? "0"}
-      
-    </span>
-<input data-holo-projects="nodes" className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" value={nodes} onChange={(e) => setNodes(Number(e.target.value))} type="range" min="100" max="10000" step="100" />
-    </div>
-<div style={{"display":"flex","flexDirection":"column","gap":"2px"}}>
-      
-      <span className="text-sm text-[10px] text-studio-muted">
-      {`Output size (KB by target)`}
-      
-    </span>
-<svg data-holo-projects="targets" className="w-full" data-baseline="zero" data-clamped={String(((__a) => (__a ?? []).some((d) => (Number(d?.sizeKb) || 0) < 0))(targets))} viewBox="0 0 280 96">
-      
-      <line x1="6" y1="80" x2="274" y2="80" className="stroke-studio-border" strokeWidth="0.5" />
-      {((__a) => { const __d = (__a ?? []); const __v = __d.map((d) => Number(d?.sizeKb) || 0); const __max = Math.max(1, ...__v); const __n = __d.length || 1; const __slot = 268 / __n; const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1)); return __d.map((d, i) => { const __h = Math.max(0, Number(d?.sizeKb) || 0) / __max * 72; const __x = 6 + i * __slot + (__slot - __bw) / 2; const __y = 80 - __h; return (<g key={i}><rect x={__x} y={__y} width={__bw} height={__h} className="fill-studio-accent" rx="0.5" /><text x={__x + __bw / 2} y={92} textAnchor="middle" className="fill-studio-muted" fontSize="6">{String(d?.target ?? '')}</text></g>); }); })(targets)}
-    </svg>
-    </div>
-<div style={{"display":"flex","flexDirection":"column","gap":"6px"}}>
-      
-      {(targets ?? []).map((t, i) => (
-      <div data-holo-projects="targets" style={{"display":"flex","flexDirection":"row","justifyContent":"space-between"}} className="rounded-md p-2 bg-studio-panel/40" key={i}>
-        
-        <span data-holo-projects="t.target" className="text-sm font-semibold text-studio-text">
-        {t?.target ?? "—"}
-        
-      </span>
-  <span data-holo-projects="t.sizeKb" className="text-sm text-[10px] text-studio-muted">
-        {`${(t?.sizeKb ?? 0).toFixed(2)} KB`}
-        
-      </span>
+    <div
+      className="holoscript-2d-root w-full h-full"
+      data-holo-view-contract="0b140a688f2e5a31a36b9761893338fd67707fc91f5ec41cbe57ce872a981768"
+    >
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+        className="p-3 h-full overflow-y-auto text-xs text-studio-text"
+      >
+        <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
+          {`Compiler Export`}
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+          <span className="text-sm text-[10px] text-studio-muted">{`AST Nodes`}</span>
+          <span
+            data-holo-projects="nodes"
+            className="text-sm text-[10px] font-semibold text-studio-text"
+          >
+            {nodes ?? '0'}
+          </span>
+          <input
+            data-holo-projects="nodes"
+            className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent"
+            value={nodes}
+            onChange={(e) => setNodes(Number(e.target.value))}
+            type="range"
+            min="100"
+            max="10000"
+            step="100"
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span className="text-sm text-[10px] text-studio-muted">
+            {`Output size (KB by target)`}
+          </span>
+          <svg
+            data-holo-projects="targets"
+            className="w-full"
+            data-baseline="zero"
+            data-clamped={String(
+              ((__a) => (__a ?? []).some((d) => (Number(d?.sizeKb) || 0) < 0))(targets)
+            )}
+            viewBox="0 0 280 96"
+          >
+            <line
+              x1="6"
+              y1="80"
+              x2="274"
+              y2="80"
+              className="stroke-studio-border"
+              strokeWidth="0.5"
+            />
+            {((__a) => {
+              const __d = __a ?? [];
+              const __v = __d.map((d) => Number(d?.sizeKb) || 0);
+              const __max = Math.max(1, ...__v);
+              const __n = __d.length || 1;
+              const __slot = 268 / __n;
+              const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1));
+              return __d.map((d, i) => {
+                const __h = (Math.max(0, Number(d?.sizeKb) || 0) / __max) * 72;
+                const __x = 6 + i * __slot + (__slot - __bw) / 2;
+                const __y = 80 - __h;
+                return (
+                  <g key={i}>
+                    <rect
+                      x={__x}
+                      y={__y}
+                      width={__bw}
+                      height={__h}
+                      className="fill-studio-accent"
+                      rx="0.5"
+                    />
+                    <text
+                      x={__x + __bw / 2}
+                      y={92}
+                      textAnchor="middle"
+                      className="fill-studio-muted"
+                      fontSize="6"
+                    >
+                      {String(d?.target ?? '')}
+                    </text>
+                  </g>
+                );
+              });
+            })(targets)}
+          </svg>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {(targets ?? []).map((t, i) => (
+            <div
+              data-holo-projects="targets"
+              style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}
+              className="rounded-md p-2 bg-studio-panel/40"
+              key={i}
+            >
+              <span
+                data-holo-projects="t.target"
+                className="text-sm font-semibold text-studio-text"
+              >
+                {t?.target ?? '—'}
+              </span>
+              <span data-holo-projects="t.sizeKb" className="text-sm text-[10px] text-studio-muted">
+                {`${(t?.sizeKb ?? 0).toFixed(2)} KB`}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
-    ))}
-    </div>
-    </div>
     </div>
   );
 }
 
 export default CompilerExportComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"SizeChart","node":"targets","identity":false},{"element":"Slider","node":"nodes","identity":false},{"element":"SliderValue","node":"nodes","identity":true},{"element":"TargetName","node":"t.target","identity":true},{"element":"TargetRow","node":"targets","identity":false},{"element":"TargetSize","node":"t.sizeKb","identity":false}],"stateRoots":["nodes","t","targets"],"contractHash":"0b140a688f2e5a31a36b9761893338fd67707fc91f5ec41cbe57ce872a981768"} as const;
+export const holoViewContract = {
+  version: 'holo-view-contract-v1',
+  projections: [
+    { element: 'SizeChart', node: 'targets', identity: false },
+    { element: 'Slider', node: 'nodes', identity: false },
+    { element: 'SliderValue', node: 'nodes', identity: true },
+    { element: 'TargetName', node: 't.target', identity: true },
+    { element: 'TargetRow', node: 'targets', identity: false },
+    { element: 'TargetSize', node: 't.sizeKb', identity: false },
+  ],
+  stateRoots: ['nodes', 't', 'targets'],
+  contractHash: '0b140a688f2e5a31a36b9761893338fd67707fc91f5ec41cbe57ce872a981768',
+} as const;

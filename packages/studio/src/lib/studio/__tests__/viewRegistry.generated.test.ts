@@ -27,8 +27,10 @@ function resolveAliasImport(importPath: string): string {
 
 function hasNamedExport(source: string, name: string): boolean {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`export\\s+(function|const|class)\\s+${escaped}\\b`).test(source) ||
-    new RegExp(`export\\s+\\{[^}]*\\b${escaped}\\b`).test(source);
+  return (
+    new RegExp(`export\\s+(function|const|class)\\s+${escaped}\\b`).test(source) ||
+    new RegExp(`export\\s+\\{[^}]*\\b${escaped}\\b`).test(source)
+  );
 }
 
 /**
@@ -92,9 +94,10 @@ describe('viewRegistry.generated — .holo-derived registry pinned to hand-TS', 
       expect(VIEW_COMPONENTS[id], `VIEW_COMPONENTS['${id}']`).toBeTruthy();
 
       const source = readFileSync(resolveAliasImport(slot.import), 'utf8');
-      expect(hasNamedExport(source, slot.component), `${slot.import} exports ${slot.component}`).toBe(
-        true
-      );
+      expect(
+        hasNamedExport(source, slot.component),
+        `${slot.import} exports ${slot.component}`
+      ).toBe(true);
     }
   });
 });

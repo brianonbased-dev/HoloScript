@@ -221,7 +221,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!parsed.success || !parsed.ast) {
     const first = parsed.errors?.[0];
     const msg = first
-      ? `Parse error: ${typeof first === 'string' ? first : (first as { message?: string }).message ?? JSON.stringify(first)}`
+      ? `Parse error: ${typeof first === 'string' ? first : ((first as { message?: string }).message ?? JSON.stringify(first))}`
       : 'Failed to parse composition';
     return NextResponse.json({ error: msg }, { status: 400 });
   }
@@ -315,8 +315,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       npcs,
       goalPresent: spec.goal != null,
       tiers,
-      timeLimit: typeof spec.timeLimit === 'number' ? spec.timeLimit : timeLimit ?? 70,
-      hearts: typeof spec.hearts === 'number' ? spec.hearts : hearts ?? 3,
+      timeLimit: typeof spec.timeLimit === 'number' ? spec.timeLimit : (timeLimit ?? 70),
+      hearts: typeof spec.hearts === 'number' ? spec.hearts : (hearts ?? 3),
       htmlDigest: digest,
       htmlBytes,
       wallMs,

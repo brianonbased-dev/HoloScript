@@ -88,7 +88,9 @@ describe('GET /api/brittney/conversations', () => {
     await createConvo('workspace:w2');
 
     mockSession('user-2');
-    const otherList = await (await GET(getReq('http://localhost/api/brittney/conversations'))).json();
+    const otherList = await (
+      await GET(getReq('http://localhost/api/brittney/conversations'))
+    ).json();
     expect(otherList.conversations).toHaveLength(0);
 
     mockSession('user-1');
@@ -184,7 +186,9 @@ describe('POST /api/brittney/conversations/[id]/messages', () => {
     const convo = await createConvo();
     const ok = await POST_MESSAGES(
       jsonReq({
-        messages: [{ role: 'assistant', content: '', toolCalls: [{ tool: 'apply_code', success: true }] }],
+        messages: [
+          { role: 'assistant', content: '', toolCalls: [{ tool: 'apply_code', success: true }] },
+        ],
       }),
       routeParams(convo.id)
     );

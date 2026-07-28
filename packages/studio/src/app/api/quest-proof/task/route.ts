@@ -58,8 +58,7 @@ async function runAddTasks(seedPath: string): Promise<{
   stderr: string;
   exitCode: number | null;
 }> {
-  const aiEcosystemRoot =
-    process.env.AI_ECOSYSTEM_ROOT || path.join(os.homedir(), '.ai-ecosystem');
+  const aiEcosystemRoot = process.env.AI_ECOSYSTEM_ROOT || path.join(os.homedir(), '.ai-ecosystem');
   const script = path.join(aiEcosystemRoot, 'scripts', 'room-add-tasks.mjs');
   return await new Promise((resolve) => {
     const child = spawn(process.execPath, [script, seedPath], {

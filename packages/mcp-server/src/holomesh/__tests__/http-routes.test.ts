@@ -3686,7 +3686,11 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const badDoneRes = mockRes();
-      await handleHoloMeshRoute(badDoneReq, badDoneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      await handleHoloMeshRoute(
+        badDoneReq,
+        badDoneRes,
+        `/api/holomesh/team/${tid}/board/${taskId}`
+      );
       expect(badDoneRes._status).toBe(400);
       expect(badDoneRes._body.code).toBe('verification_evidence_unanchored');
 
@@ -3703,7 +3707,11 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const goodDoneRes = mockRes();
-      await handleHoloMeshRoute(goodDoneReq, goodDoneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      await handleHoloMeshRoute(
+        goodDoneReq,
+        goodDoneRes,
+        `/api/holomesh/team/${tid}/board/${taskId}`
+      );
       expect(goodDoneRes._status).toBe(200);
     });
 
@@ -4079,7 +4087,8 @@ describe('HoloMesh HTTP Routes', () => {
           tasks: [
             {
               title: 'block me',
-              description: 'Block lifecycle target.\n\n## Done when:\n- Block route requires a reason.',
+              description:
+                'Block lifecycle target.\n\n## Done when:\n- Block route requires a reason.',
               priority: 'high',
             },
           ],
@@ -4097,7 +4106,11 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const noReasonRes = mockRes();
-      await handleHoloMeshRoute(noReasonReq, noReasonRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      await handleHoloMeshRoute(
+        noReasonReq,
+        noReasonRes,
+        `/api/holomesh/team/${tid}/board/${taskId}`
+      );
       expect(noReasonRes._status).toBe(400);
       expect(noReasonRes._body.error).toContain('blockedReason is required');
 
@@ -5096,11 +5109,20 @@ describe('HoloMesh HTTP Routes', () => {
       expect(pagedRes._body.paging).toEqual({ limit: 5, offset: 0, hasMore: true });
 
       // status=claimed scopes to that bucket only.
-      const statusReq = mockReq('GET', `/api/holomesh/team/${tid}/board?status=claimed`, undefined, {
-        authorization: `Bearer ${ownerApiKey}`,
-      });
+      const statusReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board?status=claimed`,
+        undefined,
+        {
+          authorization: `Bearer ${ownerApiKey}`,
+        }
+      );
       const statusRes = mockRes();
-      await handleHoloMeshRoute(statusReq, statusRes, `/api/holomesh/team/${tid}/board?status=claimed`);
+      await handleHoloMeshRoute(
+        statusReq,
+        statusRes,
+        `/api/holomesh/team/${tid}/board?status=claimed`
+      );
       expect(statusRes._status).toBe(200);
       expect(statusRes._body.tasks.length).toBe(1);
       expect(statusRes._body.tasks[0].id).toBe('claimed-1');

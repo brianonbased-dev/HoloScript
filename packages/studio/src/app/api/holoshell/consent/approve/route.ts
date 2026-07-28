@@ -15,6 +15,9 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(await r.json(), { status: r.status });
   } catch (e) {
-    return NextResponse.json({ error: 'holoshell unreachable', details: String(e) }, { status: 503 });
+    return NextResponse.json(
+      { error: 'holoshell unreachable', details: String(e) },
+      { status: 503 }
+    );
   }
 }

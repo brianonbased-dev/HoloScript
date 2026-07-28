@@ -113,10 +113,7 @@ import {
   registerSearchProviders,
   setTeamFormationRosterSource,
 } from './holomesh/index';
-import {
-  initMeshToolRegistry,
-  startMeshToolRegistrySweep,
-} from './holomesh/mesh-tool-registry';
+import { initMeshToolRegistry, startMeshToolRegistrySweep } from './holomesh/mesh-tool-registry';
 import { getClient as getHoloMeshOrchestratorClient } from './holomesh/orchestrator-client';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import {
@@ -3236,7 +3233,11 @@ const httpServer = http.createServer(async (req, res) => {
           JSON.stringify({
             jsonrpc: '2.0',
             id: isRecord(rawBody.body) ? rawBody.body.id : rawBody.id,
-            error: { code: -32001, message: 'signing-rejected', data: { reason: unwrapped.signingError } },
+            error: {
+              code: -32001,
+              message: 'signing-rejected',
+              data: { reason: unwrapped.signingError },
+            },
           })
         );
         return;
@@ -3450,7 +3451,13 @@ const httpServer = http.createServer(async (req, res) => {
       const unwrapped = await unwrapSignedHttpBody(rawBody, requestAuth);
       if (unwrapped.signingError) {
         res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ success: false, error: 'signing-rejected', reason: unwrapped.signingError }));
+        res.end(
+          JSON.stringify({
+            success: false,
+            error: 'signing-rejected',
+            reason: unwrapped.signingError,
+          })
+        );
         return;
       }
       const body = unwrapped.body;
@@ -4622,7 +4629,9 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
         // RosterAgent scores are 0..1; reputation is an unbounded tier score
         // (100+ = 'authority'), so normalize onto the same scale the
         // team-formation scorer expects instead of passing the raw value.
-        const score = registered ? Math.max(0, Math.min(1, registered.reputation / 100)) : undefined;
+        const score = registered
+          ? Math.max(0, Math.min(1, registered.reputation / 100))
+          : undefined;
         const presenceEntry = presence?.get(member.agentId);
         return {
           agentId: member.agentId,

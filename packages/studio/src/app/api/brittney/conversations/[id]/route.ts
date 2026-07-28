@@ -67,7 +67,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: '`title` must be a string' }, { status: 400 });
   }
   if (body.title !== undefined && body.title.length > MAX_TITLE_CHARS) {
-    return NextResponse.json({ error: `title exceeds ${MAX_TITLE_CHARS} characters` }, { status: 413 });
+    return NextResponse.json(
+      { error: `title exceeds ${MAX_TITLE_CHARS} characters` },
+      { status: 413 }
+    );
   }
   if (body.archived !== undefined && typeof body.archived !== 'boolean') {
     return NextResponse.json({ error: '`archived` must be a boolean' }, { status: 400 });

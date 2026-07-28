@@ -123,7 +123,8 @@ describe('fleet dispatch auth guards (regression)', () => {
       NextResponse.json({ error: 'Founder access required' }, { status: 403 }) as never
     );
     const fetchMock = vi.fn(
-      async () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })
+      async () =>
+        new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })
     );
     vi.stubGlobal('fetch', fetchMock);
     try {
@@ -223,7 +224,8 @@ describe('fleet dispatch auth guards (regression)', () => {
     );
     process.env.FLEET_DISPATCH_SERVICE_TOKEN = 'svc-secret-123';
     const fetchMock = vi.fn(
-      async () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })
+      async () =>
+        new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })
     );
     vi.stubGlobal('fetch', fetchMock);
     try {

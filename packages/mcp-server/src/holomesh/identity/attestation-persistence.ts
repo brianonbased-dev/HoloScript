@@ -95,7 +95,7 @@ export function encodeSnapshot(registry: AttestationRegistry, savedAt: string): 
 /** Decode a wire snapshot back into the shape `AttestationRegistry.restore` wants
  *  (test seam — pure, no fs). Malformed rows are dropped, not fatal. */
 export function decodeSnapshot(
-  persisted: PersistedSnapshot | null,
+  persisted: PersistedSnapshot | null
 ): { attestations: Attestation[]; retired: string[] } | null {
   if (!persisted || !Array.isArray(persisted.attestations)) return null;
   const attestations = persisted.attestations
@@ -109,13 +109,16 @@ export function decodeSnapshot(
  *  failure logs and is retried on the next mutation (atomicWriteJSON swallows). */
 export function saveAttestationSnapshotNow(
   registry: AttestationRegistry = getAttestationRegistry(),
-  nowIso: string = new Date().toISOString(),
+  nowIso: string = new Date().toISOString()
 ): void {
   atomicWriteJSON(ATTESTATION_STORE_PATH, encodeSnapshot(registry, nowIso));
 }
 
 /** Read + decode the persisted snapshot. Returns null when absent/corrupt. */
-export function loadAttestationSnapshot(): { attestations: Attestation[]; retired: string[] } | null {
+export function loadAttestationSnapshot(): {
+  attestations: Attestation[];
+  retired: string[];
+} | null {
   const raw = readJSON(ATTESTATION_STORE_PATH) as PersistedSnapshot | null;
   return decodeSnapshot(raw);
 }
@@ -151,7 +154,7 @@ export function initDurableAttestationRegistry(): void {
   } catch (e) {
     console.warn(
       '[HoloMesh] attestation snapshot load failed (starting empty):',
-      e instanceof Error ? e.message : String(e),
+      e instanceof Error ? e.message : String(e)
     );
   }
   const registry = new AttestationRegistry({ onChange: () => scheduleSave(registry) });
@@ -160,7 +163,7 @@ export function initDurableAttestationRegistry(): void {
   if (loaded) {
     console.log(
       `[HoloMesh] attestation registry restored: ${loaded.attestations.length} attestation(s), ` +
-        `${loaded.retired.length} retired, from ${ATTESTATION_STORE_PATH}`,
+        `${loaded.retired.length} retired, from ${ATTESTATION_STORE_PATH}`
     );
   }
 }

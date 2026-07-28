@@ -141,8 +141,7 @@ const SOVEREIGN_FLEET: CapabilityEntry[] = [
     id: 'sovereign-fleet-registry',
     label: 'Sovereign owned-metal fleet (Jetson + laptop · $0)',
     category: 'Fleet / Sovereign (owned metal)',
-    backing:
-      'ai-ecosystem/scripts/fleet-sovereign-registry.mjs + config/sovereign-devices/*.json',
+    backing: 'ai-ecosystem/scripts/fleet-sovereign-registry.mjs + config/sovereign-devices/*.json',
     surface: 'orphaned-cli',
     gate: 'safe',
     triggerable: false,
@@ -211,7 +210,8 @@ const LIVE_OPS: CapabilityEntry[] = [
     id: 'fairness-sweep',
     label: 'Verifiable fairness sweep + receipt',
     category: 'Governance / Fairness',
-    backing: 'studio POST /api/fairness/sweep → /operations Fairness tab (engine Simulation.runFairnessSweep, in-process)',
+    backing:
+      'studio POST /api/fairness/sweep → /operations Fairness tab (engine Simulation.runFairnessSweep, in-process)',
     surface: 'live',
     gate: 'safe',
     triggerable: true,
@@ -365,8 +365,8 @@ export async function GET() {
   for (const cap of capabilities) {
     if (cap.id === 'serve-status' && serve) {
       cap.live = {
-        warm: Number(serve.counts?.warm ?? (serve.endpoints?.length ?? 0)),
-        modelsWithDemand: Number(serve.counts?.models_with_demand ?? (serve.demand?.length ?? 0)),
+        warm: Number(serve.counts?.warm ?? serve.endpoints?.length ?? 0),
+        modelsWithDemand: Number(serve.counts?.models_with_demand ?? serve.demand?.length ?? 0),
       };
     }
     if (cap.id === 'lotus-status' && lotus) {

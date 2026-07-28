@@ -14,10 +14,7 @@ export const SOLVER_HEALTH_CONFIG = Object.freeze({
   initialTemperature: 20,
 });
 
-type SimulationHandler = (
-  name: string,
-  args: Record<string, unknown>
-) => Promise<unknown | null>;
+type SimulationHandler = (name: string, args: Record<string, unknown>) => Promise<unknown | null>;
 
 export interface SolverHealthReceipt {
   schemaVersion: typeof SOLVER_HEALTH_SCHEMA;
@@ -67,14 +64,12 @@ export async function runSolverHealthProbe(
   const result = (await simulationHandler('solve_thermal', {
     config: SOLVER_HEALTH_CONFIG,
     steps: 1,
-  })) as
-    | {
-        success?: unknown;
-        error?: unknown;
-        caelTraceId?: unknown;
-        traceHash?: unknown;
-      }
-    | null;
+  })) as {
+    success?: unknown;
+    error?: unknown;
+    caelTraceId?: unknown;
+    traceHash?: unknown;
+  } | null;
 
   if (result?.success !== true) {
     throw new Error(

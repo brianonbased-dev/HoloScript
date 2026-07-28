@@ -404,9 +404,7 @@ export function SettingsView() {
             </>
           ) : (
             // Fallback while composition loads — minimal shell keeps layout stable
-            <div
-              style={{ maxWidth: 600, margin: '0 auto', padding: 24, fontFamily: 'system-ui' }}
-            >
+            <div style={{ maxWidth: 600, margin: '0 auto', padding: 24, fontFamily: 'system-ui' }}>
               <h1 style={{ fontSize: 24, marginBottom: 24 }}>Settings</h1>
 
               {status === 'loading' && (
@@ -453,7 +451,9 @@ export function SettingsView() {
       {activeTab === 'credits' && session?.user?.id && (
         <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 40px' }}>
           {creditsLoading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#888', fontFamily: 'system-ui' }}>
+            <div
+              style={{ padding: 40, textAlign: 'center', color: '#888', fontFamily: 'system-ui' }}
+            >
               Loading credit balance...
             </div>
           ) : (

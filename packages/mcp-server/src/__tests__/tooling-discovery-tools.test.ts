@@ -317,14 +317,20 @@ describe('tooling discovery and batch dispatch', () => {
     // A tool with no known holon mapping gets no `holon` field at all (not a
     // falsy placeholder) so JSON output stays clean for the common case.
     expect(manifest.find((t) => t.name === 'parse_hs')?.holon).toBeUndefined();
-    expect(Object.prototype.hasOwnProperty.call(manifest.find((t) => t.name === 'parse_hs') ?? {}, 'holon')).toBe(
-      false
-    );
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        manifest.find((t) => t.name === 'parse_hs') ?? {},
+        'holon'
+      )
+    ).toBe(false);
   });
 
   it('resolves an exact-name holon mapping without prefix collision', () => {
     const manifest = buildToolManifest(
-      [tool('holo_ci_dispatch', 'Dispatch remote CI'), tool('compile_to_holob', 'Compile to HoloVM bytecode')],
+      [
+        tool('holo_ci_dispatch', 'Dispatch remote CI'),
+        tool('compile_to_holob', 'Compile to HoloVM bytecode'),
+      ],
       { includeInputSchema: false, includeOutputSchema: false }
     );
     expect(manifest.find((t) => t.name === 'holo_ci_dispatch')?.holon).toBe('HoloCI');

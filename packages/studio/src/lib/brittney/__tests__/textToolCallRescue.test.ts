@@ -12,7 +12,9 @@ describe('parseTextToolCall', () => {
   });
 
   it('parses a fenced JSON tool invocation', () => {
-    const out = parseTextToolCall('```json\n{"name": "board_add_task", "arguments": {"tasks": []}}\n```');
+    const out = parseTextToolCall(
+      '```json\n{"name": "board_add_task", "arguments": {"tasks": []}}\n```'
+    );
     expect(out).toEqual({ name: 'board_add_task', args: { tasks: [] } });
   });
 

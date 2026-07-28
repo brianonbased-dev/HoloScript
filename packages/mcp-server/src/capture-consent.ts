@@ -81,7 +81,8 @@ export function assertPublicCaptureConsent(
   const privacy = asRecord(args.privacy);
   if (!isPublicCapture(args, privacy)) return;
 
-  const consent = asRecord(privacy?.consent) ?? asRecord(args.consent) ?? asRecord(args.consentReceipt);
+  const consent =
+    asRecord(privacy?.consent) ?? asRecord(args.consent) ?? asRecord(args.consentReceipt);
   const tosAccepted = readBooleanTrue(
     consent?.tosAccepted,
     consent?.termsAccepted,

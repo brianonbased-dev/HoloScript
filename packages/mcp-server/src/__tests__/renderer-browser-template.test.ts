@@ -14,7 +14,10 @@ import { describe, expect, it } from 'vitest';
 import { generateBrowserTemplate } from '../renderer';
 
 describe('generateBrowserTemplate prefers-reduced-motion gate', () => {
-  const html = generateBrowserTemplate('composition "Test" { object "Box" {} }', 'Motion Gate Test');
+  const html = generateBrowserTemplate(
+    'composition "Test" { object "Box" {} }',
+    'Motion Gate Test'
+  );
 
   it('detects the OS-level reduced-motion preference via matchMedia', () => {
     expect(html).toContain('matchMedia');

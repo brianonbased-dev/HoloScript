@@ -190,14 +190,20 @@ export const STUDIO_LAB_NAVIGATION_ITEMS: StudioNavigationItemDefinition[] = [
     label: 'Playground',
     href: '/playground',
     exact: false,
-    description: 'Testing surface — embodied Brittney tests builds from inside, drawing on her memory (past threads) and running capability matrices',
+    description:
+      'Testing surface — embodied Brittney tests builds from inside, drawing on her memory (past threads) and running capability matrices',
     surfaceClass: 'lab',
     navigationLane: 'lab',
   },
 ];
 
 export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
-  route('/', 'core-workbench', 'primary', 'Brittney full-screen home — primary nav destination (A4 IA consolidation).'),
+  route(
+    '/',
+    'core-workbench',
+    'primary',
+    'Brittney full-screen home — primary nav destination (A4 IA consolidation).'
+  ),
   route('/[vertical]', 'archive', 'direct', 'Legacy industry landing route.'),
   route('/absorb', 'lab', 'lab', 'Codebase intelligence product lane outside primary IDE.'),
   route('/absorb/admin', 'lab', 'direct', 'Operational Absorb admin surface.'),
@@ -216,13 +222,23 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
   route('/creator', 'archive', 'direct', 'Superseded creator dashboard route.'),
   route('/demo/emergent-spacetime', 'archive', 'direct', 'Demo route outside product spine.'),
   route('/dev/ui-graph', 'lab', 'direct', 'Developer-only UI graph route.'),
-  route('/earn', 'account-workspace', 'primary', 'Creator economics: revenue, transactions, storefront management.'),
+  route(
+    '/earn',
+    'account-workspace',
+    'primary',
+    'Creator economics: revenue, transactions, storefront management.'
+  ),
   route('/examples/no-app-webxr', 'archive', 'direct', 'Legacy WebXR example.'),
   route('/g/[hash]', 'holomesh-public', 'direct', 'Public hologram share.'),
   route('/gram/[hash]', 'deprecated', 'direct', 'Redirecting legacy share alias.'),
   route('/holoclaw', 'deprecated', 'direct', 'Redirecting legacy team route.'),
   route('/holodaemon', 'deprecated', 'direct', 'Redirecting legacy team route.'),
-  route('/holomesh', 'holomesh-public', 'primary', 'HoloMesh public network home — Network nav destination (A4 IA consolidation).'),
+  route(
+    '/holomesh',
+    'holomesh-public',
+    'primary',
+    'HoloMesh public network home — Network nav destination (A4 IA consolidation).'
+  ),
   route('/holomesh/agent/[id]', 'holomesh-public', 'direct', 'HoloMesh agent profile.'),
   route('/holomesh/contribute', 'holomesh-public', 'direct', 'HoloMesh contribution flow.'),
   route('/holomesh/dashboard', 'holomesh-public', 'direct', 'HoloMesh user dashboard.'),
@@ -269,7 +285,12 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
   route('/pipeline', 'lab', 'direct', 'Pipeline playground route.'),
   route('/pipeline/chaining', 'lab', 'direct', 'Pipeline chaining playground route.'),
   route('/pipeline/choreography', 'lab', 'direct', 'Pipeline choreography playground route.'),
-  route('/playground', 'lab', 'lab', 'Testing surface — embodied Brittney tests builds from inside, drawing on her memory (past threads) + capability matrices.'),
+  route(
+    '/playground',
+    'lab',
+    'lab',
+    'Testing surface — embodied Brittney tests builds from inside, drawing on her memory (past threads) + capability matrices.'
+  ),
   route('/playground/locomotion', 'lab', 'direct', 'Locomotion playground route.'),
   route('/projects', 'account-workspace', 'primary', 'Saved project inventory.'),
   route('/quest-probe', 'archive', 'direct', 'Probe route from an experiment.'),
@@ -288,7 +309,12 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
   ),
   route('/shared/[id]', 'holomesh-public', 'direct', 'Shared immersive scene.'),
   route('/spectator/training', 'lab', 'direct', 'Real-time training progress spectator.'),
-  route('/start', 'deprecated', 'direct', 'Redirects to / (BrittneyFullScreen entry consolidated into home).'),
+  route(
+    '/start',
+    'deprecated',
+    'direct',
+    'Redirects to / (BrittneyFullScreen entry consolidated into home).'
+  ),
   route('/store', 'holomesh-public', 'direct', 'Public store surface outside IDE chrome.'),
   route('/teams', 'holomesh-public', 'lab', 'Team discovery and workspace surface.'),
   route('/teams/[id]', 'holomesh-public', 'direct', 'Team workspace.'),
@@ -299,7 +325,12 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
   route('/vibe', 'deprecated', 'direct', 'Redirects to /create (vibe chassis merged into create).'),
   route('/view/[id]', 'holomesh-public', 'direct', 'Public viewer route.'),
   route('/webcam-gaze-demo', 'lab', 'direct', 'Webcam gaze foveal-center input demo.'),
-  route('/workspace', 'deprecated', 'direct', 'Workbench content merging into /projects — double-nav removed (A4 IA consolidation).'),
+  route(
+    '/workspace',
+    'deprecated',
+    'direct',
+    'Workbench content merging into /projects — double-nav removed (A4 IA consolidation).'
+  ),
   route('/workspace/agents/new', 'account-workspace', 'direct', 'Workspace agent creation.'),
   route('/workspace/knowledge', 'account-workspace', 'direct', 'Workspace knowledge filing.'),
   route('/workspace/templates/new', 'account-workspace', 'direct', 'Workspace template creation.'),

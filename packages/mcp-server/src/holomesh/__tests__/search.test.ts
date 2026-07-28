@@ -33,8 +33,7 @@ describe('holomesh_search providers (registerSearchProviders wiring)', () => {
   beforeAll(() => {
     registerSearchProviders(
       () => [seededAgent],
-      async (query: string) =>
-        query.toLowerCase().includes('supernova') ? [seededEntry] : []
+      async (query: string) => (query.toLowerCase().includes('supernova') ? [seededEntry] : [])
     );
   });
 

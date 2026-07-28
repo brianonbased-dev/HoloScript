@@ -79,10 +79,7 @@ export async function POST(req: NextRequest) {
 
   const script = (body.script ?? 'build').trim();
   if (!SCRIPT_NAME_RE.test(script)) {
-    return NextResponse.json(
-      { error: 'script must match [A-Za-z0-9:_-]{1,64}' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'script must match [A-Za-z0-9:_-]{1,64}' }, { status: 400 });
   }
 
   const packageJsonPath = path.join(root, 'package.json');
@@ -100,7 +97,10 @@ export async function POST(req: NextRequest) {
     };
     scripts = parsed.scripts ?? {};
   } catch {
-    return NextResponse.json({ error: 'workspace package.json is not valid JSON' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'workspace package.json is not valid JSON' },
+      { status: 400 }
+    );
   }
 
   if (script !== 'install' && typeof scripts[script] !== 'string') {

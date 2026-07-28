@@ -45,10 +45,7 @@ export async function POST(req: NextRequest) {
     }
     const x = toFinite(position?.x);
     if (x === null) {
-      return NextResponse.json(
-        { _error: 'position.x must be a finite number' },
-        { status: 400 }
-      );
+      return NextResponse.json({ _error: 'position.x must be a finite number' }, { status: 400 });
     }
     applyMove(entityId, { x, y: toFinite(position?.y) ?? 0, z: toFinite(position?.z) ?? 0 });
     return NextResponse.json({ status: 'ok' });

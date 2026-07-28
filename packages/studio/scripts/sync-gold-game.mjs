@@ -47,7 +47,9 @@ for (const [src, dst] of copies) {
     process.exit(2);
   }
   fs.copyFileSync(src, dst);
-  console.log(`[sync-gold-game] ${path.relative(repoRoot, src)} -> ${path.relative(studioRoot, dst)} (${fs.statSync(dst).size} bytes)`);
+  console.log(
+    `[sync-gold-game] ${path.relative(repoRoot, src)} -> ${path.relative(studioRoot, dst)} (${fs.statSync(dst).size} bytes)`
+  );
 }
 
 const receiptFiles = fs
@@ -69,6 +71,10 @@ for (const f of receiptFiles) {
 }
 fs.writeFileSync(
   path.join(outDir, 'receipts', 'manifest.json'),
-  JSON.stringify({ generatedAt: new Date().toISOString(), count: manifest.length, receipts: manifest }, null, 2)
+  JSON.stringify(
+    { generatedAt: new Date().toISOString(), count: manifest.length, receipts: manifest },
+    null,
+    2
+  )
 );
 console.log(`[sync-gold-game] ${manifest.length} receipts + manifest.json`);

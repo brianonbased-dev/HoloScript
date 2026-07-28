@@ -67,12 +67,7 @@ import {
   type ContentPolicyConfig,
 } from '@holoscript/core/policy';
 import { AuditLogger, type AuditEvent } from '@holoscript/core';
-import {
-  honestyGate,
-  known,
-  unknown as unknownValue,
-  type Uncertain,
-} from '@holoscript/meaning';
+import { honestyGate, known, unknown as unknownValue, type Uncertain } from '@holoscript/meaning';
 import type {
   AdmissionAuditContext,
   ConformanceReport,

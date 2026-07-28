@@ -40,9 +40,7 @@ describe('public consumer benchmark helpers', () => {
         },
       })
     ).toBe(3);
-    expect(
-      countDependencyNodes([{ dependencies: { a: { dependencies: { b: {} } } } }])
-    ).toBe(2);
+    expect(countDependencyNodes([{ dependencies: { a: { dependencies: { b: {} } } } }])).toBe(2);
   });
 
   it('parses the public package manager selector', () => {

@@ -590,7 +590,11 @@ export function validateZoneAdmission(zone: Zone): ConformanceFinding[] {
     if (nameFinding) findings.push(nameFinding);
   }
   if (zone.biomeLabel) {
-    const labelFinding = validateContentAdmission(zone.biomeLabel, 'biomeLabel', 'ZONE-CONTENT-002');
+    const labelFinding = validateContentAdmission(
+      zone.biomeLabel,
+      'biomeLabel',
+      'ZONE-CONTENT-002'
+    );
     if (labelFinding) findings.push(labelFinding);
   }
 
@@ -672,7 +676,11 @@ export function validateNPCAdmission(npc: StoredNPC): ConformanceFinding[] {
 
   // GATE-001: screen creator-supplied text fields through ContentPolicyGate (P.013).
   if (npc.systemPrompt) {
-    const contentFinding = validateContentAdmission(npc.systemPrompt, 'systemPrompt', 'NPC-CONTENT-001');
+    const contentFinding = validateContentAdmission(
+      npc.systemPrompt,
+      'systemPrompt',
+      'NPC-CONTENT-001'
+    );
     if (contentFinding) findings.push(contentFinding);
   }
   if (npc.name) {

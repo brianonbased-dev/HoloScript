@@ -75,7 +75,9 @@ describe('deriveTaskSkills', () => {
   });
 
   it('treats required_tags as capability signals', () => {
-    const skills = deriveTaskSkills(task({ title: 'run local workload', required_tags: ['owned-metal'] }));
+    const skills = deriveTaskSkills(
+      task({ title: 'run local workload', required_tags: ['owned-metal'] })
+    );
     expect(skills.has('owned-metal')).toBe(true);
   });
 

@@ -191,7 +191,7 @@ describe('POST /api/simulation/run — validation rejects', () => {
     expect(status).toBe(400);
     expect(typeof json['error']).toBe('string');
     // Error must mention the allowed solver list
-    expect((json['error'] as string)).toContain('thermal');
+    expect(json['error'] as string).toContain('thermal');
   });
 
   it('returns 400 for dt <= 0', async () => {

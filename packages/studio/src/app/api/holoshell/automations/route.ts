@@ -32,6 +32,6 @@ export async function GET() {
       error: 'holoshell automation state not available',
       hint: 'Start holoshell-operate-room-server.mjs on the seat machine or wait for the publisher snapshot.',
     },
-    { status: 503 },
+    { status: 503 }
   );
 }

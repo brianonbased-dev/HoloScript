@@ -649,7 +649,11 @@ describe('executeStudioTool', () => {
     expect(callArgs[0]).toBe(`${BASE_URL}/api/holoclaw/run`);
     const init = callArgs[1] as RequestInit;
     expect(init.method).toBe('POST');
-    expect(JSON.parse(init.body as string)).toEqual({ name: 'research', cycles: 3, alwaysOn: true });
+    expect(JSON.parse(init.body as string)).toEqual({
+      name: 'research',
+      cycles: 3,
+      alwaysOn: true,
+    });
   });
 
   it('run_holoclaw_skill omits optional fields when not provided', async () => {

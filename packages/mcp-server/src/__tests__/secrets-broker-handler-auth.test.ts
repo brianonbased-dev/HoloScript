@@ -159,10 +159,7 @@ describe('gateSecretsBrokerTool — pure helper', () => {
 
   it('TRUE: bearer/API-key ctx with exact broker scope authorizes only that tool', () => {
     expect(
-      gateSecretsBrokerTool(
-        'holo_secrets_resolve',
-        bearerScopeCtx(['secrets:grant.resolve'])
-      )
+      gateSecretsBrokerTool('holo_secrets_resolve', bearerScopeCtx(['secrets:grant.resolve']))
     ).toBeNull();
     const wrongTool = gateSecretsBrokerTool(
       'holo_secrets_revoke',

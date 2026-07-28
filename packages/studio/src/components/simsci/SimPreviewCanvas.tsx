@@ -169,7 +169,9 @@ export function SimPreviewCanvas({ result }: SimPreviewCanvasProps) {
       <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-2.5 py-1 backdrop-blur text-[10px] text-white/40 font-mono">
         Sim Preview
         {result && (
-          <span className="text-indigo-400/70">{result.kind === 'particles' ? 'particles' : 'scalar field'}</span>
+          <span className="text-indigo-400/70">
+            {result.kind === 'particles' ? 'particles' : 'scalar field'}
+          </span>
         )}
       </div>
 
@@ -188,9 +190,7 @@ export function SimPreviewCanvas({ result }: SimPreviewCanvasProps) {
           <ParticlesView positions={result.positions} />
         )}
 
-        {result?.kind === 'scalarField' && result.field && (
-          <ScalarFieldView field={result.field} />
-        )}
+        {result?.kind === 'scalarField' && result.field && <ScalarFieldView field={result.field} />}
 
         <Grid
           args={[10, 10]}

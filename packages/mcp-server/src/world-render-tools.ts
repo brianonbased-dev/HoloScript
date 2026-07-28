@@ -226,9 +226,7 @@ function buildWorldRenderWorkload(spec: WorldRenderSpec): BuiltWorldRender {
         requires_webgpu: t.requiresGpu,
         device_preference: t.requiresGpu ? 'gpu' : 'cpu',
         ...(t.requiresGpu ? { gpu_memory_mb: 8000 } : {}),
-        ...(t.requiresGpu
-          ? { resource_requirements: { min_vram_gb: 8, num_gpus: 1 } }
-          : {}),
+        ...(t.requiresGpu ? { resource_requirements: { min_vram_gb: 8, num_gpus: 1 } } : {}),
         resources: t.requiresGpu
           ? { gpu: { count: 1, memory_mb: 8000 }, cpu_cores: 2, packing_group: 'world-render' }
           : { cpu_cores: 2, packing_group: 'world-render' },

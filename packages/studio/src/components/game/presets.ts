@@ -244,13 +244,15 @@ export const GAME_PRESETS: GamePreset[] = [
   {
     id: 'gem-run',
     label: 'Gem Run',
-    description: 'Fast collect-a-thon. Higher jump, more hearts, no hazards — pure @grabbable scoring.',
+    description:
+      'Fast collect-a-thon. Higher jump, more hearts, no hazards — pure @grabbable scoring.',
     source: COLLECTOR_SOURCE,
   },
   {
     id: 'hazard-dash',
     label: 'Hazard Dash',
-    description: 'Heavy gravity, fast patrollers, only 2 hearts. @collidable hazards drive the difficulty.',
+    description:
+      'Heavy gravity, fast patrollers, only 2 hearts. @collidable hazards drive the difficulty.',
     source: RUNNER_SOURCE,
   },
 ];

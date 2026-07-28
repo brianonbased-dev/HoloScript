@@ -88,8 +88,7 @@ const DEFAULT_AGENTS: AgentSlot[] = [
   {
     name: 'holoclaw',
     role: 'Fleet Compute',
-    description:
-      'Heavy-compute fleet worker — world render, solvers, and repair jobs on GPU.',
+    description: 'Heavy-compute fleet worker — world render, solvers, and repair jobs on GPU.',
     status: 'offline',
     currentTask: null,
     lastAction: null,

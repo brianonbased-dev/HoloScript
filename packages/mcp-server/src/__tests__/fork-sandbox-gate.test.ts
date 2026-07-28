@@ -153,7 +153,10 @@ describe('resolvePolicy - WS-1 consumer tier (additive, default-enabled)', () =>
   });
 
   it('resolves the consumer policy for generate_world_from_prompt too', () => {
-    const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'generate_world_from_prompt');
+    const policy = resolvePolicy(
+      { kind: 'mcp_tool', source: 'consumer' },
+      'generate_world_from_prompt'
+    );
     expect(policy.policyId).toBe(DEFAULT_CONSUMER_GENERATION_POLICY.policyId);
   });
 
@@ -177,7 +180,10 @@ describe('resolvePolicy - WS-1 consumer tier (additive, default-enabled)', () =>
   });
 
   it('NEVER leaks the consumer policy to a robot/payment-class sensitive tool (twin_earth_robot_actuate)', () => {
-    const policy = resolvePolicy({ kind: 'mcp_tool', source: 'consumer' }, 'twin_earth_robot_actuate');
+    const policy = resolvePolicy(
+      { kind: 'mcp_tool', source: 'consumer' },
+      'twin_earth_robot_actuate'
+    );
     expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
   });
 

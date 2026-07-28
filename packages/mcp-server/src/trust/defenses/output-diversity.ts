@@ -1,4 +1,9 @@
-import { clamp01, type TrustDefense, type TrustDefenseDecision, type TrustDefenseObservation } from './types';
+import {
+  clamp01,
+  type TrustDefense,
+  type TrustDefenseDecision,
+  type TrustDefenseObservation,
+} from './types';
 
 export interface OutputDiversityDefenseOptions {
   minUtilityRatio?: number;

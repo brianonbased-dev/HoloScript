@@ -89,8 +89,14 @@ import {
 } from 'lucide-react';
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
-import { RightRailPanelHost, type RightRailPanelDescriptor } from '@/components/panels/RightRailPanelHost';
-import { useRightRailDescriptors, type RegistryPanelExtraProps } from '@/hooks/useRightRailDescriptors';
+import {
+  RightRailPanelHost,
+  type RightRailPanelDescriptor,
+} from '@/components/panels/RightRailPanelHost';
+import {
+  useRightRailDescriptors,
+  type RegistryPanelExtraProps,
+} from '@/hooks/useRightRailDescriptors';
 import { NativePanelMount } from '@/components/panels/NativePanelMount';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/app/providers';
@@ -111,10 +117,7 @@ import {
   PORTABILITY_SOURCE,
   PortabilityHeadToHeadPanel,
 } from '@/components/create/PortabilityHeadToHeadPanel';
-import {
-  TIME_TO_WOW_SOURCE,
-  TimeToWowPathPanel,
-} from '@/components/create/TimeToWowPathPanel';
+import { TIME_TO_WOW_SOURCE, TimeToWowPathPanel } from '@/components/create/TimeToWowPathPanel';
 import type { PrintabilityReport } from '@/components/manufacturing/PrintabilityReportPanel';
 import type { MeshResult } from '@/components/manufacturing/ParametricSlidersPanel';
 import { useSimState } from '@/components/simsci/useSimState';
@@ -1028,16 +1031,10 @@ export default function CreatePage() {
 
   // ── Part mode panels (auto-open when mode=part) ──────────────────────────
   const parametricSlidersOpen = usePanelVisibilityStore((s) => s.parametricSlidersOpen);
-  const setParametricSlidersOpen = usePanelVisibilityStore(
-    (s) => s.setParametricSlidersOpen
-  );
-  const toggleParametricSlidersOpen = usePanelVisibilityStore(
-    (s) => s.toggleParametricSlidersOpen
-  );
+  const setParametricSlidersOpen = usePanelVisibilityStore((s) => s.setParametricSlidersOpen);
+  const toggleParametricSlidersOpen = usePanelVisibilityStore((s) => s.toggleParametricSlidersOpen);
   const printabilityReportOpen = usePanelVisibilityStore((s) => s.printabilityReportOpen);
-  const setprintabilityReportOpen = usePanelVisibilityStore(
-    (s) => s.setPrintabilityReportOpen
-  );
+  const setprintabilityReportOpen = usePanelVisibilityStore((s) => s.setPrintabilityReportOpen);
   const togglePrintabilityReportOpen = usePanelVisibilityStore(
     (s) => s.togglePrintabilityReportOpen
   );
@@ -1344,7 +1341,11 @@ export default function CreatePage() {
     setAudioOpen(true);
     setExportOpen(true);
     setGeneratorOpen(true);
-    addToast('Time-to-wow project is running with source, assets, and export panels', 'success', 2400);
+    addToast(
+      'Time-to-wow project is running with source, assets, and export panels',
+      'success',
+      2400
+    );
   }, [
     addAsset,
     addToast,
@@ -1549,9 +1550,7 @@ export default function CreatePage() {
         open: versionsOpen,
         width: 'resizable' as const,
         errorLabel: 'Scene Versions',
-        content: (
-          <SceneVersionPanel sceneId="scene-1" onClose={() => setVersionsOpen(false)} />
-        ),
+        content: <SceneVersionPanel sceneId="scene-1" onClose={() => setVersionsOpen(false)} />,
       },
       {
         id: 'remote',
@@ -1695,11 +1694,28 @@ export default function CreatePage() {
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      critiqueOpen, assetPackOpen, versionsOpen, remoteOpen, generatorOpen,
-      profilerOpen, debuggerOpen, nodeGraphOpen, undoHistoryOpen, outlinerOpen,
-      materialOpen, physicsOpen, snapshotDiffOpen, audioVisualizerOpen,
-      multiTransformOpen, environmentOpen, foundationDaoOpen, showGovernancePanel,
-      showConformancePanel, agentMonitorOpen, inspectorOpen, simulationOpen,
+      critiqueOpen,
+      assetPackOpen,
+      versionsOpen,
+      remoteOpen,
+      generatorOpen,
+      profilerOpen,
+      debuggerOpen,
+      nodeGraphOpen,
+      undoHistoryOpen,
+      outlinerOpen,
+      materialOpen,
+      physicsOpen,
+      snapshotDiffOpen,
+      audioVisualizerOpen,
+      multiTransformOpen,
+      environmentOpen,
+      foundationDaoOpen,
+      showGovernancePanel,
+      showConformancePanel,
+      agentMonitorOpen,
+      inspectorOpen,
+      simulationOpen,
       handleGeneratedSceneCode,
     ]
   );
@@ -1745,7 +1761,9 @@ export default function CreatePage() {
                 aria-label={chatOpen ? 'Hide Brittney' : 'Ask Brittney'}
                 title={chatOpen ? 'Hide Brittney' : 'Ask Brittney'}
                 className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition hover:bg-white/[0.06] ${
-                  chatOpen ? 'bg-white/[0.06] text-studio-text' : 'text-studio-muted hover:text-studio-text'
+                  chatOpen
+                    ? 'bg-white/[0.06] text-studio-text'
+                    : 'text-studio-muted hover:text-studio-text'
                 }`}
               >
                 <MessageCircle className="h-3.5 w-3.5 text-studio-accent" />
@@ -1818,7 +1836,9 @@ export default function CreatePage() {
                 title="All panels (also: Cmd/Ctrl+K command palette)"
                 aria-expanded={panelsMenuOpen}
                 className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition hover:bg-white/[0.06] ${
-                  panelsMenuOpen ? 'bg-white/[0.06] text-studio-text' : 'text-studio-muted hover:text-studio-text'
+                  panelsMenuOpen
+                    ? 'bg-white/[0.06] text-studio-text'
+                    : 'text-studio-muted hover:text-studio-text'
                 }`}
               >
                 <Layers className="h-3.5 w-3.5" /> Panels
@@ -1988,25 +2008,27 @@ export default function CreatePage() {
             className="pointer-events-none absolute left-3 z-30"
             style={{ bottom: `calc(${effectiveBottomH}px + 3.75rem)` }}
           >
-            {chatOpen ? (
-              <div className="pointer-events-auto flex h-[min(540px,calc(100dvh-180px))] w-[380px] flex-col overflow-hidden rounded-xl border border-studio-border bg-studio-panel/95 shadow-2xl backdrop-blur">
-                <div className="flex shrink-0 items-center justify-between border-b border-studio-border px-3 py-1.5">
-                  <span className="flex items-center gap-1.5 text-[11px] font-medium text-studio-muted">
-                    <MessageCircle className="h-3.5 w-3.5 text-studio-accent" /> Brittney
-                  </span>
-                  <button
-                    onClick={() => setChatOpen(false)}
-                    aria-label="Collapse Brittney"
-                    className="rounded p-0.5 text-studio-muted transition hover:bg-white/[0.06] hover:text-studio-text"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+            {
+              chatOpen ? (
+                <div className="pointer-events-auto flex h-[min(540px,calc(100dvh-180px))] w-[380px] flex-col overflow-hidden rounded-xl border border-studio-border bg-studio-panel/95 shadow-2xl backdrop-blur">
+                  <div className="flex shrink-0 items-center justify-between border-b border-studio-border px-3 py-1.5">
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-studio-muted">
+                      <MessageCircle className="h-3.5 w-3.5 text-studio-accent" /> Brittney
+                    </span>
+                    <button
+                      onClick={() => setChatOpen(false)}
+                      aria-label="Collapse Brittney"
+                      className="rounded p-0.5 text-studio-muted transition hover:bg-white/[0.06] hover:text-studio-text"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="min-h-0 flex-1">
+                    <BrittneyChatPanel />
+                  </div>
                 </div>
-                <div className="min-h-0 flex-1">
-                  <BrittneyChatPanel />
-                </div>
-              </div>
-            ) : null /* collapsed state lives in the top bar (viewer stays empty) */}
+              ) : null /* collapsed state lives in the top bar (viewer stays empty) */
+            }
           </div>
 
           {/* PANELS POPOVER — every former icon-rail toggle, one button away.
@@ -2014,421 +2036,429 @@ export default function CreatePage() {
                Does NOT overlap the top-right AIPromptOverlay (which lives inside
                the viewport, below the bar). */}
           {panelsMenuOpen && (
-          <div className="absolute right-3 top-12 z-40 grid max-h-[calc(100dvh-6rem)] grid-cols-6 content-start gap-2 overflow-y-auto rounded-xl border border-studio-border bg-[#1e1e2e]/95 p-3 shadow-2xl backdrop-blur">
-            {/* Brittney dock toggle */}
-            <button
-              onClick={toggleChatOpen}
-              title={chatOpen ? 'Hide Brittney' : 'Ask Brittney'}
-              className="text-studio-muted transition hover:text-studio-text"
-            >
-              <MessageCircle className="h-4 w-4" />
-            </button>
-            {/* History toggle */}
-            <button
-              onClick={toggleHistoryOpen}
-              title={historyOpen ? 'Hide History' : 'Show History'}
-              className={`transition ${
-                historyOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <History className="h-4 w-4" />
-            </button>
-            {/* Timeline toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.timeline.toggle')}
-              title={timelineOpen ? 'Close Timeline' : 'Open Animation Timeline'}
-              className={`transition ${
-                timelineOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Film className="h-4 w-4" />
-            </button>
-            {/* AI Material toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.aiMaterial.toggle')}
-              title={aiMaterialOpen ? 'Close AI Materials' : 'AI Material Generator'}
-              className={`transition ${
-                aiMaterialOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Sparkles className="h-4 w-4" />
-            </button>
-            {/* Share toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.share.toggle')}
-              title={shareOpen ? 'Close Share' : 'Share Scene'}
-              className={`transition ${
-                shareOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Share2 className="h-4 w-4" />
-            </button>
-            {/* AI Critique toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.critique.toggle')}
-              title={critiqueOpen ? 'Close Critique' : 'Scene Critique (AI)'}
-              className={`transition ${
-                critiqueOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Lightbulb className="h-4 w-4" />
-            </button>
-            {/* Asset Pack toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.assetPack.toggle')}
-              title={assetPackOpen ? 'Close Asset Pack' : 'Import Asset Pack'}
-              className={`transition ${
-                assetPackOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Package className="h-4 w-4" />
-            </button>
-            {/* Versions toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.versions.toggle')}
-              title={versionsOpen ? 'Close Versions' : 'Scene Version History'}
-              className={`transition ${
-                versionsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <GitBranch className="h-4 w-4" />
-            </button>
-            {/* REPL toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.repl.toggle')}
-              title={replOpen ? 'Close REPL' : 'HoloScript REPL'}
-              className={`transition ${
-                replOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Terminal className="h-4 w-4" />
-            </button>
-            {/* Registry toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.registry.toggle')}
-              title={registryOpen ? 'Close Registry' : 'Pack Registry'}
-              className={`transition ${
-                registryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Store className="h-4 w-4" />
-            </button>
-            {/* Mobile Remote toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.remote.toggle')}
-              title={remoteOpen ? 'Close Remote' : 'Mobile Remote (QR)'}
-              className={`transition ${
-                remoteOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Smartphone className="h-4 w-4" />
-            </button>
-            {/* Export toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.export.toggle')}
-              title={exportOpen ? 'Close Export' : 'Export Scene'}
-              className={`transition ${
-                exportOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Download className="h-4 w-4" />
-            </button>
-            {/* AI Generator toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.generator.toggle')}
-              title={generatorOpen ? 'Close AI Generator' : 'AI Scene Generator'}
-              className={`transition ${
-                generatorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Wand2 className="h-4 w-4" />
-            </button>
-            {/* Profiler toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.profiler.toggle')}
-              title={profilerOpen ? 'Close Profiler' : 'Performance Profiler'}
-              className={`transition ${
-                profilerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
-              }`}
-            >
-              <Activity className="h-4 w-4" />
-            </button>
-            {/* Multiplayer toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.multiplayer.toggle')}
-              title={multiplayerOpen ? 'Close Multiplayer' : 'Multiplayer Room'}
-              className={`transition ${multiplayerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Users2 className="h-4 w-4" />
-            </button>
-            {/* Debugger toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.debugger.toggle')}
-              title={debuggerOpen ? 'Close Debugger' : 'HoloScript Debugger'}
-              className={`transition ${debuggerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Bug className="h-4 w-4" />
-            </button>
-            {/* Snapshot Gallery toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.snapshots.toggle')}
-              title={snapshotsOpen ? 'Close Gallery' : 'Snapshot Gallery'}
-              className={`transition ${snapshotsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-            {/* Asset Library toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.assetLib.toggle')}
-              title={assetLibOpen ? 'Close Asset Library' : 'Asset Library v2'}
-              className={`transition ${assetLibOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Library className="h-4 w-4" />
-            </button>
-            {/* Templates gallery toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.templateGallery.toggle')}
-              title={templateGalleryOpen ? 'Close Templates' : 'Scene Templates v2'}
-              className={`transition ${templateGalleryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <LayoutTemplate className="h-4 w-4" />
-            </button>
-            {/* Audio Traits toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.audio.toggle')}
-              title={audioOpen ? 'Close Audio' : 'Audio Traits'}
-              className={`transition ${audioOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Music className="h-4 w-4" />
-            </button>
-            {/* Export Pipeline v2 toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.exportV2.toggle')}
-              title={exportV2Open ? 'Close Export v2' : 'Export Pipeline v2'}
-              className={`transition ${exportV2Open ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Package className="h-4 w-4" />
-            </button>
-            {/* Minimap toggle */}
-            <button
-              onClick={toggleMinimapOpen}
-              title={minimapOpen ? 'Hide Minimap' : 'Show Minimap'}
-              className={`transition ${minimapOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Map className="h-4 w-4" />
-            </button>
-            {/* Node Graph toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.nodeGraph.toggle')}
-              title={nodeGraphOpen ? 'Close Node Graph' : 'Node Graph Editor'}
-              className={`transition ${nodeGraphOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Network className="h-4 w-4" />
-            </button>
-            {/* Keyframe Editor toggle */}
-            <button
-              onClick={() => runViewCommand('studio.view.keyframes.toggle')}
-              title={keyframesOpen ? 'Close Keyframes' : 'Animation Keyframes'}
-              className={`transition ${keyframesOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Timer className="h-4 w-4" />
-            </button>
-            {/* Scene Search toggle */}
-            <button
-              onClick={toggleSceneSearchOpen}
-              title={sceneSearchOpen ? 'Close Scene Search' : 'Scene Search (Ctrl+F)'}
-              className={`transition ${sceneSearchOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <SearchCode className="h-4 w-4" />
-            </button>
-            {/* Particle Traits toggle */}
-            <button
-              onClick={toggleParticlesOpen}
-              title={particlesOpen ? 'Close Particles' : 'Particle Traits'}
-              className={`transition ${particlesOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Flame className="h-4 w-4" />
-            </button>
-            {/* LOD / Camera Culling toggle */}
-            <button
-              onClick={toggleLodOpen}
-              title={lodOpen ? 'Close LOD' : 'LOD / Camera Culling'}
-              className={`transition ${lodOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-            {/* Script Console toggle */}
-            <button
-              onClick={toggleConsoleOpen}
-              title={consoleOpen ? 'Close Console' : 'Script Console'}
-              className={`transition ${consoleOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <TerminalIcon className="h-4 w-4" />
-            </button>
-            {/* Undo History toggle */}
-            <button
-              onClick={toggleUndoHistoryOpen}
-              title={undoHistoryOpen ? 'Close History' : 'Undo History'}
-              className={`transition ${undoHistoryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <ClockIcon className="h-4 w-4" />
-            </button>
-            {/* Scene Outliner toggle */}
-            <button
-              onClick={toggleOutlinerOpen}
-              title={outlinerOpen ? 'Close Outliner' : 'Scene Outliner'}
-              className={`transition ${outlinerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Layers className="h-4 w-4" />
-            </button>
-            {/* Material Editor toggle */}
-            <button
-              onClick={toggleMaterialOpen}
-              title={materialOpen ? 'Close Material Editor' : 'Material Editor'}
-              className={`transition ${materialOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Palette className="h-4 w-4" />
-            </button>
-            {/* Physics Traits toggle */}
-            <button
-              onClick={togglePhysicsOpen}
-              title={physicsOpen ? 'Close Physics' : 'Physics Traits'}
-              className={`transition ${physicsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Atom className="h-4 w-4" />
-            </button>
-            {/* Snapshot Diff toggle */}
-            <button
-              onClick={toggleSnapshotDiffOpen}
-              title={snapshotDiffOpen ? 'Close Diff' : 'Snapshot Diff'}
-              className={`transition ${snapshotDiffOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <GitCompare className="h-4 w-4" />
-            </button>
-            {/* Audio Visualizer toggle */}
-            <button
-              onClick={toggleAudioVisualizerOpen}
-              title={audioVisualizerOpen ? 'Close Audio Visualizer' : 'Audio Visualizer'}
-              className={`transition ${audioVisualizerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Music2 className="h-4 w-4" />
-            </button>
-            {/* Shader Editor toggle */}
-            <button
-              onClick={toggleShaderEditorOpen}
-              title={shaderEditorOpen ? 'Close Shader Editor' : 'Shader Editor'}
-              className={`transition ${shaderEditorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Code2 className="h-4 w-4" />
-            </button>
-            {/* Multi-Object Transform toggle */}
-            <button
-              onClick={toggleMultiTransformOpen}
-              title={multiTransformOpen ? 'Close Multi-Transform' : 'Multi-Object Transform'}
-              className={`transition ${multiTransformOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Move3d className="h-4 w-4" />
-            </button>
-            {/* Scene Critique toggle */}
-            <button
-              onClick={toggleCritiqueOpen}
-              title={critiqueOpen ? 'Close Critique' : 'Scene Critique'}
-              className={`transition ${critiqueOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Bot className="h-4 w-4" />
-            </button>
-            {/* Environment Builder toggle */}
-            <button
-              onClick={toggleEnvironmentOpen}
-              title={environmentOpen ? 'Close Environment' : 'Environment Builder'}
-              className={`transition ${environmentOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Sun className="h-4 w-4" />
-            </button>
-            {/* Foundation DAO governance */}
-            <button
-              onClick={toggleFoundationDaoOpen}
-              title={foundationDaoOpen ? 'Close Foundation DAO' : 'Foundation DAO (governance)'}
-              className={`transition ${foundationDaoOpen ? 'text-amber-400' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Landmark className="h-4 w-4" />
-            </button>
-            {/* Node Inspector toggle */}
-            <button
-              onClick={toggleInspectorOpen}
-              title={inspectorOpen ? 'Close Inspector' : 'Node Inspector'}
-              className={`transition ${inspectorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
-            {/* Plugin Marketplace toggle */}
-            <button
-              onClick={togglePluginsOpen}
-              title={pluginsOpen ? 'Close Plugins' : 'Plugin Marketplace'}
-              className={`transition ${pluginsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Puzzle className="h-4 w-4" />
-            </button>
-            {/* Sandboxed Plugins toggle */}
-            <button
-              onClick={toggleSandboxedPluginsOpen}
-              title={sandboxedPluginsOpen ? 'Close Sandboxed Plugins' : 'Sandboxed Plugins'}
-              className={`transition ${sandboxedPluginsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Shield className="h-4 w-4" />
-            </button>
-            {/* Parametric Sliders toggle (part mode) */}
-            <button
-              onClick={toggleParametricSlidersOpen}
-              title={parametricSlidersOpen ? 'Close Parametric Sliders' : 'Parametric Sliders (Part mode)'}
-              className={`transition ${parametricSlidersOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
-            {/* Printability Report toggle (part mode) */}
-            <button
-              onClick={togglePrintabilityReportOpen}
-              title={printabilityReportOpen ? 'Close Printability Report' : 'Printability Report (Part mode)'}
-              className={`transition ${printabilityReportOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Gauge className="h-4 w-4" />
-            </button>
-            {/* Agent Monitor toggle */}
-            <button
-              onClick={toggleAgentMonitorOpen}
-              title={agentMonitorOpen ? 'Close Agent Monitor' : 'Agent Monitor'}
-              aria-label={agentMonitorOpen ? 'Close Agent Monitor' : 'Open Agent Monitor'}
-              className={`transition ${agentMonitorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Users2 className="h-4 w-4" />
-            </button>
-            {/* Gaussian Splat Capture Wizard toggle */}
-            <button
-              onClick={() => setSplatWizardOpen(true)}
-              title="Open Gaussian Splat Capture Wizard"
-              aria-label="Open Gaussian Splat Capture Wizard"
-              className="text-studio-muted transition hover:text-studio-text"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-            {/* FEA Simulation panel toggle */}
-            <button
-              onClick={toggleSimulationOpen}
-              title={simulationOpen ? 'Close FEA Simulation' : 'FEA Simulation'}
-              aria-label={simulationOpen ? 'Close FEA Simulation' : 'Open FEA Simulation'}
-              className={`transition ${simulationOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Cpu className="h-4 w-4" />
-            </button>
-            {/* Hotkey Map toggle */}
-            <button
-              onClick={toggleHotkeyOpen}
-              title="Keyboard Shortcuts (?)"
-              className={`transition ${hotkeyOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Keyboard className="h-4 w-4" />
-            </button>
-          </div>
+            <div className="absolute right-3 top-12 z-40 grid max-h-[calc(100dvh-6rem)] grid-cols-6 content-start gap-2 overflow-y-auto rounded-xl border border-studio-border bg-[#1e1e2e]/95 p-3 shadow-2xl backdrop-blur">
+              {/* Brittney dock toggle */}
+              <button
+                onClick={toggleChatOpen}
+                title={chatOpen ? 'Hide Brittney' : 'Ask Brittney'}
+                className="text-studio-muted transition hover:text-studio-text"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </button>
+              {/* History toggle */}
+              <button
+                onClick={toggleHistoryOpen}
+                title={historyOpen ? 'Hide History' : 'Show History'}
+                className={`transition ${
+                  historyOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <History className="h-4 w-4" />
+              </button>
+              {/* Timeline toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.timeline.toggle')}
+                title={timelineOpen ? 'Close Timeline' : 'Open Animation Timeline'}
+                className={`transition ${
+                  timelineOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Film className="h-4 w-4" />
+              </button>
+              {/* AI Material toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.aiMaterial.toggle')}
+                title={aiMaterialOpen ? 'Close AI Materials' : 'AI Material Generator'}
+                className={`transition ${
+                  aiMaterialOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Sparkles className="h-4 w-4" />
+              </button>
+              {/* Share toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.share.toggle')}
+                title={shareOpen ? 'Close Share' : 'Share Scene'}
+                className={`transition ${
+                  shareOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+              {/* AI Critique toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.critique.toggle')}
+                title={critiqueOpen ? 'Close Critique' : 'Scene Critique (AI)'}
+                className={`transition ${
+                  critiqueOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Lightbulb className="h-4 w-4" />
+              </button>
+              {/* Asset Pack toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.assetPack.toggle')}
+                title={assetPackOpen ? 'Close Asset Pack' : 'Import Asset Pack'}
+                className={`transition ${
+                  assetPackOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Package className="h-4 w-4" />
+              </button>
+              {/* Versions toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.versions.toggle')}
+                title={versionsOpen ? 'Close Versions' : 'Scene Version History'}
+                className={`transition ${
+                  versionsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <GitBranch className="h-4 w-4" />
+              </button>
+              {/* REPL toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.repl.toggle')}
+                title={replOpen ? 'Close REPL' : 'HoloScript REPL'}
+                className={`transition ${
+                  replOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Terminal className="h-4 w-4" />
+              </button>
+              {/* Registry toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.registry.toggle')}
+                title={registryOpen ? 'Close Registry' : 'Pack Registry'}
+                className={`transition ${
+                  registryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Store className="h-4 w-4" />
+              </button>
+              {/* Mobile Remote toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.remote.toggle')}
+                title={remoteOpen ? 'Close Remote' : 'Mobile Remote (QR)'}
+                className={`transition ${
+                  remoteOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Smartphone className="h-4 w-4" />
+              </button>
+              {/* Export toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.export.toggle')}
+                title={exportOpen ? 'Close Export' : 'Export Scene'}
+                className={`transition ${
+                  exportOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Download className="h-4 w-4" />
+              </button>
+              {/* AI Generator toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.generator.toggle')}
+                title={generatorOpen ? 'Close AI Generator' : 'AI Scene Generator'}
+                className={`transition ${
+                  generatorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Wand2 className="h-4 w-4" />
+              </button>
+              {/* Profiler toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.profiler.toggle')}
+                title={profilerOpen ? 'Close Profiler' : 'Performance Profiler'}
+                className={`transition ${
+                  profilerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Activity className="h-4 w-4" />
+              </button>
+              {/* Multiplayer toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.multiplayer.toggle')}
+                title={multiplayerOpen ? 'Close Multiplayer' : 'Multiplayer Room'}
+                className={`transition ${multiplayerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Users2 className="h-4 w-4" />
+              </button>
+              {/* Debugger toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.debugger.toggle')}
+                title={debuggerOpen ? 'Close Debugger' : 'HoloScript Debugger'}
+                className={`transition ${debuggerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Bug className="h-4 w-4" />
+              </button>
+              {/* Snapshot Gallery toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.snapshots.toggle')}
+                title={snapshotsOpen ? 'Close Gallery' : 'Snapshot Gallery'}
+                className={`transition ${snapshotsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Camera className="h-4 w-4" />
+              </button>
+              {/* Asset Library toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.assetLib.toggle')}
+                title={assetLibOpen ? 'Close Asset Library' : 'Asset Library v2'}
+                className={`transition ${assetLibOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Library className="h-4 w-4" />
+              </button>
+              {/* Templates gallery toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.templateGallery.toggle')}
+                title={templateGalleryOpen ? 'Close Templates' : 'Scene Templates v2'}
+                className={`transition ${templateGalleryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <LayoutTemplate className="h-4 w-4" />
+              </button>
+              {/* Audio Traits toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.audio.toggle')}
+                title={audioOpen ? 'Close Audio' : 'Audio Traits'}
+                className={`transition ${audioOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Music className="h-4 w-4" />
+              </button>
+              {/* Export Pipeline v2 toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.exportV2.toggle')}
+                title={exportV2Open ? 'Close Export v2' : 'Export Pipeline v2'}
+                className={`transition ${exportV2Open ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Package className="h-4 w-4" />
+              </button>
+              {/* Minimap toggle */}
+              <button
+                onClick={toggleMinimapOpen}
+                title={minimapOpen ? 'Hide Minimap' : 'Show Minimap'}
+                className={`transition ${minimapOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Map className="h-4 w-4" />
+              </button>
+              {/* Node Graph toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.nodeGraph.toggle')}
+                title={nodeGraphOpen ? 'Close Node Graph' : 'Node Graph Editor'}
+                className={`transition ${nodeGraphOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Network className="h-4 w-4" />
+              </button>
+              {/* Keyframe Editor toggle */}
+              <button
+                onClick={() => runViewCommand('studio.view.keyframes.toggle')}
+                title={keyframesOpen ? 'Close Keyframes' : 'Animation Keyframes'}
+                className={`transition ${keyframesOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Timer className="h-4 w-4" />
+              </button>
+              {/* Scene Search toggle */}
+              <button
+                onClick={toggleSceneSearchOpen}
+                title={sceneSearchOpen ? 'Close Scene Search' : 'Scene Search (Ctrl+F)'}
+                className={`transition ${sceneSearchOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <SearchCode className="h-4 w-4" />
+              </button>
+              {/* Particle Traits toggle */}
+              <button
+                onClick={toggleParticlesOpen}
+                title={particlesOpen ? 'Close Particles' : 'Particle Traits'}
+                className={`transition ${particlesOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Flame className="h-4 w-4" />
+              </button>
+              {/* LOD / Camera Culling toggle */}
+              <button
+                onClick={toggleLodOpen}
+                title={lodOpen ? 'Close LOD' : 'LOD / Camera Culling'}
+                className={`transition ${lodOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+              {/* Script Console toggle */}
+              <button
+                onClick={toggleConsoleOpen}
+                title={consoleOpen ? 'Close Console' : 'Script Console'}
+                className={`transition ${consoleOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <TerminalIcon className="h-4 w-4" />
+              </button>
+              {/* Undo History toggle */}
+              <button
+                onClick={toggleUndoHistoryOpen}
+                title={undoHistoryOpen ? 'Close History' : 'Undo History'}
+                className={`transition ${undoHistoryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <ClockIcon className="h-4 w-4" />
+              </button>
+              {/* Scene Outliner toggle */}
+              <button
+                onClick={toggleOutlinerOpen}
+                title={outlinerOpen ? 'Close Outliner' : 'Scene Outliner'}
+                className={`transition ${outlinerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Layers className="h-4 w-4" />
+              </button>
+              {/* Material Editor toggle */}
+              <button
+                onClick={toggleMaterialOpen}
+                title={materialOpen ? 'Close Material Editor' : 'Material Editor'}
+                className={`transition ${materialOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Palette className="h-4 w-4" />
+              </button>
+              {/* Physics Traits toggle */}
+              <button
+                onClick={togglePhysicsOpen}
+                title={physicsOpen ? 'Close Physics' : 'Physics Traits'}
+                className={`transition ${physicsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Atom className="h-4 w-4" />
+              </button>
+              {/* Snapshot Diff toggle */}
+              <button
+                onClick={toggleSnapshotDiffOpen}
+                title={snapshotDiffOpen ? 'Close Diff' : 'Snapshot Diff'}
+                className={`transition ${snapshotDiffOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <GitCompare className="h-4 w-4" />
+              </button>
+              {/* Audio Visualizer toggle */}
+              <button
+                onClick={toggleAudioVisualizerOpen}
+                title={audioVisualizerOpen ? 'Close Audio Visualizer' : 'Audio Visualizer'}
+                className={`transition ${audioVisualizerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Music2 className="h-4 w-4" />
+              </button>
+              {/* Shader Editor toggle */}
+              <button
+                onClick={toggleShaderEditorOpen}
+                title={shaderEditorOpen ? 'Close Shader Editor' : 'Shader Editor'}
+                className={`transition ${shaderEditorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Code2 className="h-4 w-4" />
+              </button>
+              {/* Multi-Object Transform toggle */}
+              <button
+                onClick={toggleMultiTransformOpen}
+                title={multiTransformOpen ? 'Close Multi-Transform' : 'Multi-Object Transform'}
+                className={`transition ${multiTransformOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Move3d className="h-4 w-4" />
+              </button>
+              {/* Scene Critique toggle */}
+              <button
+                onClick={toggleCritiqueOpen}
+                title={critiqueOpen ? 'Close Critique' : 'Scene Critique'}
+                className={`transition ${critiqueOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Bot className="h-4 w-4" />
+              </button>
+              {/* Environment Builder toggle */}
+              <button
+                onClick={toggleEnvironmentOpen}
+                title={environmentOpen ? 'Close Environment' : 'Environment Builder'}
+                className={`transition ${environmentOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Sun className="h-4 w-4" />
+              </button>
+              {/* Foundation DAO governance */}
+              <button
+                onClick={toggleFoundationDaoOpen}
+                title={foundationDaoOpen ? 'Close Foundation DAO' : 'Foundation DAO (governance)'}
+                className={`transition ${foundationDaoOpen ? 'text-amber-400' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Landmark className="h-4 w-4" />
+              </button>
+              {/* Node Inspector toggle */}
+              <button
+                onClick={toggleInspectorOpen}
+                title={inspectorOpen ? 'Close Inspector' : 'Node Inspector'}
+                className={`transition ${inspectorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </button>
+              {/* Plugin Marketplace toggle */}
+              <button
+                onClick={togglePluginsOpen}
+                title={pluginsOpen ? 'Close Plugins' : 'Plugin Marketplace'}
+                className={`transition ${pluginsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Puzzle className="h-4 w-4" />
+              </button>
+              {/* Sandboxed Plugins toggle */}
+              <button
+                onClick={toggleSandboxedPluginsOpen}
+                title={sandboxedPluginsOpen ? 'Close Sandboxed Plugins' : 'Sandboxed Plugins'}
+                className={`transition ${sandboxedPluginsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Shield className="h-4 w-4" />
+              </button>
+              {/* Parametric Sliders toggle (part mode) */}
+              <button
+                onClick={toggleParametricSlidersOpen}
+                title={
+                  parametricSlidersOpen
+                    ? 'Close Parametric Sliders'
+                    : 'Parametric Sliders (Part mode)'
+                }
+                className={`transition ${parametricSlidersOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </button>
+              {/* Printability Report toggle (part mode) */}
+              <button
+                onClick={togglePrintabilityReportOpen}
+                title={
+                  printabilityReportOpen
+                    ? 'Close Printability Report'
+                    : 'Printability Report (Part mode)'
+                }
+                className={`transition ${printabilityReportOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Gauge className="h-4 w-4" />
+              </button>
+              {/* Agent Monitor toggle */}
+              <button
+                onClick={toggleAgentMonitorOpen}
+                title={agentMonitorOpen ? 'Close Agent Monitor' : 'Agent Monitor'}
+                aria-label={agentMonitorOpen ? 'Close Agent Monitor' : 'Open Agent Monitor'}
+                className={`transition ${agentMonitorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Users2 className="h-4 w-4" />
+              </button>
+              {/* Gaussian Splat Capture Wizard toggle */}
+              <button
+                onClick={() => setSplatWizardOpen(true)}
+                title="Open Gaussian Splat Capture Wizard"
+                aria-label="Open Gaussian Splat Capture Wizard"
+                className="text-studio-muted transition hover:text-studio-text"
+              >
+                <Camera className="h-4 w-4" />
+              </button>
+              {/* FEA Simulation panel toggle */}
+              <button
+                onClick={toggleSimulationOpen}
+                title={simulationOpen ? 'Close FEA Simulation' : 'FEA Simulation'}
+                aria-label={simulationOpen ? 'Close FEA Simulation' : 'Open FEA Simulation'}
+                className={`transition ${simulationOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Cpu className="h-4 w-4" />
+              </button>
+              {/* Hotkey Map toggle */}
+              <button
+                onClick={toggleHotkeyOpen}
+                title="Keyboard Shortcuts (?)"
+                className={`transition ${hotkeyOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+              >
+                <Keyboard className="h-4 w-4" />
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -1,10 +1,6 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  runSolverHealthProbe,
-  SOLVER_HEALTH_CONFIG,
-  SOLVER_HEALTH_SCHEMA,
-} from '../solver-health';
+import { runSolverHealthProbe, SOLVER_HEALTH_CONFIG, SOLVER_HEALTH_SCHEMA } from '../solver-health';
 
 function canonicalize(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);

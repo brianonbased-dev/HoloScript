@@ -649,7 +649,9 @@ describe('Gate 2: Tool Scope Authorization', () => {
   it('should still authorize the high-risk tools with admin:* or tools:admin', () => {
     for (const tool of HIGH_RISK_UNMAPPED) {
       expect(authorizeToolCall(tool, ['admin:*']).authorized, `${tool} via admin:*`).toBe(true);
-      expect(authorizeToolCall(tool, ['tools:admin']).authorized, `${tool} via tools:admin`).toBe(true);
+      expect(authorizeToolCall(tool, ['tools:admin']).authorized, `${tool} via tools:admin`).toBe(
+        true
+      );
     }
   });
 
@@ -669,9 +671,10 @@ describe('Gate 2: v2g4 scope-map completeness + fail-closed', () => {
 
   it('COMPLETENESS: every registered tool has an EXPLICIT scope (no fail-open default survives)', () => {
     const unmapped = registryNames.filter((n) => !hasExplicitScope(n));
-    expect(unmapped, `registered-but-unmapped tools (would fail-open): ${unmapped.join(', ')}`).toEqual(
-      []
-    );
+    expect(
+      unmapped,
+      `registered-but-unmapped tools (would fail-open): ${unmapped.join(', ')}`
+    ).toEqual([]);
     // and the registry is non-trivial — guards against an empty import masking the check.
     expect(registryNames.length).toBeGreaterThan(400);
   });
@@ -722,9 +725,10 @@ describe('Gate 2: v2g4 scope-map completeness + fail-closed', () => {
     ];
     for (const t of coreReads) {
       expect(hasExplicitScope(t), `${t} must be explicitly mapped`).toBe(true);
-      expect(authorizeToolCall(t, ['tools:read']).authorized, `${t} must work with read scope`).toBe(
-        true
-      );
+      expect(
+        authorizeToolCall(t, ['tools:read']).authorized,
+        `${t} must work with read scope`
+      ).toBe(true);
     }
   });
 

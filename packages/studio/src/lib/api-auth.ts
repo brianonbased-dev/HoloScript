@@ -150,7 +150,12 @@ export async function requireAuthOrApiKey(request: Request) {
       return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
     }
     const rows = await db
-      .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, image: usersTable.image })
+      .select({
+        id: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email,
+        image: usersTable.image,
+      })
       .from(usersTable)
       .where(eq(usersTable.id, keyResult.userId))
       .limit(1);

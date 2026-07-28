@@ -8,7 +8,11 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
-import { HoloScriptPlusParser, HoloCompositionParser, SceneIRCompiler as R3FCompiler } from '@holoscript/core';
+import {
+  HoloScriptPlusParser,
+  HoloCompositionParser,
+  SceneIRCompiler as R3FCompiler,
+} from '@holoscript/core';
 
 // ─── Paths ────────────────────────────────────────────────────────────────────
 

@@ -306,7 +306,11 @@ export function CapabilitiesPanel({ teamId = DEFAULT_TEAM }: { teamId?: string }
         {plan && (
           <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs">
             <div className="flex flex-wrap gap-4 mb-2">
-              <Stat label="dry-run plan" value={plan.dryRun ? 'yes' : 'no'} tone="text-emerald-300" />
+              <Stat
+                label="dry-run plan"
+                value={plan.dryRun ? 'yes' : 'no'}
+                tone="text-emerald-300"
+              />
               <Stat label="agents" value={plan.agentCount ?? 0} />
               <Stat label="open tasks" value={plan.taskCount ?? 0} />
               <Stat
@@ -324,7 +328,9 @@ export function CapabilitiesPanel({ teamId = DEFAULT_TEAM }: { teamId?: string }
                 ))}
               </ul>
             ) : (
-              <p className="text-studio-muted">No dispatch decisions (nothing to assign or cap reached). No spend would occur.</p>
+              <p className="text-studio-muted">
+                No dispatch decisions (nothing to assign or cap reached). No spend would occur.
+              </p>
             )}
           </div>
         )}

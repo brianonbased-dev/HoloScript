@@ -65,14 +65,16 @@ export function TimelineDriver({ node }: { node: R3FNode }) {
   useFrame((state) => {
     if (!autoplay) {
       // Paused at t=0: publish the initial keyframe so consumers have a defined value.
-      for (const [target, track] of tracks) setTimelineValue(target, sampleTrack(track, 0, 'smoothstep'));
+      for (const [target, track] of tracks)
+        setTimelineValue(target, sampleTrack(track, 0, 'smoothstep'));
       return;
     }
     const now = state.clock.elapsedTime;
     if (startRef.current === null) startRef.current = now;
     let playhead = now - startRef.current;
     if (loop && duration > 0) playhead %= duration;
-    for (const [target, track] of tracks) setTimelineValue(target, sampleTrack(track, playhead, 'smoothstep'));
+    for (const [target, track] of tracks)
+      setTimelineValue(target, sampleTrack(track, playhead, 'smoothstep'));
   });
 
   return null;

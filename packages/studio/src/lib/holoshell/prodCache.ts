@@ -37,14 +37,11 @@ export interface HoloShellProdCacheResult {
 export async function readHoloShellProdBundle(): Promise<HoloShellProdCacheResult | null> {
   if (!MCP_KEY) return null;
   try {
-    const r = await fetch(
-      `${MCP_BASE}/api/holomesh/machine-state/${encodeURIComponent(SEAT_ID)}`,
-      {
-        cache: 'no-store',
-        headers: { 'x-mcp-api-key': MCP_KEY, Authorization: `Bearer ${MCP_KEY}` },
-        signal: AbortSignal.timeout(8_000),
-      }
-    );
+    const r = await fetch(`${MCP_BASE}/api/holomesh/machine-state/${encodeURIComponent(SEAT_ID)}`, {
+      cache: 'no-store',
+      headers: { 'x-mcp-api-key': MCP_KEY, Authorization: `Bearer ${MCP_KEY}` },
+      signal: AbortSignal.timeout(8_000),
+    });
     if (!r.ok) return null;
     const j = (await r.json()) as {
       snapshot?: { holoshell?: HoloShellProdBundle };

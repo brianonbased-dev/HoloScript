@@ -347,9 +347,7 @@ export function summarizeResourceFlow(value: unknown): ResourceFlowSummary | und
           freshnessStatus: stringValue(spendAccounting.freshness_status) || 'invalid',
           ageMs: finiteNumber(spendAccounting.age_ms),
           vendorTotalUsd: finiteNumber(spendAccounting.vendor_total_usd),
-          observedPurchasedComputeUsd: finiteNumber(
-            spendAccounting.observed_purchased_compute_usd
-          ),
+          observedPurchasedComputeUsd: finiteNumber(spendAccounting.observed_purchased_compute_usd),
           monetaryComplete: spendAccounting.monetary_complete === true,
           monetaryGapReasons: Array.isArray(spendAccounting.monetary_gap_reasons)
             ? spendAccounting.monetary_gap_reasons.filter(
@@ -364,12 +362,8 @@ export function summarizeResourceFlow(value: unknown): ResourceFlowSummary | und
             : [],
           capApplicable: spendAccounting.cap_applicable === true,
           capUsd: finiteNumber(spendAccounting.cap_usd),
-          observedAdmissionVerdict: stringValue(
-            spendAccounting.observed_admission_verdict
-          ),
-          trustedAdmissionVerdict: stringValue(
-            spendAccounting.trusted_admission_verdict
-          ),
+          observedAdmissionVerdict: stringValue(spendAccounting.observed_admission_verdict),
+          trustedAdmissionVerdict: stringValue(spendAccounting.trusted_admission_verdict),
           trustedHeadroomUsd: finiteNumber(spendAccounting.trusted_headroom_usd),
         }
       : undefined,

@@ -715,7 +715,8 @@ async function verifyAgentToken(args: Record<string, unknown>): Promise<Record<s
 
   const valid = presentation.valid && (!envelopeChecked || envelopeValid === true);
   const errorCode =
-    presentation.errorCode ?? (envelopeChecked && envelopeValid !== true ? 'ENVELOPE_INVALID' : undefined);
+    presentation.errorCode ??
+    (envelopeChecked && envelopeValid !== true ? 'ENVELOPE_INVALID' : undefined);
   const error =
     presentation.error ??
     (envelopeChecked && envelopeValid !== true
@@ -794,9 +795,7 @@ async function checkPermission(args: Record<string, unknown>): Promise<Record<st
   };
 }
 
-async function getDelegationChain(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function getDelegationChain(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const token = requiredString(args.token, 'token');
 
   const presentation = verifyPresentation(token);

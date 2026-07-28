@@ -78,7 +78,10 @@ function parseDegradedServices(task?: BoardTask): string[] {
   const text = taskText(task);
   const degradedLine = text.match(/Degraded services:\s*([^\n]+)/i)?.[1]?.trim();
   if (degradedLine && !/^none$/i.test(degradedLine)) {
-    return degradedLine.split(',').map((item) => item.trim()).filter(Boolean);
+    return degradedLine
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
   const rows = [...text.matchAll(/^([^:\n]+):\s*live=.*?ok=no\s*$/gim)]
     .map((match) => match[1]?.trim())
@@ -90,18 +93,18 @@ export async function GET(req: NextRequest) {
   const teamId = req.nextUrl.searchParams.get('teamId') || DEFAULT_TEAM;
   const board = await fetchHoloMeshJson<BoardResponse>(
     `/api/holomesh/team/${encodeURIComponent(teamId)}/board?limit=500`,
-    req,
+    req
   );
   if (!board.ok) {
     return NextResponse.json(
       { ok: false, error: `board ${board.status}`, teamId },
-      { status: board.status >= 400 ? board.status : 502 },
+      { status: board.status >= 400 ? board.status : 502 }
     );
   }
 
   const done = await fetchHoloMeshJson<DoneResponse>(
     `/api/holomesh/team/${encodeURIComponent(teamId)}/board/done?limit=20&offset=0`,
-    req,
+    req
   );
 
   const active = flattenBoardTasks(board.data)
@@ -113,8 +116,19 @@ export async function GET(req: NextRequest) {
 
   const latest = active[0] ?? recentDone[0];
   const degradedServices = parseDegradedServices(latest);
-  const details = latest ? taskText(latest).split(/\r?\n/).filter((line) => /live=|deploy=/.test(line)) : [];
-  const state = active.length > 0 ? 'degraded' : latest ? (degradedServices.length ? 'degraded' : 'ok') : 'unknown';
+  const details = latest
+    ? taskText(latest)
+        .split(/\r?\n/)
+        .filter((line) => /live=|deploy=/.test(line))
+    : [];
+  const state =
+    active.length > 0
+      ? 'degraded'
+      : latest
+        ? degradedServices.length
+          ? 'degraded'
+          : 'ok'
+        : 'unknown';
 
   return NextResponse.json({
     ok: true,

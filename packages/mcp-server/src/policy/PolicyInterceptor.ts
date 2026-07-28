@@ -202,17 +202,30 @@ function findPolicyPackTrait(node: unknown, depth = 0): ParsedTraitDirective | n
  * (rules are evaluated in fixture order); falls back to
  * `pack.default_decision` when no rule matches or the tool has no rules.
  */
-export function evaluatePolicy(pack: PolicyPack, request: PolicyInterceptorRequest): PolicyDecision {
+export function evaluatePolicy(
+  pack: PolicyPack,
+  request: PolicyInterceptorRequest
+): PolicyDecision {
   const toolRules = pack.rules.filter((r) => r.tool === request.tool);
 
   for (const rule of toolRules) {
     if (rule.when_agent_in && rule.when_agent_in.includes(request.callerId)) {
-      return { decision: rule.decision, policyId: pack.policy_id, ruleId: rule.rule_id, reason: rule.reason };
+      return {
+        decision: rule.decision,
+        policyId: pack.policy_id,
+        ruleId: rule.rule_id,
+        reason: rule.reason,
+      };
     }
     if (rule.when_capability_ref_prefix) {
       const capRef = String(request.args?.capabilityRef ?? '');
       if (capRef.startsWith(rule.when_capability_ref_prefix)) {
-        return { decision: rule.decision, policyId: pack.policy_id, ruleId: rule.rule_id, reason: rule.reason };
+        return {
+          decision: rule.decision,
+          policyId: pack.policy_id,
+          ruleId: rule.rule_id,
+          reason: rule.reason,
+        };
       }
     }
   }

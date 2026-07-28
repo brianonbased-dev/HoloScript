@@ -601,7 +601,8 @@ export const textTo3DTools: Tool[] = [
         pose: {
           type: 'string',
           enum: ['t-pose', 'a-pose'],
-          description: 'Bind pose for native auto-rigging. Defaults to t-pose when rig is provided.',
+          description:
+            'Bind pose for native auto-rigging. Defaults to t-pose when rig is provided.',
         },
       },
       required: ['description'],

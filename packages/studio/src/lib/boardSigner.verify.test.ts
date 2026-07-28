@@ -59,7 +59,11 @@ describe('boardSigner ⇄ server request-signing verifier (F.113)', () => {
       env: { STUDIO_SEAT_SIGNING_KEY: generatePrivateKey() },
     });
     const local = buildSigningPayload(env);
-    const server = serverBuildPayload({ body: env.body, nonce: env.nonce, timestamp: env.timestamp });
+    const server = serverBuildPayload({
+      body: env.body,
+      nonce: env.nonce,
+      timestamp: env.timestamp,
+    });
     expect(local).toBe(server);
   });
 

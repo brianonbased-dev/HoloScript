@@ -1,9 +1,6 @@
 import { createServer, type Server } from 'http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  handleSovereign3DRoute,
-  resetSovereign3DJobsForTest,
-} from '../sovereign-3d-backend';
+import { handleSovereign3DRoute, resetSovereign3DJobsForTest } from '../sovereign-3d-backend';
 
 function listen(server: Server): Promise<number> {
   return new Promise((resolve) => {

@@ -126,7 +126,12 @@ export class PostgresMeshToolStoreBackend implements MeshToolStoreBackend {
         `INSERT INTO holomesh_mesh_tools (id, name, publisher_agent_id, data, last_healthy_at, updated_at)
          VALUES ($1, $2, $3, $4, NOW(), NOW())
          ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
-        [manifest.id, manifest.name, manifest.attestation.publisherAgentId, JSON.stringify(manifest)]
+        [
+          manifest.id,
+          manifest.name,
+          manifest.attestation.publisherAgentId,
+          JSON.stringify(manifest),
+        ]
       );
       await client.query('COMMIT');
     } catch (e) {
@@ -144,9 +149,7 @@ export class PostgresMeshToolStoreBackend implements MeshToolStoreBackend {
 
   async getAll(): Promise<MeshToolStoreRow[]> {
     await this.ready;
-    const result = await this.pool.query(
-      'SELECT data, last_healthy_at FROM holomesh_mesh_tools'
-    );
+    const result = await this.pool.query('SELECT data, last_healthy_at FROM holomesh_mesh_tools');
     return result.rows.map((row) => ({
       manifest: row.data as MeshToolManifest,
       lastHealthyAt: new Date(row.last_healthy_at ?? Date.now()).toISOString(),

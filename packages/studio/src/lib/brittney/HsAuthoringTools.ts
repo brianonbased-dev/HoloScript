@@ -66,7 +66,13 @@ const hsRefactor: StudioToolDefinition = {
         },
         operation: {
           type: 'string',
-          enum: ['rename', 'extract_template', 'inline_template', 'organize_imports', 'group_objects'],
+          enum: [
+            'rename',
+            'extract_template',
+            'inline_template',
+            'organize_imports',
+            'group_objects',
+          ],
           description: 'Refactor operation',
         },
         target: {

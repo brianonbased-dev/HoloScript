@@ -166,9 +166,7 @@ function isStringArray(value: unknown): value is string[] {
  * Read the namespaced frame from MCP `_meta`.
  * `undefined` means no frame was supplied; `null` means supplied but invalid.
  */
-export function frameDeclarationFromMcpMeta(
-  meta: unknown
-): FrameDeclaration | null | undefined {
+export function frameDeclarationFromMcpMeta(meta: unknown): FrameDeclaration | null | undefined {
   if (
     !isRecord(meta) ||
     !Object.prototype.hasOwnProperty.call(meta, FRAME_DECLARATION_MCP_META_KEY)
@@ -347,9 +345,7 @@ export async function gateToolCall<T>(
       status,
       ...(extra?.errorClass !== undefined ? { errorClass: extra.errorClass } : {}),
       ...(extra?.deniedBy !== undefined ? { deniedBy: extra.deniedBy } : {}),
-      ...(extra?.frameViolation !== undefined
-        ? { frameViolation: extra.frameViolation }
-        : {}),
+      ...(extra?.frameViolation !== undefined ? { frameViolation: extra.frameViolation } : {}),
     });
   };
 

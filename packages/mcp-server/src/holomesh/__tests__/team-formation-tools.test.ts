@@ -85,7 +85,10 @@ describe('holomesh_team_form roster source (setTeamFormationRosterSource wiring)
       team_id: 'team_test_seeded',
     })) as {
       success: boolean;
-      team: { members: Array<{ agentId: string; agentName: string; capabilities: string[] }>; capabilityCoverage: number };
+      team: {
+        members: Array<{ agentId: string; agentName: string; capabilities: string[] }>;
+        capabilityCoverage: number;
+      };
     };
 
     expect(result.success).toBe(true);

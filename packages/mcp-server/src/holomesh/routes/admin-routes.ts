@@ -311,7 +311,11 @@ export async function handleAdminRoutes(
       actor: { agentId: caller.id, agentName: caller.name, wallet: caller.wallet },
       action: 'update_scopes',
       path: pathname,
-      before: { agent_id: existingRecord.agentId, scopes: before, bridged_from_public: bridgedFromPublic },
+      before: {
+        agent_id: existingRecord.agentId,
+        scopes: before,
+        bridged_from_public: bridgedFromPublic,
+      },
       after: { agent_id: existingRecord.agentId, scopes: existingRecord.scopes },
     });
 

@@ -139,7 +139,8 @@ export const generateMeshTools: Tool[] = [
         resolution: {
           type: 'array',
           items: { type: 'number' },
-          description: '[nx,ny,nz] sample grid (default [48,48,48], >=2 per axis). Higher = finer at O(N^3) cost.',
+          description:
+            '[nx,ny,nz] sample grid (default [48,48,48], >=2 per axis). Higher = finer at O(N^3) cost.',
         },
         bounds: {
           type: 'object',
@@ -149,14 +150,23 @@ export const generateMeshTools: Tool[] = [
             max: { type: 'array', items: { type: 'number' } },
           },
         },
-        isoLevel: { type: 'number', description: 'Iso-surface level (default 0 = zero level-set).' },
-        scaleFactor: { type: 'number', description: 'Uniform output scale applied after meshing (default 1).' },
+        isoLevel: {
+          type: 'number',
+          description: 'Iso-surface level (default 0 = zero level-set).',
+        },
+        scaleFactor: {
+          type: 'number',
+          description: 'Uniform output scale applied after meshing (default 1).',
+        },
         output: {
           type: 'string',
           enum: ['stats', 'stl-ascii', 'stl-binary'],
           description: 'stats (counts only, default) or include an STL export.',
         },
-        prompt: { type: 'string', description: 'Text description (mode=prompt; not yet enabled here).' },
+        prompt: {
+          type: 'string',
+          description: 'Text description (mode=prompt; not yet enabled here).',
+        },
         provider: {
           type: 'string',
           enum: ['meshy', 'tripo'],

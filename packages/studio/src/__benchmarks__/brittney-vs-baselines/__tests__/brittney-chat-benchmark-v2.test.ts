@@ -3,12 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildKnownTraitSet, parseHolo } from '@holoscript/core';
 
-const FIXTURE_PATH = path.resolve(
-  __dirname,
-  '..',
-  'fixtures',
-  'brittney-chat-benchmark-v2.holo'
-);
+const FIXTURE_PATH = path.resolve(__dirname, '..', 'fixtures', 'brittney-chat-benchmark-v2.holo');
 
 const LEGACY_UNKNOWN_TRAITS = [
   'trait',

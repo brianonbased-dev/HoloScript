@@ -79,16 +79,14 @@ describe('/api/absorb/knowledge/earnings route', () => {
   it('returns text wrapper when MCP tool returns non-JSON text', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response(
-            JSON.stringify({
-              result: { content: [{ type: 'text', text: 'plain-text-response' }] },
-            }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } }
-          )
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            result: { content: [{ type: 'text', text: 'plain-text-response' }] },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
         )
+      )
     );
 
     const req = new NextRequest('http://localhost/api/absorb/knowledge/earnings');

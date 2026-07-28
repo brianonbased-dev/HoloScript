@@ -55,9 +55,7 @@ describe('/api/workspace/build route', () => {
   });
 
   it('rejects script names that fail the charset check', async () => {
-    const res = await POST(
-      buildRequest({ workspacePath: repoPath, script: 'build && rm -rf /' })
-    );
+    const res = await POST(buildRequest({ workspacePath: repoPath, script: 'build && rm -rf /' }));
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/must match/i);
   });

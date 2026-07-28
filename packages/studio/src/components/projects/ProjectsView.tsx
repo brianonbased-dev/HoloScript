@@ -38,8 +38,7 @@ type ProjectsTab = 'projects' | 'repos';
 
 export function ProjectsView() {
   const searchParams = useSearchParams();
-  const initialTab: ProjectsTab =
-    searchParams?.get('tab') === 'repos' ? 'repos' : 'projects';
+  const initialTab: ProjectsTab = searchParams?.get('tab') === 'repos' ? 'repos' : 'projects';
   const [activeTab, setActiveTab] = useState<ProjectsTab>(initialTab);
 
   const { repos, isLoading, error, search, setSearch, isConnected, connectionError } =

@@ -367,7 +367,9 @@ describe('FleetPanel telemetry mapping', () => {
     expect(screen.getByText('Vast vendor spend')).toBeInTheDocument();
     expect(screen.getByText('Purchased-compute cap')).toBeInTheDocument();
     expect(screen.getByText(/\$0\.0760 observed/)).toBeInTheDocument();
-    expect(screen.getByText(/\$99\.9240 trusted headroom of \$100\.0000 daily cap/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/\$99\.9240 trusted headroom of \$100\.0000 daily cap/)
+    ).toBeInTheDocument();
     expect(screen.getByText(/under-cap/)).toBeInTheDocument();
     expect(screen.getByText(/monetary complete/)).toBeInTheDocument();
     expect(screen.getByText(/provenance incomplete \(4 gaps\)/)).toBeInTheDocument();

@@ -50,10 +50,7 @@ function httpCtx(scopes: string[]): ToolCallGateContext {
   return { transport: 'http', callerId: 'agent-test', scopes };
 }
 
-async function runCheck(
-  name: string,
-  ctx: ToolCallGateContext
-): Promise<ToolCallCheckDecision> {
+async function runCheck(name: string, ctx: ToolCallGateContext): Promise<ToolCallCheckDecision> {
   return await founderGateX402ToolCallCheck({ name, args: {} }, ctx);
 }
 
