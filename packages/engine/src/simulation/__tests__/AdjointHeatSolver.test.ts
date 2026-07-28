@@ -14,7 +14,7 @@ import { AdjointHeatSolver } from '../AdjointHeatSolver';
 
 function lcg(seed: number): () => number {
   // Park-Miller LCG, period 2^31-2
-  let s = (seed >>> 0) || 1;
+  let s = seed >>> 0 || 1;
   return () => {
     s = Math.imul(s, 48271) % 2147483647;
     return s / 2147483647; // (0, 1)
@@ -29,7 +29,9 @@ function lcg(seed: number): () => number {
  * this alpha/dx combination).
  */
 function makeFixture(seed = 42) {
-  const nx = 8, ny = 8, nz = 8;
+  const nx = 8,
+    ny = 8,
+    nz = 8;
   const N = nx * ny * nz;
   const rand = lcg(seed);
 
@@ -38,9 +40,9 @@ function makeFixture(seed = 42) {
   const weights = new Float64Array(N);
 
   for (let n = 0; n < N; n++) {
-    source[n] = (rand() - 0.5) * 2;   // [-1, 1]
-    initialT[n] = rand() * 10;        // [0, 10]
-    weights[n] = rand();              // [0, 1]
+    source[n] = (rand() - 0.5) * 2; // [-1, 1]
+    initialT[n] = rand() * 10; // [0, 10]
+    weights[n] = rand(); // [0, 1]
   }
 
   // alpha = 0.01 m²/s, dx = 1/(8-1) ≈ 0.143 m
@@ -119,7 +121,8 @@ describe('AdjointHeatSolver — dJ/dS gradient vs finite differences', () => {
       const TPlus = solverPlus.forward(STEPS);
       const TMinus = solverMinus.forward(STEPS);
 
-      let jPlus = 0, jMinus = 0;
+      let jPlus = 0,
+        jMinus = 0;
       for (let n = 0; n < N; n++) {
         jPlus += weights[n] * TPlus[n];
         jMinus += weights[n] * TMinus[n];
@@ -193,7 +196,8 @@ describe('AdjointHeatSolver — dJ/dT0 gradient vs finite differences', () => {
       const TPlus = solverPlus.forward(STEPS);
       const TMinus = solverMinus.forward(STEPS);
 
-      let jPlus = 0, jMinus = 0;
+      let jPlus = 0,
+        jMinus = 0;
       for (let n = 0; n < N; n++) {
         jPlus += weights[n] * TPlus[n];
         jMinus += weights[n] * TMinus[n];
@@ -258,7 +262,9 @@ describe('AdjointHeatSolver — CFL sub-stepping', () => {
     // alpha = 0.01, dx = 1/7 ≈ 0.143
     // dt_stable ≈ 0.9 * 0.143^2 / (2*0.01*3) ≈ 0.305 s
     // We request dt = 2.0 s — well beyond stability limit, requiring ceil(2.0/0.305) = 7 sub-steps
-    const nx = 8, ny = 8, nz = 8;
+    const nx = 8,
+      ny = 8,
+      nz = 8;
     const N = nx * ny * nz;
     const rand = lcg(777);
 
@@ -313,7 +319,8 @@ describe('AdjointHeatSolver — CFL sub-stepping', () => {
     const TPlus = makeSolver(sPlus).forward(STEPS);
     const TMinus = makeSolver(sMinus).forward(STEPS);
 
-    let jPlus = 0, jMinus = 0;
+    let jPlus = 0,
+      jMinus = 0;
     for (let n = 0; n < N; n++) {
       jPlus += weights[n] * TPlus[n];
       jMinus += weights[n] * TMinus[n];

@@ -46,11 +46,15 @@ export interface CoherenceVerdict {
  */
 export function occlusionImpliesNotVisible(
   occlusion: MeaningResolution<OcclusionRecovery>,
-  access: MeaningResolution<UAALAccessRecovery>,
+  access: MeaningResolution<UAALAccessRecovery>
 ): CoherenceVerdict {
   const check = 'visual-occlusion⇒access';
   if (occlusion.status !== 'resolved' || access.status !== 'resolved') {
-    return { check, coherent: true, detail: 'vacuous — a resolver abstained, no verdict to contradict' };
+    return {
+      check,
+      coherent: true,
+      detail: 'vacuous — a resolver abstained, no verdict to contradict',
+    };
   }
   const occluded = occlusion.answer?.occluded === true;
   const visuallyAccessible = access.answer?.access?.visual === true;
@@ -61,7 +65,11 @@ export function occlusionImpliesNotVisible(
       detail: `impossible scene: object is occluded behind "${occlusion.answer?.occluder}" yet resolves visually accessible`,
     };
   }
-  return { check, coherent: true, detail: occluded ? 'occluded and not visible — coherent' : 'not occluded' };
+  return {
+    check,
+    coherent: true,
+    detail: occluded ? 'occluded and not visible — coherent' : 'not occluded',
+  };
 }
 
 /**
@@ -71,9 +79,12 @@ export function occlusionImpliesNotVisible(
 export function checkVisualCoherence(
   ir: UAALContainmentIR,
   agent: string | undefined,
-  object: string | undefined,
+  object: string | undefined
 ): CoherenceVerdict {
-  return occlusionImpliesNotVisible(resolveOcclusion(ir, agent, object), resolveAccess(ir, agent, object));
+  return occlusionImpliesNotVisible(
+    resolveOcclusion(ir, agent, object),
+    resolveAccess(ir, agent, object)
+  );
 }
 
 /** Aggregate verdict over every registered cross-family check for one containment-scene query. */
@@ -89,7 +100,7 @@ export interface CrossFamilyConsistency {
  */
 export function crossFamilyConsistency(
   ir: UAALContainmentIR,
-  query: { agent?: string; object?: string },
+  query: { agent?: string; object?: string }
 ): CrossFamilyConsistency {
   const checks: CoherenceVerdict[] = [checkVisualCoherence(ir, query.agent, query.object)];
   const violations = checks.filter((c) => !c.coherent);

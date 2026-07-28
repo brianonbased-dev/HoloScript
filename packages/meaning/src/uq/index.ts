@@ -8,9 +8,5 @@
  * Consumed downstream by the ai-ecosystem receipt emitters (they feed graded outcomes in; this module
  * only computes the distribution-free bound — it never grades).
  */
-export type {
-  GradedOutcome,
-  ConformalCoverageBound,
-  MondrianCoverageReport,
-} from './conformal';
+export type { GradedOutcome, ConformalCoverageBound, MondrianCoverageReport } from './conformal';
 export { conformalCoverageBound, conformalCoverageByFamily } from './conformal';

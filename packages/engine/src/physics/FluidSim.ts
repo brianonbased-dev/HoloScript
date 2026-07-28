@@ -189,7 +189,10 @@ export class FluidSim {
       const pi = this.particles[idx];
       pi.density = 0;
       const neighborIds = this.spatialHash.queryRadius(
-        pi.position[0], pi.position[1], pi.position[2], h
+        pi.position[0],
+        pi.position[1],
+        pi.position[2],
+        h
       );
       for (const jId of neighborIds) {
         const pj = this.particles[parseInt(jId, 10)];
@@ -205,10 +208,15 @@ export class FluidSim {
     // 2. Compute forces & integrate (O(N) via spatial hash)
     for (let idx = 0; idx < this.particles.length; idx++) {
       const pi = this.particles[idx];
-      let fx = 0, fy = 0, fz = 0;
+      let fx = 0,
+        fy = 0,
+        fz = 0;
 
       const neighborIds = this.spatialHash.queryRadius(
-        pi.position[0], pi.position[1], pi.position[2], h
+        pi.position[0],
+        pi.position[1],
+        pi.position[2],
+        h
       );
       for (const jId of neighborIds) {
         const jIdx = parseInt(jId, 10);

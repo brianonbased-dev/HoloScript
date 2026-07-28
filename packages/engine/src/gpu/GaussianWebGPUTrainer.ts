@@ -52,7 +52,22 @@ const UNIFORM_BYTES = 32;
 /** Must match FIXED_POINT_SCALE in splat-train-backward.wgsl. */
 const FIXED_POINT_SCALE = 65536;
 
-const PARAMS = ['x', 'y', 'z', 'sx', 'sy', 'sz', 'qr', 'qx', 'qy', 'qz', 'op', 'r', 'gr', 'bl'] as const;
+const PARAMS = [
+  'x',
+  'y',
+  'z',
+  'sx',
+  'sy',
+  'sz',
+  'qr',
+  'qx',
+  'qy',
+  'qz',
+  'op',
+  'r',
+  'gr',
+  'bl',
+] as const;
 type Param = (typeof PARAMS)[number];
 
 // ─── utilities (exported for tests) ─────────────────────────────────────────
@@ -66,7 +81,7 @@ export function packGauss2D(g2: Gaussian2D): Float32Array {
   const out = new Float32Array(g2.N * GAUSS_FLOATS);
   for (let i = 0; i < g2.N; i++) {
     const b = i * GAUSS_FLOATS;
-    out[b]     = g2.posx[i];
+    out[b] = g2.posx[i];
     out[b + 1] = g2.posy[i];
     out[b + 2] = g2.a[i];
     out[b + 3] = g2.b[i];
@@ -85,21 +100,26 @@ export function packGauss2D(g2: Gaussian2D): Float32Array {
  */
 export function unpackGrad(raw: Int32Array, N: number): Gaussian2DGrad {
   const scale = 1 / FIXED_POINT_SCALE;
-  const posx = new Float64Array(N), posy = new Float64Array(N);
-  const a = new Float64Array(N), b = new Float64Array(N), c = new Float64Array(N);
-  const r = new Float64Array(N), gr = new Float64Array(N), bl = new Float64Array(N);
+  const posx = new Float64Array(N),
+    posy = new Float64Array(N);
+  const a = new Float64Array(N),
+    b = new Float64Array(N),
+    c = new Float64Array(N);
+  const r = new Float64Array(N),
+    gr = new Float64Array(N),
+    bl = new Float64Array(N);
   const op = new Float64Array(N);
   for (let i = 0; i < N; i++) {
     const base = i * GRAD_SLOTS;
-    posx[i] = raw[base]     * scale;
+    posx[i] = raw[base] * scale;
     posy[i] = raw[base + 1] * scale;
-    a[i]    = raw[base + 2] * scale;
-    b[i]    = raw[base + 3] * scale;
-    c[i]    = raw[base + 4] * scale;
-    r[i]    = raw[base + 5] * scale;
-    gr[i]   = raw[base + 6] * scale;
-    bl[i]   = raw[base + 7] * scale;
-    op[i]   = raw[base + 8] * scale;
+    a[i] = raw[base + 2] * scale;
+    b[i] = raw[base + 3] * scale;
+    c[i] = raw[base + 4] * scale;
+    r[i] = raw[base + 5] * scale;
+    gr[i] = raw[base + 6] * scale;
+    bl[i] = raw[base + 7] * scale;
+    op[i] = raw[base + 8] * scale;
   }
   return { posx, posy, a, b, c, r, gr, bl, op };
 }
@@ -134,7 +154,7 @@ export class GaussianWebGPUTrainer {
   /** Compile shader modules and create compute pipelines. Must be called once before dispatch. */
   async init(): Promise<void> {
     const d = this.dev;
-    const fwdMod = d.createShaderModule({ code: forwardWGSL,  label: 'splat-train-fwd' });
+    const fwdMod = d.createShaderModule({ code: forwardWGSL, label: 'splat-train-fwd' });
     const bwdMod = d.createShaderModule({ code: backwardWGSL, label: 'splat-train-bwd' });
     [this.fwdPipeline, this.bwdPipeline] = await Promise.all([
       d.createComputePipelineAsync({
@@ -158,23 +178,64 @@ export class GaussianWebGPUTrainer {
     const U = GPUBufferUsage;
     // Minimum size 4 to avoid zero-size buffer creation errors on some backends.
     const splatSz = Math.max(4, N * GAUSS_BYTES);
-    const gradSz  = Math.max(4, N * GRAD_SLOTS * 4);
-    this.uniformBuf  = d.createBuffer({ size: UNIFORM_BYTES,  usage: U.UNIFORM | U.COPY_DST,                     label: 'train-uniforms' });
-    this.splatBuf    = d.createBuffer({ size: splatSz,        usage: U.STORAGE | U.COPY_DST,                     label: 'train-splats'   });
-    this.imgBuf      = d.createBuffer({ size: pix * 3 * 4,   usage: U.STORAGE | U.COPY_SRC | U.COPY_DST,        label: 'train-img'      });
-    this.dLBuf       = d.createBuffer({ size: pix * 3 * 4,   usage: U.STORAGE | U.COPY_DST,                     label: 'train-dL'       });
-    this.gradBuf     = d.createBuffer({ size: gradSz,         usage: U.STORAGE | U.COPY_SRC | U.COPY_DST,        label: 'train-grad'     });
-    this.readbackImg  = d.createBuffer({ size: pix * 3 * 4,  usage: U.MAP_READ | U.COPY_DST,                     label: 'rb-img'         });
-    this.readbackGrad = d.createBuffer({ size: gradSz,        usage: U.MAP_READ | U.COPY_DST,                     label: 'rb-grad'        });
-    this.allocN = N; this.allocW = W; this.allocH = H;
+    const gradSz = Math.max(4, N * GRAD_SLOTS * 4);
+    this.uniformBuf = d.createBuffer({
+      size: UNIFORM_BYTES,
+      usage: U.UNIFORM | U.COPY_DST,
+      label: 'train-uniforms',
+    });
+    this.splatBuf = d.createBuffer({
+      size: splatSz,
+      usage: U.STORAGE | U.COPY_DST,
+      label: 'train-splats',
+    });
+    this.imgBuf = d.createBuffer({
+      size: pix * 3 * 4,
+      usage: U.STORAGE | U.COPY_SRC | U.COPY_DST,
+      label: 'train-img',
+    });
+    this.dLBuf = d.createBuffer({
+      size: pix * 3 * 4,
+      usage: U.STORAGE | U.COPY_DST,
+      label: 'train-dL',
+    });
+    this.gradBuf = d.createBuffer({
+      size: gradSz,
+      usage: U.STORAGE | U.COPY_SRC | U.COPY_DST,
+      label: 'train-grad',
+    });
+    this.readbackImg = d.createBuffer({
+      size: pix * 3 * 4,
+      usage: U.MAP_READ | U.COPY_DST,
+      label: 'rb-img',
+    });
+    this.readbackGrad = d.createBuffer({
+      size: gradSz,
+      usage: U.MAP_READ | U.COPY_DST,
+      label: 'rb-grad',
+    });
+    this.allocN = N;
+    this.allocW = W;
+    this.allocH = H;
   }
 
-  private writeUniforms(W: number, H: number, N: number, bg: readonly [number, number, number]): void {
+  private writeUniforms(
+    W: number,
+    H: number,
+    N: number,
+    bg: readonly [number, number, number]
+  ): void {
     const buf = new ArrayBuffer(UNIFORM_BYTES);
     const ui = new Uint32Array(buf);
     const uf = new Float32Array(buf);
-    ui[0] = W; ui[1] = H; ui[2] = N; ui[3] = 0;
-    uf[4] = bg[0]; uf[5] = bg[1]; uf[6] = bg[2]; uf[7] = 0;
+    ui[0] = W;
+    ui[1] = H;
+    ui[2] = N;
+    ui[3] = 0;
+    uf[4] = bg[0];
+    uf[5] = bg[1];
+    uf[6] = bg[2];
+    uf[7] = 0;
     this.dev.queue.writeBuffer(this.uniformBuf!, 0, buf);
   }
 
@@ -187,13 +248,20 @@ export class GaussianWebGPUTrainer {
     N: number,
     W: number,
     H: number,
-    bg: readonly [number, number, number] = [0, 0, 0],
+    bg: readonly [number, number, number] = [0, 0, 0]
   ): Promise<Float32Array> {
-    if (!this.fwdPipeline) throw new Error('GaussianWebGPUTrainer: call init() before renderFrame()');
+    if (!this.fwdPipeline)
+      throw new Error('GaussianWebGPUTrainer: call init() before renderFrame()');
     this.ensureBuffers(N, W, H);
     const d = this.dev;
     this.writeUniforms(W, H, N, bg);
-    d.queue.writeBuffer(this.splatBuf!, 0, packed.buffer as ArrayBuffer, packed.byteOffset, packed.byteLength);
+    d.queue.writeBuffer(
+      this.splatBuf!,
+      0,
+      packed.buffer as ArrayBuffer,
+      packed.byteOffset,
+      packed.byteLength
+    );
 
     const enc = d.createCommandEncoder({ label: 'fwd-enc' });
     enc.clearBuffer(this.imgBuf!);
@@ -201,8 +269,8 @@ export class GaussianWebGPUTrainer {
       layout: this.fwdPipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.uniformBuf! } },
-        { binding: 1, resource: { buffer: this.splatBuf!   } },
-        { binding: 2, resource: { buffer: this.imgBuf!     } },
+        { binding: 1, resource: { buffer: this.splatBuf! } },
+        { binding: 2, resource: { buffer: this.imgBuf! } },
       ],
     });
     const pass = enc.beginComputePass({ label: 'fwd-pass' });
@@ -229,14 +297,27 @@ export class GaussianWebGPUTrainer {
     W: number,
     H: number,
     dLimg: Float32Array,
-    bg: readonly [number, number, number] = [0, 0, 0],
+    bg: readonly [number, number, number] = [0, 0, 0]
   ): Promise<Gaussian2DGrad> {
-    if (!this.bwdPipeline) throw new Error('GaussianWebGPUTrainer: call init() before computeGradients()');
+    if (!this.bwdPipeline)
+      throw new Error('GaussianWebGPUTrainer: call init() before computeGradients()');
     this.ensureBuffers(N, W, H);
     const d = this.dev;
     this.writeUniforms(W, H, N, bg);
-    d.queue.writeBuffer(this.splatBuf!, 0, packed.buffer as ArrayBuffer, packed.byteOffset, packed.byteLength);
-    d.queue.writeBuffer(this.dLBuf!,   0, dLimg.buffer  as ArrayBuffer, dLimg.byteOffset,  dLimg.byteLength);
+    d.queue.writeBuffer(
+      this.splatBuf!,
+      0,
+      packed.buffer as ArrayBuffer,
+      packed.byteOffset,
+      packed.byteLength
+    );
+    d.queue.writeBuffer(
+      this.dLBuf!,
+      0,
+      dLimg.buffer as ArrayBuffer,
+      dLimg.byteOffset,
+      dLimg.byteLength
+    );
 
     const enc = d.createCommandEncoder({ label: 'bwd-enc' });
     enc.clearBuffer(this.gradBuf!);
@@ -244,9 +325,9 @@ export class GaussianWebGPUTrainer {
       layout: this.bwdPipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.uniformBuf! } },
-        { binding: 1, resource: { buffer: this.splatBuf!   } },
-        { binding: 2, resource: { buffer: this.dLBuf!      } },
-        { binding: 3, resource: { buffer: this.gradBuf!    } },
+        { binding: 1, resource: { buffer: this.splatBuf! } },
+        { binding: 2, resource: { buffer: this.dLBuf! } },
+        { binding: 3, resource: { buffer: this.gradBuf! } },
       ],
     });
     const pass = enc.beginComputePass({ label: 'bwd-pass' });
@@ -264,14 +345,23 @@ export class GaussianWebGPUTrainer {
   }
 
   private destroyBuffers(): void {
-    this.uniformBuf?.destroy();   this.uniformBuf  = null;
-    this.splatBuf?.destroy();     this.splatBuf    = null;
-    this.imgBuf?.destroy();       this.imgBuf      = null;
-    this.dLBuf?.destroy();        this.dLBuf       = null;
-    this.gradBuf?.destroy();      this.gradBuf     = null;
-    this.readbackImg?.destroy();  this.readbackImg  = null;
-    this.readbackGrad?.destroy(); this.readbackGrad = null;
-    this.allocN = 0; this.allocW = 0; this.allocH = 0;
+    this.uniformBuf?.destroy();
+    this.uniformBuf = null;
+    this.splatBuf?.destroy();
+    this.splatBuf = null;
+    this.imgBuf?.destroy();
+    this.imgBuf = null;
+    this.dLBuf?.destroy();
+    this.dLBuf = null;
+    this.gradBuf?.destroy();
+    this.gradBuf = null;
+    this.readbackImg?.destroy();
+    this.readbackImg = null;
+    this.readbackGrad?.destroy();
+    this.readbackGrad = null;
+    this.allocN = 0;
+    this.allocW = 0;
+    this.allocH = 0;
   }
 
   /** Release all GPU resources. Call when training is complete. */
@@ -301,7 +391,7 @@ export async function runGaussianTrainJobGPU(
   initial: Gaussian3D,
   views: TrainView[],
   bg: readonly [number, number, number] = [0, 0, 0],
-  onProgress?: (iter: number, loss: number) => void,
+  onProgress?: (iter: number, loss: number) => void
 ): Promise<TrainResult> {
   if (views.length === 0) throw new Error('runGaussianTrainJobGPU: no training views provided');
 
@@ -312,18 +402,40 @@ export async function runGaussianTrainJobGPU(
 
   function lrMap(): Record<Param, number> {
     const lr = job.hyperparams.learningRates;
-    return { x: lr.position, y: lr.position, z: lr.position, sx: lr.scale, sy: lr.scale, sz: lr.scale, qr: lr.rotation, qx: lr.rotation, qy: lr.rotation, qz: lr.rotation, op: lr.opacity, r: lr.color, gr: lr.color, bl: lr.color };
+    return {
+      x: lr.position,
+      y: lr.position,
+      z: lr.position,
+      sx: lr.scale,
+      sy: lr.scale,
+      sz: lr.scale,
+      qr: lr.rotation,
+      qx: lr.rotation,
+      qy: lr.rotation,
+      qz: lr.rotation,
+      op: lr.opacity,
+      r: lr.color,
+      gr: lr.color,
+      bl: lr.color,
+    };
   }
   const zeros = (n: number): Float64Array => new Float64Array(n);
 
-  let m: Record<string, Float64Array> = {}, vAdam: Record<string, Float64Array> = {};
-  for (const p of PARAMS) { m[p] = zeros(g.N); vAdam[p] = zeros(g.N); }
+  let m: Record<string, Float64Array> = {},
+    vAdam: Record<string, Float64Array> = {};
+  for (const p of PARAMS) {
+    m[p] = zeros(g.N);
+    vAdam[p] = zeros(g.N);
+  }
 
-  const b1 = 0.9, b2 = 0.999, eps = 1e-8;
+  const b1 = 0.9,
+    b2 = 0.999,
+    eps = 1e-8;
   let gradAccum2d = zeros(g.N);
   let accumCount = 0;
   const lossHistory: number[] = [];
-  let initialLoss = 0, loss = 0;
+  let initialLoss = 0,
+    loss = 0;
   const lr = lrMap();
 
   for (let it = 0; it < iters; it++) {
@@ -370,39 +482,73 @@ export async function runGaussianTrainJobGPU(
     // Adam step with per-group learning rates.
     const t = it + 1;
     for (const p of PARAMS) {
-      const gp = G[p], mp = m[p], vp = vAdam[p];
+      const gp = G[p],
+        mp = m[p],
+        vp = vAdam[p];
       const buf = (g as unknown as Record<Param, Float64Array>)[p];
       const step = lr[p];
       for (let i = 0; i < N; i++) {
         const gr = gp[i];
         mp[i] = b1 * mp[i] + (1 - b1) * gr;
         vp[i] = b2 * vp[i] + (1 - b2) * gr * gr;
-        buf[i] -= step * (mp[i] / (1 - b1 ** t)) / (Math.sqrt(vp[i] / (1 - b2 ** t)) + eps);
-        if      (p === 'op')                          buf[i] = Math.max(0.02, Math.min(0.999, buf[i]));
+        buf[i] -= (step * (mp[i] / (1 - b1 ** t))) / (Math.sqrt(vp[i] / (1 - b2 ** t)) + eps);
+        if (p === 'op') buf[i] = Math.max(0.02, Math.min(0.999, buf[i]));
         else if (p === 'sx' || p === 'sy' || p === 'sz') buf[i] = Math.max(0.02, buf[i]);
-        else if (p === 'r' || p === 'gr' || p === 'bl')  buf[i] = Math.max(0, Math.min(1, buf[i]));
+        else if (p === 'r' || p === 'gr' || p === 'bl') buf[i] = Math.max(0, Math.min(1, buf[i]));
       }
     }
 
     // Adaptive density control (mirrors GaussianTrainRunner densification block).
-    if (dc && it >= dc.fromIter && it <= dc.untilIter && (it + 1) % dc.interval === 0 && accumCount > 0) {
+    if (
+      dc &&
+      it >= dc.fromIter &&
+      it <= dc.untilIter &&
+      (it + 1) % dc.interval === 0 &&
+      accumCount > 0
+    ) {
       const avgGrad2d = new Float64Array(g.N);
       for (let i = 0; i < g.N; i++) avgGrad2d[i] = gradAccum2d[i] / accumCount;
       const { gaussians, origin } = densifyAndPrune(
-        g, { avgGrad2d },
-        { gradThreshold: dc.gradThreshold, opacityPrune: dc.opacityPrune, scaleThreshold: dc.scaleThreshold, splitFactor: dc.splitFactor, maxGaussians: dc.maxGaussians },
-        rng,
+        g,
+        { avgGrad2d },
+        {
+          gradThreshold: dc.gradThreshold,
+          opacityPrune: dc.opacityPrune,
+          scaleThreshold: dc.scaleThreshold,
+          splitFactor: dc.splitFactor,
+          maxGaussians: dc.maxGaussians,
+        },
+        rng
       );
-      const nm: Record<string, Float64Array> = {}, nv: Record<string, Float64Array> = {};
+      const nm: Record<string, Float64Array> = {},
+        nv: Record<string, Float64Array> = {};
       for (const p of PARAMS) {
-        const a = zeros(gaussians.N), b = zeros(gaussians.N);
-        for (let j = 0; j < gaussians.N; j++) { const o = origin[j]; if (o >= 0) { a[j] = m[p][o]; b[j] = vAdam[p][o]; } }
-        nm[p] = a; nv[p] = b;
+        const a = zeros(gaussians.N),
+          b = zeros(gaussians.N);
+        for (let j = 0; j < gaussians.N; j++) {
+          const o = origin[j];
+          if (o >= 0) {
+            a[j] = m[p][o];
+            b[j] = vAdam[p][o];
+          }
+        }
+        nm[p] = a;
+        nv[p] = b;
       }
-      g = gaussians; m = nm; vAdam = nv;
-      gradAccum2d = zeros(g.N); accumCount = 0;
+      g = gaussians;
+      m = nm;
+      vAdam = nv;
+      gradAccum2d = zeros(g.N);
+      accumCount = 0;
     }
   }
 
-  return { gaussians: g, initialLoss, finalLoss: loss, iterations: iters, lossHistory, finalCount: g.N };
+  return {
+    gaussians: g,
+    initialLoss,
+    finalLoss: loss,
+    iterations: iters,
+    lossHistory,
+    finalCount: g.N,
+  };
 }

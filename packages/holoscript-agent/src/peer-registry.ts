@@ -59,7 +59,9 @@ export function resolvePeer(
   let candidates = registry;
   if (opts.capability) {
     const cap = opts.capability.toLowerCase();
-    candidates = registry.filter((e) => (e.capabilities ?? []).some((c) => c.toLowerCase() === cap));
+    candidates = registry.filter((e) =>
+      (e.capabilities ?? []).some((c) => c.toLowerCase() === cap)
+    );
     if (candidates.length === 0) return null; // requested capability unavailable
   }
 

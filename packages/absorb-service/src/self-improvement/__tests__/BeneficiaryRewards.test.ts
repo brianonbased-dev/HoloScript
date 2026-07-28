@@ -50,9 +50,7 @@ describe('isFabricatedClaim (honesty gate)', () => {
   });
 
   it('does NOT flag a verification claim that carries checkable evidence', () => {
-    expect(
-      isFabricatedClaim('verified: commit a64535892, validation=vitest PASS')
-    ).toBe(false);
+    expect(isFabricatedClaim('verified: commit a64535892, validation=vitest PASS')).toBe(false);
     expect(isFabricatedClaim('All tests green (12/12).')).toBe(false);
     expect(isFabricatedClaim('validated — see packages/holollama/src/index.ts')).toBe(false);
   });
@@ -135,7 +133,10 @@ describe('composeBeneficiaryReward — hard human floor', () => {
   });
 
   it('within the floor, dials the three by role (balanced)', () => {
-    const r = composeBeneficiaryReward({ rSelf: 1, rAgents: 1, rHumans: 1 }, DEFAULT_BENEFICIARY_CONFIG);
+    const r = composeBeneficiaryReward(
+      { rSelf: 1, rAgents: 1, rHumans: 1 },
+      DEFAULT_BENEFICIARY_CONFIG
+    );
     expect(r.reward).toBeCloseTo(1.0, 6); // 0.34 + 0.33 + 0.33
     expect(r.floorBreached).toBeNull();
   });
@@ -182,7 +183,10 @@ describe('composeBeneficiaryReward — served + dials + validation', () => {
   });
 
   it('clamps out-of-range scores', () => {
-    const r = composeBeneficiaryReward({ rSelf: 5, rAgents: -3, rHumans: 1 }, DEFAULT_BENEFICIARY_CONFIG);
+    const r = composeBeneficiaryReward(
+      { rSelf: 5, rAgents: -3, rHumans: 1 },
+      DEFAULT_BENEFICIARY_CONFIG
+    );
     expect(r.self).toBe(1);
     expect(r.agents).toBe(0);
     expect(r.reward).toBeLessThanOrEqual(1);

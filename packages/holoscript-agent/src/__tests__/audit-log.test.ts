@@ -93,19 +93,21 @@ describe('AuditLog', () => {
     const path = tmpLog();
     const log = new AuditLog({ logPath: path });
 
-    expect(() => log.recordTaskExecuted({
-      identity: IDENTITY,
-      task: TASK,
-      result: RESULT,
-      agentAttributeClaims: [
-        {
-          attribute: 'care',
-          claim: 'The agent cares.',
-          behaviorRefs: [],
-          evidenceRefs: ['audit:task_g10'],
-        } as never,
-      ],
-    })).toThrow(/invalid agentAttributeClaims/);
+    expect(() =>
+      log.recordTaskExecuted({
+        identity: IDENTITY,
+        task: TASK,
+        result: RESULT,
+        agentAttributeClaims: [
+          {
+            attribute: 'care',
+            claim: 'The agent cares.',
+            behaviorRefs: [],
+            evidenceRefs: ['audit:task_g10'],
+          } as never,
+        ],
+      })
+    ).toThrow(/invalid agentAttributeClaims/);
   });
 
   it('appends multiple events without overwriting (audit trail must be immutable)', () => {

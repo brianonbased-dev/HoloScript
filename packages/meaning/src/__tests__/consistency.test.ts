@@ -17,7 +17,11 @@ const acc = (visual: boolean): MeaningResolution<UAALAccessRecovery> => ({
   status: 'resolved',
   answer: { access: { visual, audible: true }, blocker: { visual: null, audible: null } },
 });
-const abstain = (): MeaningResolution<never> => ({ query: 'q', status: 'unresolvable', reason: 'underdetermined' });
+const abstain = (): MeaningResolution<never> => ({
+  query: 'q',
+  status: 'unresolvable',
+  reason: 'underdetermined',
+});
 
 describe('cross-family consistency — the meta-semantic layer', () => {
   describe('occlusionImpliesNotVisible (pure predicate)', () => {

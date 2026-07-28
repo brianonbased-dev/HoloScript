@@ -13,11 +13,15 @@
 import { describe, it, expect } from 'vitest';
 import { forward2D } from '../GaussianTrainer2D';
 import { forward3D, type Gaussian3D } from '../GaussianTrainer3D';
-import { runGaussianTrainJob, type GaussianTrainJobSpec, type TrainView } from '../GaussianTrainRunner';
+import {
+  runGaussianTrainJob,
+  type GaussianTrainJobSpec,
+  type TrainView,
+} from '../GaussianTrainRunner';
 import { cameraFromViewMatrix, cameraScaled, viewsFromFrames } from '../GaussianTrainDataset';
 
 function seeded(s: number): () => number {
-  return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
 }
 function makeScene(seed: number, N: number): Gaussian3D {
   const R = seeded(seed);
@@ -40,16 +44,29 @@ function makeScene(seed: number, N: number): Gaussian3D {
   };
 }
 function rotY(t: number): number[] {
-  const c = Math.cos(t), s = Math.sin(t);
+  const c = Math.cos(t),
+    s = Math.sin(t);
   return [c, 0, s, 0, 1, 0, -s, 0, c]; // row-major world→camera rotation
 }
 /** Column-major 4x4 view matrix from a row-major 3x3 rotation + translation (the cam.json format). */
 function buildViewMatrix(Rr: number[], t: [number, number, number]): number[] {
   return [
-    Rr[0], Rr[3], Rr[6], 0,
-    Rr[1], Rr[4], Rr[7], 0,
-    Rr[2], Rr[5], Rr[8], 0,
-    t[0], t[1], t[2], 1,
+    Rr[0],
+    Rr[3],
+    Rr[6],
+    0,
+    Rr[1],
+    Rr[4],
+    Rr[7],
+    0,
+    Rr[2],
+    Rr[5],
+    Rr[8],
+    0,
+    t[0],
+    t[1],
+    t[2],
+    1,
   ];
 }
 
@@ -96,7 +113,9 @@ describe('cameraFromViewMatrix — capture pose adapter', () => {
 
 describe('sovereign trainer — multi-view fit (the real-capture path)', () => {
   it('fits a scene from 3 distinct viewpoints; summed loss collapses and every view is reproduced', () => {
-    const W = 48, H = 36, fx = 60;
+    const W = 48,
+      H = 36,
+      fx = 60;
     const truth = makeScene(99, 90);
     // 3 cameras around the scene, built through the capture-pose adapter.
     const angles = [-0.3, 0, 0.3];
@@ -122,7 +141,8 @@ describe('sovereign trainer — multi-view fit (the real-capture path)', () => {
     // AND every individual view is reproduced (can't fake this by overfitting one viewpoint)
     for (const f of frames) {
       const { img } = forward2D(forward3D(result.gaussians, f.cam, W, H).g2, W, H);
-      let L0 = 0, L1 = 0;
+      let L0 = 0,
+        L1 = 0;
       const init = forward2D(forward3D(makeScene(3, 90), f.cam, W, H).g2, W, H).img;
       for (let k = 0; k < img.length; k++) {
         L1 += (img[k] - f.target[k]) ** 2;
@@ -133,11 +153,21 @@ describe('sovereign trainer — multi-view fit (the real-capture path)', () => {
   });
 
   it('viewsFromFrames assembles TrainViews from decoded posed frames (with optional downsample)', () => {
-    const W = 16, H = 12;
+    const W = 16,
+      H = 12;
     const target = new Float64Array(W * H * 3);
     const views = viewsFromFrames(
-      [{ viewMatrix: buildViewMatrix(rotY(0), [0, 0, 5]), focalX: 100, focalY: 100, target, width: W, height: H }],
-      1,
+      [
+        {
+          viewMatrix: buildViewMatrix(rotY(0), [0, 0, 5]),
+          focalX: 100,
+          focalY: 100,
+          target,
+          width: W,
+          height: H,
+        },
+      ],
+      1
     );
     expect(views).toHaveLength(1);
     expect(views[0].W).toBe(W);

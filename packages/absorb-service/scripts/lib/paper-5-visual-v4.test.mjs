@@ -32,12 +32,7 @@ const protocol = {
   },
   design: {
     candidateCount: 8,
-    arms: [
-      { id: 'text' },
-      { id: 'relations' },
-      { id: 'pixels' },
-      { id: 'relations-pixels' },
-    ],
+    arms: [{ id: 'text' }, { id: 'relations' }, { id: 'pixels' }, { id: 'relations-pixels' }],
   },
   agentProtocol: {
     minimumIndependentVisionCapableAgentFamilies: 3,
@@ -139,10 +134,7 @@ test('renders deterministic real PNG bytes and verifies multimodal content custo
   const first = renderPaper5VisualV4Png({ candidates, relations });
   const second = renderPaper5VisualV4Png({ candidates, relations });
   assert.equal(first.receipt.sha256, second.receipt.sha256);
-  assert.deepEqual(
-    [...first.png.subarray(0, 8)],
-    [137, 80, 78, 71, 13, 10, 26, 10]
-  );
+  assert.deepEqual([...first.png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   assert.equal(first.receipt.width, 1600);
   assert.equal(first.receipt.height, 900);
 
@@ -158,12 +150,7 @@ test('builds four arms with one literal image requirement and no gold leakage', 
     query: dataset.queries[0],
     protocol,
   });
-  assert.deepEqual(Object.keys(packet.arms), [
-    'text',
-    'relations',
-    'pixels',
-    'relations-pixels',
-  ]);
+  assert.deepEqual(Object.keys(packet.arms), ['text', 'relations', 'pixels', 'relations-pixels']);
   assert.equal(packet.arms.pixels.literalImageRequired, true);
   assert.equal(packet.arms['relations-pixels'].literalImageRequired, true);
   assert.equal(packet.arms.text.literalImageRequired, undefined);
@@ -181,10 +168,7 @@ test('requires three independently receipted vision families and three trials', 
       providerVersionReceiptSha256: hash,
     })),
   };
-  assert.equal(
-    auditPaper5VisualV4ExecutionPlan({ protocol, executionPlan }).status,
-    'pass'
-  );
+  assert.equal(auditPaper5VisualV4ExecutionPlan({ protocol, executionPlan }).status, 'pass');
   executionPlan.modelFamilies.pop();
   const blocked = auditPaper5VisualV4ExecutionPlan({ protocol, executionPlan });
   assert.equal(blocked.status, 'blocked');

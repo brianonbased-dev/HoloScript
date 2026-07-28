@@ -25,8 +25,12 @@ import { type TrainView } from './GaussianTrainRunner';
 
 /** ARCore camera-image intrinsics (pixels, for the full image resolution). */
 export interface CaptureIntrinsics {
-  fx: number; fy: number; cx: number; cy: number;
-  imageWidth: number; imageHeight: number;
+  fx: number;
+  fy: number;
+  cx: number;
+  cy: number;
+  imageWidth: number;
+  imageHeight: number;
 }
 
 /** One banked frame from the depthprobe manifest. */
@@ -54,7 +58,11 @@ function poseRt(m: ArrayLike<number>): { R: number[]; t: [number, number, number
  * Convert an ARCore camera-to-world pose into the trainer's SplatCamera (world→CV pinhole), scaled to
  * a render width (intrinsics scale with resolution; centre-principal stays consistent).
  */
-export function cameraFromArcorePose(pose: ArrayLike<number>, intr: CaptureIntrinsics, renderWidth: number): SplatCamera {
+export function cameraFromArcorePose(
+  pose: ArrayLike<number>,
+  intr: CaptureIntrinsics,
+  renderWidth: number
+): SplatCamera {
   const { R, t } = poseRt(pose);
   const Rt = [R[0], R[3], R[6], R[1], R[4], R[7], R[2], R[5], R[8]]; // transpose = world→GL rotation
   const Vrow = [Rt[0], Rt[1], Rt[2], -Rt[3], -Rt[4], -Rt[5], -Rt[6], -Rt[7], -Rt[8]]; // D · Rᵀ
@@ -68,35 +76,50 @@ export function cameraFromArcorePose(pose: ArrayLike<number>, intr: CaptureIntri
 }
 
 /** A back-projected world point with its source depth-pixel (for colour lookup). */
-export interface DepthPoint { x: number; y: number; z: number; du: number; dv: number; }
+export interface DepthPoint {
+  x: number;
+  y: number;
+  z: number;
+  du: number;
+  dv: number;
+}
 
 /**
  * Back-project a frame's depth map into world-space points (subsampled by `step`, depth gated to
  * `[minM, maxM]` metres). Uses the full-image intrinsics with depth-pixel→image-pixel scaling.
  */
 export function backprojectDepth(
-  frame: CaptureFrame, intr: CaptureIntrinsics,
-  opts: { step?: number; minM?: number; maxM?: number } = {},
+  frame: CaptureFrame,
+  intr: CaptureIntrinsics,
+  opts: { step?: number; minM?: number; maxM?: number } = {}
 ): DepthPoint[] {
-  const step = opts.step ?? 3, minM = opts.minM ?? 0.1, maxM = opts.maxM ?? 6;
+  const step = opts.step ?? 3,
+    minM = opts.minM ?? 0.1,
+    maxM = opts.maxM ?? 6;
   const { R, t } = poseRt(frame.cameraTransformColumnMajor4x4);
-  const DW = frame.depthWidth, DH = frame.depthHeight;
-  const sxImg = intr.imageWidth / DW, syImg = intr.imageHeight / DH;
+  const DW = frame.depthWidth,
+    DH = frame.depthHeight;
+  const sxImg = intr.imageWidth / DW,
+    syImg = intr.imageHeight / DH;
   const out: DepthPoint[] = [];
-  for (let dv = 0; dv < DH; dv += step) for (let du = 0; du < DW; du += step) {
-    const z = frame.depthMillimeters[dv * DW + du] / 1000;
-    if (!(z > minM && z < maxM)) continue;
-    const X = ((du + 0.5) * sxImg - intr.cx) * z / intr.fx;
-    const Y = ((dv + 0.5) * syImg - intr.cy) * z / intr.fy;
-    // CV (X,Y,Z) → GL (X,−Y,−Z) → world = R·GL + t_cw
-    const gx = X, gy = -Y, gz = -z;
-    out.push({
-      x: R[0] * gx + R[1] * gy + R[2] * gz + t[0],
-      y: R[3] * gx + R[4] * gy + R[5] * gz + t[1],
-      z: R[6] * gx + R[7] * gy + R[8] * gz + t[2],
-      du, dv,
-    });
-  }
+  for (let dv = 0; dv < DH; dv += step)
+    for (let du = 0; du < DW; du += step) {
+      const z = frame.depthMillimeters[dv * DW + du] / 1000;
+      if (!(z > minM && z < maxM)) continue;
+      const X = (((du + 0.5) * sxImg - intr.cx) * z) / intr.fx;
+      const Y = (((dv + 0.5) * syImg - intr.cy) * z) / intr.fy;
+      // CV (X,Y,Z) → GL (X,−Y,−Z) → world = R·GL + t_cw
+      const gx = X,
+        gy = -Y,
+        gz = -z;
+      out.push({
+        x: R[0] * gx + R[1] * gy + R[2] * gz + t[0],
+        y: R[3] * gx + R[4] * gy + R[5] * gz + t[1],
+        z: R[6] * gx + R[7] * gy + R[8] * gz + t[2],
+        du,
+        dv,
+      });
+    }
   return out;
 }
 
@@ -108,39 +131,65 @@ export type DecodeFrame = (frameIndex: number, width: number, height: number) =>
  * frame (sampled at depth resolution), isotropic small scale, identity rotation, high opacity.
  */
 export function captureToGaussianInit(
-  manifest: CaptureManifest, decode: DecodeFrame,
-  opts: { step?: number; minM?: number; maxM?: number; scale?: number; opacity?: number } = {},
+  manifest: CaptureManifest,
+  decode: DecodeFrame,
+  opts: { step?: number; minM?: number; maxM?: number; scale?: number; opacity?: number } = {}
 ): Gaussian3D {
-  const scale = opts.scale ?? 0.012, opacity = opts.opacity ?? 0.8;
-  const px: number[] = [], py: number[] = [], pz: number[] = [], pr: number[] = [], pg: number[] = [], pb: number[] = [];
+  const scale = opts.scale ?? 0.012,
+    opacity = opts.opacity ?? 0.8;
+  const px: number[] = [],
+    py: number[] = [],
+    pz: number[] = [],
+    pr: number[] = [],
+    pg: number[] = [],
+    pb: number[] = [];
   for (const f of manifest.frames) {
     const rgb = decode(f.index, f.depthWidth, f.depthHeight); // colour sampled at depth res
     for (const p of backprojectDepth(f, manifest.intrinsics, opts)) {
       const o = (p.dv * f.depthWidth + p.du) * 3;
-      px.push(p.x); py.push(p.y); pz.push(p.z); pr.push(rgb[o]); pg.push(rgb[o + 1]); pb.push(rgb[o + 2]);
+      px.push(p.x);
+      py.push(p.y);
+      pz.push(p.z);
+      pr.push(rgb[o]);
+      pg.push(rgb[o + 1]);
+      pb.push(rgb[o + 2]);
     }
   }
   const N = px.length;
   return {
     N,
-    x: Float64Array.from(px), y: Float64Array.from(py), z: Float64Array.from(pz),
-    sx: new Float64Array(N).fill(scale), sy: new Float64Array(N).fill(scale), sz: new Float64Array(N).fill(scale),
-    qr: new Float64Array(N).fill(1), qx: new Float64Array(N), qy: new Float64Array(N), qz: new Float64Array(N),
+    x: Float64Array.from(px),
+    y: Float64Array.from(py),
+    z: Float64Array.from(pz),
+    sx: new Float64Array(N).fill(scale),
+    sy: new Float64Array(N).fill(scale),
+    sz: new Float64Array(N).fill(scale),
+    qr: new Float64Array(N).fill(1),
+    qx: new Float64Array(N),
+    qy: new Float64Array(N),
+    qz: new Float64Array(N),
     op: new Float64Array(N).fill(opacity),
-    r: Float64Array.from(pr), gr: Float64Array.from(pg), bl: Float64Array.from(pb),
+    r: Float64Array.from(pr),
+    gr: Float64Array.from(pg),
+    bl: Float64Array.from(pb),
   };
 }
 
 /** Build posed TrainViews at a render resolution (every `viewStep`-th frame). */
 export function captureToViews(
-  manifest: CaptureManifest, decode: DecodeFrame, renderWidth: number, renderHeight: number, viewStep = 1,
+  manifest: CaptureManifest,
+  decode: DecodeFrame,
+  renderWidth: number,
+  renderHeight: number,
+  viewStep = 1
 ): TrainView[] {
   const views: TrainView[] = [];
   for (let i = 0; i < manifest.frames.length; i += viewStep) {
     const f = manifest.frames[i];
     views.push({
       cam: cameraFromArcorePose(f.cameraTransformColumnMajor4x4, manifest.intrinsics, renderWidth),
-      W: renderWidth, H: renderHeight,
+      W: renderWidth,
+      H: renderHeight,
       target: decode(f.index, renderWidth, renderHeight),
     });
   }

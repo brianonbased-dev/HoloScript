@@ -89,17 +89,22 @@ export const AUTOMATION_SAFETY_SCREENS: ReadonlyArray<{ name: string; pattern: R
   { name: 'lease', pattern: /\blease\b|\bwithlease\b/i },
   {
     name: 'custody',
-    pattern: /\bcustody\b|\bwallets?\b|\bprivate[- ]keys?\b|\bseed[- ]phrase\b|\btrezor\b|\bsigning[- ]keys?\b/i,
+    pattern:
+      /\bcustody\b|\bwallets?\b|\bprivate[- ]keys?\b|\bseed[- ]phrase\b|\btrezor\b|\bsigning[- ]keys?\b/i,
   },
   {
     name: 'fleet-destroy',
-    pattern: /\bfleet\b|\bautoscal\w*\b|\bvast\b|\bgpu\b|\bdestroy\b|\bterminate\b|\bdeprovision\b/i,
+    pattern:
+      /\bfleet\b|\bautoscal\w*\b|\bvast\b|\bgpu\b|\bdestroy\b|\bterminate\b|\bdeprovision\b/i,
   },
   {
     name: 'secret',
     pattern: /\bsecrets?\b|\bcredentials?\b|\bapi[-_ ]?keys?\b|\brotat(?:e|ion|ing)\b|\b\.env\b/i,
   },
-  { name: 'deploy', pattern: /\bdeploys?\b|\bdeployment\b|\brailway\b|\bpublish\b|\bforce[- ]push\b/i },
+  {
+    name: 'deploy',
+    pattern: /\bdeploys?\b|\bdeployment\b|\brailway\b|\bpublish\b|\bforce[- ]push\b/i,
+  },
 ];
 
 /** Description bounds — a claimable prompt task must be self-contained and bounded. */
@@ -146,7 +151,9 @@ export function screenAutomationTask(task: BoardTask, agentCapabilityTags: strin
 export function priorityRank(priority: string | number | undefined): number {
   if (typeof priority === 'number') return Number.isFinite(priority) ? priority : 9;
   const named: Record<string, number> = { critical: 1, high: 2, medium: 4, normal: 4, low: 6 };
-  const raw = String(priority ?? '').trim().toLowerCase();
+  const raw = String(priority ?? '')
+    .trim()
+    .toLowerCase();
   if (raw in named) return named[raw];
   const n = parseInt(raw.replace(/^p/i, ''), 10);
   return Number.isFinite(n) ? n : 9;
@@ -197,7 +204,8 @@ export function selectAutomationTask(
     if (byPriority !== 0) return byPriority;
     const aCreated = a.createdAt ? Date.parse(a.createdAt) : Number.POSITIVE_INFINITY;
     const bCreated = b.createdAt ? Date.parse(b.createdAt) : Number.POSITIVE_INFINITY;
-    const byAge = (Number.isFinite(aCreated) ? aCreated : Number.POSITIVE_INFINITY) -
+    const byAge =
+      (Number.isFinite(aCreated) ? aCreated : Number.POSITIVE_INFINITY) -
       (Number.isFinite(bCreated) ? bCreated : Number.POSITIVE_INFINITY);
     if (byAge !== 0) return byAge;
     return a.id.localeCompare(b.id);

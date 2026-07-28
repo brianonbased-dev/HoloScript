@@ -71,9 +71,7 @@ let _uaal: UaalModule | undefined;
  * always-present ESM shim which throws for dynamic package loads.
  */
 function getRequire(): NodeRequire {
-  return createRequire(
-    typeof __filename !== 'undefined' ? __filename : import.meta.url
-  );
+  return createRequire(typeof __filename !== 'undefined' ? __filename : import.meta.url);
 }
 
 function lazyUaal(): UaalModule {
@@ -547,7 +545,8 @@ export async function executeN4TypedMoveRoundTrip(
   }
   const entity = matches[0]!;
   const transform = holoVM.world.getComponent<TransformComponent>(entity.id, 0x01);
-  if (!transform) throw new Error(`N4 runtime target "${action.entityId}" has no Transform component`);
+  if (!transform)
+    throw new Error(`N4 runtime target "${action.entityId}" has no Transform component`);
   const before: Vec3 = [...transform.position];
 
   const { UAALOpCode } = lazyUaal();
@@ -574,10 +573,9 @@ export async function executeN4TypedMoveRoundTrip(
   if (!afterTransform) throw new Error('N4 runtime mutation removed the target Transform');
   const after: Vec3 = [...afterTransform.position];
   const mutationApplied =
-    after[0] === action.position.x &&
-    after[1] === action.position.y &&
-    after[2] === before[2];
-  if (!mutationApplied) throw new Error('N4 runtime action did not produce the declared HoloVM mutation');
+    after[0] === action.position.x && after[1] === action.position.y && after[2] === before[2];
+  if (!mutationApplied)
+    throw new Error('N4 runtime action did not produce the declared HoloVM mutation');
 
   let uaalLog: UAALExecutionLog;
   try {

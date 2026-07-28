@@ -167,10 +167,7 @@ describe('WebGPUBackendRenderer — ECSWorld→IDrawCall connector (stubbed GPU)
     const webgpu = (renderer as unknown as { webgpu: unknown }).webgpu as Record<string, unknown>;
     webgpu['context'] = { device };
     (webgpu['pipelines'] as Map<string, GPURenderPipeline>).set('unlit-native', stubPipeline());
-    (webgpu['pipelines'] as Map<string, GPURenderPipeline>).set(
-      'particles-native',
-      stubPipeline()
-    );
+    (webgpu['pipelines'] as Map<string, GPURenderPipeline>).set('particles-native', stubPipeline());
     (renderer as unknown as { initialized: boolean }).initialized = true;
 
     renderer.attachWorld(world);
@@ -325,10 +322,7 @@ describe('WebGPUBackendRenderer native particles and post-processing (stubbed GP
 
     const webgpu = (renderer as unknown as { webgpu: unknown }).webgpu as Record<string, unknown>;
     webgpu['context'] = { device };
-    (webgpu['pipelines'] as Map<string, GPURenderPipeline>).set(
-      'particles-native',
-      stubPipeline()
-    );
+    (webgpu['pipelines'] as Map<string, GPURenderPipeline>).set('particles-native', stubPipeline());
     (renderer as unknown as { initialized: boolean }).initialized = true;
   });
 

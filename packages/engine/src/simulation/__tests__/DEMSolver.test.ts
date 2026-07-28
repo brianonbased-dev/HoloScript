@@ -27,14 +27,14 @@ function copyPositions(solver: DEMSolver): Float64Array {
 describe('DEMSolver — head-on collision restitution', () => {
   it('rebound speed ratio matches restitution within 10 %', () => {
     const e = 0.7;
-    const r = 0.05;      // m
-    const m = 1.0;        // kg
-    const kn = 5e4;       // N/m — soft enough for a visible bounce
-    const dt = 1e-5;      // s
+    const r = 0.05; // m
+    const m = 1.0; // kg
+    const kn = 5e4; // N/m — soft enough for a visible bounce
+    const dt = 1e-5; // s
 
     // Place two particles approaching along x, gap just over touching
     const gap = 2 * r + 0.001; // small gap so first contact happens quickly
-    const v0 = 0.5;           // approach speed (m/s)
+    const v0 = 0.5; // approach speed (m/s)
 
     const cfg: DEMConfig = {
       particleCount: 2,
@@ -44,7 +44,11 @@ describe('DEMSolver — head-on collision restitution', () => {
       restitution: e,
       friction: 0,
       gravity: [0, 0, 0],
-      boxBounds: [[-5, 5], [-5, 5], [-5, 5]],
+      boxBounds: [
+        [-5, 5],
+        [-5, 5],
+        [-5, 5],
+      ],
       initialPositions: [-gap / 2, 0, 0, gap / 2, 0, 0],
       initialVelocities: [v0, 0, 0, -v0, 0, 0], // approaching
     };
@@ -112,7 +116,11 @@ describe('DEMSolver — drop onto floor', () => {
       restitution: 0.3, // dissipative — settles in ≤ 3 bounces
       friction: 0,
       gravity: [0, -9.81, 0],
-      boxBounds: [[-2, 2], [yFloor, 2], [-2, 2]],
+      boxBounds: [
+        [-2, 2],
+        [yFloor, 2],
+        [-2, 2],
+      ],
       initialPositions: [0, yStart, 0],
       initialVelocities: [0, 0, 0],
     };
@@ -142,47 +150,55 @@ describe('DEMSolver — drop onto floor', () => {
 // ── 3. Zero gravity — momentum conservation through a collision ───────────────
 
 describe('DEMSolver — momentum conservation (zero gravity)', () => {
-  it('linear momentum is conserved through a collision (relative error < 1e-6)', { timeout: 30000 }, () => {
-    const r = 0.05;
-    const m1 = 1.0;
-    const m2 = 2.0; // unequal masses to make it non-trivial
+  it(
+    'linear momentum is conserved through a collision (relative error < 1e-6)',
+    { timeout: 30000 },
+    () => {
+      const r = 0.05;
+      const m1 = 1.0;
+      const m2 = 2.0; // unequal masses to make it non-trivial
 
-    const v0 = 1.0;
-    // Small gap so first contact happens within ~1 step
-    const gap = 2 * r + 0.001;
+      const v0 = 1.0;
+      // Small gap so first contact happens within ~1 step
+      const gap = 2 * r + 0.001;
 
-    // Use dt = 1e-4 which is still well below contact-time stability limit.
-    // Contact duration ≈ π·√(m_eff / kn) = π·√(0.667/5e4) ≈ 0.0115 s → ~115 steps.
-    // 3 000 steps × 1e-4 s = 0.3 s — far more than enough for the collision.
-    const cfg: DEMConfig = {
-      particleCount: 2,
-      radii: [r, r],
-      masses: [m1, m2],
-      kn: 5e4,
-      restitution: 0.8,
-      friction: 0,
-      gravity: [0, 0, 0],
-      boxBounds: [[-10, 10], [-10, 10], [-10, 10]],
-      initialPositions: [-gap / 2, 0, 0, gap / 2, 0, 0],
-      initialVelocities: [v0, 0, 0, 0, 0, 0],
-    };
+      // Use dt = 1e-4 which is still well below contact-time stability limit.
+      // Contact duration ≈ π·√(m_eff / kn) = π·√(0.667/5e4) ≈ 0.0115 s → ~115 steps.
+      // 3 000 steps × 1e-4 s = 0.3 s — far more than enough for the collision.
+      const cfg: DEMConfig = {
+        particleCount: 2,
+        radii: [r, r],
+        masses: [m1, m2],
+        kn: 5e4,
+        restitution: 0.8,
+        friction: 0,
+        gravity: [0, 0, 0],
+        boxBounds: [
+          [-10, 10],
+          [-10, 10],
+          [-10, 10],
+        ],
+        initialPositions: [-gap / 2, 0, 0, gap / 2, 0, 0],
+        initialVelocities: [v0, 0, 0, 0, 0, 0],
+      };
 
-    // Compute initial total momentum (px is the only non-zero component)
-    const p0x = m1 * v0;
+      // Compute initial total momentum (px is the only non-zero component)
+      const p0x = m1 * v0;
 
-    const solver = new DEMSolver(cfg);
-    run(solver, 3000, 1e-4);
+      const solver = new DEMSolver(cfg);
+      run(solver, 3000, 1e-4);
 
-    const px = m1 * solver.velocities[0] + m2 * solver.velocities[3];
-    const py = m1 * solver.velocities[1] + m2 * solver.velocities[4];
-    const pz = m1 * solver.velocities[2] + m2 * solver.velocities[5];
+      const px = m1 * solver.velocities[0] + m2 * solver.velocities[3];
+      const py = m1 * solver.velocities[1] + m2 * solver.velocities[4];
+      const pz = m1 * solver.velocities[2] + m2 * solver.velocities[5];
 
-    // px conserved
-    expect(Math.abs(px - p0x) / Math.max(1, Math.abs(p0x))).toBeLessThan(1e-6);
-    // py and pz should remain zero (no off-axis forces in this symmetric setup)
-    expect(Math.abs(py)).toBeLessThan(1e-10);
-    expect(Math.abs(pz)).toBeLessThan(1e-10);
-  });
+      // px conserved
+      expect(Math.abs(px - p0x) / Math.max(1, Math.abs(p0x))).toBeLessThan(1e-6);
+      // py and pz should remain zero (no off-axis forces in this symmetric setup)
+      expect(Math.abs(py)).toBeLessThan(1e-10);
+      expect(Math.abs(pz)).toBeLessThan(1e-10);
+    }
+  );
 });
 
 // ── 4. Angle of repose — pile has non-zero slope with friction ────────────────
@@ -221,7 +237,11 @@ describe('DEMSolver — angle of repose (qualitative)', () => {
       restitution: 0.2, // dissipative
       friction: 0.5,
       gravity: [0, -9.81, 0],
-      boxBounds: [[-0.6, 0.6], [-1.0, 3.0], [-0.3, 0.3]],
+      boxBounds: [
+        [-0.6, 0.6],
+        [-1.0, 3.0],
+        [-0.3, 0.3],
+      ],
       initialPositions: positions,
       initialVelocities: velocities,
     };
@@ -280,7 +300,11 @@ describe('DEMSolver — determinism', () => {
         restitution: 0.5,
         friction: 0.3,
         gravity: [0, -9.81, 0],
-        boxBounds: [[-1, 1], [-1, 1], [-1, 1]],
+        boxBounds: [
+          [-1, 1],
+          [-1, 1],
+          [-1, 1],
+        ],
         initialPositions: new Float64Array(positions),
         initialVelocities: new Float64Array(velocities),
       };
@@ -310,7 +334,11 @@ describe('DEMSolver — SimSolver interface contract', () => {
     const solver = new DEMSolver({
       particleCount: 2,
       initialPositions: [0, 0, 0, 0.3, 0, 0],
-      boxBounds: [[-1, 1], [-1, 1], [-1, 1]],
+      boxBounds: [
+        [-1, 1],
+        [-1, 1],
+        [-1, 1],
+      ],
     });
 
     expect(solver.mode).toBe('transient');
@@ -322,7 +350,14 @@ describe('DEMSolver — SimSolver interface contract', () => {
   });
 
   it('getStats returns finite values and increments stepCount', () => {
-    const solver = new DEMSolver({ particleCount: 1, boxBounds: [[-1, 1], [-1, 1], [-1, 1]] });
+    const solver = new DEMSolver({
+      particleCount: 1,
+      boxBounds: [
+        [-1, 1],
+        [-1, 1],
+        [-1, 1],
+      ],
+    });
     expect(solver.getStats().stepCount).toBe(0);
     solver.step(1e-4);
     const stats = solver.getStats();
@@ -333,7 +368,14 @@ describe('DEMSolver — SimSolver interface contract', () => {
   });
 
   it('dispose does not throw', () => {
-    const solver = new DEMSolver({ particleCount: 2, boxBounds: [[-1, 1], [-1, 1], [-1, 1]] });
+    const solver = new DEMSolver({
+      particleCount: 2,
+      boxBounds: [
+        [-1, 1],
+        [-1, 1],
+        [-1, 1],
+      ],
+    });
     run(solver, 10, 1e-4);
     expect(() => solver.dispose()).not.toThrow();
   });

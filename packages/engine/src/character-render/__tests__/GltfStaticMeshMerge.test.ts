@@ -48,8 +48,22 @@ function makeTwoPrimitiveGlb(): ArrayBuffer {
       { buffer: 0, byteOffset: 84, byteLength: 12 },
     ],
     accessors: [
-      { bufferView: 0, componentType: 5126, count: 3, type: 'VEC3', min: [0, 0, 0], max: [1, 1, 0] },
-      { bufferView: 1, componentType: 5126, count: 3, type: 'VEC3', min: [2, 0, 0], max: [3, 1, 0] },
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [0, 0, 0],
+        max: [1, 1, 0],
+      },
+      {
+        bufferView: 1,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [2, 0, 0],
+        max: [3, 1, 0],
+      },
       { bufferView: 2, componentType: 5125, count: 3, type: 'SCALAR' },
       { bufferView: 3, componentType: 5125, count: 3, type: 'SCALAR' },
     ],
@@ -72,7 +86,9 @@ describe('extractGltfStaticMesh — multi-primitive merge', () => {
     // both primitives' vertices are present
     expect(mesh.vertexCount).toBe(6);
     expect(mesh.positions.length).toBe(18);
-    expect(Array.from(mesh.positions)).toEqual([0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 3, 0, 0, 2, 1, 0]);
+    expect(Array.from(mesh.positions)).toEqual([
+      0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 3, 0, 0, 2, 1, 0,
+    ]);
     // primitive B's indices are offset into the merged vertex stream (not 0,1,2 again)
     expect(Array.from(mesh.indices)).toEqual([0, 1, 2, 3, 4, 5]);
     // neutral rigid bind covers every merged vertex
@@ -95,7 +111,14 @@ describe('extractGltfStaticMesh — multi-primitive merge', () => {
           { buffer: 0, byteOffset: 36, byteLength: 12 },
         ],
         accessors: [
-          { bufferView: 0, componentType: 5126, count: 3, type: 'VEC3', min: [0, 0, 0], max: [1, 1, 0] },
+          {
+            bufferView: 0,
+            componentType: 5126,
+            count: 3,
+            type: 'VEC3',
+            min: [0, 0, 0],
+            max: [1, 1, 0],
+          },
           { bufferView: 1, componentType: 5125, count: 3, type: 'SCALAR' },
         ],
         meshes: [{ primitives: [{ attributes: { POSITION: 0 }, indices: 1, mode: 4 }] }],

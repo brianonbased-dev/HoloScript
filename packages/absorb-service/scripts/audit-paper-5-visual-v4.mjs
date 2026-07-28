@@ -21,10 +21,7 @@ import {
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(scriptDir, '..');
 const repoRoot = resolve(packageRoot, '../..');
-const defaultProtocol = resolve(
-  packageRoot,
-  'benchmarks/paper-5-visual-agent-study-v4.json'
-);
+const defaultProtocol = resolve(packageRoot, 'benchmarks/paper-5-visual-agent-study-v4.json');
 
 function parseArgs(argv) {
   const options = {
@@ -120,9 +117,7 @@ export function main(argv = process.argv.slice(2)) {
       detail: imageInput.receipt,
     },
   ];
-  const implementationStatus = implementationChecks.every((item) => item.pass)
-    ? 'pass'
-    : 'fail';
+  const implementationStatus = implementationChecks.every((item) => item.pass) ? 'pass' : 'fail';
   const status =
     implementationStatus === 'pass' &&
     datasetAudit.status === 'pass' &&

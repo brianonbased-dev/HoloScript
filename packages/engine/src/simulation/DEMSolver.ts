@@ -216,9 +216,9 @@ export class DEMSolver {
   private readonly _gridCellSize: number;
   private readonly _cellCount: Int32Array; // per-cell particle count
   private readonly _cellStart: Int32Array; // prefix-sum offsets
-  private readonly _cellFill: Int32Array;  // fill cursor during construction
+  private readonly _cellFill: Int32Array; // fill cursor during construction
   private readonly _sortedParticles: Int32Array;
-  private readonly _cellIdx: Int32Array;   // which cell each particle belongs to
+  private readonly _cellIdx: Int32Array; // which cell each particle belongs to
   private readonly _activeContactSet: Set<number>; // reused set for active contacts
 
   private stepCount = 0;
@@ -271,7 +271,11 @@ export class DEMSolver {
     this.friction = config.friction ?? 0.3;
     this.gravity = config.gravity ?? [0, -9.81, 0];
 
-    const bounds = config.boxBounds ?? [[-1, 1], [-1, 1], [-1, 1]];
+    const bounds = config.boxBounds ?? [
+      [-1, 1],
+      [-1, 1],
+      [-1, 1],
+    ];
     this.box = [bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1], bounds[2][0], bounds[2][1]];
 
     // Derived safety quantities
@@ -359,8 +363,7 @@ export class DEMSolver {
           const r = this.radii[idx];
           // Centre-of-cell positions with a small deterministic jitter (< r/4)
           this.positions[idx * 3] = xMin + (ix + 0.5 + (rng.next() - 0.5) * 0.1) * (lx / n);
-          this.positions[idx * 3 + 1] =
-            yMin + r + (iy + 0.5 + (rng.next() - 0.5) * 0.1) * (ly / n);
+          this.positions[idx * 3 + 1] = yMin + r + (iy + 0.5 + (rng.next() - 0.5) * 0.1) * (ly / n);
           this.positions[idx * 3 + 2] = zMin + (iz + 0.5 + (rng.next() - 0.5) * 0.1) * (lz / n);
           idx++;
         }
@@ -610,8 +613,7 @@ export class DEMSolver {
     const e = this.restitution;
     const logE = e > 0 ? Math.log(e) : -50; // avoid log(0)
     const cn =
-      (-2.0 * logE * Math.sqrt(mEff * this.kn)) /
-      Math.sqrt(Math.PI * Math.PI + logE * logE);
+      (-2.0 * logE * Math.sqrt(mEff * this.kn)) / Math.sqrt(Math.PI * Math.PI + logE * logE);
 
     // Normal contact force: fn = kn·δ − cn·vRel_n (clamped ≥ 0)
     const fn = Math.max(0, this.kn * delta - cn * vrn);
@@ -704,8 +706,7 @@ export class DEMSolver {
       const e = this.restitution;
       const logE = e > 0 ? Math.log(e) : -50;
       const cn =
-        (-2.0 * logE * Math.sqrt(mEff * this.kn)) /
-        Math.sqrt(Math.PI * Math.PI + logE * logE);
+        (-2.0 * logE * Math.sqrt(mEff * this.kn)) / Math.sqrt(Math.PI * Math.PI + logE * logE);
 
       const px = this.positions[i3];
       const py = this.positions[i3 + 1];
@@ -728,7 +729,7 @@ export class DEMSolver {
       {
         const delta = r - (xMax - px);
         if (delta > 0) {
-          const fn = Math.max(0, this.kn * delta - cn * (-vx));
+          const fn = Math.max(0, this.kn * delta - cn * -vx);
           this.forces[i3] -= fn;
           if (delta > this.maxOverlap) this.maxOverlap = delta;
           this.contactCount++;
@@ -748,7 +749,7 @@ export class DEMSolver {
       {
         const delta = r - (yMax - py);
         if (delta > 0) {
-          const fn = Math.max(0, this.kn * delta - cn * (-vy));
+          const fn = Math.max(0, this.kn * delta - cn * -vy);
           this.forces[i3 + 1] -= fn;
           if (delta > this.maxOverlap) this.maxOverlap = delta;
           this.contactCount++;
@@ -768,7 +769,7 @@ export class DEMSolver {
       {
         const delta = r - (zMax - pz);
         if (delta > 0) {
-          const fn = Math.max(0, this.kn * delta - cn * (-vz));
+          const fn = Math.max(0, this.kn * delta - cn * -vz);
           this.forces[i3 + 2] -= fn;
           if (delta > this.maxOverlap) this.maxOverlap = delta;
           this.contactCount++;

@@ -121,14 +121,16 @@ describe('Bug B — point_current with pulseWidth produces bounded energy', () =
     };
     const pulsedConfig: FDTDConfig = {
       ...configBase,
-      sources: [{
-        id: 'pc',
-        type: 'point_current',
-        position: [10, 10, 10],
-        polarization: 'z',
-        amplitude: 1.0,
-        pulseWidth: sigma, // Gaussian envelope — after fix this is honoured
-      }],
+      sources: [
+        {
+          id: 'pc',
+          type: 'point_current',
+          position: [10, 10, 10],
+          polarization: 'z',
+          amplitude: 1.0,
+          pulseWidth: sigma, // Gaussian envelope — after fix this is honoured
+        },
+      ],
     };
 
     const solver = new FDTDSolver(pulsedConfig);
@@ -291,6 +293,6 @@ describe('Integration — pulsed point_current energy injection is finite', () =
     // Growth rate after pulse must be dramatically lower than during injection.
     // DC would maintain constant growth; pulsed source approaches zero growth.
     // Allow afterGrowth to be up to 10% of duringGrowth (CPML drains energy too).
-    expect(Math.abs(afterGrowth)).toBeLessThan(Math.abs(duringGrowth) * 0.10 + 1e-10);
+    expect(Math.abs(afterGrowth)).toBeLessThan(Math.abs(duringGrowth) * 0.1 + 1e-10);
   });
 });

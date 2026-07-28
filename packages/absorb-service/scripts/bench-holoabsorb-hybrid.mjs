@@ -75,10 +75,7 @@ async function main() {
   const outPath = resolve(options.out);
   const queries = options.visualFocusOnly
     ? []
-    : [
-        'safe-commit',
-        'safe-commit atomic wrapper that uses git commit --only with explicit paths',
-      ];
+    : ['safe-commit', 'safe-commit atomic wrapper that uses git commit --only with explicit paths'];
   const startedAt = new Date().toISOString();
   const baselineRss = process.memoryUsage().rss;
   let peakRss = baselineRss;
@@ -156,9 +153,7 @@ async function main() {
       });
   const cappedByMaxFiles = coveragePlan.totalFiles > options.maxFiles;
   checks.push({
-    query: options.visualFocusOnly
-      ? 'selected-root-corpus-coverage'
-      : 'whole-repo-corpus-coverage',
+    query: options.visualFocusOnly ? 'selected-root-corpus-coverage' : 'whole-repo-corpus-coverage',
     selectedCandidateFiles: coveragePlan.totalFiles,
     scannedFiles: scanResult.files.length,
     cappedByMaxFiles,

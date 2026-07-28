@@ -13,11 +13,7 @@
  * @module character-render
  */
 
-import {
-  type Quat,
-  quatFromAxisAngle,
-  quatMultiply,
-} from './skin-math';
+import { type Quat, quatFromAxisAngle, quatMultiply } from './skin-math';
 
 export type GaitMode = 'idle' | 'walk' | 'run';
 
@@ -53,8 +49,14 @@ export function gaitPose(mode: GaitMode, t: number, speed = 1.4): AvatarPoseMap 
   // Arms: base down + opposite-to-legs fore/aft swing about X.
   const leftArmDown = quatFromAxisAngle(0, 0, 1, -ARM_DOWN);
   const rightArmDown = quatFromAxisAngle(0, 0, 1, ARM_DOWN);
-  pose.set('left_upper_arm', quatMultiply(leftArmDown, quatFromAxisAngle(1, 0, 0, sOpp * p.armSwing)));
-  pose.set('right_upper_arm', quatMultiply(rightArmDown, quatFromAxisAngle(1, 0, 0, s * p.armSwing)));
+  pose.set(
+    'left_upper_arm',
+    quatMultiply(leftArmDown, quatFromAxisAngle(1, 0, 0, sOpp * p.armSwing))
+  );
+  pose.set(
+    'right_upper_arm',
+    quatMultiply(rightArmDown, quatFromAxisAngle(1, 0, 0, s * p.armSwing))
+  );
 
   // Legs: opposite-phase fore/aft thigh swing about X.
   pose.set('left_upper_leg', quatFromAxisAngle(1, 0, 0, s * p.legSwing));

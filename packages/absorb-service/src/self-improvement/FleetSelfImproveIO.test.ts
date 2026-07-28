@@ -26,13 +26,11 @@ describe('FleetSelfImproveIO production tool custody', () => {
     fs.rmSync(rootDir, { recursive: true, force: true });
   });
 
-  it(
-    'runs package-owned vitest, TypeScript, and ESLint with metacharacters in the root path',
-    async () => {
-      const testFile = 'passing.self-improve.proposal.test.ts';
-      await io.writeFile(
-        testFile,
-        `import { describe, expect, it } from 'vitest';
+  it('runs package-owned vitest, TypeScript, and ESLint with metacharacters in the root path', async () => {
+    const testFile = 'passing.self-improve.proposal.test.ts';
+    await io.writeFile(
+      testFile,
+      `import { describe, expect, it } from 'vitest';
 
 describe('fleet tool custody', () => {
   it('runs the generated test', () => {
@@ -40,30 +38,28 @@ describe('fleet tool custody', () => {
   });
 });
 `
-      );
+    );
 
-      const vitest = await io.runVitest(testFile);
-      expect(vitest).toMatchObject({
-        passed: true,
-        testsPassed: 1,
-        testsFailed: 0,
-        testsTotal: 1,
-      });
-      await expect(io.runTypeCheck()).resolves.toBe(true);
-      await expect(io.runLint()).resolves.toEqual({ issueCount: 0, filesLinted: 1 });
+    const vitest = await io.runVitest(testFile);
+    expect(vitest).toMatchObject({
+      passed: true,
+      testsPassed: 1,
+      testsFailed: 0,
+      testsTotal: 1,
+    });
+    await expect(io.runTypeCheck()).resolves.toBe(true);
+    await expect(io.runLint()).resolves.toEqual({ issueCount: 0, filesLinted: 1 });
 
-      for (const [packageName, binaryName] of [
-        ['vitest', 'vitest'],
-        ['typescript', 'tsc'],
-        ['eslint', 'eslint'],
-      ] as const) {
-        const binaryPath = resolvePackageBinary(packageName, binaryName);
-        expect(fs.existsSync(binaryPath)).toBe(true);
-        expect(binaryPath).not.toContain(`${path.sep}.bin${path.sep}`);
-      }
-    },
-    60_000
-  );
+    for (const [packageName, binaryName] of [
+      ['vitest', 'vitest'],
+      ['typescript', 'tsc'],
+      ['eslint', 'eslint'],
+    ] as const) {
+      const binaryPath = resolvePackageBinary(packageName, binaryName);
+      expect(fs.existsSync(binaryPath)).toBe(true);
+      expect(binaryPath).not.toContain(`${path.sep}.bin${path.sep}`);
+    }
+  }, 60_000);
 
   it('fails closed when TypeScript or ESLint rejects a proposal', async () => {
     await io.writeFile(

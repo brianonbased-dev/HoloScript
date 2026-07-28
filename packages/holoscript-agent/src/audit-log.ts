@@ -112,10 +112,13 @@ export class AuditLog {
         filePath: opts.filePath,
       },
       agentAttributeClaims: agentAttributeClaims.length > 0 ? agentAttributeClaims : undefined,
-      measurement: agentAttributeClaims.length > 0 ? {
-        nullAssumption: AGENT_ATTRIBUTE_CLAIM_NULL_ASSUMPTION,
-        interpretationBoundary: 'behavior_and_receipts_before_interpretation',
-      } : undefined,
+      measurement:
+        agentAttributeClaims.length > 0
+          ? {
+              nullAssumption: AGENT_ATTRIBUTE_CLAIM_NULL_ASSUMPTION,
+              interpretationBoundary: 'behavior_and_receipts_before_interpretation',
+            }
+          : undefined,
     });
   }
 

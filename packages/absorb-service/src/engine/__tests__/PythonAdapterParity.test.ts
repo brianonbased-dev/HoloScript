@@ -90,23 +90,167 @@ const FILE = 'sample.py';
 
 // ── Frozen snapshot of the migrated PythonAdapter output on PY_SOURCE ──────────
 const EXPECTED_SYMBOLS: ExternalSymbolDefinition[] = [
-  { name: 'module_fn', type: 'function', language: 'python', filePath: FILE, line: 9, column: 0, endLine: 12, endColumn: 16, visibility: 'public', signature: 'def module_fn((a, b=2))', lineCount: 4 },
-  { name: 'async_fn', type: 'function', language: 'python', filePath: FILE, line: 15, column: 0, endLine: 16, endColumn: 15, visibility: 'public', signature: 'def async_fn((x))', lineCount: 2 },
-  { name: 'decorated_fn', type: 'function', language: 'python', filePath: FILE, line: 20, column: 0, endLine: 21, endColumn: 12, visibility: 'public', signature: 'def decorated_fn((y))', lineCount: 2 },
-  { name: 'Widget', type: 'class', language: 'python', filePath: FILE, line: 24, column: 0, endLine: 41, endColumn: 12, visibility: 'public', signature: 'class Widget((Base, Mixin))', docComment: 'doc', lineCount: 18 },
-  { name: '__init__', type: 'method', language: 'python', filePath: FILE, line: 27, column: 4, endLine: 28, endColumn: 24, visibility: 'protected', signature: 'Widget.__init__((self, name))', owner: 'Widget', lineCount: 2 },
-  { name: 'label', type: 'method', language: 'python', filePath: FILE, line: 31, column: 4, endLine: 32, endColumn: 24, visibility: 'public', signature: 'Widget.label((self))', owner: 'Widget', lineCount: 2 },
-  { name: 'refresh', type: 'method', language: 'python', filePath: FILE, line: 34, column: 4, endLine: 35, endColumn: 26, visibility: 'public', signature: 'Widget.refresh((self))', owner: 'Widget', lineCount: 2 },
-  { name: '_protected', type: 'method', language: 'python', filePath: FILE, line: 37, column: 4, endLine: 38, endColumn: 12, visibility: 'protected', signature: 'Widget._protected((self))', owner: 'Widget', lineCount: 2 },
-  { name: '__private', type: 'method', language: 'python', filePath: FILE, line: 40, column: 4, endLine: 41, endColumn: 12, visibility: 'private', signature: 'Widget.__private((self))', owner: 'Widget', lineCount: 2 },
-  { name: 'Plain', type: 'class', language: 'python', filePath: FILE, line: 44, column: 0, endLine: 46, endColumn: 12, visibility: 'public', signature: 'class Plain', lineCount: 3 },
-  { name: 'solo', type: 'method', language: 'python', filePath: FILE, line: 45, column: 4, endLine: 46, endColumn: 12, visibility: 'public', signature: 'Plain.solo((self))', owner: 'Plain', lineCount: 2 },
+  {
+    name: 'module_fn',
+    type: 'function',
+    language: 'python',
+    filePath: FILE,
+    line: 9,
+    column: 0,
+    endLine: 12,
+    endColumn: 16,
+    visibility: 'public',
+    signature: 'def module_fn((a, b=2))',
+    lineCount: 4,
+  },
+  {
+    name: 'async_fn',
+    type: 'function',
+    language: 'python',
+    filePath: FILE,
+    line: 15,
+    column: 0,
+    endLine: 16,
+    endColumn: 15,
+    visibility: 'public',
+    signature: 'def async_fn((x))',
+    lineCount: 2,
+  },
+  {
+    name: 'decorated_fn',
+    type: 'function',
+    language: 'python',
+    filePath: FILE,
+    line: 20,
+    column: 0,
+    endLine: 21,
+    endColumn: 12,
+    visibility: 'public',
+    signature: 'def decorated_fn((y))',
+    lineCount: 2,
+  },
+  {
+    name: 'Widget',
+    type: 'class',
+    language: 'python',
+    filePath: FILE,
+    line: 24,
+    column: 0,
+    endLine: 41,
+    endColumn: 12,
+    visibility: 'public',
+    signature: 'class Widget((Base, Mixin))',
+    docComment: 'doc',
+    lineCount: 18,
+  },
+  {
+    name: '__init__',
+    type: 'method',
+    language: 'python',
+    filePath: FILE,
+    line: 27,
+    column: 4,
+    endLine: 28,
+    endColumn: 24,
+    visibility: 'protected',
+    signature: 'Widget.__init__((self, name))',
+    owner: 'Widget',
+    lineCount: 2,
+  },
+  {
+    name: 'label',
+    type: 'method',
+    language: 'python',
+    filePath: FILE,
+    line: 31,
+    column: 4,
+    endLine: 32,
+    endColumn: 24,
+    visibility: 'public',
+    signature: 'Widget.label((self))',
+    owner: 'Widget',
+    lineCount: 2,
+  },
+  {
+    name: 'refresh',
+    type: 'method',
+    language: 'python',
+    filePath: FILE,
+    line: 34,
+    column: 4,
+    endLine: 35,
+    endColumn: 26,
+    visibility: 'public',
+    signature: 'Widget.refresh((self))',
+    owner: 'Widget',
+    lineCount: 2,
+  },
+  {
+    name: '_protected',
+    type: 'method',
+    language: 'python',
+    filePath: FILE,
+    line: 37,
+    column: 4,
+    endLine: 38,
+    endColumn: 12,
+    visibility: 'protected',
+    signature: 'Widget._protected((self))',
+    owner: 'Widget',
+    lineCount: 2,
+  },
+  {
+    name: '__private',
+    type: 'method',
+    language: 'python',
+    filePath: FILE,
+    line: 40,
+    column: 4,
+    endLine: 41,
+    endColumn: 12,
+    visibility: 'private',
+    signature: 'Widget.__private((self))',
+    owner: 'Widget',
+    lineCount: 2,
+  },
+  {
+    name: 'Plain',
+    type: 'class',
+    language: 'python',
+    filePath: FILE,
+    line: 44,
+    column: 0,
+    endLine: 46,
+    endColumn: 12,
+    visibility: 'public',
+    signature: 'class Plain',
+    lineCount: 3,
+  },
+  {
+    name: 'solo',
+    type: 'method',
+    language: 'python',
+    filePath: FILE,
+    line: 45,
+    column: 4,
+    endLine: 46,
+    endColumn: 12,
+    visibility: 'public',
+    signature: 'Plain.solo((self))',
+    owner: 'Plain',
+    lineCount: 2,
+  },
 ];
 
 const EXPECTED_IMPORTS: ImportEdge[] = [
   { fromFile: FILE, toModule: 'os', line: 1 },
   { fromFile: FILE, toModule: 'os.path', line: 2 },
-  { fromFile: FILE, toModule: 'collections', line: 3, namedImports: ['OrderedDict', 'defaultdict'] },
+  {
+    fromFile: FILE,
+    toModule: 'collections',
+    line: 3,
+    namedImports: ['OrderedDict', 'defaultdict'],
+  },
   { fromFile: FILE, toModule: '.', line: 4, namedImports: ['sibling'] },
   { fromFile: FILE, toModule: '.pkg', line: 5, namedImports: ['thing'] },
   { fromFile: FILE, toModule: 'foo', line: 6, namedImports: [], isWildcard: true },
@@ -114,9 +258,23 @@ const EXPECTED_IMPORTS: ImportEdge[] = [
 
 const EXPECTED_CALLS: CallEdge[] = [
   { callerId: 'module_fn', calleeName: 'helper', filePath: FILE, line: 10, column: 4 },
-  { callerId: 'module_fn', calleeName: 'method', calleeOwner: 'obj', filePath: FILE, line: 11, column: 4 },
+  {
+    callerId: 'module_fn',
+    calleeName: 'method',
+    calleeOwner: 'obj',
+    filePath: FILE,
+    line: 11,
+    column: 4,
+  },
   { callerId: 'async_fn', calleeName: 'go', filePath: FILE, line: 16, column: 10 },
-  { callerId: 'refresh', calleeName: '_load', calleeOwner: 'self', filePath: FILE, line: 35, column: 14 },
+  {
+    callerId: 'refresh',
+    calleeName: '_load',
+    calleeOwner: 'self',
+    filePath: FILE,
+    line: 35,
+    column: 14,
+  },
 ];
 
 // Deterministic sort so array order never causes a spurious mismatch.
@@ -173,7 +331,10 @@ describe('PythonAdapterParity (native python.holo trait == frozen PythonAdapter 
   const PY_TRAIT = LANGUAGE_TRAITS.find((t) => t.language === 'python');
 
   it('python.holo produced a LanguageTrait in LANGUAGE_TRAITS', () => {
-    expect(PY_TRAIT, 'python trait must be generated from language-adapters/python.holo').toBeDefined();
+    expect(
+      PY_TRAIT,
+      'python trait must be generated from language-adapters/python.holo'
+    ).toBeDefined();
     expect(PY_TRAIT!.grammarPackage).toBe('tree-sitter-python');
     expect(PY_TRAIT!.extensions).toContain('.py');
     expect(PY_TRAIT!.extensions).toContain('.pyi');
@@ -181,13 +342,17 @@ describe('PythonAdapterParity (native python.holo trait == frozen PythonAdapter 
 
   it('extracts symbols identical to the bespoke PythonAdapter', () => {
     if (!tree) return; // grammar unavailable — metadata guard above still runs
-    const data = prune(sortSymbols(new TreeSitterTraitAdapter(PY_TRAIT!).extractSymbols(tree, FILE)));
+    const data = prune(
+      sortSymbols(new TreeSitterTraitAdapter(PY_TRAIT!).extractSymbols(tree, FILE))
+    );
     expect(data).toEqual(prune(sortSymbols(EXPECTED_SYMBOLS)));
   });
 
   it('extracts imports identical to the bespoke PythonAdapter', () => {
     if (!tree) return;
-    const data = prune(sortImports(new TreeSitterTraitAdapter(PY_TRAIT!).extractImports(tree, FILE)));
+    const data = prune(
+      sortImports(new TreeSitterTraitAdapter(PY_TRAIT!).extractImports(tree, FILE))
+    );
     expect(data).toEqual(prune(sortImports(EXPECTED_IMPORTS)));
   });
 

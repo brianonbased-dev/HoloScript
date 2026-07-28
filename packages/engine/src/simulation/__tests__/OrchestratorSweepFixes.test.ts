@@ -13,9 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { ThermalSolver, type ThermalConfig } from '../ThermalSolver';
 import { MolecularDynamicsSolver } from '../MolecularDynamicsSolver';
 import { SpatialHash } from '../../physics/SpatialHash';
-import {
-  SimulationSolverFactory,
-} from '@holoscript/core/traits/simulation-solver-factory';
+import { SimulationSolverFactory } from '@holoscript/core/traits/simulation-solver-factory';
 import { initSimulationSolvers, resetSimulationRegistry } from '../simulation-registry';
 
 describe('ThermalSolver implicit step — anisotropic grid correctness', () => {
@@ -38,9 +36,7 @@ describe('ThermalSolver implicit step — anisotropic grid correctness', () => {
       timeStep,
       materials: {},
       defaultMaterial: 'aluminum',
-      boundaryConditions: [
-        { type: 'dirichlet', faces: ['y-', 'y+'], value: 0 },
-      ],
+      boundaryConditions: [{ type: 'dirichlet', faces: ['y-', 'y+'], value: 0 }],
       sources: [],
       initialTemperature: 0,
       useGPU: false,

@@ -526,10 +526,12 @@ describe('EmbeddingIndex streaming batches', () => {
 
     expect(index.size).toBe(3);
     expect(vectorOnly[0]?.file).toBe('src/repo-root.ts');
-    expect(hybrid.slice(0, 2).map((result) => result.file).sort()).toEqual([
-      'scripts/safe-commit.ps1',
-      'scripts/safe-commit.sh',
-    ]);
+    expect(
+      hybrid
+        .slice(0, 2)
+        .map((result) => result.file)
+        .sort()
+    ).toEqual(['scripts/safe-commit.ps1', 'scripts/safe-commit.sh']);
     expect(hybrid[0]).toMatchObject({
       type: 'file',
       exactMatch: true,

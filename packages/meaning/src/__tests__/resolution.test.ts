@@ -118,7 +118,9 @@ describe('resolveNormStatus — unprioritized conflict', () => {
   });
 
   it('resolves a single obligation with no fulfilling event to violated', () => {
-    const ir: UAALDeonticIR = { norms: [{ id: 'must_file', force: 'O', required_act: 'file', active: true }] };
+    const ir: UAALDeonticIR = {
+      norms: [{ id: 'must_file', force: 'O', required_act: 'file', active: true }],
+    };
     const r = resolveNormStatus(ir, 'must_file');
     expect(r.status).toBe('resolved');
     expect(r.answer?.status).toBe('violated');
@@ -129,8 +131,20 @@ describe('resolveNormStatus — unprioritized conflict', () => {
     // The O/F same-act detector cannot see this; the resource-contention detector must.
     const ir: UAALDeonticIR = {
       norms: [
-        { id: 'owe_scene_a', force: 'O', required_act: 'respond_to_scene_a', resource: 'ambulance_7', active: true },
-        { id: 'owe_scene_b', force: 'O', required_act: 'respond_to_scene_b', resource: 'ambulance_7', active: true },
+        {
+          id: 'owe_scene_a',
+          force: 'O',
+          required_act: 'respond_to_scene_a',
+          resource: 'ambulance_7',
+          active: true,
+        },
+        {
+          id: 'owe_scene_b',
+          force: 'O',
+          required_act: 'respond_to_scene_b',
+          resource: 'ambulance_7',
+          active: true,
+        },
       ],
     };
     const r = resolveNormStatus(ir, 'owe_scene_a');
@@ -143,8 +157,20 @@ describe('resolveNormStatus — unprioritized conflict', () => {
     const ir = {
       precedence: ['owe_scene_a'],
       norms: [
-        { id: 'owe_scene_a', force: 'O', required_act: 'respond_to_scene_a', resource: 'ambulance_7', active: true },
-        { id: 'owe_scene_b', force: 'O', required_act: 'respond_to_scene_b', resource: 'ambulance_7', active: true },
+        {
+          id: 'owe_scene_a',
+          force: 'O',
+          required_act: 'respond_to_scene_a',
+          resource: 'ambulance_7',
+          active: true,
+        },
+        {
+          id: 'owe_scene_b',
+          force: 'O',
+          required_act: 'respond_to_scene_b',
+          resource: 'ambulance_7',
+          active: true,
+        },
       ],
     } as UAALDeonticIR;
     expect(resolveNormStatus(ir, 'owe_scene_a').status).toBe('resolved');
@@ -153,8 +179,20 @@ describe('resolveNormStatus — unprioritized conflict', () => {
   it('does NOT flag two obligations on DIFFERENT resources (no contention, no false gap)', () => {
     const ir: UAALDeonticIR = {
       norms: [
-        { id: 'owe_scene_a', force: 'O', required_act: 'respond_to_scene_a', resource: 'ambulance_7', active: true },
-        { id: 'owe_scene_b', force: 'O', required_act: 'respond_to_scene_b', resource: 'ambulance_9', active: true },
+        {
+          id: 'owe_scene_a',
+          force: 'O',
+          required_act: 'respond_to_scene_a',
+          resource: 'ambulance_7',
+          active: true,
+        },
+        {
+          id: 'owe_scene_b',
+          force: 'O',
+          required_act: 'respond_to_scene_b',
+          resource: 'ambulance_9',
+          active: true,
+        },
       ],
     };
     expect(resolveNormStatus(ir, 'owe_scene_a').status).toBe('resolved');
@@ -405,13 +443,26 @@ describe('resolveTension — unstated terminal outcome', () => {
   });
 
   it('resolves tension:true when both a goal and an antigoal terminal are reached', () => {
-    const r = resolveTension(tie([{ id: 'T1', outcome: 'goal' }, { id: 'T2', outcome: 'antigoal' }]));
+    const r = resolveTension(
+      tie([
+        { id: 'T1', outcome: 'goal' },
+        { id: 'T2', outcome: 'antigoal' },
+      ])
+    );
     expect(r.status).toBe('resolved');
-    expect(r.answer).toMatchObject({ tension: true, contradiction: { goal: 'T1', antigoal: 'T2' } });
+    expect(r.answer).toMatchObject({
+      tension: true,
+      contradiction: { goal: 'T1', antigoal: 'T2' },
+    });
   });
 
   it('resolves tension:false when the reached outcomes are stated and lack a pole', () => {
-    const r = resolveTension(tie([{ id: 'T1', outcome: 'goal' }, { id: 'T2', outcome: 'neutral' }]));
+    const r = resolveTension(
+      tie([
+        { id: 'T1', outcome: 'goal' },
+        { id: 'T2', outcome: 'neutral' },
+      ])
+    );
     expect(r.status).toBe('resolved');
     expect(r.answer).toMatchObject({ tension: false });
   });
@@ -435,7 +486,9 @@ describe('resolveTension — unstated terminal outcome', () => {
   });
 
   it('does NOT flag when both poles are already reached even with an extra unstated terminal', () => {
-    const r = resolveTension(tie([{ id: 'T1', outcome: 'goal' }, { id: 'T2', outcome: 'antigoal' }, { id: 'T3' }]));
+    const r = resolveTension(
+      tie([{ id: 'T1', outcome: 'goal' }, { id: 'T2', outcome: 'antigoal' }, { id: 'T3' }])
+    );
     expect(r.status).toBe('resolved');
     expect(r.answer).toMatchObject({ tension: true });
   });
@@ -522,7 +575,11 @@ describe('resolveAccess — per-modality unstated blocking (A6 blocks_unknown IR
   });
 
   it('abstains when the barrier declares blocks_unknown for audible', () => {
-    const r = resolveAccess(scene({ blocks: [], opaque: false, blocks_unknown: ['audible'] }), 'agent', 'bell');
+    const r = resolveAccess(
+      scene({ blocks: [], opaque: false, blocks_unknown: ['audible'] }),
+      'agent',
+      'bell'
+    );
     expect(r.status).toBe('unresolvable');
     expect(r.reason).toBe('underdetermined');
     expect(r.gap?.code).toBe('access.underdetermined_modality');
@@ -592,7 +649,9 @@ describe('resolveAccess — per-modality unstated blocking (A6 blocks_unknown IR
 
 describe('resolveValidity — evidence-free target (analogy)', () => {
   // Solar system → atom: two source relations under a total injective mapping.
-  const analogy = (targetRelations: Array<{ pred: string; from: string; to: string }> | undefined): UAALAnalogyIR => ({
+  const analogy = (
+    targetRelations: Array<{ pred: string; from: string; to: string }> | undefined
+  ): UAALAnalogyIR => ({
     source: {
       entities: [{ id: 'sun' }, { id: 'planet' }],
       relations: [
@@ -669,13 +728,19 @@ describe('no false gaps', () => {
           { id: 'o', kind: 'object' },
           { id: 'c', kind: 'container', opaque: false },
         ],
-        containment: [{ inner: 'o', outer: 'c' }, { inner: 'a', outer: 'c' }],
+        containment: [
+          { inner: 'o', outer: 'c' },
+          { inner: 'a', outer: 'c' },
+        ],
         query: { agent: 'a', object: 'o' },
       },
       'a',
-      'o',
+      'o'
     );
-    const norm = resolveNormStatus({ norms: [{ id: 'n', force: 'O', required_act: 'act', active: true }] }, 'n');
+    const norm = resolveNormStatus(
+      { norms: [{ id: 'n', force: 'O', required_act: 'act', active: true }] },
+      'n'
+    );
     const disc = resolveDischargeable({ time: { now: 0, deadline: 5 } });
     const cf = resolveCounterfactual({
       effects: [{ id: 'E', sufficientSets: [['A']] }],
@@ -687,8 +752,14 @@ describe('no false gaps', () => {
       query: { whole: 'ship' },
     });
     const ten = resolveTension({
-      terminals: [{ id: 'T1', outcome: 'goal' }, { id: 'T2', outcome: 'antigoal' }],
-      unfired: [{ from: 'F', to: 'T1' }, { from: 'F', to: 'T2' }],
+      terminals: [
+        { id: 'T1', outcome: 'goal' },
+        { id: 'T2', outcome: 'antigoal' },
+      ],
+      unfired: [
+        { from: 'F', to: 'T1' },
+        { from: 'F', to: 'T2' },
+      ],
       frontier: 'F',
       query: { frontier: 'F' },
     });
@@ -700,7 +771,7 @@ describe('no false gaps', () => {
         ],
         query: { atoms: ['p'] },
       },
-      'p',
+      'p'
     );
     const acc = resolveAccess(
       {
@@ -709,13 +780,25 @@ describe('no false gaps', () => {
           { id: 'o', kind: 'object' },
           { id: 'c', kind: 'container', opaque: false, blocks: [] },
         ],
-        containment: [{ inner: 'o', outer: 'c' }, { inner: 'a', outer: 'c' }],
+        containment: [
+          { inner: 'o', outer: 'c' },
+          { inner: 'a', outer: 'c' },
+        ],
         query: { agent: 'a', object: 'o' },
       },
       'a',
-      'o',
+      'o'
     );
-    expect([occ.status, norm.status, disc.status, cf.status, mer.status, ten.status, pre.status, acc.status]).toEqual([
+    expect([
+      occ.status,
+      norm.status,
+      disc.status,
+      cf.status,
+      mer.status,
+      ten.status,
+      pre.status,
+      acc.status,
+    ]).toEqual([
       'resolved',
       'resolved',
       'resolved',

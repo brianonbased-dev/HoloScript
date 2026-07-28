@@ -198,7 +198,9 @@ describe('paper-4 §7.8 CPU component baselines', () => {
       fnv1aBytes(bytes);
       times.push((performance.now() - t0) * 1000);
     }
-    results.push(summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '1K verts', 1000, times));
+    results.push(
+      summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '1K verts', 1000, times)
+    );
     expect(times.length).toBe(TRIALS);
   });
 
@@ -212,7 +214,9 @@ describe('paper-4 §7.8 CPU component baselines', () => {
       fnv1aBytes(bytes);
       times.push((performance.now() - t0) * 1000);
     }
-    results.push(summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '100K verts', 100_000, times));
+    results.push(
+      summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '100K verts', 100_000, times)
+    );
   });
 
   it('benchmark — SHA-256 CAEL-chain verify @ 10^4 entries', () => {
@@ -260,7 +264,9 @@ describe('paper-4 §7.8 CPU component baselines', () => {
       verifySha256Chain(payloads, expectedHashes);
       times.push((performance.now() - t0) * 1000);
     }
-    results.push(summarize('synthetic raw-FNV + text-SHA aggregate', '1K coordinates + 500 rows', 500, times));
+    results.push(
+      summarize('synthetic raw-FNV + text-SHA aggregate', '1K coordinates + 500 rows', 500, times)
+    );
   });
 
   it('emit JSON artifact under .bench-logs/<ISO>/paper-4-rtx-bench.json', () => {

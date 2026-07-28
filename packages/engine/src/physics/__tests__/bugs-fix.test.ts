@@ -65,9 +65,9 @@ describe('BUG-1 — JointSystem spring damping is velocity-based', () => {
     const js = new JointSystem();
     const j = js.createJoint('spring', 'a', 'b', {
       stiffness: 100,
-      damping: 99,            // very large damping
+      damping: 99, // very large damping
       anchorA: [0, 0, 0],
-      anchorB: [2, 0, 0],    // 2 m; rest = 2 m at creation
+      anchorB: [2, 0, 0], // 2 m; rest = 2 m at creation
     });
     // currentDistance starts at 0; set it to the rest length so elastic force = 0
     js.setDistance(j.id, 2);
@@ -264,9 +264,9 @@ describe('BUG-5b — DeformableMesh restCentroid recomputed after plasticity', (
 
     const dt = 1 / 60;
     const mesh = new DeformableMesh({
-      plasticity: 0,           // no automatic plasticity; we set rest manually
+      plasticity: 0, // no automatic plasticity; we set rest manually
       shapeMatchingStrength: 0.5,
-      damping: 1.0,            // no velocity damping so we can see the impulse
+      damping: 1.0, // no velocity damping so we can see the impulse
       stiffness: 0,
       maxDisplacement: 100,
     });
@@ -378,10 +378,10 @@ describe('BUG-5a — DeformableMesh rigid shape matching with rotation', () => {
 
     // Square in XZ plane, centroid at origin
     mesh.setVertices([
-      [ 1, 0,  0],
-      [ 0, 0,  1],
-      [-1, 0,  0],
-      [ 0, 0, -1],
+      [1, 0, 0],
+      [0, 0, 1],
+      [-1, 0, 0],
+      [0, 0, -1],
     ]);
 
     // Apply a pure 90° CCW rotation around Y: [x,0,z] → [-z,0,x]
@@ -390,10 +390,10 @@ describe('BUG-5a — DeformableMesh rigid shape matching with rotation', () => {
     //   [0,0,1] → [-1,0,0]  (idx 1)
     //   [-1,0,0]→ [0,0,-1]  (idx 2)
     //   [0,0,-1]→ [1,0,0]   (idx 3)
-    mesh.getVertex(0)!.current = [ 0, 0,  1];
-    mesh.getVertex(1)!.current = [-1, 0,  0];
-    mesh.getVertex(2)!.current = [ 0, 0, -1];
-    mesh.getVertex(3)!.current = [ 1, 0,  0];
+    mesh.getVertex(0)!.current = [0, 0, 1];
+    mesh.getVertex(1)!.current = [-1, 0, 0];
+    mesh.getVertex(2)!.current = [0, 0, -1];
+    mesh.getVertex(3)!.current = [1, 0, 0];
 
     // Run many steps so shape matching has time to act
     for (let i = 0; i < 200; i++) mesh.update(1 / 60);
@@ -408,19 +408,17 @@ describe('BUG-5a — DeformableMesh rigid shape matching with rotation', () => {
     // The mesh gets pulled OUT of its rotated shape.
     // Distance from the correct rotated rest position should be small with fix.
     const rotatedRest = [
-      [ 0, 0,  1],
-      [-1, 0,  0],
-      [ 0, 0, -1],
-      [ 1, 0,  0],
+      [0, 0, 1],
+      [-1, 0, 0],
+      [0, 0, -1],
+      [1, 0, 0],
     ];
     let totalDrift = 0;
     for (let k = 0; k < 4; k++) {
       const v = mesh.getVertex(k)!;
       const rr = rotatedRest[k];
       totalDrift += Math.sqrt(
-        (v.current[0] - rr[0]) ** 2 +
-        (v.current[1] - rr[1]) ** 2 +
-        (v.current[2] - rr[2]) ** 2
+        (v.current[0] - rr[0]) ** 2 + (v.current[1] - rr[1]) ** 2 + (v.current[2] - rr[2]) ** 2
       );
     }
     // Bug: translation-only pulls each vertex toward rest (not rotated rest),
@@ -474,7 +472,7 @@ describe('BUG-7 — RagdollController mass-weighted constraint correction', () =
     const rc = new RagdollController({ gravity: 0, damping: 1.0, iterations: 10 });
 
     const parentMass = 100; // very heavy
-    const childMass = 1;    // very light
+    const childMass = 1; // very light
     rc.addBone('pelvis', null, parentMass, 0.5);
     rc.addBone('arm', 'pelvis', childMass, 0.5);
 

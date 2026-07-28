@@ -73,5 +73,7 @@ export function honestyGate(requires: Record<string, Uncertain<unknown>>): Hones
       });
     }
   }
-  return blocking.length === 0 ? { decision: 'proceed', values } : { decision: 'abstain', blocking };
+  return blocking.length === 0
+    ? { decision: 'proceed', values }
+    : { decision: 'abstain', blocking };
 }

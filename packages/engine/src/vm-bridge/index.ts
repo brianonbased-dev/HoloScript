@@ -26,10 +26,7 @@ export type {
 export { InMemoryAgentRegistry } from './agent-registry';
 export type { IAgentRegistry, RegisteredAgent } from './agent-registry';
 
-export {
-  SpatialAgentService,
-  spawnConfigFromMarketplaceInstall,
-} from './spatial-agent-service';
+export { SpatialAgentService, spawnConfigFromMarketplaceInstall } from './spatial-agent-service';
 export type {
   SpawnAgentConfig,
   SpatialAgentServiceConfig,

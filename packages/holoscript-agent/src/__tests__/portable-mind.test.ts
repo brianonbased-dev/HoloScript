@@ -20,7 +20,8 @@ function brokerFetch() {
   return vi.fn(async (url: unknown) => {
     const u = String(url);
     if (u.endsWith('/key/challenge')) return { ok: true, json: async () => ({ nonce: 'nonce-1' }) };
-    if (u.endsWith('/key/recover')) return { ok: true, json: async () => ({ agent: { api_key: 'broker-bearer' } }) };
+    if (u.endsWith('/key/recover'))
+      return { ok: true, json: async () => ({ agent: { api_key: 'broker-bearer' } }) };
     throw new Error('unexpected fetch ' + u);
   });
 }
@@ -31,8 +32,11 @@ describe('buildPortableMind', () => {
     try {
       const fetchImpl = brokerFetch();
       const mind = await buildPortableMind({
-        privateKey: KEY, meshApiBase: 'https://x/api', teamId: 't',
-        localKnowledgePath: join(dir, 'k.jsonl'), fetchImpl: fetchImpl as unknown as typeof fetch,
+        privateKey: KEY,
+        meshApiBase: 'https://x/api',
+        teamId: 't',
+        localKnowledgePath: join(dir, 'k.jsonl'),
+        fetchImpl: fetchImpl as unknown as typeof fetch,
       });
       // identity wallet == address of KEY (not a separately-declared address that could drift).
       expect(mind.identity().wallet).toBe(ADDR);
@@ -47,8 +51,12 @@ describe('buildPortableMind', () => {
     const dir = mkdtempSync(join(tmpdir(), 'pm-'));
     try {
       const mind = await buildPortableMind({
-        privateKey: KEY, meshApiBase: 'https://x/api', teamId: 't', bearer: 'explicit',
-        localKnowledgePath: join(dir, 'k.jsonl'), fetchImpl: brokerFetch() as unknown as typeof fetch,
+        privateKey: KEY,
+        meshApiBase: 'https://x/api',
+        teamId: 't',
+        bearer: 'explicit',
+        localKnowledgePath: join(dir, 'k.jsonl'),
+        fetchImpl: brokerFetch() as unknown as typeof fetch,
       });
       await mind.rememberOutcome({ content: 'portable mind reached the headset' });
       const recalled = await mind.loadMemory('headset');
@@ -64,8 +72,13 @@ describe('buildPortableMind', () => {
     try {
       const fetchImpl = brokerFetch();
       const mind = await buildPortableMind({
-        privateKey: KEY, meshApiBase: 'https://x/api', teamId: 't', bearer: 'explicit-bearer',
-        agentId: 'brittney', localKnowledgePath: join(dir, 'k.jsonl'), fetchImpl: fetchImpl as unknown as typeof fetch,
+        privateKey: KEY,
+        meshApiBase: 'https://x/api',
+        teamId: 't',
+        bearer: 'explicit-bearer',
+        agentId: 'brittney',
+        localKnowledgePath: join(dir, 'k.jsonl'),
+        fetchImpl: fetchImpl as unknown as typeof fetch,
       });
       expect(mind.identity().agentId).toBe('brittney');
       expect(mind.identity().wallet).toBe(ADDR); // still key-derived

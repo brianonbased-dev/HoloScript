@@ -62,9 +62,7 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
       }
     };
 
-    await Promise.all(
-      Array.from({ length: Math.min(concurrency, texts.length) }, () => worker())
-    );
+    await Promise.all(Array.from({ length: Math.min(concurrency, texts.length) }, () => worker()));
     return results;
   }
 }

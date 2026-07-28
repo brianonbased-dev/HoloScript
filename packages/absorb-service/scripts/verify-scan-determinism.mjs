@@ -100,9 +100,7 @@ function parseArgs(argv) {
 
 export async function main(argv = process.argv.slice(2)) {
   const options = parseArgs(argv);
-  const engineUrl = pathToFileURL(
-    resolve(packageRoot, 'dist/engine/index.js')
-  ).href;
+  const engineUrl = pathToFileURL(resolve(packageRoot, 'dist/engine/index.js')).href;
   const { CodebaseScanner } = await import(engineUrl);
   const first = stableScan(await scanOnce(CodebaseScanner));
   const second = stableScan(await scanOnce(CodebaseScanner));

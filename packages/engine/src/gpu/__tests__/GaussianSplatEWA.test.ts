@@ -40,7 +40,11 @@ type Vec4 = [number, number, number, number];
 
 function mat3mul(A: Mat3, B: Mat3): Mat3 {
   // A and B are column-major; result[col][row]
-  const out: Mat3 = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  const out: Mat3 = [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+  ];
   for (let col = 0; col < 3; col++) {
     for (let row = 0; row < 3; row++) {
       let s = 0;
@@ -68,7 +72,10 @@ function mat3transpose(M: Mat3): Mat3 {
  * (qw, qx, qy, qz) explicitly.
  */
 function buildRotationMatrix(qw: number, qx: number, qy: number, qz: number): Mat3 {
-  const r = qw, x = qx, y = qy, z = qz;
+  const r = qw,
+    x = qx,
+    y = qy,
+    z = qz;
   // WGSL column-major: first index = column, second = row
   return [
     [1 - 2 * (y * y + z * z), 2 * (x * y + r * z), 2 * (x * z - r * y)],
@@ -116,12 +123,15 @@ function computeCov2D(
   focalX: number,
   focalY: number,
   tanFovX: number,
-  tanFovY: number,
+  tanFovY: number
 ): [number, number, number] {
   // Transform to camera space
-  const camX = viewMat[0] * posWorld[0] + viewMat[4] * posWorld[1] + viewMat[8] * posWorld[2] + viewMat[12];
-  const camY = viewMat[1] * posWorld[0] + viewMat[5] * posWorld[1] + viewMat[9] * posWorld[2] + viewMat[13];
-  const camZ = viewMat[2] * posWorld[0] + viewMat[6] * posWorld[1] + viewMat[10] * posWorld[2] + viewMat[14];
+  const camX =
+    viewMat[0] * posWorld[0] + viewMat[4] * posWorld[1] + viewMat[8] * posWorld[2] + viewMat[12];
+  const camY =
+    viewMat[1] * posWorld[0] + viewMat[5] * posWorld[1] + viewMat[9] * posWorld[2] + viewMat[13];
+  const camZ =
+    viewMat[2] * posWorld[0] + viewMat[6] * posWorld[1] + viewMat[10] * posWorld[2] + viewMat[14];
   const tz = camZ;
   const tzSafe = Math.abs(tz) < 0.001 ? 0.001 : tz;
 
@@ -133,9 +143,9 @@ function computeCov2D(
 
   // Jacobian (2x3)
   const J00 = focalX / tzSafe;
-  const J02 = -focalX * tx / (tzSafe * tzSafe);
+  const J02 = (-focalX * tx) / (tzSafe * tzSafe);
   const J11 = focalY / tzSafe;
-  const J12 = -focalY * ty / (tzSafe * tzSafe);
+  const J12 = (-focalY * ty) / (tzSafe * tzSafe);
 
   // 3D covariance Sigma (CORRECT: M * M^T)
   const Sigma = buildSigma3D(scale, rot);
@@ -155,7 +165,8 @@ function computeCov2D(
   // cov01 = J[0][0]*J[1][1]*T[0][1] + J[0][0]*J[1][2]*T[0][2] + J[0][2]*J[1][1]*T[1][2] + J[0][2]*J[1][2]*T[2][2]
   // cov11 = J[1][1]^2*T[1][1] + 2*J[1][1]*J[1][2]*T[1][2] + J[1][2]^2*T[2][2]
   const cov00 = J00 * J00 * T[0][0] + 2 * J00 * J02 * T[2][0] + J02 * J02 * T[2][2];
-  const cov01 = J00 * J11 * T[1][0] + J00 * J12 * T[2][0] + J02 * J11 * T[1][2] + J02 * J12 * T[2][2];
+  const cov01 =
+    J00 * J11 * T[1][0] + J00 * J12 * T[2][0] + J02 * J11 * T[1][2] + J02 * J12 * T[2][2];
   const cov11 = J11 * J11 * T[1][1] + 2 * J11 * J12 * T[1][2] + J12 * J12 * T[2][2];
 
   return [cov00, cov01, cov11];
@@ -212,22 +223,12 @@ function evalEWA(conic: [number, number, number], dx: number, dy: number): numbe
 
 /** Identity view matrix (column-major) — camera at origin looking along -Z */
 function identityView(): number[] {
-  return [
-    1, 0, 0, 0,
-    0, 1, 0, 0,
-    0, 0, 1, 0,
-    0, 0, 0, 1,
-  ];
+  return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 }
 
 /** Simple camera looking along +Z (flip Z sign) for testing depth > 0 */
 function lookAlongPosZ(): number[] {
-  return [
-    1, 0, 0, 0,
-    0, 1, 0, 0,
-    0, 0, -1, 0,
-    0, 0, 0, 1,
-  ];
+  return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1];
 }
 
 /** Identity quaternion (no rotation) */
@@ -238,7 +239,6 @@ const QUAT_IDENTITY: Vec4 = [1, 0, 0, 0]; // w=1, x=y=z=0
 // =============================================================================
 
 describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
-
   // ─── 3D Covariance Construction ──────────────────────────────────────────
 
   describe('3D Covariance Sigma = M*M^T (rotation-aware)', () => {
@@ -268,7 +268,8 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
     });
 
     it('Sigma is symmetric', () => {
-      const c = Math.cos(0.3), s = Math.sin(0.3);
+      const c = Math.cos(0.3),
+        s = Math.sin(0.3);
       const rot: Vec4 = [c, s * 0.5, s * 0.3, s * 0.8]; // arbitrary, unnormalized — re-normalize
       const len = Math.sqrt(rot[0] ** 2 + rot[1] ** 2 + rot[2] ** 2 + rot[3] ** 2);
       const rotN: Vec4 = [rot[0] / len, rot[1] / len, rot[2] / len, rot[3] / len];
@@ -302,11 +303,12 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
 
   describe('computeCov2D — Jacobian projection', () => {
     // Canonical setup: 1920×1080 canvas, 60° horizontal FoV
-    const W = 1920, H = 1080;
+    const W = 1920,
+      H = 1080;
     const focalX = W / (2 * Math.tan(Math.PI / 6)); // 60° hFoV → focal ≈ 1663 px
     const focalY = focalX;
-    const tanFovX = 0.5 * W / focalX;
-    const tanFovY = 0.5 * H / focalY;
+    const tanFovX = (0.5 * W) / focalX;
+    const tanFovY = (0.5 * H) / focalY;
 
     it('isotropic splat at identity view → cov2D is diagonal and positive', () => {
       const pos: Vec3 = [0, 0, -5]; // 5 units in front of camera (view = identity, camera looks -Z)
@@ -321,7 +323,16 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
       // Skip this variant — use direct construction below.
 
       // Directly test: pos = [0,0,5], view = identity (looking along +Z, camera-space Z = world Z)
-      const cov = computeCov2D([0, 0, 5], [1, 1, 1], QUAT_IDENTITY, view, focalX, focalY, tanFovX, tanFovY);
+      const cov = computeCov2D(
+        [0, 0, 5],
+        [1, 1, 1],
+        QUAT_IDENTITY,
+        view,
+        focalX,
+        focalY,
+        tanFovX,
+        tanFovY
+      );
       // cov00 and cov11 must be positive; cov01 should be 0 (isotropic, on-axis)
       expect(cov[0]).toBeGreaterThan(0);
       expect(cov[2]).toBeGreaterThan(0);
@@ -330,8 +341,26 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
 
     it('deeper splat produces smaller projected covariance (perspective foreshortening)', () => {
       const view = identityView();
-      const cov_near = computeCov2D([0, 0, 2], [1, 1, 0.01], QUAT_IDENTITY, view, focalX, focalY, tanFovX, tanFovY);
-      const cov_far = computeCov2D([0, 0, 10], [1, 1, 0.01], QUAT_IDENTITY, view, focalX, focalY, tanFovX, tanFovY);
+      const cov_near = computeCov2D(
+        [0, 0, 2],
+        [1, 1, 0.01],
+        QUAT_IDENTITY,
+        view,
+        focalX,
+        focalY,
+        tanFovX,
+        tanFovY
+      );
+      const cov_far = computeCov2D(
+        [0, 0, 10],
+        [1, 1, 0.01],
+        QUAT_IDENTITY,
+        view,
+        focalX,
+        focalY,
+        tanFovX,
+        tanFovY
+      );
       // Farther Gaussian subtends smaller solid angle → smaller cov2D diagonal
       expect(cov_near[0]).toBeGreaterThan(cov_far[0]);
     });
@@ -342,7 +371,16 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
       const s = Math.sin(Math.PI / 8);
       const rot: Vec4 = [c, 0, 0, s]; // 45° around Z
       const view = identityView();
-      const cov = computeCov2D([0, 0, 5], [3, 0.1, 0.1], rot, view, focalX, focalY, tanFovX, tanFovY);
+      const cov = computeCov2D(
+        [0, 0, 5],
+        [3, 0.1, 0.1],
+        rot,
+        view,
+        focalX,
+        focalY,
+        tanFovX,
+        tanFovY
+      );
       // Off-diagonal should be non-zero (anisotropic tilted ellipse)
       expect(Math.abs(cov[1])).toBeGreaterThan(0.01);
     });
@@ -489,7 +527,12 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
 
     it('power is always ≤ 0 (Gaussian never amplifies beyond center)', () => {
       const conic: [number, number, number] = [2, 0.5, 3];
-      for (const [dx, dy] of [[1, 0], [0, 1], [-2, 3], [5, -5]]) {
+      for (const [dx, dy] of [
+        [1, 0],
+        [0, 1],
+        [-2, 3],
+        [5, -5],
+      ]) {
         expect(evalEWA(conic, dx, dy)).toBeLessThanOrEqual(1e-12);
       }
     });
@@ -509,8 +552,8 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
       // Falloff along X much slower than along Y
       const covElong: [number, number, number] = [100.0, 0, 1.0];
       const conic = computeConic(covElong);
-      const powerAlongX = evalEWA(conic, 5, 0);  // 5px along major axis
-      const powerAlongY = evalEWA(conic, 0, 5);  // 5px along minor axis
+      const powerAlongX = evalEWA(conic, 5, 0); // 5px along major axis
+      const powerAlongY = evalEWA(conic, 0, 5); // 5px along minor axis
       // Along major axis: gentle falloff (small conic[0])
       // Along minor axis: steep falloff (large conic[2])
       expect(Math.abs(powerAlongX)).toBeLessThan(Math.abs(powerAlongY));
@@ -555,15 +598,25 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
 
   describe('End-to-end EWA pipeline: cov2D → dilate → conic → radius → alpha', () => {
     it('axis-aligned spherical splat at depth 5m produces finite, valid rendering params', () => {
-      const W = 1920, H = 1080;
+      const W = 1920,
+        H = 1080;
       const focalX = W / (2 * Math.tan(Math.PI / 6));
       const focalY = focalX;
-      const tanFovX = 0.5 * W / focalX;
-      const tanFovY = 0.5 * H / focalY;
+      const tanFovX = (0.5 * W) / focalX;
+      const tanFovY = (0.5 * H) / focalY;
       const view = identityView();
 
       // 1) Project to 2D
-      const rawCov = computeCov2D([0, 0, 5], [0.1, 0.1, 0.1], QUAT_IDENTITY, view, focalX, focalY, tanFovX, tanFovY);
+      const rawCov = computeCov2D(
+        [0, 0, 5],
+        [0.1, 0.1, 0.1],
+        QUAT_IDENTITY,
+        view,
+        focalX,
+        focalY,
+        tanFovX,
+        tanFovY
+      );
       // 2) Dilate
       const dilCov = dilate(rawCov);
       // 3) Conic
@@ -586,18 +639,29 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
       // This was the streak case: grazing-angle splat with large off-diagonal cov.
       // Old path: pack cov to f16, conic blows up in vertex shader.
       // New path: conic computed f32 before packing.
-      const W = 1920, H = 1080;
+      const W = 1920,
+        H = 1080;
       const focalX = W / (2 * Math.tan(Math.PI / 6));
       const focalY = focalX;
-      const tanFovX = 0.5 * W / focalX;
-      const tanFovY = 0.5 * H / focalY;
+      const tanFovX = (0.5 * W) / focalX;
+      const tanFovY = (0.5 * H) / focalY;
 
       // 45° rotation around Z; thin splat (0.01 in Y)
-      const c = Math.cos(Math.PI / 8), s = Math.sin(Math.PI / 8);
+      const c = Math.cos(Math.PI / 8),
+        s = Math.sin(Math.PI / 8);
       const rot: Vec4 = [c, 0, 0, s];
       const view = identityView();
 
-      const rawCov = computeCov2D([0, 0, 5], [2.0, 0.01, 0.01], rot, view, focalX, focalY, tanFovX, tanFovY);
+      const rawCov = computeCov2D(
+        [0, 0, 5],
+        [2.0, 0.01, 0.01],
+        rot,
+        view,
+        focalX,
+        focalY,
+        tanFovX,
+        tanFovY
+      );
       const dilCov = dilate(rawCov);
       const conic = computeConic(dilCov);
       const radius = computeRadius(dilCov);
@@ -619,16 +683,20 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
       //   scale ~ LogNormal(μ=-2.5, σ=1.0)  (exp of log-scale stored in .ply)
       //   depth ~ Uniform(0.5, 6.0) m
       //   rotation: random quaternion
-      const W = 1920, H = 1080;
+      const W = 1920,
+        H = 1080;
       const focalX = W / (2 * Math.tan(Math.PI / 6));
       const focalY = focalX;
-      const tanFovX = 0.5 * W / focalX;
-      const tanFovY = 0.5 * H / focalY;
+      const tanFovX = (0.5 * W) / focalX;
+      const tanFovY = (0.5 * H) / focalY;
       const view = identityView();
 
       // Seeded pseudo-random for determinism
       let seed = 42;
-      const rng = () => { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 1) / 0x7fffffff; };
+      const rng = () => {
+        seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+        return (seed >>> 1) / 0x7fffffff;
+      };
 
       let failures = 0;
       for (let i = 0; i < 1000; i++) {
@@ -639,16 +707,33 @@ describe('Gaussian Splat EWA Anti-Aliasing (Phase 1a)', () => {
           Math.exp(-2.5 + rng() * 2 - 1),
         ];
         // Random unit quaternion (Box-Muller / normalize)
-        const a = rng() * 2 - 1, b = rng() * 2 - 1, c2 = rng() * 2 - 1, d = rng() * 2 - 1;
+        const a = rng() * 2 - 1,
+          b = rng() * 2 - 1,
+          c2 = rng() * 2 - 1,
+          d = rng() * 2 - 1;
         const len = Math.sqrt(a ** 2 + b ** 2 + c2 ** 2 + d ** 2) || 1;
         const rot: Vec4 = [a / len, b / len, c2 / len, d / len];
 
-        const rawCov = computeCov2D([0, 0, depth], scale, rot, view, focalX, focalY, tanFovX, tanFovY);
+        const rawCov = computeCov2D(
+          [0, 0, depth],
+          scale,
+          rot,
+          view,
+          focalX,
+          focalY,
+          tanFovX,
+          tanFovY
+        );
         const dilCov = dilate(rawCov);
         const conic = computeConic(dilCov);
         const radius = computeRadius(dilCov);
 
-        if (!isFinite(conic[0]) || !isFinite(conic[1]) || !isFinite(conic[2]) || !isFinite(radius)) {
+        if (
+          !isFinite(conic[0]) ||
+          !isFinite(conic[1]) ||
+          !isFinite(conic[2]) ||
+          !isFinite(radius)
+        ) {
           failures++;
         }
       }

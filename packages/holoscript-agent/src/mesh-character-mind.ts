@@ -43,7 +43,10 @@ export interface CharacterMind {
 }
 
 /** The minimal `HolomeshClient` surface this adapter needs (keeps it mockable + loosely coupled). */
-export type PrivateMemoryStore = Pick<HolomeshClient, 'queryPrivateKnowledge' | 'writePrivateKnowledge'>;
+export type PrivateMemoryStore = Pick<
+  HolomeshClient,
+  'queryPrivateKnowledge' | 'writePrivateKnowledge'
+>;
 
 /**
  * Live `CharacterMind` backed by the wallet-scoped private store. Identity comes from the seat

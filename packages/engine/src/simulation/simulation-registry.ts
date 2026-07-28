@@ -229,7 +229,9 @@ function parseMLSMPMConfig(raw: Record<string, unknown>): Partial<MLSMPMConfig> 
 function parseDEMConfig(raw: Record<string, unknown>): DEMConfig {
   const radiiRaw = raw.radii as number[] | undefined;
   const massesRaw = raw.masses as number[] | undefined;
-  const boxRaw = raw.boxBounds as [[number, number], [number, number], [number, number]] | undefined;
+  const boxRaw = raw.boxBounds as
+    | [[number, number], [number, number], [number, number]]
+    | undefined;
   const posRaw = raw.initialPositions as number[] | undefined;
   const velRaw = raw.initialVelocities as number[] | undefined;
   return {

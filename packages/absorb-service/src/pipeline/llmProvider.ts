@@ -140,7 +140,9 @@ export async function createPipelineLLMProviderAsync(): Promise<LLMProvider> {
     return adaptToChatProvider((await resolveSovereignProviderAsync({ anthropicKey })).provider);
   }
   const anthropicKey = await resolveAnthropicByokKey();
-  return adaptToChatProvider((await resolveSovereignProviderAsync({ explicit, anthropicKey })).provider);
+  return adaptToChatProvider(
+    (await resolveSovereignProviderAsync({ explicit, anthropicKey })).provider
+  );
 }
 
 /** HoloKey-aware provider-name detection (sovereign-first; probes HoloLlama). */

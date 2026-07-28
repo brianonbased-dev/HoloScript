@@ -99,7 +99,11 @@ describe('character-render — material groups (skin-SSS) + lambert fallback', (
     const host = new CharacterHost({ entityId: 'brittney' });
     const spec = host.getDrawSpec(); // emits a skin-sss material group
     const skin = await renderCharacter(testDevice!, spec, { size: 128 });
-    const lambert = await renderCharacter(testDevice!, { ...spec, materialGroups: undefined }, { size: 128 });
+    const lambert = await renderCharacter(
+      testDevice!,
+      { ...spec, materialGroups: undefined },
+      { size: 128 }
+    );
     // Same silhouette, different shading → many pixels differ but the figure area is similar.
     expect(pixelDiff(skin, lambert)).toBeGreaterThan(50);
     expect(figurePixels(skin)).toBeGreaterThan(150);

@@ -1,12 +1,9 @@
 import { createHash } from 'node:crypto';
 import { deflateSync } from 'node:zlib';
 
-export const PAPER_5_VISUAL_V4_PROTOCOL_SCHEMA =
-  'holoscript.paper5.visual-agent-study-protocol.v4';
-export const PAPER_5_VISUAL_V4_DATASET_SCHEMA =
-  'holoscript.paper5.visual-agent-study-dataset.v4';
-export const PAPER_5_VISUAL_V4_PACKET_SCHEMA =
-  'holoscript.paper5.visual-agent-packets.v4';
+export const PAPER_5_VISUAL_V4_PROTOCOL_SCHEMA = 'holoscript.paper5.visual-agent-study-protocol.v4';
+export const PAPER_5_VISUAL_V4_DATASET_SCHEMA = 'holoscript.paper5.visual-agent-study-dataset.v4';
+export const PAPER_5_VISUAL_V4_PACKET_SCHEMA = 'holoscript.paper5.visual-agent-packets.v4';
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -47,7 +44,9 @@ function annotationHasEvidence(annotation, file) {
 function queryAuditErrors(query, repositoryIds, protocol) {
   const errors = [];
   const relevant = relevantFilesFor(query);
-  const candidates = [...new Set((query?.candidates ?? []).map((item) => normalizePath(item.file)))];
+  const candidates = [
+    ...new Set((query?.candidates ?? []).map((item) => normalizePath(item.file))),
+  ];
   const annotations = Array.isArray(query?.annotations) ? query.annotations : [];
   const minimumAnnotators = Number(
     protocol?.dataset?.annotation?.minimumIndependentAnnotatorsPerQuery ?? 2
@@ -102,7 +101,7 @@ export function auditPaper5VisualV4Dataset({ protocol, protocolRaw, dataset }) {
     checks,
     'dataset-present',
     Boolean(dataset),
-    dataset ? dataset.datasetId ?? null : 'dataset not supplied'
+    dataset ? (dataset.datasetId ?? null) : 'dataset not supplied'
   );
   if (!dataset) {
     return {
@@ -220,7 +219,9 @@ export function auditPaper5VisualV4Dataset({ protocol, protocolRaw, dataset }) {
   const confirmatoryIds = new Set(dataset.split?.confirmatoryQueryIds ?? []);
   const overlap = [...calibrationIds].filter((id) => confirmatoryIds.has(id));
   const partitionIds = new Set([...calibrationIds, ...confirmatoryIds]);
-  const expectedCalibrationFraction = Number(protocol?.dataset?.custody?.calibrationFraction ?? 0.2);
+  const expectedCalibrationFraction = Number(
+    protocol?.dataset?.custody?.calibrationFraction ?? 0.2
+  );
   const observedCalibrationFraction = queries.length > 0 ? calibrationIds.size / queries.length : 0;
   check(
     checks,
@@ -266,16 +267,16 @@ const FONT = {
   R: ['110', '101', '110', '101', '101'],
   S: ['111', '100', '111', '001', '111'],
   T: ['111', '010', '010', '010', '010'],
-  '1': ['010', '110', '010', '010', '111'],
-  '2': ['110', '001', '010', '100', '111'],
-  '3': ['110', '001', '010', '001', '110'],
-  '4': ['101', '101', '111', '001', '001'],
-  '5': ['111', '100', '110', '001', '110'],
-  '6': ['011', '100', '111', '101', '111'],
-  '7': ['111', '001', '010', '010', '010'],
-  '8': ['111', '101', '111', '101', '111'],
-  '9': ['111', '101', '111', '001', '110'],
-  '0': ['111', '101', '101', '101', '111'],
+  1: ['010', '110', '010', '010', '111'],
+  2: ['110', '001', '010', '100', '111'],
+  3: ['110', '001', '010', '001', '110'],
+  4: ['101', '101', '111', '001', '001'],
+  5: ['111', '100', '110', '001', '110'],
+  6: ['011', '100', '111', '101', '111'],
+  7: ['111', '001', '010', '010', '010'],
+  8: ['111', '101', '111', '101', '111'],
+  9: ['111', '101', '111', '001', '110'],
+  0: ['111', '101', '101', '101', '111'],
   ' ': ['0', '0', '0', '0', '0'],
 };
 
@@ -438,10 +439,7 @@ export function renderPaper5VisualV4Png({
     if (!from || !to) continue;
     drawLine(pixels, width, height, from, to, [86, 189, 248], 2);
     const angle = Math.atan2(to[1] - from[1], to[0] - from[0]);
-    const tip = [
-      to[0] - Math.cos(angle) * 48,
-      to[1] - Math.sin(angle) * 48,
-    ];
+    const tip = [to[0] - Math.cos(angle) * 48, to[1] - Math.sin(angle) * 48];
     drawLine(
       pixels,
       width,
@@ -566,7 +564,9 @@ export function buildPaper5VisualV4CasePacket({ query, protocol }) {
     category: query.category,
     query: query.query,
     scoringKey: {
-      goldCandidateAliases: relevantFilesFor(query).map((file) => aliasByFile.get(file)).sort(),
+      goldCandidateAliases: relevantFilesFor(query)
+        .map((file) => aliasByFile.get(file))
+        .sort(),
     },
     visual: {
       candidates: ordered.map((candidate) => ({ alias: candidate.alias })),
@@ -580,9 +580,7 @@ export function buildPaper5VisualV4CasePacket({ query, protocol }) {
           ...(arm === 'relations' || arm === 'relations-pixels'
             ? { relationalGraphObservation: relationalObservation }
             : {}),
-          ...(arm === 'pixels' || arm === 'relations-pixels'
-            ? { literalImageRequired: true }
-            : {}),
+          ...(arm === 'pixels' || arm === 'relations-pixels' ? { literalImageRequired: true } : {}),
         },
       ])
     ),

@@ -6,10 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(testDir, '../../..');
-const assets = new Set([
-  'n4-residual-webgpu-parity.html',
-  'n4-residual-webgpu-parity.js',
-]);
+const assets = new Set(['n4-residual-webgpu-parity.html', 'n4-residual-webgpu-parity.js']);
 
 function server(): http.Server {
   return http.createServer(async (request, response) => {
@@ -96,4 +93,3 @@ test('runs N4 tensor inference on live browser WebGPU with CPU parity', async ({
     await close(instance);
   }
 });
-

@@ -123,7 +123,7 @@ function countCorrect(outcomes: readonly GradedOutcome[]): number {
  */
 export function conformalCoverageBound(
   calibration: readonly GradedOutcome[],
-  alpha: number,
+  alpha: number
 ): ConformalCoverageBound {
   const n = Array.isArray(calibration) ? calibration.length : 0;
 
@@ -204,14 +204,15 @@ export function conformalCoverageBound(
  */
 export function conformalCoverageByFamily(
   calibration: readonly GradedOutcome[],
-  alpha: number,
+  alpha: number
 ): MondrianCoverageReport {
   const safe: readonly GradedOutcome[] = Array.isArray(calibration) ? calibration : [];
 
   const buckets = new Map<string, GradedOutcome[]>();
   const order: string[] = [];
   for (const o of safe) {
-    const fam = o != null && typeof o.family === 'string' && o.family.length > 0 ? o.family : '__unlabeled__';
+    const fam =
+      o != null && typeof o.family === 'string' && o.family.length > 0 ? o.family : '__unlabeled__';
     let bucket = buckets.get(fam);
     if (bucket === undefined) {
       bucket = [];

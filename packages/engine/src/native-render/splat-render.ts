@@ -107,7 +107,12 @@ export function gaussianSplatDataToSplats(d: GaussianSplatData): RawSplatInput[]
       position: [d.positions[i * 3], d.positions[i * 3 + 1], d.positions[i * 3 + 2]],
       scale: [d.scales[i * 3], d.scales[i * 3 + 1], d.scales[i * 3 + 2]],
       // codec (x,y,z,w) → SplatRaw (w,x,y,z)
-      rotation: [d.rotations[i * 4 + 3], d.rotations[i * 4], d.rotations[i * 4 + 1], d.rotations[i * 4 + 2]],
+      rotation: [
+        d.rotations[i * 4 + 3],
+        d.rotations[i * 4],
+        d.rotations[i * 4 + 1],
+        d.rotations[i * 4 + 2],
+      ],
       color: [d.colors[i * 4], d.colors[i * 4 + 1], d.colors[i * 4 + 2], d.opacities[i]],
     };
   }
@@ -136,8 +141,10 @@ export function defaultSplatCamera(size: number, fovYDeg = 60): CameraState {
   proj[14] = 0.5; // col3 row2
   proj[11] = 1; // col2 row3 → clip.w = z_eye (positive in front)
 
-  const view = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]) as Float32Array<ArrayBuffer>;
-  const focal = 0.5 * size / tanFov;
+  const view = new Float32Array([
+    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+  ]) as Float32Array<ArrayBuffer>;
+  const focal = (0.5 * size) / tanFov;
 
   return {
     viewMatrix: view,
@@ -206,7 +213,10 @@ export async function renderSplats(
 
   // Read the rendered pixels back (separate encoder; queue ordering runs it after the frame).
   const bytesPerRow = size * 4;
-  const readback = device.createBuffer({ size: bytesPerRow * size, usage: BUF_COPY_DST | BUF_MAP_READ });
+  const readback = device.createBuffer({
+    size: bytesPerRow * size,
+    usage: BUF_COPY_DST | BUF_MAP_READ,
+  });
   const encoder = device.createCommandEncoder();
   encoder.copyTextureToBuffer(
     { texture: color },

@@ -106,9 +106,15 @@ export interface STLAsciiOptions {
  * edge1 = B − A,  edge2 = C − A,  normal = normalize(edge1 × edge2)
  */
 function computeNormal(
-  ax: number, ay: number, az: number,
-  bx: number, by: number, bz: number,
-  cx: number, cy: number, cz: number
+  ax: number,
+  ay: number,
+  az: number,
+  bx: number,
+  by: number,
+  bz: number,
+  cx: number,
+  cy: number,
+  cz: number
 ): [number, number, number] {
   // edge1 = B − A
   const e1x = bx - ax;
@@ -156,9 +162,7 @@ function validateMesh(mesh: SurfaceMesh): void {
   // Check vertex finiteness
   for (let i = 0; i < mesh.vertices.length; i++) {
     if (!Number.isFinite(mesh.vertices[i])) {
-      throw new Error(
-        `STLExporter: non-finite value at vertices[${i}] (${mesh.vertices[i]})`
-      );
+      throw new Error(`STLExporter: non-finite value at vertices[${i}] (${mesh.vertices[i]})`);
     }
   }
 
@@ -169,7 +173,7 @@ function validateMesh(mesh: SurfaceMesh): void {
       if (idx >= vertexCount) {
         throw new Error(
           `STLExporter: triangle ${t} vertex ${v} index ${idx} out of range ` +
-          `(vertex count: ${vertexCount})`
+            `(vertex count: ${vertexCount})`
         );
       }
     }
@@ -193,10 +197,7 @@ function validateMesh(mesh: SurfaceMesh): void {
  * const buf = exportSTLBinary(myMesh, { scale: 1000 }); // metres → millimetres
  * fs.writeFileSync('part.stl', Buffer.from(buf));
  */
-export function exportSTLBinary(
-  mesh: SurfaceMesh,
-  opts: STLBinaryOptions = {}
-): ArrayBuffer {
+export function exportSTLBinary(mesh: SurfaceMesh, opts: STLBinaryOptions = {}): ArrayBuffer {
   validateMesh(mesh);
 
   const scale = opts.scale ?? 1;
@@ -228,13 +229,13 @@ export function exportSTLBinary(
     const i1 = tris[t * 3 + 1];
     const i2 = tris[t * 3 + 2];
 
-    const ax = verts[i0 * 3]     * scale;
+    const ax = verts[i0 * 3] * scale;
     const ay = verts[i0 * 3 + 1] * scale;
     const az = verts[i0 * 3 + 2] * scale;
-    const bx = verts[i1 * 3]     * scale;
+    const bx = verts[i1 * 3] * scale;
     const by = verts[i1 * 3 + 1] * scale;
     const bz = verts[i1 * 3 + 2] * scale;
-    const cx = verts[i2 * 3]     * scale;
+    const cx = verts[i2 * 3] * scale;
     const cy = verts[i2 * 3 + 1] * scale;
     const cz = verts[i2 * 3 + 2] * scale;
 
@@ -243,9 +244,9 @@ export function exportSTLBinary(
     const base = 84 + t * 50;
 
     // Normal (3 × f32)
-    view.setFloat32(base,      nx, true);
-    view.setFloat32(base +  4, ny, true);
-    view.setFloat32(base +  8, nz, true);
+    view.setFloat32(base, nx, true);
+    view.setFloat32(base + 4, ny, true);
+    view.setFloat32(base + 8, nz, true);
 
     // Vertex 0 (3 × f32)
     view.setFloat32(base + 12, ax, true);
@@ -283,10 +284,7 @@ export function exportSTLBinary(
  * const stl = exportSTLAscii(myMesh, { name: 'bracket', precision: 8 });
  * fs.writeFileSync('part.stl', stl);
  */
-export function exportSTLAscii(
-  mesh: SurfaceMesh,
-  opts: STLAsciiOptions = {}
-): string {
+export function exportSTLAscii(mesh: SurfaceMesh, opts: STLAsciiOptions = {}): string {
   validateMesh(mesh);
 
   const scale = opts.scale ?? 1;
@@ -304,13 +302,13 @@ export function exportSTLAscii(
     const i1 = tris[t * 3 + 1];
     const i2 = tris[t * 3 + 2];
 
-    const ax = verts[i0 * 3]     * scale;
+    const ax = verts[i0 * 3] * scale;
     const ay = verts[i0 * 3 + 1] * scale;
     const az = verts[i0 * 3 + 2] * scale;
-    const bx = verts[i1 * 3]     * scale;
+    const bx = verts[i1 * 3] * scale;
     const by = verts[i1 * 3 + 1] * scale;
     const bz = verts[i1 * 3 + 2] * scale;
-    const cx = verts[i2 * 3]     * scale;
+    const cx = verts[i2 * 3] * scale;
     const cy = verts[i2 * 3 + 1] * scale;
     const cz = verts[i2 * 3 + 2] * scale;
 
@@ -320,9 +318,15 @@ export function exportSTLAscii(
       `  facet normal ${nx.toFixed(precision)} ${ny.toFixed(precision)} ${nz.toFixed(precision)}`
     );
     lines.push('    outer loop');
-    lines.push(`      vertex ${ax.toFixed(precision)} ${ay.toFixed(precision)} ${az.toFixed(precision)}`);
-    lines.push(`      vertex ${bx.toFixed(precision)} ${by.toFixed(precision)} ${bz.toFixed(precision)}`);
-    lines.push(`      vertex ${cx.toFixed(precision)} ${cy.toFixed(precision)} ${cz.toFixed(precision)}`);
+    lines.push(
+      `      vertex ${ax.toFixed(precision)} ${ay.toFixed(precision)} ${az.toFixed(precision)}`
+    );
+    lines.push(
+      `      vertex ${bx.toFixed(precision)} ${by.toFixed(precision)} ${bz.toFixed(precision)}`
+    );
+    lines.push(
+      `      vertex ${cx.toFixed(precision)} ${cy.toFixed(precision)} ${cz.toFixed(precision)}`
+    );
     lines.push('    endloop');
     lines.push('  endfacet');
   }

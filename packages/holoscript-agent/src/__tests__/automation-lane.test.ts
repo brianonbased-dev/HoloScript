@@ -2,7 +2,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { ILLMProvider, LLMCompletionRequest, LLMCompletionResponse } from '@holoscript/llm-provider';
+import type {
+  ILLMProvider,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+} from '@holoscript/llm-provider';
 import { CostGuard } from '../cost-guard.js';
 import { AgentRunner } from '../runner.js';
 import {
@@ -75,9 +79,10 @@ describe('resolveAutomationLaneConfig', () => {
   });
 
   it('APPLY requires the lane flag too — APPLY alone stays OFF', () => {
-    expect(
-      resolveAutomationLaneConfig({ HOLOSCRIPT_AGENT_AUTOMATION_LANE_APPLY: '1' })
-    ).toEqual({ enabled: false, apply: false });
+    expect(resolveAutomationLaneConfig({ HOLOSCRIPT_AGENT_AUTOMATION_LANE_APPLY: '1' })).toEqual({
+      enabled: false,
+      apply: false,
+    });
     expect(
       resolveAutomationLaneConfig({
         HOLOSCRIPT_AGENT_AUTOMATION_LANE: '1',
@@ -94,9 +99,9 @@ describe('isAutomationLaneTask / priorityRank', () => {
     expect(
       isAutomationLaneTask(automationTask({ source: undefined, tags: ['holoshell-automation'] }))
     ).toBe(true);
-    expect(
-      isAutomationLaneTask(automationTask({ source: 'manual', tags: ['security'] }))
-    ).toBe(false);
+    expect(isAutomationLaneTask(automationTask({ source: 'manual', tags: ['security'] }))).toBe(
+      false
+    );
   });
 
   it('priorityRank tolerates the board priority babel (memo §2 S2) for ordering', () => {
@@ -411,7 +416,10 @@ describe('AgentRunner automation lane (board-compass Phase 3)', () => {
     process.env[APPLY] = '1';
     const events: Array<Record<string, unknown>> = [];
     // Read-only tool use only → W.107.b no-artifact path.
-    const provider = mockProvider({ toolCallsBeforeText: ['read_file'], content: 'I looked around.' });
+    const provider = mockProvider({
+      toolCallsBeforeText: ['read_file'],
+      content: 'I looked around.',
+    });
     const { runner, mesh } = makeRunner({ tasks: [automationTask()], provider, events });
 
     const result = await runner.tick();

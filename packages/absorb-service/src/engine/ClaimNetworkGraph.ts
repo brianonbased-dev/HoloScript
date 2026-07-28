@@ -252,15 +252,20 @@ async function runWithinBudget<T>(
   work: Promise<T>,
   budgetMs: number,
   controller: AbortController
-): Promise<{ timedOut: false; value: T; elapsedMs: number } | { timedOut: true; elapsedMs: number }> {
+): Promise<
+  { timedOut: false; value: T; elapsedMs: number } | { timedOut: true; elapsedMs: number }
+> {
   const started = Date.now();
   let timeout: ReturnType<typeof setTimeout> | undefined;
 
   const timed = new Promise<{ timedOut: true; elapsedMs: number }>((resolve) => {
-    timeout = setTimeout(() => {
-      controller.abort();
-      resolve({ timedOut: true, elapsedMs: Date.now() - started });
-    }, Math.max(0, budgetMs));
+    timeout = setTimeout(
+      () => {
+        controller.abort();
+        resolve({ timedOut: true, elapsedMs: Date.now() - started });
+      },
+      Math.max(0, budgetMs)
+    );
   });
 
   try {

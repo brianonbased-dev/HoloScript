@@ -44,7 +44,7 @@ export interface EvolutionModule {
   }): Promise<{ target: string; rows: GradedRow[] }>;
   dedupRows(
     existingCorpus: string,
-    rows: readonly GradedRow[],
+    rows: readonly GradedRow[]
   ): { fresh: GradedRow[]; deduped: number };
 }
 

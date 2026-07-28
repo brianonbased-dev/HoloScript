@@ -22,8 +22,14 @@ const ir = (opts: {
 describe('resolveAffords — three-state preconditions & capabilities', () => {
   it('resolves affords when capability and precondition are explicitly satisfied', () => {
     const res = resolveAffords(
-      ir({ body: { reach: 10 }, offers: [{ action: 'grasp', requires: { reach: 5 }, preconditions: ['powered'] }], propositions: [{ id: 'powered', holds: true }] }),
-      'robot', 'grasp', 'handle',
+      ir({
+        body: { reach: 10 },
+        offers: [{ action: 'grasp', requires: { reach: 5 }, preconditions: ['powered'] }],
+        propositions: [{ id: 'powered', holds: true }],
+      }),
+      'robot',
+      'grasp',
+      'handle'
     );
     expect(res.status).toBe('resolved');
     expect(res.answer?.affords).toBe(true);
@@ -31,8 +37,13 @@ describe('resolveAffords — three-state preconditions & capabilities', () => {
 
   it('resolves does-not-afford when a precondition is explicitly false', () => {
     const res = resolveAffords(
-      ir({ offers: [{ action: 'grasp', preconditions: ['powered'] }], propositions: [{ id: 'powered', holds: false }] }),
-      'robot', 'grasp', 'handle',
+      ir({
+        offers: [{ action: 'grasp', preconditions: ['powered'] }],
+        propositions: [{ id: 'powered', holds: false }],
+      }),
+      'robot',
+      'grasp',
+      'handle'
     );
     expect(res.status).toBe('resolved');
     expect(res.answer?.affords).toBe(false);
@@ -41,7 +52,9 @@ describe('resolveAffords — three-state preconditions & capabilities', () => {
   it('ABSTAINS when a required precondition is UNSTATED (not a silent block)', () => {
     const res = resolveAffords(
       ir({ offers: [{ action: 'grasp', preconditions: ['powered'] }], propositions: [] }),
-      'robot', 'grasp', 'handle',
+      'robot',
+      'grasp',
+      'handle'
     );
     expect(res.status).toBe('unresolvable');
     expect(res.reason).toBe('missing_precondition');
@@ -53,7 +66,9 @@ describe('resolveAffords — three-state preconditions & capabilities', () => {
   it('ABSTAINS when a required capability is UNSTATED on the agent body', () => {
     const res = resolveAffords(
       ir({ body: {}, offers: [{ action: 'grasp', requires: { reach: 5 }, preconditions: [] }] }),
-      'robot', 'grasp', 'handle',
+      'robot',
+      'grasp',
+      'handle'
     );
     expect(res.status).toBe('unresolvable');
     expect(res.gap?.code).toBe('affordance.unstated_capability');
@@ -62,8 +77,14 @@ describe('resolveAffords — three-state preconditions & capabilities', () => {
 
   it('resolves does-not-afford when a stated capability is insufficient', () => {
     const res = resolveAffords(
-      ir({ body: { reach: 3 }, offers: [{ action: 'grasp', requires: { reach: 5 }, preconditions: ['powered'] }], propositions: [{ id: 'powered', holds: true }] }),
-      'robot', 'grasp', 'handle',
+      ir({
+        body: { reach: 3 },
+        offers: [{ action: 'grasp', requires: { reach: 5 }, preconditions: ['powered'] }],
+        propositions: [{ id: 'powered', holds: true }],
+      }),
+      'robot',
+      'grasp',
+      'handle'
     );
     expect(res.status).toBe('resolved');
     expect(res.answer?.affords).toBe(false);
@@ -83,9 +104,14 @@ describe('resolveAffords — three-state preconditions & capabilities', () => {
           { action: 'grasp', preconditions: ['p1'] },
           { action: 'grasp', preconditions: ['p2'] },
         ],
-        propositions: [{ id: 'p1', holds: true }, { id: 'p2', holds: false }],
+        propositions: [
+          { id: 'p1', holds: true },
+          { id: 'p2', holds: false },
+        ],
       }),
-      'robot', 'grasp', 'handle',
+      'robot',
+      'grasp',
+      'handle'
     );
     expect(res.status).toBe('unresolvable');
     expect(res.reason).toBe('unprioritized_conflict');
@@ -94,8 +120,13 @@ describe('resolveAffords — three-state preconditions & capabilities', () => {
 
   it('no false gaps: a fully-stated determinate scene resolves', () => {
     const res = resolveAffords(
-      ir({ offers: [{ action: 'grasp', preconditions: ['powered'] }], propositions: [{ id: 'powered', holds: true }] }),
-      'robot', 'grasp', 'handle',
+      ir({
+        offers: [{ action: 'grasp', preconditions: ['powered'] }],
+        propositions: [{ id: 'powered', holds: true }],
+      }),
+      'robot',
+      'grasp',
+      'handle'
     );
     expect(res.status).toBe('resolved');
     expect(res.gap).toBeUndefined();

@@ -64,7 +64,10 @@ describe.skipIf(!wasmPresent)('lowering bridge e2e (real WASM artifact)', () => 
   });
 
   it('a declared default is a fallback by construction — grammar, enforcement, and lowering agree', () => {
-    const wasm = requireCjs(PKG_NODE) as { parse(source: string): string; validate_detailed(source: string): string };
+    const wasm = requireCjs(PKG_NODE) as {
+      parse(source: string): string;
+      validate_detailed(source: string): string;
+    };
     const source = '@trait S {\n  @unknown\n  reading: Temperature = 20.0\n  display: reading\n}';
     // Enforcement: the bare read of the DEFAULTED @unknown field is admitted.
     expect(JSON.parse(wasm.validate_detailed(source)).valid).toBe(true);
@@ -79,8 +82,7 @@ describe.skipIf(!wasmPresent)('lowering bridge e2e (real WASM artifact)', () => 
 
   it('parses a native @unknown struct field and lowers the real aligned AST metadata', () => {
     const wasm = requireCjs(PKG_NODE) as { parse(source: string): string };
-    const source =
-      'struct Sensor { @unknown reading: i32, calibrated: bool, @unknown drift: i64 }';
+    const source = 'struct Sensor { @unknown reading: i32, calibrated: bool, @unknown drift: i64 }';
     const ast = JSON.parse(wasm.parse(source));
     expect(ast.errors).toBeUndefined();
     const sensor = ast.body.find(

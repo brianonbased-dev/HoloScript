@@ -128,15 +128,17 @@ describe('shipped brain capability keys are valid Capabilities keys', () => {
 
   it('the allowlist accepts the fixed camelCase keys and rejects the old snake_case ones (self-proof)', () => {
     // The exact keys the pre-fix paper-researcher brain shipped — must be flagged.
-    expect(invalidCapabilityKeys(['long_context', 'web_search', 'deep_reasoning', 'code_execution'])).toEqual([
-      'long_context',
-      'web_search',
-      'deep_reasoning',
-      'code_execution',
-    ]);
+    expect(
+      invalidCapabilityKeys(['long_context', 'web_search', 'deep_reasoning', 'code_execution'])
+    ).toEqual(['long_context', 'web_search', 'deep_reasoning', 'code_execution']);
     // Their fixed camelCase forms — must be accepted.
     expect(
-      invalidCapabilityKeys(['contextWindow', 'liveWebSearch', 'visibleReasoning', 'codeExecutionSandbox'])
+      invalidCapabilityKeys([
+        'contextWindow',
+        'liveWebSearch',
+        'visibleReasoning',
+        'codeExecutionSandbox',
+      ])
     ).toEqual([]);
   });
 
@@ -215,7 +217,9 @@ describe('paper-researcher resolves to an eligible provider after the camelCase 
     expect(brain.requires).toEqual(['contextWindow', 'liveWebSearch']);
     expect(brain.prefers).toEqual(['visibleReasoning']);
     expect(brain.avoids).toEqual(['imageGeneration', 'codeExecutionSandbox']);
-    expect(invalidCapabilityKeys([...brain.requires, ...brain.prefers, ...brain.avoids])).toEqual([]);
+    expect(invalidCapabilityKeys([...brain.requires, ...brain.prefers, ...brain.avoids])).toEqual(
+      []
+    );
 
     const req: BrainRequirements = {
       requires: brain.requires,
@@ -237,7 +241,11 @@ describe('paper-researcher resolves to an eligible provider after the camelCase 
     // snake_case `requires` match nothing, so no provider is eligible.
     expect(() =>
       pickProvider({
-        brain: { requires: ['long_context', 'web_search'], prefers: [], avoids: [] } as BrainRequirements,
+        brain: {
+          requires: ['long_context', 'web_search'],
+          prefers: [],
+          avoids: [],
+        } as BrainRequirements,
         candidates: [RESEARCH_FIT, IMAGE_GEN],
       })
     ).toThrow(NoEligibleProviderError);

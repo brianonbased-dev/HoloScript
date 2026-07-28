@@ -25,7 +25,12 @@
  * @module @holoscript/uaal
  */
 
-import type { UAALEmergentBaselineTest, UAALRateTest, UAALResolution, UAALSemanticBenchmarkRow } from './semantic';
+import type {
+  UAALEmergentBaselineTest,
+  UAALRateTest,
+  UAALResolution,
+  UAALSemanticBenchmarkRow,
+} from './semantic';
 import { cloneJson, makeRateTest, rate, safeParseCompletion, structuredGap } from './semantic';
 
 // =============================================================================
@@ -211,7 +216,10 @@ export function deriveAffect(atom: UAALVibeAtom): UAALDerivedAffect {
       const axes: number[] = [];
       if (isNum(atom.bpm)) axes.push(bpmToArousal(atom.bpm));
       if (isNum(atom.db)) axes.push(dbToArousal(atom.db));
-      return { valence: null, arousal: axes.length ? axes.reduce((a, b) => a + b, 0) / axes.length : null };
+      return {
+        valence: null,
+        arousal: axes.length ? axes.reduce((a, b) => a + b, 0) / axes.length : null,
+      };
     }
     default:
       return { valence: null, arousal: null };
@@ -225,8 +233,12 @@ export function deriveAffect(atom: UAALVibeAtom): UAALDerivedAffect {
 /** Merge the convenience `declared_vibe` string ahead of the `declared` list. */
 export function vibeDeclarations(ir: UAALVibeIR): UAALVibeDeclaration[] {
   const fromString: UAALVibeDeclaration[] =
-    typeof ir.declared_vibe === 'string' && ir.declared_vibe.length > 0 ? [{ register: ir.declared_vibe }] : [];
-  const fromList = (ir.declared || []).filter((d): d is UAALVibeDeclaration => Boolean(d && typeof d.register === 'string'));
+    typeof ir.declared_vibe === 'string' && ir.declared_vibe.length > 0
+      ? [{ register: ir.declared_vibe }]
+      : [];
+  const fromList = (ir.declared || []).filter((d): d is UAALVibeDeclaration =>
+    Boolean(d && typeof d.register === 'string')
+  );
   return [...fromString, ...fromList];
 }
 
@@ -242,7 +254,8 @@ function targetOf(decl: UAALVibeDeclaration): UAALAffectTarget | null {
  * resolveNormStatus's opposing-force dilemma), NOT a distance margin.
  */
 export function registersOppose(a: UAALAffectTarget, b: UAALAffectTarget): boolean {
-  const valenceOpposes = Math.sign(a.valence) !== Math.sign(b.valence) && a.valence !== 0 && b.valence !== 0;
+  const valenceOpposes =
+    Math.sign(a.valence) !== Math.sign(b.valence) && a.valence !== 0 && b.valence !== 0;
   const arousalOpposes = (a.arousal - 0.5) * (b.arousal - 0.5) < 0;
   return valenceOpposes || arousalOpposes;
 }
@@ -278,13 +291,20 @@ function affectDistance(affect: UAALDerivedAffect, target: UAALAffectTarget): nu
  * unstated-vs-stated distinction matters.
  */
 export function recoverVibe(ir: UAALVibeIR): VibeRecovery {
-  const { COHERES_THRESHOLD, DMAX, MEAN_WEIGHT, MAX_WEIGHT, DISSONANT_ATOM_THRESHOLD } = UAAL_VIBE_CONSTANTS;
+  const { COHERES_THRESHOLD, DMAX, MEAN_WEIGHT, MAX_WEIGHT, DISSONANT_ATOM_THRESHOLD } =
+    UAAL_VIBE_CONSTANTS;
   const declarations = vibeDeclarations(ir);
   const effective = declarations.find((d) => d.dominant === true) ?? declarations[0];
   const target = effective ? targetOf(effective) : null;
   const registerName = effective ? effective.register : null;
   if (!target) {
-    return { coherence: 0, coheres: false, margin: COHERES_THRESHOLD, dissonantAtoms: [], register: registerName };
+    return {
+      coherence: 0,
+      coheres: false,
+      margin: COHERES_THRESHOLD,
+      dissonantAtoms: [],
+      register: registerName,
+    };
   }
 
   const unaffected = new Set(ir.unaffected || []);
@@ -295,7 +315,13 @@ export function recoverVibe(ir: UAALVibeIR): VibeRecovery {
     .map((entry) => ({ id: entry.id, dist: affectDistance(entry.affect, target) }));
 
   if (perAtom.length === 0) {
-    return { coherence: 0, coheres: false, margin: COHERES_THRESHOLD, dissonantAtoms: [], register: registerName };
+    return {
+      coherence: 0,
+      coheres: false,
+      margin: COHERES_THRESHOLD,
+      dissonantAtoms: [],
+      register: registerName,
+    };
   }
 
   const meanDist = perAtom.reduce((acc, a) => acc + a.dist, 0) / perAtom.length;
@@ -323,12 +349,18 @@ export const UAAL_VIBE_MOOD_LEXICON: Record<string, string[]> = {
 };
 
 function moodWordCounts(ir: UAALVibeIR): Record<string, number> {
-  const text = [ir.text || '', ...(ir.atoms || []).map((a) => (typeof a.label === 'string' ? a.label : ''))]
+  const text = [
+    ir.text || '',
+    ...(ir.atoms || []).map((a) => (typeof a.label === 'string' ? a.label : '')),
+  ]
     .join(' ')
     .toLowerCase();
   const counts: Record<string, number> = {};
   for (const [register, words] of Object.entries(UAAL_VIBE_MOOD_LEXICON)) {
-    counts[register] = words.reduce((acc, w) => acc + (text.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length, 0);
+    counts[register] = words.reduce(
+      (acc, w) => acc + (text.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length,
+      0
+    );
   }
   return counts;
 }
@@ -377,7 +409,8 @@ export function resolveVibe(ir: UAALVibeIR): UAALResolution<VibeRecovery> {
       status: 'unresolvable',
       reason: 'missing_precondition',
       gap: structuredGap('vibe', 'vibe.unstated_affect', 'missing_precondition', 'declared_vibe'),
-      obstruction: 'no declared register — coherence-to-declared-intent has no declared intent to cohere with',
+      obstruction:
+        'no declared register — coherence-to-declared-intent has no declared intent to cohere with',
     };
   }
 
@@ -387,7 +420,12 @@ export function resolveVibe(ir: UAALVibeIR): UAALResolution<VibeRecovery> {
       query: 'vibe',
       status: 'unresolvable',
       reason: 'missing_precondition',
-      gap: structuredGap('vibe', 'vibe.unstated_affect', 'missing_precondition', `register:${unresolvableDecl.register}`),
+      gap: structuredGap(
+        'vibe',
+        'vibe.unstated_affect',
+        'missing_precondition',
+        `register:${unresolvableDecl.register}`
+      ),
       obstruction: `declared register '${unresolvableDecl.register}' has no published or inline affect target`,
     };
   }
@@ -407,7 +445,7 @@ export function resolveVibe(ir: UAALVibeIR): UAALResolution<VibeRecovery> {
               'vibe',
               'vibe.unresolved_dissonance',
               'unprioritized_conflict',
-              `${declarations[i].register}|${declarations[j].register}`,
+              `${declarations[i].register}|${declarations[j].register}`
             ),
             obstruction: `opposing registers '${declarations[i].register}' and '${declarations[j].register}' declared with no dominant`,
           };
@@ -437,7 +475,8 @@ export function resolveVibe(ir: UAALVibeIR): UAALResolution<VibeRecovery> {
       status: 'unresolvable',
       reason: 'missing_precondition',
       gap: structuredGap('vibe', 'vibe.unstated_affect', 'missing_precondition', 'atoms'),
-      obstruction: 'no affect-bearing atoms — certifying a feel over an affect-silent scene is confabulation',
+      obstruction:
+        'no affect-bearing atoms — certifying a feel over an affect-silent scene is confabulation',
     };
   }
 
@@ -509,7 +548,7 @@ function adversarialLabels(ir: UAALVibeIR): void {
  *     (fallback-true, fallback-false, fallback-majority — the spike's strongest-variant discipline).
  */
 export function benchmarkVibe(
-  rows: Array<UAALSemanticBenchmarkRow<UAALVibeIR, UAALVibeMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALVibeIR, UAALVibeMetadata>>
 ): UAALVibeBenchmarkResult {
   let n = 0;
   let vt1 = 0;
@@ -533,7 +572,9 @@ export function benchmarkVibe(
     if (recovered.coheres === expected) {
       vt1++;
     } else if (misses.vt1.length < 8) {
-      misses.vt1.push(`${groundTruth.id}: recovered coheres=${recovered.coheres} truth=${expected}`);
+      misses.vt1.push(
+        `${groundTruth.id}: recovered coheres=${recovered.coheres} truth=${expected}`
+      );
     }
 
     if (!expected) {
@@ -556,12 +597,16 @@ export function benchmarkVibe(
     const effective = declarations.find((d) => d.dominant === true) ?? declarations[0];
     const target = effective ? targetOf(effective) : null;
     if (target) {
-      const touched = expected ? corruptOneAtom(mutated, target) : (repairAtoms(mutated, target), true);
+      const touched = expected
+        ? corruptOneAtom(mutated, target)
+        : (repairAtoms(mutated, target), true);
       const mutatedRecovered = recoverVibe(mutated);
       if (touched && mutatedRecovered.coheres !== recovered.coheres) {
         vt4++;
       } else if (misses.vt4.length < 8) {
-        misses.vt4.push(`${groundTruth.id}: coheres stayed ${recovered.coheres} after ${expected ? 'corruption' : 'repair'}`);
+        misses.vt4.push(
+          `${groundTruth.id}: coheres stayed ${recovered.coheres} after ${expected ? 'corruption' : 'repair'}`
+        );
       }
     } else if (misses.vt4.length < 8) {
       misses.vt4.push(`${groundTruth.id}: no resolvable register to mutate against`);
@@ -576,7 +621,9 @@ export function benchmarkVibe(
     (ir) => lexicalVibe(ir, majority),
   ];
   const lexicalRate = Math.max(
-    ...lexicalVariants.map((fn) => rate(parsed.filter((p) => fn(p.ir) === p.truth).length, parsed.length)),
+    ...lexicalVariants.map((fn) =>
+      rate(parsed.filter((p) => fn(p.ir) === p.truth).length, parsed.length)
+    )
   );
   const emergentEdge = vt1Rate - lexicalRate;
 

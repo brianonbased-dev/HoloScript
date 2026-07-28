@@ -19,7 +19,11 @@
  *
  * @module holoscript-agent/council
  */
-import { groundCitations, type GroundingEntry, type GroundingResult } from './citation-grounding.js';
+import {
+  groundCitations,
+  type GroundingEntry,
+  type GroundingResult,
+} from './citation-grounding.js';
 
 export interface CouncilSeat {
   /** Who answered (peer node/handle, optionally with the lens it took). */
@@ -42,7 +46,10 @@ export interface CouncilConvergence {
 }
 
 /** Converge N peer answers into a grounded verdict. Pure; all I/O already happened. */
-export function convergeCouncil(seats: CouncilSeat[], corpus: GroundingEntry[]): CouncilConvergence {
+export function convergeCouncil(
+  seats: CouncilSeat[],
+  corpus: GroundingEntry[]
+): CouncilConvergence {
   const verdicts: CouncilSeatVerdict[] = seats.map((s) => ({
     ...s,
     grounding: groundCitations(s.answer, corpus),
@@ -72,11 +79,17 @@ export function convergeCouncil(seats: CouncilSeat[], corpus: GroundingEntry[]):
 }
 
 /** Render the convergence as the synthesis block injected into the reasoning loop. */
-export function renderCouncil(question: string, c: CouncilConvergence, maxAnswerChars = 360): string {
+export function renderCouncil(
+  question: string,
+  c: CouncilConvergence,
+  maxAnswerChars = 360
+): string {
   const lines = [`[Council of ${c.seats.length} peer(s) re "${question}"]`];
-  if (c.corroborated.length) lines.push(`Corroborated (≥2 peers, verified): ${c.corroborated.join(', ')}`);
+  if (c.corroborated.length)
+    lines.push(`Corroborated (≥2 peers, verified): ${c.corroborated.join(', ')}`);
   if (c.singleSource.length) lines.push(`Single-source (verified): ${c.singleSource.join(', ')}`);
-  if (c.confabulated.length) lines.push(`Unverified — confabulated, do NOT rely on: ${c.confabulated.join(', ')}`);
+  if (c.confabulated.length)
+    lines.push(`Unverified — confabulated, do NOT rely on: ${c.confabulated.join(', ')}`);
   for (const s of c.seats) {
     lines.push(`— ${s.peer}: ${s.answer.replace(/\s+/g, ' ').trim().slice(0, maxAnswerChars)}`);
   }

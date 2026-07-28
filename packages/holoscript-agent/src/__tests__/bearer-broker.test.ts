@@ -34,11 +34,18 @@ describe('resolveBearerViaBroker', () => {
       },
       recover: (body) => {
         recoveredBody = body;
-        return { status: 200, json: { success: true, agent: { api_key: 'holomesh_sk_abc', name: 'test-agent' } } };
+        return {
+          status: 200,
+          json: { success: true, agent: { api_key: 'holomesh_sk_abc', name: 'test-agent' } },
+        };
       },
     });
 
-    const bearer = await resolveBearerViaBroker({ privateKey: TEST_KEY, meshApiBase: BASE, fetchImpl });
+    const bearer = await resolveBearerViaBroker({
+      privateKey: TEST_KEY,
+      meshApiBase: BASE,
+      fetchImpl,
+    });
     expect(bearer).toBe('holomesh_sk_abc');
     // recover request must carry the address, the challenge nonce, and a signature
     expect(recoveredBody.wallet_address).toBe(TEST_ADDR);
@@ -52,12 +59,18 @@ describe('resolveBearerViaBroker', () => {
       challenge: () => ({ status: 200, json: { nonce: 'n' } }),
       recover: () => ({ status: 200, json: { agent: { api_key: 'k' } } }),
     });
-    const bearer = await resolveBearerViaBroker({ privateKey: TEST_KEY, meshApiBase: BASE + '/', fetchImpl });
+    const bearer = await resolveBearerViaBroker({
+      privateKey: TEST_KEY,
+      meshApiBase: BASE + '/',
+      fetchImpl,
+    });
     expect(bearer).toBe('k');
   });
 
   it('throws when the challenge fails', async () => {
-    const fetchImpl = mockFetch({ challenge: () => ({ status: 404, json: { error: 'no agent' } }) });
+    const fetchImpl = mockFetch({
+      challenge: () => ({ status: 404, json: { error: 'no agent' } }),
+    });
     await expect(
       resolveBearerViaBroker({ privateKey: TEST_KEY, meshApiBase: BASE, fetchImpl })
     ).rejects.toThrow(/key\/challenge returned 404/);

@@ -16,9 +16,11 @@
  */
 import os from 'node:os';
 import path from 'node:path';
-process.env.HOLOSCRIPT_CACHE_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
+process.env.HOLOSCRIPT_CACHE_DIR =
+  process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 
-const { handleCodebaseTool, handleGraphRagTool, resetGraphRAGState } = await import('@holoscript/absorb-service/mcp');
+const { handleCodebaseTool, handleGraphRagTool, resetGraphRAGState } =
+  await import('@holoscript/absorb-service/mcp');
 const parse = (x) => (typeof x === 'string' ? JSON.parse(x) : x);
 const ROOT = 'C:/Users/Josep/Documents/GitHub/HoloScript/packages/absorb-service/src/engine';
 
@@ -45,29 +47,40 @@ const K = [1, 5, 10];
 async function scoreProvider(provider) {
   resetGraphRAGState();
   await handleCodebaseTool('holo_absorb_repo', {
-    rootDir: ROOT, embeddingProvider: provider, maxFiles: 2000, force: true, outputFormat: 'stats',
+    rootDir: ROOT,
+    embeddingProvider: provider,
+    maxFiles: 2000,
+    force: true,
+    outputFormat: 'stats',
   });
   const rows = [];
   let mrrSum = 0;
   const hits = { 1: 0, 5: 0, 10: 0 };
   for (const { q, target } of GROUND_TRUTH) {
-    const r = parse(await handleGraphRagTool('holo_semantic_search', {
-      query: q,
-      topK: 10,
-      useCachedAbsorbIndex: true,
-    }));
+    const r = parse(
+      await handleGraphRagTool('holo_semantic_search', {
+        query: q,
+        topK: 10,
+        useCachedAbsorbIndex: true,
+      })
+    );
     const results = r?.results || r?.matches || [];
     const files = results.map((h) => (h.file || h.filePath || h.path || '').split(/[\\/]/).pop());
     const rank = files.findIndex((f) => f && f.includes(target)) + 1; // 1-based, 0 = miss
     rows.push({ q, target, rank: rank || null });
-    if (rank) { mrrSum += 1 / rank; for (const k of K) if (rank <= k) hits[k]++; }
+    if (rank) {
+      mrrSum += 1 / rank;
+      for (const k of K) if (rank <= k) hits[k]++;
+    }
   }
   const n = GROUND_TRUTH.length;
   return { rows, mrr: mrrSum / n, recall: Object.fromEntries(K.map((k) => [k, hits[k] / n])) };
 }
 
 const [pa, pb] = [process.argv[2] || 'holoembed', process.argv[3] || 'ollama'];
-console.error(`\n=== EMBED SCOREBOARD — ${pa} vs ${pb} (${GROUND_TRUTH.length} paraphrase queries) ===\n`);
+console.error(
+  `\n=== EMBED SCOREBOARD — ${pa} vs ${pb} (${GROUND_TRUTH.length} paraphrase queries) ===\n`
+);
 const A = await scoreProvider(pa);
 const B = await scoreProvider(pb);
 
@@ -75,12 +88,25 @@ const pad = (s, n) => String(s).padEnd(n);
 console.error(pad('query', 46) + pad(`${pa} rank`, 14) + `${pb} rank`);
 console.error('-'.repeat(46 + 14 + 12));
 for (let i = 0; i < GROUND_TRUTH.length; i++) {
-  const ra = A.rows[i].rank ?? '—'; const rb = B.rows[i].rank ?? '—';
-  const win = A.rows[i].rank && B.rows[i].rank ? (A.rows[i].rank < B.rows[i].rank ? ' ◀' : A.rows[i].rank > B.rows[i].rank ? ' ▶' : '') : (A.rows[i].rank ? ' ◀' : B.rows[i].rank ? ' ▶' : '');
+  const ra = A.rows[i].rank ?? '—';
+  const rb = B.rows[i].rank ?? '—';
+  const win =
+    A.rows[i].rank && B.rows[i].rank
+      ? A.rows[i].rank < B.rows[i].rank
+        ? ' ◀'
+        : A.rows[i].rank > B.rows[i].rank
+          ? ' ▶'
+          : ''
+      : A.rows[i].rank
+        ? ' ◀'
+        : B.rows[i].rank
+          ? ' ▶'
+          : '';
   console.error(pad(GROUND_TRUTH[i].q.slice(0, 44), 46) + pad(ra, 14) + pad(rb, 10) + win);
 }
 console.error('-'.repeat(72));
-const fmt = (s) => `R@1=${(s.recall[1] * 100).toFixed(0)}%  R@5=${(s.recall[5] * 100).toFixed(0)}%  R@10=${(s.recall[10] * 100).toFixed(0)}%  MRR=${s.mrr.toFixed(3)}`;
+const fmt = (s) =>
+  `R@1=${(s.recall[1] * 100).toFixed(0)}%  R@5=${(s.recall[5] * 100).toFixed(0)}%  R@10=${(s.recall[10] * 100).toFixed(0)}%  MRR=${s.mrr.toFixed(3)}`;
 console.error(`${pad(pa, 12)} ${fmt(A)}`);
 console.error(`${pad(pb, 12)} ${fmt(B)}`);
 console.error(`\n◀ = ${pa} ranked the target higher   ▶ = ${pb} did`);

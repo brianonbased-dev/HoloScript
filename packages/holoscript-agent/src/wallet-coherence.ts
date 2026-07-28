@@ -59,7 +59,11 @@ export function decideWalletCoherence(input: WalletCoherenceInput): WalletCohere
 
   const base = `seat key derives ${input.derivedAddress} but declared identity is ${input.declaredWallet}`;
   if (input.halt) {
-    return { coherent: false, action: 'halt', reason: `${base} (HOLOSCRIPT_AGENT_WALLET_COHERENCE_HALT set)` };
+    return {
+      coherent: false,
+      action: 'halt',
+      reason: `${base} (HOLOSCRIPT_AGENT_WALLET_COHERENCE_HALT set)`,
+    };
   }
   if (input.hasBearer) {
     return {

@@ -42,23 +42,19 @@ describe('guardClauseFalsifiability', () => {
   }
 
   it('rejects bare () => true', () => {
-    expect(() =>
-      guardClauseFalsifiability(makeClause(() => true))
-    ).toThrow(/trivially constant/);
+    expect(() => guardClauseFalsifiability(makeClause(() => true))).toThrow(/trivially constant/);
   });
 
   it('rejects bare () => false', () => {
-    expect(() =>
-      guardClauseFalsifiability(makeClause(() => false))
-    ).toThrow(/trivially constant/);
+    expect(() => guardClauseFalsifiability(makeClause(() => false))).toThrow(/trivially constant/);
   });
 
   it('rejects () => 1 (numeric literal, JS-caller defense)', () => {
     // Cast through unknown: TS is satisfied; emitted JS is `() => 1`, so
     // guardClauseFalsifiability's source-inspection regex catches the literal.
-    expect(() =>
-      guardClauseFalsifiability(makeClause(() => (1 as unknown as boolean)))
-    ).toThrow(/trivially constant/);
+    expect(() => guardClauseFalsifiability(makeClause(() => 1 as unknown as boolean))).toThrow(
+      /trivially constant/
+    );
   });
 
   it('rejects evaluator that reads no ClauseContext field', () => {
@@ -81,9 +77,7 @@ describe('guardClauseFalsifiability', () => {
   });
 
   it('accepts evaluator that reads ctx.simTime', () => {
-    expect(() =>
-      guardClauseFalsifiability(makeClause((ctx) => ctx.simTime < 100))
-    ).not.toThrow();
+    expect(() => guardClauseFalsifiability(makeClause((ctx) => ctx.simTime < 100))).not.toThrow();
   });
 
   it('accepts evaluator that reads ctx.stepCount', () => {
@@ -94,9 +88,7 @@ describe('guardClauseFalsifiability', () => {
 
   it('accepts evaluator that reads ctx.config', () => {
     expect(() =>
-      guardClauseFalsifiability(
-        makeClause((ctx) => Boolean(ctx.config['solverType']))
-      )
+      guardClauseFalsifiability(makeClause((ctx) => Boolean(ctx.config['solverType'])))
     ).not.toThrow();
   });
 });

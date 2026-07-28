@@ -823,9 +823,7 @@ export class StructuralSolver {
                 const key = `${sorted[0]},${sorted[1]},${sorted[2]}`;
                 if ((faceCount.get(key) ?? 0) !== 1) continue; // skip interior faces
                 const [la2, lb2, lc2] = TET4_FACE_LOCAL[f];
-                const oppLocal = [0, 1, 2, 3].find(
-                  (k) => k !== la2 && k !== lb2 && k !== lc2
-                )!;
+                const oppLocal = [0, 1, 2, 3].find((k) => k !== la2 && k !== lb2 && k !== lc2)!;
                 const fa = tets[base + la2];
                 const fb = tets[base + lb2];
                 const fc = tets[base + lc2];

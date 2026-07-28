@@ -26,7 +26,10 @@ const seat = (over: Partial<AgentIdentity> = {}): AgentIdentity => ({
   ...over,
 });
 
-const store = (entries: KnowledgeEntry[], opts: { failRead?: boolean } = {}): PrivateMemoryStore & {
+const store = (
+  entries: KnowledgeEntry[],
+  opts: { failRead?: boolean } = {}
+): PrivateMemoryStore & {
   writes: Array<{ content: string }>;
 } => {
   const writes: Array<{ content: string }> = [];
@@ -59,14 +62,21 @@ describe('MeshCharacterMind.identity', () => {
 
 describe('MeshCharacterMind.loadMemory', () => {
   it('maps private-store entries and preserves content', async () => {
-    const mind = new MeshCharacterMind(seat(), store([mem('prefers concise answers'), mem('likes tea')]));
+    const mind = new MeshCharacterMind(
+      seat(),
+      store([mem('prefers concise answers'), mem('likes tea')])
+    );
     const out = await mind.loadMemory();
     expect(out).toHaveLength(2);
     expect(out[0].content).toBe('prefers concise answers');
   });
 
   it('filters by query client-side and caps by limit', async () => {
-    const s = store([mem('working on the WebGPU renderer'), mem('likes tea'), mem('webgpu splat route')]);
+    const s = store([
+      mem('working on the WebGPU renderer'),
+      mem('likes tea'),
+      mem('webgpu splat route'),
+    ]);
     const mind = new MeshCharacterMind(seat(), s);
     expect(await mind.loadMemory('webgpu')).toHaveLength(2);
     expect(await mind.loadMemory(undefined, 1)).toHaveLength(1);

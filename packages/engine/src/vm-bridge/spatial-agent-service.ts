@@ -25,11 +25,7 @@ import type { UAALVirtualMachine, UAALBytecode, UAALCompiler } from '@holoscript
 import { createRequire } from 'node:module';
 
 import { SpatialCognitiveAgent, type CognitiveTickResult } from './bridge';
-import {
-  InMemoryAgentRegistry,
-  type IAgentRegistry,
-  type RegisteredAgent,
-} from './agent-registry';
+import { InMemoryAgentRegistry, type IAgentRegistry, type RegisteredAgent } from './agent-registry';
 
 // ---------------------------------------------------------------------------
 // Lazy optional-peer loader for @holoscript/uaal

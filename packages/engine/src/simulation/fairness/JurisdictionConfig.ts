@@ -90,7 +90,8 @@ export const JURISDICTION_CONFIGS: Record<FairnessJurisdiction, JurisdictionConf
   EEOC_TITLE_VII: {
     id: 'EEOC_TITLE_VII',
     label: 'EEOC Title VII',
-    disclosureStandard: 'EEOC Uniform Guidelines adverse-impact analysis with Title VII protected categories',
+    disclosureStandard:
+      'EEOC Uniform Guidelines adverse-impact analysis with Title VII protected categories',
     protectedCategories: ['race', 'color', 'religion', 'sex', 'national_origin'],
     requiredTests: ['four_fifths', 'fisher_exact', 'chi_squared'],
     adverseImpactRatioMin: 0.8,
@@ -150,7 +151,8 @@ export const JURISDICTION_CONFIGS: Record<FairnessJurisdiction, JurisdictionConf
   EU_AI_ACT_PROHIBITED: {
     id: 'EU_AI_ACT_PROHIBITED',
     label: 'EU AI Act prohibited/high-risk discrimination screen',
-    disclosureStandard: 'EU AI Act discrimination-risk technical documentation and record-keeping summary',
+    disclosureStandard:
+      'EU AI Act discrimination-risk technical documentation and record-keeping summary',
     protectedCategories: [
       'sex',
       'racial_or_ethnic_origin',
@@ -272,7 +274,9 @@ function resolveReportSummary(input: BiasAuditReportInput): JurisdictionAuditSum
   if (isJurisdictionAuditSummary(input.jurisdiction)) return input.jurisdiction;
   if (input.receipt.jurisdiction) return input.receipt.jurisdiction;
 
-  const config = resolveJurisdictionConfig(input.jurisdiction as FairnessJurisdiction | JurisdictionConfig | undefined);
+  const config = resolveJurisdictionConfig(
+    input.jurisdiction as FairnessJurisdiction | JurisdictionConfig | undefined
+  );
   if (config) {
     return {
       jurisdictionId: config.id,
@@ -341,7 +345,9 @@ function renderBiasAuditMarkdown(report: {
   lines.push(`- Issuer: ${report.issuer}`);
   lines.push(`- Jurisdiction: ${report.jurisdiction.jurisdictionId}`);
   lines.push(`- Disclosure standard: ${report.jurisdiction.disclosureStandard}`);
-  lines.push(`- Protected categories: ${report.jurisdiction.protectedCategories.join(', ') || 'unspecified'}`);
+  lines.push(
+    `- Protected categories: ${report.jurisdiction.protectedCategories.join(', ') || 'unspecified'}`
+  );
   lines.push('');
   lines.push('## Model And Sample');
   lines.push('');
@@ -373,7 +379,9 @@ function renderBiasAuditMarkdown(report: {
     );
   }
   if (report.jurisdiction.testResults.length === 0) {
-    lines.push('| configured-by-jurisdiction | SEE RECEIPT | n/a | n/a | n/a | No per-test summary was attached to the receipt. |');
+    lines.push(
+      '| configured-by-jurisdiction | SEE RECEIPT | n/a | n/a | n/a | No per-test summary was attached to the receipt. |'
+    );
   }
   lines.push('');
   lines.push('## Regulatory Mapping');
@@ -503,7 +511,10 @@ function summarizeGroups(decisions: readonly JurisdictionDecisionRecord[]): Arra
   denied: number;
   total: number;
 }> {
-  const groups = new Map<string, { group: string; approved: number; denied: number; total: number }>();
+  const groups = new Map<
+    string,
+    { group: string; approved: number; denied: number; total: number }
+  >();
   for (const decision of decisions) {
     const group = groups.get(decision.group) ?? {
       group: decision.group,
@@ -536,11 +547,7 @@ function fisherExactTwoTailed(a: number, b: number, c: number, d: number): numbe
 }
 
 function hypergeometric(x: number, row1: number, col1: number, total: number): number {
-  return Math.exp(
-    logChoose(col1, x) +
-      logChoose(total - col1, row1 - x) -
-      logChoose(total, row1)
-  );
+  return Math.exp(logChoose(col1, x) + logChoose(total - col1, row1 - x) - logChoose(total, row1));
 }
 
 const logFactorialMemo = [0];
@@ -577,9 +584,7 @@ function erfc(x: number): number {
                           (0.27886807 +
                             t *
                               (-1.13520398 +
-                                t *
-                                  (1.48851587 +
-                                    t * (-0.82215223 + t * 0.17087277))))))))
+                                t * (1.48851587 + t * (-0.82215223 + t * 0.17087277))))))))
     );
   return x >= 0 ? r : 2 - r;
 }

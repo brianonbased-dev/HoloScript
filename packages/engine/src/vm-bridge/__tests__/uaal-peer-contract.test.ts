@@ -1,9 +1,5 @@
 import { readFileSync } from 'node:fs';
-import {
-  UAALOpCode,
-  UAALVirtualMachine,
-  type UAALBytecode,
-} from '@holoscript/uaal';
+import { UAALOpCode, UAALVirtualMachine, type UAALBytecode } from '@holoscript/uaal';
 import { describe, expect, it } from 'vitest';
 
 interface EnginePackageManifest {

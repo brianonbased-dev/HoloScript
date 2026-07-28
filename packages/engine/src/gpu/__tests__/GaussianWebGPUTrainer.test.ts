@@ -17,7 +17,18 @@ import type { Gaussian2D } from '../GaussianTrainer2D';
 
 function makeGaussian2D(N: number, fill: (i: number, field: number) => number): Gaussian2D {
   const mk = (fi: number): Float64Array => Float64Array.from({ length: N }, (_, i) => fill(i, fi));
-  return { N, posx: mk(0), posy: mk(1), a: mk(2), b: mk(3), c: mk(4), r: mk(5), gr: mk(6), bl: mk(7), op: mk(8) };
+  return {
+    N,
+    posx: mk(0),
+    posy: mk(1),
+    a: mk(2),
+    b: mk(3),
+    c: mk(4),
+    r: mk(5),
+    gr: mk(6),
+    bl: mk(7),
+    op: mk(8),
+  };
 }
 
 // ─── packGauss2D ─────────────────────────────────────────────────────────────
@@ -58,9 +69,14 @@ describe('packGauss2D', () => {
     const N = 2;
     const g2: Gaussian2D = {
       N,
-      posx: new Float64Array(N), posy: new Float64Array(N),
-      a: new Float64Array(N), b: new Float64Array(N), c: new Float64Array(N),
-      r: new Float64Array(N), gr: Float64Array.from([0.42, 0.77]), bl: new Float64Array(N),
+      posx: new Float64Array(N),
+      posy: new Float64Array(N),
+      a: new Float64Array(N),
+      b: new Float64Array(N),
+      c: new Float64Array(N),
+      r: new Float64Array(N),
+      gr: Float64Array.from([0.42, 0.77]),
+      bl: new Float64Array(N),
       op: new Float64Array(N),
     };
     const out = packGauss2D(g2);
@@ -75,7 +91,7 @@ describe('packGauss2D', () => {
   });
 
   it('preserves f32 precision (f64 → f32 truncation within float32 range)', () => {
-    const g2 = makeGaussian2D(1, (_, fi) => fi === 0 ? 0.123456789 : 0);
+    const g2 = makeGaussian2D(1, (_, fi) => (fi === 0 ? 0.123456789 : 0));
     const out = packGauss2D(g2);
     // Float32Array precision is ~7 significant digits — tolerate 1e-6 relative error.
     expect(Math.abs(out[0] - 0.123456789) / 0.123456789).toBeLessThan(1e-6);
@@ -96,13 +112,13 @@ describe('unpackGrad', () => {
     // Each field should equal its slot index (k * scale / scale = k).
     expect(g.posx[0]).toBeCloseTo(0, 10); // k=0
     expect(g.posy[0]).toBeCloseTo(1, 10); // k=1
-    expect(g.a[0]).toBeCloseTo(2, 10);    // k=2
-    expect(g.b[0]).toBeCloseTo(3, 10);    // k=3
-    expect(g.c[0]).toBeCloseTo(4, 10);    // k=4
-    expect(g.r[0]).toBeCloseTo(5, 10);    // k=5
-    expect(g.gr[0]).toBeCloseTo(6, 10);   // k=6  (WGSL 'g' slot 6 → TS 'gr')
-    expect(g.bl[0]).toBeCloseTo(7, 10);   // k=7
-    expect(g.op[0]).toBeCloseTo(8, 10);   // k=8
+    expect(g.a[0]).toBeCloseTo(2, 10); // k=2
+    expect(g.b[0]).toBeCloseTo(3, 10); // k=3
+    expect(g.c[0]).toBeCloseTo(4, 10); // k=4
+    expect(g.r[0]).toBeCloseTo(5, 10); // k=5
+    expect(g.gr[0]).toBeCloseTo(6, 10); // k=6  (WGSL 'g' slot 6 → TS 'gr')
+    expect(g.bl[0]).toBeCloseTo(7, 10); // k=7
+    expect(g.op[0]).toBeCloseTo(8, 10); // k=8
   });
 
   it('handles negative gradients (backward can accumulate negative fixed-point)', () => {

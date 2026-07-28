@@ -64,8 +64,6 @@ describe('EmbeddingIndex binary serialization', () => {
       useWorkers: false,
     });
     expect(restored.size).toBe(2);
-    expect(JSON.parse(restored.serialize()).entries).toEqual(
-      JSON.parse(index.serialize()).entries
-    );
+    expect(JSON.parse(restored.serialize()).entries).toEqual(JSON.parse(index.serialize()).entries);
   });
 });

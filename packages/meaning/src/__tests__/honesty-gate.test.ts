@@ -35,7 +35,10 @@ describe('honestyGate — abstain instead of acting on values nobody established
         'underdetermined',
         structuredGap('occlusion', 'occlusion.opacity_unstated', 'underdetermined')
       ),
-      coin: unknown('irreducible_stochastic', aleatoricGap('counterfactual', 'counterfactual.irreducible_chance')),
+      coin: unknown(
+        'irreducible_stochastic',
+        aleatoricGap('counterfactual', 'counterfactual.irreducible_chance')
+      ),
     });
     expect(decision.decision).toBe('abstain');
     if (decision.decision === 'abstain') {
@@ -76,7 +79,11 @@ describe('honestyGate — abstain instead of acting on values nobody established
       expect(decision.blocking[0].gap?.code).toBe('beneficiary.unstated_impact');
     }
     // ...and the same resolver coming back resolved lets the action proceed.
-    const resolved: MeaningResolution<string> = { query: 'beneficiary', status: 'resolved', answer: 'humans' };
+    const resolved: MeaningResolution<string> = {
+      query: 'beneficiary',
+      status: 'resolved',
+      answer: 'humans',
+    };
     const go = honestyGate({ served: fromResolution(resolved) });
     expect(go.decision).toBe('proceed');
     if (go.decision === 'proceed') expect(go.values.served).toBe('humans');

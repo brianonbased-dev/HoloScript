@@ -20,8 +20,11 @@ const outPath = resolve(pkgRoot, 'src', 'engine', 'adapters', 'language-traits.g
 const check = process.argv.includes('--check');
 
 const parseHolo = await (async () => {
-  try { return (await import('@holoscript/core/parser')).parseHolo; }
-  catch { return (await import('../../core/src/parser/HoloCompositionParser.ts')).parseHolo; }
+  try {
+    return (await import('@holoscript/core/parser')).parseHolo;
+  } catch {
+    return (await import('../../core/src/parser/HoloCompositionParser.ts')).parseHolo;
+  }
 })();
 
 function stripGrammarVersion(spec) {
@@ -32,7 +35,10 @@ function stripGrammarVersion(spec) {
 
 function listHolo(dir) {
   if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter((f) => f.endsWith('.holo')).sort().map((f) => resolve(dir, f));
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.holo'))
+    .sort()
+    .map((f) => resolve(dir, f));
 }
 
 function loadTraits() {
@@ -40,7 +46,9 @@ function loadTraits() {
   for (const file of listHolo(declarationsDir)) {
     const parsed = parseHolo(readFileSync(file, 'utf8'), { tolerant: false });
     if (!parsed.success || !parsed.ast) {
-      throw new Error(`${file}: failed to parse: ${(parsed.errors || []).map((e) => e.message).join('; ')}`);
+      throw new Error(
+        `${file}: failed to parse: ${(parsed.errors || []).map((e) => e.message).join('; ')}`
+      );
     }
     for (const trait of parsed.ast.traits || []) {
       if (trait.name !== 'language_adapter') continue;
@@ -85,12 +93,16 @@ const expected = render(loadTraits());
 if (check) {
   const actual = existsSync(outPath) ? readFileSync(outPath, 'utf8') : '';
   if (actual !== expected) {
-    console.error('[language-traits] STALE — run `pnpm --filter @holoscript/absorb-service generate:language-traits`');
+    console.error(
+      '[language-traits] STALE — run `pnpm --filter @holoscript/absorb-service generate:language-traits`'
+    );
     process.exit(1);
   }
   console.log('[language-traits] in sync with .holo declarations.');
 } else {
   writeFileSync(outPath, expected, 'utf8');
   const n = (expected.match(/"language":/g) || []).length;
-  console.log(`[language-traits] wrote ${n} language trait(s) from .holo -> language-traits.generated.ts`);
+  console.log(
+    `[language-traits] wrote ${n} language trait(s) from .holo -> language-traits.generated.ts`
+  );
 }

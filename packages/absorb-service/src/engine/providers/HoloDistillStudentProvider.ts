@@ -55,7 +55,8 @@ export class HoloDistillStudentProvider implements EmbeddingProvider {
 
     this.studentPath = options.studentPath;
     this.baseModel = options.baseModel ?? DEFAULT_BASE_MODEL;
-    this.pythonCommand = options.pythonCommand ?? process.env.HOLODISTILL_HOLOEMBED_PYTHON ?? 'python';
+    this.pythonCommand =
+      options.pythonCommand ?? process.env.HOLODISTILL_HOLOEMBED_PYTHON ?? 'python';
     this.maxLength = options.maxLength ?? DEFAULT_MAX_LENGTH;
     this.outDim = options.outDim ?? DEFAULT_OUT_DIM;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;

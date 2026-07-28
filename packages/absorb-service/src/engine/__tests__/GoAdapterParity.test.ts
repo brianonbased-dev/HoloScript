@@ -65,20 +65,146 @@ const FILE = 'main.go';
 
 // ── Frozen snapshot of the deleted GoAdapter's output on GO_SOURCE ──────────────
 const EXPECTED_SYMBOLS: ExternalSymbolDefinition[] = [
-  { name: 'Shape', type: 'interface', language: 'go', filePath: FILE, line: 10, column: 5, endLine: 12, endColumn: 1, visibility: 'public', signature: 'type Shape interface', isExported: true, lineCount: 3 },
-  { name: 'Point', type: 'struct', language: 'go', filePath: FILE, line: 14, column: 5, endLine: 17, endColumn: 1, visibility: 'public', signature: 'type Point struct', isExported: true, lineCount: 4 },
-  { name: 'X', type: 'field', language: 'go', filePath: FILE, line: 15, column: 1, endLine: 15, endColumn: 6, visibility: 'public', owner: 'Point', lineCount: 1 },
-  { name: 'Y', type: 'field', language: 'go', filePath: FILE, line: 16, column: 1, endLine: 16, endColumn: 6, visibility: 'public', owner: 'Point', lineCount: 1 },
-  { name: 'Celsius', type: 'type_alias', language: 'go', filePath: FILE, line: 19, column: 5, endLine: 19, endColumn: 20, visibility: 'public', signature: 'type Celsius type_identifier', isExported: true, lineCount: 1 },
-  { name: 'Pi', type: 'constant', language: 'go', filePath: FILE, line: 21, column: 6, endLine: 21, endColumn: 15, visibility: 'public', isExported: true, lineCount: 1 },
-  { name: 'count', type: 'constant', language: 'go', filePath: FILE, line: 23, column: 4, endLine: 23, endColumn: 13, visibility: 'internal', isExported: false, lineCount: 1 },
-  { name: 'Add', type: 'function', language: 'go', filePath: FILE, line: 25, column: 0, endLine: 28, endColumn: 1, visibility: 'public', signature: 'func Add((a int, b int)) int', isExported: true, lineCount: 4 },
-  { name: 'Move', type: 'method', language: 'go', filePath: FILE, line: 30, column: 0, endLine: 34, endColumn: 1, visibility: 'public', signature: 'func ((p *Point)) Move((dx int))', owner: 'Point', lineCount: 5 },
+  {
+    name: 'Shape',
+    type: 'interface',
+    language: 'go',
+    filePath: FILE,
+    line: 10,
+    column: 5,
+    endLine: 12,
+    endColumn: 1,
+    visibility: 'public',
+    signature: 'type Shape interface',
+    isExported: true,
+    lineCount: 3,
+  },
+  {
+    name: 'Point',
+    type: 'struct',
+    language: 'go',
+    filePath: FILE,
+    line: 14,
+    column: 5,
+    endLine: 17,
+    endColumn: 1,
+    visibility: 'public',
+    signature: 'type Point struct',
+    isExported: true,
+    lineCount: 4,
+  },
+  {
+    name: 'X',
+    type: 'field',
+    language: 'go',
+    filePath: FILE,
+    line: 15,
+    column: 1,
+    endLine: 15,
+    endColumn: 6,
+    visibility: 'public',
+    owner: 'Point',
+    lineCount: 1,
+  },
+  {
+    name: 'Y',
+    type: 'field',
+    language: 'go',
+    filePath: FILE,
+    line: 16,
+    column: 1,
+    endLine: 16,
+    endColumn: 6,
+    visibility: 'public',
+    owner: 'Point',
+    lineCount: 1,
+  },
+  {
+    name: 'Celsius',
+    type: 'type_alias',
+    language: 'go',
+    filePath: FILE,
+    line: 19,
+    column: 5,
+    endLine: 19,
+    endColumn: 20,
+    visibility: 'public',
+    signature: 'type Celsius type_identifier',
+    isExported: true,
+    lineCount: 1,
+  },
+  {
+    name: 'Pi',
+    type: 'constant',
+    language: 'go',
+    filePath: FILE,
+    line: 21,
+    column: 6,
+    endLine: 21,
+    endColumn: 15,
+    visibility: 'public',
+    isExported: true,
+    lineCount: 1,
+  },
+  {
+    name: 'count',
+    type: 'constant',
+    language: 'go',
+    filePath: FILE,
+    line: 23,
+    column: 4,
+    endLine: 23,
+    endColumn: 13,
+    visibility: 'internal',
+    isExported: false,
+    lineCount: 1,
+  },
+  {
+    name: 'Add',
+    type: 'function',
+    language: 'go',
+    filePath: FILE,
+    line: 25,
+    column: 0,
+    endLine: 28,
+    endColumn: 1,
+    visibility: 'public',
+    signature: 'func Add((a int, b int)) int',
+    isExported: true,
+    lineCount: 4,
+  },
+  {
+    name: 'Move',
+    type: 'method',
+    language: 'go',
+    filePath: FILE,
+    line: 30,
+    column: 0,
+    endLine: 34,
+    endColumn: 1,
+    visibility: 'public',
+    signature: 'func ((p *Point)) Move((dx int))',
+    owner: 'Point',
+    lineCount: 5,
+  },
   // No-return func: guards the {?wrap:result: :} signature fix — the old
   // {?field:result: {field:result}} template left a stray '}' here
   // (`func doThing((x int))}`) because {?field:X:LIT} LIT is [^}]* and cannot
   // carry a nested '}'. Lowercase name => internal / not exported.
-  { name: 'doThing', type: 'function', language: 'go', filePath: FILE, line: 36, column: 0, endLine: 37, endColumn: 1, visibility: 'internal', signature: 'func doThing((x int))', isExported: false, lineCount: 2 },
+  {
+    name: 'doThing',
+    type: 'function',
+    language: 'go',
+    filePath: FILE,
+    line: 36,
+    column: 0,
+    endLine: 37,
+    endColumn: 1,
+    visibility: 'internal',
+    signature: 'func doThing((x int))',
+    isExported: false,
+    lineCount: 2,
+  },
 ];
 
 const EXPECTED_IMPORTS: ImportEdge[] = [
@@ -89,8 +215,22 @@ const EXPECTED_IMPORTS: ImportEdge[] = [
 
 const EXPECTED_CALLS: CallEdge[] = [
   { callerId: 'Add', calleeName: 'helper', filePath: FILE, line: 26, column: 1 },
-  { callerId: 'Move', calleeName: 'Println', calleeOwner: 'fmt', filePath: FILE, line: 31, column: 1 },
-  { callerId: 'Move', calleeName: 'ToUpper', calleeOwner: 'str', filePath: FILE, line: 32, column: 1 },
+  {
+    callerId: 'Move',
+    calleeName: 'Println',
+    calleeOwner: 'fmt',
+    filePath: FILE,
+    line: 31,
+    column: 1,
+  },
+  {
+    callerId: 'Move',
+    calleeName: 'ToUpper',
+    calleeOwner: 'str',
+    filePath: FILE,
+    line: 32,
+    column: 1,
+  },
   { callerId: 'Move', calleeName: 'Exit', calleeOwner: 'os', filePath: FILE, line: 33, column: 1 },
 ];
 
@@ -155,13 +295,17 @@ describe('GoAdapterParity (native go.holo trait == frozen GoAdapter snapshot)', 
 
   it('extracts symbols identical to the bespoke GoAdapter', () => {
     if (!tree) return; // grammar unavailable — metadata guard above still runs
-    const data = prune(sortSymbols(new TreeSitterTraitAdapter(GO_TRAIT!).extractSymbols(tree, FILE)));
+    const data = prune(
+      sortSymbols(new TreeSitterTraitAdapter(GO_TRAIT!).extractSymbols(tree, FILE))
+    );
     expect(data).toEqual(prune(sortSymbols(EXPECTED_SYMBOLS)));
   });
 
   it('extracts imports identical to the bespoke GoAdapter', () => {
     if (!tree) return;
-    const data = prune(sortImports(new TreeSitterTraitAdapter(GO_TRAIT!).extractImports(tree, FILE)));
+    const data = prune(
+      sortImports(new TreeSitterTraitAdapter(GO_TRAIT!).extractImports(tree, FILE))
+    );
     expect(data).toEqual(prune(sortImports(EXPECTED_IMPORTS)));
   });
 

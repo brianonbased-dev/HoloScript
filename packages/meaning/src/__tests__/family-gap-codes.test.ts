@@ -47,8 +47,20 @@ describe('family-scoped gap codes — the §4.2 backlog, closed', () => {
   it('norm_status → norm_status.resource_contention on a scarce shared resource', () => {
     const ir: UAALDeonticIR = {
       norms: [
-        { id: 'owe_scene_a', force: 'O', required_act: 'respond_to_scene_a', resource: 'ambulance_7', active: true },
-        { id: 'owe_scene_b', force: 'O', required_act: 'respond_to_scene_b', resource: 'ambulance_7', active: true },
+        {
+          id: 'owe_scene_a',
+          force: 'O',
+          required_act: 'respond_to_scene_a',
+          resource: 'ambulance_7',
+          active: true,
+        },
+        {
+          id: 'owe_scene_b',
+          force: 'O',
+          required_act: 'respond_to_scene_b',
+          resource: 'ambulance_7',
+          active: true,
+        },
       ],
     };
     const r = resolveNormStatus(ir, 'owe_scene_a');

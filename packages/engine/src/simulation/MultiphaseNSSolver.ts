@@ -21,7 +21,10 @@
  */
 
 import { RegularGrid3D } from './RegularGrid3D';
-import { jacobiIterationPoissonAnisotropic, variableCoefficientJacobiIteration } from './ConvergenceControl';
+import {
+  jacobiIterationPoissonAnisotropic,
+  variableCoefficientJacobiIteration,
+} from './ConvergenceControl';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -295,7 +298,16 @@ export class MultiphaseNSSolver {
       const wx = 1 / (dx * dx);
       const wy = 1 / (dy * dy);
       const wz = 1 / (dz * dz);
-      jacobiIterationPoissonAnisotropic(this.pressure, div, wx, wy, wz, this.pressureIter, 1e-4, 0.6667);
+      jacobiIterationPoissonAnisotropic(
+        this.pressure,
+        div,
+        wx,
+        wy,
+        wz,
+        this.pressureIter,
+        1e-4,
+        0.6667
+      );
     }
 
     // Correct velocity: u -= (1/ρ) · ∇φ  (variable-density correction)
@@ -334,21 +346,21 @@ export class MultiphaseNSSolver {
     // x-faces
     for (let k = 0; k < nz; k++) {
       for (let j = 0; j < ny; j++) {
-        this.phi.set(0,      j, k, this.phi.get(1,      j, k));
+        this.phi.set(0, j, k, this.phi.get(1, j, k));
         this.phi.set(nx - 1, j, k, this.phi.get(nx - 2, j, k));
       }
     }
     // y-faces
     for (let k = 0; k < nz; k++) {
       for (let i = 0; i < nx; i++) {
-        this.phi.set(i, 0,      k, this.phi.get(i, 1,      k));
+        this.phi.set(i, 0, k, this.phi.get(i, 1, k));
         this.phi.set(i, ny - 1, k, this.phi.get(i, ny - 2, k));
       }
     }
     // z-faces
     for (let j = 0; j < ny; j++) {
       for (let i = 0; i < nx; i++) {
-        this.phi.set(i, j, 0,      this.phi.get(i, j, 1));
+        this.phi.set(i, j, 0, this.phi.get(i, j, 1));
         this.phi.set(i, j, nz - 1, this.phi.get(i, j, nz - 2));
       }
     }

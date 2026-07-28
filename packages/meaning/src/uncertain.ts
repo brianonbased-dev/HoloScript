@@ -35,7 +35,11 @@ import type { MeaningGapReason, MeaningResolution, MeaningStructuredGap } from '
 /** A value that is either known (carries a T) or honestly unknown with a typed reason. */
 export type Uncertain<T> =
   | { readonly known: true; readonly value: T }
-  | { readonly known: false; readonly reason: MeaningGapReason; readonly gap?: MeaningStructuredGap };
+  | {
+      readonly known: false;
+      readonly reason: MeaningGapReason;
+      readonly gap?: MeaningStructuredGap;
+    };
 
 /** Wrap a known value. */
 export function known<T>(value: T): Uncertain<T> {
@@ -43,7 +47,10 @@ export function known<T>(value: T): Uncertain<T> {
 }
 
 /** Declare a value unknown, with a typed reason (and optionally a family-scoped gap). */
-export function unknown<T = never>(reason: MeaningGapReason, gap?: MeaningStructuredGap): Uncertain<T> {
+export function unknown<T = never>(
+  reason: MeaningGapReason,
+  gap?: MeaningStructuredGap
+): Uncertain<T> {
   return gap === undefined ? { known: false, reason } : { known: false, reason, gap };
 }
 
@@ -98,7 +105,9 @@ export function orElse<T>(e: Uncertain<T>, fallback: T): T {
 export function requireKnown<T>(e: Uncertain<T>, context?: string): T {
   if (e.known) return e.value;
   const where = context ? ` (${context})` : '';
-  throw new Error(`requireKnown${where}: value is unknown — reason "${e.reason}"${e.gap ? `, gap "${e.gap.code}"` : ''}`);
+  throw new Error(
+    `requireKnown${where}: value is unknown — reason "${e.reason}"${e.gap ? `, gap "${e.gap.code}"` : ''}`
+  );
 }
 
 /**
@@ -120,4 +129,6 @@ export function fromResolution<A>(resolution: MeaningResolution<A>): Uncertain<A
 // yields 'broken', which violates the `extends 'ok'` bound and fails the build. (A `@ts-expect-error`
 // in the test file would NOT catch this — vitest's esbuild skips type-checking, W.860.)
 type AssertOk<X extends 'ok'> = X;
-export type UncertainNotAssignableToT = AssertOk<Uncertain<number> extends number ? 'broken' : 'ok'>;
+export type UncertainNotAssignableToT = AssertOk<
+  Uncertain<number> extends number ? 'broken' : 'ok'
+>;

@@ -90,9 +90,7 @@ describe('HoloAbsorb product manifest', () => {
     );
 
     expect(
-      manifest.capabilities
-        .find((capability) => capability.id === 'evidence')
-        ?.evidencePaths
+      manifest.capabilities.find((capability) => capability.id === 'evidence')?.evidencePaths
     ).toContain('packages/absorb-service/benchmarks/paper-5-visual-agent-study-v4.json');
     expect(paper?.claimBoundary).toContain('four-arm factorial confirmation');
     expect(paper?.benchmarkCommands).toContain(

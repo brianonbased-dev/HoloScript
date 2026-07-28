@@ -29,7 +29,12 @@ describe('InMemoryAgentRegistry', () => {
     expect(reg.size).toBe(2);
     expect(reg.has('a')).toBe(true);
     expect(reg.get('a')?.id).toBe('a');
-    expect(reg.list().map((e) => e.id).sort()).toEqual(['a', 'b']);
+    expect(
+      reg
+        .list()
+        .map((e) => e.id)
+        .sort()
+    ).toEqual(['a', 'b']);
   });
 
   it('throws on duplicate id and unregisters cleanly', () => {

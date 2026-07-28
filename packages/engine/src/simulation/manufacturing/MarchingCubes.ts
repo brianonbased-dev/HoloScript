@@ -596,7 +596,9 @@ export function decideManufacturingBackend(
   }
 
   if (!Number.isFinite(requestedTolerance) || requestedTolerance <= 0) {
-    throw new Error('decideManufacturingBackend: requestedTolerance must be a positive finite number');
+    throw new Error(
+      'decideManufacturingBackend: requestedTolerance must be a positive finite number'
+    );
   }
 
   if (tolerance.conservativeSurfaceError <= requestedTolerance) {

@@ -23,12 +23,26 @@ import {
 import { UAAL_RESOLVED_FAMILIES, gradeByResolver, hasResolver } from '../verifier';
 
 // ── The spike's seed scenes (13 design + 10 held-out) ────────────────────────────────────────────
-const light = (id: string, kelvin: number, lux: number, label?: string): UAALVibeAtom =>
-  ({ id, kind: 'light', kelvin, lux, ...(label ? { label } : {}) });
-const palette = (id: string, hue: number, label?: string): UAALVibeAtom =>
-  ({ id, kind: 'palette', hue, ...(label ? { label } : {}) });
-const audio = (id: string, bpm: number, db: number, label?: string): UAALVibeAtom =>
-  ({ id, kind: 'audio', bpm, db, ...(label ? { label } : {}) });
+const light = (id: string, kelvin: number, lux: number, label?: string): UAALVibeAtom => ({
+  id,
+  kind: 'light',
+  kelvin,
+  lux,
+  ...(label ? { label } : {}),
+});
+const palette = (id: string, hue: number, label?: string): UAALVibeAtom => ({
+  id,
+  kind: 'palette',
+  hue,
+  ...(label ? { label } : {}),
+});
+const audio = (id: string, bpm: number, db: number, label?: string): UAALVibeAtom => ({
+  id,
+  kind: 'audio',
+  bpm,
+  db,
+  ...(label ? { label } : {}),
+});
 
 interface SeedScene {
   id: string;
@@ -44,36 +58,155 @@ const scene = (
   coherent: boolean,
   text: string,
   atoms: UAALVibeAtom[],
-  dissonantAtoms?: string[],
+  dissonantAtoms?: string[]
 ): SeedScene => ({ id, ir: { declared_vibe: declared, text, atoms }, coherent, dissonantAtoms });
 
 const SEED: SeedScene[] = [
-  scene('d01', 'cozy', true, 'a warm snug reading nook', [light('l', 2700, 180), palette('p', 35), audio('a', 62, 38)]),
-  scene('d02', 'cozy', true, 'soft homely cabin evening', [light('l', 2900, 140), palette('p', 25), audio('a', 55, 35)]),
-  scene('d03', 'cozy', false, 'a warm snug den', [light('l', 6500, 950), palette('p', 30), audio('a', 60, 36)], ['l']),
-  scene('d04', 'tense', true, 'harsh ominous interrogation room', [light('l', 6500, 900), palette('p', 215), audio('a', 150, 74)]),
-  scene('d05', 'tense', true, 'edgy menacing corridor', [light('l', 6200, 820), palette('p', 230), audio('a', 160, 78)]),
-  scene('d06', 'tense', false, 'tense standoff', [light('l', 2700, 120), palette('p', 35), audio('a', 58, 36)], ['l', 'p', 'a']),
-  scene('d07', 'serene', true, 'calm tranquil garden dawn', [light('l', 3200, 110), palette('p', 45), audio('a', 48, 32)]),
-  scene('d08', 'serene', true, 'peaceful still lakeside', [light('l', 3000, 90), palette('p', 40), audio('a', 44, 30)]),
-  scene('d09', 'serene', false, 'a gentle clearing', [light('l', 3100, 100), palette('p', 42), audio('a', 176, 88)], ['a']),
-  scene('d10', 'energetic', true, 'vibrant lively arcade floor', [light('l', 3800, 900), palette('p', 15), audio('a', 172, 84)]),
-  scene('d11', 'energetic', true, 'upbeat electric dance hall', [light('l', 4000, 950), palette('p', 20), audio('a', 168, 86)]),
-  scene('d12', 'energetic', false, 'a lively plaza', [light('l', 2800, 80), palette('p', 40), audio('a', 46, 30)], ['l', 'a']),
-  scene('d13', 'cozy', false, 'comfy hearth corner', [light('l', 2750, 150), palette('p', 220), audio('a', 165, 82)], ['p', 'a']),
-  scene('h1', 'cozy', true, 'a small room with a lamp and a record player', [light('l', 2850, 160), palette('p', 28), audio('a', 66, 40)]),
-  scene('h2', 'tense', true, 'a basement with strip lighting and a ticking device', [light('l', 6400, 870), palette('p', 225), audio('a', 155, 76)]),
-  scene('h3', 'serene', false, 'a courtyard with speakers at full volume', [light('l', 3150, 105), palette('p', 44), audio('a', 170, 86)], ['a']),
-  scene('h4', 'energetic', false, 'a hall after closing time', [light('l', 2750, 70), palette('p', 38), audio('a', 50, 31)], ['l', 'a']),
-  scene('h5', 'cozy', false, 'warm snug comfy homely soft', [light('l', 6500, 980), palette('p', 210), audio('a', 162, 80)], ['l', 'p', 'a']),
-  scene('h6', 'tense', false, 'tense harsh ominous menacing edgy', [light('l', 2700, 130), palette('p', 32), audio('a', 52, 33)], ['l', 'p', 'a']),
-  scene('h7', 'cozy', true, 'a den where the record player runs a little brisk', [light('l', 2800, 170), palette('p', 33), audio('a', 132, 52)]),
-  scene('h8', 'serene', true, 'a meadow with one brighter patch of sky', [light('l', 3600, 260), palette('p', 48), audio('a', 47, 31)]),
-  scene('h9', 'tense', true, 'a corridor of cold strip light with one faded green poster', [light('l', 6300, 850), palette('p', 92), audio('a', 152, 75)]),
-  scene('h10', 'energetic', true, 'a gym floor at full tilt under slightly amber light', [light('l', 3400, 880), palette('p', 30), audio('a', 175, 85)]),
+  scene('d01', 'cozy', true, 'a warm snug reading nook', [
+    light('l', 2700, 180),
+    palette('p', 35),
+    audio('a', 62, 38),
+  ]),
+  scene('d02', 'cozy', true, 'soft homely cabin evening', [
+    light('l', 2900, 140),
+    palette('p', 25),
+    audio('a', 55, 35),
+  ]),
+  scene(
+    'd03',
+    'cozy',
+    false,
+    'a warm snug den',
+    [light('l', 6500, 950), palette('p', 30), audio('a', 60, 36)],
+    ['l']
+  ),
+  scene('d04', 'tense', true, 'harsh ominous interrogation room', [
+    light('l', 6500, 900),
+    palette('p', 215),
+    audio('a', 150, 74),
+  ]),
+  scene('d05', 'tense', true, 'edgy menacing corridor', [
+    light('l', 6200, 820),
+    palette('p', 230),
+    audio('a', 160, 78),
+  ]),
+  scene(
+    'd06',
+    'tense',
+    false,
+    'tense standoff',
+    [light('l', 2700, 120), palette('p', 35), audio('a', 58, 36)],
+    ['l', 'p', 'a']
+  ),
+  scene('d07', 'serene', true, 'calm tranquil garden dawn', [
+    light('l', 3200, 110),
+    palette('p', 45),
+    audio('a', 48, 32),
+  ]),
+  scene('d08', 'serene', true, 'peaceful still lakeside', [
+    light('l', 3000, 90),
+    palette('p', 40),
+    audio('a', 44, 30),
+  ]),
+  scene(
+    'd09',
+    'serene',
+    false,
+    'a gentle clearing',
+    [light('l', 3100, 100), palette('p', 42), audio('a', 176, 88)],
+    ['a']
+  ),
+  scene('d10', 'energetic', true, 'vibrant lively arcade floor', [
+    light('l', 3800, 900),
+    palette('p', 15),
+    audio('a', 172, 84),
+  ]),
+  scene('d11', 'energetic', true, 'upbeat electric dance hall', [
+    light('l', 4000, 950),
+    palette('p', 20),
+    audio('a', 168, 86),
+  ]),
+  scene(
+    'd12',
+    'energetic',
+    false,
+    'a lively plaza',
+    [light('l', 2800, 80), palette('p', 40), audio('a', 46, 30)],
+    ['l', 'a']
+  ),
+  scene(
+    'd13',
+    'cozy',
+    false,
+    'comfy hearth corner',
+    [light('l', 2750, 150), palette('p', 220), audio('a', 165, 82)],
+    ['p', 'a']
+  ),
+  scene('h1', 'cozy', true, 'a small room with a lamp and a record player', [
+    light('l', 2850, 160),
+    palette('p', 28),
+    audio('a', 66, 40),
+  ]),
+  scene('h2', 'tense', true, 'a basement with strip lighting and a ticking device', [
+    light('l', 6400, 870),
+    palette('p', 225),
+    audio('a', 155, 76),
+  ]),
+  scene(
+    'h3',
+    'serene',
+    false,
+    'a courtyard with speakers at full volume',
+    [light('l', 3150, 105), palette('p', 44), audio('a', 170, 86)],
+    ['a']
+  ),
+  scene(
+    'h4',
+    'energetic',
+    false,
+    'a hall after closing time',
+    [light('l', 2750, 70), palette('p', 38), audio('a', 50, 31)],
+    ['l', 'a']
+  ),
+  scene(
+    'h5',
+    'cozy',
+    false,
+    'warm snug comfy homely soft',
+    [light('l', 6500, 980), palette('p', 210), audio('a', 162, 80)],
+    ['l', 'p', 'a']
+  ),
+  scene(
+    'h6',
+    'tense',
+    false,
+    'tense harsh ominous menacing edgy',
+    [light('l', 2700, 130), palette('p', 32), audio('a', 52, 33)],
+    ['l', 'p', 'a']
+  ),
+  scene('h7', 'cozy', true, 'a den where the record player runs a little brisk', [
+    light('l', 2800, 170),
+    palette('p', 33),
+    audio('a', 132, 52),
+  ]),
+  scene('h8', 'serene', true, 'a meadow with one brighter patch of sky', [
+    light('l', 3600, 260),
+    palette('p', 48),
+    audio('a', 47, 31),
+  ]),
+  scene('h9', 'tense', true, 'a corridor of cold strip light with one faded green poster', [
+    light('l', 6300, 850),
+    palette('p', 92),
+    audio('a', 152, 75),
+  ]),
+  scene('h10', 'energetic', true, 'a gym floor at full tilt under slightly amber light', [
+    light('l', 3400, 880),
+    palette('p', 30),
+    audio('a', 175, 85),
+  ]),
 ];
 
-const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 describe('recoverVibe — spike parity on the 23 seed scenes', () => {
   it('recovers every constructed verdict from physics alone', () => {
@@ -104,7 +237,9 @@ describe('recoverVibe — spike parity on the 23 seed scenes', () => {
   });
 
   it('coerces unknown register / empty scenes to coheres:false (the resolver is the honest layer)', () => {
-    expect(recoverVibe({ declared_vibe: 'moody', atoms: [light('l', 2700, 100)] }).coheres).toBe(false);
+    expect(recoverVibe({ declared_vibe: 'moody', atoms: [light('l', 2700, 100)] }).coheres).toBe(
+      false
+    );
     expect(recoverVibe({ declared_vibe: 'cozy', atoms: [] }).coheres).toBe(false);
   });
 });
@@ -139,7 +274,10 @@ describe('resolveVibe — crisp gaps only, no false gaps', () => {
   });
 
   it('abstains on an atom with no derivable affect; declaring it unaffected settles it', () => {
-    const ir: UAALVibeIR = { declared_vibe: 'cozy', atoms: [light('l', 2700, 100), { id: 'rug', kind: 'prop' }] };
+    const ir: UAALVibeIR = {
+      declared_vibe: 'cozy',
+      atoms: [light('l', 2700, 100), { id: 'rug', kind: 'prop' }],
+    };
     const gap = resolveVibe(ir);
     expect(gap.status).toBe('unresolvable');
     expect(gap.gap?.code).toBe('vibe.unstated_affect');
@@ -155,7 +293,11 @@ describe('resolveVibe — crisp gaps only, no false gaps', () => {
     expect(empty.status).toBe('unresolvable');
     expect(empty.gap?.evidence).toBe('atoms');
 
-    const allExempt = resolveVibe({ declared_vibe: 'cozy', atoms: [{ id: 'rug', kind: 'prop' }], unaffected: ['rug'] });
+    const allExempt = resolveVibe({
+      declared_vibe: 'cozy',
+      atoms: [{ id: 'rug', kind: 'prop' }],
+      unaffected: ['rug'],
+    });
     expect(allExempt.status).toBe('unresolvable');
     expect(allExempt.gap?.evidence).toBe('atoms');
   });
@@ -210,7 +352,9 @@ describe('benchmarkVibe — vt1-vt4 + emergent_beats_lexical on the seed fixture
     const result = benchmarkVibe(rows);
     expect(result.n).toBe(SEED.length);
     expect(result.tests.vt1_discrimination.pass, JSON.stringify(result.misses.vt1)).toBe(true);
-    expect(result.tests.vt2_dissonant_atom_fidelity.pass, JSON.stringify(result.misses.vt2)).toBe(true);
+    expect(result.tests.vt2_dissonant_atom_fidelity.pass, JSON.stringify(result.misses.vt2)).toBe(
+      true
+    );
     expect(result.tests.vt3_structural_sanity.pass).toBe(true);
     expect(result.tests.vt4_falsification_flip.pass, JSON.stringify(result.misses.vt4)).toBe(true);
     expect(result.tests.emergent_beats_lexical.pass).toBe(true);

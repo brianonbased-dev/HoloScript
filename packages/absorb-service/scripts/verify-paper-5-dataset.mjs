@@ -8,10 +8,7 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(scriptDir, '..');
 const repoRoot = resolve(packageRoot, '../..');
 
-export const DEFAULT_PAPER_5_DATASET = resolve(
-  packageRoot,
-  'benchmarks/paper-5-retrieval-v1.json'
-);
+export const DEFAULT_PAPER_5_DATASET = resolve(packageRoot, 'benchmarks/paper-5-retrieval-v1.json');
 
 const REQUIRED_CATEGORIES = ['dependency', 'impact', 'reasoning'];
 const MINIMUM_QUERY_COUNT = 50;
@@ -22,11 +19,15 @@ function sha256(value) {
 }
 
 function normalizePath(value) {
-  return String(value ?? '').replace(/\\/g, '/').replace(/^\.\//u, '');
+  return String(value ?? '')
+    .replace(/\\/g, '/')
+    .replace(/^\.\//u, '');
 }
 
 function compactBasename(file) {
-  return basename(file, '.ts').toLowerCase().replace(/[^a-z0-9]+/gu, '');
+  return basename(file, '.ts')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, '');
 }
 
 function parseArgs(argv) {

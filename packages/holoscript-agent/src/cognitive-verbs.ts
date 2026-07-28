@@ -47,7 +47,19 @@ export interface CognitiveVerbDeps {
   /** @deprecated No longer called in rag_query — replaced by grep + Absorb. */
   queryTeamKnowledge?: (query: string, limit: number) => Promise<KnowledgeEntry[]>;
   /** @deprecated No longer called in rag_query — replaced by grep + Absorb. */
-  queryCodebase?: (query: string, topK: number) => Promise<Array<{ name: string; file: string; line?: number; type: string; score: number; signature?: string | null }>>;
+  queryCodebase?: (
+    query: string,
+    topK: number
+  ) => Promise<
+    Array<{
+      name: string;
+      file: string;
+      line?: number;
+      type: string;
+      score: number;
+      signature?: string | null;
+    }>
+  >;
   /** PRIVATE workspace retrieval (recall). */
   queryPrivateKnowledge: () => Promise<KnowledgeEntry[]>;
   /** One-shot provider planner (plan). Optional — when absent, `plan` is skipped. */
@@ -62,7 +74,11 @@ export interface CognitiveVerbDeps {
    * If `tags` is provided, only peers that declare ALL of those tags are returned.
    * If `tags` is empty/absent, all live peers are returned.
    */
-  discoverPeers?: (tags?: string[]) => Promise<Array<{ agentId: string; agentName: string; surface?: string; capabilityTags?: string[] }>>;
+  discoverPeers?: (
+    tags?: string[]
+  ) => Promise<
+    Array<{ agentId: string; agentName: string; surface?: string; capabilityTags?: string[] }>
+  >;
   /**
    * Consult a PEER for the `ask_peer` cognitive verb — agent-to-agent questioning,
    * the reasoning substrate (D.100 keystone: "agents asking agents questions IS
@@ -164,7 +180,13 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
               sources.push('absorb-graphrag');
             }
           }
-          deps.log({ ev: 'on-task-rag-query', taskId: deps.task.id, query, sources, retrieved: sources.length > 0 ? limit : 0 });
+          deps.log({
+            ev: 'on-task-rag-query',
+            taskId: deps.task.id,
+            query,
+            sources,
+            retrieved: sources.length > 0 ? limit : 0,
+          });
           break;
         }
         case 'recall': {
@@ -195,14 +217,22 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
             const needle = query.toLowerCase();
             matched = (
               needle
-                ? all.filter((e) => `${e.id ?? ''} ${e.content ?? ''}`.toLowerCase().includes(needle))
+                ? all.filter((e) =>
+                    `${e.id ?? ''} ${e.content ?? ''}`.toLowerCase().includes(needle)
+                  )
                 : all
             ).slice(0, limit);
           }
           if (matched.length > 0) {
             content += `\n\n[Recalled memory${query ? ` for "${query}"` : ''}]\n${formatEntries(matched)}`;
           }
-          deps.log({ ev: 'on-task-recall', taskId: deps.task.id, query, recalled: matched.length, mode });
+          deps.log({
+            ev: 'on-task-recall',
+            taskId: deps.task.id,
+            query,
+            recalled: matched.length,
+            mode,
+          });
           break;
         }
         case 'plan': {
@@ -220,16 +250,14 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
         }
         case 'ask_peer': {
           if (!deps.askPeer) break;
-          const question =
-            strField(action.config, 'question', 'q', 'ask', 'of') || deps.task.title;
+          const question = strField(action.config, 'question', 'q', 'ask', 'of') || deps.task.title;
           const capability = strField(action.config, 'capability', 'cap');
           const peer = strField(action.config, 'peer', 'handle', 'to');
           // Default ON: a peer that cites invented IDs is the exact 4B failure mode
           // (D.100). Brains opt OUT with `require_grounding: false` to keep an
           // answer whose citations don't resolve (e.g. a peer with no shared corpus).
           const requireGrounding =
-            action.config.require_grounding !== false &&
-            action.config.requireGrounding !== false;
+            action.config.require_grounding !== false && action.config.requireGrounding !== false;
           const result = await deps.askPeer(question, {
             capability: capability || undefined,
             peer: peer || undefined,
@@ -258,7 +286,10 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
             });
             break;
           }
-          const annotated = annotateGrounding(result.answer, grounding).slice(0, MAX_INJECTED_CHARS);
+          const annotated = annotateGrounding(result.answer, grounding).slice(
+            0,
+            MAX_INJECTED_CHARS
+          );
           content += `\n\n[Peer answer from ${result.peer} re "${question}"]\n${annotated}`;
           deps.log({
             ev: 'on-task-ask-peer',
@@ -286,18 +317,21 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
             return `- ${p.agentName} (surface: ${p.surface ?? 'unknown'}) [${caps}]`;
           });
           content += `\n\n[Live peers (${peers.length}) — pass matching tags to delegate_task to route work]\n${lines.join('\n')}`;
-          deps.log({ ev: 'on-task-discover', taskId: deps.task.id, filterTags, peers: peers.length });
+          deps.log({
+            ev: 'on-task-discover',
+            taskId: deps.task.id,
+            filterTags,
+            peers: peers.length,
+          });
           break;
         }
         case 'council': {
           if (!deps.askPeer) break;
-          const question =
-            strField(action.config, 'question', 'q', 'ask', 'of') || deps.task.title;
+          const question = strField(action.config, 'question', 'q', 'ask', 'of') || deps.task.title;
           const capability = strField(action.config, 'capability', 'cap');
           const seats = Math.max(2, Math.min(5, numField(action.config, 'seats', 3)));
           const requireGrounding =
-            action.config.require_grounding !== false &&
-            action.config.requireGrounding !== false;
+            action.config.require_grounding !== false && action.config.requireGrounding !== false;
           // Diverse lenses make N seats genuinely question from different angles
           // (the adversarial-verify pattern) even on a single node; with a real peer
           // endpoint each seat is also a different sovereign node.
@@ -307,8 +341,13 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
             const lens = LENSES[i % LENSES.length];
             // seat → registry round-robin, so N seats spread across the peers that
             // offer the capability (genuinely different nodes when >1 is registered).
-            const r = await deps.askPeer(question, { capability: capability || undefined, lens, seat: i });
-            if (r && r.answer.trim()) collected.push({ peer: `${r.peer}/${lens}`, answer: r.answer });
+            const r = await deps.askPeer(question, {
+              capability: capability || undefined,
+              lens,
+              seat: i,
+            });
+            if (r && r.answer.trim())
+              collected.push({ peer: `${r.peer}/${lens}`, answer: r.answer });
           }
           if (collected.length === 0) {
             deps.log({ ev: 'on-task-council', taskId: deps.task.id, question, seats: 0 });

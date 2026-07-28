@@ -40,7 +40,10 @@ describe('TwoTowerSearchIndex', () => {
     const index = new TwoTowerSearchIndex({
       queryProvider,
       entries: [
-        { symbol: makeSymbol({ name: 'other', filePath: 'packages/core/src/other.ts' }), embedding: [0, 1, 0] },
+        {
+          symbol: makeSymbol({ name: 'other', filePath: 'packages/core/src/other.ts' }),
+          embedding: [0, 1, 0],
+        },
         { symbol: makeSymbol({ name: 'target' }), embedding: [0.9, 0.1, 0] },
       ],
     });
@@ -57,7 +60,10 @@ describe('TwoTowerSearchIndex', () => {
     const index = new TwoTowerSearchIndex({
       queryProvider,
       entries: [
-        { symbol: makeSymbol({ name: 'tsTarget', filePath: 'packages/core/src/a.ts' }), embedding: [1, 0] },
+        {
+          symbol: makeSymbol({ name: 'tsTarget', filePath: 'packages/core/src/a.ts' }),
+          embedding: [1, 0],
+        },
         {
           symbol: makeSymbol({
             name: 'pyTarget',
@@ -136,7 +142,10 @@ describe('TwoTowerSearchIndex', () => {
       queryProvider,
       entries: [
         { symbol: makeSymbol({ name: 'target' }), embedding: [1, 0, 0] },
-        { symbol: makeSymbol({ name: 'other', filePath: 'packages/core/src/other.ts' }), embedding: [0, 1, 0] },
+        {
+          symbol: makeSymbol({ name: 'other', filePath: 'packages/core/src/other.ts' }),
+          embedding: [0, 1, 0],
+        },
       ],
     });
     const engine = new GraphRAGEngine(new CodebaseGraph(), index);

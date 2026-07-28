@@ -38,9 +38,9 @@ describe('augmentWithOnTaskCognition', () => {
   // ── rag_query (grep stage 1 + Absorb GraphRAG stage 2, W.754) ──────────────
 
   it('rag_query injects grep results and records the grep source', async () => {
-    const queryGrep = vi.fn(async (): Promise<KnowledgeEntry[]> => [
-      { id: 'k1', content: 'widgets need a frobnicator' },
-    ]);
+    const queryGrep = vi.fn(
+      async (): Promise<KnowledgeEntry[]> => [{ id: 'k1', content: 'widgets need a frobnicator' }]
+    );
     const d = deps({
       onTaskActions: [{ verb: 'rag_query', config: { query: 'widget', limit: 3 } }],
       queryGrep,
@@ -55,8 +55,12 @@ describe('augmentWithOnTaskCognition', () => {
   });
 
   it('rag_query injects Absorb GraphRAG results alongside grep', async () => {
-    const queryGrep = vi.fn(async (): Promise<KnowledgeEntry[]> => [{ id: 'g', content: 'grep hit' }]);
-    const queryAbsorb = vi.fn(async (): Promise<KnowledgeEntry[]> => [{ id: 'a', content: 'absorb semantic hit' }]);
+    const queryGrep = vi.fn(
+      async (): Promise<KnowledgeEntry[]> => [{ id: 'g', content: 'grep hit' }]
+    );
+    const queryAbsorb = vi.fn(
+      async (): Promise<KnowledgeEntry[]> => [{ id: 'a', content: 'absorb semantic hit' }]
+    );
     const d = deps({
       onTaskActions: [{ verb: 'rag_query', config: { query: 'widget', limit: 4 } }],
       queryGrep,
@@ -84,12 +88,17 @@ describe('augmentWithOnTaskCognition', () => {
   // ── recall (private workspace) ─────────────────────────────────────────────
 
   it('recall pulls private knowledge and filters by query client-side', async () => {
-    const queryPrivateKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
-      { id: 'p1', content: 'last time the widget broke on null input' },
-      { id: 'p2', content: 'unrelated note about coffee' },
-    ]);
+    const queryPrivateKnowledge = vi.fn(
+      async (): Promise<KnowledgeEntry[]> => [
+        { id: 'p1', content: 'last time the widget broke on null input' },
+        { id: 'p2', content: 'unrelated note about coffee' },
+      ]
+    );
     const out = await augmentWithOnTaskCognition(
-      deps({ onTaskActions: [{ verb: 'recall', config: { query: 'widget' } }], queryPrivateKnowledge })
+      deps({
+        onTaskActions: [{ verb: 'recall', config: { query: 'widget' } }],
+        queryPrivateKnowledge,
+      })
     );
     expect(out).toContain('[Recalled memory for "widget"]');
     expect(out).toContain('null input');
@@ -97,11 +106,16 @@ describe('augmentWithOnTaskCognition', () => {
   });
 
   it('recall ranks the private workspace SEMANTICALLY when an embed route resolves (W.753)', async () => {
-    const queryPrivateKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
-      { id: 'p1', content: 'last time the widget broke on null input' },
-      { id: 'p2', content: 'unrelated note about coffee' },
+    const queryPrivateKnowledge = vi.fn(
+      async (): Promise<KnowledgeEntry[]> => [
+        { id: 'p1', content: 'last time the widget broke on null input' },
+        { id: 'p2', content: 'unrelated note about coffee' },
+      ]
+    );
+    const embed = vi.fn(async (t: string) => [
+      /widget|gadget/i.test(t) ? 1 : 0,
+      /coffee/i.test(t) ? 1 : 0,
     ]);
-    const embed = vi.fn(async (t: string) => [/widget|gadget/i.test(t) ? 1 : 0, /coffee/i.test(t) ? 1 : 0]);
     const similarity = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1];
     const d = deps({
       onTaskActions: [{ verb: 'recall', config: { query: 'gadget', limit: 1 } }],
@@ -112,14 +126,18 @@ describe('augmentWithOnTaskCognition', () => {
     const out = await augmentWithOnTaskCognition(d);
     expect(out).toContain('null input');
     expect(out).not.toContain('coffee');
-    expect(d.log).toHaveBeenCalledWith(expect.objectContaining({ ev: 'on-task-recall', mode: 'semantic' }));
+    expect(d.log).toHaveBeenCalledWith(
+      expect.objectContaining({ ev: 'on-task-recall', mode: 'semantic' })
+    );
   });
 
   it('recall falls back to the substring filter when the embed route is unavailable (returns null)', async () => {
-    const queryPrivateKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
-      { id: 'p1', content: 'the widget broke' },
-      { id: 'p2', content: 'coffee note' },
-    ]);
+    const queryPrivateKnowledge = vi.fn(
+      async (): Promise<KnowledgeEntry[]> => [
+        { id: 'p1', content: 'the widget broke' },
+        { id: 'p2', content: 'coffee note' },
+      ]
+    );
     const embed = vi.fn(async () => null);
     const similarity = vi.fn(() => 0);
     const d = deps({
@@ -131,7 +149,9 @@ describe('augmentWithOnTaskCognition', () => {
     const out = await augmentWithOnTaskCognition(d);
     expect(out).toContain('the widget broke');
     expect(out).not.toContain('coffee');
-    expect(d.log).toHaveBeenCalledWith(expect.objectContaining({ ev: 'on-task-recall', mode: 'substring' }));
+    expect(d.log).toHaveBeenCalledWith(
+      expect.objectContaining({ ev: 'on-task-recall', mode: 'substring' })
+    );
   });
 
   // ── plan ───────────────────────────────────────────────────────────────────
@@ -156,27 +176,47 @@ describe('augmentWithOnTaskCognition', () => {
   // ── ask_peer (agent-to-agent questioning + CITE-by-ID grounding gate) ────────
 
   it('ask_peer injects a grounded peer answer with a verified-citation footer', async () => {
-    const askPeer = vi.fn(async () => ({ answer: 'Use the approach from W.810.', peer: 'jetson-orin' }));
+    const askPeer = vi.fn(async () => ({
+      answer: 'Use the approach from W.810.',
+      peer: 'jetson-orin',
+    }));
     const groundingCorpus = vi.fn(async () => [{ id: 'W.810', content: 'ollama ctx OOM' }]);
     const d = deps({
-      onTaskActions: [{ verb: 'ask_peer', config: { question: 'how do I fix the GPU?', capability: 'hardware' } }],
+      onTaskActions: [
+        { verb: 'ask_peer', config: { question: 'how do I fix the GPU?', capability: 'hardware' } },
+      ],
       askPeer,
       groundingCorpus,
     });
     const out = await augmentWithOnTaskCognition(d);
-    expect(askPeer).toHaveBeenCalledWith('how do I fix the GPU?', { capability: 'hardware', peer: undefined });
+    expect(askPeer).toHaveBeenCalledWith('how do I fix the GPU?', {
+      capability: 'hardware',
+      peer: undefined,
+    });
     expect(out).toContain('[Peer answer from jetson-orin re "how do I fix the GPU?"]');
     expect(out).toContain('[citation grounding: 1/1 citations verified]');
     expect(d.log).toHaveBeenCalledWith(
-      expect.objectContaining({ ev: 'on-task-ask-peer', answered: true, citationsGrounded: 1, citationsConfabulated: 0 })
+      expect.objectContaining({
+        ev: 'on-task-ask-peer',
+        answered: true,
+        citationsGrounded: 1,
+        citationsConfabulated: 0,
+      })
     );
   });
 
   it('ask_peer injects a mixed answer but flags confabulated citations', async () => {
-    const askPeer = vi.fn(async () => ({ answer: 'See W.810 (real) and W.999 (invented).', peer: 'peer-x' }));
+    const askPeer = vi.fn(async () => ({
+      answer: 'See W.810 (real) and W.999 (invented).',
+      peer: 'peer-x',
+    }));
     const groundingCorpus = vi.fn(async () => [{ id: 'W.810', content: 'real entry' }]);
     const out = await augmentWithOnTaskCognition(
-      deps({ onTaskActions: [{ verb: 'ask_peer', config: { question: 'q' } }], askPeer, groundingCorpus })
+      deps({
+        onTaskActions: [{ verb: 'ask_peer', config: { question: 'q' } }],
+        askPeer,
+        groundingCorpus,
+      })
     );
     expect(out).toContain('[Peer answer from peer-x');
     expect(out).toContain('1/2 citations verified');
@@ -235,7 +275,11 @@ describe('augmentWithOnTaskCognition', () => {
     const askPeer = vi.fn(async () => ({ answer: 'The fix is W.810.', peer: 'node' }));
     const groundingCorpus = vi.fn(async () => [{ id: 'W.810', content: 'real entry' }]);
     const out = await augmentWithOnTaskCognition(
-      deps({ onTaskActions: [{ verb: 'council', config: { question: 'how?', seats: 2 } }], askPeer, groundingCorpus })
+      deps({
+        onTaskActions: [{ verb: 'council', config: { question: 'how?', seats: 2 } }],
+        askPeer,
+        groundingCorpus,
+      })
     );
     expect(askPeer).toHaveBeenCalledTimes(2);
     // distinct lenses → distinct seats → W.810 corroborated by ≥2 peers
@@ -276,7 +320,9 @@ describe('augmentWithOnTaskCognition', () => {
           { verb: 'rag_query', config: { query: 'a' } },
           { verb: 'llm_call', config: { prompt: 'ZZZ' } },
         ],
-        queryGrep: vi.fn(async (): Promise<KnowledgeEntry[]> => [{ id: 'k', content: 'AAA-knowledge' }]),
+        queryGrep: vi.fn(
+          async (): Promise<KnowledgeEntry[]> => [{ id: 'k', content: 'AAA-knowledge' }]
+        ),
       })
     );
     expect(out.indexOf('AAA-knowledge')).toBeLessThan(out.indexOf('ZZZ'));

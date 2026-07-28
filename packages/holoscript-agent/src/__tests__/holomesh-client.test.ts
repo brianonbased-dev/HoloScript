@@ -114,9 +114,16 @@ describe('HolomeshClient', () => {
       calls.push({ url: String(url), init: init ?? {} });
       return new Response(JSON.stringify({ success: true }), { status: 201 });
     }) as unknown as typeof fetch;
-    const client = new HolomeshClient({ apiBase: 'https://x/api/holomesh', bearer: 'b', teamId: 't', fetchImpl });
+    const client = new HolomeshClient({
+      apiBase: 'https://x/api/holomesh',
+      bearer: 'b',
+      teamId: 't',
+      fetchImpl,
+    });
 
-    const ok = await client.writePrivateKnowledge([{ content: 'Task X done. Outcome: Y', type: 'task-outcome' }]);
+    const ok = await client.writePrivateKnowledge([
+      { content: 'Task X done. Outcome: Y', type: 'task-outcome' },
+    ]);
     expect(ok).toBe(true);
     expect(calls).toHaveLength(1);
     expect(calls[0].init.method).toBe('POST');
@@ -128,13 +135,25 @@ describe('HolomeshClient', () => {
   it('writePrivateKnowledge returns false (never throws) on a failed write — a write miss must not break the tick', async () => {
     const fetchImpl: typeof fetch = (async () =>
       new Response('server error', { status: 500 })) as unknown as typeof fetch;
-    const client = new HolomeshClient({ apiBase: 'https://x', bearer: 'b', teamId: 't', fetchImpl });
+    const client = new HolomeshClient({
+      apiBase: 'https://x',
+      bearer: 'b',
+      teamId: 't',
+      fetchImpl,
+    });
     await expect(client.writePrivateKnowledge([{ content: 'x' }])).resolves.toBe(false);
   });
 
   it('writePrivateKnowledge returns false and makes no request for an empty batch', async () => {
-    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 })) as unknown as typeof fetch;
-    const client = new HolomeshClient({ apiBase: 'https://x', bearer: 'b', teamId: 't', fetchImpl });
+    const fetchImpl = vi.fn(
+      async () => new Response('{}', { status: 201 })
+    ) as unknown as typeof fetch;
+    const client = new HolomeshClient({
+      apiBase: 'https://x',
+      bearer: 'b',
+      teamId: 't',
+      fetchImpl,
+    });
     await expect(client.writePrivateKnowledge([])).resolves.toBe(false);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -153,7 +172,10 @@ describe('HolomeshClient', () => {
     it('sends capability_tags (snake_case) — the field the live server actually reads', async () => {
       const calls: Array<{ url: string; body: unknown }> = [];
       const fetchImpl: typeof fetch = (async (url: string | URL | Request, init?: RequestInit) => {
-        calls.push({ url: String(url), body: init?.body ? JSON.parse(init.body as string) : undefined });
+        calls.push({
+          url: String(url),
+          body: init?.body ? JSON.parse(init.body as string) : undefined,
+        });
         return new Response(JSON.stringify({ success: true }), { status: 200 });
       }) as unknown as typeof fetch;
       const client = new HolomeshClient({
@@ -166,7 +188,13 @@ describe('HolomeshClient', () => {
       await client.heartbeat({
         agentName: 'jetson-orin-super',
         surface: 'jetson',
-        capabilityTags: ['local-inference', 'edge', 'cael-trace', 'holoscript-native', 'hardware-receipt'],
+        capabilityTags: [
+          'local-inference',
+          'edge',
+          'cael-trace',
+          'holoscript-native',
+          'hardware-receipt',
+        ],
       });
 
       expect(calls).toHaveLength(1);
@@ -193,7 +221,12 @@ describe('HolomeshClient', () => {
         calls.push({ body: init?.body ? JSON.parse(init.body as string) : undefined });
         return new Response(JSON.stringify({ success: true }), { status: 200 });
       }) as unknown as typeof fetch;
-      const client = new HolomeshClient({ apiBase: 'https://x/api/holomesh', bearer: 'b', teamId: 't', fetchImpl });
+      const client = new HolomeshClient({
+        apiBase: 'https://x/api/holomesh',
+        bearer: 'b',
+        teamId: 't',
+        fetchImpl,
+      });
 
       await client.heartbeat({ agentName: 'brittney', surface: 'laptop' });
 

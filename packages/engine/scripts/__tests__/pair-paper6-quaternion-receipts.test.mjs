@@ -1,12 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -23,14 +17,8 @@ const hash = (character) => character.repeat(64);
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const evidenceRoot = path.join(repoRoot, '.bench-logs-evidence');
-const actualRtxReceipt = path.join(
-  evidenceRoot,
-  'paper-6-q14-cordic-slerp-h3-win-rtx3060-r3.json'
-);
-const actualS23Receipt = path.join(
-  evidenceRoot,
-  'paper-6-q14-cordic-slerp-s23-adreno740-r2.json'
-);
+const actualRtxReceipt = path.join(evidenceRoot, 'paper-6-q14-cordic-slerp-h3-win-rtx3060-r3.json');
+const actualS23Receipt = path.join(evidenceRoot, 'paper-6-q14-cordic-slerp-s23-adreno740-r2.json');
 const actualAggregate = path.join(
   evidenceRoot,
   'paper-6-q14-cordic-slerp-cross-vendor-rtx3060-s23-r1.json'

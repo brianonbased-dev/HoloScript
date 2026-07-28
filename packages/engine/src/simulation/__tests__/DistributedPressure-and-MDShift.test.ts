@@ -98,7 +98,9 @@ describe('Bug 1 — StructuralSolver distributed pressure: explicit surfaceFaces
     const solver = new StructuralSolver(config);
     const forces = (solver as unknown as { forces: Float64Array }).forces;
 
-    let totalFx = 0, totalFy = 0, totalFz = 0;
+    let totalFx = 0,
+      totalFy = 0,
+      totalFz = 0;
     for (let n = 0; n < 4; n++) {
       totalFx += forces[n * 3];
       totalFy += forces[n * 3 + 1];
@@ -157,7 +159,9 @@ describe('Bug 1 — StructuralSolver distributed pressure: explicit surfaceFaces
     const solver = new StructuralSolver(config);
     const forces = (solver as unknown as { forces: Float64Array }).forces;
 
-    let totalFx = 0, totalFy = 0, totalFz = 0;
+    let totalFx = 0,
+      totalFy = 0,
+      totalFz = 0;
     for (let n = 0; n < 4; n++) {
       totalFx += forces[n * 3];
       totalFy += forces[n * 3 + 1];
@@ -169,8 +173,8 @@ describe('Bug 1 — StructuralSolver distributed pressure: explicit surfaceFaces
     //             = 200 * 0.5 * (0, -1, -0.5) = (0, -100, -50)
     // Tolerance 1e-4: Float32 vertices, ULP of 100 ≈ 1.2e-5.
     expect(Math.abs(totalFx)).toBeLessThan(1e-4);
-    expect(Math.abs(totalFy - (-PRESSURE * 0.5))).toBeLessThan(1e-4);
-    expect(Math.abs(totalFz - (-PRESSURE * 0.25))).toBeLessThan(1e-4);
+    expect(Math.abs(totalFy - -PRESSURE * 0.5)).toBeLessThan(1e-4);
+    expect(Math.abs(totalFz - -PRESSURE * 0.25)).toBeLessThan(1e-4);
 
     // Force must be applied only to face-0 nodes {n0,n1,n2}, NOT n3.
     expect(Math.abs(forces[3 * 3])).toBeLessThan(1e-10); // n3.Fx

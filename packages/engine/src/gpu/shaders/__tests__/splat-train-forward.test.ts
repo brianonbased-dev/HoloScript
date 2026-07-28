@@ -11,7 +11,10 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const wgsl = readFileSync(fileURLToPath(new URL('../splat-train-forward.wgsl', import.meta.url)), 'utf8');
+const wgsl = readFileSync(
+  fileURLToPath(new URL('../splat-train-forward.wgsl', import.meta.url)),
+  'utf8'
+);
 
 describe('splat-train-forward.wgsl — structural', () => {
   it('contains the alpha-blend forward operations (matches forward2D)', () => {

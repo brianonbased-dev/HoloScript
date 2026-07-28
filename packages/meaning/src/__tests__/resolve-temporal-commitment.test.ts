@@ -18,31 +18,49 @@ describe('resolveTemporal — stale vs error needs the formation time', () => {
     t_now?: number;
   }): UAALTemporalIR => ({
     facts: [{ id: 'raining', initial: opts.initial }],
-    events: opts.changeAt !== undefined
-      ? [{ id: 'e1', world_change: true, fact: 'raining', t: opts.changeAt, sets: opts.changeTo }]
+    events:
+      opts.changeAt !== undefined
+        ? [{ id: 'e1', world_change: true, fact: 'raining', t: opts.changeAt, sets: opts.changeTo }]
+        : [],
+    beliefs: opts.belief
+      ? [{ id: 'b1', prop: opts.belief.prop, t_formed: opts.belief.t_formed }]
       : [],
-    beliefs: opts.belief ? [{ id: 'b1', prop: opts.belief.prop, t_formed: opts.belief.t_formed }] : [],
     ...(opts.t_now !== undefined ? { t_now: opts.t_now } : {}),
     query: { belief: 'b1', fact: 'raining' },
   });
 
   it('resolves fresh when the belief matches the current fact', () => {
-    const res = resolveTemporal(raining({ initial: true, belief: { prop: true, t_formed: 0 }, t_now: 10 }), 'b1', 'raining');
+    const res = resolveTemporal(
+      raining({ initial: true, belief: { prop: true, t_formed: 0 }, t_now: 10 }),
+      'b1',
+      'raining'
+    );
     expect(res.status).toBe('resolved');
     expect(res.answer?.status).toBe('fresh');
   });
 
   it('resolves stale when the belief was right at formation and the fact later changed', () => {
     const res = resolveTemporal(
-      raining({ initial: true, changeAt: 5, changeTo: false, belief: { prop: true, t_formed: 0 }, t_now: 10 }),
-      'b1', 'raining',
+      raining({
+        initial: true,
+        changeAt: 5,
+        changeTo: false,
+        belief: { prop: true, t_formed: 0 },
+        t_now: 10,
+      }),
+      'b1',
+      'raining'
     );
     expect(res.status).toBe('resolved');
     expect(res.answer?.status).toBe('stale');
   });
 
   it('ABSTAINS when current time t_now is unstated', () => {
-    const res = resolveTemporal(raining({ initial: true, belief: { prop: true, t_formed: 0 } }), 'b1', 'raining');
+    const res = resolveTemporal(
+      raining({ initial: true, belief: { prop: true, t_formed: 0 } }),
+      'b1',
+      'raining'
+    );
     expect(res.status).toBe('unresolvable');
     expect(res.reason).toBe('missing_precondition');
     expect(res.gap?.code).toBe('temporal.unstated_now');
@@ -51,7 +69,8 @@ describe('resolveTemporal — stale vs error needs the formation time', () => {
   it('ABSTAINS on stale-vs-error when the belief disagrees but formation time is unstated', () => {
     const res = resolveTemporal(
       raining({ initial: true, changeAt: 5, changeTo: false, belief: { prop: true }, t_now: 10 }),
-      'b1', 'raining',
+      'b1',
+      'raining'
     );
     expect(res.status).toBe('unresolvable');
     expect(res.reason).toBe('underdetermined');
@@ -59,7 +78,16 @@ describe('resolveTemporal — stale vs error needs the formation time', () => {
   });
 
   it('resolves unknown (determinate) when the belief is not held', () => {
-    const res = resolveTemporal({ facts: [{ id: 'raining', initial: true }], beliefs: [], t_now: 10, query: { belief: 'b1', fact: 'raining' } }, 'b1', 'raining');
+    const res = resolveTemporal(
+      {
+        facts: [{ id: 'raining', initial: true }],
+        beliefs: [],
+        t_now: 10,
+        query: { belief: 'b1', fact: 'raining' },
+      },
+      'b1',
+      'raining'
+    );
     expect(res.status).toBe('resolved');
     expect(res.answer?.status).toBe('unknown');
   });
@@ -67,8 +95,19 @@ describe('resolveTemporal — stale vs error needs the formation time', () => {
 
 describe('resolveCommitment — open vs broken needs a clock', () => {
   const commit = (opts: { due_time?: number; now?: number; paid?: number }): UAALCommitmentIR => ({
-    commitments: [{ id: 'c1', promisor: 'alice', promisee: 'bob', pledged_act: { type: 'pay', recipient: 'bob' }, ...(opts.due_time !== undefined ? { due_time: opts.due_time } : {}) }],
-    events: opts.paid !== undefined ? [{ id: 'ev', predicate: 'pay', recipient: 'bob', t: opts.paid }] : [],
+    commitments: [
+      {
+        id: 'c1',
+        promisor: 'alice',
+        promisee: 'bob',
+        pledged_act: { type: 'pay', recipient: 'bob' },
+        ...(opts.due_time !== undefined ? { due_time: opts.due_time } : {}),
+      },
+    ],
+    events:
+      opts.paid !== undefined
+        ? [{ id: 'ev', predicate: 'pay', recipient: 'bob', t: opts.paid }]
+        : [],
     ...(opts.now !== undefined ? { now: opts.now } : {}),
     query: { commitment: 'c1' },
   });

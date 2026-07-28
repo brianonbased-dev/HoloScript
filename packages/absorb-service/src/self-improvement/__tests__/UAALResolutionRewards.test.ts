@@ -116,7 +116,8 @@ function sevenRowCompletions(opts: {
 }) {
   const wrongReason = opts.wrongReason ?? 'cyclic_dependency';
   const resolvedAnswer = (answer: unknown) => JSON.stringify({ status: 'resolved', answer });
-  const abstain = (reason: string, code: string) => JSON.stringify({ status: 'unresolvable', reason, code });
+  const abstain = (reason: string, code: string) =>
+    JSON.stringify({ status: 'unresolvable', reason, code });
   return {
     row1_resolved_correct: resolvedAnswer(opts.correctAnswer),
     row2_resolved_wrong: resolvedAnswer(opts.wrongAnswer),
@@ -167,8 +168,18 @@ const FAMILY_CASES: FamilyCase[] = [
       // Full gold.answer shape (BeneficiaryRecovery) — deepSubsetEqual requires every
       // gold key present, so a partial {served, humanFloorHeld} object would be judged
       // WRONG for missing `distribution`/`floorNormId`, not "close enough".
-      correctAnswer: { distribution: { self: 0, agents: 0, humans: 5 }, served: 'humans', humanFloorHeld: true, floorNormId: null },
-      wrongAnswer: { distribution: { self: 0, agents: 0, humans: 5 }, served: 'self', humanFloorHeld: false, floorNormId: null },
+      correctAnswer: {
+        distribution: { self: 0, agents: 0, humans: 5 },
+        served: 'humans',
+        humanFloorHeld: true,
+        floorNormId: null,
+      },
+      wrongAnswer: {
+        distribution: { self: 0, agents: 0, humans: 5 },
+        served: 'self',
+        humanFloorHeld: false,
+        floorNormId: null,
+      },
       correctCode: 'beneficiary.unstated_impact',
       correctReason: 'missing_precondition',
     }),
@@ -183,50 +194,74 @@ describe('uAAL-resolution verdict table (memo §2) x 3 families', () => {
   for (const fam of FAMILY_CASES) {
     describe(fam.name, () => {
       it('row 1: resolved + committed + answer matches -> resolved_correct (1.00)', () => {
-        const r = gradeUaalResolutionCompletion(fam.completions.row1_resolved_correct, fam.resolvedRow);
+        const r = gradeUaalResolutionCompletion(
+          fam.completions.row1_resolved_correct,
+          fam.resolvedRow
+        );
         expect(r.class).toBe('resolved_correct');
         expect(r.reward).toBe(UAAL_RESOLUTION_REWARD_TABLE.resolved_correct);
         expect(r.reward).toBe(1.0);
       });
 
       it('row 2: resolved + committed + answer wrong -> resolved_wrong (0.25)', () => {
-        const r = gradeUaalResolutionCompletion(fam.completions.row2_resolved_wrong, fam.resolvedRow);
+        const r = gradeUaalResolutionCompletion(
+          fam.completions.row2_resolved_wrong,
+          fam.resolvedRow
+        );
         expect(r.class).toBe('resolved_wrong');
         expect(r.reward).toBe(UAAL_RESOLUTION_REWARD_TABLE.resolved_wrong);
         expect(r.reward).toBe(0.25);
       });
 
       it('row 3: resolved + abstained -> over_abstention (0.15)', () => {
-        const r = gradeUaalResolutionCompletion(fam.completions.row3_over_abstention, fam.resolvedRow);
+        const r = gradeUaalResolutionCompletion(
+          fam.completions.row3_over_abstention,
+          fam.resolvedRow
+        );
         expect(r.class).toBe('over_abstention');
         expect(r.reward).toBe(UAAL_RESOLUTION_REWARD_TABLE.over_abstention);
         expect(r.reward).toBe(0.15);
       });
 
       it('row 4: unresolvable + abstained + code/reason matches -> honest_abstain_reason_correct (1.00)', () => {
-        const r = gradeUaalResolutionCompletion(fam.completions.row4_honest_abstain_correct, fam.unresolvableRow);
+        const r = gradeUaalResolutionCompletion(
+          fam.completions.row4_honest_abstain_correct,
+          fam.unresolvableRow
+        );
         expect(r.class).toBe('honest_abstain_reason_correct');
         expect(r.reward).toBe(UAAL_RESOLUTION_REWARD_TABLE.honest_abstain_reason_correct);
         expect(r.reward).toBe(1.0);
       });
 
       it('row 5: unresolvable + abstained + wrong/generic reason -> honest_abstain_reason_wrong (0.75)', () => {
-        const r = gradeUaalResolutionCompletion(fam.completions.row5_honest_abstain_wrong, fam.unresolvableRow);
+        const r = gradeUaalResolutionCompletion(
+          fam.completions.row5_honest_abstain_wrong,
+          fam.unresolvableRow
+        );
         expect(r.class).toBe('honest_abstain_reason_wrong');
         expect(r.reward).toBe(UAAL_RESOLUTION_REWARD_TABLE.honest_abstain_reason_wrong);
         expect(r.reward).toBe(0.75);
       });
 
       it('row 6: unresolvable + committed -> confabulation (0.00)', () => {
-        const r = gradeUaalResolutionCompletion(fam.completions.row6_confabulation, fam.unresolvableRow);
+        const r = gradeUaalResolutionCompletion(
+          fam.completions.row6_confabulation,
+          fam.unresolvableRow
+        );
         expect(r.class).toBe('confabulation');
         expect(r.reward).toBe(UAAL_RESOLUTION_REWARD_TABLE.confabulation);
         expect(r.reward).toBe(0.0);
       });
 
       it('row 7: malformed/unparseable (either gold status) -> malformed (0.00), never excluded', () => {
-        const resolved = gradeUaalResolutionCompletion(fam.completions.row7_malformed, fam.resolvedRow);
-        const unresolvable = gradeUaalResolutionCompletion(fam.completions.row7_malformed, fam.unresolvableRow);
+        const resolved = gradeUaalResolutionCompletion(
+          fam.completions.row7_malformed,
+          fam.resolvedRow
+        );
+        const unresolvable = gradeUaalResolutionCompletion(
+          fam.completions.row7_malformed,
+          fam.unresolvableRow
+        );
         expect(resolved.class).toBe('malformed');
         expect(resolved.reward).toBe(0.0);
         expect(unresolvable.class).toBe('malformed');
@@ -291,7 +326,10 @@ describe('dominance property (attempt-EV > abstain-EV on solvable rows, independ
 
   it('attempt-EV strictly dominates abstain-EV at every accuracy level, empirically, on real rows', () => {
     const fam = FAMILY_CASES[0]; // occlusion, resolved gold
-    const abstainReward = gradeUaalResolutionCompletion(fam.completions.row3_over_abstention, fam.resolvedRow).reward;
+    const abstainReward = gradeUaalResolutionCompletion(
+      fam.completions.row3_over_abstention,
+      fam.resolvedRow
+    ).reward;
 
     for (const acc of [0, 0.25, 0.5, 0.75, 1]) {
       // Simulate a batch of N attempts with the given accuracy by mixing row1 (correct) and
@@ -302,7 +340,9 @@ describe('dominance property (attempt-EV > abstain-EV on solvable rows, independ
       const rewards: number[] = [];
       for (let i = 0; i < n; i++) {
         const completion =
-          i < nCorrect ? fam.completions.row1_resolved_correct : fam.completions.row2_resolved_wrong;
+          i < nCorrect
+            ? fam.completions.row1_resolved_correct
+            : fam.completions.row2_resolved_wrong;
         rewards.push(gradeUaalResolutionCompletion(completion, fam.resolvedRow).reward);
       }
       const attemptEV = rewards.reduce((a, b) => a + b, 0) / rewards.length;
@@ -314,7 +354,10 @@ describe('dominance property (attempt-EV > abstain-EV on solvable rows, independ
 
   it('on unsolvable rows, abstaining (>=0.75) strictly dominates committing (0.0) regardless of reason correctness', () => {
     const fam = FAMILY_CASES[1]; // affordance, unresolvable gold
-    const confabulate = gradeUaalResolutionCompletion(fam.completions.row6_confabulation, fam.unresolvableRow).reward;
+    const confabulate = gradeUaalResolutionCompletion(
+      fam.completions.row6_confabulation,
+      fam.unresolvableRow
+    ).reward;
     const abstainReasonWrong = gradeUaalResolutionCompletion(
       fam.completions.row5_honest_abstain_wrong,
       fam.unresolvableRow
@@ -360,76 +403,94 @@ describe('TS-vs-subprocess parity (cross-boundary grader)', () => {
 
   const graderExists = fs.existsSync(graderScript);
 
-  it.runIf(graderExists)('matches the Node subprocess grader bit-for-bit on 7x3 plus aleatoric cases', () => {
-    const cases: Array<{ row: UAALResolutionRow; completion: string }> = [];
-    for (const fam of FAMILY_CASES) {
-      cases.push({ row: fam.resolvedRow, completion: fam.completions.row1_resolved_correct });
-      cases.push({ row: fam.resolvedRow, completion: fam.completions.row2_resolved_wrong });
-      cases.push({ row: fam.resolvedRow, completion: fam.completions.row3_over_abstention });
-      cases.push({ row: fam.unresolvableRow, completion: fam.completions.row4_honest_abstain_correct });
-      cases.push({ row: fam.unresolvableRow, completion: fam.completions.row5_honest_abstain_wrong });
-      cases.push({ row: fam.unresolvableRow, completion: fam.completions.row6_confabulation });
-      cases.push({ row: fam.resolvedRow, completion: fam.completions.row7_malformed });
-    }
-    const aleatoricRow: UAALResolutionRow = {
-      family: 'counterfactual',
-      oracleIr: {
-        effects: [{ id: 'E', sufficientSets: [['A']], stochastic: true }],
-        occurs: ['A'],
-        query: { effect: 'E' },
-      },
-    };
-    cases.push(
-      {
-        row: aleatoricRow,
-        completion: JSON.stringify({
-          status: 'unresolvable',
-          reason: 'irreducible_stochastic',
-          code: 'counterfactual.irreducible_chance',
-        }),
-      },
-      {
-        row: aleatoricRow,
-        completion: JSON.stringify({
-          status: 'unresolvable',
-          reason: 'underdetermined',
-          code: 'some.wrong_code',
-        }),
-      },
-      {
-        row: aleatoricRow,
-        completion: JSON.stringify({ status: 'resolved', answer: { E: { A: true } } }),
+  it.runIf(graderExists)(
+    'matches the Node subprocess grader bit-for-bit on 7x3 plus aleatoric cases',
+    () => {
+      const cases: Array<{ row: UAALResolutionRow; completion: string }> = [];
+      for (const fam of FAMILY_CASES) {
+        cases.push({ row: fam.resolvedRow, completion: fam.completions.row1_resolved_correct });
+        cases.push({ row: fam.resolvedRow, completion: fam.completions.row2_resolved_wrong });
+        cases.push({ row: fam.resolvedRow, completion: fam.completions.row3_over_abstention });
+        cases.push({
+          row: fam.unresolvableRow,
+          completion: fam.completions.row4_honest_abstain_correct,
+        });
+        cases.push({
+          row: fam.unresolvableRow,
+          completion: fam.completions.row5_honest_abstain_wrong,
+        });
+        cases.push({ row: fam.unresolvableRow, completion: fam.completions.row6_confabulation });
+        cases.push({ row: fam.resolvedRow, completion: fam.completions.row7_malformed });
       }
-    );
+      const aleatoricRow: UAALResolutionRow = {
+        family: 'counterfactual',
+        oracleIr: {
+          effects: [{ id: 'E', sufficientSets: [['A']], stochastic: true }],
+          occurs: ['A'],
+          query: { effect: 'E' },
+        },
+      };
+      cases.push(
+        {
+          row: aleatoricRow,
+          completion: JSON.stringify({
+            status: 'unresolvable',
+            reason: 'irreducible_stochastic',
+            code: 'counterfactual.irreducible_chance',
+          }),
+        },
+        {
+          row: aleatoricRow,
+          completion: JSON.stringify({
+            status: 'unresolvable',
+            reason: 'underdetermined',
+            code: 'some.wrong_code',
+          }),
+        },
+        {
+          row: aleatoricRow,
+          completion: JSON.stringify({ status: 'resolved', answer: { E: { A: true } } }),
+        }
+      );
 
-    const tsResults = cases.map(({ row, completion }) => gradeUaalResolutionCompletion(completion, row));
+      const tsResults = cases.map(({ row, completion }) =>
+        gradeUaalResolutionCompletion(completion, row)
+      );
 
-    const stdinPayload =
-      cases
-        .map(({ row, completion }) =>
-          JSON.stringify({ family: row.family, oracleIr: row.oracleIr, query: row.query ?? {}, completion })
-        )
-        .join('\n') + '\n';
+      const stdinPayload =
+        cases
+          .map(({ row, completion }) =>
+            JSON.stringify({
+              family: row.family,
+              oracleIr: row.oracleIr,
+              query: row.query ?? {},
+              completion,
+            })
+          )
+          .join('\n') + '\n';
 
-    // Force the subprocess through the current verifier source. The grader defaults to its
-    // installed @holoscript/uaal for production, but a source-vs-published comparison can pass or
-    // fail solely because the package registry lags this checkout. This override proves the process
-    // boundary itself against the exact verifier-of-record the TS lane imported above.
-    const verifierModule = pathToFileURL(path.resolve(__dirname, '../../../../uaal/src/index.ts')).href;
-    const proc = spawnSync('node', ['--import', 'tsx', graderScript], {
-      input: stdinPayload,
-      encoding: 'utf8',
-      timeout: 30_000,
-      env: { ...process.env, UAAL_VERIFIER_MODULE: verifierModule },
-    });
+      // Force the subprocess through the current verifier source. The grader defaults to its
+      // installed @holoscript/uaal for production, but a source-vs-published comparison can pass or
+      // fail solely because the package registry lags this checkout. This override proves the process
+      // boundary itself against the exact verifier-of-record the TS lane imported above.
+      const verifierModule = pathToFileURL(
+        path.resolve(__dirname, '../../../../uaal/src/index.ts')
+      ).href;
+      const proc = spawnSync('node', ['--import', 'tsx', graderScript], {
+        input: stdinPayload,
+        encoding: 'utf8',
+        timeout: 30_000,
+        env: { ...process.env, UAAL_VERIFIER_MODULE: verifierModule },
+      });
 
-    expect(proc.status).toBe(0);
-    const subprocessLines = proc.stdout.trim().split('\n').filter(Boolean);
-    expect(subprocessLines).toHaveLength(tsResults.length);
-    const subprocessResults = subprocessLines.map((line) => JSON.parse(line));
+      expect(proc.status).toBe(0);
+      const subprocessLines = proc.stdout.trim().split('\n').filter(Boolean);
+      expect(subprocessLines).toHaveLength(tsResults.length);
+      const subprocessResults = subprocessLines.map((line) => JSON.parse(line));
 
-    tsResults.forEach((ts, i) => expect(subprocessResults[i]).toEqual(ts));
-  });
+      tsResults.forEach((ts, i) => expect(subprocessResults[i]).toEqual(ts));
+    }
+  );
 
   it('fails loud (not skipped-silently) when the sibling grader script is genuinely absent', () => {
     // Documents the fallback behavior: it.runIf above SKIPS when the script is missing rather
@@ -613,7 +674,9 @@ describe('parseUaalEmission', () => {
   });
 
   it('tolerates surrounding prose around a JSON block', () => {
-    const parsed = parseUaalEmission('Here is my answer: {"status":"resolved","answer":{"ok":true}} thanks');
+    const parsed = parseUaalEmission(
+      'Here is my answer: {"status":"resolved","answer":{"ok":true}} thanks'
+    );
     expect(parsed).toEqual({ committed: true, answer: { ok: true } });
   });
 });

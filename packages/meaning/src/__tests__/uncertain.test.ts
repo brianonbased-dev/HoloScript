@@ -24,7 +24,11 @@ describe('Uncertain<T> — first-class ignorance as a value', () => {
   });
 
   it('unknown carries a family-scoped gap when supplied, and omits the key otherwise', () => {
-    const gap = structuredGap('affordance', 'affordance.unstated_precondition', 'missing_precondition');
+    const gap = structuredGap(
+      'affordance',
+      'affordance.unstated_precondition',
+      'missing_precondition'
+    );
     const u = unknown<number>('missing_precondition', gap);
     expect(u.known).toBe(false);
     if (!u.known) expect(u.gap?.code).toBe('affordance.unstated_precondition');
@@ -33,8 +37,14 @@ describe('Uncertain<T> — first-class ignorance as a value', () => {
   });
 
   it('isAleatoric separates the IRREDUCIBLE class from the reducible one', () => {
-    const reducible = unknown<number>('underdetermined', structuredGap('temporal', 'temporal.unstated_now', 'underdetermined'));
-    const irreducible = unknown<number>('irreducible_stochastic', aleatoricGap('sampling', 'sampling.coin_flip'));
+    const reducible = unknown<number>(
+      'underdetermined',
+      structuredGap('temporal', 'temporal.unstated_now', 'underdetermined')
+    );
+    const irreducible = unknown<number>(
+      'irreducible_stochastic',
+      aleatoricGap('sampling', 'sampling.coin_flip')
+    );
     expect(isAleatoric(reducible)).toBe(false);
     expect(isAleatoric(irreducible)).toBe(true);
     // a KNOWN value is never aleatoric — there is no gap to classify
@@ -52,10 +62,14 @@ describe('Uncertain<T> — first-class ignorance as a value', () => {
   });
 
   it('flatMap chains and short-circuits on the first unknown', () => {
-    const safeDiv = (n: number): Uncertain<number> => (n === 0 ? unknown('missing_precondition') : known(100 / n));
+    const safeDiv = (n: number): Uncertain<number> =>
+      n === 0 ? unknown('missing_precondition') : known(100 / n);
     expect(flatMap(known(4), safeDiv)).toEqual({ known: true, value: 25 });
     expect(flatMap(known(0), safeDiv).known).toBe(false);
-    expect(flatMap(unknown<number>('cyclic_dependency'), safeDiv)).toEqual({ known: false, reason: 'cyclic_dependency' });
+    expect(flatMap(unknown<number>('cyclic_dependency'), safeDiv)).toEqual({
+      known: false,
+      reason: 'cyclic_dependency',
+    });
   });
 
   it('both is known only when BOTH are — a known cannot silently pair with an unknown', () => {
@@ -74,11 +88,17 @@ describe('Uncertain<T> — first-class ignorance as a value', () => {
 
   it('requireKnown returns the value or throws with the reason (the named, greppable escape hatch)', () => {
     expect(requireKnown(known(9))).toBe(9);
-    expect(() => requireKnown(unknown<number>('missing_precondition'), 'demo')).toThrow(/unknown.*missing_precondition/);
+    expect(() => requireKnown(unknown<number>('missing_precondition'), 'demo')).toThrow(
+      /unknown.*missing_precondition/
+    );
   });
 
   it('fromResolution bridges the query world: resolved -> known, unresolvable -> unknown with reason/gap', () => {
-    const resolved: MeaningResolution<boolean> = { query: 'occluded', status: 'resolved', answer: true };
+    const resolved: MeaningResolution<boolean> = {
+      query: 'occluded',
+      status: 'resolved',
+      answer: true,
+    };
     expect(fromResolution(resolved)).toEqual({ known: true, value: true });
 
     const gap = structuredGap('occlusion', 'occlusion.opacity_unstated', 'underdetermined', 'box');

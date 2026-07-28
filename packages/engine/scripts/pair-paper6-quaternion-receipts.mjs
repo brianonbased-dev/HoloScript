@@ -10,14 +10,7 @@
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import {
-  existsSync,
-  linkSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -37,8 +30,7 @@ const CONTRACT_V1 = Object.freeze({
   output_encoding: 'four signed Q14 i32 words per case',
   canonical_hash_encoding: 'little-endian signed i32 words',
 });
-const KERNEL_WGSL_SHA256_V1 =
-  'bdc510c041dfe13a92f86660bab28775775161934eb35aefee9ae6fd1f12c47e';
+const KERNEL_WGSL_SHA256_V1 = 'bdc510c041dfe13a92f86660bab28775775161934eb35aefee9ae6fd1f12c47e';
 const FIXTURE_V1 = Object.freeze({
   case_count: 1114,
   construction:
@@ -83,7 +75,10 @@ function assert(condition, message) {
 }
 
 function assertExactRecord(actual, expected, label) {
-  assert(actual && typeof actual === 'object' && !Array.isArray(actual), `${label} must be an object`);
+  assert(
+    actual && typeof actual === 'object' && !Array.isArray(actual),
+    `${label} must be an object`
+  );
   const actualKeys = Object.keys(actual).sort();
   const expectedKeys = Object.keys(expected).sort();
   assert(
@@ -163,7 +158,10 @@ function recomputeMachineFingerprint(label, receipt) {
       'gles_renderer',
       'build_fingerprint_sha256',
     ]) {
-      assert(String(device[field] ?? '').trim().length > 0, `${label}: Android device.${field} missing`);
+      assert(
+        String(device[field] ?? '').trim().length > 0,
+        `${label}: Android device.${field} missing`
+      );
     }
     assert(/^[0-9a-f]{64}$/u.test(device.serial_sha256), `${label}: invalid hashed Android serial`);
     assert(
@@ -182,7 +180,10 @@ function recomputeMachineFingerprint(label, receipt) {
     ];
   } else {
     for (const field of ['platform', 'release', 'arch', 'hostname_sha256', 'cpu_model']) {
-      assert(String(device[field] ?? '').trim().length > 0, `${label}: local device.${field} missing`);
+      assert(
+        String(device[field] ?? '').trim().length > 0,
+        `${label}: local device.${field} missing`
+      );
     }
     assert(/^[0-9a-f]{64}$/u.test(device.hostname_sha256), `${label}: invalid hashed hostname`);
     components = [device.hostname_sha256, device.arch, device.cpu_model];
@@ -290,7 +291,10 @@ function validateSingle(label, receipt) {
       `${label}: WebGPU adapter and GLES renderer vendors conflict`
     );
   } else {
-    assert(launch.transport === 'playwright-launch', `${label}: browser mode requires Playwright transport`);
+    assert(
+      launch.transport === 'playwright-launch',
+      `${label}: browser mode requires Playwright transport`
+    );
     assert(
       launch.webgpu_determinism_native === true,
       `${label}: browser mode must use the native WebGPU launch policy`
@@ -315,12 +319,18 @@ function validateSingle(label, receipt) {
   ]) {
     assert(/^[0-9a-f]{64}$/u.test(value ?? ''), `${label}: invalid ${field}`);
   }
-  assert(Array.isArray(dispatchHashes) && dispatchHashes.length === 3, `${label}: need 3 dispatches`);
+  assert(
+    Array.isArray(dispatchHashes) && dispatchHashes.length === 3,
+    `${label}: need 3 dispatches`
+  );
   assert(
     dispatchHashes.every((hash) => /^[0-9a-f]{64}$/u.test(hash)),
     `${label}: malformed GPU dispatch hash`
   );
-  assert(dispatchHashes.every((hash) => hash === oracleHash), `${label}: GPU dispatch differs from oracle`);
+  assert(
+    dispatchHashes.every((hash) => hash === oracleHash),
+    `${label}: GPU dispatch differs from oracle`
+  );
   assert(receipt?.verdict?.oracle_equal === true, `${label}: oracle verdict is false`);
   assert(
     receipt?.verdict?.same_session_repeated_dispatches_equal === true,
@@ -332,10 +342,14 @@ function validateSingle(label, receipt) {
   );
   assert(
     receipt?.negative_control?.oracle_equal === true &&
-      receipt?.negative_control?.gpu_output_sha256 === receipt?.negative_control?.oracle_output_sha256,
+      receipt?.negative_control?.gpu_output_sha256 ===
+        receipt?.negative_control?.oracle_output_sha256,
     `${label}: negative-control GPU output differs from its oracle`
   );
-  assert(receipt?.negative_control?.changed_digest === true, `${label}: negative digest did not change`);
+  assert(
+    receipt?.negative_control?.changed_digest === true,
+    `${label}: negative digest did not change`
+  );
   assert(
     receipt?.negative_control?.oracle_output_sha256 !== oracleHash,
     `${label}: negative-control digest equals the canonical digest`
@@ -421,7 +435,10 @@ function currentValidatorIdentity() {
     encoding: 'utf8',
   }).trim();
   assert(validatorTracked === SCRIPT_RELATIVE_PATH, 'pair validator must be tracked');
-  assert(validatorStatus === '', 'pair validator must be clean before aggregate capture or verification');
+  assert(
+    validatorStatus === '',
+    'pair validator must be clean before aggregate capture or verification'
+  );
   return { validatorCommit, validatorSha256: sha256File(SCRIPT_PATH) };
 }
 
@@ -515,27 +532,47 @@ export function validateReceiptPair(left, right) {
 
   assertEqualField(left, right, 'contract', (receipt) => receipt.contract);
   assertEqualField(left, right, 'source.paths', (receipt) => receipt.source.paths);
-  assertEqualField(left, right, 'source.base_git_commit', (receipt) => receipt.source.base_git_commit);
+  assertEqualField(
+    left,
+    right,
+    'source.base_git_commit',
+    (receipt) => receipt.source.base_git_commit
+  );
   for (const field of REQUIRED_SOURCE_HASHES) {
     assertEqualField(left, right, `source.${field}`, (receipt) => receipt.source[field]);
   }
   for (const field of REQUIRED_FIXTURE_FIELDS) {
     assertEqualField(left, right, `fixture.${field}`, (receipt) => receipt.fixture[field]);
   }
-  assertEqualField(left, right, 'fixture.branch_boundary_dot_q15', (receipt) =>
-    receipt.fixture.branch_boundary_dot_q15
+  assertEqualField(
+    left,
+    right,
+    'fixture.branch_boundary_dot_q15',
+    (receipt) => receipt.fixture.branch_boundary_dot_q15
   );
-  assertEqualField(left, right, 'negative_control.case_id', (receipt) =>
-    receipt.negative_control.case_id
+  assertEqualField(
+    left,
+    right,
+    'negative_control.case_id',
+    (receipt) => receipt.negative_control.case_id
   );
-  assertEqualField(left, right, 'negative_control.mutation', (receipt) =>
-    receipt.negative_control.mutation
+  assertEqualField(
+    left,
+    right,
+    'negative_control.mutation',
+    (receipt) => receipt.negative_control.mutation
   );
-  assertEqualField(left, right, 'negative_control.input_sha256', (receipt) =>
-    receipt.negative_control.input_sha256
+  assertEqualField(
+    left,
+    right,
+    'negative_control.input_sha256',
+    (receipt) => receipt.negative_control.input_sha256
   );
-  assertEqualField(left, right, 'negative_control.oracle_output_sha256', (receipt) =>
-    receipt.negative_control.oracle_output_sha256
+  assertEqualField(
+    left,
+    right,
+    'negative_control.oracle_output_sha256',
+    (receipt) => receipt.negative_control.oracle_output_sha256
   );
 
   const leftVendor = normalizedVendor(left, 'left');
@@ -562,7 +599,10 @@ export function validateReceiptPair(left, right) {
 }
 
 export function pairReceipts(leftPath, rightPath, outputPath) {
-  assert(leftPath && rightPath && outputPath, 'left receipt, right receipt, and output path are required');
+  assert(
+    leftPath && rightPath && outputPath,
+    'left receipt, right receipt, and output path are required'
+  );
   const absoluteOutput = resolveEvidenceOutputPath(outputPath, leftPath, rightPath);
 
   const leftRecord = readReceipt(leftPath);
@@ -626,16 +666,25 @@ export function verifyAggregate(aggregatePath) {
     /^[0-9a-f]{64}$/u.test(aggregate?.source?.validator_sha256 ?? ''),
     'aggregate validator hash is missing or malformed'
   );
-  assert(Array.isArray(aggregate.receipts) && aggregate.receipts.length === 2, 'aggregate needs two receipts');
+  assert(
+    Array.isArray(aggregate.receipts) && aggregate.receipts.length === 2,
+    'aggregate needs two receipts'
+  );
 
   const receiptRecords = aggregate.receipts.map((record, index) => {
-    assert(typeof record.path === 'string' && record.path.length > 0, `aggregate receipt ${index} path missing`);
+    assert(
+      typeof record.path === 'string' && record.path.length > 0,
+      `aggregate receipt ${index} path missing`
+    );
     const absolutePath = path.resolve(REPO_ROOT, record.path);
     assert(
       path.dirname(absolutePath).toLowerCase() === EVIDENCE_ROOT.toLowerCase(),
       `aggregate receipt ${index} must be directly inside ${EVIDENCE_ROOT}`
     );
-    assert(absolutePath !== absoluteAggregate, `aggregate receipt ${index} collides with aggregate`);
+    assert(
+      absolutePath !== absoluteAggregate,
+      `aggregate receipt ${index} collides with aggregate`
+    );
     const loaded = readReceipt(absolutePath);
     assert(loaded.sha256 === record.sha256, `aggregate receipt ${index} hash mismatch`);
     return loaded;

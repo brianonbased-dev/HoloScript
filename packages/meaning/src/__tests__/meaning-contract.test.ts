@@ -9,7 +9,11 @@ import {
 
 describe('@holoscript/meaning — the stratum-② contract', () => {
   it('structuredGap keeps the family-scoped code and the coarse base bucket consistent', () => {
-    const gap = structuredGap('affordance', 'affordance.unstated_precondition', 'missing_precondition');
+    const gap = structuredGap(
+      'affordance',
+      'affordance.unstated_precondition',
+      'missing_precondition'
+    );
     expect(gap).toEqual({
       code: 'affordance.unstated_precondition',
       family: 'affordance',
@@ -18,15 +22,28 @@ describe('@holoscript/meaning — the stratum-② contract', () => {
   });
 
   it('structuredGap carries optional evidence without inventing an undefined key', () => {
-    const withEvidence = structuredGap('beneficiary', 'beneficiary.unstated_impact', 'underdetermined', 'atom-42');
+    const withEvidence = structuredGap(
+      'beneficiary',
+      'beneficiary.unstated_impact',
+      'underdetermined',
+      'atom-42'
+    );
     expect(withEvidence.evidence).toBe('atom-42');
     const without = structuredGap('beneficiary', 'beneficiary.unstated_impact', 'underdetermined');
     expect('evidence' in without).toBe(false);
   });
 
   it('a resolution is exactly resolved-or-unresolvable; a gap is a status plus reason, never a third enum', () => {
-    const resolved: MeaningResolution<boolean> = { query: 'occluded', status: 'resolved', answer: false };
-    const gap: MeaningStructuredGap = structuredGap('containment', 'containment.opacity_unstated', 'underdetermined');
+    const resolved: MeaningResolution<boolean> = {
+      query: 'occluded',
+      status: 'resolved',
+      answer: false,
+    };
+    const gap: MeaningStructuredGap = structuredGap(
+      'containment',
+      'containment.opacity_unstated',
+      'underdetermined'
+    );
     const abstained: MeaningResolution = {
       query: 'occluded',
       status: 'unresolvable',

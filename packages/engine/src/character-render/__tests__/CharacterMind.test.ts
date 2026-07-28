@@ -12,14 +12,11 @@ import { CharacterHost } from '../CharacterHost';
 
 describe('StaticCharacterMind', () => {
   it('returns identity and filters memory by query, capped by limit', async () => {
-    const mind = new StaticCharacterMind(
-      { wallet: '0xABC', agentId: 'brittney' },
-      [
-        { content: 'prefers concise answers' },
-        { content: 'working on the WebGPU renderer' },
-        { content: 'likes tea' },
-      ]
-    );
+    const mind = new StaticCharacterMind({ wallet: '0xABC', agentId: 'brittney' }, [
+      { content: 'prefers concise answers' },
+      { content: 'working on the WebGPU renderer' },
+      { content: 'likes tea' },
+    ]);
     expect(mind.identity()).toEqual({ wallet: '0xABC', agentId: 'brittney' });
     expect(await mind.loadMemory()).toHaveLength(3);
     expect(await mind.loadMemory('webgpu')).toHaveLength(1);
@@ -41,7 +38,9 @@ describe('CharacterHost.bindMind', () => {
     expect(host.getIdentity()).toBeNull();
 
     await host.bindMind(
-      new StaticCharacterMind({ wallet: '0xWALLET', agentId: 'brittney' }, [{ content: 'remembers the plan' }])
+      new StaticCharacterMind({ wallet: '0xWALLET', agentId: 'brittney' }, [
+        { content: 'remembers the plan' },
+      ])
     );
     expect(host.hasMind()).toBe(true);
     expect(host.getIdentity()).toEqual({ wallet: '0xWALLET', agentId: 'brittney' });

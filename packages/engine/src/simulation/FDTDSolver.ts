@@ -388,7 +388,9 @@ export class FDTDSolver {
       j1 >= this.ny - pml ||
       k1 >= this.nz - pml
     ) {
-      throw new Error('NTFSurface must be a closed box strictly inside the FDTD domain and any PML.');
+      throw new Error(
+        'NTFSurface must be a closed box strictly inside the FDTD domain and any PML.'
+      );
     }
     if (i0 >= i1 || j0 >= j1 || k0 >= k1) {
       throw new Error('NTFSurface min must be lower than max on all axes.');
@@ -911,11 +913,7 @@ function buildNTFSamples(min: Vec3, max: Vec3, dx: number, dy: number, dz: numbe
 }
 
 function cross(a: Vec3, b: Vec3): Vec3 {
-  return [
-    a[1] * b[2] - a[2] * b[1],
-    a[2] * b[0] - a[0] * b[2],
-    a[0] * b[1] - a[1] * b[0],
-  ];
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 }
 
 function scale(v: Vec3, s: number): Vec3 {
@@ -949,11 +947,10 @@ function complexDot(v: [Complex, Complex, Complex], basis: Vec3): Complex {
   };
 }
 
-function projectDipoleRadiation(moment: [Complex, Complex, Complex], direction: Vec3): [
-  Complex,
-  Complex,
-  Complex,
-] {
+function projectDipoleRadiation(
+  moment: [Complex, Complex, Complex],
+  direction: Vec3
+): [Complex, Complex, Complex] {
   const dot = complexDot(moment, direction);
   return [
     complexSub(complexScale(dot, direction[0]), moment[0]),

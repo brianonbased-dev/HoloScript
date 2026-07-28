@@ -97,9 +97,7 @@ interface Float32NpyMatrix {
   data: Float32Array;
 }
 
-export function loadHoloGraphHoloEmbedManifest(
-  manifestPath: string
-): HoloGraphHoloEmbedManifest {
+export function loadHoloGraphHoloEmbedManifest(manifestPath: string): HoloGraphHoloEmbedManifest {
   const parsed = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as unknown;
   return validateHoloGraphHoloEmbedManifest(parsed);
 }
@@ -146,12 +144,10 @@ export async function createHoloGraphHoloEmbedSearchIndexFromManifest(
     throw new Error('HoloGraph/HoloEmbed manifest or manifestPath is required.');
   }
 
-  verifyExpectedHoloEmbedQueryTowerSha256(
-    manifest,
-    options.expectedHoloEmbedQueryTowerSha256
-  );
+  verifyExpectedHoloEmbedQueryTowerSha256(manifest, options.expectedHoloEmbedQueryTowerSha256);
 
-  const baseDir = options.baseDir ?? (options.manifestPath ? path.dirname(options.manifestPath) : process.cwd());
+  const baseDir =
+    options.baseDir ?? (options.manifestPath ? path.dirname(options.manifestPath) : process.cwd());
   const graphPath = resolveManifestPath(baseDir, manifest.holoGraph.graphPath);
   const nodeEmbeddingPath = resolveManifestPath(baseDir, manifest.holoGraph.nodeEmbeddingPath);
   const studentPath = manifest.holoEmbed.studentPath
@@ -172,7 +168,9 @@ export async function createHoloGraphHoloEmbedSearchIndexFromManifest(
   const [rows, dim] = matrix.shape;
 
   if (rows !== nodes.length) {
-    throw new Error(`HoloGraph node embedding rows ${rows} do not match graph nodes ${nodes.length}.`);
+    throw new Error(
+      `HoloGraph node embedding rows ${rows} do not match graph nodes ${nodes.length}.`
+    );
   }
   if (manifest.holoGraph.nodeCount !== rows) {
     throw new Error(
@@ -180,9 +178,7 @@ export async function createHoloGraphHoloEmbedSearchIndexFromManifest(
     );
   }
   if (manifest.holoGraph.embeddingDim !== dim || manifest.holoEmbed.embeddingDim !== dim) {
-    throw new Error(
-      `HoloGraph/HoloEmbed manifest dimensions do not match matrix dim ${dim}.`
-    );
+    throw new Error(`HoloGraph/HoloEmbed manifest dimensions do not match matrix dim ${dim}.`);
   }
 
   const queryProvider =
@@ -261,7 +257,10 @@ export function readFloat32NpyMatrix(filePath: string): Float32NpyMatrix {
   }
 
   const header = buffer.toString('latin1', headerStart, headerStart + headerLength);
-  if (!/['"]descr['"]:\s*['"]<f4['"]/.test(header) && !/['"]descr['"]:\s*['"]\|f4['"]/.test(header)) {
+  if (
+    !/['"]descr['"]:\s*['"]<f4['"]/.test(header) &&
+    !/['"]descr['"]:\s*['"]\|f4['"]/.test(header)
+  ) {
     throw new Error(`Unsupported NPY dtype for ${filePath}; expected little-endian float32.`);
   }
   if (!/['"]fortran_order['"]:\s*False/.test(header)) {
@@ -298,9 +297,7 @@ function validateHoloGraphHoloEmbedManifest(value: unknown): HoloGraphHoloEmbedM
   }
   const manifest = value as HoloGraphHoloEmbedManifest;
   if (manifest.schema !== HOLOGRAPH_HOLOEMBED_MANIFEST_SCHEMA) {
-    throw new Error(
-      `Unsupported HoloGraph/HoloEmbed manifest schema: ${String(manifest.schema)}`
-    );
+    throw new Error(`Unsupported HoloGraph/HoloEmbed manifest schema: ${String(manifest.schema)}`);
   }
   if (!manifest.holoGraph?.graphPath || !manifest.holoGraph?.nodeEmbeddingPath) {
     throw new Error('HoloGraph manifest requires graphPath and nodeEmbeddingPath.');
@@ -332,7 +329,11 @@ function verifyHoloGraphHoloEmbedArtifacts(
     paths.holoGraphNodeEmbeddings,
     expected.holoGraphNodeEmbeddings
   );
-  verifyArtifactSha256('holoEmbedQueryTower', paths.holoEmbedQueryTower, expected.holoEmbedQueryTower);
+  verifyArtifactSha256(
+    'holoEmbedQueryTower',
+    paths.holoEmbedQueryTower,
+    expected.holoEmbedQueryTower
+  );
 }
 
 function verifyExpectedHoloEmbedQueryTowerSha256(
@@ -350,7 +351,11 @@ function verifyExpectedHoloEmbedQueryTowerSha256(
   }
 }
 
-function verifyArtifactSha256(label: string, filePath: string | undefined, expected: string | undefined): void {
+function verifyArtifactSha256(
+  label: string,
+  filePath: string | undefined,
+  expected: string | undefined
+): void {
   if (!expected) return;
   if (!filePath) {
     throw new Error(`HoloGraph/HoloEmbed artifact sha256 for ${label} requires a manifest path.`);
@@ -418,9 +423,7 @@ function booleanOr(value: unknown, fallback: boolean): boolean {
 }
 
 function symbolType(value: unknown): ExtendedSymbolType {
-  return typeof value === 'string' && value.length > 0
-    ? (value as ExtendedSymbolType)
-    : 'function';
+  return typeof value === 'string' && value.length > 0 ? (value as ExtendedSymbolType) : 'function';
 }
 
 function language(value: unknown): SupportedLanguage {

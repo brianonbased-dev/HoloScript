@@ -36,8 +36,7 @@ describe('Anisotropic Poisson projection (qpaq)', () => {
     Math.sin((Math.PI * k) / (nz - 1));
 
   for (let k = 0; k < nz; k++)
-    for (let j = 0; j < ny; j++)
-      for (let i = 0; i < nx; i++) exact.set(i, j, k, phi(i, j, k));
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) exact.set(i, j, k, phi(i, j, k));
 
   // rhs = -L_aniso(exact): the exact discrete anisotropic Laplacian (negated to
   // match the Jacobi update's sign convention, where diag*phi = rhs + w*neighbors).
@@ -59,8 +58,7 @@ describe('Anisotropic Poisson projection (qpaq)', () => {
   const seedFrom = () => {
     const g = exact.clone();
     for (let k = 1; k < nz - 1; k++)
-      for (let j = 1; j < ny - 1; j++)
-        for (let i = 1; i < nx - 1; i++) g.set(i, j, k, 0);
+      for (let j = 1; j < ny - 1; j++) for (let i = 1; i < nx - 1; i++) g.set(i, j, k, 0);
     return g;
   };
 

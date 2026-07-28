@@ -192,12 +192,12 @@ export class RagdollController {
           const error = dist - bone.length;
           // Weight corrections by inverse mass so heavy bodies move less.
           // invMass = 1/mass; totalInvMass = invMass_bone + invMass_parent.
-          const invBone   = 1 / bone.mass;
+          const invBone = 1 / bone.mass;
           const invParent = 1 / parent.mass;
-          const totalInv  = invBone + invParent;
+          const totalInv = invBone + invParent;
           // If totalInv is zero (both infinite mass) skip to avoid division by zero.
           if (totalInv === 0) break;
-          const boneShare   = invBone   / totalInv;
+          const boneShare = invBone / totalInv;
           const parentShare = invParent / totalInv;
           const scale = error / dist;
 

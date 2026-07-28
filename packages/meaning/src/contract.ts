@@ -127,7 +127,7 @@ export function structuredGap(
   family: string,
   code: string,
   base: MeaningEpistemicReason,
-  evidence?: string,
+  evidence?: string
 ): MeaningEpistemicGap {
   return { code, family, base, ...(evidence !== undefined ? { evidence } : {}) };
 }

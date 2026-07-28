@@ -61,14 +61,11 @@ function parseRootsEnv(raw: string | undefined, fallback: string[]): string[] {
   return roots.length > 0 ? roots : fallback;
 }
 
-const ALLOWED_READ_ROOTS = parseRootsEnv(
-  process.env.HOLOSCRIPT_AGENT_READ_ROOTS,
-  FLEET_READ_ROOTS,
-);
+const ALLOWED_READ_ROOTS = parseRootsEnv(process.env.HOLOSCRIPT_AGENT_READ_ROOTS, FLEET_READ_ROOTS);
 
 const ALLOWED_WRITE_ROOTS = parseRootsEnv(
   process.env.HOLOSCRIPT_AGENT_WRITE_ROOTS,
-  FLEET_WRITE_ROOTS,
+  FLEET_WRITE_ROOTS
 );
 
 // Command-prefix whitelist. Prefix-match is intentional — `lake build MSC`
@@ -156,7 +153,9 @@ const PRODUCTIVE_MCP_PREFIXES = [
 
 /** True iff an mcp_call to `tool` produces/validates a real artifact (W.107 gate). */
 export function isProductiveMcpTool(tool: string): boolean {
-  const t = String(tool ?? '').trim().toLowerCase();
+  const t = String(tool ?? '')
+    .trim()
+    .toLowerCase();
   if (!t) return false;
   return PRODUCTIVE_MCP_PREFIXES.some((p) => t.startsWith(p));
 }
@@ -254,7 +253,10 @@ export const MESH_TOOLS: ToolSpec[] = [
     input_schema: {
       type: 'object',
       properties: {
-        path: { type: 'string', description: `Absolute path under a write root: ${ALLOWED_WRITE_ROOTS.join(', ')}` },
+        path: {
+          type: 'string',
+          description: `Absolute path under a write root: ${ALLOWED_WRITE_ROOTS.join(', ')}`,
+        },
         content: { type: 'string', description: 'File content to write (UTF-8)' },
       },
       required: ['path', 'content'],
@@ -313,13 +315,23 @@ export const MESH_TOOLS: ToolSpec[] = [
         accelerator: {
           description: 'Accelerator string, e.g. "NVIDIA CUDA 8.7", or null for CPU-only',
         },
-        runtime_name: { type: 'string', description: 'Inference runtime, e.g. "Ollama", "llama.cpp"' },
+        runtime_name: {
+          type: 'string',
+          description: 'Inference runtime, e.g. "Ollama", "llama.cpp"',
+        },
         runtime_version: { type: 'string', description: 'Runtime version, e.g. "0.30.8"' },
-        host_os: { type: 'string', description: 'OS + firmware, e.g. "JetPack 6.2.1 / Ubuntu 22.04"' },
-        composition_id: { type: 'string', description: 'Brain composition reference, e.g. "jetson-orin-brain"' },
+        host_os: {
+          type: 'string',
+          description: 'OS + firmware, e.g. "JetPack 6.2.1 / Ubuntu 22.04"',
+        },
+        composition_id: {
+          type: 'string',
+          description: 'Brain composition reference, e.g. "jetson-orin-brain"',
+        },
         measurements: {
           type: 'array',
-          description: 'Pre-parsed measurements. Each item: {metric: string, value: number, unit: string}',
+          description:
+            'Pre-parsed measurements. Each item: {metric: string, value: number, unit: string}',
           items: { type: 'object' },
         },
         tegrastats_output: {
@@ -341,7 +353,10 @@ export const MESH_TOOLS: ToolSpec[] = [
     input_schema: {
       type: 'object',
       properties: {
-        path: { type: 'string', description: `Absolute path under a write root: ${ALLOWED_WRITE_ROOTS.join(', ')}` },
+        path: {
+          type: 'string',
+          description: `Absolute path under a write root: ${ALLOWED_WRITE_ROOTS.join(', ')}`,
+        },
         old: { type: 'string', description: 'Exact string to find (must occur exactly once)' },
         new: { type: 'string', description: 'Replacement string' },
       },
@@ -366,7 +381,10 @@ export const MESH_TOOLS: ToolSpec[] = [
           items: { type: 'string' },
           description: 'Capability tags for routing to the right agent, e.g. ["vision","edge"]',
         },
-        source: { type: 'string', description: 'Where this subtask came from (e.g. parent task id)' },
+        source: {
+          type: 'string',
+          description: 'Where this subtask came from (e.g. parent task id)',
+        },
       },
       required: ['title'],
     },
@@ -378,15 +396,16 @@ export const MESH_TOOLS: ToolSpec[] = [
       'Use this to COMPILE, VALIDATE, GENERATE, SOLVE, or QUERY on-device instead of escalating ' +
       'to the fleet: e.g. validate_holoscript, parse_hs, compile_holoscript, compile_to_quest, ' +
       'generate_scene, generate_object, solve_logic, solve_structural, solve_thermal, ' +
-      'holo_query_codebase, list_traits. `tool` is the MCP tool name; `args` is that tool\'s own ' +
+      "holo_query_codebase, list_traits. `tool` is the MCP tool name; `args` is that tool's own " +
       'argument object. Example: {tool:"validate_holoscript", args:{code:"#version 6.0.0\\nscene \\"S\\" {}"}}. ' +
-      'Returns the tool\'s result as text (or an error message — never throws).',
+      "Returns the tool's result as text (or an error message — never throws).",
     input_schema: {
       type: 'object',
       properties: {
         tool: {
           type: 'string',
-          description: 'MCP tool name, e.g. "validate_holoscript", "compile_to_quest", "solve_logic"',
+          description:
+            'MCP tool name, e.g. "validate_holoscript", "compile_to_quest", "solve_logic"',
         },
         args: {
           type: 'object',
@@ -402,7 +421,7 @@ export const MESH_TOOLS: ToolSpec[] = [
       'Analyze an image using the local Fara-7B vision model (Ollama on loopback). ' +
       'Reads the image file at `image_path` (max 512KB — downscale larger images first), ' +
       'sends it to the vision model via the local Ollama API (env: HOLOSCRIPT_AGENT_VISION_MODEL), ' +
-      'and returns the model\'s text analysis. ' +
+      "and returns the model's text analysis. " +
       'Counts as a productive tool call — use for GUI-grounding, visual QA, image captioning, ' +
       'or any task that requires perceiving image content. ' +
       'Only available on surfaces with a local Ollama instance and HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL set.',
@@ -415,7 +434,8 @@ export const MESH_TOOLS: ToolSpec[] = [
         },
         prompt: {
           type: 'string',
-          description: 'Instruction for the vision model (default: "Describe this image in detail.")',
+          description:
+            'Instruction for the vision model (default: "Describe this image in detail.")',
         },
         model: {
           type: 'string',
@@ -449,7 +469,10 @@ export const MESH_TOOLS: ToolSpec[] = [
  *    for local-llm brains. Budget via HOLOSCRIPT_AGENT_TOOL_BUDGET (default 6).
  */
 export function resolveActiveTools(
-  brain: { requires: string[]; onTaskActions?: Array<{ verb: string; config?: Record<string, unknown> }> },
+  brain: {
+    requires: string[];
+    onTaskActions?: Array<{ verb: string; config?: Record<string, unknown> }>;
+  },
   opts: { all?: ToolSpec[]; isLocal?: boolean; budget?: number } = {}
 ): { tools: ToolSpec[]; declared: string[]; dropped: string[] } {
   const all = opts.all ?? MESH_TOOLS;
@@ -558,17 +581,31 @@ export interface RunToolOptions {
    * Post new tasks to the team board. Injected by runner.ts from mesh.addTasks().
    * Absent → delegate_task returns an error explaining the capability is unavailable.
    */
-  addTask?: (tasks: Array<{ title: string; description?: string; priority?: number; source?: string; tags?: string[] }>) => Promise<{ added: number }>;
+  addTask?: (
+    tasks: Array<{
+      title: string;
+      description?: string;
+      priority?: number;
+      source?: string;
+      tags?: string[];
+    }>
+  ) => Promise<{ added: number }>;
   /**
    * Invoke a core MCP tool (compile/validate/generate/solve/query). Injected by
    * runner.ts from mesh.invokeTool() — POSTs JSON-RPC to the server /mcp endpoint
    * with the agent bearer. Absent → mcp_call returns an error explaining the
    * capability is unavailable (needs a mesh connection).
    */
-  invokeMcpTool?: (tool: string, args: Record<string, unknown>) => Promise<{ ok: boolean; text: string }>;
+  invokeMcpTool?: (
+    tool: string,
+    args: Record<string, unknown>
+  ) => Promise<{ ok: boolean; text: string }>;
 }
 
-export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Promise<ToolResultBlock> {
+export async function runTool(
+  use: ToolUseBlock,
+  opts: RunToolOptions = {}
+): Promise<ToolResultBlock> {
   try {
     if (use.name === 'read_file') {
       const path = use.input.path as string;
@@ -641,7 +678,10 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
       } catch (err) {
         clearTimeout(timer);
         const msg = err instanceof Error ? err.message : String(err);
-        return errResult(use.id, msg.includes('abort') ? `request timed out after ${TIMEOUT_MS}ms` : msg);
+        return errResult(
+          use.id,
+          msg.includes('abort') ? `request timed out after ${TIMEOUT_MS}ms` : msg
+        );
       }
     }
 
@@ -668,7 +708,10 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
           }
         }
       }
-      if (typeof use.input.tegrastats_output === 'string' && use.input.tegrastats_output.length > 0) {
+      if (
+        typeof use.input.tegrastats_output === 'string' &&
+        use.input.tegrastats_output.length > 0
+      ) {
         measurements = [...measurements, ...parseTegrastats(use.input.tegrastats_output as string)];
       }
       // Minimum 1 measurement so the schema validator doesn't reject the receipt.
@@ -750,8 +793,13 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
       const text = await readFile(path, 'utf8');
       // Count occurrences to guarantee exactly-one semantics.
       const count = text.split(oldStr).length - 1;
-      if (count === 0) return errResult(use.id, `str_replace: "old" string not found in ${path} — 0 occurrences`);
-      if (count > 1) return errResult(use.id, `str_replace: "old" string is ambiguous in ${path} — ${count} occurrences; add more surrounding context`);
+      if (count === 0)
+        return errResult(use.id, `str_replace: "old" string not found in ${path} — 0 occurrences`);
+      if (count > 1)
+        return errResult(
+          use.id,
+          `str_replace: "old" string is ambiguous in ${path} — ${count} occurrences; add more surrounding context`
+        );
       const updated = text.replace(oldStr, newStr);
       await writeFile(path, updated, 'utf8');
       const s = await stat(path);
@@ -760,21 +808,32 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
 
     if (use.name === 'delegate_task') {
       if (!opts.addTask) {
-        return errResult(use.id, 'delegate_task: capability not available (no addTask callback injected — board posting requires a mesh connection)');
+        return errResult(
+          use.id,
+          'delegate_task: capability not available (no addTask callback injected — board posting requires a mesh connection)'
+        );
       }
       const title = String(use.input.title ?? '').trim();
       if (!title) return errResult(use.id, 'delegate_task: title is required');
       const description = use.input.description != null ? String(use.input.description) : undefined;
       const priority = use.input.priority != null ? Number(use.input.priority) : undefined;
       const source = use.input.source != null ? String(use.input.source) : undefined;
-      const tags = Array.isArray(use.input.tags) ? (use.input.tags as unknown[]).map(String) : undefined;
+      const tags = Array.isArray(use.input.tags)
+        ? (use.input.tags as unknown[]).map(String)
+        : undefined;
       const result = await opts.addTask([{ title, description, priority, source, tags }]);
-      return okResult(use.id, `delegate_task: posted "${title}" to board — ${result.added} task(s) added`);
+      return okResult(
+        use.id,
+        `delegate_task: posted "${title}" to board — ${result.added} task(s) added`
+      );
     }
 
     if (use.name === 'mcp_call') {
       if (!opts.invokeMcpTool) {
-        return errResult(use.id, 'mcp_call: capability not available (no MCP invoke callback injected — requires a mesh connection)');
+        return errResult(
+          use.id,
+          'mcp_call: capability not available (no MCP invoke callback injected — requires a mesh connection)'
+        );
       }
       const tool = String(use.input.tool ?? '').trim();
       if (!tool) return errResult(use.id, 'mcp_call: tool is required');
@@ -829,7 +888,10 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
         clearTimeout(timer);
         if (!res.ok) {
           const text = await res.text();
-          return errResult(use.id, `vision_analyze: Ollama HTTP ${res.status}: ${text.slice(0, 500)}`);
+          return errResult(
+            use.id,
+            `vision_analyze: Ollama HTTP ${res.status}: ${text.slice(0, 500)}`
+          );
         }
         const json = (await res.json()) as { response?: string; error?: string };
         if (json.error) return errResult(use.id, `vision_analyze: model error — ${json.error}`);
@@ -839,7 +901,9 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
         const msg = err instanceof Error ? err.message : String(err);
         return errResult(
           use.id,
-          msg.includes('abort') ? `vision_analyze: timed out after ${TIMEOUT_MS}ms` : `vision_analyze: ${msg}`
+          msg.includes('abort')
+            ? `vision_analyze: timed out after ${TIMEOUT_MS}ms`
+            : `vision_analyze: ${msg}`
         );
       }
     }
@@ -858,7 +922,9 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
  *   06-16-2026 07:35:01 RAM 2819/7618MB (lfb 73x4MB) SWAP 0/3809MB CPU [37%@1510,off,off]
  *   EMC_FREQ 0% GR3D_FREQ 42% cpu@40.2C tj@41.25C VDD_CPU_CV 570mW VDD_SOC 1380mW
  */
-function parseTegrastats(raw: string): Array<{ metric: string; value: number; unit: string; method: string }> {
+function parseTegrastats(
+  raw: string
+): Array<{ metric: string; value: number; unit: string; method: string }> {
   const results: Array<{ metric: string; value: number; unit: string; method: string }> = [];
   const m = (pattern: RegExp, metric: string, unit: string, transform?: (v: string) => number) => {
     const match = raw.match(pattern);
@@ -876,7 +942,12 @@ function parseTegrastats(raw: string): Array<{ metric: string; value: number; un
     results.push({ metric: 'ram-used', value: used, unit: 'MB', method: 'tegrastats' });
     results.push({ metric: 'ram-total', value: total, unit: 'MB', method: 'tegrastats' });
     if (total > 0)
-      results.push({ metric: 'ram-pct', value: Math.round((used / total) * 100), unit: '%', method: 'tegrastats' });
+      results.push({
+        metric: 'ram-pct',
+        value: Math.round((used / total) * 100),
+        unit: '%',
+        method: 'tegrastats',
+      });
   }
 
   m(/GR3D_FREQ\s+(\d+)%/, 'gpu-util', '%');

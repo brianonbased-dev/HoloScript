@@ -176,12 +176,42 @@ export interface AudioPricing {
 // Never paste training-era pricing — F.014 / W.GOLD.341. Realtime pricing is
 // scoped WITH the transport build (plan §3.5), not before it.
 export const OPENAI_REALTIME_PRICING_USD_PER_MTOK: Record<string, AudioPricing> = {
-  'gpt-realtime-2.1': { audioInput: 32, cachedAudioInput: 0.4, audioOutput: 64, textInput: 4, textOutput: 24 },
-  'gpt-realtime-2.1-mini': { audioInput: 10, cachedAudioInput: 0.3, audioOutput: 20, textInput: 0.6, textOutput: 2.4 },
+  'gpt-realtime-2.1': {
+    audioInput: 32,
+    cachedAudioInput: 0.4,
+    audioOutput: 64,
+    textInput: 4,
+    textOutput: 24,
+  },
+  'gpt-realtime-2.1-mini': {
+    audioInput: 10,
+    cachedAudioInput: 0.3,
+    audioOutput: 20,
+    textInput: 0.6,
+    textOutput: 2.4,
+  },
   // Older rows (not default; cached-audio rate to re-verify before use):
-  'gpt-realtime-2': { audioInput: 32, cachedAudioInput: 0.4, audioOutput: 64, textInput: 4, textOutput: 24 },
-  'gpt-realtime-1.5': { audioInput: 32, cachedAudioInput: 0.4, audioOutput: 64, textInput: 4, textOutput: 16 },
-  'gpt-realtime-mini': { audioInput: 10, cachedAudioInput: 0.3, audioOutput: 20, textInput: 0.6, textOutput: 2.4 },
+  'gpt-realtime-2': {
+    audioInput: 32,
+    cachedAudioInput: 0.4,
+    audioOutput: 64,
+    textInput: 4,
+    textOutput: 24,
+  },
+  'gpt-realtime-1.5': {
+    audioInput: 32,
+    cachedAudioInput: 0.4,
+    audioOutput: 64,
+    textInput: 4,
+    textOutput: 16,
+  },
+  'gpt-realtime-mini': {
+    audioInput: 10,
+    cachedAudioInput: 0.3,
+    audioOutput: 20,
+    textInput: 0.6,
+    textOutput: 2.4,
+  },
 };
 
 /**

@@ -122,12 +122,7 @@ function writeReceipt(outPath, receipt, repoRoot) {
   writeFileSync(resolved, `${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
 }
 
-function createLegacyCheckpointPressure({
-  refreshDirectory,
-  template,
-  count,
-  payloadBytes,
-}) {
+function createLegacyCheckpointPressure({ refreshDirectory, template, count, payloadBytes }) {
   const baseTime = Date.now() - (count + 1) * 1_000;
   for (let index = 0; index < count; index += 1) {
     const resumeToken = randomUUID().replace(/-/g, '');
@@ -238,9 +233,7 @@ export async function main(argv = process.argv.slice(2)) {
     const seededBatchCount = Math.max(0, scanPlan.batches.length - 1);
     const seedStartedAt = performance.now();
     let seededCandidateFiles = 0;
-    for (const [batchOffset, batch] of scanPlan.batches
-      .slice(0, seededBatchCount)
-      .entries()) {
+    for (const [batchOffset, batch] of scanPlan.batches.slice(0, seededBatchCount).entries()) {
       const inputSha256 = checkpoint.captureBatchInput(batch);
       const result = await scanner.scanFiles(repoRoot, batch.files);
       if (!checkpoint.persistBatch(batch, result, inputSha256)) {
@@ -332,7 +325,8 @@ export async function main(argv = process.argv.slice(2)) {
         reusedBatchCount + rescannedBatchCount === scanPlan.batches.length &&
         reusedCandidateFiles + rescannedCandidateFiles === scanPlan.totalFiles,
       completedBatchesReused: reusedBatchCount === seededBatchCount,
-      onlyInterruptedTailRescanned: rescannedBatchCount === scanPlan.batches.length - seededBatchCount,
+      onlyInterruptedTailRescanned:
+        rescannedBatchCount === scanPlan.batches.length - seededBatchCount,
       receiptReuseCountMatches: fullReceipt.reusedBatchCount === reusedBatchCount,
       compactStatusSmaller: compactStatusBytes < fullStatusBytes,
       compactStatusBounded: compactStatusBytes < 16 * 1024,

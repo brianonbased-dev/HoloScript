@@ -79,21 +79,29 @@ function polarDecompose3x3(A: Float64Array, maxIter = 30): Float64Array {
 
   // Jacobi iteration: diagonalise B into V D V^T
   const V = new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]); // eigenvector matrix
-  const S = new Float64Array(B);                            // will become D
+  const S = new Float64Array(B); // will become D
 
   for (let iter = 0; iter < maxIter; iter++) {
     // Find largest off-diagonal element
-    let maxVal = 0, p = 0, q = 1;
+    let maxVal = 0,
+      p = 0,
+      q = 1;
     for (let i = 0; i < 3; i++) {
       for (let j = i + 1; j < 3; j++) {
         const v = Math.abs(S[j * 3 + i]);
-        if (v > maxVal) { maxVal = v; p = i; q = j; }
+        if (v > maxVal) {
+          maxVal = v;
+          p = i;
+          q = j;
+        }
       }
     }
     if (maxVal < 1e-10) break; // converged
 
     // Jacobi Givens rotation to zero S[p,q]
-    const Spp = S[p * 3 + p], Sqq = S[q * 3 + q], Spq = S[q * 3 + p];
+    const Spp = S[p * 3 + p],
+      Sqq = S[q * 3 + q],
+      Spq = S[q * 3 + p];
     const tau = (Sqq - Spp) / (2 * Spq);
     const t = (tau >= 0 ? 1 : -1) / (Math.abs(tau) + Math.sqrt(1 + tau * tau));
     const c = 1 / Math.sqrt(1 + t * t);
@@ -105,13 +113,15 @@ function polarDecompose3x3(A: Float64Array, maxIter = 30): Float64Array {
 
     // Update the remaining row/column (the third index r)
     const r = 3 - p - q;
-    const Spr = S[r * 3 + p], Sqr = S[r * 3 + q];
+    const Spr = S[r * 3 + p],
+      Sqr = S[r * 3 + q];
     S[r * 3 + p] = S[p * 3 + r] = c * Spr - s * Sqr;
     S[r * 3 + q] = S[q * 3 + r] = s * Spr + c * Sqr;
 
     // Accumulate rotation into V (V = V * G)
     for (let i = 0; i < 3; i++) {
-      const vip = V[p * 3 + i], viq = V[q * 3 + i];
+      const vip = V[p * 3 + i],
+        viq = V[q * 3 + i];
       V[p * 3 + i] = c * vip - s * viq;
       V[q * 3 + i] = s * vip + c * viq;
     }
@@ -308,14 +318,18 @@ export class DeformableMesh {
     // Falls back to translation-only if polar decomposition fails to converge.
     if (this.config.shapeMatchingStrength > 0 && this.vertices.length > 0) {
       // Current centroid
-      let cx = 0, cy = 0, cz = 0;
+      let cx = 0,
+        cy = 0,
+        cz = 0;
       for (const v of this.vertices) {
         cx += v.current[0];
         cy += v.current[1];
         cz += v.current[2];
       }
       const n = this.vertices.length;
-      cx /= n; cy /= n; cz /= n;
+      cx /= n;
+      cy /= n;
+      cz /= n;
 
       const rc = this.restCentroid;
 
@@ -328,16 +342,26 @@ export class DeformableMesh {
       // Col-major layout: A[col*3+row] → A[j*3+i] = (A_pq)[i,j] = Σ m * p_i * q_j
       const A = new Float64Array(9); // 3×3, col-major: A[col*3+row]
       for (const v of this.vertices) {
-        const px = v.current[0] - cx,  py = v.current[1] - cy,  pz = v.current[2] - cz;
-        const qx = v.rest[0]    - rc[0], qy = v.rest[1] - rc[1], qz = v.rest[2] - rc[2];
+        const px = v.current[0] - cx,
+          py = v.current[1] - cy,
+          pz = v.current[2] - cz;
+        const qx = v.rest[0] - rc[0],
+          qy = v.rest[1] - rc[1],
+          qz = v.rest[2] - rc[2];
         const m = v.mass;
         // outer product p ⊗ q^T: A[j*3+i] = p_i * q_j
         // col 0 (q_x): A[0]=p_x*q_x, A[1]=p_y*q_x, A[2]=p_z*q_x
         // col 1 (q_y): A[3]=p_x*q_y, A[4]=p_y*q_y, A[5]=p_z*q_y
         // col 2 (q_z): A[6]=p_x*q_z, A[7]=p_y*q_z, A[8]=p_z*q_z
-        A[0] += m * px * qx; A[1] += m * py * qx; A[2] += m * pz * qx; // col 0
-        A[3] += m * px * qy; A[4] += m * py * qy; A[5] += m * pz * qy; // col 1
-        A[6] += m * px * qz; A[7] += m * py * qz; A[8] += m * pz * qz; // col 2
+        A[0] += m * px * qx;
+        A[1] += m * py * qx;
+        A[2] += m * pz * qx; // col 0
+        A[3] += m * px * qy;
+        A[4] += m * py * qy;
+        A[5] += m * pz * qy; // col 1
+        A[6] += m * px * qz;
+        A[7] += m * py * qz;
+        A[8] += m * pz * qz; // col 2
       }
 
       const R = polarDecompose3x3(A);
@@ -345,10 +369,12 @@ export class DeformableMesh {
       for (const v of this.vertices) {
         if (v.locked) continue;
         // Rigid goal: R * q_i + currentCentroid
-        const qx = v.rest[0] - rc[0], qy = v.rest[1] - rc[1], qz = v.rest[2] - rc[2];
-        const goalX = R[0]*qx + R[3]*qy + R[6]*qz + cx;
-        const goalY = R[1]*qx + R[4]*qy + R[7]*qz + cy;
-        const goalZ = R[2]*qx + R[5]*qy + R[8]*qz + cz;
+        const qx = v.rest[0] - rc[0],
+          qy = v.rest[1] - rc[1],
+          qz = v.rest[2] - rc[2];
+        const goalX = R[0] * qx + R[3] * qy + R[6] * qz + cx;
+        const goalY = R[1] * qx + R[4] * qy + R[7] * qz + cy;
+        const goalZ = R[2] * qx + R[5] * qy + R[8] * qz + cz;
         v.velocity[0] += (goalX - v.current[0]) * this.config.shapeMatchingStrength * dt * 10;
         v.velocity[1] += (goalY - v.current[1]) * this.config.shapeMatchingStrength * dt * 10;
         v.velocity[2] += (goalZ - v.current[2]) * this.config.shapeMatchingStrength * dt * 10;

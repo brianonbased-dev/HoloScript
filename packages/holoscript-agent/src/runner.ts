@@ -1,5 +1,9 @@
 import type { ILLMProvider, LLMMessage, TokenUsage, ToolUseBlock } from '@holoscript/llm-provider';
-import { embedAcrossFleet, cosineSimilarity, createLocalLLMProvider } from '@holoscript/llm-provider';
+import {
+  embedAcrossFleet,
+  cosineSimilarity,
+  createLocalLLMProvider,
+} from '@holoscript/llm-provider';
 import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { freemem, tmpdir } from 'node:os';
 import { join as pathJoin } from 'node:path';
@@ -10,7 +14,12 @@ import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
 import { buildCaelRecord } from './cael-builder.js';
 import { createTaskExecutionAttributeClaims } from './care-claims.js';
-import { resolveActiveTools, runTool, summarizeToolProductivity, isProductiveToolUse } from './tools.js';
+import {
+  resolveActiveTools,
+  runTool,
+  summarizeToolProductivity,
+  isProductiveToolUse,
+} from './tools.js';
 import { augmentWithOnTaskCognition } from './cognitive-verbs.js';
 import { DelegatedAuthorityHandler } from './delegated-authority.js';
 import { evaluateReflectGate, type ReflectGateResult } from './reflect-evaluator.js';
@@ -161,10 +170,7 @@ export class AgentRunner {
 
   /** Record a 403 capability_mismatch for `taskId` so it is skipped until the cooldown elapses. */
   private startCapabilityMismatchCooldown(taskId: string, now = Date.now()): void {
-    this.capabilityMismatchCooldown.set(
-      taskId,
-      now + AgentRunner.CAPABILITY_MISMATCH_COOLDOWN_MS
-    );
+    this.capabilityMismatchCooldown.set(taskId, now + AgentRunner.CAPABILITY_MISMATCH_COOLDOWN_MS);
   }
 
   /** True when an error thrown by mesh.claim()/mesh calls is a 403 capability_mismatch response. */
@@ -480,12 +486,14 @@ export class AgentRunner {
       // (citation-grounding.ts) makes the answer trustworthy regardless of who answered.
       askPeer: async (question, opts) => {
         // Resolve WHICH node answers: registry by capability+seat → PEER_BASE_URL → self.
-        const resolved = resolvePeer(peerRegistry, { capability: opts.capability, seat: opts.seat });
+        const resolved = resolvePeer(peerRegistry, {
+          capability: opts.capability,
+          seat: opts.seat,
+        });
         const baseUrl = resolved?.baseUrl ?? fallbackPeerBaseUrl;
         const model = resolved?.model ?? fallbackPeerModel;
         const peerProvider = baseUrl ? peerProviderFor(baseUrl, model) : provider;
-        const peerLabel =
-          opts.peer || resolved?.handle || (baseUrl ? safeHost(baseUrl) : model);
+        const peerLabel = opts.peer || resolved?.handle || (baseUrl ? safeHost(baseUrl) : model);
         const sys =
           (opts.capability
             ? `You are a peer agent consulted for your ${opts.capability} expertise. `
@@ -494,7 +502,14 @@ export class AgentRunner {
           'Answer concisely and concretely. When you cite supporting knowledge, cite ONLY by its real ID ' +
           '(e.g. W.123, F.045, D.101); NEVER invent an ID — an unsupported claim is better than a fabricated citation.';
         const resp = await peerProvider.complete(
-          { messages: [{ role: 'system', content: sys }, { role: 'user', content: question }], maxTokens: 512, temperature: 0.3 },
+          {
+            messages: [
+              { role: 'system', content: sys },
+              { role: 'user', content: question },
+            ],
+            maxTokens: 512,
+            temperature: 0.3,
+          },
           model
         );
         return { answer: resp.content, peer: peerLabel };
@@ -583,7 +598,11 @@ export class AgentRunner {
     // resolves the declared names against MESH_TOOLS, falls back safely when a brain
     // declares none, and SLIM-trims an oversized set for small local models (W.710
     // num_ctx guard). "Add a tool" is now "declare it in the brain," not edit this file.
-    const { tools: activeTools, declared: declaredTools, dropped: droppedTools } = resolveActiveTools(brain);
+    const {
+      tools: activeTools,
+      declared: declaredTools,
+      dropped: droppedTools,
+    } = resolveActiveTools(brain);
     log({
       ev: 'active-tools',
       taskId: target.id,
@@ -709,7 +728,12 @@ export class AgentRunner {
         totalTokens: aggUsage.totalTokens + reResp.usage.totalTokens,
       };
       if (reResp.finishReason === 'tool_use' && reResp.toolUses && reResp.toolUses.length > 0) {
-        log({ ev: 'reprompt-tool-call', taskId: target.id, iter: iters, tools: reResp.toolUses.map((t) => t.name) });
+        log({
+          ev: 'reprompt-tool-call',
+          taskId: target.id,
+          iter: iters,
+          tools: reResp.toolUses.map((t) => t.name),
+        });
         const reProd = summarizeToolProductivity(reResp.toolUses);
         for (const n of reProd.names) toolsCalled.add(n);
         productiveCallCount += reProd.productiveCount;
@@ -717,7 +741,10 @@ export class AgentRunner {
         messages.push({ role: 'assistant', content: (reResp.assistantBlocks ?? []) as never });
         const reResults = await Promise.all(
           reResp.toolUses.map((u) =>
-            runTool(u, { signReceipt: this.opts.signReceipt, addTask: (tasks) => mesh.addTasks(tasks) })
+            runTool(u, {
+              signReceipt: this.opts.signReceipt,
+              addTask: (tasks) => mesh.addTasks(tasks),
+            })
           )
         );
         messages.push({ role: 'user', content: reResults as never });
@@ -766,7 +793,12 @@ export class AgentRunner {
         totalTokens: aggUsage.totalTokens + vwResp.usage.totalTokens,
       };
       if (vwResp.finishReason === 'tool_use' && vwResp.toolUses && vwResp.toolUses.length > 0) {
-        log({ ev: 'vision-write-call', taskId: target.id, iter: iters, tools: vwResp.toolUses.map((t) => t.name) });
+        log({
+          ev: 'vision-write-call',
+          taskId: target.id,
+          iter: iters,
+          tools: vwResp.toolUses.map((t) => t.name),
+        });
         const vwProd = summarizeToolProductivity(vwResp.toolUses);
         for (const n of vwProd.names) toolsCalled.add(n);
         productiveCallCount += vwProd.productiveCount;
@@ -774,7 +806,10 @@ export class AgentRunner {
         messages.push({ role: 'assistant', content: (vwResp.assistantBlocks ?? []) as never });
         const vwResults = await Promise.all(
           vwResp.toolUses.map((u) =>
-            runTool(u, { signReceipt: this.opts.signReceipt, addTask: (tasks) => mesh.addTasks(tasks) })
+            runTool(u, {
+              signReceipt: this.opts.signReceipt,
+              addTask: (tasks) => mesh.addTasks(tasks),
+            })
           )
         );
         messages.push({ role: 'user', content: vwResults as never });
@@ -783,7 +818,8 @@ export class AgentRunner {
         // with two targeted re-prompts. Write the Fara-7B caption directly from the runner
         // rather than leaving the task with a CAEL record but no file artifact.
         const sharedDir =
-          process.env.HOLOSCRIPT_AGENT_SHARED_DIR ?? pathJoin(tmpdir(), 'holoscript-agent', 'shared');
+          process.env.HOLOSCRIPT_AGENT_SHARED_DIR ??
+          pathJoin(tmpdir(), 'holoscript-agent', 'shared');
         const outPath =
           target.description.match(/path[:\s]+([^\s\n,]+\.json)/i)?.[1] ??
           target.description.match(/(\/[/\w./-]+\.json)/i)?.[1] ??
@@ -802,7 +838,7 @@ export class AgentRunner {
                 model: process.env.HOLOSCRIPT_AGENT_VISION_MODEL ?? 'fara:7b',
               },
               null,
-              2,
+              2
             ),
           },
         };
@@ -810,7 +846,12 @@ export class AgentRunner {
           signReceipt: this.opts.signReceipt,
           addTask: (tasks) => mesh.addTasks(tasks),
         });
-        log({ ev: 'vision-auto-write', taskId: target.id, path: outPath, ok: !writeResult.is_error });
+        log({
+          ev: 'vision-auto-write',
+          taskId: target.id,
+          path: outPath,
+          ok: !writeResult.is_error,
+        });
         if (!writeResult.is_error) {
           toolsCalled.add('write_file');
           productiveCallCount++;
@@ -857,8 +898,15 @@ export class AgentRunner {
       // DPO/contrast, dropped from the SFT split by the harvest grader-gate.
       this.recordTrace({
         user: buildTaskPrompt(target),
-        target: finalText || `[no artifact — inspected/replied but produced nothing; toolsCalled=${[...toolsCalled].join(',')}]`,
-        grader: { passed: false, kind: 'no-artifact', toolsCalled: [...toolsCalled], productiveCallCount },
+        target:
+          finalText ||
+          `[no artifact — inspected/replied but produced nothing; toolsCalled=${[...toolsCalled].join(',')}]`,
+        grader: {
+          passed: false,
+          kind: 'no-artifact',
+          toolsCalled: [...toolsCalled],
+          productiveCallCount,
+        },
         source: 'agent-runner-negative',
       });
       // Automation lane: a prompt task with no verifiable artifact is parked
@@ -918,7 +966,12 @@ export class AgentRunner {
       this.recordTrace({
         user: buildTaskPrompt(target),
         target: finalText || `[failure artifact(s): ${writtenPaths.join(', ')}]`,
-        grader: { passed: false, kind: 'failure-artifact', toolsCalled: [...toolsCalled], productiveCallCount },
+        grader: {
+          passed: false,
+          kind: 'failure-artifact',
+          toolsCalled: [...toolsCalled],
+          productiveCallCount,
+        },
         source: 'agent-runner-negative',
       });
       // Automation lane: park the self-declared failure visibly with the reason
@@ -929,7 +982,12 @@ export class AgentRunner {
           `failureWrites=${failureDeclaredWrites}, finalTextDeclaresFailure=${finalTextDeclaresFailure}); ` +
           'parking instead of closing as done';
         await this.blockAutomationTask(mesh, target.id, reason, log);
-        log({ ev: 'automation-lane-failure', taskId: target.id, exitCode: 1, kind: 'failure-artifact' });
+        log({
+          ev: 'automation-lane-failure',
+          taskId: target.id,
+          exitCode: 1,
+          kind: 'failure-artifact',
+        });
       }
       return {
         action: 'failure-artifact',
@@ -1067,7 +1125,11 @@ export class AgentRunner {
       } catch {
         /* best-effort escalation notice; the return value is the source of truth */
       }
-      log({ ev: 'reflect-escalate', taskId: target.id, reason: reflectVerdict.reason.slice(0, 120) });
+      log({
+        ev: 'reflect-escalate',
+        taskId: target.id,
+        reason: reflectVerdict.reason.slice(0, 120),
+      });
       return {
         action: 'reflect-escalate',
         taskId: target.id,
@@ -1276,7 +1338,10 @@ export class AgentRunner {
     );
     const selfTitle = (
       planResp.content.match(/TASK:\s*(.+)/i)?.[1] ??
-      planResp.content.split('\n').find((l) => l.trim())?.trim() ??
+      planResp.content
+        .split('\n')
+        .find((l) => l.trim())
+        ?.trim() ??
       ''
     )
       .slice(0, 160)
@@ -1301,7 +1366,13 @@ export class AgentRunner {
     const stallKey = selfTitle.slice(0, 60).toLowerCase().replace(/\s+/g, ' ').trim();
     const suppressedUntil = this.idleTitleSuppressed.get(stallKey);
     if (suppressedUntil !== undefined && this.idleTick <= suppressedUntil) {
-      log({ ev: 'idle-skipped', reason: 'title-suppressed', title: selfTitle, stallKey, suppressedUntil });
+      log({
+        ev: 'idle-skipped',
+        reason: 'title-suppressed',
+        title: selfTitle,
+        stallKey,
+        suppressedUntil,
+      });
       return {
         action: 'idle-skipped',
         spentUsd: spent(),
@@ -1412,12 +1483,25 @@ export class AgentRunner {
       this.idleTitleCounts.set(stallKey, stallCount);
       if (stallCount >= IDLE_STALL_LIMIT) {
         this.idleTitleSuppressed.set(stallKey, this.idleTick + IDLE_SUPPRESS_CYCLES);
-        log({ ev: 'idle-title-suppressed', title: selfTitle, stallKey, stallCount, suppressedUntilTick: this.idleTick + IDLE_SUPPRESS_CYCLES });
+        log({
+          ev: 'idle-title-suppressed',
+          title: selfTitle,
+          stallKey,
+          stallCount,
+          suppressedUntilTick: this.idleTick + IDLE_SUPPRESS_CYCLES,
+        });
       }
-      log({ ev: 'idle-skipped', reason: 'no-artifact', title: selfTitle, toolsCalled: [...toolsCalled] });
+      log({
+        ev: 'idle-skipped',
+        reason: 'no-artifact',
+        title: selfTitle,
+        toolsCalled: [...toolsCalled],
+      });
       this.recordTrace({
         user: `Self-directed idle improvement: ${selfTitle}`,
-        target: finalText || `[no artifact — inspected but produced nothing; toolsCalled=${[...toolsCalled].join(',')}]`,
+        target:
+          finalText ||
+          `[no artifact — inspected but produced nothing; toolsCalled=${[...toolsCalled].join(',')}]`,
         grader: { passed: false, kind: 'idle-no-artifact', toolsCalled: [...toolsCalled] },
         source: 'agent-runner-idle-negative',
       });
@@ -1437,7 +1521,13 @@ export class AgentRunner {
       this.idleTitleCounts.set(stallKey, stallCount);
       if (stallCount >= IDLE_STALL_LIMIT) {
         this.idleTitleSuppressed.set(stallKey, this.idleTick + IDLE_SUPPRESS_CYCLES);
-        log({ ev: 'idle-title-suppressed', title: selfTitle, stallKey, stallCount, suppressedUntilTick: this.idleTick + IDLE_SUPPRESS_CYCLES });
+        log({
+          ev: 'idle-title-suppressed',
+          title: selfTitle,
+          stallKey,
+          stallCount,
+          suppressedUntilTick: this.idleTick + IDLE_SUPPRESS_CYCLES,
+        });
       }
     } else {
       // Real file write — clear stall state for this key.
@@ -1474,7 +1564,10 @@ export class AgentRunner {
           },
         ]);
       } catch (err) {
-        log({ ev: 'idle-file-board-error', message: err instanceof Error ? err.message : String(err) });
+        log({
+          ev: 'idle-file-board-error',
+          message: err instanceof Error ? err.message : String(err),
+        });
       }
     }
 
@@ -1585,13 +1678,20 @@ export class AgentRunner {
     const log = logger ?? (() => undefined);
     const capabilityTags = brain.capabilityTags.length > 0 ? brain.capabilityTags : undefined;
     try {
-      await mesh.heartbeat({ agentName: identity.handle, surface: identity.surface, capabilityTags });
+      await mesh.heartbeat({
+        agentName: identity.handle,
+        surface: identity.surface,
+        capabilityTags,
+      });
     } catch (err) {
       // Presence signing failures are non-fatal: the bearer token is the primary
       // identity proof for task claim/execute; presence signing is secondary.
       // Log a warning so the misconfiguration is visible, but let the tick proceed.
       if (this.isUnsignedPresenceError(err)) {
-        log({ ev: 'heartbeat-unsigned-warn', message: err instanceof Error ? err.message : String(err) });
+        log({
+          ev: 'heartbeat-unsigned-warn',
+          message: err instanceof Error ? err.message : String(err),
+        });
         return;
       }
       if (!this.isNotAMemberError(err) || this.joinedThisProcess) {
@@ -1613,7 +1713,11 @@ export class AgentRunner {
       // Retry the heartbeat exactly once. If it still fails (including with
       // another 403), the new error propagates — joinedThisProcess is now
       // true so we won't retry-loop on the next tick.
-      await mesh.heartbeat({ agentName: identity.handle, surface: identity.surface, capabilityTags });
+      await mesh.heartbeat({
+        agentName: identity.handle,
+        surface: identity.surface,
+        capabilityTags,
+      });
       log({ ev: 'auto-rejoin-heartbeat-recovered' });
     }
   }

@@ -22,7 +22,7 @@ const WGSL_PATH = fileURLToPath(new URL('../splat-train-backward.wgsl', import.m
 const wgsl = readFileSync(WGSL_PATH, 'utf8');
 
 function seeded(s: number): () => number {
-  return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
 }
 function makeScene(N: number, W: number, H: number, R: () => number): Gaussian2D {
   const g: Gaussian2D = {
@@ -61,7 +61,9 @@ describe('splat-train-backward.wgsl — structural', () => {
 
 describe('splat-train-backward — behavioral parity vs backward2D', () => {
   it('twin gradients match the CPU reference within fixed-point tolerance (all params)', () => {
-    const W = 40, H = 30, N = 24;
+    const W = 40,
+      H = 30,
+      N = 24;
     const R = seeded(2026);
     const g = makeScene(N, W, H, R);
     const bg: [number, number, number] = [0, 0, 0];
@@ -77,36 +79,56 @@ describe('splat-train-backward — behavioral parity vs backward2D', () => {
     // Quantized-numerics tolerance (atol + rtol, like numpy allclose): the fixed-point round-trip
     // perturbs each gradient by ~accumulated round-off (absolute), not a relative amount — so
     // meaningful gradients must match RELATIVELY (1%), near-zero ones ABSOLUTELY (the quant floor).
-    const ABS_FLOOR = 5e-3;  // |grad| below this: a relative metric is unstable → check absolute
-    const ABS_TOL = 2e-3;    // quantization noise bound (~sqrt(footprint)*0.5/SCALE)
-    const REL_TOL = 1e-2;    // meaningful gradients: 1% (a real formula bug breaks this badly)
+    const ABS_FLOOR = 5e-3; // |grad| below this: a relative metric is unstable → check absolute
+    const ABS_TOL = 2e-3; // quantization noise bound (~sqrt(footprint)*0.5/SCALE)
+    const REL_TOL = 1e-2; // meaningful gradients: 1% (a real formula bug breaks this badly)
     const params = ['posx', 'posy', 'a', 'b', 'c', 'r', 'gr', 'bl', 'op'] as const;
-    let worstRel = 0, worstRelP = '', worstAbs = 0, worstAbsP = '';
-    let nMeaningful = 0, maxFixedPoint = 0;
+    let worstRel = 0,
+      worstRelP = '',
+      worstAbs = 0,
+      worstAbsP = '';
+    let nMeaningful = 0,
+      maxFixedPoint = 0;
     for (const p of params) {
       for (let i = 0; i < N; i++) {
-        const t = truth[p][i], w = twin[p][i];
+        const t = truth[p][i],
+          w = twin[p][i];
         maxFixedPoint = Math.max(maxFixedPoint, Math.abs(w) * FIXED_POINT_SCALE);
         const absErr = Math.abs(t - w);
         if (Math.abs(t) > ABS_FLOOR) {
           nMeaningful++;
           const rel = absErr / Math.abs(t);
-          if (rel > worstRel) { worstRel = rel; worstRelP = `${p}[${i}]=${t.toFixed(4)}`; }
-        } else if (absErr > worstAbs) { worstAbs = absErr; worstAbsP = `${p}[${i}]=${t.toExponential(2)}`; }
+          if (rel > worstRel) {
+            worstRel = rel;
+            worstRelP = `${p}[${i}]=${t.toFixed(4)}`;
+          }
+        } else if (absErr > worstAbs) {
+          worstAbs = absErr;
+          worstAbsP = `${p}[${i}]=${t.toExponential(2)}`;
+        }
       }
     }
-    expect(nMeaningful, 'scene must produce meaningful gradients (test not vacuous)').toBeGreaterThan(10);
-    expect(maxFixedPoint, 'fixed-point values must stay in i32 range (no overflow on real GPU)').toBeLessThan(2 ** 31);
+    expect(
+      nMeaningful,
+      'scene must produce meaningful gradients (test not vacuous)'
+    ).toBeGreaterThan(10);
+    expect(
+      maxFixedPoint,
+      'fixed-point values must stay in i32 range (no overflow on real GPU)'
+    ).toBeLessThan(2 ** 31);
     expect(worstRel, `worst relative at ${worstRelP}`).toBeLessThan(REL_TOL);
     expect(worstAbs, `worst absolute at ${worstAbsP}`).toBeLessThan(ABS_TOL);
   });
 
   it('is exact (zero) where the reference is zero (non-contributing gaussians)', () => {
-    const W = 16, H = 12, N = 6;
+    const W = 16,
+      H = 12,
+      N = 6;
     const R = seeded(7);
     const g = makeScene(N, W, H, R);
     // Push one gaussian far off-screen so it never contributes — its grad must be 0 in both.
-    g.posx[0] = 1e6; g.posy[0] = 1e6;
+    g.posx[0] = 1e6;
+    g.posy[0] = 1e6;
     const dLimg = Float64Array.from({ length: W * H * 3 }, () => R() - 0.5);
     const truth = backward2D(g, W, H, dLimg);
     const twin = trainBackwardParity(g, W, H, dLimg);

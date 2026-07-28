@@ -18,10 +18,7 @@ const execFileAsync = promisify(execFile);
 const requireFromModule = createRequire(import.meta.url);
 const packageBinaryCache = new Map<string, string>();
 
-const NODE_PACKAGE_SYMLINK_ARGS = [
-  '--preserve-symlinks',
-  '--preserve-symlinks-main',
-] as const;
+const NODE_PACKAGE_SYMLINK_ARGS = ['--preserve-symlinks', '--preserve-symlinks-main'] as const;
 
 interface PackageManifest {
   bin?: string | Record<string, string>;
@@ -119,11 +116,7 @@ export async function runPackageTool(
   const nodeArgs = options.preserveSymlinks ? NODE_PACKAGE_SYMLINK_ARGS : [];
   const { stdout, stderr } = await execFileAsync(
     process.execPath,
-    [
-      ...nodeArgs,
-      resolvePackageBinary(options.packageName, options.binaryName),
-      ...options.args,
-    ],
+    [...nodeArgs, resolvePackageBinary(options.packageName, options.binaryName), ...options.args],
     {
       cwd: options.cwd,
       timeout: options.timeout,

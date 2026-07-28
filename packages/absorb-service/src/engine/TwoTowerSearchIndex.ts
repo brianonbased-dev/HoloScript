@@ -2,10 +2,7 @@ import type { ExternalSymbolDefinition } from './types';
 import type { SearchResult } from './EmbeddingIndex';
 import type { SymbolSearchFilters, SymbolSearchIndex } from './SearchIndex';
 import type { EmbeddingProvider } from './providers/EmbeddingProvider';
-import {
-  fuseHybridScore,
-  HybridLexicalIndex,
-} from './HybridRetrieval';
+import { fuseHybridScore, HybridLexicalIndex } from './HybridRetrieval';
 
 export type TwoTowerScoreMode = 'cosine' | 'dot';
 

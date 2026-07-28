@@ -8,9 +8,7 @@ import type { BoardTask } from './types.js';
 import type { CaelAuditRecord } from './cael-builder.js';
 
 /** Wraps a request body in a signed envelope for strict-mode endpoints (e.g. /team/:id/join). */
-export type RequestSigner = (
-  body: Record<string, unknown>
-) => Promise<Record<string, unknown>>;
+export type RequestSigner = (body: Record<string, unknown>) => Promise<Record<string, unknown>>;
 
 export interface HolomeshClientOptions {
   apiBase: string;
@@ -84,7 +82,11 @@ export class HolomeshClient {
     return this.signer ? await this.signer(body) : body;
   }
 
-  async heartbeat(payload: { agentName: string; surface: string; capabilityTags?: string[] }): Promise<void> {
+  async heartbeat(payload: {
+    agentName: string;
+    surface: string;
+    capabilityTags?: string[];
+  }): Promise<void> {
     // Wire contract fix (regression, verified 2026-07-02): both the live REST
     // presence handler (packages/mcp-server/src/holomesh/routes/board-routes.ts
     // ~line 2127, which wins route precedence over the dead duplicate in
@@ -111,7 +113,10 @@ export class HolomeshClient {
   /** Return live presence entries for the team (pruned of stale heartbeats). Best-effort — returns [] on error. */
   async queryPresence(): Promise<PresenceEntry[]> {
     try {
-      const data = await this.req<{ online?: PresenceEntry[] }>('GET', `/team/${this.teamId}/presence`);
+      const data = await this.req<{ online?: PresenceEntry[] }>(
+        'GET',
+        `/team/${this.teamId}/presence`
+      );
       return data.online ?? [];
     } catch {
       return [];
@@ -127,7 +132,11 @@ export class HolomeshClient {
   }
 
   async claim(taskId: string): Promise<BoardTask> {
-    return this.req<BoardTask>('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({ action: 'claim' }));
+    return this.req<BoardTask>(
+      'PATCH',
+      `/team/${this.teamId}/board/${taskId}`,
+      await this.signBody({ action: 'claim' })
+    );
   }
 
   async joinTeam(): Promise<{ success: boolean; role?: string; members?: number }> {
@@ -139,11 +148,15 @@ export class HolomeshClient {
   }
 
   async sendMessageOnTask(taskId: string, body: string): Promise<void> {
-    await this.req('POST', `/team/${this.teamId}/message`, await this.signBody({
-      to: 'team',
-      subject: `task:${taskId}`,
-      content: body,
-    }));
+    await this.req(
+      'POST',
+      `/team/${this.teamId}/message`,
+      await this.signBody({
+        to: 'team',
+        subject: `task:${taskId}`,
+        content: body,
+      })
+    );
   }
 
   /**
@@ -155,23 +168,31 @@ export class HolomeshClient {
    * claimed debris (trust-audit 2026-07-13 / W.824).
    */
   async blockTask(taskId: string, reason: string): Promise<void> {
-    await this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({
-      action: 'block',
-      blockedReason: reason,
-    }));
+    await this.req(
+      'PATCH',
+      `/team/${this.teamId}/board/${taskId}`,
+      await this.signBody({
+        action: 'block',
+        blockedReason: reason,
+      })
+    );
   }
 
   async markDone(taskId: string, summary: string, commitHash?: string): Promise<void> {
-    await this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({
-      action: 'done',
-      summary,
-      // verification_evidence required by server before task can be closed.
-      verification_evidence: summary,
-      // Exclude commitHash when undefined — JSON.stringify drops undefined but
-      // canonicalizeSigning preserves it as the literal string "undefined",
-      // causing a signature-mismatch vs what the server sees after JSON.parse.
-      ...(commitHash !== undefined ? { commitHash } : {}),
-    }));
+    await this.req(
+      'PATCH',
+      `/team/${this.teamId}/board/${taskId}`,
+      await this.signBody({
+        action: 'done',
+        summary,
+        // verification_evidence required by server before task can be closed.
+        verification_evidence: summary,
+        // Exclude commitHash when undefined — JSON.stringify drops undefined but
+        // canonicalizeSigning preserves it as the literal string "undefined",
+        // causing a signature-mismatch vs what the server sees after JSON.parse.
+        ...(commitHash !== undefined ? { commitHash } : {}),
+      })
+    );
   }
 
   // POST CAEL audit records for this agent. Server validator at
@@ -227,14 +248,22 @@ export class HolomeshClient {
 
   /** Post a message to the team feed. */
   async sendTeamMessage(content: string, messageType = 'text'): Promise<void> {
-    await this.req('POST', `/team/${this.teamId}/message`, await this.signBody({ content, type: messageType }));
+    await this.req(
+      'POST',
+      `/team/${this.teamId}/message`,
+      await this.signBody({ content, type: messageType })
+    );
   }
 
   // ── Owner-op API wrappers (E4) ─────────────────────────────────────────────
 
   /** Switch team mode. Requires owner or founder role. */
   async setTeamMode(mode: string, reason?: string): Promise<{ mode: string; unchanged?: boolean }> {
-    return this.req('POST', `/team/${this.teamId}/mode`, await this.signBody({ mode, reason } as Record<string, unknown>));
+    return this.req(
+      'POST',
+      `/team/${this.teamId}/mode`,
+      await this.signBody({ mode, reason } as Record<string, unknown>)
+    );
   }
 
   /** Update room preferences. Requires config:write permission. */
@@ -242,7 +271,11 @@ export class HolomeshClient {
     communicationStyle: string;
     objective: string;
   }> {
-    return this.req('PATCH', `/team/${this.teamId}/room`, await this.signBody(prefs as Record<string, unknown>));
+    return this.req(
+      'PATCH',
+      `/team/${this.teamId}/room`,
+      await this.signBody(prefs as Record<string, unknown>)
+    );
   }
 
   /** Update a board task. */
@@ -255,24 +288,47 @@ export class HolomeshClient {
       tags?: string[];
     }
   ): Promise<unknown> {
-    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({ action: 'update', ...updates } as Record<string, unknown>));
+    return this.req(
+      'PATCH',
+      `/team/${this.teamId}/board/${taskId}`,
+      await this.signBody({ action: 'update', ...updates } as Record<string, unknown>)
+    );
   }
 
   /** Delete a board task. */
   async deleteTask(taskId: string): Promise<unknown> {
-    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({ action: 'delete' }));
+    return this.req(
+      'PATCH',
+      `/team/${this.teamId}/board/${taskId}`,
+      await this.signBody({ action: 'delete' })
+    );
   }
 
   /** Delegate a board task to another agent. */
   async delegateTask(taskId: string, toAgentId: string): Promise<unknown> {
-    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({ action: 'delegate', toAgentId }));
+    return this.req(
+      'PATCH',
+      `/team/${this.teamId}/board/${taskId}`,
+      await this.signBody({ action: 'delegate', toAgentId })
+    );
   }
 
   /** Add new tasks to the board (used by the delegate_task tool to spawn sub-work). */
   async addTasks(
-    tasks: Array<{ title: string; description?: string; priority?: number; source?: string; role?: string; tags?: string[] }>
+    tasks: Array<{
+      title: string;
+      description?: string;
+      priority?: number;
+      source?: string;
+      role?: string;
+      tags?: string[];
+    }>
   ): Promise<{ added: number }> {
-    const result = await this.req<{ added?: number }>('POST', `/team/${this.teamId}/board`, await this.signBody({ tasks } as Record<string, unknown>));
+    const result = await this.req<{ added?: number }>(
+      'POST',
+      `/team/${this.teamId}/board`,
+      await this.signBody({ tasks } as Record<string, unknown>)
+    );
     return { added: result.added ?? tasks.length };
   }
 
@@ -287,7 +343,10 @@ export class HolomeshClient {
    * the root is derived from apiBase. Never throws: a tool/auth/network failure
    * returns { ok:false, text } so one bad call can't break a tick.
    */
-  async invokeTool(tool: string, args: Record<string, unknown> = {}): Promise<{ ok: boolean; text: string }> {
+  async invokeTool(
+    tool: string,
+    args: Record<string, unknown> = {}
+  ): Promise<{ ok: boolean; text: string }> {
     const root = this.apiBase.replace(/\/api\/holomesh\/?$/, '');
     try {
       const params: Record<string, unknown> = { name: tool, arguments: args };
@@ -307,11 +366,15 @@ export class HolomeshClient {
         result?: { content?: Array<{ text?: string }> };
         error?: { message?: string };
       };
-      if (j.error) return { ok: false, text: `mcp_call ${tool} error: ${j.error.message ?? 'unknown'}` };
+      if (j.error)
+        return { ok: false, text: `mcp_call ${tool} error: ${j.error.message ?? 'unknown'}` };
       const text = (j.result?.content ?? []).map((c) => c.text ?? '').join('\n');
       return { ok: true, text };
     } catch (err) {
-      return { ok: false, text: `mcp_call ${tool} failed: ${err instanceof Error ? err.message : String(err)}` };
+      return {
+        ok: false,
+        text: `mcp_call ${tool} failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   }
 
@@ -344,7 +407,11 @@ export class HolomeshClient {
     if (this.localKnowledgePath) {
       try {
         const raw = await readFile(this.localKnowledgePath, 'utf8');
-        return raw.trim().split('\n').filter(Boolean).map(l => JSON.parse(l) as KnowledgeEntry);
+        return raw
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+          .map((l) => JSON.parse(l) as KnowledgeEntry);
       } catch {
         return [];
       }
@@ -376,12 +443,31 @@ export class HolomeshClient {
    * @param query  Natural-language search string.
    * @param topK   Max results to return (1–20, server-capped).
    */
-  async queryCodebase(query: string, topK = 8): Promise<Array<{ name: string; file: string; line?: number; type: string; score: number; signature?: string | null }>> {
+  async queryCodebase(
+    query: string,
+    topK = 8
+  ): Promise<
+    Array<{
+      name: string;
+      file: string;
+      line?: number;
+      type: string;
+      score: number;
+      signature?: string | null;
+    }>
+  > {
     try {
       const data = await this.req<{
         success?: boolean;
         result?: {
-          results?: Array<{ name: string; file: string; line?: number; type: string; score: number; signature?: string | null }>;
+          results?: Array<{
+            name: string;
+            file: string;
+            line?: number;
+            type: string;
+            score: number;
+            signature?: string | null;
+          }>;
           error?: string;
         };
         error?: string;
@@ -417,12 +503,15 @@ export class HolomeshClient {
         try {
           const e = JSON.parse(line) as KnowledgeEntry;
           const text = `${e.id ?? ''} ${e.content ?? ''}`.toLowerCase();
-          const hit = tokens.length > 0 ? tokens.some((t) => text.includes(t)) : text.includes(needle);
+          const hit =
+            tokens.length > 0 ? tokens.some((t) => text.includes(t)) : text.includes(needle);
           if (hit) {
             matched.push(e);
             if (matched.length >= limit) break;
           }
-        } catch { /* skip malformed line */ }
+        } catch {
+          /* skip malformed line */
+        }
       }
       return matched;
     } catch {
@@ -453,7 +542,13 @@ export class HolomeshClient {
       });
       if (!res.ok) return [];
       const json = (await res.json()) as {
-        results?: Array<{ symbol: string; type: string; file: string; score: number; documentation?: string }>;
+        results?: Array<{
+          symbol: string;
+          type: string;
+          file: string;
+          score: number;
+          documentation?: string;
+        }>;
       };
       return (json.results ?? [])
         .filter((r) => r.documentation)
@@ -474,14 +569,19 @@ export class HolomeshClient {
     if (this.localKnowledgePath) {
       try {
         await mkdir(dirname(this.localKnowledgePath), { recursive: true });
-        const lines = entries.map(e => JSON.stringify({
-          id: `local.${Date.now()}.${Math.random().toString(36).slice(2, 6)}`,
-          content: e.content,
-          type: e.type ?? 'task-outcome',
-          tags: e.tags ?? [],
-          title: e.title,
-          createdAt: new Date().toISOString(),
-        })).join('\n') + '\n';
+        const lines =
+          entries
+            .map((e) =>
+              JSON.stringify({
+                id: `local.${Date.now()}.${Math.random().toString(36).slice(2, 6)}`,
+                content: e.content,
+                type: e.type ?? 'task-outcome',
+                tags: e.tags ?? [],
+                title: e.title,
+                createdAt: new Date().toISOString(),
+              })
+            )
+            .join('\n') + '\n';
         await appendFile(this.localKnowledgePath, lines, 'utf8');
         return true;
       } catch {

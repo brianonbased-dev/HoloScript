@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createTaskExecutionAttributeClaims,
-  validateAgentAttributeClaims,
-} from '../care-claims';
+import { createTaskExecutionAttributeClaims, validateAgentAttributeClaims } from '../care-claims';
 
 describe('holoscript-agent care claims', () => {
   it('creates a portable care claim for task execution audit events', () => {

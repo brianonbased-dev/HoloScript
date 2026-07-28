@@ -30,7 +30,10 @@ export interface UAALEmergentBaselineTest {
   singleRates?: Record<string, number>;
 }
 
-export interface UAALSemanticBenchmarkRow<TCompletion = unknown, TMetadata = Record<string, unknown>> {
+export interface UAALSemanticBenchmarkRow<
+  TCompletion = unknown,
+  TMetadata = Record<string, unknown>,
+> {
   completion: string | TCompletion;
   metadata?: TMetadata;
 }
@@ -551,7 +554,12 @@ export interface UAALAccessBenchmarkResult {
   };
 }
 
-export type UAALCompositionDimension = 'norm' | 'counterparty' | 'affordance' | 'occlusion' | 'deadline';
+export type UAALCompositionDimension =
+  | 'norm'
+  | 'counterparty'
+  | 'affordance'
+  | 'occlusion'
+  | 'deadline';
 
 /**
  * A discharge-ordering edge: the obligation `after` may only be discharged once `before` has been. A set of
@@ -1048,7 +1056,9 @@ function norm(value: unknown): string {
 }
 
 function declaredTheoryOfMindType(meta: UAALTheoryOfMindMetadata): string {
-  return norm(meta.variant_id || String(meta.conflict_type || '').replace(/^false_belief_from_/, ''));
+  return norm(
+    meta.variant_id || String(meta.conflict_type || '').replace(/^false_belief_from_/, '')
+  );
 }
 
 export function makeRateTest(hits: number, total: number, floor: number): UAALRateTest {
@@ -1067,7 +1077,11 @@ function truthyString(value: unknown): value is string {
 }
 
 function opacityMap(ir: UAALContainmentIR): Map<string, boolean> {
-  return new Map((ir.entities || []).filter((entity) => truthyString(entity.id)).map((entity) => [entity.id, Boolean(entity.opaque)]));
+  return new Map(
+    (ir.entities || [])
+      .filter((entity) => truthyString(entity.id))
+      .map((entity) => [entity.id, Boolean(entity.opaque)])
+  );
 }
 
 function outerOf(ir: UAALContainmentIR): Map<string, string> {
@@ -1081,7 +1095,9 @@ function outerOf(ir: UAALContainmentIR): Map<string, string> {
 }
 
 export function recoverFalseBelief(ir: UAALTheoryOfMindIR): FalseBeliefRecovery | null {
-  const props = new Map((ir.propositions || []).filter((prop) => truthyString(prop.id)).map((prop) => [prop.id, prop]));
+  const props = new Map(
+    (ir.propositions || []).filter((prop) => truthyString(prop.id)).map((prop) => [prop.id, prop])
+  );
   const believed = new Map<string, string>();
   for (const belief of ir.beliefs || []) {
     if (truthyString(belief.prop) && truthyString(belief.agent)) {
@@ -1115,7 +1131,7 @@ export function recoverFalseBelief(ir: UAALTheoryOfMindIR): FalseBeliefRecovery 
 }
 
 export function benchmarkTheoryOfMind(
-  rows: Array<UAALSemanticBenchmarkRow<UAALTheoryOfMindIR, UAALTheoryOfMindMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALTheoryOfMindIR, UAALTheoryOfMindMetadata>>
 ): UAALTheoryOfMindBenchmarkResult {
   let n = 0;
   let t1 = 0;
@@ -1145,7 +1161,11 @@ export function benchmarkTheoryOfMind(
       }
     }
 
-    if ((ir.causal || []).some((causal) => /theory.?of.?mind|models?|nest/i.test(causal.mechanism || ''))) {
+    if (
+      (ir.causal || []).some((causal) =>
+        /theory.?of.?mind|models?|nest/i.test(causal.mechanism || '')
+      )
+    ) {
       t3++;
     }
 
@@ -1174,7 +1194,9 @@ export function benchmarkTheoryOfMind(
 export const benchmarkUaal = benchmarkTheoryOfMind;
 
 export function recoverTelosGap(ir: UAALTelosIR): TelosRecovery {
-  const beneficiaries = new Set((ir.entities || []).filter((entity) => entity.kind === 'beneficiary').map((entity) => entity.id));
+  const beneficiaries = new Set(
+    (ir.entities || []).filter((entity) => entity.kind === 'beneficiary').map((entity) => entity.id)
+  );
   if (beneficiaries.size === 0) {
     return { gap: true, beneficiary: null };
   }
@@ -1226,7 +1248,7 @@ export function flagOnlyTelosGap(ir: UAALTelosIR): TelosRecovery {
 export const flagOnlyGap = flagOnlyTelosGap;
 
 export function benchmarkTelos(
-  rows: Array<UAALSemanticBenchmarkRow<UAALTelosIR, UAALTelosMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALTelosIR, UAALTelosMetadata>>
 ): UAALTelosBenchmarkResult {
   let n = 0;
   let tt1 = 0;
@@ -1259,7 +1281,9 @@ export function benchmarkTelos(
       if (recovered.beneficiary === groundTruth.beneficiary) {
         tt2++;
       } else if (misses.tt2.length < 8) {
-        misses.tt2.push(`${groundTruth.id}: got ${recovered.beneficiary} want ${groundTruth.beneficiary}`);
+        misses.tt2.push(
+          `${groundTruth.id}: got ${recovered.beneficiary} want ${groundTruth.beneficiary}`
+        );
       }
     }
 
@@ -1268,15 +1292,24 @@ export function benchmarkTelos(
 
     const corrupt = cloneJson(ir);
     if (expectedGap) {
-      corrupt.entities = [...(corrupt.entities || []), { id: '__ben_injected', kind: 'beneficiary', label: 'injected' }];
+      corrupt.entities = [
+        ...(corrupt.entities || []),
+        { id: '__ben_injected', kind: 'beneficiary', label: 'injected' },
+      ];
       if (corrupt.events?.[0]) {
         corrupt.events[0].telos = { beneficiary: '__ben_injected', goal: 'injected' };
       }
     } else {
-      const beneficiaryIds = new Set((corrupt.entities || []).filter((entity) => entity.kind === 'beneficiary').map((entity) => entity.id));
+      const beneficiaryIds = new Set(
+        (corrupt.entities || [])
+          .filter((entity) => entity.kind === 'beneficiary')
+          .map((entity) => entity.id)
+      );
       corrupt.entities = (corrupt.entities || []).filter((entity) => entity.kind !== 'beneficiary');
       for (const event of corrupt.events || []) event.telos = null;
-      corrupt.causal = (corrupt.causal || []).filter((causal) => !beneficiaryIds.has(causal.to || ''));
+      corrupt.causal = (corrupt.causal || []).filter(
+        (causal) => !beneficiaryIds.has(causal.to || '')
+      );
     }
 
     const corruptRecovered = recoverTelosGap(corrupt);
@@ -1326,7 +1359,11 @@ export function enclosingChain(ir: UAALContainmentIR, id: string | undefined): s
   return chain;
 }
 
-export function recoverOcclusion(ir: UAALContainmentIR, agent: string | undefined, object: string | undefined): OcclusionRecovery {
+export function recoverOcclusion(
+  ir: UAALContainmentIR,
+  agent: string | undefined,
+  object: string | undefined
+): OcclusionRecovery {
   const opaque = opacityMap(ir);
   const objectChain = enclosingChain(ir, object);
   const agentEnclosures = new Set(enclosingChain(ir, agent));
@@ -1343,14 +1380,17 @@ export function flatSeesOcclusion(): OcclusionRecovery {
   return { occluded: false };
 }
 
-export function naiveOpacityOcclusion(ir: UAALContainmentIR, object: string | undefined): OcclusionRecovery {
+export function naiveOpacityOcclusion(
+  ir: UAALContainmentIR,
+  object: string | undefined
+): OcclusionRecovery {
   const opaque = opacityMap(ir);
   const occluded = enclosingChain(ir, object).some((container) => opaque.get(container));
   return { occluded };
 }
 
 export function benchmarkContainment(
-  rows: Array<UAALSemanticBenchmarkRow<UAALContainmentIR, UAALContainmentMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALContainmentIR, UAALContainmentMetadata>>
 ): UAALContainmentBenchmarkResult {
   let n = 0;
   let st1 = 0;
@@ -1385,11 +1425,15 @@ export function benchmarkContainment(
       if (recovered.occluder === groundTruth.occluder) {
         st2++;
       } else if (misses.st2.length < 8) {
-        misses.st2.push(`${groundTruth.id}: occluder ${recovered.occluder} want ${groundTruth.occluder}`);
+        misses.st2.push(
+          `${groundTruth.id}: occluder ${recovered.occluder} want ${groundTruth.occluder}`
+        );
       }
     }
 
-    const perspective = (ir.perspectives || []).find((item) => (item.claims_sees || []).includes(query.object || ''));
+    const perspective = (ir.perspectives || []).find((item) =>
+      (item.claims_sees || []).includes(query.object || '')
+    );
     if (perspective) {
       const claimInvalid = recovered.occluded;
       if (claimInvalid === expectedOccluded) st3++;
@@ -1397,16 +1441,20 @@ export function benchmarkContainment(
 
     const corrupt = cloneJson(ir);
     if (expectedOccluded) {
-      const entity = (corrupt.entities || []).find((candidate) => candidate.id === groundTruth.occluder);
+      const entity = (corrupt.entities || []).find(
+        (candidate) => candidate.id === groundTruth.occluder
+      );
       if (entity) entity.opaque = false;
     } else {
       const opaque = opacityMap(ir);
       const objectChain = enclosingChain(ir, query.object);
       const agentEnclosures = new Set(enclosingChain(ir, query.agent));
-      const sharedOpaque = objectChain.find((container) => opaque.get(container) && agentEnclosures.has(container));
+      const sharedOpaque = objectChain.find(
+        (container) => opaque.get(container) && agentEnclosures.has(container)
+      );
       if (sharedOpaque) {
         corrupt.containment = (corrupt.containment || []).filter(
-          (relation) => !(relation.inner === query.agent && relation.outer === sharedOpaque),
+          (relation) => !(relation.inner === query.agent && relation.outer === sharedOpaque)
         );
         const region = enclosingChain(ir, sharedOpaque).slice(-1)[0] || sharedOpaque;
         if (region !== sharedOpaque) {
@@ -1461,7 +1509,10 @@ const UAAL_AFFORDANCE_REQUIREMENTS: Record<string, { attr: string; cmp: 'lte' | 
   grip: { attr: 'grip', cmp: 'gte' },
 };
 
-function requirementCheck(body: Record<string, number> | undefined, requires: Record<string, number> | undefined): AffordanceRecovery {
+function requirementCheck(
+  body: Record<string, number> | undefined,
+  requires: Record<string, number> | undefined
+): AffordanceRecovery {
   for (const [key, required] of Object.entries(requires || {})) {
     const spec = UAAL_AFFORDANCE_REQUIREMENTS[key];
     if (!spec) continue;
@@ -1481,19 +1532,31 @@ function ensureBody(entity: UAALSemanticEntity | undefined): Record<string, numb
   return entity.body;
 }
 
-function setRequirementsSatisfied(body: Record<string, number>, requires: Record<string, number> | undefined): void {
+function setRequirementsSatisfied(
+  body: Record<string, number>,
+  requires: Record<string, number> | undefined
+): void {
   for (const [key, required] of Object.entries(requires || {})) {
     const spec = UAAL_AFFORDANCE_REQUIREMENTS[key];
     if (!spec) continue;
-    body[spec.attr] = spec.cmp === 'lte' ? required - Math.abs(required) * 0.5 - 0.01 : required + Math.abs(required) * 0.5 + 0.01;
+    body[spec.attr] =
+      spec.cmp === 'lte'
+        ? required - Math.abs(required) * 0.5 - 0.01
+        : required + Math.abs(required) * 0.5 + 0.01;
   }
 }
 
-function setRequirementViolated(body: Record<string, number>, requires: Record<string, number> | undefined): void {
+function setRequirementViolated(
+  body: Record<string, number>,
+  requires: Record<string, number> | undefined
+): void {
   for (const [key, required] of Object.entries(requires || {})) {
     const spec = UAAL_AFFORDANCE_REQUIREMENTS[key];
     if (!spec) continue;
-    body[spec.attr] = spec.cmp === 'lte' ? required + Math.abs(required) * 0.5 + 0.01 : required - Math.abs(required) * 0.5 - 0.01;
+    body[spec.attr] =
+      spec.cmp === 'lte'
+        ? required + Math.abs(required) * 0.5 + 0.01
+        : required - Math.abs(required) * 0.5 - 0.01;
     return;
   }
 }
@@ -1502,7 +1565,7 @@ export function recoverAffords(
   ir: UAALAffordanceIR,
   agent: string | undefined,
   action: string | undefined,
-  object: string | undefined,
+  object: string | undefined
 ): AffordanceRecovery {
   if (!truthyString(agent) || !truthyString(action) || !truthyString(object)) {
     return { affords: false, reason: 'invalid_query' };
@@ -1516,7 +1579,9 @@ export function recoverAffords(
   const capability = requirementCheck(agentEntity?.body, offer.requires);
   if (!capability.affords) return capability;
 
-  const holds = new Map((ir.propositions || []).map((proposition) => [proposition.id, Boolean(proposition.holds)]));
+  const holds = new Map(
+    (ir.propositions || []).map((proposition) => [proposition.id, Boolean(proposition.holds)])
+  );
   for (const precondition of offer.preconditions || []) {
     if (!holds.get(precondition)) return { affords: false, reason: 'precondition' };
   }
@@ -1524,14 +1589,18 @@ export function recoverAffords(
   return { affords: true, reason: null };
 }
 
-export function objectOfferBaseline(ir: UAALAffordanceIR, action: string | undefined, object: string | undefined): Pick<AffordanceRecovery, 'affords'> {
+export function objectOfferBaseline(
+  ir: UAALAffordanceIR,
+  action: string | undefined,
+  object: string | undefined
+): Pick<AffordanceRecovery, 'affords'> {
   if (!truthyString(action) || !truthyString(object)) return { affords: false };
   const objectEntity = (ir.entities || []).find((entity) => entity.id === object);
   return { affords: (objectEntity?.offers || []).some((offer) => offer.action === action) };
 }
 
 export function benchmarkAffordance(
-  rows: Array<UAALSemanticBenchmarkRow<UAALAffordanceIR, UAALAffordanceMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALAffordanceIR, UAALAffordanceMetadata>>
 ): UAALAffordanceBenchmarkResult {
   let n = 0;
   let at1 = 0;
@@ -1557,40 +1626,59 @@ export function benchmarkAffordance(
     } else if (misses.at1.length < 8) {
       misses.at1.push(`${groundTruth.id}: got ${recovered.affords} want ${expectedAffords}`);
     }
-    if (objectOfferBaseline(ir, query.action, query.object).affords === expectedAffords) baseCorrect++;
+    if (objectOfferBaseline(ir, query.action, query.object).affords === expectedAffords)
+      baseCorrect++;
 
     if (!expectedAffords) {
       at2denom++;
       if (recovered.reason === groundTruth.block_reason) {
         at2++;
       } else if (misses.at2.length < 8) {
-        misses.at2.push(`${groundTruth.id}: reason ${recovered.reason} want ${groundTruth.block_reason}`);
+        misses.at2.push(
+          `${groundTruth.id}: reason ${recovered.reason} want ${groundTruth.block_reason}`
+        );
       }
     }
 
     const withBelief = cloneJson(ir);
     withBelief.beliefs = [{ id: 'b_doubt', agent: query.agent, prop: 'p_cannot', confidence: 0.9 }];
-    withBelief.propositions = [...(withBelief.propositions || []), { id: 'p_cannot', text: 'the agent cannot do it', holds: false }];
-    if (recoverAffords(withBelief, query.agent, query.action, query.object).affords === recovered.affords) at3++;
+    withBelief.propositions = [
+      ...(withBelief.propositions || []),
+      { id: 'p_cannot', text: 'the agent cannot do it', holds: false },
+    ];
+    if (
+      recoverAffords(withBelief, query.agent, query.action, query.object).affords ===
+      recovered.affords
+    )
+      at3++;
 
     const corrupt = cloneJson(ir);
     const objectEntity = (corrupt.entities || []).find((entity) => entity.id === query.object);
     const agentEntity = (corrupt.entities || []).find((entity) => entity.id === query.agent);
-    const offer = (objectEntity?.offers || []).find((candidate) => candidate.action === query.action);
+    const offer = (objectEntity?.offers || []).find(
+      (candidate) => candidate.action === query.action
+    );
     if (recovered.affords) {
       if (offer && Object.keys(offer.requires || {}).length) {
         setRequirementViolated(ensureBody(agentEntity), offer.requires);
       } else if (offer && (offer.preconditions || []).length) {
-        const proposition = (corrupt.propositions || []).find((candidate) => candidate.id === offer.preconditions?.[0]);
+        const proposition = (corrupt.propositions || []).find(
+          (candidate) => candidate.id === offer.preconditions?.[0]
+        );
         if (proposition) proposition.holds = false;
       } else if (objectEntity) {
         objectEntity.offers = [];
       }
     } else if (recovered.reason === 'no_offer' && objectEntity) {
-      objectEntity.offers = [...(objectEntity.offers || []), { action: query.action || '__action', requires: {}, preconditions: [] }];
+      objectEntity.offers = [
+        ...(objectEntity.offers || []),
+        { action: query.action || '__action', requires: {}, preconditions: [] },
+      ];
     } else if (recovered.reason === 'precondition' && offer) {
       for (const precondition of offer.preconditions || []) {
-        const proposition = (corrupt.propositions || []).find((candidate) => candidate.id === precondition);
+        const proposition = (corrupt.propositions || []).find(
+          (candidate) => candidate.id === precondition
+        );
         if (proposition) proposition.holds = true;
       }
     } else if (offer) {
@@ -1640,7 +1728,7 @@ export function factValueAt(ir: UAALTemporalIR, factId: string | undefined, at: 
         event.fact === factId &&
         typeof event.t === 'number' &&
         event.t <= at &&
-        typeof event.sets === 'boolean',
+        typeof event.sets === 'boolean'
     )
     .sort((left, right) => (left.t || 0) - (right.t || 0));
 
@@ -1652,7 +1740,7 @@ export function changeAfter(
   ir: UAALTemporalIR,
   factId: string | undefined,
   tFormed: number,
-  tNow: number,
+  tNow: number
 ): UAALSemanticEvent | null {
   return (
     (ir.events || [])
@@ -1662,13 +1750,17 @@ export function changeAfter(
           event.fact === factId &&
           typeof event.t === 'number' &&
           event.t > tFormed &&
-          event.t <= tNow,
+          event.t <= tNow
       )
       .sort((left, right) => (left.t || 0) - (right.t || 0))[0] || null
   );
 }
 
-export function recoverBeliefStatus(ir: UAALTemporalIR, beliefId: string | undefined, factId: string | undefined): BeliefStatusRecovery {
+export function recoverBeliefStatus(
+  ir: UAALTemporalIR,
+  beliefId: string | undefined,
+  factId: string | undefined
+): BeliefStatusRecovery {
   const belief = (ir.beliefs || []).find((candidate) => candidate.id === beliefId);
   if (!belief) return { status: 'unknown', change_event: null };
 
@@ -1685,7 +1777,11 @@ export function recoverBeliefStatus(ir: UAALTemporalIR, beliefId: string | undef
   return { status: 'error', change_event: null };
 }
 
-export function naiveTimeBlindStatus(ir: UAALTemporalIR, beliefId: string | undefined, factId: string | undefined): Pick<BeliefStatusRecovery, 'status'> {
+export function naiveTimeBlindStatus(
+  ir: UAALTemporalIR,
+  beliefId: string | undefined,
+  factId: string | undefined
+): Pick<BeliefStatusRecovery, 'status'> {
   const belief = (ir.beliefs || []).find((candidate) => candidate.id === beliefId);
   if (!belief) return { status: 'unknown' };
   const tNow = typeof ir.t_now === 'number' ? ir.t_now : Infinity;
@@ -1694,7 +1790,7 @@ export function naiveTimeBlindStatus(ir: UAALTemporalIR, beliefId: string | unde
 }
 
 export function benchmarkTemporal(
-  rows: Array<UAALSemanticBenchmarkRow<UAALTemporalIR, UAALTemporalMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALTemporalIR, UAALTemporalMetadata>>
 ): UAALTemporalBenchmarkResult {
   let n = 0;
   let tt1 = 0;
@@ -1719,7 +1815,9 @@ export function benchmarkTemporal(
     if (recovered.status === groundTruth.belief_status) {
       tt1++;
     } else if (misses.tt1.length < 8) {
-      misses.tt1.push(`${groundTruth.id}: got ${recovered.status} want ${groundTruth.belief_status}`);
+      misses.tt1.push(
+        `${groundTruth.id}: got ${recovered.status} want ${groundTruth.belief_status}`
+      );
     }
     if (naive.status === groundTruth.belief_status) naiveCorrect++;
 
@@ -1728,18 +1826,27 @@ export function benchmarkTemporal(
       if (recovered.change_event === groundTruth.change_event) {
         tt2++;
       } else if (misses.tt2.length < 8) {
-        misses.tt2.push(`${groundTruth.id}: change ${recovered.change_event} want ${groundTruth.change_event}`);
+        misses.tt2.push(
+          `${groundTruth.id}: change ${recovered.change_event} want ${groundTruth.change_event}`
+        );
       }
     }
 
     const order = ir.temporal_order || [];
     const eventById = new Map((ir.events || []).map((event) => [event.id, event]));
-    const isPermutation = order.length === (ir.events || []).length && order.every((id) => eventById.has(id));
+    const isPermutation =
+      order.length === (ir.events || []).length && order.every((id) => eventById.has(id));
     let sorted = true;
     for (let index = 1; index < order.length; index++) {
       const before = eventById.get(order[index - 1]);
       const after = eventById.get(order[index]);
-      if (before && after && typeof before.t === 'number' && typeof after.t === 'number' && before.t > after.t) {
+      if (
+        before &&
+        after &&
+        typeof before.t === 'number' &&
+        typeof after.t === 'number' &&
+        before.t > after.t
+      ) {
         sorted = false;
         break;
       }
@@ -1751,13 +1858,20 @@ export function benchmarkTemporal(
       const corrupt = cloneJson(ir);
       const corruptBelief = (corrupt.beliefs || []).find((belief) => belief.id === query.belief);
       const tFormed = typeof corruptBelief?.t_formed === 'number' ? corruptBelief.t_formed : 0;
-      const change = changeAfter(ir, query.fact, tFormed, typeof ir.t_now === 'number' ? ir.t_now : Infinity);
+      const change = changeAfter(
+        ir,
+        query.fact,
+        tFormed,
+        typeof ir.t_now === 'number' ? ir.t_now : Infinity
+      );
       if (corruptBelief && typeof change?.t === 'number') corruptBelief.t_formed = change.t + 1;
       const corruptRecovered = recoverBeliefStatus(corrupt, query.belief, query.fact);
       if (corruptRecovered.status === 'error' && corruptRecovered.status !== recovered.status) {
         tt4++;
       } else if (misses.tt4.length < 8) {
-        misses.tt4.push(`${groundTruth.id}: ${recovered.status}->${corruptRecovered.status} after t_formed corruption`);
+        misses.tt4.push(
+          `${groundTruth.id}: ${recovered.status}->${corruptRecovered.status} after t_formed corruption`
+        );
       }
     }
   }
@@ -1791,16 +1905,22 @@ function normById(ir: UAALDeonticIR, normId: string | undefined): UAALDeonticNor
   return (ir.norms || []).find((normItem) => normItem.id === normId) || (ir.norms || [])[0] || null;
 }
 
-function fulfillingEvent(ir: UAALDeonticIR, normItem: UAALDeonticNorm | null): UAALSemanticEvent | null {
+function fulfillingEvent(
+  ir: UAALDeonticIR,
+  normItem: UAALDeonticNorm | null
+): UAALSemanticEvent | null {
   if (!normItem) return null;
   return (
     (ir.events || []).find(
-      (event) => event.act === normItem.required_act && event.on_behalf_of === normItem.addressee,
+      (event) => event.act === normItem.required_act && event.on_behalf_of === normItem.addressee
     ) || null
   );
 }
 
-export function recoverNormStatus(ir: UAALDeonticIR, normId: string | undefined): NormStatusRecovery {
+export function recoverNormStatus(
+  ir: UAALDeonticIR,
+  normId: string | undefined
+): NormStatusRecovery {
   const normItem = normById(ir, normId);
   if (!normItem) return { status: 'complied', force: null, fulfilledBy: null };
 
@@ -1817,15 +1937,20 @@ export function recoverNormStatus(ir: UAALDeonticIR, normId: string | undefined)
   return { status: 'complied', force: 'P', fulfilledBy: event?.id || null };
 }
 
-export function naivePersonalStatus(ir: UAALDeonticIR, normId: string | undefined): Pick<NormStatusRecovery, 'status'> {
+export function naivePersonalStatus(
+  ir: UAALDeonticIR,
+  normId: string | undefined
+): Pick<NormStatusRecovery, 'status'> {
   const normItem = normById(ir, normId);
   if (!normItem) return { status: 'complied' };
-  const personal = (ir.events || []).some((event) => event.actor === normItem.addressee && event.act === normItem.required_act);
+  const personal = (ir.events || []).some(
+    (event) => event.actor === normItem.addressee && event.act === normItem.required_act
+  );
   return { status: personal ? 'complied' : 'violated' };
 }
 
 export function benchmarkDeontic(
-  rows: Array<UAALSemanticBenchmarkRow<UAALDeonticIR, UAALDeonticMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALDeonticIR, UAALDeonticMetadata>>
 ): UAALDeonticBenchmarkResult {
   let n = 0;
   let dt1 = 0;
@@ -1861,7 +1986,9 @@ export function benchmarkDeontic(
       if (recovered.fulfilledBy === declaredFulfill.id) {
         dt2++;
       } else if (misses.dt2.length < 8) {
-        misses.dt2.push(`${groundTruth.id}: got ${recovered.fulfilledBy} want ${declaredFulfill.id}`);
+        misses.dt2.push(
+          `${groundTruth.id}: got ${recovered.fulfilledBy} want ${declaredFulfill.id}`
+        );
       }
     }
 
@@ -1890,7 +2017,9 @@ export function benchmarkDeontic(
     } else if (groundTruth.class === 'violated') {
       dt4denom++;
       const corrupt = cloneJson(ir);
-      const corruptNorm = (corrupt.norms || []).find((candidate) => candidate.id === normId) || (corrupt.norms || [])[0];
+      const corruptNorm =
+        (corrupt.norms || []).find((candidate) => candidate.id === normId) ||
+        (corrupt.norms || [])[0];
       if (corruptNorm) corruptNorm.force = 'P';
       const corruptRecovered = recoverNormStatus(corrupt, normId);
       if (corruptRecovered.status === 'complied' && recovered.status === 'violated') {
@@ -1926,13 +2055,16 @@ export function benchmarkDeontic(
   };
 }
 
-function commitmentById(ir: UAALCommitmentIR, commitmentId: string | undefined): UAALCommitment | null {
+function commitmentById(
+  ir: UAALCommitmentIR,
+  commitmentId: string | undefined
+): UAALCommitment | null {
   return (ir.commitments || []).find((commitment) => commitment.id === commitmentId) || null;
 }
 
 export function recoverCommitmentStatus(
   ir: UAALCommitmentIR,
-  commitmentId: string | undefined,
+  commitmentId: string | undefined
 ): CommitmentStatusRecovery {
   const commitment = commitmentById(ir, commitmentId);
   if (!commitment) return { status: 'open', fulfilling: null };
@@ -1945,17 +2077,21 @@ export function recoverCommitmentStatus(
       (event) =>
         event.predicate === act.type &&
         event.recipient === act.recipient &&
-        (act.magnitude == null || (typeof event.magnitude === 'number' && event.magnitude >= act.magnitude)) &&
-        (!dueGiven || (typeof event.t === 'number' && event.t <= (commitment.due_time as number))),
+        (act.magnitude == null ||
+          (typeof event.magnitude === 'number' && event.magnitude >= act.magnitude)) &&
+        (!dueGiven || (typeof event.t === 'number' && event.t <= (commitment.due_time as number)))
     ) || null;
 
   if (fulfilling) return { status: 'discharged', fulfilling };
-  return { status: dueGiven && now > (commitment.due_time as number) ? 'broken' : 'open', fulfilling: null };
+  return {
+    status: dueGiven && now > (commitment.due_time as number) ? 'broken' : 'open',
+    fulfilling: null,
+  };
 }
 
 export function occurrenceFlagStatus(
   ir: UAALCommitmentIR,
-  commitmentId: string | undefined,
+  commitmentId: string | undefined
 ): Pick<CommitmentStatusRecovery, 'status'> {
   const commitment = commitmentById(ir, commitmentId);
   if (!commitment) return { status: 'open' };
@@ -1968,7 +2104,7 @@ export function occurrenceFlagStatus(
 }
 
 export function benchmarkCommitment(
-  rows: Array<UAALSemanticBenchmarkRow<UAALCommitmentIR, UAALCommitmentMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALCommitmentIR, UAALCommitmentMetadata>>
 ): UAALCommitmentBenchmarkResult {
   let n = 0;
   let cm1 = 0;
@@ -1992,7 +2128,9 @@ export function benchmarkCommitment(
     if (recovered.status === groundTruth.commitment_status) {
       cm1++;
     } else if (misses.cm1.length < 8) {
-      misses.cm1.push(`${groundTruth.id}: recovered ${recovered.status} truth ${groundTruth.commitment_status}`);
+      misses.cm1.push(
+        `${groundTruth.id}: recovered ${recovered.status} truth ${groundTruth.commitment_status}`
+      );
     }
     if (flag.status === groundTruth.commitment_status) flagCorrect++;
 
@@ -2001,7 +2139,9 @@ export function benchmarkCommitment(
     if (recoveredRecipient === groundTruth.fulfilling_recipient) {
       cm2++;
     } else if (misses.cm2.length < 8) {
-      misses.cm2.push(`${groundTruth.id}: got ${recoveredRecipient} want ${groundTruth.fulfilling_recipient}`);
+      misses.cm2.push(
+        `${groundTruth.id}: got ${recoveredRecipient} want ${groundTruth.fulfilling_recipient}`
+      );
     }
 
     const validStatus = ['discharged', 'broken', 'open'].includes(recovered.status);
@@ -2019,7 +2159,9 @@ export function benchmarkCommitment(
     const act = commitment?.pledged_act || {};
     const promisee = act.recipient;
     if (groundTruth.commitment_status === 'discharged') {
-      const event = (corrupt.events || []).find((candidate) => candidate.recipient === promisee && candidate.predicate === act.type);
+      const event = (corrupt.events || []).find(
+        (candidate) => candidate.recipient === promisee && candidate.predicate === act.type
+      );
       if (event) event.recipient = '__wrong_party_injected';
     } else {
       const event = (corrupt.events || []).find((candidate) => candidate.predicate === act.type);
@@ -2087,7 +2229,7 @@ export function holds(
   occurring: Set<string>,
   effects: Map<string, string[][]>,
   standby: Map<string, string | undefined> = new Map(),
-  guard: Set<string> = new Set(),
+  guard: Set<string> = new Set()
 ): boolean {
   if (occurring.has(id)) return true;
   if (standby.has(id)) {
@@ -2099,7 +2241,9 @@ export function holds(
   if (!sets) return false;
   if (guard.has(id)) return false;
   const nextGuard = new Set(guard).add(id);
-  return sets.some((set) => set.every((member) => holds(member, occurring, effects, standby, nextGuard)));
+  return sets.some((set) =>
+    set.every((member) => holds(member, occurring, effects, standby, nextGuard))
+  );
 }
 
 function maskEffects(effects: Map<string, string[][]>, cause: string): Map<string, string[][]> {
@@ -2109,7 +2253,10 @@ function maskEffects(effects: Map<string, string[][]>, cause: string): Map<strin
   return masked;
 }
 
-function collectCounterfactualProducers(effects: Map<string, string[][]>, sufficientSets: string[][]): Set<string> {
+function collectCounterfactualProducers(
+  effects: Map<string, string[][]>,
+  sufficientSets: string[][]
+): Set<string> {
   const producers = new Set<string>();
   const collect = (sets: string[][]): void => {
     for (const set of sets) {
@@ -2196,7 +2343,10 @@ function necessityTriples(map: UAALNecessityMap): Array<[string, string, boolean
   return output;
 }
 
-function counterfactualFidelity(ir: UAALCounterfactualIR, metadata: UAALCounterfactualMetadata): boolean {
+function counterfactualFidelity(
+  ir: UAALCounterfactualIR,
+  metadata: UAALCounterfactualMetadata
+): boolean {
   const effectId = ir.query?.effect;
   const spec = (ir.effects || []).find((effect) => effect.id === effectId);
   if (!effectId || !spec) return false;
@@ -2205,7 +2355,9 @@ function counterfactualFidelity(ir: UAALCounterfactualIR, metadata: UAALCounterf
   const standby = counterfactualStandbyMap(ir);
   const occurring = new Set(ir.occurs || []);
   const directProducers = new Set((spec.sufficientSets || []).flat());
-  const removable = [...directProducers].filter((producer) => holds(producer, occurring, effects, standby));
+  const removable = [...directProducers].filter((producer) =>
+    holds(producer, occurring, effects, standby)
+  );
   const afterRemoving = (producer: string): boolean => {
     const world = new Set([...occurring].filter((candidate) => candidate !== producer));
     const masked = maskEffects(effects, producer);
@@ -2217,7 +2369,8 @@ function counterfactualFidelity(ir: UAALCounterfactualIR, metadata: UAALCounterf
   const dependent = removable.some((producer) => !afterRemoving(producer));
   const setCount = (spec.sufficientSets || []).length;
   if (metadata.class === 'overdetermination') return setCount >= 2 && redundant;
-  if (metadata.class === 'preemption') return setCount >= 2 && (ir.standby || []).length >= 1 && redundant;
+  if (metadata.class === 'preemption')
+    return setCount >= 2 && (ir.standby || []).length >= 1 && redundant;
   if (metadata.class === 'single_producer') return dependent && !redundant;
   if (metadata.class === 'chain') return dependent && !redundant;
   return false;
@@ -2230,12 +2383,21 @@ function counterfactualStructural(ir: UAALCounterfactualIR): boolean {
   const members = new Set((spec.sufficientSets || []).flat());
   const occurring = new Set(ir.occurs || []);
   const edgeParents = (ir.causal || [])
-    .filter((causal) => causal.to === effectId && truthyString(causal.from) && occurring.has(causal.from))
+    .filter(
+      (causal) => causal.to === effectId && truthyString(causal.from) && occurring.has(causal.from)
+    )
     .map((causal) => causal.from as string);
-  return edgeParents.every((parent) => members.has(parent)) && (spec.sufficientSets || []).every((set) => set.length > 0);
+  return (
+    edgeParents.every((parent) => members.has(parent)) &&
+    (spec.sufficientSets || []).every((set) => set.length > 0)
+  );
 }
 
-function counterfactualFlip(ir: UAALCounterfactualIR, metadata: UAALCounterfactualMetadata, recovered: UAALNecessityMap): boolean {
+function counterfactualFlip(
+  ir: UAALCounterfactualIR,
+  metadata: UAALCounterfactualMetadata,
+  recovered: UAALNecessityMap
+): boolean {
   const effectId = ir.query?.effect;
   if (!effectId) return false;
   const before = recovered[effectId] || {};
@@ -2246,7 +2408,10 @@ function counterfactualFlip(ir: UAALCounterfactualIR, metadata: UAALCounterfactu
   if (metadata.class === 'single_producer' || metadata.class === 'chain') {
     const target = spec.sufficientSets[0][0];
     spec.sufficientSets = [...spec.sufficientSets, ['__backup_injected']];
-    corrupt.standby = [...(corrupt.standby || []), { id: '__backup_injected', preemptedBy: target }];
+    corrupt.standby = [
+      ...(corrupt.standby || []),
+      { id: '__backup_injected', preemptedBy: target },
+    ];
   } else {
     spec.sufficientSets = [spec.sufficientSets[0]];
     corrupt.standby = [];
@@ -2261,7 +2426,7 @@ function counterfactualFlip(ir: UAALCounterfactualIR, metadata: UAALCounterfactu
 }
 
 export function benchmarkCounterfactual(
-  rows: Array<UAALSemanticBenchmarkRow<UAALCounterfactualIR, UAALCounterfactualMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALCounterfactualIR, UAALCounterfactualMetadata>>
 ): UAALCounterfactualBenchmarkResult {
   let n = 0;
   let ct1hits = 0;
@@ -2337,14 +2502,17 @@ function isAccessModality(value: string): value is UAALAccessModality {
   return value === 'visual' || value === 'audible';
 }
 
-function equalAccess(left: UAALAccessState | undefined, right: UAALAccessState | undefined): boolean {
+function equalAccess(
+  left: UAALAccessState | undefined,
+  right: UAALAccessState | undefined
+): boolean {
   return Boolean(left && right && left.visual === right.visual && left.audible === right.audible);
 }
 
 export function recoverAccess(
   ir: UAALContainmentIR,
   agent: string | undefined,
-  object: string | undefined,
+  object: string | undefined
 ): UAALAccessRecovery {
   const blocksMap = new Map((ir.entities || []).map((entity) => [entity.id, entity.blocks || []]));
   const chain = enclosingChain(ir, object);
@@ -2384,7 +2552,7 @@ export function recoverAccess(
 export function resolveAccess(
   ir: UAALContainmentIR,
   agent: string | undefined,
-  object: string | undefined,
+  object: string | undefined
 ): UAALResolution<UAALAccessRecovery> {
   const entityById = new Map((ir.entities || []).map((entity) => [entity.id, entity]));
   const chain = enclosingChain(ir, object);
@@ -2400,7 +2568,9 @@ export function resolveAccess(
       if (agentEnclosures.has(container)) break;
       const entity = entityById.get(container);
       const blocks = (entity?.blocks || []).filter(isAccessModality);
-      const blocksUnknown = ((entity?.blocks_unknown as string[] | undefined) || []).filter(isAccessModality);
+      const blocksUnknown = ((entity?.blocks_unknown as string[] | undefined) || []).filter(
+        isAccessModality
+      );
       const definiteBlock =
         blocks.includes(modality) || (modality === 'visual' && entity?.opaque === true);
       if (definiteBlock) {
@@ -2420,7 +2590,12 @@ export function resolveAccess(
         query: 'access',
         status: 'unresolvable',
         reason: 'underdetermined',
-        gap: structuredGap('access', 'access.underdetermined_modality', 'underdetermined', `${modality}@${unknownContainer}`),
+        gap: structuredGap(
+          'access',
+          'access.underdetermined_modality',
+          'underdetermined',
+          `${modality}@${unknownContainer}`
+        ),
         obstruction: `whether container "${unknownContainer}" blocks ${modality} between the agent and the object is unstated — ${modality} access could be open or blocked`,
       };
     }
@@ -2435,7 +2610,7 @@ export function resolveAccess(
 export function containmentAccessBaseline(
   ir: UAALContainmentIR,
   agent: string | undefined,
-  object: string | undefined,
+  object: string | undefined
 ): Pick<UAALAccessRecovery, 'access'> {
   const blocksMap = new Map((ir.entities || []).map((entity) => [entity.id, entity.blocks || []]));
   const chain = enclosingChain(ir, object);
@@ -2454,7 +2629,7 @@ export function containmentAccessBaseline(
 export const containmentBaseline = containmentAccessBaseline;
 
 export function benchmarkOcclusionAccess(
-  rows: Array<UAALSemanticBenchmarkRow<UAALContainmentIR, UAALAccessMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALContainmentIR, UAALAccessMetadata>>
 ): UAALAccessBenchmarkResult {
   let n = 0;
   let ot1 = 0;
@@ -2477,9 +2652,17 @@ export function benchmarkOcclusionAccess(
     if (equalAccess(recovered.access, groundTruth.access)) {
       ot1++;
     } else if (misses.ot1.length < 8) {
-      misses.ot1.push(`${groundTruth.id}: got ${JSON.stringify(recovered.access)} want ${JSON.stringify(groundTruth.access)}`);
+      misses.ot1.push(
+        `${groundTruth.id}: got ${JSON.stringify(recovered.access)} want ${JSON.stringify(groundTruth.access)}`
+      );
     }
-    if (equalAccess(containmentAccessBaseline(ir, query.agent, query.object).access, groundTruth.access)) baseCorrect++;
+    if (
+      equalAccess(
+        containmentAccessBaseline(ir, query.agent, query.object).access,
+        groundTruth.access
+      )
+    )
+      baseCorrect++;
 
     for (const modality of UAAL_ACCESS_MODALITIES) {
       if (groundTruth.blocker?.[modality] != null) {
@@ -2487,19 +2670,29 @@ export function benchmarkOcclusionAccess(
         if (recovered.blocker[modality] === groundTruth.blocker[modality]) {
           ot2++;
         } else if (misses.ot2.length < 8) {
-          misses.ot2.push(`${groundTruth.id}.${modality}: ${recovered.blocker[modality]} want ${groundTruth.blocker[modality]}`);
+          misses.ot2.push(
+            `${groundTruth.id}.${modality}: ${recovered.blocker[modality]} want ${groundTruth.blocker[modality]}`
+          );
         }
       }
     }
 
     if (groundTruth.access && groundTruth.access.visual === groundTruth.access.audible) {
       ot3denom++;
-      if (equalAccess(recovered.access, containmentAccessBaseline(ir, query.agent, query.object).access)) ot3++;
+      if (
+        equalAccess(
+          recovered.access,
+          containmentAccessBaseline(ir, query.agent, query.object).access
+        )
+      )
+        ot3++;
     }
 
     const corrupt = cloneJson(ir);
     const objectChain = enclosingChain(ir, query.object);
-    const barrier = (corrupt.entities || []).find((entity) => (entity.blocks || []).length && objectChain.includes(entity.id));
+    const barrier = (corrupt.entities || []).find(
+      (entity) => (entity.blocks || []).length && objectChain.includes(entity.id)
+    );
     let flipped = false;
     if (barrier) {
       if ((barrier.blocks || []).includes('audible')) {
@@ -2512,9 +2705,12 @@ export function benchmarkOcclusionAccess(
     } else {
       const region = enclosingChain(ir, query.object)[0];
       if (region && query.object) {
-        corrupt.entities = [...(corrupt.entities || []), { id: '__occ_box', kind: 'container', label: 'injected', blocks: ['visual'] }];
+        corrupt.entities = [
+          ...(corrupt.entities || []),
+          { id: '__occ_box', kind: 'container', label: 'injected', blocks: ['visual'] },
+        ];
         corrupt.containment = (corrupt.containment || []).map((relation) =>
-          relation.inner === query.object ? { inner: query.object, outer: '__occ_box' } : relation,
+          relation.inner === query.object ? { inner: query.object, outer: '__occ_box' } : relation
         );
         corrupt.containment.push({ inner: '__occ_box', outer: region });
         const corruptRecovered = recoverAccess(corrupt, query.agent, query.object);
@@ -2556,20 +2752,34 @@ export function benchmarkOcclusionAccess(
 export const benchmarkAccess = benchmarkOcclusionAccess;
 export const benchmarkOcclusion = benchmarkOcclusionAccess;
 
-export const UAAL_COMPOSITION_CHECKS: Record<UAALCompositionDimension, (ir: UAALCompositionIR) => boolean> = {
+export const UAAL_COMPOSITION_CHECKS: Record<
+  UAALCompositionDimension,
+  (ir: UAALCompositionIR) => boolean
+> = {
   norm: (ir) => ir.norm?.force === 'O',
-  counterparty: (ir) => truthyString(ir.query?.intended_recipient) && ir.query?.intended_recipient === ir.commitment?.promisee,
-  affordance: (ir) => recoverAffords(ir, ir.query?.agent, ir.query?.action, ir.query?.object).affords,
+  counterparty: (ir) =>
+    truthyString(ir.query?.intended_recipient) &&
+    ir.query?.intended_recipient === ir.commitment?.promisee,
+  affordance: (ir) =>
+    recoverAffords(ir, ir.query?.agent, ir.query?.action, ir.query?.object).affords,
   occlusion: (ir) => !recoverOcclusion(ir, ir.query?.agent, ir.query?.object).occluded,
   deadline: (ir) => (ir.time?.now ?? Infinity) <= (ir.time?.deadline ?? -Infinity),
 };
 
 export const CHECKS = UAAL_COMPOSITION_CHECKS;
 
-const UAAL_COMPOSITION_DIMS: UAALCompositionDimension[] = ['norm', 'counterparty', 'affordance', 'occlusion', 'deadline'];
+const UAAL_COMPOSITION_DIMS: UAALCompositionDimension[] = [
+  'norm',
+  'counterparty',
+  'affordance',
+  'occlusion',
+  'deadline',
+];
 
 export function recoverDischargeable(ir: UAALCompositionIR): DischargeableRecovery {
-  const reasons = UAAL_COMPOSITION_DIMS.filter((dimension) => !UAAL_COMPOSITION_CHECKS[dimension](ir));
+  const reasons = UAAL_COMPOSITION_DIMS.filter(
+    (dimension) => !UAAL_COMPOSITION_CHECKS[dimension](ir)
+  );
   return { dischargeable: reasons.length === 0, reasons };
 }
 
@@ -2619,7 +2829,7 @@ function rawOpacity(ir: UAALContainmentIR, id: string): boolean | undefined {
 export function resolveOcclusion(
   ir: UAALContainmentIR,
   agent: string | undefined,
-  object: string | undefined,
+  object: string | undefined
 ): UAALResolution<OcclusionRecovery> {
   const objectChain = enclosingChain(ir, object);
   const agentEnclosures = new Set(enclosingChain(ir, agent));
@@ -2628,7 +2838,11 @@ export function resolveOcclusion(
     if (agentEnclosures.has(container)) break;
     const opaque = rawOpacity(ir, container);
     if (opaque === true) {
-      return { query: 'occluded', status: 'resolved', answer: { occluded: true, occluder: container } };
+      return {
+        query: 'occluded',
+        status: 'resolved',
+        answer: { occluded: true, occluder: container },
+      };
     }
     if (opaque === undefined && unknownContainer === null) {
       unknownContainer = container;
@@ -2639,7 +2853,12 @@ export function resolveOcclusion(
       query: 'occluded',
       status: 'unresolvable',
       reason: 'underdetermined',
-      gap: structuredGap('occlusion', 'occlusion.opacity_unstated', 'underdetermined', unknownContainer),
+      gap: structuredGap(
+        'occlusion',
+        'occlusion.opacity_unstated',
+        'underdetermined',
+        unknownContainer
+      ),
       obstruction: `the opacity of container "${unknownContainer}" between the agent and the object is unstated`,
     };
   }
@@ -2651,7 +2870,8 @@ function hasPrecedence(ir: UAALDeonticIR, a: UAALDeonticNorm, b: UAALDeonticNorm
   if ((ir as { precedence?: unknown }).precedence !== undefined) return true;
   if ((ir as { priority?: unknown }).priority !== undefined) return true;
   const rank = (norm: UAALDeonticNorm): boolean =>
-    (norm as { priority?: unknown }).priority !== undefined || (norm as { overrides?: unknown }).overrides !== undefined;
+    (norm as { priority?: unknown }).priority !== undefined ||
+    (norm as { overrides?: unknown }).overrides !== undefined;
   return rank(a) || rank(b);
 }
 
@@ -2667,7 +2887,10 @@ function hasPrecedence(ir: UAALDeonticIR, a: UAALDeonticNorm, b: UAALDeonticNorm
  *      required_act or not — the scarce resource cannot satisfy both at once.
  * Precedence (via hasPrecedence) resolves either class.
  */
-export function resolveNormStatus(ir: UAALDeonticIR, normId: string | undefined): UAALResolution<NormStatusRecovery> {
+export function resolveNormStatus(
+  ir: UAALDeonticIR,
+  normId: string | undefined
+): UAALResolution<NormStatusRecovery> {
   const active = (ir.norms || []).filter((norm) => norm.active !== false);
   for (let i = 0; i < active.length; i += 1) {
     for (let j = i + 1; j < active.length; j += 1) {
@@ -2680,7 +2903,12 @@ export function resolveNormStatus(ir: UAALDeonticIR, normId: string | undefined)
           query: 'norm_status',
           status: 'unresolvable',
           reason: 'unprioritized_conflict',
-          gap: structuredGap('norm_status', 'norm_status.opposing_force', 'unprioritized_conflict', `${a.id}|${b.id}`),
+          gap: structuredGap(
+            'norm_status',
+            'norm_status.opposing_force',
+            'unprioritized_conflict',
+            `${a.id}|${b.id}`
+          ),
           obstruction: `norms "${a.id}" (${a.force}) and "${b.id}" (${b.force}) both bear on act "${String(a.required_act)}" with no precedence`,
         };
       }
@@ -2691,7 +2919,12 @@ export function resolveNormStatus(ir: UAALDeonticIR, normId: string | undefined)
           query: 'norm_status',
           status: 'unresolvable',
           reason: 'unprioritized_conflict',
-          gap: structuredGap('norm_status', 'norm_status.resource_contention', 'unprioritized_conflict', String(a.resource)),
+          gap: structuredGap(
+            'norm_status',
+            'norm_status.resource_contention',
+            'unprioritized_conflict',
+            String(a.resource)
+          ),
           obstruction: `obligations "${a.id}" and "${b.id}" both require the scarce resource "${String(a.resource)}" with no precedence`,
         };
       }
@@ -2746,10 +2979,11 @@ function dischargeCycle(deps: UAALDischargeDependency[]): string[] | null {
  * (== null). A present-but-insufficient magnitude is a determinate block, NOT a gap, so it returns null.
  */
 function affordanceMagnitudeMissing(
-  ir: UAALCompositionIR,
+  ir: UAALCompositionIR
 ): { action: string; requirement: string; attr: string } | null {
   const query = ir.query || {};
-  if (!truthyString(query.agent) || !truthyString(query.action) || !truthyString(query.object)) return null;
+  if (!truthyString(query.agent) || !truthyString(query.action) || !truthyString(query.object))
+    return null;
   const objectEntity = (ir.entities || []).find((entity) => entity.id === query.object);
   const offer = (objectEntity?.offers || []).find((candidate) => candidate.action === query.action);
   if (!offer || !offer.requires) return null;
@@ -2783,7 +3017,12 @@ export function resolveDischargeable(ir: UAALCompositionIR): UAALResolution<Disc
       query: 'dischargeable',
       status: 'unresolvable',
       reason: 'cyclic_dependency',
-      gap: structuredGap('dischargeable', 'dischargeable.cyclic_order', 'cyclic_dependency', cycle.join('→')),
+      gap: structuredGap(
+        'dischargeable',
+        'dischargeable.cyclic_order',
+        'cyclic_dependency',
+        cycle.join('→')
+      ),
       obstruction: `discharge order forms a cycle (${cycle.join(' → ')}); no obligation can act first`,
     };
   }
@@ -2792,8 +3031,13 @@ export function resolveDischargeable(ir: UAALCompositionIR): UAALResolution<Disc
       query: 'dischargeable',
       status: 'unresolvable',
       reason: 'missing_precondition',
-      gap: structuredGap('dischargeable', 'dischargeable.unstated_deadline', 'missing_precondition'),
-      obstruction: 'a deadline constrains discharge but neither the current time nor the deadline is stated',
+      gap: structuredGap(
+        'dischargeable',
+        'dischargeable.unstated_deadline',
+        'missing_precondition'
+      ),
+      obstruction:
+        'a deadline constrains discharge but neither the current time nor the deadline is stated',
     };
   }
   const missingMagnitude = affordanceMagnitudeMissing(ir);
@@ -2802,7 +3046,12 @@ export function resolveDischargeable(ir: UAALCompositionIR): UAALResolution<Disc
       query: 'dischargeable',
       status: 'unresolvable',
       reason: 'missing_precondition',
-      gap: structuredGap('dischargeable', 'dischargeable.unstated_magnitude', 'missing_precondition', missingMagnitude.attr),
+      gap: structuredGap(
+        'dischargeable',
+        'dischargeable.unstated_magnitude',
+        'missing_precondition',
+        missingMagnitude.attr
+      ),
       obstruction: `affordance "${missingMagnitude.action}" requires "${missingMagnitude.requirement}" but the agent's "${missingMagnitude.attr}" magnitude is unstated (capability can only be defaulted)`,
     };
   }
@@ -2811,12 +3060,15 @@ export function resolveDischargeable(ir: UAALCompositionIR): UAALResolution<Disc
 
 export function singleBaseline(
   ir: UAALCompositionIR,
-  dimension: UAALCompositionDimension,
+  dimension: UAALCompositionDimension
 ): Pick<DischargeableRecovery, 'dischargeable'> {
   return { dischargeable: UAAL_COMPOSITION_CHECKS[dimension](ir) };
 }
 
-function compositionSingleRates(correct: Record<UAALCompositionDimension, number>, n: number): Record<UAALCompositionDimension, number> {
+function compositionSingleRates(
+  correct: Record<UAALCompositionDimension, number>,
+  n: number
+): Record<UAALCompositionDimension, number> {
   return {
     norm: rate(correct.norm, n),
     counterparty: rate(correct.counterparty, n),
@@ -2826,7 +3078,10 @@ function compositionSingleRates(correct: Record<UAALCompositionDimension, number
   };
 }
 
-function repairCompositionBlock(ir: UAALCompositionIR, blockReason: UAALCompositionDimension | undefined): void {
+function repairCompositionBlock(
+  ir: UAALCompositionIR,
+  blockReason: UAALCompositionDimension | undefined
+): void {
   if (blockReason === 'norm') {
     ir.norm = { ...(ir.norm || {}), force: 'O' };
   } else if (blockReason === 'counterparty') {
@@ -2834,11 +3089,15 @@ function repairCompositionBlock(ir: UAALCompositionIR, blockReason: UAALComposit
   } else if (blockReason === 'affordance') {
     const object = (ir.entities || []).find((entity) => entity.id === ir.query?.object);
     const agent = (ir.entities || []).find((entity) => entity.id === ir.query?.agent);
-    const offer = object?.offers?.find((candidate) => candidate.action === ir.query?.action) || object?.offers?.[0];
+    const offer =
+      object?.offers?.find((candidate) => candidate.action === ir.query?.action) ||
+      object?.offers?.[0];
     if (offer) {
       setRequirementsSatisfied(ensureBody(agent), offer.requires);
       for (const precondition of offer.preconditions || []) {
-        const proposition = (ir.propositions || []).find((candidate) => candidate.id === precondition);
+        const proposition = (ir.propositions || []).find(
+          (candidate) => candidate.id === precondition
+        );
         if (proposition) proposition.holds = true;
       }
     }
@@ -2852,7 +3111,7 @@ function repairCompositionBlock(ir: UAALCompositionIR, blockReason: UAALComposit
 }
 
 export function benchmarkComposition(
-  rows: Array<UAALSemanticBenchmarkRow<UAALCompositionIR, UAALCompositionMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALCompositionIR, UAALCompositionMetadata>>
 ): UAALCompositionBenchmarkResult {
   let n = 0;
   let it1 = 0;
@@ -2879,11 +3138,14 @@ export function benchmarkComposition(
     if (recovered.dischargeable === expectedDischargeable) {
       it1++;
     } else if (misses.it1.length < 8) {
-      misses.it1.push(`${groundTruth.id}: got ${recovered.dischargeable} want ${expectedDischargeable}`);
+      misses.it1.push(
+        `${groundTruth.id}: got ${recovered.dischargeable} want ${expectedDischargeable}`
+      );
     }
 
     for (const dimension of UAAL_COMPOSITION_DIMS) {
-      if (singleBaseline(ir, dimension).dischargeable === expectedDischargeable) singleCorrect[dimension]++;
+      if (singleBaseline(ir, dimension).dischargeable === expectedDischargeable)
+        singleCorrect[dimension]++;
     }
 
     if (!expectedDischargeable) {
@@ -2891,7 +3153,9 @@ export function benchmarkComposition(
       if (recovered.reasons.length === 1 && recovered.reasons[0] === groundTruth.block_reason) {
         it2++;
       } else if (misses.it2.length < 8) {
-        misses.it2.push(`${groundTruth.id}: reasons ${JSON.stringify(recovered.reasons)} want ${groundTruth.block_reason}`);
+        misses.it2.push(
+          `${groundTruth.id}: reasons ${JSON.stringify(recovered.reasons)} want ${groundTruth.block_reason}`
+        );
       }
     }
 
@@ -2957,10 +3221,14 @@ export function resolveAffords(
   ir: UAALAffordanceIR,
   agent: string | undefined,
   action: string | undefined,
-  object: string | undefined,
+  object: string | undefined
 ): UAALResolution<AffordanceRecovery> {
   if (!truthyString(agent) || !truthyString(action) || !truthyString(object)) {
-    return { query: 'affords', status: 'resolved', answer: { affords: false, reason: 'invalid_query' } };
+    return {
+      query: 'affords',
+      status: 'resolved',
+      answer: { affords: false, reason: 'invalid_query' },
+    };
   }
   const agentEntity = (ir.entities || []).find((entity) => entity.id === agent);
   const objectEntity = (ir.entities || []).find((entity) => entity.id === object);
@@ -2971,7 +3239,9 @@ export function resolveAffords(
   }
 
   const stated = new Set((ir.propositions || []).map((proposition) => proposition.id));
-  const holds = new Map((ir.propositions || []).map((proposition) => [proposition.id, Boolean(proposition.holds)]));
+  const holds = new Map(
+    (ir.propositions || []).map((proposition) => [proposition.id, Boolean(proposition.holds)])
+  );
   type Verdict =
     | { kind: 'affords' }
     | { kind: 'blocked'; reason: string }
@@ -2983,7 +3253,12 @@ export function resolveAffords(
       if (!UAAL_AFFORDANCE_REQUIREMENTS[key]) continue;
       const spec = UAAL_AFFORDANCE_REQUIREMENTS[key];
       if (agentEntity?.body?.[spec.attr] == null) {
-        return { kind: 'unknown', code: 'affordance.unstated_capability', base: 'missing_precondition', evidence: key };
+        return {
+          kind: 'unknown',
+          code: 'affordance.unstated_capability',
+          base: 'missing_precondition',
+          evidence: key,
+        };
       }
     }
     const capability = requirementCheck(agentEntity?.body, offer.requires);
@@ -2991,7 +3266,12 @@ export function resolveAffords(
     // Preconditions: an UNSTATED precondition proposition is unknown, not a block.
     for (const precondition of offer.preconditions || []) {
       if (!stated.has(precondition)) {
-        return { kind: 'unknown', code: 'affordance.unstated_precondition', base: 'missing_precondition', evidence: precondition };
+        return {
+          kind: 'unknown',
+          code: 'affordance.unstated_precondition',
+          base: 'missing_precondition',
+          evidence: precondition,
+        };
       }
       if (!holds.get(precondition)) return { kind: 'blocked', reason: 'precondition' };
     }
@@ -3000,7 +3280,9 @@ export function resolveAffords(
 
   const anyAfford = verdicts.some((verdict) => verdict.kind === 'affords');
   const anyBlocked = verdicts.some((verdict) => verdict.kind === 'blocked');
-  const unknowns = verdicts.filter((verdict): verdict is Extract<Verdict, { kind: 'unknown' }> => verdict.kind === 'unknown');
+  const unknowns = verdicts.filter(
+    (verdict): verdict is Extract<Verdict, { kind: 'unknown' }> => verdict.kind === 'unknown'
+  );
 
   // One offer affords, another blocks, no precedence → genuinely indeterminate.
   if (anyAfford && anyBlocked) {
@@ -3008,12 +3290,18 @@ export function resolveAffords(
       query: 'affords',
       status: 'unresolvable',
       reason: 'unprioritized_conflict',
-      gap: structuredGap('affordance', 'affordance.conflicting_offers', 'unprioritized_conflict', String(action)),
+      gap: structuredGap(
+        'affordance',
+        'affordance.conflicting_offers',
+        'unprioritized_conflict',
+        String(action)
+      ),
       obstruction: `two offers for "${action}" on "${object}" disagree with no precedence`,
     };
   }
   // A determinate afford stands even if a different offer is unknown.
-  if (anyAfford) return { query: 'affords', status: 'resolved', answer: { affords: true, reason: null } };
+  if (anyAfford)
+    return { query: 'affords', status: 'resolved', answer: { affords: true, reason: null } };
   // No offer determinately affords; if any path is merely UNKNOWN, the query is underdetermined.
   if (unknowns.length > 0) {
     const unknown = unknowns[0];
@@ -3026,7 +3314,11 @@ export function resolveAffords(
     };
   }
   // Every offer is determinately blocked → an honest 'no'.
-  return { query: 'affords', status: 'resolved', answer: recoverAffords(ir, agent, action, object) };
+  return {
+    query: 'affords',
+    status: 'resolved',
+    answer: recoverAffords(ir, agent, action, object),
+  };
 }
 
 /**
@@ -3040,11 +3332,15 @@ export function resolveAffords(
 export function resolveTemporal(
   ir: UAALTemporalIR,
   beliefId: string | undefined,
-  factId: string | undefined,
+  factId: string | undefined
 ): UAALResolution<BeliefStatusRecovery> {
   const belief = (ir.beliefs || []).find((candidate) => candidate.id === beliefId);
   if (!belief) {
-    return { query: 'belief_status', status: 'resolved', answer: { status: 'unknown', change_event: null } };
+    return {
+      query: 'belief_status',
+      status: 'resolved',
+      answer: { status: 'unknown', change_event: null },
+    };
   }
   if (typeof ir.t_now !== 'number') {
     return {
@@ -3057,7 +3353,11 @@ export function resolveTemporal(
   }
   const now = factValueAt(ir, factId, ir.t_now);
   if (belief.prop === now) {
-    return { query: 'belief_status', status: 'resolved', answer: { status: 'fresh', change_event: null } };
+    return {
+      query: 'belief_status',
+      status: 'resolved',
+      answer: { status: 'fresh', change_event: null },
+    };
   }
   // The belief disagrees with the current fact → stale or error, decidable only with the formation time.
   if (typeof belief.t_formed !== 'number') {
@@ -3065,11 +3365,21 @@ export function resolveTemporal(
       query: 'belief_status',
       status: 'unresolvable',
       reason: 'underdetermined',
-      gap: structuredGap('temporal', 'temporal.unstated_formation_time', 'underdetermined', beliefId || 'belief'),
-      obstruction: 'belief formation time is unstated — stale (was right, fact changed) vs error (never right) is undecidable',
+      gap: structuredGap(
+        'temporal',
+        'temporal.unstated_formation_time',
+        'underdetermined',
+        beliefId || 'belief'
+      ),
+      obstruction:
+        'belief formation time is unstated — stale (was right, fact changed) vs error (never right) is undecidable',
     };
   }
-  return { query: 'belief_status', status: 'resolved', answer: recoverBeliefStatus(ir, beliefId, factId) };
+  return {
+    query: 'belief_status',
+    status: 'resolved',
+    answer: recoverBeliefStatus(ir, beliefId, factId),
+  };
 }
 
 /**
@@ -3081,11 +3391,15 @@ export function resolveTemporal(
  */
 export function resolveCommitment(
   ir: UAALCommitmentIR,
-  commitmentId: string | undefined,
+  commitmentId: string | undefined
 ): UAALResolution<CommitmentStatusRecovery> {
   const commitment = commitmentById(ir, commitmentId);
   if (!commitment) {
-    return { query: 'commitment_status', status: 'resolved', answer: { status: 'open', fulfilling: null } };
+    return {
+      query: 'commitment_status',
+      status: 'resolved',
+      answer: { status: 'open', fulfilling: null },
+    };
   }
   const recovered = recoverCommitmentStatus(ir, commitmentId);
   if (recovered.status === 'discharged') {
@@ -3098,7 +3412,8 @@ export function resolveCommitment(
       status: 'unresolvable',
       reason: 'missing_precondition',
       gap: structuredGap('commitment', 'commitment.unstated_now', 'missing_precondition', 'now'),
-      obstruction: 'current time is unstated — an undischarged commitment past a stated deadline cannot be called broken vs open',
+      obstruction:
+        'current time is unstated — an undischarged commitment past a stated deadline cannot be called broken vs open',
     };
   }
   return { query: 'commitment_status', status: 'resolved', answer: recovered };
@@ -3179,7 +3494,12 @@ export function resolveCounterfactual(ir: UAALCounterfactualIR): UAALResolution<
         query: 'necessity',
         status: 'unresolvable',
         reason: 'cyclic_dependency',
-        gap: structuredGap('counterfactual', 'counterfactual.non_identifiable_cycle', 'cyclic_dependency', cycle.join(' → ')),
+        gap: structuredGap(
+          'counterfactual',
+          'counterfactual.non_identifiable_cycle',
+          'cyclic_dependency',
+          cycle.join(' → ')
+        ),
         obstruction: `effect "${String(effectId)}" rests on an ungrounded production cycle (${cycle.join(' → ')}); necessity has no consistent grounding order`,
       };
     }
@@ -3198,7 +3518,9 @@ export function essentialRoles(ir: UAALMereologyIR): Set<string> {
 export function partsTraceToWhole(ir: UAALMereologyIR): boolean {
   const whole = ir.query?.whole;
   const containmentView: UAALContainmentIR = { containment: ir.part_of || [] };
-  return (ir.parts || []).every((part) => enclosingChain(containmentView, part.id).includes(whole || ''));
+  return (ir.parts || []).every((part) =>
+    enclosingChain(containmentView, part.id).includes(whole || '')
+  );
 }
 
 export function recoverPersistence(ir: UAALMereologyIR): PersistenceRecovery {
@@ -3230,15 +3552,22 @@ export function resolveMereology(ir: UAALMereologyIR): UAALResolution<Persistenc
   const changes = ir.changes || [];
   const removed = changes.filter((change) => change.op === 'remove');
   const addedRoles = new Set(
-    changes.filter((change) => change.op === 'add').map((change) => change.role).filter(truthyString),
+    changes
+      .filter((change) => change.op === 'add')
+      .map((change) => change.role)
+      .filter(truthyString)
   );
   const unreplaced = (change: UAALMereologyChange): boolean =>
     !(truthyString(change.role) && addedRoles.has(change.role));
 
   // A stated-essential, unreplaced removal already dissolves the whole — determinate, resolve.
-  const definiteDissolve = removed.some((change) => change.essential === true && unreplaced(change));
+  const definiteDissolve = removed.some(
+    (change) => change.essential === true && unreplaced(change)
+  );
   if (!definiteDissolve) {
-    const unknown = removed.find((change) => typeof change.essential !== 'boolean' && unreplaced(change));
+    const unknown = removed.find(
+      (change) => typeof change.essential !== 'boolean' && unreplaced(change)
+    );
     if (unknown) {
       const ref = truthyString(unknown.part) ? unknown.part : unknown.role;
       const label = truthyString(ref) ? (ref as string) : 'a removed part';
@@ -3250,7 +3579,7 @@ export function resolveMereology(ir: UAALMereologyIR): UAALResolution<Persistenc
           'mereology',
           'mereology.unstated_essentiality',
           'missing_precondition',
-          truthyString(ref) ? (ref as string) : undefined,
+          truthyString(ref) ? (ref as string) : undefined
         ),
         obstruction: `${label} is removed without replacement and its essentiality is unstated — the whole persists if it is inessential and dissolves if it is essential`,
       };
@@ -3259,27 +3588,35 @@ export function resolveMereology(ir: UAALMereologyIR): UAALResolution<Persistenc
   return { query: 'persistence', status: 'resolved', answer: recoverPersistence(ir) };
 }
 
-export function essentialismPersistence(ir: UAALMereologyIR): Pick<PersistenceRecovery, 'persists'> {
+export function essentialismPersistence(
+  ir: UAALMereologyIR
+): Pick<PersistenceRecovery, 'persists'> {
   return { persists: !(ir.changes || []).some((change) => change.op === 'remove') };
 }
 
 function invertMereology(ir: UAALMereologyIR, metadata: UAALMereologyMetadata): UAALMereologyIR {
   const corrupt = cloneJson(ir);
   if (metadata.persists) {
-    const removedEssential = (corrupt.changes || []).find((change) => change.op === 'remove' && change.essential);
+    const removedEssential = (corrupt.changes || []).find(
+      (change) => change.op === 'remove' && change.essential
+    );
     if (removedEssential) {
       corrupt.changes = (corrupt.changes || []).filter(
-        (change) => !(change.op === 'add' && change.role === removedEssential.role),
+        (change) => !(change.op === 'add' && change.role === removedEssential.role)
       );
     } else {
       const removal = (corrupt.changes || []).find((change) => change.op === 'remove');
       if (removal) {
         removal.essential = true;
-        corrupt.changes = (corrupt.changes || []).filter((change) => !(change.op === 'add' && change.role === removal.role));
+        corrupt.changes = (corrupt.changes || []).filter(
+          (change) => !(change.op === 'add' && change.role === removal.role)
+        );
       }
     }
   } else {
-    const removedEssential = (corrupt.changes || []).find((change) => change.op === 'remove' && change.essential);
+    const removedEssential = (corrupt.changes || []).find(
+      (change) => change.op === 'remove' && change.essential
+    );
     if (removedEssential) {
       corrupt.changes = [
         ...(corrupt.changes || []),
@@ -3291,7 +3628,7 @@ function invertMereology(ir: UAALMereologyIR, metadata: UAALMereologyMetadata): 
 }
 
 export function benchmarkMereology(
-  rows: Array<UAALSemanticBenchmarkRow<UAALMereologyIR, UAALMereologyMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALMereologyIR, UAALMereologyMetadata>>
 ): UAALMereologyBenchmarkResult {
   let n = 0;
   let mp1 = 0;
@@ -3314,14 +3651,17 @@ export function benchmarkMereology(
     } else if (misses.mp1.length < 8) {
       misses.mp1.push(`${groundTruth.id}: got ${recovered.persists} want ${groundTruth.persists}`);
     }
-    if (essentialismPersistence(ir).persists === Boolean(groundTruth.persists)) essentialismCorrect++;
+    if (essentialismPersistence(ir).persists === Boolean(groundTruth.persists))
+      essentialismCorrect++;
 
     if (groundTruth.persists === false) {
       mp2denom++;
       if (recovered.dissolving_role === groundTruth.dissolving_role) {
         mp2++;
       } else if (misses.mp2.length < 8) {
-        misses.mp2.push(`${groundTruth.id}: role ${recovered.dissolving_role} want ${groundTruth.dissolving_role}`);
+        misses.mp2.push(
+          `${groundTruth.id}: role ${recovered.dissolving_role} want ${groundTruth.dissolving_role}`
+        );
       }
     }
 
@@ -3361,7 +3701,9 @@ export function benchmarkMereology(
   };
 }
 
-export function reachableTerminals(ir: UAALTensionIR): Array<{ id: string; outcome: string | undefined }> {
+export function reachableTerminals(
+  ir: UAALTensionIR
+): Array<{ id: string; outcome: string | undefined }> {
   const adjacency = new Map<string, Set<string>>();
   for (const edge of ir.unfired || []) {
     if (!truthyString(edge.from) || !truthyString(edge.to)) continue;
@@ -3382,7 +3724,9 @@ export function reachableTerminals(ir: UAALTensionIR): Array<{ id: string; outco
     }
   }
 
-  const outcomeOf = new Map((ir.terminals || []).map((terminal) => [terminal.id, terminal.outcome]));
+  const outcomeOf = new Map(
+    (ir.terminals || []).map((terminal) => [terminal.id, terminal.outcome])
+  );
   return [...seen]
     .filter((id) => terminalIds.has(id) && id !== start)
     .map((id) => ({ id, outcome: outcomeOf.get(id) }));
@@ -3455,12 +3799,17 @@ function tensionStructural(ir: UAALTensionIR): boolean {
   if (!truthyString(start) || !nodeIds.has(start)) return false;
   const terminalIds = new Set((ir.terminals || []).map((terminal) => terminal.id));
   return (
-    reachableTerminals(ir).every((terminal) => terminalIds.has(terminal.id) && terminal.outcome != null) &&
-    (ir.unfired || []).every((edge) => edge.from != null && edge.to != null)
+    reachableTerminals(ir).every(
+      (terminal) => terminalIds.has(terminal.id) && terminal.outcome != null
+    ) && (ir.unfired || []).every((edge) => edge.from != null && edge.to != null)
   );
 }
 
-function tensionFlip(ir: UAALTensionIR, metadata: UAALTensionMetadata, recovered: TensionRecovery): boolean {
+function tensionFlip(
+  ir: UAALTensionIR,
+  metadata: UAALTensionMetadata,
+  recovered: TensionRecovery
+): boolean {
   const corrupt = cloneJson(ir);
   const start = corrupt.query?.frontier || corrupt.frontier;
   if (metadata.tension) {
@@ -3472,15 +3821,24 @@ function tensionFlip(ir: UAALTensionIR, metadata: UAALTensionMetadata, recovered
     const reached = reachableTerminals(corrupt);
     const hasGoal = reached.some((terminal) => terminal.outcome === 'goal');
     const injectOutcome = hasGoal ? 'antigoal' : 'goal';
-    corrupt.terminals = [...(corrupt.terminals || []), { id: '__terminal_injected', outcome: injectOutcome }];
-    corrupt.nodes = [...(corrupt.nodes || []), { id: '__terminal_injected', label: 'injected reversal' }];
-    corrupt.unfired = [...(corrupt.unfired || []), { from: start, to: '__terminal_injected', via: 'injected reversal' }];
+    corrupt.terminals = [
+      ...(corrupt.terminals || []),
+      { id: '__terminal_injected', outcome: injectOutcome },
+    ];
+    corrupt.nodes = [
+      ...(corrupt.nodes || []),
+      { id: '__terminal_injected', label: 'injected reversal' },
+    ];
+    corrupt.unfired = [
+      ...(corrupt.unfired || []),
+      { from: start, to: '__terminal_injected', via: 'injected reversal' },
+    ];
   }
   return recoverTension(corrupt).tension !== recovered.tension;
 }
 
 export function benchmarkTension(
-  rows: Array<UAALSemanticBenchmarkRow<UAALTensionIR, UAALTensionMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALTensionIR, UAALTensionMetadata>>
 ): UAALTensionBenchmarkResult {
   let n = 0;
   let nt1 = 0;
@@ -3501,7 +3859,9 @@ export function benchmarkTension(
     if (recovered.tension === Boolean(groundTruth.tension)) {
       nt1++;
     } else if (misses.nt1.length < 8) {
-      misses.nt1.push(`${groundTruth.id}: recovered=${recovered.tension} truth=${groundTruth.tension}`);
+      misses.nt1.push(
+        `${groundTruth.id}: recovered=${recovered.tension} truth=${groundTruth.tension}`
+      );
     }
     if (branchCountTension(ir).tension === Boolean(groundTruth.tension)) baselineCorrect++;
 
@@ -3509,7 +3869,9 @@ export function benchmarkTension(
     if (tensionFidelity(recovered, groundTruth)) {
       nt2++;
     } else if (misses.nt2.length < 8) {
-      misses.nt2.push(`${groundTruth.id}: contradiction ${JSON.stringify(recovered.contradiction)} vs ${JSON.stringify(groundTruth.contradiction)}`);
+      misses.nt2.push(
+        `${groundTruth.id}: contradiction ${JSON.stringify(recovered.contradiction)} vs ${JSON.stringify(groundTruth.contradiction)}`
+      );
     }
     if (tensionStructural(ir)) nt3++;
     if (tensionFlip(ir, groundTruth, recovered)) {
@@ -3553,7 +3915,11 @@ function analogyRelationKey(pred: unknown, from: unknown, to: unknown): string {
 }
 
 function analogyRelationSet(graph: UAALAnalogyGraph | undefined): Set<string> {
-  return new Set((graph?.relations || []).map((relation) => analogyRelationKey(relation.pred, relation.from, relation.to)));
+  return new Set(
+    (graph?.relations || []).map((relation) =>
+      analogyRelationKey(relation.pred, relation.from, relation.to)
+    )
+  );
 }
 
 function analogyAttrMap(graph: UAALAnalogyGraph | undefined): Map<string, Set<string>> {
@@ -3570,7 +3936,11 @@ export function recoverValidity(ir: UAALAnalogyIR): AnalogyValidityRecovery {
   for (const relation of sourceRelations) {
     const fromTarget = truthyString(relation.from) ? map.get(relation.from) : undefined;
     const toTarget = truthyString(relation.to) ? map.get(relation.to) : undefined;
-    if (fromTarget != null && toTarget != null && targetRelations.has(analogyRelationKey(relation.pred, fromTarget, toTarget))) {
+    if (
+      fromTarget != null &&
+      toTarget != null &&
+      targetRelations.has(analogyRelationKey(relation.pred, fromTarget, toTarget))
+    ) {
       preserved++;
     } else {
       broken.push(String(relation.pred || ''));
@@ -3580,7 +3950,11 @@ export function recoverValidity(ir: UAALAnalogyIR): AnalogyValidityRecovery {
   const images = [...map.values()];
   const injective = new Set(images).size === images.length;
   const endpointsCovered = sourceRelations.every(
-    (relation) => truthyString(relation.from) && truthyString(relation.to) && map.has(relation.from) && map.has(relation.to),
+    (relation) =>
+      truthyString(relation.from) &&
+      truthyString(relation.to) &&
+      map.has(relation.from) &&
+      map.has(relation.to)
   );
   const total = sourceRelations.length;
   return {
@@ -3612,19 +3986,33 @@ export function recoverValidity(ir: UAALAnalogyIR): AnalogyValidityRecovery {
 export function resolveValidity(ir: UAALAnalogyIR): UAALResolution<AnalogyValidityRecovery> {
   const recovered = recoverValidity(ir);
   const targetRelations = analogyRelationSet(ir.target);
-  if (recovered.total > 0 && recovered.injective && recovered.endpointsCovered && targetRelations.size === 0) {
+  if (
+    recovered.total > 0 &&
+    recovered.injective &&
+    recovered.endpointsCovered &&
+    targetRelations.size === 0
+  ) {
     return {
       query: 'analogy_validity',
       status: 'unresolvable',
       reason: 'underdetermined',
-      gap: structuredGap('analogy', 'analogy.no_target_relations', 'underdetermined', `${recovered.total} source relation(s)`),
+      gap: structuredGap(
+        'analogy',
+        'analogy.no_target_relations',
+        'underdetermined',
+        `${recovered.total} source relation(s)`
+      ),
       obstruction: `the source states ${recovered.total} relation(s) under a total, injective mapping but the target states no relations — relation preservation is the only analogy-validity diagnostic, so valid vs invalid is undetermined`,
     };
   }
   return { query: 'analogy_validity', status: 'resolved', answer: recovered };
 }
 
-export function surfaceSimilarityValidity(ir: UAALAnalogyIR): { valid: boolean; shared: number; pairs: number } {
+export function surfaceSimilarityValidity(ir: UAALAnalogyIR): {
+  valid: boolean;
+  shared: number;
+  pairs: number;
+} {
   const map = analogyBijection(ir);
   const sourceAttrs = analogyAttrMap(ir.source);
   const targetAttrs = analogyAttrMap(ir.target);
@@ -3650,7 +4038,12 @@ function breakOneAnalogyRelation(ir: UAALAnalogyIR): UAALAnalogyIR {
   corrupt.target = {
     ...(corrupt.target || {}),
     relations: (corrupt.target?.relations || []).filter(
-      (candidate) => !(candidate.pred === relation.pred && candidate.from === fromTarget && candidate.to === toTarget),
+      (candidate) =>
+        !(
+          candidate.pred === relation.pred &&
+          candidate.from === fromTarget &&
+          candidate.to === toTarget
+        )
     ),
   };
   return corrupt;
@@ -3692,10 +4085,15 @@ function repairAnalogyMapping(ir: UAALAnalogyIR): UAALAnalogyIR {
   for (const permutation of permutations(targetEntities.map((entity) => entity.id))) {
     const map = new Map(sourceEntities.map((entity, index) => [entity.id, permutation[index]]));
     const ok = (corrupt.source?.relations || []).every((relation) =>
-      targetRelations.has(analogyRelationKey(relation.pred, map.get(relation.from || ''), map.get(relation.to || ''))),
+      targetRelations.has(
+        analogyRelationKey(relation.pred, map.get(relation.from || ''), map.get(relation.to || ''))
+      )
     );
     if (ok) {
-      corrupt.mapping = sourceEntities.map((entity, index) => ({ from: entity.id, to: permutation[index] }));
+      corrupt.mapping = sourceEntities.map((entity, index) => ({
+        from: entity.id,
+        to: permutation[index],
+      }));
       break;
     }
   }
@@ -3703,7 +4101,7 @@ function repairAnalogyMapping(ir: UAALAnalogyIR): UAALAnalogyIR {
 }
 
 export function benchmarkAnalogy(
-  rows: Array<UAALSemanticBenchmarkRow<UAALAnalogyIR, UAALAnalogyMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALAnalogyIR, UAALAnalogyMetadata>>
 ): UAALAnalogyBenchmarkResult {
   let n = 0;
   let an1 = 0;
@@ -3711,7 +4109,12 @@ export function benchmarkAnalogy(
   let an3 = 0;
   let an4 = 0;
   let surfaceCorrect = 0;
-  const misses = { an1: [] as string[], an2: [] as string[], an3: [] as string[], an4: [] as string[] };
+  const misses = {
+    an1: [] as string[],
+    an2: [] as string[],
+    an3: [] as string[],
+    an4: [] as string[],
+  };
 
   for (const row of rows) {
     const ir = safeParseCompletion<UAALAnalogyIR>(row.completion);
@@ -3723,20 +4126,29 @@ export function benchmarkAnalogy(
     if (recovered.valid === Boolean(groundTruth.valid)) {
       an1++;
     } else if (misses.an1.length < 8) {
-      misses.an1.push(`${groundTruth.id}: recovered valid=${recovered.valid} truth=${groundTruth.valid}`);
+      misses.an1.push(
+        `${groundTruth.id}: recovered valid=${recovered.valid} truth=${groundTruth.valid}`
+      );
     }
     if (surfaceSimilarityValidity(ir).valid === Boolean(groundTruth.valid)) surfaceCorrect++;
 
-    if (recovered.preserved === groundTruth.preserved_relations && recovered.total === groundTruth.required_relations) {
+    if (
+      recovered.preserved === groundTruth.preserved_relations &&
+      recovered.total === groundTruth.required_relations
+    ) {
       an2++;
     } else if (misses.an2.length < 8) {
-      misses.an2.push(`${groundTruth.id}: recovered ${recovered.preserved}/${recovered.total} declared ${groundTruth.preserved_relations}/${groundTruth.required_relations}`);
+      misses.an2.push(
+        `${groundTruth.id}: recovered ${recovered.preserved}/${recovered.total} declared ${groundTruth.preserved_relations}/${groundTruth.required_relations}`
+      );
     }
 
     if (recovered.injective && recovered.endpointsCovered) {
       an3++;
     } else if (misses.an3.length < 8) {
-      misses.an3.push(`${groundTruth.id}: injective=${recovered.injective} endpointsCovered=${recovered.endpointsCovered}`);
+      misses.an3.push(
+        `${groundTruth.id}: injective=${recovered.injective} endpointsCovered=${recovered.endpointsCovered}`
+      );
     }
 
     const corrupt = groundTruth.valid
@@ -3776,7 +4188,10 @@ export function benchmarkAnalogy(
   };
 }
 
-function presuppositionFormNamed(ir: UAALPresuppositionIR, name: string): UAALPresuppositionForm | null {
+function presuppositionFormNamed(
+  ir: UAALPresuppositionIR,
+  name: string
+): UAALPresuppositionForm | null {
   return (ir.forms || []).find((form) => form.form === name) || null;
 }
 
@@ -3792,7 +4207,8 @@ export function recoverAtomStatus(ir: UAALPresuppositionIR, atom: string): AtomS
   const forms = ir.forms || [];
   const embedded = forms.filter((form) => form.form !== 'asserted');
   const inAsserted = atomInForm(ir, 'asserted', atom);
-  const survivesAll = inAsserted && embedded.length > 0 && embedded.every((form) => atomsOf(form).has(atom));
+  const survivesAll =
+    inAsserted && embedded.length > 0 && embedded.every((form) => atomsOf(form).has(atom));
   if (survivesAll) return { status: 'presupposed' };
   return { status: 'at_issue' };
 }
@@ -3814,7 +4230,7 @@ export function recoverAtomStatus(ir: UAALPresuppositionIR, atom: string): AtomS
  */
 export function resolveAtomStatus(
   ir: UAALPresuppositionIR,
-  atom: string | undefined,
+  atom: string | undefined
 ): UAALResolution<AtomStatusRecovery> {
   const atomId = String(atom ?? '');
   const embedded = (ir.forms || []).filter((form) => form.form !== 'asserted');
@@ -3823,7 +4239,12 @@ export function resolveAtomStatus(
       query: 'atom_status',
       status: 'unresolvable',
       reason: 'underdetermined',
-      gap: structuredGap('presupposition', 'presupposition.no_embedded_forms', 'underdetermined', atomId),
+      gap: structuredGap(
+        'presupposition',
+        'presupposition.no_embedded_forms',
+        'underdetermined',
+        atomId
+      ),
       obstruction: `atom "${atomId}" is asserted but the IR states no embedded (negated/modal/question) forms — projection under embedding is the only presupposition diagnostic, so presupposed vs at_issue is undetermined`,
     };
   }
@@ -3835,7 +4256,7 @@ export function surfacePresenceStatus(ir: UAALPresuppositionIR, atom: string): A
 }
 
 export function benchmarkPresupposition(
-  rows: Array<UAALSemanticBenchmarkRow<UAALPresuppositionIR, UAALPresuppositionMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALPresuppositionIR, UAALPresuppositionMetadata>>
 ): UAALPresuppositionBenchmarkResult {
   let atomN = 0;
   let pt1 = 0;
@@ -3882,11 +4303,17 @@ export function benchmarkPresupposition(
         pt4denom++;
         const corrupt = cloneJson(ir);
         const negated = (corrupt.forms || []).find((form) => form.form === 'negated');
-        if (negated) negated.atoms = (negated.atoms || []).filter((candidate) => candidate !== atom);
-        if (recoverAtomStatus(corrupt, atom).status === 'at_issue' && recovered.status === 'presupposed') {
+        if (negated)
+          negated.atoms = (negated.atoms || []).filter((candidate) => candidate !== atom);
+        if (
+          recoverAtomStatus(corrupt, atom).status === 'at_issue' &&
+          recovered.status === 'presupposed'
+        ) {
           pt4++;
         } else if (misses.pt4.length < 8) {
-          misses.pt4.push(`${groundTruth.id}/${atom}: presupposed did not flip after negated-form strip`);
+          misses.pt4.push(
+            `${groundTruth.id}/${atom}: presupposed did not flip after negated-form strip`
+          );
         }
       } else if (want === 'at_issue') {
         pt4denom++;
@@ -3894,7 +4321,10 @@ export function benchmarkPresupposition(
         for (const form of corrupt.forms || []) {
           if (!(form.atoms || []).includes(atom)) form.atoms = [...(form.atoms || []), atom];
         }
-        if (recoverAtomStatus(corrupt, atom).status === 'presupposed' && recovered.status === 'at_issue') {
+        if (
+          recoverAtomStatus(corrupt, atom).status === 'presupposed' &&
+          recovered.status === 'at_issue'
+        ) {
           pt4++;
         } else if (misses.pt4.length < 8) {
           misses.pt4.push(`${groundTruth.id}/${atom}: at_issue did not flip after projection`);
@@ -3931,7 +4361,10 @@ export function benchmarkPresupposition(
 export function canonicalForm(component: UAALMotifComponent): string {
   const roleOf = new Map((component.nodes || []).map((node) => [node.id, node.role]));
   return (component.edges || [])
-    .map((edge) => `${roleOf.get(edge.from || '') ?? '?'}--${edge.type}-->${roleOf.get(edge.to || '') ?? '?'}`)
+    .map(
+      (edge) =>
+        `${roleOf.get(edge.from || '') ?? '?'}--${edge.type}-->${roleOf.get(edge.to || '') ?? '?'}`
+    )
     .sort()
     .join('|');
 }
@@ -3953,10 +4386,14 @@ export function recoverMotif(ir: UAALMotifIR): MotifRecovery {
   return best;
 }
 
-export function lexicalRecurrence(ir: UAALMotifIR): Pick<MotifRecovery, 'has_motif' | 'recurrence_count'> {
+export function lexicalRecurrence(
+  ir: UAALMotifIR
+): Pick<MotifRecovery, 'has_motif' | 'recurrence_count'> {
   const labelToComponents = new Map<string, Set<string>>();
   for (const component of ir.components || []) {
-    const labels = new Set((component.nodes || []).map((node) => (node.label || '').trim().toLowerCase()).filter(Boolean));
+    const labels = new Set(
+      (component.nodes || []).map((node) => (node.label || '').trim().toLowerCase()).filter(Boolean)
+    );
     for (const label of labels) {
       if (!labelToComponents.has(label)) labelToComponents.set(label, new Set());
       labelToComponents.get(label)?.add(component.id);
@@ -3978,7 +4415,8 @@ function motifStructural(ir: UAALMotifIR): boolean {
     if (nodeIds.size === 0 || (component.edges || []).length === 0) return false;
     for (const node of component.nodes || []) if (!truthyString(node.role)) return false;
     for (const edge of component.edges || []) {
-      if (!truthyString(edge.from) || !truthyString(edge.to) || !truthyString(edge.type)) return false;
+      if (!truthyString(edge.from) || !truthyString(edge.to) || !truthyString(edge.type))
+        return false;
       if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) return false;
     }
     for (const id of nodeIds) {
@@ -3989,7 +4427,11 @@ function motifStructural(ir: UAALMotifIR): boolean {
   return true;
 }
 
-function motifFlip(ir: UAALMotifIR, metadata: UAALMotifMetadata, recovered: MotifRecovery): boolean {
+function motifFlip(
+  ir: UAALMotifIR,
+  metadata: UAALMotifMetadata,
+  recovered: MotifRecovery
+): boolean {
   const corrupt = cloneJson(ir);
   if (metadata.has_motif) {
     const recurring = new Set(recovered.members);
@@ -3997,7 +4439,10 @@ function motifFlip(ir: UAALMotifIR, metadata: UAALMotifMetadata, recovered: Moti
     const toBreak = recovered.members.length - 1;
     for (const component of corrupt.components || []) {
       if (recurring.has(component.id) && broken < toBreak && component.edges?.[0]) {
-        component.edges[0] = { ...component.edges[0], type: `${component.edges[0].type}__broken_${broken}` };
+        component.edges[0] = {
+          ...component.edges[0],
+          type: `${component.edges[0].type}__broken_${broken}`,
+        };
         broken++;
       }
     }
@@ -4007,8 +4452,16 @@ function motifFlip(ir: UAALMotifIR, metadata: UAALMotifMetadata, recovered: Moti
       const source = components[0];
       components[1] = {
         id: components[1].id,
-        nodes: (source.nodes || []).map((node) => ({ id: `${node.id}__iso`, role: node.role, label: `iso-${node.label || ''}` })),
-        edges: (source.edges || []).map((edge) => ({ from: `${edge.from}__iso`, to: `${edge.to}__iso`, type: edge.type })),
+        nodes: (source.nodes || []).map((node) => ({
+          id: `${node.id}__iso`,
+          role: node.role,
+          label: `iso-${node.label || ''}`,
+        })),
+        edges: (source.edges || []).map((edge) => ({
+          from: `${edge.from}__iso`,
+          to: `${edge.to}__iso`,
+          type: edge.type,
+        })),
       };
     }
   }
@@ -4016,7 +4469,7 @@ function motifFlip(ir: UAALMotifIR, metadata: UAALMotifMetadata, recovered: Moti
 }
 
 export function benchmarkMotif(
-  rows: Array<UAALSemanticBenchmarkRow<UAALMotifIR, UAALMotifMetadata>>,
+  rows: Array<UAALSemanticBenchmarkRow<UAALMotifIR, UAALMotifMetadata>>
 ): UAALMotifBenchmarkResult {
   let n = 0;
   let tm1 = 0;
@@ -4036,21 +4489,27 @@ export function benchmarkMotif(
     if (recovered.has_motif === Boolean(groundTruth.has_motif)) {
       tm1++;
     } else if (misses.tm1.length < 8) {
-      misses.tm1.push(`${groundTruth.id}: recovered=${recovered.has_motif} truth=${groundTruth.has_motif}`);
+      misses.tm1.push(
+        `${groundTruth.id}: recovered=${recovered.has_motif} truth=${groundTruth.has_motif}`
+      );
     }
     if (lexicalRecurrence(ir).has_motif === Boolean(groundTruth.has_motif)) lexicalCorrect++;
 
     if (recovered.recurrence_count === (groundTruth.recurrence_count ?? 0)) {
       tm2++;
     } else if (misses.tm2.length < 8) {
-      misses.tm2.push(`${groundTruth.id}: recovered count=${recovered.recurrence_count} declared=${groundTruth.recurrence_count}`);
+      misses.tm2.push(
+        `${groundTruth.id}: recovered count=${recovered.recurrence_count} declared=${groundTruth.recurrence_count}`
+      );
     }
 
     if (motifStructural(ir)) tm3++;
     if (motifFlip(ir, groundTruth, recovered)) {
       tm4++;
     } else if (misses.tm4.length < 8) {
-      misses.tm4.push(`${groundTruth.id}: has_motif stayed ${recovered.has_motif} after corruption`);
+      misses.tm4.push(
+        `${groundTruth.id}: has_motif stayed ${recovered.has_motif} after corruption`
+      );
     }
   }
 

@@ -8,12 +8,7 @@
  * transport and emits a machine-readable receipt.
  */
 import { spawnSync } from 'node:child_process';
-import {
-  mkdtempSync,
-  mkdirSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, relative, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';

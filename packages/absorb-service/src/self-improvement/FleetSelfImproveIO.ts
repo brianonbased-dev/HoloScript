@@ -181,15 +181,7 @@ export class FleetSelfImproveIO implements SelfImproveIO {
       const { stdout, stderr } = await runPackageTool({
         packageName: 'vitest',
         binaryName: 'vitest',
-        args: [
-          'run',
-          '--reporter=json',
-          '--root',
-          this.rootDir,
-          '--config',
-          configPath,
-          abs,
-        ],
+        args: ['run', '--reporter=json', '--root', this.rootDir, '--config', configPath, abs],
         cwd: this.rootDir,
         timeout: this.toolTimeoutMs,
         maxBuffer: 8 * 1024 * 1024,
@@ -448,8 +440,7 @@ export class FleetSelfImproveIO implements SelfImproveIO {
       if (!Array.isArray(parsed)) return null;
       return {
         issueCount: parsed.reduce(
-          (count, result) =>
-            count + (result.errorCount ?? 0) + (result.warningCount ?? 0),
+          (count, result) => count + (result.errorCount ?? 0) + (result.warningCount ?? 0),
           0
         ),
         filesLinted: parsed.length,

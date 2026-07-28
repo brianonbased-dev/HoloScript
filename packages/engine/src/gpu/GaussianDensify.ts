@@ -40,13 +40,36 @@ export interface DensifyResult {
   origin: Int32Array;
 }
 
-const FIELDS = ['x', 'y', 'z', 'sx', 'sy', 'sz', 'qr', 'qx', 'qy', 'qz', 'op', 'r', 'gr', 'bl'] as const;
+const FIELDS = [
+  'x',
+  'y',
+  'z',
+  'sx',
+  'sy',
+  'sz',
+  'qr',
+  'qx',
+  'qy',
+  'qz',
+  'op',
+  'r',
+  'gr',
+  'bl',
+] as const;
 type Field = (typeof FIELDS)[number];
 
 /** Rotate a world offset (sx*u, sy*v, sz*w) by the gaussian's quaternion. */
-function rotatedOffset(g: Gaussian3D, i: number, u: number, v: number, w: number): [number, number, number] {
+function rotatedOffset(
+  g: Gaussian3D,
+  i: number,
+  u: number,
+  v: number,
+  w: number
+): [number, number, number] {
   const R = quatToR(g.qr[i], g.qx[i], g.qy[i], g.qz[i]); // row-major 3x3
-  const a = g.sx[i] * u, b = g.sy[i] * v, c = g.sz[i] * w;
+  const a = g.sx[i] * u,
+    b = g.sy[i] * v,
+    c = g.sz[i] * w;
   return [
     R[0] * a + R[1] * b + R[2] * c,
     R[3] * a + R[4] * b + R[5] * c,
@@ -63,11 +86,24 @@ export function densifyAndPrune(
   g: Gaussian3D,
   stats: DensifyStats,
   opts: DensifyOpts,
-  rng: () => number,
+  rng: () => number
 ): DensifyResult {
   const phi = opts.splitFactor ?? 1.6;
   const cols: Record<Field, number[]> = {
-    x: [], y: [], z: [], sx: [], sy: [], sz: [], qr: [], qx: [], qy: [], qz: [], op: [], r: [], gr: [], bl: [],
+    x: [],
+    y: [],
+    z: [],
+    sx: [],
+    sy: [],
+    sz: [],
+    qr: [],
+    qx: [],
+    qy: [],
+    qz: [],
+    op: [],
+    r: [],
+    gr: [],
+    bl: [],
   };
   const origin: number[] = [];
   const pushFrom = (i: number, over: Partial<Record<Field, number>>, orig: number): void => {
@@ -87,16 +123,24 @@ export function densifyAndPrune(
       // CLONE: keep original (survivor) + a jittered copy (new). Jitter by ~half-scale so the
       // optimizer can separate them rather than overlapping identically.
       pushFrom(i, {}, i);
-      const [ox, oy, oz] = rotatedOffset(g, i, (rng() - 0.5), (rng() - 0.5), (rng() - 0.5));
+      const [ox, oy, oz] = rotatedOffset(g, i, rng() - 0.5, rng() - 0.5, rng() - 0.5);
       pushFrom(i, { x: g.x[i] + ox, y: g.y[i] + oy, z: g.z[i] + oz }, -1);
     } else {
       // SPLIT: two new gaussians (scale/φ), positions sampled from the original; drop the original.
       for (let s = 0; s < 2; s++) {
-        const [ox, oy, oz] = rotatedOffset(g, i, (rng() - 0.5), (rng() - 0.5), (rng() - 0.5));
-        pushFrom(i, {
-          x: g.x[i] + ox, y: g.y[i] + oy, z: g.z[i] + oz,
-          sx: g.sx[i] / phi, sy: g.sy[i] / phi, sz: g.sz[i] / phi,
-        }, -1);
+        const [ox, oy, oz] = rotatedOffset(g, i, rng() - 0.5, rng() - 0.5, rng() - 0.5);
+        pushFrom(
+          i,
+          {
+            x: g.x[i] + ox,
+            y: g.y[i] + oy,
+            z: g.z[i] + oz,
+            sx: g.sx[i] / phi,
+            sy: g.sy[i] / phi,
+            sz: g.sz[i] / phi,
+          },
+          -1
+        );
       }
     }
   }
@@ -110,5 +154,5 @@ export function densifyAndPrune(
 /** Small seeded LCG so densification (and its tests) are deterministic. */
 export function seededRng(seed: number): () => number {
   let s = seed >>> 0;
-  return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
 }

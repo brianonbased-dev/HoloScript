@@ -30,14 +30,30 @@ import type { SurfaceMesh } from '../AutoMesher';
 //   4: (0,0,1)  5: (1,0,1)  6: (1,1,1)  7: (0,1,1)  — top face    z=1
 
 const CUBE_VERTICES = new Float64Array([
-  0, 0, 0,  // 0
-  1, 0, 0,  // 1
-  1, 1, 0,  // 2
-  0, 1, 0,  // 3
-  0, 0, 1,  // 4
-  1, 0, 1,  // 5
-  1, 1, 1,  // 6
-  0, 1, 1,  // 7
+  0,
+  0,
+  0, // 0
+  1,
+  0,
+  0, // 1
+  1,
+  1,
+  0, // 2
+  0,
+  1,
+  0, // 3
+  0,
+  0,
+  1, // 4
+  1,
+  0,
+  1, // 5
+  1,
+  1,
+  1, // 6
+  0,
+  1,
+  1, // 7
 ]);
 
 // Outward-facing winding per face:
@@ -49,23 +65,18 @@ const CUBE_VERTICES = new Float64Array([
 //   +Y:          normal (0, 1,0)
 const CUBE_TRIANGLES = new Uint32Array([
   // -Z face (z=0), normal (0,0,-1): CW when viewed from -Z → CCW from inside
-  0, 3, 2,
-  0, 2, 1,
+  0, 3, 2, 0, 2, 1,
   // +Z face (z=1), normal (0,0,+1): triangles at indices 2 and 3 (tri 2 = verts 4,5,6; tri 3 = 4,6,7)
-  4, 5, 6,
-  4, 6, 7,
+  4,
+  5, 6, 4, 6, 7,
   // -X face (x=0), normal (-1,0,0)
-  0, 4, 7,
-  0, 7, 3,
+  0, 4, 7, 0, 7, 3,
   // +X face (x=1), normal (+1,0,0)
-  1, 2, 6,
-  1, 6, 5,
+  1, 2, 6, 1, 6, 5,
   // -Y face (y=0), normal (0,-1,0)
-  0, 1, 5,
-  0, 5, 4,
+  0, 1, 5, 0, 5, 4,
   // +Y face (y=1), normal (0,+1,0)
-  2, 3, 7,
-  2, 7, 6,
+  2, 3, 7, 2, 7, 6,
 ]);
 
 const CUBE_MESH: SurfaceMesh = {
@@ -75,14 +86,24 @@ const CUBE_MESH: SurfaceMesh = {
 
 // ── Helper: compute AABB from a parsed mesh ───────────────────────────────────
 
-function meshAABB(mesh: SurfaceMesh): { min: [number, number, number]; max: [number, number, number] } {
+function meshAABB(mesh: SurfaceMesh): {
+  min: [number, number, number];
+  max: [number, number, number];
+} {
   const v = mesh.vertices;
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
   for (let i = 0; i < v.length; i += 3) {
-    minX = Math.min(minX, v[i]);     maxX = Math.max(maxX, v[i]);
-    minY = Math.min(minY, v[i + 1]); maxY = Math.max(maxY, v[i + 1]);
-    minZ = Math.min(minZ, v[i + 2]); maxZ = Math.max(maxZ, v[i + 2]);
+    minX = Math.min(minX, v[i]);
+    maxX = Math.max(maxX, v[i]);
+    minY = Math.min(minY, v[i + 1]);
+    maxY = Math.max(maxY, v[i + 1]);
+    minZ = Math.min(minZ, v[i + 2]);
+    maxZ = Math.max(maxZ, v[i + 2]);
   }
   return { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] };
 }
@@ -185,7 +206,7 @@ describe('STLExporter — normal computation correctness', () => {
 
     for (const triIdx of zTriIndices) {
       const base = 84 + triIdx * 50;
-      const nx = view.getFloat32(base,     true);
+      const nx = view.getFloat32(base, true);
       const ny = view.getFloat32(base + 4, true);
       const nz = view.getFloat32(base + 8, true);
 
@@ -202,7 +223,7 @@ describe('STLExporter — normal computation correctness', () => {
 
     for (let t = 0; t < triCount; t++) {
       const base = 84 + t * 50;
-      const nx = view.getFloat32(base,     true);
+      const nx = view.getFloat32(base, true);
       const ny = view.getFloat32(base + 4, true);
       const nz = view.getFloat32(base + 8, true);
       const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
@@ -214,10 +235,10 @@ describe('STLExporter — normal computation correctness', () => {
 
 describe('STLExporter — scale option', () => {
   it('binary scale=10 → reimported AABB is 10× the original', () => {
-    const bufOrig  = exportSTLBinary(CUBE_MESH);
+    const bufOrig = exportSTLBinary(CUBE_MESH);
     const bufScale = exportSTLBinary(CUBE_MESH, { scale: 10 });
 
-    const origAABB  = meshAABB(parseSTL(bufOrig));
+    const origAABB = meshAABB(parseSTL(bufOrig));
     const scaleAABB = meshAABB(parseSTL(bufScale));
 
     // Original cube spans [0,1] on each axis; scaled should span [0,10]
@@ -228,12 +249,12 @@ describe('STLExporter — scale option', () => {
   });
 
   it('ASCII scale=10 → reimported AABB is 10× the original', () => {
-    const asciiOrig  = exportSTLAscii(CUBE_MESH);
+    const asciiOrig = exportSTLAscii(CUBE_MESH);
     const asciiScale = exportSTLAscii(CUBE_MESH, { scale: 10 });
 
     const toBuffer = (s: string) => new TextEncoder().encode(s).buffer;
 
-    const origAABB  = meshAABB(parseSTL(toBuffer(asciiOrig)));
+    const origAABB = meshAABB(parseSTL(toBuffer(asciiOrig)));
     const scaleAABB = meshAABB(parseSTL(toBuffer(asciiScale)));
 
     for (let axis = 0; axis < 3; axis++) {
@@ -247,7 +268,7 @@ describe('STLExporter — degenerate triangle handling', () => {
   it('degenerate triangle exports without NaN in binary buffer', () => {
     // Three identical vertices → zero area → zero normal (not NaN)
     const degMesh: SurfaceMesh = {
-      vertices: new Float64Array([0, 0, 0,  0, 0, 0,  0, 0, 0]),
+      vertices: new Float64Array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
       triangles: new Uint32Array([0, 1, 2]),
     };
 
@@ -264,14 +285,14 @@ describe('STLExporter — degenerate triangle handling', () => {
 
   it('degenerate triangle binary normal is (0,0,0)', () => {
     const degMesh: SurfaceMesh = {
-      vertices: new Float64Array([1, 2, 3,  1, 2, 3,  1, 2, 3]),
+      vertices: new Float64Array([1, 2, 3, 1, 2, 3, 1, 2, 3]),
       triangles: new Uint32Array([0, 1, 2]),
     };
 
     const buf = exportSTLBinary(degMesh);
     const view = new DataView(buf);
 
-    const nx = view.getFloat32(84,     true);
+    const nx = view.getFloat32(84, true);
     const ny = view.getFloat32(84 + 4, true);
     const nz = view.getFloat32(84 + 8, true);
 
@@ -282,7 +303,7 @@ describe('STLExporter — degenerate triangle handling', () => {
 
   it('degenerate triangle ASCII normal is 0.000000 0.000000 0.000000', () => {
     const degMesh: SurfaceMesh = {
-      vertices: new Float64Array([0, 0, 0,  0, 0, 0,  0, 0, 0]),
+      vertices: new Float64Array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
       triangles: new Uint32Array([0, 1, 2]),
     };
 
@@ -295,7 +316,7 @@ describe('STLExporter — degenerate triangle handling', () => {
 describe('STLExporter — input validation', () => {
   it('throws on out-of-range triangle index', () => {
     const bad: SurfaceMesh = {
-      vertices: new Float64Array([0, 0, 0,  1, 0, 0,  0, 1, 0]),
+      vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
       triangles: new Uint32Array([0, 1, 99]), // index 99 out of range (only 3 verts)
     };
     expect(() => exportSTLBinary(bad)).toThrow(/out of range/);
@@ -304,7 +325,7 @@ describe('STLExporter — input validation', () => {
 
   it('throws on non-finite vertex coordinate', () => {
     const bad: SurfaceMesh = {
-      vertices: new Float64Array([0, 0, NaN,  1, 0, 0,  0, 1, 0]),
+      vertices: new Float64Array([0, 0, NaN, 1, 0, 0, 0, 1, 0]),
       triangles: new Uint32Array([0, 1, 2]),
     };
     expect(() => exportSTLBinary(bad)).toThrow(/non-finite/);
@@ -313,7 +334,7 @@ describe('STLExporter — input validation', () => {
 
   it('throws on triangles array length not a multiple of 3', () => {
     const bad: SurfaceMesh = {
-      vertices: new Float64Array([0, 0, 0,  1, 0, 0,  0, 1, 0]),
+      vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
       triangles: new Uint32Array([0, 1]),
     };
     expect(() => exportSTLBinary(bad)).toThrow(/multiple of 3/);

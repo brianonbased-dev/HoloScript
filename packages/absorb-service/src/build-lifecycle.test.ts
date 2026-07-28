@@ -14,10 +14,7 @@ describe('HoloAbsorb build lifecycle', () => {
   });
 
   it('resolves embedding workers from self-contained MCP bundle layouts', () => {
-    const source = readFileSync(
-      new URL('./engine/EmbeddingIndex.ts', import.meta.url),
-      'utf8'
-    );
+    const source = readFileSync(new URL('./engine/EmbeddingIndex.ts', import.meta.url), 'utf8');
 
     expect(source).toContain("path.join(__dirname_esm, '..', 'workers')");
     expect(source).toContain('resolveEmbeddingWorkerFile()');

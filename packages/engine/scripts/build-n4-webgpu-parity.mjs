@@ -33,15 +33,9 @@ await build({
     {
       name: 'n4-browser-safe-core-boundary',
       setup(context) {
-        context.onResolve(
-          { filter: /^@holoscript\/core\/world-model$/ },
-          () => ({
-            path: path.join(
-              repoRoot,
-              'packages/core/src/world-model/N4ResidualRuntimeParity.ts'
-            ),
-          })
-        );
+        context.onResolve({ filter: /^@holoscript\/core\/world-model$/ }, () => ({
+          path: path.join(repoRoot, 'packages/core/src/world-model/N4ResidualRuntimeParity.ts'),
+        }));
       },
     },
   ],

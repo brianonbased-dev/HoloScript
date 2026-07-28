@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { gradeByResolver, hasResolver, UAAL_RESOLVED_FAMILIES, type UAALResolvedFamily } from '../verifier';
+import {
+  gradeByResolver,
+  hasResolver,
+  UAAL_RESOLVED_FAMILIES,
+  type UAALResolvedFamily,
+} from '../verifier';
 import { resolveBeneficiary, type UAALBeneficiaryIR } from '../beneficiary';
 import type { UAALAffordanceIR } from '../semantic';
 
@@ -9,7 +14,13 @@ import type { UAALAffordanceIR } from '../semantic';
 describe('gradeByResolver — the label IS the shipped resolver', () => {
   it('registers the gap-aware families', () => {
     expect(UAAL_RESOLVED_FAMILIES).toEqual(
-      expect.arrayContaining(['occlusion', 'norm_status', 'dischargeable', 'affordance', 'beneficiary']),
+      expect.arrayContaining([
+        'occlusion',
+        'norm_status',
+        'dischargeable',
+        'affordance',
+        'beneficiary',
+      ])
     );
     expect(hasResolver('beneficiary')).toBe(true);
     expect(hasResolver('nonexistent')).toBe(false);
@@ -42,7 +53,11 @@ describe('gradeByResolver — the label IS the shipped resolver', () => {
       propositions: [],
       query: { agent: 'robot', action: 'grasp', object: 'handle' },
     };
-    const label = gradeByResolver('affordance', affIr, { agent: 'robot', action: 'grasp', object: 'handle' });
+    const label = gradeByResolver('affordance', affIr, {
+      agent: 'robot',
+      action: 'grasp',
+      object: 'handle',
+    });
     expect(label.status).toBe('unresolvable');
     expect(label.gap?.code).toBe('affordance.unstated_precondition');
   });

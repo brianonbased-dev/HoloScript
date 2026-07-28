@@ -282,8 +282,7 @@ async function connectAndroidChrome(
     );
   }
 
-  const chromePackage =
-    process.env.PAPER6_ANDROID_CHROME_PACKAGE?.trim() || 'com.android.chrome';
+  const chromePackage = process.env.PAPER6_ANDROID_CHROME_PACKAGE?.trim() || 'com.android.chrome';
   const chromeDump = runAdb(adbPath, serial, ['shell', 'dumpsys', 'package', chromePackage]);
   const chromeVersion = /^\s*versionName=(.+)$/mu.exec(chromeDump)?.[1]?.trim() ?? 'unknown';
   if (chromeVersion === 'unknown') {
@@ -326,11 +325,7 @@ async function connectAndroidChrome(
     } catch {}
   };
   try {
-    runAdb(adbPath, serial, [
-      'reverse',
-      `tcp:${harnessPort}`,
-      `tcp:${harnessPort}`,
-    ]);
+    runAdb(adbPath, serial, ['reverse', `tcp:${harnessPort}`, `tcp:${harnessPort}`]);
     runAdb(adbPath, serial, [
       'shell',
       'am',
@@ -795,7 +790,9 @@ test.describe('Paper 6 Q14 integer CORDIC quaternion conformance', () => {
         requested_power_preference: requestedPowerPreference,
         hardware_label:
           process.env.PAPER6_HARDWARE_LABEL ??
-          (androidDevice ? `${androidDevice.manufacturer} ${androidDevice.model}`.trim() : 'unlabeled-local'),
+          (androidDevice
+            ? `${androidDevice.manufacturer} ${androidDevice.model}`.trim()
+            : 'unlabeled-local'),
         machine_fingerprint_sha256: machineFingerprint,
         browser_user_agent: gpu.userAgent,
         secure_context: gpu.secureContext,

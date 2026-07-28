@@ -103,9 +103,7 @@ function generateEllipticMembraneMesh(nr: number, nt: number) {
     const dy3 = pts[i3 * 3 + 1] - y0;
     const dz3 = pts[i3 * 3 + 2] - z0;
     const determinant =
-      dx1 * (dy2 * dz3 - dz2 * dy3) -
-      dy1 * (dx2 * dz3 - dz2 * dx3) +
-      dz1 * (dx2 * dy3 - dy2 * dx3);
+      dx1 * (dy2 * dz3 - dz2 * dy3) - dy1 * (dx2 * dz3 - dz2 * dx3) + dz1 * (dx2 * dy3 - dy2 * dx3);
     if (determinant < 0) {
       tets[offset + 1] = i2;
       tets[offset + 2] = i1;

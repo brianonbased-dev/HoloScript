@@ -28,7 +28,7 @@ export function cameraFromViewMatrix(
   focalX: number,
   focalY: number,
   cx?: number,
-  cy?: number,
+  cy?: number
 ): SplatCamera {
   const m = viewMatrix;
   const cam: SplatCamera = {
@@ -58,7 +58,12 @@ export function cameraScaled(cam: SplatCamera, scale: number): SplatCamera {
  * Assemble a TrainView from a camera + a target image (W*H*3, row-major RGB in [0,1]). Throws on a
  * size mismatch so a mis-decoded image fails loudly rather than training against garbage.
  */
-export function makeTrainView(cam: SplatCamera, W: number, H: number, target: Float64Array): TrainView {
+export function makeTrainView(
+  cam: SplatCamera,
+  W: number,
+  H: number,
+  target: Float64Array
+): TrainView {
   if (target.length !== W * H * 3) {
     throw new Error(`makeTrainView: target length ${target.length} != W*H*3 = ${W * H * 3}`);
   }

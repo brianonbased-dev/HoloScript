@@ -80,9 +80,7 @@ function parseSupportedLanguages(source) {
 }
 
 function parseRegisteredAdapters(source) {
-  return new Set(
-    [...source.matchAll(/registerAdapter\(\s*new\s+(\w+)\s*\(/g)].map((m) => m[1])
-  );
+  return new Set([...source.matchAll(/registerAdapter\(\s*new\s+(\w+)\s*\(/g)].map((m) => m[1]));
 }
 
 function parseReadonlyString(source, field) {
@@ -197,7 +195,9 @@ function loadTraitDeclarations() {
   }
 
   if (declarations.length === 0) {
-    errors.push('No @language_adapter declarations found under packages/absorb-service/language-adapters.');
+    errors.push(
+      'No @language_adapter declarations found under packages/absorb-service/language-adapters.'
+    );
   }
   return declarations;
 }
@@ -338,7 +338,9 @@ function validateRegistry(registry) {
   }
   for (const adapter of registryAdapters) {
     if (!registeredAdapters.has(adapter)) {
-      errors.push(`Generated registry declares "${adapter}" but adapters/index.ts does not register it.`);
+      errors.push(
+        `Generated registry declares "${adapter}" but adapters/index.ts does not register it.`
+      );
     }
   }
 
@@ -353,10 +355,12 @@ function validateRegistry(registry) {
 
   const supported = parseSupportedLanguages(read(typesPath));
   for (const id of supported) {
-    if (!byId.has(id)) errors.push(`SupportedLanguage includes "${id}" but registry is missing it.`);
+    if (!byId.has(id))
+      errors.push(`SupportedLanguage includes "${id}" but registry is missing it.`);
   }
   for (const id of byId.keys()) {
-    if (!supported.includes(id)) errors.push(`Registry language "${id}" is not in SupportedLanguage.`);
+    if (!supported.includes(id))
+      errors.push(`Registry language "${id}" is not in SupportedLanguage.`);
   }
 
   return { langs, implemented, declared };
@@ -389,7 +393,9 @@ if (declared.length) {
   console.log(`[language-registry] build targets: ${declared.map((l) => l.id).join(', ')}`);
 }
 if (traitBacked.length) {
-  console.log(`[language-registry] @language_adapter declarations: ${traitBacked.map((l) => l.id).join(', ')}`);
+  console.log(
+    `[language-registry] @language_adapter declarations: ${traitBacked.map((l) => l.id).join(', ')}`
+  );
 }
 for (const warning of warnings) console.warn(`  WARN ${warning}`);
 
@@ -399,4 +405,6 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(write ? '[language-registry] wrote generated registry.' : '[language-registry] in sync.');
+console.log(
+  write ? '[language-registry] wrote generated registry.' : '[language-registry] in sync.'
+);

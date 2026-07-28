@@ -18,9 +18,19 @@ import {
 import { resolveBeneficiary } from '../beneficiary';
 import type { UAALVibeAtom } from '../vibe';
 
-const light = (id: string, kelvin: number, lux: number): UAALVibeAtom => ({ id, kind: 'light', kelvin, lux });
+const light = (id: string, kelvin: number, lux: number): UAALVibeAtom => ({
+  id,
+  kind: 'light',
+  kelvin,
+  lux,
+});
 const palette = (id: string, hue: number): UAALVibeAtom => ({ id, kind: 'palette', hue });
-const audio = (id: string, bpm: number, db: number): UAALVibeAtom => ({ id, kind: 'audio', bpm, db });
+const audio = (id: string, bpm: number, db: number): UAALVibeAtom => ({
+  id,
+  kind: 'audio',
+  bpm,
+  db,
+});
 
 /** Coherent TENSE scene (spike d04): fear-quadrant physics, faithfully declared. */
 const hauntedCorridor = (audience?: UAALAffectiveSceneIR['audience']): UAALAffectiveSceneIR => ({
@@ -106,10 +116,14 @@ describe('SSOT floor case (b): sensory overload in a declared-calm space', () =>
       atoms: [light('l', 3800, 900), palette('p', 15), audio('a', 172, 80)],
       audience: { classes },
     });
-    expect(deriveAffectiveHarm(scene(['child'])).findings.map((f) => f.harm)).toEqual(['sensory_overload']);
+    expect(deriveAffectiveHarm(scene(['child'])).findings.map((f) => f.harm)).toEqual([
+      'sensory_overload',
+    ]);
     expect(deriveAffectiveHarm(scene(['adult'])).findings).toEqual([]);
     // Mixed audience: the most sensitive present class sets the ceiling.
-    expect(deriveAffectiveHarm(scene(['adult', 'child'])).findings.map((f) => f.harm)).toEqual(['sensory_overload']);
+    expect(deriveAffectiveHarm(scene(['adult', 'child'])).findings.map((f) => f.harm)).toEqual([
+      'sensory_overload',
+    ]);
   });
 });
 
@@ -133,13 +147,18 @@ describe('audience three-state → honesty inherited through resolveBeneficiary'
   });
 
   it('audience stated + clean scene: value:0 affective impact makes the floor CERTIFIABLE', () => {
-    const resolution = resolveBeneficiary(composeAffectiveHarm({}, coldPaletteDen({ classes: ['adult'] })));
+    const resolution = resolveBeneficiary(
+      composeAffectiveHarm({}, coldPaletteDen({ classes: ['adult'] }))
+    );
     expect(resolution.status).toBe('resolved');
     expect(resolution.answer?.humanFloorHeld).toBe(true);
   });
 
   it('composition only APPENDS — pre-existing impacts and unaffected survive', () => {
-    const base = { impacts: [{ beneficiary: 'agents' as const, value: 2 }], unaffected: ['self' as const] };
+    const base = {
+      impacts: [{ beneficiary: 'agents' as const, value: 2 }],
+      unaffected: ['self' as const],
+    };
     const ir = composeAffectiveHarm(base, hauntedCorridor({ classes: ['child'] }));
     expect(ir.impacts?.[0]).toEqual({ beneficiary: 'agents', value: 2 });
     expect(ir.impacts?.some((i) => i.harmful === true && i.beneficiary === 'humans')).toBe(true);

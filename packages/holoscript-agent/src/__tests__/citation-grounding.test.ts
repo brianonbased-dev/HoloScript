@@ -8,7 +8,8 @@ import {
 
 describe('extractCitations', () => {
   it('finds the ecosystem ID forms and dedupes in first-seen order', () => {
-    const text = 'Per W.810 and F.126, see also W.GOLD.550, G.GOLD.004, I.020 and task_1782002213704_e1vn. Again W.810.';
+    const text =
+      'Per W.810 and F.126, see also W.GOLD.550, G.GOLD.004, I.020 and task_1782002213704_e1vn. Again W.810.';
     expect(extractCitations(text)).toEqual([
       'W.810',
       'F.126',
@@ -36,7 +37,8 @@ describe('groundCitations', () => {
   ];
 
   it('grounds by entry id AND by appearance in content; flags the rest as confabulated', () => {
-    const text = 'I rely on W.810 (real id), F.126 (in content), D.101 (in content), and W.999 (invented).';
+    const text =
+      'I rely on W.810 (real id), F.126 (in content), D.101 (in content), and W.999 (invented).';
     const r = groundCitations(text, corpus);
     expect(r.grounded.sort()).toEqual(['D.101', 'F.126', 'W.810']);
     expect(r.confabulated).toEqual(['W.999']);

@@ -133,7 +133,9 @@ function mockMesh(opts: {
     queryPrivateKnowledge: vi.fn(async () => []),
     writePrivateKnowledge: vi.fn(async () => true),
     // Self-direction (idle director) surface — file board tasks + core MCP tools.
-    addTasks: vi.fn(async (tasks: unknown[]) => ({ added: Array.isArray(tasks) ? tasks.length : 0 })),
+    addTasks: vi.fn(async (tasks: unknown[]) => ({
+      added: Array.isArray(tasks) ? tasks.length : 0,
+    })),
     invokeTool: vi.fn(async () => ({ ok: true })),
   };
 }
@@ -219,7 +221,8 @@ describe('AgentRunner.tick', () => {
     // Recall write-loop (W.752): a completed task persists its outcome to the
     // agent's private knowledge so a future `recall` verb has memory to draw on.
     expect(mesh.writePrivateKnowledge).toHaveBeenCalledTimes(1);
-    const writtenFact = (mesh.writePrivateKnowledge as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
+    const writtenFact = (mesh.writePrivateKnowledge as ReturnType<typeof vi.fn>).mock
+      .calls[0][0][0];
     expect(writtenFact.content).toContain('t-G10');
     expect(writtenFact.type).toBe('task-outcome');
   });
@@ -277,13 +280,36 @@ describe('AgentRunner.tick', () => {
     process.env.HOLOSCRIPT_AGENT_TRACE_DIR = dir;
     try {
       const mesh = mockMesh({
-        tasks: [{ id: 't-neg', title: 'validate scenes', description: '', priority: 'high', tags: ['security'], status: 'open' }],
+        tasks: [
+          {
+            id: 't-neg',
+            title: 'validate scenes',
+            description: '',
+            priority: 'high',
+            tags: ['security'],
+            status: 'open',
+          },
+        ],
       });
-      const provider = mockProvider({ promptTokens: 100, completionTokens: 50, toolCallsBeforeText: [], content: 'fabricated success' });
-      const runner = new AgentRunner({ identity: IDENTITY, brain: BRAIN, provider, costGuard: freshGuard(), mesh: mesh as never });
+      const provider = mockProvider({
+        promptTokens: 100,
+        completionTokens: 50,
+        toolCallsBeforeText: [],
+        content: 'fabricated success',
+      });
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider,
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
       const result = await runner.tick();
       expect(result.action).toBe('no-artifact');
-      const rows = readFileSync(join(dir, IDENTITY.handle, 'trace.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+      const rows = readFileSync(join(dir, IDENTITY.handle, 'trace.jsonl'), 'utf8')
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l));
       expect(rows).toHaveLength(1);
       expect(rows[0].grader.passed).toBe(false);
       expect(rows[0].grader.kind).toBe('no-artifact');
@@ -455,7 +481,13 @@ describe('AgentRunner.tick', () => {
             assistantBlocks: [{ type: 'tool_use' as const, ...tu }],
           } as unknown as LLMCompletionResponse;
         }
-        return { content: opts.finalText, usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+        return {
+          content: opts.finalText,
+          usage,
+          model: 'mock-1',
+          provider: 'mock',
+          finishReason: 'stop',
+        };
       },
       async generateHoloScript() {
         throw new Error('not used');
@@ -468,7 +500,14 @@ describe('AgentRunner.tick', () => {
 
   it('returns failure-artifact when the only productive write is a self-declared failure dump', async () => {
     const tasks: BoardTask[] = [
-      { id: 't-fail-dump', title: 'validate composition', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      {
+        id: 't-fail-dump',
+        title: 'validate composition',
+        description: '',
+        priority: 'high',
+        tags: ['security'],
+        status: 'open',
+      },
     ];
     const mesh = mockMesh({ tasks });
     const runner = new AgentRunner({
@@ -490,7 +529,14 @@ describe('AgentRunner.tick', () => {
 
   it('returns failure-artifact when the final text is a failure admission with no commit', async () => {
     const tasks: BoardTask[] = [
-      { id: 't-fail-text', title: 'write report', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      {
+        id: 't-fail-text',
+        title: 'write report',
+        description: '',
+        priority: 'high',
+        tags: ['security'],
+        status: 'open',
+      },
     ];
     const mesh = mockMesh({ tasks });
     const runner = new AgentRunner({
@@ -511,7 +557,14 @@ describe('AgentRunner.tick', () => {
 
   it('does NOT fire the failure gate on an ordinary successful write (no false positive)', async () => {
     const tasks: BoardTask[] = [
-      { id: 't-ok-write', title: 'write summary', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      {
+        id: 't-ok-write',
+        title: 'write summary',
+        description: '',
+        priority: 'high',
+        tags: ['security'],
+        status: 'open',
+      },
     ];
     const mesh = mockMesh({ tasks });
     const runner = new AgentRunner({
@@ -598,11 +651,26 @@ describe('AgentRunner.tick', () => {
     process.env.HOLOSCRIPT_AGENT_MIN_FREE_MB = '99999999'; // above any real machine → always trips
     try {
       const mesh = mockMesh({
-        tasks: [{ id: 't1', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' }],
+        tasks: [
+          {
+            id: 't1',
+            title: 'security memo',
+            description: '',
+            priority: 'high',
+            tags: ['security'],
+            status: 'open',
+          },
+        ],
       });
       const provider = mockProvider({ promptTokens: 1, completionTokens: 1 });
       const completeSpy = vi.spyOn(provider, 'complete');
-      const runner = new AgentRunner({ identity: IDENTITY, brain: BRAIN, provider, costGuard: freshGuard(), mesh: mesh as never });
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider,
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
       const result = await runner.tick();
       expect(result.action).toBe('low-memory-skip');
       expect(result.message).toMatch(/avoiding OOM/);
@@ -620,12 +688,25 @@ describe('AgentRunner.tick', () => {
     delete process.env.HOLOSCRIPT_AGENT_MIN_FREE_MB;
     try {
       const mesh = mockMesh({
-        tasks: [{ id: 't-G10', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' }],
+        tasks: [
+          {
+            id: 't-G10',
+            title: 'security memo',
+            description: '',
+            priority: 'high',
+            tags: ['security'],
+            status: 'open',
+          },
+        ],
       });
       const runner = new AgentRunner({
         identity: IDENTITY,
         brain: BRAIN,
-        provider: mockProvider({ promptTokens: 1, completionTokens: 1, toolCallsBeforeText: ['bash'] }),
+        provider: mockProvider({
+          promptTokens: 1,
+          completionTokens: 1,
+          toolCallsBeforeText: ['bash'],
+        }),
         costGuard: freshGuard(),
         mesh: mesh as never,
       });
@@ -668,11 +749,22 @@ describe('AgentRunner.tick', () => {
   describe('idle self-direction (behavior on_idle)', () => {
     const IDLE_BRAIN: RuntimeBrainConfig = {
       ...BRAIN,
-      idle: { directive: 'Find and fix a small edge in the HoloScript language.', fileBoard: true, maxTools: 6 },
+      idle: {
+        directive: 'Find and fix a small edge in the HoloScript language.',
+        fileBoard: true,
+        maxTools: 6,
+      },
     };
     // No board task matches the brain tags → the runner reaches the idle branch.
     const DRY_BOARD: BoardTask[] = [
-      { id: 't-ui', title: 'theme tweak', description: 'css', priority: 'low', tags: ['ui'], status: 'open' },
+      {
+        id: 't-ui',
+        title: 'theme tweak',
+        description: 'css',
+        priority: 'low',
+        tags: ['ui'],
+        status: 'open',
+      },
     ];
 
     it('a brain WITHOUT on_idle still returns no-claimable-task and never derives idle work', async () => {
@@ -704,20 +796,53 @@ describe('AgentRunner.tick', () => {
           n++;
           if (n === 1) {
             // DISCOVER: derive a concrete self-task (text).
-            return { content: 'TASK: tighten a grammar edge in the parser', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+            return {
+              content: 'TASK: tighten a grammar edge in the parser',
+              usage,
+              model: 'mock-1',
+              provider: 'mock',
+              finishReason: 'stop',
+            };
           }
           if (n === 2) {
             // EXECUTE iter 1: a PRODUCTIVE write_file (non-empty content) → satisfies W.107.b.
             return {
-              content: '', usage, model: 'mock-1', provider: 'mock', finishReason: 'tool_use',
-              toolUses: [{ id: 'w1', name: 'write_file', input: { path: '/root/agent-output/idle.txt', content: 'idle artifact content' } }],
-              assistantBlocks: [{ type: 'tool_use' as const, id: 'w1', name: 'write_file', input: { path: '/root/agent-output/idle.txt', content: 'idle artifact content' } }],
+              content: '',
+              usage,
+              model: 'mock-1',
+              provider: 'mock',
+              finishReason: 'tool_use',
+              toolUses: [
+                {
+                  id: 'w1',
+                  name: 'write_file',
+                  input: { path: '/root/agent-output/idle.txt', content: 'idle artifact content' },
+                },
+              ],
+              assistantBlocks: [
+                {
+                  type: 'tool_use' as const,
+                  id: 'w1',
+                  name: 'write_file',
+                  input: { path: '/root/agent-output/idle.txt', content: 'idle artifact content' },
+                },
+              ],
             } as unknown as LLMCompletionResponse;
           }
-          return { content: 'Tightened the edge.', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+          return {
+            content: 'Tightened the edge.',
+            usage,
+            model: 'mock-1',
+            provider: 'mock',
+            finishReason: 'stop',
+          };
         },
-        async generateHoloScript() { throw new Error('not used'); },
-        async healthCheck() { return { ok: true, latencyMs: 1 }; },
+        async generateHoloScript() {
+          throw new Error('not used');
+        },
+        async healthCheck() {
+          return { ok: true, latencyMs: 1 };
+        },
       };
       const runner = new AgentRunner({
         identity: IDENTITY,
@@ -747,20 +872,47 @@ describe('AgentRunner.tick', () => {
         async complete(): Promise<LLMCompletionResponse> {
           n++;
           if (n === 1) {
-            return { content: 'TASK: audit the lexer', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+            return {
+              content: 'TASK: audit the lexer',
+              usage,
+              model: 'mock-1',
+              provider: 'mock',
+              finishReason: 'stop',
+            };
           }
           if (n === 2) {
             // EXECUTE: only a READ-ONLY tool → NOT productive → no real artifact.
             return {
-              content: '', usage, model: 'mock-1', provider: 'mock', finishReason: 'tool_use',
+              content: '',
+              usage,
+              model: 'mock-1',
+              provider: 'mock',
+              finishReason: 'tool_use',
               toolUses: [{ id: 'r1', name: 'read_file', input: { path: '/tmp/x' } }],
-              assistantBlocks: [{ type: 'tool_use' as const, id: 'r1', name: 'read_file', input: { path: '/tmp/x' } }],
+              assistantBlocks: [
+                {
+                  type: 'tool_use' as const,
+                  id: 'r1',
+                  name: 'read_file',
+                  input: { path: '/tmp/x' },
+                },
+              ],
             } as unknown as LLMCompletionResponse;
           }
-          return { content: 'I looked at it.', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+          return {
+            content: 'I looked at it.',
+            usage,
+            model: 'mock-1',
+            provider: 'mock',
+            finishReason: 'stop',
+          };
         },
-        async generateHoloScript() { throw new Error('not used'); },
-        async healthCheck() { return { ok: true, latencyMs: 1 }; },
+        async generateHoloScript() {
+          throw new Error('not used');
+        },
+        async healthCheck() {
+          return { ok: true, latencyMs: 1 };
+        },
       };
       const runner = new AgentRunner({
         identity: IDENTITY,
@@ -781,24 +933,57 @@ describe('AgentRunner.tick', () => {
       const usage = { promptTokens: 10, completionTokens: 5, totalTokens: 15 };
       const toolUse = (id: string, name: string, input: Record<string, unknown>) =>
         ({
-          content: '', usage, model: 'mock-1', provider: 'mock', finishReason: 'tool_use',
+          content: '',
+          usage,
+          model: 'mock-1',
+          provider: 'mock',
+          finishReason: 'tool_use',
           toolUses: [{ id, name, input }],
           assistantBlocks: [{ type: 'tool_use' as const, id, name, input }],
         }) as unknown as LLMCompletionResponse;
       const provider: ILLMProvider = {
-        name: 'mock', models: ['mock-1'], defaultHoloScriptModel: 'mock-1',
+        name: 'mock',
+        models: ['mock-1'],
+        defaultHoloScriptModel: 'mock-1',
         async complete(): Promise<LLMCompletionResponse> {
           n++;
-          if (n === 1) return { content: 'TASK: tighten a parser edge', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+          if (n === 1)
+            return {
+              content: 'TASK: tighten a parser edge',
+              usage,
+              model: 'mock-1',
+              provider: 'mock',
+              finishReason: 'stop',
+            };
           if (n === 2) return toolUse('r1', 'read_file', { path: '/tmp/x' }); // inspect only
-          if (n === 3) return { content: 'I read the file.', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' }; // no write → triggers re-prompt
+          if (n === 3)
+            return {
+              content: 'I read the file.',
+              usage,
+              model: 'mock-1',
+              provider: 'mock',
+              finishReason: 'stop',
+            }; // no write → triggers re-prompt
           // re-prompt: now ACT with a productive write_file
-          return toolUse('w1', 'write_file', { path: '/root/agent-output/idle.txt', content: 'a real improvement' });
+          return toolUse('w1', 'write_file', {
+            path: '/root/agent-output/idle.txt',
+            content: 'a real improvement',
+          });
         },
-        async generateHoloScript() { throw new Error('not used'); },
-        async healthCheck() { return { ok: true, latencyMs: 1 }; },
+        async generateHoloScript() {
+          throw new Error('not used');
+        },
+        async healthCheck() {
+          return { ok: true, latencyMs: 1 };
+        },
       };
-      const runner = new AgentRunner({ identity: IDENTITY, brain: IDLE_BRAIN, provider, costGuard: freshGuard(), mesh: mesh as never });
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: IDLE_BRAIN,
+        provider,
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
       const result = await runner.tick();
       expect(result.action).toBe('idle-worked'); // the re-prompt rescued a read-only attempt
       expect(mesh.addTasks).toHaveBeenCalledTimes(1);
@@ -1174,7 +1359,9 @@ describe('AgentRunner.tick', () => {
       const mesh = mockMesh({
         tasks: [CAPABILITY_MISMATCH_TASK],
         claimImpl: vi.fn(async () => {
-          throw new Error('HoloMesh PATCH /team/team_test/board/task_owned_metal_only 500: internal error');
+          throw new Error(
+            'HoloMesh PATCH /team/team_test/board/task_owned_metal_only 500: internal error'
+          );
         }),
       });
       const runner = new AgentRunner({

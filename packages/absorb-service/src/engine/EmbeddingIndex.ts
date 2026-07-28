@@ -10,11 +10,7 @@
 import type { ExternalSymbolDefinition } from './types';
 import type { CodebaseGraph } from './CodebaseGraph';
 import type { EmbeddingProvider } from './providers/EmbeddingProvider';
-import {
-  fuseHybridScore,
-  HybridLexicalIndex,
-  type HybridMatchKind,
-} from './HybridRetrieval';
+import { fuseHybridScore, HybridLexicalIndex, type HybridMatchKind } from './HybridRetrieval';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';

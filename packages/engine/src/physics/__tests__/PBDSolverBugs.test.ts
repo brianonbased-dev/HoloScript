@@ -14,12 +14,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  PBDSolverCPU,
-  extractEdges,
-  colorConstraints,
-  generateSDF,
-} from '..';
+import { PBDSolverCPU, extractEdges, colorConstraints, generateSDF } from '..';
 import type { ISoftBodyConfig } from '@holoscript/core';
 
 // ---------------------------------------------------------------------------
@@ -29,10 +24,18 @@ import type { ISoftBodyConfig } from '@holoscript/core';
 /** Simple quad: 4 vertices, 2 triangles, v0+v1 pinned */
 function makeQuadConfig(overrides?: Partial<ISoftBodyConfig>): ISoftBodyConfig {
   const positions = new Float32Array([
-    0, 1, 0, // v0 (pinned)
-    1, 1, 0, // v1 (pinned)
-    1, 0, 0, // v2
-    0, 0, 0, // v3
+    0,
+    1,
+    0, // v0 (pinned)
+    1,
+    1,
+    0, // v1 (pinned)
+    1,
+    0,
+    0, // v2
+    0,
+    0,
+    0, // v3
   ]);
   const indices = new Uint32Array([0, 1, 2, 0, 2, 3]);
   const { edges } = extractEdges(indices, 4);
@@ -115,7 +118,7 @@ describe('Bug 1 — XPBD lambda accumulation (CPU distance solver)', () => {
       masses: new Float32Array([1, 1]),
       indices,
       edges,
-      compliance: 1.0,   // high compliance → alphaTilde large → accumulation effect visible
+      compliance: 1.0, // high compliance → alphaTilde large → accumulation effect visible
       damping: 1.0,
       collisionMargin: 0,
       selfCollision: false,
@@ -198,11 +201,11 @@ describe('Bug 2 — SPH density correction uses lambdaI + lambdaJ (CPU path)', (
 
     // Set up density particles: particle 0 has particle 1 as neighbor, and vice versa
     solver.setDensityParticles(
-      [0, 1],                 // both are fluid particles
-      [[1], [0]],             // particle 0's neighbor = particle 1, and vice versa
-      1000,                   // rest density
-      0.1,                    // kernel radius
-      1e-4                    // compliance
+      [0, 1], // both are fluid particles
+      [[1], [0]], // particle 0's neighbor = particle 1, and vice versa
+      1000, // rest density
+      0.1, // kernel radius
+      1e-4 // compliance
     );
 
     const stateBefore = solver.getState();
@@ -424,30 +427,30 @@ describe('Bug 4 — generateSDF sign correctness (ray-crossing parity)', () => {
     // 8 corners of the unit cube
     const v = [
       [-0.5, -0.5, -0.5], // 0
-      [0.5, -0.5, -0.5],  // 1
-      [0.5,  0.5, -0.5],  // 2
-      [-0.5,  0.5, -0.5], // 3
-      [-0.5, -0.5,  0.5], // 4
-      [0.5, -0.5,  0.5],  // 5
-      [0.5,  0.5,  0.5],  // 6
-      [-0.5,  0.5,  0.5], // 7
+      [0.5, -0.5, -0.5], // 1
+      [0.5, 0.5, -0.5], // 2
+      [-0.5, 0.5, -0.5], // 3
+      [-0.5, -0.5, 0.5], // 4
+      [0.5, -0.5, 0.5], // 5
+      [0.5, 0.5, 0.5], // 6
+      [-0.5, 0.5, 0.5], // 7
     ];
     const vertices = new Float32Array(v.flat());
 
     // 12 triangles (2 per face, consistent outward winding)
     const tris = [
       // -Z face (front, outward = -Z)
-      0, 2, 1,  0, 3, 2,
+      0, 2, 1, 0, 3, 2,
       // +Z face (back, outward = +Z)
-      4, 5, 6,  4, 6, 7,
+      4, 5, 6, 4, 6, 7,
       // -X face (left, outward = -X)
-      0, 4, 7,  0, 7, 3,
+      0, 4, 7, 0, 7, 3,
       // +X face (right, outward = +X)
-      1, 2, 6,  1, 6, 5,
+      1, 2, 6, 1, 6, 5,
       // -Y face (bottom, outward = -Y)
-      0, 1, 5,  0, 5, 4,
+      0, 1, 5, 0, 5, 4,
       // +Y face (top, outward = +Y)
-      3, 6, 2,  3, 7, 6,
+      3, 6, 2, 3, 7, 6,
     ];
     const indices = new Uint32Array(tris);
     return { vertices, indices };
@@ -510,9 +513,14 @@ function sampleSDFAt(
 ): number {
   const { boundsMin, boundsMax, gridSize, sdfData, cellSize } = sdf;
   // Clamp to valid range
-  if (wx < boundsMin[0] || wx > boundsMax[0] ||
-      wy < boundsMin[1] || wy > boundsMax[1] ||
-      wz < boundsMin[2] || wz > boundsMax[2]) {
+  if (
+    wx < boundsMin[0] ||
+    wx > boundsMax[0] ||
+    wy < boundsMin[1] ||
+    wy > boundsMax[1] ||
+    wz < boundsMin[2] ||
+    wz > boundsMax[2]
+  ) {
     // Outside SDF bounds — treat as large positive
     return 1e6;
   }

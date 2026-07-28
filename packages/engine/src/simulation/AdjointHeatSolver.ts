@@ -225,7 +225,7 @@ export class AdjointHeatSolver {
   private readonly dz: number;
   private readonly alpha: number;
   private readonly requestedDt: number;
-  private readonly subDt: number;  // stable sub-step size
+  private readonly subDt: number; // stable sub-step size
   private readonly subStepsPerDt: number;
   private readonly S: Float64Array;
   private readonly T0: Float64Array;
@@ -270,9 +270,7 @@ export class AdjointHeatSolver {
     this.S = new Float64Array(this.N);
     if (config.source) {
       if (config.source.length !== this.N) {
-        throw new Error(
-          `AdjointHeatSolver: source length ${config.source.length} ≠ N=${this.N}.`
-        );
+        throw new Error(`AdjointHeatSolver: source length ${config.source.length} ≠ N=${this.N}.`);
       }
       this.S.set(config.source);
     }
@@ -328,11 +326,18 @@ export class AdjointHeatSolver {
       // Sub-step for CFL stability
       for (let s = 0; s < this.subStepsPerDt; s++) {
         applyForwardStep(
-          cur, buf0,
+          cur,
+          buf0,
           this.S,
-          this.nx, this.ny, this.nz,
-          this.dx, this.dy, this.dz,
-          this.alpha, this.subDt, this.boundaryValue
+          this.nx,
+          this.ny,
+          this.nz,
+          this.dx,
+          this.dy,
+          this.dz,
+          this.alpha,
+          this.subDt,
+          this.boundaryValue
         );
         // Swap
         cur.set(buf0);
@@ -398,10 +403,16 @@ export class AdjointHeatSolver {
         }
         // Propagate λ one sub-step backward (adjoint of the sub-step forward map).
         applyAdjointStep(
-          lam, lamNext,
-          this.nx, this.ny, this.nz,
-          this.dx, this.dy, this.dz,
-          this.alpha, this.subDt
+          lam,
+          lamNext,
+          this.nx,
+          this.ny,
+          this.nz,
+          this.dx,
+          this.dy,
+          this.dz,
+          this.alpha,
+          this.subDt
         );
         lam.set(lamNext);
       }

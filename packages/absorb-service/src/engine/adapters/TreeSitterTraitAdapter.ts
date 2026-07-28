@@ -21,7 +21,13 @@ import type {
   EmitSite,
   ListenSite,
 } from '../types';
-import { walkTree, nodeToSymbol, getFieldText, extractVisibility, hasModifier } from './BaseAdapter';
+import {
+  walkTree,
+  nodeToSymbol,
+  getFieldText,
+  extractVisibility,
+  hasModifier,
+} from './BaseAdapter';
 import type {
   LanguageTrait,
   SymbolRule,
@@ -69,7 +75,8 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
         // Declaration node whose SYMBOLS live in its named `specChild` children
         // (Go `type_declaration` → `type_spec`, `const_declaration` → `const_spec`).
         for (const spec of node.namedChildren) {
-          if (spec.type === rule.specChild) this.emitSymbol(spec, rule, filePath, out, exportedNames);
+          if (spec.type === rule.specChild)
+            this.emitSymbol(spec, rule, filePath, out, exportedNames);
         }
         return false; // handled — don't also treat descendants generically
       }
@@ -94,8 +101,7 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
       : this.findOwner(node);
     // Context-dependent kind: same node type is a member when owned (Python
     // `function_definition` → 'method' inside a class, 'function' at module level).
-    const kind =
-      owner && rule.kindWhenOwned ? rule.kindWhenOwned : this.resolveKind(node, rule);
+    const kind = owner && rule.kindWhenOwned ? rule.kindWhenOwned : this.resolveKind(node, rule);
     // When owned, a rule may prefer a member-shaped signature template.
     const activeTemplate =
       owner && rule.signatureTemplateWhenOwned
@@ -297,9 +303,8 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     );
     // {?field:X:LIT} — literal LIT only when field X is present (LIT may include
     // leading spaces and a nested {field:X}, expanded by the pass below).
-    out = out.replace(
-      /\{\?field:([A-Za-z_]+):([^}]*)\}/g,
-      (_m, field: string, lit: string) => (node.childForFieldName(field) ? lit : '')
+    out = out.replace(/\{\?field:([A-Za-z_]+):([^}]*)\}/g, (_m, field: string, lit: string) =>
+      node.childForFieldName(field) ? lit : ''
     );
     // {kindWord:X} — node type of field X with trailing '_type' stripped.
     out = out.replace(/\{kindWord:([A-Za-z_]+)\}/g, (_m, field: string) => {
@@ -463,9 +468,7 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     rule: NonNullable<LanguageTrait['moduleImports']>[number]
   ): string {
     if (rule.aliasChildType && child.type === rule.aliasChildType) {
-      const original = rule.aliasNameField
-        ? getFieldText(child, rule.aliasNameField)
-        : undefined;
+      const original = rule.aliasNameField ? getFieldText(child, rule.aliasNameField) : undefined;
       return original ?? child.text;
     }
     return child.text;
@@ -682,7 +685,9 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
         if (this.importMethodNames.has(calleeName)) continue;
 
         out.push({
-          callerId: scope ? (stack[stack.length - 1] ?? scope.moduleName) : this.enclosingSymbol(node),
+          callerId: scope
+            ? (stack[stack.length - 1] ?? scope.moduleName)
+            : this.enclosingSymbol(node),
           calleeName,
           calleeOwner,
           filePath,
@@ -745,7 +750,9 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
       const eventName = this.stringLiteralValue(args?.namedChildren[0], rule);
       if (!eventName) return;
       sites.push({
-        callerId: scope ? (stack[stack.length - 1] ?? scope.moduleName) : this.enclosingSymbol(node),
+        callerId: scope
+          ? (stack[stack.length - 1] ?? scope.moduleName)
+          : this.enclosingSymbol(node),
         eventName,
         filePath,
         line: node.startPosition.row + 1,
@@ -760,10 +767,7 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
    * node, else null (variables, computed, interpolated). Mirrors the bespoke
    * `_stringLiteralValue`.
    */
-  private stringLiteralValue(
-    node: SyntaxNode | undefined,
-    rule: EventSiteRule
-  ): string | null {
+  private stringLiteralValue(node: SyntaxNode | undefined, rule: EventSiteRule): string | null {
     if (!node) return null;
     if (node.type === rule.stringType) {
       const fragment = node.namedChildren.find((c) => c.type === rule.stringFragmentType);
@@ -777,9 +781,7 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
       }
     }
     if (node.type === rule.templateStringType) {
-      const parts = node.namedChildren.filter((c) =>
-        rule.templateFragmentTypes.includes(c.type)
-      );
+      const parts = node.namedChildren.filter((c) => rule.templateFragmentTypes.includes(c.type));
       if (parts.length === 1 && parts[0]) return parts[0].text;
     }
     return null;

@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { evalSH, evalSHGrad, shBasis, shColor, shCoeffCount } from '../GaussianSH';
 
 function seeded(s: number): () => number {
-  return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
 }
 function normalize(x: number, y: number, z: number): [number, number, number] {
   const n = Math.hypot(x, y, z) || 1;
@@ -24,7 +24,8 @@ function normalize(x: number, y: number, z: number): [number, number, number] {
 describe('GaussianSH — gradient check (analytic vs finite differences)', () => {
   it('evalSHGrad dCoeffs + dDir match central differences (degree 2)', () => {
     const R = seeded(31);
-    const deg = 2, n = shCoeffCount(deg); // 9
+    const deg = 2,
+      n = shCoeffCount(deg); // 9
     const coeffs = Array.from({ length: n }, () => (R() - 0.5) * 2);
     let [x, y, z] = normalize(R() - 0.5, R() - 0.5, R() - 0.5);
     const dR = 1; // so dCoeffs = ∂evalSH/∂coeff, dDir = ∂evalSH/∂dir
@@ -35,26 +36,54 @@ describe('GaussianSH — gradient check (analytic vs finite differences)', () =>
     // ∂evalSH/∂coeff_k
     for (let k = 0; k < n; k++) {
       const orig = coeffs[k];
-      coeffs[k] = orig + eps; const Lp = evalSH(coeffs, x, y, z, deg);
-      coeffs[k] = orig - eps; const Lm = evalSH(coeffs, x, y, z, deg);
+      coeffs[k] = orig + eps;
+      const Lp = evalSH(coeffs, x, y, z, deg);
+      coeffs[k] = orig - eps;
+      const Lm = evalSH(coeffs, x, y, z, deg);
       coeffs[k] = orig;
       const fd = (Lp - Lm) / (2 * eps);
-      worst = Math.max(worst, Math.abs(fd - G.dCoeffs[k]) / (Math.max(Math.abs(fd), Math.abs(G.dCoeffs[k])) + 1e-8));
+      worst = Math.max(
+        worst,
+        Math.abs(fd - G.dCoeffs[k]) / (Math.max(Math.abs(fd), Math.abs(G.dCoeffs[k])) + 1e-8)
+      );
     }
     // ∂evalSH/∂dir (x,y,z treated as free)
     const dirAnalytic = G.dDir;
     const comps: Array<[number, () => number, (v: number) => void]> = [
-      [x, () => x, (v) => { x = v; }],
-      [y, () => y, (v) => { y = v; }],
-      [z, () => z, (v) => { z = v; }],
+      [
+        x,
+        () => x,
+        (v) => {
+          x = v;
+        },
+      ],
+      [
+        y,
+        () => y,
+        (v) => {
+          y = v;
+        },
+      ],
+      [
+        z,
+        () => z,
+        (v) => {
+          z = v;
+        },
+      ],
     ];
     for (let c = 0; c < 3; c++) {
       const orig = comps[c][0];
-      comps[c][2](orig + eps); const Lp = evalSH(coeffs, x, y, z, deg);
-      comps[c][2](orig - eps); const Lm = evalSH(coeffs, x, y, z, deg);
+      comps[c][2](orig + eps);
+      const Lp = evalSH(coeffs, x, y, z, deg);
+      comps[c][2](orig - eps);
+      const Lm = evalSH(coeffs, x, y, z, deg);
       comps[c][2](orig);
       const fd = (Lp - Lm) / (2 * eps);
-      worst = Math.max(worst, Math.abs(fd - dirAnalytic[c]) / (Math.max(Math.abs(fd), Math.abs(dirAnalytic[c])) + 1e-8));
+      worst = Math.max(
+        worst,
+        Math.abs(fd - dirAnalytic[c]) / (Math.max(Math.abs(fd), Math.abs(dirAnalytic[c])) + 1e-8)
+      );
     }
     expect(worst).toBeLessThan(1e-4);
   });
@@ -85,21 +114,27 @@ describe('GaussianSH — view-dependent color', () => {
     const fit = (deg: number): number => {
       const n = shCoeffCount(deg);
       const c = new Float64Array(n);
-      const m = new Float64Array(n), v = new Float64Array(n);
-      const lr = 0.1, b1 = 0.9, b2 = 0.999;
+      const m = new Float64Array(n),
+        v = new Float64Array(n);
+      const lr = 0.1,
+        b1 = 0.9,
+        b2 = 0.999;
       let L = 0;
       for (let it = 0; it < 600; it++) {
-        const g = new Float64Array(n); L = 0;
+        const g = new Float64Array(n);
+        L = 0;
         for (let i = 0; i < M; i++) {
           const pred = evalSH(c, dirs[i][0], dirs[i][1], dirs[i][2], deg);
-          const e = pred - target[i]; L += 0.5 * e * e;
+          const e = pred - target[i];
+          L += 0.5 * e * e;
           const b = shBasis(dirs[i][0], dirs[i][1], dirs[i][2], deg);
           for (let k = 0; k < n; k++) g[k] += e * b[k];
         }
         const t = it + 1;
         for (let k = 0; k < n; k++) {
-          m[k] = b1 * m[k] + (1 - b1) * g[k]; v[k] = b2 * v[k] + (1 - b2) * g[k] * g[k];
-          c[k] -= lr * (m[k] / (1 - b1 ** t)) / (Math.sqrt(v[k] / (1 - b2 ** t)) + 1e-8);
+          m[k] = b1 * m[k] + (1 - b1) * g[k];
+          v[k] = b2 * v[k] + (1 - b2) * g[k] * g[k];
+          c[k] -= (lr * (m[k] / (1 - b1 ** t))) / (Math.sqrt(v[k] / (1 - b2 ** t)) + 1e-8);
         }
       }
       return L;

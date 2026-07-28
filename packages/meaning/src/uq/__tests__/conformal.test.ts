@@ -20,7 +20,12 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-function bernoulliOutcomes(n: number, p: number, rand: () => number, family = 'occlusion'): GradedOutcome[] {
+function bernoulliOutcomes(
+  n: number,
+  p: number,
+  rand: () => number,
+  family = 'occlusion'
+): GradedOutcome[] {
   const out: GradedOutcome[] = [];
   for (let i = 0; i < n; i++) out.push({ family, correct: rand() < p });
   return out;

@@ -7,20 +7,8 @@
  * duplicating their benchmark logic. Every subprocess, hardware fact, claim
  * boundary, and output path is captured in one timestamped receipt.
  */
-import {
-  cpus,
-  freemem,
-  hostname,
-  platform,
-  release,
-  totalmem,
-} from 'node:os';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from 'node:fs';
+import { cpus, freemem, hostname, platform, release, totalmem } from 'node:os';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { spawnSync } from 'node:child_process';
@@ -235,13 +223,7 @@ function hardwareReceipt() {
     logicalCpuCount: cpus().length,
     totalMemoryBytes: totalmem(),
     freeMemoryBytesAtStart: freemem(),
-    gpuInventory:
-      nvidia.status === 0
-        ? nvidia.stdout
-            .trim()
-            .split(/\r?\n/u)
-            .filter(Boolean)
-        : [],
+    gpuInventory: nvidia.status === 0 ? nvidia.stdout.trim().split(/\r?\n/u).filter(Boolean) : [],
     nvidiaSmiStatus: nvidia.status === 0 ? 'available' : 'unavailable',
   };
 }
@@ -561,12 +543,11 @@ export async function main(argv = process.argv.slice(2)) {
           }
         : null,
       paper26: {
-        status:
-          steps
-            .filter((step) => step.id.startsWith('paper-26-'))
-            .every((step) => step.status === 'pass')
-            ? 'pass'
-            : 'fail',
+        status: steps
+          .filter((step) => step.id.startsWith('paper-26-'))
+          .every((step) => step.status === 'pass')
+          ? 'pass'
+          : 'fail',
         xenovaAblation: options.withXenova ? 'attempted' : 'skipped-by-default',
         outputs: steps
           .filter((step) => step.id.startsWith('paper-26-'))

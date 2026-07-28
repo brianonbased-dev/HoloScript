@@ -50,7 +50,8 @@ const GUARANTEES: readonly GuaranteeSpec[] = [
   {
     id: 'geometry-integrity',
     label: 'Geometry integrity',
-    behavioralConsequence: 'Mesh/render divergence and malformed connectivity are no longer rejected.',
+    behavioralConsequence:
+      'Mesh/render divergence and malformed connectivity are no longer rejected.',
   },
   {
     id: 'unit-validation',
@@ -577,8 +578,7 @@ describe('TVCG contract per-guarantee ablation', () => {
           dof: mesh.nodeCount * 3,
           geometryHash,
         },
-        note:
-          'TET4-shaped transient probe isolates contract-shell overhead from the structural PCG solver loop.',
+        note: 'TET4-shaped transient probe isolates contract-shell overhead from the structural PCG solver loop.',
       },
       baselineBare,
       fullContract: {

@@ -22,10 +22,7 @@ import {
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(scriptDir, '..');
 const repoRoot = resolve(packageRoot, '../..');
-const defaultProtocol = resolve(
-  packageRoot,
-  'benchmarks/paper-5-visual-agent-study-v4.json'
-);
+const defaultProtocol = resolve(packageRoot, 'benchmarks/paper-5-visual-agent-study-v4.json');
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -135,8 +132,7 @@ export function main(argv = process.argv.slice(2)) {
       uniqueImageHashes: new Set(cases.map((item) => item.imageReceipt.sha256)).size,
       sameImageAcrossPixelArms: cases.every(
         (item) =>
-          item.arms.pixels.literalImage.sha256 ===
-          item.arms['relations-pixels'].literalImage.sha256
+          item.arms.pixels.literalImage.sha256 === item.arms['relations-pixels'].literalImage.sha256
       ),
       actualImageBytesVerified: cases.every(
         (item) => item.imageReceipt.inputReceipt.actualImageBytes === true

@@ -15,14 +15,14 @@ function httpUse(url: string): ToolUseBlock {
 
 describe('http_request — SSRF guard', () => {
   const blocked = [
-    'http://example.com',           // plain HTTP
-    'ftp://example.com',            // wrong scheme
-    'https://127.0.0.1/secret',     // loopback
-    'https://localhost/admin',      // loopback by name
-    'https://10.0.0.1/internal',    // RFC-1918 class A
-    'https://192.168.1.1/router',   // RFC-1918 class C
-    'https://172.16.0.1/db',        // RFC-1918 class B low
-    'https://172.31.255.1/db',      // RFC-1918 class B high
+    'http://example.com', // plain HTTP
+    'ftp://example.com', // wrong scheme
+    'https://127.0.0.1/secret', // loopback
+    'https://localhost/admin', // loopback by name
+    'https://10.0.0.1/internal', // RFC-1918 class A
+    'https://192.168.1.1/router', // RFC-1918 class C
+    'https://172.16.0.1/db', // RFC-1918 class B low
+    'https://172.31.255.1/db', // RFC-1918 class B high
     'https://169.254.169.254/meta', // AWS/GCP metadata
   ];
 

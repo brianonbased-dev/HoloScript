@@ -1449,10 +1449,18 @@ export function generateSDF(
             i1 = indices[t * 3 + 1],
             i2 = indices[t * 3 + 2];
           const dist = pointTriangleDistance(
-            px, py, pz,
-            vertices[i0 * 3], vertices[i0 * 3 + 1], vertices[i0 * 3 + 2],
-            vertices[i1 * 3], vertices[i1 * 3 + 1], vertices[i1 * 3 + 2],
-            vertices[i2 * 3], vertices[i2 * 3 + 1], vertices[i2 * 3 + 2]
+            px,
+            py,
+            pz,
+            vertices[i0 * 3],
+            vertices[i0 * 3 + 1],
+            vertices[i0 * 3 + 2],
+            vertices[i1 * 3],
+            vertices[i1 * 3 + 1],
+            vertices[i1 * 3 + 2],
+            vertices[i2 * 3],
+            vertices[i2 * 3 + 1],
+            vertices[i2 * 3 + 2]
           );
           if (dist < closestDist) closestDist = dist;
         }
@@ -1478,16 +1486,73 @@ export function generateSDF(
           const i0 = indices[t * 3],
             i1 = indices[t * 3 + 1],
             i2 = indices[t * 3 + 2];
-          const ax = vertices[i0 * 3], ay = vertices[i0 * 3 + 1], az = vertices[i0 * 3 + 2];
-          const bx = vertices[i1 * 3], by = vertices[i1 * 3 + 1], bz = vertices[i1 * 3 + 2];
-          const cx = vertices[i2 * 3], cy = vertices[i2 * 3 + 1], cz = vertices[i2 * 3 + 2];
+          const ax = vertices[i0 * 3],
+            ay = vertices[i0 * 3 + 1],
+            az = vertices[i0 * 3 + 2];
+          const bx = vertices[i1 * 3],
+            by = vertices[i1 * 3 + 1],
+            bz = vertices[i1 * 3 + 2];
+          const cx = vertices[i2 * 3],
+            cy = vertices[i2 * 3 + 1],
+            cz = vertices[i2 * 3 + 2];
 
           // +X ray from (px, py+pertA, pz+pertB): perturb non-axis coords
-          if (rayTriangleIntersectAxisAligned(0, px, py + pertA, pz + pertB, ax, ay, az, bx, by, bz, cx, cy, cz)) crossX++;
+          if (
+            rayTriangleIntersectAxisAligned(
+              0,
+              px,
+              py + pertA,
+              pz + pertB,
+              ax,
+              ay,
+              az,
+              bx,
+              by,
+              bz,
+              cx,
+              cy,
+              cz
+            )
+          )
+            crossX++;
           // +Y ray from (px+pertA, py, pz+pertB)
-          if (rayTriangleIntersectAxisAligned(1, px + pertA, py, pz + pertB, ax, ay, az, bx, by, bz, cx, cy, cz)) crossY++;
+          if (
+            rayTriangleIntersectAxisAligned(
+              1,
+              px + pertA,
+              py,
+              pz + pertB,
+              ax,
+              ay,
+              az,
+              bx,
+              by,
+              bz,
+              cx,
+              cy,
+              cz
+            )
+          )
+            crossY++;
           // +Z ray from (px+pertA, py+pertB, pz)
-          if (rayTriangleIntersectAxisAligned(2, px + pertA, py + pertB, pz, ax, ay, az, bx, by, bz, cx, cy, cz)) crossZ++;
+          if (
+            rayTriangleIntersectAxisAligned(
+              2,
+              px + pertA,
+              py + pertB,
+              pz,
+              ax,
+              ay,
+              az,
+              bx,
+              by,
+              bz,
+              cx,
+              cy,
+              cz
+            )
+          )
+            crossZ++;
         }
 
         // Majority vote: inside if at least 2 of the 3 ray counts are odd
@@ -1526,10 +1591,18 @@ export function generateSDF(
  */
 function rayTriangleIntersectAxisAligned(
   axis: 0 | 1 | 2,
-  ox: number, oy: number, oz: number,
-  ax: number, ay: number, az: number,
-  bx: number, by: number, bz: number,
-  cx: number, cy: number, cz: number
+  ox: number,
+  oy: number,
+  oz: number,
+  ax: number,
+  ay: number,
+  az: number,
+  bx: number,
+  by: number,
+  bz: number,
+  cx: number,
+  cy: number,
+  cz: number
 ): boolean {
   // Ray direction d is the unit axis vector
   const dx = axis === 0 ? 1 : 0;
@@ -1537,8 +1610,12 @@ function rayTriangleIntersectAxisAligned(
   const dz = axis === 2 ? 1 : 0;
 
   // Möller–Trumbore algorithm
-  const e1x = bx - ax, e1y = by - ay, e1z = bz - az;
-  const e2x = cx - ax, e2y = cy - ay, e2z = cz - az;
+  const e1x = bx - ax,
+    e1y = by - ay,
+    e1z = bz - az;
+  const e2x = cx - ax,
+    e2y = cy - ay,
+    e2z = cz - az;
 
   // h = d × e2
   const hx = dy * e2z - dz * e2y;
@@ -1551,7 +1628,9 @@ function rayTriangleIntersectAxisAligned(
 
   const invDet = 1 / det;
 
-  const sx = ox - ax, sy = oy - ay, sz = oz - az;
+  const sx = ox - ax,
+    sy = oy - ay,
+    sz = oz - az;
   const u = (sx * hx + sy * hy + sz * hz) * invDet;
   if (u < 0 || u > 1) return false;
 

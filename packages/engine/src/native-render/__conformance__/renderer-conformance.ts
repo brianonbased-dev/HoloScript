@@ -212,7 +212,9 @@ function canonicalize(value: unknown): unknown {
 }
 
 export function sha256Json(value: unknown): string {
-  return createHash('sha256').update(JSON.stringify(canonicalize(value))).digest('hex');
+  return createHash('sha256')
+    .update(JSON.stringify(canonicalize(value)))
+    .digest('hex');
 }
 
 function sha256Text(text: string): string {
@@ -263,7 +265,12 @@ const CAPABILITY_PROBES: Record<NativeRendererGoldenCapability, CapabilityProbe>
     ],
   },
   interaction: {
-    anyOf: [/Raycaster|\braycast/i, /\bintersectObjects?\s*\(/, /\bhitTest\b/i, /\bstateTransition\b/],
+    anyOf: [
+      /Raycaster|\braycast/i,
+      /\bintersectObjects?\s*\(/,
+      /\bhitTest\b/i,
+      /\bstateTransition\b/,
+    ],
   },
   xr_device_semantics: {
     anyOf: [
@@ -294,7 +301,10 @@ export function probeBackendCapabilities(
   sourcePath: string
 ): Record<NativeRendererGoldenCapability, CapabilityEvidence> {
   const source = readFileSync(sourcePath, 'utf-8');
-  const relPath = sourcePath.slice(REPO_ROOT.length + 1).split('\\').join('/');
+  const relPath = sourcePath
+    .slice(REPO_ROOT.length + 1)
+    .split('\\')
+    .join('/');
   const out = {} as Record<NativeRendererGoldenCapability, CapabilityEvidence>;
 
   for (const capability of REQUIRED_NATIVE_RENDERER_CAPABILITIES) {
@@ -386,7 +396,8 @@ export function deriveSceneModel(comp: HoloCompositionLike): SceneModel {
         id: name,
         type: LIGHT_TYPES[typeProp],
         position,
-        color: typeof prop(decl, 'color') === 'string' ? (prop(decl, 'color') as string) : undefined,
+        color:
+          typeof prop(decl, 'color') === 'string' ? (prop(decl, 'color') as string) : undefined,
         intensity:
           typeof prop(decl, 'intensity') === 'number'
             ? (prop(decl, 'intensity') as number)
@@ -398,10 +409,13 @@ export function deriveSceneModel(comp: HoloCompositionLike): SceneModel {
       nodeTypes.push('asset');
       assets.push({
         id: name,
-        kind: typeof prop(decl, 'asset_type') === 'string' ? (prop(decl, 'asset_type') as string) : '',
+        kind:
+          typeof prop(decl, 'asset_type') === 'string' ? (prop(decl, 'asset_type') as string) : '',
         uri: typeof prop(decl, 'uri') === 'string' ? (prop(decl, 'uri') as string) : '',
         loadPolicy:
-          typeof prop(decl, 'load_policy') === 'string' ? (prop(decl, 'load_policy') as string) : '',
+          typeof prop(decl, 'load_policy') === 'string'
+            ? (prop(decl, 'load_policy') as string)
+            : '',
       });
       continue;
     }
@@ -424,7 +438,8 @@ export function deriveSceneModel(comp: HoloCompositionLike): SceneModel {
           typeof prop(decl, 'material_type') === 'string'
             ? (prop(decl, 'material_type') as string)
             : undefined,
-        color: typeof prop(decl, 'color') === 'string' ? (prop(decl, 'color') as string) : undefined,
+        color:
+          typeof prop(decl, 'color') === 'string' ? (prop(decl, 'color') as string) : undefined,
         roughness:
           typeof prop(decl, 'roughness') === 'number'
             ? (prop(decl, 'roughness') as number)
@@ -562,7 +577,12 @@ function traceOp(ops: OpTrace[], op: string, target: string | undefined, fn: () 
     fn();
     ops.push({ op, target, ok: true });
   } catch (error) {
-    ops.push({ op, target, ok: false, error: error instanceof Error ? error.message : String(error) });
+    ops.push({
+      op,
+      target,
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -743,8 +763,12 @@ export async function runRendererConformance(): Promise<RendererConformanceRecei
     if (!native && !bridge) missingEverywhere.push(capability);
   }
 
-  const relNative = NATIVE_BACKEND_SOURCE.slice(REPO_ROOT.length + 1).split('\\').join('/');
-  const relBridge = BRIDGE_BACKEND_SOURCE.slice(REPO_ROOT.length + 1).split('\\').join('/');
+  const relNative = NATIVE_BACKEND_SOURCE.slice(REPO_ROOT.length + 1)
+    .split('\\')
+    .join('/');
+  const relBridge = BRIDGE_BACKEND_SOURCE.slice(REPO_ROOT.length + 1)
+    .split('\\')
+    .join('/');
 
   return {
     schema: 'holoscript.renderer-conformance-receipt.v1',

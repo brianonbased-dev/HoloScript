@@ -273,9 +273,7 @@ function pushMantlePanel(
         (profile.shoulderHalfWidth * (1 - v01) + profile.hemHalfWidth * v01) *
         (1 + profile.midWidthFactor * midContour) *
         buildScale;
-      const x =
-        (u01 * 2 - 1) * halfWidth +
-        profile.lateralSkew * v01 * buildScale;
+      const x = (u01 * 2 - 1) * halfWidth + profile.lateralSkew * v01 * buildScale;
       const z =
         (0.19 +
           profile.zCurve * Math.cos((u01 - 0.5) * Math.PI) +

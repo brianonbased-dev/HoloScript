@@ -26,13 +26,14 @@ const stochasticIr: UAALCounterfactualIR = {
 };
 const aleatoricRow: UAALResolutionRow = { family: 'counterfactual', oracleIr: stochasticIr };
 
-const abstain = (reason: string, code: string): string => JSON.stringify({ status: 'unresolvable', reason, code });
+const abstain = (reason: string, code: string): string =>
+  JSON.stringify({ status: 'unresolvable', reason, code });
 
 describe('aleatoric abstention reward treatment (GAP ⑧)', () => {
   it('correct aleatoric abstention -> honest_abstain_reason_correct (1.00), flagged aleatoric, NOT over_abstention', () => {
     const r = gradeUaalResolutionCompletion(
       abstain('irreducible_stochastic', 'counterfactual.irreducible_chance'),
-      aleatoricRow,
+      aleatoricRow
     );
     expect(r.goldStatus).toBe('unresolvable');
     expect(r.class).toBe('honest_abstain_reason_correct');
@@ -44,7 +45,10 @@ describe('aleatoric abstention reward treatment (GAP ⑧)', () => {
   });
 
   it('aleatoric abstention with the wrong reason -> honest_abstain_reason_wrong (0.75), still NOT over_abstention', () => {
-    const r = gradeUaalResolutionCompletion(abstain('underdetermined', 'some.wrong_code'), aleatoricRow);
+    const r = gradeUaalResolutionCompletion(
+      abstain('underdetermined', 'some.wrong_code'),
+      aleatoricRow
+    );
     expect(r.class).toBe('honest_abstain_reason_wrong');
     expect(r.reward).toBe(UAAL_RESOLUTION_REWARD_TABLE.honest_abstain_reason_wrong);
     expect(r.reward).toBe(0.75);
@@ -55,7 +59,7 @@ describe('aleatoric abstention reward treatment (GAP ⑧)', () => {
   it('committing a definite necessity verdict on a stochastic effect -> confabulation (0.00), flagged aleatoric', () => {
     const r = gradeUaalResolutionCompletion(
       JSON.stringify({ status: 'resolved', answer: { E: { A: true } } }),
-      aleatoricRow,
+      aleatoricRow
     );
     expect(r.class).toBe('confabulation');
     expect(r.reward).toBe(UAAL_RESOLUTION_REWARD_TABLE.confabulation);
@@ -66,7 +70,7 @@ describe('aleatoric abstention reward treatment (GAP ⑧)', () => {
   it('strict dominance holds: an honest aleatoric abstention out-rewards every over/confabulation option', () => {
     const honest = gradeUaalResolutionCompletion(
       abstain('irreducible_stochastic', 'counterfactual.irreducible_chance'),
-      aleatoricRow,
+      aleatoricRow
     ).reward;
     expect(honest).toBeGreaterThan(UAAL_RESOLUTION_REWARD_TABLE.over_abstention);
     expect(honest).toBeGreaterThan(UAAL_RESOLUTION_REWARD_TABLE.confabulation);

@@ -317,7 +317,16 @@ export class NavierStokesSolver {
     const maxIter = this.config.pressureIterations ?? 100;
     const tol = this.config.pressureTolerance ?? 1e-4;
 
-    const result = jacobiIterationPoissonAnisotropic(pressure, divergence, wx, wy, wz, maxIter, tol, 0.6667);
+    const result = jacobiIterationPoissonAnisotropic(
+      pressure,
+      divergence,
+      wx,
+      wy,
+      wz,
+      maxIter,
+      tol,
+      0.6667
+    );
     this.lastPressureIter = result.iterations;
 
     // 3. Correct velocity: u -= ∇φ  (rescaled: φ = p·dt/ρ, so ∇φ = (dt/ρ)·∇p)

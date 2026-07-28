@@ -66,7 +66,11 @@ function makeSkinnedTriangleGlb(): ArrayBuffer {
     meshes: [
       {
         primitives: [
-          { attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 }, indices: 4, mode: 4 },
+          {
+            attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 },
+            indices: 4,
+            mode: 4,
+          },
         ],
       },
     ],
@@ -77,7 +81,9 @@ function makeSkinnedTriangleGlb(): ArrayBuffer {
 }
 
 function eq(a: ArrayLike<number> | undefined, b: ArrayLike<number> | undefined) {
-  return JSON.stringify(a ? Array.from(a) : undefined) === JSON.stringify(b ? Array.from(b) : undefined);
+  return (
+    JSON.stringify(a ? Array.from(a) : undefined) === JSON.stringify(b ? Array.from(b) : undefined)
+  );
 }
 
 // ─── tests ─────────────────────────────────────────────────────────────────────

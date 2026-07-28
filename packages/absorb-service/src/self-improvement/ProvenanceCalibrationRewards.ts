@@ -305,9 +305,7 @@ export const provenanceValidityReward: GRPORewardFunction = async (
   let atoms: Record<string, Rational>;
   let bound: [Rational, Rational];
   try {
-    atoms = Object.fromEntries(
-      Object.entries(ctx.atoms).map(([k, v]) => [k, parseRational(v)])
-    );
+    atoms = Object.fromEntries(Object.entries(ctx.atoms).map(([k, v]) => [k, parseRational(v)]));
     bound = [parseRational(ctx.bound[0]), parseRational(ctx.bound[1])];
   } catch {
     return completions.map(() => 0);

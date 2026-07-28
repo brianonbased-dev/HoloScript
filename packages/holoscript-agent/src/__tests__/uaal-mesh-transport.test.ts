@@ -30,7 +30,13 @@ describe('uAAL ⇄ HoloMesh transport', () => {
       onRequest: (from, payload) => {
         const p = payload as { op?: string };
         if (p.op === 'status') {
-          return { ok: true, op: 'status', status: 'online', servedBy: 'brittney', requestedBy: from };
+          return {
+            ok: true,
+            op: 'status',
+            status: 'online',
+            servedBy: 'brittney',
+            requestedBy: from,
+          };
         }
         return { ok: false, error: `unknown op: ${String(p.op)}` };
       },
@@ -84,7 +90,11 @@ describe('uAAL ⇄ HoloMesh transport', () => {
         received = { from, payload };
       },
     });
-    const transport = new HolomeshMeshTransport({ mesh: feed, selfNode: 'agent-1', genId: () => 'cid-off-1' });
+    const transport = new HolomeshMeshTransport({
+      mesh: feed,
+      selfNode: 'agent-1',
+      genId: () => 'cid-off-1',
+    });
 
     await transport.offload('brittney', { op: 'note', text: 'fyi' });
     await node.poll();

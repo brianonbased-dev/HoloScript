@@ -4,7 +4,12 @@ import { parsePeerRegistry, resolvePeer, type PeerEntry } from '../peer-registry
 describe('parsePeerRegistry', () => {
   it('parses a valid JSON array, dropping entries without baseUrl', () => {
     const raw = JSON.stringify([
-      { handle: 'laptop', baseUrl: 'http://192.168.0.23:11434', model: 'qwen3:4b-instruct', capabilities: ['hardware'] },
+      {
+        handle: 'laptop',
+        baseUrl: 'http://192.168.0.23:11434',
+        model: 'qwen3:4b-instruct',
+        capabilities: ['hardware'],
+      },
       { handle: 'bad' }, // no baseUrl → dropped
     ]);
     const reg = parsePeerRegistry(raw);

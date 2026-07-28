@@ -85,7 +85,7 @@ const theoryOfMindIR: UAALTheoryOfMindIR = {
 
 function row<TCompletion, TMetadata extends Record<string, unknown>>(
   completion: TCompletion,
-  metadata: TMetadata,
+  metadata: TMetadata
 ): UAALSemanticBenchmarkRow<TCompletion, TMetadata> {
   return { completion: JSON.stringify(completion), metadata };
 }
@@ -109,7 +109,9 @@ describe('semantic theory-of-mind harness', () => {
   });
 
   it('passes the recoverability benchmark on a load-bearing fixture', () => {
-    const result = benchmarkTheoryOfMind([row(theoryOfMindIR, { variant_id: 'ambiguous_evidence' })]);
+    const result = benchmarkTheoryOfMind([
+      row(theoryOfMindIR, { variant_id: 'ambiguous_evidence' }),
+    ]);
     expect(result.pass).toBe(true);
     expect(result.tests.t1_false_belief_recall.rate).toBe(1);
     expect(result.tests.t4_falsification_flip.rate).toBe(1);
@@ -127,7 +129,7 @@ const telosRows = [
       causal: [],
       perspectives: [{ stance: 'outward', telos_gap: false }],
     },
-    { id: 'direct_served', telos_gap: false, beneficiary: 'crew' },
+    { id: 'direct_served', telos_gap: false, beneficiary: 'crew' }
   ),
   row<UAALTelosIR, { id: string; telos_gap: boolean; beneficiary: string | null }>(
     {
@@ -142,7 +144,7 @@ const telosRows = [
       ],
       perspectives: [{ stance: 'outward', telos_gap: false }],
     },
-    { id: 'indirect_served', telos_gap: false, beneficiary: 'resident' },
+    { id: 'indirect_served', telos_gap: false, beneficiary: 'resident' }
   ),
   row<UAALTelosIR, { id: string; telos_gap: boolean; beneficiary: string | null }>(
     {
@@ -151,7 +153,7 @@ const telosRows = [
       causal: [],
       perspectives: [{ stance: 'outward', telos_gap: true }],
     },
-    { id: 'unserved_no_beneficiary', telos_gap: true, beneficiary: null },
+    { id: 'unserved_no_beneficiary', telos_gap: true, beneficiary: null }
   ),
   row<UAALTelosIR, { id: string; telos_gap: boolean; beneficiary: string | null }>(
     {
@@ -163,7 +165,7 @@ const telosRows = [
       causal: [],
       perspectives: [{ stance: 'outward', telos_gap: true }],
     },
-    { id: 'busy_unserved', telos_gap: true, beneficiary: null },
+    { id: 'busy_unserved', telos_gap: true, beneficiary: null }
   ),
 ];
 
@@ -200,7 +202,7 @@ const containmentRows = [
       perspectives: [{ claims_sees: ['coin'] }],
       query: { agent: 'agent', object: 'coin' },
     },
-    { id: 'occluded_box', occluded: true, occluder: 'box' },
+    { id: 'occluded_box', occluded: true, occluder: 'box' }
   ),
   row<UAALContainmentIR, { id: string; occluded: boolean; occluder: string | null }>(
     {
@@ -218,7 +220,7 @@ const containmentRows = [
       perspectives: [{ claims_sees: ['coin'] }],
       query: { agent: 'agent', object: 'coin' },
     },
-    { id: 'transparent_case', occluded: false, occluder: null },
+    { id: 'transparent_case', occluded: false, occluder: null }
   ),
   row<UAALContainmentIR, { id: string; occluded: boolean; occluder: string | null }>(
     {
@@ -236,7 +238,7 @@ const containmentRows = [
       perspectives: [{ claims_sees: ['coin'] }],
       query: { agent: 'agent', object: 'coin' },
     },
-    { id: 'agent_inside', occluded: false, occluder: null },
+    { id: 'agent_inside', occluded: false, occluder: null }
   ),
   row<UAALContainmentIR, { id: string; occluded: boolean; occluder: string | null }>(
     {
@@ -254,7 +256,7 @@ const containmentRows = [
       perspectives: [{ claims_sees: ['gem'] }],
       query: { agent: 'agent', object: 'gem' },
     },
-    { id: 'nested_occluded', occluded: true, occluder: 'chest' },
+    { id: 'nested_occluded', occluded: true, occluder: 'chest' }
   ),
 ];
 
@@ -263,7 +265,10 @@ describe('semantic containment harness', () => {
     const agentInside = JSON.parse(containmentRows[2].completion as string) as UAALContainmentIR;
 
     expect(enclosingChain(agentInside, 'coin')).toEqual(['box', 'room']);
-    expect(recoverOcclusion(agentInside, 'agent', 'coin')).toEqual({ occluded: false, occluder: null });
+    expect(recoverOcclusion(agentInside, 'agent', 'coin')).toEqual({
+      occluded: false,
+      occluder: null,
+    });
   });
 
   it('passes the containment benchmark and beats shallow opacity', () => {
@@ -279,23 +284,31 @@ const affordanceRows = [
     {
       entities: [
         { id: 'bot', kind: 'agent', body: { width: 0.4, lift: 20 } },
-        { id: 'hatch', kind: 'object', offers: [{ action: 'pass', requires: { aperture: 0.6 }, preconditions: ['p_clear'] }] },
+        {
+          id: 'hatch',
+          kind: 'object',
+          offers: [{ action: 'pass', requires: { aperture: 0.6 }, preconditions: ['p_clear'] }],
+        },
       ],
       propositions: [{ id: 'p_clear', holds: true }],
       query: { agent: 'bot', action: 'pass', object: 'hatch' },
     },
-    { id: 'fits_hatch', affords: true, block_reason: null },
+    { id: 'fits_hatch', affords: true, block_reason: null }
   ),
   row<UAALAffordanceIR, UAALAffordanceMetadata>(
     {
       entities: [
         { id: 'bot', kind: 'agent', body: { width: 0.9, lift: 20 } },
-        { id: 'hatch', kind: 'object', offers: [{ action: 'pass', requires: { aperture: 0.6 }, preconditions: ['p_clear'] }] },
+        {
+          id: 'hatch',
+          kind: 'object',
+          offers: [{ action: 'pass', requires: { aperture: 0.6 }, preconditions: ['p_clear'] }],
+        },
       ],
       propositions: [{ id: 'p_clear', holds: true }],
       query: { agent: 'bot', action: 'pass', object: 'hatch' },
     },
-    { id: 'too_wide', affords: false, block_reason: 'aperture' },
+    { id: 'too_wide', affords: false, block_reason: 'aperture' }
   ),
   row<UAALAffordanceIR, UAALAffordanceMetadata>(
     {
@@ -306,18 +319,22 @@ const affordanceRows = [
       propositions: [],
       query: { agent: 'bot', action: 'pass', object: 'wall' },
     },
-    { id: 'no_offer', affords: false, block_reason: 'no_offer' },
+    { id: 'no_offer', affords: false, block_reason: 'no_offer' }
   ),
   row<UAALAffordanceIR, UAALAffordanceMetadata>(
     {
       entities: [
         { id: 'bot', kind: 'agent', body: { width: 0.4, lift: 20 } },
-        { id: 'hatch', kind: 'object', offers: [{ action: 'pass', requires: { aperture: 0.6 }, preconditions: ['p_clear'] }] },
+        {
+          id: 'hatch',
+          kind: 'object',
+          offers: [{ action: 'pass', requires: { aperture: 0.6 }, preconditions: ['p_clear'] }],
+        },
       ],
       propositions: [{ id: 'p_clear', holds: false }],
       query: { agent: 'bot', action: 'pass', object: 'hatch' },
     },
-    { id: 'blocked_precondition', affords: false, block_reason: 'precondition' },
+    { id: 'blocked_precondition', affords: false, block_reason: 'precondition' }
   ),
 ];
 
@@ -325,7 +342,10 @@ describe('semantic affordance harness', () => {
   it('recovers body-relative affordance instead of object offers alone', () => {
     const tooWide = JSON.parse(affordanceRows[1].completion as string) as UAALAffordanceIR;
 
-    expect(recoverAffords(tooWide, 'bot', 'pass', 'hatch')).toEqual({ affords: false, reason: 'aperture' });
+    expect(recoverAffords(tooWide, 'bot', 'pass', 'hatch')).toEqual({
+      affords: false,
+      reason: 'aperture',
+    });
   });
 
   it('passes the affordance benchmark and beats object-offer baseline', () => {
@@ -346,7 +366,7 @@ const temporalRows = [
       t_now: 5,
       query: { belief: 'b_fresh', fact: 'lamp_on' },
     },
-    { id: 'fresh', belief_status: 'fresh', change_event: null },
+    { id: 'fresh', belief_status: 'fresh', change_event: null }
   ),
   row<UAALTemporalIR, UAALTemporalMetadata>(
     {
@@ -357,7 +377,7 @@ const temporalRows = [
       t_now: 10,
       query: { belief: 'b_stale', fact: 'lamp_on' },
     },
-    { id: 'stale_after_flip', belief_status: 'stale', change_event: 'e_off' },
+    { id: 'stale_after_flip', belief_status: 'stale', change_event: 'e_off' }
   ),
   row<UAALTemporalIR, UAALTemporalMetadata>(
     {
@@ -368,7 +388,7 @@ const temporalRows = [
       t_now: 5,
       query: { belief: 'b_error', fact: 'lamp_on' },
     },
-    { id: 'wrong_from_start', belief_status: 'error', change_event: null },
+    { id: 'wrong_from_start', belief_status: 'error', change_event: null }
   ),
 ];
 
@@ -376,7 +396,10 @@ describe('semantic temporal harness', () => {
   it('splits stale belief from original error', () => {
     const stale = JSON.parse(temporalRows[1].completion as string) as UAALTemporalIR;
 
-    expect(recoverBeliefStatus(stale, 'b_stale', 'lamp_on')).toEqual({ status: 'stale', change_event: 'e_off' });
+    expect(recoverBeliefStatus(stale, 'b_stale', 'lamp_on')).toEqual({
+      status: 'stale',
+      change_event: 'e_off',
+    });
   });
 
   it('passes the temporal benchmark and beats the time-blind baseline', () => {
@@ -390,43 +413,75 @@ describe('semantic temporal harness', () => {
 const deonticRows = [
   row<UAALDeonticIR, UAALDeonticMetadata>(
     {
-      norms: [{ id: 'n_delivery', force: 'O', authority: 'charter', addressee: 'jan', required_act: 'deliver' }],
+      norms: [
+        {
+          id: 'n_delivery',
+          force: 'O',
+          authority: 'charter',
+          addressee: 'jan',
+          required_act: 'deliver',
+        },
+      ],
       events: [{ id: 'e_direct', actor: 'jan', act: 'deliver', on_behalf_of: 'jan' }],
       beliefs: [{ confidence: 1 }],
       desires: [{ satisfied: true }],
       query: { norm: 'n_delivery' },
     },
-    { id: 'direct_complied', class: 'direct', norm_status: 'complied' },
+    { id: 'direct_complied', class: 'direct', norm_status: 'complied' }
   ),
   row<UAALDeonticIR, UAALDeonticMetadata>(
     {
-      norms: [{ id: 'n_delivery', force: 'O', authority: 'charter', addressee: 'jan', required_act: 'deliver' }],
+      norms: [
+        {
+          id: 'n_delivery',
+          force: 'O',
+          authority: 'charter',
+          addressee: 'jan',
+          required_act: 'deliver',
+        },
+      ],
       events: [{ id: 'e_proxy', actor: 'kai', act: 'deliver', on_behalf_of: 'jan' }],
       beliefs: [{ confidence: 1 }],
       desires: [{ satisfied: true }],
       query: { norm: 'n_delivery' },
     },
-    { id: 'proxy_complied', class: 'complied_by_proxy', norm_status: 'complied' },
+    { id: 'proxy_complied', class: 'complied_by_proxy', norm_status: 'complied' }
   ),
   row<UAALDeonticIR, UAALDeonticMetadata>(
     {
-      norms: [{ id: 'n_delivery', force: 'O', authority: 'charter', addressee: 'jan', required_act: 'deliver' }],
+      norms: [
+        {
+          id: 'n_delivery',
+          force: 'O',
+          authority: 'charter',
+          addressee: 'jan',
+          required_act: 'deliver',
+        },
+      ],
       events: [],
       beliefs: [{ confidence: 1 }],
       desires: [{ satisfied: true }],
       query: { norm: 'n_delivery' },
     },
-    { id: 'violated', class: 'violated', norm_status: 'violated' },
+    { id: 'violated', class: 'violated', norm_status: 'violated' }
   ),
   row<UAALDeonticIR, UAALDeonticMetadata>(
     {
-      norms: [{ id: 'n_delivery', force: 'P', authority: 'charter', addressee: 'jan', required_act: 'deliver' }],
+      norms: [
+        {
+          id: 'n_delivery',
+          force: 'P',
+          authority: 'charter',
+          addressee: 'jan',
+          required_act: 'deliver',
+        },
+      ],
       events: [],
       beliefs: [{ confidence: 1 }],
       desires: [{ satisfied: true }],
       query: { norm: 'n_delivery' },
     },
-    { id: 'permission_not_exercised', class: 'permission', norm_status: 'complied' },
+    { id: 'permission_not_exercised', class: 'permission', norm_status: 'complied' }
   ),
 ];
 
@@ -434,7 +489,11 @@ describe('semantic deontic harness', () => {
   it('counts proxy discharge while preserving force semantics', () => {
     const proxy = JSON.parse(deonticRows[1].completion as string) as UAALDeonticIR;
 
-    expect(recoverNormStatus(proxy, 'n_delivery')).toEqual({ status: 'complied', force: 'O', fulfilledBy: 'e_proxy' });
+    expect(recoverNormStatus(proxy, 'n_delivery')).toEqual({
+      status: 'complied',
+      force: 'O',
+      fulfilledBy: 'e_proxy',
+    });
   });
 
   it('passes the deontic benchmark and beats personal-performance baseline', () => {
@@ -448,43 +507,98 @@ describe('semantic deontic harness', () => {
 const commitmentRows = [
   row<UAALCommitmentIR, UAALCommitmentMetadata>(
     {
-      commitments: [{ id: 'c_delivery', promisor: 'sol', pledged_act: { type: 'deliver', recipient: 'mara', magnitude: 10 }, due_time: 5 }],
-      events: [{ id: 'e_deliver', predicate: 'deliver', actor: 'sol', recipient: 'mara', magnitude: 10, t: 4 }],
+      commitments: [
+        {
+          id: 'c_delivery',
+          promisor: 'sol',
+          pledged_act: { type: 'deliver', recipient: 'mara', magnitude: 10 },
+          due_time: 5,
+        },
+      ],
+      events: [
+        {
+          id: 'e_deliver',
+          predicate: 'deliver',
+          actor: 'sol',
+          recipient: 'mara',
+          magnitude: 10,
+          t: 4,
+        },
+      ],
       claims: [{ commitment: 'c_delivery', asserts_status: 'discharged' }],
       now: 10,
       query: { commitment: 'c_delivery' },
     },
-    { id: 'discharged', commitment_status: 'discharged', fulfilling_recipient: 'mara' },
+    { id: 'discharged', commitment_status: 'discharged', fulfilling_recipient: 'mara' }
   ),
   row<UAALCommitmentIR, UAALCommitmentMetadata>(
     {
-      commitments: [{ id: 'c_delivery', promisor: 'sol', pledged_act: { type: 'deliver', recipient: 'mara', magnitude: 10 }, due_time: 5 }],
-      events: [{ id: 'e_wrong_party', predicate: 'deliver', actor: 'sol', recipient: 'nox', magnitude: 10, t: 4 }],
+      commitments: [
+        {
+          id: 'c_delivery',
+          promisor: 'sol',
+          pledged_act: { type: 'deliver', recipient: 'mara', magnitude: 10 },
+          due_time: 5,
+        },
+      ],
+      events: [
+        {
+          id: 'e_wrong_party',
+          predicate: 'deliver',
+          actor: 'sol',
+          recipient: 'nox',
+          magnitude: 10,
+          t: 4,
+        },
+      ],
       claims: [{ commitment: 'c_delivery', asserts_status: 'discharged' }],
       now: 10,
       query: { commitment: 'c_delivery' },
     },
-    { id: 'wrong_counterparty', commitment_status: 'broken', fulfilling_recipient: null },
+    { id: 'wrong_counterparty', commitment_status: 'broken', fulfilling_recipient: null }
   ),
   row<UAALCommitmentIR, UAALCommitmentMetadata>(
     {
-      commitments: [{ id: 'c_delivery', promisor: 'sol', pledged_act: { type: 'deliver', recipient: 'mara', magnitude: 10 }, due_time: 5 }],
-      events: [{ id: 'e_late', predicate: 'deliver', actor: 'sol', recipient: 'mara', magnitude: 10, t: 7 }],
+      commitments: [
+        {
+          id: 'c_delivery',
+          promisor: 'sol',
+          pledged_act: { type: 'deliver', recipient: 'mara', magnitude: 10 },
+          due_time: 5,
+        },
+      ],
+      events: [
+        {
+          id: 'e_late',
+          predicate: 'deliver',
+          actor: 'sol',
+          recipient: 'mara',
+          magnitude: 10,
+          t: 7,
+        },
+      ],
       claims: [{ commitment: 'c_delivery', asserts_status: 'discharged' }],
       now: 10,
       query: { commitment: 'c_delivery' },
     },
-    { id: 'late', commitment_status: 'broken', fulfilling_recipient: null },
+    { id: 'late', commitment_status: 'broken', fulfilling_recipient: null }
   ),
   row<UAALCommitmentIR, UAALCommitmentMetadata>(
     {
-      commitments: [{ id: 'c_delivery', promisor: 'sol', pledged_act: { type: 'deliver', recipient: 'mara', magnitude: 10 }, due_time: 5 }],
+      commitments: [
+        {
+          id: 'c_delivery',
+          promisor: 'sol',
+          pledged_act: { type: 'deliver', recipient: 'mara', magnitude: 10 },
+          due_time: 5,
+        },
+      ],
       events: [],
       claims: [{ commitment: 'c_delivery', asserts_status: 'discharged' }],
       now: 3,
       query: { commitment: 'c_delivery' },
     },
-    { id: 'open', commitment_status: 'open', fulfilling_recipient: null },
+    { id: 'open', commitment_status: 'open', fulfilling_recipient: null }
   ),
 ];
 
@@ -511,7 +625,7 @@ const counterfactualRows = [
       causal: [{ from: 'a', to: 'e' }],
       query: { effect: 'e' },
     },
-    { id: 'single', class: 'single_producer', necessary: { e: { a: true } } },
+    { id: 'single', class: 'single_producer', necessary: { e: { a: true } } }
   ),
   row<UAALCounterfactualIR, UAALCounterfactualMetadata>(
     {
@@ -523,7 +637,7 @@ const counterfactualRows = [
       ],
       query: { effect: 'e' },
     },
-    { id: 'overdetermined', class: 'overdetermination', necessary: { e: { a: false, b: false } } },
+    { id: 'overdetermined', class: 'overdetermination', necessary: { e: { a: false, b: false } } }
   ),
   row<UAALCounterfactualIR, UAALCounterfactualMetadata>(
     {
@@ -533,7 +647,7 @@ const counterfactualRows = [
       causal: [{ from: 'a', to: 'e' }],
       query: { effect: 'e' },
     },
-    { id: 'preempted_backup', class: 'preemption', necessary: { e: { a: false, b: false } } },
+    { id: 'preempted_backup', class: 'preemption', necessary: { e: { a: false, b: false } } }
   ),
   row<UAALCounterfactualIR, UAALCounterfactualMetadata>(
     {
@@ -548,13 +662,15 @@ const counterfactualRows = [
       ],
       query: { effect: 'e' },
     },
-    { id: 'chain', class: 'chain', necessary: { e: { a: true, b: true } } },
+    { id: 'chain', class: 'chain', necessary: { e: { a: true, b: true } } }
   ),
 ];
 
 describe('semantic counterfactual harness', () => {
   it('separates actual parenthood from counterfactual necessity', () => {
-    const overdetermined = JSON.parse(counterfactualRows[1].completion as string) as UAALCounterfactualIR;
+    const overdetermined = JSON.parse(
+      counterfactualRows[1].completion as string
+    ) as UAALCounterfactualIR;
 
     expect(recoverNecessity(overdetermined)).toEqual({ e: { a: false, b: false } });
     expect(naiveParentNecessity(overdetermined)).toEqual({ e: { a: true, b: true } });
@@ -582,7 +698,11 @@ const accessRows = [
       ],
       query: { agent: 'agent', object: 'bell' },
     },
-    { id: 'visible_audible', access: { visual: true, audible: true }, blocker: { visual: null, audible: null } },
+    {
+      id: 'visible_audible',
+      access: { visual: true, audible: true },
+      blocker: { visual: null, audible: null },
+    }
   ),
   row<UAALContainmentIR, UAALAccessMetadata>(
     {
@@ -599,7 +719,11 @@ const accessRows = [
       ],
       query: { agent: 'agent', object: 'bell' },
     },
-    { id: 'blocked_all', access: { visual: false, audible: false }, blocker: { visual: 'box', audible: 'box' } },
+    {
+      id: 'blocked_all',
+      access: { visual: false, audible: false },
+      blocker: { visual: 'box', audible: 'box' },
+    }
   ),
   row<UAALContainmentIR, UAALAccessMetadata>(
     {
@@ -616,7 +740,11 @@ const accessRows = [
       ],
       query: { agent: 'agent', object: 'bell' },
     },
-    { id: 'heard_not_seen', access: { visual: false, audible: true }, blocker: { visual: 'box', audible: null } },
+    {
+      id: 'heard_not_seen',
+      access: { visual: false, audible: true },
+      blocker: { visual: 'box', audible: null },
+    }
   ),
   row<UAALContainmentIR, UAALAccessMetadata>(
     {
@@ -633,7 +761,11 @@ const accessRows = [
       ],
       query: { agent: 'agent', object: 'coin' },
     },
-    { id: 'shared_box', access: { visual: true, audible: true }, blocker: { visual: null, audible: null } },
+    {
+      id: 'shared_box',
+      access: { visual: true, audible: true },
+      blocker: { visual: null, audible: null },
+    }
   ),
 ];
 
@@ -641,8 +773,14 @@ describe('semantic access harness', () => {
   it('recovers per-modality access over the containment chain', () => {
     const heardNotSeen = JSON.parse(accessRows[2].completion as string) as UAALContainmentIR;
 
-    expect(recoverAccess(heardNotSeen, 'agent', 'bell').access).toEqual({ visual: false, audible: true });
-    expect(containmentAccessBaseline(heardNotSeen, 'agent', 'bell').access).toEqual({ visual: false, audible: false });
+    expect(recoverAccess(heardNotSeen, 'agent', 'bell').access).toEqual({
+      visual: false,
+      audible: true,
+    });
+    expect(containmentAccessBaseline(heardNotSeen, 'agent', 'bell').access).toEqual({
+      visual: false,
+      audible: false,
+    });
   });
 
   it('passes the access benchmark and beats all-or-nothing containment', () => {
@@ -656,7 +794,11 @@ describe('semantic access harness', () => {
 const baseComposition: UAALCompositionIR = {
   entities: [
     { id: 'agent', kind: 'agent', body: { lift: 20 } },
-    { id: 'parcel', kind: 'object', offers: [{ action: 'deliver', requires: { mass: 10 }, preconditions: ['p_ready'] }] },
+    {
+      id: 'parcel',
+      kind: 'object',
+      offers: [{ action: 'deliver', requires: { mass: 10 }, preconditions: ['p_ready'] }],
+    },
     { id: 'zone', kind: 'container', opaque: false },
     { id: 'room', kind: 'region' },
   ],
@@ -679,45 +821,50 @@ function compositionVariant(mutator: (ir: UAALCompositionIR) => void): UAALCompo
 }
 
 const compositionRows = [
-  row<UAALCompositionIR, UAALCompositionMetadata>(cloneFixture(baseComposition), { id: 'dischargeable', dischargeable: true }),
+  row<UAALCompositionIR, UAALCompositionMetadata>(cloneFixture(baseComposition), {
+    id: 'dischargeable',
+    dischargeable: true,
+  }),
   row<UAALCompositionIR, UAALCompositionMetadata>(
     compositionVariant((ir) => {
       ir.norm = { force: 'P' };
     }),
-    { id: 'blocked_norm', dischargeable: false, block_reason: 'norm' },
+    { id: 'blocked_norm', dischargeable: false, block_reason: 'norm' }
   ),
   row<UAALCompositionIR, UAALCompositionMetadata>(
     compositionVariant((ir) => {
       ir.query = { ...(ir.query || {}), intended_recipient: 'nox' };
     }),
-    { id: 'blocked_counterparty', dischargeable: false, block_reason: 'counterparty' },
+    { id: 'blocked_counterparty', dischargeable: false, block_reason: 'counterparty' }
   ),
   row<UAALCompositionIR, UAALCompositionMetadata>(
     compositionVariant((ir) => {
       const agent = ir.entities?.find((entity) => entity.id === 'agent');
       if (agent?.body) agent.body.lift = 5;
     }),
-    { id: 'blocked_affordance', dischargeable: false, block_reason: 'affordance' },
+    { id: 'blocked_affordance', dischargeable: false, block_reason: 'affordance' }
   ),
   row<UAALCompositionIR, UAALCompositionMetadata>(
     compositionVariant((ir) => {
       const zone = ir.entities?.find((entity) => entity.id === 'zone');
       if (zone) zone.opaque = true;
     }),
-    { id: 'blocked_occlusion', dischargeable: false, block_reason: 'occlusion' },
+    { id: 'blocked_occlusion', dischargeable: false, block_reason: 'occlusion' }
   ),
   row<UAALCompositionIR, UAALCompositionMetadata>(
     compositionVariant((ir) => {
       ir.time = { now: 8, deadline: 5 };
     }),
-    { id: 'blocked_deadline', dischargeable: false, block_reason: 'deadline' },
+    { id: 'blocked_deadline', dischargeable: false, block_reason: 'deadline' }
   ),
 ];
 
 describe('semantic composition harness', () => {
   it('recovers one dischargeability verdict from multiple primitives', () => {
     expect(recoverDischargeable(baseComposition)).toEqual({ dischargeable: true, reasons: [] });
-    expect(recoverDischargeable(JSON.parse(compositionRows[4].completion as string) as UAALCompositionIR)).toEqual({
+    expect(
+      recoverDischargeable(JSON.parse(compositionRows[4].completion as string) as UAALCompositionIR)
+    ).toEqual({
       dischargeable: false,
       reasons: ['occlusion'],
     });
@@ -754,7 +901,7 @@ const mereologyRows = [
       ],
       query: { whole: 'ship' },
     },
-    { id: 'theseus_swap', persists: true, dissolving_role: null },
+    { id: 'theseus_swap', persists: true, dissolving_role: null }
   ),
   row<UAALMereologyIR, UAALMereologyMetadata>(
     {
@@ -763,7 +910,7 @@ const mereologyRows = [
       changes: [{ op: 'remove', part: 'flag_a', role: 'flag', essential: false }],
       query: { whole: 'ship' },
     },
-    { id: 'nonessential_removed', persists: true, dissolving_role: null },
+    { id: 'nonessential_removed', persists: true, dissolving_role: null }
   ),
   row<UAALMereologyIR, UAALMereologyMetadata>(
     {
@@ -772,7 +919,7 @@ const mereologyRows = [
       changes: [{ op: 'remove', part: 'mast_a', role: 'mast', essential: true }],
       query: { whole: 'ship' },
     },
-    { id: 'essential_unreplaced', persists: false, dissolving_role: 'mast' },
+    { id: 'essential_unreplaced', persists: false, dissolving_role: 'mast' }
   ),
 ];
 
@@ -806,7 +953,12 @@ const tensionRows = [
       ],
       query: { frontier: 'frontier' },
     },
-    { id: 'open_tension', class: 'open_tension', tension: true, contradiction: { goal: 'win', antigoal: 'loss' } },
+    {
+      id: 'open_tension',
+      class: 'open_tension',
+      tension: true,
+      contradiction: { goal: 'win', antigoal: 'loss' },
+    }
   ),
   row<UAALTensionIR, UAALTensionMetadata>(
     {
@@ -815,7 +967,7 @@ const tensionRows = [
       unfired: [{ from: 'frontier', to: 'win' }],
       query: { frontier: 'frontier' },
     },
-    { id: 'resolved_goal', class: 'resolved', tension: false, contradiction: null },
+    { id: 'resolved_goal', class: 'resolved', tension: false, contradiction: null }
   ),
   row<UAALTensionIR, UAALTensionMetadata>(
     {
@@ -830,7 +982,7 @@ const tensionRows = [
       ],
       query: { frontier: 'frontier' },
     },
-    { id: 'foregone_many_branches', class: 'foregone', tension: false, contradiction: null },
+    { id: 'foregone_many_branches', class: 'foregone', tension: false, contradiction: null }
   ),
 ];
 
@@ -850,7 +1002,11 @@ describe('semantic tension harness', () => {
   });
 });
 
-function analogyIR(mapping: Array<{ from: string; to: string }>, targetRelations: Array<{ pred: string; from: string; to: string }>, attrs = true): UAALAnalogyIR {
+function analogyIR(
+  mapping: Array<{ from: string; to: string }>,
+  targetRelations: Array<{ pred: string; from: string; to: string }>,
+  attrs = true
+): UAALAnalogyIR {
   return {
     source: {
       entities: [
@@ -885,9 +1041,15 @@ const analogyRows = [
         { from: 'src_center', to: 'tgt_center' },
         { from: 'src_orbiter', to: 'tgt_orbiter' },
       ],
-      analogyValidRelations,
+      analogyValidRelations
     ),
-    { id: 'relational_valid', class: 'relational_valid', valid: true, preserved_relations: 2, required_relations: 2 },
+    {
+      id: 'relational_valid',
+      class: 'relational_valid',
+      valid: true,
+      preserved_relations: 2,
+      required_relations: 2,
+    }
   ),
   row<UAALAnalogyIR, UAALAnalogyMetadata>(
     {
@@ -897,7 +1059,7 @@ const analogyRows = [
           { from: 'src_orbiter', to: 'tgt_center' },
         ],
         analogyValidRelations,
-        true,
+        true
       ),
       target: {
         entities: [
@@ -907,7 +1069,13 @@ const analogyRows = [
         relations: analogyValidRelations,
       },
     },
-    { id: 'attribute_only', class: 'attribute_only', valid: false, preserved_relations: 0, required_relations: 2 },
+    {
+      id: 'attribute_only',
+      class: 'attribute_only',
+      valid: false,
+      preserved_relations: 0,
+      required_relations: 2,
+    }
   ),
   row<UAALAnalogyIR, UAALAnalogyMetadata>(
     analogyIR(
@@ -915,9 +1083,15 @@ const analogyRows = [
         { from: 'src_center', to: 'tgt_center' },
         { from: 'src_orbiter', to: 'tgt_orbiter' },
       ],
-      [{ pred: 'attracts', from: 'tgt_center', to: 'tgt_orbiter' }],
+      [{ pred: 'attracts', from: 'tgt_center', to: 'tgt_orbiter' }]
     ),
-    { id: 'partial_break', class: 'partial_break', valid: false, preserved_relations: 1, required_relations: 2 },
+    {
+      id: 'partial_break',
+      class: 'partial_break',
+      valid: false,
+      preserved_relations: 1,
+      required_relations: 2,
+    }
   ),
   row<UAALAnalogyIR, UAALAnalogyMetadata>(
     analogyIR(
@@ -926,9 +1100,15 @@ const analogyRows = [
         { from: 'src_orbiter', to: 'tgt_orbiter' },
       ],
       analogyValidRelations,
-      false,
+      false
     ),
-    { id: 'systematic_valid', class: 'systematic_valid', valid: true, preserved_relations: 2, required_relations: 2 },
+    {
+      id: 'systematic_valid',
+      class: 'systematic_valid',
+      valid: true,
+      preserved_relations: 2,
+      required_relations: 2,
+    }
   ),
 ];
 
@@ -959,13 +1139,15 @@ const presuppositionRows = [
       ],
       query: { atoms: ['has_king', 'is_bald'] },
     },
-    { id: 'king_projection', atom_status: { has_king: 'presupposed', is_bald: 'at_issue' } },
+    { id: 'king_projection', atom_status: { has_king: 'presupposed', is_bald: 'at_issue' } }
   ),
 ];
 
 describe('semantic presupposition harness', () => {
   it('splits presupposed content from at-issue content by projection', () => {
-    const projection = JSON.parse(presuppositionRows[0].completion as string) as UAALPresuppositionIR;
+    const projection = JSON.parse(
+      presuppositionRows[0].completion as string
+    ) as UAALPresuppositionIR;
 
     expect(recoverAtomStatus(projection, 'has_king')).toEqual({ status: 'presupposed' });
     expect(recoverAtomStatus(projection, 'is_bald')).toEqual({ status: 'at_issue' });
@@ -995,25 +1177,25 @@ const motifRows = [
     {
       components: [motifComponent('a', 'key'), motifComponent('b', 'key')],
     },
-    { id: 'motif_present', has_motif: true, recurrence_count: 2 },
+    { id: 'motif_present', has_motif: true, recurrence_count: 2 }
   ),
   row<UAALMotifIR, UAALMotifMetadata>(
     {
       components: [motifComponent('a', 'crown', 'guards'), motifComponent('b', 'crown', 'feeds')],
     },
-    { id: 'lexical_only', has_motif: false, recurrence_count: 0 },
+    { id: 'lexical_only', has_motif: false, recurrence_count: 0 }
   ),
   row<UAALMotifIR, UAALMotifMetadata>(
     {
       components: [motifComponent('a', 'river'), motifComponent('b', 'mirror')],
     },
-    { id: 'relabelled_isomorphs', has_motif: true, recurrence_count: 2 },
+    { id: 'relabelled_isomorphs', has_motif: true, recurrence_count: 2 }
   ),
   row<UAALMotifIR, UAALMotifMetadata>(
     {
       components: [motifComponent('a', 'stone', 'guards'), motifComponent('b', 'moon', 'feeds')],
     },
-    { id: 'no_motif', has_motif: false, recurrence_count: 0 },
+    { id: 'no_motif', has_motif: false, recurrence_count: 0 }
   ),
 ];
 

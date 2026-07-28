@@ -126,9 +126,9 @@ function makeCubeMissingTopFace(): SurfaceMesh {
  *     into 2 triangles).
  */
 function makeTable(): SurfaceMesh {
-  const L = 2;  // plate XY extent [0, L]
+  const L = 2; // plate XY extent [0, L]
   const T = 0.1; // plate thickness
-  const H = 1;  // column height / plate bottom z
+  const H = 1; // column height / plate bottom z
   const C = 0.4; // column width (square)
   const cLo = (L - C) / 2; // = 0.8
   const cHi = (L + C) / 2; // = 1.2
@@ -172,16 +172,21 @@ function makeTable(): SurfaceMesh {
 
   // ── Column ───────────────────────────────────────────────────────────────
   // Column bottom (z=0, normal -Z): CCW from below = 0,3,2,1
-  addTri(0, 3, 2); addTri(0, 2, 1);
+  addTri(0, 3, 2);
+  addTri(0, 2, 1);
 
   // Column side: front (y=cLo): verts 0,1 bottom → 4,5 top; normal -Y
-  addTri(0, 1, 5); addTri(0, 5, 4);
+  addTri(0, 1, 5);
+  addTri(0, 5, 4);
   // Column side: right (x=cHi): verts 1,2 bottom → 5,6 top; normal +X
-  addTri(1, 2, 6); addTri(1, 6, 5);
+  addTri(1, 2, 6);
+  addTri(1, 6, 5);
   // Column side: back (y=cHi): verts 2,3 bottom → 6,7 top; normal +Y
-  addTri(2, 3, 7); addTri(2, 7, 6);
+  addTri(2, 3, 7);
+  addTri(2, 7, 6);
   // Column side: left (x=cLo): verts 3,0 bottom → 7,4 top; normal -X
-  addTri(3, 0, 4); addTri(3, 4, 7);
+  addTri(3, 0, 4);
+  addTri(3, 4, 7);
 
   // ── Plate bottom annular region (z=H, normal -Z) ─────────────────────────
   // Outer: 8(0,0), 9(L,0), 10(L,L), 11(0,L)
@@ -193,26 +198,35 @@ function makeTable(): SurfaceMesh {
   // Fan-triangulate each trapezoid with CW-from-above winding:
   // Front strip (y=0): outer 8(0,0,H), 9(L,0,H) with inner 5(cHi,cLo,H), 4(cLo,cLo,H)
   //   CW from above: 8→5→9 and 8→4→5
-  addTri(8, 5, 9); addTri(8, 4, 5);
+  addTri(8, 5, 9);
+  addTri(8, 4, 5);
   // Right strip (x=L): outer 9(L,0,H), 10(L,L,H) with inner 6(cHi,cHi,H), 5(cHi,cLo,H)
-  addTri(9, 6, 10); addTri(9, 5, 6);
+  addTri(9, 6, 10);
+  addTri(9, 5, 6);
   // Back strip (y=L): outer 10(L,L,H), 11(0,L,H) with inner 7(cLo,cHi,H), 6(cHi,cHi,H)
-  addTri(10, 7, 11); addTri(10, 6, 7);
+  addTri(10, 7, 11);
+  addTri(10, 6, 7);
   // Left strip (x=0): outer 11(0,L,H), 8(0,0,H) with inner 4(cLo,cLo,H), 7(cLo,cHi,H)
-  addTri(11, 4, 8); addTri(11, 7, 4);
+  addTri(11, 4, 8);
+  addTri(11, 7, 4);
 
   // ── Plate sides (4 vertical faces) ───────────────────────────────────────
   // Front side (y=0): outer bottom 8,9 → top 12,13; normal -Y
-  addTri(8, 13, 12); addTri(8, 9, 13);
+  addTri(8, 13, 12);
+  addTri(8, 9, 13);
   // Right side (x=L): outer bottom 9,10 → top 13,14; normal +X
-  addTri(9, 14, 13); addTri(9, 10, 14);
+  addTri(9, 14, 13);
+  addTri(9, 10, 14);
   // Back side (y=L): outer bottom 10,11 → top 14,15; normal +Y
-  addTri(10, 15, 14); addTri(10, 11, 15);
+  addTri(10, 15, 14);
+  addTri(10, 11, 15);
   // Left side (x=0): outer bottom 11,8 → top 15,12; normal -X
-  addTri(11, 12, 15); addTri(11, 8, 12);
+  addTri(11, 12, 15);
+  addTri(11, 8, 12);
 
   // ── Plate top (z=H+T, normal +Z) ─────────────────────────────────────────
-  addTri(12, 13, 14); addTri(12, 14, 15);
+  addTri(12, 13, 14);
+  addTri(12, 14, 15);
 
   const triangles = new Uint32Array(trisArr);
   return { vertices, triangles };

@@ -35,7 +35,7 @@ function fakeModule(rows: Array<{ target: string; [k: string]: unknown }>): Evol
         existing
           .split('\n')
           .filter(Boolean)
-          .map((l) => JSON.parse(l).target as string),
+          .map((l) => JSON.parse(l).target as string)
       );
       const fresh = rs.filter((r) => !seen.has(r.target));
       return { fresh, deduped: rs.length - fresh.length };
@@ -131,7 +131,7 @@ describe('makeIdleAccrual — enabled orchestration', () => {
         ev: 'idle-accrual-enabled',
         endpoint: 'http://localhost:18080',
         protocol: 'openai-compatible',
-      }),
+      })
     );
   });
 
@@ -153,7 +153,12 @@ describe('makeIdleAccrual — enabled orchestration', () => {
     const fs = memFs();
     const accrual = await makeIdleAccrual({ handle: 'a', _module: fakeModule([]), _fs: fs });
     const r = await accrual!({ tick: 3, agentId: 'a' });
-    expect(r).toEqual({ target: 'companion-trait', written: 0, deduped: 0, outcome: 'no-candidate' });
+    expect(r).toEqual({
+      target: 'companion-trait',
+      written: 0,
+      deduped: 0,
+      outcome: 'no-candidate',
+    });
     expect(fs.store[CORPUS]).toBeUndefined();
   });
 });

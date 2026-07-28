@@ -40,9 +40,12 @@ describe('aleatoric (irreducible_stochastic) gap class', () => {
     const epistemic: MeaningStructuredGap = structuredGap(
       'affordance',
       'affordance.unstated_precondition',
-      'missing_precondition',
+      'missing_precondition'
     );
-    const aleatoric: MeaningStructuredGap = aleatoricGap('counterfactual', 'counterfactual.irreducible_chance');
+    const aleatoric: MeaningStructuredGap = aleatoricGap(
+      'counterfactual',
+      'counterfactual.irreducible_chance'
+    );
 
     // Epistemic gap: reducible, carries a base bucket, aleatoric flag absent/false.
     expect(epistemic.base).toBe('missing_precondition');

@@ -12,7 +12,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { testDevice, GPU_LIVE } from '../../physics/__tests__/gpu-setup';
-import { renderSplats, packRawSplats, defaultSplatCamera, type RawSplatInput } from '../splat-render';
+import {
+  renderSplats,
+  packRawSplats,
+  defaultSplatCamera,
+  type RawSplatInput,
+} from '../splat-render';
 import type { PixelGrid } from '../gpu-verify';
 
 const itGpu = GPU_LIVE ? it : it.skip;
@@ -40,13 +45,22 @@ function centeredSplat(color: [number, number, number, number]): RawSplatInput {
 describe('packRawSplats', () => {
   it('packs each splat into the 16-float SplatRaw layout (pos@0, scale@4, rot@8, color@12)', () => {
     const packed = packRawSplats([
-      { position: [1, 2, 3], scale: [4, 5, 6], rotation: [0.7, 0.1, 0.2, 0.3], color: [0.9, 0.8, 0.7, 0.6] },
+      {
+        position: [1, 2, 3],
+        scale: [4, 5, 6],
+        rotation: [0.7, 0.1, 0.2, 0.3],
+        color: [0.9, 0.8, 0.7, 0.6],
+      },
     ]);
     expect(packed.length).toBe(16);
     expect(Array.from(packed.subarray(0, 3))).toEqual([1, 2, 3]); // position
     expect(Array.from(packed.subarray(4, 7))).toEqual([4, 5, 6]); // scale
-    expect(Array.from(packed.subarray(8, 12))).toEqual([0.7, 0.1, 0.2, 0.3].map((v) => Math.fround(v)));
-    expect(Array.from(packed.subarray(12, 16))).toEqual([0.9, 0.8, 0.7, 0.6].map((v) => Math.fround(v)));
+    expect(Array.from(packed.subarray(8, 12))).toEqual(
+      [0.7, 0.1, 0.2, 0.3].map((v) => Math.fround(v))
+    );
+    expect(Array.from(packed.subarray(12, 16))).toEqual(
+      [0.9, 0.8, 0.7, 0.6].map((v) => Math.fround(v))
+    );
     // padding slots stay zero
     expect(packed[3]).toBe(0);
     expect(packed[7]).toBe(0);
@@ -91,11 +105,14 @@ describe('renderSplats (Dawn)', () => {
     expect(litPixels(g)).toBe(0);
   });
 
-  itGpu('carries splat colour through compress → sort → raster (red splat → red centre)', async () => {
-    const g = await renderSplats(testDevice!, [centeredSplat([1, 0, 0, 1])], { size: SIZE });
-    const [r, gr, b] = pixelAt(g, SIZE / 2, SIZE / 2);
-    expect(r).toBeGreaterThan(120);
-    expect(r).toBeGreaterThan(gr + 60);
-    expect(r).toBeGreaterThan(b + 60);
-  });
+  itGpu(
+    'carries splat colour through compress → sort → raster (red splat → red centre)',
+    async () => {
+      const g = await renderSplats(testDevice!, [centeredSplat([1, 0, 0, 1])], { size: SIZE });
+      const [r, gr, b] = pixelAt(g, SIZE / 2, SIZE / 2);
+      expect(r).toBeGreaterThan(120);
+      expect(r).toBeGreaterThan(gr + 60);
+      expect(r).toBeGreaterThan(b + 60);
+    }
+  );
 });

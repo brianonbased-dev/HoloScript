@@ -3,10 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import {
-  DEFAULT_PAPER_5_DATASET,
-  auditPaper5Dataset,
-} from './verify-paper-5-dataset.mjs';
+import { DEFAULT_PAPER_5_DATASET, auditPaper5Dataset } from './verify-paper-5-dataset.mjs';
 
 function withMutatedDataset(mutate, run) {
   const directory = mkdtempSync(join(tmpdir(), 'paper-5-dataset-'));

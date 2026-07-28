@@ -45,7 +45,7 @@ export function trainBackwardParity(
   H: number,
   dLimg: Float64Array | Float32Array,
   bg: readonly [number, number, number] = [0, 0, 0],
-  scale: number = FIXED_POINT_SCALE,
+  scale: number = FIXED_POINT_SCALE
 ): Gaussian2DGrad {
   const N = g.N;
   // Flat fixed-point accumulator: acc[i*9 + k], k = {posx,posy,a,b,c,r,g,bl,op} — the atomic<i32> buffer.
@@ -54,14 +54,21 @@ export function trainBackwardParity(
   for (let py = 0; py < H; py++) {
     for (let px = 0; px < W; px++) {
       const o = (py * W + px) * 3;
-      const dLr = dLimg[o], dLg = dLimg[o + 1], dLb = dLimg[o + 2];
-      const fx = px + 0.5, fy = py + 0.5;
+      const dLr = dLimg[o],
+        dLg = dLimg[o + 1],
+        dLb = dLimg[o + 2];
+      const fx = px + 0.5,
+        fy = py + 0.5;
 
       // forward replay → hits (front-to-back), capped at MAX_HITS
-      const hitI: number[] = [], hitAl: number[] = [], hitTb: number[] = [], hitClamp: number[] = [];
+      const hitI: number[] = [],
+        hitAl: number[] = [],
+        hitTb: number[] = [],
+        hitClamp: number[] = [];
       let T = 1;
       for (let i = 0; i < N; i++) {
-        const dx = fx - g.posx[i], dy = fy - g.posy[i];
+        const dx = fx - g.posx[i],
+          dy = fy - g.posy[i];
         const sigma = 0.5 * (g.a[i] * dx * dx + g.c[i] * dy * dy) + g.b[i] * dx * dy;
         if (sigma < 0) continue;
         let alpha = g.op[i] * Math.exp(-sigma);
@@ -69,24 +76,37 @@ export function trainBackwardParity(
         const clamped = alpha > ALPHA_MAX;
         alpha = Math.min(alpha, ALPHA_MAX);
         if (hitI.length < MAX_HITS) {
-          hitI.push(i); hitAl.push(alpha); hitTb.push(T); hitClamp.push(clamped ? 1 : 0);
+          hitI.push(i);
+          hitAl.push(alpha);
+          hitTb.push(T);
+          hitClamp.push(clamped ? 1 : 0);
         }
         T *= 1 - alpha;
       }
 
       // back-to-front suffix walk
-      let sr = T * bg[0], sg = T * bg[1], sb = T * bg[2];
+      let sr = T * bg[0],
+        sg = T * bg[1],
+        sb = T * bg[2];
       for (let k = hitI.length - 1; k >= 0; k--) {
-        const i = hitI[k], al = hitAl[k], Tb = hitTb[k];
-        const dx = fx - g.posx[i], dy = fy - g.posy[i];
+        const i = hitI[k],
+          al = hitAl[k],
+          Tb = hitTb[k];
+        const dx = fx - g.posx[i],
+          dy = fy - g.posy[i];
 
         acc[i * 9 + 5] += toFixed(dLr * Tb * al, scale);
         acc[i * 9 + 6] += toFixed(dLg * Tb * al, scale);
         acc[i * 9 + 7] += toFixed(dLb * Tb * al, scale);
 
         const inv = 1 / (1 - al);
-        const dCdA = dLr * (Tb * g.r[i] - sr * inv) + dLg * (Tb * g.gr[i] - sg * inv) + dLb * (Tb * g.bl[i] - sb * inv);
-        sr += al * Tb * g.r[i]; sg += al * Tb * g.gr[i]; sb += al * Tb * g.bl[i];
+        const dCdA =
+          dLr * (Tb * g.r[i] - sr * inv) +
+          dLg * (Tb * g.gr[i] - sg * inv) +
+          dLb * (Tb * g.bl[i] - sb * inv);
+        sr += al * Tb * g.r[i];
+        sg += al * Tb * g.gr[i];
+        sb += al * Tb * g.bl[i];
 
         if (hitClamp[k] === 0) {
           const sigma = 0.5 * (g.a[i] * dx * dx + g.c[i] * dy * dy) + g.b[i] * dx * dy;
@@ -95,7 +115,8 @@ export function trainBackwardParity(
           acc[i * 9 + 2] += toFixed(dCdSigma * 0.5 * dx * dx, scale);
           acc[i * 9 + 4] += toFixed(dCdSigma * 0.5 * dy * dy, scale);
           acc[i * 9 + 3] += toFixed(dCdSigma * dx * dy, scale);
-          const dSdx = g.a[i] * dx + g.b[i] * dy, dSdy = g.c[i] * dy + g.b[i] * dx;
+          const dSdx = g.a[i] * dx + g.b[i] * dy,
+            dSdy = g.c[i] * dy + g.b[i] * dx;
           acc[i * 9 + 0] += toFixed(dCdSigma * -dSdx, scale);
           acc[i * 9 + 1] += toFixed(dCdSigma * -dSdy, scale);
         }
@@ -110,7 +131,14 @@ export function trainBackwardParity(
     return out;
   };
   return {
-    posx: deq(0), posy: deq(1), a: deq(2), b: deq(3), c: deq(4),
-    r: deq(5), gr: deq(6), bl: deq(7), op: deq(8),
+    posx: deq(0),
+    posy: deq(1),
+    a: deq(2),
+    b: deq(3),
+    c: deq(4),
+    r: deq(5),
+    gr: deq(6),
+    bl: deq(7),
+    op: deq(8),
   };
 }

@@ -37,8 +37,14 @@ function grid(values: number[]): RegularGrid3D {
 
 describe('CouplingManagerV2 field transfer', () => {
   it('transfers array → grid (previously a silent no-op — the live coupling bug)', async () => {
-    const src = new MockSolver('transient', new Map<string, FieldData>([['t', Float32Array.from([1, 2, 3, 4])]]));
-    const dst = new MockSolver('steady-state', new Map<string, FieldData>([['g', grid([0, 0, 0, 0])]]));
+    const src = new MockSolver(
+      'transient',
+      new Map<string, FieldData>([['t', Float32Array.from([1, 2, 3, 4])]])
+    );
+    const dst = new MockSolver(
+      'steady-state',
+      new Map<string, FieldData>([['g', grid([0, 0, 0, 0])]])
+    );
     const cm = new CouplingManagerV2();
     cm.registerSolver('src', src);
     cm.registerSolver('dst', dst);
@@ -55,8 +61,14 @@ describe('CouplingManagerV2 field transfer', () => {
   });
 
   it('transfers grid → array and applies the transform', async () => {
-    const src = new MockSolver('transient', new Map<string, FieldData>([['g', grid([10, 20, 30])]]));
-    const dst = new MockSolver('steady-state', new Map<string, FieldData>([['a', new Float32Array(3)]]));
+    const src = new MockSolver(
+      'transient',
+      new Map<string, FieldData>([['g', grid([10, 20, 30])]])
+    );
+    const dst = new MockSolver(
+      'steady-state',
+      new Map<string, FieldData>([['a', new Float32Array(3)]])
+    );
     const cm = new CouplingManagerV2();
     cm.registerSolver('src', src);
     cm.registerSolver('dst', dst);
@@ -72,8 +84,14 @@ describe('CouplingManagerV2 field transfer', () => {
   });
 
   it('transfers array → array', async () => {
-    const src = new MockSolver('transient', new Map<string, FieldData>([['a', Float32Array.from([5, 6])]]));
-    const dst = new MockSolver('steady-state', new Map<string, FieldData>([['b', new Float32Array(2)]]));
+    const src = new MockSolver(
+      'transient',
+      new Map<string, FieldData>([['a', Float32Array.from([5, 6])]])
+    );
+    const dst = new MockSolver(
+      'steady-state',
+      new Map<string, FieldData>([['b', new Float32Array(2)]])
+    );
     const cm = new CouplingManagerV2();
     cm.registerSolver('src', src);
     cm.registerSolver('dst', dst);
@@ -89,8 +107,14 @@ describe('CouplingManagerV2 field transfer', () => {
   });
 
   it('THROWS on an element-count mismatch instead of silently transferring a prefix', async () => {
-    const src = new MockSolver('transient', new Map<string, FieldData>([['t', Float32Array.from([1, 2, 3, 4])]]));
-    const dst = new MockSolver('steady-state', new Map<string, FieldData>([['g', grid([0, 0, 0])]])); // length 3 ≠ 4
+    const src = new MockSolver(
+      'transient',
+      new Map<string, FieldData>([['t', Float32Array.from([1, 2, 3, 4])]])
+    );
+    const dst = new MockSolver(
+      'steady-state',
+      new Map<string, FieldData>([['g', grid([0, 0, 0])]])
+    ); // length 3 ≠ 4
     const cm = new CouplingManagerV2();
     cm.registerSolver('src', src);
     cm.registerSolver('dst', dst);
@@ -100,6 +124,8 @@ describe('CouplingManagerV2 field transfer', () => {
       transform: (v) => v,
     });
 
-    await expect(cm.step(0.001)).rejects.toThrow(/differ|equal element counts|Cross-discretization/);
+    await expect(cm.step(0.001)).rejects.toThrow(
+      /differ|equal element counts|Cross-discretization/
+    );
   });
 });

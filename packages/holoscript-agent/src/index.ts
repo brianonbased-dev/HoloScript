@@ -599,8 +599,7 @@ function buildCommitHook(
 
 function canonicalizeSigning(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value))
-    return `[${(value as unknown[]).map(canonicalizeSigning).join(',')}]`;
+  if (Array.isArray(value)) return `[${(value as unknown[]).map(canonicalizeSigning).join(',')}]`;
   const obj = value as Record<string, unknown>;
   return `{${Object.keys(obj)
     .sort()
@@ -653,7 +652,10 @@ function loadSeatWallet(handle: string): SeatWallet | undefined {
   }
   const seatsRoot =
     process.env.HOLOSCRIPT_AGENT_SEATS_ROOT ?? join(homedir(), '.holoscript-agent', 'seats');
-  const fp = createHash('sha256').update(hostname() + homedir()).digest('hex').slice(0, 8);
+  const fp = createHash('sha256')
+    .update(hostname() + homedir())
+    .digest('hex')
+    .slice(0, 8);
   const seatId = process.env.HOLOSCRIPT_AGENT_SEAT_ID ?? `holoscript-${handle}-${fp}-x402`;
   const walletPath = join(seatsRoot, seatId, 'wallet.enc');
   const masterKeyPath =

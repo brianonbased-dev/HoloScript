@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  fuseHybridScore,
-  HybridLexicalIndex,
-  scoreLexicalMatch,
-} from '../HybridRetrieval';
+import { fuseHybridScore, HybridLexicalIndex, scoreLexicalMatch } from '../HybridRetrieval';
 import type { ExternalSymbolDefinition } from '../types';
 
 function symbol(overrides: Partial<ExternalSymbolDefinition> = {}): ExternalSymbolDefinition {

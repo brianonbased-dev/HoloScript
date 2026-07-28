@@ -14,7 +14,7 @@ import { cameraFromViewMatrix } from '../GaussianTrainDataset';
 import { dispatchGaussianTrainJob, type DispatchableTrainJob } from '../GaussianTrainDispatch';
 
 function seeded(s: number): () => number {
-  return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
 }
 function makeScene(seed: number, N: number): Gaussian3D {
   const R = seeded(seed);
@@ -37,7 +37,8 @@ function makeScene(seed: number, N: number): Gaussian3D {
   };
 }
 function viewMatrix(theta: number): number[] {
-  const c = Math.cos(theta), s = Math.sin(theta);
+  const c = Math.cos(theta),
+    s = Math.sin(theta);
   // column-major world→camera, rotY(theta), t=(0,0,6)
   return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 6, 1];
 }
@@ -54,7 +55,9 @@ const SOVEREIGN_JOB: DispatchableTrainJob = {
 
 describe('dispatchGaussianTrainJob — compiler↔runner seam', () => {
   it('routes a sovereign job to the native runner and trains (loss collapses)', () => {
-    const W = 40, H = 30, fx = 55;
+    const W = 40,
+      H = 30,
+      fx = 55;
     const truth = makeScene(99, 80);
     const views: TrainView[] = [-0.3, 0.3].map((a) => {
       const cam = cameraFromViewMatrix(viewMatrix(a), fx, fx);
@@ -74,7 +77,9 @@ describe('dispatchGaussianTrainJob — compiler↔runner seam', () => {
   });
 
   it('densifyInterval > 0 in the job engages adaptive density control through the dispatcher', () => {
-    const W = 40, H = 30, fx = 55;
+    const W = 40,
+      H = 30,
+      fx = 55;
     const truth = makeScene(99, 150); // detailed target a sparse init can't represent
     const views: TrainView[] = [-0.3, 0.3].map((a) => {
       const cam = cameraFromViewMatrix(viewMatrix(a), fx, fx);

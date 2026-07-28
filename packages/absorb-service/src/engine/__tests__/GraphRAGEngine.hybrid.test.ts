@@ -52,7 +52,9 @@ describe('GraphRAGEngine hybrid rank preservation', () => {
     };
     const graph = {
       getCallersOf: (name: string) =>
-        name === 'repoRoot' ? Array.from({ length: 20 }, (_, i) => ({ callerId: `caller${i}` })) : [],
+        name === 'repoRoot'
+          ? Array.from({ length: 20 }, (_, i) => ({ callerId: `caller${i}` }))
+          : [],
       getCalleesOf: () => [],
       getSymbolImpact: (name: string) =>
         name === 'repoRoot' ? new Set(Array.from({ length: 20 }, (_, i) => `file${i}`)) : new Set(),

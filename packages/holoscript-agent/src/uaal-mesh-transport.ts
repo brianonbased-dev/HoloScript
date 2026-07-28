@@ -45,7 +45,11 @@ const MESH_TAG = 'uaal-mesh';
 function parseEnvelope(content: string): MeshEnvelope | null {
   try {
     const e = JSON.parse(content) as MeshEnvelope;
-    return e && e.v === 1 && typeof e.kind === 'string' && typeof e.cid === 'string' && typeof e.to === 'string'
+    return e &&
+      e.v === 1 &&
+      typeof e.kind === 'string' &&
+      typeof e.cid === 'string' &&
+      typeof e.to === 'string'
       ? e
       : null;
   } catch {
@@ -108,7 +112,7 @@ export class HolomeshMeshTransport implements MeshTransport {
       }
     }
     throw new Error(
-      `uaal-mesh: request to '${toNode}' timed out after ${this.requestTimeoutMs}ms (cid ${cid})`,
+      `uaal-mesh: request to '${toNode}' timed out after ${this.requestTimeoutMs}ms (cid ${cid})`
     );
   }
 
@@ -120,7 +124,12 @@ export class HolomeshMeshTransport implements MeshTransport {
     await this.send('mesh-sync', this.genId(), '*', payload);
   }
 
-  private async send(kind: MeshEnvelope['kind'], cid: string, to: string, payload: UAALOperand): Promise<void> {
+  private async send(
+    kind: MeshEnvelope['kind'],
+    cid: string,
+    to: string,
+    payload: UAALOperand
+  ): Promise<void> {
     const env: MeshEnvelope = { v: 1, kind, cid, from: this.selfNode, to, payload };
     await this.mesh.sendTeamMessage(JSON.stringify(env), MESH_TAG);
   }

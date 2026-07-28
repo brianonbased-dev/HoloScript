@@ -56,8 +56,7 @@ export function createTaskExecutionAttributeClaims(
       persistence: 'single_event',
       falsifier:
         'No task execution audit event, board task reference, or artifact evidence exists for the claimed care behavior.',
-      costOrPriority:
-        `costUsd=${input.costUsd.toFixed(6)}; durationMs=${input.durationMs}; totalTokens=${input.totalTokens}`,
+      costOrPriority: `costUsd=${input.costUsd.toFixed(6)}; durationMs=${input.durationMs}; totalTokens=${input.totalTokens}`,
       measurementNullAssumption: AGENT_ATTRIBUTE_CLAIM_NULL_ASSUMPTION,
       interpretationBoundary: 'behavioral_contract_not_hidden_state_proof',
     },

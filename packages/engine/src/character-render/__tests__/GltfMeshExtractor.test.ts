@@ -303,7 +303,9 @@ describe('GltfMeshExtractor', () => {
     for (let i = 0; i < 12; i++) dv.setUint8(72 + i, 0); // all → slot 0
     [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0].forEach((v, i) => dv.setFloat32(84 + i * 4, v, true));
     [0, 1, 2].forEach((v, i) => dv.setUint16(132 + i * 2, v, true));
-    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1].forEach((v, i) => dv.setFloat32(140 + i * 4, v, true));
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1].forEach((v, i) =>
+      dv.setFloat32(140 + i * 4, v, true)
+    );
     const json = {
       asset: { version: '2.0' },
       buffers: [{ byteLength: binLen }],
@@ -316,7 +318,17 @@ describe('GltfMeshExtractor', () => {
         { bufferView: 0, byteOffset: 132, componentType: 5123, count: 3, type: 'SCALAR' },
         { bufferView: 0, byteOffset: 140, componentType: 5126, count: 1, type: 'MAT4' },
       ],
-      meshes: [{ primitives: [{ attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 }, indices: 4, mode: 4 }] }],
+      meshes: [
+        {
+          primitives: [
+            {
+              attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 },
+              indices: 4,
+              mode: 4,
+            },
+          ],
+        },
+      ],
       nodes: [{ mesh: 0, skin: 0 }, { name: 'made_up_bone' }],
       skins: [{ joints: [1], inverseBindMatrices: 5 }],
     };
@@ -343,7 +355,13 @@ describe('GltfMeshExtractor', () => {
     const grid = await renderCharacter(testDevice!, spec, { size: 64, heightScale: 1 });
     let nonClear = 0;
     for (let i = 0; i < grid.data.length; i += 4) {
-      if (Math.abs(grid.data[i] - 18) + Math.abs(grid.data[i + 1] - 18) + Math.abs(grid.data[i + 2] - 23) > 40) nonClear++;
+      if (
+        Math.abs(grid.data[i] - 18) +
+          Math.abs(grid.data[i + 1] - 18) +
+          Math.abs(grid.data[i + 2] - 23) >
+        40
+      )
+        nonClear++;
     }
     expect(nonClear).toBeGreaterThan(20); // the triangle rasterized
   });
@@ -401,7 +419,11 @@ describe('GltfMeshExtractor', () => {
       meshes: [
         {
           primitives: [
-            { attributes: { POSITION: 0 }, extensions: { KHR_draco_mesh_compression: {} }, mode: 4 },
+            {
+              attributes: { POSITION: 0 },
+              extensions: { KHR_draco_mesh_compression: {} },
+              mode: 4,
+            },
           ],
         },
       ],
@@ -467,7 +489,11 @@ describe('GltfMeshExtractor', () => {
         { primitives: [{ attributes: { POSITION: 0 }, indices: 1, mode: 4 }] },
         {
           primitives: [
-            { attributes: { POSITION: 0 }, extensions: { KHR_draco_mesh_compression: {} }, mode: 4 },
+            {
+              attributes: { POSITION: 0 },
+              extensions: { KHR_draco_mesh_compression: {} },
+              mode: 4,
+            },
           ],
         },
       ],

@@ -39,17 +39,17 @@ holoscript-agent run       # the daemon: heartbeat + claim + execute loop
 
 ## Commands
 
-| Command | Purpose |
-|---|---|
-| `run` | start the daemon (heartbeat + claim + execute loop) |
-| `tick` | single tick, then exit (CI / cron / smoke tests) |
-| `whoami` | verify the identity tuple resolves (`/me` + env) |
-| `supervise --config=<agents.json>` | run N agents from one config (multi-agent daemon) |
-| `status --config=<path>` | print + validate a parsed supervise config |
-| `provision --handle=<name> [--execute]` | provision a fresh x402 seat for a brain (dry-run by default) |
-| `ablate --spec=<path> [--out-md] [--out-json]` | run a cross-LLM ablation matrix |
-| `audit [rollup\|query\|tail]` | query the per-agent audit log |
-| `help` | full env + flag reference |
+| Command                                        | Purpose                                                      |
+| ---------------------------------------------- | ------------------------------------------------------------ |
+| `run`                                          | start the daemon (heartbeat + claim + execute loop)          |
+| `tick`                                         | single tick, then exit (CI / cron / smoke tests)             |
+| `whoami`                                       | verify the identity tuple resolves (`/me` + env)             |
+| `supervise --config=<agents.json>`             | run N agents from one config (multi-agent daemon)            |
+| `status --config=<path>`                       | print + validate a parsed supervise config                   |
+| `provision --handle=<name> [--execute]`        | provision a fresh x402 seat for a brain (dry-run by default) |
+| `ablate --spec=<path> [--out-md] [--out-json]` | run a cross-LLM ablation matrix                              |
+| `audit [rollup\|query\|tail]`                  | query the per-agent audit log                                |
+| `help`                                         | full env + flag reference                                    |
 
 ## Providers
 
@@ -63,29 +63,29 @@ holoscript-agent run       # the daemon: heartbeat + claim + execute loop
 
 **Required**
 
-| Var | Meaning |
-|---|---|
-| `HOLOSCRIPT_AGENT_HANDLE` | agent handle — **must equal the registered bearer name** (else CAEL/audit POSTs 403) |
-| `HOLOSCRIPT_AGENT_PROVIDER` | one of the providers above |
-| `HOLOSCRIPT_AGENT_MODEL` | model id (e.g. `claude-opus-4-8`); for `local-llm` prefer `HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL` |
-| `HOLOSCRIPT_AGENT_BRAIN` | path to the `.hsplus` brain composition |
-| `HOLOSCRIPT_AGENT_WALLET` | `0x…` wallet address |
-| `HOLOSCRIPT_AGENT_X402_BEARER` | per-surface mesh bearer |
-| `HOLOMESH_TEAM_ID` | target team id |
-| `ANTHROPIC_API_KEY` \| `OPENAI_API_KEY` \| `GEMINI_API_KEY` \| … | per cloud provider |
+| Var                                                              | Meaning                                                                                      |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `HOLOSCRIPT_AGENT_HANDLE`                                        | agent handle — **must equal the registered bearer name** (else CAEL/audit POSTs 403)         |
+| `HOLOSCRIPT_AGENT_PROVIDER`                                      | one of the providers above                                                                   |
+| `HOLOSCRIPT_AGENT_MODEL`                                         | model id (e.g. `claude-opus-4-8`); for `local-llm` prefer `HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL` |
+| `HOLOSCRIPT_AGENT_BRAIN`                                         | path to the `.hsplus` brain composition                                                      |
+| `HOLOSCRIPT_AGENT_WALLET`                                        | `0x…` wallet address                                                                         |
+| `HOLOSCRIPT_AGENT_X402_BEARER`                                   | per-surface mesh bearer                                                                      |
+| `HOLOMESH_TEAM_ID`                                               | target team id                                                                               |
+| `ANTHROPIC_API_KEY` \| `OPENAI_API_KEY` \| `GEMINI_API_KEY` \| … | per cloud provider                                                                           |
 
 **Optional** (defaults in parentheses) — full list via `holoscript-agent help`:
 
-| Var | Meaning |
-|---|---|
-| `HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL` | local-llm base URL (`http://localhost:8080`) |
-| `HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL` | local-llm model id; overrides `HOLOSCRIPT_AGENT_MODEL` for the local provider |
-| `HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS` | local request timeout (`300000`) |
-| `HOLOSCRIPT_AGENT_BUDGET_USD_DAY` | daily spend cap (`5`) |
-| `HOLOSCRIPT_AGENT_TICK_MS` | daemon tick interval (`60000`) |
-| `HOLOSCRIPT_AGENT_SCOPE_TIER` | `cold \| warm \| hot` (`warm`) |
-| `HOLOMESH_API_BASE` | mesh API base (`https://mcp.holoscript.net/api/holomesh`) |
-| `HOLOSCRIPT_AGENT_COMMIT_RESPONSES` | `1`/`true` → write responses as memos and git-commit them |
+| Var                                     | Meaning                                                                       |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| `HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL`   | local-llm base URL (`http://localhost:8080`)                                  |
+| `HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL`      | local-llm model id; overrides `HOLOSCRIPT_AGENT_MODEL` for the local provider |
+| `HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS` | local request timeout (`300000`)                                              |
+| `HOLOSCRIPT_AGENT_BUDGET_USD_DAY`       | daily spend cap (`5`)                                                         |
+| `HOLOSCRIPT_AGENT_TICK_MS`              | daemon tick interval (`60000`)                                                |
+| `HOLOSCRIPT_AGENT_SCOPE_TIER`           | `cold \| warm \| hot` (`warm`)                                                |
+| `HOLOMESH_API_BASE`                     | mesh API base (`https://mcp.holoscript.net/api/holomesh`)                     |
+| `HOLOSCRIPT_AGENT_COMMIT_RESPONSES`     | `1`/`true` → write responses as memos and git-commit them                     |
 
 ## Multi-agent (`supervise`)
 
@@ -95,9 +95,14 @@ Run a fleet from one config:
 // agents.json
 {
   "agents": [
-    { "handle": "edge-1", "provider": "local-llm", "model": "qwen3:4b-instruct", "brain": "./brains/edge.hsplus" },
-    { "handle": "planner", "provider": "sovereign", "brain": "./brains/planner.hsplus" }
-  ]
+    {
+      "handle": "edge-1",
+      "provider": "local-llm",
+      "model": "qwen3:4b-instruct",
+      "brain": "./brains/edge.hsplus",
+    },
+    { "handle": "planner", "provider": "sovereign", "brain": "./brains/planner.hsplus" },
+  ],
 }
 ```
 
@@ -122,7 +127,7 @@ contract — founder-local coordinates are **not the package default**; you brin
 your own hosts, models, and credentials.
 
 **Known limitations:** tool-calling reliability depends on the local model you
-point it at (qwen3 tool-callers are proven; qwen2.5* tends to emit prose instead
+point it at (qwen3 tool-callers are proven; qwen2.5\* tends to emit prose instead
 of `tool_calls`). Vision auto-write is a fallback for models that cannot chain
 `vision_analyze → write_file`. This is a **preview** surface and interfaces may
 change before the v1 release.

@@ -2,12 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { SyntaxNode } from '../../types';
 import { extractDocComment } from '../BaseAdapter';
 
-function node(
-  type: string,
-  text: string,
-  startIndex: number,
-  endColumn: number
-): SyntaxNode {
+function node(type: string, text: string, startIndex: number, endColumn: number): SyntaxNode {
   return {
     type,
     text,

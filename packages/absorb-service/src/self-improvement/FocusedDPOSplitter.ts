@@ -442,10 +442,15 @@ export function checkHoloCorpusRowReallyValid(
     });
   }
 
-  if (noFinalOk && oneFinalOk && withoutTrailingNewline.astNodeCount !== withTrailingNewline.astNodeCount) {
+  if (
+    noFinalOk &&
+    oneFinalOk &&
+    withoutTrailingNewline.astNodeCount !== withTrailingNewline.astNodeCount
+  ) {
     diagnostics.push({
       code: 'newline-node-count-drift',
-      message: 'AST semantic node count changes when a single trailing newline is added or removed.',
+      message:
+        'AST semantic node count changes when a single trailing newline is added or removed.',
     });
   }
 
@@ -472,8 +477,7 @@ export function checkHoloCorpusRowReallyValid(
     semanticDiagnosticsUnavailable,
     primary: summarizeHoloParse(primary),
     newlineInvariant: noFinalOk === oneFinalOk,
-    nodeCountFidelity:
-      sourceNodeCount.count === 0 || primary.astNodeCount >= sourceNodeCount.count,
+    nodeCountFidelity: sourceNodeCount.count === 0 || primary.astNodeCount >= sourceNodeCount.count,
     sourceNodeCount,
     astNodeCount: primary.astNodeCount,
     withoutTrailingNewline: summarizeHoloParse(withoutTrailingNewline),
@@ -564,7 +568,10 @@ function countHoloSourceDeclarations(source: string): HoloCorpusNodeCount {
   return { count, byKeyword };
 }
 
-function countHoloAstSemanticNodes(ast: unknown): { count: number; byType: Record<string, number> } {
+function countHoloAstSemanticNodes(ast: unknown): {
+  count: number;
+  byType: Record<string, number>;
+} {
   if (!ast || typeof ast !== 'object') return { count: 0, byType: {} };
 
   const visited = new WeakSet<object>();

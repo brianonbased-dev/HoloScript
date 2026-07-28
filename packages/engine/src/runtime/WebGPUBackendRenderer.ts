@@ -681,9 +681,9 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
   }
 
   private getPipeline(id: string): GPURenderPipeline | undefined {
-    return (this.webgpu as unknown as { pipelines?: Map<string, GPURenderPipeline> }).pipelines?.get(
-      id
-    );
+    return (
+      this.webgpu as unknown as { pipelines?: Map<string, GPURenderPipeline> }
+    ).pipelines?.get(id);
   }
 
   private hydrateParticleResources(device: GPUDevice): void {
@@ -924,11 +924,7 @@ function parseParticleColor(color?: string): [number, number, number] {
   if (!/^[0-9a-f]{6}$/.test(expanded)) return [1, 1, 1];
 
   const value = Number.parseInt(expanded, 16);
-  return [
-    ((value >> 16) & 0xff) / 255,
-    ((value >> 8) & 0xff) / 255,
-    (value & 0xff) / 255,
-  ];
+  return [((value >> 16) & 0xff) / 255, ((value >> 8) & 0xff) / 255, (value & 0xff) / 255];
 }
 
 function clamp01(value: number): number {

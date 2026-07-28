@@ -139,7 +139,10 @@ export function parseUaalEmission(completion: string): ParsedUaalEmission | null
     }
 
     const isUnresolvable =
-      status === 'unresolvable' || status === 'unknown' || status === 'undetermined' || unresolvableFlag;
+      status === 'unresolvable' ||
+      status === 'unknown' ||
+      status === 'undetermined' ||
+      unresolvableFlag;
     if (isUnresolvable) {
       return { committed: false, reason, code };
     }
@@ -175,15 +178,16 @@ export type UaalResolutionClass =
   | 'confabulation'
   | 'malformed';
 
-export const UAAL_RESOLUTION_REWARD_TABLE: Readonly<Record<UaalResolutionClass, number>> = Object.freeze({
-  resolved_correct: 1.0,
-  resolved_wrong: 0.25,
-  over_abstention: 0.15,
-  honest_abstain_reason_correct: 1.0,
-  honest_abstain_reason_wrong: 0.75,
-  confabulation: 0.0,
-  malformed: 0.0,
-});
+export const UAAL_RESOLUTION_REWARD_TABLE: Readonly<Record<UaalResolutionClass, number>> =
+  Object.freeze({
+    resolved_correct: 1.0,
+    resolved_wrong: 0.25,
+    over_abstention: 0.15,
+    honest_abstain_reason_correct: 1.0,
+    honest_abstain_reason_wrong: 0.75,
+    confabulation: 0.0,
+    malformed: 0.0,
+  });
 
 /** Per-completion grading receipt (distinct 'malformed' class — penalised, never excluded, per W.775). */
 export interface UaalResolutionReceipt {
@@ -273,8 +277,11 @@ export function gradeUaalResolutionCompletion(
   // still return only the coarse base `reason` — fall back to comparing that instead of
   // silently treating every one of their abstentions as reason-correct or reason-wrong.
   const goldCode = gold.gap?.code;
-  const reasonCorrect = goldCode !== undefined ? emission.code === goldCode : emission.reason === gold.reason;
-  const cls: UaalResolutionClass = reasonCorrect ? 'honest_abstain_reason_correct' : 'honest_abstain_reason_wrong';
+  const reasonCorrect =
+    goldCode !== undefined ? emission.code === goldCode : emission.reason === gold.reason;
+  const cls: UaalResolutionClass = reasonCorrect
+    ? 'honest_abstain_reason_correct'
+    : 'honest_abstain_reason_wrong';
   return {
     class: cls,
     reward: UAAL_RESOLUTION_REWARD_TABLE[cls],

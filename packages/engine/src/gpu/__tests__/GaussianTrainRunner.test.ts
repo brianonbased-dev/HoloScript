@@ -9,10 +9,14 @@
 import { describe, it, expect } from 'vitest';
 import { forward2D } from '../GaussianTrainer2D';
 import { forward3D, type Gaussian3D, type SplatCamera } from '../GaussianTrainer3D';
-import { runGaussianTrainJob, type GaussianTrainJobSpec, type TrainView } from '../GaussianTrainRunner';
+import {
+  runGaussianTrainJob,
+  type GaussianTrainJobSpec,
+  type TrainView,
+} from '../GaussianTrainRunner';
 
 function seeded(s: number): () => number {
-  return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
 }
 function makeScene(seed: number, N: number): Gaussian3D {
   const R = seeded(seed);
@@ -37,10 +41,14 @@ function makeScene(seed: number, N: number): Gaussian3D {
 
 describe('GaussianTrainRunner — sovereign job execution', () => {
   it('a sovereign job drives GaussianTrainer3D to fit a posed view (>10x loss reduction)', () => {
-    const W = 48, H = 36, N = 100;
+    const W = 48,
+      H = 36,
+      N = 100;
     const cam: SplatCamera = {
       Vrow: [Math.cos(0.15), 0, Math.sin(0.15), 0, 1, 0, -Math.sin(0.15), 0, Math.cos(0.15)],
-      t: [0, 0, 6], fx: 60, fy: 60,
+      t: [0, 0, 6],
+      fx: 60,
+      fy: 60,
     };
     // Target = a known 3D scene rendered through the same native pipeline.
     const target = forward2D(forward3D(makeScene(99, N), cam, W, H).g2, W, H).img;

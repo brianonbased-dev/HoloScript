@@ -14,10 +14,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { testDevice, GPU_LIVE } from '../../physics/__tests__/gpu-setup';
-import {
-  SplatCharacterHost,
-  framingSplatCamera,
-} from '../SplatCharacterHost';
+import { SplatCharacterHost, framingSplatCamera } from '../SplatCharacterHost';
 import { gaussian3DToSplats, gaussianSplatDataToSplats } from '../../native-render/splat-render';
 import type { Gaussian3D } from '../../gpu/GaussianTrainer3D';
 import type { GaussianSplatData } from '../../gpu/codecs/types';
@@ -45,10 +42,20 @@ function oneGaussian3D(): Gaussian3D {
   const f = (v: number) => Float64Array.from([v]);
   return {
     N: 1,
-    x: f(1), y: f(2), z: f(3),
-    sx: f(0.4), sy: f(0.5), sz: f(0.6),
-    qr: f(0.7), qx: f(0.1), qy: f(0.2), qz: f(0.3),
-    op: f(0.9), r: f(0.8), gr: f(0.6), bl: f(0.4),
+    x: f(1),
+    y: f(2),
+    z: f(3),
+    sx: f(0.4),
+    sy: f(0.5),
+    sz: f(0.6),
+    qr: f(0.7),
+    qx: f(0.1),
+    qy: f(0.2),
+    qz: f(0.3),
+    op: f(0.9),
+    r: f(0.8),
+    gr: f(0.6),
+    bl: f(0.4),
   };
 }
 
@@ -65,7 +72,22 @@ function buildBodyPly(center: [number, number, number], linearScale = 0.05): Uin
   const pts: Array<[number, number, number]> = [];
   for (const dy of ys) for (const dx of xs) pts.push([center[0] + dx, center[1] + dy, center[2]]);
 
-  const props = ['x', 'y', 'z', 'scale_0', 'scale_1', 'scale_2', 'rot_0', 'rot_1', 'rot_2', 'rot_3', 'opacity', 'f_dc_0', 'f_dc_1', 'f_dc_2'];
+  const props = [
+    'x',
+    'y',
+    'z',
+    'scale_0',
+    'scale_1',
+    'scale_2',
+    'rot_0',
+    'rot_1',
+    'rot_2',
+    'rot_3',
+    'opacity',
+    'f_dc_0',
+    'f_dc_1',
+    'f_dc_2',
+  ];
   const header =
     'ply\nformat binary_little_endian 1.0\n' +
     `element vertex ${pts.length}\n` +
@@ -81,11 +103,20 @@ function buildBodyPly(center: [number, number, number], linearScale = 0.05): Uin
   pts.forEach((p, i) => {
     const o = i * stride;
     const vals = [
-      p[0], p[1], p[2], // x y z
-      logS, logS, logS, // scale_0..2 (log)
-      1, 0, 0, 0, // rot_0..3 (w,x,y,z)
+      p[0],
+      p[1],
+      p[2], // x y z
+      logS,
+      logS,
+      logS, // scale_0..2 (log)
+      1,
+      0,
+      0,
+      0, // rot_0..3 (w,x,y,z)
       logitOp, // opacity (logit)
-      fdcWhite, fdcWhite, fdcWhite, // f_dc_0..2 (white)
+      fdcWhite,
+      fdcWhite,
+      fdcWhite, // f_dc_0..2 (white)
     ];
     vals.forEach((v, k) => dv.setFloat32(o + k * 4, v, true));
   });
@@ -133,7 +164,9 @@ describe('SplatCharacterHost — D.102 portable mind (parity with CharacterHost)
   it('adopts the mind identity + memory, and degrades on failure without throwing', async () => {
     const host = SplatCharacterHost.fromGaussian3D('agent-1', oneGaussian3D());
     expect(host.hasMind()).toBe(false);
-    await host.bindMind(new StaticCharacterMind({ wallet: '0xW', agentId: 'agent-1' }, [{ content: 'm' }]));
+    await host.bindMind(
+      new StaticCharacterMind({ wallet: '0xW', agentId: 'agent-1' }, [{ content: 'm' }])
+    );
     expect(host.getIdentity()).toEqual({ wallet: '0xW', agentId: 'agent-1' });
     expect(host.getMemory()).toHaveLength(1);
 
@@ -162,14 +195,17 @@ describe('framingSplatCamera', () => {
 });
 
 describe('SplatCharacterHost.render (Dawn)', () => {
-  itGpu('auto-frames an off-origin body cloud into a bounded, bright, centred footprint', async () => {
-    const host = SplatCharacterHost.fromPly('brittney', buildBodyPly([2, -1, 10]));
-    const g = await host.render(testDevice!, { size: SIZE });
-    const lit = litPixels(g);
-    expect(lit).toBeGreaterThan(80);
-    expect(lit).toBeLessThan(SIZE * SIZE * 0.7);
-    // The white body lands at the image centre (auto-framing put the centroid on-axis).
-    const [r, gr, b] = pixelAt(g, SIZE / 2, SIZE / 2);
-    expect(r + gr + b).toBeGreaterThan(150);
-  });
+  itGpu(
+    'auto-frames an off-origin body cloud into a bounded, bright, centred footprint',
+    async () => {
+      const host = SplatCharacterHost.fromPly('brittney', buildBodyPly([2, -1, 10]));
+      const g = await host.render(testDevice!, { size: SIZE });
+      const lit = litPixels(g);
+      expect(lit).toBeGreaterThan(80);
+      expect(lit).toBeLessThan(SIZE * SIZE * 0.7);
+      // The white body lands at the image centre (auto-framing put the centroid on-axis).
+      const [r, gr, b] = pixelAt(g, SIZE / 2, SIZE / 2);
+      expect(r + gr + b).toBeGreaterThan(150);
+    }
+  );
 });

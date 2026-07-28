@@ -216,9 +216,7 @@ export async function handleOracleTool(
   const kEntries = await queryKnowledgeStore(searchTerms, 5);
 
   if (kEntries.length > 0) {
-    const formatted = (
-      kEntries as Array<{ id?: string; type?: string; content?: string }>
-    )
+    const formatted = (kEntries as Array<{ id?: string; type?: string; content?: string }>)
       .map(
         (e) =>
           `- **[${e.id || e.type}]** ${e.content?.substring(0, 200) || 'No content'}${e.content && e.content.length > 200 ? '...' : ''}`

@@ -74,7 +74,10 @@ describe('HoloAdapter — .hs logic extraction', () => {
   });
 
   it('still routes .hsplus and .holo to their own kinds (no cross-contamination)', async () => {
-    const hsplus = (await adapter.parse('trait Healable {\n  capability_tags: ["health"]\n}', 'h.hsplus')) as HoloParseTree | null;
+    const hsplus = (await adapter.parse(
+      'trait Healable {\n  capability_tags: ["health"]\n}',
+      'h.hsplus'
+    )) as HoloParseTree | null;
     const holo = (await adapter.parse('composition "Scene" {}', 'h.holo')) as HoloParseTree | null;
     if (hsplus) expect(hsplus.__holoKind).toBe('hsplus');
     if (holo) expect(holo.__holoKind).toBe('holo');

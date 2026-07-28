@@ -399,13 +399,7 @@ export const realToolRunner: RewardToolRunner = {
       const { stdout, stderr } = await runPackageTool({
         packageName: 'typescript',
         binaryName: 'tsc',
-        args: [
-          '--noEmit',
-          '--pretty',
-          'false',
-          '--skipLibCheck',
-          filePath,
-        ],
+        args: ['--noEmit', '--pretty', 'false', '--skipLibCheck', filePath],
         cwd: workDir,
         timeout,
       });
@@ -427,14 +421,7 @@ export const realToolRunner: RewardToolRunner = {
       const { stdout, stderr } = await runPackageTool({
         packageName: 'eslint',
         binaryName: 'eslint',
-        args: [
-          '--no-config-lookup',
-          '--config',
-          configPath,
-          filePath,
-          '--format',
-          'json',
-        ],
+        args: ['--no-config-lookup', '--config', configPath, filePath, '--format', 'json'],
         cwd: workDir,
         timeout,
       });

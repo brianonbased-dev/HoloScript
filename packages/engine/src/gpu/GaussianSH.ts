@@ -18,7 +18,8 @@
 export const SH_C0 = 0.28209479177387814;
 export const SH_C1 = 0.4886025119029199;
 export const SH_C2 = [
-  1.0925484305920792, -1.0925484305920792, 0.31539156525252005, -1.0925484305920792, 0.5462742152960396,
+  1.0925484305920792, -1.0925484305920792, 0.31539156525252005, -1.0925484305920792,
+  0.5462742152960396,
 ] as const;
 
 /** Number of SH coefficients per color channel for a given degree: (deg+1)^2. */
@@ -31,14 +32,31 @@ export function shBasis(x: number, y: number, z: number, deg: number): number[] 
   const b = [SH_C0];
   if (deg >= 1) b.push(-SH_C1 * y, SH_C1 * z, -SH_C1 * x);
   if (deg >= 2) {
-    const xx = x * x, yy = y * y, zz = z * z, xy = x * y, yz = y * z, xz = x * z;
-    b.push(SH_C2[0] * xy, SH_C2[1] * yz, SH_C2[2] * (2 * zz - xx - yy), SH_C2[3] * xz, SH_C2[4] * (xx - yy));
+    const xx = x * x,
+      yy = y * y,
+      zz = z * z,
+      xy = x * y,
+      yz = y * z,
+      xz = x * z;
+    b.push(
+      SH_C2[0] * xy,
+      SH_C2[1] * yz,
+      SH_C2[2] * (2 * zz - xx - yy),
+      SH_C2[3] * xz,
+      SH_C2[4] * (xx - yy)
+    );
   }
   return b;
 }
 
 /** Single-channel SH radiance Σ basis_k·coeff_k (the caller adds the 0.5 offset for final color). */
-export function evalSH(coeffs: ArrayLike<number>, x: number, y: number, z: number, deg: number): number {
+export function evalSH(
+  coeffs: ArrayLike<number>,
+  x: number,
+  y: number,
+  z: number,
+  deg: number
+): number {
   const b = shBasis(x, y, z, deg);
   let s = 0;
   for (let k = 0; k < b.length; k++) s += b[k] * coeffs[k];
@@ -56,10 +74,19 @@ export interface SHGrad {
  * Backward of evalSH. Given the upstream dRadiance (= dL/dcolor), returns dL/dcoeffs and dL/ddir.
  * Verified against central finite differences in GaussianSH.test.ts.
  */
-export function evalSHGrad(coeffs: ArrayLike<number>, x: number, y: number, z: number, deg: number, dR: number): SHGrad {
+export function evalSHGrad(
+  coeffs: ArrayLike<number>,
+  x: number,
+  y: number,
+  z: number,
+  deg: number,
+  dR: number
+): SHGrad {
   const b = shBasis(x, y, z, deg);
   const dCoeffs = b.map((bv) => dR * bv);
-  let dx = 0, dy = 0, dz = 0;
+  let dx = 0,
+    dy = 0,
+    dz = 0;
   if (deg >= 1) {
     dy += dR * coeffs[1] * -SH_C1;
     dz += dR * coeffs[2] * SH_C1;
@@ -67,15 +94,32 @@ export function evalSHGrad(coeffs: ArrayLike<number>, x: number, y: number, z: n
   }
   if (deg >= 2) {
     // basis order: [4]=C2[0]·xy, [5]=C2[1]·yz, [6]=C2[2]·(2z²−x²−y²), [7]=C2[3]·xz, [8]=C2[4]·(x²−y²)
-    dx += dR * (coeffs[4] * SH_C2[0] * y + coeffs[6] * SH_C2[2] * (-2 * x) + coeffs[7] * SH_C2[3] * z + coeffs[8] * SH_C2[4] * (2 * x));
-    dy += dR * (coeffs[4] * SH_C2[0] * x + coeffs[5] * SH_C2[1] * z + coeffs[6] * SH_C2[2] * (-2 * y) + coeffs[8] * SH_C2[4] * (-2 * y));
-    dz += dR * (coeffs[5] * SH_C2[1] * y + coeffs[6] * SH_C2[2] * (4 * z) + coeffs[7] * SH_C2[3] * x);
+    dx +=
+      dR *
+      (coeffs[4] * SH_C2[0] * y +
+        coeffs[6] * SH_C2[2] * (-2 * x) +
+        coeffs[7] * SH_C2[3] * z +
+        coeffs[8] * SH_C2[4] * (2 * x));
+    dy +=
+      dR *
+      (coeffs[4] * SH_C2[0] * x +
+        coeffs[5] * SH_C2[1] * z +
+        coeffs[6] * SH_C2[2] * (-2 * y) +
+        coeffs[8] * SH_C2[4] * (-2 * y));
+    dz +=
+      dR * (coeffs[5] * SH_C2[1] * y + coeffs[6] * SH_C2[2] * (4 * z) + coeffs[7] * SH_C2[3] * x);
   }
   return { dCoeffs, dDir: [dx, dy, dz] };
 }
 
 /** Convenience: SH color (0.5 + radiance, clamped to [0,1]) for one channel at a view direction. */
-export function shColor(coeffs: ArrayLike<number>, x: number, y: number, z: number, deg: number): number {
+export function shColor(
+  coeffs: ArrayLike<number>,
+  x: number,
+  y: number,
+  z: number,
+  deg: number
+): number {
   const c = 0.5 + evalSH(coeffs, x, y, z, deg);
   return c < 0 ? 0 : c > 1 ? 1 : c;
 }

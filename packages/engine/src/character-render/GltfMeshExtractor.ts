@@ -42,7 +42,12 @@ const NUM_COMP: Record<string, number> = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4,
 interface GltfJson {
   meshes?: Array<{ primitives: GltfPrimitive[] }>;
   accessors?: GltfAccessor[];
-  bufferViews?: Array<{ buffer: number; byteOffset?: number; byteLength: number; byteStride?: number }>;
+  bufferViews?: Array<{
+    buffer: number;
+    byteOffset?: number;
+    byteLength: number;
+    byteStride?: number;
+  }>;
   buffers?: Array<{ uri?: string; byteLength: number }>;
   nodes?: Array<{ name?: string; mesh?: number; skin?: number }>;
   skins?: Array<{ joints: number[]; inverseBindMatrices?: number }>;
@@ -93,7 +98,8 @@ export interface GltfSkinnedMesh extends SkinnedMeshData {
 /** Parse a .glb container into its JSON + BIN chunks. */
 export function parseGlb(glb: ArrayBuffer): { json: GltfJson; bin: Uint8Array } {
   const dv = new DataView(glb);
-  if (glb.byteLength < 12 || dv.getUint32(0, true) !== GLB_MAGIC) throw new Error('not a .glb (bad magic)');
+  if (glb.byteLength < 12 || dv.getUint32(0, true) !== GLB_MAGIC)
+    throw new Error('not a .glb (bad magic)');
   if (dv.getUint32(4, true) !== 2) throw new Error('only glTF 2.0 .glb is supported');
   const total = Math.min(dv.getUint32(8, true), glb.byteLength);
   let off = 12;
@@ -104,7 +110,8 @@ export function parseGlb(glb: ArrayBuffer): { json: GltfJson; bin: Uint8Array } 
     const type = dv.getUint32(off + 4, true);
     const start = off + 8;
     if (start + len > total) break; // guard truncated chunk
-    if (type === CHUNK_JSON) json = JSON.parse(new TextDecoder().decode(new Uint8Array(glb, start, len))) as GltfJson;
+    if (type === CHUNK_JSON)
+      json = JSON.parse(new TextDecoder().decode(new Uint8Array(glb, start, len))) as GltfJson;
     else if (type === CHUNK_BIN) bin = new Uint8Array(glb, start, len);
     off = start + len;
   }
@@ -113,7 +120,11 @@ export function parseGlb(glb: ArrayBuffer): { json: GltfJson; bin: Uint8Array } 
 }
 
 /** Read one accessor into a flat numeric array, honoring byteStride + normalized integers. */
-function readAccessor(g: GltfJson, bin: Uint8Array, idx: number): { array: number[]; comps: number; count: number } {
+function readAccessor(
+  g: GltfJson,
+  bin: Uint8Array,
+  idx: number
+): { array: number[]; comps: number; count: number } {
   const acc = g.accessors![idx];
   if (acc.sparse) throw new Error('sparse accessors not supported');
   const comps = NUM_COMP[acc.type];
@@ -221,7 +232,11 @@ interface PrimitiveGeometry {
  * and sequential indices when the primitive is non-indexed. Skin attributes are
  * NOT read here — the skinned extractor reads JOINTS_0/WEIGHTS_0 separately.
  */
-function readPrimitiveGeometry(g: GltfJson, bin: Uint8Array, prim: GltfPrimitive): PrimitiveGeometry {
+function readPrimitiveGeometry(
+  g: GltfJson,
+  bin: Uint8Array,
+  prim: GltfPrimitive
+): PrimitiveGeometry {
   const posR = readAccessor(g, bin, prim.attributes.POSITION);
   const vertexCount = posR.count;
   const positions = new Float32Array(posR.array);
@@ -312,7 +327,11 @@ export function extractGltfSkinnedMesh(glb: ArrayBuffer, onlyMeshIndex?: number)
 
 /** The post-parse core of {@link extractGltfSkinnedMesh}, over an already-parsed
  *  glTF — lets {@link extractGltfMeshes} carry every mesh from ONE container parse. */
-function skinnedMeshFromParsed(g: GltfJson, bin: Uint8Array, onlyMeshIndex?: number): GltfSkinnedMesh {
+function skinnedMeshFromParsed(
+  g: GltfJson,
+  bin: Uint8Array,
+  onlyMeshIndex?: number
+): GltfSkinnedMesh {
   // 1) Find the first skinned primitive + its bound skin (within onlyMeshIndex, if given).
   let prim: GltfPrimitive | undefined;
   let meshIndex = -1;
@@ -320,7 +339,9 @@ function skinnedMeshFromParsed(g: GltfJson, bin: Uint8Array, onlyMeshIndex?: num
     if (onlyMeshIndex !== undefined && mi !== onlyMeshIndex) continue;
     for (const p of g.meshes![mi].primitives) {
       if (p.extensions?.KHR_draco_mesh_compression || p.extensions?.EXT_meshopt_compression)
-        throw new Error('compressed primitive (Draco/meshopt) not supported by the native extractor');
+        throw new Error(
+          'compressed primitive (Draco/meshopt) not supported by the native extractor'
+        );
       if (p.attributes?.JOINTS_0 !== undefined && p.attributes?.WEIGHTS_0 !== undefined) {
         prim = p;
         meshIndex = mi;
@@ -330,7 +351,8 @@ function skinnedMeshFromParsed(g: GltfJson, bin: Uint8Array, onlyMeshIndex?: num
     if (prim) break;
   }
   if (!prim) throw new Error('no skinned primitive (JOINTS_0/WEIGHTS_0) found');
-  if (prim.mode !== undefined && prim.mode !== 4) throw new Error('only triangle primitives (mode 4) supported');
+  if (prim.mode !== undefined && prim.mode !== 4)
+    throw new Error('only triangle primitives (mode 4) supported');
   const node = g.nodes?.find((n) => n.mesh === meshIndex && n.skin !== undefined);
   const skin = g.skins![node?.skin ?? 0];
 
@@ -342,7 +364,8 @@ function skinnedMeshFromParsed(g: GltfJson, bin: Uint8Array, onlyMeshIndex?: num
 
   // 3) glTF joint slot → canonical palette index (via the matched skeleton standard).
   const jointNames: string[] = skin.joints.map((nodeIdx) => g.nodes?.[nodeIdx]?.name ?? '');
-  const standard: SkeletonStandardId = matchSkeletonStandard(jointNames)[0]?.standard ?? 'holoscript_65';
+  const standard: SkeletonStandardId =
+    matchSkeletonStandard(jointNames)[0]?.standard ?? 'holoscript_65';
   const nameToSlot = new Map<string, number>(jointNames.map((n, s) => [n, s]));
   const remap = new Int32Array(skin.joints.length).fill(-1);
   for (let i = 0; i < JOINT_COUNT; i++) {
@@ -431,7 +454,11 @@ export function extractGltfStaticMesh(glb: ArrayBuffer, onlyMeshIndex?: number):
 }
 
 /** The post-parse core of {@link extractGltfStaticMesh}, over an already-parsed glTF. */
-function staticMeshFromParsed(g: GltfJson, bin: Uint8Array, onlyMeshIndex?: number): GltfStaticMesh {
+function staticMeshFromParsed(
+  g: GltfJson,
+  bin: Uint8Array,
+  onlyMeshIndex?: number
+): GltfStaticMesh {
   // First mesh with >=1 triangle primitive carrying POSITION; merge all such primitives of it.
   // When `onlyMeshIndex` is given, restrict to that one glTF mesh (multi-mesh per-node import).
   let prims: GltfPrimitive[] | undefined;
@@ -440,7 +467,9 @@ function staticMeshFromParsed(g: GltfJson, bin: Uint8Array, onlyMeshIndex?: numb
     const tris: GltfPrimitive[] = [];
     for (const p of g.meshes![mi].primitives) {
       if (p.extensions?.KHR_draco_mesh_compression || p.extensions?.EXT_meshopt_compression)
-        throw new Error('compressed primitive (Draco/meshopt) not supported by the native extractor');
+        throw new Error(
+          'compressed primitive (Draco/meshopt) not supported by the native extractor'
+        );
       if (p.mode !== undefined && p.mode !== 4) continue; // non-triangle primitive: skip, don't merge
       if (p.attributes?.POSITION !== undefined) tris.push(p);
     }
@@ -449,7 +478,8 @@ function staticMeshFromParsed(g: GltfJson, bin: Uint8Array, onlyMeshIndex?: numb
       break;
     }
   }
-  if (!prims || !prims.length) throw new Error('no triangle primitive with a POSITION attribute found');
+  if (!prims || !prims.length)
+    throw new Error('no triangle primitive with a POSITION attribute found');
 
   const { positions, normals, tangents, uvs, indices, vertexCount, materialMaps } =
     mergePrimitiveGeometries(prims.map((p) => readPrimitiveGeometry(g, bin, p)));
@@ -488,7 +518,9 @@ function staticMeshFromParsed(g: GltfJson, bin: Uint8Array, onlyMeshIndex?: numb
  * one entry per carryable mesh, keyed by its glTF mesh index — the importer's
  * multi-mesh entry point (one parse, vs. re-parsing the container per mesh).
  */
-export function extractGltfMeshes(glb: ArrayBuffer): Array<{ meshIndex: number; mesh: GltfSkinnedMesh }> {
+export function extractGltfMeshes(
+  glb: ArrayBuffer
+): Array<{ meshIndex: number; mesh: GltfSkinnedMesh }> {
   const { json: g, bin } = parseGlb(glb);
   const out: Array<{ meshIndex: number; mesh: GltfSkinnedMesh }> = [];
   for (let mi = 0; mi < (g.meshes?.length ?? 0); mi++) {

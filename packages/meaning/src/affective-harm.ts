@@ -54,7 +54,10 @@ export interface UAALAffectiveSceneIR extends UAALVibeIR {
   audience?: UAALAudience;
 }
 
-export type UAALAffectiveHarmClass = 'sensory_overload' | 'fear_targeting' | 'calm_promise_violation';
+export type UAALAffectiveHarmClass =
+  | 'sensory_overload'
+  | 'fear_targeting'
+  | 'calm_promise_violation';
 
 export interface UAALAffectiveHarmFinding {
   harm: UAALAffectiveHarmClass;
@@ -105,7 +108,10 @@ function isNum(v: unknown): v is number {
 }
 
 /** Scene affect centroid over stated axes only (fact-class scoping: silent axes don't vote). */
-export function affectCentroid(atoms: UAALVibeAtom[]): { valence: number | null; arousal: number | null } {
+export function affectCentroid(atoms: UAALVibeAtom[]): {
+  valence: number | null;
+  arousal: number | null;
+} {
   const valences: number[] = [];
   const arousals: number[] = [];
   for (const atom of atoms) {
@@ -130,7 +136,7 @@ export function deriveAffectiveHarm(scene: UAALAffectiveSceneIR): AffectiveHarmD
     return { audienceStated: false, audienceEmpty: false, findings: [], impacts: [] };
   }
   const classes = scene.audience.classes.filter(
-    (c): c is UAALAudienceClass => c === 'adult' || c === 'child',
+    (c): c is UAALAudienceClass => c === 'adult' || c === 'child'
   );
   if (classes.length === 0) {
     return { audienceStated: true, audienceEmpty: true, findings: [], impacts: [] };
@@ -141,10 +147,14 @@ export function deriveAffectiveHarm(scene: UAALAffectiveSceneIR): AffectiveHarmD
 
   // 1. sensory_overload — absolute dB against the most sensitive present class.
   const mostSensitive = classes.reduce((a, b) =>
-    UAAL_AUDIENCE_THRESHOLDS[a].dbCeiling <= UAAL_AUDIENCE_THRESHOLDS[b].dbCeiling ? a : b,
+    UAAL_AUDIENCE_THRESHOLDS[a].dbCeiling <= UAAL_AUDIENCE_THRESHOLDS[b].dbCeiling ? a : b
   );
   for (const atom of atoms) {
-    if (atom.kind === 'audio' && isNum(atom.db) && atom.db > UAAL_AUDIENCE_THRESHOLDS[mostSensitive].dbCeiling) {
+    if (
+      atom.kind === 'audio' &&
+      isNum(atom.db) &&
+      atom.db > UAAL_AUDIENCE_THRESHOLDS[mostSensitive].dbCeiling
+    ) {
       findings.push({ harm: 'sensory_overload', evidence: atom.id, audienceClass: mostSensitive });
     }
   }
@@ -228,7 +238,7 @@ export function deriveAffectiveHarm(scene: UAALAffectiveSceneIR): AffectiveHarmD
  */
 export function composeAffectiveHarm(
   base: UAALBeneficiaryIR,
-  scene: UAALAffectiveSceneIR,
+  scene: UAALAffectiveSceneIR
 ): UAALBeneficiaryIR {
   const derivation = deriveAffectiveHarm(scene);
   if (!derivation.audienceStated) return { ...base };

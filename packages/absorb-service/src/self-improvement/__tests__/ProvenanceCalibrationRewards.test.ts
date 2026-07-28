@@ -26,7 +26,13 @@ const PROVENANCE_CTX: ProvenanceRewardContext = { atoms: ATOMS, bound: BOUND };
 
 /** Valid midpoint derivation: (mn + mx) / 2 */
 const MIDPOINT_DERIVATION: DerivationStep[] = [
-  { op: 'add', args: [['atom', 'mn'], ['atom', 'mx']] },
+  {
+    op: 'add',
+    args: [
+      ['atom', 'mn'],
+      ['atom', 'mx'],
+    ],
+  },
   { op: 'div', args: [0, ['const', '2/1']] },
 ];
 
@@ -115,7 +121,18 @@ describe('replayDerivation', () => {
 
   it('throws on unknown op', () => {
     expect(() =>
-      replayDerivation([{ op: 'pow', args: [['atom', 'mn'], ['const', '2/1']] }], parsedAtoms())
+      replayDerivation(
+        [
+          {
+            op: 'pow',
+            args: [
+              ['atom', 'mn'],
+              ['const', '2/1'],
+            ],
+          },
+        ],
+        parsedAtoms()
+      )
     ).toThrow(/unknown op/);
   });
 
@@ -139,7 +156,18 @@ describe('replayDerivation', () => {
 
   it('throws on division by zero', () => {
     expect(() =>
-      replayDerivation([{ op: 'div', args: [['atom', 'mn'], ['const', '0']] }], parsedAtoms())
+      replayDerivation(
+        [
+          {
+            op: 'div',
+            args: [
+              ['atom', 'mn'],
+              ['const', '0'],
+            ],
+          },
+        ],
+        parsedAtoms()
+      )
     ).toThrow(/division by zero/);
   });
 });
@@ -174,7 +202,15 @@ describe('provenanceValidity', () => {
 
   it('V=0 when the answer is outside the contract bound', () => {
     // 3.66 replays fine (mx + 1) but violates bound [1.2, 2.66]
-    const deriv: DerivationStep[] = [{ op: 'add', args: [['atom', 'mx'], ['const', '1']] }];
+    const deriv: DerivationStep[] = [
+      {
+        op: 'add',
+        args: [
+          ['atom', 'mx'],
+          ['const', '1'],
+        ],
+      },
+    ];
     const { validity, reason } = provenanceValidity(
       deriv,
       parseRational('3.66'),
@@ -307,9 +343,9 @@ describe('faithfulCalibrationReward', () => {
   it('fails closed when gold values are missing or invalid', async () => {
     const completion = JSON.stringify({ f_pred: 0.8 });
     expect(await faithfulCalibrationReward([completion])).toEqual([0]);
-    expect(
-      await faithfulCalibrationReward([completion], { calibration: { fGold: [] } })
-    ).toEqual([0]);
+    expect(await faithfulCalibrationReward([completion], { calibration: { fGold: [] } })).toEqual([
+      0,
+    ]);
     expect(
       await faithfulCalibrationReward([completion], { calibration: { fGold: [1.7] } })
     ).toEqual([0]);
@@ -334,12 +370,10 @@ describe('GRPORewardOrchestrator with extended terms', () => {
 
   it('throws when a term is enabled without its weight', () => {
     expect(
-      () =>
-        new GRPORewardOrchestrator(createMockRunner(), { enableProvenanceValidity: true })
+      () => new GRPORewardOrchestrator(createMockRunner(), { enableProvenanceValidity: true })
     ).toThrow(/requires weights.provenanceValidityReward/);
     expect(
-      () =>
-        new GRPORewardOrchestrator(createMockRunner(), { enableFaithfulCalibration: true })
+      () => new GRPORewardOrchestrator(createMockRunner(), { enableFaithfulCalibration: true })
     ).toThrow(/requires weights.faithfulCalibrationReward/);
   });
 

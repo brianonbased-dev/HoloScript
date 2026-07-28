@@ -14,7 +14,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { decideManufacturingBackend, estimateMarchingCubesTolerance, marchingCubes } from '../MarchingCubes';
+import {
+  decideManufacturingBackend,
+  estimateMarchingCubesTolerance,
+  marchingCubes,
+} from '../MarchingCubes';
 import type { SDFNode } from '../../SDFPointEvaluator';
 import { sampleSDFDistanceField } from '../../SDFPointEvaluator';
 
@@ -319,7 +323,10 @@ describe('Manufacturing backend decision', () => {
     expect(decision.backend).toBe('sovereign-sdf-marching-cubes');
     expect(decision.bridgeRequired).toBe(false);
     expect(decision.requestedTolerance).toBeNull();
-    expect(decision.tolerance.conservativeSurfaceError).toBeCloseTo(Math.hypot(0.05, 0.05, 0.05), 12);
+    expect(decision.tolerance.conservativeSurfaceError).toBeCloseTo(
+      Math.hypot(0.05, 0.05, 0.05),
+      12
+    );
   });
 
   it('keeps the sovereign SDF path when the conservative envelope is within tolerance', () => {

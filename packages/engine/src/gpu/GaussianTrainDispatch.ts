@@ -16,7 +16,12 @@
  * dist rebuilt to carry the export, so it lives in CI (core builds before engine), not this unit run.
  */
 
-import { runGaussianTrainJob, type GaussianTrainJobSpec, type TrainResult, type TrainView } from './GaussianTrainRunner';
+import {
+  runGaussianTrainJob,
+  type GaussianTrainJobSpec,
+  type TrainResult,
+  type TrainView,
+} from './GaussianTrainRunner';
 import { GaussianWebGPUTrainer, runGaussianTrainJobGPU } from './GaussianWebGPUTrainer';
 import { type Gaussian3D } from './GaussianTrainer3D';
 
@@ -25,7 +30,13 @@ export interface DispatchableTrainJob {
   backend: 'sovereign' | 'remote';
   hyperparams: {
     iterations: number;
-    learningRates: { position: number; scale: number; rotation: number; opacity: number; color: number };
+    learningRates: {
+      position: number;
+      scale: number;
+      rotation: number;
+      opacity: number;
+      color: number;
+    };
     dilation: number;
     /** Densify every N iters (0/absent = off). Maps to the runner's densification.interval. */
     densifyInterval?: number;
@@ -44,17 +55,21 @@ export interface DispatchableTrainJob {
 export function dispatchGaussianTrainJob(
   job: DispatchableTrainJob,
   initial: Gaussian3D,
-  views: TrainView[],
+  views: TrainView[]
 ): TrainResult {
   if (job.backend !== 'sovereign') {
     throw new Error(
       `dispatchGaussianTrainJob: backend '${job.backend}' is not sovereign — ` +
-        `route remote jobs to GaussianSplatBakingPipeline (api.rendernetwork.com), not the native runner.`,
+        `route remote jobs to GaussianSplatBakingPipeline (api.rendernetwork.com), not the native runner.`
     );
   }
   const hp = job.hyperparams;
   const spec: GaussianTrainJobSpec = {
-    hyperparams: { iterations: hp.iterations, learningRates: hp.learningRates, dilation: hp.dilation },
+    hyperparams: {
+      iterations: hp.iterations,
+      learningRates: hp.learningRates,
+      dilation: hp.dilation,
+    },
   };
   // densifyInterval > 0 turns on adaptive density control (3DGS Algorithm 1). The authoring surface
   // exposes only interval + cap; the dispatcher supplies the remaining tuning as HEURISTIC defaults —
@@ -91,17 +106,21 @@ export async function dispatchGaussianTrainJobGPU(
   views: TrainView[],
   device: GPUDevice,
   bg: readonly [number, number, number] = [0, 0, 0],
-  onProgress?: (iter: number, loss: number) => void,
+  onProgress?: (iter: number, loss: number) => void
 ): Promise<TrainResult> {
   if (job.backend !== 'sovereign') {
     throw new Error(
       `dispatchGaussianTrainJobGPU: backend '${job.backend}' is not sovereign — ` +
-        `route remote jobs to GaussianSplatBakingPipeline (api.rendernetwork.com), not the native runner.`,
+        `route remote jobs to GaussianSplatBakingPipeline (api.rendernetwork.com), not the native runner.`
     );
   }
   const hp = job.hyperparams;
   const spec: GaussianTrainJobSpec = {
-    hyperparams: { iterations: hp.iterations, learningRates: hp.learningRates, dilation: hp.dilation },
+    hyperparams: {
+      iterations: hp.iterations,
+      learningRates: hp.learningRates,
+      dilation: hp.dilation,
+    },
   };
   if (hp.densifyInterval && hp.densifyInterval > 0) {
     const it = hp.iterations;

@@ -57,10 +57,7 @@ import { performance } from 'node:perf_hooks';
 import { spawnSync } from 'node:child_process';
 import { platform, release, totalmem, cpus } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import {
-  DEFAULT_PAPER_5_DATASET,
-  requirePaper5Dataset,
-} from './verify-paper-5-dataset.mjs';
+import { DEFAULT_PAPER_5_DATASET, requirePaper5Dataset } from './verify-paper-5-dataset.mjs';
 
 const DEFAULT_OUT = '.bench-logs/paper-5-accuracy-bench.json';
 const DEFAULT_TOP_K = 10;
@@ -186,21 +183,14 @@ async function loadCorpus(repoRoot, maxFiles, providerName) {
     .update(
       JSON.stringify(
         keywordSymbols
-          .map((symbol) => [
-            symbol.filePath,
-            symbol.name,
-            symbol.signature,
-            symbol.docComment,
-          ])
+          .map((symbol) => [symbol.filePath, symbol.name, symbol.signature, symbol.docComment])
           .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
       )
     )
     .digest('hex');
 
   const provider =
-    providerName === 'structural'
-      ? new StructuralEmbeddingProvider()
-      : new HoloEmbedProvider();
+    providerName === 'structural' ? new StructuralEmbeddingProvider() : new HoloEmbedProvider();
   const index = new EmbeddingIndex({ provider, batchSize: 100, useWorkers: false });
   await index.buildIndex(graph);
 
@@ -638,12 +628,7 @@ export async function main(argv = process.argv.slice(2), config = {}) {
       const goldFiles = q.gold.map((judgment) => judgment.file);
       try {
         const retrieved = await sys.run(q.query);
-        const { p, rr, firstHitIdx } = scoreQuery(
-          retrieved,
-          goldFiles,
-          options.pAt,
-          repoRoot
-        );
+        const { p, rr, firstHitIdx } = scoreQuery(retrieved, goldFiles, options.pAt, repoRoot);
         perQuery.push({
           id: q.id,
           category: q.category,

@@ -94,13 +94,9 @@ export class HybridLexicalIndex {
         ? 1 - (exactEvidence.start / Math.max(1, query.tokens.length - 1)) * 0.5
         : 0;
       const nameScore =
-        0.65 * (nameMatched / nameCount) +
-        0.25 * (nameMatched / queryCount) +
-        0.1 * exactIntent;
+        0.65 * (nameMatched / nameCount) + 0.25 * (nameMatched / queryCount) + 0.1 * exactIntent;
       const fileScore =
-        0.65 * (stemMatched / stemCount) +
-        0.25 * (pathMatched / queryCount) +
-        0.1 * exactIntent;
+        0.65 * (stemMatched / stemCount) + 0.25 * (pathMatched / queryCount) + 0.1 * exactIntent;
       const score = roundScore(Math.min(1, Math.max(nameScore, fileScore)));
       scores.set(index, {
         score,
@@ -251,9 +247,7 @@ export function fuseHybridScore(
   const boundedVector = clamp(vectorScore, 0, 1);
   const boundedLexical = clamp(lexicalScore, 0, 1);
   let fused =
-    boundedLexical > 0
-      ? boundedVector + (1 - boundedVector) * 0.45 * boundedLexical
-      : vectorScore;
+    boundedLexical > 0 ? boundedVector + (1 - boundedVector) * 0.45 * boundedLexical : vectorScore;
 
   if (exactMatch) {
     fused = Math.max(fused, 0.99 + 0.01 * boundedLexical);

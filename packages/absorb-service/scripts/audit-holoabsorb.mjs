@@ -100,10 +100,7 @@ export async function main(argv = process.argv.slice(2)) {
     return 0;
   }
 
-  const productModulePath = resolve(
-    repoRoot,
-    'packages/absorb-service/dist/holoabsorb/index.js'
-  );
+  const productModulePath = resolve(repoRoot, 'packages/absorb-service/dist/holoabsorb/index.js');
   const mcpModulePath = resolve(repoRoot, 'packages/absorb-service/dist/mcp/index.js');
   if (!existsSync(productModulePath) || !existsSync(mcpModulePath)) {
     throw new Error(
@@ -141,10 +138,7 @@ export async function main(argv = process.argv.slice(2)) {
     threadAudit = auditThreadSnapshot(loadJson(boardPath), manifest);
   }
 
-  const errors = [
-    ...manifestAudit.errors,
-    ...(threadAudit?.errors ?? []),
-  ];
+  const errors = [...manifestAudit.errors, ...(threadAudit?.errors ?? [])];
   const receipt = {
     schemaVersion: 'holoscript.holoabsorb.repository-audit.v1',
     productName: manifest.productName,

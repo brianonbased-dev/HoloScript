@@ -177,7 +177,9 @@ describe('MultiphaseNSSolver — MNS-1: level-set reinitialization maintains |�
     for (let s = 0; s < 5; s++) solver.step(1e-6);
 
     const phi = solver.getLevelSet();
-    const nx = 20, ny = 20, nz = 20;
+    const nx = 20,
+      ny = 20,
+      nz = 20;
     const dx = 1 / 19; // domainSize/(n-1)
 
     // Check gradient magnitude at cells near the interface (|φ| < 3*dx)
@@ -318,8 +320,14 @@ describe('FluidSim — FSM-2: SpatialHash neighbor search produces identical phy
 
     // Add a small deterministic cluster
     const positions: [number, number, number][] = [
-      [0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0],
-      [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1],
+      [0, 0, 0],
+      [1, 0, 0],
+      [0, 1, 0],
+      [1, 1, 0],
+      [0, 0, 1],
+      [1, 0, 1],
+      [0, 1, 1],
+      [1, 1, 1],
     ];
     for (const pos of positions) {
       simRef.addParticle(pos);
@@ -363,9 +371,9 @@ describe('HydraulicSolver — HYD-1: Hardy-Cross loop sign (pipe traversal direc
     const solver = new HydraulicSolver({
       pipes: [
         { id: 'p1', diameter: 0.15, length: 100, roughness: 0.001 },
-        { id: 'p2', diameter: 0.12, length: 80,  roughness: 0.001 },
-        { id: 'p3', diameter: 0.10, length: 60,  roughness: 0.001 },
-        { id: 'p4', diameter: 0.10, length: 60,  roughness: 0.001 },
+        { id: 'p2', diameter: 0.12, length: 80, roughness: 0.001 },
+        { id: 'p3', diameter: 0.1, length: 60, roughness: 0.001 },
+        { id: 'p4', diameter: 0.1, length: 60, roughness: 0.001 },
         { id: 'p5', diameter: 0.15, length: 100, roughness: 0.001 },
       ],
       nodes: [
@@ -417,10 +425,10 @@ describe('HydraulicSolver — HYD-1: Hardy-Cross loop sign (pipe traversal direc
     // After convergence, the algebraic sum of head losses around the loop = 0
     const solver = new HydraulicSolver({
       pipes: [
-        { id: 'p1', diameter: 0.20, length: 100, roughness: 0.0005 },
+        { id: 'p1', diameter: 0.2, length: 100, roughness: 0.0005 },
         { id: 'p2', diameter: 0.15, length: 120, roughness: 0.0005 },
         { id: 'p3', diameter: 0.15, length: 100, roughness: 0.0005 },
-        { id: 'p4', diameter: 0.20, length: 80,  roughness: 0.0005 },
+        { id: 'p4', diameter: 0.2, length: 80, roughness: 0.0005 },
       ],
       nodes: [
         { id: 'R', type: 'reservoir', head: 80, elevation: 0 },

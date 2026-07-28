@@ -8,7 +8,12 @@
 import { describe, it, expect } from 'vitest';
 import { ECSWorld } from '../../vm/executor';
 import { ComponentType, GeometryType } from '../../vm/opcodes';
-import { extractDrawSpecs, geometryKindFromType, composeTRS, type SkinnedMeshData } from '../draw-spec';
+import {
+  extractDrawSpecs,
+  geometryKindFromType,
+  composeTRS,
+  type SkinnedMeshData,
+} from '../draw-spec';
 import { primitiveToMesh } from '../primitive-mesh';
 
 function addCube(
