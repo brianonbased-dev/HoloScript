@@ -67,6 +67,7 @@ describe('CharacterWebGPUCompiler', () => {
       expect(bundle.vertexCount).toBeGreaterThan(50);
       expect(bundle.mesh.positions.length).toBeGreaterThan(300);
       expect(bundle.mesh.positions.length % 3).toBe(0);
+      expect(bundle.mesh.uvs?.length).toBe(bundle.vertexCount * 2);
       // GPU skinning data is present (the cube path has none).
       expect(bundle.mesh.jointIndices.length).toBe(bundle.vertexCount);
       expect(bundle.mesh.jointWeights.length).toBe(bundle.vertexCount);

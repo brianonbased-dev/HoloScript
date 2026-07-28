@@ -150,7 +150,7 @@ export class CharacterWebGPUCompiler {
         positions: num(spec.mesh.positions),
         normals: num(spec.mesh.normals),
         tangents: num(spec.mesh.tangents),
-        ...((result.cloth || result.mantle) && spec.mesh.uvs ? { uvs: num(spec.mesh.uvs) } : {}),
+        ...(spec.mesh.uvs ? { uvs: num(spec.mesh.uvs) } : {}),
         indices: num(spec.mesh.indices),
         jointIndices: num(spec.mesh.jointIndices),
         jointWeights: num(spec.mesh.jointWeights),
