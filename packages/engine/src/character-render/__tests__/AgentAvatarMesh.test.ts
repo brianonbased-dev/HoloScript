@@ -118,4 +118,51 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     expect(curvedNormalCount).toBeGreaterThan(150);
     expect(anatomical.indices.length).toBeGreaterThan(legacy.indices.length);
   });
+
+  it('builds opt-in recessed eyelid shells with a receipted orbital range', () => {
+    const tearline = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceTearline: true,
+    });
+    const fitted = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceTearline: true,
+      orbitalProfile: 'recessed-lids-v1',
+      eyeRecess: 0.3,
+      lidOpening: 0.54,
+      canthalTilt: 0.14,
+    });
+
+    expect(fitted.orbital).toMatchObject({
+      profile: 'recessed-lids-v1',
+      eyeRecess: 0.3,
+      lidOpening: 0.54,
+      canthalTilt: 0.14,
+    });
+    expect(fitted.orbital?.vertexRange.vertexCount).toBe(152);
+    expect(fitted.orbital?.indexRange.indexCount).toBe(432);
+    expect(fitted.vertexCount).toBeGreaterThan(tearline.vertexCount);
+
+    const orbital = fitted.orbital!;
+    const headIndex = BONE_ORDER.indexOf('head');
+    for (
+      let vertex = orbital.vertexRange.vertexStart;
+      vertex < orbital.vertexRange.vertexStart + orbital.vertexRange.vertexCount;
+      vertex++
+    ) {
+      expect(fitted.jointIndices[vertex]).toBe(headIndex);
+      expect(fitted.jointWeights[vertex]).toBe(1);
+    }
+    for (
+      let offset = orbital.indexRange.indexStart;
+      offset < orbital.indexRange.indexStart + orbital.indexRange.indexCount;
+      offset++
+    ) {
+      const vertex = fitted.indices[offset];
+      expect(vertex).toBeGreaterThanOrEqual(orbital.vertexRange.vertexStart);
+      expect(vertex).toBeLessThan(
+        orbital.vertexRange.vertexStart + orbital.vertexRange.vertexCount
+      );
+    }
+  });
 });

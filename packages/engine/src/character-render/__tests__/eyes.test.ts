@@ -116,6 +116,41 @@ describe('eyes — refractive eye geometry (pure data)', () => {
     ).toBe(combined.eyeRange.indexCount);
   });
 
+  it('recessed orbital fit moves the layered globes behind native eyelid shells', () => {
+    const exposed = buildAgentAvatarOcularRegions({
+      faceTopology: 'neutral-anatomical-v2',
+    });
+    const recessed = buildAgentAvatarOcularRegions({
+      faceTopology: 'neutral-anatomical-v2',
+      orbitalProfile: 'recessed-lids-v1',
+      eyeRecess: 0.3,
+    });
+    const maxZ = (positions: Float32Array): number => {
+      let result = -Infinity;
+      for (let offset = 2; offset < positions.length; offset += 3) {
+        result = Math.max(result, positions[offset]);
+      }
+      return result;
+    };
+    expect(maxZ(recessed.positions)).toBeLessThan(maxZ(exposed.positions) - 0.004);
+
+    const combined = buildCharacterMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceTearline: true,
+      orbitalProfile: 'recessed-lids-v1',
+      eyeRecess: 0.3,
+      lidOpening: 0.54,
+      canthalTilt: 0.14,
+      ocularProfile: 'layered-ocular-v1',
+    });
+    expect(combined.orbital).toMatchObject({
+      profile: 'recessed-lids-v1',
+      eyeRecess: 0.3,
+      lidOpening: 0.54,
+      canthalTilt: 0.14,
+    });
+  });
+
   it('serializes one material group per layered eye region without changing the default profile', () => {
     const legacy = new CharacterHost({ entityId: 'legacy-eye' }).getDrawSpec();
     expect(
@@ -206,6 +241,33 @@ describe('eyes — rendered (native WebGPU)', () => {
       const layeredPixels = await renderCharacter(testDevice!, layered, { size: 256, viewProj });
       expect(changedPixelCount(layeredPixels, legacyPixels)).toBeGreaterThan(80);
       expect(maxLumaInBand(layeredPixels, 0.0, 1.0)).toBeGreaterThan(0);
+    }
+  );
+
+  itGpu(
+    'the recessed-lids profile changes native head pixels around the layered eyes',
+    async () => {
+      const exposed = new CharacterHost({
+        entityId: 'orbital-gpu',
+        faceTopology: 'neutral-anatomical-v2',
+        ocularProfile: 'layered-ocular-v1',
+        irisColor: 0x4f7f9c,
+      }).getDrawSpec();
+      const fitted = new CharacterHost({
+        entityId: 'orbital-gpu',
+        faceTopology: 'neutral-anatomical-v2',
+        faceTearline: true,
+        orbitalProfile: 'recessed-lids-v1',
+        eyeRecess: 0.3,
+        lidOpening: 0.54,
+        canthalTilt: 0.14,
+        ocularProfile: 'layered-ocular-v1',
+        irisColor: 0x4f7f9c,
+      }).getDrawSpec();
+      const viewProj = headFramingMatrix();
+      const exposedPixels = await renderCharacter(testDevice!, exposed, { size: 256, viewProj });
+      const fittedPixels = await renderCharacter(testDevice!, fitted, { size: 256, viewProj });
+      expect(changedPixelCount(fittedPixels, exposedPixels)).toBeGreaterThan(40);
     }
   );
 });

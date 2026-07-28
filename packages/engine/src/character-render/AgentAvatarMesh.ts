@@ -56,9 +56,25 @@ export interface AgentAvatarMeshData {
   jointCount: number;
   /** Palette index → canonical bone name. */
   boneOrder: readonly string[];
+  /** Present only when the neutral anatomical head emitted operative orbital geometry. */
+  orbital?: AgentAvatarOrbitalGeometryReceipt;
 }
 
 export type AgentAvatarFaceTopology = 'procedural-head-v1' | 'neutral-anatomical-v2';
+export const AGENT_AVATAR_ORBITAL_PROFILES = ['tearline-rim-v1', 'recessed-lids-v1'] as const;
+export type AgentAvatarOrbitalProfile = (typeof AGENT_AVATAR_ORBITAL_PROFILES)[number];
+
+export interface AgentAvatarOrbitalGeometryReceipt {
+  profile: AgentAvatarOrbitalProfile;
+  /** Globe recession as a fraction of the procedural eyeball radius. */
+  eyeRecess: number;
+  /** Vertical palpebral opening as a fraction of the procedural eyeball radius. */
+  lidOpening: number;
+  /** Outer-canthus rise as a fraction of the procedural eyeball radius. */
+  canthalTilt: number;
+  vertexRange: { vertexStart: number; vertexCount: number };
+  indexRange: { indexStart: number; indexCount: number };
+}
 
 export interface AgentAvatarMeshOptions {
   /** Drives deterministic accent colour (D.094 entity-generic). */
@@ -75,6 +91,14 @@ export interface AgentAvatarMeshOptions {
   faceVerticalSegments?: number;
   /** Emit native eyelid/tearline rim topology around the procedural eyes. */
   faceTearline?: boolean;
+  /** Native orbital construction profile. The tearline rim remains the compatibility default. */
+  orbitalProfile?: AgentAvatarOrbitalProfile;
+  /** Globe recession as a fraction of the procedural eyeball radius (0..0.45). */
+  eyeRecess?: number;
+  /** Vertical palpebral opening as a fraction of the eyeball radius (0.42..0.78). */
+  lidOpening?: number;
+  /** Outer-canthus rise as a fraction of the eyeball radius (-0.25..0.25). */
+  canthalTilt?: number;
 }
 
 /** Pose = per-bone LOCAL rotation applied at the joint (absent ⇒ identity / bind). */
@@ -223,6 +247,10 @@ function clampInt(value: number | undefined, fallback: number, min: number, max:
   return Math.max(min, Math.min(max, Math.round(value ?? fallback)));
 }
 
+function clampFloat(value: number | undefined, fallback: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value ?? fallback));
+}
+
 /** Append an oriented box spanning a→b (world-bind), thickness r, all verts weighted to jointIdx. */
 function pushBox(acc: MeshAccum, a: Vec3, b: Vec3, r: number, jointIdx: number): void {
   const axisVec = sub(b, a);
@@ -354,6 +382,71 @@ function pushFacialArc(
   }
 }
 
+/**
+ * Append upper and lower skin shells around one procedural globe.
+ *
+ * The inner edges form an almond aperture while the outer edges blend toward the face plane.
+ * This is actual occluding skin geometry, not a line painted over a round exposed eyeball.
+ */
+function pushOrbitalLidShell(
+  acc: MeshAccum,
+  center: Vec3,
+  eyeRadius: number,
+  facePlaneZ: number,
+  lidOpening: number,
+  canthalTilt: number,
+  side: -1 | 1,
+  jointIdx: number
+): void {
+  const segments = 18;
+  const apertureHalfWidth = eyeRadius * 1.08;
+  const apertureHalfHeight = eyeRadius * lidOpening;
+  const outerHalfHeight = eyeRadius * 1.34;
+
+  const pushLid = (upper: boolean): void => {
+    const base = acc.positions.length / 3;
+    for (let segment = 0; segment <= segments; segment++) {
+      const normalizedX = -1 + (segment / segments) * 2;
+      const almond = Math.pow(Math.max(0, 1 - normalizedX * normalizedX), 0.62);
+      const outward = side * normalizedX;
+      const tilt = eyeRadius * canthalTilt * outward;
+      const direction = upper ? 1 : -1;
+      const lowerOpeningScale = upper ? 1 : 0.88;
+      const innerY = center.y + tilt + direction * apertureHalfHeight * almond * lowerOpeningScale;
+      const outerY =
+        center.y + tilt + direction * outerHalfHeight * (0.74 + almond * 0.26) * lowerOpeningScale;
+      const x = center.x + normalizedX * apertureHalfWidth;
+      const innerZ = center.z + eyeRadius * (0.84 + almond * 0.07);
+      const outerZ = facePlaneZ - eyeRadius * Math.abs(normalizedX) * 0.035;
+      const normal = normalize({
+        x: normalizedX * 0.08,
+        y: upper ? -0.16 : 0.16,
+        z: 1,
+      });
+
+      for (const [y, z] of [
+        [innerY, innerZ],
+        [outerY, outerZ],
+      ] as const) {
+        acc.positions.push(x, y, z);
+        acc.normals.push(normal.x, normal.y, normal.z);
+        acc.tangents.push(1, 0, 0, 1);
+        acc.jointIndices.push(jointIdx);
+        acc.jointWeights.push(1);
+      }
+    }
+
+    for (let segment = 0; segment < segments; segment++) {
+      const a = base + segment * 2;
+      const b = a + 2;
+      acc.indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+  };
+
+  pushLid(true);
+  pushLid(false);
+}
+
 function pushSmoothEllipsoid(
   acc: MeshAccum,
   center: Vec3,
@@ -438,8 +531,12 @@ function pushNeutralAnatomicalHead(
   jointIdx: number,
   radialSegments: number,
   verticalSegments: number,
-  includeTearline: boolean
-): void {
+  includeTearline: boolean,
+  orbitalProfile: AgentAvatarOrbitalProfile,
+  eyeRecess: number,
+  lidOpening: number,
+  canthalTilt: number
+): AgentAvatarOrbitalGeometryReceipt | undefined {
   const center = {
     x: headBase.x,
     y: headBase.y + headLength * 0.52,
@@ -504,39 +601,78 @@ function pushNeutralAnatomicalHead(
     jointIdx
   );
 
+  let orbital: AgentAvatarOrbitalGeometryReceipt | undefined;
   if (includeTearline) {
+    const orbitalVertexStart = acc.positions.length / 3;
+    const orbitalIndexStart = acc.indices.length;
     const buildScale = radius / 0.09;
     const eyeY = headBase.y + 0.12 * buildScale;
-    const eyeZ = headBase.z + radius * 1.045;
-    for (const eyeX of [-0.035 * buildScale, 0.035 * buildScale]) {
-      const eyeCenter = {
-        x: headBase.x + eyeX,
-        y: eyeY,
-        z: eyeZ,
-      };
-      pushFacialArc(
-        acc,
-        eyeCenter,
-        radiusX * 0.235,
-        radiusY * 0.13,
-        radiusX * 0.018,
-        10,
-        0,
-        Math.PI,
-        jointIdx
-      );
-      pushFacialArc(
-        acc,
-        eyeCenter,
-        radiusX * 0.235,
-        radiusY * 0.13,
-        radiusX * 0.012,
-        7,
-        Math.PI * 1.12,
-        Math.PI * 1.88,
-        jointIdx
-      );
+    if (orbitalProfile === 'recessed-lids-v1') {
+      const eyeRadius = 0.0145 * buildScale;
+      const eyeCenterZ = headBase.z + radius * 0.91 - eyeRadius * eyeRecess;
+      const facePlaneZ = headBase.z + radius * 1.025;
+      for (const side of [-1, 1] as const) {
+        pushOrbitalLidShell(
+          acc,
+          {
+            x: headBase.x + side * 0.035 * buildScale,
+            y: eyeY,
+            z: eyeCenterZ,
+          },
+          eyeRadius,
+          facePlaneZ,
+          lidOpening,
+          canthalTilt,
+          side,
+          jointIdx
+        );
+      }
+    } else {
+      const eyeZ = headBase.z + radius * 1.045;
+      for (const eyeX of [-0.035 * buildScale, 0.035 * buildScale]) {
+        const eyeCenter = {
+          x: headBase.x + eyeX,
+          y: eyeY,
+          z: eyeZ,
+        };
+        pushFacialArc(
+          acc,
+          eyeCenter,
+          radiusX * 0.235,
+          radiusY * 0.13,
+          radiusX * 0.018,
+          10,
+          0,
+          Math.PI,
+          jointIdx
+        );
+        pushFacialArc(
+          acc,
+          eyeCenter,
+          radiusX * 0.235,
+          radiusY * 0.13,
+          radiusX * 0.012,
+          7,
+          Math.PI * 1.12,
+          Math.PI * 1.88,
+          jointIdx
+        );
+      }
     }
+    orbital = {
+      profile: orbitalProfile,
+      eyeRecess,
+      lidOpening,
+      canthalTilt,
+      vertexRange: {
+        vertexStart: orbitalVertexStart,
+        vertexCount: acc.positions.length / 3 - orbitalVertexStart,
+      },
+      indexRange: {
+        indexStart: orbitalIndexStart,
+        indexCount: acc.indices.length - orbitalIndexStart,
+      },
+    };
   }
 
   pushNeutralMouthSeam(
@@ -552,6 +688,7 @@ function pushNeutralAnatomicalHead(
     14,
     jointIdx
   );
+  return orbital;
 }
 
 // ---------------------------------------------------------------------------
@@ -568,6 +705,15 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const faceTopology = opts.faceTopology ?? 'procedural-head-v1';
   const faceRadialSegments = clampInt(opts.faceRadialSegments, 20, 12, 32);
   const faceVerticalSegments = clampInt(opts.faceVerticalSegments, 14, 8, 24);
+  const orbitalProfile = opts.orbitalProfile ?? 'tearline-rim-v1';
+  const eyeRecess = clampFloat(
+    opts.eyeRecess,
+    orbitalProfile === 'recessed-lids-v1' ? 0.28 : 0,
+    0,
+    0.45
+  );
+  const lidOpening = clampFloat(opts.lidOpening, 0.56, 0.42, 0.78);
+  const canthalTilt = clampFloat(opts.canthalTilt, 0.12, -0.25, 0.25);
   const bindWorld = computeBindWorld();
   const acc: MeshAccum = {
     positions: [],
@@ -577,6 +723,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     jointIndices: [],
     jointWeights: [],
   };
+  let orbital: AgentAvatarOrbitalGeometryReceipt | undefined;
 
   const childCount = new Map<string, number>();
   for (const bone of HUMANOID_65_SKELETON) {
@@ -599,7 +746,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
       const b = { x: a.x, y: a.y + bone.length, z: a.z };
       const jointIdx = BONE_INDEX.get(bone.name) ?? 0;
       if (bone.name === 'head' && faceTopology === 'neutral-anatomical-v2') {
-        pushNeutralAnatomicalHead(
+        orbital = pushNeutralAnatomicalHead(
           acc,
           a,
           bone.length,
@@ -607,7 +754,11 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
           jointIdx,
           faceRadialSegments,
           faceVerticalSegments,
-          opts.faceTearline !== false
+          opts.faceTearline !== false,
+          orbitalProfile,
+          eyeRecess,
+          lidOpening,
+          canthalTilt
         );
       } else {
         pushBox(acc, a, b, radiusFor(bone.name, buildScale), jointIdx);
@@ -635,6 +786,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     vertexCount: acc.positions.length / 3,
     jointCount: JOINT_COUNT,
     boneOrder: BONE_ORDER,
+    ...(orbital ? { orbital } : {}),
   };
 }
 

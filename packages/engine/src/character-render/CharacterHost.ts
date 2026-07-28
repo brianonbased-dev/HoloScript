@@ -36,6 +36,7 @@ import {
   colorForEntity,
   JOINT_COUNT,
   type AgentAvatarFaceTopology,
+  type AgentAvatarOrbitalProfile,
   type AvatarPose,
 } from './AgentAvatarMesh';
 import {
@@ -80,6 +81,14 @@ export interface CharacterHostOptions {
   faceVerticalSegments?: number;
   /** Include native eyelid/tearline rim topology. */
   faceTearline?: boolean;
+  /** Native orbital construction profile; legacy tearline rims remain the default. */
+  orbitalProfile?: AgentAvatarOrbitalProfile;
+  /** Globe recession as a fraction of the procedural eyeball radius (0..0.45). */
+  eyeRecess?: number;
+  /** Vertical palpebral opening as a fraction of the eyeball radius (0.42..0.78). */
+  lidOpening?: number;
+  /** Outer-canthus rise as a fraction of the eyeball radius (-0.25..0.25). */
+  canthalTilt?: number;
   /** Packed 0xRRGGBB accent/fallback colour; defaults to a deterministic colour from `entityId`. */
   color?: number;
   /** Skin base colour 0xRRGGBB for the SSS material (default warm skin #e8c4a0). */
@@ -219,6 +228,10 @@ export class CharacterHost {
       faceRadialSegments: opts.faceRadialSegments,
       faceVerticalSegments: opts.faceVerticalSegments,
       faceTearline: opts.faceTearline,
+      orbitalProfile: opts.orbitalProfile,
+      eyeRecess: opts.eyeRecess,
+      lidOpening: opts.lidOpening,
+      canthalTilt: opts.canthalTilt,
       garmentStyle: opts.garmentStyle,
       garmentSegments: opts.garmentSegments,
       mantleStyle: opts.mantleStyle,

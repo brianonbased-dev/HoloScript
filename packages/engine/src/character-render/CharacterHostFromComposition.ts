@@ -15,7 +15,7 @@
  */
 
 import { CharacterHost } from './CharacterHost';
-import type { AgentAvatarFaceTopology } from './AgentAvatarMesh';
+import type { AgentAvatarFaceTopology, AgentAvatarOrbitalProfile } from './AgentAvatarMesh';
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
 import {
@@ -89,6 +89,10 @@ export interface CharacterHostFromCompositionResult {
     radialSegments?: number;
     verticalSegments?: number;
     tearline?: boolean;
+    orbitalProfile?: AgentAvatarOrbitalProfile;
+    eyeRecess?: number;
+    lidOpening?: number;
+    canthalTilt?: number;
     ocularProfile?: AgentAvatarOcularProfile;
     irisScale?: number;
     pupilScale?: number;
@@ -357,6 +361,10 @@ export function buildCharacterHostFromComposition(
   let faceRadialSegments: number | undefined;
   let faceVerticalSegments: number | undefined;
   let faceTearline: boolean | undefined;
+  let orbitalProfile: AgentAvatarOrbitalProfile | undefined;
+  let eyeRecess: number | undefined;
+  let lidOpening: number | undefined;
+  let canthalTilt: number | undefined;
   let ocularProfile: AgentAvatarOcularProfile | undefined;
   let irisScale: number | undefined;
   let pupilScale: number | undefined;
@@ -383,6 +391,29 @@ export function buildCharacterHostFromComposition(
           Math.min(24, Math.round(asNum(cfgVal(faceTrait, 'vertical_segments')) ?? 14))
         );
         faceTearline = cfgVal(faceTrait, 'tearline', 'include_tearline') !== false;
+        const authoredOrbitalProfile = asStr(cfgVal(faceTrait, 'orbital_profile', 'eyelid_profile'))
+          ?.toLowerCase()
+          .replace(/_/g, '-');
+        if (
+          authoredOrbitalProfile === 'tearline-rim-v1' ||
+          authoredOrbitalProfile === 'recessed-lids-v1'
+        ) {
+          orbitalProfile = authoredOrbitalProfile;
+          eyeRecess = clamp(
+            asNum(cfgVal(faceTrait, 'eye_recess', 'globe_recess')) ??
+              (orbitalProfile === 'recessed-lids-v1' ? 0.28 : 0),
+            0,
+            0.45
+          );
+          lidOpening = clamp(asNum(cfgVal(faceTrait, 'lid_opening')) ?? 0.56, 0.42, 0.78);
+          canthalTilt = clamp(asNum(cfgVal(faceTrait, 'canthal_tilt')) ?? 0.12, -0.25, 0.25);
+          report.mapped.push(`@face(orbital_profile=${orbitalProfile})`);
+        } else if (authoredOrbitalProfile) {
+          report.stubbed.push({
+            trait: '@face(orbital_profile)',
+            reason: `profile '${authoredOrbitalProfile}' has no native orbital geometry channel`,
+          });
+        }
       }
       const authoredOcularProfile = asStr(cfgVal(faceTrait, 'ocular_profile', 'eye_profile'))
         ?.toLowerCase()
@@ -409,6 +440,10 @@ export function buildCharacterHostFromComposition(
         ...(faceRadialSegments === undefined ? {} : { radialSegments: faceRadialSegments }),
         ...(faceVerticalSegments === undefined ? {} : { verticalSegments: faceVerticalSegments }),
         ...(faceTearline === undefined ? {} : { tearline: faceTearline }),
+        ...(orbitalProfile === undefined ? {} : { orbitalProfile }),
+        ...(eyeRecess === undefined ? {} : { eyeRecess }),
+        ...(lidOpening === undefined ? {} : { lidOpening }),
+        ...(canthalTilt === undefined ? {} : { canthalTilt }),
         ...(ocularProfile === undefined ? {} : { ocularProfile }),
         ...(irisScale === undefined ? {} : { irisScale }),
         ...(pupilScale === undefined ? {} : { pupilScale }),
@@ -608,6 +643,10 @@ export function buildCharacterHostFromComposition(
     faceRadialSegments,
     faceVerticalSegments,
     faceTearline,
+    orbitalProfile,
+    eyeRecess,
+    lidOpening,
+    canthalTilt,
     ocularProfile,
     irisScale,
     pupilScale,

@@ -19,8 +19,12 @@ export {
   colorForEntity,
   BONE_ORDER,
   JOINT_COUNT,
+  AGENT_AVATAR_ORBITAL_PROFILES,
   type AgentAvatarMeshData,
   type AgentAvatarMeshOptions,
+  type AgentAvatarFaceTopology,
+  type AgentAvatarOrbitalProfile,
+  type AgentAvatarOrbitalGeometryReceipt,
   type AvatarPose,
 } from './AgentAvatarMesh';
 

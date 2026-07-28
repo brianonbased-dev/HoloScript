@@ -220,6 +220,43 @@ describe('buildCharacterHostFromComposition', () => {
     ).toEqual(['sclera', 'sclera', 'iris', 'iris', 'pupil', 'pupil', 'cornea', 'cornea']);
   });
 
+  it('@face maps a recessed-lids orbital profile into operative native geometry', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'FittedEyes',
+          traits: [
+            { name: 'body', config: { height: 1.8, build_scale: 1.02 } },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                tearline: true,
+                orbital_profile: 'recessed_lids_v1',
+                eye_recess: 0.3,
+                lid_opening: 0.54,
+                canthal_tilt: 0.14,
+                ocular_profile: 'layered_ocular_v1',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain('@face(orbital_profile=recessed-lids-v1)');
+    expect(result.face).toMatchObject({
+      topology: 'neutral-anatomical-v2',
+      tearline: true,
+      orbitalProfile: 'recessed-lids-v1',
+      eyeRecess: 0.3,
+      lidOpening: 0.54,
+      canthalTilt: 0.14,
+      ocularProfile: 'layered-ocular-v1',
+    });
+  });
+
   it('@face rejects unimplemented topology names instead of relabeling the legacy cap', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

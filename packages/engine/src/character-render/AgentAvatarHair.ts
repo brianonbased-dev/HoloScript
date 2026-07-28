@@ -20,6 +20,7 @@ import type { SkinnedMeshData } from '../native-render/draw-spec';
 import {
   buildAgentAvatarMesh,
   computeBindWorld,
+  type AgentAvatarMeshData,
   type AgentAvatarMeshOptions,
 } from './AgentAvatarMesh';
 import {
@@ -305,6 +306,8 @@ export function buildAgentAvatarEyes(
     buildScale?: number;
     heightScale?: number;
     faceTopology?: AgentAvatarMeshOptions['faceTopology'];
+    orbitalProfile?: AgentAvatarMeshOptions['orbitalProfile'];
+    eyeRecess?: number;
   } = {}
 ): HairMeshData {
   const bs = o.buildScale ?? 1;
@@ -315,7 +318,9 @@ export function buildAgentAvatarEyes(
   const anatomical = o.faceTopology === 'neutral-anatomical-v2';
   const r = (anatomical ? 0.0145 : 0.02) * bs;
   const eyeY = head.y + 0.12 * bs;
-  const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85);
+  const eyeRecess =
+    o.orbitalProfile === 'recessed-lids-v1' ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
+  const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85) - r * eyeRecess;
   const eyeX = 0.035 * bs;
   const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
 
@@ -381,6 +386,8 @@ export function buildAgentAvatarOcularRegions(
     buildScale?: number;
     heightScale?: number;
     faceTopology?: AgentAvatarMeshOptions['faceTopology'];
+    orbitalProfile?: AgentAvatarMeshOptions['orbitalProfile'];
+    eyeRecess?: number;
     irisScale?: number;
     pupilScale?: number;
   } = {}
@@ -393,7 +400,9 @@ export function buildAgentAvatarOcularRegions(
   const anatomical = o.faceTopology === 'neutral-anatomical-v2';
   const radius = (anatomical ? 0.0145 : 0.02) * bs;
   const eyeY = head.y + 0.12 * bs;
-  const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85);
+  const eyeRecess =
+    o.orbitalProfile === 'recessed-lids-v1' ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
+  const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85) - radius * eyeRecess;
   const eyeX = 0.035 * bs;
   const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
   const irisScale = Math.max(0.34, Math.min(0.62, o.irisScale ?? 0.48));
@@ -578,6 +587,7 @@ function catU32(a: Uint32Array, b: Uint32Array): Uint32Array<ArrayBuffer> {
 export interface CharacterMeshData {
   mesh: SkinnedMeshData;
   ocularProfile: AgentAvatarOcularProfile;
+  orbital: AgentAvatarMeshData['orbital'];
   bodyVertexRange: { vertexStart: number; vertexCount: number };
   hairVertexRange: { vertexStart: number; vertexCount: number };
   eyeVertexRange: { vertexStart: number; vertexCount: number };
@@ -653,6 +663,8 @@ export function buildCharacterMesh(
             buildScale: opts.buildScale,
             heightScale: opts.heightScale,
             faceTopology: opts.faceTopology,
+            orbitalProfile: opts.orbitalProfile,
+            eyeRecess: opts.eyeRecess,
             irisScale: opts.irisScale,
             pupilScale: opts.pupilScale,
           })
@@ -661,6 +673,8 @@ export function buildCharacterMesh(
               buildScale: opts.buildScale,
               heightScale: opts.heightScale,
               faceTopology: opts.faceTopology,
+              orbitalProfile: opts.orbitalProfile,
+              eyeRecess: opts.eyeRecess,
             }),
             uvs: new Float32Array(),
             regionRanges: { sclera: [], iris: [], pupil: [], cornea: [] },
@@ -793,6 +807,7 @@ export function buildCharacterMesh(
   return {
     mesh,
     ocularProfile,
+    orbital: body.orbital,
     bodyVertexRange: { vertexStart: 0, vertexCount: bodyVC },
     hairVertexRange: { vertexStart: bodyVC, vertexCount: hairVC },
     eyeVertexRange: {
