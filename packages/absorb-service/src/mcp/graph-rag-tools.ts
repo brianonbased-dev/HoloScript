@@ -315,11 +315,8 @@ async function hydrateCachedGraphRAGStateFromCodebaseTools(): Promise<void> {
   if (isGraphRAGReady()) return;
 
   try {
-    const { handleCodebaseTool } = await import('./codebase-tools');
-    await handleCodebaseTool('holo_query_codebase', {
-      query: 'stats',
-      queryType: 'stats',
-    });
+    const { ensureCachedGraphRAGStateFromCodebaseTools } = await import('./codebase-tools');
+    await ensureCachedGraphRAGStateFromCodebaseTools();
   } catch (err) {
     console.warn(`[GraphRAG] cached graph hydrate skipped: ${String(err)}`);
   }

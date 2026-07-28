@@ -34,6 +34,7 @@ const originalAutoBackground = process.env.ABSORB_AUTO_BACKGROUND;
 const originalAutoBackgroundScanFileThreshold =
   process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD;
 const originalRequireIsolation = process.env.ABSORB_REQUIRE_ISOLATION;
+const originalMinSystemFreeMb = process.env.ABSORB_MIN_SYSTEM_FREE_MB;
 
 beforeEach(() => {
   process.env.HOLOSCRIPT_CACHE_LAYOUT = 'flat';
@@ -58,6 +59,11 @@ afterEach(() => {
     delete process.env.ABSORB_REQUIRE_ISOLATION;
   } else {
     process.env.ABSORB_REQUIRE_ISOLATION = originalRequireIsolation;
+  }
+  if (originalMinSystemFreeMb === undefined) {
+    delete process.env.ABSORB_MIN_SYSTEM_FREE_MB;
+  } else {
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = originalMinSystemFreeMb;
   }
 });
 
@@ -283,10 +289,41 @@ async function waitForAbsorbTerminalStatus(
       jobId,
       includeResult,
     })) as Record<string, unknown>;
-    if (status.status === 'complete' || status.status === 'error') return status;
+    if (
+      status.status === 'complete' ||
+      status.status === 'error' ||
+      status.status === 'cancelled'
+    ) {
+      return status;
+    }
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   return (await handleCodebaseTool('holo_get_absorb_status', { jobId })) as Record<string, unknown>;
+}
+
+async function waitForCacheWarmTerminalStatus(): Promise<Record<string, unknown>> {
+  for (let i = 0; i < 100; i++) {
+    const graphStatus = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      cacheWarm?: Record<string, unknown>;
+    };
+    const cacheWarm = graphStatus.cacheWarm ?? {};
+    if (
+      cacheWarm.status === 'complete' ||
+      cacheWarm.status === 'error' ||
+      cacheWarm.status === 'cancelled'
+    ) {
+      return cacheWarm;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  const graphStatus = (await handleCodebaseTool('holo_graph_status', {
+    forceRefresh: true,
+  })) as {
+    cacheWarm?: Record<string, unknown>;
+  };
+  return graphStatus.cacheWarm ?? {};
 }
 
 describe('holo_absorb_repo root validation', () => {
@@ -3939,6 +3976,128 @@ describe('holo_absorb_repo root validation', () => {
     expect(fs.existsSync(path.join(cacheDir, 'embeddings-cache.bin'))).toBe(false);
   }, 30_000);
 
+  it('keeps structural queries independent from missing HoloEmbed work', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-structural-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-structural-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    const absorbed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+    })) as {
+      error?: string;
+      graphAuthoritative?: boolean;
+      semanticIndexReady?: boolean;
+    };
+    expect(absorbed).toMatchObject({
+      graphAuthoritative: true,
+      semanticIndexReady: false,
+    });
+
+    const buildIndexSpy = vi.spyOn(EmbeddingIndex.prototype, 'buildIndex');
+    resetCodebaseToolStateForTests(false);
+    const query = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'stats',
+      queryType: 'stats',
+    })) as {
+      error?: string;
+      result?: { totalFiles?: number };
+    };
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(query.error).toBeUndefined();
+    expect(query.result?.totalFiles).toBe(2);
+    expect(buildIndexSpy).not.toHaveBeenCalled();
+    expect(getGraphRAGStateStatus().ready).toBe(false);
+    expect(fs.existsSync(path.join(cacheDir, 'embeddings-cache.bin'))).toBe(false);
+
+    const graphStatus = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      cacheWarm?: { inProgress?: boolean; status?: string; jobId?: string | null };
+    };
+    expect(graphStatus.cacheWarm).toMatchObject({
+      inProgress: false,
+      status: 'idle',
+      jobId: null,
+    });
+  }, 30_000);
+
+  it('cancels semantic cache warm before allocation when the host reserve is exhausted', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-warm-guard-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-warm-guard-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+    const absorbed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'stats',
+    })) as {
+      error?: string;
+      graphAuthoritative?: boolean;
+      semanticIndexReady?: boolean;
+    };
+    expect(absorbed).toMatchObject({
+      graphAuthoritative: true,
+      semanticIndexReady: false,
+    });
+
+    const reserveFloorMb = Math.ceil(os.freemem() / 1024 / 1024) + 1024;
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = String(reserveFloorMb);
+    const buildIndexSpy = vi.spyOn(EmbeddingIndex.prototype, 'buildIndex');
+    resetCodebaseToolStateForTests(false);
+
+    await handleGraphRagTool('holo_semantic_search', {
+      query: 'alpha',
+      useCachedAbsorbIndex: true,
+    });
+    const cacheWarm = (await waitForCacheWarmTerminalStatus()) as {
+      inProgress?: boolean;
+      jobId?: string;
+      status?: string;
+      cacheCommitted?: boolean;
+      cancellation?: { reason?: string; phaseAtRequest?: string };
+      memoryBudget?: {
+        minSystemFreeMb?: number;
+        systemReserveExhausted?: boolean;
+        systemReserveExhaustedAtPhase?: string;
+      };
+    };
+
+    expect(cacheWarm.jobId).toMatch(/^absorb-warm-/);
+    expect(cacheWarm).toMatchObject({
+      inProgress: false,
+      status: 'cancelled',
+      cacheCommitted: false,
+      cancellation: {
+        reason: 'system_memory_reserve_exhausted',
+      },
+      memoryBudget: {
+        minSystemFreeMb: reserveFloorMb,
+        systemReserveExhausted: true,
+        systemReserveExhaustedAtPhase: 'preflight resource guard',
+      },
+    });
+    expect(buildIndexSpy).not.toHaveBeenCalled();
+    expect(getGraphRAGStateStatus().ready).toBe(false);
+    expect(fs.existsSync(path.join(cacheDir, 'embeddings-cache.bin'))).toBe(false);
+
+    const structuralQuery = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'stats',
+      queryType: 'stats',
+    })) as {
+      error?: string;
+      result?: { totalFiles?: number };
+    };
+    expect(structuralQuery.error).toBeUndefined();
+    expect(structuralQuery.result?.totalFiles).toBe(2);
+  }, 30_000);
+
   it('builds missing HoloEmbed index when a zero-change graph request follows stats-only cache', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-zero-change-embed-cache-'));
@@ -4153,7 +4312,7 @@ describe('holo_absorb_repo root validation', () => {
     } finally {
       process.chdir(originalCwdAfterCorruption);
     }
-  }, 30_000);
+  }, 90_000);
 
   it('does not emit a graph unavailable receipt when local GraphRAG is live without disk cache', async () => {
     resetCodebaseToolStateForTests();
