@@ -289,16 +289,21 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
  * head). Emits the same 6-array format as hair; rendered with the refractive-eye material.
  */
 export function buildAgentAvatarEyes(
-  o: { buildScale?: number; heightScale?: number } = {}
+  o: {
+    buildScale?: number;
+    heightScale?: number;
+    faceTopology?: AgentAvatarMeshOptions['faceTopology'];
+  } = {}
 ): HairMeshData {
   const bs = o.buildScale ?? 1;
   const hScale = o.heightScale ?? 1;
   const bind = computeBindWorld();
   const head = getTranslation(bind.get('head')!); // y≈1.51
   const headR = 0.09 * bs;
-  const r = 0.02 * bs;
+  const anatomical = o.faceTopology === 'neutral-anatomical-v2';
+  const r = (anatomical ? 0.0145 : 0.02) * bs;
   const eyeY = head.y + 0.12 * bs;
-  const eyeZ = head.z + headR * 0.85;
+  const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85);
   const eyeX = 0.035 * bs;
   const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
 
@@ -430,6 +435,7 @@ export function buildCharacterMesh(
       : buildAgentAvatarEyes({
           buildScale: opts.buildScale,
           heightScale: opts.heightScale,
+          faceTopology: opts.faceTopology,
         });
   const garment = opts.garmentStyle
     ? buildAgentAvatarGarment({

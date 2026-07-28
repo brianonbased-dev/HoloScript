@@ -95,6 +95,27 @@ describe('hair — procedural geometry (pure data)', () => {
     }
   });
 
+  it('neutral anatomical faces use a smaller embedded ocular surface', () => {
+    const legacy = buildCharacterMesh({ includeHair: false });
+    const anatomical = buildCharacterMesh({
+      includeHair: false,
+      faceTopology: 'neutral-anatomical-v2',
+    });
+    const firstEyeDiameter = (mesh: typeof legacy) => {
+      const start = mesh.eyeVertexRange.vertexStart;
+      const end = start + mesh.eyeVertexRange.vertexCount / 2;
+      let minX = Infinity;
+      let maxX = -Infinity;
+      for (let vertex = start; vertex < end; vertex++) {
+        const x = mesh.mesh.positions[vertex * 3];
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+      }
+      return maxX - minX;
+    };
+    expect(firstEyeDiameter(anatomical)).toBeLessThan(firstEyeDiameter(legacy) * 0.8);
+  });
+
   it('source style profiles are deterministic and materially change native topology', () => {
     const signatures = new Set<string>();
     for (const style of AGENT_AVATAR_HAIR_STYLES) {

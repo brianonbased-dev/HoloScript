@@ -311,37 +311,26 @@ function pushBox(acc: MeshAccum, a: Vec3, b: Vec3, r: number, jointIdx: number):
   }
 }
 
-function pushTriangle(acc: MeshAccum, a: Vec3, b: Vec3, c: Vec3, jointIdx: number): void {
-  const normal = normalize(cross(sub(b, a), sub(c, a)));
-  const base = acc.positions.length / 3;
-  for (const point of [a, b, c]) {
-    acc.positions.push(point.x, point.y, point.z);
-    acc.normals.push(normal.x, normal.y, normal.z);
-    acc.tangents.push(1, 0, 0, 1);
-    acc.jointIndices.push(jointIdx);
-    acc.jointWeights.push(1);
-  }
-  acc.indices.push(base, base + 1, base + 2);
-}
-
 /**
  * Append a thin front-facing anatomical rim. It is geometry, not a painted texture, so eyes
  * and the neutral mouth remain legible in an offline native character bundle.
  */
-function pushFacialRim(
+function pushFacialArc(
   acc: MeshAccum,
   center: Vec3,
   outerRadiusX: number,
   outerRadiusY: number,
   thickness: number,
   segments: number,
+  startAngle: number,
+  endAngle: number,
   jointIdx: number
 ): void {
   const base = acc.positions.length / 3;
   const innerRadiusX = Math.max(0.001, outerRadiusX - thickness);
   const innerRadiusY = Math.max(0.001, outerRadiusY - thickness);
-  for (let segment = 0; segment < segments; segment++) {
-    const angle = (segment / segments) * Math.PI * 2;
+  for (let segment = 0; segment <= segments; segment++) {
+    const angle = startAngle + (segment / segments) * (endAngle - startAngle);
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
     for (const [radiusX, radiusY] of [
@@ -356,12 +345,83 @@ function pushFacialRim(
     }
   }
   for (let segment = 0; segment < segments; segment++) {
-    const next = (segment + 1) % segments;
+    const next = segment + 1;
     const outer = base + segment * 2;
     const inner = outer + 1;
     const nextOuter = base + next * 2;
     const nextInner = nextOuter + 1;
     acc.indices.push(outer, nextOuter, inner, inner, nextOuter, nextInner);
+  }
+}
+
+function pushSmoothEllipsoid(
+  acc: MeshAccum,
+  center: Vec3,
+  radiusX: number,
+  radiusY: number,
+  radiusZ: number,
+  latitudes: number,
+  longitudes: number,
+  jointIdx: number
+): void {
+  const base = acc.positions.length / 3;
+  for (let latitude = 0; latitude <= latitudes; latitude++) {
+    const theta = (latitude / latitudes) * Math.PI;
+    const ring = Math.sin(theta);
+    const y = Math.cos(theta);
+    for (let longitude = 0; longitude <= longitudes; longitude++) {
+      const phi = (longitude / longitudes) * Math.PI * 2;
+      const x = Math.cos(phi) * ring;
+      const z = Math.sin(phi) * ring;
+      const normal = normalize({
+        x: x / radiusX,
+        y: y / radiusY,
+        z: z / radiusZ,
+      });
+      acc.positions.push(center.x + x * radiusX, center.y + y * radiusY, center.z + z * radiusZ);
+      acc.normals.push(normal.x, normal.y, normal.z);
+      acc.tangents.push(1, 0, 0, 1);
+      acc.jointIndices.push(jointIdx);
+      acc.jointWeights.push(1);
+    }
+  }
+  const stride = longitudes + 1;
+  for (let latitude = 0; latitude < latitudes; latitude++) {
+    for (let longitude = 0; longitude < longitudes; longitude++) {
+      const a = base + latitude * stride + longitude;
+      const b = a + stride;
+      acc.indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+  }
+}
+
+function pushNeutralMouthSeam(
+  acc: MeshAccum,
+  center: Vec3,
+  halfWidth: number,
+  bowDepth: number,
+  thickness: number,
+  segments: number,
+  jointIdx: number
+): void {
+  const base = acc.positions.length / 3;
+  for (let segment = 0; segment <= segments; segment++) {
+    const unitX = segment / segments;
+    const x = (unitX * 2 - 1) * halfWidth;
+    const y =
+      bowDepth * (0.4 * Math.cos(unitX * Math.PI * 2) - 0.18 * Math.cos(unitX * Math.PI * 4));
+    for (const edge of [-0.5, 0.5]) {
+      acc.positions.push(center.x + x, center.y + y + thickness * edge, center.z);
+      acc.normals.push(0, 0, 1);
+      acc.tangents.push(1, 0, 0, 1);
+      acc.jointIndices.push(jointIdx);
+      acc.jointWeights.push(1);
+    }
+  }
+  for (let segment = 0; segment < segments; segment++) {
+    const a = base + segment * 2;
+    const b = a + 2;
+    acc.indices.push(a, b, a + 1, a + 1, b, b + 1);
   }
 }
 
@@ -429,63 +489,67 @@ function pushNeutralAnatomicalHead(
   }
 
   const faceZ = center.z + radiusZ * 0.965;
-  const noseTop = {
-    x: center.x,
-    y: center.y + radiusY * 0.34,
-    z: faceZ - radiusZ * 0.04,
-  };
-  const noseLeft = {
-    x: center.x - radiusX * 0.19,
-    y: center.y - radiusY * 0.14,
-    z: faceZ,
-  };
-  const noseRight = {
-    x: center.x + radiusX * 0.19,
-    y: center.y - radiusY * 0.14,
-    z: faceZ,
-  };
-  const noseTip = {
-    x: center.x,
-    y: center.y - radiusY * 0.03,
-    z: faceZ + radiusZ * 0.27,
-  };
-  const noseBase = {
-    x: center.x,
-    y: center.y - radiusY * 0.25,
-    z: faceZ + radiusZ * 0.06,
-  };
-  pushTriangle(acc, noseTop, noseLeft, noseTip, jointIdx);
-  pushTriangle(acc, noseTop, noseTip, noseRight, jointIdx);
-  pushTriangle(acc, noseLeft, noseBase, noseTip, jointIdx);
-  pushTriangle(acc, noseTip, noseBase, noseRight, jointIdx);
+  pushSmoothEllipsoid(
+    acc,
+    {
+      x: center.x,
+      y: center.y - radiusY * 0.03,
+      z: faceZ + radiusZ * 0.12,
+    },
+    radiusX * 0.14,
+    radiusY * 0.28,
+    radiusZ * 0.15,
+    7,
+    10,
+    jointIdx
+  );
 
   if (includeTearline) {
-    const eyeY = headBase.y + 0.12;
-    const eyeZ = headBase.z + radius * 1.085;
-    for (const eyeX of [-0.035, 0.035]) {
-      pushFacialRim(
+    const buildScale = radius / 0.09;
+    const eyeY = headBase.y + 0.12 * buildScale;
+    const eyeZ = headBase.z + radius * 1.045;
+    for (const eyeX of [-0.035 * buildScale, 0.035 * buildScale]) {
+      const eyeCenter = {
+        x: headBase.x + eyeX,
+        y: eyeY,
+        z: eyeZ,
+      };
+      pushFacialArc(
         acc,
-        { x: headBase.x + eyeX, y: eyeY, z: eyeZ },
-        radiusX * 0.31,
-        radiusY * 0.19,
-        radiusX * 0.045,
-        16,
+        eyeCenter,
+        radiusX * 0.235,
+        radiusY * 0.13,
+        radiusX * 0.018,
+        10,
+        0,
+        Math.PI,
+        jointIdx
+      );
+      pushFacialArc(
+        acc,
+        eyeCenter,
+        radiusX * 0.235,
+        radiusY * 0.13,
+        radiusX * 0.012,
+        7,
+        Math.PI * 1.12,
+        Math.PI * 1.88,
         jointIdx
       );
     }
   }
 
-  pushFacialRim(
+  pushNeutralMouthSeam(
     acc,
     {
       x: center.x,
       y: center.y - radiusY * 0.39,
       z: faceZ + radiusZ * 0.035,
     },
-    radiusX * 0.34,
-    radiusY * 0.09,
-    radiusX * 0.035,
-    18,
+    radiusX * 0.3,
+    radiusY * 0.025,
+    radiusX * 0.012,
+    14,
     jointIdx
   );
 }
