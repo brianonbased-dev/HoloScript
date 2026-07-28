@@ -150,14 +150,18 @@ describe('@holoscript/std native source tracer', () => {
       'signed-zero preservation remains unproven'
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain('receipt-proven');
+    expect(packageJson.holoscript.runtimeBoundary).toContain('40 ops and 170 vectors');
     expect(packageJson.holoscript.runtimeBoundary).toContain(
-      '50 vectors, cross-target exact value equality'
+      'direct execution of the shipped math.hsplus and collections.hsplus packaged handlers'
+    );
+    expect(packageJson.holoscript.runtimeBoundary).toContain(
+      '35-function first-order host-ABI binding surface'
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain(
       'immutable fixed-size List3<i32> projection'
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain(
-      'general List, Map, and Set parity remain preview'
+      'higher-order List, Map, and Set operations (function-valued parameters) remain preview'
     );
   });
 

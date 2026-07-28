@@ -1,0 +1,94 @@
+{
+  "schema": "holoscript.std-abi-published-consumer.v0",
+  "generatedAtISO": "2026-07-28T00:23:36.011Z",
+  "verdict": "OK",
+  "localSourceUsed": false,
+  "registry": "https://registry.npmjs.org/",
+  "packages": {
+    "@holoscript/wasm": {
+      "version": "6.1.14",
+      "installedWasmSha256": "sha256:fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca"
+    },
+    "@holoscript/std": {
+      "version": "7.0.11",
+      "installedMathHsplusSha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955",
+      "installedCollectionsHsplusSha256": "sha256:a7447f7f67c9dfd2b7e3be433f7c90436c3a1c749e858d6fd4399e6b1d7af673"
+    }
+  },
+  "evaluatorExport": "evaluate_trait_handler_v6",
+  "checks": [
+    {
+      "id": "published-pure-lerp",
+      "source": "math",
+      "trait": "std_math",
+      "handler": "on_lerp",
+      "args": {
+        "a": 0,
+        "b": 10,
+        "t": 0.5
+      },
+      "expect": 5,
+      "pass": true,
+      "actual": 5
+    },
+    {
+      "id": "published-builtin-vec3-length",
+      "source": "math",
+      "trait": "std_math",
+      "handler": "on_vec3_length",
+      "args": {
+        "v": {
+          "x": 3,
+          "y": 4,
+          "z": 0
+        }
+      },
+      "expect": 5,
+      "pass": true,
+      "actual": 5
+    },
+    {
+      "id": "published-host-clamp",
+      "source": "math",
+      "trait": "std_math",
+      "handler": "on_clamp",
+      "args": {
+        "value": 42,
+        "min": 0,
+        "max": 10
+      },
+      "expect": 10,
+      "pass": true,
+      "actual": 10
+    },
+    {
+      "id": "published-coalesced-range",
+      "source": "collections",
+      "trait": "std_list",
+      "handler": "on_range",
+      "args": {
+        "start": 0,
+        "end": 3,
+        "step": null
+      },
+      "expect": [
+        0,
+        1,
+        2
+      ],
+      "pass": true,
+      "actual": [
+        0,
+        1,
+        2
+      ]
+    }
+  ],
+  "claimBoundary": {
+    "provesPublishedEvaluatorChain": true,
+    "provesPublishedPackagedSourcesExecute": true,
+    "hostBindings": "minimal inline binding mirroring the repo-canonical std-host-binding.mjs; the canonical binding module is repository-tracked and not yet published",
+    "note": "Executed in a fresh temporary consumer with install scripts disabled and no local source paths."
+  },
+  "receiptHash": "sha256:4b53dd06419459e03bc4e504e05bbfa57f6f0fc65f4c040562230a8bc4a8c917"
+}
