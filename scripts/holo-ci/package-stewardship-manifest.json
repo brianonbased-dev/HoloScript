@@ -451,26 +451,28 @@
         "check:npm-v1-release:built",
         "check:fleet-utilities",
         "check:package-consumption:full",
-        "check:registry-cold-start:engine-public-api"
+        "check:registry-cold-start:engine-public-api",
+        "check:renderer-conformance"
       ],
       "validationCommands": [
         "pnpm --filter @holoscript/engine build",
         "pnpm --filter @holoscript/engine test",
         "node scripts/holo-ci/check-package-consumption-matrix.mjs --pack-npm",
         "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/engine@latest --probe engine-runtime-import --json",
-        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/engine@latest --probe engine-public-api --json"
+        "node scripts/holo-ci/check-registry-cold-start.mjs --package @holoscript/engine@latest --probe engine-public-api --json",
+        "node scripts/holo-ci/check-renderer-conformance.mjs"
       ],
       "nextActions": [
         "Keep engine-runtime-import green from a repo-less npm consumer before each engine publish.",
         "Keep engine-public-api green so the published runtime profile contract stays usable without repo sources.",
-        "Add browser and native lifecycle probes before claiming browser appliance or native renderer readiness."
+        "Keep renderer-conformance green (currently mode=structural, 3/9 native-renderer-contract.v1 capabilities implemented); add a real browser-driven WebGPU lifecycle probe (Playwright, packages/engine/package.json already has benchmark:*:webgpu scripts to model it on) to close the remaining gap before claiming browser appliance or native renderer readiness."
       ],
       "caveats": [
         {
           "id": "package-api-not-renderer-lifecycle",
           "scope": "laptop-windows,jetson-orin,vast-linux-gpu",
-          "summary": "@holoscript/engine is fleet-consumed as a package API and runtime library; browser, native renderer, and benchmark health require separate lifecycle receipts.",
-          "overclaimGuard": "Do not claim WebGPU/native renderer readiness from package-consumption, pack checks, or public API canaries alone."
+          "summary": "@holoscript/engine is fleet-consumed as a package API and runtime library. check:renderer-conformance now runs structural (Node, no GPUDevice) conformance against native-renderer-contract.v1, covering 3/9 capabilities; real browser/native GPU-frame renderer and benchmark health still require a separate browser-driven lifecycle receipt.",
+          "overclaimGuard": "Do not claim WebGPU/native renderer readiness from package-consumption, pack checks, public API canaries, or structural renderer-conformance alone -- a real GPU-frame browser probe is still required."
         }
       ]
     },
