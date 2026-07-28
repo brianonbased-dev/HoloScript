@@ -97,6 +97,46 @@ describe('buildCharacterHostFromComposition', () => {
     expect(dark.report.warnings.some((w) => w.includes('style'))).toBe(false);
   });
 
+  it('@hair(groom_profile) maps source controls into derived native geometry evidence', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'ScalpFlow',
+          traits: [
+            { name: 'body', config: { height: 1.78 } },
+            {
+              name: 'hair',
+              config: {
+                style: 'medium_wavy',
+                color: '#39251c',
+                groom_profile: 'scalp_flow_v1',
+                card_width: 0.006,
+                root_lift: 0.002,
+                tip_taper: 0.1,
+                hairline_bias: 0.16,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@hair(groom_profile=scalp-flow-v1,card_width=0.006,root_lift=0.002,' +
+        'tip_taper=0.1,hairline_bias=0.16)'
+    );
+    expect(result.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v1',
+      profile: 'scalp-flow-v1',
+      rootLift: 0.002,
+      tipTaper: 0.1,
+      hairlineBias: 0.16,
+    });
+    expect(result.host?.getGroomGeometryReceipt()).toEqual(result.groom);
+    expect(result.groom!.rootTangentRadialDotP95).toBeLessThan(0.01);
+  });
+
   it('keeps unknown hair styles explicit instead of accepting the default as authored', () => {
     const result = buildCharacterHostFromComposition({
       objects: [
@@ -114,6 +154,38 @@ describe('buildCharacterHostFromComposition', () => {
       trait: '@hair(style)',
       reason: "style 'impossible_cloud' has no native procedural geometry profile",
     });
+  });
+
+  it('keeps unknown groom profiles and orphan controls explicit', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'UnsupportedGroom',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'hair',
+              config: {
+                style: 'short',
+                groom_profile: 'billboard_wig_v9',
+                card_width: 0.003,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.report.mapped.some((entry) => entry.includes('groom_profile='))).toBe(false);
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@hair(groom_profile)',
+      reason: "groom profile 'billboard_wig_v9' has no native geometry implementation",
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@hair(groom_controls)',
+      reason: 'groom controls require a supported @hair(groom_profile)',
+    });
+    expect(result.groom?.profile).toBe('radial-cards-v1');
+    expect(result.groom?.tipTaper).toBe(1);
   });
 
   it('@subsurface_scattering(scatter_color) keeps non-human bodies out of the fixed human preset', () => {

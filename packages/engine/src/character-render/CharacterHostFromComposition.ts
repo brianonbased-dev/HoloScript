@@ -19,7 +19,10 @@ import type { AgentAvatarFaceTopology, AgentAvatarOrbitalProfile } from './Agent
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
 import {
+  resolveAgentAvatarGroomProfile,
   resolveAgentAvatarHairStyle,
+  type AgentAvatarGroomGeometryReceipt,
+  type AgentAvatarGroomProfile,
   type AgentAvatarHairStyle,
   type AgentAvatarOcularProfile,
 } from './AgentAvatarHair';
@@ -100,6 +103,8 @@ export interface CharacterHostFromCompositionResult {
     scleraColor?: number;
     corneaIor?: number;
   };
+  /** Derived native groom geometry evidence when hair is operative. */
+  groom?: AgentAvatarGroomGeometryReceipt;
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
   morph?: NativeMorphReceipt;
   /** Detachable public/story mantle and source refs resolved by the host platform. */
@@ -487,12 +492,19 @@ export function buildCharacterHostFromComposition(
   let melanin: number | undefined;
   let melaninRedness: number | undefined;
   let hairStyle: AgentAvatarHairStyle | undefined;
+  let hairGroomProfile: AgentAvatarGroomProfile | undefined;
+  let hairCardWidth: number | undefined;
+  let hairRootLift: number | undefined;
+  let hairTipTaper: number | undefined;
+  let hairlineBias: number | undefined;
   let authoredHairStyle: string | undefined;
+  let authoredGroomProfile: string | undefined;
   let hairColorMapped = false;
   const hair = traits.get('hair');
   if (hair) {
     const hairColor = asStr(cfgVal(hair, 'color', 'base_color'));
     authoredHairStyle = asStr(cfgVal(hair, 'style'));
+    authoredGroomProfile = asStr(cfgVal(hair, 'groom_profile', 'groomProfile'));
     if (authoredHairStyle) {
       hairStyle = resolveAgentAvatarHairStyle(authoredHairStyle);
       if (!hairStyle) {
@@ -502,6 +514,19 @@ export function buildCharacterHostFromComposition(
         });
       }
     }
+    if (authoredGroomProfile) {
+      hairGroomProfile = resolveAgentAvatarGroomProfile(authoredGroomProfile);
+      if (!hairGroomProfile) {
+        report.stubbed.push({
+          trait: '@hair(groom_profile)',
+          reason: `groom profile '${authoredGroomProfile}' has no native geometry implementation`,
+        });
+      }
+    }
+    hairCardWidth = asNum(cfgVal(hair, 'card_width', 'cardWidth'));
+    hairRootLift = asNum(cfgVal(hair, 'root_lift', 'rootLift'));
+    hairTipTaper = asNum(cfgVal(hair, 'tip_taper', 'tipTaper'));
+    hairlineBias = asNum(cfgVal(hair, 'hairline_bias', 'hairlineBias'));
     if (hairColor && /^#?[0-9a-fA-F]{6}$/.test(hairColor)) {
       const rgb = parseInt(hairColor.replace('#', ''), 16);
       const r = ((rgb >> 16) & 0xff) / 255;
@@ -591,6 +616,25 @@ export function buildCharacterHostFromComposition(
     } else {
       if (hairColorMapped) report.mapped.push('@hair(color)');
       if (hairStyle) report.mapped.push(`@hair(style=${hairStyle})`);
+      if (hairGroomProfile) {
+        report.mapped.push(
+          `@hair(groom_profile=${hairGroomProfile},` +
+            `card_width=${hairCardWidth ?? 'style-default'},` +
+            `root_lift=${hairRootLift ?? 'profile-default'},` +
+            `tip_taper=${hairTipTaper ?? 'profile-default'},` +
+            `hairline_bias=${hairlineBias ?? 'profile-default'})`
+        );
+      } else if (
+        hairCardWidth !== undefined ||
+        hairRootLift !== undefined ||
+        hairTipTaper !== undefined ||
+        hairlineBias !== undefined
+      ) {
+        report.stubbed.push({
+          trait: '@hair(groom_controls)',
+          reason: 'groom controls require a supported @hair(groom_profile)',
+        });
+      }
     }
   }
 
@@ -661,6 +705,11 @@ export function buildCharacterHostFromComposition(
     hairGuides: lod?.hairGuides,
     hairCardsPerGuide: lod?.hairCardsPerGuide,
     hairSegments: lod?.hairSegments,
+    hairGroomProfile,
+    hairCardWidth: hairGroomProfile ? hairCardWidth : undefined,
+    hairRootLift: hairGroomProfile ? hairRootLift : undefined,
+    hairTipTaper: hairGroomProfile ? hairTipTaper : undefined,
+    hairlineBias: hairGroomProfile ? hairlineBias : undefined,
     position,
     garmentStyle,
     garmentColor,
@@ -743,5 +792,19 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  return { ok: true, host, gait, materialColor: color, lod, cloth, face, morph, mantle, report };
+  const groom =
+    hair && includeHair !== false ? (host.getGroomGeometryReceipt() ?? undefined) : undefined;
+  return {
+    ok: true,
+    host,
+    gait,
+    materialColor: color,
+    lod,
+    cloth,
+    face,
+    groom,
+    morph,
+    mantle,
+    report,
+  };
 }

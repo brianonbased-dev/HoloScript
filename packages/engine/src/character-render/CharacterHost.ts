@@ -41,6 +41,8 @@ import {
 } from './AgentAvatarMesh';
 import {
   buildCharacterMesh,
+  type AgentAvatarGroomGeometryReceipt,
+  type AgentAvatarGroomProfile,
   type AgentAvatarHairStyle,
   type AgentAvatarOcularProfile,
   type CharacterMeshData,
@@ -110,6 +112,16 @@ export interface CharacterHostOptions {
   hairCardsPerGuide?: number;
   /** Source-authored points-per-guide budget selected by @lod. */
   hairSegments?: number;
+  /** Source-authored native groom construction algorithm. */
+  hairGroomProfile?: AgentAvatarGroomProfile;
+  /** Source-authored card width in metres. */
+  hairCardWidth?: number;
+  /** Source-authored scalp shell lift in metres. */
+  hairRootLift?: number;
+  /** Source-authored tip/root card-width ratio. */
+  hairTipTaper?: number;
+  /** Source-authored front hairline retraction. */
+  hairlineBias?: number;
   /** Iris colour 0xRRGGBB (default warm brown #4a3520). */
   irisColor?: number;
   /** Native eye construction profile; legacy composite remains the compatibility default. */
@@ -244,6 +256,11 @@ export class CharacterHost {
       guides: opts.hairGuides,
       cardsPerGuide: opts.hairCardsPerGuide,
       segments: opts.hairSegments,
+      groomProfile: opts.hairGroomProfile,
+      cardWidth: opts.hairCardWidth,
+      rootLift: opts.hairRootLift,
+      tipTaper: opts.hairTipTaper,
+      hairlineBias: opts.hairlineBias,
     });
     this.deformationBasePositions = new Float32Array(this.built.mesh.positions);
     this.bindWorld = computeBindWorld();
@@ -394,6 +411,11 @@ export class CharacterHost {
   /** Latest deterministic cloth receipt, or null when the source did not author cloth dynamics. */
   getClothSimulationReceipt(): ClothSimulationReceipt | null {
     return this.lastClothReceipt ? { ...this.lastClothReceipt } : null;
+  }
+
+  /** Derived bind-space evidence for the operative native procedural groom. */
+  getGroomGeometryReceipt(): AgentAvatarGroomGeometryReceipt | null {
+    return this.built.groom ? { ...this.built.groom } : null;
   }
 
   /**

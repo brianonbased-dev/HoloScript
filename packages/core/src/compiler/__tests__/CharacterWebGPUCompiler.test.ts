@@ -149,6 +149,50 @@ describe('CharacterWebGPUCompiler', () => {
     expect(report.mapped.some((entry) => entry.startsWith('@morph(targets='))).toBe(true);
   });
 
+  it('serializes derived evidence for a source-authored sovereign groom', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits = composition.objects[0]!.traits!.map((trait) =>
+      trait.name === 'hair'
+        ? {
+            ...trait,
+            config: {
+              style: 'medium_wavy',
+              color: '#39251c',
+              groom_profile: 'scalp_flow_v1',
+              card_width: 0.006,
+              root_lift: 0.002,
+              tip_taper: 0.1,
+              hairline_bias: 0.16,
+            },
+          }
+        : trait
+    );
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    const groom = bundle.groom as {
+      schemaVersion: string;
+      profile: string;
+      rootTangentRadialDotP95: number;
+      frontalOcclusionVertexCount: number;
+      vertexCount: number;
+      triangleCount: number;
+    };
+    const report = bundle.report as { mapped: string[]; stubbed: unknown[] };
+
+    expect(groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v1',
+      profile: 'scalp-flow-v1',
+    });
+    expect(groom.rootTangentRadialDotP95).toBeLessThan(0.01);
+    expect(groom.vertexCount).toBeGreaterThan(0);
+    expect(groom.triangleCount).toBeGreaterThan(0);
+    expect(groom.frontalOcclusionVertexCount).toBeGreaterThanOrEqual(0);
+    expect(report.mapped.some((entry) => entry.includes('groom_profile=scalp-flow-v1'))).toBe(true);
+    expect(report.stubbed).toEqual([]);
+  });
+
   it('serializes source-authored neutral anatomical facial topology', async () => {
     const composition = characterComp();
     composition.objects[0]!.traits!.push(

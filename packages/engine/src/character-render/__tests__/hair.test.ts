@@ -12,6 +12,7 @@ import {
   AGENT_AVATAR_HAIR_STYLES,
   buildAgentAvatarHair,
   buildCharacterMesh,
+  resolveAgentAvatarGroomProfile,
   resolveAgentAvatarHairStyle,
 } from '../AgentAvatarHair';
 import { CharacterHost } from '../CharacterHost';
@@ -171,6 +172,102 @@ describe('hair — procedural geometry (pure data)', () => {
         }).positions
       )
     ).toEqual(Array.from(lod2.positions));
+  });
+
+  it('keeps the legacy radial-card default exact while scalp-flow is deterministic', () => {
+    const implicitLegacy = buildAgentAvatarHair({
+      style: 'medium_wavy',
+      guides: 48,
+      cardsPerGuide: 1,
+      segments: 5,
+    });
+    const explicitLegacy = buildAgentAvatarHair({
+      style: 'medium_wavy',
+      guides: 48,
+      cardsPerGuide: 1,
+      segments: 5,
+      groomProfile: 'radial-cards-v1',
+    });
+    const scalpFlow = buildAgentAvatarHair({
+      style: 'medium_wavy',
+      guides: 48,
+      cardsPerGuide: 1,
+      segments: 5,
+      groomProfile: 'scalp-flow-v1',
+      cardWidth: 0.006,
+      rootLift: 0.002,
+      tipTaper: 0.1,
+      hairlineBias: 0.16,
+    });
+    const replay = buildAgentAvatarHair({
+      style: 'medium_wavy',
+      guides: 48,
+      cardsPerGuide: 1,
+      segments: 5,
+      groomProfile: 'scalp-flow-v1',
+      cardWidth: 0.006,
+      rootLift: 0.002,
+      tipTaper: 0.1,
+      hairlineBias: 0.16,
+    });
+
+    expect(Array.from(explicitLegacy.positions)).toEqual(Array.from(implicitLegacy.positions));
+    expect(Array.from(explicitLegacy.indices)).toEqual(Array.from(implicitLegacy.indices));
+    expect(Array.from(replay.positions)).toEqual(Array.from(scalpFlow.positions));
+    expect(replay.groom).toEqual(scalpFlow.groom);
+    expect(resolveAgentAvatarGroomProfile('Scalp Flow V1')).toBe('scalp-flow-v1');
+    expect(resolveAgentAvatarGroomProfile('billboard_wig_v9')).toBeUndefined();
+  });
+
+  it('scalp-flow derives tangent, taper, hairline, and topology evidence from emitted geometry', () => {
+    const legacy = buildAgentAvatarHair({
+      style: 'medium_wavy',
+      guides: 72,
+      cardsPerGuide: 1,
+      segments: 5,
+      groomProfile: 'radial-cards-v1',
+      cardWidth: 0.006,
+    });
+    const scalpFlow = buildAgentAvatarHair({
+      style: 'medium_wavy',
+      guides: 72,
+      cardsPerGuide: 1,
+      segments: 5,
+      groomProfile: 'scalp-flow-v1',
+      cardWidth: 0.006,
+      rootLift: 0.002,
+      tipTaper: 0.1,
+      hairlineBias: 0.16,
+    });
+    const distance = (vertexA: number, vertexB: number) =>
+      Math.hypot(
+        scalpFlow.positions[vertexA * 3] - scalpFlow.positions[vertexB * 3],
+        scalpFlow.positions[vertexA * 3 + 1] - scalpFlow.positions[vertexB * 3 + 1],
+        scalpFlow.positions[vertexA * 3 + 2] - scalpFlow.positions[vertexB * 3 + 2]
+      );
+    const segments = 5;
+    const rootWidth = distance(0, 1);
+    const tipWidth = distance((segments - 1) * 2, (segments - 1) * 2 + 1);
+
+    expect(tipWidth / rootWidth).toBeCloseTo(0.1, 4);
+    expect(scalpFlow.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v1',
+      profile: 'scalp-flow-v1',
+      rootLift: 0.002,
+      tipTaper: 0.1,
+      hairlineBias: 0.16,
+      requestedGuideCount: 72,
+      cardCount: scalpFlow.groom!.emittedGuideCount,
+      vertexCount: scalpFlow.vertexCount,
+      triangleCount: scalpFlow.indices.length / 3,
+    });
+    expect(scalpFlow.groom!.rootTangentRadialDotP95).toBeLessThan(0.01);
+    expect(scalpFlow.groom!.rootTangentRadialDotP95).toBeLessThan(
+      legacy.groom!.rootTangentRadialDotP95 * 0.1
+    );
+    expect(scalpFlow.groom!.frontalOcclusionVertexCount).toBeLessThan(
+      legacy.groom!.frontalOcclusionVertexCount
+    );
   });
 });
 
