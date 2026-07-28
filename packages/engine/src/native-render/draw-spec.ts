@@ -207,13 +207,26 @@ export interface SkinSSSMaterialSpec extends MaterialSpec {
   ambient: number;
 }
 
-/** Kajiya-Kay anisotropic hair with melanin→colour (needs the tangent vertex attribute). */
+/** Source-authored hair-card edge treatment. `opaque-v1` preserves the legacy solid-card path. */
+export type HairCoverageProfile = 'opaque-v1' | 'alpha-to-coverage-v1';
+
+/** Kajiya-Kay anisotropic hair with melanin→colour (needs tangent + card-width UV attributes). */
 export interface MarschnerHairMaterialSpec extends MaterialSpec {
   shadingModel: 'marschner-hair';
   melanin: number;
   melaninRedness: number;
   primaryExp: number;
   secondaryExp: number;
+  /** Analytic card-width coverage; alpha-to-coverage requests a multisampled render target. */
+  coverageProfile: HairCoverageProfile;
+  /** Visible half-width of a hair card in normalized edge space (0..1). */
+  strandCoverage: number;
+  /** Width of the analytic edge transition (0.01..0.5). */
+  edgeSoftness: number;
+  /** Blend from normal-based specular to strand-tangent anisotropy (0..1). */
+  anisotropyStrength: number;
+  /** Tangent/normal longitudinal lobe shift (-0.35..0.35). */
+  longitudinalShift: number;
 }
 
 /** Refractive eye: iris/sclera blend + pupil + wet specular catchlight + Fresnel rim. */

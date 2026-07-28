@@ -128,14 +128,19 @@ fn melaninColor(m : f32, red : f32) -> vec3<f32> {
   );
 }
 
-// ── Hair: Kajiya-Kay anisotropic diffuse + dual-lobe highlight using a REAL strand tangent. ──
+// ── Hair: tangent-aware dual-lobe response + analytic card-width coverage. ──
 // Material packing (from fillMaterial 'marschner-hair'): scatterColor = (melanin, redness,
-// primaryExp, secondaryExp); color.a = opacity.
+// primaryExp, secondaryExp); scatterDist = (coverage, edgeSoftness, anisotropyStrength,
+// coverageProfileCode); params.x = longitudinalShift; color.a = opacity.
 @fragment
 fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
-  let T = normalize(in.wT);
+  let N = normalize(in.wN);
+  let shift = clamp(mat.params.x, -0.35, 0.35);
+  let T = normalize(in.wT + N * shift);
+  let TSecondary = normalize(in.wT - N * shift * 0.65);
   let L = normalize(frame.lightDir.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
+  let H = normalize(L + V);
 
   let TdotL = dot(T, L);
   let TdotV = dot(T, V);
@@ -143,19 +148,42 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
   let sinTV = sqrt(max(0.0, 1.0 - TdotV * TdotV));
   let kkDiffuse = sinTL; // Kajiya-Kay diffuse ≈ sin(T,L)
 
-  // Dual-lobe highlight (KK cos-difference term), primary sharp + secondary broad.
-  let lobe = max(0.0, sinTL * sinTV - TdotL * TdotV);
+  // Dual-lobe highlight (KK cos-difference term), shifted longitudinally in opposing directions.
+  let tangentLobe = max(0.0, sinTL * sinTV - TdotL * TdotV);
+  let secondaryTdotL = dot(TSecondary, L);
+  let secondaryTdotV = dot(TSecondary, V);
+  let secondarySinTL = sqrt(max(0.0, 1.0 - secondaryTdotL * secondaryTdotL));
+  let secondarySinTV = sqrt(max(0.0, 1.0 - secondaryTdotV * secondaryTdotV));
+  let secondaryTangentLobe =
+    max(0.0, secondarySinTL * secondarySinTV - secondaryTdotL * secondaryTdotV);
+  let isotropicLobe = max(dot(N, H), 0.0);
+  let anisotropy = clamp(mat.scatterDist.z, 0.0, 1.0);
+  let primaryLobe = mix(isotropicLobe, tangentLobe, anisotropy);
+  let secondaryLobe = mix(isotropicLobe, secondaryTangentLobe, anisotropy);
   let primaryExp = max(mat.scatterColor.z, 1.0);
   let secondaryExp = max(mat.scatterColor.w, 1.0);
-  let specR = pow(lobe, primaryExp);
-  let specTRT = pow(lobe, secondaryExp) * 0.5;
+  let specR = pow(primaryLobe, primaryExp);
+  let specTRT = pow(secondaryLobe, secondaryExp) * 0.5;
+
+  var alpha = mat.color.a;
+  let coverageMode = mat.scatterDist.w > 0.5;
+  let isCard = in.uv.y >= 0.0;
+  if (coverageMode && isCard) {
+    let halfWidth = clamp(mat.scatterDist.x, 0.2, 1.0);
+    let softness = clamp(mat.scatterDist.y, 0.01, 0.5);
+    let edge = abs(in.uv.x * 2.0 - 1.0);
+    alpha *= 1.0 - smoothstep(halfWidth - softness, halfWidth, edge);
+    if (alpha < 0.01) {
+      discard;
+    }
+  }
 
   let base = melaninColor(mat.scatterColor.x, mat.scatterColor.y);
   let rootDarken = mix(0.55, 1.0, in.strandT);
   var col = base * rootDarken * (kkDiffuse * 0.6 + 0.25)
           + vec3<f32>(specR * 0.35)
           + base * specTRT * 0.3;
-  return vec4<f32>(col, mat.color.a);
+  return vec4<f32>(col, alpha);
 }
 
 // ── Eye: legacy composite or one native sclera/iris/pupil/cornea geometry region. ──

@@ -13,10 +13,11 @@ import {
   buildAgentAvatarHair,
   buildCharacterMesh,
   resolveAgentAvatarGroomProfile,
+  resolveAgentAvatarHairCoverageProfile,
   resolveAgentAvatarHairStyle,
 } from '../AgentAvatarHair';
 import { CharacterHost } from '../CharacterHost';
-import { renderCharacter } from '../character-render';
+import { deriveCharacterRenderPipelineReceipt, renderCharacter } from '../character-render';
 import { quatFromAxisAngle } from '../skin-math';
 import { HUMANOID_BONE_NAMES } from '../../character/HumanoidSkeleton';
 import type { PixelGrid } from '../../native-render/gpu-verify';
@@ -298,6 +299,53 @@ describe('hair — procedural geometry (pure data)', () => {
       legacy.groom!.frontalOcclusionVertexCount
     );
   });
+
+  it('emits operative card-width UVs and derives an alpha-to-coverage material receipt', () => {
+    const hair = buildAgentAvatarHair({
+      groomProfile: 'scalp-flow-v1',
+      guides: 24,
+      cardsPerGuide: 1,
+      segments: 4,
+    });
+    expect(hair.uvs?.length).toBe(hair.vertexCount * 2);
+    const firstCard = hair.groom!.scalpCapVertexCount;
+    expect(Array.from(hair.uvs!.slice(firstCard * 2, firstCard * 2 + 4))).toEqual([0, 0, 1, 0]);
+    expect(hair.uvs![1]).toBeLessThan(0); // cap is full-coverage, not card-edge clipped
+
+    const host = new CharacterHost({
+      entityId: 'coverage-receipt',
+      hairGroomProfile: 'scalp-flow-v1',
+      hairCoverageProfile: 'alpha-to-coverage-v1',
+      hairStrandCoverage: 0.74,
+      hairEdgeSoftness: 0.16,
+      hairAnisotropyStrength: 0.86,
+      hairLongitudinalShift: 0.08,
+    });
+    expect(host.getGroomGeometryReceipt()?.material).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-hair-material.v1',
+      shadingModel: 'marschner-hair',
+      coverageProfile: 'alpha-to-coverage-v1',
+      strandCoverage: 0.74,
+      edgeSoftness: 0.16,
+      anisotropyStrength: 0.86,
+      longitudinalShift: 0.08,
+      primaryExponent: 48,
+      secondaryExponent: 12,
+      tangentAttribute: 'strand-flow',
+      cardUvAttribute: 'card-width',
+      alphaToCoverageRequested: true,
+    });
+    expect(deriveCharacterRenderPipelineReceipt(host.getDrawSpec())).toEqual({
+      schemaVersion: 'holoscript.character-render-pipeline.v1',
+      sampleCount: 4,
+      alphaToCoverageEnabled: true,
+      alphaToCoverageGroupCount: 1,
+    });
+    expect(resolveAgentAvatarHairCoverageProfile('alpha_to_coverage_v1')).toBe(
+      'alpha-to-coverage-v1'
+    );
+    expect(resolveAgentAvatarHairCoverageProfile('painted_fuzz_v9')).toBeUndefined();
+  });
 });
 
 describe('hair — rendered (native WebGPU)', () => {
@@ -321,5 +369,27 @@ describe('hair — rendered (native WebGPU)', () => {
     host.setBoneRotation('head', quatFromAxisAngle(0, 0, 1, 0.5)); // tilt head
     const b = await renderCharacter(testDevice!, host.getDrawSpec(), { size: 128 });
     expect(pixelDiff(a, b)).toBeGreaterThan(20); // head + hair tilt together
+  });
+
+  itGpu('source-authored card coverage changes real multisampled GPU pixels', async () => {
+    const opaqueHost = new CharacterHost({
+      entityId: 'opaque-hair',
+      faceTopology: 'neutral-anatomical-v2',
+      hairGroomProfile: 'scalp-flow-v1',
+      hairCoverageProfile: 'opaque-v1',
+    });
+    const coveredHost = new CharacterHost({
+      entityId: 'covered-hair',
+      faceTopology: 'neutral-anatomical-v2',
+      hairGroomProfile: 'scalp-flow-v1',
+      hairCoverageProfile: 'alpha-to-coverage-v1',
+      hairStrandCoverage: 0.68,
+      hairEdgeSoftness: 0.18,
+      hairAnisotropyStrength: 0.88,
+      hairLongitudinalShift: 0.1,
+    });
+    const opaque = await renderCharacter(testDevice!, opaqueHost.getDrawSpec(), { size: 128 });
+    const covered = await renderCharacter(testDevice!, coveredHost.getDrawSpec(), { size: 128 });
+    expect(pixelDiff(opaque, covered)).toBeGreaterThan(20);
   });
 });

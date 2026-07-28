@@ -15,11 +15,13 @@
  */
 
 import { CharacterHost } from './CharacterHost';
+import type { HairCoverageProfile } from '../native-render/draw-spec';
 import type { AgentAvatarFaceTopology, AgentAvatarOrbitalProfile } from './AgentAvatarMesh';
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
 import {
   resolveAgentAvatarGroomProfile,
+  resolveAgentAvatarHairCoverageProfile,
   resolveAgentAvatarHairStyle,
   type AgentAvatarGroomGeometryReceipt,
   type AgentAvatarGroomProfile,
@@ -497,14 +499,21 @@ export function buildCharacterHostFromComposition(
   let hairRootLift: number | undefined;
   let hairTipTaper: number | undefined;
   let hairlineBias: number | undefined;
+  let hairCoverageProfile: HairCoverageProfile | undefined;
+  let hairStrandCoverage: number | undefined;
+  let hairEdgeSoftness: number | undefined;
+  let hairAnisotropyStrength: number | undefined;
+  let hairLongitudinalShift: number | undefined;
   let authoredHairStyle: string | undefined;
   let authoredGroomProfile: string | undefined;
+  let authoredCoverageProfile: string | undefined;
   let hairColorMapped = false;
   const hair = traits.get('hair');
   if (hair) {
     const hairColor = asStr(cfgVal(hair, 'color', 'base_color'));
     authoredHairStyle = asStr(cfgVal(hair, 'style'));
     authoredGroomProfile = asStr(cfgVal(hair, 'groom_profile', 'groomProfile'));
+    authoredCoverageProfile = asStr(cfgVal(hair, 'coverage_profile', 'coverageProfile'));
     if (authoredHairStyle) {
       hairStyle = resolveAgentAvatarHairStyle(authoredHairStyle);
       if (!hairStyle) {
@@ -527,6 +536,19 @@ export function buildCharacterHostFromComposition(
     hairRootLift = asNum(cfgVal(hair, 'root_lift', 'rootLift'));
     hairTipTaper = asNum(cfgVal(hair, 'tip_taper', 'tipTaper'));
     hairlineBias = asNum(cfgVal(hair, 'hairline_bias', 'hairlineBias'));
+    if (authoredCoverageProfile) {
+      hairCoverageProfile = resolveAgentAvatarHairCoverageProfile(authoredCoverageProfile);
+      if (!hairCoverageProfile) {
+        report.stubbed.push({
+          trait: '@hair(coverage_profile)',
+          reason: `coverage profile '${authoredCoverageProfile}' has no native material implementation`,
+        });
+      }
+    }
+    hairStrandCoverage = asNum(cfgVal(hair, 'strand_coverage', 'strandCoverage'));
+    hairEdgeSoftness = asNum(cfgVal(hair, 'edge_softness', 'edgeSoftness'));
+    hairAnisotropyStrength = asNum(cfgVal(hair, 'anisotropy_strength', 'anisotropyStrength'));
+    hairLongitudinalShift = asNum(cfgVal(hair, 'longitudinal_shift', 'longitudinalShift'));
     if (hairColor && /^#?[0-9a-fA-F]{6}$/.test(hairColor)) {
       const rgb = parseInt(hairColor.replace('#', ''), 16);
       const r = ((rgb >> 16) & 0xff) / 255;
@@ -635,6 +657,25 @@ export function buildCharacterHostFromComposition(
           reason: 'groom controls require a supported @hair(groom_profile)',
         });
       }
+      if (hairCoverageProfile) {
+        report.mapped.push(
+          `@hair(coverage_profile=${hairCoverageProfile},` +
+            `strand_coverage=${hairStrandCoverage ?? 'profile-default'},` +
+            `edge_softness=${hairEdgeSoftness ?? 'profile-default'},` +
+            `anisotropy_strength=${hairAnisotropyStrength ?? 'profile-default'},` +
+            `longitudinal_shift=${hairLongitudinalShift ?? 'profile-default'})`
+        );
+      } else if (
+        hairStrandCoverage !== undefined ||
+        hairEdgeSoftness !== undefined ||
+        hairAnisotropyStrength !== undefined ||
+        hairLongitudinalShift !== undefined
+      ) {
+        report.stubbed.push({
+          trait: '@hair(material_controls)',
+          reason: 'material controls require a supported @hair(coverage_profile)',
+        });
+      }
     }
   }
 
@@ -710,6 +751,11 @@ export function buildCharacterHostFromComposition(
     hairRootLift: hairGroomProfile ? hairRootLift : undefined,
     hairTipTaper: hairGroomProfile ? hairTipTaper : undefined,
     hairlineBias: hairGroomProfile ? hairlineBias : undefined,
+    hairCoverageProfile,
+    hairStrandCoverage: hairCoverageProfile ? hairStrandCoverage : undefined,
+    hairEdgeSoftness: hairCoverageProfile ? hairEdgeSoftness : undefined,
+    hairAnisotropyStrength: hairCoverageProfile ? hairAnisotropyStrength : undefined,
+    hairLongitudinalShift: hairCoverageProfile ? hairLongitudinalShift : undefined,
     position,
     garmentStyle,
     garmentColor,

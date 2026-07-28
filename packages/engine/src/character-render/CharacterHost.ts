@@ -43,6 +43,7 @@ import {
   buildCharacterMesh,
   type AgentAvatarGroomGeometryReceipt,
   type AgentAvatarGroomProfile,
+  type AgentAvatarHairMaterialReceipt,
   type AgentAvatarHairStyle,
   type AgentAvatarOcularProfile,
   type CharacterMeshData,
@@ -122,6 +123,16 @@ export interface CharacterHostOptions {
   hairTipTaper?: number;
   /** Source-authored front hairline retraction. */
   hairlineBias?: number;
+  /** Source-authored analytic hair-card coverage profile. */
+  hairCoverageProfile?: MarschnerHairMaterialSpec['coverageProfile'];
+  /** Visible normalized card half-width (0.2..1). */
+  hairStrandCoverage?: number;
+  /** Analytic card edge transition (0.01..0.5). */
+  hairEdgeSoftness?: number;
+  /** Strand-tangent contribution to the highlight response (0..1). */
+  hairAnisotropyStrength?: number;
+  /** Longitudinal tangent/normal lobe shift (-0.35..0.35). */
+  hairLongitudinalShift?: number;
   /** Iris colour 0xRRGGBB (default warm brown #4a3520). */
   irisColor?: number;
   /** Native eye construction profile; legacy composite remains the compatibility default. */
@@ -179,6 +190,11 @@ const HAIR_BASE: Omit<MarschnerHairMaterialSpec, 'melanin' | 'melaninRedness'> =
   opacity: 1,
   primaryExp: 48,
   secondaryExp: 12,
+  coverageProfile: 'opaque-v1',
+  strandCoverage: 1,
+  edgeSoftness: 0.08,
+  anisotropyStrength: 1,
+  longitudinalShift: 0,
 };
 
 /** Refractive eye preset; iris colour set per-host. */
@@ -286,6 +302,20 @@ export class CharacterHost {
       ...HAIR_BASE,
       melanin: opts.melanin ?? 0.7,
       melaninRedness: opts.melaninRedness ?? 0.2,
+      coverageProfile: opts.hairCoverageProfile ?? HAIR_BASE.coverageProfile,
+      strandCoverage: Math.max(
+        0.2,
+        Math.min(1, opts.hairStrandCoverage ?? HAIR_BASE.strandCoverage)
+      ),
+      edgeSoftness: Math.max(0.01, Math.min(0.5, opts.hairEdgeSoftness ?? HAIR_BASE.edgeSoftness)),
+      anisotropyStrength: Math.max(
+        0,
+        Math.min(1, opts.hairAnisotropyStrength ?? HAIR_BASE.anisotropyStrength)
+      ),
+      longitudinalShift: Math.max(
+        -0.35,
+        Math.min(0.35, opts.hairLongitudinalShift ?? HAIR_BASE.longitudinalShift)
+      ),
     };
     this.eyeMaterial = { ...EYE_BASE, color: opts.irisColor ?? 0x4a3520 };
     this.scleraMaterial = {
@@ -415,7 +445,30 @@ export class CharacterHost {
 
   /** Derived bind-space evidence for the operative native procedural groom. */
   getGroomGeometryReceipt(): AgentAvatarGroomGeometryReceipt | null {
-    return this.built.groom ? { ...this.built.groom } : null;
+    return this.built.groom
+      ? {
+          ...this.built.groom,
+          material: this.getHairMaterialReceipt(),
+        }
+      : null;
+  }
+
+  /** Source-derived native hair response joined to geometry and compiler receipts. */
+  getHairMaterialReceipt(): AgentAvatarHairMaterialReceipt {
+    return {
+      schemaVersion: 'holoscript.agent-avatar-hair-material.v1',
+      shadingModel: 'marschner-hair',
+      coverageProfile: this.hairMaterial.coverageProfile,
+      strandCoverage: this.hairMaterial.strandCoverage,
+      edgeSoftness: this.hairMaterial.edgeSoftness,
+      anisotropyStrength: this.hairMaterial.anisotropyStrength,
+      longitudinalShift: this.hairMaterial.longitudinalShift,
+      primaryExponent: this.hairMaterial.primaryExp,
+      secondaryExponent: this.hairMaterial.secondaryExp,
+      tangentAttribute: 'strand-flow',
+      cardUvAttribute: 'card-width',
+      alphaToCoverageRequested: this.hairMaterial.coverageProfile === 'alpha-to-coverage-v1',
+    };
   }
 
   /**

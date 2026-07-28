@@ -115,6 +115,11 @@ describe('buildCharacterHostFromComposition', () => {
                 root_lift: 0.002,
                 tip_taper: 0.1,
                 hairline_bias: 0.16,
+                coverage_profile: 'alpha_to_coverage_v1',
+                strand_coverage: 0.74,
+                edge_softness: 0.16,
+                anisotropy_strength: 0.86,
+                longitudinal_shift: 0.08,
               },
             },
           ],
@@ -127,6 +132,10 @@ describe('buildCharacterHostFromComposition', () => {
       '@hair(groom_profile=scalp-flow-v1,card_width=0.006,root_lift=0.002,' +
         'tip_taper=0.1,hairline_bias=0.16)'
     );
+    expect(result.report.mapped).toContain(
+      '@hair(coverage_profile=alpha-to-coverage-v1,strand_coverage=0.74,' +
+        'edge_softness=0.16,anisotropy_strength=0.86,longitudinal_shift=0.08)'
+    );
     expect(result.groom).toMatchObject({
       schemaVersion: 'holoscript.agent-avatar-groom-geometry.v1',
       profile: 'scalp-flow-v1',
@@ -134,6 +143,17 @@ describe('buildCharacterHostFromComposition', () => {
       rootLift: 0.002,
       tipTaper: 0.1,
       hairlineBias: 0.16,
+      material: {
+        schemaVersion: 'holoscript.agent-avatar-hair-material.v1',
+        coverageProfile: 'alpha-to-coverage-v1',
+        strandCoverage: 0.74,
+        edgeSoftness: 0.16,
+        anisotropyStrength: 0.86,
+        longitudinalShift: 0.08,
+        tangentAttribute: 'strand-flow',
+        cardUvAttribute: 'card-width',
+        alphaToCoverageRequested: true,
+      },
     });
     expect(result.host?.getGroomGeometryReceipt()).toEqual(result.groom);
     expect(result.groom!.rootTangentRadialDotP95).toBeLessThan(0.01);
@@ -171,6 +191,8 @@ describe('buildCharacterHostFromComposition', () => {
                 style: 'short',
                 groom_profile: 'billboard_wig_v9',
                 card_width: 0.003,
+                coverage_profile: 'painted_fuzz_v9',
+                edge_softness: 0.2,
               },
             },
           ],
@@ -185,6 +207,14 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.report.stubbed).toContainEqual({
       trait: '@hair(groom_controls)',
       reason: 'groom controls require a supported @hair(groom_profile)',
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@hair(coverage_profile)',
+      reason: "coverage profile 'painted_fuzz_v9' has no native material implementation",
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@hair(material_controls)',
+      reason: 'material controls require a supported @hair(coverage_profile)',
     });
     expect(result.groom?.profile).toBe('radial-cards-v1');
     expect(result.groom?.tipTaper).toBe(1);

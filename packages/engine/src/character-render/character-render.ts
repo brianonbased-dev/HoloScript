@@ -113,6 +113,11 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
     out[5] = m.melaninRedness;
     out[6] = m.primaryExp;
     out[7] = m.secondaryExp;
+    out[8] = m.strandCoverage;
+    out[9] = m.edgeSoftness;
+    out[10] = m.anisotropyStrength;
+    out[11] = m.coverageProfile === 'alpha-to-coverage-v1' ? 1 : 0;
+    out[12] = m.longitudinalShift;
   } else if (m.shadingModel === 'refractive-eye') {
     out[4] = m.ior; // scatterColor.x = ior (Fresnel rim)
     out[5] =
@@ -161,6 +166,32 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
   return out;
 }
 
+export interface CharacterRenderPipelineReceipt {
+  schemaVersion: 'holoscript.character-render-pipeline.v1';
+  sampleCount: 1 | 4;
+  alphaToCoverageEnabled: boolean;
+  alphaToCoverageGroupCount: number;
+}
+
+/** Pure-data pipeline derivation used by both tests and the live GPU renderer. */
+export function deriveCharacterRenderPipelineReceipt(
+  spec: CharacterDrawSpec
+): CharacterRenderPipelineReceipt {
+  const alphaToCoverageGroupCount = (spec.materialGroups ?? []).filter(
+    (group) =>
+      group.material.shadingModel === 'marschner-hair' &&
+      group.material.coverageProfile === 'alpha-to-coverage-v1' &&
+      !group.transparent
+  ).length;
+  const alphaToCoverageEnabled = alphaToCoverageGroupCount > 0;
+  return {
+    schemaVersion: 'holoscript.character-render-pipeline.v1',
+    sampleCount: alphaToCoverageEnabled ? 4 : 1,
+    alphaToCoverageEnabled,
+    alphaToCoverageGroupCount,
+  };
+}
+
 /**
  * Render a skinned character to an offscreen rgba8unorm texture and read the pixels back.
  * One depth-tested render pass; GPU-skinned via the joint palette; one draw per material group
@@ -179,6 +210,8 @@ export async function renderCharacter(
   const camera = opts.cameraPos ?? [0, 0.9 * hs, 6];
   const format: GPUTextureFormat = 'rgba8unorm';
   const { mesh } = spec;
+  const pipelineReceipt = deriveCharacterRenderPipelineReceipt(spec);
+  const sampleCount = pipelineReceipt.sampleCount;
 
   const module = device.createShaderModule({ code: skinSkinningWGSL });
 
@@ -205,8 +238,17 @@ export async function renderCharacter(
   ];
 
   const pipelineCache = new Map<string, GPURenderPipeline>();
-  const getPipeline = (model: ShadingModel, transparent: boolean): GPURenderPipeline => {
-    const key = `${model}:${transparent ? 1 : 0}`;
+  const getPipeline = (
+    material: CharacterMaterialSpec,
+    transparent: boolean
+  ): GPURenderPipeline => {
+    const model = material.shadingModel;
+    const alphaToCoverageEnabled =
+      sampleCount > 1 &&
+      !transparent &&
+      material.shadingModel === 'marschner-hair' &&
+      material.coverageProfile === 'alpha-to-coverage-v1';
+    const key = `${model}:${transparent ? 1 : 0}:${sampleCount}:${alphaToCoverageEnabled ? 1 : 0}`;
     let p = pipelineCache.get(key);
     if (!p) {
       p = device.createRenderPipeline({
@@ -234,6 +276,10 @@ export async function renderCharacter(
           format: 'depth24plus',
           depthWriteEnabled: !transparent,
           depthCompare: 'less',
+        },
+        multisample: {
+          count: sampleCount,
+          alphaToCoverageEnabled,
         },
       });
       pipelineCache.set(key, p);
@@ -335,8 +381,18 @@ export async function renderCharacter(
     format,
     usage: TEX_RENDER_ATTACHMENT | TEX_COPY_SRC,
   });
+  const multisampleTexture =
+    sampleCount > 1
+      ? device.createTexture({
+          size: [size, size],
+          sampleCount,
+          format,
+          usage: TEX_RENDER_ATTACHMENT,
+        })
+      : null;
   const depth = device.createTexture({
     size: [size, size],
+    sampleCount,
     format: 'depth24plus',
     usage: TEX_RENDER_ATTACHMENT,
   });
@@ -345,7 +401,8 @@ export async function renderCharacter(
   const pass = encoder.beginRenderPass({
     colorAttachments: [
       {
-        view: texture.createView(),
+        view: (multisampleTexture ?? texture).createView(),
+        ...(multisampleTexture ? { resolveTarget: texture.createView() } : {}),
         clearValue: { r: clear[0], g: clear[1], b: clear[2], a: clear[3] },
         loadOp: 'clear',
         storeOp: 'store',
@@ -370,7 +427,7 @@ export async function renderCharacter(
 
   const matBufs: GPUBuffer[] = [];
   for (const g of ordered) {
-    const pipe = getPipeline(g.material.shadingModel, !!g.transparent);
+    const pipe = getPipeline(g.material, !!g.transparent);
     const matData = packCharacterMaterial(g.material);
     const matBuf = device.createBuffer({
       size: matData.byteLength,
@@ -408,6 +465,7 @@ export async function renderCharacter(
 
   // Cleanup.
   readback.destroy();
+  multisampleTexture?.destroy();
   texture.destroy();
   depth.destroy();
   posBuf.destroy();

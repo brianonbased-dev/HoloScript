@@ -163,6 +163,11 @@ describe('CharacterWebGPUCompiler', () => {
               root_lift: 0.002,
               tip_taper: 0.1,
               hairline_bias: 0.16,
+              coverage_profile: 'alpha_to_coverage_v1',
+              strand_coverage: 0.74,
+              edge_softness: 0.16,
+              anisotropy_strength: 0.86,
+              longitudinal_shift: 0.08,
             },
           }
         : trait
@@ -178,6 +183,15 @@ describe('CharacterWebGPUCompiler', () => {
       frontalOcclusionVertexCount: number;
       vertexCount: number;
       triangleCount: number;
+      material: {
+        schemaVersion: string;
+        coverageProfile: string;
+        strandCoverage: number;
+        edgeSoftness: number;
+        anisotropyStrength: number;
+        longitudinalShift: number;
+        alphaToCoverageRequested: boolean;
+      };
     };
     const report = bundle.report as { mapped: string[]; stubbed: unknown[] };
 
@@ -185,6 +199,15 @@ describe('CharacterWebGPUCompiler', () => {
       schemaVersion: 'holoscript.agent-avatar-groom-geometry.v1',
       profile: 'scalp-flow-v1',
       scalpSurface: 'legacy-sphere',
+      material: {
+        schemaVersion: 'holoscript.agent-avatar-hair-material.v1',
+        coverageProfile: 'alpha-to-coverage-v1',
+        strandCoverage: 0.74,
+        edgeSoftness: 0.16,
+        anisotropyStrength: 0.86,
+        longitudinalShift: 0.08,
+        alphaToCoverageRequested: true,
+      },
     });
     expect(groom.rootTangentRadialDotP95).toBeLessThan(0.01);
     expect(groom.vertexCount).toBeGreaterThan(0);

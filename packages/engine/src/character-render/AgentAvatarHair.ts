@@ -16,7 +16,7 @@
  */
 
 import { HUMANOID_BONE_NAMES } from '../character/HumanoidSkeleton';
-import type { SkinnedMeshData } from '../native-render/draw-spec';
+import type { HairCoverageProfile, SkinnedMeshData } from '../native-render/draw-spec';
 import {
   buildAgentAvatarMesh,
   computeBindWorld,
@@ -37,6 +37,8 @@ export interface HairMeshData {
   normals: Float32Array<ArrayBuffer>;
   /** 4 floats/vertex: xyz strand-flow tangent + w strandT (0 root → 1 tip). */
   tangents: Float32Array<ArrayBuffer>;
+  /** 2 floats/vertex. Hair cards use u=0/1 across width; scalp-cap v stays negative. */
+  uvs?: Float32Array<ArrayBuffer>;
   indices: Uint32Array<ArrayBuffer>;
   jointIndices: Uint32Array<ArrayBuffer>; // all = head palette index
   jointWeights: Float32Array<ArrayBuffer>; // all = 1.0
@@ -71,6 +73,26 @@ export const AGENT_AVATAR_GROOM_PROFILES = ['radial-cards-v1', 'scalp-flow-v1'] 
 
 export type AgentAvatarGroomProfile = (typeof AGENT_AVATAR_GROOM_PROFILES)[number];
 
+export const AGENT_AVATAR_HAIR_COVERAGE_PROFILES = [
+  'opaque-v1',
+  'alpha-to-coverage-v1',
+] as const satisfies readonly HairCoverageProfile[];
+
+export interface AgentAvatarHairMaterialReceipt {
+  schemaVersion: 'holoscript.agent-avatar-hair-material.v1';
+  shadingModel: 'marschner-hair';
+  coverageProfile: HairCoverageProfile;
+  strandCoverage: number;
+  edgeSoftness: number;
+  anisotropyStrength: number;
+  longitudinalShift: number;
+  primaryExponent: number;
+  secondaryExponent: number;
+  tangentAttribute: 'strand-flow';
+  cardUvAttribute: 'card-width';
+  alphaToCoverageRequested: boolean;
+}
+
 export interface AgentAvatarGroomGeometryReceipt {
   schemaVersion: 'holoscript.agent-avatar-groom-geometry.v1';
   profile: AgentAvatarGroomProfile;
@@ -89,6 +111,8 @@ export interface AgentAvatarGroomGeometryReceipt {
   rootTangentRadialDotP95: number;
   /** Hair vertices inside a deterministic upper-face prism in bind space. */
   frontalOcclusionVertexCount: number;
+  /** Source-derived native shading/coverage contract joined by CharacterHost. */
+  material?: AgentAvatarHairMaterialReceipt;
 }
 
 interface HairStyleProfile {
@@ -188,6 +212,14 @@ const GROOM_PROFILE_ALIASES: Readonly<Record<string, AgentAvatarGroomProfile>> =
   scalp_flow: 'scalp-flow-v1',
 };
 
+const HAIR_COVERAGE_PROFILE_ALIASES: Readonly<Record<string, HairCoverageProfile>> = {
+  opaque_v1: 'opaque-v1',
+  opaque: 'opaque-v1',
+  alpha_to_coverage_v1: 'alpha-to-coverage-v1',
+  alpha_to_coverage: 'alpha-to-coverage-v1',
+  a2c: 'alpha-to-coverage-v1',
+};
+
 /** Resolve author-facing aliases without silently accepting an unknown geometry style. */
 export function resolveAgentAvatarHairStyle(style: string): AgentAvatarHairStyle | undefined {
   return HAIR_STYLE_ALIASES[
@@ -203,6 +235,18 @@ export function resolveAgentAvatarGroomProfile(
   profile: string
 ): AgentAvatarGroomProfile | undefined {
   return GROOM_PROFILE_ALIASES[
+    profile
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, '_')
+  ];
+}
+
+/** Resolve source spellings without silently accepting an unknown coverage implementation. */
+export function resolveAgentAvatarHairCoverageProfile(
+  profile: string
+): HairCoverageProfile | undefined {
+  return HAIR_COVERAGE_PROFILE_ALIASES[
     profile
       .trim()
       .toLowerCase()
@@ -300,6 +344,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const positions: number[] = [];
   const normals: number[] = [];
   const tangents: number[] = [];
+  const uvs: number[] = [];
   const indices: number[] = [];
   const ji: number[] = [];
   const jw: number[] = [];
@@ -309,10 +354,18 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   let scalpCapVertexCount = 0;
   let scalpCapTriangleCount = 0;
 
-  const pushHairVertex = (position: Vec3, normal: Vec3, tangent: Vec3, strandT: number): void => {
+  const pushHairVertex = (
+    position: Vec3,
+    normal: Vec3,
+    tangent: Vec3,
+    strandT: number,
+    uvX = 0.5,
+    uvY = strandT
+  ): void => {
     positions.push(position.x, position.y, position.z);
     normals.push(normal.x, normal.y, normal.z);
     tangents.push(tangent.x, tangent.y, tangent.z, strandT);
+    uvs.push(uvX, uvY);
     ji.push(HEAD_INDEX);
     jw.push(1);
     const rel = sub(position, head);
@@ -331,7 +384,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     const rings = 7;
     const capLift = rootLift * 0.45;
     const topFlow = v(0, 0, -1);
-    pushHairVertex(scalpPoint(v(0, 1, 0), capLift), v(0, 1, 0), topFlow, 0);
+    pushHairVertex(scalpPoint(v(0, 1, 0), capLift), v(0, 1, 0), topFlow, 0, 0.5, -0.001);
     scalpCapVertexCount++;
     for (let ring = 1; ring <= rings; ring++) {
       const ringT = ring / rings;
@@ -359,7 +412,14 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
         const desired = v(profile.sweepX * 0.45, -0.32, -1 + profile.sweepZ);
         const projected = sub(desired, scl(normal, dot(desired, normal)));
         const tangent = len(projected) > 1e-6 ? nrm(projected) : topFlow;
-        pushHairVertex(scalpPoint(dir, capLift), normal, tangent, ringT);
+        pushHairVertex(
+          scalpPoint(dir, capLift),
+          normal,
+          tangent,
+          ringT,
+          segment / radialSegments,
+          -ringT
+        );
         scalpCapVertexCount++;
       }
     }
@@ -453,7 +513,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
         const off = scl(right, cardW * widthScale * 0.5);
         for (const s of [-1, 1]) {
           const vp = add(p, scl(off, s));
-          pushHairVertex(vp, faceN, tan, strandT);
+          pushHairVertex(vp, faceN, tan, strandT, s < 0 ? 0 : 1, strandT);
         }
         if (i < segs - 1) {
           const b = vbase + i * 2;
@@ -471,6 +531,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     positions: pos,
     normals: new Float32Array(normals),
     tangents: new Float32Array(tangents),
+    uvs: new Float32Array(uvs),
     indices: new Uint32Array(indices),
     jointIndices: new Uint32Array(ji),
     jointWeights: new Float32Array(jw),
@@ -944,7 +1005,7 @@ export function buildCharacterMesh(
       catF32(
         catF32(
           catF32(
-            catF32(zeroUv(bodyVC), zeroUv(hairVC)),
+            catF32(zeroUv(bodyVC), hair.uvs?.length === hairVC * 2 ? hair.uvs : zeroUv(hairVC)),
             eyes.uvs.length === eyes.vertexCount * 2 ? eyes.uvs : zeroUv(eyes.vertexCount)
           ),
           garment.cloth.uvs
