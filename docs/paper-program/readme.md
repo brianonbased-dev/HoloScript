@@ -45,13 +45,13 @@ substrate lets them prove, measure, generate, or coordinate.
 
 The reason hidden gems can exist here is ownership across layers:
 
-| Layer             | HoloScript/HoloLand owns                                   | Paper value                                              |
-| ----------------- | ---------------------------------------------------------- | -------------------------------------------------------- |
-| Semantic truth    | `.holo`, `.hs`, `.hsplus`, traits, units, constraints      | Claims have precise machine-readable scope               |
-| Execution truth   | runtime, solvers, SimulationContract, compiler targets     | Results can be rerun and checked                         |
+| Layer             | HoloScript/HoloLand owns                                   | Paper value                                                                       |
+| ----------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Semantic truth    | `.holo`, `.hs`, `.hsplus`, traits, units, constraints      | Claims have precise machine-readable scope                                        |
+| Execution truth   | runtime, solvers, SimulationContract, compiler targets     | Results can be rerun and checked                                                  |
 | Interaction truth | Studio, Brittney, HoloLand worlds, agent loops             | Candidate interventions can become reproducible inputs when captured and replayed |
-| Evidence truth    | CAEL traces, receipts, anchors, evidence envelopes         | Claims can carry scoped provenance instead of prose-only support |
-| Learning truth    | trace corpora, SESL, trait inference, motion/UI generators | Verified behavior becomes training data                  |
+| Evidence truth    | CAEL traces, receipts, anchors, evidence envelopes         | Claims can carry scoped provenance instead of prose-only support                  |
+| Learning truth    | trace corpora, SESL, trait inference, motion/UI generators | Verified behavior becomes training data                                           |
 
 That stack is intended to do two things a normal research stack struggles to
 do, once each claim's execution and evidence gates are closed:

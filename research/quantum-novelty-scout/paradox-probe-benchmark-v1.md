@@ -97,12 +97,12 @@ Payload SHA-256:
 
 Lower QUBO objective is better:
 
-| Method | Selected probe IDs | Objective | Runtime |
-|---|---|---:|---:|
-| Exact enumeration | `QP-PP001-01`, `QP-PP001-04`, `QP-PP003-01`, `QP-PP003-02` | -215.1983333334 | 0.0393 s |
-| Greedy | same as exact | -215.1983333334 | receipt-bound |
+| Method                | Selected probe IDs                                         |       Objective |       Runtime |
+| --------------------- | ---------------------------------------------------------- | --------------: | ------------: |
+| Exact enumeration     | `QP-PP001-01`, `QP-PP001-04`, `QP-PP003-01`, `QP-PP003-02` | -215.1983333334 |      0.0393 s |
+| Greedy                | same as exact                                              | -215.1983333334 | receipt-bound |
 | Budget-matched random | `QP-PP001-01`, `QP-PP001-05`, `QP-PP003-02`, `QP-PP003-03` | -215.0333333334 | receipt-bound |
-| Aer QAOA | `QP-PP001-02`, `QP-PP001-05`, `QP-PP003-01`, `QP-PP003-02` | -214.8583333334 | 0.5011 s |
+| Aer QAOA              | `QP-PP001-02`, `QP-PP001-05`, `QP-PP003-01`, `QP-PP003-02` | -214.8583333334 |      0.5011 s |
 
 Exact and greedy recommend:
 

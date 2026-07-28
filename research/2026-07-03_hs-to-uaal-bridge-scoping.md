@@ -8,7 +8,7 @@
 ## Context (recap, verified still accurate)
 
 - `packages/uaal` is real and alive: **49/49 tests pass** (`pnpm --filter @holoscript/uaal
-  test`, re-run 2026-07-03, 3 test files, 464ms).
+test`, re-run 2026-07-03, 3 test files, 464ms).
 - A working bridge from `.holo` composition AST → UAAL bytecode already exists —
   `packages/core/src/compiler/UaalBehaviorCompiler.ts`, wired to `holo compile --target uaal`
   (docs/spec/spec-vs-reality-gap.md G3/G4, both marked shipped).
@@ -79,7 +79,7 @@ address. This is a real, unresolved VM-design gap, not a bridge-side detail.
 ## Q2 — Does `.hs`'s parser support self-referential/mutually-recursive calls with correct scoping?
 
 **Yes, by construction — but only because there is no resolution phase at all, at any level.**
-Verified against `packages/compiler-wasm/src/parser.rs` (2,676 lines; note this is *smaller*
+Verified against `packages/compiler-wasm/src/parser.rs` (2,676 lines; note this is _smaller_
 than the 2,976 lines the prior pass recorded — the crate has been refactored/shrunk since) and
 `ast.rs` (786 lines).
 
@@ -100,7 +100,7 @@ than the 2,976 lines the prior pass recorded — the crate has been refactored/s
   crate.** Grepped the whole crate (case-insensitive) for `symbol_table`/`SymbolTable`/`scope`/
   `resolve`/`defined_functions` — zero real hits (one unrelated doc-comment "scope note").
   `FunctionNode` itself carries no recursion metadata or self-reference flag.
-- Consequence: `A` calling `A`, or `A` calling `B` calling `A`, parses through the *identical*
+- Consequence: `A` calling `A`, or `A` calling `B` calling `A`, parses through the _identical_
   `CallExpression` code path as any other call — a builtin, an undeclared name, a
   forward-declared function. The grammar is single-pass recursive-descent with zero
   declaration-order enforcement, so recursion isn't specially permitted, it's simply never
@@ -117,7 +117,7 @@ than the 2,976 lines the prior pass recorded — the crate has been refactored/s
 
 **Conclusion:** "parses a function that happens to call itself" and "supports recursion with
 correct scoping" collapse to the same thing here, because scoping/resolution doesn't exist yet
-at the parser level for *any* call, recursive or not. The open risk isn't in the parser; it's
+at the parser level for _any_ call, recursive or not. The open risk isn't in the parser; it's
 that **whatever consumes the AST next (a hypothetical UAAL lowering pass) must build symbol
 resolution from scratch**, since nothing upstream does it.
 
@@ -158,7 +158,7 @@ shape; no un-confirmed guess required here.
 
 This is a precondition for a `.hsplus`-sourced UAAL bridge but is orthogonal to the `.hs`
 question above (`.hs` is the imperative-logic grammar in `compiler-wasm`; `.hsplus` is the
-trait/brain format whose composition-level lowering already has a *separate*, still-open gap).
+trait/brain format whose composition-level lowering already has a _separate_, still-open gap).
 Not investigated further here — out of scope for this task, flagged as a dependency only.
 
 ## What this means for a future implementation task (not this one)
@@ -175,8 +175,8 @@ buildable slice, not a vibe (F.076 frame):
    - (b) Compile-time recursion flattening/inlining in the emitter (bounded-depth unrolling or
      an explicit iterative rewrite), avoiding any VM change. Lower risk, but caps recursion
      depth and doesn't generalize to unbounded/mutual recursion.
-   A real decision between (a) and (b) is a prerequisite design call, not an implementation
-   detail — recommend a short premortem/critic pass on both before either is started.
+     A real decision between (a) and (b) is a prerequisite design call, not an implementation
+     detail — recommend a short premortem/critic pass on both before either is started.
 2. **Bridge-side: symbol resolution built fresh.** Since neither the `.hs` parser nor any
    existing UAAL compiler resolves call targets today, a `.hs → UAAL` lowering pass must build
    its own symbol table (function name → bytecode offset or index) as new code — this doesn't
@@ -191,6 +191,7 @@ reuse for loop bodies inside recursive functions.
 ## Done-when (per board task contract)
 
 Verification evidence for this scoping pass:
+
 - `pnpm --filter @holoscript/uaal test` → 49/49 pass, re-run live 2026-07-03 (not stale).
 - Direct code citations for every claim above (`opcodes.ts`, `vm.ts`, `parser.rs`, `ast.rs`,
   `lib.rs`, `UaalBehaviorCompiler.ts`, `spec-vs-reality-gap.md`) — no speculation, all grep/read

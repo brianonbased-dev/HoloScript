@@ -35,12 +35,12 @@ interface. It does not terminate real processes.
 
 ## Registry planning measurements
 
-| Synthetic connections | Median | p95 | p99 |
-| ---: | ---: | ---: | ---: |
-| 64 | 0.379 ms | 0.804 ms | 1.432 ms |
-| 256 | 1.227 ms | 1.791 ms | 2.653 ms |
-| 1,024 | 5.024 ms | 6.610 ms | 9.066 ms |
-| 4,096 | 21.309 ms | 26.516 ms | 29.801 ms |
+| Synthetic connections |    Median |       p95 |       p99 |
+| --------------------: | --------: | --------: | --------: |
+|                    64 |  0.379 ms |  0.804 ms |  1.432 ms |
+|                   256 |  1.227 ms |  1.791 ms |  2.653 ms |
+|                 1,024 |  5.024 ms |  6.610 ms |  9.066 ms |
+|                 4,096 | 21.309 ms | 26.516 ms | 29.801 ms |
 
 An immediate same-host pre-index spot baseline at commit `db1fe584c` measured
 94.087 ms median and 103.814 ms p95 for 4,096 connections over five trials.

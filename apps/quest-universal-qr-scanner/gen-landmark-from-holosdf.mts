@@ -42,4 +42,6 @@ const outDir = join(here, 'android-mr', 'app', 'src', 'main', 'assets', 'models'
 mkdirSync(outDir, { recursive: true });
 const outPath = join(outDir, `${outName}.glb`);
 writeFileSync(outPath, Buffer.from(glb));
-console.log(`gen-landmark-from-holosdf: ${outName}.glb  tris=${tris}  ${glb.byteLength} bytes -> ${outPath}`);
+console.log(
+  `gen-landmark-from-holosdf: ${outName}.glb  tris=${tris}  ${glb.byteLength} bytes -> ${outPath}`
+);

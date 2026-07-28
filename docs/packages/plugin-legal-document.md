@@ -23,17 +23,17 @@ import {
 
 ## Package Surface
 
-| Surface                         | Purpose                                      |
-| ------------------------------- | -------------------------------------------- |
-| `contract_draft`                | Contract generation and clause drafting      |
-| `e_signature`                   | Electronic, wet, and hybrid signature blocks |
-| `case_management`               | Legal matter and case status behavior        |
-| `programmable_law`              | Rule-driven legal workflow behavior          |
-| `signature_block`               | Compiler-native signer block metadata        |
-| `audit_trail`                   | Immutable contract action history            |
-| `validateSpatialLegalContract`  | Validates legal document payloads            |
-| `parseSpatialLegalContract`     | Parses validated spatial contract payloads   |
-| `legalDocumentPlugin`           | Bundled metadata, handlers, and validators   |
+| Surface                        | Purpose                                      |
+| ------------------------------ | -------------------------------------------- |
+| `contract_draft`               | Contract generation and clause drafting      |
+| `e_signature`                  | Electronic, wet, and hybrid signature blocks |
+| `case_management`              | Legal matter and case status behavior        |
+| `programmable_law`             | Rule-driven legal workflow behavior          |
+| `signature_block`              | Compiler-native signer block metadata        |
+| `audit_trail`                  | Immutable contract action history            |
+| `validateSpatialLegalContract` | Validates legal document payloads            |
+| `parseSpatialLegalContract`    | Parses validated spatial contract payloads   |
+| `legalDocumentPlugin`          | Bundled metadata, handlers, and validators   |
 
 ## Packaging Note
 

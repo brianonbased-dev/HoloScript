@@ -39,10 +39,10 @@ measurement semantics are genuinely implemented.
 
 ## Model contract
 
-| Variant | Substantive variables | Ancillas | Encoded qubits | Interaction model |
-|---|---:|---:|---:|---|
-| Pyramid-9 `pairwise` | 9 | 0 | 9 | base portfolio QUBO plus same-face, aligned-cross-face, and other-cross-face pair terms |
-| Pyramid-12 `volume_quadratized` | 9 | 3 | 12 | Pyramid-9 plus three aligned cubic terms, exactly reduced with Rosenberg product ancillas |
+| Variant                         | Substantive variables | Ancillas | Encoded qubits | Interaction model                                                                         |
+| ------------------------------- | --------------------: | -------: | -------------: | ----------------------------------------------------------------------------------------- |
+| Pyramid-9 `pairwise`            |                     9 |        0 |              9 | base portfolio QUBO plus same-face, aligned-cross-face, and other-cross-face pair terms   |
+| Pyramid-12 `volume_quadratized` |                     9 |        3 |             12 | Pyramid-9 plus three aligned cubic terms, exactly reduced with Rosenberg product ancillas |
 
 The three faces are `observability`, `falsification`, and `proof-scope`, with
 three candidates per face. The target portfolio cardinality is three. Structural
@@ -71,21 +71,21 @@ baseline, not a claim that all trials are statistically independent.
 
 ## Benchmark results
 
-| Metric | Pyramid-9 | Pyramid-12 |
-|---|---:|---:|
-| Semantic configuration space | 512 | 512 |
-| Encoded configuration space | 512 | 4,096 |
-| QAOA sampled objective | -125.9666666667 | -124.0641666667 |
-| Exact objective | -126.2066666667 | -126.9566666667 |
-| QAOA optimality gap | 0.2400000000 | 2.8925000000 |
-| QAOA runtime | 0.1373 s | 0.6712 s |
-| Semantic exact runtime | 0.0040 s | 0.0100 s |
-| QAOA beat greedy | no | no |
-| QAOA beat budget-matched random | no | no |
-| QAOA met cardinality 3 | yes | yes |
-| QAOA met one-per-face constraint | no | no |
-| Sampled ancillas feasible | n/a | no (`001` sampled, `000` required) |
-| Hardware gate | `NO_GO` | `NO_GO` |
+| Metric                           |       Pyramid-9 |                         Pyramid-12 |
+| -------------------------------- | --------------: | ---------------------------------: |
+| Semantic configuration space     |             512 |                                512 |
+| Encoded configuration space      |             512 |                              4,096 |
+| QAOA sampled objective           | -125.9666666667 |                    -124.0641666667 |
+| Exact objective                  | -126.2066666667 |                    -126.9566666667 |
+| QAOA optimality gap              |    0.2400000000 |                       2.8925000000 |
+| QAOA runtime                     |        0.1373 s |                           0.6712 s |
+| Semantic exact runtime           |        0.0040 s |                           0.0100 s |
+| QAOA beat greedy                 |              no |                                 no |
+| QAOA beat budget-matched random  |              no |                                 no |
+| QAOA met cardinality 3           |             yes |                                yes |
+| QAOA met one-per-face constraint |              no |                                 no |
+| Sampled ancillas feasible        |             n/a | no (`001` sampled, `000` required) |
+| Hardware gate                    |         `NO_GO` |                            `NO_GO` |
 
 Pyramid-9 sampled the same portfolio as its greedy baseline:
 `QP-PP001-01`, `QP-PP003-01`, and `QP-PP003-02`. That set contains no
@@ -104,14 +104,14 @@ against spending IBM hardware time on the present instance.
 The Pyramid-12 verifier independently enumerated all 512 semantic assignments
 and all 4,096 encoded assignments:
 
-| Certificate field | Result |
-|---|---:|
-| Maximum minimized-objective error | `5.6843418860808015e-14` |
-| Minimum infeasible-ancilla gap | `0.49999999999994316` |
-| Every minimizing ancilla equals its product | true |
-| Expanded optimum projects to semantic optimum | true |
-| Semantic optimum | `010010010` |
-| Expanded optimum | `010010010010` |
+| Certificate field                             |                   Result |
+| --------------------------------------------- | -----------------------: |
+| Maximum minimized-objective error             | `5.6843418860808015e-14` |
+| Minimum infeasible-ancilla gap                |    `0.49999999999994316` |
+| Every minimizing ancilla equals its product   |                     true |
+| Expanded optimum projects to semantic optimum |                     true |
+| Semantic optimum                              |              `010010010` |
+| Expanded optimum                              |           `010010010010` |
 
 This establishes equivalence of the declared cubic objective and its 12-bit
 quadratic encoding within the verifier tolerance. It does not establish that the

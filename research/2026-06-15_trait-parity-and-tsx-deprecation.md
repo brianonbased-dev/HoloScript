@@ -15,19 +15,19 @@ the board tasks that follow from it.
 Two findings, one conclusion.
 
 1. **AAA MMO readiness ≈ 4/10.** HoloLand + HoloScript is a genuine, well-engineered VR
-   *creation platform* with a real language runtime, but it is far from a AAA MMO. The dominant
+   _creation platform_ with a real language runtime, but it is far from a AAA MMO. The dominant
    pattern across every pillar is a gap between what the roadmaps claim ("Phase 2 complete, 681
    multiplayer tests") and what is actually wired and deployed. "AAA" (fidelity) and "MMO"
    (server-authoritative scale) are the two specific axes where it is weakest.
 
-2. **The `.holo → .tsx` (R3F) compiler is redundant *and* poison.** It is a second
+2. **The `.holo → .tsx` (R3F) compiler is redundant _and_ poison.** It is a second
    implementation of "interpret a composition into a renderable scene" (the first being the
    native runtime executor), and — because no agent family is trained on HoloScript — it is an
-   *escape hatch* that pulls agents out of the native substrate and into TypeScript/React, where
+   _escape hatch_ that pulls agents out of the native substrate and into TypeScript/React, where
    they then debug and maintain the generated `.tsx`. The native-HoloScript-on-mobile/web/VR goal
    requires a single data-driven runtime path; the `.tsx` codegen path actively works against it.
 
-**Conclusion / sequencing:** *Complete the native runtime, then delete the `.tsx` codegen.* The
+**Conclusion / sequencing:** _Complete the native runtime, then delete the `.tsx` codegen._ The
 work is one backlog viewed from two angles — closing the ~50 behavioral/render trait handlers
 the native runtime is missing **is** the work that makes the R3F compiler safe to retire. Deleting
 the compiler before parity breaks the render surface; closing parity first lets the compiler
@@ -41,13 +41,13 @@ Evidence gathered by direct source reading across `/HoloScript` and `/Hololand` 
 endpoint `mcp.holoscript.net` was unreachable from the research sandbox — likely network policy
 — so all findings are from source, not live tools).
 
-| Pillar | Score | Verdict |
-|---|---|---|
-| Language runtime / engine | 4/10 | Parser, game loop, physics, event system are REAL; ~80–93% of traits are *declarations* not behavior; no pathfinding; no MMO-scale instancing in the loop |
-| Networking / multiplayer | 5/10 | Real delta-compressed state sync + WS/WebRTC transports; **no server authority**, interest-management exists-but-never-called, voice not networked, zero load testing |
-| Rendering / client | 3.5/10 | Solid Three.js/R3F + WebXR web client w/ production VR frame-budget system; browser-WebGL with a **12–20× polygon gap vs. AAA**, no ray tracing/GI, manual asset pipeline |
-| Backend / persistence / scale | 3/10 | Real Postgres schema + tRPC API (50+ endpoints) + auth; **no running API server runtime**, Redis not wired, no API autoscaling, no payment processor, client-side-only anti-cheat |
-| Content / gameplay | 4/10 | ~111 `.holo` files but **2 static zones**, 0 fully-playable; quests/inventory/combat exist as polished *examples*, not wired into worlds |
+| Pillar                        | Score  | Verdict                                                                                                                                                                           |
+| ----------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language runtime / engine     | 4/10   | Parser, game loop, physics, event system are REAL; ~80–93% of traits are _declarations_ not behavior; no pathfinding; no MMO-scale instancing in the loop                         |
+| Networking / multiplayer      | 5/10   | Real delta-compressed state sync + WS/WebRTC transports; **no server authority**, interest-management exists-but-never-called, voice not networked, zero load testing             |
+| Rendering / client            | 3.5/10 | Solid Three.js/R3F + WebXR web client w/ production VR frame-budget system; browser-WebGL with a **12–20× polygon gap vs. AAA**, no ray tracing/GI, manual asset pipeline         |
+| Backend / persistence / scale | 3/10   | Real Postgres schema + tRPC API (50+ endpoints) + auth; **no running API server runtime**, Redis not wired, no API autoscaling, no payment processor, client-side-only anti-cheat |
+| Content / gameplay            | 4/10   | ~111 `.holo` files but **2 static zones**, 0 fully-playable; quests/inventory/combat exist as polished _examples_, not wired into worlds                                          |
 
 ### 2.1 What is genuinely real (do not discount)
 
@@ -89,10 +89,10 @@ This is a **social-VR creation platform with AAA ambitions** — category-compar
 Rec Room / Roblox UGC model, not a Destiny/WoW AAA MMO. Realistic reachable targets:
 
 - **Now:** single-player VR + small-group (10–50) social.
-- **~1 quarter of focused backend work:** ~100–300 concurrent-per-instance "small MMO" at *web
-  fidelity*.
+- **~1 quarter of focused backend work:** ~100–300 concurrent-per-instance "small MMO" at _web
+  fidelity_.
 - **AAA fidelity at MMO scale:** requires either retargeting the runtime to a native renderer
-  (WebGPU/native, *not* a React/.tsx intermediary) or a multi-year build — not an incremental step.
+  (WebGPU/native, _not_ a React/.tsx intermediary) or a multi-year build — not an incremental step.
 
 ---
 
@@ -103,7 +103,7 @@ Rec Room / Roblox UGC model, not a Destiny/WoW AAA MMO. Realistic reachable targ
 1. **AOT path:** `.holo → R3FCompiler → @generated .tsx → React Three Fiber → Three.js`
    (`packages/core/src/compiler/R3FCompiler.ts`, ~2,000 lines).
 2. **Runtime path:** `.holo → parser → AST → holo-composition-executor → Three.js scene at
-   runtime` (`packages/core/src/runtime/holo-composition-executor.ts`).
+runtime` (`packages/core/src/runtime/holo-composition-executor.ts`).
 
 Both lower traits, materials, and transforms into renderable objects — in two places. That is a
 duplication-of-logic surface where drift bugs live.
@@ -111,12 +111,12 @@ duplication-of-logic surface where drift bugs live.
 ### 3.2 The poison mechanism (why "untrained on HoloScript" is the crux)
 
 No agent family (Claude, Codex, Grok, Gemini) has meaningful HoloScript in its training corpus,
-but all have *enormous* corpora of TypeScript/React. A compiler that emits `.tsx` therefore makes
+but all have _enormous_ corpora of TypeScript/React. A compiler that emits `.tsx` therefore makes
 the agent's competence gradient point **out** of HoloScript and into React: the agent drops down to
 debug the generated `.tsx`, and from then on the generated language is the de-facto source. The
 codegen path **trains agents to leave HoloScript.** This is the same instinct behind the existing
 render-surface freeze (`scripts/holo-ci/check-render-surface-native.mjs`) — but the freeze stops
-hand-written `.tsx` while the `.tsx` *compiler* keeps generating the surface the freeze exists to
+hand-written `.tsx` while the `.tsx` _compiler_ keeps generating the surface the freeze exists to
 burn down. Gating the output while blessing a generator for it is half a policy.
 
 A compiler poisons the agent loop through one or both of:
@@ -132,28 +132,28 @@ A compiler poisons the agent loop through one or both of:
 - **Q1.** Target a general-purpose language an agent can fluently hand-write? (TS/JS/C#/Python/
   Swift/GDScript/C++) → escape-hatch risk.
 - **Q2.** Output debugged / round-tripped by agents, or fire-and-forget? → if debugged, poison is
-  *active*.
+  _active_.
 - **Q3.** Overlaps the native runtime as "what runs the product"? → redundancy.
-- **Q4.** Target a data/interchange *format*, not a language? (URDF/USD/glTF/DTDL/OpenXR/WGSL-as-
+- **Q4.** Target a data/interchange _format_, not a language? (URDF/USD/glTF/DTDL/OpenXR/WGSL-as-
   artifact) → low escape-hatch.
 
 **Poison = (Q1 & Q2) or Q3. Safe ≈ Q4 and not Q3.**
 
 ### 3.4 Preliminary compiler triage (PARTIAL — ~12 of 54 named; full inventory pending)
 
-| Tier | Compilers | Action |
-|---|---|---|
-| Apex poison — kill (runtime-redundant + top training gravity, web JS/TS) | `R3FCompiler`/`.tsx`, `Native2DCompiler`, `BabylonCompiler`, `PlayCanvasCompiler`, raw Three emitters | Retire into the native runtime (the §4 backlog) |
-| Escape-hatch but legitimate one-way *export* — quarantine | `UnityCompiler` (C#), `UnrealCompiler` (C++/BP), `GodotCompiler` (GDScript), `VisionOSCompiler` (Swift) | Keep as fire-and-forget export; no round-trip; agents never debug output; fenced from the inner loop |
-| Dead / POC — kill | `QuantumCircuitCompiler`, `Vector2DCompiler`, `PhoneSleeveVRCompiler`, `VRChatCompiler` | Delete |
-| Safe — keep (interchange formats) | `WASMCompiler`, `URDF`/`SDF`, `DTDL`/`WoT`, `USD`, `glTF`, `OpenXR`, `A2A`, `SCM` | Keep |
+| Tier                                                                     | Compilers                                                                                               | Action                                                                                               |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Apex poison — kill (runtime-redundant + top training gravity, web JS/TS) | `R3FCompiler`/`.tsx`, `Native2DCompiler`, `BabylonCompiler`, `PlayCanvasCompiler`, raw Three emitters   | Retire into the native runtime (the §4 backlog)                                                      |
+| Escape-hatch but legitimate one-way _export_ — quarantine                | `UnityCompiler` (C#), `UnrealCompiler` (C++/BP), `GodotCompiler` (GDScript), `VisionOSCompiler` (Swift) | Keep as fire-and-forget export; no round-trip; agents never debug output; fenced from the inner loop |
+| Dead / POC — kill                                                        | `QuantumCircuitCompiler`, `Vector2DCompiler`, `PhoneSleeveVRCompiler`, `VRChatCompiler`                 | Delete                                                                                               |
+| Safe — keep (interchange formats)                                        | `WASMCompiler`, `URDF`/`SDF`, `DTDL`/`WoT`, `USD`, `glTF`, `OpenXR`, `A2A`, `SCM`                       | Keep                                                                                                 |
 
-> **Sharp distinction:** `WebGPUCompiler`/WGSL is **not** poison if it is the *internal lowering*
+> **Sharp distinction:** `WebGPUCompiler`/WGSL is **not** poison if it is the _internal lowering_
 > the native runtime emits to drive the GPU — that is the correct low-level target. It becomes
 > poison only if WGSL is treated as hand-edited source. Same code path, opposite verdict by intent.
 
 > **Systemic note:** this is family-wide governance, not a `.tsx` bug. Per `CLAUDE.md`, the fluid
-> families (Codex: "ship without hedging") are *most* likely to reflexively emit familiar
+> families (Codex: "ship without hedging") are _most_ likely to reflexively emit familiar
 > target-language code. The fix is half "delete redundant compilers" and half "fence every
 > escape-hatch compiler out of the agent inner loop" — treat engine exports like a `.pdf` export:
 > a terminal artifact, never a working surface.
@@ -175,26 +175,26 @@ codegen deletable.
 - **~2,153** declared-only vocabulary (constants only, neither path) across 132 trait-constant
   groups (`packages/core/src/traits/constants/`).
 
-Counting note: this enumerates **2,316 distinct trait *names*** vs. the earlier "~730 trait
-*files*" figure — different units, same conclusion, sharper: **~93% of the trait vocabulary is
+Counting note: this enumerates **2,316 distinct trait _names_** vs. the earlier "~730 trait
+_files_" figure — different units, same conclusion, sharper: **~93% of the trait vocabulary is
 declaration-only.** Confidence ≈ 92%; the main caveat is runtime name-normalization (underscores
 stripped), so a small number of "poison" entries may already be covered under a normalized name.
 
-**Inverse finding (matters):** **38 native handlers exist that R3F does *not* emit** (`teleport`,
+**Inverse finding (matters):** **38 native handlers exist that R3F does _not_ emit** (`teleport`,
 `weather`, `daynight`, `lod`, `haptic`, `handtracking`, `stat`/`luck`/`encounter`/`droptable`,
 `emotion`, `memory`, `goaloriented`, `joint`, `rigidbody`, `snappable`, `breakable`, `character`,
 `stackable`, `rotatable`, `mirror`, `particlesystem`, `uipanel`, …). Deleting the `.tsx` path loses
-**nothing** on these — the native runtime is already the *more complete* path for gameplay traits.
+**nothing** on these — the native runtime is already the _more complete_ path for gameplay traits.
 
 ### 4.2 The 79 triaged (it is really ~50 real blockers + ~12 no-ops)
 
-| Tier | What a native runtime must do | ~Count | Examples | Real blocker? |
-|---|---|---|---|---|
-| 1 — Behavioral logic | A handler that acts each tick/event | ~17 | `ai_companion`, `ai_npc_brain`, `llm_agent`, `crowd_sim`, `gpu_physics`, `gpu_particle`, `deformable_terrain`, `soft_body_pro`, `chain`, `string`, `compute`, `follow`, `orbit`, `object_tracking`, `sensor`, `digital_twin` | **Yes — top priority** |
-| 2 — Render / post-FX passes | Map to a WebGPU/Three render pass | ~16 | `bloom`, `god_rays`, `volumetric_clouds`, `volumetric_video`, `gaussian_splat`, `nerf`, `point_cloud`, `photogrammetry`, `shadow`, `web_surface`, `scene_reconstruction` | **Yes** |
-| 3 — AR/XR sensing | WebXR / native sensor bridge | ~11 | `plane_detection`, `mesh_detection`, `persistent_anchor`, `shared_anchor`, `geospatial`, `light_estimation`, `occlusion`, `co_located`, `shareplay` | **Yes (XR surfaces)** |
-| 4 — Spatial audio family | Web Audio / spatializer handlers | ~7 | `positional`, `ambisonics`, `hrtf`, `audio_occlusion`, `audio_portal`, `spatial_voice`, `head_tracked_audio` | **Yes** (`spatial_audio` itself is already parity-OK) |
-| 5 — Passive / metadata | Likely **no handler** — declarative/policy/compile-time | ~12 | `material`, `alt_text`, `accessible`, `high_contrast`, `motion_reduced`, `moderation`, `anti_grief`, `token_gated`, `data_binding`, `attach`, `world_state`, `shared_world` | **No / verify** |
+| Tier                        | What a native runtime must do                           | ~Count | Examples                                                                                                                                                                                                                     | Real blocker?                                         |
+| --------------------------- | ------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| 1 — Behavioral logic        | A handler that acts each tick/event                     | ~17    | `ai_companion`, `ai_npc_brain`, `llm_agent`, `crowd_sim`, `gpu_physics`, `gpu_particle`, `deformable_terrain`, `soft_body_pro`, `chain`, `string`, `compute`, `follow`, `orbit`, `object_tracking`, `sensor`, `digital_twin` | **Yes — top priority**                                |
+| 2 — Render / post-FX passes | Map to a WebGPU/Three render pass                       | ~16    | `bloom`, `god_rays`, `volumetric_clouds`, `volumetric_video`, `gaussian_splat`, `nerf`, `point_cloud`, `photogrammetry`, `shadow`, `web_surface`, `scene_reconstruction`                                                     | **Yes**                                               |
+| 3 — AR/XR sensing           | WebXR / native sensor bridge                            | ~11    | `plane_detection`, `mesh_detection`, `persistent_anchor`, `shared_anchor`, `geospatial`, `light_estimation`, `occlusion`, `co_located`, `shareplay`                                                                          | **Yes (XR surfaces)**                                 |
+| 4 — Spatial audio family    | Web Audio / spatializer handlers                        | ~7     | `positional`, `ambisonics`, `hrtf`, `audio_occlusion`, `audio_portal`, `spatial_voice`, `head_tracked_audio`                                                                                                                 | **Yes** (`spatial_audio` itself is already parity-OK) |
+| 5 — Passive / metadata      | Likely **no handler** — declarative/policy/compile-time | ~12    | `material`, `alt_text`, `accessible`, `high_contrast`, `motion_reduced`, `moderation`, `anti_grief`, `token_gated`, `data_binding`, `attach`, `world_state`, `shared_world`                                                  | **No / verify**                                       |
 
 The high-end AAA-fidelity items (`bloom`, `gaussian_splat`, `volumetric_*`, `nerf`) cluster in
 Tier 2 — exactly the render features a pure native runtime would have to implement itself, which
@@ -222,7 +222,7 @@ Order of operations (each step gated on the prior):
 4. **Close Tier 4 audio (~7)** then **Tier 3 AR/XR sensing (~11)** — surface-bounded, can parallelize.
 5. **Close Tier 2 render passes (~16)** against the native WebGPU/Three path — this is also the
    AAA-fidelity work; sequence it with the renderer roadmap.
-6. **Parity gate:** add a CI check asserting *every* R3F-emitted trait has a native handler (or an
+6. **Parity gate:** add a CI check asserting _every_ R3F-emitted trait has a native handler (or an
    explicit no-op classification). When green, the R3F path is provably non-load-bearing.
 7. **Retire `R3FCompiler` + the other apex-poison web compilers** (§3.4 tier 1); migrate any
    remaining consumers to the native runtime.
@@ -269,8 +269,8 @@ itself make HoloLand a AAA MMO. Explicitly left unaddressed:
 - **Confidence caveat.** Parity counts are ~92% confidence; the live MCP/codebase-intelligence
   tools were unreachable from the sandbox, so all evidence is from static source reading.
 
-The honest one-line summary: *this is the substrate-hygiene track that makes native HoloScript the
-single authoring/runtime surface — necessary for the MMO direction, nowhere near sufficient for it.*
+The honest one-line summary: _this is the substrate-hygiene track that makes native HoloScript the
+single authoring/runtime surface — necessary for the MMO direction, nowhere near sufficient for it._
 
 ---
 

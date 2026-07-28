@@ -31,7 +31,7 @@
   are defined. Use `npx tsx --env-file=.env.local`, or `dotenv.config({ path: '.env.local' })`,
   or mock env vars at the **absolute top of the file, above all non-builtin imports** (import
   hoisting runs top-level validation before later `process.env` assignments).
-- **Transitive env-validation hazard** (B.470): a script that imports a service whose *transitive*
+- **Transitive env-validation hazard** (B.470): a script that imports a service whose _transitive_
   deps validate env at module scope crashes even if the script doesn't use them. Mitigate with
   top-of-file mocks, shell-injected vars, or (architectural) move validation into `init()`/`getInstance()`.
 - **Singleton init race / module-trace crash** (B.390): a syntax error in a deeply nested dep makes
@@ -43,7 +43,7 @@
 ## React / async UI
 
 - **Reset loading state in `finally`, not `else`** (B.340): `try { setLoading(true); await x() }
-  catch(e){...} else {...}` leaves a permanent "Loading" on error. Always `finally { setLoading(false) }`.
+catch(e){...} else {...}` leaves a permanent "Loading" on error. Always `finally { setLoading(false) }`.
 - **`ChunkLoadError` after a dev rebuild** (B.375): old build hashes 404 → "Something went wrong".
   Detect a 500/chunk error early and `page.reload()` / `goto('/')`; ensure the test hits the same
   `webServer` process (zombies hold stale build state).
@@ -113,6 +113,7 @@
   via a `/health/startup` endpoint. Prevents the race / circular-deadlock class of boot failure.
 
 ---
-*Reclaimed catalog id: be80b802 (Jan 2026, uaa2-service). This file is the transferable subset;
+
+_Reclaimed catalog id: be80b802 (Jan 2026, uaa2-service). This file is the transferable subset;
 the full source lived only in the Gemini silo. 2026-06-25 deep-review pass added the algorithm/
-agent-state section above; the rest of the silo's 24 candidate entries benchmarked as dead/superseded.*
+agent-state section above; the rest of the silo's 24 candidate entries benchmarked as dead/superseded._

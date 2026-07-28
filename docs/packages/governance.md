@@ -22,75 +22,75 @@ This matrix assigns a support level to each documented package so contributors c
 
 ## Matrix
 
-| Package                              | Level        | Owning Team            |
-| ------------------------------------ | ------------ | ---------------------- |
-| `@holoscript/core`                   | stable       | HoloScript Core Team   |
-| `@holoscript/core-types`             | stable       | HoloScript Core Team   |
-| `@holoscript/runtime`                | stable       | HoloScript Core Team   |
-| `@holoscript/engine`                 | beta         | HoloScript Core Team   |
-| `@holoscript/std`                    | stable       | HoloScript Core Team   |
-| `@holoscript/holo-vm`                | beta         | Agent Systems Team     |
-| `@holoscript/wasm`                   | stable       | HoloScript Core Team   |
-| `@holoscript/cli`                    | stable       | HoloScript Core Team   |
-| `@holoscript/formatter`              | stable       | HoloScript Core Team   |
-| `@holoscript/linter`                 | stable       | HoloScript Core Team   |
-| `@holoscript/lsp`                    | stable       | HoloScript Core Team   |
-| `create-holoscript`                  | stable       | HoloScript Core Team   |
-| `@holoscript/benchmark`              | beta         | HoloScript Core Team   |
-| `@holoscript/comparative-benchmarks` | beta         | HoloScript Core Team   |
-| `tree-sitter-holoscript`             | stable       | HoloScript Core Team   |
-| `@holoscript/studio`                 | beta         | Studio Team            |
-| `@holoscript/studio-bridge`          | beta         | Studio Team            |
-| `@holoscript/studio-plugin-sdk`      | beta         | Studio Team            |
-| `@holoscript/studio-desktop`         | beta         | Studio Team            |
-| `holoscript-vscode`                  | stable       | Studio Team            |
-| `@holoscript/visual`                 | beta         | Studio Team            |
-| `@holoscript/ui`                     | beta         | Studio Team            |
-| `@holoscript/preview-component`      | stable       | Studio Team            |
-| `@holoscript/video-tutorials`        | beta         | Studio Team            |
-| `visualizer-client`                  | beta         | Studio Team            |
-| `@holoscript/sdk`                    | stable       | HoloScript Core Team   |
-| `@holoscript/cdn`                    | beta         | Platform Services Team |
-| `@holoscript/platform`               | beta         | Platform Services Team |
-| `@holoscript/mcp-server`             | stable       | Agent Systems Team     |
-| `@holoscript/memory`                 | beta         | Agent Systems Team     |
-| `@holoscript/holollama`              | experimental | Agent Systems Team     |
-| `@holoscript/holoscript-agent`       | beta         | Agent Systems Team     |
-| `@holoscript/r3f-renderer`           | beta         | Studio Team            |
-| `@holoscript/xr-embodiment`          | beta         | HoloLand Team          |
-| `@holoscript/hololand-platform`      | beta         | HoloLand Team          |
-| `@holoscript/llm-provider`           | stable       | Agent Systems Team     |
-| `@holoscript/ai-validator`           | stable       | Agent Systems Team     |
-| `@holoscript/agent-protocol`         | beta         | Agent Systems Team     |
-| `@holoscript/uaal`                   | experimental | Agent Systems Team     |
-| `@holoscript/holo-runtime`           | experimental | Agent Systems Team     |
-| `@hololand/react-agent-sdk`          | beta         | Agent Systems Team     |
-| `@holoscript/absorb-service`         | beta         | Platform Services Team |
-| `@holoscript/auth`                   | stable       | Platform Services Team |
-| `@holoscript/security-sandbox`       | stable       | Platform Services Team |
-| `@holoscript/secrets-broker`         | beta         | Platform Services Team |
-| `@holoscript/partner-sdk`            | beta         | Platform Services Team |
-| `@holoscript/registry`               | beta         | Platform Services Team |
-| `@holoscript/marketplace-api`        | beta         | Platform Services Team |
-| `@holoscript/marketplace-web`        | beta         | Platform Services Team |
-| `@holoscript/graphql-api`            | beta         | Platform Services Team |
-| `@holoscript/adapter-postgres`       | beta         | Platform Services Team |
-| `@holoscript/mesh`                   | beta         | Platform Services Team |
-| `@holoscript/crdt`                   | beta         | Platform Services Team |
-| `@holoscript/crdt-spatial`           | experimental | Platform Services Team |
-| `@holoscript/mvc-schema`             | beta         | Platform Services Team |
-| `@holoscript/spatial-index`          | stable       | HoloScript Core Team   |
-| `@holoscript/animation-presets`      | stable       | Studio Team            |
-| `@holoscript/holomap`                | beta         | HoloLand Team          |
-| `@holoscript/snn-webgpu`             | experimental | R&D Team               |
-| `@holoscript/plugin-emergency-response` | beta      | Plugin Team            |
-| `@holoscript/plugin-film-vfx`        | beta         | Plugin Team            |
-| `@holoscript/plugin-film3d-volumetrics` | beta      | Plugin Team            |
-| `@holoscript/plugin-legal-document`  | beta         | Plugin Team            |
-| `@holoscript/qm-bridge`              | beta         | Plugin Team            |
-| `@holoscript/radio-astronomy-plugin` | beta         | Plugin Team            |
-| `@holoscript/plugin-threat-intelligence` | beta     | Plugin Team            |
-| `@holoscript/plugin-urban-planning`  | beta         | Plugin Team            |
+| Package                                  | Level        | Owning Team            |
+| ---------------------------------------- | ------------ | ---------------------- |
+| `@holoscript/core`                       | stable       | HoloScript Core Team   |
+| `@holoscript/core-types`                 | stable       | HoloScript Core Team   |
+| `@holoscript/runtime`                    | stable       | HoloScript Core Team   |
+| `@holoscript/engine`                     | beta         | HoloScript Core Team   |
+| `@holoscript/std`                        | stable       | HoloScript Core Team   |
+| `@holoscript/holo-vm`                    | beta         | Agent Systems Team     |
+| `@holoscript/wasm`                       | stable       | HoloScript Core Team   |
+| `@holoscript/cli`                        | stable       | HoloScript Core Team   |
+| `@holoscript/formatter`                  | stable       | HoloScript Core Team   |
+| `@holoscript/linter`                     | stable       | HoloScript Core Team   |
+| `@holoscript/lsp`                        | stable       | HoloScript Core Team   |
+| `create-holoscript`                      | stable       | HoloScript Core Team   |
+| `@holoscript/benchmark`                  | beta         | HoloScript Core Team   |
+| `@holoscript/comparative-benchmarks`     | beta         | HoloScript Core Team   |
+| `tree-sitter-holoscript`                 | stable       | HoloScript Core Team   |
+| `@holoscript/studio`                     | beta         | Studio Team            |
+| `@holoscript/studio-bridge`              | beta         | Studio Team            |
+| `@holoscript/studio-plugin-sdk`          | beta         | Studio Team            |
+| `@holoscript/studio-desktop`             | beta         | Studio Team            |
+| `holoscript-vscode`                      | stable       | Studio Team            |
+| `@holoscript/visual`                     | beta         | Studio Team            |
+| `@holoscript/ui`                         | beta         | Studio Team            |
+| `@holoscript/preview-component`          | stable       | Studio Team            |
+| `@holoscript/video-tutorials`            | beta         | Studio Team            |
+| `visualizer-client`                      | beta         | Studio Team            |
+| `@holoscript/sdk`                        | stable       | HoloScript Core Team   |
+| `@holoscript/cdn`                        | beta         | Platform Services Team |
+| `@holoscript/platform`                   | beta         | Platform Services Team |
+| `@holoscript/mcp-server`                 | stable       | Agent Systems Team     |
+| `@holoscript/memory`                     | beta         | Agent Systems Team     |
+| `@holoscript/holollama`                  | experimental | Agent Systems Team     |
+| `@holoscript/holoscript-agent`           | beta         | Agent Systems Team     |
+| `@holoscript/r3f-renderer`               | beta         | Studio Team            |
+| `@holoscript/xr-embodiment`              | beta         | HoloLand Team          |
+| `@holoscript/hololand-platform`          | beta         | HoloLand Team          |
+| `@holoscript/llm-provider`               | stable       | Agent Systems Team     |
+| `@holoscript/ai-validator`               | stable       | Agent Systems Team     |
+| `@holoscript/agent-protocol`             | beta         | Agent Systems Team     |
+| `@holoscript/uaal`                       | experimental | Agent Systems Team     |
+| `@holoscript/holo-runtime`               | experimental | Agent Systems Team     |
+| `@hololand/react-agent-sdk`              | beta         | Agent Systems Team     |
+| `@holoscript/absorb-service`             | beta         | Platform Services Team |
+| `@holoscript/auth`                       | stable       | Platform Services Team |
+| `@holoscript/security-sandbox`           | stable       | Platform Services Team |
+| `@holoscript/secrets-broker`             | beta         | Platform Services Team |
+| `@holoscript/partner-sdk`                | beta         | Platform Services Team |
+| `@holoscript/registry`                   | beta         | Platform Services Team |
+| `@holoscript/marketplace-api`            | beta         | Platform Services Team |
+| `@holoscript/marketplace-web`            | beta         | Platform Services Team |
+| `@holoscript/graphql-api`                | beta         | Platform Services Team |
+| `@holoscript/adapter-postgres`           | beta         | Platform Services Team |
+| `@holoscript/mesh`                       | beta         | Platform Services Team |
+| `@holoscript/crdt`                       | beta         | Platform Services Team |
+| `@holoscript/crdt-spatial`               | experimental | Platform Services Team |
+| `@holoscript/mvc-schema`                 | beta         | Platform Services Team |
+| `@holoscript/spatial-index`              | stable       | HoloScript Core Team   |
+| `@holoscript/animation-presets`          | stable       | Studio Team            |
+| `@holoscript/holomap`                    | beta         | HoloLand Team          |
+| `@holoscript/snn-webgpu`                 | experimental | R&D Team               |
+| `@holoscript/plugin-emergency-response`  | beta         | Plugin Team            |
+| `@holoscript/plugin-film-vfx`            | beta         | Plugin Team            |
+| `@holoscript/plugin-film3d-volumetrics`  | beta         | Plugin Team            |
+| `@holoscript/plugin-legal-document`      | beta         | Plugin Team            |
+| `@holoscript/qm-bridge`                  | beta         | Plugin Team            |
+| `@holoscript/radio-astronomy-plugin`     | beta         | Plugin Team            |
+| `@holoscript/plugin-threat-intelligence` | beta         | Plugin Team            |
+| `@holoscript/plugin-urban-planning`      | beta         | Plugin Team            |
 
 ## Retired / Merged Packages
 

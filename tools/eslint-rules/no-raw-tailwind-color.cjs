@@ -27,8 +27,7 @@ const RAW_NEUTRAL_RE =
   /\b(?:bg|text|border|ring|ring-offset|divide|from|to|via|outline|placeholder|caret|accent|decoration|shadow|fill|stroke)-(?:slate|gray|zinc|neutral|stone)-\d{2,3}(?:\/\d{1,3})?\b/g;
 
 // Suggest the token family that replaces each neutral role.
-const TOKEN_HINT =
-  'bg-studio-bg/panel/surface, text-studio-text/muted, border-studio-border';
+const TOKEN_HINT = 'bg-studio-bg/panel/surface, text-studio-text/muted, border-studio-border';
 
 const EXEMPT_PATH_SEGMENTS = [
   '/tools/eslint-rules/',
@@ -91,7 +90,8 @@ module.exports = {
         if (typeof node.value === 'string') reportFrom(node, node.value);
       },
       TemplateElement(node) {
-        if (node.value && typeof node.value.cooked === 'string') reportFrom(node, node.value.cooked);
+        if (node.value && typeof node.value.cooked === 'string')
+          reportFrom(node, node.value.cooked);
       },
     };
   },

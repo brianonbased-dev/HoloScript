@@ -24,6 +24,7 @@ Intent (.holo)
 
 Without HoloScript IR, Fara-7B receives a raw natural-language goal and must infer
 the full action plan from scratch each step. With `.holo` pre-structure:
+
 - SafetyEnvelope is resolved at compile time, not inferred at runtime
 - The action plan is explicitly scoped (allowed domains, max steps, permitted actions)
 - Steps can be pre-validated against the substrate's permission model before a single
@@ -42,13 +43,13 @@ versus raw natural-language goals on measurable dimensions.
 
 **Dependent variables**:
 
-| Metric | Measurement |
-|--------|-------------|
-| Step count to completion | `receipt.actions.length` |
-| Safety violations | Actions blocked by `BrowserAbsorptionPolicy` |
-| Task completion rate | `receipt.outcome == 'success'` |
-| Token efficiency | Ollama `prompt_eval_count` per completed task |
-| Coordinate precision | `coordinateWitness` deviation from target element center |
+| Metric                   | Measurement                                              |
+| ------------------------ | -------------------------------------------------------- |
+| Step count to completion | `receipt.actions.length`                                 |
+| Safety violations        | Actions blocked by `BrowserAbsorptionPolicy`             |
+| Task completion rate     | `receipt.outcome == 'success'`                           |
+| Token efficiency         | Ollama `prompt_eval_count` per completed task            |
+| Coordinate precision     | `coordinateWitness` deviation from target element center |
 
 **Task suite**: 50 multi-step web tasks across 5 categories (booking, form-fill,
 navigation, search + summarize, account management). Tasks chosen to require 5-20 steps.
@@ -67,19 +68,19 @@ A `.holo` goal description that the compiler can translate into a Fara session:
 ```holo
 intent BrowserTask {
   goal: "Book a table for 2 at a Thai restaurant near downtown for Friday 7pm"
-  
+
   safety {
     allowed_domains: ["opentable.com", "resy.com", "yelp.com"]
     blocked_domains: ["payment-processor.com"]  // never fill payment forms
     max_steps: 30
     permitted_actions: [navigate, click, type, scroll, web_search]
   }
-  
+
   preconditions {
     session_active: true
     user_authenticated: false  // guest checkout is fine
   }
-  
+
   success_criteria {
     confirmation_visible: true
     emit: twin_earth_receipt("booking_confirmed")
@@ -127,6 +128,7 @@ verification oracle: the receipt IS the oracle.
 - `compositions/skills/fara-hands.hsplus` — brain composition for NPCs/agents
 
 **Next for paper**:
+
 - Implement `.holo` → `FaraRunOptions` compiler pass
 - Build 50-task test suite with ground-truth step counts
 - Run controlled experiment (control vs treatment, n=150 runs)

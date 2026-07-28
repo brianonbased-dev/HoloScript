@@ -97,7 +97,7 @@ The identity is ahead of some implementation layers. HoloScript does not claim s
 
 | If you are a...        | Describe this                                                          | Get this                                                                                                                                       |
 | ---------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Game / XR developer    | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Your scene runs on Unity, Unreal, Godot, or React Three Fiber from one source you own — you pick the target, you're never locked to it          |
+| Game / XR developer    | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Your scene runs on Unity, Unreal, Godot, or React Three Fiber from one source you own — you pick the target, you're never locked to it         |
 | AI agent builder       | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP tools with typed inputs, permissions, and live inventory verified via `GET /health`                                                        |
 | Simulation engineer    | `simulation "WindTunnel" { solver: fea, mesh: tet10, boundary: ... }`  | TypeScript-accessible solvers with replay/provenance hooks; verify geometry, meshing, boundary conditions, and V&V depth before scientific use |
 | Founder / product team | `service "BillingAPI" { route: /invoice, method: POST, ... }`          | Node.js service scaffold with observability, metering, and rollback hooks                                                                      |
@@ -161,13 +161,13 @@ project files, npm packages, MCP/API, Studio workspaces, or service images;
 engine contributors clone this monorepo to change the platform itself. The full
 contract lives in [docs/architecture/universal-use-boundary.md](docs/architecture/universal-use-boundary.md).
 
-| Layer           | What it is                                                                    | Where it lives                                                              |
-| --------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 6 · Marketplace | Traits + plugins + skills, Ed25519 signatures, x402 payments                  | `store.holoscript.net`, [`packages/plugins/`](./packages/plugins/)          |
-| 5 · Studio      | AI scene builder, browser workflow, node-graph editor                         | [`packages/studio/`](./packages/studio/)                                    |
-| 4 · Agents      | Swarm intelligence, MCP comms, economy primitives                             | [`packages/mcp-server/`](./packages/mcp-server/)                            |
-| 3 · Compiler    | Named backends, cross-target compilation, circuit breaker, incremental builds | [`packages/core/src/compiler/`](./packages/core/src/compiler/)              |
-| 2 · Runtime     | Three.js browser, Rust spatial engine, WebGPU rendering                       | `packages/r3f-renderer/`, `packages/snn-webgpu/`, `packages/compiler-wasm/` |
+| Layer           | What it is                                                                         | Where it lives                                                              |
+| --------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 6 · Marketplace | Traits + plugins + skills, Ed25519 signatures, x402 payments                       | `store.holoscript.net`, [`packages/plugins/`](./packages/plugins/)          |
+| 5 · Studio      | AI scene builder, browser workflow, node-graph editor                              | [`packages/studio/`](./packages/studio/)                                    |
+| 4 · Agents      | Swarm intelligence, MCP comms, economy primitives                                  | [`packages/mcp-server/`](./packages/mcp-server/)                            |
+| 3 · Compiler    | Named backends, cross-target compilation, circuit breaker, incremental builds      | [`packages/core/src/compiler/`](./packages/core/src/compiler/)              |
+| 2 · Runtime     | Three.js browser, Rust spatial engine, WebGPU rendering                            | `packages/r3f-renderer/`, `packages/snn-webgpu/`, `packages/compiler-wasm/` |
 | 1 · OS Core     | Cognitive VM (uAAL, stratum ③), perceptual (SNN), economic (x402), semantic traits | [`packages/core/`](./packages/core/)                                        |
 
 The layers are architectural, not counts — they don't go stale. Ecosystem counts (tools, traits, compilers) are never hardcoded here; see [What to verify live](#what-to-verify-live).
@@ -266,11 +266,11 @@ cd HoloScript && pnpm install && pnpm build && pnpm test
 
 ## Three file formats
 
-| Extension | Purpose                           | Examples                                                            |
-| --------- | --------------------------------- | ------------------------------------------------------------------- |
-| `.hs`     | Data pipelines, ETL, transforms   | Compiles to Node.js, JSON. Source → transform → sink workflows      |
+| Extension | Purpose                                          | Examples                                                                                                      |
+| --------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `.hs`     | Data pipelines, ETL, transforms                  | Compiles to Node.js, JSON. Source → transform → sink workflows                                                |
 | `.hsplus` | TypeScript-like semantic components and behavior | Services, UI, simulation, devices, rendering, economics, tooling, traits, state machines, effects, and agents |
-| `.holo`   | Compositions, scenes, dashboards  | Cross-platform AI-generated. Runtime interprets directly            |
+| `.holo`   | Compositions, scenes, dashboards                 | Cross-platform AI-generated. Runtime interprets directly                                                      |
 
 TypeScript is the last resort — for parsers, CLI, adapters, infrastructure. If you're writing `.ts` for business logic, you're doing it wrong.
 

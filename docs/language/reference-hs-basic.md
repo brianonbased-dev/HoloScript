@@ -521,18 +521,18 @@ The `->` form is `.hs`'s decoupled wiring primitive. Objects reference each othe
 
 These functions are available inside any `.hs` object without import:
 
-| Primitive | Purpose |
-|---|---|
-| `move_to(target, speed)` | Navigate to a target object or position |
-| `face_toward(target)` | Rotate to face a target |
-| `scan_area(radius)` | Detect entities within a radius; triggers `on_detect` |
-| `assess_threat(target)` | Returns `{ level: 0.0–1.0 }` |
-| `wait(seconds)` | Suspend execution for N seconds |
-| `find_nearest("tag")` | Find the closest object with the given tag |
-| `index_of(obj)` | Get the index of an object in an array |
-| `current_time()` | Current scene time |
-| `delta_time` | Time elapsed since the last frame |
-| `max(a, b)` | Numeric maximum |
+| Primitive                | Purpose                                               |
+| ------------------------ | ----------------------------------------------------- |
+| `move_to(target, speed)` | Navigate to a target object or position               |
+| `face_toward(target)`    | Rotate to face a target                               |
+| `scan_area(radius)`      | Detect entities within a radius; triggers `on_detect` |
+| `assess_threat(target)`  | Returns `{ level: 0.0–1.0 }`                          |
+| `wait(seconds)`          | Suspend execution for N seconds                       |
+| `find_nearest("tag")`    | Find the closest object with the given tag            |
+| `index_of(obj)`          | Get the index of an object in an array                |
+| `current_time()`         | Current scene time                                    |
+| `delta_time`             | Time elapsed since the last frame                     |
+| `max(a, b)`              | Numeric maximum                                       |
 
 ### Object Tagging
 

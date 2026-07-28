@@ -51,11 +51,11 @@ HoloScript helps you describe interfaces, workflows, robots, and spatial scenes 
 
 HoloScript uses three file formats:
 
-| Extension | Purpose        | Best For                         |
-| --------- | -------------- | -------------------------------- |
-| `.hs`     | Process files  | Pipelines, sync jobs, monitoring |
+| Extension | Purpose                  | Best For                                                              |
+| --------- | ------------------------ | --------------------------------------------------------------------- |
+| `.hs`     | Process files            | Pipelines, sync jobs, monitoring                                      |
 | `.hsplus` | Semantic component files | Services, UI, simulation, devices, traits, state, effects, and agents |
-| `.holo`   | World files    | Scenes, systems, target metadata |
+| `.holo`   | World files              | Scenes, systems, target metadata                                      |
 
 ## Quick Start
 

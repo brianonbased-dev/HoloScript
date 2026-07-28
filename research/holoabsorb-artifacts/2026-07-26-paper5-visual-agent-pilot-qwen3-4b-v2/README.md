@@ -55,10 +55,10 @@ rewritten.
 
 ## Aggregate results
 
-| Arm | Precision@5 | MRR | Invalid rate | Mean latency/query |
-| --- | ---: | ---: | ---: | ---: |
-| Text candidate cards | 0.200000 | 0.888889 | 0.000000 | 2,152.386 ms |
-| Cards + structured visual graph | 0.162963 | 0.814815 | 0.074074 | 2,860.403 ms |
+| Arm                             | Precision@5 |      MRR | Invalid rate | Mean latency/query |
+| ------------------------------- | ----------: | -------: | -----------: | -----------------: |
+| Text candidate cards            |    0.200000 | 0.888889 |     0.000000 |       2,152.386 ms |
+| Cards + structured visual graph |    0.162963 | 0.814815 |     0.074074 |       2,860.403 ms |
 
 Paired visual-minus-text deltas:
 
@@ -74,11 +74,11 @@ does not exclude zero.
 
 ## Category diagnosis
 
-| Category | Text P@5 | Visual P@5 | Text MRR | Visual MRR | Visual invalid |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Dependency | 0.233333 | 0.133333 | 0.944444 | 0.666667 | 0.222222 |
-| Impact | 0.200000 | 0.177778 | 0.888889 | 0.888889 | 0.000000 |
-| Reasoning | 0.166667 | 0.177778 | 0.833333 | 0.888889 | 0.000000 |
+| Category   | Text P@5 | Visual P@5 | Text MRR | Visual MRR | Visual invalid |
+| ---------- | -------: | ---------: | -------: | ---------: | -------------: |
+| Dependency | 0.233333 |   0.133333 | 0.944444 |   0.666667 |       0.222222 |
+| Impact     | 0.200000 |   0.177778 | 0.888889 |   0.888889 |       0.000000 |
+| Reasoning  | 0.166667 |   0.177778 | 0.833333 |   0.888889 |       0.000000 |
 
 All four invalid observations were dependency cases 05 through 08. After two
 attempts, the model returned a single candidate array for a four-case batch

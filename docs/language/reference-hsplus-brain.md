@@ -44,29 +44,29 @@ The `: @<brainType>` suffix is optional; it defaults to `@behavior_tree` when om
 
 ## Brain Types
 
-| Type | Annotation | Description |
-|---|---|---|
+| Type          | Annotation       | Description                                                                                                                                |
+| ------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Behavior tree | `@behavior_tree` | Hierarchical behavior tree. States map to BT nodes; the runtime traverses them each tick via selector/sequence rules. This is the default. |
-| Decision tree | `@decision_tree` | Decision-tree rules. Conditions are evaluated top-to-bottom within each state; the first matching transition fires. |
-| Neural | `@neural` | Neural-backed cognitive architecture. Intended for learned policies; exact dispatch is backend-defined. |
-| Scripted | `@scripted` | Scripted sequences. States run in authored order; transitions are time- or event-driven. |
+| Decision tree | `@decision_tree` | Decision-tree rules. Conditions are evaluated top-to-bottom within each state; the first matching transition fires.                        |
+| Neural        | `@neural`        | Neural-backed cognitive architecture. Intended for learned policies; exact dispatch is backend-defined.                                    |
+| Scripted      | `@scripted`      | Scripted sequences. States run in authored order; transitions are time- or event-driven.                                                   |
 
 ## Top-Level Annotations
 
 These `@` annotations appear directly inside the brain body (before any `state` blocks). All are optional.
 
-| Annotation | Value type | Description |
-|---|---|---|
-| `@personality` | string | Behavioral archetype communicated to LLM-backed traits. Examples: `aggressive`, `cautious`, `neutral`, `friendly`. |
-| `@faction_alignment` | string | Faction membership. Two-word alignments use underscores: `true_neutral`, `lawful_good`. Examples: `rebels`, `empire`, `neutral_guild`. |
-| `@memory_persistence` | boolean | When `true`, `AgentMemoryTrait` stores memories across sessions. When `false` or omitted, memories are session-scoped only. |
-| `@flee_threshold` | float (0.0–1.0) | HP fraction below which the agent flees. The runtime emits a flee trigger when `hp / max_hp < flee_threshold`. Default if omitted: `0.25`. |
-| `@patrol_speed` | float or string | Movement speed multiplier used during patrol states. Passed to the locomotion trait. |
-| `@waypoints` | array of strings | Ordered list of waypoint names for patrol routes. The locomotion trait advances through them in sequence. |
-| `@preferred_ability` | `{ name, when? }` | Default ability to activate, with an optional `@when` condition guard. When the condition is met (or omitted), the named ability fires. |
-| `@goal` | `{ name, desiredState, priority }` | Declarative GOAP goal (see [GOAP Goals](#goap-goals)). Repeatable. |
-| `@escalation` | `{ on, action }` | Escalation condition (see [Escalation Conditions](#escalation-conditions)). Repeatable. |
-| `@provider_policy` | `{ prefer, fallback, requires }` | Load-time LLM provider hint (see [Provider Policy](#provider-policy)). |
+| Annotation            | Value type                         | Description                                                                                                                                |
+| --------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@personality`        | string                             | Behavioral archetype communicated to LLM-backed traits. Examples: `aggressive`, `cautious`, `neutral`, `friendly`.                         |
+| `@faction_alignment`  | string                             | Faction membership. Two-word alignments use underscores: `true_neutral`, `lawful_good`. Examples: `rebels`, `empire`, `neutral_guild`.     |
+| `@memory_persistence` | boolean                            | When `true`, `AgentMemoryTrait` stores memories across sessions. When `false` or omitted, memories are session-scoped only.                |
+| `@flee_threshold`     | float (0.0–1.0)                    | HP fraction below which the agent flees. The runtime emits a flee trigger when `hp / max_hp < flee_threshold`. Default if omitted: `0.25`. |
+| `@patrol_speed`       | float or string                    | Movement speed multiplier used during patrol states. Passed to the locomotion trait.                                                       |
+| `@waypoints`          | array of strings                   | Ordered list of waypoint names for patrol routes. The locomotion trait advances through them in sequence.                                  |
+| `@preferred_ability`  | `{ name, when? }`                  | Default ability to activate, with an optional `@when` condition guard. When the condition is met (or omitted), the named ability fires.    |
+| `@goal`               | `{ name, desiredState, priority }` | Declarative GOAP goal (see [GOAP Goals](#goap-goals)). Repeatable.                                                                         |
+| `@escalation`         | `{ on, action }`                   | Escalation condition (see [Escalation Conditions](#escalation-conditions)). Repeatable.                                                    |
+| `@provider_policy`    | `{ prefer, fallback, requires }`   | Load-time LLM provider hint (see [Provider Policy](#provider-policy)).                                                                     |
 
 ### Examples
 
@@ -86,7 +86,7 @@ brain GuardAI : @behavior_tree {
 
 ## GOAP Goals
 
-`@goal` declares a planning objective for the `GoalOrientedTrait`, which runs an A* search over the agent's world model to find an action sequence that produces the `desiredState`.
+`@goal` declares a planning objective for the `GoalOrientedTrait`, which runs an A\* search over the agent's world model to find an action sequence that produces the `desiredState`.
 
 ```hsplus
 brain HunterAI : @behavior_tree {
@@ -107,11 +107,11 @@ brain HunterAI : @behavior_tree {
 
 **Fields:**
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `name` | string | yes | Identifier for the goal; referenced in `plan { goal: "..." }` cognitive actions. |
-| `desiredState` | object | no | Key-value world-state properties the planner must achieve. |
-| `priority` | integer | no | Higher numbers are planned first when goals conflict. Defaults to undefined (no priority). |
+| Field          | Type    | Required | Description                                                                                |
+| -------------- | ------- | -------- | ------------------------------------------------------------------------------------------ |
+| `name`         | string  | yes      | Identifier for the goal; referenced in `plan { goal: "..." }` cognitive actions.           |
+| `desiredState` | object  | no       | Key-value world-state properties the planner must achieve.                                 |
+| `priority`     | integer | no       | Higher numbers are planned first when goals conflict. Defaults to undefined (no priority). |
 
 Multiple `@goal` annotations are supported; they are collected into the `goals[]` array in the order they appear.
 
@@ -138,10 +138,10 @@ brain MedicalAgent : @decision_tree {
 
 **Fields:**
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `on` | string | yes | Condition expression or event name that triggers the escalation. |
-| `action` | string | yes | Named action to fire when the condition is met. Defaults to `"notify"` if the field is absent. |
+| Field    | Type   | Required | Description                                                                                    |
+| -------- | ------ | -------- | ---------------------------------------------------------------------------------------------- |
+| `on`     | string | yes      | Condition expression or event name that triggers the escalation.                               |
+| `action` | string | yes      | Named action to fire when the condition is met. Defaults to `"notify"` if the field is absent. |
 
 ## Provider Policy
 
@@ -159,11 +159,11 @@ brain LocalAgent : @behavior_tree {
 
 **Fields:**
 
-| Field | Type | Description |
-|---|---|---|
-| `prefer` | string | Backend identifier to prefer (`"local-llm"`, `"anthropic"`, `"openai"`, etc.). |
-| `fallback` | string | Backend to use when the preferred one is unavailable. |
-| `requires` | string | Capability the selected model must support (e.g. `"tool_calls"`, `"vision"`). |
+| Field      | Type   | Description                                                                    |
+| ---------- | ------ | ------------------------------------------------------------------------------ |
+| `prefer`   | string | Backend identifier to prefer (`"local-llm"`, `"anthropic"`, `"openai"`, etc.). |
+| `fallback` | string | Backend to use when the preferred one is unavailable.                          |
+| `requires` | string | Capability the selected model must support (e.g. `"tool_calls"`, `"vision"`).  |
 
 All three fields are optional. The resolver proceeds normally when `@provider_policy` is absent.
 
@@ -185,12 +185,12 @@ state idle {
 
 **State body elements (in any order):**
 
-| Element | Form | Description |
-|---|---|---|
-| Transition | `transition to <state> [@when { <expr> }]` | Schedules a state switch. The `@when` guard is evaluated each tick; the first matching transition fires. When `@when` is omitted the transition fires unconditionally on the next tick. |
-| Action string | `"action_name"` or bare identifier phrase | A free-form string dispatched to the trait event bus. Handlers registered against the brain's traits receive it. |
-| Cognitive action | `llm_call { ... }` etc. | First-class typed cognitive operations (see [Cognitive Actions in States](#cognitive-actions-in-states)). |
-| Trait annotation | `@trait_name { ... }` | An inline trait attached to this state only. |
+| Element          | Form                                       | Description                                                                                                                                                                             |
+| ---------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Transition       | `transition to <state> [@when { <expr> }]` | Schedules a state switch. The `@when` guard is evaluated each tick; the first matching transition fires. When `@when` is omitted the transition fires unconditionally on the next tick. |
+| Action string    | `"action_name"` or bare identifier phrase  | A free-form string dispatched to the trait event bus. Handlers registered against the brain's traits receive it.                                                                        |
+| Cognitive action | `llm_call { ... }` etc.                    | First-class typed cognitive operations (see [Cognitive Actions in States](#cognitive-actions-in-states)).                                                                               |
+| Trait annotation | `@trait_name { ... }`                      | An inline trait attached to this state only.                                                                                                                                            |
 
 **State names** are arbitrary identifiers. There is no reserved `initial` state; the first `state` block listed is treated as the entry point by the runtime.
 
@@ -214,13 +214,13 @@ state patrol {
 
 The five first-class cognitive verbs can be written inline inside any `state` body. Each verb dispatches to the real cognitive trait that already exists on the brain, rather than routing through an opaque action string.
 
-| Verb | Trait dispatched to | Resolves on |
-|---|---|---|
-| `llm_call` | `LLMAgentTrait` (`llm_prompt` event) | `llm_message` |
-| `recall` | `AgentMemoryTrait` (`memory_recall` event) | `memory_recalled` |
-| `rag_query` | `RAGKnowledgeTrait` (`rag_query` event) | `on_knowledge_retrieved` |
-| `plan` | `GoalOrientedTrait` (`goap_set_state` event) | `goap_plan_created` |
-| `reflect` | `LLMAgentTrait` (self-evaluation prompt) | `llm_message` |
+| Verb        | Trait dispatched to                          | Resolves on              |
+| ----------- | -------------------------------------------- | ------------------------ |
+| `llm_call`  | `LLMAgentTrait` (`llm_prompt` event)         | `llm_message`            |
+| `recall`    | `AgentMemoryTrait` (`memory_recall` event)   | `memory_recalled`        |
+| `rag_query` | `RAGKnowledgeTrait` (`rag_query` event)      | `on_knowledge_retrieved` |
+| `plan`      | `GoalOrientedTrait` (`goap_set_state` event) | `goap_plan_created`      |
+| `reflect`   | `LLMAgentTrait` (self-evaluation prompt)     | `llm_message`            |
 
 ```hsplus
 state threat_assessment {
@@ -233,37 +233,37 @@ state threat_assessment {
 
 **`llm_call` config fields:**
 
-| Field | Description |
-|---|---|
-| `prompt` | The prompt string sent to the LLM. Supports <code v-pre>{{ context.field }}</code> interpolation from the agent's runtime context. |
-| `system` | Optional system-level instruction prepended to the prompt. |
-| `temperature` | Optional float passed to the model. |
+| Field         | Description                                                                                                                        |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `prompt`      | The prompt string sent to the LLM. Supports <code v-pre>{{ context.field }}</code> interpolation from the agent's runtime context. |
+| `system`      | Optional system-level instruction prepended to the prompt.                                                                         |
+| `temperature` | Optional float passed to the model.                                                                                                |
 
 **`recall` config fields:**
 
-| Field | Description |
-|---|---|
+| Field   | Description                                                  |
+| ------- | ------------------------------------------------------------ |
 | `query` | The semantic query sent to `AgentMemoryTrait` for retrieval. |
-| `limit` | Optional integer capping how many memories are returned. |
+| `limit` | Optional integer capping how many memories are returned.     |
 
 **`rag_query` config fields:**
 
-| Field | Description |
-|---|---|
-| `query` | The query sent to `RAGKnowledgeTrait` for knowledge-base retrieval. |
-| `collection` | Optional named collection to scope the search. |
+| Field        | Description                                                         |
+| ------------ | ------------------------------------------------------------------- |
+| `query`      | The query sent to `RAGKnowledgeTrait` for knowledge-base retrieval. |
+| `collection` | Optional named collection to scope the search.                      |
 
 **`plan` config fields:**
 
-| Field | Description |
-|---|---|
-| `goal` | The goal name (matching a `@goal` annotation on the brain) to plan toward. |
-| `context` | Optional additional world-state facts to inject before planning. |
+| Field     | Description                                                                |
+| --------- | -------------------------------------------------------------------------- |
+| `goal`    | The goal name (matching a `@goal` annotation on the brain) to plan toward. |
+| `context` | Optional additional world-state facts to inject before planning.           |
 
 **`reflect` config fields:**
 
-| Field | Description |
-|---|---|
+| Field    | Description                                   |
+| -------- | --------------------------------------------- |
 | `prompt` | The self-evaluation question sent to the LLM. |
 
 For the full cognitive verbs reference, see [`./reference-hsplus-cognitive`](./reference-hsplus-cognitive).

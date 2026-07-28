@@ -56,18 +56,22 @@ export async function resolveSigningEnv() {
 
   try {
     const resolver = pkg.createServiceSecretResolver({ env: process.env, query, owner });
-    const [storePassword, keyPassword, keyAlias, keystoreB64, keystoreFileDirect] = await Promise.all([
-      resolver.resolve(NAME.storePassword),
-      resolver.resolve(NAME.keyPassword),
-      resolver.resolve(NAME.keyAlias),
-      resolver.resolve(NAME.keystoreB64),
-      resolver.resolve(NAME.keystoreFile),
-    ]);
+    const [storePassword, keyPassword, keyAlias, keystoreB64, keystoreFileDirect] =
+      await Promise.all([
+        resolver.resolve(NAME.storePassword),
+        resolver.resolve(NAME.keyPassword),
+        resolver.resolve(NAME.keyAlias),
+        resolver.resolve(NAME.keystoreB64),
+        resolver.resolve(NAME.keystoreFile),
+      ]);
 
     let keystorePath = keystoreFileDirect || null;
     let materialized = null;
     if (!keystorePath && keystoreB64) {
-      keystorePath = join(os.tmpdir(), `qr-release-${process.pid}-${process.hrtime.bigint()}.keystore`);
+      keystorePath = join(
+        os.tmpdir(),
+        `qr-release-${process.pid}-${process.hrtime.bigint()}.keystore`
+      );
       writeFileSync(keystorePath, Buffer.from(keystoreB64, 'base64'), { mode: 0o600 });
       materialized = keystorePath;
     }

@@ -152,7 +152,7 @@ content (materials, lighting, environment, terrain), read
 a pattern library (target/conventions/constraints/scope briefs) for composing `@advanced_pbr`
 materials, paired light sources, and environment drivers instead of defaulting to a bare
 primitive + flat color. Disjoint concern from the native-authoring doc above: that doc is about
-code *structure*, this one is about visual *content*.
+code _structure_, this one is about visual _content_.
 
 TypeScript-tooling hygiene (platform/tooling code only):
 
@@ -203,7 +203,7 @@ Categories span far beyond spatial:
 
 Adding a new trait:
 
-0. **First run `/stub-audit`** — many trait *names* already exist with a correct seam but a placeholder body (Pattern B stub). The native move is to wire+build the existing name, not author a parallel duplicate that leaves the original advertised-but-dead.
+0. **First run `/stub-audit`** — many trait _names_ already exist with a correct seam but a placeholder body (Pattern B stub). The native move is to wire+build the existing name, not author a parallel duplicate that leaves the original advertised-but-dead.
 1. **Author the runtime behavior native** — the trait's public seam is a plain `TraitHandler<TConfig>` object literal (`onAttach`/`onUpdate`/`onEvent`/`onDetach`), NOT a class with methods. Per-instance state lives on `node.__<name>State` (created in `onAttach`, deleted in `onDetach`) — never class fields/module vars, or every node sharing the handler shares state. Traits never call each other: emit an event via `context.emit(...)`. Multi-phase behavior is the `@state_machine` decorator, not `if/else` in `onUpdate`. Behavioral traits are authored in `.hsplus`. (Full shape + `file:line` evidence: [`docs/handbooks/holoscript-native-authoring-vs-pretrained.md`](docs/handbooks/holoscript-native-authoring-vs-pretrained.md) § Traits.)
 2. Define constant in `packages/core/src/traits/constants/`
 3. Add visual preset in `packages/core/src/traits/visual/presets/`

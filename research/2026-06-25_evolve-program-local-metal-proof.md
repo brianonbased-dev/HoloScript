@@ -8,7 +8,7 @@ A **verifier-gated evolutionary loop** ("AlphaEvolve done correctly, locally"),
 authored native per D.101/D.108 as a trait + named backend — the safe inversion
 of the "agents rewrite their own code without guardrails" framing from the Mo
 Gawdat / DOAC interview (`youtu.be/RwlgFC6S-OE`). The thesis: **the guardrail IS
-the engine.** AlphaEvolve / the Darwin Gödel Machine work *because* of a hard
+the engine.** AlphaEvolve / the Darwin Gödel Machine work _because_ of a hard
 verifier, not despite one; strip it and a self-rewriting agent reward-hacks and
 rots. We already own the verifiers (tests, WASM smoke, conformance) — this closes
 them into a standing select-and-keep loop.
@@ -30,11 +30,11 @@ carve-out needed):
 
 ### The five guardrails (each is the engine, not the brake)
 
-1. **Correctness gate** — a candidate that fails is *discarded, never archived*
+1. **Correctness gate** — a candidate that fails is _discarded, never archived_
    (`if (!gate.passed) continue`). This is the selection pressure.
 2. **Numeric fitness** (lower-is-better) — the gradient evolution climbs.
-3. **Sandbox / propose-not-ship** — `bestCode` is surfaced only when it *beat the
-   seed*; promotion to the live tree is a human decision. The loop never self-ships.
+3. **Sandbox / propose-not-ship** — `bestCode` is surfaced only when it _beat the
+   seed_; promotion to the live tree is a human decision. The loop never self-ships.
 4. **Bounded search** (`generations`) — the compute guardrail.
 5. **Provenance receipt** — `{result, traceJSONL, verifyUrl}` with a per-candidate
    trail + a `cael:sha256:` content anchor. Fully auditable.
@@ -56,7 +56,7 @@ Per-candidate trace: the small model proposed **6 mutations — every one longer
 verifier **discarded all 6**; the validated seed survived; nothing was shipped.
 
 **This is the whole point.** A weak proposer produced 6 broken/longer candidates
-and the system *did not degrade, did not self-ship, did not regress* — it kept the
+and the system _did not degrade, did not self-ship, did not regress_ — it kept the
 baseline and reported `NO_IMPROVEMENT` honestly, with a full audit trail. Without
 the gate those candidates corrupt the program; with it, the loop is sound even on
 a weak local model. (Reproduce: `EVOLVE_LOCAL_METAL_PROOF=1 pnpm --filter
@@ -91,13 +91,13 @@ src/evolution/__tests__/EvolveProgramBackend.local-metal.test.ts`.)
 
 ## Loop 2 — the training-data bridge (shipped, closes the "small agent problem")
 
-Founder insight: the *discarded failures are verifier-labeled training data*. The
+Founder insight: the _discarded failures are verifier-labeled training data_. The
 same gate that protects the code (Loop 1) automatically labels the data for
-improving the *model* (Loop 2). This is already a live ecosystem pattern — the
+improving the _model_ (Loop 2). This is already a live ecosystem pattern — the
 runtime agent (`runner.ts recordTrace`) emits graded REC-SHAPE rows that
 `scripts/corpus/harvest_real.py` reads; the grader-gate (`de632431`,
 "close-the-poison-vector") routes them `passed:true → SFT`, `passed:false → DPO/
-contrast`. The evolve loop is a *superior* source: verifier-labeled by the test
+contrast`. The evolve loop is a _superior_ source: verifier-labeled by the test
 suite, not just artifact-grounding.
 
 **Built:** `EvolveProgramBackend` now emits every gated candidate via an injected
@@ -112,24 +112,26 @@ so the evolve rows flow into the existing pipeline **unchanged**.
 
 **An honest signal in the generated data:** `brittney-edge:v0-4` (fine-tuned on
 HoloScript) kept rewriting the JS seed into `@trait { … }` HoloScript syntax —
-which failed the JS-shaped gate. That model bias *is* what DPO corrects, and it
+which failed the JS-shaped gate. That model bias _is_ what DPO corrects, and it
 argues for HoloScript-native targets (the WASMCompiler / `.hs` next increment
 matches the model's competence). The loop captured the bias as labeled rejection
 data — exactly the point.
 
 **The closed loop:**
+
 ```
 evolve (Loop 1, test-gated) → graded REC-SHAPE rows (chosen=SFT / rejected=DPO)
   → harvest_real.py grader-gate → DPO/SFT corpus → HoloTune fine-tune
   → brittney-edge:v0-5 → proposes better → finds improvements v0-4 couldn't → ↻
 ```
+
 Data generation is **free on local metal** and accumulates per run.
 
 **Loop-2 guardrails (mirror Loop 1's propose-not-ship):** (a) grader-gate on the
 harvest (existing) — train only on verifier-labeled data; (b) held-out eval before
 `holotune_promote` — never auto-redeploy a regression; (c) verifier independent of
 the proposer (the test-gate ≠ the model); (d) **spend** — generating data is free,
-but *fine-tuning* is GPU: the Jetson (8GB) is too small, it needs the sovereign
+but _fine-tuning_ is GPU: the Jetson (8GB) is too small, it needs the sovereign
 Vast fleet, and >$100/day GPU is the founder gate.
 
 ### Staged: the fine-tune run (the one GPU-spend step)
@@ -151,6 +153,7 @@ To accrue training data that is QUALITY, UNIQUE, and STRATEGIC (founder bar), th
 accrual harness (`EvolveProgramBackend.accrue.test.ts`) runs the gated loop across
 a portfolio of **real, diverse, HoloScript-native seeds** with **native parse
 gates**, deduped:
+
 - **Quality** = the gate is a real parser (`parseHolo` / HSPlus `parse`) PLUS a
   preserved-construct check — "pass" means valid + intact, not merely non-empty.
 - **Unique** = a content-hash dedup sink drops repeats (reports the dedup ratio).
@@ -159,29 +162,31 @@ gates**, deduped:
   `@trait` definitions, a `@state_machine` brain, and two `.holo` worlds.
 
 **First clean batch on the Jetson (`brittney-edge:v0-4`):**
+
 ```
 5 targets, ALL 5 seeds parsed | gated=8  UNIQUE=7  deduped=1
 chosen/SFT=7  rejected/DPO=0  | quality(pass)=~100%  formats=2 (.holo + .hsplus)
 IMPROVED: 3 (provenance_densify, evolve_program, brittney) | NO_IMPROVEMENT: 2
 ```
 
-**The headline:** on *native* targets the local model didn't just produce valid
+**The headline:** on _native_ targets the local model didn't just produce valid
 candidates — it found **3 genuine improvements** (denser, parse-clean,
 construct-preserved HoloScript), where on the JS toy it found 0/6. Native targets
-match the HoloScript-tuned model's competence → quality data *and* real wins. The
+match the HoloScript-tuned model's competence → quality data _and_ real wins. The
 dedup sink caught 1 duplicate (uniqueness), 2 formats (diversity).
 
 **Findings this iteration (honest):**
-1. *Format is by CONSTRUCT, not extension.* `@trait {…}` files parse via
+
+1. _Format is by CONSTRUCT, not extension._ `@trait {…}` files parse via
    `parseHolo`; `composition + @state_machine` via the HSPlus `parse` — regardless
    of the `.hsplus` extension (F.120, two parsers). My first labels were inverted
    (3/5 SEED_INVALID); a fast in-process seed-parseability diagnostic caught it and
    is now a permanent regression check.
-2. *Big native seeds are slow.* The model regenerates the WHOLE 60–90-line file
+2. _Big native seeds are slow._ The model regenerates the WHOLE 60–90-line file
    per proposal (~60s on the Jetson). A 5-target interactive batch stays small —
    so the **real corpus must grow via SCHEDULED/background accrual on the Jetson**,
    not interactive runs (free, but slow per step).
-3. *Low DPO contrast.* With parse+preserve gates the tuned model passed everything
+3. _Low DPO contrast._ With parse+preserve gates the tuned model passed everything
    (great SFT, 0 rejected). Richer DPO/negative data needs harder gates or harder
    targets — a fitness/gate-tightening follow-up.
 
@@ -190,6 +195,7 @@ src/evolution/__tests__/EvolveProgramBackend.accrue.test.ts` (writes deduped
 REC-SHAPE rows to `EVOLVE_CORPUS_DIR`, default `.scratch/evolve-corpus`).
 
 ### Next: continuous accrual → fine-tune
+
 The interactive batch PROVES the corpus generator. The corpus grows by scheduling
 the accrual on the Jetson (free local metal) — e.g. `/scheduler` or a systemd timer
 running the portfolio nightly, accumulating REC-SHAPE rows into
@@ -203,13 +209,13 @@ Scheduled as a HoloShell Team automation `evolve-corpus-accrual` (every 4h,
 the runner does NOT execute the command — every interval it **enqueues a BOARD
 TASK** ("claim, run the local commands from the workspace, validate, close via
 `/room done`"; false-green guard: only counts when a real task id returns). So the
-schedule is a recurring *reminder-as-board-task*, not a self-running cron.
+schedule is a recurring _reminder-as-board-task_, not a self-running cron.
 
 **Executor gap (W.GOLD.560, surfaced not papered over):** that task needs an agent
 that can run `pnpm vitest` from the HoloScript workspace with the Jetson reachable
-— i.e. this laptop. The Jetson agents can't (model store, not the repo+node_modules,
+— i.e. this laptop. The Jetson agents can't (model store, not the repo+node*modules,
 W.755), and no autonomous laptop board-claimer runs. So the recurring task waits
-for a capable agent to execute it; the corpus grows when *run*, which is proven but
+for a capable agent to execute it; the corpus grows when \_run*, which is proven but
 not yet autonomous.
 
 **Bootstrapped the real corpus** (manual run into the persistent dir): 7 unique
@@ -218,9 +224,10 @@ verifier-labeled rows across all 5 targets, cross-run dedup armed.
 ### CORRECTION (grounded in JETSON.md per F.123) — the "executor gap" above was wrong
 
 Re-reading the Jetson SSOT corrected three assumptions the section above rests on:
+
 1. **The agent runs on a DESKTOP SEAT (the laptop), not the Jetson** — JETSON.md:
-   "the node joins the mesh as `jetson-orin-super` via the AgentRunner *driven from
-   a desktop seat, pointed at the node for inference*." So the agent HAS the repo
+   "the node joins the mesh as `jetson-orin-super` via the AgentRunner _driven from
+   a desktop seat, pointed at the node for inference_." So the agent HAS the repo
    and CAN run `pnpm vitest`. "Jetson agents can't run it (no repo)" was false → the
    "executor gap" / the staged "Jetson idle-loop in-process" plan are largely moot.
    (The holoscript-agent is also no-`@holoscript/core`-dep by design, so an
@@ -233,7 +240,7 @@ Re-reading the Jetson SSOT corrected three assumptions the section above rests o
 3. **The fine-tune can be $0 on the Jetson** — JETSON.md: "fine-tune node — small
    LoRA/QLoRA runs on the 1 TB NVMe; large multi-GPU escalate to the fleet." So the
    staged fine-tune does NOT need the Vast-fleet GPU spend; the founder spend
-   approval applies only to a *large* multi-GPU run. Jetson model = `qwen3:4b` (not
+   approval applies only to a _large_ multi-GPU run. Jetson model = `qwen3:4b` (not
    `brittney-edge`); corpus canonical home = `/mnt/nvme/holo/datasets/`.
 
 Lesson (F.123, founder 2026-06-25): read the surface SSOT before building

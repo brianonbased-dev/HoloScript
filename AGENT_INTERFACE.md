@@ -7,12 +7,12 @@ only keeps facts that belong in the public HoloScript repo.
 
 ## Source Of Truth
 
-| Need | Source |
-| --- | --- |
-| Repo workflow, commit posture, file formats | `AGENTS.md` |
-| Project strategy and package boundaries | `NORTH_STAR.md`, `ARCHITECTURE.md` |
-| Live services and public endpoints | `SURFACES.md` |
-| Live counts and metric commands | `docs/NUMBERS.md` |
+| Need                                                       | Source                                              |
+| ---------------------------------------------------------- | --------------------------------------------------- |
+| Repo workflow, commit posture, file formats                | `AGENTS.md`                                         |
+| Project strategy and package boundaries                    | `NORTH_STAR.md`, `ARCHITECTURE.md`                  |
+| Live services and public endpoints                         | `SURFACES.md`                                       |
+| Live counts and metric commands                            | `docs/NUMBERS.md`                                   |
 | Private fleet coordination, room, GOLD, local `.env` paths | `C:/Users/josep/.ai-ecosystem` on Joseph's machines |
 
 Do not copy private API keys, wallet material, local team IDs, or machine-local
@@ -32,12 +32,12 @@ operational state belongs in `.ai-ecosystem`.
 
 ## Public Service Map
 
-| Surface | Verification |
-| --- | --- |
-| HoloScript MCP | `curl https://mcp.holoscript.net/health` |
-| Studio | `curl -fsSL https://holoscript.studio -o /dev/null` |
-| Public access guide | `docs/PUBLIC_ACCESS.md` |
-| Service surface registry | `SURFACES.md` |
+| Surface                  | Verification                                        |
+| ------------------------ | --------------------------------------------------- |
+| HoloScript MCP           | `curl https://mcp.holoscript.net/health`            |
+| Studio                   | `curl -fsSL https://holoscript.studio -o /dev/null` |
+| Public access guide      | `docs/PUBLIC_ACCESS.md`                             |
+| Service surface registry | `SURFACES.md`                                       |
 
 ## Ownership Boundary
 

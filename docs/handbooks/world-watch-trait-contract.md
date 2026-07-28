@@ -40,33 +40,33 @@ A world or registry entry may declare:
 
 Required fields:
 
-| Field | Meaning |
-| --- | --- |
-| `id` | Stable trigger id for receipts and scheduler state. |
-| `file_pattern` | Glob or path expression matched against world files. |
-| `event` | One of `commit`, `push`, `schedule`, or `trait_change`. |
+| Field          | Meaning                                                                                         |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| `id`           | Stable trigger id for receipts and scheduler state.                                             |
+| `file_pattern` | Glob or path expression matched against world files.                                            |
+| `event`        | One of `commit`, `push`, `schedule`, or `trait_change`.                                         |
 | `agent_action` | One of `validate_holoscript`, `conformance_check_artifact`, `fairness_sweep`, or `holo_critic`. |
-| `mode` | `dry_run` by default; write-capable modes require a later contract. |
-| `receipt_sink` | Directory, artifact path, or HoloCI receipt handle. |
+| `mode`         | `dry_run` by default; write-capable modes require a later contract.                             |
+| `receipt_sink` | Directory, artifact path, or HoloCI receipt handle.                                             |
 
 Optional fields:
 
-| Field | Meaning |
-| --- | --- |
-| `schedule` | Cron-like or interval descriptor consumed by `SchedulerTrait` or the HoloShell Team registry. |
-| `trait_filter` | Trait names that must be present before firing. |
-| `threshold` | Action-specific policy threshold. |
-| `enabled` | Explicit on/off gate. |
-| `dry_run` | Boolean override for tool calls such as `holo_ci_dispatch`. |
+| Field          | Meaning                                                                                       |
+| -------------- | --------------------------------------------------------------------------------------------- |
+| `schedule`     | Cron-like or interval descriptor consumed by `SchedulerTrait` or the HoloShell Team registry. |
+| `trait_filter` | Trait names that must be present before firing.                                               |
+| `threshold`    | Action-specific policy threshold.                                                             |
+| `enabled`      | Explicit on/off gate.                                                                         |
+| `dry_run`      | Boolean override for tool calls such as `holo_ci_dispatch`.                                   |
 
 ## Execution Mapping
 
-| Event | HoloScript mapping | Boundary |
-| --- | --- | --- |
-| `schedule` | `SchedulerTrait` registers a named job via `scheduler:add_job` and emits `scheduler:job_triggered`. | Phase 1 only emits/validates the contract; no background scheduler is installed. |
-| `commit` | HoloCI may preview checks through `holo_ci_dispatch` with `dryRun: true`. | Real HoloCI spend requires explicit opt-in outside this contract. |
-| `push` | Same HoloCI dispatch path as `commit`; receipts must name the source commit. | No GitHub webhook mutation is created here. |
-| `trait_change` | A future HoloShell Team registry or Studio panel may enqueue a signed board task. | This contract defines payload compatibility only. |
+| Event          | HoloScript mapping                                                                                  | Boundary                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `schedule`     | `SchedulerTrait` registers a named job via `scheduler:add_job` and emits `scheduler:job_triggered`. | Phase 1 only emits/validates the contract; no background scheduler is installed. |
+| `commit`       | HoloCI may preview checks through `holo_ci_dispatch` with `dryRun: true`.                           | Real HoloCI spend requires explicit opt-in outside this contract.                |
+| `push`         | Same HoloCI dispatch path as `commit`; receipts must name the source commit.                        | No GitHub webhook mutation is created here.                                      |
+| `trait_change` | A future HoloShell Team registry or Studio panel may enqueue a signed board task.                   | This contract defines payload compatibility only.                                |
 
 The HoloShell Team registry is the recurring-work scheduler of record for
 ecosystem automation. `WorldWatchTrait` must feed signed board tasks or explicit
@@ -74,12 +74,12 @@ HoloCI previews rather than creating a private scheduler lane.
 
 ## Action Mapping
 
-| Agent action | Tool or surface | Expected receipt |
-| --- | --- | --- |
-| `validate_holoscript` | HoloScript MCP validation tool | validation status, errors, warnings, source hash |
-| `conformance_check_artifact` | Hololand/HoloScript conformance MCP tool | pass/fail, violations, artifact digest |
-| `fairness_sweep` | Fairness MCP tool | cohort/model summary, fairness receipt digest |
-| `holo_critic` | Critic MCP tool | findings, severity, cited target |
+| Agent action                 | Tool or surface                          | Expected receipt                                 |
+| ---------------------------- | ---------------------------------------- | ------------------------------------------------ |
+| `validate_holoscript`        | HoloScript MCP validation tool           | validation status, errors, warnings, source hash |
+| `conformance_check_artifact` | Hololand/HoloScript conformance MCP tool | pass/fail, violations, artifact digest           |
+| `fairness_sweep`             | Fairness MCP tool                        | cohort/model summary, fairness receipt digest    |
+| `holo_critic`                | Critic MCP tool                          | findings, severity, cited target                 |
 
 All actions are advisory in Phase 1. A write, branch, patch, or Studio accept
 flow belongs to a later implementation task.

@@ -7,26 +7,26 @@ Schema: `holoscript.format-ai-development-benchmark.v0.1.0`
 
 **format-level support, productivity claim still unproven**
 
-| Metric | Value |
-|---|---:|
-| Core formats present | yes |
-| Constructs / 1000 tokens | 14.18 |
+| Metric                                   | Value |
+| ---------------------------------------- | ----: |
+| Core formats present                     |   yes |
+| Constructs / 1000 tokens                 | 14.18 |
 | Best handwritten token compression ratio | 3.16x |
 
 ## Summary By Format
 
-| Format | Files | Lines | Tokens | Constructs | Constructs / 1000 tokens | Avg unique traits/file |
-|---|---:|---:|---:|---:|---:|---:|
-| .holo | 2256 | 186572 | 1707728 | 20862 | 12.22 | 4.63 |
-| .hs | 72 | 16253 | 136282 | 860 | 6.31 | 2.74 |
-| .hsplus | 2444 | 111179 | 897359 | 17163 | 19.13 | 5.53 |
+| Format  | Files |  Lines |  Tokens | Constructs | Constructs / 1000 tokens | Avg unique traits/file |
+| ------- | ----: | -----: | ------: | ---------: | -----------------------: | ---------------------: |
+| .holo   |  2256 | 186572 | 1707728 |      20862 |                    12.22 |                   4.63 |
+| .hs     |    72 |  16253 |  136282 |        860 |                     6.31 |                   2.74 |
+| .hsplus |  2444 | 111179 |  897359 |      17163 |                    19.13 |                   5.53 |
 
 ## Handwritten Baseline Compression
 
-| Scenario | Baseline | Native tokens | Handwritten tokens | Token ratio | Line ratio |
-|---|---|---:|---:|---:|---:|
-| 01-basic-scene | unity-handwritten | 512 | 837 | 1.63x | 1.51x |
-| 01-basic-scene | unreal-handwritten | 512 | 1616 | 3.16x | 3x |
+| Scenario       | Baseline           | Native tokens | Handwritten tokens | Token ratio | Line ratio |
+| -------------- | ------------------ | ------------: | -----------------: | ----------: | ---------: |
+| 01-basic-scene | unity-handwritten  |           512 |                837 |       1.63x |      1.51x |
+| 01-basic-scene | unreal-handwritten |           512 |               1616 |       3.16x |         3x |
 
 ## Interpretation
 
@@ -36,15 +36,15 @@ Schema: `holoscript.format-ai-development-benchmark.v0.1.0`
 
 ## Top Semantic-Density Files
 
-| File | Format | Tokens | Constructs / 1000 tokens | Unique traits |
-|---|---|---:|---:|---:|
-| examples/services/cross-domain-service.holo | .holo | 551 | 88.93 | 43 |
-| packages/core/src/runtime/system_variables.hsplus | .hsplus | 171 | 87.72 | 10 |
-| packages/core/src/semantics/property_annotations.hsplus | .hsplus | 156 | 83.33 | 9 |
-| packages/core/src/traits/semantic-2d/dynamic_visual.holo | .holo | 75 | 80 | 5 |
-| packages/studio/holo-pages/start/page.holo | .holo | 15 | 66.67 | 1 |
-| examples/services/user-api-contract.holo | .holo | 501 | 63.87 | 12 |
-| examples/integration/layered-architecture-demo/components/button.hsplus | .hsplus | 141 | 63.83 | 5 |
-| packages/studio/holo-pages/learn/page.holo | .holo | 16 | 62.5 | 1 |
-| packages/studio/holo-pages/templates/page.holo | .holo | 16 | 62.5 | 1 |
-| packages/studio/holo-pages/pipeline/page.holo | .holo | 98 | 61.22 | 4 |
+| File                                                                    | Format  | Tokens | Constructs / 1000 tokens | Unique traits |
+| ----------------------------------------------------------------------- | ------- | -----: | -----------------------: | ------------: |
+| examples/services/cross-domain-service.holo                             | .holo   |    551 |                    88.93 |            43 |
+| packages/core/src/runtime/system_variables.hsplus                       | .hsplus |    171 |                    87.72 |            10 |
+| packages/core/src/semantics/property_annotations.hsplus                 | .hsplus |    156 |                    83.33 |             9 |
+| packages/core/src/traits/semantic-2d/dynamic_visual.holo                | .holo   |     75 |                       80 |             5 |
+| packages/studio/holo-pages/start/page.holo                              | .holo   |     15 |                    66.67 |             1 |
+| examples/services/user-api-contract.holo                                | .holo   |    501 |                    63.87 |            12 |
+| examples/integration/layered-architecture-demo/components/button.hsplus | .hsplus |    141 |                    63.83 |             5 |
+| packages/studio/holo-pages/learn/page.holo                              | .holo   |     16 |                     62.5 |             1 |
+| packages/studio/holo-pages/templates/page.holo                          | .holo   |     16 |                     62.5 |             1 |
+| packages/studio/holo-pages/pipeline/page.holo                           | .holo   |     98 |                    61.22 |             4 |

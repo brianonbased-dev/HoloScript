@@ -33,27 +33,27 @@ The old `.env.production` dead-flag issue reported on 2026-06-08 is resolved,
 but the Studio template still advertises several feature/dev/optimization flags
 with no live runtime readers in source:
 
-| Flag | Evidence |
-| --- | --- |
-| `NEXT_PUBLIC_ENABLE_COLLABORATION` | only `packages/studio/.env.example`, archived deployment docs, and prior audit report |
-| `NEXT_PUBLIC_ENABLE_MARKETPLACE` | only `packages/studio/.env.example`, archived deployment docs, and prior audit report |
-| `NEXT_PUBLIC_ENABLE_CLOUD_DEPLOY` | only `packages/studio/.env.example`, archived deployment docs, and prior audit report |
-| `NEXT_PUBLIC_ENABLE_PLUGINS` | only `packages/studio/.env.example`, archived deployment docs, and prior audit report |
-| `NEXT_PUBLIC_ENABLE_VERSION_CONTROL` | only `packages/studio/.env.example` and prior audit report |
-| `NEXT_PUBLIC_ENABLE_DEBUG_PANEL` | only `packages/studio/.env.example` and prior audit report |
-| `NEXT_PUBLIC_ENABLE_PERFORMANCE_METRICS` | only `packages/studio/.env.example` and prior audit report |
-| `ENABLE_SECURITY_HEADERS` | only `packages/studio/.env.example` and prior audit report |
-| `ENABLE_CSP` | only `packages/studio/.env.example` and prior audit report |
-| `ENABLE_COMPRESSION` | only `packages/studio/.env.example` and prior audit report |
-| `ENABLE_REQUEST_LOGGING` | only `packages/studio/.env.example` and prior audit report |
-| `NEXT_PUBLIC_HMR` | only `packages/studio/.env.example` |
-| `NEXT_PUBLIC_SHOW_DEV_TOOLS` | only `packages/studio/.env.example` |
-| `MOCK_MARKETPLACE_API` | only `packages/studio/.env.example` |
-| `MOCK_CLOUD_API` | only `packages/studio/.env.example` |
-| `MOCK_COLLABORATION_WS` | only `packages/studio/.env.example` |
-| `NEXT_PUBLIC_OPTIMIZE_IMAGES` | only `packages/studio/.env.example` |
-| `LOG_FORMAT` | only `packages/studio/.env.example` |
-| `STATIC_ASSET_MAX_AGE` | only `packages/studio/.env.example` |
+| Flag                                     | Evidence                                                                              |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_ENABLE_COLLABORATION`       | only `packages/studio/.env.example`, archived deployment docs, and prior audit report |
+| `NEXT_PUBLIC_ENABLE_MARKETPLACE`         | only `packages/studio/.env.example`, archived deployment docs, and prior audit report |
+| `NEXT_PUBLIC_ENABLE_CLOUD_DEPLOY`        | only `packages/studio/.env.example`, archived deployment docs, and prior audit report |
+| `NEXT_PUBLIC_ENABLE_PLUGINS`             | only `packages/studio/.env.example`, archived deployment docs, and prior audit report |
+| `NEXT_PUBLIC_ENABLE_VERSION_CONTROL`     | only `packages/studio/.env.example` and prior audit report                            |
+| `NEXT_PUBLIC_ENABLE_DEBUG_PANEL`         | only `packages/studio/.env.example` and prior audit report                            |
+| `NEXT_PUBLIC_ENABLE_PERFORMANCE_METRICS` | only `packages/studio/.env.example` and prior audit report                            |
+| `ENABLE_SECURITY_HEADERS`                | only `packages/studio/.env.example` and prior audit report                            |
+| `ENABLE_CSP`                             | only `packages/studio/.env.example` and prior audit report                            |
+| `ENABLE_COMPRESSION`                     | only `packages/studio/.env.example` and prior audit report                            |
+| `ENABLE_REQUEST_LOGGING`                 | only `packages/studio/.env.example` and prior audit report                            |
+| `NEXT_PUBLIC_HMR`                        | only `packages/studio/.env.example`                                                   |
+| `NEXT_PUBLIC_SHOW_DEV_TOOLS`             | only `packages/studio/.env.example`                                                   |
+| `MOCK_MARKETPLACE_API`                   | only `packages/studio/.env.example`                                                   |
+| `MOCK_CLOUD_API`                         | only `packages/studio/.env.example`                                                   |
+| `MOCK_COLLABORATION_WS`                  | only `packages/studio/.env.example`                                                   |
+| `NEXT_PUBLIC_OPTIMIZE_IMAGES`            | only `packages/studio/.env.example`                                                   |
+| `LOG_FORMAT`                             | only `packages/studio/.env.example`                                                   |
+| `STATIC_ASSET_MAX_AGE`                   | only `packages/studio/.env.example`                                                   |
 
 These are not safe for automation to delete unilaterally because `.env.example`
 is operator-facing documentation and some names may be placeholders for planned

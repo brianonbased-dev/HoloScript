@@ -34,18 +34,18 @@ export function StatusPanel() {
 
 ## Package Surface
 
-| Surface                   | Purpose                                      |
-| ------------------------- | -------------------------------------------- |
+| Surface                    | Purpose                                      |
+| -------------------------- | -------------------------------------------- |
 | `Button`, `Badge`, `Input` | Basic command, status, and form primitives   |
-| `Spinner`, `StatCard`     | Loading and metric display components        |
-| `PanelSplitter`           | Resize handle for split-pane product layouts |
-| `ContextMenu`             | Fixed-position contextual command menu       |
-| `SimplePropertyInspector` | Object property editing surface              |
-| `ErrorBoundary`           | Recoverable React crash boundary             |
-| `Modal`, `TabGroup`       | Shared studio workflow containers            |
-| `UncertaintyIndicator`    | Confidence/provenance display primitive      |
-| `multimodal`              | Accessibility helper exports                 |
-| `cn`                      | Tailwind class merge helper                  |
+| `Spinner`, `StatCard`      | Loading and metric display components        |
+| `PanelSplitter`            | Resize handle for split-pane product layouts |
+| `ContextMenu`              | Fixed-position contextual command menu       |
+| `SimplePropertyInspector`  | Object property editing surface              |
+| `ErrorBoundary`            | Recoverable React crash boundary             |
+| `Modal`, `TabGroup`        | Shared studio workflow containers            |
+| `UncertaintyIndicator`     | Confidence/provenance display primitive      |
+| `multimodal`               | Accessibility helper exports                 |
+| `cn`                       | Tailwind class merge helper                  |
 
 ## Strategy Role
 

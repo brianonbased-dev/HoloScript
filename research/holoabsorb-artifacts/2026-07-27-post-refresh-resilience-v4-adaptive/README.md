@@ -55,12 +55,12 @@ vision-model families, and model-version custody receipts.
 
 Paper 5 used the frozen 54-query development corpus:
 
-| System | Precision@5 | MRR |
-|---|---:|---:|
-| Keyword-only | 0.200 | 0.449 |
-| HoloEmbed semantic-only | 0.093 | 0.240 |
-| Hybrid | 0.185 | 0.458 |
-| GraphRAG | 0.193 | 0.463 |
+| System                  | Precision@5 |   MRR |
+| ----------------------- | ----------: | ----: |
+| Keyword-only            |       0.200 | 0.449 |
+| HoloEmbed semantic-only |       0.093 | 0.240 |
+| Hybrid                  |       0.185 | 0.458 |
+| GraphRAG                |       0.193 | 0.463 |
 
 Against the legacy structural-vector floor, the current HoloEmbed GraphRAG arm
 improved Precision@5 by 0.056 and MRR by 0.073. These remain

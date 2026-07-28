@@ -18,12 +18,17 @@ import { Simulation } from '@holoscript/engine';
 import { GLTFPipeline } from '../../packages/core/src/compiler/GLTFPipeline';
 
 type SDF = Simulation.SDFNode;
-const prim = (primitive: string, params: Record<string, number>, translate?: [number, number, number]): SDF =>
+const prim = (
+  primitive: string,
+  params: Record<string, number>,
+  translate?: [number, number, number]
+): SDF =>
   ({ type: 'primitive', primitive, params, ...(translate ? { translate } : {}) }) as unknown as SDF;
 const box = (w: number, h: number, d: number, t?: [number, number, number]): SDF =>
   prim('box', { width: w, height: h, depth: d }, t); // half-extents
 const sphere = (r: number, t?: [number, number, number]): SDF => prim('sphere', { radius: r }, t);
-const cyl = (h: number, r: number, t?: [number, number, number]): SDF => prim('cylinder', { height: h, radius: r }, t);
+const cyl = (h: number, r: number, t?: [number, number, number]): SDF =>
+  prim('cylinder', { height: h, radius: r }, t);
 // cone: c0/c1 = base/apex ratio, height = vertical extent (apex at -height, base widens upward); see SDFPointEvaluator.coneDistance
 const cone = (height: number, c0: number, c1: number, t?: [number, number, number]): SDF =>
   prim('cone', { height, c0, c1 }, t);
@@ -43,7 +48,12 @@ const subtract = (...children: SDF[]): SDF =>
 // ── domain ops (exactly one child) ──
 // repeat: infinite-grid tiling with cell sizes cx/cy/cz; marchingCubes bounds + closeBoundary limit how many tiles appear.
 const repeat = (cx: number, cy: number, cz: number, child: SDF): SDF =>
-  ({ type: 'domain', operation: 'repeat', params: { cx, cy, cz }, children: [child] }) as unknown as SDF;
+  ({
+    type: 'domain',
+    operation: 'repeat',
+    params: { cx, cy, cz },
+    children: [child],
+  }) as unknown as SDF;
 // twist: rotate around Y by k*y radians (organic lean of a trunk/foliage)
 const twist = (k: number, child: SDF): SDF =>
   ({ type: 'domain', operation: 'twist', params: { k }, children: [child] }) as unknown as SDF;
@@ -71,14 +81,19 @@ interface Piece {
 // ── vertex-color helpers (cheap deterministic organic richness) ──────────────
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const mix = (a: RGB, b: RGB, t: number): RGB => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+const mix = (a: RGB, b: RGB, t: number): RGB => [
+  lerp(a[0], b[0], t),
+  lerp(a[1], b[1], t),
+  lerp(a[2], b[2], t),
+];
 // Cheap, position-deterministic hash noise in [-1,1]; stable across runs (no RNG state).
 const hashNoise = (x: number, y: number, z: number): number => {
   const s = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453;
   return (s - Math.floor(s)) * 2 - 1; // [-1,1]
 };
 // Normalized height 0 (bottom) .. 1 (top) of a vertex within the mesh bounds.
-const heightT = (py: number, b: Bounds) => clamp01((py - b.min[1]) / Math.max(1e-4, b.max[1] - b.min[1]));
+const heightT = (py: number, b: Bounds) =>
+  clamp01((py - b.min[1]) / Math.max(1e-4, b.max[1] - b.min[1]));
 
 /**
  * Foliage gradient: darker/cooler green at the base & interior, brighter/yellower at tips & top,
@@ -90,7 +105,10 @@ const foliageColor =
   (pos, _i, b) => {
     const t = heightT(pos[1], b);
     // Radial term: interior (near trunk axis) reads darker than the lit outer canopy.
-    const r = clamp01(Math.hypot(pos[0], pos[2]) / Math.max(1e-4, Math.max(b.max[0] - b.min[0], b.max[2] - b.min[2]) * 0.5));
+    const r = clamp01(
+      Math.hypot(pos[0], pos[2]) /
+        Math.max(1e-4, Math.max(b.max[0] - b.min[0], b.max[2] - b.min[2]) * 0.5)
+    );
     const lift = clamp01(0.55 * t + 0.45 * r);
     const c = mix(base, tip, lift);
     const n = hashNoise(pos[0] * 7.1, pos[1] * 7.1, pos[2] * 7.1) * mottle;
@@ -192,11 +210,7 @@ const PIECES: Piece[] = [
   {
     // Lotus pad with a bud — stacked flattened forms.
     name: 'lotus',
-    sdf: smoothUnion(
-      0.22,
-      cyl(0.08, 1.0, [0, 0.1, 0]),
-      sphere(0.45, [0, 0.5, 0])
-    ),
+    sdf: smoothUnion(0.22, cyl(0.08, 1.0, [0, 0.1, 0]), sphere(0.45, [0, 0.5, 0])),
     bounds: { min: [-1.2, -0.1, -1.2], max: [1.2, 1.1, 1.2] },
     res: [80, 56, 80],
     color: [0.9, 0.55, 0.75, 1], // lotus pink
@@ -350,12 +364,7 @@ const PIECES: Piece[] = [
   {
     // grass_patch2 — taller, sparser wild-grass field on a wider grid (variety against grass_patch).
     name: 'grass_patch2',
-    sdf: repeat(
-      0.36,
-      10,
-      0.36,
-      roundCone(0.48, 0.055, 0.01, [0, 0.0, 0])
-    ),
+    sdf: repeat(0.36, 10, 0.36, roundCone(0.48, 0.055, 0.01, [0, 0.0, 0])),
     bounds: { min: [-1.3, -0.02, -1.3], max: [1.3, 0.56, 1.3] },
     res: [140, 36, 140],
     color: [0.176, 0.353, 0.184, 1], // meadow green #2d5a2f

@@ -18,27 +18,27 @@ The `.holo → .tsx` (R3F) compiler is not a one-off mistake — it is the worst
 scoring each against a substrate axis (does it pull agents out of native HoloScript?) and a value
 axis (does authoring through it actually save tokens / deliver utility?) yields:
 
-| Verdict | Count | Meaning |
-|---|---|---|
-| **APEX-POISON** | 9 | High training-gravity *and* duplicates the native runtime → kill / fold into native runtime |
-| **ESCAPE-HATCH-EXPORT** | 18 | High training-gravity, real export utility → keep but **quarantine** (fire-and-forget, agents never debug output) |
-| **SAFE-FORMAT** | 16 | Low training-gravity interchange formats → keep (these are HoloScript's *strongest* token-economy wins) |
-| **GPU-LOWERING** | 5 | WGSL/GLSL — safe **iff** internal lowering, poison **iff** hand-edited source |
-| **INTERNAL-INFRA** | 14 | Compilation plumbing, not a defection target → keep |
-| **DEAD/POC** | 2 | Orphan, no live consumer → delete |
-| **Total** | **64** | OUTPUT-TARGET: 45 · INTERNAL/GPU: 19 |
+| Verdict                 | Count  | Meaning                                                                                                           |
+| ----------------------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
+| **APEX-POISON**         | 9      | High training-gravity _and_ duplicates the native runtime → kill / fold into native runtime                       |
+| **ESCAPE-HATCH-EXPORT** | 18     | High training-gravity, real export utility → keep but **quarantine** (fire-and-forget, agents never debug output) |
+| **SAFE-FORMAT**         | 16     | Low training-gravity interchange formats → keep (these are HoloScript's _strongest_ token-economy wins)           |
+| **GPU-LOWERING**        | 5      | WGSL/GLSL — safe **iff** internal lowering, poison **iff** hand-edited source                                     |
+| **INTERNAL-INFRA**      | 14     | Compilation plumbing, not a defection target → keep                                                               |
+| **DEAD/POC**            | 2      | Orphan, no live consumer → delete                                                                                 |
+| **Total**               | **64** | OUTPUT-TARGET: 45 · INTERNAL/GPU: 19                                                                              |
 
 **Core conclusions:**
 
 1. **9 apex-poison compilers** all emit JS/TS web-3D and duplicate the runtime executor:
    `R3FCompiler`, `ThreeJSCompiler`, `BabylonCompiler`, `PlayCanvasCompiler`, `Native2DCompiler`,
    `PhoneSleeveVRCompiler`, `FlatSemanticCompiler`, `VRRCompiler`, `ARCompiler`. **This kill-list
-   is the same backlog as "complete the native runtime"** — retiring them *is* closing the
+   is the same backlog as "complete the native runtime"** — retiring them _is_ closing the
    trait-parity gap from the companion doc.
 2. **HoloScript's value is not uniform across targets** (your point: "reduces tokens for some but
-   not all"). Its *strongest* justification is the SAFE-FORMAT bucket — verbose interchange formats
+   not all"). Its _strongest_ justification is the SAFE-FORMAT bucket — verbose interchange formats
    (URDF/USD/DTDL/SDF) where a few `.holo` lines expand to hundreds of lines no agent would
-   hand-write, with zero escape-hatch risk. Its *weakest* is the apex-poison bucket, where the
+   hand-write, with zero escape-hatch risk. Its _weakest_ is the apex-poison bucket, where the
    token "win" evaporates the moment an agent reads the generated `.tsx`.
 3. The fix is two-pronged: **delete/fold apex-poison + dead**, and **govern the escape-hatch
    exports** so agents never round-trip through them — enforced by the `.holo → .hsplus → .hs → .ts`
@@ -54,7 +54,7 @@ A compiler must be judged on **two independent axes**. Poison is one axis; value
 
 No agent family (Claude/Codex/Grok/Gemini) has meaningful HoloScript in its training corpus, but
 all have enormous corpora of the popular target languages. A compiler emitting such a target makes
-the agent's competence gradient point *out* of HoloScript.
+the agent's competence gradient point _out_ of HoloScript.
 
 - **Q1 lang-gravity.** General-purpose language with a large training corpus, hand-editable?
   (TS/JS/C#/Python/Swift/GDScript/C++ = HIGH; WGSL/GLSL = MED; XML/JSON/binary = LOW; internal IR = N/A)
@@ -70,7 +70,7 @@ the agent's competence gradient point *out* of HoloScript.
 HoloScript justifies a target through **either** of two independent values:
 
 - **Token economy.** A `.holo` source that expands into a large target output is a compression
-  win — *but only if the agent never has to read the expanded output.* Verbose targets
+  win — _but only if the agent never has to read the expanded output._ Verbose targets
   (USD/URDF/Unity-C#/shader code) win big; targets where `.holo` is as verbose as the output, or
   where the agent must read the generated code to debug it, win nothing or go negative.
 - **Utility.** Value independent of token count: one source → many targets, validation, trait
@@ -80,10 +80,10 @@ A target is **justified** if it scores token-economy OR utility, **and** is not 
 
 ### 2.3 The precise token mechanism (why `.tsx` is negative-value)
 
-Writing `.holo` to get `.tsx` is a token win *only while the `.tsx` stays unread*. The instant an
+Writing `.holo` to get `.tsx` is a token win _only while the `.tsx` stays unread_. The instant an
 agent debugs the generated `.tsx`, you pay the tokens **twice** (author `.holo` + read/edit
 `.tsx`) **and** the agent has now defected to TypeScript. So apex-poison compilers are
-double-losers: negative token economy *and* substrate poison. SAFE-FORMAT compilers are the
+double-losers: negative token economy _and_ substrate poison. SAFE-FORMAT compilers are the
 inverse: the agent writes a little `.holo`, never reads the URDF/USD, and gets a verbose, valid
 artifact — pure positive economy, zero poison.
 
@@ -102,9 +102,9 @@ The intended fallback order for an agent authoring in this ecosystem:
 **The distinction that the whole poison analysis turns on:**
 
 - **Authored `.ts` (legitimate).** Agent writes TypeScript because HoloScript can't yet express the
-  capability. This is *falling down* the hierarchy on purpose — fine.
+  capability. This is _falling down_ the hierarchy on purpose — fine.
 - **Generated `.tsx` that becomes authored (poison).** A compiler emits `.tsx` from `.holo`, then
-  an agent edits the `.tsx`. This *inverts* the hierarchy: the agent is *pushed* to the bottom by
+  an agent edits the `.tsx`. This _inverts_ the hierarchy: the agent is _pushed_ to the bottom by
   the codegen path even when `.holo` would have sufficed.
 
 The render-surface freeze (`scripts/holo-ci/check-render-surface-native.mjs`) already blocks
@@ -120,17 +120,17 @@ consumer evidence, and verdict. LOC approximate.
 
 ### 3.1 APEX-POISON (9) — kill / fold into native runtime
 
-| Compiler | Target | Q1 | Q3 | Live? | LOC |
-|---|---|---|---|---|---|
-| `R3FCompiler` | TS / React Three Fiber | HIGH | YES | LIVE (2 tests) | ~4380 |
-| `ThreeJSCompiler` | TS / vanilla Three.js | HIGH | YES | LIVE, no tests | ~1200 |
-| `BabylonCompiler` | TS / Babylon.js | HIGH | YES | LIVE (35k test) | ~999 |
-| `PlayCanvasCompiler` | JS / PlayCanvas | HIGH | YES | LIVE (39k test) | ~999 |
-| `Native2DCompiler` | HTML / React `.tsx` UI | HIGH | YES | LIVE | ~1228 |
-| `PhoneSleeveVRCompiler` | HTML5 stereoscopic Three.js | HIGH | YES | LIVE, no tests | ~1763 |
-| `FlatSemanticCompiler` | React / R3F (semantic canvas) | HIGH | YES | LIVE (12k test) | ~1200 |
-| `VRRCompiler` | Three.js / Babylon (VRR twin) | HIGH | YES | LIVE, no tests | ~1149 |
-| `ARCompiler` | WebXR / AR.js JS | HIGH | YES | LIVE, no tests | ~1050 |
+| Compiler                | Target                        | Q1   | Q3  | Live?           | LOC   |
+| ----------------------- | ----------------------------- | ---- | --- | --------------- | ----- |
+| `R3FCompiler`           | TS / React Three Fiber        | HIGH | YES | LIVE (2 tests)  | ~4380 |
+| `ThreeJSCompiler`       | TS / vanilla Three.js         | HIGH | YES | LIVE, no tests  | ~1200 |
+| `BabylonCompiler`       | TS / Babylon.js               | HIGH | YES | LIVE (35k test) | ~999  |
+| `PlayCanvasCompiler`    | JS / PlayCanvas               | HIGH | YES | LIVE (39k test) | ~999  |
+| `Native2DCompiler`      | HTML / React `.tsx` UI        | HIGH | YES | LIVE            | ~1228 |
+| `PhoneSleeveVRCompiler` | HTML5 stereoscopic Three.js   | HIGH | YES | LIVE, no tests  | ~1763 |
+| `FlatSemanticCompiler`  | React / R3F (semantic canvas) | HIGH | YES | LIVE (12k test) | ~1200 |
+| `VRRCompiler`           | Three.js / Babylon (VRR twin) | HIGH | YES | LIVE, no tests  | ~1149 |
+| `ARCompiler`            | WebXR / AR.js JS              | HIGH | YES | LIVE, no tests  | ~1050 |
 
 All nine emit a JS/TS web-3D scene and duplicate the native runtime. They are the gross
 **~12k+ LOC** that the native runtime + trait-parity backlog (companion doc) replaces.
@@ -140,26 +140,26 @@ All nine emit a JS/TS web-3D scene and duplicate the native runtime. They are th
 High lang-gravity, **no** runtime overlap → real one-way export utility, but agents must never
 debug their output.
 
-| Compiler | Target | LOC | Note |
-|---|---|---|---|
-| `UnityCompiler` | C# / MonoBehaviour | ~1019 | largest engine target |
-| `UnrealCompiler` | C++ / UE5 Blueprint | ~1100 | 7k test |
-| `GodotCompiler` | GDScript (Godot 4) | ~1000+ | no tests |
-| `IOSCompiler` | Swift / ARKit | ~2100 | 4 tests, LIVE |
-| `AndroidCompiler` | Kotlin / ARCore | ~2100 | 2 tests, LIVE |
-| `AndroidXRCompiler` | Kotlin / Jetpack Compose XR | ~1400 | experimental |
-| `VisionOSCompiler` | Swift / RealityKit | ~1100 | no tests |
-| `MVHEVCCompiler` | MV-HEVC / Swift (Vision Pro) | ~1000 | has test |
-| `OpenXRCompiler` | C++ / Vulkan+GLES | ~1215 | no tests |
-| `AIGlassesCompiler` | Kotlin Compose / Glimmer | ~800 | experimental |
-| `Canvas2DGameCompiler` | HTML5 Canvas game | ~1100 | no tests |
-| `Vector2DCompiler` | React SVG | ~950 | Studio consumer |
-| `NextJSCompiler` | Next.js page.tsx | ~1100 | wraps Native2D |
-| `NextJSAPICompiler` | Next.js API route.ts | ~1200 | 15k test |
-| `NodeServiceCompiler` | Node.js / Express | ~1259 | experimental |
-| `NFTMarketplaceCompiler` | Solidity ERC-1155 | ~1050 | experimental |
-| `VRChatCompiler` | UdonSharp C# / VRC SDK3 | ~1200 | overclaimed, incomplete |
-| `WASMCompiler` | WebAssembly WAT/WASM | ~1616 | 13k test |
+| Compiler                 | Target                       | LOC    | Note                    |
+| ------------------------ | ---------------------------- | ------ | ----------------------- |
+| `UnityCompiler`          | C# / MonoBehaviour           | ~1019  | largest engine target   |
+| `UnrealCompiler`         | C++ / UE5 Blueprint          | ~1100  | 7k test                 |
+| `GodotCompiler`          | GDScript (Godot 4)           | ~1000+ | no tests                |
+| `IOSCompiler`            | Swift / ARKit                | ~2100  | 4 tests, LIVE           |
+| `AndroidCompiler`        | Kotlin / ARCore              | ~2100  | 2 tests, LIVE           |
+| `AndroidXRCompiler`      | Kotlin / Jetpack Compose XR  | ~1400  | experimental            |
+| `VisionOSCompiler`       | Swift / RealityKit           | ~1100  | no tests                |
+| `MVHEVCCompiler`         | MV-HEVC / Swift (Vision Pro) | ~1000  | has test                |
+| `OpenXRCompiler`         | C++ / Vulkan+GLES            | ~1215  | no tests                |
+| `AIGlassesCompiler`      | Kotlin Compose / Glimmer     | ~800   | experimental            |
+| `Canvas2DGameCompiler`   | HTML5 Canvas game            | ~1100  | no tests                |
+| `Vector2DCompiler`       | React SVG                    | ~950   | Studio consumer         |
+| `NextJSCompiler`         | Next.js page.tsx             | ~1100  | wraps Native2D          |
+| `NextJSAPICompiler`      | Next.js API route.ts         | ~1200  | 15k test                |
+| `NodeServiceCompiler`    | Node.js / Express            | ~1259  | experimental            |
+| `NFTMarketplaceCompiler` | Solidity ERC-1155            | ~1050  | experimental            |
+| `VRChatCompiler`         | UdonSharp C# / VRC SDK3      | ~1200  | overclaimed, incomplete |
+| `WASMCompiler`           | WebAssembly WAT/WASM         | ~1616  | 13k test                |
 
 > Note: `NextJSCompiler` wraps `Native2DCompiler`, so it inherits apex-poison risk on its render
 > surface even though its server/API role is legitimate. Treat its render output as poison, its
@@ -186,9 +186,9 @@ KHR_gaussian_splatting) · `OpenXRSpatialEntitiesCompiler` (spatial-anchor JSON)
 `ShaderGraphCompiler` (WGSL, prod test) · `SDFRayMarchCompiler` (GLSL, 1892 test) ·
 `NIRToWGSLCompiler` (NIR→WGSL).
 
-> These are the **correct** low-level target the native runtime *should* emit to drive the GPU.
+> These are the **correct** low-level target the native runtime _should_ emit to drive the GPU.
 > Verdict flips only by intent: internal lowering = keep and lean on; hand-edited WGSL source =
-> poison. They are *not* in the kill list.
+> poison. They are _not_ in the kill list.
 
 ### 3.5 INTERNAL-INFRA (14) — compilation plumbing, keep
 
@@ -212,8 +212,8 @@ same work seen twice**:
 
 - The companion doc found **79 traits** the R3F path emits with no native runtime handler (~50 real
   blockers + ~12 no-ops after triage), and **22 parity-OK**.
-- Retiring `R3FCompiler` (and the other 8 apex-poison web compilers) is *only safe once those
-  ~50 handlers exist in `holo-composition-executor`/`BrowserRuntime`* and a CI parity gate proves
+- Retiring `R3FCompiler` (and the other 8 apex-poison web compilers) is _only safe once those
+  ~50 handlers exist in `holo-composition-executor`/`BrowserRuntime`_ and a CI parity gate proves
   every R3F-emitted trait has a native handler or an explicit no-op.
 
 So the sequencing from the companion doc governs this capstone's kill action: **close native
@@ -232,8 +232,8 @@ they stop functioning as agent defection paths:
 2. **Agents never debug export output.** If a Unity/Unreal/Swift export is wrong, the fix goes in
    the `.holo` source + the compiler, never in the emitted C#/C++/Swift.
 3. **Hierarchy enforcement.** Author order is `.holo → .hsplus → .hs`, with `.ts` only when the
-   HoloScript codebase cannot support the need — and that `.ts` is *authored bridge/tooling code*,
-   never *edited compiler output*. A lint/CI signal should distinguish "authored `.ts`" from
+   HoloScript codebase cannot support the need — and that `.ts` is _authored bridge/tooling code_,
+   never _edited compiler output_. A lint/CI signal should distinguish "authored `.ts`" from
    "touched `@generated` output."
 4. **NextJS render caveat.** `NextJSCompiler`'s render path wraps `Native2DCompiler` (apex-poison);
    only its API/server role is a clean escape-hatch.
@@ -271,10 +271,10 @@ This capstone classifies the compiler matrix and sequences the cleanup. It expli
   target verbosity, not measured. A real measurement (tokens to author `.holo` vs. tokens to author
   the target directly, per bucket) would harden the value axis — worth a follow-up experiment.
 
-One-line summary: *the compiler matrix is mostly healthy — 16 safe formats + 14 internal + 5
+One-line summary: _the compiler matrix is mostly healthy — 16 safe formats + 14 internal + 5
 GPU-lowering are keepers and several are HoloScript's best token-economy wins — but 9 apex-poison
 web compilers must fold into the native runtime, 2 dead ones deleted, and 18 exports fenced so they
-stop training agents to leave HoloScript.*
+stop training agents to leave HoloScript._
 
 ---
 

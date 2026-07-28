@@ -19,12 +19,12 @@ One preregistered S4 control was consistently better than the scalar-calibrated
 primary transport on the already observed S4 pilot. Treating the unscaled
 mean-centered control as primary gives exploratory macro means:
 
-| Comparison | Lane A | Lane B |
-|---|---:|---:|
-| gain over identity | `0.07344000` | `0.05669890` |
-| gain over mean-final anchor | `0.06748600` | `0.05335311` |
+| Comparison                    |       Lane A |       Lane B |
+| ----------------------------- | -----------: | -----------: |
+| gain over identity            | `0.07344000` | `0.05669890` |
+| gain over mean-final anchor   | `0.06748600` | `0.05335311` |
 | gain over S4 scalar transport | `0.02001401` | `0.01768297` |
-| gain over local Taylor | `0.08001922` | `0.07734324` |
+| gain over local Taylor        | `0.08001922` | `0.07734324` |
 
 These post-hoc means select one already registered estimator factor; they do
 not establish an ordinary gate, set a threshold, or contribute any S5 row.
@@ -121,11 +121,11 @@ prohibited; all results are still published.
 
 S5 consumes only the computationally unobserved S4 confirmation artifacts:
 
-| Lane | Source artifact | Rows | SHA-256 |
-|---|---|---:|---|
-| A | `research/data/jspace-s4/fit-a-confirmation.jsonl` | 72 | `sha256:005c411edc0a53684b95a627ced5672ea67ac74683531b2dd9016e52c0d68637` |
-| B | `research/data/jspace-s4/fit-b-confirmation.jsonl` | 72 | `sha256:53c67df229050e9496d836d0a399e9dbe906dc2821efa5077813f976cc0d733b` |
-| H | `research/data/jspace-s4/fidelity-h-confirmation.jsonl` | 72 | `sha256:3bdbd1c027c5408fcd96d47825c2698b703fa92239ec01e6112138197dfd54d3` |
+| Lane | Source artifact                                         | Rows | SHA-256                                                                   |
+| ---- | ------------------------------------------------------- | ---: | ------------------------------------------------------------------------- |
+| A    | `research/data/jspace-s4/fit-a-confirmation.jsonl`      |   72 | `sha256:005c411edc0a53684b95a627ced5672ea67ac74683531b2dd9016e52c0d68637` |
+| B    | `research/data/jspace-s4/fit-b-confirmation.jsonl`      |   72 | `sha256:53c67df229050e9496d836d0a399e9dbe906dc2821efa5077813f976cc0d733b` |
+| H    | `research/data/jspace-s4/fidelity-h-confirmation.jsonl` |   72 | `sha256:3bdbd1c027c5408fcd96d47825c2698b703fa92239ec01e6112138197dfd54d3` |
 
 The common source-coordinate digest is
 `sha256:1a5a1291a0f215c1a73f74683bbf34bef79b1ed953b8cb17e21192a46ce93ecc`.
@@ -159,7 +159,7 @@ no prompt generation, edits, ranking by content, or semantic inspection.
 Coordinate indices inherit these exact public mappings:
 
 - family order: `[physical, relational, causal_temporal, normative,
-  semantic_pragmatic, planning_tension]`;
+semantic_pragmatic, planning_tension]`;
 - position bins: `0=[0,127]`, `1=[128,255]`, `2=[256,383]`, and
   `3=[384,511]`; and
 - endpoint slots: `0=analysis-colon/form_0/variant_0`,
@@ -180,14 +180,14 @@ per family, and nine rows per position bin.
 The following table is frozen from coordinate metadata alone. `P` lists pilot
 endpoint slots and `C` lists confirmation slots.
 
-| Family | Bin 0 | Bin 1 | Bin 2 | Bin 3 |
-|---|---|---|---|---|
-| `physical` | P `5`; C `6,7` | P `5,6`; C `7` | P `0`; C `3,4` | P `1,4`; C `2` |
-| `relational` | P `2,7`; C `3` | P `4`; C `1,6` | P `0,3`; C `5` | P `0`; C `1,2` |
-| `causal_temporal` | P `3`; C `4,5` | P `2,6`; C `7` | P `4`; C `0,7` | P `1,5`; C `6` |
-| `normative` | P `0,2`; C `1` | P `3`; C `2,4` | P `3,7`; C `0` | P `5`; C `1,6` |
+| Family               | Bin 0          | Bin 1          | Bin 2          | Bin 3          |
+| -------------------- | -------------- | -------------- | -------------- | -------------- |
+| `physical`           | P `5`; C `6,7` | P `5,6`; C `7` | P `0`; C `3,4` | P `1,4`; C `2` |
+| `relational`         | P `2,7`; C `3` | P `4`; C `1,6` | P `0,3`; C `5` | P `0`; C `1,2` |
+| `causal_temporal`    | P `3`; C `4,5` | P `2,6`; C `7` | P `4`; C `0,7` | P `1,5`; C `6` |
+| `normative`          | P `0,2`; C `1` | P `3`; C `2,4` | P `3,7`; C `0` | P `5`; C `1,6` |
 | `semantic_pragmatic` | P `6`; C `5,7` | P `0,7`; C `2` | P `1`; C `3,4` | P `4,6`; C `5` |
-| `planning_tension` | P `1,3`; C `2` | P `6`; C `0,3` | P `5,7`; C `1` | P `2`; C `0,4` |
+| `planning_tension`   | P `1,3`; C `2` | P `6`; C `0,3` | P `5,7`; C `1` | P `2`; C `0,4` |
 
 The table is the canonical lexicographically maximal feasible bit vector with
 `1 > 0` over coordinates ordered by

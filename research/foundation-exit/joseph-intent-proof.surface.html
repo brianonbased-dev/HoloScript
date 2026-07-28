@@ -1,214 +1,235 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Joseph Intent Proof Surface</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #11151a;
-      --panel: #171d23;
-      --line: #33414e;
-      --text: #ecf4f8;
-      --muted: #a8b9c3;
-      --cyan: #00d4ff;
-      --amber: #ffcf5a;
-      --green: #72e9a4;
-    }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Joseph Intent Proof Surface</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #11151a;
+        --panel: #171d23;
+        --line: #33414e;
+        --text: #ecf4f8;
+        --muted: #a8b9c3;
+        --cyan: #00d4ff;
+        --amber: #ffcf5a;
+        --green: #72e9a4;
+      }
 
-    * {
-      box-sizing: border-box;
-    }
+      * {
+        box-sizing: border-box;
+      }
 
-    html,
-    body {
-      margin: 0;
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family:
-        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      letter-spacing: 0;
-    }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        letter-spacing: 0;
+      }
 
-    body {
-      display: grid;
-      grid-template-rows: auto 1fr;
-    }
+      body {
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
 
-    header {
-      border-bottom: 1px solid var(--line);
-      background: #151b21;
-      padding: 18px clamp(16px, 3vw, 36px);
-    }
+      header {
+        border-bottom: 1px solid var(--line);
+        background: #151b21;
+        padding: 18px clamp(16px, 3vw, 36px);
+      }
 
-    h1,
-    p {
-      margin: 0;
-    }
+      h1,
+      p {
+        margin: 0;
+      }
 
-    h1 {
-      font-size: clamp(1.25rem, 1rem + 1.2vw, 2rem);
-      font-weight: 720;
-      line-height: 1.08;
-    }
+      h1 {
+        font-size: clamp(1.25rem, 1rem + 1.2vw, 2rem);
+        font-weight: 720;
+        line-height: 1.08;
+      }
 
-    .value-line {
-      margin-top: 8px;
-      max-width: 74ch;
-      color: var(--muted);
-      font-size: 0.96rem;
-      line-height: 1.45;
-    }
+      .value-line {
+        margin-top: 8px;
+        max-width: 74ch;
+        color: var(--muted);
+        font-size: 0.96rem;
+        line-height: 1.45;
+      }
 
-    main {
-      display: grid;
-      grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
-      gap: 18px;
-      width: min(1440px, 100%);
-      margin: 0 auto;
-      padding: clamp(16px, 2vw, 28px);
-    }
-
-    .surface {
-      min-width: 0;
-      border: 1px solid var(--line);
-      background: #090c10;
-    }
-
-    .surface img {
-      display: block;
-      width: 100%;
-      height: auto;
-      aspect-ratio: 16 / 9;
-      object-fit: contain;
-      background: #090c10;
-    }
-
-    aside {
-      display: grid;
-      align-content: start;
-      gap: 14px;
-      min-width: 0;
-    }
-
-    section {
-      border: 1px solid var(--line);
-      background: var(--panel);
-      padding: 14px;
-    }
-
-    h2 {
-      margin: 0 0 10px;
-      font-size: 0.86rem;
-      text-transform: uppercase;
-      color: var(--muted);
-      font-weight: 720;
-    }
-
-    dl {
-      display: grid;
-      grid-template-columns: minmax(92px, auto) minmax(0, 1fr);
-      gap: 8px 12px;
-      margin: 0;
-      font-size: 0.9rem;
-      line-height: 1.35;
-    }
-
-    dt {
-      color: var(--muted);
-    }
-
-    dd {
-      margin: 0;
-      overflow-wrap: anywhere;
-    }
-
-    .ok {
-      color: var(--green);
-      font-weight: 700;
-    }
-
-    .warn {
-      color: var(--amber);
-      font-weight: 700;
-    }
-
-    pre {
-      max-height: 260px;
-      margin: 0;
-      overflow: auto;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      color: #d7e5ec;
-      font-size: 0.78rem;
-      line-height: 1.45;
-    }
-
-    a {
-      color: var(--cyan);
-      text-decoration-thickness: 1px;
-    }
-
-    @media (max-width: 860px) {
       main {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+        gap: 18px;
+        width: min(1440px, 100%);
+        margin: 0 auto;
+        padding: clamp(16px, 2vw, 28px);
+      }
+
+      .surface {
+        min-width: 0;
+        border: 1px solid var(--line);
+        background: #090c10;
+      }
+
+      .surface img {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 9;
+        object-fit: contain;
+        background: #090c10;
+      }
+
+      aside {
+        display: grid;
+        align-content: start;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      section {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        padding: 14px;
+      }
+
+      h2 {
+        margin: 0 0 10px;
+        font-size: 0.86rem;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 720;
       }
 
       dl {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: minmax(92px, auto) minmax(0, 1fr);
+        gap: 8px 12px;
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.35;
       }
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Joseph Intent Proof Surface</h1>
-    <p class="value-line">
-      One generated HoloScript object moves from invalid syntax to parser proof, compiler proof,
-      and a visible local render without asking Joseph to become the build engineer.
-    </p>
-  </header>
-  <main>
-    <figure class="surface" aria-label="Rendered HoloScript proof surface">
-      <img src="./joseph-intent-proof.surface.png" alt="Rendered HoloScript scene with SignalCube and ReceiptBeacon">
-    </figure>
-    <aside>
-      <section aria-labelledby="proof-state">
-        <h2 id="proof-state">Proof State</h2>
-        <dl>
-          <dt>Constraint</dt>
-          <dd>holoscript-subset.gbnf</dd>
-          <dt>Syntax</dt>
-          <dd class="ok">repaired and parsed</dd>
-          <dt>Compiler</dt>
-          <dd class="ok">WebGPU output produced</dd>
-          <dt>Surface</dt>
-          <dd class="ok">local screenshot rendered</dd>
-          <dt>Semantics</dt>
-          <dd class="warn">not claimed</dd>
-        </dl>
-      </section>
-      <section aria-labelledby="paths">
-        <h2 id="paths">Receipts</h2>
-        <dl>
-          <dt>Source</dt>
-          <dd><a href="./joseph-intent-proof.surface.holo">joseph-intent-proof.surface.holo</a></dd>
-          <dt>Receipt</dt>
-          <dd><a href="./2026-07-05-holollama-founder-proof-surface.receipt.json">founder-proof-surface.receipt.json</a></dd>
-          <dt>Origin</dt>
-          <dd><a href="./2026-07-05-holollama-constrained-native-generation.receipt.json">constrained generation receipt</a></dd>
-        </dl>
-      </section>
-      <section aria-labelledby="source">
-        <h2 id="source">Promoted Source</h2>
-        <pre>composition "JosephIntentProof" {
+
+      dt {
+        color: var(--muted);
+      }
+
+      dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .ok {
+        color: var(--green);
+        font-weight: 700;
+      }
+
+      .warn {
+        color: var(--amber);
+        font-weight: 700;
+      }
+
+      pre {
+        max-height: 260px;
+        margin: 0;
+        overflow: auto;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        color: #d7e5ec;
+        font-size: 0.78rem;
+        line-height: 1.45;
+      }
+
+      a {
+        color: var(--cyan);
+        text-decoration-thickness: 1px;
+      }
+
+      @media (max-width: 860px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+
+        dl {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Joseph Intent Proof Surface</h1>
+      <p class="value-line">
+        One generated HoloScript object moves from invalid syntax to parser proof, compiler proof,
+        and a visible local render without asking Joseph to become the build engineer.
+      </p>
+    </header>
+    <main>
+      <figure class="surface" aria-label="Rendered HoloScript proof surface">
+        <img
+          src="./joseph-intent-proof.surface.png"
+          alt="Rendered HoloScript scene with SignalCube and ReceiptBeacon"
+        />
+      </figure>
+      <aside>
+        <section aria-labelledby="proof-state">
+          <h2 id="proof-state">Proof State</h2>
+          <dl>
+            <dt>Constraint</dt>
+            <dd>holoscript-subset.gbnf</dd>
+            <dt>Syntax</dt>
+            <dd class="ok">repaired and parsed</dd>
+            <dt>Compiler</dt>
+            <dd class="ok">WebGPU output produced</dd>
+            <dt>Surface</dt>
+            <dd class="ok">local screenshot rendered</dd>
+            <dt>Semantics</dt>
+            <dd class="warn">not claimed</dd>
+          </dl>
+        </section>
+        <section aria-labelledby="paths">
+          <h2 id="paths">Receipts</h2>
+          <dl>
+            <dt>Source</dt>
+            <dd>
+              <a href="./joseph-intent-proof.surface.holo">joseph-intent-proof.surface.holo</a>
+            </dd>
+            <dt>Receipt</dt>
+            <dd>
+              <a href="./2026-07-05-holollama-founder-proof-surface.receipt.json"
+                >founder-proof-surface.receipt.json</a
+              >
+            </dd>
+            <dt>Origin</dt>
+            <dd>
+              <a href="./2026-07-05-holollama-constrained-native-generation.receipt.json"
+                >constrained generation receipt</a
+              >
+            </dd>
+          </dl>
+        </section>
+        <section aria-labelledby="source">
+          <h2 id="source">Promoted Source</h2>
+          <pre>
+composition "JosephIntentProof" {
   object "SignalCube" { geometry: "cube" }
   object "ReceiptBeacon" { geometry: "sphere" }
-}</pre>
-      </section>
-    </aside>
-  </main>
-</body>
+}</pre
+          >
+        </section>
+      </aside>
+    </main>
+  </body>
 </html>

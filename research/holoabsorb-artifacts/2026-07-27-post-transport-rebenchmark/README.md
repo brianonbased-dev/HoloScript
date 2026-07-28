@@ -15,18 +15,18 @@ Receipt SHA-256:
 
 ## Gates
 
-| Stage | Result | Duration |
-| --- | ---: | ---: |
-| Sequential scan determinism | PASS | 37.608 s |
-| Frozen Paper 5 dataset audit | PASS | 0.130 s |
-| HoloAbsorb umbrella/workstream audit | PASS | 0.540 s |
-| Sovereign transport resilience | PASS | 1.098 s |
-| Changed-symbol refresh | PASS | 8.508 s |
-| Paper 5 HoloEmbed retrieval | PASS | 25.658 s |
-| Paper 5 structural floor | PASS | 26.346 s |
-| Paper 5 bounded timing | PASS | 0.344 s |
-| Paper 26 HoloGraph regression | PASS | 3.651 s |
-| Paper 26 HoloEmbed regression | PASS | 1.557 s |
+| Stage                                | Result | Duration |
+| ------------------------------------ | -----: | -------: |
+| Sequential scan determinism          |   PASS | 37.608 s |
+| Frozen Paper 5 dataset audit         |   PASS |  0.130 s |
+| HoloAbsorb umbrella/workstream audit |   PASS |  0.540 s |
+| Sovereign transport resilience       |   PASS |  1.098 s |
+| Changed-symbol refresh               |   PASS |  8.508 s |
+| Paper 5 HoloEmbed retrieval          |   PASS | 25.658 s |
+| Paper 5 structural floor             |   PASS | 26.346 s |
+| Paper 5 bounded timing               |   PASS |  0.344 s |
+| Paper 26 HoloGraph regression        |   PASS |  3.651 s |
+| Paper 26 HoloEmbed regression        |   PASS |  1.557 s |
 
 ## Transport and refresh
 
@@ -49,12 +49,12 @@ The run used the source-audited held-out v1 dataset: 54 queries balanced
 18/18/18 across dependency, impact, and reasoning, with 160 relevance
 judgments and no missing gold files.
 
-| System | Precision@5 | MRR |
-| --- | ---: | ---: |
-| Keyword-only | 0.196 | 0.449 |
-| HoloEmbed semantic-only | 0.093 | 0.241 |
-| HoloEmbed hybrid | 0.181 | 0.458 |
-| HoloEmbed GraphRAG | 0.193 | 0.459 |
+| System                  | Precision@5 |   MRR |
+| ----------------------- | ----------: | ----: |
+| Keyword-only            |       0.196 | 0.449 |
+| HoloEmbed semantic-only |       0.093 | 0.241 |
+| HoloEmbed hybrid        |       0.181 | 0.458 |
+| HoloEmbed GraphRAG      |       0.193 | 0.459 |
 
 These values exactly reproduce the admitted
 `2026-07-26-paper5-source-audited-v1` receipt. Relative to the structural

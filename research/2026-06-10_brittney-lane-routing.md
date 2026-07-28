@@ -47,7 +47,7 @@ Surfaces touched:
    else `code`.
 
 Sovereign-first (founder directive 2026-06-05) is preserved: lanes modulate
-*which sovereign model* serves a request; the Anthropic BYOK fallback ordering
+_which sovereign model_ serves a request; the Anthropic BYOK fallback ordering
 is untouched.
 
 ## Validation
@@ -65,7 +65,7 @@ Deliberately unaddressed in this phase:
   recommended lane models (Qwen3.5-4B operator, qwen2.5-coder:7b code specialist,
   Qwen2.5-VL vision) still need serving endpoints + env configuration per deploy.
 - **The embeddings/retrieval lane is not wired.** EXP-1 showed the win comes from
-  model-task fit *plus* offload retrieval; `nomic-embed-text` source recall is a
+  model-task fit _plus_ offload retrieval; `nomic-embed-text` source recall is a
   separate integration.
 - **Brittney-v3 fine-tune undecided.** The 240K/1M datasets exist
   (`scripts/training/generate-brittney-v3*-dataset.ts`) but no trained model is

@@ -41,12 +41,12 @@ visual-context regression test were clean at the recorded head.
 
 ## Results
 
-| Arm | Fixed-target MRR | Fixed target top-1 | Mean target rank | Mean query |
-| --- | ---: | ---: | ---: | ---: |
-| No selection | 0.392 | 0% | 3.55 | 1,101.348 ms |
-| Correct selection | 1.000 | 100% | 1.00 | 1,089.598 ms |
-| Stale/unresolved | 0.392 | 0% | 3.55 | 1,097.036 ms |
-| Wrong/resolved | 0.392 | 0% | 3.55 | 1,073.511 ms |
+| Arm               | Fixed-target MRR | Fixed target top-1 | Mean target rank |   Mean query |
+| ----------------- | ---------------: | -----------------: | ---------------: | -----------: |
+| No selection      |            0.392 |                 0% |             3.55 | 1,101.348 ms |
+| Correct selection |            1.000 |               100% |             1.00 | 1,089.598 ms |
+| Stale/unresolved  |            0.392 |                 0% |             3.55 | 1,097.036 ms |
+| Wrong/resolved    |            0.392 |                 0% |             3.55 | 1,073.511 ms |
 
 All 20 correct selections resolved and promoted the fixed target to rank 1.
 All 20 stale selections remained unresolved and reproduced the complete

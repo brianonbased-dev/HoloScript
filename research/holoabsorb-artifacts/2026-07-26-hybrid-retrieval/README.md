@@ -29,12 +29,12 @@ explicit phrase the strongest exact-intent priority.
 The passing `unified-v2/holoabsorb-rebenchmark.json` receipt reports the
 10-query deterministic bootstrap:
 
-| System | P@5 | MRR | Runtime |
-| --- | ---: | ---: | ---: |
-| Keyword-only | 0.180 | 0.711 | 69 ms |
-| Pure HoloEmbed vector | 0.140 | 0.484 | 178 ms |
-| HoloAbsorb hybrid | 0.180 | 0.867 | 231 ms |
-| Hybrid + GraphRAG | 0.180 | 0.867 | 185 ms |
+| System                |   P@5 |   MRR | Runtime |
+| --------------------- | ----: | ----: | ------: |
+| Keyword-only          | 0.180 | 0.711 |   69 ms |
+| Pure HoloEmbed vector | 0.140 | 0.484 |  178 ms |
+| HoloAbsorb hybrid     | 0.180 | 0.867 |  231 ms |
+| Hybrid + GraphRAG     | 0.180 | 0.867 |  185 ms |
 
 The graph stage now preserves the hybrid result instead of reducing MRR. This
 remains a bootstrap, not the publication-scale 50-query evaluation.

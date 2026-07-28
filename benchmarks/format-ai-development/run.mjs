@@ -11,21 +11,19 @@
  */
 
 import { encode } from 'gpt-tokenizer';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_REPO_ROOT = path.resolve(SCRIPT_DIR, '..', '..');
-const DEFAULT_RESULT_DIR = path.join(DEFAULT_REPO_ROOT, 'benchmarks', 'format-ai-development', 'results');
+const DEFAULT_RESULT_DIR = path.join(
+  DEFAULT_REPO_ROOT,
+  'benchmarks',
+  'format-ai-development',
+  'results'
+);
 const SCHEMA = 'holoscript.format-ai-development-benchmark.v0.1.0';
 const FORMAT_EXTENSIONS = new Set(['.holo', '.hsplus', '.hs']);
 const BASELINE_EXTENSIONS = new Set(['.cs', '.cpp', '.h', '.ts', '.tsx', '.js', '.jsx']);
@@ -77,7 +75,9 @@ function main() {
     corpus: {
       files: records.length,
       formats: Object.fromEntries(
-        [...FORMAT_EXTENSIONS].sort().map((ext) => [ext.slice(1), records.filter((r) => r.format === ext.slice(1)).length])
+        [...FORMAT_EXTENSIONS]
+          .sort()
+          .map((ext) => [ext.slice(1), records.filter((r) => r.format === ext.slice(1)).length])
       ),
       ignoredDirectories: [...IGNORE_DIRS].sort(),
     },
@@ -86,7 +86,9 @@ function main() {
     claimStatus,
     topSemanticDensity: records
       .slice()
-      .sort((a, b) => b.semantic.constructsPerThousandTokens - a.semantic.constructsPerThousandTokens)
+      .sort(
+        (a, b) => b.semantic.constructsPerThousandTokens - a.semantic.constructsPerThousandTokens
+      )
       .slice(0, 15),
   };
 
@@ -114,7 +116,9 @@ function parseArgs(args) {
     } else if (arg.startsWith('--generated-at=')) {
       options.generatedAt = arg.slice('--generated-at='.length);
     } else if (arg === '--help' || arg === '-h') {
-      console.log(`Usage: node benchmarks/format-ai-development/run.mjs [--repo PATH] [--out PATH] [--markdown-out PATH]`);
+      console.log(
+        `Usage: node benchmarks/format-ai-development/run.mjs [--repo PATH] [--out PATH] [--markdown-out PATH]`
+      );
       process.exit(0);
     } else {
       throw new Error(`Unknown argument: ${arg}`);
@@ -271,7 +275,9 @@ function findBaselineComparisons(repoRoot) {
       });
     }
   }
-  return comparisons.sort((a, b) => `${a.scenario}/${a.baseline}`.localeCompare(`${b.scenario}/${b.baseline}`));
+  return comparisons.sort((a, b) =>
+    `${a.scenario}/${a.baseline}`.localeCompare(`${b.scenario}/${b.baseline}`)
+  );
 }
 
 function collectDirectFiles(dir, predicate) {
@@ -344,7 +350,9 @@ function renderMarkdown(result) {
   lines.push('');
   lines.push('| Metric | Value |');
   lines.push('|---|---:|');
-  lines.push(`| Core formats present | ${result.claimStatus.metrics.hasAllCoreFormats ? 'yes' : 'no'} |`);
+  lines.push(
+    `| Core formats present | ${result.claimStatus.metrics.hasAllCoreFormats ? 'yes' : 'no'} |`
+  );
   lines.push(
     `| Constructs / 1000 tokens | ${result.claimStatus.metrics.totalConstructsPerThousandTokens} |`
   );
@@ -354,7 +362,9 @@ function renderMarkdown(result) {
   lines.push('');
   lines.push('## Summary By Format');
   lines.push('');
-  lines.push('| Format | Files | Lines | Tokens | Constructs | Constructs / 1000 tokens | Avg unique traits/file |');
+  lines.push(
+    '| Format | Files | Lines | Tokens | Constructs | Constructs / 1000 tokens | Avg unique traits/file |'
+  );
   lines.push('|---|---:|---:|---:|---:|---:|---:|');
   for (const [format, row] of Object.entries(result.summaryByFormat)) {
     lines.push(
@@ -365,9 +375,13 @@ function renderMarkdown(result) {
   lines.push('## Handwritten Baseline Compression');
   lines.push('');
   if (result.baselineComparisons.length === 0) {
-    lines.push('No paired handwritten baselines found under `benchmarks/scenarios/*/*handwritten*`.');
+    lines.push(
+      'No paired handwritten baselines found under `benchmarks/scenarios/*/*handwritten*`.'
+    );
   } else {
-    lines.push('| Scenario | Baseline | Native tokens | Handwritten tokens | Token ratio | Line ratio |');
+    lines.push(
+      '| Scenario | Baseline | Native tokens | Handwritten tokens | Token ratio | Line ratio |'
+    );
     lines.push('|---|---|---:|---:|---:|---:|');
     for (const row of result.baselineComparisons) {
       lines.push(
@@ -378,9 +392,15 @@ function renderMarkdown(result) {
   lines.push('');
   lines.push('## Interpretation');
   lines.push('');
-  lines.push('- This benchmark supports a narrow claim: HoloScript formats give agents dense, structured, machine-readable substrate compared with handwritten platform code where paired baselines exist.');
-  lines.push('- It does not yet prove the broad claim that HoloScript changes AI development productivity. That requires LLM task, repair, and human workflow benchmarks.');
-  lines.push('- The next benchmark should freeze tasks and compare `.holo`, `.hsplus`, `.hs`, TypeScript, and prose on valid-output rate, repair attempts, tokens spent, and wall time.');
+  lines.push(
+    '- This benchmark supports a narrow claim: HoloScript formats give agents dense, structured, machine-readable substrate compared with handwritten platform code where paired baselines exist.'
+  );
+  lines.push(
+    '- It does not yet prove the broad claim that HoloScript changes AI development productivity. That requires LLM task, repair, and human workflow benchmarks.'
+  );
+  lines.push(
+    '- The next benchmark should freeze tasks and compare `.holo`, `.hsplus`, `.hs`, TypeScript, and prose on valid-output rate, repair attempts, tokens spent, and wall time.'
+  );
   lines.push('');
   lines.push('## Top Semantic-Density Files');
   lines.push('');

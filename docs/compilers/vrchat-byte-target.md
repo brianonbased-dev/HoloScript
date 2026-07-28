@@ -17,7 +17,7 @@ The pending contract is resolved (roadmap Phase 0):
   the MCP seam; feeds the byte-diff `compileToFiles` contract).
 - **Bundle wrapper** (scene graph + UdonBehaviour prefab graph + program-asset refs + SDK
   manifest) is the Phase-3 deliverable that makes the `.uasm` set uploadable with one Unity step.
-- **`udon-bytecode`** remains gated: it is the Unity-side *serialized derivative* of `.uasm`
+- **`udon-bytecode`** remains gated: it is the Unity-side _serialized derivative_ of `.uasm`
   (Unity-version-coupled, opaque), produced inside the Phase-3 Unity CI from the `.uasm`, not an
   offline compiler artifact.
 
@@ -35,7 +35,7 @@ against the Udon node manifest. Gate-enforced, not asserted.
 new VRChatCompiler({ outputFormat: 'udonsharp-csharp', useUdonSharp: true });
 
 // Byte target — Udon Assembly (.uasm)
-new VRChatCompiler({ outputFormat: 'udon-assembly' });   // result.udonAssembly: Record<file, uasm>
+new VRChatCompiler({ outputFormat: 'udon-assembly' }); // result.udonAssembly: Record<file, uasm>
 ```
 
 **Phase-2 vertical slice shipped (2026-06-22):** `@clickable`/`@pointable` objects lower to an

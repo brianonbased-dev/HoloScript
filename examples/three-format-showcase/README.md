@@ -11,11 +11,11 @@ use [`../three-surface-agent`](../three-surface-agent/) and run
 
 ## The Three Formats
 
-| Surface | Current responsibility |
-| --- | --- |
-| `.hs` | Deterministic typed policy, logic, processes, and headless systems programs |
-| `.hsplus` | Typed behavior, traits, agents, cognition, state, effects, and authority |
-| `.holo` | Whole-system composition, environments, worlds, resources, events, effects, and orchestration |
+| Surface   | Current responsibility                                                                        |
+| --------- | --------------------------------------------------------------------------------------------- |
+| `.hs`     | Deterministic typed policy, logic, processes, and headless systems programs                   |
+| `.hsplus` | Typed behavior, traits, agents, cognition, state, effects, and authority                      |
+| `.holo`   | Whole-system composition, environments, worlds, resources, events, effects, and orchestration |
 
 ## When to Use Each
 

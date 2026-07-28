@@ -83,10 +83,10 @@ Shared GraphRAG uses HoloEmbed only. This keeps every project in the same
 embedding space and prevents cache/query drift across HoloScript, HoloShell, and
 ecosystem project snapshots.
 
-| Provider  | Flag                   | Deps | Notes                                                                 |
-| --------- | ---------------------- | ---- | --------------------------------------------------------------------- |
-| HoloEmbed | `--provider holoembed` | None | Default and only shared GraphRAG provider. Keyless, native, offline.  |
-| HoloEmbed | `--provider structural` | None | Legacy alias accepted for compatibility and mapped to `holoembed`.    |
+| Provider  | Flag                    | Deps | Notes                                                                |
+| --------- | ----------------------- | ---- | -------------------------------------------------------------------- |
+| HoloEmbed | `--provider holoembed`  | None | Default and only shared GraphRAG provider. Keyless, native, offline. |
+| HoloEmbed | `--provider structural` | None | Legacy alias accepted for compatibility and mapped to `holoembed`.   |
 
 External embedding providers are rejected by the shared GraphRAG path even when
 credentials are present. Use external providers only in isolated low-level
@@ -115,15 +115,15 @@ Use `--llm-key <key>` to pass the API key directly instead of via an environment
 
 ### Flags
 
-| Flag              | Description                                                       |
-| ----------------- | ----------------------------------------------------------------- |
+| Flag              | Description                                                           |
+| ----------------- | --------------------------------------------------------------------- |
 | `--provider <b>`  | GraphRAG embedding backend: `holoembed` (default), `structural` alias |
-| `--top-k <n>`     | Number of results to return (default: 10)                         |
-| `--with-llm`      | Synthesise a natural-language answer from the top results         |
-| `--llm <adapter>` | LLM backend for `--with-llm`: `openai`, `anthropic`, `gemini`     |
-| `--llm-key <key>` | API key for the LLM (overrides env vars)                          |
-| `--model <name>`  | Model override for embedding or LLM backend                       |
-| `--json`, `-j`    | Machine-readable output                                           |
+| `--top-k <n>`     | Number of results to return (default: 10)                             |
+| `--with-llm`      | Synthesise a natural-language answer from the top results             |
+| `--llm <adapter>` | LLM backend for `--with-llm`: `openai`, `anthropic`, `gemini`         |
+| `--llm-key <key>` | API key for the LLM (overrides env vars)                              |
+| `--model <name>`  | Model override for embedding or LLM backend                           |
+| `--json`, `-j`    | Machine-readable output                                               |
 
 ---
 
@@ -337,11 +337,11 @@ keyless, native, cacheable, and worker-backed; external providers are not part
 of project GraphRAG performance guidance because they create incompatible
 embedding spaces.
 
-| Codebase Size               | Full Absorb | Incremental | GraphRAG Provider |
-| --------------------------- | ----------- | ----------- | ----------------- |
-| **Small** (<1K files)       | Measure locally | <1s-1m depending on changed symbols | HoloEmbed |
-| **Medium** (1-5K files)     | Measure locally | 1-2m depending on changed symbols | HoloEmbed |
-| **Large** (5K+ files)       | Measure locally | 2m+ depending on changed symbols | HoloEmbed |
+| Codebase Size           | Full Absorb     | Incremental                         | GraphRAG Provider |
+| ----------------------- | --------------- | ----------------------------------- | ----------------- |
+| **Small** (<1K files)   | Measure locally | <1s-1m depending on changed symbols | HoloEmbed         |
+| **Medium** (1-5K files) | Measure locally | 1-2m depending on changed symbols   | HoloEmbed         |
+| **Large** (5K+ files)   | Measure locally | 2m+ depending on changed symbols    | HoloEmbed         |
 
 Use `holo_graph_status` to confirm that a cache is fresh, authoritative for
 the current project root, and reporting `embeddingPolicy.provider: holoembed`.

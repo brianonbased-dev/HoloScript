@@ -2,13 +2,7 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import {
-  Float,
-  Text,
-  Line,
-  Sphere,
-  MeshDistortMaterial,
-} from '@react-three/drei';
+import { Float, Text, Line, Sphere, MeshDistortMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 
 type SpatialFeedEvent = {
@@ -151,28 +145,30 @@ function Scene() {
           if (data.events && Array.isArray(data.events)) {
             // Filter for new events or just take last 20
             // In a real implementation, we would use a lastId cursor
-            const newPulses = data.events.slice(-20).map((event: SpatialFeedEvent, index: number) => {
-              // Map event to pulse
-              // We need positions.
-              // If event.position is provided, use it.
-              // We need start/end positions in 3D space.
-              // Start = source agent position?
-              // End = target agent position?
-              // Since we don't have all agent positions dynamically mapped yet, we use the event position as end?
+            const newPulses = data.events
+              .slice(-20)
+              .map((event: SpatialFeedEvent, index: number) => {
+                // Map event to pulse
+                // We need positions.
+                // If event.position is provided, use it.
+                // We need start/end positions in 3D space.
+                // Start = source agent position?
+                // End = target agent position?
+                // Since we don't have all agent positions dynamically mapped yet, we use the event position as end?
 
-              // Simplification: Source 0,0,0 (CEO) to Event Position
-              const startPos: [number, number, number] = [0, 0, 0];
-              const endPos: [number, number, number] = event.position
-                ? [event.position.x ?? 10, event.position.y ?? 10, event.position.z ?? 10]
-                : [10, 10, 10];
+                // Simplification: Source 0,0,0 (CEO) to Event Position
+                const startPos: [number, number, number] = [0, 0, 0];
+                const endPos: [number, number, number] = event.position
+                  ? [event.position.x ?? 10, event.position.y ?? 10, event.position.z ?? 10]
+                  : [10, 10, 10];
 
-              return {
-                id: event.id ?? `spatial-event-${index}`,
-                start: startPos,
-                end: endPos,
-                intensity: event.intensity ?? 1,
-              };
-            });
+                return {
+                  id: event.id ?? `spatial-event-${index}`,
+                  start: startPos,
+                  end: endPos,
+                  intensity: event.intensity ?? 1,
+                };
+              });
             setPulses(newPulses);
           }
         }

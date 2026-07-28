@@ -20,17 +20,17 @@ import type { Capability } from '@holoscript/core-types/security';
 
 ## Entry Points
 
-| Entry point                         | Purpose                                  |
-| ----------------------------------- | ---------------------------------------- |
-| `@holoscript/core-types`            | Barrel export for shared types           |
-| `@holoscript/core-types/composition` | `.holo` composition types                |
-| `@holoscript/core-types/ast`        | HoloScript+ AST and directive types      |
-| `@holoscript/core-types/animation`  | Animation state machine types            |
-| `@holoscript/core-types/physics`    | Physics config types and small helpers   |
-| `@holoscript/core-types/security`   | RBAC, UCAN, and capability-token types   |
-| `@holoscript/core-types/hologram`   | Hologram, quilt, and depth-config types  |
-| `@holoscript/core-types/utility`    | Generic type-level helpers               |
-| `@holoscript/core-types/ans`        | ANS namespace and compiler identity types |
+| Entry point                          | Purpose                                   |
+| ------------------------------------ | ----------------------------------------- |
+| `@holoscript/core-types`             | Barrel export for shared types            |
+| `@holoscript/core-types/composition` | `.holo` composition types                 |
+| `@holoscript/core-types/ast`         | HoloScript+ AST and directive types       |
+| `@holoscript/core-types/animation`   | Animation state machine types             |
+| `@holoscript/core-types/physics`     | Physics config types and small helpers    |
+| `@holoscript/core-types/security`    | RBAC, UCAN, and capability-token types    |
+| `@holoscript/core-types/hologram`    | Hologram, quilt, and depth-config types   |
+| `@holoscript/core-types/utility`     | Generic type-level helpers                |
+| `@holoscript/core-types/ans`         | ANS namespace and compiler identity types |
 
 ## Strategy Role
 

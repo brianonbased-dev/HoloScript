@@ -27,14 +27,14 @@ Resolved since `research/2026-06-08_a011-feature-flag-audit.md`:
 
 Reviewed higher-risk current toggles:
 
-| Flag | Location | Current behavior | Verdict |
-| --- | --- | --- | --- |
-| `HOLOMESH_HTTP_ALLOW_UNSIGNED_FALLBACK` | `.ai-ecosystem/hooks/lib/holomesh-http.mjs` | explicit opt-in only after signing/body transform throws; default refuses unsigned mutating requests | safe default |
-| `ALLOW_MISSING_FOUNDER_CHECKPOINT` | `.ai-ecosystem/scripts/provision-*.mjs` | explicit opt-in bypass for execute-mode provisioning checkpoint | risky if set, but not default-on; keep founder-custody workflow |
-| `STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK` / `ALLOW_SERVER_GITHUB_TOKEN_FALLBACK` | `packages/studio/src/app/api/github/_shared.ts` | production default blocks ambient server token fallback unless explicitly enabled | safe default; alias is compatibility debt only |
-| `FLEET_EXECUTOR_ENABLED` | `packages/studio/src/app/api/agents/fleet/dispatch/route.ts` | default false; non-dry-run still founder/session or fleet-service-token gated | safe default |
-| `BRITTNEY_ALLOW_FRONTIER_FALLBACK` | `packages/studio/src/lib/brittney/provider.ts` | default false; restores paid frontier fallback only when explicitly set | safe default |
-| `ALLOW_REGISTRATION` | `services/llm-service/src/server.ts` | registration remains disabled in production even if flag is set | safe default |
+| Flag                                                                               | Location                                                     | Current behavior                                                                                     | Verdict                                                         |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `HOLOMESH_HTTP_ALLOW_UNSIGNED_FALLBACK`                                            | `.ai-ecosystem/hooks/lib/holomesh-http.mjs`                  | explicit opt-in only after signing/body transform throws; default refuses unsigned mutating requests | safe default                                                    |
+| `ALLOW_MISSING_FOUNDER_CHECKPOINT`                                                 | `.ai-ecosystem/scripts/provision-*.mjs`                      | explicit opt-in bypass for execute-mode provisioning checkpoint                                      | risky if set, but not default-on; keep founder-custody workflow |
+| `STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK` / `ALLOW_SERVER_GITHUB_TOKEN_FALLBACK` | `packages/studio/src/app/api/github/_shared.ts`              | production default blocks ambient server token fallback unless explicitly enabled                    | safe default; alias is compatibility debt only                  |
+| `FLEET_EXECUTOR_ENABLED`                                                           | `packages/studio/src/app/api/agents/fleet/dispatch/route.ts` | default false; non-dry-run still founder/session or fleet-service-token gated                        | safe default                                                    |
+| `BRITTNEY_ALLOW_FRONTIER_FALLBACK`                                                 | `packages/studio/src/lib/brittney/provider.ts`               | default false; restores paid frontier fallback only when explicitly set                              | safe default                                                    |
+| `ALLOW_REGISTRATION`                                                               | `services/llm-service/src/server.ts`                         | registration remains disabled in production even if flag is set                                      | safe default                                                    |
 
 ## Cleanup Landed
 

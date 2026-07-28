@@ -94,7 +94,7 @@ If nothing changes, HoloScript has time to ship and establish position. But this
 | Dimension          | Babylon MCP (community)           | HoloScript MCP                                        |
 | ------------------ | --------------------------------- | ----------------------------------------------------- |
 | **Scope**          | Scene graph manipulation          | Platform (Absorb, HoloMesh, compilation, simulation)  |
-| **Tool count**     | ~20 tools (estimated from thread) | 400+ (427 verified 2026-07-20) via `/health`                         |
+| **Tool count**     | ~20 tools (estimated from thread) | 400+ (427 verified 2026-07-20) via `/health`          |
 | **Domain**         | 3D scenes in Babylon only         | Spatial + simulation + agent coordination + knowledge |
 | **Semantic layer** | None — raw scene graph            | `.holo` AST with typed traits                         |
 | **Cross-runtime**  | No — Babylon only                 | Yes — compile to 30+ targets                          |

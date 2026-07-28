@@ -32,10 +32,10 @@ ABI rules, and deterministic-object requirements remain in force.
 
 ## Layout and alignment
 
-| HoloScript type | Size | Minimum alignment | Cranelift alignment exponent |
-|---|---:|---:|---:|
-| `i32` | 4 bytes | 4 bytes | 2 |
-| `i64` | 8 bytes | 8 bytes | 3 |
+| HoloScript type |    Size | Minimum alignment | Cranelift alignment exponent |
+| --------------- | ------: | ----------------: | ---------------------------: |
+| `i32`           | 4 bytes |           4 bytes |                            2 |
+| `i64`           | 8 bytes |           8 bytes |                            3 |
 
 Each declaration lowers to a Cranelift `ExplicitSlot` with offset-zero
 `stack_load` and `stack_store` operations. A target may place a slot at a

@@ -16,7 +16,7 @@
 
 ## HoloMap Verifiability Paper (reconstruction-as-receipt)
 
-**What might be valuable**: The 2026-06-21 Quest/headset deep-research found HoloMap has a **proven verifiability claim** (GATE-45: tamper-detection 1.0, false-positive 0.0, 8/8 reproducible) but **no paper** — the strongest unclaimed paper candidate in the program. The novel contribution is *not* reconstruction quality (GATE-46 is honest-negative: near-static pose vs COLMAP's 10k-point cloud) but **verifiable, tamper-evident reality capture** — a reconstruction you can prove wasn't doctored, which COLMAP/photogrammetry cannot offer. A paper led by the verifiability claim (with COLMAP as the accuracy baseline, an ablation, and a metric anchor) fits the CAEL/SimulationContract "trust by construction" thesis and the news/provenance layer (F.123).
+**What might be valuable**: The 2026-06-21 Quest/headset deep-research found HoloMap has a **proven verifiability claim** (GATE-45: tamper-detection 1.0, false-positive 0.0, 8/8 reproducible) but **no paper** — the strongest unclaimed paper candidate in the program. The novel contribution is _not_ reconstruction quality (GATE-46 is honest-negative: near-static pose vs COLMAP's 10k-point cloud) but **verifiable, tamper-evident reality capture** — a reconstruction you can prove wasn't doctored, which COLMAP/photogrammetry cannot offer. A paper led by the verifiability claim (with COLMAP as the accuracy baseline, an ablation, and a metric anchor) fits the CAEL/SimulationContract "trust by construction" thesis and the news/provenance layer (F.123).
 
 **Why not now**: (a) No trained HMW1 checkpoint exists — `getMicroWeights()` falls back to PRNG, so any accuracy number is unanchored; mesh-gen is a 6–12mo / $15–80k ML track (see AGI-roadmap). (b) The accuracy leg is honest-negative, so the paper can only stand on verifiability — needs a related-work scan to confirm the verifiable-capture claim is genuinely novel and an RFC §6 acceptance run. (c) D.101 (build-the-language-only freeze) + D.102 (portable agent mind) are the active priorities; the HoloMap paper is downstream of a real checkpoint. Revisit once a trained checkpoint exists or the founder prioritizes the verifiable-capture wedge.
 
@@ -26,7 +26,7 @@
 
 **What might be valuable**: One `.holo`/`.hs` source compiling to a SpacetimeDB Rust WASM module (server reducers + table definitions) + TypeScript client subscription SDK simultaneously with the Colyseus/mmo-server targets. SpacetimeDB is the closest industry analogue to HoloScript's single-source authority-split vision — all game state lives in a distributed relational DB, reducers are transactional triggers, and persistence is zero-configuration. The `@reducer` annotation already proposed in `.hs` maps cleanly to SpacetimeDB's reducer model; the `@replicated` fields map to SpacetimeDB table columns. A true multi-backend emit (Colyseus + SpacetimeDB + sovereign mmo-server from one source) would be a uniquely strong PLDI/OOPSLA paper contribution.
 
-**Why not now**: Requires a Rust code-generation backend that does not exist anywhere in HoloScript. No HoloScript compiler currently emits Rust. The existing `compiler-wasm` target is a Rust front-end *parser*, not a Rust code *generator* from `.holo` source. Building a Rust codegen backend is a 6+ month effort independent of all other MMO round-2 work. Prerequisite: settle the authority annotation model (`@server_side/@replicated/@reducer`) against the Colyseus and `mmo-server` targets first (rounds 2-3), then map that settled model to SpacetimeDB Rust emit in round 5+.
+**Why not now**: Requires a Rust code-generation backend that does not exist anywhere in HoloScript. No HoloScript compiler currently emits Rust. The existing `compiler-wasm` target is a Rust front-end _parser_, not a Rust code _generator_ from `.holo` source. Building a Rust codegen backend is a 6+ month effort independent of all other MMO round-2 work. Prerequisite: settle the authority annotation model (`@server_side/@replicated/@reducer`) against the Colyseus and `mmo-server` targets first (rounds 2-3), then map that settled model to SpacetimeDB Rust emit in round 5+.
 
 ---
 
@@ -64,7 +64,7 @@
 
 ## Trait-Backed Cognitive Verb Dispatch in AgentRunner (Phase 2.2 — `recall`/`rag_query`/`plan`)
 
-**What might be valuable**: Fleet agents that author `recall { query: "…" }`, `rag_query { query: "…" }`, and `plan { goal: "…" }` in their `behavior on_task {}` block would have those verbs dispatched to real trait-backed stores — `AgentMemoryTrait` (per-agent episodic memory), `RAGKnowledgeTrait` (the HoloMesh knowledge graph), and `GoalOrientedTrait` (GOAP A*-planner) — before the main `llm_call` loop fires. The effect: agents load prior task context, HoloScript syntax rules, and a structured plan into the LLM's context window, replacing the current hardcoded single-prompt approach. This closes the last "declarative shell" gap (W.712) for the three memory/planning verbs, making `behavior on_task` fully executable end-to-end. The event wiring already exists: `CognitiveActions.ts` has the verb→event map; `BehaviorTreeTrait.tickCognitive` can dispatch each verb; `LocalLLMTrait._chat` is the execution endpoint. The missing piece is an `AgentRunner`-compatible execution context that carries an event bus + the relevant trait instances without pulling in the full engine runtime.
+**What might be valuable**: Fleet agents that author `recall { query: "…" }`, `rag_query { query: "…" }`, and `plan { goal: "…" }` in their `behavior on_task {}` block would have those verbs dispatched to real trait-backed stores — `AgentMemoryTrait` (per-agent episodic memory), `RAGKnowledgeTrait` (the HoloMesh knowledge graph), and `GoalOrientedTrait` (GOAP A\*-planner) — before the main `llm_call` loop fires. The effect: agents load prior task context, HoloScript syntax rules, and a structured plan into the LLM's context window, replacing the current hardcoded single-prompt approach. This closes the last "declarative shell" gap (W.712) for the three memory/planning verbs, making `behavior on_task` fully executable end-to-end. The event wiring already exists: `CognitiveActions.ts` has the verb→event map; `BehaviorTreeTrait.tickCognitive` can dispatch each verb; `LocalLLMTrait._chat` is the execution endpoint. The missing piece is an `AgentRunner`-compatible execution context that carries an event bus + the relevant trait instances without pulling in the full engine runtime.
 
 **Why not now**: The two existing cognitive executors (`HoloScriptAgentRuntime` and `BehaviorTreeTrait.tickCognitive`) are engine-coupled — they require a full `VRTraitSystem` event bus, a `HoloScriptRuntime` tick, and registered trait instances. The `holoscript-agent` runner is intentionally lightweight (no engine dep), so adding engine traits creates a dependency inversion. The clean fix (Phase 2.4, per `research/2026-06-16_jetson-native-language-runtime-plan.md`) is to converge on ONE brain executor: fold the runner's signed board client + cost-guard into callable runtime actions the brain's BT can invoke, then let the engine BT drive the loop. Until that convergence, `recall`/`rag_query`/`plan` are parsed, logged, and deferred. `llm_call.prompt` and `reflect` ARE wired in Phase 2.1 (this session).
 
@@ -96,7 +96,7 @@
 
 ## `@spacetimedb_module` + Rust Reducer Codegen (Long-Horizon)
 
-*(Duplicate entry for cross-reference — see first entry above. This seed is the lowest-priority / longest-horizon item in the MMO roadmap.)*
+_(Duplicate entry for cross-reference — see first entry above. This seed is the lowest-priority / longest-horizon item in the MMO roadmap.)_
 
 ---
 
@@ -145,11 +145,13 @@
 **What's already built** (so the next agent starts from the right place): prerequisite (D), the report aggregator, shipped 2026-06-16 — `mergeBalanceReports(reports)` is now exported by the emitted harness (`packages/core/src/compiler/BotSwarmCompiler.ts`): counts sum, ticks max, `avgTickMs` tick-weighted. The GPU fleet substrate also exists: orchestrator `POST /gpu/workload` queue, the `buildWorldRenderWorkload()` dispatch pattern (`packages/mcp-server/src/world-render-tools.ts`) to copy for a `buildBotSwarmWorkload()`, and the `checkSpendAuthz` spend-gate framework.
 
 **DONE — the $0 local path (2026-06-16, `6bb596c52`)**:
+
 1. ~~Persistent endpoint~~ → `startColyseusServer(port)` runs the emitted authoritative server on the laptop or Jetson (a real `gameServer.listen`). The fire-and-done GPU job model was never needed for the local path; a long-lived Node process IS the endpoint.
 2. ~~WebSocket bot driver~~ → `runNetworkBots(opts)` connects over real `colyseus.js`, drives legal+adversarial load, and counts server-pushed `reconcile`/`cast_rejected` anti-cheat signals into a `BalanceReport`. `mergeBalanceReports` merges shards.
 3. Local runner `scripts/mmo/bot-swarm-local.mts` ties it together (compile → listen → swarm → report). Proven live (16 bots, real socket, 254+784 rejections).
 
 **What remains (OPTIONAL, only this touches spend)**:
+
 - **Multi-node / cloud scale-out** — to exceed one box (500+ bots): run the server on one node and `runNetworkBots` from several (laptop + Jetson over LAN is still **$0**; only renting cloud GPUs via `buildBotSwarmWorkload()` + `checkSpendAuthz` crosses the spend gate). A `buildBotSwarmWorkload()` dispatcher (~100 LOC, model on `buildWorldRenderWorkload`) would queue distributed drivers onto `POST /gpu/workload` and collect+merge their reports.
 - **HoloCI gate** — wire the local runner into HoloCI as a balance-regression check (assert `assertBalance(report)` stays empty across releases).
 
@@ -206,7 +208,7 @@ then 2.3. Plan: `research/2026-06-16_jetson-native-language-runtime-plan.md`.
 
 ---
 
-*Last updated: 2026-06-15 from MMO round-2 research memo (`research/2026-06-15_mmo-next-round-advancement.md`). Seeds added: SpacetimeDB target, cross-host shard handoff, cross-file ProvenanceBoundsChecker, lifecycle-typed brain fields with Postgres emit, UGC/player-authored .holo content, fleet-sim balance CI. 2026-06-16: hs:perceives derived spatial-perception edges (from .holo agent-anchoring work); thinking-budget control for local LLMs (from Jetson qwen3 investigation); per-soul fine-tuned downloadable GGUF for daimōn (from daimon-brain.hsplus authoring); edge recall write-loop + Phase 2.3 brain directives (from Phase 2.2 cognitive-verb wiring).*
+_Last updated: 2026-06-15 from MMO round-2 research memo (`research/2026-06-15_mmo-next-round-advancement.md`). Seeds added: SpacetimeDB target, cross-host shard handoff, cross-file ProvenanceBoundsChecker, lifecycle-typed brain fields with Postgres emit, UGC/player-authored .holo content, fleet-sim balance CI. 2026-06-16: hs:perceives derived spatial-perception edges (from .holo agent-anchoring work); thinking-budget control for local LLMs (from Jetson qwen3 investigation); per-soul fine-tuned downloadable GGUF for daimōn (from daimon-brain.hsplus authoring); edge recall write-loop + Phase 2.3 brain directives (from Phase 2.2 cognitive-verb wiring)._
 
 ---
 
@@ -332,11 +334,12 @@ D.101 lifts or the ops surface becomes a language-deliverable (compile_to_agent 
 ## Agentic Nutrition Layer — Ambient Diet Companion (`@nutritional_profile` / `@biomarker_state` / `@heritage_affinity` / `@private` / `@ambient_prompt`)
 
 > Founder idea, 2026-06-25. An NPC that lives alongside the user, observes eating habits, grounds advice in
-> the user's *bloodwork and heritage*, and gives timely **vocal** nudges to eat better — the U.001/U.002
+> the user's _bloodwork and heritage_, and gives timely **vocal** nudges to eat better — the U.001/U.002
 > "NPC in people's lives, making things easier/better/more efficient" vision in a concrete daily form.
 
 **What might be valuable**: A nutrition + heritage trait layer that turns "eat better" from a willpower-and-logging
 chore into an ambient, situated companion. It is **net-new on real adjacent ground** (verified 2026-06-25):
+
 - **Food-as-trait-node already ships** — `wine-food-beverage-plugin` has `tasting_profile`, `pairing_engine`,
   `inventory_aging`. The "food is a graph node with semantic attributes" pattern is proven; nutrition traits extend it.
 - **Tracking spine ships** — `fitness-wellness-plugin` has `progress_tracker` / `workout` / `rep_counter`.
@@ -344,9 +347,10 @@ chore into an ambient, situated companion. It is **net-new on real adjacent grou
 - **Ambient surfaces are real** — the HoloLand NPC system (`hololand_create_npc`, `npc_generate_dialogue`, BYOK),
   geo-anchors (kitchen vs office), `twin_earth_create_safety_envelope` (the structural `@private` zone), and the
   **portable mind (D.102)** — which dissolves the singular-vs-per-space question: ONE wallet-keyed agent with consistent
-  memory that *embodies per-space* (kitchen geo-anchor and office are render-contexts of the same mind, not two agents).
+  memory that _embodies per-space_ (kitchen geo-anchor and office are render-contexts of the same mind, not two agents).
 
 The native composition would look like:
+
 ```
 composition "KitchenGuide" {
   food_item "…" @nutritional_profile { macros, micros, glycemic_load, @allergen_profile }   // extends tasting_profile
@@ -360,19 +364,20 @@ composition "KitchenGuide" {
   }
 }
 ```
+
 The honest design rule baked in — **order the signals by how real they are**: bloodwork/biomarkers (glucose/CGM,
 lipids, ferritin, A1c — validated, diet-responsive) **>** heritage-as-foodways (cultural, honest) **>** the small
 validated-nutrigenomics set (MCM6/lactase, ALDH2/alcohol, CYP1A2/caffeine, HFE/iron, PAH/phenylalanine) **>>**
 general "your-DNA-says-eat-X" SNP claims (mostly noise — the overhyped extractive-AI playbook U.002 says to refuse).
-Model only what's validated and *say where you don't claim* — simulation-first, is-right-not-looks-right, applied to a body.
+Model only what's validated and _say where you don't claim_ — simulation-first, is-right-not-looks-right, applied to a body.
 This is also where HoloScript genuinely differentiates: consent and "blood data the agent literally can't exfiltrate"
 are **traits, not promises**, and the agency/ED guardrails (`invited`, `never_shame`, `silenceable`) are structural —
 the thing that makes it a companion under U.002's love-and-care constraint rather than diet-surveillance.
 
 **Why not now**: It is an **application**, and D.101 (build-the-language-only freeze) is active — so the move is to
-seed it, not build the app. The genuinely *language-shaped* pieces it implies — a `@biomarker_state` schema, a
+seed it, not build the app. The genuinely _language-shaped_ pieces it implies — a `@biomarker_state` schema, a
 validated-only `@heritage_affinity` (foodways + the small real SNP set), and a `@private` consent-envelope trait the
-compiler can prove the agent cannot bypass — are the parts that could become language work *if/when scoped*, and each
+compiler can prove the agent cannot bypass — are the parts that could become language work _if/when scoped_, and each
 needs design that doesn't exist yet: (a) a defensible evidence model for which gene/biomarker→diet claims are admitted
 (the science is mostly weak; building on it uncritically fails the U.002 credibility test), (b) regulated-health-data
 handling (the sovereignty/local-first thesis fits, but the policy + encryption-at-rest design must be real), and (c)
@@ -388,10 +393,10 @@ as a standalone language trait the rest of the ecosystem also needs.
 > Found 2026-07-04 while shipping absorb `.hs` slice-2 (commit `542625fa9`). A real latent fragility in
 > the shared `.hs`/`.hsplus` parser, deferred because the fix is parser-internal, not absorb-side.
 
-**What might be valuable**: `HoloScriptPlusParser` represents the *same* declaration two different ways depending on
+**What might be valuable**: `HoloScriptPlusParser` represents the _same_ declaration two different ways depending on
 whether the file fully parses. On a clean full parse (verified: the `.hs` exp-grpo oracles, `success: true`) a
 declaration comes out as `node.type` = the KEYWORD (`function` / `object` / `trait`) with `node.name` = the identifier.
-On an error-recovery partial parse (verified: the real `.hsplus` trait files, `success: false`) the *same* kind of
+On an error-recovery partial parse (verified: the real `.hsplus` trait files, `success: false`) the _same_ kind of
 declaration comes out inverted — `node.type` = the IDENTIFIER, the keyword demoted into `node.directives`, and
 `node.name` = undefined. Because of this split, absorb needs TWO extractors (`extractHsSymbols` reads `node.name`;
 `extractHsplusSymbols` reads `node.type` as the name), and symbol-extraction correctness is silently coupled to whether
@@ -404,7 +409,7 @@ fixes latent wrongness anywhere else in the ecosystem that walks the HoloScriptP
 **Why not now**: The fix is inside `HoloScriptPlusParser` (packages/core) — reconciling the full-parse and
 error-recovery emitters so both produce the same declaration node — which is a core-parser change with its own
 regression surface (every consumer of that AST, incl. the mcp-server `parse_hs`/`parse_hsplus` handlers and the
-`.hsplus`-authored trait/brain tooling). Absorb's slice-2 works correctly for the *current* corpus (real `.hsplus`
+`.hsplus`-authored trait/brain tooling). Absorb's slice-2 works correctly for the _current_ corpus (real `.hsplus`
 files partial-parse into the identifier shape `extractHsplusSymbols` expects; the `.hs` oracles clean-parse into the
 `node.name` shape `extractHsSymbols` expects), so there is no live breakage forcing the parser change now. Revisit when
 touching `HoloScriptPlusParser` for other reasons, or if a real `.hs` file starts partial-parsing (or a `.hsplus` file
@@ -415,10 +420,10 @@ correct interim shim and documents the split it compensates for.
 
 ## Unified `/api/deploy` Multi-Target Compile-Dispatch + Per-Target Deployment Manifest
 
-> Recorded 2026-07-05 on deleting the dead `deploy-adapter.ts` (task_1783211750571_02rn). The
+> Recorded 2026-07-05 on deleting the dead `deploy-adapter.ts` (task*1783211750571_02rn). The
 > router never linked (phantom `HoloScriptCompiler` import), was never registered/bundled, and its
 > `/api/deploy` path is already taken by a live publish-with-provenance handler. Deleted rather than
-> resurrected; the *idea* it gestured at is preserved here.
+> resurrected; the \_idea* it gestured at is preserved here.
 
 **What might be valuable**: A single REST surface that takes one `.holo`/`.hs` source + a `target`, compiles
 it, and returns not just the emitted code but a **deployment manifest** — entry point, dependencies, a build
@@ -429,13 +434,13 @@ AND exactly how to ship it" envelope is a real convenience layer over the raw `c
 `GET /targets` / `GET /targets/:name` catalog gives agents a discoverable deploy-capability map.
 
 **Why not now**: Three reasons it should not be rebuilt as-was. (1) **Route + capability already exist** — the
-live `POST /api/deploy` in `http-server.ts` is a *publish-a-composition-with-provenance* endpoint (calls
+live `POST /api/deploy` in `http-server.ts` is a _publish-a-composition-with-provenance_ endpoint (calls
 `storeScene()`), and target compilation is already fully served by the individual `compile_to_*` MCP tools and
 `POST /api/compile`. A compile-dispatch aggregator is a convenience wrapper, not new capability, and would need
-a *different* path (e.g. `/api/build`) to avoid colliding with the provenance route. (2) **The manifest prose
+a _different_ path (e.g. `/api/build`) to avoid colliding with the provenance route. (2) **The manifest prose
 must be native, not hand-authored** — the deleted file froze Unity/ROS2/WASM instructions as inline string
 literals that rot independently of the compilers. The right source of truth is a `deploymentManifest()` /
-`deploymentDocs()` method on each `ExportTarget` in `packages/core/src/compiler/`, so the manifest is *derived*
+`deploymentDocs()` method on each `ExportTarget` in `packages/core/src/compiler/`, so the manifest is _derived_
 from the compiler that actually emits the code (D.104 — TS dissolving into compiler-owned metadata, not glue
 growing). Build that metadata surface first. (3) **D.101 build-the-language-only** — a new peripheral REST
 route is exactly the kind of surface growth the freeze guards against; re-admit only when the deployment-manifest
@@ -450,16 +455,16 @@ metadata is a compiler-owned language deliverable and there is a concrete consum
 > Recorded 2026-07-05 from the consumer-LiDAR NLOS research
 > (`~/.ai-ecosystem/research/2026-07-05_consumer-lidar-nlos-motion-induced-sampling.md`;
 > Motion-Induced Aperture Sampling, Nature 2026, arXiv 2605.17865). Shipped alongside it:
-> the `nlos-inferred` `PointProvenanceClass` (the *format/provenance* half, buildable with no
-> new hardware). This seed is the *capture* half, which is hardware-gated.
+> the `nlos-inferred` `PointProvenanceClass` (the _format/provenance_ half, buildable with no
+> new hardware). This seed is the _capture_ half, which is hardware-gated.
 
 **What might be valuable**: A first-class capture primitive that treats the **device's motion
 trajectory as a synthetic aperture** — fusing many frames from a moving sensor into a
 reconstruction that no single frame could produce. This is the shared mechanism behind three
 things we already care about: (1) **NLOS / around-a-corner imaging** (the extreme case — the
-aperture-from-motion is the *only* way the hidden-object signal exists; particle-filter fusion
+aperture-from-motion is the _only_ way the hidden-object signal exists; particle-filter fusion
 of transient/histogram frames over the pose path); (2) **multi-view Gaussian-splat capture**
-(the posed-view path in `compile_to_gaussian_train`, I.021/P.024 — trajectory *is* the view set);
+(the posed-view path in `compile_to_gaussian_train`, I.021/P.024 — trajectory _is_ the view set);
 (3) **handheld burst super-resolution** (uncontrolled shake as a sub-pixel sampling feature). We
 already carry the two inputs it needs natively — `reconstruction/trajectory_memory.hsplus` (the
 6-DoF device pose path) and `reconstruction/mobile_sensor_bundle.hsplus` (the mobile sensor stream).
@@ -468,16 +473,16 @@ declared, reusable concept instead of a per-modality bolt-on, and its inferred o
 carry the `nlos-inferred` (or `interpolated`) provenance class into a `ProvenanceReceipt` — so a
 motion-fused reconstruction ships honest about what was measured vs reconstructed.
 
-**Why not now**: The *runtime* is **hardware-gated**, not language-gated (F.138 — verify the
+**Why not now**: The _runtime_ is **hardware-gated**, not language-gated (F.138 — verify the
 hardware reality). The NLOS case needs raw per-bin **photon transient histograms**, which
 consumer/phone LiDAR (Apple ARKit, Quest passthrough) does **not** expose — only processed depth.
-The Nature demo used an ST VL53L8CH histogram-capable eval module on an ST board, *not* a phone.
+The Nature demo used an ST VL53L8CH histogram-capable eval module on an ST board, _not_ a phone.
 So a sovereign NLOS capture runtime waits on either (a) a histogram-exposing module in our own
 capture rig, or (b) a future phone API that surfaces raw transients — a **watch item**, not native
-authoring work. The *fusion math* (LCT forward model + particle filter) is public and could be
+authoring work. The _fusion math_ (LCT forward model + particle filter) is public and could be
 prototyped now as a `solve_*`-class solver against synthetic transients / the released repo's
 `canons/point.npy`, independent of the capture hardware — that is the earliest buildable slice if
-someone wants to move it forward. The multi-view-splat and super-res cases are *not* transient-gated
+someone wants to move it forward. The multi-view-splat and super-res cases are _not_ transient-gated
 (they use ordinary depth/RGB), so `@motion_aperture` could first land for those and add the NLOS
 transient path once raw-histogram data exists. NMoS: build-internal / absorb (F.133), no external
 bridge.
@@ -493,7 +498,7 @@ canvas, raw hex, prop-driven). Shapes: `@sparkline { state, path }` → a depend
 polyline; `@bar { each, value }` → an SVG/flex bar row; a fuller `@chart { kind: line|bar|area,
 series, axes }` → an SVG chart with studio-token theming. This is the concrete "missing format = the
 work" (D.108) finding from the 2026-07-07 taste audit: CreatorDashboard can't go native because the
-*content itself* (a chart) has no native form. A native chart trait also makes charts
+_content itself_ (a chart) has no native form. A native chart trait also makes charts
 **provenance-legible** (the series is a declared `@bind` over state, not opaque canvas draws) and
 **portable** (SVG compiles to more targets than a canvas React component).
 
@@ -501,7 +506,7 @@ work" (D.108) finding from the 2026-07-07 taste audit: CreatorDashboard can't go
 on the trait surface (which chart kinds; how axes/legends/tooltips are declared; how series bind to
 array state), an SVG layout/scale helper in `Native2DCompiler`, and a fidelity decision vs. chart.js
 (interactive tooltips/zoom are non-trivial in hand-emitted SVG). The taste audit shipped the
-*language-gated* verticals now — AdminDashboard native + `@bind` string tiers + tier-leak strip +
+_language-gated_ verticals now — AdminDashboard native + `@bind` string tiers + tier-leak strip +
 border side/width fix (HoloScript `3a69f6a2c`) — and deferred this deliberately rather than
 `@slot`-remounting chart.js (which clears neither the taste smell nor the D.095/D.096 render-freeze).
 **Slice 1 SHIPPED (HoloScript `cbcefd311`, 2026-07-07):** `@sparkline` (single SVG polyline, no
@@ -519,11 +524,11 @@ precise `TargetList` — the chart+table pattern). Emitted geometry rendered + v
 
 **Remaining:** (a) interactive **hover-tooltips** (need client hover state — `@chart` is
 render-only today) and (b) **y-axis numeric ticks** (nice-round-number label layout). Neither blocks
-the common dashboard case. The **full CreatorDashboard native port** is now *primitive-unblocked*
+the common dashboard case. The **full CreatorDashboard native port** is now _primitive-unblocked_
 (`@chart` + `@hook args` + `@bind` string tiers + `@each`/`@when`/`@image` cover its charts, stat
 cards, content-type coloring, and gallery) — but it is a large authoring task and a page-vs-panel
 product decision (CreatorDashboard is a full `/creator` page, not a right-rail panel), so it is its
-own scoped effort. NMoS: build-internal (F.133) — chart.js is a library to *replace natively*.
+own scoped effort. NMoS: build-internal (F.133) — chart.js is a library to _replace natively_.
 
 ---
 
@@ -531,23 +536,23 @@ own scoped effort. NMoS: build-internal (F.133) — chart.js is a library to *re
 
 > Recorded 2026-07-12 (claude1, uAAL loop A4). Motif was FLAGGED not-cleanly-closeable for the
 > honest-abstention program: `recoverMotif`'s only coerced field (`canonicalForm`'s
-> `roleOf.get(edge.from) ?? '?'` — an unstated endpoint role → `'?'`) is *structurally required*,
+> `roleOf.get(edge.from) ?? '?'` — an unstated endpoint role → `'?'`) is _structurally required_,
 > not semantically optional. `motifStructural` (`semantic.ts`) rejects any node with a non-truthy
 > `role`, and the `tm3` structural gate (0.95) forces determinate rows to pass it, so on the valid-IR
 > distribution `canonicalForm` is total and `has_motif`/`recurrence_count` are never underdetermined.
-> The `'?'` fires only on *malformed* input — abstaining there gaps garbage, not honest uncertainty.
+> The `'?'` fires only on _malformed_ input — abstaining there gaps garbage, not honest uncertainty.
 
 **What might be valuable**: If the motif IR gained a genuine **three-valued role** — a node could
-declare its role as *stated-X*, *stated-Y*, or **explicitly-unknown** (an authored/observed-but-unclassified
+declare its role as _stated-X_, _stated-Y_, or **explicitly-unknown** (an authored/observed-but-unclassified
 node, analogous to access's proposed per-modality `blocks_unknown`, D.108) — then structural recurrence
-would become legitimately underdetermined: two components could be *possibly-the-same-motif* pending the
+would become legitimately underdetermined: two components could be _possibly-the-same-motif_ pending the
 unknown role's resolution. That would give `resolveMotif` a clean, load-bearing trigger (abstain when an
 unknown-role node's resolution could flip `has_motif`) and close the loop honestly, extending the
 EXPRESSIBLE→CHECKABLE→TEACHABLE spine to the motif family. Useful anywhere motif detection runs over
-graphs whose node roles are *perceived* rather than authored (e.g. a scene-graph motif over
+graphs whose node roles are _perceived_ rather than authored (e.g. a scene-graph motif over
 vision-extracted components with uncertain role labels).
 
-**Why not now**: Unstated roles are currently *authored-malformed*, not a natural epistemic state —
+**Why not now**: Unstated roles are currently _authored-malformed_, not a natural epistemic state —
 unlike occlusion `opaque` (legitimately optional in a well-formed IR), a motif with an untyped node is
 simply an incomplete spec, and no current corpus/consumer produces "known-present-but-unclassified-role"
 nodes. Adding the unknown-role state is a real IR extension (schema change + `motifStructural`/`tm3`

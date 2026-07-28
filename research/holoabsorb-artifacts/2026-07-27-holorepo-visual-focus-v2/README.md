@@ -32,12 +32,12 @@ The real-code ablation covered all 335 Git-tracked files under
 `packages/absorb-service`, with 12,008 graph symbols and 12,035 indexed entries.
 Twenty duplicate-symbol cases were frozen before any visual arm ran.
 
-| Arm | MRR | Top-1 | Resolution |
-|---|---:|---:|---:|
-| No selection | 0.304 | 0.00 | n/a |
-| Correct selection | 0.975 | 0.95 | 1.00 |
-| Stale/unresolved | 0.304 | 0.00 | 0.00 |
-| Wrong/resolved | 0.327 | 0.00 | 1.00 |
+| Arm               |   MRR | Top-1 | Resolution |
+| ----------------- | ----: | ----: | ---------: |
+| No selection      | 0.304 |  0.00 |        n/a |
+| Correct selection | 0.975 |  0.95 |       1.00 |
+| Stale/unresolved  | 0.304 |  0.00 |       0.00 |
+| Wrong/resolved    | 0.327 |  0.00 |       1.00 |
 
 The stale arm reproduced the baseline ranking exactly (`1.00` match rate).
 Wrong resolved selections were followed at rate `1.00`; the fixed target was

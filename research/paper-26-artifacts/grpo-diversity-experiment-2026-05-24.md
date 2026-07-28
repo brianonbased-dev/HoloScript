@@ -37,9 +37,9 @@ SliceEmitter's `diversity_ratio` is a **lifetime cumulative** ratio: the
 `unique_fingerprints` Set never evicts while `total_count` grows unbounded
 (SliceEmitter.ts:212–216). For any stream with a bounded fingerprint vocabulary,
 ρ → 0 as total → ∞. Consequently the **healthy** stream also trips the fixed
-0.8 threshold over a long run (ρ_healthy = 0.371 at N=1000), so the
+0.8 threshold over a long run (ρ*healthy = 0.371 at N=1000), so the
 static-threshold guard **over-alerts on healthy long-running streams** — a real
-mis-tuning, not a pass. The _robust_ collapse signal is the discrimination ratio
+mis-tuning, not a pass. The \_robust* collapse signal is the discrimination ratio
 and the unique-count growth rate (healthy unique keeps climbing; collapsed
 plateaus at 1), not absolute ρ vs a static threshold. Recommended fix
 for SliceEmitter: compute ρ over a true rolling window of the last W slices, or

@@ -6,8 +6,8 @@
 > HoloScript content. **Companion docs:** [`srnh-sim-and-realism-native-holoscript.md`](srnh-sim-and-realism-native-holoscript.md)
 > (the RENDER-PIPELINE gap — whether authored richness actually shows up in the sovereign
 > preview; this doc does not duplicate that map), [`holoscript-native-authoring-vs-pretrained.md`](holoscript-native-authoring-vs-pretrained.md)
-> (code-*structure* nativeness — traits-as-data, gate-derived correctness; a disjoint subject
-> from this doc's concern, which is visual-*content* richness).
+> (code-_structure_ nativeness — traits-as-data, gate-derived correctness; a disjoint subject
+> from this doc's concern, which is visual-_content_ richness).
 >
 > This doc is the deliverable of `research/2026-07-03_holoscript-realistic-authoring-docs-PLAN.md`
 > Stage 0 (ai-ecosystem repo). Every trait name and snippet below is grepped straight out of
@@ -27,7 +27,7 @@ zero material/model branch; and 92.6% of the existing `.holo` example corpus its
 richness signal for a model to pattern-match against. Fixing the prompt (done, see
 `packages/llm-provider/src/base-adapter.ts`'s `HOLOSCRIPT_SYSTEM_PROMPT`) raises the ceiling.
 This handbook is what fills in under that raised ceiling: a **pattern library**, not a single
-long example, so an authoring model (or an agent) has a *named target* to retrieve and compose
+long example, so an authoring model (or an agent) has a _named target_ to retrieve and compose
 from instead of collapsing to the statistical average of a bare label.
 
 ## 1. The load-bearing design principle: brief, not label
@@ -54,19 +54,19 @@ re-deriving material values from scratch.
 ## 2. The flagship before/after (read this first)
 
 `examples/showcase/realistic-forest.holo` (pre-refresh) and
-`examples/showcase/realistic-forest.refreshed.holo` (current) are the *same scene concept*,
+`examples/showcase/realistic-forest.refreshed.holo` (current) are the _same scene concept_,
 authored twice. The diff between them is the canonical "how to upgrade primitive content to
 real content" reference — smaller than reading either file in full:
 
-| Axis | Before (`realistic-forest.holo`) | After (`realistic-forest.refreshed.holo`) |
-|---|---|---|
-| Material | flat `pbr_material` block, one `unlit_material` with no light contribution | `material "ForestGround" @advanced_pbr { base_color, roughness, metallic, albedo_map, normal_map, ao_map, height_map, wetness }` — full PBR decomposition |
-| Environment | static `weather{}` block, disconnected from other objects | `@time_of_day` driver (4 named phases) that other objects *subscribe to* via `time_envelope` |
-| Atmosphere | none | `@volumetric_clouds` + `@wind` as coupled environment drivers |
-| Light | campfire model with no real light contribution | `@emissive` object paired with a real `point_light { color, intensity, range, cast_shadows }` that lights neighboring geometry |
-| Parse status | **fails to parse** (verified failing, line 352 — kept as reference only, not a working example) | **verified parsing** (`examples-health.matrix.json`) |
+| Axis         | Before (`realistic-forest.holo`)                                                                | After (`realistic-forest.refreshed.holo`)                                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Material     | flat `pbr_material` block, one `unlit_material` with no light contribution                      | `material "ForestGround" @advanced_pbr { base_color, roughness, metallic, albedo_map, normal_map, ao_map, height_map, wetness }` — full PBR decomposition |
+| Environment  | static `weather{}` block, disconnected from other objects                                       | `@time_of_day` driver (4 named phases) that other objects _subscribe to_ via `time_envelope`                                                              |
+| Atmosphere   | none                                                                                            | `@volumetric_clouds` + `@wind` as coupled environment drivers                                                                                             |
+| Light        | campfire model with no real light contribution                                                  | `@emissive` object paired with a real `point_light { color, intensity, range, cast_shadows }` that lights neighboring geometry                            |
+| Parse status | **fails to parse** (verified failing, line 352 — kept as reference only, not a working example) | **verified parsing** (`examples-health.matrix.json`)                                                                                                      |
 
-The before file shows the trap: writing *something* that looks like a material or an
+The before file shows the trap: writing _something_ that looks like a material or an
 environment block is not the same as writing one that composes, subscribes, or actually casts
 light. The after file is the reference this whole library generalizes from. When in doubt,
 open `examples/showcase/realistic-forest.refreshed.holo` and find the nearest pattern below.
@@ -235,7 +235,7 @@ object "ValleyWind" {
 
 ### Pattern 5 — Placeholder vs. real (when a bare primitive IS appropriate)
 
-- **Target:** a *labeled* test fixture, mock, or layout stand-in — not a finished asset
+- **Target:** a _labeled_ test fixture, mock, or layout stand-in — not a finished asset
   presented as done.
 - **Conventions:** a bare primitive (`mesh: { type: "cube" }`) with a flat `@color` is
   legitimate for unit tests, physics-collider stand-ins, editor gizmos, or explicitly-named
@@ -317,7 +317,7 @@ checkable signals that content has regressed to the primitive-only default:
   asset without saying so.
 - **An `@emissive` object with no paired `point_light`** doesn't actually illuminate anything —
   it glows in isolation and casts no light on neighbors. If the brief calls for something that
-  *lights a scene* (a campfire, a lantern), the light block is not optional.
+  _lights a scene_ (a campfire, a lantern), the light block is not optional.
 - **A `@time_of_day` driver with fewer than two named phases** is a static lighting rig
   wearing a time-driver's syntax.
 - **A `@wind` or environment-driver object with zero consumers** (nothing reads its

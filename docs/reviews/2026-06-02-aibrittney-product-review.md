@@ -14,11 +14,11 @@ aiBrittney, the README, NORTH_STAR, and the git history.
 > where a figure comes from a single automated read it is flagged.
 
 > **⚠ Measurement correction (2026-06-02, follow-up pass).** A later verification
-> re-measured this review's hard numbers. The *qualitative thesis* (sprawl,
-> maintenance-heavy board, verticals dormant *as products*) holds. Two quantities
+> re-measured this review's hard numbers. The _qualitative thesis_ (sprawl,
+> maintenance-heavy board, verticals dormant _as products_) holds. Two quantities
 > do **not**: (1) the **"~4 commits across all plugins in 6 months" is wrong** —
 > `git log --since` shows **163 commits** touched `packages/plugins/` (mostly
-> build-fixes/ratchet-markers, not vertical feature work, so the *spirit* stands
+> build-fixes/ratchet-markers, not vertical feature work, so the _spirit_ stands
 > but the number is ~40× off); (2) the **"363 failing tests" is stale and
 > mis-scoped** — a fresh full-monorepo run measures **~150–200 distinct failures
 > out of 130k+ executions (>99.8% green)**, of which **115 are in
@@ -32,10 +32,10 @@ aiBrittney, the README, NORTH_STAR, and the git history.
 
 ## 1. The one-sentence diagnosis
 
-**You don't have a product that hasn't been used — you have a *substrate* that's
-real, a *toolbox* (Studio) that's a live advanced-beta, a *CLI* (aiBrittney)
+**You don't have a product that hasn't been used — you have a _substrate_ that's
+real, a _toolbox_ (Studio) that's a live advanced-beta, a _CLI_ (aiBrittney)
 sitting in a corner, and 20+ half-sketched verticals — and no single coherent
-thing a person (you, or a family) can open and *use*.** That's why it hasn't
+thing a person (you, or a family) can open and _use_.** That's why it hasn't
 been used. Not because it's unfinished, but because "it" was never narrowed to
 one thing.
 
@@ -70,19 +70,19 @@ deploy` loop. **Do not lose sight of this — it's the asset.**
   for the playground.
 - But: **76 pages, 504 components, 172 API routes, three competing navigation
   systems, 248/~1000 files carrying TODO/stub/mock markers.** An in-repo audit
-  (2026-05-10) calls it *"structurally overloaded."* The `/create` IDE is
+  (2026-05-10) calls it _"structurally overloaded."_ The `/create` IDE is
   powerful and impenetrable — great for a developer, unusable by a family.
 - Verdict: **advanced beta, 70–80% technically there; the gap is product
   clarity and UX, not capability.**
 
-### aiBrittney — a developer CLI, isolated, and *not* the product the doctrine claims
+### aiBrittney — a developer CLI, isolated, and _not_ the product the doctrine claims
 
 - `@holoscript/aibrittney` is **v0.1.1**: a competent local-Ollama REPL with
   opt-in MCP tool-calling. It requires installing Ollama, pulling a 4.7 GB
   model, and setting MCP keys.
 - Outside its own package it appears in **13 files — almost all docs, reviews,
   branding, and the lockfile.** It is wired into nothing.
-- **There are two Brittneys.** Studio has its *own* Brittney
+- **There are two Brittneys.** Studio has its _own_ Brittney
   (`packages/studio/src/lib/brittney/`, Claude-SDK-backed, scene-gen) that is
   unrelated to the `aibrittney` package. The "primary intelligence interface"
   is split across two unconnected implementations, neither of which is a
@@ -92,15 +92,15 @@ deploy` loop. **Do not lose sight of this — it's the asset.**
 
 - 54 domain plugins (robotics, medical, aerospace, quantum, banking, civic,
   film-vfx, …) spanning 20+ verticals.
-- **[CORRECTED] 163 commits touched `packages/plugins/` in six months** — *not*
+- **[CORRECTED] 163 commits touched `packages/plugins/` in six months** — _not_
   "~4" as first stated. The catch: nearly all are monorepo-wide build-fixes,
   ratchet honesty-markers, and publish plumbing — **not vertical feature work** —
   so the point (the verticals get maintenance, not product investment) survives
   while the number was ~40× too low. **Zero static cross-plugin / external
   consumers confirmed** (no `@holoscript/*-plugin` import anywhere in `packages/`),
-  with the caveat that plugins are designed for *dynamic registry* loading, so
+  with the caveat that plugins are designed for _dynamic registry_ loading, so
   "0 static consumers" ≠ "unused." Each is an isolated ~800–1200 LOC template.
-- Verdict: these represent every direction the product *wishes* to support.
+- Verdict: these represent every direction the product _wishes_ to support.
   They are sketches waiting for an owner, not an ecosystem.
 
 ### The experimental layer — disciplined, but it's 3–4 products in parallel
@@ -123,7 +123,7 @@ focus is absent.
 
 ---
 
-## 3. How it all *actually* comes together (the honest map)
+## 3. How it all _actually_ comes together (the honest map)
 
 It mostly doesn't — yet. Here's the real graph:
 
@@ -142,8 +142,8 @@ The substrate connects to Studio. Almost nothing else connects to anything.
 The verticals, the CLI, the mesh, and the experiments are **spokes with no hub**
 — each plausible, none load-bearing, none reaching a user.
 
-The "how it comes together" *story* exists (the README pitch is excellent), but
-the *wiring* doesn't. A reader of the README is promised a unified platform; a
+The "how it comes together" _story_ exists (the README pitch is excellent), but
+the _wiring_ doesn't. A reader of the README is promised a unified platform; a
 reader of the dependency graph finds one strong core, one live toolbox, and a
 field of disconnected prototypes.
 
@@ -155,22 +155,22 @@ This is structural, not a model problem:
 
 - **Coordination ritual outweighs the work.** ~1,133 lines across **six
   overlapping behavioral-contract docs** (CLAUDE.md, AGENTS.md,
-  AGENT_INTERFACE.md, NORTH_STAR.md, GEMINI.md, .cursorrules) + **~9,126 lines
+  AGENT*INTERFACE.md, NORTH_STAR.md, GEMINI.md, .cursorrules) + **~9,126 lines
   of skill docs** + a mandatory 6-step session-init ritual + GOLD-drive intake +
   knowledge-sync. An agent spends its first chunk of every session reading
-  *how to behave* before it can ask *what to build*.
+  \_how to behave* before it can ask _what to build_.
 - **The board points away from the product.** ~**81% of board effort is
   maintenance/CI/TODO-debt/knowledge-hygiene; ~19% advances product.** The
   doctrine says "Brittney + Studio first," yet the board has ~1 Brittney task
   and **0 Studio-product tasks.** Stated direction and allocated work disagree —
   so each agent re-derives direction from scratch and drifts.
-- **No closed quality loop.** **363 failing tests** *[CORRECTED: a fresh
+- **No closed quality loop.** **363 failing tests** _[CORRECTED: a fresh
   full-monorepo run measures ~150–200 distinct failures / 130k+ executions
   (>99.8% green); 115 are in `services/holoscript-net-v2`, only 3 in the Studio
-  front door — the "363" was whole-repo and is now stale]* (the priority-1
-  "reduce 363 → <100" task has been *claimed but uncompleted for 49 days*), 367
+  front door — the "363" was whole-repo and is now stale]_ (the priority-1
+  "reduce 363 → <100" task has been _claimed but uncompleted for 49 days_), 367
   TODO/FIXME markers, 1,117 knowledge entries pending dedup. GitHub Actions (25
-  workflows) were archived; accumulated `.d.ts`/fixture debris blocked *all*
+  workflows) were archived; accumulated `.d.ts`/fixture debris blocked _all_
   commits, forcing routine `--no-verify` — which also silently skipped the
   secret-scanning gate. The gate that was supposed to enforce quality became the
   thing agents route around.
@@ -179,8 +179,8 @@ This is structural, not a model problem:
   agent identity, in bursts. The machine is being maintained, not advanced.
 
 The compounding effect: heavy ritual + a maintenance-shaped board + a broken
-quality loop means every agent session is absorbed by the *machine*, and the
-*product* never gets a turn. That is exactly the "losing a sense of direction"
+quality loop means every agent session is absorbed by the _machine_, and the
+_product_ never gets a turn. That is exactly the "losing a sense of direction"
 you're describing.
 
 ---
@@ -212,7 +212,7 @@ Concretely, in priority order:
 
 1. **Name the one user and the one job.** "A family member opens a URL and
    makes/shares a 3D thing by describing it." If HoloShell ("operate my
-   computer safely by description") is the real dream, name *that* instead — but
+   computer safely by description") is the real dream, name _that_ instead — but
    pick one, and write it at the top of NORTH_STAR.md as the only thing that
    matters this quarter.
 2. **Collapse the two Brittneys into one.** Decide: Studio-Brittney (Claude,
@@ -222,11 +222,11 @@ Concretely, in priority order:
 3. **Make `/vibe` the front door.** Hide `/create`'s 50 panels behind an
    "advanced" toggle. One nav. A guided first-run. Templates. This is UX work on
    code that already works — the highest-leverage product move available.
-4. **Fix the quality loop before adding anything.** *[CORRECTED — mostly already
+4. **Fix the quality loop before adding anything.** _[CORRECTED — mostly already
    done: the front-door package is 3 failed / 6214 (the "363" is whole-repo &
    stale); the pre-commit gate ran green on every verification-session commit; and
    secret scanning is armed (active F.106 local scan, 9 token formats). "Un-break
-   the gate / re-arm secret scanning" describes work that is already complete.]*
+   the gate / re-arm secret scanning" describes work that is already complete.]_
    The residual quality work is narrow: fix the 3 named studio failures and pick
    one canonical HoloCI green signal — not a base-wide repair.
 5. **Re-shape the board to the spine.** Target ≥40% of tasks on the chosen
@@ -235,7 +235,7 @@ Concretely, in priority order:
    (you already do this well in idea-seeds — extend it).
 6. **Cut the agent ritual in half.** Collapse the 6 behavioral-contract docs to
    **one** canonical decision tree. The session-init ritual should be ~3 lines:
-   *what's the one product, what's its state, what's the next product task.*
+   _what's the one product, what's its state, what's the next product task._
 
 The thesis in one line: **the path to "used by a family" is not more building —
 it's narrowing Studio's working loop into one front door and pointing every

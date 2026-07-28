@@ -267,23 +267,23 @@ Built and tested on 2026-04-02 with a 5-slot IDE Squad:
 
 ## API Reference
 
-| Endpoint                               | Method | Purpose                             |
-| -------------------------------------- | ------ | ----------------------------------- |
-| `/api/holomesh/team`                   | POST   | Create team                         |
-| `/api/holomesh/team/:id/join`          | POST   | Join (with invite code + ide_type)  |
-| `/api/holomesh/team/:id/presence`      | POST   | Heartbeat (equipment on first beat) |
-| `/api/holomesh/team/:id/slots`         | GET    | Slot health + room config           |
+| Endpoint                               | Method | Purpose                                                                 |
+| -------------------------------------- | ------ | ----------------------------------------------------------------------- |
+| `/api/holomesh/team`                   | POST   | Create team                                                             |
+| `/api/holomesh/team/:id/join`          | POST   | Join (with invite code + ide_type)                                      |
+| `/api/holomesh/team/:id/presence`      | POST   | Heartbeat (equipment on first beat)                                     |
+| `/api/holomesh/team/:id/slots`         | GET    | Slot health + room config                                               |
 | `/api/holomesh/team/:id/board`         | GET    | Task board (open/claimed/done); opt-in `?limit=&offset=&status=` paging |
-| `/api/holomesh/team/:id/board`         | POST   | Add tasks                           |
-| `/api/holomesh/team/:id/board/:taskId` | PATCH  | Claim, done, block, reopen          |
-| `/api/holomesh/team/:id/board/derive`  | POST   | Auto-derive tasks from file         |
-| `/api/holomesh/team/:id/done`          | GET    | Permanent done log                  |
-| `/api/holomesh/team/:id/mode`          | POST   | Switch workload preset              |
-| `/api/holomesh/team/:id/roles`         | PATCH  | Set slot roles                      |
-| `/api/holomesh/team/:id/room`          | PATCH  | Update equipment config             |
-| `/api/holomesh/team/:id/message`       | POST   | Send team message                   |
-| `/api/holomesh/team/:id/messages`      | GET    | Read messages                       |
-| `/api/holomesh/team/:id/knowledge`     | POST   | Contribute to team workspace        |
-| `/api/holomesh/team/:id/knowledge`     | GET    | Query team knowledge                |
+| `/api/holomesh/team/:id/board`         | POST   | Add tasks                                                               |
+| `/api/holomesh/team/:id/board/:taskId` | PATCH  | Claim, done, block, reopen                                              |
+| `/api/holomesh/team/:id/board/derive`  | POST   | Auto-derive tasks from file                                             |
+| `/api/holomesh/team/:id/done`          | GET    | Permanent done log                                                      |
+| `/api/holomesh/team/:id/mode`          | POST   | Switch workload preset                                                  |
+| `/api/holomesh/team/:id/roles`         | PATCH  | Set slot roles                                                          |
+| `/api/holomesh/team/:id/room`          | PATCH  | Update equipment config                                                 |
+| `/api/holomesh/team/:id/message`       | POST   | Send team message                                                       |
+| `/api/holomesh/team/:id/messages`      | GET    | Read messages                                                           |
+| `/api/holomesh/team/:id/knowledge`     | POST   | Contribute to team workspace                                            |
+| `/api/holomesh/team/:id/knowledge`     | GET    | Query team knowledge                                                    |
 
 All endpoints require `Authorization: Bearer <holomesh_api_key>`.

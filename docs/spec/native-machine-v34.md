@@ -41,13 +41,13 @@ Sensor(unknown("underdetermined"))
 
 Unknown reasons are compiled from the canonical `@holoscript/meaning` vocabulary:
 
-| Code | Reason |
-| ---: | --- |
-| 1 | `underdetermined` |
-| 2 | `unprioritized_conflict` |
-| 3 | `cyclic_dependency` |
-| 4 | `missing_precondition` |
-| 5 | `irreducible_stochastic` |
+| Code | Reason                   |
+| ---: | ------------------------ |
+|    1 | `underdetermined`        |
+|    2 | `unprioritized_conflict` |
+|    3 | `cyclic_dependency`      |
+|    4 | `missing_precondition`   |
+|    5 | `irreducible_stochastic` |
 
 Code zero is reserved for a known field.
 

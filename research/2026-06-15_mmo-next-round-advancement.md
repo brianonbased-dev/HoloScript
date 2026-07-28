@@ -15,25 +15,25 @@ Round 1 shipped parser-level MMO primitives across all three HoloScript formats 
 
 The table below is grounded in files read from the codebase. "Lower" means a compiler consumes the AST node and emits executable output. "Runtime" means the emitted code actually runs a game loop.
 
-| Primitive | Format | AST | Parse | Lower | Runtime |
-|-----------|--------|-----|-------|-------|---------|
-| HoloNPC | `.holo` | yes | yes | partial (metadata only, no behavior) | no |
-| HoloSpawnPoint | `.holo` | yes | yes | no (ColyseusCompiler uses trait scan, not typed field) | no |
-| HoloGameTrigger | `.holo` | yes | yes | no | no |
-| HoloQuestDef | `.holo` | yes | yes | no | no |
-| HoloLootTable / HoloLootEntry | `.holo` | yes | yes | no | no |
-| HoloWorldChunk | `.holo` | yes | yes | no | no |
-| GameAbilityNode | `.hs` | yes | yes | no | no |
-| GameLootTableNode | `.hs` | yes | yes | no | no |
-| GameSpawnNode | `.hs` | yes | yes | no | no |
-| GameAuthorityNode | `.hs` | yes | yes | no (comment only) | no |
-| GameEventBlockNode | `.hs` | yes | yes | no (body is raw string) | no |
-| @server_side / @client_side / @replicated | `.hs` | yes | yes | cosmetic comment only | no |
-| HoloBrainDecl | `.hsplus` | yes | yes | no consumers | no |
-| ColyseusCompiler | — | — | — | yes (Room scaffold) | partial (onTick stub, move handler trusts client) |
-| StatTrait / LuckTrait / EncounterTrait / DropTableTrait | `.hsplus` | yes | yes | yes (standalone trait) | yes (53 tests passing) |
-| AINPCBrainTrait / CavemanDriveTrait | `.hsplus` | yes | yes | yes (standalone trait) | yes (122+ tests) |
-| TrustReceipt / TrustLedger | TypeScript | — | — | — | yes (tested, no MMO binding) |
+| Primitive                                               | Format     | AST | Parse | Lower                                                  | Runtime                                           |
+| ------------------------------------------------------- | ---------- | --- | ----- | ------------------------------------------------------ | ------------------------------------------------- |
+| HoloNPC                                                 | `.holo`    | yes | yes   | partial (metadata only, no behavior)                   | no                                                |
+| HoloSpawnPoint                                          | `.holo`    | yes | yes   | no (ColyseusCompiler uses trait scan, not typed field) | no                                                |
+| HoloGameTrigger                                         | `.holo`    | yes | yes   | no                                                     | no                                                |
+| HoloQuestDef                                            | `.holo`    | yes | yes   | no                                                     | no                                                |
+| HoloLootTable / HoloLootEntry                           | `.holo`    | yes | yes   | no                                                     | no                                                |
+| HoloWorldChunk                                          | `.holo`    | yes | yes   | no                                                     | no                                                |
+| GameAbilityNode                                         | `.hs`      | yes | yes   | no                                                     | no                                                |
+| GameLootTableNode                                       | `.hs`      | yes | yes   | no                                                     | no                                                |
+| GameSpawnNode                                           | `.hs`      | yes | yes   | no                                                     | no                                                |
+| GameAuthorityNode                                       | `.hs`      | yes | yes   | no (comment only)                                      | no                                                |
+| GameEventBlockNode                                      | `.hs`      | yes | yes   | no (body is raw string)                                | no                                                |
+| @server_side / @client_side / @replicated               | `.hs`      | yes | yes   | cosmetic comment only                                  | no                                                |
+| HoloBrainDecl                                           | `.hsplus`  | yes | yes   | no consumers                                           | no                                                |
+| ColyseusCompiler                                        | —          | —   | —     | yes (Room scaffold)                                    | partial (onTick stub, move handler trusts client) |
+| StatTrait / LuckTrait / EncounterTrait / DropTableTrait | `.hsplus`  | yes | yes   | yes (standalone trait)                                 | yes (53 tests passing)                            |
+| AINPCBrainTrait / CavemanDriveTrait                     | `.hsplus`  | yes | yes   | yes (standalone trait)                                 | yes (122+ tests)                                  |
+| TrustReceipt / TrustLedger                              | TypeScript | —   | —     | —                                                      | yes (tested, no MMO binding)                      |
 
 **Summary**: ColyseusCompiler is the only compiler with MMO lowering, and its `onTick()`, `handlePlayerJoin/Leave/Action`, and move handler are all stubs or unconditionally trust client input. Import resolution between `.holo` compositions and their `.hs`/`.hsplus` imports is not wired into ColyseusCompiler. The gap between parsed AST and running server is total.
 
@@ -1125,53 +1125,53 @@ HoloScript is a spatial computing language — player-authored world content is 
 
 ### P0-Foundational (must ship, in dependency order)
 
-| Priority | Item | Format(s) | Difficulty | What ships |
-|----------|------|-----------|------------|------------|
-| P0.0 | Wire `ImportResolver` into `ColyseusCompiler.compile()` | TypeScript (compiler) | S | ColyseusCompiler sees `.hs`/`.hsplus` imports |
-| P0.1 | Add typed directive accessors to `GameAbilityNode` | `types/base.ts` | S | `cooldown`, `mana_cost`, `gcd`, `range` readable by compiler |
-| P0.2 | Establish `tickCount: u32` canonical clock + `@tick_model` block | `.holo` parser + ColyseusCompiler | S | All events stamped with tick, fixed `deltaTime`, deterministic RNG seed |
-| P0.3 | Movement validation in `onMessage('move')` from `@movement_contract` | `.holo` parser extension + ColyseusCompiler | M | Speedhack rejected in emitted Colyseus Room |
-| P0.4 | `@receipt_on` annotation emission for `on_combat`/`on_death` | `.hs` parser + ColyseusCompiler | M | First live TrustReceipt calls in MMO server output |
-| P0.5 | Wire `HoloWorldChunk` nodes to `ChunkManifest` JSON artifact | ColyseusCompiler pass | M | `WorldStreamer.setChunkGenerator()` can be fed from `.holo` source |
-| P0.6 | Lower `HoloBrainDecl.brainType` to `NpcState` field + `initializeBrain()` | `.hsplus` consumer in ColyseusCompiler | M | First brain lowering; NpcState is data-driven not hard-coded |
-| P0.7 | Tune `CavemanDriveTrait` safety valve (20 → 200 ticks), gate by `@lod_ai` | TypeScript trait | S | MMO-scale LLM NPC math becomes valid |
-| P0.8 | `GameEventReceiptSchema` (`DomainSimulationReceipt` subtype) | `packages/core/src/receipts/` | S | Canonical receipt shape for all MMO game events |
+| Priority | Item                                                                      | Format(s)                                   | Difficulty | What ships                                                              |
+| -------- | ------------------------------------------------------------------------- | ------------------------------------------- | ---------- | ----------------------------------------------------------------------- |
+| P0.0     | Wire `ImportResolver` into `ColyseusCompiler.compile()`                   | TypeScript (compiler)                       | S          | ColyseusCompiler sees `.hs`/`.hsplus` imports                           |
+| P0.1     | Add typed directive accessors to `GameAbilityNode`                        | `types/base.ts`                             | S          | `cooldown`, `mana_cost`, `gcd`, `range` readable by compiler            |
+| P0.2     | Establish `tickCount: u32` canonical clock + `@tick_model` block          | `.holo` parser + ColyseusCompiler           | S          | All events stamped with tick, fixed `deltaTime`, deterministic RNG seed |
+| P0.3     | Movement validation in `onMessage('move')` from `@movement_contract`      | `.holo` parser extension + ColyseusCompiler | M          | Speedhack rejected in emitted Colyseus Room                             |
+| P0.4     | `@receipt_on` annotation emission for `on_combat`/`on_death`              | `.hs` parser + ColyseusCompiler             | M          | First live TrustReceipt calls in MMO server output                      |
+| P0.5     | Wire `HoloWorldChunk` nodes to `ChunkManifest` JSON artifact              | ColyseusCompiler pass                       | M          | `WorldStreamer.setChunkGenerator()` can be fed from `.holo` source      |
+| P0.6     | Lower `HoloBrainDecl.brainType` to `NpcState` field + `initializeBrain()` | `.hsplus` consumer in ColyseusCompiler      | M          | First brain lowering; NpcState is data-driven not hard-coded            |
+| P0.7     | Tune `CavemanDriveTrait` safety valve (20 → 200 ticks), gate by `@lod_ai` | TypeScript trait                            | S          | MMO-scale LLM NPC math becomes valid                                    |
+| P0.8     | `GameEventReceiptSchema` (`DomainSimulationReceipt` subtype)              | `packages/core/src/receipts/`               | S          | Canonical receipt shape for all MMO game events                         |
 
 ### P1-Differentiator (ships after P0, these are the paper claims)
 
-| Priority | Item | Format(s) | Difficulty | What ships |
-|----------|------|-----------|------------|------------|
-| P1.0 | `@authority_envelope` on abilities + cooldown/range/mana validation in `onMessage('cast')` | `.hs` parser + ColyseusCompiler | M | Server-authoritative ability validation in emitted Room |
-| P1.1 | `@aoi_bubble` on `HoloNPC` + `OctreeSystem.rangeQuery()` in `onTick()` | `.holo` parser extension + ColyseusCompiler | M | AOI filtering: state no longer broadcast to all clients |
-| P1.2 | `@replicated(tier, rate, compression)` directives → `@type` decorators with rate-gating | `.hs` parser + ColyseusCompiler | L | Per-field sync tiers in Colyseus schema |
-| P1.3 | `HoloBrainDecl` brain state machine → per-NPC BT tick in `onTick()` | `.hsplus` → ColyseusCompiler | L | Living NPC AI in emitted Room |
-| P1.4 | `@local_llm_brain` + `env:JETSON_OLLAMA_URL` → `LocalInferenceTrait` wiring | `.hsplus` parser + ColyseusCompiler | M | NPCs with Jetson qwen3:4b brains running in Colyseus Room |
-| P1.5 | `npc_seed` block → `AgentSeed.hydrate()`/`episodeMerge()` lifecycle in `onTick()` | `.holo` parser + ColyseusCompiler | L | D.043 disposable-neural-map lifecycle running |
-| P1.6 | `DropTableTrait` wired to `HoloLootTable` AST nodes | `.holo` → ColyseusCompiler | M | Loot rolls from `.holo` source (highest-value economy task) |
-| P1.7 | `@gcd`/`@oGCD` annotations + GCD enforcer in `onMessage` | `.hs` parser + ColyseusCompiler | M | Server-side GCD enforcement; ability spam rejected |
-| P1.8 | `damage_formula` block lowering → `rollDamage_<Ability>()` TypeScript function | `.hs` → ColyseusCompiler pass | M | Authoritative damage resolution in emitted Room |
-| P1.9 | `@verbal_fingerprint` + `@autonomous_agenda` in `.hsplus` → LLM system prompt construction | `.hsplus` parser + brain wiring | M | SLF-class NPC feel from language declaration |
-| P1.10 | Authority-split structural pass (server-set / client-set from annotations, no symbol-table) | Cross-compiler pass | L | First step toward `mmo-server` + `mmo-client-sdk` targets |
-| P1.11 | Headless Node-safe tick loop extraction from `SpatialEngine` | `packages/engine/` refactor | M | Unblocks `mmo-server` target registration |
-| P1.12 | `ProvenanceBoundsChecker` (single-file lint pass, extend `EffectChecker`) | Compiler safety pass | L | First `@provably_bounded` lint warnings; publish claim scaffolded |
+| Priority | Item                                                                                        | Format(s)                                   | Difficulty | What ships                                                        |
+| -------- | ------------------------------------------------------------------------------------------- | ------------------------------------------- | ---------- | ----------------------------------------------------------------- |
+| P1.0     | `@authority_envelope` on abilities + cooldown/range/mana validation in `onMessage('cast')`  | `.hs` parser + ColyseusCompiler             | M          | Server-authoritative ability validation in emitted Room           |
+| P1.1     | `@aoi_bubble` on `HoloNPC` + `OctreeSystem.rangeQuery()` in `onTick()`                      | `.holo` parser extension + ColyseusCompiler | M          | AOI filtering: state no longer broadcast to all clients           |
+| P1.2     | `@replicated(tier, rate, compression)` directives → `@type` decorators with rate-gating     | `.hs` parser + ColyseusCompiler             | L          | Per-field sync tiers in Colyseus schema                           |
+| P1.3     | `HoloBrainDecl` brain state machine → per-NPC BT tick in `onTick()`                         | `.hsplus` → ColyseusCompiler                | L          | Living NPC AI in emitted Room                                     |
+| P1.4     | `@local_llm_brain` + `env:JETSON_OLLAMA_URL` → `LocalInferenceTrait` wiring                 | `.hsplus` parser + ColyseusCompiler         | M          | NPCs with Jetson qwen3:4b brains running in Colyseus Room         |
+| P1.5     | `npc_seed` block → `AgentSeed.hydrate()`/`episodeMerge()` lifecycle in `onTick()`           | `.holo` parser + ColyseusCompiler           | L          | D.043 disposable-neural-map lifecycle running                     |
+| P1.6     | `DropTableTrait` wired to `HoloLootTable` AST nodes                                         | `.holo` → ColyseusCompiler                  | M          | Loot rolls from `.holo` source (highest-value economy task)       |
+| P1.7     | `@gcd`/`@oGCD` annotations + GCD enforcer in `onMessage`                                    | `.hs` parser + ColyseusCompiler             | M          | Server-side GCD enforcement; ability spam rejected                |
+| P1.8     | `damage_formula` block lowering → `rollDamage_<Ability>()` TypeScript function              | `.hs` → ColyseusCompiler pass               | M          | Authoritative damage resolution in emitted Room                   |
+| P1.9     | `@verbal_fingerprint` + `@autonomous_agenda` in `.hsplus` → LLM system prompt construction  | `.hsplus` parser + brain wiring             | M          | SLF-class NPC feel from language declaration                      |
+| P1.10    | Authority-split structural pass (server-set / client-set from annotations, no symbol-table) | Cross-compiler pass                         | L          | First step toward `mmo-server` + `mmo-client-sdk` targets         |
+| P1.11    | Headless Node-safe tick loop extraction from `SpatialEngine`                                | `packages/engine/` refactor                 | M          | Unblocks `mmo-server` target registration                         |
+| P1.12    | `ProvenanceBoundsChecker` (single-file lint pass, extend `EffectChecker`)                   | Compiler safety pass                        | L          | First `@provably_bounded` lint warnings; publish claim scaffolded |
 
 ### P2-Depth (round 3+, after differentiators are proven)
 
-| Priority | Item | Format(s) | Notes |
-|----------|------|-----------|-------|
-| P2.0 | `@server_only` enforcement + `ServerAuthorityBundleSplitter` | Compiler pass | Requires symbol-table (round 3) |
-| P2.1 | `boss_fight` phase state machine → Colyseus phase class | `.hs` + ColyseusCompiler | After canonical tick model |
-| P2.2 | `gossip_channel` → `GossipStore` in Room + hydration replay | `.holo` + ColyseusCompiler | After `npc_seed` lifecycle (P1.5) |
-| P2.3 | `spatial_group` / pack AI → shared threat map broadcast | `.holo` + ColyseusCompiler | After brain lowering (P1.3) |
-| P2.4 | `world_layer` phasing → `PhaseRegistry` + `phase_flags` in `PlayerState` | `.holo` + WorldLayerCompiler | After canonical tick model |
-| P2.5 | `world_shard` (same-machine multi-room scope) | `.holo` + ShardRegistryCompiler | Cross-host is round 4+ |
-| P2.6 | `dungeon_instance` pool + TrustReceipt on completion | `.holo` + DungeonInstancePoolCompiler | After `world_chunk` manifest (P0.5) |
-| P2.7 | Social systems (guild, party, trade_window, LFG) | `.holo`/`.hs` | Round 3 minimum, zero scaffolding today |
-| P2.8 | `item_def` + `affix_pool` + `EconomyCompiler` | `.holo` + new compiler | Round 4 after x402 unblocked |
-| P2.9 | `@spacetimedb_module` (Rust codegen) | — | Round 5+ |
-| P2.10 | `@observable` cross-cutting annotation for live-ops telemetry | All formats | Cross-cutting P1 concern, schedule after P1.8 |
-| P2.11 | `BotSwarmCompiler` for fleet-based MMO load testing / balance CI | New compiler | Maps to D.010 paper benchmarks |
-| P2.12 | Cross-file `ProvenanceBoundsChecker` (symbol table required) | Compiler safety | Upgrades P1.12 from lint to compile error |
+| Priority | Item                                                                     | Format(s)                             | Notes                                         |
+| -------- | ------------------------------------------------------------------------ | ------------------------------------- | --------------------------------------------- |
+| P2.0     | `@server_only` enforcement + `ServerAuthorityBundleSplitter`             | Compiler pass                         | Requires symbol-table (round 3)               |
+| P2.1     | `boss_fight` phase state machine → Colyseus phase class                  | `.hs` + ColyseusCompiler              | After canonical tick model                    |
+| P2.2     | `gossip_channel` → `GossipStore` in Room + hydration replay              | `.holo` + ColyseusCompiler            | After `npc_seed` lifecycle (P1.5)             |
+| P2.3     | `spatial_group` / pack AI → shared threat map broadcast                  | `.holo` + ColyseusCompiler            | After brain lowering (P1.3)                   |
+| P2.4     | `world_layer` phasing → `PhaseRegistry` + `phase_flags` in `PlayerState` | `.holo` + WorldLayerCompiler          | After canonical tick model                    |
+| P2.5     | `world_shard` (same-machine multi-room scope)                            | `.holo` + ShardRegistryCompiler       | Cross-host is round 4+                        |
+| P2.6     | `dungeon_instance` pool + TrustReceipt on completion                     | `.holo` + DungeonInstancePoolCompiler | After `world_chunk` manifest (P0.5)           |
+| P2.7     | Social systems (guild, party, trade_window, LFG)                         | `.holo`/`.hs`                         | Round 3 minimum, zero scaffolding today       |
+| P2.8     | `item_def` + `affix_pool` + `EconomyCompiler`                            | `.holo` + new compiler                | Round 4 after x402 unblocked                  |
+| P2.9     | `@spacetimedb_module` (Rust codegen)                                     | —                                     | Round 5+                                      |
+| P2.10    | `@observable` cross-cutting annotation for live-ops telemetry            | All formats                           | Cross-cutting P1 concern, schedule after P1.8 |
+| P2.11    | `BotSwarmCompiler` for fleet-based MMO load testing / balance CI         | New compiler                          | Maps to D.010 paper benchmarks                |
+| P2.12    | Cross-file `ProvenanceBoundsChecker` (symbol table required)             | Compiler safety                       | Upgrades P1.12 from lint to compile error     |
 
 ### The single highest-leverage first move
 
@@ -1181,5 +1181,5 @@ It is a single integration task — call `ImportResolver` in `ColyseusCompiler.c
 
 ---
 
-*File: `C:/Users/Josep/Documents/GitHub/HoloScript/research/2026-06-15_mmo-next-round-advancement.md`*
-*Word count: ~10,000 words. All syntax snippets reflect proposed new HoloScript primitives grounded in the three-format model (F.120). All infrastructure references are grounded in files read from the codebase.*
+_File: `C:/Users/Josep/Documents/GitHub/HoloScript/research/2026-06-15_mmo-next-round-advancement.md`_
+_Word count: ~10,000 words. All syntax snippets reflect proposed new HoloScript primitives grounded in the three-format model (F.120). All infrastructure references are grounded in files read from the codebase._

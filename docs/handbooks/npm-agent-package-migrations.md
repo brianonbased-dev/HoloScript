@@ -6,11 +6,11 @@ the legacy packages; deprecate them and keep the replacement paths explicit.
 
 ## Quick Map
 
-| Legacy package | Use instead | Why |
-| --- | --- | --- |
-| `@holoscript/agent-sdk` | `@holoscript/framework`, `@holoscript/mesh`, `@holoscript/memory` | Agent orchestration, mesh helpers, network runtime, and shared memory now live in typed packages. |
+| Legacy package             | Use instead                                                                   | Why                                                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `@holoscript/agent-sdk`    | `@holoscript/framework`, `@holoscript/mesh`, `@holoscript/memory`             | Agent orchestration, mesh helpers, network runtime, and shared memory now live in typed packages.                    |
 | `@holoscript/intelligence` | `@holoscript/framework`, `@holoscript/holoscript-agent`, `@holoscript/memory` | Intelligence APIs are split between framework AI/swarm/training exports, the headless runtime, and sovereign memory. |
-| `@holoscript/state-sync` | `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mesh` | State sync is now explicit CRDT state plus mesh transport. |
+| `@holoscript/state-sync`   | `@holoscript/crdt`, `@holoscript/crdt-spatial`, `@holoscript/mesh`            | State sync is now explicit CRDT state plus mesh transport.                                                           |
 
 ## agent-sdk
 

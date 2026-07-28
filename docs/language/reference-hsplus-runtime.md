@@ -20,13 +20,13 @@ Production runtime features for `.hsplus` compositions: safety-daemon macro, hot
 
 ### Default configuration
 
-| Trait | Key defaults |
-|---|---|
-| `@rate_limiter` | `strategy: token_bucket`, `max_tokens: 20`, `refill_rate: 4/min`, `window_ms: 60000` |
-| `@circuit_breaker` | `failure_threshold: 5`, `window_ms: 300000` (5 min), `reset_timeout_ms: 600000` (10 min), `success_threshold: 2`, `min_requests: 5` |
-| `@timeout_guard` | `default_timeout_ms: 30000`, `fallback_action: abort` |
-| `@economy` | `initial_balance: 5`, `default_spend_limit: 1`, `spend_limit_period: 3600000` (1 hr), `max_transaction_history: 200`, `escrow_enabled: false` |
-| `@structured_logger` | `min_level: info`, `max_entries: 500`, `rotation_count: 100`, `emit_events: true`, `console_output: true` |
+| Trait                | Key defaults                                                                                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@rate_limiter`      | `strategy: token_bucket`, `max_tokens: 20`, `refill_rate: 4/min`, `window_ms: 60000`                                                          |
+| `@circuit_breaker`   | `failure_threshold: 5`, `window_ms: 300000` (5 min), `reset_timeout_ms: 600000` (10 min), `success_threshold: 2`, `min_requests: 5`           |
+| `@timeout_guard`     | `default_timeout_ms: 30000`, `fallback_action: abort`                                                                                         |
+| `@economy`           | `initial_balance: 5`, `default_spend_limit: 1`, `spend_limit_period: 3600000` (1 hr), `max_transaction_history: 200`, `escrow_enabled: false` |
+| `@structured_logger` | `min_level: info`, `max_entries: 500`, `rotation_count: 100`, `emit_events: true`, `console_output: true`                                     |
 
 ### Syntax
 
@@ -166,9 +166,9 @@ The runtime executes migrations in ascending `fromVersion` order until the live 
 
 The parser extracts `@version` and `@migrate` from the directive stream into dedicated AST fields:
 
-| Directive | AST field | Type |
-|---|---|---|
-| `@version(N)` | `node.version` | `number` |
+| Directive              | AST field           | Type                                                       |
+| ---------------------- | ------------------- | ---------------------------------------------------------- |
+| `@version(N)`          | `node.version`      | `number`                                                   |
 | `@migrate from(N) { }` | `node.migrations[]` | `{ type: "Migration", fromVersion: number, body: string }` |
 
 ### Complete example — v1 to v3 migration
@@ -288,15 +288,15 @@ agent AlertSystem {
 
 The `movement` event category exposes seven `on_*` reaction triggers that fire in response to locomotion state changes. These are registered in `LocomotionActions.ts` as the SSOT for the parser, LSP, and compiler:
 
-| Trigger | Fires when |
-|---|---|
-| `on_move` | Any movement begins |
-| `on_walk` | Walk mode activates |
-| `on_run` | Run mode activates |
-| `on_jump` | Jump initiated |
-| `on_land` | Landing detected |
-| `on_strafe` | Lateral movement begins |
-| `on_teleport` | Teleport completes |
+| Trigger       | Fires when              |
+| ------------- | ----------------------- |
+| `on_move`     | Any movement begins     |
+| `on_walk`     | Walk mode activates     |
+| `on_run`      | Run mode activates      |
+| `on_jump`     | Jump initiated          |
+| `on_land`     | Landing detected        |
+| `on_strafe`   | Lateral movement begins |
+| `on_teleport` | Teleport completes      |
 
 ```hsplus
 template "PlayerAvatar" {
@@ -352,18 +352,18 @@ allowSensorRead:     false
 
 ### Stdlib action reference
 
-| Action | Policy gate | Blackboard output keys |
-|---|---|---|
-| `fs_read` | `allowedPaths` + `maxFileBytes` | `<prefix>_content`, `<prefix>_exists`, `<prefix>_error` |
-| `fs_write` | `allowedPaths` + `maxFileBytes` | `<prefix>_path`, `<prefix>_bytes`, `<prefix>_error` |
-| `fs_exists` | path within `rootDir` | `<prefix>_exists`, `<prefix>_error` |
-| `fs_delete` | `allowedPaths` | `<prefix>_error` |
-| `net_fetch` | `allowNetwork` + `allowedHosts` | `<prefix>_status`, `<prefix>_body`, `<prefix>_ok`, `<prefix>_error` |
-| `process_exec` | `allowShell` + `allowedShellCommands` | `<prefix>_code`, `<prefix>_stdout`, `<prefix>_stderr`, `<prefix>_error` |
-| `media_decode` | `allowMediaDecode` + `maxGifFrames` | `<prefix>_frames`, `<prefix>_count`, `<prefix>_error` |
-| `depth_inference` | `allowDepthInference` + `maxMediaResolution` | `<prefix>_data`, `<prefix>_width`, `<prefix>_height`, `<prefix>_backend`, `<prefix>_inferenceMs`, `<prefix>_error` |
-| `gpu_compute` | `allowGpuCompute` | `<prefix>_outputs`, `<prefix>_dispatchMs`, `<prefix>_error` |
-| `device_probe` | `allowDeviceProbe` + `allowedDeviceScopes` + scope gate | `<prefix>_ok`, `<prefix>_status`, `<prefix>_receipt`, `<prefix>_denial_receipt`, `<prefix>_error` |
+| Action            | Policy gate                                             | Blackboard output keys                                                                                             |
+| ----------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `fs_read`         | `allowedPaths` + `maxFileBytes`                         | `<prefix>_content`, `<prefix>_exists`, `<prefix>_error`                                                            |
+| `fs_write`        | `allowedPaths` + `maxFileBytes`                         | `<prefix>_path`, `<prefix>_bytes`, `<prefix>_error`                                                                |
+| `fs_exists`       | path within `rootDir`                                   | `<prefix>_exists`, `<prefix>_error`                                                                                |
+| `fs_delete`       | `allowedPaths`                                          | `<prefix>_error`                                                                                                   |
+| `net_fetch`       | `allowNetwork` + `allowedHosts`                         | `<prefix>_status`, `<prefix>_body`, `<prefix>_ok`, `<prefix>_error`                                                |
+| `process_exec`    | `allowShell` + `allowedShellCommands`                   | `<prefix>_code`, `<prefix>_stdout`, `<prefix>_stderr`, `<prefix>_error`                                            |
+| `media_decode`    | `allowMediaDecode` + `maxGifFrames`                     | `<prefix>_frames`, `<prefix>_count`, `<prefix>_error`                                                              |
+| `depth_inference` | `allowDepthInference` + `maxMediaResolution`            | `<prefix>_data`, `<prefix>_width`, `<prefix>_height`, `<prefix>_backend`, `<prefix>_inferenceMs`, `<prefix>_error` |
+| `gpu_compute`     | `allowGpuCompute`                                       | `<prefix>_outputs`, `<prefix>_dispatchMs`, `<prefix>_error`                                                        |
+| `device_probe`    | `allowDeviceProbe` + `allowedDeviceScopes` + scope gate | `<prefix>_ok`, `<prefix>_status`, `<prefix>_receipt`, `<prefix>_denial_receipt`, `<prefix>_error`                  |
 
 The `into:` convention lets you set the blackboard key prefix: `fs_read { path: "data/config.json", into: "cfg" }` writes `cfg_content`, `cfg_exists`, `cfg_error`.
 
@@ -384,6 +384,7 @@ A `cmd: "git log --oneline"` call passes; `cmd: "rm -rf /"` does not.
 ### Device probe scope gates
 
 `device_probe` checks **two** levels of gating:
+
 1. `allowDeviceProbe: true` — master gate; false blocks all probes.
 2. `allowedDeviceScopes` — the requested `scope` must be listed.
 3. First-class scope gates — individual `allow<Scope>` boolean fields for `allowDeviceRead`, `allowDevicePair`, `allowDeviceCommand`, `allowHaptic`, `allowXrSession`, `allowSensorRead`. A scope gate set to `false` emits a `<prefix>_denial_receipt` with `reason: "scope_gate_denied"`.
@@ -399,7 +400,7 @@ registerStdlib(runtime, {
   policy: {
     ...DEFAULT_STDLIB_POLICY,
     allowNetwork: true,
-    allowedHosts: ["api.example.com"],
+    allowedHosts: ['api.example.com'],
   },
   hostCapabilities: caps,
 });

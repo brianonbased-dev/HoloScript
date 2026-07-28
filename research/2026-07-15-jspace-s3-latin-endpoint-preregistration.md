@@ -81,16 +81,16 @@ Use the S2 family order:
 
 Map endpoint slot `0..7` to `(task form, variant)` in this exact order:
 
-| Slot | Endpoint profile | Task form | Variant |
-|---:|---|---|---:|
-| 0 | `analysis-colon` | `form_0` | 0 |
-| 1 | `evidence-equals` | `form_0` | 1 |
-| 2 | `decision-list` | `form_1` | 0 |
-| 3 | `options-object` | `form_1` | 1 |
-| 4 | `holoscript-object-name` | `form_2` | 0 |
-| 5 | `holoscript-line-comment` | `form_2` | 1 |
-| 6 | `trace-call` | `form_3` | 0 |
-| 7 | `constraint-trait` | `form_3` | 1 |
+| Slot | Endpoint profile          | Task form | Variant |
+| ---: | ------------------------- | --------- | ------: |
+|    0 | `analysis-colon`          | `form_0`  |       0 |
+|    1 | `evidence-equals`         | `form_0`  |       1 |
+|    2 | `decision-list`           | `form_1`  |       0 |
+|    3 | `options-object`          | `form_1`  |       1 |
+|    4 | `holoscript-object-name`  | `form_2`  |       0 |
+|    5 | `holoscript-line-comment` | `form_2`  |       1 |
+|    6 | `trace-call`              | `form_3`  |       0 |
+|    7 | `constraint-trait`        | `form_3`  |       1 |
 
 For family index `f in [0,5]` and position-bin index `b in [0,3]`, define:
 

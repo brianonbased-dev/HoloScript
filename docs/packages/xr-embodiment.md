@@ -19,11 +19,11 @@ npm install react react-dom @react-three/fiber @react-three/xr
 
 ## Entry Points
 
-| Entry point                         | Purpose                                      |
-| ----------------------------------- | -------------------------------------------- |
-| `@holoscript/xr-embodiment`         | Shared package API                           |
-| `@holoscript/xr-embodiment/three`   | Framework-light Three.js embodiment helpers  |
-| `@holoscript/xr-embodiment/react`   | React and React Three Fiber convenience APIs |
+| Entry point                       | Purpose                                      |
+| --------------------------------- | -------------------------------------------- |
+| `@holoscript/xr-embodiment`       | Shared package API                           |
+| `@holoscript/xr-embodiment/three` | Framework-light Three.js embodiment helpers  |
+| `@holoscript/xr-embodiment/react` | React and React Three Fiber convenience APIs |
 
 ## Fleet Role
 

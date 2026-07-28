@@ -12,11 +12,11 @@ The simplest mental model:
 
 ## Overview
 
-| Extension | Purpose        | Parser                | Best For                            |
-| --------- | -------------- | --------------------- | ----------------------------------- |
-| `.holo`   | Whole-system composition | HoloCompositionParser | Programs spanning environments, targets, services, and embodiment |
-| `.hsplus` | Typed behavior and effects | HoloScriptPlusParser | Agent logic, traits, reactive state, resource policies |
-| `.hs`     | Logic and processes | PipelineParser | Headless logic; pipelines are the strongest current lane |
+| Extension | Purpose                    | Parser                | Best For                                                          |
+| --------- | -------------------------- | --------------------- | ----------------------------------------------------------------- |
+| `.holo`   | Whole-system composition   | HoloCompositionParser | Programs spanning environments, targets, services, and embodiment |
+| `.hsplus` | Typed behavior and effects | HoloScriptPlusParser  | Agent logic, traits, reactive state, resource policies            |
+| `.hs`     | Logic and processes        | PipelineParser        | Headless logic; pipelines are the strongest current lane          |
 
 ## Story-First Examples
 
@@ -306,7 +306,7 @@ composition "Dispensary" {
 
 | Feature          | .hs (Pipelines)      | .hsplus (Behaviors)        | .holo (Worlds)             |
 | ---------------- | -------------------- | -------------------------- | -------------------------- |
-| Mental model     | Logic and processes   | Typed behavior and effects | Whole-system composition   |
+| Mental model     | Logic and processes  | Typed behavior and effects | Whole-system composition   |
 | Root block       | `pipeline "Name" {}` | (none)                     | `composition "Name" {}`    |
 | Objects          | ❌                   | `composition name {}`      | `object "name" {}`         |
 | Data source/sink | ✅                   | ❌                         | ✅ (inline pipeline)       |

@@ -1,4 +1,4 @@
-# BrittneyVoiceFrontDoor  voice ASR front-door for Founder Console next-actions (Brittney reads + listens for ordinal/label)
+# BrittneyVoiceFrontDoor voice ASR front-door for Founder Console next-actions (Brittney reads + listens for ordinal/label)
 
 **Date:** 2026-06-09
 **Class:** deleted-work

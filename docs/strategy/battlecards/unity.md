@@ -50,15 +50,15 @@
 
 ## Our Differentiators (vs Unity)
 
-| Differentiator                                                | Why it matters                                                                            | Proof                                                           |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **Browser-native editor + runtime**                           | No install, no GPU floor, works on Chromebooks/tablets                                    | `packages/studio/` + WebGPU runtime                             |
+| Differentiator                                                | Why it matters                                                                                     | Proof                                                           |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Browser-native editor + runtime**                           | No install, no GPU floor, works on Chromebooks/tablets                                             | `packages/studio/` + WebGPU runtime                             |
 | **`.holo` semantic source — portable, versioned, attestable** | Unity C# is locked to Unity; `.holo` compiles to registered targets verified via `docs/NUMBERS.md` | `packages/core/src/compilers/`                                  |
-| **Deterministic replay + SimulationContract**                 | Byte-identical reproduction for V&V; Unity has no equivalent                              | TVCG paper + `packages/core/src/compiler/SimulationContract.ts` |
-| **Agent-native MCP at platform layer**                        | Unity ML-Agents is bolt-on; HoloScript MCP is first-class                                 | `mcp.holoscript.net`                                            |
-| **No runtime fee / no per-install tax**                       | Unity's pricing trauma is an open wound; we can exploit it                                | —                                                               |
-| **Compile to Unity C#**                                       | We're not a replacement; we're an upstream authoring layer                                | `docs/archive/packages/unity-sdk.md`                            |
-| **Cross-domain simulation**                                   | Unity is games-first; HoloScript is simulation-first (medical, legal, climate, molecular) | SimSci GPU solvers                                              |
+| **Deterministic replay + SimulationContract**                 | Byte-identical reproduction for V&V; Unity has no equivalent                                       | TVCG paper + `packages/core/src/compiler/SimulationContract.ts` |
+| **Agent-native MCP at platform layer**                        | Unity ML-Agents is bolt-on; HoloScript MCP is first-class                                          | `mcp.holoscript.net`                                            |
+| **No runtime fee / no per-install tax**                       | Unity's pricing trauma is an open wound; we can exploit it                                         | —                                                               |
+| **Compile to Unity C#**                                       | We're not a replacement; we're an upstream authoring layer                                         | `docs/archive/packages/unity-sdk.md`                            |
+| **Cross-domain simulation**                                   | Unity is games-first; HoloScript is simulation-first (medical, legal, climate, molecular)          | SimSci GPU solvers                                              |
 
 ## Objection Handling
 

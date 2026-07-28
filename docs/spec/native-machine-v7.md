@@ -50,10 +50,10 @@ element_offset = element_size * index
 ```
 
 | Element | Size | Alignment | `[Element; 4]` size |
-|---|---:|---:|---:|
-| `bool` | 1 | 1 | 4 |
-| `i32` | 4 | 4 | 16 |
-| `i64` | 8 | 8 | 32 |
+| ------- | ---: | --------: | ------------------: |
+| `bool`  |    1 |         1 |                   4 |
+| `i32`   |    4 |         4 |                  16 |
+| `i64`   |    8 |         8 |                  32 |
 
 The compiler rejects zero-length arrays, lengths that overflow native stack
 offsets, nested element layouts, and initializer-count mismatches. Source

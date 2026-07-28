@@ -110,11 +110,11 @@ fidelity-admitted, but the failed mechanism claim is prohibited.
 
 S4 consumes only the still-unobserved S3 confirmation artifacts:
 
-| Lane | Source artifact | SHA-256 |
-|---|---|---|
-| A | `research/data/jspace-s3/fit-a-confirmation.jsonl` | `sha256:8f903f6b8260d4e5feb2e07094ec246012213a3feccfb2807a577dd9657605da` |
-| B | `research/data/jspace-s3/fit-b-confirmation.jsonl` | `sha256:2e89761d6810b5ad163405e2cc666df0b8d9261c6b77b26beeb770b7684d73de` |
-| H | `research/data/jspace-s3/fidelity-h-confirmation.jsonl` | `sha256:5bbbb8925f172fba7686c2641b0849107e360c7879991666f95b967132b5563e` |
+| Lane | Source artifact                                         | SHA-256                                                                   |
+| ---- | ------------------------------------------------------- | ------------------------------------------------------------------------- |
+| A    | `research/data/jspace-s3/fit-a-confirmation.jsonl`      | `sha256:8f903f6b8260d4e5feb2e07094ec246012213a3feccfb2807a577dd9657605da` |
+| B    | `research/data/jspace-s3/fit-b-confirmation.jsonl`      | `sha256:2e89761d6810b5ad163405e2cc666df0b8d9261c6b77b26beeb770b7684d73de` |
+| H    | `research/data/jspace-s3/fidelity-h-confirmation.jsonl` | `sha256:5bbbb8925f172fba7686c2641b0849107e360c7879991666f95b967132b5563e` |
 
 Their common coordinate-set digest is
 `sha256:fc5c05858082a3a69aa22282f67d79f94ad4e1899c050f7fc790327111d79fff`.
@@ -145,27 +145,27 @@ no prompt generation, edits, ranking, or semantic inspection.
 
 Endpoint slots remain:
 
-| Slot | Endpoint profile | Task form | Variant |
-|---:|---|---|---:|
-| 0 | `analysis-colon` | `form_0` | 0 |
-| 1 | `evidence-equals` | `form_0` | 1 |
-| 2 | `decision-list` | `form_1` | 0 |
-| 3 | `options-object` | `form_1` | 1 |
-| 4 | `holoscript-object-name` | `form_2` | 0 |
-| 5 | `holoscript-line-comment` | `form_2` | 1 |
-| 6 | `trace-call` | `form_3` | 0 |
-| 7 | `constraint-trait` | `form_3` | 1 |
+| Slot | Endpoint profile          | Task form | Variant |
+| ---: | ------------------------- | --------- | ------: |
+|    0 | `analysis-colon`          | `form_0`  |       0 |
+|    1 | `evidence-equals`         | `form_0`  |       1 |
+|    2 | `decision-list`           | `form_1`  |       0 |
+|    3 | `options-object`          | `form_1`  |       1 |
+|    4 | `holoscript-object-name`  | `form_2`  |       0 |
+|    5 | `holoscript-line-comment` | `form_2`  |       1 |
+|    6 | `trace-call`              | `form_3`  |       0 |
+|    7 | `constraint-trait`        | `form_3`  |       1 |
 
 Select these two slots per task family and position-bin index:
 
-| Family | Bin 0 | Bin 1 | Bin 2 | Bin 3 |
-|---|---:|---:|---:|---:|
-| `physical` | 3,4 | 0,2 | 1,7 | 5,6 |
-| `relational` | 0,1 | 2,3 | 4,7 | 5,6 |
-| `causal_temporal` | 6,7 | 0,5 | 1,3 | 2,4 |
-| `normative` | 3,7 | 1,6 | 4,5 | 0,2 |
-| `semantic_pragmatic` | 1,2 | 3,4 | 5,6 | 0,7 |
-| `planning_tension` | 5,6 | 4,7 | 0,2 | 1,3 |
+| Family               | Bin 0 | Bin 1 | Bin 2 | Bin 3 |
+| -------------------- | ----: | ----: | ----: | ----: |
+| `physical`           |   3,4 |   0,2 |   1,7 |   5,6 |
+| `relational`         |   0,1 |   2,3 |   4,7 |   5,6 |
+| `causal_temporal`    |   6,7 |   0,5 |   1,3 |   2,4 |
+| `normative`          |   3,7 |   1,6 |   4,5 |   0,2 |
+| `semantic_pragmatic` |   1,2 |   3,4 |   5,6 |   0,7 |
+| `planning_tension`   |   5,6 |   4,7 |   0,2 |   1,3 |
 
 This coverage-only table was chosen without model outputs or semantic labels
 and is frozen before observation. It selects two rows per family/bin, 48 rows

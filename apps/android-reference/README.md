@@ -14,13 +14,13 @@ real `gradle assembleDebug` build harness.
 
 ## Layout
 
-| Path | What | Authored / generated |
-|---|---|---|
-| `scene.holo` | the HoloScript composition (source of truth) | **author this** |
-| `compile-config.mts` | package/class constants shared by generator + gate | author |
-| `generate-native.mts` | parses `scene.holo`, runs `AndroidCompiler.compileToFiles`, writes `android/` | author |
-| `android/app/src/**`, `android/app/{build.gradle.kts,AndroidManifest.xml}` | **@generated** Kotlin + module gradle/manifest | generated — never hand-edit |
-| `android/{settings,build}.gradle.kts`, `gradle.properties`, `gradlew*`, `gradle/wrapper/**`, `app/proguard-rules.pro` | hand-maintained build scaffold | author |
+| Path                                                                                                                  | What                                                                          | Authored / generated        |
+| --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------- |
+| `scene.holo`                                                                                                          | the HoloScript composition (source of truth)                                  | **author this**             |
+| `compile-config.mts`                                                                                                  | package/class constants shared by generator + gate                            | author                      |
+| `generate-native.mts`                                                                                                 | parses `scene.holo`, runs `AndroidCompiler.compileToFiles`, writes `android/` | author                      |
+| `android/app/src/**`, `android/app/{build.gradle.kts,AndroidManifest.xml}`                                            | **@generated** Kotlin + module gradle/manifest                                | generated — never hand-edit |
+| `android/{settings,build}.gradle.kts`, `gradle.properties`, `gradlew*`, `gradle/wrapper/**`, `app/proguard-rules.pro` | hand-maintained build scaffold                                                | author                      |
 
 ## Edit → regenerate → gate
 

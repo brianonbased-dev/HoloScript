@@ -92,7 +92,7 @@ The narrative package index remains a discovery guide. Release counts, receipt l
 | `6b58a8318` | Public native-library dependency release cohort                         |
 | `a9a773d32` | Fresh-registry public Meaning dependency closure                        |
 | `311e061f1` | Scalar std ABI v1 and three-target executable conformance               |
-| `92d51b2ae` | Vec3 i32 ABI v1 and browser-native UAAL receipt hashing                |
+| `92d51b2ae` | Vec3 i32 ABI v1 and browser-native UAAL receipt hashing                 |
 
 ## Acceptance status
 
@@ -105,12 +105,12 @@ The narrative package index remains a discovery guide. Release counts, receipt l
 | All npm v1 candidates admitted to release checks       | Shipped                           | 19-candidate closure and consumption/architecture checks                                                                                                                                                              |
 | Native std source distributed                          | Experimental                      | npm pack inspection and static/parser parity                                                                                                                                                                          |
 | Scalar std ABI v1 execution parity                     | Shipped experimental subset       | `reports/library-coherence/2026-07-26_std-scalar-abi-v1.json`: Node implementation, browser WebAssembly compiler plus in-browser UAAL execution, and owned-metal native executable all return the same 42-case digest |
-| Vec3 i32 ABI v1 execution parity                       | Shipped experimental subset       | `reports/library-coherence/2026-07-26_std-vector-i32-abi-v1.json`: component-projected dot, cross, and squared-length return digest 119 across Node, browser-WASM/UAAL, and owned metal |
-| Browser-native UAAL receipt hashing                    | Shipped                           | The same receipt records a 64-hex browser SHA-256, matching execution log, valid replay, and no `node:crypto` import-map shim                                                       |
+| Vec3 i32 ABI v1 execution parity                       | Shipped experimental subset       | `reports/library-coherence/2026-07-26_std-vector-i32-abi-v1.json`: component-projected dot, cross, and squared-length return digest 119 across Node, browser-WASM/UAAL, and owned metal                               |
+| Browser-native UAAL receipt hashing                    | Shipped                           | The same receipt records a 64-hex browser SHA-256, matching execution log, valid replay, and no `node:crypto` import-map shim                                                                                         |
 | Package contract projected to WIT                      | Shipped as ABI                    | `wasm-tools` component embedding/new/validation                                                                                                                                                                       |
 | One cold external end-to-end native consumer           | Shipped for public release cohort | Fresh packed CLI/platform/core plus public `@holoscript/meaning@0.1.2`, standalone registry restart, exact digest resolve, and process-guarded offline replay                                                         |
 | Production native registry deployment                  | Open                              | Requires configured public registry, auth, storage, and operational receipts                                                                                                                                          |
-| Wider native std runtime execution parity              | Open                              | Requires executable floating-point, aggregate-vector, quaternion, noise, and collections ABI tests across supported targets                                                                                            |
+| Wider native std runtime execution parity              | Open                              | Requires executable floating-point, aggregate-vector, quaternion, noise, and collections ABI tests across supported targets                                                                                           |
 
 ## Next gates
 

@@ -46,11 +46,11 @@ sim_contract {
 
 Each `precondition` clause has:
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Unique identifier for this clause (string literal or bare identifier). |
-| expression | Yes | Raw expression string inside `{ }` — evaluated by the verifier. |
-| `description` | No | Human-readable explanation (second string literal before `{`). |
+| Field         | Required | Description                                                            |
+| ------------- | -------- | ---------------------------------------------------------------------- |
+| `name`        | Yes      | Unique identifier for this clause (string literal or bare identifier). |
+| expression    | Yes      | Raw expression string inside `{ }` — evaluated by the verifier.        |
+| `description` | No       | Human-readable explanation (second string literal before `{`).         |
 
 ---
 

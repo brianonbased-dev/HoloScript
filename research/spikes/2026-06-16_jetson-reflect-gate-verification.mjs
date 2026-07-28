@@ -12,7 +12,10 @@
  * Run:  node research/spikes/2026-06-16_jetson-reflect-gate-verification.mjs
  */
 
-const ENDPOINT = (process.env.JETSON_OLLAMA_URL || 'http://holojetson.local:11434').replace(/\/$/, '');
+const ENDPOINT = (process.env.JETSON_OLLAMA_URL || 'http://holojetson.local:11434').replace(
+  /\/$/,
+  ''
+);
 const MODEL = process.env.JETSON_MODEL || 'qwen3:4b-instruct';
 const CRITERIA = 'correctness, completeness, and valid HoloScript syntax'; // jetson brain's reflect criteria
 
@@ -29,7 +32,11 @@ of the exact HoloScript syntax. TODO: write the actual .holo file later once I l
 // Mirror runner.ts reflect prompt exactly.
 function reflectMessages(artifact) {
   return [
-    { role: 'system', content: 'You are a strict reviewer. Evaluate the work against the criteria; do not rewrite it.' },
+    {
+      role: 'system',
+      content:
+        'You are a strict reviewer. Evaluate the work against the criteria; do not rewrite it.',
+    },
     {
       role: 'user',
       content:
@@ -46,16 +53,27 @@ async function reflect(label, artifact, expected) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     // NOTE: no `think` param (W.740/W.741). num_ctx default; low temp for a stable verdict.
-    body: JSON.stringify({ model: MODEL, stream: false, messages: reflectMessages(artifact), options: { temperature: 0.1, num_predict: 512 } }),
+    body: JSON.stringify({
+      model: MODEL,
+      stream: false,
+      messages: reflectMessages(artifact),
+      options: { temperature: 0.1, num_predict: 512 },
+    }),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const j = await r.json();
   const content = j.message?.content ?? '';
   const m = /VERDICT:\s*(PASS|FAIL)/i.exec(content);
   const verdict = m ? m[1].toUpperCase() : 'UNPARSEABLE(=PASS)';
-  const reason = content.replace(/VERDICT:\s*(PASS|FAIL)/i, '').trim().replace(/\s+/g, ' ').slice(0, 160);
+  const reason = content
+    .replace(/VERDICT:\s*(PASS|FAIL)/i, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, 160);
   const ok = verdict.startsWith(expected);
-  console.log(`\n[${label}] expected=${expected}  →  verdict=${verdict}  ${ok ? '✅' : '❌ MISMATCH'}  (${((Date.now() - t0) / 1000).toFixed(1)}s, ${j.eval_count ?? '?'} tok)`);
+  console.log(
+    `\n[${label}] expected=${expected}  →  verdict=${verdict}  ${ok ? '✅' : '❌ MISMATCH'}  (${((Date.now() - t0) / 1000).toFixed(1)}s, ${j.eval_count ?? '?'} tok)`
+  );
   console.log(`  reason: ${reason}`);
   return { label, verdict, expected, ok };
 }
@@ -66,6 +84,11 @@ async function reflect(label, artifact, expected) {
   results.push(await reflect('valid .holo', VALID_HOLO, 'PASS'));
   results.push(await reflect('broken/non-artifact', BROKEN_ARTIFACT, 'FAIL'));
   const discriminates = results[0].verdict === 'PASS' && results[1].verdict === 'FAIL';
-  console.log(`\n=== ${discriminates ? '✅ GATE DISCRIMINATES' : '⚠ gate did NOT cleanly discriminate'} — valid→${results[0].verdict}, broken→${results[1].verdict} ===`);
+  console.log(
+    `\n=== ${discriminates ? '✅ GATE DISCRIMINATES' : '⚠ gate did NOT cleanly discriminate'} — valid→${results[0].verdict}, broken→${results[1].verdict} ===`
+  );
   process.exit(discriminates ? 0 : 1);
-})().catch((e) => { console.error('FAIL:', e.message); process.exit(2); });
+})().catch((e) => {
+  console.error('FAIL:', e.message);
+  process.exit(2);
+});

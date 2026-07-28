@@ -11,13 +11,13 @@ reference: a golden-diff gate over committed generated output plus a real Gradle
 
 ## Layout
 
-| Path | What | Authored / Generated |
-|---|---|---|
-| `scene.holo` | HoloScript composition source of truth | author |
-| `compile-config.mts` | package/activity constants shared by generator and gates | author |
-| `generate-native.mts` | parses `scene.holo`, runs `AndroidXRCompiler.compileToFiles`, writes `android-xr/` | author |
-| `android-xr/app/src/**`, `android-xr/app/{build.gradle.kts,AndroidManifest.xml}` | generated Kotlin plus module Gradle/manifest | generated, never hand-edit |
-| `android-xr/{settings,build}.gradle.kts`, `gradle.properties`, `gradlew*`, `gradle/wrapper/**`, `app/proguard-rules.pro` | build scaffold | author |
+| Path                                                                                                                     | What                                                                               | Authored / Generated       |
+| ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------- |
+| `scene.holo`                                                                                                             | HoloScript composition source of truth                                             | author                     |
+| `compile-config.mts`                                                                                                     | package/activity constants shared by generator and gates                           | author                     |
+| `generate-native.mts`                                                                                                    | parses `scene.holo`, runs `AndroidXRCompiler.compileToFiles`, writes `android-xr/` | author                     |
+| `android-xr/app/src/**`, `android-xr/app/{build.gradle.kts,AndroidManifest.xml}`                                         | generated Kotlin plus module Gradle/manifest                                       | generated, never hand-edit |
+| `android-xr/{settings,build}.gradle.kts`, `gradle.properties`, `gradlew*`, `gradle/wrapper/**`, `app/proguard-rules.pro` | build scaffold                                                                     | author                     |
 
 ## Edit, Regenerate, Gate
 

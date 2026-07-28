@@ -2,13 +2,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  realpathSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { cpus, freemem, homedir, platform, release, totalmem } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -124,9 +118,7 @@ function bindingManifestSha(bindings) {
 function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[middle - 1] + sorted[middle]) / 2
-    : sorted[middle];
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
 }
 
 function inEnvelope(value, envelope) {
@@ -173,7 +165,10 @@ function resolveExecutable(name) {
   const query = process.platform === 'win32' && name === 'corepack' ? 'corepack.cmd' : name;
   const result = invoke(locator, [query], { allowFailure: true });
   if (result.status !== 0) return null;
-  const first = result.stdout.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+  const first = result.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
   return first ? realpathSync(first) : null;
 }
 
@@ -269,8 +264,7 @@ function runProbe({ stateId, replicate, probeId, worktree, command, env = {} }) 
   let parsed = null;
   let parseError = null;
   try {
-    parsed =
-      probeId === 'paper_4_runner_outcome' ? parsePaper4(combined) : parsePaper1(combined);
+    parsed = probeId === 'paper_4_runner_outcome' ? parsePaper4(combined) : parsePaper1(combined);
   } catch (error) {
     parseError = error instanceof Error ? error.message : String(error);
   }
@@ -318,8 +312,7 @@ function aggregatePaper4(runs) {
   const ratios_b_over_a = {};
   for (const metric of Object.keys(metricMap)) {
     ratios_b_over_a[metric] =
-      byState.B[metric].median_of_run_medians_ms /
-      byState.A[metric].median_of_run_medians_ms;
+      byState.B[metric].median_of_run_medians_ms / byState.A[metric].median_of_run_medians_ms;
   }
   return { by_state: byState, ratios_b_over_a };
 }
@@ -399,7 +392,9 @@ function comparableRuntime(runtime) {
 
 function runExperiment() {
   if (existsSync(RECEIPT_PATH) && !process.argv.includes('--overwrite')) {
-    throw new Error(`Receipt already exists: ${RECEIPT_PATH}; use --overwrite only for an explicit rerun`);
+    throw new Error(
+      `Receipt already exists: ${RECEIPT_PATH}; use --overwrite only for an explicit rerun`
+    );
   }
   const preregistrationSha256 = fileSha256(PREREG_PATH);
   if (AMENDMENT.base_preregistration_sha256 !== preregistrationSha256) {
@@ -558,7 +553,10 @@ function verifyReceipt() {
     AMENDMENT.base_preregistration_sha256 === receipt.preregistration.sha256,
     'amendment base hash mismatch'
   );
-  assert(receipt.execution.main_worktree_used_for_probe_execution === false, 'main worktree was used');
+  assert(
+    receipt.execution.main_worktree_used_for_probe_execution === false,
+    'main worktree was used'
+  );
   assert(receipt.execution.quantum_hardware_used === false, 'quantum hardware must not be used');
   assert(
     receipt.execution.experiment_driver.sha256 === fileSha256(fileURLToPath(import.meta.url)),
@@ -652,8 +650,10 @@ function verifyReceipt() {
     sameJson(receipt.aggregates.paper_4_runner_outcome, paper4),
     'Paper 4 aggregates mismatch'
   );
-  const runtimeIdentical =
-    sameJson(comparableRuntime(receipt.states.A.runtime), comparableRuntime(receipt.states.B.runtime));
+  const runtimeIdentical = sameJson(
+    comparableRuntime(receipt.states.A.runtime),
+    comparableRuntime(receipt.states.B.runtime)
+  );
   const adjudication = adjudicate(receipt.runs, paper4, runtimeIdentical);
   assert(sameJson(receipt.adjudication, adjudication), 'adjudication mismatch');
   assert(receipt.runs.length === 8, 'expected exactly eight probe processes');

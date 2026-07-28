@@ -10,13 +10,13 @@ Each cognitive verb compiles to a `HoloCognitiveAction` AST node with a typed co
 
 ## Quick Reference
 
-| Verb | Dispatches to | Resolves on | Required trait |
-|---|---|---|---|
-| `llm_call` | `llm_prompt` | `llm_message` | `@llm_agent` |
-| `recall` | `memory_recall` | `memory_recalled` | `@agent_memory` |
-| `rag_query` | `rag_query` | `on_knowledge_retrieved` | `@rag_knowledge` |
-| `plan` | `goap_set_state` | `goap_plan_created` | `@goal_oriented` |
-| `reflect` | `llm_prompt` (self-eval) | `llm_message` | `@llm_agent` |
+| Verb        | Dispatches to            | Resolves on              | Required trait   |
+| ----------- | ------------------------ | ------------------------ | ---------------- |
+| `llm_call`  | `llm_prompt`             | `llm_message`            | `@llm_agent`     |
+| `recall`    | `memory_recall`          | `memory_recalled`        | `@agent_memory`  |
+| `rag_query` | `rag_query`              | `on_knowledge_retrieved` | `@rag_knowledge` |
+| `plan`      | `goap_set_state`         | `goap_plan_created`      | `@goal_oriented` |
+| `reflect`   | `llm_prompt` (self-eval) | `llm_message`            | `@llm_agent`     |
 
 ## Syntax
 
@@ -49,12 +49,12 @@ state assess_situation {
 
 **Config fields:**
 
-| Field | Type | Description |
-|---|---|---|
-| `prompt` | string | The prompt text; <code v-pre>{{ context.field }}</code> interpolates runtime context. Also accepted as `message`. |
-| `temperature` | float | Sampling temperature (0.0–1.0). |
-| `max_tokens` | int | Maximum response length in tokens. |
-| `system` | string | Optional system message override. |
+| Field         | Type   | Description                                                                                                       |
+| ------------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
+| `prompt`      | string | The prompt text; <code v-pre>{{ context.field }}</code> interpolates runtime context. Also accepted as `message`. |
+| `temperature` | float  | Sampling temperature (0.0–1.0).                                                                                   |
+| `max_tokens`  | int    | Maximum response length in tokens.                                                                                |
+| `system`      | string | Optional system message override.                                                                                 |
 
 **Dispatch detail:** the compiler maps `prompt` to the `message` field that `LLMAgentTrait.onEvent` reads on the `llm_prompt` event.
 
@@ -72,13 +72,13 @@ state check_memory {
 
 **Config fields:**
 
-| Field | Type | Description |
-|---|---|---|
-| `query` | string | Natural language query for the memory store. |
-| `limit` | int | Max number of memories to retrieve. Alias for `top_k`. Default: implementation-defined. |
-| `top_k` | int | Same as `limit`; `limit` takes precedence if both are present. |
-| `tags` | string[] | Filter memories by tag array. |
-| `embedding` | float[] | Vector embedding for similarity search; omit to use text retrieval. |
+| Field       | Type     | Description                                                                             |
+| ----------- | -------- | --------------------------------------------------------------------------------------- |
+| `query`     | string   | Natural language query for the memory store.                                            |
+| `limit`     | int      | Max number of memories to retrieve. Alias for `top_k`. Default: implementation-defined. |
+| `top_k`     | int      | Same as `limit`; `limit` takes precedence if both are present.                          |
+| `tags`      | string[] | Filter memories by tag array.                                                           |
+| `embedding` | float[]  | Vector embedding for similarity search; omit to use text retrieval.                     |
 
 **Dispatch detail:** the compiler produces a nested `payload` object (`{ query, top_k, tags, embedding }`) on the `memory_recall` event, matching the exact shape `AgentMemoryTrait.onEvent` reads.
 
@@ -100,11 +100,11 @@ state policy_check {
 
 **Config fields:**
 
-| Field | Type | Description |
-|---|---|---|
-| `query` | string | The retrieval query. Also accepted as `question`. |
-| `collection` | string | Named knowledge collection to query. |
-| `top_k` | int | Number of results to retrieve. Default: 3. |
+| Field        | Type   | Description                                       |
+| ------------ | ------ | ------------------------------------------------- |
+| `query`      | string | The retrieval query. Also accepted as `question`. |
+| `collection` | string | Named knowledge collection to query.              |
+| `top_k`      | int    | Number of results to retrieve. Default: 3.        |
 
 **Dispatch detail:** the compiler maps `query` to the `question` field on the `rag_query` event that `RAGKnowledgeTrait.onEvent` reads.
 
@@ -128,8 +128,8 @@ brain HunterAI : @behavior_tree {
 
 **Config fields:**
 
-| Field | Type | Description |
-|---|---|---|
+| Field   | Type   | Description                                                                                       |
+| ------- | ------ | ------------------------------------------------------------------------------------------------- |
 | `state` | object | World-state key/value pairs to merge before planning. Also accepted as `worldState` or `beliefs`. |
 
 The planner `Object.assign`s these entries into the current world state and replans. Goals are declared separately with `@goal` on the brain — `plan` does not select or change goals.
@@ -153,9 +153,9 @@ state post_combat {
 
 **Config fields:**
 
-| Field | Type | Description |
-|---|---|---|
-| `of` | string | The subject to reflect on (e.g. `"the previous plan"`). Also accepted as `subject`. Defaults to `"the previous action result"`. |
+| Field      | Type   | Description                                                                                                                                       |
+| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `of`       | string | The subject to reflect on (e.g. `"the previous plan"`). Also accepted as `subject`. Defaults to `"the previous action result"`.                   |
 | `criteria` | string | Evaluation criteria or question (e.g. `"correctness and completeness"`). Also accepted as `scorer`. Defaults to `"correctness and completeness"`. |
 
 **Dispatch detail:** the compiler constructs the message `"Reflect on <subject>. Evaluate it for: <criteria>."` and emits it as `llm_prompt`. `reflect` does not accept a raw `prompt` field — use `llm_call` for free-form prompts.

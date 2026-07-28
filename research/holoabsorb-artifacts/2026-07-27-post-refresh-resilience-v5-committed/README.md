@@ -44,12 +44,12 @@ independent vision-family protocol.
 
 The frozen 54-query Paper 5 development corpus produced:
 
-| System | Precision@5 | MRR |
-|---|---:|---:|
-| Keyword-only | 0.200 | 0.449 |
-| HoloEmbed semantic-only | 0.093 | 0.240 |
-| Hybrid | 0.185 | 0.458 |
-| GraphRAG | 0.193 | 0.463 |
+| System                  | Precision@5 |   MRR |
+| ----------------------- | ----------: | ----: |
+| Keyword-only            |       0.200 | 0.449 |
+| HoloEmbed semantic-only |       0.093 | 0.240 |
+| Hybrid                  |       0.185 | 0.458 |
+| GraphRAG                |       0.193 | 0.463 |
 
 Paper 26 HoloGraph and HoloEmbed tests passed. All synthetic and
 development-corpus boundaries remain explicit in the unified receipt.

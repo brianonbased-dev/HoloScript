@@ -19,18 +19,18 @@ import { CapabilityValidator, PackageRegistry } from '@holoscript/platform';
 
 ## Package Surface
 
-| Subsystem        | Purpose                                         |
-| ---------------- | ----------------------------------------------- |
-| `security`       | Security framework and crypto utilities         |
-| `identity`       | Capability and identity validation              |
-| `registry`       | Package registry and certification support      |
-| `tenancy`        | Tenant context and workspace isolation          |
-| `ratelimit`      | Quotas, buckets, and rate-limit tiers           |
-| `web3`           | Web3 connector and blockchain-facing primitives |
-| `contracts`      | Contract helpers and platform agreements        |
-| `crypto`         | Hybrid and post-quantum crypto helpers          |
-| `wot`            | Web of Things integration surface               |
-| `renderer`       | Platform-aware renderer exports                 |
+| Subsystem   | Purpose                                         |
+| ----------- | ----------------------------------------------- |
+| `security`  | Security framework and crypto utilities         |
+| `identity`  | Capability and identity validation              |
+| `registry`  | Package registry and certification support      |
+| `tenancy`   | Tenant context and workspace isolation          |
+| `ratelimit` | Quotas, buckets, and rate-limit tiers           |
+| `web3`      | Web3 connector and blockchain-facing primitives |
+| `contracts` | Contract helpers and platform agreements        |
+| `crypto`    | Hybrid and post-quantum crypto helpers          |
+| `wot`       | Web of Things integration surface               |
+| `renderer`  | Platform-aware renderer exports                 |
 
 ## Strategy Role
 

@@ -38,13 +38,29 @@ async function main() {
   const order = Array.from({ length: g.N }, (_, i) => i).sort((a, b) => g.op[b] - g.op[a]);
   const K = Math.min(g.N, maxSplats);
   const keep = order.slice(0, K);
-  if (K < g.N) console.log(`[transcode] decimated ${g.N.toLocaleString()} → ${K.toLocaleString()} (top opacity; Quest cap ${QUEST_SPLAT_CAP.toLocaleString()})`);
+  if (K < g.N)
+    console.log(
+      `[transcode] decimated ${g.N.toLocaleString()} → ${K.toLocaleString()} (top opacity; Quest cap ${QUEST_SPLAT_CAP.toLocaleString()})`
+    );
 
   // ── recenter to origin + measure extent (captures sit at arbitrary COLMAP offsets) ─────────────
-  let cx = 0, cy = 0, cz = 0;
-  for (const i of keep) { cx += g.x[i]; cy += g.y[i]; cz += g.z[i]; }
-  cx /= K; cy /= K; cz /= K;
-  let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  let cx = 0,
+    cy = 0,
+    cz = 0;
+  for (const i of keep) {
+    cx += g.x[i];
+    cy += g.y[i];
+    cz += g.z[i];
+  }
+  cx /= K;
+  cy /= K;
+  cz /= K;
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
 
   const positions = new Float32Array(K * 3);
   const scales = new Float32Array(K * 3);
@@ -54,30 +70,55 @@ async function main() {
 
   for (let k = 0; k < K; k++) {
     const i = keep[k];
-    const px = g.x[i] - cx, py = g.y[i] - cy, pz = g.z[i] - cz;
-    positions[k * 3 + 0] = px; positions[k * 3 + 1] = py; positions[k * 3 + 2] = pz;
-    minX = Math.min(minX, px); maxX = Math.max(maxX, px);
-    minY = Math.min(minY, py); maxY = Math.max(maxY, py);
-    minZ = Math.min(minZ, pz); maxZ = Math.max(maxZ, pz);
+    const px = g.x[i] - cx,
+      py = g.y[i] - cy,
+      pz = g.z[i] - cz;
+    positions[k * 3 + 0] = px;
+    positions[k * 3 + 1] = py;
+    positions[k * 3 + 2] = pz;
+    minX = Math.min(minX, px);
+    maxX = Math.max(maxX, px);
+    minY = Math.min(minY, py);
+    maxY = Math.max(maxY, py);
+    minZ = Math.min(minZ, pz);
+    maxZ = Math.max(maxZ, pz);
 
     // scales are LINEAR out of the loader (it already exp'd the log-scale); SpzCodec log-encodes.
-    scales[k * 3 + 0] = g.sx[i]; scales[k * 3 + 1] = g.sy[i]; scales[k * 3 + 2] = g.sz[i];
+    scales[k * 3 + 0] = g.sx[i];
+    scales[k * 3 + 1] = g.sy[i];
+    scales[k * 3 + 2] = g.sz[i];
 
     // loader returns quat (r,x,y,z)=(w,x,y,z); codec expects (x,y,z,w).
-    rotations[k * 4 + 0] = g.qx[i]; rotations[k * 4 + 1] = g.qy[i];
-    rotations[k * 4 + 2] = g.qz[i]; rotations[k * 4 + 3] = g.qr[i];
+    rotations[k * 4 + 0] = g.qx[i];
+    rotations[k * 4 + 1] = g.qy[i];
+    rotations[k * 4 + 2] = g.qz[i];
+    rotations[k * 4 + 3] = g.qr[i];
 
     // loader returns final RGB in [0..1]; codec applies the SH-DC inverse internally.
-    colors[k * 4 + 0] = g.r[i]; colors[k * 4 + 1] = g.gr[i]; colors[k * 4 + 2] = g.bl[i];
+    colors[k * 4 + 0] = g.r[i];
+    colors[k * 4 + 1] = g.gr[i];
+    colors[k * 4 + 2] = g.bl[i];
     colors[k * 4 + 3] = g.op[i];
     opacities[k] = g.op[i];
   }
 
   const ext = [maxX - minX, maxY - minY, maxZ - minZ];
-  console.log(`[transcode] pre-recenter centroid (${cx.toFixed(3)}, ${cy.toFixed(3)}, ${cz.toFixed(3)})`);
-  console.log(`[transcode] recentered extent (m, COLMAP units): ${ext.map((e) => e.toFixed(2)).join(' x ')}`);
+  console.log(
+    `[transcode] pre-recenter centroid (${cx.toFixed(3)}, ${cy.toFixed(3)}, ${cz.toFixed(3)})`
+  );
+  console.log(
+    `[transcode] recentered extent (m, COLMAP units): ${ext.map((e) => e.toFixed(2)).join(' x ')}`
+  );
 
-  const data: GaussianSplatData = { positions, scales, rotations, colors, opacities, shDegree: 0, count: K };
+  const data: GaussianSplatData = {
+    positions,
+    scales,
+    rotations,
+    colors,
+    opacities,
+    shDegree: 0,
+    count: K,
+  };
 
   // ── encode → round-trip → write ───────────────────────────────────────────────────────────────
   const codec = new SpzCodec();
@@ -85,16 +126,28 @@ async function main() {
   const bytes = new Uint8Array(enc.data.data);
 
   const dec = await codec.decode(enc.data.data, { decodeSH: false });
-  if (dec.data.count !== K) { console.error(`[transcode] ROUND-TRIP FAILED: count ${dec.data.count} != ${K}`); process.exit(1); }
+  if (dec.data.count !== K) {
+    console.error(`[transcode] ROUND-TRIP FAILED: count ${dec.data.count} != ${K}`);
+    process.exit(1);
+  }
   let maxPosErr = 0;
-  for (let i = 0; i < K * 3; i++) maxPosErr = Math.max(maxPosErr, Math.abs(dec.data.positions[i] - positions[i]));
+  for (let i = 0; i < K * 3; i++)
+    maxPosErr = Math.max(maxPosErr, Math.abs(dec.data.positions[i] - positions[i]));
 
-  if (K > QUEST_SPLAT_CAP) { console.error(`[transcode] ${K} > Quest cap ${QUEST_SPLAT_CAP}`); process.exit(1); }
+  if (K > QUEST_SPLAT_CAP) {
+    console.error(`[transcode] ${K} > Quest cap ${QUEST_SPLAT_CAP}`);
+    process.exit(1);
+  }
 
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, bytes);
-  console.log(`[transcode] .spz size ${(bytes.length / 1024).toFixed(1)} KiB; round-trip max pos err ${maxPosErr.toFixed(6)} m`);
+  console.log(
+    `[transcode] .spz size ${(bytes.length / 1024).toFixed(1)} KiB; round-trip max pos err ${maxPosErr.toFixed(6)} m`
+  );
   console.log(`[transcode] ROUND-TRIP OK ✓  wrote ${outPath}`);
 }
 
-main().catch((e) => { console.error('[transcode] failed:', e); process.exit(1); });
+main().catch((e) => {
+  console.error('[transcode] failed:', e);
+  process.exit(1);
+});

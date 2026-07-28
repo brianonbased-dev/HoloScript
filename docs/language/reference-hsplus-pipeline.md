@@ -44,12 +44,12 @@ pipeline "InventorySync" {
 
 ### Pipeline-level options
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `schedule` | cron string | When to run (e.g. `"*/5 * * * *"`, `"0 6 * * *"`) |
-| `timeout` | duration | Maximum run time; format: `<N>s`, `<N>m`, `<N>h`, `<N>d` |
-| `retry` | inline object | `{ max: <N>, backoff: "none" \| "linear" \| "exponential" }` |
-| `params` | named block | Key-value pairs expanded via `${params.key}` in subsequent blocks |
+| Key        | Type          | Description                                                       |
+| ---------- | ------------- | ----------------------------------------------------------------- |
+| `schedule` | cron string   | When to run (e.g. `"*/5 * * * *"`, `"0 6 * * *"`)                 |
+| `timeout`  | duration      | Maximum run time; format: `<N>s`, `<N>m`, `<N>h`, `<N>d`          |
+| `retry`    | inline object | `{ max: <N>, backoff: "none" \| "linear" \| "exponential" }`      |
+| `params`   | named block   | Key-value pairs expanded via `${params.key}` in subsequent blocks |
 
 ---
 
@@ -80,32 +80,32 @@ source POS {
 
 **`type` values**
 
-| Value | Description |
-|-------|-------------|
-| `"rest"` | HTTP request — pairs with `endpoint`, `method`, `auth` |
-| `"webhook"` | Alias for `rest`; semantically inbound HTTP |
-| `"stream"` | SSE / NDJSON / chunked-JSON endpoint — parsed line-by-line |
-| `"filesystem"` | Directory scan — pairs with `path`, `pattern`, `since` |
-| `"database"` | PostgreSQL via `pg` — pairs with `connection`, `query` |
-| `"mcp"` | HoloScript MCP tool call — pairs with `server`, `tool`, `args` |
-| `"list"` | Static inline array — pairs with `items: [...]` |
-| `"stdout"` | No-op placeholder (testing) |
-| `"user_input"` | Interactive prompt (runtime-specific) |
+| Value          | Description                                                    |
+| -------------- | -------------------------------------------------------------- |
+| `"rest"`       | HTTP request — pairs with `endpoint`, `method`, `auth`         |
+| `"webhook"`    | Alias for `rest`; semantically inbound HTTP                    |
+| `"stream"`     | SSE / NDJSON / chunked-JSON endpoint — parsed line-by-line     |
+| `"filesystem"` | Directory scan — pairs with `path`, `pattern`, `since`         |
+| `"database"`   | PostgreSQL via `pg` — pairs with `connection`, `query`         |
+| `"mcp"`        | HoloScript MCP tool call — pairs with `server`, `tool`, `args` |
+| `"list"`       | Static inline array — pairs with `items: [...]`                |
+| `"stdout"`     | No-op placeholder (testing)                                    |
+| `"user_input"` | Interactive prompt (runtime-specific)                          |
 
 **Common properties**
 
-| Property | Description |
-|----------|-------------|
-| `endpoint` | URL; supports `${…}` interpolation |
-| `method` | HTTP verb (default `"GET"`) |
-| `path` | Filesystem path |
-| `pattern` | Glob pattern for filesystem scan (e.g. `"*.md"`) |
-| `since` | Relative time cutoff for filesystem scan (e.g. `"24h"`) |
-| `auth` | Inline object: `{ type: "bearer" \| "oauth2" \| "api_key" \| "basic", token: "…" }` |
-| `pagination` | `{ type: "cursor" \| "offset", param: "…", limit: <N> }` |
-| `items` | Array literal for `type: "list"` |
-| `output` | Variable name to bind the source response body for subsequent blocks |
-| `server`, `tool`, `args` | MCP source: server name, tool name, argument object |
+| Property                 | Description                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| `endpoint`               | URL; supports `${…}` interpolation                                                  |
+| `method`                 | HTTP verb (default `"GET"`)                                                         |
+| `path`                   | Filesystem path                                                                     |
+| `pattern`                | Glob pattern for filesystem scan (e.g. `"*.md"`)                                    |
+| `since`                  | Relative time cutoff for filesystem scan (e.g. `"24h"`)                             |
+| `auth`                   | Inline object: `{ type: "bearer" \| "oauth2" \| "api_key" \| "basic", token: "…" }` |
+| `pagination`             | `{ type: "cursor" \| "offset", param: "…", limit: <N> }`                            |
+| `items`                  | Array literal for `type: "list"`                                                    |
+| `output`                 | Variable name to bind the source response body for subsequent blocks                |
+| `server`, `tool`, `args` | MCP source: server name, tool name, argument object                                 |
 
 **MCP source example**
 
@@ -148,11 +148,11 @@ merge AllMentions {
 }
 ```
 
-| Property | Description |
-|----------|-------------|
-| `from` | Array of source or merge names to combine |
-| `dedup` | Optional: `{ key: "<field>", window: "<duration>" }` — drop records whose `key` field was seen within `window` |
-| `strategy` | `"concat"` (default) / `"zip"` / `"latest"` |
+| Property   | Description                                                                                                    |
+| ---------- | -------------------------------------------------------------------------------------------------------------- |
+| `from`     | Array of source or merge names to combine                                                                      |
+| `dedup`    | Optional: `{ key: "<field>", window: "<duration>" }` — drop records whose `key` field was seen within `window` |
+| `strategy` | `"concat"` (default) / `"zip"` / `"latest"`                                                                    |
 
 ---
 
@@ -225,21 +225,21 @@ transform Classify {
 
 **`type` values for typed transforms**
 
-| Value | Description |
-|-------|-------------|
-| `"llm"` | Call an LLM — pairs with `model`, `prompt`, `input`, `output` |
-| `"mcp"` | Call an MCP tool — pairs with `server`, `tool`, `args`, `output` |
-| `"http"` | HTTP fetch — pairs with `url`, `method`, `timeout`, `output` |
-| `"field_mapping"` | Explicit; inferred automatically when mappings are present |
+| Value             | Description                                                      |
+| ----------------- | ---------------------------------------------------------------- |
+| `"llm"`           | Call an LLM — pairs with `model`, `prompt`, `input`, `output`    |
+| `"mcp"`           | Call an MCP tool — pairs with `server`, `tool`, `args`, `output` |
+| `"http"`          | HTTP fetch — pairs with `url`, `method`, `timeout`, `output`     |
+| `"field_mapping"` | Explicit; inferred automatically when mappings are present       |
 
 **LLM transform properties**
 
-| Property | Description |
-|----------|-------------|
-| `model` | Model identifier (e.g. `"claude-sonnet-4-6"`) |
-| `prompt` | Prompt string; supports `\|` heredoc for multi-line |
-| `input` | Field name from the current record to pass as content |
-| `output` | Field name to write the response into |
+| Property | Description                                           |
+| -------- | ----------------------------------------------------- |
+| `model`  | Model identifier (e.g. `"claude-sonnet-4-6"`)         |
+| `prompt` | Prompt string; supports `\|` heredoc for multi-line   |
+| `input`  | Field name from the current record to pass as content |
+| `output` | Field name to write the response into                 |
 
 Multi-line prompt with heredoc (`|`):
 
@@ -258,12 +258,12 @@ transform ExtractInsights {
 
 **HTTP transform properties**
 
-| Property | Description |
-|----------|-------------|
-| `url` | URL; supports `${…}` interpolation |
-| `method` | HTTP verb |
-| `timeout` | Duration (e.g. `5s`) |
-| `output` | Inline object mapping response fields to record fields |
+| Property  | Description                                            |
+| --------- | ------------------------------------------------------ |
+| `url`     | URL; supports `${…}` interpolation                     |
+| `method`  | HTTP verb                                              |
+| `timeout` | Duration (e.g. `5s`)                                   |
+| `output`  | Inline object mapping response fields to record fields |
 
 ```hs
 transform HealthCheck {
@@ -282,13 +282,13 @@ transform HealthCheck {
 
 **MCP transform properties**
 
-| Property | Description |
-|----------|-------------|
-| `server` | MCP server name |
-| `tool` | Tool name |
-| `args` | Argument object (supports `${…}` interpolation) |
-| `output` | Variable name to bind the tool response |
-| `where` | Post-call guard — records not matching are dropped (e.g. `existing.results[0].similarity < 0.85`) |
+| Property | Description                                                                                       |
+| -------- | ------------------------------------------------------------------------------------------------- |
+| `server` | MCP server name                                                                                   |
+| `tool`   | Tool name                                                                                         |
+| `args`   | Argument object (supports `${…}` interpolation)                                                   |
+| `output` | Variable name to bind the tool response                                                           |
+| `where`  | Post-call guard — records not matching are dropped (e.g. `existing.results[0].similarity < 0.85`) |
 
 ---
 
@@ -406,32 +406,32 @@ sink Storefront {
 
 **`type` values**
 
-| Value | Description |
-|-------|-------------|
-| `"rest"` | HTTP POST/PATCH/PUT — pairs with `endpoint`, `method`, `auth`, `body` |
-| `"webhook"` | Alias for `rest` with a pre-built `body` |
-| `"mcp"` | HoloScript MCP tool call |
-| `"filesystem"` | Write to disk — pairs with `path`, `format`, `append` |
-| `"database"` | Write to PostgreSQL |
-| `"stdout"` | Print JSON to stdout (debugging) |
-| `"holo"` | Emit a `.holo` composition file — pairs with `path`, `template` |
+| Value          | Description                                                           |
+| -------------- | --------------------------------------------------------------------- |
+| `"rest"`       | HTTP POST/PATCH/PUT — pairs with `endpoint`, `method`, `auth`, `body` |
+| `"webhook"`    | Alias for `rest` with a pre-built `body`                              |
+| `"mcp"`        | HoloScript MCP tool call                                              |
+| `"filesystem"` | Write to disk — pairs with `path`, `format`, `append`                 |
+| `"database"`   | Write to PostgreSQL                                                   |
+| `"stdout"`     | Print JSON to stdout (debugging)                                      |
+| `"holo"`       | Emit a `.holo` composition file — pairs with `path`, `template`       |
 
 **Common sink properties**
 
-| Property | Description |
-|----------|-------------|
-| `endpoint` | URL for `rest` / `webhook` |
-| `method` | HTTP verb (default `"POST"`) |
-| `auth` | Same inline auth object as `source` |
-| `body` | Inline object; values support `${…}` interpolation |
-| `batch` | `{ size: <N>, parallel: <N> }` — batch records before sending |
-| `on_error` | `{ action: "log" \| "retry" \| "dead_letter", continue: true \| false }` |
-| `path` | Filesystem path for `filesystem` / `holo` sink |
-| `format` | `"json"` / `"jsonl"` / `"csv"` for filesystem sink |
-| `append` | `true` to append rather than overwrite |
-| `server`, `tool`, `args` | MCP sink — same as MCP source |
-| `template` | Multi-line `.holo` composition body for `type: "holo"` (supports heredoc `\|`) |
-| `hash` | When set, the compiler attaches a SHA-256 hash of the emitted file |
+| Property                 | Description                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `endpoint`               | URL for `rest` / `webhook`                                                     |
+| `method`                 | HTTP verb (default `"POST"`)                                                   |
+| `auth`                   | Same inline auth object as `source`                                            |
+| `body`                   | Inline object; values support `${…}` interpolation                             |
+| `batch`                  | `{ size: <N>, parallel: <N> }` — batch records before sending                  |
+| `on_error`               | `{ action: "log" \| "retry" \| "dead_letter", continue: true \| false }`       |
+| `path`                   | Filesystem path for `filesystem` / `holo` sink                                 |
+| `format`                 | `"json"` / `"jsonl"` / `"csv"` for filesystem sink                             |
+| `append`                 | `true` to append rather than overwrite                                         |
+| `server`, `tool`, `args` | MCP sink — same as MCP source                                                  |
+| `template`               | Multi-line `.holo` composition body for `type: "holo"` (supports heredoc `\|`) |
+| `hash`                   | When set, the compiler attaches a SHA-256 hash of the emitted file             |
 
 **MCP sink example**
 
@@ -660,12 +660,12 @@ pipeline <Name | "Name"> {
 
 All four canonical pipeline examples ship in the repository:
 
-| File | What it shows |
-|------|---------------|
-| `examples/pipelines/inventory-sync.hs` | REST source, field-mapping transform, filter, validate, two sinks |
-| `examples/pipelines/social-engagement.hs` | Two sources, merge with dedup, LLM transform, filter, branch, MCP + REST sinks |
-| `examples/pipelines/knowledge-compressor.hs` | Filesystem sources, merge, LLM + MCP transforms, filter, MCP + filesystem sinks; heredoc prompt |
-| `examples/pipelines/deploy-monitor.hs` | List source, HTTP transform, field-mapping transform, filter, branch, three sinks |
+| File                                            | What it shows                                                                                               |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `examples/pipelines/inventory-sync.hs`          | REST source, field-mapping transform, filter, validate, two sinks                                           |
+| `examples/pipelines/social-engagement.hs`       | Two sources, merge with dedup, LLM transform, filter, branch, MCP + REST sinks                              |
+| `examples/pipelines/knowledge-compressor.hs`    | Filesystem sources, merge, LLM + MCP transforms, filter, MCP + filesystem sinks; heredoc prompt             |
+| `examples/pipelines/deploy-monitor.hs`          | List source, HTTP transform, field-mapping transform, filter, branch, three sinks                           |
 | `examples/pipelines/drug-discovery-flagship.hs` | Multi-stage scientific pipeline: MCP sources, params block, holo sink with heredoc template, audit log sink |
 
 ---

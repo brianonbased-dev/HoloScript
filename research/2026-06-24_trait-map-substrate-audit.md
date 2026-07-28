@@ -17,12 +17,12 @@ verified `proofStatus` + `auditEvidence`; the 84 overclaims carry `demotedTo: sk
 
 The first-pass inventory listed **131 name-based "substrate" picks**. The audit found:
 
-| | First pass (name-based) | After per-handler audit |
-|---|---:|---:|
-| Entries | 131 | **128 unique** (3 were duplicates) |
-| **REAL** (genuine solver/computation + checkable contract) | — | **13** (11 audit + 2 fixes shipped) |
-| **THIN** (real capability nearby; this name skeleton/delegated/config-mode) | — | **33** |
-| **OVERCLAIMED** (vocabulary only / does nothing checkable) → demote to skin | — | **82** (84 − 2 fixed) |
+|                                                                             | First pass (name-based) |             After per-handler audit |
+| --------------------------------------------------------------------------- | ----------------------: | ----------------------------------: |
+| Entries                                                                     |                     131 |  **128 unique** (3 were duplicates) |
+| **REAL** (genuine solver/computation + checkable contract)                  |                       — | **13** (11 audit + 2 fixes shipped) |
+| **THIN** (real capability nearby; this name skeleton/delegated/config-mode) |                       — |                              **33** |
+| **OVERCLAIMED** (vocabulary only / does nothing checkable) → demote to skin |                       — |               **82** (84 − 2 fixed) |
 
 **The name-based pass overcounted substrate by ~3×.** Of 128 candidates, **82 (64%) prove nothing**
 and are demoted to skin; only **13 are unambiguously proof-carrying** (~0.55% of the 2,352-name
@@ -42,19 +42,19 @@ name-based spine suggested. Surfacing exactly which 11 carry proof is the point.
 
 These are the traits whose handler genuinely runs a solver/computation with a checkable contract:
 
-| Trait | Frontier | What it actually proves (file:line) |
-|---|---|---|
-| `thermal_simulation` | causal | real thermal `SimulationSolver`, stepped, emits receipt (`SimulationTraitHandlers.ts:33-70`) |
-| `structural_fem` | causal | real FEM solver, solves + receipt (`:85-123`) |
-| `hydraulic_pipe` | causal | real hardy-cross solver, solves + receipt (`:139-179`) |
-| `fluid` | physics | engine `MLSMPMFluid` GPU solver, stepped (`FluidTrait.ts:127-210`) — **conditional on `gpuDevice`** |
-| `soft_body` | physics | engine `SoftBodySolver` PBD, stepped each frame (`SoftBodyTrait.ts:159-193`) |
-| `buoyancy` | physics | Archimedes F=ρVg + submersion + drag in-handler (`BuoyancyTrait.ts:104-188`) |
-| `destruction` | physics | fragment integration loop + damage model (`DestructionTrait.ts:166-230`) |
-| `holomap_reconstruct` | geometry | drives real `HoloMapRuntime` end-to-end (encode/depth/pose/drift/loop-closure/provenance) |
-| `eye_tracked` | measurement | gaze-ray geometry + dwell on WebXR rays (`EyeTrackedTrait.ts:78-147`) |
-| `biofeedback` | measurement | calibrated normalization + timestamped sample + edge detection (`BiofeedbackTrait.ts:118-160`) |
-| `twin_actuator` | causal | safety-envelope precondition gate + numeric bounds before actuation (`TwinActuatorTrait.ts:20-115`, D.044) |
+| Trait                 | Frontier    | What it actually proves (file:line)                                                                        |
+| --------------------- | ----------- | ---------------------------------------------------------------------------------------------------------- |
+| `thermal_simulation`  | causal      | real thermal `SimulationSolver`, stepped, emits receipt (`SimulationTraitHandlers.ts:33-70`)               |
+| `structural_fem`      | causal      | real FEM solver, solves + receipt (`:85-123`)                                                              |
+| `hydraulic_pipe`      | causal      | real hardy-cross solver, solves + receipt (`:139-179`)                                                     |
+| `fluid`               | physics     | engine `MLSMPMFluid` GPU solver, stepped (`FluidTrait.ts:127-210`) — **conditional on `gpuDevice`**        |
+| `soft_body`           | physics     | engine `SoftBodySolver` PBD, stepped each frame (`SoftBodyTrait.ts:159-193`)                               |
+| `buoyancy`            | physics     | Archimedes F=ρVg + submersion + drag in-handler (`BuoyancyTrait.ts:104-188`)                               |
+| `destruction`         | physics     | fragment integration loop + damage model (`DestructionTrait.ts:166-230`)                                   |
+| `holomap_reconstruct` | geometry    | drives real `HoloMapRuntime` end-to-end (encode/depth/pose/drift/loop-closure/provenance)                  |
+| `eye_tracked`         | measurement | gaze-ray geometry + dwell on WebXR rays (`EyeTrackedTrait.ts:78-147`)                                      |
+| `biofeedback`         | measurement | calibrated normalization + timestamped sample + edge detection (`BiofeedbackTrait.ts:118-160`)             |
+| `twin_actuator`       | causal      | safety-envelope precondition gate + numeric bounds before actuation (`TwinActuatorTrait.ts:20-115`, D.044) |
 
 ---
 
@@ -63,7 +63,7 @@ These are the traits whose handler genuinely runs a solver/computation with a ch
 The demotions are not random — they cluster into five named failure modes, each actionable:
 
 1. **Dead-delegation (3 traits — the highest-ROI fix).** `fluid_simulation`, `granular_material`,
-   `voronoi_fracture` each ship a *genuinely real solver class in the same file* (SPH with poly6/spiky
+   `voronoi_fracture` each ship a _genuinely real solver class in the same file_ (SPH with poly6/spiky
    kernels; DEM with spring contact + Coulomb friction; damage/crack propagation), but the handler's
    `onUpdate` calls `instance.onUpdate(node, ctx, dt)` while the System class only exposes `step(dt)` —
    so the guard is always false and the solver is **never stepped**. `fluid_simulation` is worse: it
@@ -106,7 +106,7 @@ The demotions are not random — they cluster into five named failure modes, eac
   overclaimed). **Add a fourth pure win the audit surfaced:** the 3 dead-delegation wiring fixes (§3.1)
   — cheaper than any new trait and each yields a REAL solver.
 - **The gate (handoff §2c) — the demotion list IS the gate's first catch.** `class:skin ∧
-  contractRoles≠∅ → error` would fire on all 84 demoted traits had they kept their illustrative
+contractRoles≠∅ → error` would fire on all 84 demoted traits had they kept their illustrative
   contractRoles. The audited JSON has already cleared `contractRoles` on the 84, so the gate's initial
   state is clean; the gate's job is to keep it that way (block re-introduction).
 - **Map emission (handoff §2d).** The AUDITED JSON is the substrate half of the registry the

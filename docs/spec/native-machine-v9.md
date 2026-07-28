@@ -93,4 +93,3 @@ For every accepted HoloScript call, the compiler proves the base pointer comes
 from a live fixed-array stack slot, the length comes from a validated range, the
 element type matches, and mutable aliases do not coexist. The callee then
 checks every index against that length before forming an address.
-

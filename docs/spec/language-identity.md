@@ -19,11 +19,11 @@ configuration format, asset schema, prompt wrapper, or scene-description layer.
 `.hs`, `.hsplus`, and `.holo` are capability surfaces of one language. They currently route
 different grammar and runtime strengths, but none is a separate product category:
 
-| Surface | Current strongest lane | Language direction |
-| --- | --- | --- |
-| `.hs` | Logic, processes, headless programs, and data pipelines | General computation lowered to native and VM execution |
-| `.hsplus` | Typed behavior, traits, agents, state, and effects | Reusable systems behavior with explicit effects and resource contracts |
-| `.holo` | Whole-system composition, environments, platforms, and orchestration | Programs that bind logic, behavior, resources, deployment, and embodiment |
+| Surface   | Current strongest lane                                               | Language direction                                                        |
+| --------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `.hs`     | Logic, processes, headless programs, and data pipelines              | General computation lowered to native and VM execution                    |
+| `.hsplus` | Typed behavior, traits, agents, state, and effects                   | Reusable systems behavior with explicit effects and resource contracts    |
+| `.holo`   | Whole-system composition, environments, platforms, and orchestration | Programs that bind logic, behavior, resources, deployment, and embodiment |
 
 `.hsplus` is intentionally broader than agent brains. It is the
 TypeScript-like typed semantic application surface: modules, structs,

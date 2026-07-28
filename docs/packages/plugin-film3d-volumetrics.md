@@ -22,15 +22,15 @@ import {
 
 ## Package Surface
 
-| Surface            | Purpose                                      |
-| ------------------ | -------------------------------------------- |
-| `volumetric`       | Volumetric media trait handler               |
-| `gaussian_splat`   | Gaussian splat trait handler                 |
-| `nerf`             | NeRF trait handler                           |
-| `cinematic_camera` | Cinematic camera movement and lens metadata  |
-| `gcode_slicer`     | Semantic G-code slicing and traversal plans  |
+| Surface            | Purpose                                       |
+| ------------------ | --------------------------------------------- |
+| `volumetric`       | Volumetric media trait handler                |
+| `gaussian_splat`   | Gaussian splat trait handler                  |
+| `nerf`             | NeRF trait handler                            |
+| `cinematic_camera` | Cinematic camera movement and lens metadata   |
+| `gcode_slicer`     | Semantic G-code slicing and traversal plans   |
 | CRDT volumetrics   | Registers volumetric roots on shared Loro doc |
-| `pluginMeta`       | Plugin metadata and trait list               |
+| `pluginMeta`       | Plugin metadata and trait list                |
 
 ## Packaging Note
 

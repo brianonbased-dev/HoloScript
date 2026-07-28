@@ -20,13 +20,13 @@ connectors, and receipts.
 
 ## Use Modes
 
-| Mode | Actor | Owns | Uses | Should not require |
-| ---- | ----- | ---- | ---- | ------------------ |
-| Scaffolded local project | Builder using `create-holoscript` or the CLI | Project source, assets, local config | Public npm packages and local runtime | Editing `packages/core` or service internals |
-| Hosted MCP/API consumer | Agent, app, or CI job | Bearer token, request payloads, workspace/project state | `mcp.holoscript.net`, public tools, OAuth tools | Cloning the HoloScript repo |
-| Studio workspace | Product team or account | Workspace repo, linked repos, agent config, knowledge, board/project state | Studio, Absorb, MCP, orchestrator, connectors | Founder-local paths, private hooks, GOLD, wallets, or internal board history |
-| Service/container image | Operator or enterprise deployment | Runtime config, mounted workspace/project data, env/secrets, plugin allowlist | Versioned image exposing health, MCP/API, compiler/runtime entrypoints | Baking user state into the image or patching core for normal use |
-| Engine contribution | Platform contributor or core agent | HoloScript monorepo changes | pnpm workspace packages, tests, preflight, HoloCI | Customer secrets or account workspace state |
+| Mode                     | Actor                                        | Owns                                                                          | Uses                                                                   | Should not require                                                           |
+| ------------------------ | -------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Scaffolded local project | Builder using `create-holoscript` or the CLI | Project source, assets, local config                                          | Public npm packages and local runtime                                  | Editing `packages/core` or service internals                                 |
+| Hosted MCP/API consumer  | Agent, app, or CI job                        | Bearer token, request payloads, workspace/project state                       | `mcp.holoscript.net`, public tools, OAuth tools                        | Cloning the HoloScript repo                                                  |
+| Studio workspace         | Product team or account                      | Workspace repo, linked repos, agent config, knowledge, board/project state    | Studio, Absorb, MCP, orchestrator, connectors                          | Founder-local paths, private hooks, GOLD, wallets, or internal board history |
+| Service/container image  | Operator or enterprise deployment            | Runtime config, mounted workspace/project data, env/secrets, plugin allowlist | Versioned image exposing health, MCP/API, compiler/runtime entrypoints | Baking user state into the image or patching core for normal use             |
+| Engine contribution      | Platform contributor or core agent           | HoloScript monorepo changes                                                   | pnpm workspace packages, tests, preflight, HoloCI                      | Customer secrets or account workspace state                                  |
 
 ## Image Contract
 
@@ -76,13 +76,13 @@ service contract.
 
 Use the strongest gate for the touched surface:
 
-| Surface | Verification |
-| ------- | ------------ |
-| Local source/project | `holoscript validate`, CLI smoke, or project tests |
-| MCP/API consumer | health/discovery response plus tool call receipt |
-| Studio workspace | provisioned workspace id, linked repo, scoped key, and account-tier checks |
-| Service image | container start, health endpoint, discovery endpoint, sample compile, mounted workspace read/write policy |
-| Engine repo | `pnpm preflight` for changed packages, targeted tests, and HoloCI status |
+| Surface              | Verification                                                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
+| Local source/project | `holoscript validate`, CLI smoke, or project tests                                                        |
+| MCP/API consumer     | health/discovery response plus tool call receipt                                                          |
+| Studio workspace     | provisioned workspace id, linked repo, scoped key, and account-tier checks                                |
+| Service image        | container start, health endpoint, discovery endpoint, sample compile, mounted workspace read/write policy |
+| Engine repo          | `pnpm preflight` for changed packages, targeted tests, and HoloCI status                                  |
 
 Do not use visual previews as solver or safety evidence unless a receipt path
 also proves the relevant contract.

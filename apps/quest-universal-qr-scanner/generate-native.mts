@@ -74,7 +74,9 @@ if (existsSync(worldsDir)) {
   const reg = emitWorldsRegistryKt(worldIds);
   const regRel = `${srcRel}/WorldsRegistry.kt`;
   writeFileSync(join(refDir, regRel), reg);
-  console.log(`  wrote ${regRel} (${reg.length} bytes)  [${worldIds.length} world(s): ${worldIds.join(', ')}]`);
+  console.log(
+    `  wrote ${regRel} (${reg.length} bytes)  [${worldIds.length} world(s): ${worldIds.join(', ')}]`
+  );
   n++;
 }
 

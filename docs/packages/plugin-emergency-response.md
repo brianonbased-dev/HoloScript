@@ -26,23 +26,23 @@ import {
 
 ## Package Surface
 
-| Surface                           | Purpose                                      |
-| --------------------------------- | -------------------------------------------- |
-| `triage`                          | START-style patient priority classification  |
-| `evacuation_zone`                 | Geographic evacuation zones and route state  |
-| `resource_dispatch`               | Emergency unit dispatch and status behavior  |
-| `incident_command`                | Incident command and staging-area structure  |
-| `startTriage`                     | Classifies patient triage categories         |
-| `resourceDispatch`                | Assigns nearest compatible emergency units   |
-| `incidentGrowthModel`             | Models incident spread over time             |
-| `shelterCapacity`                 | Calculates emergency and extended capacity   |
-| `evacuationRoutes`                | Computes capacity-constrained evacuation paths |
-| `communicationCascade`            | Models notification-tree coverage            |
+| Surface                           | Purpose                                         |
+| --------------------------------- | ----------------------------------------------- |
+| `triage`                          | START-style patient priority classification     |
+| `evacuation_zone`                 | Geographic evacuation zones and route state     |
+| `resource_dispatch`               | Emergency unit dispatch and status behavior     |
+| `incident_command`                | Incident command and staging-area structure     |
+| `startTriage`                     | Classifies patient triage categories            |
+| `resourceDispatch`                | Assigns nearest compatible emergency units      |
+| `incidentGrowthModel`             | Models incident spread over time                |
+| `shelterCapacity`                 | Calculates emergency and extended capacity      |
+| `evacuationRoutes`                | Computes capacity-constrained evacuation paths  |
+| `communicationCascade`            | Models notification-tree coverage               |
 | `afterActionReport`               | Scores response-time, utilization, and coverage |
-| `buildEmergencyReceipt`           | Emits CAEL-backed emergency-analysis receipts |
-| `EMERGENCY_RESPONSE_TRAITS`       | Bundled trait handler list                   |
-| `registerEmergencyResponsePlugin` | Registers plugin traits with a runtime target |
-| `EMERGENCY_RESPONSE_KEYWORDS`     | Prompt and schema-mapper keyword routing     |
+| `buildEmergencyReceipt`           | Emits CAEL-backed emergency-analysis receipts   |
+| `EMERGENCY_RESPONSE_TRAITS`       | Bundled trait handler list                      |
+| `registerEmergencyResponsePlugin` | Registers plugin traits with a runtime target   |
+| `EMERGENCY_RESPONSE_KEYWORDS`     | Prompt and schema-mapper keyword routing        |
 
 ## Packaging Note
 

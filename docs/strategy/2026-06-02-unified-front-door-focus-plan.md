@@ -14,7 +14,7 @@
 > `ImportRepoWizard` ([`useImportRepoWizard.ts:161`]) → the real
 > `/api/workspace/import` route → `/api/daemon/absorb` → `/api/workspace/provision`.
 > Of every wizard previously called orphaned, **only `WorkspaceCreationWizard`
-> actually is** (0 callers). The door is largely *hung*, not unbuilt — so the
+> actually is** (0 callers). The door is largely _hung_, not unbuilt — so the
 > machinery is even more complete than "~85%," and Phase 1 is verify-and-unify,
 > not "connect disconnected halves." Sections 2, 2.5, and Phases 0–1 below are
 > corrected accordingly. Two further measurements this pass: **content safety (B)
@@ -27,22 +27,22 @@
 
 > **⚠ Audience correction (2026-06-02, founder).** This plan originally treated
 > "a family can use it" as the Studio front door's bar and named content safety
-> (B) as *the hard gate* for it. **That is the wrong audience.** Per the founder:
+> (B) as _the hard gate_ for it. **That is the wrong audience.** Per the founder:
 > **families → HoloLand** (the consumer/family surface), not the Studio front
 > door — HoloScript/Studio is too advanced for families. Kids learning HoloScript
 > = **schools, structured** (curriculum), not the open describe-anything Studio
 > surface. So the **Studio front door's audience is developers / creators / the
 > founder**, and content safety (B) is a real gap but it belongs to **HoloLand
-> and school deployments**, *not* the Studio front-door spine. References to
+> and school deployments**, _not_ the Studio front-door spine. References to
 > "families using the front door" below are reframed accordingly; B is retained
 > as a cross-surface safety requirement, not a Studio-front-door blocker. See
 > `direction_hololand-is-the-family-surface` (D.079).
-**Founder framing (verbatim intent):** *"Users sign into GitHub, they see all
-their repos — or just their `.ai-ecosystem` repo. They have access to all these
-features. There needs to be a point to all of it. Instead of focusing on one
-user we are targeting multiple vertices. We have wizards to be universal for
-users. The whole system should be intuitive and utilize everything we have to
-offer."*
+> **Founder framing (verbatim intent):** _"Users sign into GitHub, they see all
+> their repos — or just their `.ai-ecosystem` repo. They have access to all these
+> features. There needs to be a point to all of it. Instead of focusing on one
+> user we are targeting multiple vertices. We have wizards to be universal for
+> users. The whole system should be intuitive and utilize everything we have to
+> offer."_
 
 > **Reframe from the review.** The review recommended narrowing to one spine.
 > The founder corrected that: the goal is **not** to cut the breadth — it's to
@@ -57,7 +57,7 @@ offer."*
 ## 1. The vision as one sentence and one flow
 
 **One sentence:** A user signs into GitHub, sees their repos, and Brittney +
-wizards walk them into *anything the platform can do* — without needing to know
+wizards walk them into _anything the platform can do_ — without needing to know
 HoloScript, the CLI, or which of 77 packages does what.
 
 **One flow (the spine this plan builds):**
@@ -86,7 +86,7 @@ HoloScript, the CLI, or which of 77 packages does what.
 
 Every box in that flow **already has code**, and — corrected from the first
 draft — they **are** connected into a working path via `OnboardingWizard`. What's
-missing is not the connection but the *unification*: two separate entry surfaces
+missing is not the connection but the _unification_: two separate entry surfaces
 (`/` → `OnboardingWizard`, `/start` → Brittney) instead of one, plus the verify
 / polish / safety work below. This plan unifies and hardens them.
 
@@ -95,33 +95,33 @@ missing is not the connection but the *unification*: two separate entry surfaces
 ## 2. What already exists (the parts in the pile)
 
 This is the critical, encouraging fact: **the front door's machinery is ~85–90%
-built and *already assembled into a working (if not yet unified) flow*** —
+built and _already assembled into a working (if not yet unified) flow_** —
 corrected from the first-pass claim of "~0% assembled," which a code-level
 re-verification falsified (see §2.5).
 
 Wiring status column re-verified by reading the import graph on 2026-06-02
 (second pass):
 
-| Piece the vision needs | Status in repo | Evidence |
-|---|---|---|
-| GitHub sign-in | Exists, not production-hardened *(carried from 1st review)* | `app/api/auth/[...nextauth]`, `app/auth`, `components/auth` |
-| "See your repos" API | **Real** (127 lines) | `app/api/github/repos/route.ts`, `connector-github` |
-| Repo-pick wizard step | **Wired** — used by `ImportRepoWizard` | `Step0ChooseRepo.tsx`/`Step1SelectBranch.tsx` ← `ImportRepoWizard.tsx:28-29` |
-| Import-a-repo wizard | **Wired into 2 surfaces; calls the real route** | `ImportRepoWizard` ← `OnboardingWizard.tsx:87` + `StudioPanelOverlays.tsx:540`; POSTs `/api/workspace/import` at `useImportRepoWizard.ts:161` |
-| Workspace creation wizard | Built, **genuinely orphaned (0 callers)** — the one real orphan | `WorkspaceCreationWizard.tsx` (only self-references) |
-| First-run / onboarding wizard | **Wired** — `OnboardingWizard` mounted in `app/page.tsx:314`; reaches `FirstRunWizard`/`BrittneyWizard`/`StudioSetupWizard`; `QuickStartWizard` via `CreatorLayout.tsx:30` | `OnboardingWizard.tsx:82-96`, `page.tsx:314/332` |
-| Brittney as the guide | **Exists, live at `/start`** *(carried)* | `/start` renders `BrittneyFullScreen`; Studio Brittney = Claude SDK |
-| Project DNA classifier | Engine exists | `absorb-service` daemon + `selfTargetConfig`, `create-holoscript` scanner |
-| Daemon-guided improvement | PRD written, engine exists | `studio-repo-management-prd.md`, absorb daemons |
-| Compile-target picker | Built | `CompileTargetGrid.tsx` |
-| Describe→render→deploy | **Live in production** | Studio `/vibe`, `/api/deploy` |
-| The verticals (destinations) | 54 plugins, dormant | `packages/plugins/*` (0 consumers, ~4 commits/6mo) |
+| Piece the vision needs        | Status in repo                                                                                                                                                             | Evidence                                                                                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub sign-in                | Exists, not production-hardened _(carried from 1st review)_                                                                                                                | `app/api/auth/[...nextauth]`, `app/auth`, `components/auth`                                                                                   |
+| "See your repos" API          | **Real** (127 lines)                                                                                                                                                       | `app/api/github/repos/route.ts`, `connector-github`                                                                                           |
+| Repo-pick wizard step         | **Wired** — used by `ImportRepoWizard`                                                                                                                                     | `Step0ChooseRepo.tsx`/`Step1SelectBranch.tsx` ← `ImportRepoWizard.tsx:28-29`                                                                  |
+| Import-a-repo wizard          | **Wired into 2 surfaces; calls the real route**                                                                                                                            | `ImportRepoWizard` ← `OnboardingWizard.tsx:87` + `StudioPanelOverlays.tsx:540`; POSTs `/api/workspace/import` at `useImportRepoWizard.ts:161` |
+| Workspace creation wizard     | Built, **genuinely orphaned (0 callers)** — the one real orphan                                                                                                            | `WorkspaceCreationWizard.tsx` (only self-references)                                                                                          |
+| First-run / onboarding wizard | **Wired** — `OnboardingWizard` mounted in `app/page.tsx:314`; reaches `FirstRunWizard`/`BrittneyWizard`/`StudioSetupWizard`; `QuickStartWizard` via `CreatorLayout.tsx:30` | `OnboardingWizard.tsx:82-96`, `page.tsx:314/332`                                                                                              |
+| Brittney as the guide         | **Exists, live at `/start`** _(carried)_                                                                                                                                   | `/start` renders `BrittneyFullScreen`; Studio Brittney = Claude SDK                                                                           |
+| Project DNA classifier        | Engine exists                                                                                                                                                              | `absorb-service` daemon + `selfTargetConfig`, `create-holoscript` scanner                                                                     |
+| Daemon-guided improvement     | PRD written, engine exists                                                                                                                                                 | `studio-repo-management-prd.md`, absorb daemons                                                                                               |
+| Compile-target picker         | Built                                                                                                                                                                      | `CompileTargetGrid.tsx`                                                                                                                       |
+| Describe→render→deploy        | **Live in production**                                                                                                                                                     | Studio `/vibe`, `/api/deploy`                                                                                                                 |
+| The verticals (destinations)  | 54 plugins, dormant                                                                                                                                                        | `packages/plugins/*` (0 consumers, ~4 commits/6mo)                                                                                            |
 
 **The gap is unification and hardening, not assembly — and certainly not
 invention.** `OnboardingWizard` already composes the four onboarding paths and is
 reachable from the homepage; `ImportRepoWizard`, `FirstRunWizard`,
 `BrittneyWizard`, `StudioSetupWizard`, and `QuickStartWizard` all have live
-callers. The door is hung and openable; it is just hung *twice* (`/` and
+callers. The door is hung and openable; it is just hung _twice_ (`/` and
 `/start`) and not yet hardened. Only `WorkspaceCreationWizard` is an actual
 orphan — decide to mount it or delete it.
 
@@ -129,33 +129,33 @@ orphan — decide to mount it or delete it.
 
 Two passes refined this estimate. The first pass corrected ~70% → ~85% on the
 strength of the engines being real. The **second pass (code-level wiring audit,
-2026-06-02)** corrected the *assembly* claim: the wizards are not orphaned and
+2026-06-02)** corrected the _assembly_ claim: the wizards are not orphaned and
 the intuitive import path is not a dead shell — both were verified to call real
 endpoints and to be reachable from the homepage. Confirmed-real machinery:
 
 - `connector-github` has the full write-back toolset (`github_pr_create`,
   `github_pr_merge`, `github_content_create_or_update`, `github_pr_review`).
-  *(carried from 1st review — not re-read this pass)*
+  _(carried from 1st review — not re-read this pass)_
 - `/api/workspace/import` is **real** (~400 lines) — authenticated `git clone`,
   repo-consent enforcement, conversion candidates, publish-worthiness, durable
   absorb state. **Re-verified by reading `route.ts` this pass.**
 - `ImportRepoWizard` **does** call it (`useImportRepoWizard.ts:161`), then
   `/api/daemon/absorb` and `/api/workspace/provision`. **Re-verified this pass.**
 - `/api/git/push` exists; `PatchReviewPanel` is wired into `workspace/page.tsx`;
-  compile + deploy are live. *(carried from 1st review)*
+  compile + deploy are live. _(carried from 1st review)_
 
 So the genuinely-remaining work is **not engines and not last-mile glue** — Gap A
 as previously written does not exist. What remains splits into:
 
-| Gap | Kind | What's actually missing | Effort | Blocks the front-door goal? |
-|---|---|---|---|---|
-| **A — entry-surface unification** | reconcile-what-exists | The path *works* but is hung **twice**: `/` → `OnboardingWizard` (a real 4-path router) and `/start` → `BrittneyFullScreen` are two unreconciled front doors. Not "disconnected halves" — two *competing wholes*. Pick one host (Brittney) and route the other into it. | Low–Medium | Yes — "one intuitive way in" means one entry, not two |
-| **A′ — orphan cleanup** | decide | `WorkspaceCreationWizard` has 0 callers — mount it into `OnboardingWizard`'s `create` path or delete it (today that path uses `StudioSetupWizard`). | Trivial | No |
-| **B — content safety (HoloLand / schools, *not* the Studio front door)** | net-new | **Re-verified this pass: confirmed.** The Brittney generative endpoint (`app/api/brittney/route.ts`) has input *size* caps (4KB/msg, 32KB body — DoS/cost, SEC-T17) and secret-redaction in errors, but **no content-moderation / harmful-content / age guardrail**. Real ~0% gap — but per the audience correction it gates the **family/consumer surface (HoloLand)** and **structured school deployments**, not the Studio creator front door. | Medium–High | **No for the Studio front door** (dev/creator audience). **Yes** as a precondition for HoloLand/schools. |
-| **C — trust layer** | precondition | **Re-verified this pass — the "363" was wrong for the front door.** Measured studio (`@holoscript/studio`) suite: **3 failed / 6183 passed / 6214 total (99.95% green)**, and *none* of the 3 touch the import/onboarding spine (they are: a wasm-compiler fallback edge case, a tool-description quality lint, and a route-classification completeness test). The "363" figure, if real, is monorepo-wide and/or stale — it is **not** the front-door package's state. Commit-gate bypass + auth/consent hardening *(carried from 1st review, not re-checked)* remain the real Phase-0 items. | Phase 0 (reduced) | Partially — the front door is **not** sitting on a wall of red |
-| **(behind the door) vertical depth** | pull-based | The "utilize everything we offer" promise: 54 verticals still mostly hollow. Largest unbuilt *mass*, but Phase-3, not front-door. | Open-ended | No (label honestly, fund on demand) |
+| Gap                                                                      | Kind                  | What's actually missing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Effort            | Blocks the front-door goal?                                                                              |
+| ------------------------------------------------------------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------- |
+| **A — entry-surface unification**                                        | reconcile-what-exists | The path _works_ but is hung **twice**: `/` → `OnboardingWizard` (a real 4-path router) and `/start` → `BrittneyFullScreen` are two unreconciled front doors. Not "disconnected halves" — two _competing wholes_. Pick one host (Brittney) and route the other into it.                                                                                                                                                                                                                                                                                                                        | Low–Medium        | Yes — "one intuitive way in" means one entry, not two                                                    |
+| **A′ — orphan cleanup**                                                  | decide                | `WorkspaceCreationWizard` has 0 callers — mount it into `OnboardingWizard`'s `create` path or delete it (today that path uses `StudioSetupWizard`).                                                                                                                                                                                                                                                                                                                                                                                                                                            | Trivial           | No                                                                                                       |
+| **B — content safety (HoloLand / schools, _not_ the Studio front door)** | net-new               | **Re-verified this pass: confirmed.** The Brittney generative endpoint (`app/api/brittney/route.ts`) has input _size_ caps (4KB/msg, 32KB body — DoS/cost, SEC-T17) and secret-redaction in errors, but **no content-moderation / harmful-content / age guardrail**. Real ~0% gap — but per the audience correction it gates the **family/consumer surface (HoloLand)** and **structured school deployments**, not the Studio creator front door.                                                                                                                                              | Medium–High       | **No for the Studio front door** (dev/creator audience). **Yes** as a precondition for HoloLand/schools. |
+| **C — trust layer**                                                      | precondition          | **Re-verified this pass — the "363" was wrong for the front door.** Measured studio (`@holoscript/studio`) suite: **3 failed / 6183 passed / 6214 total (99.95% green)**, and _none_ of the 3 touch the import/onboarding spine (they are: a wasm-compiler fallback edge case, a tool-description quality lint, and a route-classification completeness test). The "363" figure, if real, is monorepo-wide and/or stale — it is **not** the front-door package's state. Commit-gate bypass + auth/consent hardening _(carried from 1st review, not re-checked)_ remain the real Phase-0 items. | Phase 0 (reduced) | Partially — the front door is **not** sitting on a wall of red                                           |
+| **(behind the door) vertical depth**                                     | pull-based            | The "utilize everything we offer" promise: 54 verticals still mostly hollow. Largest unbuilt _mass_, but Phase-3, not front-door.                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Open-ended        | No (label honestly, fund on demand)                                                                      |
 
-**The corrected read:** you are *further along* than even the first correction
+**The corrected read:** you are _further along_ than even the first correction
 said. A signed-in user can already reach a real workspace through the guided
 homepage wizard — that path is built and wired, not a shell. The remaining
 **Studio front-door** work is essentially just (A) collapsing the two entry
@@ -171,13 +171,13 @@ reach a workspace" and "a creator uses the whole thing intuitively" is now mostl
 
 ---
 
-## 3. Why this is *also* the fix for "agents lose direction"
+## 3. Why this is _also_ the fix for "agents lose direction"
 
 The review found agents drift because there's no single product the board points
 at — 81% of effort is maintenance, doctrine and board disagree. **The Unified
-Front Door is the missing product object.** Once it exists and is named as *the*
-thing, every agent task can be scored by one question: *does this make the front
-door more complete, more intuitive, or more reliable?* That single question is
+Front Door is the missing product object.** Once it exists and is named as _the_
+thing, every agent task can be scored by one question: _does this make the front
+door more complete, more intuitive, or more reliable?_ That single question is
 the "sense of direction" that has been absent. Building the hub fixes the
 product **and** the coordination problem at once.
 
@@ -186,6 +186,7 @@ product **and** the coordination problem at once.
 ## 4. The plan (phased, each phase shippable and dogfoodable)
 
 ### Phase 0 — Repair the base (much lighter than first thought)
+
 The first review framed this as "an intuitive product cannot sit on 363 red
 tests." **Measurement corrected that:** the front-door package
 (`@holoscript/studio`) is **3 failed / 6214 (99.95% green)** — the frame is not
@@ -203,31 +204,32 @@ failing. Phase 0 shrinks to a short, concrete list:
   "security audit" step is explicitly deferred to HoloCI, printed as "skipped (CI
   handles this)" — not silent, by design.)
 - Decide CI: HoloCI is the path; make one canonical, trusted green signal.
-- *(Measured: a full `pnpm -r test` run gives ~150–200 distinct failures across
+- _(Measured: a full `pnpm -r test` run gives ~150–200 distinct failures across
   130k+ executions (>99.8% green) — the old "363" was whole-repo and has drifted
   down. **115 of those are in `services/holoscript-net-v2`** (the .net site, not
   the front door); core 8–47 (multi-project), mcp-server 14, engine 13. None of
-  this gates the front door, which is at 3.)*
+  this gates the front door, which is at 3.)_
 - **Exit metric:** studio suite fully green (3 → 0) and a trustworthy commit gate.
 
 ### Phase 1 — Unify and verify the spine flow (sign in → repo → workspace) — **reconcile + verify (Gap A)**
+
 Per the corrected gap ledger, the spine is **already wired** — sign-in →
 `/api/github/repos` → `Step0ChooseRepo`/`Step1SelectBranch` (inside
 `ImportRepoWizard`) → real `/api/workspace/import` → absorb → provision → a ready
 workspace. This phase does **not** build that connection (it exists); it
-*verifies it runs end-to-end* and *collapses the two entry surfaces into one*.
+_verifies it runs end-to-end_ and _collapses the two entry surfaces into one_.
 
 - **First concrete task (verify the live path) — PARTIALLY DONE this pass.**
   Receipts captured: (a) `git clone --depth 1` of the real `ai-ecosystem` repo →
   EXIT 0, 4025 files, 6.8s, real GitHub auth; (b) the route is **live in a running
   Next 16 dev server** — `POST /api/workspace/import` (no session) → `401 Not
-  authenticated`, `GET` → `200 {workspaces:[]}`; (c) the route's logic is covered
-  by a 9-case unit suite. **Only remaining sliver:** the *authenticated* chain in
+authenticated`, `GET` → `200 {workspaces:[]}`; (c) the route's logic is covered
+  by a 9-case unit suite. **Only remaining sliver:** the _authenticated_ chain in
   one shot (OAuth session → clone → absorb → provision), which needs an interactive
   GitHub login. Every individual link is proven; the chained authed run is the
   last unverified step.
 - **Unify the two front doors (the real Gap A):** make Brittney (`/start`) the
-  single host and route the homepage `/` → `OnboardingWizard` path *into* it, so
+  single host and route the homepage `/` → `OnboardingWizard` path _into_ it, so
   there is one entry, not two competing ones.
 - **Resolve the orphan (Gap A′):** mount `WorkspaceCreationWizard` into
   `OnboardingWizard`'s `create` path or delete it (today that path uses
@@ -239,6 +241,7 @@ workspace. This phase does **not** build that connection (it exists); it
   guided entry, with a captured run receipt proving it, not a code-reading claim.
 
 ### Phase 2 — The universal wizard hub ("access to all the features")
+
 From a ready workspace, Brittney routes to every capability through one
 consistent wizard surface — this is the "point to all of it."
 
@@ -248,10 +251,11 @@ consistent wizard surface — this is the "point to all of it."
 - Collapse Studio's competing navigation (the review found **three** nav
   systems) into this one hub. Push `/create`'s 50 panels behind "advanced."
 - **Exit metric:** from one workspace, a non-technical user can reach and
-  *complete* at least 3 capabilities (build, improve, ship) without leaving the
+  _complete_ at least 3 capabilities (build, improve, ship) without leaving the
   guided surface.
 
 ### Phase 3 — Make the breadth honest (verticals as wizard destinations)
+
 The 54 verticals stay — but the wizard must **never lie** about depth.
 
 - Tag each plugin/vertical: **real** (works across targets) vs **sketch**
@@ -265,6 +269,7 @@ The 54 verticals stay — but the wizard must **never lie** about depth.
   "preview"; no dead-end that pretends to be ready.
 
 ### Phase 4 — Dogfood until it's used
+
 The whole point: the founder and real creators actually use it. (Families are a
 **HoloLand** concern, a different product — see the audience correction up top.)
 
@@ -281,10 +286,11 @@ The whole point: the founder and real creators actually use it. (Families are a
   longer true — there is a logged, repeated, real session.
 
 ### Cross-cutting — Give agents the single point
+
 - Collapse the **6 behavioral-contract docs** (CLAUDE.md, AGENTS.md,
-  AGENT_INTERFACE.md, NORTH_STAR.md, GEMINI.md, .cursorrules) into **one**
+  AGENT*INTERFACE.md, NORTH_STAR.md, GEMINI.md, .cursorrules) into **one**
   canonical decision tree whose top line is: *"The product is the Unified Front
-  Door. Score every task against it."*
+  Door. Score every task against it."\_
 - Reshape the board so a majority of tasks target a front-door phase above.
 - This is what stops the drift — not more ritual, one clear referent.
 
@@ -292,14 +298,14 @@ The whole point: the founder and real creators actually use it. (Families are a
 
 ## 5. What changes vs. the review's first recommendation
 
-| Review said | This plan says (per founder) |
-|---|---|
-| Pick one spine, hibernate the verticals | Keep the verticals; make them wizard destinations |
-| Narrow to one user | Universal flow, repo-centric, many verticals |
-| Collapse to one product | One **front door** that unifies all products |
-| Cut Brittney to one impl | Still true: **Studio Brittney is the guide**; the Ollama CLI is a dev tool or archived |
+| Review said                             | This plan says (per founder)                                                           |
+| --------------------------------------- | -------------------------------------------------------------------------------------- |
+| Pick one spine, hibernate the verticals | Keep the verticals; make them wizard destinations                                      |
+| Narrow to one user                      | Universal flow, repo-centric, many verticals                                           |
+| Collapse to one product                 | One **front door** that unifies all products                                           |
+| Cut Brittney to one impl                | Still true: **Studio Brittney is the guide**; the Ollama CLI is a dev tool or archived |
 
-The review's *health* findings (363 tests, broken gate, doc sprawl, board
+The review's _health_ findings (363 tests, broken gate, doc sprawl, board
 mismatch) all stand — they're Phase 0 and the cross-cutting track here.
 
 ---
@@ -313,10 +319,10 @@ Per the contributing contract, what this plan does **not** solve:
   still bypassable, and 3 studio tests still red (measured — down from the
   mythical "363").
 - **Depth of the 54 verticals is untouched.** The wizard will make them
-  *reachable*; it will not make a dormant template into a real product. Phase 3
+  _reachable_; it will not make a dormant template into a real product. Phase 3
   labels honestly but does not fund depth — that's pulled by demand, later.
 - **Auth hardening** for the Studio front door is named but not specified here.
-  **Content safety / abuse / moderation** is *out of scope for this plan* — it
+  **Content safety / abuse / moderation** is _out of scope for this plan_ — it
   belongs to **HoloLand (the family surface) and structured school deployments**,
   not the Studio creator front door (see the audience correction). A public
   HoloLand/schools launch needs that safety pass; the Studio front door does not.
@@ -325,7 +331,7 @@ Per the contributing contract, what this plan does **not** solve:
 - **The daemon "improve my repo" path** leans on `absorb-service` working in
   production; this plan assumes it but does not re-verify live daemon reliability.
 - **No phase durations or owners** are assigned — sequencing only. Turning this
-  into a dated board with task IDs is the immediate next step *if approved*.
+  into a dated board with task IDs is the immediate next step _if approved_.
 - **The founder still owns one call:** whether Phase 0 (quality base) truly
   precedes Phase 1, or whether a thin Phase-1 demo runs in parallel to keep
   momentum visible while the base is repaired.

@@ -97,9 +97,9 @@ inspect compiled target artifacts.
 
 ## Fixture corpus
 
-| Target          | Paper | Intact binding                                                                                                                                     | Adversarial mechanisms                                                  |
-| --------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| API JSON        | P29   | `proofMarker` and `scopeBoundary` share one object and `compositeId`; strictly numeric, finite, positive boundary prominence is at least proof prominence | delete, detach, demote, relabel, break identity, delete or coerce prominence |
+| Target          | Paper | Intact binding                                                                                                                                                                                                                                                                 | Adversarial mechanisms                                                                                                |
+| --------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| API JSON        | P29   | `proofMarker` and `scopeBoundary` share one object and `compositeId`; strictly numeric, finite, positive boundary prominence is at least proof prominence                                                                                                                      | delete, detach, demote, relabel, break identity, delete or coerce prominence                                          |
 | Social-card SVG | P42   | marker, wall, non-empty scope text, and verify link share one visible SVG group and identity; visible label is `NOT PROVEN`; finite positive font size/weight and effective opacity are at least equal to the marker; wall and explanation lie inside the full min/max viewbox | delete, relabel, empty, hide node/group/paint, demote font/opacity, move or transform outside viewbox, break identity |
 
 The social-card prominence rule is deliberately operational, not

@@ -22,7 +22,7 @@ import {
 } from '@holoscript/holo-runtime';
 
 const checkpoint = JSON.parse(
-  await readFile('checkpoints/holorunner-s0.json', 'utf8'),
+  await readFile('checkpoints/holorunner-s0.json', 'utf8')
 ) as HoloRunnerS0StateDictInput;
 const loaded = loadHoloRunnerS0StateDict(checkpoint);
 

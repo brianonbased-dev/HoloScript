@@ -23,13 +23,13 @@ import {
 
 ## CLIs
 
-| Binary                            | Purpose                                      |
-| --------------------------------- | -------------------------------------------- |
-| `hololand-device-lab`             | Hardware-native HoloLand readiness receipts  |
-| `hololand-evidence-envelope`      | Reproducibility manifest generation          |
-| `hololand-adversarial-trajectory` | Failure-scene and trajectory report tooling  |
-| `hololand-headset-share`          | Owned headset share transport                |
-| `holo-tunnel`                     | Local-to-cloud HoloTunnel sharing primitive  |
+| Binary                            | Purpose                                     |
+| --------------------------------- | ------------------------------------------- |
+| `hololand-device-lab`             | Hardware-native HoloLand readiness receipts |
+| `hololand-evidence-envelope`      | Reproducibility manifest generation         |
+| `hololand-adversarial-trajectory` | Failure-scene and trajectory report tooling |
+| `hololand-headset-share`          | Owned headset share transport               |
+| `holo-tunnel`                     | Local-to-cloud HoloTunnel sharing primitive |
 
 ## Strategy Role
 

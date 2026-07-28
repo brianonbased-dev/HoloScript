@@ -85,11 +85,13 @@ The replay lesson needs one fixture that demonstrates the user can return later 
 Build one fixture-backed path:
 
 Input:
+
 - redacted provider status fixture: provider waiting, ready link, expired link, admin block, cloud handoff block
 - local quarantine fixture: two archive parts present, one missing, one corrupt, no executable launch
 - approval fixture: nonce-bound user approval for retry, no hidden automation
 
 Output:
+
 - `ProviderExportFailureReceipt`
 - `PartialArchiveEvidenceReceipt`
 - `ProviderExportRepairPlanReceipt`
@@ -98,6 +100,7 @@ Output:
 - one redacted HoloLand repair-dock summary object
 
 Acceptance:
+
 - existing framework validator tests pass
 - fixture rejects any public absolute path in the public receipt
 - fixture rejects import/delete/share before verification

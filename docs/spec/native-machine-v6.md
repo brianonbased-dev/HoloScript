@@ -48,11 +48,11 @@ order, and accessed through explicit `load(slot.field)` or
 v6 supports `bool`, `i32`, and `i64` fields. Each field receives its natural
 size and alignment:
 
-| Type | Size | Alignment |
-|---|---:|---:|
-| `bool` | 1 | 1 |
-| `i32` | 4 | 4 |
-| `i64` | 8 | 8 |
+| Type   | Size | Alignment |
+| ------ | ---: | --------: |
+| `bool` |    1 |         1 |
+| `i32`  |    4 |         4 |
+| `i64`  |    8 |         8 |
 
 Fields remain in source declaration order. Each field offset is rounded up to
 that field's alignment. The aggregate alignment is the maximum field
@@ -60,11 +60,11 @@ alignment, and the final size is rounded up to the aggregate alignment.
 
 For `Packet`, the contract therefore reports:
 
-| Field | Type | Offset |
-|---|---|---:|
-| `enabled` | `bool` | 0 |
-| `count` | `i64` | 8 |
-| `code` | `i32` | 16 |
+| Field     | Type   | Offset |
+| --------- | ------ | -----: |
+| `enabled` | `bool` |      0 |
+| `count`   | `i64`  |      8 |
+| `code`    | `i32`  |     16 |
 
 `Packet` has size 24 and alignment 8. The public Rust
 `inspect_native_layouts(source)` API returns these exact layouts for tooling,

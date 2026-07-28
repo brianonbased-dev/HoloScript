@@ -72,25 +72,25 @@ npc "NpcName" {
 
 ### Properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `type` | `string` | No | Role/type label (e.g. `"merchant"`, `"guard"`, `"quest_giver"`) |
-| `model` | `string` | No | Asset path for the NPC mesh |
-| `position` | `[x, y, z]` | No | World-space position |
-| `dialogue_tree` | `string` | No | ID of the `dialogue` block this NPC opens by default |
-| `brain_ref` | `string` | No | Shorthand reference to a `.hsplus` brain skill |
-| `brain` | object | No | Structured agent-brain attachment (see below) |
-| `state { }` | block | No | NPC-local reactive state |
-| `behavior "…" { }` | sub-block | No | Repeatable; each defines one behavior |
+| Property           | Type        | Required | Description                                                     |
+| ------------------ | ----------- | -------- | --------------------------------------------------------------- |
+| `type`             | `string`    | No       | Role/type label (e.g. `"merchant"`, `"guard"`, `"quest_giver"`) |
+| `model`            | `string`    | No       | Asset path for the NPC mesh                                     |
+| `position`         | `[x, y, z]` | No       | World-space position                                            |
+| `dialogue_tree`    | `string`    | No       | ID of the `dialogue` block this NPC opens by default            |
+| `brain_ref`        | `string`    | No       | Shorthand reference to a `.hsplus` brain skill                  |
+| `brain`            | object      | No       | Structured agent-brain attachment (see below)                   |
+| `state { }`        | block       | No       | NPC-local reactive state                                        |
+| `behavior "…" { }` | sub-block   | No       | Repeatable; each defines one behavior                           |
 
 #### `brain` sub-object fields
 
-| Field | Type | Values | Description |
-|---|---|---|---|
-| `type` | string | `llm` `behavior-tree` `state-machine` `scripted` `hybrid` `remote` | Brain kind |
-| `autonomy` | string | `reactive` `deliberative` `autonomous` `supervised` | Action envelope |
-| `ref` | string | — | `.hsplus` brain skill id |
-| `tools` | string[] | — | Ability/tool names the brain may call |
+| Field      | Type     | Values                                                             | Description                           |
+| ---------- | -------- | ------------------------------------------------------------------ | ------------------------------------- |
+| `type`     | string   | `llm` `behavior-tree` `state-machine` `scripted` `hybrid` `remote` | Brain kind                            |
+| `autonomy` | string   | `reactive` `deliberative` `autonomous` `supervised`                | Action envelope                       |
+| `ref`      | string   | —                                                                  | `.hsplus` brain skill id              |
+| `tools`    | string[] | —                                                                  | Ability/tool names the brain may call |
 
 ### Minimal example
 
@@ -165,29 +165,29 @@ npc "GuardNPC" {
 
 ### Behavior properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `trigger` | `string` | Yes | Event name that activates this behavior |
-| `priority` | `number` | No | Execution priority (higher wins when multiple behaviors fire) |
-| `timeout` | `number` | No | Seconds until the behavior auto-exits |
-| `condition` | expression | No | Guard expression — behavior only runs when truthy |
-| `actions` | array | Yes | Array of action objects |
+| Property    | Type       | Required | Description                                                   |
+| ----------- | ---------- | -------- | ------------------------------------------------------------- |
+| `trigger`   | `string`   | Yes      | Event name that activates this behavior                       |
+| `priority`  | `number`   | No       | Execution priority (higher wins when multiple behaviors fire) |
+| `timeout`   | `number`   | No       | Seconds until the behavior auto-exits                         |
+| `condition` | expression | No       | Guard expression — behavior only runs when truthy             |
+| `actions`   | array      | Yes      | Array of action objects                                       |
 
 ### Action types
 
 Each element of `actions` is an object with exactly one key matching an action type:
 
-| Key | Description | Config keys |
-|---|---|---|
-| `move` | Move the NPC | `target`, `speed`, `path` |
-| `animate` | Play an animation clip | `clip`, `loop` |
-| `face` | Rotate toward a target | `target` |
-| `damage` | Apply damage | `target`, `amount`, `type` |
-| `heal` | Apply healing | `target`, `amount` |
-| `spawn` | Spawn an entity | `template`, `position` |
-| `emit` | Fire a game event | `event`, (data) |
-| `wait` | Pause execution | `duration` |
-| `call` | Call a named method | `method`, `args` |
+| Key       | Description            | Config keys                |
+| --------- | ---------------------- | -------------------------- |
+| `move`    | Move the NPC           | `target`, `speed`, `path`  |
+| `animate` | Play an animation clip | `clip`, `loop`             |
+| `face`    | Rotate toward a target | `target`                   |
+| `damage`  | Apply damage           | `target`, `amount`, `type` |
+| `heal`    | Apply healing          | `target`, `amount`         |
+| `spawn`   | Spawn an entity        | `template`, `position`     |
+| `emit`    | Fire a game event      | `event`, (data)            |
+| `wait`    | Pause execution        | `duration`                 |
+| `call`    | Call a named method    | `method`, `args`           |
 
 ---
 
@@ -246,45 +246,45 @@ quest "QuestName" {
 
 ### Quest properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `giver` | `string` | No | NPC name who gives/owns this quest |
-| `level` | `number` | No | Recommended player level |
-| `type` | `string` | No | `fetch` `defeat` `discover` `escort` `deliver` `custom` |
-| `prerequisites` | `string[]` | No | Quest names that must be completed first |
-| `objectives` | array | Yes | Ordered list of objective objects |
-| `rewards` | object | Yes | Reward block (experience, gold, items, reputation, unlocks) |
-| `branches` | array | No | Conditional outcome branches |
+| Property        | Type       | Required | Description                                                 |
+| --------------- | ---------- | -------- | ----------------------------------------------------------- |
+| `giver`         | `string`   | No       | NPC name who gives/owns this quest                          |
+| `level`         | `number`   | No       | Recommended player level                                    |
+| `type`          | `string`   | No       | `fetch` `defeat` `discover` `escort` `deliver` `custom`     |
+| `prerequisites` | `string[]` | No       | Quest names that must be completed first                    |
+| `objectives`    | array      | Yes      | Ordered list of objective objects                           |
+| `rewards`       | object     | Yes      | Reward block (experience, gold, items, reputation, unlocks) |
+| `branches`      | array      | No       | Conditional outcome branches                                |
 
 ### Objective fields
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `id` | `string` | Yes | Unique objective identifier |
-| `description` | `string` | Yes | Player-visible description |
-| `type` | `string` | Yes | `discover` `defeat` `collect` `deliver` `interact` `survive` |
-| `target` | `string` | Yes | Target entity id or type name |
-| `count` | `number` | No | Required count (default `1`) |
-| `optional` | `boolean` | No | Whether the objective is optional |
+| Field         | Type      | Required | Description                                                  |
+| ------------- | --------- | -------- | ------------------------------------------------------------ |
+| `id`          | `string`  | Yes      | Unique objective identifier                                  |
+| `description` | `string`  | Yes      | Player-visible description                                   |
+| `type`        | `string`  | Yes      | `discover` `defeat` `collect` `deliver` `interact` `survive` |
+| `target`      | `string`  | Yes      | Target entity id or type name                                |
+| `count`       | `number`  | No       | Required count (default `1`)                                 |
+| `optional`    | `boolean` | No       | Whether the objective is optional                            |
 
 ### Reward fields
 
-| Field | Type | Description |
-|---|---|---|
-| `experience` | `number` | XP awarded on completion |
-| `gold` | `number` | Currency awarded |
-| `items` | array | Item rewards `{ id, count, rarity }` |
-| `reputation` | `Record<string, number>` | Faction reputation changes |
-| `unlocks` | `string[]` | Quest ids unlocked on completion |
+| Field        | Type                     | Description                          |
+| ------------ | ------------------------ | ------------------------------------ |
+| `experience` | `number`                 | XP awarded on completion             |
+| `gold`       | `number`                 | Currency awarded                     |
+| `items`      | array                    | Item rewards `{ id, count, rarity }` |
+| `reputation` | `Record<string, number>` | Faction reputation changes           |
+| `unlocks`    | `string[]`               | Quest ids unlocked on completion     |
 
 ### Branch fields
 
-| Field | Type | Description |
-|---|---|---|
-| `condition` | expression | Guard — branch applies when truthy |
-| `text` | `string` | Optional label for this branch |
-| `rewardMultiplier` | `number` | Multiply base rewards by this factor |
-| `nextQuest` | `string` | Quest id to chain after this branch |
+| Field              | Type       | Description                          |
+| ------------------ | ---------- | ------------------------------------ |
+| `condition`        | expression | Guard — branch applies when truthy   |
+| `text`             | `string`   | Optional label for this branch       |
+| `rewardMultiplier` | `number`   | Multiply base rewards by this factor |
+| `nextQuest`        | `string`   | Quest id to chain after this branch  |
 
 ### Minimal example
 
@@ -376,45 +376,45 @@ ability "AbilityName" {
 
 ### Ability properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `type` | `string` | No (default `"skill"`) | `spell` `skill` `passive` `ultimate` |
-| `class` | `string` | No | Class restriction |
-| `level` | `number` | No | Minimum level |
-| `stats` | block | Yes | Combat statistics |
-| `scaling` | block | No | Damage/heal scaling coefficients |
-| `effects` | block | Yes | Visual and mechanical effects |
-| `projectile` | block | No | Projectile behaviour |
+| Property     | Type     | Required               | Description                          |
+| ------------ | -------- | ---------------------- | ------------------------------------ |
+| `type`       | `string` | No (default `"skill"`) | `spell` `skill` `passive` `ultimate` |
+| `class`      | `string` | No                     | Class restriction                    |
+| `level`      | `number` | No                     | Minimum level                        |
+| `stats`      | block    | Yes                    | Combat statistics                    |
+| `scaling`    | block    | No                     | Damage/heal scaling coefficients     |
+| `effects`    | block    | Yes                    | Visual and mechanical effects        |
+| `projectile` | block    | No                     | Projectile behaviour                 |
 
 #### `stats` fields
 
-| Field | Type | Description |
-|---|---|---|
-| `manaCost` | `number` | Mana consumed on use |
-| `staminaCost` | `number` | Stamina consumed on use |
-| `cooldown` | `number` | Cooldown in seconds |
-| `castTime` | `number` | Cast time in seconds |
-| `range` | `number` | Maximum range in metres |
-| `radius` | `number` | AoE radius in metres |
-| `duration` | `number` | Effect duration in seconds |
+| Field         | Type     | Description                |
+| ------------- | -------- | -------------------------- |
+| `manaCost`    | `number` | Mana consumed on use       |
+| `staminaCost` | `number` | Stamina consumed on use    |
+| `cooldown`    | `number` | Cooldown in seconds        |
+| `castTime`    | `number` | Cast time in seconds       |
+| `range`       | `number` | Maximum range in metres    |
+| `radius`      | `number` | AoE radius in metres       |
+| `duration`    | `number` | Effect duration in seconds |
 
 #### `scaling` fields
 
-| Field | Type | Description |
-|---|---|---|
-| `baseDamage` | `number` | Flat damage before coefficients |
-| `spellPower` | `number` | Spell-power coefficient |
-| `attackPower` | `number` | Attack-power coefficient |
-| `levelScale` | `number` | Per-level multiplier |
+| Field         | Type     | Description                     |
+| ------------- | -------- | ------------------------------- |
+| `baseDamage`  | `number` | Flat damage before coefficients |
+| `spellPower`  | `number` | Spell-power coefficient         |
+| `attackPower` | `number` | Attack-power coefficient        |
+| `levelScale`  | `number` | Per-level multiplier            |
 
 #### `effects` sub-block fields
 
-| Field | Type | Description |
-|---|---|---|
+| Field    | Type  | Description                                                     |
+| -------- | ----- | --------------------------------------------------------------- |
 | `impact` | block | VFX/audio on impact (`animation`, `particle`, `sound`, `shake`) |
-| `damage` | block | Damage type and crit config |
-| `buff` | block | Stat buff applied (`stat`, `amount`, `duration`, `stacks`) |
-| `debuff` | block | Status debuff applied (`effect`, `duration`, `magnitude`) |
+| `damage` | block | Damage type and crit config                                     |
+| `buff`   | block | Stat buff applied (`stat`, `amount`, `duration`, `stacks`)      |
+| `debuff` | block | Status debuff applied (`effect`, `duration`, `magnitude`)       |
 
 #### Damage types
 
@@ -484,24 +484,24 @@ dialogue "dialog_id" {
 
 ### Dialogue properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `character` | `string` | No | NPC speaker name |
-| `emotion` | `string` | No | `friendly` `angry` `sad` `neutral` `excited` `mysterious` |
-| `content` | `string` | Yes | The dialogue text shown to the player |
-| `condition` | expression | No | Node is hidden when falsy |
-| `nextDialogue` | `string` | No | Id of the next node when no options are shown |
-| `options` | array | No | Player response choices |
+| Property       | Type       | Required | Description                                               |
+| -------------- | ---------- | -------- | --------------------------------------------------------- |
+| `character`    | `string`   | No       | NPC speaker name                                          |
+| `emotion`      | `string`   | No       | `friendly` `angry` `sad` `neutral` `excited` `mysterious` |
+| `content`      | `string`   | Yes      | The dialogue text shown to the player                     |
+| `condition`    | expression | No       | Node is hidden when falsy                                 |
+| `nextDialogue` | `string`   | No       | Id of the next node when no options are shown             |
+| `options`      | array      | No       | Player response choices                                   |
 
 ### Dialogue option fields
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `text` | `string` | Yes | Displayed choice text |
-| `next` | `string` | No | Id of the dialogue node to load on selection |
-| `emotion` | `string` | No | Option-specific emotion override |
-| `unlocked` | expression | No | Option hidden when falsy |
-| `action` | statement block | No | Statements executed when this option is selected |
+| Field      | Type            | Required | Description                                      |
+| ---------- | --------------- | -------- | ------------------------------------------------ |
+| `text`     | `string`        | Yes      | Displayed choice text                            |
+| `next`     | `string`        | No       | Id of the dialogue node to load on selection     |
+| `emotion`  | `string`        | No       | Option-specific emotion override                 |
+| `unlocked` | expression      | No       | Option hidden when falsy                         |
+| `action`   | statement block | No       | Statements executed when this option is selected |
 
 ### Minimal example
 
@@ -603,30 +603,30 @@ state_machine "BossPhases" {
 
 ### State machine properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `initial` / `initialState` | `string` | Yes | Name of the starting state |
-| `state "name" { }` | sub-block | Yes (≥1) | State declaration |
+| Property                   | Type      | Required | Description                |
+| -------------------------- | --------- | -------- | -------------------------- |
+| `initial` / `initialState` | `string`  | Yes      | Name of the starting state |
+| `state "name" { }`         | sub-block | Yes (≥1) | State declaration          |
 
 ### State fields
 
-| Field | Type | Description |
-|---|---|---|
-| `entry` / `on_entry` | statement block | Runs once when the state is entered |
-| `exit` / `on_exit` | statement block | Runs once when the state is exited |
-| `actions` | `BehaviorAction[]` | Repeating actions while in this state |
-| `transitions` | array | Conditions or events that trigger a state change |
-| `timeout` | `number` | Seconds before `onTimeout` fires |
-| `onTimeout` | statement block | Executed when `timeout` elapses |
-| `onDamage` | statement block | Executed when the entity takes damage in this state |
+| Field                | Type               | Description                                         |
+| -------------------- | ------------------ | --------------------------------------------------- |
+| `entry` / `on_entry` | statement block    | Runs once when the state is entered                 |
+| `exit` / `on_exit`   | statement block    | Runs once when the state is exited                  |
+| `actions`            | `BehaviorAction[]` | Repeating actions while in this state               |
+| `transitions`        | array              | Conditions or events that trigger a state change    |
+| `timeout`            | `number`           | Seconds before `onTimeout` fires                    |
+| `onTimeout`          | statement block    | Executed when `timeout` elapses                     |
+| `onDamage`           | statement block    | Executed when the entity takes damage in this state |
 
 ### Transition fields
 
-| Field | Type | Description |
-|---|---|---|
-| `target` | `string` | State name to transition to |
-| `condition` | expression | Transition fires when truthy |
-| `event` | `string` | Event name that triggers this transition |
+| Field       | Type       | Description                              |
+| ----------- | ---------- | ---------------------------------------- |
+| `target`    | `string`   | State name to transition to              |
+| `condition` | expression | Transition fires when truthy             |
+| `event`     | `string`   | Event name that triggers this transition |
 
 ### Minimal example
 
@@ -682,23 +682,23 @@ achievement "AchievementName" {
 
 ### Achievement properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `description` | `string` | Yes | Player-visible achievement text |
-| `points` | `number` | No | Achievement point value |
-| `hidden` | `boolean` | No | Hide from UI until unlocked |
-| `condition` | expression | Yes | Unlocks when truthy |
-| `progress` | expression | No | `0.0–1.0` progress fraction expression |
-| `reward` | block | No | Optional reward on unlock |
+| Property      | Type       | Required | Description                            |
+| ------------- | ---------- | -------- | -------------------------------------- |
+| `description` | `string`   | Yes      | Player-visible achievement text        |
+| `points`      | `number`   | No       | Achievement point value                |
+| `hidden`      | `boolean`  | No       | Hide from UI until unlocked            |
+| `condition`   | expression | Yes      | Unlocks when truthy                    |
+| `progress`    | expression | No       | `0.0–1.0` progress fraction expression |
+| `reward`      | block      | No       | Optional reward on unlock              |
 
 #### `reward` fields
 
-| Field | Type | Description |
-|---|---|---|
-| `title` | `string` | Title awarded to the player |
-| `badge` | `string` | Badge asset path |
-| `bonus` | `Record<string, number>` | Resource bonuses (gold, xp, etc.) |
-| `unlocks` | `string[]` | Additional feature/quest ids unlocked |
+| Field     | Type                     | Description                           |
+| --------- | ------------------------ | ------------------------------------- |
+| `title`   | `string`                 | Title awarded to the player           |
+| `badge`   | `string`                 | Badge asset path                      |
+| `bonus`   | `Record<string, number>` | Resource bonuses (gold, xp, etc.)     |
+| `unlocks` | `string[]`               | Additional feature/quest ids unlocked |
 
 ### Minimal example
 
@@ -765,38 +765,38 @@ talent_tree "TreeName" {
 
 ### Talent tree properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `class` | `string` | No | Class restriction |
-| `rows` | array | Yes | Array of tier rows |
+| Property | Type     | Required | Description        |
+| -------- | -------- | -------- | ------------------ |
+| `class`  | `string` | No       | Class restriction  |
+| `rows`   | array    | Yes      | Array of tier rows |
 
 ### Row fields
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `tier` | `number` | Yes | Tier number (1 = first row) |
-| `nodes` | array | Yes | Talent nodes in this tier |
+| Field   | Type     | Required | Description                 |
+| ------- | -------- | -------- | --------------------------- |
+| `tier`  | `number` | Yes      | Tier number (1 = first row) |
+| `nodes` | array    | Yes      | Talent nodes in this tier   |
 
 ### Node fields
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `id` | `string` | Yes | Unique node identifier |
-| `name` | `string` | Yes | Display name |
-| `description` | `string` | No | Tooltip description |
-| `points` | `number` | Yes | Current invested points |
-| `maxPoints` | `number` | No | Maximum investable points |
-| `requires` | `string[]` | No | Prerequisite node ids |
-| `icon` | `string` | No | Icon asset path |
-| `effect` | block | Yes | Effect definition |
+| Field         | Type       | Required | Description               |
+| ------------- | ---------- | -------- | ------------------------- |
+| `id`          | `string`   | Yes      | Unique node identifier    |
+| `name`        | `string`   | Yes      | Display name              |
+| `description` | `string`   | No       | Tooltip description       |
+| `points`      | `number`   | Yes      | Current invested points   |
+| `maxPoints`   | `number`   | No       | Maximum investable points |
+| `requires`    | `string[]` | No       | Prerequisite node ids     |
+| `icon`        | `string`   | No       | Icon asset path           |
+| `effect`      | block      | Yes      | Effect definition         |
 
 ### Effect fields
 
-| Field | Type | Description |
-|---|---|---|
-| `effectType` | `string` | `spell` `upgrade` `passive` `unlock` |
-| `target` | `string` | Stat name or ability id affected |
-| `bonus` | `Record<string, number>` | Numeric bonuses applied (`{ stat: amount }`) |
+| Field        | Type                     | Description                                  |
+| ------------ | ------------------------ | -------------------------------------------- |
+| `effectType` | `string`                 | `spell` `upgrade` `passive` `unlock`         |
+| `target`     | `string`                 | Stat name or ability id affected             |
+| `bonus`      | `Record<string, number>` | Numeric bonuses applied (`{ stat: amount }`) |
 
 ### Minimal example
 
@@ -866,21 +866,21 @@ loot_table goblin_drops {          // name can be bare identifier or quoted stri
 
 ### Loot table properties
 
-| Property | Type | Description |
-|---|---|---|
-| `entry name { }` | sub-block | A single drop entry (repeatable) |
-| `guaranteed { }` | sub-block | Items that always drop |
-| Any other `key: value` | — | Global modifier properties passed to runtime |
+| Property               | Type      | Description                                  |
+| ---------------------- | --------- | -------------------------------------------- |
+| `entry name { }`       | sub-block | A single drop entry (repeatable)             |
+| `guaranteed { }`       | sub-block | Items that always drop                       |
+| Any other `key: value` | —         | Global modifier properties passed to runtime |
 
 ### Entry fields
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `item` | `string` | No | Item reference id |
-| `weight` | `number` | Yes | Relative drop weight (higher = more common) |
-| `qty` | `string` or `number` | No | Drop quantity; range form `"min..max"` or a fixed number |
-| `rarity` | `string` | No | `common` `uncommon` `rare` `epic` `legendary` |
-| `condition` | `string` | No | Expression string — entry only eligible when truthy |
+| Field       | Type                 | Required | Description                                              |
+| ----------- | -------------------- | -------- | -------------------------------------------------------- |
+| `item`      | `string`             | No       | Item reference id                                        |
+| `weight`    | `number`             | Yes      | Relative drop weight (higher = more common)              |
+| `qty`       | `string` or `number` | No       | Drop quantity; range form `"min..max"` or a fixed number |
+| `rarity`    | `string`             | No       | `common` `uncommon` `rare` `epic` `legendary`            |
+| `condition` | `string`             | No       | Expression string — entry only eligible when truthy      |
 
 ### Minimal example
 
@@ -913,12 +913,12 @@ spawn_point village_entry {        // name can be bare identifier or quoted
 
 ### Spawn point properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `faction` | `string` | No | Faction tag that may use this point (e.g. `"horde"`, `"neutral"`) |
-| `max_count` | `number` | No | Maximum concurrent entities spawned here |
-| `respawn_radius` | `number` | No | Metres of random spread around `position` |
-| `position` | `[x, y, z]` | No | World-space spawn origin |
+| Property         | Type        | Required | Description                                                       |
+| ---------------- | ----------- | -------- | ----------------------------------------------------------------- |
+| `faction`        | `string`    | No       | Faction tag that may use this point (e.g. `"horde"`, `"neutral"`) |
+| `max_count`      | `number`    | No       | Maximum concurrent entities spawned here                          |
+| `respawn_radius` | `number`    | No       | Metres of random spread around `position`                         |
+| `position`       | `[x, y, z]` | No       | World-space spawn origin                                          |
 
 Any other `key: value` pairs are collected in `properties` for runtime use.
 
@@ -963,13 +963,13 @@ game_trigger dungeon_entrance {
 
 ### Game trigger properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `radius` | `number` | Yes | Detection radius in metres |
-| `faction_filter` | `string[]` | No | Only fire for entities in these factions (empty = all) |
-| `position` | `[x, y, z]` | No | World-space center of the trigger |
-| `on_enter { }` | handler | No | Statements executed when an entity enters |
-| `on_exit { }` | handler | No | Statements executed when an entity exits |
+| Property         | Type        | Required | Description                                            |
+| ---------------- | ----------- | -------- | ------------------------------------------------------ |
+| `radius`         | `number`    | Yes      | Detection radius in metres                             |
+| `faction_filter` | `string[]`  | No       | Only fire for entities in these factions (empty = all) |
+| `position`       | `[x, y, z]` | No       | World-space center of the trigger                      |
+| `on_enter { }`   | handler     | No       | Statements executed when an entity enters              |
+| `on_exit { }`    | handler     | No       | Statements executed when an entity exits               |
 
 Any other `key: value` pairs are collected in `properties`.
 
@@ -1011,13 +1011,13 @@ movement_path patrol_route {
 
 ### Movement path properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `mode` | `string` | No | `patrol` `follow` `path` `orbit` `snap` |
-| `loop` | `boolean` | No | Restart from the beginning after the last waypoint |
-| `speed` | `number` | No | Travel speed in metres per second |
-| `waypoints` | `[x, y, z][]` | No | Ordered waypoint array |
-| `easing` | `string` | No | `linear` `ease_in` `ease_out` `ease_in_out` `spring` |
+| Property    | Type          | Required | Description                                          |
+| ----------- | ------------- | -------- | ---------------------------------------------------- |
+| `mode`      | `string`      | No       | `patrol` `follow` `path` `orbit` `snap`              |
+| `loop`      | `boolean`     | No       | Restart from the beginning after the last waypoint   |
+| `speed`     | `number`      | No       | Travel speed in metres per second                    |
+| `waypoints` | `[x, y, z][]` | No       | Ordered waypoint array                               |
+| `easing`    | `string`      | No       | `linear` `ease_in` `ease_out` `ease_in_out` `spring` |
 
 Any other `key: value` pairs are collected in `properties`.
 
@@ -1060,13 +1060,13 @@ reaction_trigger on_player_enter_shrine {
 
 ### Reaction trigger properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `target` | `string` | No | Entity type or id to react to (e.g. `"player"`, `"@npc_guard"`) |
-| `condition` | `string` | No | Guard expression — trigger only fires when truthy |
-| `cooldown` | `number` | No | Seconds before this trigger can fire again |
-| `on_activate { }` | handler | No | Statements executed on activation |
-| `on_deactivate { }` | handler | No | Statements executed on deactivation |
+| Property            | Type     | Required | Description                                                     |
+| ------------------- | -------- | -------- | --------------------------------------------------------------- |
+| `target`            | `string` | No       | Entity type or id to react to (e.g. `"player"`, `"@npc_guard"`) |
+| `condition`         | `string` | No       | Guard expression — trigger only fires when truthy               |
+| `cooldown`          | `number` | No       | Seconds before this trigger can fire again                      |
+| `on_activate { }`   | handler  | No       | Statements executed on activation                               |
+| `on_deactivate { }` | handler  | No       | Statements executed on deactivation                             |
 
 Any other `key: value` pairs are collected in `properties`.
 
@@ -1111,25 +1111,25 @@ world_chunk dockside {
 
 ### World chunk properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `priority` | `string` or `number` | No | Streaming priority (`"high"` `"medium"` `"low"` or numeric) |
-| `biome` | `string` | No | Biome identifier (free-form string) |
-| `lod_distances` | `number[]` | No | LOD switch distances in metres |
-| `npc_roster` | `string[]` | No | NPC names present in this chunk (references to `npc` declarations) |
-| `spawn_points` | `[x,y,z][]` | No | Spawn positions within the chunk |
-| `asset_manifest` | `string[]` | No | Asset paths declared in the chunk |
-| `streaming { }` | sub-block | No | Load/unload radii and memory budget |
+| Property         | Type                 | Required | Description                                                        |
+| ---------------- | -------------------- | -------- | ------------------------------------------------------------------ |
+| `priority`       | `string` or `number` | No       | Streaming priority (`"high"` `"medium"` `"low"` or numeric)        |
+| `biome`          | `string`             | No       | Biome identifier (free-form string)                                |
+| `lod_distances`  | `number[]`           | No       | LOD switch distances in metres                                     |
+| `npc_roster`     | `string[]`           | No       | NPC names present in this chunk (references to `npc` declarations) |
+| `spawn_points`   | `[x,y,z][]`          | No       | Spawn positions within the chunk                                   |
+| `asset_manifest` | `string[]`           | No       | Asset paths declared in the chunk                                  |
+| `streaming { }`  | sub-block            | No       | Load/unload radii and memory budget                                |
 
 Any other `key: value` pairs are collected in `properties`.
 
 #### `streaming` sub-block fields
 
-| Field | Type | Description |
-|---|---|---|
-| `load_radius` | `number` | Metres from camera at which the chunk loads |
-| `unload_radius` | `number` | Metres at which the chunk unloads |
-| `budget_kb` | `number` | Maximum memory budget in KB |
+| Field           | Type     | Description                                 |
+| --------------- | -------- | ------------------------------------------- |
+| `load_radius`   | `number` | Metres from camera at which the chunk loads |
+| `unload_radius` | `number` | Metres at which the chunk unloads           |
+| `budget_kb`     | `number` | Maximum memory budget in KB                 |
 
 ### Minimal example
 
@@ -1177,12 +1177,12 @@ world_layer pre_awakening {
 
 ### World layer properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `requires_quest` | `string` | One of the two | Layer visible only AFTER this quest is completed |
-| `forbids_quest` | `string` | One of the two | Layer visible only BEFORE this quest is completed |
-| `npcs` | `string[]` | No | NPC names gated to this layer |
-| `objects` | `string[]` | No | Object names gated to this layer |
+| Property         | Type       | Required       | Description                                       |
+| ---------------- | ---------- | -------------- | ------------------------------------------------- |
+| `requires_quest` | `string`   | One of the two | Layer visible only AFTER this quest is completed  |
+| `forbids_quest`  | `string`   | One of the two | Layer visible only BEFORE this quest is completed |
+| `npcs`           | `string[]` | No             | NPC names gated to this layer                     |
+| `objects`        | `string[]` | No             | Object names gated to this layer                  |
 
 Any other `key: value` pairs are collected in `properties`.
 
@@ -1225,14 +1225,14 @@ dungeon_instance shadowfen_keep {
 
 ### Dungeon instance properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `max_instances` | `number` | Yes (default `1`) | Pool cap — max concurrent live instances |
-| `party_size` | `number` | Yes (default `1`) | Players per instance |
-| `reset_timer` | `number` | Yes (default `0`) | Seconds before an empty instance is released |
-| `completion_quest` | `string` | No | Quest id set when the instance is cleared |
-| `npcs` | `string[]` | No | NPC names that populate the instance |
-| `objects` | `string[]` | No | Object names that populate the instance |
+| Property           | Type       | Required          | Description                                  |
+| ------------------ | ---------- | ----------------- | -------------------------------------------- |
+| `max_instances`    | `number`   | Yes (default `1`) | Pool cap — max concurrent live instances     |
+| `party_size`       | `number`   | Yes (default `1`) | Players per instance                         |
+| `reset_timer`      | `number`   | Yes (default `0`) | Seconds before an empty instance is released |
+| `completion_quest` | `string`   | No                | Quest id set when the instance is cleared    |
+| `npcs`             | `string[]` | No                | NPC names that populate the instance         |
+| `objects`          | `string[]` | No                | Object names that populate the instance      |
 
 Any other `key: value` pairs are collected in `properties`.
 
@@ -1282,13 +1282,13 @@ world_shard south_province {
 
 ### World shard properties
 
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `min` | `[x, y, z]` | Yes | AABB minimum corner |
-| `max` | `[x, y, z]` | Yes | AABB maximum corner |
-| `neighbors` | `string[]` | Yes | Adjacent shard names a player may cross into (compile-validated) |
-| `max_players` | `number` | No (default `100`) | Player cap for this shard's room |
-| `handoff` | `string` | No (default `"seamless"`) | `"seamless"` or `"loading"` |
+| Property      | Type        | Required                  | Description                                                      |
+| ------------- | ----------- | ------------------------- | ---------------------------------------------------------------- |
+| `min`         | `[x, y, z]` | Yes                       | AABB minimum corner                                              |
+| `max`         | `[x, y, z]` | Yes                       | AABB maximum corner                                              |
+| `neighbors`   | `string[]`  | Yes                       | Adjacent shard names a player may cross into (compile-validated) |
+| `max_players` | `number`    | No (default `100`)        | Player cap for this shard's room                                 |
+| `handoff`     | `string`    | No (default `"seamless"`) | `"seamless"` or `"loading"`                                      |
 
 Any other `key: value` pairs are collected in `properties`.
 

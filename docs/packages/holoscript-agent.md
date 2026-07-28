@@ -13,16 +13,16 @@ npm install -g @holoscript/holoscript-agent
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `run` | Start the heartbeat and claim/execute daemon. |
-| `tick` | Run one claim/execute cycle and exit. |
-| `whoami` | Verify the configured identity tuple. |
-| `supervise --config=<agents.json>` | Run multiple configured agents. |
-| `status --config=<path>` | Parse and validate a supervise config. |
-| `provision --handle=<name> [--execute]` | Provision an x402 seat, dry-run by default. |
-| `ablate --spec=<path>` | Run a cross-provider ablation matrix. |
-| `audit` | Query the per-agent audit log. |
+| Command                                 | Purpose                                       |
+| --------------------------------------- | --------------------------------------------- |
+| `run`                                   | Start the heartbeat and claim/execute daemon. |
+| `tick`                                  | Run one claim/execute cycle and exit.         |
+| `whoami`                                | Verify the configured identity tuple.         |
+| `supervise --config=<agents.json>`      | Run multiple configured agents.               |
+| `status --config=<path>`                | Parse and validate a supervise config.        |
+| `provision --handle=<name> [--execute]` | Provision an x402 seat, dry-run by default.   |
+| `ablate --spec=<path>`                  | Run a cross-provider ablation matrix.         |
+| `audit`                                 | Query the per-agent audit log.                |
 
 ## Provider Strategy
 

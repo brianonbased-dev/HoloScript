@@ -3,9 +3,9 @@ doc_tier: research
 research_phase: base
 status: active
 last_verified: 2026-06-21
-canonical_for: "brittney-provider-native-tool-use"
-supersedes: ""
-extends: ""
+canonical_for: 'brittney-provider-native-tool-use'
+supersedes: ''
+extends: ''
 ---
 
 ### Machine summary (uAA2 COMPRESS)

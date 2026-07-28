@@ -7,13 +7,13 @@ The generated VitePress/GitHub Pages docs site is retired. Markdown under
 frontend. Keep documentation validation in the root repo checks and deploy
 public web surfaces through their owning services.
 
-| Surface | Owner | Deployment Path |
-| --- | --- | --- |
-| HoloScript landing page | `services/holoscript-net` | Railway Docker build |
-| Studio | `packages/studio` | Railway service / package-owned deployment |
-| Marketplace web/API | `packages/marketplace-*` | Railway service / package-owned deployment |
-| Markdown docs | `docs/` | Repository source, not a generated site |
-| TypeDoc API output | `pnpm docs:api` | Generated into `docs/api/` when refreshed |
+| Surface                 | Owner                     | Deployment Path                            |
+| ----------------------- | ------------------------- | ------------------------------------------ |
+| HoloScript landing page | `services/holoscript-net` | Railway Docker build                       |
+| Studio                  | `packages/studio`         | Railway service / package-owned deployment |
+| Marketplace web/API     | `packages/marketplace-*`  | Railway service / package-owned deployment |
+| Markdown docs           | `docs/`                   | Repository source, not a generated site    |
+| TypeDoc API output      | `pnpm docs:api`           | Generated into `docs/api/` when refreshed  |
 
 ## Documentation Validation
 

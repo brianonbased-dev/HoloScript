@@ -21,21 +21,22 @@ The disciplined move is therefore **not "add verticals"** but **"build the three
 
 ## Top 5 picks (start here, in dependency order)
 
-1. **ContractClause** — typed `preconditions/invariants/postconditions` on `ContractConfig`, carried into the receipt. *The keystone* (4 of 6 dimensions propose it). STRICT evaluator that refuses any expression not type-checkable against the declared schema (kills `inv: true` poison). `verified` becomes "zero error-severity clause violations". **Nothing else ships before it** — every other proof feature fills its slots. Effort **M**. First step: add the shape + `clauseViolations` to provenance; prove end-to-end on a QM convergence postcondition + a neuroscience firing-rate per-step invariant.
+1. **ContractClause** — typed `preconditions/invariants/postconditions` on `ContractConfig`, carried into the receipt. _The keystone_ (4 of 6 dimensions propose it). STRICT evaluator that refuses any expression not type-checkable against the declared schema (kills `inv: true` poison). `verified` becomes "zero error-severity clause violations". **Nothing else ships before it** — every other proof feature fills its slots. Effort **M**. First step: add the shape + `clauseViolations` to provenance; prove end-to-end on a QM convergence postcondition + a neuroscience firing-rate per-step invariant.
 
-2. **Plugin dead-wire activation sweep (manifest-gated)** — ~73% of plugins (W.705) ship a real solver the runtime **never calls** (`registerPluginTraits` never wired) → a `.holo` scene using their traits computes nothing and carries zero proof. Scaffold `runtime.ts` per plugin from its `*solver.ts` + TRAITS (medical/energy-grid pattern), staged behind a `plugin.manifest.json` `autoRegister:true`, with a CI gate. Turns proof-carrying verticals from ~15 → potentially 56. Effort **L**. *Land the manifest schema FIRST or it produces 41 more bespoke patterns.*
+2. **Plugin dead-wire activation sweep (manifest-gated)** — ~73% of plugins (W.705) ship a real solver the runtime **never calls** (`registerPluginTraits` never wired) → a `.holo` scene using their traits computes nothing and carries zero proof. Scaffold `runtime.ts` per plugin from its `*solver.ts` + TRAITS (medical/energy-grid pattern), staged behind a `plugin.manifest.json` `autoRegister:true`, with a CI gate. Turns proof-carrying verticals from ~15 → potentially 56. Effort **L**. _Land the manifest schema FIRST or it produces 41 more bespoke patterns._
 
 3. **ParameterEnvelope** — first-class valid-parameter domain that auto-re-discharges on remix ("prove the space, not the instance"; doctrine §5). Generic `{param,min,max,allowed,unit}` records (NEVER domain names — retires the `UNIT_RANGES` hardcode), `isInEnvelope()`, `onViolation: warn|error|redischarge`. Within-envelope remix inherits the proof; out-of-envelope re-discharges or flags honestly. Effort **M**.
 
 4. **PluginKeywordRegistry** — runtime-injectable `.hs` verbs + AST node-types with a **family-conformance gate**. Converts today's hardcoded keyword dispatch (locomotion `move/turn`, cognitive `llm_call/recall`) into an append-only table; a new verb (`actuate`, `dose`, `measure_qubits`, `emit_gcode`) must map to an existing node-type FAMILY (bounds the table, prevents 53 micro-DSLs). The one seam that lets ANY vertical extend the language without forking core. Effort **M**.
 
-5. **hash-policy two-tier module** — `fnv1a32` (local) / `sha256` (adversarial: HoloMesh multi-agent + on-chain anchor + QEC). Four hash variants drift today; a 64-bit receipt is trivially forgeable, and *a forgeable receipt is a forgeable proof*. Smallest effort, prerequisite-class importance. Effort **S**.
+5. **hash-policy two-tier module** — `fnv1a32` (local) / `sha256` (adversarial: HoloMesh multi-agent + on-chain anchor + QEC). Four hash variants drift today; a 64-bit receipt is trivially forgeable, and _a forgeable receipt is a forgeable proof_. Smallest effort, prerequisite-class importance. Effort **S**.
 
 ---
 
 ## Horizons
 
 ### H1 — now: forge the keystone proof machinery; stop the substrate from lying
+
 - **ContractClause** (above) — the gate everything depends on.
 - **Wire `onDetach`/`onEvent`** in core dispatch (declared at `TraitTypes.ts:20-22`, never called) — behind a characterization-flag (first-ever `onDetach` exercises untested cleanup). Prerequisite for postcondition discharge (happens at detach). Effort **S**.
 - **hash-policy two-tier** (above).
@@ -44,6 +45,7 @@ The disciplined move is therefore **not "add verticals"** but **"build the three
 - **DimensionalTypeSystem** — SI-unit refinement types (`Float<kg>`, `Float<N>`, `Float<N/m>`) as a 6th CompilerSafetyPass; catches kg-vs-g sim-to-real failures at parse time across all 53 plugins, zero plugin code change. Generalizes the proven `@freshnessBound` checker. Lean4 mechanization deferred to paper-gate. Effort **M**.
 
 ### H2 — next: open the language to verticals WITHOUT forking core
+
 - **PluginKeywordRegistry + node-type registration** (above).
 - **Plugin contract discipline bundle** (one release): declarative `PluginSolverContract` (= ContractClause at plugin scope) + `plugin.manifest.json` + `SolverReceiptSchema` registry (closes freeform-resultSummary) + `StdlibPolicy` plugin-scope gate + `wrapSolverInContract` (plugin solvers inherit geometry-hash/fixed-dt/replay/CAEL). Effort **L**.
 - **ProofCompositionLaw / ComposedReceipt** — Paper 29 algebraic-trust as runtime composition (violations union, accepted-iff-all, cross-scale projection, chained payloadHash). Domain-NEUTRAL (no "medical wins" in core). The third north-star pillar ("composes"); QM→MD→FEM gets a verified bridge. Default `paper29Satisfied:FALSE` until mechanized; label "composition-evidence" not "proof". Effort **L**.
@@ -51,6 +53,7 @@ The disciplined move is therefore **not "add verticals"** but **"build the three
 - **ControlLoopTrait** — `@control_loop(pid|mpc)` as the SSOT for control with a stability/settling receipt.
 
 ### H3 — frontier: parametric proof families (sequence LAST — deepest looks-right traps)
+
 - **Parametric goals + `@assembly` mating constraints** — `goal name(params){when;achieve}` → a universally-quantified GOAPGoal (a dependent-type behavioral theorem over all entities/tolerances); assembly mating → USD PhysicsJoint + constraint-satisfaction receipt valid at every config in the sweep. Ship only after H1 ContractClause + H2 ActionContract validated.
 - **LatentStateWorldModel** — `@worldModel` V-JEPA-2-style fast planner that is **explicitly SKIN**; the only substrate part is a HARD `divergence(latent, caelTrace) > maxDivergence` stop forcing fallback to full substrate sim. Highest skin-contamination risk; build only with the unconditional gate, never a paper substrate claim. Lowest priority.
 
@@ -59,6 +62,7 @@ The disciplined move is therefore **not "add verticals"** but **"build the three
 ## Plugin strategy
 
 A vertical extends HoloScript by shipping **proof-carrying DATA into typed core slots, never by forking core code**:
+
 1. **Core-sovereign owns ONLY domain-neutral machinery** — ContractClause, ParameterEnvelope, composition algebra, keyword/node-type/reaction-category registries, hash policy, dimensional checker, ContractedSimulation wrapper. **No domain noun** (retire `UNIT_RANGES`, the `EffectInference @goal_oriented→[]` gap).
 2. **Every plugin ships** `plugin.manifest.json` + a declarative `PluginSolverContract` (pre/inv/acceptance as DATA, not a hand-written `verifyXxxAcceptance`) + a deterministic solver + a registered receipt schema — the slots core reads to reason about a plugin **without importing its TypeScript** (machine-introspectable by LSP / marketplace / Brittney).
 3. **Domain vocabulary enters the LANGUAGE only through registry registration** (keyword verbs gated to a node-type family, ReactionCategory entries, InteractionVerb nouns) — grammar stays singular, vocabulary grows as data.

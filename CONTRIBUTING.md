@@ -190,10 +190,10 @@ Pre-commit hooks enforce conventional commits. Format: `type(scope): description
 
 HoloScript has three source surfaces — use the one whose current parser/runtime owns the required capability. These are capability envelopes within one general-purpose language, not separate domain DSLs:
 
-| Format    | Purpose                                       | Example              |
-| --------- | --------------------------------------------- | -------------------- |
-| `.holo`   | Whole-system compositions, targets, environments | storefront.holo      |
-| `.hsplus` | Typed behaviors, agents, state machines, effects | planner-agent.hsplus |
+| Format    | Purpose                                                              | Example              |
+| --------- | -------------------------------------------------------------------- | -------------------- |
+| `.holo`   | Whole-system compositions, targets, environments                     | storefront.holo      |
+| `.hsplus` | Typed behaviors, agents, state machines, effects                     | planner-agent.hsplus |
 | `.hs`     | Logic and process programs; pipelines are the strongest current lane | inventory-sync.hs    |
 
 Spatial keywords (`environment`, `object`, `template`) produce a SyntaxError in `.hs` pipeline files. Use `.holo` for scenes.

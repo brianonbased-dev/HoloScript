@@ -14,11 +14,7 @@ npm install @holoscript/mesh
 ## Use
 
 ```ts
-import {
-  AgentMessaging,
-  CollaborationSession,
-  NetEntitySync,
-} from '@holoscript/mesh';
+import { AgentMessaging, CollaborationSession, NetEntitySync } from '@holoscript/mesh';
 ```
 
 ## Package Surface
@@ -27,15 +23,15 @@ The root export is the canonical package surface. Subpath exports are available
 for package-internal module boundaries, but consumers should prefer root imports
 unless they are deliberately depending on a specific subsystem.
 
-| Subsystem       | Purpose                                              |
-| --------------- | ---------------------------------------------------- |
-| `network`       | Shared network primitives and entity sync            |
-| `messaging`     | Agent channels, message schemas, and channel manager |
-| `collaboration` | CRDT-backed document/session collaboration           |
-| `consensus`     | Consensus helpers for coordinated state              |
-| `social`        | Social graph and coordination utilities              |
-| `sovereign`     | Identity and state survivability helpers             |
-| `multiplayer`   | Shared multiplayer runtime primitives                |
+| Subsystem       | Purpose                                               |
+| --------------- | ----------------------------------------------------- |
+| `network`       | Shared network primitives and entity sync             |
+| `messaging`     | Agent channels, message schemas, and channel manager  |
+| `collaboration` | CRDT-backed document/session collaboration            |
+| `consensus`     | Consensus helpers for coordinated state               |
+| `social`        | Social graph and coordination utilities               |
+| `sovereign`     | Identity and state survivability helpers              |
+| `multiplayer`   | Shared multiplayer runtime primitives                 |
 | `sync`          | High-frequency sync, quantization, and jitter buffers |
 
 ## Strategy Role

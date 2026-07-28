@@ -8,16 +8,16 @@
 
 ### Active Legacy-Key Callers (x-mcp-api-key + static HOLOSCRIPT_API_KEY)
 
-| Caller | File | Header |
-|--------|------|--------|
-| mcpAuthHeaders() | `packages/config/src/auth.ts:83` | `x-mcp-api-key` + `x-holoscript-api-key` |
-| Aibrittney MCP client | `packages/aibrittney/src/mcp-client.ts:65` | `x-mcp-api-key` |
-| Oracle tools | `packages/absorb-service/src/mcp/oracle-tools.ts:119` | `x-mcp-api-key` |
-| Studio-ui-graph publish | `packages/studio-ui-graph/src/publish.ts:120` | `x-mcp-api-key` |
-| Claude MCP proxy | `scripts/claude-holoscript-mcp-proxy.mjs:63` | `x-mcp-api-key` |
-| Codex MCP proxy | `scripts/codex-mcp-proxy.mjs:16` | `x-mcp-api-key` + `Authorization: Bearer <key>` |
-| Grok MCP proxy | `scripts/grok-mcp-proxy.mjs:31` | `x-mcp-api-key` + `Authorization: Bearer <key>` |
-| connector-github CI templates | `packages/connector-github/templates/...` | `x-mcp-api-key` |
+| Caller                        | File                                                  | Header                                          |
+| ----------------------------- | ----------------------------------------------------- | ----------------------------------------------- |
+| mcpAuthHeaders()              | `packages/config/src/auth.ts:83`                      | `x-mcp-api-key` + `x-holoscript-api-key`        |
+| Aibrittney MCP client         | `packages/aibrittney/src/mcp-client.ts:65`            | `x-mcp-api-key`                                 |
+| Oracle tools                  | `packages/absorb-service/src/mcp/oracle-tools.ts:119` | `x-mcp-api-key`                                 |
+| Studio-ui-graph publish       | `packages/studio-ui-graph/src/publish.ts:120`         | `x-mcp-api-key`                                 |
+| Claude MCP proxy              | `scripts/claude-holoscript-mcp-proxy.mjs:63`          | `x-mcp-api-key`                                 |
+| Codex MCP proxy               | `scripts/codex-mcp-proxy.mjs:16`                      | `x-mcp-api-key` + `Authorization: Bearer <key>` |
+| Grok MCP proxy                | `scripts/grok-mcp-proxy.mjs:31`                       | `x-mcp-api-key` + `Authorization: Bearer <key>` |
+| connector-github CI templates | `packages/connector-github/templates/...`             | `x-mcp-api-key`                                 |
 
 ### Why strict would break these
 

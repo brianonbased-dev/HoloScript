@@ -42,27 +42,27 @@ routine synthesize_wisdom(input_stream) {
 }
 ```
 
-| Primitive | Meaning | Code status |
-|-----------|---------|-------------|
-| `routine … { phase X { … } }` | Phase-structured program; phases are the ∞-protocol lifecycle | ⚠️ Intent-DSL form exists in `packages/uaal/compiler.ts`; **not** parsed from `.hs`/`.hsplus` |
-| `thinking { … }` | Block requiring LLM synthesis (not deterministic logic) | ⚠️ concept lives as `core/traits/pillar/CognitiveVMTrait.ts`; cognitive verbs (`recall`/`rag_query`/`plan`) execute on edge per W.752 |
-| `mirror` | Atomic persistence to the sovereign root | ⚠️ maps to memory-store writes; not a grammar keyword in the WASM parser |
-| `wisdom "query"` | Semantic vector search over collective knowledge | ✅ exists as knowledge-store/RAG (`rag_query`), not as a parsed keyword |
-| `reflect { … }` / `patch` | Self-inspection / self-repair (gated ≥0.90 alignment) | ❌ aspirational — no gate wired |
+| Primitive                     | Meaning                                                       | Code status                                                                                                                           |
+| ----------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `routine … { phase X { … } }` | Phase-structured program; phases are the ∞-protocol lifecycle | ⚠️ Intent-DSL form exists in `packages/uaal/compiler.ts`; **not** parsed from `.hs`/`.hsplus`                                         |
+| `thinking { … }`              | Block requiring LLM synthesis (not deterministic logic)       | ⚠️ concept lives as `core/traits/pillar/CognitiveVMTrait.ts`; cognitive verbs (`recall`/`rag_query`/`plan`) execute on edge per W.752 |
+| `mirror`                      | Atomic persistence to the sovereign root                      | ⚠️ maps to memory-store writes; not a grammar keyword in the WASM parser                                                              |
+| `wisdom "query"`              | Semantic vector search over collective knowledge              | ✅ exists as knowledge-store/RAG (`rag_query`), not as a parsed keyword                                                               |
+| `reflect { … }` / `patch`     | Self-inspection / self-repair (gated ≥0.90 alignment)         | ❌ aspirational — no gate wired                                                                                                       |
 
 ## 3. Cognitive instruction set (uAAL VM — `packages/uaal/opcodes.ts`)
 
 **Real ISA core** (implementable, maps to a stack VM):
 
-| Family | OpCodes |
-|--------|---------|
-| Stack | `PUSH` `POP` `PEEK` |
-| Cognitive | `INTAKE` `REFLECT` `COMPRESS` |
-| Execution | `EXEC` (tool/service invoke) |
-| Control flow | `JUMP` `JUMP_IF` `HALT` |
-| Integrity | `OP_ERROR` `OP_ASSERT` |
-| Optimization | `OP_FUSE_REFLECT_COMPRESS` `OP_PRUNE_NOOP` `OP_LINEAR_JIT` |
-| Real-world (bounded) | `OP_INVOKE_LLM` `OP_SPAWN_AGENT` `OP_SHARE_WISDOM` |
+| Family               | OpCodes                                                    |
+| -------------------- | ---------------------------------------------------------- |
+| Stack                | `PUSH` `POP` `PEEK`                                        |
+| Cognitive            | `INTAKE` `REFLECT` `COMPRESS`                              |
+| Execution            | `EXEC` (tool/service invoke)                               |
+| Control flow         | `JUMP` `JUMP_IF` `HALT`                                    |
+| Integrity            | `OP_ERROR` `OP_ASSERT`                                     |
+| Optimization         | `OP_FUSE_REFLECT_COMPRESS` `OP_PRUNE_NOOP` `OP_LINEAR_JIT` |
+| Real-world (bounded) | `OP_INVOKE_LLM` `OP_SPAWN_AGENT` `OP_SHARE_WISDOM`         |
 
 Bytecode packet (`UAALBytecode`): `{ version, instructions: UAALInstruction[] }`;
 `UAALInstruction = { opcode, operands? }`; operand type =
@@ -86,8 +86,8 @@ opcodes, 90 fps tick. Instruction families: **Entity** (`SPAWN`/`DESPAWN`/`CLONE
 Transform/Geometry/Material/RigidBody/Light. World state serializes to a `SceneSnapshot` (the
 hand-off seam to the cognitive VM).
 
-| Pipeline | Code status |
-|----------|-------------|
+| Pipeline                                                                                         | Code status                                                          |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
 | `.holo → parseHolo → HolobCompiler → HoloBytecode → HoloVM.load() → tick() → NativeHoloRenderer` | ✅ **wired + e2e-tested to pixels** (`packages/holo-vm`, 2026-06-05) |
 
 ## 5. The intended unified pipeline (the architecture to complete)
@@ -113,7 +113,7 @@ compile path. Closing those two seams is the language-build work — see the gap
 
 ---
 
-*Reclaimed from: `~/.gemini/antigravity/knowledge/uaa2_language_evolution_and_uaal/artifacts/`*
-*Code references (verified 2026-06-22): `packages/uaal/{compiler,vm,opcodes}.ts`,
+_Reclaimed from: `~/.gemini/antigravity/knowledge/uaa2_language_evolution_and_uaal/artifacts/`_
+_Code references (verified 2026-06-22): `packages/uaal/{compiler,vm,opcodes}.ts`,
 `packages/holo-vm/{executor,bytecode,opcodes}.ts`, `core/compiler/HolobCompiler.ts`,
-`core/traits/pillar/CognitiveVMTrait.ts`.*
+`core/traits/pillar/CognitiveVMTrait.ts`._

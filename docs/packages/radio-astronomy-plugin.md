@@ -24,16 +24,16 @@ import {
 
 ## Package Surface
 
-| Surface                | Purpose                                      |
-| ---------------------- | -------------------------------------------- |
-| `RADIO_ASTRONOMY_TRAITS` | Radio astronomy trait vocabulary           |
-| `DOMAIN_MANIFEST`      | Studio and schema-mapper capability metadata |
-| `parseFITS` / `buildFITS` | FITS parsing and serialization helpers    |
-| `fitsToGrid3D`         | Converts FITS data into spatial grid data    |
-| `extractChannel`       | Extracts spectral channels from FITS data    |
-| `SpectralCubeViewer`   | Spectral cube visualization component        |
-| `FITSViewerPanel`      | FITS viewer panel component                  |
-| `PythonAstropyBridge`  | Python Astropy calculation bridge            |
+| Surface                   | Purpose                                      |
+| ------------------------- | -------------------------------------------- |
+| `RADIO_ASTRONOMY_TRAITS`  | Radio astronomy trait vocabulary             |
+| `DOMAIN_MANIFEST`         | Studio and schema-mapper capability metadata |
+| `parseFITS` / `buildFITS` | FITS parsing and serialization helpers       |
+| `fitsToGrid3D`            | Converts FITS data into spatial grid data    |
+| `extractChannel`          | Extracts spectral channels from FITS data    |
+| `SpectralCubeViewer`      | Spectral cube visualization component        |
+| `FITSViewerPanel`         | FITS viewer panel component                  |
+| `PythonAstropyBridge`     | Python Astropy calculation bridge            |
 
 ## Packaging Note
 

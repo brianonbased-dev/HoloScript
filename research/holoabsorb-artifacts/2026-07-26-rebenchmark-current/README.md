@@ -27,11 +27,11 @@ not set.
 Corpus: 152 files, 7,218 symbols. Query set: 10 hand-authored queries with all
 10 gold files present.
 
-| Retrieval path | HoloEmbed P@5 | Structural P@5 | HoloEmbed MRR | Structural MRR | MRR delta |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Semantic only | 0.140 | 0.000 | 0.484 | 0.038 | +0.446 |
-| GraphRAG | 0.040 | 0.000 | 0.116 | 0.010 | +0.106 |
-| Keyword-only control | 0.180 | 0.180 | 0.763 | 0.763 | 0.000 |
+| Retrieval path       | HoloEmbed P@5 | Structural P@5 | HoloEmbed MRR | Structural MRR | MRR delta |
+| -------------------- | ------------: | -------------: | ------------: | -------------: | --------: |
+| Semantic only        |         0.140 |          0.000 |         0.484 |          0.038 |    +0.446 |
+| GraphRAG             |         0.040 |          0.000 |         0.116 |          0.010 |    +0.106 |
+| Keyword-only control |         0.180 |          0.180 |         0.763 |          0.763 |     0.000 |
 
 Interpretation:
 
@@ -47,14 +47,14 @@ Interpretation:
 
 Timing receipt (100 bounded synthetic trials):
 
-| Stage | Median | p95 |
-| --- | ---: | ---: |
-| Keyword | 0.105 ms | 0.271 ms |
-| Graph traversal | 0.006 ms | 0.017 ms |
+| Stage                |   Median |      p95 |
+| -------------------- | -------: | -------: |
+| Keyword              | 0.105 ms | 0.271 ms |
+| Graph traversal      | 0.006 ms | 0.017 ms |
 | Embedding generation | 0.224 ms | 0.431 ms |
-| Vector search | 0.106 ms | 0.293 ms |
-| Envelope build | 0.007 ms | 0.020 ms |
-| End to end | 0.460 ms | 1.111 ms |
+| Vector search        | 0.106 ms | 0.293 ms |
+| Envelope build       | 0.007 ms | 0.020 ms |
+| End to end           | 0.460 ms | 1.111 ms |
 
 These are synthetic CI-reference timings, not GPU-kernel or Jetson throughput
 claims.
@@ -63,11 +63,11 @@ claims.
 
 HoloGraph EventEdge results:
 
-| Files | Symbols | Events | HoloGraph query | Embedding query | HoloGraph recall | Embedding recall@10 | Speedup |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 50 | 200 | 10 | 0.170 µs | 325.0 µs | 1.000 | 0.050 | 1,912.0× |
-| 500 | 2,000 | 50 | 0.115 µs | 2,081.7 µs | 1.000 | 0.013 | 18,101.5× |
-| 2,000 | 8,000 | 100 | 0.085 µs | 10,316.2 µs | 1.000 | 0.000 | 121,367.6× |
+| Files | Symbols | Events | HoloGraph query | Embedding query | HoloGraph recall | Embedding recall@10 |    Speedup |
+| ----: | ------: | -----: | --------------: | --------------: | ---------------: | ------------------: | ---------: |
+|    50 |     200 |     10 |        0.170 µs |        325.0 µs |            1.000 |               0.050 |   1,912.0× |
+|   500 |   2,000 |     50 |        0.115 µs |      2,081.7 µs |            1.000 |               0.013 |  18,101.5× |
+| 2,000 |   8,000 |    100 |        0.085 µs |     10,316.2 µs |            1.000 |               0.000 | 121,367.6× |
 
 Name-derived NL→code recall@10 on the 50-symbol synthetic corpus:
 

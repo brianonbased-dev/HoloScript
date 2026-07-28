@@ -46,24 +46,24 @@
 
 ## Our Differentiators (vs Babylon)
 
-| Differentiator                              | Why it matters                                                            | Proof                                                             |
-| ------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Compile once, render anywhere**           | One `.hs` file → Three.js + R3F + Unity + Unreal + USD + glTF             | `packages/core/src/compilers/`; verify target count via `docs/NUMBERS.md` |
-| **First-party MCP with live tool inventory** | Agent-native is architecture, not a plugin                                | mcp.holoscript.net `/health`                                      |
-| **Semantic IR, not a runtime**              | Agents reason over `.holo` AST; Babylon agents reason over JS scene graph | Executable Semantics whitepaper                                   |
-| **Contracted simulation (`<2%` overhead)**  | Trust by Construction — FEA with hash-verified replay                     | TVCG paper (submitted 2026-04-12)                                 |
-| **Browser WebGPU for simulation**           | FEA in the browser; Babylon can't do this                                 | paper-benchmarks.test.ts                                          |
-| **Provenance semirings (Tropical algebra)** | Algebraic trust composition nobody else has                               | W.GOLD.037 (semiring strategies; tropical is one resolution path) |
+| Differentiator                               | Why it matters                                                            | Proof                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Compile once, render anywhere**            | One `.hs` file → Three.js + R3F + Unity + Unreal + USD + glTF             | `packages/core/src/compilers/`; verify target count via `docs/NUMBERS.md` |
+| **First-party MCP with live tool inventory** | Agent-native is architecture, not a plugin                                | mcp.holoscript.net `/health`                                              |
+| **Semantic IR, not a runtime**               | Agents reason over `.holo` AST; Babylon agents reason over JS scene graph | Executable Semantics whitepaper                                           |
+| **Contracted simulation (`<2%` overhead)**   | Trust by Construction — FEA with hash-verified replay                     | TVCG paper (submitted 2026-04-12)                                         |
+| **Browser WebGPU for simulation**            | FEA in the browser; Babylon can't do this                                 | paper-benchmarks.test.ts                                                  |
+| **Provenance semirings (Tropical algebra)**  | Algebraic trust composition nobody else has                               | W.GOLD.037 (semiring strategies; tropical is one resolution path)         |
 
 ## Objection Handling
 
-| Prospect says...                                   | Respond with...                                                                                                                                                                                   |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prospect says...                                   | Respond with...                                                                                                                                                                                                                                                          |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | "Babylon has an MCP server too"                    | "Community plugin vs core capability. Ours exposes a live first-party MCP tool inventory; verify the current count at `mcp.holoscript.net/health`. Their MCP is a scene inspector; ours is a platform — Absorb + HoloMesh + contracted simulation all exposed as tools." |
-| "Babylon has a better inspector"                   | "True today. But you're comparing a 3D scene inspector to a language. `.holo` compiles to Babylon too — use their inspector and our IR if you want."                                              |
-| "Microsoft backs Babylon — that's enterprise-safe" | "Backing doesn't help if you need simulation, provenance, or cross-engine output. Babylon is a destination. HoloScript is a source that reaches every destination including Babylon."             |
-| "Babylon 9.0 has OpenPBR"                          | "Great. Our OpenPBR compile target consumes the same standard. This is not a moat — it's a shared baseline."                                                                                      |
-| "Babylon is simpler to learn"                      | "For one scene on one engine, yes. For one scene on five engines, or a scene plus a simulation plus agent tooling, HoloScript is orders of magnitude simpler."                                    |
+| "Babylon has a better inspector"                   | "True today. But you're comparing a 3D scene inspector to a language. `.holo` compiles to Babylon too — use their inspector and our IR if you want."                                                                                                                     |
+| "Microsoft backs Babylon — that's enterprise-safe" | "Backing doesn't help if you need simulation, provenance, or cross-engine output. Babylon is a destination. HoloScript is a source that reaches every destination including Babylon."                                                                                    |
+| "Babylon 9.0 has OpenPBR"                          | "Great. Our OpenPBR compile target consumes the same standard. This is not a moat — it's a shared baseline."                                                                                                                                                             |
+| "Babylon is simpler to learn"                      | "For one scene on one engine, yes. For one scene on five engines, or a scene plus a simulation plus agent tooling, HoloScript is orders of magnitude simpler."                                                                                                           |
 
 ## Landmines to Set
 

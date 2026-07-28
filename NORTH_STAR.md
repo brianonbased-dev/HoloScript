@@ -28,24 +28,24 @@ owns the underlying systems layer. Canonical wording and acceptance gates live i
 
 ## ∞ The Thesis (founder-ratified 2026-06-15) — read before any architectural call
 
-**HoloScript exists so anyone, using any AI, can produce a simulation that *is* a theorem about
+**HoloScript exists so anyone, using any AI, can produce a simulation that _is_ a theorem about
 reality — the simulation's execution constitutes the proof of its own correctness — and that proof
 is universal and remixable because it is parametric and composes.**
 
-Not "here is a simulation, it kinda looks right." **The math is right, and the simulation *is* that
+Not "here is a simulation, it kinda looks right." **The math is right, and the simulation _is_ that
 math, embodied.** (Proofs-as-programs, lifted into embodiment.)
 
-- **The axis everything is judged on: *looks-right* vs *is-right*.** Optimizing for appearance is the
+- **The axis everything is judged on: _looks-right_ vs _is-right_.** Optimizing for appearance is the
   deepest poison (same gravity well as the `.tsx` escape hatch). "Looks right" is a collapsing
   commodity; "is provably right" is the entire moat.
-- **Substrate vs skin — never confuse them.** *Substrate (substance):* SimulationContract / CAEL /
+- **Substrate vs skin — never confuse them.** _Substrate (substance):_ SimulationContract / CAEL /
   Lean mechanization / sim-target compilers (USD-physics, URDF/SDF, quantum, SCM, NIR) carry the
-  proof. *Skin (distribution):* native render, asset pipeline, splats, the HoloLand MMO — how a
-  human *inhabits* the proof; carries zero proof guarantee.
+  proof. _Skin (distribution):_ native render, asset pipeline, splats, the HoloLand MMO — how a
+  human _inhabits_ the proof; carries zero proof guarantee.
 - **Provable frontier (honesty boundary):** prove only where reality has checkable mathematical truth
   (physics, quantum, geometry, kinematics, causal). Label everything else as presentation. Never let
   the skin claim the substrate's guarantee.
-- **Universal + adjustable, without breaking the proof:** prove the *space*, not the *instance*
+- **Universal + adjustable, without breaking the proof:** prove the _space_, not the _instance_
   (parametric/dependent proof). Within the proven envelope → still correct automatically; beyond it →
   the contract re-discharges or falsifies, loudly and honestly. The unit is a **parametric,
   proof-carrying, content-addressed, composable module**; remix inherits the proof machinery.
@@ -55,7 +55,7 @@ math, embodied.** (Proofs-as-programs, lifted into embodiment.)
 
 **Forced consequences (downstream rulings):** native-runtime consolidation is non-negotiable (kill
 the apex-poison render compilers); promote Paper 29 (composition law) + Paper 3 (CRDT) to CORE;
-re-gate the paper program to *proves-the-loop OR distribution*, not "publishable"; the
+re-gate the paper program to _proves-the-loop OR distribution_, not "publishable"; the
 SimulationContract must carry its own valid-parameter envelope so "did my adjustment stay true?" is
 a question the substrate answers. Full doctrine + reasoning:
 [`research/2026-06-15_simulation-as-proof-doctrine.md`](research/2026-06-15_simulation-as-proof-doctrine.md).

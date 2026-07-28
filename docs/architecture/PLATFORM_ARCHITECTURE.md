@@ -278,18 +278,18 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 
 ## Comparison to Unity
 
-| Feature                  | Unity              | HoloScript            |
-| ------------------------ | ------------------ | --------------------- |
+| Feature                       | Unity                      | HoloScript                                                      |
+| ----------------------------- | -------------------------- | --------------------------------------------------------------- |
 | **Semantic systems language** | ❌ Engine-specific C# APIs | ✅ One HoloScript language across `.hs`, `.hsplus`, and `.holo` |
-| **Runtime Execution**    | ✅ Game engine     | ✅ Web runtime        |
-| **Visual Editor**        | ✅ Unity Editor    | 🚧 Hololand (planned) |
-| **Physics**              | ✅ PhysX           | ✅ Custom physics     |
-| **Rendering**            | ✅ Built-in RP     | ✅ Three.js/WebGL     |
-| **Export Targets**       | ❌ Unity only      | ✅ registered targets |
-| **Web Native**           | ❌ WebGL export    | ✅ Native web         |
-| **Material Library**     | ✅ Standard Assets | ✅ 80+ PBR presets    |
-| **Particle Systems**     | ✅ Shuriken        | ✅ 120K particles     |
-| **Open Source**          | ❌ Proprietary     | ✅ Open source        |
+| **Runtime Execution**         | ✅ Game engine             | ✅ Web runtime                                                  |
+| **Visual Editor**             | ✅ Unity Editor            | 🚧 Hololand (planned)                                           |
+| **Physics**                   | ✅ PhysX                   | ✅ Custom physics                                               |
+| **Rendering**                 | ✅ Built-in RP             | ✅ Three.js/WebGL                                               |
+| **Export Targets**            | ❌ Unity only              | ✅ registered targets                                           |
+| **Web Native**                | ❌ WebGL export            | ✅ Native web                                                   |
+| **Material Library**          | ✅ Standard Assets         | ✅ 80+ PBR presets                                              |
+| **Particle Systems**          | ✅ Shuriken                | ✅ 120K particles                                               |
+| **Open Source**               | ❌ Proprietary             | ✅ Open source                                                  |
 
 ## Architecture Strengths
 

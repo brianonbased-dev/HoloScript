@@ -336,6 +336,7 @@ def Xform "ArmRobot" (
 ```
 
 Key assertions verified by the regression test:
+
 - `PhysicsArticulationRootAPI` present (robot wrapping)
 - `PhysicsRevoluteJoint` (not `PhysicsFixedJoint`) for each `@joint { jointType: revolute }` trait
 - Correct parent body references (`body0`/`body1` prim paths)

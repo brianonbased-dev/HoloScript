@@ -18,13 +18,13 @@ while the unchanged Paper 1 verifier/replay probe remained executable and
 integrity-green. This is a descriptive state comparison, not an isolated causal
 estimate:
 
-| Canonical outcome | State A | State B | B/A | Declared-envelope result |
-|---|---:|---:|---:|---|
-| Paper 4 VM creation median | 0.69 ms | 0.65 ms | 0.9420 | control envelope pass |
-| Paper 4 simple-expression median | 0.61 ms | 0.13 ms | 0.2131 | effect envelope pass |
-| Paper 4 varying-code JIT median | 2.78 ms | 2.10 ms | 0.7554 | effect envelope miss (`max=0.75`) |
-| Paper 1 chain verification | 2.9215 us/entry | 3.0506 us/entry | observational only | integrity-smoke pass |
-| Paper 1 replay wall time | 623.37 ms | 670.00 ms | observational only | execution-smoke pass |
+| Canonical outcome                |         State A |         State B |                B/A | Declared-envelope result          |
+| -------------------------------- | --------------: | --------------: | -----------------: | --------------------------------- |
+| Paper 4 VM creation median       |         0.69 ms |         0.65 ms |             0.9420 | control envelope pass             |
+| Paper 4 simple-expression median |         0.61 ms |         0.13 ms |             0.2131 | effect envelope pass              |
+| Paper 4 varying-code JIT median  |         2.78 ms |         2.10 ms |             0.7554 | effect envelope miss (`max=0.75`) |
+| Paper 1 chain verification       | 2.9215 us/entry | 3.0506 us/entry | observational only | integrity-smoke pass              |
+| Paper 1 replay wall time         |       623.37 ms |       670.00 ms | observational only | execution-smoke pass              |
 
 All eight declared Vitest processes exited zero. The simple-expression path
 was about 4.69 times faster in B, and all three B replicates were faster than
@@ -40,16 +40,16 @@ separation is descriptive; the minimum exact two-sided permutation p-value is
 The declared comparison cut uses adjacent commits with identical probe sources,
 package manifests, and dependency lock:
 
-| Binding | State A - pre-change | State B - post-change |
-|---|---|---|
-| Commit | `c83c2d3c8857c88357bee226df826114ab87432e` | `d225d6572e455d38d28d7482a315b4390870fb1b` |
-| Git tree OID | `cb55bebbfc99bedca1c5af5a92a303c3378edf5d` | `a681f98f80bd572dd8cac8ff21cc879a3ec2f198` |
-| Probe/test manifest SHA-256 | `90b158c463924ebc48c55bc54e3ad3a3667d1d64885a4d9aefdb42c8c035a26f` | same |
-| Dependency manifest SHA-256 | `0403f4b222137e6ed83099b9566b730e7025d59c2c0c964022460ac61fd5289d` | same |
-| Implementation manifest SHA-256 | `ec57a8848374aeaabee3285171f36af7f39f24dd3668b634e905a03293c5d3c2` | `e7dba6e89793fb26aebbcbe5bd0e36943c8920547a41fc29df3d4f607653c860` |
+| Binding                          | State A - pre-change                                               | State B - post-change                                              |
+| -------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Commit                           | `c83c2d3c8857c88357bee226df826114ab87432e`                         | `d225d6572e455d38d28d7482a315b4390870fb1b`                         |
+| Git tree OID                     | `cb55bebbfc99bedca1c5af5a92a303c3378edf5d`                         | `a681f98f80bd572dd8cac8ff21cc879a3ec2f198`                         |
+| Probe/test manifest SHA-256      | `90b158c463924ebc48c55bc54e3ad3a3667d1d64885a4d9aefdb42c8c035a26f` | same                                                               |
+| Dependency manifest SHA-256      | `0403f4b222137e6ed83099b9566b730e7025d59c2c0c964022460ac61fd5289d` | same                                                               |
+| Implementation manifest SHA-256  | `ec57a8848374aeaabee3285171f36af7f39f24dd3668b634e905a03293c5d3c2` | `e7dba6e89793fb26aebbcbe5bd0e36943c8920547a41fc29df3d4f607653c860` |
 | `PluginSandboxRunner.ts` SHA-256 | `21e0bb626f2361dadd73a6a6045a43b60c012c7d8e43a35a82718b05373fa27e` | `cb557f251eaa2088f26086bba3aac2ebf961fb63a498eabfd7ea356b6e4d36b4` |
-| `CAELTrace.ts` verifier SHA-256 | `e0e021c9a0cbb53d8c567e70f7970b8d6909b4241cf1efec66ff72aebadb298f` | same |
-| Tracked patch before/after | clean / clean | clean / clean |
+| `CAELTrace.ts` verifier SHA-256  | `e0e021c9a0cbb53d8c567e70f7970b8d6909b4241cf1efec66ff72aebadb298f` | same                                                               |
+| Tracked patch before/after       | clean / clean                                                      | clean / clean                                                      |
 
 State B adds a cached `node:vm` module handle, one reusable VM context per
 runner, and a bounded compiled-script cache. The Paper 4 harness is identical

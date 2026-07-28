@@ -10,12 +10,12 @@ This document covers the web-authoring surface: `@page`, `@panel`, `@slot`, `@ta
 
 Every `.holo` file parses into a `HoloComposition` AST. Compiler selection happens at the MCP/CLI call site, not in the file itself. The same `.holo` file can compile to multiple targets:
 
-| Target | Compiler | Output |
-|---|---|---|
-| Static HTML page | `Native2DCompiler` (format: `html`) | Self-contained `.html` with inlined Tailwind-compatible CSS and a vanilla fetch runtime |
-| React component | `Native2DCompiler` (format: `react`) | A `.tsx` functional component with React hooks |
-| Next.js App Router page | `NextJSCompiler` | A `<route>/page.tsx` file with `'use client'`, optional `metadata` export, and `next/navigation` imports |
-| WebXR / R3F | `R3FCompiler` | Three.js scene graph — ignores 2D traits |
+| Target                  | Compiler                             | Output                                                                                                   |
+| ----------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Static HTML page        | `Native2DCompiler` (format: `html`)  | Self-contained `.html` with inlined Tailwind-compatible CSS and a vanilla fetch runtime                  |
+| React component         | `Native2DCompiler` (format: `react`) | A `.tsx` functional component with React hooks                                                           |
+| Next.js App Router page | `NextJSCompiler`                     | A `<route>/page.tsx` file with `'use client'`, optional `metadata` export, and `next/navigation` imports |
+| WebXR / R3F             | `R3FCompiler`                        | Three.js scene graph — ignores 2D traits                                                                 |
 
 When a `.holo` composition contains no 3D-specific constructs (`environment`, `light`, spatial position/scale/rotation), the 2D target is the natural choice. When both 2D traits (`@panel`, `@text`) and 3D constructs coexist, the 2D compilers ignore the 3D elements and vice versa.
 
@@ -49,11 +49,11 @@ Both forms are accepted by the parser. The first form uses the `@decorator(...)`
 
 ### `@page` config keys
 
-| Key | Type | Description |
-|---|---|---|
-| `route` | `string` | URL path for the Next.js App Router page. Defaults to `/<composition-name-lowercased>`. |
-| `client` | `boolean` | When `true` (the default), emits `'use client'` at the top of the generated file and suppresses the `metadata` export. Set `false` for server components. |
-| `redirect` | `string` | When set, generates a redirect-only page (`redirect()` from `next/navigation`) with no content. |
+| Key        | Type      | Description                                                                                                                                               |
+| ---------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `route`    | `string`  | URL path for the Next.js App Router page. Defaults to `/<composition-name-lowercased>`.                                                                   |
+| `client`   | `boolean` | When `true` (the default), emits `'use client'` at the top of the generated file and suppresses the `metadata` export. Set `false` for server components. |
+| `redirect` | `string`  | When set, generates a redirect-only page (`redirect()` from `next/navigation`) with no content.                                                           |
 
 ### Minimal redirect page
 
@@ -87,8 +87,8 @@ object "Header" {
 
 ### `@panel` config keys
 
-| Key | Type | Description |
-|---|---|---|
+| Key   | Type     | Description                                                                                                                                                             |
+| ----- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tag` | `string` | HTML element to emit. Any valid HTML5 tag is accepted. Common values: `"div"` (default), `"main"`, `"header"`, `"footer"`, `"section"`, `"article"`, `"nav"`, `"form"`. |
 
 The element selection waterfall in `Native2DCompiler`:
@@ -141,13 +141,13 @@ Inline trait syntax with explicit component and import path.
 
 ### `@slot` config keys
 
-| Key | Type | Description |
-|---|---|---|
-| `name` | `string` | Slot identity key. Defaults to the object's `name`. Used to look up the slot in the compiler's slot registry. |
-| `component` | `string` | React component name to import and render. Defaults to the slot name. |
-| `import` | `string` | Module path for the `import` statement. Defaults to `@/components/<component>`. |
-| `props` | `object` | Nested props object passed to the component via spread. |
-| *(any other key)* | *any* | Flat scalar props forwarded to the component via spread. |
+| Key               | Type     | Description                                                                                                   |
+| ----------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| `name`            | `string` | Slot identity key. Defaults to the object's `name`. Used to look up the slot in the compiler's slot registry. |
+| `component`       | `string` | React component name to import and render. Defaults to the slot name.                                         |
+| `import`          | `string` | Module path for the `import` statement. Defaults to `@/components/<component>`.                               |
+| `props`           | `object` | Nested props object passed to the component via spread.                                                       |
+| _(any other key)_ | _any_    | Flat scalar props forwarded to the component via spread.                                                      |
 
 ### Compiler-side slot registry
 
@@ -176,12 +176,13 @@ import { PipelineWorkbench } from '@/components/pipeline/PipelineWorkbench';
 // ...inside the component JSX:
 <div data-holo-slot="PipelineWorkbench">
   <PipelineWorkbench />
-</div>
+</div>;
 ```
 
 ### When to use `@slot`
 
 Use `@slot` when the content requires:
+
 - Runtime-dynamic data that cannot be expressed with `@fetch` (e.g. `getProviders()`)
 - Next.js-specific primitives (`signIn()`, `useSearchParams()`, `redirect()`)
 - Per-provider conditional rendering (e.g. OAuth icons)
@@ -244,8 +245,8 @@ When `client: false` is set on `@page`, `NextJSCompiler` emits a `metadata` expo
 
 ```tsx
 export const metadata = {
-  title: "About Us",
-  description: "Learn more about HoloScript",
+  title: 'About Us',
+  description: 'Learn more about HoloScript',
 };
 ```
 
@@ -253,9 +254,9 @@ If `client: true` (the default), the `metadata` export is suppressed because Nex
 
 ### `@metadata` config keys
 
-| Key | Type | Description |
-|---|---|---|
-| `title` | `string` | Page title. Emitted to `metadata.title`. |
+| Key           | Type     | Description                                          |
+| ------------- | -------- | ---------------------------------------------------- |
+| `title`       | `string` | Page title. Emitted to `metadata.title`.             |
 | `description` | `string` | Page description. Emitted to `metadata.description`. |
 
 ---
@@ -272,13 +273,13 @@ object "Title" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
-| `variant` | `"h1" \| "h2" \| "h3" \| "subtitle" \| "caption" \| "emoji" \| "body"` | Maps to `h1`–`h4`, `span`, or `p`. Also drives Tailwind class injection. |
-| `content` | `string` | Text content. Supports <code v-pre>{{field}}</code> interpolation when inside an `@fetch` container. |
-| `align` | `string` | CSS `text-align` value. |
-| `maxWidth` | `string \| number` | CSS `max-width`. |
-| `weight` | `string` | CSS `font-weight`. |
+| Key        | Type                                                                   | Description                                                                                          |
+| ---------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `variant`  | `"h1" \| "h2" \| "h3" \| "subtitle" \| "caption" \| "emoji" \| "body"` | Maps to `h1`–`h4`, `span`, or `p`. Also drives Tailwind class injection.                             |
+| `content`  | `string`                                                               | Text content. Supports <code v-pre>{{field}}</code> interpolation when inside an `@fetch` container. |
+| `align`    | `string`                                                               | CSS `text-align` value.                                                                              |
+| `maxWidth` | `string \| number`                                                     | CSS `max-width`.                                                                                     |
+| `weight`   | `string`                                                               | CSS `font-weight`.                                                                                   |
 
 ### `@theme` — Inline styling and class assignment
 
@@ -288,18 +289,18 @@ object "Card" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
-| `className` | `string` | CSS class string appended to the element. |
-| `style` | `string` | Inline CSS string (semicolon-separated `property:value` pairs). Parsed and emitted as a React `style` object in React output. |
-| `tag` | `string` | Override the HTML element tag (highest-priority over `@panel { tag }` and trait-based tag inference). |
-| `id` | `string` | HTML `id` attribute. |
-| `attributes` | `string` | JSON object string of additional HTML attributes, e.g. `'{"data-testid": "main"}'`. |
-| `backgroundColor` | `string` | CSS `background-color`. |
-| `color` | `string` | CSS `color`. |
-| `padding` | `string \| number` | CSS `padding`. |
-| `borderRadius` | `string \| number` | CSS `border-radius`. |
-| `border` | `string` | CSS `border`. |
+| Key               | Type               | Description                                                                                                                   |
+| ----------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `className`       | `string`           | CSS class string appended to the element.                                                                                     |
+| `style`           | `string`           | Inline CSS string (semicolon-separated `property:value` pairs). Parsed and emitted as a React `style` object in React output. |
+| `tag`             | `string`           | Override the HTML element tag (highest-priority over `@panel { tag }` and trait-based tag inference).                         |
+| `id`              | `string`           | HTML `id` attribute.                                                                                                          |
+| `attributes`      | `string`           | JSON object string of additional HTML attributes, e.g. `'{"data-testid": "main"}'`.                                           |
+| `backgroundColor` | `string`           | CSS `background-color`.                                                                                                       |
+| `color`           | `string`           | CSS `color`.                                                                                                                  |
+| `padding`         | `string \| number` | CSS `padding`.                                                                                                                |
+| `borderRadius`    | `string \| number` | CSS `border-radius`.                                                                                                          |
+| `border`          | `string`           | CSS `border`.                                                                                                                 |
 
 ### `@layout` — Flexbox and grid containers
 
@@ -309,15 +310,15 @@ object "Shell" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
-| `flex` | `"row" \| "column"` | Sets `display:flex` and `flex-direction`. |
-| `grid` | `boolean` | Sets `display:grid`. |
-| `columns` | `number` | When `grid: true`, sets `grid-template-columns: repeat(N, minmax(0, 1fr))`. |
-| `justify` | `string` | CSS `justify-content`. |
-| `align` | `string` | CSS `align-items`. |
-| `gap` | `string \| number` | CSS `gap`. |
-| `padding` | `string \| number` | CSS `padding`. |
+| Key       | Type                | Description                                                                 |
+| --------- | ------------------- | --------------------------------------------------------------------------- |
+| `flex`    | `"row" \| "column"` | Sets `display:flex` and `flex-direction`.                                   |
+| `grid`    | `boolean`           | Sets `display:grid`.                                                        |
+| `columns` | `number`            | When `grid: true`, sets `grid-template-columns: repeat(N, minmax(0, 1fr))`. |
+| `justify` | `string`            | CSS `justify-content`.                                                      |
+| `align`   | `string`            | CSS `align-items`.                                                          |
+| `gap`     | `string \| number`  | CSS `gap`.                                                                  |
+| `padding` | `string \| number`  | CSS `padding`.                                                              |
 
 ### `@button` — Button element
 
@@ -327,13 +328,13 @@ object "Approve" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
-| `content` | `string` | Button label text. |
-| `onClick` | `string` | Click handler expression. `"navigate('/path')"` → `onClick={() => navigate('/path')}`. |
-| `variant` | `"primary" \| "outline" \| "ghost" \| "glow"` | Button style preset — drives Tailwind class injection. |
-| `size` | `"sm" \| "lg"` | Size preset. |
-| `type` | `string` | HTML `type` attribute. |
+| Key       | Type                                          | Description                                                                            |
+| --------- | --------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `content` | `string`                                      | Button label text.                                                                     |
+| `onClick` | `string`                                      | Click handler expression. `"navigate('/path')"` → `onClick={() => navigate('/path')}`. |
+| `variant` | `"primary" \| "outline" \| "ghost" \| "glow"` | Button style preset — drives Tailwind class injection.                                 |
+| `size`    | `"sm" \| "lg"`                                | Size preset.                                                                           |
+| `type`    | `string`                                      | HTML `type` attribute.                                                                 |
 
 ### `@link` — Anchor element
 
@@ -343,10 +344,10 @@ object "Nav" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
-| `href` | `string` | `href` attribute. |
-| `content` | `string` | Link text. |
+| Key       | Type     | Description       |
+| --------- | -------- | ----------------- |
+| `href`    | `string` | `href` attribute. |
+| `content` | `string` | Link text.        |
 
 ### `@image` — Image element
 
@@ -356,8 +357,8 @@ object "Avatar" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
+| Key   | Type     | Description      |
+| ----- | -------- | ---------------- |
 | `src` | `string` | `src` attribute. |
 | `alt` | `string` | `alt` attribute. |
 
@@ -369,11 +370,11 @@ object "EmailField" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
-| `type` | `string` | HTML `type` attribute. |
-| `placeholder` | `string` | Placeholder text. |
-| `required` | `boolean` | HTML `required` attribute. |
+| Key           | Type      | Description                |
+| ------------- | --------- | -------------------------- |
+| `type`        | `string`  | HTML `type` attribute.     |
+| `placeholder` | `string`  | Placeholder text.          |
+| `required`    | `boolean` | HTML `required` attribute. |
 
 ### `@fetch` — Live data binding
 
@@ -391,11 +392,11 @@ object "Inbox" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
-| `into` | `string` | State variable name that receives the fetched array. Also used as the `data-holo-into` attribute in HTML output for `@count_of` bindings. |
-| `endpoint` | `string` | URL to fetch. |
-| `method` | `string` | HTTP method. Defaults to `"GET"`. |
+| Key        | Type     | Description                                                                                                                               |
+| ---------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `into`     | `string` | State variable name that receives the fetched array. Also used as the `data-holo-into` attribute in HTML output for `@count_of` bindings. |
+| `endpoint` | `string` | URL to fetch.                                                                                                                             |
+| `method`   | `string` | HTTP method. Defaults to `"GET"`.                                                                                                         |
 
 In HTML output, a vanilla-JS runtime in the generated `<script>` block handles the fetch, clones the first `[data-holo-template]` child per item, and interpolates <code v-pre>{{field}}</code> (including dotted paths like <code v-pre>{{vetting.glance}}</code>). No React, no hydration.
 
@@ -409,13 +410,13 @@ object "Score" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
-| `state` | `string` | Dot-path into state variables (e.g. `"score"`, `"profile.fps"`). |
-| `prefix` | `string` | Static string prepended before the value. |
-| `suffix` | `string` | Static string appended after the value. |
-| `precision` | `integer` | Decimal places — emits `.toFixed(N)`. |
-| `tiers` | `array` | Threshold-conditional className: `[{ gte: 60, className: "text-green-400" }, { lt: 30, className: "text-red-400" }, { className: "text-amber-400" }]`. First match wins. |
+| Key         | Type      | Description                                                                                                                                                              |
+| ----------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `state`     | `string`  | Dot-path into state variables (e.g. `"score"`, `"profile.fps"`).                                                                                                         |
+| `prefix`    | `string`  | Static string prepended before the value.                                                                                                                                |
+| `suffix`    | `string`  | Static string appended after the value.                                                                                                                                  |
+| `precision` | `integer` | Decimal places — emits `.toFixed(N)`.                                                                                                                                    |
+| `tiers`     | `array`   | Threshold-conditional className: `[{ gte: 60, className: "text-green-400" }, { lt: 30, className: "text-red-400" }, { className: "text-amber-400" }]`. First match wins. |
 
 ### `@hook` — React hook injection
 
@@ -428,10 +429,10 @@ object "Profiler" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
-| `name` | `string` | Hook function name (must be a valid JS identifier). |
-| `import` | `string` | Module path for the import statement. |
+| Key       | Type     | Description                                                              |
+| --------- | -------- | ------------------------------------------------------------------------ |
+| `name`    | `string` | Hook function name (must be a valid JS identifier).                      |
+| `import`  | `string` | Module path for the import statement.                                    |
 | `returns` | `string` | Comma-separated list of destructured names from the hook's return value. |
 
 ### `@when` — Conditional render
@@ -445,8 +446,8 @@ object "ErrorBanner" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
+| Key     | Type     | Description                                                     |
+| ------- | -------- | --------------------------------------------------------------- |
 | `state` | `string` | State path. The element renders only when this value is truthy. |
 
 ### `@each` — List iteration
@@ -460,10 +461,10 @@ object "Item" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
+| Key     | Type     | Description                                  |
+| ------- | -------- | -------------------------------------------- |
 | `state` | `string` | State variable holding the array to iterate. |
-| `as` | `string` | Loop variable name. Defaults to `"item"`. |
+| `as`    | `string` | Loop variable name. Defaults to `"item"`.    |
 
 ### `@count_of` — Dynamic count display
 
@@ -476,8 +477,8 @@ object "PendingCount" {
 }
 ```
 
-| Key | Type | Description |
-|---|---|---|
+| Key      | Type     | Description                                                                |
+| -------- | -------- | -------------------------------------------------------------------------- |
 | `source` | `string` | The `into` value from the `@fetch` trait on a sibling or parent container. |
 
 ### `@view` — Panel registry metadata
@@ -568,24 +569,24 @@ This compiles to a self-contained HTML page with zero framework dependencies. Th
 
 ## Current implementation status
 
-| Construct | Parser | Native2DCompiler (HTML) | Native2DCompiler (React) | NextJSCompiler |
-|---|---|---|---|---|
-| `@page` | Captured as generic trait | Not consumed | Not consumed | Fully consumed (route, client, redirect) |
-| `@metadata` | Captured as generic trait | Not consumed | Not consumed | Fully consumed (title, description) |
-| `@panel` | Captured as object trait | Fully consumed | Fully consumed | Via Native2DCompiler |
-| `@slot` | Captured as object trait | Not consumed | Fully consumed | Fully consumed (imports, JSX, props) |
-| `@tailwind` | Captured as object trait | Fully consumed | Fully consumed | Via Native2DCompiler |
-| `@text` | Captured as object trait | Fully consumed | Fully consumed | Via Native2DCompiler |
-| `@theme` | Captured as object trait | Fully consumed | Fully consumed | Via Native2DCompiler |
-| `@layout` | Captured as object trait | Fully consumed | Fully consumed | Via Native2DCompiler |
-| `@button` | Captured as object trait | Fully consumed | Fully consumed | Via Native2DCompiler |
-| `@fetch` | Captured as object trait | Vanilla-JS runtime | `useEffect`+`useState` | Via Native2DCompiler |
-| `@bind` | Captured as object trait | Not consumed | Fully consumed | Via Native2DCompiler |
-| `@hook` | Captured as object trait | Not consumed | Fully consumed | Via Native2DCompiler |
-| `@when` | Captured as object trait | Not consumed | Fully consumed | Via Native2DCompiler |
-| `@each` | Captured as object trait | Not consumed | Fully consumed | Via Native2DCompiler |
-| `@view` | Captured as root-level trait | Not consumed | Not consumed | Not consumed (Studio registry only) |
-| `@count_of` | Captured as object trait | Fully consumed | Not consumed | Via Native2DCompiler (HTML only) |
+| Construct   | Parser                       | Native2DCompiler (HTML) | Native2DCompiler (React) | NextJSCompiler                           |
+| ----------- | ---------------------------- | ----------------------- | ------------------------ | ---------------------------------------- |
+| `@page`     | Captured as generic trait    | Not consumed            | Not consumed             | Fully consumed (route, client, redirect) |
+| `@metadata` | Captured as generic trait    | Not consumed            | Not consumed             | Fully consumed (title, description)      |
+| `@panel`    | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
+| `@slot`     | Captured as object trait     | Not consumed            | Fully consumed           | Fully consumed (imports, JSX, props)     |
+| `@tailwind` | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
+| `@text`     | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
+| `@theme`    | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
+| `@layout`   | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
+| `@button`   | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
+| `@fetch`    | Captured as object trait     | Vanilla-JS runtime      | `useEffect`+`useState`   | Via Native2DCompiler                     |
+| `@bind`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                     |
+| `@hook`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                     |
+| `@when`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                     |
+| `@each`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                     |
+| `@view`     | Captured as root-level trait | Not consumed            | Not consumed             | Not consumed (Studio registry only)      |
+| `@count_of` | Captured as object trait     | Fully consumed          | Not consumed             | Via Native2DCompiler (HTML only)         |
 
 **Parser note:** "Captured as generic trait" means the parser stores the decorator in `composition.traits[]` (root-level) or `object.traits[]` (object-level) as an `HoloObjectTrait { name, config }`. There is no dedicated AST node type for `@page`, `@slot`, etc. — they are read by compilers via name lookup at compile time. This is the intentional design: the parser is domain-agnostic; compilers are domain-specific.
 

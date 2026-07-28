@@ -68,12 +68,12 @@ disjoint from S1.
 
 The exact endpoint contexts are selected by `(task form, endpoint variant)`:
 
-| Task form | Variant 0 terminal text | Variant 1 terminal text |
-|---|---|---|
-| `form_0` | `Analysis:` | `Evidence =` |
-| `form_1` | `Decision [` | `Options {` |
-| `form_2` | `HoloScript:` then `object "` | `HoloScript:` then `//` |
-| `form_3` | `Trace step(` | `Constraint @` |
+| Task form | Variant 0 terminal text       | Variant 1 terminal text |
+| --------- | ----------------------------- | ----------------------- |
+| `form_0`  | `Analysis:`                   | `Evidence =`            |
+| `form_1`  | `Decision [`                  | `Options {`             |
+| `form_2`  | `HoloScript:` then `object "` | `HoloScript:` then `//` |
+| `form_3`  | `Trace step(`                 | `Constraint @`          |
 
 Each terminal text is preceded by two newlines and is the exact end of the
 generated prefix: there is no shared trailing whitespace, period, newline, or

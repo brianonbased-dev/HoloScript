@@ -23,16 +23,16 @@ import {
 
 ## Package Surface
 
-| Surface                            | Purpose                                      |
-| ---------------------------------- | -------------------------------------------- |
-| `threat_feed`                      | Threat feed ingestion and normalization      |
-| `ioc_matching`                     | Indicator matching against observed signals  |
-| `siem_integration`                 | SIEM pipeline integration behavior           |
-| `attack_graph`                     | Attack path and dependency graph behavior    |
-| `THREAT_INTELLIGENCE_TRAITS`       | Bundled trait handler list                   |
+| Surface                            | Purpose                                       |
+| ---------------------------------- | --------------------------------------------- |
+| `threat_feed`                      | Threat feed ingestion and normalization       |
+| `ioc_matching`                     | Indicator matching against observed signals   |
+| `siem_integration`                 | SIEM pipeline integration behavior            |
+| `attack_graph`                     | Attack path and dependency graph behavior     |
+| `THREAT_INTELLIGENCE_TRAITS`       | Bundled trait handler list                    |
 | `registerThreatIntelligencePlugin` | Registers plugin traits with a runtime target |
-| `THREAT_INTELLIGENCE_KEYWORDS`     | Prompt and schema-mapper keyword routing     |
-| `threatsolver`                     | Threat-analysis solver helpers               |
+| `THREAT_INTELLIGENCE_KEYWORDS`     | Prompt and schema-mapper keyword routing      |
+| `threatsolver`                     | Threat-analysis solver helpers                |
 
 ## Packaging Note
 

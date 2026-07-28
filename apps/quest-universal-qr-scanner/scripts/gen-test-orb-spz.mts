@@ -47,12 +47,18 @@ function hsv(h: number, s: number, v: number): [number, number, number] {
   const q = v * (1 - f * s);
   const t = v * (1 - (1 - f) * s);
   switch (i % 6) {
-    case 0: return [v, t, p];
-    case 1: return [q, v, p];
-    case 2: return [p, v, t];
-    case 3: return [p, q, v];
-    case 4: return [t, p, v];
-    default: return [v, p, q];
+    case 0:
+      return [v, t, p];
+    case 1:
+      return [q, v, p];
+    case 2:
+      return [p, v, t];
+    case 3:
+      return [p, q, v];
+    case 4:
+      return [t, p, v];
+    default:
+      return [v, p, q];
   }
 }
 
@@ -88,7 +94,7 @@ for (let i = 0; i < SHELL; i++) {
   positions[i * 3 + 2] = z * R;
 
   // hue from longitude (theta), value lifted toward the poles for a lit look
-  const hue = ((theta / (Math.PI * 2)) % 1 + 1) % 1;
+  const hue = (((theta / (Math.PI * 2)) % 1) + 1) % 1;
   const val = 0.85 + 0.15 * Math.abs(y);
   const [cr, cg, cb] = hsv(hue, 0.9, val);
   colors[i * 4 + 0] = cr;
@@ -187,7 +193,8 @@ async function main() {
   // Opacity fidelity: 8-bit → tolerate ~2/255.
   const OP_TOL = 0.01;
   let maxOpErr = 0;
-  for (let i = 0; i < N; i++) maxOpErr = Math.max(maxOpErr, Math.abs(d.opacities[i] - opacities[i]));
+  for (let i = 0; i < N; i++)
+    maxOpErr = Math.max(maxOpErr, Math.abs(d.opacities[i] - opacities[i]));
   if (maxOpErr > OP_TOL) problems.push(`max opacity error ${maxOpErr.toFixed(4)} > ${OP_TOL}`);
 
   // Scale fidelity: log-encoded 8-bit → relative tolerance.
@@ -196,12 +203,17 @@ async function main() {
     const rel = Math.abs(d.scales[i] - scales[i]) / Math.max(1e-6, scales[i]);
     maxScaleRelErr = Math.max(maxScaleRelErr, rel);
   }
-  if (maxScaleRelErr > 0.05) problems.push(`max scale rel error ${maxScaleRelErr.toFixed(4)} > 0.05`);
+  if (maxScaleRelErr > 0.05)
+    problems.push(`max scale rel error ${maxScaleRelErr.toFixed(4)} > 0.05`);
 
   console.log(`[gen-test-orb] gaussians: ${N} (shell ${SHELL} + core ${CORE})`);
-  console.log(`[gen-test-orb] encoded .spz size: ${bytes.length} bytes (${(bytes.length / 1024).toFixed(1)} KiB)`);
+  console.log(
+    `[gen-test-orb] encoded .spz size: ${bytes.length} bytes (${(bytes.length / 1024).toFixed(1)} KiB)`
+  );
   console.log(`[gen-test-orb] round-trip decoded count: ${d.count}`);
-  console.log(`[gen-test-orb] max errors — pos ${maxPosErr.toFixed(6)} m, color ${maxColErr.toFixed(4)}, opacity ${maxOpErr.toFixed(4)}, scale(rel) ${maxScaleRelErr.toFixed(4)}`);
+  console.log(
+    `[gen-test-orb] max errors — pos ${maxPosErr.toFixed(6)} m, color ${maxColErr.toFixed(4)}, opacity ${maxOpErr.toFixed(4)}, scale(rel) ${maxScaleRelErr.toFixed(4)}`
+  );
 
   if (problems.length) {
     console.error(`[gen-test-orb] ROUND-TRIP FAILED:\n  - ${problems.join('\n  - ')}`);

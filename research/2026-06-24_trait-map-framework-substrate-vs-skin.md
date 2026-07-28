@@ -15,11 +15,11 @@ the registry-metadata backfill are named in §7 and §8 as the work that follows
 ## 1. Why the Map Needs a Vision First
 
 The catalog today is sorted by **theme** — `animals`, `magic-fantasy`, `cooking-food`,
-`facial-expression`, `npc-roles`. Theme is a dimension of *appearance*. The ratified thesis names
+`facial-expression`, `npc-roles`. Theme is a dimension of _appearance_. The ratified thesis names
 a different axis as the one everything is judged on:
 
-> The axis everything is judged on: **looks-right vs is-right.** … *Substrate (substance)* carries
-> the proof; *Skin (distribution)* is how a human inhabits the proof and carries zero proof
+> The axis everything is judged on: **looks-right vs is-right.** … _Substrate (substance)_ carries
+> the proof; _Skin (distribution)_ is how a human inhabits the proof and carries zero proof
 > guarantee. Never let the skin claim the substrate's guarantee.
 
 So the catalog is sorted on the axis the vision explicitly subordinates. That is the root cause of
@@ -36,7 +36,7 @@ moat actually lives on.
 Every trait is exactly one of:
 
 - **SUBSTRATE** — carries a proof obligation about reality. It lives on the **provable frontier**
-  (physics, quantum, geometry, kinematics, causal), and its execution *is* the proof: it has a
+  (physics, quantum, geometry, kinematics, causal), and its execution _is_ the proof: it has a
   contract that **discharges or falsifies, loudly and honestly**. Example: `@rigidbody`,
   `@solve_thermal`, `@kinematic_chain`, `@measurement`, `@provenance`.
 - **SKIN** — distribution / presentation. How a human inhabits the proof. **No proof guarantee.**
@@ -44,16 +44,17 @@ Every trait is exactly one of:
 
 The binary is the **honesty boundary** itself: the thesis says "prove only where reality has
 checkable mathematical truth; label everything else as presentation." There is no third top-level
-class — anything not on the provable frontier is skin. (For *navigability* we sub-tag skin below;
+class — anything not on the provable frontier is skin. (For _navigability_ we sub-tag skin below;
 that is a tag, not a third class, and does not weaken the binary.)
 
 **Skin sub-tags (navigational only, not a class):**
+
 - `skin/presentation` — render, audio, haptics, visual/thematic content (the literal "look").
 - `skin/operational` — service/plumbing: auth, payment, devops, persistence, networking infra,
   integration. Neither proof nor render; the machinery that wires the system to the world.
 
 > **Boundary note — crypto/ZK proofs.** `@zero_knowledge_proof`, signatures, etc. carry a proof,
-> but it is a *cryptographic* proof, **not** a proof about physical reality. They are
+> but it is a _cryptographic_ proof, **not** a proof about physical reality. They are
 > `skin/operational`, not SUBSTRATE. Keeping these distinct preserves the honesty boundary: only
 > reality-proofs may claim the substrate guarantee.
 
@@ -63,11 +64,11 @@ The thesis's unit is "a parametric, proof-carrying, content-addressed, composabl
 contract shape: **preconditions → invariants → receipt.** So every substrate trait declares which
 role(s) it plays in that shape (a trait may play more than one):
 
-| Role | Meaning | Example trait : what it asserts |
-|---|---|---|
-| **precondition** | Entry conditions that must hold for the proof to apply (the valid-parameter envelope) | `@rigidbody`: mass > 0 ∧ collider present · `@solve_thermal`: boundary conditions + conductivity defined |
-| **invariant** | A property maintained *during* execution, checkable every step | `@rigidbody`: momentum/energy within solver tolerance · `@kinematic_chain`: joints within limits, no self-collision · `@safety_envelope`: actuation stays inside bound |
-| **receipt** | Verifiable evidence emitted of what actually happened | `@provenance`: per-point class (observed\|interpolated\|generative) · `@spatial_proof`: composed proof artifact · `@measurement`: timestamped reading + uncertainty |
+| Role             | Meaning                                                                               | Example trait : what it asserts                                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **precondition** | Entry conditions that must hold for the proof to apply (the valid-parameter envelope) | `@rigidbody`: mass > 0 ∧ collider present · `@solve_thermal`: boundary conditions + conductivity defined                                                               |
+| **invariant**    | A property maintained _during_ execution, checkable every step                        | `@rigidbody`: momentum/energy within solver tolerance · `@kinematic_chain`: joints within limits, no self-collision · `@safety_envelope`: actuation stays inside bound |
+| **receipt**      | Verifiable evidence emitted of what actually happened                                 | `@provenance`: per-point class (observed\|interpolated\|generative) · `@spatial_proof`: composed proof artifact · `@measurement`: timestamped reading + uncertainty    |
 
 This axis is what makes substrate traits **compose with the proof intact** — it is the machinery
 remix inherits. Skin traits carry no contract role (`role: none`); claiming one is the exact
@@ -86,9 +87,9 @@ Apply in order to any trait:
 3. Otherwise, **does it make the system perceivable** (render/audio/haptic/visual/thematic)? →
    `skin/presentation`.
 4. Otherwise it is `skin/operational` (auth, payment, data, devops, networking, integration).
-5. If a single trait genuinely does both 1–2 *and* 3 (e.g. a cloth trait that both simulates and
+5. If a single trait genuinely does both 1–2 _and_ 3 (e.g. a cloth trait that both simulates and
    shades), it is **MIXED** and must be **split into two traits** in the map — one substrate, one
-   skin — never left straddling. MIXED is a *to-do marker*, not a final class.
+   skin — never left straddling. MIXED is a _to-do marker_, not a final class.
 
 ---
 
@@ -96,17 +97,17 @@ Apply in order to any trait:
 
 Classifying all 87 populated categories (2,400 names) by their dominant class:
 
-| Class | Names | Share |
-|---|---:|---:|
+| Class                             |  Names |    Share |
+| --------------------------------- | -----: | -------: |
 | **SUBSTRATE** (provable frontier) | **82** | **3.4%** |
-| skin/presentation | 1,371 | 57.1% |
-| skin/operational | 505 | 21.0% |
-| MIXED (needs trait-level split) | 442 | 18.4% |
+| skin/presentation                 |  1,371 |    57.1% |
+| skin/operational                  |    505 |    21.0% |
+| MIXED (needs trait-level split)   |    442 |    18.4% |
 
 **SUBSTRATE categories (today):** `simulation-domains` (23), `water-fluid` (19),
 `measurement-sensing` (17), `physics-expansion` (12), `holomap-reconstruction` (11).
 
-**The finding:** the proof-carrying core — *the entire moat* — is **~3.4% of the named
+**The finding:** the proof-carrying core — _the entire moat_ — is **~3.4% of the named
 vocabulary**, and even the optimistic ceiling (if every MIXED trait split majority-substrate, which
 it won't) is ~22%. The catalog is ~78% skin. This is not a criticism of the skin — distribution is
 real and necessary — it is the thesis made measurable: **the substance is a tiny, scattered
@@ -131,20 +132,21 @@ The trait map replaces theme-as-primary with a record per trait:
 ```jsonc
 {
   "name": "rigidbody",
-  "class": "substrate",                 // Axis 1 (binary, required)
-  "frontier": "physics",                // provable-frontier domain (substrate only)
+  "class": "substrate", // Axis 1 (binary, required)
+  "frontier": "physics", // provable-frontier domain (substrate only)
   "contractRoles": ["precondition", "invariant", "receipt"], // Axis 2 (substrate only, ≥1)
-  "domainTag": ["game-mechanics"],      // theme demoted to a secondary tag (multi)
-  "proofStatus": "real",                // real | thin | overclaimed (per deep-ratchet taxonomy)
-  "handler": "RigidbodyTrait.ts"
+  "domainTag": ["game-mechanics"], // theme demoted to a secondary tag (multi)
+  "proofStatus": "real", // real | thin | overclaimed (per deep-ratchet taxonomy)
+  "handler": "RigidbodyTrait.ts",
 }
 ```
 
 Two consequences fall out for free:
+
 - **Gate rule:** `class: skin` ∧ non-empty `contractRoles` → build error (skin claiming the
   substrate guarantee). Directly enforces the thesis's central prohibition.
 - **`proofStatus`** lets the map carry the deep-ratchet REAL/THIN/OVERCLAIMED verdicts
-  (`research/2026-05-24_deep-ratchet-trait-solver.md`) so "is this substrate trait *actually*
+  (`research/2026-05-24_deep-ratchet-trait-solver.md`) so "is this substrate trait _actually_
   proving anything" is a queryable field, not tribal knowledge.
 
 ---
@@ -159,7 +161,7 @@ Two consequences fall out for free:
   precondition→invariant→receipt contracts, which is the "remix inherits the proof machinery"
   promise.
 - It re-frames the §4 prior research's "92% are declarations" from a quality complaint into a
-  **navigational fact**: most traits are skin, and skin *legitimately* has no proof — the problem
+  **navigational fact**: most traits are skin, and skin _legitimately_ has no proof — the problem
   was only ever that substrate traits were indistinguishable from skin in the catalog.
 
 ---
@@ -170,7 +172,7 @@ Two consequences fall out for free:
    substrate-half vs skin-half per §3 rule 5, splitting where it genuinely straddles. This is where
    the substrate count grows from its 3.4% floor toward its true value.
 2. **Substrate `contractRoles` assignment.** For every confirmed substrate trait, fill Axis 2 from
-   its handler (preconditions it checks, invariants it maintains, receipt it emits). This *is* the
+   its handler (preconditions it checks, invariants it maintains, receipt it emits). This _is_ the
    registry-metadata backfill from the §4 prior research, now with a vision-shaped schema.
 3. **Wire the gate.** Implement `class: skin ∧ contractRoles≠∅ → error` in the pre-commit /
    HoloCI trait checks.
@@ -183,7 +185,7 @@ Two consequences fall out for free:
 
 ## 8. What Remains After This Plan (Completeness Gaps)
 
-- **This is category-level, not trait-level.** The 3.4% SUBSTRATE figure is a *floor* derived from
+- **This is category-level, not trait-level.** The 3.4% SUBSTRATE figure is a _floor_ derived from
   dominant-class-per-category; the true substrate count is unknown until the 442 MIXED names are
   split per trait (§7.1). The number will rise — by how much is not yet measured.
 - **No code, no gate, no schema shipped.** This is the framework + ruling record. No traits were

@@ -37,6 +37,7 @@ fs.appendFileSync(outboxPath, JSON.stringify(buildEmbodimentActivityEntry(embodi
 ```
 
 The embodiment artifact (`EmbodiedAgentCard`) is:
+
 1. **Appended to outbox** → SSE activity feed → HoloClawTab renders the deck
 2. **Returned in the POST response** → Brittney session shows the launched agent immediately
 3. **Listed in GET /api/holoclaw/run** → the deck can repopulate on reload
@@ -48,24 +49,24 @@ On process exit, a `status: "stopped"` embodiment entry is appended so the deck 
 ```typescript
 interface EmbodiedAgentCard {
   agentId: string;
-  handle: string;          // e.g. "holoclaw-research"
-  skill: string;           // e.g. "research"
+  handle: string; // e.g. "holoclaw-research"
+  skill: string; // e.g. "research"
   teamId: string;
-  status: EmbodiedStatus;  // 'spawning' | 'running' | 'idle' | 'error' | 'stopped'
-  presence: boolean;       // true when a fleet presence heartbeat session is open
+  status: EmbodiedStatus; // 'spawning' | 'running' | 'idle' | 'error' | 'stopped'
+  presence: boolean; // true when a fleet presence heartbeat session is open
   activityChannel: string; // outbox channel the deck tails, e.g. "skill:research"
-  hue: number;             // deterministic 0–359 from skill name, consistent across all surfaces
-  avatarHolo: string;      // generated .holo composition (see below)
+  hue: number; // deterministic 0–359 from skill name, consistent across all surfaces
+  avatarHolo: string; // generated .holo composition (see below)
 }
 ```
 
 ### API Reference
 
-| Method | Path | Auth | Body / Response |
-|--------|------|------|-----------------|
-| `POST` | `/api/holoclaw/run` | Bearer | `{name, cycles?, alwaysOn?}` → `{started, pid, fleet?, embodiment}` |
-| `GET`  | `/api/holoclaw/run` | — | `{running: [{name, pid, embodiment}], count}` |
-| `DELETE` | `/api/holoclaw/run` | Bearer | `{name}` → `{stopped, pid}` |
+| Method   | Path                | Auth   | Body / Response                                                     |
+| -------- | ------------------- | ------ | ------------------------------------------------------------------- |
+| `POST`   | `/api/holoclaw/run` | Bearer | `{name, cycles?, alwaysOn?}` → `{started, pid, fleet?, embodiment}` |
+| `GET`    | `/api/holoclaw/run` | —      | `{running: [{name, pid, embodiment}], count}`                       |
+| `DELETE` | `/api/holoclaw/run` | Bearer | `{name}` → `{stopped, pid}`                                         |
 
 Skill `name` must match `/^[a-z0-9-]{1,64}$/`. The path is resolved inside `COMPOSITIONS_ROOT` before the file is opened (SEC-T05 path-traversal guard).
 
@@ -97,6 +98,7 @@ Before this capability, an embodied HoloClaw avatar was inert — it appeared in
 ```
 
 **Execution path**:
+
 1. A `motion_request` event fires with a preset name (e.g. `"walk"`).
 2. `MotionSourceTrait` looks up the preset in `catalog` → gets the clip name.
 3. Calls `AnimationTrait.crossfade(clip, blend)` if available, else `AnimationTrait.play(clip)`.
@@ -144,10 +146,10 @@ The generated `.holo` emits:
 
 The 3D deck renders two classes of node:
 
-| Node | Shape | Ring radius | Source |
-|------|-------|-------------|--------|
-| **TentacleNode** (skills) | Icosahedron | 5 | static skill list |
-| **EmbodiedAvatarNode** (agents) | Sphere | 2.9 | `deriveEmbodiedAgents(activityFeed)` |
+| Node                            | Shape       | Ring radius | Source                               |
+| ------------------------------- | ----------- | ----------- | ------------------------------------ |
+| **TentacleNode** (skills)       | Icosahedron | 5           | static skill list                    |
+| **EmbodiedAvatarNode** (agents) | Sphere      | 2.9         | `deriveEmbodiedAgents(activityFeed)` |
 
 ### EmbodiedAvatarNode
 
@@ -160,6 +162,7 @@ The 3D deck renders two classes of node:
 ### HoloClawTab Wiring
 
 `packages/studio/src/components/teams/HoloClawTab.tsx` uses a `useHoloClawActivity` hook that:
+
 1. Opens a single SSE connection to `/api/holoclaw/activity`
 2. Collects activity entries (newest-first)
 3. Derives the live agent roster via `useMemo(() => deriveEmbodiedAgents(entries), [entries])`
@@ -206,27 +209,27 @@ interface FleetRegistration {
 
 Skills are `.hsplus` compositions in `compositions/skills/`. The daemon process runs the behavior tree; `POST /api/holoclaw/run` spawns it.
 
-| Field | Value |
-|-------|-------|
-| Spawn command | `npx tsx packages/cli/src/cli.ts holodaemon <skillPath> --cycles N` |
-| Default cycles | 5 (set `alwaysOn: true` for unbounded) |
-| Lock file | `.holoscript/skill-<name>.lock` |
-| Activity feed | `.holoscript/outbox.jsonl` (stdout + stderr appended per line) |
-| SSE endpoint | `GET /api/holoclaw/activity?stream=true` |
+| Field          | Value                                                               |
+| -------------- | ------------------------------------------------------------------- |
+| Spawn command  | `npx tsx packages/cli/src/cli.ts holodaemon <skillPath> --cycles N` |
+| Default cycles | 5 (set `alwaysOn: true` for unbounded)                              |
+| Lock file      | `.holoscript/skill-<name>.lock`                                     |
+| Activity feed  | `.holoscript/outbox.jsonl` (stdout + stderr appended per line)      |
+| SSE endpoint   | `GET /api/holoclaw/activity?stream=true`                            |
 
 Skill names must match `/^[a-z0-9-]{1,64}$/`. The path is contained inside `COMPOSITIONS_ROOT` before the file is opened.
 
 ### Seed Skills
 
-| Skill | Budget | What It Does |
-|-------|--------|--------------|
-| `code-health` | $0.10 | `tsc --noEmit` + lint scan + vitest → health score |
-| `lint-sweep` | $0.50 | Find console.log / @ts-ignore / `as any` → auto-fix |
-| `test-runner` | $0.05 | Targeted vitest for specific packages |
-| `dependency-audit` | $0.05 | `npm audit` + `ncu --jsonUpgraded` → CVE + outdated report |
-| `dead-code-finder` | $0.10 | `ts-prune` → unused export detection |
-| `git-digest` | $0.02 | `git log --since=24h` → commit summary |
-| `bundle-analyzer` | $0.20 | `next build` → bundle size regression alerts |
+| Skill              | Budget | What It Does                                               |
+| ------------------ | ------ | ---------------------------------------------------------- |
+| `code-health`      | $0.10  | `tsc --noEmit` + lint scan + vitest → health score         |
+| `lint-sweep`       | $0.50  | Find console.log / @ts-ignore / `as any` → auto-fix        |
+| `test-runner`      | $0.05  | Targeted vitest for specific packages                      |
+| `dependency-audit` | $0.05  | `npm audit` + `ncu --jsonUpgraded` → CVE + outdated report |
+| `dead-code-finder` | $0.10  | `ts-prune` → unused export detection                       |
+| `git-digest`       | $0.02  | `git log --since=24h` → commit summary                     |
+| `bundle-analyzer`  | $0.20  | `next build` → bundle size regression alerts               |
 
 ---
 
@@ -234,13 +237,13 @@ Skill names must match `/^[a-z0-9-]{1,64}$/`. The path is contained inside `COMP
 
 `packages/core/src/traits/EconomyPrimitivesTrait.ts`
 
-| Feature | Config | Description |
-|---------|--------|-------------|
-| Credits | initial_balance: 100 | Agents earn by completing tasks, spend on inference |
-| Spend limits | per hour, configurable | Prevents runaway spending |
-| Bounties | 5min deadline, max 10/agent | Post task with escrow → agents compete → winner paid |
-| Escrow | enabled by default | Funds locked until task verified |
-| Transaction log | max 200 entries | Full audit trail per account |
+| Feature         | Config                      | Description                                          |
+| --------------- | --------------------------- | ---------------------------------------------------- |
+| Credits         | initial_balance: 100        | Agents earn by completing tasks, spend on inference  |
+| Spend limits    | per hour, configurable      | Prevents runaway spending                            |
+| Bounties        | 5min deadline, max 10/agent | Post task with escrow → agents compete → winner paid |
+| Escrow          | enabled by default          | Funds locked until task verified                     |
+| Transaction log | max 200 entries             | Full audit trail per account                         |
 
 ```
 open → claimed (agent accepts) → completed (escrow released)

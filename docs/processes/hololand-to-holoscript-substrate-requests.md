@@ -56,7 +56,7 @@ HoloLand teams file a substrate request by opening a **HoloMesh board task** in 
 - [ ] Runtime primitive (execution, ECS, physics, rendering)
 - [ ] MCP / CLI tool (developer-facing protocol or command)
 - [ ] Compiler substrate (new target, AST pass, codegen)
-- [ ] Other: ******\_******
+- [ ] Other: **\*\***\_**\*\***
 
 ### 3. Why does this generalize?
 
