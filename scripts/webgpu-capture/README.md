@@ -16,7 +16,7 @@ The 2026-05-28 program-wide drift audit surfaced this across Papers 2, 3, 4, 8, 
 
 - `setup-host.sh` — idempotent Linux installer (vulkan + chromium + playwright).
 - `capture-bench.mjs` — config-driven benchmark capture. Reads a JSON config, loads a WGSL kernel, dispatches it in a real WebGPU browser session, emits a receipt-v2 JSON.
-- `gpu-identity.mjs` — normalizes Chromium CDP GPU-process identity and an independent `nvidia-smi` host inventory.
+- `gpu-identity.mjs` — normalizes Chromium CDP GPU-process identity and independent host inventories from `nvidia-smi`, Windows CIM, Linux `lspci`, or macOS `system_profiler`.
 - `receipt-v2.schema.json` — unified bench-receipt schema. The `path` field (`webgpu-browser | cpu-substitute | cuda-native | wasm-simd`) is the camera-ready honesty knob — reviewers see immediately which execution path produced a row.
 - `configs/` — paper-specific bench configs (one per kernel).
 
@@ -79,7 +79,7 @@ Every capture emits a v2 receipt with these load-bearing fields:
 | `protocol_commit`                 | Git HEAD at capture time — pins the harness version                             |
 | `adapter_info`                    | Browser-selected WebGPU adapter metadata when Chromium exposes it; may be empty |
 | `browser_gpu_info`                | Chromium CDP GPU-process identity; independently binds the browser runtime      |
-| `host_gpu_inventory`              | `nvidia-smi` name, UUID, driver, PCI bus, and memory for visible host GPUs      |
+| `host_gpu_inventory`              | Merged NVIDIA/AMD/Intel/Apple host inventory with provider-level provenance     |
 | `browser`                         | userAgent + executablePath + launchArgs — pins the runtime                      |
 | `ots_proof_path` / `anchor_chain` | Reserved for follow-up OTS + Base anchoring (F.071, Paper 22)                   |
 
@@ -87,6 +87,13 @@ Every capture emits a v2 receipt with these load-bearing fields:
 `adapter_info` is empty, but their scope is intentionally explicit. Either field
 alone identifies the Chromium GPU process or visible host inventory; neither
 alone proves which physical device WebGPU selected.
+
+Host providers are failure-isolated. `nvidia-smi` contributes NVIDIA UUID,
+driver, PCI bus, and dedicated-memory detail when present; the platform provider
+adds physical adapters from Windows CIM, Linux `lspci`, or macOS
+`system_profiler`. Duplicate devices are merged deterministically and retain
+their contributing `sources`. Platform-reported `adapter_ram_mib` is kept
+separate from provider-reported dedicated `memory_total_mib`.
 
 ## Adding a new paper
 

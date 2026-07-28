@@ -100,26 +100,87 @@
     },
     "host_gpu_inventory": {
       "type": "object",
-      "description": "Independent host-visible NVIDIA inventory from nvidia-smi when available. This proves visible host hardware, not WebGPU adapter selection.",
+      "description": "Independent host-visible GPU inventory from vendor and platform providers. This proves visible host hardware, not WebGPU adapter selection.",
       "required": ["schema_version", "source", "platform", "scope", "webgpu_adapter_selection_proven", "devices"],
       "properties": {
-        "schema_version": { "const": "holoscript.host-gpu-inventory.v1" },
-        "source": { "enum": ["nvidia-smi", "unavailable"] },
+        "schema_version": {
+          "enum": [
+            "holoscript.host-gpu-inventory.v1",
+            "holoscript.host-gpu-inventory.v2"
+          ]
+        },
+        "source": {
+          "enum": [
+            "nvidia-smi",
+            "windows-cim",
+            "linux-lspci",
+            "macos-system-profiler",
+            "multi-provider",
+            "unavailable"
+          ]
+        },
         "platform": { "type": "string" },
         "scope": { "const": "host-inventory" },
         "webgpu_adapter_selection_proven": { "const": false },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "status", "device_count"],
+            "properties": {
+              "name": {
+                "enum": [
+                  "nvidia-smi",
+                  "windows-cim",
+                  "linux-lspci",
+                  "macos-system-profiler"
+                ]
+              },
+              "status": {
+                "enum": ["available", "empty", "unavailable"]
+              },
+              "device_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reason": { "type": "string" }
+            }
+          }
+        },
         "devices": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["index", "name", "uuid", "driver_version", "pci_bus_id", "memory_total_mib"],
+            "required": ["index", "name"],
             "properties": {
               "index": { "type": "integer", "minimum": 0 },
               "name": { "type": "string" },
-              "uuid": { "type": "string" },
-              "driver_version": { "type": "string" },
-              "pci_bus_id": { "type": "string" },
-              "memory_total_mib": { "type": "integer", "minimum": 0 }
+              "vendor": { "type": ["string", "null"] },
+              "vendor_id": {
+                "type": ["string", "null"],
+                "pattern": "^[0-9a-f]{4,8}$"
+              },
+              "device_id": {
+                "type": ["string", "null"],
+                "pattern": "^[0-9a-f]{4,8}$"
+              },
+              "uuid": { "type": ["string", "null"] },
+              "driver_version": { "type": ["string", "null"] },
+              "pci_bus_id": { "type": ["string", "null"] },
+              "memory_total_mib": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "adapter_ram_mib": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "pnp_device_id": { "type": ["string", "null"] },
+              "sources": {
+                "type": "array",
+                "items": { "type": "string" },
+                "uniqueItems": true
+              }
             }
           }
         },
