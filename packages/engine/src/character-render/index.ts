@@ -54,10 +54,23 @@ export {
   buildAgentAvatarHair,
   buildAgentAvatarEyes,
   buildCharacterMesh,
+  resolveAgentAvatarHairStyle,
+  AGENT_AVATAR_HAIR_STYLES,
   type HairMeshData,
   type HairOptions,
+  type AgentAvatarHairStyle,
   type CharacterMeshData,
 } from './AgentAvatarHair';
+
+export {
+  applyNativeFacialMorph,
+  NATIVE_FACIAL_MORPH_TARGETS,
+  type NativeFacialMorphGeometry,
+  type NativeFacialMorphTarget,
+  type NativeMorphReceipt,
+  type NativeMorphResult,
+  type NativeMorphWeights,
+} from './AgentAvatarMorph';
 
 export {
   parseGlb,

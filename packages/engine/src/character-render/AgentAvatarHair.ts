@@ -42,18 +42,130 @@ export interface HairMeshData {
   vertexCount: number;
 }
 
+export const AGENT_AVATAR_HAIR_STYLES = [
+  'short',
+  'medium_wavy',
+  'long',
+  'swept_ridge',
+  'cropped_coils',
+] as const;
+
+export type AgentAvatarHairStyle = (typeof AGENT_AVATAR_HAIR_STYLES)[number];
+
+interface HairStyleProfile {
+  guides: number;
+  cardsPerGuide: number;
+  segments: number;
+  cardWidth: number;
+  length: number;
+  gravityBlend: number;
+  waveAmplitude: number;
+  waveTurns: number;
+  sweepX: number;
+  sweepZ: number;
+}
+
+const HAIR_STYLE_PROFILES: Record<AgentAvatarHairStyle, HairStyleProfile> = {
+  short: {
+    guides: 112,
+    cardsPerGuide: 2,
+    segments: 4,
+    cardWidth: 0.017,
+    length: 0.07,
+    gravityBlend: 0.65,
+    waveAmplitude: 0,
+    waveTurns: 0,
+    sweepX: 0,
+    sweepZ: 0,
+  },
+  medium_wavy: {
+    guides: 140,
+    cardsPerGuide: 2,
+    segments: 6,
+    cardWidth: 0.014,
+    length: 0.17,
+    gravityBlend: 0.85,
+    waveAmplitude: 0.18,
+    waveTurns: 1.5,
+    sweepX: 0,
+    sweepZ: 0,
+  },
+  long: {
+    guides: 160,
+    cardsPerGuide: 2,
+    segments: 8,
+    cardWidth: 0.012,
+    length: 0.31,
+    gravityBlend: 0.98,
+    waveAmplitude: 0.06,
+    waveTurns: 1,
+    sweepX: 0,
+    sweepZ: 0,
+  },
+  swept_ridge: {
+    guides: 126,
+    cardsPerGuide: 2,
+    segments: 6,
+    cardWidth: 0.015,
+    length: 0.18,
+    gravityBlend: 0.58,
+    waveAmplitude: 0.04,
+    waveTurns: 0.75,
+    sweepX: 0.38,
+    sweepZ: -0.08,
+  },
+  cropped_coils: {
+    guides: 168,
+    cardsPerGuide: 2,
+    segments: 7,
+    cardWidth: 0.012,
+    length: 0.11,
+    gravityBlend: 0.42,
+    waveAmplitude: 0.34,
+    waveTurns: 2.5,
+    sweepX: 0,
+    sweepZ: 0,
+  },
+};
+
+const HAIR_STYLE_ALIASES: Readonly<Record<string, AgentAvatarHairStyle>> = {
+  short: 'short',
+  cropped: 'short',
+  medium: 'medium_wavy',
+  medium_wavy: 'medium_wavy',
+  wavy: 'medium_wavy',
+  long: 'long',
+  long_wavy: 'long',
+  swept: 'swept_ridge',
+  swept_ridge: 'swept_ridge',
+  cropped_coils: 'cropped_coils',
+  coils: 'cropped_coils',
+};
+
+/** Resolve author-facing aliases without silently accepting an unknown geometry style. */
+export function resolveAgentAvatarHairStyle(style: string): AgentAvatarHairStyle | undefined {
+  return HAIR_STYLE_ALIASES[
+    style
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, '_')
+  ];
+}
+
 export interface HairOptions {
   buildScale?: number;
   heightScale?: number;
-  /** Scalp guide roots (default 140). */
+  /** Deterministic source-authored geometry profile (default `medium_wavy`). */
+  style?: AgentAvatarHairStyle;
+  /** Scalp guide roots (default comes from the selected style profile). */
   guides?: number;
-  /** Cards per guide for volume (default 2). */
+  /** Cards per guide for volume (default comes from the selected style profile). */
   cardsPerGuide?: number;
-  /** Points per guide curve (default 5). */
+  /** Points per guide curve (default comes from the selected style profile). */
   segments?: number;
-  /** Card width in metres (default 0.014). */
+  /** Card width in metres (default comes from the selected style profile). */
   cardWidth?: number;
-  /** Tip length in metres (default 0.16). */
+  /** Tip length in metres (default comes from the selected style profile). */
   length?: number;
 }
 
@@ -77,11 +189,12 @@ const lerp = (a: Vec3, b: Vec3, t: number): Vec3 => add(scl(a, 1 - t), scl(b, t)
 export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const bs = o.buildScale ?? 1;
   const hScale = o.heightScale ?? 1;
-  const guideCount = o.guides ?? 140;
-  const cardsPerGuide = o.cardsPerGuide ?? 2;
-  const segs = o.segments ?? 5;
-  const cardW = (o.cardWidth ?? 0.014) * bs;
-  const tipLen = (o.length ?? 0.16) * bs;
+  const profile = HAIR_STYLE_PROFILES[o.style ?? 'medium_wavy'];
+  const guideCount = o.guides ?? profile.guides;
+  const cardsPerGuide = o.cardsPerGuide ?? profile.cardsPerGuide;
+  const segs = o.segments ?? profile.segments;
+  const cardW = (o.cardWidth ?? profile.cardWidth) * bs;
+  const tipLen = (o.length ?? profile.length) * bs;
 
   const bind = computeBindWorld();
   const head = getTranslation(bind.get('head')!); // scalp base, world-bind y≈1.51
@@ -108,9 +221,19 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
 
     // Guide curve: hug the skull at the root, fall under gravity toward the tip.
     const curve: Vec3[] = [];
+    const side = nrm(cross(dir, v(0, 1, 0)));
     for (let i = 0; i < segs; i++) {
       const u = i / (segs - 1);
-      const flow = nrm(lerp(dir, v(0, -1, 0), u * 0.85));
+      const wave =
+        Math.sin(theta * 0.5 + u * Math.PI * 2 * profile.waveTurns) * profile.waveAmplitude * u;
+      const styledFlow = add(
+        add(
+          lerp(dir, v(0, -1, 0), u * profile.gravityBlend),
+          v(profile.sweepX * u, 0, profile.sweepZ * u)
+        ),
+        scl(side, wave)
+      );
+      const flow = nrm(styledFlow);
       curve.push(i === 0 ? root : add(curve[i - 1], scl(flow, tipLen / (segs - 1))));
     }
 
@@ -244,6 +367,9 @@ function catU32(a: Uint32Array, b: Uint32Array): Uint32Array<ArrayBuffer> {
 
 export interface CharacterMeshData {
   mesh: SkinnedMeshData;
+  bodyVertexRange: { vertexStart: number; vertexCount: number };
+  hairVertexRange: { vertexStart: number; vertexCount: number };
+  eyeVertexRange: { vertexStart: number; vertexCount: number };
   bodyRange: { indexStart: number; indexCount: number };
   hairRange: { indexStart: number; indexCount: number };
   eyeRange: { indexStart: number; indexCount: number };
@@ -296,6 +422,7 @@ export function buildCharacterMesh(
           segments: opts.segments,
           cardWidth: opts.cardWidth,
           length: opts.length,
+          style: opts.style,
         });
   const eyes =
     opts.includeEyes === false
@@ -421,6 +548,12 @@ export function buildCharacterMesh(
   const mantleStart = visorStart + garment.visor.indices.length;
   return {
     mesh,
+    bodyVertexRange: { vertexStart: 0, vertexCount: bodyVC },
+    hairVertexRange: { vertexStart: bodyVC, vertexCount: hairVC },
+    eyeVertexRange: {
+      vertexStart: bodyVC + hairVC,
+      vertexCount: eyes.vertexCount,
+    },
     bodyRange: { indexStart: 0, indexCount: body.indices.length },
     hairRange: { indexStart: hairStart, indexCount: hair.indices.length },
     eyeRange: { indexStart: eyeStart, indexCount: eyes.indices.length },

@@ -27,7 +27,12 @@ describe('buildCharacterHostFromComposition', () => {
             { name: 'body', config: { height: 1.85, build_scale: 1.3 } },
             { name: 'subsurface_scattering', config: { color: [0.78, 0.55, 0.4] } },
             { name: 'locomotion', config: { default_mode: 'smooth', smooth_speed: 1.6 } },
-            { name: 'morph', config: {} },
+            {
+              name: 'morph',
+              config: {
+                targets: { blink: 0.5, mouthSmile: 0.75, bodyHeight: 0.2 },
+              },
+            },
             { name: 'hair', config: { style: 'long' } },
           ],
         },
@@ -49,11 +54,18 @@ describe('buildCharacterHostFromComposition', () => {
     expect(r.gait?.speed).toBeCloseTo(1.6);
     expect(r.report.warnings.some((w) => w.includes("'smooth'"))).toBe(true);
 
-    // @morph stubbed (no channel); @skeleton(humanoid_65) validated → mapped; @hair(style-only) noted.
+    // The supported native morph/style subset is operative; unsupported body morph stays honest.
     const stubbed = r.report.stubbed.map((s) => s.trait);
-    expect(stubbed).toContain('@morph');
+    expect(stubbed).toContain('@morph(target=bodyHeight)');
+    expect(r.report.mapped).toContain('@hair(style=long)');
+    expect(r.report.mapped.some((m) => m.startsWith('@morph(targets='))).toBe(true);
+    expect(r.morph?.changedVertexCount).toBeGreaterThan(0);
+    expect(r.morph?.appliedTargets.map(({ target }) => target)).toEqual([
+      'blink_left',
+      'blink_right',
+      'smile',
+    ]);
     expect(r.report.mapped.some((m) => m.startsWith('@skeleton'))).toBe(true);
-    expect(r.report.warnings.some((w) => w.includes('@hair'))).toBe(true);
   });
 
   it('@hair(color) is operative — authored colour drives the rendered Marschner melanin (D.104)', () => {
@@ -72,6 +84,7 @@ describe('buildCharacterHostFromComposition', () => {
     const dark = make('#1a0e08');
     const blonde = make('#e8d088');
     expect(dark.report.mapped).toContain('@hair(color)');
+    expect(dark.report.mapped).toContain('@hair(style=short)');
 
     const melaninOf = (r: ReturnType<typeof make>): number => {
       const g = r.host
@@ -81,7 +94,26 @@ describe('buildCharacterHostFromComposition', () => {
     };
     // Darker authored hair → more eumelanin: the .holo colour reaches the draw spec, not a constant.
     expect(melaninOf(dark)).toBeGreaterThan(melaninOf(blonde));
-    expect(dark.report.warnings.some((w) => w.includes('style'))).toBe(true); // style noted, not faked
+    expect(dark.report.warnings.some((w) => w.includes('style'))).toBe(false);
+  });
+
+  it('keeps unknown hair styles explicit instead of accepting the default as authored', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'UnknownStyle',
+          traits: [
+            { name: 'body', config: {} },
+            { name: 'hair', config: { style: 'impossible_cloud' } },
+          ],
+        },
+      ],
+    });
+    expect(result.report.mapped.some((entry) => entry.startsWith('@hair(style='))).toBe(false);
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@hair(style)',
+      reason: "style 'impossible_cloud' has no native procedural geometry profile",
+    });
   });
 
   it('@subsurface_scattering(scatter_color) keeps non-human bodies out of the fixed human preset', () => {
@@ -218,6 +250,7 @@ describe('buildCharacterHostFromComposition', () => {
     expect(first?.maxDisplacement).toBeGreaterThan(0.001);
     expect(replay?.positionDigest).toBe(first?.positionDigest);
     expect(Array.from(result.host!.getDrawSpec().mesh.positions)).toEqual(firstPositions);
+    expect(result.host!.getMorphReceipt()).toBeNull();
   });
 
   it('maps the typed six-family catalog while preserving one neutral body and garment', () => {

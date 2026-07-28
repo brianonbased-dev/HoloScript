@@ -8,7 +8,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { testDevice, GPU_LIVE } from '../../physics/__tests__/gpu-setup';
-import { buildAgentAvatarHair, buildCharacterMesh } from '../AgentAvatarHair';
+import {
+  AGENT_AVATAR_HAIR_STYLES,
+  buildAgentAvatarHair,
+  buildCharacterMesh,
+  resolveAgentAvatarHairStyle,
+} from '../AgentAvatarHair';
 import { CharacterHost } from '../CharacterHost';
 import { renderCharacter } from '../character-render';
 import { quatFromAxisAngle } from '../skin-math';
@@ -26,7 +31,9 @@ function bandFigure(g: PixelGrid, y0: number, y1: number): number {
     for (let col = 0; col < g.width; col++) {
       const i = (row * g.width + col) * 4;
       const d =
-        Math.abs(g.data[i] - clear[0]) + Math.abs(g.data[i + 1] - clear[1]) + Math.abs(g.data[i + 2] - clear[2]);
+        Math.abs(g.data[i] - clear[0]) +
+        Math.abs(g.data[i + 1] - clear[1]) +
+        Math.abs(g.data[i + 2] - clear[2]);
       if (d > 40) n++;
     }
   }
@@ -36,7 +43,9 @@ function pixelDiff(a: PixelGrid, b: PixelGrid): number {
   let n = 0;
   for (let i = 0; i < a.data.length; i += 4) {
     const d =
-      Math.abs(a.data[i] - b.data[i]) + Math.abs(a.data[i + 1] - b.data[i + 1]) + Math.abs(a.data[i + 2] - b.data[i + 2]);
+      Math.abs(a.data[i] - b.data[i]) +
+      Math.abs(a.data[i + 1] - b.data[i + 1]) +
+      Math.abs(a.data[i + 2] - b.data[i + 2]);
     if (d > 40) n++;
   }
   return n;
@@ -65,7 +74,9 @@ describe('hair — procedural geometry (pure data)', () => {
     }
     expect(minY).toBeGreaterThan(1.4); // sits on/above the head (world-bind y≈1.51)
     // strandT actually varies (not all root / all tip — the bug the critique caught).
-    const ts = new Set(Array.from({ length: hair.vertexCount }, (_, i) => hair.tangents[i * 4 + 3]));
+    const ts = new Set(
+      Array.from({ length: hair.vertexCount }, (_, i) => hair.tangents[i * 4 + 3])
+    );
     expect(ts.size).toBeGreaterThan(1);
   });
 
@@ -82,6 +93,27 @@ describe('hair — procedural geometry (pure data)', () => {
     for (let i = 0; i < c.mesh.indices.length; i++) {
       expect(c.mesh.indices[i]).toBeLessThan(c.mesh.vertexCount);
     }
+  });
+
+  it('source style profiles are deterministic and materially change native topology', () => {
+    const signatures = new Set<string>();
+    for (const style of AGENT_AVATAR_HAIR_STYLES) {
+      const first = buildAgentAvatarHair({ style });
+      const replay = buildAgentAvatarHair({ style });
+      expect(Array.from(replay.positions)).toEqual(Array.from(first.positions));
+      expect(Array.from(replay.indices)).toEqual(Array.from(first.indices));
+      signatures.add(
+        `${first.vertexCount}:${Array.from(first.positions.slice(-24))
+          .map((value) => value.toFixed(5))
+          .join(',')}`
+      );
+    }
+    expect(signatures.size).toBe(AGENT_AVATAR_HAIR_STYLES.length);
+    expect(buildAgentAvatarHair({ style: 'long' }).vertexCount).toBeGreaterThan(
+      buildAgentAvatarHair({ style: 'short' }).vertexCount
+    );
+    expect(resolveAgentAvatarHairStyle('Medium Wavy')).toBe('medium_wavy');
+    expect(resolveAgentAvatarHairStyle('not_a_style')).toBeUndefined();
   });
 });
 

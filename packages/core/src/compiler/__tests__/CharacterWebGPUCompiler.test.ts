@@ -91,6 +91,47 @@ describe('CharacterWebGPUCompiler', () => {
     expect((JSON.parse(out) as CharacterDrawSpecBundle).entityId).toBe('brittney');
   });
 
+  it('serializes operative @hair(style) topology and @morph vertex deformation', async () => {
+    const neutralComposition = characterComp();
+    const authoredComposition = characterComp();
+    authoredComposition.objects[0]!.traits = authoredComposition.objects[0]!.traits!.map((trait) =>
+      trait.name === 'hair'
+        ? {
+            ...trait,
+            config: { style: 'swept_ridge', color: '#2c1810' },
+          }
+        : trait
+    );
+    authoredComposition.objects[0]!.traits!.push({
+      type: 'ObjectTrait',
+      name: 'morph',
+      config: {
+        targets: { blink: 0.7, mouthSmile: 0.55, jawOpen: 0.3 },
+      },
+    });
+
+    const neutral = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(neutralComposition)
+    ) as CharacterDrawSpecBundle;
+    const authored = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(authoredComposition)
+    ) as CharacterDrawSpecBundle;
+    const morph = authored.morph as {
+      schemaVersion: string;
+      changedVertexCount: number;
+      positionDigest: string;
+    };
+    const report = authored.report as { mapped: string[] };
+
+    expect(authored.vertexCount).not.toBe(neutral.vertexCount);
+    expect(authored.mesh.positions).not.toEqual(neutral.mesh.positions);
+    expect(morph.schemaVersion).toBe('holoscript.native-facial-morph.v1');
+    expect(morph.changedVertexCount).toBeGreaterThan(0);
+    expect(morph.positionDigest).toMatch(/^fnv1a32:[0-9a-f]{8}$/);
+    expect(report.mapped).toContain('@hair(style=swept_ridge)');
+    expect(report.mapped.some((entry) => entry.startsWith('@morph(targets='))).toBe(true);
+  });
+
   it('selects one named character from a multi-resident composition', async () => {
     const composition = {
       name: 'Family catalog',

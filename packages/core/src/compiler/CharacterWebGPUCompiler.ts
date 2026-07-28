@@ -57,6 +57,8 @@ export interface CharacterDrawSpecBundle {
   lod?: { level: number; distance: number; garmentSegments: number };
   /** Present when source-authored deterministic cloth simulation is operative. */
   cloth?: unknown;
+  /** Present when source-authored native procedural-head morph targets are operative. */
+  morph?: unknown;
   /** Present when a detachable public/story mantle is authored. */
   mantle?: unknown;
   /** Honest mapped/stubbed report from the authoring bridge. */
@@ -127,6 +129,10 @@ export class CharacterWebGPUCompiler {
     }
 
     const spec = result.host.getDrawSpec();
+    // The workspace can type core against the last-built engine declaration while tests execute
+    // current engine source. Feature-detect the optional receipt so this sovereign compiler stays
+    // compatible across that normal source/declaration skew.
+    const morph = 'morph' in result ? result.morph : undefined;
     const bundle: CharacterDrawSpecBundle = {
       format: 'character-webgpu/drawspec',
       version: 1,
@@ -137,9 +143,7 @@ export class CharacterWebGPUCompiler {
         positions: num(spec.mesh.positions),
         normals: num(spec.mesh.normals),
         tangents: num(spec.mesh.tangents),
-        ...((result.cloth || result.mantle) && spec.mesh.uvs
-          ? { uvs: num(spec.mesh.uvs) }
-          : {}),
+        ...((result.cloth || result.mantle) && spec.mesh.uvs ? { uvs: num(spec.mesh.uvs) } : {}),
         indices: num(spec.mesh.indices),
         jointIndices: num(spec.mesh.jointIndices),
         jointWeights: num(spec.mesh.jointWeights),
@@ -150,6 +154,7 @@ export class CharacterWebGPUCompiler {
       materialGroups: spec.materialGroups ?? null,
       ...(result.lod ? { lod: result.lod } : {}),
       ...(result.cloth ? { cloth: result.cloth } : {}),
+      ...(morph ? { morph } : {}),
       ...(result.mantle ? { mantle: result.mantle } : {}),
       report: result.report,
     };

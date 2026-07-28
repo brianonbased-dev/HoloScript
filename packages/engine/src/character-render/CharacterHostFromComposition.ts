@@ -6,9 +6,10 @@
  * Pure-data + GPU-free + parser-decoupled: it takes a STRUCTURAL view of the parsed AST (the
  * minimal subset it reads), so it needs no cross-package type import and no runtime parser
  * dependency — the caller parses (`parseHolo`) and passes `.ast` in. It maps the cleanly
- * supported traits (@body, @subsurface_scattering, @hair(color), @skeleton(rig), @locomotion)
- * onto CharacterHost and returns an honest report of what is mapped vs stubbed (@morph and
- * @hair(style) channels not yet wired).
+ * supported traits (@body, @subsurface_scattering, @hair, @morph, @skeleton, @locomotion)
+ * onto CharacterHost and returns an honest report of what is mapped vs stubbed. The native
+ * morph channel is a bounded procedural-head FACS/viseme subset; unsupported target/style
+ * names remain explicit instead of being silently accepted.
  *
  * @module character-render
  */
@@ -16,6 +17,8 @@
 import { CharacterHost } from './CharacterHost';
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
+import { resolveAgentAvatarHairStyle, type AgentAvatarHairStyle } from './AgentAvatarHair';
+import type { NativeMorphReceipt, NativeMorphWeights } from './AgentAvatarMorph';
 import {
   getSovereignMantleCatalogEntry,
   isSovereignMantleStyle,
@@ -68,6 +71,8 @@ export interface CharacterHostFromCompositionResult {
   lod?: { level: number; distance: number; garmentSegments: number };
   /** Operative deterministic cloth configuration, when @cloth_simulation is supported. */
   cloth?: ClothSimulationConfig;
+  /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
+  morph?: NativeMorphReceipt;
   /** Detachable public/story mantle and source refs resolved by the host platform. */
   mantle?: {
     style: SovereignMantleStyle;
@@ -122,6 +127,31 @@ interface TraitRec {
   config: Record<string, unknown>;
 }
 type TraitMap = Map<string, TraitRec>;
+
+/** Accept both current dict targets and legacy array-of-{name,weight} avatar authoring. */
+function authoredMorphWeights(trait: TraitRec): NativeMorphWeights {
+  const targets = cfgVal(trait, 'targets', 'weights');
+  const weights: Record<string, number> = {};
+  const targetRecord = asRecord(targets);
+  if (targetRecord) {
+    for (const [name, value] of Object.entries(targetRecord)) {
+      if (typeof value === 'number') weights[name] = value;
+    }
+    return weights;
+  }
+  if (!Array.isArray(targets)) return weights;
+  for (const target of targets) {
+    if (typeof target === 'string') {
+      weights[target] = 1;
+      continue;
+    }
+    const record = asRecord(target);
+    const name = record ? asStr(record.name) : undefined;
+    const weight = record ? asNum(record.weight) : undefined;
+    if (name) weights[name] = weight ?? 1;
+  }
+  return weights;
+}
 
 /** Merge an object's own traits over its `using` template's traits (template carries the set). */
 function mergeTraits(obj: CompObject, templates: CompTemplate[]): TraitMap {
@@ -282,16 +312,26 @@ export function buildCharacterHostFromComposition(
     report.mapped.push('@subsurface_scattering(scatter_color)');
   }
 
-  // 5. @hair(color) → Marschner melanin/redness. Darker authored hair → more eumelanin;
-  //    warmer (red-dominant) → more pheomelanin. Makes the authored hair colour OPERATIVE
-  //    (changing @hair(color) in the .holo changes the rendered hair). @hair(style) has no
-  //    geometry channel yet → reported, not faked.
+  // 5. @hair(color/style) → authored Marschner response plus deterministic card geometry.
+  //    Unknown style names are recorded as unsupported rather than borrowing the default.
   let melanin: number | undefined;
   let melaninRedness: number | undefined;
+  let hairStyle: AgentAvatarHairStyle | undefined;
+  let authoredHairStyle: string | undefined;
+  let hairColorMapped = false;
   const hair = traits.get('hair');
   if (hair) {
     const hairColor = asStr(cfgVal(hair, 'color', 'base_color'));
-    const style = asStr(cfgVal(hair, 'style'));
+    authoredHairStyle = asStr(cfgVal(hair, 'style'));
+    if (authoredHairStyle) {
+      hairStyle = resolveAgentAvatarHairStyle(authoredHairStyle);
+      if (!hairStyle) {
+        report.stubbed.push({
+          trait: '@hair(style)',
+          reason: `style '${authoredHairStyle}' has no native procedural geometry profile`,
+        });
+      }
+    }
     if (hairColor && /^#?[0-9a-fA-F]{6}$/.test(hairColor)) {
       const rgb = parseInt(hairColor.replace('#', ''), 16);
       const r = ((rgb >> 16) & 0xff) / 255;
@@ -300,13 +340,9 @@ export function buildCharacterHostFromComposition(
       const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
       melanin = clamp(1 - luminance, 0.05, 0.95);
       melaninRedness = clamp((r - b) * 1.5, 0, 1);
-      report.mapped.push('@hair(color)');
-      if (style)
-        report.warnings.push(`@hair(style:'${style}') has no geometry channel yet; colour mapped`);
-    } else {
-      report.warnings.push(
-        '@hair present: default procedural hair rendered; colour/style not author-driven'
-      );
+      hairColorMapped = true;
+    } else if (!authoredHairStyle) {
+      report.warnings.push('@hair present: default medium_wavy geometry and material rendered');
     }
   }
 
@@ -373,6 +409,21 @@ export function buildCharacterHostFromComposition(
     }
   }
 
+  // A closed hood intentionally emits no hair group, so do not claim hair traits were rendered.
+  if (hair) {
+    if (includeHair === false) {
+      if (hairColorMapped || authoredHairStyle) {
+        report.stubbed.push({
+          trait: '@hair',
+          reason: 'source-authored hair suppressed by closed hood geometry',
+        });
+      }
+    } else {
+      if (hairColorMapped) report.mapped.push('@hair(color)');
+      if (hairStyle) report.mapped.push(`@hair(style=${hairStyle})`);
+    }
+  }
+
   // 7. @cloth_simulation → deterministic fixed-step local-space XPBD.
   let cloth: ClothSimulationConfig | undefined;
   const clothTrait = traits.get('cloth_simulation');
@@ -422,6 +473,7 @@ export function buildCharacterHostFromComposition(
     skinScatterColor,
     melanin,
     melaninRedness,
+    hairStyle,
     position,
     garmentStyle,
     garmentColor,
@@ -433,7 +485,40 @@ export function buildCharacterHostFromComposition(
     includeEyes,
   });
 
-  // 9. @locomotion → gait descriptor (caller drives the per-frame clock).
+  // 9. @morph → bounded native procedural-head FACS/viseme vertex deformation.
+  let morph: NativeMorphReceipt | undefined;
+  const morphTrait = traits.get('morph');
+  if (morphTrait) {
+    const weights = authoredMorphWeights(morphTrait);
+    if (Object.keys(weights).length === 0) {
+      report.stubbed.push({
+        trait: '@morph',
+        reason: 'no initial targets authored; runtime channel is available via applyMorphWeights',
+      });
+    } else {
+      const receipt = host.applyMorphWeights(weights);
+      if (receipt.appliedTargets.length > 0) {
+        morph = receipt;
+        report.mapped.push(
+          `@morph(targets=${receipt.appliedTargets.map(({ target }) => target).join(',')})`
+        );
+      }
+      for (const target of receipt.ignoredTargets) {
+        report.stubbed.push({
+          trait: `@morph(target=${target})`,
+          reason: 'target has no native procedural-head deformation channel',
+        });
+      }
+      if (receipt.appliedTargets.length === 0) {
+        report.stubbed.push({
+          trait: '@morph',
+          reason: 'none of the authored targets have native procedural-head channels',
+        });
+      }
+    }
+  }
+
+  // 10. @locomotion → gait descriptor (caller drives the per-frame clock).
   let gait: { mode: GaitMode; speed: number } | undefined;
   const loco = traits.get('locomotion');
   if (loco) {
@@ -455,7 +540,7 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 10. @skeleton(rig) → validated against the one rig the host renders. A matching rig is
+  // 11. @skeleton(rig) → validated against the one rig the host renders. A matching rig is
   //    operative-by-agreement (the authored rig IS what renders); a mismatch is reported, never
   //    silently mis-rendered.
   const skel = traits.get('skeleton');
@@ -471,9 +556,5 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 11. STUBBED traits — captured, never faked (no CharacterHost channel exists yet).
-  if (traits.has('morph'))
-    report.stubbed.push({ trait: '@morph', reason: 'no FACS/morph-target channel yet' });
-
-  return { ok: true, host, gait, materialColor: color, lod, cloth, mantle, report };
+  return { ok: true, host, gait, materialColor: color, lod, cloth, morph, mantle, report };
 }

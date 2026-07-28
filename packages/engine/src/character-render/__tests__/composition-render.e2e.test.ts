@@ -28,7 +28,9 @@ function figurePixels(g: PixelGrid): number {
   let n = 0;
   for (let i = 0; i < g.data.length; i += 4) {
     const d =
-      Math.abs(g.data[i] - clear[0]) + Math.abs(g.data[i + 1] - clear[1]) + Math.abs(g.data[i + 2] - clear[2]);
+      Math.abs(g.data[i] - clear[0]) +
+      Math.abs(g.data[i + 1] - clear[1]) +
+      Math.abs(g.data[i + 2] - clear[2]);
     if (d > 40) n++;
   }
   return n;
@@ -48,6 +50,8 @@ describe('composition-render e2e — authored .holo → bridge → host', () => 
     // brittney.holo authors @body + @locomotion → both map through the real AST.
     expect(bridged.report.mapped).toContain('@body');
     expect(bridged.report.mapped).toContain('@locomotion');
+    expect(bridged.report.mapped).toContain('@hair(style=medium_wavy)');
+    expect(bridged.report.mapped).toContain('@hair(color)');
     expect(bridged.gait?.mode).toBe('walk');
   });
 

@@ -11,9 +11,9 @@
  *   - embodied agent  → posed + PLACED by an authoritative world-state driver keyed by
  *     `entityId` (the WebGPU-native analogue of xr-embodiment's AgentAvatarTracker).
  *
- * Phase-0 scope: body + skeleton-pose palette + world-state placement. Seams left for Phase 1+:
- * FACS morph weights, IdleBehaviorSystem breathe/blink, locomotion gait, and the D.102 "mind"
- * (seat-wallet identity + `private:<wallet>` memory) — declared below, not yet wired (Excludes).
+ * Current scope includes body, skeleton-pose palette, locomotion, deterministic cloth, a bounded
+ * native procedural-head FACS/viseme subset, world-state placement, and the D.102 portable-mind
+ * seam. Production facial topology and activity-driven expressions remain later upgrade lanes.
  *
  * @module character-render
  */
@@ -37,7 +37,16 @@ import {
   JOINT_COUNT,
   type AvatarPose,
 } from './AgentAvatarMesh';
-import { buildCharacterMesh, type CharacterMeshData } from './AgentAvatarHair';
+import {
+  buildCharacterMesh,
+  type AgentAvatarHairStyle,
+  type CharacterMeshData,
+} from './AgentAvatarHair';
+import {
+  applyNativeFacialMorph,
+  type NativeMorphReceipt,
+  type NativeMorphWeights,
+} from './AgentAvatarMorph';
 import type { SovereignGarmentStyle, SovereignMantleStyle } from './AgentAvatarGarment';
 import {
   DeterministicClothSimulation,
@@ -74,6 +83,8 @@ export interface CharacterHostOptions {
   melanin?: number;
   /** Hair pheomelanin/redness 0..1. Default 0.2. */
   melaninRedness?: number;
+  /** Source-authored deterministic procedural hair geometry profile. */
+  hairStyle?: AgentAvatarHairStyle;
   /** Iris colour 0xRRGGBB (default warm brown #4a3520). */
   irisColor?: number;
   /** Initial world position. */
@@ -156,6 +167,9 @@ export class CharacterHost {
   private readonly visorMaterial: BaseMaterialSpec;
   private readonly clothSimulation: DeterministicClothSimulation | null;
   private lastClothReceipt: ClothSimulationReceipt | null = null;
+  private deformationBasePositions: Float32Array<ArrayBuffer>;
+  private morphWeights: NativeMorphWeights = {};
+  private lastMorphReceipt: NativeMorphReceipt | null = null;
   private modelMatrix: Mat4;
   private pose: Map<string, Quat> = new Map();
   // D.102 portable mind (opt-in via bindMind; body renders identically with or without it).
@@ -174,7 +188,9 @@ export class CharacterHost {
       mantleStyle: opts.mantleStyle,
       includeHair: opts.includeHair,
       includeEyes: opts.includeEyes,
+      style: opts.hairStyle,
     });
+    this.deformationBasePositions = new Float32Array(this.built.mesh.positions);
     this.bindWorld = computeBindWorld();
     this.inverseBind = computeInverseBind(this.bindWorld);
     const skinTone = opts.skinTone ?? 0xe8c4a0;
@@ -284,7 +300,12 @@ export class CharacterHost {
   sampleClothSimulation(timeSeconds: number): ClothSimulationReceipt | null {
     if (!this.clothSimulation) return null;
     const sampled = this.clothSimulation.sample(timeSeconds);
-    this.built.mesh.positions = sampled.positions;
+    this.deformationBasePositions = new Float32Array(sampled.positions);
+    if (Object.keys(this.morphWeights).length > 0) {
+      this.applyMorphWeights(this.morphWeights);
+    } else {
+      this.built.mesh.positions = new Float32Array(this.deformationBasePositions);
+    }
     this.lastClothReceipt = sampled.receipt;
     return { ...sampled.receipt };
   }
@@ -292,6 +313,43 @@ export class CharacterHost {
   /** Latest deterministic cloth receipt, or null when the source did not author cloth dynamics. */
   getClothSimulationReceipt(): ClothSimulationReceipt | null {
     return this.lastClothReceipt ? { ...this.lastClothReceipt } : null;
+  }
+
+  /**
+   * Apply the native procedural-head FACS/viseme subset to real mesh vertices.
+   *
+   * Every call starts from the current neutral/cloth deformation base, so weights are absolute
+   * rather than cumulatively drifting. Unsupported names are preserved in the returned receipt.
+   */
+  applyMorphWeights(weights: NativeMorphWeights): NativeMorphReceipt {
+    this.morphWeights = { ...weights };
+    const morphed = applyNativeFacialMorph(
+      this.deformationBasePositions,
+      this.built.mesh.jointIndices,
+      {
+        bodyVertexRange: this.built.bodyVertexRange,
+        eyeVertexRange: this.built.eyeVertexRange,
+      },
+      this.morphWeights
+    );
+    this.built.mesh.positions = morphed.positions;
+    this.lastMorphReceipt = morphed.receipt;
+    return {
+      ...morphed.receipt,
+      appliedTargets: morphed.receipt.appliedTargets.map((target) => ({ ...target })),
+      ignoredTargets: [...morphed.receipt.ignoredTargets],
+    };
+  }
+
+  /** Latest native facial deformation receipt, or null until morph weights are applied. */
+  getMorphReceipt(): NativeMorphReceipt | null {
+    return this.lastMorphReceipt
+      ? {
+          ...this.lastMorphReceipt,
+          appliedTargets: this.lastMorphReceipt.appliedTargets.map((target) => ({ ...target })),
+          ignoredTargets: [...this.lastMorphReceipt.ignoredTargets],
+        }
+      : null;
   }
 
   /** Apply a source-resolved local UV texture tile to the detachable mantle material. */
