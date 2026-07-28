@@ -13,7 +13,10 @@ const RUNNER = join(ROOT, 'scripts/_parse-one.cjs');
 const PARSER = join(ROOT, 'packages/core/dist/parser.cjs');
 
 const targetFile = process.argv[2];
-if (!targetFile) { console.error('Usage: node scripts/_bisect-file.mjs <file>'); process.exit(1); }
+if (!targetFile) {
+  console.error('Usage: node scripts/_bisect-file.mjs <file>');
+  process.exit(1);
+}
 
 const lines = readFileSync(targetFile, 'utf8').split('\n');
 console.log(`Total lines: ${lines.length}`);
@@ -23,12 +26,16 @@ function testLines(slice) {
   const tmpFile = join(ROOT, '.bench-logs/dogfood/_bisect-tmp.holo');
   mkdirSync(join(ROOT, '.bench-logs/dogfood'), { recursive: true });
   writeFileSync(tmpFile, src);
-  const res = spawnSync(process.execPath, [RUNNER, PARSER, tmpFile], { timeout: 5000, maxBuffer: 64*1024 });
+  const res = spawnSync(process.execPath, [RUNNER, PARSER, tmpFile], {
+    timeout: 5000,
+    maxBuffer: 64 * 1024,
+  });
   return res.status !== null; // true = completed (pass or fail), false = timeout/killed
 }
 
 // Binary search: find smallest prefix that triggers timeout
-let lo = 1, hi = lines.length;
+let lo = 1,
+  hi = lines.length;
 while (lo < hi) {
   const mid = Math.floor((lo + hi) / 2);
   const slice = lines.slice(0, mid);
@@ -43,4 +50,4 @@ while (lo < hi) {
   }
 }
 console.log(`\nInfinite loop triggered starting at/before line ${lo}`);
-console.log('Context:', lines.slice(Math.max(0, lo-5), lo+5).join('\n'));
+console.log('Context:', lines.slice(Math.max(0, lo - 5), lo + 5).join('\n'));

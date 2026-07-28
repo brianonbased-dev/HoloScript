@@ -119,7 +119,15 @@ const ORDER_DTS_EXEMPT = new Set([
 ]);
 
 const SRC_EXT = /\.[cm]?[jt]sx?$/;
-const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', '__tests__', '.turbo', '.next', 'coverage']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'dist',
+  'build',
+  '__tests__',
+  '.turbo',
+  '.next',
+  'coverage',
+]);
 
 // ── workspace package name → dir ────────────────────────────────────────────
 /** Map every workspace package `name` to its directory (relative to REPO_ROOT). */
@@ -246,7 +254,11 @@ function walkSrc(dir, out) {
  * or a package `build` script all do.
  */
 function commandProvidesDts(cmd) {
-  if (/emitDeclarationOnly|generate-types\.mjs|--dts-only|tsc\s+-p\b|pnpm exec tsc\b|pnpm run build\b/.test(cmd)) {
+  if (
+    /emitDeclarationOnly|generate-types\.mjs|--dts-only|tsc\s+-p\b|pnpm exec tsc\b|pnpm run build\b/.test(
+      cmd
+    )
+  ) {
     return true;
   }
   if (/\btsup\b/.test(cmd) && !/--no-dts/.test(cmd)) return true;
@@ -296,7 +308,12 @@ function expandBuildScript(scriptRel, workspace, dirToName, seen = new Set()) {
       continue;
     }
     const nestedSh = line.match(/(scripts\/[^\s]+\.sh)/);
-    if (nestedSh && /tsup|tsc|build|generate-types|\.sh/.test(line) && line.includes('.sh') && !line.includes('chmod')) {
+    if (
+      nestedSh &&
+      /tsup|tsc|build|generate-types|\.sh/.test(line) &&
+      line.includes('.sh') &&
+      !line.includes('chmod')
+    ) {
       // recurse into a nested build script (e.g. build-engine-no-dts.sh)
       for (const s of expandBuildScript(nestedSh[1], workspace, dirToName, seen)) steps.push(s);
       continue;
@@ -380,7 +397,9 @@ function parseDockerfile(rel, workspace, dirToName) {
 
     // explicit source copy: `COPY packages/X/ packages/X/` / `COPY services/X/ ...` /
     // `COPY packages/plugins/X/ ...` (NOT `COPY --from=builder .../dist` = runtime dist)
-    const srcCopy = line.match(/^COPY\s+((?:packages\/plugins\/[a-z0-9-]+)|(?:packages|services)\/[a-z0-9][a-z0-9-]*)\/\s/);
+    const srcCopy = line.match(
+      /^COPY\s+((?:packages\/plugins\/[a-z0-9-]+)|(?:packages|services)\/[a-z0-9][a-z0-9-]*)\/\s/
+    );
     if (srcCopy && !/--from=/.test(line)) {
       const name = dirToName.get(srcCopy[1]);
       if (name && !copiedSource.has(name)) copiedSource.set(name, { line: i, stage });
@@ -398,12 +417,20 @@ function parseDockerfile(rel, workspace, dirToName) {
       }
 
       // `RUN cd packages/X && <build>` and `RUN pnpm --filter @scope/x build`
-      const cdBuild = line.match(/cd\s+((?:packages|services)\/[a-z0-9][a-z0-9-]*(?:\/[a-z0-9-]+)?)\s*&&\s*(.*)$/);
+      const cdBuild = line.match(
+        /cd\s+((?:packages|services)\/[a-z0-9][a-z0-9-]*(?:\/[a-z0-9-]+)?)\s*&&\s*(.*)$/
+      );
       if (cdBuild) {
         const name = dirToName.get(cdBuild[1]);
         const cmd = cdBuild[2];
         if (name && /\b(tsup|tsc|generate-types\.mjs|pnpm run build)\b/.test(cmd)) {
-          builds.push({ name, provides: commandProvidesDts(cmd), requires: commandRequiresDepDts(cmd), line: i, stage });
+          builds.push({
+            name,
+            provides: commandProvidesDts(cmd),
+            requires: commandRequiresDepDts(cmd),
+            line: i,
+            stage,
+          });
         }
       }
       const filterBuild = line.match(/pnpm\s+--filter\s+(\S+)\s+build\b/);
@@ -437,7 +464,8 @@ function parseCoreExternals() {
   // string literals: '@holoscript/mesh'
   for (const m of body.matchAll(/['"](@holoscript\/[a-z0-9-]+)['"]/g)) set.add(m[1]);
   // regexes: /^@holoscript\/mesh\//  → @holoscript/mesh
-  for (const m of body.matchAll(/\/\^@holoscript\\\/([a-z0-9-]+)\\\//g)) set.add('@holoscript/' + m[1]);
+  for (const m of body.matchAll(/\/\^@holoscript\\\/([a-z0-9-]+)\\\//g))
+    set.add('@holoscript/' + m[1]);
   return set;
 }
 
@@ -461,7 +489,9 @@ function analyze(workspace, dirToName) {
         (src && src.stage === b.stage && src.line < b.line) ||
         (wholesale && wholesale.stage === b.stage && wholesale.line < b.line);
       if (!copiedBefore) {
-        copyGaps.push(`${rel} :: ${b.name} built (line ${b.line + 1}) but source never COPY'd into its build stage first`);
+        copyGaps.push(
+          `${rel} :: ${b.name} built (line ${b.line + 1}) but source never COPY'd into its build stage first`
+        );
       }
     }
 
@@ -471,7 +501,9 @@ function analyze(workspace, dirToName) {
       const npmrcLines = df.npmrcCopiesByStage.get(inst.stageIdx) || [];
       if (!npmrcLines.some((l) => l < inst.line)) {
         const stageName = df.stages[inst.stageIdx]?.name ?? `stage${inst.stageIdx}`;
-        npmrcGaps.push(`${rel} :: stage "${stageName}" (line ${inst.line + 1}) runs pnpm install without .npmrc (shamefully-hoist) available first`);
+        npmrcGaps.push(
+          `${rel} :: stage "${stageName}" (line ${inst.line + 1}) runs pnpm install without .npmrc (shamefully-hoist) available first`
+        );
       }
     }
 
@@ -502,7 +534,9 @@ function analyze(workspace, dirToName) {
   const coreDir = workspace.get('@holoscript/core');
   if (coreDir) {
     const externals = parseCoreExternals();
-    const corePkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, coreDir, 'package.json'), 'utf8'));
+    const corePkg = JSON.parse(
+      fs.readFileSync(path.join(REPO_ROOT, coreDir, 'package.json'), 'utf8')
+    );
     const declared = new Set([
       ...Object.keys(corePkg.dependencies || {}),
       ...Object.keys(corePkg.peerDependencies || {}),
@@ -512,7 +546,9 @@ function analyze(workspace, dirToName) {
     const coreValueImports = workspaceImportsOf(coreDir, '@holoscript/core', workspace).value;
     for (const dep of coreValueImports) {
       if (declared.has(dep) || externals.has(dep)) continue;
-      externalsGaps.push(`${CORE_DOCKER_TSUP} :: core value-imports ${dep} but it is neither declared in core/package.json nor externalized`);
+      externalsGaps.push(
+        `${CORE_DOCKER_TSUP} :: core value-imports ${dep} but it is neither declared in core/package.json nor externalized`
+      );
     }
   }
 
@@ -535,14 +571,26 @@ function readBaseline() {
 }
 
 const CLASSES = [
-  ['orderGaps', 'a tsc-built package now imports a workspace dep that is NOT built-with-dts earlier in its Dockerfile',
-    'add a build step for that dep (emitting dts) BEFORE the importer, or fix the ordering'],
-  ['externalsGaps', 'core now value-imports a workspace dep neither declared in core/package.json nor externalized in tsup.core.docker.cjs',
-    'add the dep to the `external` array in scripts/docker/tsup.core.docker.cjs (or declare it in core/package.json)'],
-  ['copyGaps', 'a package is now BUILT in a Dockerfile stage without its source COPY\'d into that stage first',
-    'add a `COPY packages/<X>/ packages/<X>/` before the build (docker build would fail "tsup: No input files")'],
-  ['npmrcGaps', 'a Dockerfile stage now runs `pnpm install` without .npmrc (shamefully-hoist) available first',
-    'COPY .npmrc into the stage before `pnpm install` (missing hoist breaks core\'s dts emit with TS2307)'],
+  [
+    'orderGaps',
+    'a tsc-built package now imports a workspace dep that is NOT built-with-dts earlier in its Dockerfile',
+    'add a build step for that dep (emitting dts) BEFORE the importer, or fix the ordering',
+  ],
+  [
+    'externalsGaps',
+    'core now value-imports a workspace dep neither declared in core/package.json nor externalized in tsup.core.docker.cjs',
+    'add the dep to the `external` array in scripts/docker/tsup.core.docker.cjs (or declare it in core/package.json)',
+  ],
+  [
+    'copyGaps',
+    "a package is now BUILT in a Dockerfile stage without its source COPY'd into that stage first",
+    'add a `COPY packages/<X>/ packages/<X>/` before the build (docker build would fail "tsup: No input files")',
+  ],
+  [
+    'npmrcGaps',
+    'a Dockerfile stage now runs `pnpm install` without .npmrc (shamefully-hoist) available first',
+    "COPY .npmrc into the stage before `pnpm install` (missing hoist breaks core's dts emit with TS2307)",
+  ],
 ];
 
 function main() {
@@ -581,13 +629,13 @@ function main() {
     }
     fs.writeFileSync(BASELINE_PATH, JSON.stringify(payload, null, 2) + '\n');
     console.log(
-      `✓ docker-drift baseline reseeded: ${CLASSES.map(([k]) => `${k}=${current[k].length}`).join(', ')}`,
+      `✓ docker-drift baseline reseeded: ${CLASSES.map(([k]) => `${k}=${current[k].length}`).join(', ')}`
     );
     return;
   }
 
   console.log(
-    `docker-drift: ${DOCKERFILES.length} Dockerfiles · ${CLASSES.map(([k]) => `${k}=${current[k].length}`).join(' · ')}`,
+    `docker-drift: ${DOCKERFILES.length} Dockerfiles · ${CLASSES.map(([k]) => `${k}=${current[k].length}`).join(' · ')}`
   );
 
   const baseline = readBaseline();
@@ -598,12 +646,13 @@ function main() {
 
   let failed = false;
   for (const [k, meaning, fix] of CLASSES) {
-    if (ratchet(k, current[k], baseline[k] || [], baseline[k + 'Count'] ?? 0, meaning, fix)) failed = true;
+    if (ratchet(k, current[k], baseline[k] || [], baseline[k + 'Count'] ?? 0, meaning, fix))
+      failed = true;
   }
 
   if (failed) process.exit(1);
   console.log(
-    `✓ docker-drift holds vs baseline (${CLASSES.map(([k]) => `${k} ≤ ${baseline[k + 'Count'] ?? 0}`).join(', ')}).`,
+    `✓ docker-drift holds vs baseline (${CLASSES.map(([k]) => `${k} ≤ ${baseline[k + 'Count'] ?? 0}`).join(', ')}).`
   );
 }
 
@@ -613,11 +662,15 @@ function ratchet(label, current, baselineList, baselineCount, whatItMeans, howTo
   if (added.length > 0) {
     console.error(`\n✗ NEW ${label} (${added.length}) — ${whatItMeans}:`);
     for (const a of added) console.error(`    + ${a}`);
-    console.error(`\n  One-sided Docker-recipe drift that breaks the container build before Railway.\n  Fix: ${howToFix}, then reseed: --update-baseline.`);
+    console.error(
+      `\n  One-sided Docker-recipe drift that breaks the container build before Railway.\n  Fix: ${howToFix}, then reseed: --update-baseline.`
+    );
     return true;
   }
   if (current.length < baselineCount) {
-    console.log(`\n➜ ${label} progress: fell ${baselineCount} → ${current.length}. Run --update-baseline to lock in the gain.`);
+    console.log(
+      `\n➜ ${label} progress: fell ${baselineCount} → ${current.length}. Run --update-baseline to lock in the gain.`
+    );
   }
   return false;
 }

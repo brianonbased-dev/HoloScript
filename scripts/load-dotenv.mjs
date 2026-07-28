@@ -114,10 +114,7 @@ try {
 export function loadDotenv(options = {}) {
   const workspaceRoot = options.workspaceRoot || resolve(__dirname, '..');
   const homeDir = process.env.HOME || process.env.USERPROFILE || HOME || '';
-  const paths = [
-    resolve(workspaceRoot, '.env'),
-    join(homeDir, '.ai-ecosystem', '.env'),
-  ];
+  const paths = [resolve(workspaceRoot, '.env'), join(homeDir, '.ai-ecosystem', '.env')];
 
   // Scrub already-inherited denylist keys from process.env BEFORE loading.
   // Closes the shadow for already-running daemon processes (W.088/W.094/W.129).

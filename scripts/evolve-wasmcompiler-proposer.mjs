@@ -10,12 +10,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -90,18 +85,14 @@ function gitShow(ref, path) {
     maxBuffer: 1024 * 1024 * 16,
   });
   if ((result.status ?? 1) !== 0) {
-    throw new Error(`git show ${ref}:${rel(path)} failed: ${(result.stderr || result.stdout || '').slice(0, 500)}`);
+    throw new Error(
+      `git show ${ref}:${rel(path)} failed: ${(result.stderr || result.stdout || '').slice(0, 500)}`
+    );
   }
   return result.stdout;
 }
 
-function runGate({
-  target,
-  candidatePath,
-  seedRef,
-  outPath,
-  skipTests,
-}) {
+function runGate({ target, candidatePath, seedRef, outPath, skipTests }) {
   const gateArgs = [
     'scripts/evolve-wasmcompiler-gate.mjs',
     '--target',
@@ -157,12 +148,12 @@ async function main() {
   const out = resolve(REPO_ROOT, argValue('--out', DEFAULT_OUT));
   const bestOut = resolve(REPO_ROOT, argValue('--best-out', DEFAULT_BEST_OUT));
   const traceOut = resolve(REPO_ROOT, argValue('--trace-out', DEFAULT_TRACE_OUT));
-  const runId = argValue(
-    '--run-id',
-    new Date().toISOString().replace(/[:.]/g, '-'),
-  );
+  const runId = argValue('--run-id', new Date().toISOString().replace(/[:.]/g, '-'));
   const runRoot = resolve(REPO_ROOT, DEFAULT_RUN_ROOT, runId);
-  const candidateDir = resolve(REPO_ROOT, argValue('--candidate-dir', rel(resolve(runRoot, 'candidates'))));
+  const candidateDir = resolve(
+    REPO_ROOT,
+    argValue('--candidate-dir', rel(resolve(runRoot, 'candidates')))
+  );
   const gateDir = resolve(REPO_ROOT, argValue('--gate-dir', rel(resolve(runRoot, 'gates'))));
   const mockProposer = argValue('--mock-proposer', null);
   const skipTests = hasFlag('--skip-tests');
@@ -196,11 +187,7 @@ async function main() {
 
   const evolutionEntry = resolve(REPO_ROOT, 'packages/core/src/evolution/index.ts');
   const evolution = await import(pathToFileURL(evolutionEntry).href);
-  const {
-    makeOllamaProposer,
-    runEvolution,
-    toGradedTraceRow,
-  } = evolution;
+  const { makeOllamaProposer, runEvolution, toGradedTraceRow } = evolution;
 
   const baseProposer = mockProposer
     ? async () => readFileSync(resolve(REPO_ROOT, mockProposer), 'utf8')
@@ -251,18 +238,20 @@ async function main() {
     gate,
     onCandidate: (record) => {
       traceRecords.push(record);
-      traceRows.push(toGradedTraceRow(record, {
-        agentId: 'wasmcompiler-evolve',
-        source: 'evolve-wasmcompiler-proposer',
-        ts: new Date().toISOString(),
-      }));
+      traceRows.push(
+        toGradedTraceRow(record, {
+          agentId: 'wasmcompiler-evolve',
+          source: 'evolve-wasmcompiler-proposer',
+          ts: new Date().toISOString(),
+        })
+      );
     },
   });
 
   writeFileSync(
     traceOut,
     traceRows.map((row) => JSON.stringify(row)).join('\n') + (traceRows.length ? '\n' : ''),
-    'utf8',
+    'utf8'
   );
   if (result.bestCode) {
     writeFileSync(bestOut, result.bestCode, 'utf8');
@@ -296,7 +285,7 @@ async function main() {
     console.log(JSON.stringify(receipt));
   } else {
     console.log(
-      `[evolve-wasmcompiler-proposer] result=${result.receipt.result} seed=${result.receipt.seedScore} best=${result.receipt.bestScore} receipt=${rel(out)} verify=${receipt.verifyUrl}`,
+      `[evolve-wasmcompiler-proposer] result=${result.receipt.result} seed=${result.receipt.seedScore} best=${result.receipt.bestScore} receipt=${rel(out)} verify=${receipt.verifyUrl}`
     );
     if (result.bestCode) {
       console.log(`[evolve-wasmcompiler-proposer] best candidate: ${rel(bestOut)}`);

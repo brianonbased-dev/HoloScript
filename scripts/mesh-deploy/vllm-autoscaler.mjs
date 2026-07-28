@@ -38,15 +38,12 @@ const LEDGER_PY = join(__dirname, 'vast-spend-ledger.py');
 // ── config ────────────────────────────────────────────────────────────────────
 
 const ORCH_URL =
-  process.env.FLEET_REGISTRY_URL ||
-  'https://mcp-orchestrator-production-45f9.up.railway.app';
+  process.env.FLEET_REGISTRY_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const ORCH_KEY = process.env.HOLOSCRIPT_API_KEY;
 const VASTAI_KEY = process.env.VASTAI_API_KEY || process.env.VAST_API_KEY;
 const INFERENCE_KEY = process.env.VLLM_INFERENCE_KEY || randomUUID();
 
-const MODEL =
-  process.env.FLEET_MODEL ||
-  'Qwen/Qwen2.5-Coder-7B-Instruct-AWQ';
+const MODEL = process.env.FLEET_MODEL || 'Qwen/Qwen2.5-Coder-7B-Instruct-AWQ';
 const MAX_DPH = parseFloat(process.env.SERVE_MAX_DPH || '1.00');
 const MIN_VRAM_GB = parseInt(process.env.SERVE_MIN_VRAM_GB || '10', 10);
 const IDLE_TTL_MS = parseInt(process.env.SERVE_IDLE_TTL_MS || '300000', 10);
@@ -83,9 +80,15 @@ const managed = new Map();
 // ── logging ───────────────────────────────────────────────────────────────────
 
 const tag = '[autoscaler]';
-function log(...args) { console.log(new Date().toISOString(), tag, ...args); }
-function warn(...args) { console.warn(new Date().toISOString(), tag, 'WARN', ...args); }
-function err(...args) { console.error(new Date().toISOString(), tag, 'ERROR', ...args); }
+function log(...args) {
+  console.log(new Date().toISOString(), tag, ...args);
+}
+function warn(...args) {
+  console.warn(new Date().toISOString(), tag, 'WARN', ...args);
+}
+function err(...args) {
+  console.error(new Date().toISOString(), tag, 'ERROR', ...args);
+}
 
 /** Scrub api_key from Vast.ai URLs before logging (W.721/F.106). */
 function scrubUrl(url) {
@@ -136,7 +139,10 @@ async function deregister(id) {
  * @param {string[]} args
  */
 function ledger(...args) {
-  if (DRY_RUN) { log(`[dry-run] ledger ${args.join(' ')}`); return; }
+  if (DRY_RUN) {
+    log(`[dry-run] ledger ${args.join(' ')}`);
+    return;
+  }
   const r = spawnSync('python3', [LEDGER_PY, ...args], { encoding: 'utf8', timeout: 10_000 });
   if (r.status !== 0)
     warn(`vast-spend-ledger.py ${args[0]} returned ${r.status}: ${(r.stderr || '').slice(0, 200)}`);
@@ -147,7 +153,9 @@ function checkCap() {
   if (DRY_RUN) return true;
   const r = spawnSync('python3', [LEDGER_PY, 'check-cap'], { encoding: 'utf8', timeout: 10_000 });
   if (r.status === 0) return true;
-  warn(`Daily spend cap reached — refusing new Vast.ai rental: ${(r.stdout || r.stderr || '').trim()}`);
+  warn(
+    `Daily spend cap reached — refusing new Vast.ai rental: ${(r.stdout || r.stderr || '').trim()}`
+  );
   return false;
 }
 
@@ -168,9 +176,7 @@ async function vastFetch(method, path, body, extra = {}) {
   });
   const text = await res.text();
   if (!res.ok)
-    throw new Error(
-      `Vast.ai ${method} ${scrubUrl(url)} → ${res.status}: ${text.slice(0, 300)}`
-    );
+    throw new Error(`Vast.ai ${method} ${scrubUrl(url)} → ${res.status}: ${text.slice(0, 300)}`);
   return text ? JSON.parse(text) : null;
 }
 
@@ -187,7 +193,11 @@ async function findCheapestOffer() {
     reliability2: { gte: 0.9 },
     cuda_max_good: { gte: 12 },
   });
-  const data = await vastFetch('GET', '/bundles/', undefined, { q, order_by: 'dph_total', limit: '5' });
+  const data = await vastFetch('GET', '/bundles/', undefined, {
+    q,
+    order_by: 'dph_total',
+    limit: '5',
+  });
   const offers = data?.offers ?? [];
   if (!offers.length) return null;
   return offers[0];
@@ -249,13 +259,21 @@ async function waitForRunning(vastInstanceId, endpointId) {
     await sleep(15_000);
     const data = await vastFetch('GET', '/instances/', undefined, { owner: 'me' });
     const inst = (data?.instances ?? []).find((i) => i.id === vastInstanceId);
-    if (!inst) { warn(`Instance ${vastInstanceId} not found in Vast.ai — may have been destroyed`); return null; }
+    if (!inst) {
+      warn(`Instance ${vastInstanceId} not found in Vast.ai — may have been destroyed`);
+      return null;
+    }
     log(`  instance ${vastInstanceId} status=${inst.actual_status}`);
     if (inst.actual_status === 'running') {
       const pubIp = inst.public_ipaddr;
       const portMap = inst.ports?.[`${VLLM_INTERNAL_PORT}/tcp`];
       const extPort = portMap?.[0]?.HostPort ?? VLLM_INTERNAL_PORT;
-      return { publicIp: pubIp, externalPort: Number(extPort), gpuName: inst.gpu_name, dph: inst.dph_total };
+      return {
+        publicIp: pubIp,
+        externalPort: Number(extPort),
+        gpuName: inst.gpu_name,
+        dph: inst.dph_total,
+      };
     }
     if (inst.actual_status === 'destroyed' || inst.actual_status === 'stopped') {
       warn(`Instance ${vastInstanceId} entered ${inst.actual_status} before becoming healthy`);
@@ -296,7 +314,10 @@ async function waitForVllmHealth(publicIp, externalPort) {
  * Destroy a Vast.ai instance. Non-fatal on failure.
  */
 async function destroyInstance(vastInstanceId) {
-  if (DRY_RUN) { log(`[dry-run] Would DELETE /instances/${vastInstanceId}/`); return; }
+  if (DRY_RUN) {
+    log(`[dry-run] Would DELETE /instances/${vastInstanceId}/`);
+    return;
+  }
   try {
     await vastFetch('DELETE', `/instances/${vastInstanceId}/`);
     log(`Vast.ai instance ${vastInstanceId} destroyed`);
@@ -314,15 +335,24 @@ async function teardownEndpoint(ep) {
   clearInterval(ep.heartbeatTimer);
   log(`Tearing down endpoint ${ep.endpointId} (Vast.ai instance ${ep.vastInstanceId})`);
 
-  try { await setDraining(ep.endpointId); } catch (e) { warn('drain status update failed:', e.message); }
+  try {
+    await setDraining(ep.endpointId);
+  } catch (e) {
+    warn('drain status update failed:', e.message);
+  }
   await destroyInstance(ep.vastInstanceId);
-  try { await deregister(ep.endpointId); } catch (e) { warn('deregister failed:', e.message); }
+  try {
+    await deregister(ep.endpointId);
+  } catch (e) {
+    warn('deregister failed:', e.message);
+  }
   managed.delete(ep.endpointId);
   log(`Endpoint ${ep.endpointId} fully decommissioned`);
 }
 
 async function spawnEndpoint(model) {
-  if (!VASTAI_KEY && !DRY_RUN) throw new Error('VASTAI_API_KEY is required to provision GPU instances');
+  if (!VASTAI_KEY && !DRY_RUN)
+    throw new Error('VASTAI_API_KEY is required to provision GPU instances');
 
   // Hard gate: refuse if today's fleet-wide Vast.ai spend is at cap
   if (!checkCap()) return;
@@ -334,15 +364,26 @@ async function spawnEndpoint(model) {
   let offerDph = 0;
   if (!DRY_RUN) {
     const offer = await findCheapestOffer();
-    if (!offer) throw new Error(`No Vast.ai offer available (≥${MIN_VRAM_GB}GB VRAM, ≤$${MAX_DPH}/hr)`);
-    log(`Selected offer ${offer.id}: ${offer.gpu_name} @ $${offer.dph_total}/hr (${Math.round(offer.gpu_ram / 1024)}GB VRAM)`);
+    if (!offer)
+      throw new Error(`No Vast.ai offer available (≥${MIN_VRAM_GB}GB VRAM, ≤$${MAX_DPH}/hr)`);
+    log(
+      `Selected offer ${offer.id}: ${offer.gpu_name} @ $${offer.dph_total}/hr (${Math.round(offer.gpu_ram / 1024)}GB VRAM)`
+    );
     offerId = offer.id;
     offerDph = offer.dph_total;
   }
 
   const vastInstanceId = await provisionInstance(offerId, endpointId);
   if (vastInstanceId > 0) {
-    ledger('rent', '--instance-id', String(vastInstanceId), '--handle', endpointId, '--dph', String(offerDph));
+    ledger(
+      'rent',
+      '--instance-id',
+      String(vastInstanceId),
+      '--handle',
+      endpointId,
+      '--dph',
+      String(offerDph)
+    );
   }
 
   // Track immediately as 'provisioning' so we don't double-provision
@@ -358,7 +399,9 @@ async function spawnEndpoint(model) {
   managed.set(endpointId, ep);
 
   if (DRY_RUN) {
-    log(`[dry-run] Skipping instance wait; endpoint ${endpointId} registered as dry-run placeholder`);
+    log(
+      `[dry-run] Skipping instance wait; endpoint ${endpointId} registered as dry-run placeholder`
+    );
     ep.status = 'warm';
     ep.heartbeatTimer = setInterval(() => {
       heartbeat(endpointId).catch((e) => warn(`heartbeat failed for ${endpointId}:`, e.message));
@@ -370,7 +413,11 @@ async function spawnEndpoint(model) {
   (async () => {
     try {
       const running = await waitForRunning(vastInstanceId, endpointId);
-      if (!running) { managed.delete(endpointId); await destroyInstance(vastInstanceId); return; }
+      if (!running) {
+        managed.delete(endpointId);
+        await destroyInstance(vastInstanceId);
+        return;
+      }
 
       const { publicIp, externalPort, gpuName, dph } = running;
       const healthy = await waitForVllmHealth(publicIp, externalPort);
@@ -413,9 +460,7 @@ async function tick() {
   }
 
   const { endpoints = [], demand = [] } = status;
-  const warmModels = new Set(
-    endpoints.filter((e) => e.status === 'warm').map((e) => e.model)
-  );
+  const warmModels = new Set(endpoints.filter((e) => e.status === 'warm').map((e) => e.model));
 
   // Update demand timestamps for managed endpoints
   for (const d of demand) {
@@ -454,11 +499,19 @@ async function tick() {
 
 // ── entry point ───────────────────────────────────────────────────────────────
 
-function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 async function main() {
-  if (!ORCH_KEY) { err('HOLOSCRIPT_API_KEY is required'); process.exit(1); }
-  if (!VASTAI_KEY && !DRY_RUN) { err('VASTAI_API_KEY is required (or set DRY_RUN=1)'); process.exit(1); }
+  if (!ORCH_KEY) {
+    err('HOLOSCRIPT_API_KEY is required');
+    process.exit(1);
+  }
+  if (!VASTAI_KEY && !DRY_RUN) {
+    err('VASTAI_API_KEY is required (or set DRY_RUN=1)');
+    process.exit(1);
+  }
 
   log(
     `Starting (model=${MODEL}, maxDph=$${MAX_DPH}, minVram=${MIN_VRAM_GB}GB,`,
@@ -476,7 +529,12 @@ async function main() {
 
   // Run immediately on start, then on interval
   await tick();
-  setInterval(() => { tick().catch((e) => err('tick failed:', e.message)); }, POLL_MS);
+  setInterval(() => {
+    tick().catch((e) => err('tick failed:', e.message));
+  }, POLL_MS);
 }
 
-main().catch((e) => { err('fatal:', e); process.exit(1); });
+main().catch((e) => {
+  err('fatal:', e);
+  process.exit(1);
+});

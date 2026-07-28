@@ -20,15 +20,34 @@ console.log('check-generative-taste.test.mjs');
 function assert(cond, label) {
   testsRun++;
   if (cond) console.log(`  ✓ ${label}`);
-  else { testsFailed++; console.error(`  ✗ ${label}`); }
+  else {
+    testsFailed++;
+    console.error(`  ✗ ${label}`);
+  }
 }
 
 // classifyBlock — the core assembled-vs-considered generativity decision.
-assert(classifyBlock('scatter { count: 100 }').state === 'clone', 'count with no variation is a CLONE (N identical copies)');
-assert(classifyBlock('scatter { count: 100 min_distance: 2 }').state === 'clone', 'placement constraints alone (min_distance) are not per-instance variation → still CLONE');
-assert(classifyBlock('scatter { count: 100 seed: 5 random_scale: [1,2] random_rotation: [0,360] }').state === 'considered', 'count + seed + variation is CONSIDERED (unique-per-seed)');
-assert(classifyBlock('scatter { count: 100 random_scale: [0.8,1.4] }').state === 'unseeded', 'varied but no seed is UNSEEDED (not intentionally reproducible)');
-assert(classifyBlock('procedural { resolution: [512,512] seed: 7 }').state === 'procedural-single', 'a single procedural surface (no instance count) is not judged as clones');
+assert(
+  classifyBlock('scatter { count: 100 }').state === 'clone',
+  'count with no variation is a CLONE (N identical copies)'
+);
+assert(
+  classifyBlock('scatter { count: 100 min_distance: 2 }').state === 'clone',
+  'placement constraints alone (min_distance) are not per-instance variation → still CLONE'
+);
+assert(
+  classifyBlock('scatter { count: 100 seed: 5 random_scale: [1,2] random_rotation: [0,360] }')
+    .state === 'considered',
+  'count + seed + variation is CONSIDERED (unique-per-seed)'
+);
+assert(
+  classifyBlock('scatter { count: 100 random_scale: [0.8,1.4] }').state === 'unseeded',
+  'varied but no seed is UNSEEDED (not intentionally reproducible)'
+);
+assert(
+  classifyBlock('procedural { resolution: [512,512] seed: 7 }').state === 'procedural-single',
+  'a single procedural surface (no instance count) is not judged as clones'
+);
 
 // classify — the considered fixture.
 const considered = classify(join(FIXTURES, 'considered.holo'));

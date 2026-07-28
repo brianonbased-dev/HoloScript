@@ -143,9 +143,9 @@ export function summarizeAudit(auditJson, auditLevel = 'moderate') {
     ? explicitTotal
     : SEVERITIES.reduce((sum, severity) => sum + vulnerabilities[severity], 0);
   const threshold = SEVERITIES.indexOf(auditLevel);
-  vulnerabilities.blocking = SEVERITIES
-    .slice(threshold >= 0 ? threshold : SEVERITIES.indexOf('moderate'))
-    .reduce((sum, severity) => sum + vulnerabilities[severity], 0);
+  vulnerabilities.blocking = SEVERITIES.slice(
+    threshold >= 0 ? threshold : SEVERITIES.indexOf('moderate')
+  ).reduce((sum, severity) => sum + vulnerabilities[severity], 0);
 
   return {
     audit_level: auditLevel,
@@ -260,14 +260,15 @@ export function summarizeBulkAdvisories(bulkAudit, auditLevel = 'moderate') {
 
   vulnerabilities.total = SEVERITIES.reduce((sum, severity) => sum + vulnerabilities[severity], 0);
   const threshold = SEVERITIES.indexOf(auditLevel);
-  vulnerabilities.blocking = SEVERITIES
-    .slice(threshold >= 0 ? threshold : SEVERITIES.indexOf('moderate'))
-    .reduce((sum, severity) => sum + vulnerabilities[severity], 0);
-  advisories.sort((left, right) => (
-    left.package.localeCompare(right.package)
-    || left.severity.localeCompare(right.severity)
-    || String(left.id).localeCompare(String(right.id))
-  ));
+  vulnerabilities.blocking = SEVERITIES.slice(
+    threshold >= 0 ? threshold : SEVERITIES.indexOf('moderate')
+  ).reduce((sum, severity) => sum + vulnerabilities[severity], 0);
+  advisories.sort(
+    (left, right) =>
+      left.package.localeCompare(right.package) ||
+      left.severity.localeCompare(right.severity) ||
+      String(left.id).localeCompare(String(right.id))
+  );
 
   return {
     summary: {
@@ -325,15 +326,19 @@ export async function runBulkAdvisoryAudit(
     });
     const text = await response.text();
     if (!response.ok) {
-      throw new Error(`npm bulk advisory endpoint returned HTTP ${response.status}: ${text.slice(0, 300)}`);
+      throw new Error(
+        `npm bulk advisory endpoint returned HTTP ${response.status}: ${text.slice(0, 300)}`
+      );
     }
 
     const audit = parseJsonFromText(text);
-    const validShape = audit
-      && typeof audit === 'object'
-      && !Array.isArray(audit)
-      && Object.values(audit).every((value) => Array.isArray(value));
-    if (!validShape) throw new Error('npm bulk advisory endpoint returned an invalid response shape');
+    const validShape =
+      audit &&
+      typeof audit === 'object' &&
+      !Array.isArray(audit) &&
+      Object.values(audit).every((value) => Array.isArray(value));
+    if (!validShape)
+      throw new Error('npm bulk advisory endpoint returned an invalid response shape');
 
     const summarized = summarizeBulkAdvisories(audit, options.auditLevel);
     return {
@@ -364,7 +369,8 @@ function buildAuditArgs(options, scope = options.scope) {
 
 function commandParts(options, auditArgs) {
   const customCommand = options.env.HOLOSCRIPT_PNPM_AUDIT_COMMAND;
-  if (customCommand) return { command: customCommand, args: auditArgs, display: [customCommand, ...auditArgs] };
+  if (customCommand)
+    return { command: customCommand, args: auditArgs, display: [customCommand, ...auditArgs] };
 
   if (process.platform === 'win32') {
     const display = ['corepack', 'pnpm', ...auditArgs];
@@ -430,7 +436,8 @@ function basePayload(options, payload) {
 
 function exitForStatus(options, payload) {
   if (payload.status === 'fail') return options.noFailOnVuln ? 0 : 1;
-  if (payload.status === 'cached' && payload.cached_status === 'fail') return options.noFailOnVuln ? 0 : 1;
+  if (payload.status === 'cached' && payload.cached_status === 'fail')
+    return options.noFailOnVuln ? 0 : 1;
   return 0;
 }
 
@@ -624,7 +631,11 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   };
 
   if (result.timedOut) {
-    const fallback = await bulkAdvisoryFallback(options, 'pnpm_audit_timeout_bulk_fallback', failureDetails);
+    const fallback = await bulkAdvisoryFallback(
+      options,
+      'pnpm_audit_timeout_bulk_fallback',
+      failureDetails
+    );
     if (fallback.payload) {
       writeCache(options, basePayload(options, fallback.payload));
       emit(options, fallback.payload);

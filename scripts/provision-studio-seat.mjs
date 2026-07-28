@@ -149,7 +149,9 @@ function writeKeyFile(wallet, agent) {
     `# Generated: ${new Date().toISOString()}`,
     `# Seat name: ${SEAT_NAME}`,
     `# Public address (safe to share): ${wallet.address}`,
-    agent?.id ? `# HoloMesh agent id: ${agent.id}` : '# HoloMesh agent id: (registration incomplete)',
+    agent?.id
+      ? `# HoloMesh agent id: ${agent.id}`
+      : '# HoloMesh agent id: (registration incomplete)',
     '',
     `STUDIO_SEAT_SIGNING_KEY=${wallet.privateKey}`,
     '',
@@ -178,11 +180,15 @@ function writeKeyFile(wallet, agent) {
   }
 
   if (!HOLOMESH_KEY) {
-    console.error('[fatal] HOLOMESH_API_KEY not in ~/.ai-ecosystem/.env — needed for register auth.');
+    console.error(
+      '[fatal] HOLOMESH_API_KEY not in ~/.ai-ecosystem/.env — needed for register auth.'
+    );
     process.exit(1);
   }
   if (existsSync(KEY_OUT_PATH)) {
-    console.error(`[fatal] ${KEY_OUT_PATH} already exists — refusing to overwrite a prior seat key.`);
+    console.error(
+      `[fatal] ${KEY_OUT_PATH} already exists — refusing to overwrite a prior seat key.`
+    );
     console.error(`[fatal] Move/delete it first if you intend to re-provision.`);
     process.exit(1);
   }

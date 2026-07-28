@@ -96,7 +96,9 @@ function warn(...m) {
 }
 function bail(code, reason, detail) {
   if (JSON_OUT) {
-    process.stdout.write(JSON.stringify({ ok: false, errorCode: code, reason, detail }, null, 2) + '\n');
+    process.stdout.write(
+      JSON.stringify({ ok: false, errorCode: code, reason, detail }, null, 2) + '\n'
+    );
   } else {
     process.stderr.write(`\n[cli-version-parity] ERROR (${code}): ${reason}\n`);
     if (detail) process.stderr.write(detail + '\n');
@@ -119,8 +121,8 @@ function normalizeOutput(text) {
   // Semantic normalization: collapse repeated blank lines, trim edges.
   // This handles whitespace-only differences that arise from transport shape.
   return text
-    .replace(/\r\n/g, '\n')      // CRLF → LF
-    .replace(/[ \t]+$/gm, '')    // trailing whitespace on each line
+    .replace(/\r\n/g, '\n') // CRLF → LF
+    .replace(/[ \t]+$/gm, '') // trailing whitespace on each line
     .replace(/\n{3,}/g, '\n\n') // 3+ blank lines → 2
     .trim();
 }
@@ -152,7 +154,7 @@ function semanticSimilarity(a, b) {
     return { similar: ratio > 0.7, score: Math.round(ratio * 1000) / 1000, delta: null };
   }
   const score = intersection.length / union.size;
-  const similar = score >= 0.80;
+  const similar = score >= 0.8;
   let delta = null;
   if (!similar) {
     const onlyA = [...tokensA].filter((t) => !tokensB.has(t)).slice(0, 8);
@@ -241,7 +243,10 @@ function setupCLI() {
     // Use locally-built CLI binary from the monorepo
     const localBin = join(REPO_ROOT, 'packages', 'cli', 'bin', 'holoscript.cjs');
     if (!existsSync(localBin)) {
-      bail('setup-error', `--local specified but bin not found at ${localBin}. Run pnpm --filter @holoscript/cli build first.`);
+      bail(
+        'setup-error',
+        `--local specified but bin not found at ${localBin}. Run pnpm --filter @holoscript/cli build first.`
+      );
     }
     CLI_BIN = localBin;
     log(`[cli-version-parity] Using local CLI binary: ${CLI_BIN}`);
@@ -280,10 +285,13 @@ function setupCLI() {
   const dotBinCjs = join(work, 'node_modules', '.bin', 'holoscript.cjs');
   const dotBin = join(work, 'node_modules', '.bin', 'holoscript');
 
-  CLI_BIN = existsSync(cjsBin) ? cjsBin
-    : existsSync(dotBinCjs) ? dotBinCjs
-    : existsSync(dotBin) ? dotBin
-    : null;
+  CLI_BIN = existsSync(cjsBin)
+    ? cjsBin
+    : existsSync(dotBinCjs)
+      ? dotBinCjs
+      : existsSync(dotBin)
+        ? dotBin
+        : null;
 
   if (!CLI_BIN) {
     bail(
@@ -297,13 +305,21 @@ function setupCLI() {
   let cliVersion = 'unknown';
   let coreVersion = 'unknown';
   try {
-    const cliPkg = JSON.parse(readFileSync(join(work, 'node_modules', '@holoscript', 'cli', 'package.json'), 'utf8'));
+    const cliPkg = JSON.parse(
+      readFileSync(join(work, 'node_modules', '@holoscript', 'cli', 'package.json'), 'utf8')
+    );
     cliVersion = cliPkg.version || 'unknown';
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
   try {
-    const corePkg = JSON.parse(readFileSync(join(work, 'node_modules', '@holoscript', 'core', 'package.json'), 'utf8'));
+    const corePkg = JSON.parse(
+      readFileSync(join(work, 'node_modules', '@holoscript', 'core', 'package.json'), 'utf8')
+    );
     coreVersion = corePkg.version || 'unknown';
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 
   log(`[cli-version-parity] Installed CLI v${cliVersion}, core v${coreVersion}`);
   log(`[cli-version-parity] CLI binary: ${CLI_BIN}`);
@@ -329,31 +345,38 @@ function compileViaCLI(code, ext, target) {
     // npm-installed bin (node_modules/@holoscript/cli/bin/holoscript.cjs).
     // The 'compile' subcommand MUST come before the file path — passing just
     // the file path directly yields "Unknown subcommand: <file>".
-    output = execFileSync(
-      process.execPath,
-      [CLI_BIN, 'compile', fixturePath, '--target', target],
-      {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
-        cwd: fixDir,
-        timeout: 30_000,
-      }
-    );
+    output = execFileSync(process.execPath, [CLI_BIN, 'compile', fixturePath, '--target', target], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: fixDir,
+      timeout: 30_000,
+    });
     ok = true;
   } catch (e) {
     const stderr = e.stderr || '';
     const stdout = e.stdout || '';
     // CLI exits non-zero on compile error but stdout may still have useful output
-    if (stdout.length > 50 && !stdout.includes('[E000]') && !stdout.includes('Unknown subcommand')) {
+    if (
+      stdout.length > 50 &&
+      !stdout.includes('[E000]') &&
+      !stdout.includes('Unknown subcommand')
+    ) {
       output = stdout;
       ok = true;
     } else {
-      errorMsg = (stderr + stdout).slice(0, 500).replace(/\x1b\[[0-9;]*m/g, '').trim();
+      errorMsg = (stderr + stdout)
+        .slice(0, 500)
+        .replace(/\x1b\[[0-9;]*m/g, '')
+        .trim();
     }
   }
 
   const ms = Date.now() - start;
-  try { rmSync(fixDir, { recursive: true, force: true }); } catch { /* best-effort */ }
+  try {
+    rmSync(fixDir, { recursive: true, force: true });
+  } catch {
+    /* best-effort */
+  }
 
   // Strip CLI header banners only when the output is JSON (r3f, state, etc.).
   // The banner pattern is "--- ... ---" (dashes + title). For text-based targets
@@ -413,9 +436,10 @@ async function compileViaMCP(code, target) {
               // Normalise to a canonical JSON string for semantic comparison.
               if (parsed.success && parsed.output != null) {
                 ok = true;
-                const rawOut = typeof parsed.output === 'string'
-                  ? parsed.output
-                  : JSON.stringify(parsed.output, null, 2);
+                const rawOut =
+                  typeof parsed.output === 'string'
+                    ? parsed.output
+                    : JSON.stringify(parsed.output, null, 2);
                 output = normalizeOutput(rawOut);
               } else if (parsed.error) {
                 errorMsg = parsed.error;
@@ -426,9 +450,10 @@ async function compileViaMCP(code, target) {
                   const inner = JSON.parse(text);
                   if (inner.success && inner.output != null) {
                     ok = true;
-                    const rawOut = typeof inner.output === 'string'
-                      ? inner.output
-                      : JSON.stringify(inner.output, null, 2);
+                    const rawOut =
+                      typeof inner.output === 'string'
+                        ? inner.output
+                        : JSON.stringify(inner.output, null, 2);
                     output = normalizeOutput(rawOut);
                   } else {
                     errorMsg = inner.error || 'compile returned no output';
@@ -445,7 +470,10 @@ async function compileViaMCP(code, target) {
         }
       );
       req.on('error', (e) => reject(e));
-      req.setTimeout(30_000, () => { req.destroy(); reject(new Error('MCP request timed out after 30s')); });
+      req.setTimeout(30_000, () => {
+        req.destroy();
+        reject(new Error('MCP request timed out after 30s'));
+      });
       req.write(body);
       req.end();
     });
@@ -483,7 +511,10 @@ async function fetchMCPVersion() {
         }
       );
       req.on('error', () => resolve('unreachable'));
-      req.setTimeout(8_000, () => { req.destroy(); resolve('timeout'); });
+      req.setTimeout(8_000, () => {
+        req.destroy();
+        resolve('timeout');
+      });
     });
   } catch {
     return 'unknown';
@@ -509,7 +540,10 @@ async function main() {
   // Add extra fixtures from CLI args
   for (const p of extraFixtures) {
     const fp = resolve(p);
-    if (!existsSync(fp)) { warn(`Extra fixture not found: ${fp} — skipping`); continue; }
+    if (!existsSync(fp)) {
+      warn(`Extra fixture not found: ${fp} — skipping`);
+      continue;
+    }
     const code = readFileSync(fp, 'utf8');
     const ext = fp.endsWith('.holo') ? 'holo' : fp.endsWith('.hsplus') ? 'hsplus' : 'hs';
     // For extra fixtures, run all targets that MCP supports
@@ -519,7 +553,9 @@ async function main() {
 
   // Apply target filter
   const activeFixtures = targetFilter
-    ? fixtures.map((f) => ({ ...f, targets: f.targets.includes(targetFilter) ? [targetFilter] : [] })).filter((f) => f.targets.length > 0)
+    ? fixtures
+        .map((f) => ({ ...f, targets: f.targets.includes(targetFilter) ? [targetFilter] : [] }))
+        .filter((f) => f.targets.length > 0)
     : fixtures;
 
   if (activeFixtures.length === 0) {
@@ -535,10 +571,14 @@ async function main() {
       log(`\n[cli-version-parity] Testing ${label}...`);
 
       const cliResult = compileViaCLI(fixture.code, fixture.ext, target);
-      log(`  CLI: ${cliResult.ok ? `OK (${cliResult.ms}ms, ${cliResult.output?.length || 0} chars)` : `FAIL — ${cliResult.errorMsg?.slice(0, 120)}`}`);
+      log(
+        `  CLI: ${cliResult.ok ? `OK (${cliResult.ms}ms, ${cliResult.output?.length || 0} chars)` : `FAIL — ${cliResult.errorMsg?.slice(0, 120)}`}`
+      );
 
       const mcpResult = await compileViaMCP(fixture.code, target);
-      log(`  MCP: ${mcpResult.ok ? `OK (${mcpResult.ms}ms, ${mcpResult.output?.length || 0} chars)` : `FAIL — ${mcpResult.errorMsg?.slice(0, 120)}`}`);
+      log(
+        `  MCP: ${mcpResult.ok ? `OK (${mcpResult.ms}ms, ${mcpResult.output?.length || 0} chars)` : `FAIL — ${mcpResult.errorMsg?.slice(0, 120)}`}`
+      );
 
       let parityOk = false;
       let similarity = null;
@@ -621,9 +661,12 @@ async function main() {
       log('  No version drift between published @holoscript/cli and deployed mcp.holoscript.net.');
     } else {
       log('\n[cli-version-parity] FAIL');
-      if (drifted > 0) log(`  DRIFT: ${drifted} fixture(s) compile differently between CLI and MCP.`);
-      if (cliFailures > 0) log(`  CLI FAILURES: ${cliFailures} fixture(s) failed to compile via published CLI.`);
-      if (mcpFailures > 0) log(`  MCP FAILURES: ${mcpFailures} fixture(s) failed to compile via deployed MCP.`);
+      if (drifted > 0)
+        log(`  DRIFT: ${drifted} fixture(s) compile differently between CLI and MCP.`);
+      if (cliFailures > 0)
+        log(`  CLI FAILURES: ${cliFailures} fixture(s) failed to compile via published CLI.`);
+      if (mcpFailures > 0)
+        log(`  MCP FAILURES: ${mcpFailures} fixture(s) failed to compile via deployed MCP.`);
     }
     log('═══════════════════════════════════════════════════════════\n');
   }
@@ -633,7 +676,11 @@ async function main() {
     const ledgerPath = join(REPO_ROOT, 'research', 'external-repro-ledger.json');
     let ledger = [];
     if (existsSync(ledgerPath)) {
-      try { ledger = JSON.parse(readFileSync(ledgerPath, 'utf8')); } catch { ledger = []; }
+      try {
+        ledger = JSON.parse(readFileSync(ledgerPath, 'utf8'));
+      } catch {
+        ledger = [];
+      }
     }
     if (!Array.isArray(ledger)) ledger = [];
     // Append a minimal ledger entry compatible with D.081 tracking

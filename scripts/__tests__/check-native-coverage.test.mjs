@@ -28,7 +28,10 @@ let failed = 0;
 function check(cond, name) {
   run += 1;
   if (cond) console.log(`  PASS ${name}`);
-  else { failed += 1; console.error(`  FAIL ${name}`); }
+  else {
+    failed += 1;
+    console.error(`  FAIL ${name}`);
+  }
 }
 
 // 1. Metric is real and well-formed.

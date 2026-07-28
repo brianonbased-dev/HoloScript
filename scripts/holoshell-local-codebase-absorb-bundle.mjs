@@ -65,9 +65,7 @@ const MAX_FILE_BYTES = 512 * 1024; // Keep sourceFiles[*].content below hosted M
 const DEFAULT_AGENT =
   process.env.HOLOSHELL_AGENT_ID ?? process.env.HOLOMESH_AGENT_ID ?? 'holoshell-local';
 const DEFAULT_SURFACE =
-  process.env.HOLOSHELL_AGENT_SURFACE ??
-  process.env.HOLOMESH_AGENT_SURFACE ??
-  'holoshell-local';
+  process.env.HOLOSHELL_AGENT_SURFACE ?? process.env.HOLOMESH_AGENT_SURFACE ?? 'holoshell-local';
 const TEXT_SOURCE_EXTENSIONS = new Set([
   '.cjs',
   '.css',
@@ -670,7 +668,10 @@ async function main() {
       stats.skipped.some((s) => s.reason === 'file-byte-cap-exceeded');
     console.log('receipt shape ok:', !!receipt.sourceFiles && !!receipt.stats);
     console.log('embedding policy ok:', receipt.embeddingPolicy?.provider === 'holoembed');
-    console.log('receipt identity ok:', receipt.agent === args.agent && receipt.surface === args.surface);
+    console.log(
+      'receipt identity ok:',
+      receipt.agent === args.agent && receipt.surface === args.surface
+    );
     console.log('tool payload ok:', toolPayloadOk && contentOk);
     console.log('recursive walk ok:', recursionOk);
     console.log('per-file cap ok:', capOk);

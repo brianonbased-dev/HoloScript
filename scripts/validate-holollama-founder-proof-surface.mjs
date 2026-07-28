@@ -189,7 +189,10 @@ check(Boolean(htmlPath), 'missing HTML surface path');
 if (htmlPath) {
   const html = readRelative(htmlPath).toString('utf8');
   check(receipt.surface.htmlSha256 === sha256Text(html), 'HTML surface sha256 mismatch');
-  check(html.includes('joseph-intent-proof.surface.png'), 'HTML surface does not reference render screenshot');
+  check(
+    html.includes('joseph-intent-proof.surface.png'),
+    'HTML surface does not reference render screenshot'
+  );
   check(
     normalizeWhitespace(html).includes(normalizeWhitespace(receipt.founderFeltValueLine)),
     'HTML surface missing founder-felt value line'

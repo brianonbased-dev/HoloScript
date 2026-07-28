@@ -260,7 +260,10 @@ console.log('check-render-surface-native.test.mjs');
 {
   const dir = setup({ 'Legacy.tsx': 'export const L = () => <mesh />;\n' });
   mkdirSync(join(dir, 'packages', 'studio', 'src'), { recursive: true });
-  writeFileSync(join(dir, 'packages', 'studio', 'src', 'LegacyStudio.tsx'), 'export const S = () => null;\n');
+  writeFileSync(
+    join(dir, 'packages', 'studio', 'src', 'LegacyStudio.tsx'),
+    'export const S = () => null;\n'
+  );
   addFile(dir, 'components/holoshell/scenes/OwnedScene.tsx', 'export const O = () => <group />;\n');
   addFile(
     dir,

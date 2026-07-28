@@ -64,16 +64,21 @@ function parseArgs(argv) {
 
 function gitHead() {
   try {
-    return execSync('git rev-parse HEAD', { cwd: `${__dirname}/..` }).toString().trim();
+    return execSync('git rev-parse HEAD', { cwd: `${__dirname}/..` })
+      .toString()
+      .trim();
   } catch {
     return null;
   }
 }
 
 function printCorpusStats() {
-  const byDomain = Object.fromEntries(DOMAINS.map((d) => [d, ITEMS.filter((i) => i.domain === d).length]));
+  const byDomain = Object.fromEntries(
+    DOMAINS.map((d) => [d, ITEMS.filter((i) => i.domain === d).length])
+  );
   const edgeCaseCounts = {};
-  for (const item of ITEMS) for (const ec of item.edgeCases ?? []) edgeCaseCounts[ec] = (edgeCaseCounts[ec] ?? 0) + 1;
+  for (const item of ITEMS)
+    for (const ec of item.edgeCases ?? []) edgeCaseCounts[ec] = (edgeCaseCounts[ec] ?? 0) + 1;
   console.log(`Judge-protocol-benchmark-v0 — dry run (no network calls, no spend).`);
   console.log(`Total items: ${ITEMS.length} — by domain: ${JSON.stringify(byDomain)}`);
   console.log(`Edge-case coverage: ${JSON.stringify(edgeCaseCounts)}`);
@@ -87,7 +92,14 @@ function printCorpusStats() {
 // pass, per the EVOLVED doc's "reserve human/independent-family overlap for
 // a stratified subset" (line 154) rather than doubling the cost of the
 // entire corpus.
-const STRATIFIED_IDS = new Set(['code-01', 'code-02', 'scene-01', 'scene-02', 'trace-01', 'trace-02']);
+const STRATIFIED_IDS = new Set([
+  'code-01',
+  'code-02',
+  'scene-01',
+  'scene-02',
+  'trace-01',
+  'trace-02',
+]);
 
 function domainRollup(domain, itemReceipts) {
   const items = itemReceipts.filter((r) => r.domain === domain);
@@ -115,7 +127,9 @@ function domainRollup(domain, itemReceipts) {
     deterministicAdmissionAccuracy: mean(items.map((r) => (r.deterministic.accuracyOk ? 1 : 0))),
     launderingIncidents: {
       absolute: items.filter((r) => r.metrics.launderingDetected.absolute).map((r) => r.itemId),
-      comparative: items.filter((r) => r.metrics.launderingDetected.comparative).map((r) => r.itemId),
+      comparative: items
+        .filter((r) => r.metrics.launderingDetected.comparative)
+        .map((r) => r.itemId),
       hybrid: items.filter((r) => r.metrics.launderingDetected.hybrid).map((r) => r.itemId),
     },
   };
@@ -130,14 +144,20 @@ function domainRollup(domain, itemReceipts) {
 function evaluateGate(domainRollups) {
   const perDomain = domainRollups.map((d) => {
     const baseline = d.absolute.perComparisonRecovery;
-    const comparativeDelta = baseline != null && d.comparative.perComparisonRecovery != null
-      ? d.comparative.perComparisonRecovery - baseline : null;
-    const hybridDelta = baseline != null && d.hybrid.perComparisonRecovery != null
-      ? d.hybrid.perComparisonRecovery - baseline : null;
-    const noLaunderingRegression = d.launderingIncidents.comparative.length === 0 && d.launderingIncidents.hybrid.length === 0;
+    const comparativeDelta =
+      baseline != null && d.comparative.perComparisonRecovery != null
+        ? d.comparative.perComparisonRecovery - baseline
+        : null;
+    const hybridDelta =
+      baseline != null && d.hybrid.perComparisonRecovery != null
+        ? d.hybrid.perComparisonRecovery - baseline
+        : null;
+    const noLaunderingRegression =
+      d.launderingIncidents.comparative.length === 0 && d.launderingIncidents.hybrid.length === 0;
     const admissionUnchanged = d.deterministicAdmissionAccuracy === 1;
     const improved =
-      admissionUnchanged && noLaunderingRegression &&
+      admissionUnchanged &&
+      noLaunderingRegression &&
       ((comparativeDelta != null && comparativeDelta >= PREDECLARED_MARGIN) ||
         (hybridDelta != null && hybridDelta >= PREDECLARED_MARGIN));
     return {
@@ -170,22 +190,38 @@ function costEstimate(itemReceipts) {
   // the provider returned it — NOT a billed-invoice figure. $/MTok rates
   // are ballpark placeholders for a mini/fast-tier model, documented as
   // such; real spend should be read from the provider's own billing.
-  const RATE_PER_MTOK = { openai: { in: 0.25, out: 2 }, xai: { in: 0.2, out: 0.5 }, openrouter: { in: 0.3, out: 1 } };
-  let totalPromptTokens = 0, totalCompletionTokens = 0, estimatedUsd = 0, callCount = 0;
+  const RATE_PER_MTOK = {
+    openai: { in: 0.25, out: 2 },
+    xai: { in: 0.2, out: 0.5 },
+    openrouter: { in: 0.3, out: 1 },
+  };
+  let totalPromptTokens = 0,
+    totalCompletionTokens = 0,
+    estimatedUsd = 0,
+    callCount = 0;
   function fold(usage, provider) {
     if (!usage) return;
     callCount++;
-    const pt = usage.promptTokens ?? 0, ct = usage.completionTokens ?? 0;
+    const pt = usage.promptTokens ?? 0,
+      ct = usage.completionTokens ?? 0;
     totalPromptTokens += pt;
     totalCompletionTokens += ct;
     const rate = RATE_PER_MTOK[provider] ?? { in: 0.5, out: 1.5 };
     estimatedUsd += (pt / 1e6) * rate.in + (ct / 1e6) * rate.out;
   }
   for (const r of itemReceipts) {
-    for (const k of Object.keys(r.rubric.raw)) fold(r.rubric.raw[k].usage, r.rubric.raw[k].provider);
-    for (const pr of r.comparative.preferenceResults) for (const jr of pr.judgeReceipts) fold(jr.usage, jr.provider);
+    for (const k of Object.keys(r.rubric.raw))
+      fold(r.rubric.raw[k].usage, r.rubric.raw[k].provider);
+    for (const pr of r.comparative.preferenceResults)
+      for (const jr of pr.judgeReceipts) fold(jr.usage, jr.provider);
   }
-  return { callCount, totalPromptTokens, totalCompletionTokens, estimatedUsd: Math.round(estimatedUsd * 10000) / 10000, note: 'rough estimate from reported token usage, not a billed figure' };
+  return {
+    callCount,
+    totalPromptTokens,
+    totalCompletionTokens,
+    estimatedUsd: Math.round(estimatedUsd * 10000) / 10000,
+    note: 'rough estimate from reported token usage, not a billed figure',
+  };
 }
 
 async function main() {
@@ -196,8 +232,12 @@ async function main() {
     return;
   }
 
-  console.log(`Running judge-protocol-benchmark-v0 live: judgeA=${args.judgeA} judgeB=${args.judgeB} concurrency=${args.concurrency}`);
-  console.log(`Items: ${ITEMS.length}, stratified (cross-family) subset: ${[...STRATIFIED_IDS].join(', ')}`);
+  console.log(
+    `Running judge-protocol-benchmark-v0 live: judgeA=${args.judgeA} judgeB=${args.judgeB} concurrency=${args.concurrency}`
+  );
+  console.log(
+    `Items: ${ITEMS.length}, stratified (cross-family) subset: ${[...STRATIFIED_IDS].join(', ')}`
+  );
 
   const startedAt = new Date().toISOString();
   const t0 = Date.now();
@@ -206,7 +246,10 @@ async function main() {
     const includeJudgeB = STRATIFIED_IDS.has(item.id);
     process.stdout.write(`  ${item.id} (${item.domain})${includeJudgeB ? ' [+judgeB]' : ''} ... `);
     const receipt = await evaluateItemAllJudges(item, {
-      judgeA: args.judgeA, judgeB: args.judgeB, includeJudgeB, concurrency: args.concurrency,
+      judgeA: args.judgeA,
+      judgeB: args.judgeB,
+      includeJudgeB,
+      concurrency: args.concurrency,
     });
     itemReceipts.push(receipt);
     console.log('done');
@@ -217,7 +260,9 @@ async function main() {
   const gate = evaluateGate(domainRollups);
   const cost = costEstimate(itemReceipts);
   const crossFamilyItems = itemReceipts.filter((r) => r.crossFamily);
-  const effectiveReviewerCount = mean(crossFamilyItems.map((r) => r.crossFamily.effectiveReviewerCount));
+  const effectiveReviewerCount = mean(
+    crossFamilyItems.map((r) => r.crossFamily.effectiveReviewerCount)
+  );
   const crossFamilyAgreementRate = mean(crossFamilyItems.map((r) => r.crossFamily.agreementRate));
 
   const result = {
@@ -228,7 +273,12 @@ async function main() {
     startedAt,
     finishedAt: new Date().toISOString(),
     elapsedMs,
-    config: { judgeA: args.judgeA, judgeB: args.judgeB, concurrency: args.concurrency, stratifiedIds: [...STRATIFIED_IDS] },
+    config: {
+      judgeA: args.judgeA,
+      judgeB: args.judgeB,
+      concurrency: args.concurrency,
+      stratifiedIds: [...STRATIFIED_IDS],
+    },
     corpus: { itemCount: ITEMS.length, domains: DOMAINS },
     // NOTE ON humanAgreement: no human raters were available in this
     // environment/session. This field is intentionally null rather than
@@ -243,7 +293,8 @@ async function main() {
     items: itemReceipts,
   };
 
-  const outPath = args.out ?? `${__dirname}/../.scratch/judge-protocol-bench-v0/run-${Date.now()}.json`;
+  const outPath =
+    args.out ?? `${__dirname}/../.scratch/judge-protocol-bench-v0/run-${Date.now()}.json`;
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(result, null, 2));
 
@@ -251,14 +302,20 @@ async function main() {
   for (const d of gate.perDomain) {
     console.log(
       `  ${d.domain}: absolute=${fmt(d.baselineAbsoluteRecovery)} comparative=${fmt(d.comparativeRecovery)} ` +
-      `(Δ${fmt(d.comparativeDelta, true)}) hybrid=${fmt(d.hybridRecovery)} (Δ${fmt(d.hybridDelta, true)}) ` +
-      `admissionUnchanged=${d.admissionUnchanged} improved=${d.improved}`
+        `(Δ${fmt(d.comparativeDelta, true)}) hybrid=${fmt(d.hybridRecovery)} (Δ${fmt(d.hybridDelta, true)}) ` +
+        `admissionUnchanged=${d.admissionUnchanged} improved=${d.improved}`
     );
   }
-  console.log(`  Substrates improved: ${gate.improvedSubstrateCount}/${DOMAINS.length} (need >= ${gate.minImprovedSubstratesRequired})`);
+  console.log(
+    `  Substrates improved: ${gate.improvedSubstrateCount}/${DOMAINS.length} (need >= ${gate.minImprovedSubstratesRequired})`
+  );
   console.log(`  GATE: ${gate.pass ? 'PASS' : 'FAIL'}`);
-  console.log(`\nCross-family agreement rate: ${fmt(crossFamilyAgreementRate)}  effective reviewers: ${fmt(effectiveReviewerCount)}`);
-  console.log(`Estimated cost: $${cost.estimatedUsd} across ${cost.callCount} calls (${cost.note})`);
+  console.log(
+    `\nCross-family agreement rate: ${fmt(crossFamilyAgreementRate)}  effective reviewers: ${fmt(effectiveReviewerCount)}`
+  );
+  console.log(
+    `Estimated cost: $${cost.estimatedUsd} across ${cost.callCount} calls (${cost.note})`
+  );
   console.log(`\nReceipt written: ${outPath}`);
 }
 

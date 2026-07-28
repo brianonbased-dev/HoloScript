@@ -45,7 +45,16 @@ const require = createRequire(import.meta.url);
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..', '..');
 const DEFAULT_BASELINE_PATH = join(ROOT, 'examples', '.interaction-taste-baseline-2026-07-03.json');
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.turbo', 'out', '.scratch']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'coverage',
+  '.turbo',
+  'out',
+  '.scratch',
+]);
 
 // The parser is the sovereign one used by the examples-health matrix.
 let parseHolo = null;
@@ -59,30 +68,81 @@ try {
 // Generic info/panel events — a handler whose ENTIRE body is a bare trigger/emit of
 // one of these is the statistical-average "assembled" interaction.
 const GENERIC_EVENTS = new Set([
-  'show_info_panel', 'show_gallery_info', 'show_info', 'show_details', 'show_detail_panel',
-  'show_panel', 'open_info', 'open_panel', 'show_dialog', 'display_info', 'info_panel',
-  'show_gallery_details', 'open_details',
+  'show_info_panel',
+  'show_gallery_info',
+  'show_info',
+  'show_details',
+  'show_detail_panel',
+  'show_panel',
+  'open_info',
+  'open_panel',
+  'show_dialog',
+  'display_info',
+  'info_panel',
+  'show_gallery_details',
+  'open_details',
 ]);
 
 // Interaction traits that make an object "interactive" even without a handler.
 const INTERACTION_TRAITS = new Set([
-  'clickable', 'hoverable', 'grabbable', 'sittable', 'pointable', 'scalable',
-  'rotatable', 'draggable', 'throwable', 'usable', 'interactable',
+  'clickable',
+  'hoverable',
+  'grabbable',
+  'sittable',
+  'pointable',
+  'scalable',
+  'rotatable',
+  'draggable',
+  'throwable',
+  'usable',
+  'interactable',
 ]);
 
 // Distinctive world/temporal/spatial/physical reactions — evidence of a point of view
 // about how the object LIVES (not just a generic pointer surface).
 const DISTINCTIVE_EVENTS = new Set([
-  'on_dusk', 'on_dawn', 'on_night', 'on_day', 'on_sunrise', 'on_sunset',
-  'on_tick', 'on_time', 'on_interval', 'on_schedule',
-  'on_wind', 'on_gust', 'on_rain', 'on_storm', 'on_temperature',
-  'on_approach', 'on_leave', 'on_gaze', 'on_look', 'on_proximity', 'on_nearby',
-  'on_collision', 'on_impact', 'on_cast', 'on_player_attack', 'on_damage',
-  'on_enter', 'on_exit', 'on_stay',
+  'on_dusk',
+  'on_dawn',
+  'on_night',
+  'on_day',
+  'on_sunrise',
+  'on_sunset',
+  'on_tick',
+  'on_time',
+  'on_interval',
+  'on_schedule',
+  'on_wind',
+  'on_gust',
+  'on_rain',
+  'on_storm',
+  'on_temperature',
+  'on_approach',
+  'on_leave',
+  'on_gaze',
+  'on_look',
+  'on_proximity',
+  'on_nearby',
+  'on_collision',
+  'on_impact',
+  'on_cast',
+  'on_player_attack',
+  'on_damage',
+  'on_enter',
+  'on_exit',
+  'on_stay',
 ]);
 
 // Generic pointer events — considered ONLY if the body has real logic (not a generic stub).
-const POINTER_EVENTS = new Set(['on_click', 'on_hover', 'on_hover_enter', 'on_hover_exit', 'on_point', 'on_press', 'on_tap', 'on_select']);
+const POINTER_EVENTS = new Set([
+  'on_click',
+  'on_hover',
+  'on_hover_enter',
+  'on_hover_exit',
+  'on_point',
+  'on_press',
+  'on_tap',
+  'on_select',
+]);
 
 function toRepoPath(p) {
   return relative(ROOT, p).split(sep).join('/');
@@ -92,9 +152,16 @@ function collectHoloFiles(dir) {
   const files = [];
   (function walk(cur) {
     let entries;
-    try { entries = readdirSync(cur, { withFileTypes: true }); } catch { return; }
+    try {
+      entries = readdirSync(cur, { withFileTypes: true });
+    } catch {
+      return;
+    }
     for (const e of entries) {
-      if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walk(join(cur, e.name)); continue; }
+      if (e.isDirectory()) {
+        if (!SKIP_DIRS.has(e.name)) walk(join(cur, e.name));
+        continue;
+      }
       if (e.isFile() && /\.holo$/i.test(e.name)) files.push(join(cur, e.name));
     }
   })(dir);
@@ -106,14 +173,20 @@ function matchBlock(text, braceIdx) {
   let depth = 0;
   for (let i = braceIdx; i < text.length; i++) {
     if (text[i] === '{') depth++;
-    else if (text[i] === '}') { depth--; if (depth === 0) return { body: text.slice(braceIdx + 1, i), endIndex: i }; }
+    else if (text[i] === '}') {
+      depth--;
+      if (depth === 0) return { body: text.slice(braceIdx + 1, i), endIndex: i };
+    }
   }
   return { body: '', endIndex: text.length };
 }
 
 /** True when a handler body is only a bare trigger/emit of a GENERIC event. */
 function isGenericStub(body) {
-  const stmts = body.split(/[\n;]/).map((s) => s.trim()).filter(Boolean)
+  const stmts = body
+    .split(/[\n;]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
     .filter((s) => !s.startsWith('//'));
   if (stmts.length !== 1) return { stub: false };
   const m = stmts[0].match(/^(?:trigger|emit)\s+["']([\w.-]+)["']\s*$/);
@@ -123,7 +196,11 @@ function isGenericStub(body) {
 
 /** A body has "real logic" (object-specific behavior) if it mutates state / branches / does several things. */
 function hasRealLogic(body) {
-  const stmts = body.split(/[\n;]/).map((s) => s.trim()).filter(Boolean).filter((s) => !s.startsWith('//'));
+  const stmts = body
+    .split(/[\n;]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((s) => !s.startsWith('//'));
   if (stmts.length >= 2) return true;
   if (/\bif\b|\belse\b|\bfor\b|\bwhile\b|\bmatch\b/.test(body)) return true;
   if (/\bstate\s*\.\w+\s*=|\bset\s+\w+\s*:|\w+\s*[+\-*/]?=[^=]/.test(body)) return true; // mutation
@@ -135,16 +212,28 @@ function hasRealLogic(body) {
 function classify(absPath) {
   const rel = toRepoPath(absPath);
   let code = '';
-  try { code = readFileSync(absPath, 'utf8'); } catch { return { path: rel, category: 'unreadable' }; }
+  try {
+    code = readFileSync(absPath, 'utf8');
+  } catch {
+    return { path: rel, category: 'unreadable' };
+  }
 
   // Parse guard: a broken file is the matrix's problem, not ours.
   if (parseHolo) {
-    try { const r = parseHolo(code); if (!r.success) return { path: rel, category: 'parse-error' }; } catch { /* fall through */ }
+    try {
+      const r = parseHolo(code);
+      if (!r.success) return { path: rel, category: 'parse-error' };
+    } catch {
+      /* fall through */
+    }
   }
 
-  const interactionTraits = [...code.matchAll(/@(\w+)/g)].map((m) => m[1]).filter((t) => INTERACTION_TRAITS.has(t));
-  const hasStateMachine = /@state_machine\b|\bstate_machine\b/.test(code)
-    || /\bstate\s+"[^"]+"\s*\{[^}]*(?:->|on_)/.test(code);
+  const interactionTraits = [...code.matchAll(/@(\w+)/g)]
+    .map((m) => m[1])
+    .filter((t) => INTERACTION_TRAITS.has(t));
+  const hasStateMachine =
+    /@state_machine\b|\bstate_machine\b/.test(code) ||
+    /\bstate\s+"[^"]+"\s*\{[^}]*(?:->|on_)/.test(code);
 
   // @interaction_profile(react_to: "a b c", …) — declared reactivity.
   const profiles = [...code.matchAll(/@interaction_profile\s*\(([^)]*)\)/g)].map((m) => {
@@ -173,7 +262,10 @@ function classify(absPath) {
     presentEvents.add(h.event);
     if (DISTINCTIVE_EVENTS.has(h.event)) distinctiveCount++;
     const g = isGenericStub(h.body);
-    if (g.stub) { assembledHits.push({ file: rel, line: h.line, event: h.event, generic: g.event }); continue; }
+    if (g.stub) {
+      assembledHits.push({ file: rel, line: h.line, event: h.event, generic: g.event });
+      continue;
+    }
     if (hasRealLogic(h.body)) realLogicCount++;
   }
 
@@ -188,8 +280,10 @@ function classify(absPath) {
     else profileMismatches.push({ file: rel, declared: p.events, missing });
   }
 
-  const isInteractive = interactionTraits.length > 0 || handlers.length > 0 || hasStateMachine || profiles.length > 0;
-  const consideredSignal = hasStateMachine || distinctiveCount > 0 || realLogicCount > 0 || profileDelivered;
+  const isInteractive =
+    interactionTraits.length > 0 || handlers.length > 0 || hasStateMachine || profiles.length > 0;
+  const consideredSignal =
+    hasStateMachine || distinctiveCount > 0 || realLogicCount > 0 || profileDelivered;
 
   let category;
   if (!isInteractive) category = 'non-interactive';
@@ -197,13 +291,32 @@ function classify(absPath) {
   else if (consideredSignal) category = 'considered';
   else category = 'bare'; // interactive surface (e.g. @clickable) with no behavior and no POV
 
-  return { path: rel, category, assembledHits, profileMismatches, counts: { handlers: handlers.length, distinctive: distinctiveCount, realLogic: realLogicCount, traits: interactionTraits.length, profiles: profiles.length } };
+  return {
+    path: rel,
+    category,
+    assembledHits,
+    profileMismatches,
+    counts: {
+      handlers: handlers.length,
+      distinctive: distinctiveCount,
+      realLogic: realLogicCount,
+      traits: interactionTraits.length,
+      profiles: profiles.length,
+    },
+  };
 }
 
 function scan(dir) {
   const files = collectHoloFiles(dir);
   const results = files.map(classify);
-  const counts = { considered: 0, assembled: 0, bare: 0, 'non-interactive': 0, 'parse-error': 0, unreadable: 0 };
+  const counts = {
+    considered: 0,
+    assembled: 0,
+    bare: 0,
+    'non-interactive': 0,
+    'parse-error': 0,
+    unreadable: 0,
+  };
   const assembledHits = [];
   const profileMismatches = [];
   for (const r of results) {
@@ -212,7 +325,14 @@ function scan(dir) {
     if (r.profileMismatches) profileMismatches.push(...r.profileMismatches);
   }
   const interactive = counts.considered + counts.assembled + counts.bare;
-  return { totalFiles: files.length, interactive, counts, assembledHits, profileMismatches, results };
+  return {
+    totalFiles: files.length,
+    interactive,
+    counts,
+    assembledHits,
+    profileMismatches,
+    results,
+  };
 }
 
 function snapshot(scanDir, s) {
@@ -244,7 +364,10 @@ function parseArgs(argv) {
 function main() {
   const flags = parseArgs(process.argv.slice(2));
   const scanDir = join(ROOT, flags.dir || flags.positional[0] || 'examples');
-  if (!existsSync(scanDir)) { console.error(`ERROR scan dir not found: ${toRepoPath(scanDir)}`); process.exit(1); }
+  if (!existsSync(scanDir)) {
+    console.error(`ERROR scan dir not found: ${toRepoPath(scanDir)}`);
+    process.exit(1);
+  }
 
   const s = scan(scanDir);
   const snap = snapshot(scanDir, s);
@@ -252,18 +375,31 @@ function main() {
   console.log('Interaction-taste scan');
   console.log(`  scanned: ${snap.scanDir} (${s.totalFiles} .holo, ${s.interactive} interactive)`);
   console.log(`  considered:      ${s.counts.considered}`);
-  console.log(`  assembled:       ${s.counts.assembled}   (${s.assembledHits.length} generic-stub handler(s))`);
+  console.log(
+    `  assembled:       ${s.counts.assembled}   (${s.assembledHits.length} generic-stub handler(s))`
+  );
   console.log(`  bare (no POV):   ${s.counts.bare}`);
   console.log(`  non-interactive: ${s.counts['non-interactive']}`);
-  if (s.counts['parse-error']) console.log(`  parse-error:     ${s.counts['parse-error']} (skipped; owned by examples-health matrix)`);
+  if (s.counts['parse-error'])
+    console.log(
+      `  parse-error:     ${s.counts['parse-error']} (skipped; owned by examples-health matrix)`
+    );
 
   if (s.assembledHits.length) {
     console.log('\n  ASSEMBLED interactions (handler body is only a generic trigger):');
-    for (const h of s.assembledHits) console.log(`    ${h.file}:${h.line}  ${h.event} → trigger "${h.generic}"  (give it a point of view: @state_machine / on_dusk|on_approach / real logic)`);
+    for (const h of s.assembledHits)
+      console.log(
+        `    ${h.file}:${h.line}  ${h.event} → trigger "${h.generic}"  (give it a point of view: @state_machine / on_dusk|on_approach / real logic)`
+      );
   }
   if (s.profileMismatches.length) {
-    console.log('\n  @interaction_profile declared-not-delivered (add the missing handlers or drop the claim):');
-    for (const p of s.profileMismatches) console.log(`    ${p.file}  declares react_to [${p.declared.join(', ')}] but has no handler for [${p.missing.join(', ')}]`);
+    console.log(
+      '\n  @interaction_profile declared-not-delivered (add the missing handlers or drop the claim):'
+    );
+    for (const p of s.profileMismatches)
+      console.log(
+        `    ${p.file}  declares react_to [${p.declared.join(', ')}] but has no handler for [${p.missing.join(', ')}]`
+      );
   }
 
   let failed = false;
@@ -272,16 +408,32 @@ function main() {
     if (existsSync(bp)) {
       const base = JSON.parse(readFileSync(bp, 'utf8'));
       const delta = s.assembledHits.length - base.assembledCount;
-      console.log(`\n  baseline: ${base.assembledCount} assembled → now ${s.assembledHits.length}  (delta: ${delta >= 0 ? '+' : ''}${delta})`);
+      console.log(
+        `\n  baseline: ${base.assembledCount} assembled → now ${s.assembledHits.length}  (delta: ${delta >= 0 ? '+' : ''}${delta})`
+      );
       if (flags.check) {
-        const cap = typeof flags.maxAssembled === 'number' && !Number.isNaN(flags.maxAssembled) ? flags.maxAssembled : base.assembledCount;
+        const cap =
+          typeof flags.maxAssembled === 'number' && !Number.isNaN(flags.maxAssembled)
+            ? flags.maxAssembled
+            : base.assembledCount;
         console.log(`  gate: assembled must be <= ${cap}, got ${s.assembledHits.length}`);
-        if (s.assembledHits.length > cap) { console.error('ERROR interaction-taste regressed: more assembled-interaction stubs than allowed.'); failed = true; }
+        if (s.assembledHits.length > cap) {
+          console.error(
+            'ERROR interaction-taste regressed: more assembled-interaction stubs than allowed.'
+          );
+          failed = true;
+        }
       }
-    } else if (flags.check) { console.error(`ERROR baseline not found: ${flags.baseline}`); process.exit(1); }
+    } else if (flags.check) {
+      console.error(`ERROR baseline not found: ${flags.baseline}`);
+      process.exit(1);
+    }
   }
 
-  if (flags.json) process.stdout.write(`\n__INTERACTION_TASTE__\n${JSON.stringify({ ...snap, assembledHits: s.assembledHits, profileMismatches: s.profileMismatches }, null, 2)}\n`);
+  if (flags.json)
+    process.stdout.write(
+      `\n__INTERACTION_TASTE__\n${JSON.stringify({ ...snap, assembledHits: s.assembledHits, profileMismatches: s.profileMismatches }, null, 2)}\n`
+    );
 
   if (flags.saveBaseline) {
     const out = flags.baseline ? join(ROOT, flags.baseline) : DEFAULT_BASELINE_PATH;

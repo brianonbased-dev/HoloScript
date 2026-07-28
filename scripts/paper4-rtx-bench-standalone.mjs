@@ -252,7 +252,9 @@ console.log(`[paper-4-rtx-bench] hardware: ${JSON.stringify(hardware)}\n`);
     fnv1aBytes(bytes);
     times.push((performance.now() - t0) * 1000);
   }
-  results.push(summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '1K verts', 1000, times));
+  results.push(
+    summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '1K verts', 1000, times)
+  );
 }
 
 // 2. fnvhash 100K verts
@@ -266,7 +268,9 @@ console.log(`[paper-4-rtx-bench] hardware: ${JSON.stringify(hardware)}\n`);
     fnv1aBytes(bytes);
     times.push((performance.now() - t0) * 1000);
   }
-  results.push(summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '100K verts', 100_000, times));
+  results.push(
+    summarize('raw FNV-1a coordinate bytes (not hashGeometry)', '100K verts', 100_000, times)
+  );
 }
 
 // 3. SHA-256 CAEL chain verify @ 10^4 entries
@@ -314,7 +318,9 @@ console.log(`[paper-4-rtx-bench] hardware: ${JSON.stringify(hardware)}\n`);
     verifySha256Chain(payloads, expectedHashes);
     times.push((performance.now() - t0) * 1000);
   }
-  results.push(summarize('synthetic raw-FNV + text-SHA aggregate', '1K coordinates + 500 rows', 500, times));
+  results.push(
+    summarize('synthetic raw-FNV + text-SHA aggregate', '1K coordinates + 500 rows', 500, times)
+  );
 }
 
 if (hardware.tier !== 'H3') {

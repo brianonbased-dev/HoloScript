@@ -17,14 +17,14 @@ v2.0.0 (commit `64c8ccfe0`). Closes the gap between "31 GPUs running" and
 
 ## Files
 
-| File                    | Purpose                                                                                                           |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `bootstrap-agent.sh`    | Runs ON each instance. Installs node, clones repo, builds agent, starts daemon. Idempotent.                       |
-| `bootstrap-package-mirror.sh` | Runs ON Jetson/owned metal. Starts Verdaccio npm cache plus HTTP PyPI wheelhouse from NVMe.                |
-| `package-mirror-env.sh` | Shared npm/PyPI client env setup sourced by fleet bootstraps.                                                     |
-| `agents-template.json`  | Schema for per-agent identity (handle, brain, provider, model, wallet env key, bearer env key). Founder fills in. |
-| `Deploy-MeshAgents.ps1` | Founder runs LOCALLY. Parallel-SSHes bootstrap.sh to each instance with composed env vars.                        |
-| `README.md`             | This file.                                                                                                        |
+| File                          | Purpose                                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `bootstrap-agent.sh`          | Runs ON each instance. Installs node, clones repo, builds agent, starts daemon. Idempotent.                       |
+| `bootstrap-package-mirror.sh` | Runs ON Jetson/owned metal. Starts Verdaccio npm cache plus HTTP PyPI wheelhouse from NVMe.                       |
+| `package-mirror-env.sh`       | Shared npm/PyPI client env setup sourced by fleet bootstraps.                                                     |
+| `agents-template.json`        | Schema for per-agent identity (handle, brain, provider, model, wallet env key, bearer env key). Founder fills in. |
+| `Deploy-MeshAgents.ps1`       | Founder runs LOCALLY. Parallel-SSHes bootstrap.sh to each instance with composed env vars.                        |
+| `README.md`                   | This file.                                                                                                        |
 
 ---
 

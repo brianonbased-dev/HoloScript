@@ -82,7 +82,8 @@ if (!Array.isArray(result.results) || result.results.length === 0) {
 }
 if (config.require_digest_match === true) {
   const digest = result.results[0]?.digest_summary;
-  const matched = digest?.digest_bit_identical === true || digest?.digest_epsilon_identical === true;
+  const matched =
+    digest?.digest_bit_identical === true || digest?.digest_epsilon_identical === true;
   if (!matched) {
     throw new Error(
       `WebGPU digest requirement failed: mode=${digest?.digest_mode ?? 'missing'} ` +

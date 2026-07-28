@@ -45,8 +45,7 @@ export const CONFIG = {
   initialTemperature: 20,
 };
 
-export const PUBLIC_SOLVER_HEALTH_ENDPOINT =
-  'https://mcp.holoscript.net/api/health/solver';
+export const PUBLIC_SOLVER_HEALTH_ENDPOINT = 'https://mcp.holoscript.net/api/health/solver';
 export const SOLVER_HEALTH_SCHEMA = 'holoscript.solver-health.v1';
 
 export class SmokeFail extends Error {
@@ -341,17 +340,18 @@ export async function runSolverSmoke(options = {}, dependencies = {}) {
   const request = zeroSpendHealth
     ? buildSolverHealthRequest(endpoint)
     : buildSolverRequest(endpoint);
-  const admission = zeroSpendLocal || zeroSpendHealth
-    ? null
-    : await (dependencies.admitImpl || runHostAdmission)(
-        {
-          ...options,
-          endpoint,
-          timeoutMs,
-          requestHash: request.requestHash,
-        },
-        dependencies
-      );
+  const admission =
+    zeroSpendLocal || zeroSpendHealth
+      ? null
+      : await (dependencies.admitImpl || runHostAdmission)(
+          {
+            ...options,
+            endpoint,
+            timeoutMs,
+            requestHash: request.requestHash,
+          },
+          dependencies
+        );
 
   let key = null;
   if (!zeroSpendHealth) {

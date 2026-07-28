@@ -17,7 +17,9 @@ function assertEq(actual, expected, name) {
     console.log(`  PASS ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -55,9 +57,13 @@ function buildFixture({ pkg, candidate, dist = true }) {
 }
 
 function run(root, extra = []) {
-  const result = spawnSync(process.execPath, [SCRIPT, '--root', root, '--skip-registry', ...extra], {
-    encoding: 'utf8',
-  });
+  const result = spawnSync(
+    process.execPath,
+    [SCRIPT, '--root', root, '--skip-registry', ...extra],
+    {
+      encoding: 'utf8',
+    }
+  );
   return { code: result.status, out: `${result.stdout || ''}${result.stderr || ''}` };
 }
 
@@ -104,7 +110,11 @@ console.log('check-npm-v1-release-readiness.test.mjs');
   try {
     const result = run(root);
     assertEq(result.code, 1, 'first scoped publish without public access fails');
-    assertMatch(result.out, /publishConfig\.access='public'/, 'first publish failure names public access');
+    assertMatch(
+      result.out,
+      /publishConfig\.access='public'/,
+      'first publish failure names public access'
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

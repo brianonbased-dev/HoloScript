@@ -89,7 +89,16 @@ const lineAllowed = (rel, code) =>
 
 // ── file discovery ───────────────────────────────────────────────────────────
 const CODE_EXT = new Set(['.ts', '.tsx', '.mjs', '.cjs', '.js']);
-const SKIP_DIR = new Set(['node_modules', 'dist', 'build', '.git', '.next', 'coverage', 'pkg', 'target']);
+const SKIP_DIR = new Set([
+  'node_modules',
+  'dist',
+  'build',
+  '.git',
+  '.next',
+  'coverage',
+  'pkg',
+  'target',
+]);
 const isTestOrFixture = (p) =>
   /(^|[\\/])__tests__[\\/]/.test(p) ||
   /\.(test|spec)\.[cm]?[jt]sx?$/.test(p) ||
@@ -179,7 +188,7 @@ const RULES = [
     id: 'R1 windows-drive-literal',
     // a string literal containing a Windows drive root  "C:/  'D:\\  `E:/
     re: /['"`][A-Za-z]:[\\/]/,
-    hint: "Windows drive path is dead on Linux/Railway — use os.homedir()/path.join() + env override",
+    hint: 'Windows drive path is dead on Linux/Railway — use os.homedir()/path.join() + env override',
   },
   {
     id: 'R2 user-home-literal',
@@ -229,7 +238,8 @@ for (const file of collectFiles()) {
       if (rule.strict && !STRICT) continue;
       const m = rule.re.exec(code);
       if (!m) continue;
-      if ((rule.id.startsWith('R1') || rule.id.startsWith('R2')) && isUrlContext(code, m.index)) continue;
+      if ((rule.id.startsWith('R1') || rule.id.startsWith('R2')) && isUrlContext(code, m.index))
+        continue;
       const snippet = raw.trim().slice(0, 140);
       if (lineAllowed(rel, snippet)) continue;
       findings.push({ file: rel, line: n + 1, rule: rule.id, hint: rule.hint, snippet });
@@ -239,7 +249,9 @@ for (const file of collectFiles()) {
 
 // ── report ───────────────────────────────────────────────────────────────────
 if (JSON_OUT) {
-  console.log(JSON.stringify({ ok: findings.length === 0, count: findings.length, findings }, null, 2));
+  console.log(
+    JSON.stringify({ ok: findings.length === 0, count: findings.length, findings }, null, 2)
+  );
   process.exit(findings.length === 0 ? 0 : 1);
 }
 

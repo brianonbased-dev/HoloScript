@@ -19,13 +19,25 @@ console.log('check-embodied-mind.test.mjs');
 function assert(cond, label) {
   testsRun++;
   if (cond) console.log(`  ✓ ${label}`);
-  else { testsFailed++; console.error(`  ✗ ${label}`); }
+  else {
+    testsFailed++;
+    console.error(`  ✗ ${label}`);
+  }
 }
 
 // seamComplete — a seam only counts if it can resolve identity/memory.
-assert(seamComplete('@portable_mind_seam(mesh_api_base: "x", team_id: "y")') === true, 'seam with mesh_api_base + team_id is complete');
-assert(seamComplete('@portable_mind_seam(agent_id: "z")') === false, 'seam missing mesh_api_base/team_id is incomplete');
-assert(seamComplete('@portable_mind(team_id: "t")') === true, '@portable_mind with team_id is complete');
+assert(
+  seamComplete('@portable_mind_seam(mesh_api_base: "x", team_id: "y")') === true,
+  'seam with mesh_api_base + team_id is complete'
+);
+assert(
+  seamComplete('@portable_mind_seam(agent_id: "z")') === false,
+  'seam missing mesh_api_base/team_id is incomplete'
+);
+assert(
+  seamComplete('@portable_mind(team_id: "t")') === true,
+  '@portable_mind with team_id is complete'
+);
 assert(seamComplete('geometry: "avatar"') === false, 'no seam at all is not complete');
 
 // classify — the minded fixture.

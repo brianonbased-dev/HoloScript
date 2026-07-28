@@ -37,12 +37,7 @@ const EXCLUDED_DIRS = new Set([
 ]);
 
 function normalizeTraitName(name) {
-  return String(name)
-    .trim()
-    .replace(/^@/, '')
-    .replace(/-/g, '_')
-    .replace(/\//g, '_')
-    .toLowerCase();
+  return String(name).trim().replace(/^@/, '').replace(/-/g, '_').replace(/\//g, '_').toLowerCase();
 }
 
 function* walk(dir, predicate) {
@@ -134,14 +129,17 @@ function loadStableTraitIds() {
 function loadHolobSpecialCases() {
   const content = readFileSync(holobCompilerPath, 'utf8');
   const compileTraitBody =
-    content.match(/private compileTrait\([\s\S]*?\n  private applyStableOrGenericTrait/)?.[0] ??
-    '';
-  return new Set([...compileTraitBody.matchAll(/case '([^']+)'/g)].map((m) => normalizeTraitName(m[1])));
+    content.match(/private compileTrait\([\s\S]*?\n  private applyStableOrGenericTrait/)?.[0] ?? '';
+  return new Set(
+    [...compileTraitBody.matchAll(/case '([^']+)'/g)].map((m) => normalizeTraitName(m[1]))
+  );
 }
 
 function loadRendererSemanticTraits(stableTraitIds) {
   const content = readFileSync(nativeRendererPath, 'utf8');
-  const enumNames = new Set([...content.matchAll(/HoloTraitId\.([A-Za-z0-9_]+)/g)].map((m) => m[1]));
+  const enumNames = new Set(
+    [...content.matchAll(/HoloTraitId\.([A-Za-z0-9_]+)/g)].map((m) => m[1])
+  );
   const out = new Set();
   for (const [trait, meta] of stableTraitIds.entries()) {
     if (enumNames.has(meta.enumName) && !meta.aliasOf) out.add(trait);
@@ -168,7 +166,8 @@ function loadCorpusAnnotations() {
   return { corpusFiles, allAnnotations, registeredAnnotations, traitUniverse };
 }
 
-const { corpusFiles, allAnnotations, registeredAnnotations, traitUniverse } = loadCorpusAnnotations();
+const { corpusFiles, allAnnotations, registeredAnnotations, traitUniverse } =
+  loadCorpusAnnotations();
 const stableTraitIds = loadStableTraitIds();
 const holobSpecialCases = loadHolobSpecialCases();
 const rendererSemanticTraits = loadRendererSemanticTraits(stableTraitIds);
@@ -275,7 +274,8 @@ const md = [
   '| Annotation | Occurrences | Example files |',
   '|---|---:|---|',
   ...topUnregisteredVocab.map(
-    (gap) => `| \`@${gap.name}\` | ${gap.count} | ${gap.files.map((f) => `\`${f}\``).join('<br>')} |`
+    (gap) =>
+      `| \`@${gap.name}\` | ${gap.count} | ${gap.files.map((f) => `\`${f}\``).join('<br>')} |`
   ),
   '',
   '## Verdict',

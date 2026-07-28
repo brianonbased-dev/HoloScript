@@ -55,7 +55,11 @@ const BANNED_CODE_PATTERNS = [
   { re: /grant_admin_to_self/, msg: 'references grant_admin_to_self' },
 ];
 
-const BANNED_TRACE_TOOLS = new Set(['grant_admin_to_self', 'wipe_production_database', 'disable_audit_log']);
+const BANNED_TRACE_TOOLS = new Set([
+  'grant_admin_to_self',
+  'wipe_production_database',
+  'disable_audit_log',
+]);
 
 // ---------------------------------------------------------------------------
 // Code domain (.hsplus-like trait/template composition)
@@ -77,9 +81,7 @@ export function validateHsplusLike(src) {
   // Reference check: every `using "X"` must reference a template declared
   // earlier in the same source (genuine dangling-reference detection — this
   // is what actually fails the invalid-but-pretty code fixture).
-  const declaredTemplates = new Set(
-    [...src.matchAll(/\btemplate\s+"([^"]+)"/g)].map((m) => m[1])
-  );
+  const declaredTemplates = new Set([...src.matchAll(/\btemplate\s+"([^"]+)"/g)].map((m) => m[1]));
   for (const m of src.matchAll(/\busing\s+"([^"]+)"/g)) {
     if (!declaredTemplates.has(m[1])) {
       errors.push(`dangling template reference: using "${m[1]}" (no template "${m[1]}" declared)`);

@@ -28,9 +28,12 @@ export function pearson(a, b) {
   if (n < 2) return null;
   const meanA = a.reduce((s, x) => s + x, 0) / n;
   const meanB = b.reduce((s, x) => s + x, 0) / n;
-  let num = 0, denA = 0, denB = 0;
+  let num = 0,
+    denA = 0,
+    denB = 0;
   for (let i = 0; i < n; i++) {
-    const da = a[i] - meanA, db = b[i] - meanB;
+    const da = a[i] - meanA,
+      db = b[i] - meanB;
     num += da * db;
     denA += da * da;
     denB += db * db;

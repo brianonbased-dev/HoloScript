@@ -52,7 +52,10 @@ const MODE = process.argv.includes('--land')
     ? 'cleanup'
     : 'report';
 const MAX_BEHIND = parseInt(arg('--max-behind', '80'), 10);
-const PATTERNS = arg('--patterns', 'claude,codex').split(',').map((s) => s.trim()).filter(Boolean);
+const PATTERNS = arg('--patterns', 'claude,codex')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 const JSON_OUT = process.argv.includes('--json');
 const GATE = path.join(ROOT, 'scripts/holo-ci/check-cross-platform-paths.mjs');
 
@@ -90,9 +93,15 @@ for (const ref of refLines) {
   if (ref === mainRef || ref.endsWith('/HEAD')) continue;
   const short = ref.replace(/^origin\//, '');
   if (!PATTERNS.some((p) => short.startsWith(p + '/'))) continue;
-  const ahead = parseInt((gitTry(['rev-list', '--count', `${mainRef}..${ref}`]).out || '0').trim(), 10);
+  const ahead = parseInt(
+    (gitTry(['rev-list', '--count', `${mainRef}..${ref}`]).out || '0').trim(),
+    10
+  );
   if (!ahead) continue; // nothing ahead — already merged
-  const behind = parseInt((gitTry(['rev-list', '--count', `${ref}..${mainRef}`]).out || '0').trim(), 10);
+  const behind = parseInt(
+    (gitTry(['rev-list', '--count', `${ref}..${mainRef}`]).out || '0').trim(),
+    10
+  );
   const date = (gitTry(['log', '-1', '--format=%cr', ref]).out || '').trim();
   const cherry = (gitTry(['cherry', mainRef, ref]).out || '').split('\n').filter(Boolean);
   const unmerged = cherry.filter((l) => l.startsWith('+')).length;
@@ -115,7 +124,10 @@ function cherryPickConflicts(ref) {
 // node_modules link/mutation). Always removed in finally.
 function portabilityClean(ref) {
   if (!fs.existsSync(GATE)) return { ran: false };
-  const wt = path.join(os.tmpdir(), `holo-translate-${ref.replace(/[^a-z0-9]/gi, '_')}-${process.pid}`);
+  const wt = path.join(
+    os.tmpdir(),
+    `holo-translate-${ref.replace(/[^a-z0-9]/gi, '_')}-${process.pid}`
+  );
   try {
     const add = gitTry(['worktree', 'add', '--detach', '--quiet', wt, ref]);
     if (!add.ok) return { ran: false, reason: 'worktree add failed' };
@@ -170,7 +182,9 @@ for (const b of branches) {
     continue;
   }
   b.status = 'LANDABLE';
-  b.note = port.ran ? 'clean cherry-pick + portability OK' : 'clean cherry-pick (portability gate not run)';
+  b.note = port.ran
+    ? 'clean cherry-pick + portability OK'
+    : 'clean cherry-pick (portability gate not run)';
 }
 
 // ── 3. report ─────────────────────────────────────────────────────────────────
@@ -178,7 +192,9 @@ const buckets = { LANDABLE: [], 'NEEDS-FIX': [], CONFLICTED: [], STALE: [], ABSO
 for (const b of branches) (buckets[b.status] ||= []).push(b);
 
 if (JSON_OUT) {
-  console.log(JSON.stringify({ root: ROOT, mode: MODE, count: branches.length, branches }, null, 2));
+  console.log(
+    JSON.stringify({ root: ROOT, mode: MODE, count: branches.length, branches }, null, 2)
+  );
 } else {
   console.log(`\n[translate] cloud-session branches in ${path.basename(ROOT)} (mode: ${MODE})`);
   if (branches.length === 0) console.log('  ✅ none — no stranded cloud branches ahead of main');
@@ -186,7 +202,9 @@ if (JSON_OUT) {
     if (!list.length) continue;
     console.log(`\n  ${status} (${list.length}):`);
     for (const b of list)
-      console.log(`    · ${b.short}  ahead=${b.ahead} behind=${b.behind} (${b.date})${b.note ? ' — ' + b.note : ''}`);
+      console.log(
+        `    · ${b.short}  ahead=${b.ahead} behind=${b.behind} (${b.date})${b.note ? ' — ' + b.note : ''}`
+      );
   }
 }
 
@@ -196,7 +214,9 @@ let failed = 0;
 if (MODE === 'cleanup') {
   for (const b of buckets.ABSORBED) {
     const r = gitTry(['push', 'origin', '--delete', b.short]);
-    console.log(`  ${r.ok ? 'deleted' : 'FAILED  '} ${b.short}${r.ok ? '' : ' — ' + r.out.slice(0, 120)}`);
+    console.log(
+      `  ${r.ok ? 'deleted' : 'FAILED  '} ${b.short}${r.ok ? '' : ' — ' + r.out.slice(0, 120)}`
+    );
     if (!r.ok) failed++;
   }
 }
@@ -222,7 +242,9 @@ if (MODE === 'land') {
     }
     const push = gitTry(['push', 'origin', 'HEAD:main']);
     if (!push.ok) {
-      console.error(`  cherry-picked ${b.short} locally but PUSH failed — ${push.out.slice(0, 160)}`);
+      console.error(
+        `  cherry-picked ${b.short} locally but PUSH failed — ${push.out.slice(0, 160)}`
+      );
       failed++;
       continue;
     }

@@ -120,13 +120,13 @@ const trials: Trial[] = commands.map((command, index) => ({
 const preD1 = summarize(
   'preD1LegacyAnyBash',
   trials.filter((trial) => trial.preD1Accepted).length,
-  trials.length,
+  trials.length
 );
 
 const postD1 = summarize(
   'postD1ProductivePrefix',
   trials.filter((trial) => trial.postD1Accepted).length,
-  trials.length,
+  trials.length
 );
 
 const artifactWithoutDigest = {
@@ -143,10 +143,8 @@ const artifactWithoutDigest = {
   ],
   harness: {
     script: relative(REPO_ROOT, fileURLToPath(import.meta.url)).replaceAll('\\', '/'),
-    preD1Counterfactual:
-      'Legacy gate accepted any non-empty bash tool call as artifact-producing.',
-    postD1Guard:
-      'Current D1 tightening delegates bash productivity to isProductiveBashCommand().',
+    preD1Counterfactual: 'Legacy gate accepted any non-empty bash tool call as artifact-producing.',
+    postD1Guard: 'Current D1 tightening delegates bash productivity to isProductiveBashCommand().',
     sandboxModel:
       'Each trial is a synthetic fleet-agent tick that emits one bash tool_use and then final text.',
   },
@@ -161,7 +159,10 @@ const artifactWithoutDigest = {
     postD1,
     measuredEfficacy: {
       absoluteReduction: round(preD1.successRate - postD1.successRate),
-      relativeReduction: preD1.successRate === 0 ? null : round((preD1.successRate - postD1.successRate) / preD1.successRate),
+      relativeReduction:
+        preD1.successRate === 0
+          ? null
+          : round((preD1.successRate - postD1.successRate) / preD1.successRate),
     },
   },
   trials,
@@ -185,11 +186,15 @@ const artifact = {
 
 async function main(): Promise<void> {
   if (preD1.successes !== trials.length) {
-    throw new Error(`pre-D1 baseline did not accept every A2 trial (${preD1.successes}/${trials.length})`);
+    throw new Error(
+      `pre-D1 baseline did not accept every A2 trial (${preD1.successes}/${trials.length})`
+    );
   }
 
   if (postD1.successes !== 0) {
-    const leaks = trials.filter((trial) => trial.postD1Accepted).map((trial) => `${trial.id}:${trial.command}`);
+    const leaks = trials
+      .filter((trial) => trial.postD1Accepted)
+      .map((trial) => `${trial.id}:${trial.command}`);
     throw new Error(`post-D1 guard accepted A2 trial(s): ${leaks.join(', ')}`);
   }
 
@@ -206,8 +211,8 @@ async function main(): Promise<void> {
         artifactBodySha256: artifact.artifactBodySha256,
       },
       null,
-      2,
-    ),
+      2
+    )
   );
 }
 

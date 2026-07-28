@@ -58,15 +58,21 @@ for (const p of ENV_PATHS) {
           process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, '').trim();
         }
       }
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
     break;
   }
 }
 
 // -- Config ------------------------------------------------------------------
 const PORT = Number(process.env.HOLOSHELL_PORT) || 8747;
-const SEAT_ID = process.env.HOLOSHELL_SEAT_ID || process.env.HOLOMESH_AGENT_SURFACE || 'local-win-x64';
-const MCP_BASE = (process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net').replace(/\/$/, '');
+const SEAT_ID =
+  process.env.HOLOSHELL_SEAT_ID || process.env.HOLOMESH_AGENT_SURFACE || 'local-win-x64';
+const MCP_BASE = (process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net').replace(
+  /\/$/,
+  ''
+);
 const PUBLISH_INTERVAL_MS = Number(process.env.PUBLISH_INTERVAL_MS) || 120_000;
 const API_KEY = process.env.HOLOSCRIPT_API_KEY || process.env.HOLOMESH_API_KEY || '';
 const BIND_ADDR = '127.0.0.1';
@@ -96,19 +102,29 @@ function collectMachineSnapshot() {
       { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 5_000 }
     ).trim();
     if (smiRaw) {
-      const [name, totalMB, freeMB, usedMB, utilPct] = smiRaw.split(',').map(s => s.trim());
-      gpu = { name, totalMB: Number(totalMB), freeMB: Number(freeMB), usedMB: Number(usedMB), utilizationPct: Number(utilPct) };
+      const [name, totalMB, freeMB, usedMB, utilPct] = smiRaw.split(',').map((s) => s.trim());
+      gpu = {
+        name,
+        totalMB: Number(totalMB),
+        freeMB: Number(freeMB),
+        usedMB: Number(usedMB),
+        utilizationPct: Number(utilPct),
+      };
     }
-  } catch { /* no GPU */ }
+  } catch {
+    /* no GPU */
+  }
 
   // Host memory via Win32_OperatingSystem (Windows-only)
   let hostMemory = null;
   try {
-    const psCmd = 'Get-CimInstance Win32_OperatingSystem | Select-Object TotalVisibleMemorySize,FreePhysicalMemory | ConvertTo-Json -Compress';
-    const raw = execSync(
-      `powershell -NonInteractive -Command "${psCmd}"`,
-      { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 8_000 }
-    ).trim();
+    const psCmd =
+      'Get-CimInstance Win32_OperatingSystem | Select-Object TotalVisibleMemorySize,FreePhysicalMemory | ConvertTo-Json -Compress';
+    const raw = execSync(`powershell -NonInteractive -Command "${psCmd}"`, {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 8_000,
+    }).trim();
     if (raw) {
       const parsed = JSON.parse(raw);
       const totalMB = Math.round(Number(parsed.TotalVisibleMemorySize) / 1024);
@@ -125,7 +141,11 @@ function collectMachineSnapshot() {
   }
 
   let staleProcessCount = 0;
-  try { staleProcessCount = scanStaleProcesses({ minAgeMs: 5 * 60 * 1000 }).length; } catch { /* non-fatal */ }
+  try {
+    staleProcessCount = scanStaleProcesses({ minAgeMs: 5 * 60 * 1000 }).length;
+  } catch {
+    /* non-fatal */
+  }
 
   return { ...base, gpu, hostMemory, staleProcessCount };
 }
@@ -144,8 +164,14 @@ function sendJson(res, status, body) {
 async function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', chunk => (data += chunk));
-    req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch { resolve({}); } });
+    req.on('data', (chunk) => (data += chunk));
+    req.on('end', () => {
+      try {
+        resolve(data ? JSON.parse(data) : {});
+      } catch {
+        resolve({});
+      }
+    });
     req.on('error', reject);
   });
 }
@@ -157,7 +183,10 @@ async function handleRequest(req, res) {
   const method = req.method;
 
   if (method === 'OPTIONS') {
-    res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' });
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    });
     res.end();
     return;
   }
@@ -166,22 +195,34 @@ async function handleRequest(req, res) {
     if (path === '/api/stale-processes' && method === 'GET') {
       const minAgeMs = Number(url.searchParams.get('minAgeMs')) || 5 * 60 * 1000;
       const raw = scanStaleProcesses({ minAgeMs });
-      const items = raw.map(p => ({ pid: p.pid, reason: p.reason, ageSec: Math.round(p.ageMs / 1000), command: p.command }));
+      const items = raw.map((p) => ({
+        pid: p.pid,
+        reason: p.reason,
+        ageSec: Math.round(p.ageMs / 1000),
+        command: p.command,
+      }));
       sendJson(res, 200, { success: true, items });
       return;
     }
 
     if (path === '/api/pending-consents' && method === 'GET') {
       const pending = listPendingReceipts();
-      const items = pending.map(pf => ({ id: pf.id, operation: pf.operation, targetCount: pf.targets?.length ?? 0, timestamp: pf.timestamp }));
+      const items = pending.map((pf) => ({
+        id: pf.id,
+        operation: pf.operation,
+        targetCount: pf.targets?.length ?? 0,
+        timestamp: pf.timestamp,
+      }));
       sendJson(res, 200, { success: true, items });
       return;
     }
 
     if (path === '/api/execution-history' && method === 'GET') {
       const executions = listRecentExecutions({ limit: 20 });
-      const items = executions.map(e => ({
-        id: e.id, preflightId: e.preflightId, operation: e.operation,
+      const items = executions.map((e) => ({
+        id: e.id,
+        preflightId: e.preflightId,
+        operation: e.operation,
         executedAt: e.executedAt,
         executedAtShort: e.executedAt ? new Date(e.executedAt).toLocaleString() : '-',
         summary: { killed: e.killed ?? 0, errors: e.errors ?? 0 },
@@ -193,11 +234,21 @@ async function handleRequest(req, res) {
     if (path === '/api/consent/approve' && method === 'POST') {
       const body = await readBody(req);
       const { preflightId } = body;
-      if (!preflightId || typeof preflightId !== 'string') { sendJson(res, 400, { error: 'preflightId required' }); return; }
+      if (!preflightId || typeof preflightId !== 'string') {
+        sendJson(res, 400, { error: 'preflightId required' });
+        return;
+      }
       const classification = classifyConsentRequirement({ operation: 'stale_process_cleanup' });
-      const token = issueConsentToken({ preflightId, lane: classification.lane, issuedBy: 'studio-founder' });
+      const token = issueConsentToken({
+        preflightId,
+        lane: classification.lane,
+        issuedBy: 'studio-founder',
+      });
       const result = executeReceipt({ consentToken: token, preflightId });
-      sendJson(res, result.outcome === 'success' ? 200 : 500, { success: result.outcome === 'success', ...result });
+      sendJson(res, result.outcome === 'success' ? 200 : 500, {
+        success: result.outcome === 'success',
+        ...result,
+      });
       return;
     }
 
@@ -208,13 +259,21 @@ async function handleRequest(req, res) {
     }
 
     if (path === '/health' && method === 'GET') {
-      sendJson(res, 200, { status: 'ok', seatId: SEAT_ID, uptime: Math.round(process.uptime()), publishIntervalMs: PUBLISH_INTERVAL_MS });
+      sendJson(res, 200, {
+        status: 'ok',
+        seatId: SEAT_ID,
+        uptime: Math.round(process.uptime()),
+        publishIntervalMs: PUBLISH_INTERVAL_MS,
+      });
       return;
     }
 
     sendJson(res, 404, { error: `unknown path: ${path}` });
   } catch (err) {
-    sendJson(res, 500, { error: 'internal error', details: String(err?.message ?? err).slice(0, 200) });
+    sendJson(res, 500, {
+      error: 'internal error',
+      details: String(err?.message ?? err).slice(0, 200),
+    });
   }
 }
 
@@ -222,36 +281,55 @@ async function handleRequest(req, res) {
 async function publishSnapshot() {
   if (!API_KEY) return;
   let snapshot;
-  try { snapshot = collectMachineSnapshot(); }
-  catch (err) { console.error('[holoshell-server] snapshot failed:', err?.message ?? err); return; }
+  try {
+    snapshot = collectMachineSnapshot();
+  } catch (err) {
+    console.error('[holoshell-server] snapshot failed:', err?.message ?? err);
+    return;
+  }
   const target = `${MCP_BASE}/api/holomesh/machine-state/${encodeURIComponent(SEAT_ID)}`;
   try {
     const r = await fetch(target, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-mcp-api-key': API_KEY, Authorization: `Bearer ${API_KEY}` },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-mcp-api-key': API_KEY,
+        Authorization: `Bearer ${API_KEY}`,
+      },
       body: JSON.stringify(snapshot),
       signal: AbortSignal.timeout(15_000),
     });
     if (r.ok) {
-      console.log(`[holoshell-server] published snapshot for ${SEAT_ID} at ${new Date().toISOString()}`);
+      console.log(
+        `[holoshell-server] published snapshot for ${SEAT_ID} at ${new Date().toISOString()}`
+      );
     } else {
       const text = await r.text().catch(() => '');
       console.warn(`[holoshell-server] publish HTTP ${r.status}: ${text.slice(0, 120)}`);
     }
-  } catch (err) { console.warn('[holoshell-server] publish error:', err?.message ?? err); }
+  } catch (err) {
+    console.warn('[holoshell-server] publish error:', err?.message ?? err);
+  }
 }
 
 // -- Main --------------------------------------------------------------------
 const server = http.createServer(handleRequest);
 server.listen(PORT, BIND_ADDR, () => {
   console.log(`[holoshell-server] listening on http://${BIND_ADDR}:${PORT}`);
-  console.log(`[holoshell-server] seat: ${SEAT_ID} | remote: ${MCP_BASE}/api/holomesh/machine-state/${SEAT_ID}`);
+  console.log(
+    `[holoshell-server] seat: ${SEAT_ID} | remote: ${MCP_BASE}/api/holomesh/machine-state/${SEAT_ID}`
+  );
   publishSnapshot();
   setInterval(publishSnapshot, PUBLISH_INTERVAL_MS);
 });
-server.on('error', err => {
-  if (err.code === 'EADDRINUSE') { console.error(`[holoshell-server] port ${PORT} in use -- set HOLOSHELL_PORT`); }
-  else { console.error('[holoshell-server] error:', err?.message ?? err); }
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`[holoshell-server] port ${PORT} in use -- set HOLOSHELL_PORT`);
+  } else {
+    console.error('[holoshell-server] error:', err?.message ?? err);
+  }
   process.exit(1);
 });
-process.on('SIGINT', () => { server.close(() => process.exit(0)); });
+process.on('SIGINT', () => {
+  server.close(() => process.exit(0));
+});

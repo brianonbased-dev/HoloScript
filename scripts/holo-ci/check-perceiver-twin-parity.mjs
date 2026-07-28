@@ -86,10 +86,14 @@ for (const [twinFile] of PAIRS) {
   if (phantom.length || undeclared.length) {
     failures++;
     if (phantom.length) {
-      console.error(`FAIL ${twinFile}: phantom twin field(s) not on ${typeName}: ${phantom.join(', ')}`);
+      console.error(
+        `FAIL ${twinFile}: phantom twin field(s) not on ${typeName}: ${phantom.join(', ')}`
+      );
     }
     if (undeclared.length) {
-      console.error(`FAIL ${twinFile}: ${typeName} field(s) missing from twin: ${undeclared.join(', ')}`);
+      console.error(
+        `FAIL ${twinFile}: ${typeName} field(s) missing from twin: ${undeclared.join(', ')}`
+      );
     }
   } else {
     console.log(`OK   ${twinFile} ↔ ${typeName} (${tsFields.length} fields)`);
@@ -97,7 +101,9 @@ for (const [twinFile] of PAIRS) {
 }
 
 if (failures > 0) {
-  console.error(`\n[perceiver-twin-parity] ${failures} twin(s) drifted — update the .hsplus @receipt fields to match the interface.`);
+  console.error(
+    `\n[perceiver-twin-parity] ${failures} twin(s) drifted — update the .hsplus @receipt fields to match the interface.`
+  );
   process.exit(1);
 }
 console.log('[perceiver-twin-parity] all perceiver twins in parity.');

@@ -29,8 +29,17 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const BASELINE_PATH = path.join(__dirname, 'native-coverage-baseline.json');
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.turbo',
-  '.tmp-g4', 'out', '.bench-logs', 'target',
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'coverage',
+  '.next',
+  '.turbo',
+  '.tmp-g4',
+  'out',
+  '.bench-logs',
+  'target',
 ]);
 const NATIVE_EXT = new Set(['.hsplus', '.holo', '.hs']);
 // Epsilon so float noise can't fail the gate; real regressions exceed it.
@@ -118,7 +127,9 @@ function main() {
       updatedAtIso: new Date().toISOString(),
     };
     fs.writeFileSync(BASELINE_PATH, JSON.stringify(payload, null, 2) + '\n');
-    console.log(`✓ native-coverage baseline reseeded: native=${metrics.native} handTsTraits=${metrics.handTsTraits} ratio=${(metrics.ratio * 100).toFixed(2)}%`);
+    console.log(
+      `✓ native-coverage baseline reseeded: native=${metrics.native} handTsTraits=${metrics.handTsTraits} ratio=${(metrics.ratio * 100).toFixed(2)}%`
+    );
     return;
   }
 
@@ -133,21 +144,31 @@ function main() {
 
   const errors = [];
   if (metrics.native < baseline.native) {
-    errors.push(`native authoring count dropped: ${baseline.native} → ${metrics.native} (TS is replacing native — D.104 violation).`);
+    errors.push(
+      `native authoring count dropped: ${baseline.native} → ${metrics.native} (TS is replacing native — D.104 violation).`
+    );
   }
   if (metrics.ratio + EPSILON < baseline.ratio) {
-    errors.push(`native fraction dropped: ${(baseline.ratio * 100).toFixed(2)}% → ${(metrics.ratio * 100).toFixed(2)}% (hand-TS grew faster than native — D.104 violation).`);
+    errors.push(
+      `native fraction dropped: ${(baseline.ratio * 100).toFixed(2)}% → ${(metrics.ratio * 100).toFixed(2)}% (hand-TS grew faster than native — D.104 violation).`
+    );
   }
 
   if (errors.length) {
     console.error('\n✗ native-coverage regressed (D.104):');
     for (const e of errors) console.error(`  - ${e}`);
-    console.error('\n  Fix by authoring capability natively (.hsplus/.holo/.hs), not as new hand-TS.');
-    console.error('  If the drop is legitimate (e.g. native files removed for a real reason), reseed: --update.');
+    console.error(
+      '\n  Fix by authoring capability natively (.hsplus/.holo/.hs), not as new hand-TS.'
+    );
+    console.error(
+      '  If the drop is legitimate (e.g. native files removed for a real reason), reseed: --update.'
+    );
     process.exit(1);
   }
 
-  console.log(`✓ native-coverage holds vs baseline (native ≥ ${baseline.native}, ratio ≥ ${(baseline.ratio * 100).toFixed(2)}%).`);
+  console.log(
+    `✓ native-coverage holds vs baseline (native ≥ ${baseline.native}, ratio ≥ ${(baseline.ratio * 100).toFixed(2)}%).`
+  );
 }
 
 // Run only as a CLI (importable for tests).

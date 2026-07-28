@@ -9,7 +9,13 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
 const SCRIPT = join(REPO_ROOT, 'scripts', 'apartment-twin-source-receipt.mts');
-const SOURCE = join(REPO_ROOT, 'apps', 'quest-universal-qr-scanner', 'worlds', 'apartment-twin.holo');
+const SOURCE = join(
+  REPO_ROOT,
+  'apps',
+  'quest-universal-qr-scanner',
+  'worlds',
+  'apartment-twin.holo'
+);
 
 let testsRun = 0;
 let testsFailed = 0;
@@ -28,9 +34,10 @@ function test(name, fn) {
 
 function runReceipt(args) {
   const command = process.platform === 'win32' ? 'cmd.exe' : 'corepack';
-  const commandArgs = process.platform === 'win32'
-    ? ['/c', 'corepack', 'pnpm', 'exec', 'tsx', SCRIPT, '--json', ...args]
-    : ['pnpm', 'exec', 'tsx', SCRIPT, '--json', ...args];
+  const commandArgs =
+    process.platform === 'win32'
+      ? ['/c', 'corepack', 'pnpm', 'exec', 'tsx', SCRIPT, '--json', ...args]
+      : ['pnpm', 'exec', 'tsx', SCRIPT, '--json', ...args];
   return spawnSync(command, commandArgs, {
     cwd: REPO_ROOT,
     encoding: 'utf8',
@@ -65,14 +72,16 @@ test('fails closed when a source omits the reconstruction asset reference', () =
     const badSource = join(tempRoot, 'missing-reconstruction.holo');
     const source = readFileSync(SOURCE, 'utf8').replace(
       'reconstruction_asset: "holomap://captures/apartment-redacted/v0/apartment-room.spz"',
-      'reconstruction_note: "missing asset on purpose"',
+      'reconstruction_note: "missing asset on purpose"'
     );
     writeFileSync(badSource, source, 'utf8');
     const result = runReceipt(['--source', badSource, '--check']);
     assert.notEqual(result.status, 0);
     const receipt = parseJson(result.stdout);
     assert.equal(receipt.status, 'fail');
-    assert.ok(receipt.validation.failures.some((failure) => failure.rule === 'reconstruction_asset_missing'));
+    assert.ok(
+      receipt.validation.failures.some((failure) => failure.rule === 'reconstruction_asset_missing')
+    );
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }

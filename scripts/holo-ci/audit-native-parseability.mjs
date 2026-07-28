@@ -29,8 +29,17 @@ const SCAN_ROOT = path.join(REPO_ROOT, 'packages'); // matches check-native-cove
 const NATIVE_EXT = new Set(['.hsplus', '.holo', '.hs']);
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.turbo',
-  '.tmp-g4', 'out', '.bench-logs', 'target',
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'coverage',
+  '.next',
+  '.turbo',
+  '.tmp-g4',
+  'out',
+  '.bench-logs',
+  'target',
 ]);
 
 function walk(dir, onFile) {
@@ -189,7 +198,9 @@ async function main() {
     const c = report.counts[ext];
     const total = c.extensionTotal;
     const pct = total === 0 ? 0 : ((c.pass / total) * 100).toFixed(2);
-    console.log(`${ext}: ${c.pass}/${total} really valid (${pct}%) - fail=${c.fail} threw=${c.threw}`);
+    console.log(
+      `${ext}: ${c.pass}/${total} really valid (${pct}%) - fail=${c.fail} threw=${c.threw}`
+    );
     for (const s of c.sampleErrors) {
       console.log(`    ${s.file}: ${s.detail}`);
     }

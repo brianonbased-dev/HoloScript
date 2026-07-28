@@ -36,8 +36,20 @@ const repoRoot = path.resolve(here, '..', '..');
 const corpusDir = path.join(repoRoot, 'packages', 'compiler-wasm', 'spec-corpus');
 const corpusPath = path.join(corpusDir, 'hsplus-spec-corpus.v0.jsonl');
 const manifestPath = path.join(corpusDir, 'hsplus-spec-corpus.v0.manifest.json');
-const artifactJs = path.join(repoRoot, 'packages', 'compiler-wasm', 'pkg-node', 'holoscript_wasm.js');
-const artifactWasm = path.join(repoRoot, 'packages', 'compiler-wasm', 'pkg-node', 'holoscript_wasm_bg.wasm');
+const artifactJs = path.join(
+  repoRoot,
+  'packages',
+  'compiler-wasm',
+  'pkg-node',
+  'holoscript_wasm.js'
+);
+const artifactWasm = path.join(
+  repoRoot,
+  'packages',
+  'compiler-wasm',
+  'pkg-node',
+  'holoscript_wasm_bg.wasm'
+);
 
 const strict = process.argv.includes('--strict');
 const updateManifest = process.argv.includes('--update-manifest');
@@ -58,19 +70,23 @@ function misconfigured(message) {
 
 if (!fs.existsSync(corpusPath)) misconfigured(`corpus not found at ${corpusPath}`);
 if (!fs.existsSync(artifactJs) || !fs.existsSync(artifactWasm)) {
-  misconfigured('grammar-authority artifact (pkg-node) not found — build it before running the executable spec');
+  misconfigured(
+    'grammar-authority artifact (pkg-node) not found — build it before running the executable spec'
+  );
 }
 
 // Prerequisite: never verify normative verdicts against a STALE authority. Same chain the
 // grammar-authority gate uses; --skip-drift exists for the self-test path only.
 if (!skipDrift) {
-  const drift = spawnSync(
-    process.execPath,
-    [path.join(here, 'check-compiler-wasm-drift.mjs')],
-    { cwd: repoRoot, encoding: 'utf8', windowsHide: true },
-  );
+  const drift = spawnSync(process.execPath, [path.join(here, 'check-compiler-wasm-drift.mjs')], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    windowsHide: true,
+  });
   if (drift.status !== 0) {
-    console.error('[spec-corpus] authority freshness prerequisite failed (check-compiler-wasm-drift):');
+    console.error(
+      '[spec-corpus] authority freshness prerequisite failed (check-compiler-wasm-drift):'
+    );
     console.error(String(drift.stderr || drift.stdout || '').trim());
     process.exit(1);
   }
@@ -88,9 +104,13 @@ if (selfTest) {
   };
   const result = JSON.parse(wasmForSelfTest.validate_detailed(wrongCase.source));
   if (result.valid === wrongCase.expect.valid) {
-    misconfigured('self-test could not construct a failing case — the authority accepted a known-invalid source');
+    misconfigured(
+      'self-test could not construct a failing case — the authority accepted a known-invalid source'
+    );
   }
-  console.log('[spec-corpus] self-test OK — a deliberately wrong verdict IS detected as drift (the gate can go red)');
+  console.log(
+    '[spec-corpus] self-test OK — a deliberately wrong verdict IS detected as drift (the gate can go red)'
+  );
   process.exit(0);
 }
 
@@ -125,14 +145,19 @@ for (const testCase of cases) {
   const verdictOk = result.valid === testCase.expect.valid;
   const diagnosticOk =
     !testCase.expect.diagnostic_includes ||
-    (result.errors ?? []).some((error) => String(error.message).includes(testCase.expect.diagnostic_includes));
+    (result.errors ?? []).some((error) =>
+      String(error.message).includes(testCase.expect.diagnostic_includes)
+    );
 
   if (!verdictOk || !diagnosticOk) {
     drifts.push({
       id: testCase.id,
       title: testCase.title,
       expected: testCase.expect,
-      got: { valid: result.valid, errors: (result.errors ?? []).map((e) => String(e.message).slice(0, 120)) },
+      got: {
+        valid: result.valid,
+        errors: (result.errors ?? []).map((e) => String(e.message).slice(0, 120)),
+      },
     });
   }
 }
@@ -142,14 +167,24 @@ console.log(
 );
 
 if (drifts.length > 0) {
-  console.error(`[spec-corpus] ${drifts.length} case(s) DRIFTED — the language no longer means what the spec says:`);
+  console.error(
+    `[spec-corpus] ${drifts.length} case(s) DRIFTED — the language no longer means what the spec says:`
+  );
   for (const drift of drifts) {
     console.error(`  ✗ ${drift.id} — ${drift.title}`);
-    console.error(`    expected ${JSON.stringify(drift.expected)} got ${JSON.stringify(drift.got)}`);
+    console.error(
+      `    expected ${JSON.stringify(drift.expected)} got ${JSON.stringify(drift.got)}`
+    );
   }
-  console.error('[spec-corpus] Either the grammar change is wrong, or the SPEC changed — if intended, update the');
-  console.error('[spec-corpus] corpus case in the same commit so the meaning change is reviewable, then re-pin');
-  console.error('[spec-corpus] with --update-manifest. Never let verdict drift ride along silently.');
+  console.error(
+    '[spec-corpus] Either the grammar change is wrong, or the SPEC changed — if intended, update the'
+  );
+  console.error(
+    '[spec-corpus] corpus case in the same commit so the meaning change is reviewable, then re-pin'
+  );
+  console.error(
+    '[spec-corpus] with --update-manifest. Never let verdict drift ride along silently.'
+  );
   process.exit(1);
 }
 
@@ -170,12 +205,15 @@ if (updateManifest) {
     },
   };
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  console.log(`[spec-corpus] manifest pinned: ${cases.length} cases, corpus sha256:${corpusSha.slice(0, 12)}…`);
+  console.log(
+    `[spec-corpus] manifest pinned: ${cases.length} cases, corpus sha256:${corpusSha.slice(0, 12)}…`
+  );
   process.exit(0);
 }
 
 if (!fs.existsSync(manifestPath)) {
-  const message = 'manifest missing — run with --update-manifest after a verified run to pin the release';
+  const message =
+    'manifest missing — run with --update-manifest after a verified run to pin the release';
   if (strict) fail(message);
   console.warn(`[spec-corpus] WARN — ${message}`);
   process.exit(0);
@@ -185,7 +223,8 @@ const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const corpusPinOk = manifest.corpus_sha256 === `sha256:${corpusSha}`;
 const authorityPinOk = manifest.authority?.wasmSha256 === `sha256:${artifactSha}`;
 if (!corpusPinOk) {
-  const message = 'corpus bytes do not match the manifest pin — corpus edited without re-pinning (--update-manifest)';
+  const message =
+    'corpus bytes do not match the manifest pin — corpus edited without re-pinning (--update-manifest)';
   if (strict) fail(message);
   console.warn(`[spec-corpus] WARN — ${message}`);
 }
@@ -196,5 +235,7 @@ if (!authorityPinOk) {
   console.warn(`[spec-corpus] WARN — ${message}`);
 }
 if (corpusPinOk && authorityPinOk) {
-  console.log('[spec-corpus] OK — corpus and authority pins verified. The spec is executable, and it passed. (I2)');
+  console.log(
+    '[spec-corpus] OK — corpus and authority pins verified. The spec is executable, and it passed. (I2)'
+  );
 }

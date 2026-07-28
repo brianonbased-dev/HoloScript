@@ -819,7 +819,10 @@ function checkCreds() {
     const checks = parsed?.checks ?? [];
     issues = checks
       .filter((c) => c.status === 'STALE' || c.status === 'SHADOWED' || c.status === 'MISSING')
-      .map((c) => ({ file: c.provider ?? c.key ?? '?', reason: `${c.status}: ${c.message ?? ''}`.trim() }));
+      .map((c) => ({
+        file: c.provider ?? c.key ?? '?',
+        reason: `${c.status}: ${c.message ?? ''}`.trim(),
+      }));
   } catch {
     if (out) issues = [{ file: 'creds-doctor', reason: out.slice(0, 500) }];
     else if (errOut) issues = [{ file: 'creds-doctor', reason: errOut.slice(0, 500) }];
@@ -844,10 +847,20 @@ async function checkEnvDivergence() {
   const start = Date.now();
   const homeDir = process.env.HOME || process.env.USERPROFILE || homedir();
   const providerTokensPath = join(
-    homeDir, '.ai-ecosystem', 'scripts', 'lib', 'provider-tokens.mjs'
+    homeDir,
+    '.ai-ecosystem',
+    'scripts',
+    'lib',
+    'provider-tokens.mjs'
   );
   if (!existsSync(providerTokensPath)) {
-    record('env_divergence', 'skip', 'provider-tokens.mjs not found (ai-ecosystem sibling not present)', [], 0);
+    record(
+      'env_divergence',
+      'skip',
+      'provider-tokens.mjs not found (ai-ecosystem sibling not present)',
+      [],
+      0
+    );
     return;
   }
   try {
@@ -865,10 +878,16 @@ async function checkEnvDivergence() {
 
     const issues = [];
     for (const [file, keys] of onlyInEntries) {
-      issues.push({ file: relative(ROOT, file), reason: `keys only here: ${keys.slice(0, 5).join(', ')}${keys.length > 5 ? ` (+${keys.length - 5} more)` : ''}` });
+      issues.push({
+        file: relative(ROOT, file),
+        reason: `keys only here: ${keys.slice(0, 5).join(', ')}${keys.length > 5 ? ` (+${keys.length - 5} more)` : ''}`,
+      });
     }
     for (const d of (differs ?? []).slice(0, 10)) {
-      issues.push({ file: d.key, reason: `values differ across .env files (category: ${d.category})` });
+      issues.push({
+        file: d.key,
+        reason: `values differ across .env files (category: ${d.category})`,
+      });
     }
 
     record(
@@ -879,7 +898,13 @@ async function checkEnvDivergence() {
       duration
     );
   } catch (e) {
-    record('env_divergence', 'skip', `detectEnvDivergence failed: ${String(e).slice(0, 200)}`, [], 0);
+    record(
+      'env_divergence',
+      'skip',
+      `detectEnvDivergence failed: ${String(e).slice(0, 200)}`,
+      [],
+      0
+    );
   }
 }
 
@@ -937,7 +962,8 @@ if (shouldRun('circular')) checkCircular();
 if (shouldRun('simulation') || shouldRun('holosim')) checkSimulationContracts();
 if (shouldRun('metrics')) checkMetrics();
 if (shouldRun('creds') || shouldRun('credentials')) checkCreds();
-if (shouldRun('env_divergence') || shouldRun('env-divergence') || FLAGS.full) await checkEnvDivergence();
+if (shouldRun('env_divergence') || shouldRun('env-divergence') || FLAGS.full)
+  await checkEnvDivergence();
 
 const totalDuration = Date.now() - totalStart;
 

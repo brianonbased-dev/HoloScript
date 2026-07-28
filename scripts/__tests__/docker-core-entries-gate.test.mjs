@@ -30,7 +30,9 @@ function assertEq(actual, expected, msg) {
   testsRun += 1;
   if (actual !== expected) {
     testsFailed += 1;
-    console.error(`  FAIL: ${msg}\n        expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL: ${msg}\n        expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   } else {
     console.log(`  ok: ${msg}`);
   }
@@ -48,27 +50,44 @@ function buildFixture({ dockerHasEntry, importStyle }) {
   mkdirSync(join(root, 'packages/core'), { recursive: true });
   writeFileSync(
     join(root, 'packages/core/package.json'),
-    JSON.stringify({ name: '@holoscript/core', exports: { './policy': { require: './dist/policy/index.cjs' } } }),
+    JSON.stringify({
+      name: '@holoscript/core',
+      exports: { './policy': { require: './dist/policy/index.cjs' } },
+    })
   );
   // Docker tsup config — covers 'policy/index' only when dockerHasEntry; else a decoy entry.
   mkdirSync(join(root, 'scripts/docker'), { recursive: true });
-  const entries = dockerHasEntry ? "{ 'policy/index': 'src/policy/index.ts' }" : "{ 'unrelated/index': 'src/unrelated/index.ts' }";
-  writeFileSync(join(root, 'scripts/docker/tsup.core.docker.cjs'), `module.exports = { entry: ${entries} };\n`);
+  const entries = dockerHasEntry
+    ? "{ 'policy/index': 'src/policy/index.ts' }"
+    : "{ 'unrelated/index': 'src/unrelated/index.ts' }";
+  writeFileSync(
+    join(root, 'scripts/docker/tsup.core.docker.cjs'),
+    `module.exports = { entry: ${entries} };\n`
+  );
   // Runtime Dockerfile: ships the engine workspace's dist -> engine/src is scanned.
   mkdirSync(join(root, 'infrastructure'), { recursive: true });
   writeFileSync(
     join(root, 'infrastructure/Dockerfile.mcp-server'),
-    'COPY --from=builder /app/packages/engine/dist /app/packages/engine/dist\n',
+    'COPY --from=builder /app/packages/engine/dist /app/packages/engine/dist\n'
   );
   // The engine workspace source that does (or does not) import the core subpath.
   mkdirSync(join(root, 'packages/engine/src'), { recursive: true });
   if (importStyle === 'quoted-import') {
-    writeFileSync(join(root, 'packages/engine/src/use-policy.ts'), `import { p } from '@holoscript/core/policy';\nexport const y = p;\n`);
+    writeFileSync(
+      join(root, 'packages/engine/src/use-policy.ts'),
+      `import { p } from '@holoscript/core/policy';\nexport const y = p;\n`
+    );
   } else if (importStyle === 'jsdoc-unquoted') {
     // Unquoted JSDoc module tag + a prose mention — bare-text matching would false-positive here.
-    writeFileSync(join(root, 'packages/engine/src/doc.ts'), `/**\n * @module @holoscript/core/policy\n * See @holoscript/core/policy for the policy contract.\n */\nexport const y = 1;\n`);
+    writeFileSync(
+      join(root, 'packages/engine/src/doc.ts'),
+      `/**\n * @module @holoscript/core/policy\n * See @holoscript/core/policy for the policy contract.\n */\nexport const y = 1;\n`
+    );
   } else if (importStyle === 'test-file-import') {
-    writeFileSync(join(root, 'packages/engine/src/use-policy.test.ts'), `import { p } from '@holoscript/core/policy';\nexport const y = p;\n`);
+    writeFileSync(
+      join(root, 'packages/engine/src/use-policy.test.ts'),
+      `import { p } from '@holoscript/core/policy';\nexport const y = p;\n`
+    );
   } else {
     writeFileSync(join(root, 'packages/engine/src/noop.ts'), `export const y = 1;\n`);
   }
@@ -86,8 +105,14 @@ function runGate(root) {
   try {
     const r = runGate(root);
     assertEq(r.code, 1, 'A: imported core subpath missing from Docker config -> exit 1 (drift)');
-    assertEq(/\[FAIL\]/.test(r.out) && /policy/.test(r.out), true, 'A: FAIL message names the drifting subpath');
-  } finally { rmSync(root, { recursive: true, force: true }); }
+    assertEq(
+      /\[FAIL\]/.test(r.out) && /policy/.test(r.out),
+      true,
+      'A: FAIL message names the drifting subpath'
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 }
 
 // ── B. covered: imported AND Docker entry present -> exit 0 ───────────────────
@@ -97,7 +122,9 @@ function runGate(root) {
     const r = runGate(root);
     assertEq(r.code, 0, 'B: imported core subpath present in Docker config -> exit 0 (covered)');
     assertEq(/COVERED/.test(r.out), true, 'B: reports COVERED');
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 }
 
 // ── C. JSDoc/prose false-positive guard: unquoted @module, no real import -> exit 0 ──
@@ -105,8 +132,14 @@ function runGate(root) {
   const root = buildFixture({ dockerHasEntry: false, importStyle: 'jsdoc-unquoted' });
   try {
     const r = runGate(root);
-    assertEq(r.code, 0, 'C: unquoted JSDoc @module tag is NOT a drift (W.731 quoted-specifier hardening)');
-  } finally { rmSync(root, { recursive: true, force: true }); }
+    assertEq(
+      r.code,
+      0,
+      'C: unquoted JSDoc @module tag is NOT a drift (W.731 quoted-specifier hardening)'
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 }
 
 // ── D. test-file exclusion: import lives in a *.test.ts -> exit 0 ─────────────
@@ -114,8 +147,14 @@ function runGate(root) {
   const root = buildFixture({ dockerHasEntry: false, importStyle: 'test-file-import' });
   try {
     const r = runGate(root);
-    assertEq(r.code, 0, 'D: a core import in a *.test.ts file is excluded (never ships in the image)');
-  } finally { rmSync(root, { recursive: true, force: true }); }
+    assertEq(
+      r.code,
+      0,
+      'D: a core import in a *.test.ts file is excluded (never ships in the image)'
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 }
 
 if (testsFailed > 0) {

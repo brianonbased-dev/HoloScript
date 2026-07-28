@@ -8,12 +8,17 @@
  * Usage: node scripts/judge-protocol-bench/self-check.mjs
  */
 import { ITEMS, DOMAINS, REQUIRED_EDGE_CASES } from './fixtures.mjs';
-import { validateHsplusLike, validateSceneComposition, validateAgentTrace } from './deterministic.mjs';
+import {
+  validateHsplusLike,
+  validateSceneComposition,
+  validateAgentTrace,
+} from './deterministic.mjs';
 
 function detCheck(item, variant) {
   if (item.domain === 'code') return validateHsplusLike(variant.text);
   if (item.domain === 'scene') return validateSceneComposition(variant.text, item.sceneOpts ?? {});
-  if (item.domain === 'trace') return validateAgentTrace(JSON.parse(variant.text), item.traceRules ?? []);
+  if (item.domain === 'trace')
+    return validateAgentTrace(JSON.parse(variant.text), item.traceRules ?? []);
   throw new Error(`unknown domain: ${item.domain}`);
 }
 
@@ -48,10 +53,14 @@ for (const item of ITEMS) {
     }
     // invalid_but_pretty items must have exactly one inadmissible variant
     if (item.edgeCases?.includes('invalid_but_pretty')) {
-      const inadmissibleCount = Object.values(item.variants).filter((v) => v.admissible === false).length;
+      const inadmissibleCount = Object.values(item.variants).filter(
+        (v) => v.admissible === false
+      ).length;
       if (inadmissibleCount !== 1) {
         failures++;
-        console.error(`[FAIL] ${item.id}: invalid_but_pretty item has ${inadmissibleCount} inadmissible variants, expected 1`);
+        console.error(
+          `[FAIL] ${item.id}: invalid_but_pretty item has ${inadmissibleCount} inadmissible variants, expected 1`
+        );
       }
     }
   }

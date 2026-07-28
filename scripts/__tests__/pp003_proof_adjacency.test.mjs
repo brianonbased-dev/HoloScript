@@ -245,9 +245,7 @@ function effectiveOpacity(attributes) {
   const opacity = numericPresentationAttribute(attributes, 'opacity');
   const fillOpacityRaw = attribute(attributes, 'fill-opacity');
   const fillOpacity =
-    fillOpacityRaw === undefined
-      ? 1
-      : numericPresentationAttribute(attributes, 'fill-opacity');
+    fillOpacityRaw === undefined ? 1 : numericPresentationAttribute(attributes, 'fill-opacity');
   return opacity * fillOpacity;
 }
 
@@ -258,7 +256,10 @@ function hasUnsupportedVisualIndirection(attributes) {
 }
 
 function visibleText(element) {
-  return (element ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return (element ?? '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function verifySvgArtifact(serialized) {
@@ -358,12 +359,20 @@ function verifySvgArtifact(serialized) {
     const markerOpacity = effectiveOpacity(markerAttributes);
     const boundaryOpacity = effectiveOpacity(boundaryAttributes);
     if (
-      ![markerSize, boundarySize, markerWeight, boundaryWeight, markerOpacity, boundaryOpacity].every(
-        (value) => Number.isFinite(value) && value > 0
-      )
+      ![
+        markerSize,
+        boundarySize,
+        markerWeight,
+        boundaryWeight,
+        markerOpacity,
+        boundaryOpacity,
+      ].every((value) => Number.isFinite(value) && value > 0)
     ) {
       violations.push(
-        violation('invalid-prominence', 'Proof and boundary prominence must be finite and positive.')
+        violation(
+          'invalid-prominence',
+          'Proof and boundary prominence must be finite and positive.'
+        )
       );
     } else if (
       boundarySize < markerSize ||
@@ -404,7 +413,10 @@ function verifySvgArtifact(serialized) {
       scopeY >= minY + height
     ) {
       violations.push(
-        violation('boundary-text-outside-viewport', 'Boundary explanation lies outside the SVG viewport.')
+        violation(
+          'boundary-text-outside-viewport',
+          'Boundary explanation lies outside the SVG viewport.'
+        )
       );
     }
 

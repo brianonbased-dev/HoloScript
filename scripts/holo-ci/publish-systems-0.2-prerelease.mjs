@@ -12,19 +12,8 @@ import {
 } from './check-systems-0.2-public-release.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const DEFAULT_MANIFEST = join(
-  ROOT,
-  'scripts',
-  'holo-ci',
-  'systems-0.2-release-manifest.json'
-);
-const WINDOWS_NPM_CLI = join(
-  dirname(process.execPath),
-  'node_modules',
-  'npm',
-  'bin',
-  'npm-cli.js'
-);
+const DEFAULT_MANIFEST = join(ROOT, 'scripts', 'holo-ci', 'systems-0.2-release-manifest.json');
+const WINDOWS_NPM_CLI = join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
 const NPM =
   process.platform === 'win32' && existsSync(WINDOWS_NPM_CLI)
     ? { command: process.execPath, prefix: [WINDOWS_NPM_CLI] }
@@ -72,7 +61,9 @@ function validateLocalRelease(manifest) {
   ) {
     errors.push('release manifest identity mismatch');
   }
-  const ordered = [...manifest.packages].sort((left, right) => left.publishOrder - right.publishOrder);
+  const ordered = [...manifest.packages].sort(
+    (left, right) => left.publishOrder - right.publishOrder
+  );
   if (ordered.at(-1)?.id !== 'meta') {
     errors.push('meta package must publish after every platform package');
   }
@@ -236,7 +227,8 @@ async function waitForGitHub(manifest, timeoutMs = 180_000) {
     if (release) {
       const result = evaluateGitHubRelease(manifest, release);
       lastErrors = result.errors;
-      if (result.ok || (result.needsDownload.length > 0 && result.errors.length === 0)) return result;
+      if (result.ok || (result.needsDownload.length > 0 && result.errors.length === 0))
+        return result;
     }
     await sleep(3000);
   }

@@ -48,7 +48,8 @@ if (!ROOT || !existsSync(ROOT)) {
 const SCAN_ROOT = join(ROOT, 'packages', 'mcp-server', 'src');
 const GATE_TOKEN = 'gateToolCall';
 const SITE_RE = /setRequestHandler\s*\(\s*CallToolRequestSchema\b/g;
-const SKIP_DIR = /(^|[\\/])(node_modules|dist|coverage|__tests__|__fixtures__|fixtures|__mocks__|examples)([\\/]|$)/i;
+const SKIP_DIR =
+  /(^|[\\/])(node_modules|dist|coverage|__tests__|__fixtures__|fixtures|__mocks__|examples)([\\/]|$)/i;
 const SKIP_FILE = /\.(test|spec|stories|story|example|fixture|mock)\.(ts|mts|cts)$/i;
 
 function toPosix(p) {

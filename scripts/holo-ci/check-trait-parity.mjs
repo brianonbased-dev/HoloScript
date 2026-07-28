@@ -78,7 +78,11 @@ function walkTs(dir) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
       results.push(...walkTs(full));
-    } else if (entry.endsWith('.ts') && !entry.endsWith('.test.ts') && !entry.endsWith('.spec.ts')) {
+    } else if (
+      entry.endsWith('.ts') &&
+      !entry.endsWith('.test.ts') &&
+      !entry.endsWith('.spec.ts')
+    ) {
       results.push(full);
     }
   }
@@ -116,9 +120,9 @@ for (const trait of [...knownTraits].sort()) {
 
 // ── Step 5: Reconciliation warnings ──────────────────────────────────────────
 // Stale no-op entries (in manifest but not in registry).
-const staleNoop = [...noopNames].filter(n => !knownTraits.has(n)).sort();
+const staleNoop = [...noopNames].filter((n) => !knownTraits.has(n)).sort();
 // Promoted entries (have a handler but still listed as no-op).
-const promotedNoop = noop.filter(n => handlerNames.has(n)).sort();
+const promotedNoop = noop.filter((n) => handlerNames.has(n)).sort();
 
 // ── Step 6: Output ────────────────────────────────────────────────────────────
 const total = knownTraits.size;
@@ -161,14 +165,18 @@ if (staleNoop.length > 0) {
 }
 
 if (promotedNoop.length > 0) {
-  console.log(`[trait-parity] INFO: ${promotedNoop.length} trait(s) are in the manifest but now have a handler.`);
+  console.log(
+    `[trait-parity] INFO: ${promotedNoop.length} trait(s) are in the manifest but now have a handler.`
+  );
   console.log('  Promoted:', promotedNoop.join(', '));
   console.log('  ACTION: remove them from TRAIT_NOOP_MANIFEST.json — they are HANDLED.\n');
 }
 
 if (uncovered.length === 0) {
   if (!VERBOSE) {
-    console.log(`[trait-parity] ✓ all ${total} traits covered (${handled.length} handled + ${noop.length} noop)`);
+    console.log(
+      `[trait-parity] ✓ all ${total} traits covered (${handled.length} handled + ${noop.length} noop)`
+    );
   } else {
     console.log('\n[trait-parity] ✓ PASS — all traits covered');
   }

@@ -43,7 +43,16 @@ const require = createRequire(import.meta.url);
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..', '..');
 const DEFAULT_BASELINE_PATH = join(ROOT, 'examples', '.embodied-mind-baseline-2026-07-03.json');
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.turbo', 'out', '.scratch']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'coverage',
+  '.turbo',
+  'out',
+  '.scratch',
+]);
 // Default scan roots: authored scenes live in examples/ and compositions/.
 const DEFAULT_DIRS = ['examples', 'compositions'];
 
@@ -51,28 +60,41 @@ let parseHolo = null;
 try {
   const mod = require(join(ROOT, 'packages', 'core', 'dist', 'parser.cjs'));
   parseHolo = mod.parseHolo || mod.parse || null;
-} catch { /* parser unavailable → parse-guard is a no-op; source analysis still runs */ }
+} catch {
+  /* parser unavailable → parse-guard is a no-op; source analysis still runs */
+}
 
 // A rendered body — the thing that shows up in the world.
-const BODY_RE = /@avatar_embodiment\b|@avatar\b|@agent_body\b|geometry\s*:\s*"avatar"|model\s*:\s*"[^"]*\.(?:glb|gltf)"|@skeleton\b|@body\s*\(/i;
+const BODY_RE =
+  /@avatar_embodiment\b|@avatar\b|@agent_body\b|geometry\s*:\s*"avatar"|model\s*:\s*"[^"]*\.(?:glb|gltf)"|@skeleton\b|@body\s*\(/i;
 // An AI agent — an entity meant to be inhabited by a portable, wallet-keyed mind.
 // NOTE: @avatar_embodiment is deliberately NOT here — it is a BODY marker that
 // player and plain-human avatars also carry (the human is the mind; they need no
 // portable AGENT mind). The agent signal must be explicit, or this over-flags.
-const AGENT_RE = /@agent_identity\b|@agent_body\b|@agent\b|@daimon\b|@ai_npc_brain\b|@sovereign_npc\b|@npc_brain\b|\bidentity_wallet\b|\bmemory_scope\b|\bagent_id\b|archetype\s*:\s*"embodied_agent"/i;
+const AGENT_RE =
+  /@agent_identity\b|@agent_body\b|@agent\b|@daimon\b|@ai_npc_brain\b|@sovereign_npc\b|@npc_brain\b|\bidentity_wallet\b|\bmemory_scope\b|\bagent_id\b|archetype\s*:\s*"embodied_agent"/i;
 // The mind-carry seam (either the acquisition trait or the XR spawn seam).
 const SEAM_SEAM_RE = /@portable_mind_seam\b/;
 const SEAM_MIND_RE = /@portable_mind\b/;
 
-function toRepoPath(p) { return relative(ROOT, p).split(sep).join('/'); }
+function toRepoPath(p) {
+  return relative(ROOT, p).split(sep).join('/');
+}
 
 function collectHoloFiles(dir) {
   const files = [];
   (function walk(cur) {
     let entries;
-    try { entries = readdirSync(cur, { withFileTypes: true }); } catch { return; }
+    try {
+      entries = readdirSync(cur, { withFileTypes: true });
+    } catch {
+      return;
+    }
     for (const e of entries) {
-      if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walk(join(cur, e.name)); continue; }
+      if (e.isDirectory()) {
+        if (!SKIP_DIRS.has(e.name)) walk(join(cur, e.name));
+        continue;
+      }
       if (e.isFile() && /\.holo$/i.test(e.name)) files.push(join(cur, e.name));
     }
   })(dir);
@@ -84,7 +106,10 @@ function matchBlock(text, braceIdx) {
   let depth = 0;
   for (let i = braceIdx; i < text.length; i++) {
     if (text[i] === '{') depth++;
-    else if (text[i] === '}') { depth--; if (depth === 0) return text.slice(braceIdx, i + 1); }
+    else if (text[i] === '}') {
+      depth--;
+      if (depth === 0) return text.slice(braceIdx, i + 1);
+    }
   }
   return text.slice(braceIdx);
 }
@@ -105,9 +130,18 @@ function seamComplete(block) {
 function classify(absPath) {
   const rel = toRepoPath(absPath);
   let code = '';
-  try { code = readFileSync(absPath, 'utf8'); } catch { return { path: rel, category: 'unreadable', entities: [] }; }
+  try {
+    code = readFileSync(absPath, 'utf8');
+  } catch {
+    return { path: rel, category: 'unreadable', entities: [] };
+  }
   if (parseHolo) {
-    try { const r = parseHolo(code); if (!r.success) return { path: rel, category: 'parse-error', entities: [] }; } catch { /* fall through */ }
+    try {
+      const r = parseHolo(code);
+      if (!r.success) return { path: rel, category: 'parse-error', entities: [] };
+    } catch {
+      /* fall through */
+    }
   }
 
   const entities = [];
@@ -135,26 +169,46 @@ function classify(absPath) {
   const soulless = entities.filter((e) => e.state === 'soulless');
   const incomplete = entities.filter((e) => e.state === 'incomplete-seam');
   let category = 'none';
-  if (entities.length) category = soulless.length ? 'soulless' : incomplete.length ? 'incomplete' : 'minded';
+  if (entities.length)
+    category = soulless.length ? 'soulless' : incomplete.length ? 'incomplete' : 'minded';
   return { path: rel, category, entities, soulless, incomplete };
 }
 
 function scan(dirs) {
   const files = [];
-  for (const d of dirs) { const abs = join(ROOT, d); if (existsSync(abs)) files.push(...collectHoloFiles(abs)); }
+  for (const d of dirs) {
+    const abs = join(ROOT, d);
+    if (existsSync(abs)) files.push(...collectHoloFiles(abs));
+  }
   files.sort((a, b) => a.localeCompare(b));
   const results = files.map(classify);
-  const counts = { minded: 0, soulless: 0, incomplete: 0, none: 0, 'parse-error': 0, unreadable: 0 };
+  const counts = {
+    minded: 0,
+    soulless: 0,
+    incomplete: 0,
+    none: 0,
+    'parse-error': 0,
+    unreadable: 0,
+  };
   const soullessHits = [];
   const incompleteHits = [];
   let embodiedAgents = 0;
   for (const r of results) {
     counts[r.category] = (counts[r.category] || 0) + 1;
     embodiedAgents += r.entities.length;
-    for (const e of (r.soulless || [])) soullessHits.push({ file: r.path, line: e.line, name: e.name });
-    for (const e of (r.incomplete || [])) incompleteHits.push({ file: r.path, line: e.line, name: e.name });
+    for (const e of r.soulless || [])
+      soullessHits.push({ file: r.path, line: e.line, name: e.name });
+    for (const e of r.incomplete || [])
+      incompleteHits.push({ file: r.path, line: e.line, name: e.name });
   }
-  return { totalFiles: files.length, embodiedAgents, counts, soullessHits, incompleteHits, results };
+  return {
+    totalFiles: files.length,
+    embodiedAgents,
+    counts,
+    soullessHits,
+    incompleteHits,
+    results,
+  };
 }
 
 function snapshot(dirs, s) {
@@ -191,18 +245,30 @@ function main() {
   const snap = snapshot(dirs, s);
 
   console.log('Embodied-mind scan (D.102: does the body load the mind?)');
-  console.log(`  scanned: ${dirs.join(', ')} (${s.totalFiles} .holo, ${s.embodiedAgents} embodied agent(s))`);
-  console.log(`  minded:          ${s.counts.minded}   (body carries @portable_mind / @portable_mind_seam)`);
-  console.log(`  soulless:        ${s.counts.soulless}   (${s.soullessHits.length} body renders but loads no mind)`);
-  console.log(`  incomplete-seam: ${s.counts.incomplete}   (${s.incompleteHits.length} seam present, config missing)`);
+  console.log(
+    `  scanned: ${dirs.join(', ')} (${s.totalFiles} .holo, ${s.embodiedAgents} embodied agent(s))`
+  );
+  console.log(
+    `  minded:          ${s.counts.minded}   (body carries @portable_mind / @portable_mind_seam)`
+  );
+  console.log(
+    `  soulless:        ${s.counts.soulless}   (${s.soullessHits.length} body renders but loads no mind)`
+  );
+  console.log(
+    `  incomplete-seam: ${s.counts.incomplete}   (${s.incompleteHits.length} seam present, config missing)`
+  );
 
   if (s.soullessHits.length) {
     console.log('\n  SOULLESS bodies (embodied agent, no mind-carry seam — D.102 gap):');
-    for (const h of s.soullessHits) console.log(`    ${h.file}:${h.line}  "${h.name}"  → add @portable_mind_seam(mesh_api_base, team_id[, bearer]) or @portable_mind(team_id)`);
+    for (const h of s.soullessHits)
+      console.log(
+        `    ${h.file}:${h.line}  "${h.name}"  → add @portable_mind_seam(mesh_api_base, team_id[, bearer]) or @portable_mind(team_id)`
+      );
   }
   if (s.incompleteHits.length) {
     console.log('\n  INCOMPLETE seams (present but cannot resolve identity/memory):');
-    for (const h of s.incompleteHits) console.log(`    ${h.file}:${h.line}  "${h.name}"  → seam needs mesh_api_base + team_id`);
+    for (const h of s.incompleteHits)
+      console.log(`    ${h.file}:${h.line}  "${h.name}"  → seam needs mesh_api_base + team_id`);
   }
 
   let failed = false;
@@ -211,16 +277,30 @@ function main() {
     if (existsSync(bp)) {
       const base = JSON.parse(readFileSync(bp, 'utf8'));
       const delta = s.soullessHits.length - base.soullessCount;
-      console.log(`\n  baseline: ${base.soullessCount} soulless → now ${s.soullessHits.length}  (delta: ${delta >= 0 ? '+' : ''}${delta})`);
+      console.log(
+        `\n  baseline: ${base.soullessCount} soulless → now ${s.soullessHits.length}  (delta: ${delta >= 0 ? '+' : ''}${delta})`
+      );
       if (flags.check) {
-        const cap = typeof flags.maxSoulless === 'number' && !Number.isNaN(flags.maxSoulless) ? flags.maxSoulless : base.soullessCount;
+        const cap =
+          typeof flags.maxSoulless === 'number' && !Number.isNaN(flags.maxSoulless)
+            ? flags.maxSoulless
+            : base.soullessCount;
         console.log(`  gate: soulless bodies must be <= ${cap}, got ${s.soullessHits.length}`);
-        if (s.soullessHits.length > cap) { console.error('ERROR embodied-mind regressed: more soulless agent bodies than allowed.'); failed = true; }
+        if (s.soullessHits.length > cap) {
+          console.error('ERROR embodied-mind regressed: more soulless agent bodies than allowed.');
+          failed = true;
+        }
       }
-    } else if (flags.check) { console.error(`ERROR baseline not found: ${flags.baseline}`); process.exit(1); }
+    } else if (flags.check) {
+      console.error(`ERROR baseline not found: ${flags.baseline}`);
+      process.exit(1);
+    }
   }
 
-  if (flags.json) process.stdout.write(`\n__EMBODIED_MIND__\n${JSON.stringify({ ...snap, soullessHits: s.soullessHits, incompleteHits: s.incompleteHits }, null, 2)}\n`);
+  if (flags.json)
+    process.stdout.write(
+      `\n__EMBODIED_MIND__\n${JSON.stringify({ ...snap, soullessHits: s.soullessHits, incompleteHits: s.incompleteHits }, null, 2)}\n`
+    );
 
   if (flags.saveBaseline) {
     const out = flags.baseline ? join(ROOT, flags.baseline) : DEFAULT_BASELINE_PATH;

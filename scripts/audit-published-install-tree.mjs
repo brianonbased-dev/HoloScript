@@ -192,7 +192,9 @@ function satisfiesRange(version, spec) {
   const parts = specStr.split(/\s+/).filter(Boolean);
   if (!parts.length) return false;
   return parts.every((part) => {
-    const match = part.match(/^(>=|>|<=|<|=)?v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/);
+    const match = part.match(
+      /^(>=|>|<=|<|=)?v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/
+    );
     if (!match) return false;
     const base = parseSemver(match[2]);
     return base ? satisfiesComparator(versionInfo, match[1] || '=', base) : false;

@@ -18,7 +18,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -119,13 +121,19 @@ const passOut = join(tmp1, 'receipt.json');
 const passRun = await run(passServer.endpoint, passOut);
 assertOk(existsSync(passOut), 'receipt file written');
 const passReceipt = JSON.parse(readFileSync(passOut, 'utf8'));
-assertOk(passRun.status === 0 || passReceipt.ok === true, 'passing service exits 0 or writes a passing receipt');
+assertOk(
+  passRun.status === 0 || passReceipt.ok === true,
+  'passing service exits 0 or writes a passing receipt'
+);
 assertEq(passReceipt.schema, 'holoscript.platform-live-service-receipt.v1', 'schema');
 assertEq(passReceipt.ok, true, 'receipt ok');
 assertEq(passReceipt.safety.usesApiKey, false, 'does not use API key');
 assertEq(passReceipt.safety.usesWalletPrivateKey, false, 'does not use wallet private key');
 assertEq(passReceipt.safety.executesPayment, false, 'does not execute payment');
-assertOk(passReceipt.probes.every((probe) => probe.ok === true), 'all probes passed');
+assertOk(
+  passReceipt.probes.every((probe) => probe.ok === true),
+  'all probes passed'
+);
 assertOk(!readFileSync(passOut, 'utf8').includes('nonce-test-123456'), 'raw nonce not leaked');
 await passServer.close();
 rmSync(tmp1, { recursive: true, force: true });
@@ -154,10 +162,15 @@ const tmp2 = mkdtempSync(join(tmpdir(), 'platform-live-service-'));
 const leakOut = join(tmp2, 'receipt.json');
 const leakRun = await run(leakServer.endpoint, leakOut);
 const leakReceipt = JSON.parse(readFileSync(leakOut, 'utf8'));
-assertOk(leakRun.status !== 0 || leakReceipt.ok === false, 'secret leak exits nonzero or writes a failing receipt');
+assertOk(
+  leakRun.status !== 0 || leakReceipt.ok === false,
+  'secret leak exits nonzero or writes a failing receipt'
+);
 assertEq(leakReceipt.ok, false, 'leak receipt fails');
 assertOk(
-  leakReceipt.probes.some((probe) => probe.secretLeakFindings?.some((finding) => finding.path.includes('private_key'))),
+  leakReceipt.probes.some((probe) =>
+    probe.secretLeakFindings?.some((finding) => finding.path.includes('private_key'))
+  ),
   'secret-shaped key is reported'
 );
 await leakServer.close();

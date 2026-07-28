@@ -26,12 +26,7 @@ const SOURCE_REVISION = valueAfter('--source-revision', null);
 const OUTPUT = resolve(
   valueAfter(
     '--out',
-    join(
-      ROOT,
-      'reports',
-      'library-coherence',
-      '2026-07-26_native-registry-public-consumer.v1.json'
-    )
+    join(ROOT, 'reports', 'library-coherence', '2026-07-26_native-registry-public-consumer.v1.json')
   )
 );
 const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm';

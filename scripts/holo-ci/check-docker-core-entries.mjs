@@ -97,9 +97,7 @@ function runtimeWorkspaceSrcDirs() {
     // fall through to fallback
   }
   if (!pkgs) pkgs = FALLBACK_RUNTIME_PKGS;
-  return pkgs
-    .map((p) => `packages/${p}/src`)
-    .filter((rel) => fs.existsSync(path.join(ROOT, rel)));
+  return pkgs.map((p) => `packages/${p}/src`).filter((rel) => fs.existsSync(path.join(ROOT, rel)));
 }
 const WORKSPACE_SRC_DIRS = runtimeWorkspaceSrcDirs();
 

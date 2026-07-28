@@ -282,9 +282,7 @@ test('unexpected worker closure keeps stdio open, fails in-flight work, and resp
   await nextTurn();
   assert.match(replacementInput, /"id":42/);
 
-  workers[1].stdout.write(
-    `${JSON.stringify({ jsonrpc: '2.0', id: 42, result: { tools: [] } })}\n`
-  );
+  workers[1].stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id: 42, result: { tools: [] } })}\n`);
   await nextTurn();
   assert.match(outputChunks.join(''), /"id":42/);
 
@@ -363,9 +361,7 @@ test('packaged dist invalidation response is forwarded once before worker recycl
   );
   await nextTurn();
 
-  assert.deepEqual(taskkills, [
-    { command: 'taskkill.exe', args: ['/PID', '5501', '/T', '/F'] },
-  ]);
+  assert.deepEqual(taskkills, [{ command: 'taskkill.exe', args: ['/PID', '5501', '/T', '/F'] }]);
   assert.match(outputChunks.join(''), /"id":77/);
   assert.match(outputChunks.join(''), /Cannot find module/);
   assert.doesNotMatch(outputChunks.join(''), /"id":77[^\n]*"retryable":true/);
@@ -466,7 +462,11 @@ test('replacement worker receives the cached handshake without duplicating its r
     .split('\n')
     .map((line) => JSON.parse(line))
     .filter((message) => message.id === 1);
-  assert.equal(initializeResponses.length, 1, 'the client sees only its original handshake response');
+  assert.equal(
+    initializeResponses.length,
+    1,
+    'the client sees only its original handshake response'
+  );
   assert.match(workerInput[1], /"method":"notifications\/initialized"/);
 
   input.write(`${JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list' })}\n`);

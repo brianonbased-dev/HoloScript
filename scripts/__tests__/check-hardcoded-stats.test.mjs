@@ -39,7 +39,7 @@ describe('check-hardcoded-stats historical exemptions', () => {
     const root = makeFixture();
     writeFileSync(
       join(root, 'docs', 'marketing', 'SOCIAL_POSTS.md'),
-      '> **ARCHIVED — Stale as of 2026-04-29.**\n\nOld copy with 3,300 traits.\n',
+      '> **ARCHIVED — Stale as of 2026-04-29.**\n\nOld copy with 3,300 traits.\n'
     );
     writeFileSync(join(root, 'CHANGELOG.md'), 'Historical release note: 18 domain plugins.\n');
 

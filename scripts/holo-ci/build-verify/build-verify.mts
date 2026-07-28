@@ -19,14 +19,7 @@
 // Designed to degrade gracefully in CI/dev without the toolchain: if the toolchain
 // binary is absent and { requireToolchain: false }, it reports SKIPPED (exit 0)
 // after a dry-run that still proves the file map writes cleanly over the skeleton.
-import {
-  cpSync,
-  mkdtempSync,
-  mkdirSync,
-  writeFileSync,
-  rmSync,
-  existsSync,
-} from 'node:fs';
+import { cpSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, isAbsolute } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -86,7 +79,8 @@ function materialize(skeletonDir: string, emitted: Record<string, string>): stri
   // gradle/wrapper/) is NOT under these dirs and is still copied.
   cpSync(skeletonDir, workDir, {
     recursive: true,
-    filter: (src) => !/[\\/](build|\.gradle|\.cxx|node_modules)([\\/]|$)/.test(src.slice(skeletonDir.length)),
+    filter: (src) =>
+      !/[\\/](build|\.gradle|\.cxx|node_modules)([\\/]|$)/.test(src.slice(skeletonDir.length)),
   });
   for (const [rel, content] of Object.entries(emitted)) {
     const out = join(workDir, rel);
@@ -131,7 +125,10 @@ function toolchainPresent(buildCwd: string, cmd: string): boolean {
     return existsSync(resolved);
   }
   // PATH binary (e.g. gradle, cargo) → probe with --version.
-  const probe = spawnSync(cmd, ['--version'], { stdio: 'ignore', shell: process.platform === 'win32' });
+  const probe = spawnSync(cmd, ['--version'], {
+    stdio: 'ignore',
+    shell: process.platform === 'win32',
+  });
   return probe.status === 0 || probe.status === null ? probe.error == null : false;
 }
 
@@ -154,10 +151,20 @@ export function buildVerify(config: BuildVerifyConfig): BuildVerifyResult {
   } = config;
 
   if (!existsSync(skeletonDir)) {
-    return { target, status: 'FAIL', exitCode: null, message: `skeleton dir not found: ${skeletonDir}` };
+    return {
+      target,
+      status: 'FAIL',
+      exitCode: null,
+      message: `skeleton dir not found: ${skeletonDir}`,
+    };
   }
   if (Object.keys(emitted).length === 0) {
-    return { target, status: 'FAIL', exitCode: null, message: 'emit produced 0 files — nothing to build' };
+    return {
+      target,
+      status: 'FAIL',
+      exitCode: null,
+      message: 'emit produced 0 files — nothing to build',
+    };
   }
 
   let workDir = '';
@@ -218,10 +225,20 @@ export function buildVerify(config: BuildVerifyConfig): BuildVerifyResult {
         });
 
     if (run.error) {
-      return { target, status: 'FAIL', exitCode: null, message: `build process error: ${run.error.message}` };
+      return {
+        target,
+        status: 'FAIL',
+        exitCode: null,
+        message: `build process error: ${run.error.message}`,
+      };
     }
     if (run.status !== 0) {
-      return { target, status: 'FAIL', exitCode: run.status, message: `build exited ${run.status}` };
+      return {
+        target,
+        status: 'FAIL',
+        exitCode: run.status,
+        message: `build exited ${run.status}`,
+      };
     }
 
     for (const rel of expectArtifacts) {

@@ -51,8 +51,14 @@ if (promoted) {
   check(parse.success === true && Boolean(parse.ast), 'promoted source did not parse');
   if (parse.success && parse.ast) {
     const compiled = new WebGPUCompiler().compile(parse.ast, createTestCompilerToken());
-    check(sha256(compiled) === promoted.compile?.outputSha256, 'promoted compile output sha256 mismatch');
-    check(String(compiled).includes('navigator.gpu'), 'promoted compile output missing WebGPU marker');
+    check(
+      sha256(compiled) === promoted.compile?.outputSha256,
+      'promoted compile output sha256 mismatch'
+    );
+    check(
+      String(compiled).includes('navigator.gpu'),
+      'promoted compile output missing WebGPU marker'
+    );
   }
   check(
     promoted.semantic?.status === 'not_proven',

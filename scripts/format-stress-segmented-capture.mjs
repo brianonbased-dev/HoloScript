@@ -1042,9 +1042,7 @@ function eventPayloadVelocity(event, field) {
 }
 
 function roundMetric(value, digits = 6) {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? Number(value.toFixed(digits))
-    : null;
+  return typeof value === 'number' && Number.isFinite(value) ? Number(value.toFixed(digits)) : null;
 }
 
 function ballisticSampleEvents(worldModelReplay) {

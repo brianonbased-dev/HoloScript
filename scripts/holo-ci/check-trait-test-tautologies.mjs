@@ -50,8 +50,7 @@ const METADATA_ECHO_FIELDS = new Set([
   'enabled',
 ]);
 
-const VALUE_TOKEN =
-  /(['"][^'"]*['"]|-?\d+(?:\.\d+)?|true|false|null|undefined|[A-Za-z_$][\w$]*)/;
+const VALUE_TOKEN = /(['"][^'"]*['"]|-?\d+(?:\.\d+)?|true|false|null|undefined|[A-Za-z_$][\w$]*)/;
 
 function readArg(name, fallback) {
   const index = process.argv.indexOf(name);
@@ -213,8 +212,7 @@ function findTestBlocks(source) {
     const searchFrom = titleEnd + 1;
     const arrow = source.indexOf('=>', searchFrom);
     const func = source.indexOf('function', searchFrom);
-    const bodyAnchor =
-      arrow === -1 ? func : func === -1 ? arrow : Math.min(arrow, func);
+    const bodyAnchor = arrow === -1 ? func : func === -1 ? arrow : Math.min(arrow, func);
     if (bodyAnchor === -1 || bodyAnchor - searchFrom > 2000) {
       continue;
     }
@@ -252,10 +250,7 @@ function normalizeValue(raw) {
 
 function extractProps(objectText) {
   const props = [];
-  const propPattern = new RegExp(
-    String.raw`\b([A-Za-z_$][\w$]*)\s*:\s*${VALUE_TOKEN.source}`,
-    'g'
-  );
+  const propPattern = new RegExp(String.raw`\b([A-Za-z_$][\w$]*)\s*:\s*${VALUE_TOKEN.source}`, 'g');
   let match;
   while ((match = propPattern.exec(objectText))) {
     const key = match[1];
@@ -411,7 +406,8 @@ function extractAssertions(block) {
       }
     } else {
       const subjectIsOutput =
-        subjectLooksLikeOutput(subject.text, outputAliases) || matcherName === 'toHaveBeenCalledWith';
+        subjectLooksLikeOutput(subject.text, outputAliases) ||
+        matcherName === 'toHaveBeenCalledWith';
       if (subjectIsOutput) {
         for (const prop of extractExpectedProps(matcherArg.text)) {
           assertions.push({
@@ -493,11 +489,19 @@ function analyzeFile(file) {
           file: toPosix(relative(ROOT, file)),
           line: lineNumber(
             source,
-            block.start + block.body.split('\n').slice(0, assertion.lineOffset - 1).join('\n').length
+            block.start +
+              block.body
+                .split('\n')
+                .slice(0, assertion.lineOffset - 1)
+                .join('\n').length
           ),
           assertionLine: lineNumber(
             source,
-            block.start + block.body.split('\n').slice(0, assertion.lineOffset - 1).join('\n').length
+            block.start +
+              block.body
+                .split('\n')
+                .slice(0, assertion.lineOffset - 1)
+                .join('\n').length
           ),
           test: block.title,
           field: assertion.field,

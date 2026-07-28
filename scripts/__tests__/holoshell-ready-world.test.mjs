@@ -62,11 +62,7 @@ try {
   const latest = JSON.parse(readFileSync(LATEST_FILE, 'utf8'));
   const printed = JSON.parse(result.stdout);
 
-  assertEq(
-    pack.schemaVersion,
-    'holoscript.holoshell.ready-world.evidence-pack.v0.1.0',
-    'schema'
-  );
+  assertEq(pack.schemaVersion, 'holoscript.holoshell.ready-world.evidence-pack.v0.1.0', 'schema');
   assertEq(pack.toolName, 'holoshell_ready_world', 'tool name is canonical');
   assertEq(pack.generatedAt, '2026-07-13T00:00:00.000Z', 'generatedAt uses current run timestamp');
   assertOk(/^sha256:[a-f0-9]{64}$/.test(pack.packHash), 'pack hash is sha256 hex');
@@ -85,7 +81,9 @@ try {
     'repo roots are redacted'
   );
   assertOk(
-    pack.sourceContract.sources.some((source) => source.path.endsWith('flagship-readiness-room.holo')),
+    pack.sourceContract.sources.some((source) =>
+      source.path.endsWith('flagship-readiness-room.holo')
+    ),
     'room source hash is included'
   );
   assertOk(
@@ -101,7 +99,10 @@ try {
     pipelineText.includes('${input.current_host_readiness_pack}'),
     'pipeline has current-host input'
   );
-  assertOk(!pipelineText.includes('2026-05-14'), 'pipeline no longer references stale May 14 receipts');
+  assertOk(
+    !pipelineText.includes('2026-05-14'),
+    'pipeline no longer references stale May 14 receipts'
+  );
 
   const selfTest = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
     cwd: REPO_ROOT,

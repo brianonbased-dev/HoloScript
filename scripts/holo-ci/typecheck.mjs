@@ -37,18 +37,74 @@ const CONCURRENCY = 6;
 // Packages whose src MUST type-check clean (`tsc --noEmit -p <pkg>/tsconfig.json` passes today,
 // 2026-07-12 sweep). A tsc error in ANY of these fails the gate.
 const ENFORCED = [
-  'absorb-service', 'adapter-postgres', 'agent-protocol', 'aibrittney', 'animation-presets',
-  'auth', 'benchmark', 'cli', 'compiler-wasm', 'connector-appstore', 'connector-core', 'connector-github',
-  'connector-moltbook', 'connector-railway', 'connector-upstash', 'connector-vscode', 'core',
-  'core-types', 'crdt', 'crdt-spatial', 'create-holoscript', 'engine', 'formatter',
-  'graphql-api', 'holo-runtime', 'holo-vm', 'holoembed', 'hologram-worker',
-  'hololand-platform', 'holomap', 'holomesh-web', 'holoscript', 'holoscript-agent',
-  'holoscript-cdn', 'framework', 'linter', 'llm-provider', 'lsp', 'marketplace-agentkit',
-  'marketplace-api', 'marketplace-web', 'mcp-server', 'mcp-server-adversarial', 'memory', 'mesh',
-  'mvc-schema', 'partner-sdk', 'platform', 'preview-component', 'react-agent-sdk',
-  'r3f-renderer', 'registry', 'runtime', 'secrets-broker', 'security-sandbox', 'snn-webgpu', 'spatial-index',
-  'std', 'studio', 'studio-bridge', 'studio-plugin-sdk', 'studio-ui-graph',
-  'tauri-app', 'uaal', 'ui', 'video-tutorials', 'visual', 'visualizer-client',
+  'absorb-service',
+  'adapter-postgres',
+  'agent-protocol',
+  'aibrittney',
+  'animation-presets',
+  'auth',
+  'benchmark',
+  'cli',
+  'compiler-wasm',
+  'connector-appstore',
+  'connector-core',
+  'connector-github',
+  'connector-moltbook',
+  'connector-railway',
+  'connector-upstash',
+  'connector-vscode',
+  'core',
+  'core-types',
+  'crdt',
+  'crdt-spatial',
+  'create-holoscript',
+  'engine',
+  'formatter',
+  'graphql-api',
+  'holo-runtime',
+  'holo-vm',
+  'holoembed',
+  'hologram-worker',
+  'hololand-platform',
+  'holomap',
+  'holomesh-web',
+  'holoscript',
+  'holoscript-agent',
+  'holoscript-cdn',
+  'framework',
+  'linter',
+  'llm-provider',
+  'lsp',
+  'marketplace-agentkit',
+  'marketplace-api',
+  'marketplace-web',
+  'mcp-server',
+  'mcp-server-adversarial',
+  'memory',
+  'mesh',
+  'mvc-schema',
+  'partner-sdk',
+  'platform',
+  'preview-component',
+  'react-agent-sdk',
+  'r3f-renderer',
+  'registry',
+  'runtime',
+  'secrets-broker',
+  'security-sandbox',
+  'snn-webgpu',
+  'spatial-index',
+  'std',
+  'studio',
+  'studio-bridge',
+  'studio-plugin-sdk',
+  'studio-ui-graph',
+  'tauri-app',
+  'uaal',
+  'ui',
+  'video-tutorials',
+  'visual',
+  'visualizer-client',
   'vscode-extension',
   'xr-embodiment',
 ];
@@ -77,7 +133,14 @@ function typecheck(pkg) {
   return new Promise((resolve) => {
     const cfg = path.join(ROOT, 'packages', pkg, 'tsconfig.json');
     if (!fs.existsSync(cfg)) {
-      resolve({ pkg, ok: false, errors: 0, missing: true, toolingFailure: false, out: `no tsconfig at ${cfg}` });
+      resolve({
+        pkg,
+        ok: false,
+        errors: 0,
+        missing: true,
+        toolingFailure: false,
+        out: `no tsconfig at ${cfg}`,
+      });
       return;
     }
     let out = '';
@@ -100,7 +163,13 @@ function typecheck(pkg) {
     // the far more common real-world case (missing TSC file) surfaces as a non-zero `close`
     // below, because node runs, fails to resolve the module, and prints to stderr.
     child.on('error', (err) => {
-      finish({ pkg, ok: false, errors: 0, toolingFailure: true, out: `${out}\n${err?.stack || err}`.trim() });
+      finish({
+        pkg,
+        ok: false,
+        errors: 0,
+        toolingFailure: true,
+        out: `${out}\n${err?.stack || err}`.trim(),
+      });
     });
     child.on('close', (code) => {
       // tsc exited non-zero but produced no parseable diagnostics -> it never actually ran
@@ -134,13 +203,19 @@ async function runMany(pkgs) {
 // Shared "tsc could not run" reporter — prints the raw tooling output verbatim (never claims
 // "(0 errors)") plus the likely repair. Returns nothing; caller still exits non-zero.
 function reportToolingFailures(toolingFailed) {
-  console.error(`\n${TAG} ❌ TYPECHECK COULD NOT RUN (tooling error) — ${toolingFailed.length} package(s) failed to invoke tsc at all. This is NOT "0 errors"; the check never executed:`);
+  console.error(
+    `\n${TAG} ❌ TYPECHECK COULD NOT RUN (tooling error) — ${toolingFailed.length} package(s) failed to invoke tsc at all. This is NOT "0 errors"; the check never executed:`
+  );
   for (const r of toolingFailed) {
     console.error(`\n${TAG} ── ${r.pkg} (tooling failure, not a type error) ──`);
     console.error(r.out.trim().split(/\r?\n/).slice(0, 20).join('\n'));
   }
-  console.error(`\n${TAG} tsc itself failed to run (missing/broken node_modules/typescript, MODULE_NOT_FOUND, crash, or timeout) — it did not report zero errors, it never checked anything.`);
-  console.error(`${TAG} Likely fix: pnpm install --force (recreates missing node_modules/.bin shims), then re-run.`);
+  console.error(
+    `\n${TAG} tsc itself failed to run (missing/broken node_modules/typescript, MODULE_NOT_FOUND, crash, or timeout) — it did not report zero errors, it never checked anything.`
+  );
+  console.error(
+    `${TAG} Likely fix: pnpm install --force (recreates missing node_modules/.bin shims), then re-run.`
+  );
 }
 
 async function main() {
@@ -153,7 +228,11 @@ async function main() {
     const enrolled = new Set([...ENFORCED, ...Object.keys(STAGED)]);
     const unenrolled = [...all].filter((p) => !enrolled.has(p));
     console.log(`ENFORCED (${ENFORCED.length}): ${ENFORCED.join(', ')}`);
-    console.log(`\nSTAGED (${Object.keys(STAGED).length}): ${Object.entries(STAGED).map(([p, n]) => `${p}(${n})`).join(', ')}`);
+    console.log(
+      `\nSTAGED (${Object.keys(STAGED).length}): ${Object.entries(STAGED)
+        .map(([p, n]) => `${p}(${n})`)
+        .join(', ')}`
+    );
     console.log(`\nUNENROLLED (${unenrolled.length}): ${unenrolled.join(', ') || '(none)'}`);
     return;
   }
@@ -171,7 +250,10 @@ async function main() {
   if (argv.includes('--staged')) {
     console.log(`${TAG} current error counts for STAGED packages (non-blocking):`);
     const results = await runMany(Object.keys(STAGED));
-    for (const r of results) console.log(`  ${r.pkg}: ${r.ok ? '0 (READY to promote to ENFORCED)' : `${r.errors} errors`}`);
+    for (const r of results)
+      console.log(
+        `  ${r.pkg}: ${r.ok ? '0 (READY to promote to ENFORCED)' : `${r.errors} errors`}`
+      );
     return;
   }
 
@@ -180,22 +262,30 @@ async function main() {
   if (argv.includes('--changed')) {
     let staged = '';
     try {
-      staged = (await import('node:child_process')).execSync('git diff --cached --name-only', { cwd: ROOT, encoding: 'utf8' });
+      staged = (await import('node:child_process')).execSync('git diff --cached --name-only', {
+        cwd: ROOT,
+        encoding: 'utf8',
+      });
     } catch {
       console.log(`${TAG} (git unavailable — skipping changed-package typecheck)`);
       return;
     }
     const enforcedSet = new Set(ENFORCED);
-    const changed = [...new Set(
-      staged.split(/\r?\n/)
-        .map((f) => f.match(/^packages\/([^/]+)\//)?.[1])
-        .filter((p) => p && enforcedSet.has(p))
-    )];
+    const changed = [
+      ...new Set(
+        staged
+          .split(/\r?\n/)
+          .map((f) => f.match(/^packages\/([^/]+)\//)?.[1])
+          .filter((p) => p && enforcedSet.has(p))
+      ),
+    ];
     if (!changed.length) {
       console.log(`${TAG} ✓ no ENFORCED package has staged changes — nothing to type-check.`);
       return;
     }
-    console.log(`${TAG} type-checking ${changed.length} changed ENFORCED package(s): ${changed.join(', ')}`);
+    console.log(
+      `${TAG} type-checking ${changed.length} changed ENFORCED package(s): ${changed.join(', ')}`
+    );
     const results = await runMany(changed);
     const failed = results.filter((r) => !r.ok);
     const toolingFailed = failed.filter((r) => r.toolingFailure);
@@ -203,7 +293,14 @@ async function main() {
     if (toolingFailed.length) reportToolingFailures(toolingFailed);
     if (typeFailed.length) {
       console.error(`\n${TAG} ❌ FAIL — type error(s) in staged ENFORCED package(s):`);
-      for (const r of typeFailed) console.error(r.out.split(/\r?\n/).filter((l) => /error TS\d+/.test(l)).slice(0, 12).join('\n'));
+      for (const r of typeFailed)
+        console.error(
+          r.out
+            .split(/\r?\n/)
+            .filter((l) => /error TS\d+/.test(l))
+            .slice(0, 12)
+            .join('\n')
+        );
     }
     if (failed.length) process.exit(1);
     console.log(`${TAG} ✅ changed ENFORCED package(s) type-check clean.`);
@@ -211,7 +308,9 @@ async function main() {
   }
 
   // Default gate: ENFORCED must all pass. Also warn on unenrolled tsconfig packages.
-  console.log(`${TAG} tsc --noEmit over ${ENFORCED.length} ENFORCED packages (${Object.keys(STAGED).length} staged, non-blocking)…`);
+  console.log(
+    `${TAG} tsc --noEmit over ${ENFORCED.length} ENFORCED packages (${Object.keys(STAGED).length} staged, non-blocking)…`
+  );
   const results = await runMany(ENFORCED);
   const failed = results.filter((r) => !r.ok);
 
@@ -219,7 +318,9 @@ async function main() {
   const enrolled = new Set([...ENFORCED, ...Object.keys(STAGED)]);
   const unenrolled = [...all].filter((p) => !enrolled.has(p));
   if (unenrolled.length) {
-    console.warn(`\n${TAG} ⚠ ${unenrolled.length} tsconfig package(s) not enrolled in ENFORCED or STAGED — add them: ${unenrolled.join(', ')}`);
+    console.warn(
+      `\n${TAG} ⚠ ${unenrolled.length} tsconfig package(s) not enrolled in ENFORCED or STAGED — add them: ${unenrolled.join(', ')}`
+    );
   }
 
   if (failed.length) {
@@ -227,12 +328,22 @@ async function main() {
     const typeFailed = failed.filter((r) => !r.toolingFailure);
     if (toolingFailed.length) reportToolingFailures(toolingFailed);
     if (typeFailed.length) {
-      console.error(`\n${TAG} ❌ FAIL — ${typeFailed.length} ENFORCED package(s) have type errors:`);
+      console.error(
+        `\n${TAG} ❌ FAIL — ${typeFailed.length} ENFORCED package(s) have type errors:`
+      );
       for (const r of typeFailed) {
         console.error(`\n${TAG} ── ${r.pkg} (${r.errors} error${r.errors === 1 ? '' : 's'}) ──`);
-        console.error(r.out.split(/\r?\n/).filter((l) => /error TS\d+/.test(l)).slice(0, 20).join('\n'));
+        console.error(
+          r.out
+            .split(/\r?\n/)
+            .filter((l) => /error TS\d+/.test(l))
+            .slice(0, 20)
+            .join('\n')
+        );
       }
-      console.error(`\n${TAG} An ENFORCED package must type-check clean. Fix the errors above, or (only if the breakage is pre-existing and out of scope) move the package to STAGED with a tracking task.`);
+      console.error(
+        `\n${TAG} An ENFORCED package must type-check clean. Fix the errors above, or (only if the breakage is pre-existing and out of scope) move the package to STAGED with a tracking task.`
+      );
     }
     process.exit(1);
   }

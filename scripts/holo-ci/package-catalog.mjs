@@ -83,7 +83,9 @@ function buildCatalog() {
         stewardship: steward?.status || 'unmapped',
         packageDir:
           receipt?.packageDir ||
-          (packageRecord ? relative(ROOT, dirname(packageRecord.path)).replaceAll('\\', '/') : 'missing'),
+          (packageRecord
+            ? relative(ROOT, dirname(packageRecord.path)).replaceAll('\\', '/')
+            : 'missing'),
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));

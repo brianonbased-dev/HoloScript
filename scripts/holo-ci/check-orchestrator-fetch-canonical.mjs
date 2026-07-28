@@ -172,9 +172,7 @@ if (EXPLICIT_FILES !== null && !UPDATE) {
     console.error(`[orchestrator-fetch] ${errors.length} issue(s):`);
     for (const e of errors) console.error('  ' + e);
     console.error(`\n[orchestrator-fetch] ${MIGRATION_HINT}`);
-    console.error(
-      `[orchestrator-fetch] (intentional grandfather/rename: node ${SELF} --update)`
-    );
+    console.error(`[orchestrator-fetch] (intentional grandfather/rename: node ${SELF} --update)`);
     process.exit(1);
   }
   console.log('[orchestrator-fetch] OK — no staged file grows the raw orchestrator-URL surface.');

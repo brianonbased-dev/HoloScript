@@ -79,7 +79,11 @@ console.log('check-pnpm-package-manager.test.mjs');
       { skipProbes: false, pathPrepend: bin }
     );
     assertEq(result.code, 0, 'matching Corepack and bare pnpm probes pass');
-    assertMatch(result.out, /corepack pnpm 9\.15\.9 matches packageManager/u, 'names matching Corepack');
+    assertMatch(
+      result.out,
+      /corepack pnpm 9\.15\.9 matches packageManager/u,
+      'names matching Corepack'
+    );
     assertMatch(result.out, /bare pnpm 9\.15\.9 also matches/u, 'names matching bare pnpm');
   } finally {
     cleanup(root);
@@ -99,7 +103,11 @@ console.log('check-pnpm-package-manager.test.mjs');
       { skipProbes: false, pathPrepend: bin }
     );
     assertEq(result.code, 1, 'mismatched bare pnpm probe fails');
-    assertMatch(result.out, /bare pnpm resolves 11\.7\.0, expected 9\.15\.9/u, 'names bad bare pnpm');
+    assertMatch(
+      result.out,
+      /bare pnpm resolves 11\.7\.0, expected 9\.15\.9/u,
+      'names bad bare pnpm'
+    );
     assertMatch(result.out, /plain `pnpm` delegates through Corepack/u, 'explains shim repair');
   } finally {
     cleanup(root);

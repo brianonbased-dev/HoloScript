@@ -57,8 +57,9 @@ let BASE_URL_DEFAULT = 'https://mcp.holoscript.net';
 
 try {
   const envMod = await import(
-    new URL(`file://${join(AI_ECOSYSTEM_DIR, 'hooks', 'lib', 'holomesh-env.mjs').replace(/\\/g, '/')}`)
-      .href
+    new URL(
+      `file://${join(AI_ECOSYSTEM_DIR, 'hooks', 'lib', 'holomesh-env.mjs').replace(/\\/g, '/')}`
+    ).href
   );
   const cfg = envMod.getHolomeshRuntimeConfig({});
   if (cfg.apiKey) API_KEY = cfg.apiKey;
@@ -67,7 +68,11 @@ try {
   // We strip the path suffix so BASE_URL is just the origin — our paths already
   // start with /api/holomesh/...
   if (cfg.apiBase) {
-    try { BASE_URL_DEFAULT = new URL(cfg.apiBase).origin; } catch { /* keep default */ }
+    try {
+      BASE_URL_DEFAULT = new URL(cfg.apiBase).origin;
+    } catch {
+      /* keep default */
+    }
   }
 } catch {
   // Fallback: read from .env files directly.
@@ -85,10 +90,13 @@ try {
   }
 }
 const BASE_URL = process.env.HOLOMESH_BASE_URL || BASE_URL_DEFAULT;
-const SURFACE = process.env.HOLOMESH_AGENT_SURFACE || process.env.HOLOMESH_RESOLVED_SURFACE || 'claudecode';
+const SURFACE =
+  process.env.HOLOMESH_AGENT_SURFACE || process.env.HOLOMESH_RESOLVED_SURFACE || 'claudecode';
 
 if (!API_KEY) {
-  console.error('[bridge] ERROR: HOLOMESH_API_KEY not found — ensure holomesh-env.mjs is reachable or set HOLOMESH_API_KEY in .env');
+  console.error(
+    '[bridge] ERROR: HOLOMESH_API_KEY not found — ensure holomesh-env.mjs is reachable or set HOLOMESH_API_KEY in .env'
+  );
   process.exit(1);
 }
 
@@ -98,9 +106,13 @@ const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
 const OUTBOX_DRAIN = args.includes('--outbox-drain');
 const tagsIdx = args.indexOf('--tags');
-const FILTER_TAGS = tagsIdx !== -1 && args[tagsIdx + 1]
-  ? args[tagsIdx + 1].split(',').map((t) => t.trim()).filter(Boolean)
-  : [];
+const FILTER_TAGS =
+  tagsIdx !== -1 && args[tagsIdx + 1]
+    ? args[tagsIdx + 1]
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : [];
 const taskIdIdx = args.indexOf('--task-id');
 const FORCE_TASK_ID = taskIdIdx !== -1 ? args[taskIdIdx + 1] : null;
 const inboxDirIdx = args.indexOf('--inbox-dir');
@@ -117,14 +129,30 @@ const POLL_TIMEOUT_MS = pollTimeoutIdx !== -1 ? Number(args[pollTimeoutIdx + 1])
 // Daemon skills — tasks with any of these tags are eligible for claiming.
 // Matches compositions/skills/*.hsplus capabilities.
 const DAEMON_SKILL_TAGS = new Set([
-  'code-health', 'typefix', 'lint', 'type-errors', 'typescript',
-  'git', 'tests', 'testing', 'vitest',
-  'dependency-audit', 'dependencies',
-  'dead-code', 'refactor',
-  'journalist', 'fact-check', 'verification',
-  'self-improvement', 'improve', 'coder',
-  'skill', 'hsplus', 'compositions',
-  'engineering', 'ops',
+  'code-health',
+  'typefix',
+  'lint',
+  'type-errors',
+  'typescript',
+  'git',
+  'tests',
+  'testing',
+  'vitest',
+  'dependency-audit',
+  'dependencies',
+  'dead-code',
+  'refactor',
+  'journalist',
+  'fact-check',
+  'verification',
+  'self-improvement',
+  'improve',
+  'coder',
+  'skill',
+  'hsplus',
+  'compositions',
+  'engineering',
+  'ops',
 ]);
 
 let bodyTransform = null;
@@ -138,7 +166,9 @@ try {
     bodyTransform = async (body) => buildSignedEnvelope(body, { seatId });
     console.log(`[bridge] signing as seat: ${seatId}`);
   } else {
-    console.warn('[bridge] holomesh-signing.mjs not found — sending unsigned (may 401 on Phase-3 server)');
+    console.warn(
+      '[bridge] holomesh-signing.mjs not found — sending unsigned (may 401 on Phase-3 server)'
+    );
   }
 } catch (err) {
   console.warn(`[bridge] signing setup failed (${err.message}) — sending unsigned`);
@@ -266,19 +296,18 @@ async function outboxDrain() {
     if (!taskId || meta.boardClosed) continue;
     console.log(`[bridge] found completion for task ${taskId} in outbox`);
     try {
-      const result = await apiPatch(
-        `/api/holomesh/team/${TEAM_ID}/board/${taskId}`,
-        {
-          action: 'done',
-          commit: meta.commitHash || 'no-commit',
-          summary: entry.message || 'HoloClaw daemon completed task',
-          verification_evidence: [
-            meta.verificationEvidence || entry.message || 'outbox completion message',
-            `outbox channel: ${entry.channel}`,
-            `timestamp: ${entry.timestamp}`,
-          ].filter(Boolean).join(' | '),
-        }
-      );
+      const result = await apiPatch(`/api/holomesh/team/${TEAM_ID}/board/${taskId}`, {
+        action: 'done',
+        commit: meta.commitHash || 'no-commit',
+        summary: entry.message || 'HoloClaw daemon completed task',
+        verification_evidence: [
+          meta.verificationEvidence || entry.message || 'outbox completion message',
+          `outbox channel: ${entry.channel}`,
+          `timestamp: ${entry.timestamp}`,
+        ]
+          .filter(Boolean)
+          .join(' | '),
+      });
       if (result?.success) {
         console.log(`[bridge] task ${taskId} closed on board`);
         closed++;
@@ -328,8 +357,11 @@ async function main() {
   // 2. Pick best-fit task
   let task;
   if (FORCE_TASK_ID) {
-    task = allTasks.find((t) => t.id === FORCE_TASK_ID)
-      || { id: FORCE_TASK_ID, title: `task ${FORCE_TASK_ID}`, status: 'open' };
+    task = allTasks.find((t) => t.id === FORCE_TASK_ID) || {
+      id: FORCE_TASK_ID,
+      title: `task ${FORCE_TASK_ID}`,
+      status: 'open',
+    };
   } else {
     task = pickBestTask(allTasks);
   }
@@ -350,10 +382,9 @@ async function main() {
   // 3. Claim the task
   if (!DRY_RUN) {
     console.log(`[bridge] claiming task ${task.id}`);
-    const claimed = await apiPatch(
-      `/api/holomesh/team/${TEAM_ID}/board/${task.id}`,
-      { action: 'claim' }
-    );
+    const claimed = await apiPatch(`/api/holomesh/team/${TEAM_ID}/board/${task.id}`, {
+      action: 'claim',
+    });
     if (!claimed?.success && !claimed?.task) {
       console.error('[bridge] claim failed:', claimed);
       return;
@@ -374,7 +405,9 @@ async function main() {
       `TASK_ID: ${task.id}`,
       `PRIORITY: ${task.priority ?? 'unknown'}`,
       `ROLE: ${task.role ?? 'coder'}`,
-    ].filter(Boolean).join('\n'),
+    ]
+      .filter(Boolean)
+      .join('\n'),
     metadata: {
       taskId: task.id,
       title: task.title,
@@ -394,7 +427,9 @@ async function main() {
   }
 
   // 5. Poll outbox.jsonl for daemon completion
-  console.log(`[bridge] polling outbox for completion (timeout: ${POLL_TIMEOUT_MS}ms, interval: ${POLL_MS}ms)`);
+  console.log(
+    `[bridge] polling outbox for completion (timeout: ${POLL_TIMEOUT_MS}ms, interval: ${POLL_MS}ms)`
+  );
   const pollStart = Date.now();
   let completion = null;
 
@@ -410,7 +445,9 @@ async function main() {
 
   if (!completion) {
     console.log('\n[bridge] timed out waiting for outbox completion');
-    console.log(`[bridge] task ${task.id} remains claimed; run --outbox-drain when daemon finishes`);
+    console.log(
+      `[bridge] task ${task.id} remains claimed; run --outbox-drain when daemon finishes`
+    );
     return;
   }
 
@@ -418,20 +455,19 @@ async function main() {
 
   // 6. Close the board task with receipt
   const meta = completion.metadata || {};
-  const doneResult = await apiPatch(
-    `/api/holomesh/team/${TEAM_ID}/board/${task.id}`,
-    {
-      action: 'done',
-      commit: meta.commitHash || 'no-commit',
-      summary: completion.message || `HoloClaw completed task ${task.id}`,
-      verification_evidence: [
-        completion.message || 'outbox completion',
-        meta.verificationEvidence ? `evidence: ${meta.verificationEvidence}` : null,
-        `outbox channel: ${completion.channel}`,
-        `outbox timestamp: ${completion.timestamp}`,
-      ].filter(Boolean).join(' | '),
-    }
-  );
+  const doneResult = await apiPatch(`/api/holomesh/team/${TEAM_ID}/board/${task.id}`, {
+    action: 'done',
+    commit: meta.commitHash || 'no-commit',
+    summary: completion.message || `HoloClaw completed task ${task.id}`,
+    verification_evidence: [
+      completion.message || 'outbox completion',
+      meta.verificationEvidence ? `evidence: ${meta.verificationEvidence}` : null,
+      `outbox channel: ${completion.channel}`,
+      `outbox timestamp: ${completion.timestamp}`,
+    ]
+      .filter(Boolean)
+      .join(' | '),
+  });
 
   if (doneResult?.success) {
     console.log(`[bridge] task ${task.id} closed on board`);

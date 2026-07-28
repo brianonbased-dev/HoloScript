@@ -50,8 +50,17 @@ const PACKAGES_ROOT = path.join(REPO_ROOT, 'packages');
 const BASELINE_PATH = path.join(__dirname, 'verified-view-baseline.json');
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.turbo',
-  '.tmp-g4', 'out', '.bench-logs', 'target',
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'coverage',
+  '.next',
+  '.turbo',
+  '.tmp-g4',
+  'out',
+  '.bench-logs',
+  'target',
 ]);
 
 // Reasons that are an active LIE — always hard-fail, everywhere, regardless of baseline.
@@ -59,8 +68,7 @@ const LIE_REASONS = new Set(['mismatched-node', 'hallucinated-root', 'projects-w
 
 register(); // tsx — lets this .mjs import core TypeScript sources directly (no dist build)
 
-const coreSrc = (rel) =>
-  pathToFileURL(path.resolve(REPO_ROOT, 'packages/core/src', rel)).href;
+const coreSrc = (rel) => pathToFileURL(path.resolve(REPO_ROOT, 'packages/core/src', rel)).href;
 const { diagnoseVerifiedView } = await import(
   coreSrc('reconstruction/enforceVerifiedViewReceipts.ts')
 );
@@ -117,12 +125,15 @@ function classify(source) {
     return {
       bucket: 'hard',
       d,
-      reasons: [{
-        element: '(file)',
-        node: null,
-        reason: 'unparseable-surface',
-        detail: 'looks like a data surface but did not parse (degenerate / unparseable) — its VIEW cannot be verified',
-      }],
+      reasons: [
+        {
+          element: '(file)',
+          node: null,
+          reason: 'unparseable-surface',
+          detail:
+            'looks like a data surface but did not parse (degenerate / unparseable) — its VIEW cannot be verified',
+        },
+      ],
     };
   }
 
@@ -133,10 +144,12 @@ function classify(source) {
   // Gate is ON but a bound element under it declares no receipt = VIEW-UNGROUNDED
   // compile error: the surface advertises verification it does not deliver.
   if (d.verifiedViewOn && missingProjects.length > 0) {
-    hard.push(...missingProjects.map((v) => ({
-      ...v,
-      detail: `@verified_view is ON but ${v.detail} (VIEW-UNGROUNDED)`,
-    })));
+    hard.push(
+      ...missingProjects.map((v) => ({
+        ...v,
+        detail: `@verified_view is ON but ${v.detail} (VIEW-UNGROUNDED)`,
+      }))
+    );
   }
   if (hard.length > 0) return { bucket: 'hard', d, reasons: hard };
 
@@ -153,7 +166,14 @@ function classify(source) {
     d,
     reasons: d.violations.length
       ? d.violations
-      : [{ element: '(file)', node: null, reason: 'unclassified', detail: 'incomplete surface that fits no known bucket' }],
+      : [
+          {
+            element: '(file)',
+            node: null,
+            reason: 'unclassified',
+            detail: 'incomplete surface that fits no known bucket',
+          },
+        ],
   };
 }
 
@@ -188,12 +208,27 @@ function main() {
     }
     const rel = relPosix(abs);
     const { bucket, reasons } = classify(source);
-    if (bucket === 'skip') { skipped++; continue; }
-    if (bucket === 'clean') { clean.push(rel); continue; }
-    if (bucket === 'unadopted') { unadopted.push(rel); continue; }
+    if (bucket === 'skip') {
+      skipped++;
+      continue;
+    }
+    if (bucket === 'clean') {
+      clean.push(rel);
+      continue;
+    }
+    if (bucket === 'unadopted') {
+      unadopted.push(rel);
+      continue;
+    }
     // hard
     for (const r of reasons) {
-      hard.push({ file: rel, element: r.element, node: r.node ?? null, reason: r.reason, detail: r.detail });
+      hard.push({
+        file: rel,
+        element: r.element,
+        node: r.node ?? null,
+        reason: r.reason,
+        detail: r.detail,
+      });
     }
   }
 
@@ -219,7 +254,9 @@ function main() {
     // not migration debt. Only the unadopted ratchet is human-adjustable.
     if (hard.length > 0) {
       printHard(hard);
-      console.error('\n✗ refusing to reseed the baseline while hard violations exist — fix the lies above first.');
+      console.error(
+        '\n✗ refusing to reseed the baseline while hard violations exist — fix the lies above first.'
+      );
       process.exit(1);
     }
     const payload = {
@@ -229,13 +266,15 @@ function main() {
       updatedAtIso: new Date().toISOString(),
     };
     fs.writeFileSync(BASELINE_PATH, JSON.stringify(payload, null, 2) + '\n');
-    console.log(`✓ verified-view baseline reseeded: unadopted=${unadopted.length}, clean=${clean.length}, hard=0`);
+    console.log(
+      `✓ verified-view baseline reseeded: unadopted=${unadopted.length}, clean=${clean.length}, hard=0`
+    );
     return;
   }
 
   console.log(
     `verified-view: scanned ${files.length} .holo · ${skipped} non-surface skipped · ` +
-    `clean=${clean.length} · unadopted=${unadopted.length} · hard=${hard.length}`
+      `clean=${clean.length} · unadopted=${unadopted.length} · hard=${hard.length}`
   );
 
   let failed = false;
@@ -262,14 +301,14 @@ function main() {
     for (const a of added) console.error(`    + ${a}`);
     console.error(
       '\n  A new .holo surface binds data without the @verified_view gate. Adopt it:\n' +
-      '    add composition-level @verified_view and a @projects { node } receipt on every bound element\n' +
-      '    (or route generated surfaces through enforceVerifiedViewReceipts). Then reseed: --update-baseline.'
+        '    add composition-level @verified_view and a @projects { node } receipt on every bound element\n' +
+        '    (or route generated surfaces through enforceVerifiedViewReceipts). Then reseed: --update-baseline.'
     );
     failed = true;
   } else if (unadopted.length < baseline.unadoptedCount) {
     console.log(
       `\n➜ migration progress: unadopted fell ${baseline.unadoptedCount} → ${unadopted.length}. ` +
-      'Please run --update-baseline to lock in the gain (the ratchet only tightens).'
+        'Please run --update-baseline to lock in the gain (the ratchet only tightens).'
     );
   }
 
@@ -281,7 +320,9 @@ function main() {
 }
 
 function printHard(hard) {
-  console.error(`\n✗ ${hard.length} HARD @verified_view violation(s) — these are provenance LIES and always fail:`);
+  console.error(
+    `\n✗ ${hard.length} HARD @verified_view violation(s) — these are provenance LIES and always fail:`
+  );
   for (const h of hard) {
     const nodeStr = h.node ? ` node="${h.node}"` : '';
     console.error(`    ${h.file}  [${h.element}]  ${h.reason}${nodeStr}\n        ${h.detail}`);

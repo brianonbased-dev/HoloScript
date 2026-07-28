@@ -14,7 +14,9 @@ import {
 } from '../bounded-pnpm-audit.mjs';
 
 test('parseJsonFromText extracts audit JSON from warning noise', () => {
-  const parsed = parseJsonFromText('warning before\n{"metadata":{"vulnerabilities":{"moderate":1}}}\nwarning after');
+  const parsed = parseJsonFromText(
+    'warning before\n{"metadata":{"vulnerabilities":{"moderate":1}}}\nwarning after'
+  );
   assert.equal(parsed.metadata.vulnerabilities.moderate, 1);
 });
 
@@ -73,8 +75,14 @@ test('summarizeAudit falls back to advisory severities when metadata is absent',
 test('mergeAuditSummaries keeps split prod/dev counts parseable', () => {
   const merged = mergeAuditSummaries(
     [
-      summarizeAudit({ metadata: { vulnerabilities: { moderate: 2, high: 1, critical: 0 } } }, 'moderate'),
-      summarizeAudit({ metadata: { vulnerabilities: { moderate: 1, high: 0, critical: 1 } } }, 'moderate'),
+      summarizeAudit(
+        { metadata: { vulnerabilities: { moderate: 2, high: 1, critical: 0 } } },
+        'moderate'
+      ),
+      summarizeAudit(
+        { metadata: { vulnerabilities: { moderate: 1, high: 0, critical: 1 } } },
+        'moderate'
+      ),
     ],
     'moderate'
   );
@@ -118,11 +126,29 @@ snapshots:
 test('summarizeBulkAdvisories reports advisory severities without fake dependency counts', () => {
   const result = summarizeBulkAdvisories({
     sharp: [
-      { id: 1, severity: 'high', title: 'libvips', url: 'https://example.test/1', vulnerable_versions: '<0.35.0' },
+      {
+        id: 1,
+        severity: 'high',
+        title: 'libvips',
+        url: 'https://example.test/1',
+        vulnerable_versions: '<0.35.0',
+      },
     ],
     tar: [
-      { id: 2, severity: 'critical', title: 'tar', url: 'https://example.test/2', vulnerable_versions: '<8' },
-      { id: 3, severity: 'moderate', title: 'tar 2', url: 'https://example.test/3', vulnerable_versions: '<8' },
+      {
+        id: 2,
+        severity: 'critical',
+        title: 'tar',
+        url: 'https://example.test/2',
+        vulnerable_versions: '<8',
+      },
+      {
+        id: 3,
+        severity: 'moderate',
+        title: 'tar 2',
+        url: 'https://example.test/3',
+        vulnerable_versions: '<8',
+      },
     ],
   });
 
@@ -144,31 +170,39 @@ test('runBulkAdvisoryAudit sends the resolved lock inventory to the registry', a
   const root = mkdtempSync(join(tmpdir(), 'holoscript-bulk-audit-'));
   context.after(() => rmSync(root, { recursive: true, force: true }));
   const lockfilePath = join(root, 'pnpm-lock.yaml');
-  writeFileSync(lockfilePath, `
+  writeFileSync(
+    lockfilePath,
+    `
 lockfileVersion: '9.0'
 packages:
   sharp@0.34.5:
     resolution: {integrity: sha512-test}
 snapshots:
-`);
+`
+  );
 
   let request;
-  const result = await runBulkAdvisoryAudit({
-    auditLevel: 'moderate',
-    fallbackTimeoutMs: 1000,
-    lockfilePath,
-    registry: 'https://registry.npmjs.org',
-    scope: 'all',
-  }, 1000, async (url, options) => {
-    request = { url, options };
-    return {
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({
-        sharp: [{ id: 1124066, severity: 'high', vulnerable_versions: '<0.35.0' }],
-      }),
-    };
-  });
+  const result = await runBulkAdvisoryAudit(
+    {
+      auditLevel: 'moderate',
+      fallbackTimeoutMs: 1000,
+      lockfilePath,
+      registry: 'https://registry.npmjs.org',
+      scope: 'all',
+    },
+    1000,
+    async (url, options) => {
+      request = { url, options };
+      return {
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            sharp: [{ id: 1124066, severity: 'high', vulnerable_versions: '<0.35.0' }],
+          }),
+      };
+    }
+  );
 
   assert.equal(result.ok, true);
   assert.equal(result.packageCount, 1);

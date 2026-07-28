@@ -18,12 +18,19 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 const args = parseArgs(process.argv.slice(2));
-const apiBase = args.apiBase || process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net/api/holomesh';
-const apiKey = args.apiKey || process.env.HOLOMESH_API_KEY || process.env.HOLOMESH_KEY || process.env.HOLOSCRIPT_API_KEY;
+const apiBase =
+  args.apiBase || process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net/api/holomesh';
+const apiKey =
+  args.apiKey ||
+  process.env.HOLOMESH_API_KEY ||
+  process.env.HOLOMESH_KEY ||
+  process.env.HOLOSCRIPT_API_KEY;
 const teamId = args.teamId || process.env.HOLOMESH_TEAM_ID;
 const pageLimit = clampInt(args.pageLimit, 1, 1000, 1000);
 const trainRatio = clampNumber(args.trainRatio, 0.1, 0.9, 0.7);
-const outPath = resolve(args.out || `research/paper-23-agent-time/heldout-mae-${dateSlug(new Date())}.json`);
+const outPath = resolve(
+  args.out || `research/paper-23-agent-time/heldout-mae-${dateSlug(new Date())}.json`
+);
 
 if (!apiKey || !teamId) {
   console.error('[paper-23-heldout] Missing HOLOMESH_API_KEY/HOLOMESH_TEAM_ID.');
@@ -47,9 +54,14 @@ entries.forEach((entry, index) => {
   entry.taskType = classifyTaskType(entry.title);
 });
 
-const splitIndex = Math.max(1, Math.min(entries.length - 1, Math.floor(entries.length * trainRatio)));
+const splitIndex = Math.max(
+  1,
+  Math.min(entries.length - 1, Math.floor(entries.length * trainRatio))
+);
 const observations = buildInterCompletionObservations(entries, splitIndex);
-const trainObservations = observations.filter((obs) => obs.currentIndex < splitIndex && obs.previousIndex < splitIndex);
+const trainObservations = observations.filter(
+  (obs) => obs.currentIndex < splitIndex && obs.previousIndex < splitIndex
+);
 const testObservations = observations.filter((obs) => obs.currentIndex >= splitIndex);
 
 if (!trainObservations.length || !testObservations.length) {
@@ -229,11 +241,13 @@ function normalizeEntry(raw) {
 function classifyTaskType(title) {
   const s = title.toLowerCase();
   if (s.includes('recursivemas')) return 'recursive-mas';
-  if (/\[paper-|paper\s+\d+|paper row|tvcg|msr|neurips|siggraph|usenix|pldi|iclr/.test(s)) return 'paper';
+  if (/\[paper-|paper\s+\d+|paper row|tvcg|msr|neurips|siggraph|usenix|pldi|iclr/.test(s))
+    return 'paper';
   if (s.includes('program-wide')) return 'program-wide';
   if (/\bpsf\b|\[psf\]/.test(s)) return 'psf';
   if (/security|signing|audit|vault|adversarial|byzantine|sycophancy/.test(s)) return 'security';
-  if (/idea-seed|^\[[^\]]*(platform|language|vrr)|\bplatform\b|\blanguage\b/.test(s)) return 'idea-seed';
+  if (/idea-seed|^\[[^\]]*(platform|language|vrr)|\bplatform\b|\blanguage\b/.test(s))
+    return 'idea-seed';
   if (/studio|sidebar|panel|ui\b|view component/.test(s)) return 'studio';
   if (/holo|holoscript|holomesh|hololand/.test(s)) return 'holoscript';
   return 'other';

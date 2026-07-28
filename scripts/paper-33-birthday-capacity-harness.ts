@@ -1,10 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import {
-  getAllEntries,
-  validateCoord,
-} from '../packages/core/src/traits/pillar/BrainCoordMapper';
+import { getAllEntries, validateCoord } from '../packages/core/src/traits/pillar/BrainCoordMapper';
 
 interface HarnessOptions {
   addressSpace: number;
@@ -210,9 +207,7 @@ function run(): void {
   const namespacedSimulationRows = options.simulationCounts.map((simulations) => ({
     simulations,
     equivalent_draws: simulations,
-    analytic_collision_probability: round(
-      collisionProbability(simulations, options.addressSpace)
-    ),
+    analytic_collision_probability: round(collisionProbability(simulations, options.addressSpace)),
   }));
 
   const fullSimulationRows = options.simulationCounts.map((simulations) => {

@@ -152,9 +152,7 @@ function printSummary(snapshot) {
   const { totalFiles, counts } = snapshot;
   console.log('Authoring richness scan');
   console.log(`  scanned: ${snapshot.scanDir} (${totalFiles} .holo files)`);
-  console.log(
-    `  rich:            ${counts.rich}/${totalFiles} = ${pct(counts.rich, totalFiles)}%`
-  );
+  console.log(`  rich:            ${counts.rich}/${totalFiles} = ${pct(counts.rich, totalFiles)}%`);
   console.log(
     `  primitive-only:  ${counts['primitive-only']}/${totalFiles} = ${pct(counts['primitive-only'], totalFiles)}%`
   );
@@ -165,7 +163,9 @@ function printSummary(snapshot) {
 
 function printDelta(baseline, current) {
   console.log('');
-  console.log(`Baseline: ${baseline.scanDir} @ ${baseline.generatedAt} (${baseline.totalFiles} files)`);
+  console.log(
+    `Baseline: ${baseline.scanDir} @ ${baseline.generatedAt} (${baseline.totalFiles} files)`
+  );
   console.log(
     `  rich:           ${baseline.counts.rich}/${baseline.totalFiles} (${baseline.richPercent}%) -> ` +
       `${current.counts.rich}/${current.totalFiles} (${current.richPercent}%)  ` +
@@ -220,7 +220,11 @@ function main() {
     const baseline = JSON.parse(readFileSync(baselinePath, 'utf8'));
     printDelta(baseline, snapshot);
 
-    if (flags.check && typeof flags.minImprovement === 'number' && !Number.isNaN(flags.minImprovement)) {
+    if (
+      flags.check &&
+      typeof flags.minImprovement === 'number' &&
+      !Number.isNaN(flags.minImprovement)
+    ) {
       const actualImprovement = snapshot.richPercent - baseline.richPercent;
       console.log('');
       console.log(

@@ -15,7 +15,15 @@
  *   DRY_RUN=0 node scripts/publish-core-8.0.8.mjs
  */
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync, copyFileSync, readdirSync, statSync } from 'fs';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  unlinkSync,
+  copyFileSync,
+  readdirSync,
+  statSync,
+} from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { tmpdir } from 'os';
@@ -34,18 +42,21 @@ if (existsSync(envPath)) {
 }
 
 const NPM_TOKEN = process.env.NPM_TOKEN;
-if (!NPM_TOKEN) { console.error('NPM_TOKEN not set'); process.exit(1); }
+if (!NPM_TOKEN) {
+  console.error('NPM_TOKEN not set');
+  process.exit(1);
+}
 
 const DRY_RUN = process.env.DRY_RUN !== '0';
 
 // ---- Peer ranges for internal packages that appear in peerDependencies ----
 const PEER_RANGES = {
   '@holoscript/absorb-service': '>=6.1.0',
-  '@holoscript/engine':         '>=6.1.0',
-  '@holoscript/framework':      '>=6.1.0',
-  '@holoscript/mcp-server':     '>=8.0.0',
-  '@holoscript/mesh':           '>=6.1.0',
-  '@holoscript/core':           '>=8.0.0',
+  '@holoscript/engine': '>=6.1.0',
+  '@holoscript/framework': '>=6.1.0',
+  '@holoscript/mcp-server': '>=8.0.0',
+  '@holoscript/mesh': '>=6.1.0',
+  '@holoscript/core': '>=8.0.0',
 };
 
 // ---- Build full name→version map from all local packages ----
@@ -57,13 +68,17 @@ function scanDir(base) {
     const sub = join(base, entry);
     try {
       if (!statSync(sub).isDirectory()) continue;
-    } catch { continue; }
+    } catch {
+      continue;
+    }
     const pkgPath = join(sub, 'package.json');
     if (existsSync(pkgPath)) {
       try {
         const d = JSON.parse(readFileSync(pkgPath, 'utf8'));
         if (d.name && d.version) pkgVersionMap.set(d.name, d.version);
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
   }
 }
@@ -75,7 +90,11 @@ scanDir(join(ROOT, 'packages', 'providers'));
 // Scan one level deeper for nested packages (e.g. packages/holoscript/ → @holoscript/sdk)
 for (const entry of readdirSync(join(ROOT, 'packages'))) {
   const sub = join(ROOT, 'packages', entry);
-  try { if (statSync(sub).isDirectory()) scanDir(sub); } catch { /* skip */ }
+  try {
+    if (statSync(sub).isDirectory()) scanDir(sub);
+  } catch {
+    /* skip */
+  }
 }
 
 console.log(`Package map loaded: ${pkgVersionMap.size} packages`);
@@ -129,9 +148,13 @@ function rewriteAllWorkspaceRefs(pkg) {
 function viewVersion(name) {
   try {
     return execSync(`npm view ${JSON.stringify(name)} version`, {
-      encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 30000
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 30000,
     }).trim();
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 async function publishPackage({ pkgPath, newVersion }) {
@@ -164,7 +187,7 @@ async function publishPackage({ pkgPath, newVersion }) {
     console.log(`DRY     ${name}@${version} (on npm: ${published || 'none'})`);
     if (workspaceDeps.length) {
       console.log('  Would rewrite:');
-      workspaceDeps.slice(0, 10).forEach(l => console.log(l));
+      workspaceDeps.slice(0, 10).forEach((l) => console.log(l));
       if (workspaceDeps.length > 10) console.log(`  ... and ${workspaceDeps.length - 10} more`);
     }
     return 'dry';
@@ -214,10 +237,10 @@ console.log('core dist/index.js: EXISTS');
 
 // ---- Show what we're about to do ----
 const corePkgPath = join(ROOT, 'packages', 'core', 'package.json');
-const cliPkgPath  = join(ROOT, 'packages', 'cli',  'package.json');
+const cliPkgPath = join(ROOT, 'packages', 'cli', 'package.json');
 
 const corePkg = JSON.parse(readFileSync(corePkgPath, 'utf8'));
-const cliPkg  = JSON.parse(readFileSync(cliPkgPath,  'utf8'));
+const cliPkg = JSON.parse(readFileSync(cliPkgPath, 'utf8'));
 
 console.log(`\nDRY_RUN=${DRY_RUN} | NPM_TOKEN=${NPM_TOKEN ? 'set' : 'MISSING'}`);
 console.log(`\nPlan:`);

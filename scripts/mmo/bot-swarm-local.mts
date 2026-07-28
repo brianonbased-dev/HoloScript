@@ -34,15 +34,42 @@ function composition(): HoloComposition {
   return {
     type: 'Composition',
     name: 'FrontierLive',
-    templates: [], objects: [], spatialGroups: [], lights: [], imports: [],
-    timelines: [], audio: [], zones: [], transitions: [], conditionals: [],
-    iterators: [], npcs: [], quests: [], dialogues: [],
-    stateMachines: [], achievements: [], talentTrees: [], shapes: [],
+    templates: [],
+    objects: [],
+    spatialGroups: [],
+    lights: [],
+    imports: [],
+    timelines: [],
+    audio: [],
+    zones: [],
+    transitions: [],
+    conditionals: [],
+    iterators: [],
+    npcs: [],
+    quests: [],
+    dialogues: [],
+    stateMachines: [],
+    achievements: [],
+    talentTrees: [],
+    shapes: [],
     abilities: [
-      { type: 'Ability', name: 'fireball', abilityType: 'spell', stats: { type: 'AbilityStats', cooldown: 6, manaCost: 40, range: 30 }, effects: { type: 'AbilityEffects' } },
+      {
+        type: 'Ability',
+        name: 'fireball',
+        abilityType: 'spell',
+        stats: { type: 'AbilityStats', cooldown: 6, manaCost: 40, range: 30 },
+        effects: { type: 'AbilityEffects' },
+      },
     ],
     spawnPoints: [
-      { type: 'SpawnPoint', name: 'camp_a', faction: 'none', maxCount: 100, position: { type: 'Position', x: 0, y: 0, z: 0 }, properties: {} },
+      {
+        type: 'SpawnPoint',
+        name: 'camp_a',
+        faction: 'none',
+        maxCount: 100,
+        position: { type: 'Position', x: 0, y: 0, z: 0 },
+        properties: {},
+      },
     ],
     traits: [
       { type: 'ObjectTrait', name: 'movement_contract', config: { max_speed: 8 }, args: [] },
@@ -71,7 +98,9 @@ async function main(): Promise<void> {
   const req = createRequire(`${outDir}/`);
   const serverMod = req('./server.cjs') as {
     ROOM_NAME: string;
-    startColyseusServer: (port: number) => Promise<{ gracefullyShutdown: (consented: boolean) => Promise<void> }>;
+    startColyseusServer: (
+      port: number
+    ) => Promise<{ gracefullyShutdown: (consented: boolean) => Promise<void> }>;
   };
   const harnessMod = req('./harness.cjs') as {
     runNetworkBots: (opts: Record<string, unknown>) => Promise<Record<string, number>>;
@@ -82,7 +111,13 @@ async function main(): Promise<void> {
   const gs = await serverMod.startColyseusServer(port);
   try {
     console.log(`[bot-swarm-local] driving ${bots} network bots × ${ticks} ticks at ${url} ...`);
-    const report = await harnessMod.runNetworkBots({ url, bots, ticks, speedhackRatio: 0.3, seed: 1 });
+    const report = await harnessMod.runNetworkBots({
+      url,
+      bots,
+      ticks,
+      speedhackRatio: 0.3,
+      seed: 1,
+    });
     console.log('[bot-swarm-local] REPORT', JSON.stringify(report, null, 2));
     console.log('[bot-swarm-local] balance check:', harnessMod.assertBalance(report));
     const held = report.finalPlayers === bots && report.moveRejects > 0;

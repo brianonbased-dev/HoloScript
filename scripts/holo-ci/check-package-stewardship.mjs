@@ -28,21 +28,12 @@ const ROOT_PACKAGE = join(ROOT, 'package.json');
 const WORKSPACE_ROOTS = ['packages', 'services', 'benchmarks'];
 const SKIP_DIRS = new Set(['node_modules', 'dist', '.next', 'coverage', '.turbo', '.git']);
 const KNOWN_REGISTRIES = new Set(['npm', 'pypi']);
-const KNOWN_STATUSES = new Set([
-  'fleet-operational',
-  'release-candidate',
-  'incubating',
-  'parked',
-]);
+const KNOWN_STATUSES = new Set(['fleet-operational', 'release-candidate', 'incubating', 'parked']);
 const KNOWN_BLOCKER_STATUSES = new Set(['active', 'parked', 'resolved']);
 const REQUIRED_USER_CLASSES = new Set(['human', 'ai-agent']);
 const READY_STATUSES = new Set(['fleet-operational', 'release-candidate']);
 const KNOWN_OUTSIDE_READINESS = new Set(['ready', 'incubating', 'parked']);
-const KNOWN_HARNESS_MODES = new Set([
-  'standalone',
-  'public-ai-ecosystem-template',
-  'not-public',
-]);
+const KNOWN_HARNESS_MODES = new Set(['standalone', 'public-ai-ecosystem-template', 'not-public']);
 const REQUIRED_OUTSIDE_AUDIENCE = new Set(['external-human', 'external-ai-agent']);
 const PRIVATE_PUBLIC_FILE_PATTERNS = [
   ['founder Windows home path', /C:[/\\]Users[/\\]josep/i],
@@ -160,7 +151,9 @@ function validateStewardshipNotes(record, errors) {
       errors.push(`${prefix}.id is missing or invalid`);
     }
     if (!KNOWN_BLOCKER_STATUSES.has(blocker.status)) {
-      errors.push(`${prefix}.status must be one of ${Array.from(KNOWN_BLOCKER_STATUSES).join(', ')}`);
+      errors.push(
+        `${prefix}.status must be one of ${Array.from(KNOWN_BLOCKER_STATUSES).join(', ')}`
+      );
     }
     if (!isNonEmptyString(blocker.scope)) errors.push(`${prefix}.scope is required`);
     if (!isNonEmptyString(blocker.summary)) errors.push(`${prefix}.summary is required`);
@@ -186,7 +179,8 @@ function validateStewardshipNotes(record, errors) {
     }
     if (!isNonEmptyString(caveat.scope)) errors.push(`${prefix}.scope is required`);
     if (!isNonEmptyString(caveat.summary)) errors.push(`${prefix}.summary is required`);
-    if (!isNonEmptyString(caveat.overclaimGuard)) errors.push(`${prefix}.overclaimGuard is required`);
+    if (!isNonEmptyString(caveat.overclaimGuard))
+      errors.push(`${prefix}.overclaimGuard is required`);
   }
 }
 
@@ -276,11 +270,13 @@ function validateStewardshipManifest(manifest, context) {
       validationScripts: record.validationScripts || [],
       outsideReadiness: record.outsideUserGate?.readiness || null,
       harnessMode: record.outsideUserGate?.harnessMode || null,
-      activeBlockers: (record.blockers || []).filter((blocker) => blocker.status === 'active').length,
+      activeBlockers: (record.blockers || []).filter((blocker) => blocker.status === 'active')
+        .length,
       caveats: (record.caveats || []).length,
     });
 
-    if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) errors.push(`invalid package steward id: ${id || '<missing>'}`);
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(id))
+      errors.push(`invalid package steward id: ${id || '<missing>'}`);
     if (ids.has(id)) errors.push(`duplicate package steward id: ${id}`);
     ids.add(id);
 
@@ -305,10 +301,14 @@ function validateStewardshipManifest(manifest, context) {
       errors.push(`${id}: missing outsideUserGate`);
     } else {
       if (!KNOWN_OUTSIDE_READINESS.has(outsideGate.readiness)) {
-        errors.push(`${id}: outsideUserGate has unknown readiness '${outsideGate.readiness || ''}'`);
+        errors.push(
+          `${id}: outsideUserGate has unknown readiness '${outsideGate.readiness || ''}'`
+        );
       }
       if (!KNOWN_HARNESS_MODES.has(outsideGate.harnessMode)) {
-        errors.push(`${id}: outsideUserGate has unknown harnessMode '${outsideGate.harnessMode || ''}'`);
+        errors.push(
+          `${id}: outsideUserGate has unknown harnessMode '${outsideGate.harnessMode || ''}'`
+        );
       }
       for (const required of REQUIRED_OUTSIDE_AUDIENCE) {
         if (!outsideGate.audience?.includes(required)) {
@@ -326,7 +326,8 @@ function validateStewardshipManifest(manifest, context) {
       }
       if (
         outsideGate.harnessMode === 'public-ai-ecosystem-template' &&
-        (!Array.isArray(outsideGate.requiredPublicFiles) || outsideGate.requiredPublicFiles.length === 0)
+        (!Array.isArray(outsideGate.requiredPublicFiles) ||
+          outsideGate.requiredPublicFiles.length === 0)
       ) {
         errors.push(`${id}: public-ai-ecosystem-template requires requiredPublicFiles[]`);
       }
@@ -358,7 +359,8 @@ function validateStewardshipManifest(manifest, context) {
       errors.push(`${id}: missing consumerLanes[]`);
     } else {
       for (const lane of record.consumerLanes) {
-        if (!context.knownConsumers.has(lane)) errors.push(`${id}: unknown consumer lane '${lane}'`);
+        if (!context.knownConsumers.has(lane))
+          errors.push(`${id}: unknown consumer lane '${lane}'`);
       }
     }
 
@@ -395,14 +397,18 @@ function validateStewardshipManifest(manifest, context) {
       (Array.isArray(record.validationCommands) && record.validationCommands.length > 0);
     if (!hasValidation) errors.push(`${id}: missing validationScripts[] or validationCommands[]`);
     for (const script of record.validationScripts || []) {
-      if (!context.packageScripts.has(script)) errors.push(`${id}: unknown package script '${script}'`);
+      if (!context.packageScripts.has(script))
+        errors.push(`${id}: unknown package script '${script}'`);
     }
     if (!Array.isArray(record.nextActions) || record.nextActions.length === 0) {
       errors.push(`${id}: missing nextActions[]`);
     }
     validateStewardshipNotes(record, errors);
 
-    if (record.status === 'fleet-operational' && (!record.utilityIds || record.utilityIds.length === 0)) {
+    if (
+      record.status === 'fleet-operational' &&
+      (!record.utilityIds || record.utilityIds.length === 0)
+    ) {
       warnings.push(`${id}: fleet-operational package has no utilityIds[]`);
     }
   }
@@ -416,7 +422,10 @@ function validateStewardshipManifest(manifest, context) {
 
 function runSelfTest() {
   const context = {
-    expectedKeys: new Set([packageKey('npm', '@holoscript/example'), packageKey('pypi', 'holoscript')]),
+    expectedKeys: new Set([
+      packageKey('npm', '@holoscript/example'),
+      packageKey('pypi', 'holoscript'),
+    ]),
     expectedConsumerLanesByKey: new Map([
       [packageKey('npm', '@holoscript/example'), new Set(['laptop-windows'])],
       [packageKey('pypi', 'holoscript'), new Set(['laptop-windows'])],
@@ -516,8 +525,10 @@ function runSelfTest() {
   bad.packages.pop();
   const result = validateStewardshipManifest(bad, context);
   assert.equal(result.ok, false);
-  assert(result.errors.some((error) => error.includes("ai-agent")));
-  assert(result.errors.some((error) => error.includes('missing steward record for pypi:holoscript')));
+  assert(result.errors.some((error) => error.includes('ai-agent')));
+  assert(
+    result.errors.some((error) => error.includes('missing steward record for pypi:holoscript'))
+  );
   assert(result.errors.some((error) => error.includes("unknown package script 'missing:script'")));
   assert(result.errors.some((error) => error.includes('privateHarnessLeakAllowed')));
   assert(result.errors.some((error) => error.includes('requiredPublicFiles')));
@@ -534,7 +545,13 @@ if (SELF_TEST) {
 }
 
 const errors = [];
-for (const file of [MANIFEST, FLEET_MANIFEST, CONSUMPTION_MANIFEST, RELEASE_MANIFEST, ROOT_PACKAGE]) {
+for (const file of [
+  MANIFEST,
+  FLEET_MANIFEST,
+  CONSUMPTION_MANIFEST,
+  RELEASE_MANIFEST,
+  ROOT_PACKAGE,
+]) {
   if (!existsSync(file)) errors.push(`required file missing: ${file}`);
 }
 
@@ -550,9 +567,9 @@ if (JSON_OUT) {
 } else {
   for (const row of output.rows) {
     console.log(
-      `[package-stewardship] ${row.registry}:${row.name} ${row.status} lanes=${row.consumerLanes.join(',')} checks=${row.validationScripts.join(',')}`
-        + ` outside=${row.outsideReadiness}/${row.harnessMode}`
-        + ` activeBlockers=${row.activeBlockers} caveats=${row.caveats}`
+      `[package-stewardship] ${row.registry}:${row.name} ${row.status} lanes=${row.consumerLanes.join(',')} checks=${row.validationScripts.join(',')}` +
+        ` outside=${row.outsideReadiness}/${row.harnessMode}` +
+        ` activeBlockers=${row.activeBlockers} caveats=${row.caveats}`
     );
   }
   for (const warning of output.warnings) console.warn(`[package-stewardship] WARN: ${warning}`);

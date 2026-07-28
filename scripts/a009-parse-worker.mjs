@@ -29,10 +29,15 @@ function normalizeInputPath(filepath) {
 }
 
 const listArgIndex = process.argv.indexOf('--list');
-const input = listArgIndex >= 0
-  ? readFileSync(normalizeInputPath(process.argv[listArgIndex + 1]), 'utf8')
-  : readFileSync(0, 'utf8');
-const files = input.trim().split(/\r\n|\n|\r/).map((line) => line.trim()).filter(Boolean);
+const input =
+  listArgIndex >= 0
+    ? readFileSync(normalizeInputPath(process.argv[listArgIndex + 1]), 'utf8')
+    : readFileSync(0, 'utf8');
+const files = input
+  .trim()
+  .split(/\r\n|\n|\r/)
+  .map((line) => line.trim())
+  .filter(Boolean);
 
 for (const filepath of files) {
   const ext = filepath.split('.').pop();

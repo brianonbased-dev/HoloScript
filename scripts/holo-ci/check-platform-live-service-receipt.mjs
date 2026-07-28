@@ -27,7 +27,9 @@ const ENDPOINT = normalizeEndpoint(
 );
 const OUT_PATH = outIdx >= 0 ? resolve(args[outIdx + 1]) : null;
 const TIMEOUT_MS =
-  timeoutIdx >= 0 ? Number(args[timeoutIdx + 1]) : Number(process.env.PLATFORM_LIVE_TIMEOUT_MS || 15_000);
+  timeoutIdx >= 0
+    ? Number(args[timeoutIdx + 1])
+    : Number(process.env.PLATFORM_LIVE_TIMEOUT_MS || 15_000);
 
 const SECRET_KEY_PATTERN =
   /(?:private[_-]?key|wallet[_-]?key|api[_-]?key|authorization|bearer|secret|access[_-]?token|refresh[_-]?token|session[_-]?token)/iu;
@@ -88,7 +90,8 @@ function secretFindings(value, path = '$') {
   if (value && typeof value === 'object') {
     for (const [key, nested] of Object.entries(value)) {
       const childPath = `${path}.${key}`;
-      if (SECRET_KEY_PATTERN.test(key)) findings.push({ path: childPath, reason: 'secret-shaped-key' });
+      if (SECRET_KEY_PATTERN.test(key))
+        findings.push({ path: childPath, reason: 'secret-shaped-key' });
       findings.push(...secretFindings(nested, childPath));
     }
     return findings;
@@ -150,7 +153,10 @@ async function healthProbe() {
     name: 'hosted-health',
     method: 'GET',
     path: '/health',
-    ok: response.status === 200 && leaks.length === 0 && (summary.success === true || summary.tools !== null),
+    ok:
+      response.status === 200 &&
+      leaks.length === 0 &&
+      (summary.success === true || summary.tools !== null),
     status: response.status,
     durationMs: response.durationMs,
     summary,
@@ -213,7 +219,9 @@ async function buildReceipt() {
       allowedLiveMutation: 'ephemeral registration challenge nonce only',
     },
     probes,
-    finalDisposition: ok ? 'platform_live_holokey_x402_receipt_passed' : 'platform_live_holokey_x402_receipt_failed',
+    finalDisposition: ok
+      ? 'platform_live_holokey_x402_receipt_passed'
+      : 'platform_live_holokey_x402_receipt_failed',
   };
 }
 

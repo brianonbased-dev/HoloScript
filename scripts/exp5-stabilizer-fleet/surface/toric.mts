@@ -380,8 +380,7 @@ function buildReceipt(options: Options, rows: SweepRow[]): Record<string, unknow
     zSyndromeObservable: {
       source: 'packages/studio/src/lib/brittney/cael.ts#verifyBrittneyCaelRecord',
       importedAs: 'verifyCaelRecord',
-      rule:
-        'site is a Z defect iff verifyCaelRecord(siteRecord) returns false; edge errors toggle endpoint site defects with XOR parity',
+      rule: 'site is a Z defect iff verifyCaelRecord(siteRecord) returns false; edge errors toggle endpoint site defects with XOR parity',
       cleanAndTamperChecks: verifierChecks,
     },
     decoder: {
@@ -406,7 +405,8 @@ function writeReceipt(out: string, receipt: Record<string, unknown>): string {
 
 function main() {
   const options = parseArgs(process.argv.slice(2));
-  if (!Number.isInteger(options.seeds) || options.seeds <= 0) throw new Error('--seeds must be > 0');
+  if (!Number.isInteger(options.seeds) || options.seeds <= 0)
+    throw new Error('--seeds must be > 0');
   if (!Number.isInteger(options.trials) || options.trials <= 0) {
     throw new Error('--trials must be > 0');
   }

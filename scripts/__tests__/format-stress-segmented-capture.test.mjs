@@ -427,11 +427,7 @@ try {
     'world-model impact payload changes still pixels'
   );
   const ballisticArcEvidence = buildBallisticArcEvidence(worldModelReplay);
-  assertEq(
-    ballisticArcEvidence.status,
-    'gravity-fit-pass',
-    'ballistic arc evidence fits gravity'
-  );
+  assertEq(ballisticArcEvidence.status, 'gravity-fit-pass', 'ballistic arc evidence fits gravity');
   assertEq(ballisticArcEvidence.sampleCount, 3, 'ballistic arc evidence counts samples');
   assertEq(ballisticArcEvidence.checks.gravityPlausible, true, 'ballistic gravity plausible');
   assertOk(
@@ -462,7 +458,9 @@ try {
     'ballistic receipt exposes fit evidence'
   );
   assertOk(
-    ballisticReceipt.oracle.findings.some((finding) => finding.includes('Ballistic arc replay fit')),
+    ballisticReceipt.oracle.findings.some((finding) =>
+      finding.includes('Ballistic arc replay fit')
+    ),
     'ballistic oracle names trajectory fit'
   );
   const placeholderBallisticReceipt = buildSegmentReceipt({

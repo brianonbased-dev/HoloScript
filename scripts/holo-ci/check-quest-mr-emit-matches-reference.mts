@@ -69,7 +69,9 @@ function emit(): Record<string, string> {
 
   const worldsDir = join(appDir, 'worlds');
   if (existsSync(worldsDir)) {
-    const worldFiles = readdirSync(worldsDir).filter((f) => f.endsWith('.holo')).sort();
+    const worldFiles = readdirSync(worldsDir)
+      .filter((f) => f.endsWith('.holo'))
+      .sort();
     const worldIds: string[] = [];
     for (const wf of worldFiles) {
       const id = basename(wf, '.holo');

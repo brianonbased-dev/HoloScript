@@ -25,30 +25,64 @@ const ROOT = join(fileURLToPath(import.meta.url), '../../packages/plugins');
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function readJson(path) {
-  try { return JSON.parse(readFileSync(path, 'utf8')); } catch { return null; }
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 function readSrc(path) {
-  try { return readFileSync(path, 'utf8'); } catch { return ''; }
+  try {
+    return readFileSync(path, 'utf8');
+  } catch {
+    return '';
+  }
 }
 
 /** Derive plugin id from npm package name. */
 function toId(pkgName) {
   // '@holoscript/plugin-government-civic' → 'government-civic'
   // '@holoscript/plugin-emergency-response' → 'emergency-response'
-  return pkgName
-    .replace(/^@holoscript\/plugin-?/, '')
-    .replace(/^@[^/]+\//, '');
+  return pkgName.replace(/^@holoscript\/plugin-?/, '').replace(/^@[^/]+\//, '');
 }
 
 /** Extract trait names from source text heuristically. */
 function extractTraitsFromSource(src, indexSrc) {
   const traits = new Set();
   const FALSE_POSITIVES = new Set([
-    'string', 'number', 'boolean', 'object', 'id', 'type', 'null', 'name',
-    'error', 'info', 'warn', 'debug', 'data', 'result', 'state', 'config',
-    'message', 'value', 'key', 'label', 'status', 'mode', 'text', 'code',
-    'title', 'path', 'url', 'tag', 'kind', 'role', 'scope', 'source',
+    'string',
+    'number',
+    'boolean',
+    'object',
+    'id',
+    'type',
+    'null',
+    'name',
+    'error',
+    'info',
+    'warn',
+    'debug',
+    'data',
+    'result',
+    'state',
+    'config',
+    'message',
+    'value',
+    'key',
+    'label',
+    'status',
+    'mode',
+    'text',
+    'code',
+    'title',
+    'path',
+    'url',
+    'tag',
+    'kind',
+    'role',
+    'scope',
+    'source',
   ]);
 
   // Pattern 1: pluginMeta.traits: [...] in index.ts
@@ -59,7 +93,9 @@ function extractTraitsFromSource(src, indexSrc) {
 
   // Pattern 2: XXXX_TRAITS / PLUGIN_TRAITS / DOMAIN_TRAITS = [...] const arrays
   // Matches: export const AEROSPACE_TRAITS = ['orbital_trajectory', ...]
-  const traitArrays = src.matchAll(/(?:export\s+)?const\s+\w*TRAITS?\w*\s*=\s*\[([\s\S]*?)\]\s*as\s+const/g);
+  const traitArrays = src.matchAll(
+    /(?:export\s+)?const\s+\w*TRAITS?\w*\s*=\s*\[([\s\S]*?)\]\s*as\s+const/g
+  );
   for (const arr of traitArrays) {
     for (const m of arr[1].matchAll(/'([a-z][a-z0-9_]+)'|"([a-z][a-z0-9_]+)"/g)) {
       traits.add(m[1] || m[2]);
@@ -91,8 +127,10 @@ function extractTraitsFromSource(src, indexSrc) {
 
 /** Check if a `registerXxxTraitHandlers` function is exported from runtime.ts. */
 function hasRegisterExport(src) {
-  return /export\s+(?:async\s+)?function\s+register\w+TraitHandlers/.test(src)
-      || /export\s+const\s+register\w+TraitHandlers/.test(src);
+  return (
+    /export\s+(?:async\s+)?function\s+register\w+TraitHandlers/.test(src) ||
+    /export\s+const\s+register\w+TraitHandlers/.test(src)
+  );
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -109,7 +147,11 @@ for (const dir of dirs) {
   const pluginDir = join(ROOT, dir);
   const pkgPath = join(pluginDir, 'package.json');
   const pkg = readJson(pkgPath);
-  if (!pkg) { console.warn(`  SKIP ${dir}: no package.json`); skipped++; continue; }
+  if (!pkg) {
+    console.warn(`  SKIP ${dir}: no package.json`);
+    skipped++;
+    continue;
+  }
 
   const manifestPath = join(pluginDir, 'plugin.manifest.json');
 
@@ -126,10 +168,17 @@ for (const dir of dirs) {
   const description = pkg.description ?? '';
 
   // Short display name: first sentence/clause of description (≤80 chars) or dir-name
-  const rawName = description.split(/[—:]|\bfor\b|\bplugin\b/i)[0].trim().replace(/\s+/g, ' ');
-  const name = (rawName.length >= 4 && rawName.length <= 80)
-    ? rawName
-    : dir.replace(/-plugin$/, '').replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const rawName = description
+    .split(/[—:]|\bfor\b|\bplugin\b/i)[0]
+    .trim()
+    .replace(/\s+/g, ' ');
+  const name =
+    rawName.length >= 4 && rawName.length <= 80
+      ? rawName
+      : dir
+          .replace(/-plugin$/, '')
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase());
 
   // Traits
   const traits = extractTraitsFromSource(allSrc, indexSrc);
@@ -163,9 +212,13 @@ for (const dir of dirs) {
     console.log(json);
   } else {
     writeFileSync(manifestPath, json, 'utf8');
-    console.log(`  ✓ ${dir}/plugin.manifest.json (${traits.length} traits, autoRegister=${autoRegister})`);
+    console.log(
+      `  ✓ ${dir}/plugin.manifest.json (${traits.length} traits, autoRegister=${autoRegister})`
+    );
   }
   generated++;
 }
 
-console.log(`\n${DRY_RUN ? '[DRY RUN] ' : ''}Generated ${generated} manifests, skipped ${skipped}.`);
+console.log(
+  `\n${DRY_RUN ? '[DRY RUN] ' : ''}Generated ${generated} manifests, skipped ${skipped}.`
+);

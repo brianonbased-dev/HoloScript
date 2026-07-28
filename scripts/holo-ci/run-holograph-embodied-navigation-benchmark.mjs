@@ -298,8 +298,12 @@ function renderFrame(scene, state) {
   for (const object of objects) {
     const p = projectObject(object, state.camera, scene.canvas);
     if (!p.inFrame) continue;
-    const base = state.colorMode === 'hue_by_role' ? hueShift(object.color, state.hueShiftDegrees) : object.color;
-    const sizeBoost = state.structureStyle === 'dependency-rings' && object.id === state.focusId ? 1.4 : 1;
+    const base =
+      state.colorMode === 'hue_by_role'
+        ? hueShift(object.color, state.hueShiftDegrees)
+        : object.color;
+    const sizeBoost =
+      state.structureStyle === 'dependency-rings' && object.id === state.focusId ? 1.4 : 1;
     drawRect(
       frame,
       p.x,
@@ -315,7 +319,8 @@ function renderFrame(scene, state) {
     if (!p?.inFrame) continue;
     const shouldDrawLabel =
       state.labelPolicy === 'all' ||
-      (state.labelPolicy === 'target-first' && (object.id === scene.targetId || object.id === state.focusId));
+      (state.labelPolicy === 'target-first' &&
+        (object.id === scene.targetId || object.id === state.focusId));
     if (!shouldDrawLabel) continue;
     drawRect(frame, p.x + 18, p.y - 11, Math.max(8, object.name.length * 1.5), 3, LABEL_COLOR);
   }
@@ -323,7 +328,12 @@ function renderFrame(scene, state) {
 }
 
 function sameColor(frame, i, c) {
-  return frame.data[i] === c.r && frame.data[i + 1] === c.g && frame.data[i + 2] === c.b && frame.data[i + 3] === c.a;
+  return (
+    frame.data[i] === c.r &&
+    frame.data[i + 1] === c.g &&
+    frame.data[i + 2] === c.b &&
+    frame.data[i + 3] === c.a
+  );
 }
 
 function emptyCentroid() {
@@ -503,7 +513,10 @@ export async function runBenchmark(options = {}) {
     const after = projectObject(target, state.camera, scene.canvas);
     const renderedFrame = renderFrame(scene, state);
     const stats = frameStats(renderedFrame);
-    const frameFile = resolve(frameDir, `step-${String(index + 1).padStart(2, '0')}-${action.type}.ppm`);
+    const frameFile = resolve(
+      frameDir,
+      `step-${String(index + 1).padStart(2, '0')}-${action.type}.ppm`
+    );
     writePpm(frameFile, renderedFrame.frame);
     frameReceipts.push({ action: action.type, file: frameFile, ...stats });
     steps.push({
@@ -545,11 +558,15 @@ export async function runBenchmark(options = {}) {
     validRate: round(steps.filter((step) => step.valid).length / steps.length, 2),
     actionRate: round(steps.length / actions.length, 2),
     doneRate: round(steps.filter((step) => step.done).length / steps.length, 2),
-    nonblankFrameRate: round(frameReceipts.filter((frame) => frame.nonblank).length / frameReceipts.length, 2),
+    nonblankFrameRate: round(
+      frameReceipts.filter((frame) => frame.nonblank).length / frameReceipts.length,
+      2
+    ),
     nodeEdgeSegmentationRate: round(segmentedFrames.length / frameReceipts.length, 2),
     segmentedVisualDeltaRate: round(segmentedDeltaFrames.length / frameReceipts.length, 2),
     panCandidateSegmentedDeltaRate: round(
-      segmentedPanDeltaPairs.filter((delta) => delta > 0).length / Math.max(1, segmentedPanDeltaPairs.length),
+      segmentedPanDeltaPairs.filter((delta) => delta > 0).length /
+        Math.max(1, segmentedPanDeltaPairs.length),
       2
     ),
   };
@@ -575,7 +592,8 @@ export async function runBenchmark(options = {}) {
     benchmark: 'multi-step HoloGraph embodied navigation',
     receiptScope:
       'choose target, pan/zoom/focus, change hue/style/filter, re-render, screenshot-only readback',
-    sovereignCompilerGuidance: 'W.GOLD.002: benchmark harness; no bridge compiler feature innovation',
+    sovereignCompilerGuidance:
+      'W.GOLD.002: benchmark harness; no bridge compiler feature innovation',
     scene: {
       targetId: scene.targetId,
       objectCount: scene.objects.length,
@@ -595,8 +613,10 @@ export async function runBenchmark(options = {}) {
     segmentedVisualOracle: {
       mode: 'node-edge-pixels-excluding-label-blocks',
       frameCount: frameReceipts.length,
-      finalGraphMassCentroid: segmentedOracleFrames.at(-1)?.segmentedGraphMassCentroid ?? emptyCentroid(),
-      finalAllNonblankCentroid: segmentedOracleFrames.at(-1)?.allNonblankCentroid ?? emptyCentroid(),
+      finalGraphMassCentroid:
+        segmentedOracleFrames.at(-1)?.segmentedGraphMassCentroid ?? emptyCentroid(),
+      finalAllNonblankCentroid:
+        segmentedOracleFrames.at(-1)?.allNonblankCentroid ?? emptyCentroid(),
       finalAllVsSegmentedCentroidDeltaPx:
         segmentedOracleFrames.at(-1)?.allVsSegmentedCentroidDeltaPx ?? null,
       averageLabelExclusionRate: round(
@@ -628,10 +648,14 @@ export async function runBenchmark(options = {}) {
     steps,
     failures: [
       ...(holollama.reachable ? [] : [`holollama_unreachable:${holollama.failure}`]),
-      ...(rates.rendererNativeProjectionRate === 1 ? [] : ['renderer_native_projection_rate_below_1']),
+      ...(rates.rendererNativeProjectionRate === 1
+        ? []
+        : ['renderer_native_projection_rate_below_1']),
       ...(rates.nonblankFrameRate === 1 ? [] : ['blank_frame_detected']),
       ...(rates.nodeEdgeSegmentationRate === 1 ? [] : ['node_edge_segmentation_rate_below_1']),
-      ...(rates.segmentedVisualDeltaRate > 0 ? [] : ['segmented_visual_oracle_did_not_exclude_labels']),
+      ...(rates.segmentedVisualDeltaRate > 0
+        ? []
+        : ['segmented_visual_oracle_did_not_exclude_labels']),
       ...(finalProjection.distanceToCenterPx < initialProjection.distanceToCenterPx
         ? []
         : ['target_projection_did_not_improve']),

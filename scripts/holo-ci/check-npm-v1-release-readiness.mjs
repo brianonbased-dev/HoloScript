@@ -195,7 +195,8 @@ function packageEntrypoints(pkg) {
 function checkManifestBasics(candidate, record) {
   const pkg = record.json;
   if (pkg.private === true) fail(`${pkg.name}: candidate package is private`);
-  if (!parseSemver(pkg.version)) fail(`${pkg.name}: version is not valid x.y.z semver (${pkg.version})`);
+  if (!parseSemver(pkg.version))
+    fail(`${pkg.name}: version is not valid x.y.z semver (${pkg.version})`);
   for (const field of ['description', 'license', 'repository']) {
     if (!pkg[field]) fail(`${pkg.name}: missing npm metadata field '${field}'`);
   }
@@ -205,13 +206,19 @@ function checkManifestBasics(candidate, record) {
   if (!Array.isArray(pkg.files) || pkg.files.length === 0) {
     fail(`${pkg.name}: missing files[] allowlist for npm package contents`);
   }
-  if (candidate.allowFirstPublish && pkg.name.startsWith('@') && pkg.publishConfig?.access !== 'public') {
+  if (
+    candidate.allowFirstPublish &&
+    pkg.name.startsWith('@') &&
+    pkg.publishConfig?.access !== 'public'
+  ) {
     fail(`${pkg.name}: first scoped publish requires publishConfig.access='public'`);
   }
 }
 
 function checkBuiltEntrypoints(record, publishState) {
-  const checksBuilt = REQUIRE_BUILT && (SKIP_REGISTRY || publishState === 'publish-update' || publishState === 'first-publish');
+  const checksBuilt =
+    REQUIRE_BUILT &&
+    (SKIP_REGISTRY || publishState === 'publish-update' || publishState === 'first-publish');
   if (!checksBuilt) return;
   for (const entry of packageEntrypoints(record.json)) {
     const full = join(record.dir, entry);
@@ -250,14 +257,17 @@ function checkRegistry(candidate, record) {
 
 function checkDependencyClosure(candidateSet, packageMap, record, publishState) {
   const pkg = record.json;
-  const checksRegistryClosure = publishState === 'publish-update' || publishState === 'first-publish';
+  const checksRegistryClosure =
+    publishState === 'publish-update' || publishState === 'first-publish';
   for (const field of DEP_FIELDS) {
     const block = pkg[field] || {};
     for (const [depName, spec] of Object.entries(block)) {
       if (!isInternalPackage(depName)) continue;
       const depRecord = packageMap.get(depName);
       if (!depRecord) {
-        fail(`${pkg.name}: ${field}.${depName} references an internal package not found in workspace`);
+        fail(
+          `${pkg.name}: ${field}.${depName} references an internal package not found in workspace`
+        );
         continue;
       }
       if (depRecord.json.private === true && field !== 'peerDependencies') {
@@ -269,7 +279,9 @@ function checkDependencyClosure(candidateSet, packageMap, record, publishState) 
       if (!checksRegistryClosure || SKIP_REGISTRY || depRecord.json.private === true) continue;
       const depRegistry = npmViewVersion(depName);
       if (depRegistry.status === 'missing' && !candidateSet.has(depName)) {
-        fail(`${pkg.name}: ${field}.${depName}@${depRecord.json.version} is not published and is not in the candidate set`);
+        fail(
+          `${pkg.name}: ${field}.${depName}@${depRecord.json.version} is not published and is not in the candidate set`
+        );
       }
       if (depRegistry.status === 'published') {
         const cmp = compareSemver(depRecord.json.version, depRegistry.version);
@@ -280,7 +292,9 @@ function checkDependencyClosure(candidateSet, packageMap, record, publishState) 
         }
       }
       if (depRegistry.status === 'error') {
-        fail(`${pkg.name}: dependency registry lookup failed for ${depName}: ${depRegistry.detail}`);
+        fail(
+          `${pkg.name}: dependency registry lookup failed for ${depName}: ${depRegistry.detail}`
+        );
       }
     }
   }
@@ -310,15 +324,20 @@ function main() {
     checkDependencyClosure(candidateSet, packageMap, record, publishState);
   }
 
-  const output = { ok: errors.length === 0, requireBuilt: REQUIRE_BUILT, skipRegistry: SKIP_REGISTRY, rows, warnings, errors };
+  const output = {
+    ok: errors.length === 0,
+    requireBuilt: REQUIRE_BUILT,
+    skipRegistry: SKIP_REGISTRY,
+    rows,
+    warnings,
+    errors,
+  };
   if (JSON_OUT) {
     console.log(JSON.stringify(output, null, 2));
   } else {
     for (const row of rows) {
       const registry =
-        row.registry.status === 'published'
-          ? `npm ${row.registry.version}`
-          : row.registry.status;
+        row.registry.status === 'published' ? `npm ${row.registry.version}` : row.registry.status;
       console.log(`[npm-v1-release] ${row.name}@${row.version}: ${row.publishState} (${registry})`);
     }
     for (const warning of warnings) console.warn(`[npm-v1-release] WARN: ${warning}`);
@@ -326,7 +345,9 @@ function main() {
       console.error(`[npm-v1-release] FAIL: ${errors.length} issue(s)`);
       for (const error of errors) console.error(`  - ${error}`);
     } else {
-      console.log(`[npm-v1-release] PASS: ${rows.length} candidate package(s) are green-lighted by this gate.`);
+      console.log(
+        `[npm-v1-release] PASS: ${rows.length} candidate package(s) are green-lighted by this gate.`
+      );
     }
   }
 

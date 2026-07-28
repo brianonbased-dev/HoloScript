@@ -34,7 +34,11 @@ try {
   }
 
   assertEq(result.status, 0, 'self-test exits 0');
-  assertContains(result.stdout ?? '', 'schema=holoscript.exp5.surface.real-cael-toric.v1', 'prints schema');
+  assertContains(
+    result.stdout ?? '',
+    'schema=holoscript.exp5.surface.real-cael-toric.v1',
+    'prints schema'
+  );
   if (result.status !== 0) {
     throw new Error('self-test command failed before writing receipt');
   }

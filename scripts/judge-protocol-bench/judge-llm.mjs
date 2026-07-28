@@ -82,8 +82,15 @@ function stripFence(raw) {
 function parseAbsolute(raw) {
   try {
     const parsed = JSON.parse(stripFence(raw));
-    const score = typeof parsed.overall_score === 'number' ? Math.max(0, Math.min(10, parsed.overall_score)) : null;
-    return { overall_score: score, rationale: typeof parsed.rationale === 'string' ? parsed.rationale : '', parseOk: score !== null };
+    const score =
+      typeof parsed.overall_score === 'number'
+        ? Math.max(0, Math.min(10, parsed.overall_score))
+        : null;
+    return {
+      overall_score: score,
+      rationale: typeof parsed.rationale === 'string' ? parsed.rationale : '',
+      parseOk: score !== null,
+    };
   } catch {
     return { overall_score: null, rationale: 'unparseable judge output', parseOk: false };
   }
@@ -92,8 +99,15 @@ function parseAbsolute(raw) {
 function parsePairwise(raw) {
   try {
     const parsed = JSON.parse(stripFence(raw));
-    const winner = parsed.winner === 'a' || parsed.winner === 'b' || parsed.winner === 'tie' ? parsed.winner : null;
-    return { winner, rationale: typeof parsed.rationale === 'string' ? parsed.rationale : '', parseOk: winner !== null };
+    const winner =
+      parsed.winner === 'a' || parsed.winner === 'b' || parsed.winner === 'tie'
+        ? parsed.winner
+        : null;
+    return {
+      winner,
+      rationale: typeof parsed.rationale === 'string' ? parsed.rationale : '',
+      parseOk: winner !== null,
+    };
   } catch {
     return { winner: null, rationale: 'unparseable judge output', parseOk: false };
   }

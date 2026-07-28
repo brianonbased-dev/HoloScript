@@ -51,53 +51,33 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // Config resolution
 // ---------------------------------------------------------------------------
 const ORCHESTRATOR_URL =
-  process.env.ORCHESTRATOR_URL ||
-  'https://mcp-orchestrator-production-45f9.up.railway.app';
+  process.env.ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const ORCHESTRATOR_API_KEY = process.env.ORCHESTRATOR_API_KEY || '';
 
 const SERVE_MODEL = process.env.SERVE_MODEL || 'brittney-v0';
-const VLLM_HF_MODEL =
-  process.env.VLLM_HF_MODEL || 'Qwen/Qwen2.5-0.5B-Instruct';
+const VLLM_HF_MODEL = process.env.VLLM_HF_MODEL || 'Qwen/Qwen2.5-0.5B-Instruct';
 const VLLM_PORT = parseInt(process.env.VLLM_PORT || '8000', 10);
 
 const VAST_GPU_CLASS = process.env.VAST_GPU_CLASS || '.*';
 const VAST_MIN_VRAM_GB = parseInt(process.env.VAST_MIN_VRAM_GB || '8', 10);
 const VAST_MAX_DPH = parseFloat(process.env.VAST_MAX_DPH || '0.50');
-const VAST_MIN_RELIABILITY = parseFloat(
-  process.env.VAST_MIN_RELIABILITY || '0.85'
-);
+const VAST_MIN_RELIABILITY = parseFloat(process.env.VAST_MIN_RELIABILITY || '0.85');
 const VAST_DISK_GB = parseInt(process.env.VAST_DISK_GB || '60', 10);
 
-const WINDOWS_VASTAI =
-  'C:/Users/josep/AppData/Roaming/Python/Python314/Scripts/vastai.exe';
+const WINDOWS_VASTAI = 'C:/Users/josep/AppData/Roaming/Python/Python314/Scripts/vastai.exe';
 const VASTAI_CLI =
-  process.env.VASTAI_CLI ||
-  (process.platform === 'win32' ? WINDOWS_VASTAI : 'vastai');
+  process.env.VASTAI_CLI || (process.platform === 'win32' ? WINDOWS_VASTAI : 'vastai');
 
 const PYTHON_CMD = process.env.PYTHON_CMD || detectPython();
-const LEDGER_SCRIPT =
-  process.env.LEDGER_SCRIPT ||
-  resolve(__dirname, 'vast-spend-ledger.py');
-const PICKER_SCRIPT =
-  process.env.PICKER_SCRIPT ||
-  resolve(__dirname, 'pick-cheapest-offer.py');
+const LEDGER_SCRIPT = process.env.LEDGER_SCRIPT || resolve(__dirname, 'vast-spend-ledger.py');
+const PICKER_SCRIPT = process.env.PICKER_SCRIPT || resolve(__dirname, 'pick-cheapest-offer.py');
 
 const TICK_MS = parseInt(process.env.AUTOSCALER_TICK_MS || '30000', 10);
-const IDLE_TTL_MS = parseInt(
-  process.env.AUTOSCALER_IDLE_TTL_MS || '600000', 10
-);
-const HEARTBEAT_MS = parseInt(
-  process.env.AUTOSCALER_HEARTBEAT_MS || '60000', 10
-);
-const HEALTH_POLL_MS = parseInt(
-  process.env.AUTOSCALER_HEALTH_POLL_MS || '15000', 10
-);
-const HEALTH_MAX_TRIES = parseInt(
-  process.env.AUTOSCALER_HEALTH_MAX_TRIES || '40', 10
-);
-const HEALTH_FAIL_LIMIT = parseInt(
-  process.env.AUTOSCALER_HEALTH_FAIL_LIMIT || '3', 10
-);
+const IDLE_TTL_MS = parseInt(process.env.AUTOSCALER_IDLE_TTL_MS || '600000', 10);
+const HEARTBEAT_MS = parseInt(process.env.AUTOSCALER_HEARTBEAT_MS || '60000', 10);
+const HEALTH_POLL_MS = parseInt(process.env.AUTOSCALER_HEALTH_POLL_MS || '15000', 10);
+const HEALTH_MAX_TRIES = parseInt(process.env.AUTOSCALER_HEALTH_MAX_TRIES || '40', 10);
+const HEALTH_FAIL_LIMIT = parseInt(process.env.AUTOSCALER_HEALTH_FAIL_LIMIT || '3', 10);
 const DRY_RUN = process.env.DRY_RUN === '1';
 
 // ---------------------------------------------------------------------------
@@ -120,7 +100,9 @@ function detectPython() {
     try {
       execFileSync(cmd, ['--version'], { stdio: 'pipe' });
       return cmd;
-    } catch { /* try next */ }
+    } catch {
+      /* try next */
+    }
   }
   return 'python3';
 }
@@ -141,11 +123,10 @@ async function sleep(ms) {
 // ---------------------------------------------------------------------------
 /** Run a Python script. Throws on non-zero exit (error has .stdout/.stderr). */
 async function runPy(scriptPath, args, { timeoutMs = 120_000 } = {}) {
-  const { stdout, stderr } = await execFileAsync(
-    PYTHON_CMD,
-    [scriptPath, ...args],
-    { timeout: timeoutMs, windowsHide: true }
-  );
+  const { stdout, stderr } = await execFileAsync(PYTHON_CMD, [scriptPath, ...args], {
+    timeout: timeoutMs,
+    windowsHide: true,
+  });
   return { stdout: (stdout || '').trim(), stderr: (stderr || '').trim() };
 }
 
@@ -197,22 +178,26 @@ async function checkSpendCap(estimatedDph) {
 
   // Call check-cap; exit 1 = over cap (still prints JSON on stdout)
   try {
-    const { stdout } = await runPy(
-      LEDGER_SCRIPT,
-      ['check-cap', '--cap', '100'],
-      { timeoutMs: 15_000 }
-    );
-    try { capState = JSON.parse(stdout); } catch { /* non-JSON */ }
+    const { stdout } = await runPy(LEDGER_SCRIPT, ['check-cap', '--cap', '100'], {
+      timeoutMs: 15_000,
+    });
+    try {
+      capState = JSON.parse(stdout);
+    } catch {
+      /* non-JSON */
+    }
     // CLI exited 0 = under cap by its own checks
   } catch (err) {
     if (err.code === 'ENOENT') {
       // Ledger script not on disk — structural rail failure, hard error
-      throw new Error(
-        `vast-spend-ledger.py not found (structural rail): ${err.message}`
-      );
+      throw new Error(`vast-spend-ledger.py not found (structural rail): ${err.message}`);
     }
     // exit 1 = over cap
-    try { capState = JSON.parse(err.stdout || '{}'); } catch { /* ignore */ }
+    try {
+      capState = JSON.parse(err.stdout || '{}');
+    } catch {
+      /* ignore */
+    }
     log(
       'INFO',
       `cap gate: CLI says OVER CAP ` +
@@ -245,11 +230,16 @@ async function pickCheapestOffer() {
   const { stdout } = await runPy(
     PICKER_SCRIPT,
     [
-      '--min-vram', String(VAST_MIN_VRAM_GB),
-      '--gpu-class', VAST_GPU_CLASS,
-      '--min-reliability', String(VAST_MIN_RELIABILITY),
-      '--max-dph', String(VAST_MAX_DPH),
-      '--top', '1',
+      '--min-vram',
+      String(VAST_MIN_VRAM_GB),
+      '--gpu-class',
+      VAST_GPU_CLASS,
+      '--min-reliability',
+      String(VAST_MIN_RELIABILITY),
+      '--max-dph',
+      String(VAST_MAX_DPH),
+      '--top',
+      '1',
     ],
     { timeoutMs: 90_000 }
   );
@@ -290,25 +280,32 @@ async function createInstance(offerId) {
   }
   const { stdout } = await runVastai(
     [
-      'create', 'instance', String(offerId),
-      '--image', 'pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel',
-      '--disk', String(VAST_DISK_GB),
+      'create',
+      'instance',
+      String(offerId),
+      '--image',
+      'pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel',
+      '--disk',
+      String(VAST_DISK_GB),
       '--ssh',
       '--raw',
-      '--onstart-cmd', VLLM_ONSTART,
+      '--onstart-cmd',
+      VLLM_ONSTART,
     ],
     { timeoutMs: 90_000 }
   );
   let result;
-  try { result = JSON.parse(stdout); } catch { result = {}; }
+  try {
+    result = JSON.parse(stdout);
+  } catch {
+    result = {};
+  }
   const instanceId = result.new_contract ?? result.id;
   if (!instanceId) {
     // Sometimes vastai prints "Started. <id>" instead of JSON
     const m = stdout.match(/\d{6,}/);
     if (m) return Number(m[0]);
-    throw new Error(
-      `vastai create instance returned no id: ${stdout.slice(0, 200)}`
-    );
+    throw new Error(`vastai create instance returned no id: ${stdout.slice(0, 200)}`);
   }
   return Number(instanceId);
 }
@@ -321,18 +318,14 @@ async function waitForInstanceIP(instanceId, { maxWaitMs = 300_000 } = {}) {
   const deadline = Date.now() + maxWaitMs;
   while (Date.now() < deadline) {
     try {
-      const { stdout } = await runVastai(
-        ['show', 'instance', String(instanceId), '--raw'],
-        { timeoutMs: 20_000 }
-      );
+      const { stdout } = await runVastai(['show', 'instance', String(instanceId), '--raw'], {
+        timeoutMs: 20_000,
+      });
       const info = JSON.parse(stdout);
       if (info.public_ipaddr && info.actual_status === 'running') {
         return { ip: info.public_ipaddr, port: VLLM_PORT };
       }
-      log(
-        'INFO',
-        `instance ${instanceId} status=${info.actual_status ?? '?'} — waiting for IP`
-      );
+      log('INFO', `instance ${instanceId} status=${info.actual_status ?? '?'} — waiting for IP`);
     } catch (err) {
       log('INFO', `show instance ${instanceId} error: ${err.message} — retrying`);
     }
@@ -352,7 +345,9 @@ async function waitForVllmHealth(ip, port) {
         log('INFO', `vLLM health PASS at ${url} (attempt ${i + 1}/${HEALTH_MAX_TRIES})`);
         return true;
       }
-    } catch { /* connection refused / timeout — still starting */ }
+    } catch {
+      /* connection refused / timeout — still starting */
+    }
     log('INFO', `vLLM health ${i + 1}/${HEALTH_MAX_TRIES} — waiting (${url})`);
     await sleep(HEALTH_POLL_MS);
   }
@@ -362,19 +357,12 @@ async function waitForVllmHealth(ip, port) {
 async function destroyVastInstance(instanceId, reason = 'autoscaler-teardown') {
   log('INFO', `destroying vast.ai instance ${instanceId} (reason: ${reason})`);
   try {
-    await runVastai(
-      ['destroy', 'instance', String(instanceId)],
-      { timeoutMs: 30_000 }
-    );
+    await runVastai(['destroy', 'instance', String(instanceId)], { timeoutMs: 30_000 });
   } catch (err) {
     log('ERROR', `vastai destroy ${instanceId} failed: ${err.message}`);
   }
   try {
-    await runPy(LEDGER_SCRIPT, [
-      'close',
-      '--instance-id', String(instanceId),
-      '--reason', reason,
-    ]);
+    await runPy(LEDGER_SCRIPT, ['close', '--instance-id', String(instanceId), '--reason', reason]);
     log('INFO', `ledger closed for instance ${instanceId}`);
   } catch (err) {
     log('ERROR', `ledger close ${instanceId} failed (non-fatal): ${err.message}`);
@@ -474,13 +462,15 @@ async function scaleUp() {
     // Record rental in spend ledger immediately after instance creation
     await runPy(LEDGER_SCRIPT, [
       'rent',
-      '--instance-id', String(instanceId),
-      '--handle', `brittney-serving-${instanceId}`,
-      '--dph', String(offer.dph_total),
-      '--gpu-name', offer.gpu_name || '?',
-    ]).catch((err) =>
-      log('ERROR', `ledger rent record failed (non-fatal): ${err.message}`)
-    );
+      '--instance-id',
+      String(instanceId),
+      '--handle',
+      `brittney-serving-${instanceId}`,
+      '--dph',
+      String(offer.dph_total),
+      '--gpu-name',
+      offer.gpu_name || '?',
+    ]).catch((err) => log('ERROR', `ledger rent record failed (non-fatal): ${err.message}`));
 
     // Wait for instance to receive a public IP
     const conn = await waitForInstanceIP(instanceId);
@@ -517,9 +507,7 @@ async function scaleUp() {
   } catch (err) {
     log('ERROR', `scale-up failed: ${err.message}`);
     if (modelState.instanceId) {
-      await destroyVastInstance(modelState.instanceId, 'scale-up-error').catch(
-        () => {}
-      );
+      await destroyVastInstance(modelState.instanceId, 'scale-up-error').catch(() => {});
     }
     modelState.state = 'idle';
     modelState.instanceId = undefined;
@@ -573,14 +561,11 @@ async function tick() {
   }
 
   const demand = (status.demand || {})[SERVE_MODEL];
-  const endpoints = (status.endpoints || []).filter(
-    (e) => e.model === SERVE_MODEL
-  );
+  const endpoints = (status.endpoints || []).filter((e) => e.model === SERVE_MODEL);
   const warmEndpoints = endpoints.filter((e) => e.status === 'warm');
 
   const hasFreshDemand =
-    demand &&
-    Date.now() - new Date(demand.last_want_at).getTime() < IDLE_TTL_MS;
+    demand && Date.now() - new Date(demand.last_want_at).getTime() < IDLE_TTL_MS;
 
   // 2. Heartbeat for warm endpoint
   if (modelState.state === 'warm' && modelState.endpointId) {
@@ -621,11 +606,7 @@ async function tick() {
   }
 
   // 4. Scale-up on cold demand
-  if (
-    modelState.state === 'idle' &&
-    hasFreshDemand &&
-    warmEndpoints.length === 0
-  ) {
+  if (modelState.state === 'idle' && hasFreshDemand && warmEndpoints.length === 0) {
     log(
       'INFO',
       `cold demand for model=${SERVE_MODEL} ` +
@@ -653,14 +634,8 @@ function selfTest() {
   // Endpoint ID naming convention matches control-plane rule (vast- prefix)
   const fakeId = 12_345;
   const endpointId = `vast-${fakeId}`;
-  console.assert(
-    endpointId.startsWith('vast-'),
-    'endpoint id must start with vast-'
-  );
-  console.assert(
-    endpointId === 'vast-12345',
-    `endpoint id mismatch: ${endpointId}`
-  );
+  console.assert(endpointId.startsWith('vast-'), 'endpoint id must start with vast-');
+  console.assert(endpointId === 'vast-12345', `endpoint id mismatch: ${endpointId}`);
 
   // Idle TTL detection
   const freshTs = new Date(Date.now() - 60_000).toISOString();
@@ -671,10 +646,7 @@ function selfTest() {
   console.assert(isStale === false, 'old demand should be stale');
 
   // vLLM onstart command
-  console.assert(
-    VLLM_ONSTART.includes('vllm'),
-    'onstart must reference vllm'
-  );
+  console.assert(VLLM_ONSTART.includes('vllm'), 'onstart must reference vllm');
   console.assert(
     VLLM_ONSTART.includes(VLLM_HF_MODEL),
     `onstart must reference VLLM_HF_MODEL=${VLLM_HF_MODEL}`
@@ -687,22 +659,19 @@ function selfTest() {
   // Cap gate: parse cap-check output
   const underCapResult = JSON.parse(
     JSON.stringify({
-      cap_usd: 100, already_spent_usd: 5, daily_burn_rate_usd: 12,
+      cap_usd: 100,
+      already_spent_usd: 5,
+      daily_burn_rate_usd: 12,
       headroom_burn_rate_usd: 88,
-      under_cap_actual: true, under_cap_projected: true,
+      under_cap_actual: true,
+      under_cap_projected: true,
     })
   );
-  console.assert(
-    underCapResult.under_cap_actual === true,
-    'cap check: should be under cap actual'
-  );
-  console.assert(
-    underCapResult.headroom_burn_rate_usd === 88,
-    'cap check: headroom mismatch'
-  );
+  console.assert(underCapResult.under_cap_actual === true, 'cap check: should be under cap actual');
+  console.assert(underCapResult.headroom_burn_rate_usd === 88, 'cap check: headroom mismatch');
 
   // Headroom logic for new instance
-  const estimatedDph = 0.50;
+  const estimatedDph = 0.5;
   const estimatedDailyUsd = estimatedDph * 24; // $12/day
   const headroom = underCapResult.headroom_burn_rate_usd; // $88
   console.assert(
@@ -763,10 +732,7 @@ if (!ORCHESTRATOR_API_KEY) {
   process.exit(1);
 }
 
-log(
-  'INFO',
-  `starting — tick=${TICK_MS}ms idle_ttl=${IDLE_TTL_MS}ms heartbeat=${HEARTBEAT_MS}ms`
-);
+log('INFO', `starting — tick=${TICK_MS}ms idle_ttl=${IDLE_TTL_MS}ms heartbeat=${HEARTBEAT_MS}ms`);
 log(
   'INFO',
   `model=${SERVE_MODEL} vllm=${VLLM_HF_MODEL} ` +

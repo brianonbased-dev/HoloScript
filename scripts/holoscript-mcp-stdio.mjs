@@ -353,11 +353,7 @@ export function isPackagedDistInvalidationResponse(message, root = ROOT) {
       pending.push(...Object.values(value));
     }
   }
-  const serialized = strings
-    .join('\n')
-    .replaceAll('\\', '/')
-    .replace(/\/+/g, '/')
-    .toLowerCase();
+  const serialized = strings.join('\n').replaceAll('\\', '/').replace(/\/+/g, '/').toLowerCase();
   const normalizedRoot = resolve(root).replaceAll('\\', '/').toLowerCase();
   return (
     serialized.includes(normalizedRoot) &&
@@ -560,19 +556,12 @@ export function startServer({
   };
 
   const recycleWorker = (generation, reason) => {
-    if (
-      stopping ||
-      !child ||
-      generation !== childGeneration ||
-      recycleGeneration === generation
-    ) {
+    if (stopping || !child || generation !== childGeneration || recycleGeneration === generation) {
       return;
     }
     recycleGeneration = generation;
     input.pause();
-    stderr(
-      `[holoscript-mcp-stdio] Recycling worker generation ${generation} after ${reason}.`
-    );
+    stderr(`[holoscript-mcp-stdio] Recycling worker generation ${generation} after ${reason}.`);
     if (!child.pid || child.killed) return;
     if (platform === 'win32') {
       const result = spawnSyncImpl('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {

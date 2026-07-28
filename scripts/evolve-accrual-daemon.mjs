@@ -76,9 +76,8 @@ if (!CORPUS || !ENDPOINT) {
 }
 
 // Same core primitives the in-agent path uses — the gate is core's SSOT.
-const { makeOllamaProposer, makeOpenAICompatibleProposer, accrueOneStep, dedupRows } = await import(
-  '@holoscript/core/evolution'
-);
+const { makeOllamaProposer, makeOpenAICompatibleProposer, accrueOneStep, dedupRows } =
+  await import('@holoscript/core/evolution');
 const PROTOCOL = endpointProtocol(ENDPOINT);
 const propose =
   PROTOCOL === 'openai-compatible'

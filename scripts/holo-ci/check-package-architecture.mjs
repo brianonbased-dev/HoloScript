@@ -55,7 +55,9 @@ function hasPublicApiCanary(record) {
     ) ||
     (record?.validationCommands || []).some((command) => {
       const text = String(command || '');
-      return text.includes('check-registry-cold-start.mjs') && /--probe\s+\S+-public-api/u.test(text);
+      return (
+        text.includes('check-registry-cold-start.mjs') && /--probe\s+\S+-public-api/u.test(text)
+      );
     })
   );
 }
@@ -171,10 +173,7 @@ function runSelfTest() {
     },
     utilities: {
       schema: 'holoscript.fleet-utilities/v1',
-      utilities: [
-        { packageName: '@holoscript/core' },
-        { pypiPackage: 'holoscript' },
-      ],
+      utilities: [{ packageName: '@holoscript/core' }, { pypiPackage: 'holoscript' }],
     },
     stewardship: {
       schema: 'holoscript.package-stewardship/v1',

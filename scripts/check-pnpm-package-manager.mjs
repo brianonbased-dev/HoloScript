@@ -97,7 +97,9 @@ const corepackVersion = skipProbes ? null : commandVersion('corepack', ['pnpm', 
 const bareVersion = skipProbes ? null : commandVersion('pnpm', ['--version'], root);
 
 if (!corepackVersion) {
-  fail('corepack pnpm --version did not resolve. Repair Corepack before running HoloScript scripts.');
+  fail(
+    'corepack pnpm --version did not resolve. Repair Corepack before running HoloScript scripts.'
+  );
 }
 
 if (corepackVersion && corepackVersion !== expected) {

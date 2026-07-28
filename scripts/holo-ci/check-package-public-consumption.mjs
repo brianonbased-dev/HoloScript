@@ -39,8 +39,9 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
 
 function uniqueExisting(paths) {
-  return [...new Set(paths.filter(Boolean).map((p) => path.resolve(p)))]
-    .filter((p) => fs.existsSync(p));
+  return [...new Set(paths.filter(Boolean).map((p) => path.resolve(p)))].filter((p) =>
+    fs.existsSync(p)
+  );
 }
 
 // Every publishable (private !== true) package under packages/* is in scope — a package only
@@ -74,17 +75,49 @@ function firstPartyPythonPackages() {
 // Private-process leaks: the F.147 "dangerous failure" class. A published public
 // tarball that carries any of these has leaked founder/machine/private-repo context.
 const LEAK_PATTERNS = [
-  { id: 'private-lan-ip', re: /\b(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b/u, note: 'private LAN IP' },
-  { id: 'founder-host', re: /\bholojetson\b|holo-app-pg|holokey-pg/u, note: 'founder container/host name' },
+  {
+    id: 'private-lan-ip',
+    re: /\b(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b/u,
+    note: 'private LAN IP',
+  },
+  {
+    id: 'founder-host',
+    re: /\bholojetson\b|holo-app-pg|holokey-pg/u,
+    note: 'founder container/host name',
+  },
   // The Windows separator run is [\\/]+ (not a single \\) so an ESCAPED path in a JSON/.holo
   // string literal — where "C:\\Users\\josep" is stored as C:\\\\Users\\\\josep on disk — is
   // still caught. A single-backslash pattern silently missed profiles/laptop-windows.holo.
-  { id: 'founder-path', re: /\/mnt\/nvme|C:[\\/]+Users[\\/]+[Jj]osep|\/home\/(?:username|[Jj]osep)\b/u, note: 'founder machine path' },
-  { id: 'private-ops', re: /\bsudo\s+docker\b|holoscript_app/u, note: 'private operator command / superuser role' },
-  { id: 'private-workspace-default', re: /['"`]ai-ecosystem['"`]/u, note: "founder workspace ('ai-ecosystem') baked as a value" },
-  { id: 'private-repo-doc-ref', re: /ai-ecosystem\/(?:research|docs|memory|config)\//u, note: 'private-repo path in shipped docs' },
-  { id: 'founder-port-mapping', re: /\b543[34]\b/u, note: 'non-standard founder docker port (5433/5434)' },
-  { id: 'secret-literal', re: /-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:api[_-]?key|password|secret|token)\s*[:=]\s*['"][^'"\s]{8,}['"]/iu, note: 'possible embedded secret' },
+  {
+    id: 'founder-path',
+    re: /\/mnt\/nvme|C:[\\/]+Users[\\/]+[Jj]osep|\/home\/(?:username|[Jj]osep)\b/u,
+    note: 'founder machine path',
+  },
+  {
+    id: 'private-ops',
+    re: /\bsudo\s+docker\b|holoscript_app/u,
+    note: 'private operator command / superuser role',
+  },
+  {
+    id: 'private-workspace-default',
+    re: /['"`]ai-ecosystem['"`]/u,
+    note: "founder workspace ('ai-ecosystem') baked as a value",
+  },
+  {
+    id: 'private-repo-doc-ref',
+    re: /ai-ecosystem\/(?:research|docs|memory|config)\//u,
+    note: 'private-repo path in shipped docs',
+  },
+  {
+    id: 'founder-port-mapping',
+    re: /\b543[34]\b/u,
+    note: 'non-standard founder docker port (5433/5434)',
+  },
+  {
+    id: 'secret-literal',
+    re: /-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:api[_-]?key|password|secret|token)\s*[:=]\s*['"][^'"\s]{8,}['"]/iu,
+    note: 'possible embedded secret',
+  },
 ];
 
 const README_CONSUMPTION_RULES = [
@@ -120,7 +153,8 @@ const SECRET_IDENTIFIER_RE = /\b(?:api[_-]?key|apikey|password|secret|token|auth
 // otherwise lets the scanner span mismatched quotes and capture a raw CODE fragment (",c=>b+=c).on(")
 // whose operator chars read as entropy. Group 2 is the literal.
 const SECRET_LITERAL_RE = /(['"])([^'"\s]{8,})\1/gu;
-const SECRET_PLACEHOLDER_RE = /^(?:<redacted>|redacted|\$?\d*redacted|process\.env\.[A-Z0-9_]+|[A-Z0-9_]*?(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_]*|YOUR[_-][A-Z0-9_-]+|example(?:[_-]?(?:key|token|secret|password))?|test(?:[_-]?(?:key|token|secret|password))?|env-or-secret-provider|secret-provider|credential-provider|vault|changeme|placeholder)$/iu;
+const SECRET_PLACEHOLDER_RE =
+  /^(?:<redacted>|redacted|\$?\d*redacted|process\.env\.[A-Z0-9_]+|[A-Z0-9_]*?(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_]*|YOUR[_-][A-Z0-9_-]+|example(?:[_-]?(?:key|token|secret|password))?|test(?:[_-]?(?:key|token|secret|password))?|env-or-secret-provider|secret-provider|credential-provider|vault|changeme|placeholder)$/iu;
 
 // Schema ids ("holoscript.secret-store.file.v1") and event names ("secret:added") are lowercase,
 // separator-joined readable tokens — not credentials. Case-SENSITIVE on purpose: a mixed-case or
@@ -184,7 +218,8 @@ function hasHardcodedSecretLiteral(line) {
   // Inspect only the bounded assignment segment. A minified bundle can put an innocent
   // `tokens=[]` and an unrelated digest literal on the same physical line; scanning every
   // quoted literal on that line incorrectly joins those distant values into one finding.
-  const SECRET_FIELD = '(?:api[_-]?key|apikey|password(?:hash|value)?|secret(?:key|value)?|(?:access|refresh|auth|bearer|session|api)?token(?:key|value|secret)?|authorization)';
+  const SECRET_FIELD =
+    '(?:api[_-]?key|apikey|password(?:hash|value)?|secret(?:key|value)?|(?:access|refresh|auth|bearer|session|api)?token(?:key|value|secret)?|authorization)';
   const secretAssignmentSegments = new RegExp(
     `\\b${SECRET_FIELD}\\b\\s*${OP}\\s*[^,;\\n]{0,512}`,
     'giu'
@@ -192,7 +227,12 @@ function hasHardcodedSecretLiteral(line) {
   for (const segment of line.matchAll(secretAssignmentSegments)) {
     for (const match of segment[0].matchAll(SECRET_LITERAL_RE)) {
       const literal = match[2];
-      if (looksLikeSecretValue(literal) && !SECRET_PLACEHOLDER_RE.test(literal) && !isNonSecretToken(literal)) return true;
+      if (
+        looksLikeSecretValue(literal) &&
+        !SECRET_PLACEHOLDER_RE.test(literal) &&
+        !isNonSecretToken(literal)
+      )
+        return true;
     }
   }
   return false;
@@ -202,8 +242,16 @@ function run(cmd, args, cwd) {
   const onWin = process.platform === 'win32' && cmd === 'npm';
   const exe = onWin ? 'cmd.exe' : cmd;
   const finalArgs = onWin ? ['/d', '/s', '/c', ['npm', ...args].join(' ')] : args;
-  const r = childProcess.spawnSync(exe, finalArgs, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], shell: false });
-  if (r.status !== 0) throw new Error(`${cmd} ${args.join(' ')} failed (${r.status}): ${(r.stderr || '').slice(0, 400)}`);
+  const r = childProcess.spawnSync(exe, finalArgs, {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    shell: false,
+  });
+  if (r.status !== 0)
+    throw new Error(
+      `${cmd} ${args.join(' ')} failed (${r.status}): ${(r.stderr || '').slice(0, 400)}`
+    );
   return r.stdout || '';
 }
 
@@ -243,7 +291,13 @@ function scanFileForLeaks(abs, relPath) {
       if (pat.id === 'secret-literal') {
         if (/\bredacted\b|<redacted>/u.test(lines[i])) continue;
         if (hasHardcodedSecretLiteral(lines[i])) {
-          findings.push({ level: 'BLOCKER', kind: `leak:${pat.id}`, file: relPath, line: i + 1, note: pat.note });
+          findings.push({
+            level: 'BLOCKER',
+            kind: `leak:${pat.id}`,
+            file: relPath,
+            line: i + 1,
+            note: pat.note,
+          });
           break;
         }
         continue;
@@ -252,9 +306,16 @@ function scanFileForLeaks(abs, relPath) {
         // founder-path (/mnt/nvme, …) is a BLOCKER in operational source but only a WARN in docs
         // and *.example.* files, where such a path is an illustrative deploy target (audit FP #2).
         // A real internal IP or hostname (private-lan-ip / founder-host) stays a BLOCKER everywhere.
-        const isDocOrExample = /\.(?:md|markdown)$/iu.test(relPath) || /\.example\./iu.test(relPath);
+        const isDocOrExample =
+          /\.(?:md|markdown)$/iu.test(relPath) || /\.example\./iu.test(relPath);
         const level = pat.id === 'founder-path' && isDocOrExample ? 'WARN' : 'BLOCKER';
-        findings.push({ level, kind: `leak:${pat.id}`, file: relPath, line: i + 1, note: pat.note });
+        findings.push({
+          level,
+          kind: `leak:${pat.id}`,
+          file: relPath,
+          line: i + 1,
+          note: pat.note,
+        });
         break; // one hit per pattern per file is enough to block
       }
     }
@@ -286,7 +347,13 @@ function checkPackage(pkgDir) {
   const abs = path.resolve(pkgDir);
   const pkgJsonPath = path.join(abs, 'package.json');
   if (!fs.existsSync(pkgJsonPath)) {
-    return { package: pkgDir, ok: false, findings: [{ level: 'BLOCKER', kind: 'no-package-json', file: 'package.json', note: 'missing' }] };
+    return {
+      package: pkgDir,
+      ok: false,
+      findings: [
+        { level: 'BLOCKER', kind: 'no-package-json', file: 'package.json', note: 'missing' },
+      ],
+    };
   }
   const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
   const isPublic = pkg.publishConfig?.access === 'public';
@@ -294,12 +361,14 @@ function checkPackage(pkgDir) {
   // package.json completeness (competitor-grade metadata).
   const add = (level, kind, note) => findings.push({ level, kind, file: 'package.json', note });
   if (!pkg.license) add('BLOCKER', 'missing-license', 'no license field');
-  if (isPublic && pkg.license && pkg.license !== 'MIT') add('WARN', 'non-mit-license', `license=${pkg.license}`);
+  if (isPublic && pkg.license && pkg.license !== 'MIT')
+    add('WARN', 'non-mit-license', `license=${pkg.license}`);
   if (!pkg.version) add('BLOCKER', 'missing-version', 'no version');
   if (!pkg.description) add('WARN', 'missing-description', 'no description');
   if (!pkg.repository) add('WARN', 'missing-repository', 'no repository field');
   if (!pkg.main && !pkg.exports && !pkg.bin) add('BLOCKER', 'no-entrypoint', 'no main/exports/bin');
-  if (!Array.isArray(pkg.files) || pkg.files.length === 0) add('WARN', 'no-files-allowlist', 'no files[] allowlist (publishes by .npmignore)');
+  if (!Array.isArray(pkg.files) || pkg.files.length === 0)
+    add('WARN', 'no-files-allowlist', 'no files[] allowlist (publishes by .npmignore)');
 
   // Actual published fileset + content scan (the real leak gate).
   let pack;
@@ -313,10 +382,16 @@ function checkPackage(pkgDir) {
   const hasReadme = files.some((f) => /^README(\.md)?$/iu.test(f));
   const hasLicense = files.some((f) => /^LICENSE/iu.test(f));
   if (!hasReadme) add('BLOCKER', 'no-readme-in-tarball', 'README not in published files');
-  if (isPublic && !hasLicense) add('WARN', 'no-license-file', 'no LICENSE file in published tarball');
+  if (isPublic && !hasLicense)
+    add('WARN', 'no-license-file', 'no LICENSE file in published tarball');
   for (const f of files) {
     if (f.startsWith('../') || f.startsWith('.scratch/')) {
-      findings.push({ level: 'BLOCKER', kind: 'tarball-boundary-escape', file: f, note: 'file escapes package boundary' });
+      findings.push({
+        level: 'BLOCKER',
+        kind: 'tarball-boundary-escape',
+        file: f,
+        note: 'file escapes package boundary',
+      });
     }
   }
   // Content leak scan across every published file.
@@ -329,10 +404,20 @@ function checkPackage(pkgDir) {
     const readmeRel = files.find((f) => /^README(\.md)?$/iu.test(f));
     const readme = fs.readFileSync(path.join(abs, readmeRel), 'utf8');
     if (!/\b(?:npm install|npm i|pnpm add|pnpm install|yarn add)\b/u.test(readme)) {
-      findings.push({ level: 'WARN', kind: 'readme-no-install', file: readmeRel, note: 'no install command' });
+      findings.push({
+        level: 'WARN',
+        kind: 'readme-no-install',
+        file: readmeRel,
+        note: 'no install command',
+      });
     }
     if (!/```/u.test(readme)) {
-      findings.push({ level: 'WARN', kind: 'readme-no-example', file: readmeRel, note: 'no fenced usage example' });
+      findings.push({
+        level: 'WARN',
+        kind: 'readme-no-example',
+        file: readmeRel,
+        note: 'no fenced usage example',
+      });
     }
     findings.push(...checkReadmeConsumptionContract(readme, readmeRel, isPublic));
   }
@@ -384,10 +469,12 @@ function pythonPackageFiles(pkgDir) {
   }
   for (const entry of fs.readdirSync(pkgDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    if (entry.name.startsWith('.') || entry.name === 'tests' || entry.name === '__pycache__') continue;
+    if (entry.name.startsWith('.') || entry.name === 'tests' || entry.name === '__pycache__')
+      continue;
     const candidate = path.join(pkgDir, entry.name);
     if (fs.existsSync(path.join(candidate, '__init__.py'))) {
-      for (const file of walkTextFiles(candidate)) files.push(path.relative(pkgDir, file).replace(/\\/gu, '/'));
+      for (const file of walkTextFiles(candidate))
+        files.push(path.relative(pkgDir, file).replace(/\\/gu, '/'));
     }
   }
   return [...new Set(files)];
@@ -412,15 +499,24 @@ function checkPythonPackage(pkgDir) {
   const abs = path.resolve(pkgDir);
   const pyprojectPath = path.join(abs, 'pyproject.toml');
   if (!fs.existsSync(pyprojectPath)) {
-    return { package: pkgDir, kind: 'pypi', ok: false, findings: [{ level: 'BLOCKER', kind: 'no-pyproject', file: 'pyproject.toml', note: 'missing' }] };
+    return {
+      package: pkgDir,
+      kind: 'pypi',
+      ok: false,
+      findings: [
+        { level: 'BLOCKER', kind: 'no-pyproject', file: 'pyproject.toml', note: 'missing' },
+      ],
+    };
   }
   const project = parseProjectToml(fs.readFileSync(pyprojectPath, 'utf8'));
-  const add = (level, kind, note, file = 'pyproject.toml') => findings.push({ level, kind, file, note });
+  const add = (level, kind, note, file = 'pyproject.toml') =>
+    findings.push({ level, kind, file, note });
   if (!project.name) add('BLOCKER', 'missing-name', 'project.name missing');
   if (!project.version) add('BLOCKER', 'missing-version', 'project.version missing');
   if (!project.description) add('WARN', 'missing-description', 'project.description missing');
   if (!project.readme) add('BLOCKER', 'missing-readme-field', 'project.readme missing');
-  if (!project['requires-python']) add('WARN', 'missing-python-version', 'project.requires-python missing');
+  if (!project['requires-python'])
+    add('WARN', 'missing-python-version', 'project.requires-python missing');
   if (!project.license) add('BLOCKER', 'missing-license', 'project.license missing');
 
   const readmeFile = project.readme || 'README.md';
@@ -476,38 +572,125 @@ function selfTestFixtures() {
   const blobPass = 'hunter' + '2xyz9' + 'AqL'; // human-ish password with a digit → entropyMix
   return [
     // --- MUST be flagged (seeded leaks) ---
-    { file: 'profile-escaped.holo', content: `    executable: "C:${esc}Users${esc}josep${esc}llama.cpp${esc}llama-server.exe"`, expect: 'leak:founder-path' },
-    { file: 'profile-single.holo', content: `path=C:${BS}Users${BS}Josep${BS}x`, expect: 'leak:founder-path' },
-    { file: 'linux-mount.txt', content: 'model_path: /mnt/nvme/holo/models/x.gguf', expect: 'leak:founder-path' },
-    { file: 'lan.json', content: '{ "endpoint": "http://192.168.0.119:18080" }', expect: 'leak:private-lan-ip' },
+    {
+      file: 'profile-escaped.holo',
+      content: `    executable: "C:${esc}Users${esc}josep${esc}llama.cpp${esc}llama-server.exe"`,
+      expect: 'leak:founder-path',
+    },
+    {
+      file: 'profile-single.holo',
+      content: `path=C:${BS}Users${BS}Josep${BS}x`,
+      expect: 'leak:founder-path',
+    },
+    {
+      file: 'linux-mount.txt',
+      content: 'model_path: /mnt/nvme/holo/models/x.gguf',
+      expect: 'leak:founder-path',
+    },
+    {
+      file: 'lan.json',
+      content: '{ "endpoint": "http://192.168.0.119:18080" }',
+      expect: 'leak:private-lan-ip',
+    },
     { file: 'host.txt', content: 'container: holo-app-pg', expect: 'leak:founder-host' },
     // --- MUST stay clean (generic deploy roots / placeholders) ---
-    { file: 'generic-win.holo', content: `    executable: "C:${esc}holoscript${esc}llama.cpp${esc}llama-server.exe"`, expect: null },
-    { file: 'generic-linux.holo', content: '    executable: "/opt/holoscript/llama.cpp/bin/llama-server"', expect: null },
+    {
+      file: 'generic-win.holo',
+      content: `    executable: "C:${esc}holoscript${esc}llama.cpp${esc}llama-server.exe"`,
+      expect: null,
+    },
+    {
+      file: 'generic-linux.holo',
+      content: '    executable: "/opt/holoscript/llama.cpp/bin/llama-server"',
+      expect: null,
+    },
     { file: 'generic-home.holo', content: '    bin: "jetson.local:18080"', expect: null },
     // --- secret-literal FP shapes: quoted NAMES/URLs near token/secret/key words MUST stay clean
     //     (each is a real hit triaged under task_1783802580085) ---
     { file: 'fp-lm-studio.js', content: '      apiKey: "lm-studio",', expect: null },
     { file: 'fp-mock-key.js', content: '      apiKey: config.apiKey ?? "mock-key",', expect: null },
-    { file: 'fp-event-name.js', content: '    const eventName = token?.value || "on_unknown";', expect: null },
-    { file: 'fp-dev-default.js', content: '    DEFAULT_JWT_SECRET = process.env.AGENT_JWT_SECRET || "dev-secret-change-in-production";', expect: null },
-    { file: 'fp-header-name.js', content: '    apiKey: contract.auth?.headers["api_key"] ?? "X-API-Key";', expect: null },
-    { file: 'fp-event-emit.js', content: '    context.emit?.("secret:error", { error: "vault_full", secretId: id });', expect: null },
-    { file: 'fp-url-path.js', content: '    tokenUrl: this.valueToString(config["tokenUrl"], "/oauth/token");', expect: null },
-    { file: 'fp-enum-compare.js', content: '    const isKeyToken = token.type === "IDENTIFIER" || token.type === "STATE_MACHINE";', expect: null },
-    { file: 'fp-domain-value.js', content: '    secret: { traits: ["@secret"], domain: "container" },', expect: null },
-    { file: 'fp-template-frag.js', content: '    const msg = `got ${token?.type || "EOF"} \'${token?.value || ""}\'`;', expect: null },
-    { file: 'fp-typeof-undefined.js', content: '    const apiKey = config?.apiKey ?? (typeof process !== "undefined" ? process.env.OPENAI_API_KEY : "") ?? "";', expect: null },
+    {
+      file: 'fp-event-name.js',
+      content: '    const eventName = token?.value || "on_unknown";',
+      expect: null,
+    },
+    {
+      file: 'fp-dev-default.js',
+      content:
+        '    DEFAULT_JWT_SECRET = process.env.AGENT_JWT_SECRET || "dev-secret-change-in-production";',
+      expect: null,
+    },
+    {
+      file: 'fp-header-name.js',
+      content: '    apiKey: contract.auth?.headers["api_key"] ?? "X-API-Key";',
+      expect: null,
+    },
+    {
+      file: 'fp-event-emit.js',
+      content: '    context.emit?.("secret:error", { error: "vault_full", secretId: id });',
+      expect: null,
+    },
+    {
+      file: 'fp-url-path.js',
+      content: '    tokenUrl: this.valueToString(config["tokenUrl"], "/oauth/token");',
+      expect: null,
+    },
+    {
+      file: 'fp-enum-compare.js',
+      content:
+        '    const isKeyToken = token.type === "IDENTIFIER" || token.type === "STATE_MACHINE";',
+      expect: null,
+    },
+    {
+      file: 'fp-domain-value.js',
+      content: '    secret: { traits: ["@secret"], domain: "container" },',
+      expect: null,
+    },
+    {
+      file: 'fp-template-frag.js',
+      content: '    const msg = `got ${token?.type || "EOF"} \'${token?.value || ""}\'`;',
+      expect: null,
+    },
+    {
+      file: 'fp-typeof-undefined.js',
+      content:
+        '    const apiKey = config?.apiKey ?? (typeof process !== "undefined" ? process.env.OPENAI_API_KEY : "") ?? "";',
+      expect: null,
+    },
     // mixed-quote documented one-liner (README OAuth flow): mismatched quotes must NOT let a code
     // fragment (",c=>b+=c).on(") read as a secret — the backreference in SECRET_LITERAL_RE prevents it.
-    { file: 'fp-mixed-quote-oneliner.md', content: `| node -e "let b='';process.stdin.on('data',c=>b+=c).on('end',()=>{const c=JSON.parse(b);fetch('https://mcp.holoscript.net/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',client_secret:c.client_secret})})})"`, expect: null },
+    {
+      file: 'fp-mixed-quote-oneliner.md',
+      content: `| node -e "let b='';process.stdin.on('data',c=>b+=c).on('end',()=>{const c=JSON.parse(b);fetch('https://mcp.holoscript.net/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',client_secret:c.client_secret})})})"`,
+      expect: null,
+    },
     // --- real high-entropy credential shapes MUST still block (the tune must not open a false-negative);
     //     values assembled from fragments above so this file carries no scannable token ---
-    { file: 'real-mixed.js', content: `    const apiKey = "${blobMixed}";`, expect: 'leak:secret-literal' },
-    { file: 'real-dashed.js', content: `    const token = "${blobDashed}";`, expect: 'leak:secret-literal' },
-    { file: 'real-hex.js', content: `    const secret = "${blobHex}";`, expect: 'leak:secret-literal' },
-    { file: 'real-base64.js', content: `    const apiKey = "${blobB64}";`, expect: 'leak:secret-literal' },
-    { file: 'real-password.js', content: `    password: "${blobPass}";`, expect: 'leak:secret-literal' },
+    {
+      file: 'real-mixed.js',
+      content: `    const apiKey = "${blobMixed}";`,
+      expect: 'leak:secret-literal',
+    },
+    {
+      file: 'real-dashed.js',
+      content: `    const token = "${blobDashed}";`,
+      expect: 'leak:secret-literal',
+    },
+    {
+      file: 'real-hex.js',
+      content: `    const secret = "${blobHex}";`,
+      expect: 'leak:secret-literal',
+    },
+    {
+      file: 'real-base64.js',
+      content: `    const apiKey = "${blobB64}";`,
+      expect: 'leak:secret-literal',
+    },
+    {
+      file: 'real-password.js',
+      content: `    password: "${blobPass}";`,
+      expect: 'leak:secret-literal',
+    },
   ];
 }
 
@@ -524,7 +707,7 @@ function runSelfTest() {
       if (!hit) {
         failures += 1;
         process.stdout.write(
-          `  FAIL ${fx.file}: expected ${fx.expect ? `BLOCKER ${fx.expect}` : 'no findings'}, got [${kinds.join(', ') || 'none'}]\n`,
+          `  FAIL ${fx.file}: expected ${fx.expect ? `BLOCKER ${fx.expect}` : 'no findings'}, got [${kinds.join(', ') || 'none'}]\n`
         );
       } else {
         process.stdout.write(`  ok   ${fx.file}: ${fx.expect ? `caught ${fx.expect}` : 'clean'}\n`);
@@ -537,16 +720,22 @@ function runSelfTest() {
     process.stdout.write(`\nSELF-TEST FAILED: ${failures} case(s)\n`);
     process.exit(1);
   }
-  process.stdout.write('\nSELF-TEST PASSED: every seeded leak is blocked and every generic value stays clean.\n');
+  process.stdout.write(
+    '\nSELF-TEST PASSED: every seeded leak is blocked and every generic value stays clean.\n'
+  );
 }
 
 function parseArgs(argv) {
   const packages = [];
   const pyPackages = [];
   for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === '--package' && argv[i + 1]) { packages.push(argv[i + 1]); i += 1; }
-    else if (argv[i] === '--py-package' && argv[i + 1]) { pyPackages.push(argv[i + 1]); i += 1; }
-    else if (argv[i] === '--portfolio') {
+    if (argv[i] === '--package' && argv[i + 1]) {
+      packages.push(argv[i + 1]);
+      i += 1;
+    } else if (argv[i] === '--py-package' && argv[i + 1]) {
+      pyPackages.push(argv[i + 1]);
+      i += 1;
+    } else if (argv[i] === '--portfolio') {
       packages.push(...firstPartyNpmPackages());
       pyPackages.push(...firstPartyPythonPackages());
     }
@@ -564,9 +753,13 @@ function render(report) {
   for (const p of report.packages) {
     const blockers = p.findings.filter((f) => f.level === 'BLOCKER');
     const warns = p.findings.filter((f) => f.level === 'WARN');
-    lines.push(`## ${p.name || p.package}  ${p.ok ? 'PASS' : 'BLOCKED'}  ${p.kind || 'npm'}  ${p.public ? '(public)' : '(private)'}  ${p.tarballEntries ?? '?'} files`);
-    for (const f of blockers) lines.push(`  BLOCKER ${f.kind} - ${f.file}${f.line ? `:${f.line}` : ''} - ${f.note}`);
-    for (const f of warns) lines.push(`  WARN ${f.kind} - ${f.file}${f.line ? `:${f.line}` : ''} - ${f.note}`);
+    lines.push(
+      `## ${p.name || p.package}  ${p.ok ? 'PASS' : 'BLOCKED'}  ${p.kind || 'npm'}  ${p.public ? '(public)' : '(private)'}  ${p.tarballEntries ?? '?'} files`
+    );
+    for (const f of blockers)
+      lines.push(`  BLOCKER ${f.kind} - ${f.file}${f.line ? `:${f.line}` : ''} - ${f.note}`);
+    for (const f of warns)
+      lines.push(`  WARN ${f.kind} - ${f.file}${f.line ? `:${f.line}` : ''} - ${f.note}`);
     if (!blockers.length && !warns.length) lines.push('  (clean)');
     lines.push('');
   }
@@ -577,7 +770,9 @@ function render(report) {
 function main() {
   const { packages, pyPackages, json, selfTest } = parseArgs(process.argv.slice(2));
   if (process.argv.includes('--help') || process.argv.includes('-h')) {
-    process.stdout.write('Usage: node scripts/check-package-public-consumption.mjs [--package <dir> ...] [--py-package <dir> ...] [--portfolio] [--self-test] [--json]\n');
+    process.stdout.write(
+      'Usage: node scripts/check-package-public-consumption.mjs [--package <dir> ...] [--py-package <dir> ...] [--portfolio] [--self-test] [--json]\n'
+    );
     return;
   }
   if (selfTest) {
@@ -585,10 +780,7 @@ function main() {
     runSelfTest();
     return;
   }
-  const results = [
-    ...packages.map(checkPackage),
-    ...pyPackages.map(checkPythonPackage),
-  ];
+  const results = [...packages.map(checkPackage), ...pyPackages.map(checkPythonPackage)];
   const report = {
     schema: 'holoscript.package-public-consumption.v1',
     ok: results.every((r) => r.ok),

@@ -41,13 +41,24 @@ const require = createRequire(import.meta.url);
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..', '..');
 const DEFAULT_BASELINE_PATH = join(ROOT, 'examples', '.generative-taste-baseline-2026-07-03.json');
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.turbo', 'out', '.scratch']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'coverage',
+  '.turbo',
+  'out',
+  '.scratch',
+]);
 
 let parseHolo = null;
 try {
   const mod = require(join(ROOT, 'packages', 'core', 'dist', 'parser.cjs'));
   parseHolo = mod.parseHolo || mod.parse || null;
-} catch { /* parser unavailable → parse-guard is a no-op; source analysis still runs */ }
+} catch {
+  /* parser unavailable → parse-guard is a no-op; source analysis still runs */
+}
 
 // The real, parse-verified generation-block keywords (tokens.ts: procedural/generate/scatter/
 // distribute/pcg_graph all resolve to domain 'procedural'). Anchored to the START OF A LINE so
@@ -55,25 +66,36 @@ try {
 // `composition "Procedural Starter" {`), a comment, or an emit("procedural:…") call.
 const GEN_BLOCK_RE = /^[ \t]*(scatter|distribute|procedural|pcg_graph)\b[^{}\n]*\{/gim;
 // World-generation TRAITS that carry seed + variation semantics natively.
-const GEN_TRAIT_RE = /@(biome_scatter|procedural_placement|city_generator|world_generator|phyllotaxis|dungeon_generator|maze_generator|voxel_terrain|noise_field)\b/;
+const GEN_TRAIT_RE =
+  /@(biome_scatter|procedural_placement|city_generator|world_generator|phyllotaxis|dungeon_generator|maze_generator|voxel_terrain|noise_field)\b/;
 // An OBJECT that generates an instance set (the AsteroidBelt form: instance_count + @instanced).
 const OBJECT_INSTANCE_RE = /@instanced\b|@instances\b|\binstance_count\s*[:=]|\binstances\s*[:=]/i;
 // An instance SET — the thing that can degenerate into clones.
 const COUNT_RE = /\b(?:count|instance_count|instances|density)\s*[:=]/i;
 // Per-instance VARIATION — what makes each instance unique (the anti-clone signal).
-const VARIATION_RE = /\b(?:random_rotation|randomize_rotation|random_scale|scale_range|rotation_range|random_position|position_jitter|jitter|per_instance)\s*[:=]|random_scale|scale_range/i;
+const VARIATION_RE =
+  /\b(?:random_rotation|randomize_rotation|random_scale|scale_range|rotation_range|random_position|position_jitter|jitter|per_instance)\s*[:=]|random_scale|scale_range/i;
 // A DECLARED seed — intentional reproducibility (compiler honors it; else falls back to 1337).
 const SEED_RE = /\bseed\s*[:=]|@seed\b|@world_seed\b/i;
 
-function toRepoPath(p) { return relative(ROOT, p).split(sep).join('/'); }
+function toRepoPath(p) {
+  return relative(ROOT, p).split(sep).join('/');
+}
 
 function collectHoloFiles(dir) {
   const files = [];
   (function walk(cur) {
     let entries;
-    try { entries = readdirSync(cur, { withFileTypes: true }); } catch { return; }
+    try {
+      entries = readdirSync(cur, { withFileTypes: true });
+    } catch {
+      return;
+    }
     for (const e of entries) {
-      if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walk(join(cur, e.name)); continue; }
+      if (e.isDirectory()) {
+        if (!SKIP_DIRS.has(e.name)) walk(join(cur, e.name));
+        continue;
+      }
       if (e.isFile() && /\.holo$/i.test(e.name)) files.push(join(cur, e.name));
     }
   })(dir);
@@ -84,7 +106,10 @@ function matchBlock(text, braceIdx) {
   let depth = 0;
   for (let i = braceIdx; i < text.length; i++) {
     if (text[i] === '{') depth++;
-    else if (text[i] === '}') { depth--; if (depth === 0) return text.slice(braceIdx, i + 1); }
+    else if (text[i] === '}') {
+      depth--;
+      if (depth === 0) return text.slice(braceIdx, i + 1);
+    }
   }
   return text.slice(braceIdx);
 }
@@ -94,7 +119,7 @@ function classifyBlock(scope) {
   const isInstanceSet = COUNT_RE.test(scope);
   const hasVariation = VARIATION_RE.test(scope);
   const hasSeed = SEED_RE.test(scope);
-  if (isInstanceSet && !hasVariation) return { state: 'clone', hasSeed };        // N identical copies
+  if (isInstanceSet && !hasVariation) return { state: 'clone', hasSeed }; // N identical copies
   if (isInstanceSet && hasVariation && !hasSeed) return { state: 'unseeded', hasSeed }; // varied but not pinned
   if (isInstanceSet && hasVariation && hasSeed) return { state: 'considered', hasSeed };
   return { state: 'procedural-single', hasSeed }; // a single procedural surface, not an instance set
@@ -103,9 +128,18 @@ function classifyBlock(scope) {
 function classify(absPath) {
   const rel = toRepoPath(absPath);
   let code = '';
-  try { code = readFileSync(absPath, 'utf8'); } catch { return { path: rel, category: 'unreadable', blocks: [] }; }
+  try {
+    code = readFileSync(absPath, 'utf8');
+  } catch {
+    return { path: rel, category: 'unreadable', blocks: [] };
+  }
   if (parseHolo) {
-    try { const r = parseHolo(code); if (!r.success) return { path: rel, category: 'parse-error', blocks: [] }; } catch { /* fall through */ }
+    try {
+      const r = parseHolo(code);
+      if (!r.success) return { path: rel, category: 'parse-error', blocks: [] };
+    } catch {
+      /* fall through */
+    }
   }
 
   const blocks = [];
@@ -139,7 +173,13 @@ function classify(absPath) {
   const considered = blocks.filter((b) => b.state === 'considered');
   let category = 'none';
   if (blocks.some((b) => b.state !== 'procedural-single')) {
-    category = clones.length ? 'clone' : unseeded.length ? 'unseeded' : considered.length ? 'considered' : 'none';
+    category = clones.length
+      ? 'clone'
+      : unseeded.length
+        ? 'unseeded'
+        : considered.length
+          ? 'considered'
+          : 'none';
   }
   return { path: rel, category, blocks, clones, unseeded, considered };
 }
@@ -154,17 +194,23 @@ function scan(dir) {
   for (const r of results) {
     counts[r.category] = (counts[r.category] || 0) + 1;
     if (r.blocks && r.blocks.some((b) => b.state !== 'procedural-single')) genFiles++;
-    for (const b of (r.clones || [])) cloneHits.push({ file: r.path, line: b.line, kind: b.kind, name: b.name });
-    for (const b of (r.unseeded || [])) unseededHits.push({ file: r.path, line: b.line, kind: b.kind, name: b.name });
+    for (const b of r.clones || [])
+      cloneHits.push({ file: r.path, line: b.line, kind: b.kind, name: b.name });
+    for (const b of r.unseeded || [])
+      unseededHits.push({ file: r.path, line: b.line, kind: b.kind, name: b.name });
   }
   return { totalFiles: files.length, genFiles, counts, cloneHits, unseededHits, results };
 }
 
 function snapshot(dir, s) {
   return {
-    generatedAt: new Date().toISOString(), scanDir: toRepoPath(dir),
-    totalFiles: s.totalFiles, generativeFiles: s.genFiles, counts: s.counts,
-    cloneCount: s.cloneHits.length, unseededCount: s.unseededHits.length,
+    generatedAt: new Date().toISOString(),
+    scanDir: toRepoPath(dir),
+    totalFiles: s.totalFiles,
+    generativeFiles: s.genFiles,
+    counts: s.counts,
+    cloneCount: s.cloneHits.length,
+    unseededCount: s.unseededHits.length,
   };
 }
 
@@ -185,23 +231,40 @@ function parseArgs(argv) {
 function main() {
   const flags = parseArgs(process.argv.slice(2));
   const dir = join(ROOT, flags.dir || flags.positional[0] || 'examples');
-  if (!existsSync(dir)) { console.error(`ERROR scan dir not found: ${toRepoPath(dir)}`); process.exit(1); }
+  if (!existsSync(dir)) {
+    console.error(`ERROR scan dir not found: ${toRepoPath(dir)}`);
+    process.exit(1);
+  }
   const s = scan(dir);
   const snap = snapshot(dir, s);
 
   console.log('Generative-taste scan (unique per seed, or N clones?)');
-  console.log(`  scanned: ${snap.scanDir} (${s.totalFiles} .holo, ${s.genFiles} with seeded/procedural generation)`);
-  console.log(`  considered:  ${s.counts.considered}   (seed + per-instance variation → unique-per-seed)`);
-  console.log(`  clone:       ${s.counts.clone}   (${s.cloneHits.length} instance-set(s) with no variation → identical copies)`);
-  console.log(`  unseeded:    ${s.counts.unseeded}   (${s.unseededHits.length} varied but no declared seed → not intentionally reproducible)`);
+  console.log(
+    `  scanned: ${snap.scanDir} (${s.totalFiles} .holo, ${s.genFiles} with seeded/procedural generation)`
+  );
+  console.log(
+    `  considered:  ${s.counts.considered}   (seed + per-instance variation → unique-per-seed)`
+  );
+  console.log(
+    `  clone:       ${s.counts.clone}   (${s.cloneHits.length} instance-set(s) with no variation → identical copies)`
+  );
+  console.log(
+    `  unseeded:    ${s.counts.unseeded}   (${s.unseededHits.length} varied but no declared seed → not intentionally reproducible)`
+  );
 
   if (s.cloneHits.length) {
     console.log('\n  CLONE generativity (instance set, no per-instance variation → N identical):');
-    for (const h of s.cloneHits) console.log(`    ${h.file}:${h.line}  ${h.kind}${h.name ? ` "${h.name}"` : ''}  → add variation (random_scale/scale_range, random_rotation) + a declared seed`);
+    for (const h of s.cloneHits)
+      console.log(
+        `    ${h.file}:${h.line}  ${h.kind}${h.name ? ` "${h.name}"` : ''}  → add variation (random_scale/scale_range, random_rotation) + a declared seed`
+      );
   }
   if (s.unseededHits.length) {
     console.log('\n  UNSEEDED generativity (varied but no seed — pin it for reproducibility):');
-    for (const h of s.unseededHits) console.log(`    ${h.file}:${h.line}  ${h.kind}${h.name ? ` "${h.name}"` : ''}  → add seed: <n>`);
+    for (const h of s.unseededHits)
+      console.log(
+        `    ${h.file}:${h.line}  ${h.kind}${h.name ? ` "${h.name}"` : ''}  → add seed: <n>`
+      );
   }
 
   let failed = false;
@@ -210,16 +273,32 @@ function main() {
     if (existsSync(bp)) {
       const base = JSON.parse(readFileSync(bp, 'utf8'));
       const delta = s.cloneHits.length - base.cloneCount;
-      console.log(`\n  baseline: ${base.cloneCount} clone → now ${s.cloneHits.length}  (delta: ${delta >= 0 ? '+' : ''}${delta})`);
+      console.log(
+        `\n  baseline: ${base.cloneCount} clone → now ${s.cloneHits.length}  (delta: ${delta >= 0 ? '+' : ''}${delta})`
+      );
       if (flags.check) {
-        const cap = typeof flags.maxClone === 'number' && !Number.isNaN(flags.maxClone) ? flags.maxClone : base.cloneCount;
+        const cap =
+          typeof flags.maxClone === 'number' && !Number.isNaN(flags.maxClone)
+            ? flags.maxClone
+            : base.cloneCount;
         console.log(`  gate: clone generators must be <= ${cap}, got ${s.cloneHits.length}`);
-        if (s.cloneHits.length > cap) { console.error('ERROR generative-taste regressed: more clone-scatter generators than allowed.'); failed = true; }
+        if (s.cloneHits.length > cap) {
+          console.error(
+            'ERROR generative-taste regressed: more clone-scatter generators than allowed.'
+          );
+          failed = true;
+        }
       }
-    } else if (flags.check) { console.error(`ERROR baseline not found: ${flags.baseline}`); process.exit(1); }
+    } else if (flags.check) {
+      console.error(`ERROR baseline not found: ${flags.baseline}`);
+      process.exit(1);
+    }
   }
 
-  if (flags.json) process.stdout.write(`\n__GENERATIVE_TASTE__\n${JSON.stringify({ ...snap, cloneHits: s.cloneHits, unseededHits: s.unseededHits }, null, 2)}\n`);
+  if (flags.json)
+    process.stdout.write(
+      `\n__GENERATIVE_TASTE__\n${JSON.stringify({ ...snap, cloneHits: s.cloneHits, unseededHits: s.unseededHits }, null, 2)}\n`
+    );
 
   if (flags.saveBaseline) {
     const out = flags.baseline ? join(ROOT, flags.baseline) : DEFAULT_BASELINE_PATH;

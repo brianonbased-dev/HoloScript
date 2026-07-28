@@ -13,7 +13,15 @@
  *   DRY_RUN=0 node scripts/publish-peer-dep-fix.mjs # real publish
  */
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync, copyFileSync, readdirSync, statSync } from 'fs';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  unlinkSync,
+  copyFileSync,
+  readdirSync,
+  statSync,
+} from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { tmpdir } from 'os';
@@ -26,7 +34,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 
 const NPM_TOKEN = process.env.NPM_TOKEN;
-if (!NPM_TOKEN) { console.error('NPM_TOKEN not set'); process.exit(1); }
+if (!NPM_TOKEN) {
+  console.error('NPM_TOKEN not set');
+  process.exit(1);
+}
 
 const DRY_RUN = process.env.DRY_RUN !== '0';
 
@@ -41,9 +52,13 @@ const PEER_RANGES = {
 function viewVersion(name) {
   try {
     return execSync(`npm view ${JSON.stringify(name)} version`, {
-      encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 20000
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 20000,
     }).trim();
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // Build full name→version map by scanning all package dirs (handles non-obvious
@@ -59,7 +74,9 @@ function _scanPackageDir(base) {
       try {
         const d = JSON.parse(readFileSync(pkgPath, 'utf8'));
         if (d.name && d.version) _pkgVersionMap.set(d.name, d.version);
-      } catch { /* skip malformed */ }
+      } catch {
+        /* skip malformed */
+      }
     }
   }
 }
@@ -116,7 +133,9 @@ async function publishPackage(pkgPath) {
   }
 
   if (DRY_RUN) {
-    process.stdout.write(`DRY     ${name}@${version} (would publish; on npm: ${published || 'none'})\n`);
+    process.stdout.write(
+      `DRY     ${name}@${version} (would publish; on npm: ${published || 'none'})\n`
+    );
     return 'dry';
   }
 
@@ -130,7 +149,8 @@ async function publishPackage(pkgPath) {
     writeFileSync(pkgPath, JSON.stringify(patched, null, 2) + '\n');
     writeFileSync(npmrc, `//registry.npmjs.org/:_authToken=${NPM_TOKEN}\n`);
     execSync('npm publish --access public', {
-      cwd: pkgDir, stdio: 'inherit',
+      cwd: pkgDir,
+      stdio: 'inherit',
       env: { ...process.env, NPM_TOKEN },
     });
     process.stdout.write(`PUBLISHED ${name}@${version}\n`);
@@ -159,7 +179,7 @@ for (const p of readdirSync(join(ROOT, 'packages', 'plugins'))) {
   if (!pkg.name || !pkg.name.includes('holoscript')) continue;
   // Only include packages where peerDeps have been fixed (no workspace:)
   const peers = pkg.peerDependencies || {};
-  const hasLeak = Object.values(peers).some(v => String(v).includes('workspace:'));
+  const hasLeak = Object.values(peers).some((v) => String(v).includes('workspace:'));
   if (!hasLeak) packages.push(pkgPath);
 }
 

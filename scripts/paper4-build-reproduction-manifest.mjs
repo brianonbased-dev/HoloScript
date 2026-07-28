@@ -15,14 +15,8 @@ const defaults = {
   contract: path.join(evidenceRoot, runRelative, 'contract-overhead.log'),
   cael: path.join(evidenceRoot, runRelative, 'cael-replay.log'),
   cpu: path.join(evidenceRoot, 'paper-4-cpu-components-h1-win-2026-07-18.json'),
-  webgpu500: path.join(
-    evidenceRoot,
-    'paper-4-cael-fold-500-h1-win-localchrome-2026-07-18.json'
-  ),
-  webgpu10k: path.join(
-    evidenceRoot,
-    'paper-4-cael-fold-10k-h1-win-localchrome-2026-07-18.json'
-  ),
+  webgpu500: path.join(evidenceRoot, 'paper-4-cael-fold-500-h1-win-localchrome-2026-07-18.json'),
+  webgpu10k: path.join(evidenceRoot, 'paper-4-cael-fold-10k-h1-win-localchrome-2026-07-18.json'),
 };
 
 const args = process.argv.slice(2);
@@ -111,7 +105,8 @@ const manifest = {
     {
       id: 'cael-verify-and-mock-replay',
       historical_source: '.bench-logs/2026-04-18T07-20-56-134Z/cael-replay.log',
-      historical_verdict: 'not reproduced; old path double-counted verify and skipped digest comparison',
+      historical_verdict:
+        'not reproduced; old path double-counted verify and skipped digest comparison',
       implementation:
         'packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts',
       evidence: relative(defaults.cael),
@@ -173,24 +168,32 @@ function relative(filePath) {
 }
 
 function parseSandbox(log) {
-  return [...log.matchAll(/\[sandbox-bench\] (Cold Runner|Cached Expression|Unique Compile\+Run)\s*\| Median: ([\d.]+) ms \| p99: ([\d.]+) ms/gu)].map(
-    ([, operation, median, p99]) => ({ operation, median_ms: Number(median), p99_ms: Number(p99) })
-  );
+  return [
+    ...log.matchAll(
+      /\[sandbox-bench\] (Cold Runner|Cached Expression|Unique Compile\+Run)\s*\| Median: ([\d.]+) ms \| p99: ([\d.]+) ms/gu
+    ),
+  ].map(([, operation, median, p99]) => ({
+    operation,
+    median_ms: Number(median),
+    p99_ms: Number(p99),
+  }));
 }
 
 function parseContract(log) {
-  return [...log.matchAll(/^\| (Small|Medium|Large)\s+\|\s+(\d+)\s+\|\s+(\d+)\s+\|\s+([\d.]+) \(p99: ([\d.]+)\) \|\s+([\d.]+) \(p99: ([\d.]+)\) \|\s+([-\d.]+)% \|$/gmu)].map(
-    ([, mesh, nodes, dof, bare, bareP99, contracted, contractedP99, overhead]) => ({
-      mesh,
-      nodes: Number(nodes),
-      dof: Number(dof),
-      bare_median_ms: Number(bare),
-      bare_p99_ms: Number(bareP99),
-      contracted_median_ms: Number(contracted),
-      contracted_p99_ms: Number(contractedP99),
-      overhead_percent: Number(overhead),
-    })
-  );
+  return [
+    ...log.matchAll(
+      /^\| (Small|Medium|Large)\s+\|\s+(\d+)\s+\|\s+(\d+)\s+\|\s+([\d.]+) \(p99: ([\d.]+)\) \|\s+([\d.]+) \(p99: ([\d.]+)\) \|\s+([-\d.]+)% \|$/gmu
+    ),
+  ].map(([, mesh, nodes, dof, bare, bareP99, contracted, contractedP99, overhead]) => ({
+    mesh,
+    nodes: Number(nodes),
+    dof: Number(dof),
+    bare_median_ms: Number(bare),
+    bare_p99_ms: Number(bareP99),
+    contracted_median_ms: Number(contracted),
+    contracted_p99_ms: Number(contractedP99),
+    overhead_percent: Number(overhead),
+  }));
 }
 
 function parseGeometry(log) {

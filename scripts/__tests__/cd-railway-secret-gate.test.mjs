@@ -24,7 +24,9 @@ function assertEq(actual, expected, name) {
     console.log(`  PASS ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -51,7 +53,11 @@ console.log('cd-railway-secret-gate.test.mjs');
   });
   const output = `${result.stdout || ''}${result.stderr || ''}`;
   assertEq(result.status, 0, '--self-test exits 0 without Railway credentials');
-  assertMatch(output, /registryCredentials gate self-test passed/, 'self-test exercises registryCredentials gate');
+  assertMatch(
+    output,
+    /registryCredentials gate self-test passed/,
+    'self-test exercises registryCredentials gate'
+  );
 }
 
 if (testsFailed > 0) {

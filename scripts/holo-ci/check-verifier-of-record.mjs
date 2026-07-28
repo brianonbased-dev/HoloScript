@@ -44,7 +44,10 @@ const STRICT = args.includes('--strict');
 const rootIdx = args.indexOf('--root');
 const ROOT = rootIdx >= 0 ? args[rootIdx + 1] : process.cwd();
 const rootsIdx = args.indexOf('--roots');
-const SCAN_ROOTS = (rootsIdx >= 0 ? args[rootsIdx + 1] : 'packages').split(',').map((s) => s.trim()).filter(Boolean);
+const SCAN_ROOTS = (rootsIdx >= 0 ? args[rootsIdx + 1] : 'packages')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 const TAG = '[verifier-of-record]';
 const CANON = 'docs/spec/language-architecture.md §6.3 (verifier of record)';
@@ -89,10 +92,14 @@ for (const file of files) {
 
 console.log(`${TAG} scanned ${files.length} source file(s) under: ${SCAN_ROOTS.join(', ')}`);
 for (const f of findings) {
-  console.log(`${TAG} FORKED-VERDICT ${f} — emits abstention labels but never imports gradeByResolver`);
+  console.log(
+    `${TAG} FORKED-VERDICT ${f} — emits abstention labels but never imports gradeByResolver`
+  );
 }
 if (findings.length === 0) {
-  console.log(`${TAG} OK — every abstention-labeling file routes through the shipped resolver. (${CANON})`);
+  console.log(
+    `${TAG} OK — every abstention-labeling file routes through the shipped resolver. (${CANON})`
+  );
 } else {
   console.log(
     `${TAG} ${findings.length} file(s) label resolutions with a forked verdict. ` +

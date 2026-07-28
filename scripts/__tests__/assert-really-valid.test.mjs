@@ -5,10 +5,7 @@
  * Run: node scripts/__tests__/assert-really-valid.test.mjs
  */
 import assert from 'node:assert/strict';
-import {
-  checkReallyValid,
-  countSourceDeclarations,
-} from '../lang-audit/assert-really-valid.mjs';
+import { checkReallyValid, countSourceDeclarations } from '../lang-audit/assert-really-valid.mjs';
 
 let run = 0;
 let failed = 0;
@@ -50,7 +47,10 @@ await test('rejects G2-style success:true results that carry errors', async () =
       errors: [{ message: 'fatal parser error hidden behind success:true' }],
       ast: {
         type: 'Program',
-        children: [{ type: 'component', name: 'Root' }, { type: 'orb', name: 'One' }],
+        children: [
+          { type: 'component', name: 'Root' },
+          { type: 'orb', name: 'One' },
+        ],
       },
     }),
   });
@@ -68,7 +68,10 @@ await test('rejects G1-style trailing-newline verdict drift', async () => {
       errors: candidate.endsWith('\n') ? [] : [{ message: 'EOF DEDENT drift' }],
       ast: {
         type: 'Program',
-        children: [{ type: 'component', name: 'Root' }, { type: 'orb', name: 'One' }],
+        children: [
+          { type: 'component', name: 'Root' },
+          { type: 'orb', name: 'One' },
+        ],
       },
     }),
   });

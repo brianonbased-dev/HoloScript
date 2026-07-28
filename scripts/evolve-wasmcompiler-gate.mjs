@@ -53,7 +53,9 @@ function gitShow(ref, path) {
     maxBuffer: 1024 * 1024 * 16,
   });
   if ((result.status ?? 1) !== 0) {
-    throw new Error(`git show ${ref}:${rel(path)} failed: ${(result.stderr || result.stdout || '').slice(0, 500)}`);
+    throw new Error(
+      `git show ${ref}:${rel(path)} failed: ${(result.stderr || result.stdout || '').slice(0, 500)}`
+    );
   }
   return result.stdout;
 }
@@ -128,14 +130,18 @@ function measureFitness(scenarioId, baselineScenario = undefined) {
       measurement
     }));
   `,
-    'utf8',
+    'utf8'
   );
   const result = run('corepack', ['pnpm', 'exec', 'tsx', rel(measureFile)], 'measure');
   if (result.exitCode !== 0) {
     return { ok: false, result };
   }
   try {
-    return { ok: true, result, data: JSON.parse(result.stdoutTail.trim().split('\n').at(-1) ?? '{}') };
+    return {
+      ok: true,
+      result,
+      data: JSON.parse(result.stdoutTail.trim().split('\n').at(-1) ?? '{}'),
+    };
   } catch (err) {
     return {
       ok: false,
@@ -180,7 +186,11 @@ try {
   }
   const seedMeasured = measureFitness(scenarioId, null);
   if (!seedMeasured.ok) {
-    throw new Error(seedMeasured.result?.stderrTail || seedMeasured.result?.stdoutTail || 'seed measurement failed');
+    throw new Error(
+      seedMeasured.result?.stderrTail ||
+        seedMeasured.result?.stdoutTail ||
+        'seed measurement failed'
+    );
   }
   const seedMeasurement = seedMeasured.data.measurement;
   const seedBaselineScenario = {
@@ -194,9 +204,17 @@ try {
   }
 
   const correctness = skipTests
-    ? { label: 'compiler-tests', command: 'skipped', exitCode: 0, durationMs: 0, stdoutTail: '', stderrTail: '' }
+    ? {
+        label: 'compiler-tests',
+        command: 'skipped',
+        exitCode: 0,
+        durationMs: 0,
+        stdoutTail: '',
+        stderrTail: '',
+      }
     : run('corepack', ['pnpm', ...TEST_ARGS], 'compiler-tests');
-  const measured = correctness.exitCode === 0 ? measureFitness(scenarioId, seedBaselineScenario) : { ok: false };
+  const measured =
+    correctness.exitCode === 0 ? measureFitness(scenarioId, seedBaselineScenario) : { ok: false };
 
   const measurement = measured.ok ? measured.data.measurement : null;
   const passed = correctness.exitCode === 0 && measured.ok && measurement?.passed === true;
@@ -211,7 +229,7 @@ try {
     baselineMeasurement: seedMeasured.data.measurement,
     correctness,
     measurement,
-    measurementRun: measured.ok ? measured.result : measured.result ?? null,
+    measurementRun: measured.ok ? measured.result : (measured.result ?? null),
     passed,
     selfShips: false,
     ts: new Date().toISOString(),
@@ -227,7 +245,7 @@ try {
     console.log(JSON.stringify(receipt));
   } else {
     console.log(
-      `[evolve-wasmcompiler-gate] passed=${passed} score=${measurement?.score ?? 'n/a'} receipt=${rel(out)} verify=${receipt.verifyUrl}`,
+      `[evolve-wasmcompiler-gate] passed=${passed} score=${measurement?.score ?? 'n/a'} receipt=${rel(out)} verify=${receipt.verifyUrl}`
     );
   }
   exitCode = passed ? 0 : 1;

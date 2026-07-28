@@ -39,14 +39,28 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.turbo',
-  '.tmp-g4', 'out', '.bench-logs', 'target', '.scratch',
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'coverage',
+  '.next',
+  '.turbo',
+  '.tmp-g4',
+  'out',
+  '.bench-logs',
+  'target',
+  '.scratch',
 ]);
 
 /** Recursively collect files under `dir` whose ext is in `exts`. */
 function walk(dir, exts, acc = []) {
   let entries;
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return acc; }
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return acc;
+  }
   for (const e of entries) {
     if (e.isDirectory()) {
       if (SKIP_DIRS.has(e.name)) continue;
@@ -60,11 +74,18 @@ function walk(dir, exts, acc = []) {
 
 function stagedFiles() {
   try {
-    return execSync('git diff --cached --name-only --diff-filter=ACM', { cwd: REPO_ROOT, encoding: 'utf-8' })
-      .split('\n').map(s => s.trim()).filter(Boolean)
-      .map(rel => path.join(REPO_ROOT, rel))
-      .filter(p => fs.existsSync(p));
-  } catch { return []; }
+    return execSync('git diff --cached --name-only --diff-filter=ACM', {
+      cwd: REPO_ROOT,
+      encoding: 'utf-8',
+    })
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((rel) => path.join(REPO_ROOT, rel))
+      .filter((p) => fs.existsSync(p));
+  } catch {
+    return [];
+  }
 }
 
 /** Find `@on_update { … }` blocks and flag control-flow keywords inside them. */
@@ -75,10 +96,18 @@ export function scanHsplusOnUpdate(text) {
   let m;
   while ((m = re.exec(text)) !== null) {
     const start = m.index + m[0].length - 1; // position of the opening '{'
-    let depth = 0, i = start, end = -1;
+    let depth = 0,
+      i = start,
+      end = -1;
     for (; i < text.length; i++) {
       if (text[i] === '{') depth++;
-      else if (text[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
+      else if (text[i] === '}') {
+        depth--;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
     }
     if (end === -1) continue;
     const body = text.slice(start + 1, end);
@@ -95,17 +124,21 @@ export function scanTraitClassExport(text) {
   const exportsClassTrait = /export\s+(?:default\s+)?(?:abstract\s+)?class\s+\w*Trait\b/.test(text);
   if (!exportsClassTrait) return [];
   // Legitimate pattern: a handler object literal is also exported (class is hidden impl).
-  const hasHandlerObjectExport = /export\s+const\s+\w*(?:Handler|Trait)\s*(?::[^=]+)?=\s*\{/.test(text)
-    || /\bTraitHandler\b/.test(text);
+  const hasHandlerObjectExport =
+    /export\s+const\s+\w*(?:Handler|Trait)\s*(?::[^=]+)?=\s*\{/.test(text) ||
+    /\bTraitHandler\b/.test(text);
   if (hasHandlerObjectExport) return [];
-  const line = text.slice(0, text.search(/export\s+(?:default\s+)?(?:abstract\s+)?class\s+\w*Trait\b/)).split('\n').length;
+  const line = text
+    .slice(0, text.search(/export\s+(?:default\s+)?(?:abstract\s+)?class\s+\w*Trait\b/))
+    .split('\n').length;
   return [{ line, kind: 'class-as-trait-export' }];
 }
 
 /** Flag task routing by title string instead of capability_tags. */
 export function scanTaskStringRouting(text) {
   const hits = [];
-  const re = /\btask(?:\.title)?\.(?:includes|startsWith|match|indexOf)\s*\(|switch\s*\(\s*task(?:\.\w+)?\s*\)/g;
+  const re =
+    /\btask(?:\.title)?\.(?:includes|startsWith|match|indexOf)\s*\(|switch\s*\(\s*task(?:\.\w+)?\s*\)/g;
   let m;
   while ((m = re.exec(text)) !== null) {
     const line = text.slice(0, m.index).split('\n').length;
@@ -115,23 +148,34 @@ export function scanTaskStringRouting(text) {
 }
 
 const FIX = {
-  'if-else-in-on_update': '@on_update holds if/else phase logic → move to @state_machine { states: {…} } (handbook L42; compiler can\'t extract the transition graph otherwise)',
-  'class-as-trait-export': 'trait is exported as a class → export a TraitHandler object; the class is hidden impl (handbook L40/L61)',
-  'task-string-routing': 'task routed by title string → route by identity.capability_tags set-intersection (handbook L48; empty tags = silent permanent idle)',
+  'if-else-in-on_update':
+    "@on_update holds if/else phase logic → move to @state_machine { states: {…} } (handbook L42; compiler can't extract the transition graph otherwise)",
+  'class-as-trait-export':
+    'trait is exported as a class → export a TraitHandler object; the class is hidden impl (handbook L40/L61)',
+  'task-string-routing':
+    'task routed by title string → route by identity.capability_tags set-intersection (handbook L48; empty tags = silent permanent idle)',
 };
 
 export function analyze(files) {
   const findings = [];
   for (const abs of files) {
     let text;
-    try { text = fs.readFileSync(abs, 'utf-8'); } catch { continue; }
+    try {
+      text = fs.readFileSync(abs, 'utf-8');
+    } catch {
+      continue;
+    }
     const ext = path.extname(abs);
     const base = path.basename(abs);
     const rel = path.relative(REPO_ROOT, abs);
     if (ext === '.hsplus' || ext === '.holo') {
       for (const h of scanHsplusOnUpdate(text)) findings.push({ file: rel, ...h });
     }
-    if (base.endsWith('Trait.ts') && !base.endsWith('.test.ts') && abs.includes(`${path.sep}src${path.sep}`)) {
+    if (
+      base.endsWith('Trait.ts') &&
+      !base.endsWith('.test.ts') &&
+      abs.includes(`${path.sep}src${path.sep}`)
+    ) {
       for (const h of scanTraitClassExport(text)) findings.push({ file: rel, ...h });
     }
     if (/(?:runner|agent|dispatch|route)/i.test(base) && (ext === '.ts' || ext === '.mjs')) {
@@ -144,7 +188,7 @@ export function analyze(files) {
 function main() {
   const args = process.argv.slice(2);
   const files = args.includes('--staged')
-    ? stagedFiles().filter(p => /\.(hsplus|holo|ts|mjs)$/.test(p))
+    ? stagedFiles().filter((p) => /\.(hsplus|holo|ts|mjs)$/.test(p))
     : [
         ...walk(path.join(REPO_ROOT, 'packages'), new Set(['.hsplus', '.holo', '.ts'])),
         ...walk(path.join(REPO_ROOT, 'examples'), new Set(['.hsplus', '.holo'])),
@@ -162,14 +206,22 @@ function main() {
     return;
   }
 
-  console.warn(`\n⚠ native-authoring-shape: ${findings.length} advisory finding(s) (WARN-ONLY — never blocks):`);
+  console.warn(
+    `\n⚠ native-authoring-shape: ${findings.length} advisory finding(s) (WARN-ONLY — never blocks):`
+  );
   for (const f of findings) {
     console.warn(`  ${f.file}:${f.line}  [${f.kind}]`);
     console.warn(`      → ${FIX[f.kind]}`);
   }
-  console.warn('\n  Warn-only by design: these shapes are the pretrained "author as control-flow" reflex the');
-  console.warn('  native-authoring handbook (F.126) names. Fix toward data-a-tool-consumes; a false positive');
-  console.warn('  (legitimate conditional / hidden-impl class) is fine to ignore — this never blocks a commit.\n');
+  console.warn(
+    '\n  Warn-only by design: these shapes are the pretrained "author as control-flow" reflex the'
+  );
+  console.warn(
+    '  native-authoring handbook (F.126) names. Fix toward data-a-tool-consumes; a false positive'
+  );
+  console.warn(
+    '  (legitimate conditional / hidden-impl class) is fine to ignore — this never blocks a commit.\n'
+  );
   // WARN-ONLY: always exit 0.
 }
 

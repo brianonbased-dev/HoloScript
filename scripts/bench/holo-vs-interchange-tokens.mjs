@@ -93,9 +93,15 @@ function loadTokenizer() {
       const req = createRequire(pathToFileURL(base));
       const mod = req('gpt-tokenizer');
       if (mod && typeof mod.encode === 'function') {
-        return { name: 'gpt-tokenizer (cl100k_base / o200k? -> cl100k)', encode: (s) => mod.encode(s).length, real: true };
+        return {
+          name: 'gpt-tokenizer (cl100k_base / o200k? -> cl100k)',
+          encode: (s) => mod.encode(s).length,
+          real: true,
+        };
       }
-    } catch { /* try next */ }
+    } catch {
+      /* try next */
+    }
   }
   for (const c of candidates) {
     if (existsSync(c)) {
@@ -103,9 +109,15 @@ function loadTokenizer() {
         const req = createRequire(pathToFileURL(c));
         const mod = req(c);
         if (mod && typeof mod.encode === 'function') {
-          return { name: 'gpt-tokenizer (cl100k_base)', encode: (s) => mod.encode(s).length, real: true };
+          return {
+            name: 'gpt-tokenizer (cl100k_base)',
+            encode: (s) => mod.encode(s).length,
+            real: true,
+          };
         }
-      } catch { /* try next */ }
+      } catch {
+        /* try next */
+      }
     }
   }
   // Clearly-labeled fallback — only if no real tokenizer importable.
@@ -130,7 +142,7 @@ async function postJson(path, body, tries = 5) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json, text/event-stream',
+        Accept: 'application/json, text/event-stream',
         'x-mcp-api-key': API_KEY,
       },
       body: JSON.stringify(body),
@@ -140,7 +152,10 @@ async function postJson(path, body, tries = 5) {
     if (res.status === 200) return last;
     // The /mcp route burst-rate-limits with a 401 "Valid token required" (same
     // valid key 200s after cooldown). Back off generously: 6s, 12s, 18s, 24s, 30s.
-    if (res.status === 401 || res.status === 429) { await sleep(6000 * (i + 1)); continue; }
+    if (res.status === 401 || res.status === 429) {
+      await sleep(6000 * (i + 1));
+      continue;
+    }
     return last;
   }
   return last;
@@ -148,7 +163,9 @@ async function postJson(path, body, tries = 5) {
 
 async function mcpCall(name, args) {
   const { status, text } = await postJson('/mcp', {
-    jsonrpc: '2.0', id: Date.now(), method: 'tools/call',
+    jsonrpc: '2.0',
+    id: Date.now(),
+    method: 'tools/call',
     params: { name, arguments: args },
   });
   if (status !== 200) throw new Error(`MCP ${name} HTTP ${status}: ${text.slice(0, 200)}`);
@@ -159,7 +176,8 @@ async function mcpCall(name, args) {
     payload = dataLine ? dataLine.slice(5).trim() : payload;
   }
   const rpc = JSON.parse(payload);
-  if (rpc.error) throw new Error(`MCP ${name} rpc error: ${JSON.stringify(rpc.error).slice(0, 200)}`);
+  if (rpc.error)
+    throw new Error(`MCP ${name} rpc error: ${JSON.stringify(rpc.error).slice(0, 200)}`);
   const txt = rpc.result?.content?.[0]?.text;
   return txt ? JSON.parse(txt) : rpc.result;
 }
@@ -168,7 +186,7 @@ async function mcpCall(name, args) {
 async function parseHolo(code) {
   const r = await mcpCall('parse_holo', { code });
   const errs = r?.errors || r?.composition?.errors || [];
-  const ok = (r?.success === true) && (!errs || errs.length === 0);
+  const ok = r?.success === true && (!errs || errs.length === 0);
   return { ok, errors: errs };
 }
 
@@ -211,15 +229,22 @@ async function main() {
 
   for (const rel of SCENES) {
     const abs = join(EXAMPLES, rel);
-    if (!existsSync(abs)) { dropped.push({ scene: rel, reason: 'file not found' }); continue; }
+    if (!existsSync(abs)) {
+      dropped.push({ scene: rel, reason: 'file not found' });
+      continue;
+    }
     const code = readFileSync(abs, 'utf8');
     const holo_tokens = countTokens(code);
 
     // 1. Parse gate (drop on failure — never silent skip).
     let parse;
     await sleep(2500);
-    try { parse = await parseHolo(code); }
-    catch (e) { dropped.push({ scene: rel, reason: `parse_holo threw: ${e.message}` }); continue; }
+    try {
+      parse = await parseHolo(code);
+    } catch (e) {
+      dropped.push({ scene: rel, reason: `parse_holo threw: ${e.message}` });
+      continue;
+    }
     if (!parse.ok) {
       dropped.push({
         scene: rel,
@@ -236,9 +261,17 @@ async function main() {
     let gltf, usd;
     const errs = {};
     await sleep(8000);
-    try { gltf = await compileGltf(code); } catch (e) { errs.gltf = e.message; }
+    try {
+      gltf = await compileGltf(code);
+    } catch (e) {
+      errs.gltf = e.message;
+    }
     await sleep(2500);
-    try { usd = await compileUsd(code); } catch (e) { errs.usd = e.message; }
+    try {
+      usd = await compileUsd(code);
+    } catch (e) {
+      errs.usd = e.message;
+    }
     await sleep(2500);
 
     if (!gltf && !usd) {
@@ -272,8 +305,10 @@ async function main() {
   const KILL_THRESHOLD = 2.0;
   let verdict;
   if (gmGltf == null) verdict = 'INDETERMINATE — no glTF data';
-  else if (gmGltf >= KILL_THRESHOLD) verdict = `glTF-compactness claim SUBSTANTIATED (gmean ratio_gltf ${gmGltf.toFixed(2)}x >= ${KILL_THRESHOLD}x)`;
-  else verdict = `glTF-compactness claim KILLED (gmean ratio_gltf ${gmGltf.toFixed(2)}x < ${KILL_THRESHOLD}x)`;
+  else if (gmGltf >= KILL_THRESHOLD)
+    verdict = `glTF-compactness claim SUBSTANTIATED (gmean ratio_gltf ${gmGltf.toFixed(2)}x >= ${KILL_THRESHOLD}x)`;
+  else
+    verdict = `glTF-compactness claim KILLED (gmean ratio_gltf ${gmGltf.toFixed(2)}x < ${KILL_THRESHOLD}x)`;
 
   const result = {
     meta: {
@@ -282,8 +317,10 @@ async function main() {
       tokenizer_is_real_bpe: TOK.real,
       base_url: BASE_URL,
       kill_threshold_gltf: KILL_THRESHOLD,
-      measures: 'AUTHORING-representation token cost (tokens an agent emits to author a scene as text)',
-      framing_note: 'glTF-JSON UNDERSTATES all-as-text size (geometry hidden in binary buffer); USDA inlines geometry as text and is the fairer everything-as-text comparator.',
+      measures:
+        'AUTHORING-representation token cost (tokens an agent emits to author a scene as text)',
+      framing_note:
+        'glTF-JSON UNDERSTATES all-as-text size (geometry hidden in binary buffer); USDA inlines geometry as text and is the fairer everything-as-text comparator.',
     },
     rows,
     dropped,
@@ -303,4 +340,7 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error('FATAL:', e.message); process.exit(1); });
+main().catch((e) => {
+  console.error('FATAL:', e.message);
+  process.exit(1);
+});

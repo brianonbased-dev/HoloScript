@@ -38,7 +38,9 @@ function assertEq(actual, expected, name) {
     console.log(`  PASS ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -119,7 +121,7 @@ const compatReceipt = JSON.parse(readFileSync(COMPAT_OUT, 'utf8'));
 assertEq(compatReceipt.vqe.ansatzRequested, 'uccsd', 'records requested ansatz');
 assertOk(
   compatReceipt.vqe.ansatzImplemented.includes('ry-cnot'),
-  'records implemented local ansatz',
+  'records implemented local ansatz'
 );
 
 if (testsFailed > 0) {

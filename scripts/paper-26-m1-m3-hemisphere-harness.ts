@@ -424,8 +424,7 @@ async function main(): Promise<void> {
         'Drives the shipped uAALComposedAgentHandler, which composes CognitiveVMTrait, PillarJEPA, SliceEmitter, and LatentIntegrityLayer.',
       deterministic: true,
       seed: cfg.seed,
-      note:
-        'Commands do not call external services. The harness records runtime events emitted by production handlers.',
+      note: 'Commands do not call external services. The harness records runtime events emitted by production handlers.',
     },
     config: {
       agents: cfg.agents,
@@ -463,10 +462,9 @@ async function main(): Promise<void> {
         final.rhoCumulative.mean > 0.8
           ? 'M3 cumulative rho passes the static target.'
           : 'M3 cumulative rho does not pass the static lifetime target; this matches the existing paper note that cumulative rho is miscalibrated for long runs.',
-      b2:
-        baseline.targetMet
-          ? 'B2 random-coordinate baseline passes the <0.5 threshold.'
-          : 'B2 random-coordinate baseline does not pass <0.5 under the current 2D gamma=1-box_area definition; independent random coordinates have high expected gamma, so threshold separation should not be claimed without a different baseline definition.',
+      b2: baseline.targetMet
+        ? 'B2 random-coordinate baseline passes the <0.5 threshold.'
+        : 'B2 random-coordinate baseline does not pass <0.5 under the current 2D gamma=1-box_area definition; independent random coordinates have high expected gamma, so threshold separation should not be claimed without a different baseline definition.',
     },
     trajectoryEncoding:
       'Per-agent trajectories are grouped by identical gamma/rho arrays to keep the artifact citeable; each group lists the agentIds that share the trajectory.',

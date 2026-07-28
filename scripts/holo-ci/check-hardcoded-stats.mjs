@@ -62,7 +62,8 @@ function isExcludedPath(p) {
 function scanFile(p, onlyAdded = null) {
   const violations = [];
   const text = readFileSync(p, 'utf8');
-  if (/^\s*>?\s*\*\*ARCHIVED\b|\bstale as of \d{4}-\d{2}-\d{2}\b/im.test(text.slice(0, 1000))) return violations;
+  if (/^\s*>?\s*\*\*ARCHIVED\b|\bstale as of \d{4}-\d{2}-\d{2}\b/im.test(text.slice(0, 1000)))
+    return violations;
   const lines = text.split(/\r?\n/);
   let inFence = false;
   lines.forEach((line, i) => {

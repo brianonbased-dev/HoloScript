@@ -63,11 +63,24 @@ const RESOLVER_HOME = join('packages', 'meaning', 'src');
 const TAG = '[language-strata]';
 const CANON_POINTER = 'docs/spec/language-architecture.md §6.2';
 
-const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', '__tests__', 'fixtures', 'examples', '.turbo']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'dist',
+  'build',
+  '__tests__',
+  'fixtures',
+  'examples',
+  '.turbo',
+]);
 const SKIP_FILE = /(\.test\.|\.spec\.|\.stories\.|\.d\.ts$)/;
 const TS_FILE = /\.(ts|mts|cts)$/;
 
-const GAP_REASONS = ['underdetermined', 'unprioritized_conflict', 'cyclic_dependency', 'missing_precondition'];
+const GAP_REASONS = [
+  'underdetermined',
+  'unprioritized_conflict',
+  'cyclic_dependency',
+  'missing_precondition',
+];
 const RESOLUTION_UNION =
   /['"]resolved['"]\s*\|\s*['"]unresolvable['"]|['"]unresolvable['"]\s*\|\s*['"]resolved['"]/;
 const RESOLVER_EXPORT = /export\s+function\s+(resolve[A-Z]\w*)\s*\(/g;
@@ -93,7 +106,9 @@ function isCommentLine(line) {
 for (const home of CONTRACT_HOMES) {
   if (!existsSync(join(ROOT, home))) {
     console.error(`${TAG} EXIT 2 — canonical meaning home not found: ${home}`);
-    console.error(`${TAG} If the HoloMeaning extraction moved it, update CONTRACT_HOMES in this gate (same commit).`);
+    console.error(
+      `${TAG} If the HoloMeaning extraction moved it, update CONTRACT_HOMES in this gate (same commit).`
+    );
     process.exit(2);
   }
 }
@@ -108,7 +123,9 @@ for (const file of walk(resolverHomeAbs)) {
   }
 }
 if (canonicalResolvers.size === 0) {
-  console.error(`${TAG} EXIT 2 — zero resolve* exports under ${RESOLVER_HOME}; the canonical set is empty.`);
+  console.error(
+    `${TAG} EXIT 2 — zero resolve* exports under ${RESOLVER_HOME}; the canonical set is empty.`
+  );
   process.exit(2);
 }
 
@@ -139,12 +156,18 @@ for (const pkg of readdirSync(packagesDir)) {
       }
 
       if (RESOLUTION_UNION.test(line)) {
-        findings.push(`RULE-B ${loc} — resolution-record union ('resolved' | 'unresolvable') re-declared outside home`);
+        findings.push(
+          `RULE-B ${loc} — resolution-record union ('resolved' | 'unresolvable') re-declared outside home`
+        );
       }
 
-      const reasonsHit = GAP_REASONS.filter((r) => line.includes(`'${r}'`) || line.includes(`"${r}"`));
+      const reasonsHit = GAP_REASONS.filter(
+        (r) => line.includes(`'${r}'`) || line.includes(`"${r}"`)
+      );
       if (reasonsHit.length >= 2 && line.includes('|')) {
-        findings.push(`RULE-C ${loc} — gap-reason enum mirror (${reasonsHit.join(', ')}) re-declared outside home`);
+        findings.push(
+          `RULE-C ${loc} — gap-reason enum mirror (${reasonsHit.join(', ')}) re-declared outside home`
+        );
       }
     });
   }
@@ -162,6 +185,8 @@ if (findings.length === 0) {
     `${TAG} ${findings.length} finding(s) — each is a second definition of the meaning stratum. ` +
       `Import HoloMeaning; never mirror it. (${CANON_POINTER})`
   );
-  console.log(`${TAG} mode: ${STRICT ? 'STRICT (failing)' : 'report-only (exit 0) — flip with --strict after §8.2 lands'}`);
+  console.log(
+    `${TAG} mode: ${STRICT ? 'STRICT (failing)' : 'report-only (exit 0) — flip with --strict after §8.2 lands'}`
+  );
 }
 process.exit(STRICT && findings.length > 0 ? 1 : 0);

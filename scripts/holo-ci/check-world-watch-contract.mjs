@@ -28,8 +28,10 @@ function hasAll(label, actual, required) {
 }
 
 function hasMapping(contract, surface) {
-  return Array.isArray(contract.executionMappings)
-    && contract.executionMappings.some((mapping) => mapping?.surface === surface);
+  return (
+    Array.isArray(contract.executionMappings) &&
+    contract.executionMappings.some((mapping) => mapping?.surface === surface)
+  );
 }
 
 const contract = readJson(contractPath);
@@ -93,7 +95,8 @@ for (const source of contract.sourceFiles || []) {
 
 const policy = contract.policy || {};
 if (policy.defaultMode !== 'dry_run') fail('policy.defaultMode must be dry_run');
-if (policy.requireHumanReviewForWrite !== true) fail('policy.requireHumanReviewForWrite must be true');
+if (policy.requireHumanReviewForWrite !== true)
+  fail('policy.requireHumanReviewForWrite must be true');
 for (const key of [
   'allowAutomaticProductionWrite',
   'allowProviderCloudDependence',

@@ -155,7 +155,9 @@ function laneSets(root) {
     consumedPypiDirs: new Set(
       (consumption.pypiPackages || []).map((item) => normalizeRepoPath(item.packageDir))
     ),
-    utilityNpm: new Set((utilities.utilities || []).map((item) => item.packageName).filter(Boolean)),
+    utilityNpm: new Set(
+      (utilities.utilities || []).map((item) => item.packageName).filter(Boolean)
+    ),
     utilityPypiDirs: new Set(
       (utilities.utilities || [])
         .map((item) => item.pypiPackage)
@@ -301,10 +303,11 @@ function readGraphCache(cachePath, packages) {
 
   for (const file of graph.files || []) {
     const normalized = normalizeRepoPath(file.path);
-    const pkg = packages.find((candidate) => {
-      const needle = `/${candidate.dir}/`.toLowerCase();
-      return normalized.toLowerCase().includes(needle);
-    }) || rootPackage;
+    const pkg =
+      packages.find((candidate) => {
+        const needle = `/${candidate.dir}/`.toLowerCase();
+        return normalized.toLowerCase().includes(needle);
+      }) || rootPackage;
     if (!pkg) continue;
     const row = packageCounts.get(pkg.name) || { graphFiles: 0, graphSymbols: 0 };
     row.graphFiles += 1;
@@ -423,11 +426,7 @@ function buildStewardshipRecommendations(rows, lanes) {
     const caveats = record.caveats || [];
     const gaps = [];
 
-    if (
-      record.registry === 'npm' &&
-      isReadySteward(record) &&
-      !releaseCandidates.has(name)
-    ) {
+    if (record.registry === 'npm' && isReadySteward(record) && !releaseCandidates.has(name)) {
       gaps.push('missing release manifest lane');
     }
     if (
@@ -520,7 +519,9 @@ function buildRecommendations(rows, history, lanes = {}) {
     });
   }
 
-  for (const row of history.orphanPackageDirs.sort((a, b) => b.commits - a.commits || b.files - a.files)) {
+  for (const row of history.orphanPackageDirs.sort(
+    (a, b) => b.commits - a.commits || b.files - a.files
+  )) {
     if (row.commits === 0) continue;
     if (!row.liveDir) continue;
     if (row.boundaryManifest) continue;
@@ -581,7 +582,10 @@ function runSelfTest() {
     true
   );
   assert.equal(
-    isGeneratedWasmPackManifest('C:/repo', 'C:/repo/packages/compiler-wasm/pkg-bundler/package.json'),
+    isGeneratedWasmPackManifest(
+      'C:/repo',
+      'C:/repo/packages/compiler-wasm/pkg-bundler/package.json'
+    ),
     true
   );
   assert.equal(
@@ -784,7 +788,9 @@ function printHuman(map) {
       row.fleetConsumed ? 'fleet-consumed' : null,
       row.publishAllowlisted ? 'allowlisted' : null,
       row.stewarded ? `stewarded:${row.stewardshipStatus}` : 'unstewarded',
-      row.stewardshipActiveBlockers?.length ? `active-blockers:${row.stewardshipActiveBlockers.length}` : null,
+      row.stewardshipActiveBlockers?.length
+        ? `active-blockers:${row.stewardshipActiveBlockers.length}`
+        : null,
       row.stewardshipCaveats?.length ? `caveats:${row.stewardshipCaveats.length}` : null,
       row.hasDocs ? 'docs' : 'missing-docs',
       row.hasGovernance ? 'governed' : 'missing-governance',
@@ -807,7 +813,9 @@ function printHuman(map) {
       const blockerWork = (item.blockers || []).map(
         (blocker) => `blocked:${blocker.scope}:${blocker.nextUnblockAction || blocker.summary}`
       );
-      const work = [...blockerWork, ...item.gaps, ...(item.nextActions || [])].slice(0, 3).join('; ');
+      const work = [...blockerWork, ...item.gaps, ...(item.nextActions || [])]
+        .slice(0, 3)
+        .join('; ');
       console.log(
         `  - steward ${item.package}: ${work} (status=${item.evidence.status}, commits=${item.evidence.commits}, activeBlockers=${item.evidence.activeBlockers})`
       );

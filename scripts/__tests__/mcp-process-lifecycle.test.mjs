@@ -239,10 +239,7 @@ test('lease self-heartbeats while open and clears the timer on close', () => {
     assert.equal(lifecycle.lease.heartbeatIntervalMs, 5_000);
     nowMs += 5_000;
     scheduled();
-    assert.equal(
-      JSON.parse(readFileSync(lifecycle.leasePath, 'utf8')).lastActivityAtMs,
-      nowMs
-    );
+    assert.equal(JSON.parse(readFileSync(lifecycle.leasePath, 'utf8')).lastActivityAtMs, nowMs);
 
     lifecycle.close();
     assert.equal(cleared, timer);

@@ -49,9 +49,14 @@ const TAG = '[grammar-authority]';
 const ENGINE = join('scripts', 'lang-audit', 'shadow-compare-rust-ts.mjs');
 const DRIFT = join('scripts', 'holo-ci', 'check-compiler-wasm-drift.mjs');
 const BASELINE =
-  baselineIdx >= 0 ? args[baselineIdx + 1] : join('scripts', 'lang-audit', 'shadow-compare-results-2026-07-17.json');
+  baselineIdx >= 0
+    ? args[baselineIdx + 1]
+    : join('scripts', 'lang-audit', 'shadow-compare-results-2026-07-17.json');
 
-for (const [label, p] of [['engine', ENGINE], ['baseline', BASELINE]]) {
+for (const [label, p] of [
+  ['engine', ENGINE],
+  ['baseline', BASELINE],
+]) {
   if (!existsSync(join(ROOT, p))) {
     console.error(`${TAG} EXIT 2 — ${label} not found: ${p}`);
     process.exit(2);
@@ -63,17 +68,26 @@ if (!SKIP_DRIFT && existsSync(join(ROOT, DRIFT))) {
   console.log(`${TAG} step 1/2 — authority freshness (check:compiler-wasm-drift)…`);
   const drift = spawnSync(process.execPath, [DRIFT], { stdio: 'inherit', cwd: ROOT });
   if (drift.status !== 0) {
-    console.error(`${TAG} FAIL — the WASM authority artifact is stale; rebuild pkg-node before differential testing.`);
+    console.error(
+      `${TAG} FAIL — the WASM authority artifact is stale; rebuild pkg-node before differential testing.`
+    );
     process.exit(1);
   }
 }
 
 // 2. Regression gate — files the authority already parses must keep parsing.
 console.log(`${TAG} step 2/2 — coverage regression vs baseline ${BASELINE}…`);
-const gate = spawnSync(process.execPath, [ENGINE, '--baseline', BASELINE], { stdio: 'inherit', cwd: ROOT });
+const gate = spawnSync(process.execPath, [ENGINE, '--baseline', BASELINE], {
+  stdio: 'inherit',
+  cwd: ROOT,
+});
 if (gate.status !== 0) {
-  console.error(`${TAG} FAIL — surface-grammar coverage regressed (a file the authority parsed now fails). (§5)`);
+  console.error(
+    `${TAG} FAIL — surface-grammar coverage regressed (a file the authority parsed now fails). (§5)`
+  );
   process.exit(gate.status || 1);
 }
-console.log(`${TAG} OK — authority fresh, zero coverage regressions. The grammar has one authority. (§5)`);
+console.log(
+  `${TAG} OK — authority fresh, zero coverage regressions. The grammar has one authority. (§5)`
+);
 process.exit(0);

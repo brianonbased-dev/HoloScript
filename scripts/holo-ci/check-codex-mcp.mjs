@@ -185,7 +185,7 @@ function fail(msg) {
     } else {
       fail(
         "cartographer: 'conformance' skill entry MISSING in capability-cartographer.mjs — " +
-          "conformance_* tools will appear as orphaned"
+          'conformance_* tools will appear as orphaned'
       );
     }
   }
@@ -200,7 +200,9 @@ function fail(msg) {
     readFileSync(skillPath, 'utf-8');
     pass('skill: ~/.claude/skills/conformance/SKILL.md exists');
   } catch {
-    fail('skill: ~/.claude/skills/conformance/SKILL.md is MISSING — conformance HoloGate wrapper not installed');
+    fail(
+      'skill: ~/.claude/skills/conformance/SKILL.md is MISSING — conformance HoloGate wrapper not installed'
+    );
   }
 }
 

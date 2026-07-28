@@ -89,7 +89,9 @@ function main(): void {
   const needsJudgment = counts['type-conflict'] + counts.disjoint;
 
   if (jsonOut) {
-    process.stdout.write(`${JSON.stringify({ total: conflicts.length, counts, unionSafe, needsJudgment, conflicts }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ total: conflicts.length, counts, unionSafe, needsJudgment, conflicts }, null, 2)}\n`
+    );
     return;
   }
   if (listCat) {
@@ -108,7 +110,9 @@ function main(): void {
   console.log(`  NEEDS JUDGMENT (rename/pick-a-type): ${needsJudgment}`);
   console.log(`    type-conflict:  ${counts['type-conflict']}`);
   console.log(`    disjoint:       ${counts.disjoint}`);
-  console.log(`  (list a category: --list enum-divergent | prop-superset | type-conflict | disjoint)`);
+  console.log(
+    `  (list a category: --list enum-divergent | prop-superset | type-conflict | disjoint)`
+  );
 }
 
 main();

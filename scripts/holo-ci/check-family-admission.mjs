@@ -65,7 +65,10 @@ if (resolversStart < 0) {
   process.exit(2);
 }
 // Bound the scan to the object literal body (up to the first '};' after the declaration).
-const resolversBody = registryText.slice(resolversStart, registryText.indexOf('};', resolversStart));
+const resolversBody = registryText.slice(
+  resolversStart,
+  registryText.indexOf('};', resolversStart)
+);
 const families = [];
 for (const m of resolversBody.matchAll(/^\s*([a-z_]+):\s*\(ir/gm)) families.push(m[1]);
 if (families.length === 0) {
@@ -86,7 +89,9 @@ function walk(dir, out = []) {
   }
   return out;
 }
-const homeText = walk(homeAbs).map((f) => readFileSync(f, 'utf8')).join('\n');
+const homeText = walk(homeAbs)
+  .map((f) => readFileSync(f, 'utf8'))
+  .join('\n');
 // A family-scoped code is a string literal whose head is `<family>.<something>`.
 const codePrefixes = new Set();
 for (const m of homeText.matchAll(/['"]([a-z_]+)\.[a-z_]+['"]/g)) codePrefixes.add(m[1]);
@@ -96,7 +101,9 @@ const incomplete = families.filter((f) => !codePrefixes.has(f));
 
 console.log(`${TAG} ${families.length} admitted families (registry: ${REGISTRY_FILE})`);
 for (const f of incomplete) {
-  console.log(`${TAG} INCOMPLETE ${f} — resolver present but NO family-scoped gap code (emits only a coarse base bucket; §4.2)`);
+  console.log(
+    `${TAG} INCOMPLETE ${f} — resolver present but NO family-scoped gap code (emits only a coarse base bucket; §4.2)`
+  );
 }
 if (incomplete.length === 0) {
   console.log(`${TAG} OK — every admitted family emits a family-scoped gap code. (${CANON})`);
@@ -105,7 +112,9 @@ if (incomplete.length === 0) {
     `${TAG} ${incomplete.length}/${families.length} families incomplete: ${incomplete.join(', ')}. ` +
       `Give each a family-scoped code via structuredGap('<family>.<code>', …). (${CANON})`
   );
-  console.log(`${TAG} cross-repo half (corpus row + benchmark, §4.3/§4.4) tracked separately — ai-ecosystem scripts/corpus + scripts/benchmark-*.`);
+  console.log(
+    `${TAG} cross-repo half (corpus row + benchmark, §4.3/§4.4) tracked separately — ai-ecosystem scripts/corpus + scripts/benchmark-*.`
+  );
   console.log(`${TAG} mode: ${STRICT ? 'STRICT (failing)' : 'report-only (exit 0)'}`);
 }
 process.exit(STRICT && incomplete.length > 0 ? 1 : 0);

@@ -24,7 +24,9 @@ function assertEq(actual, expected, name) {
     console.log(`  PASS ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -34,7 +36,9 @@ function assertIncludes(text, expected, name) {
     console.log(`  PASS ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected output to include ${JSON.stringify(expected)}\n${text}`);
+    console.error(
+      `  FAIL ${name}: expected output to include ${JSON.stringify(expected)}\n${text}`
+    );
   }
 }
 
@@ -97,7 +101,11 @@ console.log('trait-test-tautology-canary.test.mjs');
   const result = run(root);
   assertEq(result.status, 1, 'known echo tautology exits 1');
   assertIncludes(result.stdout, '"tautologies": 1', 'report records one tautology');
-  assertIncludes(result.stdout, '"bucket": "TAUTOLOGY"', 'report places finding in TAUTOLOGY bucket');
+  assertIncludes(
+    result.stdout,
+    '"bucket": "TAUTOLOGY"',
+    'report places finding in TAUTOLOGY bucket'
+  );
   assertIncludes(result.stdout, '"field": "polygonCount"', 'report names the echoed field');
   rmSync(root, { recursive: true, force: true });
 }

@@ -37,23 +37,21 @@ if (!fs.existsSync(COMPILER_TOOLS)) {
 const src = fs.readFileSync(COMPILER_TOOLS, 'utf8');
 
 // ── Extract _INTERNAL_DIALECT_NAMES entries ────────────────────────────────────────────
-const internalMatch = src.match(
-  /const _INTERNAL_DIALECT_NAMES\s*=\s*new Set\(\[([\s\S]*?)\]\)/,
-);
+const internalMatch = src.match(/const _INTERNAL_DIALECT_NAMES\s*=\s*new Set\(\[([\s\S]*?)\]\)/);
 if (!internalMatch) {
-  console.error('[export-targets-sync] could not parse _INTERNAL_DIALECT_NAMES — file may have moved');
+  console.error(
+    '[export-targets-sync] could not parse _INTERNAL_DIALECT_NAMES — file may have moved'
+  );
   process.exit(2);
 }
-const internalNames = new Set(
-  [...internalMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
-);
+const internalNames = new Set([...internalMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
 
 // ── Extract _LEGACY_EXPORT_TARGETS entries ─────────────────────────────────────────────
-const legacyMatch = src.match(
-  /const _LEGACY_EXPORT_TARGETS\s*=\s*\[([\s\S]*?)\]\s*as const/,
-);
+const legacyMatch = src.match(/const _LEGACY_EXPORT_TARGETS\s*=\s*\[([\s\S]*?)\]\s*as const/);
 if (!legacyMatch) {
-  console.error('[export-targets-sync] could not parse _LEGACY_EXPORT_TARGETS — file may have moved');
+  console.error(
+    '[export-targets-sync] could not parse _LEGACY_EXPORT_TARGETS — file may have moved'
+  );
   process.exit(2);
 }
 const legacyTargets = [...legacyMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
@@ -72,9 +70,7 @@ if (!enumMatch) {
   console.error('[export-targets-sync] could not parse compile_holoscript enum');
   process.exit(2);
 }
-const enumTargets = new Set(
-  [...enumMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
-);
+const enumTargets = new Set([...enumMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
 
 // ── Resolve expected targets (mirroring handleListExportTargets logic) ─────────────────
 // We can't call DialectRegistry at gate time without building the package, so we
@@ -98,7 +94,7 @@ let ok = true;
 for (const expected of expectedTargets) {
   if (!enumTargets.has(expected)) {
     console.error(
-      `[export-targets-sync] MISSING: '${expected}' is in handleListExportTargets but NOT in compile_holoscript enum`,
+      `[export-targets-sync] MISSING: '${expected}' is in handleListExportTargets but NOT in compile_holoscript enum`
     );
     ok = false;
   }
@@ -107,7 +103,7 @@ for (const expected of expectedTargets) {
 for (const e of enumTargets) {
   if (internalNames.has(e)) {
     console.error(
-      `[export-targets-sync] INTERNAL LEAK: '${e}' is in compile_holoscript enum but is marked internal`,
+      `[export-targets-sync] INTERNAL LEAK: '${e}' is in compile_holoscript enum but is marked internal`
     );
     ok = false;
   }
@@ -115,7 +111,7 @@ for (const e of enumTargets) {
 
 if (ok) {
   console.log(
-    `[export-targets-sync] OK — ${expectedTargets.size} targets in sync with compile_holoscript enum`,
+    `[export-targets-sync] OK — ${expectedTargets.size} targets in sync with compile_holoscript enum`
   );
   process.exit(0);
 } else {

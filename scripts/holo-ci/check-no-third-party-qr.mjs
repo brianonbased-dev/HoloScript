@@ -34,7 +34,10 @@ const REPO = resolve(process.cwd());
 // Known hosted QR-generation services. Add new offenders here as they're found.
 const FORBIDDEN_HOSTS = ['api.qrserver.com', 'chart.googleapis.com/chart?cht=qr', 'qrickit.com'];
 
-const HOST_RE = new RegExp(FORBIDDEN_HOSTS.map((h) => h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'i');
+const HOST_RE = new RegExp(
+  FORBIDDEN_HOSTS.map((h) => h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+  'i'
+);
 
 function isExcludedPath(p) {
   const rel = relative(REPO, p).split(sep).join('/');
@@ -136,7 +139,9 @@ function main() {
     return;
   }
 
-  console.error(`\n  ✗ check:no-third-party-qr — ${findings.length} third-party QR-service literal(s):\n`);
+  console.error(
+    `\n  ✗ check:no-third-party-qr — ${findings.length} third-party QR-service literal(s):\n`
+  );
   for (const f of findings) {
     console.error(`    ${f.file}:${f.line}  ${f.text}`);
   }

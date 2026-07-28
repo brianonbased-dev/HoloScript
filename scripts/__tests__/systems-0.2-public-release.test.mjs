@@ -14,7 +14,9 @@ const manifest = JSON.parse(
   readFileSync(join(root, 'scripts/holo-ci/systems-0.2-release-manifest.json'), 'utf8')
 );
 const hash = (path) =>
-  createHash('sha256').update(readFileSync(join(root, path))).digest('hex');
+  createHash('sha256')
+    .update(readFileSync(join(root, path)))
+    .digest('hex');
 
 assert.equal(manifest.schema, 'holoscript.systems-platform-public-release/v1');
 assert.equal(manifest.version, '0.2.0');

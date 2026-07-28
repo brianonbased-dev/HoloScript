@@ -26,8 +26,9 @@ const PLUGIN_ROOT = resolve(__dirname, '../../packages/plugins/holonews-plugin/s
 const { resolveProofAdjacencyPolicy, auditReceiptForWallInvariant, buildKioskDisplayModel } =
   await import(pathToFileURL(resolve(PLUGIN_ROOT, 'traits/proof-adjacency-guard.mjs')).href);
 
-const { buildCaelReceipt, createClaimKioskHandler } =
-  await import(pathToFileURL(resolve(PLUGIN_ROOT, 'traits/claim-kiosk-trait.mjs')).href);
+const { buildCaelReceipt, createClaimKioskHandler } = await import(
+  pathToFileURL(resolve(PLUGIN_ROOT, 'traits/claim-kiosk-trait.mjs')).href
+);
 
 // ── Test harness ───────────────────────────────────────────────────────────
 
@@ -101,7 +102,10 @@ test('badge-with-wall when proven + wall present + canRenderWall=true', () => {
 });
 
 test('badge-suppressed-rerun-only when proven + wall present + canRenderWall=false', () => {
-  assert.equal(resolveProofAdjacencyPolicy(makeProvenReceipt(), false), 'badge-suppressed-rerun-only');
+  assert.equal(
+    resolveProofAdjacencyPolicy(makeProvenReceipt(), false),
+    'badge-suppressed-rerun-only'
+  );
 });
 
 // CRITICAL: proven without wall → must NEVER produce badge-with-wall
@@ -150,19 +154,28 @@ test('flags missing notProvenWall on a proven receipt', () => {
 
 test('flags missing verifyUrl on a proven receipt', () => {
   const v = auditReceiptForWallInvariant(makeProvenReceipt({ verifyUrl: '' }));
-  assert.ok(v.some((x) => x.includes('verifyUrl is missing')), 'expected verifyUrl violation');
+  assert.ok(
+    v.some((x) => x.includes('verifyUrl is missing')),
+    'expected verifyUrl violation'
+  );
 });
 
 test('flags contradictory state: proven verdict but hashChainValid=false', () => {
   const r = { ...makeProvenReceipt(), hashChainValid: false };
   const v = auditReceiptForWallInvariant(r);
-  assert.ok(v.some((x) => x.includes('hashChainValid is false')), 'expected hashChainValid violation');
+  assert.ok(
+    v.some((x) => x.includes('hashChainValid is false')),
+    'expected hashChainValid violation'
+  );
 });
 
 test('flags contradictory state: proven verdict but replayValid=false', () => {
   const r = { ...makeProvenReceipt(), replayValid: false };
   const v = auditReceiptForWallInvariant(r);
-  assert.ok(v.some((x) => x.includes('replayValid is false')), 'expected replayValid violation');
+  assert.ok(
+    v.some((x) => x.includes('replayValid is false')),
+    'expected replayValid violation'
+  );
 });
 
 test('no violations for a labeled receipt (no badge expected)', () => {
@@ -212,7 +225,7 @@ test('wallText is NEVER present when showBadge=false (invariant cross-check)', (
       assert.equal(
         model.wallText,
         undefined,
-        `wallText should be undefined when showBadge=false (policy=${model.policy})`,
+        `wallText should be undefined when showBadge=false (policy=${model.policy})`
       );
     }
   }
@@ -256,7 +269,10 @@ test('emits kiosk:ready on attach', () => {
   const node = {};
   const ctx = makeCtx();
   handler.onAttach(node, handler.defaultConfig, ctx);
-  assert.ok(ctx.events.some((e) => e.type === 'kiosk:ready'), 'expected kiosk:ready');
+  assert.ok(
+    ctx.events.some((e) => e.type === 'kiosk:ready'),
+    'expected kiosk:ready'
+  );
 });
 
 test('emits kiosk:badge_render when a proven receipt with wall is bound', () => {
@@ -271,8 +287,14 @@ test('emits kiosk:badge_render when a proven receipt with wall is bound', () => 
     payload: { receipt: makeProvenReceipt() },
   });
 
-  assert.ok(ctx.events.some((e) => e.type === 'kiosk:badge_render'), 'expected kiosk:badge_render');
-  assert.ok(!ctx.events.some((e) => e.type === 'kiosk:badge_suppressed'), 'must NOT emit kiosk:badge_suppressed');
+  assert.ok(
+    ctx.events.some((e) => e.type === 'kiosk:badge_render'),
+    'expected kiosk:badge_render'
+  );
+  assert.ok(
+    !ctx.events.some((e) => e.type === 'kiosk:badge_suppressed'),
+    'must NOT emit kiosk:badge_suppressed'
+  );
 
   const ev = ctx.events.find((e) => e.type === 'kiosk:badge_render');
   assert.equal(ev.payload.wallText, WALL_TEXT);
@@ -292,8 +314,14 @@ test('emits kiosk:badge_suppressed (not kiosk:badge_render) when wall text is ab
     payload: { receipt: makeProvenReceipt({ notProvenWall: undefined }) },
   });
 
-  assert.ok(!ctx.events.some((e) => e.type === 'kiosk:badge_render'), 'must NOT emit kiosk:badge_render');
-  assert.ok(ctx.events.some((e) => e.type === 'kiosk:badge_suppressed'), 'expected kiosk:badge_suppressed');
+  assert.ok(
+    !ctx.events.some((e) => e.type === 'kiosk:badge_render'),
+    'must NOT emit kiosk:badge_render'
+  );
+  assert.ok(
+    ctx.events.some((e) => e.type === 'kiosk:badge_suppressed'),
+    'expected kiosk:badge_suppressed'
+  );
 
   const ev = ctx.events.find((e) => e.type === 'kiosk:badge_suppressed');
   assert.equal(ev.payload.reason, 'missing_wall_text');
@@ -312,8 +340,14 @@ test('emits kiosk:badge_suppressed when canRenderWall=false even with wall text 
     payload: { receipt: makeProvenReceipt() },
   });
 
-  assert.ok(!ctx.events.some((e) => e.type === 'kiosk:badge_render'), 'must NOT emit kiosk:badge_render');
-  assert.ok(ctx.events.some((e) => e.type === 'kiosk:badge_suppressed'), 'expected kiosk:badge_suppressed');
+  assert.ok(
+    !ctx.events.some((e) => e.type === 'kiosk:badge_render'),
+    'must NOT emit kiosk:badge_render'
+  );
+  assert.ok(
+    ctx.events.some((e) => e.type === 'kiosk:badge_suppressed'),
+    'expected kiosk:badge_suppressed'
+  );
   const ev = ctx.events.find((e) => e.type === 'kiosk:badge_suppressed');
   assert.equal(ev.payload.reason, 'target_cannot_render_wall');
 });
@@ -330,7 +364,10 @@ test('emits kiosk:audit_violation when loudAuditFailures=true and wall is missin
     payload: { receipt: makeProvenReceipt({ notProvenWall: '' }) },
   });
 
-  assert.ok(ctx.events.some((e) => e.type === 'kiosk:audit_violation'), 'expected kiosk:audit_violation');
+  assert.ok(
+    ctx.events.some((e) => e.type === 'kiosk:audit_violation'),
+    'expected kiosk:audit_violation'
+  );
 });
 
 test('clamps envelope slider values to param bounds', () => {
@@ -403,7 +440,10 @@ test('resets to idle on kiosk:reset', () => {
   assert.equal(s.idle, true);
   assert.equal(s.receipt, null);
   assert.equal(s.displayModel, null);
-  assert.ok(ctx.events.some((e) => e.type === 'kiosk:ready'), 'expected kiosk:ready after reset');
+  assert.ok(
+    ctx.events.some((e) => e.type === 'kiosk:ready'),
+    'expected kiosk:ready after reset'
+  );
 });
 
 // ── buildCaelReceipt ────────────────────────────────────────────────────────
@@ -412,40 +452,52 @@ console.log('\nbuildCaelReceipt');
 
 test('verdict is proven when both hashChainValid and replayValid are true', () => {
   const r = buildCaelReceipt({
-    receiptId: 'r1', traceId: 't1',
+    receiptId: 'r1',
+    traceId: 't1',
     verifyUrl: 'https://example.com/verify',
-    hashChainValid: true, replayValid: true,
-    claimText: 'claim', notProvenWall: 'wall',
+    hashChainValid: true,
+    replayValid: true,
+    claimText: 'claim',
+    notProvenWall: 'wall',
   });
   assert.equal(r.verdict, 'proven');
 });
 
 test('verdict is labeled when hashChainValid is false', () => {
   const r = buildCaelReceipt({
-    receiptId: 'r2', traceId: 't2',
+    receiptId: 'r2',
+    traceId: 't2',
     verifyUrl: 'https://example.com/verify',
-    hashChainValid: false, replayValid: true,
-    claimText: 'claim', notProvenWall: 'wall',
+    hashChainValid: false,
+    replayValid: true,
+    claimText: 'claim',
+    notProvenWall: 'wall',
   });
   assert.equal(r.verdict, 'labeled');
 });
 
 test('verdict is labeled when replayValid is false', () => {
   const r = buildCaelReceipt({
-    receiptId: 'r3', traceId: 't3',
+    receiptId: 'r3',
+    traceId: 't3',
     verifyUrl: 'https://example.com/verify',
-    hashChainValid: true, replayValid: false,
-    claimText: 'claim', notProvenWall: 'wall',
+    hashChainValid: true,
+    replayValid: false,
+    claimText: 'claim',
+    notProvenWall: 'wall',
   });
   assert.equal(r.verdict, 'labeled');
 });
 
 test('sealedAt defaults to a valid ISO string', () => {
   const r = buildCaelReceipt({
-    receiptId: 'r4', traceId: 't4',
+    receiptId: 'r4',
+    traceId: 't4',
     verifyUrl: 'https://example.com/verify',
-    hashChainValid: true, replayValid: true,
-    claimText: 'claim', notProvenWall: 'wall',
+    hashChainValid: true,
+    replayValid: true,
+    claimText: 'claim',
+    notProvenWall: 'wall',
   });
   assert.doesNotThrow(() => new Date(r.sealedAt).toISOString());
 });

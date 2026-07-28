@@ -38,7 +38,9 @@ function genKek() {
 async function withVault(fn) {
   const pkg = await import('@holoscript/secrets-broker').catch(() => null);
   if (!pkg || !pkg.createHoloKeyVault) {
-    console.error('holokey: package not built. Run: pnpm --filter @holoscript/secrets-broker build');
+    console.error(
+      'holokey: package not built. Run: pnpm --filter @holoscript/secrets-broker build'
+    );
     process.exit(2);
   }
   const dbUrl = process.env.HOLOKEY_DATABASE_URL || process.env.DATABASE_URL;
@@ -76,7 +78,9 @@ switch (cmd) {
     }
     await withVault(async (v) => {
       const r = await v.store.put({ ownerId: owner, name: rest[0], value: rest[1] });
-      console.log(`set ${r.ref} (v${r.version}) owner=${owner} backend=${v.backend} kek=${v.kekGrade}`);
+      console.log(
+        `set ${r.ref} (v${r.version}) owner=${owner} backend=${v.backend} kek=${v.kekGrade}`
+      );
     });
     break;
   case 'get':
@@ -96,7 +100,8 @@ switch (cmd) {
         console.log(`(no secrets for owner "${owner}")`);
         return;
       }
-      for (const s of meta) console.log(`${s.name}\t(v${s.version}, used ${s.lastUsedAt ?? 'never'})`);
+      for (const s of meta)
+        console.log(`${s.name}\t(v${s.version}, used ${s.lastUsedAt ?? 'never'})`);
     });
     break;
   default:

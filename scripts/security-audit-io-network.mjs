@@ -49,7 +49,12 @@ function parseArgs(argv = process.argv.slice(2)) {
     } else if (arg === '--files') {
       const value = argv[++i];
       if (!value) throw new Error('--files requires a comma-separated path list');
-      options.files.push(...value.split(',').map((entry) => entry.trim()).filter(Boolean));
+      options.files.push(
+        ...value
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+      );
     } else if (arg === '--help' || arg === '-h') {
       options.help = true;
     } else {
@@ -217,10 +222,7 @@ function findTypeScriptFiles(dir, maxDepth = 5) {
 }
 
 function isScannableTypeScriptFile(filePath) {
-  return (
-    (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) &&
-    !filePath.endsWith('.d.ts')
-  );
+  return (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) && !filePath.endsWith('.d.ts');
 }
 
 function toRelativePosix(root, filePath) {
@@ -232,9 +234,14 @@ function uniqueFiles(files) {
 }
 
 function explicitTargetFiles(root, requestedFiles) {
-  return uniqueFiles(requestedFiles
-    .map((file) => path.resolve(root, file))
-    .filter((file) => fs.existsSync(file) && fs.statSync(file).isFile() && isScannableTypeScriptFile(file)));
+  return uniqueFiles(
+    requestedFiles
+      .map((file) => path.resolve(root, file))
+      .filter(
+        (file) =>
+          fs.existsSync(file) && fs.statSync(file).isFile() && isScannableTypeScriptFile(file)
+      )
+  );
 }
 
 function gitChangedFiles(root, base = 'HEAD') {
@@ -253,15 +260,25 @@ function gitChangedFiles(root, base = 'HEAD') {
       });
       if (result.status !== 0) continue;
       const output = result.stdout || '';
-      files.push(...output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean));
+      files.push(
+        ...output
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+      );
     } catch {
       // Non-git temp fixtures and shallow CI checkouts can still use --files.
     }
   }
 
-  return uniqueFiles(files
-    .map((file) => path.resolve(root, file))
-    .filter((file) => fs.existsSync(file) && fs.statSync(file).isFile() && isScannableTypeScriptFile(file)));
+  return uniqueFiles(
+    files
+      .map((file) => path.resolve(root, file))
+      .filter(
+        (file) =>
+          fs.existsSync(file) && fs.statSync(file).isFile() && isScannableTypeScriptFile(file)
+      )
+  );
 }
 
 function targetFilesForMode({ root, allFiles, files = [], changedFiles = false, base = 'HEAD' }) {
@@ -468,7 +485,9 @@ Options:
       console.log('');
     }
     if (targetedMode && residualFindings.length) {
-      console.log(`Residual backlog omitted from target report: ${residualFindings.length} finding(s)`);
+      console.log(
+        `Residual backlog omitted from target report: ${residualFindings.length} finding(s)`
+      );
       console.log('');
     }
   } else {

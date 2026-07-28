@@ -2,33 +2,15 @@
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const DEFAULT_MANIFEST = join(
-  ROOT,
-  'scripts',
-  'holo-ci',
-  'systems-0.2-release-manifest.json'
-);
+const DEFAULT_MANIFEST = join(ROOT, 'scripts', 'holo-ci', 'systems-0.2-release-manifest.json');
 const USER_AGENT = 'HoloScript-systems-0.2-public-release/1';
-const WINDOWS_NPM_CLI = join(
-  dirname(process.execPath),
-  'node_modules',
-  'npm',
-  'bin',
-  'npm-cli.js'
-);
+const WINDOWS_NPM_CLI = join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
 const NPM_COMMAND =
   process.platform === 'win32' && existsSync(WINDOWS_NPM_CLI)
     ? { command: process.execPath, prefix: [WINDOWS_NPM_CLI] }
@@ -120,7 +102,9 @@ export function evaluateGitHubRelease(manifest, release) {
   const assets = [];
   const needsDownload = [];
   if (release?.tag_name !== expected.tag) {
-    errors.push(`GitHub tag drift: expected ${expected.tag}, found ${release?.tag_name || '<missing>'}`);
+    errors.push(
+      `GitHub tag drift: expected ${expected.tag}, found ${release?.tag_name || '<missing>'}`
+    );
   }
   if (release?.draft === true) errors.push(`${expected.tag} must not be a draft`);
   if (release?.prerelease !== true) errors.push(`${expected.tag} must remain a prerelease`);
@@ -137,9 +121,7 @@ export function evaluateGitHubRelease(manifest, release) {
     }
     const apiSha256 = String(asset.digest || '').replace(/^sha256:/u, '');
     if (apiSha256 && apiSha256 !== artifact.sha256) {
-      errors.push(
-        `${artifact.name} digest drift: expected ${artifact.sha256}, found ${apiSha256}`
-      );
+      errors.push(`${artifact.name} digest drift: expected ${artifact.sha256}, found ${apiSha256}`);
     }
     if (!apiSha256) needsDownload.push({ artifact, asset });
     assets.push({
@@ -286,16 +268,7 @@ function runLinuxColdConsumer(manifest, timeoutMs) {
   ].join('; ');
   const output = run(
     'docker',
-    [
-      'run',
-      '--rm',
-      '--platform',
-      'linux/amd64',
-      'node:22-bookworm',
-      'bash',
-      '-lc',
-      shell,
-    ],
+    ['run', '--rm', '--platform', 'linux/amd64', 'node:22-bookworm', 'bash', '-lc', shell],
     { timeout: Math.max(timeoutMs, 600_000) }
   );
   const detail = JSON.parse(output.split(/\r?\n/u).at(-1));
@@ -326,7 +299,12 @@ export async function checkSystems02PublicRelease({
       errors.push(...result.errors);
     } catch (error) {
       const message = `${expected.name} public readback failed: ${errorMessage(error)}`;
-      registry.push({ ok: false, name: expected.name, version: expected.version, errors: [message] });
+      registry.push({
+        ok: false,
+        name: expected.name,
+        version: expected.version,
+        errors: [message],
+      });
       errors.push(message);
     }
   }
@@ -426,9 +404,7 @@ async function main() {
       `[systems-0.2-public-release] ${result.checks.github.ok ? 'PASS' : 'FAIL'} GitHub ${manifest.github.tag}`
     );
     for (const row of result.checks.coldConsumers) {
-      console.log(
-        `[systems-0.2-public-release] ${row.ok ? 'PASS' : 'FAIL'} cold ${row.platform}`
-      );
+      console.log(`[systems-0.2-public-release] ${row.ok ? 'PASS' : 'FAIL'} cold ${row.platform}`);
     }
     for (const error of result.errors) {
       console.error(`[systems-0.2-public-release] FAIL: ${error}`);

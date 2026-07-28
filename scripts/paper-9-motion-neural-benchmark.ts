@@ -37,7 +37,10 @@ import {
   type BaselineSystem,
 } from '../packages/engine/src/animation/paper/MotionPlausibilityBenchmark.js';
 
-type Category = Extract<MotionCategory, 'locomotion' | 'gesture' | 'interaction' | 'acrobatics' | 'micro-gesture'>;
+type Category = Extract<
+  MotionCategory,
+  'locomotion' | 'gesture' | 'interaction' | 'acrobatics' | 'micro-gesture'
+>;
 
 interface CliConfig {
   out: string;
@@ -214,11 +217,7 @@ function provisionMotionModels(): void {
   });
   if (result.status !== 0) {
     throw new Error(
-      [
-        'provision-motion-model.mjs --verify failed',
-        result.stdout.trim(),
-        result.stderr.trim(),
-      ]
+      ['provision-motion-model.mjs --verify failed', result.stdout.trim(), result.stderr.trim()]
         .filter(Boolean)
         .join('\n')
     );
@@ -421,7 +420,9 @@ function buildRows(
     });
 
     for (const baseline of BASELINES) {
-      const cell = baselineCells.find((row) => row.category === category && row.system === baseline);
+      const cell = baselineCells.find(
+        (row) => row.category === category && row.system === baseline
+      );
       if (!cell) throw new Error(`Missing baseline cell for ${category}/${baseline}`);
       rows.push({
         category,

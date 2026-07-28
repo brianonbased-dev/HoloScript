@@ -76,13 +76,19 @@ function publicApiCanariesFromManifest(manifest) {
       });
     }
   }
-  return rows.sort((a, b) => `${a.packageName}:${a.probe}`.localeCompare(`${b.packageName}:${b.probe}`));
+  return rows.sort((a, b) =>
+    `${a.packageName}:${a.probe}`.localeCompare(`${b.packageName}:${b.probe}`)
+  );
 }
 
 function filterCanaries(rows) {
   return rows.filter((row) => {
     if (TARGET_ID && row.id !== TARGET_ID) return false;
-    if (TARGET_PACKAGE && row.packageName !== TARGET_PACKAGE && row.packageSpec !== TARGET_PACKAGE) {
+    if (
+      TARGET_PACKAGE &&
+      row.packageName !== TARGET_PACKAGE &&
+      row.packageSpec !== TARGET_PACKAGE
+    ) {
       return false;
     }
     if (TARGET_PROBE && row.probe !== TARGET_PROBE) return false;
@@ -155,7 +161,9 @@ function validateCanaryRows(rows) {
     seen.add(key);
     if (row.registry !== 'npm') errors.push(`${row.id}: public API canary must be npm-backed`);
     if (!row.packageSpec.endsWith('@latest')) {
-      errors.push(`${row.id}: package spec should use @latest for registry proof: ${row.packageSpec}`);
+      errors.push(
+        `${row.id}: package spec should use @latest for registry proof: ${row.packageSpec}`
+      );
     }
   }
   return errors;
@@ -194,7 +202,9 @@ function runSelfTest() {
 
 function emitList(rows) {
   if (JSON_OUT) {
-    console.log(JSON.stringify({ schema: 'holoscript.package-public-api-canaries.list.v1', rows }, null, 2));
+    console.log(
+      JSON.stringify({ schema: 'holoscript.package-public-api-canaries.list.v1', rows }, null, 2)
+    );
     return;
   }
   for (const row of rows) {
@@ -218,7 +228,9 @@ function main() {
 
   const rows = filterCanaries(allRows);
   if (rows.length === 0) {
-    console.error('[package-public-api-canaries] no public API canaries matched the requested filters');
+    console.error(
+      '[package-public-api-canaries] no public API canaries matched the requested filters'
+    );
     process.exit(1);
   }
 
@@ -250,10 +262,15 @@ function main() {
         `[package-public-api-canaries] ${status} ${row.packageName}${version} ${row.probe} ${row.finalDisposition || ''}`.trim()
       );
       if (!row.ok && row.failure) {
-        console.error(`[package-public-api-canaries] ${row.packageName}: ${JSON.stringify(row.failure)}`);
+        console.error(
+          `[package-public-api-canaries] ${row.packageName}: ${JSON.stringify(row.failure)}`
+        );
       }
     }
-    if (ok) console.log(`[package-public-api-canaries] PASS: ${results.length} public API canary(s) passed.`);
+    if (ok)
+      console.log(
+        `[package-public-api-canaries] PASS: ${results.length} public API canary(s) passed.`
+      );
   }
 
   process.exit(ok ? 0 : 1);

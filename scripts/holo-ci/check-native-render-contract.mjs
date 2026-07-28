@@ -16,7 +16,12 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
 const packageRoot = join(repoRoot, 'packages', 'holo-vm');
-const vitestBin = join(repoRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'vitest.CMD' : 'vitest');
+const vitestBin = join(
+  repoRoot,
+  'node_modules',
+  '.bin',
+  process.platform === 'win32' ? 'vitest.CMD' : 'vitest'
+);
 
 if (!existsSync(vitestBin)) {
   console.error(`[native-render-contract] missing Vitest binary: ${vitestBin}`);

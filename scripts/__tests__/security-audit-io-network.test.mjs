@@ -18,7 +18,9 @@ function assertEq(actual, expected, name) {
     console.log(`  PASS ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -59,13 +61,13 @@ function cleanup(root) {
 }
 
 const cleanAbsorbRoute =
-  "export function registerAbsorbProxy(app, deps) {\n" +
+  'export function registerAbsorbProxy(app, deps) {\n' +
   "  app.post('/api/absorb/:tool', (req, res) => {\n" +
   "    const callerKey = req.headers.authorization || req.headers['x-api-key'];\n" +
   "    if (!callerKey) return res.status(401).json({ error: 'auth required' });\n" +
-  "    return deps.proxy(req, res, { callerKey });\n" +
-  "  });\n" +
-  "}\n";
+  '    return deps.proxy(req, res, { callerKey });\n' +
+  '  });\n' +
+  '}\n';
 
 console.log('security-audit-io-network.test.mjs');
 
@@ -78,7 +80,11 @@ console.log('security-audit-io-network.test.mjs');
     const result = run(root, ['--files', 'packages/mcp-server/src/absorb/http-routes.ts']);
     assertEq(result.code, 0, 'explicit clean target passes despite residual backlog');
     assertMatch(result.out, /Blocking findings on target files: 0/, 'reports no target findings');
-    assertMatch(result.out, /Residual backlog findings \(non-blocking\): 1/, 'reports residual backlog count');
+    assertMatch(
+      result.out,
+      /Residual backlog findings \(non-blocking\): 1/,
+      'reports residual backlog count'
+    );
   } finally {
     cleanup(root);
   }
@@ -92,7 +98,11 @@ console.log('security-audit-io-network.test.mjs');
     git(root, ['init']);
     const result = run(root, ['--changed-files']);
     assertEq(result.code, 1, 'changed target findings fail');
-    assertMatch(result.out, /Changed-file gate: 1 target file\(s\)/, 'reports changed target count');
+    assertMatch(
+      result.out,
+      /Changed-file gate: 1 target file\(s\)/,
+      'reports changed target count'
+    );
     assertMatch(result.out, /Findings detected on target files/, 'prints target failure reason');
   } finally {
     cleanup(root);

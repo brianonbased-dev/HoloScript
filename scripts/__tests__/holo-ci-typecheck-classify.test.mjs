@@ -13,10 +13,7 @@
  * Run: node scripts/__tests__/holo-ci-typecheck-classify.test.mjs
  */
 import assert from 'node:assert/strict';
-import {
-  classifyTypecheckResult,
-  countTsDiagnostics,
-} from '../holo-ci/typecheck-classify.mjs';
+import { classifyTypecheckResult, countTsDiagnostics } from '../holo-ci/typecheck-classify.mjs';
 
 let run = 0;
 let failed = 0;
@@ -77,7 +74,10 @@ test('real type errors: exit 1 with parseable diagnostics -> type failure, NOT a
 });
 
 test('crash/kill (e.g. 180s timeout) with no diagnostics -> toolingFailure', () => {
-  const r = classifyTypecheckResult(null ?? 143, '\n[typecheck] tsc timed out after 180s and was killed.');
+  const r = classifyTypecheckResult(
+    null ?? 143,
+    '\n[typecheck] tsc timed out after 180s and was killed.'
+  );
   assert.equal(r.toolingFailure, true);
 });
 

@@ -28,15 +28,12 @@ function phase(id, filters) {
 }
 
 const PHASES = [
-  phase(
-    'type-provider-foundation',
-    [
-      '@holoscript/core-types',
-      '@holoscript/llm-provider',
-      '@holoscript/agent-protocol',
-      '@holoscript/uaal',
-    ]
-  ),
+  phase('type-provider-foundation', [
+    '@holoscript/core-types',
+    '@holoscript/llm-provider',
+    '@holoscript/agent-protocol',
+    '@holoscript/uaal',
+  ]),
   phase('engine-foundation', ['@holoscript/holoembed', '@holoscript/snn-webgpu']),
   phase('engine', ['@holoscript/engine']),
   phase(
@@ -90,10 +87,7 @@ function assertPlan() {
     }
   }
 
-  for (const required of [
-    '@holoscript/core-types',
-    ...CANDIDATE_PACKAGES,
-  ]) {
+  for (const required of ['@holoscript/core-types', ...CANDIDATE_PACKAGES]) {
     if (!seen.has(required)) {
       throw new Error(`Release closure omitted ${required}`);
     }

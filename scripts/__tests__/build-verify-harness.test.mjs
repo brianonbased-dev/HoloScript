@@ -49,7 +49,9 @@ function expectExit(name, relScript, args, wantCode, mustInclude) {
   } else {
     testsFailed += 1;
     console.error(`  FAIL ${name}`);
-    console.error(`    want exit=${wantCode}${mustInclude ? ` incl "${mustInclude}"` : ''}; got exit=${code}`);
+    console.error(
+      `    want exit=${wantCode}${mustInclude ? ` incl "${mustInclude}"` : ''}; got exit=${code}`
+    );
     console.error(`    output: ${out.split('\n').slice(-6).join(' | ')}`);
   }
 }
@@ -131,8 +133,7 @@ expectExit(
     .split('\n')
     .reverse()
     .find((line) => line.includes('build-verify [android-xr]'));
-  const nonSkipVerdict =
-    verdictLine?.includes(' PASS:') || verdictLine?.includes(' FAIL:');
+  const nonSkipVerdict = verdictLine?.includes(' PASS:') || verdictLine?.includes(' FAIL:');
   if (nonSkipVerdict) {
     console.log('  PASS android-xr build-verify --require-toolchain never SKIPs');
   } else {

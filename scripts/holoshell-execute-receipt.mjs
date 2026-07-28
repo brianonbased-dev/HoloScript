@@ -316,11 +316,16 @@ export function listRecentExecutions({ limit = 20, preflightId } = {}) {
     return readdirSync(RECEIPTS_DIR)
       .filter((f) => f.endsWith('.execution.json'))
       .map((f) => {
-        try { return JSON.parse(readFileSync(join(RECEIPTS_DIR, f), 'utf8')); }
-        catch { return null; }
+        try {
+          return JSON.parse(readFileSync(join(RECEIPTS_DIR, f), 'utf8'));
+        } catch {
+          return null;
+        }
       })
       .filter((r) => r && (!preflightId || r.preflightId === preflightId))
       .sort((a, b) => b.executedAt.localeCompare(a.executedAt))
       .slice(0, limit);
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }

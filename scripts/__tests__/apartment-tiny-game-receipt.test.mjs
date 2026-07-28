@@ -9,7 +9,13 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
 const SCRIPT = join(REPO_ROOT, 'scripts', 'apartment-tiny-game-receipt.mts');
-const GAME = join(REPO_ROOT, 'apps', 'quest-universal-qr-scanner', 'worlds', 'apartment-signal-hunt.holo');
+const GAME = join(
+  REPO_ROOT,
+  'apps',
+  'quest-universal-qr-scanner',
+  'worlds',
+  'apartment-signal-hunt.holo'
+);
 
 let testsRun = 0;
 let testsFailed = 0;
@@ -28,9 +34,10 @@ function test(name, fn) {
 
 function runReceipt(args) {
   const command = process.platform === 'win32' ? 'cmd.exe' : 'corepack';
-  const commandArgs = process.platform === 'win32'
-    ? ['/c', 'corepack', 'pnpm', 'exec', 'tsx', SCRIPT, '--json', ...args]
-    : ['pnpm', 'exec', 'tsx', SCRIPT, '--json', ...args];
+  const commandArgs =
+    process.platform === 'win32'
+      ? ['/c', 'corepack', 'pnpm', 'exec', 'tsx', SCRIPT, '--json', ...args]
+      : ['pnpm', 'exec', 'tsx', SCRIPT, '--json', ...args];
   return spawnSync(command, commandArgs, {
     cwd: REPO_ROOT,
     encoding: 'utf8',
@@ -66,14 +73,16 @@ test('fails closed when the game points at a missing twin anchor', () => {
     const badGame = join(tempRoot, 'bad-game.holo');
     const source = readFileSync(GAME, 'utf8').replace(
       'target_anchor_id: "work-surface"',
-      'target_anchor_id: "missing-anchor"',
+      'target_anchor_id: "missing-anchor"'
     );
     writeFileSync(badGame, source, 'utf8');
     const result = runReceipt(['--game', badGame, '--check']);
     assert.notEqual(result.status, 0);
     const receipt = parseJson(result.stdout);
     assert.equal(receipt.status, 'fail');
-    assert.ok(receipt.validation.failures.some((failure) => failure.rule === 'beacon_anchor_missing'));
+    assert.ok(
+      receipt.validation.failures.some((failure) => failure.rule === 'beacon_anchor_missing')
+    );
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -85,14 +94,16 @@ test('fails closed when the completion receipt rule is absent', () => {
     const badGame = join(tempRoot, 'bad-game.holo');
     const source = readFileSync(GAME, 'utf8').replace(
       'receipt_schema: "TinyGameReceipt/v0.1.0"',
-      'receipt_note: "missing schema"',
+      'receipt_note: "missing schema"'
     );
     writeFileSync(badGame, source, 'utf8');
     const result = runReceipt(['--game', badGame, '--check']);
     assert.notEqual(result.status, 0);
     const receipt = parseJson(result.stdout);
     assert.equal(receipt.status, 'fail');
-    assert.ok(receipt.validation.failures.some((failure) => failure.rule === 'completion_receipt_missing'));
+    assert.ok(
+      receipt.validation.failures.some((failure) => failure.rule === 'completion_receipt_missing')
+    );
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }

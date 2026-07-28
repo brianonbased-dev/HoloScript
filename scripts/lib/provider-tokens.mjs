@@ -31,7 +31,7 @@ try {
 } catch (e) {
   throw new Error(
     `[provider-tokens] Cannot load canonical resolver from ${canonicalPath}. ` +
-    `Ensure ~/.ai-ecosystem is checked out. Original error: ${e.message}`
+      `Ensure ~/.ai-ecosystem is checked out. Original error: ${e.message}`
   );
 }
 

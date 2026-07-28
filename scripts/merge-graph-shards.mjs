@@ -38,12 +38,15 @@ function arg(name, fallback) {
   return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : fallback;
 }
 
-const REPO_ROOT =
-  arg('root', process.env.MERGE_REPO_ROOT || 'C:/Users/Josep/Documents/GitHub/HoloScript');
-const SHARDS_ROOT =
-  arg('shards', process.env.MERGE_SHARDS_ROOT || 'C:/Users/josep/.holoscript/graph-shards');
-const CACHE_DIR =
-  process.env.HOLOSCRIPT_CACHE_DIR || arg('out', null);
+const REPO_ROOT = arg(
+  'root',
+  process.env.MERGE_REPO_ROOT || 'C:/Users/Josep/Documents/GitHub/HoloScript'
+);
+const SHARDS_ROOT = arg(
+  'shards',
+  process.env.MERGE_SHARDS_ROOT || 'C:/Users/josep/.holoscript/graph-shards'
+);
+const CACHE_DIR = process.env.HOLOSCRIPT_CACHE_DIR || arg('out', null);
 
 if (!CACHE_DIR) {
   console.error(
@@ -222,9 +225,7 @@ console.log(
 
 // ── integrity: parity between the two channels ──────────────────────────────
 if (mergedEntries.length !== embeddingCount) {
-  console.error(
-    `FATAL: mergedEntries ${mergedEntries.length} != embeddingCount ${embeddingCount}`
-  );
+  console.error(`FATAL: mergedEntries ${mergedEntries.length} != embeddingCount ${embeddingCount}`);
   process.exit(1);
 }
 
@@ -288,15 +289,13 @@ fs.renameSync(binTmp, outBinFile);
 
 const expectedPayloadTotal = mergedEntries.length * dimension * 4;
 if (payloadWritten !== expectedPayloadTotal) {
-  console.error(
-    `FATAL: streamed payload ${payloadWritten} != expected ${expectedPayloadTotal}`
-  );
+  console.error(`FATAL: streamed payload ${payloadWritten} != expected ${expectedPayloadTotal}`);
   process.exit(1);
 }
 const finalBinSize = fs.statSync(outBinFile).size;
 console.log(
   `[merge] wrote ${outBinFile} (${(finalBinSize / 1e9).toFixed(3)} GB, ` +
-    `header+meta ${(4 + metaJson.length)} B, payload ${payloadWritten} B)`
+    `header+meta ${4 + metaJson.length} B, payload ${payloadWritten} B)`
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -320,8 +319,7 @@ const stats = {
 // comfortably in the raised heap; if it ever doesn't, switch to a chunked
 // escape-stream. Reading as one string is the simplest correct path here.
 const filesBody = fs.readFileSync(tmpGraphFilesPath, 'utf-8');
-const graphObjPrefix =
-  `{"version":2,"rootDir":${JSON.stringify(REPO_ROOT)},"files":[`;
+const graphObjPrefix = `{"version":2,"rootDir":${JSON.stringify(REPO_ROOT)},"files":[`;
 const graphObjSuffix =
   `],"communities":${JSON.stringify(communities)}` +
   (headCommit ? `,"gitCommitHash":${JSON.stringify(headCommit)}` : '') +
@@ -332,9 +330,7 @@ const graphJson = graphObjPrefix + filesBody + graphObjSuffix;
 try {
   const check = JSON.parse(graphJson);
   if (!Array.isArray(check.files) || check.files.length !== graphFileCount) {
-    throw new Error(
-      `parsed files length ${check.files?.length} != expected ${graphFileCount}`
-    );
+    throw new Error(`parsed files length ${check.files?.length} != expected ${graphFileCount}`);
   }
 } catch (err) {
   console.error(`FATAL: assembled graphJson invalid: ${err.message}`);

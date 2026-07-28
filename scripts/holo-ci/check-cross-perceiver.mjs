@@ -46,7 +46,10 @@ if (perceiverFlag) {
   const raw = perceiverFlag.includes('=')
     ? perceiverFlag.split('=')[1]
     : args[args.indexOf(perceiverFlag) + 1];
-  perceivers = (raw ?? '').split(',').map((p) => p.trim()).filter(Boolean);
+  perceivers = (raw ?? '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
   const unknown = perceivers.filter((p) => !VALID.includes(p));
   if (unknown.length > 0 || perceivers.length < 2) {
     console.error(
@@ -81,7 +84,9 @@ for (const perceiver of perceivers) {
     const { deriveWebGPUPerception } = await import(
       coreSrc('reconstruction/webgpuPerceiverDerivation.ts')
     );
-    derivations.push(deriveWebGPUPerception(new WebGPUCompiler({}).compile(composition, agentToken)));
+    derivations.push(
+      deriveWebGPUPerception(new WebGPUCompiler({}).compile(composition, agentToken))
+    );
   } else if (perceiver === 'agent-inference') {
     const { AgentInferenceCompiler } = await import(
       coreSrc('compiler/AgentInferenceExportTarget.ts')
@@ -113,5 +118,7 @@ if (receipt.verdict === 'FALSIFIED') {
   );
   process.exit(1);
 }
-console.error(`\ncheck-cross-perceiver: CONSENSUS across [${perceivers.join(', ')}] for ${holoPath}`);
+console.error(
+  `\ncheck-cross-perceiver: CONSENSUS across [${perceivers.join(', ')}] for ${holoPath}`
+);
 process.exit(0);

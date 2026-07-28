@@ -215,10 +215,9 @@ function collectRuntimeFacts(options) {
   );
 
   return {
-    hostFingerprint: `sha256:${sha256Text(`${hostname()}|${platform()}|${release()}|${arch()}`).slice(
-      0,
-      24
-    )}`,
+    hostFingerprint: `sha256:${sha256Text(
+      `${hostname()}|${platform()}|${release()}|${arch()}`
+    ).slice(0, 24)}`,
     platform: platform(),
     release: release(),
     arch: arch(),
@@ -282,7 +281,9 @@ function collectSourceContract(options) {
 
   return {
     status:
-      sources.every((source) => source.exists) && stalePathMatches.length === 0 && consumesCurrentInput
+      sources.every((source) => source.exists) &&
+      stalePathMatches.length === 0 &&
+      consumesCurrentInput
         ? 'pass'
         : 'warn',
     sources,
@@ -412,7 +413,8 @@ export function buildReadyWorldEvidencePack(options = {}) {
     generatedBy: 'scripts/holoshell-ready-world.mjs',
     reason: options.reason || DEFAULT_REASON,
     redaction: {
-      policy: 'repo-relative paths and hashed host identity only; no env, wallet, token, or credential reads',
+      policy:
+        'repo-relative paths and hashed host identity only; no env, wallet, token, or credential reads',
       pathPrefix: REDACTED_PATH_PREFIX,
     },
     host,
@@ -457,13 +459,20 @@ export function writeReadyWorldEvidencePack(options = {}) {
   const holoscriptRoot = resolve(options.holoscriptRoot || DEFAULT_HOLOSCRIPT_ROOT);
   const generatedAt = nowIso(options);
   const pack = buildReadyWorldEvidencePack({ ...options, now: generatedAt, holoscriptRoot });
-  const out = resolvePath(holoscriptRoot, options.out || defaultOutPath(holoscriptRoot, generatedAt));
+  const out = resolvePath(
+    holoscriptRoot,
+    options.out || defaultOutPath(holoscriptRoot, generatedAt)
+  );
   const latestOut = resolvePath(
     holoscriptRoot,
     options.latestOut || defaultLatestOutPath(holoscriptRoot)
   );
   writeJson(out, pack);
-  writeJson(latestOut, { ...pack, latestPointer: true, canonicalPackPath: redactPath(holoscriptRoot, out) });
+  writeJson(latestOut, {
+    ...pack,
+    latestPointer: true,
+    canonicalPackPath: redactPath(holoscriptRoot, out),
+  });
   return { pack, out, latestOut };
 }
 

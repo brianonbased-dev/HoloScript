@@ -143,11 +143,7 @@ const checks = [
   },
   {
     file: 'packages/core/scripts/generate-types.mjs',
-    patterns: [
-      /compiler\/r3f\.d\.ts/,
-      /['"]r3f\.d\.ts['"]/,
-      /Created compiler\/r3f\.d\.ts/,
-    ],
+    patterns: [/compiler\/r3f\.d\.ts/, /['"]r3f\.d\.ts['"]/, /Created compiler\/r3f\.d\.ts/],
   },
 ];
 
@@ -242,10 +238,7 @@ function importedName(rawPart) {
 }
 
 function parseNamedImports(importsBlock) {
-  return importsBlock
-    .split(',')
-    .map(importedName)
-    .filter(Boolean);
+  return importsBlock.split(',').map(importedName).filter(Boolean);
 }
 
 function matchesLegacyBridgeImport(specifier, resolved) {
@@ -285,7 +278,8 @@ function reportLegacyBridgeSymbol(relFile, source, index, symbol, bridge) {
 
 function scanNamedCompilerImports(relFile, source) {
   const moduleVars = new Map();
-  const staticNamespace = /\bimport\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s*['"](@holoscript\/core(?:\/compiler)?)['"]/g;
+  const staticNamespace =
+    /\bimport\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s*['"](@holoscript\/core(?:\/compiler)?)['"]/g;
   const moduleImport =
     /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\(?\s*await\s+import\(\s*['"](@holoscript\/core(?:\/compiler)?)['"]\s*\)/g;
   const namedStatic =
@@ -319,7 +313,8 @@ function scanNamedCompilerImports(relFile, source) {
     while ((destructureMatch = destructuring.exec(source))) {
       for (const symbol of parseNamedImports(destructureMatch[1])) {
         const bridge = matchesLegacyBridgeSymbol(specifier, symbol);
-        if (bridge) reportLegacyBridgeSymbol(relFile, source, destructureMatch.index, symbol, bridge);
+        if (bridge)
+          reportLegacyBridgeSymbol(relFile, source, destructureMatch.index, symbol, bridge);
       }
     }
 
@@ -327,7 +322,8 @@ function scanNamedCompilerImports(relFile, source) {
     let memberMatch;
     while ((memberMatch = memberAccess.exec(source))) {
       const bridge = matchesLegacyBridgeSymbol(specifier, memberMatch[1]);
-      if (bridge) reportLegacyBridgeSymbol(relFile, source, memberMatch.index, memberMatch[1], bridge);
+      if (bridge)
+        reportLegacyBridgeSymbol(relFile, source, memberMatch.index, memberMatch[1], bridge);
     }
   }
 }
@@ -349,7 +345,7 @@ function scanImports(relFile) {
       if (!bridge) continue;
       errors.push(
         `${relFile}:${lineForOffset(source, match.index)} LEGACY-BRIDGE-IMPORT ${specifier} -> ` +
-        `${bridge.name} is disabled; use ${bridge.replacement}`
+          `${bridge.name} is disabled; use ${bridge.replacement}`
       );
     }
   }

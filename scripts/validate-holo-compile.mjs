@@ -25,7 +25,14 @@ if (!parsed.success) {
 }
 const ast = parsed.ast;
 console.log('ast.type =', ast?.type, '| name =', ast?.name);
-console.log('ast.objects =', ast?.objects?.length, '| lights =', ast?.lights?.length, '| templates =', ast?.templates?.length);
+console.log(
+  'ast.objects =',
+  ast?.objects?.length,
+  '| lights =',
+  ast?.lights?.length,
+  '| templates =',
+  ast?.templates?.length
+);
 
 const compiler = new SceneIRCompiler();
 const root = compiler.compileComposition(ast);
@@ -40,13 +47,20 @@ function walk(node, depth) {
     return out;
   };
   const summary = pick(p, [
-    'hsType', 'color', 'position', 'rotation', 'scale', 'size',
-    'emissive', 'emissiveIntensity', 'metalness', 'roughness', 'intensity',
+    'hsType',
+    'color',
+    'position',
+    'rotation',
+    'scale',
+    'size',
+    'emissive',
+    'emissiveIntensity',
+    'metalness',
+    'roughness',
+    'intensity',
   ]);
   if (p.materialProps) summary.materialProps = p.materialProps;
-  console.log(
-    '  '.repeat(depth) + `[${node.type}] ${node.id ?? ''} ` + JSON.stringify(summary)
-  );
+  console.log('  '.repeat(depth) + `[${node.type}] ${node.id ?? ''} ` + JSON.stringify(summary));
   for (const c of node.children ?? []) walk(c, depth + 1);
 }
 console.log('\n=== R3FNode tree (type + walker-relevant props) ===');

@@ -69,7 +69,10 @@ async function main() {
       equal(receipt.rates.doneRate, 1, 'done rate 1.00');
       equal(receipt.rates.nonblankFrameRate, 1, 'nonblank frame rate 1.00');
       equal(receipt.rates.nodeEdgeSegmentationRate, 1, 'node/edge segmentation rate 1.00');
-      ok(receipt.rates.segmentedVisualDeltaRate > 0, 'segmented oracle detects label contamination');
+      ok(
+        receipt.rates.segmentedVisualDeltaRate > 0,
+        'segmented oracle detects label contamination'
+      );
       ok(
         receipt.rates.panCandidateSegmentedDeltaRate > 0,
         'pan candidates produce segmented graph-mass deltas'
@@ -100,7 +103,10 @@ async function main() {
       equal(receipt.readback.inspectorHidden, true, 'inspector hidden');
       equal(receipt.holollama.reachable, true, 'fake HoloLlama reachable');
       equal(receipt.holollama.model.id, 'qwen3-4b-instruct.gguf', 'model metadata recorded');
-      ok(receipt.frames.every((frame) => frame.nonblank), 'every frame nonblank');
+      ok(
+        receipt.frames.every((frame) => frame.nonblank),
+        'every frame nonblank'
+      );
       ok(
         receipt.steps.every((step) => step.scene.projectionBridge === 'renderer-native'),
         'each scene summary keeps renderer-native bridge'

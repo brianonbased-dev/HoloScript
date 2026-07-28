@@ -38,12 +38,7 @@ const ACCESS = valueAfter('--access') || 'public';
 const TAG = valueAfter('--tag') || 'latest';
 const REGISTRY = valueAfter('--registry') || process.env.npm_config_registry || null;
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const DEP_FIELDS = [
-  'dependencies',
-  'optionalDependencies',
-  'peerDependencies',
-  'devDependencies',
-];
+const DEP_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies'];
 const WORKSPACE_ROOTS = ['packages', 'services', 'benchmarks'];
 const SKIP_DIRS = new Set(['node_modules', 'dist', '.next', 'coverage', '.turbo', '.git']);
 
@@ -139,20 +134,22 @@ function assertReleaseProvenance(record) {
         'WASM browser/Node artifacts must be byte-identical and match deterministic rebuild receipts'
       );
     }
-    execFileSync(process.execPath, [join(ROOT, 'scripts', 'holo-ci', 'check-compiler-wasm-drift.mjs')], {
-      cwd: ROOT,
-      stdio: 'inherit',
-      timeout: 60_000,
-    });
+    execFileSync(
+      process.execPath,
+      [join(ROOT, 'scripts', 'holo-ci', 'check-compiler-wasm-drift.mjs')],
+      {
+        cwd: ROOT,
+        stdio: 'inherit',
+        timeout: 60_000,
+      }
+    );
     console.log(
       `[publish-npm-package] provenance PASS ${record.name} source=${sourceCommit.slice(0, 12)} head=${head.slice(0, 12)} wasm=${webSha256.slice(0, 12)}`
     );
     return;
   }
 
-  console.log(
-    `[publish-npm-package] provenance PASS ${record.name} head=${head.slice(0, 12)}`
-  );
+  console.log(`[publish-npm-package] provenance PASS ${record.name} head=${head.slice(0, 12)}`);
 }
 
 function discoverPackageJsons(dir, out = []) {
@@ -204,7 +201,9 @@ function rewriteWorkspaceRefs(pkg, versionMap) {
       if (!String(spec).startsWith('workspace:')) continue;
       const depVersion = versionMap.get(depName);
       if (!depVersion) {
-        throw new Error(`${pkg.name}: ${field}.${depName} uses ${spec}, but no workspace version was found`);
+        throw new Error(
+          `${pkg.name}: ${field}.${depName} uses ${spec}, but no workspace version was found`
+        );
       }
       const rewritten = rewriteWorkspaceSpec(spec, depName, depVersion);
       deps[depName] = rewritten;
@@ -216,7 +215,9 @@ function rewriteWorkspaceRefs(pkg, versionMap) {
 
 function npmViewVersion(name) {
   try {
-    return runNpm(['view', name, 'version', '--json'], { timeout: 60_000 }).trim().replace(/^"|"$/g, '');
+    return runNpm(['view', name, 'version', '--json'], { timeout: 60_000 })
+      .trim()
+      .replace(/^"|"$/g, '');
   } catch {
     return null;
   }
@@ -227,7 +228,9 @@ function packageManagerWarning() {
     return runNpm(['whoami'], { timeout: 60_000 }).trim();
   } catch (error) {
     if (PUBLISH) {
-      throw new Error(`npm auth is required for --publish: ${String(error.stderr || error.message || error).slice(0, 600)}`);
+      throw new Error(
+        `npm auth is required for --publish: ${String(error.stderr || error.message || error).slice(0, 600)}`
+      );
     }
     return null;
   }
@@ -257,15 +260,7 @@ const publishedVersion = npmViewVersion(manifest.name);
 const authUser = packageManagerWarning();
 const rewrites = rewriteWorkspaceRefs(manifest, versionMap);
 const modeArgs = PUBLISH ? [] : ['--dry-run'];
-const publishArgs = [
-  'publish',
-  ...modeArgs,
-  '--access',
-  ACCESS,
-  '--tag',
-  TAG,
-  '--ignore-scripts',
-];
+const publishArgs = ['publish', ...modeArgs, '--access', ACCESS, '--tag', TAG, '--ignore-scripts'];
 
 try {
   writeJson(record.manifest, manifest);
@@ -283,7 +278,9 @@ try {
     stdio: 'inherit',
     timeout: 300_000,
   });
-  console.log(`[publish-npm-package] ${PUBLISH ? 'PUBLISHED' : 'DRY-RUN-PASS'} ${manifest.name}@${manifest.version}`);
+  console.log(
+    `[publish-npm-package] ${PUBLISH ? 'PUBLISHED' : 'DRY-RUN-PASS'} ${manifest.name}@${manifest.version}`
+  );
 } finally {
   copyFileSync(manifestBackup, record.manifest);
   rmSync(manifestBackupDir, { recursive: true, force: true });

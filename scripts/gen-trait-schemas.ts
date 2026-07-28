@@ -98,7 +98,9 @@ function main(): void {
     }
     resolved.push(variants[0].schema); // first-in-sorted-path
     conflictNames.add(name);
-    conflicts.push(`  ${name} [${category}]: kept ${variants[0].rel}, suppressed ${variants.length - 1} divergent`);
+    conflicts.push(
+      `  ${name} [${category}]: kept ${variants[0].rel}, suppressed ${variants.length - 1} divergent`
+    );
   }
   const sortedConflictNames = [...conflictNames].sort((a, b) => a.localeCompare(b));
 
@@ -138,7 +140,9 @@ function main(): void {
       `${path.relative(ROOT, OUT).replace(/\\/g, '/')}\n`
   );
   if (conflicts.length) {
-    process.stderr.write(`[gen-trait-schemas] unresolved conflicts (type-conflict/disjoint):\n${conflicts.join('\n')}\n`);
+    process.stderr.write(
+      `[gen-trait-schemas] unresolved conflicts (type-conflict/disjoint):\n${conflicts.join('\n')}\n`
+    );
   }
 }
 

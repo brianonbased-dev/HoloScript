@@ -75,7 +75,7 @@ console.log('check-apex-poison-retired.test.mjs');
     'packages/app/src/ok.ts':
       "import { SceneIRCompiler as R3FCompiler, type R3FNode } from '@holoscript/core/compiler';\n" +
       "const node: R3FNode = { id: 'root', type: 'group', props: {}, children: [] };\n" +
-      "new R3FCompiler();\nvoid node;\n",
+      'new R3FCompiler();\nvoid node;\n',
   });
   try {
     const result = run(root);
@@ -101,7 +101,8 @@ console.log('check-apex-poison-retired.test.mjs');
 
 {
   const root = setup({
-    'scripts/bad.ts': "import { BabylonCompiler } from '../packages/core/src/compiler/BabylonCompiler';\n",
+    'scripts/bad.ts':
+      "import { BabylonCompiler } from '../packages/core/src/compiler/BabylonCompiler';\n",
   });
   try {
     const result = run(root);
