@@ -86,4 +86,36 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     expect(colorForEntity('brittney')).toBeGreaterThanOrEqual(0);
     expect(colorForEntity('brittney')).toBeLessThanOrEqual(0xffffff);
   });
+
+  it('builds the opt-in neutral anatomical face as smooth native geometry', () => {
+    const legacy = buildAgentAvatarMesh();
+    const anatomical = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceRadialSegments: 20,
+      faceVerticalSegments: 14,
+      faceTearline: true,
+    });
+    const headIndex = BONE_ORDER.indexOf('head');
+    const headVertices = Array.from(anatomical.jointIndices).filter(
+      (jointIndex) => jointIndex === headIndex
+    ).length;
+    let curvedNormalCount = 0;
+    for (let vertex = 0; vertex < anatomical.vertexCount; vertex++) {
+      if (anatomical.jointIndices[vertex] !== headIndex) continue;
+      const offset = vertex * 3;
+      const components = [
+        Math.abs(anatomical.normals[offset]),
+        Math.abs(anatomical.normals[offset + 1]),
+        Math.abs(anatomical.normals[offset + 2]),
+      ];
+      if (components.filter((component) => component > 0.05).length >= 2) {
+        curvedNormalCount++;
+      }
+    }
+
+    expect(anatomical.vertexCount).toBeGreaterThan(legacy.vertexCount + 250);
+    expect(headVertices).toBeGreaterThan(300);
+    expect(curvedNormalCount).toBeGreaterThan(150);
+    expect(anatomical.indices.length).toBeGreaterThan(legacy.indices.length);
+  });
 });

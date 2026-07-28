@@ -6,7 +6,7 @@
  * Pure-data + GPU-free + parser-decoupled: it takes a STRUCTURAL view of the parsed AST (the
  * minimal subset it reads), so it needs no cross-package type import and no runtime parser
  * dependency — the caller parses (`parseHolo`) and passes `.ast` in. It maps the cleanly
- * supported traits (@body, @subsurface_scattering, @hair, @morph, @skeleton, @locomotion)
+ * supported traits (@body, @face, @subsurface_scattering, @hair, @morph, @skeleton, @locomotion)
  * onto CharacterHost and returns an honest report of what is mapped vs stubbed. The native
  * morph channel is a bounded procedural-head FACS/viseme subset; unsupported target/style
  * names remain explicit instead of being silently accepted.
@@ -15,6 +15,7 @@
  */
 
 import { CharacterHost } from './CharacterHost';
+import type { AgentAvatarFaceTopology } from './AgentAvatarMesh';
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
 import { resolveAgentAvatarHairStyle, type AgentAvatarHairStyle } from './AgentAvatarHair';
@@ -78,6 +79,13 @@ export interface CharacterHostFromCompositionResult {
   };
   /** Operative deterministic cloth configuration, when @cloth_simulation is supported. */
   cloth?: ClothSimulationConfig;
+  /** Source-authored native facial topology selection. */
+  face?: {
+    topology: AgentAvatarFaceTopology;
+    radialSegments?: number;
+    verticalSegments?: number;
+    tearline?: boolean;
+  };
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
   morph?: NativeMorphReceipt;
   /** Detachable public/story mantle and source refs resolved by the host platform. */
@@ -326,7 +334,49 @@ export function buildCharacterHostFromComposition(
     if (b !== undefined) buildScale = clamp(b, bounds.min, bounds.max);
   }
 
-  // 4. Skin tone → packed colour. Prefer @subsurface_scattering(color); fall back to
+  // 4. @face → a source-selectable native facial topology. The legacy cap remains the default;
+  //    unsupported topology names are never accepted as if they rendered.
+  let faceTopology: AgentAvatarFaceTopology = 'procedural-head-v1';
+  let faceRadialSegments: number | undefined;
+  let faceVerticalSegments: number | undefined;
+  let faceTearline: boolean | undefined;
+  let face: CharacterHostFromCompositionResult['face'];
+  const faceTrait = traits.get('face');
+  if (faceTrait) {
+    const authoredTopology = (
+      asStr(cfgVal(faceTrait, 'topology', 'profile')) ?? 'procedural-head-v1'
+    )
+      .toLowerCase()
+      .replace(/_/g, '-');
+    if (authoredTopology === 'procedural-head-v1' || authoredTopology === 'neutral-anatomical-v2') {
+      faceTopology = authoredTopology;
+      if (faceTopology === 'neutral-anatomical-v2') {
+        faceRadialSegments = Math.max(
+          12,
+          Math.min(32, Math.round(asNum(cfgVal(faceTrait, 'radial_segments')) ?? 20))
+        );
+        faceVerticalSegments = Math.max(
+          8,
+          Math.min(24, Math.round(asNum(cfgVal(faceTrait, 'vertical_segments')) ?? 14))
+        );
+        faceTearline = cfgVal(faceTrait, 'tearline', 'include_tearline') !== false;
+      }
+      face = {
+        topology: faceTopology,
+        ...(faceRadialSegments === undefined ? {} : { radialSegments: faceRadialSegments }),
+        ...(faceVerticalSegments === undefined ? {} : { verticalSegments: faceVerticalSegments }),
+        ...(faceTearline === undefined ? {} : { tearline: faceTearline }),
+      };
+      report.mapped.push(`@face(topology=${faceTopology})`);
+    } else {
+      report.stubbed.push({
+        trait: '@face',
+        reason: `topology '${authoredTopology}' has no native facial geometry channel`,
+      });
+    }
+  }
+
+  // 5. Skin tone → packed colour. Prefer @subsurface_scattering(color); fall back to
   //    @body(skin_tone) (the canonical avatar-template authoring shape).
   let color: number | undefined;
   const sss = traits.get('subsurface_scattering');
@@ -348,7 +398,7 @@ export function buildCharacterHostFromComposition(
     report.mapped.push('@subsurface_scattering(scatter_color)');
   }
 
-  // 5. @hair(color/style) → authored Marschner response plus deterministic card geometry.
+  // 6. @hair(color/style) → authored Marschner response plus deterministic card geometry.
   //    Unknown style names are recorded as unsupported rather than borrowing the default.
   let melanin: number | undefined;
   let melaninRedness: number | undefined;
@@ -382,7 +432,7 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 6. @clothing → operative sovereign garment geometry/material. The supported closed hood
+  // 7. @clothing → operative sovereign garment geometry/material. The supported closed hood
   //    intentionally suppresses human hair/eyes; its dark visor carries the faceless identity.
   let garmentStyle: 'stormglass_hooded_tunic' | undefined;
   let garmentColor: number | undefined;
@@ -460,7 +510,7 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 7. @cloth_simulation → deterministic fixed-step local-space XPBD.
+  // 8. @cloth_simulation → deterministic fixed-step local-space XPBD.
   let cloth: ClothSimulationConfig | undefined;
   const clothTrait = traits.get('cloth_simulation');
   if (clothTrait) {
@@ -493,18 +543,22 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 8. entityId + position.
+  // 9. entityId + position.
   const entityId = opts.entityId ?? obj.id ?? obj.name ?? parsed.name ?? 'character';
   const p = obj.position;
   const position: [number, number, number] | undefined = p
     ? [p.x ?? 0, p.y ?? 0, p.z ?? 0]
     : undefined;
 
-  // 8. Construct (undefined fields → CharacterHost uses its skin-tone / hair defaults).
+  // 10. Construct (undefined fields → CharacterHost uses its skin-tone / hair defaults).
   const host = new CharacterHost({
     entityId,
     heightScale,
     buildScale,
+    faceTopology,
+    faceRadialSegments,
+    faceVerticalSegments,
+    faceTearline,
     skinTone: color,
     skinScatterColor,
     melanin,
@@ -524,7 +578,7 @@ export function buildCharacterHostFromComposition(
     includeEyes,
   });
 
-  // 9. @morph → bounded native procedural-head FACS/viseme vertex deformation.
+  // 11. @morph → bounded native procedural-head FACS/viseme vertex deformation.
   let morph: NativeMorphReceipt | undefined;
   const morphTrait = traits.get('morph');
   if (morphTrait) {
@@ -557,7 +611,7 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 10. @locomotion → gait descriptor (caller drives the per-frame clock).
+  // 12. @locomotion → gait descriptor (caller drives the per-frame clock).
   let gait: { mode: GaitMode; speed: number } | undefined;
   const loco = traits.get('locomotion');
   if (loco) {
@@ -579,7 +633,7 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 11. @skeleton(rig) → validated against the one rig the host renders. A matching rig is
+  // 13. @skeleton(rig) → validated against the one rig the host renders. A matching rig is
   //    operative-by-agreement (the authored rig IS what renders); a mismatch is reported, never
   //    silently mis-rendered.
   const skel = traits.get('skeleton');
@@ -595,5 +649,5 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  return { ok: true, host, gait, materialColor: color, lod, cloth, morph, mantle, report };
+  return { ok: true, host, gait, materialColor: color, lod, cloth, face, morph, mantle, report };
 }

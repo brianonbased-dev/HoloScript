@@ -35,6 +35,7 @@ import {
   computeJointPalette,
   colorForEntity,
   JOINT_COUNT,
+  type AgentAvatarFaceTopology,
   type AvatarPose,
 } from './AgentAvatarMesh';
 import {
@@ -70,6 +71,14 @@ export interface CharacterHostOptions {
   heightScale?: number;
   /** Limb/torso thickness multiplier. */
   buildScale?: number;
+  /** Source-authored facial topology. */
+  faceTopology?: AgentAvatarFaceTopology;
+  /** Longitude segments for the neutral anatomical face. */
+  faceRadialSegments?: number;
+  /** Latitude segments for the neutral anatomical face. */
+  faceVerticalSegments?: number;
+  /** Include native eyelid/tearline rim topology. */
+  faceTearline?: boolean;
   /** Packed 0xRRGGBB accent/fallback colour; defaults to a deterministic colour from `entityId`. */
   color?: number;
   /** Skin base colour 0xRRGGBB for the SSS material (default warm skin #e8c4a0). */
@@ -162,6 +171,7 @@ export interface CharacterWorldState {
 export class CharacterHost {
   readonly entityId: string;
   private readonly built: CharacterMeshData;
+  private readonly faceTopology: AgentAvatarFaceTopology;
   private readonly bindWorld: Map<string, Mat4>;
   private readonly inverseBind: Map<string, Mat4>;
   private readonly material: MaterialSpec;
@@ -185,10 +195,15 @@ export class CharacterHost {
 
   constructor(opts: CharacterHostOptions) {
     this.entityId = opts.entityId;
+    this.faceTopology = opts.faceTopology ?? 'procedural-head-v1';
     this.built = buildCharacterMesh({
       entityId: opts.entityId,
       heightScale: opts.heightScale,
       buildScale: opts.buildScale,
+      faceTopology: this.faceTopology,
+      faceRadialSegments: opts.faceRadialSegments,
+      faceVerticalSegments: opts.faceVerticalSegments,
+      faceTearline: opts.faceTearline,
       garmentStyle: opts.garmentStyle,
       garmentSegments: opts.garmentSegments,
       mantleStyle: opts.mantleStyle,
@@ -338,6 +353,7 @@ export class CharacterHost {
       {
         bodyVertexRange: this.built.bodyVertexRange,
         eyeVertexRange: this.built.eyeVertexRange,
+        topology: this.faceTopology,
       },
       this.morphWeights
     );

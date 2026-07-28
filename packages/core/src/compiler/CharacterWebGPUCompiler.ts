@@ -64,6 +64,8 @@ export interface CharacterDrawSpecBundle {
   };
   /** Present when source-authored deterministic cloth simulation is operative. */
   cloth?: unknown;
+  /** Present when source-authored native facial topology is operative. */
+  face?: unknown;
   /** Present when source-authored native procedural-head morph targets are operative. */
   morph?: unknown;
   /** Present when a detachable public/story mantle is authored. */
@@ -143,6 +145,7 @@ export class CharacterWebGPUCompiler {
     // current engine source. Feature-detect the optional receipt so this sovereign compiler stays
     // compatible across that normal source/declaration skew.
     const morph = 'morph' in result ? result.morph : undefined;
+    const face = 'face' in result ? result.face : undefined;
     const bundle: CharacterDrawSpecBundle = {
       format: 'character-webgpu/drawspec',
       version: 1,
@@ -164,6 +167,7 @@ export class CharacterWebGPUCompiler {
       materialGroups: spec.materialGroups ?? null,
       ...(result.lod ? { lod: result.lod } : {}),
       ...(result.cloth ? { cloth: result.cloth } : {}),
+      ...(face ? { face } : {}),
       ...(morph ? { morph } : {}),
       ...(result.mantle ? { mantle: result.mantle } : {}),
       report: result.report,

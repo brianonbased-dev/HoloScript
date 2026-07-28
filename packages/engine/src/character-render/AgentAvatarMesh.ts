@@ -58,6 +58,8 @@ export interface AgentAvatarMeshData {
   boneOrder: readonly string[];
 }
 
+export type AgentAvatarFaceTopology = 'procedural-head-v1' | 'neutral-anatomical-v2';
+
 export interface AgentAvatarMeshOptions {
   /** Drives deterministic accent colour (D.094 entity-generic). */
   entityId?: string;
@@ -65,6 +67,14 @@ export interface AgentAvatarMeshOptions {
   heightScale?: number;
   /** Limb/torso thickness multiplier. */
   buildScale?: number;
+  /** Source-authored facial topology. Legacy remains the default for compatibility. */
+  faceTopology?: AgentAvatarFaceTopology;
+  /** Longitude segments for neutral-anatomical-v2 (12..32). */
+  faceRadialSegments?: number;
+  /** Latitude segments for neutral-anatomical-v2 (8..24). */
+  faceVerticalSegments?: number;
+  /** Emit native eyelid/tearline rim topology around the procedural eyes. */
+  faceTearline?: boolean;
 }
 
 /** Pose = per-bone LOCAL rotation applied at the joint (absent ⇒ identity / bind). */
@@ -209,6 +219,10 @@ function normalize(a: Vec3): Vec3 {
   return { x: a.x / len, y: a.y / len, z: a.z / len };
 }
 
+function clampInt(value: number | undefined, fallback: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, Math.round(value ?? fallback)));
+}
+
 /** Append an oriented box spanning a→b (world-bind), thickness r, all verts weighted to jointIdx. */
 function pushBox(acc: MeshAccum, a: Vec3, b: Vec3, r: number, jointIdx: number): void {
   const axisVec = sub(b, a);
@@ -297,6 +311,185 @@ function pushBox(acc: MeshAccum, a: Vec3, b: Vec3, r: number, jointIdx: number):
   }
 }
 
+function pushTriangle(acc: MeshAccum, a: Vec3, b: Vec3, c: Vec3, jointIdx: number): void {
+  const normal = normalize(cross(sub(b, a), sub(c, a)));
+  const base = acc.positions.length / 3;
+  for (const point of [a, b, c]) {
+    acc.positions.push(point.x, point.y, point.z);
+    acc.normals.push(normal.x, normal.y, normal.z);
+    acc.tangents.push(1, 0, 0, 1);
+    acc.jointIndices.push(jointIdx);
+    acc.jointWeights.push(1);
+  }
+  acc.indices.push(base, base + 1, base + 2);
+}
+
+/**
+ * Append a thin front-facing anatomical rim. It is geometry, not a painted texture, so eyes
+ * and the neutral mouth remain legible in an offline native character bundle.
+ */
+function pushFacialRim(
+  acc: MeshAccum,
+  center: Vec3,
+  outerRadiusX: number,
+  outerRadiusY: number,
+  thickness: number,
+  segments: number,
+  jointIdx: number
+): void {
+  const base = acc.positions.length / 3;
+  const innerRadiusX = Math.max(0.001, outerRadiusX - thickness);
+  const innerRadiusY = Math.max(0.001, outerRadiusY - thickness);
+  for (let segment = 0; segment < segments; segment++) {
+    const angle = (segment / segments) * Math.PI * 2;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    for (const [radiusX, radiusY] of [
+      [outerRadiusX, outerRadiusY],
+      [innerRadiusX, innerRadiusY],
+    ] as const) {
+      acc.positions.push(center.x + cos * radiusX, center.y + sin * radiusY, center.z);
+      acc.normals.push(0, 0, 1);
+      acc.tangents.push(1, 0, 0, 1);
+      acc.jointIndices.push(jointIdx);
+      acc.jointWeights.push(1);
+    }
+  }
+  for (let segment = 0; segment < segments; segment++) {
+    const next = (segment + 1) % segments;
+    const outer = base + segment * 2;
+    const inner = outer + 1;
+    const nextOuter = base + next * 2;
+    const nextInner = nextOuter + 1;
+    acc.indices.push(outer, nextOuter, inner, inner, nextOuter, nextInner);
+  }
+}
+
+/**
+ * Source-selectable neutral facial foundation. This is intentionally bounded: it is not a scan
+ * or a production blendshape rig, but it replaces the visible block head with a smooth,
+ * deformable surface whose facial landmarks survive native serialization.
+ */
+function pushNeutralAnatomicalHead(
+  acc: MeshAccum,
+  headBase: Vec3,
+  headLength: number,
+  radius: number,
+  jointIdx: number,
+  radialSegments: number,
+  verticalSegments: number,
+  includeTearline: boolean
+): void {
+  const center = {
+    x: headBase.x,
+    y: headBase.y + headLength * 0.52,
+    z: headBase.z,
+  };
+  const radiusX = radius * 1.06;
+  const radiusY = headLength * 0.62;
+  const radiusZ = radius * 1.08;
+  const base = acc.positions.length / 3;
+
+  for (let latitude = 0; latitude <= verticalSegments; latitude++) {
+    const theta = (latitude / verticalSegments) * Math.PI;
+    const normalizedY = Math.cos(theta);
+    const ring = Math.sin(theta);
+    const lowerFace = Math.max(0, -normalizedY);
+    const jawTaper = 1 - lowerFace * 0.22;
+    for (let longitude = 0; longitude <= radialSegments; longitude++) {
+      const phi = (longitude / radialSegments) * Math.PI * 2;
+      const cos = Math.cos(phi);
+      const sin = Math.sin(phi);
+      const front = Math.max(0, sin);
+      const x = cos * ring * radiusX * jawTaper;
+      const y = normalizedY * radiusY;
+      // A flatter face and fuller occiput read more human than a perfect ellipsoid.
+      const zScale = 1 - front * 0.045 + Math.max(0, -sin) * 0.035;
+      const z = sin * ring * radiusZ * zScale;
+      const normal = normalize({
+        x: x / (radiusX * radiusX),
+        y: y / (radiusY * radiusY),
+        z: z / (radiusZ * radiusZ),
+      });
+      acc.positions.push(center.x + x, center.y + y, center.z + z);
+      acc.normals.push(normal.x, normal.y, normal.z);
+      acc.tangents.push(1, 0, 0, 1);
+      acc.jointIndices.push(jointIdx);
+      acc.jointWeights.push(1);
+    }
+  }
+
+  const stride = radialSegments + 1;
+  for (let latitude = 0; latitude < verticalSegments; latitude++) {
+    for (let longitude = 0; longitude < radialSegments; longitude++) {
+      const a = base + latitude * stride + longitude;
+      const b = a + stride;
+      acc.indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+  }
+
+  const faceZ = center.z + radiusZ * 0.965;
+  const noseTop = {
+    x: center.x,
+    y: center.y + radiusY * 0.34,
+    z: faceZ - radiusZ * 0.04,
+  };
+  const noseLeft = {
+    x: center.x - radiusX * 0.19,
+    y: center.y - radiusY * 0.14,
+    z: faceZ,
+  };
+  const noseRight = {
+    x: center.x + radiusX * 0.19,
+    y: center.y - radiusY * 0.14,
+    z: faceZ,
+  };
+  const noseTip = {
+    x: center.x,
+    y: center.y - radiusY * 0.03,
+    z: faceZ + radiusZ * 0.27,
+  };
+  const noseBase = {
+    x: center.x,
+    y: center.y - radiusY * 0.25,
+    z: faceZ + radiusZ * 0.06,
+  };
+  pushTriangle(acc, noseTop, noseLeft, noseTip, jointIdx);
+  pushTriangle(acc, noseTop, noseTip, noseRight, jointIdx);
+  pushTriangle(acc, noseLeft, noseBase, noseTip, jointIdx);
+  pushTriangle(acc, noseTip, noseBase, noseRight, jointIdx);
+
+  if (includeTearline) {
+    const eyeY = headBase.y + 0.12;
+    const eyeZ = headBase.z + radius * 1.085;
+    for (const eyeX of [-0.035, 0.035]) {
+      pushFacialRim(
+        acc,
+        { x: headBase.x + eyeX, y: eyeY, z: eyeZ },
+        radiusX * 0.31,
+        radiusY * 0.19,
+        radiusX * 0.045,
+        16,
+        jointIdx
+      );
+    }
+  }
+
+  pushFacialRim(
+    acc,
+    {
+      x: center.x,
+      y: center.y - radiusY * 0.39,
+      z: faceZ + radiusZ * 0.035,
+    },
+    radiusX * 0.34,
+    radiusY * 0.09,
+    radiusX * 0.035,
+    18,
+    jointIdx
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Public builder
 // ---------------------------------------------------------------------------
@@ -308,6 +501,9 @@ function pushBox(acc: MeshAccum, a: Vec3, b: Vec3, r: number, jointIdx: number):
 export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAvatarMeshData {
   const buildScale = opts.buildScale ?? 1;
   const heightScale = opts.heightScale ?? 1;
+  const faceTopology = opts.faceTopology ?? 'procedural-head-v1';
+  const faceRadialSegments = clampInt(opts.faceRadialSegments, 20, 12, 32);
+  const faceVerticalSegments = clampInt(opts.faceVerticalSegments, 14, 8, 24);
   const bindWorld = computeBindWorld();
   const acc: MeshAccum = {
     positions: [],
@@ -338,7 +534,20 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
       const a = getTranslation(bindWorld.get(bone.name)!);
       const b = { x: a.x, y: a.y + bone.length, z: a.z };
       const jointIdx = BONE_INDEX.get(bone.name) ?? 0;
-      pushBox(acc, a, b, radiusFor(bone.name, buildScale), jointIdx);
+      if (bone.name === 'head' && faceTopology === 'neutral-anatomical-v2') {
+        pushNeutralAnatomicalHead(
+          acc,
+          a,
+          bone.length,
+          radiusFor(bone.name, buildScale),
+          jointIdx,
+          faceRadialSegments,
+          faceVerticalSegments,
+          opts.faceTearline !== false
+        );
+      } else {
+        pushBox(acc, a, b, radiusFor(bone.name, buildScale), jointIdx);
+      }
     }
   }
 

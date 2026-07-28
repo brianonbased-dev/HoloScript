@@ -141,6 +141,60 @@ describe('buildCharacterHostFromComposition', () => {
     }
   });
 
+  it('@face selects the neutral anatomical topology and receipts it through morph output', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'NeutralFace',
+          traits: [
+            { name: 'body', config: { height: 1.8, build_scale: 1.02 } },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                radial_segments: 22,
+                vertical_segments: 16,
+                tearline: true,
+              },
+            },
+            { name: 'morph', config: { targets: { smile: 0.4 } } },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain('@face(topology=neutral-anatomical-v2)');
+    expect(result.face).toEqual({
+      topology: 'neutral-anatomical-v2',
+      radialSegments: 22,
+      verticalSegments: 16,
+      tearline: true,
+    });
+    expect(result.morph?.topology).toBe('neutral-anatomical-v2');
+    expect(result.morph?.changedVertexCount).toBeGreaterThan(20);
+  });
+
+  it('@face rejects unimplemented topology names instead of relabeling the legacy cap', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'UnsupportedFace',
+          traits: [
+            { name: 'body', config: {} },
+            { name: 'face', config: { topology: 'production_scan_v9' } },
+          ],
+        },
+      ],
+    });
+
+    expect(result.face).toBeUndefined();
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@face',
+      reason: "topology 'production-scan-v9' has no native facial geometry channel",
+    });
+  });
+
   it('@clothing and @lod produce faceless woven garment geometry with authored topology', () => {
     const make = (lodLevel: number) =>
       buildCharacterHostFromComposition(

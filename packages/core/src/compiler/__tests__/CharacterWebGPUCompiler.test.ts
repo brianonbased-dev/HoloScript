@@ -149,6 +149,44 @@ describe('CharacterWebGPUCompiler', () => {
     expect(report.mapped.some((entry) => entry.startsWith('@morph(targets='))).toBe(true);
   });
 
+  it('serializes source-authored neutral anatomical facial topology', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits!.push(
+      {
+        type: 'ObjectTrait',
+        name: 'face',
+        config: {
+          topology: 'neutral_anatomical_v2',
+          radial_segments: 20,
+          vertical_segments: 14,
+          tearline: true,
+        },
+      },
+      {
+        type: 'ObjectTrait',
+        name: 'morph',
+        config: { targets: { smile: 0.4 } },
+      }
+    );
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    const report = bundle.report as { mapped: string[]; stubbed: unknown[] };
+    const morph = bundle.morph as { topology: string; changedVertexCount: number };
+
+    expect(bundle.face).toEqual({
+      topology: 'neutral-anatomical-v2',
+      radialSegments: 20,
+      verticalSegments: 14,
+      tearline: true,
+    });
+    expect(morph.topology).toBe('neutral-anatomical-v2');
+    expect(morph.changedVertexCount).toBeGreaterThan(20);
+    expect(report.mapped).toContain('@face(topology=neutral-anatomical-v2)');
+    expect(report.stubbed).toEqual([]);
+  });
+
   it('selects one named character from a multi-resident composition', async () => {
     const composition = {
       name: 'Family catalog',

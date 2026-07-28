@@ -26,15 +26,17 @@ export const NATIVE_FACIAL_MORPH_TARGETS = [
 
 export type NativeFacialMorphTarget = (typeof NATIVE_FACIAL_MORPH_TARGETS)[number];
 export type NativeMorphWeights = Readonly<Record<string, number>>;
+export type NativeFacialTopology = 'procedural-head-v1' | 'neutral-anatomical-v2';
 
 export interface NativeFacialMorphGeometry {
   bodyVertexRange: { vertexStart: number; vertexCount: number };
   eyeVertexRange: { vertexStart: number; vertexCount: number };
+  topology?: NativeFacialTopology;
 }
 
 export interface NativeMorphReceipt {
   schemaVersion: 'holoscript.native-facial-morph.v1';
-  topology: 'procedural-head-v1';
+  topology: NativeFacialTopology;
   appliedTargets: Array<{ target: NativeFacialMorphTarget; weight: number }>;
   ignoredTargets: string[];
   changedVertexCount: number;
@@ -223,7 +225,7 @@ export function applyNativeFacialMorph(
     positions: output,
     receipt: {
       schemaVersion: 'holoscript.native-facial-morph.v1',
-      topology: 'procedural-head-v1',
+      topology: geometry.topology ?? 'procedural-head-v1',
       appliedTargets,
       ignoredTargets: [...new Set(ignoredTargets)].sort(),
       changedVertexCount,
