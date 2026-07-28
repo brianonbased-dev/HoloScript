@@ -49,12 +49,81 @@
     },
     "adapter_info": {
       "type": ["object", "null"],
-      "description": "navigator.gpu.requestAdapterInfo() result for webgpu-browser path; null for non-GPU paths.",
+      "description": "Browser-selected WebGPU adapter metadata when Chromium exposes it; it may be empty or null.",
       "properties": {
         "vendor": { "type": "string" },
         "architecture": { "type": "string" },
         "device": { "type": "string" },
         "description": { "type": "string" }
+      }
+    },
+    "browser_gpu_info": {
+      "type": ["object", "null"],
+      "description": "Chromium GPU-process identity from CDP SystemInfo.getInfo. This independently binds the browser GPU process but does not by itself prove which physical device WebGPU selected.",
+      "required": ["schema_version", "source", "scope", "webgpu_adapter_selection_proven", "devices"],
+      "properties": {
+        "schema_version": { "const": "holoscript.chromium-gpu-info.v1" },
+        "source": { "const": "chromium-cdp-system-info" },
+        "scope": { "const": "chromium-gpu-process" },
+        "webgpu_adapter_selection_proven": { "const": false },
+        "devices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "vendor_id": { "type": ["integer", "null"] },
+              "device_id": { "type": ["integer", "null"] },
+              "sub_sys_id": { "type": ["integer", "null"] },
+              "revision": { "type": ["integer", "null"] },
+              "vendor": { "type": ["string", "null"] },
+              "device": { "type": ["string", "null"] },
+              "driver_vendor": { "type": ["string", "null"] },
+              "driver_version": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "aux_attributes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["string", "boolean", "number"]
+          }
+        },
+        "feature_status": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "driver_bug_workarounds": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "host_gpu_inventory": {
+      "type": "object",
+      "description": "Independent host-visible NVIDIA inventory from nvidia-smi when available. This proves visible host hardware, not WebGPU adapter selection.",
+      "required": ["schema_version", "source", "platform", "scope", "webgpu_adapter_selection_proven", "devices"],
+      "properties": {
+        "schema_version": { "const": "holoscript.host-gpu-inventory.v1" },
+        "source": { "enum": ["nvidia-smi", "unavailable"] },
+        "platform": { "type": "string" },
+        "scope": { "const": "host-inventory" },
+        "webgpu_adapter_selection_proven": { "const": false },
+        "devices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["index", "name", "uuid", "driver_version", "pci_bus_id", "memory_total_mib"],
+            "properties": {
+              "index": { "type": "integer", "minimum": 0 },
+              "name": { "type": "string" },
+              "uuid": { "type": "string" },
+              "driver_version": { "type": "string" },
+              "pci_bus_id": { "type": "string" },
+              "memory_total_mib": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "reason": { "type": "string" }
       }
     },
     "browser": {

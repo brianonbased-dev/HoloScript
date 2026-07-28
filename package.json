@@ -105,6 +105,7 @@
     "webgpu:determinism": "node scripts/run-webgpu-determinism.mjs --production-evidence",
     "webgpu:determinism:mock": "node scripts/run-webgpu-determinism.mjs --mock",
     "webgpu:probe": "node scripts/probe-webgpu.mjs",
+    "webgpu:gpu-identity:test": "node --test scripts/__tests__/webgpu-gpu-identity.test.mjs",
     "simulation:verify": "node scripts/simulation-verify.mjs",
     "smoke:physics": "pnpm exec holoscript smoke examples/physics --target threejs -o .bench-logs/physics-smoke-receipt.json",
     "clean": "pnpm -r exec rm -rf dist",

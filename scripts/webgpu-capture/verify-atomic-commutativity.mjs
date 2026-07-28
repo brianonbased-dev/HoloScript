@@ -56,7 +56,7 @@
  *     captured_at, path: 'webgpu-browser', paper: 'methodology',
  *     section: 'pairwise-atomic-commutativity',
  *     harness: 'scripts/webgpu-capture/verify-atomic-commutativity.mjs',
- *     hardware, adapter_info, browser,
+ *     hardware, adapter_info, browser_gpu_info, host_gpu_inventory, browser,
  *     kernel: { name: 'pairwise_atomic_probe', wgsl_sha256, ... },
  *     pairwise_matrix: {
  *       'add×xor': { commutative: false, unique_digests: 2,
@@ -74,6 +74,11 @@ import { execSync } from 'node:child_process';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { chromium } from 'playwright';
+import {
+  buildGpuIdentityNotes,
+  detectHostGpuInventory,
+  normalizeBrowserGpuInfo,
+} from './gpu-identity.mjs';
 
 // ── CLI ──────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -182,7 +187,7 @@ function detectHardware() {
   return {
     tier,
     label,
-    gpu: envGpu ?? 'unspecified (read from adapter_info)',
+    gpu: envGpu ?? 'unspecified (see adapter_info, browser_gpu_info, and host_gpu_inventory)',
     cpu: cpuModel,
     cpuCount,
     ramGb,
@@ -257,6 +262,18 @@ async function runAllPairs() {
       ...(executablePath ? { executablePath } : {}),
       args: baseArgs,
     });
+    let browserGpuInfo = null;
+    let browserGpuInfoNote = null;
+    let cdpSession;
+    try {
+      cdpSession = await browser.newBrowserCDPSession();
+      const systemInfo = await cdpSession.send('SystemInfo.getInfo');
+      browserGpuInfo = normalizeBrowserGpuInfo(systemInfo?.gpu);
+    } catch {
+      browserGpuInfoNote = 'Chromium CDP SystemInfo.getInfo was unavailable.';
+    } finally {
+      if (cdpSession) await cdpSession.detach().catch(() => {});
+    }
     const page = await browser.newPage();
     page.on('console', (msg) => {
       if (msg.type() === 'error') console.error(`[page] ERR ${msg.text()}`);
@@ -265,6 +282,7 @@ async function runAllPairs() {
     const result = await page.evaluate(runInPage, { probes, trials });
     return {
       adapterInfo: result.adapterInfo,
+      browserGpuInfo,
       browser: {
         userAgent: result.userAgent,
         executablePath: executablePath ?? 'playwright-bundled-chromium',
@@ -272,7 +290,7 @@ async function runAllPairs() {
         launchArgs: baseArgs,
       },
       perPair: result.perPair,
-      notes: result.notes,
+      notes: [...result.notes, ...(browserGpuInfoNote ? [browserGpuInfoNote] : [])],
     };
   } finally {
     if (browser) await browser.close();
@@ -434,6 +452,7 @@ async function runInPage(input) {
 // ── Main ─────────────────────────────────────────────────────────────────
 const repoRoot = findRepoRoot(process.cwd());
 const hardware = detectHardware();
+const hostGpuInventory = detectHostGpuInventory();
 const captured = await runAllPairs();
 
 const capturedAt = new Date().toISOString();
@@ -465,6 +484,8 @@ const receipt = {
   harness: 'scripts/webgpu-capture/verify-atomic-commutativity.mjs',
   hardware,
   adapter_info: captured.adapterInfo,
+  browser_gpu_info: captured.browserGpuInfo,
+  host_gpu_inventory: hostGpuInventory,
   browser: captured.browser,
   kernel: {
     name: 'pairwise_atomic_probe',
@@ -494,6 +515,7 @@ const receipt = {
       trials +
       ' trials yielded a single final value. Necessary but not sufficient for general commutativity (different operands may falsify).',
     ...captured.notes,
+    ...buildGpuIdentityNotes(captured.adapterInfo, captured.browserGpuInfo, hostGpuInventory),
   ],
   ots_proof_path: null,
   anchor_chain: null,

@@ -50,6 +50,11 @@ import { execFileSync, execSync } from 'node:child_process';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { chromium } from 'playwright';
+import {
+  buildGpuIdentityNotes,
+  detectHostGpuInventory,
+  normalizeBrowserGpuInfo,
+} from './gpu-identity.mjs';
 
 // ── CLI ──────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -68,11 +73,18 @@ const wgslAbsPath = path.resolve(repoRoot, config.kernel.wgsl_path);
 const wgsl = readFileSync(wgslAbsPath, 'utf8');
 const wgslSha256 = createHash('sha256').update(wgsl).digest('hex');
 const harnessRelativePath = 'scripts/webgpu-capture/capture-bench.mjs';
+const gpuIdentityRelativePath = 'scripts/webgpu-capture/gpu-identity.mjs';
 const configRelativePath = path.relative(repoRoot, path.resolve(configPath)).replaceAll('\\', '/');
-const relevantPaths = [harnessRelativePath, configRelativePath, config.kernel.wgsl_path];
+const relevantPaths = [
+  harnessRelativePath,
+  gpuIdentityRelativePath,
+  configRelativePath,
+  config.kernel.wgsl_path,
+];
 
 // ── Hardware tier ────────────────────────────────────────────────────────
 const hardware = detectHardware();
+const hostGpuInventory = detectHostGpuInventory();
 
 // ── Launch Chromium + run kernel ─────────────────────────────────────────
 const result = await runCapture({ wgsl, wgslSha256 });
@@ -103,6 +115,8 @@ const receipt = {
   harness: config.harness ?? 'scripts/webgpu-capture/capture-bench.mjs',
   hardware,
   adapter_info: result.adapterInfo,
+  browser_gpu_info: result.browserGpuInfo,
+  host_gpu_inventory: hostGpuInventory,
   browser: result.browser,
   kernel: {
     name: config.kernel.entry_point,
@@ -116,12 +130,16 @@ const receipt = {
     relevant_paths_clean: gitPathsClean(repoRoot, relevantPaths),
     inputs: [
       sourceIdentity(repoRoot, harnessRelativePath),
+      sourceIdentity(repoRoot, gpuIdentityRelativePath),
       { path: configRelativePath, sha256: sha256Text(configSource) },
       { path: config.kernel.wgsl_path, sha256: wgslSha256 },
     ],
   },
   results: result.results,
-  notes: result.notes,
+  notes: [
+    ...result.notes,
+    ...buildGpuIdentityNotes(result.adapterInfo, result.browserGpuInfo, hostGpuInventory),
+  ],
   ots_proof_path: null,
   anchor_chain: null,
 };
@@ -161,7 +179,7 @@ function detectHardware() {
   return {
     tier,
     label,
-    gpu: envGpu ?? 'unspecified (read from adapter_info)',
+    gpu: envGpu ?? 'unspecified (see adapter_info, browser_gpu_info, and host_gpu_inventory)',
     cpu: cpuModel,
     cpuCount,
     ramGb,
@@ -254,6 +272,18 @@ async function runCapture({ wgsl, wgslSha256 }) {
       ...(executablePath ? { executablePath } : {}),
       args: baseArgs,
     });
+    let browserGpuInfo = null;
+    let browserGpuInfoNote = null;
+    let cdpSession;
+    try {
+      cdpSession = await browser.newBrowserCDPSession();
+      const systemInfo = await cdpSession.send('SystemInfo.getInfo');
+      browserGpuInfo = normalizeBrowserGpuInfo(systemInfo?.gpu);
+    } catch {
+      browserGpuInfoNote = 'Chromium CDP SystemInfo.getInfo was unavailable.';
+    } finally {
+      if (cdpSession) await cdpSession.detach().catch(() => {});
+    }
     const page = await browser.newPage();
     page.on('console', (msg) => {
       if (msg.type() === 'error') console.error(`[page] ERR ${msg.text()}`);
@@ -278,6 +308,7 @@ async function runCapture({ wgsl, wgslSha256 }) {
     });
     return {
       adapterInfo: pageResult.adapterInfo,
+      browserGpuInfo,
       browser: {
         userAgent: pageResult.userAgent,
         executablePath: executablePath ?? 'playwright-bundled-chromium',
@@ -285,7 +316,7 @@ async function runCapture({ wgsl, wgslSha256 }) {
         launchArgs: baseArgs,
       },
       results: pageResult.results,
-      notes: pageResult.notes,
+      notes: [...pageResult.notes, ...(browserGpuInfoNote ? [browserGpuInfoNote] : [])],
     };
   } finally {
     if (browser) await browser.close();
