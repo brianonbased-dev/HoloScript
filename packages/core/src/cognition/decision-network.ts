@@ -38,18 +38,39 @@ export interface DecisionNetworkOptions {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  problem: '#6f3a2f', blocker: '#6f3a2f', fail: '#6f3a2f',
-  bug: '#7a5a2f', finding: '#7a5a2f', warn: '#7a5a2f', risk: '#7a5a2f',
-  shipped: '#2f6f4f', done: '#2f6f4f', pass: '#2f6f4f', green: '#2f6f4f',
-  judge: '#2f4f7f', audit: '#2f4f7f', info: '#2f4f7f', running: '#2f4f7f',
-  meta: '#4f2f6f', current: '#4f2f6f', this: '#4f2f6f',
-  open: '#3a4250', todo: '#3a4250', pending: '#3a4250',
+  problem: '#6f3a2f',
+  blocker: '#6f3a2f',
+  fail: '#6f3a2f',
+  bug: '#7a5a2f',
+  finding: '#7a5a2f',
+  warn: '#7a5a2f',
+  risk: '#7a5a2f',
+  shipped: '#2f6f4f',
+  done: '#2f6f4f',
+  pass: '#2f6f4f',
+  green: '#2f6f4f',
+  judge: '#2f4f7f',
+  audit: '#2f4f7f',
+  info: '#2f4f7f',
+  running: '#2f4f7f',
+  meta: '#4f2f6f',
+  current: '#4f2f6f',
+  this: '#4f2f6f',
+  open: '#3a4250',
+  todo: '#3a4250',
+  pending: '#3a4250',
 };
 const DEFAULT_COLOR = '#2f4f7f';
 const EDGE_COLOR = '#8aa0b4';
 
 function colorFor(status?: string): string {
-  return STATUS_COLOR[String(status ?? '').trim().toLowerCase()] ?? DEFAULT_COLOR;
+  return (
+    STATUS_COLOR[
+      String(status ?? '')
+        .trim()
+        .toLowerCase()
+    ] ?? DEFAULT_COLOR
+  );
 }
 
 /** Topological depth of each node (0 = root); cycle- and missing-cause-safe. */
@@ -85,7 +106,10 @@ function q(s: string): string {
  * Build the .holo composition for a decision stream — auto-laid-out (topological rows,
  * siblings spread on x), receipt-bound nodes, cause→effect edges. Pure/deterministic.
  */
-export function buildDecisionHolo(events: DecisionEvent[], opts: DecisionNetworkOptions = {}): string {
+export function buildDecisionHolo(
+  events: DecisionEvent[],
+  opts: DecisionNetworkOptions = {}
+): string {
   const rowSpacing = opts.rowSpacing ?? 2.3;
   const colSpacing = opts.colSpacing ?? 5.6;
   const nodeW = opts.nodeWidth ?? 4.6;
@@ -110,12 +134,16 @@ export function buildDecisionHolo(events: DecisionEvent[], opts: DecisionNetwork
   for (const [d, row] of rows) {
     const n = row.length;
     const xStart = -((n - 1) * colSpacing) / 2;
-    row.forEach((node, i) => pos.set(node.id, { x: xStart + i * colSpacing, z: d * rowSpacing - zCenter }));
+    row.forEach((node, i) =>
+      pos.set(node.id, { x: xStart + i * colSpacing, z: d * rowSpacing - zCenter })
+    );
   }
 
   const lines: string[] = [];
   lines.push(`composition "DecisionNetwork" {`);
-  lines.push(`  object "Title" { geometry: "text"; position: [0, 0, ${(-zCenter - 1.35).toFixed(2)}]; text: "${q(title)}"; size: 14; color: "#dfeaf2" }`);
+  lines.push(
+    `  object "Title" { geometry: "text"; position: [0, 0, ${(-zCenter - 1.35).toFixed(2)}]; text: "${q(title)}"; size: 14; color: "#dfeaf2" }`
+  );
   for (const node of nodes) {
     const p = pos.get(node.id)!;
     const receipt = node.receipt ? `; receipt: "${q(node.receipt)}"` : '';
@@ -126,7 +154,10 @@ export function buildDecisionHolo(events: DecisionEvent[], opts: DecisionNetwork
   let ei = 0;
   for (const node of nodes) {
     for (const c of node.causes ?? []) {
-      if (pos.has(c)) lines.push(`  object "e${ei++}" { geometry: "edge"; source: "${q(c)}"; target: "${q(node.id)}"; color: "${EDGE_COLOR}" }`);
+      if (pos.has(c))
+        lines.push(
+          `  object "e${ei++}" { geometry: "edge"; source: "${q(c)}"; target: "${q(node.id)}"; color: "${EDGE_COLOR}" }`
+        );
     }
   }
   lines.push('}');
@@ -134,7 +165,10 @@ export function buildDecisionHolo(events: DecisionEvent[], opts: DecisionNetwork
 }
 
 /** Canvas size (px) that fits the laid-out network. */
-function canvasFor(events: DecisionEvent[], opts: DecisionNetworkOptions): { width: number; height: number } {
+function canvasFor(
+  events: DecisionEvent[],
+  opts: DecisionNetworkOptions
+): { width: number; height: number } {
   const rowSpacing = opts.rowSpacing ?? 2.3;
   const colSpacing = opts.colSpacing ?? 5.6;
   const nodeW = opts.nodeWidth ?? 4.6;
@@ -152,7 +186,10 @@ function canvasFor(events: DecisionEvent[], opts: DecisionNetworkOptions): { wid
 }
 
 /** Render a decision stream directly to SVG via the sovereign SVGCompiler. */
-export function renderDecisionSvg(events: DecisionEvent[], opts: DecisionNetworkOptions = {}): string {
+export function renderDecisionSvg(
+  events: DecisionEvent[],
+  opts: DecisionNetworkOptions = {}
+): string {
   const holo = buildDecisionHolo(events, opts);
   const parsed = new HoloCompositionParser().parse(holo);
   if (!parsed.success || !parsed.ast) {

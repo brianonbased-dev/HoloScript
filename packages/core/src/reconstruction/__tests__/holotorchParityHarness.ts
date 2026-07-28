@@ -46,7 +46,8 @@ export async function getWebGpuDevice(): Promise<GPUDevice | null> {
       g.navigator.gpu = gpu;
       const target = globalThis as unknown as Record<string, unknown>;
       for (const [k, v] of Object.entries(globals)) {
-        if (target[k] == null) Object.defineProperty(globalThis, k, { value: v, writable: true, configurable: true });
+        if (target[k] == null)
+          Object.defineProperty(globalThis, k, { value: v, writable: true, configurable: true });
       }
     } catch {
       cachedDevice = null;
@@ -59,7 +60,12 @@ export async function getWebGpuDevice(): Promise<GPUDevice | null> {
     return null;
   }
   const info = (adapter as unknown as { info?: AdapterInfo }).info ?? {};
-  capturedAdapterInfo = { vendor: info.vendor, architecture: info.architecture, device: info.device, description: info.description };
+  capturedAdapterInfo = {
+    vendor: info.vendor,
+    architecture: info.architecture,
+    device: info.device,
+    description: info.description,
+  };
   cachedDevice = await adapter.requestDevice();
   return cachedDevice;
 }
@@ -72,7 +78,12 @@ export interface AllCloseResult {
 }
 
 /** numpy.allclose semantics: |got-ref| <= atol + rtol*|ref| elementwise. */
-export function compareAllClose(got: Float32Array, ref: Float64Array, atol: number, rtol: number): AllCloseResult {
+export function compareAllClose(
+  got: Float32Array,
+  ref: Float64Array,
+  atol: number,
+  rtol: number
+): AllCloseResult {
   let maxAbs = 0;
   let maxRefAbs = 0;
   let allClose = true;

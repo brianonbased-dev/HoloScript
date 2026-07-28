@@ -9,10 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  ProvenanceBoundsChecker,
-  type CrossFileContext,
-} from '../../ProvenanceBoundsChecker';
+import { ProvenanceBoundsChecker, type CrossFileContext } from '../../ProvenanceBoundsChecker';
 import { AuthoritySymbolGraph } from '../AuthoritySymbolGraph';
 import { buildColyseusCrossFileContext } from '../ColyseusAuthorityManifest';
 import { ColyseusCompiler } from '../../ColyseusCompiler';

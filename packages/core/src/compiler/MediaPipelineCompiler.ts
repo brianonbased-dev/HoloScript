@@ -60,7 +60,10 @@ export class MediaPipelineCompiler {
       for (let i = 0; i < 3; i++) center[i] = (min[i] + max[i]) / 2;
       radius = 1;
       for (const c of centers)
-        radius = Math.max(radius, Math.hypot(c[0] - center[0], c[1] - center[1], c[2] - center[2]) + 1.5);
+        radius = Math.max(
+          radius,
+          Math.hypot(c[0] - center[0], c[1] - center[1], c[2] - center[2]) + 1.5
+        );
     }
     const fov = 50;
     const tanf = Math.tan((fov * Math.PI) / 180 / 2);
@@ -118,7 +121,11 @@ export class MediaPipelineCompiler {
       const wr =
         p.kind === 0
           ? p.a[3]
-          : Math.max(Math.abs(p.b[0] - p.a[0]), Math.abs(p.b[1] - p.a[1]), Math.abs(p.b[2] - p.a[2])) * 0.5;
+          : Math.max(
+              Math.abs(p.b[0] - p.a[0]),
+              Math.abs(p.b[1] - p.a[1]),
+              Math.abs(p.b[2] - p.a[2])
+            ) * 0.5;
       const rel: V3 = [c[0] - eye[0], c[1] - eye[1], c[2] - eye[2]];
       const z = dot(rel, fwd);
       if (z <= 0.05) continue; // behind camera

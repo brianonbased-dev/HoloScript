@@ -54,8 +54,7 @@ describe('deriveBloomEmissive', () => {
   it('returns toEmissive at elapsed>=rampMs', () =>
     expect(deriveBloomEmissive(100, 100, 0.8, 2.5)).toBe(2.5));
 
-  it('midpoint', () =>
-    expect(deriveBloomEmissive(40, 80, 0.8, 2.5)).toBeCloseTo(1.65, 5));
+  it('midpoint', () => expect(deriveBloomEmissive(40, 80, 0.8, 2.5)).toBeCloseTo(1.65, 5));
 });
 
 // ---------------------------------------------------------------------------
@@ -218,8 +217,10 @@ describe('GrabFeedbackProfileTrait handler', () => {
   it('cleans up state and emits detached on detach', () => {
     grabFeedbackProfileHandler.onDetach?.(
       node as unknown as Parameters<NonNullable<typeof grabFeedbackProfileHandler.onDetach>>[0],
-      defaultCfg as unknown as Parameters<NonNullable<typeof grabFeedbackProfileHandler.onDetach>>[1],
-      ctx as unknown as Parameters<NonNullable<typeof grabFeedbackProfileHandler.onDetach>>[2],
+      defaultCfg as unknown as Parameters<
+        NonNullable<typeof grabFeedbackProfileHandler.onDetach>
+      >[1],
+      ctx as unknown as Parameters<NonNullable<typeof grabFeedbackProfileHandler.onDetach>>[2]
     );
     expect(node.__grabFeedbackProfileState).toBeUndefined();
     expect(getEventCount(ctx, 'grab_feedback_profile_detached')).toBe(1);

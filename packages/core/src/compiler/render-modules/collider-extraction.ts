@@ -63,20 +63,39 @@ export function resolveCollider(
 ): ColliderDescriptor {
   const [sx, sy, sz] = transform.scale.length >= 3 ? transform.scale : [1, 1, 1];
   const translation = transform.position.length >= 3 ? transform.position : [0, 0, 0];
-  const rotation = transform.rotation && transform.rotation.length >= 3 ? transform.rotation : [0, 0, 0];
+  const rotation =
+    transform.rotation && transform.rotation.length >= 3 ? transform.rotation : [0, 0, 0];
   const base = { translation, rotation };
   switch (primitive) {
     case 'box':
-      return { shape: 'cuboid', halfExtents: [Math.abs(sx) * 0.5, Math.abs(sy) * 0.5, Math.abs(sz) * 0.5], ...base };
+      return {
+        shape: 'cuboid',
+        halfExtents: [Math.abs(sx) * 0.5, Math.abs(sy) * 0.5, Math.abs(sz) * 0.5],
+        ...base,
+      };
     case 'sphere':
       return { shape: 'ball', radius: 0.5 * maxAbs([sx, sy, sz]), ...base };
     case 'plane':
       // Registry plane is flat in XZ (y≈0) — a thin cuboid slab is the honest collider.
-      return { shape: 'cuboid', halfExtents: [Math.abs(sx) * 0.5, PLANE_THICKNESS, Math.abs(sz) * 0.5], ...base };
+      return {
+        shape: 'cuboid',
+        halfExtents: [Math.abs(sx) * 0.5, PLANE_THICKNESS, Math.abs(sz) * 0.5],
+        ...base,
+      };
     case 'cylinder':
-      return { shape: 'cylinder', halfHeight: Math.abs(sy) * 0.5, radius: 0.5 * Math.max(Math.abs(sx), Math.abs(sz)), ...base };
+      return {
+        shape: 'cylinder',
+        halfHeight: Math.abs(sy) * 0.5,
+        radius: 0.5 * Math.max(Math.abs(sx), Math.abs(sz)),
+        ...base,
+      };
     case 'cone':
-      return { shape: 'cone', halfHeight: Math.abs(sy) * 0.5, radius: 0.5 * Math.max(Math.abs(sx), Math.abs(sz)), ...base };
+      return {
+        shape: 'cone',
+        halfHeight: Math.abs(sy) * 0.5,
+        radius: 0.5 * Math.max(Math.abs(sx), Math.abs(sz)),
+        ...base,
+      };
     case 'torus':
       // No exact primitive collider — use a solid-cylinder envelope of the ring.
       return {

@@ -6,7 +6,13 @@
  * @see ../corpusPortfolio.ts
  */
 import { describe, it, expect } from 'vitest';
-import { accrueOneStep, dedupRows, type EvolveSeed, type Proposer, type GradedTraceRow } from '../corpusPortfolio';
+import {
+  accrueOneStep,
+  dedupRows,
+  type EvolveSeed,
+  type Proposer,
+  type GradedTraceRow,
+} from '../corpusPortfolio';
 
 const SEED: EvolveSeed = {
   name: 'unit-scene',
@@ -19,8 +25,14 @@ const SEED: EvolveSeed = {
 describe('accrueOneStep — gated rows from a fake proposer (no metal)', () => {
   it('a valid, denser, construct-preserving candidate → a passed/SFT graded row', async () => {
     // denser (one less indent space) + still valid .holo + preserves both constructs
-    const propose: Proposer = async () => 'composition "T" {\n object "A" { position: [0, 0, 0] }\n}';
-    const { target, rows } = await accrueOneStep({ propose, agentId: 'unit', seed: SEED, now: () => 'T' });
+    const propose: Proposer = async () =>
+      'composition "T" {\n object "A" { position: [0, 0, 0] }\n}';
+    const { target, rows } = await accrueOneStep({
+      propose,
+      agentId: 'unit',
+      seed: SEED,
+      now: () => 'T',
+    });
     expect(target).toBe('unit-scene');
     expect(rows.length).toBe(1);
     expect(rows[0].grader.passed).toBe(true);
@@ -39,7 +51,15 @@ describe('accrueOneStep — gated rows from a fake proposer (no metal)', () => {
 
 describe('dedupRows — cross-run + within-batch uniqueness', () => {
   const row = (target: string): GradedTraceRow => ({
-    system: 's', user: 'u', target, grader: {}, family: 'f', modality: 'code', source: 'x', agentId: 'a', ts: 'T',
+    system: 's',
+    user: 'u',
+    target,
+    grader: {},
+    family: 'f',
+    modality: 'code',
+    source: 'x',
+    agentId: 'a',
+    ts: 'T',
   });
 
   it('drops candidates already in the corpus and repeats within the batch, keeps the rest', () => {

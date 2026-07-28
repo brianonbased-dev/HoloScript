@@ -80,7 +80,14 @@ async function main() {
       label: args.label,
       ...(args.receipt ? { receipt: args.receipt } : {}),
       ...(args.status ? { status: args.status } : {}),
-      ...(args.causes ? { causes: args.causes.split(',').map((s) => s.trim()).filter(Boolean) } : {}),
+      ...(args.causes
+        ? {
+            causes: args.causes
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean),
+          }
+        : {}),
       ...(args.agent ? { agent: args.agent } : {}),
       ...(args.seq ? { seq: Number(args.seq) } : {}),
     };
@@ -108,7 +115,9 @@ async function main() {
     const rerender = async () => {
       try {
         const r = await renderTo(readLog(args.log), args.out, args.title);
-        console.log(`[watch] ${new Date().toISOString?.() ?? ''} ${r.nodes} nodes -> ${r.svgPath}${r.note}`);
+        console.log(
+          `[watch] ${new Date().toISOString?.() ?? ''} ${r.nodes} nodes -> ${r.svgPath}${r.note}`
+        );
       } catch (e) {
         console.error('[watch] render error:', e.message);
       }

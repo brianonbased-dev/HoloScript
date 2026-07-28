@@ -10,9 +10,7 @@ import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 function minimalComposition(): HoloComposition {
   return {
     name: 'AdapterTest',
-    objects: [
-      { name: 'cube', traits: [{ name: 'hand_tracking' }], properties: [] },
-    ],
+    objects: [{ name: 'cube', traits: [{ name: 'hand_tracking' }], properties: [] }],
   } as unknown as HoloComposition;
 }
 
@@ -38,9 +36,7 @@ describe('AndroidXRCompiler.compileToFiles', () => {
   it('derives the java source path from the package name', () => {
     const compiler = new AndroidXRCompiler({ packageName: 'com.example.foo' });
     const files = compiler.compileToFiles(minimalComposition(), '');
-    expect(Object.keys(files)).toContain(
-      'app/src/main/java/com/example/foo/XRSceneState.kt'
-    );
+    expect(Object.keys(files)).toContain('app/src/main/java/com/example/foo/XRSceneState.kt');
   });
 
   it('uses the configured activity name for the activity file path', () => {

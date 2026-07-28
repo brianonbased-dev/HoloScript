@@ -30,8 +30,7 @@ const MODEL = process.env.EVOLVE_PROPOSER_MODEL ?? 'brittney-edge:v0-4';
 
 describe.skipIf(!ENABLED)('runEvolution on LOCAL METAL (Jetson Ollama)', () => {
   it('runs the gated loop with a sovereign local proposer and emits an auditable receipt', async () => {
-    const seed =
-      'function greet(name) { return "Hello, " + name + "! Welcome to HoloScript."; }';
+    const seed = 'function greet(name) { return "Hello, " + name + "! Welcome to HoloScript."; }';
     const propose = makeOllamaProposer(ENDPOINT, MODEL);
     // Real gate: still greets BY NAME (semantic marker), and shorter is better.
     // A mutation that drops the marker fails and is discarded — the guardrail.
@@ -52,7 +51,7 @@ describe.skipIf(!ENABLED)('runEvolution on LOCAL METAL (Jetson Ollama)', () => {
         archiveSize: 6,
         proposerModel: MODEL,
       },
-      { propose, gate, onCandidate: (r) => traceRecs.push(r) },
+      { propose, gate, onCandidate: (r) => traceRecs.push(r) }
     );
 
     // Whatever the small on-device model produced, the loop must be sound + auditable.
@@ -71,7 +70,7 @@ describe.skipIf(!ENABLED)('runEvolution on LOCAL METAL (Jetson Ollama)', () => {
     const rows = traceRecs.map((r) => toGradedTraceRow(r, { agentId: 'jetson-evolve', ts }));
     writeFileSync(
       '.scratch/evolve-proof/trace.jsonl',
-      rows.map((row) => JSON.stringify(row)).join('\n') + (rows.length ? '\n' : ''),
+      rows.map((row) => JSON.stringify(row)).join('\n') + (rows.length ? '\n' : '')
     );
     const chosen = rows.filter((row) => (row.grader as { passed: boolean }).passed).length;
     const rejected = rows.length - chosen;
@@ -80,7 +79,7 @@ describe.skipIf(!ENABLED)('runEvolution on LOCAL METAL (Jetson Ollama)', () => {
     console.log(
       `[evolve][local-metal] result=${receipt.result} seed=${receipt.seedScore} -> best=${receipt.bestScore} ` +
         `| model=${MODEL} evaluated=${receipt.evaluated} discarded=${receipt.discarded} survivors=${receipt.survivors} ` +
-        `| TRAINING ROWS=${rows.length} (chosen/SFT=${chosen}, rejected/DPO=${rejected})`,
+        `| TRAINING ROWS=${rows.length} (chosen/SFT=${chosen}, rejected/DPO=${rejected})`
     );
   }, 180000);
 });

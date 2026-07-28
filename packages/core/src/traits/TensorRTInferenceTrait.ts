@@ -72,8 +72,9 @@ export function buildTrtexecCommand(config: Required<TensorRTConfig>): string {
  * Expected latency targets for Orin Nano Super (measured, W.733):
  * These are rough guides — actual latency depends on model architecture and input size.
  */
-export const ORIN_NANO_LATENCY_TARGETS: Record<TRTPrecision, { target_ms: number; note: string }> = {
-  fp32: { target_ms: 50, note: 'full precision, slowest' },
-  fp16: { target_ms: 20, note: 'half precision, recommended for Orin' },
-  int8: { target_ms: 10, note: 'INT8 requires calibration dataset' },
-};
+export const ORIN_NANO_LATENCY_TARGETS: Record<TRTPrecision, { target_ms: number; note: string }> =
+  {
+    fp32: { target_ms: 50, note: 'full precision, slowest' },
+    fp16: { target_ms: 20, note: 'half precision, recommended for Orin' },
+    int8: { target_ms: 10, note: 'INT8 requires calibration dataset' },
+  };

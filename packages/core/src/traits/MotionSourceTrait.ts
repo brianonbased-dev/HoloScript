@@ -231,9 +231,7 @@ function applyMotion(
   state.applied = applied;
 
   // Mirror onto the AvatarEmbodiment pipeline so lip-sync/emotion stay in sync.
-  const emb = node.__avatarEmbodimentState as
-    | { currentAnimation?: string }
-    | undefined;
+  const emb = node.__avatarEmbodimentState as { currentAnimation?: string } | undefined;
   if (emb) emb.currentAnimation = intent;
 
   context.emit('on_motion_changed', { node, motion: intent, applied });
@@ -296,7 +294,12 @@ export const motionSourceHandler: TraitHandler<MotionSourceConfig> = {
     delete node.__motionSourceState;
   },
 
-  onUpdate(node: HSPlusNode, config: MotionSourceConfig, context: TraitContext, delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    config: MotionSourceConfig,
+    context: TraitContext,
+    delta: number
+  ): void {
     const state = getState(node);
     if (!state) return;
     if ((config.kind ?? 'library') !== 'procedural') return;
@@ -334,9 +337,10 @@ export const motionSourceHandler: TraitHandler<MotionSourceConfig> = {
     if (!state) return;
 
     const type = typeof event === 'string' ? event : event.type;
-    const payload = (
-      event && typeof event === 'object' ? (event.payload ?? event) : {}
-    ) as Record<string, unknown>;
+    const payload = (event && typeof event === 'object' ? (event.payload ?? event) : {}) as Record<
+      string,
+      unknown
+    >;
 
     if (type === 'motion_request') {
       const intent = (payload.intent ?? payload.motion ?? payload.clip) as string | undefined;

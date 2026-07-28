@@ -29,7 +29,8 @@ export function refLayerNorm(
     }
     v /= dModel;
     const inv = 1 / Math.sqrt(v + EPS);
-    for (let c = 0; c < dModel; c++) out[r * dModel + c] = (input[r * dModel + c] - mean) * inv * gamma[c] + beta[c];
+    for (let c = 0; c < dModel; c++)
+      out[r * dModel + c] = (input[r * dModel + c] - mean) * inv * gamma[c] + beta[c];
   }
   return out;
 }
@@ -57,7 +58,11 @@ export function refLinear(
 /** Abramowitz & Stegun 7.1.26 erf (matches geluKernel's WGSL erf_approx). */
 export function erfAS(x: number): number {
   const t = 1 / (1 + 0.3275911 * Math.abs(x));
-  const y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t) * Math.exp(-x * x);
+  const y =
+    1 -
+    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) *
+      t *
+      Math.exp(-x * x);
   return x >= 0 ? y : -y;
 }
 
@@ -72,7 +77,13 @@ export function refGelu(x: ArrayLike<number>, n: number): Float64Array {
 }
 
 /** One GPT-2 pre-norm block. x is f32 (matches the WGSL inter-op storage); returns f64. */
-export function refBlock(x: Float32Array, w: BlockWeights, T: number, nEmbd: number, nHead: number): Float64Array {
+export function refBlock(
+  x: Float32Array,
+  w: BlockWeights,
+  T: number,
+  nEmbd: number,
+  nHead: number
+): Float64Array {
   const dHead = nEmbd / nHead;
   const a = refLayerNorm(x, w.ln1g, w.ln1b, T, nEmbd);
   const qkv = refLinear(a, w.wqkv, w.bqkv, T, nEmbd, 3 * nEmbd);

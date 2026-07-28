@@ -36,7 +36,11 @@ export interface DomainSimulationReceiptInput {
    * Absent for receipts produced without clause-bearing ContractedSimulations.
    */
   clauseWitness?: {
-    clauses: Array<{ id: string; kind: 'precondition' | 'invariant' | 'postcondition'; description: string }>;
+    clauses: Array<{
+      id: string;
+      kind: 'precondition' | 'invariant' | 'postcondition';
+      description: string;
+    }>;
     violations: Array<{
       clauseId: string;
       kind: 'precondition' | 'invariant' | 'postcondition';

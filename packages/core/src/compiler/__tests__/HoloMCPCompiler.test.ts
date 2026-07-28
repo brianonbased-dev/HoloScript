@@ -8,7 +8,11 @@ import { HoloMCPCompiler } from '../HoloMCPCompiler';
 import type { HoloMCPTool, HoloParamAnnotation } from '../HoloMCPCompiler';
 import { DialectRegistry } from '../DialectRegistry';
 import { registerBuiltinDialects } from '../registerBuiltinDialects';
-import type { HoloComposition, HoloObjectDecl, HoloObjectTrait } from '../../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+} from '../../parser/HoloCompositionTypes';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -121,9 +125,7 @@ describe('HoloMCPCompiler P1 — trait-walk Tool[] emission', () => {
 
   it('emits one Tool per trait on a single object', () => {
     const composition = makeEmptyComposition({
-      objects: [
-        makeObject('Robot', [makeTrait('physics'), makeTrait('renderable')]),
-      ],
+      objects: [makeObject('Robot', [makeTrait('physics'), makeTrait('renderable')])],
     });
 
     const parsed = compileAndParse(compiler, composition);
@@ -158,9 +160,7 @@ describe('HoloMCPCompiler P1 — trait-walk Tool[] emission', () => {
           actions: [],
         } as unknown as import('../../parser/HoloCompositionTypes').HoloTemplate,
       ],
-      objects: [
-        makeObject('Enemy', [makeTrait('ai_agent', { model: 'llama3' })]),
-      ],
+      objects: [makeObject('Enemy', [makeTrait('ai_agent', { model: 'llama3' })])],
     });
 
     const parsed = compileAndParse(compiler, composition);
@@ -490,7 +490,7 @@ describe('HoloMCPCompiler P2 — compileModule() TypeScript emission', () => {
   it('exports verifyContractWiring function', () => {
     const code = emitModule();
     expect(code).toContain('export function verifyContractWiring()');
-    expect(code).toContain("has no registered handler");
+    expect(code).toContain('has no registered handler');
   });
 
   it('exports handleToolCall async function', () => {
@@ -501,7 +501,7 @@ describe('HoloMCPCompiler P2 — compileModule() TypeScript emission', () => {
 
   it('exports __holoMeta with honest governance values', () => {
     const code = emitModule();
-    expect(code).toContain("export const __holoMeta");
+    expect(code).toContain('export const __holoMeta');
     expect(code).toContain("hashTier: 'fnv1a32'");
     // P3: startup-gate is now enforced (wiring + _contractVerified flag)
     expect(code).toContain("contractEnforcement: 'startup-gate'");
@@ -547,17 +547,25 @@ describe('HoloMCPCompiler P2 — compileModule() TypeScript emission', () => {
           tscBin,
           '--noEmit',
           '--strict',
-          '--target', 'ES2020',
-          '--lib', 'ES2020',
-          '--module', 'commonjs',
-          '--moduleResolution', 'node',
+          '--target',
+          'ES2020',
+          '--lib',
+          'ES2020',
+          '--module',
+          'commonjs',
+          '--moduleResolution',
+          'node',
           '--skipLibCheck',
           tmpFile,
         ],
         { encoding: 'utf8' }
       );
     } finally {
-      try { unlinkSync(tmpFile); } catch { /* ok if already gone */ }
+      try {
+        unlinkSync(tmpFile);
+      } catch {
+        /* ok if already gone */
+      }
     }
     // If execFileSync didn't throw, tsc passed with zero errors.
   });
@@ -601,7 +609,9 @@ describe('HoloMCPCompiler P3 — startup evaluator gate', () => {
   it('handleToolCall throws when _contractVerified is false', () => {
     const code = emitWith();
     expect(code).toContain('!_contractVerified');
-    expect(code).toContain('verifyContractWiring() must be called at startup before handleToolCall()');
+    expect(code).toContain(
+      'verifyContractWiring() must be called at startup before handleToolCall()'
+    );
   });
 
   it('contractEnforcement is "startup-gate" (honest: gate is structurally enforced)', () => {
@@ -644,17 +654,25 @@ describe('HoloMCPCompiler P3 — startup evaluator gate', () => {
           tscBin,
           '--noEmit',
           '--strict',
-          '--target', 'ES2020',
-          '--lib', 'ES2020',
-          '--module', 'commonjs',
-          '--moduleResolution', 'node',
+          '--target',
+          'ES2020',
+          '--lib',
+          'ES2020',
+          '--module',
+          'commonjs',
+          '--moduleResolution',
+          'node',
           '--skipLibCheck',
           tmpFile,
         ],
         { encoding: 'utf8' }
       );
     } finally {
-      try { unlinkSync(tmpFile); } catch { /* ok */ }
+      try {
+        unlinkSync(tmpFile);
+      } catch {
+        /* ok */
+      }
     }
   });
 });
@@ -670,7 +688,7 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
     name: string,
     annotations: Record<string, HoloParamAnnotation>,
     traitName: string,
-    traitConfig: Record<string, unknown>,
+    traitConfig: Record<string, unknown>
   ) {
     return makeObject(name, [
       makeTrait('param', annotations as Record<string, unknown>),
@@ -682,7 +700,7 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
     name: string,
     annotations: Record<string, HoloParamAnnotation>,
     traitName: string,
-    traitConfig: Record<string, unknown>,
+    traitConfig: Record<string, unknown>
   ) {
     const composition = makeEmptyComposition({
       objects: [makeAnnotatedObject(name, annotations, traitName, traitConfig)],
@@ -695,7 +713,7 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
       'Sensor',
       { hz: { type: 'number', description: 'Hz rate', required: true } },
       'sensor',
-      { hz: 10, unit: 'celsius' },
+      { hz: 10, unit: 'celsius' }
     );
     // Only one tool: sensor (not param)
     expect(tools).toHaveLength(1);
@@ -708,7 +726,7 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
       'Sensor',
       { hz: { type: 'string', description: 'Override to string' } },
       'sensor',
-      { hz: 10 },
+      { hz: 10 }
     );
     expect(tools[0].inputSchema.properties['hz'].type).toBe('string');
   });
@@ -718,7 +736,7 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
       'Bot',
       { speed: { description: 'Locomotion speed in m/s' } },
       'locomotion',
-      { speed: 1.0 },
+      { speed: 1.0 }
     );
     expect(tools[0].inputSchema.properties['speed'].description).toBe('Locomotion speed in m/s');
   });
@@ -731,7 +749,7 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
         limit: { type: 'number', description: 'Max results', required: false },
       },
       'search',
-      { query: '', limit: 10 },
+      { query: '', limit: 10 }
     );
     expect(tools[0].inputSchema.required).toContain('query');
     expect(tools[0].inputSchema.required).not.toContain('limit');
@@ -742,10 +760,12 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
       'Sensor',
       { unit: { type: 'string', enum: ['celsius', 'fahrenheit', 'kelvin'] } },
       'thermometer',
-      { unit: 'celsius' },
+      { unit: 'celsius' }
     );
     expect(tools[0].inputSchema.properties['unit'].enum).toEqual([
-      'celsius', 'fahrenheit', 'kelvin',
+      'celsius',
+      'fahrenheit',
+      'kelvin',
     ]);
   });
 
@@ -754,7 +774,7 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
       'Bot',
       { mass: { type: 'number', description: 'Mass in kg', required: true } },
       'physics',
-      { mass: 1.0 },
+      { mass: 1.0 }
     );
     expect(tools[0]._schemaFidelity).toBe('annotated');
   });
@@ -771,9 +791,16 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
     // @param declares 'mode' but the trait config has no 'mode' key
     const { tools } = compileAnnotated(
       'Robot',
-      { mode: { type: 'string', description: 'Operation mode', required: true, enum: ['auto', 'manual'] } },
+      {
+        mode: {
+          type: 'string',
+          description: 'Operation mode',
+          required: true,
+          enum: ['auto', 'manual'],
+        },
+      },
       'controller',
-      { speed: 1.0 }, // 'mode' absent from config
+      { speed: 1.0 } // 'mode' absent from config
     );
     expect(tools[0].inputSchema.properties).toHaveProperty('mode');
     expect(tools[0].inputSchema.properties['mode'].enum).toEqual(['auto', 'manual']);
@@ -793,7 +820,7 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
             steps: { type: 'number', description: 'Max steps', required: false },
           },
           'planner',
-          { goal: '', steps: 10 },
+          { goal: '', steps: 10 }
         ),
       ],
     });
@@ -809,17 +836,25 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
           tscBin,
           '--noEmit',
           '--strict',
-          '--target', 'ES2020',
-          '--lib', 'ES2020',
-          '--module', 'commonjs',
-          '--moduleResolution', 'node',
+          '--target',
+          'ES2020',
+          '--lib',
+          'ES2020',
+          '--module',
+          'commonjs',
+          '--moduleResolution',
+          'node',
           '--skipLibCheck',
           tmpFile,
         ],
-        { encoding: 'utf8' },
+        { encoding: 'utf8' }
       );
     } finally {
-      try { unlinkSync(tmpFile); } catch { /* ok */ }
+      try {
+        unlinkSync(tmpFile);
+      } catch {
+        /* ok */
+      }
     }
   });
 });

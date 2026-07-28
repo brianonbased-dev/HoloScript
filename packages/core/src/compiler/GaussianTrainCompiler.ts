@@ -73,7 +73,9 @@ export interface GaussianTrainJob {
 /** Thrown when a `@gaussian_train` config cannot produce a runnable job (F.126: fail at construction). */
 export class GaussianTrainConfigError extends Error {
   constructor(public readonly violations: string[]) {
-    super(`Invalid @gaussian_train config — cannot construct a runnable training job:\n  - ${violations.join('\n  - ')}`);
+    super(
+      `Invalid @gaussian_train config — cannot construct a runnable training job:\n  - ${violations.join('\n  - ')}`
+    );
     this.name = 'GaussianTrainConfigError';
   }
 }
@@ -101,7 +103,11 @@ export class GaussianTrainCompiler extends CompilerBase {
    * Compile a composition carrying a `@gaussian_train` trait into a validated GaussianTrainJob.
    * @throws GaussianTrainConfigError if no `@gaussian_train` trait is present, or its config is invalid.
    */
-  compile(composition: HoloComposition, agentToken?: string, outputPath?: string): GaussianTrainJob {
+  compile(
+    composition: HoloComposition,
+    agentToken?: string,
+    outputPath?: string
+  ): GaussianTrainJob {
     this.validateCompilerAccess(agentToken, outputPath);
     const raw = this.findTrainTraitConfig(composition);
     if (!raw) {
@@ -129,7 +135,9 @@ export class GaussianTrainCompiler extends CompilerBase {
     const str = (v: unknown, fallback: string): string => (typeof v === 'string' ? v : fallback);
     const d = DEFAULT_GAUSSIAN_TRAIN_CONFIG;
     const backend: GaussianTrainBackend =
-      raw.backend === 'remote' || raw.backend === 'sovereign' ? raw.backend : this.options.defaultBackend;
+      raw.backend === 'remote' || raw.backend === 'sovereign'
+        ? raw.backend
+        : this.options.defaultBackend;
     return {
       views: str(raw.views, d.views),
       init: str(raw.init, d.init),
@@ -150,16 +158,23 @@ export class GaussianTrainCompiler extends CompilerBase {
   /** Fail-at-construction validation (F.126). */
   private validateConfig(c: GaussianTrainConfig): void {
     const v: string[] = [];
-    if (!c.views || c.views.trim() === '') v.push('`views` (posed-view dataset) is required and must be non-empty');
+    if (!c.views || c.views.trim() === '')
+      v.push('`views` (posed-view dataset) is required and must be non-empty');
     if (!(c.iterations > 0)) v.push(`\`iterations\` must be > 0 (got ${c.iterations})`);
-    if (!(c.targetGaussians > 0)) v.push(`\`targetGaussians\` must be > 0 (got ${c.targetGaussians})`);
+    if (!(c.targetGaussians > 0))
+      v.push(`\`targetGaussians\` must be > 0 (got ${c.targetGaussians})`);
     for (const [k, val] of [
-      ['positionLR', c.positionLR], ['scaleLR', c.scaleLR], ['rotationLR', c.rotationLR],
-      ['opacityLR', c.opacityLR], ['colorLR', c.colorLR],
+      ['positionLR', c.positionLR],
+      ['scaleLR', c.scaleLR],
+      ['rotationLR', c.rotationLR],
+      ['opacityLR', c.opacityLR],
+      ['colorLR', c.colorLR],
     ] as const) {
-      if (!(val >= 0) || Number.isNaN(val)) v.push(`\`${k}\` must be a finite number >= 0 (got ${val})`);
+      if (!(val >= 0) || Number.isNaN(val))
+        v.push(`\`${k}\` must be a finite number >= 0 (got ${val})`);
     }
-    if (!(c.densifyInterval >= 0)) v.push(`\`densifyInterval\` must be >= 0 (got ${c.densifyInterval})`);
+    if (!(c.densifyInterval >= 0))
+      v.push(`\`densifyInterval\` must be >= 0 (got ${c.densifyInterval})`);
     if (!(c.dilation >= 0)) v.push(`\`dilation\` must be >= 0 (got ${c.dilation})`);
     if (v.length > 0) throw new GaussianTrainConfigError(v);
   }
@@ -191,6 +206,8 @@ export class GaussianTrainCompiler extends CompilerBase {
   }
 }
 
-export function createGaussianTrainCompiler(options?: GaussianTrainCompilerOptions): GaussianTrainCompiler {
+export function createGaussianTrainCompiler(
+  options?: GaussianTrainCompilerOptions
+): GaussianTrainCompiler {
   return new GaussianTrainCompiler(options);
 }

@@ -3,7 +3,13 @@ import { buildDecisionHolo, renderDecisionSvg, type DecisionEvent } from './deci
 
 const stream: DecisionEvent[] = [
   { id: 'A', label: 'Materialless globes', status: 'problem' },
-  { id: 'B', label: 'Material realism', status: 'shipped', receipt: 'commit 5ecb0d48b', causes: ['A'] },
+  {
+    id: 'B',
+    label: 'Material realism',
+    status: 'shipped',
+    receipt: 'commit 5ecb0d48b',
+    causes: ['A'],
+  },
   { id: 'C', label: 'Render != physics', status: 'bug', receipt: 'you caught it', causes: ['B'] },
   { id: 'D', label: 'Geometry gate', status: 'shipped', receipt: 'commit 20f4a047', causes: ['C'] },
   { id: 'E', label: 'Sovereign judge', status: 'judge', receipt: 'lenient', causes: ['C'] },
@@ -23,7 +29,9 @@ describe('decision-network — auto-laid-out cognition surface', () => {
   it('lays out causes ABOVE effects (topological depth, no hand coordinates)', () => {
     const holo = buildDecisionHolo(stream);
     const zOf = (id: string) => {
-      const m = new RegExp(`object "${id}" \\{[^}]*position: \\[[-\\d.]+, 0, ([-\\d.]+)\\]`).exec(holo);
+      const m = new RegExp(`object "${id}" \\{[^}]*position: \\[[-\\d.]+, 0, ([-\\d.]+)\\]`).exec(
+        holo
+      );
       return Number(m![1]);
     };
     // top-down projection: deeper (later) nodes get a LARGER z. A(root) < B < C < D.

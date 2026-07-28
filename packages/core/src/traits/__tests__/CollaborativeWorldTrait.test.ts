@@ -13,7 +13,10 @@ import {
   toUnrealConcertDescriptor,
   validateCollaborativeWorldTraitConfig,
 } from '../CollaborativeWorldTrait';
-import type { CollaborativePresenceCursor, CollaborativeTransformOp } from '../CollaborativeWorldTrait';
+import type {
+  CollaborativePresenceCursor,
+  CollaborativeTransformOp,
+} from '../CollaborativeWorldTrait';
 
 describe('CollaborativeWorldTrait', () => {
   it('provides MUE-shaped defaults for transform collaboration', () => {
@@ -116,17 +119,27 @@ describe('CollaborativeWorldTrait', () => {
     };
 
     expect(
-      decideTransformOp(op, [lock], {
-        selectionLocks: true,
-        conflictResolution: 'lock_required',
-      }, 2000)
+      decideTransformOp(
+        op,
+        [lock],
+        {
+          selectionLocks: true,
+          conflictResolution: 'lock_required',
+        },
+        2000
+      )
     ).toEqual(expect.objectContaining({ status: 'rejected', reason: 'locked_by_another_actor' }));
 
     expect(
-      decideTransformOp({ ...op, actorId: 'alice', lockId: 'alice-lock' }, [lock], {
-        selectionLocks: true,
-        conflictResolution: 'lock_required',
-      }, 2000)
+      decideTransformOp(
+        { ...op, actorId: 'alice', lockId: 'alice-lock' },
+        [lock],
+        {
+          selectionLocks: true,
+          conflictResolution: 'lock_required',
+        },
+        2000
+      )
     ).toEqual({ status: 'applied' });
   });
 
@@ -146,10 +159,15 @@ describe('CollaborativeWorldTrait', () => {
     };
 
     expect(
-      decideTransformOp(op, [lock], {
-        selectionLocks: true,
-        conflictResolution: 'lamport_merge',
-      }, 2000)
+      decideTransformOp(
+        op,
+        [lock],
+        {
+          selectionLocks: true,
+          conflictResolution: 'lamport_merge',
+        },
+        2000
+      )
     ).toEqual(expect.objectContaining({ status: 'conflict', reason: 'remote_lock_present' }));
   });
 
@@ -181,9 +199,9 @@ describe('CollaborativeWorldTrait', () => {
       { actorId: 'stale', position: [0, 0, 0], lastSeen: 1000 },
     ];
 
-    expect(pruneCollaborativePresence(cursors, 10_000, 5000).map((cursor) => cursor.actorId)).toEqual([
-      'fresh',
-    ]);
+    expect(
+      pruneCollaborativePresence(cursors, 10_000, 5000).map((cursor) => cursor.actorId)
+    ).toEqual(['fresh']);
   });
 
   it('emits an Unreal Concert-compatible descriptor', () => {

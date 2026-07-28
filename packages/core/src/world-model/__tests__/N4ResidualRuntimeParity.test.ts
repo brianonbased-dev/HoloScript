@@ -5,11 +5,7 @@ import {
   generateN4Scene,
   projectN4TypedFeatures,
 } from '../N4ResidualWorldLoop';
-import {
-  inferN4Cpu,
-  inferN4Wasm,
-  verifyN4RuntimeParity,
-} from '../N4ResidualRuntimeParity';
+import { inferN4Cpu, inferN4Wasm, verifyN4RuntimeParity } from '../N4ResidualRuntimeParity';
 
 const SOURCE_PATH = new URL('../n4_residual_world_loop.hsplus', import.meta.url);
 
@@ -46,10 +42,7 @@ describe('N4 CPU/WASM tensor custody', () => {
     const scene = generateN4Scene(9100, 'ood');
     const features = projectN4TypedFeatures(scene, scene.objects[0]!);
     await expect(
-      inferN4Wasm(
-        { ...artifacts.weightsManifest, graphDigest: 'sha256:tampered' },
-        features
-      )
+      inferN4Wasm({ ...artifacts.weightsManifest, graphDigest: 'sha256:tampered' }, features)
     ).rejects.toThrow(/checksum mismatch/);
     await expect(
       inferN4Wasm(
@@ -71,7 +64,7 @@ describe('N4 CPU/WASM tensor custody', () => {
       const drifted = {
         ...cpu,
         runtime,
-        output: cpu.output.map((value, index) => index === 0 ? value + 1e-3 : value),
+        output: cpu.output.map((value, index) => (index === 0 ? value + 1e-3 : value)),
       };
       expect(verifyN4RuntimeParity(cpu, drifted)).toMatchObject({
         valid: false,

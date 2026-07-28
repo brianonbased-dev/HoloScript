@@ -272,17 +272,40 @@ fn mat(m: &[f32; 16]) -> [[f32; 4]; 4] {
         traitNames: (obj.traits ?? []).map((t) => t.name),
       });
       if (role.visible) {
-        const mesh = String(this.findProp(obj, 'geometry') ?? this.findProp(obj, 'mesh') ?? this.findProp(obj, 'type') ?? 'cube');
+        const mesh = String(
+          this.findProp(obj, 'geometry') ??
+            this.findProp(obj, 'mesh') ??
+            this.findProp(obj, 'type') ??
+            'cube'
+        );
         const geo = resolveGeometry(mesh).kind;
         const pos = this.vec3(this.findProp(obj, 'position'), [0, 0, 0]);
         const scale = this.scaleOf(obj);
-        const model = [scale[0], 0, 0, 0, 0, scale[1], 0, 0, 0, 0, scale[2], 0, pos[0] + off[0], pos[1] + off[1], pos[2] + off[2], 1];
+        const model = [
+          scale[0],
+          0,
+          0,
+          0,
+          0,
+          scale[1],
+          0,
+          0,
+          0,
+          0,
+          scale[2],
+          0,
+          pos[0] + off[0],
+          pos[1] + off[1],
+          pos[2] + off[2],
+          1,
+        ];
         items.push({ model, color: this.colorOf(obj), emissive: this.emissiveOf(obj), geo });
       }
       if (obj.children) for (const c of obj.children) add(c, off);
     };
     for (const o of composition.objects ?? []) add(o, [0, 0, 0]);
-    const scenes = (composition as unknown as { scenes?: Array<{ objects?: HoloObjectDecl[] }> }).scenes;
+    const scenes = (composition as unknown as { scenes?: Array<{ objects?: HoloObjectDecl[] }> })
+      .scenes;
     for (const s of scenes ?? []) for (const o of s.objects ?? []) add(o, [0, 0, 0]);
     const walk = (g: HoloSpatialGroup, parent: number[]) => {
       const gp = g.properties?.find((p) => p.key === 'position')?.value;
@@ -301,7 +324,9 @@ fn mat(m: &[f32; 16]) -> [[f32; 4]; 4] {
     for (const p of env?.properties ?? []) props[p.key] = p.value;
     const bg = props.background || props.skybox || '#05070d';
     const c =
-      typeof bg === 'string' && bg.startsWith('#') ? this.hexColor(bg) : resolveSkyboxColor(String(bg));
+      typeof bg === 'string' && bg.startsWith('#')
+        ? this.hexColor(bg)
+        : resolveSkyboxColor(String(bg));
     return [c[0], c[1], c[2], 1];
   }
 
@@ -319,14 +344,26 @@ fn mat(m: &[f32; 16]) -> [[f32; 4]; 4] {
     if (pts.length > 0) {
       const min = [Infinity, Infinity, Infinity];
       const max = [-Infinity, -Infinity, -Infinity];
-      for (const p of pts) for (let i = 0; i < 3; i++) { min[i] = Math.min(min[i], p[i]); max[i] = Math.max(max[i], p[i]); }
+      for (const p of pts)
+        for (let i = 0; i < 3; i++) {
+          min[i] = Math.min(min[i], p[i]);
+          max[i] = Math.max(max[i], p[i]);
+        }
       const center = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
       let radius = 1;
-      for (const p of pts) radius = Math.max(radius, Math.hypot(p[0] - center[0], p[1] - center[1], p[2] - center[2]) + 1.5);
+      for (const p of pts)
+        radius = Math.max(
+          radius,
+          Math.hypot(p[0] - center[0], p[1] - center[1], p[2] - center[2]) + 1.5
+        );
       const fovRad = (fov * Math.PI) / 180;
       const dist = (radius / Math.sin(fovRad / 2)) * 1.1;
       const dl = Math.hypot(0.35, 0.45, 1);
-      eye = [center[0] + (0.35 / dl) * dist, center[1] + (0.45 / dl) * dist, center[2] + (1 / dl) * dist];
+      eye = [
+        center[0] + (0.35 / dl) * dist,
+        center[1] + (0.45 / dl) * dist,
+        center[2] + (1 / dl) * dist,
+      ];
       target = center;
       far = Math.max(far, dist + radius * 2 + 10);
     }
@@ -339,17 +376,34 @@ fn mat(m: &[f32; 16]) -> [[f32; 4]; 4] {
   }
 
   private lookAt(eye: number[], target: number[], up: number[]): number[] {
-    const zx = eye[0] - target[0], zy = eye[1] - target[1], zz = eye[2] - target[2];
+    const zx = eye[0] - target[0],
+      zy = eye[1] - target[1],
+      zz = eye[2] - target[2];
     const zl = Math.hypot(zx, zy, zz) || 1;
     const fz = [zx / zl, zy / zl, zz / zl];
-    const xx = up[1] * fz[2] - up[2] * fz[1], xy = up[2] * fz[0] - up[0] * fz[2], xz = up[0] * fz[1] - up[1] * fz[0];
+    const xx = up[1] * fz[2] - up[2] * fz[1],
+      xy = up[2] * fz[0] - up[0] * fz[2],
+      xz = up[0] * fz[1] - up[1] * fz[0];
     const xl = Math.hypot(xx, xy, xz) || 1;
     const rx = [xx / xl, xy / xl, xz / xl];
-    const uy = [fz[1] * rx[2] - fz[2] * rx[1], fz[2] * rx[0] - fz[0] * rx[2], fz[0] * rx[1] - fz[1] * rx[0]];
+    const uy = [
+      fz[1] * rx[2] - fz[2] * rx[1],
+      fz[2] * rx[0] - fz[0] * rx[2],
+      fz[0] * rx[1] - fz[1] * rx[0],
+    ];
     return [
-      rx[0], uy[0], fz[0], 0,
-      rx[1], uy[1], fz[1], 0,
-      rx[2], uy[2], fz[2], 0,
+      rx[0],
+      uy[0],
+      fz[0],
+      0,
+      rx[1],
+      uy[1],
+      fz[1],
+      0,
+      rx[2],
+      uy[2],
+      fz[2],
+      0,
       -(rx[0] * eye[0] + rx[1] * eye[1] + rx[2] * eye[2]),
       -(uy[0] * eye[0] + uy[1] * eye[1] + uy[2] * eye[2]),
       -(fz[0] * eye[0] + fz[1] * eye[1] + fz[2] * eye[2]),
@@ -358,7 +412,13 @@ fn mat(m: &[f32; 16]) -> [[f32; 4]; 4] {
   }
   private mul(a: number[], b: number[]): number[] {
     const o = new Array(16).fill(0);
-    for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) o[c * 4 + r] = a[0 * 4 + r] * b[c * 4 + 0] + a[1 * 4 + r] * b[c * 4 + 1] + a[2 * 4 + r] * b[c * 4 + 2] + a[3 * 4 + r] * b[c * 4 + 3];
+    for (let c = 0; c < 4; c++)
+      for (let r = 0; r < 4; r++)
+        o[c * 4 + r] =
+          a[0 * 4 + r] * b[c * 4 + 0] +
+          a[1 * 4 + r] * b[c * 4 + 1] +
+          a[2 * 4 + r] * b[c * 4 + 2] +
+          a[3 * 4 + r] * b[c * 4 + 3];
     return o;
   }
 
@@ -401,7 +461,10 @@ fn mat(m: &[f32; 16]) -> [[f32; 4]; 4] {
     ];
   }
   private sanitizeCrate(name: string): string {
-    const s = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const s = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
     return s || 'holo-scene';
   }
   private headerComment(composition: HoloComposition): string {

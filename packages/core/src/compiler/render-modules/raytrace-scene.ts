@@ -94,7 +94,9 @@ export function extractRaytraceScene(
       traitNames: (obj.traits ?? []).map((t) => t.name),
     });
     if (role.visible) {
-      const mesh = String(findProp(obj, 'geometry') ?? findProp(obj, 'mesh') ?? findProp(obj, 'type') ?? 'cube');
+      const mesh = String(
+        findProp(obj, 'geometry') ?? findProp(obj, 'mesh') ?? findProp(obj, 'type') ?? 'cube'
+      );
       const kind = resolveGeometry(mesh).kind;
       const pos = vec3(findProp(obj, 'position'), [0, 0, 0]);
       const p = [pos[0] + off[0], pos[1] + off[1], pos[2] + off[2]];
@@ -120,7 +122,8 @@ export function extractRaytraceScene(
     if (obj.children) for (const c of obj.children) add(c, off);
   };
   for (const o of composition.objects ?? []) add(o, [0, 0, 0]);
-  const scenes = (composition as unknown as { scenes?: Array<{ objects?: HoloObjectDecl[] }> }).scenes;
+  const scenes = (composition as unknown as { scenes?: Array<{ objects?: HoloObjectDecl[] }> })
+    .scenes;
   for (const s of scenes ?? []) for (const o of s.objects ?? []) add(o, [0, 0, 0]);
   const walk = (g: HoloSpatialGroup, parent: number[]) => {
     const gp = g.properties?.find((pp) => pp.key === 'position')?.value;
@@ -156,10 +159,17 @@ function buildCamera(prims: RayPrim[], width: number, height: number): RayCamera
     const center = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
     let radius = 1;
     for (const c of centers)
-      radius = Math.max(radius, Math.hypot(c[0] - center[0], c[1] - center[1], c[2] - center[2]) + 1.5);
+      radius = Math.max(
+        radius,
+        Math.hypot(c[0] - center[0], c[1] - center[1], c[2] - center[2]) + 1.5
+      );
     const dist = (radius / Math.sin((fov * Math.PI) / 180 / 2)) * 1.15;
     const dl = Math.hypot(0.2, 0.35, 1);
-    eye = [center[0] + (0.2 / dl) * dist, center[1] + (0.35 / dl) * dist, center[2] + (1 / dl) * dist];
+    eye = [
+      center[0] + (0.2 / dl) * dist,
+      center[1] + (0.35 / dl) * dist,
+      center[2] + (1 / dl) * dist,
+    ];
     target = center;
   }
   const norm = (a: number[]): [number, number, number] => {

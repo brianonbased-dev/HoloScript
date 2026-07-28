@@ -244,10 +244,13 @@ describe('frameDeclarationHandler.onAttach', () => {
     expect(node.__frameDeclaration?.capability_tier).toBe(2);
     expect(node.__frameDeclaration?.allowed_tools).toContain('holo_query_codebase');
 
-    expect(ctx.emit).toHaveBeenCalledWith('frame_declared', expect.objectContaining({
-      node,
-      frame: expect.objectContaining({ domain: 'holoscript-language' }),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'frame_declared',
+      expect.objectContaining({
+        node,
+        frame: expect.objectContaining({ domain: 'holoscript-language' }),
+      })
+    );
   });
 
   it('applies defaults for missing config fields', () => {
@@ -288,7 +291,7 @@ describe('frameDeclarationHandler.onEvent — frame_check_tool', () => {
       payload: { tool: 'holo_query_codebase' },
     });
 
-    const violations = ctx.events.filter(e => e.event === 'frame_violation');
+    const violations = ctx.events.filter((e) => e.event === 'frame_violation');
     expect(violations).toHaveLength(0);
   });
 
@@ -303,8 +306,8 @@ describe('frameDeclarationHandler.onEvent — frame_check_tool', () => {
       payload: { tool: 'compile_to_unity' },
     });
 
-    expect(ctx.events.some(e => e.event === 'frame_tool_blocked')).toBe(true);
-    const violation = ctx.events.find(e => e.event === 'frame_violation');
+    expect(ctx.events.some((e) => e.event === 'frame_tool_blocked')).toBe(true);
+    const violation = ctx.events.find((e) => e.event === 'frame_violation');
     expect(violation).toBeDefined();
     expect(violation?.data.violation_type).toBe('tool_not_allowed');
     expect(violation?.data.tool).toBe('compile_to_unity');
@@ -321,8 +324,8 @@ describe('frameDeclarationHandler.onEvent — frame_check_tool', () => {
       payload: { tool: 'holo_query_codebase', domain_tag: 'finance' },
     });
 
-    expect(ctx.events.some(e => e.event === 'frame_domain_blocked')).toBe(true);
-    const violation = ctx.events.find(e => e.event === 'frame_violation');
+    expect(ctx.events.some((e) => e.event === 'frame_domain_blocked')).toBe(true);
+    const violation = ctx.events.find((e) => e.event === 'frame_violation');
     expect(violation?.data.violation_type).toBe('domain_denied');
   });
 
@@ -335,7 +338,7 @@ describe('frameDeclarationHandler.onEvent — frame_check_tool', () => {
       payload: { tool: 'any_tool' },
     });
 
-    const violation = ctx.events.find(e => e.event === 'frame_violation');
+    const violation = ctx.events.find((e) => e.event === 'frame_violation');
     expect(violation?.data.violation_type).toBe('undeclared_frame');
   });
 });
@@ -354,7 +357,7 @@ describe('frameDeclarationHandler.onEvent — frame_check_horizon', () => {
       payload: { claimed_date: '2026-05-01' },
     });
 
-    expect(ctx.events.filter(e => e.event === 'frame_violation')).toHaveLength(0);
+    expect(ctx.events.filter((e) => e.event === 'frame_violation')).toHaveLength(0);
   });
 
   it('emits frame_horizon_exceeded + frame_violation for post-horizon date', () => {
@@ -368,8 +371,8 @@ describe('frameDeclarationHandler.onEvent — frame_check_horizon', () => {
       payload: { claimed_date: '2026-09-15' },
     });
 
-    expect(ctx.events.some(e => e.event === 'frame_horizon_exceeded')).toBe(true);
-    const violation = ctx.events.find(e => e.event === 'frame_violation');
+    expect(ctx.events.some((e) => e.event === 'frame_horizon_exceeded')).toBe(true);
+    const violation = ctx.events.find((e) => e.event === 'frame_violation');
     expect(violation?.data.violation_type).toBe('horizon_exceeded');
   });
 });
@@ -388,7 +391,7 @@ describe('frameDeclarationHandler.onEvent — frame_check_tier', () => {
       payload: { required_tier: 2 },
     });
 
-    expect(ctx.events.filter(e => e.event === 'frame_violation')).toHaveLength(0);
+    expect(ctx.events.filter((e) => e.event === 'frame_violation')).toHaveLength(0);
   });
 
   it('emits frame_tier_exceeded + frame_violation when tier is insufficient', () => {
@@ -402,8 +405,8 @@ describe('frameDeclarationHandler.onEvent — frame_check_tier', () => {
       payload: { required_tier: 0 },
     });
 
-    expect(ctx.events.some(e => e.event === 'frame_tier_exceeded')).toBe(true);
-    const violation = ctx.events.find(e => e.event === 'frame_violation');
+    expect(ctx.events.some((e) => e.event === 'frame_tier_exceeded')).toBe(true);
+    const violation = ctx.events.find((e) => e.event === 'frame_violation');
     expect(violation?.data.violation_type).toBe('tier_exceeded');
   });
 
@@ -418,7 +421,7 @@ describe('frameDeclarationHandler.onEvent — frame_check_tier', () => {
       payload: { required_tier: 99 }, // invalid — not 0|1|2|3
     });
 
-    expect(ctx.events.filter(e => e.event === 'frame_violation')).toHaveLength(0);
+    expect(ctx.events.filter((e) => e.event === 'frame_violation')).toHaveLength(0);
   });
 });
 

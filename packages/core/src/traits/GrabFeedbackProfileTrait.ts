@@ -208,8 +208,9 @@ export const grabFeedbackProfileHandler: TraitHandler<GrabFeedbackProfileConfig>
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as unknown as Record<string, unknown>)
-      .__grabFeedbackProfileState as GrabFeedbackProfileState | undefined;
+    const state = (node as unknown as Record<string, unknown>).__grabFeedbackProfileState as
+      | GrabFeedbackProfileState
+      | undefined;
     if (!state) return;
 
     const rampMs = config.bloom.ramp_ms;
@@ -233,8 +234,9 @@ export const grabFeedbackProfileHandler: TraitHandler<GrabFeedbackProfileConfig>
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as unknown as Record<string, unknown>)
-      .__grabFeedbackProfileState as GrabFeedbackProfileState | undefined;
+    const state = (node as unknown as Record<string, unknown>).__grabFeedbackProfileState as
+      | GrabFeedbackProfileState
+      | undefined;
     if (!state) return;
 
     const isGrab = event.type === 'grab' || event.type === 'grabbed';

@@ -1238,7 +1238,6 @@ export class GLTFPipeline extends CompilerBase {
         inverseBindMatrices: ibmAccessor,
       },
     ];
-
   }
 
   private _skins: Array<{
@@ -2605,13 +2604,21 @@ export class GLTFPipeline extends CompilerBase {
       const nx = e1y * e2z - e1z * e2y,
         ny = e1z * e2x - e1x * e2z,
         nz = e1x * e2y - e1y * e2x;
-      n[a] += nx; n[a + 1] += ny; n[a + 2] += nz;
-      n[b] += nx; n[b + 1] += ny; n[b + 2] += nz;
-      n[c] += nx; n[c + 1] += ny; n[c + 2] += nz;
+      n[a] += nx;
+      n[a + 1] += ny;
+      n[a + 2] += nz;
+      n[b] += nx;
+      n[b + 1] += ny;
+      n[b + 2] += nz;
+      n[c] += nx;
+      n[c + 1] += ny;
+      n[c + 2] += nz;
     }
     for (let i = 0; i < n.length; i += 3) {
       const len = Math.hypot(n[i], n[i + 1], n[i + 2]) || 1;
-      n[i] /= len; n[i + 1] /= len; n[i + 2] /= len;
+      n[i] /= len;
+      n[i + 1] /= len;
+      n[i + 2] /= len;
     }
     return n;
   }

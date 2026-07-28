@@ -345,7 +345,14 @@ export function derivePerceiverConsensus(
       if (nameVoters.length >= 2) {
         comparedFacts++;
         const actionSets = nameVoters.map((d) =>
-          [...new Set(byPerceiver.get(d.perceiver)!.get(id)!.offers!.map((o) => o.action))]
+          [
+            ...new Set(
+              byPerceiver
+                .get(d.perceiver)!
+                .get(id)!
+                .offers!.map((o) => o.action)
+            ),
+          ]
             .sort()
             .join(',')
         );
@@ -465,7 +472,9 @@ export function derivePerceiverConsensus(
               fact,
               claims: {
                 [src.perceiver]: claim,
-                [p.perceiver]: !actor ? `no physical actor "${actorKey}"` : `no physical target "${targetKey}"`,
+                [p.perceiver]: !actor
+                  ? `no physical actor "${actorKey}"`
+                  : `no physical target "${targetKey}"`,
               },
               detail: `${src.perceiver} offers "${offer.action}" on "${offer.target}" but ${p.perceiver} derives no physical ${!actor ? 'actor' : 'target'} — the affordance is ungrounded`,
             });
@@ -482,9 +491,7 @@ export function derivePerceiverConsensus(
             continue; // this perceiver lacks the data to run the check — abstain
           }
           comparedFacts++;
-          const dist = Math.hypot(
-            ...center.map((v, i) => v - (target.position as number[])[i])
-          );
+          const dist = Math.hypot(...center.map((v, i) => v - (target.position as number[])[i]));
           const reach = radius + target.extent + POSITION_EPSILON;
           if (dist > reach) {
             disagreements.push({

@@ -39,16 +39,16 @@
  */
 export const NODE_TYPE_FAMILIES = [
   // ── Existing reaction categories (from ReactionCategory) ──────────────────
-  'movement',    // locomotion: move, turn, strafe, jump, land
+  'movement', // locomotion: move, turn, strafe, jump, land
   'interaction', // object interaction verbs
-  'collision',   // physics collision response
-  'lifecycle',   // attach, detach, spawn, destroy
-  'combat',      // combat/attack verbs
-  'signal',      // event emission verbs
+  'collision', // physics collision response
+  'lifecycle', // attach, detach, spawn, destroy
+  'combat', // combat/attack verbs
+  'signal', // event emission verbs
   // ── H2 additions ─────────────────────────────────────────────────────────
-  'cognitive',   // AI/LLM: llm_call, recall, rag_query, plan, reflect
-  'control',     // actuate, drive, set_joint, emit_gcode (ControlLoopTrait)
-  'sensor',      // measure, read, sample, measure_qubits (robotics/IoT/QM)
+  'cognitive', // AI/LLM: llm_call, recall, rag_query, plan, reflect
+  'control', // actuate, drive, set_joint, emit_gcode (ControlLoopTrait)
+  'sensor', // measure, read, sample, measure_qubits (robotics/IoT/QM)
   'transaction', // pay, transfer, stake (x402 economic)
 ] as const;
 
@@ -112,20 +112,20 @@ export class PluginKeywordRegistry {
   register(verb: string, family: NodeTypeFamily, pluginId: string): void {
     if (this._sealed) {
       throw new Error(
-        `[PluginKeywordRegistry] Registry is sealed — cannot register verb "${verb}" after scene init.`,
+        `[PluginKeywordRegistry] Registry is sealed — cannot register verb "${verb}" after scene init.`
       );
     }
 
     if (!verb || !/^[a-z][a-z0-9_]*$/.test(verb)) {
       throw new Error(
-        `[PluginKeywordRegistry] Invalid verb "${verb}". Must match [a-z][a-z0-9_]*.`,
+        `[PluginKeywordRegistry] Invalid verb "${verb}". Must match [a-z][a-z0-9_]*.`
       );
     }
 
     if (!(NODE_TYPE_FAMILIES as ReadonlyArray<string>).includes(family)) {
       throw new Error(
         `[PluginKeywordRegistry] Unknown node-type family "${family}". ` +
-          `Must be one of: ${NODE_TYPE_FAMILIES.join(', ')}.`,
+          `Must be one of: ${NODE_TYPE_FAMILIES.join(', ')}.`
       );
     }
 
@@ -136,7 +136,7 @@ export class PluginKeywordRegistry {
       }
       throw new Error(
         `[PluginKeywordRegistry] Verb "${verb}" is already registered by plugin "${existing.registeredBy}". ` +
-          `Cannot be re-registered by "${pluginId}".`,
+          `Cannot be re-registered by "${pluginId}".`
       );
     }
 
@@ -216,11 +216,7 @@ export const globalKeywordRegistry = new PluginKeywordRegistry();
  * registerPluginVerb('measure_joint', 'sensor', 'robotics');
  * ```
  */
-export function registerPluginVerb(
-  verb: string,
-  family: NodeTypeFamily,
-  pluginId: string,
-): void {
+export function registerPluginVerb(verb: string, family: NodeTypeFamily, pluginId: string): void {
   globalKeywordRegistry.register(verb, family, pluginId);
 }
 
@@ -237,7 +233,7 @@ export function registerPluginVerb(
  */
 export function registerPluginVerbs(
   pluginId: string,
-  verbs: ReadonlyArray<{ verb: string; family: NodeTypeFamily }>,
+  verbs: ReadonlyArray<{ verb: string; family: NodeTypeFamily }>
 ): void {
   for (const { verb, family } of verbs) {
     globalKeywordRegistry.register(verb, family, pluginId);

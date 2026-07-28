@@ -1,7 +1,4 @@
-export {
-  isInEnvelope,
-  checkParameterEnvelope,
-} from './ParameterEnvelope';
+export { isInEnvelope, checkParameterEnvelope } from './ParameterEnvelope';
 export type {
   EnvelopeViolationAction,
   ParameterEnvelopeRecord,

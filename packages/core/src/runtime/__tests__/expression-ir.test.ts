@@ -170,9 +170,7 @@ describe('expression-ir: allowlisted builtin calls (net-new capability vs. legac
   });
 
   it('rejects a bare Math.round() form (Math is not a declared slot)', () => {
-    expect(() => parseExpressionToIR('Math.round(value)', ['value'])).toThrow(
-      ExpressionParseError
-    );
+    expect(() => parseExpressionToIR('Math.round(value)', ['value'])).toThrow(ExpressionParseError);
   });
 });
 

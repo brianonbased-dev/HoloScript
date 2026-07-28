@@ -79,15 +79,26 @@ export function createEmbeddingGatherKernel(device: GPUDevice): EmbeddingGatherK
       dModel: number,
       vocab: number
     ): Promise<Float32Array> {
-      if (ids.length !== seqLen) throw new Error(`embedGather: ids.length=${ids.length} != seqLen=${seqLen}`);
-      if (wte.length !== vocab * dModel) throw new Error(`embedGather: wte.length=${wte.length} != vocab*dModel=${vocab * dModel}`);
-      if (wpe.length !== seqLen * dModel) throw new Error(`embedGather: wpe.length=${wpe.length} != seqLen*dModel=${seqLen * dModel}`);
+      if (ids.length !== seqLen)
+        throw new Error(`embedGather: ids.length=${ids.length} != seqLen=${seqLen}`);
+      if (wte.length !== vocab * dModel)
+        throw new Error(`embedGather: wte.length=${wte.length} != vocab*dModel=${vocab * dModel}`);
+      if (wpe.length !== seqLen * dModel)
+        throw new Error(
+          `embedGather: wpe.length=${wpe.length} != seqLen*dModel=${seqLen * dModel}`
+        );
 
       const idsBuf = device.createBuffer({
         size: ids.byteLength,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       });
-      device.queue.writeBuffer(idsBuf, 0, ids.buffer as ArrayBuffer, ids.byteOffset, ids.byteLength);
+      device.queue.writeBuffer(
+        idsBuf,
+        0,
+        ids.buffer as ArrayBuffer,
+        ids.byteOffset,
+        ids.byteLength
+      );
       const wteBuf = f32StorageBuffer(device, wte);
       const wpeBuf = f32StorageBuffer(device, wpe);
       const outBytes = seqLen * dModel * 4;

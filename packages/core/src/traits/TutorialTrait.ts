@@ -49,9 +49,17 @@ export const tutorialHandler: TraitHandler<TutorialConfig> = {
 
   defaultConfig: {
     heading: 'How it works',
-    mock_qr: { demo_url: 'https://holoscript.studio', caption: 'A QR code looks like this', display_dp: 180 },
+    mock_qr: {
+      demo_url: 'https://holoscript.studio',
+      caption: 'A QR code looks like this',
+      display_dp: 180,
+    },
     steps: [],
-    result_preview: { label: 'QR found', sample: 'https://holoscript.studio', open_action: 'Open in browser' },
+    result_preview: {
+      label: 'QR found',
+      sample: 'https://holoscript.studio',
+      open_action: 'Open in browser',
+    },
     start_action: 'Start scanning',
   },
 

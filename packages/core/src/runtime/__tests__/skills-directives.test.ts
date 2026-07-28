@@ -414,11 +414,17 @@ describe('updateTraits', () => {
   it('applies set_rotation via setOrbRotation when a setter is provided', () => {
     const ctx = makeUpdateCtx();
     ctx.setOrbRotation = vi.fn();
-    const onUpdate = vi.fn((_n: unknown, _c: unknown, context: { emit: (e: string, p: unknown) => void }) => {
-      context.emit('set_rotation', { rotation: [0, 1.57, 0] });
-    });
+    const onUpdate = vi.fn(
+      (_n: unknown, _c: unknown, context: { emit: (e: string, p: unknown) => void }) => {
+        context.emit('set_rotation', { rotation: [0, 1.57, 0] });
+      }
+    );
     ctx.traitHandlers.set('locomotion' as never, { onUpdate } as never);
-    const orb = { __type: 'orb', name: 'turner', directives: [{ type: 'trait', name: 'locomotion', config: {} }] };
+    const orb = {
+      __type: 'orb',
+      name: 'turner',
+      directives: [{ type: 'trait', name: 'locomotion', config: {} }],
+    };
     ctx.variables.set('turner', orb as never);
     updateTraits(2451545.0, ctx);
     expect(ctx.setOrbRotation).toHaveBeenCalledWith('turner', [0, 1.57, 0]);
@@ -426,11 +432,17 @@ describe('updateTraits', () => {
 
   it('falls back to persisting set_rotation on the node when no setter exists', () => {
     const ctx = makeUpdateCtx(); // no setOrbRotation
-    const onUpdate = vi.fn((_n: unknown, _c: unknown, context: { emit: (e: string, p: unknown) => void }) => {
-      context.emit('set_rotation', { rotation: [0, 1.57, 0] });
-    });
+    const onUpdate = vi.fn(
+      (_n: unknown, _c: unknown, context: { emit: (e: string, p: unknown) => void }) => {
+        context.emit('set_rotation', { rotation: [0, 1.57, 0] });
+      }
+    );
     ctx.traitHandlers.set('locomotion' as never, { onUpdate } as never);
-    const orb = { __type: 'orb', name: 'turner', directives: [{ type: 'trait', name: 'locomotion', config: {} }] };
+    const orb = {
+      __type: 'orb',
+      name: 'turner',
+      directives: [{ type: 'trait', name: 'locomotion', config: {} }],
+    };
     ctx.variables.set('turner', orb as never);
     updateTraits(2451545.0, ctx);
     expect((orb as Record<string, unknown>).rotation).toEqual([0, 1.57, 0]);
@@ -535,8 +547,14 @@ describe('dispatchTraitEvent', () => {
     const ctx = makeDispatchCtx();
     const onEvent = vi.fn();
     ctx.traitHandlers.set('interact' as never, { onEvent } as never);
-    ctx.variables.set('a', { __type: 'orb', directives: [{ type: 'trait', name: 'interact' }] } as never);
-    ctx.variables.set('b', { __type: 'orb', directives: [{ type: 'trait', name: 'interact' }] } as never);
+    ctx.variables.set('a', {
+      __type: 'orb',
+      directives: [{ type: 'trait', name: 'interact' }],
+    } as never);
+    ctx.variables.set('b', {
+      __type: 'orb',
+      directives: [{ type: 'trait', name: 'interact' }],
+    } as never);
     dispatchTraitEvent({ type: 'grab_start' }, ctx);
     expect(onEvent).toHaveBeenCalledTimes(2);
   });
@@ -545,8 +563,14 @@ describe('dispatchTraitEvent', () => {
     const ctx = makeDispatchCtx();
     const onEvent = vi.fn();
     ctx.traitHandlers.set('interact' as never, { onEvent } as never);
-    ctx.variables.set('a', { __type: 'orb', directives: [{ type: 'trait', name: 'interact' }] } as never);
-    ctx.variables.set('b', { __type: 'orb', directives: [{ type: 'trait', name: 'interact' }] } as never);
+    ctx.variables.set('a', {
+      __type: 'orb',
+      directives: [{ type: 'trait', name: 'interact' }],
+    } as never);
+    ctx.variables.set('b', {
+      __type: 'orb',
+      directives: [{ type: 'trait', name: 'interact' }],
+    } as never);
     dispatchTraitEvent({ type: 'grab_start' }, ctx, 'a');
     expect(onEvent).toHaveBeenCalledTimes(1);
   });
@@ -555,7 +579,10 @@ describe('dispatchTraitEvent', () => {
     const ctx = makeDispatchCtx();
     const onEvent = vi.fn();
     ctx.traitHandlers.set('touch' as never, { onEvent } as never);
-    ctx.variables.set('x', { __type: 'orb', directives: [{ type: 'trait', name: 'touch' }] } as never);
+    ctx.variables.set('x', {
+      __type: 'orb',
+      directives: [{ type: 'trait', name: 'touch' }],
+    } as never);
     const event = { type: 'collision', payload: { force: 9.8 } };
     dispatchTraitEvent(event, ctx);
     const passedEvent = onEvent.mock.calls[0][3];
@@ -574,13 +601,18 @@ describe('dispatchTraitEvent', () => {
   it('skips traits whose handler has no onEvent', () => {
     const ctx = makeDispatchCtx();
     ctx.traitHandlers.set('glow' as never, { onUpdate: vi.fn() } as never);
-    ctx.variables.set('x', { __type: 'orb', directives: [{ type: 'trait', name: 'glow' }] } as never);
+    ctx.variables.set('x', {
+      __type: 'orb',
+      directives: [{ type: 'trait', name: 'glow' }],
+    } as never);
     expect(() => dispatchTraitEvent({ type: 'tick' }, ctx)).not.toThrow();
   });
 
   it('continues dispatching to other handlers when one throws', () => {
     const ctx = makeDispatchCtx();
-    const bad = vi.fn().mockImplementation(() => { throw new Error('boom'); });
+    const bad = vi.fn().mockImplementation(() => {
+      throw new Error('boom');
+    });
     const good = vi.fn();
     ctx.traitHandlers.set('bad' as never, { onEvent: bad } as never);
     ctx.traitHandlers.set('good' as never, { onEvent: good } as never);

@@ -289,7 +289,12 @@ function skyboxColor(composition: HoloComposition): Rgba {
 }
 
 export function worldKotlinId(worldId: string): string {
-  return worldId.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'world';
+  return (
+    worldId
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '') || 'world'
+  );
 }
 
 function prettyName(composition: HoloComposition, fallback: string): string {
@@ -300,7 +305,8 @@ function prettyName(composition: HoloComposition, fallback: string): string {
     .trim();
 }
 
-const ksafe = (s: string): string => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+const ksafe = (s: string): string =>
+  '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
 
 /** @generated World_<id>.kt — builds this world's Spatial SDK entities + animation descriptors. */
 export function emitWorldSceneKt(composition: HoloComposition, worldId: string): string {

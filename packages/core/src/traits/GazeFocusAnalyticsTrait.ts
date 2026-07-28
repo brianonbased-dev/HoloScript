@@ -379,7 +379,7 @@ export const gazeFocusAnalyticsHandler: TraitHandler<GazeFocusAnalyticsConfig> =
       const uv = event.uv as [number, number] | undefined;
       if (!uv || uv.length < 2) return;
 
-      const dwellDelta = (event.dwell_delta_s as number) ?? (1 / 72); // 72Hz default
+      const dwellDelta = (event.dwell_delta_s as number) ?? 1 / 72; // 72Hz default
       const peerId = (event.peer_id as string) || 'local';
 
       accumulateGaze(state, config, uv[0], uv[1], peerId, dwellDelta, nowMs);
@@ -405,7 +405,7 @@ export const gazeFocusAnalyticsHandler: TraitHandler<GazeFocusAnalyticsConfig> =
       const uv = event.uv as [number, number] | undefined;
       if (!uv || uv.length < 2) return;
 
-      const dwellDelta = (event.dwell_delta_s as number) ?? (1 / 72);
+      const dwellDelta = (event.dwell_delta_s as number) ?? 1 / 72;
       const peerId = (event.peer_id as string) || 'remote_unknown';
 
       accumulateGaze(state, config, uv[0], uv[1], peerId, dwellDelta, nowMs);
@@ -413,10 +413,7 @@ export const gazeFocusAnalyticsHandler: TraitHandler<GazeFocusAnalyticsConfig> =
     }
 
     // ── Triggered export (e.g. "session_end" event or explicit request) ──
-    else if (
-      event.type === config.export_event ||
-      event.type === 'gaze_focus_export_request'
-    ) {
+    else if (event.type === config.export_event || event.type === 'gaze_focus_export_request') {
       // Apply a final decay pass before export.
       if (config.decay_rate_s > 0) {
         decayCells(state.cells, config.decay_rate_s, nowMs);

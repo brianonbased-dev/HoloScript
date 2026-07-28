@@ -102,7 +102,9 @@ describe('EmbodiedDatasetCompiler', () => {
 
   it('reads @sim_to_real_dataset trait config (composition-level)', () => {
     const comp = makeComposition({
-      traits: [{ name: 'sim_to_real_dataset', config: { episode_count: 25, output_format: 'hdf5' } }],
+      traits: [
+        { name: 'sim_to_real_dataset', config: { episode_count: 25, output_format: 'hdf5' } },
+      ],
     } as Partial<HoloComposition>);
     const py = compiler.compile(comp, 'test-token');
     expect(py).toContain('"episode_count": 25');
@@ -111,7 +113,9 @@ describe('EmbodiedDatasetCompiler', () => {
   it('reads @sim_to_real_dataset trait config (object-level) and switches format', () => {
     const obj = makeObject({
       name: 'Robot',
-      traits: [{ name: 'sim_to_real_dataset', config: { output_format: 'lerobot', episode_count: 3 } }] as HoloObjectDecl['traits'],
+      traits: [
+        { name: 'sim_to_real_dataset', config: { output_format: 'lerobot', episode_count: 3 } },
+      ] as HoloObjectDecl['traits'],
     });
     const py = compiler.compile(makeComposition({ objects: [obj] }), 'test-token');
     expect(py).toContain('"output_format": "lerobot"');
@@ -120,7 +124,9 @@ describe('EmbodiedDatasetCompiler', () => {
 
   it('carries declared sensor_modalities into the spec', () => {
     const comp = makeComposition({
-      traits: [{ name: 'sim_to_real_dataset', config: { sensor_modalities: ['qpos', 'sensordata'] } }],
+      traits: [
+        { name: 'sim_to_real_dataset', config: { sensor_modalities: ['qpos', 'sensordata'] } },
+      ],
     } as Partial<HoloComposition>);
     const py = compiler.compile(comp, 'test-token');
     expect(py).toContain('"sensordata"');

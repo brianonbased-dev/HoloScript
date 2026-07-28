@@ -148,8 +148,7 @@ export const locomotionHandler: TraitHandler<LocomotionConfig> = {
 
     const pos = state.position;
     const mode = state.mode;
-    const speed =
-      mode === 'run' ? config.speed * (config.run_multiplier ?? 2) : config.speed;
+    const speed = mode === 'run' ? config.speed * (config.run_multiplier ?? 2) : config.speed;
     let vx = 0,
       vy = 0,
       vz = 0;
@@ -231,12 +230,16 @@ export const locomotionHandler: TraitHandler<LocomotionConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: LocomotionConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: LocomotionConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__locomotionState as LocomotionState | undefined;
     if (!state) return;
     const payload = (event.payload ?? {}) as Record<string, unknown>;
-    const read = <T>(k: string): T | undefined =>
-      (event[k] ?? payload[k]) as T | undefined;
+    const read = <T>(k: string): T | undefined => (event[k] ?? payload[k]) as T | undefined;
 
     switch (event.type) {
       case 'locomotion:set_mode': {
@@ -260,7 +263,7 @@ export const locomotionHandler: TraitHandler<LocomotionConfig> = {
       case 'locomotion:snap_turn': {
         if (state.snapCooldown <= 0) {
           const dir = read<number>('direction') ?? 1;
-          state.yaw += ((config.snap_turn_angle ?? 45) * Math.PI) / 180 * (dir < 0 ? -1 : 1);
+          state.yaw += (((config.snap_turn_angle ?? 45) * Math.PI) / 180) * (dir < 0 ? -1 : 1);
           state.snapCooldown = config.snap_turn_cooldown ?? 0.3;
           context.emit?.('set_rotation', { node, rotation: [0, state.yaw, 0] });
           context.haptics?.pulse?.('right', 0.1, 20);
@@ -300,7 +303,8 @@ export const locomotionHandler: TraitHandler<LocomotionConfig> = {
       }
       default: {
         if (event.type === 'bt_action' || event.type.startsWith('action:')) {
-          const actionName = (read<string>('action') ?? event.type.replace('action:', '')) as string;
+          const actionName = (read<string>('action') ??
+            event.type.replace('action:', '')) as string;
           const requestId = read<string>('requestId');
           let handled = true;
           if (['glide', 'walk', 'run', 'fly', 'swim', 'teleport'].includes(actionName)) {

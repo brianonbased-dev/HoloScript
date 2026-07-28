@@ -56,7 +56,21 @@ export const HSI_OBSERVATION_MEDIATOR_EDGE = 'shields';
 
 const ASSIGN_OPERATORS = new Set(['=', '+=', '-=', '*=', '/=']);
 const BINARY_OPERATORS = new Set<string>([
-  '+', '-', '*', '/', '%', '===', '!==', '==', '!=', '<', '>', '<=', '>=', '&&', '||',
+  '+',
+  '-',
+  '*',
+  '/',
+  '%',
+  '===',
+  '!==',
+  '==',
+  '!=',
+  '<',
+  '>',
+  '<=',
+  '>=',
+  '&&',
+  '||',
 ]);
 
 export interface HSIIRLoweringOptions {
@@ -85,12 +99,17 @@ function scalarType(value: HSIScalar): 'string' | 'number' | 'boolean' | 'null' 
 }
 
 function asScalar(value: HoloValue, where: string): HSIScalar {
-  if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+  if (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
     return value;
   }
   throw new HSIAdmissionError(
     'unsupported-value',
-    `${where}: HS-Core v0 admits scalar values only, got ${Array.isArray(value) ? 'array' : typeof value}`,
+    `${where}: HS-Core v0 admits scalar values only, got ${Array.isArray(value) ? 'array' : typeof value}`
   );
 }
 
@@ -102,8 +121,15 @@ function asTriple(value: unknown, where: string): [number, number, number] {
     const vec = value as Record<string, unknown>;
     arr = [vec['x'], vec['y'], vec['z']];
   }
-  if (!arr || arr.length !== 3 || !arr.every((n): n is number => typeof n === 'number' && Number.isFinite(n))) {
-    throw new HSIAdmissionError('invalid-spatial', `${where}: position/scale must be a finite numeric triple`);
+  if (
+    !arr ||
+    arr.length !== 3 ||
+    !arr.every((n): n is number => typeof n === 'number' && Number.isFinite(n))
+  ) {
+    throw new HSIAdmissionError(
+      'invalid-spatial',
+      `${where}: position/scale must be a finite numeric triple`
+    );
   }
   return [arr[0] as number, arr[1] as number, arr[2] as number];
 }
@@ -136,7 +162,10 @@ function assertSlots(ir: ExpressionIR, allowed: ReadonlySet<string>, where: stri
   collectSlots(ir, used);
   for (const name of used) {
     if (!allowed.has(name)) {
-      throw new HSIAdmissionError('unknown-slot', `${where}: expression reads undeclared slot "${name}"`);
+      throw new HSIAdmissionError(
+        'unknown-slot',
+        `${where}: expression reads undeclared slot "${name}"`
+      );
     }
   }
   return [...used].sort();
@@ -151,7 +180,10 @@ export function lowerHoloExpression(expr: HoloExpression, where: string): Expres
       return { kind: 'Identifier', name: expr.name };
     case 'BinaryExpression': {
       if (!BINARY_OPERATORS.has(expr.operator)) {
-        throw new HSIAdmissionError('unsupported-operator', `${where}: operator "${expr.operator}"`);
+        throw new HSIAdmissionError(
+          'unsupported-operator',
+          `${where}: operator "${expr.operator}"`
+        );
       }
       return {
         kind: 'BinaryExpression',
@@ -177,7 +209,10 @@ export function lowerHoloExpression(expr: HoloExpression, where: string): Expres
       };
     }
     default:
-      throw new HSIAdmissionError('unsupported-expression', `${where}: ${expr.type} is outside HS-Core v0`);
+      throw new HSIAdmissionError(
+        'unsupported-expression',
+        `${where}: ${expr.type} is outside HS-Core v0`
+      );
   }
 }
 
@@ -194,7 +229,10 @@ function lowerEntities(composition: HoloComposition): EntityIngredients {
   const templates = new Map<string, HoloTemplate>();
   for (const template of composition.templates ?? []) {
     if (templates.has(template.name)) {
-      throw new HSIAdmissionError('duplicate-template', `template "${template.name}" declared twice`);
+      throw new HSIAdmissionError(
+        'duplicate-template',
+        `template "${template.name}" declared twice`
+      );
     }
     templates.set(template.name, template);
   }
@@ -205,7 +243,10 @@ function lowerEntities(composition: HoloComposition): EntityIngredients {
       throw new HSIAdmissionError('duplicate-entity', `entity "${obj.name}" declared twice`);
     }
     if ((obj.children ?? []).length > 0) {
-      throw new HSIAdmissionError('unsupported-value', `entity "${obj.name}": nested children are outside HS-Core v0`);
+      throw new HSIAdmissionError(
+        'unsupported-value',
+        `entity "${obj.name}": nested children are outside HS-Core v0`
+      );
     }
 
     const components: Record<string, HSIScalar> = {};
@@ -215,7 +256,10 @@ function lowerEntities(composition: HoloComposition): EntityIngredients {
     if (obj.template !== undefined) {
       template = templates.get(obj.template);
       if (!template) {
-        throw new HSIAdmissionError('unknown-archetype', `entity "${obj.name}" uses missing template "${obj.template}"`);
+        throw new HSIAdmissionError(
+          'unknown-archetype',
+          `entity "${obj.name}" uses missing template "${obj.template}"`
+        );
       }
       for (const prop of template.properties ?? []) {
         if (prop.key === 'position' || prop.key === 'scale') continue; // spatial keys are lowered below
@@ -244,7 +288,8 @@ function lowerEntities(composition: HoloComposition): EntityIngredients {
     // `opaque` participates in opacity, not the generic component bag.
     delete components['opaque'];
 
-    const role = typeof components['role'] === 'string' ? (components['role'] as string) : undefined;
+    const role =
+      typeof components['role'] === 'string' ? (components['role'] as string) : undefined;
 
     const entity: HSIEntity = {
       id: `entity:${obj.name}`,
@@ -271,17 +316,23 @@ function lowerEntities(composition: HoloComposition): EntityIngredients {
   return { templates, entities };
 }
 
-function lowerRelations(composition: HoloComposition, entities: Map<string, HSIEntity>): HSIRelation[] {
+function lowerRelations(
+  composition: HoloComposition,
+  entities: Map<string, HSIEntity>
+): HSIRelation[] {
   const relations: HSIRelation[] = [];
   const connections =
-    (composition as HoloComposition & { connections?: { from: string; to: string; edgeType?: string; loc?: HoloNode['loc'] }[] })
-      .connections ?? [];
+    (
+      composition as HoloComposition & {
+        connections?: { from: string; to: string; edgeType?: string; loc?: HoloNode['loc'] }[];
+      }
+    ).connections ?? [];
   for (const conn of connections) {
     for (const endpoint of [conn.from, conn.to]) {
       if (!entities.has(endpoint)) {
         throw new HSIAdmissionError(
           'unknown-relation-endpoint',
-          `connection ${conn.from} -> ${conn.to} references undeclared entity "${endpoint}"`,
+          `connection ${conn.from} -> ${conn.to} references undeclared entity "${endpoint}"`
         );
       }
     }
@@ -320,7 +371,7 @@ function lowerState(composition: HoloComposition): HSIStateField[] {
 
 function deriveObservationPolicy(
   entities: Map<string, HSIEntity>,
-  relations: HSIRelation[],
+  relations: HSIRelation[]
 ): HSIObservationRule[] {
   const rules: HSIObservationRule[] = [];
   const observers = [...entities.values()].filter((e) => e.role === 'agent');
@@ -359,7 +410,7 @@ function lowerStatements(
   statements: HoloStatement[],
   handlerEvent: string,
   stateSlots: ReadonlySet<string>,
-  counter: { n: number },
+  counter: { n: number }
 ): HSIEffect[] {
   const effects: HSIEffect[] = [];
   for (const stmt of statements) {
@@ -368,15 +419,30 @@ function lowerStatements(
     switch (stmt.type) {
       case 'Assignment': {
         if (!ASSIGN_OPERATORS.has(stmt.operator)) {
-          throw new HSIAdmissionError('unsupported-operator', `${id}: assignment operator "${stmt.operator}"`);
+          throw new HSIAdmissionError(
+            'unsupported-operator',
+            `${id}: assignment operator "${stmt.operator}"`
+          );
         }
-        const target = stmt.target.startsWith('state.') ? stmt.target.slice('state.'.length) : stmt.target;
+        const target = stmt.target.startsWith('state.')
+          ? stmt.target.slice('state.'.length)
+          : stmt.target;
         if (!stateSlots.has(target)) {
-          throw new HSIAdmissionError('unknown-assignment-target', `${id}: "${stmt.target}" is not a declared state key`);
+          throw new HSIAdmissionError(
+            'unknown-assignment-target',
+            `${id}: "${stmt.target}" is not a declared state key`
+          );
         }
         const value = lowerHoloExpression(stmt.value, id);
         assertSlots(value, stateSlots, id);
-        effects.push({ kind: 'assign', id, target, operator: stmt.operator, value, sourceSpan: spanOf(stmt) });
+        effects.push({
+          kind: 'assign',
+          id,
+          target,
+          operator: stmt.operator,
+          value,
+          sourceSpan: spanOf(stmt),
+        });
         break;
       }
       case 'EmitStatement': {
@@ -397,7 +463,10 @@ function lowerStatements(
         break;
       }
       default:
-        throw new HSIAdmissionError('unsupported-statement', `${id}: ${stmt.type} is outside HS-Core v0`);
+        throw new HSIAdmissionError(
+          'unsupported-statement',
+          `${id}: ${stmt.type} is outside HS-Core v0`
+        );
     }
   }
   return effects;
@@ -405,9 +474,10 @@ function lowerStatements(
 
 function lowerEventHandlers(
   composition: HoloComposition,
-  stateSlots: ReadonlySet<string>,
+  stateSlots: ReadonlySet<string>
 ): HSIEventHandler[] {
-  const logic = (composition as HoloComposition & { logic?: { handlers?: HoloEventHandler[] } }).logic;
+  const logic = (composition as HoloComposition & { logic?: { handlers?: HoloEventHandler[] } })
+    .logic;
   const handlers: HSIEventHandler[] = [];
   const seen = new Set<string>();
   for (const handler of logic?.handlers ?? []) {
@@ -432,17 +502,18 @@ function lowerEventHandlers(
  * same fail-closed machine semantics instead of maintaining parallel lowering
  * and execution code.
  */
-export function lowerStateMachineToHSIIR(
-  machine: HoloStateMachine,
-): HSIStateMachine {
+export function lowerStateMachineToHSIIR(machine: HoloStateMachine): HSIStateMachine {
   const stateNames = Object.keys(machine.states ?? {});
   if (stateNames.length === 0) {
-    throw new HSIAdmissionError('admission-skewed', `state machine "${machine.name}" declares no states`);
+    throw new HSIAdmissionError(
+      'admission-skewed',
+      `state machine "${machine.name}" declares no states`
+    );
   }
   if (!stateNames.includes(machine.initialState)) {
     throw new HSIAdmissionError(
       'unknown-initial-state',
-      `state machine "${machine.name}": initial state "${machine.initialState}" is not declared`,
+      `state machine "${machine.name}": initial state "${machine.initialState}" is not declared`
     );
   }
 
@@ -474,13 +545,13 @@ export function lowerStateMachineToHSIIR(
     if (from !== 'any' && !stateNames.includes(from)) {
       throw new HSIAdmissionError(
         'unknown-transition-endpoint',
-        `state machine "${machine.name}": transition from undeclared state "${from}"`,
+        `state machine "${machine.name}": transition from undeclared state "${from}"`
       );
     }
     if (!stateNames.includes(t.target)) {
       throw new HSIAdmissionError(
         'unknown-transition-endpoint',
-        `state machine "${machine.name}": transition to undeclared state "${t.target}"`,
+        `state machine "${machine.name}": transition to undeclared state "${t.target}"`
       );
     }
     const baseId = `transition:${machine.name}.${from}->${t.target}`;
@@ -500,12 +571,20 @@ export function lowerStateMachineToHSIIR(
           right: { kind: 'Literal', value: cond.value as HSIScalar },
         };
         guard = guard
-          ? { kind: 'BinaryExpression', operator: cond.chain === 'or' ? '||' : '&&', left: guard, right: clause }
+          ? {
+              kind: 'BinaryExpression',
+              operator: cond.chain === 'or' ? '||' : '&&',
+              left: guard,
+              right: clause,
+            }
           : clause;
       }
     }
     if (!guard) {
-      throw new HSIAdmissionError('admission-skewed', `${id}: transition has neither guard nor trigger condition`);
+      throw new HSIAdmissionError(
+        'admission-skewed',
+        `${id}: transition has neither guard nor trigger condition`
+      );
     }
     const reads = assertSlots(guard, inputSlots, id);
 
@@ -533,11 +612,18 @@ export function lowerStateMachineToHSIIR(
   };
 }
 
-function lowerPredicates(composition: HoloComposition, stateSlots: ReadonlySet<string>): HSIPredicate[] {
+function lowerPredicates(
+  composition: HoloComposition,
+  stateSlots: ReadonlySet<string>
+): HSIPredicate[] {
   const predicates: HSIPredicate[] = [];
   const slotList = [...stateSlots];
 
-  const lowerClause = (kind: 'precondition' | 'invariant', name: string, expr: string): HSIPredicate => {
+  const lowerClause = (
+    kind: 'precondition' | 'invariant',
+    name: string,
+    expr: string
+  ): HSIPredicate => {
     const id = `${kind}:${name}`;
     let ir: ExpressionIR;
     try {
@@ -548,7 +634,14 @@ function lowerPredicates(composition: HoloComposition, stateSlots: ReadonlySet<s
       }
       throw error;
     }
-    return { id, name, kind, expression: ir, reads: assertSlots(ir, stateSlots, id), sourceSpan: spanOf(composition.contract) };
+    return {
+      id,
+      name,
+      kind,
+      expression: ir,
+      reads: assertSlots(ir, stateSlots, id),
+      sourceSpan: spanOf(composition.contract),
+    };
   };
 
   for (const clause of composition.contract?.preconditions ?? []) {
@@ -578,16 +671,24 @@ function lowerPredicates(composition: HoloComposition, stateSlots: ReadonlySet<s
  */
 export function lowerCompositionToHSIIR(
   composition: HoloComposition,
-  options: HSIIRLoweringOptions = {},
+  options: HSIIRLoweringOptions = {}
 ): HSIIRDocument {
-  if (!composition || composition.type !== 'Composition' || typeof composition.name !== 'string' || composition.name.length === 0) {
+  if (
+    !composition ||
+    composition.type !== 'Composition' ||
+    typeof composition.name !== 'string' ||
+    composition.name.length === 0
+  ) {
     throw new HSIAdmissionError('empty-world', 'input is not a named HoloComposition');
   }
 
   const { entities } = lowerEntities(composition);
   const stateFields = lowerState(composition);
   if (entities.size === 0 && stateFields.length === 0) {
-    throw new HSIAdmissionError('empty-world', `composition "${composition.name}" declares no entities and no state`);
+    throw new HSIAdmissionError(
+      'empty-world',
+      `composition "${composition.name}" declares no entities and no state`
+    );
   }
 
   const relations = lowerRelations(composition, entities);
@@ -597,9 +698,10 @@ export function lowerCompositionToHSIIR(
   const machines = (composition.stateMachines ?? []).map(lowerStateMachineToHSIIR);
   const predicates = lowerPredicates(composition, stateSlots);
 
-  const sourceDigest = options.sourceText !== undefined
-    ? hsiSourceTextDigest(options.sourceText)
-    : hsiSha256({ compositionName: composition.name, note: 'no-source-text-provided' });
+  const sourceDigest =
+    options.sourceText !== undefined
+      ? hsiSourceTextDigest(options.sourceText)
+      : hsiSha256({ compositionName: composition.name, note: 'no-source-text-provided' });
 
   const byId = <T extends { id: string }>(items: T[]): T[] =>
     [...items].sort((a, b) => a.id.localeCompare(b.id));

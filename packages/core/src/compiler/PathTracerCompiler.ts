@@ -60,7 +60,11 @@ export class PathTracerCompiler {
   }
 
   compile(composition: HoloComposition): string {
-    const { prims, camera: cam, sky } = extractRaytraceScene(composition, {
+    const {
+      prims,
+      camera: cam,
+      sky,
+    } = extractRaytraceScene(composition, {
       width: this.width,
       height: this.height,
     });
@@ -307,7 +311,10 @@ async fn run() {
   }
 
   private sanitizeCrate(name: string): string {
-    const s = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const s = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
     return s || 'holo-pathtrace';
   }
   private header(composition: HoloComposition): string {

@@ -1,8 +1,5 @@
 import { HoloScriptPlusParser } from './HoloScriptPlusParser';
-import type {
-  HSPlusCompileResult,
-  HSPlusParserOptions,
-} from './HoloScriptPlusParser';
+import type { HSPlusCompileResult, HSPlusParserOptions } from './HoloScriptPlusParser';
 
 export type HsplusGrammarSource =
   | 'rust-wasm-node'

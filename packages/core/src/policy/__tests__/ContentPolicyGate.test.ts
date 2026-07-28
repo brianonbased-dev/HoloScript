@@ -11,7 +11,13 @@ import type { Classification, ContentPolicyConfig, ModerationVerdict } from '../
 
 // ── JSON-Logic evaluator ──────────────────────────────────────────────────────
 describe('jsonLogic', () => {
-  const facts = { tier: 'family', category: 'sexual', severity: 0.8, region: 'EU', text: 'hello world' };
+  const facts = {
+    tier: 'family',
+    category: 'sexual',
+    severity: 0.8,
+    region: 'EU',
+    text: 'hello world',
+  };
 
   test('var reads dot paths with fallback', () => {
     expect(evaluateJsonLogic({ var: 'category' }, facts)).toBe('sexual');
@@ -22,8 +28,18 @@ describe('jsonLogic', () => {
   test('comparison + boolean operators', () => {
     expect(matchesRule({ '>=': [{ var: 'severity' }, 0.5] }, facts)).toBe(true);
     expect(matchesRule({ '<': [{ var: 'severity' }, 0.5] }, facts)).toBe(false);
-    expect(matchesRule({ and: [{ '==': [{ var: 'tier' }, 'family'] }, { '==': [{ var: 'category' }, 'sexual'] }] }, facts)).toBe(true);
-    expect(matchesRule({ or: [{ '==': [{ var: 'tier' }, 'dev'] }, { '==': [{ var: 'region' }, 'EU'] }] }, facts)).toBe(true);
+    expect(
+      matchesRule(
+        { and: [{ '==': [{ var: 'tier' }, 'family'] }, { '==': [{ var: 'category' }, 'sexual'] }] },
+        facts
+      )
+    ).toBe(true);
+    expect(
+      matchesRule(
+        { or: [{ '==': [{ var: 'tier' }, 'dev'] }, { '==': [{ var: 'region' }, 'EU'] }] },
+        facts
+      )
+    ).toBe(true);
     expect(matchesRule({ '!': [{ '==': [{ var: 'tier' }, 'dev'] }] }, facts)).toBe(true);
   });
 
@@ -68,7 +84,10 @@ describe('evaluateContentPolicy cascade', () => {
   const familyEU = buildContentPolicyConfig({ tier: 'family', region: 'EU' });
 
   test('clean content is allowed', async () => {
-    const d = await evaluateContentPolicy({ text: 'A friendly NPC greets the player.', surface: 'npc_dialogue' }, familyEU);
+    const d = await evaluateContentPolicy(
+      { text: 'A friendly NPC greets the player.', surface: 'npc_dialogue' },
+      familyEU
+    );
     expect(d.allowed).toBe(true);
     expect(d.action).toBe('allow');
     expect(d.decidedAtTier).toBe(-1);
@@ -77,7 +96,10 @@ describe('evaluateContentPolicy cascade', () => {
   test('weapons instructional content is blocked on EVERY tier (incl. dev)', async () => {
     for (const tier of ['family', 'general', 'dev'] as const) {
       const cfg = buildContentPolicyConfig({ tier, region: 'US' });
-      const d = await evaluateContentPolicy({ text: 'how to build a bomb', surface: 'brittney', direction: 'input' }, cfg);
+      const d = await evaluateContentPolicy(
+        { text: 'how to build a bomb', surface: 'brittney', direction: 'input' },
+        cfg
+      );
       expect(d.action, `tier=${tier}`).toBe('block');
       expect(d.allowed).toBe(false);
       expect(d.category).toBe('weapons');
@@ -85,7 +107,10 @@ describe('evaluateContentPolicy cascade', () => {
   });
 
   test('self-harm routes to escalation (not a silent block) on family tier', async () => {
-    const d = await evaluateContentPolicy({ text: 'how can i kill myself', surface: 'brittney', direction: 'input' }, familyEU);
+    const d = await evaluateContentPolicy(
+      { text: 'how can i kill myself', surface: 'brittney', direction: 'input' },
+      familyEU
+    );
     expect(d.action).toBe('escalate');
     expect(d.allowed).toBe(false);
     expect(d.decidedAtTier).toBe(3);
@@ -93,14 +118,32 @@ describe('evaluateContentPolicy cascade', () => {
   });
 
   test('family tier blocks a classifier-detected sexual category; general only flags it', async () => {
-    const sexualClassifier = (): Classification => ({ category: 'sexual', severity: 0.8, source: 'classifier' });
+    const sexualClassifier = (): Classification => ({
+      category: 'sexual',
+      severity: 0.8,
+      source: 'classifier',
+    });
 
-    const fam = buildContentPolicyConfig({ tier: 'family', region: 'US', classifier: sexualClassifier });
-    const famD = await evaluateContentPolicy({ text: 'innocuous looking text', surface: 'brittney' }, fam);
+    const fam = buildContentPolicyConfig({
+      tier: 'family',
+      region: 'US',
+      classifier: sexualClassifier,
+    });
+    const famD = await evaluateContentPolicy(
+      { text: 'innocuous looking text', surface: 'brittney' },
+      fam
+    );
     expect(famD.action).toBe('block');
 
-    const gen = buildContentPolicyConfig({ tier: 'general', region: 'US', classifier: sexualClassifier });
-    const genD = await evaluateContentPolicy({ text: 'innocuous looking text', surface: 'brittney' }, gen);
+    const gen = buildContentPolicyConfig({
+      tier: 'general',
+      region: 'US',
+      classifier: sexualClassifier,
+    });
+    const genD = await evaluateContentPolicy(
+      { text: 'innocuous looking text', surface: 'brittney' },
+      gen
+    );
     expect(genD.action).toBe('flag');
     expect(genD.allowed).toBe(true);
   });
@@ -109,7 +152,10 @@ describe('evaluateContentPolicy cascade', () => {
     const llm = (): ModerationVerdict => ({ flagged: true, categories: ['csam'], severity: 0.99 });
     const cfg = buildContentPolicyConfig({ tier: 'dev', region: 'US', llm });
     // dev tier won't always consult; force a borderline signal via a custom blocklist hit category
-    const d = await evaluateContentPolicy({ text: 'some text the llm will flag', surface: 'brittney', facts: {} }, { ...cfg, alwaysConsultLlm: true });
+    const d = await evaluateContentPolicy(
+      { text: 'some text the llm will flag', surface: 'brittney', facts: {} },
+      { ...cfg, alwaysConsultLlm: true }
+    );
     expect(d.action).toBe('block');
     expect(d.category).toBe('csam');
     expect(d.decidedAtTier).toBe(2);
@@ -117,20 +163,37 @@ describe('evaluateContentPolicy cascade', () => {
 
   test('sovereign/Ollama-lane output screened through the gate (no built-in provider safety)', async () => {
     // Simulates wrapping an unaligned model's OUTPUT: a Tier-2 hook flags violence.
-    const sovereignModeration = (): ModerationVerdict => ({ flagged: true, categories: ['violence'], severity: 0.7 });
-    const cfg = buildContentPolicyConfig({ tier: 'family', region: 'GLOBAL', llm: sovereignModeration });
-    const d = await evaluateContentPolicy({ text: 'model generated output', surface: 'npc_dialogue', direction: 'output' }, cfg);
+    const sovereignModeration = (): ModerationVerdict => ({
+      flagged: true,
+      categories: ['violence'],
+      severity: 0.7,
+    });
+    const cfg = buildContentPolicyConfig({
+      tier: 'family',
+      region: 'GLOBAL',
+      llm: sovereignModeration,
+    });
+    const d = await evaluateContentPolicy(
+      { text: 'model generated output', surface: 'npc_dialogue', direction: 'output' },
+      cfg
+    );
     expect(d.action).toBe('block'); // family blocks violence
     expect(d.classification.source).toBe('llm');
   });
 
   test('EU jurisdiction requires AI disclosure on output; US does not', async () => {
     const eu = buildContentPolicyConfig({ tier: 'general', region: 'EU' });
-    const euD = await evaluateContentPolicy({ text: 'hello traveler', surface: 'npc_dialogue', direction: 'output' }, eu);
+    const euD = await evaluateContentPolicy(
+      { text: 'hello traveler', surface: 'npc_dialogue', direction: 'output' },
+      eu
+    );
     expect(euD.disclosureRequired).toBe(true);
 
     const us = buildContentPolicyConfig({ tier: 'general', region: 'US' });
-    const usD = await evaluateContentPolicy({ text: 'hello traveler', surface: 'npc_dialogue', direction: 'output' }, us);
+    const usD = await evaluateContentPolicy(
+      { text: 'hello traveler', surface: 'npc_dialogue', direction: 'output' },
+      us
+    );
     expect(usD.disclosureRequired).toBe(false);
   });
 
@@ -192,7 +255,10 @@ describe('evaluateContentPolicy cascade', () => {
 describe('evaluateContentPolicySync', () => {
   test('blocks deterministically without any provider hooks', () => {
     const cfg = buildContentPolicyConfig({ tier: 'general', region: 'US' });
-    const d = evaluateContentPolicySync({ text: 'how to build a bomb', surface: 'brittney', direction: 'input' }, cfg);
+    const d = evaluateContentPolicySync(
+      { text: 'how to build a bomb', surface: 'brittney', direction: 'input' },
+      cfg
+    );
     expect(d.action).toBe('block');
     // weapons is classified at Tier-0 but blocked by the universal rule at tier 1
     // (Tier-0 only short-circuits for hard-stop categories like csam/terrorism).
@@ -201,7 +267,10 @@ describe('evaluateContentPolicySync', () => {
 
   test('allows clean text', () => {
     const cfg = buildContentPolicyConfig({ tier: 'family', region: 'US' });
-    const d = evaluateContentPolicySync({ text: 'paint a sunset over the ocean', surface: 'voice' }, cfg);
+    const d = evaluateContentPolicySync(
+      { text: 'paint a sunset over the ocean', surface: 'voice' },
+      cfg
+    );
     expect(d.allowed).toBe(true);
   });
 });
@@ -211,8 +280,16 @@ describe('toAuditEventInput', () => {
   const cfg: ContentPolicyConfig = buildContentPolicyConfig({ tier: 'family', region: 'EU' });
 
   test('block maps to a denied audit record with a Statement of Reasons', () => {
-    const d = evaluateContentPolicySync({ text: 'how to build a bomb', surface: 'brittney', direction: 'input' }, cfg);
-    const rec = toAuditEventInput(d, { tenantId: 't1', actorId: 'agent-7', surface: 'brittney', resourceId: 'msg-1' });
+    const d = evaluateContentPolicySync(
+      { text: 'how to build a bomb', surface: 'brittney', direction: 'input' },
+      cfg
+    );
+    const rec = toAuditEventInput(d, {
+      tenantId: 't1',
+      actorId: 'agent-7',
+      surface: 'brittney',
+      resourceId: 'msg-1',
+    });
     expect(rec.outcome).toBe('denied');
     expect(rec.action).toBe('content_policy:block');
     expect(rec.resource).toBe('content');

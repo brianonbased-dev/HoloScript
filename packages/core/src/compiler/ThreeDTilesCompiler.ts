@@ -399,7 +399,11 @@ function extractGaussianData(composition: HoloComposition): GaussianData {
     const scales = parseFloatArray(config.scales) ?? fillScales(count, 0.08);
     const rotations = parseFloatArray(config.rotations) ?? fillRotations(count);
     const opacities = parseFloatArray(config.opacities) ?? fillOpacities(count);
-    if (scales.length !== count * 3 || rotations.length !== count * 4 || opacities.length !== count) {
+    if (
+      scales.length !== count * 3 ||
+      rotations.length !== count * 4 ||
+      opacities.length !== count
+    ) {
       continue;
     }
 
@@ -605,8 +609,7 @@ function fillOpacities(count: number): Float32Array {
 
 function generateDemoGrid(): GaussianData {
   const positions = new Float32Array([
-    0, 0, 0, 24, 0, 0, 49, 0, 0, 51, 0, 0,
-    0, 0, 51, 24, 0, 51, 51, 0, 51, 76, 0, 76,
+    0, 0, 0, 24, 0, 0, 49, 0, 0, 51, 0, 0, 0, 0, 51, 24, 0, 51, 51, 0, 51, 76, 0, 76,
   ]);
   const count = positions.length / 3;
   const colors = new Float32Array(count * 4);

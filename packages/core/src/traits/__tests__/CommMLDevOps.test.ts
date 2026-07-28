@@ -38,7 +38,8 @@ async function flushMicrotasks(): Promise<void> {
 // Slack/Discord traits do fire-and-forget fetch().then(emit ':sent'); mock fetch
 // and flush so the async event is observed.
 afterEach(() => vi.unstubAllGlobals());
-const mockFetchOk = () => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
+const mockFetchOk = () =>
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Communication

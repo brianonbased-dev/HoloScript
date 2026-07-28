@@ -56,14 +56,21 @@ describe('CognitiveActions — verb vocabulary', () => {
 
 describe('CognitiveActions — dispatch compilation', () => {
   const owner = { id: 'agent-1' };
-  const make = (verb: HoloCognitiveAction['verb'], config: Record<string, unknown>): HoloCognitiveAction => ({
+  const make = (
+    verb: HoloCognitiveAction['verb'],
+    config: Record<string, unknown>
+  ): HoloCognitiveAction => ({
     kind: 'cognitive',
     verb,
     config,
   });
 
   it('llm_call → llm_prompt with message (maps prompt → message)', () => {
-    const { event, payload } = compileCognitiveDispatch(make('llm_call', { prompt: 'What next?' }), 'r1', owner);
+    const { event, payload } = compileCognitiveDispatch(
+      make('llm_call', { prompt: 'What next?' }),
+      'r1',
+      owner
+    );
     expect(event).toBe('llm_prompt');
     expect(payload.message).toBe('What next?');
     expect(payload.requestId).toBe('r1');
@@ -81,13 +88,21 @@ describe('CognitiveActions — dispatch compilation', () => {
   });
 
   it('rag_query → rag_query with question (maps query → question)', () => {
-    const { event, payload } = compileCognitiveDispatch(make('rag_query', { query: 'how does X work' }), 'r3', owner);
+    const { event, payload } = compileCognitiveDispatch(
+      make('rag_query', { query: 'how does X work' }),
+      'r3',
+      owner
+    );
     expect(event).toBe('rag_query');
     expect(payload.question).toBe('how does X work');
   });
 
   it('plan → goap_set_state with state object', () => {
-    const { event, payload } = compileCognitiveDispatch(make('plan', { state: { has_key: true } }), 'r4', owner);
+    const { event, payload } = compileCognitiveDispatch(
+      make('plan', { state: { has_key: true } }),
+      'r4',
+      owner
+    );
     expect(event).toBe('goap_set_state');
     expect(payload.state).toEqual({ has_key: true });
   });

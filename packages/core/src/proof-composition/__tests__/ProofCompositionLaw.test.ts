@@ -6,7 +6,10 @@ import {
   PROOF_COMPOSITION_LAWS,
 } from '../ProofCompositionLaw';
 import type { ComposedReceipt } from '../ProofCompositionLaw';
-import type { WrappedSolverResult, PluginClauseViolation } from '../../plugin-solver-contract/PluginSolverContract';
+import type {
+  WrappedSolverResult,
+  PluginClauseViolation,
+} from '../../plugin-solver-contract/PluginSolverContract';
 import {
   wrapSolverInContract,
   PluginSolverContractRegistry,
@@ -16,7 +19,7 @@ import {
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
 function makeResult(
-  overrides: Partial<WrappedSolverResult<unknown>> = {},
+  overrides: Partial<WrappedSolverResult<unknown>> = {}
 ): WrappedSolverResult<unknown> {
   return {
     result: {},
@@ -111,9 +114,7 @@ describe('Law 2 — and-monotone', () => {
   });
 
   it('single unverified component → composedVerified false', () => {
-    expect(
-      composeReceipts([makeResult({ contractVerified: false })]).composedVerified,
-    ).toBe(false);
+    expect(composeReceipts([makeResult({ contractVerified: false })]).composedVerified).toBe(false);
   });
 });
 

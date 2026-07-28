@@ -53,7 +53,9 @@ describe('particle_field — lower to compute WGSL', () => {
   });
 
   it('composes every declared force into acceleration, in order', () => {
-    const { wgsl } = particleFieldToWGSL(compileParticleFieldBlock(parseFirstParticleField(EXAMPLE)));
+    const { wgsl } = particleFieldToWGSL(
+      compileParticleFieldBlock(parseFirstParticleField(EXAMPLE))
+    );
     const iGravity = wgsl.indexOf('// gravity:grav');
     const iVortex = wgsl.indexOf('// vortex:swirl');
     const iCurl = wgsl.indexOf('// curl_noise:wind');
@@ -69,7 +71,9 @@ describe('particle_field — lower to compute WGSL', () => {
   });
 
   it('integrates velocity/position and respawns at end of life', () => {
-    const { wgsl } = particleFieldToWGSL(compileParticleFieldBlock(parseFirstParticleField(EXAMPLE)));
+    const { wgsl } = particleFieldToWGSL(
+      compileParticleFieldBlock(parseFirstParticleField(EXAMPLE))
+    );
     expect(wgsl).toContain('p.vel += accel * dt;');
     expect(wgsl).toContain('p.pos += p.vel * dt;');
     expect(wgsl).toContain('p.life -= dt;');

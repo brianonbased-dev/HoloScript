@@ -58,7 +58,10 @@ export function resolveLocalInferenceConfig(
  *   qwen3:4b     — 2.5 GB, tool-calling verified, ~15 tok/s, DEFAULT
  *   Fara-7B Q4   — 6 GB, computer-use, headless-only, ~6 tok/s
  */
-export const JETSON_TESTED_MODELS = ['qwen3:4b', 'hf.co/bartowski/microsoft_Fara-7B-GGUF:Q4_K_M'] as const;
+export const JETSON_TESTED_MODELS = [
+  'qwen3:4b',
+  'hf.co/bartowski/microsoft_Fara-7B-GGUF:Q4_K_M',
+] as const;
 
 export type JetsonTestedModel = (typeof JETSON_TESTED_MODELS)[number];
 

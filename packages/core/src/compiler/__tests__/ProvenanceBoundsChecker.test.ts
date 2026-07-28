@@ -4,12 +4,16 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  ProvenanceBoundsChecker,
-  createProvenanceBoundsChecker,
-} from '../ProvenanceBoundsChecker';
+import { ProvenanceBoundsChecker, createProvenanceBoundsChecker } from '../ProvenanceBoundsChecker';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
-import type { HoloObjectTrait, HoloAbility, HoloLootTable, HoloGameTrigger, HoloSpawnPoint, HoloNPC } from '../../parser/HoloCompositionTypes';
+import type {
+  HoloObjectTrait,
+  HoloAbility,
+  HoloLootTable,
+  HoloGameTrigger,
+  HoloSpawnPoint,
+  HoloNPC,
+} from '../../parser/HoloCompositionTypes';
 
 // =============================================================================
 // FIXTURE HELPERS
@@ -129,10 +133,7 @@ describe('ProvenanceBoundsChecker — speedhack obligation', () => {
   it('(b) moving world WITH @movement_contract + @provably_bounded → speedhack satisfied', () => {
     const composition = makeComposition({
       spawnPoints: [makeSpawnPoint('spawn_1')],
-      traits: [
-        makeTrait('@provably_bounded'),
-        makeTrait('@movement_contract'),
-      ],
+      traits: [makeTrait('@provably_bounded'), makeTrait('@movement_contract')],
     });
 
     const checker = createProvenanceBoundsChecker();
@@ -206,15 +207,23 @@ describe('ProvenanceBoundsChecker — full provability', () => {
     expect(report.unmet).toBe(0);
 
     // Speedhack: satisfied (has movement_contract)
-    expect(report.obligations.find((o) => o.exploitClass === 'speedhack')!.status).toBe('satisfied');
+    expect(report.obligations.find((o) => o.exploitClass === 'speedhack')!.status).toBe(
+      'satisfied'
+    );
     // Ability spam: satisfied (abilities present, server default)
-    expect(report.obligations.find((o) => o.exploitClass === 'ability_spam')!.status).toBe('satisfied');
+    expect(report.obligations.find((o) => o.exploitClass === 'ability_spam')!.status).toBe(
+      'satisfied'
+    );
     // Dupe: satisfied (loot tables present)
     expect(report.obligations.find((o) => o.exploitClass === 'dupe')!.status).toBe('satisfied');
     // Unaudited event: satisfied (receipt_on present + combat trigger)
-    expect(report.obligations.find((o) => o.exploitClass === 'unaudited_event')!.status).toBe('satisfied');
+    expect(report.obligations.find((o) => o.exploitClass === 'unaudited_event')!.status).toBe(
+      'satisfied'
+    );
     // Range exploit: satisfied (ranged ability present)
-    expect(report.obligations.find((o) => o.exploitClass === 'range_exploit')!.status).toBe('satisfied');
+    expect(report.obligations.find((o) => o.exploitClass === 'range_exploit')!.status).toBe(
+      'satisfied'
+    );
   });
 });
 
@@ -233,12 +242,24 @@ describe('ProvenanceBoundsChecker — static/empty composition', () => {
     expect(report.provablyBounded).toBe(false);
 
     // No game constructs → speedhack, ability_spam, dupe, unaudited_event all not_applicable
-    expect(report.obligations.find((o) => o.exploitClass === 'speedhack')!.status).toBe('not_applicable');
-    expect(report.obligations.find((o) => o.exploitClass === 'ability_spam')!.status).toBe('not_applicable');
-    expect(report.obligations.find((o) => o.exploitClass === 'dupe')!.status).toBe('not_applicable');
-    expect(report.obligations.find((o) => o.exploitClass === 'unaudited_event')!.status).toBe('not_applicable');
-    expect(report.obligations.find((o) => o.exploitClass === 'range_exploit')!.status).toBe('not_applicable');
-    expect(report.obligations.find((o) => o.exploitClass === 'info_leak')!.status).toBe('not_applicable');
+    expect(report.obligations.find((o) => o.exploitClass === 'speedhack')!.status).toBe(
+      'not_applicable'
+    );
+    expect(report.obligations.find((o) => o.exploitClass === 'ability_spam')!.status).toBe(
+      'not_applicable'
+    );
+    expect(report.obligations.find((o) => o.exploitClass === 'dupe')!.status).toBe(
+      'not_applicable'
+    );
+    expect(report.obligations.find((o) => o.exploitClass === 'unaudited_event')!.status).toBe(
+      'not_applicable'
+    );
+    expect(report.obligations.find((o) => o.exploitClass === 'range_exploit')!.status).toBe(
+      'not_applicable'
+    );
+    expect(report.obligations.find((o) => o.exploitClass === 'info_leak')!.status).toBe(
+      'not_applicable'
+    );
 
     expect(report.summary).toMatch(/AUDIT ONLY/);
   });
@@ -316,9 +337,9 @@ describe('ProvenanceBoundsChecker — edge cases', () => {
     const composition = makeComposition({
       triggers: [makeCombatTrigger('death_zone')],
       traits: [
-        makeTrait('provably_bounded'),   // no @
-        makeTrait('movement_contract'),  // no @
-        makeTrait('receipt_on'),         // no @
+        makeTrait('provably_bounded'), // no @
+        makeTrait('movement_contract'), // no @
+        makeTrait('receipt_on'), // no @
       ],
     });
 
@@ -326,7 +347,9 @@ describe('ProvenanceBoundsChecker — edge cases', () => {
     const report = checker.check(composition);
 
     expect(report.strict).toBe(true);
-    expect(report.obligations.find((o) => o.exploitClass === 'unaudited_event')!.status).toBe('satisfied');
+    expect(report.obligations.find((o) => o.exploitClass === 'unaudited_event')!.status).toBe(
+      'satisfied'
+    );
   });
 
   it('NPC-only world (no spawnPoints) still triggers speedhack obligation', () => {

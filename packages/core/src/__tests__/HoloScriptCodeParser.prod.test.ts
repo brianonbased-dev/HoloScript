@@ -247,10 +247,15 @@ describe('HoloScriptCodeParser — P1.8: damage_formula block parsing', () => {
         }
       }
     `;
-    const node = parseAbility(src) as { damageFormula?: {
-      base: number; scaling: string; critMultiplier: number;
-      critChance: string; resistSchool: string;
-    } } | null;
+    const node = parseAbility(src) as {
+      damageFormula?: {
+        base: number;
+        scaling: string;
+        critMultiplier: number;
+        critChance: string;
+        resistSchool: string;
+      };
+    } | null;
     expect(node).not.toBeNull();
     const df = node?.damageFormula;
     expect(df).toBeDefined();
@@ -270,18 +275,23 @@ describe('HoloScriptCodeParser — P1.8: damage_formula block parsing', () => {
         }
       }
     `;
-    const node = parseAbility(src) as { damageFormula?: {
-      base: number; scaling: string; critMultiplier: number;
-      critChance: string; resistSchool: string;
-    } } | null;
+    const node = parseAbility(src) as {
+      damageFormula?: {
+        base: number;
+        scaling: string;
+        critMultiplier: number;
+        critChance: string;
+        resistSchool: string;
+      };
+    } | null;
     expect(node).not.toBeNull();
     const df = node?.damageFormula;
     expect(df).toBeDefined();
     expect(df?.base).toBe(20);
-    expect(df?.scaling).toBe('0');         // default
-    expect(df?.critMultiplier).toBe(1.5);  // default
-    expect(df?.critChance).toBe('0.05');   // default
-    expect(df?.resistSchool).toBe('');     // default
+    expect(df?.scaling).toBe('0'); // default
+    expect(df?.critMultiplier).toBe(1.5); // default
+    expect(df?.critChance).toBe('0.05'); // default
+    expect(df?.resistSchool).toBe(''); // default
   });
 
   it('leaves damageFormula undefined when no damage_formula block is present', () => {
@@ -308,9 +318,12 @@ describe('HoloScriptCodeParser — P1.8: damage_formula block parsing', () => {
         }
       }
     `;
-    const node = parseAbility(src) as { damageFormula?: {
-      critMultiplier: number; critChance: string;
-    } } | null;
+    const node = parseAbility(src) as {
+      damageFormula?: {
+        critMultiplier: number;
+        critChance: string;
+      };
+    } | null;
     const df = node?.damageFormula;
     expect(df?.critMultiplier).toBe(1.8);
     expect(df?.critChance).toBe('0.2');

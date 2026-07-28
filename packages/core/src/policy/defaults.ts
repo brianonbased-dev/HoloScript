@@ -38,19 +38,25 @@ export const DEFAULT_BLOCKLIST: BlocklistEntry[] = [
     id: 'weapons-build-explosive',
     category: 'weapons',
     severity: 0.97,
-    patterns: ['\\bhow\\s+to\\s+(make|build|construct|assemble)\\s+(a\\s+)?(bomb|explosive|pipe\\s*bomb|ied)\\b'],
+    patterns: [
+      '\\bhow\\s+to\\s+(make|build|construct|assemble)\\s+(a\\s+)?(bomb|explosive|pipe\\s*bomb|ied)\\b',
+    ],
   },
   {
     id: 'malware-author',
     category: 'malware',
     severity: 0.9,
-    patterns: ['\\b(write|generate|create)\\s+(me\\s+)?(a\\s+)?(ransomware|keylogger|computer\\s+virus|trojan)\\b'],
+    patterns: [
+      '\\b(write|generate|create)\\s+(me\\s+)?(a\\s+)?(ransomware|keylogger|computer\\s+virus|trojan)\\b',
+    ],
   },
   {
     id: 'self-harm-method',
     category: 'self_harm',
     severity: 0.9,
-    patterns: ['\\bhow\\s+(can|do)\\s+i\\s+(kill\\s+myself|end\\s+my\\s+life|commit\\s+suicide)\\b'],
+    patterns: [
+      '\\bhow\\s+(can|do)\\s+i\\s+(kill\\s+myself|end\\s+my\\s+life|commit\\s+suicide)\\b',
+    ],
   },
 ];
 
@@ -63,7 +69,13 @@ export function jurisdictionBundle(region: string): JurisdictionContext {
   const r = (region || 'GLOBAL').toUpperCase();
   switch (r) {
     case 'US':
-      return { region: 'US', aiActTier: 'minimal', dsaApplies: false, minAge: 13, disclosureRequired: false };
+      return {
+        region: 'US',
+        aiActTier: 'minimal',
+        dsaApplies: false,
+        minAge: 13,
+        disclosureRequired: false,
+      };
     case 'EU':
     case 'DE':
     case 'FR':
@@ -71,38 +83,98 @@ export function jurisdictionBundle(region: string): JurisdictionContext {
     case 'IT':
     case 'NL':
     case 'IE':
-      return { region: r, aiActTier: 'limited', dsaApplies: true, minAge: 16, disclosureRequired: true };
+      return {
+        region: r,
+        aiActTier: 'limited',
+        dsaApplies: true,
+        minAge: 16,
+        disclosureRequired: true,
+      };
     case 'GB':
     case 'UK':
-      return { region: 'GB', aiActTier: 'limited', dsaApplies: false, minAge: 13, disclosureRequired: true };
+      return {
+        region: 'GB',
+        aiActTier: 'limited',
+        dsaApplies: false,
+        minAge: 13,
+        disclosureRequired: true,
+      };
     // ── Asia-Pacific ──────────────────────────────────────────────────────────
     case 'AU':
       // Australian Privacy Act 1988 + Online Safety Act 2021; no DSA; minAge 13 (Online Safety Act default).
-      return { region: 'AU', aiActTier: 'minimal', dsaApplies: false, minAge: 13, disclosureRequired: false };
+      return {
+        region: 'AU',
+        aiActTier: 'minimal',
+        dsaApplies: false,
+        minAge: 13,
+        disclosureRequired: false,
+      };
     case 'JP':
       // APPI 2022 — personal-data transparency obligation; no DSA equivalent.
-      return { region: 'JP', aiActTier: 'minimal', dsaApplies: false, minAge: 13, disclosureRequired: true };
+      return {
+        region: 'JP',
+        aiActTier: 'minimal',
+        dsaApplies: false,
+        minAge: 13,
+        disclosureRequired: true,
+      };
     case 'KR':
       // PIPA — age 14 for processing without guardian consent; AI disclosure required.
-      return { region: 'KR', aiActTier: 'limited', dsaApplies: false, minAge: 14, disclosureRequired: true };
+      return {
+        region: 'KR',
+        aiActTier: 'limited',
+        dsaApplies: false,
+        minAge: 14,
+        disclosureRequired: true,
+      };
     case 'SG':
       // PDPA 2012 — no DSA; disclosure required for automated decision-making.
-      return { region: 'SG', aiActTier: 'minimal', dsaApplies: false, minAge: 13, disclosureRequired: true };
+      return {
+        region: 'SG',
+        aiActTier: 'minimal',
+        dsaApplies: false,
+        minAge: 13,
+        disclosureRequired: true,
+      };
     case 'IN':
       // DPDP Act 2023 — parental consent required for under-18.
-      return { region: 'IN', aiActTier: 'minimal', dsaApplies: false, minAge: 18, disclosureRequired: false };
+      return {
+        region: 'IN',
+        aiActTier: 'minimal',
+        dsaApplies: false,
+        minAge: 18,
+        disclosureRequired: false,
+      };
     // ── Americas ──────────────────────────────────────────────────────────────
     case 'CA':
       // PIPEDA + Quebec Law 25 (GDPR-inspired); minAge 13.
-      return { region: 'CA', aiActTier: 'limited', dsaApplies: false, minAge: 13, disclosureRequired: true };
+      return {
+        region: 'CA',
+        aiActTier: 'limited',
+        dsaApplies: false,
+        minAge: 13,
+        disclosureRequired: true,
+      };
     case 'BR':
       // LGPD 2020 — closely aligned with GDPR; applies DSA-equivalent obligations.
-      return { region: 'BR', aiActTier: 'limited', dsaApplies: true, minAge: 13, disclosureRequired: true };
+      return {
+        region: 'BR',
+        aiActTier: 'limited',
+        dsaApplies: true,
+        minAge: 13,
+        disclosureRequired: true,
+      };
     case 'GLOBAL':
     default:
       // Strictest union: apply EU-grade obligations everywhere until a tighter
       // per-region bundle is configured.
-      return { region: 'GLOBAL', aiActTier: 'limited', dsaApplies: true, minAge: 16, disclosureRequired: true };
+      return {
+        region: 'GLOBAL',
+        aiActTier: 'limited',
+        dsaApplies: true,
+        minAge: 16,
+        disclosureRequired: true,
+      };
   }
 }
 
@@ -132,7 +204,8 @@ const COMMON_RULES: RuleDescriptor[] = [
   },
   {
     id: 'common-illegal-high-block',
-    description: 'Clearly-illegal, high-severity instructional content is blocked on every tier (including dev).',
+    description:
+      'Clearly-illegal, high-severity instructional content is blocked on every tier (including dev).',
     when: {
       and: [
         { in: [{ var: 'category' }, ['weapons', 'illegal_goods']] },
@@ -165,7 +238,10 @@ const FAMILY_RULES: RuleDescriptor[] = [
     id: 'family-misinformation-flag',
     description: 'Family tier flags misinformation for review.',
     when: {
-      and: [{ '==': [{ var: 'tier' }, 'family'] }, { '==': [{ var: 'category' }, 'misinformation'] }],
+      and: [
+        { '==': [{ var: 'tier' }, 'family'] },
+        { '==': [{ var: 'category' }, 'misinformation'] },
+      ],
     },
     action: 'flag',
     category: 'misinformation',

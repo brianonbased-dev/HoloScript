@@ -246,9 +246,13 @@ function findStateMachineConfig(node: unknown): Record<string, unknown> | null {
   }
   for (const v of Object.values(obj)) {
     if (Array.isArray(v)) {
-      for (const e of v) { const f = findStateMachineConfig(e); if (f) return f; }
+      for (const e of v) {
+        const f = findStateMachineConfig(e);
+        if (f) return f;
+      }
     } else if (v && typeof v === 'object') {
-      const f = findStateMachineConfig(v); if (f) return f;
+      const f = findStateMachineConfig(v);
+      if (f) return f;
     }
   }
   return null;
@@ -284,14 +288,20 @@ export function stateMachineWellFormed(ast: unknown): boolean {
 
 /** semanticCheck for the state-machine seeds: reject a candidate whose machine is not well-formed,
  *  with a reason (used by the harvest as the `passed:false` DPO-rejected label). */
-export function stateMachineSemanticCheck(_candidate: string, ast: unknown): { ok: boolean; reason?: string } {
+export function stateMachineSemanticCheck(
+  _candidate: string,
+  ast: unknown
+): { ok: boolean; reason?: string } {
   const sm = extractStateMachine(ast);
   if (!sm) return { ok: false, reason: 'no_state_machine' };
   const defined = new Set(sm.states);
   if (!defined.has(sm.initial)) return { ok: false, reason: `initial_undefined:${sm.initial}` };
   const dangling = sm.transitions.filter((t) => !defined.has(t.target));
   if (dangling.length) {
-    return { ok: false, reason: `dangling_transition:${dangling.map((d) => `${d.from}-${d.event}->${d.target}`).join(',')}` };
+    return {
+      ok: false,
+      reason: `dangling_transition:${dangling.map((d) => `${d.from}-${d.event}->${d.target}`).join(',')}`,
+    };
   }
   return { ok: true };
 }
@@ -333,19 +343,30 @@ export async function accrueOneStep(opts: {
   tick?: number;
   now?: () => string;
 }): Promise<AccrueStepResult> {
-  const seed =
-    opts.seed ?? CORPUS_PORTFOLIO[(opts.tick ?? 0) % CORPUS_PORTFOLIO.length];
+  const seed = opts.seed ?? CORPUS_PORTFOLIO[(opts.tick ?? 0) % CORPUS_PORTFOLIO.length];
   const now = opts.now ?? (() => new Date().toISOString());
   const rows: GradedTraceRow[] = [];
   const { receipt } = await runEvolution(
     seed.source,
-    { goal: seed.goal, generations: 1, population: 1, archiveSize: 4, proposerModel: 'sovereign-local' },
+    {
+      goal: seed.goal,
+      generations: 1,
+      population: 1,
+      archiveSize: 4,
+      proposerModel: 'sovereign-local',
+    },
     {
       propose: opts.propose,
       gate: makeSeedGate(seed),
       onCandidate: (rec) =>
-        rows.push(toGradedTraceRow(rec, { agentId: opts.agentId, ts: now(), source: `evolve-corpus:${seed.name}` })),
-    },
+        rows.push(
+          toGradedTraceRow(rec, {
+            agentId: opts.agentId,
+            ts: now(),
+            source: `evolve-corpus:${seed.name}`,
+          })
+        ),
+    }
   );
   return { target: seed.name, rows, receipt };
 }
@@ -360,7 +381,7 @@ export async function accrueOneStep(opts: {
  */
 export function dedupRows(
   existingCorpus: string,
-  rows: readonly GradedTraceRow[],
+  rows: readonly GradedTraceRow[]
 ): { fresh: GradedTraceRow[]; deduped: number } {
   const seen = new Set<string>();
   for (const line of existingCorpus.split('\n')) {

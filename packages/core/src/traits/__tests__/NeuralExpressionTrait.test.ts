@@ -2,10 +2,7 @@
  * NeuralExpressionTrait — unit tests
  */
 import { describe, it, expect, vi } from 'vitest';
-import {
-  neuralExpressionHandler,
-  evaluateExpression,
-} from '../NeuralExpressionTrait';
+import { neuralExpressionHandler, evaluateExpression } from '../NeuralExpressionTrait';
 import type { NeuralExpressionState } from '../NeuralExpressionTrait';
 
 // ---------------------------------------------------------------------------
@@ -92,9 +89,12 @@ describe('NeuralExpressionTrait — onAttach / onDetach', () => {
     expect(state.sourceState.has('eeg_alpha')).toBe(true);
     expect(state.sourceState.has('eeg_theta')).toBe(true);
     expect(state.blendshapes).toBeInstanceOf(Map);
-    expect(node.emit).toHaveBeenCalledWith('neural_expression_init', expect.objectContaining({
-      sources: expect.arrayContaining(['eeg_alpha', 'eeg_theta']),
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'neural_expression_init',
+      expect.objectContaining({
+        sources: expect.arrayContaining(['eeg_alpha', 'eeg_theta']),
+      })
+    );
   });
 
   it('onDetach removes state and emits neural_expression_reset', () => {
@@ -123,11 +123,11 @@ describe('NeuralExpressionTrait — biofeedback_reading events', () => {
       node as never,
       defaultConfig,
       makeCtx(node) as never,
-      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 1.0 } as never,
+      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 1.0 } as never
     );
     expect(node.emit).toHaveBeenCalledWith(
       'neural_expression_frame',
-      expect.objectContaining({ source: 'eeg_alpha' }),
+      expect.objectContaining({ source: 'eeg_alpha' })
     );
 
     const call = node.emit.mock.calls.find((c: unknown[]) => c[0] === 'neural_expression_frame');
@@ -151,7 +151,7 @@ describe('NeuralExpressionTrait — biofeedback_reading events', () => {
       node as never,
       cfg,
       makeCtx(node) as never,
-      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 0.5 } as never,
+      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 0.5 } as never
     );
     const call = node.emit.mock.calls.find((c: unknown[]) => c[0] === 'neural_expression_frame');
     const payload = call?.[1] as { blendshapes: Record<string, number> };
@@ -167,7 +167,7 @@ describe('NeuralExpressionTrait — biofeedback_reading events', () => {
       node as never,
       defaultConfig,
       makeCtx(node) as never,
-      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 0 } as never,
+      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 0 } as never
     );
     node.emit.mockClear();
 
@@ -175,7 +175,7 @@ describe('NeuralExpressionTrait — biofeedback_reading events', () => {
       node as never,
       defaultConfig,
       makeCtx(node) as never,
-      { type: 'biofeedback_reading', source: 'eeg_theta', normalized: 1.0 } as never,
+      { type: 'biofeedback_reading', source: 'eeg_theta', normalized: 1.0 } as never
     );
     const call = node.emit.mock.calls.find((c: unknown[]) => c[0] === 'neural_expression_frame');
     const payload = call?.[1] as { blendshapes: Record<string, number> };
@@ -192,7 +192,7 @@ describe('NeuralExpressionTrait — biofeedback_reading events', () => {
       node as never,
       defaultConfig,
       makeCtx(node) as never,
-      { type: 'biofeedback_reading', source: 'heart_rate', normalized: 0.9 } as never,
+      { type: 'biofeedback_reading', source: 'heart_rate', normalized: 0.9 } as never
     );
     expect(node.emit).not.toHaveBeenCalledWith('neural_expression_frame', expect.anything());
   });
@@ -210,7 +210,7 @@ describe('NeuralExpressionTrait — biofeedback_reading events', () => {
       node as never,
       cfg,
       makeCtx(node) as never,
-      { type: 'neural_expression_sample', source: 'eeg_alpha', normalized: 0.8 } as never,
+      { type: 'neural_expression_sample', source: 'eeg_alpha', normalized: 0.8 } as never
     );
     expect(node.emit).toHaveBeenCalledWith('neural_expression_frame', expect.anything());
   });
@@ -228,7 +228,7 @@ describe('NeuralExpressionTrait — biofeedback_reading events', () => {
       node as never,
       cfg,
       makeCtx(node) as never,
-      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 1.0 } as never,
+      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 1.0 } as never
     );
     const call = node.emit.mock.calls.find((c: unknown[]) => c[0] === 'neural_expression_frame');
     const payload = call?.[1] as { blendshapes: Record<string, number> };
@@ -253,7 +253,7 @@ describe('NeuralExpressionTrait — query', () => {
       node as never,
       cfg,
       makeCtx(node) as never,
-      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 1.0 } as never,
+      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 1.0 } as never
     );
     node.emit.mockClear();
 
@@ -261,11 +261,11 @@ describe('NeuralExpressionTrait — query', () => {
       node as never,
       cfg,
       makeCtx(node) as never,
-      { type: 'neural_expression_query', queryId: 'q42' } as never,
+      { type: 'neural_expression_query', queryId: 'q42' } as never
     );
     expect(node.emit).toHaveBeenCalledWith(
       'neural_expression_response',
-      expect.objectContaining({ queryId: 'q42', weights: expect.any(Array) }),
+      expect.objectContaining({ queryId: 'q42', weights: expect.any(Array) })
     );
   });
 });
@@ -287,7 +287,7 @@ describe('NeuralExpressionTrait — reset', () => {
       node as never,
       cfg,
       makeCtx(node) as never,
-      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 1.0 } as never,
+      { type: 'biofeedback_reading', source: 'eeg_alpha', normalized: 1.0 } as never
     );
     const state = node.__neuralExpressionState as NeuralExpressionState;
     expect(state.blendshapes.size).toBeGreaterThan(0);
@@ -297,7 +297,7 @@ describe('NeuralExpressionTrait — reset', () => {
       node as never,
       cfg,
       makeCtx(node) as never,
-      { type: 'neural_expression_reset' } as never,
+      { type: 'neural_expression_reset' } as never
     );
 
     expect(state.blendshapes.size).toBe(0);

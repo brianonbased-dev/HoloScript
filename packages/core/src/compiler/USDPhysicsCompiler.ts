@@ -509,9 +509,7 @@ export class USDPhysicsCompiler extends CompilerBase {
     const hasExplicitRoot = this.prims.some((p) =>
       p.apis.some((a) => a.type === 'PhysicsArticulationRootAPI')
     );
-    const hasNonFixedJoints = this.joints.some(
-      (j) => j.jointType !== 'fixed'
-    );
+    const hasNonFixedJoints = this.joints.some((j) => j.jointType !== 'fixed');
     const isRobot = hasExplicitRoot || hasNonFixedJoints;
     if (isRobot && this.options.enableArticulation) {
       this.emitArticulationRoot();

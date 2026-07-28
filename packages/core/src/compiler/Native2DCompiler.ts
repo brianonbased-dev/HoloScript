@@ -62,7 +62,8 @@ export class Native2DCompiler extends CompilerBase {
   private _stateFields: Map<string, unknown> = new Map();
   private _fetchCalls: Array<{ name: string; endpoint: string; method: string }> = [];
   private _hookCalls: Array<{ name: string; import: string; returns: string; args?: string }> = [];
-  private _computedBindings: Array<{ name: string; expr: string; from?: string; uses: string[] }> = [];
+  private _computedBindings: Array<{ name: string; expr: string; from?: string; uses: string[] }> =
+    [];
   private _options: Native2DCompilerOptions = {};
   /** Honest mode (composition-level `@honest`): every data-bound element MUST carry
    *  `@provenance_bound` or the compiler refuses to emit it (HONEST-UNSOURCED). This is
@@ -128,13 +129,15 @@ export class Native2DCompiler extends CompilerBase {
     this._computedBindings = [];
     this._options = options || {};
     // Honest mode: composition-level `@honest` trait turns on the no-unsourced-pixel gate.
-    this._honestMode = ((composition as { traits?: Array<{ name?: string }> } | undefined)?.traits ?? [])
-      .some((t) => t?.name === 'honest');
+    this._honestMode = (
+      (composition as { traits?: Array<{ name?: string }> } | undefined)?.traits ?? []
+    ).some((t) => t?.name === 'honest');
     // Verified-view mode (slice 4): composition-level `@verified_view` requires
     // every data-bound element to DECLARE its projection (@projects), verified
     // against the actual binding — the admission gate for agent-authored surfaces.
-    this._verifiedViewMode = ((composition as { traits?: Array<{ name?: string }> } | undefined)?.traits ?? [])
-      .some((t) => t?.name === 'verified_view');
+    this._verifiedViewMode = (
+      (composition as { traits?: Array<{ name?: string }> } | undefined)?.traits ?? []
+    ).some((t) => t?.name === 'verified_view');
 
     const safeName = name.replace(/[^a-zA-Z0-9]/g, '');
 
@@ -158,7 +161,9 @@ export class Native2DCompiler extends CompilerBase {
     this._collectedProjections = [];
     const scanProjectionRoots = (objs: Array<Record<string, unknown>>): void => {
       for (const o of objs) {
-        for (const t of (o.traits as Array<{ name?: string; config?: Record<string, unknown> }> | undefined) ?? []) {
+        for (const t of (o.traits as
+          | Array<{ name?: string; config?: Record<string, unknown> }>
+          | undefined) ?? []) {
           if (t?.name === 'fetch') {
             const into = (t.config as { into?: unknown } | undefined)?.into;
             this._projectionRoots.add(typeof into === 'string' && into ? into : 'data');
@@ -185,7 +190,8 @@ export class Native2DCompiler extends CompilerBase {
             }
           }
         }
-        if (Array.isArray(o.children)) scanProjectionRoots(o.children as Array<Record<string, unknown>>);
+        if (Array.isArray(o.children))
+          scanProjectionRoots(o.children as Array<Record<string, unknown>>);
       }
     };
     scanProjectionRoots(objects as unknown as Array<Record<string, unknown>>);
@@ -326,9 +332,7 @@ export default ${safeName}Component;${contractExport}
       if (traits.slot.props && typeof traits.slot.props === 'object') {
         Object.assign(slotProps, traits.slot.props as Record<string, unknown>);
       }
-      const propsStr = Object.keys(slotProps).length
-        ? ` {...${JSON.stringify(slotProps)}}`
-        : '';
+      const propsStr = Object.keys(slotProps).length ? ` {...${JSON.stringify(slotProps)}}` : '';
       return `<div data-holo-slot="${slotName}">
         <${component}${propsStr} />
       </div>`;
@@ -355,7 +359,9 @@ export default ${safeName}Component;${contractExport}
         throw new Error(`Native2DCompiler @hook: invalid hook name ${JSON.stringify(hookName)}`);
       }
       if (/['"`\\]/.test(importPath)) {
-        throw new Error(`Native2DCompiler @hook: invalid import path ${JSON.stringify(importPath)}`);
+        throw new Error(
+          `Native2DCompiler @hook: invalid import path ${JSON.stringify(importPath)}`
+        );
       }
       // Optional args: an injection-safe expression passed to the hook call, e.g.
       // useCreatorStats({ address }). Same char-class as @computed plus object-literal
@@ -534,9 +540,7 @@ export default ${safeName}Component;${contractExport}
       const rawArgs: unknown[] = Array.isArray(traits.action.args) ? traits.action.args : [];
       const safeArgs = rawArgs.map((a) => JSON.stringify(a)).join(', ');
       const argsExpr = safeArgs ? `, ${safeArgs}` : '';
-      const handler = emit
-        ? `context.emit(${JSON.stringify(emit)}${argsExpr})`
-        : 'undefined';
+      const handler = emit ? `context.emit(${JSON.stringify(emit)}${argsExpr})` : 'undefined';
       const reactEvent = on === 'submit' ? 'onSubmit' : on === 'change' ? 'onChange' : 'onClick';
       const wrapArg = on === 'submit' ? 'e' : '';
       props += wrapArg
@@ -589,7 +593,8 @@ export default ${safeName}Component;${contractExport}
         // Numeric inputs (range/number) or explicit `cast: number` coerce the string event
         // value so the bound state stays numeric (else e.g. a range slider makes state a string).
         const inputType = String(traits.input?.type || '').toLowerCase();
-        const numeric = traits.model.cast === 'number' || inputType === 'range' || inputType === 'number';
+        const numeric =
+          traits.model.cast === 'number' || inputType === 'range' || inputType === 'number';
         const getter = numeric ? 'Number(e.target.value)' : 'e.target.value';
         props += ` value={${valueExpr}} onChange={(e) => ${setter}(${getter})}`;
       }
@@ -1365,7 +1370,11 @@ export default ${safeName}Component;${contractExport}
    * `props`. Dependency-free, injection-safe: identifiers are validated and the
    * points expression uses string concatenation (no inner template literals).
    */
-  private buildSparklineElement(traits: Record<string, any>, props: string, keyProp: string): string {
+  private buildSparklineElement(
+    traits: Record<string, any>,
+    props: string,
+    keyProp: string
+  ): string {
     const sp = traits.sparkline;
     const state = this.assertSafeDotPath(String(sp.state), '@sparkline state');
     const path = sp.path ? String(sp.path) : '';
@@ -1611,7 +1620,10 @@ export default ${safeName}Component;${contractExport}
    * research-spec `projects:` semantics + SimulationContract co-emission) is
    * v1+ — this v0 proves what the compiler can prove, statically.
    */
-  private resolveProjection(traits: Record<string, any>, obj: Record<string, unknown>): string | null {
+  private resolveProjection(
+    traits: Record<string, any>,
+    obj: Record<string, unknown>
+  ): string | null {
     const nm = () => String((obj as { name?: unknown }).name ?? 'element');
     // The element's ACTUAL bound data path, from whichever binding trait it carries.
     const src = traits.bind?.state
@@ -1807,9 +1819,12 @@ export default ${safeName}Component;${contractExport}
     const claim = String(lp.claim ?? '');
     // eslint-disable-next-line no-useless-escape
     if (!claim.trim() || !/^[a-zA-Z0-9_$.,()\[\]'"/\s*+\-%<>=?:!&|]+$/.test(claim)) {
-      throw new Error(`Native2DCompiler @live_proof: unsafe or empty claim ${JSON.stringify(claim)}`);
+      throw new Error(
+        `Native2DCompiler @live_proof: unsafe or empty claim ${JSON.stringify(claim)}`
+      );
     }
-    const label = lp.label != null ? this.assertSafeLiteral(String(lp.label), '@live_proof label') : 'Claim';
+    const label =
+      lp.label != null ? this.assertSafeLiteral(String(lp.label), '@live_proof label') : 'Claim';
     const cond = `(${claim})`;
     return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-independence="self-referential" data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
       {${cond} ? "✓ ${label} holds" : "✗ ${label} FALSIFIED"}
@@ -1922,7 +1937,9 @@ export default ${safeName}Component;${contractExport}
    *  the value can be safely interpolated into a member-access expression. */
   private assertSafeDotPath(value: string, where: string): string {
     if (!/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(value)) {
-      throw new Error(`Native2DCompiler ${where}: invalid identifier path ${JSON.stringify(value)}`);
+      throw new Error(
+        `Native2DCompiler ${where}: invalid identifier path ${JSON.stringify(value)}`
+      );
     }
     return value;
   }
@@ -1952,7 +1969,9 @@ export default ${safeName}Component;${contractExport}
    *  validated state identifier and dot-path. Both halves are guarded. */
   private buildStatePathExpr(state: string, path: string, where: string): string {
     this.assertSafeDotPath(state, where);
-    const pathParts = String(path || '').split('.').filter(Boolean);
+    const pathParts = String(path || '')
+      .split('.')
+      .filter(Boolean);
     for (const p of pathParts) this.assertSafeDotPath(p, where);
     return pathParts.reduce((acc: string, key: string) => `${acc}?.${key}`, state);
   }
@@ -2128,8 +2147,19 @@ export default ${safeName}Component;${contractExport}
   }
 
   private static readonly TEXT_SIZE_TOKENS = new Set([
-    'text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl', 'text-2xl', 'text-3xl',
-    'text-4xl', 'text-5xl', 'text-6xl', 'text-7xl', 'text-8xl', 'text-9xl',
+    'text-xs',
+    'text-sm',
+    'text-base',
+    'text-lg',
+    'text-xl',
+    'text-2xl',
+    'text-3xl',
+    'text-4xl',
+    'text-5xl',
+    'text-6xl',
+    'text-7xl',
+    'text-8xl',
+    'text-9xl',
   ]);
 
   /**

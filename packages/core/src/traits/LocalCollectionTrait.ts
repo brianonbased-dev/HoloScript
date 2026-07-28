@@ -56,7 +56,9 @@ function matchesItemType(value: unknown, itemType: string): boolean {
     }
     try {
       const parsed = new URL(value);
-      return (parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.host.length > 0;
+      return (
+        (parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.host.length > 0
+      );
     } catch {
       return false;
     }

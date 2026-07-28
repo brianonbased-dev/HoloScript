@@ -38,8 +38,7 @@ const POLICY_PACK_MONITORING_INTERVALS = [
   'annual',
 ] as const;
 
-export type PolicyPackMonitoringInterval =
-  (typeof POLICY_PACK_MONITORING_INTERVALS)[number];
+export type PolicyPackMonitoringInterval = (typeof POLICY_PACK_MONITORING_INTERVALS)[number];
 
 export interface RequiredFairnessSweep {
   /** Stable test id. Deployment evidence must reference this id. */
@@ -184,10 +183,18 @@ export function validatePolicyPack(pack: PolicyPack): PolicyPackGateIssue[] {
   const issues: PolicyPackGateIssue[] = [];
 
   if (!pack.name.trim()) {
-    issues.push({ code: 'invalid_pack', severity: 'error', message: 'PolicyPack name is required.' });
+    issues.push({
+      code: 'invalid_pack',
+      severity: 'error',
+      message: 'PolicyPack name is required.',
+    });
   }
   if (!pack.version.trim()) {
-    issues.push({ code: 'invalid_pack', severity: 'error', message: 'PolicyPack version is required.' });
+    issues.push({
+      code: 'invalid_pack',
+      severity: 'error',
+      message: 'PolicyPack version is required.',
+    });
   }
   if (!isPolicyPackFrameworkId(pack.frameworkId)) {
     issues.push({
@@ -255,7 +262,9 @@ export function validatePolicyPack(pack: PolicyPack): PolicyPackGateIssue[] {
   return issues;
 }
 
-export function definePolicyPack(input: Omit<PolicyPack, 'type'> & { type?: 'PolicyPack' }): PolicyPack {
+export function definePolicyPack(
+  input: Omit<PolicyPack, 'type'> & { type?: 'PolicyPack' }
+): PolicyPack {
   const pack: PolicyPack = { ...input, type: 'PolicyPack' };
   const issues = validatePolicyPack(pack);
   if (issues.some((issue) => issue.severity === 'error')) {
@@ -265,7 +274,9 @@ export function definePolicyPack(input: Omit<PolicyPack, 'type'> & { type?: 'Pol
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function field(record: Record<string, unknown>, ...names: string[]): unknown {
@@ -275,12 +286,20 @@ function field(record: Record<string, unknown>, ...names: string[]): unknown {
   return undefined;
 }
 
-function stringField(record: Record<string, unknown>, fallback: string, ...names: string[]): string {
+function stringField(
+  record: Record<string, unknown>,
+  fallback: string,
+  ...names: string[]
+): string {
   const value = field(record, ...names);
   return typeof value === 'string' ? value : fallback;
 }
 
-function numberField(record: Record<string, unknown>, fallback: number, ...names: string[]): number {
+function numberField(
+  record: Record<string, unknown>,
+  fallback: number,
+  ...names: string[]
+): number {
   const value = field(record, ...names);
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
@@ -323,7 +342,8 @@ function normalizeRequiredFairnessSweep(value: unknown, index: number): Required
     'requireRobustnessReceipt',
     'require_robustness_receipt'
   );
-  if (requireRobustnessReceipt !== undefined) out.requireRobustnessReceipt = requireRobustnessReceipt;
+  if (requireRobustnessReceipt !== undefined)
+    out.requireRobustnessReceipt = requireRobustnessReceipt;
   out.config = record;
   return out;
 }
@@ -351,12 +371,16 @@ export function policyPackFromSchemaBlock(block: PolicyPackSchemaBlock): PolicyP
   const properties = block.properties ?? {};
   const frameworkId = (block.frameworkId ??
     stringField(properties, '', 'framework_id', 'frameworkId')) as PolicyPackFrameworkId;
-  const rawTests = block.requiredTests ?? arrayField(field(properties, 'required_tests', 'requiredTests'));
+  const rawTests =
+    block.requiredTests ?? arrayField(field(properties, 'required_tests', 'requiredTests'));
   const rawTargets =
-    block.requiredCompileTargets ?? arrayField(field(properties, 'required_compile_targets', 'requiredCompileTargets'));
-  const auditRetention = block.auditRetention ?? asRecord(field(properties, 'audit_retention', 'auditRetention'));
+    block.requiredCompileTargets ??
+    arrayField(field(properties, 'required_compile_targets', 'requiredCompileTargets'));
+  const auditRetention =
+    block.auditRetention ?? asRecord(field(properties, 'audit_retention', 'auditRetention'));
   const monitoringCadence =
-    block.monitoringCadence ?? asRecord(field(properties, 'monitoring', 'monitoring_cadence', 'monitoringCadence'));
+    block.monitoringCadence ??
+    asRecord(field(properties, 'monitoring', 'monitoring_cadence', 'monitoringCadence'));
 
   return definePolicyPack({
     name: block.name,
@@ -399,7 +423,8 @@ export function evaluatePolicyPackDeployment(
     const parityDiff = observed.demographicParityDiff;
     const failed =
       !observed.passed ||
-      (required.minSampleSize !== undefined && (observed.sampleSize ?? 0) < required.minSampleSize) ||
+      (required.minSampleSize !== undefined &&
+        (observed.sampleSize ?? 0) < required.minSampleSize) ||
       (ratio !== undefined && ratio < ratioFloor) ||
       (required.demographicParityDiffMax !== undefined &&
         (parityDiff === undefined || parityDiff > required.demographicParityDiffMax)) ||

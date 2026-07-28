@@ -54,8 +54,10 @@ import type { DynamicRegionMaskAttachment } from './DynamicRegionMaskTrait';
 /** Structural mirror of GaussianTrainRunner.TrainView (engine package). */
 export interface SovereignTrainView {
   cam: {
-    fx: number; fy: number;
-    cx: number; cy: number;
+    fx: number;
+    fy: number;
+    cx: number;
+    cy: number;
     /** Row-major 4×4 view matrix (world → camera). */
     viewMatrix: Float64Array;
   };
@@ -68,11 +70,20 @@ export interface SovereignTrainView {
 /** Structural mirror of GaussianTrainer3D.Gaussian3D (engine package). */
 export interface SovereignGaussian3D {
   N: number;
-  x: Float64Array; y: Float64Array; z: Float64Array;
-  sx: Float64Array; sy: Float64Array; sz: Float64Array;
-  qr: Float64Array; qx: Float64Array; qy: Float64Array; qz: Float64Array;
+  x: Float64Array;
+  y: Float64Array;
+  z: Float64Array;
+  sx: Float64Array;
+  sy: Float64Array;
+  sz: Float64Array;
+  qr: Float64Array;
+  qx: Float64Array;
+  qy: Float64Array;
+  qz: Float64Array;
   op: Float64Array;
-  r: Float64Array; gr: Float64Array; bl: Float64Array;
+  r: Float64Array;
+  gr: Float64Array;
+  bl: Float64Array;
 }
 
 /** Result returned by the sovereign training path. */
@@ -103,7 +114,13 @@ export type SovereignTrainerFn = (
     backend: 'sovereign';
     hyperparams: {
       iterations: number;
-      learningRates: { position: number; scale: number; rotation: number; opacity: number; color: number };
+      learningRates: {
+        position: number;
+        scale: number;
+        rotation: number;
+        opacity: number;
+        color: number;
+      };
       dilation: number;
       densifyInterval?: number;
       targetGaussians?: number;
@@ -113,7 +130,7 @@ export type SovereignTrainerFn = (
   views: SovereignTrainView[],
   device: GPUDevice,
   bg?: readonly [number, number, number],
-  onProgress?: (iter: number, loss: number) => void,
+  onProgress?: (iter: number, loss: number) => void
 ) => Promise<SovereignTrainResult>;
 
 /** Options that activate the sovereign local GPU training path. */
@@ -1208,7 +1225,7 @@ export class GaussianBakingPipeline {
     apiKey: string,
     config: Partial<GaussianBakingConfig> = {},
     region?: string,
-    sovereignTraining?: SovereignTrainingOptions,
+    sovereignTraining?: SovereignTrainingOptions
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.client = new GaussianBakingClient(apiKey, region);
@@ -1283,15 +1300,14 @@ export class GaussianBakingPipeline {
         iterations: this.config.trainingIterations,
         learningRates: {
           position: this.config.positionLR,
-          scale: this.config.positionLR * 5,    // standard 3DGS ratio
+          scale: this.config.positionLR * 5, // standard 3DGS ratio
           rotation: this.config.positionLR * 0.5,
           opacity: 0.05,
           color: 0.0025,
         },
         dilation: 0.3,
-        densifyInterval: this.config.densificationInterval > 0
-          ? this.config.densificationInterval
-          : undefined,
+        densifyInterval:
+          this.config.densificationInterval > 0 ? this.config.densificationInterval : undefined,
         targetGaussians: this.config.targetGaussianCount,
       },
     };
@@ -1305,14 +1321,14 @@ export class GaussianBakingPipeline {
         opts.views as SovereignTrainView[],
         opts.gpuDevice,
         opts.bg,
-        opts.onProgress,
+        opts.onProgress
       );
     } catch (err) {
       throw new BakingPipelineError(
         `Sovereign GPU training failed: ${err instanceof Error ? err.message : String(err)}`,
         'SOVEREIGN_TRAIN_FAILED',
         'training',
-        /* retryable */ true,
+        /* retryable */ true
       );
     }
 
@@ -1337,11 +1353,11 @@ export class GaussianBakingPipeline {
     this.jobState.trainingMetrics = {
       gaussianCount: trainResult.finalCount,
       iterationsCompleted: trainResult.iterations,
-      peakGPUMemoryMB: 0,        // unknown at this level (WebGPU doesn't expose)
-      psnr: 0,                   // L1 loss used; PSNR not computed here
+      peakGPUMemoryMB: 0, // unknown at this level (WebGPU doesn't expose)
+      psnr: 0, // L1 loss used; PSNR not computed here
       ssim: 0,
       lpips: 0,
-      trainingTimeSecs: 0,       // not timed at pipeline level
+      trainingTimeSecs: 0, // not timed at pipeline level
       gpuType: 'sovereign-webgpu',
     };
 
@@ -1351,13 +1367,22 @@ export class GaussianBakingPipeline {
     });
 
     return new Promise((resolve, reject) => {
-      if (!this.tracker) { reject(new Error('Tracker not initialized')); return; }
+      if (!this.tracker) {
+        reject(new Error('Tracker not initialized'));
+        return;
+      }
       this.tracker
         .on('progress', (state) => callbacks?.onProgress?.(state))
-        .on('stageTransition', (prev, next, state) => callbacks?.onStageTransition?.(prev, next, state))
+        .on('stageTransition', (prev, next, state) =>
+          callbacks?.onStageTransition?.(prev, next, state)
+        )
         .on('complete', async (state) => {
           callbacks?.onComplete?.(state);
-          try { state.outputs = await this.client.getOutputs(state.jobId); } catch { /* non-fatal */ }
+          try {
+            state.outputs = await this.client.getOutputs(state.jobId);
+          } catch {
+            /* non-fatal */
+          }
           resolve(state);
         })
         .on('error', (error, state) => {

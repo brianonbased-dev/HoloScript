@@ -151,7 +151,9 @@ export function evaluateExpressionIR(ir: ExpressionIR, context: Record<string, u
           return !arg;
         default: {
           const exhaustive: never = unaryOp;
-          throw new ExpressionIRError(`ExpressionIR: unsupported unary operator "${String(exhaustive)}"`);
+          throw new ExpressionIRError(
+            `ExpressionIR: unsupported unary operator "${String(exhaustive)}"`
+          );
         }
       }
     }
@@ -193,7 +195,9 @@ export function evaluateExpressionIR(ir: ExpressionIR, context: Record<string, u
           return Boolean(left) || Boolean(right);
         default: {
           const exhaustive: never = binaryOp;
-          throw new ExpressionIRError(`ExpressionIR: unsupported binary operator "${String(exhaustive)}"`);
+          throw new ExpressionIRError(
+            `ExpressionIR: unsupported binary operator "${String(exhaustive)}"`
+          );
         }
       }
     }
@@ -201,7 +205,9 @@ export function evaluateExpressionIR(ir: ExpressionIR, context: Record<string, u
     case 'MemberExpression': {
       const obj = evaluateExpressionIR(ir.object, context);
       if (obj === null || obj === undefined || typeof obj !== 'object') {
-        throw new ExpressionIRError(`ExpressionIR: cannot read property "${ir.property}" of non-object`);
+        throw new ExpressionIRError(
+          `ExpressionIR: cannot read property "${ir.property}" of non-object`
+        );
       }
       if (!Object.prototype.hasOwnProperty.call(obj, ir.property)) {
         throw new ExpressionIRError(`ExpressionIR: unknown property "${ir.property}"`);
@@ -219,7 +225,9 @@ export function evaluateExpressionIR(ir: ExpressionIR, context: Record<string, u
 
     default: {
       const exhaustive: never = ir;
-      throw new ExpressionIRError(`ExpressionIR: unknown node kind "${(exhaustive as ExpressionIR).kind}"`);
+      throw new ExpressionIRError(
+        `ExpressionIR: unknown node kind "${(exhaustive as ExpressionIR).kind}"`
+      );
     }
   }
 }

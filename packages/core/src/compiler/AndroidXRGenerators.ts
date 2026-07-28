@@ -264,13 +264,9 @@ export function generateNodeFactoryFile(
     const pos = compiler.findProp(firstObj, 'position');
     if (modelSrc) {
       compiler.emit(`val gltfModel = GltfModel.create(session, Uri.parse("${modelSrc}"))`);
-      compiler.emit(
-        `return GltfModelEntity.create(session, gltfModel, ${toXRPose(pos)})`
-      );
+      compiler.emit(`return GltfModelEntity.create(session, gltfModel, ${toXRPose(pos)})`);
     } else {
-      compiler.emit(
-        `return ${xrEntityCreate(compiler, 'session', firstObj.name as string, pos)}`
-      );
+      compiler.emit(`return ${xrEntityCreate(compiler, 'session', firstObj.name as string, pos)}`);
     }
   } else {
     compiler.emit(`return ${xrEntityCreate(compiler, 'session', 'default')}`);
@@ -836,11 +832,15 @@ export function emitObject(compiler: AndroidXRCompiler, obj: HoloObjectDecl): vo
   }
   // Trait: hand_tracking
   if (obj.traits?.some((t) => t.name === 'hand_tracking')) {
-    compiler.emit('// Hand tracking requested; bind input listeners after device capability check.');
+    compiler.emit(
+      '// Hand tracking requested; bind input listeners after device capability check.'
+    );
   }
 
   if (modelSrc) {
-    compiler.emit(`// glTF model "${modelSrc}" is exposed through XRNodeFactory.loadGltfModel(...).`);
+    compiler.emit(
+      `// glTF model "${modelSrc}" is exposed through XRNodeFactory.loadGltfModel(...).`
+    );
     compiler.emit(`val ${v} = ${xrEntityCreate(compiler, 'xrSession', obj.name as string, pos)}`);
     emitScale(compiler, v, scale);
   } else if (meshType === 'text') {

@@ -347,10 +347,7 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
           f.demoWorldUrl = vstr(c.demo_world_url, f.demoWorldUrl);
           const trust = vobj(c.trust);
           f.portalTrustPolicy = vstr(trust.policy, f.portalTrustPolicy);
-          f.portalSignatureAlgorithm = vstr(
-            trust.signature_algorithm,
-            f.portalSignatureAlgorithm
-          );
+          f.portalSignatureAlgorithm = vstr(trust.signature_algorithm, f.portalSignatureAlgorithm);
           f.portalAllowBundled = vbool(trust.allow_bundled, f.portalAllowBundled);
           f.portalRequireRemoteSignature = vbool(
             trust.require_signature_for_remote,
@@ -406,11 +403,7 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
   if (f.scanReceiptsEnabled && f.scanReceiptIncludePayload) {
     throw new Error('quest-mr-emit: scan receipts must structurally omit decoded payloads');
   }
-  if (
-    !Number.isFinite(f.maxPayloadChars) ||
-    f.maxPayloadChars < 1 ||
-    f.maxPayloadChars > 65_536
-  ) {
+  if (!Number.isFinite(f.maxPayloadChars) || f.maxPayloadChars < 1 || f.maxPayloadChars > 65_536) {
     throw new Error('quest-mr-emit: @qr_decode.max_payload_chars must be between 1 and 65536');
   }
   if (f.portalRequireRemoteSignature && f.portalSignatureAlgorithm !== 'ed25519') {
@@ -421,9 +414,7 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
   }
   if (
     f.bookmarksEnabled &&
-    (!Number.isFinite(f.bookmarkCapacity) ||
-      f.bookmarkCapacity < 1 ||
-      f.bookmarkCapacity > 10_000)
+    (!Number.isFinite(f.bookmarkCapacity) || f.bookmarkCapacity < 1 || f.bookmarkCapacity > 10_000)
   ) {
     throw new Error('quest-mr-emit: URL bookmark capacity must be between 1 and 10000');
   }

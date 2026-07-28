@@ -252,11 +252,7 @@ export const frameDeclarationHandler = {
    * Called when @frame_declaration is attached to a brain node.
    * Coerces the config, stores it on the node, and emits 'frame_declared'.
    */
-  onAttach(
-    node: FrameNode,
-    config: FrameDeclarationConfig,
-    ctx: TraitCtx
-  ): void {
+  onAttach(node: FrameNode, config: FrameDeclarationConfig, ctx: TraitCtx): void {
     const frame = coerceConfig(config as Record<string, unknown>);
     node.__frameDeclaration = frame;
 
@@ -310,7 +306,12 @@ export const frameDeclarationHandler = {
         const result = checkToolAllowed(frame, toolName, domainTag);
         if (!result.allowed) {
           if (result.violation_type === 'domain_denied') {
-            ctx.emit('frame_domain_blocked', { node, domain: domainTag, tool: toolName, reason: result.detail });
+            ctx.emit('frame_domain_blocked', {
+              node,
+              domain: domainTag,
+              tool: toolName,
+              reason: result.detail,
+            });
           } else {
             ctx.emit('frame_tool_blocked', { node, tool: toolName, reason: result.detail });
           }
@@ -348,7 +349,8 @@ export const frameDeclarationHandler = {
 
       case 'frame_check_tier': {
         const requiredTier = payload?.required_tier;
-        if (requiredTier !== 0 && requiredTier !== 1 && requiredTier !== 2 && requiredTier !== 3) break;
+        if (requiredTier !== 0 && requiredTier !== 1 && requiredTier !== 2 && requiredTier !== 3)
+          break;
 
         const result = checkTier(frame, requiredTier);
         if (!result.allowed) {

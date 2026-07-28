@@ -185,7 +185,10 @@ describe('MotionSourceTrait', () => {
     });
 
     it('crossfades to the requested intent and updates currentMotion', () => {
-      sendEvent(motionSourceHandler, node, libConfig, ctx, { type: 'motion_request', intent: 'wave' });
+      sendEvent(motionSourceHandler, node, libConfig, ctx, {
+        type: 'motion_request',
+        intent: 'wave',
+      });
       const cf = callsOf(driver, 'crossfade');
       expect(cf[cf.length - 1].args[0]).toBe('wave');
       expect((node.__motionSourceState as { currentMotion: string }).currentMotion).toBe('wave');
@@ -195,13 +198,19 @@ describe('MotionSourceTrait', () => {
     });
 
     it('accepts clip/motion aliases for the intent payload', () => {
-      sendEvent(motionSourceHandler, node, libConfig, ctx, { type: 'motion_request', clip: 'walk' });
+      sendEvent(motionSourceHandler, node, libConfig, ctx, {
+        type: 'motion_request',
+        clip: 'walk',
+      });
       expect((node.__motionSourceState as { currentMotion: string }).currentMotion).toBe('walk');
     });
 
     it('mirrors the active motion onto AvatarEmbodiment state', () => {
       node.__avatarEmbodimentState = { currentAnimation: 'idle' };
-      sendEvent(motionSourceHandler, node, libConfig, ctx, { type: 'motion_request', intent: 'wave' });
+      sendEvent(motionSourceHandler, node, libConfig, ctx, {
+        type: 'motion_request',
+        intent: 'wave',
+      });
       expect((node.__avatarEmbodimentState as { currentAnimation: string }).currentAnimation).toBe(
         'wave'
       );
@@ -331,7 +340,10 @@ describe('MotionSourceTrait', () => {
     const ready = getLastEvent(ctx, 'on_motion_changed') as { applied: boolean };
     expect(ready.applied).toBe(false);
 
-    sendEvent(motionSourceHandler, node, libConfig, ctx, { type: 'motion_request', intent: 'wave' });
+    sendEvent(motionSourceHandler, node, libConfig, ctx, {
+      type: 'motion_request',
+      intent: 'wave',
+    });
     expect((node.__motionSourceState as { currentMotion: string }).currentMotion).toBe('wave');
     const after = getLastEvent(ctx, 'on_motion_changed') as { motion: string; applied: boolean };
     expect(after.motion).toBe('wave');

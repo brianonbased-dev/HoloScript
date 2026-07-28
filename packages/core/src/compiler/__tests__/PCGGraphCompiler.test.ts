@@ -184,7 +184,10 @@ describe('PCGGraphCompiler', () => {
 
   it('returns XML, graph JSON, and GPU plan files', () => {
     const compiler = new PCGGraphCompiler({ gpuEvaluation: true, seed: 99 });
-    const files = compiler.compileToFiles(composition([proceduralBlock()]), createTestCompilerToken());
+    const files = compiler.compileToFiles(
+      composition([proceduralBlock()]),
+      createTestCompilerToken()
+    );
 
     expect(Object.keys(files)).toEqual(
       expect.arrayContaining([
@@ -200,9 +203,13 @@ describe('PCGGraphCompiler', () => {
 
   it('is reachable through the ExportManager target table', async () => {
     const manager = getExportManager({ useMemoryMonitoring: false });
-    const result = await manager.export('pcg-graph', composition([proceduralBlock({ gpu_eval: true })]), {
-      compilerOptions: { seed: 7 },
-    });
+    const result = await manager.export(
+      'pcg-graph',
+      composition([proceduralBlock({ gpu_eval: true })]),
+      {
+        compilerOptions: { seed: 7 },
+      }
+    );
 
     expect(result.error?.message).toBeUndefined();
     expect(result.success).toBe(true);

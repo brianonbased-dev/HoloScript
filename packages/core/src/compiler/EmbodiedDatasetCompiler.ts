@@ -88,12 +88,19 @@ export class EmbodiedDatasetCompiler extends CompilerBase {
 
   /** Find the @sim_to_real_dataset trait config at composition level or on any object. */
   private findTraitConfig(composition: HoloComposition): Record<string, HoloValue> {
-    const root = (composition as { traits?: Array<string | { name: string; config?: Record<string, HoloValue> }> })
-      .traits?.find((t) => this.getTraitName(t) === 'sim_to_real_dataset');
+    const root = (
+      composition as {
+        traits?: Array<string | { name: string; config?: Record<string, HoloValue> }>;
+      }
+    ).traits?.find((t) => this.getTraitName(t) === 'sim_to_real_dataset');
     if (root && typeof root === 'object' && root.config) return root.config;
     for (const o of composition.objects ?? []) {
       const hit = o.traits?.find((t) => this.getTraitName(t) === 'sim_to_real_dataset');
-      if (hit && typeof hit === 'object' && (hit as { config?: Record<string, HoloValue> }).config) {
+      if (
+        hit &&
+        typeof hit === 'object' &&
+        (hit as { config?: Record<string, HoloValue> }).config
+      ) {
         return (hit as { config: Record<string, HoloValue> }).config;
       }
     }
@@ -111,17 +118,27 @@ export class EmbodiedDatasetCompiler extends CompilerBase {
     const cfg = this.findTraitConfig(composition);
     const fmtRaw = this.str(cfg['output_format'], this.defaults.outputFormat);
     const outputFormat: EmbodiedOutputFormat =
-      fmtRaw === 'rlds' || fmtRaw === 'lerobot' || fmtRaw === 'hdf5' ? fmtRaw : this.defaults.outputFormat;
+      fmtRaw === 'rlds' || fmtRaw === 'lerobot' || fmtRaw === 'hdf5'
+        ? fmtRaw
+        : this.defaults.outputFormat;
     const modalities = Array.isArray(cfg['sensor_modalities'])
       ? (cfg['sensor_modalities'] as HoloValue[]).map(String)
       : this.defaults.sensorModalities;
     const dr =
-      cfg['domain_randomization'] && typeof cfg['domain_randomization'] === 'object' && !Array.isArray(cfg['domain_randomization'])
+      cfg['domain_randomization'] &&
+      typeof cfg['domain_randomization'] === 'object' &&
+      !Array.isArray(cfg['domain_randomization'])
         ? (cfg['domain_randomization'] as Record<string, unknown>)
         : {};
     return {
-      episodeCount: Math.max(1, Math.floor(this.num(cfg['episode_count'], this.defaults.episodeCount))),
-      stepsPerEpisode: Math.max(1, Math.floor(this.num(cfg['steps_per_episode'], this.defaults.stepsPerEpisode))),
+      episodeCount: Math.max(
+        1,
+        Math.floor(this.num(cfg['episode_count'], this.defaults.episodeCount))
+      ),
+      stepsPerEpisode: Math.max(
+        1,
+        Math.floor(this.num(cfg['steps_per_episode'], this.defaults.stepsPerEpisode))
+      ),
       outputFormat,
       sensorModalities: modalities,
       domainRandomization: dr,

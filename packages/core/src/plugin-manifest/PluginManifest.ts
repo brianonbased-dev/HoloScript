@@ -172,7 +172,7 @@ export interface CombinedPluginResult {
  */
 export function combinePluginRegistrations<TRegistrar>(
   registrar: TRegistrar,
-  plugins: ReadonlyArray<PluginRegistration<TRegistrar>>,
+  plugins: ReadonlyArray<PluginRegistration<TRegistrar>>
 ): CombinedPluginResult {
   const pluginIds: string[] = [];
   const traitNames: string[] = [];

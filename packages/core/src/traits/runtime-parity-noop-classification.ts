@@ -76,16 +76,16 @@ export type RuntimeNoopTrait = (typeof RUNTIME_NOOP_TRAITS)[number];
  * prevent future auditors from re-classifying these as no-ops without evidence.
  */
 export const TIER5_MISCLASSIFIED_AS_NOOP = [
-  'accessible',    // AccessibleTrait.ts — per-frame announce queue + focus ring
-  'alt_text',      // AltTextTrait.ts — onAttach + onEvent query/generate
+  'accessible', // AccessibleTrait.ts — per-frame announce queue + focus ring
+  'alt_text', // AltTextTrait.ts — onAttach + onEvent query/generate
   'high_contrast', // HighContrastTrait.ts — event-driven material palette swap
-  'motion_reduced',// MotionReducedTrait.ts — per-frame velocity clamp + anim intercept
-  'moderation',    // ModerationTrait.ts — event-driven AI moderation pipeline
-  'anti_grief',    // AntiGriefTrait.ts — per-frame grief score + shield expiry
-  'token_gated',   // TokenGatedTrait.ts — onUpdate re-verify polling
-  'data_binding',  // DataBindingTrait.ts — per-frame REST poll + interpolation
-  'world_state',   // WorldStateTrait.ts — 10 Hz CRDT sync + autosave timers
-  'shared_world',  // SharedWorldTrait.ts — per-Hz sync accumulator + peer dispatch
+  'motion_reduced', // MotionReducedTrait.ts — per-frame velocity clamp + anim intercept
+  'moderation', // ModerationTrait.ts — event-driven AI moderation pipeline
+  'anti_grief', // AntiGriefTrait.ts — per-frame grief score + shield expiry
+  'token_gated', // TokenGatedTrait.ts — onUpdate re-verify polling
+  'data_binding', // DataBindingTrait.ts — per-frame REST poll + interpolation
+  'world_state', // WorldStateTrait.ts — 10 Hz CRDT sync + autosave timers
+  'shared_world', // SharedWorldTrait.ts — per-Hz sync accumulator + peer dispatch
 ] as const;
 
 /**

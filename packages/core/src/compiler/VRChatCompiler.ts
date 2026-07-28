@@ -194,9 +194,7 @@ export class VRChatCompiler extends CompilerBase {
     udonAssembly[`${className}.uasm`] = mainUasm;
 
     for (const obj of composition.objects || []) {
-      const isClickable = obj.traits?.some(
-        (t) => t.name === 'pointable' || t.name === 'clickable'
-      );
+      const isClickable = obj.traits?.some((t) => t.name === 'pointable' || t.name === 'clickable');
       if (isClickable) {
         udonAssembly[`${this.sanitizeName(obj.name)}Behaviour.uasm`] =
           this.generateClickableToggleAssembly(obj);

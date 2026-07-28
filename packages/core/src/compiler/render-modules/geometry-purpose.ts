@@ -66,10 +66,7 @@ const PURPOSE_TRAITS: Record<string, GeometryPurpose> = {
   audio_volume: 'audio_zone',
 };
 
-const ALL_PURPOSES = new Set<GeometryPurpose>([
-  'render',
-  ...Array.from(INVISIBLE_PURPOSES),
-]);
+const ALL_PURPOSES = new Set<GeometryPurpose>(['render', ...Array.from(INVISIBLE_PURPOSES)]);
 
 function coerceBool(v: unknown): boolean | undefined {
   if (v === true || v === 'true') return true;

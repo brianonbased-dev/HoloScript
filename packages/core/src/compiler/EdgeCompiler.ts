@@ -19,10 +19,7 @@
 
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
-import type {
-  HoloComposition,
-  HoloObjectTrait,
-} from '../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloObjectTrait } from '../parser/HoloCompositionTypes';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -126,9 +123,11 @@ export class EdgeCompiler extends CompilerBase {
     composition.objects?.forEach((obj) => obj.traits?.forEach(addTrait));
 
     // Template-level traits
-    composition.templates?.forEach((tpl) => tpl.properties?.forEach((p) => {
-      if ('traits' in p) (p as { traits?: HoloObjectTrait[] }).traits?.forEach(addTrait);
-    }));
+    composition.templates?.forEach((tpl) =>
+      tpl.properties?.forEach((p) => {
+        if ('traits' in p) (p as { traits?: HoloObjectTrait[] }).traits?.forEach(addTrait);
+      })
+    );
 
     return names;
   }
@@ -150,9 +149,25 @@ export class EdgeCompiler extends CompilerBase {
     const platform = this.opts.platform;
     const serviceUser = this.opts.serviceUser;
 
-    const hasLocalInference = this.detect(traits, 'localinference', 'local_inference', 'local-inference');
-    const hasEdgeNode = this.detect(traits, 'edgenode', 'edge_node', 'edge-node', 'sovereign_agent');
-    const hasSystemMonitor = this.detect(traits, 'systemmonitor', 'system_monitor', 'system-monitor');
+    const hasLocalInference = this.detect(
+      traits,
+      'localinference',
+      'local_inference',
+      'local-inference'
+    );
+    const hasEdgeNode = this.detect(
+      traits,
+      'edgenode',
+      'edge_node',
+      'edge-node',
+      'sovereign_agent'
+    );
+    const hasSystemMonitor = this.detect(
+      traits,
+      'systemmonitor',
+      'system_monitor',
+      'system-monitor'
+    );
     const hasJetsonGPU = this.detect(traits, 'jetsongpu', 'jetson_gpu', 'jetson-gpu', 'jetson');
     const hasTegraMonitor = this.detect(traits, 'tegramonitor', 'tegra_monitor', 'tegrastats');
     const hasTensorRT = this.detect(traits, 'tensorrtinference', 'tensorrt_inference', 'tensorrt');
@@ -161,8 +176,15 @@ export class EdgeCompiler extends CompilerBase {
     // CuVSLAM, Isaac Manipulator). Closes CG-108 for Jetson + JetPack 6+.
     const hasIsaacROS2 = this.detect(
       traits,
-      'isaac_ros2', 'isaac-ros2', 'isaac_ros', 'isaacros2', 'isaacros',
-      'nova_carter', 'novacarter', 'isaac_manipulator', 'isaacmanipulator'
+      'isaac_ros2',
+      'isaac-ros2',
+      'isaac_ros',
+      'isaacros2',
+      'isaacros',
+      'nova_carter',
+      'novacarter',
+      'isaac_manipulator',
+      'isaacmanipulator'
     );
 
     const isAgentRunner = this.opts.runtime === 'agentrunner';
@@ -172,38 +194,126 @@ export class EdgeCompiler extends CompilerBase {
           // reflect), CAEL hash-chain, content-hashed/signed hardware receipts, and
           // native on_task cognitive-verb consumption all ship in `index.js run`.
           // No agent.py: the TS package is the runtime, not a generated Python loop.
-          { path: 'holoscript_agent.service', content: this.genAgentRunnerSystemd(name, ollamaUrl, model, remotePath, serviceUser), executable: false },
-          { path: 'setup.sh', content: this.genAgentRunnerSetup(name, model, remotePath, serviceUser, hasJetsonGPU), executable: true },
-          { path: 'manifest.json', content: JSON.stringify({ name, target: 'edge', platform, runtime: 'agentrunner', ollamaUrl, model, generatedBy: 'EdgeCompiler', hasIsaacROS2 }, null, 2), executable: false },
+          {
+            path: 'holoscript_agent.service',
+            content: this.genAgentRunnerSystemd(name, ollamaUrl, model, remotePath, serviceUser),
+            executable: false,
+          },
+          {
+            path: 'setup.sh',
+            content: this.genAgentRunnerSetup(name, model, remotePath, serviceUser, hasJetsonGPU),
+            executable: true,
+          },
+          {
+            path: 'manifest.json',
+            content: JSON.stringify(
+              {
+                name,
+                target: 'edge',
+                platform,
+                runtime: 'agentrunner',
+                ollamaUrl,
+                model,
+                generatedBy: 'EdgeCompiler',
+                hasIsaacROS2,
+              },
+              null,
+              2
+            ),
+            executable: false,
+          },
         ]
       : [
-          { path: 'agent.py', content: this.genAgent(name, ollamaUrl, model, hasEdgeNode, hasTensorRT), executable: true },
-          { path: 'monitor.py', content: this.genMonitor(name, hasJetsonGPU, hasTegraMonitor), executable: true },
-          { path: 'setup.sh', content: this.genSetup(name, model, remotePath, platform, serviceUser, hasJetsonGPU, hasROS2, hasIsaacROS2), executable: true },
-          { path: 'holoscript_agent.service', content: this.genSystemd(name, ollamaUrl, model, remotePath, serviceUser, hasROS2), executable: false },
-          { path: 'manifest.json', content: JSON.stringify({ name, target: 'edge', platform, runtime: 'python', ollamaUrl, model, generatedBy: 'EdgeCompiler', hasIsaacROS2 }, null, 2), executable: false },
+          {
+            path: 'agent.py',
+            content: this.genAgent(name, ollamaUrl, model, hasEdgeNode, hasTensorRT),
+            executable: true,
+          },
+          {
+            path: 'monitor.py',
+            content: this.genMonitor(name, hasJetsonGPU, hasTegraMonitor),
+            executable: true,
+          },
+          {
+            path: 'setup.sh',
+            content: this.genSetup(
+              name,
+              model,
+              remotePath,
+              platform,
+              serviceUser,
+              hasJetsonGPU,
+              hasROS2,
+              hasIsaacROS2
+            ),
+            executable: true,
+          },
+          {
+            path: 'holoscript_agent.service',
+            content: this.genSystemd(name, ollamaUrl, model, remotePath, serviceUser, hasROS2),
+            executable: false,
+          },
+          {
+            path: 'manifest.json',
+            content: JSON.stringify(
+              {
+                name,
+                target: 'edge',
+                platform,
+                runtime: 'python',
+                ollamaUrl,
+                model,
+                generatedBy: 'EdgeCompiler',
+                hasIsaacROS2,
+              },
+              null,
+              2
+            ),
+            executable: false,
+          },
         ];
 
     if (hasROS2) {
       // Colcon-buildable ament_python package — replaces standalone ros2_bridge.py.
       // Build with: cd ros2_ws && colcon build --symlink-install
       const pkgName = name.replace(/[^a-z0-9_]/gi, '_').toLowerCase() + '_bridge';
-      files.push({ path: `ros2_ws/src/${pkgName}/package.xml`, content: this.genColconPackageXml(pkgName, hasIsaacROS2) });
-      files.push({ path: `ros2_ws/src/${pkgName}/setup.py`, content: this.genColconSetupPy(pkgName) });
-      files.push({ path: `ros2_ws/src/${pkgName}/setup.cfg`, content: `[develop]\nscript_dir=$base/lib/${pkgName}\n[install]\ninstall_scripts=$base/lib/${pkgName}\n` });
+      files.push({
+        path: `ros2_ws/src/${pkgName}/package.xml`,
+        content: this.genColconPackageXml(pkgName, hasIsaacROS2),
+      });
+      files.push({
+        path: `ros2_ws/src/${pkgName}/setup.py`,
+        content: this.genColconSetupPy(pkgName),
+      });
+      files.push({
+        path: `ros2_ws/src/${pkgName}/setup.cfg`,
+        content: `[develop]\nscript_dir=$base/lib/${pkgName}\n[install]\ninstall_scripts=$base/lib/${pkgName}\n`,
+      });
       files.push({ path: `ros2_ws/src/${pkgName}/${pkgName}/__init__.py`, content: '' });
-      files.push({ path: `ros2_ws/src/${pkgName}/${pkgName}/bridge.py`, content: this.genROS2Bridge(name, pkgName), executable: true });
+      files.push({
+        path: `ros2_ws/src/${pkgName}/${pkgName}/bridge.py`,
+        content: this.genROS2Bridge(name, pkgName),
+        executable: true,
+      });
     }
 
     if (hasIsaacROS2) {
       const pkgName = name.replace(/[^a-z0-9_]/gi, '_').toLowerCase() + '_bridge';
-      files.push({ path: `ros2_ws/src/${pkgName}/${pkgName}/isaac_bridge.py`, content: this.genIsaacBridge(name, pkgName), executable: true });
+      files.push({
+        path: `ros2_ws/src/${pkgName}/${pkgName}/isaac_bridge.py`,
+        content: this.genIsaacBridge(name, pkgName),
+        executable: true,
+      });
     }
 
     if (hasTensorRT && !isAgentRunner) {
       // tensorrt_loader.py is imported by the Python agent.py — irrelevant under the
       // TS AgentRunner runtime (which loads its model via Ollama/the provider layer).
-      files.push({ path: 'tensorrt_loader.py', content: this.genTensorRTLoader(model), executable: false });
+      files.push({
+        path: 'tensorrt_loader.py',
+        content: this.genTensorRTLoader(model),
+        executable: false,
+      });
     }
 
     const bundle: EdgeBundle = {
@@ -224,7 +334,13 @@ export class EdgeCompiler extends CompilerBase {
         hasIsaacROS2,
         runtime: this.opts.runtime,
       },
-      deployInstructions: this.genDeployInstructions(name, ollamaUrl, remotePath, platform, hasROS2),
+      deployInstructions: this.genDeployInstructions(
+        name,
+        ollamaUrl,
+        remotePath,
+        platform,
+        hasROS2
+      ),
       ...(isAgentRunner
         ? {}
         : {
@@ -240,7 +356,13 @@ export class EdgeCompiler extends CompilerBase {
 
   // ── File generators ─────────────────────────────────────────────────────
 
-  private genAgent(name: string, ollamaUrl: string, model: string, hasEdgeNode: boolean, hasTensorRT: boolean): string {
+  private genAgent(
+    name: string,
+    ollamaUrl: string,
+    model: string,
+    hasEdgeNode: boolean,
+    hasTensorRT: boolean
+  ): string {
     const boardSection = hasEdgeNode
       ? `
 BOARD_URL = os.getenv("HOLOSCRIPT_BOARD_URL", "https://mcp-orchestrator-production-45f9.up.railway.app")
@@ -394,7 +516,9 @@ def _start_monitor():
 def main():
     _start_monitor()
     print(f"[${name}] HoloScript edge agent online — {OLLAMA_URL} model={MODEL}")
-${hasEdgeNode ? `
+${
+  hasEdgeNode
+    ? `
     while True:
         task = claim_task()
         if task:
@@ -403,10 +527,12 @@ ${hasEdgeNode ? `
             print(f"[board] done: {result[:200]}")
         else:
             time.sleep(TICK_INTERVAL)
-` : `
+`
+    : `
     prompt = " ".join(sys.argv[1:]) or "Write a valid HoloScript .holo scene to agent-out/scene.holo"
     print(run_task(prompt))
-`}
+`
+}
 
 if __name__ == "__main__":
     main()
@@ -414,8 +540,9 @@ if __name__ == "__main__":
   }
 
   private genMonitor(name: string, hasJetsonGPU: boolean, hasTegraMonitor: boolean): string {
-    const jetsonSection = (hasJetsonGPU || hasTegraMonitor)
-      ? `
+    const jetsonSection =
+      hasJetsonGPU || hasTegraMonitor
+        ? `
 def jetson_stats() -> dict:
     """Read NVIDIA Jetson hardware stats via tegrastats snapshot."""
     import subprocess, re
@@ -440,7 +567,7 @@ def jetson_stats() -> dict:
     except Exception as e:
         return {"error": str(e)}
 `
-      : '';
+        : '';
 
     return `#!/usr/bin/env python3
 """
@@ -449,7 +576,7 @@ Polls system health and exposes a /health HTTP endpoint.
 """
 import json, os, platform, time, threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
-${(hasJetsonGPU || hasTegraMonitor) ? 'import subprocess, re' : ''}
+${hasJetsonGPU || hasTegraMonitor ? 'import subprocess, re' : ''}
 
 MONITOR_PORT = int(os.getenv("MONITOR_PORT", "9090"))
 POLL_INTERVAL_S = int(os.getenv("POLL_INTERVAL_S", "5"))
@@ -480,7 +607,7 @@ def generic_stats() -> dict:
 def poll_loop():
     while True:
         data = generic_stats()
-${(hasJetsonGPU || hasTegraMonitor) ? '        data["jetson"] = jetson_stats()' : ''}
+${hasJetsonGPU || hasTegraMonitor ? '        data["jetson"] = jetson_stats()' : ''}
         with _lock:
             _stats.update(data)
         time.sleep(POLL_INTERVAL_S)
@@ -945,7 +1072,7 @@ def load_trt_engine(engine_path: str = TRT_ENGINE_PATH):
     serviceUser: string,
     hasJetsonGPU: boolean,
     hasROS2: boolean,
-    hasIsaacROS2: boolean,
+    hasIsaacROS2: boolean
   ): string {
     const jetsonSection = hasJetsonGPU
       ? `
@@ -1046,7 +1173,7 @@ echo "[setup] Logs:   journalctl -u holoscript_agent -f"
     model: string,
     remotePath: string,
     serviceUser: string,
-    hasROS2: boolean,
+    hasROS2: boolean
   ): string {
     const safeName = name.replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
     // Source ROS2 environment if the bridge was generated so agent.py can
@@ -1097,7 +1224,7 @@ WantedBy=multi-user.target
     ollamaUrl: string,
     model: string,
     remotePath: string,
-    serviceUser: string,
+    serviceUser: string
   ): string {
     const safeName = name.replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
     return `[Unit]
@@ -1142,7 +1269,7 @@ WantedBy=multi-user.target
     model: string,
     remotePath: string,
     serviceUser: string,
-    hasJetsonGPU: boolean,
+    hasJetsonGPU: boolean
   ): string {
     const safeName = name.replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
     const jetsonSection = hasJetsonGPU
@@ -1194,7 +1321,7 @@ echo "[setup] done. Status: systemctl status holoscript_agent | Logs: journalctl
     ollamaUrl: string,
     remotePath: string,
     platform: string,
-    hasROS2: boolean,
+    hasROS2: boolean
   ): string {
     const ros2Steps = hasROS2
       ? [

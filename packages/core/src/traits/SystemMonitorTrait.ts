@@ -56,7 +56,10 @@ export function resolveSystemMonitorConfig(
   return { ...SYSTEM_MONITOR_DEFAULTS, ...params };
 }
 
-export function computeAlerts(stats: DeviceHealthStats, config: Required<SystemMonitorConfig>): string[] {
+export function computeAlerts(
+  stats: DeviceHealthStats,
+  config: Required<SystemMonitorConfig>
+): string[] {
   const alerts: string[] = [];
   if (stats.load_1m !== undefined && stats.load_1m > config.loadAlertThreshold) {
     alerts.push(`high_load:${stats.load_1m.toFixed(2)}`);

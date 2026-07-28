@@ -132,7 +132,9 @@ function emitClientSdk(result: ColyseusCompilationResult): string {
   out.push(`export const TICK_RATE = ${tickRate};`);
   out.push(``);
   out.push(`/** World-chunk streaming manifest (client streaming/LOD — not server-only). */`);
-  out.push(`export const CHUNK_MANIFEST = ${JSON.stringify(result.chunkManifest, null, 2)} as const;`);
+  out.push(
+    `export const CHUNK_MANIFEST = ${JSON.stringify(result.chunkManifest, null, 2)} as const;`
+  );
   out.push(``);
 
   return out.join('\n');

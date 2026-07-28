@@ -53,7 +53,12 @@ export function projectLearningGraph(ir: HSIIRDocument): HSILearningGraph {
   const addNode = (node: Omit<HSILearningNode, 'split'>): void => {
     nodes.push({ ...node, split: splitFor(node.id, worldDigest) });
   };
-  const addEdge = (edgeType: HSILearningEdge['edgeType'], from: string, to: string, label?: string): void => {
+  const addEdge = (
+    edgeType: HSILearningEdge['edgeType'],
+    from: string,
+    to: string,
+    label?: string
+  ): void => {
     const edge: HSILearningEdge = { id: `edge:${edgeType}:${from}->${to}`, edgeType, from, to };
     if (label !== undefined) edge.label = label;
     edges.push(edge);
@@ -99,7 +104,13 @@ export function projectLearningGraph(ir: HSIIRDocument): HSILearningGraph {
   }
 
   for (const handler of ir.eventHandlers) {
-    addNode({ id: handler.id, nodeType: 'event', baseline: null, unknowns: [], sourceSpan: handler.sourceSpan });
+    addNode({
+      id: handler.id,
+      nodeType: 'event',
+      baseline: null,
+      unknowns: [],
+      sourceSpan: handler.sourceSpan,
+    });
     const targets = new Set<string>();
     const reads = new Set<string>();
     collectAssignTargets(handler.effects, targets, reads);
@@ -129,7 +140,12 @@ export function projectLearningGraph(ir: HSIIRDocument): HSILearningGraph {
       }
     }
     for (const stateName of machine.states) {
-      addNode({ id: `machineState:${machine.name}.${stateName}`, nodeType: 'state', baseline: null, unknowns: [] });
+      addNode({
+        id: `machineState:${machine.name}.${stateName}`,
+        nodeType: 'state',
+        baseline: null,
+        unknowns: [],
+      });
       addEdge('contains', worldId, `machineState:${machine.name}.${stateName}`);
     }
     for (const input of machine.inputs) {
@@ -161,10 +177,7 @@ export function projectLearningGraph(ir: HSIIRDocument): HSILearningGraph {
     emittedFrom: worldDigest,
     nodes,
     edges,
-    interventions: [
-      'intervention:flip-opacity',
-      'intervention:raise-guard-threshold',
-    ],
+    interventions: ['intervention:flip-opacity', 'intervention:raise-guard-threshold'],
   };
 
   return { ...graphWithoutDigest, deterministicDigest: hsiSha256(graphWithoutDigest) };

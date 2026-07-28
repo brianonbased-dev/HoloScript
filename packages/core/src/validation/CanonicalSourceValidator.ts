@@ -200,12 +200,8 @@ function validateHsplus(source: string): CanonicalSourceValidationResult {
     let warnings = normalizeDiagnosticList(result.warnings, 'warning');
     if (agentBrainLocationMap) {
       const locationMap = agentBrainLocationMap;
-      errors = errors.map((diagnostic) =>
-        remapAgentBrainDiagnostic(diagnostic, locationMap)
-      );
-      warnings = warnings.map((diagnostic) =>
-        remapAgentBrainDiagnostic(diagnostic, locationMap)
-      );
+      errors = errors.map((diagnostic) => remapAgentBrainDiagnostic(diagnostic, locationMap));
+      warnings = warnings.map((diagnostic) => remapAgentBrainDiagnostic(diagnostic, locationMap));
     }
     return {
       valid: result.success === true && errors.length === 0,

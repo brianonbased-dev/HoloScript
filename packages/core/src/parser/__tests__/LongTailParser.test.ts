@@ -63,7 +63,9 @@ describe('A-009 long-tail parser drift', () => {
     `);
 
     expect(result.errors).toHaveLength(0);
-    const material = result.ast?.domainBlocks.find((block) => block.keyword === 'subsurface_material');
+    const material = result.ast?.domainBlocks.find(
+      (block) => block.keyword === 'subsurface_material'
+    );
     const shader = result.ast?.domainBlocks.find((block) => block.keyword === 'shader');
     expect(material?.properties.baseColor).toBe('#ddb8a0');
     expect(material?.properties.normal_map).toEqual({
@@ -130,7 +132,9 @@ describe('A-009 long-tail parser drift', () => {
     expect(schema?.properties['role?']).toBe('string');
     expect(schema?.properties.users).toBe('array<User>');
     expect(endpoint?.properties.params).toEqual({ 'page?': 'number', 'limit?': 'number' });
-    expect(service?.traits).toEqual(expect.arrayContaining(['service', 'cors_policy', 'rate_limiter']));
+    expect(service?.traits).toEqual(
+      expect.arrayContaining(['service', 'cors_policy', 'rate_limiter'])
+    );
   });
 
   it('parses keyword trait values after @', () => {

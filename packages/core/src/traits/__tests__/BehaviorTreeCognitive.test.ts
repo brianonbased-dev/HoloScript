@@ -144,7 +144,7 @@ describe('BehaviorTreeTrait — cognitive nodes', () => {
   // (brainState.cognitiveActions — formerly a write-only field reaching no runtime)
   // materializes via cognitiveActionsToBehaviorTree into a tree the engine executes,
   // dispatching each verb to its real trait. Closes the W.712 shell on the engine path.
-  it('materializes a brain state\'s cognitiveActions into an engine-executable cognitive sequence', () => {
+  it("materializes a brain state's cognitiveActions into an engine-executable cognitive sequence", () => {
     const bt = cognitiveActionsToBehaviorTree([
       { kind: 'cognitive', verb: 'recall', config: { query: 'prior plans', limit: 3 } },
       { kind: 'cognitive', verb: 'llm_call', config: { prompt: 'decide next' } },

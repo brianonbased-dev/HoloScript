@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { HoloCompositionParser } from '../HoloCompositionParser';
 
 const CONTRACT_PATH = fileURLToPath(
-  new URL('../../../../../examples/integration/world-review-trait-contract.holo', import.meta.url),
+  new URL('../../../../../examples/integration/world-review-trait-contract.holo', import.meta.url)
 );
 
 type HoloTraitNode = {
@@ -112,18 +112,20 @@ describe('WorldReviewTrait contract', () => {
     const contract = loadContract();
     const fields = asStringArray(contract.evidence_receipt_fields);
 
-    expect(fields).toEqual(expect.arrayContaining([
-      'compile_job_id',
-      'compile_target',
-      'cael_trace_id',
-      'trace_jsonl_sha256',
-      'verify_url',
-      'quality_gate_tier',
-      'critic_verdict',
-      'conformance_report_id',
-      'fix_plan_id',
-      'human_review_url',
-    ]));
+    expect(fields).toEqual(
+      expect.arrayContaining([
+        'compile_job_id',
+        'compile_target',
+        'cael_trace_id',
+        'trace_jsonl_sha256',
+        'verify_url',
+        'quality_gate_tier',
+        'critic_verdict',
+        'conformance_report_id',
+        'fix_plan_id',
+        'human_review_url',
+      ])
+    );
   });
 
   it('keeps phase 1 in review-plan mode rather than automatic production mutation', () => {
@@ -137,14 +139,16 @@ describe('WorldReviewTrait contract', () => {
     expect(mutationBoundary.production_write).toBe('forbidden');
     expect(mutationBoundary.required_approval).toBe('human_review');
 
-    expect(nonGoals).toEqual(expect.arrayContaining([
-      'paid_provider_cloud',
-      'local_accelerator_proof',
-      'automatic_production_write',
-      'automatic_branch_mutation',
-      'github_lock_in',
-      'hosted_provider_agent_deployment',
-      'production_readiness_claim',
-    ]));
+    expect(nonGoals).toEqual(
+      expect.arrayContaining([
+        'paid_provider_cloud',
+        'local_accelerator_proof',
+        'automatic_production_write',
+        'automatic_branch_mutation',
+        'github_lock_in',
+        'hosted_provider_agent_deployment',
+        'production_readiness_claim',
+      ])
+    );
   });
 });

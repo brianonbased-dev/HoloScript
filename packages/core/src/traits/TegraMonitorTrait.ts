@@ -113,9 +113,16 @@ export function parseTegraStatsLine(raw: string): Partial<TegraStats> {
   return result;
 }
 
-export function computeTegraAlerts(stats: Partial<TegraStats>, config: Required<TegraMonitorConfig>): string[] {
+export function computeTegraAlerts(
+  stats: Partial<TegraStats>,
+  config: Required<TegraMonitorConfig>
+): string[] {
   const alerts: string[] = [];
-  if (stats.power_total_w !== null && stats.power_total_w !== undefined && stats.power_total_w > config.powerAlertW) {
+  if (
+    stats.power_total_w !== null &&
+    stats.power_total_w !== undefined &&
+    stats.power_total_w > config.powerAlertW
+  ) {
     alerts.push(`high_power:${stats.power_total_w.toFixed(1)}W`);
   }
   if (stats.thermal_zones) {

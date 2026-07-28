@@ -36,12 +36,29 @@ const GOLDEN_SCENE: HoloComposition = {
     properties: [prop('skybox', 'deep_machine_ocean'), prop('ambient_light', 0.42)],
   },
   objects: [
-    obj('BoxObj', [prop('mesh', 'cube'), prop('position', [0, 0, 0]), prop('color', '#ff8870'), prop('scale', [1, 1, 1])]),
-    obj('SphereObj', [prop('mesh', 'sphere'), prop('position', [1.5, 0, 0]), prop('color', '#36e5ff')]),
-    obj('TorusObj', [prop('mesh', 'torus'), prop('position', [-1.5, 0, 0]), prop('color', '#20def0')]),
+    obj('BoxObj', [
+      prop('mesh', 'cube'),
+      prop('position', [0, 0, 0]),
+      prop('color', '#ff8870'),
+      prop('scale', [1, 1, 1]),
+    ]),
+    obj('SphereObj', [
+      prop('mesh', 'sphere'),
+      prop('position', [1.5, 0, 0]),
+      prop('color', '#36e5ff'),
+    ]),
+    obj('TorusObj', [
+      prop('mesh', 'torus'),
+      prop('position', [-1.5, 0, 0]),
+      prop('color', '#20def0'),
+    ]),
     obj('CylinderObj', [prop('mesh', 'cylinder'), prop('position', [0, 1.5, 0])]),
     obj('ConeObj', [prop('mesh', 'cone'), prop('position', [0, -1.5, 0])]),
-    obj('PlaneObj', [prop('mesh', 'plane'), prop('position', [0, 0, -2]), prop('color', '#06131f')]),
+    obj('PlaneObj', [
+      prop('mesh', 'plane'),
+      prop('position', [0, 0, -2]),
+      prop('color', '#06131f'),
+    ]),
     obj('OrbObj', [prop('mesh', 'orb'), prop('position', [2, 2, 0])]),
     obj('UnmappedMeshObj', [prop('mesh', 'rounded_panel'), prop('position', [-2, -2, 0])]),
   ],
@@ -50,7 +67,11 @@ const GOLDEN_SCENE: HoloComposition = {
       type: 'SpatialGroup',
       name: 'GroupA',
       objects: [
-        obj('GroupedSphere', [prop('mesh', 'sphere'), prop('position', [3, 0, 0]), prop('color', '#58ffc7')]),
+        obj('GroupedSphere', [
+          prop('mesh', 'sphere'),
+          prop('position', [3, 0, 0]),
+          prop('color', '#58ffc7'),
+        ]),
         obj('GroupedCube', [prop('mesh', 'cube'), prop('position', [3, 1, 0])]),
       ],
       properties: [],
@@ -91,7 +112,13 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     const scene = {
       type: 'HoloComposition',
       name: 'GlowScene',
-      objects: [obj('Glow', [prop('mesh', 'sphere'), prop('color', '#36e5ff'), prop('material', 'hologram')])],
+      objects: [
+        obj('Glow', [
+          prop('mesh', 'sphere'),
+          prop('color', '#36e5ff'),
+          prop('material', 'hologram'),
+        ]),
+      ],
     } as HoloComposition;
     const out = new WebGPUCompiler().compile(scene, 'golden-token');
     // color #36e5ff -> [0.2118, 0.898, 1]; glow sets emissiveStrength 0.65 and emissive = color.
@@ -120,13 +147,19 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
           type: 'Light',
           name: 'Key',
           lightType: 'directional',
-          properties: [prop('color', '#ff0000'), prop('position', [0, 10, 0]), prop('intensity', 2)],
+          properties: [
+            prop('color', '#ff0000'),
+            prop('position', [0, 10, 0]),
+            prop('intensity', 2),
+          ],
         } as HoloLight,
       ],
     } as HoloComposition;
     const out = new WebGPUCompiler().compile(scene, 'golden-token');
     // count=1 | red@2x | pos [0,10,0] | dir derived toward origin = [0,-10,0].
-    expect(out).toContain('const sceneLights = createBuffer(device, new Float32Array([1,0,0,0, 2,0,0,0, 0,10,0,0, 0,-10,0,0');
+    expect(out).toContain(
+      'const sceneLights = createBuffer(device, new Float32Array([1,0,0,0, 2,0,0,0, 0,10,0,0, 0,-10,0,0'
+    );
     // Every mesh binds the shared lights uniform at binding 3.
     expect(out).toContain('{ binding: 3, resource: { buffer: sceneLights } }');
     // Fragment shader loops over the declared lights instead of a hardcoded vec3.
@@ -142,7 +175,9 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     } as HoloComposition;
     const out = new WebGPUCompiler().compile(scene, 'golden-token');
     // Synthesized default: white directional, dir = [-1,-2,-1.5] (reproduces the old fixed sun).
-    expect(out).toContain('const sceneLights = createBuffer(device, new Float32Array([1,0,0,0, 1,1,1,0, 1,2,1.5,0, -1,-2,-1.5,0');
+    expect(out).toContain(
+      'const sceneLights = createBuffer(device, new Float32Array([1,0,0,0, 1,1,1,0, 1,2,1.5,0, -1,-2,-1.5,0'
+    );
   });
 
   it('camera auto-fits to the scene centroid when the author declared no camera', () => {
@@ -187,7 +222,9 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     } as HoloComposition;
     const out = new WebGPUCompiler().compile(scene, 'golden-token');
     // deep_machine_ocean = #052430 -> deep teal, NOT [1,1,1] white.
-    expect(out).toContain('const clearColor: GPUColor = { r: 0.0196, g: 0.1412, b: 0.1882, a: 1.0 };');
+    expect(out).toContain(
+      'const clearColor: GPUColor = { r: 0.0196, g: 0.1412, b: 0.1882, a: 1.0 };'
+    );
     expect(out).not.toContain('const clearColor: GPUColor = { r: 1, g: 1, b: 1, a: 1.0 };');
   });
 
@@ -208,7 +245,11 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
       type: 'HoloComposition',
       name: 'WaterScene',
       objects: [
-        obj('Sea', [prop('mesh', 'full_screen_fluid_plane'), prop('color', '#06131f'), prop('scale', [10, 6, 1])]),
+        obj('Sea', [
+          prop('mesh', 'full_screen_fluid_plane'),
+          prop('color', '#06131f'),
+          prop('scale', [10, 6, 1]),
+        ]),
       ],
     } as HoloComposition;
     const out = new WebGPUCompiler().compile(scene, 'golden-token');
@@ -265,7 +306,11 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
       name: 'PhysScene',
       objects: [
         obj('Ball', [prop('mesh', 'sphere')]),
-        obj('HitBox', [prop('mesh', 'cube'), prop('purpose', 'collision'), prop('position', [0, 1, 0])]),
+        obj('HitBox', [
+          prop('mesh', 'cube'),
+          prop('purpose', 'collision'),
+          prop('position', [0, 1, 0]),
+        ]),
       ],
     } as HoloComposition;
     const out = new WebGPUCompiler().compile(scene, 'golden-token');
@@ -284,7 +329,12 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
       type: 'HoloComposition',
       name: 'TraitPhys',
       objects: [
-        { type: 'ObjectDecl', name: 'Trigger', properties: [prop('mesh', 'cube')], traits: [{ name: 'collider' }] },
+        {
+          type: 'ObjectDecl',
+          name: 'Trigger',
+          properties: [prop('mesh', 'cube')],
+          traits: [{ name: 'collider' }],
+        },
       ],
     } as unknown as HoloComposition;
     const out = new WebGPUCompiler().compile(scene, 'golden-token');
@@ -307,7 +357,13 @@ describe('WebGPU golden output (byte-diff baseline for render-module refactor)',
     const scene = {
       type: 'HoloComposition',
       name: 'DebugViz',
-      objects: [obj('DebugCol', [prop('mesh', 'cube'), prop('purpose', 'collision'), prop('visible', true)])],
+      objects: [
+        obj('DebugCol', [
+          prop('mesh', 'cube'),
+          prop('purpose', 'collision'),
+          prop('visible', true),
+        ]),
+      ],
     } as HoloComposition;
     const out = new WebGPUCompiler().compile(scene, 'golden-token');
     expect(out).toContain('const DebugColPipeline = device.createRenderPipeline');

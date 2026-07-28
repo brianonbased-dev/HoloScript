@@ -113,7 +113,11 @@ export function deriveTraitSchemaFromHolo(source: string): TraitSchema | null {
  * - `disjoint`: variants share <50% of prop names — likely GENUINELY DIFFERENT traits colliding
  *   on one handler name; needs a rename, not a merge.
  */
-export type TraitConflictCategory = 'enum-divergent' | 'prop-superset' | 'type-conflict' | 'disjoint';
+export type TraitConflictCategory =
+  | 'enum-divergent'
+  | 'prop-superset'
+  | 'type-conflict'
+  | 'disjoint';
 
 function propByName(s: TraitSchema): Map<string, TraitPropertySchema> {
   return new Map(s.properties.map((p) => [p.name, p]));
@@ -164,13 +168,18 @@ export function isUnionSafeConflict(category: TraitConflictCategory): boolean {
  */
 export function mergeTraitSchemas(variants: TraitSchema[]): TraitSchema {
   const name = variants[0].name;
-  const category = variants.find((v) => v.category && v.category !== 'uncategorized')?.category ?? variants[0].category;
+  const category =
+    variants.find((v) => v.category && v.category !== 'uncategorized')?.category ??
+    variants[0].category;
   const merged = new Map<string, TraitPropertySchema>();
   for (const variant of variants) {
     for (const prop of variant.properties) {
       const existing = merged.get(prop.name);
       if (!existing) {
-        merged.set(prop.name, { ...prop, enumValues: prop.enumValues ? [...prop.enumValues] : undefined });
+        merged.set(prop.name, {
+          ...prop,
+          enumValues: prop.enumValues ? [...prop.enumValues] : undefined,
+        });
         continue;
       }
       if (existing.type !== prop.type) {

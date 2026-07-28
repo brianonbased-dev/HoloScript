@@ -123,8 +123,14 @@ describe('trait .holo name collisions (task_1784182188049_7xzd)', () => {
 
     expect(economicsTransaction, 'economics/transaction.holo must exist').toBeTruthy();
     expect(coreTransaction, 'core_transaction.holo must exist').toBeTruthy();
-    expect(atomicTransaction, 'atomic_transaction.holo must exist (renamed from transaction.holo)').toBeTruthy();
-    expect(oldFlatTransaction, 'transaction.holo must no longer exist at its old path').toBeUndefined();
+    expect(
+      atomicTransaction,
+      'atomic_transaction.holo must exist (renamed from transaction.holo)'
+    ).toBeTruthy();
+    expect(
+      oldFlatTransaction,
+      'transaction.holo must no longer exist at its old path'
+    ).toBeUndefined();
 
     expect(economicsTransaction!.name).toBe('@transaction');
     expect(coreTransaction!.name).toBe('@core_transaction');
@@ -157,7 +163,9 @@ describe('trait .holo name collisions (task_1784182188049_7xzd)', () => {
       duplicateGroups.length,
       `duplicate @trait name groups rose above the ${DUPLICATE_GROUP_BASELINE} baseline — ` +
         `a new collision was likely introduced. Sample: ${JSON.stringify(
-          duplicateGroups.slice(0, 5).map(([name, owners]) => ({ name, owners: owners.map((o) => o.relPath) }))
+          duplicateGroups
+            .slice(0, 5)
+            .map(([name, owners]) => ({ name, owners: owners.map((o) => o.relPath) }))
         )}`
     ).toBeLessThanOrEqual(DUPLICATE_GROUP_BASELINE);
   });

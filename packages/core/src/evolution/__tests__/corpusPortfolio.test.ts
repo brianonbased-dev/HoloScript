@@ -23,7 +23,7 @@ describe('corpusPortfolio canonical seeds', () => {
       // Safety net: an authored seed that does not parse would make the loop a no-op.
       expect(parsesClean(seed.source, seed.format)).toBe(true);
       expect(seed.preserved.every((re) => re.test(seed.source))).toBe(true);
-    },
+    }
   );
 
   it('the gate FAILS a candidate that drops a preserved construct (false case)', async () => {
@@ -66,14 +66,16 @@ describe('state-machine well-formedness gate (the gate-contrast source)', () => 
     async (_name, seed: EvolveSeed) => {
       expect((await makeSeedGate(seed)(seed.source)).passed).toBe(true);
       expect(stateMachineWellFormed(parseHsPlus(seed.source).ast)).toBe(true);
-    },
+    }
   );
 
   it('extractStateMachine reads states + transitions', () => {
     const sm = extractStateMachine(parseHsPlus(patrol.source).ast);
     expect(sm?.states).toEqual(expect.arrayContaining(['idle', 'chasing']));
     expect(sm?.initial).toBe('idle');
-    expect(sm?.transitions).toEqual(expect.arrayContaining([{ from: 'chasing', event: 'lost', target: 'idle' }]));
+    expect(sm?.transitions).toEqual(
+      expect.arrayContaining([{ from: 'chasing', event: 'lost', target: 'idle' }])
+    );
   });
 
   it('REJECTS a candidate whose transition targets an UNDEFINED state (the dominant proposer error)', async () => {

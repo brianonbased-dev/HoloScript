@@ -61,19 +61,19 @@ describe('FlutterCompiler video output', () => {
           ],
         }),
       ]),
-      '',
+      ''
     );
 
     expect(result.success).toBe(true);
     expect(result.code).toContain(`import 'package:video_player/video_player.dart';`);
     expect(result.code).toContain('class HoloVideoPlayer extends StatefulWidget');
     expect(result.code).toContain(
-      `HoloVideoPlayer(url: 'https://example.com/intro.mp4', autoplay: true, loop: true, muted: true, aspectRatio: 1.5)`,
+      `HoloVideoPlayer(url: 'https://example.com/intro.mp4', autoplay: true, loop: true, muted: true, aspectRatio: 1.5)`
     );
     expect(result.code).toContain('VideoPlayerController.networkUrl(Uri.parse(widget.url!))');
     expect(result.code).not.toContain('TODO: video_player package');
     expect(result.warnings).toContain(
-      'Flutter video output requires the video_player package in pubspec.yaml',
+      'Flutter video output requires the video_player package in pubspec.yaml'
     );
   });
 
@@ -92,7 +92,7 @@ describe('FlutterCompiler video output', () => {
           ],
         }),
       ]),
-      '',
+      ''
     );
 
     expect(result.success).toBe(true);
@@ -102,11 +102,16 @@ describe('FlutterCompiler video output', () => {
 
   it('keeps source-less videos honest with a warning and placeholder', () => {
     const compiler = new FlutterCompiler();
-    const result = compiler.compile(compositionWithObjects([videoObject({ name: 'empty_video' })]), '');
+    const result = compiler.compile(
+      compositionWithObjects([videoObject({ name: 'empty_video' })]),
+      ''
+    );
 
     expect(result.success).toBe(true);
     expect(result.code).toContain('Placeholder(');
     expect(result.code).not.toContain('TODO: video_player package');
-    expect(result.warnings).toContain("Video object 'empty_video' has no source; emitted placeholder");
+    expect(result.warnings).toContain(
+      "Video object 'empty_video' has no source; emitted placeholder"
+    );
   });
 });

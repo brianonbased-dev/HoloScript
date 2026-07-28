@@ -275,8 +275,12 @@ describe('Paper 11 — TS bridge-layer extraction vs TS ProvenanceSemiring path'
 
     let pass = 0;
     let fail = 0;
-    const failures: Array<{ inputIndex: number; traits: string[]; tsHex: string; bridgeHex: string }> =
-      [];
+    const failures: Array<{
+      inputIndex: number;
+      traits: string[];
+      tsHex: string;
+      bridgeHex: string;
+    }> = [];
 
     for (let i = 0; i < TOTAL_INPUTS; i++) {
       const pool = [...uniqueTraits];

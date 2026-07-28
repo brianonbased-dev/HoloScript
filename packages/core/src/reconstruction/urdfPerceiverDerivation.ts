@@ -164,8 +164,7 @@ export function deriveUrdfPerception(artifact: string): PerceiverDerivation {
       } else if (jointType === 'revolute' || jointType === 'continuous') {
         entity.reachRadius = entity.extent;
       } else if (jointType === 'prismatic' && joint?.lower != null && joint?.upper != null) {
-        entity.reachRadius =
-          entity.extent + Math.max(Math.abs(joint.lower), Math.abs(joint.upper));
+        entity.reachRadius = entity.extent + Math.max(Math.abs(joint.lower), Math.abs(joint.upper));
       }
       // other types: reachRadius stays undefined — grounding abstains
     }

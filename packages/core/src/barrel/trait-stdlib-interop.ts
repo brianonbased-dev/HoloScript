@@ -30,11 +30,7 @@ export {
 } from '../parser/ErrorRecovery';
 
 // ── Known-Trait Union Seam (SSOT for parser / LSP / linter trait vocabulary) ─
-export {
-  buildKnownTraitSet,
-  NATIVE2D_TRAITS,
-  CODE_GRAPH_TRAITS,
-} from '../traits/knownTraitSet';
+export { buildKnownTraitSet, NATIVE2D_TRAITS, CODE_GRAPH_TRAITS } from '../traits/knownTraitSet';
 
 // ── Stdlib (General-Purpose I/O Action Handlers for BehaviorTree) ───────────
 export {

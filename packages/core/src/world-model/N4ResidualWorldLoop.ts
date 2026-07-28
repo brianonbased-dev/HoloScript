@@ -12,15 +12,16 @@ import { projectLearningGraph } from '../compiler/HSILearningGraph';
 import { hsiSha256, type HSIIRDocument, type HSILearningGraph } from '../compiler/HSIIRTypes';
 import { lowerHSPlusProgramToHSIIR } from '../compiler/HSPlusHSIIRCompiler';
 
-export const N4_RESIDUAL_WORLD_SCHEMA_VERSION =
-  'holoscript.n4-residual-world-loop.v0.1.0' as const;
+export const N4_RESIDUAL_WORLD_SCHEMA_VERSION = 'holoscript.n4-residual-world-loop.v0.1.0' as const;
 export const N4_METRIC_CONTRACT_SHA256 =
   'a4451c1378e705b354261e0f12172288fabdb1f4d26a7f946e096a0bbb516663' as const;
 export const N4_DT = 0.1;
 export const N4_LONG_HORIZON = 24;
 export const N4_TRAIN_SEEDS = Object.freeze(Array.from({ length: 64 }, (_, index) => 4100 + index));
 export const N4_OOD_SEEDS = Object.freeze(Array.from({ length: 64 }, (_, index) => 9100 + index));
-export const N4_PLANNING_SEEDS = Object.freeze(Array.from({ length: 32 }, (_, index) => 15000 + index));
+export const N4_PLANNING_SEEDS = Object.freeze(
+  Array.from({ length: 32 }, (_, index) => 15000 + index)
+);
 export const N4_BOOTSTRAP_SEEDS = Object.freeze(
   Array.from({ length: 8 }, (_, index) => 12001 + index)
 );
@@ -295,7 +296,10 @@ function range(random: () => number, min: number, max: number): number {
   return min + (max - min) * random();
 }
 
-function eventSummary(scene: N4WorldScene, objectId: string): {
+function eventSummary(
+  scene: N4WorldScene,
+  objectId: string
+): {
   gust: N4Vec2;
   contact: boolean;
 } {
@@ -321,19 +325,12 @@ function sceneMeans(scene: N4WorldScene): { mass: number; drag: number } {
   };
 }
 
-function replaceDynamics(
-  object: N4Object2D,
-  position: N4Vec2,
-  velocity: N4Vec2
-): N4Object2D {
+function replaceDynamics(object: N4Object2D, position: N4Vec2, velocity: N4Vec2): N4Object2D {
   return { ...object, position, velocity };
 }
 
 /** Exact authored kinematics. Learned code cannot replace this function. */
-export function stepN4Exact(
-  scene: N4WorldScene,
-  action: N4Vec2
-): N4WorldScene {
+export function stepN4Exact(scene: N4WorldScene, action: N4Vec2): N4WorldScene {
   const objects = scene.objects.map((object) => {
     const velocity = {
       x: object.velocity.x + action.x * N4_DT,
@@ -348,33 +345,25 @@ export function stepN4Exact(
   return { ...scene, step: scene.step + 1, objects };
 }
 
-function directResidualVelocity(
-  scene: N4WorldScene,
-  object: N4Object2D
-): N4Vec2 {
+function directResidualVelocity(scene: N4WorldScene, object: N4Object2D): N4Vec2 {
   const events = eventSummary(scene, object.id);
   const dragCoefficient = object.kind === 'orb' ? 0.9 : 1.3;
   const contactCoefficient = object.kind === 'orb' ? 0.32 : 0.48;
   const contactScale = events.contact ? object.latentContactScale : 0;
   return {
     x:
-      (-dragCoefficient * object.dragPerSecond * object.velocity.x * N4_DT) /
-        object.massKg +
+      (-dragCoefficient * object.dragPerSecond * object.velocity.x * N4_DT) / object.massKg +
       (0.34 * events.gust.x) / object.massKg -
       contactCoefficient * contactScale * object.velocity.x,
     y:
-      (-dragCoefficient * object.dragPerSecond * object.velocity.y * N4_DT) /
-        object.massKg +
+      (-dragCoefficient * object.dragPerSecond * object.velocity.y * N4_DT) / object.massKg +
       (0.34 * events.gust.y) / object.massKg -
       contactCoefficient * contactScale * object.velocity.y,
   };
 }
 
 /** Independent environment truth: exact plane plus only declared residual families. */
-export function stepN4Truth(
-  scene: N4WorldScene,
-  action: N4Vec2
-): N4WorldScene {
+export function stepN4Truth(scene: N4WorldScene, action: N4Vec2): N4WorldScene {
   const exact = stepN4Exact(scene, action);
   const objects = scene.objects.map((object, index) => {
     const residual = directResidualVelocity(scene, object);
@@ -394,10 +383,7 @@ export function stepN4Truth(
   return { ...exact, objects };
 }
 
-export function generateN4Scene(
-  seed: number,
-  split: N4WorldScene['split']
-): N4WorldScene {
+export function generateN4Scene(seed: number, split: N4WorldScene['split']): N4WorldScene {
   const random = mulberry32(seed);
   const isTrain = split === 'train';
   const objectCount = isTrain ? 2 + (seed % 2) : 4 + (seed % 3);
@@ -422,9 +408,7 @@ export function generateN4Scene(
   };
   const contact: N4WorldEvent = {
     type: 'contact',
-    objectIds: objects
-      .filter((_, index) => (index + seed) % 2 === 0)
-      .map((object) => object.id),
+    objectIds: objects.filter((_, index) => (index + seed) % 2 === 0).map((object) => object.id),
   };
   let events: readonly N4WorldEvent[];
   if (!isTrain) events = [gust, contact];
@@ -460,10 +444,7 @@ function typedFeatures(scene: N4WorldScene, object: N4Object2D): number[] {
 }
 
 /** Compiler-typed feature projection carried unchanged into CPU/WASM/WebGPU. */
-export function projectN4TypedFeatures(
-  scene: N4WorldScene,
-  object: N4Object2D
-): readonly number[] {
+export function projectN4TypedFeatures(scene: N4WorldScene, object: N4Object2D): readonly number[] {
   return typedFeatures(scene, object).map(f32);
 }
 
@@ -558,16 +539,23 @@ function fitRidge(
   for (const row of rows) {
     const x = feature(row);
     const y = target(row);
-    if (x.length !== featureCount || y.length !== outputCount) throw new Error('model shape mismatch');
+    if (x.length !== featureCount || y.length !== outputCount)
+      throw new Error('model shape mismatch');
     for (let left = 0; left < featureCount; left += 1) {
-      for (let right = 0; right < featureCount; right += 1) xtx[left]![right]! += x[left]! * x[right]!;
+      for (let right = 0; right < featureCount; right += 1)
+        xtx[left]![right]! += x[left]! * x[right]!;
       for (let output = 0; output < outputCount; output += 1) {
         xty[output]![left]! += x[left]! * y[output]!;
       }
     }
   }
   for (let index = 1; index < featureCount; index += 1) xtx[index]![index]! += 1e-5;
-  const weights = xty.flatMap((rhs) => solveLinear(xtx.map((row) => [...row]), rhs));
+  const weights = xty.flatMap((rhs) =>
+    solveLinear(
+      xtx.map((row) => [...row]),
+      rhs
+    )
+  );
   const withoutDigest = {
     kind: 'ridge-linear' as const,
     featureNames: [...featureNames],
@@ -594,19 +582,11 @@ function infer(model: N4LinearModel, features: readonly number[]): number[] {
 }
 
 function residualTarget(row: TrainingRow): number[] {
-  return [
-    row.truth.velocity.x - row.exact.velocity.x,
-    row.truth.velocity.y - row.exact.velocity.y,
-  ];
+  return [row.truth.velocity.x - row.exact.velocity.x, row.truth.velocity.y - row.exact.velocity.y];
 }
 
 function fullTarget(row: TrainingRow): number[] {
-  return [
-    row.truth.position.x,
-    row.truth.position.y,
-    row.truth.velocity.x,
-    row.truth.velocity.y,
-  ];
+  return [row.truth.position.x, row.truth.position.y, row.truth.velocity.x, row.truth.velocity.y];
 }
 
 function bootstrapRows(rows: readonly TrainingRow[], seed: number): TrainingRow[] {
@@ -683,9 +663,7 @@ export function compileN4ResidualWorldSource(source: string): N4SourceContract {
   return { ...withoutDigest, deterministicDigest: hsiSha256(withoutDigest) };
 }
 
-export function trainN4Models(
-  trainScenes: readonly N4WorldScene[]
-): N4ModelSet {
+export function trainN4Models(trainScenes: readonly N4WorldScene[]): N4ModelSet {
   const rows = trainingRows(trainScenes);
   const learnedOnly = fitRidge(
     rows,
@@ -793,8 +771,7 @@ export function predictN4Scene(
     }
     return { id: object.id, next, residualVelocity: residual, standardDeviation };
   });
-  const residualTargets =
-    arm.startsWith('exact-plus-') ? [...N4_RESIDUAL_TARGETS] : [];
+  const residualTargets = arm.startsWith('exact-plus-') ? [...N4_RESIDUAL_TARGETS] : [];
   const withoutDigest = {
     arm,
     sourceDigest: contract.sourceDigest,
@@ -904,11 +881,7 @@ function rolloutPrediction(
   return { scene: current, uncertainty };
 }
 
-function evaluatePlanning(
-  contract: N4SourceContract,
-  models: N4ModelSet,
-  arm: N4Arm
-): number {
+function evaluatePlanning(contract: N4SourceContract, models: N4ModelSet, arm: N4Arm): number {
   let successes = 0;
   for (const seed of N4_PLANNING_SEEDS) {
     const scene = generateN4Scene(seed, 'planning');
@@ -937,11 +910,7 @@ function evaluatePlanning(
   return successes / N4_PLANNING_SEEDS.length;
 }
 
-function evaluateCalibration(
-  contract: N4SourceContract,
-  models: N4ModelSet,
-  arm: N4Arm
-): number {
+function evaluateCalibration(contract: N4SourceContract, models: N4ModelSet, arm: N4Arm): number {
   if (arm !== 'exact-plus-typed-residual-uncertainty') return 1;
   let within = 0;
   let total = 0;
@@ -953,8 +922,10 @@ function evaluateCalibration(
     for (let index = 0; index < prediction.objects.length; index += 1) {
       const estimate = prediction.objects[index]!;
       const actual = truth.objects[index]!;
-      if (Math.abs(estimate.next.velocity.x - actual.velocity.x) <= estimate.standardDeviation.x) within += 1;
-      if (Math.abs(estimate.next.velocity.y - actual.velocity.y) <= estimate.standardDeviation.y) within += 1;
+      if (Math.abs(estimate.next.velocity.x - actual.velocity.x) <= estimate.standardDeviation.x)
+        within += 1;
+      if (Math.abs(estimate.next.velocity.y - actual.velocity.y) <= estimate.standardDeviation.y)
+        within += 1;
       total += 2;
     }
   }
@@ -970,12 +941,14 @@ export function verifyN4Prediction(
   if (
     prediction.sourceDigest !== contract.sourceDigest ||
     prediction.graphDigest !== contract.learningGraph.deterministicDigest
-  ) return false;
+  )
+    return false;
   if (
     prediction.residualTargets.some(
       (target) => !(N4_RESIDUAL_TARGETS as readonly string[]).includes(target)
     )
-  ) return false;
+  )
+    return false;
   if (prediction.objects.length !== before.objects.length) return false;
   const exact = stepN4Exact(before, action);
   for (let index = 0; index < prediction.objects.length; index += 1) {
@@ -993,29 +966,31 @@ export function verifyN4Prediction(
     if (prediction.arm.startsWith('exact-plus-')) {
       if (
         Math.abs(
-          object.next.position.x -
-            (exactObject.position.x + object.residualVelocity.x * N4_DT)
+          object.next.position.x - (exactObject.position.x + object.residualVelocity.x * N4_DT)
         ) > 1e-5 ||
         Math.abs(
-          object.next.position.y -
-            (exactObject.position.y + object.residualVelocity.y * N4_DT)
+          object.next.position.y - (exactObject.position.y + object.residualVelocity.y * N4_DT)
         ) > 1e-5
-      ) return false;
+      )
+        return false;
     }
   }
   return true;
 }
 
-function evaluateVerifier(
-  contract: N4SourceContract,
-  models: N4ModelSet,
-  arm: N4Arm
-): number {
+function evaluateVerifier(contract: N4SourceContract, models: N4ModelSet, arm: N4Arm): number {
   let disagreements = 0;
   for (const seed of N4_OOD_SEEDS) {
     const scene = generateN4Scene(seed, 'ood');
     const action = actionForTraining(seed);
-    if (!verifyN4Prediction(contract, predictN4Scene(contract, models, arm, scene, action), scene, action)) {
+    if (
+      !verifyN4Prediction(
+        contract,
+        predictN4Scene(contract, models, arm, scene, action),
+        scene,
+        action
+      )
+    ) {
       disagreements += 1;
     }
   }
@@ -1069,29 +1044,33 @@ export function buildN4WeightsManifest(
   models: N4ModelSet
 ): N4WeightsManifest {
   const model = meanTypedModel(models);
-  const typeTensor = contract.learningGraph.nodes.flatMap((node) => [
-    node.nodeType === 'state' ? 1 : 0,
-    node.nodeType === 'action' ? 1 : 0,
-    node.nodeType === 'event' ? 1 : 0,
-  ]).map(f32);
+  const typeTensor = contract.learningGraph.nodes
+    .flatMap((node) => [
+      node.nodeType === 'state' ? 1 : 0,
+      node.nodeType === 'action' ? 1 : 0,
+      node.nodeType === 'event' ? 1 : 0,
+    ])
+    .map(f32);
   const featureSchemaDigest = hsiSha256({
     featureNames: model.featureNames,
     residualTargets: N4_RESIDUAL_TARGETS,
     actionVocabulary: contract.actionVocabulary,
   });
-  const tensorChecksum = fnv1a64(JSON.stringify({
-    sourceDigest: contract.sourceDigest,
-    irDigest: contract.ir.provenance.deterministicDigest,
-    graphDigest: contract.learningGraph.deterministicDigest,
-    modelDigest: model.deterministicDigest,
-    featureSchemaDigest,
-    featureNames: model.featureNames,
-    outputNames: model.outputNames,
-    weightTensor: model.weights,
-    weightShape: model.shape,
-    typeTensor,
-    typeShape: [contract.learningGraph.nodes.length, 3],
-  }));
+  const tensorChecksum = fnv1a64(
+    JSON.stringify({
+      sourceDigest: contract.sourceDigest,
+      irDigest: contract.ir.provenance.deterministicDigest,
+      graphDigest: contract.learningGraph.deterministicDigest,
+      modelDigest: model.deterministicDigest,
+      featureSchemaDigest,
+      featureNames: model.featureNames,
+      outputNames: model.outputNames,
+      weightTensor: model.weights,
+      weightShape: model.shape,
+      typeTensor,
+      typeShape: [contract.learningGraph.nodes.length, 3],
+    })
+  );
   const withoutDigest = {
     sourceDigest: contract.sourceDigest,
     irDigest: contract.ir.provenance.deterministicDigest,
@@ -1188,9 +1167,7 @@ export function verifyN4TypedMove(action: N4TypedMoveAction): boolean {
     action.confidence < 0 ||
     action.confidence > 1 ||
     action.residualScope.length !== N4_RESIDUAL_TARGETS.length ||
-    !action.residualScope.every(
-      (target, index) => target === N4_RESIDUAL_TARGETS[index]
-    ) ||
+    !action.residualScope.every((target, index) => target === N4_RESIDUAL_TARGETS[index]) ||
     !action.sourceDigest.startsWith('sha256:') ||
     !action.graphDigest.startsWith('sha256:') ||
     !action.modelDigest.startsWith('sha256:')
@@ -1224,7 +1201,10 @@ function admission(metrics: readonly N4ArmMetrics[]): {
   if (winner.oodOneStepRmse > 0.8 * Math.min(exact.oodOneStepRmse, learned.oodOneStepRmse)) {
     failed.push('ood-one-step-ratio');
   }
-  if (winner.oodLongHorizonRmse > 0.85 * Math.min(exact.oodLongHorizonRmse, learned.oodLongHorizonRmse)) {
+  if (
+    winner.oodLongHorizonRmse >
+    0.85 * Math.min(exact.oodLongHorizonRmse, learned.oodLongHorizonRmse)
+  ) {
     failed.push('ood-long-horizon-ratio');
   }
   if (winner.planningSuccess < Math.max(exact.planningSuccess, learned.planningSuccess) + 0.1) {
@@ -1236,12 +1216,14 @@ function admission(metrics: readonly N4ArmMetrics[]): {
     learned.sampleEfficiency === null
       ? winner.sampleEfficiency > 32
       : winner.sampleEfficiency > learned.sampleEfficiency / 2
-  ) failed.push('sample-efficiency');
+  )
+    failed.push('sample-efficiency');
   if (winner.verifierDisagreementRate !== 0) failed.push('verifier-disagreement');
   if (
     typed.oodOneStepRmse >= untyped.oodOneStepRmse ||
     typed.oodLongHorizonRmse >= untyped.oodLongHorizonRmse
-  ) failed.push('typed-factorization');
+  )
+    failed.push('typed-factorization');
   return { admitted: failed.length === 0, failedGates: failed };
 }
 

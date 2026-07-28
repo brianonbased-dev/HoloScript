@@ -109,7 +109,7 @@ describe('Non-Riemannian perceptual distance E = f(g)', () => {
     expect(perceptualDistance(a, a)).toBeCloseTo(0, 10);
   });
 
-  it('reduces to ΔE2000 as the step shrinks (f\'(0)=1, local-metric consistency)', () => {
+  it("reduces to ΔE2000 as the step shrinks (f'(0)=1, local-metric consistency)", () => {
     const base: SRGB = [0.5, 0.5, 0.5];
     const tiny: SRGB = [0.5006, 0.5, 0.5];
     const small: SRGB = [0.55, 0.5, 0.5];
@@ -215,11 +215,9 @@ describe('DeltaE2000 metric tensor + geodesic relaxation (Pant/Farup D-fit)', ()
 describe('LANL achromatic gray-axis reference fit', () => {
   it('records the upstream LANL data identity and compact aggregate schema', () => {
     expect(LANL_GRAY_ACHROMATIC_SOURCE.path).toBe(
-      'Gray_Experiment/data/gray_complete_data_release.csv',
+      'Gray_Experiment/data/gray_complete_data_release.csv'
     );
-    expect(LANL_GRAY_ACHROMATIC_SOURCE.sha).toBe(
-      '37fe92222edd4e081ed142ce3d7ca7ed40b6e4dc',
-    );
+    expect(LANL_GRAY_ACHROMATIC_SOURCE.sha).toBe('37fe92222edd4e081ed142ce3d7ca7ed40b6e4dc');
     expect(LANL_GRAY_ACHROMATIC_AGGREGATES).toHaveLength(42);
     expect(LANL_GRAY_ACHROMATIC_AGGREGATES[0]).toMatchObject({
       Ls: 30,
@@ -233,12 +231,8 @@ describe('LANL achromatic gray-axis reference fit', () => {
   it('mirrors the LANL pnorm(m2 - m1) response semantics', () => {
     const closerT2 = { Ls: 30, Lt1: 15, Lt2: 35, count: 287, choseT2: 37 };
     const fartherT2 = { Ls: 30, Lt1: 25, Lt2: 45, count: 249, choseT2: 166 };
-    expect(lanlGrayChoiceProbability(closerT2, { dampening: 15, noise: 10 })).toBeLessThan(
-      0.5,
-    );
-    expect(lanlGrayChoiceProbability(fartherT2, { dampening: 15, noise: 10 })).toBeGreaterThan(
-      0.5,
-    );
+    expect(lanlGrayChoiceProbability(closerT2, { dampening: 15, noise: 10 })).toBeLessThan(0.5);
+    expect(lanlGrayChoiceProbability(fartherT2, { dampening: 15, noise: 10 })).toBeGreaterThan(0.5);
   });
 
   it('fits finite non-Riemannian dampening better than the additive baseline', () => {
@@ -257,7 +251,7 @@ describe('LANL achromatic gray-axis reference fit', () => {
     expect(fit.meanAccuracy).toBeGreaterThan(0.9);
     expect(lanlGrayNegativeLogLikelihood(LANL_GRAY_ACHROMATIC_AGGREGATES, fit)).toBeCloseTo(
       fit.negativeLogLikelihood,
-      8,
+      8
     );
   });
 });

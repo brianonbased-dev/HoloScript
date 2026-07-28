@@ -61,9 +61,10 @@ function composition(): HoloComposition {
 
 describe('FMUCompiler', () => {
   it('emits an FMI 3.0 source bundle with CAEL coupling provenance', () => {
-    const result = new FMUCompiler({ mode: 'both', modelIdentifier: 'PumpLoopFMU' }).compileToBundle(
-      composition()
-    );
+    const result = new FMUCompiler({
+      mode: 'both',
+      modelIdentifier: 'PumpLoopFMU',
+    }).compileToBundle(composition());
 
     expect(result.kind).toBe('holoscript-fmi3-source-bundle');
     expect(result.files['modelDescription.xml']).toContain('fmiVersion="3.0"');
@@ -123,8 +124,16 @@ describe('FMUCompiler', () => {
     } as any;
 
     fmuHandler.onAttach?.(node, config, context);
-    fmuHandler.onEvent?.(node, config, context, { type: 'fmu:set_input', name: 'rpm', value: 1200 } as any);
-    fmuHandler.onEvent?.(node, config, context, { type: 'fmu:set_output', name: 'flow', value: 0.42 } as any);
+    fmuHandler.onEvent?.(node, config, context, {
+      type: 'fmu:set_input',
+      name: 'rpm',
+      value: 1200,
+    } as any);
+    fmuHandler.onEvent?.(node, config, context, {
+      type: 'fmu:set_output',
+      name: 'flow',
+      value: 0.42,
+    } as any);
     fmuHandler.onUpdate?.(node, config, context, 0.02);
 
     const state = getFMUState(node);

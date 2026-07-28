@@ -57,7 +57,8 @@ async function getDevice(): Promise<GPUDevice | null> {
       g.navigator.gpu = gpu;
       const target = globalThis as unknown as Record<string, unknown>;
       for (const [k, v] of Object.entries(globals)) {
-        if (target[k] == null) Object.defineProperty(globalThis, k, { value: v, writable: true, configurable: true });
+        if (target[k] == null)
+          Object.defineProperty(globalThis, k, { value: v, writable: true, configurable: true });
       }
     } catch {
       cachedDevice = null;
@@ -70,7 +71,12 @@ async function getDevice(): Promise<GPUDevice | null> {
     return null;
   }
   const info = (adapter as unknown as { info?: AdapterInfo }).info ?? {};
-  capturedAdapterInfo = { vendor: info.vendor, architecture: info.architecture, device: info.device, description: info.description };
+  capturedAdapterInfo = {
+    vendor: info.vendor,
+    architecture: info.architecture,
+    device: info.device,
+    description: info.description,
+  };
   cachedDevice = await adapter.requestDevice();
   return cachedDevice;
 }
@@ -132,7 +138,8 @@ function refLayerNorm(
     }
     v /= dModel;
     const inv = 1 / Math.sqrt(v + eps);
-    for (let c = 0; c < dModel; c++) out[r * dModel + c] = (input[r * dModel + c] - mean) * inv * gamma[c] + beta[c];
+    for (let c = 0; c < dModel; c++)
+      out[r * dModel + c] = (input[r * dModel + c] - mean) * inv * gamma[c] + beta[c];
   }
   return out;
 }
@@ -155,7 +162,11 @@ function refSoftmax(input: Float32Array, rows: number, cols: number): Float64Arr
 
 function erfAS(x: number): number {
   const t = 1 / (1 + 0.3275911 * Math.abs(x));
-  const y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t) * Math.exp(-x * x);
+  const y =
+    1 -
+    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) *
+      t *
+      Math.exp(-x * x);
   return x >= 0 ? y : -y;
 }
 
@@ -244,7 +255,11 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
     console.warn(
       `[holotorch-parity]   layernorm [${rows}x${dModel}] relToScale=${cmp.relToScale.toExponential(2)} maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
     );
-    writeParityReceipt('layernorm', { dims: { rows, dModel, eps }, ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
+    writeParityReceipt('layernorm', {
+      dims: { rows, dModel, eps },
+      ...cmp,
+      verdict: cmp.allClose ? 'pass' : 'fail',
+    });
     expect(cmp.allClose).toBe(true);
   }, 120000);
 
@@ -274,7 +289,12 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
       console.warn(
         `[holotorch-parity]   softmax-${tag} [${rows}x${cols}] relToScale=${cmp.relToScale.toExponential(2)} maxAbs=${cmp.maxAbs.toExponential(2)} sumErr=${maxSumErr.toExponential(2)} allClose=${cmp.allClose}`
       );
-      writeParityReceipt(`softmax-${tag}`, { dims: { rows, cols }, ...cmp, maxSumErr, verdict: cmp.allClose ? 'pass' : 'fail' });
+      writeParityReceipt(`softmax-${tag}`, {
+        dims: { rows, cols },
+        ...cmp,
+        maxSumErr,
+        verdict: cmp.allClose ? 'pass' : 'fail',
+      });
       expect(cmp.allClose).toBe(true);
       expect(maxSumErr).toBeLessThan(1e-4);
     }
@@ -299,7 +319,12 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
       console.warn(
         `[holotorch-parity]   gelu-${form} [n=${n}] relToScale=${cmp.relToScale.toExponential(2)} maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
       );
-      writeParityReceipt(`gelu-${form}`, { n, form, ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
+      writeParityReceipt(`gelu-${form}`, {
+        n,
+        form,
+        ...cmp,
+        verdict: cmp.allClose ? 'pass' : 'fail',
+      });
       expect(cmp.allClose).toBe(true);
     }
   }, 120000);
@@ -350,7 +375,9 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
             maxT0Err = Math.max(maxT0Err, Math.abs(o - v0));
           }
         }
-        console.warn(`[holotorch-parity]   fused-mha causal token-0 invariant maxErr=${maxT0Err.toExponential(2)}`);
+        console.warn(
+          `[holotorch-parity]   fused-mha causal token-0 invariant maxErr=${maxT0Err.toExponential(2)}`
+        );
         expect(maxT0Err).toBeLessThan(1e-5);
       }
     }
@@ -373,12 +400,17 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
 
     const got = await kernel.run(input, bias, rows, cols);
     const ref = new Float64Array(rows * cols);
-    for (let m = 0; m < rows; m++) for (let n = 0; n < cols; n++) ref[m * cols + n] = input[m * cols + n] + bias[n];
+    for (let m = 0; m < rows; m++)
+      for (let n = 0; n < cols; n++) ref[m * cols + n] = input[m * cols + n] + bias[n];
     const cmp = compareAllClose(got, ref, 1e-5, 1e-4);
     console.warn(
       `[holotorch-parity]   bias-add [${rows}x${cols}] maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
     );
-    writeParityReceipt('bias-add', { dims: { rows, cols }, ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
+    writeParityReceipt('bias-add', {
+      dims: { rows, cols },
+      ...cmp,
+      verdict: cmp.allClose ? 'pass' : 'fail',
+    });
     expect(cmp.allClose).toBe(true);
   }, 120000);
 
@@ -403,13 +435,18 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
     const got = await kernel.run(ids, wte, wpe, seqLen, dModel, vocab);
     const ref = new Float64Array(seqLen * dModel);
     for (let t = 0; t < seqLen; t++) {
-      for (let d = 0; d < dModel; d++) ref[t * dModel + d] = wte[ids[t] * dModel + d] + wpe[t * dModel + d];
+      for (let d = 0; d < dModel; d++)
+        ref[t * dModel + d] = wte[ids[t] * dModel + d] + wpe[t * dModel + d];
     }
     const cmp = compareAllClose(got, ref, 1e-5, 1e-4);
     console.warn(
       `[holotorch-parity]   embed-gather [T${seqLen} d${dModel} v${vocab}] maxAbs=${cmp.maxAbs.toExponential(2)} allClose=${cmp.allClose}`
     );
-    writeParityReceipt('embed-gather', { dims: { seqLen, dModel, vocab }, ...cmp, verdict: cmp.allClose ? 'pass' : 'fail' });
+    writeParityReceipt('embed-gather', {
+      dims: { seqLen, dModel, vocab },
+      ...cmp,
+      verdict: cmp.allClose ? 'pass' : 'fail',
+    });
     expect(cmp.allClose).toBe(true);
   }, 120000);
 });

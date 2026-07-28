@@ -16,7 +16,8 @@ const obj = (
   name: string,
   props: Array<{ key: string; value: unknown }>,
   traits: Array<{ name: string; config?: Record<string, unknown> }> = []
-): HoloObjectDecl => ({ type: 'Object', name, properties: props, traits }) as unknown as HoloObjectDecl;
+): HoloObjectDecl =>
+  ({ type: 'Object', name, properties: props, traits }) as unknown as HoloObjectDecl;
 const comp = (objects: HoloObjectDecl[]): HoloComposition =>
   ({ type: 'HoloComposition', name: 'M', objects }) as HoloComposition;
 
@@ -62,14 +63,22 @@ describe('material-registry — the reality of matter as data (D.125)', () => {
 
   it('exposes the material vocabulary for gates/benchmarks', () => {
     const names = materialNames();
-    expect(names).toEqual(expect.arrayContaining(['rubber', 'steel', 'plastic', 'wood', 'glass', 'clay']));
+    expect(names).toEqual(
+      expect.arrayContaining(['rubber', 'steel', 'plastic', 'wood', 'glass', 'clay'])
+    );
   });
 });
 
 describe('ComputePhysicsCompiler — material drives physics + surface (D.125)', () => {
   it('a rubber sphere gets rubber restitution/friction + mass from density, not bare floats', () => {
     const rs = new ComputePhysicsCompiler({ steps: 0 }).compile(
-      comp([obj('Ball', [prop('mesh', 'sphere'), prop('position', [0, 5, 0]), prop('material', 'rubber')], [{ name: 'rigid_body' }])])
+      comp([
+        obj(
+          'Ball',
+          [prop('mesh', 'sphere'), prop('position', [0, 5, 0]), prop('material', 'rubber')],
+          [{ name: 'rigid_body' }]
+        ),
+      ])
     );
     // rubber restitution 0.85, friction 0.9 flow into the body params.
     expect(rs).toContain('params: [0.85, 0.9, 0.0, 0.0]');
@@ -80,7 +89,13 @@ describe('ComputePhysicsCompiler — material drives physics + surface (D.125)',
 
   it('an explicit restitution overrides the material (the "unless explicitly designed" clause)', () => {
     const rs = new ComputePhysicsCompiler({ steps: 0 }).compile(
-      comp([obj('Ball', [prop('mesh', 'sphere'), prop('material', 'rubber')], [{ name: 'rigid_body', config: { restitution: 0.1 } }])])
+      comp([
+        obj(
+          'Ball',
+          [prop('mesh', 'sphere'), prop('material', 'rubber')],
+          [{ name: 'rigid_body', config: { restitution: 0.1 } }]
+        ),
+      ])
     );
     expect(rs).toContain('params: [0.1, 0.9, 0.0, 0.0]'); // restitution overridden, friction still rubber
   });

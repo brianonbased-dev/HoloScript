@@ -221,9 +221,8 @@ export class OpenAPICompiler extends CompilerBase {
     }
 
     const title = this.options.title || composition.name || 'HoloScript API';
-    const paths = endpointNodes.length > 0
-      ? this.buildPaths(endpointNodes)
-      : this.buildFallbackPaths();
+    const paths =
+      endpointNodes.length > 0 ? this.buildPaths(endpointNodes) : this.buildFallbackPaths();
 
     const spec: OpenAPISpec = {
       openapi: '3.1.0',
@@ -244,9 +243,10 @@ export class OpenAPICompiler extends CompilerBase {
       if (hasSecuritySchemes) spec.components.securitySchemes = this.securitySchemes;
     }
 
-    const specString = this.options.format === 'json'
-      ? JSON.stringify(spec, null, this.options.pretty ? 2 : 0)
-      : this.specToYaml(spec);
+    const specString =
+      this.options.format === 'json'
+        ? JSON.stringify(spec, null, this.options.pretty ? 2 : 0)
+        : this.specToYaml(spec);
 
     return this.buildResult(specString, endpointNodes.length);
   }
@@ -264,11 +264,7 @@ export class OpenAPICompiler extends CompilerBase {
       }
       if (!node || typeof node !== 'object') return;
       const record = node as Record<string, unknown>;
-      if (
-        this.isObjectDecl(record) &&
-        this.nodeHasAnyEndpointTrait(record) &&
-        !seen.has(record)
-      ) {
+      if (this.isObjectDecl(record) && this.nodeHasAnyEndpointTrait(record) && !seen.has(record)) {
         matched.push(record);
         seen.add(record);
       }
@@ -467,7 +463,12 @@ export class OpenAPICompiler extends CompilerBase {
       const schema: OpenAPISchema = { type: 'object' };
       // If config contains a 'properties' key, attempt to extract it
       const propsRaw = config['properties'];
-      if (propsRaw && typeof propsRaw === 'object' && !Array.isArray(propsRaw) && !('__bind' in propsRaw)) {
+      if (
+        propsRaw &&
+        typeof propsRaw === 'object' &&
+        !Array.isArray(propsRaw) &&
+        !('__bind' in propsRaw)
+      ) {
         schema.properties = {};
         for (const [k, v] of Object.entries(propsRaw)) {
           schema.properties[k] = { type: typeof v === 'string' ? v : 'string' };
@@ -641,7 +642,10 @@ export class OpenAPICompiler extends CompilerBase {
 
   private valueToString(value: HoloValue | undefined, fallback: string): string;
   private valueToString(value: HoloValue | undefined, fallback: undefined): string | undefined;
-  private valueToString(value: HoloValue | undefined, fallback: string | undefined): string | undefined {
+  private valueToString(
+    value: HoloValue | undefined,
+    fallback: string | undefined
+  ): string | undefined {
     if (typeof value === 'string') return value;
     if (typeof value === 'number' || typeof value === 'boolean') return String(value);
     return fallback;

@@ -81,15 +81,19 @@ describe('.holo IR — agent anchoring', () => {
       }
     `);
     expect(result.success).toBe(true);
-    const graph = SemanticSceneGraph.generateObject(result.ast as unknown as HoloComposition) as Record<
-      string,
-      unknown
-    >;
+    const graph = SemanticSceneGraph.generateObject(
+      result.ast as unknown as HoloComposition
+    ) as Record<string, unknown>;
     const npcs = graph['hs:npcs'] as Array<Record<string, unknown>>;
     expect(npcs).toHaveLength(1);
     const node = npcs[0];
 
-    expect(node['hs:locatedAt']).toMatchObject({ '@type': 'hs:Position', 'hs:x': 4, 'hs:y': 0, 'hs:z': 7 });
+    expect(node['hs:locatedAt']).toMatchObject({
+      '@type': 'hs:Position',
+      'hs:x': 4,
+      'hs:y': 0,
+      'hs:z': 7,
+    });
     expect(node['hs:hasAgency']).toBe(true);
     const brain = node['hs:brain'] as Record<string, unknown>;
     expect(brain['hs:brainType']).toBe('llm');
@@ -105,10 +109,9 @@ describe('.holo IR — agent anchoring', () => {
         }
       }
     `);
-    const graph = SemanticSceneGraph.generateObject(result.ast as unknown as HoloComposition) as Record<
-      string,
-      unknown
-    >;
+    const graph = SemanticSceneGraph.generateObject(
+      result.ast as unknown as HoloComposition
+    ) as Record<string, unknown>;
     const node = (graph['hs:npcs'] as Array<Record<string, unknown>>)[0];
     expect(node['hs:hasAgency']).toBeUndefined();
     expect(node['hs:brain']).toBeUndefined();

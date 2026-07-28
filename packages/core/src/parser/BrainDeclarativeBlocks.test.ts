@@ -14,7 +14,13 @@ describe('HoloScriptPlusParser — @safe_daemon desugar', () => {
     expect(result.success).toBe(true);
     const traits = (result.ast.root as unknown as { traits: Map<string, unknown> }).traits;
     expect(traits.has('safe_daemon')).toBe(false); // desugared away
-    for (const t of ['rate_limiter', 'circuit_breaker', 'timeout_guard', 'economy', 'structured_logger']) {
+    for (const t of [
+      'rate_limiter',
+      'circuit_breaker',
+      'timeout_guard',
+      'economy',
+      'structured_logger',
+    ]) {
       expect(traits.has(t)).toBe(true);
     }
     // Default economy balance
@@ -100,7 +106,11 @@ describe('HoloScriptPlusParser — declarative @goal / @escalation / @provider_p
         state idle {}
       }
     `);
-    expect(brain.providerPolicy).toEqual({ prefer: 'sovereign', fallback: 'anthropic', requires: 'vision' });
+    expect(brain.providerPolicy).toEqual({
+      prefer: 'sovereign',
+      fallback: 'anthropic',
+      requires: 'vision',
+    });
   });
 });
 
@@ -116,9 +126,11 @@ describe('HoloScriptPlusParser — cognitive verb typo signal', () => {
       }
     `);
     expect(result.success).toBe(true); // warning-only, never a hard error
-    expect(result.warnings.some((w) => String((w as { message?: string }).message ?? '').includes('recall'))).toBe(
-      true
-    );
+    expect(
+      result.warnings.some((w) =>
+        String((w as { message?: string }).message ?? '').includes('recall')
+      )
+    ).toBe(true);
   });
 
   it('does NOT warn on a legitimate free-form action that is not verb-like', () => {
@@ -129,8 +141,10 @@ describe('HoloScriptPlusParser — cognitive verb typo signal', () => {
         }
       }
     `);
-    expect(result.warnings.some((w) => String((w as { message?: string }).message ?? '').includes('did you mean'))).toBe(
-      false
-    );
+    expect(
+      result.warnings.some((w) =>
+        String((w as { message?: string }).message ?? '').includes('did you mean')
+      )
+    ).toBe(false);
   });
 });

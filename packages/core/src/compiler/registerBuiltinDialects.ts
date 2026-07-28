@@ -288,7 +288,14 @@ export function registerBuiltinDialects(): void {
       name: 'mjx',
       domain: 'robotics',
       description: 'Compiles to a MuJoCo MJX (JAX) differentiable-physics training env (Python)',
-      supportedTraits: ['joint', 'actuator', 'sensor', 'collider', 'physics', 'differentiable_physics'],
+      supportedTraits: [
+        'joint',
+        'actuator',
+        'sensor',
+        'collider',
+        'physics',
+        'differentiable_physics',
+      ],
       riskTier: 'standard',
       factory: (opts) => {
         const { MJXCompiler } = require('./MJXCompiler');
@@ -301,7 +308,14 @@ export function registerBuiltinDialects(): void {
       domain: 'robotics',
       description:
         'Compiles to an embodied-AI dataset generator (Python) producing N sim episodes as RLDS | LeRobot | HDF5',
-      supportedTraits: ['joint', 'actuator', 'sensor', 'collider', 'physics', 'sim_to_real_dataset'],
+      supportedTraits: [
+        'joint',
+        'actuator',
+        'sensor',
+        'collider',
+        'physics',
+        'sim_to_real_dataset',
+      ],
       riskTier: 'standard',
       factory: (opts) => {
         const { EmbodiedDatasetCompiler } = require('./EmbodiedDatasetCompiler');
@@ -362,7 +376,8 @@ export function registerBuiltinDialects(): void {
     {
       name: 'omnigent-agent-yaml',
       domain: 'ai',
-      description: 'Exports HoloScript agent compositions as Omnigent agent YAML plus projection receipt',
+      description:
+        'Exports HoloScript agent compositions as Omnigent agent YAML plus projection receipt',
       supportedTraits: ['agent', 'model', 'system_prompt', 'tool', 'mcp', 'policy', 'runtime'],
       riskTier: 'high',
       factory: (opts) => {

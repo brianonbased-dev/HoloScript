@@ -2347,8 +2347,7 @@ export class SceneIRCompiler {
             } as R3FNode;
           },
           procedural: (block) =>
-            this.compileProceduralScatterNode(block) ??
-            this.createNode('Group', {}, block.name),
+            this.compileProceduralScatterNode(block) ?? this.createNode('Group', {}, block.name),
         }
       );
       if (!root.children) root.children = [];
@@ -2507,11 +2506,9 @@ export class SceneIRCompiler {
     const hsType = isGlb ? 'box' : sourceMesh;
 
     // bounds: properties.bounds || properties.area || [10, 0, 10].
-    const boundsRaw =
-      (props.bounds as number[] | undefined) ??
+    const boundsRaw = (props.bounds as number[] | undefined) ??
       (props.area as number[] | undefined) ??
-      (scatterNode?.bounds as number[] | undefined) ??
-      [10, 0, 10];
+      (scatterNode?.bounds as number[] | undefined) ?? [10, 0, 10];
     const bx = typeof boundsRaw[0] === 'number' ? boundsRaw[0] : 10;
     const bz = typeof boundsRaw[2] === 'number' ? boundsRaw[2] : 10;
 

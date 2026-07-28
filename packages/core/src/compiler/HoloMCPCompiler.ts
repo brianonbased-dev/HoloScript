@@ -175,7 +175,7 @@ function inferTypeFromValue(value: HoloValue): string {
  */
 function collectParamAnnotations(
   traits: HoloObjectTrait[],
-  currentIndex: number,
+  currentIndex: number
 ): Record<string, HoloParamAnnotation> {
   if (currentIndex === 0) return {};
   const prev = traits[currentIndex - 1];
@@ -191,7 +191,7 @@ function collectParamAnnotations(
     if (ann['required'] === true) annotation.required = true;
     if (Array.isArray(ann['enum'])) {
       annotation.enum = (ann['enum'] as HoloValue[]).filter(
-        (v): v is string => typeof v === 'string',
+        (v): v is string => typeof v === 'string'
       );
     }
     result[key] = annotation;
@@ -212,7 +212,7 @@ function collectParamAnnotations(
  */
 function deriveSchemaFromConfig(
   config: Record<string, HoloValue>,
-  params: Record<string, HoloParamAnnotation> = {},
+  params: Record<string, HoloParamAnnotation> = {}
 ): {
   schema: MCPInputSchema;
   fidelity: 'inferred' | 'annotated';
@@ -289,31 +289,18 @@ function deriveSchemaFromLLMToolParams(tools: HoloValue[]): {
   const requiredSet = new Set<string>();
 
   for (const tool of tools) {
-    if (
-      typeof tool !== 'object' ||
-      tool === null ||
-      Array.isArray(tool)
-    ) continue;
+    if (typeof tool !== 'object' || tool === null || Array.isArray(tool)) continue;
 
     const params = (tool as Record<string, HoloValue>)['parameters'];
-    if (
-      typeof params !== 'object' ||
-      params === null ||
-      Array.isArray(params)
-    ) continue;
+    if (typeof params !== 'object' || params === null || Array.isArray(params)) continue;
 
     const paramRecord = params as Record<string, HoloValue>;
     for (const [paramKey, paramSpec] of Object.entries(paramRecord)) {
-      if (
-        typeof paramSpec !== 'object' ||
-        paramSpec === null ||
-        Array.isArray(paramSpec)
-      ) continue;
+      if (typeof paramSpec !== 'object' || paramSpec === null || Array.isArray(paramSpec)) continue;
 
       const spec = paramSpec as Record<string, HoloValue>;
       const type = typeof spec['type'] === 'string' ? spec['type'] : 'string';
-      const description =
-        typeof spec['description'] === 'string' ? spec['description'] : paramKey;
+      const description = typeof spec['description'] === 'string' ? spec['description'] : paramKey;
 
       const prop: MCPSchemaProperty = { type, description };
 
@@ -325,11 +312,7 @@ function deriveSchemaFromLLMToolParams(tools: HoloValue[]): {
 
       // Carry items if present
       const itemsVal = spec['items'];
-      if (
-        typeof itemsVal === 'object' &&
-        itemsVal !== null &&
-        !Array.isArray(itemsVal)
-      ) {
+      if (typeof itemsVal === 'object' && itemsVal !== null && !Array.isArray(itemsVal)) {
         const itemsType = (itemsVal as Record<string, HoloValue>)['type'];
         if (typeof itemsType === 'string') {
           prop.items = { type: itemsType };
@@ -363,7 +346,7 @@ function deriveToolFromTrait(
   trait: HoloObjectTrait,
   sourceName: string,
   source: 'object' | 'template',
-  params: Record<string, HoloParamAnnotation> = {},
+  params: Record<string, HoloParamAnnotation> = {}
 ): HoloMCPTool {
   const traitName = trait.name;
   const isLLMAgent = traitName === 'llm_agent';
@@ -388,8 +371,7 @@ function deriveToolFromTrait(
   const rawName = `${sourceName}__${traitName}`;
   const toolName = rawName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
 
-  const description =
-    `Invoke @${traitName} capability on ${sourceName} (source: ${source}).`;
+  const description = `Invoke @${traitName} capability on ${sourceName} (source: ${source}).`;
 
   return {
     name: toolName,
@@ -407,13 +389,20 @@ function deriveToolFromTrait(
 /** Map a JSON Schema type string to its TypeScript equivalent. */
 function jsonSchemaTypeToTs(schemaType: string): string {
   switch (schemaType) {
-    case 'string':  return 'string';
-    case 'number':  return 'number';
-    case 'boolean': return 'boolean';
-    case 'array':   return 'unknown[]';
-    case 'object':  return 'Record<string, unknown>';
-    case 'null':    return 'null';
-    default:        return 'unknown';
+    case 'string':
+      return 'string';
+    case 'number':
+      return 'number';
+    case 'boolean':
+      return 'boolean';
+    case 'array':
+      return 'unknown[]';
+    case 'object':
+      return 'Record<string, unknown>';
+    case 'null':
+      return 'null';
+    default:
+      return 'unknown';
   }
 }
 
@@ -448,9 +437,10 @@ function emitToolsArray(tools: HoloMCPTool[]): string {
       const itemsPart = p.items ? `, items: { type: '${p.items.type}' as const }` : '';
       return `      ${k}: { type: '${p.type}' as const, description: ${JSON.stringify(p.description)}${enumPart}${itemsPart} }`;
     });
-    const reqPart = t.inputSchema.required.length > 0
-      ? `\n      required: ${JSON.stringify(t.inputSchema.required)},`
-      : '\n      required: [],';
+    const reqPart =
+      t.inputSchema.required.length > 0
+        ? `\n      required: ${JSON.stringify(t.inputSchema.required)},`
+        : '\n      required: [],';
     return `  {\n    name: ${JSON.stringify(t.name)},\n    description: ${JSON.stringify(t.description)},\n    inputSchema: {\n      type: 'object' as const,\n      properties: {\n${propsEntries.join(',\n')}\n      },${reqPart}\n    },\n  }`;
   });
   return `export const TOOLS: _HoloTool[] = [\n${toolLiterals.join(',\n')}\n];`;
@@ -620,19 +610,21 @@ export class HoloMCPCompiler extends CompilerBase {
     ].join('\n');
 
     // ── Parameter interfaces (one per tool) ────────────────────────────────
-    const paramInterfaces = tools.length > 0
-      ? [
-          ``,
-          `// ── Parameter interfaces (one per tool) ────────────────────────────────────`,
-          ``,
-          ...tools.map(emitParamInterface),
-        ].join('\n')
-      : '';
+    const paramInterfaces =
+      tools.length > 0
+        ? [
+            ``,
+            `// ── Parameter interfaces (one per tool) ────────────────────────────────────`,
+            ``,
+            ...tools.map(emitParamInterface),
+          ].join('\n')
+        : '';
 
     // ── Runtime adapter interface ──────────────────────────────────────────
-    const adapterMethods = tools.length > 0
-      ? tools.map((t) => `  ${t.name}(params: ${paramInterfaceName(t.name)}): Promise<unknown>;`)
-      : ['  // no tools derived from this composition'];
+    const adapterMethods =
+      tools.length > 0
+        ? tools.map((t) => `  ${t.name}(params: ${paramInterfaceName(t.name)}): Promise<unknown>;`)
+        : ['  // no tools derived from this composition'];
 
     const adapterSection = [
       ``,
@@ -644,8 +636,9 @@ export class HoloMCPCompiler extends CompilerBase {
     ].join('\n');
 
     // ── Dispatch table + wiring ────────────────────────────────────────────
-    const dispatchEntries = tools.map((t) =>
-      `  _dispatch.set(${JSON.stringify(t.name)}, (p) => adapter.${t.name}(p as unknown as ${paramInterfaceName(t.name)}));`
+    const dispatchEntries = tools.map(
+      (t) =>
+        `  _dispatch.set(${JSON.stringify(t.name)}, (p) => adapter.${t.name}(p as unknown as ${paramInterfaceName(t.name)}));`
     );
 
     const dispatchSection = [
@@ -725,6 +718,13 @@ export class HoloMCPCompiler extends CompilerBase {
       `} as const;`,
     ].join('\n');
 
-    return [header, toolsSection, paramInterfaces, adapterSection, dispatchSection, metaSection].join('\n');
+    return [
+      header,
+      toolsSection,
+      paramInterfaces,
+      adapterSection,
+      dispatchSection,
+      metaSection,
+    ].join('\n');
   }
 }

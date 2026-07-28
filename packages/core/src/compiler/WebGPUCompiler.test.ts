@@ -722,7 +722,9 @@ describe('WebGPUCompiler', () => {
         expect(result).toContain(`function ${fn}`);
       }
       // None of them may be a one-line cube delegation.
-      expect(result).not.toMatch(/generate(Cone|Sphere|Torus)Vertices\([^)]*\)\s*\{\s*return generateCubeVertices/);
+      expect(result).not.toMatch(
+        /generate(Cone|Sphere|Torus)Vertices\([^)]*\)\s*\{\s*return generateCubeVertices/
+      );
     });
 
     it('should wire emissive from an object emissive property', () => {
@@ -741,7 +743,9 @@ describe('WebGPUCompiler', () => {
       expect(result).toContain('emissive: vec4<f32>');
       expect(result).toContain('mat.emissive.rgb * mat.rm[2]');
       // The red emissive value made it into the material buffer (12-float layout).
-      expect(result).toMatch(/glowMat = createBuffer\(device, new Float32Array\(\[[^\]]*1,0,0,0\]\)/);
+      expect(result).toMatch(
+        /glowMat = createBuffer\(device, new Float32Array\(\[[^\]]*1,0,0,0\]\)/
+      );
     });
 
     it('should wire emissive from a material.emissive property', () => {
@@ -757,7 +761,9 @@ describe('WebGPUCompiler', () => {
       });
       const result = compiler.compile(composition, 'test-token');
       expect(result).toContain('2.5');
-      expect(result).toMatch(/lampMat = createBuffer\(device, new Float32Array\(\[[^\]]*0,1,0,0\]\)/);
+      expect(result).toMatch(
+        /lampMat = createBuffer\(device, new Float32Array\(\[[^\]]*0,1,0,0\]\)/
+      );
     });
   });
 
@@ -1433,7 +1439,9 @@ describe('WebGPUCompiler', () => {
       const result = compiler.compile(composition, 'test-token');
 
       // All six types compile; the shared buffer caps at MAX_LIGHTS (4), so count=4.
-      expect(result).toContain('const sceneLights = createBuffer(device, new Float32Array([4,0,0,0,');
+      expect(result).toContain(
+        'const sceneLights = createBuffer(device, new Float32Array([4,0,0,0,'
+      );
     });
 
     it('should handle fog with missing properties', () => {

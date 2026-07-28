@@ -138,10 +138,9 @@ export class OmnigentAgentYamlCompiler extends CompilerBase {
     this.collectSecretWarnings(traitRefs, warnings);
 
     const primaryObject = findPrimaryAgentObject(objects) ?? objects[0];
-    const primaryTraits = [
-      ...(composition.traits ?? []),
-      ...(primaryObject?.traits ?? []),
-    ].map((trait) => toTraitRef(primaryObject?.name ?? 'composition', trait));
+    const primaryTraits = [...(composition.traits ?? []), ...(primaryObject?.traits ?? [])].map(
+      (trait) => toTraitRef(primaryObject?.name ?? 'composition', trait)
+    );
 
     const agentTrait = firstTrait(primaryTraits, AGENT_TRAITS);
     const modelTrait = firstTrait(primaryTraits, MODEL_TRAITS);
@@ -258,8 +257,7 @@ export class OmnigentAgentYamlCompiler extends CompilerBase {
             type: 'agent',
             name: toolName(ref),
             description:
-              stringFrom(ref.config['description']) ??
-              `Child agent projected from ${ref.source}`,
+              stringFrom(ref.config['description']) ?? `Child agent projected from ${ref.source}`,
           })
         );
       }
@@ -527,7 +525,9 @@ function scanInlineSecrets(
   path: string[] = []
 ): void {
   if (Array.isArray(value)) {
-    value.forEach((item, index) => scanInlineSecrets(item, source, warnings, [...path, String(index)]));
+    value.forEach((item, index) =>
+      scanInlineSecrets(item, source, warnings, [...path, String(index)])
+    );
     return;
   }
 
@@ -565,13 +565,18 @@ function pushWarning(
   warning: OmnigentProjectionWarning
 ): void {
   const key = `${warning.code}:${warning.source}:${warning.message}`;
-  if (!warnings.some((existing) => `${existing.code}:${existing.source}:${existing.message}` === key)) {
+  if (
+    !warnings.some((existing) => `${existing.code}:${existing.source}:${existing.message}` === key)
+  ) {
     warnings.push(warning);
   }
 }
 
 function defaultAuthEnv(provider: string): string {
-  const normalized = provider.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const normalized = provider
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
   if (normalized === 'openai') return 'OPENAI_API_KEY';
   if (normalized === 'anthropic') return 'ANTHROPIC_API_KEY';
   if (normalized === 'gemini' || normalized === 'google') return 'GOOGLE_API_KEY';
@@ -617,9 +622,7 @@ function toYaml(value: unknown, indent = 0): string {
     if (value.length === 0) return `${pad}[]`;
     return value
       .map((item) =>
-        isScalar(item)
-          ? `${pad}- ${yamlScalar(item)}`
-          : `${pad}-\n${toYaml(item, indent + 2)}`
+        isScalar(item) ? `${pad}- ${yamlScalar(item)}` : `${pad}-\n${toYaml(item, indent + 2)}`
       )
       .join('\n');
   }

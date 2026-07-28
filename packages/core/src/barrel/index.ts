@@ -129,7 +129,12 @@ export type {
   GenerativeDensifierBackend,
 } from '../reconstruction/densifyByInterpolation';
 // Gated evolutionary self-improvement — the @evolve_program trait's executor backend.
-export { runEvolution, makeOllamaProposer, makeOpenAICompatibleProposer, toGradedTraceRow } from '../evolution/EvolveProgramBackend';
+export {
+  runEvolution,
+  makeOllamaProposer,
+  makeOpenAICompatibleProposer,
+  toGradedTraceRow,
+} from '../evolution/EvolveProgramBackend';
 export type {
   EvolvePolicy,
   EvolveCandidate,
@@ -145,8 +150,21 @@ export type {
 } from '../evolution/EvolveProgramBackend';
 // The strategic seed portfolio + native gates + single-step accrual — the
 // reusable core the autonomous (Jetson idle-loop) accrual calls per tick.
-export { CORPUS_PORTFOLIO, parsesClean, makeSeedGate, accrueOneStep, extractStateMachine, stateMachineWellFormed, stateMachineSemanticCheck } from '../evolution/corpusPortfolio';
-export type { SeedFormat, EvolveSeed, AccrueStepResult, StateMachineShape } from '../evolution/corpusPortfolio';
+export {
+  CORPUS_PORTFOLIO,
+  parsesClean,
+  makeSeedGate,
+  accrueOneStep,
+  extractStateMachine,
+  stateMachineWellFormed,
+  stateMachineSemanticCheck,
+} from '../evolution/corpusPortfolio';
+export type {
+  SeedFormat,
+  EvolveSeed,
+  AccrueStepResult,
+  StateMachineShape,
+} from '../evolution/corpusPortfolio';
 export type {
   AutoRigConfig,
   AutoRigPose,
@@ -192,7 +210,12 @@ export type {
   IKRequest,
   IKResult,
 } from '../traits/KinematicChainTrait';
-export { dhTransform, solveFk, solveIk, kinematicChainHandler } from '../traits/KinematicChainTrait';
+export {
+  dhTransform,
+  solveFk,
+  solveIk,
+  kinematicChainHandler,
+} from '../traits/KinematicChainTrait';
 
 // ControlLoopTrait — PID + linear MPC receding-horizon control (H2)
 export type {
@@ -252,11 +275,7 @@ export {
 } from '../traits/SensorSamplingTrait';
 
 // StagedMatter — provenance-preserving spatial consolidation (D.059, H2)
-export type {
-  DerivationEdge,
-  MatterManifest,
-  MatterUnit,
-} from '../matter/StagedMatter';
+export type { DerivationEdge, MatterManifest, MatterUnit } from '../matter/StagedMatter';
 export { consolidate, createMatterUnit } from '../matter/StagedMatter';
 
 // FrameDeclarationTrait — runtime boundary checks for declared agent frames (D.101)

@@ -10,10 +10,7 @@ import {
 } from '../DomainBlockCompilerMixin';
 import type { HoloDomainBlock } from '../../parser/HoloCompositionTypes';
 
-const EXAMPLE = readFileSync(
-  join(__dirname, '../../parser/examples/material-graph.holo'),
-  'utf8'
-);
+const EXAMPLE = readFileSync(join(__dirname, '../../parser/examples/material-graph.holo'), 'utf8');
 
 function parseFirstMaterialGraph(source: string): HoloDomainBlock {
   const parser = new HoloCompositionParser();
@@ -64,12 +61,16 @@ describe('material_graph — lower to WGSL', () => {
     const key = '_domain.material_graph.rusty_metal.wgsl';
     expect(out[key]).toBeDefined();
     const wgsl = out[key];
-    expect(wgsl).toContain('fn evalMaterialGraph_rusty_metal(uv: vec2<f32>, N: vec3<f32>, V: vec3<f32>');
+    expect(wgsl).toContain(
+      'fn evalMaterialGraph_rusty_metal(uv: vec2<f32>, N: vec3<f32>, V: vec3<f32>'
+    );
     expect(wgsl).toContain('struct MaterialGraphSurface');
   });
 
   it('orders nodes topologically (dependencies declared before use)', () => {
-    const { wgsl } = materialGraphToWGSL(compileMaterialGraphBlock(parseFirstMaterialGraph(EXAMPLE)));
+    const { wgsl } = materialGraphToWGSL(
+      compileMaterialGraphBlock(parseFirstMaterialGraph(EXAMPLE))
+    );
     // albedo depends on base_metal, base_rust, rust_mask → must come after all three
     const iAlbedo = wgsl.indexOf('let mg_albedo');
     expect(iAlbedo).toBeGreaterThan(wgsl.indexOf('let mg_base_metal'));
@@ -80,26 +81,35 @@ describe('material_graph — lower to WGSL', () => {
   });
 
   it('wires the output node ports from the edges', () => {
-    const { wgsl } = materialGraphToWGSL(compileMaterialGraphBlock(parseFirstMaterialGraph(EXAMPLE)));
+    const { wgsl } = materialGraphToWGSL(
+      compileMaterialGraphBlock(parseFirstMaterialGraph(EXAMPLE))
+    );
     expect(wgsl).toContain('surface.baseColor = mg_albedo;');
     expect(wgsl).toContain('surface.roughness = mg_rust_mask;'); // noise is already f32, no coercion
     expect(wgsl).toContain('surface.emissive = mg_rim_glow;');
   });
 
   it('fresnel reads the surface normal and view vector', () => {
-    const { wgsl } = materialGraphToWGSL(compileMaterialGraphBlock(parseFirstMaterialGraph(EXAMPLE)));
+    const { wgsl } = materialGraphToWGSL(
+      compileMaterialGraphBlock(parseFirstMaterialGraph(EXAMPLE))
+    );
     expect(wgsl).toContain('dot(N, V)');
   });
 
   it('decodes hex constants to normalized vec3 literals', () => {
-    const { wgsl } = materialGraphToWGSL(compileMaterialGraphBlock(parseFirstMaterialGraph(EXAMPLE)));
+    const { wgsl } = materialGraphToWGSL(
+      compileMaterialGraphBlock(parseFirstMaterialGraph(EXAMPLE))
+    );
     // #B0B0B0 → 0.6902
     expect(wgsl).toContain('vec3<f32>(0.6902, 0.6902, 0.6902)');
   });
 });
 
 describe('material_graph — robustness', () => {
-  const mk = (nodes: CompiledMaterialGraph['nodes'], edges: CompiledMaterialGraph['edges']): CompiledMaterialGraph => ({
+  const mk = (
+    nodes: CompiledMaterialGraph['nodes'],
+    edges: CompiledMaterialGraph['edges']
+  ): CompiledMaterialGraph => ({
     name: 'test',
     nodes,
     edges,
@@ -107,9 +117,7 @@ describe('material_graph — robustness', () => {
   });
 
   it('falls back to sensible defaults for an unconnected output', () => {
-    const { wgsl } = materialGraphToWGSL(
-      mk([{ id: 'out', nodeType: 'output', params: {} }], [])
-    );
+    const { wgsl } = materialGraphToWGSL(mk([{ id: 'out', nodeType: 'output', params: {} }], []));
     expect(wgsl).toContain('surface.baseColor = vec3<f32>(0.8);');
     expect(wgsl).toContain('surface.roughness = 0.5;');
     expect(wgsl).toContain('surface.metallic = 0.0;');

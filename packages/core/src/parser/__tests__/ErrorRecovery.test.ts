@@ -279,13 +279,11 @@ describe('Injectable knownTraits union seam', () => {
     const source = `composition "Panel" {\n  object "card" {\n    @fetch(endpoint: "/api/data")\n  }\n}`;
     const result = parseHolo(source, { knownTraits: known });
 
-    const traitWarnings = (result.warnings ?? []).filter(
-      (w) => /unknown.*trait|trait.*unknown|@fetch/i.test(w.message)
+    const traitWarnings = (result.warnings ?? []).filter((w) =>
+      /unknown.*trait|trait.*unknown|@fetch/i.test(w.message)
     );
     expect(traitWarnings.length).toBe(0);
-    const traitErrors = (result.errors ?? []).filter((e) =>
-      /unknown.*trait/i.test(e.message)
-    );
+    const traitErrors = (result.errors ?? []).filter((e) => /unknown.*trait/i.test(e.message));
     expect(traitErrors.length).toBe(0);
   });
 });

@@ -11,13 +11,7 @@
 // the legacy `geometryVertexDataFn` so the render-module extraction is provably
 // behavior-preserving under the webgpu-golden snapshot).
 
-export type GeometryPrimitiveKind =
-  | 'box'
-  | 'sphere'
-  | 'plane'
-  | 'cylinder'
-  | 'cone'
-  | 'torus';
+export type GeometryPrimitiveKind = 'box' | 'sphere' | 'plane' | 'cylinder' | 'cone' | 'torus';
 
 export interface GeometryResolution {
   /** Target-agnostic canonical primitive (consumed by render AND future physics/vfx/sim). */

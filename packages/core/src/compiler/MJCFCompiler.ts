@@ -172,7 +172,9 @@ export class MJCFCompiler extends CompilerBase {
     this.indentLevel++;
     for (const mesh of meshes) {
       const name = this.sanitizeName(mesh);
-      this.emit(`<mesh name="${name}" file="${this.options.meshPathPrefix}${this.escapeXml(mesh)}"/>`);
+      this.emit(
+        `<mesh name="${name}" file="${this.options.meshPathPrefix}${this.escapeXml(mesh)}"/>`
+      );
     }
     this.indentLevel--;
     this.emit('</asset>');

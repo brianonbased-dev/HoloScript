@@ -62,9 +62,15 @@ describe('FormationControlTrait', () => {
   });
 
   it('duplicate add_agent is ignored', () => {
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:add_agent', agentId: 'miner-0' });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:add_agent',
+      agentId: 'miner-0',
+    });
     ctx.clearEvents();
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:add_agent', agentId: 'miner-0' });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:add_agent',
+      agentId: 'miner-0',
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const state = (node as any).__formationControlState;
     expect(state.slots.length).toBe(1);
@@ -72,9 +78,15 @@ describe('FormationControlTrait', () => {
   });
 
   it('formation:remove_agent clears the slot', () => {
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:add_agent', agentId: 'miner-0' });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:add_agent',
+      agentId: 'miner-0',
+    });
     ctx.clearEvents();
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:remove_agent', agentId: 'miner-0' });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:remove_agent',
+      agentId: 'miner-0',
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const state = (node as any).__formationControlState;
     expect(state.slots[0].agentId).toBeNull();
@@ -83,7 +95,10 @@ describe('FormationControlTrait', () => {
   });
 
   it('remove_agent for unknown agent is a no-op', () => {
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:remove_agent', agentId: 'ghost' });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:remove_agent',
+      agentId: 'ghost',
+    });
     expect(getEventCount(ctx, 'formation_control_agent_removed')).toBe(0);
   });
 
@@ -91,7 +106,10 @@ describe('FormationControlTrait', () => {
 
   it('three agents fill triangle slots', () => {
     for (const id of ['miner-0', 'miner-1', 'miner-2']) {
-      sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:add_agent', agentId: id });
+      sendEvent(formationControlHandler, node, baseCfg, ctx, {
+        type: 'formation:add_agent',
+        agentId: id,
+      });
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const state = (node as any).__formationControlState;
@@ -106,7 +124,10 @@ describe('FormationControlTrait', () => {
   // -- Sync / target positions -------------------------------------------------
 
   it('formation:sync emits formation_control_updated with targets', () => {
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:add_agent', agentId: 'miner-0' });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:add_agent',
+      agentId: 'miner-0',
+    });
     ctx.clearEvents();
     sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:sync' });
     expect(getEventCount(ctx, 'formation_control_updated')).toBe(1);
@@ -117,7 +138,10 @@ describe('FormationControlTrait', () => {
   });
 
   it('onUpdate triggers sync at the configured rate', () => {
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:add_agent', agentId: 'miner-0' });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:add_agent',
+      agentId: 'miner-0',
+    });
     ctx.clearEvents();
     // 10 Hz -> period = 0.1 s; pass 0.11 s to fire one tick
     updateTrait(formationControlHandler, node, baseCfg, ctx, 0.11);
@@ -129,7 +153,10 @@ describe('FormationControlTrait', () => {
     const node2 = createMockNode('no-sync');
     const ctx2 = createMockContext();
     attachTrait(formationControlHandler, node2, cfg, ctx2);
-    sendEvent(formationControlHandler, node2, cfg, ctx2, { type: 'formation:add_agent', agentId: 'miner-0' });
+    sendEvent(formationControlHandler, node2, cfg, ctx2, {
+      type: 'formation:add_agent',
+      agentId: 'miner-0',
+    });
     ctx2.clearEvents();
     updateTrait(formationControlHandler, node2, cfg, ctx2, 1.0);
     expect(getEventCount(ctx2, 'formation_control_updated')).toBe(0);
@@ -143,7 +170,10 @@ describe('FormationControlTrait', () => {
     const ctx2 = createMockContext();
     attachTrait(formationControlHandler, node2, cfg, ctx2);
     for (let i = 0; i < 4; i++) {
-      sendEvent(formationControlHandler, node2, cfg, ctx2, { type: 'formation:add_agent', agentId: `agent-${i}` });
+      sendEvent(formationControlHandler, node2, cfg, ctx2, {
+        type: 'formation:add_agent',
+        agentId: `agent-${i}`,
+      });
     }
     ctx2.clearEvents();
     sendEvent(formationControlHandler, node2, cfg, ctx2, { type: 'formation:sync' });
@@ -161,7 +191,10 @@ describe('FormationControlTrait', () => {
     const node2 = createMockNode('col-node');
     const ctx2 = createMockContext();
     attachTrait(formationControlHandler, node2, cfg, ctx2);
-    sendEvent(formationControlHandler, node2, cfg, ctx2, { type: 'formation:add_agent', agentId: 'a0' });
+    sendEvent(formationControlHandler, node2, cfg, ctx2, {
+      type: 'formation:add_agent',
+      agentId: 'a0',
+    });
     ctx2.clearEvents();
     sendEvent(formationControlHandler, node2, cfg, ctx2, { type: 'formation:sync' });
     const ev = getLastEvent(ctx2, 'formation_control_updated') as Record<string, unknown>;
@@ -173,7 +206,10 @@ describe('FormationControlTrait', () => {
   // -- Reconfigure -------------------------------------------------------------
 
   it('formation:reconfigure changes shape and emits formation_control_shape_changed', () => {
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:add_agent', agentId: 'miner-0' });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:add_agent',
+      agentId: 'miner-0',
+    });
     ctx.clearEvents();
     sendEvent(formationControlHandler, node, baseCfg, ctx, {
       type: 'formation:reconfigure',
@@ -193,7 +229,10 @@ describe('FormationControlTrait', () => {
     const node2 = createMockNode('y-off-node');
     const ctx2 = createMockContext();
     attachTrait(formationControlHandler, node2, cfg, ctx2);
-    sendEvent(formationControlHandler, node2, cfg, ctx2, { type: 'formation:add_agent', agentId: 'hovering-drone' });
+    sendEvent(formationControlHandler, node2, cfg, ctx2, {
+      type: 'formation:add_agent',
+      agentId: 'hovering-drone',
+    });
     ctx2.clearEvents();
     sendEvent(formationControlHandler, node2, cfg, ctx2, { type: 'formation:sync' });
     const ev = getLastEvent(ctx2, 'formation_control_updated') as Record<string, unknown>;
@@ -213,7 +252,10 @@ describe('FormationControlTrait', () => {
     const node2 = createMockNode('rot-node');
     const ctx2 = createMockContext();
     attachTrait(formationControlHandler, node2, cfg, ctx2);
-    sendEvent(formationControlHandler, node2, cfg, ctx2, { type: 'formation:add_agent', agentId: 'a0' });
+    sendEvent(formationControlHandler, node2, cfg, ctx2, {
+      type: 'formation:add_agent',
+      agentId: 'a0',
+    });
     ctx2.clearEvents();
     sendEvent(formationControlHandler, node2, cfg, ctx2, { type: 'formation:sync' });
     const ev = getLastEvent(ctx2, 'formation_control_updated') as Record<string, unknown>;
@@ -226,9 +268,19 @@ describe('FormationControlTrait', () => {
   // -- slotHint ----------------------------------------------------------------
 
   it('slotHint assigns agent to preferred empty slot', () => {
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:add_agent', agentId: 'a0' });
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:add_agent', agentId: 'a1' });
-    sendEvent(formationControlHandler, node, baseCfg, ctx, { type: 'formation:add_agent', agentId: 'a2', slotHint: 2 });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:add_agent',
+      agentId: 'a0',
+    });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:add_agent',
+      agentId: 'a1',
+    });
+    sendEvent(formationControlHandler, node, baseCfg, ctx, {
+      type: 'formation:add_agent',
+      agentId: 'a2',
+      slotHint: 2,
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const state = (node as any).__formationControlState;
     expect(state.agentSlotMap.get('a2')).toBe(2);

@@ -100,17 +100,11 @@ async function sha256StringAsync(value: string): Promise<string> {
  * The output is always prefixed with the format tag so receipts are
  * self-identifying: `"fnv1a32:<hex>"` or `"sha256:<hex>"`.
  */
+export function hashReceiptPayload(canonicalized: string, policy?: 'fast'): string;
+export function hashReceiptPayload(canonicalized: string, policy: 'secure'): Promise<string>;
 export function hashReceiptPayload(
   canonicalized: string,
-  policy?: 'fast',
-): string;
-export function hashReceiptPayload(
-  canonicalized: string,
-  policy: 'secure',
-): Promise<string>;
-export function hashReceiptPayload(
-  canonicalized: string,
-  policy: ReceiptHashPolicy = RECEIPT_HASH_POLICY_DEFAULT,
+  policy: ReceiptHashPolicy = RECEIPT_HASH_POLICY_DEFAULT
 ): string | Promise<string> {
   if (policy === 'fast') {
     return `fnv1a32:${fnv1a32String(canonicalized)}`;
@@ -124,7 +118,7 @@ export function hashReceiptPayload(
  */
 export async function hashReceiptPayloadAsync(
   canonicalized: string,
-  policy: ReceiptHashPolicy = RECEIPT_HASH_POLICY_DEFAULT,
+  policy: ReceiptHashPolicy = RECEIPT_HASH_POLICY_DEFAULT
 ): Promise<string> {
   if (policy === 'fast') {
     return `fnv1a32:${fnv1a32String(canonicalized)}`;
@@ -141,7 +135,7 @@ export async function hashReceiptPayloadAsync(
  * without requiring a separate `hashAlgorithm` field.
  */
 export function parseReceiptHash(
-  tagged: string,
+  tagged: string
 ): { policy: ReceiptHashPolicy; hex: string } | null {
   if (tagged.startsWith('fnv1a32:')) {
     return { policy: 'fast', hex: tagged.slice(8) };
@@ -156,10 +150,7 @@ export function parseReceiptHash(
  * Format-level consistency check: does the hash string's prefix match
  * the expected policy? Used to detect mid-receipt policy tampering.
  */
-export function receiptHashMatchesPolicy(
-  tagged: string,
-  policy: ReceiptHashPolicy,
-): boolean {
+export function receiptHashMatchesPolicy(tagged: string, policy: ReceiptHashPolicy): boolean {
   const parsed = parseReceiptHash(tagged);
   return parsed !== null && parsed.policy === policy;
 }

@@ -113,10 +113,7 @@ describe('DaimonSeedCompiler', () => {
   it('evaluates caller-provided thresholds through the shared policy JSON-Logic evaluator', () => {
     const seed = compileSeed({
       thresholdFn: {
-        and: [
-          { '>': [{ var: 'hysteresisCoefficient' }, 4] },
-          { '===': [{ var: 'tier' }, 'R1b'] },
-        ],
+        and: [{ '>': [{ var: 'hysteresisCoefficient' }, 4] }, { '===': [{ var: 'tier' }, 'R1b'] }],
       },
       thresholdFacts: {
         hysteresisCoefficient: 5.25,

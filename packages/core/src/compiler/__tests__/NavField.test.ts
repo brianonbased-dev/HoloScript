@@ -70,7 +70,9 @@ describe('nav_field — lower to compute WGSL', () => {
 describe('nav_field — robustness', () => {
   it('applies agents/max_speed defaults when omitted', () => {
     const parser = new HoloCompositionParser();
-    const r = parser.parse(`composition "X" { nav_field "n" { goal { type: "seek", target_x: 1.0 } } }`);
+    const r = parser.parse(
+      `composition "X" { nav_field "n" { goal { type: "seek", target_x: 1.0 } } }`
+    );
     const field = compileNavFieldBlock(r.ast!.domainBlocks!.find((b) => b.domain === 'nav_field')!);
     expect(field.agents).toBe(256);
     expect(field.maxSpeed).toBe(2.0);

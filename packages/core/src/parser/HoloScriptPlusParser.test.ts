@@ -6,7 +6,8 @@ describe('HoloScriptPlusParser - Extended Features', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
 
   it('parses closing-brace EOF dedent the same as trailing newline', () => {
-    const withoutTrailingNewline = 'orb Sword @grabbable @throwable() {\n  geometry: "model/sword.glb"\n}';
+    const withoutTrailingNewline =
+      'orb Sword @grabbable @throwable() {\n  geometry: "model/sword.glb"\n}';
     const withTrailingNewline = `${withoutTrailingNewline}\n`;
 
     const withoutResult = parser.parse(withoutTrailingNewline);
@@ -17,7 +18,9 @@ describe('HoloScriptPlusParser - Extended Features', () => {
     expect(withResult.success).toBe(true);
     expect(withResult.errors).toEqual([]);
     expect(withoutResult.ast.root.directives).toEqual(withResult.ast.root.directives);
-    expect(withoutResult.ast.root.directives.find((directive) => directive.name === 'throwable')).toMatchObject({
+    expect(
+      withoutResult.ast.root.directives.find((directive) => directive.name === 'throwable')
+    ).toMatchObject({
       config: {},
     });
     expect(withoutResult.ast.root.properties).toEqual({ geometry: 'model/sword.glb' });
@@ -136,7 +139,9 @@ describe('HoloScriptPlusParser - Control Flow', () => {
     }`;
     const result = parser.parse(source);
     expect(result.success).toBe(true);
-    const forEach = result.ast.root.directives.find((directive) => directive.type === 'forEach') as any;
+    const forEach = result.ast.root.directives.find(
+      (directive) => directive.type === 'forEach'
+    ) as any;
     expect(forEach?.body).toHaveLength(1);
     expect(forEach.body[0]).toMatchObject({
       type: 'orb',

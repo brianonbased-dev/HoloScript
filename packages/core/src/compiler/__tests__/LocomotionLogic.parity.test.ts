@@ -204,7 +204,9 @@ describe('Locomotion .hs → Kotlin emission', () => {
   it('injects the .hs-compiled Locomotion math (not inline hand-Kotlin, not empty)', () => {
     expect(kt).toContain('@generated from logic/Locomotion.logic.hs (compile_to_kotlin)');
     expect(kt).toContain('private object Locomotion {');
-    expect(kt).toContain('fun newYaw(yaw: Float, turn: Float, turnSpeed: Float, dt: Float): Float {');
+    expect(kt).toContain(
+      'fun newYaw(yaw: Float, turn: Float, turnSpeed: Float, dt: Float): Float {'
+    );
     expect(kt).toContain('fun gazeLength(fx: Float, fz: Float): Float {');
     expect(kt).toContain('fun normalize(component: Float, len: Float): Float {');
     expect(kt).toContain('fun groundRightX(fz: Float): Float {');

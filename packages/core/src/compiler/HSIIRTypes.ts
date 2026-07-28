@@ -116,10 +116,7 @@ export interface HSIObservationRule {
   mediators: string[];
 }
 
-export type HSIEffect =
-  | HSIAssignEffect
-  | HSIEmitEffect
-  | HSIBranchEffect;
+export type HSIEffect = HSIAssignEffect | HSIEmitEffect | HSIBranchEffect;
 
 export interface HSIAssignEffect {
   kind: 'assign';

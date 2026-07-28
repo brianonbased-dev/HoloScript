@@ -86,11 +86,11 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(proguard).toContain('-dontwarn horizonos.app.container.**');
     expect(proguard).toContain('-dontwarn vros.os.**');
     expect(proguard).toContain(
-      '-keepclasseswithmembers,includedescriptorclasses class com.meta.spatial.**',
+      '-keepclasseswithmembers,includedescriptorclasses class com.meta.spatial.**'
     );
     expect(proguard).toContain('native <methods>;');
     expect(proguard).toContain(
-      '-keepclassmembers,includedescriptorclasses class com.meta.spatial.**',
+      '-keepclassmembers,includedescriptorclasses class com.meta.spatial.**'
     );
     expect(proguard).toContain('*** native*(...);');
     expect(proguard).toContain('-keep class com.meta.spatial.**.R { *; }');
@@ -302,7 +302,10 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     );
 
     const mutated = compileHSPlusStateMachineToKotlin(
-      lifecycleSource.replace('classified -> action when action_ready', 'classified -> idle when action_ready'),
+      lifecycleSource.replace(
+        'classified -> action when action_ready',
+        'classified -> idle when action_ready'
+      ),
       {
         machineName: 'ScannerLifecycle',
         className: 'ScannerLifecycleMachine',

@@ -4,7 +4,9 @@ import type { TraitContext } from '../TraitTypes';
 
 function captureCtx() {
   const events: Array<{ event: string; payload: any }> = [];
-  const ctx = { emit: (event: string, payload?: unknown) => events.push({ event, payload }) } as unknown as TraitContext;
+  const ctx = {
+    emit: (event: string, payload?: unknown) => events.push({ event, payload }),
+  } as unknown as TraitContext;
   return { ctx, events };
 }
 
@@ -14,13 +16,21 @@ describe('emitUnwired (honest-abstention template)', () => {
     emitUnwired(ctx, 'stripe:error', { capability: 'stripe' });
     expect(events).toHaveLength(1);
     expect(events[0].event).toBe('stripe:error');
-    expect(events[0].payload).toMatchObject({ ok: false, error: 'not_implemented', capability: 'stripe' });
+    expect(events[0].payload).toMatchObject({
+      ok: false,
+      error: 'not_implemented',
+      capability: 'stripe',
+    });
     expect(typeof events[0].payload.reason).toBe('string');
   });
 
   it('includes wiring + requested when provided (consumer can retry/log)', () => {
     const { ctx, events } = captureCtx();
-    emitUnwired(ctx, 's3:error', { capability: 's3', wiring: '@aws-sdk/client-s3', requested: { key: 'a.png', bucket: 'b' } });
+    emitUnwired(ctx, 's3:error', {
+      capability: 's3',
+      wiring: '@aws-sdk/client-s3',
+      requested: { key: 'a.png', bucket: 'b' },
+    });
     expect(events[0].payload.wiring).toBe('@aws-sdk/client-s3');
     expect(events[0].payload.requested).toEqual({ key: 'a.png', bucket: 'b' });
   });

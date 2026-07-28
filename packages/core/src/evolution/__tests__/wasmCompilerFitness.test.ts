@@ -31,7 +31,7 @@ describe('wasmCompilerFitness', () => {
 
     const measured = scoreWasmCompilerArtifact(
       { wat: 'x'.repeat(80), memoryLayout: { totalSize: 20 } },
-      { baseline, requireImprovement: true },
+      { baseline, requireImprovement: true }
     );
 
     expect(baseline?.score).toBe(5);
@@ -49,7 +49,7 @@ describe('wasmCompilerFitness', () => {
 
     const measured = scoreWasmCompilerArtifact(
       { wat: 'x'.repeat(80), memoryLayout: { totalSize: 20 } },
-      { baseline, requireImprovement: true },
+      { baseline, requireImprovement: true }
     );
 
     expect(measured).toMatchObject({
@@ -62,11 +62,11 @@ describe('wasmCompilerFitness', () => {
   });
 
   it('fails empty WAT and invalid memory layouts', () => {
+    expect(scoreWasmCompilerArtifact({ wat: '', memoryLayout: { totalSize: 1 } }).passed).toBe(
+      false
+    );
     expect(
-      scoreWasmCompilerArtifact({ wat: '', memoryLayout: { totalSize: 1 } }).passed,
-    ).toBe(false);
-    expect(
-      scoreWasmCompilerArtifact({ wat: '(module)', memoryLayout: { totalSize: 0 } }).passed,
+      scoreWasmCompilerArtifact({ wat: '(module)', memoryLayout: { totalSize: 0 } }).passed
     ).toBe(false);
   });
 
@@ -82,7 +82,7 @@ describe('wasmCompilerFitness', () => {
   it('keeps correctness failures outside the fitness archive', async () => {
     const gate = makeWasmCompilerFitnessGate(
       async () => ({ wat: '(module)', memoryLayout: { totalSize: 1 } }),
-      { correctness: async () => ({ passed: false, note: 'compiler-tests-failed' }) },
+      { correctness: async () => ({ passed: false, note: 'compiler-tests-failed' }) }
     );
 
     await expect(gate('candidate')).resolves.toEqual({ passed: false, score: Infinity });

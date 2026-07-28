@@ -105,7 +105,9 @@ export class DungeonInstancePoolCompiler extends CompilerBase {
     return out;
   }
 
-  private registryObject(dungeons: DungeonInstanceConfig[]): Record<string, Omit<DungeonInstanceConfig, 'name'>> {
+  private registryObject(
+    dungeons: DungeonInstanceConfig[]
+  ): Record<string, Omit<DungeonInstanceConfig, 'name'>> {
     const obj: Record<string, Omit<DungeonInstanceConfig, 'name'>> = {};
     for (const d of dungeons) {
       const { name, ...rest } = d;

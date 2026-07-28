@@ -285,7 +285,8 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
         obj('In', [
           trait('input', { type: 'range' }),
           trait('theme', {
-            className: 'border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent',
+            className:
+              'border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent',
           }),
         ]),
       ]);
@@ -412,10 +413,7 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
           trait('bind', {
             state: 'row',
             path: 'n',
-            tiers: [
-              { eq: 0, className: 'text-studio-muted' },
-              { className: 'text-studio-text' },
-            ],
+            tiers: [{ eq: 0, className: 'text-studio-muted' }, { className: 'text-studio-text' }],
           }),
         ]),
       ]);
@@ -496,13 +494,17 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     });
 
     it('WORKS: valueKey reads a number out of object items', () => {
-      const c = comp([obj('Spark', [trait('sparkline', { state: 'targets', valueKey: 'sizeKb' })])]);
+      const c = comp([
+        obj('Spark', [trait('sparkline', { state: 'targets', valueKey: 'sizeKb' })]),
+      ]);
       expect(react(c)).toContain('Number(d?.sizeKb) || 0');
     });
 
     it('WORKS: custom height sets the viewBox and a custom stroke class applies', () => {
       const c = comp([
-        obj('Spark', [trait('sparkline', { state: 's', height: 24, stroke: 'stroke-studio-success' })]),
+        obj('Spark', [
+          trait('sparkline', { state: 's', height: 24, stroke: 'stroke-studio-success' }),
+        ]),
       ]);
       const r = react(c);
       expect(r).toContain('viewBox="0 0 100 24"');
@@ -549,7 +551,9 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
     it('WORKS: no args keeps the bare call (regression)', () => {
       const c = comp([
-        obj('P', [trait('hook', { name: 'useProfiler', import: '@/hooks/useProfiler', returns: 'snap' })]),
+        obj('P', [
+          trait('hook', { name: 'useProfiler', import: '@/hooks/useProfiler', returns: 'snap' }),
+        ]),
       ]);
       expect(react(c)).toContain('const { snap } = useProfiler();');
     });
@@ -601,7 +605,9 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     });
 
     it('ABSENT: no classKey → solid bars, no pattern defs (backward compat)', () => {
-      const c = comp([obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v' })])]);
+      const c = comp([
+        obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v' })]),
+      ]);
       const r = react(c);
       expect(r).not.toContain('<pattern');
       expect(r).not.toContain('data-provenance-class');
@@ -613,7 +619,9 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     });
 
     it('WORKS: bar heights clamp negative values to zero AND declare it via data-clamped', () => {
-      const c = comp([obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v' })])]);
+      const c = comp([
+        obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v' })]),
+      ]);
       const r = react(c);
       // Render-time clamp: a negative rect height is invalid SVG, so heights floor at 0.
       expect(r).toContain('Math.max(0, Number(d?.v) || 0)');
@@ -640,7 +648,9 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
     });
 
     it('WORKS: custom dims set the viewBox', () => {
-      const c = comp([obj('Chart', [trait('chart', { kind: 'bar', state: 's', width: 320, height: 100 })])]);
+      const c = comp([
+        obj('Chart', [trait('chart', { kind: 'bar', state: 's', width: 320, height: 100 })]),
+      ]);
       expect(react(c)).toContain('viewBox="0 0 320 100"');
     });
 
@@ -672,7 +682,7 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       objects: HoloObjectDecl[],
       state?: HoloComposition['state']
     ): HoloComposition =>
-      ({ ...comp(objects, state), traits: [{ name: 'honest' }] } as unknown as HoloComposition);
+      ({ ...comp(objects, state), traits: [{ name: 'honest' }] }) as unknown as HoloComposition;
 
     it('WORKS: a measured provenance-bound value emits a receipt, no visible glyph', () => {
       const c = honestComp([
@@ -823,7 +833,10 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       properties: [{ type: 'StateProperty', key: 'stats', value: { sessions: 4 } }],
     } as HoloComposition['state'];
     const verifiedComp = (objects: HoloObjectDecl[]): HoloComposition =>
-      ({ ...comp(objects, vstate), traits: [{ name: 'verified_view' }] } as unknown as HoloComposition);
+      ({
+        ...comp(objects, vstate),
+        traits: [{ name: 'verified_view' }],
+      }) as unknown as HoloComposition;
 
     it('WORKS: a matching projection compiles and emits the data-holo-projects receipt', () => {
       const c = verifiedComp([
@@ -840,7 +853,10 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
     it('REJECTS (VIEW-UNGROUNDED): a data-bound element with no @projects under @verified_view', () => {
       const c = verifiedComp([
-        obj('Naked', [trait('text', { variant: 'h2' }), trait('bind', { state: 'stats', path: 'sessions' })]),
+        obj('Naked', [
+          trait('text', { variant: 'h2' }),
+          trait('bind', { state: 'stats', path: 'sessions' }),
+        ]),
       ]);
       expect(() => react(c)).toThrow(/VIEW-UNGROUNDED/);
     });
@@ -854,7 +870,9 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
           trait('projects', { node: 'stats.sessions' }),
         ]),
       ]);
-      expect(() => react(c)).toThrow(/claims to project "stats\.sessions" but is actually bound to "stats\.revenue"/);
+      expect(() => react(c)).toThrow(
+        /claims to project "stats\.sessions" but is actually bound to "stats\.revenue"/
+      );
     });
 
     it('REJECTS: a projection rooted in a hallucinated state node', () => {
@@ -870,7 +888,12 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
     it('REJECTS: @projects on an element with no data binding (a lie by construction) — even OUTSIDE the mode', () => {
       const c = comp(
-        [obj('Static', [trait('text', { variant: 'h2', content: 'hi' }), trait('projects', { node: 'stats.sessions' })])],
+        [
+          obj('Static', [
+            trait('text', { variant: 'h2', content: 'hi' }),
+            trait('projects', { node: 'stats.sessions' }),
+          ]),
+        ],
         vstate
       );
       expect(() => react(c)).toThrow(/no data binding at all/);
@@ -890,7 +913,12 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
     it('BACKWARD-COMPAT: without @verified_view, unprojected data bindings still compile', () => {
       const c = comp(
-        [obj('Plain', [trait('text', { variant: 'h2' }), trait('bind', { state: 'stats', path: 'sessions' })])],
+        [
+          obj('Plain', [
+            trait('text', { variant: 'h2' }),
+            trait('bind', { state: 'stats', path: 'sessions' }),
+          ]),
+        ],
         vstate
       );
       expect(react(c)).not.toContain('data-holo-projects');
@@ -905,7 +933,10 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       ],
     } as HoloComposition['state'];
     const verifiedList = (objects: HoloObjectDecl[]): HoloComposition =>
-      ({ ...comp(objects, listState), traits: [{ name: 'verified_view' }] } as unknown as HoloComposition);
+      ({
+        ...comp(objects, listState),
+        traits: [{ name: 'verified_view' }],
+      }) as unknown as HoloComposition;
 
     it('WORKS (@each): a list declares @projects naming the ARRAY, and a loop-var field is a valid root', () => {
       const c = verifiedList([
@@ -928,7 +959,11 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
     it('REJECTS (@each): a list bound via @each with no @projects under @verified_view', () => {
       const c = verifiedList([
-        obj('List', [trait('each', { state: 'rows', as: 'row' })], [obj('Row', [trait('text', { variant: 'body' })])]),
+        obj(
+          'List',
+          [trait('each', { state: 'rows', as: 'row' })],
+          [obj('Row', [trait('text', { variant: 'body' })])]
+        ),
       ]);
       expect(() => react(c)).toThrow(/VIEW-UNGROUNDED/);
     });
@@ -985,7 +1020,12 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       ]);
       const contract = JSON.parse(react(c).match(/holoViewContract = (\{[\s\S]*\}) as const;/)![1]);
       const byEl = Object.fromEntries(contract.projections.map((p: any) => [p.element, p]));
-      expect(byEl.Temp).toEqual({ element: 'Temp', node: 'stats.sessions', entity: 'reactor-7', identity: true });
+      expect(byEl.Temp).toEqual({
+        element: 'Temp',
+        node: 'stats.sessions',
+        entity: 'reactor-7',
+        identity: true,
+      });
       expect(byEl.Growth.entity).toBe('reactor-7');
       expect(byEl.Growth.identity).toBe(false); // formatted → non-identity (twin-checked via its transform, Slice 3)
     });
@@ -1066,7 +1106,12 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
     it('v1 BACKWARD-COMPAT: a surface WITHOUT @verified_view emits no view contract', () => {
       const c = comp(
-        [obj('Plain', [trait('text', { variant: 'h2' }), trait('bind', { state: 'stats', path: 'sessions' })])],
+        [
+          obj('Plain', [
+            trait('text', { variant: 'h2' }),
+            trait('bind', { state: 'stats', path: 'sessions' }),
+          ]),
+        ],
         vstate
       );
       const r = react(c);
@@ -1095,7 +1140,9 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       // The verdict re-runs the same expression the badge renders from, so it proves the badge
       // matches its own formula — not that the claim is independently true. The artifact must
       // SAY so (v1 groundwork) rather than let a self-passing verdict masquerade as a proof.
-      const c = comp([obj('Margin', [trait('live_proof', { claim: 'capacity >= load * factor' })])]);
+      const c = comp([
+        obj('Margin', [trait('live_proof', { claim: 'capacity >= load * factor' })]),
+      ]);
       expect(react(c)).toContain('data-proof-independence="self-referential"');
     });
 

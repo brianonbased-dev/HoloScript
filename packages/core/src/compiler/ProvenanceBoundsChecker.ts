@@ -354,9 +354,7 @@ export class ProvenanceBoundsChecker {
    * 'not_applicable' if no abilities declare a positive range.
    */
   private checkRangeExploit(composition: HoloComposition): ProofObligation {
-    const rangedAbilities = (composition.abilities ?? []).filter(
-      (a) => (a.stats?.range ?? 0) > 0
-    );
+    const rangedAbilities = (composition.abilities ?? []).filter((a) => (a.stats?.range ?? 0) > 0);
 
     if (rangedAbilities.length === 0) {
       return {
@@ -426,8 +424,7 @@ export class ProvenanceBoundsChecker {
       return {
         exploitClass: 'unaudited_event',
         status: 'not_applicable',
-        rule:
-          'Combat/death triggers and player_action logic must emit receipts (@receipt_on or equivalent).',
+        rule: 'Combat/death triggers and player_action logic must emit receipts (@receipt_on or equivalent).',
         evidence:
           'No combat/death triggers or player_action handlers detected in this composition.',
         remediation: 'No action needed for compositions without combat or player action events.',
@@ -435,8 +432,7 @@ export class ProvenanceBoundsChecker {
     }
 
     const hasReceiptTrait =
-      this.hasRootTrait(composition, 'receipt_on') ||
-      this.hasRootTrait(composition, 'receipt');
+      this.hasRootTrait(composition, 'receipt_on') || this.hasRootTrait(composition, 'receipt');
 
     const evidenceParts: string[] = [];
     if (hasCombatTriggers) evidenceParts.push('combat/death triggers present');
@@ -446,8 +442,7 @@ export class ProvenanceBoundsChecker {
       return {
         exploitClass: 'unaudited_event',
         status: 'satisfied',
-        rule:
-          'Combat/death triggers and player_action logic must emit receipts (@receipt_on or equivalent).',
+        rule: 'Combat/death triggers and player_action logic must emit receipts (@receipt_on or equivalent).',
         evidence: `${evidenceParts.join(', ')}. @receipt_on trait found on composition.`,
         remediation: 'Already satisfied.',
       };
@@ -456,8 +451,7 @@ export class ProvenanceBoundsChecker {
     return {
       exploitClass: 'unaudited_event',
       status: 'unmet',
-      rule:
-        'Combat/death triggers and player_action logic must emit receipts (@receipt_on or equivalent).',
+      rule: 'Combat/death triggers and player_action logic must emit receipts (@receipt_on or equivalent).',
       evidence: `${evidenceParts.join(', ')} but no @receipt_on root trait detected.`,
       remediation:
         'Add @receipt_on to the composition root traits to emit verifiable receipts for combat/death/player_action events.',
@@ -539,9 +533,7 @@ export class ProvenanceBoundsChecker {
    * Trait names may or may not carry a leading `@` — we strip it for comparison.
    */
   private hasRootTrait(composition: HoloComposition, traitName: string): boolean {
-    return (
-      composition.traits?.some((t) => t.name.replace(/^@/, '') === traitName) ?? false
-    );
+    return composition.traits?.some((t) => t.name.replace(/^@/, '') === traitName) ?? false;
   }
 
   /**
@@ -579,10 +571,11 @@ export class ProvenanceBoundsChecker {
    */
   private hasPlayerActionLogic(composition: HoloComposition): boolean {
     if (!composition.logic) return false;
-    return composition.logic.handlers.some((h) =>
-      h.event.toLowerCase().includes('player_action') ||
-      h.event.toLowerCase().includes('player_attack') ||
-      h.event.toLowerCase().includes('player_cast')
+    return composition.logic.handlers.some(
+      (h) =>
+        h.event.toLowerCase().includes('player_action') ||
+        h.event.toLowerCase().includes('player_attack') ||
+        h.event.toLowerCase().includes('player_cast')
     );
   }
 

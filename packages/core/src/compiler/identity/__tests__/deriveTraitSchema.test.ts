@@ -134,7 +134,14 @@ describe('deriveTraitSchema — trait props-schema derivation from .holo', () =>
 
     it('merges prop-superset variants to the union of props', () => {
       const merged = mergeTraitSchemas([
-        { name: 'x', category: 'c', properties: [{ name: 'a', type: 'number' }, { name: 'b', type: 'boolean' }] },
+        {
+          name: 'x',
+          category: 'c',
+          properties: [
+            { name: 'a', type: 'number' },
+            { name: 'b', type: 'boolean' },
+          ],
+        },
         { name: 'x', category: 'c', properties: [{ name: 'a', type: 'number' }] },
       ]);
       expect(merged.properties.map((p) => p.name).sort()).toEqual(['a', 'b']);

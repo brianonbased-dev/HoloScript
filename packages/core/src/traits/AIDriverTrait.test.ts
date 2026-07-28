@@ -692,7 +692,12 @@ describe('AIDriverTrait', () => {
       };
 
       aIDriverHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
-      aIDriverHandler.onUpdate?.(mockNode as HSPlusNode, config, mockContext as TraitContext, 0.016);
+      aIDriverHandler.onUpdate?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        0.016
+      );
       await Promise.resolve();
 
       expect(action).toHaveBeenCalledWith(expect.objectContaining({ npcId: 'npc1' }));

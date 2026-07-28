@@ -22,7 +22,8 @@ const obj = (
   name: string,
   props: Array<{ key: string; value: unknown }>,
   traits: Array<{ name: string; config?: Record<string, unknown> }> = []
-): HoloObjectDecl => ({ type: 'Object', name, properties: props, traits }) as unknown as HoloObjectDecl;
+): HoloObjectDecl =>
+  ({ type: 'Object', name, properties: props, traits }) as unknown as HoloObjectDecl;
 const comp = (objects: HoloObjectDecl[]): HoloComposition =>
   ({ type: 'HoloComposition', name: 'GeomConsistency', objects }) as HoloComposition;
 
@@ -30,7 +31,11 @@ function emit(scale: [number, number, number]): string {
   return new ComputePhysicsCompiler({ steps: 0 }).compile(
     comp([
       obj('Floor', [prop('mesh', 'cube'), prop('position', [0, 0, 0]), prop('scale', [8, 0.4, 8])]),
-      obj('Ball', [prop('mesh', 'sphere'), prop('position', [0, 8, 0]), prop('scale', scale)], [{ name: 'rigid_body' }]),
+      obj(
+        'Ball',
+        [prop('mesh', 'sphere'), prop('position', [0, 8, 0]), prop('scale', scale)],
+        [{ name: 'rigid_body' }]
+      ),
     ])
   );
 }
@@ -45,8 +50,12 @@ describe('geometry-consistency gate — render size MUST equal physics size', ()
     const baseR = Number(baseM![1]);
 
     // per-body render model-scale factor on r (the "[r*2.0, ...]" coefficient)
-    const factorM = /model_of\(\[b\.pos\[0\], b\.pos\[1\], b\.pos\[2\]\], \[r\*(\d+(?:\.\d+)?)/.exec(rs);
-    expect(factorM, 'sphere render model-scale factor must be parseable (fail-closed)').not.toBeNull();
+    const factorM =
+      /model_of\(\[b\.pos\[0\], b\.pos\[1\], b\.pos\[2\]\], \[r\*(\d+(?:\.\d+)?)/.exec(rs);
+    expect(
+      factorM,
+      'sphere render model-scale factor must be parseable (fail-closed)'
+    ).not.toBeNull();
     const factor = Number(factorM![1]);
 
     // THE invariant: rendered radius = baseR * factor * r ; render==physics iff baseR*factor === 1.
@@ -60,8 +69,14 @@ describe('geometry-consistency gate — render size MUST equal physics size', ()
   it('sphere: the physics radius baked into the body == resolver collision radius', () => {
     const rs = emit([2, 2, 2]);
     // first Body literal: Body { pos: [x, y, z, RADIUS], ... }
-    const bodyM = /Body \{ pos: \[(-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?), (\d+(?:\.\d+)?)\]/.exec(rs);
-    expect(bodyM, 'a Body literal with pos[3]=radius must be parseable (fail-closed)').not.toBeNull();
+    const bodyM =
+      /Body \{ pos: \[(-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?), (\d+(?:\.\d+)?)\]/.exec(
+        rs
+      );
+    expect(
+      bodyM,
+      'a Body literal with pos[3]=radius must be parseable (fail-closed)'
+    ).not.toBeNull();
     const physicsRadius = Number(bodyM![4]);
     expect(physicsRadius).toBe(sphereCollisionRadius([2, 2, 2])); // 0.5 * max(2,2,2) = 1.0
   });
@@ -77,7 +92,10 @@ describe('geometry-consistency gate — render size MUST equal physics size', ()
 
   it('box: the static AABB half-extents == resolver box half-extents', () => {
     const rs = emit([1, 1, 1]);
-    const aabbM = /Aabb \{ mn: \[(-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?), [\d.]+\], mx: \[(-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?),/.exec(rs);
+    const aabbM =
+      /Aabb \{ mn: \[(-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?), [\d.]+\], mx: \[(-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?),/.exec(
+        rs
+      );
     expect(aabbM, 'a floor Aabb literal must be parseable (fail-closed)').not.toBeNull();
     const half: [number, number, number] = [
       (Number(aabbM![4]) - Number(aabbM![1])) / 2,
@@ -93,7 +111,10 @@ describe('geometry-consistency gate — render size MUST equal physics size', ()
     expect(sphereCollisionRadius([3, 1, 1])).toBe(1.5); // max axis
     // and the emitted body radius tracks it
     const rs = emit([3, 1, 1]);
-    const bodyM = /Body \{ pos: \[-?\d+(?:\.\d+)?, -?\d+(?:\.\d+)?, -?\d+(?:\.\d+)?, (\d+(?:\.\d+)?)\]/.exec(rs);
+    const bodyM =
+      /Body \{ pos: \[-?\d+(?:\.\d+)?, -?\d+(?:\.\d+)?, -?\d+(?:\.\d+)?, (\d+(?:\.\d+)?)\]/.exec(
+        rs
+      );
     expect(bodyM).not.toBeNull();
     expect(Number(bodyM![1])).toBe(1.5);
   });

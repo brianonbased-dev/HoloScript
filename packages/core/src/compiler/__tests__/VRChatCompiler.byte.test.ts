@@ -55,11 +55,10 @@ describe('VRChatCompiler — Byte / Udon Assembly target', () => {
   it('FALSE CASE: a corrupted EXTERN in the emitted UASM fails the validator', () => {
     const c = new VRChatCompiler({ outputFormat: 'udon-assembly' });
     const result = c.compile(makeComp({ objects: [clickableCube()] }), '');
-    const corrupted = result
-      .udonAssembly!['cubeBehaviour.uasm'].replace(
-        'UnityEngineGameObject.__SetActive__SystemBoolean__SystemVoid',
-        'UnityEngineGameObject.__Bogus__SystemBoolean__SystemVoid'
-      );
+    const corrupted = result.udonAssembly!['cubeBehaviour.uasm'].replace(
+      'UnityEngineGameObject.__SetActive__SystemBoolean__SystemVoid',
+      'UnityEngineGameObject.__Bogus__SystemBoolean__SystemVoid'
+    );
     const v = validateUdonAssembly(corrupted);
     expect(v.valid).toBe(false);
     expect(v.errors.some((e) => /not in manifest/.test(e))).toBe(true);

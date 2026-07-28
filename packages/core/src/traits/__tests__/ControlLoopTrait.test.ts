@@ -60,7 +60,7 @@ describe('stepPid – derivative', () => {
   it('derivative captures rate of change', () => {
     const s = freshPidState();
     const p: PIDParams = { Kp: 0, Ki: 0, Kd: 1 };
-    stepPid(p, 2, 0, 1, s);  // e=2, prevError=0 → d=2
+    stepPid(p, 2, 0, 1, s); // e=2, prevError=0 → d=2
     const r = stepPid(p, 2, 1, 1, s); // e=1, prevError=2 → d=(1-2)/1=-1
     expect(r.derivative).toBeCloseTo(-1, 5);
     expect(r.u).toBeCloseTo(-1, 5);
@@ -220,7 +220,12 @@ describe('controlLoopHandler.onEvent – PID', () => {
       node as never,
       { pid: { Kp: 2, Ki: 0, Kd: 0 } },
       {} as never,
-      { type: 'control_loop.pid_step', params: { Kp: 2, Ki: 0, Kd: 0 }, setpoint: 5, measurement: 4 } as never,
+      {
+        type: 'control_loop.pid_step',
+        params: { Kp: 2, Ki: 0, Kd: 0 },
+        setpoint: 5,
+        measurement: 4,
+      } as never
     );
     const out = node.__control_output as { u: number; type: string };
     expect(out.type).toBe('pid');
@@ -233,7 +238,7 @@ describe('controlLoopHandler.onEvent – PID', () => {
       node as never,
       cfg,
       {} as never,
-      { type: 'control_loop.pid_step', setpoint: 2, measurement: 0 } as never,
+      { type: 'control_loop.pid_step', setpoint: 2, measurement: 0 } as never
     );
     const out = node.__control_output as { u: number };
     expect(out.u).toBeCloseTo(6, 5);
@@ -242,13 +247,26 @@ describe('controlLoopHandler.onEvent – PID', () => {
   it('reset clears integral state', () => {
     const cfg = { pid: { Kp: 0, Ki: 1, Kd: 0 } };
     // Accumulate integral
-    controlLoopHandler.onEvent!(node as never, cfg, {} as never,
-      { type: 'control_loop.pid_step', setpoint: 1, measurement: 0, dt: 1 } as never);
+    controlLoopHandler.onEvent!(
+      node as never,
+      cfg,
+      {} as never,
+      { type: 'control_loop.pid_step', setpoint: 1, measurement: 0, dt: 1 } as never
+    );
     // Reset
-    controlLoopHandler.onEvent!(node as never, cfg, {} as never, { type: 'control_loop.reset' } as never);
+    controlLoopHandler.onEvent!(
+      node as never,
+      cfg,
+      {} as never,
+      { type: 'control_loop.reset' } as never
+    );
     // Next step should see zeroed accumulator
-    controlLoopHandler.onEvent!(node as never, cfg, {} as never,
-      { type: 'control_loop.pid_step', setpoint: 1, measurement: 0, dt: 1 } as never);
+    controlLoopHandler.onEvent!(
+      node as never,
+      cfg,
+      {} as never,
+      { type: 'control_loop.pid_step', setpoint: 1, measurement: 0, dt: 1 } as never
+    );
     const out = node.__control_output as { integral: number };
     expect(out.integral).toBeCloseTo(1, 5); // only one step's worth
   });
@@ -263,7 +281,7 @@ describe('controlLoopHandler.onEvent – MPC', () => {
       node as never,
       { mpc: params },
       {} as never,
-      { type: 'control_loop.mpc_step', params, state: [3] } as never,
+      { type: 'control_loop.mpc_step', params, state: [3] } as never
     );
     const out = node.__control_output as { u: number; type: string };
     expect(out.type).toBe('mpc');
@@ -276,7 +294,7 @@ describe('controlLoopHandler.onEvent – unknown', () => {
     const node = makeNode();
     controlLoopHandler.onAttach!(node as never, {}, {} as never);
     expect(() =>
-      controlLoopHandler.onEvent!(node as never, {}, {} as never, { type: 'unknown' } as never),
+      controlLoopHandler.onEvent!(node as never, {}, {} as never, { type: 'unknown' } as never)
     ).not.toThrow();
   });
 });

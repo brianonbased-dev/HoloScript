@@ -29,11 +29,27 @@ import {
 
 // The real WASM grammar-authority artifact, for the full-chain e2e. skipIf keeps the skip LOUD
 // when the artifact is unbuilt — never a silent pass (the canonical core parity-test pattern).
-const PKG_NODE = join(__dirname, '..', '..', '..', '..', 'compiler-wasm', 'pkg-node', 'holoscript_wasm.js');
+const PKG_NODE = join(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  '..',
+  'compiler-wasm',
+  'pkg-node',
+  'holoscript_wasm.js'
+);
 const wasmPresent = existsSync(PKG_NODE);
 const requireCjs = createRequire(__filename);
 
-const FIXTURE_PATH = join(__dirname, '..', '..', '__tests__', 'fixtures', 'hs-core-barrier-world.holo');
+const FIXTURE_PATH = join(
+  __dirname,
+  '..',
+  '..',
+  '__tests__',
+  'fixtures',
+  'hs-core-barrier-world.holo'
+);
 const SOURCE = readFileSync(FIXTURE_PATH, 'utf8');
 const WORLD = 'holoscript://world/HSCoreBarrierWorld';
 
@@ -43,14 +59,25 @@ const FULL_GRANT: Capability[] = [
 ];
 
 function baseInput(barrier: string, grant: Capability[] = FULL_GRANT): HSICausalLoopInput {
-  return { sourceText: SOURCE, agent: 'Scout', target: 'Beacon', barrier, grantedCapabilities: grant };
+  return {
+    sourceText: SOURCE,
+    agent: 'Scout',
+    target: 'Beacon',
+    barrier,
+    grantedCapabilities: grant,
+  };
 }
 
 describe('HSI-IR Stage-B causal loop (task 6mg9)', () => {
   describe('distinct actions for transparent / opaque / unknown', () => {
     it('transparent barrier (GlassPane) resolves clear -> safe -> traverse -> goal reached', () => {
       const r = runCausalLoop(baseInput('GlassPane'));
-      expect(r.resolution).toEqual({ status: 'resolved', occluded: false, occluder: null, reason: null });
+      expect(r.resolution).toEqual({
+        status: 'resolved',
+        occluded: false,
+        occluder: null,
+        reason: null,
+      });
       expect(r.policy).toBe('safe');
       expect(r.action.name).toBe('traverse');
       expect(r.action.granted).toBe(true);
@@ -63,7 +90,12 @@ describe('HSI-IR Stage-B causal loop (task 6mg9)', () => {
 
     it('opaque barrier (StoneSlab) resolves occluded -> block -> hold -> no goal', () => {
       const r = runCausalLoop(baseInput('StoneSlab'));
-      expect(r.resolution).toEqual({ status: 'resolved', occluded: true, occluder: 'StoneSlab', reason: null });
+      expect(r.resolution).toEqual({
+        status: 'resolved',
+        occluded: true,
+        occluder: 'StoneSlab',
+        reason: null,
+      });
       expect(r.policy).toBe('block');
       expect(r.action.name).toBe('hold');
       expect(r.mutation.applied).toBe(false);
@@ -74,7 +106,12 @@ describe('HSI-IR Stage-B causal loop (task 6mg9)', () => {
 
     it('unknown barrier (VeilPanel) resolves underdetermined -> inspect -> probe -> no goal', () => {
       const r = runCausalLoop(baseInput('VeilPanel'));
-      expect(r.resolution).toEqual({ status: 'unresolvable', occluded: null, occluder: null, reason: 'underdetermined' });
+      expect(r.resolution).toEqual({
+        status: 'unresolvable',
+        occluded: null,
+        occluder: null,
+        reason: 'underdetermined',
+      });
       expect(r.policy).toBe('inspect');
       expect(r.action.name).toBe('inspect');
       expect(r.mutation.applied).toBe(true);
@@ -83,8 +120,12 @@ describe('HSI-IR Stage-B causal loop (task 6mg9)', () => {
     });
 
     it('the three cases select three distinct actions and outcomes', () => {
-      const actions = ['GlassPane', 'StoneSlab', 'VeilPanel'].map((b) => runCausalLoop(baseInput(b)).action.name);
-      const outcomes = ['GlassPane', 'StoneSlab', 'VeilPanel'].map((b) => runCausalLoop(baseInput(b)).outcome);
+      const actions = ['GlassPane', 'StoneSlab', 'VeilPanel'].map(
+        (b) => runCausalLoop(baseInput(b)).action.name
+      );
+      const outcomes = ['GlassPane', 'StoneSlab', 'VeilPanel'].map(
+        (b) => runCausalLoop(baseInput(b)).outcome
+      );
       expect(new Set(actions).size).toBe(3);
       expect(new Set(outcomes).size).toBe(3);
       expect(actions).toEqual(['traverse', 'hold', 'inspect']);
@@ -93,7 +134,13 @@ describe('HSI-IR Stage-B causal loop (task 6mg9)', () => {
 
   describe('four distinct fail-closed paths', () => {
     it('{} empty world fails closed at admission', () => {
-      const r = runCausalLoop({ sourceText: '', agent: 'Scout', target: 'Beacon', barrier: 'GlassPane', grantedCapabilities: FULL_GRANT });
+      const r = runCausalLoop({
+        sourceText: '',
+        agent: 'Scout',
+        target: 'Beacon',
+        barrier: 'GlassPane',
+        grantedCapabilities: FULL_GRANT,
+      });
       expect(r.admission.admitted).toBe(false);
       expect(r.failClosed).toBe(true);
       expect(r.mutation.applied).toBe(false);
@@ -103,7 +150,13 @@ describe('HSI-IR Stage-B causal loop (task 6mg9)', () => {
 
     it('family-skewed query (agent is not an agent-role entity) fails closed', () => {
       // StoneSlab has role "barrier", not "agent" — a skewed perception query.
-      const r = runCausalLoop({ sourceText: SOURCE, agent: 'StoneSlab', target: 'Beacon', barrier: 'GlassPane', grantedCapabilities: FULL_GRANT });
+      const r = runCausalLoop({
+        sourceText: SOURCE,
+        agent: 'StoneSlab',
+        target: 'Beacon',
+        barrier: 'GlassPane',
+        grantedCapabilities: FULL_GRANT,
+      });
       expect(r.admission.error).toBe('family-skewed-query');
       expect(r.failClosed).toBe(true);
       expect(r.mutation.applied).toBe(false);
@@ -255,7 +308,9 @@ describe('HSI-IR Stage-B causal loop (task 6mg9)', () => {
     });
 
     it('distinct barriers yield distinct receipt digests', () => {
-      const digests = ['GlassPane', 'StoneSlab', 'VeilPanel'].map((b) => runCausalLoop(baseInput(b)).deterministicDigest);
+      const digests = ['GlassPane', 'StoneSlab', 'VeilPanel'].map(
+        (b) => runCausalLoop(baseInput(b)).deterministicDigest
+      );
       expect(new Set(digests).size).toBe(3);
     });
   });
@@ -323,29 +378,35 @@ describe('HSI-IR Stage-B causal loop (task 6mg9)', () => {
     });
   });
 
-  describe.skipIf(!wasmPresent)('full chain e2e: @unknown surface annotation gates a live action loop', () => {
-    it('wasm-parse -> lowerUnknownFields -> honesty gate -> the loop abstains instead of traversing', () => {
-      // The complete first-class-ignorance chain with no mocks: the Rust/WASM grammar authority
-      // parses an @unknown field; the meaning package lowers it to Uncertain; the causal loop
-      // consumes it as an epistemic prerequisite and INSPECTS a world it would otherwise
-      // confidently traverse. Surface honesty became runtime behavior.
-      const wasm = requireCjs(PKG_NODE) as { parse(source: string): string };
-      const traitSource = '@trait SensorPack {\n  @unknown\n  reading: Temperature\n}';
-      const ast = JSON.parse(wasm.parse(traitSource));
-      expect(ast.errors).toBeUndefined();
-      const trait = ast.body.find((n: { type: string; name?: string }) => n.type === 'Trait');
-      const lowered = lowerUnknownFields(trait.config.properties);
-      expect(lowered).toHaveLength(1);
+  describe.skipIf(!wasmPresent)(
+    'full chain e2e: @unknown surface annotation gates a live action loop',
+    () => {
+      it('wasm-parse -> lowerUnknownFields -> honesty gate -> the loop abstains instead of traversing', () => {
+        // The complete first-class-ignorance chain with no mocks: the Rust/WASM grammar authority
+        // parses an @unknown field; the meaning package lowers it to Uncertain; the causal loop
+        // consumes it as an epistemic prerequisite and INSPECTS a world it would otherwise
+        // confidently traverse. Surface honesty became runtime behavior.
+        const wasm = requireCjs(PKG_NODE) as { parse(source: string): string };
+        const traitSource = '@trait SensorPack {\n  @unknown\n  reading: Temperature\n}';
+        const ast = JSON.parse(wasm.parse(traitSource));
+        expect(ast.errors).toBeUndefined();
+        const trait = ast.body.find((n: { type: string; name?: string }) => n.type === 'Trait');
+        const lowered = lowerUnknownFields(trait.config.properties);
+        expect(lowered).toHaveLength(1);
 
-      const prerequisites = Object.fromEntries(lowered.map((l) => [l.key, l.initial]));
-      const r = runCausalLoop({ ...baseInput('GlassPane'), epistemicPrerequisites: prerequisites });
-      expect(r.policy).toBe('inspect');
-      expect(r.outcome).toBe('inspected');
-      expect(r.epistemicGate?.decision).toBe('abstain');
-      if (r.epistemicGate?.decision === 'abstain') {
-        expect(r.epistemicGate.blocking[0].key).toBe('reading');
-        expect(r.epistemicGate.blocking[0].reason).toBe('underdetermined');
-      }
-    });
-  });
+        const prerequisites = Object.fromEntries(lowered.map((l) => [l.key, l.initial]));
+        const r = runCausalLoop({
+          ...baseInput('GlassPane'),
+          epistemicPrerequisites: prerequisites,
+        });
+        expect(r.policy).toBe('inspect');
+        expect(r.outcome).toBe('inspected');
+        expect(r.epistemicGate?.decision).toBe('abstain');
+        if (r.epistemicGate?.decision === 'abstain') {
+          expect(r.epistemicGate.blocking[0].key).toBe('reading');
+          expect(r.epistemicGate.blocking[0].reason).toBe('underdetermined');
+        }
+      });
+    }
+  );
 });

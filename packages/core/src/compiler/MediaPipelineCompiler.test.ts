@@ -12,12 +12,22 @@ const scene = () =>
   comp([
     obj('A', [prop('mesh', 'sphere'), prop('position', [2, 0, 0]), prop('color', '#ff4040')]),
     obj('B', [prop('mesh', 'cube'), prop('position', [-2, 0, 0]), prop('color', '#40a0ff')]),
-    obj('L', [prop('mesh', 'sphere'), prop('position', [0, 2, 0]), prop('emissive', '#ffffff'), prop('emissiveIntensity', 6)]),
+    obj('L', [
+      prop('mesh', 'sphere'),
+      prop('position', [0, 2, 0]),
+      prop('emissive', '#ffffff'),
+      prop('emissiveIntensity', 6),
+    ]),
   ]);
 
 describe('MediaPipelineCompiler — sovereign media pipeline (.holo → animated turntable)', () => {
   it('renders the requested number of turntable frames at the right size', () => {
-    const clip = new MediaPipelineCompiler().render(scene(), { width: 80, height: 60, frames: 8, fps: 12 });
+    const clip = new MediaPipelineCompiler().render(scene(), {
+      width: 80,
+      height: 60,
+      frames: 8,
+      fps: 12,
+    });
     expect(clip.width).toBe(80);
     expect(clip.height).toBe(60);
     expect(clip.fps).toBe(12);
@@ -35,7 +45,12 @@ describe('MediaPipelineCompiler — sovereign media pipeline (.holo → animated
   });
 
   it('encodes a valid APNG (signature + acTL animation-control chunk + IDAT)', () => {
-    const clip = new MediaPipelineCompiler().render(scene(), { width: 48, height: 36, frames: 4, fps: 10 });
+    const clip = new MediaPipelineCompiler().render(scene(), {
+      width: 48,
+      height: 36,
+      frames: 4,
+      fps: 10,
+    });
     const apng = MediaPipelineCompiler.toAPNG(clip);
     // PNG magic
     expect(Array.from(apng.subarray(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);

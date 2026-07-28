@@ -29,7 +29,9 @@ function decodeEntities(s: string): string {
 
 /** Strip tags → text content, decode entities, collapse whitespace, trim. */
 function textContent(inner: string): string {
-  return decodeEntities(inner.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+  return decodeEntities(inner.replace(/<[^>]*>/g, ''))
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**

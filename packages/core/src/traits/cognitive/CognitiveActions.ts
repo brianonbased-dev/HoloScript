@@ -199,7 +199,12 @@ export function compileCognitiveDispatch(
           ...base,
           payload: {
             query: str(c, 'query'),
-            top_k: typeof c.top_k === 'number' ? c.top_k : typeof c.limit === 'number' ? c.limit : undefined,
+            top_k:
+              typeof c.top_k === 'number'
+                ? c.top_k
+                : typeof c.limit === 'number'
+                  ? c.limit
+                  : undefined,
             tags: Array.isArray(c.tags) ? c.tags : undefined,
             embedding: Array.isArray(c.embedding) ? c.embedding : undefined,
           },
@@ -208,7 +213,10 @@ export function compileCognitiveDispatch(
 
     case 'rag_query':
       // RAGKnowledgeTrait reads event.question
-      return { event: binding.request, payload: { ...base, question: str(c, 'query', 'question') } };
+      return {
+        event: binding.request,
+        payload: { ...base, question: str(c, 'query', 'question') },
+      };
 
     case 'plan': {
       // GoalOrientedTrait reads event.state (Object.assign into worldState → replan)

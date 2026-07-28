@@ -60,7 +60,7 @@ describe('checkSurfaceTwinCorrespondence', () => {
     expect(r.verdict).toBe('CONSENSUS');
   });
 
-  it('ABSTAINS (refuse, don\'t guess): non-identity/transform projections are never compared', () => {
+  it("ABSTAINS (refuse, don't guess): non-identity/transform projections are never compared", () => {
     const r = checkSurfaceTwinCorrespondence({
       contract: { projections: [proj('Fmt', 'sec.revenue', false, 'sec')] }, // identity:false
       displayedValues: { 'sec.revenue': '$1.2M' },
@@ -96,7 +96,10 @@ describe('checkSurfaceTwinCorrespondence', () => {
     });
     expect(r.verdict).toBe('CONSENSUS');
     expect(r.checked).toBe(0);
-    expect(r.abstentions.map((a) => a.reason).sort()).toEqual(['authority-missing', 'display-missing']);
+    expect(r.abstentions.map((a) => a.reason).sort()).toEqual([
+      'authority-missing',
+      'display-missing',
+    ]);
   });
 
   it('resolves a scalar authoritative entity value directly', () => {
@@ -149,7 +152,11 @@ describe('verifySurfaceTwinLive — injected authoritative fetch (production-sha
       fetchAuthoritativeState: async () => ({ temp: 951 }),
     });
     expect(r.verdict).toBe('FALSIFIED');
-    expect(r.divergences[0]).toMatchObject({ entity: 'reactor-7', displayed: 800, authoritative: 951 });
+    expect(r.divergences[0]).toMatchObject({
+      entity: 'reactor-7',
+      displayed: 800,
+      authoritative: 951,
+    });
   });
 
   it('a fetch FAILURE abstains as authority-unavailable — NOT a false FALSIFIED', async () => {
@@ -216,7 +223,9 @@ describe('applyProjectionTransform — mirrors the compiler render path exactly'
     expect(applyProjectionTransform(1.2, { prefix: '$', suffix: 'k' })).toBe('$1.2k');
   });
   it('precision + prefix + suffix compose in render order', () => {
-    expect(applyProjectionTransform(42, { precision: 1, prefix: '$', suffix: 'ms' })).toBe('$42.0ms');
+    expect(applyProjectionTransform(42, { precision: 1, prefix: '$', suffix: 'ms' })).toBe(
+      '$42.0ms'
+    );
   });
   it('null/undefined coerces to 0 (mirrors `(value ?? 0)`)', () => {
     expect(applyProjectionTransform(null, { precision: 2 })).toBe('0.00');
@@ -274,12 +283,18 @@ describe('checkSurfaceTwinCorrespondence — formatted (non-identity) twin check
       authoritativeState: { ent: { x: 8 } }, // twin agrees on the raw value
     });
     expect(r.verdict).toBe('FALSIFIED');
-    expect(r.divergences[0]).toMatchObject({ displayed: '8.0', authoritative: 8, expected: '8.00' });
+    expect(r.divergences[0]).toMatchObject({
+      displayed: '8.0',
+      authoritative: 8,
+      expected: '8.00',
+    });
   });
 
   it('still ABSTAINS when there is NO modelable transform (e.g. @chart/@each): identity:false, no transform', () => {
     const r = checkSurfaceTwinCorrespondence({
-      contract: { projections: [{ element: 'Chart', node: 'sec.series', entity: 'sec', identity: false }] },
+      contract: {
+        projections: [{ element: 'Chart', node: 'sec.series', entity: 'sec', identity: false }],
+      },
       displayedValues: { 'sec.series': '[1,2,3]' },
       authoritativeState: { sec: { series: [9, 9, 9] } }, // would false-FALSIFY if compared
     });

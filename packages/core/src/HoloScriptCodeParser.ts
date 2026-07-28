@@ -2681,7 +2681,10 @@ export class HoloScriptCodeParser {
             while (depth > 0 && this.position < this.tokens.length) {
               const t = this.advance()!;
               if (t.value === '{') depth++;
-              else if (t.value === '}') { depth--; if (depth === 0) break; }
+              else if (t.value === '}') {
+                depth--;
+                if (depth === 0) break;
+              }
               raw += (t.type === 'string' ? JSON.stringify(t.value) : t.value) + ' ';
             }
           }
@@ -2720,7 +2723,10 @@ export class HoloScriptCodeParser {
             while (depth > 0 && this.position < this.tokens.length) {
               const t = this.advance()!;
               if (t.value === '{') depth++;
-              else if (t.value === '}') { depth--; if (depth === 0) break; }
+              else if (t.value === '}') {
+                depth--;
+                if (depth === 0) break;
+              }
               body += (t.type === 'string' ? JSON.stringify(t.value) : t.value) + ' ';
             }
           }
@@ -2886,7 +2892,12 @@ export class HoloScriptCodeParser {
     this.expect('keyword', 'loot_table');
     const name = this.expectName() || `loot_${Date.now()}`;
 
-    const entries: Array<{ kind: string; name: string; properties: Record<string, HoloScriptValue>; directives: HSPlusDirective[] }> = [];
+    const entries: Array<{
+      kind: string;
+      name: string;
+      properties: Record<string, HoloScriptValue>;
+      directives: HSPlusDirective[];
+    }> = [];
 
     if (this.check('punctuation', '{')) {
       this.advance(); // {
@@ -3033,7 +3044,13 @@ export class HoloScriptCodeParser {
       while (depth > 0 && this.position < this.tokens.length) {
         const t = this.currentToken()!;
         if (t.value === '{') depth++;
-        else if (t.value === '}') { depth--; if (depth === 0) { this.advance(); break; } }
+        else if (t.value === '}') {
+          depth--;
+          if (depth === 0) {
+            this.advance();
+            break;
+          }
+        }
         body += (t.type === 'string' ? JSON.stringify(t.value) : t.value) + ' ';
         this.advance();
       }
@@ -3108,7 +3125,9 @@ export class HoloScriptCodeParser {
 
     // `to` is required.
     if (!this.check('keyword', 'to')) {
-      this.errors.push(this.createError('HS001', "Expected 'to' in move statement", this.currentToken()));
+      this.errors.push(
+        this.createError('HS001', "Expected 'to' in move statement", this.currentToken())
+      );
       return null;
     }
     this.advance(); // consume 'to'
@@ -3231,7 +3250,14 @@ export class HoloScriptCodeParser {
             let raw = '';
             while (this.position < this.tokens.length) {
               const n = this.currentToken();
-              if (!n || n.type === 'newline' || n.value === ';' || n.value === '{' || n.value === '}') break;
+              if (
+                !n ||
+                n.type === 'newline' ||
+                n.value === ';' ||
+                n.value === '{' ||
+                n.value === '}'
+              )
+                break;
               if (n.type === 'keyword' && this.keywordSet.has(n.value.toLowerCase())) break;
               raw += n.value;
               this.advance();

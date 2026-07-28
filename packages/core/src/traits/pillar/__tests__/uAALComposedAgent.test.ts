@@ -134,18 +134,20 @@ describe('uAALComposedAgent', () => {
     tick(DEFAULT_CONFIG.inner_frequency!, node, DEFAULT_CONFIG, ctx);
     const trainingEvt = events.find((e) => e.name === 'emitter:training_slice');
     expect(trainingEvt).toBeDefined();
-    const trainingSlice = (trainingEvt!.payload as {
-      slice: {
-        slice: { pillar_domain: string };
-        brain_coord: {
-          mni_x: number;
-          mni_y: number;
-          mni_z: number;
-          cortical_depth: number;
-          brodmann_area?: number;
+    const trainingSlice = (
+      trainingEvt!.payload as {
+        slice: {
+          slice: { pillar_domain: string };
+          brain_coord: {
+            mni_x: number;
+            mni_y: number;
+            mni_z: number;
+            cortical_depth: number;
+            brodmann_area?: number;
+          };
         };
-      };
-    }).slice;
+      }
+    ).slice;
     const expectedCoord = resolveBrainCoord(trainingSlice.slice.pillar_domain);
     expect(trainingSlice.brain_coord).toMatchObject({
       mni_x: expectedCoord.mni_x,

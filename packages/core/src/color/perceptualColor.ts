@@ -422,16 +422,12 @@ function labDelta(A: Lab, B: Lab): [number, number, number] {
  */
 export function metricTensorDeltaE2000(
   center: Lab,
-  options: DeltaE2000MetricTensorOptions = {},
+  options: DeltaE2000MetricTensorOptions = {}
 ): LabMetricTensor {
   const epsilon = Math.max(Math.abs(options.epsilon ?? 1e-3), 1e-9);
   const regularization = Math.max(0, options.regularization ?? 1e-12);
   const epsilonSq = epsilon * epsilon;
-  const metric: [
-    [number, number, number],
-    [number, number, number],
-    [number, number, number],
-  ] = [
+  const metric: [[number, number, number], [number, number, number], [number, number, number]] = [
     [0, 0, 0],
     [0, 0, 0],
     [0, 0, 0],
@@ -443,8 +439,7 @@ export function metricTensorDeltaE2000(
     plus[i] = epsilon;
     minus[i] = -epsilon;
     metric[i][i] =
-      (squaredDeltaAtOffset(center, plus) + squaredDeltaAtOffset(center, minus)) /
-        (2 * epsilonSq) +
+      (squaredDeltaAtOffset(center, plus) + squaredDeltaAtOffset(center, minus)) / (2 * epsilonSq) +
       regularization;
   }
 
@@ -479,7 +474,7 @@ export function metricTensorDeltaE2000(
 /** Evaluates v^T G v for a Lab-coordinate vector and metric tensor. */
 export function labMetricQuadraticForm(
   vector: readonly [number, number, number],
-  metric: LabMetricTensor,
+  metric: LabMetricTensor
 ): number {
   let total = 0;
   for (let i = 0; i < 3; i++) {
@@ -496,7 +491,7 @@ export function metricTensorArcLengthDeltaE2000(
   A: Lab,
   B: Lab,
   steps = 24,
-  options: DeltaE2000MetricTensorOptions = {},
+  options: DeltaE2000MetricTensorOptions = {}
 ): number {
   const n = Math.max(1, Math.floor(steps));
   let total = 0;
@@ -511,11 +506,7 @@ export function metricTensorArcLengthDeltaE2000(
   return total;
 }
 
-function metricSegmentEnergy(
-  A: Lab,
-  B: Lab,
-  options: DeltaE2000MetricTensorOptions = {},
-): number {
+function metricSegmentEnergy(A: Lab, B: Lab, options: DeltaE2000MetricTensorOptions = {}): number {
   const mid = interpolateLab(A, B, 0.5);
   const metric = metricTensorDeltaE2000(mid, options);
   return Math.max(0, labMetricQuadraticForm(labDelta(A, B), metric));
@@ -548,7 +539,7 @@ function perturbPathCoordinate(
   index: number,
   coordinate: (typeof LAB_COORDINATES)[number],
   delta: number,
-  clamp: boolean,
+  clamp: boolean
 ): Lab[] {
   const next = path.slice();
   const point = path[index];
@@ -569,7 +560,7 @@ function perturbPathCoordinate(
 export function solveDeltaE2000Geodesic(
   A: Lab,
   B: Lab,
-  options: DeltaE2000GeodesicOptions = {},
+  options: DeltaE2000GeodesicOptions = {}
 ): DeltaE2000GeodesicResult {
   const segments = Math.max(1, Math.floor(options.segments ?? 12));
   const iterations = Math.max(0, Math.floor(options.iterations ?? 40));
@@ -637,9 +628,7 @@ function erfApprox(x: number): number {
   const a5 = 1.061405429;
   const p = 0.3275911;
   const t = 1 / (1 + p * absX);
-  const y =
-    1 -
-    (((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX));
+  const y = 1 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX);
   return sign * y;
 }
 
@@ -657,7 +646,7 @@ function clampProbability(p: number): number {
  */
 export function lanlGrayChoiceProbability(
   row: Pick<LanlGrayAchromaticAggregate, 'Ls' | 'Lt1' | 'Lt2'>,
-  options: LanlGrayChoiceModelOptions = {},
+  options: LanlGrayChoiceModelOptions = {}
 ): number {
   const dampening = options.dampening ?? DEFAULT_DAMPENING;
   const noise = Math.max(1e-9, Math.abs(options.noise ?? DEFAULT_LANL_GRAY_NOISE));
@@ -668,7 +657,7 @@ export function lanlGrayChoiceProbability(
 
 export function lanlGrayNegativeLogLikelihood(
   rows: readonly LanlGrayAchromaticAggregate[],
-  options: LanlGrayChoiceModelOptions = {},
+  options: LanlGrayChoiceModelOptions = {}
 ): number {
   let total = 0;
   for (const row of rows) {
@@ -682,7 +671,7 @@ export function lanlGrayNegativeLogLikelihood(
 
 export function lanlGrayMeanAccuracy(
   rows: readonly LanlGrayAchromaticAggregate[],
-  options: LanlGrayChoiceModelOptions = {},
+  options: LanlGrayChoiceModelOptions = {}
 ): number {
   let weightedAccuracy = 0;
   let totalCount = 0;
@@ -698,7 +687,7 @@ export function lanlGrayMeanAccuracy(
 /** Grid-search fit for the compact LANL achromatic gray-axis aggregate fixture. */
 export function fitLanlGrayAchromaticModel(
   rows: readonly LanlGrayAchromaticAggregate[],
-  options: LanlGrayFitOptions = {},
+  options: LanlGrayFitOptions = {}
 ): LanlGrayFitResult {
   if (rows.length === 0) {
     throw new Error('fitLanlGrayAchromaticModel requires at least one aggregate row');
@@ -733,7 +722,9 @@ export function fitLanlGrayAchromaticModel(
   }
 
   if (!best) {
-    throw new Error('fitLanlGrayAchromaticModel requires at least one dampening and noise candidate');
+    throw new Error(
+      'fitLanlGrayAchromaticModel requires at least one dampening and noise candidate'
+    );
   }
   return best;
 }
@@ -751,7 +742,7 @@ export function fitLanlGrayAchromaticModel(
 export function perceptualDistance(
   a: SRGB,
   b: SRGB,
-  options: PerceptualDistanceOptions = {},
+  options: PerceptualDistanceOptions = {}
 ): number {
   const { dampening = DEFAULT_DAMPENING, steps = 24 } = options;
   const g = arcLengthDeltaE2000(srgbToLab(a), srgbToLab(b), steps);

@@ -299,7 +299,7 @@ export function detachTraits(node: ASTNode, ctx: DetachTraitsContext): void {
         getScaleMultiplier: () => ctx.getCurrentScale() || 1,
         getState: () => ctx.getState(),
         setState: (updates: Record<string, HoloScriptValue>) => ctx.setState(updates),
-      } as unknown as TraitContext,
+      } as unknown as TraitContext
     );
   }
 }
@@ -331,7 +331,7 @@ export interface DispatchTraitEventContext {
 export function dispatchTraitEvent(
   traitEvent: TraitEvent,
   ctx: DispatchTraitEventContext,
-  targetOrbName?: string,
+  targetOrbName?: string
 ): void {
   for (const [name, value] of ctx.variables.entries()) {
     if (targetOrbName !== undefined && name !== targetOrbName) continue;
@@ -354,11 +354,11 @@ export function dispatchTraitEvent(
             getState: () => ctx.getState(),
             setState: (updates: Record<string, HoloScriptValue>) => ctx.setState(updates),
           } as unknown as TraitContext,
-          traitEvent,
+          traitEvent
         );
       } catch (err) {
         logger.warn(
-          `[dispatchTraitEvent] handler "${d.name as string}" on orb "${name}" threw: ${err instanceof Error ? err.message : String(err)}`,
+          `[dispatchTraitEvent] handler "${d.name as string}" on orb "${name}" threw: ${err instanceof Error ? err.message : String(err)}`
         );
       }
     }

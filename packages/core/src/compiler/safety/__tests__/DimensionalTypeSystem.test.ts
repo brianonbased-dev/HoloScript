@@ -414,9 +414,7 @@ describe('checkDimensions — multi-node and mixed', () => {
           { field: 'acceleration', unit: 'm/s^2' },
           { field: 'mass', unit: 'kg' },
         ],
-        operations: [
-          { op: 'mul', lhsUnit: 'kg', rhsUnit: 'm/s^2', expectedUnit: 'n' },
-        ],
+        operations: [{ op: 'mul', lhsUnit: 'kg', rhsUnit: 'm/s^2', expectedUnit: 'n' }],
       },
     ];
     const result = checkDimensions(nodes);

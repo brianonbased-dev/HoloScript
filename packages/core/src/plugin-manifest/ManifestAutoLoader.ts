@@ -42,7 +42,7 @@ export interface AutoLoadResult {
  */
 export async function autoLoadPluginsFromManifests(
   pluginsDir: string,
-  registrar: TraitRegistrarTarget,
+  registrar: TraitRegistrarTarget
 ): Promise<AutoLoadResult> {
   const loaded: string[] = [];
   const skipped: string[] = [];
@@ -89,7 +89,7 @@ export async function autoLoadPluginsFromManifests(
       let fn = mod['registerTraitHandlers'];
       if (typeof fn !== 'function') {
         const found = Object.entries(mod).find(
-          ([k, v]) => typeof v === 'function' && /^register\w+TraitHandlers$/.test(k),
+          ([k, v]) => typeof v === 'function' && /^register\w+TraitHandlers$/.test(k)
         );
         fn = found?.[1];
       }

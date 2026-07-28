@@ -809,7 +809,23 @@ describe('BakingPipelineError', () => {
 /** Build a minimal SovereignGaussian3D with N gaussians (all zeros). */
 function makeGaussian3D(N: number): SovereignGaussian3D {
   const z = () => new Float64Array(N);
-  return { N, x: z(), y: z(), z: z(), sx: z(), sy: z(), sz: z(), qr: z(), qx: z(), qy: z(), qz: z(), op: z(), r: z(), gr: z(), bl: z() };
+  return {
+    N,
+    x: z(),
+    y: z(),
+    z: z(),
+    sx: z(),
+    sy: z(),
+    sz: z(),
+    qr: z(),
+    qx: z(),
+    qy: z(),
+    qz: z(),
+    op: z(),
+    r: z(),
+    gr: z(),
+    bl: z(),
+  };
 }
 
 /** Build a single trivial training view (1×1 black target). */
@@ -846,33 +862,23 @@ describe('GaussianBakingPipeline — Sovereign Training', () => {
 
   it('hasSovereignTraining() returns true with sovereign options', () => {
     const mockTrainer = vi.fn();
-    const pipeline = new GaussianBakingPipeline(
-      'key',
-      {},
-      undefined,
-      {
-        gpuDevice: {} as GPUDevice,
-        initial: makeGaussian3D(4),
-        views: [makeView()],
-        trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
-      },
-    );
+    const pipeline = new GaussianBakingPipeline('key', {}, undefined, {
+      gpuDevice: {} as GPUDevice,
+      initial: makeGaussian3D(4),
+      views: [makeView()],
+      trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
+    });
     expect(pipeline.hasSovereignTraining()).toBe(true);
   });
 
   it('estimateCost() zeros training breakdown when sovereign', () => {
     const mockTrainer = vi.fn();
-    const pipeline = new GaussianBakingPipeline(
-      'key',
-      DEFAULT_TEST_CONFIG,
-      undefined,
-      {
-        gpuDevice: {} as GPUDevice,
-        initial: makeGaussian3D(4),
-        views: [makeView()],
-        trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
-      },
-    );
+    const pipeline = new GaussianBakingPipeline('key', DEFAULT_TEST_CONFIG, undefined, {
+      gpuDevice: {} as GPUDevice,
+      initial: makeGaussian3D(4),
+      views: [makeView()],
+      trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
+    });
     const estimate = pipeline.estimateCost();
 
     // Training is local — Render Network cost should be zero for that stage.
@@ -899,7 +905,7 @@ describe('GaussianBakingPipeline — Sovereign Training', () => {
         stage: 'complete',
         outputs: [],
         actual_cost: 0,
-      }),
+      })
     );
 
     const pipeline = new GaussianBakingPipeline(
@@ -911,7 +917,7 @@ describe('GaussianBakingPipeline — Sovereign Training', () => {
         initial: makeGaussian3D(8),
         views: [makeView()],
         trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
-      },
+      }
     );
 
     // Use fake timers so the 5s poll fires immediately.
@@ -936,17 +942,12 @@ describe('GaussianBakingPipeline — Sovereign Training', () => {
   it('execute() wraps trainer failure as BakingPipelineError(SOVEREIGN_TRAIN_FAILED)', async () => {
     const mockTrainer = vi.fn().mockRejectedValue(new Error('OOM on device'));
 
-    const pipeline = new GaussianBakingPipeline(
-      'key',
-      DEFAULT_TEST_CONFIG,
-      undefined,
-      {
-        gpuDevice: {} as GPUDevice,
-        initial: makeGaussian3D(4),
-        views: [makeView()],
-        trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
-      },
-    );
+    const pipeline = new GaussianBakingPipeline('key', DEFAULT_TEST_CONFIG, undefined, {
+      gpuDevice: {} as GPUDevice,
+      initial: makeGaussian3D(4),
+      views: [makeView()],
+      trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
+    });
 
     await expect(pipeline.execute()).rejects.toMatchObject({
       code: 'SOVEREIGN_TRAIN_FAILED',
@@ -957,7 +958,7 @@ describe('GaussianBakingPipeline — Sovereign Training', () => {
 
   it('execute() without sovereign options falls through to remote path', async () => {
     mockFetch.mockResolvedValue(
-      createMockResponse({ job_id: 'rndr_remote', stage: 'complete', outputs: [], actual_cost: 0 }),
+      createMockResponse({ job_id: 'rndr_remote', stage: 'complete', outputs: [], actual_cost: 0 })
     );
 
     const pipeline = new GaussianBakingPipeline('key', DEFAULT_TEST_CONFIG);
@@ -980,22 +981,17 @@ describe('GaussianBakingPipeline — Sovereign Training', () => {
     const bg: [number, number, number] = [0.1, 0.2, 0.3];
 
     mockFetch.mockResolvedValue(
-      createMockResponse({ job_id: 'rndr_bake', stage: 'complete', outputs: [], actual_cost: 0 }),
+      createMockResponse({ job_id: 'rndr_bake', stage: 'complete', outputs: [], actual_cost: 0 })
     );
 
-    const pipeline = new GaussianBakingPipeline(
-      'key',
-      DEFAULT_TEST_CONFIG,
-      undefined,
-      {
-        gpuDevice: {} as GPUDevice,
-        initial: makeGaussian3D(4),
-        views: [makeView()],
-        trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
-        bg,
-        onProgress: mockProgress,
-      },
-    );
+    const pipeline = new GaussianBakingPipeline('key', DEFAULT_TEST_CONFIG, undefined, {
+      gpuDevice: {} as GPUDevice,
+      initial: makeGaussian3D(4),
+      views: [makeView()],
+      trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
+      bg,
+      onProgress: mockProgress,
+    });
 
     vi.useFakeTimers();
     const execPromise = pipeline.execute();

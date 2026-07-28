@@ -155,9 +155,7 @@ async function fixArtifact(
 
 // ── Direct Anthropic path ──────────────────────────────────────────────────
 
-async function runDirectAnthropic(
-  spec: OutcomeSpec
-): Promise<{
+async function runDirectAnthropic(spec: OutcomeSpec): Promise<{
   artifact: OutcomeArtifact;
   result: OutcomeGraderResult;
   usage: TokenUsage;
@@ -199,9 +197,7 @@ async function runDirectAnthropic(
 
 // ── OutcomeLoop path ─────────────────────────────────────────────────────────
 
-async function runOutcomeLoop(
-  spec: OutcomeSpec
-): Promise<{
+async function runOutcomeLoop(spec: OutcomeSpec): Promise<{
   receipt: import('../OutcomeLoop').OutcomeReceipt;
   finalArtifact: OutcomeArtifact;
   usage: TokenUsage;

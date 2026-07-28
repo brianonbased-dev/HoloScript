@@ -15,10 +15,25 @@ function comp(partial: Partial<HoloComposition>): HoloComposition {
   return {
     type: 'Composition',
     name: 'SwarmWorld',
-    templates: [], objects: [], spatialGroups: [], lights: [], imports: [],
-    timelines: [], audio: [], zones: [], transitions: [], conditionals: [],
-    iterators: [], npcs: [], quests: [], abilities: [], dialogues: [],
-    stateMachines: [], achievements: [], talentTrees: [], shapes: [],
+    templates: [],
+    objects: [],
+    spatialGroups: [],
+    lights: [],
+    imports: [],
+    timelines: [],
+    audio: [],
+    zones: [],
+    transitions: [],
+    conditionals: [],
+    iterators: [],
+    npcs: [],
+    quests: [],
+    abilities: [],
+    dialogues: [],
+    stateMachines: [],
+    achievements: [],
+    talentTrees: [],
+    shapes: [],
     ...partial,
   } as unknown as HoloComposition;
 }
@@ -33,8 +48,12 @@ const fireball: HoloAbility = {
 
 function spawn(name: string, x: number, z: number): HoloSpawnPoint {
   return {
-    type: 'SpawnPoint', name, faction: 'none', maxCount: 100,
-    position: { type: 'Position', x, y: 0, z } as never, properties: {},
+    type: 'SpawnPoint',
+    name,
+    faction: 'none',
+    maxCount: 100,
+    position: { type: 'Position', x, y: 0, z } as never,
+    properties: {},
   } as unknown as HoloSpawnPoint;
 }
 
@@ -45,7 +64,10 @@ function trait(name: string, config: Record<string, unknown>): HoloObjectTrait {
 const world = comp({
   abilities: [fireball],
   spawnPoints: [spawn('camp', 0, 0)],
-  traits: [trait('movement_contract', { max_speed: 8 }), trait('balance_test', { max_avg_tick_ms: 50 })],
+  traits: [
+    trait('movement_contract', { max_speed: 8 }),
+    trait('balance_test', { max_avg_tick_ms: 50 }),
+  ],
 });
 
 // ---------------------------------------------------------------------------
@@ -91,13 +113,20 @@ function evalModule(js: string): Record<string, unknown> {
   const colyseusStub = {
     Room: class {
       state: unknown;
-      setState(s: unknown) { this.state = s; }
+      setState(s: unknown) {
+        this.state = s;
+      }
       setSimulationInterval() {}
       onMessage() {}
       broadcast() {}
     },
     Client: class {},
-    Server: class { define() {} listen() { return Promise.resolve(); } },
+    Server: class {
+      define() {}
+      listen() {
+        return Promise.resolve();
+      }
+    },
   };
   const require_ = (id: string): unknown => {
     if (id === '@colyseus/schema') return schemaStub;
@@ -135,13 +164,24 @@ describe('BotSwarmCompiler — load/balance against a real generated server (P2.
       R: new () => unknown,
       opts: { bots: number; ticks: number; speedhackRatio: number; seed: number }
     ) => {
-      bots: number; ticks: number; moveAttempts: number; moveRejects: number;
-      castAttempts: number; castRejects: number; receipts: number;
-      avgTickMs: number; finalPlayers: number;
+      bots: number;
+      ticks: number;
+      moveAttempts: number;
+      moveRejects: number;
+      castAttempts: number;
+      castRejects: number;
+      receipts: number;
+      avgTickMs: number;
+      finalPlayers: number;
     };
     const assertBalance = harnessMod.assertBalance as (r: unknown) => string[];
 
-    const report = runBotSwarm(RoomClass, { bots: 24, ticks: 100, speedhackRatio: 0.3, seed: 12345 });
+    const report = runBotSwarm(RoomClass, {
+      bots: 24,
+      ticks: 100,
+      speedhackRatio: 0.3,
+      seed: 12345,
+    });
 
     // All bots joined and stayed
     expect(report.finalPlayers).toBe(24);
@@ -212,8 +252,28 @@ describe('BotSwarmCompiler — mergeBalanceReports (sharded/distributed aggregat
     const merge = mod.mergeBalanceReports as (
       rs: Array<Record<string, number>>
     ) => Record<string, number>;
-    const a = { bots: 8, ticks: 100, moveAttempts: 800, moveRejects: 10, castAttempts: 800, castRejects: 5, receipts: 50, avgTickMs: 2, finalPlayers: 8 };
-    const b = { bots: 8, ticks: 100, moveAttempts: 800, moveRejects: 20, castAttempts: 800, castRejects: 5, receipts: 60, avgTickMs: 4, finalPlayers: 8 };
+    const a = {
+      bots: 8,
+      ticks: 100,
+      moveAttempts: 800,
+      moveRejects: 10,
+      castAttempts: 800,
+      castRejects: 5,
+      receipts: 50,
+      avgTickMs: 2,
+      finalPlayers: 8,
+    };
+    const b = {
+      bots: 8,
+      ticks: 100,
+      moveAttempts: 800,
+      moveRejects: 20,
+      castAttempts: 800,
+      castRejects: 5,
+      receipts: 60,
+      avgTickMs: 4,
+      finalPlayers: 8,
+    };
     const m = merge([a, b]);
     expect(m.bots).toBe(16);
     expect(m.ticks).toBe(100);
@@ -259,7 +319,9 @@ describe('BotSwarmCompiler — runNetworkBots (network driver)', () => {
     let counter = 0;
     const colyseusJsStub = {
       Client: class {
-        constructor(_url: string) { void _url; }
+        constructor(_url: string) {
+          void _url;
+        }
         async joinOrCreate(): Promise<unknown> {
           const sid = 'net_' + counter++;
           const player = { x: 0, y: 0, z: 0 };
@@ -270,9 +332,14 @@ describe('BotSwarmCompiler — runNetworkBots (network driver)', () => {
             state: { players: new Map([[sid, player]]) },
             send: (type: string, msg: { x?: number }) => {
               if (type === 'move' && (msg.x ?? 0) >= 1000) handlers['reconcile']?.();
-              if (type === 'cast') { casts++; if (casts > 1) handlers['cast_rejected']?.(); }
+              if (type === 'cast') {
+                casts++;
+                if (casts > 1) handlers['cast_rejected']?.();
+              }
             },
-            onMessage: (type: string, cb: () => void) => { handlers[type] = cb; },
+            onMessage: (type: string, cb: () => void) => {
+              handlers[type] = cb;
+            },
             leave: async () => undefined,
           };
         }
@@ -290,7 +357,13 @@ describe('BotSwarmCompiler — runNetworkBots (network driver)', () => {
     const runNetworkBots = moduleObj.exports.runNetworkBots as (
       opts: Record<string, unknown>
     ) => Promise<Record<string, number>>;
-    const report = await runNetworkBots({ bots: 6, ticks: 10, speedhackRatio: 1, tickMs: 1, seed: 3 });
+    const report = await runNetworkBots({
+      bots: 6,
+      ticks: 10,
+      speedhackRatio: 1,
+      tickMs: 1,
+      seed: 3,
+    });
 
     expect(report.bots).toBe(6);
     expect(report.finalPlayers).toBe(6);

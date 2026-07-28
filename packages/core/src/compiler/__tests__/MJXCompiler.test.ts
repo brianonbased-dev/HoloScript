@@ -95,13 +95,19 @@ describe('MJXCompiler', () => {
   });
 
   it('leaves DIFFERENTIABLE_ELEMENTS empty with no trait and default off', () => {
-    const py = compiler.compile(makeComposition({ objects: [makeObject({ name: 'Plain' })] }), 'test-token');
+    const py = compiler.compile(
+      makeComposition({ objects: [makeObject({ name: 'Plain' })] }),
+      'test-token'
+    );
     expect(py).toContain('DIFFERENTIABLE_ELEMENTS = []');
   });
 
   it('differentiableByDefault marks every body without a trait', () => {
     const c = new MJXCompiler({ differentiableByDefault: true });
-    const py = c.compile(makeComposition({ objects: [makeObject({ name: 'Knee' })] }), 'test-token');
+    const py = c.compile(
+      makeComposition({ objects: [makeObject({ name: 'Knee' })] }),
+      'test-token'
+    );
     expect(py).toContain('"knee"');
   });
 

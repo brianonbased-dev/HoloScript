@@ -44,7 +44,13 @@ export interface BlockConfig {
 }
 
 /** out[r, c] = m[r, startCol + c], slicing a column range. */
-export function sliceColumns(m: Float32Array, rows: number, totalCols: number, startCol: number, width: number): Float32Array {
+export function sliceColumns(
+  m: Float32Array,
+  rows: number,
+  totalCols: number,
+  startCol: number,
+  width: number
+): Float32Array {
   const out = new Float32Array(rows * width);
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < width; c++) out[r * width + c] = m[r * totalCols + startCol + c];
@@ -53,24 +59,36 @@ export function sliceColumns(m: Float32Array, rows: number, totalCols: number, s
 }
 
 /** [T, H*d] (row-major, heads contiguous per token) -> [H, T, d]. */
-export function toHeads(x: Float32Array, seqLen: number, nHead: number, dHead: number): Float32Array {
+export function toHeads(
+  x: Float32Array,
+  seqLen: number,
+  nHead: number,
+  dHead: number
+): Float32Array {
   const nEmbd = nHead * dHead;
   const out = new Float32Array(nHead * seqLen * dHead);
   for (let t = 0; t < seqLen; t++) {
     for (let h = 0; h < nHead; h++) {
-      for (let di = 0; di < dHead; di++) out[h * seqLen * dHead + t * dHead + di] = x[t * nEmbd + h * dHead + di];
+      for (let di = 0; di < dHead; di++)
+        out[h * seqLen * dHead + t * dHead + di] = x[t * nEmbd + h * dHead + di];
     }
   }
   return out;
 }
 
 /** [H, T, d] -> [T, H*d]. Inverse of toHeads. */
-export function fromHeads(x: Float32Array, seqLen: number, nHead: number, dHead: number): Float32Array {
+export function fromHeads(
+  x: Float32Array,
+  seqLen: number,
+  nHead: number,
+  dHead: number
+): Float32Array {
   const nEmbd = nHead * dHead;
   const out = new Float32Array(seqLen * nEmbd);
   for (let h = 0; h < nHead; h++) {
     for (let t = 0; t < seqLen; t++) {
-      for (let di = 0; di < dHead; di++) out[t * nEmbd + h * dHead + di] = x[h * seqLen * dHead + t * dHead + di];
+      for (let di = 0; di < dHead; di++)
+        out[t * nEmbd + h * dHead + di] = x[h * seqLen * dHead + t * dHead + di];
     }
   }
   return out;
@@ -94,7 +112,14 @@ export function createHoloTorchBlock(device: GPUDevice): HoloTorchBlock {
   const mha: FusedMHAKernel = createFusedMHAKernel(device);
 
   /** Linear: y = x @ W + b. x [rows, inDim], W [inDim, outDim], b [outDim]. */
-  async function linear(x: Float32Array, W: Float32Array, b: Float32Array, rows: number, inDim: number, outDim: number): Promise<Float32Array> {
+  async function linear(
+    x: Float32Array,
+    W: Float32Array,
+    b: Float32Array,
+    rows: number,
+    inDim: number,
+    outDim: number
+  ): Promise<Float32Array> {
     const y = await gemm.run(x, W, rows, outDim, inDim);
     return biasAdd.run(y, b, rows, outDim);
   }
@@ -110,13 +135,18 @@ export function createHoloTorchBlock(device: GPUDevice): HoloTorchBlock {
       const q = sliceColumns(qkv, T, 3 * nEmbd, 0, nEmbd);
       const k = sliceColumns(qkv, T, 3 * nEmbd, nEmbd, nEmbd);
       const v = sliceColumns(qkv, T, 3 * nEmbd, 2 * nEmbd, nEmbd);
-      const attnH = await mha.run(toHeads(q, T, nHead, dHead), toHeads(k, T, nHead, dHead), toHeads(v, T, nHead, dHead), {
-        numHeads: nHead,
-        qLen: T,
-        kLen: T,
-        dHead,
-        causal: true,
-      });
+      const attnH = await mha.run(
+        toHeads(q, T, nHead, dHead),
+        toHeads(k, T, nHead, dHead),
+        toHeads(v, T, nHead, dHead),
+        {
+          numHeads: nHead,
+          qLen: T,
+          kLen: T,
+          dHead,
+          causal: true,
+        }
+      );
       const attn = fromHeads(attnH, T, nHead, dHead);
       const o = await linear(attn, w.wproj, w.bproj, T, nEmbd, nEmbd);
       const x1 = addInto(x, o);

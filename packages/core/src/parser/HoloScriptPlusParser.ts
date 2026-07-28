@@ -5368,10 +5368,7 @@ export class HoloScriptPlusParser {
         transitions.push(...this.parseTransitionsBlock());
       } else {
         if (this.options.strict) {
-          this.errorAt(
-            current,
-            `Unsupported state_machine declaration '${current.value}'`,
-          );
+          this.errorAt(current, `Unsupported state_machine declaration '${current.value}'`);
         }
         this.advance();
       }
@@ -5665,10 +5662,7 @@ export class HoloScriptPlusParser {
         transition.canTransitionToSelf = this.parseOptionalStateMachineBoolean();
       } else {
         if (this.options.strict) {
-          this.errorAt(
-            clauseToken,
-            `Unsupported state transition clause '${clauseToken.value}'`,
-          );
+          this.errorAt(clauseToken, `Unsupported state transition clause '${clauseToken.value}'`);
         }
         break;
       }
@@ -7246,11 +7240,7 @@ export class HoloScriptPlusParser {
           continue;
         }
 
-        if (
-          token.type === 'NEWLINE' ||
-          token.type === 'INDENT' ||
-          token.type === 'DEDENT'
-        ) {
+        if (token.type === 'NEWLINE' || token.type === 'INDENT' || token.type === 'DEDENT') {
           lastConsumedToken = token;
           this.advance();
           continue;
@@ -7564,8 +7554,7 @@ export class HoloScriptPlusParser {
   /** Validate a comma-separated generic argument list without crossing a field boundary. */
   private areSupportedStructTypeArguments(tokens: readonly Token[]): boolean {
     const semanticTokens = tokens.filter(
-      (token) =>
-        token.type !== 'NEWLINE' && token.type !== 'INDENT' && token.type !== 'DEDENT'
+      (token) => token.type !== 'NEWLINE' && token.type !== 'INDENT' && token.type !== 'DEDENT'
     );
     if (semanticTokens.length === 0) return false;
 
@@ -7577,10 +7566,7 @@ export class HoloScriptPlusParser {
       const token = semanticTokens[index];
       const atArgumentBoundary =
         index === semanticTokens.length ||
-        (token.type === 'COMMA' &&
-          angleDepth === 0 &&
-          bracketDepth === 0 &&
-          parenDepth === 0);
+        (token.type === 'COMMA' && angleDepth === 0 && bracketDepth === 0 && parenDepth === 0);
       if (atArgumentBoundary) {
         if (!this.isSupportedStructType(semanticTokens.slice(start, index))) return false;
         start = index + 1;

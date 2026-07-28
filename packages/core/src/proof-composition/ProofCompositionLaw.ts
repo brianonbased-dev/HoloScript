@@ -93,11 +93,10 @@ export interface ComposedReceipt {
  * conjunction of their solver contracts in a single receipt.
  */
 export function composeReceipts(
-  components: ReadonlyArray<WrappedSolverResult<unknown>>,
+  components: ReadonlyArray<WrappedSolverResult<unknown>>
 ): ComposedReceipt {
   // Laws 1 + 2: AND-monotone (empty → true)
-  const composedVerified =
-    components.length === 0 || components.every((c) => c.contractVerified);
+  const composedVerified = components.length === 0 || components.every((c) => c.contractVerified);
 
   // Law 3: schema null-coalescing AND
   const nonNullSchema = components.filter((c) => c.schemaValid !== null);
@@ -110,14 +109,10 @@ export function composeReceipts(
 
   // Provenance: deduplicated from component fields
   const pluginIds = [
-    ...new Set(
-      components.map((c) => c.pluginId).filter((id): id is string => id !== null),
-    ),
+    ...new Set(components.map((c) => c.pluginId).filter((id): id is string => id !== null)),
   ];
   const contractIds = [
-    ...new Set(
-      components.map((c) => c.contractId).filter((id): id is string => id !== null),
-    ),
+    ...new Set(components.map((c) => c.contractId).filter((id): id is string => id !== null)),
   ];
 
   // Hash: canonicalize the verification shape (not the result values)
@@ -157,7 +152,7 @@ export function composeReceipts(
  */
 export function flattenForRecompose(
   composed: ComposedReceipt,
-  additional: ReadonlyArray<WrappedSolverResult<unknown>> = [],
+  additional: ReadonlyArray<WrappedSolverResult<unknown>> = []
 ): ReadonlyArray<WrappedSolverResult<unknown>> {
   return [...composed.components, ...additional];
 }
@@ -191,7 +186,7 @@ export function verifyCompositionLaws(receipt: ComposedReceipt): ProofCompositio
   // Law 4: violation union
   const expectedViolationCount = receipt.components.reduce(
     (n, c) => n + c.clauseViolations.length,
-    0,
+    0
   );
   if (receipt.allViolations.length !== expectedViolationCount) failing.push('violation-union');
 

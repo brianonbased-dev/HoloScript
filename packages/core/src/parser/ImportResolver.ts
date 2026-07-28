@@ -556,9 +556,7 @@ export class ImportResolver {
   private _cacheKey(canonicalPath: string, options: ImportResolveOptions): string {
     if (!isRegistryImport(canonicalPath)) return canonicalPath;
     const pin = options.registryLock?.[canonicalPath];
-    return pin
-      ? `${canonicalPath}#${pin.version}:${pin.integrity}`
-      : `${canonicalPath}#unlocked`;
+    return pin ? `${canonicalPath}#${pin.version}:${pin.integrity}` : `${canonicalPath}#unlocked`;
   }
 
   /**

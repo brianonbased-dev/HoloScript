@@ -156,7 +156,7 @@ export function isInEnvelope(value: unknown, record: ParameterEnvelopeRecord): b
  */
 export function checkParameterEnvelope(
   params: Record<string, unknown>,
-  envelope: ParameterEnvelope,
+  envelope: ParameterEnvelope
 ): EnvelopeCheckResult {
   const violations: EnvelopeViolation[] = [];
 

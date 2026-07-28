@@ -54,7 +54,15 @@ describe('buildGameEventReceipt — schema validity', () => {
   });
 
   it('works for every GameEventKind', () => {
-    const kinds = ['combat_hit', 'death', 'loot_roll', 'trade', 'movement_reject', 'ability_cast', 'spawn'] as const;
+    const kinds = [
+      'combat_hit',
+      'death',
+      'loot_roll',
+      'trade',
+      'movement_reject',
+      'ability_cast',
+      'spawn',
+    ] as const;
     for (const kind of kinds) {
       const receipt = buildGameEventReceipt({ ...BASE_INPUT, kind });
       const result = validateTrustReceipt(receipt);

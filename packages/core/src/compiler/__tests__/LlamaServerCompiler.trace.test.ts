@@ -96,7 +96,9 @@ describe('LlamaServerCompiler trace_capture', () => {
     expect(proxyUnit?.content).toContain('HOLO_PROXY_BIND_PORT=18080');
     expect(proxyUnit?.content).toContain('HOLO_PROXY_UPSTREAM=http://127.0.0.1:18079');
     expect(proxyUnit?.content).toContain('Restart=always');
-    expect(proxyUnit?.content).toContain('After=network-online.target jetson-orin-llamacpp.service');
+    expect(proxyUnit?.content).toContain(
+      'After=network-online.target jetson-orin-llamacpp.service'
+    );
 
     // receipt/capsule contract is baked into the script
     expect(proxyScript?.content).toContain('inference-receipt/v0');

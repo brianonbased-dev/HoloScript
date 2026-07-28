@@ -328,7 +328,9 @@ export function createPagedKVCache(config: KVCacheConfig): PagedKVCache {
       assertLive();
       validateLayer(layer);
       if (!Number.isInteger(firstToken) || firstToken < 0) {
-        throw new Error(`PagedKVCache firstToken must be a non-negative integer, got ${firstToken}`);
+        throw new Error(
+          `PagedKVCache firstToken must be a non-negative integer, got ${firstToken}`
+        );
       }
       const logicalPage = Math.floor(firstToken / config.pageSize);
       return pageSnapshot(allocatePageInternal(layer, logicalPage));

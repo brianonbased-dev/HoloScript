@@ -146,7 +146,12 @@ function createHumanoidBones(pose: AutoRigPose): BoneDefinition[] {
       position: [-0.24, armY * 0.5, 0],
       length: 0.1,
     }),
-    createBone({ name: 'left_upper_leg', parent: 'hips', position: [0.09, -0.16, 0], length: 0.42 }),
+    createBone({
+      name: 'left_upper_leg',
+      parent: 'hips',
+      position: [0.09, -0.16, 0],
+      length: 0.42,
+    }),
     createBone({
       name: 'left_lower_leg',
       parent: 'left_upper_leg',

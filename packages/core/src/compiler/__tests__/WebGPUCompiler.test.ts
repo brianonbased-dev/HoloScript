@@ -226,7 +226,14 @@ describe('WebGPUCompiler', () => {
           traits: [],
           properties: {},
           children: [
-            { type: 'DomainBlock', domain: 'postfx', keyword: 'bloom', name: 'Bloom', traits: [], properties: { intensity: 0.4 } },
+            {
+              type: 'DomainBlock',
+              domain: 'postfx',
+              keyword: 'bloom',
+              name: 'Bloom',
+              traits: [],
+              properties: { intensity: 0.4 },
+            },
           ],
         },
         {
@@ -253,7 +260,9 @@ describe('WebGPUCompiler', () => {
     expect(code).toContain('PostFXPipeline');
     expect(code).toContain('TreeDistribution');
     expect(code).toContain('ScatterPipeline');
-    expect(code).toContain('rp.draw(db3_procedural_scatter_TreeDistributionScatterVertexCount, db3_procedural_scatter_TreeDistributionScatterInstanceCount)');
+    expect(code).toContain(
+      'rp.draw(db3_procedural_scatter_TreeDistributionScatterVertexCount, db3_procedural_scatter_TreeDistributionScatterInstanceCount)'
+    );
     expect(code).not.toContain('// Domain block: vfx/particles');
     expect(code).not.toContain('// Domain block: postfx/post_processing');
     expect(code).not.toContain('// Domain block: procedural/scatter');

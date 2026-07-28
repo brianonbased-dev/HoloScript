@@ -20,11 +20,7 @@
  *   default      → unit cube (12 triangles)
  */
 
-import type {
-  HoloComposition,
-  HoloObjectDecl,
-  HoloValue,
-} from '../parser/HoloCompositionTypes.js';
+import type { HoloComposition, HoloObjectDecl, HoloValue } from '../parser/HoloCompositionTypes.js';
 import { CompilerBase, type CompilerToken } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 
@@ -183,9 +179,7 @@ export class STLExportCompiler extends CompilerBase {
 
     // Fall back: derive from trait names
     for (const trait of obj.traits) {
-      const name = String(trait.name)
-        .replace(/^@/, '')
-        .toLowerCase();
+      const name = String(trait.name).replace(/^@/, '').toLowerCase();
       if (['box', 'cube', 'sphere', 'cylinder', 'plane', 'floor', 'text'].includes(name)) {
         return name;
       }
@@ -214,9 +208,7 @@ export class STLExportCompiler extends CompilerBase {
     fallback: number
   ): number {
     const cleanName = traitName.replace(/^@/, '');
-    const trait = obj.traits.find(
-      (t) => String(t.name).replace(/^@/, '') === cleanName
-    );
+    const trait = obj.traits.find((t) => String(t.name).replace(/^@/, '') === cleanName);
     if (!trait) return fallback;
     const cfg = (trait as unknown as Record<string, unknown>)['config'] as
       | Record<string, unknown>
@@ -271,10 +263,7 @@ export class STLExportCompiler extends CompilerBase {
         const s = scaleProp.value;
         return { x: s, y: s, z: s };
       }
-      if (
-        typeof scaleProp.value === 'object' &&
-        !Array.isArray(scaleProp.value)
-      ) {
+      if (typeof scaleProp.value === 'object' && !Array.isArray(scaleProp.value)) {
         const v = scaleProp.value as Record<string, unknown>;
         return {
           x: this.toNumber(v['x'] as HoloValue, 1),
@@ -348,27 +337,30 @@ export class STLExportCompiler extends CompilerBase {
   // Dimensions from @width / @height / @depth traits or properties (default 1.0)
 
   private tessellateBox(obj: HoloObjectDecl): Triangle[] {
-    const w = Math.max(
-      this.getPropNumber(obj, 'width', this.getTraitParam(obj, 'width', 'value', 1)),
-      1e-6
-    ) / 2;
-    const h = Math.max(
-      this.getPropNumber(obj, 'height', this.getTraitParam(obj, 'height', 'value', 1)),
-      1e-6
-    ) / 2;
-    const d = Math.max(
-      this.getPropNumber(obj, 'depth', this.getTraitParam(obj, 'depth', 'value', 1)),
-      1e-6
-    ) / 2;
+    const w =
+      Math.max(
+        this.getPropNumber(obj, 'width', this.getTraitParam(obj, 'width', 'value', 1)),
+        1e-6
+      ) / 2;
+    const h =
+      Math.max(
+        this.getPropNumber(obj, 'height', this.getTraitParam(obj, 'height', 'value', 1)),
+        1e-6
+      ) / 2;
+    const d =
+      Math.max(
+        this.getPropNumber(obj, 'depth', this.getTraitParam(obj, 'depth', 'value', 1)),
+        1e-6
+      ) / 2;
 
     // Corners
-    const ppp: Vec3 = { x:  w, y:  h, z:  d };
-    const ppn: Vec3 = { x:  w, y:  h, z: -d };
-    const pnp: Vec3 = { x:  w, y: -h, z:  d };
-    const pnn: Vec3 = { x:  w, y: -h, z: -d };
-    const npp: Vec3 = { x: -w, y:  h, z:  d };
-    const npn: Vec3 = { x: -w, y:  h, z: -d };
-    const nnp: Vec3 = { x: -w, y: -h, z:  d };
+    const ppp: Vec3 = { x: w, y: h, z: d };
+    const ppn: Vec3 = { x: w, y: h, z: -d };
+    const pnp: Vec3 = { x: w, y: -h, z: d };
+    const pnn: Vec3 = { x: w, y: -h, z: -d };
+    const npp: Vec3 = { x: -w, y: h, z: d };
+    const npn: Vec3 = { x: -w, y: h, z: -d };
+    const nnp: Vec3 = { x: -w, y: -h, z: d };
     const nnn: Vec3 = { x: -w, y: -h, z: -d };
 
     return [
@@ -413,9 +405,9 @@ export class STLExportCompiler extends CompilerBase {
 
     for (let lat = 0; lat < latSegs; lat++) {
       for (let lon = 0; lon < lonSegs; lon++) {
-        const v00 = vertex(lon,     lat    );
-        const v10 = vertex(lon + 1, lat    );
-        const v01 = vertex(lon,     lat + 1);
+        const v00 = vertex(lon, lat);
+        const v10 = vertex(lon + 1, lat);
+        const v01 = vertex(lon, lat + 1);
         const v11 = vertex(lon + 1, lat + 1);
 
         // Lower triangle
@@ -438,17 +430,17 @@ export class STLExportCompiler extends CompilerBase {
     const halfH = 0.5;
     const tris: Triangle[] = [];
 
-    const topCenter: Vec3    = { x: 0, y:  halfH, z: 0 };
+    const topCenter: Vec3 = { x: 0, y: halfH, z: 0 };
     const bottomCenter: Vec3 = { x: 0, y: -halfH, z: 0 };
 
     for (let i = 0; i < segs; i++) {
-      const a0 = (i       / segs) * 2 * Math.PI;
+      const a0 = (i / segs) * 2 * Math.PI;
       const a1 = ((i + 1) / segs) * 2 * Math.PI;
 
-      const topA0: Vec3    = { x: r * Math.cos(a0), y:  halfH, z: r * Math.sin(a0) };
-      const topA1: Vec3    = { x: r * Math.cos(a1), y:  halfH, z: r * Math.sin(a1) };
-      const botA0: Vec3    = { x: r * Math.cos(a0), y: -halfH, z: r * Math.sin(a0) };
-      const botA1: Vec3    = { x: r * Math.cos(a1), y: -halfH, z: r * Math.sin(a1) };
+      const topA0: Vec3 = { x: r * Math.cos(a0), y: halfH, z: r * Math.sin(a0) };
+      const topA1: Vec3 = { x: r * Math.cos(a1), y: halfH, z: r * Math.sin(a1) };
+      const botA0: Vec3 = { x: r * Math.cos(a0), y: -halfH, z: r * Math.sin(a0) };
+      const botA1: Vec3 = { x: r * Math.cos(a1), y: -halfH, z: r * Math.sin(a1) };
 
       // Top cap (normal +Y — CCW when viewed from above)
       tris.push(this.tri(topCenter, topA1, topA0));
@@ -468,24 +460,23 @@ export class STLExportCompiler extends CompilerBase {
   // 2 triangles — flat XZ plane, normal pointing +Y
 
   private tessellatePlane(obj: HoloObjectDecl): Triangle[] {
-    const w = Math.max(
-      this.getPropNumber(obj, 'width', this.getTraitParam(obj, 'width', 'value', 1)),
-      1e-6
-    ) / 2;
-    const d = Math.max(
-      this.getPropNumber(obj, 'depth', this.getTraitParam(obj, 'depth', 'value', 1)),
-      1e-6
-    ) / 2;
+    const w =
+      Math.max(
+        this.getPropNumber(obj, 'width', this.getTraitParam(obj, 'width', 'value', 1)),
+        1e-6
+      ) / 2;
+    const d =
+      Math.max(
+        this.getPropNumber(obj, 'depth', this.getTraitParam(obj, 'depth', 'value', 1)),
+        1e-6
+      ) / 2;
 
     const v00: Vec3 = { x: -w, y: 0, z: -d };
-    const v10: Vec3 = { x:  w, y: 0, z: -d };
-    const v01: Vec3 = { x: -w, y: 0, z:  d };
-    const v11: Vec3 = { x:  w, y: 0, z:  d };
+    const v10: Vec3 = { x: w, y: 0, z: -d };
+    const v01: Vec3 = { x: -w, y: 0, z: d };
+    const v11: Vec3 = { x: w, y: 0, z: d };
 
-    return [
-      this.tri(v00, v10, v11),
-      this.tri(v00, v11, v01),
-    ];
+    return [this.tri(v00, v10, v11), this.tri(v00, v11, v01)];
   }
 
   // ─── Triangle factory ────────────────────────────────────────────────────
@@ -505,11 +496,7 @@ export class STLExportCompiler extends CompilerBase {
     return n.toFixed(6);
   }
 
-  private buildSTL(
-    solidName: string,
-    triangles: Triangle[],
-    skippedTextCount: number
-  ): string {
+  private buildSTL(solidName: string, triangles: Triangle[], skippedTextCount: number): string {
     const lines: string[] = [];
 
     lines.push(`solid ${solidName}`);
@@ -520,9 +507,7 @@ export class STLExportCompiler extends CompilerBase {
 
     for (const tri of triangles) {
       const n = tri.normal;
-      lines.push(
-        `  facet normal ${this.fmtNum(n.x)} ${this.fmtNum(n.y)} ${this.fmtNum(n.z)}`
-      );
+      lines.push(`  facet normal ${this.fmtNum(n.x)} ${this.fmtNum(n.y)} ${this.fmtNum(n.z)}`);
       lines.push('    outer loop');
       lines.push(
         `      vertex ${this.fmtNum(tri.v0.x)} ${this.fmtNum(tri.v0.y)} ${this.fmtNum(tri.v0.z)}`

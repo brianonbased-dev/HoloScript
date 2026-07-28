@@ -1,12 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-  isInEnvelope,
-  checkParameterEnvelope,
-} from '../ParameterEnvelope';
-import type {
-  ParameterEnvelopeRecord,
-  ParameterEnvelope,
-} from '../ParameterEnvelope';
+import { isInEnvelope, checkParameterEnvelope } from '../ParameterEnvelope';
+import type { ParameterEnvelopeRecord, ParameterEnvelope } from '../ParameterEnvelope';
 
 // ── isInEnvelope ──────────────────────────────────────────────────────────────
 
@@ -150,9 +144,7 @@ describe('checkParameterEnvelope — all params in envelope', () => {
 });
 
 describe('checkParameterEnvelope — error-verdict violation', () => {
-  const envelope: ParameterEnvelope = [
-    { param: 'dt', min: 0.001, max: 0.1, onViolation: 'error' },
-  ];
+  const envelope: ParameterEnvelope = [{ param: 'dt', min: 0.001, max: 0.1, onViolation: 'error' }];
 
   it('sets passed:false and records the violation', () => {
     const result = checkParameterEnvelope({ dt: 0.5 }, envelope);
@@ -169,9 +161,7 @@ describe('checkParameterEnvelope — error-verdict violation', () => {
 });
 
 describe('checkParameterEnvelope — warn-verdict violation', () => {
-  const envelope: ParameterEnvelope = [
-    { param: 'damping', max: 1, onViolation: 'warn' },
-  ];
+  const envelope: ParameterEnvelope = [{ param: 'damping', max: 1, onViolation: 'warn' }];
 
   it('keeps passed:true but records the violation', () => {
     const result = checkParameterEnvelope({ damping: 1.5 }, envelope);
@@ -209,9 +199,7 @@ describe('checkParameterEnvelope — default onViolation is error', () => {
 });
 
 describe('checkParameterEnvelope — absent param is skipped', () => {
-  const envelope: ParameterEnvelope = [
-    { param: 'missing_key', min: 1, max: 100 },
-  ];
+  const envelope: ParameterEnvelope = [{ param: 'missing_key', min: 1, max: 100 }];
 
   it('skips records whose key is absent from params', () => {
     const result = checkParameterEnvelope({ other: 42 }, envelope);
@@ -229,9 +217,9 @@ describe('checkParameterEnvelope — multiple records, mixed outcomes', () => {
 
   it('collects all violations across records', () => {
     const params = {
-      dt: 0.5,      // → error
+      dt: 0.5, // → error
       solver: 'bad', // → warn
-      tol: 0.1,     // → redischarge
+      tol: 0.1, // → redischarge
     };
     const result = checkParameterEnvelope(params, envelope);
     expect(result.passed).toBe(false); // error present
@@ -252,26 +240,20 @@ describe('checkParameterEnvelope — multiple records, mixed outcomes', () => {
 
 describe('checkParameterEnvelope — violation message format', () => {
   it('includes unit suffix when record.unit is set', () => {
-    const envelope: ParameterEnvelope = [
-      { param: 'freq', min: 1, max: 1000, unit: 'Hz' },
-    ];
+    const envelope: ParameterEnvelope = [{ param: 'freq', min: 1, max: 1000, unit: 'Hz' }];
     const result = checkParameterEnvelope({ freq: 5000 }, envelope);
     expect(result.violations[0].message).toContain('Hz');
   });
 
   it('includes the range description for numeric bounds', () => {
-    const envelope: ParameterEnvelope = [
-      { param: 'dt', min: 0.001, max: 0.1 },
-    ];
+    const envelope: ParameterEnvelope = [{ param: 'dt', min: 0.001, max: 0.1 }];
     const result = checkParameterEnvelope({ dt: 99 }, envelope);
     expect(result.violations[0].message).toContain('min=0.001');
     expect(result.violations[0].message).toContain('max=0.1');
   });
 
   it('includes the allowed set for discrete params', () => {
-    const envelope: ParameterEnvelope = [
-      { param: 'mode', allowed: ['a', 'b', 'c'] },
-    ];
+    const envelope: ParameterEnvelope = [{ param: 'mode', allowed: ['a', 'b', 'c'] }];
     const result = checkParameterEnvelope({ mode: 'x' }, envelope);
     expect(result.violations[0].message).toContain('"a"');
     expect(result.violations[0].message).toContain('"b"');

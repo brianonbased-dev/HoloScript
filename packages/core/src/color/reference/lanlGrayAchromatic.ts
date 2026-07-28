@@ -9,8 +9,7 @@ export const LANL_GRAY_ACHROMATIC_SOURCE = {
   columns: ['trial', 'Ls', 'Lt1', 'Lt2', 'R'],
   license: 'BSD-3-Clause',
   deposited: '2022-01-28',
-  note:
-    'Compact aggregate fixture sampled from the official LANL achromatic gray-axis response data; the full CSV stays upstream.',
+  note: 'Compact aggregate fixture sampled from the official LANL achromatic gray-axis response data; the full CSV stays upstream.',
 } as const;
 
 /**

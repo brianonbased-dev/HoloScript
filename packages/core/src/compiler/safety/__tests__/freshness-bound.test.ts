@@ -53,8 +53,8 @@ describe('checkFreshnessBounds', () => {
       // Violation message must mention freshness/staleness concepts
       const msg = errorViolations[0].message.toLowerCase();
       expect(msg).toMatch(/freshness|staleness|stale/);
-      expect(msg).toContain('500');   // declared bound
-      expect(msg).toContain('2000');  // actual staleness
+      expect(msg).toContain('500'); // declared bound
+      expect(msg).toContain('2000'); // actual staleness
     });
 
     it('sets violation severity to error (not warning) on confirmed staleness breach', () => {
@@ -213,7 +213,7 @@ describe('checkFreshnessBounds', () => {
           calls: ['moveToTarget'],
           freshnessBoundMs: 500,
           sensorMetadata: [
-            { traitName: '@proximity_sensor', worstCaseStalenessMs: 50 },  // 50ms ✓
+            { traitName: '@proximity_sensor', worstCaseStalenessMs: 50 }, // 50ms ✓
             { traitName: '@water_bowl_sensor', worstCaseStalenessMs: 100 }, // 100ms ✓
           ],
         },
@@ -306,7 +306,7 @@ describe('checkFreshnessBounds', () => {
           freshnessBoundMs: 300,
           sensorMetadata: [
             { traitName: '@lidar', worstCaseStalenessMs: 100 }, // OK
-            { traitName: '@gps', worstCaseStalenessMs: 1000 },  // VIOLATION
+            { traitName: '@gps', worstCaseStalenessMs: 1000 }, // VIOLATION
           ],
         },
       ];

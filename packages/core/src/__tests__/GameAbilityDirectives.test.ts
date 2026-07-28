@@ -12,11 +12,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  getAbilityDirectives,
-  type AbilityDirectives,
-  type GameAbilityNode,
-} from '../types/base';
+import { getAbilityDirectives, type AbilityDirectives, type GameAbilityNode } from '../types/base';
 
 // ---------------------------------------------------------------------------
 // Helper: build a minimal GameAbilityNode with the given properties bag.
@@ -144,14 +140,14 @@ describe('getAbilityDirectives — quote stripping', () => {
 
   it('strips double quotes from authority envelope', () => {
     expect(
-      getAbilityDirectives(makeNode({ authority: '"client_predicted"' })).authorityEnvelope,
+      getAbilityDirectives(makeNode({ authority: '"client_predicted"' })).authorityEnvelope
     ).toBe('client_predicted');
   });
 
   it('strips single quotes from authority envelope', () => {
-    expect(
-      getAbilityDirectives(makeNode({ authority: "'client'" })).authorityEnvelope,
-    ).toBe('client');
+    expect(getAbilityDirectives(makeNode({ authority: "'client'" })).authorityEnvelope).toBe(
+      'client'
+    );
   });
 
   it('does not strip partial or mismatched quotes', () => {
@@ -175,7 +171,7 @@ describe('getAbilityDirectives — damageType aliases', () => {
   it('snake_case wins over camelCase when both present', () => {
     // damage_type is the first-checked alias
     expect(
-      getAbilityDirectives(makeNode({ damage_type: 'fire', damageType: 'ice' })).damageType,
+      getAbilityDirectives(makeNode({ damage_type: 'fire', damageType: 'ice' })).damageType
     ).toBe('fire');
   });
 });
@@ -185,22 +181,26 @@ describe('getAbilityDirectives — damageType aliases', () => {
 // ---------------------------------------------------------------------------
 describe('getAbilityDirectives — authorityEnvelope', () => {
   it('passes through "server"', () => {
-    expect(getAbilityDirectives(makeNode({ authority: 'server' })).authorityEnvelope).toBe('server');
+    expect(getAbilityDirectives(makeNode({ authority: 'server' })).authorityEnvelope).toBe(
+      'server'
+    );
   });
 
   it('passes through "client_predicted"', () => {
     expect(
-      getAbilityDirectives(makeNode({ authority: 'client_predicted' })).authorityEnvelope,
+      getAbilityDirectives(makeNode({ authority: 'client_predicted' })).authorityEnvelope
     ).toBe('client_predicted');
   });
 
   it('passes through "client"', () => {
-    expect(getAbilityDirectives(makeNode({ authority: 'client' })).authorityEnvelope).toBe('client');
+    expect(getAbilityDirectives(makeNode({ authority: 'client' })).authorityEnvelope).toBe(
+      'client'
+    );
   });
 
   it('maps unknown value to "server"', () => {
     expect(
-      getAbilityDirectives(makeNode({ authority: 'peer_authoritative' })).authorityEnvelope,
+      getAbilityDirectives(makeNode({ authority: 'peer_authoritative' })).authorityEnvelope
     ).toBe('server');
   });
 
@@ -209,22 +209,21 @@ describe('getAbilityDirectives — authorityEnvelope', () => {
   });
 
   it('reads from authority_envelope alias', () => {
-    expect(
-      getAbilityDirectives(makeNode({ authority_envelope: 'client' })).authorityEnvelope,
-    ).toBe('client');
+    expect(getAbilityDirectives(makeNode({ authority_envelope: 'client' })).authorityEnvelope).toBe(
+      'client'
+    );
   });
 
   it('reads from authorityEnvelope (camelCase) alias', () => {
     expect(
-      getAbilityDirectives(makeNode({ authorityEnvelope: 'client_predicted' })).authorityEnvelope,
+      getAbilityDirectives(makeNode({ authorityEnvelope: 'client_predicted' })).authorityEnvelope
     ).toBe('client_predicted');
   });
 
   it('authority wins over authority_envelope when both present', () => {
     expect(
-      getAbilityDirectives(
-        makeNode({ authority: 'client', authority_envelope: 'server' }),
-      ).authorityEnvelope,
+      getAbilityDirectives(makeNode({ authority: 'client', authority_envelope: 'server' }))
+        .authorityEnvelope
     ).toBe('client');
   });
 });

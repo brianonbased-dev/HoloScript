@@ -879,7 +879,4 @@ export {
 } from './solver-profiles';
 
 // Atmosphere, Sky & Environment Rendering (A-009 corona_simulation)
-export {
-  ATMOSPHERE_SKY_TRAITS,
-  type AtmosphereSkyTraitName,
-} from './atmosphere-sky';
+export { ATMOSPHERE_SKY_TRAITS, type AtmosphereSkyTraitName } from './atmosphere-sky';

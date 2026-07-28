@@ -774,20 +774,21 @@ export class ExportManager {
     };
 
     // Define fallback operation (if enabled)
-    const fallbackOperation = options.useFallback && this.referenceRegistry.hasExporter(target)
-      ? async () => {
-          const result = this.referenceRegistry.export(target, composition);
-          if (!result) {
-            throw new Error(`No reference exporter available for target: ${target}`);
+    const fallbackOperation =
+      options.useFallback && this.referenceRegistry.hasExporter(target)
+        ? async () => {
+            const result = this.referenceRegistry.export(target, composition);
+            if (!result) {
+              throw new Error(`No reference exporter available for target: ${target}`);
+            }
+            this.emitEvent({
+              type: 'export:fallback',
+              target,
+              timestamp: Date.now(),
+            });
+            return result.output;
           }
-          this.emitEvent({
-            type: 'export:fallback',
-            target,
-            timestamp: Date.now(),
-          });
-          return result.output;
-        }
-      : undefined;
+        : undefined;
 
     // Execute with circuit breaker
     const circuitResult = await breaker.execute(exportOperation, fallbackOperation);
@@ -892,11 +893,13 @@ export class ExportManager {
         target === 'mcp-server' &&
         options.compilerOptions?.outputKind !== 'manifest' &&
         typeof asRecord['compileModule'] === 'function'
-          ? await (asRecord['compileModule'] as (
-              comp: HoloComposition,
-              token?: string,
-              path?: string
-            ) => unknown).call(compiler, composition, options.agentToken ?? '', undefined)
+          ? await (
+              asRecord['compileModule'] as (
+                comp: HoloComposition,
+                token?: string,
+                path?: string
+              ) => unknown
+            ).call(compiler, composition, options.agentToken ?? '', undefined)
           : await compiler.compile(composition);
 
       // Capture memory stats after compilation

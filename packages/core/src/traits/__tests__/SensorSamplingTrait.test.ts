@@ -239,8 +239,12 @@ describe('sensorSamplingHandler.onEvent – sensor.record', () => {
   });
 
   it('records a reading and writes to __sensor_last', () => {
-    sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-      { type: 'sensor.record', sensorId: 'temp', rawValue: 21.5, timestamp: 1 } as never);
+    sensorSamplingHandler.onEvent!(
+      node as never,
+      basicConfig,
+      {} as never,
+      { type: 'sensor.record', sensorId: 'temp', rawValue: 21.5, timestamp: 1 } as never
+    );
     const last = (node.__sensor_last as Record<string, SensorReading>)['temp'];
     expect(last.rawValue).toBe(21.5);
     expect(last.noisyValue).toBe(21.5);
@@ -248,8 +252,12 @@ describe('sensorSamplingHandler.onEvent – sensor.record', () => {
   });
 
   it('defaults sensorId to first sensor when omitted', () => {
-    sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-      { type: 'sensor.record', rawValue: 5 } as never);
+    sensorSamplingHandler.onEvent!(
+      node as never,
+      basicConfig,
+      {} as never,
+      { type: 'sensor.record', rawValue: 5 } as never
+    );
     const last = (node.__sensor_last as Record<string, SensorReading>)['temp'];
     expect(last).toBeDefined();
     expect(last.rawValue).toBe(5);
@@ -257,12 +265,20 @@ describe('sensorSamplingHandler.onEvent – sensor.record', () => {
 
   it('buffers multiple readings', () => {
     for (let i = 1; i <= 4; i++) {
-      sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-        { type: 'sensor.record', sensorId: 'temp', rawValue: i * 10, timestamp: i } as never);
+      sensorSamplingHandler.onEvent!(
+        node as never,
+        basicConfig,
+        {} as never,
+        { type: 'sensor.record', sensorId: 'temp', rawValue: i * 10, timestamp: i } as never
+      );
     }
     // Check via read_window
-    sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-      { type: 'sensor.read_window', sensorId: 'temp' } as never);
+    sensorSamplingHandler.onEvent!(
+      node as never,
+      basicConfig,
+      {} as never,
+      { type: 'sensor.read_window', sensorId: 'temp' } as never
+    );
     const w = (node.__sensor_window as Record<string, SensorWindowResult>)['temp'];
     expect(w.count).toBe(4);
     expect(w.mean).toBeCloseTo(25, 5);
@@ -270,16 +286,28 @@ describe('sensorSamplingHandler.onEvent – sensor.record', () => {
 
   it('ignores unknown sensorId', () => {
     expect(() =>
-      sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-        { type: 'sensor.record', sensorId: 'unknown', rawValue: 0 } as never)
+      sensorSamplingHandler.onEvent!(
+        node as never,
+        basicConfig,
+        {} as never,
+        { type: 'sensor.record', sensorId: 'unknown', rawValue: 0 } as never
+      )
     ).not.toThrow();
   });
 
   it('per-event noise override is applied', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0);
-    sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-      { type: 'sensor.record', sensorId: 'temp', rawValue: 10,
-        noise: { type: 'uniform', range: 3 } } as never);
+    sensorSamplingHandler.onEvent!(
+      node as never,
+      basicConfig,
+      {} as never,
+      {
+        type: 'sensor.record',
+        sensorId: 'temp',
+        rawValue: 10,
+        noise: { type: 'uniform', range: 3 },
+      } as never
+    );
     vi.restoreAllMocks();
     const last = (node.__sensor_last as Record<string, SensorReading>)['temp'];
     expect(last.noisyValue).toBeCloseTo(7, 5); // 10 + (0*2-1)*3 = 7
@@ -291,10 +319,19 @@ describe('sensorSamplingHandler.onEvent – sensor.read_window', () => {
     const node = makeNode();
     sensorSamplingHandler.onAttach!(node as never, basicConfig, {} as never);
     [1, 2, 3].forEach((v) =>
-      sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-        { type: 'sensor.record', sensorId: 'pres', rawValue: v } as never));
-    sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-      { type: 'sensor.read_window', sensorId: 'pres' } as never);
+      sensorSamplingHandler.onEvent!(
+        node as never,
+        basicConfig,
+        {} as never,
+        { type: 'sensor.record', sensorId: 'pres', rawValue: v } as never
+      )
+    );
+    sensorSamplingHandler.onEvent!(
+      node as never,
+      basicConfig,
+      {} as never,
+      { type: 'sensor.read_window', sensorId: 'pres' } as never
+    );
     const w = (node.__sensor_window as Record<string, SensorWindowResult>)['pres'];
     expect(w.sensorId).toBe('pres');
     expect(w.count).toBe(3);
@@ -306,15 +343,27 @@ describe('sensorSamplingHandler.onEvent – sensor.reset', () => {
   it('clears all buffers and last/window maps', () => {
     const node = makeNode();
     sensorSamplingHandler.onAttach!(node as never, basicConfig, {} as never);
-    sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-      { type: 'sensor.record', sensorId: 'temp', rawValue: 99 } as never);
-    sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-      { type: 'sensor.reset' } as never);
+    sensorSamplingHandler.onEvent!(
+      node as never,
+      basicConfig,
+      {} as never,
+      { type: 'sensor.record', sensorId: 'temp', rawValue: 99 } as never
+    );
+    sensorSamplingHandler.onEvent!(
+      node as never,
+      basicConfig,
+      {} as never,
+      { type: 'sensor.reset' } as never
+    );
     expect(node.__sensor_last).toEqual({});
     expect(node.__sensor_window).toEqual({});
     // Buffer should now be empty → read_window gives count=0
-    sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-      { type: 'sensor.read_window', sensorId: 'temp' } as never);
+    sensorSamplingHandler.onEvent!(
+      node as never,
+      basicConfig,
+      {} as never,
+      { type: 'sensor.read_window', sensorId: 'temp' } as never
+    );
     const w = (node.__sensor_window as Record<string, SensorWindowResult>)['temp'];
     expect(w.count).toBe(0);
   });
@@ -325,8 +374,12 @@ describe('sensorSamplingHandler.onEvent – unknown', () => {
     const node = makeNode();
     sensorSamplingHandler.onAttach!(node as never, basicConfig, {} as never);
     expect(() =>
-      sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-        { type: 'something.else' } as never)
+      sensorSamplingHandler.onEvent!(
+        node as never,
+        basicConfig,
+        {} as never,
+        { type: 'something.else' } as never
+      )
     ).not.toThrow();
   });
 });
@@ -336,11 +389,19 @@ describe('ring-buffer overflow via trait', () => {
     const node = makeNode();
     sensorSamplingHandler.onAttach!(node as never, basicConfig, {} as never);
     for (let i = 1; i <= 6; i++) {
-      sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-        { type: 'sensor.record', sensorId: 'pres', rawValue: i } as never);
+      sensorSamplingHandler.onEvent!(
+        node as never,
+        basicConfig,
+        {} as never,
+        { type: 'sensor.record', sensorId: 'pres', rawValue: i } as never
+      );
     }
-    sensorSamplingHandler.onEvent!(node as never, basicConfig, {} as never,
-      { type: 'sensor.read_window', sensorId: 'pres' } as never);
+    sensorSamplingHandler.onEvent!(
+      node as never,
+      basicConfig,
+      {} as never,
+      { type: 'sensor.read_window', sensorId: 'pres' } as never
+    );
     const w = (node.__sensor_window as Record<string, SensorWindowResult>)['pres'];
     expect(w.count).toBe(4);
     expect(w.readings.map((r) => r.rawValue)).toEqual([3, 4, 5, 6]);

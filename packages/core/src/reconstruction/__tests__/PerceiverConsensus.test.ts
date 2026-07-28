@@ -114,8 +114,8 @@ describe('@cross_perceiver_contract — 2-perceiver consensus (webgpu + agent-in
     // Codegen renames an affordance: count stays 2, so 3b's count diff passes —
     // only name parity catches it.
     const config = JSON.parse(agentFiles['config.json']);
-    config.agents[0].tool_details = config.agents[0].tool_details.map(
-      (t: { name: string }) => (t.name === 'release_handle' ? { ...t, name: 'open_sesame' } : t)
+    config.agents[0].tool_details = config.agents[0].tool_details.map((t: { name: string }) =>
+      t.name === 'release_handle' ? { ...t, name: 'open_sesame' } : t
     );
     const broken = { ...agentFiles, 'config.json': JSON.stringify(config, null, 2) };
 
@@ -184,7 +184,10 @@ describe('@cross_perceiver_contract — 2-perceiver consensus (webgpu + agent-in
     const { webgpuArtifact, agentFiles } = compileBoth();
     // Simulate the renderer dropping the agent: strip the "agent" trait marker
     // from the HoloScene Manifest (the facts source the derivation reads).
-    const broken = webgpuArtifact.replace('"traits":["agent","tool","tool"]', '"traits":["tool","tool"]');
+    const broken = webgpuArtifact.replace(
+      '"traits":["agent","tool","tool"]',
+      '"traits":["tool","tool"]'
+    );
     expect(broken).not.toBe(webgpuArtifact); // the corruption actually landed
 
     const receipt = derivePerceiverConsensus([

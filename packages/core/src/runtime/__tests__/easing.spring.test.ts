@@ -26,9 +26,7 @@ describe('springEasing — anchored endpoints', () => {
 
 describe('springEasing — overshoot is the defining property', () => {
   it('exceeds 1 somewhere mid-curve (a bounce, not a monotone ease)', () => {
-    const peak = Math.max(
-      ...[0.3, 0.35, 0.4, 0.45, 0.5].map((t) => springEasing(t)),
-    );
+    const peak = Math.max(...[0.3, 0.35, 0.4, 0.45, 0.5].map((t) => springEasing(t)));
     expect(peak).toBeGreaterThan(1.05);
   });
 

@@ -319,10 +319,7 @@ describe('GaussianSplattingCompiler', () => {
     // 3 captured points threaded through ExportManager.compilerOptions, exactly
     // as holo_reconstruct_export does. Must splat the capture via covariance —
     // NOT fall back to the 8-point demo grid.
-    const cloud = makeHolomapCloud(
-      [0, 0, 0, 1, 0, 0, 0, 1, 0],
-      [255, 0, 0, 0, 255, 0, 0, 0, 255]
-    );
+    const cloud = makeHolomapCloud([0, 0, 0, 1, 0, 0, 0, 1, 0], [255, 0, 0, 0, 255, 0, 0, 0, 255]);
     const compiler = new GaussianSplattingCompiler({ holomapPointCloud: cloud });
     const result = compiler.compile(makeEmptyComposition());
 
@@ -507,7 +504,13 @@ describe('GaussianSplattingCompiler', () => {
           outCol.set(colors.subarray(0, n * 3));
           const provenance = new Uint8Array(n + 1);
           provenance[n] = 2; // generative-extended
-          return { positions: outPos, colors: outCol, provenance, observedCount: n, interpolatedCount: 0 };
+          return {
+            positions: outPos,
+            colors: outCol,
+            provenance,
+            observedCount: n,
+            interpolatedCount: 0,
+          };
         },
       };
       const comp = makeRawCloudComposition([0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 1], {

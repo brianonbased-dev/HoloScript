@@ -36,8 +36,7 @@ describe('extractDisplayedProjections', () => {
   });
 
   it('first occurrence wins for a duplicated node (deterministic)', () => {
-    const html =
-      '<h2 data-holo-projects="n">first</h2><h2 data-holo-projects="n">second</h2>';
+    const html = '<h2 data-holo-projects="n">first</h2><h2 data-holo-projects="n">second</h2>';
     expect(extractDisplayedProjections(html)).toEqual({ n: 'first' });
   });
 

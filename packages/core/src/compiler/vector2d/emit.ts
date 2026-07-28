@@ -41,7 +41,8 @@ export function numList(s: string): number[] {
     .filter((x) => Number.isFinite(x));
 }
 export const f1 = (x: number) => Number(x.toFixed(1));
-export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+export const esc = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // ── SVG element emit (returns JSX strings) ──────────────────────────────────────
 export function emitPrimitive(obj: HoloObjectDecl, kind: string): string[] {
@@ -72,21 +73,33 @@ export function emitPrimitive(obj: HoloObjectDecl, kind: string): string[] {
 }
 
 // ── radar composite: axes + series → polar layout → primitives ──────────────────
-export function emitRadar(obj: HoloObjectDecl, axes: HoloObjectDecl[], series: HoloObjectDecl[]): string[] {
+export function emitRadar(
+  obj: HoloObjectDecl,
+  axes: HoloObjectDecl[],
+  series: HoloObjectDecl[]
+): string[] {
   const cx = numProp(obj, 'cx', 220);
   const cy = numProp(obj, 'cy', 210);
   const R = numProp(obj, 'r', 150);
   const max = numProp(obj, 'max', 10);
   const N = axes.length || 1;
   const ang = (i: number) => -Math.PI / 2 + i * ((2 * Math.PI) / N);
-  const pt = (i: number, r: number): [number, number] => [cx + r * Math.cos(ang(i)), cy + r * Math.sin(ang(i))];
+  const pt = (i: number, r: number): [number, number] => [
+    cx + r * Math.cos(ang(i)),
+    cy + r * Math.sin(ang(i)),
+  ];
   const out: string[] = [];
 
   // rings
   for (const lv of [2, 4, 6, 8, 10]) {
     if (lv > max) break;
-    const pts = axes.map((_, i) => pt(i, (lv / max) * R)).map((p) => `${f1(p[0])},${f1(p[1])}`).join(' ');
-    out.push(`<polygon points="${pts}" fill="none" stroke="rgba(0,0,0,0.12)" strokeWidth={${lv === max ? 1.1 : 0.6}} />`);
+    const pts = axes
+      .map((_, i) => pt(i, (lv / max) * R))
+      .map((p) => `${f1(p[0])},${f1(p[1])}`)
+      .join(' ');
+    out.push(
+      `<polygon points="${pts}" fill="none" stroke="rgba(0,0,0,0.12)" strokeWidth={${lv === max ? 1.1 : 0.6}} />`
+    );
   }
   // spokes + labels
   axes.forEach((ax, i) => {
@@ -94,9 +107,16 @@ export function emitRadar(obj: HoloObjectDecl, axes: HoloObjectDecl[], series: H
     const lp = pt(i, R + 22);
     const anchor = Math.abs(lp[0] - cx) < 6 ? 'middle' : lp[0] > cx ? 'start' : 'end';
     const facet = strProp(ax, 'facet');
-    out.push(`<line x1={${cx}} y1={${cy}} x2={${f1(p[0])}} y2={${f1(p[1])}} stroke="rgba(0,0,0,0.12)" strokeWidth={0.6} />`);
-    out.push(`<text x={${f1(lp[0])}} y={${f1(lp[1])}} textAnchor="${anchor}" dominantBaseline="middle" fontSize={12.5} fontWeight={500} fill="#333">${esc(strProp(ax, 'label'))}${facet ? ' &#8869;' : ''}</text>`);
-    if (facet) out.push(`<text x={${f1(lp[0])}} y={${f1(lp[1] + 13)}} textAnchor="${anchor}" fontSize={10.5} fill="#BA7517">${esc(facet)} facet</text>`);
+    out.push(
+      `<line x1={${cx}} y1={${cy}} x2={${f1(p[0])}} y2={${f1(p[1])}} stroke="rgba(0,0,0,0.12)" strokeWidth={0.6} />`
+    );
+    out.push(
+      `<text x={${f1(lp[0])}} y={${f1(lp[1])}} textAnchor="${anchor}" dominantBaseline="middle" fontSize={12.5} fontWeight={500} fill="#333">${esc(strProp(ax, 'label'))}${facet ? ' &#8869;' : ''}</text>`
+    );
+    if (facet)
+      out.push(
+        `<text x={${f1(lp[0])}} y={${f1(lp[1] + 13)}} textAnchor="${anchor}" fontSize={10.5} fill="#BA7517">${esc(facet)} facet</text>`
+      );
   });
   // series polygons + dots
   for (const s of series) {
@@ -104,10 +124,14 @@ export function emitRadar(obj: HoloObjectDecl, axes: HoloObjectDecl[], series: H
     const vals = numList(strProp(s, 'values'));
     const verts = axes.map((_, i) => pt(i, ((vals[i] ?? 0) / max) * R));
     const pts = verts.map((p) => `${f1(p[0])},${f1(p[1])}`).join(' ');
-    out.push(`<polygon points="${pts}" fill="${color}" fillOpacity={0.12} stroke="${color}" strokeWidth={2.2} strokeLinejoin="round" />`);
+    out.push(
+      `<polygon points="${pts}" fill="${color}" fillOpacity={0.12} stroke="${color}" strokeWidth={2.2} strokeLinejoin="round" />`
+    );
     verts.forEach((p, i) => {
       const facet = strProp(axes[i], 'facet');
-      out.push(`<circle cx={${f1(p[0])}} cy={${f1(p[1])}} r={${facet ? 4.5 : 3.5}} fill="${color}" stroke="#fff" strokeWidth={1.2} />`);
+      out.push(
+        `<circle cx={${f1(p[0])}} cy={${f1(p[1])}} r={${facet ? 4.5 : 3.5}} fill="${color}" stroke="#fff" strokeWidth={1.2} />`
+      );
     });
   }
   return out;

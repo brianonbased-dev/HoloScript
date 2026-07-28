@@ -58,7 +58,9 @@ export function deriveWebGPUPerception(artifact: string): PerceiverDerivation {
     }
     const objects = (manifest as { objects?: unknown }).objects;
     if (!Array.isArray(objects)) {
-      throw new Error('deriveWebGPUPerception: holoSceneManifest has no objects[] — malformed manifest');
+      throw new Error(
+        'deriveWebGPUPerception: holoSceneManifest has no objects[] — malformed manifest'
+      );
     }
     const entities: PerceivedEntity[] = [];
     const physicalEntities: PerceivedPhysicalEntity[] = [];

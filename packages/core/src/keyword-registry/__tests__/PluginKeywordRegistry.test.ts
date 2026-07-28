@@ -102,23 +102,23 @@ describe('PluginKeywordRegistry.register — happy path', () => {
 describe('PluginKeywordRegistry.register — conformance gate', () => {
   it('throws on an unknown family', () => {
     const r = fresh();
-    expect(() =>
-      r.register('greet', 'dialogue' as NodeTypeFamily, 'chat-plugin'),
-    ).toThrow(/Unknown node-type family/);
+    expect(() => r.register('greet', 'dialogue' as NodeTypeFamily, 'chat-plugin')).toThrow(
+      /Unknown node-type family/
+    );
   });
 
   it('throws when a different plugin tries to re-register an existing verb', () => {
     const r = fresh();
     r.register('actuate', 'control', 'robotics');
     expect(() => r.register('actuate', 'control', 'other-plugin')).toThrow(
-      /already registered by plugin/,
+      /already registered by plugin/
     );
   });
 
   it('throws when trying to override a core built-in verb from a plugin', () => {
     const r = fresh();
     expect(() => r.register('move', 'movement', 'locomotion-override')).toThrow(
-      /already registered by plugin "core"/,
+      /already registered by plugin "core"/
     );
   });
 
@@ -291,7 +291,7 @@ describe('registerPluginVerbs (batch)', () => {
       registerPluginVerbs('insurance-plugin', [
         { verb: 'assess_risk', family: 'sensor' },
         { verb: 'issue_policy', family: 'transaction' },
-      ]),
+      ])
     ).not.toThrow();
     expect(globalKeywordRegistry.lookupFamily('assess_risk')).toBe('sensor');
     expect(globalKeywordRegistry.lookupFamily('issue_policy')).toBe('transaction');

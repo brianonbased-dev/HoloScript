@@ -55,7 +55,11 @@ function buildFacts(input: ContentPolicyInput, config: ContentPolicyConfig): Pol
 }
 
 function tierApplies(rule: RuleDescriptor, tier: string): boolean {
-  return !rule.appliesToTiers || rule.appliesToTiers.length === 0 || rule.appliesToTiers.includes(tier as never);
+  return (
+    !rule.appliesToTiers ||
+    rule.appliesToTiers.length === 0 ||
+    rule.appliesToTiers.includes(tier as never)
+  );
 }
 
 function regionApplies(rule: RuleDescriptor, region: string): boolean {
@@ -201,7 +205,12 @@ export function evaluateContentPolicySync(
   if (config.blocklist && config.blocklist.length) {
     const hit = matchBlocklist(input.text, config.blocklist);
     if (hit) {
-      classification = { category: hit.category, severity: hit.severity, source: 'blocklist', rationale: hit.rationale };
+      classification = {
+        category: hit.category,
+        severity: hit.severity,
+        source: 'blocklist',
+        rationale: hit.rationale,
+      };
       if (hit.hardStop || hardStops.includes(hit.category)) {
         const f = { ...facts, category: hit.category, severity: hit.severity };
         return finalize('block', classification, null, f, config, 0, timestampMs);
@@ -211,7 +220,8 @@ export function evaluateContentPolicySync(
 
   const facts1 = { ...facts, category: classification.category, severity: classification.severity };
   const outcome = applyRules(config.rules, facts1);
-  const tier: ContentPolicyDecision['decidedAtTier'] = outcome.action === 'escalate' ? 3 : outcome.action === 'allow' ? -1 : 1;
+  const tier: ContentPolicyDecision['decidedAtTier'] =
+    outcome.action === 'escalate' ? 3 : outcome.action === 'allow' ? -1 : 1;
   return finalize(outcome.action, classification, outcome.rule, facts1, config, tier, timestampMs);
 }
 
@@ -233,7 +243,12 @@ export async function evaluateContentPolicy(
   if (config.blocklist && config.blocklist.length) {
     const hit = matchBlocklist(input.text, config.blocklist);
     if (hit) {
-      classification = { category: hit.category, severity: hit.severity, source: 'blocklist', rationale: hit.rationale };
+      classification = {
+        category: hit.category,
+        severity: hit.severity,
+        source: 'blocklist',
+        rationale: hit.rationale,
+      };
       if (hit.hardStop || hardStops.includes(hit.category)) {
         const f = { ...facts0, category: hit.category, severity: hit.severity };
         return finalize('block', classification, null, f, config, 0, timestampMs);
@@ -272,7 +287,12 @@ export async function evaluateContentPolicy(
     if (verdict.flagged && verdict.categories.length > 0) {
       const cat = verdict.categories[0];
       if (verdict.severity >= classification.severity) {
-        classification = { category: cat, severity: verdict.severity, source: 'llm', rationale: verdict.rationale };
+        classification = {
+          category: cat,
+          severity: verdict.severity,
+          source: 'llm',
+          rationale: verdict.rationale,
+        };
         facts = { ...facts, category: cat, severity: verdict.severity };
       }
       if (hardStops.includes(cat)) {
@@ -288,8 +308,22 @@ export async function evaluateContentPolicy(
 
   // ── Resolve the held outcome ──
   const decidedAtTier: ContentPolicyDecision['decidedAtTier'] =
-    outcome.action === 'allow' ? -1 : outcome.action === 'escalate' ? 3 : classification.source === 'llm' ? 2 : 1;
-  return finalize(outcome.action, classification, outcome.rule, facts, config, decidedAtTier, timestampMs);
+    outcome.action === 'allow'
+      ? -1
+      : outcome.action === 'escalate'
+        ? 3
+        : classification.source === 'llm'
+          ? 2
+          : 1;
+  return finalize(
+    outcome.action,
+    classification,
+    outcome.rule,
+    facts,
+    config,
+    decidedAtTier,
+    timestampMs
+  );
 }
 
 /** Context the audit ledger needs that the decision itself does not carry. */
@@ -307,7 +341,10 @@ export interface AuditContext {
  * Produces a DSA-style machine-readable Statement-of-Reasons record. Pipe the
  * result through `auditLogger.log(...)` at the call site.
  */
-export function toAuditEventInput(decision: ContentPolicyDecision, ctx: AuditContext): AuditEventInput {
+export function toAuditEventInput(
+  decision: ContentPolicyDecision,
+  ctx: AuditContext
+): AuditEventInput {
   const outcome: AuditEventInput['outcome'] =
     decision.action === 'block' || decision.action === 'escalate' ? 'denied' : 'success';
   return {

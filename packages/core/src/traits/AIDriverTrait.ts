@@ -558,7 +558,9 @@ function vector3From(value: unknown, fallback: [number, number, number]): [numbe
 }
 
 function stringArrayFrom(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
 }
 
 function behaviorStateFrom(value: unknown): BehaviorState {
@@ -583,14 +585,11 @@ function stateRecordFrom(ctx: TraitContext): Record<string, unknown> {
   }
 }
 
-function contextFromTraitRuntime(
-  node: HSPlusNode,
-  config: unknown,
-  ctx: TraitContext
-): NPCContext {
+function contextFromTraitRuntime(node: HSPlusNode, config: unknown, ctx: TraitContext): NPCContext {
   const runtimeState = stateRecordFrom(ctx);
   const configRecord = isRecord(config) ? config : {};
-  const memory = runtimeState.memory instanceof Map ? runtimeState.memory : new Map<string, unknown>();
+  const memory =
+    runtimeState.memory instanceof Map ? runtimeState.memory : new Map<string, unknown>();
   const npcId =
     (typeof configRecord.npcId === 'string' && configRecord.npcId) ||
     node.id ||

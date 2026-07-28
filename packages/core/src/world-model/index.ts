@@ -137,10 +137,7 @@ export {
   inferN4WebGPU,
   verifyN4RuntimeParity,
 } from './N4ResidualRuntimeParity';
-export type {
-  N4RuntimeInference,
-  N4RuntimeParityVerdict,
-} from './N4ResidualRuntimeParity';
+export type { N4RuntimeInference, N4RuntimeParityVerdict } from './N4ResidualRuntimeParity';
 export type {
   TwoAgentHandoffObject,
   TwoAgentHandoffCatchSceneState,

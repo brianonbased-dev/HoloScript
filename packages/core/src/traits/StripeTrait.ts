@@ -46,7 +46,11 @@ export const stripeHandler: TraitHandler<StripeConfig> = {
       emitUnwired(context, 'stripe:error', {
         capability: 'stripe',
         wiring: 'Stripe SDK + vault secret_key + per-charge idempotency key',
-        requested: { amount: event.amount, currency: config.currency, customerId: event.customerId },
+        requested: {
+          amount: event.amount,
+          currency: config.currency,
+          customerId: event.customerId,
+        },
       });
     } else if (t === 'stripe:get_stats') {
       context.emit?.('stripe:stats', {

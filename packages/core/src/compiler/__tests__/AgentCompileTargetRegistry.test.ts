@@ -43,9 +43,7 @@ describe('agent brain as an ExportTarget', () => {
     expect(targetSovereignty(omnigentTarget)).toBe('bridge');
     expect(targetSovereignty(daimonSeedTarget)).toBe('bridge');
     expect(getRegisteredCompilerANSName('AgentInferenceCompiler')).toBe('agent-inference');
-    expect(getRegisteredCompilerANSName('OmnigentAgentYamlCompiler')).toBe(
-      'omnigent-agent-yaml'
-    );
+    expect(getRegisteredCompilerANSName('OmnigentAgentYamlCompiler')).toBe('omnigent-agent-yaml');
     expect(getRegisteredCompilerANSName('DaimonSeedCompiler')).toBe('daimon-seed');
     expect(getRegisteredCompilerANSName('WebGPUCompiler')).toBe('webgpu');
     expect(getRegisteredCompilerANSName('NIRCompiler')).toBe('nir');

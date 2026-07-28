@@ -55,7 +55,12 @@ export interface TxReceipt {
   /** Caller-supplied idempotency key, if any. */
   idempotencyKey?: string;
   /** Reason for rejection if ok=false. */
-  reason?: 'insufficient_funds' | 'limit_exceeded' | 'negative_amount' | 'duplicate' | 'insufficient_escrow';
+  reason?:
+    | 'insufficient_funds'
+    | 'limit_exceeded'
+    | 'negative_amount'
+    | 'duplicate'
+    | 'insufficient_escrow';
   /** Balance after the action (if ok=true). */
   balanceAfter?: number;
   /** Escrow balance after the action (if ok=true). */
@@ -101,11 +106,21 @@ interface TxEventBase {
   idempotencyKey?: string;
 }
 
-export interface PayRequest extends TxEventBase { type: 'transaction.pay'; }
-export interface TransferRequest extends TxEventBase { type: 'transaction.transfer'; }
-export interface StakeRequest extends TxEventBase { type: 'transaction.stake'; }
-export interface UnstakeRequest extends TxEventBase { type: 'transaction.unstake'; }
-export interface DepositRequest extends TxEventBase { type: 'transaction.deposit'; }
+export interface PayRequest extends TxEventBase {
+  type: 'transaction.pay';
+}
+export interface TransferRequest extends TxEventBase {
+  type: 'transaction.transfer';
+}
+export interface StakeRequest extends TxEventBase {
+  type: 'transaction.stake';
+}
+export interface UnstakeRequest extends TxEventBase {
+  type: 'transaction.unstake';
+}
+export interface DepositRequest extends TxEventBase {
+  type: 'transaction.deposit';
+}
 
 // ── Internal node state ───────────────────────────────────────────────────────
 
@@ -158,27 +173,44 @@ export function debitBalance(
   action: 'pay' | 'transfer',
   amount: number,
   limit: number,
-  idempotencyKey?: string,
+  idempotencyKey?: string
 ): TxReceipt {
   const amtErr = validateAmount(amount);
-  if (amtErr) { const r = { ...amtErr, action }; commit(state, r); return r; }
+  if (amtErr) {
+    const r = { ...amtErr, action };
+    commit(state, r);
+    return r;
+  }
   if (checkDuplicate(state, idempotencyKey)) {
     return { ok: false, action, amount, idempotencyKey, reason: 'duplicate' };
   }
   if (limit > 0 && amount > limit) {
     const r: TxReceipt = { ok: false, action, amount, idempotencyKey, reason: 'limit_exceeded' };
-    commit(state, r); return r;
+    commit(state, r);
+    return r;
   }
   if (amount > state.balance) {
-    const r: TxReceipt = { ok: false, action, amount, idempotencyKey, reason: 'insufficient_funds' };
-    commit(state, r); return r;
+    const r: TxReceipt = {
+      ok: false,
+      action,
+      amount,
+      idempotencyKey,
+      reason: 'insufficient_funds',
+    };
+    commit(state, r);
+    return r;
   }
   state.balance -= amount;
   const r: TxReceipt = {
-    ok: true, action, amount, idempotencyKey,
-    balanceAfter: state.balance, escrowAfter: state.escrow,
+    ok: true,
+    action,
+    amount,
+    idempotencyKey,
+    balanceAfter: state.balance,
+    escrowAfter: state.escrow,
   };
-  commit(state, r); return r;
+  commit(state, r);
+  return r;
 }
 
 /** Move `amount` from balance → escrow. */
@@ -186,71 +218,119 @@ export function stakeBalance(
   state: TxNodeState,
   amount: number,
   limit: number,
-  idempotencyKey?: string,
+  idempotencyKey?: string
 ): TxReceipt {
   const amtErr = validateAmount(amount);
-  if (amtErr) { const r = { ...amtErr, action: 'stake' as const }; commit(state, r); return r; }
+  if (amtErr) {
+    const r = { ...amtErr, action: 'stake' as const };
+    commit(state, r);
+    return r;
+  }
   if (checkDuplicate(state, idempotencyKey)) {
     return { ok: false, action: 'stake', amount, idempotencyKey, reason: 'duplicate' };
   }
   if (limit > 0 && amount > limit) {
-    const r: TxReceipt = { ok: false, action: 'stake', amount, idempotencyKey, reason: 'limit_exceeded' };
-    commit(state, r); return r;
+    const r: TxReceipt = {
+      ok: false,
+      action: 'stake',
+      amount,
+      idempotencyKey,
+      reason: 'limit_exceeded',
+    };
+    commit(state, r);
+    return r;
   }
   if (amount > state.balance) {
-    const r: TxReceipt = { ok: false, action: 'stake', amount, idempotencyKey, reason: 'insufficient_funds' };
-    commit(state, r); return r;
+    const r: TxReceipt = {
+      ok: false,
+      action: 'stake',
+      amount,
+      idempotencyKey,
+      reason: 'insufficient_funds',
+    };
+    commit(state, r);
+    return r;
   }
   state.balance -= amount;
   state.escrow += amount;
   const r: TxReceipt = {
-    ok: true, action: 'stake', amount, idempotencyKey,
-    balanceAfter: state.balance, escrowAfter: state.escrow,
+    ok: true,
+    action: 'stake',
+    amount,
+    idempotencyKey,
+    balanceAfter: state.balance,
+    escrowAfter: state.escrow,
   };
-  commit(state, r); return r;
+  commit(state, r);
+  return r;
 }
 
 /** Move `amount` from escrow → balance. */
 export function unstakeBalance(
   state: TxNodeState,
   amount: number,
-  idempotencyKey?: string,
+  idempotencyKey?: string
 ): TxReceipt {
   const amtErr = validateAmount(amount);
-  if (amtErr) { const r = { ...amtErr, action: 'unstake' as const }; commit(state, r); return r; }
+  if (amtErr) {
+    const r = { ...amtErr, action: 'unstake' as const };
+    commit(state, r);
+    return r;
+  }
   if (checkDuplicate(state, idempotencyKey)) {
     return { ok: false, action: 'unstake', amount, idempotencyKey, reason: 'duplicate' };
   }
   if (amount > state.escrow) {
-    const r: TxReceipt = { ok: false, action: 'unstake', amount, idempotencyKey, reason: 'insufficient_escrow' };
-    commit(state, r); return r;
+    const r: TxReceipt = {
+      ok: false,
+      action: 'unstake',
+      amount,
+      idempotencyKey,
+      reason: 'insufficient_escrow',
+    };
+    commit(state, r);
+    return r;
   }
   state.escrow -= amount;
   state.balance += amount;
   const r: TxReceipt = {
-    ok: true, action: 'unstake', amount, idempotencyKey,
-    balanceAfter: state.balance, escrowAfter: state.escrow,
+    ok: true,
+    action: 'unstake',
+    amount,
+    idempotencyKey,
+    balanceAfter: state.balance,
+    escrowAfter: state.escrow,
   };
-  commit(state, r); return r;
+  commit(state, r);
+  return r;
 }
 
 /** Credit `amount` to balance. */
 export function depositBalance(
   state: TxNodeState,
   amount: number,
-  idempotencyKey?: string,
+  idempotencyKey?: string
 ): TxReceipt {
   const amtErr = validateAmount(amount);
-  if (amtErr) { const r = { ...amtErr, action: 'deposit' as const }; commit(state, r); return r; }
+  if (amtErr) {
+    const r = { ...amtErr, action: 'deposit' as const };
+    commit(state, r);
+    return r;
+  }
   if (checkDuplicate(state, idempotencyKey)) {
     return { ok: false, action: 'deposit', amount, idempotencyKey, reason: 'duplicate' };
   }
   state.balance += amount;
   const r: TxReceipt = {
-    ok: true, action: 'deposit', amount, idempotencyKey,
-    balanceAfter: state.balance, escrowAfter: state.escrow,
+    ok: true,
+    action: 'deposit',
+    amount,
+    idempotencyKey,
+    balanceAfter: state.balance,
+    escrowAfter: state.escrow,
   };
-  commit(state, r); return r;
+  commit(state, r);
+  return r;
 }
 
 // ── TraitHandler ───────────────────────────────────────────────────────────────
@@ -279,7 +359,13 @@ export const transactionHandler: TraitHandler<TransactionConfig> = {
     }
     if (event.type === 'transaction.transfer') {
       const req = event as unknown as TransferRequest;
-      const r = debitBalance(state, 'transfer', req.amount, limits.transferLimit ?? 0, req.idempotencyKey);
+      const r = debitBalance(
+        state,
+        'transfer',
+        req.amount,
+        limits.transferLimit ?? 0,
+        req.idempotencyKey
+      );
       n.__tx_last_receipt = r;
       return;
     }

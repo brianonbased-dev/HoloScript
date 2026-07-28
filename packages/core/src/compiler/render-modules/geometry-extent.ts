@@ -34,7 +34,8 @@ export const PLANE_THICKNESS = 0.02; // canonical plane half-thickness (see foll
 /** Load-bearing invariant: render radius === collision radius. Must be exactly 1. */
 export const RENDER_EQUALS_PHYSICS_INVARIANT = BASE_SPHERE_RADIUS * RENDER_DIAMETER_FACTOR;
 
-const maxAbs = (s: readonly number[]): number => Math.max(Math.abs(s[0] ?? 1), Math.abs(s[1] ?? 1), Math.abs(s[2] ?? 1));
+const maxAbs = (s: readonly number[]): number =>
+  Math.max(Math.abs(s[0] ?? 1), Math.abs(s[1] ?? 1), Math.abs(s[2] ?? 1));
 
 /** Collision (and, for ComputePhysics, render) radius of a round primitive. scale of 1 -> 0.5. */
 export function sphereCollisionRadius(scale: readonly number[]): number {
@@ -43,7 +44,11 @@ export function sphereCollisionRadius(scale: readonly number[]): number {
 
 /** Half-extents of a box AABB. scale of s -> half |s|/2 per axis. */
 export function boxHalfExtents(scale: readonly number[]): [number, number, number] {
-  return [0.5 * Math.abs(scale[0] ?? 1), 0.5 * Math.abs(scale[1] ?? 1), 0.5 * Math.abs(scale[2] ?? 1)];
+  return [
+    0.5 * Math.abs(scale[0] ?? 1),
+    0.5 * Math.abs(scale[1] ?? 1),
+    0.5 * Math.abs(scale[2] ?? 1),
+  ];
 }
 
 export interface WorldExtent {
@@ -63,12 +68,21 @@ export function resolveWorldExtent(kind: string, scale: readonly number[]): Worl
   const k = kind.toLowerCase();
   if (k === 'sphere') {
     const r = sphereCollisionRadius(scale);
-    return { kind: 'sphere', collisionRadius: r, sphereRenderModelScale: r * RENDER_DIAMETER_FACTOR };
+    return {
+      kind: 'sphere',
+      collisionRadius: r,
+      sphereRenderModelScale: r * RENDER_DIAMETER_FACTOR,
+    };
   }
   if (k === 'torus') {
     // ComputePhysics substitutes torus -> circumscribing sphere (flagged, not silent).
     const r = sphereCollisionRadius(scale);
-    return { kind: 'torus', collisionRadius: r, sphereRenderModelScale: r * RENDER_DIAMETER_FACTOR, substituted: true };
+    return {
+      kind: 'torus',
+      collisionRadius: r,
+      sphereRenderModelScale: r * RENDER_DIAMETER_FACTOR,
+      substituted: true,
+    };
   }
   if (k === 'plane') {
     const h = boxHalfExtents(scale);

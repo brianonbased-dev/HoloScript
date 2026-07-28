@@ -12,11 +12,7 @@ import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity';
 import type { HoloComposition, HoloDomainBlock, HoloValue } from '../parser/HoloCompositionTypes';
 import { DialectRegistry } from './DialectRegistry';
 
-export type SDKCompilerTarget =
-  | 'sdk:typescript'
-  | 'sdk:python'
-  | 'sdk:react'
-  | 'sdk:connectors';
+export type SDKCompilerTarget = 'sdk:typescript' | 'sdk:python' | 'sdk:react' | 'sdk:connectors';
 export type SDKCompilerLanguage = 'typescript' | 'python' | 'react' | 'connectors';
 
 export interface SDKCompilerOptions {
@@ -844,7 +840,8 @@ export class SDKCompiler extends CompilerBase {
     const files: Record<string, string> = {};
     files[this.joinOutputPath(this.options.clientFileName)] = this.emitPythonClient(contract);
     files[this.joinOutputPath(this.options.runtimeFileName)] = this.emitPythonRuntime(contract);
-    if (this.options.includePackageJson) files['pyproject.toml'] = this.emitPythonProjectToml(contract);
+    if (this.options.includePackageJson)
+      files['pyproject.toml'] = this.emitPythonProjectToml(contract);
     if (this.options.includeTsConfig) files[this.joinOutputPath('py.typed')] = '';
     if (this.options.includeReadme) files['README.md'] = this.emitReadme(contract);
     return this.attachReceipt(files, contract);
@@ -879,7 +876,10 @@ export class SDKCompiler extends CompilerBase {
       }
     }
 
-    lines.push(`DEFAULT_BASE_URL = "${this.escapeStringValue(contract.service.baseUrl, 'JSON')}"`, '');
+    lines.push(
+      `DEFAULT_BASE_URL = "${this.escapeStringValue(contract.service.baseUrl, 'JSON')}"`,
+      ''
+    );
     lines.push(`class ${this.options.clientClassName}:`);
     lines.push('    """Typed client generated from the .holo service-contract AST."""');
     lines.push('');
@@ -915,9 +915,7 @@ export class SDKCompiler extends CompilerBase {
         : JSON.stringify(field.name);
       const valueType = this.pythonTypeFromTsType(field.tsType);
       lines.push(
-        field.optional
-          ? `    ${key}: NotRequired[${valueType}]`
-          : `    ${key}: ${valueType}`
+        field.optional ? `    ${key}: NotRequired[${valueType}]` : `    ${key}: ${valueType}`
       );
     }
     return lines;
@@ -1058,7 +1056,8 @@ export class SDKCompiler extends CompilerBase {
     const files = this.emitTypeScriptFilesWithoutReceipt(contract);
     files[this.joinOutputPath(`use${this.options.clientClassName}.tsx`)] =
       this.emitReactHooks(contract);
-    if (this.options.includePackageJson) files['package.json'] = this.emitReactPackageJson(contract);
+    if (this.options.includePackageJson)
+      files['package.json'] = this.emitReactPackageJson(contract);
     if (this.options.includeTsConfig) files['tsconfig.json'] = this.emitTsConfig();
     if (this.options.includeReadme) files['README.md'] = this.emitReadme(contract);
     return this.attachReceipt(files, contract);
@@ -1115,7 +1114,8 @@ export class SDKCompiler extends CompilerBase {
       "export * from './tools.js';",
       '',
     ].join('\n');
-    if (this.options.includePackageJson) files['package.json'] = this.emitConnectorPackageJson(contract);
+    if (this.options.includePackageJson)
+      files['package.json'] = this.emitConnectorPackageJson(contract);
     if (this.options.includeTsConfig) files['tsconfig.json'] = this.emitTsConfig();
     if (this.options.includeReadme) files['README.md'] = this.emitReadme(contract);
     return this.attachReceipt(files, contract);
@@ -1165,7 +1165,9 @@ export class SDKCompiler extends CompilerBase {
 
     for (const endpoint of contract.endpoints) {
       lines.push(`      case '${this.connectorToolName(endpoint)}':`);
-      lines.push(`        return this.client.${endpoint.name}(${this.connectorCallArgs(endpoint)});`);
+      lines.push(
+        `        return this.client.${endpoint.name}(${this.connectorCallArgs(endpoint)});`
+      );
     }
 
     lines.push(
@@ -1192,8 +1194,12 @@ export class SDKCompiler extends CompilerBase {
     for (const endpoint of contract.endpoints) {
       lines.push('    {');
       lines.push(`      name: '${this.connectorToolName(endpoint)}',`);
-      lines.push(`      description: '${this.escapeStringValue(endpoint.summary ?? endpoint.name, 'TypeScript')}',`);
-      lines.push(`      inputSchema: ${JSON.stringify(this.connectorInputSchema(endpoint), null, 8)},`);
+      lines.push(
+        `      description: '${this.escapeStringValue(endpoint.summary ?? endpoint.name, 'TypeScript')}',`
+      );
+      lines.push(
+        `      inputSchema: ${JSON.stringify(this.connectorInputSchema(endpoint), null, 8)},`
+      );
       lines.push('    },');
     }
 

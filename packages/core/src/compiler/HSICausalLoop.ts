@@ -152,19 +152,16 @@ export interface HSICausalLoopInput {
 
 const SHARED_SEMANTICS = new HoloScriptCapabilitySemantics();
 
-function findEntity(ir: HSIIRDocument, name: string): HSIIRDocument['entities'][number] | undefined {
+function findEntity(
+  ir: HSIIRDocument,
+  name: string
+): HSIIRDocument['entities'][number] | undefined {
   return ir.entities.find((entity) => entity.name === name);
 }
 
-function hasRelation(
-  ir: HSIIRDocument,
-  from: string,
-  to: string,
-  edgeType: string,
-): boolean {
+function hasRelation(ir: HSIIRDocument, from: string, to: string, edgeType: string): boolean {
   return ir.relations.some(
-    (relation) =>
-      relation.from === from && relation.to === to && relation.edgeType === edgeType,
+    (relation) => relation.from === from && relation.to === to && relation.edgeType === edgeType
   );
 }
 
@@ -181,7 +178,7 @@ export function captureSnapshot(
   ir: HSIIRDocument,
   agent: string,
   target: string,
-  barrier: string,
+  barrier: string
 ): HSISceneSnapshot {
   const barrierEntity = findEntity(ir, barrier);
   const opacity: HSIOpacity = barrierEntity ? barrierEntity.opacity : 'unknown';
@@ -235,9 +232,10 @@ export function gateAction(
   policy: HSIPolicy,
   worldName: string,
   grantedCapabilities: readonly Capability[],
-  semantics: HoloScriptCapabilitySemantics = SHARED_SEMANTICS,
+  semantics: HoloScriptCapabilitySemantics = SHARED_SEMANTICS
 ): HSIGatedAction {
-  const name: HSIActionName = policy === 'safe' ? 'traverse' : policy === 'inspect' ? 'inspect' : 'hold';
+  const name: HSIActionName =
+    policy === 'safe' ? 'traverse' : policy === 'inspect' ? 'inspect' : 'hold';
   const event = name === 'traverse' ? 'on_traverse' : name === 'inspect' ? 'on_inspect' : null;
   const requiredCapability = requiredCapabilityFor(policy, worldName);
 
@@ -269,7 +267,7 @@ function failClosedReceipt(
   resolution: HSIContainmentResolution | null,
   policy: HSIPolicy,
   action: HSIGatedAction,
-  epistemicGate: HonestyDecision | null = null,
+  epistemicGate: HonestyDecision | null = null
 ): HSICausalReceipt {
   const withoutDigest = {
     schemaVersion: HSI_CAUSAL_LOOP_SCHEMA_VERSION,
@@ -304,10 +302,20 @@ export function runCausalLoop(input: HSICausalLoopInput): HSICausalReceipt {
   let ir: HSIIRDocument;
   try {
     const composition = input.composition ?? parseHoloStrict(input.sourceText ?? '');
-    ir = lowerCompositionToHSIIR(composition, input.sourceText ? { sourceText: input.sourceText } : {});
+    ir = lowerCompositionToHSIIR(
+      composition,
+      input.sourceText ? { sourceText: input.sourceText } : {}
+    );
   } catch (error) {
-    const message = error instanceof HSIAdmissionError || error instanceof Error ? error.message : String(error);
-    const emptyAction: HSIGatedAction = { name: 'hold', event: null, requiredCapability: null, granted: false, denial: message };
+    const message =
+      error instanceof HSIAdmissionError || error instanceof Error ? error.message : String(error);
+    const emptyAction: HSIGatedAction = {
+      name: 'hold',
+      event: null,
+      requiredCapability: null,
+      granted: false,
+      denial: message,
+    };
     return failClosedReceipt(input, message, null, null, null, 'block', emptyAction);
   }
 
@@ -318,7 +326,10 @@ export function runCausalLoop(input: HSICausalLoopInput): HSICausalReceipt {
  * Run the loop from an already-imported IR. Separated so an IR-edge counterfactual
  * (withOpacityCounterfactual) can be run against a modified copy of the same admitted world.
  */
-export function runCausalLoopFromIR(ir: HSIIRDocument, input: HSICausalLoopInput): HSICausalReceipt {
+export function runCausalLoopFromIR(
+  ir: HSIIRDocument,
+  input: HSICausalLoopInput
+): HSICausalReceipt {
   const snapshot = captureSnapshot(ir, input.agent, input.target, input.barrier);
 
   // Family-skew guard: the perception query must reference the right role families.
@@ -346,7 +357,7 @@ export function runCausalLoopFromIR(ir: HSIIRDocument, input: HSICausalLoopInput
       ir.provenance.deterministicDigest,
       null,
       'block',
-      emptyAction,
+      emptyAction
     );
   }
 
@@ -363,7 +374,7 @@ export function runCausalLoopFromIR(ir: HSIIRDocument, input: HSICausalLoopInput
     },
   ] as const;
   const missingRelation = requiredRelations.find(
-    (relation) => !hasRelation(ir, relation.from, relation.to, relation.edgeType),
+    (relation) => !hasRelation(ir, relation.from, relation.to, relation.edgeType)
   );
   if (missingRelation) {
     const denial =
@@ -383,7 +394,7 @@ export function runCausalLoopFromIR(ir: HSIIRDocument, input: HSICausalLoopInput
       ir.provenance.deterministicDigest,
       null,
       'block',
-      emptyAction,
+      emptyAction
     );
   }
 
@@ -414,12 +425,14 @@ export function runCausalLoopFromIR(ir: HSIIRDocument, input: HSICausalLoopInput
       resolution,
       policy,
       action,
-      epistemicGate,
+      epistemicGate
     );
   }
 
   // Stage: capability-gated action -> HoloVM (exact-semantic) mutation -> next state.
-  const step: HSIScenarioStep | null = action.event ? { kind: 'fire-event', event: action.event } : null;
+  const step: HSIScenarioStep | null = action.event
+    ? { kind: 'fire-event', event: action.event }
+    : null;
   const trace = runExactTrace(ir, step ? [step] : []);
   const finalState = trace.final.state;
   const nextState = {
@@ -462,12 +475,15 @@ export function runCausalLoopFromIR(ir: HSIIRDocument, input: HSICausalLoopInput
 export function withOpacityCounterfactual(
   ir: HSIIRDocument,
   entityName: string,
-  opacity: HSIOpacity,
+  opacity: HSIOpacity
 ): HSIIRDocument {
   const clone = structuredClone(ir) as HSIIRDocument;
   const entity = clone.entities.find((e) => e.name === entityName);
   if (!entity) {
-    throw new HSIAdmissionError('unknown-entity', `counterfactual target "${entityName}" not in world`);
+    throw new HSIAdmissionError(
+      'unknown-entity',
+      `counterfactual target "${entityName}" not in world`
+    );
   }
   (entity as { opacity: HSIOpacity }).opacity = opacity;
   return clone;
@@ -529,7 +545,7 @@ export function benchmarkBaselines(
   target: string,
   barriers: readonly string[],
   nowMs: () => number,
-  iterations = 200,
+  iterations = 200
 ): BaselineResult[] {
   const snapshots = barriers.map((barrier) => captureSnapshot(ir, agent, target, barrier));
   const policies: Array<{ kind: BaselineKind; fn: (s: HSISceneSnapshot) => HSIActionName }> = [
@@ -546,14 +562,20 @@ export function benchmarkBaselines(
     const elapsed = nowMs() - start;
     const decisions: BaselineDecision[] = snapshots.map((snapshot) => {
       const action = fn(snapshot);
-      return { barrier: snapshot.barrier, opacity: snapshot.barrierOpacity, action, invalid: isInvalidAction(action, snapshot.barrierOpacity) };
+      return {
+        barrier: snapshot.barrier,
+        opacity: snapshot.barrierOpacity,
+        action,
+        invalid: isInvalidAction(action, snapshot.barrierOpacity),
+      };
     });
     const invalidCount = decisions.filter((d) => d.invalid).length;
     return {
       kind,
       decisions,
       invalidActionRate: decisions.length === 0 ? 0 : invalidCount / decisions.length,
-      latencyMsPerDecision: iterations * snapshots.length === 0 ? 0 : elapsed / (iterations * snapshots.length),
+      latencyMsPerDecision:
+        iterations * snapshots.length === 0 ? 0 : elapsed / (iterations * snapshots.length),
     };
   });
 }

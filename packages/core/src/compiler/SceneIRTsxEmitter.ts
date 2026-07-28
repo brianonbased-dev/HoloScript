@@ -12,7 +12,7 @@ export function emitSceneIRTsx(root: R3FNode, options: SceneIRTsxEmitterOptions 
   const componentName = sanitizeComponentName(options.componentName ?? root.id ?? 'HoloScene');
   const sceneConstName = `${componentName}SceneIR`;
   const imports = [
-    options.includeCanvas ?? true ? "import { Canvas } from '@react-three/fiber';" : '',
+    (options.includeCanvas ?? true) ? "import { Canvas } from '@react-three/fiber';" : '',
     "import { HoloSceneIRRenderer } from '@holoscript/r3f-renderer';",
   ].filter(Boolean);
   const source = options.sourcePath ? `// source: ${options.sourcePath}\n` : '';

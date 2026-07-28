@@ -23,7 +23,11 @@
  * as the "Cloud BotSwarm fleet endpoint" seed in docs/handbooks/idea-seeds.md.
  */
 
-import type { HoloComposition, HoloValue, HoloObjectTrait } from '../parser/HoloCompositionTypes.js';
+import type {
+  HoloComposition,
+  HoloValue,
+  HoloObjectTrait,
+} from '../parser/HoloCompositionTypes.js';
 import { CompilerBase, type CompilerToken } from './CompilerBase';
 
 export interface BotSwarmCompilerOptions {
@@ -65,8 +69,18 @@ export class BotSwarmCompiler extends CompilerBase {
 
     const abilities = this.abilityNames(composition);
     const lootTables = (composition.lootTables ?? []).map((t) => t.name);
-    const maxSpeed = this.readRootTraitNumber(composition, ['movement_contract', 'movement'], ['max_speed', 'maxSpeed', 'speed']) ?? 10;
-    const tickRate = this.readRootTraitNumber(composition, ['tick_model', 'tick_rate'], ['tick_rate', 'hz', 'rate']) ?? 20;
+    const maxSpeed =
+      this.readRootTraitNumber(
+        composition,
+        ['movement_contract', 'movement'],
+        ['max_speed', 'maxSpeed', 'speed']
+      ) ?? 10;
+    const tickRate =
+      this.readRootTraitNumber(
+        composition,
+        ['tick_model', 'tick_rate'],
+        ['tick_rate', 'hz', 'rate']
+      ) ?? 20;
     const envelope = this.readEnvelope(composition);
     // Matches ColyseusCompiler.emitBootstrap roomKey derivation so network bots join the right room.
     const roomKey = (composition.name ?? 'world').toLowerCase().replace(/[^a-z0-9_]/g, '_');
@@ -309,7 +323,11 @@ export class BotSwarmCompiler extends CompilerBase {
 
   private readEnvelope(composition: HoloComposition): BalanceEnvelope {
     const maxAvgTickMs =
-      this.readRootTraitNumber(composition, ['balance_test', 'balance'], ['max_avg_tick_ms', 'maxAvgTickMs', 'tick_budget_ms']) ?? 8;
+      this.readRootTraitNumber(
+        composition,
+        ['balance_test', 'balance'],
+        ['max_avg_tick_ms', 'maxAvgTickMs', 'tick_budget_ms']
+      ) ?? 8;
     return { maxAvgTickMs, expectSpeedhackRejections: true };
   }
 
@@ -322,7 +340,9 @@ export class BotSwarmCompiler extends CompilerBase {
     for (const trait of composition.traits ?? []) {
       const name = String((trait as HoloObjectTrait).name).replace(/^@/, '');
       if (!clean.has(name)) continue;
-      const config = ((trait as HoloObjectTrait).config ?? (trait as HoloObjectTrait).params ?? {}) as Record<string, HoloValue>;
+      const config = ((trait as HoloObjectTrait).config ??
+        (trait as HoloObjectTrait).params ??
+        {}) as Record<string, HoloValue>;
       for (const key of keys) {
         const raw = config[key];
         const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN;

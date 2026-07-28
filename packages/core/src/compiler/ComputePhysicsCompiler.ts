@@ -134,13 +134,20 @@ export class ComputePhysicsCompiler {
       )
       .join('\n');
     const staticRust = statics
-      .map((s) => `    Aabb { mn: ${arr([...s.min, 0])}, mx: ${arr([...s.max, 0])}, color: ${arr([...s.color, 1])} },`)
+      .map(
+        (s) =>
+          `    Aabb { mn: ${arr([...s.min, 0])}, mx: ${arr([...s.max, 0])}, color: ${arr([...s.color, 1])} },`
+      )
       .join('\n');
 
     // Per-object surface reality (roughness, metalness, subsurface) + the floor top plane
     // used for contact-shadow grounding. Kept out of the compute Body so the sim is untouched.
-    const bodyMatRust = bodies.map((b) => `    ${arr([b.roughness, b.metalness, b.subsurface, 0])},`).join('\n');
-    const staticMatRust = statics.map((s) => `    ${arr([s.roughness, s.metalness, s.subsurface, 0])},`).join('\n');
+    const bodyMatRust = bodies
+      .map((b) => `    ${arr([b.roughness, b.metalness, b.subsurface, 0])},`)
+      .join('\n');
+    const staticMatRust = statics
+      .map((s) => `    ${arr([s.roughness, s.metalness, s.subsurface, 0])},`)
+      .join('\n');
     const floorStatic = statics.reduce<StaticBox | undefined>((best, s) => {
       const area = (s.max[0] - s.min[0]) * (s.max[2] - s.min[2]);
       const bestArea = best ? (best.max[0] - best.min[0]) * (best.max[2] - best.min[2]) : -1;
@@ -507,9 +514,18 @@ async fn run() {
     const bodies: Body[] = [];
     const statics: StaticBox[] = [];
     const add = (obj: HoloObjectDecl, off: number[]) => {
-      const role = resolveGeometryRole({ purpose: this.findProp(obj, 'purpose'), visible: this.findProp(obj, 'visible'), traitNames: (obj.traits ?? []).map((t) => t.name) });
+      const role = resolveGeometryRole({
+        purpose: this.findProp(obj, 'purpose'),
+        visible: this.findProp(obj, 'visible'),
+        traitNames: (obj.traits ?? []).map((t) => t.name),
+      });
       if (role.visible) {
-        const mesh = String(this.findProp(obj, 'geometry') ?? this.findProp(obj, 'mesh') ?? this.findProp(obj, 'type') ?? 'cube');
+        const mesh = String(
+          this.findProp(obj, 'geometry') ??
+            this.findProp(obj, 'mesh') ??
+            this.findProp(obj, 'type') ??
+            'cube'
+        );
         const kind = resolveGeometry(mesh).kind;
         const pos = this.vec3(this.findProp(obj, 'position'), [0, 0, 0]);
         const p: [number, number, number] = [pos[0] + off[0], pos[1] + off[1], pos[2] + off[2]];
@@ -518,9 +534,12 @@ async fn run() {
         const traitNames = (obj.traits ?? []).map((t) => t.name.toLowerCase());
         const rb = (obj.traits ?? []).find((t) => DYNAMIC_TRAITS.has(t.name.toLowerCase()));
         const cfg = (rb?.config ?? {}) as Record<string, unknown>;
-        const isDynamic = traitNames.some((t) => DYNAMIC_TRAITS.has(t)) || this.findProp(obj, 'dynamic') === true;
+        const isDynamic =
+          traitNames.some((t) => DYNAMIC_TRAITS.has(t)) || this.findProp(obj, 'dynamic') === true;
         // Default Material Realism (D.125): the object's matter drives its physics + surface.
-        const matName = (cfg.material ?? this.findProp(obj, 'material') ?? this.materialTrait(obj)) as unknown;
+        const matName = (cfg.material ??
+          this.findProp(obj, 'material') ??
+          this.materialTrait(obj)) as unknown;
         if (isDynamic && (kind === 'sphere' || kind === 'torus')) {
           const radius = 0.5 * Math.max(s[0], s[1], s[2]);
           const vel = this.vec3(this.findProp(obj, 'velocity'), [0, 0, 0]);
@@ -533,7 +552,9 @@ async fn run() {
             // mass is density x volume; bounce/friction are the material's — NOT bare floats.
             // Explicit props still win (the "unless explicitly designed" clause of D.125).
             mass: Number(cfg.mass ?? this.findProp(obj, 'mass') ?? massFor(material, volume)),
-            restitution: Number(cfg.restitution ?? this.findProp(obj, 'restitution') ?? material.restitution),
+            restitution: Number(
+              cfg.restitution ?? this.findProp(obj, 'restitution') ?? material.restitution
+            ),
             friction: Number(cfg.friction ?? this.findProp(obj, 'friction') ?? material.friction),
             color,
             roughness: material.roughness,
@@ -563,7 +584,8 @@ async fn run() {
       if (obj.children) for (const c of obj.children) add(c, off);
     };
     for (const o of composition.objects ?? []) add(o, [0, 0, 0]);
-    const scenes = (composition as unknown as { scenes?: Array<{ objects?: HoloObjectDecl[] }> }).scenes;
+    const scenes = (composition as unknown as { scenes?: Array<{ objects?: HoloObjectDecl[] }> })
+      .scenes;
     for (const sc of scenes ?? []) for (const o of sc.objects ?? []) add(o, [0, 0, 0]);
     const walk = (g: HoloSpatialGroup, parent: number[]) => {
       const gp = g.properties?.find((pp) => pp.key === 'position')?.value;
@@ -579,17 +601,23 @@ async fn run() {
   private viewProjection(bodies: Body[], statics: StaticBox[]): number[] {
     const pts: number[][] = [];
     for (const b of bodies) pts.push(b.pos);
-    for (const s of statics) pts.push([(s.min[0] + s.max[0]) / 2, (s.min[1] + s.max[1]) / 2, (s.min[2] + s.max[2]) / 2]);
+    for (const s of statics)
+      pts.push([(s.min[0] + s.max[0]) / 2, (s.min[1] + s.max[1]) / 2, (s.min[2] + s.max[2]) / 2]);
     let eye = [6, 5, 10];
     let target = [0, 0, 0];
     const fov = 55;
     if (pts.length > 0) {
       const min = [Infinity, Infinity, Infinity];
       const max = [-Infinity, -Infinity, -Infinity];
-      for (const p of pts) for (let i = 0; i < 3; i++) { min[i] = Math.min(min[i], p[i]); max[i] = Math.max(max[i], p[i]); }
+      for (const p of pts)
+        for (let i = 0; i < 3; i++) {
+          min[i] = Math.min(min[i], p[i]);
+          max[i] = Math.max(max[i], p[i]);
+        }
       const c = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
       let radius = 2;
-      for (const p of pts) radius = Math.max(radius, Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]) + 2);
+      for (const p of pts)
+        radius = Math.max(radius, Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]) + 2);
       const dist = (radius / Math.sin((fov * Math.PI) / 180 / 2)) * 1.2;
       const dl = Math.hypot(0.3, 0.4, 1);
       eye = [c[0] + (0.3 / dl) * dist, c[1] + (0.4 / dl) * dist, c[2] + (1 / dl) * dist];
@@ -605,19 +633,50 @@ async fn run() {
     return this.mul(proj, view);
   }
   private lookAt(eye: number[], target: number[]): number[] {
-    const zx = eye[0] - target[0], zy = eye[1] - target[1], zz = eye[2] - target[2];
+    const zx = eye[0] - target[0],
+      zy = eye[1] - target[1],
+      zz = eye[2] - target[2];
     const zl = Math.hypot(zx, zy, zz) || 1;
     const fz = [zx / zl, zy / zl, zz / zl];
     const up = [0, 1, 0];
-    const xx = up[1] * fz[2] - up[2] * fz[1], xy = up[2] * fz[0] - up[0] * fz[2], xz = up[0] * fz[1] - up[1] * fz[0];
+    const xx = up[1] * fz[2] - up[2] * fz[1],
+      xy = up[2] * fz[0] - up[0] * fz[2],
+      xz = up[0] * fz[1] - up[1] * fz[0];
     const xl = Math.hypot(xx, xy, xz) || 1;
     const rx = [xx / xl, xy / xl, xz / xl];
-    const uy = [fz[1] * rx[2] - fz[2] * rx[1], fz[2] * rx[0] - fz[0] * rx[2], fz[0] * rx[1] - fz[1] * rx[0]];
-    return [rx[0], uy[0], fz[0], 0, rx[1], uy[1], fz[1], 0, rx[2], uy[2], fz[2], 0, -(rx[0] * eye[0] + rx[1] * eye[1] + rx[2] * eye[2]), -(uy[0] * eye[0] + uy[1] * eye[1] + uy[2] * eye[2]), -(fz[0] * eye[0] + fz[1] * eye[1] + fz[2] * eye[2]), 1];
+    const uy = [
+      fz[1] * rx[2] - fz[2] * rx[1],
+      fz[2] * rx[0] - fz[0] * rx[2],
+      fz[0] * rx[1] - fz[1] * rx[0],
+    ];
+    return [
+      rx[0],
+      uy[0],
+      fz[0],
+      0,
+      rx[1],
+      uy[1],
+      fz[1],
+      0,
+      rx[2],
+      uy[2],
+      fz[2],
+      0,
+      -(rx[0] * eye[0] + rx[1] * eye[1] + rx[2] * eye[2]),
+      -(uy[0] * eye[0] + uy[1] * eye[1] + uy[2] * eye[2]),
+      -(fz[0] * eye[0] + fz[1] * eye[1] + fz[2] * eye[2]),
+      1,
+    ];
   }
   private mul(a: number[], b: number[]): number[] {
     const o = new Array(16).fill(0);
-    for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) o[c * 4 + r] = a[0 * 4 + r] * b[c * 4 + 0] + a[1 * 4 + r] * b[c * 4 + 1] + a[2 * 4 + r] * b[c * 4 + 2] + a[3 * 4 + r] * b[c * 4 + 3];
+    for (let c = 0; c < 4; c++)
+      for (let r = 0; r < 4; r++)
+        o[c * 4 + r] =
+          a[0 * 4 + r] * b[c * 4 + 0] +
+          a[1 * 4 + r] * b[c * 4 + 1] +
+          a[2 * 4 + r] * b[c * 4 + 2] +
+          a[3 * 4 + r] * b[c * 4 + 3];
     return o;
   }
   private clearColor(composition: HoloComposition): [number, number, number, number] {
@@ -625,7 +684,10 @@ async fn run() {
     const props: Record<string, unknown> = {};
     for (const p of env?.properties ?? []) props[p.key] = p.value;
     const bg = props.background || props.skybox || '#0a0e14';
-    const c = typeof bg === 'string' && bg.startsWith('#') ? this.hexColor(bg) : resolveSkyboxColor(String(bg));
+    const c =
+      typeof bg === 'string' && bg.startsWith('#')
+        ? this.hexColor(bg)
+        : resolveSkyboxColor(String(bg));
     return [c[0], c[1], c[2], 1];
   }
 
@@ -663,10 +725,17 @@ async fn run() {
   }
   private hexColor(hex: string): [number, number, number] {
     const h = hex.slice(1);
-    return [Number((parseInt(h.substring(0, 2), 16) / 255).toFixed(4)), Number((parseInt(h.substring(2, 4), 16) / 255).toFixed(4)), Number((parseInt(h.substring(4, 6), 16) / 255).toFixed(4))];
+    return [
+      Number((parseInt(h.substring(0, 2), 16) / 255).toFixed(4)),
+      Number((parseInt(h.substring(2, 4), 16) / 255).toFixed(4)),
+      Number((parseInt(h.substring(4, 6), 16) / 255).toFixed(4)),
+    ];
   }
   private sanitizeCrate(name: string): string {
-    const s = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const s = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
     return s || 'holo-physics';
   }
   private header(composition: HoloComposition): string {

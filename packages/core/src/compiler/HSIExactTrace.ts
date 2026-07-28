@@ -71,18 +71,26 @@ function applyOperator(
   operator: '=' | '+=' | '-=' | '*=' | '/=',
   before: HSIScalar,
   operand: unknown,
-  where: string,
+  where: string
 ): HSIScalar {
   if (operator === '=') {
-    if (operand === null || typeof operand === 'string' || typeof operand === 'number' || typeof operand === 'boolean') {
+    if (
+      operand === null ||
+      typeof operand === 'string' ||
+      typeof operand === 'number' ||
+      typeof operand === 'boolean'
+    ) {
       return operand;
     }
-    throw new HSIAdmissionError('unsupported-value', `${where}: assignment produced a non-scalar value`);
+    throw new HSIAdmissionError(
+      'unsupported-value',
+      `${where}: assignment produced a non-scalar value`
+    );
   }
   if (typeof before !== 'number' || typeof operand !== 'number' || !Number.isFinite(operand)) {
     throw new HSIAdmissionError(
       'unsupported-value',
-      `${where}: compound assignment requires numeric operands (got ${typeof before} ${operator} ${typeof operand})`,
+      `${where}: compound assignment requires numeric operands (got ${typeof before} ${operator} ${typeof operand})`
     );
   }
   switch (operator) {
@@ -105,7 +113,7 @@ function runEffects(
   effects: HSIEffect[],
   world: WorldRuntime,
   records: HSITraceEffectRecord[],
-  emitted: string[],
+  emitted: string[]
 ): void {
   for (const effect of effects) {
     switch (effect.kind) {
@@ -209,19 +217,19 @@ export function runExactTrace(ir: HSIIRDocument, scenario: HSIScenarioStep[]): H
         if (!machine || !declared) {
           throw new HSIAdmissionError(
             'unknown-slot',
-            `scenario step ${ordinal}: unknown machine input ${step.machine}.${step.input}`,
+            `scenario step ${ordinal}: unknown machine input ${step.machine}.${step.input}`
           );
         }
         if (declared.inputType === 'trigger') {
           throw new HSIAdmissionError(
             'trigger-step-kind',
-            `scenario step ${ordinal}: trigger ${step.machine}.${step.input} must use fire-trigger`,
+            `scenario step ${ordinal}: trigger ${step.machine}.${step.input} must use fire-trigger`
           );
         }
         if (!inputAcceptsValue(declared.inputType, step.value)) {
           throw new HSIAdmissionError(
             'input-type',
-            `scenario step ${ordinal}: ${step.machine}.${step.input} expects ${declared.inputType}`,
+            `scenario step ${ordinal}: ${step.machine}.${step.input} expects ${declared.inputType}`
           );
         }
         machine.inputs[step.input] = step.value;
@@ -236,7 +244,7 @@ export function runExactTrace(ir: HSIIRDocument, scenario: HSIScenarioStep[]): H
         if (!machine || !declared) {
           throw new HSIAdmissionError(
             'unknown-slot',
-            `scenario step ${ordinal}: unknown trigger ${step.machine}.${step.input}`,
+            `scenario step ${ordinal}: unknown trigger ${step.machine}.${step.input}`
           );
         }
         machine.triggers.add(step.input);
@@ -248,7 +256,7 @@ export function runExactTrace(ir: HSIIRDocument, scenario: HSIScenarioStep[]): H
         if (!handler) {
           throw new HSIAdmissionError(
             'unknown-slot',
-            `scenario step ${ordinal}: no handler for event "${step.event}"`,
+            `scenario step ${ordinal}: no handler for event "${step.event}"`
           );
         }
         runEffects(handler.effects, world, effects, emitted);

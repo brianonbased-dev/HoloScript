@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  buildKnownTraitSet,
-  NATIVE2D_TRAITS,
-  CODE_GRAPH_TRAITS,
-} from '../knownTraitSet';
+import { buildKnownTraitSet, NATIVE2D_TRAITS, CODE_GRAPH_TRAITS } from '../knownTraitSet';
 import { VR_TRAITS } from '../../constants';
 
 describe('buildKnownTraitSet', () => {

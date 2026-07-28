@@ -8,7 +8,8 @@ const obj = (
   name: string,
   props: Array<{ key: string; value: unknown }>,
   traits: Array<{ name: string; config?: Record<string, unknown> }> = []
-): HoloObjectDecl => ({ type: 'Object', name, properties: props, traits }) as unknown as HoloObjectDecl;
+): HoloObjectDecl =>
+  ({ type: 'Object', name, properties: props, traits }) as unknown as HoloObjectDecl;
 
 const comp = (objects: HoloObjectDecl[], name = 'AudioScene'): HoloComposition =>
   ({ type: 'HoloComposition', name, objects }) as HoloComposition;
@@ -16,7 +17,13 @@ const comp = (objects: HoloObjectDecl[], name = 'AudioScene'): HoloComposition =
 describe('SpatialAudioCompiler — sovereign Web Audio graph target', () => {
   it('reads an @audio_listener trait into the HRTF listener', () => {
     const model = new SpatialAudioCompiler().compileToModel(
-      comp([obj('Seat', [prop('position', [0, 1.6, 2])], [trait('audio_listener', { hrtf: true, speed_of_sound: 343 })])])
+      comp([
+        obj(
+          'Seat',
+          [prop('position', [0, 1.6, 2])],
+          [trait('audio_listener', { hrtf: true, speed_of_sound: 343 })]
+        ),
+      ])
     );
     expect(model.listener.position).toEqual([0, 1.6, 2]);
     expect(model.listener.hrtf).toBe(true);
@@ -26,7 +33,18 @@ describe('SpatialAudioCompiler — sovereign Web Audio graph target', () => {
   it('reads @audio_source traits into positional sources with directivity + clip', () => {
     const model = new SpatialAudioCompiler().compileToModel(
       comp([
-        obj('Piano', [prop('position', [-2, 1, -3])], [trait('audio_source', { clip: 'piano.wav', volume: 0.8, loop: true, directivity: 'cardioid' })]),
+        obj(
+          'Piano',
+          [prop('position', [-2, 1, -3])],
+          [
+            trait('audio_source', {
+              clip: 'piano.wav',
+              volume: 0.8,
+              loop: true,
+              directivity: 'cardioid',
+            }),
+          ]
+        ),
       ])
     );
     expect(model.sources).toHaveLength(1);
@@ -42,8 +60,16 @@ describe('SpatialAudioCompiler — sovereign Web Audio graph target', () => {
   it('reads an algorithmic @reverb_zone (rt60-driven) and a convolution one (ir_file)', () => {
     const model = new SpatialAudioCompiler().compileToModel(
       comp([
-        obj('Hall', [], [trait('reverb_zone', { type: 'algorithmic', rt60_mid: 2.0, room_volume: 15000 })]),
-        obj('Chapel', [], [trait('reverb_zone', { type: 'convolution', ir_file: 'chapel.wav', rt60_mid: 3.1 })]),
+        obj(
+          'Hall',
+          [],
+          [trait('reverb_zone', { type: 'algorithmic', rt60_mid: 2.0, room_volume: 15000 })]
+        ),
+        obj(
+          'Chapel',
+          [],
+          [trait('reverb_zone', { type: 'convolution', ir_file: 'chapel.wav', rt60_mid: 3.1 })]
+        ),
       ])
     );
     expect(model.zones).toHaveLength(2);
@@ -54,19 +80,58 @@ describe('SpatialAudioCompiler — sovereign Web Audio graph target', () => {
   it('collects acoustic surfaces, occlusion and portals from their traits', () => {
     const model = new SpatialAudioCompiler().compileToModel(
       comp([
-        obj('Floor', [], [trait('audio_material', { absorption_low: 0.05, absorption_mid: 0.08, absorption_high: 0.1, scattering: 0.15 })]),
-        obj('Wall', [], [trait('audio_occlusion', { transmission_loss: 35, frequency_dependent: true })]),
-        obj('Door', [], [trait('audio_portal', { source_zone: 'Hall', target_zone: 'Backstage', cutoff_hz: 800, opening_factor: 0.6 })]),
+        obj(
+          'Floor',
+          [],
+          [
+            trait('audio_material', {
+              absorption_low: 0.05,
+              absorption_mid: 0.08,
+              absorption_high: 0.1,
+              scattering: 0.15,
+            }),
+          ]
+        ),
+        obj(
+          'Wall',
+          [],
+          [trait('audio_occlusion', { transmission_loss: 35, frequency_dependent: true })]
+        ),
+        obj(
+          'Door',
+          [],
+          [
+            trait('audio_portal', {
+              source_zone: 'Hall',
+              target_zone: 'Backstage',
+              cutoff_hz: 800,
+              opening_factor: 0.6,
+            }),
+          ]
+        ),
       ])
     );
     expect(model.surfaces[0].absorption).toEqual([0.05, 0.08, 0.1]);
     expect(model.occlusions[0].transmissionLoss).toBe(35);
-    expect(model.portals[0]).toMatchObject({ sourceZone: 'Hall', targetZone: 'Backstage', cutoffHz: 800 });
+    expect(model.portals[0]).toMatchObject({
+      sourceZone: 'Hall',
+      targetZone: 'Backstage',
+      cutoffHz: 800,
+    });
   });
 
   it('walks scene objects (composition.scenes[].objects), not just top-level', () => {
-    const scene = { type: 'Scene', name: 'S', objects: [obj('Src', [], [trait('audio_source', { clip: 'x.wav' })])] };
-    const c = { type: 'HoloComposition', name: 'Scened', objects: [], scenes: [scene] } as unknown as HoloComposition;
+    const scene = {
+      type: 'Scene',
+      name: 'S',
+      objects: [obj('Src', [], [trait('audio_source', { clip: 'x.wav' })])],
+    };
+    const c = {
+      type: 'HoloComposition',
+      name: 'Scened',
+      objects: [],
+      scenes: [scene],
+    } as unknown as HoloComposition;
     const model = new SpatialAudioCompiler().compileToModel(c);
     expect(model.sources).toHaveLength(1);
     expect(model.sources[0].name).toBe('Src');
@@ -76,7 +141,11 @@ describe('SpatialAudioCompiler — sovereign Web Audio graph target', () => {
     const out = new SpatialAudioCompiler().compile(
       comp([
         obj('Seat', [prop('position', [0, 1.6, 0])], [trait('audio_listener', { hrtf: true })]),
-        obj('Piano', [prop('position', [-2, 1, -3])], [trait('audio_source', { clip: 'piano.wav', directivity: 'cardioid' })]),
+        obj(
+          'Piano',
+          [prop('position', [-2, 1, -3])],
+          [trait('audio_source', { clip: 'piano.wav', directivity: 'cardioid' })]
+        ),
         obj('Hall', [], [trait('reverb_zone', { type: 'algorithmic', rt60_mid: 2.0 })]),
       ])
     );
@@ -92,7 +161,9 @@ describe('SpatialAudioCompiler — sovereign Web Audio graph target', () => {
   });
 
   it('an audio-less scene still yields a valid graph with default listener and no sources', () => {
-    const model = new SpatialAudioCompiler().compileToModel(comp([obj('Box', [prop('mesh', 'cube')])]));
+    const model = new SpatialAudioCompiler().compileToModel(
+      comp([obj('Box', [prop('mesh', 'cube')])])
+    );
     expect(model.sources).toEqual([]);
     expect(model.zones).toEqual([]);
     expect(model.listener.hrtf).toBe(true);

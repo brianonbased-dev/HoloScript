@@ -140,7 +140,12 @@ export function createFMUCouplingReceipt(
   };
 }
 
-function stepFMU(node: HSPlusNode, config: FMUConfig, context: TraitContext, stepSize: number): void {
+function stepFMU(
+  node: HSPlusNode,
+  config: FMUConfig,
+  context: TraitContext,
+  stepSize: number
+): void {
   const state = getFMUState(node);
   state.currentStep += 1;
   const receipt = createFMUCouplingReceipt(config, state, stepSize);

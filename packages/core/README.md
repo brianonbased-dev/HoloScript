@@ -53,34 +53,34 @@ const output = compiler.compile(composition.ast);
 
 ## Compilers (verify live targets via health + ExportTarget enum)
 
-| Compiler                 | Target                    | Output             |
-| ------------------------ | ------------------------- | ------------------ |
-| `UnityCompiler`          | Unity Engine              | C# + Prefab        |
-| `UnrealCompiler`         | Unreal Engine 5           | C++ + Blueprint    |
-| `GodotCompiler`          | Godot 4                   | GDScript + .tscn   |
-| `SceneIRCompiler` + `emitSceneIRTsx` | React Three Fiber | SceneIR + generated TSX shell |
-| `OpenXRCompiler`         | OpenXR Standard           | C++                |
-| `VRChatCompiler`         | VRChat                    | UdonSharp C#       |
-| `VisionOSCompiler`       | Apple Vision Pro          | Swift              |
-| `AndroidXRCompiler`      | Android XR                | Kotlin             |
-| `IOSCompiler`            | iOS / ARKit               | Swift              |
-| `AndroidCompiler`        | Android / ARCore          | Kotlin             |
-| `WASMCompiler`           | WebAssembly               | .wasm + .js        |
-| `WebGPUCompiler`         | WebGPU Compute            | WGSL + TypeScript  |
-| `URDFCompiler`           | Robotics (URDF)           | .urdf XML          |
-| `SDFCompiler`            | Gazebo SDF simulation XML | .sdf XML           |
-| `DTDLCompiler`           | Digital Twins             | JSON-LD            |
-| `StateCompiler`          | Reactive State            | JSON               |
-| `A2AAgentCardCompiler`   | A2A Agent Cards           | JSON               |
-| `NIRCompiler`            | Neuromorphic IR           | JSON               |
-| `AIGlassesCompiler`      | AI Glasses                | Kotlin Compose     |
-| `GLTFPipeline`           | glTF                      | .glb / .gltf       |
-| `NFTMarketplaceCompiler` | NFT Marketplace           | Solidity           |
-| `USDPhysicsCompiler`     | USD Physics               | .usda              |
-| `TSLCompiler`            | Trait Shader Language     | WGSL + TS pipeline |
-| `SCMCompiler`            | Structural Causal Model   | JSON DAG           |
-| `QuiltCompiler`          | Looking Glass Hologram    | Multi-view PNG     |
-| `MVHEVCCompiler`         | MV-HEVC Hologram          | Swift + .mov       |
+| Compiler                             | Target                    | Output                        |
+| ------------------------------------ | ------------------------- | ----------------------------- |
+| `UnityCompiler`                      | Unity Engine              | C# + Prefab                   |
+| `UnrealCompiler`                     | Unreal Engine 5           | C++ + Blueprint               |
+| `GodotCompiler`                      | Godot 4                   | GDScript + .tscn              |
+| `SceneIRCompiler` + `emitSceneIRTsx` | React Three Fiber         | SceneIR + generated TSX shell |
+| `OpenXRCompiler`                     | OpenXR Standard           | C++                           |
+| `VRChatCompiler`                     | VRChat                    | UdonSharp C#                  |
+| `VisionOSCompiler`                   | Apple Vision Pro          | Swift                         |
+| `AndroidXRCompiler`                  | Android XR                | Kotlin                        |
+| `IOSCompiler`                        | iOS / ARKit               | Swift                         |
+| `AndroidCompiler`                    | Android / ARCore          | Kotlin                        |
+| `WASMCompiler`                       | WebAssembly               | .wasm + .js                   |
+| `WebGPUCompiler`                     | WebGPU Compute            | WGSL + TypeScript             |
+| `URDFCompiler`                       | Robotics (URDF)           | .urdf XML                     |
+| `SDFCompiler`                        | Gazebo SDF simulation XML | .sdf XML                      |
+| `DTDLCompiler`                       | Digital Twins             | JSON-LD                       |
+| `StateCompiler`                      | Reactive State            | JSON                          |
+| `A2AAgentCardCompiler`               | A2A Agent Cards           | JSON                          |
+| `NIRCompiler`                        | Neuromorphic IR           | JSON                          |
+| `AIGlassesCompiler`                  | AI Glasses                | Kotlin Compose                |
+| `GLTFPipeline`                       | glTF                      | .glb / .gltf                  |
+| `NFTMarketplaceCompiler`             | NFT Marketplace           | Solidity                      |
+| `USDPhysicsCompiler`                 | USD Physics               | .usda                         |
+| `TSLCompiler`                        | Trait Shader Language     | WGSL + TS pipeline            |
+| `SCMCompiler`                        | Structural Causal Model   | JSON DAG                      |
+| `QuiltCompiler`                      | Looking Glass Hologram    | Multi-view PNG                |
+| `MVHEVCCompiler`                     | MV-HEVC Hologram          | Swift + .mov                  |
 
 ## Trait System
 

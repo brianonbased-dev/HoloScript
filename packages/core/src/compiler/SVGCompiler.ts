@@ -101,7 +101,9 @@ function objProp(node: HoloObjectDecl, key: string): HoloValue | undefined {
  * an arrowed line rather than a shape. Authored as geometry/type edge|link|arrow|connector.
  */
 function isEdgeObject(node: HoloObjectDecl): boolean {
-  const g = (toString(objProp(node, 'geometry'), '') || toString(objProp(node, 'type'), '')).toLowerCase();
+  const g = (
+    toString(objProp(node, 'geometry'), '') || toString(objProp(node, 'type'), '')
+  ).toLowerCase();
   return g === 'edge' || g === 'link' || g === 'arrow' || g === 'connector';
 }
 
@@ -146,9 +148,7 @@ function projectY(worldZ: number, scale: number, originY: number): number {
  * Resolve position from a HoloObjectDecl.
  * The `position` field may be a HoloPosition object or live in `properties`.
  */
-function resolvePosition(
-  node: HoloObjectDecl
-): { x: number; y: number; z: number } {
+function resolvePosition(node: HoloObjectDecl): { x: number; y: number; z: number } {
   // Prefer the typed position field when present
   if (node.position) {
     return {
@@ -174,7 +174,11 @@ function resolvePosition(
       z: toNumber(posVal[2], 0),
     };
   }
-  return { x: toNumber(objProp(node, 'x'), 0), y: toNumber(objProp(node, 'y'), 0), z: toNumber(objProp(node, 'z'), 0) };
+  return {
+    x: toNumber(objProp(node, 'x'), 0),
+    y: toNumber(objProp(node, 'y'), 0),
+    z: toNumber(objProp(node, 'z'), 0),
+  };
 }
 
 /**
@@ -183,7 +187,8 @@ function resolvePosition(
  * read the typed field, so array-scaled primitives collapsed to unit size.
  */
 function resolveScale(node: HoloObjectDecl): { x: number; y: number; z: number } {
-  const typed = (node as unknown as { scale?: { x?: HoloValue; y?: HoloValue; z?: HoloValue } }).scale;
+  const typed = (node as unknown as { scale?: { x?: HoloValue; y?: HoloValue; z?: HoloValue } })
+    .scale;
   if (typed && typeof typed === 'object') {
     return { x: toNumber(typed.x, 1), y: toNumber(typed.y, 1), z: toNumber(typed.z, 1) };
   }
@@ -203,7 +208,8 @@ function resolveRotationY(node: HoloObjectDecl): number {
   if (typed && typeof typed === 'object') return toNumber(typed.y, 0);
   const r = objProp(node, 'rotation');
   if (Array.isArray(r)) return toNumber(r[1], 0);
-  if (r && typeof r === 'object' && !('__bind' in r)) return toNumber((r as Record<string, HoloValue>)['y'], 0);
+  if (r && typeof r === 'object' && !('__bind' in r))
+    return toNumber((r as Record<string, HoloValue>)['y'], 0);
   return 0;
 }
 
@@ -454,33 +460,64 @@ export class SVGCompiler extends CompilerBase {
     const nameLower = node.name.toLowerCase();
     const children = (node.children ?? []) as HoloObjectDecl[];
     const nameHint =
-      nameLower.includes('sphere') || nameLower.includes('ball') || nameLower.includes('orb') ? 'sphere'
-      : nameLower.includes('box') || nameLower.includes('cube') || nameLower.includes('wall') ? 'box'
-      : nameLower.includes('cylinder') || nameLower.includes('column') || nameLower.includes('pillar') ? 'cylinder'
-      : nameLower.includes('cone') ? 'cone'
-      : nameLower.includes('plane') || nameLower.includes('floor') || nameLower.includes('ground') ? 'plane'
-      : nameLower.includes('text') || nameLower.includes('label') || nameLower.includes('sign') ? 'text'
-      : 'unknown';
+      nameLower.includes('sphere') || nameLower.includes('ball') || nameLower.includes('orb')
+        ? 'sphere'
+        : nameLower.includes('box') || nameLower.includes('cube') || nameLower.includes('wall')
+          ? 'box'
+          : nameLower.includes('cylinder') ||
+              nameLower.includes('column') ||
+              nameLower.includes('pillar')
+            ? 'cylinder'
+            : nameLower.includes('cone')
+              ? 'cone'
+              : nameLower.includes('plane') ||
+                  nameLower.includes('floor') ||
+                  nameLower.includes('ground')
+                ? 'plane'
+                : nameLower.includes('text') ||
+                    nameLower.includes('label') ||
+                    nameLower.includes('sign')
+                  ? 'text'
+                  : 'unknown';
     const shapeHint = geom || typeProp || nameHint;
 
     // A pure container (no geometry of its own, but has children) emits no shape —
     // it only positions its children, rather than a spurious dashed placeholder box.
     const hasOwnShape =
-      geom !== '' || typeProp !== '' ||
-      objProp(node, 'radius') !== undefined || objProp(node, 'width') !== undefined ||
+      geom !== '' ||
+      typeProp !== '' ||
+      objProp(node, 'radius') !== undefined ||
+      objProp(node, 'width') !== undefined ||
       children.length === 0;
 
     const out: string[] = [];
     if (hasOwnShape) {
       this.elementCount++;
       switch (shapeHint) {
-        case 'sphere': out.push(this.compileSphere(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
-        case 'box': case 'cube': out.push(this.compileBox(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
-        case 'cylinder': out.push(this.compileCylinder(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
-        case 'cone': out.push(this.compileCone(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
-        case 'plane': case 'floor': case 'ground': out.push(this.compilePlane(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
-        case 'text': out.push(this.compileText(node, svgX, svgY, fill, indent, dataAttr)); break;
-        default: out.push(this.compileUnknown(node, svgX, svgY, fill, indent, dataAttr, accX, accZ)); break;
+        case 'sphere':
+          out.push(this.compileSphere(node, svgX, svgY, fill, indent, dataAttr, accX, accZ));
+          break;
+        case 'box':
+        case 'cube':
+          out.push(this.compileBox(node, svgX, svgY, fill, indent, dataAttr, accX, accZ));
+          break;
+        case 'cylinder':
+          out.push(this.compileCylinder(node, svgX, svgY, fill, indent, dataAttr, accX, accZ));
+          break;
+        case 'cone':
+          out.push(this.compileCone(node, svgX, svgY, fill, indent, dataAttr, accX, accZ));
+          break;
+        case 'plane':
+        case 'floor':
+        case 'ground':
+          out.push(this.compilePlane(node, svgX, svgY, fill, indent, dataAttr, accX, accZ));
+          break;
+        case 'text':
+          out.push(this.compileText(node, svgX, svgY, fill, indent, dataAttr));
+          break;
+        default:
+          out.push(this.compileUnknown(node, svgX, svgY, fill, indent, dataAttr, accX, accZ));
+          break;
       }
     }
     // Receipt-bound node text: a decision node renders its `label` and, beneath it, its
@@ -499,7 +536,18 @@ export class SVGCompiler extends CompilerBase {
       }
     }
     for (const child of children) {
-      out.push(...this.compileObject(child, indent, originX, originY, worldX, worldZ, accX * Math.abs(own.x), accZ * Math.abs(own.z)));
+      out.push(
+        ...this.compileObject(
+          child,
+          indent,
+          originX,
+          originY,
+          worldX,
+          worldZ,
+          accX * Math.abs(own.x),
+          accZ * Math.abs(own.z)
+        )
+      );
     }
     return out;
   }
@@ -536,7 +584,10 @@ export class SVGCompiler extends CompilerBase {
     const x = (cx - w / 2).toFixed(1);
     const y = (cy - h / 2).toFixed(1);
     const yaw = resolveRotationY(node);
-    const transform = Math.abs(yaw) > 0.5 ? ` transform="rotate(${(-yaw).toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})"` : '';
+    const transform =
+      Math.abs(yaw) > 0.5
+        ? ` transform="rotate(${(-yaw).toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})"`
+        : '';
     return `${indent}<rect x="${x}" y="${y}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${escapeAttr(fill)}"${transform} ${dataAttr} />`;
   }
 
@@ -558,7 +609,10 @@ export class SVGCompiler extends CompilerBase {
     const hh = Math.max(h / 2, 2);
     const yaw = resolveRotationY(node);
     const pts = `${cx.toFixed(1)},${(cy - hh).toFixed(1)} ${(cx - hw).toFixed(1)},${(cy + hh).toFixed(1)} ${(cx + hw).toFixed(1)},${(cy + hh).toFixed(1)}`;
-    const transform = Math.abs(yaw) > 0.5 ? ` transform="rotate(${(-yaw).toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})"` : '';
+    const transform =
+      Math.abs(yaw) > 0.5
+        ? ` transform="rotate(${(-yaw).toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})"`
+        : '';
     return `${indent}<polygon points="${pts}" fill="${escapeAttr(fill)}"${transform} ${dataAttr} />`;
   }
 
@@ -605,8 +659,14 @@ export class SVGCompiler extends CompilerBase {
     indent: string,
     dataAttr: string
   ): string {
-    const content = toString(objProp(node, 'text') ?? objProp(node, 'value') ?? objProp(node, 'label'), node.name);
-    const fontSize = toNumber(objProp(node, 'fontSize') ?? objProp(node, 'font_size') ?? objProp(node, 'size'), 14);
+    const content = toString(
+      objProp(node, 'text') ?? objProp(node, 'value') ?? objProp(node, 'label'),
+      node.name
+    );
+    const fontSize = toNumber(
+      objProp(node, 'fontSize') ?? objProp(node, 'font_size') ?? objProp(node, 'size'),
+      14
+    );
     return `${indent}<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" fill="${escapeAttr(fill)}" font-size="${fontSize}" text-anchor="middle" dominant-baseline="middle" ${dataAttr}>${escapeText(content)}</text>`;
   }
 
@@ -617,7 +677,10 @@ export class SVGCompiler extends CompilerBase {
     indent: string
   ): string {
     // `from` is a reserved parser keyword and gets dropped — accept source/start too.
-    const from = toString(objProp(node, 'source') ?? objProp(node, 'from') ?? objProp(node, 'start'), '');
+    const from = toString(
+      objProp(node, 'source') ?? objProp(node, 'from') ?? objProp(node, 'start'),
+      ''
+    );
     const to = toString(objProp(node, 'target') ?? objProp(node, 'to') ?? objProp(node, 'end'), '');
     const a = centers.get(from);
     const b = centers.get(to);

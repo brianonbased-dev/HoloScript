@@ -6,7 +6,10 @@ import { TSLCompiler } from '../TSLCompiler';
 import { compilePhysicsContractBlock, physicsContractToWGSL } from '../DomainBlockCompilerMixin';
 import type { HoloDomainBlock } from '../../parser/HoloCompositionTypes';
 
-const EXAMPLE = readFileSync(join(__dirname, '../../parser/examples/physics-contract.holo'), 'utf8');
+const EXAMPLE = readFileSync(
+  join(__dirname, '../../parser/examples/physics-contract.holo'),
+  'utf8'
+);
 
 function parseFirstPhysicsContract(source: string): HoloDomainBlock {
   const parser = new HoloCompositionParser();
@@ -61,7 +64,9 @@ describe('physics_contract — lower to compute WGSL', () => {
   });
 
   it('integrates under gravity with a static-body guard, substepped', () => {
-    const { wgsl } = physicsContractToWGSL(compilePhysicsContractBlock(parseFirstPhysicsContract(EXAMPLE)));
+    const { wgsl } = physicsContractToWGSL(
+      compilePhysicsContractBlock(parseFirstPhysicsContract(EXAMPLE))
+    );
     // static bodies (invMass 0) skip integration
     expect(wgsl).toContain('if (p.invMass > 0.0) {');
     // semi-implicit Euler under authored gravity
@@ -73,7 +78,9 @@ describe('physics_contract — lower to compute WGSL', () => {
   });
 
   it('projects every declared constraint in declaration order, with real corrections', () => {
-    const { wgsl } = physicsContractToWGSL(compilePhysicsContractBlock(parseFirstPhysicsContract(EXAMPLE)));
+    const { wgsl } = physicsContractToWGSL(
+      compilePhysicsContractBlock(parseFirstPhysicsContract(EXAMPLE))
+    );
     const iDistance = wgsl.indexOf('// distance:tether');
     const iHinge = wgsl.indexOf('// hinge:pin');
     const iFixed = wgsl.indexOf('// fixed:weld');
@@ -92,7 +99,9 @@ describe('physics_contract — lower to compute WGSL', () => {
 describe('physics_contract — robustness', () => {
   it('applies gravity/substep defaults when omitted', () => {
     const parser = new HoloCompositionParser();
-    const r = parser.parse(`composition "X" { physics_contract "p" { a { kind: "body", mass: 1.0 } } }`);
+    const r = parser.parse(
+      `composition "X" { physics_contract "p" { a { kind: "body", mass: 1.0 } } }`
+    );
     const block = r.ast!.domainBlocks!.find((b) => b.domain === 'physics_contract')!;
     const field = compilePhysicsContractBlock(block);
     expect(field.gravity).toEqual([0, -9.81, 0]);
@@ -123,7 +132,9 @@ describe('physics_contract — robustness', () => {
       gravity: [0, -9.81, 0],
       substeps: 1,
       bodies: [{ id: 'a', mass: 1, shape: 'box', pos: [0, 0, 0] }],
-      constraints: [{ id: 'dangling', constraintType: 'distance', bodyA: 'a', bodyB: 'ghost', params: {} }],
+      constraints: [
+        { id: 'dangling', constraintType: 'distance', bodyA: 'a', bodyB: 'ghost', params: {} },
+      ],
       traits: [],
     });
     expect(wgsl).toContain('WARNING');

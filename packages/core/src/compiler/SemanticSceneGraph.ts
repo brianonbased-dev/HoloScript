@@ -550,9 +550,13 @@ class SceneGraphGenerator {
       };
       if (npc.brain.autonomy) brain['hs:autonomy'] = npc.brain.autonomy;
       if (npc.brain.brainRef) brain['hs:brainRef'] = npc.brain.brainRef;
-      if (npc.brain.toolPermissions?.length) brain['hs:canInteractWith'] = npc.brain.toolPermissions;
+      if (npc.brain.toolPermissions?.length)
+        brain['hs:canInteractWith'] = npc.brain.toolPermissions;
       if (npc.brain.model) {
-        brain['hs:model'] = { 'hs:provider': npc.brain.model.provider, 'hs:name': npc.brain.model.name };
+        brain['hs:model'] = {
+          'hs:provider': npc.brain.model.provider,
+          'hs:name': npc.brain.model.name,
+        };
       }
       node['hs:brain'] = brain;
       node['hs:hasAgency'] = true;

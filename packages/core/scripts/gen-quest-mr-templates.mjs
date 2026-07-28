@@ -90,7 +90,9 @@ let lifecycleSource;
 try {
   lifecycleSource = readFileSync(lifecycleFile, 'utf8');
 } catch (err) {
-  console.error(`gen-quest-mr-templates: missing HoloQR lifecycle source ${lifecycleFile}\n  ${err.message}`);
+  console.error(
+    `gen-quest-mr-templates: missing HoloQR lifecycle source ${lifecycleFile}\n  ${err.message}`
+  );
   process.exit(1);
 }
 

@@ -150,10 +150,10 @@ describe('TraitTimeOfDay — deriveTimeOfDayOutput phase sequencing', () => {
     const phaseSec = cycleSec / 4; // 60s
 
     const expected: Array<{ phase: string; midpoint: number }> = [
-      { phase: 'dawn',   midpoint: phaseSec * 0.5 },
+      { phase: 'dawn', midpoint: phaseSec * 0.5 },
       { phase: 'golden', midpoint: phaseSec * 1.5 },
-      { phase: 'dusk',   midpoint: phaseSec * 2.5 },
-      { phase: 'dark',   midpoint: phaseSec * 3.5 },
+      { phase: 'dusk', midpoint: phaseSec * 2.5 },
+      { phase: 'dark', midpoint: phaseSec * 3.5 },
     ];
 
     for (const { phase, midpoint } of expected) {
@@ -414,10 +414,12 @@ describe('TraitTimeOfDay — phase_changed event', () => {
 
     // Advance by 2.1s — crosses from dawn (0-2s) into golden
     updateTrait(timeOfDayHandler, node, cfg, ctx, 2.1);
-    const phaseChange = getLastEvent(ctx, 'time_of_day_phase_changed') as {
-      previous_phase?: string;
-      current_phase?: string;
-    } | undefined;
+    const phaseChange = getLastEvent(ctx, 'time_of_day_phase_changed') as
+      | {
+          previous_phase?: string;
+          current_phase?: string;
+        }
+      | undefined;
 
     expect(phaseChange).toBeDefined();
     expect(phaseChange?.previous_phase).toBe('dawn');
@@ -575,9 +577,7 @@ describe('TraitTimeOfDay — handler lifecycle: detach', () => {
     );
     ctx.clearEvents();
 
-    expect(() =>
-      updateTrait(timeOfDayHandler, node, {}, ctx, 1.0)
-    ).not.toThrow();
+    expect(() => updateTrait(timeOfDayHandler, node, {}, ctx, 1.0)).not.toThrow();
 
     expect(getEventCount(ctx, 'time_of_day_tick')).toBe(0);
   });

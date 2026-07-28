@@ -92,7 +92,9 @@ export class ShardRegistryCompiler extends CompilerBase {
       // Degenerate bounds are a warning, not a hard error (still routable as a point).
       for (let i = 0; i < 3; i++) {
         if (s.min[i] > s.max[i]) {
-          this.warnings.push(`world_shard '${s.name}' has min[${i}] > max[${i}] — bounds are inverted.`);
+          this.warnings.push(
+            `world_shard '${s.name}' has min[${i}] > max[${i}] — bounds are inverted.`
+          );
         }
       }
       const validNeighbors: string[] = [];

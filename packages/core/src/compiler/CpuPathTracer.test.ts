@@ -16,12 +16,15 @@ const avgLuma = (px: Uint8Array): number => {
 
 describe('CpuPathTracer — sovereign no-GPU path tracer (runs anywhere Node runs)', () => {
   it('renders RGBA pixels of the correct size, opaque, on the CPU', () => {
-    const img = new CpuPathTracer().render(comp([obj('S', [prop('mesh', 'sphere'), prop('emissive', '#ffffff')])]), {
-      width: 48,
-      height: 36,
-      samples: 4,
-      bounces: 3,
-    });
+    const img = new CpuPathTracer().render(
+      comp([obj('S', [prop('mesh', 'sphere'), prop('emissive', '#ffffff')])]),
+      {
+        width: 48,
+        height: 36,
+        samples: 4,
+        bounces: 3,
+      }
+    );
     expect(img.width).toBe(48);
     expect(img.height).toBe(36);
     expect(img.pixels.length).toBe(48 * 36 * 4);
@@ -32,13 +35,28 @@ describe('CpuPathTracer — sovereign no-GPU path tracer (runs anywhere Node run
   it('an emissive light makes the image brighter than an unlit diffuse scene', () => {
     const lit = new CpuPathTracer().render(
       comp([
-        obj('Light', [prop('mesh', 'sphere'), prop('position', [0, 2, 0]), prop('emissive', '#ffffff'), prop('emissiveIntensity', 8)]),
-        obj('Ball', [prop('mesh', 'sphere'), prop('position', [0, 0, 0]), prop('color', '#cccccc')]),
+        obj('Light', [
+          prop('mesh', 'sphere'),
+          prop('position', [0, 2, 0]),
+          prop('emissive', '#ffffff'),
+          prop('emissiveIntensity', 8),
+        ]),
+        obj('Ball', [
+          prop('mesh', 'sphere'),
+          prop('position', [0, 0, 0]),
+          prop('color', '#cccccc'),
+        ]),
       ]),
       { width: 48, height: 36, samples: 12, bounces: 4 }
     );
     const dark = new CpuPathTracer().render(
-      comp([obj('Ball', [prop('mesh', 'sphere'), prop('position', [0, 0, 0]), prop('color', '#111111')])]),
+      comp([
+        obj('Ball', [
+          prop('mesh', 'sphere'),
+          prop('position', [0, 0, 0]),
+          prop('color', '#111111'),
+        ]),
+      ]),
       { width: 48, height: 36, samples: 12, bounces: 4 }
     );
     expect(avgLuma(lit.pixels)).toBeGreaterThan(avgLuma(dark.pixels));
@@ -54,12 +72,15 @@ describe('CpuPathTracer — sovereign no-GPU path tracer (runs anywhere Node run
   });
 
   it('encodes a valid PNG (signature + non-trivial size), zero third-party deps', () => {
-    const img = new CpuPathTracer().render(comp([obj('S', [prop('mesh', 'sphere'), prop('emissive', '#ffffff')])]), {
-      width: 32,
-      height: 24,
-      samples: 4,
-      bounces: 2,
-    });
+    const img = new CpuPathTracer().render(
+      comp([obj('S', [prop('mesh', 'sphere'), prop('emissive', '#ffffff')])]),
+      {
+        width: 32,
+        height: 24,
+        samples: 4,
+        bounces: 2,
+      }
+    );
     const png = CpuPathTracer.toPNG(img);
     // PNG magic bytes
     expect(Array.from(png.subarray(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);

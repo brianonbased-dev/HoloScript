@@ -150,8 +150,10 @@ export function parseCollaborativeWorldTraitConfig(
   }
   if (raw.selectionLocks !== undefined) config.selectionLocks = boolFromUnknown(raw.selectionLocks);
   if (raw.lockTtlMs !== undefined) config.lockTtlMs = Number(raw.lockTtlMs);
-  if (raw.presenceCursors !== undefined) config.presenceCursors = boolFromUnknown(raw.presenceCursors);
-  if (raw.cursorFrame !== undefined) config.cursorFrame = String(raw.cursorFrame) as CollaborativeCursorFrame;
+  if (raw.presenceCursors !== undefined)
+    config.presenceCursors = boolFromUnknown(raw.presenceCursors);
+  if (raw.cursorFrame !== undefined)
+    config.cursorFrame = String(raw.cursorFrame) as CollaborativeCursorFrame;
   if (raw.presenceTimeoutMs !== undefined) config.presenceTimeoutMs = Number(raw.presenceTimeoutMs);
   if (raw.concertBridge !== undefined) config.concertBridge = boolFromUnknown(raw.concertBridge);
   if (raw.debugGhosts !== undefined) config.debugGhosts = boolFromUnknown(raw.debugGhosts);
@@ -160,9 +162,7 @@ export function parseCollaborativeWorldTraitConfig(
   return config;
 }
 
-export function validateCollaborativeWorldTraitConfig(
-  config: CollaborativeWorldTraitConfig
-): void {
+export function validateCollaborativeWorldTraitConfig(config: CollaborativeWorldTraitConfig): void {
   if (config.syncRateHz !== undefined && (config.syncRateHz < 1 || config.syncRateHz > 120)) {
     throw new CollaborativeWorldTraitValidationError('syncRateHz', 'Must be between 1 and 120 Hz');
   }
@@ -181,7 +181,10 @@ export function validateCollaborativeWorldTraitConfig(
       'Must be between 1000 and 120000 ms'
     );
   }
-  if (config.opLogLimit !== undefined && (!Number.isInteger(config.opLogLimit) || config.opLogLimit < 1)) {
+  if (
+    config.opLogLimit !== undefined &&
+    (!Number.isInteger(config.opLogLimit) || config.opLogLimit < 1)
+  ) {
     throw new CollaborativeWorldTraitValidationError('opLogLimit', 'Must be a positive integer');
   }
   if (
@@ -193,8 +196,15 @@ export function validateCollaborativeWorldTraitConfig(
       `Must be one of: ${VALID_CONFLICT_RESOLUTION.join(', ')}`
     );
   }
-  if (config.cursorFrame !== undefined && config.cursorFrame !== 'world' && config.cursorFrame !== 'viewport') {
-    throw new CollaborativeWorldTraitValidationError('cursorFrame', 'Must be "world" or "viewport"');
+  if (
+    config.cursorFrame !== undefined &&
+    config.cursorFrame !== 'world' &&
+    config.cursorFrame !== 'viewport'
+  ) {
+    throw new CollaborativeWorldTraitValidationError(
+      'cursorFrame',
+      'Must be "world" or "viewport"'
+    );
   }
   if (config.transformFields) {
     for (const field of config.transformFields) {
@@ -214,14 +224,12 @@ export function resolveCollaborativeWorldTraitConfig(
   return {
     roomName: parsed.roomName ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.roomName,
     syncRateHz: parsed.syncRateHz ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.syncRateHz,
-    transformFields:
-      parsed.transformFields ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.transformFields,
+    transformFields: parsed.transformFields ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.transformFields,
     conflictResolution:
       parsed.conflictResolution ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.conflictResolution,
     selectionLocks: parsed.selectionLocks ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.selectionLocks,
     lockTtlMs: parsed.lockTtlMs ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.lockTtlMs,
-    presenceCursors:
-      parsed.presenceCursors ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.presenceCursors,
+    presenceCursors: parsed.presenceCursors ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.presenceCursors,
     cursorFrame: parsed.cursorFrame ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.cursorFrame,
     presenceTimeoutMs:
       parsed.presenceTimeoutMs ?? COLLABORATIVE_WORLD_TRAIT_DEFAULTS.presenceTimeoutMs,
@@ -242,7 +250,9 @@ export function createCollaborativeWorldTraitConfig(
 export function createSelectionLock(
   entityId: string,
   ownerId: string,
-  options: Partial<Pick<CollaborativeSelectionLock, 'lockId' | 'mode' | 'acquiredAt' | 'expiresAt' | 'version'>> & {
+  options: Partial<
+    Pick<CollaborativeSelectionLock, 'lockId' | 'mode' | 'acquiredAt' | 'expiresAt' | 'version'>
+  > & {
     ttlMs?: number;
   } = {}
 ): CollaborativeSelectionLock {
@@ -315,7 +325,9 @@ export function pruneCollaborativePresence(
   return Array.from(presence).filter((cursor) => now - cursor.lastSeen <= timeoutMs);
 }
 
-export function toUnrealConcertDescriptor(config: ResolvedCollaborativeWorldTraitConfig): Record<string, unknown> {
+export function toUnrealConcertDescriptor(
+  config: ResolvedCollaborativeWorldTraitConfig
+): Record<string, unknown> {
   return {
     protocol: 'unreal-concert-compatible',
     syncRateHz: config.syncRateHz,
@@ -357,7 +369,12 @@ export const collaborativeWorldHandler: TraitHandler<CollaborativeWorldTraitConf
     delete node.__collaborativeWorldState;
   },
 
-  onEvent(node: HSPlusNode, _config: CollaborativeWorldTraitConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: CollaborativeWorldTraitConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__collaborativeWorldState as CollaborativeWorldState | undefined;
     if (!state) return;
 

@@ -7,11 +7,27 @@ const token = createTestCompilerToken();
 
 function comp(partial: Partial<HoloComposition>): HoloComposition {
   return {
-    type: 'Composition', name: 'ShardWorld',
-    templates: [], objects: [], spatialGroups: [], lights: [], imports: [],
-    timelines: [], audio: [], zones: [], transitions: [], conditionals: [],
-    iterators: [], npcs: [], quests: [], abilities: [], dialogues: [],
-    stateMachines: [], achievements: [], talentTrees: [], shapes: [],
+    type: 'Composition',
+    name: 'ShardWorld',
+    templates: [],
+    objects: [],
+    spatialGroups: [],
+    lights: [],
+    imports: [],
+    timelines: [],
+    audio: [],
+    zones: [],
+    transitions: [],
+    conditionals: [],
+    iterators: [],
+    npcs: [],
+    quests: [],
+    abilities: [],
+    dialogues: [],
+    stateMachines: [],
+    achievements: [],
+    talentTrees: [],
+    shapes: [],
     ...partial,
   } as unknown as HoloComposition;
 }
@@ -23,7 +39,16 @@ function shard(
   neighbors: string[],
   maxPlayers = 100
 ): HoloWorldShard {
-  return { type: 'WorldShard', name, min, max, neighbors, maxPlayers, handoff: 'seamless', properties: {} } as unknown as HoloWorldShard;
+  return {
+    type: 'WorldShard',
+    name,
+    min,
+    max,
+    neighbors,
+    maxPlayers,
+    handoff: 'seamless',
+    properties: {},
+  } as unknown as HoloWorldShard;
 }
 
 const world = comp({
@@ -36,7 +61,9 @@ const world = comp({
 
 function evalModule(js: string): Record<string, unknown> {
   const mod = { exports: {} as Record<string, unknown> };
-  const require_ = (id: string): unknown => { throw new Error(`unexpected require: ${id}`); };
+  const require_ = (id: string): unknown => {
+    throw new Error(`unexpected require: ${id}`);
+  };
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
   new Function('exports', 'require', 'module', js)(mod.exports, require_, mod);
   return mod.exports;
@@ -74,11 +101,23 @@ describe('ShardRegistryCompiler (P2.5) — runtime proof (W.685 deep)', () => {
     }).outputText;
     const mod = evalModule(js);
 
-    const shardForPosition = mod.shardForPosition as (x: number, y: number, z: number) => string | null;
+    const shardForPosition = mod.shardForPosition as (
+      x: number,
+      y: number,
+      z: number
+    ) => string | null;
     const Router = mod.ShardRouter as new (now?: () => number) => {
       route: (x: number, y: number, z: number) => string | null;
-      requestHandoff: (p: string, from: string, to: string, pos: [number, number, number]) => { ok: boolean; reason?: string; receipt?: Record<string, unknown> };
-      createShardServers: (gs: { define: (n: string, r: unknown, o?: unknown) => void }, room: unknown) => void;
+      requestHandoff: (
+        p: string,
+        from: string,
+        to: string,
+        pos: [number, number, number]
+      ) => { ok: boolean; reason?: string; receipt?: Record<string, unknown> };
+      createShardServers: (
+        gs: { define: (n: string, r: unknown, o?: unknown) => void },
+        room: unknown
+      ) => void;
       onHandoff?: (r: Record<string, unknown>) => void;
     };
 
@@ -90,7 +129,8 @@ describe('ShardRegistryCompiler (P2.5) — runtime proof (W.685 deep)', () => {
 
     const receipts: Array<Record<string, unknown>> = [];
     const router = new Router(() => 555);
-    (router as { onHandoff: (r: Record<string, unknown>) => void }).onHandoff = (r) => receipts.push(r);
+    (router as { onHandoff: (r: Record<string, unknown>) => void }).onHandoff = (r) =>
+      receipts.push(r);
 
     // Valid handoff: north → south (declared neighbor) + position inside south.
     const ok = router.requestHandoff('p1', 'north', 'south', [10, 10, 0]);
@@ -112,7 +152,9 @@ describe('ShardRegistryCompiler (P2.5) — runtime proof (W.685 deep)', () => {
     expect(oob.reason).toBe('position_out_of_bounds');
 
     // Unknown target shard.
-    expect(router.requestHandoff('p1', 'north', 'nowhere', [0, 0, 0]).reason).toBe('unknown_target_shard');
+    expect(router.requestHandoff('p1', 'north', 'nowhere', [0, 0, 0]).reason).toBe(
+      'unknown_target_shard'
+    );
 
     // Initial placement (no origin shard) — allowed if inside bounds.
     expect(router.requestHandoff('p1', '', 'north', [-500, 10, 0]).ok).toBe(true);

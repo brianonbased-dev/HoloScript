@@ -1,9 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  traitName,
-  manifestTraitNames,
-  combinePluginRegistrations,
-} from '../PluginManifest';
+import { traitName, manifestTraitNames, combinePluginRegistrations } from '../PluginManifest';
 import type { PluginManifest, PluginTraitEntry, PluginRegistration } from '../PluginManifest';
 
 // ── traitName ─────────────────────────────────────────────────────────────────
@@ -205,7 +201,7 @@ describe('combinePluginRegistrations — registrar passthrough', () => {
       manifests.map((manifest) => ({
         manifest,
         register: (r: MockRegistrar) => received.push(r),
-      })),
+      }))
     );
     expect(received).toHaveLength(2);
     expect(received[0]).toBe(registrar);

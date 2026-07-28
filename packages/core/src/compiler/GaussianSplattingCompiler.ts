@@ -32,7 +32,10 @@ import {
   HOLOMAP_CAPTURE_DEFAULT_PROVENANCE,
   type PointProvenanceClass,
 } from '../reconstruction/PointProvenance';
-import { buildProvenanceReceipt, type ProvenanceReceipt } from '../reconstruction/ProvenanceReceipt';
+import {
+  buildProvenanceReceipt,
+  type ProvenanceReceipt,
+} from '../reconstruction/ProvenanceReceipt';
 import {
   densifyByInterpolation,
   type DensifyMode,
@@ -305,9 +308,8 @@ export class GaussianSplattingCompiler extends CompilerBase {
         // Native `@provenance` trait on the same object declares the data-origin
         // class for the emitted splat (the D.104 authoring surface). Absent it,
         // an authored splat carries no provenance.
-        const provCfg = obj.traits?.find((t: HoloObjectTrait) => t.name === 'provenance')?.config as
-          | { class?: PointProvenanceClass; source?: string }
-          | undefined;
+        const provCfg = obj.traits?.find((t: HoloObjectTrait) => t.name === 'provenance')
+          ?.config as { class?: PointProvenanceClass; source?: string } | undefined;
         const provClass = provCfg?.class;
         const provSource = provCfg?.source;
         const positions = this.parseFloatArray(p.positions);
@@ -402,7 +404,12 @@ export class GaussianSplattingCompiler extends CompilerBase {
             source: cloud.provenanceSource ?? 'holomap-capture',
           });
           return {
-            data: this.computeCovarianceFromPointCloud(d.positions, d.colors, d.provenance, d.source),
+            data: this.computeCovarianceFromPointCloud(
+              d.positions,
+              d.colors,
+              d.provenance,
+              d.source
+            ),
             ...(d.warning ? { warnings: [d.warning] } : {}),
           };
         }

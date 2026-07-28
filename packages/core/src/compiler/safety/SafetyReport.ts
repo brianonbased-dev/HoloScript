@@ -19,7 +19,11 @@ import type { LinearViolation, LinearCheckResult } from '../../types/linear';
 import type { ModuleEffectCheckResult } from './EffectChecker';
 import type { BudgetAnalysisResult, BudgetDiagnostic } from './ResourceBudgetAnalyzer';
 import type { CapabilityCheckResult, CapabilityRequirement } from './CapabilityTypes';
-import type { DimensionalCheckResult, DimensionalViolation, DimVector } from './DimensionalTypeSystem';
+import type {
+  DimensionalCheckResult,
+  DimensionalViolation,
+  DimVector,
+} from './DimensionalTypeSystem';
 
 // =============================================================================
 // SAFETY REPORT

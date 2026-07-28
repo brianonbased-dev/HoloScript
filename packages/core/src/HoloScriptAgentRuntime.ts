@@ -335,7 +335,9 @@ export class HoloScriptAgentRuntime {
     // from double-consolidating the same episodes if an LLM call runs long.
     this.consolidating = true;
     try {
-      const { newFacts, prunedEpisodes } = await MemoryConsolidator.compressEpisodes(this.rawEpisodes);
+      const { newFacts, prunedEpisodes } = await MemoryConsolidator.compressEpisodes(
+        this.rawEpisodes
+      );
       if (this.isDestroyed) return;
       if (newFacts.length > 0) {
         this.semanticFacts.push(...newFacts);

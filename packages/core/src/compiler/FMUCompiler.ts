@@ -107,7 +107,11 @@ export class FMUCompiler extends CompilerBase {
     const files: Record<string, string> = {
       'modelDescription.xml': this.renderModelDescription(manifest),
       'resources/holoscript-fmu-manifest.json': JSON.stringify(manifest, null, 2),
-      'resources/cael-coupling-contract.json': JSON.stringify(this.renderCAELContract(manifest), null, 2),
+      'resources/cael-coupling-contract.json': JSON.stringify(
+        this.renderCAELContract(manifest),
+        null,
+        2
+      ),
       'README.md': this.renderReadme(manifest),
     };
 
@@ -164,30 +168,85 @@ export class FMUCompiler extends CompilerBase {
 
       if (hasTrait(obj, 'physics') || hasTrait(obj, 'rigidbody')) {
         seeds.push(
-          this.port(`${obj.name}.input.force`, 'input', 'continuous', 'Real', 'External force input'),
-          this.port(`${obj.name}.output.state`, 'output', 'continuous', 'Real', 'Physics state output'),
-          this.port(`${obj.name}.parameter.mass`, 'parameter', 'fixed', 'Real', 'Mass parameter', getNumber(fmuConfig, 'mass', 1))
+          this.port(
+            `${obj.name}.input.force`,
+            'input',
+            'continuous',
+            'Real',
+            'External force input'
+          ),
+          this.port(
+            `${obj.name}.output.state`,
+            'output',
+            'continuous',
+            'Real',
+            'Physics state output'
+          ),
+          this.port(
+            `${obj.name}.parameter.mass`,
+            'parameter',
+            'fixed',
+            'Real',
+            'Mass parameter',
+            getNumber(fmuConfig, 'mass', 1)
+          )
         );
       }
 
       if (hasTrait(obj, 'thermal') || hasTrait(obj, 'thermal_simulation')) {
         seeds.push(
-          this.port(`${obj.name}.input.heat_flux`, 'input', 'continuous', 'Real', 'Thermal flux input'),
-          this.port(`${obj.name}.output.temperature`, 'output', 'continuous', 'Real', 'Temperature output')
+          this.port(
+            `${obj.name}.input.heat_flux`,
+            'input',
+            'continuous',
+            'Real',
+            'Thermal flux input'
+          ),
+          this.port(
+            `${obj.name}.output.temperature`,
+            'output',
+            'continuous',
+            'Real',
+            'Temperature output'
+          )
         );
       }
 
       if (hasTrait(obj, 'structural') || hasTrait(obj, 'structural_fem')) {
         seeds.push(
-          this.port(`${obj.name}.input.load`, 'input', 'continuous', 'Real', 'Structural load input'),
-          this.port(`${obj.name}.output.displacement`, 'output', 'continuous', 'Real', 'Displacement output')
+          this.port(
+            `${obj.name}.input.load`,
+            'input',
+            'continuous',
+            'Real',
+            'Structural load input'
+          ),
+          this.port(
+            `${obj.name}.output.displacement`,
+            'output',
+            'continuous',
+            'Real',
+            'Displacement output'
+          )
         );
       }
 
       if (hasTrait(obj, 'hydraulic') || hasTrait(obj, 'hydraulic_pipe')) {
         seeds.push(
-          this.port(`${obj.name}.input.pressure`, 'input', 'continuous', 'Real', 'Hydraulic pressure input'),
-          this.port(`${obj.name}.output.flow`, 'output', 'continuous', 'Real', 'Hydraulic flow output')
+          this.port(
+            `${obj.name}.input.pressure`,
+            'input',
+            'continuous',
+            'Real',
+            'Hydraulic pressure input'
+          ),
+          this.port(
+            `${obj.name}.output.flow`,
+            'output',
+            'continuous',
+            'Real',
+            'Hydraulic flow output'
+          )
         );
       }
     }
@@ -228,15 +287,20 @@ export class FMUCompiler extends CompilerBase {
 
   private renderModelDescription(manifest: FMUManifest): string {
     const capabilities = [
-      manifest.mode === 'model-exchange' ? '' : `<CoSimulation modelIdentifier="${manifest.modelIdentifier}"/>`,
-      manifest.mode === 'co-simulation' ? '' : `<ModelExchange modelIdentifier="${manifest.modelIdentifier}"/>`,
+      manifest.mode === 'model-exchange'
+        ? ''
+        : `<CoSimulation modelIdentifier="${manifest.modelIdentifier}"/>`,
+      manifest.mode === 'co-simulation'
+        ? ''
+        : `<ModelExchange modelIdentifier="${manifest.modelIdentifier}"/>`,
     ]
       .filter(Boolean)
       .join('\n  ');
 
     const variables = manifest.ports
       .map(
-        (port) => `    <${port.type} name="${escapeXml(port.name)}" valueReference="${port.valueReference}" causality="${port.causality}" variability="${port.variability}"${formatStart(port.start)}${formatDescription(port.description)}/>`
+        (port) =>
+          `    <${port.type} name="${escapeXml(port.name)}" valueReference="${port.valueReference}" causality="${port.causality}" variability="${port.variability}"${formatStart(port.start)}${formatDescription(port.description)}/>`
       )
       .join('\n');
 
@@ -300,7 +364,11 @@ export function compileToFMU(
 export function absorbFMU(input: AbsorbFMUInput): AbsorbFMUResult {
   const manifest = input.manifest ?? {};
   const xml = input.modelDescriptionXml ?? '';
-  const modelName = input.name ?? manifest.modelName ?? readXmlAttr(xml, 'fmiModelDescription', 'modelName') ?? 'ImportedFMU';
+  const modelName =
+    input.name ??
+    manifest.modelName ??
+    readXmlAttr(xml, 'fmiModelDescription', 'modelName') ??
+    'ImportedFMU';
   const modelIdentifier =
     manifest.modelIdentifier ??
     readXmlAttr(xml, 'CoSimulation', 'modelIdentifier') ??
@@ -313,7 +381,8 @@ export function absorbFMU(input: AbsorbFMUInput): AbsorbFMUResult {
   const parameters = ports.filter((p) => p.causality === 'parameter');
   const traitConfig = {
     source: input.source ?? `${modelIdentifier}.fmu`,
-    fmiVersion: manifest.fmiVersion ?? readXmlAttr(xml, 'fmiModelDescription', 'fmiVersion') ?? '3.0',
+    fmiVersion:
+      manifest.fmiVersion ?? readXmlAttr(xml, 'fmiModelDescription', 'fmiVersion') ?? '3.0',
     modelIdentifier,
     mode,
     inputs,
@@ -392,7 +461,11 @@ function hasTrait(obj: HoloObjectDecl, name: string): boolean {
   return (obj.traits ?? []).some((trait) => trait.name === name || trait.name === `@${name}`);
 }
 
-function coercePortList(value: HoloValue | undefined, causality: FMUCausality, objectName: string): PortSeed[] {
+function coercePortList(
+  value: HoloValue | undefined,
+  causality: FMUCausality,
+  objectName: string
+): PortSeed[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry, index) => {
     if (typeof entry === 'string') {
@@ -418,8 +491,7 @@ function coercePortList(value: HoloValue | undefined, causality: FMUCausality, o
 
 function readPortsFromModelDescription(xml: string): FMUPort[] {
   const ports: FMUPort[] = [];
-  const variablePattern =
-    /<(Real|Integer|Boolean|String)\b([^/>]*?)(?:\/>|>[\s\S]*?<\/\1>)/g;
+  const variablePattern = /<(Real|Integer|Boolean|String)\b([^/>]*?)(?:\/>|>[\s\S]*?<\/\1>)/g;
   let match: RegExpExecArray | null;
   let valueReference = 1;
   while ((match = variablePattern.exec(xml))) {
@@ -465,7 +537,10 @@ function coerceScalarType(value: HoloValue | string | undefined): FMUScalarType 
   return value === 'Integer' || value === 'Boolean' || value === 'String' ? value : 'Real';
 }
 
-function coerceCausality(value: HoloValue | string | undefined, fallback: FMUCausality): FMUCausality {
+function coerceCausality(
+  value: HoloValue | string | undefined,
+  fallback: FMUCausality
+): FMUCausality {
   return value === 'input' || value === 'output' || value === 'parameter' || value === 'independent'
     ? value
     : value === 'local'
@@ -481,7 +556,7 @@ function coerceVariability(
     ? value
     : causality === 'parameter'
       ? 'fixed'
-    : 'continuous';
+      : 'continuous';
 }
 
 function coerceStart(value: HoloValue | undefined): number | string | boolean | undefined {
@@ -490,7 +565,10 @@ function coerceStart(value: HoloValue | undefined): number | string | boolean | 
     : undefined;
 }
 
-function parseStart(value: string | undefined, type: FMUScalarType): number | string | boolean | undefined {
+function parseStart(
+  value: string | undefined,
+  type: FMUScalarType
+): number | string | boolean | undefined {
   if (value === undefined) return undefined;
   if (type === 'Boolean') return value === 'true';
   if (type === 'String') return value;
@@ -498,7 +576,11 @@ function parseStart(value: string | undefined, type: FMUScalarType): number | st
   return Number.isFinite(n) ? n : undefined;
 }
 
-function getNumber(config: Record<string, HoloValue> | undefined, key: string, fallback: number): number {
+function getNumber(
+  config: Record<string, HoloValue> | undefined,
+  key: string,
+  fallback: number
+): number {
   const value = config?.[key];
   return typeof value === 'number' ? value : fallback;
 }

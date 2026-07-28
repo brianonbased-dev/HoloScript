@@ -53,7 +53,9 @@ describe('light_field — lower to WGSL', () => {
   it('accumulates every light plus a bounce-scaled GI ambient base', () => {
     const { wgsl } = lightFieldToWGSL(compileLightFieldBlock(parseFirstLightField(EXAMPLE)));
     // GI base: ambient #202028 → vec3, scaled by intensity*(1 + bounces*0.5) = 1*(1+2*0.5)=2
-    expect(wgsl).toContain('radiance += albedo * vec3<f32>(0.1255, 0.1255, 0.1569) * (1.0000 * (1.0 + f32(2) * 0.5));');
+    expect(wgsl).toContain(
+      'radiance += albedo * vec3<f32>(0.1255, 0.1255, 0.1569) * (1.0000 * (1.0 + f32(2) * 0.5));'
+    );
     // directional sun uses a normalized negated direction + NdotL
     expect(wgsl).toContain('// directional:sun');
     expect(wgsl).toContain('let NdotL = max(dot(N, L), 0.0);');
@@ -77,8 +79,12 @@ describe('light_field — lower to WGSL', () => {
 describe('light_field — robustness', () => {
   it('applies GI defaults and a directional default direction', () => {
     const parser = new HoloCompositionParser();
-    const r = parser.parse(`composition "X" { light_field "l" { key { type: "directional", color: "#ffffff" } } }`);
-    const field = compileLightFieldBlock(r.ast!.domainBlocks!.find((b) => b.domain === 'light_field')!);
+    const r = parser.parse(
+      `composition "X" { light_field "l" { key { type: "directional", color: "#ffffff" } } }`
+    );
+    const field = compileLightFieldBlock(
+      r.ast!.domainBlocks!.find((b) => b.domain === 'light_field')!
+    );
     expect(field.ambient).toBe('#000000');
     expect(field.bounces).toBe(1);
     const { wgsl } = lightFieldToWGSL(field);

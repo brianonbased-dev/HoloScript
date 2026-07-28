@@ -115,7 +115,10 @@ export class PhysicsColliderCompiler {
     if (!isPhysics) return null;
 
     const mesh = String(
-      this.findProp(obj, 'geometry') ?? this.findProp(obj, 'mesh') ?? this.findProp(obj, 'type') ?? 'cube'
+      this.findProp(obj, 'geometry') ??
+        this.findProp(obj, 'mesh') ??
+        this.findProp(obj, 'type') ??
+        'cube'
     );
     const primitive = resolveGeometry(mesh).kind;
     const pos = this.findProp(obj, 'position');

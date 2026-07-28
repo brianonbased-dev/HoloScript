@@ -229,7 +229,7 @@ export function recordReading(
   rawValue: number,
   noise: NoiseModel,
   sensorId: string,
-  timestamp: number,
+  timestamp: number
 ): SensorReading {
   return {
     sensorId,
@@ -240,14 +240,19 @@ export function recordReading(
 }
 
 /** Compute windowed statistics over a ring buffer's current contents. */
-export function computeWindowStats(
-  sensorId: string,
-  buffer: SensorRingBuffer,
-): SensorWindowResult {
+export function computeWindowStats(sensorId: string, buffer: SensorRingBuffer): SensorWindowResult {
   const readings = buffer.toArray();
   const count = readings.length;
   if (count === 0) {
-    return { sensorId, readings, count: 0, mean: NaN, variance: NaN, min: Infinity, max: -Infinity };
+    return {
+      sensorId,
+      readings,
+      count: 0,
+      mean: NaN,
+      variance: NaN,
+      min: Infinity,
+      max: -Infinity,
+    };
   }
   let sum = 0;
   let min = Infinity;
@@ -273,7 +278,10 @@ type SensorNodeState = Map<string, { buffer: SensorRingBuffer; config: SensorCha
 
 const NO_NOISE: NoNoise = { type: 'none' };
 
-function getOrCreateState(node: Record<string, unknown>, config: SensorSamplingConfig): SensorNodeState {
+function getOrCreateState(
+  node: Record<string, unknown>,
+  config: SensorSamplingConfig
+): SensorNodeState {
   if (!(node.__sensor_state instanceof Map)) {
     const m: SensorNodeState = new Map();
     for (const ch of config.sensors) {

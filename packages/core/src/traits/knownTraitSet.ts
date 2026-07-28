@@ -72,7 +72,13 @@ export const NATIVE2D_TRAITS = [
  * component nodes — the ones an `.holo` author writes/round-trips — use the five
  * below. Kept aligned with the verified design.
  */
-export const CODE_GRAPH_TRAITS = ['route', 'file', 'reused_in', 'uses_stores', 'calls_apis'] as const;
+export const CODE_GRAPH_TRAITS = [
+  'route',
+  'file',
+  'reused_in',
+  'uses_stores',
+  'calls_apis',
+] as const;
 
 /**
  * Runtime/serving + governance directive traits — top-level `@name { ... }` authoring blocks that

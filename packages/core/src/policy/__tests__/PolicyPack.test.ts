@@ -27,11 +27,7 @@ const pack = (): PolicyPack =>
         requireRobustnessReceipt: true,
       },
     ],
-    requiredCompileTargets: [
-      'model_card',
-      'impact_assessment',
-      'declaration_of_conformity',
-    ],
+    requiredCompileTargets: ['model_card', 'impact_assessment', 'declaration_of_conformity'],
     auditRetention: { minDays: 2555, storage: 'immutable_ledger', legalHold: true },
     monitoringCadence: { interval: 'quarterly', driftSweepRequired: true },
   });

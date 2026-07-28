@@ -208,7 +208,8 @@ describe('URDFCompiler', () => {
     const linkBlock = /<link name="item">([\s\S]*?)<\/link>/.exec(xml)?.[1] ?? '';
     const visualBlock = /<visual>([\s\S]*?)<\/visual>/.exec(linkBlock)?.[1] ?? '';
     const visualOrigin = /<origin xyz="([^"]+)"/.exec(visualBlock)?.[1];
-    const jointBlock = /<joint[^>]*>([\s\S]*?<child link="item"\/>[\s\S]*?)<\/joint>/.exec(xml)?.[1] ?? '';
+    const jointBlock =
+      /<joint[^>]*>([\s\S]*?<child link="item"\/>[\s\S]*?)<\/joint>/.exec(xml)?.[1] ?? '';
     const jointOrigin = /<origin xyz="([^"]+)"/.exec(jointBlock)?.[1];
 
     expect(jointOrigin).toBe('1.5 2.5 3.5');

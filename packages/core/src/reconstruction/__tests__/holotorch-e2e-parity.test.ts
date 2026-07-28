@@ -20,7 +20,12 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHoloTorchModel, type ModelWeights } from '../holotorch/holoTorchModel';
 import type { BlockWeights } from '../holotorch/decoderBlock';
-import { getWebGpuDevice, compareAllClose, writeParityReceipt, getAdapterInfo } from './holotorchParityHarness';
+import {
+  getWebGpuDevice,
+  compareAllClose,
+  writeParityReceipt,
+  getAdapterInfo,
+} from './holotorchParityHarness';
 
 interface FixtureManifest {
   config: { nLayer: number; nHead: number; nEmbd: number; vocab: number; seqLen: number };
@@ -30,12 +35,24 @@ interface FixtureManifest {
   source_ckpt: string;
 }
 
-const FIXTURE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..', '.scratch', 'holotorch-fixtures', 'holorunner-s0-smoke');
+const FIXTURE_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  '..',
+  '..',
+  '.scratch',
+  'holotorch-fixtures',
+  'holorunner-s0-smoke'
+);
 
 describe('HoloTorch end-to-end logit parity (WGSL vs torch, real checkpoint)', () => {
   it('WGSL forward pass matches torch logits and argmax on a real holo checkpoint', async () => {
     if (!existsSync(join(FIXTURE_DIR, 'fixture.json'))) {
-      console.warn(`[holotorch-parity] fixture absent (${FIXTURE_DIR}) — skipping e2e (regen with holotorch-export-parity-fixture.py)`);
+      console.warn(
+        `[holotorch-parity] fixture absent (${FIXTURE_DIR}) — skipping e2e (regen with holotorch-export-parity-fixture.py)`
+      );
       return;
     }
     const device = await getWebGpuDevice();
@@ -44,7 +61,9 @@ describe('HoloTorch end-to-end logit parity (WGSL vs torch, real checkpoint)', (
       return;
     }
 
-    const manifest = JSON.parse(readFileSync(join(FIXTURE_DIR, 'fixture.json'), 'utf-8')) as FixtureManifest;
+    const manifest = JSON.parse(
+      readFileSync(join(FIXTURE_DIR, 'fixture.json'), 'utf-8')
+    ) as FixtureManifest;
     const bin = readFileSync(join(FIXTURE_DIR, 'fixture.bin'));
     // Aligned copy: Node Buffer's byteOffset into its pool may not be 4-aligned.
     const ab = bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength);
@@ -71,7 +90,13 @@ describe('HoloTorch end-to-end logit parity (WGSL vs torch, real checkpoint)', (
       wfc2: get(`block${b}.wfc2`),
       bfc2: get(`block${b}.bfc2`),
     }));
-    const w: ModelWeights = { wte: get('wte'), wpe: get('wpe'), blocks, lnfg: get('lnfg'), lnfb: get('lnfb') };
+    const w: ModelWeights = {
+      wte: get('wte'),
+      wpe: get('wpe'),
+      blocks,
+      lnfg: get('lnfg'),
+      lnfb: get('lnfb'),
+    };
     const ids = Uint32Array.from(manifest.ids);
     const refLogits = Float64Array.from(manifest.logits); // [T * vocab]
 

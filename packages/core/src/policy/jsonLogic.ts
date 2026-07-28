@@ -90,15 +90,23 @@ export function evaluateJsonLogic(
       return val === undefined ? (fallback ?? null) : val;
     }
     // eslint-disable-next-line eqeqeq
-    case '==': return ev(args[0]) == ev(args[1]);
-    case '===': return ev(args[0]) === ev(args[1]);
+    case '==':
+      return ev(args[0]) == ev(args[1]);
+    case '===':
+      return ev(args[0]) === ev(args[1]);
     // eslint-disable-next-line eqeqeq
-    case '!=': return ev(args[0]) != ev(args[1]);
-    case '!==': return ev(args[0]) !== ev(args[1]);
-    case '>': return toNum(ev(args[0])) > toNum(ev(args[1]));
-    case '>=': return toNum(ev(args[0])) >= toNum(ev(args[1]));
-    case '<': return toNum(ev(args[0])) < toNum(ev(args[1]));
-    case '<=': return toNum(ev(args[0])) <= toNum(ev(args[1]));
+    case '!=':
+      return ev(args[0]) != ev(args[1]);
+    case '!==':
+      return ev(args[0]) !== ev(args[1]);
+    case '>':
+      return toNum(ev(args[0])) > toNum(ev(args[1]));
+    case '>=':
+      return toNum(ev(args[0])) >= toNum(ev(args[1]));
+    case '<':
+      return toNum(ev(args[0])) < toNum(ev(args[1]));
+    case '<=':
+      return toNum(ev(args[0])) <= toNum(ev(args[1]));
     case '!':
     case 'not':
       return !truthy(ev(args[0]));

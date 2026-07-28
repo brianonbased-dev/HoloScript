@@ -100,9 +100,7 @@ describe('ANSNamespace', () => {
 
     it('should have correct xr paths', () => {
       expect(ANSCapabilityPath.OPENXR).toBe('/compile/xr/openxr');
-      expect(ANSCapabilityPath.OPENXR_SPATIAL_ENTITIES).toBe(
-        '/compile/xr/openxr-spatial-entities'
-      );
+      expect(ANSCapabilityPath.OPENXR_SPATIAL_ENTITIES).toBe('/compile/xr/openxr-spatial-entities');
       expect(ANSCapabilityPath.VISIONOS).toBe('/compile/xr/visionos');
       expect(ANSCapabilityPath.ANDROID_XR).toBe('/compile/xr/android-xr');
       expect(ANSCapabilityPath.QUEST).toBe('/compile/xr/quest');
@@ -150,9 +148,7 @@ describe('ANSNamespace', () => {
       expect(ANSCapabilityPath.SCM).toBe('/compile/ai/scm');
       expect(ANSCapabilityPath.A2A_AGENT_CARD).toBe('/compile/ai/a2a-agent-card');
       expect(ANSCapabilityPath.AGENT_INFERENCE).toBe('/compile/ai/agent-inference');
-      expect(ANSCapabilityPath.OMNIGENT_AGENT_YAML).toBe(
-        '/compile/ai/omnigent-agent-yaml'
-      );
+      expect(ANSCapabilityPath.OMNIGENT_AGENT_YAML).toBe('/compile/ai/omnigent-agent-yaml');
       expect(ANSCapabilityPath.MCP_CONFIG).toBe('/compile/ai/mcp-config');
       expect(ANSCapabilityPath.MCP_SERVER).toBe('/compile/ai/mcp-server');
     });
@@ -847,8 +843,8 @@ describe('ANSNamespace', () => {
       const summary = getANSSummary();
       expect(Object.keys(summary.compilersByRiskTier)).toHaveLength(3);
       expect(summary.compilersByRiskTier['STANDARD']).toBe(16); // gamedev(4)+web3d(1)+shader(1)+interchange(3)+meta(5)+mixin(1)+web2d(1)
-      expect(summary.compilersByRiskTier['HIGH']).toBe(26);     // social-vr(1)+xr(8)+mobile(2)+runtime(4)+iot(1)+ai(8)+neuromorphic(1)+edge(1)
-      expect(summary.compilersByRiskTier['CRITICAL']).toBe(3);  // robotics(2)+web3(1)
+      expect(summary.compilersByRiskTier['HIGH']).toBe(26); // social-vr(1)+xr(8)+mobile(2)+runtime(4)+iot(1)+ai(8)+neuromorphic(1)+edge(1)
+      expect(summary.compilersByRiskTier['CRITICAL']).toBe(3); // robotics(2)+web3(1)
     });
 
     it('should have correct domainsByRiskTier', () => {

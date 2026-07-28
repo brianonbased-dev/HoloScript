@@ -12,7 +12,9 @@ const comp = (objects: HoloObjectDecl[], name = 'Scene', environment?: unknown):
 // colour bleeding + soft shadows). These lock the emitted-project STRUCTURE.
 describe('PathTracerCompiler — sovereign offline GPU path tracer', () => {
   it('emits a Cargo project with an optimized profile and the compute deps', () => {
-    const project = new PathTracerCompiler().compileProject(comp([obj('A', [prop('mesh', 'sphere')])]));
+    const project = new PathTracerCompiler().compileProject(
+      comp([obj('A', [prop('mesh', 'sphere')])])
+    );
     expect(Object.keys(project).sort()).toEqual(['Cargo.toml', 'src/main.rs']);
     expect(project['Cargo.toml']).toContain('wgpu = "23"');
     expect(project['Cargo.toml']).toContain('opt-level = 3');
@@ -36,8 +38,16 @@ describe('PathTracerCompiler — sovereign offline GPU path tracer', () => {
   it('maps geometry to path-traceable primitives via the shared registry (sphere→0, cube→box AABB)', () => {
     const rs = new PathTracerCompiler().compile(
       comp([
-        obj('Ball', [prop('mesh', 'sphere'), prop('position', [0, 1, 0]), prop('scale', [2, 2, 2])]),
-        obj('Wall', [prop('mesh', 'cube'), prop('position', [0, 0, -3]), prop('scale', [4, 4, 0.2])]),
+        obj('Ball', [
+          prop('mesh', 'sphere'),
+          prop('position', [0, 1, 0]),
+          prop('scale', [2, 2, 2]),
+        ]),
+        obj('Wall', [
+          prop('mesh', 'cube'),
+          prop('position', [0, 0, -3]),
+          prop('scale', [4, 4, 0.2]),
+        ]),
       ])
     );
     const primCount = (rs.match(/Prim \{ kind: \[/g) || []).length - 1; // minus the struct def
@@ -50,7 +60,13 @@ describe('PathTracerCompiler — sovereign offline GPU path tracer', () => {
 
   it('turns an emissive object into an area light (nonzero emissive, scaled by intensity)', () => {
     const rs = new PathTracerCompiler().compile(
-      comp([obj('Lamp', [prop('mesh', 'sphere'), prop('emissive', '#ffffff'), prop('emissiveIntensity', 8)])])
+      comp([
+        obj('Lamp', [
+          prop('mesh', 'sphere'),
+          prop('emissive', '#ffffff'),
+          prop('emissiveIntensity', 8),
+        ]),
+      ])
     );
     // emissive white * 8 → [8,8,8]
     expect(rs).toContain('emissive: [8.0, 8.0, 8.0, 0.0]');
@@ -58,15 +74,21 @@ describe('PathTracerCompiler — sovereign offline GPU path tracer', () => {
 
   it('does NOT path-trace functional/invisible geometry (shared geometry-purpose vocab)', () => {
     const rs = new PathTracerCompiler().compile(
-      comp([obj('Shown', [prop('mesh', 'sphere')]), obj('Collider', [prop('mesh', 'cube'), prop('purpose', 'collision')])])
+      comp([
+        obj('Shown', [prop('mesh', 'sphere')]),
+        obj('Collider', [prop('mesh', 'cube'), prop('purpose', 'collision')]),
+      ])
     );
     expect((rs.match(/Prim \{ kind: \[/g) || []).length - 1).toBe(1); // only the visible sphere
   });
 
   it('honors sample/bounce/resolution options', () => {
-    const rs = new PathTracerCompiler({ samples: 256, bounces: 8, width: 1024, height: 768 }).compile(
-      comp([obj('A', [prop('mesh', 'sphere')])])
-    );
+    const rs = new PathTracerCompiler({
+      samples: 256,
+      bounces: 8,
+      width: 1024,
+      height: 768,
+    }).compile(comp([obj('A', [prop('mesh', 'sphere')])]));
     expect(rs).toContain('const SAMPLES: u32 = 256u;');
     expect(rs).toContain('const BOUNCES: u32 = 8u;');
     expect(rs).toContain('const WIDTH: u32 = 1024;');

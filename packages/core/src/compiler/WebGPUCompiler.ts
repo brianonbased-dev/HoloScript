@@ -125,7 +125,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emitDeviceInit();
     this.emitGeometryHelpers();
     this.emitShaderSources();
-    this.emitEnvironment(composition.environment ?? ({ type: 'Environment', properties: [] } as HoloEnvironment));
+    this.emitEnvironment(
+      composition.environment ?? ({ type: 'Environment', properties: [] } as HoloEnvironment)
+    );
     // Camera must be emitted BEFORE objects so mesh pipelines can bind the
     // view-projection uniform (vpUniform). Always emit — a scene with no camera
     // still needs perspective, otherwise every mesh renders flat/orthographic
@@ -231,19 +233,19 @@ export class WebGPUCompiler extends CompilerBase {
     const ps = compileParticleBlock(block);
     const count = Math.max(
       1,
-      Math.floor(
-        this.numberProp(block, ['max_particles', 'maxParticles', 'count', 'rate'], 512)
-      )
+      Math.floor(this.numberProp(block, ['max_particles', 'maxParticles', 'count', 'rate'], 512))
     );
     const seed = this.hashSeed(`${ps.name}:${ps.keyword}:${count}`);
     this.emit(`// Domain particles: ${this.escapeStringValue(ps.name, 'TypeScript')}`);
-    this.emit(`const ${prefix}ParticleConfig = ${this.json({
-      name: ps.name,
-      keyword: ps.keyword,
-      traits: ps.traits,
-      properties: ps.properties,
-      modules: ps.modules,
-    })};`);
+    this.emit(
+      `const ${prefix}ParticleConfig = ${this.json({
+        name: ps.name,
+        keyword: ps.keyword,
+        traits: ps.traits,
+        properties: ps.properties,
+        modules: ps.modules,
+      })};`
+    );
     this.emit(`const ${prefix}ParticleCount = ${count};`);
     this.emit(`const ${prefix}ParticleData = makeParticleCloud(${prefix}ParticleCount, ${seed});`);
     this.emit(
@@ -273,12 +275,16 @@ export class WebGPUCompiler extends CompilerBase {
 
   private emitPostFXDomainBlock(block: HoloDomainBlock, prefix: string): void {
     const pp = compilePostProcessingBlock(block);
-    this.emit(`// Domain post-processing: ${this.escapeStringValue(pp.name ?? block.name, 'TypeScript')}`);
-    this.emit(`const ${prefix}PostFXConfig = ${this.json({
-      name: pp.name,
-      keyword: pp.keyword,
-      effects: pp.effects,
-    })};`);
+    this.emit(
+      `// Domain post-processing: ${this.escapeStringValue(pp.name ?? block.name, 'TypeScript')}`
+    );
+    this.emit(
+      `const ${prefix}PostFXConfig = ${this.json({
+        name: pp.name,
+        keyword: pp.keyword,
+        effects: pp.effects,
+      })};`
+    );
     this.emit(`const ${prefix}PostFXPipeline = device.createRenderPipeline({`);
     this.indent();
     this.emit('layout: "auto",');
@@ -296,18 +302,20 @@ export class WebGPUCompiler extends CompilerBase {
   private emitProceduralDomainBlock(block: HoloDomainBlock, prefix: string): void {
     const proc = compileProceduralBlock(block);
     this.emit(`// Domain procedural: ${this.escapeStringValue(proc.name, 'TypeScript')}`);
-    this.emit(`const ${prefix}ProceduralConfig = ${this.json({
-      name: proc.name,
-      keyword: proc.keyword,
-      genType: proc.genType,
-      seed: proc.seed,
-      density: proc.density,
-      scaleRange: proc.scaleRange,
-      noise: proc.noise,
-      sourceMesh: proc.sourceMesh,
-      traits: proc.traits,
-      properties: proc.properties,
-    })};`);
+    this.emit(
+      `const ${prefix}ProceduralConfig = ${this.json({
+        name: proc.name,
+        keyword: proc.keyword,
+        genType: proc.genType,
+        seed: proc.seed,
+        density: proc.density,
+        scaleRange: proc.scaleRange,
+        noise: proc.noise,
+        sourceMesh: proc.sourceMesh,
+        traits: proc.traits,
+        properties: proc.properties,
+      })};`
+    );
     this.emit(
       `const ${prefix}ProceduralUniform = createBuffer(device, new Float32Array([${proc.seed ?? 1}, ${proc.density ?? 1}, ${this.numberProp(block, ['count'], 1)}, 0]), GPUBufferUsage.UNIFORM);`
     );
@@ -315,7 +323,9 @@ export class WebGPUCompiler extends CompilerBase {
       const count = Math.max(1, Math.floor(this.numberProp(block, ['count'], 128)));
       this.emit(`const ${prefix}ScatterInstanceCount = ${count};`);
       this.emit(`const ${prefix}ScatterVertices = generateConeVertices(0.08, 0.36, 8);`);
-      this.emit(`const ${prefix}ScatterVBO = createBuffer(device, ${prefix}ScatterVertices, GPUBufferUsage.VERTEX);`);
+      this.emit(
+        `const ${prefix}ScatterVBO = createBuffer(device, ${prefix}ScatterVertices, GPUBufferUsage.VERTEX);`
+      );
       this.emit(`const ${prefix}ScatterVertexCount = ${prefix}ScatterVertices.length / 6;`);
       this.emit(`const ${prefix}ScatterPipeline = device.createRenderPipeline({`);
       this.indent();
@@ -338,14 +348,16 @@ export class WebGPUCompiler extends CompilerBase {
   }
 
   private emitDomainMetadataBlock(block: HoloDomainBlock, prefix: string): void {
-    this.emit(`const ${prefix}DomainBlock = ${this.json({
-      domain: block.domain,
-      keyword: block.keyword,
-      name: block.name,
-      traits: block.traits,
-      properties: block.properties,
-      childCount: block.children?.length ?? 0,
-    })};`);
+    this.emit(
+      `const ${prefix}DomainBlock = ${this.json({
+        domain: block.domain,
+        keyword: block.keyword,
+        name: block.name,
+        traits: block.traits,
+        properties: block.properties,
+        childCount: block.children?.length ?? 0,
+      })};`
+    );
   }
 
   // ─── Device Init ──────────────────────────────────────────────────────────
@@ -387,21 +399,31 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('}');
     this.emit('function createFallbackTexture(device, rgba) {');
     this.indent();
-    this.emit('const tex = device.createTexture({ size: [1, 1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });');
-    this.emit('device.queue.writeTexture({ texture: tex }, new Uint8Array(rgba), { bytesPerRow: 4 }, [1, 1, 1]);');
+    this.emit(
+      'const tex = device.createTexture({ size: [1, 1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });'
+    );
+    this.emit(
+      'device.queue.writeTexture({ texture: tex }, new Uint8Array(rgba), { bytesPerRow: 4 }, [1, 1, 1]);'
+    );
     this.emit('return tex;');
     this.dedent();
     this.emit('}');
     this.emit('async function loadTexture2D(src) {');
     this.indent();
-    this.emit('const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear", mipmapFilter: "linear", addressModeU: "repeat", addressModeV: "repeat" });');
+    this.emit(
+      'const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear", mipmapFilter: "linear", addressModeU: "repeat", addressModeV: "repeat" });'
+    );
     this.emit('try {');
     this.indent();
     this.emit('const resp = await fetch(src);');
     this.emit('if (!resp.ok) throw new Error(`texture fetch ${resp.status}`);');
     this.emit('const bitmap = await createImageBitmap(await resp.blob());');
-    this.emit('const texture = device.createTexture({ size: [bitmap.width, bitmap.height, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });');
-    this.emit('device.queue.copyExternalImageToTexture({ source: bitmap }, { texture }, [bitmap.width, bitmap.height]);');
+    this.emit(
+      'const texture = device.createTexture({ size: [bitmap.width, bitmap.height, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });'
+    );
+    this.emit(
+      'device.queue.copyExternalImageToTexture({ source: bitmap }, { texture }, [bitmap.width, bitmap.height]);'
+    );
     this.emit('return { src, texture, view: texture.createView(), sampler, loaded: true };');
     this.dedent();
     this.emit('} catch {');
@@ -414,7 +436,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('}');
     this.emit('async function loadMaterialTextureSet(maps) {');
     this.indent();
-    this.emit('const entries = await Promise.all(Object.entries(maps).map(async ([kind, src]) => [kind, await loadTexture2D(src)]));');
+    this.emit(
+      'const entries = await Promise.all(Object.entries(maps).map(async ([kind, src]) => [kind, await loadTexture2D(src)]));'
+    );
     this.emit('return Object.fromEntries(entries);');
     this.dedent();
     this.emit('}');
@@ -430,13 +454,19 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('function makeParticleCloud(count, seed) {');
     this.indent();
     this.emit('let s = seed || 1;');
-    this.emit('const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };');
+    this.emit(
+      'const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };'
+    );
     this.emit('const data = new Float32Array(count * 8);');
     this.emit('for (let i = 0; i < count; i++) {');
     this.indent();
     this.emit('const o = i * 8;');
-    this.emit('data[o + 0] = rnd() * 1.8 - 0.9; data[o + 1] = rnd() * 1.2 - 0.6; data[o + 2] = rnd() * 1.8 - 0.9;');
-    this.emit('data[o + 3] = 0.0; data[o + 4] = 0.25 + rnd(); data[o + 5] = 0.0; data[o + 6] = rnd(); data[o + 7] = 0.0;');
+    this.emit(
+      'data[o + 0] = rnd() * 1.8 - 0.9; data[o + 1] = rnd() * 1.2 - 0.6; data[o + 2] = rnd() * 1.8 - 0.9;'
+    );
+    this.emit(
+      'data[o + 3] = 0.0; data[o + 4] = 0.25 + rnd(); data[o + 5] = 0.0; data[o + 6] = rnd(); data[o + 7] = 0.0;'
+    );
     this.dedent();
     this.emit('}');
     this.emit('return data;');
@@ -452,12 +482,24 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('const s = size / 2;');
     this.emit('return new Float32Array([');
     this.indent();
-    this.emit('-s,-s, s, 0,0,1,  s,-s, s, 0,0,1,  s, s, s, 0,0,1, -s,-s, s, 0,0,1,  s, s, s, 0,0,1, -s, s, s, 0,0,1,');
-    this.emit(' s,-s,-s, 0,0,-1, -s,-s,-s, 0,0,-1, -s, s,-s, 0,0,-1,  s,-s,-s, 0,0,-1, -s, s,-s, 0,0,-1,  s, s,-s, 0,0,-1,');
-    this.emit('-s,-s,-s, -1,0,0, -s,-s, s, -1,0,0, -s, s, s, -1,0,0, -s,-s,-s, -1,0,0, -s, s, s, -1,0,0, -s, s,-s, -1,0,0,');
-    this.emit(' s,-s, s, 1,0,0,  s,-s,-s, 1,0,0,  s, s,-s, 1,0,0,  s,-s, s, 1,0,0,  s, s,-s, 1,0,0,  s, s, s, 1,0,0,');
-    this.emit('-s, s, s, 0,1,0,  s, s, s, 0,1,0,  s, s,-s, 0,1,0, -s, s, s, 0,1,0,  s, s,-s, 0,1,0, -s, s,-s, 0,1,0,');
-    this.emit('-s,-s,-s, 0,-1,0,  s,-s,-s, 0,-1,0,  s,-s, s, 0,-1,0, -s,-s,-s, 0,-1,0,  s,-s, s, 0,-1,0, -s,-s, s, 0,-1,0');
+    this.emit(
+      '-s,-s, s, 0,0,1,  s,-s, s, 0,0,1,  s, s, s, 0,0,1, -s,-s, s, 0,0,1,  s, s, s, 0,0,1, -s, s, s, 0,0,1,'
+    );
+    this.emit(
+      ' s,-s,-s, 0,0,-1, -s,-s,-s, 0,0,-1, -s, s,-s, 0,0,-1,  s,-s,-s, 0,0,-1, -s, s,-s, 0,0,-1,  s, s,-s, 0,0,-1,'
+    );
+    this.emit(
+      '-s,-s,-s, -1,0,0, -s,-s, s, -1,0,0, -s, s, s, -1,0,0, -s,-s,-s, -1,0,0, -s, s, s, -1,0,0, -s, s,-s, -1,0,0,'
+    );
+    this.emit(
+      ' s,-s, s, 1,0,0,  s,-s,-s, 1,0,0,  s, s,-s, 1,0,0,  s,-s, s, 1,0,0,  s, s,-s, 1,0,0,  s, s, s, 1,0,0,'
+    );
+    this.emit(
+      '-s, s, s, 0,1,0,  s, s, s, 0,1,0,  s, s,-s, 0,1,0, -s, s, s, 0,1,0,  s, s,-s, 0,1,0, -s, s,-s, 0,1,0,'
+    );
+    this.emit(
+      '-s,-s,-s, 0,-1,0,  s,-s,-s, 0,-1,0,  s,-s, s, 0,-1,0, -s,-s,-s, 0,-1,0,  s,-s, s, 0,-1,0, -s,-s, s, 0,-1,0'
+    );
     this.dedent();
     this.emit(']);');
     this.dedent();
@@ -465,7 +507,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('function generatePlaneVertices(width, depth) {');
     this.indent();
     this.emit('const x = width / 2, z = depth / 2;');
-    this.emit('return new Float32Array([-x,0,-z,0,1,0, x,0,-z,0,1,0, x,0,z,0,1,0, -x,0,-z,0,1,0, x,0,z,0,1,0, -x,0,z,0,1,0]);');
+    this.emit(
+      'return new Float32Array([-x,0,-z,0,1,0, x,0,-z,0,1,0, x,0,z,0,1,0, -x,0,-z,0,1,0, x,0,z,0,1,0, -x,0,z,0,1,0]);'
+    );
     this.dedent();
     this.emit('}');
     // --- Tessellated XY plane (facing +Z) for water: per-vertex wave displacement
@@ -476,7 +520,9 @@ export class WebGPUCompiler extends CompilerBase {
       this.emit('const out = [], hw = w/2, hh = h/2, N = Math.max(2, n|0);');
       this.emit('for (let iy=0; iy<N; iy++) { for (let ix=0; ix<N; ix++) {');
       this.emit('  const x0=-hw+w*ix/N, x1=-hw+w*(ix+1)/N, y0=-hh+h*iy/N, y1=-hh+h*(iy+1)/N;');
-      this.emit('  const a=[x0,y0,0,0,0,1], b=[x1,y0,0,0,0,1], c=[x1,y1,0,0,0,1], d=[x0,y1,0,0,0,1];');
+      this.emit(
+        '  const a=[x0,y0,0,0,0,1], b=[x1,y0,0,0,0,1], c=[x1,y1,0,0,0,1], d=[x0,y1,0,0,0,1];'
+      );
       this.emit('  out.push(...a,...b,...c, ...a,...c,...d);');
       this.emit('} } return new Float32Array(out);');
       this.dedent();
@@ -488,11 +534,15 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('const rings = Math.max(3, lat | 0), segs = Math.max(3, lon | 0); const out = [];');
     this.emit('const P = (ri, si) => {');
     this.emit('  const phi = Math.PI * ri / rings, theta = 2 * Math.PI * si / segs;');
-    this.emit('  const nx = Math.sin(phi) * Math.cos(theta), ny = Math.cos(phi), nz = Math.sin(phi) * Math.sin(theta);');
+    this.emit(
+      '  const nx = Math.sin(phi) * Math.cos(theta), ny = Math.cos(phi), nz = Math.sin(phi) * Math.sin(theta);'
+    );
     this.emit('  return [nx * radius, ny * radius, nz * radius, nx, ny, nz];');
     this.emit('};');
     this.emit('for (let ri = 0; ri < rings; ri++) { for (let si = 0; si < segs; si++) {');
-    this.emit('  const a = P(ri, si), b = P(ri + 1, si), c = P(ri + 1, si + 1), d = P(ri, si + 1);');
+    this.emit(
+      '  const a = P(ri, si), b = P(ri + 1, si), c = P(ri + 1, si + 1), d = P(ri, si + 1);'
+    );
     this.emit('  out.push(...a, ...b, ...c, ...a, ...c, ...d);');
     this.emit('} } return new Float32Array(out);');
     this.dedent();
@@ -503,12 +553,22 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('const segs = Math.max(3, segments | 0), hy = height / 2, out = [];');
     this.emit('for (let i = 0; i < segs; i++) {');
     this.emit('  const t0 = 2*Math.PI*i/segs, t1 = 2*Math.PI*(i+1)/segs;');
-    this.emit('  const c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1);');
-    this.emit('  const b0 = [radius*c0, -hy, radius*s0, c0, 0, s0], t0v = [radius*c0, hy, radius*s0, c0, 0, s0];');
-    this.emit('  const b1 = [radius*c1, -hy, radius*s1, c1, 0, s1], t1v = [radius*c1, hy, radius*s1, c1, 0, s1];');
+    this.emit(
+      '  const c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1);'
+    );
+    this.emit(
+      '  const b0 = [radius*c0, -hy, radius*s0, c0, 0, s0], t0v = [radius*c0, hy, radius*s0, c0, 0, s0];'
+    );
+    this.emit(
+      '  const b1 = [radius*c1, -hy, radius*s1, c1, 0, s1], t1v = [radius*c1, hy, radius*s1, c1, 0, s1];'
+    );
     this.emit('  out.push(...b0, ...b1, ...t1v, ...b0, ...t1v, ...t0v);');
-    this.emit('  out.push(0, hy, 0, 0, 1, 0, radius*c0, hy, radius*s0, 0, 1, 0, radius*c1, hy, radius*s1, 0, 1, 0);');
-    this.emit('  out.push(0, -hy, 0, 0, -1, 0, radius*c1, -hy, radius*s1, 0, -1, 0, radius*c0, -hy, radius*s0, 0, -1, 0);');
+    this.emit(
+      '  out.push(0, hy, 0, 0, 1, 0, radius*c0, hy, radius*s0, 0, 1, 0, radius*c1, hy, radius*s1, 0, 1, 0);'
+    );
+    this.emit(
+      '  out.push(0, -hy, 0, 0, -1, 0, radius*c1, -hy, radius*s1, 0, -1, 0, radius*c0, -hy, radius*s0, 0, -1, 0);'
+    );
     this.emit('} return new Float32Array(out);');
     this.dedent();
     this.emit('}');
@@ -516,14 +576,20 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('function generateConeVertices(radius, height, segments) {');
     this.indent();
     this.emit('const segs = Math.max(3, segments | 0), hy = height / 2, out = [];');
-    this.emit('const ny = radius / Math.hypot(radius, height) || 0, nyx = height / Math.hypot(radius, height) || 1;');
+    this.emit(
+      'const ny = radius / Math.hypot(radius, height) || 0, nyx = height / Math.hypot(radius, height) || 1;'
+    );
     this.emit('for (let i = 0; i < segs; i++) {');
     this.emit('  const t0 = 2*Math.PI*i/segs, t1 = 2*Math.PI*(i+1)/segs;');
-    this.emit('  const c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1);');
+    this.emit(
+      '  const c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1);'
+    );
     this.emit('  out.push(0, hy, 0, (c0+c1)*0.5*nyx, ny, (s0+s1)*0.5*nyx);');
     this.emit('  out.push(radius*c0, -hy, radius*s0, c0*nyx, ny, s0*nyx);');
     this.emit('  out.push(radius*c1, -hy, radius*s1, c1*nyx, ny, s1*nyx);');
-    this.emit('  out.push(0, -hy, 0, 0, -1, 0, radius*c1, -hy, radius*s1, 0, -1, 0, radius*c0, -hy, radius*s0, 0, -1, 0);');
+    this.emit(
+      '  out.push(0, -hy, 0, 0, -1, 0, radius*c1, -hy, radius*s1, 0, -1, 0, radius*c0, -hy, radius*s0, 0, -1, 0);'
+    );
     this.emit('} return new Float32Array(out);');
     this.dedent();
     this.emit('}');
@@ -538,7 +604,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('  return [x, y, z, cv*cu, sv, cv*su];');
     this.emit('};');
     this.emit('for (let ri = 0; ri < R; ri++) { for (let ti = 0; ti < T; ti++) {');
-    this.emit('  const a = P(ri, ti), b = P(ri + 1, ti), c = P(ri + 1, ti + 1), d = P(ri, ti + 1);');
+    this.emit(
+      '  const a = P(ri, ti), b = P(ri + 1, ti), c = P(ri + 1, ti + 1), d = P(ri, ti + 1);'
+    );
     this.emit('  out.push(...a, ...b, ...c, ...a, ...c, ...d);');
     this.emit('} } return new Float32Array(out);');
     this.dedent();
@@ -797,7 +865,9 @@ export class WebGPUCompiler extends CompilerBase {
   private emitWaterShaderSource(): void {
     this.emit('const WGSL_WATER = /* wgsl */`');
     this.emit('struct Model { m: mat4x4<f32> };');
-    this.emit('struct WStatic { p: vec4<f32>, deep: vec4<f32>, shallow: vec4<f32>, lightDir: vec4<f32> };');
+    this.emit(
+      'struct WStatic { p: vec4<f32>, deep: vec4<f32>, shallow: vec4<f32>, lightDir: vec4<f32> };'
+    );
     this.emit('struct Cam { viewProj: mat4x4<f32> };');
     this.emit('struct WFrame { tc: vec4<f32>, dyn: vec4<f32> };'); // tc.x=time, tc.yzw=cameraPos; dyn=(clarity,ripple,amp,0)
     this.emit('@group(0) @binding(0) var<uniform> model: Model;');
@@ -805,10 +875,14 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('@group(0) @binding(2) var<uniform> cam: Cam;');
     this.emit('@group(0) @binding(3) var<uniform> wf: WFrame;');
     this.emit('struct VIn { @location(0) pos: vec3<f32>, @location(1) norm: vec3<f32> };');
-    this.emit('struct VOut { @builtin(position) clip: vec4<f32>, @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };');
+    this.emit(
+      'struct VOut { @builtin(position) clip: vec4<f32>, @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };'
+    );
     this.emit('@vertex fn vs_water(in: VIn) -> VOut {');
     this.emit('  var o: VOut;');
-    this.emit('  let sx = length(model.m[0].xyz); let sy = length(model.m[1].xyz); let sz = max(length(model.m[2].xyz), 1e-4);');
+    this.emit(
+      '  let sx = length(model.m[0].xyz); let sy = length(model.m[1].xyz); let sz = max(length(model.m[2].xyz), 1e-4);'
+    );
     this.emit('  let wp = in.pos.xy * vec2<f32>(sx, sy);');
     this.emit('  let t = wf.tc.x; let amp = ws.p.x * wf.dyn.z * (0.4 + wf.dyn.y);');
     this.emit('  var h = 0.0; var dhdx = 0.0; var dhdy = 0.0;');
@@ -831,11 +905,15 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('  o.clip = cam.viewProj * world;');
     this.emit('  return o;');
     this.emit('}');
-    this.emit('fn hash21(p: vec2<f32>) -> f32 { let h = dot(p, vec2<f32>(127.1, 311.7)); return fract(sin(h) * 43758.5453); }');
+    this.emit(
+      'fn hash21(p: vec2<f32>) -> f32 { let h = dot(p, vec2<f32>(127.1, 311.7)); return fract(sin(h) * 43758.5453); }'
+    );
     this.emit('fn vnoise(p: vec2<f32>) -> f32 {');
     this.emit('  let i = floor(p); let f = fract(p); let u = f * f * (3.0 - 2.0 * f);');
     this.emit('  let a = hash21(i); let b = hash21(i + vec2<f32>(1.0, 0.0));');
-    this.emit('  let c = hash21(i + vec2<f32>(0.0, 1.0)); let dd = hash21(i + vec2<f32>(1.0, 1.0));');
+    this.emit(
+      '  let c = hash21(i + vec2<f32>(0.0, 1.0)); let dd = hash21(i + vec2<f32>(1.0, 1.0));'
+    );
     this.emit('  return mix(mix(a, b, u.x), mix(c, dd, u.x), u.y);');
     this.emit('}');
     this.emit('struct FIn { @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };');
@@ -907,9 +985,13 @@ export class WebGPUCompiler extends CompilerBase {
       source: String(composition.name ?? ''),
       objects: this.manifestObjects,
     };
-    this.emit('// === HoloScene Manifest (machine-readable world facts; part of the delivered artifact) ===');
+    this.emit(
+      '// === HoloScene Manifest (machine-readable world facts; part of the delivered artifact) ==='
+    );
     this.emit(`const holoSceneManifest = ${this.json(manifest)};`);
-    this.emit('if (typeof globalThis !== "undefined") { globalThis.holoSceneManifest = holoSceneManifest; }');
+    this.emit(
+      'if (typeof globalThis !== "undefined") { globalThis.holoSceneManifest = holoSceneManifest; }'
+    );
     this.emit('');
   }
 
@@ -1161,20 +1243,38 @@ export class WebGPUCompiler extends CompilerBase {
       // A directional light with a position but no explicit direction shines toward
       // the origin — a light "at [10,20,10]" lights the scene, not empty space.
       if (ti === 0 && !hasDir && Array.isArray(pos)) dir = [-pos[0], -pos[1], -pos[2]];
-      return { name: String(light.name ?? ''), kind: String(light.lightType ?? ''), color, intensity, pos, dir, ti };
+      return {
+        name: String(light.name ?? ''),
+        kind: String(light.lightType ?? ''),
+        color,
+        intensity,
+        pos,
+        dir,
+        ti,
+      };
     });
     // No declared lights → synthesize a neutral key light matching the historical
     // fixed sun (surfaces were lit from normalize(1,2,1.5)) so light-less scenes
     // stay lit instead of collapsing to ambient-only.
     if (lights.length === 0) {
-      lights.push({ name: '(synthesized key light)', kind: 'directional', color: [1, 1, 1], intensity: 1, pos: [1, 2, 1.5], dir: [-1, -2, -1.5], ti: 0 });
+      lights.push({
+        name: '(synthesized key light)',
+        kind: 'directional',
+        color: [1, 1, 1],
+        intensity: 1,
+        pos: [1, 2, 1.5],
+        dir: [-1, -2, -1.5],
+        ti: 0,
+      });
     }
     // Layout: count(vec4) | MAX_LIGHTS x { colorType(vec4), posW(vec4), dirW(vec4) }.
     const segs: string[] = [`${lights.length},0,0,0`];
     for (let i = 0; i < MAX_LIGHTS; i++) {
       const l = lights[i];
       if (l) {
-        segs.push(`${l.color[0] * l.intensity},${l.color[1] * l.intensity},${l.color[2] * l.intensity},${l.ti}`);
+        segs.push(
+          `${l.color[0] * l.intensity},${l.color[1] * l.intensity},${l.color[2] * l.intensity},${l.ti}`
+        );
         segs.push(`${l.pos[0]},${l.pos[1]},${l.pos[2]},0`);
         segs.push(`${l.dir[0]},${l.dir[1]},${l.dir[2]},0`);
       } else {
@@ -1188,7 +1288,9 @@ export class WebGPUCompiler extends CompilerBase {
     // Each declared light keeps its identity as a comment tied to its slot.
     for (let i = 0; i < lights.length; i++) {
       const safeName = lights[i].name.replace(/[\r\n*]+/g, ' ');
-      this.emit(`// Light[${i}]: "${safeName}" (${lights[i].kind}, intensity ${lights[i].intensity})`);
+      this.emit(
+        `// Light[${i}]: "${safeName}" (${lights[i].kind}, intensity ${lights[i].intensity})`
+      );
     }
     this.emit(
       `const sceneLights = createBuffer(device, new Float32Array([${segs.join(', ')}]), GPUBufferUsage.UNIFORM);`
@@ -1243,7 +1345,10 @@ export class WebGPUCompiler extends CompilerBase {
     const center = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
     let radius = 0;
     for (const { p, r } of pts) {
-      radius = Math.max(radius, Math.hypot(p[0] - center[0], p[1] - center[1], p[2] - center[2]) + r);
+      radius = Math.max(
+        radius,
+        Math.hypot(p[0] - center[0], p[1] - center[1], p[2] - center[2]) + r
+      );
     }
     return { center, radius: radius || 1 };
   }
@@ -1301,18 +1406,26 @@ export class WebGPUCompiler extends CompilerBase {
     this.indent();
     this.emit('const o = new Float32Array(16);');
     this.emit('for (let c = 0; c < 4; c++) { for (let r = 0; r < 4; r++) {');
-    this.emit('  o[c*4+r] = a[0*4+r]*b[c*4+0] + a[1*4+r]*b[c*4+1] + a[2*4+r]*b[c*4+2] + a[3*4+r]*b[c*4+3];');
+    this.emit(
+      '  o[c*4+r] = a[0*4+r]*b[c*4+0] + a[1*4+r]*b[c*4+1] + a[2*4+r]*b[c*4+2] + a[3*4+r]*b[c*4+3];'
+    );
     this.emit('} } return o;');
     this.dedent();
     this.emit('}');
     // Right-handed look-at view matrix (column-major).
-    this.emit('function lookAtMatrix(eye: Float32Array, target: Float32Array, up: Float32Array): Float32Array {');
+    this.emit(
+      'function lookAtMatrix(eye: Float32Array, target: Float32Array, up: Float32Array): Float32Array {'
+    );
     this.indent();
     this.emit('const zx = eye[0]-target[0], zy = eye[1]-target[1], zz = eye[2]-target[2];');
     this.emit('let zl = Math.hypot(zx, zy, zz) || 1; const fz = [zx/zl, zy/zl, zz/zl];');
-    this.emit('const xx = up[1]*fz[2]-up[2]*fz[1], xy = up[2]*fz[0]-up[0]*fz[2], xz = up[0]*fz[1]-up[1]*fz[0];');
+    this.emit(
+      'const xx = up[1]*fz[2]-up[2]*fz[1], xy = up[2]*fz[0]-up[0]*fz[2], xz = up[0]*fz[1]-up[1]*fz[0];'
+    );
     this.emit('let xl = Math.hypot(xx, xy, xz) || 1; const rx = [xx/xl, xy/xl, xz/xl];');
-    this.emit('const uy = [fz[1]*rx[2]-fz[2]*rx[1], fz[2]*rx[0]-fz[0]*rx[2], fz[0]*rx[1]-fz[1]*rx[0]];');
+    this.emit(
+      'const uy = [fz[1]*rx[2]-fz[2]*rx[1], fz[2]*rx[0]-fz[0]*rx[2], fz[0]*rx[1]-fz[1]*rx[0]];'
+    );
     this.emit('return new Float32Array([');
     this.emit('  rx[0], uy[0], fz[0], 0,');
     this.emit('  rx[1], uy[1], fz[1], 0,');
@@ -1326,7 +1439,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.indent();
     this.emit('const f = 1.0 / Math.tan(cameraFov / 2), ri = 1.0 / (cameraNear - cameraFar);');
     // Perspective projection (WebGPU clip space: z in [0,1], right-handed).
-    this.emit('const proj = new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,cameraFar*ri,-1, 0,0,cameraNear*cameraFar*ri,0]);');
+    this.emit(
+      'const proj = new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,cameraFar*ri,-1, 0,0,cameraNear*cameraFar*ri,0]);'
+    );
     this.emit('const view = lookAtMatrix(cameraPos, cameraTarget, cameraUp);');
     this.emit('return mat4Multiply(proj, view);');
     this.dedent();
@@ -1476,9 +1591,13 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('  let id = f32(instance);');
     this.emit('  let x = hash11(id + 1.0) * 1.8 - 0.9; let z = hash11(id + 7.0) * 1.8 - 0.9;');
     this.emit('  let scale = 0.35 + hash11(id + 13.0) * 0.45;');
-    this.emit('  var o: VOut; o.clip = vec4<f32>(i.pos.x * scale + x, i.pos.y * scale - 0.65, i.pos.z * scale + z, 1.0);');
+    this.emit(
+      '  var o: VOut; o.clip = vec4<f32>(i.pos.x * scale + x, i.pos.y * scale - 0.65, i.pos.z * scale + z, 1.0);'
+    );
     this.emit('  o.shade = 0.45 + max(i.norm.y, 0.0) * 0.45; return o; }');
-    this.emit('@fragment fn fs_scatter(i: VOut) -> @location(0) vec4<f32> { return vec4<f32>(0.08 * i.shade, 0.34 * i.shade, 0.12 * i.shade, 1.0); }`;');
+    this.emit(
+      '@fragment fn fs_scatter(i: VOut) -> @location(0) vec4<f32> { return vec4<f32>(0.08 * i.shade, 0.34 * i.shade, 0.12 * i.shade, 1.0); }`;'
+    );
     this.emit('');
     // Full-screen post-processing overlay shader
     this.emit('const WGSL_POSTFX = /* wgsl */`');
@@ -1486,7 +1605,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('@vertex fn vs_postfx(@builtin(vertex_index) vi: u32) -> VO {');
     this.emit('  var p = array<vec2<f32>,3>(vec2(-1.0,-1.0), vec2(3.0,-1.0), vec2(-1.0,3.0));');
     this.emit('  var o: VO; o.pos = vec4<f32>(p[vi], 0.0, 1.0); return o; }');
-    this.emit('@fragment fn fs_postfx() -> @location(0) vec4<f32> { return vec4<f32>(0.04, 0.08, 0.05, 0.18); }`;');
+    this.emit(
+      '@fragment fn fs_postfx() -> @location(0) vec4<f32> { return vec4<f32>(0.04, 0.08, 0.05, 0.18); }`;'
+    );
     this.emit('');
     // Particle compute shader
     this.emit('const WGSL_PARTICLE_COMPUTE = /* wgsl */`');
@@ -1532,9 +1653,13 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('document.body.style.position = document.body.style.position || "relative";');
     this.emit('const holoGraphLabelLayer = document.createElement("div");');
     this.emit('holoGraphLabelLayer.setAttribute("data-holograph-label-layer", "true");');
-    this.emit('Object.assign(holoGraphLabelLayer.style, { position: "absolute", inset: "0", pointerEvents: "none", overflow: "hidden", fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace", zIndex: "5" });');
+    this.emit(
+      'Object.assign(holoGraphLabelLayer.style, { position: "absolute", inset: "0", pointerEvents: "none", overflow: "hidden", fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace", zIndex: "5" });'
+    );
     this.emit('canvas.insertAdjacentElement("afterend", holoGraphLabelLayer);');
-    this.emit('function hsVec3(v) { return [Number(v[0] || 0), Number(v[1] || 0), Number(v[2] || 0)]; }');
+    this.emit(
+      'function hsVec3(v) { return [Number(v[0] || 0), Number(v[1] || 0), Number(v[2] || 0)]; }'
+    );
     this.emit('function hsSub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }');
     this.emit('function hsAdd(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }');
     this.emit('function hsMul(v, s) { return [v[0] * s, v[1] * s, v[2] * s]; }');
@@ -1558,7 +1683,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit(
       'function hsWriteMaterial(o, color) { o.color = [color[0], color[1], color[2]]; const m = o.material; device.queue.writeBuffer(o.matBuffer, 0, new Float32Array([color[0],color[1],color[2],1.0, m.roughness,m.metalness,m.emissiveStrength,0, m.emissive[0],m.emissive[1],m.emissive[2],0])); }'
     );
-    this.emit('function hsCameraDistance() { return hsLen(hsSub(hsVec3(cameraTarget), hsVec3(cameraPos))); }');
+    this.emit(
+      'function hsCameraDistance() { return hsLen(hsSub(hsVec3(cameraTarget), hsVec3(cameraPos))); }'
+    );
     this.emit(
       'function hsSetCamera(pos, target) { cameraPos.set(pos); cameraTarget.set(target); device.queue.writeBuffer(vpUniform, 0, buildViewProjection()); document.body.dataset.holoscriptWebgpuCamera = JSON.stringify({ position: Array.from(cameraPos), target: Array.from(cameraTarget) }); }'
     );
@@ -1572,7 +1699,9 @@ export class WebGPUCompiler extends CompilerBase {
       'function hsColorForMode(o, mode) { if (mode === "identity_hue") return hsHueRgb((hsHash(o.id) % 10000) / 10000); if (mode === "file_hue") return hsHueRgb((hsHash(o.properties.file || o.properties.path || o.id) % 10000) / 10000); if (mode === "relation_hue") return hsHueRgb((hsHash(o.properties.symbolType || o.properties.symbol_type || o.properties.kind || o.properties.role || (o.traits || []).join(",")) % 10000) / 10000); return o.baseColor; }'
     );
     this.emit('function hsRound(n) { return Math.round(Number(n || 0) * 1000) / 1000; }');
-    this.emit('function hsRoundVec(v) { return [hsRound(v?.[0]), hsRound(v?.[1]), hsRound(v?.[2])]; }');
+    this.emit(
+      'function hsRoundVec(v) { return [hsRound(v?.[0]), hsRound(v?.[1]), hsRound(v?.[2])]; }'
+    );
     this.emit(
       'function hsHueBucket(o, mode = holoGraphViewportState.colorMode) { if (mode === "identity_hue") return hsHash(o.id) % 10000; if (mode === "file_hue") return hsHash(o.properties.file || o.properties.path || o.id) % 10000; if (mode === "relation_hue") return hsHash(o.properties.symbolType || o.properties.symbol_type || o.properties.kind || o.properties.role || (o.traits || []).join(",")) % 10000; return hsHash(JSON.stringify(o.color || o.baseColor || [])) % 10000; }'
     );
@@ -1600,7 +1729,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit(
       'function hsInspectObject(payload = {}) { const obj = hsResolveObject(payload); if (!obj) return null; return { ...hsProjectObject(payload), properties: obj.properties, neighbors: hsNearestObjects(obj, payload.limit || 8) }; }'
     );
-    this.emit('function hsNormalizeLabelPolicy(value) { const policy = String(value || "none").toLowerCase(); return ["none","ids","signatures","details"].includes(policy) ? policy : "none"; }');
+    this.emit(
+      'function hsNormalizeLabelPolicy(value) { const policy = String(value || "none").toLowerCase(); return ["none","ids","signatures","details"].includes(policy) ? policy : "none"; }'
+    );
     this.emit(
       'function hsLabelText(o) { const policy = holoGraphViewportState.labelPolicy; if (policy === "none") return ""; if (policy === "ids") return o.id; if (policy === "signatures") return o.properties.signature || o.id; return `${hsObjectRole(o)}:${o.properties.signature || o.id}`; }'
     );
@@ -1610,9 +1741,15 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit(
       'function hsRenderLabels() { const policy = holoGraphViewportState.labelPolicy; document.body.dataset.holoscriptWebgpuLabels = policy; if (policy === "none") { holoGraphLabelLayer.replaceChildren(); return; } const ranked = holoGraphObjects.filter((o) => o.visible).map((o) => ({ object: o, distance: hsLen(hsSub(o.position, hsVec3(cameraTarget))) })).sort((a, b) => a.distance - b.distance).slice(0, 18); const nodes = []; for (const entry of ranked) { const o = entry.object; const text = hsLabelText(o); const point = hsProjectPoint(o.position); if (!text || !point?.valid || !point.inFrame) continue; const focus = entry.distance <= 0.001 || o.id === holoGraphViewportState.focusId; const el = document.createElement("div"); el.textContent = text.length > 72 ? `${text.slice(0, 69)}...` : text; Object.assign(el.style, { position: "absolute", left: `${point.screenX}px`, top: `${point.screenY}px`, transform: "translate(-50%, -120%)", maxWidth: "280px", padding: focus ? "4px 7px" : "3px 6px", border: focus ? "2px solid rgba(250,204,21,0.98)" : "1px solid rgba(255,255,255,0.68)", borderRadius: "3px", background: focus ? "rgba(15,23,42,0.94)" : "rgba(2,6,23,0.86)", color: focus ? "#fef9c3" : "#f8fafc", fontSize: focus ? "13px" : "12px", fontWeight: focus ? "700" : "600", lineHeight: "1.2", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textShadow: "0 1px 2px #000" }); nodes.push(el); } const focusObj = holoGraphViewportState.focusId ? holoGraphObjects.find((o) => o.id === holoGraphViewportState.focusId && o.visible) : null; if (focusObj) { const panel = document.createElement("div"); Object.assign(panel.style, { position: "absolute", left: "12px", top: "12px", maxWidth: "560px", padding: "8px 10px", border: "2px solid rgba(250,204,21,0.98)", borderRadius: "4px", background: "rgba(15,23,42,0.96)", color: "#fef9c3", fontSize: "13px", fontWeight: "700", lineHeight: "1.35", textShadow: "0 1px 2px #000", boxShadow: "0 10px 30px rgba(0,0,0,0.34)" }); const near = holoGraphObjects.filter((o) => o.visible && o !== focusObj).map((o) => ({ object: o, distance: hsLen(hsSub(o.position, focusObj.position)) })).sort((a, b) => a.distance - b.distance).slice(0, 5); const rows = [{ kind: "target", object: focusObj }, ...near.map((entry) => ({ kind: "near", object: entry.object }))]; for (const row of rows) { const line = document.createElement("div"); const text = `${row.kind} ${hsLabelText(row.object)}`; line.textContent = text.length > 96 ? `${text.slice(0, 93)}...` : text; panel.appendChild(line); } nodes.push(panel); } holoGraphLabelLayer.replaceChildren(...nodes); }'
     );
-    this.emit('function hsApplyLabelPolicy(policy) { holoGraphViewportState.labelPolicy = hsNormalizeLabelPolicy(policy); hsRenderLabels(); }');
-    this.emit('function hsApplyFilter(filter) { holoGraphViewportState.filter = filter; for (const o of holoGraphObjects) { o.visible = hsMatchesFilter(o, filter); hsWriteModel(o); } }');
-    this.emit('function hsApplyColorMode(mode) { holoGraphViewportState.colorMode = mode; for (const o of holoGraphObjects) hsWriteMaterial(o, hsColorForMode(o, mode)); }');
+    this.emit(
+      'function hsApplyLabelPolicy(policy) { holoGraphViewportState.labelPolicy = hsNormalizeLabelPolicy(policy); hsRenderLabels(); }'
+    );
+    this.emit(
+      'function hsApplyFilter(filter) { holoGraphViewportState.filter = filter; for (const o of holoGraphObjects) { o.visible = hsMatchesFilter(o, filter); hsWriteModel(o); } }'
+    );
+    this.emit(
+      'function hsApplyColorMode(mode) { holoGraphViewportState.colorMode = mode; for (const o of holoGraphObjects) hsWriteMaterial(o, hsColorForMode(o, mode)); }'
+    );
     this.emit(
       'function hsApplyStructureStyle(style) { const center = hsGraphCenter(); const n = Math.max(1, holoGraphObjects.length); const radius = Math.max(20, Math.sqrt(n) * 18); holoGraphViewportState.structureStyle = style; holoGraphObjects.forEach((o, i) => { if (style === "compact") { o.position = hsAdd(center, hsMul(hsSub(o.basePosition, center), 0.45)); } else if (style === "radial") { const a = (i / n) * Math.PI * 2; o.position = [center[0] + Math.cos(a) * radius, center[1] + (o.basePosition[1] - center[1]) * 0.18, center[2] + Math.sin(a) * radius]; } else { o.position = [...o.basePosition]; } hsWriteModel(o); }); }'
     );
@@ -1624,27 +1761,53 @@ export class WebGPUCompiler extends CompilerBase {
     );
     this.emit('function hsApplyViewportAction(action, payload = {}) {');
     this.indent();
-    this.emit('const type = typeof action === "string" ? action : String(action?.type || action?.action || "");');
-    this.emit('const data = typeof action === "object" && action !== null ? { ...action, ...payload } : payload || {};');
+    this.emit(
+      'const type = typeof action === "string" ? action : String(action?.type || action?.action || "");'
+    );
+    this.emit(
+      'const data = typeof action === "object" && action !== null ? { ...action, ...payload } : payload || {};'
+    );
     this.emit('const before = hsViewportSnapshot();');
     this.emit('const basis = hsCameraBasis();');
     this.emit('const distance = hsCameraDistance();');
     this.emit('const pan = Math.max(1, distance * 0.08);');
     this.emit('let ok = true;');
-    this.emit('if (type === "pan_left") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.right, -pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.right, -pan)));');
-    this.emit('else if (type === "pan_right") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.right, pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.right, pan)));');
-    this.emit('else if (type === "pan_up") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.up, pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.up, pan)));');
-    this.emit('else if (type === "pan_down") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.up, -pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.up, -pan)));');
-    this.emit('else if (type === "zoom_in") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.forward, distance * 0.22)), hsVec3(cameraTarget));');
-    this.emit('else if (type === "zoom_out") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.forward, -distance * 0.25)), hsVec3(cameraTarget));');
-    this.emit('else if (type === "zoom_to_fit" || type === "reset_view") { holoGraphViewportState.focusId = null; hsSetCamera(Array.from(holoGraphInitialCameraPos), Array.from(holoGraphInitialCameraTarget)); }');
-    this.emit('else if (type === "focus_anchor" || type === "focus_node") ok = hsFocusObject(data);');
+    this.emit(
+      'if (type === "pan_left") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.right, -pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.right, -pan)));'
+    );
+    this.emit(
+      'else if (type === "pan_right") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.right, pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.right, pan)));'
+    );
+    this.emit(
+      'else if (type === "pan_up") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.up, pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.up, pan)));'
+    );
+    this.emit(
+      'else if (type === "pan_down") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.up, -pan)), hsAdd(hsVec3(cameraTarget), hsMul(basis.up, -pan)));'
+    );
+    this.emit(
+      'else if (type === "zoom_in") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.forward, distance * 0.22)), hsVec3(cameraTarget));'
+    );
+    this.emit(
+      'else if (type === "zoom_out") hsSetCamera(hsAdd(hsVec3(cameraPos), hsMul(basis.forward, -distance * 0.25)), hsVec3(cameraTarget));'
+    );
+    this.emit(
+      'else if (type === "zoom_to_fit" || type === "reset_view") { holoGraphViewportState.focusId = null; hsSetCamera(Array.from(holoGraphInitialCameraPos), Array.from(holoGraphInitialCameraTarget)); }'
+    );
+    this.emit(
+      'else if (type === "focus_anchor" || type === "focus_node") ok = hsFocusObject(data);'
+    );
     this.emit('else if (type === "filter_call") hsApplyFilter("call");');
     this.emit('else if (type === "filter_import") hsApplyFilter("import");');
     this.emit('else if (type === "filter_all") hsApplyFilter("all");');
-    this.emit('else if (type === "set_color_mode") hsApplyColorMode(String(data.mode || data.colorMode || "semantic"));');
-    this.emit('else if (type === "set_structure_style") hsApplyStructureStyle(String(data.style || data.structureStyle || "flow"));');
-    this.emit('else if (type === "set_label_policy") hsApplyLabelPolicy(data.policy || data.labelPolicy || "none");');
+    this.emit(
+      'else if (type === "set_color_mode") hsApplyColorMode(String(data.mode || data.colorMode || "semantic"));'
+    );
+    this.emit(
+      'else if (type === "set_structure_style") hsApplyStructureStyle(String(data.style || data.structureStyle || "flow"));'
+    );
+    this.emit(
+      'else if (type === "set_label_policy") hsApplyLabelPolicy(data.policy || data.labelPolicy || "none");'
+    );
     this.emit('else ok = false;');
     this.emit('if (!ok) return { ok: false, action: type, before, after: hsViewportSnapshot() };');
     this.emit('holoGraphViewportState.actionCount++;');
@@ -1653,7 +1816,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('return { ok: true, action: type, before, after: hsViewportSnapshot() };');
     this.dedent();
     this.emit('}');
-    this.emit('globalThis.holoscriptWebgpuViewport = { applyAction: hsApplyViewportAction, getState: hsViewportSnapshot, describeScene: hsDescribeScene, inspectObject: hsInspectObject, projectObject: hsProjectObject, projectPoint: hsProjectPoint };');
+    this.emit(
+      'globalThis.holoscriptWebgpuViewport = { applyAction: hsApplyViewportAction, getState: hsViewportSnapshot, describeScene: hsDescribeScene, inspectObject: hsInspectObject, projectObject: hsProjectObject, projectPoint: hsProjectPoint };'
+    );
     this.emit('globalThis.HoloGraphViewport = globalThis.holoscriptWebgpuViewport;');
     this.emit('document.body.dataset.holoscriptWebgpuViewport = "ready";');
     this.emit('document.body.dataset.holoscriptWebgpuInspector = "ready";');
@@ -1968,7 +2133,9 @@ export class WebGPUCompiler extends CompilerBase {
     const name = this.materialName(material);
     if (!name) return 0;
     const n = name.toLowerCase();
-    if (/hologram|holo|liquid_glass|liquid_hologram|neon|glow|emissive|aura|plasma|energy/.test(n)) {
+    if (
+      /hologram|holo|liquid_glass|liquid_hologram|neon|glow|emissive|aura|plasma|energy/.test(n)
+    ) {
       return 0.65;
     }
     if (/glass|crystal|gel|water/.test(n)) return 0.28;

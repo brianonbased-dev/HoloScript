@@ -2173,11 +2173,7 @@ export class VRTraitRegistry {
     return this.handlers.size;
   }
 
-  private setPendingAttach(
-    node: HSPlusNode,
-    traitName: VRTraitName,
-    pending: Promise<void>
-  ): void {
+  private setPendingAttach(node: HSPlusNode, traitName: VRTraitName, pending: Promise<void>): void {
     let byTrait = this.pendingAttach.get(node);
     if (!byTrait) {
       byTrait = new Map();

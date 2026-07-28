@@ -52,7 +52,10 @@ interface Target {
   preserved: (src: string) => boolean;
 }
 
-const ALL = (...res: RegExp[]) => (src: string) => res.every((r) => r.test(src));
+const ALL =
+  (...res: RegExp[]) =>
+  (src: string) =>
+    res.every((r) => r.test(src));
 
 // ── strategic portfolio (real repo seeds, ranked by D.104/D.108 value) ─────────
 const PORTFOLIO: Target[] = [
@@ -64,14 +67,25 @@ const PORTFOLIO: Target[] = [
     // does not pick the parser; the construct does (F.120: two parsers).
     format: 'holo',
     goal: 'Tighten the honesty_class derivation into a named constant instead of two duplicated ternaries, keeping every field identical.',
-    preserved: ALL(/\bprovenance_densify\b/, /ProvenanceDensifyReceipt/, /provenance_honest/, /point_cloud_densify/, /generative_fill/),
+    preserved: ALL(
+      /\bprovenance_densify\b/,
+      /ProvenanceDensifyReceipt/,
+      /provenance_honest/,
+      /point_cloud_densify/,
+      /generative_fill/
+    ),
   },
   {
     name: 'evolve_program-trait',
     path: 'packages/core/src/traits/evolve_program.hsplus',
     format: 'holo', // @trait {…} → parseHolo (see diagnostic above)
     goal: 'Collapse the declare+emit into one idiom and surface archive_size in the receipt, keeping self_ships:false and verifier_gated:true locked.',
-    preserved: ALL(/\bevolve_program\b/, /self_ships\s*:\s*false/, /verifier_gated\s*:\s*true/, /brittney-edge/),
+    preserved: ALL(
+      /\bevolve_program\b/,
+      /self_ships\s*:\s*false/,
+      /verifier_gated\s*:\s*true/,
+      /brittney-edge/
+    ),
   },
   {
     name: 'brittney-playground-statemachine',
@@ -125,10 +139,15 @@ describe('strategic portfolio seed parseability (fast, in-process)', () => {
       } catch {
         return { target: t.name, status: 'unreadable' };
       }
-      const tryParse = (fn: (s: string) => { success?: boolean; ast?: unknown; errors?: unknown[] }) => {
+      const tryParse = (
+        fn: (s: string) => { success?: boolean; ast?: unknown; errors?: unknown[] }
+      ) => {
         try {
           const r = fn(src);
-          return { ok: Boolean(r.success && r.ast) && (r.errors?.length ?? 0) === 0, errs: r.errors?.length ?? 0 };
+          return {
+            ok: Boolean(r.success && r.ast) && (r.errors?.length ?? 0) === 0,
+            errs: r.errors?.length ?? 0,
+          };
         } catch (e) {
           return { ok: false, threw: (e as Error).message.slice(0, 80) };
         }
@@ -220,7 +239,7 @@ describe.skipIf(!ENABLED)('STRATEGIC corpus accrual (local metal)', () => {
       const { receipt } = await runEvolution(
         seed,
         { goal: t.goal, generations: 1, population: 2, archiveSize: 6, proposerModel: MODEL },
-        { propose, gate: makeGate(t), onCandidate: sink },
+        { propose, gate: makeGate(t), onCandidate: sink }
       );
       if (receipt.result === 'SEED_INVALID') stats.seedInvalid++;
       stats.perTarget.push({
@@ -236,9 +255,8 @@ describe.skipIf(!ENABLED)('STRATEGIC corpus accrual (local metal)', () => {
     // Metrics: quality = pass rate; uniqueness = 1 - dedup ratio; diversity = formats hit.
     const qualityPassRate = stats.gated ? Math.round((stats.chosen / stats.gated) * 1000) / 10 : 0;
     const uniqueRatio = stats.gated ? Math.round((stats.written / stats.gated) * 1000) / 10 : 0;
-    const formatsHit = new Set(
-      stats.perTarget.filter((p) => p.seedParsed).map((p) => p.format),
-    ).size;
+    const formatsHit = new Set(stats.perTarget.filter((p) => p.seedParsed).map((p) => p.format))
+      .size;
     const summary = {
       model: MODEL,
       priorCorpusRows,
@@ -268,7 +286,7 @@ describe.skipIf(!ENABLED)('STRATEGIC corpus accrual (local metal)', () => {
       `[evolve][accrue] targets=${summary.targets} seedsParsed=${summary.seedsParsed} ` +
         `gated=${summary.gated} UNIQUE_ROWS=${summary.uniqueRowsWritten} deduped=${summary.deduped} ` +
         `| chosen/SFT=${summary.chosenSFT} rejected/DPO=${summary.rejectedDPO} ` +
-        `| quality(pass%)=${summary.qualityPassRatePct} unique%=${summary.uniqueRatioPct} formats=${summary.formatDiversity}`,
+        `| quality(pass%)=${summary.qualityPassRatePct} unique%=${summary.uniqueRatioPct} formats=${summary.formatDiversity}`
     );
   }, 1500000);
 });

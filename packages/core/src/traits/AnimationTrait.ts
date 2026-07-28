@@ -146,9 +146,7 @@ export class AnimationTrait {
     this.sm.setCrossfadeCallback((state, dur, layer, easing, pauseWhenExiting) =>
       this.crossfade(state, dur, layer, easing, pauseWhenExiting)
     );
-    this.sm.setLayerPhaseCallback(
-      (layer) => this.activeAnimations.get(layer)?.normalizedTime ?? 0
-    );
+    this.sm.setLayerPhaseCallback((layer) => this.activeAnimations.get(layer)?.normalizedTime ?? 0);
     this.sm.setLayerTransitioningCallback((layer) => Boolean(this.crossfades.get(layer)));
     this.inputBindings = (config.inputBindings ?? []).map((binding) => ({ ...binding }));
 
@@ -580,7 +578,9 @@ export class AnimationTrait {
     );
     const caveats: string[] = [];
     if (channels.length === 0) {
-      caveats.push('No resolved animation output channels; evidence covers state/input/blend inspection only.');
+      caveats.push(
+        'No resolved animation output channels; evidence covers state/input/blend inspection only.'
+      );
     } else if (!reachedRenderChannels && !reachedGpuBackedChannels) {
       caveats.push('Resolved animation outputs did not target render or GPU-backed channels.');
     }

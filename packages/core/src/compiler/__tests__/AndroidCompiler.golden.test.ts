@@ -37,7 +37,9 @@ const CLASS = 'GeneratedARScene';
 const norm = (s: string) => s.replace(/\r\n/g, '\n');
 
 describe('AndroidCompiler → golden reference app', () => {
-  const parsed = new HoloCompositionParser().parse(readFileSync(join(appDir, 'scene.holo'), 'utf8'));
+  const parsed = new HoloCompositionParser().parse(
+    readFileSync(join(appDir, 'scene.holo'), 'utf8')
+  );
   const compiler = new AndroidCompiler({ packageName: PACKAGE, className: CLASS });
 
   it('scene.holo parses through the real parser', () => {

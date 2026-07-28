@@ -35,7 +35,9 @@ const ACTIVITY = 'GeneratedXRActivity';
 const norm = (s: string) => s.replace(/\r\n/g, '\n');
 
 describe('AndroidXRCompiler → golden reference app', () => {
-  const parsed = new HoloCompositionParser().parse(readFileSync(join(appDir, 'scene.holo'), 'utf8'));
+  const parsed = new HoloCompositionParser().parse(
+    readFileSync(join(appDir, 'scene.holo'), 'utf8')
+  );
   const compiler = new AndroidXRCompiler({ packageName: PACKAGE, activityName: ACTIVITY });
 
   it('scene.holo parses through the real parser', () => {

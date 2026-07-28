@@ -364,10 +364,7 @@ function coerceNumber(v: unknown, fallback: number): number {
 function coerceString(v: unknown, fallback: string): string {
   if (typeof v !== 'string' && typeof v !== 'number') return fallback;
   let s = String(v).trim();
-  if (
-    (s.startsWith('"') && s.endsWith('"')) ||
-    (s.startsWith("'") && s.endsWith("'"))
-  ) {
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
     s = s.slice(1, -1);
   }
   return s.length > 0 ? s : fallback;
@@ -396,10 +393,7 @@ export function getAbilityDirectives(node: GameAbilityNode): AbilityDirectives {
   const p = node.properties;
 
   // cooldownMs: cooldown | cooldown_ms | cooldownMs
-  const cooldownMs = coerceNumber(
-    p['cooldown'] ?? p['cooldown_ms'] ?? p['cooldownMs'],
-    0,
-  );
+  const cooldownMs = coerceNumber(p['cooldown'] ?? p['cooldown_ms'] ?? p['cooldownMs'], 0);
 
   // manaCost: mana_cost | manaCost
   const manaCost = coerceNumber(p['mana_cost'] ?? p['manaCost'], 0);
@@ -411,26 +405,21 @@ export function getAbilityDirectives(node: GameAbilityNode): AbilityDirectives {
   const range = coerceNumber(p['range'], 0);
 
   // damageType: damage_type | damageType
-  const damageType = coerceString(
-    p['damage_type'] ?? p['damageType'],
-    'physical',
-  );
+  const damageType = coerceString(p['damage_type'] ?? p['damageType'], 'physical');
 
   // authorityEnvelope: authority | authority_envelope | authorityEnvelope
   const rawAuthority = coerceString(
     p['authority'] ?? p['authority_envelope'] ?? p['authorityEnvelope'],
-    'server',
+    'server'
   );
-  const authorityEnvelope: AbilityDirectives['authorityEnvelope'] =
-    AUTHORITY_VALUES.has(rawAuthority as AbilityDirectives['authorityEnvelope'])
-      ? (rawAuthority as AbilityDirectives['authorityEnvelope'])
-      : 'server';
+  const authorityEnvelope: AbilityDirectives['authorityEnvelope'] = AUTHORITY_VALUES.has(
+    rawAuthority as AbilityDirectives['authorityEnvelope']
+  )
+    ? (rawAuthority as AbilityDirectives['authorityEnvelope'])
+    : 'server';
 
   // castTimeMs: cast_time | cast_time_ms | castTimeMs
-  const castTimeMs = coerceNumber(
-    p['cast_time'] ?? p['cast_time_ms'] ?? p['castTimeMs'],
-    0,
-  );
+  const castTimeMs = coerceNumber(p['cast_time'] ?? p['cast_time_ms'] ?? p['castTimeMs'], 0);
 
   return {
     cooldownMs,

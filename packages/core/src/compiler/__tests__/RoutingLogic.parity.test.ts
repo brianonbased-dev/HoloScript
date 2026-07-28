@@ -69,7 +69,12 @@ interface QrContent {
 // Exactly the branching that lived in onDecoded() before this slice. It is the behavioral baseline
 // the .hs compile must preserve: world link precedence → auto-immerse or pending card; otherwise the
 // classified content drives OPEN (browser) vs a plain result card.
-function origRoute(text: string, isWorld: boolean, autoImmerse: boolean, c: QrContent | null): StateWrites {
+function origRoute(
+  text: string,
+  isWorld: boolean,
+  autoImmerse: boolean,
+  c: QrContent | null
+): StateWrites {
   if (isWorld) {
     if (autoImmerse) {
       return { enterWorldCalled: true };
@@ -134,8 +139,7 @@ function admissiblePayload(
 
 function questPayloadAdmitted(text: string, maxPayloadChars = 4096): boolean {
   const trimmed = text.trim();
-  const structuredMultiline =
-    /^BEGIN:VCARD/i.test(trimmed) || /^BEGIN:VEVENT/i.test(trimmed);
+  const structuredMultiline = /^BEGIN:VCARD/i.test(trimmed) || /^BEGIN:VEVENT/i.test(trimmed);
   const controlsSafe = [...text].every((ch) => {
     const code = ch.charCodeAt(0);
     const control = code <= 0x1f || code === 0x7f;
@@ -176,7 +180,12 @@ function questPayloadAdmitted(text: string, maxPayloadChars = 4096): boolean {
 }
 
 // The shell application (exactly the rewritten onDecoded `when (route) { … }`) over the .hs decision.
-function hsRoute(text: string, isWorld: boolean, autoImmerse: boolean, c: QrContent | null): StateWrites {
+function hsRoute(
+  text: string,
+  isWorld: boolean,
+  autoImmerse: boolean,
+  c: QrContent | null
+): StateWrites {
   const isOpen = c?.action === 'OPEN'; // c is null for world payloads → isOpen false (route ignores it)
   const intent = isWorld ? 'world' : isOpen ? 'open' : 'copy';
   const route = decideRoute(intent, autoImmerse);
@@ -233,14 +242,62 @@ interface TruthRow {
   expected: Route;
 }
 const TRUTH: TruthRow[] = [
-  { name: 'world + auto + open', isWorld: true, autoImmerse: true, isOpenAction: true, expected: 'EnterWorld' },
-  { name: 'world + auto + !open', isWorld: true, autoImmerse: true, isOpenAction: false, expected: 'EnterWorld' },
-  { name: 'world + !auto + open', isWorld: true, autoImmerse: false, isOpenAction: true, expected: 'PendingWorld' },
-  { name: 'world + !auto + !open', isWorld: true, autoImmerse: false, isOpenAction: false, expected: 'PendingWorld' },
-  { name: '!world + auto + open', isWorld: false, autoImmerse: true, isOpenAction: true, expected: 'OpenUrl' },
-  { name: '!world + auto + !open', isWorld: false, autoImmerse: true, isOpenAction: false, expected: 'ShowResult' },
-  { name: '!world + !auto + open', isWorld: false, autoImmerse: false, isOpenAction: true, expected: 'OpenUrl' },
-  { name: '!world + !auto + !open', isWorld: false, autoImmerse: false, isOpenAction: false, expected: 'ShowResult' },
+  {
+    name: 'world + auto + open',
+    isWorld: true,
+    autoImmerse: true,
+    isOpenAction: true,
+    expected: 'EnterWorld',
+  },
+  {
+    name: 'world + auto + !open',
+    isWorld: true,
+    autoImmerse: true,
+    isOpenAction: false,
+    expected: 'EnterWorld',
+  },
+  {
+    name: 'world + !auto + open',
+    isWorld: true,
+    autoImmerse: false,
+    isOpenAction: true,
+    expected: 'PendingWorld',
+  },
+  {
+    name: 'world + !auto + !open',
+    isWorld: true,
+    autoImmerse: false,
+    isOpenAction: false,
+    expected: 'PendingWorld',
+  },
+  {
+    name: '!world + auto + open',
+    isWorld: false,
+    autoImmerse: true,
+    isOpenAction: true,
+    expected: 'OpenUrl',
+  },
+  {
+    name: '!world + auto + !open',
+    isWorld: false,
+    autoImmerse: true,
+    isOpenAction: false,
+    expected: 'ShowResult',
+  },
+  {
+    name: '!world + !auto + open',
+    isWorld: false,
+    autoImmerse: false,
+    isOpenAction: true,
+    expected: 'OpenUrl',
+  },
+  {
+    name: '!world + !auto + !open',
+    isWorld: false,
+    autoImmerse: false,
+    isOpenAction: false,
+    expected: 'ShowResult',
+  },
 ];
 
 describe('Routing .hs → Kotlin emission', () => {
@@ -251,10 +308,10 @@ describe('Routing .hs → Kotlin emission', () => {
     expect(kt).toContain('private object Routing {');
     expect(kt).toContain('sealed interface Uncertain<out T>');
     expect(kt).toContain('data class ClassifiedIntent(val inferred: Uncertain<String>)');
-    expect(kt).toContain('enum class Route { EnterWorld, PendingWorld, OpenUrl, ShowResult, Deny }');
     expect(kt).toContain(
-      'fun decideRoute(intent: String, autoImmerse: Boolean): Route {'
+      'enum class Route { EnterWorld, PendingWorld, OpenUrl, ShowResult, Deny }'
     );
+    expect(kt).toContain('fun decideRoute(intent: String, autoImmerse: Boolean): Route {');
     expect(kt).toContain('fun resolveIntent(intent: ClassifiedIntent): String');
     expect(kt).toContain('(intent.inferred).orElse { "deny" }');
     expect(kt).toContain('return Route.EnterWorld');
@@ -277,7 +334,9 @@ describe('Routing .hs → Kotlin emission', () => {
     );
     expect(kt).toContain('!payloadAdmitted -> Routing.unknown("malformed-payload")');
     expect(kt).toContain('val isOpen = c?.action == QrAction.OPEN');
-    expect(kt).toContain('val intent = Routing.resolveIntent(Routing.ClassifiedIntent(intentCarrier))');
+    expect(kt).toContain(
+      'val intent = Routing.resolveIntent(Routing.ClassifiedIntent(intentCarrier))'
+    );
     expect(kt).toContain('val route = Routing.decideRoute(intent, WorldPortal.autoImmerse)');
     expect(kt).toContain('when (route) {');
     expect(kt).toContain('Routing.Route.EnterWorld -> {');

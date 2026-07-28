@@ -484,11 +484,7 @@ export class ColyseusCompiler extends CompilerBase {
     return (p.startsWith('/') ? '/' : '') + out.join('/');
   }
 
-  private async ingestHsAbilities(
-    text: string,
-    file: string,
-    warnings: string[]
-  ): Promise<void> {
+  private async ingestHsAbilities(text: string, file: string, warnings: string[]): Promise<void> {
     try {
       const { HoloScriptCodeParser } = await import('../HoloScriptCodeParser');
       const parser = new HoloScriptCodeParser();
@@ -605,9 +601,7 @@ export class ColyseusCompiler extends CompilerBase {
     const brainRef =
       (npc as { brain?: { brainRef?: string } }).brain?.brainRef ??
       this.valueToString(prop('brain'), '');
-    const posSource = npc.position
-      ? (npc.position as unknown as HoloValue)
-      : prop('position');
+    const posSource = npc.position ? (npc.position as unknown as HoloValue) : prop('position');
     const pos = this.valueToVector(posSource, {
       x: this.valueToNumber(prop('x'), 0),
       y: this.valueToNumber(prop('y'), 0),
@@ -676,8 +670,11 @@ export class ColyseusCompiler extends CompilerBase {
 
   private resolveTickModel(composition: HoloComposition): TickModel {
     const tickRate =
-      this.readRootTraitNumber(composition, ['tick_model', 'tick_rate'], ['tick_rate', 'hz', 'rate']) ??
-      this.extractScalarTrait(composition, 'tick_rate', 'hz', 20);
+      this.readRootTraitNumber(
+        composition,
+        ['tick_model', 'tick_rate'],
+        ['tick_rate', 'hz', 'rate']
+      ) ?? this.extractScalarTrait(composition, 'tick_rate', 'hz', 20);
     return {
       tickRate: tickRate > 0 ? tickRate : 20,
       // Deterministic seed from the room name → reproducible server PRNG.
@@ -759,7 +756,7 @@ export class ColyseusCompiler extends CompilerBase {
       const stats = ability.stats ?? {};
       out.push({
         name: ability.name,
-        cooldownMs: Math.round((this.numOr(stats.cooldown, 0)) * 1000),
+        cooldownMs: Math.round(this.numOr(stats.cooldown, 0) * 1000),
         gcdMs: 0,
         manaCost: this.numOr(stats.manaCost, 0),
         range: this.numOr(stats.range, 0),
@@ -836,8 +833,12 @@ export class ColyseusCompiler extends CompilerBase {
         Boolean((decl.traits ?? {})['local_llm_brain']);
 
       // P1.9 — extract @verbal_fingerprint and @autonomous_agenda from generic trait bag.
-      const verbalFingerprint = this.extractVerbalFingerprint((decl.traits ?? {})['verbal_fingerprint']);
-      const autonomousAgenda = this.extractAutonomousAgenda((decl.traits ?? {})['autonomous_agenda']);
+      const verbalFingerprint = this.extractVerbalFingerprint(
+        (decl.traits ?? {})['verbal_fingerprint']
+      );
+      const autonomousAgenda = this.extractAutonomousAgenda(
+        (decl.traits ?? {})['autonomous_agenda']
+      );
 
       // P2.1 — @boss marks a multi-phase encounter: state changes emit a
       // boss_phase_transition receipt + broadcast (regular NPC FSM churn does not).
@@ -847,7 +848,10 @@ export class ColyseusCompiler extends CompilerBase {
       // Extract @waypoints — each element should be a [x,y,z] numeric triple.
       const rawWaypoints: unknown[] = Array.isArray(decl.waypoints) ? decl.waypoints : [];
       const waypoints: [number, number, number][] = rawWaypoints
-        .filter((wp): wp is number[] => Array.isArray(wp) && wp.length >= 3 && wp.every((v) => typeof v === 'number'))
+        .filter(
+          (wp): wp is number[] =>
+            Array.isArray(wp) && wp.length >= 3 && wp.every((v) => typeof v === 'number')
+        )
         .map((wp) => [wp[0], wp[1], wp[2]]);
 
       out.push({
@@ -886,7 +890,9 @@ export class ColyseusCompiler extends CompilerBase {
     for (const layer of layers) {
       const questId = layer.predicate?.questId ?? '';
       if (!questId) {
-        this.errors.push(`world_layer '${layer.name}' has no quest predicate (requires_quest/forbids_quest).`);
+        this.errors.push(
+          `world_layer '${layer.name}' has no quest predicate (requires_quest/forbids_quest).`
+        );
         continue;
       }
       if (!declaredQuests.has(questId)) {
@@ -935,7 +941,8 @@ export class ColyseusCompiler extends CompilerBase {
 
     let field: ColyseusBrainGuard['field'];
     if (lhs === 'hp' || lhs === 'hp_ratio' || lhs === 'health') field = 'hp';
-    else if (lhs === 'timer' || lhs === 'time' || lhs === 'phase_time' || lhs === 'enrage') field = 'timer';
+    else if (lhs === 'timer' || lhs === 'time' || lhs === 'phase_time' || lhs === 'enrage')
+      field = 'timer';
     else return null; // unknown LHS field (single-file scope)
 
     let value: number;
@@ -1003,8 +1010,11 @@ export class ColyseusCompiler extends CompilerBase {
   private foldAbilityDirectives(node: GameAbilityNode): Record<string, unknown> {
     const merged: Record<string, unknown> = { ...(node.properties ?? {}) };
     const directives =
-      (node as { directives?: Array<{ type?: string; name?: string; config?: Record<string, unknown> }> })
-        .directives ?? [];
+      (
+        node as {
+          directives?: Array<{ type?: string; name?: string; config?: Record<string, unknown> }>;
+        }
+      ).directives ?? [];
     for (const dir of directives) {
       if (dir.type !== 'trait' || !dir.name) continue;
       const raw = dir.config?.value ?? dir.config?.[dir.name];
@@ -1091,10 +1101,7 @@ export class ColyseusCompiler extends CompilerBase {
   private findEventHandler(logic: HoloLogic, eventName: string): HoloEventHandler | null {
     return (
       logic.handlers.find(
-        (h) =>
-          h.event === eventName ||
-          h.event === `on_${eventName}` ||
-          h.event.includes(eventName)
+        (h) => h.event === eventName || h.event === `on_${eventName}` || h.event.includes(eventName)
       ) ?? null
     );
   }
@@ -1378,8 +1385,12 @@ export class ColyseusCompiler extends CompilerBase {
     this.push(`    this.state.rngState = RNG_SEED;`);
     this.push(``);
     this.push(`    // Route real network client messages to the authoritative dispatcher.`);
-    this.push(`    // (catch-all '*' handler — without this no socket message reaches the server.)`);
-    this.push(`    this.onMessage('*', (client: Client, type: string | number, message: unknown) => {`);
+    this.push(
+      `    // (catch-all '*' handler — without this no socket message reaches the server.)`
+    );
+    this.push(
+      `    this.onMessage('*', (client: Client, type: string | number, message: unknown) => {`
+    );
     this.push(`      this.dispatchClientMessage(client, String(type), message);`);
     this.push(`    });`);
     this.push(``);
@@ -1399,7 +1410,9 @@ export class ColyseusCompiler extends CompilerBase {
         this.push(`    ${v}.maxHp = ${npc.hp};`);
         this.push(`    ${v}.faction = ${this.jsString(npc.faction)};`);
         this.push(`    ${v}.brainType = ${this.jsString(npc.brainType)};`);
-        this.push(`    ${v}.brainState = (BRAIN_REGISTRY[${this.jsString(npc.brainType)}]?.initialState) ?? 'idle';`);
+        this.push(
+          `    ${v}.brainState = (BRAIN_REGISTRY[${this.jsString(npc.brainType)}]?.initialState) ?? 'idle';`
+        );
         this.push(`    this.state.npcs.set(${id}, ${v});`);
         this.push(`    this.initializeBrain(${v});`);
       }
@@ -1497,7 +1510,9 @@ export class ColyseusCompiler extends CompilerBase {
     this.push(`        break;`);
     this.push(`      }`);
     this.push(`      case 'chat': {`);
-    this.push(`        this.broadcast('chat', { from: client.sessionId, text: message }, { except: client });`);
+    this.push(
+      `        this.broadcast('chat', { from: client.sessionId, text: message }, { except: client });`
+    );
     this.push(`        break;`);
     this.push(`      }`);
     if (this.abilities.length > 0) {
@@ -1526,12 +1541,16 @@ export class ColyseusCompiler extends CompilerBase {
 
     // ── handleMove — anti-speedhack validation + receipt ──────────────────
     this.push(`  // Server-authoritative movement validation (rejects speedhack/teleport).`);
-    this.push(`  protected handleMove(client: Client, player: PlayerState, message: unknown): void {`);
+    this.push(
+      `  protected handleMove(client: Client, player: PlayerState, message: unknown): void {`
+    );
     this.push(`    const data = message as { x?: number; y?: number; z?: number };`);
     this.push(`    const nx = typeof data.x === 'number' ? data.x : player.x;`);
     this.push(`    const ny = typeof data.y === 'number' ? data.y : player.y;`);
     this.push(`    const nz = typeof data.z === 'number' ? data.z : player.z;`);
-    this.push(`    const elapsedTicks = Math.max(1, (this.state.tickCount - player.lastMoveTick) >>> 0);`);
+    this.push(
+      `    const elapsedTicks = Math.max(1, (this.state.tickCount - player.lastMoveTick) >>> 0);`
+    );
     this.push(`    const maxDist = MAX_MOVE_SPEED * (elapsedTicks / TICK_RATE) + MOVE_EPSILON;`);
     this.push(`    const dx = nx - player.x, dy = ny - player.y, dz = nz - player.z;`);
     this.push(`    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);`);
@@ -1554,7 +1573,9 @@ export class ColyseusCompiler extends CompilerBase {
     if (this.abilities.length > 0) {
       this.push(`  // Server-authoritative ability cast: validates GCD, cooldown, range, mana`);
       this.push(`  // against ABILITY_REGISTRY before applying. Every outcome is receipted.`);
-      this.push(`  protected handleCast(client: Client, player: PlayerState, message: unknown): void {`);
+      this.push(
+        `  protected handleCast(client: Client, player: PlayerState, message: unknown): void {`
+      );
       this.push(`    const data = message as { ability?: string; target?: string };`);
       this.push(`    const abilityId = typeof data.ability === 'string' ? data.ability : '';`);
       this.push(`    const cfg = ABILITY_REGISTRY[abilityId];`);
@@ -1567,18 +1588,24 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`    };`);
       this.push(`    if (!cfg) { reject('unknown_ability'); return; }`);
       this.push(`    // Global cooldown gate`);
-      this.push(`    if (this.state.tickCount < player.gcdUntilTick) { reject('gcd_active'); return; }`);
+      this.push(
+        `    if (this.state.tickCount < player.gcdUntilTick) { reject('gcd_active'); return; }`
+      );
       this.push(`    // Per-ability cooldown gate`);
       this.push(`    const last = player.cooldowns[abilityId] ?? -1e9;`);
       this.push(`    const cdTicks = (cfg.cooldownMs / 1000) * TICK_RATE;`);
-      this.push(`    if (this.state.tickCount - last < cdTicks) { reject('on_cooldown'); return; }`);
+      this.push(
+        `    if (this.state.tickCount - last < cdTicks) { reject('on_cooldown'); return; }`
+      );
       this.push(`    // Mana gate`);
       this.push(`    if (player.mana < cfg.manaCost) { reject('insufficient_mana'); return; }`);
       this.push(`    // Range gate (against a named target player)`);
       this.push(`    if (cfg.range > 0 && data.target) {`);
       this.push(`      const tgt = this.state.players.get(data.target);`);
       this.push(`      if (tgt) {`);
-      this.push(`        const dx = tgt.x - player.x, dy = tgt.y - player.y, dz = tgt.z - player.z;`);
+      this.push(
+        `        const dx = tgt.x - player.x, dy = tgt.y - player.y, dz = tgt.z - player.z;`
+      );
       this.push(`        if (Math.sqrt(dx * dx + dy * dy + dz * dz) > cfg.range + MOVE_EPSILON) {`);
       this.push(`          reject('out_of_range'); return;`);
       this.push(`        }`);
@@ -1587,12 +1614,16 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`    // Accept: spend resources, set cooldowns, receipt, broadcast`);
       this.push(`    player.mana -= cfg.manaCost;`);
       this.push(`    player.cooldowns[abilityId] = this.state.tickCount;`);
-      this.push(`    player.gcdUntilTick = this.state.tickCount + Math.ceil((cfg.gcdMs / 1000) * TICK_RATE);`);
+      this.push(
+        `    player.gcdUntilTick = this.state.tickCount + Math.ceil((cfg.gcdMs / 1000) * TICK_RATE);`
+      );
       this.push(`    this.recordGameEvent({`);
       this.push(`      kind: 'ability_cast', actorSessionId: client.sessionId,`);
       this.push(`      targetSessionId: data.target, abilityId, validated: true,`);
       this.push(`    });`);
-      this.push(`    this.broadcast('cast', { caster: client.sessionId, ability: abilityId, target: data.target ?? null });`);
+      this.push(
+        `    this.broadcast('cast', { caster: client.sessionId, ability: abilityId, target: data.target ?? null });`
+      );
       this.push(`  }`);
       this.push(``);
     }
@@ -1600,7 +1631,9 @@ export class ColyseusCompiler extends CompilerBase {
     // ── rollLoot — server-authoritative deterministic loot (P1.6) ─────────
     if (this.lootTables.length > 0) {
       this.push(`  // Server-rolled loot using the deterministic per-room PRNG (dupe-proof).`);
-      this.push(`  protected rollLoot(tableName: string): Array<{ item: string; qty: string | number }> {`);
+      this.push(
+        `  protected rollLoot(tableName: string): Array<{ item: string; qty: string | number }> {`
+      );
       this.push(`    const table = LOOT_TABLES[tableName];`);
       this.push(`    if (!table) return [];`);
       this.push(`    const drops: Array<{ item: string; qty: string | number }> = [];`);
@@ -1612,7 +1645,9 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`      let r = this.nextRandom() * total;`);
       this.push(`      for (const e of table.entries) {`);
       this.push(`        r -= e.weight;`);
-      this.push(`        if (r <= 0) { if (e.itemId) drops.push({ item: e.itemId, qty: e.qty }); break; }`);
+      this.push(
+        `        if (r <= 0) { if (e.itemId) drops.push({ item: e.itemId, qty: e.qty }); break; }`
+      );
       this.push(`      }`);
       this.push(`    }`);
       this.push(`    return drops;`);
@@ -1645,15 +1680,14 @@ export class ColyseusCompiler extends CompilerBase {
       for (const ability of abilitiesWithFormula) {
         const f = ability.damageFormula!;
         const fnName = `rollDamage_${ability.name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-        const resistExpr = f.resistSchool
-          ? `(1 - Math.max(0, Math.min(1, targetResist)))`
-          : `1`;
+        const resistExpr = f.resistSchool ? `(1 - Math.max(0, Math.min(1, targetResist)))` : `1`;
         this.push(
           `  /**`,
           `   * Server-authoritative damage roll for ability '${ability.name}'.`,
           `   * Formula: base=${f.base}, scaling=${f.scaling}, ` +
             `critMultiplier=${f.critMultiplier}, critChance=${f.critChance}` +
-            (f.resistSchool ? `, resistSchool=${f.resistSchool}` : '') + `.`,
+            (f.resistSchool ? `, resistSchool=${f.resistSchool}` : '') +
+            `.`,
           `   * Uses the room's seeded PRNG — outcome is deterministic given the same RNG state.`,
           `   */`,
           `  protected ${fnName}(`,
@@ -1678,7 +1712,9 @@ export class ColyseusCompiler extends CompilerBase {
 
     // ── Area-of-interest query helpers (P1.1) ─────────────────────────────
     this.push(`  // Entities within the AOI bubble of a player (interest management).`);
-    this.push(`  protected playersInAOI(origin: PlayerState, radius = AOI_RADIUS): PlayerState[] {`);
+    this.push(
+      `  protected playersInAOI(origin: PlayerState, radius = AOI_RADIUS): PlayerState[] {`
+    );
     this.push(`    const out: PlayerState[] = [];`);
     this.push(`    const r2 = radius * radius;`);
     this.push(`    this.state.players.forEach((p) => {`);
@@ -1703,15 +1739,21 @@ export class ColyseusCompiler extends CompilerBase {
 
     // ── World-layer phasing (P2.4) — quest-gated content visibility ───────
     if (this.worldLayers.length > 0) {
-      this.push(`  // Server-authoritative quest completion → recompute the player's active phases.`);
-      this.push(`  protected handleQuestComplete(client: Client, player: PlayerState, message: unknown): void {`);
+      this.push(
+        `  // Server-authoritative quest completion → recompute the player's active phases.`
+      );
+      this.push(
+        `  protected handleQuestComplete(client: Client, player: PlayerState, message: unknown): void {`
+      );
       this.push(`    const data = message as { questId?: string };`);
       this.push(`    const questId = typeof data.questId === 'string' ? data.questId : '';`);
       this.push(`    if (!questId || player.questFlags.has(questId)) return;`);
       this.push(`    player.questFlags.add(questId);`);
       this.push(`    this.phaseEval(player);`);
       this.push(`    this.recordGameEvent({`);
-      this.push(`      kind: 'quest_complete', actorSessionId: client.sessionId, validated: true, reason: questId,`);
+      this.push(
+        `      kind: 'quest_complete', actorSessionId: client.sessionId, validated: true, reason: questId,`
+      );
       this.push(`    });`);
       this.push(`    client.send('phase_update', { phases: Array.from(player.activePhases) });`);
       this.push(`  }`);
@@ -1768,12 +1810,16 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`    const timerSec = npc.ticksSincePhaseEntry / TICK_RATE;`);
       this.push(`    const prevState = npc.brainState;`);
       this.push(``);
-      this.push(`    // Universal flee reflex overrides all brain types when HP falls below threshold.`);
+      this.push(
+        `    // Universal flee reflex overrides all brain types when HP falls below threshold.`
+      );
       this.push(`    if (brain.fleeThreshold > 0 && hpFrac < brain.fleeThreshold) {`);
       this.push(`      npc.brainState = 'flee';`);
       this.push(`    } else if (brain.brainType === 'decision_tree') {`);
       this.push(`      // Decision tree: evaluate all states top-down in declared priority order;`);
-      this.push(`      // enter the FIRST state whose entry guard passes (re-evaluated every tick).`);
+      this.push(
+        `      // enter the FIRST state whose entry guard passes (re-evaluated every tick).`
+      );
       this.push(`      // State[0] = highest priority, last state = unconditional default.`);
       this.push(`      // The entry guard is the first outgoing transition's guard.`);
       this.push(`      for (const s of brain.states) {`);
@@ -1794,17 +1840,23 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`        }`);
       this.push(`      }`);
       this.push(`    } else {`);
-      this.push(`      // behavior_tree / neural / default: FSM — evaluate current state's outgoing transitions.`);
+      this.push(
+        `      // behavior_tree / neural / default: FSM — evaluate current state's outgoing transitions.`
+      );
       this.push(`      const state = brain.states.find((s) => s.name === npc.brainState);`);
       this.push(`      if (state) {`);
       this.push(`        for (const tr of state.transitions) {`);
-      this.push(`          if (this.brainGuardPasses(tr.guard, hpFrac, timerSec)) { npc.brainState = tr.to; break; }`);
+      this.push(
+        `          if (this.brainGuardPasses(tr.guard, hpFrac, timerSec)) { npc.brainState = tr.to; break; }`
+      );
       this.push(`        }`);
       this.push(`      }`);
       this.push(`    }`);
       this.push(``);
       this.push(`    // P2.1 — phase/state transition: reset the phase timer; for bosses, the`);
-      this.push(`    // transition is an authoritative, auditable event (receipt + client broadcast).`);
+      this.push(
+        `    // transition is an authoritative, auditable event (receipt + client broadcast).`
+      );
       this.push(`    if (npc.brainState !== prevState) {`);
       this.push(`      npc.ticksSincePhaseEntry = 0;`);
       this.push(`      if (brain.isBoss) {`);
@@ -1812,13 +1864,19 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`          kind: 'boss_phase_transition', actorSessionId: npc.id,`);
       this.push(`          validated: true, reason: \`\${prevState}->\${npc.brainState}\`,`);
       this.push(`        });`);
-      this.push(`        this.broadcast('boss_phase', { boss: npc.id, phase: npc.brainState, from: prevState });`);
+      this.push(
+        `        this.broadcast('boss_phase', { boss: npc.id, phase: npc.brainState, from: prevState });`
+      );
       this.push(`      }`);
       this.push(`    }`);
       this.push(``);
-      this.push(`    if (npc.brainState === 'flee') { this.applyBrainAction(npc, 'flee'); return; }`);
+      this.push(
+        `    if (npc.brainState === 'flee') { this.applyBrainAction(npc, 'flee'); return; }`
+      );
       this.push(``);
-      this.push(`    // LOD-gated, budget-gated local-LLM decision (P1.4) — only LLM / neural brains,`);
+      this.push(
+        `    // LOD-gated, budget-gated local-LLM decision (P1.4) — only LLM / neural brains,`
+      );
       this.push(`    // only near a player, only within the per-NPC call budget.`);
       this.push(`    if (brain.isLLM && this.npcIsNearPlayer(npc) &&`);
       this.push(`        npc.brainTick - npc.lastLlmTick >= LLM_BUDGET_TICKS) {`);
@@ -1859,34 +1917,58 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`    return near;`);
       this.push(`  }`);
       this.push(``);
-      this.push(`  // Local-LLM decision via the Jetson endpoint (env-resolved, never a literal IP).`);
-      this.push(`  // No-op when JETSON_OLLAMA_URL is unset so the server runs cloud-free by default.`);
-      this.push(`  // P1.9: system prompt enriched with @verbal_fingerprint (tone, forbidden/required`);
-      this.push(`  // phrases) and @autonomous_agenda (daily goals) baked from the .hsplus brain decl.`);
-      this.push(`  // @provider_policy { fallback } is tried when the primary endpoint is unavailable.`);
+      this.push(
+        `  // Local-LLM decision via the Jetson endpoint (env-resolved, never a literal IP).`
+      );
+      this.push(
+        `  // No-op when JETSON_OLLAMA_URL is unset so the server runs cloud-free by default.`
+      );
+      this.push(
+        `  // P1.9: system prompt enriched with @verbal_fingerprint (tone, forbidden/required`
+      );
+      this.push(
+        `  // phrases) and @autonomous_agenda (daily goals) baked from the .hsplus brain decl.`
+      );
+      this.push(
+        `  // @provider_policy { fallback } is tried when the primary endpoint is unavailable.`
+      );
       this.push(`  protected async decideLLM(npc: NpcState): Promise<void> {`);
       this.push(`    const brain = BRAIN_REGISTRY[npc.brainType];`);
       this.push(`    if (!brain) return;`);
-      this.push(`    // Resolve endpoint: primary env-var, then @provider_policy fallback, then give up.`);
+      this.push(
+        `    // Resolve endpoint: primary env-var, then @provider_policy fallback, then give up.`
+      );
       this.push(`    const base = process.env[JETSON_OLLAMA_ENV]`);
-      this.push(`      ?? (brain.providerFallback ? process.env[brain.providerFallback] ?? null : null);`);
+      this.push(
+        `      ?? (brain.providerFallback ? process.env[brain.providerFallback] ?? null : null);`
+      );
       this.push(`    if (!base) return;`);
       this.push(`    try {`);
-      this.push(`      // ── Build system prompt (P1.9: verbal fingerprint + autonomous agenda) ──`);
-      this.push(`      const basePart = \`You are \${brain.personality} NPC '\${npc.id}' (faction \${npc.faction}). State: \${npc.brainState}, hp \${npc.hp}/\${npc.maxHp}.\`;`);
+      this.push(
+        `      // ── Build system prompt (P1.9: verbal fingerprint + autonomous agenda) ──`
+      );
+      this.push(
+        `      const basePart = \`You are \${brain.personality} NPC '\${npc.id}' (faction \${npc.faction}). State: \${npc.brainState}, hp \${npc.hp}/\${npc.maxHp}.\`;`
+      );
       this.push(`      const tonePart = brain.verbalFingerprint`);
       this.push(`        ? \` Speak in a \${brain.verbalFingerprint.tone} tone.\``);
       this.push(`        : '';`);
       this.push(`      const forbidPart = brain.verbalFingerprint?.forbiddenPhrases.length`);
-      this.push(`        ? \` Never say: \${brain.verbalFingerprint.forbiddenPhrases.map((p) => \`"\${p}"\`).join(', ')}.\``);
+      this.push(
+        `        ? \` Never say: \${brain.verbalFingerprint.forbiddenPhrases.map((p) => \`"\${p}"\`).join(', ')}.\``
+      );
       this.push(`        : '';`);
       this.push(`      const requirePart = brain.verbalFingerprint?.requiredPhrases.length`);
-      this.push(`        ? \` Include at least one of: \${brain.verbalFingerprint.requiredPhrases.map((p) => \`"\${p}"\`).join(', ')}.\``);
+      this.push(
+        `        ? \` Include at least one of: \${brain.verbalFingerprint.requiredPhrases.map((p) => \`"\${p}"\`).join(', ')}.\``
+      );
       this.push(`        : '';`);
       this.push(`      const goalPart = brain.autonomousAgenda?.goals.length`);
       this.push(`        ? \` Your current goals: \${brain.autonomousAgenda.goals.join('; ')}.\``);
       this.push(`        : '';`);
-      this.push(`      const systemContent = \`\${basePart}\${tonePart}\${forbidPart}\${requirePart}\${goalPart} Reply with ONE action verb.\`;`);
+      this.push(
+        `      const systemContent = \`\${basePart}\${tonePart}\${forbidPart}\${requirePart}\${goalPart} Reply with ONE action verb.\`;`
+      );
       this.push(`      const resp = await fetch(\`\${base}/api/chat\`, {`);
       this.push(`        method: 'POST',`);
       this.push(`        headers: { 'Content-Type': 'application/json' },`);
@@ -1900,15 +1982,21 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`        }),`);
       this.push(`      });`);
       this.push(`      const data = (await resp.json()) as { message?: { content?: string } };`);
-      this.push(`      const verb = (data.message?.content ?? '').trim().split(/\\s+/)[0]?.toLowerCase();`);
+      this.push(
+        `      const verb = (data.message?.content ?? '').trim().split(/\\s+/)[0]?.toLowerCase();`
+      );
       this.push(`      if (verb) this.applyBrainAction(npc, verb);`);
       this.push(`    } catch {`);
       this.push(`      // Edge brain unreachable — fall back to FSM next tick.`);
       this.push(`    }`);
       this.push(`  }`);
       this.push(``);
-      this.push(`  // Default brain action dispatch — covers the most common verbs from .hsplus state actions.`);
-      this.push(`  // Override applyBrainAction (or onUnknownBrainAction for custom verbs) in your room subclass.`);
+      this.push(
+        `  // Default brain action dispatch — covers the most common verbs from .hsplus state actions.`
+      );
+      this.push(
+        `  // Override applyBrainAction (or onUnknownBrainAction for custom verbs) in your room subclass.`
+      );
       this.push(`  protected applyBrainAction(npc: NpcState, action: string): void {`);
       this.push(`    const brain = BRAIN_REGISTRY[npc.brainType];`);
       this.push(`    const verb = action.toLowerCase().replace(/[-_ ]/g, '');`);
@@ -1923,7 +2011,9 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`        // Advance along npc.patrolWaypoints at brain.patrolSpeed (units/tick).`);
       this.push(`        // Populate npc.patrolWaypoints in your initializeBrain() override.`);
       this.push(`        if (!brain || npc.patrolWaypoints.length === 0) break;`);
-      this.push(`        const wp = npc.patrolWaypoints[npc.patrolIndex % npc.patrolWaypoints.length];`);
+      this.push(
+        `        const wp = npc.patrolWaypoints[npc.patrolIndex % npc.patrolWaypoints.length];`
+      );
       this.push(`        const pdx = wp[0] - npc.x, pdy = wp[1] - npc.y, pdz = wp[2] - npc.z;`);
       this.push(`        const pd = Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz);`);
       this.push(`        const spd = brain.patrolSpeed;`);
@@ -1944,7 +2034,9 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`        // Move away from nearest player at patrolSpeed.`);
       this.push(`        const target = this.findNearestPlayer(npc);`);
       this.push(`        if (!target) break;`);
-      this.push(`        const fdx = npc.x - target.x, fdy = npc.y - target.y, fdz = npc.z - target.z;`);
+      this.push(
+        `        const fdx = npc.x - target.x, fdy = npc.y - target.y, fdz = npc.z - target.z;`
+      );
       this.push(`        const fd = Math.sqrt(fdx * fdx + fdy * fdy + fdz * fdz) || 1;`);
       this.push(`        const fspd = brain?.patrolSpeed ?? 1;`);
       this.push(`        npc.x += (fdx / fd) * fspd;`);
@@ -1961,11 +2053,15 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`        // Move toward nearest player; deal melee damage when in range.`);
       this.push(`        const target = this.findNearestPlayer(npc);`);
       this.push(`        if (!target) break;`);
-      this.push(`        const adx = target.x - npc.x, ady = target.y - npc.y, adz = target.z - npc.z;`);
+      this.push(
+        `        const adx = target.x - npc.x, ady = target.y - npc.y, adz = target.z - npc.z;`
+      );
       this.push(`        const ad = Math.sqrt(adx * adx + ady * ady + adz * adz);`);
       this.push(`        const aspd = brain?.patrolSpeed ?? 1;`);
       this.push(`        const MELEE = 2; // world-units; override for your scale`);
-      this.push(`        if (ad <= MELEE && (verb === 'attack' || verb === 'fight' || verb === 'combat')) {`);
+      this.push(
+        `        if (ad <= MELEE && (verb === 'attack' || verb === 'fight' || verb === 'combat')) {`
+      );
       this.push(`          const dmg = 10;`);
       this.push(`          target.hp = Math.max(0, target.hp - dmg);`);
       this.push(`          this.recordGameEvent({`);
@@ -1973,7 +2069,9 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`            targetSessionId: target.id, amount: dmg, validated: true,`);
       this.push(`          });`);
       this.push(`          if (target.hp <= 0) {`);
-      this.push(`            this.recordGameEvent({ kind: 'player_killed', actorSessionId: npc.id,`);
+      this.push(
+        `            this.recordGameEvent({ kind: 'player_killed', actorSessionId: npc.id,`
+      );
       this.push(`              targetSessionId: target.id, validated: true });`);
       this.push(`          }`);
       this.push(`        } else if (ad > aspd) {`);
@@ -2004,7 +2102,9 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`      case 'die':`);
       this.push(`      case 'death':`);
       this.push(`        npc.isAlive = false;`);
-      this.push(`        this.recordGameEvent({ kind: 'npc_killed', actorSessionId: npc.id, validated: true });`);
+      this.push(
+        `        this.recordGameEvent({ kind: 'npc_killed', actorSessionId: npc.id, validated: true });`
+      );
       this.push(`        break;`);
       this.push(``);
       this.push(`      default:`);
@@ -2012,7 +2112,9 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`    }`);
       this.push(`  }`);
       this.push(``);
-      this.push(`  // Override to handle domain-specific action verbs not covered by the defaults above.`);
+      this.push(
+        `  // Override to handle domain-specific action verbs not covered by the defaults above.`
+      );
       this.push(`  protected onUnknownBrainAction(npc: NpcState, action: string): void {`);
       this.push(`    void npc; void action;`);
       this.push(`  }`);
@@ -2045,7 +2147,9 @@ export class ColyseusCompiler extends CompilerBase {
     this.push(`  }): void {`);
     this.push(`    const receipt = {`);
     this.push(`      schema: GAME_EVENT_RECEIPT_SCHEMA,`);
-    this.push(`      receiptId: \`\${this.roomId}:\${this.state.tickCount}:\${ev.kind}:\${ev.actorSessionId}\`,`);
+    this.push(
+      `      receiptId: \`\${this.roomId}:\${this.state.tickCount}:\${ev.kind}:\${ev.actorSessionId}\`,`
+    );
     this.push(`      roomId: this.roomId,`);
     this.push(`      tick: this.state.tickCount,`);
     this.push(`      kind: ev.kind,`);
@@ -2075,7 +2179,9 @@ export class ColyseusCompiler extends CompilerBase {
 
     // ── Logic handler stubs ───────────────────────────────────────────────
     if (joinHandler) {
-      this.push(`  protected handlePlayerJoin(client: Client, player: PlayerState, options: Record<string, unknown>): void {`);
+      this.push(
+        `  protected handlePlayerJoin(client: Client, player: PlayerState, options: Record<string, unknown>): void {`
+      );
       this.push(`    void client; void player; void options;`);
       this.push(`  }`);
       this.push(``);
@@ -2087,7 +2193,9 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(``);
     }
     if (actionHandler) {
-      this.push(`  protected handlePlayerAction(client: Client, player: PlayerState, message: unknown): void {`);
+      this.push(
+        `  protected handlePlayerAction(client: Client, player: PlayerState, message: unknown): void {`
+      );
       this.push(`    void client; void player; void message;`);
       this.push(`  }`);
       this.push(``);
@@ -2190,9 +2298,7 @@ export class ColyseusCompiler extends CompilerBase {
   }
 
   private nodeHasAnyTrait(node: HoloObjectDecl, traitNames: ReadonlySet<string>): boolean {
-    return node.traits.some((trait) =>
-      traitNames.has(this.cleanTraitName(String(trait.name)))
-    );
+    return node.traits.some((trait) => traitNames.has(this.cleanTraitName(String(trait.name))));
   }
 
   private getTrait(node: HoloObjectDecl, traitName: string): HoloObjectTrait | undefined {

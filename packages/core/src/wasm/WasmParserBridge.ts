@@ -370,7 +370,14 @@ export class WasmParserBridge {
       // next build) hard-fails "Module not found" when the Rust WASM artifact
       // isn't built in its context (Node-only docker images skip the Rust
       // workspace). A computed specifier keeps this a runtime-only optional load.
-      const wasmRelPath = ['..', '..', '..', 'compiler-wasm', 'pkg-node', 'holoscript_wasm.js'].join('/');
+      const wasmRelPath = [
+        '..',
+        '..',
+        '..',
+        'compiler-wasm',
+        'pkg-node',
+        'holoscript_wasm.js',
+      ].join('/');
       const moduleUrl = new URL(wasmRelPath, import.meta.url);
       const imported = (await import(/* @vite-ignore */ moduleUrl.href)) as Record<string, unknown>;
       const candidate = hasWasmExports(imported.default) ? imported.default : imported;
@@ -423,9 +430,7 @@ class WasmHsplusGrammar implements HsplusGrammar {
     const parsed = readJson(this.wasm.parse(source)) as Record<string, unknown>;
     const errors = normalizeHsplusGrammarErrors(parsed.errors);
     const singleError =
-      typeof parsed.error === 'string'
-        ? [{ message: parsed.error, line: 0, column: 0 }]
-        : [];
+      typeof parsed.error === 'string' ? [{ message: parsed.error, line: 0, column: 0 }] : [];
 
     return {
       success: errors.length === 0 && singleError.length === 0,

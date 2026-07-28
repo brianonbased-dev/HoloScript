@@ -6,7 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { HoloCompositionParser } from '../HoloCompositionParser';
 
 const CONTRACT_PATH = fileURLToPath(
-  new URL('../../../../../examples/integration/foundry-toolbox-adapter-contract.holo', import.meta.url),
+  new URL(
+    '../../../../../examples/integration/foundry-toolbox-adapter-contract.holo',
+    import.meta.url
+  )
 );
 
 type HoloTraitNode = {
@@ -79,15 +82,17 @@ describe('Foundry Toolbox adapter contract', () => {
     const contract = loadContract();
     const fields = asStringArray(contract.evidence_receipt_fields);
 
-    expect(fields).toEqual(expect.arrayContaining([
-      'cael_trace_id',
-      'trace_jsonl_sha256',
-      'verify_url',
-      'conformance_report_id',
-      'evaluation_score',
-      'holo_sig_agent_fingerprint',
-      'x402_receipt_id',
-    ]));
+    expect(fields).toEqual(
+      expect.arrayContaining([
+        'cael_trace_id',
+        'trace_jsonl_sha256',
+        'verify_url',
+        'conformance_report_id',
+        'evaluation_score',
+        'holo_sig_agent_fingerprint',
+        'x402_receipt_id',
+      ])
+    );
   });
 
   it('keeps the Entra boundary explicit without moving HoloScript provenance', () => {
@@ -104,13 +109,15 @@ describe('Foundry Toolbox adapter contract', () => {
     const contract = loadContract();
     const nonGoals = asStringArray(contract.non_goals);
 
-    expect(nonGoals).toEqual(expect.arrayContaining([
-      'azure_deployment',
-      'paid_cloud_spend',
-      'hosted_agent_container',
-      'm365_copilot_publication',
-      'agent365_production_registration',
-      'production_readiness_claim',
-    ]));
+    expect(nonGoals).toEqual(
+      expect.arrayContaining([
+        'azure_deployment',
+        'paid_cloud_spend',
+        'hosted_agent_container',
+        'm365_copilot_publication',
+        'agent365_production_registration',
+        'production_readiness_claim',
+      ])
+    );
   });
 });

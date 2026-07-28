@@ -37,7 +37,11 @@ describe('LocomotionTrait', () => {
 
   describe('path mode', () => {
     it('integrates position toward the waypoint and emits set_position', () => {
-      const cfg = { mode: 'path' as const, path_waypoints: [[10, 0, 0]] as [number, number, number][], speed: 50 };
+      const cfg = {
+        mode: 'path' as const,
+        path_waypoints: [[10, 0, 0]] as [number, number, number][],
+        speed: 50,
+      };
       attachTrait(locomotionHandler, node, cfg, ctx);
       ctx.clearEvents();
 
@@ -48,7 +52,15 @@ describe('LocomotionTrait', () => {
     });
 
     it('advances pathIndex and emits waypoint_reached on arrival', () => {
-      const cfg = { mode: 'path' as const, path_waypoints: [[0.01, 0, 0], [10, 0, 0]] as [number, number, number][], speed: 5, path_loop: true };
+      const cfg = {
+        mode: 'path' as const,
+        path_waypoints: [
+          [0.01, 0, 0],
+          [10, 0, 0],
+        ] as [number, number, number][],
+        speed: 5,
+        path_loop: true,
+      };
       attachTrait(locomotionHandler, node, cfg, ctx);
       ctx.clearEvents();
       updateTrait(locomotionHandler, node, cfg, ctx, 0.1);
@@ -81,7 +93,10 @@ describe('LocomotionTrait', () => {
     it('teleport request warps position on next update', () => {
       const cfg = { mode: 'teleport' as const };
       attachTrait(locomotionHandler, node, cfg, ctx);
-      sendEvent(locomotionHandler, node, cfg, ctx, { type: 'locomotion:teleport_request', target: [5, 0, -3] });
+      sendEvent(locomotionHandler, node, cfg, ctx, {
+        type: 'locomotion:teleport_request',
+        target: [5, 0, -3],
+      });
       ctx.clearEvents();
       updateTrait(locomotionHandler, node, cfg, ctx, 0.016);
       expect(getEventCount(ctx, 'locomotion:teleported')).toBe(1);
@@ -94,7 +109,11 @@ describe('LocomotionTrait', () => {
     it('locomotion:move with a position destination switches to path mode', () => {
       const cfg = { mode: 'walk' as const };
       attachTrait(locomotionHandler, node, cfg, ctx);
-      sendEvent(locomotionHandler, node, cfg, ctx, { type: 'locomotion:move', destination: [3, 0, 4], mode: 'path' });
+      sendEvent(locomotionHandler, node, cfg, ctx, {
+        type: 'locomotion:move',
+        destination: [3, 0, 4],
+        mode: 'path',
+      });
       const state = (node as any).__locomotionState;
       expect(state.mode).toBe('path');
     });
@@ -102,7 +121,11 @@ describe('LocomotionTrait', () => {
     it('bt_action glide switches mode and replies with action:result', () => {
       const cfg = {};
       attachTrait(locomotionHandler, node, cfg, ctx);
-      sendEvent(locomotionHandler, node, cfg, ctx, { type: 'bt_action', action: 'fly', requestId: 'r1' });
+      sendEvent(locomotionHandler, node, cfg, ctx, {
+        type: 'bt_action',
+        action: 'fly',
+        requestId: 'r1',
+      });
       expect((node as any).__locomotionState.mode).toBe('fly');
       const result = getLastEvent(ctx, 'action:result');
       expect(result).toMatchObject({ requestId: 'r1', status: 'success' });

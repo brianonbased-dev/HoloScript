@@ -447,7 +447,12 @@ function tickCognitive(
     // Emit the real trait event (actuates LLMAgentTrait / AgentMemoryTrait / etc.)
     context.emit?.(event, payload);
     // Also emit a uniform cognitive:request signal for observers/telemetry.
-    context.emit?.('cognitive:request', { owner, verb, requestId, config: node.config ?? node.params ?? {} });
+    context.emit?.('cognitive:request', {
+      owner,
+      verb,
+      requestId,
+      config: node.config ?? node.params ?? {},
+    });
 
     if (!node.await) {
       // Fire-and-forget: the operation is dispatched; the tree proceeds.
@@ -574,7 +579,12 @@ export const behaviorTreeHandler: TraitHandler<BTConfig> = {
       // Explicit resolution carrying the originating requestId.
       const requestId = typeof event.requestId === 'string' ? event.requestId : undefined;
       if (requestId) {
-        resolveCognitive(state, requestId, normalizeActionResult(event.status ?? event.success) ?? 'success', event.result);
+        resolveCognitive(
+          state,
+          requestId,
+          normalizeActionResult(event.status ?? event.success) ?? 'success',
+          event.result
+        );
       }
     } else if (COGNITIVE_COMPLETE_TO_VERB[event.type]) {
       // A real trait completion event (llm_message / memory_recalled / etc.).

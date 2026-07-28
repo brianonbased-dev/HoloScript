@@ -29,12 +29,8 @@ describe('N4 exact-plus-learned residual world loop', () => {
 
     expect(first.metricContractSha256).toBe(N4_METRIC_CONTRACT_SHA256);
     expect(first.ir.provenance.sourceSurface).toBe('hsplus');
-    expect(first.ir.provenance.deterministicDigest).toBe(
-      second.ir.provenance.deterministicDigest
-    );
-    expect(first.learningGraph.deterministicDigest).toBe(
-      second.learningGraph.deterministicDigest
-    );
+    expect(first.ir.provenance.deterministicDigest).toBe(second.ir.provenance.deterministicDigest);
+    expect(first.learningGraph.deterministicDigest).toBe(second.learningGraph.deterministicDigest);
     expect(first.residualTargets).toEqual(N4_RESIDUAL_TARGETS);
     expect(first.actionVocabulary).toEqual(['move']);
   });
@@ -46,14 +42,12 @@ describe('N4 exact-plus-learned residual world loop', () => {
     const truth = stepN4Truth(scene, action);
 
     expect(truth.objects).toHaveLength(exact.objects.length);
-    expect(truth.objects.some((object, index) =>
-      object.velocity.x !== exact.objects[index]!.velocity.x
-    )).toBe(true);
+    expect(
+      truth.objects.some((object, index) => object.velocity.x !== exact.objects[index]!.velocity.x)
+    ).toBe(true);
     for (let index = 0; index < truth.objects.length; index += 1) {
-      const residualVelocity =
-        truth.objects[index]!.velocity.x - exact.objects[index]!.velocity.x;
-      const residualPosition =
-        truth.objects[index]!.position.x - exact.objects[index]!.position.x;
+      const residualVelocity = truth.objects[index]!.velocity.x - exact.objects[index]!.velocity.x;
+      const residualPosition = truth.objects[index]!.position.x - exact.objects[index]!.position.x;
       expect(residualPosition).toBeCloseTo(residualVelocity * 0.1, 10);
     }
   });
@@ -70,7 +64,9 @@ describe('N4 exact-plus-learned residual world loop', () => {
     expect(first.weightsManifest.typeTensor.length).toBe(
       first.weightsManifest.typeShape[0] * first.weightsManifest.typeShape[1]
     );
-    expect(first.verifierCases.filter((testCase) => testCase.expected === 'reject')).toHaveLength(9);
+    expect(first.verifierCases.filter((testCase) => testCase.expected === 'reject')).toHaveLength(
+      9
+    );
   });
 
   it('makes undeclared action/target states unrepresentable and fails closed on digest tamper', () => {
@@ -98,9 +94,9 @@ describe('N4 exact-plus-learned residual world loop', () => {
         action
       )
     ).toBe(false);
-    expect(() =>
-      proposeN4TypedMove(contract, models, scene, 'missing-object', action)
-    ).toThrow(/not in the typed scene/);
+    expect(() => proposeN4TypedMove(contract, models, scene, 'missing-object', action)).toThrow(
+      /not in the typed scene/
+    );
     const typedMove = proposeN4TypedMove(contract, models, scene, 'object-0', action);
     expect(typedMove).toMatchObject({
       type: 'move',
@@ -108,13 +104,14 @@ describe('N4 exact-plus-learned residual world loop', () => {
       residualScope: N4_RESIDUAL_TARGETS,
     });
     expect(verifyN4TypedMove(typedMove)).toBe(true);
-    expect(
-      verifyN4TypedMove({ ...typedMove, deterministicDigest: 'sha256:stale' })
-    ).toBe(false);
+    expect(verifyN4TypedMove({ ...typedMove, deterministicDigest: 'sha256:stale' })).toBe(false);
     expect(
       verifyN4TypedMove({
         ...typedMove,
-        residualScope: [...typedMove.residualScope, 'host.process'] as typeof typedMove.residualScope,
+        residualScope: [
+          ...typedMove.residualScope,
+          'host.process',
+        ] as typeof typedMove.residualScope,
       })
     ).toBe(false);
   });

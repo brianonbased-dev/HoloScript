@@ -13,12 +13,12 @@
  */
 
 export type JetsonPowerMode =
-  | 'MAXN'        // Max performance (all cores, max freq)
-  | 'MAXN_SUPER'  // Orin Nano Super max (6-core + GPU boost)
-  | '10W'         // 10W power cap
-  | '15W'         // 15W power cap
-  | '25W'         // 25W power cap (Orin NX)
-  | 'DEFAULT';    // Board default
+  | 'MAXN' // Max performance (all cores, max freq)
+  | 'MAXN_SUPER' // Orin Nano Super max (6-core + GPU boost)
+  | '10W' // 10W power cap
+  | '15W' // 15W power cap
+  | '25W' // 25W power cap (Orin NX)
+  | 'DEFAULT'; // Board default
 
 export type JetsonSoC = 'orin-nano' | 'orin-nx' | 'agx-orin' | 'xavier-nx' | 'nano' | 'unknown';
 
@@ -61,7 +61,9 @@ export const JETSON_ORIN_NANO_SUPER_DEFAULTS: Required<JetsonGPUConfig> = {
   cudaCores: 1024,
 };
 
-export function resolveJetsonGPUConfig(params?: Partial<JetsonGPUConfig>): Required<JetsonGPUConfig> {
+export function resolveJetsonGPUConfig(
+  params?: Partial<JetsonGPUConfig>
+): Required<JetsonGPUConfig> {
   return { ...JETSON_ORIN_NANO_SUPER_DEFAULTS, ...params };
 }
 

@@ -887,7 +887,9 @@ composition "Hololand Central" {
 }`;
       const result = parser.parse(code);
       expect(result.success).toBe(true);
-      const node = result.ast.find((n) => n.type === 'game-loot-table') as GameLootTableNode | undefined;
+      const node = result.ast.find((n) => n.type === 'game-loot-table') as
+        | GameLootTableNode
+        | undefined;
       expect(node).toBeDefined();
       expect(node!.name).toBe('RareDrops');
     });
@@ -914,7 +916,9 @@ composition "Hololand Central" {
 }`;
       const result = parser.parse(code);
       expect(result.success).toBe(true);
-      const node = result.ast.find((n) => n.type === 'game-authority') as GameAuthorityNode | undefined;
+      const node = result.ast.find((n) => n.type === 'game-authority') as
+        | GameAuthorityNode
+        | undefined;
       expect(node).toBeDefined();
       expect(node!.name).toBe('combat_resolution');
     });
@@ -925,7 +929,9 @@ composition "Hololand Central" {
 }`;
       const result = parser.parse(code);
       expect(result.success).toBe(true);
-      const node = result.ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode | undefined;
+      const node = result.ast.find((n) => n.type === 'game-event-block') as
+        | GameEventBlockNode
+        | undefined;
       expect(node).toBeDefined();
       expect(node!.name).toBe('on_death');
     });
@@ -941,7 +947,9 @@ composition "Hololand Central" {
 }`;
       const result = parser.parse(code);
       expect(result.success).toBe(true);
-      const node = result.ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode | undefined;
+      const node = result.ast.find((n) => n.type === 'game-event-block') as
+        | GameEventBlockNode
+        | undefined;
       expect(node).toBeDefined();
       expect(node!.name).toBe('on_grab');
       expect(node!.params).toEqual(['hand']);
@@ -949,26 +957,31 @@ composition "Hololand Central" {
     });
 
     it('classifies collision and lifecycle triggers correctly', () => {
-      const collide = parser.parse('on_collision(other) { }').ast
-        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      const collide = parser
+        .parse('on_collision(other) { }')
+        .ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode;
       expect(collide.category).toBe('collision');
 
-      const proximity = parser.parse('on_proximity(player) { }').ast
-        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      const proximity = parser
+        .parse('on_proximity(player) { }')
+        .ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode;
       expect(proximity.category).toBe('collision');
 
-      const enter = parser.parse('on_enter { }').ast
-        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      const enter = parser
+        .parse('on_enter { }')
+        .ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode;
       expect(enter.category).toBe('lifecycle');
 
-      const signal = parser.parse('on_signal(name) { }').ast
-        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      const signal = parser
+        .parse('on_signal(name) { }')
+        .ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode;
       expect(signal.category).toBe('signal');
     });
 
     it('keeps combat triggers back-compatible', () => {
-      const node = parser.parse('on_cast(target) { }').ast
-        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      const node = parser
+        .parse('on_cast(target) { }')
+        .ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode;
       expect(node.category).toBe('combat');
     });
 
@@ -986,15 +999,17 @@ composition "Hololand Central" {
         'on_teleport',
       ];
       for (const trigger of triggers) {
-        const node = parser.parse(`${trigger} { step() }`).ast
-          .find((n) => n.type === 'game-event-block') as GameEventBlockNode | undefined;
+        const node = parser
+          .parse(`${trigger} { step() }`)
+          .ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode | undefined;
         expect(node, `${trigger} should parse as a reaction block`).toBeDefined();
         expect(node!.name).toBe(trigger);
         expect(node!.category, `${trigger} should be movement`).toBe('movement');
       }
 
-      const teleport = parser.parse('on_teleport(dest) { }').ast
-        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      const teleport = parser
+        .parse('on_teleport(dest) { }')
+        .ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode;
       expect(teleport.params).toEqual(['dest']);
     });
   });
@@ -1007,7 +1022,9 @@ composition "Hololand Central" {
       const code = `move player to [10, 0, 5] over 2 via glide easing ease_in_out`;
       const result = parser.parse(code);
       expect(result.success).toBe(true);
-      const node = result.ast.find((n) => n.type === 'movement') as MovementStatementNode | undefined;
+      const node = result.ast.find((n) => n.type === 'movement') as
+        | MovementStatementNode
+        | undefined;
       expect(node).toBeDefined();
       expect(node!.target).toBe('player');
       expect(node!.destination).toEqual([10, 0, 5]);
@@ -1020,7 +1037,9 @@ composition "Hololand Central" {
       const code = `move guard to merchant via path`;
       const result = parser.parse(code);
       expect(result.success).toBe(true);
-      const node = result.ast.find((n) => n.type === 'movement') as MovementStatementNode | undefined;
+      const node = result.ast.find((n) => n.type === 'movement') as
+        | MovementStatementNode
+        | undefined;
       expect(node).toBeDefined();
       expect(node!.destination).toBe('merchant');
       expect(node!.mode).toBe('path');
@@ -1030,7 +1049,9 @@ composition "Hololand Central" {
       const code = `move to [0, 1, 0]`;
       const result = parser.parse(code);
       expect(result.success).toBe(true);
-      const node = result.ast.find((n) => n.type === 'movement') as MovementStatementNode | undefined;
+      const node = result.ast.find((n) => n.type === 'movement') as
+        | MovementStatementNode
+        | undefined;
       expect(node).toBeDefined();
       expect(node!.target).toBe('self');
       expect(node!.destination).toEqual([0, 1, 0]);

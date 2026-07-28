@@ -14,8 +14,13 @@ describe('@freeze_when trait', () => {
     const emit = vi.fn();
     freezeWhenHandler.onAttach!(
       node,
-      { id: 'features-on-red-gate', scope: 'new-feature-work', signal: 'required-gate:red', unfreeze: 'gate passes' },
-      { emit } as any, // TraitContext mock — only emit is exercised here
+      {
+        id: 'features-on-red-gate',
+        scope: 'new-feature-work',
+        signal: 'required-gate:red',
+        unfreeze: 'gate passes',
+      },
+      { emit } as any // TraitContext mock — only emit is exercised here
     );
 
     expect(node.__freezeWhen).toMatchObject({
@@ -28,7 +33,7 @@ describe('@freeze_when trait', () => {
     });
     expect(emit).toHaveBeenCalledWith(
       'freeze_declared',
-      expect.objectContaining({ derived: true, nativeExempt: true }),
+      expect.objectContaining({ derived: true, nativeExempt: true })
     );
   });
 
@@ -43,7 +48,9 @@ describe('@freeze_when trait', () => {
     expect(doc).toBeDefined();
     expect(doc.annotation).toBe('@freeze_when');
     const props = doc.properties.map((p) => p.name);
-    expect(props).toEqual(expect.arrayContaining(['id', 'scope', 'signal', 'unfreeze', 'exempt', 'severity']));
+    expect(props).toEqual(
+      expect.arrayContaining(['id', 'scope', 'signal', 'unfreeze', 'exempt', 'severity'])
+    );
   });
 
   it('is registered in the trait registry (the decorator is now KNOWN, not freeform)', () => {

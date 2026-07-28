@@ -119,7 +119,14 @@ export function validateWorldFoundationModelConfig(
   if (config.schema !== 'cael.world_foundation_model.v1') {
     throw new Error('WorldFoundationModelTrait: schema must be cael.world_foundation_model.v1');
   }
-  for (const key of ['synthesis_id', 'provider', 'model', 'generated_at', 'prompt_hash', 'receipt_hash'] as const) {
+  for (const key of [
+    'synthesis_id',
+    'provider',
+    'model',
+    'generated_at',
+    'prompt_hash',
+    'receipt_hash',
+  ] as const) {
     if (typeof config[key] !== 'string' || config[key].trim() === '') {
       throw new Error(`WorldFoundationModelTrait: ${key} is required`);
     }
@@ -133,7 +140,9 @@ export function validateWorldFoundationModelConfig(
     }
   }
   if (!Number.isInteger(config.semantic_node_count) || config.semantic_node_count < 0) {
-    throw new Error('WorldFoundationModelTrait: semantic_node_count must be a non-negative integer');
+    throw new Error(
+      'WorldFoundationModelTrait: semantic_node_count must be a non-negative integer'
+    );
   }
   if (!Number.isInteger(config.collider_count) || config.collider_count < 0) {
     throw new Error('WorldFoundationModelTrait: collider_count must be a non-negative integer');

@@ -597,7 +597,7 @@ describe('Native2DCompiler @bind value formatting', () => {
 // ---------------------------------------------------------------------------
 
 describe('Native2DCompiler @action declarative event dispatch (React)', () => {
-  it('compiles @action{on:click, emit:navigate, args:[\'/rooms\']} to onClick context.emit', () => {
+  it("compiles @action{on:click, emit:navigate, args:['/rooms']} to onClick context.emit", () => {
     const btn = objectDecl('cta', [
       trait('button', { content: 'Go to rooms' }),
       trait('action', { on: 'click', emit: 'navigate', args: ['/rooms'] }),
@@ -614,7 +614,9 @@ describe('Native2DCompiler @action declarative event dispatch (React)', () => {
       trait('action', { on: 'submit', emit: 'submit_form' }),
     ]);
     const react = reactOf(form);
-    expect(react).toContain('onSubmit={(e) => { e.preventDefault(); context.emit("submit_form"); }}');
+    expect(react).toContain(
+      'onSubmit={(e) => { e.preventDefault(); context.emit("submit_form"); }}'
+    );
   });
 
   it('compiles @action with no args (emit only)', () => {
@@ -752,8 +754,8 @@ describe('Native2DCompiler @action + @model — HTML path', () => {
       trait('event', { on: 'click', handler: "navigate('/home')" }),
     ]);
     const html = htmlOf(btn);
-    expect(html).toContain("onclick=");
-    expect(html).toContain("navigate");
+    expect(html).toContain('onclick=');
+    expect(html).toContain('navigate');
   });
 
   it('compiles @model to data-holo-model attribute in HTML output', () => {

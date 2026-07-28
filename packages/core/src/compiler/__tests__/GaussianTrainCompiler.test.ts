@@ -15,7 +15,11 @@ import {
   SOVEREIGN_TRAIN_EXECUTOR,
   REMOTE_TRAIN_EXECUTOR,
 } from '../GaussianTrainCompiler';
-import type { HoloComposition, HoloObjectDecl, HoloObjectTrait } from '../../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+} from '../../parser/HoloCompositionTypes';
 
 function makeTrait(name: string, config: Record<string, unknown> = {}): HoloObjectTrait {
   return { type: 'ObjectTrait', name, config };
@@ -25,10 +29,27 @@ function makeObject(name: string, traits: HoloObjectTrait[]): HoloObjectDecl {
 }
 function makeComposition(objects: HoloObjectDecl[]): HoloComposition {
   return {
-    type: 'Composition', name: 'TrainTest', templates: [], objects, spatialGroups: [], lights: [],
-    imports: [], timelines: [], audio: [], zones: [], transitions: [], conditionals: [], iterators: [],
-    npcs: [], quests: [], abilities: [], dialogues: [], stateMachines: [], achievements: [],
-    talentTrees: [], shapes: [],
+    type: 'Composition',
+    name: 'TrainTest',
+    templates: [],
+    objects,
+    spatialGroups: [],
+    lights: [],
+    imports: [],
+    timelines: [],
+    audio: [],
+    zones: [],
+    transitions: [],
+    conditionals: [],
+    iterators: [],
+    npcs: [],
+    quests: [],
+    abilities: [],
+    dialogues: [],
+    stateMachines: [],
+    achievements: [],
+    talentTrees: [],
+    shapes: [],
   };
 }
 
@@ -49,7 +70,9 @@ const VALID_CONFIG = {
 
 describe('GaussianTrainCompiler — sovereign training-job emit', () => {
   it('TRUE: a valid @gaussian_train trait → sovereign job wired to the native trainer', () => {
-    const comp = makeComposition([makeObject('Kitchen', [makeTrait('gaussian_train', VALID_CONFIG)])]);
+    const comp = makeComposition([
+      makeObject('Kitchen', [makeTrait('gaussian_train', VALID_CONFIG)]),
+    ]);
     const job = new GaussianTrainCompiler().compile(comp);
 
     expect(job.kind).toBe('gaussian-train-job');
@@ -60,7 +83,11 @@ describe('GaussianTrainCompiler — sovereign training-job emit', () => {
     expect(job.hyperparams.iterations).toBe(5000);
     expect(job.hyperparams.targetGaussians).toBe(200000);
     expect(job.hyperparams.learningRates).toEqual({
-      position: 0.0002, scale: 0.004, rotation: 0.001, opacity: 0.04, color: 0.0025,
+      position: 0.0002,
+      scale: 0.004,
+      rotation: 0.001,
+      opacity: 0.04,
+      color: 0.0025,
     });
     expect(job.hyperparams.dilation).toBe(0.3);
     expect(job.output).toEqual({ path: 'twins/kitchen.ply', format: 'ply' });

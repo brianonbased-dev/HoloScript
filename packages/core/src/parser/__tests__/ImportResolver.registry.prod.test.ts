@@ -68,17 +68,13 @@ describe('ImportResolver native package registry contract', () => {
         )
       )
     );
-    const result = await new ImportResolver().resolve(
-      parseConsumer(),
-      '/consumer/app.hsplus',
-      {
-        baseDir: '/consumer',
-        registryBaseUrl: 'https://registry.test',
-        registryLock: {
-          [specifier]: { version: '1.0.0', integrity },
-        },
-      }
-    );
+    const result = await new ImportResolver().resolve(parseConsumer(), '/consumer/app.hsplus', {
+      baseDir: '/consumer',
+      registryBaseUrl: 'https://registry.test',
+      registryLock: {
+        [specifier]: { version: '1.0.0', integrity },
+      },
+    });
 
     expect(result.scope.size).toBe(0);
     expect(result.errors[0]?.code).toBe('registry_unavailable');
@@ -86,15 +82,11 @@ describe('ImportResolver native package registry contract', () => {
 
   it('does not fall through to the filesystem when a registry import lacks a lock pin', async () => {
     const readFile = vi.fn().mockRejectedValue(new Error('filesystem should not be consulted'));
-    const result = await new ImportResolver().resolve(
-      parseConsumer(),
-      '/consumer/app.hsplus',
-      {
-        baseDir: '/consumer',
-        registryBaseUrl: 'https://registry.test',
-        readFile,
-      }
-    );
+    const result = await new ImportResolver().resolve(parseConsumer(), '/consumer/app.hsplus', {
+      baseDir: '/consumer',
+      registryBaseUrl: 'https://registry.test',
+      readFile,
+    });
 
     expect(readFile).not.toHaveBeenCalled();
     expect(result.errors[0]?.code).toBe('registry_unavailable');

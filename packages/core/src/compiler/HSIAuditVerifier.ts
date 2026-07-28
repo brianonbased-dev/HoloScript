@@ -73,7 +73,9 @@ function renameStatements(statements: HoloStatement[], map: HSIRenameMap): void 
   for (const stmt of statements) {
     switch (stmt.type) {
       case 'Assignment': {
-        const target = stmt.target.startsWith('state.') ? stmt.target.slice('state.'.length) : stmt.target;
+        const target = stmt.target.startsWith('state.')
+          ? stmt.target.slice('state.'.length)
+          : stmt.target;
         const prefix = stmt.target.startsWith('state.') ? 'state.' : '';
         stmt.target = `${prefix}${renamed(target, map)}`;
         renameExpression(stmt.value, map);
@@ -108,9 +110,11 @@ export function renameComposition(composition: HoloComposition, map: HSIRenameMa
     obj.name = renamed(obj.name, map);
     if (obj.template !== undefined) obj.template = renamed(obj.template, map);
   }
-  const connections = (composition as HoloComposition & {
-    connections?: { from: string; to: string }[];
-  }).connections;
+  const connections = (
+    composition as HoloComposition & {
+      connections?: { from: string; to: string }[];
+    }
+  ).connections;
   for (const conn of connections ?? []) {
     conn.from = renamed(conn.from, map);
     conn.to = renamed(conn.to, map);
@@ -118,9 +122,11 @@ export function renameComposition(composition: HoloComposition, map: HSIRenameMa
   for (const prop of composition.state?.properties ?? []) {
     prop.key = renamed(prop.key, map);
   }
-  const logic = (composition as HoloComposition & {
-    logic?: { handlers?: { event: string; body: HoloStatement[] }[] };
-  }).logic;
+  const logic = (
+    composition as HoloComposition & {
+      logic?: { handlers?: { event: string; body: HoloStatement[] }[] };
+    }
+  ).logic;
   for (const handler of logic?.handlers ?? []) {
     renameStatements(handler.body, map);
   }
@@ -150,7 +156,10 @@ export function renameComposition(composition: HoloComposition, map: HSIRenameMa
     }
   }
   if (composition.contract) {
-    for (const clause of [...composition.contract.preconditions, ...composition.contract.invariants]) {
+    for (const clause of [
+      ...composition.contract.preconditions,
+      ...composition.contract.invariants,
+    ]) {
       clause.expr = renameRawExpr(clause.expr, map);
     }
   }
@@ -174,9 +183,16 @@ export function renameTrace(trace: HSITrace, map: HSIRenameMap): HSITrace {
     for (const [machine, current] of Object.entries(snap.machineStates)) {
       machineStates[renamed(machine, map)] = renamed(current, map);
     }
-    return { state, machineStates, stateDigest: hsiSha256({ state: sortRecord(state), machineStates: sortRecord(machineStates) }) };
+    return {
+      state,
+      machineStates,
+      stateDigest: hsiSha256({
+        state: sortRecord(state),
+        machineStates: sortRecord(machineStates),
+      }),
+    };
   };
-  const sortRecord = <V,>(record: Record<string, V>): Record<string, V> => {
+  const sortRecord = <V>(record: Record<string, V>): Record<string, V> => {
     const out: Record<string, V> = {};
     for (const key of Object.keys(record).sort()) out[key] = record[key]!;
     return out;
@@ -187,8 +203,17 @@ export function renameTrace(trace: HSITrace, map: HSIRenameMap): HSITrace {
       step.step.kind === 'fire-event'
         ? step.step
         : step.step.kind === 'set-input'
-          ? { kind: 'set-input', machine: renamed(step.step.machine, map), input: renamed(step.step.input, map), value: step.step.value }
-          : { kind: 'fire-trigger', machine: renamed(step.step.machine, map), input: renamed(step.step.input, map) };
+          ? {
+              kind: 'set-input',
+              machine: renamed(step.step.machine, map),
+              input: renamed(step.step.input, map),
+              value: step.step.value,
+            }
+          : {
+              kind: 'fire-trigger',
+              machine: renamed(step.step.machine, map),
+              input: renamed(step.step.input, map),
+            };
     return {
       ...step,
       step: scenario,
@@ -198,7 +223,11 @@ export function renameTrace(trace: HSITrace, map: HSIRenameMap): HSITrace {
         from: renamed(t.from, map),
         to: renamed(t.to, map),
       })),
-      effects: step.effects.map((e) => ({ ...e, target: renamed(e.target, map), sourceId: renameIdString(e.sourceId, map) })),
+      effects: step.effects.map((e) => ({
+        ...e,
+        target: renamed(e.target, map),
+        sourceId: renameIdString(e.sourceId, map),
+      })),
       invariantViolations: step.invariantViolations.map((id) => renameIdString(id, map)),
       stateDigest: '',
     };
@@ -210,7 +239,10 @@ export function renameTrace(trace: HSITrace, map: HSIRenameMap): HSITrace {
     schemaVersion: trace.schemaVersion,
     kind: trace.kind,
     worldDigest: '',
-    preconditionResults: trace.preconditionResults.map((r) => ({ id: renameIdString(r.id, map), holds: r.holds })),
+    preconditionResults: trace.preconditionResults.map((r) => ({
+      id: renameIdString(r.id, map),
+      holds: r.holds,
+    })),
     initial,
     steps: stepsRenamed,
     final,
@@ -261,22 +293,36 @@ export function reorderComposition(composition: HoloComposition): void {
 
 export type HSICompositionIntervention =
   | { id: string; kind: 'set-opacity'; entity: string; opaque: boolean | undefined }
-  | { id: string; kind: 'set-guard-literal'; machine: string; fromState: string; toState: string; value: number };
+  | {
+      id: string;
+      kind: 'set-guard-literal';
+      machine: string;
+      fromState: string;
+      toState: string;
+      value: number;
+    };
 
 export function applyIntervention(
   composition: HoloComposition,
-  intervention: HSICompositionIntervention,
+  intervention: HSICompositionIntervention
 ): void {
   if (intervention.kind === 'set-opacity') {
     const obj = (composition.objects ?? []).find((o) => o.name === intervention.entity);
     if (!obj) {
-      throw new HSIAdmissionError('admission-skewed', `intervention targets unknown entity "${intervention.entity}"`);
+      throw new HSIAdmissionError(
+        'admission-skewed',
+        `intervention targets unknown entity "${intervention.entity}"`
+      );
     }
     const existing = obj.properties.findIndex((p) => p.key === 'opaque');
     if (existing >= 0) obj.properties.splice(existing, 1);
     // Template-level opacity must also be overridden at the object level.
     if (intervention.opaque !== undefined) {
-      obj.properties.push({ type: 'ObjectProperty', key: 'opaque', value: intervention.opaque } as never);
+      obj.properties.push({
+        type: 'ObjectProperty',
+        key: 'opaque',
+        value: intervention.opaque,
+      } as never);
     } else {
       const template = (composition.templates ?? []).find((t) => t.name === obj.template);
       if (template) {
@@ -288,22 +334,28 @@ export function applyIntervention(
 
   const machine = (composition.stateMachines ?? []).find((m) => m.name === intervention.machine);
   if (!machine) {
-    throw new HSIAdmissionError('admission-skewed', `intervention targets unknown machine "${intervention.machine}"`);
+    throw new HSIAdmissionError(
+      'admission-skewed',
+      `intervention targets unknown machine "${intervention.machine}"`
+    );
   }
   const transitions = [
     ...(machine.transitions ?? []),
     ...Object.values(machine.states ?? {}).flatMap((s) => s.transitions ?? []),
   ];
   const transition = transitions.find(
-    (t) => (t.from ?? '') === intervention.fromState && t.target === intervention.toState,
+    (t) => (t.from ?? '') === intervention.fromState && t.target === intervention.toState
   );
   if (!transition) {
     throw new HSIAdmissionError(
       'admission-skewed',
-      `intervention targets unknown transition ${intervention.fromState} -> ${intervention.toState}`,
+      `intervention targets unknown transition ${intervention.fromState} -> ${intervention.toState}`
     );
   }
-  if (transition.condition?.type === 'BinaryExpression' && transition.condition.right.type === 'Literal') {
+  if (
+    transition.condition?.type === 'BinaryExpression' &&
+    transition.condition.right.type === 'Literal'
+  ) {
     transition.condition.right.value = intervention.value;
   }
   for (const cond of transition.conditions ?? []) {
@@ -340,7 +392,8 @@ export function generateAuditCases(ir: HSIIRDocument): HSIAuditCase[] {
       id: 'audit:alpha-rename',
       kind: 'alpha-rename',
       description: 'Consistent renaming of declared names preserves behavior (trace modulo names).',
-      expectation: 'behavioralProjection(renameTrace(base)) === behavioralProjection(trace(renamed))',
+      expectation:
+        'behavioralProjection(renameTrace(base)) === behavioralProjection(trace(renamed))',
     },
     {
       id: 'audit:declaration-reorder',
@@ -357,21 +410,33 @@ export function generateAuditCases(ir: HSIIRDocument): HSIAuditCase[] {
   ];
 
   const opaqueMediator = ir.entities.find(
-    (e) => e.opacity === 'opaque' && ir.observationPolicy.some((r) => r.mediators.includes(e.name) && r.access === 'blocked'),
+    (e) =>
+      e.opacity === 'opaque' &&
+      ir.observationPolicy.some((r) => r.mediators.includes(e.name) && r.access === 'blocked')
   );
   if (opaqueMediator) {
     cases.push({
       id: 'audit:counterfactual-opacity',
       kind: 'counterfactual-intervention',
       description: `Making "${opaqueMediator.name}" transparent must change at least one observation access verdict.`,
-      intervention: { kind: 'set-opacity', id: 'intervention:flip-opacity', entity: opaqueMediator.name, opacity: 'transparent' },
+      intervention: {
+        kind: 'set-opacity',
+        id: 'intervention:flip-opacity',
+        entity: opaqueMediator.name,
+        opacity: 'transparent',
+      },
       expectation: 'observationPolicy access verdicts differ from base IR',
     });
   }
 
   const guardedTransition = ir.machines
     .flatMap((m) => m.transitions.map((t) => ({ machine: m.name, t })))
-    .find(({ t }) => t.guard?.kind === 'BinaryExpression' && t.guard.right.kind === 'Literal' && typeof t.guard.right.value === 'number');
+    .find(
+      ({ t }) =>
+        t.guard?.kind === 'BinaryExpression' &&
+        t.guard.right.kind === 'Literal' &&
+        typeof t.guard.right.value === 'number'
+    );
   if (guardedTransition) {
     cases.push({
       id: 'audit:counterfactual-guard',
@@ -384,7 +449,8 @@ export function generateAuditCases(ir: HSIIRDocument): HSIAuditCase[] {
         transitionId: guardedTransition.t.id,
         value: 1e6,
       },
-      expectation: 'trace deterministicDigest differs and at least one step fires different transitions',
+      expectation:
+        'trace deterministicDigest differs and at least one step fires different transitions',
     });
   }
 
@@ -406,7 +472,10 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-function expectAdmissionFailure(fn: () => void, expectedCode: string): HSIAuditCheckResult['status'] {
+function expectAdmissionFailure(
+  fn: () => void,
+  expectedCode: string
+): HSIAuditCheckResult['status'] {
   try {
     fn();
     return 'fail';
@@ -451,14 +520,23 @@ export function runHSIAudit(input: HSIAuditInput): HSIAuditManifest {
           const skewed = clone(composition);
           if (skewed.objects.length === 0) throw new Error('fixture has no objects');
           skewed.objects[0]!.template = 'GhostTemplate';
-          status = expectAdmissionFailure(() => lowerCompositionToHSIIR(skewed), 'unknown-archetype');
+          status = expectAdmissionFailure(
+            () => lowerCompositionToHSIIR(skewed),
+            'unknown-archetype'
+          );
           break;
         }
         case 'audit:admission-dangling-relation': {
           const skewed = clone(composition);
           const holder = skewed as unknown as { connections?: { from: string; to: string }[] };
-          holder.connections = [...(holder.connections ?? []), { from: 'NoSuchEntity', to: 'AlsoMissing' }];
-          status = expectAdmissionFailure(() => lowerCompositionToHSIIR(skewed), 'unknown-relation-endpoint');
+          holder.connections = [
+            ...(holder.connections ?? []),
+            { from: 'NoSuchEntity', to: 'AlsoMissing' },
+          ];
+          status = expectAdmissionFailure(
+            () => lowerCompositionToHSIIR(skewed),
+            'unknown-relation-endpoint'
+          );
           break;
         }
         case 'audit:alpha-rename': {
@@ -469,11 +547,21 @@ export function runHSIAudit(input: HSIAuditInput): HSIAuditManifest {
             step.kind === 'fire-event'
               ? step
               : step.kind === 'set-input'
-                ? { ...step, machine: renameMap[step.machine] ?? step.machine, input: renameMap[step.input] ?? step.input }
-                : { ...step, machine: renameMap[step.machine] ?? step.machine, input: renameMap[step.input] ?? step.input },
+                ? {
+                    ...step,
+                    machine: renameMap[step.machine] ?? step.machine,
+                    input: renameMap[step.input] ?? step.input,
+                  }
+                : {
+                    ...step,
+                    machine: renameMap[step.machine] ?? step.machine,
+                    input: renameMap[step.input] ?? step.input,
+                  }
           );
           const renamedTrace = runExactTrace(renamedIR, renamedScenario);
-          const expected = hsiStableStringify(behavioralProjection(renameTrace(baseTrace, renameMap)));
+          const expected = hsiStableStringify(
+            behavioralProjection(renameTrace(baseTrace, renameMap))
+          );
           const actual = hsiStableStringify(behavioralProjection(renamedTrace));
           status = expected === actual ? 'pass' : 'fail';
           if (status === 'fail') detail = 'renamed trace diverged from rename-projected base trace';
@@ -484,7 +572,9 @@ export function runHSIAudit(input: HSIAuditInput): HSIAuditManifest {
           reorderComposition(reordered);
           const reorderedIR = lowerCompositionToHSIIR(reordered, { sourceText });
           status =
-            reorderedIR.provenance.deterministicDigest === baseIR.provenance.deterministicDigest ? 'pass' : 'fail';
+            reorderedIR.provenance.deterministicDigest === baseIR.provenance.deterministicDigest
+              ? 'pass'
+              : 'fail';
           if (status === 'fail') detail = 'reordered IR digest differs from base IR digest';
           break;
         }
@@ -507,18 +597,25 @@ export function runHSIAudit(input: HSIAuditInput): HSIAuditManifest {
             id: intervention.id,
             kind: 'set-opacity',
             entity: intervention.entity,
-            opaque: intervention.opacity === 'opaque' ? true : intervention.opacity === 'transparent' ? false : undefined,
+            opaque:
+              intervention.opacity === 'opaque'
+                ? true
+                : intervention.opacity === 'transparent'
+                  ? false
+                  : undefined,
           });
           const intervenedIR = lowerCompositionToHSIIR(intervened);
           const baseAccess = hsiStableStringify(baseIR.observationPolicy);
           const newAccess = hsiStableStringify(intervenedIR.observationPolicy);
           status = baseAccess !== newAccess ? 'pass' : 'fail';
-          if (status === 'fail') detail = 'opacity intervention did not change any observation verdict';
+          if (status === 'fail')
+            detail = 'opacity intervention did not change any observation verdict';
           break;
         }
         case 'audit:counterfactual-guard': {
           const intervention = auditCase.intervention!;
-          if (intervention.kind !== 'set-transition-guard-literal') throw new Error('case/intervention mismatch');
+          if (intervention.kind !== 'set-transition-guard-literal')
+            throw new Error('case/intervention mismatch');
           const parsed = /transition:([^.]+)\.([^-]+)->([^#]+)#/.exec(intervention.transitionId);
           if (!parsed) throw new Error(`unparseable transition id ${intervention.transitionId}`);
           const intervened = clone(composition);
@@ -532,9 +629,12 @@ export function runHSIAudit(input: HSIAuditInput): HSIAuditManifest {
           });
           const intervenedIR = lowerCompositionToHSIIR(intervened);
           const intervenedTrace = runExactTrace(intervenedIR, scenario);
-          const digestDiffers = intervenedTrace.deterministicDigest !== baseTrace.deterministicDigest;
+          const digestDiffers =
+            intervenedTrace.deterministicDigest !== baseTrace.deterministicDigest;
           const stepDiffers = baseTrace.steps.some(
-            (step, i) => hsiStableStringify(step.transitions) !== hsiStableStringify(intervenedTrace.steps[i]?.transitions),
+            (step, i) =>
+              hsiStableStringify(step.transitions) !==
+              hsiStableStringify(intervenedTrace.steps[i]?.transitions)
           );
           status = digestDiffers && stepDiffers ? 'pass' : 'fail';
           if (status === 'fail') detail = 'guard intervention did not change the exact trace';

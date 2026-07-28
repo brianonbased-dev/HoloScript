@@ -39,19 +39,21 @@ function fnv1a64(value: string): string {
 }
 
 function tensorChecksum(manifest: N4WeightsManifest): string {
-  return fnv1a64(JSON.stringify({
-    sourceDigest: manifest.sourceDigest,
-    irDigest: manifest.irDigest,
-    graphDigest: manifest.graphDigest,
-    modelDigest: manifest.modelDigest,
-    featureSchemaDigest: manifest.featureSchemaDigest,
-    featureNames: manifest.featureNames,
-    outputNames: manifest.outputNames,
-    weightTensor: manifest.weightTensor,
-    weightShape: manifest.weightShape,
-    typeTensor: manifest.typeTensor,
-    typeShape: manifest.typeShape,
-  }));
+  return fnv1a64(
+    JSON.stringify({
+      sourceDigest: manifest.sourceDigest,
+      irDigest: manifest.irDigest,
+      graphDigest: manifest.graphDigest,
+      modelDigest: manifest.modelDigest,
+      featureSchemaDigest: manifest.featureSchemaDigest,
+      featureNames: manifest.featureNames,
+      outputNames: manifest.outputNames,
+      weightTensor: manifest.weightTensor,
+      weightShape: manifest.weightShape,
+      typeTensor: manifest.typeTensor,
+      typeShape: manifest.typeShape,
+    })
+  );
 }
 
 function validateManifest(manifest: N4WeightsManifest): void {
@@ -62,15 +64,16 @@ function validateManifest(manifest: N4WeightsManifest): void {
     manifest.weightTensor.length !== outputs * features ||
     manifest.featureNames.length !== features ||
     manifest.outputNames.length !== outputs
-  ) throw new Error('invalid N4 weight tensor shape');
+  )
+    throw new Error('invalid N4 weight tensor shape');
   if (
     manifest.typeShape[0] <= 0 ||
     manifest.typeShape[1] !== 3 ||
     manifest.typeTensor.length !== manifest.typeShape[0] * manifest.typeShape[1]
-  ) throw new Error('invalid N4 type tensor shape');
-  if (
-    [...manifest.weightTensor, ...manifest.typeTensor].some((value) => !Number.isFinite(value))
-  ) throw new Error('N4 manifest contains non-finite tensor value');
+  )
+    throw new Error('invalid N4 type tensor shape');
+  if ([...manifest.weightTensor, ...manifest.typeTensor].some((value) => !Number.isFinite(value)))
+    throw new Error('N4 manifest contains non-finite tensor value');
   if (tensorChecksum(manifest) !== manifest.tensorChecksum) {
     throw new Error('N4 weights manifest tensor checksum mismatch');
   }
@@ -104,11 +107,7 @@ function receipt(
   return { ...withoutDigest, deterministicDigest: fnv1a64(JSON.stringify(withoutDigest)) };
 }
 
-function f32Dot(
-  weights: readonly number[],
-  offset: number,
-  features: readonly number[]
-): number {
+function f32Dot(weights: readonly number[], offset: number, features: readonly number[]): number {
   let sum = Math.fround(0);
   for (let index = 0; index < features.length; index += 1) {
     sum = Math.fround(
@@ -159,56 +158,78 @@ function buildDotWasmModule(): Uint8Array {
   const type = section(1, [1, 0x60, 3, 0x7f, 0x7f, 0x7f, 1, 0x7d]);
   const functions = section(3, [1, 0]);
   const memory = section(5, [1, 0, 1]);
-  const exports = section(7, [
-    2,
-    ...utf8('memory'),
-    2,
-    0,
-    ...utf8('dot'),
-    0,
-    0,
-  ]);
+  const exports = section(7, [2, ...utf8('memory'), 2, 0, ...utf8('dot'), 0, 0]);
   const instructions = [
     2, // two local declarations
-    1, 0x7f, // local 3: i32 index
-    1, 0x7d, // local 4: f32 accumulator
-    0x02, 0x40, // block
-    0x03, 0x40, // loop
-    0x20, 3, // local.get index
-    0x20, 2, // local.get length
+    1,
+    0x7f, // local 3: i32 index
+    1,
+    0x7d, // local 4: f32 accumulator
+    0x02,
+    0x40, // block
+    0x03,
+    0x40, // loop
+    0x20,
+    3, // local.get index
+    0x20,
+    2, // local.get length
     0x4f, // i32.ge_u
-    0x0d, 1, // br_if block
-    0x20, 4, // local.get accumulator
-    0x20, 0, // local.get feature offset
-    0x20, 3, // local.get index
-    0x41, 2, // i32.const 2
+    0x0d,
+    1, // br_if block
+    0x20,
+    4, // local.get accumulator
+    0x20,
+    0, // local.get feature offset
+    0x20,
+    3, // local.get index
+    0x41,
+    2, // i32.const 2
     0x74, // i32.shl
     0x6a, // i32.add
-    0x2a, 2, 0, // f32.load align=4 offset=0
-    0x20, 1, // local.get weight offset
-    0x20, 3,
-    0x41, 2,
+    0x2a,
+    2,
+    0, // f32.load align=4 offset=0
+    0x20,
+    1, // local.get weight offset
+    0x20,
+    3,
+    0x41,
+    2,
     0x74,
     0x6a,
-    0x2a, 2, 0,
+    0x2a,
+    2,
+    0,
     0x94, // f32.mul
     0x92, // f32.add
-    0x21, 4, // local.set accumulator
-    0x20, 3,
-    0x41, 1,
+    0x21,
+    4, // local.set accumulator
+    0x20,
+    3,
+    0x41,
+    1,
     0x6a,
-    0x21, 3, // index += 1
-    0x0c, 0, // br loop
+    0x21,
+    3, // index += 1
+    0x0c,
+    0, // br loop
     0x0b, // end loop
     0x0b, // end block
-    0x20, 4, // local.get accumulator
+    0x20,
+    4, // local.get accumulator
     0x0b, // end function
   ];
   const body = [...uleb(instructions.length), ...instructions];
   const code = section(10, [1, ...body]);
   return new Uint8Array([
-    0x00, 0x61, 0x73, 0x6d,
-    0x01, 0x00, 0x00, 0x00,
+    0x00,
+    0x61,
+    0x73,
+    0x6d,
+    0x01,
+    0x00,
+    0x00,
+    0x00,
     ...type,
     ...functions,
     ...memory,

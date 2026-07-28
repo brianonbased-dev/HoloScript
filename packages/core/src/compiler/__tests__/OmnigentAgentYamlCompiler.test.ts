@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  OmnigentAgentYamlCompiler,
-  type OmnigentWarningCode,
-} from '../OmnigentAgentYamlCompiler';
+import { OmnigentAgentYamlCompiler, type OmnigentWarningCode } from '../OmnigentAgentYamlCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {

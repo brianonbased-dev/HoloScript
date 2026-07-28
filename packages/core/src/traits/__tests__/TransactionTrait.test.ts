@@ -241,8 +241,12 @@ describe('transactionHandler.onEvent – pay', () => {
   });
 
   it('pay deducts balance and writes receipt', () => {
-    transactionHandler.onEvent!(node as never, cfg, {} as never,
-      { type: 'transaction.pay', amount: 1000 } as never);
+    transactionHandler.onEvent!(
+      node as never,
+      cfg,
+      {} as never,
+      { type: 'transaction.pay', amount: 1000 } as never
+    );
     const r = node.__tx_last_receipt as TxReceipt;
     expect(r.ok).toBe(true);
     expect(r.action).toBe('pay');
@@ -253,8 +257,12 @@ describe('transactionHandler.onEvent – pay', () => {
     const c = { initialBalance: 50_000, limits: { payLimit: 500 } };
     const n = makeNode();
     transactionHandler.onAttach!(n as never, c, {} as never);
-    transactionHandler.onEvent!(n as never, c, {} as never,
-      { type: 'transaction.pay', amount: 1000 } as never);
+    transactionHandler.onEvent!(
+      n as never,
+      c,
+      {} as never,
+      { type: 'transaction.pay', amount: 1000 } as never
+    );
     const r = n.__tx_last_receipt as TxReceipt;
     expect(r.ok).toBe(false);
     expect(r.reason).toBe('limit_exceeded');
@@ -265,8 +273,12 @@ describe('transactionHandler.onEvent – transfer', () => {
   it('transfer succeeds within balance', () => {
     const node = makeNode();
     transactionHandler.onAttach!(node as never, cfg, {} as never);
-    transactionHandler.onEvent!(node as never, cfg, {} as never,
-      { type: 'transaction.transfer', amount: 3000 } as never);
+    transactionHandler.onEvent!(
+      node as never,
+      cfg,
+      {} as never,
+      { type: 'transaction.transfer', amount: 3000 } as never
+    );
     const r = node.__tx_last_receipt as TxReceipt;
     expect(r.ok).toBe(true);
     expect(r.action).toBe('transfer');
@@ -278,8 +290,12 @@ describe('transactionHandler.onEvent – stake / unstake', () => {
   it('stake moves to escrow', () => {
     const node = makeNode();
     transactionHandler.onAttach!(node as never, cfg, {} as never);
-    transactionHandler.onEvent!(node as never, cfg, {} as never,
-      { type: 'transaction.stake', amount: 2000 } as never);
+    transactionHandler.onEvent!(
+      node as never,
+      cfg,
+      {} as never,
+      { type: 'transaction.stake', amount: 2000 } as never
+    );
     const r = node.__tx_last_receipt as TxReceipt;
     expect(r.ok).toBe(true);
     expect(r.balanceAfter).toBe(8000);
@@ -289,10 +305,18 @@ describe('transactionHandler.onEvent – stake / unstake', () => {
   it('unstake returns to balance', () => {
     const node = makeNode();
     transactionHandler.onAttach!(node as never, cfg, {} as never);
-    transactionHandler.onEvent!(node as never, cfg, {} as never,
-      { type: 'transaction.stake', amount: 2000 } as never);
-    transactionHandler.onEvent!(node as never, cfg, {} as never,
-      { type: 'transaction.unstake', amount: 1000 } as never);
+    transactionHandler.onEvent!(
+      node as never,
+      cfg,
+      {} as never,
+      { type: 'transaction.stake', amount: 2000 } as never
+    );
+    transactionHandler.onEvent!(
+      node as never,
+      cfg,
+      {} as never,
+      { type: 'transaction.unstake', amount: 1000 } as never
+    );
     const r = node.__tx_last_receipt as TxReceipt;
     expect(r.ok).toBe(true);
     expect(r.escrowAfter).toBe(1000);
@@ -304,8 +328,12 @@ describe('transactionHandler.onEvent – deposit', () => {
   it('credits balance', () => {
     const node = makeNode();
     transactionHandler.onAttach!(node as never, { initialBalance: 0 }, {} as never);
-    transactionHandler.onEvent!(node as never, { initialBalance: 0 }, {} as never,
-      { type: 'transaction.deposit', amount: 5000 } as never);
+    transactionHandler.onEvent!(
+      node as never,
+      { initialBalance: 0 },
+      {} as never,
+      { type: 'transaction.deposit', amount: 5000 } as never
+    );
     const r = node.__tx_last_receipt as TxReceipt;
     expect(r.ok).toBe(true);
     expect(r.balanceAfter).toBe(5000);
@@ -316,10 +344,18 @@ describe('transactionHandler.onEvent – ledger', () => {
   it('writes ledger snapshot to node', () => {
     const node = makeNode();
     transactionHandler.onAttach!(node as never, cfg, {} as never);
-    transactionHandler.onEvent!(node as never, cfg, {} as never,
-      { type: 'transaction.pay', amount: 100 } as never);
-    transactionHandler.onEvent!(node as never, cfg, {} as never,
-      { type: 'transaction.ledger' } as never);
+    transactionHandler.onEvent!(
+      node as never,
+      cfg,
+      {} as never,
+      { type: 'transaction.pay', amount: 100 } as never
+    );
+    transactionHandler.onEvent!(
+      node as never,
+      cfg,
+      {} as never,
+      { type: 'transaction.ledger' } as never
+    );
     const ledger = node.__tx_ledger as LedgerEntry[];
     expect(Array.isArray(ledger)).toBe(true);
     expect(ledger).toHaveLength(1);
@@ -332,8 +368,12 @@ describe('transactionHandler.onEvent – unknown', () => {
     const node = makeNode();
     transactionHandler.onAttach!(node as never, cfg, {} as never);
     expect(() =>
-      transactionHandler.onEvent!(node as never, cfg, {} as never,
-        { type: 'transaction.unknown' } as never)
+      transactionHandler.onEvent!(
+        node as never,
+        cfg,
+        {} as never,
+        { type: 'transaction.unknown' } as never
+      )
     ).not.toThrow();
   });
 });

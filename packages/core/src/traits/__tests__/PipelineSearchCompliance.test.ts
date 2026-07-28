@@ -31,7 +31,8 @@ import {
 // wrapper's awaits + the .then callback deterministically.
 afterEach(() => vi.unstubAllGlobals());
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
-const mockFetchOk = () => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
+const mockFetchOk = () =>
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Data Pipeline / ETL

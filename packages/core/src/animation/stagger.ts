@@ -42,11 +42,7 @@ export function staggerOffsets(count: number, step: number, from = 0): number[] 
  * @param step     per-index offset in the driver's units (matches edge0/edge1)
  * @param from     offset of the first child (default 0)
  */
-export function applyStaggerToChildren(
-  children: StaggerableNode[],
-  step: number,
-  from = 0
-): void {
+export function applyStaggerToChildren(children: StaggerableNode[], step: number, from = 0): void {
   if (!step || children.length === 0) return;
   const offsets = staggerOffsets(children.length, step, from);
   children.forEach((child, i) => {

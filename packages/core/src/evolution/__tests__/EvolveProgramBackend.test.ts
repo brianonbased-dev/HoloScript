@@ -45,7 +45,7 @@ describe('makeOpenAICompatibleProposer', () => {
       seen = { url: String(url), init };
       return new Response(
         JSON.stringify({ choices: [{ message: { content: '```holo\nOK revised\n```' } }] }),
-        { status: 200, headers: { 'content-type': 'application/json' } },
+        { status: 200, headers: { 'content-type': 'application/json' } }
       );
     };
 
@@ -84,7 +84,7 @@ describe('makeOpenAICompatibleProposer', () => {
     const propose = makeOpenAICompatibleProposer(
       'http://localhost:18080/v1/chat/completions',
       'qwen3:4b',
-      { fetchImpl },
+      { fetchImpl }
     );
 
     await expect(propose('OK seed', 'shorten')).rejects.toThrow('openai-compatible empty response');
@@ -132,7 +132,11 @@ describe('runEvolution (gated evolutionary loop)', () => {
       proposed++;
       return 'OK short';
     };
-    const { bestCode, receipt } = await runEvolution('BAD seed', policy, { propose, gate, now: NOW });
+    const { bestCode, receipt } = await runEvolution('BAD seed', policy, {
+      propose,
+      gate,
+      now: NOW,
+    });
 
     expect(receipt.result).toBe('SEED_INVALID');
     expect(bestCode).toBeNull();
@@ -142,7 +146,12 @@ describe('runEvolution (gated evolutionary loop)', () => {
 
   it('does not self-ship when nothing beats the seed (NO_IMPROVEMENT, bestCode null)', async () => {
     // Every proposal is valid but LONGER than the seed → no improvement.
-    const propose = scriptedProposer(['OK 0123456789', 'OK 0123456789', 'OK 0123456789', 'OK 0123456789']);
+    const propose = scriptedProposer([
+      'OK 0123456789',
+      'OK 0123456789',
+      'OK 0123456789',
+      'OK 0123456789',
+    ]);
     const { bestCode, receipt } = await runEvolution('OK 12', policy, { propose, gate, now: NOW });
 
     expect(receipt.result).toBe('NO_IMPROVEMENT');
@@ -187,8 +196,16 @@ describe('evolve → training data bridge (the second loop)', () => {
   it('toGradedTraceRow renders the harvest REC-SHAPE (passed→SFT, failed→DPO-rejected)', () => {
     const ts = NOW();
     const passRow = toGradedTraceRow(
-      { gen: 1, parentId: 0, parentCode: 'OK long', goal: 'shorten', candidateCode: 'OK', passed: true, score: 2 },
-      { agentId: 'claude1', ts },
+      {
+        gen: 1,
+        parentId: 0,
+        parentCode: 'OK long',
+        goal: 'shorten',
+        candidateCode: 'OK',
+        passed: true,
+        score: 2,
+      },
+      { agentId: 'claude1', ts }
     );
     expect(passRow).toMatchObject({
       target: 'OK',
@@ -204,8 +221,16 @@ describe('evolve → training data bridge (the second loop)', () => {
 
     // Failed candidate → score null (dropped from SFT, kept for DPO/contrast by the grader-gate).
     const failRow = toGradedTraceRow(
-      { gen: 1, parentId: 0, parentCode: 'OK', goal: 'g', candidateCode: 'BAD', passed: false, score: Infinity },
-      { agentId: 'claude1', ts },
+      {
+        gen: 1,
+        parentId: 0,
+        parentCode: 'OK',
+        goal: 'g',
+        candidateCode: 'BAD',
+        passed: false,
+        score: Infinity,
+      },
+      { agentId: 'claude1', ts }
     );
     expect(failRow.grader).toMatchObject({ passed: false, score: null });
     expect(failRow.target).toBe('BAD');

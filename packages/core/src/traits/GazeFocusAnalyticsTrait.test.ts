@@ -21,7 +21,7 @@ import {
 
 const defaultConfig: Partial<GazeFocusAnalyticsConfig> = {
   resolution: [4, 3], // 12-cell grid — fast and easy to assert
-  decay_rate_s: 0,    // no decay by default so tests are deterministic
+  decay_rate_s: 0, // no decay by default so tests are deterministic
   export_event: 'session_end',
   export_format: 'json',
   session_id: 'test-session',
@@ -35,8 +35,20 @@ function gazeHit(
   dwellDelta = 0.1,
   peerId = 'local',
   confidence = 1.0
-): { type: string; uv: [number, number]; dwell_delta_s: number; peer_id: string; confidence: number } {
-  return { type: 'eye_gaze_update', uv: [u, v], dwell_delta_s: dwellDelta, peer_id: peerId, confidence };
+): {
+  type: string;
+  uv: [number, number];
+  dwell_delta_s: number;
+  peer_id: string;
+  confidence: number;
+} {
+  return {
+    type: 'eye_gaze_update',
+    uv: [u, v],
+    dwell_delta_s: dwellDelta,
+    peer_id: peerId,
+    confidence,
+  };
 }
 
 function peerGazeHit(
@@ -44,8 +56,20 @@ function peerGazeHit(
   v: number,
   peerId: string,
   dwellDelta = 0.1
-): { type: string; uv: [number, number]; dwell_delta_s: number; peer_id: string; confidence: number } {
-  return { type: 'peer_eye_gaze_update', uv: [u, v], dwell_delta_s: dwellDelta, peer_id: peerId, confidence: 1.0 };
+): {
+  type: string;
+  uv: [number, number];
+  dwell_delta_s: number;
+  peer_id: string;
+  confidence: number;
+} {
+  return {
+    type: 'peer_eye_gaze_update',
+    uv: [u, v],
+    dwell_delta_s: dwellDelta,
+    peer_id: peerId,
+    confidence: 1.0,
+  };
 }
 
 interface GazeFocusState {
@@ -181,10 +205,13 @@ describe('GazeFocusAnalyticsTrait', () => {
 
     it('ignores gaze events below min_confidence threshold', () => {
       attachTrait(gazeFocusAnalyticsHandler, node, defaultConfig, ctx);
-      sendEvent(
-        gazeFocusAnalyticsHandler, node, defaultConfig, ctx,
-        { type: 'eye_gaze_update', uv: [0.1, 0.1], dwell_delta_s: 0.1, peer_id: 'local', confidence: 0.3 }
-      );
+      sendEvent(gazeFocusAnalyticsHandler, node, defaultConfig, ctx, {
+        type: 'eye_gaze_update',
+        uv: [0.1, 0.1],
+        dwell_delta_s: 0.1,
+        peer_id: 'local',
+        confidence: 0.3,
+      });
 
       expect(getState(node).totalGazeSeconds).toBe(0);
     });
@@ -207,8 +234,20 @@ describe('GazeFocusAnalyticsTrait', () => {
   describe('Multi-peer accumulation', () => {
     it('accepts peer_eye_gaze_update events', () => {
       attachTrait(gazeFocusAnalyticsHandler, node, defaultConfig, ctx);
-      sendEvent(gazeFocusAnalyticsHandler, node, defaultConfig, ctx, peerGazeHit(0.1, 0.1, 'peer-001', 0.15));
-      sendEvent(gazeFocusAnalyticsHandler, node, defaultConfig, ctx, peerGazeHit(0.1, 0.1, 'peer-002', 0.1));
+      sendEvent(
+        gazeFocusAnalyticsHandler,
+        node,
+        defaultConfig,
+        ctx,
+        peerGazeHit(0.1, 0.1, 'peer-001', 0.15)
+      );
+      sendEvent(
+        gazeFocusAnalyticsHandler,
+        node,
+        defaultConfig,
+        ctx,
+        peerGazeHit(0.1, 0.1, 'peer-002', 0.1)
+      );
 
       const state = getState(node);
       expect(state.cells[0].weight).toBeCloseTo(0.25);
@@ -219,9 +258,21 @@ describe('GazeFocusAnalyticsTrait', () => {
 
     it('tracks distinct peer IDs without duplicates', () => {
       attachTrait(gazeFocusAnalyticsHandler, node, defaultConfig, ctx);
-      sendEvent(gazeFocusAnalyticsHandler, node, defaultConfig, ctx, gazeHit(0.1, 0.1, 0.1, 'alice'));
+      sendEvent(
+        gazeFocusAnalyticsHandler,
+        node,
+        defaultConfig,
+        ctx,
+        gazeHit(0.1, 0.1, 0.1, 'alice')
+      );
       sendEvent(gazeFocusAnalyticsHandler, node, defaultConfig, ctx, gazeHit(0.1, 0.1, 0.1, 'bob'));
-      sendEvent(gazeFocusAnalyticsHandler, node, defaultConfig, ctx, gazeHit(0.1, 0.1, 0.1, 'alice'));
+      sendEvent(
+        gazeFocusAnalyticsHandler,
+        node,
+        defaultConfig,
+        ctx,
+        gazeHit(0.1, 0.1, 0.1, 'alice')
+      );
 
       expect(getState(node).peerIds.size).toBe(2);
     });
@@ -290,7 +341,9 @@ describe('GazeFocusAnalyticsTrait', () => {
       };
       attachTrait(gazeFocusAnalyticsHandler, node, csvConfig, ctx);
       sendEvent(gazeFocusAnalyticsHandler, node, csvConfig, ctx, gazeHit(0.1, 0.1, 0.1));
-      sendEvent(gazeFocusAnalyticsHandler, node, csvConfig, ctx, { type: 'gaze_focus_export_request' });
+      sendEvent(gazeFocusAnalyticsHandler, node, csvConfig, ctx, {
+        type: 'gaze_focus_export_request',
+      });
 
       const exp = getLastEvent(ctx, 'gaze_focus_analytics_export') as GazeFocusExportEvent;
       expect(typeof exp.payload).toBe('string');
@@ -322,7 +375,13 @@ describe('GazeFocusAnalyticsTrait', () => {
   describe('Reset', () => {
     it('clears all accumulators on gaze_focus_reset', () => {
       attachTrait(gazeFocusAnalyticsHandler, node, defaultConfig, ctx);
-      sendEvent(gazeFocusAnalyticsHandler, node, defaultConfig, ctx, gazeHit(0.1, 0.1, 1.0, 'alice'));
+      sendEvent(
+        gazeFocusAnalyticsHandler,
+        node,
+        defaultConfig,
+        ctx,
+        gazeHit(0.1, 0.1, 1.0, 'alice')
+      );
       sendEvent(gazeFocusAnalyticsHandler, node, defaultConfig, ctx, { type: 'gaze_focus_reset' });
 
       const state = getState(node);

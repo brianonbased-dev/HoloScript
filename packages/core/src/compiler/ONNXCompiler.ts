@@ -253,9 +253,7 @@ export class ONNXCompiler extends CompilerBase {
         name: `${name}_linear_0`,
         input: [inputName, `${name}_W0`, `${name}_b0`],
         output: [hidden],
-        attribute: [
-          { name: 'transB', type: 'INT', ints: [1] },
-        ],
+        attribute: [{ name: 'transB', type: 'INT', ints: [1] }],
       },
       {
         op_type: 'Relu',
@@ -269,9 +267,7 @@ export class ONNXCompiler extends CompilerBase {
         name: `${name}_linear_1`,
         input: [reluOut, `${name}_W1`, `${name}_b1`],
         output: [outputName],
-        attribute: [
-          { name: 'transB', type: 'INT', ints: [1] },
-        ],
+        attribute: [{ name: 'transB', type: 'INT', ints: [1] }],
       },
     ];
 
@@ -313,8 +309,7 @@ export class ONNXCompiler extends CompilerBase {
       const layerNode = layerNodes[i];
       const layerName = typeof layerNode.name === 'string' ? layerNode.name : `layer_${i}`;
       const nodeName = `${name}_${this.sanitizeId(layerName)}_${i}`;
-      const outputTensor =
-        i === layerNodes.length - 1 ? `${name}_output` : `${name}_tensor_${i}`;
+      const outputTensor = i === layerNodes.length - 1 ? `${name}_output` : `${name}_tensor_${i}`;
 
       const opType = this.resolveOpType(layerNode);
       const attributes = this.resolveAttributes(layerNode, opType);
@@ -482,7 +477,10 @@ export class ONNXCompiler extends CompilerBase {
     return mapped ?? null;
   }
 
-  private resolveShape(node: HoloObjectDecl, traitName: 'input_shape' | 'output_shape'): number[] | null {
+  private resolveShape(
+    node: HoloObjectDecl,
+    traitName: 'input_shape' | 'output_shape'
+  ): number[] | null {
     const raw = this.getTraitScalar(node, traitName, ['shape', 'dims', 'dimensions', 'size']);
     return this.holoValueToIntArray(raw);
   }

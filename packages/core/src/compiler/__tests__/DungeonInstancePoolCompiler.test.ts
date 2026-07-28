@@ -7,11 +7,27 @@ const token = createTestCompilerToken();
 
 function comp(partial: Partial<HoloComposition>): HoloComposition {
   return {
-    type: 'Composition', name: 'DungeonWorld',
-    templates: [], objects: [], spatialGroups: [], lights: [], imports: [],
-    timelines: [], audio: [], zones: [], transitions: [], conditionals: [],
-    iterators: [], npcs: [], quests: [], abilities: [], dialogues: [],
-    stateMachines: [], achievements: [], talentTrees: [], shapes: [],
+    type: 'Composition',
+    name: 'DungeonWorld',
+    templates: [],
+    objects: [],
+    spatialGroups: [],
+    lights: [],
+    imports: [],
+    timelines: [],
+    audio: [],
+    zones: [],
+    transitions: [],
+    conditionals: [],
+    iterators: [],
+    npcs: [],
+    quests: [],
+    abilities: [],
+    dialogues: [],
+    stateMachines: [],
+    achievements: [],
+    talentTrees: [],
+    shapes: [],
     ...partial,
   } as unknown as HoloComposition;
 }
@@ -22,22 +38,36 @@ function quest(name: string): unknown {
 
 function di(name: string, o: Partial<HoloDungeonInstance>): HoloDungeonInstance {
   return {
-    type: 'DungeonInstance', name,
-    maxInstances: o.maxInstances ?? 1, partySize: o.partySize ?? 1, resetTimer: o.resetTimer ?? 0,
-    completionQuest: o.completionQuest ?? '', npcs: o.npcs ?? [], objects: o.objects ?? [], properties: {},
+    type: 'DungeonInstance',
+    name,
+    maxInstances: o.maxInstances ?? 1,
+    partySize: o.partySize ?? 1,
+    resetTimer: o.resetTimer ?? 0,
+    completionQuest: o.completionQuest ?? '',
+    npcs: o.npcs ?? [],
+    objects: o.objects ?? [],
+    properties: {},
   } as unknown as HoloDungeonInstance;
 }
 
 const world = comp({
   quests: [quest('shadowfen_cleared')] as never,
   dungeonInstances: [
-    di('shadowfen_keep', { maxInstances: 2, partySize: 5, resetTimer: 3600, completionQuest: 'shadowfen_cleared', npcs: ['dungeon_boss'] }),
+    di('shadowfen_keep', {
+      maxInstances: 2,
+      partySize: 5,
+      resetTimer: 3600,
+      completionQuest: 'shadowfen_cleared',
+      npcs: ['dungeon_boss'],
+    }),
   ],
 });
 
 function evalModule(js: string): Record<string, unknown> {
   const mod = { exports: {} as Record<string, unknown> };
-  const require_ = (id: string): unknown => { throw new Error(`unexpected require: ${id}`); };
+  const require_ = (id: string): unknown => {
+    throw new Error(`unexpected require: ${id}`);
+  };
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
   new Function('exports', 'require', 'module', js)(mod.exports, require_, mod);
   return mod.exports;
@@ -48,7 +78,12 @@ describe('DungeonInstancePoolCompiler (P2.6) — lowering', () => {
     const result = new DungeonInstancePoolCompiler().compile(world, token);
     expect(result.success).toBe(true);
     expect(result.dungeons).toHaveLength(1);
-    expect(result.dungeons[0]).toMatchObject({ name: 'shadowfen_keep', maxInstances: 2, partySize: 5, completionQuest: 'shadowfen_cleared' });
+    expect(result.dungeons[0]).toMatchObject({
+      name: 'shadowfen_keep',
+      maxInstances: 2,
+      partySize: 5,
+      completionQuest: 'shadowfen_cleared',
+    });
     expect(result.code).toContain('export const DUNGEON_REGISTRY');
     expect(result.code).toContain('export class DungeonInstancePool');
     expect(result.code).toContain('requestInstance(dungeonId: string, party: string[])');
@@ -59,11 +94,15 @@ describe('DungeonInstancePoolCompiler (P2.6) — lowering', () => {
   it('COMPILE ERROR: a dungeon referencing an undeclared completion_quest fails', () => {
     const bad = comp({
       quests: [quest('shadowfen_cleared')] as never,
-      dungeonInstances: [di('haunted_crypt', { maxInstances: 1, completionQuest: 'nonexistent_quest' })],
+      dungeonInstances: [
+        di('haunted_crypt', { maxInstances: 1, completionQuest: 'nonexistent_quest' }),
+      ],
     });
     const result = new DungeonInstancePoolCompiler().compile(bad, token);
     expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.includes('unknown completion_quest "nonexistent_quest"'))).toBe(true);
+    expect(
+      result.errors.some((e) => e.includes('unknown completion_quest "nonexistent_quest"'))
+    ).toBe(true);
     expect(result.dungeons).toHaveLength(0);
   });
 });
@@ -86,7 +125,8 @@ describe('DungeonInstancePoolCompiler (P2.6) — runtime proof (W.685 deep)', ()
 
     const receipts: Array<Record<string, unknown>> = [];
     const pool = new Pool(() => 1000);
-    (pool as { onCompletion: (r: Record<string, unknown>) => void }).onCompletion = (r) => receipts.push(r);
+    (pool as { onCompletion: (r: Record<string, unknown>) => void }).onCompletion = (r) =>
+      receipts.push(r);
 
     // Fill to the cap (maxInstances = 2).
     const i1 = pool.requestInstance('shadowfen_keep', ['p1', 'p2']);

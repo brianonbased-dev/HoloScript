@@ -51,9 +51,16 @@ export function createBiasAddKernel(device: GPUDevice): BiasAddKernel {
   });
 
   return {
-    async run(input: Float32Array, bias: Float32Array, rows: number, cols: number): Promise<Float32Array> {
-      if (input.length !== rows * cols) throw new Error(`biasAdd: input.length=${input.length} != rows*cols=${rows * cols}`);
-      if (bias.length !== cols) throw new Error(`biasAdd: bias.length=${bias.length} != cols=${cols}`);
+    async run(
+      input: Float32Array,
+      bias: Float32Array,
+      rows: number,
+      cols: number
+    ): Promise<Float32Array> {
+      if (input.length !== rows * cols)
+        throw new Error(`biasAdd: input.length=${input.length} != rows*cols=${rows * cols}`);
+      if (bias.length !== cols)
+        throw new Error(`biasAdd: bias.length=${bias.length} != cols=${cols}`);
 
       const inputBuf = storageBuffer(device, input);
       const biasBuf = storageBuffer(device, bias);

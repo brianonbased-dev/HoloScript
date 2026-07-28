@@ -150,14 +150,14 @@ export interface TimeOfDayOutput {
 export const DEFAULT_PHASE_CONFIGS: Record<TimeOfDayPhase, TimeOfDayPhaseConfig> = {
   dawn: {
     sun_intensity: 0.25,
-    ambient_light: 0.10,
+    ambient_light: 0.1,
     fog_density: 0.032,
     sky_exposure: 0.6,
     fog_color: '#3a4a7a',
     ambient_color: '#2a3060',
   },
   golden: {
-    sun_intensity: 0.60,
+    sun_intensity: 0.6,
     ambient_light: 0.18,
     fog_density: 0.018,
     sky_exposure: 1.0,
@@ -165,7 +165,7 @@ export const DEFAULT_PHASE_CONFIGS: Record<TimeOfDayPhase, TimeOfDayPhaseConfig>
     ambient_color: '#2a3d6b',
   },
   dusk: {
-    sun_intensity: 0.30,
+    sun_intensity: 0.3,
     ambient_light: 0.14,
     fog_density: 0.024,
     sky_exposure: 0.7,
@@ -175,7 +175,7 @@ export const DEFAULT_PHASE_CONFIGS: Record<TimeOfDayPhase, TimeOfDayPhaseConfig>
   dark: {
     sun_intensity: 0.02,
     ambient_light: 0.06,
-    fog_density: 0.040,
+    fog_density: 0.04,
     sky_exposure: 0.2,
     fog_color: '#0a0e1e',
     ambient_color: '#080c18',

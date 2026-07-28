@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  ThreeDTilesCompiler,
-  compileTo3DTiles,
-  streamWorldTiles,
-} from '../ThreeDTilesCompiler';
+import { ThreeDTilesCompiler, compileTo3DTiles, streamWorldTiles } from '../ThreeDTilesCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
 function makeSplatComposition(): HoloComposition {
@@ -115,8 +111,6 @@ describe('ThreeDTilesCompiler', () => {
     expect(result.success).toBe(true);
     expect(result.target).toBe('3dtiles');
     expect(result.manifestUrl).toBe('https://cdn.example/holo/run-42/tileset.json');
-    expect(result.files['cael-tile-provenance.json']).toContain(
-      'cael-3dtiles-provenance-chain'
-    );
+    expect(result.files['cael-tile-provenance.json']).toContain('cael-3dtiles-provenance-chain');
   });
 });

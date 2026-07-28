@@ -81,18 +81,14 @@ describe('Rive animation state-machine authoring', () => {
         target: 'Walk',
         duration: 0.2,
         easing: 'spring',
-        conditions: [
-          expect.objectContaining({ parameter: 'speed', operator: '>', value: 0.15 }),
-        ],
+        conditions: [expect.objectContaining({ parameter: 'speed', operator: '>', value: 0.15 })],
       }),
       expect.objectContaining({
         from: 'Walk',
         target: 'Idle',
         duration: 0.12,
         easing: 'bounce',
-        conditions: [
-          expect.objectContaining({ parameter: 'speed', operator: '<=', value: 0.15 }),
-        ],
+        conditions: [expect.objectContaining({ parameter: 'speed', operator: '<=', value: 0.15 })],
       }),
       expect.objectContaining({
         from: 'any',
@@ -102,9 +98,7 @@ describe('Rive animation state-machine authoring', () => {
         hasExitTime: true,
         priority: 10,
         pauseWhenExiting: true,
-        conditions: [
-          expect.objectContaining({ parameter: 'jump', operator: '==', value: true }),
-        ],
+        conditions: [expect.objectContaining({ parameter: 'jump', operator: '==', value: true })],
       }),
     ]);
 

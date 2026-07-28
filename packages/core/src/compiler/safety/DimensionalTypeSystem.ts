@@ -51,17 +51,41 @@ export function dimEqual(a: DimVector, b: DimVector): boolean {
 
 /** Multiply dimensions: a × b → component-wise addition of exponents. */
 export function dimMul(a: DimVector, b: DimVector): DimVector {
-  return [a[0]+b[0], a[1]+b[1], a[2]+b[2], a[3]+b[3], a[4]+b[4], a[5]+b[5], a[6]+b[6]];
+  return [
+    a[0] + b[0],
+    a[1] + b[1],
+    a[2] + b[2],
+    a[3] + b[3],
+    a[4] + b[4],
+    a[5] + b[5],
+    a[6] + b[6],
+  ];
 }
 
 /** Divide dimensions: a / b → component-wise subtraction of exponents. */
 export function dimDiv(a: DimVector, b: DimVector): DimVector {
-  return [a[0]-b[0], a[1]-b[1], a[2]-b[2], a[3]-b[3], a[4]-b[4], a[5]-b[5], a[6]-b[6]];
+  return [
+    a[0] - b[0],
+    a[1] - b[1],
+    a[2] - b[2],
+    a[3] - b[3],
+    a[4] - b[4],
+    a[5] - b[5],
+    a[6] - b[6],
+  ];
 }
 
 /** Raise dimension to an integer power. Adding 0 normalizes -0 → 0. */
 export function dimPow(a: DimVector, exp: number): DimVector {
-  return [a[0]*exp+0, a[1]*exp+0, a[2]*exp+0, a[3]*exp+0, a[4]*exp+0, a[5]*exp+0, a[6]*exp+0] as DimVector;
+  return [
+    a[0] * exp + 0,
+    a[1] * exp + 0,
+    a[2] * exp + 0,
+    a[3] * exp + 0,
+    a[4] * exp + 0,
+    a[5] * exp + 0,
+    a[6] * exp + 0,
+  ] as DimVector;
 }
 
 /** Format a DimVector as a human-readable SI unit string. */
@@ -80,35 +104,35 @@ export function dimToString(d: DimVector): string {
 /** Known SI-derived unit strings → DimVector. Keys are lowercase. */
 export const UNIT_REGISTRY: Record<string, DimVector> = {
   // Base units
-  kg:  [1, 0, 0, 0, 0, 0, 0],
-  m:   [0, 1, 0, 0, 0, 0, 0],
-  s:   [0, 0, 1, 0, 0, 0, 0],
-  a:   [0, 0, 0, 1, 0, 0, 0],  // ampere
-  k:   [0, 0, 0, 0, 1, 0, 0],  // kelvin
+  kg: [1, 0, 0, 0, 0, 0, 0],
+  m: [0, 1, 0, 0, 0, 0, 0],
+  s: [0, 0, 1, 0, 0, 0, 0],
+  a: [0, 0, 0, 1, 0, 0, 0], // ampere
+  k: [0, 0, 0, 0, 1, 0, 0], // kelvin
   mol: [0, 0, 0, 0, 0, 1, 0],
-  cd:  [0, 0, 0, 0, 0, 0, 1],
+  cd: [0, 0, 0, 0, 0, 0, 1],
 
   // Derived units (SI coherent)
-  n:   [1, 1, -2, 0, 0, 0, 0],  // Newton = kg·m·s⁻²
-  pa:  [1, -1, -2, 0, 0, 0, 0], // Pascal = kg·m⁻¹·s⁻²
-  j:   [1, 2, -2, 0, 0, 0, 0],  // Joule = kg·m²·s⁻²
-  w:   [1, 2, -3, 0, 0, 0, 0],  // Watt = kg·m²·s⁻³
-  hz:  [0, 0, -1, 0, 0, 0, 0],  // Hertz = s⁻¹
+  n: [1, 1, -2, 0, 0, 0, 0], // Newton = kg·m·s⁻²
+  pa: [1, -1, -2, 0, 0, 0, 0], // Pascal = kg·m⁻¹·s⁻²
+  j: [1, 2, -2, 0, 0, 0, 0], // Joule = kg·m²·s⁻²
+  w: [1, 2, -3, 0, 0, 0, 0], // Watt = kg·m²·s⁻³
+  hz: [0, 0, -1, 0, 0, 0, 0], // Hertz = s⁻¹
 
   // Composite unit strings (common in simulation)
-  'm/s':   [0, 1, -1, 0, 0, 0, 0], // velocity
+  'm/s': [0, 1, -1, 0, 0, 0, 0], // velocity
   'm/s^2': [0, 1, -2, 0, 0, 0, 0], // acceleration
-  'kg/m^3':[1, -3, 0, 0, 0, 0, 0], // density
+  'kg/m^3': [1, -3, 0, 0, 0, 0, 0], // density
   'n/m^2': [1, -1, -2, 0, 0, 0, 0], // stress (alias for Pa)
-  'kg*m/s':[1, 1, -1, 0, 0, 0, 0], // momentum
+  'kg*m/s': [1, 1, -1, 0, 0, 0, 0], // momentum
 
   // Dimensionless
-  '':      [0, 0, 0, 0, 0, 0, 0],
-  'dimensionless': [0, 0, 0, 0, 0, 0, 0],
-  'ratio': [0, 0, 0, 0, 0, 0, 0],
-  'count': [0, 0, 0, 0, 0, 0, 0],
-  'deg':   [0, 0, 0, 0, 0, 0, 0], // degrees — dimensionless in SI
-  'rad':   [0, 0, 0, 0, 0, 0, 0], // radians — dimensionless in SI
+  '': [0, 0, 0, 0, 0, 0, 0],
+  dimensionless: [0, 0, 0, 0, 0, 0, 0],
+  ratio: [0, 0, 0, 0, 0, 0, 0],
+  count: [0, 0, 0, 0, 0, 0, 0],
+  deg: [0, 0, 0, 0, 0, 0, 0], // degrees — dimensionless in SI
+  rad: [0, 0, 0, 0, 0, 0, 0], // radians — dimensionless in SI
 };
 
 /**
@@ -129,21 +153,21 @@ export function parseUnit(unit: string): DimVector | null {
  * their physical meaning without requiring every solver to annotate fields.
  */
 export const SOLVER_FIELD_DIMENSIONS: Record<string, DimVector> = {
-  von_mises_stress:    UNIT_REGISTRY['pa'],
-  pressure:            UNIT_REGISTRY['pa'],
-  displacement:        UNIT_REGISTRY['m'],
-  velocity:            UNIT_REGISTRY['m/s'],
-  acceleration:        UNIT_REGISTRY['m/s^2'],
-  force:               UNIT_REGISTRY['n'],
-  density:             UNIT_REGISTRY['kg/m^3'],
-  temperature:         UNIT_REGISTRY['k'],
-  energy:              UNIT_REGISTRY['j'],
-  power:               UNIT_REGISTRY['w'],
-  mass:                UNIT_REGISTRY['kg'],
-  frequency:           UNIT_REGISTRY['hz'],
-  stress:              UNIT_REGISTRY['pa'],
-  strain:              DIM_DIMENSIONLESS,
-  heat_flux:           UNIT_REGISTRY['w'],
+  von_mises_stress: UNIT_REGISTRY['pa'],
+  pressure: UNIT_REGISTRY['pa'],
+  displacement: UNIT_REGISTRY['m'],
+  velocity: UNIT_REGISTRY['m/s'],
+  acceleration: UNIT_REGISTRY['m/s^2'],
+  force: UNIT_REGISTRY['n'],
+  density: UNIT_REGISTRY['kg/m^3'],
+  temperature: UNIT_REGISTRY['k'],
+  energy: UNIT_REGISTRY['j'],
+  power: UNIT_REGISTRY['w'],
+  mass: UNIT_REGISTRY['kg'],
+  frequency: UNIT_REGISTRY['hz'],
+  stress: UNIT_REGISTRY['pa'],
+  strain: DIM_DIMENSIONLESS,
+  heat_flux: UNIT_REGISTRY['w'],
 };
 
 // ── AST Node interface ─────────────────────────────────────────────────────────
@@ -313,8 +337,7 @@ export function checkDimensions(nodes: DimensionalASTNode[]): DimensionalCheckRe
           violations.push({
             node: nodeLabel,
             kind: 'operation_mismatch',
-            message:
-              `Assignment type mismatch at "${label}": cannot assign ${dimToString(rhs)} to ${dimToString(lhs)}`,
+            message: `Assignment type mismatch at "${label}": cannot assign ${dimToString(rhs)} to ${dimToString(lhs)}`,
             severity: 'error',
             code: 'DIM-E003',
           });

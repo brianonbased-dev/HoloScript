@@ -289,10 +289,7 @@ export class VRRLiveDataSync {
     return source.entityId ?? `vrr:${this.twinId}:${source.kind}:${source.sourceId}`;
   }
 
-  private buildEntityDelta<T>(
-    snapshot: VRRLiveDataSnapshot<T>,
-    observedAt: number
-  ): EntityDelta {
+  private buildEntityDelta<T>(snapshot: VRRLiveDataSnapshot<T>, observedAt: number): EntityDelta {
     const source = snapshot.source;
     return {
       id: this.entityIdFor(source),
@@ -307,10 +304,7 @@ export class VRRLiveDataSync {
     };
   }
 
-  private buildWorldEvent<T>(
-    snapshot: VRRLiveDataSnapshot<T>,
-    observedAt: number
-  ): WorldEvent {
+  private buildWorldEvent<T>(snapshot: VRRLiveDataSnapshot<T>, observedAt: number): WorldEvent {
     const { source } = snapshot;
     return {
       id: `vrr_live_${source.kind}_${source.sourceId}_${observedAt}`,
@@ -336,4 +330,3 @@ export class VRRLiveDataSync {
     return `vrr.live_data.${kind}.updated`;
   }
 }
-

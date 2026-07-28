@@ -46,7 +46,7 @@ export class CpuPathTracer {
         rng |= 1;
         const rand = (): number => {
           rng = (Math.imul(rng, 747796405) + 2891336453) >>> 0;
-          let w = (Math.imul((rng >>> ((rng >>> 28) + 4)) ^ rng, 277803737)) >>> 0;
+          let w = Math.imul((rng >>> ((rng >>> 28) + 4)) ^ rng, 277803737) >>> 0;
           w = (w >>> 22) ^ w;
           return (w >>> 0) / 4294967295;
         };
@@ -56,8 +56,8 @@ export class CpuPathTracer {
         for (let s = 0; s < samples; s++) {
           const jx = rand();
           const jy = rand();
-          const px = (2 * (x + jx) / width - 1) * cam.tanf * cam.aspect;
-          const py = (1 - 2 * (y + jy) / height) * cam.tanf;
+          const px = ((2 * (x + jx)) / width - 1) * cam.tanf * cam.aspect;
+          const py = (1 - (2 * (y + jy)) / height) * cam.tanf;
           const dir = norm([
             cam.fwd[0] + cam.right[0] * px + cam.up[0] * py,
             cam.fwd[1] + cam.right[1] * px + cam.up[1] * py,
@@ -109,7 +109,10 @@ export class CpuPathTracer {
       }
       const pr = prims[hit];
       const p: V3 = [ro[0] + rd[0] * best, ro[1] + rd[1] * best, ro[2] + rd[2] * best];
-      let n: V3 = pr.kind === 0 ? norm([p[0] - pr.a[0], p[1] - pr.a[1], p[2] - pr.a[2]]) : boxNormal(p, pr.a, pr.b);
+      let n: V3 =
+        pr.kind === 0
+          ? norm([p[0] - pr.a[0], p[1] - pr.a[1], p[2] - pr.a[2]])
+          : boxNormal(p, pr.a, pr.b);
       if (dot(n, rd) > 0) n = [-n[0], -n[1], -n[2]];
       rad = [
         rad[0] + tr[0] * pr.emissive[0],
@@ -228,7 +231,11 @@ function cosineDir(n: V3, rand: () => number): V3 {
   const t: V3 = Math.abs(n[0]) > 0.9 ? [0, 1, 0] : [1, 0, 0];
   const b1 = norm(cross(t, n));
   const b2 = cross(n, b1);
-  return norm([b1[0] * x + b2[0] * y + n[0] * z, b1[1] * x + b2[1] * y + n[1] * z, b1[2] * x + b2[2] * y + n[2] * z]);
+  return norm([
+    b1[0] * x + b2[0] * y + n[0] * z,
+    b1[1] * x + b2[1] * y + n[1] * z,
+    b1[2] * x + b2[2] * y + n[2] * z,
+  ]);
 }
 function dot(a: V3, b: V3): number {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];

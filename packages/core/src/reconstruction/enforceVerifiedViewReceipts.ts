@@ -359,7 +359,13 @@ export function diagnoseVerifiedView(source: string): VerifiedViewDiagnosis {
     });
   }
 
-  return { parsed: true, hasBindings, verifiedViewOn, complete: violations.length === 0, violations };
+  return {
+    parsed: true,
+    hasBindings,
+    verifiedViewOn,
+    complete: violations.length === 0,
+    violations,
+  };
 }
 
 /**

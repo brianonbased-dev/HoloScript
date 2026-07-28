@@ -21,9 +21,9 @@ describe('dhTransform', () => {
 
   it('pure x translation (a=1, others=0)', () => {
     const T = dhTransform(1, 0, 0, 0);
-    expect(T[3]).toBeCloseTo(1, 6);   // x
-    expect(T[7]).toBeCloseTo(0, 6);   // y
-    expect(T[11]).toBeCloseTo(0, 6);  // z
+    expect(T[3]).toBeCloseTo(1, 6); // x
+    expect(T[7]).toBeCloseTo(0, 6); // y
+    expect(T[11]).toBeCloseTo(0, 6); // z
     // rotation block = identity
     expect(T[0]).toBeCloseTo(1, 6);
     expect(T[5]).toBeCloseTo(1, 6);
@@ -39,10 +39,10 @@ describe('dhTransform', () => {
 
   it('θ=π/2 rotation around z', () => {
     const T = dhTransform(0, 0, 0, Math.PI / 2);
-    expect(T[0]).toBeCloseTo(0, 6);   // cos(π/2)
-    expect(T[1]).toBeCloseTo(-1, 6);  // -sin(π/2)
-    expect(T[4]).toBeCloseTo(1, 6);   // sin(π/2)
-    expect(T[5]).toBeCloseTo(0, 6);   // cos(π/2)
+    expect(T[0]).toBeCloseTo(0, 6); // cos(π/2)
+    expect(T[1]).toBeCloseTo(-1, 6); // -sin(π/2)
+    expect(T[4]).toBeCloseTo(1, 6); // sin(π/2)
+    expect(T[5]).toBeCloseTo(0, 6); // cos(π/2)
   });
 
   it('α=π/2 twists x into -z for new y, z into +y', () => {
@@ -239,7 +239,11 @@ describe('kinematicChainHandler.onAttach', () => {
 
   it('skips FK when jointAngles length does not match links', () => {
     const node = makeNode();
-    kinematicChainHandler.onAttach!(node as never, { links: planarLinks(2), jointAngles: [0] }, {} as never);
+    kinematicChainHandler.onAttach!(
+      node as never,
+      { links: planarLinks(2), jointAngles: [0] },
+      {} as never
+    );
     expect(node.__kinematic_fk).toBeUndefined();
   });
 });
@@ -252,7 +256,7 @@ describe('kinematicChainHandler.onEvent', () => {
       node as never,
       { links, jointAngles: [0, 0] },
       {} as never,
-      { type: 'kinematic_chain.solve_fk', links, jointAngles: [Math.PI / 2, 0] } as never,
+      { type: 'kinematic_chain.solve_fk', links, jointAngles: [Math.PI / 2, 0] } as never
     );
     const fk = node.__kinematic_fk as ReturnType<typeof solveFk>;
     expect(fk.endEffectorPosition.x).toBeCloseTo(0, 5);
@@ -266,7 +270,7 @@ describe('kinematicChainHandler.onEvent', () => {
       node as never,
       { links, jointAngles: [0, 0] },
       {} as never,
-      { type: 'kinematic_chain.solve_fk' } as never,
+      { type: 'kinematic_chain.solve_fk' } as never
     );
     const fk = node.__kinematic_fk as ReturnType<typeof solveFk>;
     expect(fk.endEffectorPosition.x).toBeCloseTo(2, 5);
@@ -279,7 +283,7 @@ describe('kinematicChainHandler.onEvent', () => {
       node as never,
       { links, jointAngles: [0, 0] },
       {} as never,
-      { type: 'kinematic_chain.solve_ik', links, target: { x: 1, y: 1, z: 0 } } as never,
+      { type: 'kinematic_chain.solve_ik', links, target: { x: 1, y: 1, z: 0 } } as never
     );
     const ik = node.__kinematic_ik as ReturnType<typeof solveIk>;
     expect(ik.converged).toBe(true);
@@ -293,7 +297,7 @@ describe('kinematicChainHandler.onEvent', () => {
       node as never,
       { links, jointAngles: [0, 0] },
       {} as never,
-      { type: 'kinematic_chain.solve_ik' } as never,
+      { type: 'kinematic_chain.solve_ik' } as never
     );
     const ik = node.__kinematic_ik as ReturnType<typeof solveIk>;
     expect(ik.jointAngles).toHaveLength(2);
@@ -306,8 +310,8 @@ describe('kinematicChainHandler.onEvent', () => {
         node as never,
         { links: [], jointAngles: [] },
         {} as never,
-        { type: 'unknown.event' } as never,
-      ),
+        { type: 'unknown.event' } as never
+      )
     ).not.toThrow();
   });
 });

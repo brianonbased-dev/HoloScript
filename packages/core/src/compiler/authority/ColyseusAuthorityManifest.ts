@@ -49,7 +49,19 @@ export const COLYSEUS_SCHEMA_FIELD_TIERS: readonly SchemaClassTiers[] = [
   },
   {
     className: 'NpcState',
-    replicated: ['id', 'type', 'x', 'y', 'z', 'hp', 'maxHp', 'faction', 'brainType', 'brainState', 'isAlive'],
+    replicated: [
+      'id',
+      'type',
+      'x',
+      'y',
+      'z',
+      'hp',
+      'maxHp',
+      'faction',
+      'brainType',
+      'brainState',
+      'isAlive',
+    ],
     serverOnly: ['brainTick', 'lastLlmTick', 'ticksSincePhaseEntry'],
   },
   {
@@ -252,7 +264,9 @@ export function buildColyseusCrossFileContext(
  */
 function collectServerSideObjectNames(composition: HoloComposition): string[] {
   const names: string[] = [];
-  const objects = (composition as { objects?: Array<{ name?: string; traits?: HoloObjectTrait[] }> }).objects ?? [];
+  const objects =
+    (composition as { objects?: Array<{ name?: string; traits?: HoloObjectTrait[] }> }).objects ??
+    [];
   for (const obj of objects) {
     const traits = obj.traits ?? [];
     if (traits.some((t) => traitName(t) === 'server_side' || traitName(t) === 'server_only')) {

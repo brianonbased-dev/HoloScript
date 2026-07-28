@@ -492,9 +492,7 @@ export class Profiler {
     return [...this.frameSummaries.values()];
   }
 
-  getSlowestScopes(
-    count = 5
-  ): Array<{
+  getSlowestScopes(count = 5): Array<{
     name: string;
     avgTime: number;
     minTime: number;
@@ -505,9 +503,7 @@ export class Profiler {
     return [...this.frameSummaries.values()].sort((a, b) => b.maxTime - a.maxTime).slice(0, count);
   }
 
-  getSummary(
-    name: string
-  ):
+  getSummary(name: string):
     | {
         name: string;
         avgTime: number;

@@ -25,12 +25,9 @@ const react = (source: string): string => {
   const parsed = parseHolo(source);
   expect(parsed.success).toBe(true);
   expect(parsed.ast).toBeTruthy();
-  return new Native2DCompiler().compile(
-    parsed.ast as HoloComposition,
-    '',
-    undefined,
-    { format: 'react' }
-  ) as string;
+  return new Native2DCompiler().compile(parsed.ast as HoloComposition, '', undefined, {
+    format: 'react',
+  }) as string;
 };
 
 // A generator-shaped surface: two data-bound stat elements, NO @projects, NO @verified_view.
@@ -231,7 +228,10 @@ describe('enforceVerifiedViewReceipts — round-trip through the REAL @verified_
     // Mirrors generate_semantic_ui's title sanitizer: strip the chars that would break the
     // string literal, so an untrusted description can never produce unparseable .holo.
     const sanitize = (d: string): string =>
-      d.replace(/["\\\r\n]/g, ' ').trim().slice(0, 80) || 'Semantic surface';
+      d
+        .replace(/["\\\r\n]/g, ' ')
+        .trim()
+        .slice(0, 80) || 'Semantic surface';
     const title = sanitize('Dash "board"\n rm -rf \\ <script>');
     const surface = `composition "SemanticApp" {
   @verified_view

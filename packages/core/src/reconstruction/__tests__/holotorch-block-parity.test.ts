@@ -9,10 +9,28 @@
  * index bug in the block would surface as a mismatch rather than being masked.
  */
 import { describe, it, expect } from 'vitest';
-import { createHoloTorchBlock, toHeads, fromHeads, type BlockWeights } from '../holotorch/decoderBlock';
-import { getWebGpuDevice, compareAllClose, writeParityReceipt, rng, getAdapterInfo } from './holotorchParityHarness';
+import {
+  createHoloTorchBlock,
+  toHeads,
+  fromHeads,
+  type BlockWeights,
+} from '../holotorch/decoderBlock';
+import {
+  getWebGpuDevice,
+  compareAllClose,
+  writeParityReceipt,
+  rng,
+  getAdapterInfo,
+} from './holotorchParityHarness';
 
-function refLayerNorm(input: Float32Array, gamma: Float32Array, beta: Float32Array, rows: number, dModel: number, eps: number): Float64Array {
+function refLayerNorm(
+  input: Float32Array,
+  gamma: Float32Array,
+  beta: Float32Array,
+  rows: number,
+  dModel: number,
+  eps: number
+): Float64Array {
   const out = new Float64Array(rows * dModel);
   for (let r = 0; r < rows; r++) {
     let mean = 0;
@@ -25,13 +43,21 @@ function refLayerNorm(input: Float32Array, gamma: Float32Array, beta: Float32Arr
     }
     v /= dModel;
     const inv = 1 / Math.sqrt(v + eps);
-    for (let c = 0; c < dModel; c++) out[r * dModel + c] = (input[r * dModel + c] - mean) * inv * gamma[c] + beta[c];
+    for (let c = 0; c < dModel; c++)
+      out[r * dModel + c] = (input[r * dModel + c] - mean) * inv * gamma[c] + beta[c];
   }
   return out;
 }
 
 /** y[r,o] = sum_i x[r,i]*W[i,o] + b[o]. x [rows,inDim], W [inDim,outDim] (as f64 in). */
-function refLinear(x: ArrayLike<number>, W: Float32Array, b: Float32Array, rows: number, inDim: number, outDim: number): Float64Array {
+function refLinear(
+  x: ArrayLike<number>,
+  W: Float32Array,
+  b: Float32Array,
+  rows: number,
+  inDim: number,
+  outDim: number
+): Float64Array {
   const out = new Float64Array(rows * outDim);
   for (let r = 0; r < rows; r++) {
     for (let o = 0; o < outDim; o++) {
@@ -53,7 +79,13 @@ function refGelu(x: ArrayLike<number>, n: number): Float64Array {
 }
 
 /** Full block reference. Attention computed INLINE per-head on [T, nEmbd] (no shared reshape). */
-function refBlock(x: Float32Array, w: BlockWeights, T: number, nEmbd: number, nHead: number): Float64Array {
+function refBlock(
+  x: Float32Array,
+  w: BlockWeights,
+  T: number,
+  nEmbd: number,
+  nHead: number
+): Float64Array {
   const dHead = nEmbd / nHead;
   const eps = 1e-5;
   const a = refLayerNorm(x, w.ln1g, w.ln1b, T, nEmbd, eps);

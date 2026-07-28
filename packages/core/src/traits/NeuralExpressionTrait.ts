@@ -151,9 +151,7 @@ export const neuralExpressionHandler: TraitHandler<NeuralExpressionConfig> = {
     context.emit?.('neural_expression_init', {
       node,
       sources: config.sources,
-      blendshapes: Object.keys(
-        Object.assign({}, ...Object.values(config.blendshape_map))
-      ),
+      blendshapes: Object.keys(Object.assign({}, ...Object.values(config.blendshape_map))),
     });
   },
 

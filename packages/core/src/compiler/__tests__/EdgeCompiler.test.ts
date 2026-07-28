@@ -34,7 +34,11 @@ describe('EdgeCompiler', () => {
   // Default runtime is now 'agentrunner' (canonical TS AgentRunner — full gate stack).
   const compiler = new EdgeCompiler({ ollamaUrl: 'http://localhost:11434', model: 'qwen3:4b' });
   // Legacy gate-less path — must be opted into explicitly (deprecated; retirement tracked).
-  const pythonCompiler = new EdgeCompiler({ ollamaUrl: 'http://localhost:11434', model: 'qwen3:4b', runtime: 'python' });
+  const pythonCompiler = new EdgeCompiler({
+    ollamaUrl: 'http://localhost:11434',
+    model: 'qwen3:4b',
+    runtime: 'python',
+  });
 
   it('emits a valid JSON bundle for a bare composition', () => {
     const result = compiler.compile(minimalComposition('test-agent'), token);
@@ -64,7 +68,10 @@ describe('EdgeCompiler', () => {
   });
 
   it('agentrunner manifest records runtime=agentrunner', () => {
-    const result = compiler.compile(minimalComposition('jetson-orin-01', ['local_inference', 'edge_node', 'sovereign_agent']), token);
+    const result = compiler.compile(
+      minimalComposition('jetson-orin-01', ['local_inference', 'edge_node', 'sovereign_agent']),
+      token
+    );
     const bundle = JSON.parse(result);
     const manifest = bundle.files.find((f: { path: string }) => f.path === 'manifest.json');
     expect(manifest?.content).toContain('"runtime": "agentrunner"');
@@ -122,7 +129,14 @@ describe('EdgeCompiler', () => {
   });
 
   it('full Jetson brain traits set all flags', () => {
-    const jetsonTraits = ['local_inference', 'edge_node', 'sovereign_agent', 'jetson', 'tegrastats', 'ros2_actuation'];
+    const jetsonTraits = [
+      'local_inference',
+      'edge_node',
+      'sovereign_agent',
+      'jetson',
+      'tegrastats',
+      'ros2_actuation',
+    ];
     const result = compiler.compile(minimalComposition('jetson-orin-01', jetsonTraits), token);
     const bundle = JSON.parse(result);
     expect(bundle.config.hasLocalInference).toBe(true);
@@ -160,7 +174,10 @@ describe('EdgeCompiler', () => {
   });
 
   it('python (legacy) adds tensorrt_loader.py for @TensorRTInference trait', () => {
-    const result = pythonCompiler.compile(minimalComposition('trt-agent', ['tensorrt_inference']), token);
+    const result = pythonCompiler.compile(
+      minimalComposition('trt-agent', ['tensorrt_inference']),
+      token
+    );
     const bundle = JSON.parse(result);
     const paths = bundle.files.map((f: { path: string }) => f.path);
     expect(paths).toContain('tensorrt_loader.py');

@@ -12,7 +12,11 @@ function obj(name: string, props: Record<string, unknown>, children: unknown[] =
   return {
     type: 'Object',
     name,
-    properties: Object.entries(props).map(([key, value]) => ({ type: 'ObjectProperty', key, value })),
+    properties: Object.entries(props).map(([key, value]) => ({
+      type: 'ObjectProperty',
+      key,
+      value,
+    })),
     traits: [],
     directives: [],
     children,
@@ -52,7 +56,14 @@ describe('SVGCompiler — nested geometry projection', () => {
   });
 
   it('rotates a yaw-rotated box (the swept wing) via an SVG transform', () => {
-    const comp = composition([obj('Wing', { geometry: 'cube', position: [0, 0, 0], scale: [4, 0.1, 1], rotation: [0, 22, 0] })]);
+    const comp = composition([
+      obj('Wing', {
+        geometry: 'cube',
+        position: [0, 0, 0],
+        scale: [4, 0.1, 1],
+        rotation: [0, 22, 0],
+      }),
+    ]);
     const { svg } = new SVGCompiler().compile(comp as never, '');
     expect(svg).toContain('<rect');
     expect(svg).toContain('transform="rotate(');
@@ -60,8 +71,14 @@ describe('SVGCompiler — nested geometry projection', () => {
 
   it('sizes a box from the scale array rather than collapsing to unit size', () => {
     // background:false so the only <rect> is the box itself (not the viewport backdrop).
-    const big = new SVGCompiler({ background: false }).compile(composition([obj('B', { geometry: 'cube', position: [0, 0, 0], scale: [8, 1, 1] })]) as never, '').svg;
-    const small = new SVGCompiler({ background: false }).compile(composition([obj('B', { geometry: 'cube', position: [0, 0, 0], scale: [1, 1, 1] })]) as never, '').svg;
+    const big = new SVGCompiler({ background: false }).compile(
+      composition([obj('B', { geometry: 'cube', position: [0, 0, 0], scale: [8, 1, 1] })]) as never,
+      ''
+    ).svg;
+    const small = new SVGCompiler({ background: false }).compile(
+      composition([obj('B', { geometry: 'cube', position: [0, 0, 0], scale: [1, 1, 1] })]) as never,
+      ''
+    ).svg;
     const widthOf = (svg: string) => Number(svg.match(/<rect[^>]*width="([\d.]+)"/)?.[1] ?? 0);
     expect(widthOf(big)).toBeGreaterThan(widthOf(small) * 4);
   });
@@ -70,11 +87,17 @@ describe('SVGCompiler — nested geometry projection', () => {
     const widthOf = (svg: string) => Number(svg.match(/<rect[^>]*width="([\d.]+)"/)?.[1] ?? 0);
     // Same leaf box, once under a 3x-scaled container, once at top level.
     const nested = new SVGCompiler({ background: false }).compile(
-      composition([obj('P', { scale: [3, 1, 3] }, [obj('C', { geometry: 'cube', position: [0, 0, 0], scale: [1, 0.1, 1] })])]) as never,
+      composition([
+        obj('P', { scale: [3, 1, 3] }, [
+          obj('C', { geometry: 'cube', position: [0, 0, 0], scale: [1, 0.1, 1] }),
+        ]),
+      ]) as never,
       ''
     ).svg;
     const flat = new SVGCompiler({ background: false }).compile(
-      composition([obj('C', { geometry: 'cube', position: [0, 0, 0], scale: [1, 0.1, 1] })]) as never,
+      composition([
+        obj('C', { geometry: 'cube', position: [0, 0, 0], scale: [1, 0.1, 1] }),
+      ]) as never,
       ''
     ).svg;
     expect(widthOf(nested)).toBeCloseTo(widthOf(flat) * 3, 0);
@@ -84,7 +107,11 @@ describe('SVGCompiler — nested geometry projection', () => {
     // A child at x=1.6 under a 4x-scaled parent must stay at world x≈1.6 (svg 464),
     // not be flung to x=6.4 (svg 656). Default origin 400, scale 40.
     const svg = new SVGCompiler({ background: false }).compile(
-      composition([obj('P', { scale: [4, 1, 1] }, [obj('C', { geometry: 'sphere', position: [1.6, 0, 0], scale: [0.1, 0.1, 0.1] })])]) as never,
+      composition([
+        obj('P', { scale: [4, 1, 1] }, [
+          obj('C', { geometry: 'sphere', position: [1.6, 0, 0], scale: [0.1, 0.1, 0.1] }),
+        ]),
+      ]) as never,
       ''
     ).svg;
     const cx = Number(svg.match(/<circle cx="([\d.]+)"/)?.[1] ?? 0);
@@ -95,7 +122,15 @@ describe('SVGCompiler — nested geometry projection', () => {
 describe('SVGCompiler — decision-network cognition surface', () => {
   it('renders a receipt-bound node: label + receipt text ride on the shape', () => {
     const svg = new SVGCompiler({ background: false }).compile(
-      composition([obj('N', { geometry: 'box', position: [0, 0, 0], scale: [4, 1, 1.4], label: 'Material realism', receipt: 'commit 5ecb0d48b' })]) as never,
+      composition([
+        obj('N', {
+          geometry: 'box',
+          position: [0, 0, 0],
+          scale: [4, 1, 1.4],
+          label: 'Material realism',
+          receipt: 'commit 5ecb0d48b',
+        }),
+      ]) as never,
       ''
     ).svg;
     expect(svg).toContain('>Material realism<'); // label

@@ -27,7 +27,8 @@ describe('evolveProgramHandler (@evolve_program trait)', () => {
       {
         target: 'packages/core/src/compiler/WASMCompiler.ts',
         goal: 'shrink emitted WAT while all tests pass',
-        fitnessGate: 'pnpm --filter @holoscript/core exec vitest run src/compiler/WASMCompiler.test.ts',
+        fitnessGate:
+          'pnpm --filter @holoscript/core exec vitest run src/compiler/WASMCompiler.test.ts',
         proposerModel: 'brittney-edge:v0-4',
         generations: 6,
         population: 3,
@@ -38,7 +39,8 @@ describe('evolveProgramHandler (@evolve_program trait)', () => {
     expect(node.__evolveProgram).toEqual({
       target: 'packages/core/src/compiler/WASMCompiler.ts',
       goal: 'shrink emitted WAT while all tests pass',
-      fitnessGate: 'pnpm --filter @holoscript/core exec vitest run src/compiler/WASMCompiler.test.ts',
+      fitnessGate:
+        'pnpm --filter @holoscript/core exec vitest run src/compiler/WASMCompiler.test.ts',
       proposerModel: 'brittney-edge:v0-4',
       generations: 6,
       population: 3,
@@ -53,11 +55,9 @@ describe('evolveProgramHandler (@evolve_program trait)', () => {
 
   it('fills bounded-search defaults when only target/goal/gate are declared', () => {
     const node: Record<string, unknown> = {};
-    evolveProgramHandler.onAttach?.(
-      node as never,
-      { target: 't', goal: 'g', fitnessGate: 'cmd' },
-      { emit: () => {} } as never
-    );
+    evolveProgramHandler.onAttach?.(node as never, { target: 't', goal: 'g', fitnessGate: 'cmd' }, {
+      emit: () => {},
+    } as never);
     const policy = node.__evolveProgram as { proposerModel: string; generations: number };
     expect(policy.proposerModel).toBe('brittney-edge:v0-4');
     expect(policy.generations).toBe(8);

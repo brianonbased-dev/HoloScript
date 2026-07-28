@@ -54,7 +54,8 @@ export function createHoloTorchModel(device: GPUDevice): HoloTorchModel {
     async run(ids: Uint32Array, w: ModelWeights, cfg: ModelConfig): Promise<Float32Array> {
       const { nEmbd, nHead, vocab } = cfg;
       const T = ids.length;
-      if (w.wpe.length < T * nEmbd) throw new Error(`holoTorchModel: wpe too small for seqLen=${T}`);
+      if (w.wpe.length < T * nEmbd)
+        throw new Error(`holoTorchModel: wpe too small for seqLen=${T}`);
 
       const wpeSlice = w.wpe.slice(0, T * nEmbd);
       let x = await embed.run(ids, w.wte, wpeSlice, T, nEmbd, vocab);

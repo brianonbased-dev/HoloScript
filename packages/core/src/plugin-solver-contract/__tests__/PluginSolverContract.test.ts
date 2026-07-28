@@ -218,7 +218,7 @@ describe('wrapSolverInContract — happy path', () => {
       'retail-ecommerce-v1',
       'retail-ecommerce-receipt-v1',
       contractReg,
-      schemaReg,
+      schemaReg
     );
     const out = wrapped({ annualDemand: 1000, orderingCost: 50, holdingCost: 2 });
     expect(out.contractVerified).toBe(true);
@@ -233,7 +233,7 @@ describe('wrapSolverInContract — happy path', () => {
       'retail-ecommerce-v1',
       'retail-ecommerce-receipt-v1',
       contractReg,
-      schemaReg,
+      schemaReg
     );
     const out = wrapped({ annualDemand: 1000, orderingCost: 50, holdingCost: 2 });
     expect(out.schemaValid).toBe(true);
@@ -250,7 +250,7 @@ describe('wrapSolverInContract — precondition failure', () => {
       'retail-ecommerce-v1',
       'retail-ecommerce-receipt-v1',
       contractReg,
-      schemaReg,
+      schemaReg
     );
     const out = wrapped({ annualDemand: -100, orderingCost: 50, holdingCost: 2 });
     expect(out.contractVerified).toBe(false);
@@ -270,7 +270,7 @@ describe('wrapSolverInContract — postcondition failure', () => {
       'retail-ecommerce-v1',
       'retail-ecommerce-receipt-v1',
       contractReg,
-      schemaReg,
+      schemaReg
     );
     const out = wrapped({ annualDemand: 1000, orderingCost: 50, holdingCost: 2 });
     expect(out.contractVerified).toBe(false);
@@ -285,7 +285,7 @@ describe('wrapSolverInContract — postcondition failure', () => {
       'retail-ecommerce-v1',
       'retail-ecommerce-receipt-v1',
       contractReg,
-      schemaReg,
+      schemaReg
     )({ annualDemand: 100_000, orderingCost: 1, holdingCost: 2 });
     expect(out.contractVerified).toBe(true);
     const warn = out.clauseViolations.find((v) => v.clauseId === 'warn_high_orders');
@@ -301,7 +301,7 @@ describe('wrapSolverInContract — schema validation', () => {
       'retail-ecommerce-v1',
       undefined,
       contractReg,
-      schemaReg,
+      schemaReg
     )({ annualDemand: 1000, orderingCost: 50, holdingCost: 2 });
     expect(out.schemaValid).toBeNull();
     expect(out.schemaId).toBeNull();
@@ -314,7 +314,7 @@ describe('wrapSolverInContract — schema validation', () => {
       'retail-ecommerce-v1',
       'unregistered-schema',
       contractReg,
-      schemaReg,
+      schemaReg
     )({ annualDemand: 1000, orderingCost: 50, holdingCost: 2 });
     expect(out.schemaValid).toBeNull();
   });
@@ -327,7 +327,7 @@ describe('wrapSolverInContract — schema validation', () => {
       undefined, // no contract
       'retail-ecommerce-receipt-v1',
       contractReg,
-      schemaReg,
+      schemaReg
     )({ annualDemand: 1000, orderingCost: 50, holdingCost: 2 });
     expect(out.schemaValid).toBe(false);
     expect(out.schemaViolations.length).toBeGreaterThan(0);
@@ -342,7 +342,7 @@ describe('wrapSolverInContract — no contract registered', () => {
       undefined,
       'retail-ecommerce-receipt-v1',
       contractReg,
-      schemaReg,
+      schemaReg
     )({ annualDemand: 1000, orderingCost: 50, holdingCost: 2 });
     expect(out.contractVerified).toBe(true); // no clauses → no violations → verified
     expect(out.clauseViolations).toHaveLength(0);
@@ -356,7 +356,7 @@ describe('wrapSolverInContract — no contract registered', () => {
       'nonexistent-contract',
       undefined,
       contractReg,
-      schemaReg,
+      schemaReg
     )({ annualDemand: 1000, orderingCost: 50, holdingCost: 2 });
     expect(out.contractVerified).toBe(true);
   });

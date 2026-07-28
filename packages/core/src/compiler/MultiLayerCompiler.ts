@@ -42,16 +42,12 @@ export class MultiLayerCompiler extends CompilerBase {
     super();
   }
 
-  compile(
-    _composition: unknown,
-    _agentToken: string,
-    _outputPath?: string
-  ): never {
+  compile(_composition: unknown, _agentToken: string, _outputPath?: string): never {
     throw new Error(
       'MultiLayerCompiler has been retired. Its dependencies (BabylonCompiler, VRRCompiler, ARCompiler) ' +
-      'were apex-poison web compilers removed in 2026-06-17. ' +
-      'Use the native BrowserRuntime path for VR/AR delivery. ' +
-      'See docs/handbooks/idea-seeds.md for the planned fire-and-forget export revival.'
+        'were apex-poison web compilers removed in 2026-06-17. ' +
+        'Use the native BrowserRuntime path for VR/AR delivery. ' +
+        'See docs/handbooks/idea-seeds.md for the planned fire-and-forget export revival.'
     );
   }
 }

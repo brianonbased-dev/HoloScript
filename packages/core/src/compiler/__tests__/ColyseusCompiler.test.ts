@@ -82,7 +82,14 @@ describe('ColyseusCompiler — typed MMO field consumption (P0.0)', () => {
     const result = compiler.compile(
       comp({
         npcs: [
-          npc('goblin_01', { x: 10, y: 0, z: 5, hp: 50, faction: 'ironveil', brain: 'goblin_brain' }),
+          npc('goblin_01', {
+            x: 10,
+            y: 0,
+            z: 5,
+            hp: 50,
+            faction: 'ironveil',
+            brain: 'goblin_brain',
+          }),
           npc('boss_drake', { x: 0, y: 0, z: 0, hp: 5000, faction: 'wyrm', npcType: 'boss' }),
         ],
       }),
@@ -129,7 +136,7 @@ describe('ColyseusCompiler — server-authoritative movement validation (P0.3)',
     const compiler = new ColyseusCompiler();
     const result = compiler.compile(comp({}), token);
     // No more unconditional assignment of client position
-    expect(result.code).not.toContain('if (typeof data.x === \'number\') player.x = data.x;');
+    expect(result.code).not.toContain("if (typeof data.x === 'number') player.x = data.x;");
     // Real validation present
     expect(result.code).toContain('protected handleMove(client: Client, player: PlayerState');
     expect(result.code).toContain('const maxDist = MAX_MOVE_SPEED * (elapsedTicks / TICK_RATE)');
@@ -167,7 +174,9 @@ describe('ColyseusCompiler — canonical receipts (P0.4)', () => {
     const compiler = new ColyseusCompiler();
     const result = compiler.compile(comp({}), token);
     expect(MMO_EVENT_RECEIPT_SCHEMA).toBe('holoscript.mmo-event-receipt.v1');
-    expect(result.code).toContain(`export const GAME_EVENT_RECEIPT_SCHEMA = '${MMO_EVENT_RECEIPT_SCHEMA}';`);
+    expect(result.code).toContain(
+      `export const GAME_EVENT_RECEIPT_SCHEMA = '${MMO_EVENT_RECEIPT_SCHEMA}';`
+    );
     expect(result.code).toContain('protected recordGameEvent(ev: {');
     expect(result.code).toContain("status: ev.validated ? 'success' : 'denied'");
     expect(result.code).toContain('protected onGameEventReceipt(receipt: Record<string, unknown>)');
@@ -263,9 +272,15 @@ describe('ColyseusCompiler — server-authoritative ability cast (P1.0/P1.7)', (
     const result = new ColyseusCompiler().compile(comp({ abilities: [ability] }), token);
     expect(result.code).toContain('protected handleCast(client: Client, player: PlayerState');
     expect(result.code).toContain('const cfg = ABILITY_REGISTRY[abilityId];');
-    expect(result.code).toContain("if (this.state.tickCount < player.gcdUntilTick) { reject('gcd_active'); return; }");
-    expect(result.code).toContain("if (this.state.tickCount - last < cdTicks) { reject('on_cooldown'); return; }");
-    expect(result.code).toContain("if (player.mana < cfg.manaCost) { reject('insufficient_mana'); return; }");
+    expect(result.code).toContain(
+      "if (this.state.tickCount < player.gcdUntilTick) { reject('gcd_active'); return; }"
+    );
+    expect(result.code).toContain(
+      "if (this.state.tickCount - last < cdTicks) { reject('on_cooldown'); return; }"
+    );
+    expect(result.code).toContain(
+      "if (player.mana < cfg.manaCost) { reject('insufficient_mana'); return; }"
+    );
     expect(result.code).toContain("reject('out_of_range')");
     // cast wired into onMessage + receipted both ways
     expect(result.code).toContain("case 'cast': {");
@@ -288,8 +303,22 @@ describe('ColyseusCompiler — server-authoritative loot (P1.6)', () => {
       type: 'LootTable',
       name: 'goblin_drops',
       entries: [
-        { type: 'LootEntry', id: 'coin', itemId: 'gold_coin', weight: 60, qty: '1..5', properties: {} },
-        { type: 'LootEntry', id: 'shard', itemId: 'iron_shard', weight: 25, rarity: 'uncommon', properties: {} },
+        {
+          type: 'LootEntry',
+          id: 'coin',
+          itemId: 'gold_coin',
+          weight: 60,
+          qty: '1..5',
+          properties: {},
+        },
+        {
+          type: 'LootEntry',
+          id: 'shard',
+          itemId: 'iron_shard',
+          weight: 25,
+          rarity: 'uncommon',
+          properties: {},
+        },
         { type: 'LootEntry', id: 'nothing', weight: 15, properties: {} },
       ],
       guaranteed: { goblin_ear: 1 },
@@ -380,9 +409,10 @@ describe('ColyseusCompiler — NPC brain runtime (P1.3/P1.4/P1.5)', () => {
   };
 
   it('lowers brain FSM into BRAIN_REGISTRY with parsed hp guards (P1.3)', async () => {
-    const result = await new ColyseusCompiler().compileSource(
-      holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
-    );
+    const result = await new ColyseusCompiler().compileSource(holoSource, '/w/brain.holo', token, {
+      readFile,
+      baseDir: '/w',
+    });
     expect(result.success).toBe(true);
     expect(result.brains).toHaveLength(2);
     const goblin = result.brains.find((b) => b.name === 'GoblinBrain');
@@ -390,9 +420,15 @@ describe('ColyseusCompiler — NPC brain runtime (P1.3/P1.4/P1.5)', () => {
     expect(goblin?.isLLM).toBe(false);
     expect(goblin?.initialState).toBe('idle');
     const idle = goblin?.states.find((s) => s.name === 'idle');
-    expect(idle?.transitions[0]).toEqual({ to: 'combat', guard: { field: 'hp', op: '>', value: 0.5 } });
+    expect(idle?.transitions[0]).toEqual({
+      to: 'combat',
+      guard: { field: 'hp', op: '>', value: 0.5 },
+    });
     const combat = goblin?.states.find((s) => s.name === 'combat');
-    expect(combat?.transitions[0]).toEqual({ to: 'flee', guard: { field: 'hp', op: '<', value: 0.2 } });
+    expect(combat?.transitions[0]).toEqual({
+      to: 'flee',
+      guard: { field: 'hp', op: '<', value: 0.2 },
+    });
     // generated tick logic
     expect(result.code).toContain('export const BRAIN_REGISTRY');
     expect(result.code).toContain('export const LLM_BUDGET_TICKS = 200;');
@@ -403,9 +439,10 @@ describe('ColyseusCompiler — NPC brain runtime (P1.3/P1.4/P1.5)', () => {
   });
 
   it('flags neural brains as LLM and gates LLM calls by LOD + budget (P1.4)', async () => {
-    const result = await new ColyseusCompiler().compileSource(
-      holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
-    );
+    const result = await new ColyseusCompiler().compileSource(holoSource, '/w/brain.holo', token, {
+      readFile,
+      baseDir: '/w',
+    });
     const sage = result.brains.find((b) => b.name === 'SageBrain');
     expect(sage?.isLLM).toBe(true);
     expect(result.code).toContain('brain.isLLM && this.npcIsNearPlayer(npc)');
@@ -414,9 +451,10 @@ describe('ColyseusCompiler — NPC brain runtime (P1.3/P1.4/P1.5)', () => {
   });
 
   it('resolves the Jetson endpoint via env var, never a hardcoded IP (W.733/F.106)', async () => {
-    const result = await new ColyseusCompiler().compileSource(
-      holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
-    );
+    const result = await new ColyseusCompiler().compileSource(holoSource, '/w/brain.holo', token, {
+      readFile,
+      baseDir: '/w',
+    });
     expect(result.code).toContain("export const JETSON_OLLAMA_ENV = 'JETSON_OLLAMA_URL';");
     // Primary endpoint resolved via env-var; @provider_policy fallback is a second env-var key, never a literal IP.
     expect(result.code).toContain('process.env[JETSON_OLLAMA_ENV]');
@@ -428,9 +466,10 @@ describe('ColyseusCompiler — NPC brain runtime (P1.3/P1.4/P1.5)', () => {
 
   it('generated brain-world server is valid TypeScript (W.685)', async () => {
     const ts = await import('typescript');
-    const result = await new ColyseusCompiler().compileSource(
-      holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
-    );
+    const result = await new ColyseusCompiler().compileSource(holoSource, '/w/brain.holo', token, {
+      readFile,
+      baseDir: '/w',
+    });
     const out = ts.transpileModule(result.code, {
       compilerOptions: {
         target: ts.ScriptTarget.ES2020,
@@ -448,9 +487,10 @@ describe('ColyseusCompiler — NPC brain runtime (P1.3/P1.4/P1.5)', () => {
 
   it('generated FSM actually transitions and flees at runtime (W.685 deep)', async () => {
     const ts = await import('typescript');
-    const result = await new ColyseusCompiler().compileSource(
-      holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
-    );
+    const result = await new ColyseusCompiler().compileSource(holoSource, '/w/brain.holo', token, {
+      readFile,
+      baseDir: '/w',
+    });
     // Transpile to CommonJS and evaluate with stubbed Colyseus deps.
     const js = ts.transpileModule(result.code, {
       compilerOptions: {
@@ -470,13 +510,22 @@ describe('ColyseusCompiler — NPC brain runtime (P1.3/P1.4/P1.5)', () => {
     const colyseusStub = {
       Room: class {
         state: unknown;
-        setState(s: unknown) { this.state = s; }
-        setSimulationInterval() { /* capture skipped — we drive ticks directly */ }
+        setState(s: unknown) {
+          this.state = s;
+        }
+        setSimulationInterval() {
+          /* capture skipped — we drive ticks directly */
+        }
         onMessage() {}
         broadcast() {}
       },
       Client: class {},
-      Server: class { define() {} listen() { return Promise.resolve(); } },
+      Server: class {
+        define() {}
+        listen() {
+          return Promise.resolve();
+        }
+      },
     };
     const require_ = (id: string): unknown => {
       if (id === '@colyseus/schema') return schemaStub;
@@ -543,7 +592,16 @@ describe('ColyseusCompiler — generated output is valid TypeScript (W.685)', ()
     const result = new ColyseusCompiler().compile(
       comp({
         name: 'FrontierMMO',
-        npcs: [npc('goblin_01', { x: 5, y: 0, z: 5, hp: 50, faction: 'ironveil', brain: 'goblin_brain' })],
+        npcs: [
+          npc('goblin_01', {
+            x: 5,
+            y: 0,
+            z: 5,
+            hp: 50,
+            faction: 'ironveil',
+            brain: 'goblin_brain',
+          }),
+        ],
         spawnPoints: [spawn('camp', 0, 0, 0, 'alliance')],
         abilities: [ability],
         lootTables: [table],
@@ -567,9 +625,7 @@ describe('ColyseusCompiler — generated output is valid TypeScript (W.685)', ()
     const syntaxErrors = (out.diagnostics ?? []).filter(
       (d) => d.category === ts.DiagnosticCategory.Error
     );
-    const messages = syntaxErrors.map((d) =>
-      ts.flattenDiagnosticMessageText(d.messageText, '\n')
-    );
+    const messages = syntaxErrors.map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
     expect(messages).toEqual([]);
     expect(out.outputText.length).toBeGreaterThan(0);
   });
@@ -623,7 +679,7 @@ describe('ColyseusCompiler — async import resolution (P0.0b / compileSource)',
     expect(sb?.manaCost).toBe(25);
     expect(sb?.range).toBe(20);
     // Brain reference resolved against imported brain (no missing-brain warning)
-    expect(result.warnings.join(' ')).not.toContain("not found in imported");
+    expect(result.warnings.join(' ')).not.toContain('not found in imported');
   });
 
   it('warns (does not throw) when an import cannot be read', async () => {
@@ -666,8 +722,11 @@ describe('ColyseusCompiler — P1.9: verbal_fingerprint + autonomous_agenda', ()
     `;
     const compiler = new ColyseusCompiler();
     (compiler as unknown as { importedBrainDecls: unknown[] }).importedBrainDecls = [];
-    await (compiler as unknown as { ingestBrains: (src: string, file: string, w: string[]) => Promise<void> })
-      .ingestBrains(hsPlusSource, 'keeper.hsplus', []);
+    await (
+      compiler as unknown as {
+        ingestBrains: (src: string, file: string, w: string[]) => Promise<void>;
+      }
+    ).ingestBrains(hsPlusSource, 'keeper.hsplus', []);
     const result = compiler.compile(
       comp({ npcs: [npc('keeper_01', { hp: 100, brain: 'WiseKeeperBrain' })] }),
       token
@@ -700,8 +759,11 @@ describe('ColyseusCompiler — P1.9: verbal_fingerprint + autonomous_agenda', ()
     `;
     const compiler = new ColyseusCompiler();
     (compiler as unknown as { importedBrainDecls: unknown[] }).importedBrainDecls = [];
-    await (compiler as unknown as { ingestBrains: (src: string, file: string, w: string[]) => Promise<void> })
-      .ingestBrains(hsPlusSource, 'hunter.hsplus', []);
+    await (
+      compiler as unknown as {
+        ingestBrains: (src: string, file: string, w: string[]) => Promise<void>;
+      }
+    ).ingestBrains(hsPlusSource, 'hunter.hsplus', []);
     const result = compiler.compile(
       comp({ npcs: [npc('hunter_01', { hp: 80, brain: 'HunterBrain' })] }),
       token
@@ -728,8 +790,11 @@ describe('ColyseusCompiler — P1.9: verbal_fingerprint + autonomous_agenda', ()
     `;
     const compiler = new ColyseusCompiler();
     (compiler as unknown as { importedBrainDecls: unknown[] }).importedBrainDecls = [];
-    await (compiler as unknown as { ingestBrains: (src: string, file: string, w: string[]) => Promise<void> })
-      .ingestBrains(hsPlusSource, 'simple.hsplus', []);
+    await (
+      compiler as unknown as {
+        ingestBrains: (src: string, file: string, w: string[]) => Promise<void>;
+      }
+    ).ingestBrains(hsPlusSource, 'simple.hsplus', []);
     const result = compiler.compile(
       comp({ npcs: [npc('grunt_01', { hp: 60, brain: 'SimpleBrain' })] }),
       token
@@ -762,8 +827,11 @@ describe('ColyseusCompiler — P1.9: verbal_fingerprint + autonomous_agenda', ()
       }
     `;
     (compiler as unknown as { importedBrainDecls: unknown[] }).importedBrainDecls = [];
-    await (compiler as unknown as { ingestBrains: (src: string, file: string, w: string[]) => Promise<void> })
-      .ingestBrains(hsPlusSource, 'sage.hsplus', []);
+    await (
+      compiler as unknown as {
+        ingestBrains: (src: string, file: string, w: string[]) => Promise<void>;
+      }
+    ).ingestBrains(hsPlusSource, 'sage.hsplus', []);
     const out = compiler.compile(result, token);
 
     expect(out.success).toBe(true);
@@ -812,7 +880,9 @@ describe('ColyseusCompiler — P1.8: damage_formula lowering → rollDamage_*()'
     }
   `;
 
-  async function compileWithAbilities(src: string): Promise<ReturnType<ColyseusCompiler['compile']>> {
+  async function compileWithAbilities(
+    src: string
+  ): Promise<ReturnType<ColyseusCompiler['compile']>> {
     const holoSrc = `
       composition "BattleArena" {
         import "./spells.hs"
@@ -944,7 +1014,9 @@ describe('ColyseusCompiler — emitted server is network-runnable', () => {
     // … into the renamed dispatcher (NOT an onMessage override, which would
     // clobber colyseus's registration API and silence every network message).
     expect(result.code).toContain('dispatchClientMessage(client: Client');
-    expect(result.code).not.toMatch(/^\s*onMessage\(client: Client, type: string, message: unknown\)/m);
+    expect(result.code).not.toMatch(
+      /^\s*onMessage\(client: Client, type: string, message: unknown\)/m
+    );
     // A real listening entry point + the joinable room name.
     expect(result.code).toContain('export async function startColyseusServer');
     expect(result.code).toContain('await gameServer.listen(port)');

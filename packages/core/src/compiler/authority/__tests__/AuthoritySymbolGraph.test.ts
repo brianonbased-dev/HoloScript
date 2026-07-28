@@ -4,10 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  AuthoritySymbolGraph,
-  mostRestrictiveTier,
-} from '../AuthoritySymbolGraph';
+import { AuthoritySymbolGraph, mostRestrictiveTier } from '../AuthoritySymbolGraph';
 import {
   buildColyseusAuthorityGraph,
   COLYSEUS_SCHEMA_FIELD_TIERS,
@@ -121,8 +118,22 @@ describe('AuthoritySymbolGraph — core graph behaviour', () => {
   it('merges a re-declared symbol to the more restrictive tier and unions refs', () => {
     const g = new AuthoritySymbolGraph();
     const k = AuthoritySymbolGraph.keyFor('a.hs', 'x');
-    g.addSymbol({ key: k, name: 'x', sourceFile: 'a.hs', kind: 'constant', tier: 'client', refs: ['r1'] });
-    g.addSymbol({ key: k, name: 'x', sourceFile: 'a.hs', kind: 'constant', tier: 'server_only', refs: ['r2'] });
+    g.addSymbol({
+      key: k,
+      name: 'x',
+      sourceFile: 'a.hs',
+      kind: 'constant',
+      tier: 'client',
+      refs: ['r1'],
+    });
+    g.addSymbol({
+      key: k,
+      name: 'x',
+      sourceFile: 'a.hs',
+      kind: 'constant',
+      tier: 'server_only',
+      refs: ['r2'],
+    });
     const sym = g.get(k)!;
     expect(sym.tier).toBe('server_only');
     expect([...sym.refs].sort()).toEqual(['r1', 'r2']);
@@ -133,9 +144,22 @@ describe('AuthoritySymbolGraph — core graph behaviour', () => {
     const g = new AuthoritySymbolGraph();
     const client = AuthoritySymbolGraph.keyFor('f', 'pos');
     const server = AuthoritySymbolGraph.keyFor('f', 'rng');
-    g.addSymbol({ key: client, name: 'pos', sourceFile: 'f', kind: 'schema_field', tier: 'replicated', clientExposed: true });
+    g.addSymbol({
+      key: client,
+      name: 'pos',
+      sourceFile: 'f',
+      kind: 'schema_field',
+      tier: 'replicated',
+      clientExposed: true,
+    });
     g.markClientRoot(client);
-    g.addSymbol({ key: server, name: 'rng', sourceFile: 'f', kind: 'constant', tier: 'server_only' });
+    g.addSymbol({
+      key: server,
+      name: 'rng',
+      sourceFile: 'f',
+      kind: 'constant',
+      tier: 'server_only',
+    });
     expect(g.findViolations()).toEqual([]);
   });
 
@@ -161,9 +185,29 @@ describe('AuthoritySymbolGraph — core graph behaviour', () => {
     const root = AuthoritySymbolGraph.keyFor('f', 'clientField');
     const mid = AuthoritySymbolGraph.keyFor('f', 'helper');
     const secret = AuthoritySymbolGraph.keyFor('f', 'lootRoll');
-    g.addSymbol({ key: root, name: 'clientField', sourceFile: 'f', kind: 'schema_field', tier: 'replicated', refs: [mid] });
-    g.addSymbol({ key: mid, name: 'helper', sourceFile: 'f', kind: 'room_method', tier: 'server', refs: [secret] });
-    g.addSymbol({ key: secret, name: 'lootRoll', sourceFile: 'f', kind: 'registry', tier: 'server_only' });
+    g.addSymbol({
+      key: root,
+      name: 'clientField',
+      sourceFile: 'f',
+      kind: 'schema_field',
+      tier: 'replicated',
+      refs: [mid],
+    });
+    g.addSymbol({
+      key: mid,
+      name: 'helper',
+      sourceFile: 'f',
+      kind: 'room_method',
+      tier: 'server',
+      refs: [secret],
+    });
+    g.addSymbol({
+      key: secret,
+      name: 'lootRoll',
+      sourceFile: 'f',
+      kind: 'registry',
+      tier: 'server_only',
+    });
     g.markClientRoot(root);
 
     const v = g.findViolations();
@@ -190,7 +234,10 @@ describe('AuthoritySymbolGraph — core graph behaviour', () => {
 // ===========================================================================
 
 describe('ServerAuthorityBundleSplitter — real ColyseusCompiler output', () => {
-  function compileWorld(): { result: ReturnType<ColyseusCompiler['compile']>; composition: HoloComposition } {
+  function compileWorld(): {
+    result: ReturnType<ColyseusCompiler['compile']>;
+    composition: HoloComposition;
+  } {
     const composition = comp({
       name: 'FrontierMMO',
       abilities: [ability('fireball'), ability('frostbolt')],
@@ -251,9 +298,10 @@ describe('ServerAuthorityBundleSplitter — real ColyseusCompiler output', () =>
       );
       // None of the declared server-only fields may be @type-decorated.
       for (const serverField of cls.serverOnly) {
-        expect(emittedReplicated, `${cls.className}.${serverField} must not be replicated`).not.toContain(
-          serverField
-        );
+        expect(
+          emittedReplicated,
+          `${cls.className}.${serverField} must not be replicated`
+        ).not.toContain(serverField);
       }
     }
   });
@@ -262,7 +310,9 @@ describe('ServerAuthorityBundleSplitter — real ColyseusCompiler output', () =>
     const { result, composition } = compileWorld();
     const graph = buildColyseusAuthorityGraph(result, composition);
     const reachable = graph.reachableFromClient();
-    const abilitySym = graph.get(AuthoritySymbolGraph.keyFor('<colyseus-emit>', 'ABILITY_REGISTRY'));
+    const abilitySym = graph.get(
+      AuthoritySymbolGraph.keyFor('<colyseus-emit>', 'ABILITY_REGISTRY')
+    );
     expect(abilitySym?.tier).toBe('server_only');
     expect(reachable.has(abilitySym!.key)).toBe(false);
   });

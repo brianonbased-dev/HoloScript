@@ -53,13 +53,20 @@ function evalServer(js: string): Record<string, unknown> {
   const colyseusStub = {
     Room: class {
       state: unknown;
-      setState(s: unknown) { this.state = s; }
+      setState(s: unknown) {
+        this.state = s;
+      }
       setSimulationInterval() {}
       onMessage() {}
       broadcast() {}
     },
     Client: class {},
-    Server: class { define() {} listen() { return Promise.resolve(); } },
+    Server: class {
+      define() {}
+      listen() {
+        return Promise.resolve();
+      }
+    },
   };
   const require_ = (id: string): unknown => {
     if (id === '@colyseus/schema') return schemaStub;
@@ -82,11 +89,22 @@ describe('BossPhase (P2.1) — boss-as-brain lowering', () => {
     expect(boss?.initialState).toBe('phase1');
 
     const phase1 = boss?.states.find((s) => s.name === 'phase1');
-    expect(phase1?.transitions[0]).toEqual({ to: 'phase2', guard: { field: 'hp', op: '<', value: 0.5 } });
+    expect(phase1?.transitions[0]).toEqual({
+      to: 'phase2',
+      guard: { field: 'hp', op: '<', value: 0.5 },
+    });
 
     const phase2 = boss?.states.find((s) => s.name === 'phase2');
-    expect(phase2?.transitions.find((t) => t.to === 'enrage')?.guard).toEqual({ field: 'hp', op: '<', value: 0.2 });
-    expect(phase2?.transitions.find((t) => t.to === 'berserk')?.guard).toEqual({ field: 'timer', op: '>', value: 1 });
+    expect(phase2?.transitions.find((t) => t.to === 'enrage')?.guard).toEqual({
+      field: 'hp',
+      op: '<',
+      value: 0.2,
+    });
+    expect(phase2?.transitions.find((t) => t.to === 'berserk')?.guard).toEqual({
+      field: 'timer',
+      op: '>',
+      value: 1,
+    });
   });
 
   it('emits boss phase-transition receipts + broadcasts and the phase timer', async () => {
@@ -126,8 +144,12 @@ describe('BossPhase (P2.1) — runtime proof (W.685 deep)', () => {
 
     const receipts: Array<Record<string, unknown>> = [];
     const broadcasts: Array<{ phase: unknown; from: unknown }> = [];
-    (room as { onGameEventReceipt: (r: Record<string, unknown>) => void }).onGameEventReceipt = (r) => receipts.push(r);
-    (room as { broadcast: (type: string, msg: { phase: unknown; from: unknown }) => void }).broadcast = (type, msg) => {
+    (room as { onGameEventReceipt: (r: Record<string, unknown>) => void }).onGameEventReceipt = (
+      r
+    ) => receipts.push(r);
+    (
+      room as { broadcast: (type: string, msg: { phase: unknown; from: unknown }) => void }
+    ).broadcast = (type, msg) => {
       if (type === 'boss_phase') broadcasts.push(msg);
     };
 

@@ -12,7 +12,13 @@ import { describe, it, expect } from 'vitest';
 import { createHoloTorchModel, type ModelWeights } from '../holotorch/holoTorchModel';
 import type { BlockWeights } from '../holotorch/decoderBlock';
 import { refBlock, refLayerNorm } from './holotorchReferences';
-import { getWebGpuDevice, compareAllClose, writeParityReceipt, rng, getAdapterInfo } from './holotorchParityHarness';
+import {
+  getWebGpuDevice,
+  compareAllClose,
+  writeParityReceipt,
+  rng,
+  getAdapterInfo,
+} from './holotorchParityHarness';
 
 function randArray(rand: () => number, n: number, scale = 1): Float32Array {
   const a = new Float32Array(n);
@@ -42,10 +48,18 @@ function randBlock(rand: () => number, nEmbd: number): BlockWeights {
 }
 
 /** f64 reference for the full model: embed → blocks → final LN → tied head → [T, vocab] logits. */
-function refModel(ids: Uint32Array, w: ModelWeights, T: number, nEmbd: number, nHead: number, vocab: number): Float64Array {
+function refModel(
+  ids: Uint32Array,
+  w: ModelWeights,
+  T: number,
+  nEmbd: number,
+  nHead: number,
+  vocab: number
+): Float64Array {
   let x = new Float64Array(T * nEmbd);
   for (let t = 0; t < T; t++) {
-    for (let d = 0; d < nEmbd; d++) x[t * nEmbd + d] = w.wte[ids[t] * nEmbd + d] + w.wpe[t * nEmbd + d];
+    for (let d = 0; d < nEmbd; d++)
+      x[t * nEmbd + d] = w.wte[ids[t] * nEmbd + d] + w.wpe[t * nEmbd + d];
   }
   for (const bw of w.blocks) x = refBlock(Float32Array.from(x), bw, T, nEmbd, nHead);
   const xn = refLayerNorm(Float32Array.from(x), w.lnfg, w.lnfb, T, nEmbd);

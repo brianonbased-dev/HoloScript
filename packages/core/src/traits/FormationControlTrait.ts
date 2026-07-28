@@ -168,11 +168,7 @@ function computeSlotOffsets(
   // Apply rotation offset
   const cos = Math.cos(rotationOffsetRad);
   const sin = Math.sin(rotationOffsetRad);
-  return raw.map(([x, z]): [number, number, number] => [
-    x * cos - z * sin,
-    0,
-    x * sin + z * cos,
-  ]);
+  return raw.map(([x, z]): [number, number, number] => [x * cos - z * sin, 0, x * sin + z * cos]);
 }
 
 /**

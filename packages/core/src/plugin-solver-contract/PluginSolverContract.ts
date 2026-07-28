@@ -93,10 +93,7 @@ export interface PluginSolverContract {
  * Simpler than engine's `ClauseContext` (no `getField`/`simTime`) — plugin
  * clauses observe configuration (pre-solve) and solver output (post-solve).
  */
-export interface PluginClauseContext<
-  TConfig = Record<string, unknown>,
-  TResult = unknown,
-> {
+export interface PluginClauseContext<TConfig = Record<string, unknown>, TResult = unknown> {
   /** Frozen solver configuration (always available). */
   readonly config: Readonly<TConfig>;
   /**
@@ -109,10 +106,9 @@ export interface PluginClauseContext<
 }
 
 /** Evaluator function type — returns true when the clause HOLDS. */
-export type PluginClauseEvaluator<
-  TConfig = Record<string, unknown>,
-  TResult = unknown,
-> = (ctx: PluginClauseContext<TConfig, TResult>) => boolean;
+export type PluginClauseEvaluator<TConfig = Record<string, unknown>, TResult = unknown> = (
+  ctx: PluginClauseContext<TConfig, TResult>
+) => boolean;
 
 // ── Clause violation ──────────────────────────────────────────────────────────
 
@@ -200,10 +196,7 @@ export interface WrappedSolverResult<TResult> {
  */
 export class PluginSolverContractRegistry {
   private readonly contracts = new Map<string, PluginSolverContract>();
-  private readonly evaluators = new Map<
-    string,
-    Map<string, PluginClauseEvaluator>
-  >();
+  private readonly evaluators = new Map<string, Map<string, PluginClauseEvaluator>>();
 
   /**
    * Register a solver contract declaration.
@@ -217,7 +210,7 @@ export class PluginSolverContractRegistry {
       if (existing.pluginId === contract.pluginId) return; // idempotent
       throw new Error(
         `[PluginSolverContractRegistry] Contract "${contract.id}" already registered ` +
-          `by plugin "${existing.pluginId}". Cannot re-register from "${contract.pluginId}".`,
+          `by plugin "${existing.pluginId}". Cannot re-register from "${contract.pluginId}".`
       );
     }
     this.contracts.set(contract.id, contract);
@@ -230,11 +223,7 @@ export class PluginSolverContractRegistry {
    * @param clauseId    The clause's `id` within that contract.
    * @param evaluator   Returns true when the clause holds.
    */
-  registerEvaluator(
-    contractId: string,
-    clauseId: string,
-    evaluator: PluginClauseEvaluator,
-  ): void {
+  registerEvaluator(contractId: string, clauseId: string, evaluator: PluginClauseEvaluator): void {
     if (!this.evaluators.has(contractId)) {
       this.evaluators.set(contractId, new Map());
     }
@@ -286,7 +275,7 @@ export class SolverReceiptSchemaRegistry {
       if (existing.pluginId === entry.pluginId) return; // idempotent
       throw new Error(
         `[SolverReceiptSchemaRegistry] Schema "${entry.id}" already registered by ` +
-          `"${existing.pluginId}". Cannot re-register from "${entry.pluginId}".`,
+          `"${existing.pluginId}". Cannot re-register from "${entry.pluginId}".`
       );
     }
     this.schemas.set(entry.id, entry);
@@ -351,7 +340,7 @@ export function registerPluginContract(contract: PluginSolverContract): void {
 export function registerContractClauseEvaluator(
   contractId: string,
   clauseId: string,
-  evaluator: PluginClauseEvaluator,
+  evaluator: PluginClauseEvaluator
 ): void {
   globalContractRegistry.registerEvaluator(contractId, clauseId, evaluator);
 }
@@ -401,15 +390,12 @@ export function registerReceiptSchema(entry: SolverReceiptSchemaEntry): void {
  * @param registry    Contract registry to use (defaults to `globalContractRegistry`).
  * @param schemaReg   Schema registry to use (defaults to `globalSchemaRegistry`).
  */
-export function wrapSolverInContract<
-  TConfig extends Record<string, unknown>,
-  TResult,
->(
+export function wrapSolverInContract<TConfig extends Record<string, unknown>, TResult>(
   solver: (config: TConfig) => TResult,
   contractId: string | undefined,
   schemaId: string | undefined,
   registry: PluginSolverContractRegistry = globalContractRegistry,
-  schemaReg: SolverReceiptSchemaRegistry = globalSchemaRegistry,
+  schemaReg: SolverReceiptSchemaRegistry = globalSchemaRegistry
 ): (config: TConfig) => WrappedSolverResult<TResult> {
   return (config: TConfig): WrappedSolverResult<TResult> => {
     const contract = contractId ? registry.getContract(contractId) : undefined;

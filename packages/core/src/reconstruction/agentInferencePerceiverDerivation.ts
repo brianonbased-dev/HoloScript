@@ -28,9 +28,7 @@ export const AGENT_INFERENCE_PERCEIVER = 'agent-inference' as const;
  * broken artifact agree about an empty world (the lenient-recogniser failure
  * class), so malformed input fails loud instead of reaching the differ.
  */
-export function deriveAgentInferencePerception(
-  files: Record<string, string>
-): PerceiverDerivation {
+export function deriveAgentInferencePerception(files: Record<string, string>): PerceiverDerivation {
   if (files == null || typeof files !== 'object' || typeof files['config.json'] !== 'string') {
     throw new Error(
       'deriveAgentInferencePerception: input is not an agent-inference artifact map (missing config.json)'

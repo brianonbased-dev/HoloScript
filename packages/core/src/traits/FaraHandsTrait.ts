@@ -95,10 +95,7 @@ export async function faraThink(
     history.length === 0
       ? '(none yet)'
       : history
-          .map(
-            (h, i) =>
-              `Step ${i + 1}: thought="${h.thought}" action=${JSON.stringify(h.action)}`
-          )
+          .map((h, i) => `Step ${i + 1}: thought="${h.thought}" action=${JSON.stringify(h.action)}`)
           .join('\n');
 
   const body = {

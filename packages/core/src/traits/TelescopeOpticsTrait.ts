@@ -153,8 +153,7 @@ export interface TelescopeOpticsWarnings {
  * Pure function — no side effects, no node/context coupling.
  */
 export function computeTelescopeOptics(cfg: TelescopeOpticsConfig): TelescopeOpticsDerived {
-  const magnification =
-    (cfg.focal_length_mm / cfg.eyepiece_focal_length_mm) * cfg.barlow_factor;
+  const magnification = (cfg.focal_length_mm / cfg.eyepiece_focal_length_mm) * cfg.barlow_factor;
 
   const fov_deg = cfg.apparent_fov_deg / magnification;
 

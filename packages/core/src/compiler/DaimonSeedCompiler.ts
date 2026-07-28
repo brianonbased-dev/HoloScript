@@ -286,8 +286,11 @@ export function runHysteresisExp2(input: HysteresisExp2Input): HysteresisExp2Res
   const sameSetDivergence = rootMeanSquareDivergence(input.ordered, input.shuffled);
   const denominator = Math.max(sameSeedNoiseFloor, Number.EPSILON);
   const hysteresisCoefficient = sameSetDivergence / denominator;
-  const series =
-    input.coefficientSeries ?? [hysteresisCoefficient, hysteresisCoefficient, hysteresisCoefficient];
+  const series = input.coefficientSeries ?? [
+    hysteresisCoefficient,
+    hysteresisCoefficient,
+    hysteresisCoefficient,
+  ];
   const plateaued = isPlateaued(series, plateauTolerance);
   const pathDependenceReal = hysteresisCoefficient > threshold && plateaued;
   const diagnostic = pathDependenceReal

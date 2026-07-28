@@ -147,7 +147,9 @@ function holoValueToUnknown(value: HoloValue | undefined): unknown {
   }
 
   if (isRecord(value)) {
-    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, holoValueToUnknown(entry as HoloValue)]));
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, holoValueToUnknown(entry as HoloValue)])
+    );
   }
 
   return value;
@@ -206,7 +208,13 @@ function safeId(input: unknown, fallback: string): string {
 }
 
 function normalizeKind(value: unknown): PCGGraphNodeKind {
-  const normalized = typeof value === 'string' ? value.trim().toLowerCase().replace(/[-\s]+/g, '_') : '';
+  const normalized =
+    typeof value === 'string'
+      ? value
+          .trim()
+          .toLowerCase()
+          .replace(/[-\s]+/g, '_')
+      : '';
 
   switch (normalized) {
     case 'surface':
@@ -243,7 +251,10 @@ function hasGpuHint(block: HoloDomainBlock, props: Record<string, unknown>): boo
   );
 }
 
-function getBlockSeed(blocks: HoloDomainBlock[], options: PCGGraphCompileOptions): number | undefined {
+function getBlockSeed(
+  blocks: HoloDomainBlock[],
+  options: PCGGraphCompileOptions
+): number | undefined {
   if (typeof options.seed === 'number' && Number.isFinite(options.seed)) {
     return options.seed;
   }
@@ -293,7 +304,12 @@ function firstInputOfType(node: PCGGraphNode, type: PCGPortType): PCGGraphPort |
   return node.inputs.find((port) => port.type === type) ?? node.inputs[0];
 }
 
-function connect(nodes: PCGGraphNode[], fromId: string, toId: string, preferredType?: PCGPortType): PCGGraphEdge | undefined {
+function connect(
+  nodes: PCGGraphNode[],
+  fromId: string,
+  toId: string,
+  preferredType?: PCGPortType
+): PCGGraphEdge | undefined {
   const from = nodes.find((node) => node.id === fromId);
   const to = nodes.find((node) => node.id === toId);
   if (!from || !to || from.outputs.length === 0 || to.inputs.length === 0) {
@@ -301,9 +317,15 @@ function connect(nodes: PCGGraphNode[], fromId: string, toId: string, preferredT
   }
 
   const output =
-    preferredType !== undefined ? firstOutputOfType(from, preferredType) : from.outputs.find((port) => to.inputs.some((input) => input.type === port.type));
+    preferredType !== undefined
+      ? firstOutputOfType(from, preferredType)
+      : from.outputs.find((port) => to.inputs.some((input) => input.type === port.type));
   const input =
-    output !== undefined ? firstInputOfType(to, output.type) : preferredType !== undefined ? firstInputOfType(to, preferredType) : to.inputs[0];
+    output !== undefined
+      ? firstInputOfType(to, output.type)
+      : preferredType !== undefined
+        ? firstInputOfType(to, preferredType)
+        : to.inputs[0];
 
   if (!output || !input) {
     return undefined;
@@ -342,7 +364,13 @@ function buildExplicitNodes(
   }
 
   const nodes = [
-    makeNode(`${prefix}_surface`, 'surface', 'Terrain Surface', { terrain: coerceString(props.terrain, 'Landscape') }, gpu),
+    makeNode(
+      `${prefix}_surface`,
+      'surface',
+      'Terrain Surface',
+      { terrain: coerceString(props.terrain, 'Landscape') },
+      gpu
+    ),
     ...operators,
   ];
 
@@ -363,7 +391,11 @@ function buildExplicitNodes(
   return { nodes, edges };
 }
 
-function buildScatterChain(block: HoloDomainBlock, props: Record<string, unknown>, blockIndex: number): {
+function buildScatterChain(
+  block: HoloDomainBlock,
+  props: Record<string, unknown>,
+  blockIndex: number
+): {
   nodes: PCGGraphNode[];
   edges: PCGGraphEdge[];
 } {
@@ -373,7 +405,13 @@ function buildScatterChain(block: HoloDomainBlock, props: Record<string, unknown
   const terrain = coerceString(props.terrain ?? props.terrain_ref, 'Landscape');
 
   const nodes = [
-    makeNode(`${prefix}_surface`, 'surface', 'Terrain Surface', { terrain, bounds: props.bounds ?? 'composition' }, gpu),
+    makeNode(
+      `${prefix}_surface`,
+      'surface',
+      'Terrain Surface',
+      { terrain, bounds: props.bounds ?? 'composition' },
+      gpu
+    ),
     makeNode(
       `${prefix}_density_filter`,
       'density_filter',
@@ -400,7 +438,10 @@ function buildScatterChain(block: HoloDomainBlock, props: Record<string, unknown
       'scatter',
       'Scatter Mesh',
       {
-        source_mesh: coerceString(props.source_mesh ?? props.mesh ?? props.source, 'StaticMesh/DefaultFoliage'),
+        source_mesh: coerceString(
+          props.source_mesh ?? props.mesh ?? props.source,
+          'StaticMesh/DefaultFoliage'
+        ),
         count: coerceNumber(props.count, Math.max(1, Math.round(density * 1000))),
         scale_range: props.scale_range ?? [1, 1],
         seed: props.seed,
@@ -430,7 +471,9 @@ function buildScatterChain(block: HoloDomainBlock, props: Record<string, unknown
 
   return {
     nodes,
-    edges: edgeSpecs.map(([from, to, type]) => connect(nodes, from, to, type)).filter((edge): edge is PCGGraphEdge => edge !== undefined),
+    edges: edgeSpecs
+      .map(([from, to, type]) => connect(nodes, from, to, type))
+      .filter((edge): edge is PCGGraphEdge => edge !== undefined),
   };
 }
 
@@ -442,12 +485,17 @@ export function compilePCGGraphFromBlocks(
   blocks: HoloDomainBlock[],
   options: PCGGraphCompileOptions = {}
 ): { graph: PCGGraphIR; diagnostics: string[] } {
-  const proceduralBlocks = blocks.filter((block) => block.domain === 'procedural' || block.keyword === 'pcg_graph');
+  const proceduralBlocks = blocks.filter(
+    (block) => block.domain === 'procedural' || block.keyword === 'pcg_graph'
+  );
   const diagnostics: string[] = [];
   const seed = getBlockSeed(proceduralBlocks, options);
   const gpuEnabled =
-    options.gpuEvaluation === true || proceduralBlocks.some((block) => hasGpuHint(block, normalizeProperties(block)));
-  const graphName = options.name ?? (proceduralBlocks[0]?.name ? `${proceduralBlocks[0].name}PCG` : 'HoloScriptPCGGraph');
+    options.gpuEvaluation === true ||
+    proceduralBlocks.some((block) => hasGpuHint(block, normalizeProperties(block)));
+  const graphName =
+    options.name ??
+    (proceduralBlocks[0]?.name ? `${proceduralBlocks[0].name}PCG` : 'HoloScriptPCGGraph');
 
   const nodes: PCGGraphNode[] = [];
   const edges: PCGGraphEdge[] = [];
@@ -463,7 +511,9 @@ export function compilePCGGraphFromBlocks(
     if (explicitGraph) {
       diagnostics.push(`Compiled ${sourceBlockName(block)} as explicit PCG operator graph.`);
     } else {
-      diagnostics.push(`Expanded ${sourceBlockName(block)} into density_filter -> slope_mask -> scatter -> snap_to_terrain.`);
+      diagnostics.push(
+        `Expanded ${sourceBlockName(block)} into density_filter -> slope_mask -> scatter -> snap_to_terrain.`
+      );
     }
   });
 
@@ -574,7 +624,10 @@ export class PCGGraphCompiler extends CompilerBase {
     return '/compile/pcg-graph' as ANSCapabilityPathValue;
   }
 
-  compileDetailed(composition: HoloComposition, options: PCGGraphCompileOptions = {}): PCGGraphCompileResult {
+  compileDetailed(
+    composition: HoloComposition,
+    options: PCGGraphCompileOptions = {}
+  ): PCGGraphCompileResult {
     const mergedOptions = { ...this.pcgOptions, ...options };
     const { graph, diagnostics } = compilePCGGraphFromBlocks(composition.domainBlocks ?? [], {
       name: mergedOptions.name ?? `${composition.name ?? 'HoloScript'}PCG`,
@@ -601,7 +654,10 @@ export class PCGGraphCompiler extends CompilerBase {
     ].join('\n');
   }
 
-  compileToFiles(composition: HoloComposition, agentToken: string = createTestCompilerToken()): Record<string, string> {
+  compileToFiles(
+    composition: HoloComposition,
+    agentToken: string = createTestCompilerToken()
+  ): Record<string, string> {
     this.validateCompilerAccess(agentToken);
     const result = this.compileDetailed(composition);
     const base = safeId(result.graph.name, 'holoscript_pcg_graph');

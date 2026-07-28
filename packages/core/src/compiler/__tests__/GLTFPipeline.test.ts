@@ -97,8 +97,7 @@ describe('GLTFPipeline', () => {
     expect(json.extensionsUsed).toContain('MSFT_lod');
     expect(json.meshes?.every((mesh) => mesh.extensions?.MSFT_lod === undefined)).toBe(true);
 
-    const highestLodNodeIndex =
-      json.nodes?.findIndex((node) => node.name === 'lod_subject') ?? -1;
+    const highestLodNodeIndex = json.nodes?.findIndex((node) => node.name === 'lod_subject') ?? -1;
     expect(highestLodNodeIndex).toBeGreaterThanOrEqual(0);
 
     const highestLodNode = json.nodes?.[highestLodNodeIndex];
@@ -117,9 +116,7 @@ describe('GLTFPipeline', () => {
       expect(lowerLodNode?.scale).toEqual(highestLodNode?.scale);
     }
 
-    const triangleCount = (
-      node: NonNullable<typeof json.nodes>[number] | undefined
-    ): number => {
+    const triangleCount = (node: NonNullable<typeof json.nodes>[number] | undefined): number => {
       if (node?.mesh === undefined) return 0;
       const primitives = json.meshes?.[node.mesh]?.primitives ?? [];
       return primitives.reduce((total, primitive) => {

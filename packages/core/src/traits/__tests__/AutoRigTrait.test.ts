@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  autoRigHandler,
-  createNativeAutoRigPlan,
-  generatedMeshHandler,
-} from '../AutoRigTrait';
+import { autoRigHandler, createNativeAutoRigPlan, generatedMeshHandler } from '../AutoRigTrait';
 
 function createContext() {
   const events: Array<{ type: string; payload: unknown }> = [];

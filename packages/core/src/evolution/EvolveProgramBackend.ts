@@ -181,7 +181,7 @@ function openAICompatibleChatUrl(endpoint: string): string {
 export async function runEvolution(
   seedCode: string,
   policy: EvolvePolicy,
-  io: EvolveIO,
+  io: EvolveIO
 ): Promise<EvolveResult> {
   const now = io.now ?? (() => new Date().toISOString());
   const trace: EvolveCandidate[] = [];
@@ -196,7 +196,7 @@ export async function runEvolution(
   const finalize = async (
     result: EvolveOutcome,
     seedScore: number | null,
-    bestScore: number | null,
+    bestScore: number | null
   ): Promise<EvolveReceipt> => {
     const traceJSONL = trace.map((c) => JSON.stringify(c)).join('\n');
     const improvementPct =
@@ -325,7 +325,7 @@ export async function runEvolution(
     receipt: await finalize(
       improved ? 'IMPROVED' : 'NO_IMPROVEMENT',
       seed.score,
-      best.cand.score === Infinity ? null : best.cand.score,
+      best.cand.score === Infinity ? null : best.cand.score
     ),
   };
 }
@@ -359,7 +359,7 @@ export function makeOllamaProposer(endpoint: string, model: string): Proposer {
 export function makeOpenAICompatibleProposer(
   endpoint: string,
   model: string,
-  opts: OpenAICompatibleProposerOptions = {},
+  opts: OpenAICompatibleProposerOptions = {}
 ): Proposer {
   const fetchImpl = opts.fetchImpl ?? fetch;
   const temperature = opts.temperature ?? 0.7;
@@ -426,7 +426,7 @@ export interface GradedTraceRow {
  */
 export function toGradedTraceRow(
   rec: EvolveTraceRecord,
-  opts: { agentId: string; ts: string; source?: string },
+  opts: { agentId: string; ts: string; source?: string }
 ): GradedTraceRow {
   return {
     system:

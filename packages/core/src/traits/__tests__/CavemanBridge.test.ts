@@ -236,7 +236,7 @@ describe('CavemanDriveTrait', () => {
     expect(t.shouldCallLLM()).toBe(false); // 200 ticks: NOT yet over the valve
 
     t.updateDrives(0.01, {}); // tick 201
-    expect(t.shouldCallLLM()).toBe(true);  // 201 > 200 → safety valve fires
+    expect(t.shouldCallLLM()).toBe(true); // 201 > 200 → safety valve fires
   });
 
   it('aiLod far always returns false from shouldCallLLM', () => {
@@ -265,6 +265,6 @@ describe('CavemanDriveTrait', () => {
     expect(t.shouldCallLLM()).toBe(false); // blocked by far
 
     t.setAiLod('near');
-    expect(t.shouldCallLLM()).toBe(true);  // now high drives fire
+    expect(t.shouldCallLLM()).toBe(true); // now high drives fire
   });
 });

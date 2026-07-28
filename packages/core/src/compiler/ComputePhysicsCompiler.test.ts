@@ -8,7 +8,8 @@ const obj = (
   name: string,
   props: Array<{ key: string; value: unknown }>,
   traits: Array<{ name: string; config?: Record<string, unknown> }> = []
-): HoloObjectDecl => ({ type: 'Object', name, properties: props, traits }) as unknown as HoloObjectDecl;
+): HoloObjectDecl =>
+  ({ type: 'Object', name, properties: props, traits }) as unknown as HoloObjectDecl;
 const comp = (objects: HoloObjectDecl[], name = 'Sim'): HoloComposition =>
   ({ type: 'HoloComposition', name, objects }) as HoloComposition;
 
@@ -37,8 +38,16 @@ describe('ComputePhysicsCompiler — sovereign GPU rigid-body simulation', () =>
   it('turns @rigid_body spheres into dynamic bodies and boxes into static AABBs', () => {
     const rs = new ComputePhysicsCompiler().compile(
       comp([
-        obj('Floor', [prop('mesh', 'cube'), prop('position', [0, 0, 0]), prop('scale', [8, 0.4, 8])]),
-        obj('Ball1', [prop('mesh', 'sphere'), prop('position', [0, 5, 0])], [trait('rigid_body', { mass: 2, restitution: 0.8, friction: 0.3 })]),
+        obj('Floor', [
+          prop('mesh', 'cube'),
+          prop('position', [0, 0, 0]),
+          prop('scale', [8, 0.4, 8]),
+        ]),
+        obj(
+          'Ball1',
+          [prop('mesh', 'sphere'), prop('position', [0, 5, 0])],
+          [trait('rigid_body', { mass: 2, restitution: 0.8, friction: 0.3 })]
+        ),
         obj('Ball2', [prop('mesh', 'sphere'), prop('position', [1, 6, 0])], [trait('rigid_body')]),
       ])
     );
@@ -59,7 +68,13 @@ describe('ComputePhysicsCompiler — sovereign GPU rigid-body simulation', () =>
 
   it('reads an initial velocity from the object', () => {
     const rs = new ComputePhysicsCompiler().compile(
-      comp([obj('B', [prop('mesh', 'sphere'), prop('velocity', [2, 0, -1])], [trait('rigid_body', { mass: 1 })])])
+      comp([
+        obj(
+          'B',
+          [prop('mesh', 'sphere'), prop('velocity', [2, 0, -1])],
+          [trait('rigid_body', { mass: 1 })]
+        ),
+      ])
     );
     // vel vec = velocity.xyz + mass.w
     expect(rs).toContain('vel: [2.0, 0.0, -1.0, 1.0]');

@@ -18,6 +18,11 @@ packages/compiler-wasm/pkg/
 packages/compiler-wasm/target/
 **/*.wasm
 
+# Packaged distributables (wasm-bindgen glue, native binaries, published bundles --
+# derived build output, never hand-authored; distributions/systems/wasm/*.js is
+# wasm-bindgen-generated JS bindings, not source)
+distributions/
+
 # Benchmark data
 *.json
 !package.json

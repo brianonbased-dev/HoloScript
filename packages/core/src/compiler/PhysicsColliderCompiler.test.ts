@@ -16,7 +16,12 @@ describe('PhysicsColliderCompiler — a second consumer of the shared geometry v
   it('turns a purpose=collision cube into a fixed cuboid collider sized from its scale', () => {
     const world = new PhysicsColliderCompiler().compileToObject(
       comp([
-        obj('Floor', [prop('mesh', 'cube'), prop('purpose', 'collision'), prop('position', [0, -1, 0]), prop('scale', [10, 0.5, 10])]),
+        obj('Floor', [
+          prop('mesh', 'cube'),
+          prop('purpose', 'collision'),
+          prop('position', [0, -1, 0]),
+          prop('scale', [10, 0.5, 10]),
+        ]),
       ])
     );
     expect(world.colliderCount).toBe(1);
@@ -33,7 +38,9 @@ describe('PhysicsColliderCompiler — a second consumer of the shared geometry v
 
   it('turns a trigger sphere into a ball SENSOR (overlap, not solid)', () => {
     const world = new PhysicsColliderCompiler().compileToObject(
-      comp([obj('Zone', [prop('mesh', 'sphere'), prop('purpose', 'trigger'), prop('scale', [3, 3, 3])])])
+      comp([
+        obj('Zone', [prop('mesh', 'sphere'), prop('purpose', 'trigger'), prop('scale', [3, 3, 3])]),
+      ])
     );
     const c = world.colliders[0];
     expect(c.shape).toBe('ball');
@@ -55,7 +62,13 @@ describe('PhysicsColliderCompiler — a second consumer of the shared geometry v
 
   it('keeps the object rotation that the render path drops', () => {
     const world = new PhysicsColliderCompiler().compileToObject(
-      comp([obj('Ramp', [prop('mesh', 'cube'), prop('purpose', 'collision'), prop('rotation', [-15, 0, 0])])])
+      comp([
+        obj('Ramp', [
+          prop('mesh', 'cube'),
+          prop('purpose', 'collision'),
+          prop('rotation', [-15, 0, 0]),
+        ]),
+      ])
     );
     expect(world.colliders[0].rotation).toEqual([-15, 0, 0]);
   });
@@ -71,7 +84,10 @@ describe('PhysicsColliderCompiler — a second consumer of the shared geometry v
 
   it('emits NO colliders for a pure-render scene (physics reads only physical geometry)', () => {
     const world = new PhysicsColliderCompiler().compileToObject(
-      comp([obj('Deco', [prop('mesh', 'sphere')]), obj('Panel', [prop('mesh', 'cube'), prop('color', '#fff')])])
+      comp([
+        obj('Deco', [prop('mesh', 'sphere')]),
+        obj('Panel', [prop('mesh', 'cube'), prop('color', '#fff')]),
+      ])
     );
     expect(world.colliderCount).toBe(0);
     expect(world.colliders).toEqual([]);

@@ -12,7 +12,9 @@ const comp = (objects: HoloObjectDecl[], name = 'Scene'): HoloComposition =>
 // These lock the emitted-project STRUCTURE so it can't silently drift.
 describe('DesktopGPUCompiler — sovereign native-desktop GPU (wgpu) target', () => {
   it('emits a complete Cargo project (Cargo.toml + src/main.rs)', () => {
-    const project = new DesktopGPUCompiler().compileProject(comp([obj('A', [prop('mesh', 'cube')])]));
+    const project = new DesktopGPUCompiler().compileProject(
+      comp([obj('A', [prop('mesh', 'cube')])])
+    );
     expect(Object.keys(project).sort()).toEqual(['Cargo.toml', 'src/main.rs']);
     expect(project['Cargo.toml']).toContain('wgpu = "23"');
     expect(project['Cargo.toml']).toContain('pollster');
@@ -38,7 +40,11 @@ describe('DesktopGPUCompiler — sovereign native-desktop GPU (wgpu) target', ()
   it('extracts one draw item per VISIBLE object with model matrix + color', () => {
     const rs = new DesktopGPUCompiler().compile(
       comp([
-        obj('Ball', [prop('mesh', 'sphere'), prop('position', [1, 2, 3]), prop('color', '#ff0000')]),
+        obj('Ball', [
+          prop('mesh', 'sphere'),
+          prop('position', [1, 2, 3]),
+          prop('color', '#ff0000'),
+        ]),
         obj('Box', [prop('mesh', 'cube'), prop('scale', [2, 2, 2])]),
       ])
     );

@@ -34,7 +34,14 @@ import {
   type HSIRenameMap,
 } from '../HSIAuditVerifier';
 
-const FIXTURE_PATH = join(__dirname, '..', '..', '__tests__', 'fixtures', 'hs-core-barrier-world.holo');
+const FIXTURE_PATH = join(
+  __dirname,
+  '..',
+  '..',
+  '__tests__',
+  'fixtures',
+  'hs-core-barrier-world.holo'
+);
 
 function loadFixture(): { source: string; composition: HoloComposition } {
   const source = readFileSync(FIXTURE_PATH, 'utf8');
@@ -81,16 +88,27 @@ describe('HSI-IR lowering (Stage A)', () => {
     expect(ir.schemaVersion).toBe(HSI_IR_SCHEMA_VERSION);
     expect(ir.world.name).toBe('HSCoreBarrierWorld');
     expect(ir.entities.map((e) => e.name).sort()).toEqual([
-      'Beacon', 'GlassPane', 'Scout', 'StoneSlab', 'VeilPanel',
+      'Beacon',
+      'GlassPane',
+      'Scout',
+      'StoneSlab',
+      'VeilPanel',
     ]);
     expect(ir.relations).toHaveLength(4);
     expect(ir.state.map((f) => f.key).sort()).toEqual([
-      'goalReached', 'inspections', 'scoutZone', 'traversals',
+      'goalReached',
+      'inspections',
+      'scoutZone',
+      'traversals',
     ]);
     expect(ir.machines).toHaveLength(1);
     expect(ir.machines[0]!.transitions).toHaveLength(4);
     expect(ir.eventHandlers.map((h) => h.event).sort()).toEqual(['on_inspect', 'on_traverse']);
-    expect(ir.predicates.map((p) => p.kind).sort()).toEqual(['invariant', 'invariant', 'precondition']);
+    expect(ir.predicates.map((p) => p.kind).sort()).toEqual([
+      'invariant',
+      'invariant',
+      'precondition',
+    ]);
 
     // Digest custody: recomputing over the digest-free document reproduces it.
     const { provenance, ...rest } = ir;
@@ -186,7 +204,9 @@ describe('exact trace', () => {
 
     expect(trace.schemaVersion).toBe(HSI_TRACE_SCHEMA_VERSION);
     expect(trace.valid).toBe(true);
-    expect(trace.preconditionResults).toEqual([{ id: 'precondition:no_prior_traversals', holds: true }]);
+    expect(trace.preconditionResults).toEqual([
+      { id: 'precondition:no_prior_traversals', holds: true },
+    ]);
 
     // Step 0: probe trigger fires Scanning -> Inspecting.
     expect(trace.steps[0]!.transitions).toHaveLength(1);
@@ -215,9 +235,13 @@ describe('exact trace', () => {
     const { composition } = loadFixture();
     const ir = lowerCompositionToHSIIR(composition);
     expect(() =>
-      runExactTrace(ir, [{ kind: 'set-input', machine: 'TraversalControl', input: 'nope', value: 1 }]),
+      runExactTrace(ir, [
+        { kind: 'set-input', machine: 'TraversalControl', input: 'nope', value: 1 },
+      ])
     ).toThrowError(/unknown-slot/);
-    expect(() => runExactTrace(ir, [{ kind: 'fire-event', event: 'on_nothing' }])).toThrowError(/unknown-slot/);
+    expect(() => runExactTrace(ir, [{ kind: 'fire-event', event: 'on_nothing' }])).toThrowError(
+      /unknown-slot/
+    );
   });
 });
 
@@ -233,7 +257,12 @@ describe('metamorphic and counterfactual behavior', () => {
 
   it('alpha-renaming preserves the trace modulo names (via the audit verifier)', () => {
     const { source, composition } = loadFixture();
-    const manifest = runHSIAudit({ composition, sourceText: source, scenario: SCENARIO, renameMap: RENAME_MAP });
+    const manifest = runHSIAudit({
+      composition,
+      sourceText: source,
+      scenario: SCENARIO,
+      renameMap: RENAME_MAP,
+    });
     const renameCheck = manifest.checks.find((c) => c.caseId === 'audit:alpha-rename');
     expect(renameCheck?.status).toBe('pass');
   });
@@ -249,14 +278,19 @@ describe('metamorphic and counterfactual behavior', () => {
       opaque: false,
     });
     const ir = lowerCompositionToHSIIR(intervened);
-    expect(base.observationPolicy.find((r) => r.id === 'obs:Scout->Beacon')!.access).toBe('blocked');
+    expect(base.observationPolicy.find((r) => r.id === 'obs:Scout->Beacon')!.access).toBe(
+      'blocked'
+    );
     // VeilPanel's ABSENT opacity now dominates: the verdict degrades to unknown, not visible.
     expect(ir.observationPolicy.find((r) => r.id === 'obs:Scout->Beacon')!.access).toBe('unknown');
   });
 
   it('one guard intervention changes the exact trace at the predicted step', () => {
     const { source, composition } = loadFixture();
-    const base = runExactTrace(lowerCompositionToHSIIR(structuredClone(composition), { sourceText: source }), SCENARIO);
+    const base = runExactTrace(
+      lowerCompositionToHSIIR(structuredClone(composition), { sourceText: source }),
+      SCENARIO
+    );
     const intervened = structuredClone(composition);
     applyIntervention(intervened, {
       id: 'intervention:raise-guard-threshold',
@@ -266,7 +300,10 @@ describe('metamorphic and counterfactual behavior', () => {
       toState: 'Traversing',
       value: 1e6,
     });
-    const trace = runExactTrace(lowerCompositionToHSIIR(intervened, { sourceText: source }), SCENARIO);
+    const trace = runExactTrace(
+      lowerCompositionToHSIIR(intervened, { sourceText: source }),
+      SCENARIO
+    );
     expect(trace.deterministicDigest).not.toBe(base.deterministicDigest);
     expect(base.steps[3]!.transitions).toHaveLength(1);
     expect(trace.steps[3]!.transitions).toHaveLength(0);
@@ -280,7 +317,11 @@ describe('metamorphic and counterfactual behavior', () => {
     reorderComposition(transformed);
     const ir = lowerCompositionToHSIIR(transformed);
     expect(ir.entities.map((e) => e.name).sort()).toEqual([
-      'BasaltSlab', 'CrystalPane', 'Lodestar', 'Pathfinder', 'ShroudPanel',
+      'BasaltSlab',
+      'CrystalPane',
+      'Lodestar',
+      'Pathfinder',
+      'ShroudPanel',
     ]);
   });
 });
@@ -314,12 +355,18 @@ describe('LearningGraph projection', () => {
     const veil = graph.nodes.find((n) => n.id === 'entity:VeilPanel');
     expect(veil?.unknowns).toEqual(['opacity']);
 
-    const observes = graph.edges.find((e) => e.edgeType === 'observes' && e.from === 'entity:Scout');
+    const observes = graph.edges.find(
+      (e) => e.edgeType === 'observes' && e.from === 'entity:Scout'
+    );
     expect(observes?.label).toBe('blocked');
 
-    const affects = graph.edges.filter((e) => e.edgeType === 'affects' && e.from === 'event:on_traverse');
+    const affects = graph.edges.filter(
+      (e) => e.edgeType === 'affects' && e.from === 'event:on_traverse'
+    );
     expect(affects.map((e) => e.to).sort()).toEqual([
-      'state:world.goalReached', 'state:world.scoutZone', 'state:world.traversals',
+      'state:world.goalReached',
+      'state:world.scoutZone',
+      'state:world.traversals',
     ]);
 
     expect(graph.nodes.every((n) => n.split === 'train' || n.split === 'eval')).toBe(true);
@@ -330,7 +377,12 @@ describe('LearningGraph projection', () => {
 describe('audit manifest', () => {
   it('all declared audit cases pass and the manifest digest is recomputable', () => {
     const { source, composition } = loadFixture();
-    const manifest = runHSIAudit({ composition, sourceText: source, scenario: SCENARIO, renameMap: RENAME_MAP });
+    const manifest = runHSIAudit({
+      composition,
+      sourceText: source,
+      scenario: SCENARIO,
+      renameMap: RENAME_MAP,
+    });
 
     expect(manifest.schemaVersion).toBe(HSI_AUDIT_SCHEMA_VERSION);
     const byCase = Object.fromEntries(manifest.checks.map((c) => [c.caseId, c.status]));

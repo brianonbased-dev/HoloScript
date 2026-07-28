@@ -205,7 +205,10 @@ function solveLinear(A: number[], n: number, b: number[]): number[] {
     let maxVal = Math.abs(a[k][k]);
     let maxRow = k;
     for (let i = k + 1; i < n; i++) {
-      if (Math.abs(a[i][k]) > maxVal) { maxVal = Math.abs(a[i][k]); maxRow = i; }
+      if (Math.abs(a[i][k]) > maxVal) {
+        maxVal = Math.abs(a[i][k]);
+        maxRow = i;
+      }
     }
     [a[k], a[maxRow]] = [a[maxRow], a[k]];
     [x[k], x[maxRow]] = [x[maxRow], x[k]];
@@ -218,7 +221,10 @@ function solveLinear(A: number[], n: number, b: number[]): number[] {
   }
   const result = new Array<number>(n).fill(0);
   for (let i = n - 1; i >= 0; i--) {
-    if (Math.abs(a[i][i]) < 1e-14) { result[i] = 0; continue; }
+    if (Math.abs(a[i][i]) < 1e-14) {
+      result[i] = 0;
+      continue;
+    }
     result[i] = x[i];
     for (let j = i + 1; j < n; j++) result[i] -= a[i][j] * result[j];
     result[i] /= a[i][i];
@@ -250,7 +256,7 @@ export function stepPid(
   setpoint: number,
   measurement: number,
   dt: number,
-  state: PIDState,
+  state: PIDState
 ): ControlOutput {
   const { Kp, Ki, Kd } = params;
   const iMax = params.iMax ?? Infinity;
@@ -304,16 +310,16 @@ export function stepMpc(params: MPCParams, state: number[]): ControlOutput {
   // Backward Riccati recursion: P[H] = Qf, then
   //   K[t] = (R + B^T P[t+1] B)^{-1} B^T P[t+1] A
   //   P[t] = Q + A^T P[t+1] (A - B K[t])
-  const BT = matT(B, n, m);  // m×n
-  const AT = matT(A, n, n);  // n×n
+  const BT = matT(B, n, m); // m×n
+  const AT = matT(A, n, n); // n×n
 
   let P = [...Qf]; // n×n
-  const gains: number[][] = [];  // H gains, each m×n
+  const gains: number[][] = []; // H gains, each m×n
 
   for (let t = H - 1; t >= 0; t--) {
     // S = B^T P B (m×m)
-    const BTP = matMul(BT, m, n, P, n);   // m×n
-    const S = matMul(BTP, m, n, B, m);    // m×m: B^T P B
+    const BTP = matMul(BT, m, n, P, n); // m×n
+    const S = matMul(BTP, m, n, B, m); // m×m: B^T P B
     // S + R
     const SpR = matAdd(S, R);
 
@@ -332,9 +338,9 @@ export function stepMpc(params: MPCParams, state: number[]): ControlOutput {
 
     // P_new = Q + A^T P (A - B K)
     // A - BK: n×n
-    const BK = matMul(B, n, m, K, n);      // n×n
+    const BK = matMul(B, n, m, K, n); // n×n
     const AmBK = A.map((v, i) => v - BK[i]); // n×n
-    const PAmBK = matMul(P, n, n, AmBK, n);  // n×n
+    const PAmBK = matMul(P, n, n, AmBK, n); // n×n
     const ATPAmBK = matMul(AT, n, n, PAmBK, n); // n×n
     P = matAdd(Q, ATPAmBK);
   }
@@ -371,7 +377,10 @@ interface ControlLoopNodeState {
 
 function getPidState(node: Record<string, unknown>): PIDState {
   let ns = node.__control_state as ControlLoopNodeState | undefined;
-  if (!ns) { ns = {}; node.__control_state = ns; }
+  if (!ns) {
+    ns = {};
+    node.__control_state = ns;
+  }
   if (!ns.pid) ns.pid = { integralAccum: 0, prevError: 0, prevDerivative: 0 };
   return ns.pid;
 }
@@ -404,13 +413,7 @@ export const controlLoopHandler: TraitHandler<ControlLoopConfig> = {
       const params = req.params ?? config.pid;
       if (!params) return;
       const state = getPidState(n);
-      n.__control_output = stepPid(
-        params,
-        req.setpoint,
-        req.measurement,
-        req.dt ?? 1,
-        state,
-      );
+      n.__control_output = stepPid(params, req.setpoint, req.measurement, req.dt ?? 1, state);
       return;
     }
 

@@ -140,7 +140,12 @@ export class SpatialAudioCompiler {
             model.sources.push({
               name: String(obj.name ?? `source${model.sources.length}`),
               position: pos,
-              clip: typeof cfg.clip === 'string' ? cfg.clip : typeof cfg.src === 'string' ? cfg.src : null,
+              clip:
+                typeof cfg.clip === 'string'
+                  ? cfg.clip
+                  : typeof cfg.src === 'string'
+                    ? cfg.src
+                    : null,
               volume: this.num(cfg.volume ?? cfg.gain, 1),
               loop: cfg.loop === true,
               directivity: String(cfg.directivity ?? cfg.source_directivity ?? 'omnidirectional'),
@@ -152,7 +157,8 @@ export class SpatialAudioCompiler {
             });
             break;
           case 'reverb_zone': {
-            const kind = String(cfg.type ?? 'algorithmic') === 'convolution' ? 'convolution' : 'algorithmic';
+            const kind =
+              String(cfg.type ?? 'algorithmic') === 'convolution' ? 'convolution' : 'algorithmic';
             model.zones.push({
               name: String(obj.name ?? `zone${model.zones.length}`),
               kind,
@@ -209,7 +215,8 @@ export class SpatialAudioCompiler {
       }
     };
     push(composition.objects);
-    const scenes = (composition as unknown as { scenes?: Array<{ objects?: HoloObjectDecl[] }> }).scenes;
+    const scenes = (composition as unknown as { scenes?: Array<{ objects?: HoloObjectDecl[] }> })
+      .scenes;
     for (const s of scenes ?? []) push(s.objects);
     const walkGroup = (g: HoloSpatialGroup) => {
       push(g.objects);
@@ -226,15 +233,19 @@ export class SpatialAudioCompiler {
     return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
   }
   private vec3(v: unknown, fallback: Vec3): Vec3 {
-    return Array.isArray(v) && v.length >= 3 ? [Number(v[0]), Number(v[1]), Number(v[2])] : fallback;
+    return Array.isArray(v) && v.length >= 3
+      ? [Number(v[0]), Number(v[1]), Number(v[2])]
+      : fallback;
   }
 
   // ── emission: self-contained Web Audio graph builder ─────────────────────────
   private emitModule(m: AudioSceneModel): string {
     const meanAbsorption =
       m.surfaces.length > 0
-        ? m.surfaces.reduce((s, x) => s + (x.absorption[0] + x.absorption[1] + x.absorption[2]) / 3, 0) /
-          m.surfaces.length
+        ? m.surfaces.reduce(
+            (s, x) => s + (x.absorption[0] + x.absorption[1] + x.absorption[2]) / 3,
+            0
+          ) / m.surfaces.length
         : 0.2;
     const j = (v: unknown) => JSON.stringify(v);
     const L = m.listener;
@@ -253,7 +264,9 @@ export class SpatialAudioCompiler {
     lines.push('    const d = buf.getChannelData(ch);');
     lines.push('    for (let i = 0; i < len; i++) {');
     lines.push('      const t = i / sr;');
-    lines.push('      d[i] = (Math.random() * 2 - 1) * Math.exp(-decay * t) * (1 - absorption * 0.5);');
+    lines.push(
+      '      d[i] = (Math.random() * 2 - 1) * Math.exp(-decay * t) * (1 - absorption * 0.5);'
+    );
     lines.push('    }');
     lines.push('  }');
     lines.push('  return buf;');
@@ -261,61 +274,108 @@ export class SpatialAudioCompiler {
     lines.push('');
     lines.push('// Build the spatial-audio graph on the given AudioContext. `loadClip(name)`');
     lines.push('// (optional) should return a Promise<AudioBuffer> for a source clip; without it,');
-    lines.push('// sources are created lazily and can be driven by any node via handle.connectSource.');
+    lines.push(
+      '// sources are created lazily and can be driven by any node via handle.connectSource.'
+    );
     lines.push('export function createAudioGraph(ctx, opts = {}) {');
-    lines.push('  const master = ctx.createGain(); master.gain.value = opts.masterGain ?? 1; master.connect(ctx.destination);');
+    lines.push(
+      '  const master = ctx.createGain(); master.gain.value = opts.masterGain ?? 1; master.connect(ctx.destination);'
+    );
     lines.push(`  const meanAbsorption = ${meanAbsorption.toFixed(4)};`);
     lines.push('');
     lines.push('  // Listener (HRTF binaural). Position + orientation drive the panner math.');
     lines.push('  const listener = ctx.listener;');
     lines.push(`  const lp = ${j(L.position)}, lf = ${j(L.forward)}, lu = ${j(L.up)};`);
-    lines.push('  if (listener.positionX) { listener.positionX.value = lp[0]; listener.positionY.value = lp[1]; listener.positionZ.value = lp[2];');
-    lines.push('    listener.forwardX.value = lf[0]; listener.forwardY.value = lf[1]; listener.forwardZ.value = lf[2];');
-    lines.push('    listener.upX.value = lu[0]; listener.upY.value = lu[1]; listener.upZ.value = lu[2]; }');
-    lines.push('  else if (listener.setPosition) { listener.setPosition(lp[0], lp[1], lp[2]); listener.setOrientation(lf[0], lf[1], lf[2], lu[0], lu[1], lu[2]); }');
+    lines.push(
+      '  if (listener.positionX) { listener.positionX.value = lp[0]; listener.positionY.value = lp[1]; listener.positionZ.value = lp[2];'
+    );
+    lines.push(
+      '    listener.forwardX.value = lf[0]; listener.forwardY.value = lf[1]; listener.forwardZ.value = lf[2];'
+    );
+    lines.push(
+      '    listener.upX.value = lu[0]; listener.upY.value = lu[1]; listener.upZ.value = lu[2]; }'
+    );
+    lines.push(
+      '  else if (listener.setPosition) { listener.setPosition(lp[0], lp[1], lp[2]); listener.setOrientation(lf[0], lf[1], lf[2], lu[0], lu[1], lu[2]); }'
+    );
     lines.push('');
     lines.push('  // Reverb zones — ConvolverNodes on a shared send bus.');
     lines.push('  const zones = {};');
     for (const z of m.zones) {
-      lines.push(`  { const conv = ctx.createConvolver(); const wet = ctx.createGain(); wet.gain.value = ${z.wet};`);
+      lines.push(
+        `  { const conv = ctx.createConvolver(); const wet = ctx.createGain(); wet.gain.value = ${z.wet};`
+      );
       if (z.kind === 'convolution' && z.irFile) {
-        lines.push(`    conv._irFile = ${j(z.irFile)}; // convolution reverb: host loads this IR into conv.buffer`);
-        lines.push(`    conv.buffer = hsBuildImpulse(ctx, ${z.rt60}, meanAbsorption); // placeholder tail until IR loads`);
+        lines.push(
+          `    conv._irFile = ${j(z.irFile)}; // convolution reverb: host loads this IR into conv.buffer`
+        );
+        lines.push(
+          `    conv.buffer = hsBuildImpulse(ctx, ${z.rt60}, meanAbsorption); // placeholder tail until IR loads`
+        );
       } else {
-        lines.push(`    conv.buffer = hsBuildImpulse(ctx, ${z.rt60}, meanAbsorption); // algorithmic rt60 tail`);
+        lines.push(
+          `    conv.buffer = hsBuildImpulse(ctx, ${z.rt60}, meanAbsorption); // algorithmic rt60 tail`
+        );
       }
       lines.push('    conv.connect(wet); wet.connect(master);');
-      lines.push(`    zones[${j(z.name)}] = { convolver: conv, wet, send: ctx.createGain() }; zones[${j(z.name)}].send.connect(conv); }`);
+      lines.push(
+        `    zones[${j(z.name)}] = { convolver: conv, wet, send: ctx.createGain() }; zones[${j(z.name)}].send.connect(conv); }`
+      );
     }
     lines.push('  const defaultZone = zones[Object.keys(zones)[0] || ""];');
     lines.push('');
     lines.push('  // Sources — PannerNode (HRTF) + directivity cone + distance model + gain.');
     lines.push('  const sources = {};');
     for (const s of m.sources) {
-      const cone = DIRECTIVITY_CONES[s.directivity.toLowerCase()] ?? DIRECTIVITY_CONES.omnidirectional;
-      lines.push(`  { const p = ctx.createPanner(); p.panningModel = ${j(L.hrtf ? 'HRTF' : 'equalpower')}; p.distanceModel = "inverse";`);
-      lines.push(`    p.refDistance = ${s.refDistance}; p.maxDistance = ${s.maxDistance}; p.rolloffFactor = ${s.rolloffFactor};`);
-      lines.push(`    p.coneInnerAngle = ${cone[0]}; p.coneOuterAngle = ${cone[1]}; p.coneOuterGain = ${cone[2]};`);
-      lines.push(`    const sp = ${j(s.position)}; if (p.positionX) { p.positionX.value = sp[0]; p.positionY.value = sp[1]; p.positionZ.value = sp[2]; } else if (p.setPosition) { p.setPosition(sp[0], sp[1], sp[2]); }`);
-      lines.push(`    const g = ctx.createGain(); g.gain.value = ${s.volume}; p.connect(g); g.connect(master);`);
-      lines.push(`    if (defaultZone) { const rs = ctx.createGain(); rs.gain.value = ${s.reverbSend}; g.connect(rs); rs.connect(defaultZone.send); }`);
-      lines.push(`    sources[${j(s.name)}] = { panner: p, gain: g, clip: ${j(s.clip)}, loop: ${j(s.loop)},`);
+      const cone =
+        DIRECTIVITY_CONES[s.directivity.toLowerCase()] ?? DIRECTIVITY_CONES.omnidirectional;
+      lines.push(
+        `  { const p = ctx.createPanner(); p.panningModel = ${j(L.hrtf ? 'HRTF' : 'equalpower')}; p.distanceModel = "inverse";`
+      );
+      lines.push(
+        `    p.refDistance = ${s.refDistance}; p.maxDistance = ${s.maxDistance}; p.rolloffFactor = ${s.rolloffFactor};`
+      );
+      lines.push(
+        `    p.coneInnerAngle = ${cone[0]}; p.coneOuterAngle = ${cone[1]}; p.coneOuterGain = ${cone[2]};`
+      );
+      lines.push(
+        `    const sp = ${j(s.position)}; if (p.positionX) { p.positionX.value = sp[0]; p.positionY.value = sp[1]; p.positionZ.value = sp[2]; } else if (p.setPosition) { p.setPosition(sp[0], sp[1], sp[2]); }`
+      );
+      lines.push(
+        `    const g = ctx.createGain(); g.gain.value = ${s.volume}; p.connect(g); g.connect(master);`
+      );
+      lines.push(
+        `    if (defaultZone) { const rs = ctx.createGain(); rs.gain.value = ${s.reverbSend}; g.connect(rs); rs.connect(defaultZone.send); }`
+      );
+      lines.push(
+        `    sources[${j(s.name)}] = { panner: p, gain: g, clip: ${j(s.clip)}, loop: ${j(s.loop)},`
+      );
       lines.push('      connectSource(node) { node.connect(p); return node; } };');
       lines.push('  }');
     }
     lines.push('');
-    lines.push('  // Occlusion presets — a lowpass + attenuation the host inserts on a blocked path.');
+    lines.push(
+      '  // Occlusion presets — a lowpass + attenuation the host inserts on a blocked path.'
+    );
     lines.push('  const occlusions = {};');
     for (const o of m.occlusions) {
-      lines.push(`  occlusions[${j(o.name)}] = { cutoffHz: ${o.cutoffHz}, gain: ${(Math.pow(10, -o.transmissionLoss / 20)).toFixed(4)},`);
-      lines.push('    makeFilter() { const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = this.cutoffHz; const a = ctx.createGain(); a.gain.value = this.gain; f.connect(a); return { input: f, output: a }; } };');
+      lines.push(
+        `  occlusions[${j(o.name)}] = { cutoffHz: ${o.cutoffHz}, gain: ${Math.pow(10, -o.transmissionLoss / 20).toFixed(4)},`
+      );
+      lines.push(
+        '    makeFilter() { const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = this.cutoffHz; const a = ctx.createGain(); a.gain.value = this.gain; f.connect(a); return { input: f, output: a }; } };'
+      );
     }
     lines.push('');
     lines.push('  // Portals — a filtered send from one zone into another (open door bleed).');
     lines.push('  const portals = [];');
     for (const p of m.portals) {
-      lines.push(`  if (zones[${j(p.sourceZone)}] && zones[${j(p.targetZone)}]) { const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = ${p.cutoffHz}; const g = ctx.createGain(); g.gain.value = ${p.openingFactor};`);
-      lines.push(`    zones[${j(p.sourceZone)}].wet.connect(f); f.connect(g); g.connect(zones[${j(p.targetZone)}].send); portals.push({ name: ${j(p.name)}, filter: f, gain: g }); }`);
+      lines.push(
+        `  if (zones[${j(p.sourceZone)}] && zones[${j(p.targetZone)}]) { const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = ${p.cutoffHz}; const g = ctx.createGain(); g.gain.value = ${p.openingFactor};`
+      );
+      lines.push(
+        `    zones[${j(p.sourceZone)}].wet.connect(f); f.connect(g); g.connect(zones[${j(p.targetZone)}].send); portals.push({ name: ${j(p.name)}, filter: f, gain: g }); }`
+      );
     }
     lines.push('');
     lines.push('  return { context: ctx, master, listener, zones, sources, occlusions, portals,');

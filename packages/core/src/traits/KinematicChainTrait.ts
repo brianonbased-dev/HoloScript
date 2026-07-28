@@ -113,12 +113,7 @@ export function dhTransform(a: number, alpha: number, d: number, theta: number):
   const st = Math.sin(theta);
   const ca = Math.cos(alpha);
   const sa = Math.sin(alpha);
-  return [
-    ct,      -st * ca,   st * sa,  a * ct,
-    st,       ct * ca,  -ct * sa,  a * st,
-    0,        sa,        ca,       d,
-    0,        0,         0,        1,
-  ];
+  return [ct, -st * ca, st * sa, a * ct, st, ct * ca, -ct * sa, a * st, 0, sa, ca, d, 0, 0, 0, 1];
 }
 
 function mat4Mul(a: number[], b: number[]): number[] {
@@ -144,8 +139,8 @@ interface FrameInfo {
 
 function extractFrame(T: number[]): FrameInfo {
   return {
-    z: { x: T[2],  y: T[6],  z: T[10] },
-    p: { x: T[3],  y: T[7],  z: T[11] },
+    z: { x: T[2], y: T[6], z: T[10] },
+    p: { x: T[3], y: T[7], z: T[11] },
   };
 }
 
@@ -170,7 +165,10 @@ function solve3x3(A: number[][], b: number[]): number[] {
     let maxVal = Math.abs(a[k][k]);
     let maxRow = k;
     for (let i = k + 1; i < 3; i++) {
-      if (Math.abs(a[i][k]) > maxVal) { maxVal = Math.abs(a[i][k]); maxRow = i; }
+      if (Math.abs(a[i][k]) > maxVal) {
+        maxVal = Math.abs(a[i][k]);
+        maxRow = i;
+      }
     }
     [a[k], a[maxRow]] = [a[maxRow], a[k]];
     [x[k], x[maxRow]] = [x[maxRow], x[k]];
@@ -183,7 +181,10 @@ function solve3x3(A: number[][], b: number[]): number[] {
   }
   const result = [0, 0, 0];
   for (let i = 2; i >= 0; i--) {
-    if (Math.abs(a[i][i]) < 1e-12) { result[i] = 0; continue; }
+    if (Math.abs(a[i][i]) < 1e-12) {
+      result[i] = 0;
+      continue;
+    }
     result[i] = x[i];
     for (let j = i + 1; j < 3; j++) result[i] -= a[i][j] * result[j];
     result[i] /= a[i][i];
@@ -251,7 +252,11 @@ export function solveIk(req: IKRequest): IKResult {
     }
 
     // JJT = J * J^T  (3×3, symmetric)
-    const JJT = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    const JJT = [
+      [0, 0, 0],
+      [0, 0, 0],
+      [0, 0, 0],
+    ];
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) {
         for (let j = 0; j < n; j++) JJT[r][c] += J[r][j] * J[c][j];
@@ -268,7 +273,7 @@ export function solveIk(req: IKRequest): IKResult {
 
   const finalEe = computeAllFrames(links, q)[n].p;
   const finalError = Math.sqrt(
-    (target.x - finalEe.x) ** 2 + (target.y - finalEe.y) ** 2 + (target.z - finalEe.z) ** 2,
+    (target.x - finalEe.x) ** 2 + (target.y - finalEe.y) ** 2 + (target.z - finalEe.z) ** 2
   );
   return { jointAngles: [...q], converged: false, finalError, iterations: maxIterations };
 }
@@ -281,7 +286,10 @@ export const kinematicChainHandler: TraitHandler<KinematicChainConfig> = {
 
   onAttach(node, config) {
     if (config.links.length > 0 && config.jointAngles.length === config.links.length) {
-      (node as unknown as Record<string, unknown>).__kinematic_fk = solveFk(config.links, config.jointAngles);
+      (node as unknown as Record<string, unknown>).__kinematic_fk = solveFk(
+        config.links,
+        config.jointAngles
+      );
     }
   },
 

@@ -32,11 +32,11 @@ export interface WasmFitnessOptions {
 }
 
 export type WasmCompileCandidate = (
-  candidateCode: string,
+  candidateCode: string
 ) => WasmFitnessArtifact | Promise<WasmFitnessArtifact>;
 
 export type WasmCandidateCorrectness = (
-  candidateCode: string,
+  candidateCode: string
 ) => { passed: boolean; note?: string } | Promise<{ passed: boolean; note?: string }>;
 
 export interface WasmFitnessGateOptions extends WasmFitnessOptions {
@@ -60,10 +60,9 @@ function improvementPct(baselineScore: number | null, score: number): number | n
 export function wasmFitnessBaselineFromScenario(
   scenarioId: string,
   scenario: Record<string, unknown>,
-  source = 'benchmarks/baseline.json',
+  source = 'benchmarks/baseline.json'
 ): WasmFitnessBaseline | null {
-  const directScore =
-    numberField(scenario, 'wasmDensity') ?? numberField(scenario, 'fitnessScore');
+  const directScore = numberField(scenario, 'wasmDensity') ?? numberField(scenario, 'fitnessScore');
   const watLength = numberField(scenario, 'watLength');
   const memoryTotalSize = numberField(scenario, 'memoryTotalSize');
   if (directScore !== null) {
@@ -89,7 +88,7 @@ export function wasmFitnessBaselineFromScenario(
 
 export function scoreWasmCompilerArtifact(
   artifact: WasmFitnessArtifact,
-  opts: WasmFitnessOptions = {},
+  opts: WasmFitnessOptions = {}
 ): WasmFitnessMeasurement {
   const watLength = artifact.wat.length;
   const memoryTotalSize = artifact.memoryLayout.totalSize;
@@ -133,12 +132,10 @@ export function scoreWasmCompilerArtifact(
 
 export function makeWasmCompilerFitnessGate(
   compileCandidate: WasmCompileCandidate,
-  opts: WasmFitnessGateOptions = {},
+  opts: WasmFitnessGateOptions = {}
 ): Gate {
   return async (candidateCode) => {
-    const correctness = opts.correctness
-      ? await opts.correctness(candidateCode)
-      : { passed: true };
+    const correctness = opts.correctness ? await opts.correctness(candidateCode) : { passed: true };
     if (!correctness.passed) {
       return { passed: false, score: Infinity };
     }

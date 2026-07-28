@@ -238,7 +238,9 @@ export class FlutterCompiler extends CompilerBase {
     }
 
     const sceneName = composition.scenes?.[0]?.name ?? 'Home';
-    const themeArg = composition.theme ? `\n      theme: ThemeData(colorScheme: _colorScheme),` : '';
+    const themeArg = composition.theme
+      ? `\n      theme: ThemeData(colorScheme: _colorScheme),`
+      : '';
 
     return (
       `MaterialApp(\n` +
@@ -347,7 +349,8 @@ export class FlutterCompiler extends CompilerBase {
   }
 
   private compileText(node: HoloObjectDecl): string {
-    const content = this.getPropString(node, 'text') ||
+    const content =
+      this.getPropString(node, 'text') ||
       this.getPropString(node, 'content') ||
       this.getPropString(node, 'label') ||
       node.name;
@@ -377,23 +380,17 @@ export class FlutterCompiler extends CompilerBase {
   }
 
   private compileButton(node: HoloObjectDecl): string {
-    const label = this.getPropString(node, 'label') ||
-      this.getPropString(node, 'text') ||
-      node.name;
+    const label =
+      this.getPropString(node, 'label') || this.getPropString(node, 'text') || node.name;
     return (
-      `ElevatedButton(\n` +
-      `  onPressed: () {},\n` +
-      `  child: Text(${dartString(label)}),\n` +
-      `)`
+      `ElevatedButton(\n` + `  onPressed: () {},\n` + `  child: Text(${dartString(label)}),\n` + `)`
     );
   }
 
   private compileCircle(node: HoloObjectDecl, width?: number, height?: number): string {
     const color = this.getPropString(node, 'color');
     const size = width ?? height ?? 48;
-    const colorArg = color
-      ? `color: ${this.dartColor(color, 'blue')},`
-      : `color: Colors.blue,`;
+    const colorArg = color ? `color: ${this.dartColor(color, 'blue')},` : `color: Colors.blue,`;
     return (
       `Container(\n` +
       `  width: ${size},\n` +
@@ -404,10 +401,12 @@ export class FlutterCompiler extends CompilerBase {
   }
 
   private compileVideo(node: HoloObjectDecl): string {
-    const asset = this.getTraitString(node, 'video', ['asset']) ||
+    const asset =
+      this.getTraitString(node, 'video', ['asset']) ||
       this.getTraitString(node, 'asset', ['asset']) ||
       this.getPropString(node, 'asset');
-    const url = this.getTraitString(node, 'video', ['src', 'url', 'source']) ||
+    const url =
+      this.getTraitString(node, 'video', ['src', 'url', 'source']) ||
       this.getTraitString(node, 'src', ['src', 'url', 'source']) ||
       this.getPropString(node, 'url') ||
       this.getPropString(node, 'src') ||
@@ -420,19 +419,15 @@ export class FlutterCompiler extends CompilerBase {
 
     if (!sourceArg) {
       this.warnings.push(`Video object '${node.name}' has no source; emitted placeholder`);
-      return (
-        `Placeholder(\n` +
-        `  fallbackHeight: 200,\n` +
-        `)`
-      );
+      return `Placeholder(\n` + `  fallbackHeight: 200,\n` + `)`;
     }
 
     const args = [sourceArg];
     const autoplay = this.getObjectBoolean(node, 'video', ['autoplay', 'autoPlay']);
     const loop = this.getObjectBoolean(node, 'video', ['loop', 'looping']);
     const muted = this.getObjectBoolean(node, 'video', ['muted', 'mute']);
-    const aspectRatio = this.getPropNumber(node, 'aspectRatio') ??
-      this.getPropNumber(node, 'aspect_ratio');
+    const aspectRatio =
+      this.getPropNumber(node, 'aspectRatio') ?? this.getPropNumber(node, 'aspect_ratio');
     if (autoplay === true) args.push(`autoplay: true`);
     if (loop === true) args.push(`loop: true`);
     if (muted === true) args.push(`muted: true`);
@@ -454,7 +449,9 @@ export class FlutterCompiler extends CompilerBase {
     this.emit(`this.muted = false,`);
     this.emit(`this.aspectRatio = 16 / 9,`);
     this.dedent();
-    this.emit(`}) : assert(url != null || asset != null, 'HoloVideoPlayer requires url or asset');`);
+    this.emit(
+      `}) : assert(url != null || asset != null, 'HoloVideoPlayer requires url or asset');`
+    );
     this.emitBlankLine();
     this.emit(`final String? url;`);
     this.emit(`final String? asset;`);
@@ -595,9 +592,7 @@ export class FlutterCompiler extends CompilerBase {
   // =========================================================================
 
   private compositionHasTrait(composition: HoloComposition, traitName: string): boolean {
-    return (composition.traits ?? []).some(
-      (t) => String(t.name).replace(/^@/, '') === traitName
-    );
+    return (composition.traits ?? []).some((t) => String(t.name).replace(/^@/, '') === traitName);
   }
 
   private getTrait(node: HoloObjectDecl, traitName: string): HoloObjectTrait | undefined {
@@ -685,12 +680,13 @@ export class FlutterCompiler extends CompilerBase {
       const objType = this.getPropString(node, 'type') || node.name.toLowerCase();
       return objType === 'video' || (node.children ?? []).some(objectUsesVideo);
     };
-    const groupUsesVideo = (group: HoloSpatialGroup): boolean => (
-      group.objects.some(objectUsesVideo) || (group.groups ?? []).some(groupUsesVideo)
-    );
-    return composition.objects.some(objectUsesVideo) ||
+    const groupUsesVideo = (group: HoloSpatialGroup): boolean =>
+      group.objects.some(objectUsesVideo) || (group.groups ?? []).some(groupUsesVideo);
+    return (
+      composition.objects.some(objectUsesVideo) ||
       composition.spatialGroups.some(groupUsesVideo) ||
-      (composition.scenes ?? []).some((scene) => scene.objects.some(objectUsesVideo));
+      (composition.scenes ?? []).some((scene) => scene.objects.some(objectUsesVideo))
+    );
   }
 
   // =========================================================================
