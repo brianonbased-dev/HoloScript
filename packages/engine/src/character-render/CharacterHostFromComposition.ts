@@ -18,7 +18,11 @@ import { CharacterHost } from './CharacterHost';
 import type { AgentAvatarFaceTopology } from './AgentAvatarMesh';
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
-import { resolveAgentAvatarHairStyle, type AgentAvatarHairStyle } from './AgentAvatarHair';
+import {
+  resolveAgentAvatarHairStyle,
+  type AgentAvatarHairStyle,
+  type AgentAvatarOcularProfile,
+} from './AgentAvatarHair';
 import type { NativeMorphReceipt, NativeMorphWeights } from './AgentAvatarMorph';
 import {
   getSovereignMantleCatalogEntry,
@@ -85,6 +89,12 @@ export interface CharacterHostFromCompositionResult {
     radialSegments?: number;
     verticalSegments?: number;
     tearline?: boolean;
+    ocularProfile?: AgentAvatarOcularProfile;
+    irisScale?: number;
+    pupilScale?: number;
+    irisColor?: number;
+    scleraColor?: number;
+    corneaIor?: number;
   };
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
   morph?: NativeMorphReceipt;
@@ -129,6 +139,13 @@ function asRgb(v: unknown): [number, number, number] | undefined {
     return [((packed >> 16) & 0xff) / 255, ((packed >> 8) & 0xff) / 255, (packed & 0xff) / 255];
   }
   return undefined;
+}
+
+function packRgb(rgb: [number, number, number] | undefined): number | undefined {
+  if (!rgb) return undefined;
+  return (
+    (Math.round(rgb[0] * 255) << 16) | (Math.round(rgb[1] * 255) << 8) | Math.round(rgb[2] * 255)
+  );
 }
 
 /** Read a trait config value by key, falling back to the parser's positional `_arg0`. */
@@ -340,6 +357,12 @@ export function buildCharacterHostFromComposition(
   let faceRadialSegments: number | undefined;
   let faceVerticalSegments: number | undefined;
   let faceTearline: boolean | undefined;
+  let ocularProfile: AgentAvatarOcularProfile | undefined;
+  let irisScale: number | undefined;
+  let pupilScale: number | undefined;
+  let irisColor: number | undefined;
+  let scleraColor: number | undefined;
+  let corneaIor: number | undefined;
   let face: CharacterHostFromCompositionResult['face'];
   const faceTrait = traits.get('face');
   if (faceTrait) {
@@ -361,11 +384,37 @@ export function buildCharacterHostFromComposition(
         );
         faceTearline = cfgVal(faceTrait, 'tearline', 'include_tearline') !== false;
       }
+      const authoredOcularProfile = asStr(cfgVal(faceTrait, 'ocular_profile', 'eye_profile'))
+        ?.toLowerCase()
+        .replace(/_/g, '-');
+      if (
+        authoredOcularProfile === 'layered-ocular-v1' ||
+        authoredOcularProfile === 'legacy-composite-v1'
+      ) {
+        ocularProfile = authoredOcularProfile;
+        irisScale = clamp(asNum(cfgVal(faceTrait, 'iris_scale')) ?? 0.48, 0.34, 0.62);
+        pupilScale = clamp(asNum(cfgVal(faceTrait, 'pupil_scale')) ?? 0.42, 0.2, 0.72);
+        irisColor = packRgb(asRgb(cfgVal(faceTrait, 'iris_color', 'iris_colour')));
+        scleraColor = packRgb(asRgb(cfgVal(faceTrait, 'sclera_color', 'sclera_colour')));
+        corneaIor = clamp(asNum(cfgVal(faceTrait, 'cornea_ior')) ?? 1.376, 1.3, 1.45);
+        report.mapped.push(`@face(ocular_profile=${ocularProfile})`);
+      } else if (authoredOcularProfile) {
+        report.stubbed.push({
+          trait: '@face(ocular_profile)',
+          reason: `profile '${authoredOcularProfile}' has no native ocular geometry channel`,
+        });
+      }
       face = {
         topology: faceTopology,
         ...(faceRadialSegments === undefined ? {} : { radialSegments: faceRadialSegments }),
         ...(faceVerticalSegments === undefined ? {} : { verticalSegments: faceVerticalSegments }),
         ...(faceTearline === undefined ? {} : { tearline: faceTearline }),
+        ...(ocularProfile === undefined ? {} : { ocularProfile }),
+        ...(irisScale === undefined ? {} : { irisScale }),
+        ...(pupilScale === undefined ? {} : { pupilScale }),
+        ...(irisColor === undefined ? {} : { irisColor }),
+        ...(scleraColor === undefined ? {} : { scleraColor }),
+        ...(corneaIor === undefined ? {} : { corneaIor }),
       };
       report.mapped.push(`@face(topology=${faceTopology})`);
     } else {
@@ -559,6 +608,12 @@ export function buildCharacterHostFromComposition(
     faceRadialSegments,
     faceVerticalSegments,
     faceTearline,
+    ocularProfile,
+    irisScale,
+    pupilScale,
+    irisColor,
+    scleraColor,
+    corneaIor,
     skinTone: color,
     skinScatterColor,
     melanin,

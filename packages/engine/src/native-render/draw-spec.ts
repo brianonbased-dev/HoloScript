@@ -217,10 +217,14 @@ export interface MarschnerHairMaterialSpec extends MaterialSpec {
 }
 
 /** Refractive eye: iris/sclera blend + pupil + wet specular catchlight + Fresnel rim. */
+export type RefractiveEyeRegion = 'composite' | 'sclera' | 'iris' | 'pupil' | 'cornea';
+
 export interface RefractiveEyeMaterialSpec extends MaterialSpec {
   shadingModel: 'refractive-eye';
   /** Cornea index of refraction (~1.376) — drives the Fresnel rim strength. */
   ior: number;
+  /** Native geometry/material role. Omission preserves the legacy composite eye shader. */
+  eyeRegion?: RefractiveEyeRegion;
 }
 
 /**

@@ -158,8 +158,8 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
   return vec4<f32>(col, mat.color.a);
 }
 
-// ── Eye: iris/sclera blend + pupil + wet specular catchlight + Fresnel rim. ──
-// Material packing: color = iris colour; scatterColor.x = ior (Fresnel rim strength).
+// ── Eye: legacy composite or one native sclera/iris/pupil/cornea geometry region. ──
+// Material packing: color = region colour; scatterColor.x = ior; .y = region code (0..4).
 @fragment
 fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
   let N = normalize(in.wN);
@@ -167,6 +167,38 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
   let V = normalize(frame.cameraPos.xyz - in.wP);
   let ndl = max(dot(N, L), 0.0);
   let facing = max(dot(N, V), 0.0); // 1 at the front of the eyeball, 0 at the rim
+  let H = normalize(L + V);
+  let ndh = max(dot(N, H), 0.0);
+  let catchlight = pow(ndh, 200.0);
+  let ior = max(mat.scatterColor.x, 1.0);
+  let region = i32(mat.scatterColor.y + 0.5);
+
+  if (region == 1) {
+    let fres = pow(1.0 - facing, 4.0) * 0.06;
+    let col = mat.color.rgb * (0.38 + 0.62 * ndl) + vec3<f32>(catchlight * 0.18 + fres);
+    return vec4<f32>(col, mat.color.a);
+  }
+
+  if (region == 2) {
+    let radial = clamp(distance(in.uv, vec2<f32>(0.5)) * 2.0, 0.0, 1.0);
+    let fibre = 0.84 + 0.16 * sin((in.uv.x * 1.7 + in.uv.y) * 76.0);
+    let limbal = 1.0 - smoothstep(0.72, 1.0, radial) * 0.48;
+    let inner = mix(0.72, 1.0, smoothstep(0.08, 0.62, radial));
+    let col = mat.color.rgb * fibre * limbal * inner * (0.34 + 0.66 * ndl);
+    return vec4<f32>(col, mat.color.a);
+  }
+
+  if (region == 3) {
+    return vec4<f32>(mat.color.rgb * (0.18 + 0.22 * ndl), mat.color.a);
+  }
+
+  if (region == 4) {
+    let f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
+    let fres = f0 + (1.0 - f0) * pow(1.0 - facing, 5.0);
+    let alpha = clamp(mat.color.a + fres * 0.55 + catchlight * 0.25, 0.0, 0.82);
+    let col = vec3<f32>(catchlight * 1.15 + fres * 0.28);
+    return vec4<f32>(col, alpha);
+  }
 
   let iris = mat.color.rgb;
   let sclera = vec3<f32>(0.93, 0.93, 0.91);
@@ -174,10 +206,6 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
   let pupil = smoothstep(0.86, 0.98, facing);
   base = mix(base, vec3<f32>(0.02), pupil); // dark pupil at dead-center
 
-  let H = normalize(L + V);
-  let ndh = max(dot(N, H), 0.0);
-  let catchlight = pow(ndh, 200.0); // sharp wet highlight
-  let ior = max(mat.scatterColor.x, 1.0);
   let fres = pow(1.0 - facing, 4.0) * (ior - 1.0); // corneal rim
 
   let col = base * (0.3 + 0.7 * ndl) + vec3<f32>(catchlight) + vec3<f32>(fres * 0.3);

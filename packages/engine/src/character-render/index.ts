@@ -53,12 +53,17 @@ export {
 export {
   buildAgentAvatarHair,
   buildAgentAvatarEyes,
+  buildAgentAvatarOcularRegions,
   buildCharacterMesh,
   resolveAgentAvatarHairStyle,
   AGENT_AVATAR_HAIR_STYLES,
+  AGENT_AVATAR_OCULAR_PROFILES,
   type HairMeshData,
+  type OcularMeshData,
   type HairOptions,
   type AgentAvatarHairStyle,
+  type AgentAvatarOcularProfile,
+  type AgentAvatarOcularRegion,
   type CharacterMeshData,
 } from './AgentAvatarHair';
 

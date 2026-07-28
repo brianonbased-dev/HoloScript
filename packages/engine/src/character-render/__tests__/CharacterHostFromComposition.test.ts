@@ -175,6 +175,51 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.morph?.changedVertexCount).toBeGreaterThan(20);
   });
 
+  it('@face maps a layered ocular profile into native geometry and serialized material roles', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'LayeredEyes',
+          traits: [
+            { name: 'body', config: { height: 1.76 } },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                ocular_profile: 'layered_ocular_v1',
+                iris_color: '#4f7f9c',
+                sclera_color: '#eee9df',
+                iris_scale: 0.5,
+                pupil_scale: 0.38,
+                cornea_ior: 1.376,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain('@face(ocular_profile=layered-ocular-v1)');
+    expect(result.face).toMatchObject({
+      ocularProfile: 'layered-ocular-v1',
+      irisColor: 0x4f7f9c,
+      scleraColor: 0xeee9df,
+      irisScale: 0.5,
+      pupilScale: 0.38,
+      corneaIor: 1.376,
+    });
+    const eyeGroups = result.host
+      ?.getDrawSpec()
+      .materialGroups?.filter((group) => group.material.shadingModel === 'refractive-eye');
+    expect(eyeGroups).toHaveLength(8);
+    expect(
+      eyeGroups?.map((group) =>
+        group.material.shadingModel === 'refractive-eye' ? group.material.eyeRegion : undefined
+      )
+    ).toEqual(['sclera', 'sclera', 'iris', 'iris', 'pupil', 'pupil', 'cornea', 'cornea']);
+  });
+
   it('@face rejects unimplemented topology names instead of relabeling the legacy cap', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

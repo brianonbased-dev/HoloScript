@@ -42,6 +42,18 @@ export interface HairMeshData {
   vertexCount: number;
 }
 
+export const AGENT_AVATAR_OCULAR_PROFILES = ['legacy-composite-v1', 'layered-ocular-v1'] as const;
+
+export type AgentAvatarOcularProfile = (typeof AGENT_AVATAR_OCULAR_PROFILES)[number];
+export type AgentAvatarOcularRegion = 'sclera' | 'iris' | 'pupil' | 'cornea';
+
+export interface OcularMeshData extends HairMeshData {
+  /** Radial UVs used by the native iris material; non-iris regions stay deterministic. */
+  uvs: Float32Array<ArrayBuffer>;
+  /** Per-eye contiguous index ranges, ordered left then right for each authored region. */
+  regionRanges: Record<AgentAvatarOcularRegion, Array<{ indexStart: number; indexCount: number }>>;
+}
+
 export const AGENT_AVATAR_HAIR_STYLES = [
   'short',
   'medium_wavy',
@@ -357,6 +369,199 @@ export function buildAgentAvatarEyes(
 }
 
 // ── typed-array concat helpers ──
+/**
+ * Build source-selectable layered ocular geometry.
+ *
+ * Each eye is emitted as four actual mesh regions (sclera sphere, iris disc, pupil disc, and
+ * transparent cornea cap). The left eye is fully emitted before the right eye so the existing
+ * native blink channel can continue splitting the aggregate eye vertex range in half.
+ */
+export function buildAgentAvatarOcularRegions(
+  o: {
+    buildScale?: number;
+    heightScale?: number;
+    faceTopology?: AgentAvatarMeshOptions['faceTopology'];
+    irisScale?: number;
+    pupilScale?: number;
+  } = {}
+): OcularMeshData {
+  const bs = o.buildScale ?? 1;
+  const hScale = o.heightScale ?? 1;
+  const bind = computeBindWorld();
+  const head = getTranslation(bind.get('head')!);
+  const headR = 0.09 * bs;
+  const anatomical = o.faceTopology === 'neutral-anatomical-v2';
+  const radius = (anatomical ? 0.0145 : 0.02) * bs;
+  const eyeY = head.y + 0.12 * bs;
+  const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85);
+  const eyeX = 0.035 * bs;
+  const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
+  const irisScale = Math.max(0.34, Math.min(0.62, o.irisScale ?? 0.48));
+  const pupilScale = Math.max(0.2, Math.min(0.72, o.pupilScale ?? 0.42));
+
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const tangents: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  const ji: number[] = [];
+  const jw: number[] = [];
+  const regionRanges: OcularMeshData['regionRanges'] = {
+    sclera: [],
+    iris: [],
+    pupil: [],
+    cornea: [],
+  };
+
+  const appendVertex = (position: Vec3, normal: Vec3, uv: [number, number]): number => {
+    const index = positions.length / 3;
+    positions.push(position.x, position.y, position.z);
+    normals.push(normal.x, normal.y, normal.z);
+    tangents.push(1, 0, 0, 0);
+    uvs.push(uv[0], uv[1]);
+    ji.push(HEAD_INDEX);
+    jw.push(1);
+    return index;
+  };
+
+  const recordRegion = (region: AgentAvatarOcularRegion, start: number): void => {
+    regionRanges[region].push({ indexStart: start, indexCount: indices.length - start });
+  };
+
+  const appendSphere = (center: Vec3): void => {
+    const start = indices.length;
+    const lat = 10;
+    const lon = 16;
+    const base = positions.length / 3;
+    for (let y = 0; y <= lat; y++) {
+      const theta = (y / lat) * Math.PI;
+      const st = Math.sin(theta);
+      const ct = Math.cos(theta);
+      for (let x = 0; x <= lon; x++) {
+        const phi = (x / lon) * Math.PI * 2;
+        const normal = v(Math.cos(phi) * st, ct, Math.sin(phi) * st);
+        appendVertex(
+          v(
+            center.x + radius * normal.x,
+            center.y + radius * normal.y,
+            center.z + radius * normal.z
+          ),
+          normal,
+          [x / lon, y / lat]
+        );
+      }
+    }
+    const stride = lon + 1;
+    for (let y = 0; y < lat; y++) {
+      for (let x = 0; x < lon; x++) {
+        const a = base + y * stride + x;
+        const b = a + stride;
+        indices.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    }
+    recordRegion('sclera', start);
+  };
+
+  const appendDisc = (
+    center: Vec3,
+    discRadius: number,
+    zOffset: number,
+    region: 'iris' | 'pupil'
+  ): void => {
+    const start = indices.length;
+    const segments = 24;
+    const z = center.z + zOffset;
+    const base = appendVertex(v(center.x, center.y, z), v(0, 0, 1), [0.5, 0.5]);
+    for (let segment = 0; segment <= segments; segment++) {
+      const angle = (segment / segments) * Math.PI * 2;
+      const x = Math.cos(angle);
+      const y = Math.sin(angle);
+      appendVertex(v(center.x + x * discRadius, center.y + y * discRadius, z), v(0, 0, 1), [
+        0.5 + x * 0.5,
+        0.5 + y * 0.5,
+      ]);
+    }
+    for (let segment = 0; segment < segments; segment++) {
+      indices.push(base, base + segment + 1, base + segment + 2);
+    }
+    recordRegion(region, start);
+  };
+
+  const appendCornea = (center: Vec3): void => {
+    const start = indices.length;
+    const segments = 24;
+    const rings = 5;
+    const maxAngle = Math.PI * 0.26;
+    const corneaRadius = radius * 1.055;
+    const centerVertex = appendVertex(
+      v(center.x, center.y, center.z + corneaRadius),
+      v(0, 0, 1),
+      [0.5, 0.5]
+    );
+    let previousRingStart = -1;
+    for (let ring = 1; ring <= rings; ring++) {
+      const angle = (ring / rings) * maxAngle;
+      const radial = Math.sin(angle);
+      const nz = Math.cos(angle);
+      const ringStart = positions.length / 3;
+      for (let segment = 0; segment <= segments; segment++) {
+        const phi = (segment / segments) * Math.PI * 2;
+        const nx = Math.cos(phi) * radial;
+        const ny = Math.sin(phi) * radial;
+        appendVertex(
+          v(
+            center.x + corneaRadius * nx,
+            center.y + corneaRadius * ny,
+            center.z + corneaRadius * nz
+          ),
+          v(nx, ny, nz),
+          [0.5 + nx * 0.5, 0.5 + ny * 0.5]
+        );
+      }
+      if (ring === 1) {
+        for (let segment = 0; segment < segments; segment++) {
+          indices.push(centerVertex, ringStart + segment, ringStart + segment + 1);
+        }
+      } else {
+        for (let segment = 0; segment < segments; segment++) {
+          const a = previousRingStart + segment;
+          const b = ringStart + segment;
+          indices.push(a, b, a + 1, a + 1, b, b + 1);
+        }
+      }
+      previousRingStart = ringStart;
+    }
+    recordRegion('cornea', start);
+  };
+
+  for (const center of centers) {
+    appendSphere(center);
+    const irisRadius = radius * irisScale;
+    appendDisc(center, irisRadius, radius * 1.012, 'iris');
+    appendDisc(center, irisRadius * pupilScale, radius * 1.018, 'pupil');
+    appendCornea(center);
+  }
+
+  const scaledPositions = new Float32Array(positions);
+  if (hScale !== 1) {
+    for (let index = 0; index < scaledPositions.length; index++) {
+      scaledPositions[index] *= hScale;
+    }
+  }
+
+  return {
+    positions: scaledPositions,
+    normals: new Float32Array(normals),
+    tangents: new Float32Array(tangents),
+    uvs: new Float32Array(uvs),
+    indices: new Uint32Array(indices),
+    jointIndices: new Uint32Array(ji),
+    jointWeights: new Float32Array(jw),
+    vertexCount: positions.length / 3,
+    regionRanges,
+  };
+}
+
 function catF32(a: Float32Array, b: Float32Array): Float32Array<ArrayBuffer> {
   const out = new Float32Array(a.length + b.length);
   out.set(a, 0);
@@ -372,12 +577,14 @@ function catU32(a: Uint32Array, b: Uint32Array): Uint32Array<ArrayBuffer> {
 
 export interface CharacterMeshData {
   mesh: SkinnedMeshData;
+  ocularProfile: AgentAvatarOcularProfile;
   bodyVertexRange: { vertexStart: number; vertexCount: number };
   hairVertexRange: { vertexStart: number; vertexCount: number };
   eyeVertexRange: { vertexStart: number; vertexCount: number };
   bodyRange: { indexStart: number; indexCount: number };
   hairRange: { indexStart: number; indexCount: number };
   eyeRange: { indexStart: number; indexCount: number };
+  ocularRanges: Record<AgentAvatarOcularRegion, Array<{ indexStart: number; indexCount: number }>>;
   garmentRange: { indexStart: number; indexCount: number };
   visorRange: { indexStart: number; indexCount: number };
   mantleRange: { indexStart: number; indexCount: number };
@@ -404,6 +611,9 @@ export function buildCharacterMesh(
       mantleStyle?: SovereignMantleStyle;
       includeHair?: boolean;
       includeEyes?: boolean;
+      ocularProfile?: AgentAvatarOcularProfile;
+      irisScale?: number;
+      pupilScale?: number;
     } = {}
 ): CharacterMeshData {
   const body = buildAgentAvatarMesh(opts);
@@ -429,14 +639,32 @@ export function buildCharacterMesh(
           length: opts.length,
           style: opts.style,
         });
-  const eyes =
+  const ocularProfile = opts.ocularProfile ?? 'legacy-composite-v1';
+  const emptyOcular = (): OcularMeshData => ({
+    ...empty(),
+    uvs: new Float32Array(),
+    regionRanges: { sclera: [], iris: [], pupil: [], cornea: [] },
+  });
+  const eyes: OcularMeshData =
     opts.includeEyes === false
-      ? empty()
-      : buildAgentAvatarEyes({
-          buildScale: opts.buildScale,
-          heightScale: opts.heightScale,
-          faceTopology: opts.faceTopology,
-        });
+      ? emptyOcular()
+      : ocularProfile === 'layered-ocular-v1'
+        ? buildAgentAvatarOcularRegions({
+            buildScale: opts.buildScale,
+            heightScale: opts.heightScale,
+            faceTopology: opts.faceTopology,
+            irisScale: opts.irisScale,
+            pupilScale: opts.pupilScale,
+          })
+        : {
+            ...buildAgentAvatarEyes({
+              buildScale: opts.buildScale,
+              heightScale: opts.heightScale,
+              faceTopology: opts.faceTopology,
+            }),
+            uvs: new Float32Array(),
+            regionRanges: { sclera: [], iris: [], pupil: [], cornea: [] },
+          };
   const garment = opts.garmentStyle
     ? buildAgentAvatarGarment({
         style: opts.garmentStyle,
@@ -497,7 +725,10 @@ export function buildCharacterMesh(
     uvs: catF32(
       catF32(
         catF32(
-          catF32(catF32(zeroUv(bodyVC), zeroUv(hairVC)), zeroUv(eyes.vertexCount)),
+          catF32(
+            catF32(zeroUv(bodyVC), zeroUv(hairVC)),
+            eyes.uvs.length === eyes.vertexCount * 2 ? eyes.uvs : zeroUv(eyes.vertexCount)
+          ),
           garment.cloth.uvs
         ),
         garment.visor.uvs
@@ -552,8 +783,16 @@ export function buildCharacterMesh(
   const garmentStart = eyeStart + eyes.indices.length;
   const visorStart = garmentStart + garment.cloth.indices.length;
   const mantleStart = visorStart + garment.visor.indices.length;
+  const offsetOcularRanges = (
+    ranges: Array<{ indexStart: number; indexCount: number }>
+  ): Array<{ indexStart: number; indexCount: number }> =>
+    ranges.map((range) => ({
+      indexStart: eyeStart + range.indexStart,
+      indexCount: range.indexCount,
+    }));
   return {
     mesh,
+    ocularProfile,
     bodyVertexRange: { vertexStart: 0, vertexCount: bodyVC },
     hairVertexRange: { vertexStart: bodyVC, vertexCount: hairVC },
     eyeVertexRange: {
@@ -563,6 +802,12 @@ export function buildCharacterMesh(
     bodyRange: { indexStart: 0, indexCount: body.indices.length },
     hairRange: { indexStart: hairStart, indexCount: hair.indices.length },
     eyeRange: { indexStart: eyeStart, indexCount: eyes.indices.length },
+    ocularRanges: {
+      sclera: offsetOcularRanges(eyes.regionRanges.sclera),
+      iris: offsetOcularRanges(eyes.regionRanges.iris),
+      pupil: offsetOcularRanges(eyes.regionRanges.pupil),
+      cornea: offsetOcularRanges(eyes.regionRanges.cornea),
+    },
     garmentRange: {
       indexStart: garmentStart,
       indexCount: garment.cloth.indices.length,

@@ -41,6 +41,7 @@ import {
 import {
   buildCharacterMesh,
   type AgentAvatarHairStyle,
+  type AgentAvatarOcularProfile,
   type CharacterMeshData,
 } from './AgentAvatarHair';
 import {
@@ -102,6 +103,16 @@ export interface CharacterHostOptions {
   hairSegments?: number;
   /** Iris colour 0xRRGGBB (default warm brown #4a3520). */
   irisColor?: number;
+  /** Native eye construction profile; legacy composite remains the compatibility default. */
+  ocularProfile?: AgentAvatarOcularProfile;
+  /** Visible iris radius as a fraction of the eyeball radius (0.34..0.62). */
+  irisScale?: number;
+  /** Pupil radius as a fraction of the iris radius (0.2..0.72). */
+  pupilScale?: number;
+  /** Sclera base colour 0xRRGGBB (default warm off-white #eeeae3). */
+  scleraColor?: number;
+  /** Cornea index of refraction (default 1.376). */
+  corneaIor?: number;
   /** Initial world position. */
   position?: [number, number, number];
   /** Operative native garment preset selected by @clothing. */
@@ -178,6 +189,10 @@ export class CharacterHost {
   private readonly skinMaterial: SkinSSSMaterialSpec;
   private readonly hairMaterial: MarschnerHairMaterialSpec;
   private readonly eyeMaterial: RefractiveEyeMaterialSpec;
+  private readonly scleraMaterial: RefractiveEyeMaterialSpec;
+  private readonly irisMaterial: RefractiveEyeMaterialSpec;
+  private readonly pupilMaterial: RefractiveEyeMaterialSpec;
+  private readonly corneaMaterial: RefractiveEyeMaterialSpec;
   private readonly garmentMaterial: WovenClothMaterialSpec;
   private readonly mantleMaterial: WovenClothMaterialSpec;
   private readonly visorMaterial: BaseMaterialSpec;
@@ -209,6 +224,9 @@ export class CharacterHost {
       mantleStyle: opts.mantleStyle,
       includeHair: opts.includeHair,
       includeEyes: opts.includeEyes,
+      ocularProfile: opts.ocularProfile,
+      irisScale: opts.irisScale,
+      pupilScale: opts.pupilScale,
       style: opts.hairStyle,
       guides: opts.hairGuides,
       cardsPerGuide: opts.hairCardsPerGuide,
@@ -240,6 +258,32 @@ export class CharacterHost {
       melaninRedness: opts.melaninRedness ?? 0.2,
     };
     this.eyeMaterial = { ...EYE_BASE, color: opts.irisColor ?? 0x4a3520 };
+    this.scleraMaterial = {
+      ...EYE_BASE,
+      color: opts.scleraColor ?? 0xeeeae3,
+      roughness: 0.18,
+      eyeRegion: 'sclera',
+    };
+    this.irisMaterial = {
+      ...EYE_BASE,
+      color: opts.irisColor ?? 0x4a3520,
+      roughness: 0.12,
+      eyeRegion: 'iris',
+    };
+    this.pupilMaterial = {
+      ...EYE_BASE,
+      color: 0x030405,
+      roughness: 0.08,
+      eyeRegion: 'pupil',
+    };
+    this.corneaMaterial = {
+      ...EYE_BASE,
+      color: 0xffffff,
+      roughness: 0.015,
+      opacity: 0.12,
+      ior: Math.max(1.3, Math.min(1.45, opts.corneaIor ?? 1.376)),
+      eyeRegion: 'cornea',
+    };
     this.garmentMaterial = {
       shadingModel: 'woven-cloth',
       color: opts.garmentColor ?? 0x4f7182,
@@ -395,13 +439,38 @@ export class CharacterHost {
    * fallback for callers that render without material groups.
    */
   getDrawSpec(): CharacterDrawSpec {
+    const layeredEyes = this.built.ocularProfile === 'layered-ocular-v1';
+    const opaqueEyeGroups: MaterialGroup[] = layeredEyes
+      ? [
+          ...this.built.ocularRanges.sclera.map((range) => ({
+            ...range,
+            material: this.scleraMaterial,
+          })),
+          ...this.built.ocularRanges.iris.map((range) => ({
+            ...range,
+            material: this.irisMaterial,
+          })),
+          ...this.built.ocularRanges.pupil.map((range) => ({
+            ...range,
+            material: this.pupilMaterial,
+          })),
+        ]
+      : [{ ...this.built.eyeRange, material: this.eyeMaterial }];
+    const corneaGroups: MaterialGroup[] = layeredEyes
+      ? this.built.ocularRanges.cornea.map((range) => ({
+          ...range,
+          material: this.corneaMaterial,
+          transparent: true,
+        }))
+      : [];
     const groups: MaterialGroup[] = [
       { ...this.built.bodyRange, material: this.skinMaterial },
       { ...this.built.hairRange, material: this.hairMaterial },
-      { ...this.built.eyeRange, material: this.eyeMaterial },
+      ...opaqueEyeGroups,
       { ...this.built.garmentRange, material: this.garmentMaterial },
       { ...this.built.visorRange, material: this.visorMaterial },
       { ...this.built.mantleRange, material: this.mantleMaterial },
+      ...corneaGroups,
     ].filter((group) => group.indexCount > 0);
     return {
       entityId: this.entityId,

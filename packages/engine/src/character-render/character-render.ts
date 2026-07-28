@@ -115,6 +115,16 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
     out[7] = m.secondaryExp;
   } else if (m.shadingModel === 'refractive-eye') {
     out[4] = m.ior; // scatterColor.x = ior (Fresnel rim)
+    out[5] =
+      m.eyeRegion === 'sclera'
+        ? 1
+        : m.eyeRegion === 'iris'
+          ? 2
+          : m.eyeRegion === 'pupil'
+            ? 3
+            : m.eyeRegion === 'cornea'
+              ? 4
+              : 0;
   } else if (m.shadingModel === 'woven-cloth') {
     out[4] = m.roughness;
     out[5] = m.sheen;
