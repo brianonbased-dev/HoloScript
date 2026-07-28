@@ -322,7 +322,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
       for (let segment = 0; segment < radialSegments; segment++) {
         const theta = (segment / radialSegments) * Math.PI * 2;
         const frontness = Math.max(0, Math.sin(theta));
-        const maxPhi = 1.34 - frontness * (0.46 + hairlineBias * 0.6);
+        const maxPhi = 1.18 - Math.sqrt(frontness) * (0.7 + hairlineBias * 0.3);
         const phi = maxPhi * ringT;
         const dir = v(
           Math.sin(phi) * Math.cos(theta),
