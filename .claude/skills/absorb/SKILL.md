@@ -100,7 +100,8 @@ coverage is backed by explicit tool names.
 `absorb_typescript`, `absorb_suggest_holoscript_transform`,
 `absorb_get_status`, `absorb_fmu`
 
-Official umbrella discovery: `holo_absorb_manifest`.
+Official umbrella and lifecycle routes: `holo_absorb_manifest`,
+`holo_cancel_absorb`, `holo_visual_graph_context`.
 
 ## Quick Start
 
@@ -140,6 +141,7 @@ holoscript query "what calls buildIndex"
 | `holo_graph_status` | Cache age, stats, loaded state | **Always first** — check before scanning |
 | `holo_absorb_repo` | Full scan → graph → emit pipeline | Before refactoring. `force: false` = ~21ms from cache |
 | `holo_get_absorb_status` | Poll running absorb job by `jobId` | Long-running scans |
+| `holo_cancel_absorb` | Cooperatively cancel a queued/running job while preserving prior caches | Stop an active scan without killing the shared MCP process |
 | `holo_detect_drift` | Fast content-hash check without re-scan | Quick staleness check |
 | `absorb_typescript` | Convert TypeScript → `.holo` composition | Detect routes, models, queues, patterns |
 
@@ -151,6 +153,7 @@ holoscript query "what calls buildIndex"
 | `holo_impact_analysis` | Transitive blast radius for changed files/symbols | Before modifying shared code |
 | `holo_detect_changes` | Structural diff between two graph snapshots | Compare before/after git refs |
 | `holo_resolve_symbol` | Federated symbol resolution across knowledge mesh | Cross-package lookups |
+| `holo_visual_graph_context` | Resolve selected `graph.holo` node IDs into cited symbols, bounded neighbors, and a visual-focus receipt | Feed spatial selections back into agent queries |
 
 ### Semantic Search & RAG
 
