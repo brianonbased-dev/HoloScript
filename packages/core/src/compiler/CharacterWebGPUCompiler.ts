@@ -135,6 +135,9 @@ export class CharacterWebGPUCompiler {
       );
     }
 
+    if (result.gait) {
+      result.host.applyLocomotion(result.gait.mode, 0, result.gait.speed);
+    }
     const spec = result.host.getDrawSpec();
     // The workspace can type core against the last-built engine declaration while tests execute
     // current engine source. Feature-detect the optional receipt so this sovereign compiler stays

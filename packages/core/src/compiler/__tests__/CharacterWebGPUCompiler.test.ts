@@ -92,6 +92,22 @@ describe('CharacterWebGPUCompiler', () => {
     expect((JSON.parse(out) as CharacterDrawSpecBundle).entityId).toBe('brittney');
   });
 
+  it('samples the authored locomotion gait into the emitted joint palette', async () => {
+    const authored = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(characterComp())
+    ) as CharacterDrawSpecBundle;
+    const bindComposition = characterComp();
+    bindComposition.objects[0].traits = bindComposition.objects[0].traits?.filter(
+      (trait) => trait.name !== 'locomotion'
+    );
+    const bind = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(bindComposition)
+    ) as CharacterDrawSpecBundle;
+
+    expect(authored.jointMatrices).not.toEqual(bind.jointMatrices);
+    expect(authored.report.mapped).toContain('@locomotion');
+  });
+
   it('serializes operative @hair(style) topology and @morph vertex deformation', async () => {
     const neutralComposition = characterComp();
     const authoredComposition = characterComp();
