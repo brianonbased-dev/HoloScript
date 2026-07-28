@@ -80,6 +80,8 @@ export interface AgentAvatarGroomGeometryReceipt {
   requestedGuideCount: number;
   emittedGuideCount: number;
   cardCount: number;
+  scalpCapVertexCount: number;
+  scalpCapTriangleCount: number;
   vertexCount: number;
   triangleCount: number;
   /** p95 absolute dot(root tangent, scalp normal); lower means less radial card eruption. */
@@ -288,6 +290,72 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const rootTangentRadialDots: number[] = [];
   let emittedGuideCount = 0;
   let frontalOcclusionVertexCount = 0;
+  let scalpCapVertexCount = 0;
+  let scalpCapTriangleCount = 0;
+
+  const pushHairVertex = (position: Vec3, normal: Vec3, tangent: Vec3, strandT: number): void => {
+    positions.push(position.x, position.y, position.z);
+    normals.push(normal.x, normal.y, normal.z);
+    tangents.push(tangent.x, tangent.y, tangent.z, strandT);
+    ji.push(HEAD_INDEX);
+    jw.push(1);
+    const rel = sub(position, head);
+    if (
+      Math.abs(rel.x) < headR * 0.9 &&
+      rel.y > 0.01 * bs &&
+      rel.y < headR * 1.25 &&
+      rel.z > headR * 0.35
+    ) {
+      frontalOcclusionVertexCount++;
+    }
+  };
+
+  if (scalpFlow) {
+    const radialSegments = 28;
+    const rings = 7;
+    const capRadius = shellR + rootLift * 0.45;
+    const topFlow = v(0, 0, -1);
+    pushHairVertex(add(center, v(0, capRadius, 0)), v(0, 1, 0), topFlow, 0);
+    scalpCapVertexCount++;
+    for (let ring = 1; ring <= rings; ring++) {
+      const ringT = ring / rings;
+      for (let segment = 0; segment < radialSegments; segment++) {
+        const theta = (segment / radialSegments) * Math.PI * 2;
+        const frontness = Math.max(0, Math.sin(theta));
+        const maxPhi = 1.34 - frontness * (0.46 + hairlineBias * 0.6);
+        const phi = maxPhi * ringT;
+        const dir = v(
+          Math.sin(phi) * Math.cos(theta),
+          Math.cos(phi),
+          Math.sin(phi) * Math.sin(theta)
+        );
+        const desired = v(profile.sweepX * 0.45, -0.32, -1 + profile.sweepZ);
+        const projected = sub(desired, scl(dir, dot(desired, dir)));
+        const tangent = len(projected) > 1e-6 ? nrm(projected) : topFlow;
+        pushHairVertex(add(center, scl(dir, capRadius)), dir, tangent, ringT);
+        scalpCapVertexCount++;
+      }
+    }
+    const firstRing = 1;
+    for (let segment = 0; segment < radialSegments; segment++) {
+      const next = (segment + 1) % radialSegments;
+      indices.push(0, firstRing + segment, firstRing + next);
+    }
+    scalpCapTriangleCount += radialSegments;
+    for (let ring = 2; ring <= rings; ring++) {
+      const previousBase = 1 + (ring - 2) * radialSegments;
+      const currentBase = 1 + (ring - 1) * radialSegments;
+      for (let segment = 0; segment < radialSegments; segment++) {
+        const next = (segment + 1) % radialSegments;
+        const a = previousBase + segment;
+        const b = previousBase + next;
+        const c = currentBase + segment;
+        const d = currentBase + next;
+        indices.push(a, c, b, b, c, d);
+      }
+      scalpCapTriangleCount += radialSegments * 2;
+    }
+  }
 
   for (let g = 0; g < guideCount; g++) {
     const t01 = g / guideCount;
@@ -296,7 +364,11 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     const dir = v(Math.sin(phi) * Math.cos(theta), Math.cos(phi), Math.sin(phi) * Math.sin(theta));
     // Hairline mask: no hair under the crown (y<-0.1) or sprouting off the front face (+Z).
     if (dir.y < -0.1) continue;
-    if (dir.z > 0.55 && dir.y < 0.35 + hairlineBias) continue;
+    if (
+      scalpFlow ? dir.z > 0.08 && dir.y < 0.78 + hairlineBias * 0.55 : dir.z > 0.55 && dir.y < 0.35
+    ) {
+      continue;
+    }
     const root = add(center, scl(dir, shellR + rootLift));
 
     // Guide curve: hug the skull at the root, fall under gravity toward the tip.
@@ -352,20 +424,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
         const off = scl(right, cardW * widthScale * 0.5);
         for (const s of [-1, 1]) {
           const vp = add(p, scl(off, s));
-          positions.push(vp.x, vp.y, vp.z);
-          normals.push(faceN.x, faceN.y, faceN.z);
-          tangents.push(tan.x, tan.y, tan.z, strandT); // real tangent + strandT
-          ji.push(HEAD_INDEX);
-          jw.push(1.0);
-          const rel = sub(vp, head);
-          if (
-            Math.abs(rel.x) < headR * 0.9 &&
-            rel.y > 0.01 * bs &&
-            rel.y < headR * 1.25 &&
-            rel.z > headR * 0.35
-          ) {
-            frontalOcclusionVertexCount++;
-          }
+          pushHairVertex(vp, faceN, tan, strandT);
         }
         if (i < segs - 1) {
           const b = vbase + i * 2;
@@ -396,6 +455,8 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
       requestedGuideCount: guideCount,
       emittedGuideCount,
       cardCount: emittedGuideCount * cardsPerGuide,
+      scalpCapVertexCount,
+      scalpCapTriangleCount,
       vertexCount: positions.length / 3,
       triangleCount: indices.length / 3,
       rootTangentRadialDotP95: p95(rootTangentRadialDots),

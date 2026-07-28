@@ -246,8 +246,12 @@ describe('hair — procedural geometry (pure data)', () => {
         scalpFlow.positions[vertexA * 3 + 2] - scalpFlow.positions[vertexB * 3 + 2]
       );
     const segments = 5;
-    const rootWidth = distance(0, 1);
-    const tipWidth = distance((segments - 1) * 2, (segments - 1) * 2 + 1);
+    const firstCardVertex = scalpFlow.groom!.scalpCapVertexCount;
+    const rootWidth = distance(firstCardVertex, firstCardVertex + 1);
+    const tipWidth = distance(
+      firstCardVertex + (segments - 1) * 2,
+      firstCardVertex + (segments - 1) * 2 + 1
+    );
 
     expect(tipWidth / rootWidth).toBeCloseTo(0.1, 4);
     expect(scalpFlow.groom).toMatchObject({
@@ -258,6 +262,8 @@ describe('hair — procedural geometry (pure data)', () => {
       hairlineBias: 0.16,
       requestedGuideCount: 72,
       cardCount: scalpFlow.groom!.emittedGuideCount,
+      scalpCapVertexCount: 197,
+      scalpCapTriangleCount: 364,
       vertexCount: scalpFlow.vertexCount,
       triangleCount: scalpFlow.indices.length / 3,
     });
@@ -265,6 +271,8 @@ describe('hair — procedural geometry (pure data)', () => {
     expect(scalpFlow.groom!.rootTangentRadialDotP95).toBeLessThan(
       legacy.groom!.rootTangentRadialDotP95 * 0.1
     );
+    expect(legacy.groom!.scalpCapVertexCount).toBe(0);
+    expect(legacy.groom!.scalpCapTriangleCount).toBe(0);
     expect(scalpFlow.groom!.frontalOcclusionVertexCount).toBeLessThan(
       legacy.groom!.frontalOcclusionVertexCount
     );
