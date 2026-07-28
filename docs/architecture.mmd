@@ -26,7 +26,7 @@ graph TB
         RBAC["RBAC<br/><i>JWT + UCAN tokens</i>"]
         ED25519["Ed25519 Signing<br/><i>Composition provenance</i>"]
         SANDBOX["Content Sandbox<br/><i>vm.createContext</i>"]
-        CORRIDOR["Corridor<br/><i>LLM output validation</i>"]
+        HOLOGATE["HoloGate<br/><i>LLM output validation</i>"]
         ZONES["Spatial Memory Zones<br/><i>Zone-based access</i>"]
     end
 
@@ -122,7 +122,7 @@ graph TB
     HEADLESS --> CLI
     SURFACE --> HSPLUS_RT
     A2A --> TRAITS
-    CORRIDOR --> SANDBOX
+    HOLOGATE --> SANDBOX
 
     %% Styling
     classDef layer fill:#1a1a2e,stroke:#e94560,stroke-width:2px,color:#eee

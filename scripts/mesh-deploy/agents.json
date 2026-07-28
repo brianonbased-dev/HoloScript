@@ -18,6 +18,7 @@
   "agents": [
     {
       "_role": "Capability lane - local-llm Qwen 14B-AWQ running lean-theorist-brain for Paper 25 trusted-corpus and other manifest-backed work. This is intentionally not H200-pinned: use the cheapest whole-machine host that can satisfy the active output gate under the lane cap. H100/H200 is an escalation tier for non-substitutable 70B/Lean-sidecar work, not the default.",
+      "_canonNote": "2026-07-28 canon-sweep hand-verify (task_1783319868654_amlq): this brain runs through packages/holoscript-agent/src/runner.ts's provider.complete({tools: activeTools}) loop -- a genuine native tool-calling lane. qwen2.5 is BLACKLISTED for tool-calling lanes (measured 0/5 native message.tool_calls reliability, see docs/llm-capabilities/ollama.md); qwen3 is fine. Not swapped here: no Qwen3-14B-class AWQ artifact has been verified available/pulled for this local-llm host, and a guessed model id risks breaking a live paid deployment worse than the known limitation. Needs: verify+pull a Qwen3 14B-class AWQ build, re-run the same tool-call reliability probe, then swap.",
       "handle": "mesh-worker-01",
       "instanceMatch": "RTX 5060 Ti|RTX 5080|RTX 4090|RTX 3090|RTX A5000|RTX 6000|L40S|A100|H100|H200",
       "brainPath": "compositions/lean-theorist-brain.hsplus",
