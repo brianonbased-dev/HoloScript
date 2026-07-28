@@ -216,6 +216,25 @@ let cachedEmbeddingIndex: SymbolSearchIndex | null = null;
 let cachedGraphRAGEngine: GraphRAGEngine | null = null;
 let cachedGraphRAGRootDir: string | null = null;
 let cachedGraphRAGTimestamp = 0;
+let cachedVisualGraph: GraphRAGEngine['graph'] | null = null;
+let cachedVisualGraphRootDir: string | null = null;
+let cachedVisualGraphTimestamp = 0;
+
+/**
+ * Set the structural graph used by visual selection tools.
+ *
+ * Visual graph context does not require HoloEmbed. Keeping this state separate
+ * lets a verified stats-only HoloGraph cache serve visual agents without
+ * starting a memory-heavy semantic-index rebuild.
+ */
+export function setVisualGraphState(
+  graph: GraphRAGEngine['graph'],
+  provenance: { rootDir?: string; timestamp?: number } = {}
+): void {
+  cachedVisualGraph = graph;
+  cachedVisualGraphRootDir = provenance.rootDir ?? null;
+  cachedVisualGraphTimestamp = provenance.timestamp ?? Date.now();
+}
 
 /**
  * Set the cached embedding index and RAG engine (called from codebase-tools after absorb).
@@ -229,6 +248,7 @@ export function setGraphRAGState(
   cachedGraphRAGEngine = ragEngine;
   cachedGraphRAGRootDir = provenance.rootDir ?? null;
   cachedGraphRAGTimestamp = provenance.timestamp ?? Date.now();
+  setVisualGraphState(ragEngine.graph, provenance);
 }
 
 /**
@@ -257,6 +277,9 @@ export function resetGraphRAGState(): void {
   cachedGraphRAGEngine = null;
   cachedGraphRAGRootDir = null;
   cachedGraphRAGTimestamp = 0;
+  cachedVisualGraph = null;
+  cachedVisualGraphRootDir = null;
+  cachedVisualGraphTimestamp = 0;
 }
 
 export const resetGraphRAGStateForTests = resetGraphRAGState;
@@ -265,10 +288,10 @@ export async function handleGraphRagTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
-  if (
-    (name === 'holo_semantic_search' ||
-      name === 'holo_visual_graph_context' ||
-      name === 'holo_ask_codebase') &&
+  if (name === 'holo_visual_graph_context' && !cachedVisualGraph) {
+    await hydrateCachedVisualGraphStateFromCodebaseTools();
+  } else if (
+    (name === 'holo_semantic_search' || name === 'holo_ask_codebase') &&
     !isGraphRAGReady()
   ) {
     await hydrateCachedGraphRAGStateFromCodebaseTools();
@@ -299,6 +322,22 @@ async function hydrateCachedGraphRAGStateFromCodebaseTools(): Promise<void> {
     });
   } catch (err) {
     console.warn(`[GraphRAG] cached graph hydrate skipped: ${String(err)}`);
+  }
+}
+
+async function hydrateCachedVisualGraphStateFromCodebaseTools(): Promise<void> {
+  if (cachedVisualGraph) return;
+
+  try {
+    const { getAuthoritativeGraphForVisualContext } = await import('./codebase-tools');
+    const state = await getAuthoritativeGraphForVisualContext();
+    if (!state) return;
+    setVisualGraphState(state.graph as GraphRAGEngine['graph'], {
+      rootDir: state.rootDir,
+      timestamp: state.timestamp,
+    });
+  } catch (err) {
+    console.warn(`[HoloVisualGraph] authoritative graph hydrate skipped: ${String(err)}`);
   }
 }
 
@@ -707,7 +746,7 @@ function buildVisualFocus(
 }
 
 function handleVisualGraphContext(args: Record<string, unknown>): Record<string, unknown> {
-  if (!cachedGraphRAGEngine) {
+  if (!cachedVisualGraph) {
     return {
       error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
@@ -719,7 +758,7 @@ function handleVisualGraphContext(args: Record<string, unknown>): Record<string,
     typeof args.maxNeighbors === 'number' && Number.isFinite(args.maxNeighbors)
       ? Math.max(0, Math.floor(args.maxNeighbors))
       : 100;
-  const manager = new GraphSelectionManager(cachedGraphRAGEngine.graph);
+  const manager = new GraphSelectionManager(cachedVisualGraph);
   for (const nodeId of selectedNodeIds) manager.select(nodeId);
   const context = manager.getSelectionContext();
   const visualFocus = manager.getVisualFocus(undefined, maxNeighbors);
@@ -737,6 +776,12 @@ function handleVisualGraphContext(args: Record<string, unknown>): Record<string,
       unresolvedNodeCount: visualFocus.unresolvedNodeIds.length,
       directNeighborCount: visualFocus.neighborNodeIds.length,
       selectedEdgeCount: visualFocus.selectedEdgeCount,
+    },
+    graphState: {
+      rootDir: cachedVisualGraphRootDir,
+      timestamp: cachedVisualGraphTimestamp || null,
+      ageMs: cachedVisualGraphTimestamp ? Date.now() - cachedVisualGraphTimestamp : null,
+      semanticIndexReady: isGraphRAGReady(),
     },
   };
 }
