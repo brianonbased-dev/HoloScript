@@ -551,6 +551,145 @@ describe('buildCharacterHostFromComposition', () => {
     );
   });
 
+  it('maps H3J open civic clothing, facial landmarks, and groom clusters as causal geometry', () => {
+    const make = ({
+      detail = true,
+      clusters = true,
+      garment = true,
+    }: {
+      detail?: boolean;
+      clusters?: boolean;
+      garment?: boolean;
+    }) =>
+      buildCharacterHostFromComposition({
+        objects: [
+          {
+            name: 'CivicResident',
+            traits: [
+              { name: 'body', config: { height: 1.82, build_scale: 1.04 } },
+              {
+                name: 'face',
+                config: {
+                  topology: 'neutral_anatomical_v2',
+                  radial_segments: 28,
+                  vertical_segments: 20,
+                  tearline: true,
+                  orbital_profile: 'recessed_lids_v1',
+                  eye_recess: 0.34,
+                  lid_opening: 0.46,
+                  canthal_tilt: 0.14,
+                  ocular_profile: 'layered_ocular_v1',
+                  ...(detail
+                    ? {
+                        facial_detail_profile: 'civic_landmarks_v1',
+                        eye_scale: 0.84,
+                        brow_height: 1.18,
+                        brow_thickness: 0.2,
+                        ear_scale: 1.06,
+                        mouth_depth: 0.88,
+                      }
+                    : {}),
+                },
+              },
+              {
+                name: 'hair',
+                config: {
+                  style: 'cropped_coils',
+                  groom_profile: 'scalp_flow_v1',
+                  ...(clusters ? { cluster_count: 12, cluster_spread: 0.44 } : {}),
+                },
+              },
+              ...(garment
+                ? [
+                    {
+                      name: 'clothing',
+                      config: {
+                        style: 'stormglass_open_civic_tunic',
+                        color: '#315964',
+                      },
+                    },
+                  ]
+                : []),
+              {
+                name: 'lod',
+                config: {
+                  levels: [
+                    {
+                      level: 0,
+                      distance: 0,
+                      garment_segments: 24,
+                      hair_guides: 168,
+                      hair_cards_per_guide: 2,
+                      hair_segments: 7,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+    const authored = make({});
+    const legacyLandmarks = make({ detail: false });
+    const unclustered = make({ clusters: false });
+    const unclothed = make({ garment: false });
+    const spec = authored.host!.getDrawSpec();
+
+    expect(authored.report.stubbed).toEqual([]);
+    expect(authored.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v1',
+      profile: 'civic-landmarks-v1',
+      radialSegments: 28,
+      verticalSegments: 20,
+      eyeScale: 0.84,
+      browHeight: 1.18,
+      browThickness: 0.2,
+      earScale: 1.06,
+      mouthDepth: 0.88,
+    });
+    expect(authored.groom).toMatchObject({
+      clusterCount: 12,
+      clusterSpread: 0.44,
+    });
+    expect(authored.garment).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v1',
+      style: 'stormglass_open_civic_tunic',
+      radialSegments: 24,
+      faceCoverage: 'open-v-collar',
+      visorVertexCount: 0,
+      visorTriangleCount: 0,
+    });
+    expect(authored.garment!.clothVertexCount).toBeGreaterThan(0);
+    expect(authored.face).toMatchObject({
+      facialDetailProfile: 'civic-landmarks-v1',
+      eyeScale: 0.84,
+      browHeight: 1.18,
+      browThickness: 0.2,
+      earScale: 1.06,
+      mouthDepth: 0.88,
+    });
+    expect(
+      spec.materialGroups?.filter((group) => group.material.shadingModel === 'refractive-eye')
+    ).toHaveLength(8);
+    expect(
+      spec.materialGroups?.some((group) => group.material.shadingModel === 'marschner-hair')
+    ).toBe(true);
+    expect(
+      spec.materialGroups?.some((group) => group.material.shadingModel === 'woven-cloth')
+    ).toBe(true);
+    expect(spec.mesh.vertexCount).toBeGreaterThan(
+      legacyLandmarks.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(Array.from(spec.mesh.positions)).not.toEqual(
+      Array.from(unclustered.host!.getDrawSpec().mesh.positions)
+    );
+    expect(spec.mesh.vertexCount).toBeGreaterThan(unclothed.host!.getDrawSpec().mesh.vertexCount);
+    expect(legacyLandmarks.facialLandmarks).toBeUndefined();
+    expect(unclustered.groom?.clusterCount).toBeUndefined();
+    expect(unclothed.garment).toBeUndefined();
+  });
+
   it('@lod carries source-authored native hair topology budgets without a second selector', () => {
     const make = (lodLevel: number) =>
       buildCharacterHostFromComposition(

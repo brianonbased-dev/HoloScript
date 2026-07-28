@@ -1,7 +1,8 @@
 /**
  * AgentAvatarGarment — sovereign procedural clothing for native skinned characters.
  *
- * The first operative preset is `stormglass_hooded_tunic`: a faceless cowl, tapered
+ * The operative presets are `stormglass_hooded_tunic` (faceless cowl) and
+ * `stormglass_open_civic_tunic` (open face with a shaped V collar). Both use the same tapered
  * craftfolk tunic, articulated sleeves, and detachable family mantles authored through
  * `@clothing`. Geometry is pure data, carries UVs plus cloth-dynamic weights, is skinned to
  * the existing humanoid palette, and has an authored radial-detail channel so `@lod` can
@@ -17,7 +18,7 @@ import {
 } from './AgentAvatarMantleCatalog';
 import { getTranslation, type Vec3 } from './skin-math';
 
-export type SovereignGarmentStyle = 'stormglass_hooded_tunic';
+export type SovereignGarmentStyle = 'stormglass_hooded_tunic' | 'stormglass_open_civic_tunic';
 export type { SovereignMantleStyle } from './AgentAvatarMantleCatalog';
 
 export interface GarmentMeshPart {
@@ -38,6 +39,20 @@ export interface AgentAvatarGarmentData {
   cloth: GarmentMeshPart;
   visor: GarmentMeshPart;
   mantle: GarmentMeshPart;
+  receipt: AgentAvatarGarmentGeometryReceipt;
+}
+
+export interface AgentAvatarGarmentGeometryReceipt {
+  schemaVersion: 'holoscript.agent-avatar-garment-geometry.v1';
+  style: SovereignGarmentStyle;
+  radialSegments: number;
+  faceCoverage: 'closed-hood-visor' | 'open-v-collar';
+  clothVertexCount: number;
+  clothTriangleCount: number;
+  visorVertexCount: number;
+  visorTriangleCount: number;
+  mantleVertexCount: number;
+  mantleTriangleCount: number;
 }
 
 export interface AgentAvatarGarmentOptions {
@@ -241,6 +256,54 @@ function pushVisor(target: MeshAccum, segments: number, buildScale: number): voi
 }
 
 /**
+ * Add a front-readable, head-clear V collar to the open civic tunic. Each side is a small
+ * skinned ribbon rather than a painted neckline, so the authored style changes uploaded
+ * topology while keeping the face, eyes, and groom unobstructed.
+ */
+function pushOpenCollar(target: MeshAccum, buildScale: number): void {
+  const jointIndex = BONE_INDEX.get('spine2') ?? 0;
+  const z = 0.184 * buildScale;
+  const halfWidth = 0.014 * buildScale;
+  const paths: Vec3[][] = [
+    [
+      v(-0.245 * buildScale, 1.365, z),
+      v(-0.145 * buildScale, 1.35, z + 0.004 * buildScale),
+      v(-0.052 * buildScale, 1.27, z + 0.006 * buildScale),
+    ],
+    [
+      v(0.245 * buildScale, 1.365, z),
+      v(0.145 * buildScale, 1.35, z + 0.004 * buildScale),
+      v(0.052 * buildScale, 1.27, z + 0.006 * buildScale),
+    ],
+  ];
+
+  for (const path of paths) {
+    const base = target.positions.length / 3;
+    for (let pointIndex = 0; pointIndex < path.length; pointIndex += 1) {
+      const point = path[pointIndex];
+      const previous = path[Math.max(0, pointIndex - 1)];
+      const next = path[Math.min(path.length - 1, pointIndex + 1)];
+      const direction = normalize(sub(next, previous));
+      const perpendicular = normalize(v(-direction.y, direction.x, 0));
+      for (const side of [-1, 1]) {
+        const vertex = add(point, scale(perpendicular, halfWidth * side));
+        target.positions.push(vertex.x, vertex.y, vertex.z);
+        target.normals.push(0, 0, 1);
+        target.tangents.push(direction.x, direction.y, direction.z, 0);
+        target.uvs.push(side < 0 ? 0 : 1, pointIndex / (path.length - 1));
+        target.jointIndices.push(jointIndex);
+        target.jointWeights.push(1);
+        target.clothWeights.push(0.04);
+      }
+    }
+    for (let pointIndex = 0; pointIndex < path.length - 1; pointIndex += 1) {
+      const a = base + pointIndex * 2;
+      target.indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+    }
+  }
+}
+
+/**
  * A shoulder-pinned, front-readable mantle panel. The repeating UV field carries the family
  * pattern; the lower rows are mobile while the shoulder seam stays pinned.
  */
@@ -328,18 +391,23 @@ export function buildAgentAvatarGarment(
     segments
   );
 
-  // Closed faceless hood. The dark visor sits just forward of this shell.
-  pushLoft(
-    cloth,
-    [
-      { y: 1.38, rx: 0.215 * buildScale, rz: 0.17 * buildScale, bone: 'neck' },
-      { y: 1.5, rx: 0.175 * buildScale, rz: 0.16 * buildScale, bone: 'head' },
-      { y: 1.66, rx: 0.17 * buildScale, rz: 0.16 * buildScale, bone: 'head' },
-      { y: 1.8, rx: 0.12 * buildScale, rz: 0.125 * buildScale, bone: 'head' },
-      { y: 1.88, rx: 0.025 * buildScale, rz: 0.045 * buildScale, bone: 'head' },
-    ],
-    segments
-  );
+  if (options.style === 'stormglass_hooded_tunic') {
+    // Closed faceless hood. The dark visor sits just forward of this shell.
+    pushLoft(
+      cloth,
+      [
+        { y: 1.38, rx: 0.215 * buildScale, rz: 0.17 * buildScale, bone: 'neck' },
+        { y: 1.5, rx: 0.175 * buildScale, rz: 0.16 * buildScale, bone: 'head' },
+        { y: 1.66, rx: 0.17 * buildScale, rz: 0.16 * buildScale, bone: 'head' },
+        { y: 1.8, rx: 0.12 * buildScale, rz: 0.125 * buildScale, bone: 'head' },
+        { y: 1.88, rx: 0.025 * buildScale, rz: 0.045 * buildScale, bone: 'head' },
+      ],
+      segments
+    );
+    pushVisor(visor, segments, buildScale);
+  } else {
+    pushOpenCollar(cloth, buildScale);
+  }
 
   // Sleeves follow the upper/forearm bones; hands remain visible as the shared body material.
   const bind = computeBindWorld();
@@ -371,7 +439,6 @@ export function buildAgentAvatarGarment(
     );
   }
 
-  pushVisor(visor, segments, buildScale);
   if (options.mantleStyle) {
     pushMantlePanel(
       mantle,
@@ -380,9 +447,25 @@ export function buildAgentAvatarGarment(
       getSovereignMantleCatalogEntry(options.mantleStyle).geometry
     );
   }
+  const clothMesh = finish(cloth, heightScale);
+  const visorMesh = finish(visor, heightScale);
+  const mantleMesh = finish(mantle, heightScale);
   return {
-    cloth: finish(cloth, heightScale),
-    visor: finish(visor, heightScale),
-    mantle: finish(mantle, heightScale),
+    cloth: clothMesh,
+    visor: visorMesh,
+    mantle: mantleMesh,
+    receipt: {
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v1',
+      style: options.style,
+      radialSegments: segments,
+      faceCoverage:
+        options.style === 'stormglass_hooded_tunic' ? 'closed-hood-visor' : 'open-v-collar',
+      clothVertexCount: clothMesh.vertexCount,
+      clothTriangleCount: clothMesh.indices.length / 3,
+      visorVertexCount: visorMesh.vertexCount,
+      visorTriangleCount: visorMesh.indices.length / 3,
+      mantleVertexCount: mantleMesh.vertexCount,
+      mantleTriangleCount: mantleMesh.indices.length / 3,
+    },
   };
 }

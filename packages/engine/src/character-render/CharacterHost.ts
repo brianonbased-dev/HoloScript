@@ -36,6 +36,8 @@ import {
   colorForEntity,
   JOINT_COUNT,
   type AgentAvatarAnatomyReceipt,
+  type AgentAvatarFacialDetailProfile,
+  type AgentAvatarFacialLandmarkReceipt,
   type AgentAvatarFaceTopology,
   type AgentAvatarOrbitalProfile,
   type AvatarPose,
@@ -54,7 +56,11 @@ import {
   type NativeMorphReceipt,
   type NativeMorphWeights,
 } from './AgentAvatarMorph';
-import type { SovereignGarmentStyle, SovereignMantleStyle } from './AgentAvatarGarment';
+import type {
+  AgentAvatarGarmentGeometryReceipt,
+  SovereignGarmentStyle,
+  SovereignMantleStyle,
+} from './AgentAvatarGarment';
 import {
   DeterministicClothSimulation,
   type ClothSimulationConfig,
@@ -93,6 +99,18 @@ export interface CharacterHostOptions {
   lidOpening?: number;
   /** Outer-canthus rise as a fraction of the eyeball radius (-0.25..0.25). */
   canthalTilt?: number;
+  /** Optional denser facial landmark profile. */
+  facialDetailProfile?: AgentAvatarFacialDetailProfile;
+  /** Procedural ocular globe scale (0.72..1.08). */
+  eyeScale?: number;
+  /** Brow rise above the upper lid, in eye-radius units. */
+  browHeight?: number;
+  /** Brow ribbon thickness, in eye-radius units. */
+  browThickness?: number;
+  /** Native ear scale. */
+  earScale?: number;
+  /** Lip-volume depth multiplier. */
+  mouthDepth?: number;
   /** Neutral-head width multiplier (0.84..1.2). */
   faceWidth?: number;
   /** Neutral-head vertical-length multiplier (0.86..1.16). */
@@ -142,6 +160,10 @@ export interface CharacterHostOptions {
   hairlineBias?: number;
   /** Signed crown-flow rotation around the scalp normal. */
   hairCrownWhorl?: number;
+  /** Optional angular groom cluster count. */
+  hairClusterCount?: number;
+  /** Fraction of each groom cluster sector occupied by roots. */
+  hairClusterSpread?: number;
   /** Source-authored analytic hair-card coverage profile. */
   hairCoverageProfile?: MarschnerHairMaterialSpec['coverageProfile'];
   /** Visible normalized card half-width (0.2..1). */
@@ -293,6 +315,12 @@ export class CharacterHost {
       eyeRecess: opts.eyeRecess,
       lidOpening: opts.lidOpening,
       canthalTilt: opts.canthalTilt,
+      facialDetailProfile: opts.facialDetailProfile,
+      eyeScale: opts.eyeScale,
+      browHeight: opts.browHeight,
+      browThickness: opts.browThickness,
+      earScale: opts.earScale,
+      mouthDepth: opts.mouthDepth,
       faceWidth: opts.faceWidth,
       faceLength: opts.faceLength,
       jawTaper: opts.jawTaper,
@@ -316,6 +344,8 @@ export class CharacterHost {
       tipTaper: opts.hairTipTaper,
       hairlineBias: opts.hairlineBias,
       crownWhorl: opts.hairCrownWhorl,
+      clusterCount: opts.hairClusterCount,
+      clusterSpread: opts.hairClusterSpread,
     });
     this.deformationBasePositions = new Float32Array(this.built.mesh.positions);
     this.bindWorld = computeBindWorld();
@@ -504,6 +534,22 @@ export class CharacterHost {
   /** Exact clamped native face and upper-body proportions used by the emitted geometry. */
   getAnatomyReceipt(): AgentAvatarAnatomyReceipt {
     return { ...this.built.anatomy };
+  }
+
+  /** Exact native civic facial-landmark topology and authored controls, when selected. */
+  getFacialLandmarkReceipt(): AgentAvatarFacialLandmarkReceipt | null {
+    return this.built.facialLandmarks
+      ? {
+          ...this.built.facialLandmarks,
+          vertexRange: { ...this.built.facialLandmarks.vertexRange },
+          indexRange: { ...this.built.facialLandmarks.indexRange },
+        }
+      : null;
+  }
+
+  /** Exact native garment preset and emitted topology, when @clothing is operative. */
+  getGarmentGeometryReceipt(): AgentAvatarGarmentGeometryReceipt | null {
+    return this.built.garment ? { ...this.built.garment } : null;
   }
 
   /** Exact native skin-surface response derived from @subsurface_scattering. */

@@ -25,6 +25,7 @@ import {
 } from './AgentAvatarMesh';
 import {
   buildAgentAvatarGarment,
+  type AgentAvatarGarmentGeometryReceipt,
   type SovereignGarmentStyle,
   type SovereignMantleStyle,
 } from './AgentAvatarGarment';
@@ -101,6 +102,10 @@ export interface AgentAvatarGroomGeometryReceipt {
   hairlineBias: number;
   /** Signed crown-flow rotation around the scalp normal (-1..1). */
   crownWhorl: number;
+  /** Optional source-authored angular cluster count. Omitted preserves legacy root seeding. */
+  clusterCount?: number;
+  /** Optional within-cluster angular spread (0.08..1). */
+  clusterSpread?: number;
   requestedGuideCount: number;
   emittedGuideCount: number;
   cardCount: number;
@@ -287,6 +292,10 @@ export interface HairOptions {
   hairlineBias?: number;
   /** Signed crown-flow rotation around the scalp normal, clamped to -1..1. */
   crownWhorl?: number;
+  /** Angular groom clusters. Values below 2 disable clustering and preserve legacy geometry. */
+  clusterCount?: number;
+  /** Fraction of each cluster sector occupied by roots (0.08..1). */
+  clusterSpread?: number;
 }
 
 // ── small vec helpers ──
@@ -331,6 +340,8 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const tipTaper = scalpFlow ? clamp(o.tipTaper ?? 0.12, 0.02, 1) : 1;
   const hairlineBias = scalpFlow ? clamp(o.hairlineBias ?? 0.12, 0, 0.3) : 0;
   const crownWhorl = scalpFlow ? clamp(o.crownWhorl ?? 0, -1, 1) : 0;
+  const clusterCount = scalpFlow ? Math.max(0, Math.min(64, Math.round(o.clusterCount ?? 0))) : 0;
+  const clusterSpread = clusterCount >= 2 ? clamp(o.clusterSpread ?? 0.62, 0.08, 1) : 1;
   const faceWidth = clamp(o.faceWidth ?? 1, 0.84, 1.2);
   const faceLength = clamp(o.faceLength ?? 1, 0.86, 1.16);
 
@@ -467,7 +478,16 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   for (let g = 0; g < guideCount; g++) {
     const t01 = g / guideCount;
     const phi = Math.acos(1 - t01); // 0..~π/2 → upper-hemisphere bias
-    const theta = g * 2.399963; // golden angle
+    const legacyTheta = g * 2.399963; // golden angle
+    const clusterIndex = clusterCount >= 2 ? g % clusterCount : 0;
+    const memberIndex = clusterCount >= 2 ? Math.floor(g / clusterCount) : 0;
+    const memberPhase = (memberIndex * 0.61803398875) % 1;
+    const clusterCenter =
+      clusterCount >= 2 ? ((clusterIndex + 0.5) / clusterCount) * Math.PI * 2 : legacyTheta;
+    const theta =
+      clusterCount >= 2
+        ? clusterCenter + (memberPhase - 0.5) * ((Math.PI * 2) / clusterCount) * clusterSpread
+        : legacyTheta;
     const dir = v(Math.sin(phi) * Math.cos(theta), Math.cos(phi), Math.sin(phi) * Math.sin(theta));
     // Hairline mask: no hair under the crown (y<-0.1) or sprouting off the front face (+Z).
     if (dir.y < -0.1) continue;
@@ -569,6 +589,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
       tipTaper,
       hairlineBias,
       crownWhorl,
+      ...(clusterCount >= 2 ? { clusterCount, clusterSpread } : {}),
       requestedGuideCount: guideCount,
       emittedGuideCount,
       cardCount: emittedGuideCount * cardsPerGuide,
@@ -594,6 +615,7 @@ export function buildAgentAvatarEyes(
     faceTopology?: AgentAvatarMeshOptions['faceTopology'];
     orbitalProfile?: AgentAvatarMeshOptions['orbitalProfile'];
     eyeRecess?: number;
+    eyeScale?: number;
     faceWidth?: AgentAvatarMeshOptions['faceWidth'];
   } = {}
 ): HairMeshData {
@@ -603,7 +625,7 @@ export function buildAgentAvatarEyes(
   const head = getTranslation(bind.get('head')!); // y≈1.51
   const headR = 0.09 * bs;
   const anatomical = o.faceTopology === 'neutral-anatomical-v2';
-  const r = (anatomical ? 0.0145 : 0.02) * bs;
+  const r = (anatomical ? 0.0145 : 0.02) * bs * clamp(o.eyeScale ?? 1, 0.72, 1.08);
   const eyeY = head.y + 0.12 * bs;
   const eyeRecess =
     o.orbitalProfile === 'recessed-lids-v1' ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
@@ -675,6 +697,7 @@ export function buildAgentAvatarOcularRegions(
     faceTopology?: AgentAvatarMeshOptions['faceTopology'];
     orbitalProfile?: AgentAvatarMeshOptions['orbitalProfile'];
     eyeRecess?: number;
+    eyeScale?: number;
     faceWidth?: AgentAvatarMeshOptions['faceWidth'];
     irisScale?: number;
     pupilScale?: number;
@@ -686,7 +709,7 @@ export function buildAgentAvatarOcularRegions(
   const head = getTranslation(bind.get('head')!);
   const headR = 0.09 * bs;
   const anatomical = o.faceTopology === 'neutral-anatomical-v2';
-  const radius = (anatomical ? 0.0145 : 0.02) * bs;
+  const radius = (anatomical ? 0.0145 : 0.02) * bs * clamp(o.eyeScale ?? 1, 0.72, 1.08);
   const eyeY = head.y + 0.12 * bs;
   const eyeRecess =
     o.orbitalProfile === 'recessed-lids-v1' ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
@@ -876,6 +899,8 @@ export interface CharacterMeshData {
   mesh: SkinnedMeshData;
   groom?: AgentAvatarGroomGeometryReceipt;
   anatomy: AgentAvatarMeshData['anatomy'];
+  facialLandmarks?: AgentAvatarMeshData['facialLandmarks'];
+  garment?: AgentAvatarGarmentGeometryReceipt;
   ocularProfile: AgentAvatarOcularProfile;
   orbital: AgentAvatarMeshData['orbital'];
   bodyVertexRange: { vertexStart: number; vertexCount: number };
@@ -946,6 +971,8 @@ export function buildCharacterMesh(
           tipTaper: opts.tipTaper,
           hairlineBias: opts.hairlineBias,
           crownWhorl: opts.crownWhorl,
+          clusterCount: opts.clusterCount,
+          clusterSpread: opts.clusterSpread,
         });
   const ocularProfile = opts.ocularProfile ?? 'legacy-composite-v1';
   const emptyOcular = (): OcularMeshData => ({
@@ -963,6 +990,7 @@ export function buildCharacterMesh(
             faceTopology: opts.faceTopology,
             orbitalProfile: opts.orbitalProfile,
             eyeRecess: opts.eyeRecess,
+            eyeScale: opts.eyeScale,
             faceWidth: opts.faceWidth,
             irisScale: opts.irisScale,
             pupilScale: opts.pupilScale,
@@ -974,12 +1002,13 @@ export function buildCharacterMesh(
               faceTopology: opts.faceTopology,
               orbitalProfile: opts.orbitalProfile,
               eyeRecess: opts.eyeRecess,
+              eyeScale: opts.eyeScale,
               faceWidth: opts.faceWidth,
             }),
             uvs: new Float32Array(),
             regionRanges: { sclera: [], iris: [], pupil: [], cornea: [] },
           };
-  const garment = opts.garmentStyle
+  const authoredGarment = opts.garmentStyle
     ? buildAgentAvatarGarment({
         style: opts.garmentStyle,
         buildScale: opts.buildScale,
@@ -987,11 +1016,12 @@ export function buildCharacterMesh(
         radialSegments: opts.garmentSegments,
         mantleStyle: opts.mantleStyle,
       })
-    : {
-        cloth: { ...empty(), uvs: new Float32Array(), clothWeights: new Float32Array() },
-        visor: { ...empty(), uvs: new Float32Array(), clothWeights: new Float32Array() },
-        mantle: { ...empty(), uvs: new Float32Array(), clothWeights: new Float32Array() },
-      };
+    : undefined;
+  const garment = authoredGarment ?? {
+    cloth: { ...empty(), uvs: new Float32Array(), clothWeights: new Float32Array() },
+    visor: { ...empty(), uvs: new Float32Array(), clothWeights: new Float32Array() },
+    mantle: { ...empty(), uvs: new Float32Array(), clothWeights: new Float32Array() },
+  };
 
   const bodyVC = body.vertexCount;
   const hairVC = hair.vertexCount;
@@ -1108,6 +1138,8 @@ export function buildCharacterMesh(
     mesh,
     ...(hair.groom ? { groom: hair.groom } : {}),
     anatomy: body.anatomy,
+    ...(body.facialLandmarks ? { facialLandmarks: body.facialLandmarks } : {}),
+    ...(authoredGarment ? { garment: authoredGarment.receipt } : {}),
     ocularProfile,
     orbital: body.orbital,
     bodyVertexRange: { vertexStart: 0, vertexCount: bodyVC },

@@ -502,6 +502,127 @@ describe('CharacterWebGPUCompiler', () => {
     ).toEqual(['skin-sss', 'marschner-hair', 'refractive-eye']);
   });
 
+  it('serializes H3J civic landmarks, groom clusters, and open garment receipts', async () => {
+    const make = ({
+      detail = true,
+      clusters = true,
+      garment = true,
+    }: {
+      detail?: boolean;
+      clusters?: boolean;
+      garment?: boolean;
+    }) => {
+      const composition = characterComp();
+      composition.objects[0]!.traits = composition.objects[0]!.traits!.map((trait) =>
+        trait.name === 'hair'
+          ? {
+              ...trait,
+              config: {
+                ...trait.config,
+                style: 'cropped_coils',
+                groom_profile: 'scalp_flow_v1',
+                ...(clusters ? { cluster_count: 12, cluster_spread: 0.44 } : {}),
+              },
+            }
+          : trait
+      );
+      composition.objects[0]!.traits!.push(
+        {
+          type: 'ObjectTrait',
+          name: 'face',
+          config: {
+            topology: 'neutral_anatomical_v2',
+            radial_segments: 28,
+            vertical_segments: 20,
+            tearline: true,
+            orbital_profile: 'recessed_lids_v1',
+            eye_recess: 0.34,
+            lid_opening: 0.46,
+            canthal_tilt: 0.14,
+            ocular_profile: 'layered_ocular_v1',
+            ...(detail
+              ? {
+                  facial_detail_profile: 'civic_landmarks_v1',
+                  eye_scale: 0.84,
+                  brow_height: 1.18,
+                  brow_thickness: 0.2,
+                  ear_scale: 1.06,
+                  mouth_depth: 0.88,
+                }
+              : {}),
+          },
+        },
+        {
+          type: 'ObjectTrait',
+          name: 'lod',
+          config: {
+            levels: [
+              {
+                level: 0,
+                distance: 0,
+                garment_segments: 24,
+                hair_guides: 168,
+                hair_cards_per_guide: 2,
+                hair_segments: 7,
+              },
+            ],
+          },
+        }
+      );
+      if (garment) {
+        composition.objects[0]!.traits!.push({
+          type: 'ObjectTrait',
+          name: 'clothing',
+          config: {
+            style: 'stormglass_open_civic_tunic',
+            color: '#315964',
+          },
+        });
+      }
+      return composition;
+    };
+
+    const compiler = new CharacterWebGPUCompiler({ lodLevel: 0 });
+    const authored = JSON.parse(await compiler.compile(make({}))) as CharacterDrawSpecBundle;
+    const legacyLandmarks = JSON.parse(
+      await compiler.compile(make({ detail: false }))
+    ) as CharacterDrawSpecBundle;
+    const unclustered = JSON.parse(
+      await compiler.compile(make({ clusters: false }))
+    ) as CharacterDrawSpecBundle;
+    const unclothed = JSON.parse(
+      await compiler.compile(make({ garment: false }))
+    ) as CharacterDrawSpecBundle;
+
+    expect(authored.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v1',
+      profile: 'civic-landmarks-v1',
+      radialSegments: 28,
+      verticalSegments: 20,
+      eyeScale: 0.84,
+      browHeight: 1.18,
+      browThickness: 0.2,
+      earScale: 1.06,
+      mouthDepth: 0.88,
+    });
+    expect(authored.groom).toMatchObject({ clusterCount: 12, clusterSpread: 0.44 });
+    expect(authored.garment).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v1',
+      style: 'stormglass_open_civic_tunic',
+      radialSegments: 24,
+      faceCoverage: 'open-v-collar',
+      visorVertexCount: 0,
+      visorTriangleCount: 0,
+    });
+    expect(authored.report.stubbed).toEqual([]);
+    expect(authored.vertexCount).toBeGreaterThan(legacyLandmarks.vertexCount);
+    expect(authored.mesh.positions).not.toEqual(unclustered.mesh.positions);
+    expect(authored.vertexCount).toBeGreaterThan(unclothed.vertexCount);
+    expect(legacyLandmarks.facialLandmarks).toBeUndefined();
+    expect(unclustered.groom?.clusterCount).toBeUndefined();
+    expect(unclothed.garment).toBeUndefined();
+  });
+
   it('serializes UVs, deterministic cloth metadata, and detachable mantle refs', async () => {
     const composition = characterComp();
     composition.objects[0]!.traits!.push(

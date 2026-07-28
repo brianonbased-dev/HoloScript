@@ -22,6 +22,8 @@ import {
 import type { HairCoverageProfile } from '../native-render/draw-spec';
 import type {
   AgentAvatarAnatomyReceipt,
+  AgentAvatarFacialDetailProfile,
+  AgentAvatarFacialLandmarkReceipt,
   AgentAvatarFaceTopology,
   AgentAvatarOrbitalProfile,
 } from './AgentAvatarMesh';
@@ -37,6 +39,10 @@ import {
   type AgentAvatarOcularProfile,
 } from './AgentAvatarHair';
 import type { NativeMorphReceipt, NativeMorphWeights } from './AgentAvatarMorph';
+import {
+  type AgentAvatarGarmentGeometryReceipt,
+  type SovereignGarmentStyle,
+} from './AgentAvatarGarment';
 import {
   getSovereignMantleCatalogEntry,
   isSovereignMantleStyle,
@@ -116,6 +122,12 @@ export interface CharacterHostFromCompositionResult {
     eyeRecess?: number;
     lidOpening?: number;
     canthalTilt?: number;
+    facialDetailProfile?: AgentAvatarFacialDetailProfile;
+    eyeScale?: number;
+    browHeight?: number;
+    browThickness?: number;
+    earScale?: number;
+    mouthDepth?: number;
     faceWidth?: number;
     faceLength?: number;
     jawTaper?: number;
@@ -130,6 +142,10 @@ export interface CharacterHostFromCompositionResult {
   anatomy?: AgentAvatarAnatomyReceipt;
   /** Exact native skin-surface response when a supported profile is source-authored. */
   skin?: AgentAvatarSkinMaterialReceipt;
+  /** Exact native civic facial landmark topology when source-authored. */
+  facialLandmarks?: AgentAvatarFacialLandmarkReceipt;
+  /** Exact native garment preset and topology when source-authored. */
+  garment?: AgentAvatarGarmentGeometryReceipt;
   /** Derived native groom geometry evidence when hair is operative. */
   groom?: AgentAvatarGroomGeometryReceipt;
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
@@ -464,6 +480,12 @@ export function buildCharacterHostFromComposition(
   let eyeRecess: number | undefined;
   let lidOpening: number | undefined;
   let canthalTilt: number | undefined;
+  let facialDetailProfile: AgentAvatarFacialDetailProfile | undefined;
+  let eyeScale: number | undefined;
+  let browHeight: number | undefined;
+  let browThickness: number | undefined;
+  let earScale: number | undefined;
+  let mouthDepth: number | undefined;
   let faceWidth = 1;
   let faceLength = 1;
   let jawTaper = 0.22;
@@ -535,6 +557,44 @@ export function buildCharacterHostFromComposition(
             reason: `profile '${authoredOrbitalProfile}' has no native orbital geometry channel`,
           });
         }
+        const authoredFacialDetailProfile = asStr(
+          cfgVal(faceTrait, 'facial_detail_profile', 'landmark_profile')
+        )
+          ?.toLowerCase()
+          .replace(/_/g, '-');
+        if (
+          authoredFacialDetailProfile === 'legacy-landmarks-v1' ||
+          authoredFacialDetailProfile === 'civic-landmarks-v1'
+        ) {
+          facialDetailProfile = authoredFacialDetailProfile;
+          eyeScale = clamp(asNum(cfgVal(faceTrait, 'eye_scale', 'globe_scale')) ?? 1, 0.72, 1.08);
+          browHeight = clamp(asNum(cfgVal(faceTrait, 'brow_height')) ?? 1.05, 0.65, 1.65);
+          browThickness = clamp(asNum(cfgVal(faceTrait, 'brow_thickness')) ?? 0.16, 0.08, 0.32);
+          earScale = clamp(asNum(cfgVal(faceTrait, 'ear_scale')) ?? 1, 0.7, 1.3);
+          mouthDepth = clamp(asNum(cfgVal(faceTrait, 'mouth_depth')) ?? 0.72, 0.25, 1.4);
+          report.mapped.push(
+            `@face(facial_detail_profile=${facialDetailProfile},eye_scale=${eyeScale},` +
+              `brow_height=${browHeight},brow_thickness=${browThickness},` +
+              `ear_scale=${earScale},mouth_depth=${mouthDepth})`
+          );
+        } else if (authoredFacialDetailProfile) {
+          report.stubbed.push({
+            trait: '@face(facial_detail_profile)',
+            reason: `profile '${authoredFacialDetailProfile}' has no native landmark geometry channel`,
+          });
+        } else if (
+          faceTrait.config.eye_scale !== undefined ||
+          faceTrait.config.globe_scale !== undefined ||
+          faceTrait.config.brow_height !== undefined ||
+          faceTrait.config.brow_thickness !== undefined ||
+          faceTrait.config.ear_scale !== undefined ||
+          faceTrait.config.mouth_depth !== undefined
+        ) {
+          report.stubbed.push({
+            trait: '@face(facial_landmark_controls)',
+            reason: 'facial landmark controls require a supported facial_detail_profile',
+          });
+        }
       } else if (
         faceTrait.config.face_width !== undefined ||
         faceTrait.config.faceWidth !== undefined ||
@@ -577,6 +637,12 @@ export function buildCharacterHostFromComposition(
         ...(eyeRecess === undefined ? {} : { eyeRecess }),
         ...(lidOpening === undefined ? {} : { lidOpening }),
         ...(canthalTilt === undefined ? {} : { canthalTilt }),
+        ...(facialDetailProfile === undefined ? {} : { facialDetailProfile }),
+        ...(eyeScale === undefined ? {} : { eyeScale }),
+        ...(browHeight === undefined ? {} : { browHeight }),
+        ...(browThickness === undefined ? {} : { browThickness }),
+        ...(earScale === undefined ? {} : { earScale }),
+        ...(mouthDepth === undefined ? {} : { mouthDepth }),
         ...(authoredFaceWidth === undefined ? {} : { faceWidth }),
         ...(authoredFaceLength === undefined ? {} : { faceLength }),
         ...(authoredJawTaper === undefined ? {} : { jawTaper }),
@@ -677,6 +743,8 @@ export function buildCharacterHostFromComposition(
   let hairTipTaper: number | undefined;
   let hairlineBias: number | undefined;
   let hairCrownWhorl: number | undefined;
+  let hairClusterCount: number | undefined;
+  let hairClusterSpread: number | undefined;
   let hairCoverageProfile: HairCoverageProfile | undefined;
   let hairStrandCoverage: number | undefined;
   let hairEdgeSoftness: number | undefined;
@@ -715,6 +783,8 @@ export function buildCharacterHostFromComposition(
     hairTipTaper = asNum(cfgVal(hair, 'tip_taper', 'tipTaper'));
     hairlineBias = asNum(cfgVal(hair, 'hairline_bias', 'hairlineBias'));
     hairCrownWhorl = asNum(hair.config.crown_whorl ?? hair.config.crownWhorl);
+    hairClusterCount = asNum(hair.config.cluster_count ?? hair.config.clusterCount);
+    hairClusterSpread = asNum(hair.config.cluster_spread ?? hair.config.clusterSpread);
     if (authoredCoverageProfile) {
       hairCoverageProfile = resolveAgentAvatarHairCoverageProfile(authoredCoverageProfile);
       if (!hairCoverageProfile) {
@@ -742,9 +812,9 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 7. @clothing → operative sovereign garment geometry/material. The supported closed hood
-  //    intentionally suppresses human hair/eyes; its dark visor carries the faceless identity.
-  let garmentStyle: 'stormglass_hooded_tunic' | undefined;
+  // 7. @clothing → operative sovereign garment geometry/material. The closed hood suppresses
+  //    hair/eyes; the open civic style deliberately preserves the authored face and groom.
+  let garmentStyle: SovereignGarmentStyle | undefined;
   let garmentColor: number | undefined;
   let includeHair: boolean | undefined;
   let includeEyes: boolean | undefined;
@@ -753,18 +823,20 @@ export function buildCharacterHostFromComposition(
   let mantle: CharacterHostFromCompositionResult['mantle'];
   const clothing = traits.get('clothing');
   if (clothing) {
-    const style = asStr(cfgVal(clothing, 'style', 'type', 'preset'));
-    if (style?.toLowerCase() === 'stormglass_hooded_tunic') {
-      garmentStyle = 'stormglass_hooded_tunic';
+    const style = asStr(cfgVal(clothing, 'style', 'type', 'preset'))?.toLowerCase();
+    if (style === 'stormglass_hooded_tunic' || style === 'stormglass_open_civic_tunic') {
+      garmentStyle = style;
       const authoredColor = asRgb(cfgVal(clothing, 'color', 'base_color'));
       if (authoredColor) {
         const [r, g, b] = authoredColor;
         garmentColor =
           (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
       }
-      includeHair = false;
-      includeEyes = false;
-      report.mapped.push('@clothing(style=stormglass_hooded_tunic)');
+      if (garmentStyle === 'stormglass_hooded_tunic') {
+        includeHair = false;
+        includeEyes = false;
+      }
+      report.mapped.push(`@clothing(style=${garmentStyle})`);
       const authoredMantle = asStr(cfgVal(clothing, 'mantle_style', 'mantle'))?.toLowerCase();
       if (authoredMantle && isSovereignMantleStyle(authoredMantle)) {
         mantleStyle = authoredMantle;
@@ -829,12 +901,21 @@ export function buildCharacterHostFromComposition(
           hairCrownWhorl = clamp(hairCrownWhorl, -1, 1);
           report.mapped.push(`@hair(crown_whorl=${hairCrownWhorl})`);
         }
+        if (hairClusterCount !== undefined || hairClusterSpread !== undefined) {
+          hairClusterCount = Math.max(2, Math.min(64, Math.round(hairClusterCount ?? 8)));
+          hairClusterSpread = clamp(hairClusterSpread ?? 0.62, 0.08, 1);
+          report.mapped.push(
+            `@hair(cluster_count=${hairClusterCount},cluster_spread=${hairClusterSpread})`
+          );
+        }
       } else if (
         hairCardWidth !== undefined ||
         hairRootLift !== undefined ||
         hairTipTaper !== undefined ||
         hairlineBias !== undefined ||
-        hairCrownWhorl !== undefined
+        hairCrownWhorl !== undefined ||
+        hairClusterCount !== undefined ||
+        hairClusterSpread !== undefined
       ) {
         report.stubbed.push({
           trait: '@hair(groom_controls)',
@@ -916,6 +997,12 @@ export function buildCharacterHostFromComposition(
     eyeRecess,
     lidOpening,
     canthalTilt,
+    facialDetailProfile,
+    eyeScale,
+    browHeight,
+    browThickness,
+    earScale,
+    mouthDepth,
     faceWidth,
     faceLength,
     jawTaper,
@@ -944,6 +1031,8 @@ export function buildCharacterHostFromComposition(
     hairTipTaper: hairGroomProfile ? hairTipTaper : undefined,
     hairlineBias: hairGroomProfile ? hairlineBias : undefined,
     hairCrownWhorl: hairGroomProfile ? hairCrownWhorl : undefined,
+    hairClusterCount: hairGroomProfile ? hairClusterCount : undefined,
+    hairClusterSpread: hairGroomProfile ? hairClusterSpread : undefined,
     hairCoverageProfile,
     hairStrandCoverage: hairCoverageProfile ? hairStrandCoverage : undefined,
     hairEdgeSoftness: hairCoverageProfile ? hairEdgeSoftness : undefined,
@@ -1035,6 +1124,10 @@ export function buildCharacterHostFromComposition(
     hair && includeHair !== false ? (host.getGroomGeometryReceipt() ?? undefined) : undefined;
   const anatomy = anatomyAuthored ? host.getAnatomyReceipt() : undefined;
   const skin = skinMicrodetailProfile ? host.getSkinMaterialReceipt() : undefined;
+  const facialLandmarks = facialDetailProfile
+    ? (host.getFacialLandmarkReceipt() ?? undefined)
+    : undefined;
+  const garment = garmentStyle ? (host.getGarmentGeometryReceipt() ?? undefined) : undefined;
   return {
     ok: true,
     host,
@@ -1045,6 +1138,8 @@ export function buildCharacterHostFromComposition(
     face,
     anatomy,
     skin,
+    facialLandmarks,
+    garment,
     groom,
     morph,
     mantle,

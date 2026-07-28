@@ -58,6 +58,8 @@ export interface AgentAvatarMeshData {
   boneOrder: readonly string[];
   /** Present only when the neutral anatomical head emitted operative orbital geometry. */
   orbital?: AgentAvatarOrbitalGeometryReceipt;
+  /** Present only when the source selects the denser civic facial-landmark profile. */
+  facialLandmarks?: AgentAvatarFacialLandmarkReceipt;
   /** Exact clamped proportions used by the native procedural body and face builders. */
   anatomy: AgentAvatarAnatomyReceipt;
 }
@@ -65,6 +67,11 @@ export interface AgentAvatarMeshData {
 export type AgentAvatarFaceTopology = 'procedural-head-v1' | 'neutral-anatomical-v2';
 export const AGENT_AVATAR_ORBITAL_PROFILES = ['tearline-rim-v1', 'recessed-lids-v1'] as const;
 export type AgentAvatarOrbitalProfile = (typeof AGENT_AVATAR_ORBITAL_PROFILES)[number];
+export const AGENT_AVATAR_FACIAL_DETAIL_PROFILES = [
+  'legacy-landmarks-v1',
+  'civic-landmarks-v1',
+] as const;
+export type AgentAvatarFacialDetailProfile = (typeof AGENT_AVATAR_FACIAL_DETAIL_PROFILES)[number];
 
 export interface AgentAvatarOrbitalGeometryReceipt {
   profile: AgentAvatarOrbitalProfile;
@@ -74,6 +81,22 @@ export interface AgentAvatarOrbitalGeometryReceipt {
   lidOpening: number;
   /** Outer-canthus rise as a fraction of the procedural eyeball radius. */
   canthalTilt: number;
+  /** Globe size relative to the compatibility procedural eye radius. */
+  eyeScale?: number;
+  vertexRange: { vertexStart: number; vertexCount: number };
+  indexRange: { indexStart: number; indexCount: number };
+}
+
+export interface AgentAvatarFacialLandmarkReceipt {
+  schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v1';
+  profile: 'civic-landmarks-v1';
+  radialSegments: number;
+  verticalSegments: number;
+  eyeScale: number;
+  browHeight: number;
+  browThickness: number;
+  earScale: number;
+  mouthDepth: number;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -110,6 +133,18 @@ export interface AgentAvatarMeshOptions {
   lidOpening?: number;
   /** Outer-canthus rise as a fraction of the eyeball radius (-0.25..0.25). */
   canthalTilt?: number;
+  /** Optional denser native facial-landmark profile. Compatibility default is legacy. */
+  facialDetailProfile?: AgentAvatarFacialDetailProfile;
+  /** Procedural ocular globe scale (0.72..1.08). */
+  eyeScale?: number;
+  /** Brow center rise above the upper lid, in eye-radius units (0.65..1.65). */
+  browHeight?: number;
+  /** Brow ribbon thickness, in eye-radius units (0.08..0.32). */
+  browThickness?: number;
+  /** Native ear scale (0.7..1.3). */
+  earScale?: number;
+  /** Lip-volume depth multiplier (0.25..1.4). */
+  mouthDepth?: number;
   /** Neutral-head width multiplier (0.84..1.2). */
   faceWidth?: number;
   /** Neutral-head vertical-length multiplier (0.86..1.16). */
@@ -541,6 +576,96 @@ function pushNeutralMouthSeam(
   }
 }
 
+function pushCivicFacialLandmarks(
+  acc: MeshAccum,
+  center: Vec3,
+  radiusX: number,
+  radiusY: number,
+  radiusZ: number,
+  eyeRadius: number,
+  eyeY: number,
+  browHeight: number,
+  browThickness: number,
+  earScale: number,
+  mouthDepth: number,
+  jointIdx: number
+): void {
+  const facePlaneZ = center.z + radiusZ * 1.006;
+  const browY = eyeY + eyeRadius * browHeight;
+  for (const side of [-1, 1] as const) {
+    pushFacialArc(
+      acc,
+      {
+        x: center.x + side * radiusX * 0.37,
+        y: browY,
+        z: facePlaneZ + eyeRadius * 0.055,
+      },
+      eyeRadius * 1.18,
+      eyeRadius * 0.42,
+      eyeRadius * browThickness,
+      14,
+      Math.PI * 0.08,
+      Math.PI * 0.92,
+      jointIdx
+    );
+  }
+
+  for (const side of [-1, 1] as const) {
+    const earCenter = {
+      x: center.x + side * radiusX * 1.015,
+      y: center.y - radiusY * 0.02,
+      z: center.z + radiusZ * 0.02,
+    };
+    pushSmoothEllipsoid(
+      acc,
+      earCenter,
+      radiusX * 0.095 * earScale,
+      radiusY * 0.19 * earScale,
+      radiusZ * 0.055 * earScale,
+      8,
+      12,
+      jointIdx
+    );
+    pushFacialArc(
+      acc,
+      {
+        x: earCenter.x,
+        y: earCenter.y,
+        z: earCenter.z + radiusZ * 0.058 * earScale,
+      },
+      radiusX * 0.052 * earScale,
+      radiusY * 0.115 * earScale,
+      radiusX * 0.013 * earScale,
+      9,
+      Math.PI * 0.32,
+      Math.PI * 1.68,
+      jointIdx
+    );
+  }
+
+  const mouthCenter = {
+    x: center.x,
+    y: center.y - radiusY * 0.39,
+    z: center.z + radiusZ * 1.003,
+  };
+  for (const direction of [-1, 1] as const) {
+    pushSmoothEllipsoid(
+      acc,
+      {
+        x: mouthCenter.x,
+        y: mouthCenter.y + direction * radiusY * 0.018,
+        z: mouthCenter.z + radiusZ * 0.02 * mouthDepth,
+      },
+      radiusX * (direction > 0 ? 0.27 : 0.25),
+      radiusY * (direction > 0 ? 0.028 : 0.024),
+      radiusZ * 0.022 * mouthDepth,
+      5,
+      14,
+      jointIdx
+    );
+  }
+}
+
 /**
  * Source-selectable neutral facial foundation. This is intentionally bounded: it is not a scan
  * or a production blendshape rig, but it replaces the visible block head with a smooth,
@@ -559,10 +684,19 @@ function pushNeutralAnatomicalHead(
   eyeRecess: number,
   lidOpening: number,
   canthalTilt: number,
+  facialDetailProfile: AgentAvatarFacialDetailProfile,
+  eyeScale: number,
+  browHeight: number,
+  browThickness: number,
+  earScale: number,
+  mouthDepth: number,
   faceWidth: number,
   faceLength: number,
   jawTaperAmount: number
-): AgentAvatarOrbitalGeometryReceipt | undefined {
+): {
+  orbital?: AgentAvatarOrbitalGeometryReceipt;
+  facialLandmarks?: AgentAvatarFacialLandmarkReceipt;
+} {
   const center = {
     x: headBase.x,
     y: headBase.y + headLength * 0.52,
@@ -634,7 +768,7 @@ function pushNeutralAnatomicalHead(
     const buildScale = radius / 0.09;
     const eyeY = headBase.y + 0.12 * buildScale;
     if (orbitalProfile === 'recessed-lids-v1') {
-      const eyeRadius = 0.0145 * buildScale;
+      const eyeRadius = 0.0145 * buildScale * eyeScale;
       const eyeCenterZ = headBase.z + radius * 0.91 - eyeRadius * eyeRecess;
       const facePlaneZ = headBase.z + radius * 1.025;
       for (const side of [-1, 1] as const) {
@@ -690,6 +824,7 @@ function pushNeutralAnatomicalHead(
       eyeRecess,
       lidOpening,
       canthalTilt,
+      ...(eyeScale === 1 ? {} : { eyeScale }),
       vertexRange: {
         vertexStart: orbitalVertexStart,
         vertexCount: acc.positions.length / 3 - orbitalVertexStart,
@@ -714,7 +849,50 @@ function pushNeutralAnatomicalHead(
     14,
     jointIdx
   );
-  return orbital;
+  let facialLandmarks: AgentAvatarFacialLandmarkReceipt | undefined;
+  if (facialDetailProfile === 'civic-landmarks-v1') {
+    const landmarkVertexStart = acc.positions.length / 3;
+    const landmarkIndexStart = acc.indices.length;
+    const buildScale = radius / 0.09;
+    const eyeRadius = 0.0145 * buildScale * eyeScale;
+    pushCivicFacialLandmarks(
+      acc,
+      center,
+      radiusX,
+      radiusY,
+      radiusZ,
+      eyeRadius,
+      headBase.y + 0.12 * buildScale,
+      browHeight,
+      browThickness,
+      earScale,
+      mouthDepth,
+      jointIdx
+    );
+    facialLandmarks = {
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v1',
+      profile: 'civic-landmarks-v1',
+      radialSegments,
+      verticalSegments,
+      eyeScale,
+      browHeight,
+      browThickness,
+      earScale,
+      mouthDepth,
+      vertexRange: {
+        vertexStart: landmarkVertexStart,
+        vertexCount: acc.positions.length / 3 - landmarkVertexStart,
+      },
+      indexRange: {
+        indexStart: landmarkIndexStart,
+        indexCount: acc.indices.length - landmarkIndexStart,
+      },
+    };
+  }
+  return {
+    ...(orbital ? { orbital } : {}),
+    ...(facialLandmarks ? { facialLandmarks } : {}),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -740,6 +918,12 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   );
   const lidOpening = clampFloat(opts.lidOpening, 0.56, 0.42, 0.78);
   const canthalTilt = clampFloat(opts.canthalTilt, 0.12, -0.25, 0.25);
+  const facialDetailProfile = opts.facialDetailProfile ?? 'legacy-landmarks-v1';
+  const eyeScale = clampFloat(opts.eyeScale, 1, 0.72, 1.08);
+  const browHeight = clampFloat(opts.browHeight, 1.05, 0.65, 1.65);
+  const browThickness = clampFloat(opts.browThickness, 0.16, 0.08, 0.32);
+  const earScale = clampFloat(opts.earScale, 1, 0.7, 1.3);
+  const mouthDepth = clampFloat(opts.mouthDepth, 0.72, 0.25, 1.4);
   const faceWidth = clampFloat(opts.faceWidth, 1, 0.84, 1.2);
   const faceLength = clampFloat(opts.faceLength, 1, 0.86, 1.16);
   const jawTaper = clampFloat(opts.jawTaper, 0.22, 0.08, 0.38);
@@ -755,6 +939,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     jointWeights: [],
   };
   let orbital: AgentAvatarOrbitalGeometryReceipt | undefined;
+  let facialLandmarks: AgentAvatarFacialLandmarkReceipt | undefined;
 
   const childCount = new Map<string, number>();
   for (const bone of HUMANOID_65_SKELETON) {
@@ -788,7 +973,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
       const b = { x: a.x, y: a.y + bone.length, z: a.z };
       const jointIdx = BONE_INDEX.get(bone.name) ?? 0;
       if (bone.name === 'head' && faceTopology === 'neutral-anatomical-v2') {
-        orbital = pushNeutralAnatomicalHead(
+        const faceGeometry = pushNeutralAnatomicalHead(
           acc,
           a,
           bone.length,
@@ -801,10 +986,18 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
           eyeRecess,
           lidOpening,
           canthalTilt,
+          facialDetailProfile,
+          eyeScale,
+          browHeight,
+          browThickness,
+          earScale,
+          mouthDepth,
           faceWidth,
           faceLength,
           jawTaper
         );
+        orbital = faceGeometry.orbital;
+        facialLandmarks = faceGeometry.facialLandmarks;
       } else {
         pushBox(acc, a, b, radiusFor(bone.name, buildScale, torsoScale), jointIdx);
       }
@@ -840,6 +1033,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
       torsoScale,
     },
     ...(orbital ? { orbital } : {}),
+    ...(facialLandmarks ? { facialLandmarks } : {}),
   };
 }
 

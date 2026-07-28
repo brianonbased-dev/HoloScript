@@ -77,6 +77,10 @@ export interface CharacterDrawSpecBundle {
   anatomy?: unknown;
   /** Present when a source-authored native skin microdetail profile is operative. */
   skin?: unknown;
+  /** Present when source-authored civic facial landmarks are operative. */
+  facialLandmarks?: unknown;
+  /** Present when source-authored native garment geometry is operative. */
+  garment?: unknown;
   /** Present when source-authored native procedural groom geometry is operative. */
   groom?: unknown;
   /** Present when source-authored native procedural-head morph targets are operative. */
@@ -161,6 +165,8 @@ export class CharacterWebGPUCompiler {
     const face = 'face' in result ? result.face : undefined;
     const anatomy = 'anatomy' in result ? result.anatomy : undefined;
     const skin = 'skin' in result ? result.skin : undefined;
+    const facialLandmarks = 'facialLandmarks' in result ? result.facialLandmarks : undefined;
+    const garment = 'garment' in result ? result.garment : undefined;
     const groom = 'groom' in result ? result.groom : undefined;
     const bundle: CharacterDrawSpecBundle = {
       format: 'character-webgpu/drawspec',
@@ -186,6 +192,8 @@ export class CharacterWebGPUCompiler {
       ...(face ? { face } : {}),
       ...(anatomy ? { anatomy } : {}),
       ...(skin ? { skin } : {}),
+      ...(facialLandmarks ? { facialLandmarks } : {}),
+      ...(garment ? { garment } : {}),
       ...(groom ? { groom } : {}),
       ...(morph ? { morph } : {}),
       ...(result.mantle ? { mantle: result.mantle } : {}),
