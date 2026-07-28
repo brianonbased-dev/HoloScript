@@ -304,6 +304,44 @@ function pushOpenCollar(target: MeshAccum, buildScale: number): void {
 }
 
 /**
+ * Cover the bind-pose shoulder seam with two native cloth panels while preserving the open
+ * neckline. The split center leaves the V collar readable and prevents the procedural upper-arm
+ * blocks from becoming the dominant portrait silhouette.
+ */
+function pushOpenShoulderPanels(target: MeshAccum, buildScale: number): void {
+  const jointIndex = BONE_INDEX.get('spine2') ?? 0;
+  const z = 0.182 * buildScale;
+  const panels: Vec3[][] = [
+    [
+      v(-0.055 * buildScale, 1.275, z + 0.006 * buildScale),
+      v(-0.115 * buildScale, 1.425, z),
+      v(-0.5 * buildScale, 1.405, z - 0.012 * buildScale),
+      v(-0.37 * buildScale, 1.265, z + 0.004 * buildScale),
+    ],
+    [
+      v(0.055 * buildScale, 1.275, z + 0.006 * buildScale),
+      v(0.37 * buildScale, 1.265, z + 0.004 * buildScale),
+      v(0.5 * buildScale, 1.405, z - 0.012 * buildScale),
+      v(0.115 * buildScale, 1.425, z),
+    ],
+  ];
+  for (const panel of panels) {
+    const base = target.positions.length / 3;
+    for (let index = 0; index < panel.length; index += 1) {
+      const point = panel[index];
+      target.positions.push(point.x, point.y, point.z);
+      target.normals.push(0, 0, 1);
+      target.tangents.push(1, 0, 0, 0);
+      target.uvs.push(index === 0 || index === 3 ? 0 : 1, index < 2 ? 0 : 1);
+      target.jointIndices.push(jointIndex);
+      target.jointWeights.push(1);
+      target.clothWeights.push(0.04);
+    }
+    target.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+}
+
+/**
  * A shoulder-pinned, front-readable mantle panel. The repeating UV field carries the family
  * pattern; the lower rows are mobile while the shoulder seam stays pinned.
  */
@@ -406,6 +444,7 @@ export function buildAgentAvatarGarment(
     );
     pushVisor(visor, segments, buildScale);
   } else {
+    pushOpenShoulderPanels(cloth, buildScale);
     pushOpenCollar(cloth, buildScale);
   }
 
