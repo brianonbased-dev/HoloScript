@@ -388,11 +388,14 @@ export class EmbeddingIndex {
   ): Promise<EmbeddingRefreshReceipt> {
     const previousEntries = this.entries;
     const previousSymbols = previousEntries.length;
-    const reusableByText = new Map<string, IndexedSymbol[]>();
+    // Exact embedding texts are overwhelmingly unique. Keep the common case as
+    // one map value and allocate an array only for a real text collision.
+    const reusableByText = new Map<string, IndexedSymbol | IndexedSymbol[]>();
     for (const entry of previousEntries) {
-      const bucket = reusableByText.get(entry.text);
-      if (bucket) bucket.push(entry);
-      else reusableByText.set(entry.text, [entry]);
+      const reusable = reusableByText.get(entry.text);
+      if (!reusable) reusableByText.set(entry.text, entry);
+      else if (Array.isArray(reusable)) reusable.push(entry);
+      else reusableByText.set(entry.text, [reusable, entry]);
     }
 
     const symbols = this.getIndexableSymbols(graph);
@@ -414,8 +417,10 @@ export class EmbeddingIndex {
       for (let index = 0; index < batchTexts.length; index++) {
         const text = batchTexts[index];
         const bucket = reusableByText.get(text);
-        const reused = bucket?.pop();
-        if (bucket?.length === 0) reusableByText.delete(text);
+        const reused = Array.isArray(bucket) ? bucket.pop() : bucket;
+        if (bucket && (!Array.isArray(bucket) || bucket.length === 0)) {
+          reusableByText.delete(text);
+        }
         if (reused) {
           batchEntries[index] = {
             symbol: batchSymbols[index],
@@ -842,7 +847,12 @@ export class EmbeddingIndex {
       })),
     };
     const metaJson = JSON.stringify(metadata);
-    const metaBuffer = Buffer.from(metaJson, 'utf-8');
+    const unpaddedMetaBuffer = Buffer.from(metaJson, 'utf-8');
+    const metadataPadding = (4 - ((4 + unpaddedMetaBuffer.length) % 4)) % 4;
+    const metaBuffer =
+      metadataPadding === 0
+        ? unpaddedMetaBuffer
+        : Buffer.concat([unpaddedMetaBuffer, Buffer.alloc(metadataPadding, 0x20)]);
 
     // Allocate the final payload once. The previous three-buffer path kept the
     // embedding buffer and its Buffer.concat copy live together, adding a full
@@ -874,15 +884,10 @@ export class EmbeddingIndex {
     const count = metadata.entries.length;
     const payloadStart = 4 + metaLength;
 
-    // Fast bulk load: instead of allocating `count` separate Float32Array(dim)
-    // objects and reading `count*dim` floats one-by-one (343k allocations +
-    // ~264M readFloatLE calls for a whole-monorepo cache — minutes of GC churn
-    // and >5 GB peak RSS), copy the entire float payload ONCE into a single
-    // contiguous ArrayBuffer and hand each entry a zero-copy `.subarray()` view.
-    // The on-disk payload is little-endian (serializeBinary uses writeFloatLE);
-    // Node's supported hosts are little-endian, so a direct Float32Array view is
-    // correct. The Buffer's byteOffset is not guaranteed 4-aligned, so copy the
-    // payload slice into a fresh aligned ArrayBuffer first.
+    // Hand every entry a `.subarray()` view over one contiguous float payload.
+    // Cache writers align the payload, and large readFileSync buffers normally
+    // preserve that alignment, so the common path avoids a second index-sized
+    // allocation. Legacy unaligned caches take one compatibility copy.
     const payloadBytes = count * dimension * 4;
     const available = buffer.length - payloadStart;
     if (available < payloadBytes) {
@@ -890,11 +895,17 @@ export class EmbeddingIndex {
         `EmbeddingIndex.deserializeBinary: payload truncated (need ${payloadBytes} bytes, have ${available}). Cache is corrupt.`
       );
     }
-    const aligned = new ArrayBuffer(payloadBytes);
-    new Uint8Array(aligned).set(
-      new Uint8Array(buffer.buffer, buffer.byteOffset + payloadStart, payloadBytes)
-    );
-    const allFloats = new Float32Array(aligned);
+    const payloadByteOffset = buffer.byteOffset + payloadStart;
+    let allFloats: Float32Array;
+    if (payloadByteOffset % Float32Array.BYTES_PER_ELEMENT === 0) {
+      allFloats = new Float32Array(buffer.buffer, payloadByteOffset, count * dimension);
+    } else {
+      const aligned = new ArrayBuffer(payloadBytes);
+      new Uint8Array(aligned).set(
+        new Uint8Array(buffer.buffer, payloadByteOffset, payloadBytes)
+      );
+      allFloats = new Float32Array(aligned);
+    }
 
     index.entries = metadata.entries.map(
       (e: { symbol: ExternalSymbolDefinition; text: string }, i: number) => ({
