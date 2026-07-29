@@ -31,6 +31,22 @@ function sha256(view: ArrayBufferView): string {
     .update(new Uint8Array(view.buffer, view.byteOffset, view.byteLength))
     .digest('hex');
 }
+function transformPoint(
+  matrix: Float32Array,
+  point: readonly [number, number, number]
+): [number, number, number] {
+  return [
+    matrix[0] * point[0] + matrix[4] * point[1] + matrix[8] * point[2] + matrix[12],
+    matrix[1] * point[0] + matrix[5] * point[1] + matrix[9] * point[2] + matrix[13],
+    matrix[2] * point[0] + matrix[6] * point[1] + matrix[10] * point[2] + matrix[14],
+  ];
+}
+function pointDistance(
+  a: readonly [number, number, number],
+  b: readonly [number, number, number]
+): number {
+  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+}
 
 describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
   it('builds valid skinned geometry bound to canonical bones', () => {
@@ -744,7 +760,36 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
 
     expect(v3.anatomy.upperBody?.profile).toBe('anatomical-hand-landmarks-v3');
     expect(v3.anatomy.upperBody?.upperLimbs.map((limb) => limb.ringCount)).toEqual([9, 9]);
+    expect(v3.secondaryJointIndices).toBeUndefined();
+    expect(v3.secondaryJointWeights).toBeUndefined();
+    expect(v3.jointDeformation).toBeUndefined();
     expect(v4.anatomy.upperBody?.profile).toBe('anatomical-deforming-hands-v4');
+    expect(v4.secondaryJointIndices).toHaveLength(v4.vertexCount);
+    expect(v4.secondaryJointWeights).toHaveLength(v4.vertexCount);
+    expect(v4.jointDeformation).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount: 1008,
+      jointPairCount: 38,
+      maxSecondaryWeight: 0.55,
+      maxWeightSumError: 0,
+      regionVertexCounts: {
+        shoulder: 96,
+        elbow: 96,
+        wrist: 96,
+        digitRoot: 240,
+        fingerJoint: 480,
+      },
+    });
+
+    let influencedVertexCount = 0;
+    for (let vertex = 0; vertex < v4.vertexCount; vertex++) {
+      expect(v4.jointIndices[vertex]).toBeLessThan(JOINT_COUNT);
+      expect(v4.secondaryJointIndices![vertex]).toBeLessThan(JOINT_COUNT);
+      expect(v4.jointWeights[vertex] + v4.secondaryJointWeights![vertex]).toBeCloseTo(1, 6);
+      if (v4.secondaryJointWeights![vertex] > 0) influencedVertexCount++;
+    }
+    expect(influencedVertexCount).toBe(v4.jointDeformation?.influencedVertexCount);
 
     for (const limb of v4.anatomy.upperBody?.upperLimbs ?? []) {
       expect(limb).toMatchObject({
@@ -776,5 +821,35 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
         0.5;
       expect(metacarpalCenterY - wristCenterY).toBeCloseTo(0.0044, 6);
     }
+
+    const left = v4.anatomy.upperBody!.upperLimbs[0];
+    const wristVertex = left.vertexRange.vertexStart + 6 * left.radialSegments;
+    const point = [
+      v4.positions[wristVertex * 3],
+      v4.positions[wristVertex * 3 + 1],
+      v4.positions[wristVertex * 3 + 2],
+    ] as const;
+    const palette = computeJointPalette(
+      new Map([['left_hand', quatFromAxisAngle(1, 0, 0, 0.85)]])
+    );
+    const primaryPoint = transformPoint(
+      blockAt(palette, v4.jointIndices[wristVertex]),
+      point
+    );
+    const secondaryPoint = transformPoint(
+      blockAt(palette, v4.secondaryJointIndices![wristVertex]),
+      point
+    );
+    const primaryWeight = v4.jointWeights[wristVertex];
+    const secondaryWeight = v4.secondaryJointWeights![wristVertex];
+    const blendedPoint: [number, number, number] = [
+      primaryPoint[0] * primaryWeight + secondaryPoint[0] * secondaryWeight,
+      primaryPoint[1] * primaryWeight + secondaryPoint[1] * secondaryWeight,
+      primaryPoint[2] * primaryWeight + secondaryPoint[2] * secondaryWeight,
+    ];
+    expect(secondaryWeight).toBeCloseTo(0.55, 6);
+    expect(pointDistance(primaryPoint, secondaryPoint)).toBeGreaterThan(0.001);
+    expect(pointDistance(blendedPoint, primaryPoint)).toBeGreaterThan(0.001);
+    expect(pointDistance(blendedPoint, secondaryPoint)).toBeGreaterThan(0.001);
   });
 });

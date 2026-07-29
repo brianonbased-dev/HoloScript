@@ -50,8 +50,12 @@ export interface AgentAvatarMeshData {
   indices: Uint32Array<ArrayBuffer>;
   /** One palette (bone) index per vertex. */
   jointIndices: Uint32Array<ArrayBuffer>;
-  /** One skin weight per vertex (1.0 — rigid per-bone for the procedural body). */
+  /** Primary skin weight per vertex. Legacy profiles remain rigid at 1.0. */
   jointWeights: Float32Array<ArrayBuffer>;
+  /** Optional second palette index. Present only for profiles that emit blended deformation. */
+  secondaryJointIndices?: Uint32Array<ArrayBuffer>;
+  /** Optional second skin weight. Primary + secondary is normalized for authored blends. */
+  secondaryJointWeights?: Float32Array<ArrayBuffer>;
   vertexCount: number;
   /** Number of palette slots = HUMANOID_BONE_NAMES.length (65). */
   jointCount: number;
@@ -63,6 +67,8 @@ export interface AgentAvatarMeshData {
   facialLandmarks?: AgentAvatarFacialLandmarkReceipt;
   /** Exact clamped proportions used by the native procedural body and face builders. */
   anatomy: AgentAvatarAnatomyReceipt;
+  /** Present only when the emitted mesh contains operative dual-influence deformation. */
+  jointDeformation?: AgentAvatarJointDeformationReceipt;
 }
 
 export type AgentAvatarFaceTopology = 'procedural-head-v1' | 'neutral-anatomical-v2';
@@ -119,6 +125,22 @@ export interface AgentAvatarAnatomyReceipt {
   torsoScale: number;
   /** Present only when the connected native upper-body surface is actually emitted. */
   upperBody?: AgentAvatarUpperBodyGeometryReceipt;
+}
+
+export interface AgentAvatarJointDeformationReceipt {
+  schemaVersion: 'holoscript.agent-avatar-joint-deformation.v1';
+  profile: 'dual-influence-upper-limb-v1';
+  influencedVertexCount: number;
+  jointPairCount: number;
+  maxSecondaryWeight: number;
+  maxWeightSumError: number;
+  regionVertexCounts: {
+    shoulder: number;
+    elbow: number;
+    wrist: number;
+    digitRoot: number;
+    fingerJoint: number;
+  };
 }
 
 export interface AgentAvatarUpperBodyGeometryReceipt {
@@ -2370,6 +2392,146 @@ function pushNeutralAnatomicalHead(
   };
 }
 
+interface DualInfluenceBuild {
+  primaryJointWeights: Float32Array<ArrayBuffer>;
+  secondaryJointIndices: Uint32Array<ArrayBuffer>;
+  secondaryJointWeights: Float32Array<ArrayBuffer>;
+  receipt: AgentAvatarJointDeformationReceipt;
+}
+
+/**
+ * Convert the V4 upper-limb transition rings from rigid binding to two normalized influences.
+ *
+ * The topology receipts are the addressing contract: if a later mesh edit moves a ring onto an
+ * unexpected primary joint this fails loudly instead of silently skinning the wrong vertices.
+ * Landmark and nail surfaces deliberately remain rigid in this bounded deformation profile.
+ */
+function buildDualInfluenceJointDeformation(
+  acc: MeshAccum,
+  upperBody: AgentAvatarUpperBodyGeometryReceipt
+): DualInfluenceBuild {
+  const primaryJointWeights = new Float32Array(acc.jointWeights);
+  const secondaryJointIndices = new Uint32Array(acc.jointIndices);
+  const secondaryJointWeights = new Float32Array(acc.jointWeights.length);
+  const regionVertexCounts = {
+    shoulder: 0,
+    elbow: 0,
+    wrist: 0,
+    digitRoot: 0,
+    fingerJoint: 0,
+  };
+  const jointPairs = new Set<string>();
+  let maxSecondaryWeight = 0;
+  let maxWeightSumError = 0;
+
+  const assignRing = (
+    vertexStart: number,
+    radialSegments: number,
+    ringIndex: number,
+    expectedPrimaryName: string,
+    secondaryName: string,
+    secondaryWeight: number,
+    region: keyof typeof regionVertexCounts
+  ): void => {
+    const expectedPrimary = BONE_INDEX.get(expectedPrimaryName);
+    const secondary = BONE_INDEX.get(secondaryName);
+    if (expectedPrimary === undefined || secondary === undefined) {
+      throw new Error(
+        `Unknown V4 deformation joint pair ${expectedPrimaryName} -> ${secondaryName}`
+      );
+    }
+    const ringStart = vertexStart + ringIndex * radialSegments;
+    for (let vertex = ringStart; vertex < ringStart + radialSegments; vertex++) {
+      if (acc.jointIndices[vertex] !== expectedPrimary) {
+        throw new Error(
+          `V4 deformation topology drift at vertex ${vertex}: expected ${expectedPrimaryName}`
+        );
+      }
+      primaryJointWeights[vertex] = 1 - secondaryWeight;
+      secondaryJointIndices[vertex] = secondary;
+      secondaryJointWeights[vertex] = secondaryWeight;
+      maxSecondaryWeight = Math.max(maxSecondaryWeight, secondaryWeight);
+      maxWeightSumError = Math.max(
+        maxWeightSumError,
+        Math.abs(primaryJointWeights[vertex] + secondaryJointWeights[vertex] - 1)
+      );
+    }
+    const low = Math.min(expectedPrimary, secondary);
+    const high = Math.max(expectedPrimary, secondary);
+    jointPairs.add(`${low}:${high}`);
+    regionVertexCounts[region] += radialSegments;
+  };
+
+  for (const limb of upperBody.upperLimbs) {
+    const side = limb.side;
+    const main = limb.vertexRange.vertexStart;
+    const radial = limb.radialSegments;
+    assignRing(main, radial, 0, 'spine2', `${side}_shoulder`, 0.2, 'shoulder');
+    assignRing(
+      main,
+      radial,
+      1,
+      `${side}_shoulder`,
+      `${side}_upper_arm`,
+      0.35,
+      'shoulder'
+    );
+    assignRing(
+      main,
+      radial,
+      3,
+      `${side}_upper_arm`,
+      `${side}_forearm`,
+      0.18,
+      'elbow'
+    );
+    assignRing(
+      main,
+      radial,
+      4,
+      `${side}_upper_arm`,
+      `${side}_forearm`,
+      0.5,
+      'elbow'
+    );
+    assignRing(main, radial, 6, `${side}_forearm`, `${side}_hand`, 0.55, 'wrist');
+    assignRing(main, radial, 7, `${side}_hand`, `${side}_forearm`, 0.25, 'wrist');
+
+    for (const digit of limb.digits ?? []) {
+      const root = digit.vertexRange.vertexStart;
+      const digitRadial = digit.radialSegments;
+      const proximal = `${side}_${digit.digit}_proximal`;
+      const intermediate = `${side}_${digit.digit}_intermediate`;
+      const distal = `${side}_${digit.digit}_distal`;
+      assignRing(root, digitRadial, 0, `${side}_hand`, proximal, 0.25, 'digitRoot');
+      assignRing(root, digitRadial, 1, proximal, `${side}_hand`, 0.25, 'digitRoot');
+      assignRing(root, digitRadial, 3, proximal, intermediate, 0.25, 'fingerJoint');
+      assignRing(root, digitRadial, 4, intermediate, proximal, 0.25, 'fingerJoint');
+      assignRing(root, digitRadial, 5, intermediate, distal, 0.25, 'fingerJoint');
+      assignRing(root, digitRadial, 6, distal, intermediate, 0.25, 'fingerJoint');
+    }
+  }
+
+  const influencedVertexCount = Object.values(regionVertexCounts).reduce(
+    (sum, count) => sum + count,
+    0
+  );
+  return {
+    primaryJointWeights,
+    secondaryJointIndices,
+    secondaryJointWeights,
+    receipt: {
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount,
+      jointPairCount: jointPairs.size,
+      maxSecondaryWeight: round6(maxSecondaryWeight),
+      maxWeightSumError: round6(maxWeightSumError),
+      regionVertexCounts,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public builder
 // ---------------------------------------------------------------------------
@@ -2554,6 +2716,10 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
       positions[i + 2] *= heightScale;
     }
   }
+  const jointDeformation =
+    upperBodyProfile === 'coherent-deforming-hands-v4' && upperBody
+      ? buildDualInfluenceJointDeformation(acc, upperBody)
+      : undefined;
 
   return {
     positions,
@@ -2561,7 +2727,14 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     tangents: new Float32Array(acc.tangents),
     indices: new Uint32Array(acc.indices),
     jointIndices: new Uint32Array(acc.jointIndices),
-    jointWeights: new Float32Array(acc.jointWeights),
+    jointWeights: jointDeformation?.primaryJointWeights ?? new Float32Array(acc.jointWeights),
+    ...(jointDeformation
+      ? {
+          secondaryJointIndices: jointDeformation.secondaryJointIndices,
+          secondaryJointWeights: jointDeformation.secondaryJointWeights,
+          jointDeformation: jointDeformation.receipt,
+        }
+      : {}),
     vertexCount: acc.positions.length / 3,
     jointCount: JOINT_COUNT,
     boneOrder: BONE_ORDER,

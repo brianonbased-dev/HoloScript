@@ -491,6 +491,8 @@ export async function renderCharacter(
     { arrayStride: 4, attributes: [{ shaderLocation: 3, offset: 0, format: 'float32' }] },
     { arrayStride: 16, attributes: [{ shaderLocation: 4, offset: 0, format: 'float32x4' }] },
     { arrayStride: 8, attributes: [{ shaderLocation: 5, offset: 0, format: 'float32x2' }] },
+    { arrayStride: 4, attributes: [{ shaderLocation: 6, offset: 0, format: 'uint32' }] },
+    { arrayStride: 4, attributes: [{ shaderLocation: 7, offset: 0, format: 'float32' }] },
   ];
 
   const pipelineCache = new Map<string, GPURenderPipeline>();
@@ -575,6 +577,19 @@ export async function renderCharacter(
     usage: BUF_VERTEX | BUF_COPY_DST,
   });
   device.queue.writeBuffer(uvBuf, 0, uvData);
+  const secondaryJointIndices = mesh.secondaryJointIndices ?? mesh.jointIndices;
+  const secondaryJointWeights =
+    mesh.secondaryJointWeights ?? new Float32Array(mesh.vertexCount);
+  const secondaryJiBuf = device.createBuffer({
+    size: secondaryJointIndices.byteLength,
+    usage: BUF_VERTEX | BUF_COPY_DST,
+  });
+  device.queue.writeBuffer(secondaryJiBuf, 0, secondaryJointIndices);
+  const secondaryJwBuf = device.createBuffer({
+    size: secondaryJointWeights.byteLength,
+    usage: BUF_VERTEX | BUF_COPY_DST,
+  });
+  device.queue.writeBuffer(secondaryJwBuf, 0, secondaryJointWeights);
   const idxBuf = device.createBuffer({
     size: mesh.indices.byteLength,
     usage: BUF_INDEX | BUF_COPY_DST,
@@ -665,6 +680,8 @@ export async function renderCharacter(
   pass.setVertexBuffer(3, jwBuf);
   pass.setVertexBuffer(4, tanBuf);
   pass.setVertexBuffer(5, uvBuf);
+  pass.setVertexBuffer(6, secondaryJiBuf);
+  pass.setVertexBuffer(7, secondaryJwBuf);
   pass.setIndexBuffer(idxBuf, 'uint32');
   pass.setBindGroup(0, frameBindGroup);
 
@@ -717,6 +734,8 @@ export async function renderCharacter(
   jwBuf.destroy();
   tanBuf.destroy();
   uvBuf.destroy();
+  secondaryJiBuf.destroy();
+  secondaryJwBuf.destroy();
   idxBuf.destroy();
   frameBuf.destroy();
   jointBuf.destroy();

@@ -95,6 +95,44 @@ describe('character-render — native WebGPU GPU-skinned humanoid', () => {
     expect(pixelDiff(bind, posed)).toBeGreaterThan(30); // the arm moved
   });
 
+  itGpu('V4 secondary weights change posed wrist pixels on the native GPU path', async () => {
+    const host = new CharacterHost({
+      entityId: 'dual-influence-gpu-proof',
+      upperBodyProfile: 'coherent-deforming-hands-v4',
+      upperBodyRadialSegments: 24,
+    });
+    host.setBoneRotation('left_hand', quatFromAxisAngle(0, 0, 1, 0.75));
+    const spec = host.getDrawSpec();
+    const limb = host.getAnatomyReceipt().upperBody!.upperLimbs[0];
+    const viewProj = deriveCharacterDetailFrame(
+      spec.mesh,
+      [limb.vertexRange, ...(limb.digits ?? []).map((digit) => digit.vertexRange)],
+      { padding: 1.35 }
+    ).matrix;
+    const blended = await renderCharacter(testDevice!, spec, { size: 256, viewProj });
+
+    const primaryOnlyWeights = new Float32Array(spec.mesh.jointWeights);
+    for (let vertex = 0; vertex < primaryOnlyWeights.length; vertex++) {
+      primaryOnlyWeights[vertex] += spec.mesh.secondaryJointWeights?.[vertex] ?? 0;
+    }
+    const primaryOnly = await renderCharacter(
+      testDevice!,
+      {
+        ...spec,
+        mesh: {
+          ...spec.mesh,
+          jointWeights: primaryOnlyWeights,
+          secondaryJointWeights: new Float32Array(spec.mesh.vertexCount),
+        },
+      },
+      { size: 256, viewProj }
+    );
+
+    expect(figurePixels(blended)).toBeGreaterThan(100);
+    expect(pixelDiff(blended, primaryOnly)).toBeGreaterThan(5);
+    expect(absoluteChannelDiff(blended, primaryOnly)).toBeGreaterThan(100);
+  });
+
   it('GPU_LIVE gate is recorded (pixel tests skip, never false-pass, when no live GPU)', () => {
     expect(typeof GPU_LIVE).toBe('boolean');
   });

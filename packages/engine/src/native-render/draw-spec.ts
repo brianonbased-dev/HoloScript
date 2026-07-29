@@ -126,9 +126,9 @@ export interface DrawSpec {
 }
 
 /**
- * Skinned mesh geometry as pure data (no GPU). One palette (bone) index + one weight per
- * vertex — rigid per-bone linear-blend skinning for the procedural body; a future glTF/VRM
- * importer can populate up to 4 influences by extending these to be stride-N.
+ * Skinned mesh geometry as pure data (no GPU). The primary palette index + weight preserve
+ * the original rigid and imported-mesh ABI. Procedural profiles may opt into a second scalar
+ * influence for normalized joint transitions without widening every legacy vertex.
  */
 export interface SkinnedMeshData {
   // Typed as <ArrayBuffer> (not ArrayBufferLike) so they satisfy GPUAllowSharedBufferSource
@@ -146,6 +146,8 @@ export interface SkinnedMeshData {
   indices: Uint32Array<ArrayBuffer>;
   jointIndices: Uint32Array<ArrayBuffer>;
   jointWeights: Float32Array<ArrayBuffer>;
+  secondaryJointIndices?: Uint32Array<ArrayBuffer>;
+  secondaryJointWeights?: Float32Array<ArrayBuffer>;
   vertexCount: number;
 }
 

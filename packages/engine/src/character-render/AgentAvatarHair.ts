@@ -899,6 +899,7 @@ export interface CharacterMeshData {
   mesh: SkinnedMeshData;
   groom?: AgentAvatarGroomGeometryReceipt;
   anatomy: AgentAvatarMeshData['anatomy'];
+  jointDeformation?: AgentAvatarMeshData['jointDeformation'];
   facialLandmarks?: AgentAvatarMeshData['facialLandmarks'];
   garment?: AgentAvatarGarmentGeometryReceipt;
   ocularProfile: AgentAvatarOcularProfile;
@@ -1064,6 +1065,9 @@ export function buildCharacterMesh(
     new Float32Array(vertexCount * 2);
   const zeroWeight = (vertexCount: number): Float32Array<ArrayBuffer> =>
     new Float32Array(vertexCount);
+  const bodySecondaryJointIndices = body.secondaryJointIndices ?? body.jointIndices;
+  const bodySecondaryJointWeights =
+    body.secondaryJointWeights ?? new Float32Array(body.vertexCount);
 
   const mesh: SkinnedMeshData = {
     positions: catF32(
@@ -1127,6 +1131,29 @@ export function buildCharacterMesh(
       ),
       garment.mantle.jointWeights
     ),
+    secondaryJointIndices: catU32(
+      catU32(
+        catU32(
+          catU32(catU32(bodySecondaryJointIndices, hair.jointIndices), eyes.jointIndices),
+          garment.cloth.jointIndices
+        ),
+        garment.visor.jointIndices
+      ),
+      garment.mantle.jointIndices
+    ),
+    secondaryJointWeights: catF32(
+      catF32(
+        catF32(
+          catF32(
+            catF32(bodySecondaryJointWeights, zeroWeight(hairVC)),
+            zeroWeight(eyes.vertexCount)
+          ),
+          zeroWeight(garment.cloth.vertexCount)
+        ),
+        zeroWeight(garment.visor.vertexCount)
+      ),
+      zeroWeight(garment.mantle.vertexCount)
+    ),
     vertexCount:
       bodyVC +
       hairVC +
@@ -1170,6 +1197,7 @@ export function buildCharacterMesh(
     mesh,
     ...(hair.groom ? { groom: hair.groom } : {}),
     anatomy: body.anatomy,
+    ...(body.jointDeformation ? { jointDeformation: body.jointDeformation } : {}),
     ...(body.facialLandmarks ? { facialLandmarks: body.facialLandmarks } : {}),
     ...(authoredGarment ? { garment: authoredGarment.receipt } : {}),
     ocularProfile,

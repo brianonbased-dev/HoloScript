@@ -10,9 +10,10 @@
 //   @group(0) = Frame{mvp,model,cameraPos,lightDir} + joints palette   (shared, set once)
 //   @group(1) = Material                                               (per group/draw)
 //
-// Vertex stage: single-bone linear-blend skinning (rigid procedural body); emits world
-// position + world normal so the fragment stages have view/light geometry. cullMode 'none'
-// downstream, so the lit terms are two-sided where appropriate.
+// Vertex stage: backward-compatible dual-influence linear-blend skinning. Legacy meshes bind
+// their secondary index to the primary with weight zero; V4 hands author normalized pairs.
+// Emits world position + world normal so the fragment stages have view/light geometry.
+// cullMode 'none' downstream, so the lit terms are two-sided where appropriate.
 
 struct Frame {
   mvp       : mat4x4<f32>,
@@ -43,6 +44,8 @@ struct VSIn {
   @location(3) jointWeight : f32,
   @location(4) tangent : vec4<f32>,   // xyz strand-flow tangent; w = strandT
   @location(5) uv : vec2<f32>,
+  @location(6) secondaryJointIndex : u32,
+  @location(7) secondaryJointWeight : f32,
 };
 struct VSOut {
   @builtin(position) clip : vec4<f32>,
@@ -56,13 +59,28 @@ struct VSOut {
 
 @vertex
 fn vs(in : VSIn) -> VSOut {
-  let skin = joints[in.jointIndex];
-  let sp = mix(vec4<f32>(in.pos, 1.0), skin * vec4<f32>(in.pos, 1.0), in.jointWeight);
+  let primarySkin = joints[in.jointIndex];
+  let secondarySkin = joints[in.secondaryJointIndex];
+  let primaryWeight = clamp(in.jointWeight, 0.0, 1.0);
+  let secondaryWeight = clamp(in.secondaryJointWeight, 0.0, 1.0 - primaryWeight);
+  let totalWeight = primaryWeight + secondaryWeight;
+  let bindP = vec4<f32>(in.pos, 1.0);
+  let sp =
+    bindP * (1.0 - totalWeight) +
+    primarySkin * bindP * primaryWeight +
+    secondarySkin * bindP * secondaryWeight;
+  let skinnedNormal =
+    (primarySkin * vec4<f32>(in.normal, 0.0)).xyz * primaryWeight +
+    (secondarySkin * vec4<f32>(in.normal, 0.0)).xyz * secondaryWeight;
+  let skinnedTangent =
+    (primarySkin * vec4<f32>(in.tangent.xyz, 0.0)).xyz * primaryWeight +
+    (secondarySkin * vec4<f32>(in.tangent.xyz, 0.0)).xyz * secondaryWeight;
+  let hasSkin = totalWeight > 0.000001;
   var o : VSOut;
   o.clip = frame.mvp * vec4<f32>(sp.xyz, 1.0);
   o.wP = (frame.model * vec4<f32>(sp.xyz, 1.0)).xyz;
-  o.wN = (skin * vec4<f32>(in.normal, 0.0)).xyz;
-  o.wT = (skin * vec4<f32>(in.tangent.xyz, 0.0)).xyz; // tangent rides the bone too
+  o.wN = select(in.normal, skinnedNormal / max(totalWeight, 0.000001), hasSkin);
+  o.wT = select(in.tangent.xyz, skinnedTangent / max(totalWeight, 0.000001), hasSkin);
   o.strandT = in.tangent.w;
   o.uv = in.uv;
   o.bodyP = sp.xyz;
