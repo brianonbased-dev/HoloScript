@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/memory",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Consumable client for the shared sovereign HoloScript agent-memory substrate — identity-keyed, cross-family, direct-to-SoT.",
   "type": "module",
   "main": "dist/index.js",

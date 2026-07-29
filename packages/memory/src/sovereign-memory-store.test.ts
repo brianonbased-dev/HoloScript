@@ -70,6 +70,42 @@ describe('SovereignMemoryStore workspace isolation', () => {
     ).rejects.toThrow('belongs to a different workspace');
   });
 
+  it('refreshes supplied identity and provenance fields on an id-scoped upsert', async () => {
+    queryMock.mockResolvedValue({ rows: [{ id: 'W.AGENTS.shared' }], rowCount: 1 });
+    const store = new SovereignMemoryStore({ workspaceId: 'workspace-a' });
+
+    await store.store({
+      id: 'W.AGENTS.shared',
+      authorAgent: 'orchestrator-stage-2',
+      section: 'W',
+      type: 'pattern',
+      content: 'verified state transition',
+      tags: ['mcp-orchestrator', 'receipt'],
+      domain: 'work-unit',
+      confidence: 0.95,
+      provenanceHash: 'sha256:current-state',
+    });
+
+    const [statement, parameters] = queryMock.mock.calls[0];
+    expect(statement).toContain('author_agent = EXCLUDED.author_agent');
+    expect(statement).toContain('type = EXCLUDED.type');
+    expect(statement).toContain('domain = EXCLUDED.domain');
+    expect(statement).toContain('provenance_hash = EXCLUDED.provenance_hash');
+    expect(statement).toContain('WHERE memory_entries.workspace_id = EXCLUDED.workspace_id');
+    expect(parameters).toEqual([
+      'W.AGENTS.shared',
+      'workspace-a',
+      'orchestrator-stage-2',
+      'W',
+      'pattern',
+      'verified state transition',
+      ['mcp-orchestrator', 'receipt'],
+      'work-unit',
+      0.95,
+      'sha256:current-state',
+    ]);
+  });
+
   it('reports schema readiness without exposing connection configuration', async () => {
     queryMock.mockResolvedValue({
       rows: [

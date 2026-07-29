@@ -200,8 +200,11 @@ export class SovereignMemoryStore {
          (id, workspace_id, author_agent, section, type, content, tags, domain, confidence, provenance_hash)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (id) DO UPDATE
-         SET content = EXCLUDED.content, tags = EXCLUDED.tags, section = EXCLUDED.section,
-             confidence = EXCLUDED.confidence, updated_at = now()
+         SET author_agent = EXCLUDED.author_agent, section = EXCLUDED.section,
+             type = EXCLUDED.type, content = EXCLUDED.content,
+             tags = EXCLUDED.tags, domain = EXCLUDED.domain,
+             confidence = EXCLUDED.confidence,
+             provenance_hash = EXCLUDED.provenance_hash, updated_at = now()
          WHERE memory_entries.workspace_id = EXCLUDED.workspace_id
        RETURNING id`,
       [
