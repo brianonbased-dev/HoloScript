@@ -73,3 +73,17 @@ laptop had 5.4 GB free RAM, while the prior embedding artifact alone occupied
 about 1.3 GB. The authoritative graph was published without risking an
 unbounded semantic rebuild; a generation-matched embedding warm remains a
 separate guarded operation.
+
+## Post-commit incremental admission repair
+
+The first post-commit convergence probe exposed a second defect: the
+incremental patch lane admitted 13 untracked JavaScript files even though the
+persisted policy declared `includeUntracked=false`. HoloAbsorb refused
+authority because those files were outside the selected census.
+
+The follow-up fix makes incremental add/modify admission use the same exact
+Git-visible selected-file census as full scans and evicts any existing graph
+entry outside that census. The live repair removed all 13 unexpected files,
+reparsed only the two scoped modified TypeScript files, and restored exact
+11,650/11,650 authority with no caveats. The complete root/refresh suite then
+passed 75/75 tests, including a new tracked-only incremental regression.

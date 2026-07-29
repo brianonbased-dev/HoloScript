@@ -7364,9 +7364,41 @@ async function runIncrementalPatch(
   );
 
   const coveragePolicy = buildCoveragePolicy(effectiveScanPolicy);
-  const filesToRemove = [...changes.deleted, ...modifiedFiltered.trulyChanged];
+  const selectedCandidateCensus =
+    effectiveScanPolicy.respectGitIgnore !== false
+      ? listGitAbsorbableFiles(
+          rootDir,
+          effectiveScanPolicy,
+          effectiveScanPolicy.includeUntracked !== false
+        )
+      : null;
+  if (effectiveScanPolicy.respectGitIgnore !== false && !selectedCandidateCensus) {
+    throw new Error(
+      'Incremental refresh could not materialize the selected Git-visible file census'
+    );
+  }
+  const selectedCandidateIdentities = selectedCandidateCensus?.files;
+  const candidateFileIsSelected = (filePath: string): boolean =>
+    !selectedCandidateIdentities ||
+    selectedCandidateIdentities.has(
+      normalizeRootForComparison(path.resolve(rootDir, filePath))
+    );
+  const graphFilesOutsideSelection = selectedCandidateIdentities
+    ? (graph.getFilePaths() as string[]).filter(
+        (filePath) => !candidateFileIsSelected(filePath)
+      )
+    : [];
+  const filesToRemove = Array.from(
+    new Set([
+      ...changes.deleted,
+      ...modifiedFiltered.trulyChanged,
+      ...graphFilesOutsideSelection,
+    ])
+  );
   const filesToRescan = [...changes.added, ...modifiedFiltered.trulyChanged].filter(
-    (filePath) => !isCoverageExcludedPath(filePath, coveragePolicy)
+    (filePath) =>
+      !isCoverageExcludedPath(filePath, coveragePolicy) &&
+      candidateFileIsSelected(filePath)
   );
 
   if (jobId) trackAbsorbProgress(jobId, `Rescanning ${filesToRescan.length} changed files`, 30);

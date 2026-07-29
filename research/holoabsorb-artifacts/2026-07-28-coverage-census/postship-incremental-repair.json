@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.incremental-census-repair.v1",
+  "productName": "HoloAbsorb",
+  "observedAt": "2026-07-29T06:31:16.921Z",
+  "workspaceRoot": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript",
+  "targetGitCommitHash": "2263cadc6f1d6b34dd50bb2e5d7de61062537c11",
+  "incident": {
+    "policy": {
+      "languages": [
+        "typescript"
+      ],
+      "includeUntracked": false,
+      "maxFiles": 22000
+    },
+    "graphFileCount": 11663,
+    "selectedCandidateCount": 11650,
+    "overInclusive": true,
+    "unexpectedGraphFiles": 13,
+    "cause": "Incremental add admission applied path and language exclusions but did not require membership in the selected tracked-file census."
+  },
+  "repair": {
+    "kind": "IncompleteCacheRepairPlan",
+    "mode": "authority-safe-delta",
+    "selectedCandidateFiles": 11650,
+    "cachedGraphFiles": 11663,
+    "missingFiles": 0,
+    "changedFiles": 2,
+    "removedFiles": 13,
+    "parsedFiles": 2,
+    "durationMs": 20535
+  },
+  "readback": {
+    "graphFileCount": 11650,
+    "selectedCandidateCount": 11650,
+    "complete": true,
+    "ratio": 1,
+    "overInclusive": false,
+    "exactFileSetMatch": true,
+    "missingGraphFiles": 0,
+    "unexpectedGraphFiles": 0,
+    "graphAuthoritative": true,
+    "authorityCaveats": []
+  },
+  "validation": {
+    "regression": "keeps untracked peer files out of incremental tracked-only refreshes",
+    "isolatedRegressionStatus": "pass",
+    "completeRootRefreshSuite": {
+      "passed": 75,
+      "failed": 0
+    },
+    "buildStatus": "pass"
+  },
+  "claimBoundary": "This receipt proves tracked-only incremental admission and repair for the observed local repository and regression fixture. It does not establish semantic-index readiness or universal incremental throughput."
+}
