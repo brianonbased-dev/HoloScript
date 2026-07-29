@@ -459,6 +459,75 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.host?.getAnatomyReceipt()).toEqual(result.anatomy);
   });
 
+  it('maps v3 hand landmarks and isolates authored keratin nail material ranges', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3NResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                skin_tone: '#B9826F',
+                shoulder_scale: 1.1,
+                torso_scale: 0.96,
+                upper_body_profile: 'coherent_hand_landmarks_v3',
+                upper_body_radial_segments: 24,
+                nail_tone: '#F0CABC',
+                nail_roughness: 0.23,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@body(upper_body_profile=coherent-hand-landmarks-v3,' + 'upper_body_radial_segments=24)'
+    );
+    expect(result.report.mapped).toContain('@body(nail_tone=15780540,nail_roughness=0.23)');
+    expect(result.anatomy?.upperBody).toMatchObject({
+      profile: 'anatomical-hand-landmarks-v3',
+      radialSegments: 24,
+      ringCount: 12,
+    });
+    const landmarkRanges = (result.anatomy?.upperBody?.upperLimbs ?? []).flatMap((limb) => {
+      expect(limb.profile).toBe('anatomical-landmark-hand-v3');
+      expect(limb.connectedSurfaceCount).toBe(24);
+      expect(limb.handLandmarks).toHaveLength(18);
+      return (
+        limb.handLandmarks
+          ?.filter((landmark) => landmark.materialRole === 'keratin-nail')
+          .map((landmark) => landmark.indexRange) ?? []
+      );
+    });
+    expect(landmarkRanges).toHaveLength(10);
+
+    const groups = result.host?.getDrawSpec().materialGroups ?? [];
+    const nailGroups = groups.filter(
+      (group) =>
+        group.material.shadingModel === 'skin-sss' &&
+        group.material.color === 0xf0cabc &&
+        group.material.roughness === 0.23
+    );
+    expect(nailGroups.map(({ indexStart, indexCount }) => ({ indexStart, indexCount }))).toEqual(
+      landmarkRanges
+    );
+    const skinGroups = groups.filter(
+      (group) => group.material.shadingModel === 'skin-sss' && group.material.color === 0xb9826f
+    );
+    expect(skinGroups).toHaveLength(3);
+    for (const nail of nailGroups) {
+      for (const skin of skinGroups) {
+        expect(
+          nail.indexStart + nail.indexCount <= skin.indexStart ||
+            skin.indexStart + skin.indexCount <= nail.indexStart
+        ).toBe(true);
+      }
+    }
+  });
+
   it('fails closed on unsupported upper-body profiles and orphan topology controls', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

@@ -452,6 +452,8 @@ export function buildCharacterHostFromComposition(
   let torsoScale = 1;
   let upperBodyProfile: AgentAvatarUpperBodyProfile | undefined;
   let upperBodyRadialSegments: number | undefined;
+  let nailTone: number | undefined;
+  let nailRoughness: number | undefined;
   let anatomyAuthored = false;
   const body = traits.get('body');
   if (body) {
@@ -482,6 +484,7 @@ export function buildCharacterHostFromComposition(
     if (
       authoredUpperBodyProfile === 'coherent-shoulder-neck-torso-v1' ||
       authoredUpperBodyProfile === 'coherent-anatomical-limbs-v2' ||
+      authoredUpperBodyProfile === 'coherent-hand-landmarks-v3' ||
       authoredUpperBodyProfile === 'legacy-segments-v1'
     ) {
       upperBodyProfile = authoredUpperBodyProfile;
@@ -503,6 +506,26 @@ export function buildCharacterHostFromComposition(
             reason: 'upper-body topology controls require the coherent upper_body_profile',
           });
         }
+      }
+      const authoredNailTone = packRgb(asRgb(body.config.nail_tone ?? body.config.nailTone));
+      const authoredNailRoughness = asNum(body.config.nail_roughness ?? body.config.nailRoughness);
+      if (upperBodyProfile === 'coherent-hand-landmarks-v3') {
+        nailTone = authoredNailTone;
+        nailRoughness =
+          authoredNailRoughness === undefined
+            ? undefined
+            : clamp(authoredNailRoughness, 0.08, 0.65);
+        if (authoredNailTone !== undefined || authoredNailRoughness !== undefined) {
+          report.mapped.push(
+            `@body(nail_tone=${authoredNailTone ?? 'profile-default'},` +
+              `nail_roughness=${nailRoughness ?? 'profile-default'})`
+          );
+        }
+      } else if (authoredNailTone !== undefined || authoredNailRoughness !== undefined) {
+        report.stubbed.push({
+          trait: '@body(nail_material_controls)',
+          reason: 'nail material controls require coherent-hand-landmarks-v3',
+        });
       }
     } else if (authoredUpperBodyProfile) {
       report.stubbed.push({
@@ -1063,6 +1086,8 @@ export function buildCharacterHostFromComposition(
     torsoScale,
     upperBodyProfile,
     upperBodyRadialSegments,
+    nailTone,
+    nailRoughness,
     ocularProfile,
     irisScale,
     pupilScale,

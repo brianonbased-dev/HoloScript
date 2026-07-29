@@ -70,6 +70,7 @@ export const AGENT_AVATAR_UPPER_BODY_PROFILES = [
   'legacy-segments-v1',
   'coherent-shoulder-neck-torso-v1',
   'coherent-anatomical-limbs-v2',
+  'coherent-hand-landmarks-v3',
 ] as const;
 export type AgentAvatarUpperBodyProfile = (typeof AGENT_AVATAR_UPPER_BODY_PROFILES)[number];
 export const AGENT_AVATAR_ORBITAL_PROFILES = ['tearline-rim-v1', 'recessed-lids-v1'] as const;
@@ -121,7 +122,10 @@ export interface AgentAvatarAnatomyReceipt {
 
 export interface AgentAvatarUpperBodyGeometryReceipt {
   schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1';
-  profile: 'coherent-shoulder-neck-torso-v1' | 'anatomical-shoulder-neck-torso-v2';
+  profile:
+    | 'coherent-shoulder-neck-torso-v1'
+    | 'anatomical-shoulder-neck-torso-v2'
+    | 'anatomical-hand-landmarks-v3';
   radialSegments: number;
   ringCount: number;
   /** Emitted bind-space half width at the shoulder ring, after authored scaling. */
@@ -138,7 +142,7 @@ export interface AgentAvatarUpperBodyGeometryReceipt {
 
 export interface AgentAvatarUpperLimbGeometryReceipt {
   schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1';
-  profile: 'coherent-arm-palm-v1' | 'anatomical-deltoid-hand-v2';
+  profile: 'coherent-arm-palm-v1' | 'anatomical-deltoid-hand-v2' | 'anatomical-landmark-hand-v3';
   side: 'left' | 'right';
   radialSegments: number;
   ringCount: number;
@@ -151,7 +155,9 @@ export interface AgentAvatarUpperLimbGeometryReceipt {
   shoulderOverlapDepth?: number;
   /** Five separately skinned, three-phalanx native digit surfaces in V2. */
   digits?: readonly AgentAvatarDigitGeometryReceipt[];
-  /** Arm/palm plus the five digit surfaces. V1 remains one connected surface. */
+  /** V3 skin and keratin landmarks: webs, knuckles, tendons, and nail plates. */
+  handLandmarks?: readonly AgentAvatarHandLandmarkGeometryReceipt[];
+  /** Arm/palm plus separately connected digit and landmark surfaces. */
   connectedSurfaceCount?: number;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
@@ -172,6 +178,28 @@ export interface AgentAvatarDigitGeometryReceipt {
   totalLength: number;
   baseRadius: number;
   tipRadius: number;
+  vertexRange: { vertexStart: number; vertexCount: number };
+  indexRange: { indexStart: number; indexCount: number };
+}
+
+export type AgentAvatarHandLandmarkKind =
+  | 'interdigital-web'
+  | 'metacarpal-knuckle'
+  | 'dorsal-tendon-ridge'
+  | 'nail-plate';
+
+export interface AgentAvatarHandLandmarkGeometryReceipt {
+  schemaVersion: 'holoscript.agent-avatar-hand-landmark-geometry.v1';
+  profile: 'anatomical-hand-landmark-v1';
+  side: 'left' | 'right';
+  kind: AgentAvatarHandLandmarkKind;
+  /** Primary digit, when the landmark belongs to one digit. */
+  digit?: AgentAvatarDigitName;
+  /** Adjacent digit pair bridged by an interdigital web. */
+  betweenDigits?: readonly [AgentAvatarDigitName, AgentAvatarDigitName];
+  /** Native shading region. Nail plates are excluded from the skin draw ranges. */
+  materialRole: 'skin' | 'keratin-nail';
+  jointName: string;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -359,6 +387,13 @@ function add(a: Vec3, b: Vec3): Vec3 {
 function scale(a: Vec3, s: number): Vec3 {
   return { x: a.x * s, y: a.y * s, z: a.z * s };
 }
+function midpoint(a: Vec3, b: Vec3, t: number): Vec3 {
+  return {
+    x: a.x + (b.x - a.x) * t,
+    y: a.y + (b.y - a.y) * t,
+    z: a.z + (b.z - a.z) * t,
+  };
+}
 function dot(a: Vec3, b: Vec3): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
@@ -500,6 +535,8 @@ function pushCoherentUpperBody(
   heightScale: number
 ): Omit<AgentAvatarUpperBodyGeometryReceipt, 'upperLimbs'> {
   const torso = buildScale * torsoScale;
+  const anatomical = profile !== 'coherent-shoulder-neck-torso-v1';
+  const landmarked = profile === 'coherent-hand-landmarks-v3';
   const foundationRings: UpperBodyRing[] = [
     { y: 0.91, radiusX: 0.16 * torso, radiusZ: 0.13 * torso, centerZ: 0, jointName: 'hips' },
     { y: 0.99, radiusX: 0.18 * torso, radiusZ: 0.14 * torso, centerZ: 0, jointName: 'hips' },
@@ -527,70 +564,69 @@ function pushCoherentUpperBody(
       jointName: 'spine2',
     },
   ];
-  const rings: UpperBodyRing[] =
-    profile === 'coherent-anatomical-limbs-v2'
-      ? [
-          ...foundationRings,
-          {
-            y: 1.395,
-            radiusX: 0.242 * buildScale * shoulderScale,
-            radiusZ: 0.158 * buildScale,
-            centerZ: 0.008,
-            jointName: 'spine2',
-          },
-          {
-            y: 1.422,
-            radiusX: 0.218 * buildScale * shoulderScale,
-            radiusZ: 0.146 * buildScale,
-            centerZ: 0.004,
-            jointName: 'spine2',
-          },
-          {
-            y: 1.448,
-            radiusX: 0.15 * buildScale,
-            radiusZ: 0.112 * buildScale,
-            centerZ: 0.001,
-            jointName: 'neck',
-          },
-          {
-            y: 1.475,
-            radiusX: 0.082 * buildScale,
-            radiusZ: 0.071 * buildScale,
-            centerZ: 0,
-            jointName: 'neck',
-          },
-          {
-            y: 1.51,
-            radiusX: 0.054 * buildScale,
-            radiusZ: 0.052 * buildScale,
-            centerZ: 0,
-            jointName: 'neck',
-          },
-        ]
-      : [
-          ...foundationRings,
-          {
-            y: 1.41,
-            radiusX: 0.24 * buildScale * shoulderScale,
-            radiusZ: 0.15 * buildScale,
-            centerZ: 0.005,
-            jointName: 'spine2',
-          },
-          {
-            y: 1.45,
-            radiusX: 0.1 * buildScale,
-            radiusZ: 0.09 * buildScale,
-            centerZ: 0,
-            jointName: 'neck',
-          },
-          {
-            y: 1.51,
-            radiusX: 0.054 * buildScale,
-            radiusZ: 0.052 * buildScale,
-            centerZ: 0,
-            jointName: 'neck',
-          },
-        ];
+  const rings: UpperBodyRing[] = anatomical
+    ? [
+        ...foundationRings,
+        {
+          y: 1.395,
+          radiusX: 0.242 * buildScale * shoulderScale,
+          radiusZ: 0.158 * buildScale,
+          centerZ: 0.008,
+          jointName: 'spine2',
+        },
+        {
+          y: 1.422,
+          radiusX: 0.218 * buildScale * shoulderScale,
+          radiusZ: 0.146 * buildScale,
+          centerZ: 0.004,
+          jointName: 'spine2',
+        },
+        {
+          y: 1.448,
+          radiusX: 0.15 * buildScale,
+          radiusZ: 0.112 * buildScale,
+          centerZ: 0.001,
+          jointName: 'neck',
+        },
+        {
+          y: 1.475,
+          radiusX: 0.082 * buildScale,
+          radiusZ: 0.071 * buildScale,
+          centerZ: 0,
+          jointName: 'neck',
+        },
+        {
+          y: 1.51,
+          radiusX: 0.054 * buildScale,
+          radiusZ: 0.052 * buildScale,
+          centerZ: 0,
+          jointName: 'neck',
+        },
+      ]
+    : [
+        ...foundationRings,
+        {
+          y: 1.41,
+          radiusX: 0.24 * buildScale * shoulderScale,
+          radiusZ: 0.15 * buildScale,
+          centerZ: 0.005,
+          jointName: 'spine2',
+        },
+        {
+          y: 1.45,
+          radiusX: 0.1 * buildScale,
+          radiusZ: 0.09 * buildScale,
+          centerZ: 0,
+          jointName: 'neck',
+        },
+        {
+          y: 1.51,
+          radiusX: 0.054 * buildScale,
+          radiusZ: 0.052 * buildScale,
+          centerZ: 0,
+          jointName: 'neck',
+        },
+      ];
   const vertexStart = acc.positions.length / 3;
   const indexStart = acc.indices.length;
 
@@ -643,8 +679,9 @@ function pushCoherentUpperBody(
 
   return {
     schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
-    profile:
-      profile === 'coherent-anatomical-limbs-v2'
+    profile: landmarked
+      ? 'anatomical-hand-landmarks-v3'
+      : anatomical
         ? 'anatomical-shoulder-neck-torso-v2'
         : 'coherent-shoulder-neck-torso-v1',
     radialSegments,
@@ -817,6 +854,304 @@ function pushArticulatedDigit(
   };
 }
 
+interface HandLandmarkShape {
+  side: 'left' | 'right';
+  kind: AgentAvatarHandLandmarkKind;
+  center: Vec3;
+  radii: Vec3;
+  jointName: string;
+  materialRole: AgentAvatarHandLandmarkGeometryReceipt['materialRole'];
+  digit?: AgentAvatarDigitName;
+  betweenDigits?: readonly [AgentAvatarDigitName, AgentAvatarDigitName];
+}
+
+function pushHandLandmarkEllipsoid(
+  acc: MeshAccum,
+  shape: HandLandmarkShape
+): AgentAvatarHandLandmarkGeometryReceipt {
+  const radialSegments = 8;
+  const verticalSegments = 4;
+  const jointIndex = BONE_INDEX.get(shape.jointName) ?? 0;
+  const vertexStart = acc.positions.length / 3;
+  const indexStart = acc.indices.length;
+  const pushVertex = (position: Vec3, normal: Vec3, tangent: Vec3): void => {
+    acc.positions.push(position.x, position.y, position.z);
+    acc.normals.push(normal.x, normal.y, normal.z);
+    acc.tangents.push(tangent.x, tangent.y, tangent.z, 1);
+    acc.jointIndices.push(jointIndex);
+    acc.jointWeights.push(1);
+  };
+
+  pushVertex(
+    { x: shape.center.x, y: shape.center.y + shape.radii.y, z: shape.center.z },
+    { x: 0, y: 1, z: 0 },
+    { x: 1, y: 0, z: 0 }
+  );
+  for (let latitude = 1; latitude < verticalSegments; latitude++) {
+    const phi = (latitude / verticalSegments) * Math.PI;
+    const sinPhi = Math.sin(phi);
+    const cosPhi = Math.cos(phi);
+    for (let segment = 0; segment < radialSegments; segment++) {
+      const theta = (segment / radialSegments) * Math.PI * 2;
+      const cosine = Math.cos(theta);
+      const sine = Math.sin(theta);
+      const offset = {
+        x: shape.radii.x * sinPhi * cosine,
+        y: shape.radii.y * cosPhi,
+        z: shape.radii.z * sinPhi * sine,
+      };
+      pushVertex(
+        add(shape.center, offset),
+        normalize({
+          x: offset.x / Math.max(1e-6, shape.radii.x * shape.radii.x),
+          y: offset.y / Math.max(1e-6, shape.radii.y * shape.radii.y),
+          z: offset.z / Math.max(1e-6, shape.radii.z * shape.radii.z),
+        }),
+        normalize({ x: -sine, y: 0, z: cosine })
+      );
+    }
+  }
+  const bottomVertex = acc.positions.length / 3;
+  pushVertex(
+    { x: shape.center.x, y: shape.center.y - shape.radii.y, z: shape.center.z },
+    { x: 0, y: -1, z: 0 },
+    { x: 1, y: 0, z: 0 }
+  );
+
+  const firstRing = vertexStart + 1;
+  for (let segment = 0; segment < radialSegments; segment++) {
+    const next = (segment + 1) % radialSegments;
+    acc.indices.push(vertexStart, firstRing + segment, firstRing + next);
+  }
+  for (let latitude = 0; latitude < verticalSegments - 2; latitude++) {
+    const upper = firstRing + latitude * radialSegments;
+    const lower = upper + radialSegments;
+    for (let segment = 0; segment < radialSegments; segment++) {
+      const next = (segment + 1) % radialSegments;
+      acc.indices.push(
+        upper + segment,
+        lower + segment,
+        lower + next,
+        upper + segment,
+        lower + next,
+        upper + next
+      );
+    }
+  }
+  const lastRing = firstRing + (verticalSegments - 2) * radialSegments;
+  for (let segment = 0; segment < radialSegments; segment++) {
+    const next = (segment + 1) % radialSegments;
+    acc.indices.push(bottomVertex, lastRing + next, lastRing + segment);
+  }
+
+  return {
+    schemaVersion: 'holoscript.agent-avatar-hand-landmark-geometry.v1',
+    profile: 'anatomical-hand-landmark-v1',
+    side: shape.side,
+    kind: shape.kind,
+    materialRole: shape.materialRole,
+    jointName: shape.jointName,
+    ...(shape.digit ? { digit: shape.digit } : {}),
+    ...(shape.betweenDigits ? { betweenDigits: shape.betweenDigits } : {}),
+    vertexRange: {
+      vertexStart,
+      vertexCount: acc.positions.length / 3 - vertexStart,
+    },
+    indexRange: {
+      indexStart,
+      indexCount: acc.indices.length - indexStart,
+    },
+  };
+}
+
+function pushHandLandmarkPrism(
+  acc: MeshAccum,
+  shape: HandLandmarkShape
+): AgentAvatarHandLandmarkGeometryReceipt {
+  const jointIndex = BONE_INDEX.get(shape.jointName) ?? 0;
+  const vertexStart = acc.positions.length / 3;
+  const indexStart = acc.indices.length;
+  const signs: Array<readonly [number, number, number]> = [
+    [-1, -1, -1],
+    [1, -1, -1],
+    [1, 1, -1],
+    [-1, 1, -1],
+    [-1, -1, 1],
+    [1, -1, 1],
+    [1, 1, 1],
+    [-1, 1, 1],
+  ];
+  for (const [sx, sy, sz] of signs) {
+    acc.positions.push(
+      shape.center.x + sx * shape.radii.x,
+      shape.center.y + sy * shape.radii.y,
+      shape.center.z + sz * shape.radii.z
+    );
+    const normal = normalize({
+      x: sx / Math.max(1e-6, shape.radii.x),
+      y: sy / Math.max(1e-6, shape.radii.y),
+      z: sz / Math.max(1e-6, shape.radii.z),
+    });
+    acc.normals.push(normal.x, normal.y, normal.z);
+    acc.tangents.push(shape.side === 'left' ? 1 : -1, 0, 0, 1);
+    acc.jointIndices.push(jointIndex);
+    acc.jointWeights.push(1);
+  }
+  const faces = [
+    [0, 1, 2, 0, 2, 3],
+    [4, 6, 5, 4, 7, 6],
+    [0, 4, 5, 0, 5, 1],
+    [3, 2, 6, 3, 6, 7],
+    [0, 3, 7, 0, 7, 4],
+    [1, 5, 6, 1, 6, 2],
+  ];
+  for (const face of faces) acc.indices.push(...face.map((index) => vertexStart + index));
+
+  return {
+    schemaVersion: 'holoscript.agent-avatar-hand-landmark-geometry.v1',
+    profile: 'anatomical-hand-landmark-v1',
+    side: shape.side,
+    kind: shape.kind,
+    materialRole: shape.materialRole,
+    jointName: shape.jointName,
+    ...(shape.digit ? { digit: shape.digit } : {}),
+    ...(shape.betweenDigits ? { betweenDigits: shape.betweenDigits } : {}),
+    vertexRange: {
+      vertexStart,
+      vertexCount: acc.positions.length / 3 - vertexStart,
+    },
+    indexRange: {
+      indexStart,
+      indexCount: acc.indices.length - indexStart,
+    },
+  };
+}
+
+function pushHandLandmarks(
+  acc: MeshAccum,
+  side: 'left' | 'right',
+  bindWorld: Map<string, Mat4>,
+  buildScale: number,
+  shoulderScale: number
+): AgentAvatarHandLandmarkGeometryReceipt[] {
+  const direction = side === 'left' ? 1 : -1;
+  const scaleXZ = buildScale * shoulderScale;
+  const scaledBindPoint = (bone: string): Vec3 => {
+    const point = getTranslation(bindWorld.get(bone)!);
+    return { x: point.x * shoulderScale, y: point.y, z: point.z };
+  };
+  const proximal = (digit: AgentAvatarDigitName): Vec3 =>
+    scaledBindPoint(`${side}_${digit}_proximal`);
+  const distal = (digit: AgentAvatarDigitName): Vec3 => scaledBindPoint(`${side}_${digit}_distal`);
+  const wrist = scaledBindPoint(`${side}_hand`);
+  const landmarks: AgentAvatarHandLandmarkGeometryReceipt[] = [];
+  const webPairs: Array<readonly [AgentAvatarDigitName, AgentAvatarDigitName]> = [
+    ['thumb', 'index'],
+    ['index', 'middle'],
+    ['middle', 'ring'],
+    ['ring', 'pinky'],
+  ];
+  for (const pair of webPairs) {
+    const a = proximal(pair[0]);
+    const b = proximal(pair[1]);
+    const center = midpoint(a, b, 0.5);
+    landmarks.push(
+      pushHandLandmarkPrism(acc, {
+        side,
+        kind: 'interdigital-web',
+        center: {
+          x: center.x - direction * 0.008 * scaleXZ,
+          y: center.y - 0.001,
+          z: center.z,
+        },
+        radii: {
+          x: 0.012 * scaleXZ,
+          y: 0.0035 * buildScale,
+          z: Math.max(0.0045 * buildScale, Math.abs(a.z - b.z) * 0.38),
+        },
+        jointName: `${side}_hand`,
+        materialRole: 'skin',
+        betweenDigits: pair,
+      })
+    );
+  }
+  for (const digit of AGENT_AVATAR_DIGIT_NAMES) {
+    const center = proximal(digit);
+    landmarks.push(
+      pushHandLandmarkEllipsoid(acc, {
+        side,
+        kind: 'metacarpal-knuckle',
+        center: {
+          x: center.x - direction * 0.005 * scaleXZ,
+          y: center.y + 0.0085 * buildScale,
+          z: center.z,
+        },
+        radii: {
+          x: (digit === 'thumb' ? 0.009 : 0.0115) * scaleXZ,
+          y: 0.006 * buildScale,
+          z: (digit === 'thumb' ? 0.0095 : 0.011) * buildScale,
+        },
+        jointName: `${side}_${digit}_proximal`,
+        materialRole: 'skin',
+        digit,
+      })
+    );
+  }
+  for (const digit of AGENT_AVATAR_DIGIT_NAMES.filter((name) => name !== 'thumb')) {
+    const center = midpoint(wrist, proximal(digit), 0.62);
+    landmarks.push(
+      pushHandLandmarkEllipsoid(acc, {
+        side,
+        kind: 'dorsal-tendon-ridge',
+        center: {
+          x: center.x,
+          y: center.y + 0.022 * buildScale,
+          z: center.z,
+        },
+        radii: {
+          x: 0.028 * scaleXZ,
+          y: 0.0026 * buildScale,
+          z: 0.0038 * buildScale,
+        },
+        jointName: `${side}_hand`,
+        materialRole: 'skin',
+        digit,
+      })
+    );
+  }
+  for (const digit of AGENT_AVATAR_DIGIT_NAMES) {
+    const distalPoint = distal(digit);
+    const distalLength =
+      HUMANOID_65_SKELETON.find((bone) => bone.name === `${side}_${digit}_distal`)?.length ?? 0.018;
+    const tip = {
+      x: distalPoint.x + direction * distalLength * shoulderScale,
+      y: distalPoint.y,
+      z: distalPoint.z,
+    };
+    const center = midpoint(distalPoint, tip, 0.58);
+    landmarks.push(
+      pushHandLandmarkEllipsoid(acc, {
+        side,
+        kind: 'nail-plate',
+        center: {
+          x: center.x,
+          y: center.y + (digit === 'thumb' ? 0.0065 : 0.0058) * buildScale,
+          z: center.z,
+        },
+        radii: {
+          x: distalLength * shoulderScale * 0.34,
+          y: 0.00145 * buildScale,
+          z: (digit === 'thumb' ? 0.0068 : 0.0058) * buildScale,
+        },
+        jointName: `${side}_${digit}_distal`,
+        materialRole: 'keratin-nail',
+        digit,
+      })
+    );
+  }
+  return landmarks;
+}
+
 /**
  * Append one indexed shoulder-to-palm loft.
  *
@@ -835,7 +1170,8 @@ function pushCoherentUpperLimb(
   heightScale: number
 ): AgentAvatarUpperLimbGeometryReceipt {
   const direction = side === 'left' ? 1 : -1;
-  const anatomical = profile === 'coherent-anatomical-limbs-v2';
+  const anatomical = profile !== 'coherent-shoulder-neck-torso-v1';
+  const landmarked = profile === 'coherent-hand-landmarks-v3';
   const scaledBindPoint = (bone: string): Vec3 => {
     const point = getTranslation(bindWorld.get(bone)!);
     return { x: point.x * shoulderScale, y: point.y, z: point.z };
@@ -1046,10 +1382,17 @@ function pushCoherentUpperLimb(
         )
       )
     : undefined;
+  const handLandmarks = landmarked
+    ? pushHandLandmarks(acc, side, bindWorld, buildScale, shoulderScale)
+    : undefined;
 
   return {
     schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1',
-    profile: anatomical ? 'anatomical-deltoid-hand-v2' : 'coherent-arm-palm-v1',
+    profile: landmarked
+      ? 'anatomical-landmark-hand-v3'
+      : anatomical
+        ? 'anatomical-deltoid-hand-v2'
+        : 'coherent-arm-palm-v1',
     side,
     radialSegments,
     ringCount: rings.length,
@@ -1061,7 +1404,8 @@ function pushCoherentUpperLimb(
           deltoidBlendRingCount: 3,
           shoulderOverlapDepth: round6(0.024 * buildScale * shoulderScale * heightScale),
           digits,
-          connectedSurfaceCount: 1 + (digits?.length ?? 0),
+          ...(handLandmarks ? { handLandmarks } : {}),
+          connectedSurfaceCount: 1 + (digits?.length ?? 0) + (handLandmarks?.length ?? 0),
         }
       : {}),
     vertexRange: {
@@ -1682,7 +2026,9 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     'right_forearm',
     'right_hand',
   ]);
-  const anatomicalDigits = upperBodyProfile === 'coherent-anatomical-limbs-v2';
+  const anatomicalDigits =
+    upperBodyProfile === 'coherent-anatomical-limbs-v2' ||
+    upperBodyProfile === 'coherent-hand-landmarks-v3';
 
   // One box per segment (parent-joint → this-joint), weighted to the PARENT bone it represents.
   for (const bone of HUMANOID_65_SKELETON) {
@@ -1782,6 +2128,27 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
                 ...limb,
                 vertexRange: { ...limb.vertexRange },
                 indexRange: { ...limb.indexRange },
+                ...(limb.digits
+                  ? {
+                      digits: limb.digits.map((digit) => ({
+                        ...digit,
+                        vertexRange: { ...digit.vertexRange },
+                        indexRange: { ...digit.indexRange },
+                      })),
+                    }
+                  : {}),
+                ...(limb.handLandmarks
+                  ? {
+                      handLandmarks: limb.handLandmarks.map((landmark) => ({
+                        ...landmark,
+                        ...(landmark.betweenDigits
+                          ? { betweenDigits: [...landmark.betweenDigits] as const }
+                          : {}),
+                        vertexRange: { ...landmark.vertexRange },
+                        indexRange: { ...landmark.indexRange },
+                      })),
+                    }
+                  : {}),
               })) as [AgentAvatarUpperLimbGeometryReceipt, AgentAvatarUpperLimbGeometryReceipt],
             },
           }

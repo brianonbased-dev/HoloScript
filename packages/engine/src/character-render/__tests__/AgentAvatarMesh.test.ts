@@ -6,6 +6,7 @@
  * shoulder rotation propagates down the arm chain via FK but leaves unrelated bones at bind.
  */
 import { describe, it, expect } from 'vitest';
+import { createHash } from 'node:crypto';
 import {
   buildAgentAvatarMesh,
   computeBindWorld,
@@ -24,6 +25,11 @@ function maxAbsDiff(a: Float32Array, b: Float32Array): number {
   let m = 0;
   for (let i = 0; i < a.length; i++) m = Math.max(m, Math.abs(a[i] - b[i]));
   return m;
+}
+function sha256(view: ArrayBufferView): string {
+  return createHash('sha256')
+    .update(new Uint8Array(view.buffer, view.byteOffset, view.byteLength))
+    .digest('hex');
 }
 
 describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
@@ -510,6 +516,169 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
         tipDepths.add(Number(anatomical.positions[capOffset + 2].toFixed(4)));
       }
       expect(tipDepths.size).toBe(5);
+    }
+  });
+
+  it('preserves the exact legacy, coherent-v1, and anatomical-v2 mesh bytes', () => {
+    const cases = [
+      {
+        name: 'legacy',
+        options: { upperBodyProfile: 'legacy-segments-v1' as const },
+        hashes: {
+          positions: '4f6141d4af283f4d77df7d5733f84cdd59bc21e681c19f9fbbc712c6a407dba3',
+          normals: '24b5c3202518568f6e5018490658fc56185df6e1d0475c3533200b8a0fe718d1',
+          tangents: '81b341f7b7ea429c324e0e2ba34892470ffdf62e756f8cc176b7b44d1d52dd39',
+          indices: '4d9492b2890248a8c3f6e9cd2d9828c43336f266b86a1a6a9894e937740377df',
+          joints: 'ac64afef5266d33a8aaff1258c56c2c59dd0fd75a16a53b995a8009835c5df03',
+          weights: '2c79482c90d441b0ecd6dc08878d47df6478bb411e12f27ff699dec3eab5a06f',
+          anatomy: '6e7bbdaa24cc3a05754fdc5d19db08ec55fd37802916954a4e6ead4871c3dd14',
+        },
+      },
+      {
+        name: 'coherent-v1',
+        options: {
+          upperBodyProfile: 'coherent-shoulder-neck-torso-v1' as const,
+          upperBodyRadialSegments: 24,
+          shoulderScale: 1.1,
+          torsoScale: 0.96,
+        },
+        hashes: {
+          positions: '4ceb44855d3f7c3d1e8af9aa19c0bdac2c1f6eaf80d97ff40ee0b8d0bd1c4697',
+          normals: 'a0376e2351aa2fa25c23165fba0c77a305bfb863365c5a835e9ec5193213b485',
+          tangents: 'bb613d1655f3654e16dc095ac8db6ddce41bf830dc6c0deacc015e9bf8af3a03',
+          indices: '720dd5ec4a8086a1a9765284bfe6c12d0b23fa972c299c517e5fd38712bffcf6',
+          joints: '57468757ecbd2a7f4c646483f8b2779fcaa2905b5cc4ee0b07abd8c993581964',
+          weights: '6c330f1011aefc3893bdfa568afee81d52ee3aad32d08e20cd4bea41315e4452',
+          anatomy: '69ca11c994c97980fa3b40ec6001f8c0f096ab671155ad358024ef40759f0e8f',
+        },
+      },
+      {
+        name: 'anatomical-v2',
+        options: {
+          upperBodyProfile: 'coherent-anatomical-limbs-v2' as const,
+          upperBodyRadialSegments: 24,
+          shoulderScale: 1.1,
+          torsoScale: 0.96,
+        },
+        hashes: {
+          positions: '1f7f16ef040a2c7adbc9afb63a5e1d3679789876698f17e9fc523ac8f18f42fa',
+          normals: '79cb0a756a53906ea3c77492e30f46d84bb3549f2072a29707684efd16c7e69b',
+          tangents: '05ebd2f3c19989239874171c8c8bb6c8e941138d0e5bfda2ef564c05a32f5476',
+          indices: 'cb4492ff987aed62ae08f9b0f72d36efc065ad9041a31939ae87b44fd3b63f6e',
+          joints: '84ff2cdb50c9b3add5fa8e4790201aa21462a1804320c1f2aeecd39490f179e5',
+          weights: 'a6cc8e131d44827bd0e0debc2b0ff10b82f99d3cbfb501ecb172b750d0461ebf',
+          anatomy: '49e7599149083ae2c295cdad7b866b5bcf881057ba15817a5040f6208013fca0',
+        },
+      },
+    ];
+
+    for (const fixture of cases) {
+      const mesh = buildAgentAvatarMesh(fixture.options);
+      expect(
+        {
+          positions: sha256(mesh.positions),
+          normals: sha256(mesh.normals),
+          tangents: sha256(mesh.tangents),
+          indices: sha256(mesh.indices),
+          joints: sha256(mesh.jointIndices),
+          weights: sha256(mesh.jointWeights),
+          anatomy: createHash('sha256').update(JSON.stringify(mesh.anatomy)).digest('hex'),
+        },
+        fixture.name
+      ).toEqual(fixture.hashes);
+    }
+  });
+
+  it('emits connected v3 web, knuckle, tendon, and keratin nail landmarks', () => {
+    const landmarked = buildAgentAvatarMesh({
+      upperBodyProfile: 'coherent-hand-landmarks-v3',
+      upperBodyRadialSegments: 24,
+      shoulderScale: 1.1,
+      torsoScale: 0.96,
+    });
+    const repeated = buildAgentAvatarMesh({
+      upperBodyProfile: 'coherent-hand-landmarks-v3',
+      upperBodyRadialSegments: 24,
+      shoulderScale: 1.1,
+      torsoScale: 0.96,
+    });
+    const upperBody = landmarked.anatomy.upperBody!;
+
+    expect(upperBody.profile).toBe('anatomical-hand-landmarks-v3');
+    expect(Array.from(landmarked.positions)).toEqual(Array.from(repeated.positions));
+    expect(Array.from(landmarked.indices)).toEqual(Array.from(repeated.indices));
+    for (const limb of upperBody.upperLimbs) {
+      const landmarks = limb.handLandmarks ?? [];
+      expect(limb.profile).toBe('anatomical-landmark-hand-v3');
+      expect(limb.connectedSurfaceCount).toBe(24);
+      expect(landmarks).toHaveLength(18);
+      expect(landmarks.filter((landmark) => landmark.kind === 'interdigital-web')).toHaveLength(4);
+      expect(landmarks.filter((landmark) => landmark.kind === 'metacarpal-knuckle')).toHaveLength(
+        5
+      );
+      expect(landmarks.filter((landmark) => landmark.kind === 'dorsal-tendon-ridge')).toHaveLength(
+        4
+      );
+      expect(landmarks.filter((landmark) => landmark.kind === 'nail-plate')).toHaveLength(5);
+
+      for (const landmark of landmarks) {
+        expect(landmark).toMatchObject({
+          schemaVersion: 'holoscript.agent-avatar-hand-landmark-geometry.v1',
+          profile: 'anatomical-hand-landmark-v1',
+          side: limb.side,
+        });
+        expect(landmark.vertexRange.vertexCount).toBe(
+          landmark.kind === 'interdigital-web' ? 8 : 26
+        );
+        expect(landmark.indexRange.indexCount).toBe(
+          landmark.kind === 'interdigital-web' ? 36 : 144
+        );
+        expect(landmark.materialRole).toBe(
+          landmark.kind === 'nail-plate' ? 'keratin-nail' : 'skin'
+        );
+        const start = landmark.vertexRange.vertexStart;
+        const end = start + landmark.vertexRange.vertexCount;
+        const adjacency = new Map<number, Set<number>>();
+        const connect = (a: number, b: number): void => {
+          if (!adjacency.has(a)) adjacency.set(a, new Set());
+          if (!adjacency.has(b)) adjacency.set(b, new Set());
+          adjacency.get(a)!.add(b);
+          adjacency.get(b)!.add(a);
+        };
+        for (
+          let offset = landmark.indexRange.indexStart;
+          offset < landmark.indexRange.indexStart + landmark.indexRange.indexCount;
+          offset += 3
+        ) {
+          const triangle = [
+            landmarked.indices[offset],
+            landmarked.indices[offset + 1],
+            landmarked.indices[offset + 2],
+          ];
+          for (const vertex of triangle) {
+            expect(vertex).toBeGreaterThanOrEqual(start);
+            expect(vertex).toBeLessThan(end);
+          }
+          connect(triangle[0], triangle[1]);
+          connect(triangle[1], triangle[2]);
+          connect(triangle[2], triangle[0]);
+        }
+        const visited = new Set<number>();
+        const queue = [start];
+        while (queue.length) {
+          const vertex = queue.shift()!;
+          if (visited.has(vertex)) continue;
+          visited.add(vertex);
+          for (const neighbor of adjacency.get(vertex) ?? []) queue.push(neighbor);
+        }
+        expect(visited.size).toBe(landmark.vertexRange.vertexCount);
+        const joint = BONE_ORDER.indexOf(landmark.jointName);
+        expect(joint).toBeGreaterThanOrEqual(0);
+        for (let vertex = start; vertex < end; vertex++) {
+          expect(landmarked.jointIndices[vertex]).toBe(joint);
+          expect(landmarked.jointWeights[vertex]).toBe(1);
+        }
+      }
     }
   });
 });

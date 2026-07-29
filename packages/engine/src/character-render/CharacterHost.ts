@@ -126,6 +126,10 @@ export interface CharacterHostOptions {
   upperBodyProfile?: AgentAvatarUpperBodyProfile;
   /** Circumferential topology budget for the connected upper-body loft. */
   upperBodyRadialSegments?: number;
+  /** Packed 0xRRGGBB keratin nail-plate colour for coherent-hand-landmarks-v3. */
+  nailTone?: number;
+  /** Keratin nail-plate microsurface roughness (0.08..0.65). */
+  nailRoughness?: number;
   /** Packed 0xRRGGBB accent/fallback colour; defaults to a deterministic colour from `entityId`. */
   color?: number;
   /** Skin base colour 0xRRGGBB for the SSS material (default warm skin #e8c4a0). */
@@ -284,6 +288,7 @@ export class CharacterHost {
   private readonly inverseBind: Map<string, Mat4>;
   private readonly material: MaterialSpec;
   private readonly skinMaterial: SkinSSSMaterialSpec;
+  private readonly nailMaterial: SkinSSSMaterialSpec;
   private readonly hairMaterial: MarschnerHairMaterialSpec;
   private readonly eyeMaterial: RefractiveEyeMaterialSpec;
   private readonly scleraMaterial: RefractiveEyeMaterialSpec;
@@ -382,6 +387,19 @@ export class CharacterHost {
         opts.skinMicrodetailProfile === 'analytic-pore-v1'
           ? Math.max(0, Math.min(0.2, opts.skinMicrodetailStrength ?? 0.06))
           : 0,
+    };
+    this.nailMaterial = {
+      ...HUMAN_SKIN,
+      color: opts.nailTone ?? 0xf1d2c7,
+      scatterColor: [0.72, 0.34, 0.3],
+      scatterRadii: [1.4, 0.7, 0.38],
+      specularF0: 0.035,
+      thickness: 0.72,
+      transmitStrength: 0.14,
+      roughness: Math.max(0.08, Math.min(0.65, opts.nailRoughness ?? 0.28)),
+      microdetailProfile: 'none',
+      microdetailScale: 0,
+      microdetailStrength: 0,
     };
     this.hairMaterial = {
       ...HAIR_BASE,
@@ -652,8 +670,9 @@ export class CharacterHost {
 
   /**
    * Emit the current frame's pure-data character draw spec for the native WebGPU renderer.
-   * The body renders as a single SSS-skin material group; `material` remains the lambert
-   * fallback for callers that render without material groups.
+   * The compatibility body renders as one SSS-skin material group. V3 keratin nail plates
+   * are excluded from those skin slices and receive their own SSS-derived material groups;
+   * `material` remains the lambert fallback for callers that render without groups.
    */
   getDrawSpec(): CharacterDrawSpec {
     const layeredEyes = this.built.ocularProfile === 'layered-ocular-v1';
@@ -681,7 +700,14 @@ export class CharacterHost {
         }))
       : [];
     const groups: MaterialGroup[] = [
-      { ...this.built.bodyRange, material: this.skinMaterial },
+      ...this.built.bodySkinRanges.map((range) => ({
+        ...range,
+        material: this.skinMaterial,
+      })),
+      ...this.built.nailRanges.map((range) => ({
+        ...range,
+        material: this.nailMaterial,
+      })),
       { ...this.built.hairRange, material: this.hairMaterial },
       ...opaqueEyeGroups,
       { ...this.built.garmentRange, material: this.garmentMaterial },

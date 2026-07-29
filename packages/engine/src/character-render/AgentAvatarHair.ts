@@ -907,6 +907,10 @@ export interface CharacterMeshData {
   hairVertexRange: { vertexStart: number; vertexCount: number };
   eyeVertexRange: { vertexStart: number; vertexCount: number };
   bodyRange: { indexStart: number; indexCount: number };
+  /** Body index slices with keratin nail plates removed for the SSS skin draw. */
+  bodySkinRanges: Array<{ indexStart: number; indexCount: number }>;
+  /** V3 keratin nail-plate slices, empty for every compatibility profile. */
+  nailRanges: Array<{ indexStart: number; indexCount: number }>;
   hairRange: { indexStart: number; indexCount: number };
   eyeRange: { indexStart: number; indexCount: number };
   ocularRanges: Record<AgentAvatarOcularRegion, Array<{ indexStart: number; indexCount: number }>>;
@@ -922,6 +926,24 @@ function offsetIndices(src: Uint32Array, base: number): Uint32Array {
   const out = new Uint32Array(src.length);
   for (let i = 0; i < src.length; i++) out[i] = src[i] + base;
   return out;
+}
+
+function excludeIndexRanges(
+  totalIndexCount: number,
+  excluded: Array<{ indexStart: number; indexCount: number }>
+): Array<{ indexStart: number; indexCount: number }> {
+  const ranges: Array<{ indexStart: number; indexCount: number }> = [];
+  let cursor = 0;
+  for (const range of [...excluded].sort((a, b) => a.indexStart - b.indexStart)) {
+    if (range.indexStart > cursor) {
+      ranges.push({ indexStart: cursor, indexCount: range.indexStart - cursor });
+    }
+    cursor = Math.max(cursor, range.indexStart + range.indexCount);
+  }
+  if (cursor < totalIndexCount) {
+    ranges.push({ indexStart: cursor, indexCount: totalIndexCount - cursor });
+  }
+  return ranges.filter((range) => range.indexCount > 0);
 }
 
 /**
@@ -1136,6 +1158,14 @@ export function buildCharacterMesh(
       indexStart: eyeStart + range.indexStart,
       indexCount: range.indexCount,
     }));
+  const nailRanges =
+    body.anatomy.upperBody?.upperLimbs.flatMap(
+      (limb) =>
+        limb.handLandmarks
+          ?.filter((landmark) => landmark.materialRole === 'keratin-nail')
+          .map((landmark) => ({ ...landmark.indexRange })) ?? []
+    ) ?? [];
+  const bodySkinRanges = excludeIndexRanges(body.indices.length, nailRanges);
   return {
     mesh,
     ...(hair.groom ? { groom: hair.groom } : {}),
@@ -1151,6 +1181,8 @@ export function buildCharacterMesh(
       vertexCount: eyes.vertexCount,
     },
     bodyRange: { indexStart: 0, indexCount: body.indices.length },
+    bodySkinRanges,
+    nailRanges,
     hairRange: { indexStart: hairStart, indexCount: hair.indices.length },
     eyeRange: { indexStart: eyeStart, indexCount: eyes.indices.length },
     ocularRanges: {
