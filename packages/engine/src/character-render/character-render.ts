@@ -279,10 +279,18 @@ export interface CharacterMaterialGroupReceipt {
   color: number;
   roughness: number;
   transparent: boolean;
+  scatterColor?: [number, number, number];
+  scatterRadii?: [number, number, number];
+  specularF0?: number;
+  thickness?: number;
+  transmitStrength?: number;
+  ambient?: number;
 }
 
 export interface CharacterMaterialPlateReceipt {
-  schemaVersion: 'holoscript.character-material-plate.v1';
+  schemaVersion:
+    | 'holoscript.character-material-plate.v1'
+    | 'holoscript.character-material-plate.v2';
   rendererEntrypoint: 'renderCharacter';
   backend: 'webgpu';
   sourceMaterialGroups: boolean;
@@ -290,9 +298,17 @@ export interface CharacterMaterialPlateReceipt {
   scheduledDrawCount: number;
   roleCounts: Partial<Record<CharacterMaterialRole, number>>;
   skinIndexCount: number;
+  /** Compatibility alias for keratinIndexCount. */
   nailIndexCount: number;
+  keratinIndexCount: number;
+  nailBedIndexCount: number;
+  nailSurfaceIndexCount: number;
   skinNailOverlapIndexCount: number;
+  skinNailBedOverlapIndexCount: number;
+  nailBedKeratinOverlapIndexCount: number;
   nailSeparatedFromSkin: boolean;
+  nailBedSeparatedFromKeratin: boolean;
+  calibratedNailSurface: boolean;
   groups: CharacterMaterialGroupReceipt[];
 }
 
@@ -330,8 +346,19 @@ export function deriveCharacterMaterialPlateReceipt(
   spec: CharacterDrawSpec
 ): CharacterMaterialPlateReceipt {
   const ordered = orderedMaterialGroups(spec);
-  const groups = ordered.map(
-    (group, drawOrdinal): CharacterMaterialGroupReceipt => ({
+  const groups = ordered.map((group, drawOrdinal): CharacterMaterialGroupReceipt => {
+    const optical =
+      group.material.shadingModel === 'skin-sss'
+        ? {
+            scatterColor: [...group.material.scatterColor] as [number, number, number],
+            scatterRadii: [...group.material.scatterRadii] as [number, number, number],
+            specularF0: group.material.specularF0,
+            thickness: group.material.thickness,
+            transmitStrength: group.material.transmitStrength,
+            ambient: group.material.ambient,
+          }
+        : {};
+    return {
       drawOrdinal,
       materialRole: group.materialRole ?? 'fallback',
       indexStart: group.indexStart,
@@ -340,24 +367,41 @@ export function deriveCharacterMaterialPlateReceipt(
       color: group.material.color,
       roughness: group.material.roughness,
       transparent: !!group.transparent,
-    })
-  );
+      ...optical,
+    };
+  });
   const roleCounts: Partial<Record<CharacterMaterialRole, number>> = {};
   for (const group of groups) {
     roleCounts[group.materialRole] = (roleCounts[group.materialRole] ?? 0) + 1;
   }
   const skin = ordered.filter((group) => group.materialRole === 'skin');
-  const nails = ordered.filter((group) => group.materialRole === 'keratin-nail');
+  const keratin = ordered.filter((group) => group.materialRole === 'keratin-nail');
+  const nailBeds = ordered.filter((group) => group.materialRole === 'nail-bed');
   const skinIndexCount = skin.reduce((sum, group) => sum + group.indexCount, 0);
-  const nailIndexCount = nails.reduce((sum, group) => sum + group.indexCount, 0);
+  const keratinIndexCount = keratin.reduce((sum, group) => sum + group.indexCount, 0);
+  const nailBedIndexCount = nailBeds.reduce((sum, group) => sum + group.indexCount, 0);
   const skinNailOverlapIndexCount = skin.reduce(
     (sum, skinGroup) =>
       sum +
-      nails.reduce((inner, nailGroup) => inner + overlapIndexCount(skinGroup, nailGroup), 0),
+      keratin.reduce((inner, nailGroup) => inner + overlapIndexCount(skinGroup, nailGroup), 0),
+    0
+  );
+  const skinNailBedOverlapIndexCount = skin.reduce(
+    (sum, skinGroup) =>
+      sum + nailBeds.reduce((inner, nailBed) => inner + overlapIndexCount(skinGroup, nailBed), 0),
+    0
+  );
+  const nailBedKeratinOverlapIndexCount = nailBeds.reduce(
+    (sum, nailBed) =>
+      sum +
+      keratin.reduce((inner, keratinGroup) => inner + overlapIndexCount(nailBed, keratinGroup), 0),
     0
   );
   return {
-    schemaVersion: 'holoscript.character-material-plate.v1',
+    schemaVersion:
+      nailBeds.length > 0
+        ? 'holoscript.character-material-plate.v2'
+        : 'holoscript.character-material-plate.v1',
     rendererEntrypoint: 'renderCharacter',
     backend: 'webgpu',
     sourceMaterialGroups: !!spec.materialGroups?.length,
@@ -365,9 +409,22 @@ export function deriveCharacterMaterialPlateReceipt(
     scheduledDrawCount: groups.length,
     roleCounts,
     skinIndexCount,
-    nailIndexCount,
+    nailIndexCount: keratinIndexCount,
+    keratinIndexCount,
+    nailBedIndexCount,
+    nailSurfaceIndexCount: keratinIndexCount + nailBedIndexCount,
     skinNailOverlapIndexCount,
-    nailSeparatedFromSkin: nails.length > 0 && skinNailOverlapIndexCount === 0,
+    skinNailBedOverlapIndexCount,
+    nailBedKeratinOverlapIndexCount,
+    nailSeparatedFromSkin:
+      keratin.length > 0 && skinNailOverlapIndexCount === 0 && skinNailBedOverlapIndexCount === 0,
+    nailBedSeparatedFromKeratin: nailBeds.length > 0 && nailBedKeratinOverlapIndexCount === 0,
+    calibratedNailSurface:
+      keratin.length > 0 &&
+      nailBeds.length > 0 &&
+      skinNailOverlapIndexCount === 0 &&
+      skinNailBedOverlapIndexCount === 0 &&
+      nailBedKeratinOverlapIndexCount === 0,
     groups,
   };
 }

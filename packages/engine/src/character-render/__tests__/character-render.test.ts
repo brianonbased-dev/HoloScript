@@ -133,6 +133,77 @@ describe('character-render — material groups (skin-SSS) + lambert fallback', (
     ).toBe(true);
   });
 
+  it('fixed-light calibration partitions each nail into keratin and proximal nail-bed draws', () => {
+    const host = new CharacterHost({
+      entityId: 'fixed-light-material-calibration',
+      upperBodyProfile: 'coherent-hand-landmarks-v3',
+      upperBodyRadialSegments: 24,
+      materialCalibrationProfile: 'fixed-light-human-v1',
+      skinTone: 0xb9826f,
+      skinScatterColor: [0.65, 0.36, 0.31],
+      skinMicrodetailProfile: 'analytic-pore-v1',
+      skinMicrodetailScale: 94,
+      skinMicrodetailStrength: 0.074,
+      nailTone: 0xe6beb2,
+      nailRoughness: 0.24,
+      nailBedTone: 0xc9827c,
+      nailBedRoughness: 0.36,
+    });
+    const spec = host.getDrawSpec();
+    const receipt = deriveCharacterMaterialPlateReceipt(spec);
+    const skin = host.getSkinMaterialReceipt();
+
+    expect(skin).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'fixed-light-human-v1',
+      color: 0xb9826f,
+      roughness: 0.5,
+      specularF0: 0.028,
+      thickness: 0.24,
+      transmitStrength: 0.32,
+      ambient: 0.09,
+      microdetailProfile: 'analytic-pore-v1',
+      microdetailScale: 94,
+      microdetailStrength: 0.074,
+    });
+    expect(receipt.schemaVersion).toBe('holoscript.character-material-plate.v2');
+    expect(receipt.roleCounts['keratin-nail']).toBe(20);
+    expect(receipt.roleCounts['nail-bed']).toBe(10);
+    expect(receipt.keratinIndexCount).toBe(2160);
+    expect(receipt.nailBedIndexCount).toBe(720);
+    expect(receipt.nailSurfaceIndexCount).toBe(2880);
+    expect(receipt.skinNailOverlapIndexCount).toBe(0);
+    expect(receipt.skinNailBedOverlapIndexCount).toBe(0);
+    expect(receipt.nailBedKeratinOverlapIndexCount).toBe(0);
+    expect(receipt.nailSeparatedFromSkin).toBe(true);
+    expect(receipt.nailBedSeparatedFromKeratin).toBe(true);
+    expect(receipt.calibratedNailSurface).toBe(true);
+    expect(
+      receipt.groups
+        .filter((group) => group.materialRole === 'nail-bed')
+        .every(
+          (group) =>
+            group.color === 0xc9827c &&
+            group.roughness === 0.36 &&
+            group.specularF0 === 0.032 &&
+            group.thickness === 0.52 &&
+            group.transmitStrength === 0.24
+        )
+    ).toBe(true);
+    expect(
+      receipt.groups
+        .filter((group) => group.materialRole === 'keratin-nail')
+        .every(
+          (group) =>
+            group.color === 0xe6beb2 &&
+            group.roughness === 0.24 &&
+            group.specularF0 === 0.045 &&
+            group.thickness === 0.36 &&
+            group.transmitStrength === 0.1
+        )
+    ).toBe(true);
+  });
+
   it('derives a source-bounded close-up frame from one hand landmark set', () => {
     const host = new CharacterHost({
       entityId: 'hand-detail-frame',

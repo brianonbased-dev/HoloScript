@@ -297,6 +297,7 @@ export type CharacterMaterialSpec =
 export type CharacterMaterialRole =
   | 'skin'
   | 'keratin-nail'
+  | 'nail-bed'
   | 'hair'
   | 'eye'
   | 'sclera'
