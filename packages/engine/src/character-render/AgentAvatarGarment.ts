@@ -262,7 +262,7 @@ function pushVisor(target: MeshAccum, segments: number, buildScale: number): voi
  */
 function pushOpenCollar(target: MeshAccum, buildScale: number): void {
   const jointIndex = BONE_INDEX.get('spine2') ?? 0;
-  const z = 0.184 * buildScale;
+  const z = 0.252 * buildScale;
   const halfWidth = 0.014 * buildScale;
   const paths: Vec3[][] = [
     [
@@ -310,19 +310,19 @@ function pushOpenCollar(target: MeshAccum, buildScale: number): void {
  */
 function pushOpenShoulderPanels(target: MeshAccum, buildScale: number): void {
   const jointIndex = BONE_INDEX.get('spine2') ?? 0;
-  const z = 0.182 * buildScale;
+  const z = 0.23 * buildScale;
   const panels: Vec3[][] = [
     [
-      v(-0.055 * buildScale, 1.275, z + 0.006 * buildScale),
-      v(-0.115 * buildScale, 1.425, z),
-      v(-0.5 * buildScale, 1.405, z - 0.012 * buildScale),
-      v(-0.37 * buildScale, 1.265, z + 0.004 * buildScale),
+      v(-0.04 * buildScale, 1.3, z + 0.006 * buildScale),
+      v(-0.09 * buildScale, 1.52, z),
+      v(-0.55 * buildScale, 1.56, z - 0.012 * buildScale),
+      v(-0.48 * buildScale, 1.27, z + 0.004 * buildScale),
     ],
     [
-      v(0.055 * buildScale, 1.275, z + 0.006 * buildScale),
-      v(0.37 * buildScale, 1.265, z + 0.004 * buildScale),
-      v(0.5 * buildScale, 1.405, z - 0.012 * buildScale),
-      v(0.115 * buildScale, 1.425, z),
+      v(0.04 * buildScale, 1.3, z + 0.006 * buildScale),
+      v(0.48 * buildScale, 1.27, z + 0.004 * buildScale),
+      v(0.55 * buildScale, 1.56, z - 0.012 * buildScale),
+      v(0.09 * buildScale, 1.52, z),
     ],
   ];
   for (const panel of panels) {
