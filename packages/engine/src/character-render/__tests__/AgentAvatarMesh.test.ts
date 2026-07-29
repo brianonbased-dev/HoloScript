@@ -353,9 +353,7 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
         ];
         for (const vertex of triangle) {
           expect(vertex).toBeGreaterThanOrEqual(limb.vertexRange.vertexStart);
-          expect(vertex).toBeLessThan(
-            limb.vertexRange.vertexStart + limb.vertexRange.vertexCount
-          );
+          expect(vertex).toBeLessThan(limb.vertexRange.vertexStart + limb.vertexRange.vertexCount);
         }
         connect(triangle[0], triangle[1]);
         connect(triangle[1], triangle[2]);
@@ -394,9 +392,124 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
         expect(allowedBones.has(coherent.jointIndices[vertex])).toBe(true);
         expect(coherent.jointWeights[vertex]).toBe(1);
       }
-      expect(curvedNormalCount).toBeGreaterThan(
-        (limb.vertexRange.vertexCount - 1) * 0.75
-      );
+      expect(curvedNormalCount).toBeGreaterThan((limb.vertexRange.vertexCount - 1) * 0.75);
+    }
+  });
+
+  it('emits an anatomical deltoid transition and five articulated digits per hand in v2', () => {
+    const anatomical = buildAgentAvatarMesh({
+      upperBodyProfile: 'coherent-anatomical-limbs-v2',
+      upperBodyRadialSegments: 24,
+      shoulderScale: 1.1,
+      torsoScale: 0.96,
+    });
+    const repeated = buildAgentAvatarMesh({
+      upperBodyProfile: 'coherent-anatomical-limbs-v2',
+      upperBodyRadialSegments: 24,
+      shoulderScale: 1.1,
+      torsoScale: 0.96,
+    });
+    const upperBody = anatomical.anatomy.upperBody!;
+
+    expect(upperBody).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
+      profile: 'anatomical-shoulder-neck-torso-v2',
+      radialSegments: 24,
+      ringCount: 12,
+    });
+    expect(upperBody.vertexRange.vertexCount).toBe(24 * 12);
+    expect(upperBody.indexRange.indexCount).toBe(24 * 11 * 6);
+    expect(Array.from(anatomical.positions)).toEqual(Array.from(repeated.positions));
+    expect(Array.from(anatomical.indices)).toEqual(Array.from(repeated.indices));
+
+    for (const limb of upperBody.upperLimbs) {
+      expect(limb).toMatchObject({
+        schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1',
+        profile: 'anatomical-deltoid-hand-v2',
+        radialSegments: 24,
+        ringCount: 9,
+        deltoidBlendRingCount: 3,
+        connectedSurfaceCount: 6,
+      });
+      expect(limb.shoulderOverlapDepth).toBeGreaterThan(0.02);
+      expect(limb.vertexRange.vertexCount).toBe(24 * 9 + 1);
+      expect(limb.indexRange.indexCount).toBe(24 * 8 * 6 + 24 * 3);
+      expect(limb.digits?.map((digit) => digit.digit)).toEqual([
+        'thumb',
+        'index',
+        'middle',
+        'ring',
+        'pinky',
+      ]);
+
+      const tipDepths = new Set<number>();
+      for (const digit of limb.digits ?? []) {
+        expect(digit).toMatchObject({
+          schemaVersion: 'holoscript.agent-avatar-digit-geometry.v1',
+          profile: 'articulated-three-phalanx-v1',
+          side: limb.side,
+          radialSegments: 8,
+          ringCount: 5,
+          phalanxSegmentCount: 3,
+          webBlendRingCount: 1,
+        });
+        expect(digit.vertexRange.vertexCount).toBe(8 * 5 + 1);
+        expect(digit.indexRange.indexCount).toBe(8 * 4 * 6 + 8 * 3);
+        expect(digit.tipRadius).toBeLessThan(digit.baseRadius);
+
+        const start = digit.vertexRange.vertexStart;
+        const end = start + digit.vertexRange.vertexCount;
+        const adjacency = new Map<number, Set<number>>();
+        const connect = (a: number, b: number) => {
+          if (!adjacency.has(a)) adjacency.set(a, new Set());
+          if (!adjacency.has(b)) adjacency.set(b, new Set());
+          adjacency.get(a)!.add(b);
+          adjacency.get(b)!.add(a);
+        };
+        for (
+          let offset = digit.indexRange.indexStart;
+          offset < digit.indexRange.indexStart + digit.indexRange.indexCount;
+          offset += 3
+        ) {
+          const triangle = [
+            anatomical.indices[offset],
+            anatomical.indices[offset + 1],
+            anatomical.indices[offset + 2],
+          ];
+          for (const vertex of triangle) {
+            expect(vertex).toBeGreaterThanOrEqual(start);
+            expect(vertex).toBeLessThan(end);
+          }
+          connect(triangle[0], triangle[1]);
+          connect(triangle[1], triangle[2]);
+          connect(triangle[2], triangle[0]);
+        }
+        const visited = new Set<number>();
+        const queue = [start];
+        while (queue.length) {
+          const vertex = queue.shift()!;
+          if (visited.has(vertex)) continue;
+          visited.add(vertex);
+          for (const neighbor of adjacency.get(vertex) ?? []) queue.push(neighbor);
+        }
+        expect(visited.size).toBe(digit.vertexRange.vertexCount);
+
+        const allowedBones = new Set(
+          [
+            `${limb.side}_hand`,
+            `${limb.side}_${digit.digit}_proximal`,
+            `${limb.side}_${digit.digit}_intermediate`,
+            `${limb.side}_${digit.digit}_distal`,
+          ].map((bone) => BONE_ORDER.indexOf(bone))
+        );
+        for (let vertex = start; vertex < end; vertex++) {
+          expect(allowedBones.has(anatomical.jointIndices[vertex])).toBe(true);
+          expect(anatomical.jointWeights[vertex]).toBe(1);
+        }
+        const capOffset = (end - 1) * 3;
+        tipDepths.add(Number(anatomical.positions[capOffset + 2].toFixed(4)));
+      }
+      expect(tipDepths.size).toBe(5);
     }
   });
 });

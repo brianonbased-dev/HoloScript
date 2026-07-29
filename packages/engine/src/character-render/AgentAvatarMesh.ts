@@ -69,6 +69,7 @@ export type AgentAvatarFaceTopology = 'procedural-head-v1' | 'neutral-anatomical
 export const AGENT_AVATAR_UPPER_BODY_PROFILES = [
   'legacy-segments-v1',
   'coherent-shoulder-neck-torso-v1',
+  'coherent-anatomical-limbs-v2',
 ] as const;
 export type AgentAvatarUpperBodyProfile = (typeof AGENT_AVATAR_UPPER_BODY_PROFILES)[number];
 export const AGENT_AVATAR_ORBITAL_PROFILES = ['tearline-rim-v1', 'recessed-lids-v1'] as const;
@@ -120,7 +121,7 @@ export interface AgentAvatarAnatomyReceipt {
 
 export interface AgentAvatarUpperBodyGeometryReceipt {
   schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1';
-  profile: 'coherent-shoulder-neck-torso-v1';
+  profile: 'coherent-shoulder-neck-torso-v1' | 'anatomical-shoulder-neck-torso-v2';
   radialSegments: number;
   ringCount: number;
   /** Emitted bind-space half width at the shoulder ring, after authored scaling. */
@@ -137,13 +138,40 @@ export interface AgentAvatarUpperBodyGeometryReceipt {
 
 export interface AgentAvatarUpperLimbGeometryReceipt {
   schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1';
-  profile: 'coherent-arm-palm-v1';
+  profile: 'coherent-arm-palm-v1' | 'anatomical-deltoid-hand-v2';
   side: 'left' | 'right';
   radialSegments: number;
   ringCount: number;
   shoulderRadius: number;
   wristRadius: number;
   palmHalfWidth: number;
+  /** V2 rings that swell from the shoulder root into the upper arm. */
+  deltoidBlendRingCount?: number;
+  /** V2 root overlap that hides the old torso/arm silhouette seam. */
+  shoulderOverlapDepth?: number;
+  /** Five separately skinned, three-phalanx native digit surfaces in V2. */
+  digits?: readonly AgentAvatarDigitGeometryReceipt[];
+  /** Arm/palm plus the five digit surfaces. V1 remains one connected surface. */
+  connectedSurfaceCount?: number;
+  vertexRange: { vertexStart: number; vertexCount: number };
+  indexRange: { indexStart: number; indexCount: number };
+}
+
+export const AGENT_AVATAR_DIGIT_NAMES = ['thumb', 'index', 'middle', 'ring', 'pinky'] as const;
+export type AgentAvatarDigitName = (typeof AGENT_AVATAR_DIGIT_NAMES)[number];
+
+export interface AgentAvatarDigitGeometryReceipt {
+  schemaVersion: 'holoscript.agent-avatar-digit-geometry.v1';
+  profile: 'articulated-three-phalanx-v1';
+  side: 'left' | 'right';
+  digit: AgentAvatarDigitName;
+  radialSegments: number;
+  ringCount: number;
+  phalanxSegmentCount: 3;
+  webBlendRingCount: 1;
+  totalLength: number;
+  baseRadius: number;
+  tipRadius: number;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -331,6 +359,12 @@ function add(a: Vec3, b: Vec3): Vec3 {
 function scale(a: Vec3, s: number): Vec3 {
   return { x: a.x * s, y: a.y * s, z: a.z * s };
 }
+function dot(a: Vec3, b: Vec3): number {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+function distance(a: Vec3, b: Vec3): number {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
 function cross(a: Vec3, b: Vec3): Vec3 {
   return {
     x: a.y * b.z - a.z * b.y,
@@ -458,6 +492,7 @@ interface UpperBodyRing {
  */
 function pushCoherentUpperBody(
   acc: MeshAccum,
+  profile: Exclude<AgentAvatarUpperBodyProfile, 'legacy-segments-v1'>,
   radialSegments: number,
   buildScale: number,
   shoulderScale: number,
@@ -465,7 +500,7 @@ function pushCoherentUpperBody(
   heightScale: number
 ): Omit<AgentAvatarUpperBodyGeometryReceipt, 'upperLimbs'> {
   const torso = buildScale * torsoScale;
-  const rings: UpperBodyRing[] = [
+  const foundationRings: UpperBodyRing[] = [
     { y: 0.91, radiusX: 0.16 * torso, radiusZ: 0.13 * torso, centerZ: 0, jointName: 'hips' },
     { y: 0.99, radiusX: 0.18 * torso, radiusZ: 0.14 * torso, centerZ: 0, jointName: 'hips' },
     { y: 1.07, radiusX: 0.17 * torso, radiusZ: 0.13 * torso, centerZ: 0, jointName: 'spine' },
@@ -491,28 +526,71 @@ function pushCoherentUpperBody(
       centerZ: 0.012,
       jointName: 'spine2',
     },
-    {
-      y: 1.41,
-      radiusX: 0.24 * buildScale * shoulderScale,
-      radiusZ: 0.15 * buildScale,
-      centerZ: 0.005,
-      jointName: 'spine2',
-    },
-    {
-      y: 1.45,
-      radiusX: 0.1 * buildScale,
-      radiusZ: 0.09 * buildScale,
-      centerZ: 0,
-      jointName: 'neck',
-    },
-    {
-      y: 1.51,
-      radiusX: 0.054 * buildScale,
-      radiusZ: 0.052 * buildScale,
-      centerZ: 0,
-      jointName: 'neck',
-    },
   ];
+  const rings: UpperBodyRing[] =
+    profile === 'coherent-anatomical-limbs-v2'
+      ? [
+          ...foundationRings,
+          {
+            y: 1.395,
+            radiusX: 0.242 * buildScale * shoulderScale,
+            radiusZ: 0.158 * buildScale,
+            centerZ: 0.008,
+            jointName: 'spine2',
+          },
+          {
+            y: 1.422,
+            radiusX: 0.218 * buildScale * shoulderScale,
+            radiusZ: 0.146 * buildScale,
+            centerZ: 0.004,
+            jointName: 'spine2',
+          },
+          {
+            y: 1.448,
+            radiusX: 0.15 * buildScale,
+            radiusZ: 0.112 * buildScale,
+            centerZ: 0.001,
+            jointName: 'neck',
+          },
+          {
+            y: 1.475,
+            radiusX: 0.082 * buildScale,
+            radiusZ: 0.071 * buildScale,
+            centerZ: 0,
+            jointName: 'neck',
+          },
+          {
+            y: 1.51,
+            radiusX: 0.054 * buildScale,
+            radiusZ: 0.052 * buildScale,
+            centerZ: 0,
+            jointName: 'neck',
+          },
+        ]
+      : [
+          ...foundationRings,
+          {
+            y: 1.41,
+            radiusX: 0.24 * buildScale * shoulderScale,
+            radiusZ: 0.15 * buildScale,
+            centerZ: 0.005,
+            jointName: 'spine2',
+          },
+          {
+            y: 1.45,
+            radiusX: 0.1 * buildScale,
+            radiusZ: 0.09 * buildScale,
+            centerZ: 0,
+            jointName: 'neck',
+          },
+          {
+            y: 1.51,
+            radiusX: 0.054 * buildScale,
+            radiusZ: 0.052 * buildScale,
+            centerZ: 0,
+            jointName: 'neck',
+          },
+        ];
   const vertexStart = acc.positions.length / 3;
   const indexStart = acc.indices.length;
 
@@ -565,12 +643,15 @@ function pushCoherentUpperBody(
 
   return {
     schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
-    profile: 'coherent-shoulder-neck-torso-v1',
+    profile:
+      profile === 'coherent-anatomical-limbs-v2'
+        ? 'anatomical-shoulder-neck-torso-v2'
+        : 'coherent-shoulder-neck-torso-v1',
     radialSegments,
     ringCount: rings.length,
-    shoulderHalfWidth: round6(rings[7].radiusX * heightScale),
+    shoulderHalfWidth: round6(Math.max(...rings.map((ring) => ring.radiusX)) * heightScale),
     waistHalfWidth: round6(rings[0].radiusX * heightScale),
-    neckRadius: round6(rings[9].radiusX * heightScale),
+    neckRadius: round6(rings[rings.length - 1].radiusX * heightScale),
     vertexRange: {
       vertexStart,
       vertexCount: acc.positions.length / 3 - vertexStart,
@@ -589,6 +670,153 @@ interface UpperLimbRing {
   jointName: string;
 }
 
+function isFingerBone(name: string | null): boolean {
+  return Boolean(
+    name && /_(thumb|index|middle|ring|pinky)_(proximal|intermediate|distal)$/.test(name)
+  );
+}
+
+function pushArticulatedDigit(
+  acc: MeshAccum,
+  side: 'left' | 'right',
+  digit: AgentAvatarDigitName,
+  radialSegments: number,
+  bindWorld: Map<string, Mat4>,
+  buildScale: number,
+  shoulderScale: number,
+  heightScale: number
+): AgentAvatarDigitGeometryReceipt {
+  const direction = side === 'left' ? 1 : -1;
+  const boneName = (segment: 'proximal' | 'intermediate' | 'distal') =>
+    `${side}_${digit}_${segment}`;
+  const scaledBindPoint = (bone: string): Vec3 => {
+    const point = getTranslation(bindWorld.get(bone)!);
+    return { x: point.x * shoulderScale, y: point.y, z: point.z };
+  };
+  const proximal = scaledBindPoint(boneName('proximal'));
+  const intermediate = scaledBindPoint(boneName('intermediate'));
+  const distal = scaledBindPoint(boneName('distal'));
+  const distalLength =
+    HUMANOID_65_SKELETON.find((bone) => bone.name === boneName('distal'))?.length ?? 0.018;
+  const tip = {
+    x: distal.x + direction * distalLength * shoulderScale,
+    y: distal.y,
+    z: distal.z,
+  };
+  const radiusScale: Record<AgentAvatarDigitName, number> = {
+    thumb: 1.18,
+    index: 1.02,
+    middle: 1.08,
+    ring: 1,
+    pinky: 0.86,
+  };
+  const baseRadius = 0.0106 * buildScale * shoulderScale * radiusScale[digit];
+  const tipRadius = baseRadius * 0.5;
+  const web = {
+    x: proximal.x - direction * baseRadius * 1.1,
+    y: proximal.y,
+    z: proximal.z,
+  };
+  const fan: Record<AgentAvatarDigitName, number> = {
+    thumb: 0.0045,
+    index: 0.0015,
+    middle: 0,
+    ring: -0.0012,
+    pinky: -0.003,
+  };
+  const shapeCenter = (center: Vec3, index: number): Vec3 => ({
+    x: center.x,
+    y: center.y + (digit === 'thumb' ? -0.004 * index : 0.0015 * Math.sin(index * 0.9)),
+    z: center.z + fan[digit] * index,
+  });
+  const centers = [web, proximal, intermediate, distal, tip].map(shapeCenter);
+  const radii = [baseRadius * 1.06, baseRadius, baseRadius * 0.82, baseRadius * 0.67, tipRadius];
+  const joints = [
+    `${side}_hand`,
+    boneName('proximal'),
+    boneName('intermediate'),
+    boneName('distal'),
+    boneName('distal'),
+  ];
+  const vertexStart = acc.positions.length / 3;
+  const indexStart = acc.indices.length;
+
+  for (let ringIndex = 0; ringIndex < centers.length; ringIndex++) {
+    const center = centers[ringIndex];
+    const jointIndex = BONE_INDEX.get(joints[ringIndex]) ?? 0;
+    for (let segment = 0; segment < radialSegments; segment++) {
+      const theta = (segment / radialSegments) * Math.PI * 2;
+      const cosine = Math.cos(theta);
+      const sine = Math.sin(theta);
+      acc.positions.push(
+        center.x,
+        center.y + radii[ringIndex] * cosine,
+        center.z + radii[ringIndex] * sine
+      );
+      acc.normals.push(0, cosine, sine);
+      acc.tangents.push(direction, 0, 0, 1);
+      acc.jointIndices.push(jointIndex);
+      acc.jointWeights.push(1);
+    }
+  }
+
+  for (let ringIndex = 0; ringIndex < centers.length - 1; ringIndex++) {
+    const inner = vertexStart + ringIndex * radialSegments;
+    const outer = inner + radialSegments;
+    for (let segment = 0; segment < radialSegments; segment++) {
+      const next = (segment + 1) % radialSegments;
+      acc.indices.push(
+        inner + segment,
+        inner + next,
+        outer + next,
+        inner + segment,
+        outer + next,
+        outer + segment
+      );
+    }
+  }
+
+  const capVertex = acc.positions.length / 3;
+  const capCenter = centers[centers.length - 1];
+  const capJoint = BONE_INDEX.get(boneName('distal')) ?? 0;
+  acc.positions.push(capCenter.x, capCenter.y, capCenter.z);
+  acc.normals.push(direction, 0, 0);
+  acc.tangents.push(0, 1, 0, 1);
+  acc.jointIndices.push(capJoint);
+  acc.jointWeights.push(1);
+  const lastRing = vertexStart + (centers.length - 1) * radialSegments;
+  for (let segment = 0; segment < radialSegments; segment++) {
+    const next = (segment + 1) % radialSegments;
+    acc.indices.push(capVertex, lastRing + segment, lastRing + next);
+  }
+
+  let totalLength = 0;
+  for (let index = 2; index < centers.length; index++) {
+    totalLength += distance(centers[index - 1], centers[index]);
+  }
+  return {
+    schemaVersion: 'holoscript.agent-avatar-digit-geometry.v1',
+    profile: 'articulated-three-phalanx-v1',
+    side,
+    digit,
+    radialSegments,
+    ringCount: centers.length,
+    phalanxSegmentCount: 3,
+    webBlendRingCount: 1,
+    totalLength: round6(totalLength * heightScale),
+    baseRadius: round6(baseRadius * heightScale),
+    tipRadius: round6(tipRadius * heightScale),
+    vertexRange: {
+      vertexStart,
+      vertexCount: acc.positions.length / 3 - vertexStart,
+    },
+    indexRange: {
+      indexStart,
+      indexCount: acc.indices.length - indexStart,
+    },
+  };
+}
+
 /**
  * Append one indexed shoulder-to-palm loft.
  *
@@ -599,6 +827,7 @@ interface UpperLimbRing {
 function pushCoherentUpperLimb(
   acc: MeshAccum,
   side: 'left' | 'right',
+  profile: Exclude<AgentAvatarUpperBodyProfile, 'legacy-segments-v1'>,
   radialSegments: number,
   bindWorld: Map<string, Mat4>,
   buildScale: number,
@@ -606,19 +835,20 @@ function pushCoherentUpperLimb(
   heightScale: number
 ): AgentAvatarUpperLimbGeometryReceipt {
   const direction = side === 'left' ? 1 : -1;
+  const anatomical = profile === 'coherent-anatomical-limbs-v2';
   const scaledBindPoint = (bone: string): Vec3 => {
     const point = getTranslation(bindWorld.get(bone)!);
     return { x: point.x * shoulderScale, y: point.y, z: point.z };
   };
   const elbow = scaledBindPoint(`${side}_forearm`);
   const wrist = scaledBindPoint(`${side}_hand`);
-  const shoulderRadius = 0.065 * buildScale * shoulderScale;
+  const shoulderRadius = (anatomical ? 0.075 : 0.065) * buildScale * shoulderScale;
   const wristRadius = 0.035 * buildScale * shoulderScale;
   const palmHalfWidth = 0.048 * buildScale * shoulderScale;
   const root: Vec3 = {
-    x: direction * 0.225 * buildScale * shoulderScale,
-    y: 1.405,
-    z: 0.005,
+    x: direction * (anatomical ? 0.218 : 0.225) * buildScale * shoulderScale,
+    y: anatomical ? 1.397 : 1.405,
+    z: anatomical ? 0.008 : 0.005,
   };
   const palmEnd: Vec3 = {
     x: wrist.x + direction * 0.08 * buildScale * shoulderScale,
@@ -630,7 +860,7 @@ function pushCoherentUpperLimb(
     y: a.y + (b.y - a.y) * t,
     z: a.z + (b.z - a.z) * t,
   });
-  const rings: UpperLimbRing[] = [
+  const coherentRings: UpperLimbRing[] = [
     {
       center: root,
       radiusY: shoulderRadius,
@@ -680,10 +910,75 @@ function pushCoherentUpperLimb(
       jointName: `${side}_hand`,
     },
   ];
+  const rings: UpperLimbRing[] = anatomical
+    ? [
+        {
+          center: root,
+          radiusY: shoulderRadius * 1.06,
+          radiusZ: shoulderRadius,
+          jointName: 'spine2',
+        },
+        {
+          center: {
+            ...midpoint(root, elbow, 0.11),
+            y: root.y + 0.012,
+          },
+          radiusY: shoulderRadius * 1.12,
+          radiusZ: shoulderRadius * 1.05,
+          jointName: `${side}_shoulder`,
+        },
+        {
+          center: midpoint(root, elbow, 0.29),
+          radiusY: shoulderRadius,
+          radiusZ: shoulderRadius * 0.94,
+          jointName: `${side}_upper_arm`,
+        },
+        {
+          center: midpoint(root, elbow, 0.61),
+          radiusY: shoulderRadius * 0.83,
+          radiusZ: shoulderRadius * 0.78,
+          jointName: `${side}_upper_arm`,
+        },
+        {
+          center: elbow,
+          radiusY: shoulderRadius * 0.73,
+          radiusZ: shoulderRadius * 0.69,
+          jointName: `${side}_upper_arm`,
+        },
+        {
+          center: midpoint(elbow, wrist, 0.5),
+          radiusY: shoulderRadius * 0.61,
+          radiusZ: shoulderRadius * 0.57,
+          jointName: `${side}_forearm`,
+        },
+        {
+          center: wrist,
+          radiusY: wristRadius,
+          radiusZ: wristRadius * 0.92,
+          jointName: `${side}_forearm`,
+        },
+        {
+          center: midpoint(wrist, palmEnd, 0.46),
+          radiusY: 0.028 * buildScale * shoulderScale,
+          radiusZ: palmHalfWidth,
+          jointName: `${side}_hand`,
+        },
+        {
+          center: palmEnd,
+          radiusY: 0.022 * buildScale * shoulderScale,
+          radiusZ: palmHalfWidth * 0.96,
+          jointName: `${side}_hand`,
+        },
+      ]
+    : coherentRings;
   const vertexStart = acc.positions.length / 3;
   const indexStart = acc.indices.length;
 
-  for (const ring of rings) {
+  for (let ringIndex = 0; ringIndex < rings.length; ringIndex++) {
+    const ring = rings[ringIndex];
+    const previous = rings[Math.max(0, ringIndex - 1)].center;
+    const next = rings[Math.min(rings.length - 1, ringIndex + 1)].center;
+    const centerlineTangent = normalize(sub(next, previous));
     const jointIndex = BONE_INDEX.get(ring.jointName) ?? 0;
     for (let segment = 0; segment < radialSegments; segment++) {
       const theta = (segment / radialSegments) * Math.PI * 2;
@@ -694,9 +989,17 @@ function pushCoherentUpperLimb(
         ring.center.y + ring.radiusY * cosine,
         ring.center.z + ring.radiusZ * sine
       );
-      const normal = normalize({ x: 0, y: cosine, z: sine });
+      const radial = normalize({ x: 0, y: cosine, z: sine });
+      const normal = anatomical
+        ? normalize(sub(radial, scale(centerlineTangent, dot(radial, centerlineTangent))))
+        : radial;
       acc.normals.push(normal.x, normal.y, normal.z);
-      acc.tangents.push(direction, 0, 0, 1);
+      acc.tangents.push(
+        anatomical ? centerlineTangent.x : direction,
+        anatomical ? centerlineTangent.y : 0,
+        anatomical ? centerlineTangent.z : 0,
+        1
+      );
       acc.jointIndices.push(jointIndex);
       acc.jointWeights.push(1);
     }
@@ -728,22 +1031,46 @@ function pushCoherentUpperLimb(
     acc.indices.push(palmCenter, lastRing + segment, lastRing + next);
   }
 
+  const digitRadialSegments = Math.max(6, Math.min(10, Math.round(radialSegments / 3)));
+  const digits = anatomical
+    ? AGENT_AVATAR_DIGIT_NAMES.map((digit) =>
+        pushArticulatedDigit(
+          acc,
+          side,
+          digit,
+          digitRadialSegments,
+          bindWorld,
+          buildScale,
+          shoulderScale,
+          heightScale
+        )
+      )
+    : undefined;
+
   return {
     schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1',
-    profile: 'coherent-arm-palm-v1',
+    profile: anatomical ? 'anatomical-deltoid-hand-v2' : 'coherent-arm-palm-v1',
     side,
     radialSegments,
     ringCount: rings.length,
     shoulderRadius: round6(shoulderRadius * heightScale),
     wristRadius: round6(wristRadius * heightScale),
     palmHalfWidth: round6(palmHalfWidth * heightScale),
+    ...(anatomical
+      ? {
+          deltoidBlendRingCount: 3,
+          shoulderOverlapDepth: round6(0.024 * buildScale * shoulderScale * heightScale),
+          digits,
+          connectedSurfaceCount: 1 + (digits?.length ?? 0),
+        }
+      : {}),
     vertexRange: {
       vertexStart,
-      vertexCount: acc.positions.length / 3 - vertexStart,
+      vertexCount: (digits?.[0]?.vertexRange.vertexStart ?? acc.positions.length / 3) - vertexStart,
     },
     indexRange: {
       indexStart,
-      indexCount: acc.indices.length - indexStart,
+      indexCount: (digits?.[0]?.indexRange.indexStart ?? acc.indices.length) - indexStart,
     },
   };
 }
@@ -1293,42 +1620,46 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   };
   let orbital: AgentAvatarOrbitalGeometryReceipt | undefined;
   let facialLandmarks: AgentAvatarFacialLandmarkReceipt | undefined;
-  const upperBodyBase =
-    upperBodyProfile === 'coherent-shoulder-neck-torso-v1'
-      ? pushCoherentUpperBody(
-          acc,
-          upperBodyRadialSegments,
-          buildScale,
-          shoulderScale,
-          torsoScale,
-          heightScale
-        )
-      : undefined;
-  const upperBody: AgentAvatarUpperBodyGeometryReceipt | undefined = upperBodyBase
-    ? {
-        ...upperBodyBase,
-        upperLimbs: [
-          pushCoherentUpperLimb(
-            acc,
-            'left',
-            upperBodyRadialSegments,
-            bindWorld,
-            buildScale,
-            shoulderScale,
-            heightScale
-          ),
-          pushCoherentUpperLimb(
-            acc,
-            'right',
-            upperBodyRadialSegments,
-            bindWorld,
-            buildScale,
-            shoulderScale,
-            heightScale
-          ),
-        ],
-      }
+  const coherentProfile = upperBodyProfile === 'legacy-segments-v1' ? undefined : upperBodyProfile;
+  const upperBodyBase = coherentProfile
+    ? pushCoherentUpperBody(
+        acc,
+        coherentProfile,
+        upperBodyRadialSegments,
+        buildScale,
+        shoulderScale,
+        torsoScale,
+        heightScale
+      )
     : undefined;
+  const upperBody: AgentAvatarUpperBodyGeometryReceipt | undefined =
+    coherentProfile && upperBodyBase
+      ? {
+          ...upperBodyBase,
+          upperLimbs: [
+            pushCoherentUpperLimb(
+              acc,
+              'left',
+              coherentProfile,
+              upperBodyRadialSegments,
+              bindWorld,
+              buildScale,
+              shoulderScale,
+              heightScale
+            ),
+            pushCoherentUpperLimb(
+              acc,
+              'right',
+              coherentProfile,
+              upperBodyRadialSegments,
+              bindWorld,
+              buildScale,
+              shoulderScale,
+              heightScale
+            ),
+          ],
+        }
+      : undefined;
 
   const childCount = new Map<string, number>();
   for (const bone of HUMANOID_65_SKELETON) {
@@ -1351,11 +1682,13 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     'right_forearm',
     'right_hand',
   ]);
+  const anatomicalDigits = upperBodyProfile === 'coherent-anatomical-limbs-v2';
 
   // One box per segment (parent-joint → this-joint), weighted to the PARENT bone it represents.
   for (const bone of HUMANOID_65_SKELETON) {
     if (!bone.parent) continue;
     if (upperBody && coherentUpperBodySegments.has(bone.name)) continue;
+    if (anatomicalDigits && (isFingerBone(bone.name) || isFingerBone(bone.parent))) continue;
     const a0 = getTranslation(bindWorld.get(bone.parent)!);
     const b0 = getTranslation(bindWorld.get(bone.name)!);
     const upperLimb =
@@ -1376,6 +1709,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   // Cap boxes for leaf bones with length>0 (mainly the head), extruded +Y in world-bind.
   for (const bone of HUMANOID_65_SKELETON as BoneDefinition[]) {
     if ((childCount.get(bone.name) ?? 0) === 0 && bone.length > 0) {
+      if (anatomicalDigits && isFingerBone(bone.name)) continue;
       const a = getTranslation(bindWorld.get(bone.name)!);
       const b = { x: a.x, y: a.y + bone.length, z: a.z };
       const jointIdx = BONE_INDEX.get(bone.name) ?? 0;
@@ -1448,10 +1782,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
                 ...limb,
                 vertexRange: { ...limb.vertexRange },
                 indexRange: { ...limb.indexRange },
-              })) as [
-                AgentAvatarUpperLimbGeometryReceipt,
-                AgentAvatarUpperLimbGeometryReceipt,
-              ],
+              })) as [AgentAvatarUpperLimbGeometryReceipt, AgentAvatarUpperLimbGeometryReceipt],
             },
           }
         : {}),
