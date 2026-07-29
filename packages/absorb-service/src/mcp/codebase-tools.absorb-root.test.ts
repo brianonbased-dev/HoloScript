@@ -8,6 +8,7 @@ import type { Worker } from 'worker_threads';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   handleCodebaseTool,
+  resolveIncrementalEmbeddingTimeoutMs,
   resetCodebaseToolStateForTests,
   setCachePublicationFaultForTests,
   setIsolatedAbsorbWorkerFactoryForTests,
@@ -87,6 +88,15 @@ type GraphUnavailableReceipt = {
 function sha256(content: string): string {
   return createHash('sha256').update(content, 'utf8').digest('hex');
 }
+
+describe('incremental embedding timeout policy', () => {
+  it('inherits the full-build window unless an explicit positive override is supplied', () => {
+    expect(resolveIncrementalEmbeddingTimeoutMs(undefined, 600_000)).toBe(600_000);
+    expect(resolveIncrementalEmbeddingTimeoutMs('0', 600_000)).toBe(600_000);
+    expect(resolveIncrementalEmbeddingTimeoutMs('not-a-number', 600_000)).toBe(600_000);
+    expect(resolveIncrementalEmbeddingTimeoutMs('90000', 600_000)).toBe(90_000);
+  });
+});
 
 function getHeadCommit(rootDir = process.cwd()): string {
   return execFileSync('git', ['rev-parse', 'HEAD'], {
