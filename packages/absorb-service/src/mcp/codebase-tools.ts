@@ -208,6 +208,14 @@ interface AbsorbPhaseMetric extends AbsorbMemorySnapshot {
   totalSymbols?: number;
 }
 
+interface EmbeddingRefreshFallbackReceipt {
+  schemaVersion: 'holoscript.codebase.embedding-refresh-fallback.v1';
+  kind: 'EmbeddingRefreshFallbackReceipt';
+  reason: string;
+  fullRebuildAttempted: true;
+  recovered: boolean;
+}
+
 // Disk-cache GraphRAG warm now runs in the BACKGROUND (see ensureCachedGraph), so a
 // generous cap is safe — it no longer blocks the first tool call. 30s was far too low
 // for a ~13k-symbol repo (~130 OpenAI batches), so the warm always timed out and
@@ -7628,6 +7636,7 @@ async function runIncrementalPatch(
   let embeddingBuildError: unknown;
   let preparedEmbeddingIndex: any = null;
   let embeddingRefreshReceipt: EmbeddingRefreshReceipt | undefined;
+  let embeddingRefreshFallback: EmbeddingRefreshFallbackReceipt | undefined;
   try {
     let index: any = null;
 
@@ -7649,27 +7658,62 @@ async function runIncrementalPatch(
       index = await loadEmbeddingsCache(mod, providerObj, rootDir, envelope.embeddingCacheSha256);
       try {
         if (index && typeof index.refreshIndex === 'function') {
-          embeddingRefreshReceipt = await withPhaseTimeout(
-            index.refreshIndex(
-              graph,
-              jobId
-                ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
-                    const embeddingProgress =
-                      80 + Math.floor((batchNum / Math.max(totalBatches, 1)) * 15);
-                    trackAbsorbProgress(
-                      jobId,
-                      `Reconciling embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols checked)`,
-                      embeddingProgress
-                    );
-                  }
-                : undefined
-            ),
-            INCREMENTAL_EMBEDDING_TIMEOUT_MS,
-            'holo_absorb_repo incremental changed-symbol embedding update',
-            () => disposeEmbeddingIndex(index),
-            signal
-          );
-        } else {
+          try {
+            embeddingRefreshReceipt = await withPhaseTimeout(
+              index.refreshIndex(
+                graph,
+                jobId
+                  ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
+                      const embeddingProgress =
+                        80 + Math.floor((batchNum / Math.max(totalBatches, 1)) * 15);
+                      trackAbsorbProgress(
+                        jobId,
+                        `Reconciling embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols checked)`,
+                        embeddingProgress
+                      );
+                    }
+                  : undefined
+              ),
+              INCREMENTAL_EMBEDDING_TIMEOUT_MS,
+              'holo_absorb_repo incremental changed-symbol embedding update',
+              () => disposeEmbeddingIndex(index),
+              signal
+            );
+          } catch (err) {
+            if (isAbsorbCancellation(err, jobId)) throw err;
+            const reason = errorMessage(err);
+            console.warn(
+              `[AbsorbEmbeddings] Incremental refresh failed; attempting bounded full rebuild: ${reason}`
+            );
+            await disposeEmbeddingIndex(index);
+            index = null;
+            embeddingRefreshReceipt = undefined;
+            embeddingRefreshFallback = {
+              schemaVersion: 'holoscript.codebase.embedding-refresh-fallback.v1',
+              kind: 'EmbeddingRefreshFallbackReceipt',
+              reason,
+              fullRebuildAttempted: true,
+              recovered: false,
+            };
+          }
+        } else if (index) {
+          const reason = 'loaded embedding index does not support refreshIndex';
+          console.warn(`[AbsorbEmbeddings] ${reason}; attempting bounded full rebuild.`);
+          await disposeEmbeddingIndex(index);
+          index = null;
+          embeddingRefreshFallback = {
+            schemaVersion: 'holoscript.codebase.embedding-refresh-fallback.v1',
+            kind: 'EmbeddingRefreshFallbackReceipt',
+            reason,
+            fullRebuildAttempted: true,
+            recovered: false,
+          };
+        }
+
+        if (!index) {
+          if (jobId && embeddingRefreshFallback) {
+            trackAbsorbProgress(jobId, 'Rebuilding embeddings after refresh failure', 80);
+          }
           index = await createDynamicEmbeddingIndex(
             mod,
             embeddingProvider,
@@ -7683,6 +7727,7 @@ async function runIncrementalPatch(
             () => disposeEmbeddingIndex(index),
             signal
           );
+          if (embeddingRefreshFallback) embeddingRefreshFallback.recovered = true;
         }
 
         preparedEmbeddingIndex = index;
@@ -7794,6 +7839,7 @@ async function runIncrementalPatch(
     stats: graphStats,
     embeddingPolicy,
     ...(embeddingRefreshReceipt && { embeddingRefresh: embeddingRefreshReceipt }),
+    ...(embeddingRefreshFallback && { embeddingRefreshFallback }),
     scanPolicy: effectiveScanPolicy,
     graphRagReady: semanticIndexReadiness.graphRagReady,
     semanticIndexReady: semanticIndexReadiness.semanticIndexReady,
