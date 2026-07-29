@@ -3234,6 +3234,94 @@ describe('holo_absorb_repo root validation', () => {
     );
   });
 
+  it('keeps untracked peer files out of incremental tracked-only refreshes', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-incremental-tracked-only-cache-')
+    );
+    const repoDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-incremental-tracked-only-repo-')
+    );
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'tracked.ts'),
+      'export const tracked = true;\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/tracked.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'fixture'], { cwd: repoDir, windowsHide: true });
+
+    const initial = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+      includeUntracked: false,
+    })) as { stats?: { totalFiles?: number } };
+    expect(initial.stats?.totalFiles).toBe(1);
+
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'peer-untracked.ts'),
+      'export const peerUntracked = true;\n',
+      'utf-8'
+    );
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'newly-tracked.ts'),
+      'export const newlyTracked = true;\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/newly-tracked.ts'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['commit', '-m', 'advance tracked head'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    const refreshed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      includeUntracked: false,
+    })) as { stats?: { totalFiles?: number }; message?: string };
+    expect(refreshed.stats?.totalFiles).toBe(2);
+    expect(refreshed.message).toContain('patched 1 files');
+
+    const status = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      graphAuthoritative?: boolean;
+      coverage?: {
+        graphFileCount?: number;
+        selectedCandidateCount?: number;
+        exactFileSetMatch?: boolean;
+        missingGraphFiles?: number;
+        unexpectedGraphFiles?: number;
+      };
+    };
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.coverage).toMatchObject({
+      graphFileCount: 2,
+      selectedCandidateCount: 2,
+      exactFileSetMatch: true,
+      missingGraphFiles: 0,
+      unexpectedGraphFiles: 0,
+    });
+  });
+
   it('rejects a fresh cache that contains ignored files beyond the selected workspace', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-ignored-cache-'));
