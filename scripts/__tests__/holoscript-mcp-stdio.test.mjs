@@ -19,6 +19,7 @@ import {
   buildEnvironmentForGroup,
   buildGroupFreshness,
   buildGroupsForChangedFiles,
+  buildStampCoversInput,
   buildCommandForGroup,
   isPackagedDistInvalidationResponse,
   missingBuildGroups,
@@ -168,6 +169,28 @@ test('unstamped runtimes rebuild the sovereign absorb and MCP owners once', () =
     buildBootstrapGroups({ schemaVersion: 'holoscript.local-mcp-build-stamp.v1' }),
     []
   );
+});
+
+test('HEAD-bound build stamps suppress unchanged-input rebuild loops', () => {
+  const freshness = {
+    id: 'wasm',
+    stale: true,
+    newestInputMtimeMs: 2000,
+    oldestOutputMtimeMs: 1000,
+  };
+  const stamp = {
+    gitHead: 'abc123',
+    inputMtimeMsByGroup: {
+      wasm: 2000,
+    },
+  };
+
+  assert.equal(buildStampCoversInput(freshness, stamp, 'abc123'), true);
+  assert.equal(
+    buildStampCoversInput({ ...freshness, newestInputMtimeMs: 2001 }, stamp, 'abc123'),
+    false
+  );
+  assert.equal(buildStampCoversInput(freshness, stamp, 'different-head'), false);
 });
 
 test('repair groups cover every direct MCP workspace dependency', () => {

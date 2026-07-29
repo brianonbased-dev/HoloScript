@@ -395,8 +395,13 @@ export function buildGroupFreshness(
   }
 
   const newestSource = newestInputMtimeMs(group, { root, exists, stat, readDirectory });
+  const generatedOutputs = group.requiredFiles.filter((file) =>
+    /\/(?:dist|pkg|pkg-node)\//.test(file.replaceAll('\\', '/'))
+  );
   const oldestOutput = Math.min(
-    ...group.requiredFiles.map((file) => stat(resolve(root, file)).mtimeMs)
+    ...(generatedOutputs.length > 0 ? generatedOutputs : group.requiredFiles).map(
+      (file) => stat(resolve(root, file)).mtimeMs
+    )
   );
   const stale = newestSource !== null && newestSource > oldestOutput;
   return {
@@ -424,6 +429,16 @@ export function buildGroupsForChangedFiles(changedFiles, groups = BUILD_GROUPS) 
 export function buildBootstrapGroups(stamp, groups = BUILD_GROUPS) {
   if (stamp) return [];
   return groups.filter((group) => ['absorb-service', 'mcp-server'].includes(group.id));
+}
+
+export function buildStampCoversInput(freshness, stamp, gitHead) {
+  if (!stamp || !gitHead || stamp.gitHead !== gitHead) return false;
+  const verifiedInputMtimeMs = Number(stamp.inputMtimeMsByGroup?.[freshness.id]);
+  return (
+    Number.isFinite(verifiedInputMtimeMs) &&
+    freshness.newestInputMtimeMs !== null &&
+    freshness.newestInputMtimeMs <= verifiedInputMtimeMs
+  );
 }
 
 function currentGitHead(root = ROOT, spawnSyncImpl = spawnSync) {
@@ -478,6 +493,12 @@ function writeBuildStamp({
     gitHead,
     verifiedAt: new Date().toISOString(),
     builtGroups,
+    inputMtimeMsByGroup: Object.fromEntries(
+      BUILD_GROUPS.map((group) => {
+        const freshness = buildGroupFreshness(group, { root });
+        return [group.id, freshness.newestInputMtimeMs];
+      })
+    ),
   };
   const temporaryPath = `${path}.${process.pid}.tmp`;
   writeFileSync(temporaryPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
@@ -630,9 +651,18 @@ function ensureBuild({ noBuild = false } = {}) {
   const missing = missingBuildGroups();
   const existingStamp = readBuildStamp();
   const gitHead = currentGitHead();
-  const mtimeStale = BUILD_GROUPS.filter(
-    (group) => !missing.includes(group) && buildGroupFreshness(group).stale
+  const freshnessByGroup = new Map(
+    BUILD_GROUPS.filter((group) => !missing.includes(group)).map((group) => [
+      group,
+      buildGroupFreshness(group),
+    ])
   );
+  const mtimeStale = BUILD_GROUPS.filter((group) => {
+    const freshness = freshnessByGroup.get(group);
+    return (
+      freshness?.stale === true && !buildStampCoversInput(freshness, existingStamp, gitHead)
+    );
+  });
   const commitStale = commitChangedBuildGroups({ stamp: existingStamp, gitHead });
   // A first-run import probe proves only that the old JavaScript is loadable.
   // Rebuild the two sovereign transport owners once so a copied checkout with
