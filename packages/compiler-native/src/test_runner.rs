@@ -154,10 +154,10 @@ pub fn run_tests_with_options(
                 .and_then(|value| value.to_str())
                 .unwrap_or("unnamed.test.hs");
             let name = function
-                .as_deref()
-                .map(|function| format!("{source_name}::{function}"))
+                .as_ref()
+                .map(|function| format!("{source_name}::{}", function.name))
                 .unwrap_or_else(|| source_name.to_owned());
-            let (entry, harness) = match function.as_deref() {
+            let (entry, harness) = match function.as_ref() {
                 Some(function) => {
                     write_function_harness(source, function, source_index, case_index)?
                 }
@@ -264,7 +264,19 @@ fn execute_case(executable: &Path, timeout: Duration) -> io::Result<CaseExecutio
     }
 }
 
-fn exported_test_functions(source: &str) -> Vec<String> {
+#[derive(Debug, Clone)]
+struct ExportedTestFunction {
+    name: String,
+    return_type: TestReturnType,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum TestReturnType {
+    I32,
+    Bool,
+}
+
+fn exported_test_functions(source: &str) -> Vec<ExportedTestFunction> {
     let mut names = Vec::new();
     for declaration in source.match_indices("export function test_") {
         let remainder = &source[declaration.0 + "export function ".len()..];
@@ -272,18 +284,25 @@ fn exported_test_functions(source: &str) -> Vec<String> {
             .chars()
             .take_while(|character| character.is_ascii_alphanumeric() || *character == '_')
             .collect();
-        if !name.is_empty() && remainder[name.len()..].starts_with("(): i32") {
-            names.push(name);
+        let return_type = if remainder[name.len()..].starts_with("(): i32") {
+            Some(TestReturnType::I32)
+        } else if remainder[name.len()..].starts_with("(): bool") {
+            Some(TestReturnType::Bool)
+        } else {
+            None
+        };
+        if let Some(return_type) = return_type {
+            names.push(ExportedTestFunction { name, return_type });
         }
     }
-    names.sort();
-    names.dedup();
+    names.sort_by(|left, right| left.name.cmp(&right.name));
+    names.dedup_by(|left, right| left.name == right.name);
     names
 }
 
 fn write_function_harness(
     source: &Path,
-    function: &str,
+    function: &ExportedTestFunction,
     source_index: usize,
     case_index: usize,
 ) -> io::Result<(PathBuf, Option<PathBuf>)> {
@@ -306,10 +325,18 @@ fn write_function_harness(
         ".holotest-harness-{}-{source_index}-{case_index}.hs",
         std::process::id()
     ));
+    let main = match function.return_type {
+        TestReturnType::I32 => format!("function main(): i32 {{ return {}() }}", function.name),
+        TestReturnType::Bool => format!(
+            "function main(): i32 {{ if ({}()) {{ return 0 }} return 1 }}",
+            function.name
+        ),
+    };
     fs::write(
         &harness,
         format!(
-            "import {{ {function} }} from \"./{source_name}\"\nfunction main(): i32 {{ return {function}() }}\n"
+            "import {{ {} }} from \"./{source_name}\"\n{main}\n",
+            function.name
         ),
     )?;
     Ok((harness.clone(), Some(harness)))
@@ -378,7 +405,7 @@ mod tests {
         fs::create_dir_all(&root).expect("create test root");
         fs::write(
             root.join("arithmetic.test.hs"),
-            "export function add(left: i32, right: i32): i32 { return left + right }\nexport function test_adds(): i32 { if (add(2, 3) == 5) { return 0 } return 1 }\nexport function test_failure_is_reported(): i32 { return 2 }",
+            "export function add(left: i32, right: i32): i32 { return left + right }\nexport function test_adds(): bool { return add(2, 3) == 5 }\nexport function test_failure_is_reported(): bool { return false }",
         )
         .expect("write function tests");
 
