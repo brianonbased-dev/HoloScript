@@ -20,6 +20,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -256,7 +257,41 @@ function readRefreshReceipts(cacheRoot) {
     .sort((left, right) => left.receiptMtimeMs - right.receiptMtimeMs);
 }
 
-function removeGraphFilesFromCache(graphCachePath, filePaths, CodebaseGraph) {
+function synchronizeIncompleteFixtureManifest(graphCachePath) {
+  const manifestPath = resolve(dirname(graphCachePath), 'cache-generation.json');
+  if (!existsSync(manifestPath)) {
+    throw new Error(`fixture generation manifest missing: ${manifestPath}`);
+  }
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  if (manifest.schemaVersion !== 'holoscript.absorb-cache-generation.v2') {
+    throw new Error(`fixture generation manifest is not integrity-bound: ${manifestPath}`);
+  }
+
+  const graphBytes = readFileSync(graphCachePath);
+  const graphCacheSha256 = createHash('sha256').update(graphBytes).digest('hex');
+  const generationGraphPath = resolve(
+    dirname(manifestPath),
+    'generations',
+    String(manifest.graphFile || '')
+  );
+  if (sha256File(generationGraphPath) !== graphCacheSha256) {
+    throw new Error('fixture compatibility graph does not match the selected generation graph');
+  }
+
+  manifest.graphCacheSha256 = graphCacheSha256;
+  manifest.graphCacheBytes = graphBytes.byteLength;
+  const temporaryManifestPath = `${manifestPath}.fixture-${process.pid}-${Date.now()}.tmp`;
+  writeFileSync(temporaryManifestPath, `${JSON.stringify(manifest)}\n`, 'utf8');
+  renameSync(temporaryManifestPath, manifestPath);
+  return {
+    manifestPath,
+    manifestHash: sha256File(manifestPath),
+    graphCacheSha256,
+    graphCacheBytes: graphBytes.byteLength,
+  };
+}
+
+function buildValidIncompleteGraphCacheFixture(graphCachePath, filePaths, CodebaseGraph) {
   const envelope = JSON.parse(readFileSync(graphCachePath, 'utf8'));
   const graph = CodebaseGraph.deserialize(envelope.graphJson);
   graph.patchFromChanges([], [], filePaths);
@@ -266,10 +301,12 @@ function removeGraphFilesFromCache(graphCachePath, filePaths, CodebaseGraph) {
   envelope.graphJson = graph.serialize();
   envelope.stats = graph.getStats();
   writeFileSync(graphCachePath, `${JSON.stringify(envelope)}\n`, 'utf8');
+  const generationManifest = synchronizeIncompleteFixtureManifest(graphCachePath);
   return {
     removedFiles: filePaths.length,
     remainingFiles: envelope.stats.totalFiles,
     cacheHash: sha256File(graphCachePath),
+    generationManifest,
   };
 }
 
@@ -462,7 +499,7 @@ export async function main(argv = process.argv.slice(2)) {
       { length: options.changedFiles },
       (_, index) => `src/module-${options.files - index - 1}.ts`
     );
-    const incompleteFixture = removeGraphFilesFromCache(
+    const incompleteFixture = buildValidIncompleteGraphCacheFixture(
       graphCachePath,
       incompleteRepairFiles,
       CodebaseGraph
@@ -597,7 +634,7 @@ export async function main(argv = process.argv.slice(2)) {
       { length: options.repairScaleMissing },
       (_, index) => `src/module-${String(options.repairScaleFiles - index - 1)}.ts`
     );
-    const repairScaleFixture = removeGraphFilesFromCache(
+    const repairScaleFixture = buildValidIncompleteGraphCacheFixture(
       repairScaleCachePath,
       repairScaleMissingFiles,
       CodebaseGraph
@@ -850,7 +887,7 @@ export async function main(argv = process.argv.slice(2)) {
       checks,
       claimBoundaries: [
         'The refresh, churn, memory, and visual workloads use deterministic temporary repositories and isolated caches; they do not mutate or publish into the live canonical HoloScript graph cache.',
-        'The incomplete-cache lane removes graph entries and their file hashes from an otherwise valid generation, then measures the production authority-safe delta path. Parsed-file counts and exact-set validation are stronger evidence than timing alone.',
+        'The incomplete-cache lane removes graph entries and their file hashes, then atomically rebinds the benchmark-only generation manifest to those fixture bytes so it remains a valid but incomplete generation. Production generation manifests remain immutable. Parsed-file counts and exact-set validation are stronger evidence than timing alone.',
         'HEAD-check overhead is measured inside the production source-pin path and is local-host specific; it is not a network or fleet throughput claim.',
         'The visual lane proves file coverage, import-edge fidelity, endpoint integrity, and finite spatial positions on a bounded synthetic graph. It does not prove that literal pixels improve agent answer accuracy.',
         'Literal-pixel agent-accuracy claims remain governed by the separately preregistered Paper 5 visual protocol and its external annotation/model-family custody gates.',
