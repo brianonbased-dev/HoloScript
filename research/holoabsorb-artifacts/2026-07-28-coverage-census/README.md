@@ -87,3 +87,38 @@ entry outside that census. The live repair removed all 13 unexpected files,
 reparsed only the two scoped modified TypeScript files, and restored exact
 11,650/11,650 authority with no caveats. The complete root/refresh suite then
 passed 75/75 tests, including a new tracked-only incremental regression.
+
+## Runtime and semantic convergence
+
+The later runtime pass closed the resource boundary above. It found that the
+sealed `HoloScript-runtime` projection was 44 commits behind source and that
+its still-importable dist predated the scanner-eligible coverage contract.
+After advancing and rebuilding the projection, fresh sovereign HTTP readback
+restored exact 11,650/11,650 authority. The already-open stdio client retained
+old module state, which confirms that a client reconnect is still required
+after replacing runtime dist.
+
+The first guarded HoloEmbed warm cancelled correctly when a scheduled Ollama
+workflow reduced free host memory below the 2,048 MiB floor. It preserved the
+prior graph and committed nothing. A later isolated retry completed in
+196,340 ms with 4,066 MiB peak RSS and 2,888 MiB minimum free host memory. The
+new immutable generation contains a 1,396,403,032-byte HoloEmbed artifact and
+reports both `semanticIndexReady=true` and `graphRAGReady=true`.
+
+Process-restart readback retained the same graph generation and embedding
+artifact. Cold semantic hydration measured 38,521 ms before restart and
+58,694 ms after restart; warm searches measured 2,025-2,301 ms before restart
+and 6,875 ms after restart on the concurrently loaded workstation. Exact
+`publishCacheGeneration` retrieval remained rank 1.
+
+The frozen Paper 5 benchmark reproduced its earlier bounded result: Graph RAG
+MRR 0.463 versus keyword 0.449, but Precision@5 0.178 versus 0.200. The visual
+focus ablation also reproduced MRR 0.304 to 0.975 and top-1 0% to 95% across
+20 frozen cases. The deterministic 4,096-connection transport lifecycle
+benchmark passed every check at 58.249 ms p95. Exact receipts and claim
+boundaries are in `runtime-semantic-convergence.json`.
+
+The stdio bootstrap now detects source-newer dist, binds verification to a
+Git-HEAD build stamp, rebuilds only commit-affected workspace packages, and
+forces a one-time rebuild of the sovereign Absorb/MCP owners when no trusted
+stamp exists. Its targeted suite passes 15/15 tests.

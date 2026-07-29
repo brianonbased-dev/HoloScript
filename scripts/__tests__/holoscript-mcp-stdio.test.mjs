@@ -2,10 +2,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { readFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, resolve } from 'node:path';
 import { PassThrough } from 'node:stream';
 import {
   BUILD_GROUPS,
+  buildBootstrapGroups,
+  buildGroupFreshness,
+  buildGroupsForChangedFiles,
   buildCommandForGroup,
   isPackagedDistInvalidationResponse,
   missingBuildGroups,
@@ -84,6 +96,76 @@ test('missingBuildGroups reports only groups with missing sentinel files', () =>
   assert.deepEqual(
     missingBuildGroups(exists, 'C:/repo').map((group) => group.id),
     ['core-types', 'platform', 'core', 'config', 'mcp-server']
+  );
+});
+
+test('build freshness detects source newer than packaged dist', () => {
+  const root = mkdtempSync(resolve(tmpdir(), 'holoscript-mcp-build-freshness-'));
+  const group = {
+    id: 'example',
+    requiredFiles: ['packages/example/dist/index.js', 'packages/example/dist/index.d.ts'],
+  };
+  try {
+    for (const path of [
+      'packages/example/src/index.ts',
+      'packages/example/package.json',
+      ...group.requiredFiles,
+    ]) {
+      const absolute = resolve(root, path);
+      mkdirSync(dirname(absolute), { recursive: true });
+      writeFileSync(absolute, path, 'utf8');
+    }
+    const old = new Date('2026-01-01T00:00:00.000Z');
+    const fresh = new Date('2026-01-02T00:00:00.000Z');
+    for (const output of group.requiredFiles) {
+      utimesSync(resolve(root, output), old, old);
+    }
+    utimesSync(resolve(root, 'packages/example/package.json'), old, old);
+    utimesSync(resolve(root, 'packages/example/src/index.ts'), fresh, fresh);
+
+    assert.deepEqual(buildGroupFreshness(group, { root }), {
+      id: 'example',
+      status: 'source-newer-than-dist',
+      stale: true,
+      missingOutputs: [],
+      newestInputMtimeMs: fresh.getTime(),
+      oldestOutputMtimeMs: old.getTime(),
+    });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('commit change routing rebuilds only affected packages unless a global input changed', () => {
+  const absorb = BUILD_GROUPS.find((group) => group.id === 'absorb-service');
+  const mcp = BUILD_GROUPS.find((group) => group.id === 'mcp-server');
+
+  assert.deepEqual(
+    buildGroupsForChangedFiles([
+      'packages/absorb-service/src/mcp/codebase-tools.ts',
+      'docs/absorb.md',
+    ]).map((group) => group.id),
+    ['absorb-service']
+  );
+  assert.deepEqual(
+    buildGroupsForChangedFiles(['packages/mcp-server/src/http-server.ts']).map(
+      (group) => group.id
+    ),
+    ['mcp-server']
+  );
+  assert.ok(absorb);
+  assert.ok(mcp);
+  assert.equal(buildGroupsForChangedFiles(['pnpm-lock.yaml']).length, BUILD_GROUPS.length);
+});
+
+test('unstamped runtimes rebuild the sovereign absorb and MCP owners once', () => {
+  assert.deepEqual(
+    buildBootstrapGroups(null).map((group) => group.id),
+    ['absorb-service', 'mcp-server']
+  );
+  assert.deepEqual(
+    buildBootstrapGroups({ schemaVersion: 'holoscript.local-mcp-build-stamp.v1' }),
+    []
   );
 });
 
