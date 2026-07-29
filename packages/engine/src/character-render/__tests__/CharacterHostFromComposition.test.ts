@@ -402,6 +402,63 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.host?.getAnatomyReceipt()).toEqual(result.anatomy);
   });
 
+  it('maps the anatomical limb profile into native deltoid and digit receipts', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3MResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                shoulder_scale: 1.1,
+                torso_scale: 0.96,
+                upper_body_profile: 'coherent_anatomical_limbs_v2',
+                upper_body_radial_segments: 24,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@body(upper_body_profile=coherent-anatomical-limbs-v2,' + 'upper_body_radial_segments=24)'
+    );
+    expect(result.anatomy?.upperBody).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
+      profile: 'anatomical-shoulder-neck-torso-v2',
+      radialSegments: 24,
+      ringCount: 12,
+    });
+    expect(result.anatomy?.upperBody?.upperLimbs).toHaveLength(2);
+    for (const limb of result.anatomy?.upperBody?.upperLimbs ?? []) {
+      expect(limb).toMatchObject({
+        schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1',
+        profile: 'anatomical-deltoid-hand-v2',
+        radialSegments: 24,
+        ringCount: 9,
+        deltoidBlendRingCount: 3,
+        connectedSurfaceCount: 6,
+      });
+      expect(limb.digits?.map((digit) => digit.digit)).toEqual([
+        'thumb',
+        'index',
+        'middle',
+        'ring',
+        'pinky',
+      ]);
+    }
+    expect(
+      result.anatomy?.upperBody?.upperLimbs.reduce(
+        (count, limb) => count + (limb.digits?.length ?? 0),
+        0
+      )
+    ).toBe(10);
+    expect(result.host?.getAnatomyReceipt()).toEqual(result.anatomy);
+  });
+
   it('fails closed on unsupported upper-body profiles and orphan topology controls', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

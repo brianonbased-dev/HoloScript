@@ -481,11 +481,12 @@ export function buildCharacterHostFromComposition(
     );
     if (
       authoredUpperBodyProfile === 'coherent-shoulder-neck-torso-v1' ||
+      authoredUpperBodyProfile === 'coherent-anatomical-limbs-v2' ||
       authoredUpperBodyProfile === 'legacy-segments-v1'
     ) {
       upperBodyProfile = authoredUpperBodyProfile;
       anatomyAuthored = true;
-      if (upperBodyProfile === 'coherent-shoulder-neck-torso-v1') {
+      if (upperBodyProfile !== 'legacy-segments-v1') {
         upperBodyRadialSegments = Math.max(
           12,
           Math.min(32, Math.round(authoredUpperBodyRadialSegments ?? 24))
