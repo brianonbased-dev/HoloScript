@@ -2,12 +2,29 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 
 use crate::{compile_path_executable, NativeCompileOptions};
 
 pub const HOLOTEST_FILE_SUFFIX: &str = ".test.hs";
+pub const DEFAULT_HOLOTEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+#[derive(Debug, Clone)]
+pub struct HoloTestRunOptions {
+    pub timeout: Duration,
+    pub keep_artifacts: bool,
+}
+
+impl Default for HoloTestRunOptions {
+    fn default() -> Self {
+        Self {
+            timeout: DEFAULT_HOLOTEST_TIMEOUT,
+            keep_artifacts: false,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct HoloTestCaseResult {
@@ -15,6 +32,7 @@ pub struct HoloTestCaseResult {
     pub source: PathBuf,
     pub status: HoloTestStatus,
     pub exit_code: Option<i32>,
+    pub duration_ms: u128,
     pub diagnostic: Option<String>,
 }
 
@@ -24,11 +42,13 @@ pub enum HoloTestStatus {
     Passed,
     Failed,
     CompileError,
+    TimedOut,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct HoloTestReport {
     pub root: PathBuf,
+    pub timeout_ms: u128,
     pub cases: Vec<HoloTestCaseResult>,
 }
 
@@ -89,6 +109,23 @@ pub fn run_tests(
     options: &NativeCompileOptions,
     keep_artifacts: bool,
 ) -> io::Result<HoloTestReport> {
+    run_tests_with_options(
+        root,
+        filter,
+        options,
+        &HoloTestRunOptions {
+            keep_artifacts,
+            ..HoloTestRunOptions::default()
+        },
+    )
+}
+
+pub fn run_tests_with_options(
+    root: &Path,
+    filter: Option<&str>,
+    options: &NativeCompileOptions,
+    run_options: &HoloTestRunOptions,
+) -> io::Result<HoloTestReport> {
     let root = fs::canonicalize(root)?;
     let tests = discover_tests(&root, filter)?;
     let artifact_root = std::env::temp_dir().join(format!(
@@ -131,26 +168,42 @@ pub fn run_tests(
                 std::env::consts::EXE_SUFFIX
             ));
             let result = match compile_path_executable(&entry, &executable, options) {
-                Ok(_) => match Command::new(&executable).status() {
-                    Ok(status) if status.success() => HoloTestCaseResult {
-                        name,
-                        source: source.clone(),
-                        status: HoloTestStatus::Passed,
-                        exit_code: status.code(),
-                        diagnostic: None,
-                    },
-                    Ok(status) => HoloTestCaseResult {
+                Ok(_) => match execute_case(&executable, run_options.timeout) {
+                    Ok(CaseExecution::Completed { status, duration }) if status.success() => {
+                        HoloTestCaseResult {
+                            name,
+                            source: source.clone(),
+                            status: HoloTestStatus::Passed,
+                            exit_code: status.code(),
+                            duration_ms: duration.as_millis(),
+                            diagnostic: None,
+                        }
+                    }
+                    Ok(CaseExecution::Completed { status, duration }) => HoloTestCaseResult {
                         name,
                         source: source.clone(),
                         status: HoloTestStatus::Failed,
                         exit_code: status.code(),
+                        duration_ms: duration.as_millis(),
                         diagnostic: Some("test main returned a non-zero exit code".to_string()),
+                    },
+                    Ok(CaseExecution::TimedOut { duration }) => HoloTestCaseResult {
+                        name,
+                        source: source.clone(),
+                        status: HoloTestStatus::TimedOut,
+                        exit_code: None,
+                        duration_ms: duration.as_millis(),
+                        diagnostic: Some(format!(
+                            "test exceeded {} ms timeout",
+                            run_options.timeout.as_millis()
+                        )),
                     },
                     Err(error) => HoloTestCaseResult {
                         name,
                         source: source.clone(),
                         status: HoloTestStatus::Failed,
                         exit_code: None,
+                        duration_ms: 0,
                         diagnostic: Some(format!("failed to execute test: {error}")),
                     },
                 },
@@ -159,6 +212,7 @@ pub fn run_tests(
                     source: source.clone(),
                     status: HoloTestStatus::CompileError,
                     exit_code: None,
+                    duration_ms: 0,
                     diagnostic: Some(error.to_string()),
                 },
             };
@@ -169,10 +223,45 @@ pub fn run_tests(
         }
     }
 
-    if !keep_artifacts {
+    if !run_options.keep_artifacts {
         fs::remove_dir_all(&artifact_root)?;
     }
-    Ok(HoloTestReport { root, cases })
+    Ok(HoloTestReport {
+        root,
+        timeout_ms: run_options.timeout.as_millis(),
+        cases,
+    })
+}
+
+enum CaseExecution {
+    Completed {
+        status: std::process::ExitStatus,
+        duration: Duration,
+    },
+    TimedOut {
+        duration: Duration,
+    },
+}
+
+fn execute_case(executable: &Path, timeout: Duration) -> io::Result<CaseExecution> {
+    let start = Instant::now();
+    let mut child = Command::new(executable).spawn()?;
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(CaseExecution::Completed {
+                status,
+                duration: start.elapsed(),
+            });
+        }
+        if start.elapsed() >= timeout {
+            child.kill()?;
+            child.wait()?;
+            return Ok(CaseExecution::TimedOut {
+                duration: start.elapsed(),
+            });
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
 }
 
 fn exported_test_functions(source: &str) -> Vec<String> {
@@ -306,6 +395,31 @@ mod tests {
                 .file_name()
                 .to_string_lossy()
                 .starts_with(".holotest-harness-")));
+        fs::remove_dir_all(root).expect("remove test root");
+    }
+
+    #[test]
+    fn kills_native_tests_that_exceed_the_timeout() {
+        let root = std::env::temp_dir().join(format!("holotest-timeout-{}", std::process::id()));
+        fs::create_dir_all(&root).expect("create test root");
+        fs::write(
+            root.join("hang.test.hs"),
+            "function main(): i32 { while (true) { let value: i32 = 0 } return 0 }",
+        )
+        .expect("write hanging test");
+
+        let report = run_tests_with_options(
+            &root,
+            None,
+            &NativeCompileOptions::host(),
+            &HoloTestRunOptions {
+                timeout: Duration::from_millis(25),
+                keep_artifacts: false,
+            },
+        )
+        .expect("run bounded test");
+        assert_eq!(report.cases.len(), 1);
+        assert_eq!(report.cases[0].status, HoloTestStatus::TimedOut);
         fs::remove_dir_all(root).expect("remove test root");
     }
 }

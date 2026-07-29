@@ -2,7 +2,8 @@ use std::env;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use holoscript_native::{run_tests, NativeCompileOptions};
+use holoscript_native::{run_tests_with_options, HoloTestRunOptions, NativeCompileOptions};
+use std::time::Duration;
 
 fn main() -> ExitCode {
     match run() {
@@ -26,13 +27,14 @@ fn run() -> Result<bool, String> {
     let mut linker = None;
     let mut json = false;
     let mut keep_artifacts = false;
+    let mut timeout_ms = 30_000_u64;
     let mut root_seen = false;
     let mut args = env::args().skip(1);
 
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "-h" | "--help" => {
-                println!("Usage: holotest [root] [--filter <substring>] [--json] [--keep-artifacts] [--linker <clang-or-cc>]");
+                println!("Usage: holotest [root] [--filter <substring>] [--timeout-ms <milliseconds>] [--json] [--keep-artifacts] [--linker <clang-or-cc>]");
                 println!("Runs every *.test.hs source file. A test passes when main returns 0.");
                 return Ok(true);
             }
@@ -49,6 +51,13 @@ fn run() -> Result<bool, String> {
                 ))
             }
             "--json" => json = true,
+            "--timeout-ms" => {
+                timeout_ms = args
+                    .next()
+                    .ok_or_else(|| "--timeout-ms requires a positive integer".to_string())?
+                    .parse()
+                    .map_err(|_| "--timeout-ms requires a positive integer".to_string())?
+            }
             "--keep-artifacts" => keep_artifacts = true,
             value if value.starts_with('-') => return Err(format!("unknown option `{value}`")),
             value if !root_seen => {
@@ -62,8 +71,19 @@ fn run() -> Result<bool, String> {
     let options = linker
         .map(NativeCompileOptions::with_linker)
         .unwrap_or_else(NativeCompileOptions::host);
-    let report = run_tests(&root, filter.as_deref(), &options, keep_artifacts)
-        .map_err(|error| error.to_string())?;
+    if timeout_ms == 0 {
+        return Err("--timeout-ms must be greater than zero".to_string());
+    }
+    let report = run_tests_with_options(
+        &root,
+        filter.as_deref(),
+        &options,
+        &HoloTestRunOptions {
+            timeout: Duration::from_millis(timeout_ms),
+            keep_artifacts,
+        },
+    )
+    .map_err(|error| error.to_string())?;
     if json {
         println!(
             "{}",
@@ -75,8 +95,13 @@ fn run() -> Result<bool, String> {
                 holoscript_native::HoloTestStatus::Passed => "PASS",
                 holoscript_native::HoloTestStatus::Failed => "FAIL",
                 holoscript_native::HoloTestStatus::CompileError => "ERROR",
+                holoscript_native::HoloTestStatus::TimedOut => "TIMEOUT",
             };
-            println!("{label} {}", case.source.display());
+            println!(
+                "{label} {} ({} ms)",
+                case.source.display(),
+                case.duration_ms
+            );
             if let Some(diagnostic) = &case.diagnostic {
                 println!("  {diagnostic}");
             }

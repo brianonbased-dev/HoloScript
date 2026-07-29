@@ -12,6 +12,7 @@ HoloTest is the native test contract for the compiler-machine subset of HoloScri
 - A file may instead export zero-argument `test_*(): i32` functions. HoloTest generates a temporary, source-local `main` harness for each function, compiles it, and removes the harness afterward.
 - Test files are discovered recursively in lexical path order and compiled into an isolated temporary artifact directory.
 - `holotest` deletes that directory by default. `--keep-artifacts` retains it for native-debug investigation.
+- Each native executable has a 30-second timeout by default. `--timeout-ms` changes that bound; timed-out processes are killed and reported as `timed_out`, never as passes.
 
 ```hs
 // arithmetic.test.hs
