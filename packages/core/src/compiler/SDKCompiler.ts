@@ -73,6 +73,10 @@ interface ContractService {
   name: string;
   version: string;
   baseUrl: string;
+  description?: string;
+  license?: string;
+  repository?: string;
+  homepage?: string;
   auth?: string;
   responseEnvelope?: string;
   rateLimit?: string;
@@ -337,6 +341,10 @@ export class SDKCompiler extends CompilerBase {
       name: this.toPascalIdentifier(block.name, 'Service'),
       version: this.readString(block.properties, 'version') ?? '1.0.0',
       baseUrl: this.readString(block.properties, 'base_url') ?? '/api',
+      description: this.readString(block.properties, 'description'),
+      license: this.readString(block.properties, 'license'),
+      repository: this.readString(block.properties, 'repository'),
+      homepage: this.readString(block.properties, 'homepage'),
       auth: this.readString(block.properties, 'auth'),
       responseEnvelope: this.readString(block.properties, 'response_envelope'),
       rateLimit: this.readString(block.properties, 'rate_limit'),
@@ -1208,24 +1216,41 @@ export class SDKCompiler extends CompilerBase {
   }
 
   private emitPythonProjectToml(contract: ServiceContractIR): string {
-    return [
+    const lines = [
       '[project]',
-      `name = "${this.options.packageName.replace(/^@[^/]+\//, '')}"`,
-      `version = "${contract.service.version}"`,
+      `name = ${JSON.stringify(this.options.packageName.replace(/^@[^/]+\//, ''))}`,
+      `version = ${JSON.stringify(contract.service.version)}`,
+    ];
+    if (contract.service.description) {
+      lines.push(`description = ${JSON.stringify(contract.service.description)}`);
+    }
+    if (contract.service.license) {
+      lines.push(`license = { text = ${JSON.stringify(contract.service.license)} }`);
+    }
+    lines.push(
       'requires-python = ">=3.11"',
       'dependencies = []',
-      '',
-    ].join('\n');
+      ''
+    );
+    if (contract.service.homepage || contract.service.repository) {
+      lines.push('[project.urls]');
+      if (contract.service.homepage) {
+        lines.push(`Homepage = ${JSON.stringify(contract.service.homepage)}`);
+      }
+      if (contract.service.repository) {
+        lines.push(`Repository = ${JSON.stringify(contract.service.repository)}`);
+      }
+      lines.push('');
+    }
+    return lines.join('\n');
   }
 
   private emitReactPackageJson(contract: ServiceContractIR): string {
+    const main = `dist/${this.options.clientFileName.replace(/\.ts$/, '.js')}`;
+    const types = `dist/${this.options.clientFileName.replace(/\.ts$/, '.d.ts')}`;
     return JSON.stringify(
       {
-        name: this.options.packageName,
-        version: contract.service.version,
-        type: 'module',
-        main: `dist/${this.options.clientFileName.replace(/\.ts$/, '.js')}`,
-        types: `dist/${this.options.clientFileName.replace(/\.ts$/, '.d.ts')}`,
+        ...this.npmPublicationFields(contract, main, types),
         peerDependencies: {
           react: '>=18',
         },
@@ -1241,11 +1266,7 @@ export class SDKCompiler extends CompilerBase {
   private emitConnectorPackageJson(contract: ServiceContractIR): string {
     return JSON.stringify(
       {
-        name: this.options.packageName,
-        version: contract.service.version,
-        type: 'module',
-        main: 'dist/index.js',
-        types: 'dist/index.d.ts',
+        ...this.npmPublicationFields(contract, 'dist/index.js', 'dist/index.d.ts'),
         dependencies: {
           '@holoscript/connector-core': 'workspace:*',
           '@modelcontextprotocol/sdk': '^1.0.0',
@@ -1260,12 +1281,10 @@ export class SDKCompiler extends CompilerBase {
   }
 
   private emitPackageJson(contract: ServiceContractIR): string {
+    const main = `dist/${this.options.clientFileName.replace(/\.ts$/, '.js')}`;
+    const types = `dist/${this.options.clientFileName.replace(/\.ts$/, '.d.ts')}`;
     const pkg = {
-      name: this.options.packageName,
-      version: contract.service.version,
-      type: 'module',
-      main: `dist/${this.options.clientFileName.replace(/\.ts$/, '.js')}`,
-      types: `dist/${this.options.clientFileName.replace(/\.ts$/, '.d.ts')}`,
+      ...this.npmPublicationFields(contract, main, types),
       scripts: {
         build: 'tsc',
       },
@@ -1274,6 +1293,28 @@ export class SDKCompiler extends CompilerBase {
       },
     };
     return JSON.stringify(pkg, null, 2);
+  }
+
+  private npmPublicationFields(contract: ServiceContractIR, main: string, types: string) {
+    return {
+      name: this.options.packageName,
+      version: contract.service.version,
+      description: contract.service.description,
+      license: contract.service.license,
+      repository: contract.service.repository,
+      homepage: contract.service.homepage,
+      type: 'module',
+      main,
+      types,
+      files: ['dist', 'README.md', 'sdk-compiler-receipt.json'],
+      exports: {
+        '.': {
+          types: `./${types}`,
+          import: `./${main}`,
+        },
+        './sdk-compiler-receipt.json': './sdk-compiler-receipt.json',
+      },
+    };
   }
 
   private emitTsConfig(): string {
@@ -1323,6 +1364,16 @@ export class SDKCompiler extends CompilerBase {
         service: contract.service.name,
         clientClassName: this.options.clientClassName,
         serviceBaseUrl: contract.service.baseUrl,
+        publication: {
+          packageName: this.options.packageName,
+          version: contract.service.version,
+          description: contract.service.description,
+          license: contract.service.license,
+          repository: contract.service.repository,
+          homepage: contract.service.homepage,
+          manifest:
+            this.options.target === 'sdk:python' ? 'pyproject.toml' : 'package.json',
+        },
         schemaCount: contract.schemas.length,
         endpointCount: contract.endpoints.length,
         generatedFiles,
