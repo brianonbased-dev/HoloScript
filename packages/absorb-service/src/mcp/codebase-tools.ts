@@ -7318,6 +7318,70 @@ async function runFullScan(
 /**
  * Run an incremental patch (reuse cached graph, only rescan changed files).
  */
+interface IncrementalFileDeltaReceipt {
+  schemaVersion: 'holoscript.codebase.incremental-file-delta.v1';
+  kind: 'IncrementalFileDeltaReceipt';
+  filesBefore: number;
+  filesAfter: number;
+  filesChanged: number;
+  filesAdded: number;
+  filesModified: number;
+  filesDeleted: number;
+  filesEvicted: number;
+  changedEqualsAddedPlusModified: true;
+  afterEqualsBeforePlusAddedMinusRemoved: true;
+}
+
+function buildIncrementalFileDeltaReceipt(
+  rootDir: string,
+  beforeFiles: string[],
+  afterFiles: string[],
+  rescannedFiles: string[],
+  gitDeletedFiles: string[]
+): IncrementalFileDeltaReceipt {
+  const before = new Set(beforeFiles);
+  const after = new Set(afterFiles);
+  const rescanned = new Set(
+    rescannedFiles
+      .map((filePath) => normalizeRepoRelativeFilePath(rootDir, filePath))
+      .filter((filePath): filePath is string => Boolean(filePath))
+  );
+  const gitDeleted = new Set(
+    gitDeletedFiles
+      .map((filePath) => normalizeRepoRelativeFilePath(rootDir, filePath))
+      .filter((filePath): filePath is string => Boolean(filePath))
+  );
+  const added = afterFiles.filter((filePath) => !before.has(filePath));
+  const removed = beforeFiles.filter((filePath) => !after.has(filePath));
+  const modified = afterFiles.filter(
+    (filePath) => before.has(filePath) && rescanned.has(filePath)
+  );
+  const deleted = removed.filter((filePath) => gitDeleted.has(filePath));
+  const evicted = removed.filter((filePath) => !gitDeleted.has(filePath));
+  const changed = added.length + modified.length;
+  const afterFromDelta = before.size + added.length - deleted.length - evicted.length;
+
+  if (changed !== added.length + modified.length || afterFromDelta !== after.size) {
+    throw new Error(
+      'Incremental file delta accounting violated its add/modify/delete invariants'
+    );
+  }
+
+  return {
+    schemaVersion: 'holoscript.codebase.incremental-file-delta.v1',
+    kind: 'IncrementalFileDeltaReceipt',
+    filesBefore: before.size,
+    filesAfter: after.size,
+    filesChanged: changed,
+    filesAdded: added.length,
+    filesModified: modified.length,
+    filesDeleted: deleted.length,
+    filesEvicted: evicted.length,
+    changedEqualsAddedPlusModified: true,
+    afterEqualsBeforePlusAddedMinusRemoved: true,
+  };
+}
+
 async function runIncrementalPatch(
   mod: CodebaseModule,
   rootDir: string,
@@ -7373,6 +7437,10 @@ async function runIncrementalPatch(
       effectiveScanPolicy
     );
   }
+  const normalizedCachedFiles = normalizedGraphFilePaths(rootDir, graph);
+  if (!normalizedCachedFiles) {
+    throw new Error('Incremental graph cache contains invalid or duplicate repository file paths');
+  }
 
   if (jobId) trackAbsorbProgress(jobId, 'Detecting content changes', 20);
 
@@ -7404,7 +7472,7 @@ async function runIncrementalPatch(
       normalizeRootForComparison(path.resolve(rootDir, filePath))
     );
   const graphFilesOutsideSelection = selectedCandidateIdentities
-    ? (graph.getFilePaths() as string[]).filter(
+    ? normalizedCachedFiles.filter(
         (filePath) => !candidateFileIsSelected(filePath)
       )
     : [];
@@ -7472,6 +7540,13 @@ async function runIncrementalPatch(
       `Incomplete-cache delta repair refused publication: graph covers ${normalizedPatchedFiles.length}/${incompleteCacheRepair.expectedFilePaths.length} exact selected files`
     );
   }
+  const fileDelta = buildIncrementalFileDeltaReceipt(
+    rootDir,
+    normalizedCachedFiles,
+    normalizedPatchedFiles,
+    filesToRescan,
+    changes.deleted
+  );
   const hashTargetFiles = incompleteCacheRepair
     ? incompleteCacheRepair.expectedFilePaths
     : normalizedPatchedFiles;
@@ -7535,10 +7610,12 @@ async function runIncrementalPatch(
     resetGraphRAGState();
     const result = {
       incremental: true,
-      filesChanged: filesToRescan.length,
-      filesAdded: changes.added.length,
-      filesModified: modifiedFiltered.trulyChanged.length,
-      filesDeleted: changes.deleted.length,
+      filesChanged: fileDelta.filesChanged,
+      filesAdded: fileDelta.filesAdded,
+      filesModified: fileDelta.filesModified,
+      filesDeleted: fileDelta.filesDeleted,
+      filesEvicted: fileDelta.filesEvicted,
+      fileDelta,
       patchDurationMs,
       rootDir,
       stats: statsOnlyGraphStats,
@@ -7557,7 +7634,7 @@ async function runIncrementalPatch(
       semanticIndexReadiness,
       embeddingSkipped: true,
       embeddingSkipReason: 'outputFormat:stats',
-      message: `Incremental stats update: patched ${filesToRescan.length} files in ${patchDurationMs}ms (${statsOnlyGraphStats.totalFiles} total)`,
+      message: `Incremental stats update: patched ${fileDelta.filesChanged} files in ${patchDurationMs}ms (${statsOnlyGraphStats.totalFiles} total)`,
     };
 
     if (jobId) {
@@ -7774,10 +7851,12 @@ async function runIncrementalPatch(
 
   const result = {
     incremental: true,
-    filesChanged: filesToRescan.length,
-    filesAdded: changes.added.length,
-    filesModified: modifiedFiltered.trulyChanged.length,
-    filesDeleted: changes.deleted.length,
+    filesChanged: fileDelta.filesChanged,
+    filesAdded: fileDelta.filesAdded,
+    filesModified: fileDelta.filesModified,
+    filesDeleted: fileDelta.filesDeleted,
+    filesEvicted: fileDelta.filesEvicted,
+    fileDelta,
     patchDurationMs,
     rootDir,
     stats: graphStats,
@@ -7802,7 +7881,7 @@ async function runIncrementalPatch(
       repairedIncompleteCache: true,
       incompleteCacheRepair: incompleteCacheRepair.receipt,
     }),
-    message: `Incremental update: patched ${filesToRescan.length} files in ${patchDurationMs}ms (${graphStats.totalFiles} total)`,
+    message: `Incremental update: patched ${fileDelta.filesChanged} files in ${patchDurationMs}ms (${graphStats.totalFiles} total)`,
   };
 
   // Store result in job

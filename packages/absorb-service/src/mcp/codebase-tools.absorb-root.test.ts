@@ -3278,7 +3278,11 @@ describe('holo_absorb_repo root validation', () => {
       'export const tracked = true;\n',
       'utf-8'
     );
-    execFileSync('git', ['add', 'src/tracked.ts'], { cwd: repoDir, windowsHide: true });
+    fs.writeFileSync(path.join(repoDir, 'fixture.bin'), Buffer.from([0, 1, 2, 3]));
+    execFileSync('git', ['add', 'src/tracked.ts', 'fixture.bin'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
     execFileSync('git', ['commit', '-m', 'fixture'], { cwd: repoDir, windowsHide: true });
 
     const initial = (await handleCodebaseTool('holo_absorb_repo', {
@@ -3299,7 +3303,13 @@ describe('holo_absorb_repo root validation', () => {
       'export const newlyTracked = true;\n',
       'utf-8'
     );
-    execFileSync('git', ['add', 'src/newly-tracked.ts'], {
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'tracked.ts'),
+      'export const tracked = false;\n',
+      'utf-8'
+    );
+    execFileSync('git', ['rm', 'fixture.bin'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['add', 'src/newly-tracked.ts', 'src/tracked.ts'], {
       cwd: repoDir,
       windowsHide: true,
     });
@@ -3312,9 +3322,46 @@ describe('holo_absorb_repo root validation', () => {
       rootDir: repoDir,
       outputFormat: 'stats',
       includeUntracked: false,
-    })) as { stats?: { totalFiles?: number }; message?: string };
+    })) as {
+      stats?: { totalFiles?: number };
+      message?: string;
+      filesChanged?: number;
+      filesAdded?: number;
+      filesModified?: number;
+      filesDeleted?: number;
+      filesEvicted?: number;
+      fileDelta?: {
+        filesBefore?: number;
+        filesAfter?: number;
+        filesChanged?: number;
+        filesAdded?: number;
+        filesModified?: number;
+        filesDeleted?: number;
+        filesEvicted?: number;
+        changedEqualsAddedPlusModified?: boolean;
+        afterEqualsBeforePlusAddedMinusRemoved?: boolean;
+      };
+    };
     expect(refreshed.stats?.totalFiles).toBe(2);
-    expect(refreshed.message).toContain('patched 1 files');
+    expect(refreshed.message).toContain('patched 2 files');
+    expect(refreshed).toMatchObject({
+      filesChanged: 2,
+      filesAdded: 1,
+      filesModified: 1,
+      filesDeleted: 0,
+      filesEvicted: 0,
+      fileDelta: {
+        filesBefore: 1,
+        filesAfter: 2,
+        filesChanged: 2,
+        filesAdded: 1,
+        filesModified: 1,
+        filesDeleted: 0,
+        filesEvicted: 0,
+        changedEqualsAddedPlusModified: true,
+        afterEqualsBeforePlusAddedMinusRemoved: true,
+      },
+    });
 
     const status = (await handleCodebaseTool('holo_graph_status', {
       forceRefresh: true,
@@ -3335,6 +3382,124 @@ describe('holo_absorb_repo root validation', () => {
       exactFileSetMatch: true,
       missingGraphFiles: 0,
       unexpectedGraphFiles: 0,
+    });
+
+    execFileSync('git', ['rm', 'src/tracked.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'delete tracked source'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    const deletion = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      includeUntracked: false,
+    })) as {
+      stats?: { totalFiles?: number };
+      filesChanged?: number;
+      filesAdded?: number;
+      filesModified?: number;
+      filesDeleted?: number;
+      filesEvicted?: number;
+      fileDelta?: {
+        filesBefore?: number;
+        filesAfter?: number;
+        afterEqualsBeforePlusAddedMinusRemoved?: boolean;
+      };
+    };
+    expect(deletion).toMatchObject({
+      stats: { totalFiles: 1 },
+      filesChanged: 0,
+      filesAdded: 0,
+      filesModified: 0,
+      filesDeleted: 1,
+      filesEvicted: 0,
+      fileDelta: {
+        filesBefore: 2,
+        filesAfter: 1,
+        afterEqualsBeforePlusAddedMinusRemoved: true,
+      },
+    });
+  });
+
+  it('excludes Git-only additions and deletions from graph file delta receipts', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-incremental-file-delta-cache-')
+    );
+    const repoDir = makeTinyGitRepo('holoscript-incremental-file-delta-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    const initial = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+      includeUntracked: false,
+    })) as { stats?: { totalFiles?: number } };
+    expect(initial.stats?.totalFiles).toBe(2);
+
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'alpha.ts'),
+      'export const alpha = 42;\n',
+      'utf-8'
+    );
+    fs.writeFileSync(path.join(repoDir, 'asset.bin'), Buffer.from([4, 5, 6, 7]));
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'peer-untracked.ts'),
+      'export const peerUntracked = true;\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/alpha.ts', 'asset.bin'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['commit', '-m', 'mixed graph and non-graph delta'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    const mixed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      includeUntracked: false,
+    })) as Record<string, unknown>;
+    expect(mixed).toMatchObject({
+      filesChanged: 1,
+      filesAdded: 0,
+      filesModified: 1,
+      filesDeleted: 0,
+      filesEvicted: 0,
+      fileDelta: {
+        filesBefore: 2,
+        filesAfter: 2,
+        changedEqualsAddedPlusModified: true,
+        afterEqualsBeforePlusAddedMinusRemoved: true,
+      },
+    });
+
+    execFileSync('git', ['rm', 'asset.bin'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'delete non-graph asset'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    const nonGraphDeletion = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      includeUntracked: false,
+    })) as Record<string, unknown>;
+    expect(nonGraphDeletion).toMatchObject({
+      filesChanged: 0,
+      filesAdded: 0,
+      filesModified: 0,
+      filesDeleted: 0,
+      filesEvicted: 0,
+      fileDelta: {
+        filesBefore: 2,
+        filesAfter: 2,
+        changedEqualsAddedPlusModified: true,
+        afterEqualsBeforePlusAddedMinusRemoved: true,
+      },
     });
   });
 
