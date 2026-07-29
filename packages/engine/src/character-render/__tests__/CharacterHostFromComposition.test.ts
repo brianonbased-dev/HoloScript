@@ -14,7 +14,7 @@ import {
   getSovereignMantleCatalogEntry,
   listSovereignMantleStyles,
 } from '../AgentAvatarMantleCatalog';
-import { packCharacterMaterial } from '../character-render';
+import { deriveCharacterMaterialPlateReceipt, packCharacterMaterial } from '../character-render';
 
 describe('buildCharacterHostFromComposition', () => {
   it('maps @body/@subsurface_scattering/@locomotion from a template-using object', () => {
@@ -305,8 +305,9 @@ describe('buildCharacterHostFromComposition', () => {
       shoulderScale: 1.12,
       torsoScale: 0.94,
     });
-    expect(result.skin).toEqual({
-      schemaVersion: 'holoscript.agent-avatar-skin-material.v1',
+    expect(result.skin).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'legacy-v1',
       shadingModel: 'skin-sss',
       microdetailProfile: 'analytic-pore-v1',
       microdetailScale: 96,
@@ -526,6 +527,105 @@ describe('buildCharacterHostFromComposition', () => {
         ).toBe(true);
       }
     }
+  });
+
+  it('maps fixed-light skin, keratin, and nail-bed calibration into the native draw schedule', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3QResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                skin_tone: '#B9826F',
+                upper_body_profile: 'coherent_hand_landmarks_v3',
+                upper_body_radial_segments: 24,
+                nail_tone: '#E6BEB2',
+                nail_roughness: 0.24,
+                nail_bed_tone: '#C9827C',
+                nail_bed_roughness: 0.36,
+              },
+            },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                color: '#B9826F',
+                scatter_color: '#A65D50',
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 94,
+                microdetail_strength: 0.074,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@subsurface_scattering(material_calibration_profile=fixed-light-human-v1)'
+    );
+    expect(result.report.mapped).toContain('@body(nail_bed_tone=13206140,nail_bed_roughness=0.36)');
+    expect(result.host?.getSkinMaterialReceipt()).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'fixed-light-human-v1',
+      color: 0xb9826f,
+      roughness: 0.5,
+      thickness: 0.24,
+      transmitStrength: 0.32,
+      microdetailProfile: 'analytic-pore-v1',
+      microdetailScale: 94,
+      microdetailStrength: 0.074,
+    });
+
+    const receipt = deriveCharacterMaterialPlateReceipt(result.host!.getDrawSpec());
+    expect(receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-material-plate.v2',
+      roleCounts: {
+        'keratin-nail': 20,
+        'nail-bed': 10,
+      },
+      keratinIndexCount: 2160,
+      nailBedIndexCount: 720,
+      nailSurfaceIndexCount: 2880,
+      skinNailOverlapIndexCount: 0,
+      skinNailBedOverlapIndexCount: 0,
+      nailBedKeratinOverlapIndexCount: 0,
+      nailSeparatedFromSkin: true,
+      nailBedSeparatedFromKeratin: true,
+      calibratedNailSurface: true,
+    });
+  });
+
+  it('does not silently enable nail-bed controls without the fixed-light calibration profile', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'LegacyResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_hand_landmarks_v3',
+                nail_bed_tone: '#C9827C',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@body(nail_bed_material_controls)',
+      reason: 'nail-bed controls require fixed-light-human-v1 material calibration',
+    });
+    const receipt = deriveCharacterMaterialPlateReceipt(result.host!.getDrawSpec());
+    expect(receipt.schemaVersion).toBe('holoscript.character-material-plate.v1');
+    expect(receipt.roleCounts['nail-bed']).toBeUndefined();
+    expect(receipt.calibratedNailSurface).toBe(false);
   });
 
   it('fails closed on unsupported upper-body profiles and orphan topology controls', () => {

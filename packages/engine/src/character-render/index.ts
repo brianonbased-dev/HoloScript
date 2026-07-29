@@ -104,6 +104,7 @@ export {
 
 export {
   CharacterHost,
+  type AgentAvatarMaterialCalibrationProfile,
   type AgentAvatarSkinMaterialReceipt,
   type AgentAvatarSkinMicrodetailProfile,
   type CharacterHostOptions,

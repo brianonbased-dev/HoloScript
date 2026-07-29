@@ -16,6 +16,7 @@
 
 import {
   CharacterHost,
+  type AgentAvatarMaterialCalibrationProfile,
   type AgentAvatarSkinMaterialReceipt,
   type AgentAvatarSkinMicrodetailProfile,
 } from './CharacterHost';
@@ -454,6 +455,8 @@ export function buildCharacterHostFromComposition(
   let upperBodyRadialSegments: number | undefined;
   let nailTone: number | undefined;
   let nailRoughness: number | undefined;
+  let nailBedTone: number | undefined;
+  let nailBedRoughness: number | undefined;
   let anatomyAuthored = false;
   const body = traits.get('body');
   if (body) {
@@ -509,19 +512,35 @@ export function buildCharacterHostFromComposition(
       }
       const authoredNailTone = packRgb(asRgb(body.config.nail_tone ?? body.config.nailTone));
       const authoredNailRoughness = asNum(body.config.nail_roughness ?? body.config.nailRoughness);
+      const authoredNailBedTone = packRgb(
+        asRgb(body.config.nail_bed_tone ?? body.config.nailBedTone)
+      );
+      const authoredNailBedRoughness = asNum(
+        body.config.nail_bed_roughness ?? body.config.nailBedRoughness
+      );
       if (upperBodyProfile === 'coherent-hand-landmarks-v3') {
         nailTone = authoredNailTone;
         nailRoughness =
           authoredNailRoughness === undefined
             ? undefined
             : clamp(authoredNailRoughness, 0.08, 0.65);
+        nailBedTone = authoredNailBedTone;
+        nailBedRoughness =
+          authoredNailBedRoughness === undefined
+            ? undefined
+            : clamp(authoredNailBedRoughness, 0.12, 0.72);
         if (authoredNailTone !== undefined || authoredNailRoughness !== undefined) {
           report.mapped.push(
             `@body(nail_tone=${authoredNailTone ?? 'profile-default'},` +
               `nail_roughness=${nailRoughness ?? 'profile-default'})`
           );
         }
-      } else if (authoredNailTone !== undefined || authoredNailRoughness !== undefined) {
+      } else if (
+        authoredNailTone !== undefined ||
+        authoredNailRoughness !== undefined ||
+        authoredNailBedTone !== undefined ||
+        authoredNailBedRoughness !== undefined
+      ) {
         report.stubbed.push({
           trait: '@body(nail_material_controls)',
           reason: 'nail material controls require coherent-hand-landmarks-v3',
@@ -762,6 +781,30 @@ export function buildCharacterHostFromComposition(
   let skinMicrodetailProfile: AgentAvatarSkinMicrodetailProfile | undefined;
   let skinMicrodetailScale: number | undefined;
   let skinMicrodetailStrength: number | undefined;
+  let materialCalibrationProfile: AgentAvatarMaterialCalibrationProfile | undefined;
+  const authoredMaterialCalibrationProfile = asStr(
+    sss?.config.material_calibration_profile ??
+      sss?.config.materialCalibrationProfile ??
+      sss?.config.calibration_profile ??
+      sss?.config.calibrationProfile
+  )
+    ?.trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  if (
+    authoredMaterialCalibrationProfile === 'fixed-light-human-v1' ||
+    authoredMaterialCalibrationProfile === 'legacy-v1'
+  ) {
+    materialCalibrationProfile = authoredMaterialCalibrationProfile;
+    report.mapped.push(
+      `@subsurface_scattering(material_calibration_profile=${materialCalibrationProfile})`
+    );
+  } else if (authoredMaterialCalibrationProfile) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(material_calibration_profile)',
+      reason: `profile '${authoredMaterialCalibrationProfile}' has no native material calibration`,
+    });
+  }
   const authoredSkinMicrodetailProfile = asStr(
     sss?.config.microdetail_profile ?? sss?.config.microdetailProfile
   )
@@ -797,6 +840,21 @@ export function buildCharacterHostFromComposition(
       trait: '@subsurface_scattering(microdetail_profile)',
       reason: `profile '${authoredSkinMicrodetailProfile}' has no native skin material channel`,
     });
+  }
+  if (nailBedTone !== undefined || nailBedRoughness !== undefined) {
+    if (materialCalibrationProfile === 'fixed-light-human-v1') {
+      report.mapped.push(
+        `@body(nail_bed_tone=${nailBedTone ?? 'profile-default'},` +
+          `nail_bed_roughness=${nailBedRoughness ?? 'profile-default'})`
+      );
+    } else {
+      report.stubbed.push({
+        trait: '@body(nail_bed_material_controls)',
+        reason: 'nail-bed controls require fixed-light-human-v1 material calibration',
+      });
+      nailBedTone = undefined;
+      nailBedRoughness = undefined;
+    }
   }
   if (
     !skinMicrodetailProfile &&
@@ -1088,6 +1146,9 @@ export function buildCharacterHostFromComposition(
     upperBodyRadialSegments,
     nailTone,
     nailRoughness,
+    nailBedTone,
+    nailBedRoughness,
+    materialCalibrationProfile,
     ocularProfile,
     irisScale,
     pupilScale,
