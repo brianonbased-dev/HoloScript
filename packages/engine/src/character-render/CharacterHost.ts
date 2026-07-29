@@ -822,28 +822,33 @@ export class CharacterHost {
       : [];
     const nailGroups: MaterialGroup[] =
       this.materialCalibrationProfile === 'fixed-light-human-v1'
-        ? this.built.nailRanges.flatMap((range) => {
-            if (range.indexCount !== 288) {
+      ? this.built.nailRanges.flatMap((range) => {
+            if (range.indexCount % 12 !== 0) {
               throw new RangeError(
-                `fixed-light nail partition requires 288 indices, received ${range.indexCount}`
+                `fixed-light nail partition requires an index count divisible by 12, received ${range.indexCount}`
               );
             }
+            const proximalKeratinIndexCount = range.indexCount / 3;
+            const nailBedIndexCount = range.indexCount / 4;
+            const distalKeratinIndexCount =
+              range.indexCount - proximalKeratinIndexCount - nailBedIndexCount;
             return [
               {
                 indexStart: range.indexStart,
-                indexCount: 96,
+                indexCount: proximalKeratinIndexCount,
                 material: this.nailMaterial,
                 materialRole: 'keratin-nail' as const,
               },
               {
-                indexStart: range.indexStart + 96,
-                indexCount: 72,
+                indexStart: range.indexStart + proximalKeratinIndexCount,
+                indexCount: nailBedIndexCount,
                 material: this.nailBedMaterial,
                 materialRole: 'nail-bed' as const,
               },
               {
-                indexStart: range.indexStart + 168,
-                indexCount: 120,
+                indexStart:
+                  range.indexStart + proximalKeratinIndexCount + nailBedIndexCount,
+                indexCount: distalKeratinIndexCount,
                 material: this.nailMaterial,
                 materialRole: 'keratin-nail' as const,
               },

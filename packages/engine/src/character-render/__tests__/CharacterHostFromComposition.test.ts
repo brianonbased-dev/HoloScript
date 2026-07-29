@@ -606,6 +606,66 @@ describe('buildCharacterHostFromComposition', () => {
     });
   });
 
+  it('scales the fixed-light nail partition for V5 cuticle-contoured plates', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3SResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                skin_tone: '#B9826F',
+                upper_body_profile: 'coherent_hand_surface_v5',
+                upper_body_radial_segments: 24,
+                nail_tone: '#E6BEB2',
+                nail_roughness: 0.24,
+                nail_bed_tone: '#C9827C',
+                nail_bed_roughness: 0.36,
+              },
+            },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                color: '#B9826F',
+                scatter_color: '#A65D50',
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 94,
+                microdetail_strength: 0.074,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.handSurface).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-hand-surface.v1',
+      profile: 'tapered-digit-commissure-cuticle-wrist-v1',
+    });
+
+    const receipt = deriveCharacterMaterialPlateReceipt(result.host!.getDrawSpec());
+    expect(receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-material-plate.v2',
+      roleCounts: {
+        'keratin-nail': 20,
+        'nail-bed': 10,
+      },
+      keratinIndexCount: 4320,
+      nailBedIndexCount: 1440,
+      nailSurfaceIndexCount: 5760,
+      skinNailOverlapIndexCount: 0,
+      skinNailBedOverlapIndexCount: 0,
+      nailBedKeratinOverlapIndexCount: 0,
+      nailSeparatedFromSkin: true,
+      nailBedSeparatedFromKeratin: true,
+      calibratedNailSurface: true,
+    });
+  });
+
   it('applies a validated source-authored operative pose and rejects unknown joint claims', () => {
     const result = buildCharacterHostFromComposition({
       objects: [
