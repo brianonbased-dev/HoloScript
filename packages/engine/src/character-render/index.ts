@@ -174,6 +174,7 @@ export {
   type CompTemplate,
   type CharacterHostFromCompositionOptions,
   type CharacterHostFromCompositionResult,
+  type CharacterPoseReceipt,
 } from './CharacterHostFromComposition';
 
 export * as SkinMath from './skin-math';

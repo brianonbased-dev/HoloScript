@@ -20,6 +20,7 @@ import {
   type AgentAvatarSkinMaterialReceipt,
   type AgentAvatarSkinMicrodetailProfile,
 } from './CharacterHost';
+import { HUMANOID_BONE_NAMES } from '../character/HumanoidSkeleton';
 import type { HairCoverageProfile } from '../native-render/draw-spec';
 import type {
   AgentAvatarAnatomyReceipt,
@@ -41,6 +42,7 @@ import {
   type AgentAvatarOcularProfile,
 } from './AgentAvatarHair';
 import type { NativeMorphReceipt, NativeMorphWeights } from './AgentAvatarMorph';
+import type { Quat } from './skin-math';
 import {
   type AgentAvatarGarmentGeometryReceipt,
   type SovereignGarmentStyle,
@@ -92,6 +94,16 @@ export interface CharacterLODTransitionReceipt {
   mode: 'instant' | 'crossfade' | 'dither';
   durationSeconds: number;
   hysteresisBand: number;
+}
+
+export interface CharacterPoseReceipt {
+  schemaVersion: 'holoscript.character-source-pose.v1';
+  name: string;
+  space: 'local-bone';
+  quaternionOrder: 'xyzw';
+  boneCount: number;
+  boneNames: readonly string[];
+  normalizedQuaternionCount: number;
 }
 
 export interface CharacterHostFromCompositionResult {
@@ -152,6 +164,8 @@ export interface CharacterHostFromCompositionResult {
   groom?: AgentAvatarGroomGeometryReceipt;
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
   morph?: NativeMorphReceipt;
+  /** Source-authored local-bone pose that was applied to the operative native host. */
+  pose?: CharacterPoseReceipt;
   /** Detachable public/story mantle and source refs resolved by the host platform. */
   mantle?: {
     style: SovereignMantleStyle;
@@ -182,6 +196,91 @@ const asVec3 = (v: unknown): [number, number, number] | undefined =>
   Array.isArray(v) && v.length >= 3 && v.slice(0, 3).every((x) => typeof x === 'number')
     ? [v[0] as number, v[1] as number, v[2] as number]
     : undefined;
+const HUMANOID_BONE_NAME_SET = new Set<string>(HUMANOID_BONE_NAMES);
+
+function asNormalizedQuat(v: unknown): { value: Quat; normalized: boolean } | undefined {
+  const record = asRecord(v);
+  const components = Array.isArray(v)
+    ? v.slice(0, 4)
+    : record
+      ? [record.x, record.y, record.z, record.w]
+      : [];
+  if (
+    components.length !== 4 ||
+    !components.every((component) => typeof component === 'number' && Number.isFinite(component))
+  ) {
+    return undefined;
+  }
+  const [x, y, z, w] = components as [number, number, number, number];
+  const magnitude = Math.hypot(x, y, z, w);
+  if (magnitude < 1e-8) return undefined;
+  return {
+    value: {
+      x: x / magnitude,
+      y: y / magnitude,
+      z: z / magnitude,
+      w: w / magnitude,
+    },
+    normalized: Math.abs(magnitude - 1) > 1e-6,
+  };
+}
+
+function authoredSourcePose(
+  trait: TraitRec,
+  report: CharacterHostFromCompositionResult['report']
+): { pose: Map<string, Quat>; receipt: CharacterPoseReceipt } | undefined {
+  const authoredBones = asRecord(cfgVal(trait, 'bones', 'rotations', 'joints'));
+  if (!authoredBones) {
+    report.stubbed.push({
+      trait: '@pose',
+      reason: 'pose requires a bones record of HUMANOID_65 local xyzw quaternions',
+    });
+    return undefined;
+  }
+
+  const pose = new Map<string, Quat>();
+  let normalizedQuaternionCount = 0;
+  for (const [boneName, authoredQuaternion] of Object.entries(authoredBones)) {
+    if (!HUMANOID_BONE_NAME_SET.has(boneName)) {
+      report.stubbed.push({
+        trait: `@pose(bone=${boneName})`,
+        reason: `bone is not part of the operative ${SUPPORTED_RIG} palette`,
+      });
+      continue;
+    }
+    const quaternion = asNormalizedQuat(authoredQuaternion);
+    if (!quaternion) {
+      report.stubbed.push({
+        trait: `@pose(bone=${boneName})`,
+        reason: 'rotation must be a finite non-zero local quaternion in xyzw order',
+      });
+      continue;
+    }
+    pose.set(boneName, quaternion.value);
+    if (quaternion.normalized) normalizedQuaternionCount++;
+  }
+  if (pose.size === 0) {
+    report.stubbed.push({
+      trait: '@pose',
+      reason: 'no supported, valid local-bone rotations were authored',
+    });
+    return undefined;
+  }
+
+  const name = asStr(cfgVal(trait, 'name', 'pose_name', 'poseName'))?.trim() || 'source-operative';
+  const boneNames = [...pose.keys()].sort();
+  const receipt: CharacterPoseReceipt = {
+    schemaVersion: 'holoscript.character-source-pose.v1',
+    name,
+    space: 'local-bone',
+    quaternionOrder: 'xyzw',
+    boneCount: boneNames.length,
+    boneNames,
+    normalizedQuaternionCount,
+  };
+  report.mapped.push(`@pose(name=${name},bones=${boneNames.join(',')})`);
+  return { pose, receipt };
+}
 
 function authoredLODTransition(
   trait: TraitRec,
@@ -316,7 +415,7 @@ function allObjects(comp: ParsedComposition): CompObject[] {
   return out;
 }
 
-const BODY_TRAITS = ['body', 'skeleton', 'poseable'];
+const BODY_TRAITS = ['body', 'skeleton', 'poseable', 'pose'];
 
 /**
  * Project a LocomotionConfig / VR-locomotion mode onto a skeletal gait. Movement modes →
@@ -488,6 +587,7 @@ export function buildCharacterHostFromComposition(
       authoredUpperBodyProfile === 'coherent-shoulder-neck-torso-v1' ||
       authoredUpperBodyProfile === 'coherent-anatomical-limbs-v2' ||
       authoredUpperBodyProfile === 'coherent-hand-landmarks-v3' ||
+      authoredUpperBodyProfile === 'coherent-deforming-hands-v4' ||
       authoredUpperBodyProfile === 'legacy-segments-v1'
     ) {
       upperBodyProfile = authoredUpperBodyProfile;
@@ -518,7 +618,10 @@ export function buildCharacterHostFromComposition(
       const authoredNailBedRoughness = asNum(
         body.config.nail_bed_roughness ?? body.config.nailBedRoughness
       );
-      if (upperBodyProfile === 'coherent-hand-landmarks-v3') {
+      if (
+        upperBodyProfile === 'coherent-hand-landmarks-v3' ||
+        upperBodyProfile === 'coherent-deforming-hands-v4'
+      ) {
         nailTone = authoredNailTone;
         nailRoughness =
           authoredNailRoughness === undefined
@@ -543,7 +646,8 @@ export function buildCharacterHostFromComposition(
       ) {
         report.stubbed.push({
           trait: '@body(nail_material_controls)',
-          reason: 'nail material controls require coherent-hand-landmarks-v3',
+          reason:
+            'nail material controls require coherent-hand-landmarks-v3 or coherent-deforming-hands-v4',
         });
       }
     } else if (authoredUpperBodyProfile) {
@@ -1190,7 +1294,12 @@ export function buildCharacterHostFromComposition(
     includeEyes,
   });
 
-  // 11. @morph → bounded native procedural-head FACS/viseme vertex deformation.
+  // 11. @pose → validated source-authored local-bone quaternions on the operative host.
+  const poseTrait = traits.get('pose');
+  const poseMapping = poseTrait ? authoredSourcePose(poseTrait, report) : undefined;
+  if (poseMapping) host.setPose(poseMapping.pose);
+
+  // 12. @morph → bounded native procedural-head FACS/viseme vertex deformation.
   let morph: NativeMorphReceipt | undefined;
   const morphTrait = traits.get('morph');
   if (morphTrait) {
@@ -1283,6 +1392,7 @@ export function buildCharacterHostFromComposition(
     garment,
     groom,
     morph,
+    pose: poseMapping?.receipt,
     mantle,
     report,
   };

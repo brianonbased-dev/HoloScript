@@ -727,4 +727,54 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
       }
     }
   });
+
+  it('emits an opt-in v4 arched palm silhouette without changing the v3 contract', () => {
+    const v3 = buildAgentAvatarMesh({
+      upperBodyProfile: 'coherent-hand-landmarks-v3',
+      upperBodyRadialSegments: 24,
+      shoulderScale: 1.1,
+      torsoScale: 0.96,
+    });
+    const v4 = buildAgentAvatarMesh({
+      upperBodyProfile: 'coherent-deforming-hands-v4',
+      upperBodyRadialSegments: 24,
+      shoulderScale: 1.1,
+      torsoScale: 0.96,
+    });
+
+    expect(v3.anatomy.upperBody?.profile).toBe('anatomical-hand-landmarks-v3');
+    expect(v3.anatomy.upperBody?.upperLimbs.map((limb) => limb.ringCount)).toEqual([9, 9]);
+    expect(v4.anatomy.upperBody?.profile).toBe('anatomical-deforming-hands-v4');
+
+    for (const limb of v4.anatomy.upperBody?.upperLimbs ?? []) {
+      expect(limb).toMatchObject({
+        profile: 'arched-palm-joint-deformation-v4',
+        radialSegments: 24,
+        ringCount: 11,
+        palmProfile: 'arched-thenar-palm-v1',
+        palmBlendRingCount: 4,
+        thenarBulgeRatio: 0.12,
+        hypothenarBulgeRatio: 0.065,
+        palmArchRise: 0.0044,
+        metacarpalTaperRatio: 0.738462,
+        connectedSurfaceCount: 24,
+      });
+      expect(limb.vertexRange.vertexCount).toBe(limb.radialSegments * limb.ringCount + 1);
+      expect(limb.digits).toHaveLength(5);
+      expect(limb.handLandmarks).toHaveLength(18);
+
+      const palmRingStart = limb.vertexRange.vertexStart + 8 * limb.radialSegments;
+      const centerZ = v4.positions[(palmRingStart + 0) * 3 + 2];
+      const thenarZ = v4.positions[(palmRingStart + 6) * 3 + 2] - centerZ;
+      const hypothenarZ = centerZ - v4.positions[(palmRingStart + 18) * 3 + 2];
+      expect(thenarZ).toBeGreaterThan(hypothenarZ);
+
+      const wristRingStart = limb.vertexRange.vertexStart + 6 * limb.radialSegments;
+      const wristCenterY = v4.positions[(wristRingStart + 6) * 3 + 1];
+      const metacarpalCenterY =
+        (v4.positions[(palmRingStart + 6) * 3 + 1] + v4.positions[(palmRingStart + 18) * 3 + 1]) *
+        0.5;
+      expect(metacarpalCenterY - wristCenterY).toBeCloseTo(0.0044, 6);
+    }
+  });
 });

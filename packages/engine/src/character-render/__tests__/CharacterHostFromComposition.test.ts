@@ -14,6 +14,7 @@ import {
   getSovereignMantleCatalogEntry,
   listSovereignMantleStyles,
 } from '../AgentAvatarMantleCatalog';
+import { BONE_ORDER } from '../AgentAvatarMesh';
 import { deriveCharacterMaterialPlateReceipt, packCharacterMaterial } from '../character-render';
 
 describe('buildCharacterHostFromComposition', () => {
@@ -539,7 +540,7 @@ describe('buildCharacterHostFromComposition', () => {
               name: 'body',
               config: {
                 skin_tone: '#B9826F',
-                upper_body_profile: 'coherent_hand_landmarks_v3',
+                upper_body_profile: 'coherent_deforming_hands_v4',
                 upper_body_radial_segments: 24,
                 nail_tone: '#E6BEB2',
                 nail_roughness: 0.24,
@@ -569,6 +570,11 @@ describe('buildCharacterHostFromComposition', () => {
       '@subsurface_scattering(material_calibration_profile=fixed-light-human-v1)'
     );
     expect(result.report.mapped).toContain('@body(nail_bed_tone=13206140,nail_bed_roughness=0.36)');
+    expect(result.anatomy?.upperBody?.profile).toBe('anatomical-deforming-hands-v4');
+    expect(result.anatomy?.upperBody?.upperLimbs.map((limb) => limb.palmProfile)).toEqual([
+      'arched-thenar-palm-v1',
+      'arched-thenar-palm-v1',
+    ]);
     expect(result.host?.getSkinMaterialReceipt()).toMatchObject({
       schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
       calibrationProfile: 'fixed-light-human-v1',
@@ -598,6 +604,62 @@ describe('buildCharacterHostFromComposition', () => {
       nailBedSeparatedFromKeratin: true,
       calibratedNailSurface: true,
     });
+  });
+
+  it('applies a validated source-authored operative pose and rejects unknown joint claims', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'OpenAIResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_deforming_hands_v4',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'pose',
+              config: {
+                name: 'attentive-open-palm',
+                bones: {
+                  left_shoulder: [0, 0, 1, 1],
+                  provider_magic_joint: [0, 0, 0, 1],
+                  left_index_proximal: [0, 0, 0, 0],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.pose).toEqual({
+      schemaVersion: 'holoscript.character-source-pose.v1',
+      name: 'attentive-open-palm',
+      space: 'local-bone',
+      quaternionOrder: 'xyzw',
+      boneCount: 1,
+      boneNames: ['left_shoulder'],
+      normalizedQuaternionCount: 1,
+    });
+    expect(result.report.mapped).toContain('@pose(name=attentive-open-palm,bones=left_shoulder)');
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@pose(bone=provider_magic_joint)',
+      reason: 'bone is not part of the operative humanoid_65 palette',
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@pose(bone=left_index_proximal)',
+      reason: 'rotation must be a finite non-zero local quaternion in xyzw order',
+    });
+
+    const shoulderMatrixStart = BONE_ORDER.indexOf('left_shoulder') * 16;
+    const shoulderMatrix = Array.from(
+      result.host!.getDrawSpec().jointMatrices.slice(shoulderMatrixStart, shoulderMatrixStart + 16)
+    );
+    expect(shoulderMatrix).not.toEqual([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
   });
 
   it('does not silently enable nail-bed controls without the fixed-light calibration profile', () => {

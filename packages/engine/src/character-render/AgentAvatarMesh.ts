@@ -71,6 +71,7 @@ export const AGENT_AVATAR_UPPER_BODY_PROFILES = [
   'coherent-shoulder-neck-torso-v1',
   'coherent-anatomical-limbs-v2',
   'coherent-hand-landmarks-v3',
+  'coherent-deforming-hands-v4',
 ] as const;
 export type AgentAvatarUpperBodyProfile = (typeof AGENT_AVATAR_UPPER_BODY_PROFILES)[number];
 export const AGENT_AVATAR_ORBITAL_PROFILES = ['tearline-rim-v1', 'recessed-lids-v1'] as const;
@@ -125,7 +126,8 @@ export interface AgentAvatarUpperBodyGeometryReceipt {
   profile:
     | 'coherent-shoulder-neck-torso-v1'
     | 'anatomical-shoulder-neck-torso-v2'
-    | 'anatomical-hand-landmarks-v3';
+    | 'anatomical-hand-landmarks-v3'
+    | 'anatomical-deforming-hands-v4';
   radialSegments: number;
   ringCount: number;
   /** Emitted bind-space half width at the shoulder ring, after authored scaling. */
@@ -142,7 +144,11 @@ export interface AgentAvatarUpperBodyGeometryReceipt {
 
 export interface AgentAvatarUpperLimbGeometryReceipt {
   schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1';
-  profile: 'coherent-arm-palm-v1' | 'anatomical-deltoid-hand-v2' | 'anatomical-landmark-hand-v3';
+  profile:
+    | 'coherent-arm-palm-v1'
+    | 'anatomical-deltoid-hand-v2'
+    | 'anatomical-landmark-hand-v3'
+    | 'arched-palm-joint-deformation-v4';
   side: 'left' | 'right';
   radialSegments: number;
   ringCount: number;
@@ -157,6 +163,18 @@ export interface AgentAvatarUpperLimbGeometryReceipt {
   digits?: readonly AgentAvatarDigitGeometryReceipt[];
   /** V3 skin and keratin landmarks: webs, knuckles, tendons, and nail plates. */
   handLandmarks?: readonly AgentAvatarHandLandmarkGeometryReceipt[];
+  /** V4 bind silhouette that gives the palm a metacarpal arch and asymmetric muscle volume. */
+  palmProfile?: 'arched-thenar-palm-v1';
+  /** Wrist-to-metacarpal rings participating in the V4 palm transition. */
+  palmBlendRingCount?: 4;
+  /** Maximum radial thenar expansion relative to the local palm section. */
+  thenarBulgeRatio?: number;
+  /** Maximum radial hypothenar expansion relative to the local palm section. */
+  hypothenarBulgeRatio?: number;
+  /** Dorsal rise of the metacarpal arch in emitted metres. */
+  palmArchRise?: number;
+  /** Distal palm thickness divided by the widest metacarpal thickness. */
+  metacarpalTaperRatio?: number;
   /** Arm/palm plus separately connected digit and landmark surfaces. */
   connectedSurfaceCount?: number;
   vertexRange: { vertexStart: number; vertexCount: number };
@@ -557,7 +575,8 @@ function pushCoherentUpperBody(
 ): Omit<AgentAvatarUpperBodyGeometryReceipt, 'upperLimbs'> {
   const torso = buildScale * torsoScale;
   const anatomical = profile !== 'coherent-shoulder-neck-torso-v1';
-  const landmarked = profile === 'coherent-hand-landmarks-v3';
+  const deforming = profile === 'coherent-deforming-hands-v4';
+  const landmarked = profile === 'coherent-hand-landmarks-v3' || deforming;
   const foundationRings: UpperBodyRing[] = [
     { y: 0.91, radiusX: 0.16 * torso, radiusZ: 0.13 * torso, centerZ: 0, jointName: 'hips' },
     { y: 0.99, radiusX: 0.18 * torso, radiusZ: 0.14 * torso, centerZ: 0, jointName: 'hips' },
@@ -700,11 +719,13 @@ function pushCoherentUpperBody(
 
   return {
     schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
-    profile: landmarked
-      ? 'anatomical-hand-landmarks-v3'
-      : anatomical
-        ? 'anatomical-shoulder-neck-torso-v2'
-        : 'coherent-shoulder-neck-torso-v1',
+    profile: deforming
+      ? 'anatomical-deforming-hands-v4'
+      : landmarked
+        ? 'anatomical-hand-landmarks-v3'
+        : anatomical
+          ? 'anatomical-shoulder-neck-torso-v2'
+          : 'coherent-shoulder-neck-torso-v1',
     radialSegments,
     ringCount: rings.length,
     shoulderHalfWidth: round6(Math.max(...rings.map((ring) => ring.radiusX)) * heightScale),
@@ -726,6 +747,8 @@ interface UpperLimbRing {
   radiusY: number;
   radiusZ: number;
   jointName: string;
+  /** V4-only positive-Z thenar and negative-Z hypothenar silhouette expansion. */
+  palmBulge?: { thenar: number; hypothenar: number };
 }
 
 function isFingerBone(name: string | null): boolean {
@@ -1524,7 +1547,8 @@ function pushCoherentUpperLimb(
 ): AgentAvatarUpperLimbGeometryReceipt {
   const direction = side === 'left' ? 1 : -1;
   const anatomical = profile !== 'coherent-shoulder-neck-torso-v1';
-  const landmarked = profile === 'coherent-hand-landmarks-v3';
+  const deforming = profile === 'coherent-deforming-hands-v4';
+  const landmarked = profile === 'coherent-hand-landmarks-v3' || deforming;
   const scaledBindPoint = (bone: string): Vec3 => {
     const point = getTranslation(bindWorld.get(bone)!);
     return { x: point.x * shoulderScale, y: point.y, z: point.z };
@@ -1599,67 +1623,114 @@ function pushCoherentUpperLimb(
       jointName: `${side}_hand`,
     },
   ];
-  const rings: UpperLimbRing[] = anatomical
+  const anatomicalArmRings: UpperLimbRing[] = [
+    {
+      center: root,
+      radiusY: shoulderRadius * 1.06,
+      radiusZ: shoulderRadius,
+      jointName: 'spine2',
+    },
+    {
+      center: {
+        ...midpoint(root, elbow, 0.11),
+        y: root.y + 0.012,
+      },
+      radiusY: shoulderRadius * 1.12,
+      radiusZ: shoulderRadius * 1.05,
+      jointName: `${side}_shoulder`,
+    },
+    {
+      center: midpoint(root, elbow, 0.29),
+      radiusY: shoulderRadius,
+      radiusZ: shoulderRadius * 0.94,
+      jointName: `${side}_upper_arm`,
+    },
+    {
+      center: midpoint(root, elbow, 0.61),
+      radiusY: shoulderRadius * 0.83,
+      radiusZ: shoulderRadius * 0.78,
+      jointName: `${side}_upper_arm`,
+    },
+    {
+      center: elbow,
+      radiusY: shoulderRadius * 0.73,
+      radiusZ: shoulderRadius * 0.69,
+      jointName: `${side}_upper_arm`,
+    },
+    {
+      center: midpoint(elbow, wrist, 0.5),
+      radiusY: shoulderRadius * 0.61,
+      radiusZ: shoulderRadius * 0.57,
+      jointName: `${side}_forearm`,
+    },
+    {
+      center: wrist,
+      radiusY: wristRadius,
+      radiusZ: wristRadius * 0.92,
+      jointName: `${side}_forearm`,
+    },
+  ];
+  const rings: UpperLimbRing[] = deforming
     ? [
+        ...anatomicalArmRings,
         {
-          center: root,
-          radiusY: shoulderRadius * 1.06,
-          radiusZ: shoulderRadius,
-          jointName: 'spine2',
+          center: {
+            ...midpoint(wrist, palmEnd, 0.18),
+            y: wrist.y + 0.0015 * buildScale * shoulderScale,
+            z: wrist.z + 0.0015 * buildScale * shoulderScale,
+          },
+          radiusY: 0.0315 * buildScale * shoulderScale,
+          radiusZ: palmHalfWidth * 0.9,
+          jointName: `${side}_hand`,
+          palmBulge: { thenar: 0.055, hypothenar: 0.03 },
         },
         {
           center: {
-            ...midpoint(root, elbow, 0.11),
-            y: root.y + 0.012,
+            ...midpoint(wrist, palmEnd, 0.43),
+            y: wrist.y + 0.004 * buildScale * shoulderScale,
+            z: wrist.z + 0.0025 * buildScale * shoulderScale,
           },
-          radiusY: shoulderRadius * 1.12,
-          radiusZ: shoulderRadius * 1.05,
-          jointName: `${side}_shoulder`,
-        },
-        {
-          center: midpoint(root, elbow, 0.29),
-          radiusY: shoulderRadius,
-          radiusZ: shoulderRadius * 0.94,
-          jointName: `${side}_upper_arm`,
-        },
-        {
-          center: midpoint(root, elbow, 0.61),
-          radiusY: shoulderRadius * 0.83,
-          radiusZ: shoulderRadius * 0.78,
-          jointName: `${side}_upper_arm`,
-        },
-        {
-          center: elbow,
-          radiusY: shoulderRadius * 0.73,
-          radiusZ: shoulderRadius * 0.69,
-          jointName: `${side}_upper_arm`,
-        },
-        {
-          center: midpoint(elbow, wrist, 0.5),
-          radiusY: shoulderRadius * 0.61,
-          radiusZ: shoulderRadius * 0.57,
-          jointName: `${side}_forearm`,
-        },
-        {
-          center: wrist,
-          radiusY: wristRadius,
-          radiusZ: wristRadius * 0.92,
-          jointName: `${side}_forearm`,
-        },
-        {
-          center: midpoint(wrist, palmEnd, 0.46),
-          radiusY: 0.028 * buildScale * shoulderScale,
-          radiusZ: palmHalfWidth,
+          radiusY: 0.0325 * buildScale * shoulderScale,
+          radiusZ: palmHalfWidth * 1.045,
           jointName: `${side}_hand`,
+          palmBulge: { thenar: 0.12, hypothenar: 0.065 },
+        },
+        {
+          center: {
+            ...midpoint(wrist, palmEnd, 0.72),
+            y: wrist.y + 0.0025 * buildScale * shoulderScale,
+            z: wrist.z + 0.001 * buildScale * shoulderScale,
+          },
+          radiusY: 0.0285 * buildScale * shoulderScale,
+          radiusZ: palmHalfWidth * 1.02,
+          jointName: `${side}_hand`,
+          palmBulge: { thenar: 0.085, hypothenar: 0.05 },
         },
         {
           center: palmEnd,
-          radiusY: 0.022 * buildScale * shoulderScale,
-          radiusZ: palmHalfWidth * 0.96,
+          radiusY: 0.024 * buildScale * shoulderScale,
+          radiusZ: palmHalfWidth * 0.94,
           jointName: `${side}_hand`,
+          palmBulge: { thenar: 0.025, hypothenar: 0.02 },
         },
       ]
-    : coherentRings;
+    : anatomical
+      ? [
+          ...anatomicalArmRings,
+          {
+            center: midpoint(wrist, palmEnd, 0.46),
+            radiusY: 0.028 * buildScale * shoulderScale,
+            radiusZ: palmHalfWidth,
+            jointName: `${side}_hand`,
+          },
+          {
+            center: palmEnd,
+            radiusY: 0.022 * buildScale * shoulderScale,
+            radiusZ: palmHalfWidth * 0.96,
+            jointName: `${side}_hand`,
+          },
+        ]
+      : coherentRings;
   const vertexStart = acc.positions.length / 3;
   const indexStart = acc.indices.length;
 
@@ -1673,10 +1744,16 @@ function pushCoherentUpperLimb(
       const theta = (segment / radialSegments) * Math.PI * 2;
       const cosine = Math.cos(theta);
       const sine = Math.sin(theta);
+      const bulgeRatio =
+        sine >= 0
+          ? (ring.palmBulge?.thenar ?? 0) * sine
+          : (ring.palmBulge?.hypothenar ?? 0) * -sine;
+      const palmarBias = 0.55 + 0.45 * Math.max(0, -cosine);
+      const radialScale = 1 + bulgeRatio * palmarBias;
       acc.positions.push(
         ring.center.x,
-        ring.center.y + ring.radiusY * cosine,
-        ring.center.z + ring.radiusZ * sine
+        ring.center.y + ring.radiusY * cosine * radialScale,
+        ring.center.z + ring.radiusZ * sine * radialScale
       );
       const radial = normalize({ x: 0, y: cosine, z: sine });
       const normal = anatomical
@@ -1752,11 +1829,13 @@ function pushCoherentUpperLimb(
 
   return {
     schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1',
-    profile: landmarked
-      ? 'anatomical-landmark-hand-v3'
-      : anatomical
-        ? 'anatomical-deltoid-hand-v2'
-        : 'coherent-arm-palm-v1',
+    profile: deforming
+      ? 'arched-palm-joint-deformation-v4'
+      : landmarked
+        ? 'anatomical-landmark-hand-v3'
+        : anatomical
+          ? 'anatomical-deltoid-hand-v2'
+          : 'coherent-arm-palm-v1',
     side,
     radialSegments,
     ringCount: rings.length,
@@ -1769,6 +1848,16 @@ function pushCoherentUpperLimb(
           shoulderOverlapDepth: round6(0.024 * buildScale * shoulderScale * heightScale),
           digits,
           ...(handLandmarks ? { handLandmarks } : {}),
+          ...(deforming
+            ? {
+                palmProfile: 'arched-thenar-palm-v1' as const,
+                palmBlendRingCount: 4 as const,
+                thenarBulgeRatio: 0.12,
+                hypothenarBulgeRatio: 0.065,
+                palmArchRise: round6(0.004 * buildScale * shoulderScale * heightScale),
+                metacarpalTaperRatio: round6(0.024 / 0.0325),
+              }
+            : {}),
           connectedSurfaceCount: 1 + (digits?.length ?? 0) + (handLandmarks?.length ?? 0),
         }
       : {}),
@@ -2392,7 +2481,8 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   ]);
   const anatomicalDigits =
     upperBodyProfile === 'coherent-anatomical-limbs-v2' ||
-    upperBodyProfile === 'coherent-hand-landmarks-v3';
+    upperBodyProfile === 'coherent-hand-landmarks-v3' ||
+    upperBodyProfile === 'coherent-deforming-hands-v4';
 
   // One box per segment (parent-joint → this-joint), weighted to the PARENT bone it represents.
   for (const bone of HUMANOID_65_SKELETON) {
