@@ -1500,7 +1500,13 @@ describe('holo_absorb_repo root validation', () => {
       await vi.advanceTimersByTimeAsync(59 * 60 * 1000);
       expect(
         await handleCodebaseTool('holo_get_absorb_status', { jobId: accepted.jobId })
-      ).toMatchObject({ status: 'complete' });
+      ).toMatchObject({
+        status: 'complete',
+        recoveredFromReceipt: true,
+        durableTerminalStatus: true,
+        durableReceiptFile: expect.any(String),
+        resultAvailable: true,
+      });
 
       await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
       expect(

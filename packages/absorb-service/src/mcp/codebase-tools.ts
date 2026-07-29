@@ -11103,6 +11103,9 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
     }
     return { error: 'Job not found', jobId };
   }
+  const recoveredTerminal = isTerminalAbsorbJob(job)
+    ? findAbsorbWriterReceipt(jobId, job.rootDir)
+    : null;
   if (job.status !== 'complete' && job.status !== 'error' && job.status !== 'cancelled') {
     refreshIsolatedAbsorbProgressFromDisk(job);
     updateAbsorbMemoryBudget(job, job.phase);
@@ -11166,6 +11169,16 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
 
   if (job.error) {
     response.error = job.error;
+  }
+
+  if (recoveredTerminal) {
+    Object.assign(
+      response,
+      buildRecoveredAbsorbStatus(
+        recoveredTerminal,
+        args.includeResult === true && job.result === undefined
+      )
+    );
   }
 
   if (
