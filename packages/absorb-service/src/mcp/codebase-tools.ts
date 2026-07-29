@@ -1546,6 +1546,13 @@ function enforceAbsorbJobControl(jobId: string | undefined, phase: string): void
   const job = absorbJobs.get(jobId);
   if (!job) return;
   updateAbsorbMemoryBudget(job, phase);
+  // Cache publication is an atomic authority boundary. A resource guard may
+  // observe the temporary serialization/write peak immediately after the new
+  // generation manifest has already selected durable bytes. At that point the
+  // operation cannot truthfully become "cancelled with prior cache preserved":
+  // the new cache is committed. Retain the cancellation as a resource caveat
+  // and let the job settle complete with its durable writer receipt.
+  if (job.cacheCommitted) return;
   if (!job.abortController.signal.aborted) return;
   if (job.abortController.signal.reason instanceof Error) {
     throw job.abortController.signal.reason;
@@ -1568,10 +1575,119 @@ function isAbsorbCancellation(err: unknown, jobId?: string): boolean {
   return job?.abortController.signal.aborted === true;
 }
 
+function completeRefreshReceiptAfterCommit(
+  receipt: AbsorbRefreshProgressReceipt | undefined
+): AbsorbRefreshProgressReceipt | undefined {
+  if (!receipt) return undefined;
+  const completed = {
+    ...receipt,
+    status: 'complete' as const,
+    // Progress receipts remain observational by schema. Authority comes from
+    // the atomically selected generation manifest, represented by the two
+    // publication fields below.
+    authoritative: false as const,
+    cachePublished: true,
+    publishedGraphAuthoritative: true,
+    priorAuthoritativeCachePreserved: false,
+    completedBatchCount: receipt.totalBatches,
+    completedCandidateFiles: receipt.totalCandidateFiles,
+    remainingCandidateFiles: 0,
+    progressPercent: 100,
+    updatedAt: new Date().toISOString(),
+  };
+  delete (completed as Partial<AbsorbRefreshProgressReceipt>).error;
+  return completed;
+}
+
+function settleCommittedAbsorbJobAfterCancellation(
+  jobId: string,
+  err?: unknown,
+  sourceResult: Record<string, unknown> = {}
+): Record<string, unknown> {
+  const job = absorbJobs.get(jobId);
+  if (!job) {
+    return {
+      schemaVersion: 'holoscript.absorb-post-commit-resource-caveat.v1',
+      kind: 'AbsorbPostCommitResourceCaveatReceipt',
+      status: 'complete',
+      completed: true,
+      jobId,
+      cacheCommitted: true,
+    };
+  }
+  const completedAt = Date.now();
+  const sourceRequestedAt =
+    typeof sourceResult.requestedAt === 'string'
+      ? Date.parse(sourceResult.requestedAt)
+      : Number.NaN;
+  const cancellation =
+    job.cancellation ??
+    ({
+      reason:
+        (sourceResult.reason as AbsorbCancellationReason | undefined) ?? 'cancel_requested',
+      message:
+        typeof sourceResult.message === 'string'
+          ? sourceResult.message
+          : err instanceof Error
+            ? err.message
+            : 'Cancellation arrived after cache commit',
+      requestedAt: Number.isFinite(sourceRequestedAt) ? sourceRequestedAt : completedAt,
+      phaseAtRequest:
+        typeof sourceResult.phaseAtRequest === 'string'
+          ? sourceResult.phaseAtRequest
+          : job.phase,
+    } satisfies AbsorbCancellationState);
+  cancellation.completedAt = completedAt;
+  job.cancellation = cancellation;
+  job.cacheCommitted = true;
+  job.status = 'complete';
+  job.progress = 100;
+  job.phase = 'Complete (cache committed; resource caveat recorded)';
+  job.completedAt = completedAt;
+  const sourceRefresh =
+    sourceResult.refreshProgressReceipt &&
+    typeof sourceResult.refreshProgressReceipt === 'object'
+      ? (sourceResult.refreshProgressReceipt as AbsorbRefreshProgressReceipt)
+      : job.refreshProgressReceipt;
+  const refreshProgressReceipt = completeRefreshReceiptAfterCommit(sourceRefresh);
+  if (refreshProgressReceipt) job.refreshProgressReceipt = refreshProgressReceipt;
+  const receipt = {
+    schemaVersion: 'holoscript.absorb-post-commit-resource-caveat.v1',
+    kind: 'AbsorbPostCommitResourceCaveatReceipt',
+    status: 'complete',
+    completed: true,
+    jobId,
+    rootDir: job.rootDir,
+    cacheCommitted: true,
+    cachePreserved: false,
+    filesProcessed: job.filesProcessed,
+    totalFiles: job.totalFiles,
+    resourceCaveat: {
+      reason: cancellation.reason,
+      message: cancellation.message,
+      phaseAtRequest: cancellation.phaseAtRequest,
+      requestedAt: new Date(cancellation.requestedAt).toISOString(),
+      completedAt: new Date(completedAt).toISOString(),
+    },
+    ...(refreshProgressReceipt && {
+      refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(refreshProgressReceipt),
+      resumeToken: refreshProgressReceipt.resumeToken,
+    }),
+    memoryBudget: { ...job.memoryBudget },
+    sourceDriftRetry: { ...job.sourceDriftRetry },
+  };
+  job.result = receipt;
+  releaseAbsorbWriterLease(job);
+  return receipt;
+}
+
 function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, unknown> {
   const job = absorbJobs.get(jobId);
   if (!job) {
     return { error: 'absorb_cancelled', cancelled: true, jobId };
+  }
+  if (job.cacheCommitted) {
+    return settleCommittedAbsorbJobAfterCancellation(jobId, err);
   }
   const completedAt = Date.now();
   const cancellation =
@@ -2162,6 +2278,11 @@ function startIsolatedBackgroundAbsorbJob(jobId: string, args: Record<string, un
     mergeWorkerStatus(activeJob, workerStatus);
     if (resultError === 'absorb_cancelled' || workerStatus?.status === 'cancelled') {
       const resultRecord = result as Record<string, unknown>;
+      if (resultRecord.cacheCommitted === true || workerStatus?.cacheCommitted === true) {
+        activeJob.cacheCommitted = true;
+        settleCommittedAbsorbJobAfterCancellation(jobId, undefined, resultRecord);
+        return;
+      }
       const completedAt = Date.now();
       activeJob.status = 'cancelled';
       activeJob.progress = 100;

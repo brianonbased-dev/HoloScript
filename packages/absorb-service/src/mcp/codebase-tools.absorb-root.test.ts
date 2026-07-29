@@ -791,6 +791,139 @@ describe('holo_absorb_repo root validation', () => {
     });
   });
 
+  it('settles complete when a resource cancellation arrives after atomic cache commit', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-worker-post-commit-cancel-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-worker-post-commit-cancel-cache-')
+    );
+
+    class FakeWorker extends EventEmitter {
+      unref(): this {
+        return this;
+      }
+
+      terminate(): Promise<number> {
+        return Promise.resolve(0);
+      }
+    }
+
+    const worker = new FakeWorker();
+    setIsolatedAbsorbWorkerFactoryForTests(() => worker as unknown as Worker);
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      async: true,
+      force: true,
+    })) as { jobId?: string };
+
+    worker.emit('message', {
+      type: 'complete',
+      result: {
+        kind: 'AbsorbCancellationReceipt',
+        error: 'absorb_cancelled',
+        cancelled: true,
+        reason: 'system_memory_reserve_exhausted',
+        message: 'Host reserve crossed after generation selection',
+        phaseAtRequest: 'cache-commit',
+        requestedAt: new Date().toISOString(),
+        cachePreserved: false,
+        cacheCommitted: true,
+        refreshProgressReceipt: {
+          schemaVersion: 'holoscript.absorb-refresh-progress-receipt.v1',
+          kind: 'AbsorbRefreshProgressReceipt',
+          resumeToken: 'post-commit-receipt',
+          rootDir: repoDir,
+          targetGitCommitHash: null,
+          targetWorktreeFingerprint: null,
+          planHash: 'plan',
+          selectedFilesHash: 'files',
+          scanPolicyHash: 'policy',
+          status: 'interrupted',
+          authoritative: false,
+          cachePublished: false,
+          publishedGraphAuthoritative: false,
+          priorAuthoritativeCachePreserved: true,
+          resumable: true,
+          totalCandidateFiles: 7,
+          totalBatches: 1,
+          completedBatchCount: 1,
+          completedCandidateFiles: 7,
+          remainingCandidateFiles: 0,
+          progressPercent: 100,
+          resumeMode: 'exact',
+          reusedBatchCount: 0,
+          invalidatedBatchCount: 0,
+          selection: {
+            maxFiles: 20_000,
+            workspaceCandidateFiles: 7,
+            selectedCandidateFiles: 7,
+            truncated: false,
+            truncationReason: null,
+          },
+          receiptFile: path.join(repoDir, 'progress-receipt.json'),
+          checkpointDirectory: path.join(repoDir, 'checkpoint'),
+          ownerProcessId: process.pid,
+          ownerHost: 'test',
+          ownerWriterLeaseSha256: 'lease',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          error: 'reserve exhausted',
+          completedBatchesOmitted: 1,
+        },
+      },
+      workerStatus: {
+        status: 'cancelled',
+        cacheCommitted: true,
+        filesProcessed: 7,
+        totalFiles: 7,
+        memoryBudget: {
+          minSystemFreeMb: 2_048,
+          peakRssMb: 7_717,
+          peakHeapUsedMb: 2_999,
+          minObservedSystemFreeMb: 1_751,
+          systemReserveExhausted: true,
+          systemReserveExhaustedAtPhase: 'cache-commit',
+          exceeded: false,
+          headroomExhausted: false,
+        },
+      },
+    });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    const terminal = (await handleCodebaseTool('holo_get_absorb_status', {
+      jobId: accepted.jobId,
+      includeResult: true,
+    })) as Record<string, unknown>;
+    expect(terminal).toMatchObject({
+      status: 'complete',
+      progress: 100,
+      phase: 'Complete (cache committed; resource caveat recorded)',
+      result: {
+        schemaVersion: 'holoscript.absorb-post-commit-resource-caveat.v1',
+        kind: 'AbsorbPostCommitResourceCaveatReceipt',
+        status: 'complete',
+        completed: true,
+        cacheCommitted: true,
+        cachePreserved: false,
+        filesProcessed: 7,
+        totalFiles: 7,
+        resourceCaveat: {
+          reason: 'system_memory_reserve_exhausted',
+          phaseAtRequest: 'cache-commit',
+        },
+        refreshProgressReceipt: {
+          status: 'complete',
+          authoritative: false,
+          cachePublished: true,
+          publishedGraphAuthoritative: true,
+          priorAuthoritativeCachePreserved: false,
+        },
+      },
+    });
+    expect(JSON.stringify(terminal)).not.toContain('"error":"reserve exhausted"');
+  });
+
   it('materializes the parent scan policy into isolated worker arguments', async () => {
     resetCodebaseToolStateForTests();
     const repoDir = makeTinyGitRepo('holoscript-isolated-policy-repo-');
