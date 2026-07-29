@@ -332,6 +332,65 @@ describe('EmbeddingIndex streaming batches', () => {
     ]);
   });
 
+  it('coalesces refresh scheduling while preserving exact reuse and terminal progress', async () => {
+    const provider: EmbeddingProvider = {
+      name: 'test-provider',
+      getEmbeddings: vi.fn(async (texts: string[]) => texts.map((text) => [text.length, 1])),
+    };
+    const symbols = Array.from({ length: 1025 }, (_, symbolIndex) => makeSymbol(symbolIndex));
+    const graph = { getAllSymbols: () => symbols } as CodebaseGraph;
+    const index = new EmbeddingIndex({ provider, batchSize: 2048, useWorkers: false });
+    await index.buildIndex(graph);
+    vi.mocked(provider.getEmbeddings).mockClear();
+
+    // Force a high reconciliation-batch count without making the initial test
+    // fixture pay the sequential full-build scheduler cost.
+    (index as unknown as { batchSize: number }).batchSize = 1;
+    const progress: Array<{ batch: number; total: number; processed: number }> = [];
+    const receipt = await index.refreshIndex(graph, (batch, total, processed) => {
+      progress.push({ batch, total, processed });
+    });
+
+    expect(receipt).toEqual({
+      kind: 'EmbeddingRefreshReceipt',
+      previousSymbols: 1025,
+      totalSymbols: 1025,
+      reusedSymbols: 1025,
+      embeddedSymbols: 0,
+      retiredSymbols: 0,
+      reuseRatio: 1,
+      batchCount: 1025,
+    });
+    expect(provider.getEmbeddings).not.toHaveBeenCalled();
+    expect(progress[0]).toEqual({ batch: 1, total: 1025, processed: 1 });
+    expect(progress.at(-1)).toEqual({ batch: 1025, total: 1025, processed: 1025 });
+    expect(progress.length).toBeLessThan(32);
+  });
+
+  it('checks cancellation within the coalesced batch bound without replacing the live index', async () => {
+    const provider: EmbeddingProvider = {
+      name: 'test-provider',
+      getEmbeddings: vi.fn(async (texts: string[]) => texts.map((text) => [text.length, 1])),
+    };
+    const symbols = Array.from({ length: 513 }, (_, symbolIndex) => makeSymbol(symbolIndex));
+    const graph = { getAllSymbols: () => symbols } as CodebaseGraph;
+    const index = new EmbeddingIndex({ provider, batchSize: 1024, useWorkers: false });
+    await index.buildIndex(graph);
+    const before = index.serialize();
+    (index as unknown as { batchSize: number }).batchSize = 1;
+    const checkedBatches: number[] = [];
+
+    await expect(
+      index.refreshIndex(graph, (batch) => {
+        checkedBatches.push(batch);
+        if (batch === 256) throw new Error('refresh cancelled by test');
+      })
+    ).rejects.toThrow('refresh cancelled by test');
+
+    expect(checkedBatches).toEqual([1, 256]);
+    expect(index.serialize()).toBe(before);
+  });
+
   it('invalidates reused symbols when their graph-context text changes', async () => {
     const embeddedTexts: string[] = [];
     const provider: EmbeddingProvider = {
