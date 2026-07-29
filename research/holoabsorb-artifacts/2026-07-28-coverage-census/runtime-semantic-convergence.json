@@ -193,7 +193,7 @@
       "Route commit changes to only affected workspace build groups.",
       "Rebuild absorb-service and mcp-server once when no trusted stamp exists.",
       "Preserve the tracked examples catalog during repair-only MCP builds so a sealed projection stays clean.",
-      "Record verified per-group input mtimes so unchanged generated wasm bytes and tracked launch sentinels do not trigger rebuild loops.",
+      "Record verified per-group input mtimes so unchanged generated wasm bytes and tracked launch sentinels do not trigger rebuild loops across unrelated commits; package-scoped Git changes still invalidate the stamp.",
       "Keep stamp publication best-effort so a read-only projection does not close an otherwise verified transport.",
       "Expose staleGroupsBeforeBuild and buildStamp in self-test output."
     ],
