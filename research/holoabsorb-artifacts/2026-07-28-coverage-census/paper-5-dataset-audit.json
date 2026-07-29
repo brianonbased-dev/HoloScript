@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "holoscript.paper5.retrieval-dataset-audit.v1",
+  "kind": "Paper5RetrievalDatasetAudit",
+  "generatedAt": "2026-07-29T05:57:05.924Z",
+  "status": "pass",
+  "dataset": {
+    "path": "packages/absorb-service/benchmarks/paper-5-retrieval-v1.json",
+    "sha256": "f34a3664fd8c39ff5cc5b38201b72d8d02b6633990f2c67f4e43cc03bd1314dd",
+    "datasetId": "holoabsorb-paper5-source-audited-v1",
+    "sourceCommit": "ca8da44d2b7a9e221d39b84886e3b0e65c7660f8",
+    "frozenAt": "2026-07-27T02:50:00.000Z"
+  },
+  "counts": {
+    "queries": 54,
+    "categories": {
+      "dependency": 18,
+      "impact": 18,
+      "reasoning": 18
+    },
+    "goldFiles": 160,
+    "verifiedAnchors": 173
+  },
+  "protocol": {
+    "minimumQueryCount": 50,
+    "minimumCategoryCount": 15,
+    "requiredCategories": [
+      "dependency",
+      "impact",
+      "reasoning"
+    ],
+    "rankingsHiddenFromVerifier": true,
+    "multiHumanAnnotator": false
+  },
+  "errors": [],
+  "warnings": []
+}

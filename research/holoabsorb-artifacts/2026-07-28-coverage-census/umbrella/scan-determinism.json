@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "holoscript.absorb.scan-determinism.v1",
+  "status": "pass",
+  "packageRoot": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\packages\\absorb-service",
+  "first": {
+    "files": 125,
+    "sha256": "1790b605550ff9eeb106c0bf6ddb50c6fe401b9f4a41d66aa43cc6c9d0ed9a9f"
+  },
+  "second": {
+    "files": 125,
+    "sha256": "1790b605550ff9eeb106c0bf6ddb50c6fe401b9f4a41d66aa43cc6c9d0ed9a9f"
+  },
+  "differences": []
+}

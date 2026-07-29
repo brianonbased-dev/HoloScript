@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.coverage-census-readback.v1",
+  "productName": "HoloAbsorb",
+  "observedAt": "2026-07-29T05:55:10.000Z",
+  "workspaceRoot": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript",
+  "generation": {
+    "generationId": "ab584bf1744dfef2362ef0650501a607",
+    "publishedAt": "2026-07-29T05:54:57.392Z",
+    "graphFile": "ab584bf1744dfef2362ef0650501a607/graph-cache.json",
+    "embeddingsFile": null
+  },
+  "scanPolicy": {
+    "languages": [
+      "typescript"
+    ],
+    "includeUntracked": false,
+    "maxFiles": 22000
+  },
+  "coverage": {
+    "candidateDefinition": "scanner-eligible-files-v1",
+    "graphFileCount": 11650,
+    "trackedGitVisibleFileCount": 21041,
+    "selectedCandidateCount": 11650,
+    "expectedGraphFileCount": 11650,
+    "excluded": {
+      "pathPolicy": 580,
+      "nonAbsorbableExtension": 159,
+      "languageFilter": 8652,
+      "maxFileSize": 0,
+      "missingOrNonFile": 0,
+      "total": 9391
+    },
+    "complete": true,
+    "ratio": 1,
+    "cappedByMaxFiles": false,
+    "overInclusive": false,
+    "exactFileSetChecked": true,
+    "exactFileSetMatch": true,
+    "missingGraphFiles": 0,
+    "unexpectedGraphFiles": 0
+  },
+  "authority": {
+    "graphAuthoritative": true,
+    "authorityCaveats": [],
+    "semanticIndexReady": false,
+    "graphRAGReady": false,
+    "embeddingSkipped": true,
+    "embeddingSkipReason": "outputFormat:stats"
+  },
+  "refresh": {
+    "resumeToken": "bd6671e8bd614ddfa55e4c144b673c8d",
+    "status": "complete",
+    "totalBatches": 136,
+    "completedBatchCount": 136,
+    "completedCandidateFiles": 11650,
+    "remainingCandidateFiles": 0,
+    "cachePublished": true,
+    "publishedGraphAuthoritative": true,
+    "scanPolicyHash": "{\"languages\":[\"typescript\"],\"includeUntracked\":false,\"maxFiles\":22000}",
+    "selectedFilesHash": "e3156638986e8e017172c8c1867d5fa07e29090423a97fddb2f8c605d8ad61d9",
+    "durationMs": 414975
+  },
+  "claimBoundary": "This readback establishes exact authoritative coverage for the explicitly selected tracked TypeScript corpus. It does not claim that the graph includes language-filtered, policy-excluded, binary, oversized, missing, or non-file Git entries, and it does not claim semantic GraphRAG readiness without a generation-matched HoloEmbed index."
+}

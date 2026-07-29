@@ -2882,6 +2882,101 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.diskCache?.scanPolicy).toMatchObject(scanPolicy);
   });
 
+  it('persists language scope and accounts for language-filtered coverage exclusions', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-language-cache-'));
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-language-repo-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'selected.ts'),
+      'export const selected = true;\n',
+      'utf-8'
+    );
+    fs.writeFileSync(path.join(repoDir, 'src', 'excluded.py'), 'excluded = True\n', 'utf-8');
+    fs.writeFileSync(path.join(repoDir, 'README.md'), '# Fixture\n', 'utf-8');
+    execFileSync('git', ['add', 'src/selected.ts', 'src/excluded.py', 'README.md'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['commit', '-m', 'fixture'], { cwd: repoDir, windowsHide: true });
+
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+      includeUntracked: false,
+      languages: ['typescript'],
+    })) as {
+      stats?: { totalFiles?: number };
+      scanPolicy?: { languages?: string[] };
+      refreshProgressReceipt?: {
+        selection?: {
+          workspaceCandidateFiles?: number;
+          selectedCandidateFiles?: number;
+        };
+      };
+    };
+
+    expect(result.stats?.totalFiles).toBe(1);
+    expect(result.scanPolicy?.languages).toEqual(['typescript']);
+    expect(result.refreshProgressReceipt?.selection).toMatchObject({
+      workspaceCandidateFiles: 1,
+      selectedCandidateFiles: 1,
+    });
+
+    const status = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      graphAuthoritative?: boolean;
+      coverage?: {
+        candidateDefinition?: string;
+        languages?: string[];
+        complete?: boolean;
+        exactFileSetMatch?: boolean;
+        trackedGitVisibleFileCount?: number;
+        trackedCandidateCount?: number;
+        trackedExclusions?: {
+          languageFilter?: number;
+          total?: number;
+        };
+      };
+      diskCache?: {
+        authoritative?: boolean;
+        scanPolicy?: { languages?: string[] };
+      };
+    };
+
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.coverage).toMatchObject({
+      candidateDefinition: 'scanner-eligible-files-v1',
+      languages: ['typescript'],
+      complete: true,
+      exactFileSetMatch: true,
+      trackedGitVisibleFileCount: 3,
+      trackedCandidateCount: 1,
+      trackedExclusions: {
+        languageFilter: 2,
+        total: 2,
+      },
+    });
+    expect(status.diskCache?.authoritative).toBe(true);
+    expect(status.diskCache?.scanPolicy?.languages).toEqual(['typescript']);
+  });
+
   it('applies maxFileSize consistently to scanning and coverage receipts', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-policy-size-cache-'));
