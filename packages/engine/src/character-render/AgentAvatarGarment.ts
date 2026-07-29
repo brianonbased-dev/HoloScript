@@ -82,6 +82,8 @@ interface LoftRing {
   rz: number;
   bone: string;
   centerZ?: number;
+  /** Lowers only the camera-facing arc, allowing an authored open neckline. */
+  frontDrop?: number;
   /** Per-ring cloth mobility. Interpolated only by topology; 0 pins, 1 moves freely. */
   clothWeight?: number;
 }
@@ -140,7 +142,12 @@ function pushLoft(target: MeshAccum, rings: LoftRing[], segments: number): void 
       const angle = (segment / segments) * Math.PI * 2;
       const cosine = Math.cos(angle);
       const sine = Math.sin(angle);
-      target.positions.push(cosine * ring.rx, ring.y, (ring.centerZ ?? 0) + sine * ring.rz);
+      const frontDrop = Math.max(0, sine) * (ring.frontDrop ?? 0);
+      target.positions.push(
+        cosine * ring.rx,
+        ring.y - frontDrop,
+        (ring.centerZ ?? 0) + sine * ring.rz
+      );
       const normal = normalize(
         v(cosine / Math.max(ring.rx, 1e-4), 0, sine / Math.max(ring.rz, 1e-4))
       );
@@ -304,44 +311,6 @@ function pushOpenCollar(target: MeshAccum, buildScale: number): void {
 }
 
 /**
- * Cover the bind-pose shoulder seam with two native cloth panels while preserving the open
- * neckline. The split center leaves the V collar readable and prevents the procedural upper-arm
- * blocks from becoming the dominant portrait silhouette.
- */
-function pushOpenShoulderPanels(target: MeshAccum, buildScale: number): void {
-  const jointIndex = BONE_INDEX.get('spine2') ?? 0;
-  const z = 0.205 * buildScale;
-  const panels: Vec3[][] = [
-    [
-      v(-0.04 * buildScale, 1.32, z + 0.006 * buildScale),
-      v(-0.12 * buildScale, 1.45, z),
-      v(-0.5 * buildScale, 1.47, z - 0.045 * buildScale),
-      v(-0.46 * buildScale, 1.33, z - 0.035 * buildScale),
-    ],
-    [
-      v(0.04 * buildScale, 1.32, z + 0.006 * buildScale),
-      v(0.46 * buildScale, 1.33, z - 0.035 * buildScale),
-      v(0.5 * buildScale, 1.47, z - 0.045 * buildScale),
-      v(0.12 * buildScale, 1.45, z),
-    ],
-  ];
-  for (const panel of panels) {
-    const base = target.positions.length / 3;
-    for (let index = 0; index < panel.length; index += 1) {
-      const point = panel[index];
-      target.positions.push(point.x, point.y, point.z);
-      target.normals.push(0, 0, 1);
-      target.tangents.push(1, 0, 0, 0);
-      target.uvs.push(index === 0 || index === 3 ? 0 : 1, index < 2 ? 0 : 1);
-      target.jointIndices.push(jointIndex);
-      target.jointWeights.push(1);
-      target.clothWeights.push(0.04);
-    }
-    target.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
-  }
-}
-
-/**
  * A shoulder-pinned, front-readable mantle panel. The repeating UV field carries the family
  * pattern; the lower rows are mobile while the shoulder seam stays pinned.
  */
@@ -409,6 +378,7 @@ export function buildAgentAvatarGarment(
   const buildScale = options.buildScale ?? 1;
   const heightScale = options.heightScale ?? 1;
   const segments = Math.max(6, Math.min(32, Math.round(options.radialSegments ?? 24)));
+  const openCivic = options.style === 'stormglass_open_civic_tunic';
   const cloth = accum();
   const visor = accum();
   const mantle = accum();
@@ -423,8 +393,24 @@ export function buildAgentAvatarGarment(
       { y: 0.82, rx: 0.2 * buildScale, rz: 0.145 * buildScale, bone: 'spine', clothWeight: 0.42 },
       { y: 1.04, rx: 0.19 * buildScale, rz: 0.14 * buildScale, bone: 'spine1', clothWeight: 0.22 },
       { y: 1.24, rx: 0.225 * buildScale, rz: 0.15 * buildScale, bone: 'spine2', clothWeight: 0.08 },
-      { y: 1.36, rx: 0.285 * buildScale, rz: 0.17 * buildScale, bone: 'spine2', clothWeight: 0 },
-      { y: 1.43, rx: 0.325 * buildScale, rz: 0.18 * buildScale, bone: 'spine2', clothWeight: 0 },
+      {
+        y: 1.36,
+        rx: (openCivic ? 0.33 : 0.285) * buildScale,
+        rz: (openCivic ? 0.18 : 0.17) * buildScale,
+        bone: 'spine2',
+        centerZ: openCivic ? 0.15 * buildScale : 0,
+        clothWeight: 0,
+        frontDrop: openCivic ? 0.05 : 0,
+      },
+      {
+        y: openCivic ? 1.47 : 1.43,
+        rx: (openCivic ? 0.5 : 0.325) * buildScale,
+        rz: 0.18 * buildScale,
+        bone: 'spine2',
+        centerZ: openCivic ? 0.23 * buildScale : 0,
+        clothWeight: 0,
+        frontDrop: openCivic ? 0.15 : 0,
+      },
     ],
     segments
   );
@@ -444,7 +430,6 @@ export function buildAgentAvatarGarment(
     );
     pushVisor(visor, segments, buildScale);
   } else {
-    pushOpenShoulderPanels(cloth, buildScale);
     pushOpenCollar(cloth, buildScale);
   }
 
