@@ -1185,7 +1185,7 @@ function pushHandWebPatch(
   acc: MeshAccum,
   shape: HandLandmarkShape
 ): AgentAvatarHandLandmarkGeometryReceipt {
-  const radialSegments = 8;
+  const radialSegments = 12;
   const ringOffsets = [-1, -0.38, 0.38, 1] as const;
   const radiusFactors = [0.56, 1, 1, 0.56] as const;
   const jointIndex = BONE_INDEX.get(shape.jointName) ?? 0;
@@ -1283,7 +1283,8 @@ function pushAttachedNailPlate(
   bindWorld: Map<string, Mat4>,
   buildScale: number,
   shoulderScale: number,
-  heightScale: number
+  heightScale: number,
+  digitRadialSegments: number
 ): AgentAvatarHandLandmarkGeometryReceipt {
   const layout = buildConvergedDigitLayout(side, digit, bindWorld, buildScale, shoulderScale);
   const longitudinalPhases = [3.12, 3.3, 3.5, 3.68, 3.84] as const;
@@ -1306,11 +1307,19 @@ function pushAttachedNailPlate(
         const across = transverseSamples[column];
         const zOffset = sample.radiusZ * widthRatio * widthEnvelope[row] * across;
         const normalizedZ = Math.min(1, Math.abs(zOffset) / Math.max(1e-6, sample.radiusZ));
-        const diagonal = Math.SQRT1_2;
-        const dorsalRatio =
-          normalizedZ <= diagonal
-            ? 1 - (normalizedZ / diagonal) * (1 - diagonal)
-            : diagonal * (1 - (normalizedZ - diagonal) / (1 - diagonal));
+        const quadrantSegments = Math.ceil(digitRadialSegments / 4);
+        let dorsalRatio = 0;
+        for (let segment = 0; segment < quadrantSegments; segment++) {
+          const thetaA = (segment / digitRadialSegments) * Math.PI * 2;
+          const thetaB = ((segment + 1) / digitRadialSegments) * Math.PI * 2;
+          const zA = Math.sin(thetaA);
+          const zB = Math.sin(thetaB);
+          if (normalizedZ <= zB || segment === quadrantSegments - 1) {
+            const t = (normalizedZ - zA) / Math.max(1e-6, zB - zA);
+            dorsalRatio = Math.cos(thetaA) + (Math.cos(thetaB) - Math.cos(thetaA)) * t;
+            break;
+          }
+        }
         const skinSurfaceY = sample.center.y + sample.radiusY * Math.max(0, dorsalRatio);
         const cuticleTaper = row === 0 ? 0.72 : row === 1 ? 0.92 : 1;
         const camber = layer === 1 ? freeEdgeThickness * 0.12 * (1 - across * across) : 0;
@@ -1392,7 +1401,8 @@ function pushHandLandmarks(
   bindWorld: Map<string, Mat4>,
   buildScale: number,
   shoulderScale: number,
-  heightScale: number
+  heightScale: number,
+  digitRadialSegments: number
 ): AgentAvatarHandLandmarkGeometryReceipt[] {
   const direction = side === 'left' ? 1 : -1;
   const scaleXZ = buildScale * shoulderScale;
@@ -1480,7 +1490,16 @@ function pushHandLandmarks(
   }
   for (const digit of AGENT_AVATAR_DIGIT_NAMES) {
     landmarks.push(
-      pushAttachedNailPlate(acc, side, digit, bindWorld, buildScale, shoulderScale, heightScale)
+      pushAttachedNailPlate(
+        acc,
+        side,
+        digit,
+        bindWorld,
+        buildScale,
+        shoulderScale,
+        heightScale,
+        digitRadialSegments
+      )
     );
   }
   return landmarks;
@@ -1701,7 +1720,9 @@ function pushCoherentUpperLimb(
     acc.indices.push(palmCenter, lastRing + segment, lastRing + next);
   }
 
-  const digitRadialSegments = Math.max(6, Math.min(10, Math.round(radialSegments / 3)));
+  const digitRadialSegments = landmarked
+    ? Math.max(10, Math.min(14, Math.round(radialSegments / 2)))
+    : Math.max(6, Math.min(10, Math.round(radialSegments / 3)));
   const digits = anatomical
     ? AGENT_AVATAR_DIGIT_NAMES.map((digit) =>
         pushArticulatedDigit(
@@ -1718,7 +1739,15 @@ function pushCoherentUpperLimb(
       )
     : undefined;
   const handLandmarks = landmarked
-    ? pushHandLandmarks(acc, side, bindWorld, buildScale, shoulderScale, heightScale)
+    ? pushHandLandmarks(
+        acc,
+        side,
+        bindWorld,
+        buildScale,
+        shoulderScale,
+        heightScale,
+        digitRadialSegments
+      )
     : undefined;
 
   return {

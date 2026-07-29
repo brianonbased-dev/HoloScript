@@ -618,7 +618,7 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
           schemaVersion: 'holoscript.agent-avatar-digit-geometry.v1',
           profile: 'volume-preserving-three-phalanx-v2',
           side: limb.side,
-          radialSegments: 8,
+          radialSegments: 12,
           ringCount: 9,
           phalanxSegmentCount: 3,
           webBlendRingCount: 2,
@@ -627,8 +627,8 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
           maximumAdjacentRadiusDrop: 0.1,
           crossSectionAspectRatio: 0.88,
         });
-        expect(digit.vertexRange.vertexCount).toBe(8 * 9 + 1);
-        expect(digit.indexRange.indexCount).toBe(8 * 8 * 6 + 8 * 3);
+        expect(digit.vertexRange.vertexCount).toBe(12 * 9 + 1);
+        expect(digit.indexRange.indexCount).toBe(12 * 8 * 6 + 12 * 3);
       }
       expect(landmarks).toHaveLength(18);
       expect(landmarks.filter((landmark) => landmark.kind === 'interdigital-web')).toHaveLength(4);
@@ -651,10 +651,10 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
               : 'anatomical-hand-landmark-v1'
         );
         expect(landmark.vertexRange.vertexCount).toBe(
-          landmark.kind === 'interdigital-web' ? 34 : landmark.kind === 'nail-plate' ? 50 : 26
+          landmark.kind === 'interdigital-web' ? 50 : landmark.kind === 'nail-plate' ? 50 : 26
         );
         expect(landmark.indexRange.indexCount).toBe(
-          landmark.kind === 'interdigital-web' ? 192 : landmark.kind === 'nail-plate' ? 288 : 144
+          landmark.kind === 'interdigital-web' ? 288 : landmark.kind === 'nail-plate' ? 288 : 144
         );
         expect(landmark.materialRole).toBe(
           landmark.kind === 'nail-plate' ? 'keratin-nail' : 'skin'
