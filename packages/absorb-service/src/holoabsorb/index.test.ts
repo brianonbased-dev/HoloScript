@@ -108,6 +108,7 @@ describe('HoloAbsorb product manifest', () => {
       expect.arrayContaining([
         'packages/absorb-service/scripts/audit-paper-5-visual-v4.mjs',
         'packages/absorb-service/scripts/prepare-paper-5-visual-v4.mjs',
+        'packages/absorb-service/scripts/execute-paper-5-visual-v4.mjs',
         'packages/absorb-service/scripts/lib/paper-5-visual-v4.mjs',
       ])
     );
