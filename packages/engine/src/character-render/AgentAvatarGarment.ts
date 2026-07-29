@@ -47,6 +47,11 @@ export interface AgentAvatarGarmentGeometryReceipt {
   style: SovereignGarmentStyle;
   radialSegments: number;
   faceCoverage: 'closed-hood-visor' | 'open-v-collar';
+  fitProfile: 'legacy-shell-v1' | 'coherent-upper-body-clearance-v1';
+  torsoScale: number;
+  shoulderScale: number;
+  /** Exact cloth-index subrange for the continuous tunic shell, excluding collar and sleeves. */
+  tunicIndexRange: { indexStart: number; indexCount: number };
   clothVertexCount: number;
   clothTriangleCount: number;
   visorVertexCount: number;
@@ -59,6 +64,10 @@ export interface AgentAvatarGarmentOptions {
   style: SovereignGarmentStyle;
   buildScale?: number;
   heightScale?: number;
+  /** Authored torso thickness, shared with the coherent native upper-body profile. */
+  torsoScale?: number;
+  /** Authored shoulder span, shared with the coherent native upper-body profile. */
+  shoulderScale?: number;
   /** Authored radial tessellation. Clamped to 6..32; intended LOD values are 24/14/8. */
   radialSegments?: number;
   /** Optional public/story mantle. Omission is the detachable neutral-body state. */
@@ -377,43 +386,70 @@ export function buildAgentAvatarGarment(
 ): AgentAvatarGarmentData {
   const buildScale = options.buildScale ?? 1;
   const heightScale = options.heightScale ?? 1;
+  const torsoScale = Math.max(0.85, Math.min(1.2, options.torsoScale ?? 1));
+  const shoulderScale = Math.max(0.85, Math.min(1.25, options.shoulderScale ?? 1));
   const segments = Math.max(6, Math.min(32, Math.round(options.radialSegments ?? 24)));
   const openCivic = options.style === 'stormglass_open_civic_tunic';
+  const torsoBuild = buildScale * torsoScale;
+  const openShoulderBuild = buildScale * Math.max(1, shoulderScale);
   const cloth = accum();
   const visor = accum();
   const mantle = accum();
 
   // Tapered craftfolk tunic: broad grounded hem, narrow waist, protective shoulder cowl.
+  const tunicIndexStart = cloth.indices.length;
   pushLoft(
     cloth,
     [
       { y: 0.08, rx: 0.31 * buildScale, rz: 0.22 * buildScale, bone: 'hips', clothWeight: 1 },
       { y: 0.38, rx: 0.28 * buildScale, rz: 0.2 * buildScale, bone: 'hips', clothWeight: 0.82 },
       { y: 0.62, rx: 0.245 * buildScale, rz: 0.175 * buildScale, bone: 'hips', clothWeight: 0.62 },
-      { y: 0.82, rx: 0.2 * buildScale, rz: 0.145 * buildScale, bone: 'spine', clothWeight: 0.42 },
-      { y: 1.04, rx: 0.19 * buildScale, rz: 0.14 * buildScale, bone: 'spine1', clothWeight: 0.22 },
-      { y: 1.24, rx: 0.225 * buildScale, rz: 0.15 * buildScale, bone: 'spine2', clothWeight: 0.08 },
+      {
+        y: 0.82,
+        rx: openCivic ? 0.215 * torsoBuild : 0.2 * buildScale,
+        rz: openCivic ? 0.16 * torsoBuild : 0.145 * buildScale,
+        bone: 'spine',
+        clothWeight: 0.42,
+      },
+      {
+        y: 1.04,
+        rx: openCivic ? 0.22 * torsoBuild : 0.19 * buildScale,
+        rz: openCivic ? 0.165 * torsoBuild : 0.14 * buildScale,
+        bone: 'spine1',
+        clothWeight: 0.22,
+      },
+      {
+        y: 1.24,
+        rx: openCivic ? 0.255 * torsoBuild : 0.225 * buildScale,
+        rz: openCivic ? 0.19 * torsoBuild : 0.15 * buildScale,
+        bone: 'spine2',
+        clothWeight: 0.08,
+      },
       {
         y: 1.36,
-        rx: (openCivic ? 0.33 : 0.285) * buildScale,
-        rz: (openCivic ? 0.18 : 0.17) * buildScale,
+        rx: openCivic ? 0.32 * openShoulderBuild : 0.285 * buildScale,
+        rz: (openCivic ? 0.225 : 0.17) * buildScale,
         bone: 'spine2',
-        centerZ: openCivic ? 0.15 * buildScale : 0,
+        centerZ: openCivic ? 0.02 * buildScale : 0,
         clothWeight: 0,
         frontDrop: openCivic ? 0.05 : 0,
       },
       {
         y: openCivic ? 1.47 : 1.43,
-        rx: (openCivic ? 0.5 : 0.325) * buildScale,
-        rz: 0.18 * buildScale,
+        rx: openCivic ? 0.47 * openShoulderBuild : 0.325 * buildScale,
+        rz: (openCivic ? 0.21 : 0.18) * buildScale,
         bone: 'spine2',
-        centerZ: openCivic ? 0.23 * buildScale : 0,
+        centerZ: openCivic ? 0.08 * buildScale : 0,
         clothWeight: 0,
         frontDrop: openCivic ? 0.15 : 0,
       },
     ],
     segments
   );
+  const tunicIndexRange = {
+    indexStart: tunicIndexStart,
+    indexCount: cloth.indices.length - tunicIndexStart,
+  };
 
   if (options.style === 'stormglass_hooded_tunic') {
     // Closed faceless hood. The dark visor sits just forward of this shell.
@@ -484,6 +520,10 @@ export function buildAgentAvatarGarment(
       radialSegments: segments,
       faceCoverage:
         options.style === 'stormglass_hooded_tunic' ? 'closed-hood-visor' : 'open-v-collar',
+      fitProfile: openCivic ? 'coherent-upper-body-clearance-v1' : 'legacy-shell-v1',
+      torsoScale,
+      shoulderScale,
+      tunicIndexRange,
       clothVertexCount: clothMesh.vertexCount,
       clothTriangleCount: clothMesh.indices.length / 3,
       visorVertexCount: visorMesh.vertexCount,

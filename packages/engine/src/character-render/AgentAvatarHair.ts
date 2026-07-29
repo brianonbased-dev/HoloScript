@@ -1013,6 +1013,8 @@ export function buildCharacterMesh(
         style: opts.garmentStyle,
         buildScale: opts.buildScale,
         heightScale: opts.heightScale,
+        torsoScale: opts.torsoScale,
+        shoulderScale: opts.shoulderScale,
         radialSegments: opts.garmentSegments,
         mantleStyle: opts.mantleStyle,
       })
