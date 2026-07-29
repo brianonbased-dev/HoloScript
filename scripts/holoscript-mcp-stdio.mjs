@@ -16,7 +16,15 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { startMcpProcessLifecycle } from './lib/mcp-process-lifecycle.mjs';
@@ -24,6 +32,13 @@ import { startMcpProcessLifecycle } from './lib/mcp-process-lifecycle.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(__dirname, '..');
 export const LAUNCHER_PATH = fileURLToPath(import.meta.url);
+export const BUILD_STAMP_PATH = join(
+  ROOT,
+  'packages',
+  'mcp-server',
+  'dist',
+  '.holoscript-local-build-stamp.json'
+);
 
 export const BUILD_GROUPS = [
   {
@@ -281,6 +296,24 @@ export const BUILD_GROUPS = [
   },
 ];
 
+const BUILD_INPUT_NAMES = new Set([
+  'package.json',
+  'tsconfig.json',
+  'tsup.config.js',
+  'tsup.config.mjs',
+  'tsup.config.ts',
+  'Cargo.toml',
+  'build.rs',
+]);
+const BUILD_INPUT_DIRECTORIES = new Set(['src']);
+const GLOBAL_BUILD_INPUTS = new Set([
+  'package.json',
+  'pnpm-lock.yaml',
+  'pnpm-workspace.yaml',
+  'tsconfig.base.json',
+  'tsconfig.json',
+]);
+
 function commandName(name) {
   return process.platform === 'win32' ? `${name}.cmd` : name;
 }
@@ -293,6 +326,163 @@ export function missingBuildGroups(exists = existsSync, root = ROOT) {
   return BUILD_GROUPS.filter((group) =>
     group.requiredFiles.some((file) => !exists(resolve(root, file)))
   );
+}
+
+export function packageRootForBuildGroup(group) {
+  for (const requiredFile of group?.requiredFiles ?? []) {
+    const normalized = requiredFile.replaceAll('\\', '/');
+    const outputMarker = normalized.match(/\/(?:dist|pkg|pkg-node)\//);
+    if (outputMarker?.index !== undefined) return normalized.slice(0, outputMarker.index);
+  }
+  return null;
+}
+
+function newestInputMtimeMs(
+  group,
+  {
+    root = ROOT,
+    exists = existsSync,
+    stat = statSync,
+    readDirectory = (path) => readdirSync(path, { withFileTypes: true }),
+  } = {}
+) {
+  const packageRoot = packageRootForBuildGroup(group);
+  if (!packageRoot) return null;
+  const absolutePackageRoot = resolve(root, packageRoot);
+  let newest = null;
+
+  const observe = (path) => {
+    if (!exists(path)) return;
+    const entry = stat(path);
+    if (entry.isFile()) {
+      newest = newest === null ? entry.mtimeMs : Math.max(newest, entry.mtimeMs);
+      return;
+    }
+    if (!entry.isDirectory()) return;
+    for (const child of readDirectory(path)) {
+      observe(resolve(path, child.name));
+    }
+  };
+
+  for (const directoryName of BUILD_INPUT_DIRECTORIES) {
+    observe(resolve(absolutePackageRoot, directoryName));
+  }
+  for (const fileName of BUILD_INPUT_NAMES) {
+    observe(resolve(absolutePackageRoot, fileName));
+  }
+  return newest;
+}
+
+export function buildGroupFreshness(
+  group,
+  {
+    root = ROOT,
+    exists = existsSync,
+    stat = statSync,
+    readDirectory = (path) => readdirSync(path, { withFileTypes: true }),
+  } = {}
+) {
+  const missingOutputs = group.requiredFiles.filter((file) => !exists(resolve(root, file)));
+  if (missingOutputs.length > 0) {
+    return {
+      id: group.id,
+      status: 'missing',
+      stale: true,
+      missingOutputs,
+      newestInputMtimeMs: null,
+      oldestOutputMtimeMs: null,
+    };
+  }
+
+  const newestSource = newestInputMtimeMs(group, { root, exists, stat, readDirectory });
+  const oldestOutput = Math.min(
+    ...group.requiredFiles.map((file) => stat(resolve(root, file)).mtimeMs)
+  );
+  const stale = newestSource !== null && newestSource > oldestOutput;
+  return {
+    id: group.id,
+    status: stale ? 'source-newer-than-dist' : 'fresh',
+    stale,
+    missingOutputs: [],
+    newestInputMtimeMs: newestSource,
+    oldestOutputMtimeMs: oldestOutput,
+  };
+}
+
+export function buildGroupsForChangedFiles(changedFiles, groups = BUILD_GROUPS) {
+  const normalized = changedFiles
+    .map((file) => String(file).trim().replaceAll('\\', '/').replace(/^\.\//, ''))
+    .filter(Boolean);
+  if (normalized.some((file) => GLOBAL_BUILD_INPUTS.has(file))) return [...groups];
+
+  return groups.filter((group) => {
+    const packageRoot = packageRootForBuildGroup(group);
+    return packageRoot && normalized.some((file) => file.startsWith(`${packageRoot}/`));
+  });
+}
+
+export function buildBootstrapGroups(stamp, groups = BUILD_GROUPS) {
+  if (stamp) return [];
+  return groups.filter((group) => ['absorb-service', 'mcp-server'].includes(group.id));
+}
+
+function currentGitHead(root = ROOT, spawnSyncImpl = spawnSync) {
+  const result = spawnSyncImpl('git', ['rev-parse', 'HEAD'], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  return result.status === 0 ? result.stdout?.trim() || null : null;
+}
+
+function readBuildStamp(path = BUILD_STAMP_PATH) {
+  if (!existsSync(path)) return null;
+  try {
+    const parsed = JSON.parse(readFileSync(path, 'utf8'));
+    return parsed?.schemaVersion === 'holoscript.local-mcp-build-stamp.v1' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function commitChangedBuildGroups({
+  root = ROOT,
+  stamp = readBuildStamp(),
+  gitHead = currentGitHead(root),
+  spawnSyncImpl = spawnSync,
+} = {}) {
+  if (!stamp?.gitHead || !gitHead || stamp.gitHead === gitHead) return [];
+  const result = spawnSyncImpl(
+    'git',
+    ['diff', '--name-only', '--diff-filter=ACDMRTUXB', stamp.gitHead, gitHead, '--'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }
+  );
+  if (result.status !== 0) return [...BUILD_GROUPS];
+  return buildGroupsForChangedFiles(String(result.stdout || '').split(/\r?\n/));
+}
+
+function writeBuildStamp({
+  root = ROOT,
+  path = BUILD_STAMP_PATH,
+  gitHead = currentGitHead(root),
+  builtGroups = [],
+} = {}) {
+  mkdirSync(dirname(path), { recursive: true });
+  const payload = {
+    schemaVersion: 'holoscript.local-mcp-build-stamp.v1',
+    kind: 'HoloScriptLocalMcpBuildStamp',
+    gitHead,
+    verifiedAt: new Date().toISOString(),
+    builtGroups,
+  };
+  const temporaryPath = `${path}.${process.pid}.tmp`;
+  writeFileSync(temporaryPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  renameSync(temporaryPath, path);
+  return payload;
 }
 
 export function stdioServerPath(root = ROOT) {
@@ -429,16 +619,36 @@ await import('./packages/mcp-server/dist/index.mjs');
 
 function ensureBuild({ noBuild = false } = {}) {
   const missing = missingBuildGroups();
-  if (missing.length > 0) {
+  const existingStamp = readBuildStamp();
+  const gitHead = currentGitHead();
+  const mtimeStale = BUILD_GROUPS.filter(
+    (group) => !missing.includes(group) && buildGroupFreshness(group).stale
+  );
+  const commitStale = commitChangedBuildGroups({ stamp: existingStamp, gitHead });
+  // A first-run import probe proves only that the old JavaScript is loadable.
+  // Rebuild the two sovereign transport owners once so a copied checkout with
+  // preserved mtimes cannot bless stale HoloAbsorb/MCP behavior into a stamp.
+  const bootstrapCritical = buildBootstrapGroups(existingStamp);
+  const stale = BUILD_GROUPS.filter(
+    (group) =>
+      missing.includes(group) ||
+      mtimeStale.includes(group) ||
+      commitStale.includes(group) ||
+      bootstrapCritical.includes(group)
+  );
+  if (stale.length > 0) {
     if (noBuild) {
       throw new Error(
-        `Missing local MCP build artifacts for: ${missing.map((group) => group.id).join(', ')}`
+        `Missing or stale local MCP build artifacts for: ${stale
+          .map((group) => group.id)
+          .join(', ')}`
       );
     }
-    for (const group of missing) runBuild(group);
+    for (const group of stale) runBuild(group);
   }
 
   let probe = runImportProbe();
+  let rebuiltAllAfterProbeFailure = false;
   if (!probe.ok && !noBuild) {
     stderr(
       '[holoscript-mcp-stdio] Local package import probe failed; rebuilding MCP dependency chain...'
@@ -446,14 +656,32 @@ function ensureBuild({ noBuild = false } = {}) {
     if (probe.stderr) stderr(probe.stderr);
     for (const group of BUILD_GROUPS) runBuild(group);
     probe = runImportProbe();
+    rebuiltAllAfterProbeFailure = true;
   }
 
   if (!probe.ok) {
     throw new Error(`Local package import probe failed: ${probe.stderr || 'no stderr'}`);
   }
 
+  let stamp = null;
+  try {
+    stamp = writeBuildStamp({
+      gitHead,
+      builtGroups: rebuiltAllAfterProbeFailure
+        ? BUILD_GROUPS.map((group) => group.id)
+        : stale.map((group) => group.id),
+    });
+  } catch (error) {
+    stderr(
+      `[holoscript-mcp-stdio] Build verified but provenance stamp could not be written: ${
+        error instanceof Error ? error.message : error
+      }`
+    );
+  }
   return {
     missingGroupsBeforeBuild: missing.map((group) => group.id),
+    staleGroupsBeforeBuild: stale.map((group) => group.id),
+    buildStamp: stamp,
     serverPath: stdioServerPath(),
   };
 }
@@ -807,6 +1035,8 @@ async function main() {
         root: ROOT,
         serverPath: result.serverPath,
         missingGroupsBeforeBuild: result.missingGroupsBeforeBuild,
+        staleGroupsBeforeBuild: result.staleGroupsBeforeBuild,
+        buildStamp: result.buildStamp,
         absorbBackgroundContract,
       };
       process.stdout.write(json ? `${JSON.stringify(payload, null, 2)}\n` : 'OK\n');

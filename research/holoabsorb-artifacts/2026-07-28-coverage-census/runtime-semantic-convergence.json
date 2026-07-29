@@ -1,0 +1,204 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.runtime-semantic-convergence.v1",
+  "kind": "HoloAbsorbRuntimeSemanticConvergenceReceipt",
+  "status": "pass",
+  "capturedAt": "2026-07-29T07:37:00.000Z",
+  "productName": "HoloAbsorb",
+  "scope": {
+    "sourceRepo": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript",
+    "runtimeProjection": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript-runtime",
+    "sovereignEndpoint": "http://127.0.0.1:7411/mcp",
+    "roomTask": "task_1785308853008_f63j",
+    "node": "laptop-rtx3060"
+  },
+  "runtimeConvergence": {
+    "beforeCommit": "1fe904dc4329ffc021b6ff87d712cdf704f010e1",
+    "sourceCommit": "624d60767725b4c5539ab452ef0008cc0456d38e",
+    "afterCommit": "624d60767725b4c5539ab452ef0008cc0456d38e",
+    "beforeDistContract": {
+      "scannerEligibleCoverageContractPresent": false,
+      "trackedGitVisibleFileCountContractPresent": false
+    },
+    "afterDistContract": {
+      "scannerEligibleCoverageContractPresent": true,
+      "trackedGitVisibleFileCountContractPresent": true
+    },
+    "supervisor": {
+      "before": "healthy endpoint with an unowned orphan process",
+      "after": "healthy tracked-pid custody",
+      "initialTrackedPid": 38924,
+      "postRestartTrackedPid": 14304
+    },
+    "staleClientHandleObserved": true,
+    "staleClientHandleBoundary": "The already-open Codex stdio process retained pre-rebuild module state. Fresh HTTP immediately exposed the repaired contract; client reconnect remains required after a runtime dist replacement."
+  },
+  "authoritativeGraph": {
+    "generationBeforeSemanticWarm": "4ab918d41e0fb1307549e4166e1342b5",
+    "generationAfterSemanticWarm": "592e5c4203bad88e70a145f71181c230",
+    "gitCommitHash": "624d60767725b4c5539ab452ef0008cc0456d38e",
+    "languages": [
+      "typescript"
+    ],
+    "includeUntracked": false,
+    "maxFiles": 22000,
+    "candidateDefinition": "scanner-eligible-files-v1",
+    "trackedGitVisibleFileCount": 21062,
+    "selectedCandidateCount": 11650,
+    "graphFileCount": 11650,
+    "trackedExclusions": {
+      "pathPolicy": 580,
+      "nonAbsorbableExtension": 159,
+      "languageFilter": 8673,
+      "maxFileSize": 0,
+      "missingOrNonFile": 0,
+      "total": 9412
+    },
+    "exactFileSetMatch": true,
+    "missingGraphFiles": 0,
+    "unexpectedGraphFiles": 0,
+    "coverageRatio": 1,
+    "graphAuthoritative": true,
+    "authorityCaveats": []
+  },
+  "semanticWarm": {
+    "provider": "holoembed",
+    "externalProvidersAllowed": false,
+    "externalFallbacksAllowed": false,
+    "failedGuardedAttempt": {
+      "jobId": "absorb-1785309446920-9n1w13u",
+      "status": "cancelled",
+      "reason": "system_memory_reserve_exhausted",
+      "phase": "Updating embeddings",
+      "minimumObservedSystemFreeMb": 1863,
+      "requiredSystemFreeMb": 2048,
+      "cachePreserved": true,
+      "cacheCommitted": false,
+      "cause": "A scheduled Session-0 workflow reopened qwen3:4b-instruct through Ollama during the warm."
+    },
+    "successfulAttempt": {
+      "jobId": "absorb-1785310039294-lrqdybg",
+      "status": "complete",
+      "isolatedBackground": true,
+      "durationMs": 196340,
+      "incremental": true,
+      "filesChanged": 2,
+      "filesProcessed": 11650,
+      "totalFiles": 11650,
+      "totalSymbols": 365313,
+      "communities": 1487,
+      "sourcePinValidated": true,
+      "sourceDriftDetections": 0,
+      "sourceDriftRetries": 0,
+      "memoryBudget": {
+        "maxRssMb": 7168,
+        "maxHeapUsedMb": 6144,
+        "cacheCommitHeadroomMb": 512,
+        "minSystemFreeMb": 2048,
+        "peakRssMb": 4066,
+        "peakHeapUsedMb": 2199,
+        "minObservedSystemFreeMb": 2888,
+        "exceeded": false
+      },
+      "embeddingBytes": 1396403032,
+      "embeddingProvider": "holoembed",
+      "embeddingGeneration": "df0098fdd32ec19b4c4c39218726f62ed91cb6e5053db9fe3858b5b8a18a3bb0",
+      "diskHydratable": true,
+      "semanticIndexReady": true,
+      "graphRagReady": true
+    }
+  },
+  "liveRetrieval": {
+    "preRestart": {
+      "coldHydrateMs": 38521,
+      "warmSemanticMs": [
+        2301,
+        2117,
+        2025
+      ],
+      "graphTraversalMs": [
+        653,
+        271
+      ],
+      "exactSymbolQuery": "publishCacheGeneration",
+      "exactSymbolRank": 1
+    },
+    "postRestart": {
+      "generationIdPreserved": true,
+      "embeddingBytesPreserved": true,
+      "graphAuthoritative": true,
+      "semanticIndexReadyFromDisk": true,
+      "coldHydrateMs": 58694,
+      "warmSemanticMs": 6875,
+      "exactSymbolQuery": "publishCacheGeneration",
+      "exactSymbolRank": 1
+    }
+  },
+  "rebench": {
+    "paper5": {
+      "status": "completed",
+      "provider": "HoloEmbedProvider",
+      "queries": 54,
+      "corpusFiles": 125,
+      "corpusSymbols": 6779,
+      "keyword": {
+        "precisionAt5": 0.2,
+        "mrr": 0.449
+      },
+      "semanticOnly": {
+        "precisionAt5": 0.096,
+        "mrr": 0.269
+      },
+      "hybrid": {
+        "precisionAt5": 0.185,
+        "mrr": 0.459
+      },
+      "graphRag": {
+        "precisionAt5": 0.178,
+        "mrr": 0.463
+      },
+      "claimBoundary": "Graph RAG reproduced a small MRR gain over the keyword baseline but lower Precision@5. This does not support a blanket retrieval-superiority claim."
+    },
+    "visualFocus": {
+      "status": "pass",
+      "selectedCandidateFiles": 335,
+      "coverageRatio": 1,
+      "cases": 20,
+      "baselineMrr": 0.304,
+      "correctSelectionMrr": 0.975,
+      "baselineTop1Rate": 0,
+      "correctSelectionTop1Rate": 0.95,
+      "staleSelectionMrr": 0.304,
+      "correctSelectionResolutionRate": 1,
+      "staleSelectionResolutionRate": 0,
+      "wrongSelectionFollowRate": 1,
+      "claimBoundary": "This measures receipted graph-selection intent. It is not literal-pixel vision evidence."
+    },
+    "transport": {
+      "status": "pass",
+      "syntheticConnections": 4096,
+      "iterations": 25,
+      "candidateFalsePositives": 0,
+      "medianMs": 49.862,
+      "p95Ms": 58.249,
+      "p99Ms": 59.039,
+      "failedChecks": [],
+      "claimBoundary": "This is a deterministic lifecycle benchmark, not network throughput or end-to-end MCP latency."
+    }
+  },
+  "bootstrapRepair": {
+    "problem": "The stdio launcher treated importable dist as current, so a detached runtime could advance source commits while retaining stale packaged behavior.",
+    "repair": [
+      "Detect missing outputs and source-newer-than-dist package groups.",
+      "Bind successful verification to a Git-HEAD build stamp.",
+      "Route commit changes to only affected workspace build groups.",
+      "Rebuild absorb-service and mcp-server once when no trusted stamp exists.",
+      "Keep stamp publication best-effort so a read-only projection does not close an otherwise verified transport.",
+      "Expose staleGroupsBeforeBuild and buildStamp in self-test output."
+    ],
+    "targetedTests": {
+      "command": "node --test scripts/__tests__/holoscript-mcp-stdio.test.mjs",
+      "passed": 15,
+      "failed": 0
+    }
+  }
+}
