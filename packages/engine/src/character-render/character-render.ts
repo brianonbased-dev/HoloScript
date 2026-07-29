@@ -192,6 +192,10 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
   out[3] = m.opacity;
   if (m.shadingModel === 'skin-sss') {
     const microdetailEnabled = m.microdetailProfile === 'analytic-pore-v1';
+    const coupledStrength = microdetailEnabled
+      ? Math.max(0, Math.min(0.2, m.microdetailStrength ?? 0))
+      : 0;
+    const decoupled = m.surfaceResponseProfile === 'calibrated-skin-surface-v1';
     out[4] = m.scatterColor[0];
     out[5] = m.scatterColor[1];
     out[6] = m.scatterColor[2];
@@ -199,11 +203,22 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
     out[8] = m.scatterRadii[0];
     out[9] = m.scatterRadii[1];
     out[10] = m.scatterRadii[2];
-    out[11] = microdetailEnabled ? Math.max(0, Math.min(0.2, m.microdetailStrength ?? 0)) : 0;
+    out[11] = coupledStrength;
     out[12] = m.specularF0;
     out[13] = m.thickness;
     out[14] = m.transmitStrength;
     out[15] = m.ambient;
+    // texFlags.xyz are operative skin-surface amplitudes. Legacy materials receive
+    // their exact historical coupled response and a zero fine-normal perturbation.
+    out[16] = decoupled
+      ? Math.max(0, Math.min(0.08, m.albedoVariationStrength ?? coupledStrength * 0.35))
+      : coupledStrength * 0.35;
+    out[17] = decoupled
+      ? Math.max(0, Math.min(0.2, m.roughnessVariationStrength ?? coupledStrength))
+      : coupledStrength;
+    out[18] = decoupled
+      ? Math.max(0, Math.min(0.35, m.normalMicrodetailStrength ?? 0.08))
+      : 0;
     out[19] = microdetailEnabled ? Math.max(20, Math.min(180, m.microdetailScale ?? 80)) : 0;
   } else if (m.shadingModel === 'marschner-hair') {
     out[4] = m.melanin;

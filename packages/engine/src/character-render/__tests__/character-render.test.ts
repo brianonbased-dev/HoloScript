@@ -305,6 +305,45 @@ describe('character-render — material groups (skin-SSS) + lambert fallback', (
     expect(absoluteChannelDiff(smoothPixels, detailedPixels)).toBeGreaterThan(100);
   });
 
+  itGpu('decoupled fine-normal response changes native pixels without changing geometry', async () => {
+    const counterfactual = new CharacterHost({
+      entityId: 'skin-surface-response-proof',
+      materialCalibrationProfile: 'fixed-light-human-v1',
+      skinMicrodetailProfile: 'analytic-pore-v1',
+      skinMicrodetailScale: 104,
+      skinMicrodetailStrength: 0.09,
+      skinSurfaceResponseProfile: 'calibrated-skin-surface-v1',
+      skinAlbedoVariationStrength: 0.024,
+      skinRoughnessVariationStrength: 0.072,
+      skinNormalMicrodetailStrength: 0,
+    });
+    const authored = new CharacterHost({
+      entityId: 'skin-surface-response-proof',
+      materialCalibrationProfile: 'fixed-light-human-v1',
+      skinMicrodetailProfile: 'analytic-pore-v1',
+      skinMicrodetailScale: 104,
+      skinMicrodetailStrength: 0.09,
+      skinSurfaceResponseProfile: 'calibrated-skin-surface-v1',
+      skinAlbedoVariationStrength: 0.024,
+      skinRoughnessVariationStrength: 0.072,
+      skinNormalMicrodetailStrength: 0.14,
+    });
+    const counterfactualSpec = counterfactual.getDrawSpec();
+    const authoredSpec = authored.getDrawSpec();
+    const counterfactualPixels = await renderCharacter(testDevice!, counterfactualSpec, {
+      size: 128,
+      lightDir: [0.72, 0.28, 0.63],
+    });
+    const authoredPixels = await renderCharacter(testDevice!, authoredSpec, {
+      size: 128,
+      lightDir: [0.72, 0.28, 0.63],
+    });
+
+    expect(authoredSpec.mesh.positions).toEqual(counterfactualSpec.mesh.positions);
+    expect(figurePixels(authoredPixels)).toBeGreaterThan(150);
+    expect(absoluteChannelDiff(authoredPixels, counterfactualPixels)).toBeGreaterThan(50);
+  });
+
   itGpu('changing only the keratin plate material changes native WebGPU hand pixels', async () => {
     const host = new CharacterHost({
       entityId: 'hand-material-gpu-proof',

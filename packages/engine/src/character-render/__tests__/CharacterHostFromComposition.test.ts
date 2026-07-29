@@ -337,6 +337,72 @@ describe('buildCharacterHostFromComposition', () => {
     }
   });
 
+  it('maps decoupled albedo, roughness, and fine-normal skin response into the native ABI', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3TResident',
+          traits: [
+            { name: 'body', config: { skin_tone: '#B9826F' } },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                color: '#B9826F',
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 104,
+                microdetail_strength: 0.09,
+                surface_response_profile: 'calibrated_skin_surface_v1',
+                albedo_variation_strength: 0.024,
+                roughness_variation_strength: 0.072,
+                normal_microdetail_strength: 0.14,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const skinGroup = result.host
+      ?.getDrawSpec()
+      .materialGroups?.find((group) => group.material.shadingModel === 'skin-sss');
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.skin).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v3',
+      calibrationProfile: 'fixed-light-human-v1',
+      shadingModel: 'skin-sss',
+      color: 0xb9826f,
+      scatterColor: [0.8, 0.25, 0.13],
+      scatterRadii: [3.67, 1.37, 0.68],
+      specularF0: 0.028,
+      thickness: 0.24,
+      transmitStrength: 0.32,
+      ambient: 0.09,
+      microdetailProfile: 'analytic-pore-v1',
+      microdetailScale: 104,
+      microdetailStrength: 0.09,
+      roughness: 0.5,
+      surfaceResponseProfile: 'calibrated-skin-surface-v1',
+      albedoVariationStrength: 0.024,
+      roughnessVariationStrength: 0.072,
+      normalMicrodetailStrength: 0.14,
+    });
+    expect(result.report.mapped).toContain(
+      '@subsurface_scattering(surface_response_profile=calibrated-skin-surface-v1,' +
+        'albedo_variation_strength=0.024,roughness_variation_strength=0.072,' +
+        'normal_microdetail_strength=0.14)'
+    );
+    expect(skinGroup?.material.shadingModel).toBe('skin-sss');
+    if (skinGroup?.material.shadingModel === 'skin-sss') {
+      expect(skinGroup.material.surfaceResponseProfile).toBe('calibrated-skin-surface-v1');
+      const packed = packCharacterMaterial(skinGroup.material);
+      expect(packed[16]).toBeCloseTo(0.024);
+      expect(packed[17]).toBeCloseTo(0.072);
+      expect(packed[18]).toBeCloseTo(0.14);
+      expect(packed[19]).toBe(104);
+    }
+  });
+
   it('fails closed when anatomy, groom, or microdetail controls lack their native profiles', () => {
     const result = buildCharacterHostFromComposition({
       objects: [
@@ -366,6 +432,56 @@ describe('buildCharacterHostFromComposition', () => {
     });
     expect(result.anatomy).toBeUndefined();
     expect(result.skin).toBeUndefined();
+  });
+
+  it('fails closed when decoupled skin controls lack their operative profiles', () => {
+    const missingSurfaceProfile = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'MissingSurfaceProfile',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                microdetail_profile: 'analytic_pore_v1',
+                normal_microdetail_strength: 0.14,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const missingMicrodetailProfile = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'MissingMicrodetailProfile',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                surface_response_profile: 'calibrated_skin_surface_v1',
+                normal_microdetail_strength: 0.14,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(missingSurfaceProfile.report.stubbed).toContainEqual({
+      trait: '@subsurface_scattering(surface_response_controls)',
+      reason: 'decoupled surface controls require calibrated-skin-surface-v1',
+    });
+    expect(missingSurfaceProfile.skin?.schemaVersion).toBe(
+      'holoscript.agent-avatar-skin-material.v2'
+    );
+    expect(missingMicrodetailProfile.report.stubbed).toContainEqual({
+      trait: '@subsurface_scattering(surface_response_profile)',
+      reason: 'calibrated-skin-surface-v1 requires analytic-pore-v1 microdetail',
+    });
+    expect(missingMicrodetailProfile.skin).toBeUndefined();
   });
 
   it('maps the coherent upper-body profile into the emitted native topology receipt', () => {

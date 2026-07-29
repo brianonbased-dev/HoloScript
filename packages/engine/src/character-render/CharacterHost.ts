@@ -153,6 +153,17 @@ export interface CharacterHostOptions {
   skinMicrodetailScale?: number;
   /** Bounded analytic roughness-response amplitude. */
   skinMicrodetailStrength?: number;
+  /**
+   * Opt-in decoupled skin-surface response. Omission preserves the legacy coupled
+   * albedo/roughness response and its byte-compatible material packing.
+   */
+  skinSurfaceResponseProfile?: AgentAvatarSkinSurfaceResponseProfile;
+  /** Independent analytic base-colour variation amplitude. */
+  skinAlbedoVariationStrength?: number;
+  /** Independent analytic microsurface roughness variation amplitude. */
+  skinRoughnessVariationStrength?: number;
+  /** Tangent-plane analytic fine-normal response amplitude. */
+  skinNormalMicrodetailStrength?: number;
   /** Hair eumelanin 0..1 (0 = white/blond, ~0.9 = black). Default 0.7 (dark brown). */
   melanin?: number;
   /** Hair pheomelanin/redness 0..1. Default 0.2. */
@@ -224,10 +235,10 @@ export interface CharacterHostOptions {
 }
 
 export type AgentAvatarSkinMicrodetailProfile = 'none' | 'analytic-pore-v1';
+export type AgentAvatarSkinSurfaceResponseProfile = 'calibrated-skin-surface-v1';
 export type AgentAvatarMaterialCalibrationProfile = 'legacy-v1' | 'fixed-light-human-v1';
 
-export interface AgentAvatarSkinMaterialReceipt {
-  schemaVersion: 'holoscript.agent-avatar-skin-material.v2';
+interface AgentAvatarSkinMaterialReceiptBase {
   calibrationProfile: AgentAvatarMaterialCalibrationProfile;
   shadingModel: 'skin-sss';
   color: number;
@@ -242,6 +253,22 @@ export interface AgentAvatarSkinMaterialReceipt {
   microdetailStrength: number;
   roughness: number;
 }
+
+export interface AgentAvatarSkinMaterialReceiptV2 extends AgentAvatarSkinMaterialReceiptBase {
+  schemaVersion: 'holoscript.agent-avatar-skin-material.v2';
+}
+
+export interface AgentAvatarSkinMaterialReceiptV3 extends AgentAvatarSkinMaterialReceiptBase {
+  schemaVersion: 'holoscript.agent-avatar-skin-material.v3';
+  surfaceResponseProfile: AgentAvatarSkinSurfaceResponseProfile;
+  albedoVariationStrength: number;
+  roughnessVariationStrength: number;
+  normalMicrodetailStrength: number;
+}
+
+export type AgentAvatarSkinMaterialReceipt =
+  | AgentAvatarSkinMaterialReceiptV2
+  | AgentAvatarSkinMaterialReceiptV3;
 
 /** Human-skin SSS preset (SubsurfaceScattering.ts humanSkin + SkinSSRenderer defaults). */
 const HUMAN_SKIN: Omit<SkinSSSMaterialSpec, 'color'> = {
@@ -458,6 +485,31 @@ export class CharacterHost {
         opts.skinMicrodetailProfile === 'analytic-pore-v1'
           ? Math.max(0, Math.min(0.2, opts.skinMicrodetailStrength ?? 0.06))
           : 0,
+      ...(opts.skinSurfaceResponseProfile === 'calibrated-skin-surface-v1'
+        ? {
+            surfaceResponseProfile: opts.skinSurfaceResponseProfile,
+            albedoVariationStrength: Math.max(
+              0,
+              Math.min(
+                0.08,
+                opts.skinAlbedoVariationStrength ??
+                  Math.max(0, Math.min(0.2, opts.skinMicrodetailStrength ?? 0.06)) * 0.35
+              )
+            ),
+            roughnessVariationStrength: Math.max(
+              0,
+              Math.min(
+                0.2,
+                opts.skinRoughnessVariationStrength ??
+                  Math.max(0, Math.min(0.2, opts.skinMicrodetailStrength ?? 0.06))
+              )
+            ),
+            normalMicrodetailStrength: Math.max(
+              0,
+              Math.min(0.35, opts.skinNormalMicrodetailStrength ?? 0.08)
+            ),
+          }
+        : {}),
     };
     this.nailMaterial = {
       ...(fixedLight
@@ -699,8 +751,7 @@ export class CharacterHost {
 
   /** Exact native skin-surface response derived from @subsurface_scattering. */
   getSkinMaterialReceipt(): AgentAvatarSkinMaterialReceipt {
-    return {
-      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+    const base: Omit<AgentAvatarSkinMaterialReceiptV2, 'schemaVersion'> = {
       calibrationProfile: this.materialCalibrationProfile,
       shadingModel: 'skin-sss',
       color: this.skinMaterial.color,
@@ -714,6 +765,20 @@ export class CharacterHost {
       microdetailScale: this.skinMaterial.microdetailScale ?? 0,
       microdetailStrength: this.skinMaterial.microdetailStrength ?? 0,
       roughness: this.skinMaterial.roughness,
+    };
+    if (this.skinMaterial.surfaceResponseProfile === 'calibrated-skin-surface-v1') {
+      return {
+        schemaVersion: 'holoscript.agent-avatar-skin-material.v3',
+        ...base,
+        surfaceResponseProfile: this.skinMaterial.surfaceResponseProfile,
+        albedoVariationStrength: this.skinMaterial.albedoVariationStrength ?? 0,
+        roughnessVariationStrength: this.skinMaterial.roughnessVariationStrength ?? 0,
+        normalMicrodetailStrength: this.skinMaterial.normalMicrodetailStrength ?? 0,
+      };
+    }
+    return {
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      ...base,
     };
   }
 

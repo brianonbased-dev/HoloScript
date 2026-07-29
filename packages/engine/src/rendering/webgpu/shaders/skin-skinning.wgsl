@@ -29,7 +29,7 @@ struct Material {
   scatterColor : vec4<f32>,  // rgb subsurface tint (linear); w = roughness
   scatterDist  : vec4<f32>,  // rgb scatter radius; w = analytic skin-microdetail strength
   params       : vec4<f32>,  // x = specularF0, y = thickness, z = transmitStrength, w = ambient
-  texFlags     : vec4<f32>,  // xyz = texture flags; w = skin microdetail scale / cloth UV repeat
+  texFlags     : vec4<f32>,  // skin xyz = albedo/roughness/normal amplitudes; w = microdetail scale / cloth UV repeat
   albedoTile   : array<vec4<f32>, 4>,
   normalXTile  : array<vec4<f32>, 4>,
   normalYTile  : array<vec4<f32>, 4>,
@@ -114,12 +114,56 @@ fn analyticPoreSignal(p : vec3<f32>) -> f32 {
   return 0.5 + 0.5 * (primary * 0.62 + secondary * 0.38);
 }
 
+fn analyticPoreNormal(
+  baseN : vec3<f32>,
+  authoredTangent : vec3<f32>,
+  p : vec3<f32>,
+  scale : f32,
+  strength : f32
+) -> vec3<f32> {
+  let projectedTangent = authoredTangent - baseN * dot(authoredTangent, baseN);
+  let fallbackAxis = select(
+    vec3<f32>(0.0, 1.0, 0.0),
+    vec3<f32>(1.0, 0.0, 0.0),
+    abs(baseN.y) > 0.92
+  );
+  let fallbackTangent = normalize(cross(fallbackAxis, baseN));
+  let T = normalize(select(fallbackTangent, projectedTangent, length(projectedTangent) > 0.0001));
+  let B = normalize(cross(baseN, T));
+  let q = p * scale;
+  let epsilon = 0.035;
+  let dx =
+    analyticPoreSignal(q + vec3<f32>(epsilon, 0.0, 0.0)) -
+    analyticPoreSignal(q - vec3<f32>(epsilon, 0.0, 0.0));
+  let dy =
+    analyticPoreSignal(q + vec3<f32>(0.0, epsilon, 0.0)) -
+    analyticPoreSignal(q - vec3<f32>(0.0, epsilon, 0.0));
+  let dz =
+    analyticPoreSignal(q + vec3<f32>(0.0, 0.0, epsilon)) -
+    analyticPoreSignal(q - vec3<f32>(0.0, 0.0, epsilon));
+  let gradient = vec3<f32>(dx, dy, dz) / (2.0 * epsilon);
+  let tangentSlope = dot(gradient, T);
+  let bitangentSlope = dot(gradient, B);
+  return normalize(
+    baseN - (T * tangentSlope + B * bitangentSlope) * clamp(strength, 0.0, 0.35)
+  );
+}
+
 // ── Skin: single-pass subsurface approximation of the CPU Burley model. ──
 @fragment
 fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
-  let N = normalize(in.wN);
+  let baseN = normalize(in.wN);
   let L = normalize(frame.lightDir.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
+  let microScale = max(mat.texFlags.w, 0.0);
+  let pore = select(0.5, analyticPoreSignal(in.bodyP * microScale), microScale > 0.0);
+  let N = analyticPoreNormal(
+    baseN,
+    in.wT,
+    in.bodyP,
+    microScale,
+    select(0.0, mat.texFlags.z, microScale > 0.0)
+  );
   let ndl = dot(N, L);
 
   // Per-channel wrap widths from relative scatter radii — red widest, so light leaks
@@ -139,18 +183,16 @@ fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
   let transmit = mat.scatterColor.rgb * backLobe * mat.params.z * (1.0 - mat.params.y);
 
   // Source-authored analytic pore response. A zero strength or scale is exactly the legacy path.
-  let microStrength = clamp(mat.scatterDist.w, 0.0, 0.2);
-  let microScale = max(mat.texFlags.w, 0.0);
-  let pore = select(0.5, analyticPoreSignal(in.bodyP * microScale), microScale > 0.0);
-
   // Specular: roughness→Beckmann-ish exponent (clamped so pow() never NaNs).
-  let rough = clamp(mat.scatterColor.w + (pore - 0.5) * microStrength, 0.05, 1.0);
+  let roughnessVariation = clamp(mat.texFlags.y, 0.0, 0.2);
+  let rough = clamp(mat.scatterColor.w + (pore - 0.5) * roughnessVariation, 0.05, 1.0);
   let H = normalize(L + V);
   let ndh = max(dot(N, H), 0.0);
   let expo = 2.0 / (rough * rough) - 2.0;
   let spec = pow(ndh, expo) * fresnel(max(dot(V, H), 0.0), mat.params.x);
 
-  let microAlbedo = 1.0 + (pore - 0.5) * microStrength * 0.35;
+  let albedoVariation = clamp(mat.texFlags.x, 0.0, 0.08);
+  let microAlbedo = 1.0 + (pore - 0.5) * albedoVariation;
   var color =
     mat.color.rgb * microAlbedo * (vec3<f32>(mat.params.w) + sss) +
     transmit +

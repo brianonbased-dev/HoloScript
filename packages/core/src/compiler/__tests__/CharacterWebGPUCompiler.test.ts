@@ -309,6 +309,54 @@ describe('CharacterWebGPUCompiler', () => {
     expect(report.stubbed).toEqual([]);
   });
 
+  it('serializes the decoupled calibrated skin-surface response', async () => {
+    const composition = characterComp();
+    const skinTrait = composition.objects[0]!.traits!.find(
+      (trait) => trait.name === 'subsurface_scattering'
+    )!;
+    skinTrait.config = {
+      color: '#B9826F',
+      material_calibration_profile: 'fixed_light_human_v1',
+      microdetail_profile: 'analytic_pore_v1',
+      microdetail_scale: 104,
+      microdetail_strength: 0.09,
+      surface_response_profile: 'calibrated_skin_surface_v1',
+      albedo_variation_strength: 0.024,
+      roughness_variation_strength: 0.072,
+      normal_microdetail_strength: 0.14,
+    };
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    const skinGroup = (
+      bundle.materialGroups as Array<{
+        material: {
+          shadingModel: string;
+          surfaceResponseProfile?: string;
+          albedoVariationStrength?: number;
+          roughnessVariationStrength?: number;
+          normalMicrodetailStrength?: number;
+        };
+      }>
+    ).find((group) => group.material.shadingModel === 'skin-sss');
+
+    expect(bundle.skin).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v3',
+      calibrationProfile: 'fixed-light-human-v1',
+      surfaceResponseProfile: 'calibrated-skin-surface-v1',
+      albedoVariationStrength: 0.024,
+      roughnessVariationStrength: 0.072,
+      normalMicrodetailStrength: 0.14,
+    });
+    expect(skinGroup?.material).toMatchObject({
+      surfaceResponseProfile: 'calibrated-skin-surface-v1',
+      albedoVariationStrength: 0.024,
+      roughnessVariationStrength: 0.072,
+      normalMicrodetailStrength: 0.14,
+    });
+  });
+
   it('serializes source-authored neutral anatomical facial topology', async () => {
     const composition = characterComp();
     composition.objects[0]!.traits!.push(

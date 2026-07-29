@@ -19,6 +19,7 @@ import {
   type AgentAvatarMaterialCalibrationProfile,
   type AgentAvatarSkinMaterialReceipt,
   type AgentAvatarSkinMicrodetailProfile,
+  type AgentAvatarSkinSurfaceResponseProfile,
 } from './CharacterHost';
 import { HUMANOID_BONE_NAMES } from '../character/HumanoidSkeleton';
 import type { HairCoverageProfile } from '../native-render/draw-spec';
@@ -893,6 +894,10 @@ export function buildCharacterHostFromComposition(
   let skinMicrodetailProfile: AgentAvatarSkinMicrodetailProfile | undefined;
   let skinMicrodetailScale: number | undefined;
   let skinMicrodetailStrength: number | undefined;
+  let skinSurfaceResponseProfile: AgentAvatarSkinSurfaceResponseProfile | undefined;
+  let skinAlbedoVariationStrength: number | undefined;
+  let skinRoughnessVariationStrength: number | undefined;
+  let skinNormalMicrodetailStrength: number | undefined;
   let materialCalibrationProfile: AgentAvatarMaterialCalibrationProfile | undefined;
   const authoredMaterialCalibrationProfile = asStr(
     sss?.config.material_calibration_profile ??
@@ -975,6 +980,64 @@ export function buildCharacterHostFromComposition(
     report.stubbed.push({
       trait: '@subsurface_scattering(microdetail_controls)',
       reason: 'microdetail controls require a supported microdetail_profile',
+    });
+  }
+  const authoredSkinSurfaceResponseProfile = asStr(
+    sss?.config.surface_response_profile ?? sss?.config.surfaceResponseProfile
+  )
+    ?.trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  const authoredSkinAlbedoVariationStrength = asNum(
+    sss?.config.albedo_variation_strength ?? sss?.config.albedoVariationStrength
+  );
+  const authoredSkinRoughnessVariationStrength = asNum(
+    sss?.config.roughness_variation_strength ?? sss?.config.roughnessVariationStrength
+  );
+  const authoredSkinNormalMicrodetailStrength = asNum(
+    sss?.config.normal_microdetail_strength ?? sss?.config.normalMicrodetailStrength
+  );
+  if (authoredSkinSurfaceResponseProfile === 'calibrated-skin-surface-v1') {
+    if (skinMicrodetailProfile === 'analytic-pore-v1') {
+      skinSurfaceResponseProfile = authoredSkinSurfaceResponseProfile;
+      skinAlbedoVariationStrength = clamp(
+        authoredSkinAlbedoVariationStrength ?? (skinMicrodetailStrength ?? 0.06) * 0.35,
+        0,
+        0.08
+      );
+      skinRoughnessVariationStrength = clamp(
+        authoredSkinRoughnessVariationStrength ?? skinMicrodetailStrength ?? 0.06,
+        0,
+        0.2
+      );
+      skinNormalMicrodetailStrength = clamp(authoredSkinNormalMicrodetailStrength ?? 0.08, 0, 0.35);
+      report.mapped.push(
+        `@subsurface_scattering(surface_response_profile=${skinSurfaceResponseProfile},` +
+          `albedo_variation_strength=${skinAlbedoVariationStrength},` +
+          `roughness_variation_strength=${skinRoughnessVariationStrength},` +
+          `normal_microdetail_strength=${skinNormalMicrodetailStrength})`
+      );
+    } else {
+      report.stubbed.push({
+        trait: '@subsurface_scattering(surface_response_profile)',
+        reason: 'calibrated-skin-surface-v1 requires analytic-pore-v1 microdetail',
+      });
+    }
+  } else if (authoredSkinSurfaceResponseProfile) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(surface_response_profile)',
+      reason: `profile '${authoredSkinSurfaceResponseProfile}' has no native skin-surface response`,
+    });
+  }
+  if (
+    !authoredSkinSurfaceResponseProfile &&
+    (authoredSkinAlbedoVariationStrength !== undefined ||
+      authoredSkinRoughnessVariationStrength !== undefined ||
+      authoredSkinNormalMicrodetailStrength !== undefined)
+  ) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(surface_response_controls)',
+      reason: 'decoupled surface controls require calibrated-skin-surface-v1',
     });
   }
 
@@ -1272,6 +1335,10 @@ export function buildCharacterHostFromComposition(
     skinMicrodetailProfile,
     skinMicrodetailScale,
     skinMicrodetailStrength,
+    skinSurfaceResponseProfile,
+    skinAlbedoVariationStrength,
+    skinRoughnessVariationStrength,
+    skinNormalMicrodetailStrength,
     melanin,
     melaninRedness,
     hairStyle,

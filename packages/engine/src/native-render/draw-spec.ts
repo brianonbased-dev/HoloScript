@@ -213,6 +213,17 @@ export interface SkinSSSMaterialSpec extends MaterialSpec {
   microdetailScale?: number;
   /** Bounded roughness/normal-response amplitude (0..0.2). */
   microdetailStrength?: number;
+  /**
+   * Opt-in decoupled analytic skin response. Omission preserves the legacy path where
+   * `microdetailStrength` drives roughness and a smaller albedo variation together.
+   */
+  surfaceResponseProfile?: 'calibrated-skin-surface-v1';
+  /** Independent analytic base-colour variation amplitude (0..0.08). */
+  albedoVariationStrength?: number;
+  /** Independent analytic microsurface roughness variation amplitude (0..0.2). */
+  roughnessVariationStrength?: number;
+  /** Tangent-plane analytic normal perturbation amplitude (0..0.35). */
+  normalMicrodetailStrength?: number;
 }
 
 /** Source-authored hair-card edge treatment. `opaque-v1` preserves the legacy solid-card path. */
