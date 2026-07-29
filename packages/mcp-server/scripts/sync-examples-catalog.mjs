@@ -32,6 +32,7 @@ const matrixPath = resolve(examplesDir, 'examples-health.matrix.json');
 const outPath = resolve(pkgRoot, 'src', 'examples-catalog.ts');
 
 const EXAMPLE_EXTS = new Set(['hs', 'hsplus', 'holo']);
+const preserveTrackedCatalog = process.env.HOLOSCRIPT_MCP_PRESERVE_TRACKED_CATALOG === '1';
 
 /** Walk examples/ at build time and summarize the FULL tree (counts by format
  *  and category). Resolved here so the runtime never needs fs access. */
@@ -74,6 +75,12 @@ function buildInventory() {
 }
 
 try {
+  if (preserveTrackedCatalog) {
+    console.warn(
+      '[sync-examples-catalog] repair-build mode preserves the committed catalog source.'
+    );
+    process.exit(0);
+  }
   if (!existsSync(matrixPath)) {
     console.warn(
       `[sync-examples-catalog] health matrix not found at ${matrixPath}; keeping committed catalog.`
