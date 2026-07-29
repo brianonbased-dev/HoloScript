@@ -27,6 +27,7 @@ import type {
   AgentAvatarFacialDetailProfile,
   AgentAvatarFacialLandmarkReceipt,
   AgentAvatarFaceTopology,
+  AgentAvatarHandSurfaceReceipt,
   AgentAvatarJointDeformationReceipt,
   AgentAvatarOrbitalProfile,
   AgentAvatarUpperBodyProfile,
@@ -169,6 +170,8 @@ export interface CharacterHostFromCompositionResult {
   pose?: CharacterPoseReceipt;
   /** Operative dual-influence deformation emitted by the selected native body profile. */
   jointDeformation?: AgentAvatarJointDeformationReceipt;
+  /** Operative V5 anatomical hand-surface topology emitted by the selected native body profile. */
+  handSurface?: AgentAvatarHandSurfaceReceipt;
   /** Detachable public/story mantle and source refs resolved by the host platform. */
   mantle?: {
     style: SovereignMantleStyle;
@@ -591,6 +594,7 @@ export function buildCharacterHostFromComposition(
       authoredUpperBodyProfile === 'coherent-anatomical-limbs-v2' ||
       authoredUpperBodyProfile === 'coherent-hand-landmarks-v3' ||
       authoredUpperBodyProfile === 'coherent-deforming-hands-v4' ||
+      authoredUpperBodyProfile === 'coherent-hand-surface-v5' ||
       authoredUpperBodyProfile === 'legacy-segments-v1'
     ) {
       upperBodyProfile = authoredUpperBodyProfile;
@@ -623,7 +627,8 @@ export function buildCharacterHostFromComposition(
       );
       if (
         upperBodyProfile === 'coherent-hand-landmarks-v3' ||
-        upperBodyProfile === 'coherent-deforming-hands-v4'
+        upperBodyProfile === 'coherent-deforming-hands-v4' ||
+        upperBodyProfile === 'coherent-hand-surface-v5'
       ) {
         nailTone = authoredNailTone;
         nailRoughness =
@@ -650,7 +655,7 @@ export function buildCharacterHostFromComposition(
         report.stubbed.push({
           trait: '@body(nail_material_controls)',
           reason:
-            'nail material controls require coherent-hand-landmarks-v3 or coherent-deforming-hands-v4',
+            'nail material controls require coherent-hand-landmarks-v3, coherent-deforming-hands-v4, or coherent-hand-surface-v5',
         });
       }
     } else if (authoredUpperBodyProfile) {
@@ -1377,6 +1382,7 @@ export function buildCharacterHostFromComposition(
     hair && includeHair !== false ? (host.getGroomGeometryReceipt() ?? undefined) : undefined;
   const anatomy = anatomyAuthored ? host.getAnatomyReceipt() : undefined;
   const jointDeformation = host.getJointDeformationReceipt() ?? undefined;
+  const handSurface = host.getHandSurfaceReceipt() ?? undefined;
   const skin = skinMicrodetailProfile ? host.getSkinMaterialReceipt() : undefined;
   const facialLandmarks = facialDetailProfile
     ? (host.getFacialLandmarkReceipt() ?? undefined)
@@ -1398,6 +1404,7 @@ export function buildCharacterHostFromComposition(
     morph,
     pose: poseMapping?.receipt,
     jointDeformation,
+    handSurface,
     mantle,
     report,
   };

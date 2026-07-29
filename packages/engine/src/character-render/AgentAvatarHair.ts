@@ -900,6 +900,7 @@ export interface CharacterMeshData {
   groom?: AgentAvatarGroomGeometryReceipt;
   anatomy: AgentAvatarMeshData['anatomy'];
   jointDeformation?: AgentAvatarMeshData['jointDeformation'];
+  handSurface?: AgentAvatarMeshData['handSurface'];
   facialLandmarks?: AgentAvatarMeshData['facialLandmarks'];
   garment?: AgentAvatarGarmentGeometryReceipt;
   ocularProfile: AgentAvatarOcularProfile;
@@ -1198,6 +1199,7 @@ export function buildCharacterMesh(
     ...(hair.groom ? { groom: hair.groom } : {}),
     anatomy: body.anatomy,
     ...(body.jointDeformation ? { jointDeformation: body.jointDeformation } : {}),
+    ...(body.handSurface ? { handSurface: body.handSurface } : {}),
     ...(body.facialLandmarks ? { facialLandmarks: body.facialLandmarks } : {}),
     ...(authoredGarment ? { garment: authoredGarment.receipt } : {}),
     ocularProfile,

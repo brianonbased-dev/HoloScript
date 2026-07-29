@@ -752,4 +752,63 @@ describe('CharacterWebGPUCompiler', () => {
       /no character object/
     );
   });
+
+  it('serializes the sovereign V5 hand-surface receipt from the authored body profile', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits = composition.objects[0]!.traits!.map((trait) =>
+      trait.name === 'body'
+        ? {
+            ...trait,
+            config: {
+              ...trait.config,
+              upper_body_profile: 'coherent_hand_surface_v5',
+              upper_body_radial_segments: 24,
+            },
+          }
+        : trait
+    );
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    expect(bundle.anatomy).toMatchObject({
+      upperBody: {
+        profile: 'anatomical-hand-surface-v5',
+        upperLimbs: [
+          { profile: 'tapered-hand-surface-v5', ringCount: 13 },
+          { profile: 'tapered-hand-surface-v5', ringCount: 13 },
+        ],
+      },
+    });
+    expect(bundle.handSurface).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-hand-surface.v1',
+      profile: 'tapered-digit-commissure-cuticle-wrist-v1',
+      upperBodyProfile: 'coherent-hand-surface-v5',
+      regionVertexCounts: {
+        wristTransition: 288,
+        digitSections: 1690,
+        metacarpalKnuckles: 260,
+        interdigitalCommissures: 560,
+        nailCuticles: 980,
+      },
+      regionIndexCounts: {
+        wristTransition: 1728,
+        digitSections: 9720,
+        metacarpalKnuckles: 1440,
+        interdigitalCommissures: 3264,
+        nailCuticles: 5760,
+      },
+    });
+    expect(bundle.mesh.secondaryJointWeights?.filter((weight) => weight > 0)).toHaveLength(1008);
+    expect(bundle.jointDeformation).toMatchObject({
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount: 1008,
+      jointPairCount: 38,
+    });
+    expect(
+      (bundle.report as { mapped: string[] }).mapped.some((entry) =>
+        entry.includes('upper_body_profile=coherent-hand-surface-v5')
+      )
+    ).toBe(true);
+  });
 });

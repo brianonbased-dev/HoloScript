@@ -829,13 +829,8 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
       v4.positions[wristVertex * 3 + 1],
       v4.positions[wristVertex * 3 + 2],
     ] as const;
-    const palette = computeJointPalette(
-      new Map([['left_hand', quatFromAxisAngle(1, 0, 0, 0.85)]])
-    );
-    const primaryPoint = transformPoint(
-      blockAt(palette, v4.jointIndices[wristVertex]),
-      point
-    );
+    const palette = computeJointPalette(new Map([['left_hand', quatFromAxisAngle(1, 0, 0, 0.85)]]));
+    const primaryPoint = transformPoint(blockAt(palette, v4.jointIndices[wristVertex]), point);
     const secondaryPoint = transformPoint(
       blockAt(palette, v4.secondaryJointIndices![wristVertex]),
       point
@@ -851,5 +846,197 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     expect(pointDistance(primaryPoint, secondaryPoint)).toBeGreaterThan(0.001);
     expect(pointDistance(blendedPoint, primaryPoint)).toBeGreaterThan(0.001);
     expect(pointDistance(blendedPoint, secondaryPoint)).toBeGreaterThan(0.001);
+  });
+
+  it('preserves the exact promoted H3R V3 and V4 mesh bytes', () => {
+    const cases = [
+      {
+        profile: 'coherent-hand-landmarks-v3' as const,
+        hashes: {
+          positions: '65aeb790beaaeaa619c63196ce07b83dcbfb97accdafd6239f3a864ac8d7d8a0',
+          normals: '690f3ae7a488a5bec1e72c6736540f482a07748b5159e255563fe0912d41bfd4',
+          tangents: '0118a219c4ad0e69ec7ebed695445ac757901646efa7c0a40e5c9ccc30d22033',
+          indices: '9ac28270ed15a8d380166c46d839597910bcf41e94b4858606177c2c92dfb8cf',
+          joints: 'ad449be5b3b59f165025156bd60dc947558e8b7d983625992d3432bc3c089c24',
+          weights: '69bfc5c1c69c123f61b35a887970ce5cfdd90ec5a9b34da284e5e11a1a0e5bcd',
+          secondaryJoints: null,
+          secondaryWeights: null,
+          anatomy: '660ed863223a64b22d7ef870b7181f9e35fb78d5ffcbf5b88a2fe62e5125a4fa',
+          deformation: '74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b',
+        },
+      },
+      {
+        profile: 'coherent-deforming-hands-v4' as const,
+        hashes: {
+          positions: 'f42e2754d82c0adf69a1717782c60fc06fcf1ab6b8efc8101f99d444cb0bb3b4',
+          normals: '09bc69d15984ff6856392a399bc566361361bf89e17d6843f2e27521c2f72e2a',
+          tangents: '4a5b13aab4a576f8178a927ddc63d8a06e8bd1b8ded313742fd3742336e0ca9a',
+          indices: '0933dbb21e5788a37a589051fed15e11b31833c3d989ece84b955c5b1029c47b',
+          joints: 'c62b78c63591c5698610bc5b09f5dd8373f7cebd92e5a597c489d1046581701c',
+          weights: '499e47b796c40ad1724b7f71ccb5ae0072bbf2a121524da9d7ebf45052037736',
+          secondaryJoints: '3305ea9155703b6e7916c69e48f20bc0ea2f859a2c216bf6e8cc86b4730ff485',
+          secondaryWeights: 'e4bcc6c4acc04062297cd5e6278c9dbfc92dddbd253bccb80f83480c9a94873f',
+          anatomy: 'b6d42aeeeba176786616d168cc2734c086ec6ff5d6353e5785243a91a53d1429',
+          deformation: '27f3d8374ba0b105a649b951c27990094f3c275b3e45f6411223871bc65f9566',
+        },
+      },
+    ];
+
+    for (const fixture of cases) {
+      const mesh = buildAgentAvatarMesh({
+        upperBodyProfile: fixture.profile,
+        upperBodyRadialSegments: 24,
+        shoulderScale: 1.1,
+        torsoScale: 0.96,
+      });
+      expect({
+        positions: sha256(mesh.positions),
+        normals: sha256(mesh.normals),
+        tangents: sha256(mesh.tangents),
+        indices: sha256(mesh.indices),
+        joints: sha256(mesh.jointIndices),
+        weights: sha256(mesh.jointWeights),
+        secondaryJoints: mesh.secondaryJointIndices ? sha256(mesh.secondaryJointIndices) : null,
+        secondaryWeights: mesh.secondaryJointWeights ? sha256(mesh.secondaryJointWeights) : null,
+        anatomy: createHash('sha256').update(JSON.stringify(mesh.anatomy)).digest('hex'),
+        deformation: createHash('sha256')
+          .update(JSON.stringify(mesh.jointDeformation ?? null))
+          .digest('hex'),
+      }).toEqual(fixture.hashes);
+    }
+  });
+
+  it('emits the opt-in v5 tapered hand surface with concave webs and cuticle silhouettes', () => {
+    const options = {
+      upperBodyProfile: 'coherent-hand-surface-v5' as const,
+      upperBodyRadialSegments: 24,
+      shoulderScale: 1.1,
+      torsoScale: 0.96,
+    };
+    const v4 = buildAgentAvatarMesh({
+      ...options,
+      upperBodyProfile: 'coherent-deforming-hands-v4',
+    });
+    const v5 = buildAgentAvatarMesh(options);
+    const repeated = buildAgentAvatarMesh(options);
+
+    expect(v4.vertexCount).toBe(3540);
+    expect(v4.handSurface).toBeUndefined();
+    expect(v5.vertexCount).toBe(4876);
+    expect(sha256(v5.positions)).toBe(sha256(repeated.positions));
+    expect(sha256(v5.indices)).toBe(sha256(repeated.indices));
+    expect(v5.anatomy.upperBody?.profile).toBe('anatomical-hand-surface-v5');
+    expect(v5.anatomy.upperBody?.upperLimbs.map((limb) => limb.ringCount)).toEqual([13, 13]);
+    expect(v5.handSurface).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-hand-surface.v1',
+      profile: 'tapered-digit-commissure-cuticle-wrist-v1',
+      upperBodyProfile: 'coherent-hand-surface-v5',
+      regionVertexCounts: {
+        wristTransition: 288,
+        digitSections: 1690,
+        metacarpalKnuckles: 260,
+        interdigitalCommissures: 560,
+        nailCuticles: 980,
+      },
+      regionIndexCounts: {
+        wristTransition: 1728,
+        digitSections: 9720,
+        metacarpalKnuckles: 1440,
+        interdigitalCommissures: 3264,
+        nailCuticles: 5760,
+      },
+    });
+    expect(v5.jointDeformation).toEqual(v4.jointDeformation);
+
+    for (const limb of v5.anatomy.upperBody?.upperLimbs ?? []) {
+      expect(limb).toMatchObject({
+        profile: 'tapered-hand-surface-v5',
+        radialSegments: 24,
+        ringCount: 13,
+        palmBlendRingCount: 6,
+        thenarBulgeRatio: 0.125,
+        hypothenarBulgeRatio: 0.07,
+        connectedSurfaceCount: 24,
+        handSurface: {
+          schemaVersion: 'holoscript.agent-avatar-hand-surface-geometry.v1',
+          side: limb.side,
+          digitSectionRingCount: 14,
+          digitSectionExponent: 2.35,
+          commissureRows: 5,
+          commissureColumns: 7,
+          nailRows: 7,
+          nailColumns: 7,
+        },
+      });
+      expect(limb.vertexRange.vertexCount).toBe(13 * 24 + 1);
+
+      for (const digit of limb.digits ?? []) {
+        expect(digit).toMatchObject({
+          profile: 'tapered-superellipse-three-phalanx-v3',
+          ringCount: 14,
+          crossSectionExponent: 2.35,
+          knuckleVolumeRingCount: 3,
+          vertexRange: { vertexCount: 169 },
+          indexRange: { indexCount: 972 },
+        });
+        expect(digit.tipRadius / digit.baseRadius).toBeCloseTo(0.46, 4);
+      }
+
+      const commissures =
+        limb.handLandmarks?.filter((landmark) => landmark.kind === 'interdigital-web') ?? [];
+      const knuckles =
+        limb.handLandmarks?.filter((landmark) => landmark.kind === 'metacarpal-knuckle') ?? [];
+      const nails = limb.handLandmarks?.filter((landmark) => landmark.kind === 'nail-plate') ?? [];
+      expect(commissures).toHaveLength(4);
+      expect(knuckles).toHaveLength(5);
+      expect(nails).toHaveLength(5);
+      expect(commissures.every((landmark) => landmark.vertexRange.vertexCount === 70)).toBe(true);
+      expect(commissures.every((landmark) => landmark.indexRange.indexCount === 408)).toBe(true);
+      expect(
+        knuckles.every((landmark) => landmark.profile === 'integrated-metacarpal-knuckle-v2')
+      ).toBe(true);
+      expect(nails.every((landmark) => landmark.vertexRange.vertexCount === 98)).toBe(true);
+      expect(nails.every((landmark) => landmark.indexRange.indexCount === 576)).toBe(true);
+
+      const direction = limb.side === 'left' ? 1 : -1;
+      for (const commissure of commissures) {
+        const distalRow = commissure.vertexRange.vertexStart + 4 * 7;
+        const edgeX = v5.positions[distalRow * 3];
+        const centerX = v5.positions[(distalRow + 3) * 3];
+        expect(direction * (edgeX - centerX)).toBeCloseTo(commissure.saddleDepth ?? 0, 6);
+      }
+
+      for (const nail of nails) {
+        expect(nail).toMatchObject({
+          profile: 'cuticle-contoured-nail-plate-v3',
+          attachmentSampleCount: 49,
+          surfaceRows: 7,
+          surfaceColumns: 7,
+          cuticleInsetRatio: 0.36,
+          freeEdgeInsetRatio: 0.18,
+        });
+        const start = nail.vertexRange.vertexStart;
+        const cuticleSpan = Math.abs(
+          v5.positions[(start + 6) * 3 + 2] - v5.positions[start * 3 + 2]
+        );
+        const middle = start + 3 * 7;
+        const middleSpan = Math.abs(
+          v5.positions[(middle + 6) * 3 + 2] - v5.positions[middle * 3 + 2]
+        );
+        const freeEdge = start + 6 * 7;
+        const freeEdgeSpan = Math.abs(
+          v5.positions[(freeEdge + 6) * 3 + 2] - v5.positions[freeEdge * 3 + 2]
+        );
+        expect(cuticleSpan).toBeLessThan(middleSpan);
+        expect(freeEdgeSpan).toBeLessThan(middleSpan);
+      }
+    }
+
+    let influencedVertexCount = 0;
+    for (let vertex = 0; vertex < v5.vertexCount; vertex++) {
+      expect(v5.jointWeights[vertex] + v5.secondaryJointWeights![vertex]).toBeCloseTo(1, 6);
+      if (v5.secondaryJointWeights![vertex] > 0) influencedVertexCount++;
+    }
+    expect(influencedVertexCount).toBe(1008);
   });
 });

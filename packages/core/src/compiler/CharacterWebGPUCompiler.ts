@@ -91,6 +91,8 @@ export interface CharacterDrawSpecBundle {
   pose?: unknown;
   /** Present when the selected native profile emits dual-influence deformation zones. */
   jointDeformation?: unknown;
+  /** Present when the selected native profile emits the V5 anatomical hand surface. */
+  handSurface?: unknown;
   /** Present when a detachable public/story mantle is authored. */
   mantle?: unknown;
   /** Honest mapped/stubbed report from the authoring bridge. */
@@ -175,8 +177,8 @@ export class CharacterWebGPUCompiler {
     const garment = 'garment' in result ? result.garment : undefined;
     const groom = 'groom' in result ? result.groom : undefined;
     const pose = 'pose' in result ? result.pose : undefined;
-    const jointDeformation =
-      'jointDeformation' in result ? result.jointDeformation : undefined;
+    const jointDeformation = 'jointDeformation' in result ? result.jointDeformation : undefined;
+    const handSurface = 'handSurface' in result ? result.handSurface : undefined;
     const dualInfluenceMesh = spec.mesh as typeof spec.mesh & {
       secondaryJointIndices?: ArrayLike<number>;
       secondaryJointWeights?: ArrayLike<number>;
@@ -217,6 +219,7 @@ export class CharacterWebGPUCompiler {
       ...(morph ? { morph } : {}),
       ...(pose ? { pose } : {}),
       ...(jointDeformation ? { jointDeformation } : {}),
+      ...(handSurface ? { handSurface } : {}),
       ...(result.mantle ? { mantle: result.mantle } : {}),
       report: result.report,
     };

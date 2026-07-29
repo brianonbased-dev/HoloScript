@@ -39,6 +39,7 @@ import {
   type AgentAvatarFacialDetailProfile,
   type AgentAvatarFacialLandmarkReceipt,
   type AgentAvatarFaceTopology,
+  type AgentAvatarHandSurfaceReceipt,
   type AgentAvatarJointDeformationReceipt,
   type AgentAvatarOrbitalProfile,
   type AgentAvatarUpperBodyProfile,
@@ -660,6 +661,22 @@ export class CharacterHost {
       ? {
           ...this.built.jointDeformation,
           regionVertexCounts: { ...this.built.jointDeformation.regionVertexCounts },
+        }
+      : null;
+  }
+
+  /** Exact V5 digit, commissure, nail/cuticle, and wrist-transition topology evidence. */
+  getHandSurfaceReceipt(): AgentAvatarHandSurfaceReceipt | null {
+    return this.built.handSurface
+      ? {
+          ...this.built.handSurface,
+          limbs: this.built.handSurface.limbs.map((limb) => ({
+            ...limb,
+            regionVertexCounts: { ...limb.regionVertexCounts },
+            regionIndexCounts: { ...limb.regionIndexCounts },
+          })) as AgentAvatarHandSurfaceReceipt['limbs'],
+          regionVertexCounts: { ...this.built.handSurface.regionVertexCounts },
+          regionIndexCounts: { ...this.built.handSurface.regionIndexCounts },
         }
       : null;
   }
