@@ -102,53 +102,128 @@ pub fn run_tests(
     fs::create_dir_all(&artifact_root)?;
 
     let mut cases = Vec::with_capacity(tests.len());
-    for (index, source) in tests.iter().enumerate() {
-        let name = source
-            .file_name()
-            .and_then(|value| value.to_str())
-            .unwrap_or("unnamed.test.hs")
-            .to_owned();
-        let executable =
-            artifact_root.join(format!("case-{index}{}", std::env::consts::EXE_SUFFIX));
-        let result = match compile_path_executable(source, &executable, options) {
-            Ok(_) => match Command::new(&executable).status() {
-                Ok(status) if status.success() => HoloTestCaseResult {
-                    name,
-                    source: source.clone(),
-                    status: HoloTestStatus::Passed,
-                    exit_code: status.code(),
-                    diagnostic: None,
-                },
-                Ok(status) => HoloTestCaseResult {
-                    name,
-                    source: source.clone(),
-                    status: HoloTestStatus::Failed,
-                    exit_code: status.code(),
-                    diagnostic: Some("test main returned a non-zero exit code".to_string()),
+    for (source_index, source) in tests.iter().enumerate() {
+        let source_text = fs::read_to_string(source)?;
+        let exported_tests = exported_test_functions(&source_text);
+        let cases_to_run = if exported_tests.is_empty() {
+            vec![None]
+        } else {
+            exported_tests.into_iter().map(Some).collect()
+        };
+
+        for (case_index, function) in cases_to_run.into_iter().enumerate() {
+            let source_name = source
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("unnamed.test.hs");
+            let name = function
+                .as_deref()
+                .map(|function| format!("{source_name}::{function}"))
+                .unwrap_or_else(|| source_name.to_owned());
+            let (entry, harness) = match function.as_deref() {
+                Some(function) => {
+                    write_function_harness(source, function, source_index, case_index)?
+                }
+                None => (source.clone(), None),
+            };
+            let executable = artifact_root.join(format!(
+                "case-{source_index}-{case_index}{}",
+                std::env::consts::EXE_SUFFIX
+            ));
+            let result = match compile_path_executable(&entry, &executable, options) {
+                Ok(_) => match Command::new(&executable).status() {
+                    Ok(status) if status.success() => HoloTestCaseResult {
+                        name,
+                        source: source.clone(),
+                        status: HoloTestStatus::Passed,
+                        exit_code: status.code(),
+                        diagnostic: None,
+                    },
+                    Ok(status) => HoloTestCaseResult {
+                        name,
+                        source: source.clone(),
+                        status: HoloTestStatus::Failed,
+                        exit_code: status.code(),
+                        diagnostic: Some("test main returned a non-zero exit code".to_string()),
+                    },
+                    Err(error) => HoloTestCaseResult {
+                        name,
+                        source: source.clone(),
+                        status: HoloTestStatus::Failed,
+                        exit_code: None,
+                        diagnostic: Some(format!("failed to execute test: {error}")),
+                    },
                 },
                 Err(error) => HoloTestCaseResult {
                     name,
                     source: source.clone(),
-                    status: HoloTestStatus::Failed,
+                    status: HoloTestStatus::CompileError,
                     exit_code: None,
-                    diagnostic: Some(format!("failed to execute test: {error}")),
+                    diagnostic: Some(error.to_string()),
                 },
-            },
-            Err(error) => HoloTestCaseResult {
-                name,
-                source: source.clone(),
-                status: HoloTestStatus::CompileError,
-                exit_code: None,
-                diagnostic: Some(error.to_string()),
-            },
-        };
-        cases.push(result);
+            };
+            if let Some(harness) = harness {
+                fs::remove_file(harness)?;
+            }
+            cases.push(result);
+        }
     }
 
     if !keep_artifacts {
         fs::remove_dir_all(&artifact_root)?;
     }
     Ok(HoloTestReport { root, cases })
+}
+
+fn exported_test_functions(source: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    for declaration in source.match_indices("export function test_") {
+        let remainder = &source[declaration.0 + "export function ".len()..];
+        let name: String = remainder
+            .chars()
+            .take_while(|character| character.is_ascii_alphanumeric() || *character == '_')
+            .collect();
+        if !name.is_empty() && remainder[name.len()..].starts_with("(): i32") {
+            names.push(name);
+        }
+    }
+    names.sort();
+    names.dedup();
+    names
+}
+
+fn write_function_harness(
+    source: &Path,
+    function: &str,
+    source_index: usize,
+    case_index: usize,
+) -> io::Result<(PathBuf, Option<PathBuf>)> {
+    let parent = source.parent().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "test source has no parent directory",
+        )
+    })?;
+    let source_name = source
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "test source is not valid UTF-8",
+            )
+        })?;
+    let harness = parent.join(format!(
+        ".holotest-harness-{}-{source_index}-{case_index}.hs",
+        std::process::id()
+    ));
+    fs::write(
+        &harness,
+        format!(
+            "import {{ {function} }} from \"./{source_name}\"\nfunction main(): i32 {{ return {function}() }}\n"
+        ),
+    )?;
+    Ok((harness.clone(), Some(harness)))
 }
 
 #[cfg(test)]
@@ -205,6 +280,32 @@ mod tests {
         assert_eq!(report.failed(), 1);
         assert_eq!(report.cases[0].status, HoloTestStatus::Failed);
         assert_eq!(report.cases[1].status, HoloTestStatus::Passed);
+        fs::remove_dir_all(root).expect("remove test root");
+    }
+
+    #[test]
+    fn executes_exported_test_functions_without_a_handwritten_main() {
+        let root = std::env::temp_dir().join(format!("holotest-functions-{}", std::process::id()));
+        fs::create_dir_all(&root).expect("create test root");
+        fs::write(
+            root.join("arithmetic.test.hs"),
+            "export function add(left: i32, right: i32): i32 { return left + right }\nexport function test_adds(): i32 { if (add(2, 3) == 5) { return 0 } return 1 }\nexport function test_failure_is_reported(): i32 { return 2 }",
+        )
+        .expect("write function tests");
+
+        let report = run_tests(&root, None, &NativeCompileOptions::host(), false)
+            .expect("run exported test functions");
+        assert_eq!(report.passed(), 1);
+        assert_eq!(report.failed(), 1);
+        assert_eq!(report.cases[0].name, "arithmetic.test.hs::test_adds");
+        assert_eq!(report.cases[1].status, HoloTestStatus::Failed);
+        assert!(fs::read_dir(&root)
+            .expect("read test root")
+            .all(|entry| !entry
+                .expect("read test entry")
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".holotest-harness-")));
         fs::remove_dir_all(root).expect("remove test root");
     }
 }

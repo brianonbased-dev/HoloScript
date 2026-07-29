@@ -9,17 +9,18 @@ HoloTest is the native test contract for the compiler-machine subset of HoloScri
 - A HoloTest case is a file ending in `.test.hs`.
 - A case passes when its typed HoloScript `main(): i32` returns `0`.
 - A nonzero exit is a failed assertion; a compiler diagnostic is a compile error.
+- A file may instead export zero-argument `test_*(): i32` functions. HoloTest generates a temporary, source-local `main` harness for each function, compiles it, and removes the harness afterward.
 - Test files are discovered recursively in lexical path order and compiled into an isolated temporary artifact directory.
 - `holotest` deletes that directory by default. `--keep-artifacts` retains it for native-debug investigation.
 
 ```hs
 // arithmetic.test.hs
-function add(left: i32, right: i32): i32 {
+export function add(left: i32, right: i32): i32 {
   return left + right
 }
 
-function main(): i32 {
-  if add(2, 3) == 5 {
+export function test_adds(): i32 {
+  if (add(2, 3) == 5) {
     return 0
   }
   return 1
