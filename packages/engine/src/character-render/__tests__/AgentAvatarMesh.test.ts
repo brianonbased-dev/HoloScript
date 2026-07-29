@@ -1110,8 +1110,7 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     const left = portrait.anatomy.upperBody!.upperLimbs[0];
     const root = left.vertexRange.vertexStart;
     const rootCenterY =
-      (portrait.positions[(root + 6) * 3 + 1] + portrait.positions[(root + 18) * 3 + 1]) /
-      2;
+      (portrait.positions[(root + 6) * 3 + 1] + portrait.positions[(root + 18) * 3 + 1]) / 2;
     const superiorExtent = portrait.positions[root * 3 + 1] - rootCenterY;
     const inferiorExtent = rootCenterY - portrait.positions[(root + 12) * 3 + 1];
     expect(superiorExtent / inferiorExtent).toBeCloseTo(0.15, 5);
@@ -1151,5 +1150,44 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
       );
     };
     expect(minimumRadius(posedPoints) / minimumRadius(bindPoints)).toBeGreaterThan(0.87);
+  });
+
+  it('emits V7 asymmetric scapular bind offsets and four operative neck blend rings', () => {
+    const expressive = buildAgentAvatarMesh({
+      upperBodyProfile: 'coherent-expressive-anatomy-v7',
+      upperBodyRadialSegments: 24,
+      leftScapularElevation: 0.65,
+      rightScapularElevation: -0.25,
+      leftScapularProtraction: 0.4,
+      rightScapularProtraction: -0.3,
+    });
+    const limbs = expressive.anatomy.upperBody!.upperLimbs;
+    expect(expressive.anatomy.schemaVersion).toBe('holoscript.agent-avatar-anatomy.v2');
+    expect(limbs.map((limb) => limb.profile)).toEqual([
+      'expressive-scapular-hand-surface-v7',
+      'expressive-scapular-hand-surface-v7',
+    ]);
+    expect(limbs[0]).toMatchObject({
+      scapularElevation: 0.65,
+      scapularProtraction: 0.4,
+    });
+    expect(limbs[1]).toMatchObject({
+      scapularElevation: -0.25,
+      scapularProtraction: -0.3,
+    });
+    expect(expressive.jointDeformation).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v3',
+      profile: 'expressive-neck-scapular-volume-v3',
+      regionVertexCounts: { neck: 96 },
+      expressiveAsymmetry: {
+        profile: 'source-asymmetric-neck-scapula-v1',
+        scapularElevation: { left: 0.65, right: -0.25 },
+        scapularProtraction: { left: 0.4, right: -0.3 },
+        neckBlendRingCount: 4,
+        neckInfluenceWeights: [0.08, 0.22, 0.45, 0.2],
+      },
+    });
+    expect(expressive.jointDeformation?.maxWeightSumError).toBe(0);
+    expect(expressive.handSurface?.upperBodyProfile).toBe('coherent-expressive-anatomy-v7');
   });
 });

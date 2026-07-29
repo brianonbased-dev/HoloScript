@@ -134,6 +134,14 @@ export interface CharacterHostOptions {
   upperBodyProfile?: AgentAvatarUpperBodyProfile;
   /** Circumferential topology budget for the connected upper-body loft. */
   upperBodyRadialSegments?: number;
+  /** V7 independent left scapular elevation (-1..1). */
+  leftScapularElevation?: number;
+  /** V7 independent right scapular elevation (-1..1). */
+  rightScapularElevation?: number;
+  /** V7 independent left scapular forward/back travel (-1..1). */
+  leftScapularProtraction?: number;
+  /** V7 independent right scapular forward/back travel (-1..1). */
+  rightScapularProtraction?: number;
   /** Packed 0xRRGGBB keratin nail-plate colour for coherent-hand-landmarks-v3. */
   nailTone?: number;
   /** Keratin nail-plate microsurface roughness (0.08..0.65). */
@@ -442,6 +450,10 @@ export class CharacterHost {
       torsoScale: opts.torsoScale,
       upperBodyProfile: opts.upperBodyProfile,
       upperBodyRadialSegments: opts.upperBodyRadialSegments,
+      leftScapularElevation: opts.leftScapularElevation,
+      rightScapularElevation: opts.rightScapularElevation,
+      leftScapularProtraction: opts.leftScapularProtraction,
+      rightScapularProtraction: opts.rightScapularProtraction,
       garmentStyle: opts.garmentStyle,
       garmentSegments: opts.garmentSegments,
       mantleStyle: opts.mantleStyle,
@@ -823,6 +835,7 @@ export class CharacterHost {
       {
         bodyVertexRange: this.built.bodyVertexRange,
         eyeVertexRange: this.built.eyeVertexRange,
+        orbitalVertexRange: this.built.orbital?.vertexRange,
         topology: this.faceTopology,
       },
       this.morphWeights
@@ -896,7 +909,7 @@ export class CharacterHost {
       : [];
     const nailGroups: MaterialGroup[] =
       this.materialCalibrationProfile === 'fixed-light-human-v1'
-      ? this.built.nailRanges.flatMap((range) => {
+        ? this.built.nailRanges.flatMap((range) => {
             if (range.indexCount % 12 !== 0) {
               throw new RangeError(
                 `fixed-light nail partition requires an index count divisible by 12, received ${range.indexCount}`
@@ -920,8 +933,7 @@ export class CharacterHost {
                 materialRole: 'nail-bed' as const,
               },
               {
-                indexStart:
-                  range.indexStart + proximalKeratinIndexCount + nailBedIndexCount,
+                indexStart: range.indexStart + proximalKeratinIndexCount + nailBedIndexCount,
                 indexCount: distalKeratinIndexCount,
                 material: this.nailMaterial,
                 materialRole: 'keratin-nail' as const,

@@ -11,6 +11,7 @@ import { testDevice, GPU_LIVE } from '../../physics/__tests__/gpu-setup';
 import { CharacterHost } from '../CharacterHost';
 import {
   deriveCharacterDetailFrame,
+  deriveCharacterEnvironmentLightReceipt,
   deriveCharacterMaterialPlateReceipt,
   renderCharacter,
 } from '../character-render';
@@ -74,6 +75,34 @@ function absoluteChannelDiff(a: PixelGrid, b: PixelGrid): number {
 }
 
 const itGpu = GPU_LIVE ? it : it.skip;
+
+describe('character-render — analytic environment contract', () => {
+  it('normalizes and clamps a source-authored three-point environment receipt', () => {
+    const receipt = deriveCharacterEnvironmentLightReceipt({
+      profile: 'analytic-three-point-v1',
+      keyDirection: [0, 3, 4],
+      keyColor: [1.2, 0.82, 0.68],
+      keyIntensity: 1.25,
+      fillIntensity: 0.34,
+      rimIntensity: 0.58,
+      exposure: 1.08,
+    });
+    expect(receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-environment-light.v1',
+      profile: 'analytic-three-point-v1',
+      key: {
+        direction: [0, 0.6, 0.8],
+        color: [1.2, 0.82, 0.68],
+        intensity: 1.25,
+      },
+      fill: { intensity: 0.34 },
+      rim: { intensity: 0.58 },
+      exposure: 1.08,
+    });
+    expect(deriveCharacterEnvironmentLightReceipt().fill.intensity).toBe(0);
+    expect(deriveCharacterEnvironmentLightReceipt().rim.intensity).toBe(0);
+  });
+});
 
 describe('character-render — native WebGPU GPU-skinned humanoid', () => {
   itGpu('renders a vertically-extended humanoid (head up top, feet down low)', async () => {
@@ -305,44 +334,47 @@ describe('character-render — material groups (skin-SSS) + lambert fallback', (
     expect(absoluteChannelDiff(smoothPixels, detailedPixels)).toBeGreaterThan(100);
   });
 
-  itGpu('decoupled fine-normal response changes native pixels without changing geometry', async () => {
-    const counterfactual = new CharacterHost({
-      entityId: 'skin-surface-response-proof',
-      materialCalibrationProfile: 'fixed-light-human-v1',
-      skinMicrodetailProfile: 'analytic-pore-v1',
-      skinMicrodetailScale: 104,
-      skinMicrodetailStrength: 0.09,
-      skinSurfaceResponseProfile: 'calibrated-skin-surface-v1',
-      skinAlbedoVariationStrength: 0.024,
-      skinRoughnessVariationStrength: 0.072,
-      skinNormalMicrodetailStrength: 0,
-    });
-    const authored = new CharacterHost({
-      entityId: 'skin-surface-response-proof',
-      materialCalibrationProfile: 'fixed-light-human-v1',
-      skinMicrodetailProfile: 'analytic-pore-v1',
-      skinMicrodetailScale: 104,
-      skinMicrodetailStrength: 0.09,
-      skinSurfaceResponseProfile: 'calibrated-skin-surface-v1',
-      skinAlbedoVariationStrength: 0.024,
-      skinRoughnessVariationStrength: 0.072,
-      skinNormalMicrodetailStrength: 0.14,
-    });
-    const counterfactualSpec = counterfactual.getDrawSpec();
-    const authoredSpec = authored.getDrawSpec();
-    const counterfactualPixels = await renderCharacter(testDevice!, counterfactualSpec, {
-      size: 128,
-      lightDir: [0.72, 0.28, 0.63],
-    });
-    const authoredPixels = await renderCharacter(testDevice!, authoredSpec, {
-      size: 128,
-      lightDir: [0.72, 0.28, 0.63],
-    });
+  itGpu(
+    'decoupled fine-normal response changes native pixels without changing geometry',
+    async () => {
+      const counterfactual = new CharacterHost({
+        entityId: 'skin-surface-response-proof',
+        materialCalibrationProfile: 'fixed-light-human-v1',
+        skinMicrodetailProfile: 'analytic-pore-v1',
+        skinMicrodetailScale: 104,
+        skinMicrodetailStrength: 0.09,
+        skinSurfaceResponseProfile: 'calibrated-skin-surface-v1',
+        skinAlbedoVariationStrength: 0.024,
+        skinRoughnessVariationStrength: 0.072,
+        skinNormalMicrodetailStrength: 0,
+      });
+      const authored = new CharacterHost({
+        entityId: 'skin-surface-response-proof',
+        materialCalibrationProfile: 'fixed-light-human-v1',
+        skinMicrodetailProfile: 'analytic-pore-v1',
+        skinMicrodetailScale: 104,
+        skinMicrodetailStrength: 0.09,
+        skinSurfaceResponseProfile: 'calibrated-skin-surface-v1',
+        skinAlbedoVariationStrength: 0.024,
+        skinRoughnessVariationStrength: 0.072,
+        skinNormalMicrodetailStrength: 0.14,
+      });
+      const counterfactualSpec = counterfactual.getDrawSpec();
+      const authoredSpec = authored.getDrawSpec();
+      const counterfactualPixels = await renderCharacter(testDevice!, counterfactualSpec, {
+        size: 128,
+        lightDir: [0.72, 0.28, 0.63],
+      });
+      const authoredPixels = await renderCharacter(testDevice!, authoredSpec, {
+        size: 128,
+        lightDir: [0.72, 0.28, 0.63],
+      });
 
-    expect(authoredSpec.mesh.positions).toEqual(counterfactualSpec.mesh.positions);
-    expect(figurePixels(authoredPixels)).toBeGreaterThan(150);
-    expect(absoluteChannelDiff(authoredPixels, counterfactualPixels)).toBeGreaterThan(50);
-  });
+      expect(authoredSpec.mesh.positions).toEqual(counterfactualSpec.mesh.positions);
+      expect(figurePixels(authoredPixels)).toBeGreaterThan(150);
+      expect(absoluteChannelDiff(authoredPixels, counterfactualPixels)).toBeGreaterThan(50);
+    }
+  );
 
   itGpu('changing only the keratin plate material changes native WebGPU hand pixels', async () => {
     const host = new CharacterHost({
@@ -385,4 +417,37 @@ describe('character-render — material groups (skin-SSS) + lambert fallback', (
     expect(pixelDiff(authored, counterfactual)).toBeGreaterThan(5);
     expect(absoluteChannelDiff(authored, counterfactual)).toBeGreaterThan(100);
   });
+
+  itGpu(
+    'changes live material pixels under a source-authored three-point environment',
+    async () => {
+      const host = new CharacterHost({
+        entityId: 'h3w-environment-response',
+        faceTopology: 'neutral-anatomical-v2',
+        facialDetailProfile: 'portrait-silhouette-v2',
+        upperBodyProfile: 'coherent-expressive-anatomy-v7',
+        includeHair: false,
+      });
+      const legacy = await renderCharacter(testDevice!, host.getDrawSpec(), { size: 128 });
+      const analytic = await renderCharacter(testDevice!, host.getDrawSpec(), {
+        size: 128,
+        environmentLight: {
+          profile: 'analytic-three-point-v1',
+          keyDirection: [0.42, 0.74, 0.52],
+          keyColor: [1, 0.82, 0.68],
+          keyIntensity: 1.25,
+          fillDirection: [-0.62, 0.18, 0.76],
+          fillColor: [0.48, 0.64, 1],
+          fillIntensity: 0.34,
+          rimDirection: [0.68, 0.4, -0.62],
+          rimColor: [1, 0.48, 0.28],
+          rimIntensity: 0.58,
+          exposure: 1.08,
+        },
+      });
+      expect(figurePixels(analytic)).toBeGreaterThan(100);
+      expect(pixelDiff(legacy, analytic)).toBeGreaterThan(25);
+      expect(absoluteChannelDiff(legacy, analytic)).toBeGreaterThan(1000);
+    }
+  );
 });

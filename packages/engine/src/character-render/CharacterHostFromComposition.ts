@@ -45,6 +45,11 @@ import {
   type AgentAvatarOcularProfile,
 } from './AgentAvatarHair';
 import type { NativeMorphReceipt, NativeMorphWeights } from './AgentAvatarMorph';
+import {
+  deriveCharacterEnvironmentLightReceipt,
+  type CharacterEnvironmentLightOptions,
+  type CharacterEnvironmentLightReceipt,
+} from './character-render';
 import type { Quat } from './skin-math';
 import {
   type AgentAvatarGarmentGeometryReceipt,
@@ -170,6 +175,13 @@ export interface CharacterHostFromCompositionResult {
   groom?: AgentAvatarGroomGeometryReceipt;
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
   morph?: NativeMorphReceipt;
+  /** First-class source expression receipt; shares the native FACS substrate with @morph. */
+  expression?: NativeMorphReceipt;
+  /** Source-authored analytic environment and its exact renderer binding receipt. */
+  environmentLight?: {
+    options: CharacterEnvironmentLightOptions;
+    receipt: CharacterEnvironmentLightReceipt;
+  };
   /** Source-authored local-bone pose that was applied to the operative native host. */
   pose?: CharacterPoseReceipt;
   /** Operative dual-influence deformation emitted by the selected native body profile. */
@@ -402,6 +414,25 @@ function authoredMorphWeights(trait: TraitRec): NativeMorphWeights {
   return weights;
 }
 
+/** @expression accepts both a targets record and direct first-class FACS controls. */
+function authoredExpressionWeights(trait: TraitRec): NativeMorphWeights {
+  const weights = { ...authoredMorphWeights(trait) } as Record<string, number>;
+  for (const key of [
+    'blink',
+    'blink_left',
+    'blink_right',
+    'brow_raise',
+    'brow_raise_left',
+    'brow_raise_right',
+    'smile',
+    'jaw_open',
+  ]) {
+    const value = asNum(trait.config[key]);
+    if (value !== undefined) weights[key] = value;
+  }
+  return weights;
+}
+
 /** Merge an object's own traits over its `using` template's traits (template carries the set). */
 function mergeTraits(obj: CompObject, templates: CompTemplate[]): TraitMap {
   const m: TraitMap = new Map();
@@ -562,6 +593,10 @@ export function buildCharacterHostFromComposition(
   let torsoScale = 1;
   let upperBodyProfile: AgentAvatarUpperBodyProfile | undefined;
   let upperBodyRadialSegments: number | undefined;
+  let leftScapularElevation: number | undefined;
+  let rightScapularElevation: number | undefined;
+  let leftScapularProtraction: number | undefined;
+  let rightScapularProtraction: number | undefined;
   let nailTone: number | undefined;
   let nailRoughness: number | undefined;
   let nailBedTone: number | undefined;
@@ -600,6 +635,7 @@ export function buildCharacterHostFromComposition(
       authoredUpperBodyProfile === 'coherent-deforming-hands-v4' ||
       authoredUpperBodyProfile === 'coherent-hand-surface-v5' ||
       authoredUpperBodyProfile === 'coherent-portrait-anatomy-v6' ||
+      authoredUpperBodyProfile === 'coherent-expressive-anatomy-v7' ||
       authoredUpperBodyProfile === 'legacy-segments-v1'
     ) {
       upperBodyProfile = authoredUpperBodyProfile;
@@ -634,7 +670,8 @@ export function buildCharacterHostFromComposition(
         upperBodyProfile === 'coherent-hand-landmarks-v3' ||
         upperBodyProfile === 'coherent-deforming-hands-v4' ||
         upperBodyProfile === 'coherent-hand-surface-v5' ||
-        upperBodyProfile === 'coherent-portrait-anatomy-v6'
+        upperBodyProfile === 'coherent-portrait-anatomy-v6' ||
+        upperBodyProfile === 'coherent-expressive-anatomy-v7'
       ) {
         nailTone = authoredNailTone;
         nailRoughness =
@@ -661,7 +698,27 @@ export function buildCharacterHostFromComposition(
         report.stubbed.push({
           trait: '@body(nail_material_controls)',
           reason:
-            'nail material controls require coherent-hand-landmarks-v3, coherent-deforming-hands-v4, coherent-hand-surface-v5, or coherent-portrait-anatomy-v6',
+            'nail material controls require a native hand-landmark profile from V3 through V7',
+        });
+      }
+      const hasScapularControls =
+        body.config.left_scapular_elevation !== undefined ||
+        body.config.right_scapular_elevation !== undefined ||
+        body.config.left_scapular_protraction !== undefined ||
+        body.config.right_scapular_protraction !== undefined;
+      if (upperBodyProfile === 'coherent-expressive-anatomy-v7') {
+        leftScapularElevation = clamp(asNum(body.config.left_scapular_elevation) ?? 0, -1, 1);
+        rightScapularElevation = clamp(asNum(body.config.right_scapular_elevation) ?? 0, -1, 1);
+        leftScapularProtraction = clamp(asNum(body.config.left_scapular_protraction) ?? 0, -1, 1);
+        rightScapularProtraction = clamp(asNum(body.config.right_scapular_protraction) ?? 0, -1, 1);
+        report.mapped.push(
+          `@body(scapular_elevation=${leftScapularElevation}:${rightScapularElevation},` +
+            `scapular_protraction=${leftScapularProtraction}:${rightScapularProtraction})`
+        );
+      } else if (hasScapularControls) {
+        report.stubbed.push({
+          trait: '@body(scapular_controls)',
+          reason: 'independent scapular controls require coherent-expressive-anatomy-v7',
         });
       }
     } else if (authoredUpperBodyProfile) {
@@ -1355,6 +1412,10 @@ export function buildCharacterHostFromComposition(
     torsoScale,
     upperBodyProfile,
     upperBodyRadialSegments,
+    leftScapularElevation,
+    rightScapularElevation,
+    leftScapularProtraction,
+    rightScapularProtraction,
     nailTone,
     nailRoughness,
     nailBedTone,
@@ -1410,36 +1471,54 @@ export function buildCharacterHostFromComposition(
   const poseMapping = poseTrait ? authoredSourcePose(poseTrait, report) : undefined;
   if (poseMapping) host.setPose(poseMapping.pose);
 
-  // 12. @morph → bounded native procedural-head FACS/viseme vertex deformation.
+  // 12. @morph/@expression → one absolute native FACS/viseme deformation state.
   let morph: NativeMorphReceipt | undefined;
+  let expression: NativeMorphReceipt | undefined;
   const morphTrait = traits.get('morph');
-  if (morphTrait) {
-    const weights = authoredMorphWeights(morphTrait);
-    if (Object.keys(weights).length === 0) {
-      report.stubbed.push({
-        trait: '@morph',
-        reason: 'no initial targets authored; runtime channel is available via applyMorphWeights',
-      });
-    } else {
-      const receipt = host.applyMorphWeights(weights);
-      if (receipt.appliedTargets.length > 0) {
-        morph = receipt;
+  const expressionTrait = traits.get('expression');
+  const morphWeights = morphTrait ? authoredMorphWeights(morphTrait) : {};
+  const expressionWeights = expressionTrait ? authoredExpressionWeights(expressionTrait) : {};
+  const weights = { ...morphWeights, ...expressionWeights };
+  if (morphTrait && Object.keys(morphWeights).length === 0) {
+    report.stubbed.push({
+      trait: '@morph',
+      reason: 'no initial targets authored; runtime channel is available via applyMorphWeights',
+    });
+  }
+  if (expressionTrait && Object.keys(expressionWeights).length === 0) {
+    report.stubbed.push({
+      trait: '@expression',
+      reason: 'no supported first-class expression controls were authored',
+    });
+  }
+  if (Object.keys(weights).length > 0) {
+    const receipt = host.applyMorphWeights(weights);
+    if (receipt.appliedTargets.length > 0) {
+      morph = receipt;
+      if (morphTrait && Object.keys(morphWeights).length > 0) {
         report.mapped.push(
           `@morph(targets=${receipt.appliedTargets.map(({ target }) => target).join(',')})`
         );
       }
-      for (const target of receipt.ignoredTargets) {
-        report.stubbed.push({
-          trait: `@morph(target=${target})`,
-          reason: 'target has no native procedural-head deformation channel',
-        });
+      if (expressionTrait && Object.keys(expressionWeights).length > 0) {
+        expression = receipt;
+        report.mapped.push(
+          `@expression(targets=${receipt.appliedTargets.map(({ target }) => target).join(',')})`
+        );
       }
-      if (receipt.appliedTargets.length === 0) {
-        report.stubbed.push({
-          trait: '@morph',
-          reason: 'none of the authored targets have native procedural-head channels',
-        });
-      }
+    }
+    for (const target of receipt.ignoredTargets) {
+      const sourceTrait = expressionWeights[target] !== undefined ? '@expression' : '@morph';
+      report.stubbed.push({
+        trait: `${sourceTrait}(target=${target})`,
+        reason: 'target has no native procedural-head deformation channel',
+      });
+    }
+    if (receipt.appliedTargets.length === 0) {
+      report.stubbed.push({
+        trait: expressionTrait ? '@expression' : '@morph',
+        reason: 'none of the authored targets have native procedural-head channels',
+      });
     }
   }
 
@@ -1481,6 +1560,39 @@ export function buildCharacterHostFromComposition(
     }
   }
 
+  let environmentLight: CharacterHostFromCompositionResult['environmentLight'];
+  const environmentTrait = traits.get('environment_light');
+  if (environmentTrait) {
+    const profile = (asStr(cfgVal(environmentTrait, 'profile')) ?? 'analytic-three-point-v1')
+      .toLowerCase()
+      .replace(/_/g, '-') as CharacterEnvironmentLightOptions['profile'];
+    if (profile === 'analytic-three-point-v1' || profile === 'legacy-key-v1') {
+      const options: CharacterEnvironmentLightOptions = {
+        profile,
+        keyDirection: asVec3(cfgVal(environmentTrait, 'key_direction')),
+        keyColor: asRgb(cfgVal(environmentTrait, 'key_color')),
+        keyIntensity: asNum(cfgVal(environmentTrait, 'key_intensity')),
+        fillDirection: asVec3(cfgVal(environmentTrait, 'fill_direction')),
+        fillColor: asRgb(cfgVal(environmentTrait, 'fill_color')),
+        fillIntensity: asNum(cfgVal(environmentTrait, 'fill_intensity')),
+        rimDirection: asVec3(cfgVal(environmentTrait, 'rim_direction')),
+        rimColor: asRgb(cfgVal(environmentTrait, 'rim_color')),
+        rimIntensity: asNum(cfgVal(environmentTrait, 'rim_intensity')),
+        exposure: asNum(cfgVal(environmentTrait, 'exposure')),
+      };
+      environmentLight = {
+        options,
+        receipt: deriveCharacterEnvironmentLightReceipt(options),
+      };
+      report.mapped.push(`@environment_light(profile=${profile})`);
+    } else {
+      report.stubbed.push({
+        trait: '@environment_light',
+        reason: `profile '${profile}' has no native analytic renderer binding`,
+      });
+    }
+  }
+
   const groom =
     hair && includeHair !== false ? (host.getGroomGeometryReceipt() ?? undefined) : undefined;
   const anatomy = anatomyAuthored ? host.getAnatomyReceipt() : undefined;
@@ -1505,6 +1617,8 @@ export function buildCharacterHostFromComposition(
     garment,
     groom,
     morph,
+    expression,
+    environmentLight,
     pose: poseMapping?.receipt,
     jointDeformation,
     handSurface,

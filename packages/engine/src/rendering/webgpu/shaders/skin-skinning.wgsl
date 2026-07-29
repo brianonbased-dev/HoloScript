@@ -19,7 +19,13 @@ struct Frame {
   mvp       : mat4x4<f32>,
   model     : mat4x4<f32>,   // root placement → world position for view dir
   cameraPos : vec4<f32>,     // xyz world camera; w unused
-  lightDir  : vec4<f32>,     // xyz world light direction; w unused
+  keyDirection  : vec4<f32>,
+  keyColor      : vec4<f32>,
+  fillDirection : vec4<f32>,
+  fillColor     : vec4<f32>,
+  rimDirection  : vec4<f32>,
+  rimColor      : vec4<f32>,
+  envParams     : vec4<f32>, // x exposure; y analytic-three-point enabled
 };
 @group(0) @binding(0) var<uniform> frame : Frame;
 @group(0) @binding(1) var<storage, read> joints : array<mat4x4<f32>>;
@@ -88,13 +94,33 @@ fn vs(in : VSIn) -> VSOut {
 }
 
 // ── Fallback: flat two-sided half-Lambert (identical look to the Phase-0 shader). ──
+fn environmentDiffuse(n : vec3<f32>, twoSided : bool) -> vec3<f32> {
+  let keyN = select(
+    max(dot(n, normalize(frame.keyDirection.xyz)), 0.0),
+    abs(dot(n, normalize(frame.keyDirection.xyz))),
+    twoSided
+  );
+  let fillN = select(
+    max(dot(n, normalize(frame.fillDirection.xyz)), 0.0),
+    abs(dot(n, normalize(frame.fillDirection.xyz))),
+    twoSided
+  );
+  let rimN = select(
+    max(dot(n, normalize(frame.rimDirection.xyz)), 0.0),
+    abs(dot(n, normalize(frame.rimDirection.xyz))),
+    twoSided
+  );
+  return
+    frame.keyColor.rgb * frame.keyColor.w * keyN +
+    frame.fillColor.rgb * frame.fillColor.w * fillN +
+    frame.rimColor.rgb * frame.rimColor.w * rimN;
+}
+
 @fragment
 fn fs_lambert(in : VSOut) -> @location(0) vec4<f32> {
   let n = normalize(in.wN);
-  let l = normalize(frame.lightDir.xyz);
-  let ndl = abs(dot(n, l));
-  let lit = 0.35 + 0.65 * ndl;
-  return vec4<f32>(mat.color.rgb * lit, mat.color.a);
+  let lit = vec3<f32>(0.35) + environmentDiffuse(n, true) * 0.65;
+  return vec4<f32>(mat.color.rgb * lit * frame.envParams.x, mat.color.a);
 }
 
 fn fresnel(cosT : f32, f0 : f32) -> f32 {
@@ -153,7 +179,7 @@ fn analyticPoreNormal(
 @fragment
 fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
   let baseN = normalize(in.wN);
-  let L = normalize(frame.lightDir.xyz);
+  let L = normalize(frame.keyDirection.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
   let microScale = max(mat.texFlags.w, 0.0);
   let pore = select(0.5, analyticPoreSignal(in.bodyP * microScale), microScale > 0.0);
@@ -176,7 +202,12 @@ fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
   // Redden the terminator: tint where light grazes toward the subsurface colour.
   let term = smoothstep(0.0, 0.5, 1.0 - max(ndl, 0.0));
   let tint = mix(vec3<f32>(1.0), mat.scatterColor.rgb, term);
-  let sss = diffuse * tint;
+  let fillDiffuse = max(dot(N, normalize(frame.fillDirection.xyz)), 0.0);
+  let rimDiffuse = max(dot(N, normalize(frame.rimDirection.xyz)), 0.0);
+  let sss =
+    diffuse * tint * frame.keyColor.rgb * frame.keyColor.w +
+    vec3<f32>(fillDiffuse) * frame.fillColor.rgb * frame.fillColor.w +
+    vec3<f32>(rimDiffuse) * frame.rimColor.rgb * frame.rimColor.w;
 
   // Thin-slab back transmission (relative radii, NO unit fold-in — stays visible).
   let backLobe = pow(saturate(dot(-V, L)), 3.0);
@@ -196,7 +227,8 @@ fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
   var color =
     mat.color.rgb * microAlbedo * (vec3<f32>(mat.params.w) + sss) +
     transmit +
-    vec3<f32>(spec);
+    frame.keyColor.rgb * vec3<f32>(spec) * frame.keyColor.w;
+  color *= frame.envParams.x;
   color = color / (color + vec3<f32>(1.0)); // Reinhard
   return vec4<f32>(color, mat.color.a);
 }
@@ -222,7 +254,7 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
   let shift = clamp(mat.params.x, -0.35, 0.35);
   let T = normalize(in.wT + N * shift);
   let TSecondary = normalize(in.wT - N * shift * 0.65);
-  let L = normalize(frame.lightDir.xyz);
+  let L = normalize(frame.keyDirection.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
   let H = normalize(L + V);
 
@@ -264,10 +296,15 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
 
   let base = melaninColor(mat.scatterColor.x, mat.scatterColor.y);
   let rootDarken = mix(0.55, 1.0, in.strandT);
-  var col = base * rootDarken * (kkDiffuse * 0.6 + 0.25)
-          + vec3<f32>(specR * 0.35)
+  let environment = select(
+    vec3<f32>(kkDiffuse * 0.6 + 0.25),
+    vec3<f32>(0.25) + environmentDiffuse(N, false) * 0.6,
+    frame.envParams.y > 0.5
+  );
+  var col = base * rootDarken * environment
+          + frame.keyColor.rgb * vec3<f32>(specR * 0.35) * frame.keyColor.w
           + base * specTRT * 0.3;
-  return vec4<f32>(col, alpha);
+  return vec4<f32>(col * frame.envParams.x, alpha);
 }
 
 // ── Eye: legacy composite or one native sclera/iris/pupil/cornea geometry region. ──
@@ -275,9 +312,8 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
 @fragment
 fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
   let N = normalize(in.wN);
-  let L = normalize(frame.lightDir.xyz);
+  let L = normalize(frame.keyDirection.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
-  let ndl = max(dot(N, L), 0.0);
   let facing = max(dot(N, V), 0.0); // 1 at the front of the eyeball, 0 at the rim
   let H = normalize(L + V);
   let ndh = max(dot(N, H), 0.0);
@@ -287,8 +323,10 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
 
   if (region == 1) {
     let fres = pow(1.0 - facing, 4.0) * 0.06;
-    let col = mat.color.rgb * (0.38 + 0.62 * ndl) + vec3<f32>(catchlight * 0.18 + fres);
-    return vec4<f32>(col, mat.color.a);
+    let col =
+      mat.color.rgb * (vec3<f32>(0.38) + environmentDiffuse(N, false) * 0.62) +
+      frame.keyColor.rgb * (catchlight * 0.18 + fres) * frame.keyColor.w;
+    return vec4<f32>(col * frame.envParams.x, mat.color.a);
   }
 
   if (region == 2) {
@@ -296,19 +334,25 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
     let fibre = 0.84 + 0.16 * sin((in.uv.x * 1.7 + in.uv.y) * 76.0);
     let limbal = 1.0 - smoothstep(0.72, 1.0, radial) * 0.48;
     let inner = mix(0.72, 1.0, smoothstep(0.08, 0.62, radial));
-    let col = mat.color.rgb * fibre * limbal * inner * (0.34 + 0.66 * ndl);
-    return vec4<f32>(col, mat.color.a);
+    let col =
+      mat.color.rgb * fibre * limbal * inner *
+      (vec3<f32>(0.34) + environmentDiffuse(N, false) * 0.66);
+    return vec4<f32>(col * frame.envParams.x, mat.color.a);
   }
 
   if (region == 3) {
-    return vec4<f32>(mat.color.rgb * (0.18 + 0.22 * ndl), mat.color.a);
+    return vec4<f32>(
+      mat.color.rgb * (vec3<f32>(0.18) + environmentDiffuse(N, false) * 0.22) *
+        frame.envParams.x,
+      mat.color.a
+    );
   }
 
   if (region == 4) {
     let f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
     let fres = f0 + (1.0 - f0) * pow(1.0 - facing, 5.0);
     let alpha = clamp(mat.color.a + fres * 0.55 + catchlight * 0.25, 0.0, 0.82);
-    let col = vec3<f32>(catchlight * 1.15 + fres * 0.28);
+    let col = frame.keyColor.rgb * (catchlight * 1.15 + fres * 0.28) * frame.keyColor.w;
     return vec4<f32>(col, alpha);
   }
 
@@ -320,8 +364,10 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
 
   let fres = pow(1.0 - facing, 4.0) * (ior - 1.0); // corneal rim
 
-  let col = base * (0.3 + 0.7 * ndl) + vec3<f32>(catchlight) + vec3<f32>(fres * 0.3);
-  return vec4<f32>(col, mat.color.a);
+  let col =
+    base * (vec3<f32>(0.3) + environmentDiffuse(N, false) * 0.7) +
+    frame.keyColor.rgb * vec3<f32>(catchlight + fres * 0.3) * frame.keyColor.w;
+  return vec4<f32>(col * frame.envParams.x, mat.color.a);
 }
 
 // ── Woven cloth: broad rough specular + grazing fibre sheen + micro-weave breakup. ──
@@ -344,10 +390,9 @@ fn fs_woven_cloth(in : VSOut) -> @location(0) vec4<f32> {
   let bitangent = normalize(cross(baseN, tangent));
   let mappedN = normalize(tangent * normalX + bitangent * normalY + baseN);
   let N = normalize(mix(baseN, mappedN, mat.texFlags.y));
-  let L = normalize(frame.lightDir.xyz);
+  let L = normalize(frame.keyDirection.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
   let H = normalize(L + V);
-  let ndl = max(dot(N, L), 0.0);
   let ndv = max(dot(N, V), 0.0);
   let ndh = max(dot(N, H), 0.0);
 
@@ -368,9 +413,11 @@ fn fs_woven_cloth(in : VSOut) -> @location(0) vec4<f32> {
   let rim = pow(1.0 - ndv, 4.0) * rimStrength;
 
   let albedo = mix(1.0, sampleTile(mat.albedoTile, tiledUv), mat.texFlags.x);
-  var col = mat.color.rgb * albedo * weave * (0.18 + 0.82 * ndl);
+  var col =
+    mat.color.rgb * albedo * weave *
+    (vec3<f32>(0.18) + environmentDiffuse(N, false) * 0.82);
   col += mat.color.rgb * fibreSheen * 0.35;
   col += vec3<f32>(roughSpec + rim * 0.12);
   col = col / (col + vec3<f32>(1.0));
-  return vec4<f32>(col, mat.color.a);
+  return vec4<f32>(col * frame.envParams.x, mat.color.a);
 }

@@ -1687,4 +1687,92 @@ describe('buildCharacterHostFromComposition', () => {
     expect(r.report.resolvedVia).toBe('objectId');
     expect(r.report.objectId).toBe('hero');
   });
+
+  it('maps V7 scapular asymmetry, @expression, and analytic environment light end to end', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'claude',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_expressive_anatomy_v7',
+                upper_body_radial_segments: 24,
+                left_scapular_elevation: 0.65,
+                right_scapular_elevation: -0.25,
+                left_scapular_protraction: 0.4,
+                right_scapular_protraction: -0.3,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                orbital_profile: 'recessed_lids_v1',
+                facial_detail_profile: 'portrait_silhouette_v2',
+              },
+            },
+            {
+              name: 'expression',
+              config: {
+                blink_left: 0.72,
+                blink_right: 0.18,
+                brow_raise_right: 0.44,
+                smile: 0.26,
+                jaw_open: 0.08,
+              },
+            },
+            {
+              name: 'environment_light',
+              config: {
+                profile: 'analytic_three_point_v1',
+                key_direction: [0.42, 0.74, 0.52],
+                key_color: [1, 0.82, 0.68],
+                key_intensity: 1.25,
+                fill_direction: [-0.62, 0.18, 0.76],
+                fill_color: [0.48, 0.64, 1],
+                fill_intensity: 0.34,
+                rim_direction: [0.68, 0.4, -0.62],
+                rim_color: [1, 0.48, 0.28],
+                rim_intensity: 0.58,
+                exposure: 1.08,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.jointDeformation).toMatchObject({
+      profile: 'expressive-neck-scapular-volume-v3',
+      regionVertexCounts: { neck: 96 },
+      expressiveAsymmetry: {
+        scapularElevation: { left: 0.65, right: -0.25 },
+        scapularProtraction: { left: 0.4, right: -0.3 },
+      },
+    });
+    expect(result.expression).toMatchObject({
+      schemaVersion: 'holoscript.native-facial-morph.v2',
+      appliedTargets: [
+        { target: 'blink_left', weight: 0.72 },
+        { target: 'blink_right', weight: 0.18 },
+        { target: 'brow_raise_right', weight: 0.44 },
+        { target: 'smile', weight: 0.26 },
+        { target: 'jaw_open', weight: 0.08 },
+      ],
+    });
+    expect(result.environmentLight?.receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-environment-light.v1',
+      profile: 'analytic-three-point-v1',
+      key: { color: [1, 0.82, 0.68], intensity: 1.25 },
+      fill: { color: [0.48, 0.64, 1], intensity: 0.34 },
+      rim: { color: [1, 0.48, 0.28], intensity: 0.58 },
+      exposure: 1.08,
+    });
+    expect(result.report.mapped).toContain('@environment_light(profile=analytic-three-point-v1)');
+    expect(result.report.mapped.some((entry) => entry.startsWith('@expression('))).toBe(true);
+    expect(result.report.stubbed).toEqual([]);
+  });
 });

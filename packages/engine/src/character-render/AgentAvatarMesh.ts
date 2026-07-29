@@ -82,6 +82,7 @@ export const AGENT_AVATAR_UPPER_BODY_PROFILES = [
   'coherent-deforming-hands-v4',
   'coherent-hand-surface-v5',
   'coherent-portrait-anatomy-v6',
+  'coherent-expressive-anatomy-v7',
 ] as const;
 export type AgentAvatarUpperBodyProfile = (typeof AGENT_AVATAR_UPPER_BODY_PROFILES)[number];
 export const AGENT_AVATAR_ORBITAL_PROFILES = ['tearline-rim-v1', 'recessed-lids-v1'] as const;
@@ -130,7 +131,7 @@ export interface AgentAvatarFacialLandmarkReceipt {
 }
 
 export interface AgentAvatarAnatomyReceipt {
-  schemaVersion: 'holoscript.agent-avatar-anatomy.v1';
+  schemaVersion: 'holoscript.agent-avatar-anatomy.v1' | 'holoscript.agent-avatar-anatomy.v2';
   faceWidth: number;
   faceLength: number;
   jawTaper: number;
@@ -143,8 +144,12 @@ export interface AgentAvatarAnatomyReceipt {
 export interface AgentAvatarJointDeformationReceipt {
   schemaVersion:
     | 'holoscript.agent-avatar-joint-deformation.v1'
-    | 'holoscript.agent-avatar-joint-deformation.v2';
-  profile: 'dual-influence-upper-limb-v1' | 'portrait-shoulder-volume-v2';
+    | 'holoscript.agent-avatar-joint-deformation.v2'
+    | 'holoscript.agent-avatar-joint-deformation.v3';
+  profile:
+    | 'dual-influence-upper-limb-v1'
+    | 'portrait-shoulder-volume-v2'
+    | 'expressive-neck-scapular-volume-v3';
   influencedVertexCount: number;
   jointPairCount: number;
   maxSecondaryWeight: number;
@@ -155,6 +160,8 @@ export interface AgentAvatarJointDeformationReceipt {
     wrist: number;
     digitRoot: number;
     fingerJoint: number;
+    /** V7 axial rings blended between spine2 and neck. */
+    neck?: number;
   };
   /** V2 source-derived shoulder transition contract. */
   shoulderVolume?: {
@@ -162,6 +169,14 @@ export interface AgentAvatarJointDeformationReceipt {
     rootOverlapDepth: number;
     minimumAuthoredRadiusRatio: number;
     influenceWeights: readonly [number, number, number, number, number, number];
+  };
+  /** V7 source controls and operative neck/scapular blend topology. */
+  expressiveAsymmetry?: {
+    profile: 'source-asymmetric-neck-scapula-v1';
+    scapularElevation: { left: number; right: number };
+    scapularProtraction: { left: number; right: number };
+    neckBlendRingCount: 4;
+    neckInfluenceWeights: readonly [number, number, number, number];
   };
 }
 
@@ -173,7 +188,8 @@ export interface AgentAvatarUpperBodyGeometryReceipt {
     | 'anatomical-hand-landmarks-v3'
     | 'anatomical-deforming-hands-v4'
     | 'anatomical-hand-surface-v5'
-    | 'portrait-anatomy-v6';
+    | 'portrait-anatomy-v6'
+    | 'expressive-anatomy-v7';
   radialSegments: number;
   ringCount: number;
   /** Emitted bind-space half width at the shoulder ring, after authored scaling. */
@@ -196,7 +212,8 @@ export interface AgentAvatarUpperLimbGeometryReceipt {
     | 'anatomical-landmark-hand-v3'
     | 'arched-palm-joint-deformation-v4'
     | 'tapered-hand-surface-v5'
-    | 'portrait-deltoid-hand-surface-v6';
+    | 'portrait-deltoid-hand-surface-v6'
+    | 'expressive-scapular-hand-surface-v7';
   side: 'left' | 'right';
   radialSegments: number;
   ringCount: number;
@@ -213,6 +230,10 @@ export interface AgentAvatarUpperLimbGeometryReceipt {
   minimumShoulderRadiusRatio?: number;
   /** V6 upper-pole scale that prevents a circular shoulder section from reading as a spike. */
   superiorContourScaleMin?: number;
+  /** V7 bind-space elevation authored independently per scapula (-1..1). */
+  scapularElevation?: number;
+  /** V7 bind-space forward/back scapular travel authored independently per side (-1..1). */
+  scapularProtraction?: number;
   /** Five separately skinned, three-phalanx native digit surfaces in V2. */
   digits?: readonly AgentAvatarDigitGeometryReceipt[];
   /** V3 skin and keratin landmarks: webs, knuckles, tendons, and nail plates. */
@@ -270,7 +291,10 @@ export interface AgentAvatarHandSurfaceGeometryReceipt {
 export interface AgentAvatarHandSurfaceReceipt {
   schemaVersion: 'holoscript.agent-avatar-hand-surface.v1';
   profile: 'tapered-digit-commissure-cuticle-wrist-v1';
-  upperBodyProfile: 'coherent-hand-surface-v5' | 'coherent-portrait-anatomy-v6';
+  upperBodyProfile:
+    | 'coherent-hand-surface-v5'
+    | 'coherent-portrait-anatomy-v6'
+    | 'coherent-expressive-anatomy-v7';
   limbs: [AgentAvatarHandSurfaceGeometryReceipt, AgentAvatarHandSurfaceGeometryReceipt];
   regionVertexCounts: AgentAvatarHandSurfaceGeometryReceipt['regionVertexCounts'];
   regionIndexCounts: AgentAvatarHandSurfaceGeometryReceipt['regionIndexCounts'];
@@ -411,6 +435,14 @@ export interface AgentAvatarMeshOptions {
   upperBodyProfile?: AgentAvatarUpperBodyProfile;
   /** Circumferential topology budget for the connected upper-body loft (12..32). */
   upperBodyRadialSegments?: number;
+  /** V7 independent left scapular elevation (-1..1). */
+  leftScapularElevation?: number;
+  /** V7 independent right scapular elevation (-1..1). */
+  rightScapularElevation?: number;
+  /** V7 independent left scapular forward/back travel (-1..1). */
+  leftScapularProtraction?: number;
+  /** V7 independent right scapular forward/back travel (-1..1). */
+  rightScapularProtraction?: number;
 }
 
 /** Pose = per-bone LOCAL rotation applied at the joint (absent ⇒ identity / bind). */
@@ -694,7 +726,8 @@ function pushCoherentUpperBody(
 ): Omit<AgentAvatarUpperBodyGeometryReceipt, 'upperLimbs'> {
   const torso = buildScale * torsoScale;
   const anatomical = profile !== 'coherent-shoulder-neck-torso-v1';
-  const portrait = profile === 'coherent-portrait-anatomy-v6';
+  const expressive = profile === 'coherent-expressive-anatomy-v7';
+  const portrait = profile === 'coherent-portrait-anatomy-v6' || expressive;
   const handSurface = profile === 'coherent-hand-surface-v5' || portrait;
   const deforming = profile === 'coherent-deforming-hands-v4' || handSurface;
   const landmarked = profile === 'coherent-hand-landmarks-v3' || deforming;
@@ -840,17 +873,19 @@ function pushCoherentUpperBody(
 
   return {
     schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
-    profile: portrait
-      ? 'portrait-anatomy-v6'
-      : handSurface
-        ? 'anatomical-hand-surface-v5'
-        : deforming
-          ? 'anatomical-deforming-hands-v4'
-          : landmarked
-            ? 'anatomical-hand-landmarks-v3'
-            : anatomical
-              ? 'anatomical-shoulder-neck-torso-v2'
-              : 'coherent-shoulder-neck-torso-v1',
+    profile: expressive
+      ? 'expressive-anatomy-v7'
+      : portrait
+        ? 'portrait-anatomy-v6'
+        : handSurface
+          ? 'anatomical-hand-surface-v5'
+          : deforming
+            ? 'anatomical-deforming-hands-v4'
+            : landmarked
+              ? 'anatomical-hand-landmarks-v3'
+              : anatomical
+                ? 'anatomical-shoulder-neck-torso-v2'
+                : 'coherent-shoulder-neck-torso-v1',
     radialSegments,
     ringCount: rings.length,
     shoulderHalfWidth: round6(Math.max(...rings.map((ring) => ring.radiusX)) * heightScale),
@@ -1947,11 +1982,14 @@ function pushCoherentUpperLimb(
   bindWorld: Map<string, Mat4>,
   buildScale: number,
   shoulderScale: number,
-  heightScale: number
+  heightScale: number,
+  scapularElevation = 0,
+  scapularProtraction = 0
 ): AgentAvatarUpperLimbGeometryReceipt {
   const direction = side === 'left' ? 1 : -1;
   const anatomical = profile !== 'coherent-shoulder-neck-torso-v1';
-  const portrait = profile === 'coherent-portrait-anatomy-v6';
+  const expressive = profile === 'coherent-expressive-anatomy-v7';
+  const portrait = profile === 'coherent-portrait-anatomy-v6' || expressive;
   const handSurface = profile === 'coherent-hand-surface-v5' || portrait;
   const deforming = profile === 'coherent-deforming-hands-v4' || handSurface;
   const landmarked = profile === 'coherent-hand-landmarks-v3' || deforming;
@@ -1967,8 +2005,12 @@ function pushCoherentUpperLimb(
   const palmHalfWidth = 0.048 * buildScale * shoulderScale;
   const root: Vec3 = {
     x: direction * (portrait ? 0.202 : anatomical ? 0.218 : 0.225) * buildScale * shoulderScale,
-    y: portrait ? 1.394 : anatomical ? 1.397 : 1.405,
-    z: portrait ? 0.012 : anatomical ? 0.008 : 0.005,
+    y:
+      (portrait ? 1.394 : anatomical ? 1.397 : 1.405) +
+      (expressive ? scapularElevation * 0.018 * buildScale : 0),
+    z:
+      (portrait ? 0.012 : anatomical ? 0.008 : 0.005) +
+      (expressive ? scapularProtraction * 0.014 * buildScale : 0),
   };
   const palmEnd: Vec3 = {
     x: wrist.x + direction * 0.08 * buildScale * shoulderScale,
@@ -2420,17 +2462,19 @@ function pushCoherentUpperLimb(
 
   return {
     schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1',
-    profile: portrait
-      ? 'portrait-deltoid-hand-surface-v6'
-      : handSurface
-        ? 'tapered-hand-surface-v5'
-        : deforming
-          ? 'arched-palm-joint-deformation-v4'
-          : landmarked
-            ? 'anatomical-landmark-hand-v3'
-            : anatomical
-              ? 'anatomical-deltoid-hand-v2'
-              : 'coherent-arm-palm-v1',
+    profile: expressive
+      ? 'expressive-scapular-hand-surface-v7'
+      : portrait
+        ? 'portrait-deltoid-hand-surface-v6'
+        : handSurface
+          ? 'tapered-hand-surface-v5'
+          : deforming
+            ? 'arched-palm-joint-deformation-v4'
+            : landmarked
+              ? 'anatomical-landmark-hand-v3'
+              : anatomical
+                ? 'anatomical-deltoid-hand-v2'
+                : 'coherent-arm-palm-v1',
     side,
     radialSegments,
     ringCount: rings.length,
@@ -2455,10 +2499,14 @@ function pushCoherentUpperLimb(
                     (shoulderRadius * 1.1)
                 ),
                 superiorContourScaleMin: Math.min(
-                  ...portraitArmRings
-                    .slice(0, 6)
-                    .map((ring) => ring.superiorScale ?? 1)
+                  ...portraitArmRings.slice(0, 6).map((ring) => ring.superiorScale ?? 1)
                 ),
+                ...(expressive
+                  ? {
+                      scapularElevation: round6(scapularElevation),
+                      scapularProtraction: round6(scapularProtraction),
+                    }
+                  : {}),
               }
             : {}),
           digits,
@@ -3039,8 +3087,10 @@ function buildDualInfluenceJointDeformation(
   acc: MeshAccum,
   upperBody: AgentAvatarUpperBodyGeometryReceipt
 ): DualInfluenceBuild {
-  const portrait = upperBody.profile === 'portrait-anatomy-v6';
+  const expressive = upperBody.profile === 'expressive-anatomy-v7';
+  const portrait = upperBody.profile === 'portrait-anatomy-v6' || expressive;
   const portraitShoulderWeights = [0.12, 0.15, 0.18, 0.4, 0.22, 0.08] as const;
+  const neckInfluenceWeights = [0.08, 0.22, 0.45, 0.2] as const;
   const primaryJointWeights = new Float32Array(acc.jointWeights);
   const secondaryJointIndices = new Uint32Array(acc.jointIndices);
   const secondaryJointWeights = new Float32Array(acc.jointWeights.length);
@@ -3050,6 +3100,7 @@ function buildDualInfluenceJointDeformation(
     wrist: 0,
     digitRoot: 0,
     fingerJoint: 0,
+    ...(expressive ? { neck: 0 } : {}),
   };
   const jointPairs = new Set<string>();
   let maxSecondaryWeight = 0;
@@ -3090,7 +3141,7 @@ function buildDualInfluenceJointDeformation(
     const low = Math.min(expectedPrimary, secondary);
     const high = Math.max(expectedPrimary, secondary);
     jointPairs.add(`${low}:${high}`);
-    regionVertexCounts[region] += radialSegments;
+    regionVertexCounts[region] = (regionVertexCounts[region] ?? 0) + radialSegments;
   };
 
   for (const limb of upperBody.upperLimbs) {
@@ -3187,6 +3238,15 @@ function buildDualInfluenceJointDeformation(
     }
   }
 
+  if (expressive) {
+    const axial = upperBody.vertexRange.vertexStart;
+    const radial = upperBody.radialSegments;
+    assignRing(axial, radial, 7, 'spine2', 'neck', neckInfluenceWeights[0], 'neck');
+    assignRing(axial, radial, 8, 'spine2', 'neck', neckInfluenceWeights[1], 'neck');
+    assignRing(axial, radial, 9, 'neck', 'spine2', neckInfluenceWeights[2], 'neck');
+    assignRing(axial, radial, 10, 'neck', 'spine2', neckInfluenceWeights[3], 'neck');
+  }
+
   const influencedVertexCount = Object.values(regionVertexCounts).reduce(
     (sum, count) => sum + count,
     0
@@ -3196,10 +3256,16 @@ function buildDualInfluenceJointDeformation(
     secondaryJointIndices,
     secondaryJointWeights,
     receipt: {
-      schemaVersion: portrait
-        ? 'holoscript.agent-avatar-joint-deformation.v2'
-        : 'holoscript.agent-avatar-joint-deformation.v1',
-      profile: portrait ? 'portrait-shoulder-volume-v2' : 'dual-influence-upper-limb-v1',
+      schemaVersion: expressive
+        ? 'holoscript.agent-avatar-joint-deformation.v3'
+        : portrait
+          ? 'holoscript.agent-avatar-joint-deformation.v2'
+          : 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: expressive
+        ? 'expressive-neck-scapular-volume-v3'
+        : portrait
+          ? 'portrait-shoulder-volume-v2'
+          : 'dual-influence-upper-limb-v1',
       influencedVertexCount,
       jointPairCount: jointPairs.size,
       maxSecondaryWeight: round6(maxSecondaryWeight),
@@ -3216,6 +3282,23 @@ function buildDualInfluenceJointDeformation(
                 ...upperBody.upperLimbs.map((limb) => limb.minimumShoulderRadiusRatio ?? 0)
               ),
               influenceWeights: portraitShoulderWeights,
+            },
+          }
+        : {}),
+      ...(expressive
+        ? {
+            expressiveAsymmetry: {
+              profile: 'source-asymmetric-neck-scapula-v1' as const,
+              scapularElevation: {
+                left: upperBody.upperLimbs[0].scapularElevation ?? 0,
+                right: upperBody.upperLimbs[1].scapularElevation ?? 0,
+              },
+              scapularProtraction: {
+                left: upperBody.upperLimbs[0].scapularProtraction ?? 0,
+                right: upperBody.upperLimbs[1].scapularProtraction ?? 0,
+              },
+              neckBlendRingCount: 4 as const,
+              neckInfluenceWeights,
             },
           }
         : {}),
@@ -3262,6 +3345,10 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const torsoScale = clampFloat(opts.torsoScale, 1, 0.85, 1.2);
   const upperBodyProfile = opts.upperBodyProfile ?? 'legacy-segments-v1';
   const upperBodyRadialSegments = clampInt(opts.upperBodyRadialSegments, 24, 12, 32);
+  const leftScapularElevation = clampFloat(opts.leftScapularElevation, 0, -1, 1);
+  const rightScapularElevation = clampFloat(opts.rightScapularElevation, 0, -1, 1);
+  const leftScapularProtraction = clampFloat(opts.leftScapularProtraction, 0, -1, 1);
+  const rightScapularProtraction = clampFloat(opts.rightScapularProtraction, 0, -1, 1);
   const bindWorld = computeBindWorld();
   const acc: MeshAccum = {
     positions: [],
@@ -3298,7 +3385,9 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
               bindWorld,
               buildScale,
               shoulderScale,
-              heightScale
+              heightScale,
+              leftScapularElevation,
+              leftScapularProtraction
             ),
             pushCoherentUpperLimb(
               acc,
@@ -3308,14 +3397,17 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
               bindWorld,
               buildScale,
               shoulderScale,
-              heightScale
+              heightScale,
+              rightScapularElevation,
+              rightScapularProtraction
             ),
           ],
         }
       : undefined;
   const handSurfaceProfile: AgentAvatarHandSurfaceReceipt['upperBodyProfile'] | undefined =
     upperBodyProfile === 'coherent-hand-surface-v5' ||
-    upperBodyProfile === 'coherent-portrait-anatomy-v6'
+    upperBodyProfile === 'coherent-portrait-anatomy-v6' ||
+    upperBodyProfile === 'coherent-expressive-anatomy-v7'
       ? upperBodyProfile
       : undefined;
   const handSurfaceLimbs =
@@ -3405,7 +3497,8 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     upperBodyProfile === 'coherent-hand-landmarks-v3' ||
     upperBodyProfile === 'coherent-deforming-hands-v4' ||
     upperBodyProfile === 'coherent-hand-surface-v5' ||
-    upperBodyProfile === 'coherent-portrait-anatomy-v6';
+    upperBodyProfile === 'coherent-portrait-anatomy-v6' ||
+    upperBodyProfile === 'coherent-expressive-anatomy-v7';
 
   // One box per segment (parent-joint → this-joint), weighted to the PARENT bone it represents.
   for (const bone of HUMANOID_65_SKELETON) {
@@ -3483,7 +3576,8 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const jointDeformation =
     (upperBodyProfile === 'coherent-deforming-hands-v4' ||
       upperBodyProfile === 'coherent-hand-surface-v5' ||
-      upperBodyProfile === 'coherent-portrait-anatomy-v6') &&
+      upperBodyProfile === 'coherent-portrait-anatomy-v6' ||
+      upperBodyProfile === 'coherent-expressive-anatomy-v7') &&
     upperBody
       ? buildDualInfluenceJointDeformation(acc, upperBody)
       : undefined;
@@ -3506,7 +3600,10 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     jointCount: JOINT_COUNT,
     boneOrder: BONE_ORDER,
     anatomy: {
-      schemaVersion: 'holoscript.agent-avatar-anatomy.v1',
+      schemaVersion:
+        upperBodyProfile === 'coherent-expressive-anatomy-v7'
+          ? 'holoscript.agent-avatar-anatomy.v2'
+          : 'holoscript.agent-avatar-anatomy.v1',
       faceWidth,
       faceLength,
       jawTaper,

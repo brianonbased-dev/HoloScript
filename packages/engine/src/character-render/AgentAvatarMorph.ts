@@ -17,6 +17,8 @@ const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 export const NATIVE_FACIAL_MORPH_TARGETS = [
   'blink_left',
   'blink_right',
+  'brow_raise_left',
+  'brow_raise_right',
   'smile',
   'jaw_open',
   'viseme_aa',
@@ -31,11 +33,13 @@ export type NativeFacialTopology = 'procedural-head-v1' | 'neutral-anatomical-v2
 export interface NativeFacialMorphGeometry {
   bodyVertexRange: { vertexStart: number; vertexCount: number };
   eyeVertexRange: { vertexStart: number; vertexCount: number };
+  /** Optional native eyelid-shell range; V2 blink closes the authored lid topology as well as the globe. */
+  orbitalVertexRange?: { vertexStart: number; vertexCount: number };
   topology?: NativeFacialTopology;
 }
 
 export interface NativeMorphReceipt {
-  schemaVersion: 'holoscript.native-facial-morph.v1';
+  schemaVersion: 'holoscript.native-facial-morph.v1' | 'holoscript.native-facial-morph.v2';
   topology: NativeFacialTopology;
   appliedTargets: Array<{ target: NativeFacialMorphTarget; weight: number }>;
   ignoredTargets: string[];
@@ -59,6 +63,16 @@ const TARGET_ALIASES: Readonly<Record<string, readonly NativeFacialMorphTarget[]
   blinkright: ['blink_right'],
   eyeblinkright: ['blink_right'],
   au45r: ['blink_right'],
+  browraise: ['brow_raise_left', 'brow_raise_right'],
+  browraiser: ['brow_raise_left', 'brow_raise_right'],
+  innerbrowraiser: ['brow_raise_left', 'brow_raise_right'],
+  au1: ['brow_raise_left', 'brow_raise_right'],
+  browraiseleft: ['brow_raise_left'],
+  browraiserleft: ['brow_raise_left'],
+  au1l: ['brow_raise_left'],
+  browraiseright: ['brow_raise_right'],
+  browraiserright: ['brow_raise_right'],
+  au1r: ['brow_raise_right'],
   smile: ['smile'],
   mouthsmile: ['smile'],
   lipcornerpuller: ['smile'],
@@ -178,6 +192,8 @@ export function applyNativeFacialMorph(
       (channelWeights.get('viseme_aa') ?? 0) * 0.75 +
       (channelWeights.get('viseme_oh') ?? 0) * 0.35;
     const round = channelWeights.get('viseme_oh') ?? 0;
+    const leftBrowRaise = channelWeights.get('brow_raise_left') ?? 0;
+    const rightBrowRaise = channelWeights.get('brow_raise_right') ?? 0;
 
     for (const vertex of headVertices) {
       const p = vertex * 3;
@@ -185,12 +201,18 @@ export function applyNativeFacialMorph(
       const y = basePositions[p + 1];
       const z = basePositions[p + 2];
       const nx = (x - centerX) / halfX;
+      const ny = (y - centerY) / halfY;
       const lower = clamp01((centerY - y) / halfY);
       const front = clamp01((z - centerZ) / halfZ);
       const corner = Math.abs(nx);
       const influence = lower * front;
       const dx = Math.sign(nx || 1) * scale * influence * (smile * 0.12 * corner - round * 0.15);
-      const dy = scale * influence * (smile * 0.18 * (0.35 + corner * 0.65) - jaw * 0.3);
+      const browSideWeight = nx >= 0 ? leftBrowRaise : rightBrowRaise;
+      const browBand = Math.exp(-Math.pow((ny - 0.2) / 0.19, 2)) * front;
+      const dy =
+        scale *
+        (influence * (smile * 0.18 * (0.35 + corner * 0.65) - jaw * 0.3) +
+          browBand * browSideWeight * 0.12);
       const dz = scale * influence * (jaw * 0.06 + round * 0.14);
       if (changed(output, vertex, x + dx, y + dy, z + dz)) changedVertexCount++;
     }
@@ -221,10 +243,36 @@ export function applyNativeFacialMorph(
     }
   }
 
+  const orbital = geometry.orbitalVertexRange;
+  if (orbital && orbital.vertexCount > 0) {
+    const perSideCount = Math.floor(orbital.vertexCount / 2);
+    for (let side = 0; side < 2; side++) {
+      const count = side === 0 ? perSideCount : orbital.vertexCount - perSideCount;
+      const start = orbital.vertexStart + side * perSideCount;
+      const blink = blinkWeights[side];
+      if (count <= 0 || blink <= 0) continue;
+      let centerY = 0;
+      for (let index = 0; index < count; index++) centerY += output[(start + index) * 3 + 1];
+      centerY /= count;
+      const verticalScale = 1 - blink * 0.94;
+      for (let index = 0; index < count; index++) {
+        const vertex = start + index;
+        const p = vertex * 3;
+        const x = output[p];
+        const y = centerY + (output[p + 1] - centerY) * verticalScale;
+        const z = output[p + 2];
+        if (changed(output, vertex, x, y, z)) changedVertexCount++;
+      }
+    }
+  }
+
   return {
     positions: output,
     receipt: {
-      schemaVersion: 'holoscript.native-facial-morph.v1',
+      schemaVersion:
+        orbital || channelWeights.has('brow_raise_left') || channelWeights.has('brow_raise_right')
+          ? 'holoscript.native-facial-morph.v2'
+          : 'holoscript.native-facial-morph.v1',
       topology: geometry.topology ?? 'procedural-head-v1',
       appliedTargets,
       ignoredTargets: [...new Set(ignoredTargets)].sort(),

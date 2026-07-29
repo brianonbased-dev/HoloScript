@@ -79,11 +79,108 @@ export interface CharacterRenderOptions {
   viewProj?: Mat4;
   /** World-space light direction (default upper-front-right). */
   lightDir?: [number, number, number];
+  /** Optional analytic environment authored by @environment_light. Omission is byte-compatible legacy key light. */
+  environmentLight?: CharacterEnvironmentLightOptions;
   /** World camera position (for view dir / Fresnel; default in front on +Z for the ortho view). */
   cameraPos?: [number, number, number];
   /** Clear RGBA, 0..1 (default dark). */
   clear?: [number, number, number, number];
   heightScale?: number;
+}
+
+export type CharacterEnvironmentLightProfile = 'legacy-key-v1' | 'analytic-three-point-v1';
+
+export interface CharacterEnvironmentLightOptions {
+  profile?: CharacterEnvironmentLightProfile;
+  keyDirection?: [number, number, number];
+  keyColor?: [number, number, number];
+  keyIntensity?: number;
+  fillDirection?: [number, number, number];
+  fillColor?: [number, number, number];
+  fillIntensity?: number;
+  rimDirection?: [number, number, number];
+  rimColor?: [number, number, number];
+  rimIntensity?: number;
+  exposure?: number;
+}
+
+export interface CharacterEnvironmentLightReceipt {
+  schemaVersion: 'holoscript.character-environment-light.v1';
+  profile: CharacterEnvironmentLightProfile;
+  key: {
+    direction: [number, number, number];
+    color: [number, number, number];
+    intensity: number;
+  };
+  fill: {
+    direction: [number, number, number];
+    color: [number, number, number];
+    intensity: number;
+  };
+  rim: {
+    direction: [number, number, number];
+    color: [number, number, number];
+    intensity: number;
+  };
+  exposure: number;
+}
+
+const clampLight = (
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number
+): number => Math.min(max, Math.max(min, Number.isFinite(value) ? (value as number) : fallback));
+
+function normalizedDirection(
+  value: [number, number, number] | undefined,
+  fallback: [number, number, number]
+): [number, number, number] {
+  const candidate = value ?? fallback;
+  const length = Math.hypot(candidate[0], candidate[1], candidate[2]);
+  if (!Number.isFinite(length) || length < 1e-6) return [...fallback];
+  return [candidate[0] / length, candidate[1] / length, candidate[2] / length];
+}
+
+function clampedLightColor(
+  value: [number, number, number] | undefined,
+  fallback: [number, number, number]
+): [number, number, number] {
+  const candidate = value ?? fallback;
+  return candidate.map((channel, index) => clampLight(channel, fallback[index], 0, 4)) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+/** Resolve the exact analytic lights uploaded to the native WebGPU frame uniform. */
+export function deriveCharacterEnvironmentLightReceipt(
+  options: CharacterEnvironmentLightOptions = {},
+  legacyLightDirection: [number, number, number] = [0.4, 0.7, 0.6]
+): CharacterEnvironmentLightReceipt {
+  const profile = options.profile ?? 'legacy-key-v1';
+  const analytic = profile === 'analytic-three-point-v1';
+  return {
+    schemaVersion: 'holoscript.character-environment-light.v1',
+    profile,
+    key: {
+      direction: normalizedDirection(options.keyDirection, legacyLightDirection),
+      color: clampedLightColor(options.keyColor, [1, 1, 1]),
+      intensity: clampLight(options.keyIntensity, 1, 0, 8),
+    },
+    fill: {
+      direction: normalizedDirection(options.fillDirection, [-0.55, 0.25, 0.8]),
+      color: clampedLightColor(options.fillColor, [0.54, 0.67, 1]),
+      intensity: analytic ? clampLight(options.fillIntensity, 0.32, 0, 8) : 0,
+    },
+    rim: {
+      direction: normalizedDirection(options.rimDirection, [0.65, 0.45, -0.62]),
+      color: clampedLightColor(options.rimColor, [1, 0.58, 0.32]),
+      intensity: analytic ? clampLight(options.rimIntensity, 0.48, 0, 8) : 0,
+    },
+    exposure: clampLight(options.exposure, 1, 0.25, 4),
+  };
 }
 
 export interface CharacterVertexRange {
@@ -216,9 +313,7 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
     out[17] = decoupled
       ? Math.max(0, Math.min(0.2, m.roughnessVariationStrength ?? coupledStrength))
       : coupledStrength;
-    out[18] = decoupled
-      ? Math.max(0, Math.min(0.35, m.normalMicrodetailStrength ?? 0.08))
-      : 0;
+    out[18] = decoupled ? Math.max(0, Math.min(0.35, m.normalMicrodetailStrength ?? 0.08)) : 0;
     out[19] = microdetailEnabled ? Math.max(20, Math.min(180, m.microdetailScale ?? 80)) : 0;
   } else if (m.shadingModel === 'marschner-hair') {
     out[4] = m.melanin;
@@ -477,7 +572,10 @@ export async function renderCharacter(
   const hs = opts.heightScale ?? 1;
   const viewProj = opts.viewProj ?? framingMatrix(hs);
   const clear = opts.clear ?? [0.07, 0.07, 0.09, 1];
-  const light = opts.lightDir ?? [0.4, 0.7, 0.6];
+  const environment = deriveCharacterEnvironmentLightReceipt(
+    opts.environmentLight,
+    opts.lightDir ?? [0.4, 0.7, 0.6]
+  );
   const camera = opts.cameraPos ?? [0, 0.9 * hs, 6];
   const format: GPUTextureFormat = 'rgba8unorm';
   const { mesh } = spec;
@@ -593,8 +691,7 @@ export async function renderCharacter(
   });
   device.queue.writeBuffer(uvBuf, 0, uvData);
   const secondaryJointIndices = mesh.secondaryJointIndices ?? mesh.jointIndices;
-  const secondaryJointWeights =
-    mesh.secondaryJointWeights ?? new Float32Array(mesh.vertexCount);
+  const secondaryJointWeights = mesh.secondaryJointWeights ?? new Float32Array(mesh.vertexCount);
   const secondaryJiBuf = device.createBuffer({
     size: secondaryJointIndices.byteLength,
     usage: BUF_VERTEX | BUF_COPY_DST,
@@ -611,18 +708,26 @@ export async function renderCharacter(
   });
   device.queue.writeBuffer(idxBuf, 0, mesh.indices);
 
-  // Shared frame uniform: mvp(16) + model(16) + cameraPos(4) + lightDir(4) = 40 floats.
+  // Shared frame uniform: transforms/camera + three analytic lights + exposure = 64 floats.
   const mvp = multiply(viewProj, spec.modelMatrix);
-  const frame = new Float32Array(40);
+  const frame = new Float32Array(64);
   frame.set(mvp, 0);
   frame.set(spec.modelMatrix, 16);
   frame[32] = camera[0];
   frame[33] = camera[1];
   frame[34] = camera[2];
   frame[35] = 0;
-  frame[36] = light[0];
-  frame[37] = light[1];
-  frame[38] = light[2];
+  frame.set(environment.key.direction, 36);
+  frame.set(environment.key.color, 40);
+  frame[43] = environment.key.intensity;
+  frame.set(environment.fill.direction, 44);
+  frame.set(environment.fill.color, 48);
+  frame[51] = environment.fill.intensity;
+  frame.set(environment.rim.direction, 52);
+  frame.set(environment.rim.color, 56);
+  frame[59] = environment.rim.intensity;
+  frame[60] = environment.exposure;
+  frame[61] = environment.profile === 'analytic-three-point-v1' ? 1 : 0;
   frame[39] = 0;
   const frameBuf = device.createBuffer({
     size: frame.byteLength,
