@@ -1073,7 +1073,7 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
           shoulderBlendRingCount: 6,
           shoulderOverlapDepth: 0.044,
           minimumShoulderRadiusRatio: 0.7,
-          superiorContourScaleMin: 0.55,
+          superiorContourScaleMin: 0.15,
         }),
       ])
     );
@@ -1114,7 +1114,7 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
       2;
     const superiorExtent = portrait.positions[root * 3 + 1] - rootCenterY;
     const inferiorExtent = rootCenterY - portrait.positions[(root + 12) * 3 + 1];
-    expect(superiorExtent / inferiorExtent).toBeCloseTo(0.55, 5);
+    expect(superiorExtent / inferiorExtent).toBeCloseTo(0.15, 5);
     const ringStart = left.vertexRange.vertexStart + 3 * left.radialSegments;
     const palette = computeJointPalette(
       new Map([['left_upper_arm', quatFromAxisAngle(0, 0, 1, -1.2)]])

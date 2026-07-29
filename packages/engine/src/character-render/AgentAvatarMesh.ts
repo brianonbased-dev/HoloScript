@@ -2083,7 +2083,7 @@ function pushCoherentUpperLimb(
       radiusY: shoulderRadius * 1.1,
       radiusZ: shoulderRadius * 1.04,
       jointName: 'spine2',
-      superiorScale: 0.55,
+      superiorScale: 0.15,
     },
     {
       center: {
@@ -2094,7 +2094,7 @@ function pushCoherentUpperLimb(
       radiusY: shoulderRadius * 1.18,
       radiusZ: shoulderRadius * 1.1,
       jointName: `${side}_shoulder`,
-      superiorScale: 0.68,
+      superiorScale: 0.4,
     },
     {
       center: {
@@ -2105,7 +2105,7 @@ function pushCoherentUpperLimb(
       radiusY: shoulderRadius * 1.15,
       radiusZ: shoulderRadius * 1.06,
       jointName: `${side}_shoulder`,
-      superiorScale: 0.82,
+      superiorScale: 0.68,
     },
     {
       center: midpoint(root, elbow, 0.3),
