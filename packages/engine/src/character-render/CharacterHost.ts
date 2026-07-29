@@ -39,6 +39,7 @@ import {
   type AgentAvatarFacialDetailProfile,
   type AgentAvatarFacialLandmarkReceipt,
   type AgentAvatarFaceTopology,
+  type AgentAvatarJointDeformationReceipt,
   type AgentAvatarOrbitalProfile,
   type AgentAvatarUpperBodyProfile,
   type AvatarPose,
@@ -651,6 +652,16 @@ export class CharacterHost {
           }
         : {}),
     };
+  }
+
+  /** Exact operative dual-influence zones emitted by the selected procedural profile. */
+  getJointDeformationReceipt(): AgentAvatarJointDeformationReceipt | null {
+    return this.built.jointDeformation
+      ? {
+          ...this.built.jointDeformation,
+          regionVertexCounts: { ...this.built.jointDeformation.regionVertexCounts },
+        }
+      : null;
   }
 
   /** Exact native civic facial-landmark topology and authored controls, when selected. */

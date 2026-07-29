@@ -645,6 +645,27 @@ describe('buildCharacterHostFromComposition', () => {
       boneNames: ['left_shoulder'],
       normalizedQuaternionCount: 1,
     });
+    expect(result.jointDeformation).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount: 1008,
+      jointPairCount: 38,
+      maxSecondaryWeight: 0.55,
+      maxWeightSumError: 0,
+      regionVertexCounts: {
+        shoulder: 96,
+        elbow: 96,
+        wrist: 96,
+        digitRoot: 240,
+        fingerJoint: 480,
+      },
+    });
+    expect(result.host!.getDrawSpec().mesh.secondaryJointIndices).toHaveLength(
+      result.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(result.host!.getDrawSpec().mesh.secondaryJointWeights).toHaveLength(
+      result.host!.getDrawSpec().mesh.vertexCount
+    );
     expect(result.report.mapped).toContain('@pose(name=attentive-open-palm,bones=left_shoulder)');
     expect(result.report.stubbed).toContainEqual({
       trait: '@pose(bone=provider_magic_joint)',

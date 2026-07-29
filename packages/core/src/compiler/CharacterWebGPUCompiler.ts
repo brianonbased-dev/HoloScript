@@ -39,6 +39,8 @@ export interface CharacterDrawSpecBundle {
     indices: number[];
     jointIndices: number[];
     jointWeights: number[];
+    secondaryJointIndices?: number[];
+    secondaryJointWeights?: number[];
   };
   /** jointCount × 16 column-major floats (skin = worldPose · inverseBind). */
   jointMatrices: number[];
@@ -85,6 +87,10 @@ export interface CharacterDrawSpecBundle {
   groom?: unknown;
   /** Present when source-authored native procedural-head morph targets are operative. */
   morph?: unknown;
+  /** Present when source-authored local-bone rotations are operative. */
+  pose?: unknown;
+  /** Present when the selected native profile emits dual-influence deformation zones. */
+  jointDeformation?: unknown;
   /** Present when a detachable public/story mantle is authored. */
   mantle?: unknown;
   /** Honest mapped/stubbed report from the authoring bridge. */
@@ -168,6 +174,13 @@ export class CharacterWebGPUCompiler {
     const facialLandmarks = 'facialLandmarks' in result ? result.facialLandmarks : undefined;
     const garment = 'garment' in result ? result.garment : undefined;
     const groom = 'groom' in result ? result.groom : undefined;
+    const pose = 'pose' in result ? result.pose : undefined;
+    const jointDeformation =
+      'jointDeformation' in result ? result.jointDeformation : undefined;
+    const dualInfluenceMesh = spec.mesh as typeof spec.mesh & {
+      secondaryJointIndices?: ArrayLike<number>;
+      secondaryJointWeights?: ArrayLike<number>;
+    };
     const bundle: CharacterDrawSpecBundle = {
       format: 'character-webgpu/drawspec',
       version: 1,
@@ -182,6 +195,12 @@ export class CharacterWebGPUCompiler {
         indices: num(spec.mesh.indices),
         jointIndices: num(spec.mesh.jointIndices),
         jointWeights: num(spec.mesh.jointWeights),
+        ...(dualInfluenceMesh.secondaryJointIndices
+          ? { secondaryJointIndices: num(dualInfluenceMesh.secondaryJointIndices) }
+          : {}),
+        ...(dualInfluenceMesh.secondaryJointWeights
+          ? { secondaryJointWeights: num(dualInfluenceMesh.secondaryJointWeights) }
+          : {}),
       },
       jointMatrices: num(spec.jointMatrices),
       material: spec.material,
@@ -196,6 +215,8 @@ export class CharacterWebGPUCompiler {
       ...(garment ? { garment } : {}),
       ...(groom ? { groom } : {}),
       ...(morph ? { morph } : {}),
+      ...(pose ? { pose } : {}),
+      ...(jointDeformation ? { jointDeformation } : {}),
       ...(result.mantle ? { mantle: result.mantle } : {}),
       report: result.report,
     };

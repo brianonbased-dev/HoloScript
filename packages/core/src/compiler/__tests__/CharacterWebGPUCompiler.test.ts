@@ -288,8 +288,16 @@ describe('CharacterWebGPUCompiler', () => {
       torsoScale: 0.94,
     });
     expect(bundle.skin).toEqual({
-      schemaVersion: 'holoscript.agent-avatar-skin-material.v1',
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'legacy-v1',
       shadingModel: 'skin-sss',
+      color: 0xcc4d33,
+      scatterColor: [0.8, 0.25, 0.13],
+      scatterRadii: [3.67, 1.37, 0.68],
+      specularF0: 0.028,
+      thickness: 0.3,
+      transmitStrength: 0.4,
+      ambient: 0.12,
       microdetailProfile: 'analytic-pore-v1',
       microdetailScale: 96,
       microdetailStrength: 0.09,
@@ -667,6 +675,76 @@ describe('CharacterWebGPUCompiler', () => {
         (group) => group.material.shadingModel
       )
     ).toEqual(['skin-sss', 'woven-cloth', 'lambert', 'woven-cloth']);
+  });
+
+  it('serializes V4 dual influences and the operative source pose receipt', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits = composition.objects[0]!.traits!.map((trait) =>
+      trait.name === 'body'
+        ? {
+            ...trait,
+            config: {
+              ...trait.config,
+              upper_body_profile: 'coherent_deforming_hands_v4',
+              upper_body_radial_segments: 24,
+            },
+          }
+        : trait
+    );
+    composition.objects[0]!.traits!.push({
+      type: 'ObjectTrait',
+      name: 'pose',
+      config: {
+        name: 'compiler-operative-open-palm',
+        bones: {
+          left_shoulder: [0, 0, 0.173648, 0.984808],
+          left_hand: [0, 0, -0.258819, 0.965926],
+          left_index_proximal: [0, 0, 0.130526, 0.991445],
+        },
+      },
+    });
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    const secondaryIndices = bundle.mesh.secondaryJointIndices!;
+    const secondaryWeights = bundle.mesh.secondaryJointWeights!;
+
+    expect(secondaryIndices).toHaveLength(bundle.vertexCount);
+    expect(secondaryWeights).toHaveLength(bundle.vertexCount);
+    expect(secondaryWeights.filter((weight) => weight > 0)).toHaveLength(1008);
+    for (let vertex = 0; vertex < bundle.vertexCount; vertex++) {
+      expect(bundle.mesh.jointWeights[vertex] + secondaryWeights[vertex]).toBeCloseTo(1, 6);
+    }
+    expect(bundle.pose).toEqual({
+      schemaVersion: 'holoscript.character-source-pose.v1',
+      name: 'compiler-operative-open-palm',
+      space: 'local-bone',
+      quaternionOrder: 'xyzw',
+      boneCount: 3,
+      boneNames: ['left_hand', 'left_index_proximal', 'left_shoulder'],
+      normalizedQuaternionCount: 0,
+    });
+    expect(bundle.jointDeformation).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount: 1008,
+      jointPairCount: 38,
+      maxSecondaryWeight: 0.55,
+      maxWeightSumError: 0,
+      regionVertexCounts: {
+        shoulder: 96,
+        elbow: 96,
+        wrist: 96,
+        digitRoot: 240,
+        fingerJoint: 480,
+      },
+    });
+    expect(
+      (bundle.report as { mapped: string[] }).mapped.some((entry) =>
+        entry.startsWith('@pose(name=compiler-operative-open-palm')
+      )
+    ).toBe(true);
   });
 
   it('throws on a composition with no character object (no fabricated body — false case)', async () => {

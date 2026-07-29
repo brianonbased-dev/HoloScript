@@ -27,6 +27,7 @@ import type {
   AgentAvatarFacialDetailProfile,
   AgentAvatarFacialLandmarkReceipt,
   AgentAvatarFaceTopology,
+  AgentAvatarJointDeformationReceipt,
   AgentAvatarOrbitalProfile,
   AgentAvatarUpperBodyProfile,
 } from './AgentAvatarMesh';
@@ -166,6 +167,8 @@ export interface CharacterHostFromCompositionResult {
   morph?: NativeMorphReceipt;
   /** Source-authored local-bone pose that was applied to the operative native host. */
   pose?: CharacterPoseReceipt;
+  /** Operative dual-influence deformation emitted by the selected native body profile. */
+  jointDeformation?: AgentAvatarJointDeformationReceipt;
   /** Detachable public/story mantle and source refs resolved by the host platform. */
   mantle?: {
     style: SovereignMantleStyle;
@@ -1373,6 +1376,7 @@ export function buildCharacterHostFromComposition(
   const groom =
     hair && includeHair !== false ? (host.getGroomGeometryReceipt() ?? undefined) : undefined;
   const anatomy = anatomyAuthored ? host.getAnatomyReceipt() : undefined;
+  const jointDeformation = host.getJointDeformationReceipt() ?? undefined;
   const skin = skinMicrodetailProfile ? host.getSkinMaterialReceipt() : undefined;
   const facialLandmarks = facialDetailProfile
     ? (host.getFacialLandmarkReceipt() ?? undefined)
@@ -1393,6 +1397,7 @@ export function buildCharacterHostFromComposition(
     groom,
     morph,
     pose: poseMapping?.receipt,
+    jointDeformation,
     mantle,
     report,
   };
