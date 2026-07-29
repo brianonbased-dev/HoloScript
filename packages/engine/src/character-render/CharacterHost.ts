@@ -114,6 +114,12 @@ export interface CharacterHostOptions {
   earScale?: number;
   /** Lip-volume depth multiplier. */
   mouthDepth?: number;
+  /** Portrait-silhouette-v2 cheek-volume multiplier. */
+  cheekboneScale?: number;
+  /** Portrait-silhouette-v2 forward chin projection. */
+  chinProjection?: number;
+  /** Portrait-silhouette-v2 temple-width multiplier. */
+  templeWidth?: number;
   /** Neutral-head width multiplier (0.84..1.2). */
   faceWidth?: number;
   /** Neutral-head vertical-length multiplier (0.86..1.16). */
@@ -426,6 +432,9 @@ export class CharacterHost {
       browThickness: opts.browThickness,
       earScale: opts.earScale,
       mouthDepth: opts.mouthDepth,
+      cheekboneScale: opts.cheekboneScale,
+      chinProjection: opts.chinProjection,
+      templeWidth: opts.templeWidth,
       faceWidth: opts.faceWidth,
       faceLength: opts.faceLength,
       jawTaper: opts.jawTaper,

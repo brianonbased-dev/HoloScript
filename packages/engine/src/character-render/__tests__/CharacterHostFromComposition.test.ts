@@ -782,6 +782,151 @@ describe('buildCharacterHostFromComposition', () => {
     });
   });
 
+  it('maps V6 portrait anatomy, facial silhouette, calibrated skin, and an arms-down pose', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'OpenAIResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                skin_tone: '#B9826F',
+                upper_body_profile: 'coherent_portrait_anatomy_v6',
+                upper_body_radial_segments: 24,
+                shoulder_scale: 1.1,
+                torso_scale: 0.96,
+                nail_tone: '#E6BEB2',
+                nail_roughness: 0.24,
+                nail_bed_tone: '#C9827C',
+                nail_bed_roughness: 0.36,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                radial_segments: 28,
+                vertical_segments: 20,
+                facial_detail_profile: 'portrait_silhouette_v2',
+                cheekbone_scale: 1.14,
+                chin_projection: 1.12,
+                temple_width: 0.94,
+              },
+            },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                color: '#B9826F',
+                scatter_color: '#A65D50',
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 94,
+                microdetail_strength: 0.074,
+              },
+            },
+            {
+              name: 'pose',
+              config: {
+                name: 'portrait-arms-down',
+                bones: {
+                  left_upper_arm: [0, 0, -0.564642, 0.825336],
+                  right_upper_arm: [0, 0, 0.564642, 0.825336],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.anatomy?.upperBody?.profile).toBe('portrait-anatomy-v6');
+    expect(result.anatomy?.upperBody?.upperLimbs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          profile: 'portrait-deltoid-hand-surface-v6',
+          shoulderBlendRingCount: 6,
+          minimumShoulderRadiusRatio: 0.7,
+        }),
+      ])
+    );
+    expect(result.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v2',
+      profile: 'portrait-silhouette-v2',
+      cheekboneScale: 1.14,
+      chinProjection: 1.12,
+      templeWidth: 0.94,
+    });
+    expect(result.face).toMatchObject({
+      facialDetailProfile: 'portrait-silhouette-v2',
+      cheekboneScale: 1.14,
+      chinProjection: 1.12,
+      templeWidth: 0.94,
+    });
+    expect(result.jointDeformation).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v2',
+      profile: 'portrait-shoulder-volume-v2',
+      regionVertexCounts: { shoulder: 288 },
+      shoulderVolume: {
+        blendRingCount: 6,
+        minimumAuthoredRadiusRatio: 0.7,
+      },
+    });
+    expect(result.handSurface?.upperBodyProfile).toBe('coherent-portrait-anatomy-v6');
+    expect(result.pose).toMatchObject({
+      name: 'portrait-arms-down',
+      boneCount: 2,
+      boneNames: ['left_upper_arm', 'right_upper_arm'],
+    });
+    expect(result.host!.getDrawSpec().mesh.secondaryJointIndices).toHaveLength(
+      result.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(result.host!.getSkinMaterialReceipt()).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'fixed-light-human-v1',
+      microdetailProfile: 'analytic-pore-v1',
+    });
+    expect(
+      result.report.mapped.some((entry) =>
+        entry.includes('@body(upper_body_profile=coherent-portrait-anatomy-v6')
+      )
+    ).toBe(true);
+    expect(
+      result.report.mapped.some((entry) =>
+        entry.includes('@face(facial_detail_profile=portrait-silhouette-v2')
+      )
+    ).toBe(true);
+  });
+
+  it('does not silently accept portrait silhouette controls on a civic face profile', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'CivicResident',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                facial_detail_profile: 'civic_landmarks_v1',
+                cheekbone_scale: 1.14,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@face(portrait_silhouette_controls)',
+      reason: 'cheekbone_scale, chin_projection, and temple_width require portrait_silhouette_v2',
+    });
+    expect(result.face?.cheekboneScale).toBeUndefined();
+  });
+
   it('applies a validated source-authored operative pose and rejects unknown joint claims', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

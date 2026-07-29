@@ -1039,4 +1039,109 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     }
     expect(influencedVertexCount).toBe(1008);
   });
+
+  it('emits deterministic V6 portrait anatomy with six-ring shoulder volume and facial silhouette', () => {
+    const options = {
+      upperBodyProfile: 'coherent-portrait-anatomy-v6' as const,
+      upperBodyRadialSegments: 24,
+      shoulderScale: 1.1,
+      torsoScale: 0.96,
+      faceTopology: 'neutral-anatomical-v2' as const,
+      facialDetailProfile: 'portrait-silhouette-v2' as const,
+      cheekboneScale: 1.14,
+      chinProjection: 1.12,
+      templeWidth: 0.94,
+    };
+    const portrait = buildAgentAvatarMesh(options);
+    const repeated = buildAgentAvatarMesh(options);
+    const civic = buildAgentAvatarMesh({
+      ...options,
+      upperBodyProfile: 'coherent-hand-surface-v5',
+      facialDetailProfile: 'civic-landmarks-v1',
+    });
+
+    expect(portrait.vertexCount).toBe(5971);
+    expect(sha256(portrait.positions)).toBe(sha256(repeated.positions));
+    expect(sha256(portrait.indices)).toBe(sha256(repeated.indices));
+    expect(sha256(portrait.positions)).not.toBe(sha256(civic.positions));
+    expect(portrait.anatomy.upperBody?.profile).toBe('portrait-anatomy-v6');
+    expect(portrait.anatomy.upperBody?.upperLimbs.map((limb) => limb.ringCount)).toEqual([15, 15]);
+    expect(portrait.anatomy.upperBody?.upperLimbs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          profile: 'portrait-deltoid-hand-surface-v6',
+          shoulderBlendRingCount: 6,
+          shoulderOverlapDepth: 0.044,
+          minimumShoulderRadiusRatio: 0.7,
+        }),
+      ])
+    );
+    expect(portrait.jointDeformation).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v2',
+      profile: 'portrait-shoulder-volume-v2',
+      influencedVertexCount: 1200,
+      jointPairCount: 38,
+      maxSecondaryWeight: 0.55,
+      maxWeightSumError: 0,
+      regionVertexCounts: {
+        shoulder: 288,
+        elbow: 96,
+        wrist: 96,
+        digitRoot: 240,
+        fingerJoint: 480,
+      },
+      shoulderVolume: {
+        blendRingCount: 6,
+        rootOverlapDepth: 0.044,
+        minimumAuthoredRadiusRatio: 0.7,
+        influenceWeights: [0.12, 0.15, 0.18, 0.4, 0.22, 0.08],
+      },
+    });
+    expect(portrait.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v2',
+      profile: 'portrait-silhouette-v2',
+      cheekboneScale: 1.14,
+      chinProjection: 1.12,
+      templeWidth: 0.94,
+    });
+    expect(portrait.handSurface?.upperBodyProfile).toBe('coherent-portrait-anatomy-v6');
+
+    const left = portrait.anatomy.upperBody!.upperLimbs[0];
+    const ringStart = left.vertexRange.vertexStart + 3 * left.radialSegments;
+    const palette = computeJointPalette(
+      new Map([['left_upper_arm', quatFromAxisAngle(0, 0, 1, -1.2)]])
+    );
+    const bindPoints: [number, number, number][] = [];
+    const posedPoints: [number, number, number][] = [];
+    for (let vertex = ringStart; vertex < ringStart + left.radialSegments; vertex++) {
+      const point = [
+        portrait.positions[vertex * 3],
+        portrait.positions[vertex * 3 + 1],
+        portrait.positions[vertex * 3 + 2],
+      ] as const;
+      bindPoints.push([...point]);
+      const primary = transformPoint(blockAt(palette, portrait.jointIndices[vertex]), point);
+      const secondary = transformPoint(
+        blockAt(palette, portrait.secondaryJointIndices![vertex]),
+        point
+      );
+      const secondaryWeight = portrait.secondaryJointWeights![vertex];
+      posedPoints.push([
+        primary[0] * (1 - secondaryWeight) + secondary[0] * secondaryWeight,
+        primary[1] * (1 - secondaryWeight) + secondary[1] * secondaryWeight,
+        primary[2] * (1 - secondaryWeight) + secondary[2] * secondaryWeight,
+      ]);
+    }
+    const minimumRadius = (points: readonly [number, number, number][]): number => {
+      const center = [0, 1, 2].map(
+        (axis) => points.reduce((sum, point) => sum + point[axis], 0) / points.length
+      );
+      return Math.min(
+        ...points.map((point) =>
+          Math.hypot(point[0] - center[0], point[1] - center[1], point[2] - center[2])
+        )
+      );
+    };
+    expect(minimumRadius(posedPoints) / minimumRadius(bindPoints)).toBeGreaterThan(0.87);
+  });
 });

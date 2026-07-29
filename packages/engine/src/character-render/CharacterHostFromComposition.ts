@@ -145,6 +145,9 @@ export interface CharacterHostFromCompositionResult {
     browThickness?: number;
     earScale?: number;
     mouthDepth?: number;
+    cheekboneScale?: number;
+    chinProjection?: number;
+    templeWidth?: number;
     faceWidth?: number;
     faceLength?: number;
     jawTaper?: number;
@@ -596,6 +599,7 @@ export function buildCharacterHostFromComposition(
       authoredUpperBodyProfile === 'coherent-hand-landmarks-v3' ||
       authoredUpperBodyProfile === 'coherent-deforming-hands-v4' ||
       authoredUpperBodyProfile === 'coherent-hand-surface-v5' ||
+      authoredUpperBodyProfile === 'coherent-portrait-anatomy-v6' ||
       authoredUpperBodyProfile === 'legacy-segments-v1'
     ) {
       upperBodyProfile = authoredUpperBodyProfile;
@@ -629,7 +633,8 @@ export function buildCharacterHostFromComposition(
       if (
         upperBodyProfile === 'coherent-hand-landmarks-v3' ||
         upperBodyProfile === 'coherent-deforming-hands-v4' ||
-        upperBodyProfile === 'coherent-hand-surface-v5'
+        upperBodyProfile === 'coherent-hand-surface-v5' ||
+        upperBodyProfile === 'coherent-portrait-anatomy-v6'
       ) {
         nailTone = authoredNailTone;
         nailRoughness =
@@ -656,7 +661,7 @@ export function buildCharacterHostFromComposition(
         report.stubbed.push({
           trait: '@body(nail_material_controls)',
           reason:
-            'nail material controls require coherent-hand-landmarks-v3, coherent-deforming-hands-v4, or coherent-hand-surface-v5',
+            'nail material controls require coherent-hand-landmarks-v3, coherent-deforming-hands-v4, coherent-hand-surface-v5, or coherent-portrait-anatomy-v6',
         });
       }
     } else if (authoredUpperBodyProfile) {
@@ -694,6 +699,9 @@ export function buildCharacterHostFromComposition(
   let browThickness: number | undefined;
   let earScale: number | undefined;
   let mouthDepth: number | undefined;
+  let cheekboneScale: number | undefined;
+  let chinProjection: number | undefined;
+  let templeWidth: number | undefined;
   let faceWidth = 1;
   let faceLength = 1;
   let jawTaper = 0.22;
@@ -770,9 +778,14 @@ export function buildCharacterHostFromComposition(
         )
           ?.toLowerCase()
           .replace(/_/g, '-');
+        const hasPortraitSilhouetteControls =
+          faceTrait.config.cheekbone_scale !== undefined ||
+          faceTrait.config.chin_projection !== undefined ||
+          faceTrait.config.temple_width !== undefined;
         if (
           authoredFacialDetailProfile === 'legacy-landmarks-v1' ||
-          authoredFacialDetailProfile === 'civic-landmarks-v1'
+          authoredFacialDetailProfile === 'civic-landmarks-v1' ||
+          authoredFacialDetailProfile === 'portrait-silhouette-v2'
         ) {
           facialDetailProfile = authoredFacialDetailProfile;
           eyeScale = clamp(asNum(cfgVal(faceTrait, 'eye_scale', 'globe_scale')) ?? 1, 0.72, 1.08);
@@ -780,10 +793,26 @@ export function buildCharacterHostFromComposition(
           browThickness = clamp(asNum(cfgVal(faceTrait, 'brow_thickness')) ?? 0.16, 0.08, 0.32);
           earScale = clamp(asNum(cfgVal(faceTrait, 'ear_scale')) ?? 1, 0.7, 1.3);
           mouthDepth = clamp(asNum(cfgVal(faceTrait, 'mouth_depth')) ?? 0.72, 0.25, 1.4);
+          if (facialDetailProfile === 'portrait-silhouette-v2') {
+            cheekboneScale = clamp(asNum(cfgVal(faceTrait, 'cheekbone_scale')) ?? 1, 0.82, 1.22);
+            chinProjection = clamp(asNum(cfgVal(faceTrait, 'chin_projection')) ?? 1, 0.72, 1.28);
+            templeWidth = clamp(asNum(cfgVal(faceTrait, 'temple_width')) ?? 1, 0.88, 1.12);
+          } else if (hasPortraitSilhouetteControls) {
+            report.stubbed.push({
+              trait: '@face(portrait_silhouette_controls)',
+              reason:
+                'cheekbone_scale, chin_projection, and temple_width require portrait_silhouette_v2',
+            });
+          }
           report.mapped.push(
             `@face(facial_detail_profile=${facialDetailProfile},eye_scale=${eyeScale},` +
               `brow_height=${browHeight},brow_thickness=${browThickness},` +
-              `ear_scale=${earScale},mouth_depth=${mouthDepth})`
+              `ear_scale=${earScale},mouth_depth=${mouthDepth}` +
+              (facialDetailProfile === 'portrait-silhouette-v2'
+                ? `,cheekbone_scale=${cheekboneScale},chin_projection=${chinProjection},` +
+                  `temple_width=${templeWidth}`
+                : '') +
+              ')'
           );
         } else if (authoredFacialDetailProfile) {
           report.stubbed.push({
@@ -796,7 +825,8 @@ export function buildCharacterHostFromComposition(
           faceTrait.config.brow_height !== undefined ||
           faceTrait.config.brow_thickness !== undefined ||
           faceTrait.config.ear_scale !== undefined ||
-          faceTrait.config.mouth_depth !== undefined
+          faceTrait.config.mouth_depth !== undefined ||
+          hasPortraitSilhouetteControls
         ) {
           report.stubbed.push({
             trait: '@face(facial_landmark_controls)',
@@ -851,6 +881,9 @@ export function buildCharacterHostFromComposition(
         ...(browThickness === undefined ? {} : { browThickness }),
         ...(earScale === undefined ? {} : { earScale }),
         ...(mouthDepth === undefined ? {} : { mouthDepth }),
+        ...(cheekboneScale === undefined ? {} : { cheekboneScale }),
+        ...(chinProjection === undefined ? {} : { chinProjection }),
+        ...(templeWidth === undefined ? {} : { templeWidth }),
         ...(authoredFaceWidth === undefined ? {} : { faceWidth }),
         ...(authoredFaceLength === undefined ? {} : { faceLength }),
         ...(authoredJawTaper === undefined ? {} : { jawTaper }),
@@ -1312,6 +1345,9 @@ export function buildCharacterHostFromComposition(
     browThickness,
     earScale,
     mouthDepth,
+    cheekboneScale,
+    chinProjection,
+    templeWidth,
     faceWidth,
     faceLength,
     jawTaper,
