@@ -108,4 +108,28 @@ describe('AgentAvatarGarment — coherent upper-body fit', () => {
       indexCount: (TUNIC_RING_COUNT - 1) * 14 * 6,
     });
   });
+
+  it('tailors the open collar and sleeve silhouette to the coherent upper limbs', () => {
+    const garment = buildAgentAvatarGarment({
+      style: 'stormglass_open_civic_tunic',
+      buildScale: 1,
+      heightScale: 1,
+      torsoScale: 0.96,
+      shoulderScale: 1.1,
+      radialSegments: 20,
+    });
+
+    expect(garment.receipt).toMatchObject({
+      fitProfile: 'coherent-upper-body-clearance-v1',
+      collarProfile: 'tailored-open-v-collar-v1',
+      shoulderShellHalfWidth: 0.352,
+      sleeveRootRadius: 0.086,
+      sleeveWristRadius: 0.047,
+    });
+    expect(garment.receipt.shoulderShellHalfWidth).toBeLessThan(0.4);
+    expect(garment.receipt.sleeveRootRadius).toBeLessThan(0.1);
+    expect(garment.receipt.sleeveWristRadius).toBeLessThan(
+      garment.receipt.sleeveRootRadius
+    );
+  });
 });

@@ -48,8 +48,15 @@ export interface AgentAvatarGarmentGeometryReceipt {
   radialSegments: number;
   faceCoverage: 'closed-hood-visor' | 'open-v-collar';
   fitProfile: 'legacy-shell-v1' | 'coherent-upper-body-clearance-v1';
+  collarProfile: 'legacy-hood-collar-v1' | 'tailored-open-v-collar-v1';
   torsoScale: number;
   shoulderScale: number;
+  /** Emitted bind-space half width of the upper shoulder shell. */
+  shoulderShellHalfWidth: number;
+  /** Emitted bind-space radius at the upper sleeve root. */
+  sleeveRootRadius: number;
+  /** Emitted bind-space radius at the sleeve cuff. */
+  sleeveWristRadius: number;
   /** Exact cloth-index subrange for the continuous tunic shell, excluding collar and sleeves. */
   tunicIndexRange: { indexStart: number; indexCount: number };
   clothVertexCount: number;
@@ -108,6 +115,7 @@ const normalize = (a: Vec3): Vec3 => {
   const length = Math.hypot(a.x, a.y, a.z) || 1;
   return v(a.x / length, a.y / length, a.z / length);
 };
+const round6 = (value: number): number => Math.round(value * 1_000_000) / 1_000_000;
 
 function accum(): MeshAccum {
   return {
@@ -276,20 +284,25 @@ function pushVisor(target: MeshAccum, segments: number, buildScale: number): voi
  * skinned ribbon rather than a painted neckline, so the authored style changes uploaded
  * topology while keeping the face, eyes, and groom unobstructed.
  */
-function pushOpenCollar(target: MeshAccum, buildScale: number): void {
+function pushOpenCollar(
+  target: MeshAccum,
+  buildScale: number,
+  shoulderScale: number
+): void {
   const jointIndex = BONE_INDEX.get('spine2') ?? 0;
-  const z = 0.222 * buildScale;
-  const halfWidth = 0.014 * buildScale;
+  const z = 0.193 * buildScale;
+  const halfWidth = 0.011 * buildScale;
+  const collarScale = buildScale * shoulderScale;
   const paths: Vec3[][] = [
     [
-      v(-0.245 * buildScale, 1.365, z),
-      v(-0.145 * buildScale, 1.35, z + 0.004 * buildScale),
-      v(-0.052 * buildScale, 1.27, z + 0.006 * buildScale),
+      v(-0.205 * collarScale, 1.395, z),
+      v(-0.128 * collarScale, 1.375, z + 0.004 * buildScale),
+      v(-0.048 * collarScale, 1.305, z + 0.006 * buildScale),
     ],
     [
-      v(0.245 * buildScale, 1.365, z),
-      v(0.145 * buildScale, 1.35, z + 0.004 * buildScale),
-      v(0.052 * buildScale, 1.27, z + 0.006 * buildScale),
+      v(0.205 * collarScale, 1.395, z),
+      v(0.128 * collarScale, 1.375, z + 0.004 * buildScale),
+      v(0.048 * collarScale, 1.305, z + 0.006 * buildScale),
     ],
   ];
 
@@ -392,6 +405,12 @@ export function buildAgentAvatarGarment(
   const openCivic = options.style === 'stormglass_open_civic_tunic';
   const torsoBuild = buildScale * torsoScale;
   const openShoulderBuild = buildScale * Math.max(1, shoulderScale);
+  const shoulderShellHalfWidth = openCivic
+    ? 0.32 * openShoulderBuild
+    : 0.325 * buildScale;
+  const sleeveRootRadius = (openCivic ? 0.086 : 0.11) * buildScale;
+  const sleeveElbowRadius = (openCivic ? 0.064 : 0.068) * buildScale;
+  const sleeveWristRadius = (openCivic ? 0.047 : 0.052) * buildScale;
   const cloth = accum();
   const visor = accum();
   const mantle = accum();
@@ -427,21 +446,21 @@ export function buildAgentAvatarGarment(
       },
       {
         y: 1.36,
-        rx: openCivic ? 0.32 * openShoulderBuild : 0.285 * buildScale,
-        rz: (openCivic ? 0.225 : 0.17) * buildScale,
+        rx: openCivic ? 0.29 * openShoulderBuild : 0.285 * buildScale,
+        rz: (openCivic ? 0.205 : 0.17) * buildScale,
         bone: 'spine2',
-        centerZ: openCivic ? 0.02 * buildScale : 0,
+        centerZ: openCivic ? 0.015 * buildScale : 0,
         clothWeight: 0,
-        frontDrop: openCivic ? 0.05 : 0,
+        frontDrop: openCivic ? 0.035 : 0,
       },
       {
-        y: openCivic ? 1.47 : 1.43,
-        rx: openCivic ? 0.47 * openShoulderBuild : 0.325 * buildScale,
-        rz: (openCivic ? 0.21 : 0.18) * buildScale,
+        y: openCivic ? 1.435 : 1.43,
+        rx: shoulderShellHalfWidth,
+        rz: 0.18 * buildScale,
         bone: 'spine2',
-        centerZ: openCivic ? 0.08 * buildScale : 0,
+        centerZ: openCivic ? 0.04 * buildScale : 0,
         clothWeight: 0,
-        frontDrop: openCivic ? 0.15 : 0,
+        frontDrop: openCivic ? 0.08 : 0,
       },
     ],
     segments
@@ -466,7 +485,7 @@ export function buildAgentAvatarGarment(
     );
     pushVisor(visor, segments, buildScale);
   } else {
-    pushOpenCollar(cloth, buildScale);
+    pushOpenCollar(cloth, buildScale, shoulderScale);
   }
 
   // Sleeves follow the upper/forearm bones; hands remain visible as the shared body material.
@@ -479,8 +498,8 @@ export function buildAgentAvatarGarment(
       cloth,
       upper,
       elbow,
-      0.11 * buildScale,
-      0.068 * buildScale,
+      sleeveRootRadius,
+      sleeveElbowRadius,
       `${side}_upper_arm`,
       segments,
       0,
@@ -490,8 +509,8 @@ export function buildAgentAvatarGarment(
       cloth,
       elbow,
       hand,
-      0.067 * buildScale,
-      0.052 * buildScale,
+      sleeveElbowRadius,
+      sleeveWristRadius,
       `${side}_forearm`,
       segments,
       0.2,
@@ -521,8 +540,12 @@ export function buildAgentAvatarGarment(
       faceCoverage:
         options.style === 'stormglass_hooded_tunic' ? 'closed-hood-visor' : 'open-v-collar',
       fitProfile: openCivic ? 'coherent-upper-body-clearance-v1' : 'legacy-shell-v1',
+      collarProfile: openCivic ? 'tailored-open-v-collar-v1' : 'legacy-hood-collar-v1',
       torsoScale,
       shoulderScale,
+      shoulderShellHalfWidth: round6(shoulderShellHalfWidth * heightScale),
+      sleeveRootRadius: round6(sleeveRootRadius * heightScale),
+      sleeveWristRadius: round6(sleeveWristRadius * heightScale),
       tunicIndexRange,
       clothVertexCount: clothMesh.vertexCount,
       clothTriangleCount: clothMesh.indices.length / 3,

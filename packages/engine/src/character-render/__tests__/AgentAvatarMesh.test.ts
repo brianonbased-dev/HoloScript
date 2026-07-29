@@ -302,4 +302,101 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     }
     expect(visited.size).toBe(receipt.vertexRange.vertexCount);
   });
+
+  it('extends the coherent body into continuous curved arm-to-palm surfaces', () => {
+    const legacy = buildAgentAvatarMesh({
+      upperBodyProfile: 'legacy-segments-v1',
+    });
+    const coherent = buildAgentAvatarMesh({
+      upperBodyProfile: 'coherent-shoulder-neck-torso-v1',
+      upperBodyRadialSegments: 20,
+      shoulderScale: 1.1,
+      torsoScale: 0.96,
+    });
+    const upperBody = coherent.anatomy.upperBody!;
+
+    expect(legacy.anatomy.upperBody).toBeUndefined();
+    expect(upperBody.upperLimbs).toHaveLength(2);
+    expect(upperBody.upperLimbs.map((limb) => limb.side)).toEqual(['left', 'right']);
+
+    for (const limb of upperBody.upperLimbs) {
+      expect(limb).toMatchObject({
+        schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1',
+        profile: 'coherent-arm-palm-v1',
+        radialSegments: 20,
+        ringCount: 8,
+        shoulderRadius: 0.0715,
+        wristRadius: 0.0385,
+        palmHalfWidth: 0.0528,
+      });
+      expect(limb.vertexRange.vertexCount).toBe(limb.radialSegments * limb.ringCount + 1);
+      expect(limb.indexRange.indexCount).toBe(
+        limb.radialSegments * (limb.ringCount - 1) * 6 + limb.radialSegments * 3
+      );
+
+      const adjacency = new Map<number, Set<number>>();
+      const connect = (a: number, b: number) => {
+        if (!adjacency.has(a)) adjacency.set(a, new Set());
+        if (!adjacency.has(b)) adjacency.set(b, new Set());
+        adjacency.get(a)!.add(b);
+        adjacency.get(b)!.add(a);
+      };
+      for (
+        let offset = limb.indexRange.indexStart;
+        offset < limb.indexRange.indexStart + limb.indexRange.indexCount;
+        offset += 3
+      ) {
+        const triangle = [
+          coherent.indices[offset],
+          coherent.indices[offset + 1],
+          coherent.indices[offset + 2],
+        ];
+        for (const vertex of triangle) {
+          expect(vertex).toBeGreaterThanOrEqual(limb.vertexRange.vertexStart);
+          expect(vertex).toBeLessThan(
+            limb.vertexRange.vertexStart + limb.vertexRange.vertexCount
+          );
+        }
+        connect(triangle[0], triangle[1]);
+        connect(triangle[1], triangle[2]);
+        connect(triangle[2], triangle[0]);
+      }
+
+      const visited = new Set<number>();
+      const queue = [limb.vertexRange.vertexStart];
+      while (queue.length > 0) {
+        const vertex = queue.shift()!;
+        if (visited.has(vertex)) continue;
+        visited.add(vertex);
+        for (const neighbor of adjacency.get(vertex) ?? []) queue.push(neighbor);
+      }
+      expect(visited.size).toBe(limb.vertexRange.vertexCount);
+
+      const allowedBones = new Set(
+        [
+          'spine2',
+          `${limb.side}_shoulder`,
+          `${limb.side}_upper_arm`,
+          `${limb.side}_forearm`,
+          `${limb.side}_hand`,
+        ].map((bone) => BONE_ORDER.indexOf(bone))
+      );
+      let curvedNormalCount = 0;
+      for (
+        let vertex = limb.vertexRange.vertexStart;
+        vertex < limb.vertexRange.vertexStart + limb.vertexRange.vertexCount - 1;
+        vertex++
+      ) {
+        const offset = vertex * 3;
+        const y = Math.abs(coherent.normals[offset + 1]);
+        const z = Math.abs(coherent.normals[offset + 2]);
+        if (y > 0.05 && z > 0.05) curvedNormalCount++;
+        expect(allowedBones.has(coherent.jointIndices[vertex])).toBe(true);
+        expect(coherent.jointWeights[vertex]).toBe(1);
+      }
+      expect(curvedNormalCount).toBeGreaterThan(
+        (limb.vertexRange.vertexCount - 1) * 0.75
+      );
+    }
+  });
 });
