@@ -211,6 +211,8 @@ export interface AgentAvatarUpperLimbGeometryReceipt {
   shoulderBlendRingCount?: 6;
   /** V6 smallest authored shoulder-section radius divided by its root radius. */
   minimumShoulderRadiusRatio?: number;
+  /** V6 upper-pole scale that prevents a circular shoulder section from reading as a spike. */
+  superiorContourScaleMin?: number;
   /** Five separately skinned, three-phalanx native digit surfaces in V2. */
   digits?: readonly AgentAvatarDigitGeometryReceipt[];
   /** V3 skin and keratin landmarks: webs, knuckles, tendons, and nail plates. */
@@ -870,7 +872,9 @@ interface UpperLimbRing {
   radiusY: number;
   radiusZ: number;
   jointName: string;
-  /** V4-only positive-Z thenar and negative-Z hypothenar silhouette expansion. */
+  /** V6-only scale for the superior half of a deltoid section. */
+  superiorScale?: number;
+  /** V4+ positive-Z thenar and negative-Z hypothenar silhouette expansion. */
   palmBulge?: { thenar: number; hypothenar: number };
 }
 
@@ -2079,6 +2083,7 @@ function pushCoherentUpperLimb(
       radiusY: shoulderRadius * 1.1,
       radiusZ: shoulderRadius * 1.04,
       jointName: 'spine2',
+      superiorScale: 0.55,
     },
     {
       center: {
@@ -2089,6 +2094,7 @@ function pushCoherentUpperLimb(
       radiusY: shoulderRadius * 1.18,
       radiusZ: shoulderRadius * 1.1,
       jointName: `${side}_shoulder`,
+      superiorScale: 0.68,
     },
     {
       center: {
@@ -2099,6 +2105,7 @@ function pushCoherentUpperLimb(
       radiusY: shoulderRadius * 1.15,
       radiusZ: shoulderRadius * 1.06,
       jointName: `${side}_shoulder`,
+      superiorScale: 0.82,
     },
     {
       center: midpoint(root, elbow, 0.3),
@@ -2291,9 +2298,10 @@ function pushCoherentUpperLimb(
           : (ring.palmBulge?.hypothenar ?? 0) * -sine;
       const palmarBias = 0.55 + 0.45 * Math.max(0, -cosine);
       const radialScale = 1 + bulgeRatio * palmarBias;
+      const superiorScale = cosine >= 0 ? (ring.superiorScale ?? 1) : 1;
       acc.positions.push(
         ring.center.x,
-        ring.center.y + ring.radiusY * cosine * radialScale,
+        ring.center.y + ring.radiusY * cosine * radialScale * superiorScale,
         ring.center.z + ring.radiusZ * sine * radialScale
       );
       const radial = normalize({ x: 0, y: cosine, z: sine });
@@ -2445,6 +2453,11 @@ function pushCoherentUpperLimb(
                       .map((ring) => Math.min(ring.radiusY, ring.radiusZ))
                   ) /
                     (shoulderRadius * 1.1)
+                ),
+                superiorContourScaleMin: Math.min(
+                  ...portraitArmRings
+                    .slice(0, 6)
+                    .map((ring) => ring.superiorScale ?? 1)
                 ),
               }
             : {}),
