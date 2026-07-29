@@ -287,6 +287,27 @@ export type CharacterMaterialSpec =
   | RefractiveEyeMaterialSpec
   | WovenClothMaterialSpec;
 
+/**
+ * Semantic role of one native character material group.
+ *
+ * The renderer does not branch on this value: it is source/proof metadata that
+ * lets receipts distinguish, for example, an SSS skin draw from an SSS-derived
+ * keratin nail draw without guessing from colour or roughness.
+ */
+export type CharacterMaterialRole =
+  | 'skin'
+  | 'keratin-nail'
+  | 'hair'
+  | 'eye'
+  | 'sclera'
+  | 'iris'
+  | 'pupil'
+  | 'cornea'
+  | 'garment'
+  | 'visor'
+  | 'mantle'
+  | 'fallback';
+
 /** A contiguous slice of `mesh.indices` drawn with one material. Offsets are INDEX ELEMENTS. */
 export interface MaterialGroup {
   /** First index (element offset into mesh.indices) — passed as drawIndexed firstIndex. */
@@ -294,6 +315,8 @@ export interface MaterialGroup {
   /** Number of indices in this group. */
   indexCount: number;
   material: CharacterMaterialSpec;
+  /** Source-authored semantic role, retained in native renderer receipts. */
+  materialRole?: CharacterMaterialRole;
   /** Draw after opaque groups with blend + depthWrite off (e.g. refractive eyes). */
   transparent?: boolean;
 }

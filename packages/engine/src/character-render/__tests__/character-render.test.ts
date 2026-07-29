@@ -9,7 +9,11 @@
 import { describe, it, expect } from 'vitest';
 import { testDevice, GPU_LIVE } from '../../physics/__tests__/gpu-setup';
 import { CharacterHost } from '../CharacterHost';
-import { renderCharacter } from '../character-render';
+import {
+  deriveCharacterDetailFrame,
+  deriveCharacterMaterialPlateReceipt,
+  renderCharacter,
+} from '../character-render';
 import { quatFromAxisAngle } from '../skin-math';
 import type { PixelGrid } from '../../native-render/gpu-verify';
 
@@ -97,6 +101,61 @@ describe('character-render — native WebGPU GPU-skinned humanoid', () => {
 });
 
 describe('character-render — material groups (skin-SSS) + lambert fallback', () => {
+  it('receipts preserve semantic skin/nail roles and the exact native draw schedule', () => {
+    const host = new CharacterHost({
+      entityId: 'hand-material-receipt',
+      upperBodyProfile: 'coherent-hand-landmarks-v3',
+      upperBodyRadialSegments: 24,
+      nailTone: 0xe6beb2,
+      nailRoughness: 0.24,
+    });
+    const spec = host.getDrawSpec();
+    const receipt = deriveCharacterMaterialPlateReceipt(spec);
+
+    expect(receipt.backend).toBe('webgpu');
+    expect(receipt.deviceExecutionMeasured).toBe(false);
+    expect(receipt.scheduledDrawCount).toBe(spec.materialGroups!.length);
+    expect(receipt.roleCounts['keratin-nail']).toBe(10);
+    expect(receipt.roleCounts.skin).toBeGreaterThan(1);
+    expect(receipt.nailIndexCount).toBeGreaterThan(0);
+    expect(receipt.skinIndexCount).toBeGreaterThan(receipt.nailIndexCount);
+    expect(receipt.skinNailOverlapIndexCount).toBe(0);
+    expect(receipt.nailSeparatedFromSkin).toBe(true);
+    expect(
+      receipt.groups
+        .filter((group) => group.materialRole === 'keratin-nail')
+        .every(
+          (group) =>
+            group.shadingModel === 'skin-sss' &&
+            group.color === 0xe6beb2 &&
+            group.roughness === 0.24
+        )
+    ).toBe(true);
+  });
+
+  it('derives a source-bounded close-up frame from one hand landmark set', () => {
+    const host = new CharacterHost({
+      entityId: 'hand-detail-frame',
+      upperBodyProfile: 'coherent-hand-landmarks-v3',
+      upperBodyRadialSegments: 24,
+    });
+    const anatomy = host.getAnatomyReceipt();
+    const leftLandmarks = anatomy.upperBody!.upperLimbs[0].handLandmarks!;
+    const frame = deriveCharacterDetailFrame(
+      host.getDrawSpec().mesh,
+      leftLandmarks.map((landmark) => landmark.vertexRange),
+      { padding: 1.25 }
+    );
+
+    expect(frame.vertexRangeCount).toBe(18);
+    expect(frame.selectedVertexCount).toBe(
+      leftLandmarks.reduce((sum, landmark) => sum + landmark.vertexRange.vertexCount, 0)
+    );
+    expect(frame.halfExtent).toBeGreaterThan(0.04);
+    expect(frame.center[0]).toBeGreaterThan(0);
+    expect(frame.matrix[15]).toBe(1);
+  });
+
   itGpu('the lambert fallback path (no materialGroups) still renders a figure', async () => {
     const host = new CharacterHost({ entityId: 'brittney' });
     const spec = host.getDrawSpec();
@@ -135,5 +194,47 @@ describe('character-render — material groups (skin-SSS) + lambert fallback', (
 
     expect(figurePixels(detailedPixels)).toBeGreaterThan(150);
     expect(absoluteChannelDiff(smoothPixels, detailedPixels)).toBeGreaterThan(100);
+  });
+
+  itGpu('changing only the keratin plate material changes native WebGPU hand pixels', async () => {
+    const host = new CharacterHost({
+      entityId: 'hand-material-gpu-proof',
+      upperBodyProfile: 'coherent-hand-landmarks-v3',
+      upperBodyRadialSegments: 24,
+      nailTone: 0xe6beb2,
+      nailRoughness: 0.24,
+    });
+    const spec = host.getDrawSpec();
+    const anatomy = host.getAnatomyReceipt();
+    const leftLandmarks = anatomy.upperBody!.upperLimbs[0].handLandmarks!;
+    const viewProj = deriveCharacterDetailFrame(
+      spec.mesh,
+      leftLandmarks.map((landmark) => landmark.vertexRange),
+      { padding: 1.25 }
+    ).matrix;
+    const authored = await renderCharacter(testDevice!, spec, { size: 256, viewProj });
+    const counterfactual = await renderCharacter(
+      testDevice!,
+      {
+        ...spec,
+        materialGroups: spec.materialGroups!.map((group) =>
+          group.materialRole === 'keratin-nail'
+            ? {
+                ...group,
+                material: {
+                  ...group.material,
+                  color: 0x18f6ff,
+                  roughness: 0.08,
+                },
+              }
+            : group
+        ),
+      },
+      { size: 256, viewProj }
+    );
+
+    expect(figurePixels(authored)).toBeGreaterThan(100);
+    expect(pixelDiff(authored, counterfactual)).toBeGreaterThan(5);
+    expect(absoluteChannelDiff(authored, counterfactual)).toBeGreaterThan(100);
   });
 });

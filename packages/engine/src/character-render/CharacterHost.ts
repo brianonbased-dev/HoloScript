@@ -681,21 +681,25 @@ export class CharacterHost {
           ...this.built.ocularRanges.sclera.map((range) => ({
             ...range,
             material: this.scleraMaterial,
+            materialRole: 'sclera' as const,
           })),
           ...this.built.ocularRanges.iris.map((range) => ({
             ...range,
             material: this.irisMaterial,
+            materialRole: 'iris' as const,
           })),
           ...this.built.ocularRanges.pupil.map((range) => ({
             ...range,
             material: this.pupilMaterial,
+            materialRole: 'pupil' as const,
           })),
         ]
-      : [{ ...this.built.eyeRange, material: this.eyeMaterial }];
+      : [{ ...this.built.eyeRange, material: this.eyeMaterial, materialRole: 'eye' as const }];
     const corneaGroups: MaterialGroup[] = layeredEyes
       ? this.built.ocularRanges.cornea.map((range) => ({
           ...range,
           material: this.corneaMaterial,
+          materialRole: 'cornea' as const,
           transparent: true,
         }))
       : [];
@@ -703,16 +707,30 @@ export class CharacterHost {
       ...this.built.bodySkinRanges.map((range) => ({
         ...range,
         material: this.skinMaterial,
+        materialRole: 'skin' as const,
       })),
       ...this.built.nailRanges.map((range) => ({
         ...range,
         material: this.nailMaterial,
+        materialRole: 'keratin-nail' as const,
       })),
-      { ...this.built.hairRange, material: this.hairMaterial },
+      { ...this.built.hairRange, material: this.hairMaterial, materialRole: 'hair' as const },
       ...opaqueEyeGroups,
-      { ...this.built.garmentRange, material: this.garmentMaterial },
-      { ...this.built.visorRange, material: this.visorMaterial },
-      { ...this.built.mantleRange, material: this.mantleMaterial },
+      {
+        ...this.built.garmentRange,
+        material: this.garmentMaterial,
+        materialRole: 'garment' as const,
+      },
+      {
+        ...this.built.visorRange,
+        material: this.visorMaterial,
+        materialRole: 'visor' as const,
+      },
+      {
+        ...this.built.mantleRange,
+        material: this.mantleMaterial,
+        materialRole: 'mantle' as const,
+      },
       ...corneaGroups,
     ].filter((group) => group.indexCount > 0);
     return {

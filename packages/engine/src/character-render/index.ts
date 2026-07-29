@@ -120,8 +120,17 @@ export {
 export {
   renderCharacter,
   framingMatrix,
+  deriveCharacterDetailFrame,
+  deriveCharacterMaterialPlateReceipt,
+  deriveCharacterRenderPipelineReceipt,
   packCharacterMaterial,
+  type CharacterDetailFrameOptions,
+  type CharacterDetailFrameReceipt,
+  type CharacterMaterialGroupReceipt,
+  type CharacterMaterialPlateReceipt,
   type CharacterRenderOptions,
+  type CharacterRenderPipelineReceipt,
+  type CharacterVertexRange,
 } from './character-render';
 
 // Render "Part 2" — native WebGPU Gaussian-splat variant (photoreal mesh/skin upgrade route).

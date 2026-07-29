@@ -21,6 +21,7 @@
 import skinSkinningWGSL from '../rendering/webgpu/shaders/skin-skinning.wgsl?raw';
 import type {
   CharacterDrawSpec,
+  CharacterMaterialRole,
   CharacterMaterialSpec,
   MaterialGroup,
   ShadingModel,
@@ -83,6 +84,100 @@ export interface CharacterRenderOptions {
   /** Clear RGBA, 0..1 (default dark). */
   clear?: [number, number, number, number];
   heightScale?: number;
+}
+
+export interface CharacterVertexRange {
+  vertexStart: number;
+  vertexCount: number;
+}
+
+export interface CharacterDetailFrameOptions {
+  /** Empty space around the selected bounds (default 1.35). */
+  padding?: number;
+  /** Lower bound on the square half-extent in world units (default 0.04). */
+  minHalfExtent?: number;
+  /** Symmetric world-space depth half-extent used for clip depth (default 1.5). */
+  depthHalfExtent?: number;
+}
+
+export interface CharacterDetailFrameReceipt {
+  schemaVersion: 'holoscript.character-detail-frame.v1';
+  vertexRangeCount: number;
+  selectedVertexCount: number;
+  bounds: {
+    min: [number, number, number];
+    max: [number, number, number];
+  };
+  center: [number, number, number];
+  halfExtent: number;
+  padding: number;
+  matrix: Mat4;
+}
+
+/**
+ * Derive a deterministic square orthographic close-up from source-owned mesh
+ * vertex ranges. This keeps detail plates tied to native geometry instead of
+ * hand-tuned screenshots.
+ */
+export function deriveCharacterDetailFrame(
+  mesh: CharacterDrawSpec['mesh'],
+  vertexRanges: readonly CharacterVertexRange[],
+  options: CharacterDetailFrameOptions = {}
+): CharacterDetailFrameReceipt {
+  if (vertexRanges.length === 0) {
+    throw new Error('deriveCharacterDetailFrame requires at least one vertex range');
+  }
+  const padding = Math.max(1, options.padding ?? 1.35);
+  const minHalfExtent = Math.max(0.001, options.minHalfExtent ?? 0.04);
+  const depthHalfExtent = Math.max(0.001, options.depthHalfExtent ?? 1.5);
+  const min = [Infinity, Infinity, Infinity] as [number, number, number];
+  const max = [-Infinity, -Infinity, -Infinity] as [number, number, number];
+  let selectedVertexCount = 0;
+
+  for (const range of vertexRanges) {
+    const start = Math.trunc(range.vertexStart);
+    const count = Math.trunc(range.vertexCount);
+    if (start < 0 || count <= 0 || start + count > mesh.vertexCount) {
+      throw new RangeError(
+        `character detail vertex range ${start}:${count} exceeds mesh vertexCount=${mesh.vertexCount}`
+      );
+    }
+    selectedVertexCount += count;
+    for (let vertex = start; vertex < start + count; vertex += 1) {
+      const offset = vertex * 3;
+      for (let axis = 0; axis < 3; axis += 1) {
+        const value = mesh.positions[offset + axis];
+        min[axis] = Math.min(min[axis], value);
+        max[axis] = Math.max(max[axis], value);
+      }
+    }
+  }
+
+  const center: [number, number, number] = [
+    (min[0] + max[0]) * 0.5,
+    (min[1] + max[1]) * 0.5,
+    (min[2] + max[2]) * 0.5,
+  ];
+  const halfExtent =
+    Math.max(minHalfExtent, (max[0] - min[0]) * 0.5, (max[1] - min[1]) * 0.5) * padding;
+  const matrix = new Float32Array(16);
+  matrix[0] = 1 / halfExtent;
+  matrix[5] = 1 / halfExtent;
+  matrix[10] = -1 / (2 * depthHalfExtent);
+  matrix[12] = -center[0] / halfExtent;
+  matrix[13] = -center[1] / halfExtent;
+  matrix[14] = 0.5;
+  matrix[15] = 1;
+  return {
+    schemaVersion: 'holoscript.character-detail-frame.v1',
+    vertexRangeCount: vertexRanges.length,
+    selectedVertexCount,
+    bounds: { min, max },
+    center,
+    halfExtent,
+    padding,
+    matrix,
+  };
 }
 
 /** Pack a CharacterMaterialSpec into the 84-float Material uniform (see skin-skinning.wgsl). */
@@ -173,6 +268,108 @@ export interface CharacterRenderPipelineReceipt {
   sampleCount: 1 | 4;
   alphaToCoverageEnabled: boolean;
   alphaToCoverageGroupCount: number;
+}
+
+export interface CharacterMaterialGroupReceipt {
+  drawOrdinal: number;
+  materialRole: CharacterMaterialRole;
+  indexStart: number;
+  indexCount: number;
+  shadingModel: ShadingModel;
+  color: number;
+  roughness: number;
+  transparent: boolean;
+}
+
+export interface CharacterMaterialPlateReceipt {
+  schemaVersion: 'holoscript.character-material-plate.v1';
+  rendererEntrypoint: 'renderCharacter';
+  backend: 'webgpu';
+  sourceMaterialGroups: boolean;
+  deviceExecutionMeasured: false;
+  scheduledDrawCount: number;
+  roleCounts: Partial<Record<CharacterMaterialRole, number>>;
+  skinIndexCount: number;
+  nailIndexCount: number;
+  skinNailOverlapIndexCount: number;
+  nailSeparatedFromSkin: boolean;
+  groups: CharacterMaterialGroupReceipt[];
+}
+
+function orderedMaterialGroups(spec: CharacterDrawSpec): MaterialGroup[] {
+  const groups: MaterialGroup[] =
+    spec.materialGroups && spec.materialGroups.length > 0
+      ? spec.materialGroups
+      : [
+          {
+            indexStart: 0,
+            indexCount: spec.mesh.indices.length,
+            material: { ...spec.material, shadingModel: 'lambert' },
+            materialRole: 'fallback',
+          },
+        ];
+  return [...groups].sort(
+    (a, b) => Number(a.transparent ?? false) - Number(b.transparent ?? false)
+  );
+}
+
+function overlapIndexCount(a: MaterialGroup, b: MaterialGroup): number {
+  return Math.max(
+    0,
+    Math.min(a.indexStart + a.indexCount, b.indexStart + b.indexCount) -
+      Math.max(a.indexStart, b.indexStart)
+  );
+}
+
+/**
+ * Describe the exact draw schedule used by `renderCharacter`. The receipt is
+ * deliberately pure-data (`deviceExecutionMeasured=false`); callers attach a
+ * GPU-readback witness only after a live device actually renders the plate.
+ */
+export function deriveCharacterMaterialPlateReceipt(
+  spec: CharacterDrawSpec
+): CharacterMaterialPlateReceipt {
+  const ordered = orderedMaterialGroups(spec);
+  const groups = ordered.map(
+    (group, drawOrdinal): CharacterMaterialGroupReceipt => ({
+      drawOrdinal,
+      materialRole: group.materialRole ?? 'fallback',
+      indexStart: group.indexStart,
+      indexCount: group.indexCount,
+      shadingModel: group.material.shadingModel,
+      color: group.material.color,
+      roughness: group.material.roughness,
+      transparent: !!group.transparent,
+    })
+  );
+  const roleCounts: Partial<Record<CharacterMaterialRole, number>> = {};
+  for (const group of groups) {
+    roleCounts[group.materialRole] = (roleCounts[group.materialRole] ?? 0) + 1;
+  }
+  const skin = ordered.filter((group) => group.materialRole === 'skin');
+  const nails = ordered.filter((group) => group.materialRole === 'keratin-nail');
+  const skinIndexCount = skin.reduce((sum, group) => sum + group.indexCount, 0);
+  const nailIndexCount = nails.reduce((sum, group) => sum + group.indexCount, 0);
+  const skinNailOverlapIndexCount = skin.reduce(
+    (sum, skinGroup) =>
+      sum +
+      nails.reduce((inner, nailGroup) => inner + overlapIndexCount(skinGroup, nailGroup), 0),
+    0
+  );
+  return {
+    schemaVersion: 'holoscript.character-material-plate.v1',
+    rendererEntrypoint: 'renderCharacter',
+    backend: 'webgpu',
+    sourceMaterialGroups: !!spec.materialGroups?.length,
+    deviceExecutionMeasured: false,
+    scheduledDrawCount: groups.length,
+    roleCounts,
+    skinIndexCount,
+    nailIndexCount,
+    skinNailOverlapIndexCount,
+    nailSeparatedFromSkin: nails.length > 0 && skinNailOverlapIndexCount === 0,
+    groups,
+  };
 }
 
 /** Pure-data pipeline derivation used by both tests and the live GPU renderer. */
@@ -363,20 +560,7 @@ export async function renderCharacter(
 
   // Normalise to material groups; absent → one lambert group over the whole index buffer
   // (byte-for-byte the pre-material-groups behavior).
-  const groups: MaterialGroup[] =
-    spec.materialGroups && spec.materialGroups.length > 0
-      ? spec.materialGroups
-      : [
-          {
-            indexStart: 0,
-            indexCount: mesh.indices.length,
-            material: { ...spec.material, shadingModel: 'lambert' },
-          },
-        ];
-  // Opaque groups before transparent (depth-correct refraction/blend ordering).
-  const ordered = [...groups].sort(
-    (a, b) => Number(a.transparent ?? false) - Number(b.transparent ?? false)
-  );
+  const ordered = orderedMaterialGroups(spec);
 
   const texture = device.createTexture({
     size: [size, size],
