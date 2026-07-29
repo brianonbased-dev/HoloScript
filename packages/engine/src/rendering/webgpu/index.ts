@@ -48,5 +48,23 @@ export {
 // Renderer
 export { WebGPURenderer } from './WebGPURenderer';
 
+// Deterministic temporal history policy and native WebGPU resolve
+export {
+  TEMPORAL_CONVERGENCE_PROFILES,
+  TemporalConvergenceController,
+  jitterProjectionMatrix,
+  resolveTemporalFrameGPU,
+  temporalHaltonJitter,
+  type TemporalConvergenceConfig,
+  type TemporalConvergenceProfile,
+  type TemporalConvergenceReceipt,
+  type TemporalFramePlan,
+  type TemporalFrameSignals,
+  type TemporalInvalidationReason,
+  type TemporalResolveOptions,
+  type TemporalResolveReceipt,
+  type TemporalResolveResult,
+} from './TemporalConvergence';
+
 // Debug tools
 export { PhysicsDebugDrawer } from './PhysicsDebugDrawer';
