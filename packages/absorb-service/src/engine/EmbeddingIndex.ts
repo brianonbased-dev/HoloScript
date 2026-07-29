@@ -151,6 +151,17 @@ interface SerializedIndex {
   }>;
 }
 
+/**
+ * Incremental refreshes still have to regenerate every symbol's exact text so
+ * graph-context changes cannot reuse a stale vector. Yielding once per provider
+ * batch made that reconciliation path pay thousands of host timer turns even
+ * when almost every vector was reusable. Bound both CPU occupancy and batch
+ * count instead: a large graph stays cancellable without turning batch size
+ * into scheduler overhead.
+ */
+const REFRESH_COOPERATIVE_YIELD_BATCH_INTERVAL = 256;
+const REFRESH_COOPERATIVE_YIELD_MAX_BLOCK_MS = 50;
+
 interface SemanticAliasRule {
   triggers: RegExp[];
   aliases: string[];
@@ -391,12 +402,9 @@ export class EmbeddingIndex {
     let reusedSymbols = 0;
     let embeddedSymbols = 0;
     this.startTime = Date.now();
+    let lastCooperativeYieldAt = this.startTime;
 
     for (let i = 0; i < symbols.length; i += this.batchSize) {
-      if (i > 0) {
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      }
-
       const batchSymbols = symbols.slice(i, i + this.batchSize);
       const batchTexts = this.symbolsToTexts(batchSymbols, graphTextContext);
       const pendingTexts: string[] = [];
@@ -440,7 +448,22 @@ export class EmbeddingIndex {
       }
 
       nextEntries.push(...(batchEntries as IndexedSymbol[]));
-      onProgress?.(Math.floor(i / this.batchSize) + 1, totalBatches, nextEntries.length);
+      const batchNum = Math.floor(i / this.batchSize) + 1;
+      const now = Date.now();
+      const shouldCooperate =
+        batchNum === 1 ||
+        batchNum === totalBatches ||
+        batchNum % REFRESH_COOPERATIVE_YIELD_BATCH_INTERVAL === 0 ||
+        now - lastCooperativeYieldAt >= REFRESH_COOPERATIVE_YIELD_MAX_BLOCK_MS;
+
+      if (shouldCooperate) {
+        // The callback is also the absorb job's cancellation/memory guard.
+        onProgress?.(batchNum, totalBatches, nextEntries.length);
+        if (batchNum < totalBatches) {
+          await new Promise<void>((resolve) => setImmediate(resolve));
+          lastCooperativeYieldAt = Date.now();
+        }
+      }
     }
 
     this.entries = nextEntries;
