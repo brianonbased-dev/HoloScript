@@ -218,9 +218,21 @@ const CACHE_WARM_GRAPH_RAG_TIMEOUT_MS = readPositiveEnvMs('ABSORB_CACHE_WARM_TIM
 // graph was cached WITHOUT a HoloEmbed index (semantic_search → "no index").
 // 600s caps indefinite hangs while letting large repos finish; override via env.
 const EMBEDDING_BUILD_TIMEOUT_MS = readPositiveEnvMs('ABSORB_EMBEDDING_BUILD_TIMEOUT_MS', 600_000);
-const INCREMENTAL_EMBEDDING_TIMEOUT_MS = readPositiveEnvMs(
-  'ABSORB_INCREMENTAL_EMBEDDING_TIMEOUT_MS',
-  60_000
+export function resolveIncrementalEmbeddingTimeoutMs(
+  rawValue: string | undefined,
+  fullBuildTimeoutMs: number
+): number {
+  const configured = Number(rawValue);
+  return Number.isFinite(configured) && configured > 0 ? configured : fullBuildTimeoutMs;
+}
+// refreshIndex reconciles every graph symbol identity before it embeds the changed
+// subset. On a 365k-symbol graph that reconciliation alone exceeded the former
+// 60s default, publishing a structurally fresh generation without HoloEmbed.
+// Give incremental reconciliation the same bounded window as a full build unless
+// an operator explicitly sets a distinct override.
+const INCREMENTAL_EMBEDDING_TIMEOUT_MS = resolveIncrementalEmbeddingTimeoutMs(
+  process.env.ABSORB_INCREMENTAL_EMBEDDING_TIMEOUT_MS,
+  EMBEDDING_BUILD_TIMEOUT_MS
 );
 const MESH_SYNC_TIMEOUT_MS = readPositiveEnvMs('ABSORB_MESH_SYNC_TIMEOUT_MS', 10_000);
 
