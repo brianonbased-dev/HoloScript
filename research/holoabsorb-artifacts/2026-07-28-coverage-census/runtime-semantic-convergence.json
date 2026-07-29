@@ -192,12 +192,13 @@
       "Bind successful verification to a Git-HEAD build stamp.",
       "Route commit changes to only affected workspace build groups.",
       "Rebuild absorb-service and mcp-server once when no trusted stamp exists.",
+      "Preserve the tracked examples catalog during repair-only MCP builds so a sealed projection stays clean.",
       "Keep stamp publication best-effort so a read-only projection does not close an otherwise verified transport.",
       "Expose staleGroupsBeforeBuild and buildStamp in self-test output."
     ],
     "targetedTests": {
       "command": "node --test scripts/__tests__/holoscript-mcp-stdio.test.mjs",
-      "passed": 15,
+      "passed": 16,
       "failed": 0
     }
   }

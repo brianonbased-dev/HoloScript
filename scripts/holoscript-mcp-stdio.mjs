@@ -496,6 +496,15 @@ export function buildCommandForGroup(group) {
   };
 }
 
+export function buildEnvironmentForGroup(group, baseEnvironment = process.env) {
+  return {
+    ...baseEnvironment,
+    ...(group.id === 'mcp-server' && {
+      HOLOSCRIPT_MCP_PRESERVE_TRACKED_CATALOG: '1',
+    }),
+  };
+}
+
 export function validateAbsorbBackgroundContract(codebaseTools) {
   const absorbTool = codebaseTools.find((tool) => tool?.name === 'holo_absorb_repo');
   if (!absorbTool) {
@@ -563,7 +572,7 @@ function runBuild(group) {
   stderr(`[holoscript-mcp-stdio] Building ${group.label} before local MCP startup...`);
   const result = spawnSync(command, args, {
     cwd: ROOT,
-    env: process.env,
+    env: buildEnvironmentForGroup(group),
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: process.platform === 'win32',

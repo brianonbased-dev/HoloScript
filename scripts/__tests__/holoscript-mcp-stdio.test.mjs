@@ -16,6 +16,7 @@ import { PassThrough } from 'node:stream';
 import {
   BUILD_GROUPS,
   buildBootstrapGroups,
+  buildEnvironmentForGroup,
   buildGroupFreshness,
   buildGroupsForChangedFiles,
   buildCommandForGroup,
@@ -190,6 +191,18 @@ test('build command uses the workspace package filter', () => {
 
   assert.match(command.command, /^corepack(\.cmd)?$/);
   assert.deepEqual(command.args, ['pnpm', '--filter', '@holoscript/core', 'run', 'build']);
+});
+
+test('repair builds preserve tracked MCP catalog source without changing normal package builds', () => {
+  const mcp = BUILD_GROUPS.find((group) => group.id === 'mcp-server');
+  const absorb = BUILD_GROUPS.find((group) => group.id === 'absorb-service');
+  const base = { PATH: 'test-path' };
+
+  assert.deepEqual(buildEnvironmentForGroup(mcp, base), {
+    PATH: 'test-path',
+    HOLOSCRIPT_MCP_PRESERVE_TRACKED_CATALOG: '1',
+  });
+  assert.deepEqual(buildEnvironmentForGroup(absorb, base), base);
 });
 
 test('stdioServerPath delegates to the packaged MCP stdio bin', () => {

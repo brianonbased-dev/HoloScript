@@ -121,4 +121,6 @@ boundaries are in `runtime-semantic-convergence.json`.
 The stdio bootstrap now detects source-newer dist, binds verification to a
 Git-HEAD build stamp, rebuilds only commit-affected workspace packages, and
 forces a one-time rebuild of the sovereign Absorb/MCP owners when no trusted
-stamp exists. Its targeted suite passes 15/15 tests.
+stamp exists. Repair-only MCP builds preserve the committed example catalog
+instead of dirtying the sealed projection. Its targeted suite passes 16/16
+tests.
