@@ -19974,3 +19974,9 @@ fn resolve_linker(options: &NativeCompileOptions) -> Result<PathBuf, NativeCompi
             )
         })
 }
+mod test_runner;
+
+pub use test_runner::{
+    discover_tests, run_tests, HoloTestCaseResult, HoloTestReport, HoloTestStatus,
+    HOLOTEST_FILE_SUFFIX,
+};
