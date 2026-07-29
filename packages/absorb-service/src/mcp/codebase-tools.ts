@@ -52,6 +52,7 @@ import type { EmbeddingRefreshReceipt } from '../engine/EmbeddingIndex';
 import type { CommunityAwareImpactReceipt } from '../engine/CodebaseGraph';
 import type { ScanPlan } from '../engine/CodebaseScanner';
 import type { ScanResult } from '../engine/types';
+import { detectLanguage } from '../engine/adapters';
 import { auditHoloAbsorbManifest, buildHoloAbsorbManifest } from '../holoabsorb/index';
 
 // =============================================================================
@@ -2487,6 +2488,7 @@ interface CacheGenerationSelection {
 }
 
 interface GraphScanPolicy {
+  languages?: string[];
   exclude?: string[];
   excludePathFragments?: string[];
   excludeNameFragments?: string[];
@@ -2503,6 +2505,7 @@ interface NormalizedCoveragePolicy {
   suffixes: string[];
   pathFragments: string[];
   nameFragments: string[];
+  languages: Set<string> | null;
   includeHidden: boolean;
   includeBuildArtifacts: boolean;
   respectGitIgnore: boolean;
@@ -2584,9 +2587,15 @@ interface SemanticIndexReadinessReceipt {
 interface GraphCoverageStatus {
   available: boolean;
   source: 'git-ls-files' | 'git-ls-files-cached-and-others' | 'unavailable';
+  candidateDefinition?: 'scanner-eligible-files-v1';
+  languages?: string[];
   graphFileCount: number;
+  trackedGitVisibleFileCount?: number;
+  workspaceGitVisibleFileCount?: number;
   trackedCandidateCount?: number;
   workspaceCandidateCount?: number;
+  trackedExclusions?: GraphCoverageExclusionCounts;
+  workspaceExclusions?: GraphCoverageExclusionCounts;
   selectedCandidateCount?: number;
   expectedGraphFileCount?: number;
   defaultMaxFiles: number;
@@ -2603,6 +2612,21 @@ interface GraphCoverageStatus {
   unexpectedGraphFileSample?: string[];
   rootCount?: number;
   error?: string;
+}
+
+interface GraphCoverageExclusionCounts {
+  pathPolicy: number;
+  nonAbsorbableExtension: number;
+  languageFilter: number;
+  maxFileSize: number;
+  missingOrNonFile: number;
+  total: number;
+}
+
+interface GitCoverageCensus {
+  files: Set<string>;
+  gitVisibleFileCount: number;
+  exclusions: GraphCoverageExclusionCounts;
 }
 
 type GraphFileHashFreshnessReason =
@@ -2835,10 +2859,16 @@ function normalizeStringList(values: unknown): string[] | undefined {
 
 function normalizeScanPolicy(policy?: GraphScanPolicy | null): GraphScanPolicy {
   const normalized: GraphScanPolicy = {};
+  const languages = normalizeStringList(policy?.languages);
   const exclude = normalizeStringList(policy?.exclude);
   const excludePathFragments = normalizeStringList(policy?.excludePathFragments);
   const excludeNameFragments = normalizeStringList(policy?.excludeNameFragments);
 
+  if (languages) {
+    normalized.languages = languages
+      .map((language) => language.toLowerCase())
+      .sort((left, right) => left.localeCompare(right));
+  }
   if (exclude) normalized.exclude = exclude;
   if (excludePathFragments) normalized.excludePathFragments = excludePathFragments;
   if (excludeNameFragments) normalized.excludeNameFragments = excludeNameFragments;
@@ -2931,6 +2961,7 @@ function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoverag
     suffixes: Array.from(new Set(suffixes)),
     pathFragments: Array.from(new Set(pathFragments)),
     nameFragments: Array.from(new Set(nameFragments)),
+    languages: receipt.languages ? new Set(receipt.languages) : null,
     includeHidden: receipt.includeHidden === true,
     includeBuildArtifacts,
     respectGitIgnore: receipt.respectGitIgnore !== false,
@@ -2941,33 +2972,51 @@ function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoverag
   };
 }
 
-function isCoverageExcludedPath(filePath: string, policy: NormalizedCoveragePolicy): boolean {
+type CoveragePathExclusionReason =
+  | 'pathPolicy'
+  | 'nonAbsorbableExtension'
+  | 'languageFilter';
+
+function coveragePathExclusionReason(
+  filePath: string,
+  policy: NormalizedCoveragePolicy
+): CoveragePathExclusionReason | null {
   const normalizedPath = filePath.replace(/\\/g, '/');
   const segments = normalizedPath.split('/').filter(Boolean);
   for (const segment of segments) {
     const lowerSegment = segment.toLowerCase();
-    if (!policy.includeHidden && lowerSegment.startsWith('.') && lowerSegment !== '.') return true;
-    if (policy.names.has(lowerSegment)) return true;
+    if (!policy.includeHidden && lowerSegment.startsWith('.') && lowerSegment !== '.') {
+      return 'pathPolicy';
+    }
+    if (policy.names.has(lowerSegment)) return 'pathPolicy';
   }
 
   const basename = path.basename(normalizedPath).toLowerCase();
-  if (policy.names.has(basename)) return true;
-  if (policy.suffixes.some((suffix) => basename.endsWith(suffix))) return true;
-  if (policy.nameFragments.some((fragment) => basename.includes(fragment))) return true;
+  if (policy.names.has(basename)) return 'pathPolicy';
+  if (policy.suffixes.some((suffix) => basename.endsWith(suffix))) return 'pathPolicy';
+  if (policy.nameFragments.some((fragment) => basename.includes(fragment))) return 'pathPolicy';
   const pathProbe = `/${normalizedPath}`.toLowerCase();
-  if (policy.pathFragments.some((fragment) => pathProbe.includes(fragment))) return true;
-  if (basename.endsWith('.min.js') || basename.endsWith('.min.css')) return true;
+  if (policy.pathFragments.some((fragment) => pathProbe.includes(fragment))) return 'pathPolicy';
+  if (basename.endsWith('.min.js') || basename.endsWith('.min.css')) return 'pathPolicy';
 
   const dot = basename.lastIndexOf('.');
   const ext = dot >= 0 ? basename.slice(dot + 1) : '';
-  return COVERAGE_NON_ABSORBABLE_EXT.has(ext);
+  if (COVERAGE_NON_ABSORBABLE_EXT.has(ext)) return 'nonAbsorbableExtension';
+
+  const language = detectLanguage(filePath) || 'plaintext';
+  if (policy.languages && !policy.languages.has(language)) return 'languageFilter';
+  return null;
+}
+
+function isCoverageExcludedPath(filePath: string, policy: NormalizedCoveragePolicy): boolean {
+  return coveragePathExclusionReason(filePath, policy) !== null;
 }
 
 function listGitAbsorbableFiles(
   rootDir: string,
   scanPolicy: GraphScanPolicy | null | undefined,
   includeUntracked: boolean
-): Set<string> | null {
+): GitCoverageCensus | null {
   const policy = buildCoveragePolicy(scanPolicy);
   try {
     const args = ['ls-files', '--cached'];
@@ -2980,20 +3029,47 @@ function listGitAbsorbableFiles(
       stdio: ['pipe', 'pipe', 'pipe'],
       maxBuffer: 64 * 1024 * 1024,
     });
-    return new Set(
-      output
-        .split('\0')
-        .filter((line) => line.length > 0)
-        .filter((line) => !isCoverageExcludedPath(line, policy))
-        .filter((line) => {
-          try {
-            return fs.statSync(path.join(rootDir, line)).size <= policy.maxFileSize;
-          } catch {
-            return false;
-          }
-        })
-        .map((line) => normalizeRootForComparison(path.resolve(rootDir, line)))
-    );
+    const entries = output.split('\0').filter((line) => line.length > 0);
+    const files = new Set<string>();
+    const exclusions: GraphCoverageExclusionCounts = {
+      pathPolicy: 0,
+      nonAbsorbableExtension: 0,
+      languageFilter: 0,
+      maxFileSize: 0,
+      missingOrNonFile: 0,
+      total: 0,
+    };
+    for (const line of entries) {
+      const exclusionReason = coveragePathExclusionReason(line, policy);
+      if (exclusionReason) {
+        exclusions[exclusionReason] += 1;
+        exclusions.total += 1;
+        continue;
+      }
+      try {
+        const stat = fs.statSync(path.join(rootDir, line));
+        if (!stat.isFile()) {
+          exclusions.missingOrNonFile += 1;
+          exclusions.total += 1;
+          continue;
+        }
+        if (stat.size > policy.maxFileSize) {
+          exclusions.maxFileSize += 1;
+          exclusions.total += 1;
+          continue;
+        }
+      } catch {
+        exclusions.missingOrNonFile += 1;
+        exclusions.total += 1;
+        continue;
+      }
+      files.add(normalizeRootForComparison(path.resolve(rootDir, line)));
+    }
+    return {
+      files,
+      gitVisibleFileCount: entries.length,
+      exclusions,
+    };
   } catch {
     return null;
   }
@@ -3037,7 +3113,7 @@ function buildGraphCoverageStatus(
       error: 'git ls-files unavailable',
     };
   }
-  const trackedCandidateCount = trackedCandidates.size;
+  const trackedCandidateCount = trackedCandidates.files.size;
 
   const workspaceCandidates = policy.includeUntracked
     ? listGitAbsorbableFiles(rootDir, policy.receipt, true)
@@ -3052,12 +3128,14 @@ function buildGraphCoverageStatus(
       error: 'git ls-files --others --exclude-standard unavailable',
     };
   }
-  const workspaceCandidateCount = workspaceCandidates.size;
+  const workspaceCandidateCount = workspaceCandidates.files.size;
 
   const selectedCandidateCount = policy.includeUntracked
     ? workspaceCandidateCount
     : trackedCandidateCount;
-  const selectedCandidates = policy.includeUntracked ? workspaceCandidates : trackedCandidates;
+  const selectedCandidates = policy.includeUntracked
+    ? workspaceCandidates.files
+    : trackedCandidates.files;
   const expectedGraphFileCount = Math.min(selectedCandidateCount, policy.maxFiles);
   const cappedByMaxFiles = selectedCandidateCount > policy.maxFiles;
   let exactFileSetChecked = false;
@@ -3099,9 +3177,15 @@ function buildGraphCoverageStatus(
   return {
     available: true,
     source: policy.includeUntracked ? 'git-ls-files-cached-and-others' : 'git-ls-files',
+    candidateDefinition: 'scanner-eligible-files-v1',
+    ...(policy.receipt.languages && { languages: policy.receipt.languages }),
     graphFileCount: safeGraphFileCount,
+    trackedGitVisibleFileCount: trackedCandidates.gitVisibleFileCount,
+    workspaceGitVisibleFileCount: workspaceCandidates.gitVisibleFileCount,
     trackedCandidateCount,
     workspaceCandidateCount,
+    trackedExclusions: trackedCandidates.exclusions,
+    workspaceExclusions: workspaceCandidates.exclusions,
     selectedCandidateCount,
     expectedGraphFileCount,
     defaultMaxFiles: policy.maxFiles,
@@ -3152,6 +3236,24 @@ function buildGraphCoverageStatusForRoots(
 
   const tracked = new Set<string>();
   const workspace = new Set<string>();
+  let trackedGitVisibleFileCount = 0;
+  let workspaceGitVisibleFileCount = 0;
+  const trackedExclusions: GraphCoverageExclusionCounts = {
+    pathPolicy: 0,
+    nonAbsorbableExtension: 0,
+    languageFilter: 0,
+    maxFileSize: 0,
+    missingOrNonFile: 0,
+    total: 0,
+  };
+  const workspaceExclusions: GraphCoverageExclusionCounts = {
+    pathPolicy: 0,
+    nonAbsorbableExtension: 0,
+    languageFilter: 0,
+    maxFileSize: 0,
+    missingOrNonFile: 0,
+    total: 0,
+  };
   for (const rootDir of normalizedRoots) {
     const trackedForRoot = listGitAbsorbableFiles(rootDir, policy.receipt, false);
     const workspaceForRoot = policy.includeUntracked
@@ -3167,8 +3269,16 @@ function buildGraphCoverageStatusForRoots(
         error: 'git ls-files unavailable for one or more workspace roots',
       };
     }
-    for (const filePath of trackedForRoot) tracked.add(filePath);
-    for (const filePath of workspaceForRoot) workspace.add(filePath);
+    trackedGitVisibleFileCount += trackedForRoot.gitVisibleFileCount;
+    workspaceGitVisibleFileCount += workspaceForRoot.gitVisibleFileCount;
+    for (const key of Object.keys(trackedExclusions) as Array<
+      keyof GraphCoverageExclusionCounts
+    >) {
+      trackedExclusions[key] += trackedForRoot.exclusions[key];
+      workspaceExclusions[key] += workspaceForRoot.exclusions[key];
+    }
+    for (const filePath of trackedForRoot.files) tracked.add(filePath);
+    for (const filePath of workspaceForRoot.files) workspace.add(filePath);
   }
 
   const selectedCandidateCount = policy.includeUntracked ? workspace.size : tracked.size;
@@ -3178,9 +3288,15 @@ function buildGraphCoverageStatusForRoots(
   return {
     available: true,
     source: policy.includeUntracked ? 'git-ls-files-cached-and-others' : 'git-ls-files',
+    candidateDefinition: 'scanner-eligible-files-v1',
+    ...(policy.receipt.languages && { languages: policy.receipt.languages }),
     graphFileCount: safeGraphFileCount,
+    trackedGitVisibleFileCount,
+    workspaceGitVisibleFileCount,
     trackedCandidateCount: tracked.size,
     workspaceCandidateCount: workspace.size,
+    trackedExclusions,
+    workspaceExclusions,
     selectedCandidateCount,
     expectedGraphFileCount,
     defaultMaxFiles: policy.maxFiles,
@@ -6470,7 +6586,11 @@ async function runFullScan(
   const startTime = Date.now();
   let phaseStartedAt = startTime;
   const phaseMetrics: AbsorbPhaseMetric[] = [];
-  const effectiveScanPolicy = normalizeScanPolicy(scanPolicy);
+  const effectiveScanPolicy = normalizeScanPolicy({
+    ...scanPolicy,
+    languages: scanPolicy?.languages ?? languages,
+  });
+  const effectiveLanguages = effectiveScanPolicy.languages;
   const effectiveMaxFiles = maxFiles ?? effectiveScanPolicy.maxFiles ?? DEFAULT_SCAN_MAX_FILES;
   const effectiveIncludeBuildArtifacts =
     includeBuildArtifacts || effectiveScanPolicy.includeBuildArtifacts === true;
@@ -6623,7 +6743,7 @@ async function runFullScan(
       const scanOptions = {
         rootDir: primaryRootDir, // for backward compat mapping
         rootDirs,
-        languages,
+        languages: effectiveLanguages,
         maxFiles: effectiveMaxFiles,
         maxFileSize: effectiveScanPolicy.maxFileSize,
         includeBuildArtifacts: effectiveIncludeBuildArtifacts,
@@ -7684,12 +7804,20 @@ function buildScanPolicyFromArgs(
   maxFileSize: number | undefined
 ): { valid: true; policy: GraphScanPolicy } | { valid: false; errors: string[] } {
   const errors: string[] = [];
+  const languages = normalizeStringList(args.languages);
   const exclude = readScanPolicyStringArray(args, 'exclude');
   const excludePathFragments = readScanPolicyStringArray(args, 'excludePathFragments');
   const excludeNameFragments = readScanPolicyStringArray(args, 'excludeNameFragments');
 
   for (const result of [exclude, excludePathFragments, excludeNameFragments]) {
     if (result.error) errors.push(result.error);
+  }
+  if (
+    args.languages !== undefined &&
+    (!Array.isArray(args.languages) ||
+      args.languages.some((entry) => typeof entry !== 'string' || entry.trim().length === 0))
+  ) {
+    errors.push('languages must be an array of non-empty strings.');
   }
   if (args.includeHidden !== undefined && typeof args.includeHidden !== 'boolean') {
     errors.push('includeHidden must be a boolean.');
@@ -7712,6 +7840,7 @@ function buildScanPolicyFromArgs(
   return {
     valid: true,
     policy: normalizeScanPolicy({
+      languages,
       exclude: exclude.value,
       excludePathFragments: excludePathFragments.value,
       excludeNameFragments: excludeNameFragments.value,
@@ -7727,6 +7856,7 @@ function buildScanPolicyFromArgs(
 
 function scanPolicyArgsProvided(args: Record<string, unknown>): boolean {
   return [
+    'languages',
     'exclude',
     'excludePathFragments',
     'excludeNameFragments',
@@ -7801,7 +7931,6 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
 
   const outputFormat = (args.outputFormat as string) ?? 'holo';
   const layout = (args.layout as string) ?? 'force';
-  const languages = args.languages as string[] | undefined;
   const maxFiles = args.maxFiles as number | undefined;
   const maxFileSize = args.maxFileSize as number | undefined;
   const scanBatchSize = args.scanBatchSize as number | undefined;
@@ -7837,6 +7966,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     };
   }
   const scanPolicy = scanPolicyResult.policy;
+  const languages = scanPolicy.languages;
   const scanPolicyExplicit = scanPolicyArgsProvided(args);
   const maxFilesExplicit = args.maxFiles !== undefined;
   const embeddingProvider = args.embeddingProvider as string | undefined;
@@ -8467,6 +8597,7 @@ function buildIsolatedAbsorbWorkerArgs(
   const writerLease = absorbJobs.get(plan.jobId)?.writerLease;
   return {
     ...args,
+    languages: policy.languages,
     exclude: policy.exclude,
     excludePathFragments: policy.excludePathFragments,
     excludeNameFragments: policy.excludeNameFragments,
@@ -8602,6 +8733,7 @@ async function buildAutoBackgroundDecision(
   // promotion above DEFAULT_SCAN_MAX_FILES must not exist only in the parent
   // process or the worker will reject the checkpoint's selected file set.
   plan.scanPolicy = effectiveScanPolicy;
+  plan.languages = effectiveScanPolicy.languages;
   plan.maxFiles = effectiveMaxFiles;
   plan.includeBuildArtifacts = effectiveIncludeBuildArtifacts;
   const existingCacheCoverageComplete = existingCache
