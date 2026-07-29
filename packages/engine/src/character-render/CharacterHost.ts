@@ -40,6 +40,7 @@ import {
   type AgentAvatarFacialLandmarkReceipt,
   type AgentAvatarFaceTopology,
   type AgentAvatarOrbitalProfile,
+  type AgentAvatarUpperBodyProfile,
   type AvatarPose,
 } from './AgentAvatarMesh';
 import {
@@ -121,6 +122,10 @@ export interface CharacterHostOptions {
   shoulderScale?: number;
   /** Hips/spine thickness multiplier (0.85..1.2). */
   torsoScale?: number;
+  /** Source-authored native upper-body construction. */
+  upperBodyProfile?: AgentAvatarUpperBodyProfile;
+  /** Circumferential topology budget for the connected upper-body loft. */
+  upperBodyRadialSegments?: number;
   /** Packed 0xRRGGBB accent/fallback colour; defaults to a deterministic colour from `entityId`. */
   color?: number;
   /** Skin base colour 0xRRGGBB for the SSS material (default warm skin #e8c4a0). */
@@ -326,6 +331,8 @@ export class CharacterHost {
       jawTaper: opts.jawTaper,
       shoulderScale: opts.shoulderScale,
       torsoScale: opts.torsoScale,
+      upperBodyProfile: opts.upperBodyProfile,
+      upperBodyRadialSegments: opts.upperBodyRadialSegments,
       garmentStyle: opts.garmentStyle,
       garmentSegments: opts.garmentSegments,
       mantleStyle: opts.mantleStyle,
@@ -533,7 +540,18 @@ export class CharacterHost {
 
   /** Exact clamped native face and upper-body proportions used by the emitted geometry. */
   getAnatomyReceipt(): AgentAvatarAnatomyReceipt {
-    return { ...this.built.anatomy };
+    return {
+      ...this.built.anatomy,
+      ...(this.built.anatomy.upperBody
+        ? {
+            upperBody: {
+              ...this.built.anatomy.upperBody,
+              vertexRange: { ...this.built.anatomy.upperBody.vertexRange },
+              indexRange: { ...this.built.anatomy.upperBody.indexRange },
+            },
+          }
+        : {}),
+    };
   }
 
   /** Exact native civic facial-landmark topology and authored controls, when selected. */

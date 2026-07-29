@@ -366,6 +366,72 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.skin).toBeUndefined();
   });
 
+  it('maps the coherent upper-body profile into the emitted native topology receipt', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3KResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                shoulder_scale: 1.1,
+                torso_scale: 0.95,
+                upper_body_profile: 'coherent_shoulder_neck_torso_v1',
+                upper_body_radial_segments: 18,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@body(upper_body_profile=coherent-shoulder-neck-torso-v1,' + 'upper_body_radial_segments=18)'
+    );
+    expect(result.anatomy?.upperBody).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
+      profile: 'coherent-shoulder-neck-torso-v1',
+      radialSegments: 18,
+      ringCount: 10,
+      shoulderHalfWidth: 0.264,
+      waistHalfWidth: 0.152,
+      neckRadius: 0.054,
+    });
+    expect(result.host?.getAnatomyReceipt()).toEqual(result.anatomy);
+  });
+
+  it('fails closed on unsupported upper-body profiles and orphan topology controls', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'UnsupportedH3KBody',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'provider_mesh_magic_v9',
+                upper_body_radial_segments: 20,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.mapped.some((entry) => entry.includes('upper_body_profile='))).toBe(false);
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@body(upper_body_profile)',
+      reason: "profile 'provider-mesh-magic-v9' has no native upper-body geometry implementation",
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@body(upper_body_topology_controls)',
+      reason: 'upper-body topology controls require a supported upper_body_profile',
+    });
+    expect(result.anatomy).toBeUndefined();
+  });
+
   it('@face selects the neutral anatomical topology and receipts it through morph output', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

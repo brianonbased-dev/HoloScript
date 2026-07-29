@@ -213,4 +213,93 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     );
     expect(spanForJoint(authored, 'spine')).toBeLessThan(spanForJoint(baseline, 'spine'));
   });
+
+  it('builds one connected coherent torso-shoulder-neck surface with causal native evidence', () => {
+    const legacy = buildAgentAvatarMesh({
+      upperBodyProfile: 'legacy-segments-v1',
+    });
+    const coherent = buildAgentAvatarMesh({
+      upperBodyProfile: 'coherent-shoulder-neck-torso-v1',
+      upperBodyRadialSegments: 18,
+      shoulderScale: 1.12,
+      torsoScale: 0.96,
+    });
+    const receipt = coherent.anatomy.upperBody!;
+
+    expect(legacy.anatomy.upperBody).toBeUndefined();
+    expect(receipt).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
+      profile: 'coherent-shoulder-neck-torso-v1',
+      radialSegments: 18,
+      ringCount: 10,
+      shoulderHalfWidth: 0.2688,
+      waistHalfWidth: 0.1536,
+      neckRadius: 0.054,
+    });
+    expect(receipt.vertexRange.vertexCount).toBe(receipt.radialSegments * receipt.ringCount);
+    expect(receipt.indexRange.indexCount).toBe(
+      receipt.radialSegments * (receipt.ringCount - 1) * 6
+    );
+    expect(coherent.vertexCount).not.toBe(legacy.vertexCount);
+
+    let curvedNormalCount = 0;
+    const admittedJoints = new Set(
+      ['hips', 'spine', 'spine1', 'spine2', 'neck'].map((bone) => BONE_ORDER.indexOf(bone))
+    );
+    for (
+      let vertex = receipt.vertexRange.vertexStart;
+      vertex < receipt.vertexRange.vertexStart + receipt.vertexRange.vertexCount;
+      vertex++
+    ) {
+      const offset = vertex * 3;
+      const components = [
+        Math.abs(coherent.normals[offset]),
+        Math.abs(coherent.normals[offset + 1]),
+        Math.abs(coherent.normals[offset + 2]),
+      ];
+      if (components.filter((component) => component > 0.05).length >= 2) {
+        curvedNormalCount++;
+      }
+      expect(admittedJoints.has(coherent.jointIndices[vertex])).toBe(true);
+      expect(coherent.jointWeights[vertex]).toBe(1);
+    }
+    expect(curvedNormalCount).toBeGreaterThan(receipt.vertexRange.vertexCount * 0.8);
+
+    const adjacency = new Map<number, Set<number>>();
+    const connect = (a: number, b: number) => {
+      if (!adjacency.has(a)) adjacency.set(a, new Set());
+      if (!adjacency.has(b)) adjacency.set(b, new Set());
+      adjacency.get(a)!.add(b);
+      adjacency.get(b)!.add(a);
+    };
+    for (
+      let offset = receipt.indexRange.indexStart;
+      offset < receipt.indexRange.indexStart + receipt.indexRange.indexCount;
+      offset += 3
+    ) {
+      const triangle = [
+        coherent.indices[offset],
+        coherent.indices[offset + 1],
+        coherent.indices[offset + 2],
+      ];
+      for (const vertex of triangle) {
+        expect(vertex).toBeGreaterThanOrEqual(receipt.vertexRange.vertexStart);
+        expect(vertex).toBeLessThan(
+          receipt.vertexRange.vertexStart + receipt.vertexRange.vertexCount
+        );
+      }
+      connect(triangle[0], triangle[1]);
+      connect(triangle[1], triangle[2]);
+      connect(triangle[2], triangle[0]);
+    }
+    const visited = new Set<number>();
+    const queue = [receipt.vertexRange.vertexStart];
+    while (queue.length > 0) {
+      const vertex = queue.shift()!;
+      if (visited.has(vertex)) continue;
+      visited.add(vertex);
+      for (const neighbor of adjacency.get(vertex) ?? []) queue.push(neighbor);
+    }
+    expect(visited.size).toBe(receipt.vertexRange.vertexCount);
+  });
 });

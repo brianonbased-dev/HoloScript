@@ -8,10 +8,11 @@
  * renderer uploads and skins on-GPU. It is the always-works default body source; a glTF/VRM
  * upgrade is a separate, opt-in path (plan: "Both body sources").
  *
- * Geometry: one oriented box per skeletal segment (joint→child-joint), each segment weighted
- * (rigid, weight 1) to the bone it represents, so GPU linear-blend skinning over the
- * `HUMANOID_65_SKELETON` poses the whole figure through forward kinematics. Recognisable as a
- * segmented humanoid; Phase 1 layers proper limb geometry + SSS/hair materials on top.
+ * Geometry: compatibility bodies use one oriented box per skeletal segment. Source-authored
+ * bodies can replace the axial torso, shoulder roots, and neck with one connected elliptical
+ * loft while retaining the sovereign `HUMANOID_65_SKELETON` skinning path. Each vertex stays
+ * rigidly bound to one canonical bone, so the native GPU palette poses the entire figure
+ * without an imported body asset or provider runtime.
  *
  * @module character-render
  */
@@ -65,6 +66,11 @@ export interface AgentAvatarMeshData {
 }
 
 export type AgentAvatarFaceTopology = 'procedural-head-v1' | 'neutral-anatomical-v2';
+export const AGENT_AVATAR_UPPER_BODY_PROFILES = [
+  'legacy-segments-v1',
+  'coherent-shoulder-neck-torso-v1',
+] as const;
+export type AgentAvatarUpperBodyProfile = (typeof AGENT_AVATAR_UPPER_BODY_PROFILES)[number];
 export const AGENT_AVATAR_ORBITAL_PROFILES = ['tearline-rim-v1', 'recessed-lids-v1'] as const;
 export type AgentAvatarOrbitalProfile = (typeof AGENT_AVATAR_ORBITAL_PROFILES)[number];
 export const AGENT_AVATAR_FACIAL_DETAIL_PROFILES = [
@@ -108,6 +114,23 @@ export interface AgentAvatarAnatomyReceipt {
   jawTaper: number;
   shoulderScale: number;
   torsoScale: number;
+  /** Present only when the connected native upper-body surface is actually emitted. */
+  upperBody?: AgentAvatarUpperBodyGeometryReceipt;
+}
+
+export interface AgentAvatarUpperBodyGeometryReceipt {
+  schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1';
+  profile: 'coherent-shoulder-neck-torso-v1';
+  radialSegments: number;
+  ringCount: number;
+  /** Emitted bind-space half width at the shoulder ring, after authored scaling. */
+  shoulderHalfWidth: number;
+  /** Emitted bind-space half width at the waist ring, after authored scaling. */
+  waistHalfWidth: number;
+  /** Emitted bind-space radius at the top neck ring, after authored scaling. */
+  neckRadius: number;
+  vertexRange: { vertexStart: number; vertexCount: number };
+  indexRange: { indexStart: number; indexCount: number };
 }
 
 export interface AgentAvatarMeshOptions {
@@ -155,6 +178,10 @@ export interface AgentAvatarMeshOptions {
   shoulderScale?: number;
   /** Hips/spine thickness multiplier, independent of global build scale (0.85..1.2). */
   torsoScale?: number;
+  /** Native upper-body construction. Compatibility segment boxes remain the default. */
+  upperBodyProfile?: AgentAvatarUpperBodyProfile;
+  /** Circumferential topology budget for the connected upper-body loft (12..32). */
+  upperBodyRadialSegments?: number;
 }
 
 /** Pose = per-bone LOCAL rotation applied at the joint (absent ⇒ identity / bind). */
@@ -309,6 +336,10 @@ function clampFloat(value: number | undefined, fallback: number, min: number, ma
   return Math.max(min, Math.min(max, value ?? fallback));
 }
 
+function round6(value: number): number {
+  return Math.round(value * 1_000_000) / 1_000_000;
+}
+
 /** Append an oriented box spanning a→b (world-bind), thickness r, all verts weighted to jointIdx. */
 function pushBox(acc: MeshAccum, a: Vec3, b: Vec3, r: number, jointIdx: number): void {
   const axisVec = sub(b, a);
@@ -395,6 +426,145 @@ function pushBox(acc: MeshAccum, a: Vec3, b: Vec3, r: number, jointIdx: number):
     // Two triangles; cullMode 'none' downstream so winding is irrelevant.
     acc.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
   }
+}
+
+interface UpperBodyRing {
+  y: number;
+  radiusX: number;
+  radiusZ: number;
+  centerZ: number;
+  jointName: 'hips' | 'spine' | 'spine1' | 'spine2' | 'neck';
+}
+
+/**
+ * Append one connected, indexed elliptical loft from the upper hips through the shoulder
+ * girdle and neck. Shared triangles replace the interpenetrating axial and shoulder boxes
+ * while preserving the one-weight skinning ABI used by the sovereign native renderer.
+ */
+function pushCoherentUpperBody(
+  acc: MeshAccum,
+  radialSegments: number,
+  buildScale: number,
+  shoulderScale: number,
+  torsoScale: number,
+  heightScale: number
+): AgentAvatarUpperBodyGeometryReceipt {
+  const torso = buildScale * torsoScale;
+  const rings: UpperBodyRing[] = [
+    { y: 0.91, radiusX: 0.16 * torso, radiusZ: 0.13 * torso, centerZ: 0, jointName: 'hips' },
+    { y: 0.99, radiusX: 0.18 * torso, radiusZ: 0.14 * torso, centerZ: 0, jointName: 'hips' },
+    { y: 1.07, radiusX: 0.17 * torso, radiusZ: 0.13 * torso, centerZ: 0, jointName: 'spine' },
+    { y: 1.15, radiusX: 0.18 * torso, radiusZ: 0.14 * torso, centerZ: 0, jointName: 'spine1' },
+    {
+      y: 1.23,
+      radiusX: 0.195 * torso,
+      radiusZ: 0.145 * torso,
+      centerZ: 0.005,
+      jointName: 'spine1',
+    },
+    {
+      y: 1.31,
+      radiusX: 0.215 * torso,
+      radiusZ: 0.155 * torso,
+      centerZ: 0.01,
+      jointName: 'spine2',
+    },
+    {
+      y: 1.365,
+      radiusX: 0.23 * torso,
+      radiusZ: 0.16 * torso,
+      centerZ: 0.012,
+      jointName: 'spine2',
+    },
+    {
+      y: 1.41,
+      radiusX: 0.24 * buildScale * shoulderScale,
+      radiusZ: 0.15 * buildScale,
+      centerZ: 0.005,
+      jointName: 'spine2',
+    },
+    {
+      y: 1.45,
+      radiusX: 0.1 * buildScale,
+      radiusZ: 0.09 * buildScale,
+      centerZ: 0,
+      jointName: 'neck',
+    },
+    {
+      y: 1.51,
+      radiusX: 0.054 * buildScale,
+      radiusZ: 0.052 * buildScale,
+      centerZ: 0,
+      jointName: 'neck',
+    },
+  ];
+  const vertexStart = acc.positions.length / 3;
+  const indexStart = acc.indices.length;
+
+  for (let ringIndex = 0; ringIndex < rings.length; ringIndex++) {
+    const ring = rings[ringIndex];
+    const previous = rings[Math.max(0, ringIndex - 1)];
+    const next = rings[Math.min(rings.length - 1, ringIndex + 1)];
+    const deltaY = Math.max(1e-6, next.y - previous.y);
+    const slopeX = (next.radiusX - previous.radiusX) / deltaY;
+    const slopeZ = (next.radiusZ - previous.radiusZ) / deltaY;
+    const centerSlopeZ = (next.centerZ - previous.centerZ) / deltaY;
+    const jointIndex = BONE_INDEX.get(ring.jointName) ?? 0;
+
+    for (let segment = 0; segment < radialSegments; segment++) {
+      const theta = (segment / radialSegments) * Math.PI * 2;
+      const cosine = Math.cos(theta);
+      const sine = Math.sin(theta);
+      const tangentTheta = normalize({
+        x: -ring.radiusX * sine,
+        y: 0,
+        z: ring.radiusZ * cosine,
+      });
+      const tangentY = {
+        x: slopeX * cosine,
+        y: 1,
+        z: centerSlopeZ + slopeZ * sine,
+      };
+      const normal = normalize(cross(tangentY, tangentTheta));
+
+      acc.positions.push(ring.radiusX * cosine, ring.y, ring.centerZ + ring.radiusZ * sine);
+      acc.normals.push(normal.x, normal.y, normal.z);
+      acc.tangents.push(tangentTheta.x, tangentTheta.y, tangentTheta.z, 1);
+      acc.jointIndices.push(jointIndex);
+      acc.jointWeights.push(1);
+    }
+  }
+
+  for (let ringIndex = 0; ringIndex < rings.length - 1; ringIndex++) {
+    const lower = vertexStart + ringIndex * radialSegments;
+    const upper = lower + radialSegments;
+    for (let segment = 0; segment < radialSegments; segment++) {
+      const nextSegment = (segment + 1) % radialSegments;
+      const a = lower + segment;
+      const b = lower + nextSegment;
+      const c = upper + nextSegment;
+      const d = upper + segment;
+      acc.indices.push(a, b, c, a, c, d);
+    }
+  }
+
+  return {
+    schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
+    profile: 'coherent-shoulder-neck-torso-v1',
+    radialSegments,
+    ringCount: rings.length,
+    shoulderHalfWidth: round6(rings[7].radiusX * heightScale),
+    waistHalfWidth: round6(rings[0].radiusX * heightScale),
+    neckRadius: round6(rings[9].radiusX * heightScale),
+    vertexRange: {
+      vertexStart,
+      vertexCount: acc.positions.length / 3 - vertexStart,
+    },
+    indexRange: {
+      indexStart,
+      indexCount: acc.indices.length - indexStart,
+    },
+  };
 }
 
 /**
@@ -929,6 +1099,8 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const jawTaper = clampFloat(opts.jawTaper, 0.22, 0.08, 0.38);
   const shoulderScale = clampFloat(opts.shoulderScale, 1, 0.85, 1.25);
   const torsoScale = clampFloat(opts.torsoScale, 1, 0.85, 1.2);
+  const upperBodyProfile = opts.upperBodyProfile ?? 'legacy-segments-v1';
+  const upperBodyRadialSegments = clampInt(opts.upperBodyRadialSegments, 24, 12, 32);
   const bindWorld = computeBindWorld();
   const acc: MeshAccum = {
     positions: [],
@@ -940,15 +1112,40 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   };
   let orbital: AgentAvatarOrbitalGeometryReceipt | undefined;
   let facialLandmarks: AgentAvatarFacialLandmarkReceipt | undefined;
+  const upperBody =
+    upperBodyProfile === 'coherent-shoulder-neck-torso-v1'
+      ? pushCoherentUpperBody(
+          acc,
+          upperBodyRadialSegments,
+          buildScale,
+          shoulderScale,
+          torsoScale,
+          heightScale
+        )
+      : undefined;
 
   const childCount = new Map<string, number>();
   for (const bone of HUMANOID_65_SKELETON) {
     if (bone.parent) childCount.set(bone.parent, (childCount.get(bone.parent) ?? 0) + 1);
   }
 
+  const coherentUpperBodySegments = new Set([
+    'hips',
+    'spine',
+    'spine1',
+    'spine2',
+    'neck',
+    'head',
+    'left_shoulder',
+    'left_upper_arm',
+    'right_shoulder',
+    'right_upper_arm',
+  ]);
+
   // One box per segment (parent-joint → this-joint), weighted to the PARENT bone it represents.
   for (const bone of HUMANOID_65_SKELETON) {
     if (!bone.parent) continue;
+    if (upperBody && coherentUpperBodySegments.has(bone.name)) continue;
     const a0 = getTranslation(bindWorld.get(bone.parent)!);
     const b0 = getTranslation(bindWorld.get(bone.name)!);
     const upperLimb =
@@ -1031,6 +1228,15 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
       jawTaper,
       shoulderScale,
       torsoScale,
+      ...(upperBody
+        ? {
+            upperBody: {
+              ...upperBody,
+              vertexRange: { ...upperBody.vertexRange },
+              indexRange: { ...upperBody.indexRange },
+            },
+          }
+        : {}),
     },
     ...(orbital ? { orbital } : {}),
     ...(facialLandmarks ? { facialLandmarks } : {}),

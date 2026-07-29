@@ -26,6 +26,7 @@ import type {
   AgentAvatarFacialLandmarkReceipt,
   AgentAvatarFaceTopology,
   AgentAvatarOrbitalProfile,
+  AgentAvatarUpperBodyProfile,
 } from './AgentAvatarMesh';
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
@@ -449,6 +450,8 @@ export function buildCharacterHostFromComposition(
   let buildScale = 1;
   let shoulderScale = 1;
   let torsoScale = 1;
+  let upperBodyProfile: AgentAvatarUpperBodyProfile | undefined;
+  let upperBodyRadialSegments: number | undefined;
   let anatomyAuthored = false;
   const body = traits.get('body');
   if (body) {
@@ -467,6 +470,55 @@ export function buildCharacterHostFromComposition(
       torsoScale = clamp(authoredTorsoScale ?? 1, 0.85, 1.2);
       anatomyAuthored = true;
       report.mapped.push(`@body(shoulder_scale=${shoulderScale},torso_scale=${torsoScale})`);
+    }
+    const authoredUpperBodyProfile = asStr(
+      body.config.upper_body_profile ?? body.config.upperBodyProfile
+    )
+      ?.toLowerCase()
+      .replace(/_/g, '-');
+    const authoredUpperBodyRadialSegments = asNum(
+      body.config.upper_body_radial_segments ?? body.config.upperBodyRadialSegments
+    );
+    if (
+      authoredUpperBodyProfile === 'coherent-shoulder-neck-torso-v1' ||
+      authoredUpperBodyProfile === 'legacy-segments-v1'
+    ) {
+      upperBodyProfile = authoredUpperBodyProfile;
+      anatomyAuthored = true;
+      if (upperBodyProfile === 'coherent-shoulder-neck-torso-v1') {
+        upperBodyRadialSegments = Math.max(
+          12,
+          Math.min(32, Math.round(authoredUpperBodyRadialSegments ?? 24))
+        );
+        report.mapped.push(
+          `@body(upper_body_profile=${upperBodyProfile},` +
+            `upper_body_radial_segments=${upperBodyRadialSegments})`
+        );
+      } else {
+        report.mapped.push(`@body(upper_body_profile=${upperBodyProfile})`);
+        if (authoredUpperBodyRadialSegments !== undefined) {
+          report.stubbed.push({
+            trait: '@body(upper_body_topology_controls)',
+            reason: 'upper-body topology controls require the coherent upper_body_profile',
+          });
+        }
+      }
+    } else if (authoredUpperBodyProfile) {
+      report.stubbed.push({
+        trait: '@body(upper_body_profile)',
+        reason: `profile '${authoredUpperBodyProfile}' has no native upper-body geometry implementation`,
+      });
+      if (authoredUpperBodyRadialSegments !== undefined) {
+        report.stubbed.push({
+          trait: '@body(upper_body_topology_controls)',
+          reason: 'upper-body topology controls require a supported upper_body_profile',
+        });
+      }
+    } else if (authoredUpperBodyRadialSegments !== undefined) {
+      report.stubbed.push({
+        trait: '@body(upper_body_topology_controls)',
+        reason: 'upper-body topology controls require a supported upper_body_profile',
+      });
     }
   }
 
@@ -1008,6 +1060,8 @@ export function buildCharacterHostFromComposition(
     jawTaper,
     shoulderScale,
     torsoScale,
+    upperBodyProfile,
+    upperBodyRadialSegments,
     ocularProfile,
     irisScale,
     pupilScale,
