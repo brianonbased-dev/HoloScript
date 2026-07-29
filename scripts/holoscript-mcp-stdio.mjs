@@ -431,8 +431,8 @@ export function buildBootstrapGroups(stamp, groups = BUILD_GROUPS) {
   return groups.filter((group) => ['absorb-service', 'mcp-server'].includes(group.id));
 }
 
-export function buildStampCoversInput(freshness, stamp, gitHead) {
-  if (!stamp || !gitHead || stamp.gitHead !== gitHead) return false;
+export function buildStampCoversInput(freshness, stamp) {
+  if (!stamp) return false;
   const verifiedInputMtimeMs = Number(stamp.inputMtimeMsByGroup?.[freshness.id]);
   return (
     Number.isFinite(verifiedInputMtimeMs) &&
@@ -651,6 +651,7 @@ function ensureBuild({ noBuild = false } = {}) {
   const missing = missingBuildGroups();
   const existingStamp = readBuildStamp();
   const gitHead = currentGitHead();
+  const commitStale = commitChangedBuildGroups({ stamp: existingStamp, gitHead });
   const freshnessByGroup = new Map(
     BUILD_GROUPS.filter((group) => !missing.includes(group)).map((group) => [
       group,
@@ -660,10 +661,10 @@ function ensureBuild({ noBuild = false } = {}) {
   const mtimeStale = BUILD_GROUPS.filter((group) => {
     const freshness = freshnessByGroup.get(group);
     return (
-      freshness?.stale === true && !buildStampCoversInput(freshness, existingStamp, gitHead)
+      freshness?.stale === true &&
+      (commitStale.includes(group) || !buildStampCoversInput(freshness, existingStamp))
     );
   });
-  const commitStale = commitChangedBuildGroups({ stamp: existingStamp, gitHead });
   // A first-run import probe proves only that the old JavaScript is loadable.
   // Rebuild the two sovereign transport owners once so a copied checkout with
   // preserved mtimes cannot bless stale HoloAbsorb/MCP behavior into a stamp.

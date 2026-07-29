@@ -171,7 +171,7 @@ test('unstamped runtimes rebuild the sovereign absorb and MCP owners once', () =
   );
 });
 
-test('HEAD-bound build stamps suppress unchanged-input rebuild loops', () => {
+test('package input stamps suppress unchanged-input rebuild loops across unrelated commits', () => {
   const freshness = {
     id: 'wasm',
     stale: true,
@@ -185,12 +185,12 @@ test('HEAD-bound build stamps suppress unchanged-input rebuild loops', () => {
     },
   };
 
-  assert.equal(buildStampCoversInput(freshness, stamp, 'abc123'), true);
+  assert.equal(buildStampCoversInput(freshness, stamp), true);
   assert.equal(
-    buildStampCoversInput({ ...freshness, newestInputMtimeMs: 2001 }, stamp, 'abc123'),
+    buildStampCoversInput({ ...freshness, newestInputMtimeMs: 2001 }, stamp),
     false
   );
-  assert.equal(buildStampCoversInput(freshness, stamp, 'different-head'), false);
+  assert.equal(buildStampCoversInput(freshness, null), false);
 });
 
 test('repair groups cover every direct MCP workspace dependency', () => {
