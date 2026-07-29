@@ -2346,6 +2346,89 @@ describe('holo_absorb_repo root validation', () => {
     expect(query.result?.totalSymbols).toBe(refreshed.embeddingRefresh?.totalSymbols);
   }, 30_000);
 
+  it('recovers a failed incremental embedding refresh with one bounded full rebuild', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-embed-fallback-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-embed-fallback-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    const buildSpy = vi.spyOn(EmbeddingIndex.prototype, 'buildIndex');
+    const baseline = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      force: true,
+    })) as {
+      graphRagReady?: boolean;
+      semanticIndexReady?: boolean;
+    };
+    expect(baseline).toMatchObject({
+      graphRagReady: true,
+      semanticIndexReady: true,
+    });
+    buildSpy.mockClear();
+
+    fs.appendFileSync(
+      path.join(repoDir, 'src', 'alpha.ts'),
+      '\nexport function recoveredEmbeddingDelta(): string { return "fallback"; }\n'
+    );
+    execFileSync('git', ['add', 'src/alpha.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'add embedding fallback delta'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+
+    const refreshSpy = vi
+      .spyOn(EmbeddingIndex.prototype, 'refreshIndex')
+      .mockRejectedValueOnce(new Error('synthetic incremental refresh failure'));
+    const refreshed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      force: false,
+    })) as {
+      embeddingRefresh?: unknown;
+      embeddingRefreshFallback?: {
+        kind?: string;
+        reason?: string;
+        fullRebuildAttempted?: boolean;
+        recovered?: boolean;
+      };
+      embeddingSkipped?: boolean;
+      graphRagReady?: boolean;
+      semanticIndexReady?: boolean;
+    };
+
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+    expect(buildSpy).toHaveBeenCalledTimes(1);
+    expect(refreshed.embeddingRefresh).toBeUndefined();
+    expect(refreshed.embeddingRefreshFallback).toMatchObject({
+      kind: 'EmbeddingRefreshFallbackReceipt',
+      reason: 'synthetic incremental refresh failure',
+      fullRebuildAttempted: true,
+      recovered: true,
+    });
+    expect(refreshed).toMatchObject({
+      embeddingSkipped: false,
+      graphRagReady: true,
+      semanticIndexReady: true,
+    });
+
+    simulateAbsorbProcessRestartForTests();
+    const status = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      graphRAGReady?: boolean;
+      semanticIndexReady?: boolean;
+      semanticIndex?: { diskHydratable?: boolean };
+    };
+    expect(status).toMatchObject({
+      graphRAGReady: true,
+      semanticIndexReady: true,
+      semanticIndex: { diskHydratable: true },
+    });
+  }, 30_000);
+
   it('promotes a cached cap before a missing stored commit forces a rescan', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-policy-rescan-cache-'));
