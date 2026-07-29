@@ -208,6 +208,20 @@ function removeFilesFromGraphCache(cacheFile: string, filePaths: string[]): void
   fs.writeFileSync(cacheFile, JSON.stringify(envelope), 'utf-8');
 }
 
+function markMutatedGenerationFixtureAsLegacy(rootDir: string): void {
+  const paths = resolveCodebaseCachePaths(rootDir);
+  if (!fs.existsSync(paths.generationManifestFile)) return;
+  const manifest = JSON.parse(fs.readFileSync(paths.generationManifestFile, 'utf-8')) as {
+    schemaVersion: string;
+    graphCacheSha256?: string;
+    graphCacheBytes?: number;
+  };
+  manifest.schemaVersion = 'holoscript.absorb-cache-generation.v1';
+  delete manifest.graphCacheSha256;
+  delete manifest.graphCacheBytes;
+  fs.writeFileSync(paths.generationManifestFile, JSON.stringify(manifest), 'utf-8');
+}
+
 function makeLocalCodebaseSnapshotReceipt(
   files: Array<{ path: string; content: string }>,
   roots = [process.cwd()]
@@ -1033,13 +1047,15 @@ describe('holo_absorb_repo root validation', () => {
     );
     process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
     process.env.ABSORB_AUTO_BACKGROUND = '0';
+    process.env.ABSORB_REQUIRE_ISOLATION = '0';
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
 
     const initial = (await handleCodebaseTool('holo_absorb_repo', {
       rootDir: repoDir,
       outputFormat: 'graph',
       force: true,
-    })) as { error?: string };
-    expect(initial.error).toBeUndefined();
+    })) as Record<string, unknown>;
+    expect(initial, JSON.stringify(initial, null, 2)).not.toHaveProperty('error');
 
     const paths = resolveCodebaseCachePaths(repoDir);
     const manifestBeforeRaw = fs.readFileSync(paths.generationManifestFile, 'utf-8');
@@ -1119,6 +1135,67 @@ describe('holo_absorb_repo root validation', () => {
     };
     expect(status.cacheStorage?.generationId).toBe(manifestBefore.generationId);
     expect(status.semanticIndex?.diskEmbeddingGenerationMatchesGraph).toBe(true);
+  }, 30_000);
+
+  it('refuses a cold selected graph generation whose bytes no longer match its manifest', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-generation-integrity-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-generation-integrity-cache-')
+    );
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+    process.env.ABSORB_REQUIRE_ISOLATION = '0';
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
+
+    const initial = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+    })) as Record<string, unknown>;
+    expect(initial, JSON.stringify(initial, null, 2)).not.toHaveProperty('error');
+
+    const paths = resolveCodebaseCachePaths(repoDir);
+    const manifest = JSON.parse(fs.readFileSync(paths.generationManifestFile, 'utf-8')) as {
+      schemaVersion?: string;
+      generationId: string;
+      graphFile: string;
+      graphCacheSha256?: string;
+      graphCacheBytes?: number;
+    };
+    const selectedGraph = path.resolve(paths.generationsDirectory, manifest.graphFile);
+    const selectedGraphBytes = fs.readFileSync(selectedGraph);
+    expect(manifest).toMatchObject({
+      schemaVersion: 'holoscript.absorb-cache-generation.v2',
+      graphCacheSha256: createHash('sha256').update(selectedGraphBytes).digest('hex'),
+      graphCacheBytes: selectedGraphBytes.byteLength,
+    });
+
+    const corruptedEnvelope = JSON.parse(selectedGraphBytes.toString('utf-8')) as {
+      timestamp: number;
+    };
+    corruptedEnvelope.timestamp += 1;
+    const corruptedGraphBytes = Buffer.from(JSON.stringify(corruptedEnvelope), 'utf-8');
+    expect(corruptedGraphBytes.byteLength).toBe(selectedGraphBytes.byteLength);
+    fs.writeFileSync(selectedGraph, corruptedGraphBytes);
+
+    resetCodebaseToolStateForTests(false);
+    const originalCwd = process.cwd();
+    try {
+      process.chdir(repoDir);
+      const status = (await handleCodebaseTool('holo_graph_status', {
+        forceRefresh: true,
+      })) as {
+        graphAuthoritative?: boolean;
+        semanticIndexReady?: boolean;
+        graphUnavailableReceipt?: { reason?: string };
+      };
+      expect(status.graphAuthoritative).toBe(false);
+      expect(status.semanticIndexReady).toBe(false);
+      expect(status.graphUnavailableReceipt?.reason).toBe('cache_missing');
+    } finally {
+      process.chdir(originalCwd);
+    }
   }, 30_000);
 
   it('surfaces isolated scan checkpoint progress from the durable receipt', async () => {
@@ -3337,6 +3414,7 @@ describe('holo_absorb_repo root validation', () => {
       fs.readFileSync(ignoredFile, 'utf-8')
     );
     fs.writeFileSync(cacheFile, JSON.stringify(incompleteEnvelope), 'utf-8');
+    markMutatedGenerationFixtureAsLegacy(repoDir);
     resetCodebaseToolStateForTests(false);
     process.env.ABSORB_AUTO_BACKGROUND = '1';
     process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '2';
@@ -3432,6 +3510,7 @@ describe('holo_absorb_repo root validation', () => {
 
     const cacheFile = path.join(cacheDir, 'graph-cache.json');
     removeFilesFromGraphCache(cacheFile, ['src/beta.ts']);
+    markMutatedGenerationFixtureAsLegacy(repoDir);
     const priorIncompleteCache = fs.readFileSync(cacheFile, 'utf-8');
     resetCodebaseToolStateForTests(false);
     process.env.ABSORB_AUTO_BACKGROUND = '1';
@@ -4005,6 +4084,7 @@ describe('holo_absorb_repo root validation', () => {
       (_, index) => `src/fixture-${String(fixtureCount - index - 1).padStart(4, '0')}.ts`
     );
     removeFilesFromGraphCache(cacheFile, missingFixturePaths);
+    markMutatedGenerationFixtureAsLegacy(repoDir);
     resetCodebaseToolStateForTests(false);
 
     const originalRepairScanFiles = CodebaseScanner.prototype.scanFiles;
@@ -4535,6 +4615,7 @@ describe('holo_absorb_repo root validation', () => {
     delete legacyEnvelope.embeddingCacheBytes;
     delete legacyEnvelope.embeddingCacheMtimeMs;
     fs.writeFileSync(legacyGraphCachePath, JSON.stringify(legacyEnvelope), 'utf-8');
+    markMutatedGenerationFixtureAsLegacy(repoDir);
     resetGraphRAGStateForTests();
 
     const migratedGraphResult = (await handleCodebaseTool('holo_absorb_repo', {
