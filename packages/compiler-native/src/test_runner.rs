@@ -47,6 +47,7 @@ pub enum HoloTestStatus {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct HoloTestReport {
+    pub schema: &'static str,
     pub root: PathBuf,
     pub timeout_ms: u128,
     pub cases: Vec<HoloTestCaseResult>,
@@ -227,10 +228,44 @@ pub fn run_tests_with_options(
         fs::remove_dir_all(&artifact_root)?;
     }
     Ok(HoloTestReport {
+        schema: "holoscript.holotest.v1",
         root,
         timeout_ms: run_options.timeout.as_millis(),
         cases,
     })
+}
+
+pub fn render_junit(report: &HoloTestReport) -> String {
+    let mut xml = format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuite name=\"HoloTest\" tests=\"{}\" failures=\"{}\">\n",
+        report.cases.len(), report.failed()
+    );
+    for case in &report.cases {
+        xml.push_str(&format!(
+            "  <testcase name=\"{}\" time=\"{}\">",
+            xml_escape(&case.name),
+            case.duration_ms as f64 / 1000.0
+        ));
+        if case.status != HoloTestStatus::Passed {
+            xml.push_str(&format!(
+                "<failure type=\"{}\" message=\"{}\" />",
+                format!("{:?}", case.status).to_lowercase(),
+                xml_escape(case.diagnostic.as_deref().unwrap_or("test failed"))
+            ));
+        }
+        xml.push_str("</testcase>\n");
+    }
+    xml.push_str("</testsuite>\n");
+    xml
+}
+
+fn xml_escape(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
 }
 
 enum CaseExecution {
@@ -448,5 +483,26 @@ mod tests {
         assert_eq!(report.cases.len(), 1);
         assert_eq!(report.cases[0].status, HoloTestStatus::TimedOut);
         fs::remove_dir_all(root).expect("remove test root");
+    }
+
+    #[test]
+    fn renders_junit_with_failures_escaped() {
+        let report = HoloTestReport {
+            schema: "holoscript.holotest.v1",
+            root: PathBuf::from("."),
+            timeout_ms: 1,
+            cases: vec![HoloTestCaseResult {
+                name: "a<&".to_string(),
+                source: PathBuf::from("a"),
+                status: HoloTestStatus::Failed,
+                exit_code: Some(1),
+                duration_ms: 1,
+                diagnostic: Some("x<&".to_string()),
+            }],
+        };
+        let junit = render_junit(&report);
+        assert!(junit.contains("tests=\"1\" failures=\"1\""));
+        assert!(junit.contains("a&lt;&amp;"));
+        assert!(junit.contains("x&lt;&amp;"));
     }
 }

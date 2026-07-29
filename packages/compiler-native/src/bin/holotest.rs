@@ -1,8 +1,11 @@
 use std::env;
+use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use holoscript_native::{run_tests_with_options, HoloTestRunOptions, NativeCompileOptions};
+use holoscript_native::{
+    render_junit, run_tests_with_options, HoloTestRunOptions, NativeCompileOptions,
+};
 use std::time::Duration;
 
 fn main() -> ExitCode {
@@ -28,13 +31,14 @@ fn run() -> Result<bool, String> {
     let mut json = false;
     let mut keep_artifacts = false;
     let mut timeout_ms = 30_000_u64;
+    let mut junit = None;
     let mut root_seen = false;
     let mut args = env::args().skip(1);
 
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "-h" | "--help" => {
-                println!("Usage: holotest [root] [--filter <substring>] [--timeout-ms <milliseconds>] [--json] [--keep-artifacts] [--linker <clang-or-cc>]");
+                println!("Usage: holotest [root] [--filter <substring>] [--timeout-ms <milliseconds>] [--json] [--junit <path>] [--keep-artifacts] [--linker <clang-or-cc>]");
                 println!("Runs every *.test.hs source file. A test passes when main returns 0.");
                 return Ok(true);
             }
@@ -51,6 +55,12 @@ fn run() -> Result<bool, String> {
                 ))
             }
             "--json" => json = true,
+            "--junit" => {
+                junit = Some(PathBuf::from(
+                    args.next()
+                        .ok_or_else(|| "--junit requires a path".to_string())?,
+                ))
+            }
             "--timeout-ms" => {
                 timeout_ms = args
                     .next()
@@ -84,6 +94,9 @@ fn run() -> Result<bool, String> {
         },
     )
     .map_err(|error| error.to_string())?;
+    if let Some(path) = junit {
+        fs::write(path, render_junit(&report)).map_err(|error| error.to_string())?;
+    }
     if json {
         println!(
             "{}",
