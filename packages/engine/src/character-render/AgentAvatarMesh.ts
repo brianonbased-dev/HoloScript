@@ -168,13 +168,21 @@ export type AgentAvatarDigitName = (typeof AGENT_AVATAR_DIGIT_NAMES)[number];
 
 export interface AgentAvatarDigitGeometryReceipt {
   schemaVersion: 'holoscript.agent-avatar-digit-geometry.v1';
-  profile: 'articulated-three-phalanx-v1';
+  profile: 'articulated-three-phalanx-v1' | 'volume-preserving-three-phalanx-v2';
   side: 'left' | 'right';
   digit: AgentAvatarDigitName;
   radialSegments: number;
   ringCount: number;
   phalanxSegmentCount: 3;
-  webBlendRingCount: 1;
+  webBlendRingCount: 1 | 2;
+  /** Extra V3 rings that bound radius loss around the articulated joints. */
+  jointVolumeBlendRingCount?: number;
+  /** Smallest non-tip ring radius divided by the emitted base radius. */
+  minimumJointRadiusRatio?: number;
+  /** Largest adjacent ring-radius loss divided by the emitted base radius. */
+  maximumAdjacentRadiusDrop?: number;
+  /** Dorsal-palmar radius divided by lateral radius for the V3 oval section. */
+  crossSectionAspectRatio?: number;
   totalLength: number;
   baseRadius: number;
   tipRadius: number;
@@ -190,7 +198,10 @@ export type AgentAvatarHandLandmarkKind =
 
 export interface AgentAvatarHandLandmarkGeometryReceipt {
   schemaVersion: 'holoscript.agent-avatar-hand-landmark-geometry.v1';
-  profile: 'anatomical-hand-landmark-v1';
+  profile:
+    | 'anatomical-hand-landmark-v1'
+    | 'volumetric-interdigital-web-v2'
+    | 'surface-conforming-nail-plate-v2';
   side: 'left' | 'right';
   kind: AgentAvatarHandLandmarkKind;
   /** Primary digit, when the landmark belongs to one digit. */
@@ -200,6 +211,16 @@ export interface AgentAvatarHandLandmarkGeometryReceipt {
   /** Native shading region. Nail plates are excluded from the skin draw ranges. */
   materialRole: 'skin' | 'keratin-nail';
   jointName: string;
+  /** Curved cross-section rings used by a V3 interdigital web. */
+  blendRingCount?: number;
+  /** Nail attachment is an intentionally embedded, conforming distal surface, not watertight skin. */
+  attachment?: 'distal-phalanx-surface-conforming-v1';
+  /** Number of underside vertices sampled against the distal digit loft. */
+  attachmentSampleCount?: number;
+  /** Positive authored penetration below the sampled digit surface, in emitted metres. */
+  surfaceEmbedDepth?: number;
+  /** Keratin plate thickness at the distal free edge, in emitted metres. */
+  freeEdgeThickness?: number;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -713,6 +734,154 @@ function isFingerBone(name: string | null): boolean {
   );
 }
 
+interface ConvergedDigitRing {
+  center: Vec3;
+  radiusY: number;
+  radiusZ: number;
+  jointName: string;
+  phase: number;
+}
+
+interface ConvergedDigitLayout {
+  baseRadius: number;
+  tipRadius: number;
+  rings: readonly ConvergedDigitRing[];
+}
+
+/**
+ * V3-only bind-space digit loft. Compatibility profiles keep the original five
+ * circular rings byte-for-byte; this denser layout is shared with the nail
+ * attachment sampler so the keratin underside follows the emitted skin surface.
+ */
+function buildConvergedDigitLayout(
+  side: 'left' | 'right',
+  digit: AgentAvatarDigitName,
+  bindWorld: Map<string, Mat4>,
+  buildScale: number,
+  shoulderScale: number
+): ConvergedDigitLayout {
+  const direction = side === 'left' ? 1 : -1;
+  const boneName = (segment: 'proximal' | 'intermediate' | 'distal') =>
+    `${side}_${digit}_${segment}`;
+  const scaledBindPoint = (bone: string): Vec3 => {
+    const point = getTranslation(bindWorld.get(bone)!);
+    return { x: point.x * shoulderScale, y: point.y, z: point.z };
+  };
+  const proximal = scaledBindPoint(boneName('proximal'));
+  const intermediate = scaledBindPoint(boneName('intermediate'));
+  const distal = scaledBindPoint(boneName('distal'));
+  const distalLength =
+    HUMANOID_65_SKELETON.find((bone) => bone.name === boneName('distal'))?.length ?? 0.018;
+  const tip = {
+    x: distal.x + direction * distalLength * shoulderScale,
+    y: distal.y,
+    z: distal.z,
+  };
+  const radiusScale: Record<AgentAvatarDigitName, number> = {
+    thumb: 1.18,
+    index: 1.02,
+    middle: 1.08,
+    ring: 1,
+    pinky: 0.86,
+  };
+  const fan: Record<AgentAvatarDigitName, number> = {
+    thumb: 0.0045,
+    index: 0.0015,
+    middle: 0,
+    ring: -0.0012,
+    pinky: -0.003,
+  };
+  const baseRadius = 0.0106 * buildScale * shoulderScale * radiusScale[digit];
+  const tipRadius = baseRadius * 0.52;
+  const web = {
+    x: proximal.x - direction * baseRadius * 1.1,
+    y: proximal.y,
+    z: proximal.z,
+  };
+  const shapeCenter = (center: Vec3, phase: number): Vec3 => ({
+    x: center.x,
+    y: center.y + (digit === 'thumb' ? -0.004 * phase : 0.0015 * Math.sin(phase * 0.9)),
+    z: center.z + fan[digit] * phase,
+  });
+  const samples: Array<{
+    center: Vec3;
+    phase: number;
+    radiusRatio: number;
+    jointName: string;
+  }> = [
+    { center: web, phase: 0, radiusRatio: 1.08, jointName: `${side}_hand` },
+    {
+      center: midpoint(web, proximal, 0.55),
+      phase: 0.55,
+      radiusRatio: 1.045,
+      jointName: boneName('proximal'),
+    },
+    { center: proximal, phase: 1, radiusRatio: 1, jointName: boneName('proximal') },
+    {
+      center: midpoint(proximal, intermediate, 0.45),
+      phase: 1.45,
+      radiusRatio: 0.92,
+      jointName: boneName('proximal'),
+    },
+    {
+      center: intermediate,
+      phase: 2,
+      radiusRatio: 0.85,
+      jointName: boneName('intermediate'),
+    },
+    {
+      center: midpoint(intermediate, distal, 0.48),
+      phase: 2.48,
+      radiusRatio: 0.78,
+      jointName: boneName('intermediate'),
+    },
+    { center: distal, phase: 3, radiusRatio: 0.71, jointName: boneName('distal') },
+    {
+      center: midpoint(distal, tip, 0.58),
+      phase: 3.58,
+      radiusRatio: 0.62,
+      jointName: boneName('distal'),
+    },
+    { center: tip, phase: 4, radiusRatio: 0.52, jointName: boneName('distal') },
+  ];
+  return {
+    baseRadius,
+    tipRadius,
+    rings: samples.map((sample) => ({
+      center: shapeCenter(sample.center, sample.phase),
+      radiusY: baseRadius * sample.radiusRatio * 0.88,
+      radiusZ: baseRadius * sample.radiusRatio,
+      jointName: sample.jointName,
+      phase: sample.phase,
+    })),
+  };
+}
+
+function sampleConvergedDigitLayout(
+  layout: ConvergedDigitLayout,
+  phase: number
+): ConvergedDigitRing {
+  const boundedPhase = Math.max(
+    layout.rings[0].phase,
+    Math.min(layout.rings[layout.rings.length - 1].phase, phase)
+  );
+  const upperIndex = Math.max(
+    1,
+    layout.rings.findIndex((ring) => ring.phase >= boundedPhase)
+  );
+  const lower = layout.rings[upperIndex - 1];
+  const upper = layout.rings[upperIndex];
+  const span = Math.max(1e-6, upper.phase - lower.phase);
+  const t = (boundedPhase - lower.phase) / span;
+  return {
+    center: midpoint(lower.center, upper.center, t),
+    radiusY: lower.radiusY + (upper.radiusY - lower.radiusY) * t,
+    radiusZ: lower.radiusZ + (upper.radiusZ - lower.radiusZ) * t,
+    jointName: upper.jointName,
+    phase: boundedPhase,
+  };
+}
+
 function pushArticulatedDigit(
   acc: MeshAccum,
   side: 'left' | 'right',
@@ -721,7 +890,8 @@ function pushArticulatedDigit(
   bindWorld: Map<string, Mat4>,
   buildScale: number,
   shoulderScale: number,
-  heightScale: number
+  heightScale: number,
+  converged: boolean
 ): AgentAvatarDigitGeometryReceipt {
   const direction = side === 'left' ? 1 : -1;
   const boneName = (segment: 'proximal' | 'intermediate' | 'distal') =>
@@ -748,7 +918,6 @@ function pushArticulatedDigit(
     pinky: 0.86,
   };
   const baseRadius = 0.0106 * buildScale * shoulderScale * radiusScale[digit];
-  const tipRadius = baseRadius * 0.5;
   const web = {
     x: proximal.x - direction * baseRadius * 1.1,
     y: proximal.y,
@@ -766,32 +935,72 @@ function pushArticulatedDigit(
     y: center.y + (digit === 'thumb' ? -0.004 * index : 0.0015 * Math.sin(index * 0.9)),
     z: center.z + fan[digit] * index,
   });
-  const centers = [web, proximal, intermediate, distal, tip].map(shapeCenter);
-  const radii = [baseRadius * 1.06, baseRadius, baseRadius * 0.82, baseRadius * 0.67, tipRadius];
-  const joints = [
+  const convergedLayout = converged
+    ? buildConvergedDigitLayout(side, digit, bindWorld, buildScale, shoulderScale)
+    : undefined;
+  const tipRadius = convergedLayout?.tipRadius ?? baseRadius * 0.5;
+  const legacyCenters = [web, proximal, intermediate, distal, tip].map(shapeCenter);
+  const legacyRadii = [
+    baseRadius * 1.06,
+    baseRadius,
+    baseRadius * 0.82,
+    baseRadius * 0.67,
+    tipRadius,
+  ];
+  const legacyJoints = [
     `${side}_hand`,
     boneName('proximal'),
     boneName('intermediate'),
     boneName('distal'),
     boneName('distal'),
   ];
+  const centers = convergedLayout
+    ? convergedLayout.rings.map((ring) => ring.center)
+    : legacyCenters;
+  const radiiY = convergedLayout ? convergedLayout.rings.map((ring) => ring.radiusY) : legacyRadii;
+  const radiiZ = convergedLayout ? convergedLayout.rings.map((ring) => ring.radiusZ) : legacyRadii;
+  const joints = convergedLayout
+    ? convergedLayout.rings.map((ring) => ring.jointName)
+    : legacyJoints;
   const vertexStart = acc.positions.length / 3;
   const indexStart = acc.indices.length;
 
   for (let ringIndex = 0; ringIndex < centers.length; ringIndex++) {
     const center = centers[ringIndex];
     const jointIndex = BONE_INDEX.get(joints[ringIndex]) ?? 0;
+    const previousCenter = centers[Math.max(0, ringIndex - 1)];
+    const nextCenter = centers[Math.min(centers.length - 1, ringIndex + 1)];
+    const centerlineTangent = normalize(sub(nextCenter, previousCenter));
+    const previousRadius =
+      (radiiY[Math.max(0, ringIndex - 1)] + radiiZ[Math.max(0, ringIndex - 1)]) * 0.5;
+    const nextRadius =
+      (radiiY[Math.min(radiiY.length - 1, ringIndex + 1)] +
+        radiiZ[Math.min(radiiZ.length - 1, ringIndex + 1)]) *
+      0.5;
+    const radiusSlope =
+      (nextRadius - previousRadius) / Math.max(1e-6, distance(previousCenter, nextCenter));
     for (let segment = 0; segment < radialSegments; segment++) {
       const theta = (segment / radialSegments) * Math.PI * 2;
       const cosine = Math.cos(theta);
       const sine = Math.sin(theta);
       acc.positions.push(
         center.x,
-        center.y + radii[ringIndex] * cosine,
-        center.z + radii[ringIndex] * sine
+        center.y + radiiY[ringIndex] * cosine,
+        center.z + radiiZ[ringIndex] * sine
       );
-      acc.normals.push(0, cosine, sine);
-      acc.tangents.push(direction, 0, 0, 1);
+      if (converged) {
+        const radialNormal = normalize({
+          x: 0,
+          y: cosine / Math.max(1e-6, radiiY[ringIndex]),
+          z: sine / Math.max(1e-6, radiiZ[ringIndex]),
+        });
+        const normal = normalize(sub(radialNormal, scale(centerlineTangent, radiusSlope)));
+        acc.normals.push(normal.x, normal.y, normal.z);
+        acc.tangents.push(centerlineTangent.x, centerlineTangent.y, centerlineTangent.z, 1);
+      } else {
+        acc.normals.push(0, cosine, sine);
+        acc.tangents.push(direction, 0, 0, 1);
+      }
       acc.jointIndices.push(jointIndex);
       acc.jointWeights.push(1);
     }
@@ -828,18 +1037,26 @@ function pushArticulatedDigit(
   }
 
   let totalLength = 0;
-  for (let index = 2; index < centers.length; index++) {
+  for (let index = converged ? 3 : 2; index < centers.length; index++) {
     totalLength += distance(centers[index - 1], centers[index]);
   }
   return {
     schemaVersion: 'holoscript.agent-avatar-digit-geometry.v1',
-    profile: 'articulated-three-phalanx-v1',
+    profile: converged ? 'volume-preserving-three-phalanx-v2' : 'articulated-three-phalanx-v1',
     side,
     digit,
     radialSegments,
     ringCount: centers.length,
     phalanxSegmentCount: 3,
-    webBlendRingCount: 1,
+    webBlendRingCount: converged ? 2 : 1,
+    ...(converged
+      ? {
+          jointVolumeBlendRingCount: 4,
+          minimumJointRadiusRatio: 0.62,
+          maximumAdjacentRadiusDrop: 0.1,
+          crossSectionAspectRatio: 0.88,
+        }
+      : {}),
     totalLength: round6(totalLength * heightScale),
     baseRadius: round6(baseRadius * heightScale),
     tipRadius: round6(tipRadius * heightScale),
@@ -964,58 +1181,200 @@ function pushHandLandmarkEllipsoid(
   };
 }
 
-function pushHandLandmarkPrism(
+function pushHandWebPatch(
   acc: MeshAccum,
   shape: HandLandmarkShape
 ): AgentAvatarHandLandmarkGeometryReceipt {
+  const radialSegments = 8;
+  const ringOffsets = [-1, -0.38, 0.38, 1] as const;
+  const radiusFactors = [0.56, 1, 1, 0.56] as const;
   const jointIndex = BONE_INDEX.get(shape.jointName) ?? 0;
   const vertexStart = acc.positions.length / 3;
   const indexStart = acc.indices.length;
-  const signs: Array<readonly [number, number, number]> = [
-    [-1, -1, -1],
-    [1, -1, -1],
-    [1, 1, -1],
-    [-1, 1, -1],
-    [-1, -1, 1],
-    [1, -1, 1],
-    [1, 1, 1],
-    [-1, 1, 1],
-  ];
-  for (const [sx, sy, sz] of signs) {
-    acc.positions.push(
-      shape.center.x + sx * shape.radii.x,
-      shape.center.y + sy * shape.radii.y,
-      shape.center.z + sz * shape.radii.z
-    );
-    const normal = normalize({
-      x: sx / Math.max(1e-6, shape.radii.x),
-      y: sy / Math.max(1e-6, shape.radii.y),
-      z: sz / Math.max(1e-6, shape.radii.z),
-    });
+  const pushVertex = (position: Vec3, normal: Vec3): number => {
+    const vertex = acc.positions.length / 3;
+    acc.positions.push(position.x, position.y, position.z);
     acc.normals.push(normal.x, normal.y, normal.z);
-    acc.tangents.push(shape.side === 'left' ? 1 : -1, 0, 0, 1);
+    acc.tangents.push(0, 0, 1, 1);
     acc.jointIndices.push(jointIndex);
     acc.jointWeights.push(1);
+    return vertex;
+  };
+
+  for (let ringIndex = 0; ringIndex < ringOffsets.length; ringIndex++) {
+    const factor = radiusFactors[ringIndex];
+    for (let segment = 0; segment < radialSegments; segment++) {
+      const theta = (segment / radialSegments) * Math.PI * 2;
+      const cosine = Math.cos(theta);
+      const sine = Math.sin(theta);
+      const offset = {
+        x: shape.radii.x * factor * cosine,
+        y: shape.radii.y * factor * sine,
+        z: shape.radii.z * ringOffsets[ringIndex],
+      };
+      pushVertex(
+        add(shape.center, offset),
+        normalize({
+          x: cosine / Math.max(1e-6, shape.radii.x * factor),
+          y: sine / Math.max(1e-6, shape.radii.y * factor),
+          z: ringOffsets[ringIndex] * 0.32,
+        })
+      );
+    }
   }
-  const faces = [
-    [0, 1, 2, 0, 2, 3],
-    [4, 6, 5, 4, 7, 6],
-    [0, 4, 5, 0, 5, 1],
-    [3, 2, 6, 3, 6, 7],
-    [0, 3, 7, 0, 7, 4],
-    [1, 5, 6, 1, 6, 2],
-  ];
-  for (const face of faces) acc.indices.push(...face.map((index) => vertexStart + index));
+
+  for (let ringIndex = 0; ringIndex < ringOffsets.length - 1; ringIndex++) {
+    const lower = vertexStart + ringIndex * radialSegments;
+    const upper = lower + radialSegments;
+    for (let segment = 0; segment < radialSegments; segment++) {
+      const next = (segment + 1) % radialSegments;
+      acc.indices.push(
+        lower + segment,
+        lower + next,
+        upper + next,
+        lower + segment,
+        upper + next,
+        upper + segment
+      );
+    }
+  }
+
+  const lowerCap = pushVertex(
+    { x: shape.center.x, y: shape.center.y, z: shape.center.z - shape.radii.z },
+    { x: 0, y: 0, z: -1 }
+  );
+  const upperCap = pushVertex(
+    { x: shape.center.x, y: shape.center.y, z: shape.center.z + shape.radii.z },
+    { x: 0, y: 0, z: 1 }
+  );
+  const firstRing = vertexStart;
+  const lastRing = vertexStart + (ringOffsets.length - 1) * radialSegments;
+  for (let segment = 0; segment < radialSegments; segment++) {
+    const next = (segment + 1) % radialSegments;
+    acc.indices.push(lowerCap, firstRing + next, firstRing + segment);
+    acc.indices.push(upperCap, lastRing + segment, lastRing + next);
+  }
 
   return {
     schemaVersion: 'holoscript.agent-avatar-hand-landmark-geometry.v1',
-    profile: 'anatomical-hand-landmark-v1',
+    profile: 'volumetric-interdigital-web-v2',
     side: shape.side,
     kind: shape.kind,
     materialRole: shape.materialRole,
     jointName: shape.jointName,
+    blendRingCount: ringOffsets.length,
     ...(shape.digit ? { digit: shape.digit } : {}),
     ...(shape.betweenDigits ? { betweenDigits: shape.betweenDigits } : {}),
+    vertexRange: {
+      vertexStart,
+      vertexCount: acc.positions.length / 3 - vertexStart,
+    },
+    indexRange: {
+      indexStart,
+      indexCount: acc.indices.length - indexStart,
+    },
+  };
+}
+
+function pushAttachedNailPlate(
+  acc: MeshAccum,
+  side: 'left' | 'right',
+  digit: AgentAvatarDigitName,
+  bindWorld: Map<string, Mat4>,
+  buildScale: number,
+  shoulderScale: number,
+  heightScale: number
+): AgentAvatarHandLandmarkGeometryReceipt {
+  const layout = buildConvergedDigitLayout(side, digit, bindWorld, buildScale, shoulderScale);
+  const longitudinalPhases = [3.12, 3.3, 3.5, 3.68, 3.84] as const;
+  const transverseSamples = [-1, -0.5, 0, 0.5, 1] as const;
+  const widthEnvelope = [0.82, 0.96, 1, 0.98, 0.88] as const;
+  const widthRatio = digit === 'thumb' ? 0.64 : 0.6;
+  const embedDepth = 0.00018 * buildScale;
+  const freeEdgeThickness = (digit === 'thumb' ? 0.00115 : 0.00095) * buildScale;
+  const jointName = `${side}_${digit}_distal`;
+  const jointIndex = BONE_INDEX.get(jointName) ?? 0;
+  const vertexStart = acc.positions.length / 3;
+  const indexStart = acc.indices.length;
+  const columns = transverseSamples.length;
+  const rows = longitudinalPhases.length;
+
+  for (let layer = 0; layer < 2; layer++) {
+    for (let row = 0; row < rows; row++) {
+      const sample = sampleConvergedDigitLayout(layout, longitudinalPhases[row]);
+      for (let column = 0; column < columns; column++) {
+        const across = transverseSamples[column];
+        const zOffset = sample.radiusZ * widthRatio * widthEnvelope[row] * across;
+        const normalizedZ = Math.min(1, Math.abs(zOffset) / Math.max(1e-6, sample.radiusZ));
+        const diagonal = Math.SQRT1_2;
+        const dorsalRatio =
+          normalizedZ <= diagonal
+            ? 1 - (normalizedZ / diagonal) * (1 - diagonal)
+            : diagonal * (1 - (normalizedZ - diagonal) / (1 - diagonal));
+        const skinSurfaceY = sample.center.y + sample.radiusY * Math.max(0, dorsalRatio);
+        const cuticleTaper = row === 0 ? 0.72 : row === 1 ? 0.92 : 1;
+        const camber = layer === 1 ? freeEdgeThickness * 0.12 * (1 - across * across) : 0;
+        const position = {
+          x: sample.center.x,
+          y:
+            skinSurfaceY -
+            embedDepth +
+            (layer === 1 ? freeEdgeThickness * cuticleTaper + camber : 0),
+          z: sample.center.z + zOffset,
+        };
+        acc.positions.push(position.x, position.y, position.z);
+        acc.normals.push(0, layer === 1 ? 1 : -1, 0);
+        acc.tangents.push(side === 'left' ? 1 : -1, 0, 0, 1);
+        acc.jointIndices.push(jointIndex);
+        acc.jointWeights.push(1);
+      }
+    }
+  }
+
+  const layerVertexCount = rows * columns;
+  const pushGrid = (layerOffset: number, top: boolean): void => {
+    for (let row = 0; row < rows - 1; row++) {
+      for (let column = 0; column < columns - 1; column++) {
+        const a = vertexStart + layerOffset + row * columns + column;
+        const b = a + 1;
+        const d = a + columns;
+        const c = d + 1;
+        const forward = (side === 'left') === top;
+        acc.indices.push(...(forward ? [a, b, c, a, c, d] : [a, d, c, a, c, b]));
+      }
+    }
+  };
+  pushGrid(0, false);
+  pushGrid(layerVertexCount, true);
+
+  const perimeter: number[] = [];
+  for (let column = 0; column < columns; column++) perimeter.push(column);
+  for (let row = 1; row < rows; row++) perimeter.push(row * columns + columns - 1);
+  for (let column = columns - 2; column >= 0; column--) {
+    perimeter.push((rows - 1) * columns + column);
+  }
+  for (let row = rows - 2; row > 0; row--) perimeter.push(row * columns);
+  for (let edge = 0; edge < perimeter.length; edge++) {
+    const next = (edge + 1) % perimeter.length;
+    const bottomA = vertexStart + perimeter[edge];
+    const bottomB = vertexStart + perimeter[next];
+    const topA = bottomA + layerVertexCount;
+    const topB = bottomB + layerVertexCount;
+    acc.indices.push(topA, bottomA, bottomB, topA, bottomB, topB);
+  }
+
+  return {
+    schemaVersion: 'holoscript.agent-avatar-hand-landmark-geometry.v1',
+    profile: 'surface-conforming-nail-plate-v2',
+    side,
+    kind: 'nail-plate',
+    digit,
+    materialRole: 'keratin-nail',
+    jointName,
+    attachment: 'distal-phalanx-surface-conforming-v1',
+    attachmentSampleCount: layerVertexCount,
+    surfaceEmbedDepth: round6(embedDepth * heightScale),
+    freeEdgeThickness: round6(freeEdgeThickness * heightScale),
     vertexRange: {
       vertexStart,
       vertexCount: acc.positions.length / 3 - vertexStart,
@@ -1032,7 +1391,8 @@ function pushHandLandmarks(
   side: 'left' | 'right',
   bindWorld: Map<string, Mat4>,
   buildScale: number,
-  shoulderScale: number
+  shoulderScale: number,
+  heightScale: number
 ): AgentAvatarHandLandmarkGeometryReceipt[] {
   const direction = side === 'left' ? 1 : -1;
   const scaleXZ = buildScale * shoulderScale;
@@ -1042,7 +1402,6 @@ function pushHandLandmarks(
   };
   const proximal = (digit: AgentAvatarDigitName): Vec3 =>
     scaledBindPoint(`${side}_${digit}_proximal`);
-  const distal = (digit: AgentAvatarDigitName): Vec3 => scaledBindPoint(`${side}_${digit}_distal`);
   const wrist = scaledBindPoint(`${side}_hand`);
   const landmarks: AgentAvatarHandLandmarkGeometryReceipt[] = [];
   const webPairs: Array<readonly [AgentAvatarDigitName, AgentAvatarDigitName]> = [
@@ -1056,7 +1415,7 @@ function pushHandLandmarks(
     const b = proximal(pair[1]);
     const center = midpoint(a, b, 0.5);
     landmarks.push(
-      pushHandLandmarkPrism(acc, {
+      pushHandWebPatch(acc, {
         side,
         kind: 'interdigital-web',
         center: {
@@ -1120,33 +1479,8 @@ function pushHandLandmarks(
     );
   }
   for (const digit of AGENT_AVATAR_DIGIT_NAMES) {
-    const distalPoint = distal(digit);
-    const distalLength =
-      HUMANOID_65_SKELETON.find((bone) => bone.name === `${side}_${digit}_distal`)?.length ?? 0.018;
-    const tip = {
-      x: distalPoint.x + direction * distalLength * shoulderScale,
-      y: distalPoint.y,
-      z: distalPoint.z,
-    };
-    const center = midpoint(distalPoint, tip, 0.58);
     landmarks.push(
-      pushHandLandmarkEllipsoid(acc, {
-        side,
-        kind: 'nail-plate',
-        center: {
-          x: center.x,
-          y: center.y + (digit === 'thumb' ? 0.0065 : 0.0058) * buildScale,
-          z: center.z,
-        },
-        radii: {
-          x: distalLength * shoulderScale * 0.34,
-          y: 0.00145 * buildScale,
-          z: (digit === 'thumb' ? 0.0068 : 0.0058) * buildScale,
-        },
-        jointName: `${side}_${digit}_distal`,
-        materialRole: 'keratin-nail',
-        digit,
-      })
+      pushAttachedNailPlate(acc, side, digit, bindWorld, buildScale, shoulderScale, heightScale)
     );
   }
   return landmarks;
@@ -1378,12 +1712,13 @@ function pushCoherentUpperLimb(
           bindWorld,
           buildScale,
           shoulderScale,
-          heightScale
+          heightScale,
+          landmarked
         )
       )
     : undefined;
   const handLandmarks = landmarked
-    ? pushHandLandmarks(acc, side, bindWorld, buildScale, shoulderScale)
+    ? pushHandLandmarks(acc, side, bindWorld, buildScale, shoulderScale, heightScale)
     : undefined;
 
   return {

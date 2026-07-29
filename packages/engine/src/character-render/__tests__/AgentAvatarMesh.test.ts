@@ -608,9 +608,28 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     expect(Array.from(landmarked.positions)).toEqual(Array.from(repeated.positions));
     expect(Array.from(landmarked.indices)).toEqual(Array.from(repeated.indices));
     for (const limb of upperBody.upperLimbs) {
+      const digits = limb.digits ?? [];
       const landmarks = limb.handLandmarks ?? [];
       expect(limb.profile).toBe('anatomical-landmark-hand-v3');
       expect(limb.connectedSurfaceCount).toBe(24);
+      expect(digits).toHaveLength(5);
+      for (const digit of digits) {
+        expect(digit).toMatchObject({
+          schemaVersion: 'holoscript.agent-avatar-digit-geometry.v1',
+          profile: 'volume-preserving-three-phalanx-v2',
+          side: limb.side,
+          radialSegments: 8,
+          ringCount: 9,
+          phalanxSegmentCount: 3,
+          webBlendRingCount: 2,
+          jointVolumeBlendRingCount: 4,
+          minimumJointRadiusRatio: 0.62,
+          maximumAdjacentRadiusDrop: 0.1,
+          crossSectionAspectRatio: 0.88,
+        });
+        expect(digit.vertexRange.vertexCount).toBe(8 * 9 + 1);
+        expect(digit.indexRange.indexCount).toBe(8 * 8 * 6 + 8 * 3);
+      }
       expect(landmarks).toHaveLength(18);
       expect(landmarks.filter((landmark) => landmark.kind === 'interdigital-web')).toHaveLength(4);
       expect(landmarks.filter((landmark) => landmark.kind === 'metacarpal-knuckle')).toHaveLength(
@@ -622,20 +641,47 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
       expect(landmarks.filter((landmark) => landmark.kind === 'nail-plate')).toHaveLength(5);
 
       for (const landmark of landmarks) {
-        expect(landmark).toMatchObject({
-          schemaVersion: 'holoscript.agent-avatar-hand-landmark-geometry.v1',
-          profile: 'anatomical-hand-landmark-v1',
-          side: limb.side,
-        });
+        expect(landmark.schemaVersion).toBe('holoscript.agent-avatar-hand-landmark-geometry.v1');
+        expect(landmark.side).toBe(limb.side);
+        expect(landmark.profile).toBe(
+          landmark.kind === 'interdigital-web'
+            ? 'volumetric-interdigital-web-v2'
+            : landmark.kind === 'nail-plate'
+              ? 'surface-conforming-nail-plate-v2'
+              : 'anatomical-hand-landmark-v1'
+        );
         expect(landmark.vertexRange.vertexCount).toBe(
-          landmark.kind === 'interdigital-web' ? 8 : 26
+          landmark.kind === 'interdigital-web' ? 34 : landmark.kind === 'nail-plate' ? 50 : 26
         );
         expect(landmark.indexRange.indexCount).toBe(
-          landmark.kind === 'interdigital-web' ? 36 : 144
+          landmark.kind === 'interdigital-web' ? 192 : landmark.kind === 'nail-plate' ? 288 : 144
         );
         expect(landmark.materialRole).toBe(
           landmark.kind === 'nail-plate' ? 'keratin-nail' : 'skin'
         );
+        if (landmark.kind === 'interdigital-web') {
+          expect(landmark.blendRingCount).toBe(4);
+        }
+        if (landmark.kind === 'nail-plate') {
+          expect(landmark).toMatchObject({
+            attachment: 'distal-phalanx-surface-conforming-v1',
+            attachmentSampleCount: 25,
+          });
+          expect(landmark.surfaceEmbedDepth).toBeGreaterThan(0);
+          expect(landmark.freeEdgeThickness).toBeGreaterThan(
+            landmark.surfaceEmbedDepth ?? Number.POSITIVE_INFINITY
+          );
+          const layerVertexCount = landmark.attachmentSampleCount ?? 0;
+          for (let vertex = 0; vertex < layerVertexCount; vertex++) {
+            const bottomY =
+              landmarked.positions[(landmark.vertexRange.vertexStart + vertex) * 3 + 1];
+            const topY =
+              landmarked.positions[
+                (landmark.vertexRange.vertexStart + layerVertexCount + vertex) * 3 + 1
+              ];
+            expect(topY).toBeGreaterThan(bottomY);
+          }
+        }
         const start = landmark.vertexRange.vertexStart;
         const end = start + landmark.vertexRange.vertexCount;
         const adjacency = new Map<number, Set<number>>();
