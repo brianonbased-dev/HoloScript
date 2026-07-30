@@ -3,10 +3,12 @@
  *
  * The sampler is deliberately pure data: agents can author one compact profile, evaluate any
  * frame without replaying prior frames, and pass the resulting channels to native renderers.
- * Blink is currently bound to real procedural-head deformation by CharacterHost. Gaze, breath,
- * and cloth phase remain explicit channels for render/world consumers rather than being relabelled
- * as native eye, skeleton, or cloth transforms before those bindings exist.
+ * CharacterHost binds blink, gaze, and breath to real native geometry. Cloth phase remains an
+ * explicit channel for render/world consumers rather than being relabelled as native cloth
+ * simulation before that binding exists.
  */
+
+import { HUMANOID_BONE_NAMES } from '../character/HumanoidSkeleton';
 
 export type CharacterMicroMotionProfile = 'human-presence-v1';
 
@@ -72,15 +74,53 @@ export interface CharacterMicroMotionSample {
 }
 
 export interface CharacterMicroMotionApplicationReceipt {
-  schemaVersion: 'holoscript.character-micro-motion-application.v1';
+  schemaVersion: 'holoscript.character-micro-motion-application.v2';
   sampleDigest: string;
   blinkWeight: number;
+  gazeYawRadians: number;
+  gazePitchRadians: number;
+  breathScale: number;
   nativeBlinkApplied: true;
+  nativeGazeApplied: boolean;
+  nativeBreathApplied: boolean;
+  facialChangedVertexCount: number;
+  gazeChangedVertexCount: number;
+  breathChangedVertexCount: number;
   changedVertexCount: number;
   positionDigest: string;
+  normalDigest: string;
+}
+
+export interface CharacterMicroMotionGeometry {
+  eyeVertexRange: { vertexStart: number; vertexCount: number };
+  jointIndices: Uint32Array;
+  secondaryJointIndices?: Uint32Array;
+  secondaryJointWeights?: Float32Array;
+}
+
+export interface NativeCharacterMicroMotionReceipt {
+  schemaVersion: 'holoscript.native-character-micro-motion.v1';
+  gazeYawRadians: number;
+  gazePitchRadians: number;
+  breathScale: number;
+  nativeGazeApplied: boolean;
+  nativeBreathApplied: boolean;
+  gazeChangedVertexCount: number;
+  breathChangedVertexCount: number;
+  changedVertexCount: number;
+  positionDigest: string;
+  normalDigest: string;
+}
+
+export interface NativeCharacterMicroMotionResult {
+  positions: Float32Array<ArrayBuffer>;
+  normals: Float32Array<ArrayBuffer>;
+  receipt: NativeCharacterMicroMotionReceipt;
 }
 
 const TAU = Math.PI * 2;
+const SPINE1_INDEX = HUMANOID_BONE_NAMES.indexOf('spine1');
+const SPINE2_INDEX = HUMANOID_BONE_NAMES.indexOf('spine2');
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -110,6 +150,217 @@ function positiveMod(value: number, modulus: number): number {
 
 function stableNumber(value: number): string {
   return value.toFixed(6);
+}
+
+function digestFloat32(values: Float32Array): string {
+  const bytes = new Uint8Array(values.buffer, values.byteOffset, values.byteLength);
+  let hash = 0x811c9dc5;
+  for (const byte of bytes) {
+    hash ^= byte;
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+function rotateYawPitch(
+  x: number,
+  y: number,
+  z: number,
+  yawRadians: number,
+  pitchRadians: number
+): [number, number, number] {
+  const yawCos = Math.cos(yawRadians);
+  const yawSin = Math.sin(yawRadians);
+  const yawX = yawCos * x + yawSin * z;
+  const yawZ = -yawSin * x + yawCos * z;
+  const pitchCos = Math.cos(pitchRadians);
+  const pitchSin = Math.sin(pitchRadians);
+  return [yawX, pitchCos * y - pitchSin * yawZ, pitchSin * y + pitchCos * yawZ];
+}
+
+function normalize(x: number, y: number, z: number): [number, number, number] {
+  const length = Math.hypot(x, y, z);
+  return length > 1e-12 ? [x / length, y / length, z / length] : [0, 0, 1];
+}
+
+function isChestJoint(jointIndex: number): boolean {
+  return jointIndex === SPINE1_INDEX || jointIndex === SPINE2_INDEX;
+}
+
+/**
+ * Apply gaze and upper-chest breathing to a fresh copy of already-morphed native geometry.
+ *
+ * The two eye halves are rotated about their own bind-space bounds, which moves the layered
+ * iris, pupil, cornea, and sclera as one globe without shifting the eyelid shell. Breathing is
+ * limited to vertices primarily or secondarily influenced by spine1/spine2, so the cranial and
+ * ocular ranges remain untouched. Every call is absolute and therefore drift-free.
+ */
+export function applyNativeCharacterMicroMotion(
+  basePositions: Float32Array,
+  baseNormals: Float32Array,
+  geometry: CharacterMicroMotionGeometry,
+  sample: CharacterMicroMotionSample
+): NativeCharacterMicroMotionResult {
+  if (basePositions.length !== baseNormals.length || basePositions.length % 3 !== 0) {
+    throw new Error('native character micro-motion requires aligned XYZ positions and normals');
+  }
+  const vertexCount = basePositions.length / 3;
+  if (geometry.jointIndices.length !== vertexCount) {
+    throw new Error('native character micro-motion requires one primary joint per vertex');
+  }
+  const positions = new Float32Array(basePositions);
+  const normals = new Float32Array(baseNormals);
+  let gazeChangedVertexCount = 0;
+  let breathChangedVertexCount = 0;
+
+  const eyeStart = clamp(Math.floor(geometry.eyeVertexRange.vertexStart), 0, vertexCount);
+  const eyeCount = clamp(
+    Math.floor(geometry.eyeVertexRange.vertexCount),
+    0,
+    vertexCount - eyeStart
+  );
+  const perEyeCount = Math.floor(eyeCount / 2);
+  const nativeGazeApplied = eyeCount >= 2 && perEyeCount > 0;
+  if (
+    nativeGazeApplied &&
+    (Math.abs(sample.gaze.yawRadians) > 1e-8 || Math.abs(sample.gaze.pitchRadians) > 1e-8)
+  ) {
+    for (let eye = 0; eye < 2; eye++) {
+      const start = eyeStart + eye * perEyeCount;
+      const count = eye === 0 ? perEyeCount : eyeCount - perEyeCount;
+      let minX = Infinity;
+      let minY = Infinity;
+      let minZ = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      let maxZ = -Infinity;
+      for (let index = 0; index < count; index++) {
+        const offset = (start + index) * 3;
+        minX = Math.min(minX, basePositions[offset]);
+        minY = Math.min(minY, basePositions[offset + 1]);
+        minZ = Math.min(minZ, basePositions[offset + 2]);
+        maxX = Math.max(maxX, basePositions[offset]);
+        maxY = Math.max(maxY, basePositions[offset + 1]);
+        maxZ = Math.max(maxZ, basePositions[offset + 2]);
+      }
+      const centerX = (minX + maxX) * 0.5;
+      const centerY = (minY + maxY) * 0.5;
+      const centerZ = (minZ + maxZ) * 0.5;
+      for (let index = 0; index < count; index++) {
+        const offset = (start + index) * 3;
+        const [x, y, z] = rotateYawPitch(
+          basePositions[offset] - centerX,
+          basePositions[offset + 1] - centerY,
+          basePositions[offset + 2] - centerZ,
+          sample.gaze.yawRadians,
+          sample.gaze.pitchRadians
+        );
+        const nextX = centerX + x;
+        const nextY = centerY + y;
+        const nextZ = centerZ + z;
+        if (
+          positions[offset] !== nextX ||
+          positions[offset + 1] !== nextY ||
+          positions[offset + 2] !== nextZ
+        ) {
+          gazeChangedVertexCount++;
+        }
+        positions[offset] = nextX;
+        positions[offset + 1] = nextY;
+        positions[offset + 2] = nextZ;
+        const [normalX, normalY, normalZ] = rotateYawPitch(
+          baseNormals[offset],
+          baseNormals[offset + 1],
+          baseNormals[offset + 2],
+          sample.gaze.yawRadians,
+          sample.gaze.pitchRadians
+        );
+        [normals[offset], normals[offset + 1], normals[offset + 2]] = normalize(
+          normalX,
+          normalY,
+          normalZ
+        );
+      }
+    }
+  }
+
+  const chestVertices: Array<{ vertex: number; influence: number }> = [];
+  for (let vertex = 0; vertex < vertexCount; vertex++) {
+    const primaryIsChest = isChestJoint(geometry.jointIndices[vertex]);
+    const secondaryIsChest =
+      geometry.secondaryJointIndices && isChestJoint(geometry.secondaryJointIndices[vertex]);
+    const secondaryWeight =
+      secondaryIsChest && geometry.secondaryJointWeights
+        ? clamp(geometry.secondaryJointWeights[vertex] ?? 0, 0, 1)
+        : 0;
+    const influence = primaryIsChest ? 1 : secondaryWeight;
+    if (influence > 0) chestVertices.push({ vertex, influence });
+  }
+  const nativeBreathApplied = chestVertices.length > 0;
+  const breathDelta = sample.breath.scale - 1;
+  if (nativeBreathApplied && Math.abs(breathDelta) > 1e-8) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
+    for (const { vertex } of chestVertices) {
+      const offset = vertex * 3;
+      minX = Math.min(minX, basePositions[offset]);
+      minY = Math.min(minY, basePositions[offset + 1]);
+      minZ = Math.min(minZ, basePositions[offset + 2]);
+      maxX = Math.max(maxX, basePositions[offset]);
+      maxY = Math.max(maxY, basePositions[offset + 1]);
+      maxZ = Math.max(maxZ, basePositions[offset + 2]);
+    }
+    const centerX = (minX + maxX) * 0.5;
+    const centerZ = (minZ + maxZ) * 0.5;
+    const height = Math.max(maxY - minY, 1e-6);
+    for (const { vertex, influence: jointInfluence } of chestVertices) {
+      const offset = vertex * 3;
+      const height01 = clamp((basePositions[offset + 1] - minY) / height, 0, 1);
+      const influence = jointInfluence * (0.35 + height01 * 0.65);
+      const widthScale = 1 + breathDelta * influence;
+      const depthScale = 1 + breathDelta * influence * 0.82;
+      const nextX = centerX + (positions[offset] - centerX) * widthScale;
+      const nextY = positions[offset + 1] + breathDelta * influence * 0.006;
+      const nextZ = centerZ + (positions[offset + 2] - centerZ) * depthScale;
+      if (
+        positions[offset] !== nextX ||
+        positions[offset + 1] !== nextY ||
+        positions[offset + 2] !== nextZ
+      ) {
+        breathChangedVertexCount++;
+      }
+      positions[offset] = nextX;
+      positions[offset + 1] = nextY;
+      positions[offset + 2] = nextZ;
+      [normals[offset], normals[offset + 1], normals[offset + 2]] = normalize(
+        normals[offset] / widthScale,
+        normals[offset + 1],
+        normals[offset + 2] / depthScale
+      );
+    }
+  }
+
+  return {
+    positions,
+    normals,
+    receipt: {
+      schemaVersion: 'holoscript.native-character-micro-motion.v1',
+      gazeYawRadians: sample.gaze.yawRadians,
+      gazePitchRadians: sample.gaze.pitchRadians,
+      breathScale: sample.breath.scale,
+      nativeGazeApplied,
+      nativeBreathApplied,
+      gazeChangedVertexCount,
+      breathChangedVertexCount,
+      changedVertexCount: gazeChangedVertexCount + breathChangedVertexCount,
+      positionDigest: digestFloat32(positions),
+      normalDigest: digestFloat32(normals),
+    },
+  };
 }
 
 export function deriveCharacterMicroMotionConfig(

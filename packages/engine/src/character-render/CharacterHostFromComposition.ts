@@ -150,7 +150,7 @@ export interface CharacterHostFromCompositionResult {
   };
   /** Operative deterministic cloth configuration, when @cloth_simulation is supported. */
   cloth?: ClothSimulationConfig;
-  /** Absolute-time character presence channels and the exact native blink binding. */
+  /** Absolute-time presence channels and exact native blink/gaze/breath bindings. */
   microMotion?: {
     config: CharacterMicroMotionConfig;
     sourceTimeSeconds: number;
@@ -158,8 +158,8 @@ export interface CharacterHostFromCompositionResult {
     application: CharacterMicroMotionApplicationReceipt;
     bindings: {
       blink: 'native-procedural-head-morph';
-      gaze: 'sampled-channel-only';
-      breath: 'sampled-channel-only';
+      gaze: 'native-ocular-globe-rotation';
+      breath: 'native-upper-chest-deformation';
       cloth: 'sampled-channel-only';
     };
   };
@@ -1662,7 +1662,7 @@ export function buildCharacterHostFromComposition(
   }
 
   // 13. @micro_motion → deterministic absolute-time presence channels. Blink is applied to real
-  //     native eyelid geometry; gaze, breath, and cloth phase remain honest sampled channels.
+  //     native eyelid, ocular-globe, and upper-chest geometry; cloth remains sampled-only.
   let microMotion: CharacterHostFromCompositionResult['microMotion'];
   const microMotionTrait = traits.get('micro_motion');
   if (microMotionTrait) {
@@ -1703,13 +1703,13 @@ export function buildCharacterHostFromComposition(
         application,
         bindings: {
           blink: 'native-procedural-head-morph',
-          gaze: 'sampled-channel-only',
-          breath: 'sampled-channel-only',
+          gaze: 'native-ocular-globe-rotation',
+          breath: 'native-upper-chest-deformation',
           cloth: 'sampled-channel-only',
         },
       };
       report.mapped.push(
-        '@micro_motion(profile=human-presence-v1,blink=native,gaze=channel,breath=channel,cloth=channel)'
+        '@micro_motion(profile=human-presence-v1,blink=native,gaze=native-ocular,breath=native-chest,cloth=channel)'
       );
     } else {
       report.stubbed.push({

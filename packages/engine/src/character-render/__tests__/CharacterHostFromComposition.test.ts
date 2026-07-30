@@ -2199,7 +2199,7 @@ describe('buildCharacterHostFromComposition', () => {
     ]);
   });
 
-  it('maps @micro_motion to native blink and honest sampled-only presence channels', () => {
+  it('maps @micro_motion to native blink, ocular gaze, and upper-chest breathing', () => {
     const result = buildCharacterHostFromComposition({
       objects: [
         {
@@ -2245,19 +2245,25 @@ describe('buildCharacterHostFromComposition', () => {
         cloth: { nativeSimulationApplied: false },
       },
       application: {
-        schemaVersion: 'holoscript.character-micro-motion-application.v1',
+        schemaVersion: 'holoscript.character-micro-motion-application.v2',
         nativeBlinkApplied: true,
+        nativeGazeApplied: true,
+        nativeBreathApplied: true,
       },
       bindings: {
         blink: 'native-procedural-head-morph',
-        gaze: 'sampled-channel-only',
-        breath: 'sampled-channel-only',
+        gaze: 'native-ocular-globe-rotation',
+        breath: 'native-upper-chest-deformation',
         cloth: 'sampled-channel-only',
       },
     });
     expect(result.microMotion?.sample.sampleDigest).toMatch(/^fnv1a32:[0-9a-f]{8}$/);
+    expect(result.microMotion?.application.gazeChangedVertexCount).toBeGreaterThan(0);
+    expect(result.microMotion?.application.breathChangedVertexCount).toBeGreaterThan(0);
+    expect(result.microMotion?.application.positionDigest).toMatch(/^fnv1a32:[0-9a-f]{8}$/);
+    expect(result.microMotion?.application.normalDigest).toMatch(/^fnv1a32:[0-9a-f]{8}$/);
     expect(result.report.mapped).toContain(
-      '@micro_motion(profile=human-presence-v1,blink=native,gaze=channel,breath=channel,cloth=channel)'
+      '@micro_motion(profile=human-presence-v1,blink=native,gaze=native-ocular,breath=native-chest,cloth=channel)'
     );
     expect(result.report.stubbed).toEqual([]);
   });

@@ -71,9 +71,11 @@ import {
   type ClothSimulationConfig,
   type ClothSimulationReceipt,
 } from './AgentAvatarCloth';
-import type {
-  CharacterMicroMotionApplicationReceipt,
-  CharacterMicroMotionSample,
+import {
+  applyNativeCharacterMicroMotion,
+  type CharacterMicroMotionApplicationReceipt,
+  type NativeCharacterMicroMotionReceipt,
+  type CharacterMicroMotionSample,
 } from './AgentAvatarMicroMotion';
 import {
   fromRotationTranslation,
@@ -442,6 +444,8 @@ export class CharacterHost {
   private readonly deformationBaseNormals: Float32Array<ArrayBuffer>;
   private morphWeights: NativeMorphWeights = {};
   private microMotionBlinkWeight = 0;
+  private microMotionSample: CharacterMicroMotionSample | null = null;
+  private lastNativeMicroMotionReceipt: NativeCharacterMicroMotionReceipt | null = null;
   private lastMorphReceipt: NativeMorphReceipt | null = null;
   private modelMatrix: Mat4;
   private pose: Map<string, Quat> = new Map();
@@ -732,7 +736,11 @@ export class CharacterHost {
     if (!this.clothSimulation) return null;
     const sampled = this.clothSimulation.sample(timeSeconds);
     this.deformationBasePositions = new Float32Array(sampled.positions);
-    if (Object.keys(this.morphWeights).length > 0 || this.microMotionBlinkWeight > 0) {
+    if (
+      Object.keys(this.morphWeights).length > 0 ||
+      this.microMotionBlinkWeight > 0 ||
+      this.microMotionSample
+    ) {
       this.applyResolvedMorphWeights();
     } else {
       this.built.mesh.positions = new Float32Array(this.deformationBasePositions);
@@ -893,24 +901,48 @@ export class CharacterHost {
   }
 
   /**
-   * Bind one absolute-time micro-motion sample to real native eyelid deformation.
+   * Bind one absolute-time sample to native eyelid, ocular-globe, and upper-chest deformation.
    *
-   * Gaze and breath stay receipt-visible but are not silently treated as eye or skeleton
-   * transforms. Authored expression weights remain the baseline and are not overwritten by the
-   * procedural blink channel.
+   * Authored expression weights remain the baseline, and every application restarts from the
+   * current neutral/cloth base so repeated or out-of-order samples cannot accumulate drift.
    */
   applyMicroMotionSample(
     sample: CharacterMicroMotionSample
   ): CharacterMicroMotionApplicationReceipt {
     this.microMotionBlinkWeight = Math.max(0, Math.min(1, sample.blink.weight));
+    this.microMotionSample = sample;
     const morph = this.applyResolvedMorphWeights();
+    const native = this.lastNativeMicroMotionReceipt;
+    if (!native) {
+      throw new Error('native character micro-motion receipt was not emitted');
+    }
+    let changedVertexCount = 0;
+    for (let vertex = 0; vertex < this.built.mesh.vertexCount; vertex++) {
+      const offset = vertex * 3;
+      if (
+        this.built.mesh.positions[offset] !== this.deformationBasePositions[offset] ||
+        this.built.mesh.positions[offset + 1] !== this.deformationBasePositions[offset + 1] ||
+        this.built.mesh.positions[offset + 2] !== this.deformationBasePositions[offset + 2]
+      ) {
+        changedVertexCount++;
+      }
+    }
     return {
-      schemaVersion: 'holoscript.character-micro-motion-application.v1',
+      schemaVersion: 'holoscript.character-micro-motion-application.v2',
       sampleDigest: sample.sampleDigest,
       blinkWeight: this.microMotionBlinkWeight,
+      gazeYawRadians: sample.gaze.yawRadians,
+      gazePitchRadians: sample.gaze.pitchRadians,
+      breathScale: sample.breath.scale,
       nativeBlinkApplied: true,
-      changedVertexCount: morph.changedVertexCount,
-      positionDigest: morph.positionDigest,
+      nativeGazeApplied: native.nativeGazeApplied,
+      nativeBreathApplied: native.nativeBreathApplied,
+      facialChangedVertexCount: morph.changedVertexCount,
+      gazeChangedVertexCount: native.gazeChangedVertexCount,
+      breathChangedVertexCount: native.breathChangedVertexCount,
+      changedVertexCount,
+      positionDigest: native.positionDigest,
+      normalDigest: native.normalDigest,
     };
   }
 
@@ -936,11 +968,27 @@ export class CharacterHost {
       },
       resolvedWeights
     );
-    this.built.mesh.positions = morphed.positions;
-    if (morphed.normals) {
-      this.built.mesh.normals = morphed.normals;
+    if (this.microMotionSample) {
+      const native = applyNativeCharacterMicroMotion(
+        morphed.positions,
+        morphed.normals ?? this.deformationBaseNormals,
+        {
+          eyeVertexRange: this.built.eyeVertexRange,
+          jointIndices: this.built.mesh.jointIndices,
+          secondaryJointIndices: this.built.mesh.secondaryJointIndices,
+          secondaryJointWeights: this.built.mesh.secondaryJointWeights,
+        },
+        this.microMotionSample
+      );
+      this.built.mesh.positions = native.positions;
+      this.built.mesh.normals = native.normals;
+      this.lastNativeMicroMotionReceipt = native.receipt;
     } else {
-      this.built.mesh.normals = new Float32Array(this.deformationBaseNormals);
+      this.built.mesh.positions = morphed.positions;
+      this.built.mesh.normals = morphed.normals
+        ? morphed.normals
+        : new Float32Array(this.deformationBaseNormals);
+      this.lastNativeMicroMotionReceipt = null;
     }
     this.lastMorphReceipt = morphed.receipt;
     return {

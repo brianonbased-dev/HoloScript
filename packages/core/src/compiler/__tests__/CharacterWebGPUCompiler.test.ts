@@ -929,7 +929,7 @@ describe('CharacterWebGPUCompiler', () => {
     ).toBe(true);
   });
 
-  it('serializes source-authored absolute-time micro-motion without fabricating native bindings', async () => {
+  it('serializes source-authored absolute-time micro-motion with native gaze and breathing', async () => {
     const composition = characterComp();
     composition.objects[0]!.traits!.push({
       type: 'ObjectTrait',
@@ -971,10 +971,20 @@ describe('CharacterWebGPUCompiler', () => {
         cloth: { nativeSimulationApplied: false },
       },
       application: {
-        schemaVersion: 'holoscript.character-micro-motion-application.v1',
+        schemaVersion: 'holoscript.character-micro-motion-application.v2',
         nativeBlinkApplied: true,
+        nativeGazeApplied: true,
+        nativeBreathApplied: true,
       },
     });
+    expect(
+      (bundle.microMotion as { application: { gazeChangedVertexCount: number } }).application
+        .gazeChangedVertexCount
+    ).toBeGreaterThan(0);
+    expect(
+      (bundle.microMotion as { application: { breathChangedVertexCount: number } }).application
+        .breathChangedVertexCount
+    ).toBeGreaterThan(0);
     expect(
       (bundle.microMotion as { config: { configDigest: string } }).config.configDigest
     ).toMatch(/^fnv1a32:[0-9a-f]{8}$/);

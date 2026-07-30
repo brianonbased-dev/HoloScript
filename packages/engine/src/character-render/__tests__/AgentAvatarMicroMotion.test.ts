@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { HUMANOID_BONE_NAMES } from '../../character/HumanoidSkeleton';
 import {
+  applyNativeCharacterMicroMotion,
   deriveCharacterMicroMotionConfig,
   sampleCharacterMicroMotion,
 } from '../AgentAvatarMicroMotion';
@@ -55,5 +57,77 @@ describe('absolute-time character micro-motion', () => {
       clothRate: 0,
     });
     expect(() => sampleCharacterMicroMotion(config, Number.NaN)).toThrow(/must be finite/);
+  });
+
+  it('rotates ocular vertices and expands only spine-bound chest vertices without drift', () => {
+    const basePositions = new Float32Array([
+      -1.1, 1.1, 1, -0.9, 1.1, 1, -1, 0.9, 1.1, 0.9, 1.1, 1, 1.1, 1.1, 1, 1, 0.9, 1.1, -0.4, 0.5,
+      0.2, 0.4, 0.5, 0.2, -0.45, 0.8, 0.25, 0.45, 0.8, 0.25, 0, 1.8, 0,
+    ]);
+    const baseNormals = new Float32Array(
+      Array.from({ length: basePositions.length / 3 }, () => [0, 0, 1]).flat()
+    );
+    const spine1 = HUMANOID_BONE_NAMES.indexOf('spine1');
+    const head = HUMANOID_BONE_NAMES.indexOf('head');
+    const jointIndices = new Uint32Array([
+      head,
+      head,
+      head,
+      head,
+      head,
+      head,
+      spine1,
+      spine1,
+      spine1,
+      spine1,
+      head,
+    ]);
+    const sampled = sampleCharacterMicroMotion(
+      deriveCharacterMicroMotionConfig({ seed: 'native-bindings' }),
+      2.75
+    );
+    const sample = {
+      ...sampled,
+      gaze: {
+        ...sampled.gaze,
+        yawRadians: 0.1,
+        pitchRadians: -0.05,
+      },
+      breath: {
+        ...sampled.breath,
+        scale: 1.03,
+      },
+    };
+    const geometry = {
+      eyeVertexRange: { vertexStart: 0, vertexCount: 6 },
+      jointIndices,
+    };
+
+    const first = applyNativeCharacterMicroMotion(basePositions, baseNormals, geometry, sample);
+    const replay = applyNativeCharacterMicroMotion(basePositions, baseNormals, geometry, sample);
+
+    expect(first.receipt).toMatchObject({
+      schemaVersion: 'holoscript.native-character-micro-motion.v1',
+      nativeGazeApplied: true,
+      nativeBreathApplied: true,
+      gazeChangedVertexCount: 6,
+      breathChangedVertexCount: 4,
+    });
+    expect(first.positions).toEqual(replay.positions);
+    expect(first.normals).toEqual(replay.normals);
+    expect(first.receipt.positionDigest).toBe(replay.receipt.positionDigest);
+    expect(first.receipt.normalDigest).toBe(replay.receipt.normalDigest);
+    expect(Array.from(first.positions.slice(30, 33))).toEqual(
+      Array.from(basePositions.slice(30, 33))
+    );
+
+    const reset = applyNativeCharacterMicroMotion(basePositions, baseNormals, geometry, {
+      ...sample,
+      gaze: { ...sample.gaze, yawRadians: 0, pitchRadians: 0 },
+      breath: { ...sample.breath, scale: 1 },
+    });
+    expect(reset.receipt.changedVertexCount).toBe(0);
+    expect(reset.positions).toEqual(basePositions);
+    expect(reset.normals).toEqual(baseNormals);
   });
 });
