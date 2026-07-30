@@ -365,6 +365,42 @@ function executeAggregateAbi(
     return;
   }
 
+  if (operation === 'project_index' && abi === HOLOSCRIPT_AGGREGATE_VALUE_ABI) {
+    const fields = requireStringArray(operands[3], 'indexed projection fields', abi);
+    const type = operands[4];
+    if (fields.length === 0 || typeof type !== 'string') {
+      throw new Error(`${abi} indexed projection metadata is malformed`);
+    }
+    const index = proxy.pop();
+    const aggregate = proxy.pop();
+    if (typeof index !== 'number' || !Number.isInteger(index)) {
+      throw new Error(`${abi} indexed projection requires an i32 index`);
+    }
+    if (!isAggregateEnvelope(aggregate)) {
+      throw new Error(`${abi} indexed projection requires an aggregate value`);
+    }
+    if (aggregate.abi !== abi || aggregate.layout !== layout) {
+      throw new Error(
+        `${abi} layout mismatch: expected \`${layout}\`, found \`${aggregate.layout}\``
+      );
+    }
+    if (
+      aggregate.fields.length !== fields.length ||
+      aggregate.fields.some((field, fieldIndex) => field !== fields[fieldIndex]) ||
+      aggregate.types.length !== fields.length ||
+      aggregate.types.some((fieldType) => fieldType !== type)
+    ) {
+      throw new Error(`${abi} indexed projection descriptor mismatch`);
+    }
+    if (index < 0 || index >= aggregate.values.length) {
+      throw new Error(`${abi} indexed projection index ${index} is out of bounds`);
+    }
+    const value = aggregate.values[index];
+    requireScalarField(value, type, fields[index], abi);
+    proxy.push(value);
+    return;
+  }
+
   if (operation === 'project_path' && abi === HOLOSCRIPT_AGGREGATE_VALUE_ABI_V2) {
     const fields = requireStringArray(operands[3], 'projection fields', abi);
     const indices = requireIndexArray(operands[4], 'projection indices', abi);

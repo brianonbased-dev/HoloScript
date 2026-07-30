@@ -109,6 +109,99 @@ describe('HoloScript std UAAL EXEC ABI', () => {
     expect(proxy.pop()).toBe(2);
   });
 
+  it('projects a bounds-checked runtime index from a homogeneous scalar aggregate', () => {
+    let handler: HoloScriptStdUaalExecHandler | undefined;
+    registerHoloScriptStdUaalExecHandler(
+      {
+        registerHandler(_opcode, registered) {
+          handler = registered;
+        },
+      },
+      0x20
+    );
+    const proxy = new TestProxy();
+    const layout = 'StdList3I32{first:i32,second:i32,third:i32}';
+    const fields = ['first', 'second', 'third'];
+    proxy.push(2);
+    proxy.push(4);
+    proxy.push(6);
+    handler?.(proxy, [
+      HOLOSCRIPT_AGGREGATE_VALUE_ABI,
+      'construct',
+      layout,
+      fields,
+      ['i32', 'i32', 'i32'],
+    ]);
+    proxy.push(2);
+    handler?.(proxy, [
+      HOLOSCRIPT_AGGREGATE_VALUE_ABI,
+      'project_index',
+      layout,
+      fields,
+      'i32',
+    ]);
+    expect(proxy.pop()).toBe(6);
+  });
+
+  it('fails closed on out-of-bounds or non-homogeneous aggregate indexing', () => {
+    let handler: HoloScriptStdUaalExecHandler | undefined;
+    registerHoloScriptStdUaalExecHandler(
+      {
+        registerHandler(_opcode, registered) {
+          handler = registered;
+        },
+      },
+      0x20
+    );
+    const proxy = new TestProxy();
+    const layout = 'StdList3I32{first:i32,second:i32,third:i32}';
+    const fields = ['first', 'second', 'third'];
+    const construct = (): void => {
+      proxy.push(2);
+      proxy.push(4);
+      proxy.push(6);
+      handler?.(proxy, [
+        HOLOSCRIPT_AGGREGATE_VALUE_ABI,
+        'construct',
+        layout,
+        fields,
+        ['i32', 'i32', 'i32'],
+      ]);
+    };
+
+    construct();
+    proxy.push(3);
+    expect(() =>
+      handler?.(proxy, [
+        HOLOSCRIPT_AGGREGATE_VALUE_ABI,
+        'project_index',
+        layout,
+        fields,
+        'i32',
+      ])
+    ).toThrow('index 3 is out of bounds');
+
+    proxy.push(5);
+    proxy.push(true);
+    handler?.(proxy, [
+      HOLOSCRIPT_AGGREGATE_VALUE_ABI,
+      'construct',
+      'Mixed{code:i32,ready:bool}',
+      ['code', 'ready'],
+      ['i32', 'bool'],
+    ]);
+    proxy.push(0);
+    expect(() =>
+      handler?.(proxy, [
+        HOLOSCRIPT_AGGREGATE_VALUE_ABI,
+        'project_index',
+        'Mixed{code:i32,ready:bool}',
+        ['code', 'ready'],
+        'i32',
+      ])
+    ).toThrow('indexed projection descriptor mismatch');
+  });
+
   it('fails closed on layout mismatch and malformed i32 fields', () => {
     let handler: HoloScriptStdUaalExecHandler | undefined;
     registerHoloScriptStdUaalExecHandler(

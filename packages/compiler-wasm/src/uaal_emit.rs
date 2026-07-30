@@ -149,6 +149,13 @@ struct UaalAggregateProjection {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+struct UaalAggregateIndexProjection {
+    root_name: String,
+    root_layout: UaalAggregateLayout,
+    element_type: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct UaalBorrowedAggregate {
     layout: String,
     mutable: bool,
@@ -1874,6 +1881,52 @@ impl<'a> UaalEmitter<'a> {
                     ));
                 }
             }
+            let projection = self.resolve_aggregate_index_projection(member)?;
+            if self
+                .current_borrowed_aggregates
+                .contains_key(&projection.root_name)
+            {
+                return Err(Self::target_capability_error(
+                    "HS-UAAL-CAP-003",
+                    "uaal.aggregate.value.v1",
+                    "runtime indexing is currently limited to owned homogeneous aggregate values",
+                ));
+            }
+            if self
+                .current_moved_aggregates
+                .contains(&projection.root_name)
+            {
+                return Err(Self::target_capability_error(
+                    "HS-UAAL-CAP-003",
+                    "uaal.aggregate.value.v1",
+                    format!(
+                        "aggregate `{}` was already moved before indexed `load`",
+                        projection.root_name
+                    ),
+                ));
+            }
+            let slot = Self::slot_key(self.current_function_name()?, &projection.root_name);
+            let value_abi = projection.root_layout.value_abi();
+            let schema_id = projection.root_layout.schema_id.clone();
+            let field_names = projection
+                .root_layout
+                .fields
+                .iter()
+                .map(|field| Value::from(field.name.clone()))
+                .collect();
+            self.emit_op(OP_STATE_GET, vec![Value::from(slot)]);
+            self.emit_expression_with_expected(&member.property, Some("i32"))?;
+            self.emit_op(
+                OP_EXEC,
+                vec![
+                    Value::from(value_abi),
+                    Value::from("project_index"),
+                    Value::from(schema_id),
+                    Value::Array(field_names),
+                    Value::from(projection.element_type),
+                ],
+            );
+            return Ok(());
         }
         let projection = self.resolve_aggregate_field_projection(member)?;
         if self
@@ -2208,6 +2261,81 @@ impl<'a> UaalEmitter<'a> {
             .and_then(|annotation| self.aggregate_layouts.get(annotation))
     }
 
+    fn resolve_aggregate_index_projection(
+        &self,
+        member: &MemberExpression,
+    ) -> Result<UaalAggregateIndexProjection, UaalEmitError> {
+        if !member.computed {
+            return Err(UaalEmitError::new(
+                "internal aggregate index projection requires computed member access",
+            ));
+        }
+        let AstNode::Identifier(root) = member.object.as_ref() else {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                "runtime aggregate indexing requires a named aggregate root",
+            ));
+        };
+        let layout = self
+            .binding_aggregate_layout(&root.name)
+            .cloned()
+            .ok_or_else(|| {
+                Self::target_capability_error(
+                    "HS-UAAL-CAP-003",
+                    "uaal.aggregate.value.v1",
+                    format!(
+                        "binding `{}` does not have a supported aggregate type for runtime indexing",
+                        root.name
+                    ),
+                )
+            })?;
+        if layout.contains_nested {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                format!(
+                    "aggregate `{}` contains nested fields; runtime indexing requires a flat homogeneous scalar layout",
+                    layout.name
+                ),
+            ));
+        }
+        let element_type = layout
+            .fields
+            .first()
+            .map(|field| field.type_annotation.clone())
+            .filter(|field_type| matches!(field_type.as_str(), "i32" | "f32" | "f64" | "bool"))
+            .ok_or_else(|| {
+                Self::target_capability_error(
+                    "HS-UAAL-CAP-003",
+                    "uaal.aggregate.value.v1",
+                    format!(
+                        "aggregate `{}` has no scalar fields available for runtime indexing",
+                        layout.name
+                    ),
+                )
+            })?;
+        if layout
+            .fields
+            .iter()
+            .any(|field| field.type_annotation != element_type)
+        {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-003",
+                "uaal.aggregate.value.v1",
+                format!(
+                    "aggregate `{}` is not homogeneous; runtime indexing requires one scalar field type",
+                    layout.name
+                ),
+            ));
+        }
+        Ok(UaalAggregateIndexProjection {
+            root_name: root.name.clone(),
+            root_layout: layout,
+            element_type,
+        })
+    }
+
     fn aggregate_load_field_type(&self, node: &AstNode) -> Option<String> {
         let AstNode::CallExpression(call) = node else {
             return None;
@@ -2221,6 +2349,12 @@ impl<'a> UaalEmitter<'a> {
         let AstNode::MemberExpression(member) = &call.arguments[0] else {
             return None;
         };
+        if member.computed {
+            return self
+                .resolve_aggregate_index_projection(member)
+                .ok()
+                .map(|projection| projection.element_type);
+        }
         self.resolve_aggregate_field_projection(member)
             .ok()
             .map(|projection| projection.leaf.type_annotation)
@@ -4178,6 +4312,62 @@ function main(): i32 {
         assert!(aggregate_instructions.iter().all(|instruction| {
             instruction.operands[2] == Value::from("Vec3I32{x:i32,y:i32,z:i32}")
         }));
+    }
+
+    #[test]
+    fn lowers_runtime_indexed_homogeneous_scalar_aggregate_projection() {
+        let bytecode = compile(
+            r#"struct List3I32 { first: i32, second: i32, third: i32 }
+
+function get(value: List3I32, index: i32): i32 {
+  return load(value[index])
+}
+
+function main(): i32 {
+  slot value: List3I32 = List3I32(2, 4, 6)
+  return get(move(value), 1)
+}"#,
+        );
+
+        let indexed = bytecode.instructions.iter().find(|instruction| {
+            instruction.op_code == OP_EXEC
+                && instruction.operands.first() == Some(&Value::from("hs.aggregate.value.v1"))
+                && instruction.operands.get(1) == Some(&Value::from("project_index"))
+        });
+        let indexed = indexed.expect("homogeneous aggregate indexing must use EXEC project_index");
+        assert_eq!(
+            indexed.operands[2],
+            Value::from("List3I32{first:i32,second:i32,third:i32}")
+        );
+        assert_eq!(
+            indexed.operands[3],
+            Value::Array(vec![
+                Value::from("first"),
+                Value::from("second"),
+                Value::from("third"),
+            ])
+        );
+        assert_eq!(indexed.operands[4], Value::from("i32"));
+    }
+
+    #[test]
+    fn runtime_aggregate_indexing_rejects_non_homogeneous_layouts() {
+        let error = compile_source_to_uaal(
+            r#"struct Mixed { code: i32, ready: bool }
+function main(): i32 {
+  slot value: Mixed = Mixed(5, true)
+  return load(value[0])
+}"#,
+        )
+        .expect_err("mixed aggregate indexing must fail closed");
+
+        assert!(
+            error
+                .message
+                .contains("runtime indexing requires one scalar field type"),
+            "{}",
+            error.message
+        );
     }
 
     #[test]
