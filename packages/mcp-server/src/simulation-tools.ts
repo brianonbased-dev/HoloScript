@@ -1475,9 +1475,8 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
     let totalSteps = 0;
     let totalSimTime = 0;
 
-    const Sim = await getSimulation();
-
     if (solverType === 'solve_structural') {
+      const Sim = await getSimulation();
       const solverConfig = rehydrateTraceConfig(init?.payload?.config ?? {});
       const solver = new Sim.StructuralSolverTET10(
         solverConfig as unknown as ConstructorParameters<typeof Sim.StructuralSolverTET10>[0]
@@ -1495,6 +1494,7 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
       );
       verifyStateDigests(solveEvent, stateDigest ? [stateDigest] : []);
     } else if (solverType === 'solve_thermal') {
+      const Sim = await getSimulation();
       const solver = new Sim.ThermalSolver(
         (init?.payload?.config ?? {}) as unknown as ConstructorParameters<
           typeof Sim.ThermalSolver
