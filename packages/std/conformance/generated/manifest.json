@@ -1,10 +1,11 @@
 {
   "schema": "holoscript.std-abi-conformance-manifest.v0",
-  "stdPackageVersion": "7.0.10",
+  "stdPackageVersion": "7.0.12",
   "opsFile": "packages/std/conformance/std-abi-ops.v0.json",
+  "packagedExecutionFile": "packages/std/conformance/generated/std-abi-packaged-execution.v0.json",
   "files": {
     "packages/std/conformance/std-abi-ops.v0.json": {
-      "sha256": "sha256:01b41df8125b870eb3d4a76e4bb7cf6f5fef45a5cd68cda7952b789a4fe07368"
+      "sha256": "sha256:4627454609662e2a3ff41347050f39c855663b91f48ba6d462661489c59b9589"
     },
     "packages/std/conformance/generated/std-abi-conformance.action.hsplus": {
       "sha256": "sha256:9b71d000b17f23273a6d02886ec722a04d7f23c780f6ffacda4c48da0294ad42"
@@ -13,27 +14,33 @@
       "sha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8"
     },
     "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
-      "sha256": "sha256:8faa4f40af85a6eb6164387781a83d0277446a0e1d710ee07c0448d162794021"
+      "sha256": "sha256:83e3eb90693ad332c8adacddc77003d073ab578c506d83283b7a2c4b76c3fac0"
+    },
+    "packages/std/conformance/generated/std-abi-packaged-execution.v0.json": {
+      "sha256": "sha256:1dce85f827ffe5dea3cb4445c7f6c803cca5378735d2c0dbe110fe56fec23efe"
     },
     "packages/std/src/math.hsplus": {
       "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
     },
     "packages/std/src/collections.hsplus": {
-      "sha256": "sha256:a7447f7f67c9dfd2b7e3be433f7c90436c3a1c749e858d6fd4399e6b1d7af673"
+      "sha256": "sha256:e66cb497736e6defa5f2d68eecbebf1910cfecceb37b878eb6a840afde2c8a90"
     },
     "packages/std/conformance/host-abi/std-host-abi.v0.json": {
-      "sha256": "sha256:475a487b4fb164d24d5b53e9f0eeb23641efa614c51dea924ad74dcf3da5fbe7"
+      "sha256": "sha256:3ea38d26f88a10e83fed63832c82a88de1d1d731319ab81a6625c2b7e84b0efc"
     },
     "packages/std/conformance/host-abi/std-host-binding.mjs": {
-      "sha256": "sha256:e006c979de0ca1d28d90eebdb2c30ed632b5bb7bbbfecd79476a29b7f3b3ded1"
+      "sha256": "sha256:24276207657d239290568e375219396a9dbbbe0338bd38f2d66f54ac5698b4be"
+    },
+    "packages/std/conformance/std-abi-packaged-extensions.v0.json": {
+      "sha256": "sha256:3720d38455bbe1cd853d5cbe2d9cf999e22f295a1309f0488900ca50dae01c5b"
     }
   },
   "counts": {
     "ops": 40,
-    "vectors": 170,
+    "vectors": 192,
     "projectionVectors": 125,
-    "packagedHandlers": 38,
-    "packagedVectors": 45,
-    "excluded": 3
+    "packagedHandlers": 59,
+    "packagedVectors": 67,
+    "excluded": 1
   }
 }

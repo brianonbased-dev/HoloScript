@@ -33,7 +33,7 @@
   @on_map(lst, fn) => { return list_lib.list_map(lst, fn) }
   @on_flat_map(lst, fn) => { return list_lib.list_flat_map(lst, fn) }
   @on_filter(lst, predicate) => { return list_lib.list_filter(lst, predicate) }
-  @on_reduce(lst, fn, initial) => { return list_lib.list_reduce(lst, fn, initial) }
+  @on_reduce(lst, fn, initial_value) => { return list_lib.list_reduce(lst, fn, initial_value) }
   @on_sort(lst, comparator) => { return list_lib.list_sort(lst, comparator) }
   @on_reverse(lst) => { return list_lib.list_reverse(lst) }
   @on_zip(lst_a, lst_b) => { return list_lib.list_zip(lst_a, lst_b) }

@@ -299,11 +299,23 @@ if (manifest.opsFile) {
     try {
       const opsDefinition = JSON.parse(readFileSync(opsPath, 'utf8'));
       excludedOps = opsDefinition.excluded ?? [];
-      packagedExecutionSpec = opsDefinition.packagedExecution ?? null;
     } catch {
       // The ops SSOT is optional context for the receipt; the corpus itself is authoritative.
       excludedOps = [];
     }
+  }
+}
+if (manifest.packagedExecutionFile) {
+  const packagedExecutionPath = join(
+    repoRoot,
+    ...String(manifest.packagedExecutionFile).split('/')
+  );
+  if (!existsSync(packagedExecutionPath)) {
+    misconfigured(`packaged execution spec not found at ${manifest.packagedExecutionFile}`);
+  }
+  packagedExecutionSpec = JSON.parse(readFileSync(packagedExecutionPath, 'utf8'));
+  if (packagedExecutionSpec.schema !== 'holoscript.std-abi-packaged-execution.v0') {
+    misconfigured(`unexpected packaged execution schema ${packagedExecutionSpec.schema}`);
   }
 }
 

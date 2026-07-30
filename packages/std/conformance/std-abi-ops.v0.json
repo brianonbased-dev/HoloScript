@@ -2161,25 +2161,14 @@
   ],
   "excluded": [
     {
-      "op": "*",
-      "trait": "std_list",
-      "reason": "the executable corpus covers deterministic JSON host delegations, including ?? defaults; remaining exclusions are callback parameters, non-JSON iterable semantics, lifecycle effects, and deferred thin wrappers",
-      "unlock": "define higher-order callback semantics in the deterministic subset and an explicit iterable ABI"
-    },
-    {
-      "op": "*",
-      "trait": "std_map",
-      "reason": "representative deterministic JSON host delegations are covered; callback-bearing and deferred representative handlers remain excluded",
-      "unlock": "define higher-order callback semantics and expand the representative packaged corpus"
-    },
-    {
-      "op": "*",
-      "trait": "std_set",
-      "reason": "representative deterministic JSON host delegations are covered; deferred representative handlers remain excluded",
-      "unlock": "expand the representative packaged corpus"
+      "op": "on_spawn",
+      "trait": "*",
+      "reason": "lifecycle side effects are not pure value ABI operations; factory aliases are statically lifted without executing emit or other spawn effects",
+      "unlock": "a separately receipted lifecycle/effect ABI"
     }
   ],
   "packagedExecution": {
+    "extensionsFile": "packages/std/conformance/std-abi-packaged-extensions.v0.json",
     "sources": {
       "std_math": "packages/std/src/math.hsplus",
       "std_list": "packages/std/src/collections.hsplus",
@@ -2193,37 +2182,12 @@
     ],
     "engineSubsetId": "holoscript-engine-hsplus-deterministic-action-subset-v7-packaged-traits",
     "wasmSubsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
-    "claim": "These vectors execute the SHIPPED packaged handler bodies from hash-bound source bytes. The engine v7 adapter consumes the canonical HoloScriptPlusParser @trait AST and reparses each preserved authored body through the structured deterministic evaluator; the wasm lane uses its cumulative v6 evaluator. Both statically lift whitelisted factory aliases from @on_spawn, do not execute on_spawn side effects, and preserve strict short-circuiting ?? defaults. Callback handlers remain out of scope.",
+    "claim": "These vectors execute every non-lifecycle SHIPPED packaged handler body from hash-bound source bytes. The engine v7 adapter consumes the canonical HoloScriptPlusParser @trait AST and reparses each preserved authored body through the structured deterministic evaluator; the wasm lane uses its cumulative v6 evaluator. Both statically lift whitelisted factory aliases from @on_spawn, do not execute on_spawn side effects, preserve strict short-circuiting ?? defaults, and carry iterable/callback parameters as the explicit holoscript.std-iterable.v0 and bounded holoscript.std-callable.v0 strict-JSON contracts.",
     "excludedHandlers": [
-      {
-        "handler": "on_from",
-        "trait": "std_list",
-        "reason": "binding has no list_from; twin iterable semantics not JSON-expressible"
-      },
-      {
-        "handler": "on_map/on_flat_map/on_filter/on_reduce/on_sort",
-        "trait": "std_list",
-        "reason": "callback parameters (higher-order)"
-      },
-      {
-        "handler": "on_map_values/on_filter_entries",
-        "trait": "std_map",
-        "reason": "callback parameters (higher-order)"
-      },
       {
         "handler": "on_spawn",
         "trait": "*",
         "reason": "lifecycle side effects; factory aliases statically lifted instead"
-      },
-      {
-        "handler": "on_to_set/on_to_array/on_repeat/on_of",
-        "trait": "std_list",
-        "reason": "thin identity/constructor wrappers deferred to keep the packaged corpus focused; bindings exist"
-      },
-      {
-        "handler": "on_delete/on_values/on_entries/on_has (map), on_delete/on_has/on_to_array (set), on_first/on_last duplicates",
-        "trait": "std_map/std_set",
-        "reason": "representative subset in v0 packaged corpus; the host-binding delegation ops already cover these functions"
       }
     ],
     "handlers": [
