@@ -46,6 +46,15 @@ All energy values must use one declared unit. The initial contract accounts for:
 - chemical energy represented by consumed electrodes or reactants; and
 - total measurement uncertainty.
 
+## Campaign integration
+
+This lab is the first domain consumer of the reusable
+`../experiment-quest/` system. Its energy classifier supplies the scientific
+outcome; the quest layer supplies the augmented Prepare, Calibrate, Run,
+Capture, Classify, Earn, and Unlock loop. Accounted or null energy results earn
+Evidence XP when their measurement process is sound, so the campaign advances
+without incentivizing extraordinary claims.
+
 ## First tracer slice
 
 Run `packages/mcp-server/src/__tests__/energy-discovery-ledger.test.ts`. The
@@ -53,8 +62,8 @@ tests cover malformed measurements, ordinary accounted output, battery
 discharge, electrode consumption, an under-evidenced residual, and a replicated
 candidate with a replay-verified CAEL trace.
 
-The next slice should add an authored experiment manifest that binds sensor
-calibration, sampling windows, wiring topology, environmental channels, and raw
-data hashes to these ledger inputs. Thermal, electromagnetic, fluid, and
-materials simulations remain hypotheses until matched by that physical
-evidence.
+The next slice should add a versioned experiment manifest that binds sensor
+calibration, sampling windows, wiring topology, environmental channels, raw
+data hashes, and quest receipts to these ledger inputs. Thermal,
+electromagnetic, fluid, and materials simulations remain hypotheses until
+matched by that physical evidence.

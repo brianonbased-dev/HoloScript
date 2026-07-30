@@ -1,0 +1,185 @@
+// Augmented Experiment Quest
+//
+// Reusable spatial control room for experiment campaigns. Domain experiments
+// supply their own measurement classifier; this composition owns the player
+// loop, persistent tally surfaces, evidence inventory, and next-run routing.
+
+composition "AugmentedExperimentQuest" {
+  metadata {
+    name: "Augmented Experiment Quest"
+    description: "A reusable evidence-first game loop for augmented scientific campaigns."
+    version: "1.0.0"
+    author: "HoloScript Examples Team"
+    category: "scientific"
+    tags: ["science", "experiment", "quest", "augmented-reality", "evidence", "progression"]
+    platforms: ["openxr", "r3f", "webgpu"]
+    minPlayers: 1
+    maxPlayers: 8
+  }
+
+  environment {
+    backgroundColor: "#07111f"
+    ambient: 0.55
+    shadows: true
+    hand_tracking: true
+  }
+
+  state LabQuestState {
+    campaignId: "energy-discovery-001"
+    activeExperiment: "baseline-energy-boundary"
+    phase: "prepare"
+    evidenceXp: 0
+    rank: 0
+    completedRuns: 0
+    calibratedRuns: 0
+    replicatedHypotheses: 0
+    calibrationReady: false
+    inventoryReady: false
+    rawCaptureReady: false
+    safetyReady: false
+    lastClassification: 0
+    lastReceiptHash: "none"
+    nextQuest: "calibrate-independent-meters"
+  }
+
+  template "QuestStation" {
+    @billboard
+    @anchor
+    @interactable { action: "tap", haptic: true }
+    geometry: "box"
+    scale: [0.7, 0.38, 0.08]
+    material: {
+      color: "#10243d"
+      emissive: "#1a5c8f"
+      emissiveIntensity: 0.35
+      roughness: 0.55
+    }
+  }
+
+  object "QuestCompass" using "QuestStation" {
+    position: { x: 0, y: 2.1, z: -2.4 }
+    properties: {
+      title: "ACTIVE EXPERIMENT"
+      purpose: "Always exposes the current hypothesis and the next evidence action."
+    }
+    behavior {
+      on "frame" {
+        bind: LabQuestState.activeExperiment
+        format: "Experiment: {value}"
+      }
+    }
+  }
+
+  object "EvidenceXpTally" using "QuestStation" {
+    @progress_tracker { total: 400, displayMode: "continuous" }
+    position: { x: -1.7, y: 1.7, z: -2.2 }
+    properties: {
+      title: "EVIDENCE XP"
+      rule: "Accounted and null results earn progress when evidence quality is sound."
+    }
+    behavior {
+      on "frame" {
+        bind: LabQuestState.evidenceXp
+        format: "Evidence XP: {value}"
+      }
+    }
+  }
+
+  object "RankTotem" using "QuestStation" {
+    position: { x: 1.7, y: 1.7, z: -2.2 }
+    properties: {
+      ranks: "Observer > Calibrator > Investigator > Replicator > Lab Steward"
+      rule: "Ranks require completed process gates; points alone cannot unlock them."
+    }
+    behavior {
+      on "frame" {
+        bind: LabQuestState.rank
+        format: "Lab Rank: {value}"
+      }
+    }
+  }
+
+  group "EvidenceLoop" {
+    position: { x: 0, y: 0.8, z: -1.4 }
+
+    object "PrepareStation" using "QuestStation" {
+      @waypoint { order: 1 }
+      position: { x: -2.4, y: 0, z: 0 }
+      properties: {
+        phase: "prepare"
+        checklist: "inventory, safety boundary, controls, declared units"
+      }
+      behavior { on "tap" { action: "openEvidenceChecklist" args: { phase: "prepare" } } }
+    }
+
+    object "CalibrateStation" using "QuestStation" {
+      @waypoint { order: 2 }
+      position: { x: -1.2, y: 0, z: 0 }
+      properties: {
+        phase: "calibrate"
+        checklist: "zero checks, reference loads, independent meters"
+      }
+      behavior { on "tap" { action: "recordCalibrationReceipt" } }
+    }
+
+    object "RunStation" using "QuestStation" {
+      @waypoint { order: 3 }
+      position: { x: 0, y: 0, z: 0 }
+      properties: {
+        phase: "run"
+        checklist: "locked protocol, timer, environmental channels"
+      }
+      behavior { on "tap" { action: "startInstrumentedRun" } }
+    }
+
+    object "CaptureStation" using "QuestStation" {
+      @waypoint { order: 4 }
+      position: { x: 1.2, y: 0, z: 0 }
+      properties: {
+        phase: "capture"
+        checklist: "raw samples, wiring topology, timestamps, content hashes"
+      }
+      behavior { on "tap" { action: "sealRawEvidence" } }
+    }
+
+    object "ClassifyStation" using "QuestStation" {
+      @waypoint { order: 5 }
+      position: { x: 2.4, y: 0, z: 0 }
+      properties: {
+        phase: "classify"
+        outcomes: "invalid, accounted/null, anomaly, replicated candidate"
+      }
+      behavior { on "tap" { action: "scoreAndIssueReceipt" } }
+    }
+  }
+
+  object "CampaignLedger" using "QuestStation" {
+    @data_binding { field: "campaign.receipts" }
+    position: { x: -1.2, y: 0.25, z: -2.5 }
+    properties: {
+      title: "PERSISTENT CAMPAIGN LEDGER"
+      tallies: "runs, calibrations, classifications, safety events, receipt hashes"
+    }
+    behavior {
+      on "receipt_issued" {
+        bind: LabQuestState.lastReceiptHash
+        format: "Latest receipt: {value}"
+      }
+    }
+  }
+
+  object "NextExperimentMap" using "QuestStation" {
+    @waypoint { order: 6, snapToGround: true }
+    position: { x: 1.2, y: 0.25, z: -2.5 }
+    properties: {
+      title: "NEXT EXPERIMENT"
+      rule: "Every conclusion creates a follow-up quest or a replication quest."
+    }
+    behavior {
+      on "frame" {
+        bind: LabQuestState.nextQuest
+        format: "Next quest: {value}"
+      }
+    }
+  }
+}
