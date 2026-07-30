@@ -116,6 +116,48 @@ describe('eyes — refractive eye geometry (pure data)', () => {
     ).toBe(combined.eyeRange.indexCount);
   });
 
+  it('adds H3Z lower-cornea tear menisci as operative layered geometry', () => {
+    const layered = buildAgentAvatarOcularRegions({
+      faceTopology: 'neutral-anatomical-v2',
+      ocularProfile: 'layered-ocular-v1',
+    });
+    const tearfilm = buildAgentAvatarOcularRegions({
+      faceTopology: 'neutral-anatomical-v2',
+      orbitalProfile: 'anatomical-lid-blend-v3',
+      ocularProfile: 'layered-ocular-tearfilm-v2',
+    });
+
+    expect(tearfilm.receipt).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-ocular-geometry.v2',
+      profile: 'layered-ocular-tearfilm-v2',
+      tearMeniscusProfile: 'lower-cornea-meniscus-v1',
+      tearMeniscusIndexCount: 192,
+    });
+    expect(tearfilm.vertexCount).toBeGreaterThan(layered.vertexCount);
+    expect(
+      Array.from(tearfilm.uvs).filter((_, index) => index % 2 === 1 && tearfilm.uvs[index] > 1)
+        .length
+    ).toBeGreaterThan(0);
+
+    const host = new CharacterHost({
+      entityId: 'tearfilm-eye',
+      faceTopology: 'neutral-anatomical-v2',
+      faceTearline: true,
+      orbitalProfile: 'anatomical-lid-blend-v3',
+      ocularProfile: 'layered-ocular-tearfilm-v2',
+      garmentStyle: 'stormglass_structured_fieldcoat',
+    });
+    expect(host.getOcularGeometryReceipt()?.tearMeniscusIndexCount).toBe(192);
+    const garmentGroup = host
+      .getDrawSpec()
+      .materialGroups?.find((group) => group.materialRole === 'garment');
+    expect(
+      garmentGroup?.material.shadingModel === 'woven-cloth'
+        ? garmentGroup.material.textureTile?.normalScale
+        : undefined
+    ).toBe(0.82);
+  });
+
   it('recessed orbital fit moves the layered globes behind native eyelid shells', () => {
     const exposed = buildAgentAvatarOcularRegions({
       faceTopology: 'neutral-anatomical-v2',

@@ -1986,6 +1986,98 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.report.stubbed).toEqual([]);
   });
 
+  it('maps H3Z material depth, groom breakup, ocular wetline, and room response', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'openai',
+          traits: [
+            {
+              name: 'lod',
+              config: {
+                levels: [
+                  {
+                    level: 0,
+                    distance: 0,
+                    garment_segments: 24,
+                    hair_guides: 72,
+                    hair_cards_per_guide: 2,
+                    hair_segments: 6,
+                  },
+                ],
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                tearline: true,
+                orbital_profile: 'anatomical_lid_blend_v3',
+                ocular_profile: 'layered_ocular_tearfilm_v2',
+              },
+            },
+            {
+              name: 'hair',
+              config: {
+                style: 'medium_wavy',
+                groom_profile: 'scalp_flow_breakup_v3',
+                card_width: 0.014,
+                root_lift: 0.001,
+              },
+            },
+            {
+              name: 'clothing',
+              config: {
+                style: 'stormglass_structured_fieldcoat',
+                color: '#28445e',
+              },
+            },
+            {
+              name: 'environment_light',
+              config: {
+                profile: 'stormglass_room_basis_v2',
+                key_direction: [0.42, 0.74, 0.52],
+                fill_direction: [-0.62, 0.18, 0.76],
+                rim_direction: [0.68, 0.4, -0.62],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.face).toMatchObject({
+      orbitalProfile: 'anatomical-lid-blend-v3',
+      ocularProfile: 'layered-ocular-tearfilm-v2',
+    });
+    expect(result.garment).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v3',
+      constructionProfile: 'structured-fieldcoat-shell-v2',
+      closureCount: 5,
+      cuffBandCount: 2,
+      fabricSurfaceProfile: 'stormglass-crossweave-normal-v1',
+    });
+    expect(result.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v3',
+      profile: 'scalp-flow-breakup-v3',
+      breakupProfile: 'contained-flyaway-breakup-v1',
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(result.ocular).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-ocular-geometry.v2',
+      profile: 'layered-ocular-tearfilm-v2',
+      tearMeniscusProfile: 'lower-cornea-meniscus-v1',
+    });
+    expect(result.environmentLight?.receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-environment-light.v3',
+      profile: 'stormglass-room-basis-v2',
+      responseProfile: 'source-authored-room-basis-v2',
+      photographicHdri: false,
+    });
+    expect(result.report.stubbed).toEqual([]);
+  });
+
   it('fails closed when H3X cranial continuity or expression-normal prerequisites are absent', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

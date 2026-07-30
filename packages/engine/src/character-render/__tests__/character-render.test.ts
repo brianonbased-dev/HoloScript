@@ -102,6 +102,21 @@ describe('character-render — analytic environment contract', () => {
     expect(deriveCharacterEnvironmentLightReceipt().fill.intensity).toBe(0);
     expect(deriveCharacterEnvironmentLightReceipt().rim.intensity).toBe(0);
   });
+
+  it('binds H3Z to a source-authored non-photographic room basis', () => {
+    const receipt = deriveCharacterEnvironmentLightReceipt({
+      profile: 'stormglass-room-basis-v2',
+      keyDirection: [0.42, 0.74, 0.52],
+      fillDirection: [-0.62, 0.18, 0.76],
+      rimDirection: [0.68, 0.4, -0.62],
+    });
+    expect(receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-environment-light.v3',
+      profile: 'stormglass-room-basis-v2',
+      responseProfile: 'source-authored-room-basis-v2',
+      photographicHdri: false,
+    });
+  });
 });
 
 describe('character-render — native WebGPU GPU-skinned humanoid', () => {

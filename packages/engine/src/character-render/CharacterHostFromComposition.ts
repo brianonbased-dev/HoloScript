@@ -42,6 +42,7 @@ import {
   type AgentAvatarGroomGeometryReceipt,
   type AgentAvatarGroomProfile,
   type AgentAvatarHairStyle,
+  type AgentAvatarOcularGeometryReceipt,
   type AgentAvatarOcularProfile,
 } from './AgentAvatarHair';
 import type {
@@ -180,6 +181,8 @@ export interface CharacterHostFromCompositionResult {
   facialLandmarks?: AgentAvatarFacialLandmarkReceipt;
   /** Exact native garment preset and topology when source-authored. */
   garment?: AgentAvatarGarmentGeometryReceipt;
+  /** Exact native ocular topology when a layered eye profile is source-authored. */
+  ocular?: AgentAvatarOcularGeometryReceipt;
   /** Derived native groom geometry evidence when hair is operative. */
   groom?: AgentAvatarGroomGeometryReceipt;
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
@@ -837,12 +840,15 @@ export function buildCharacterHostFromComposition(
         if (
           authoredOrbitalProfile === 'tearline-rim-v1' ||
           authoredOrbitalProfile === 'recessed-lids-v1' ||
-          authoredOrbitalProfile === 'anatomical-lid-fold-v2'
+          authoredOrbitalProfile === 'anatomical-lid-fold-v2' ||
+          authoredOrbitalProfile === 'anatomical-lid-blend-v3'
         ) {
           orbitalProfile = authoredOrbitalProfile;
           eyeRecess = clamp(
             asNum(cfgVal(faceTrait, 'eye_recess', 'globe_recess')) ??
-              (orbitalProfile === 'recessed-lids-v1' || orbitalProfile === 'anatomical-lid-fold-v2'
+              (orbitalProfile === 'recessed-lids-v1' ||
+              orbitalProfile === 'anatomical-lid-fold-v2' ||
+              orbitalProfile === 'anatomical-lid-blend-v3'
                 ? 0.28
                 : 0),
             0,
@@ -1005,6 +1011,7 @@ export function buildCharacterHostFromComposition(
         .replace(/_/g, '-');
       if (
         authoredOcularProfile === 'layered-ocular-v1' ||
+        authoredOcularProfile === 'layered-ocular-tearfilm-v2' ||
         authoredOcularProfile === 'legacy-composite-v1'
       ) {
         ocularProfile = authoredOcularProfile;
@@ -1324,7 +1331,8 @@ export function buildCharacterHostFromComposition(
     if (
       style === 'stormglass_hooded_tunic' ||
       style === 'stormglass_open_civic_tunic' ||
-      style === 'stormglass_tailored_fieldcoat'
+      style === 'stormglass_tailored_fieldcoat' ||
+      style === 'stormglass_structured_fieldcoat'
     ) {
       garmentStyle = style;
       const authoredColor = asRgb(cfgVal(clothing, 'color', 'base_color'));
@@ -1672,7 +1680,8 @@ export function buildCharacterHostFromComposition(
     if (
       profile === 'analytic-three-point-v1' ||
       profile === 'legacy-key-v1' ||
-      profile === 'directional-reflection-probe-v1'
+      profile === 'directional-reflection-probe-v1' ||
+      profile === 'stormglass-room-basis-v2'
     ) {
       const options: CharacterEnvironmentLightOptions = {
         profile,
@@ -1710,6 +1719,7 @@ export function buildCharacterHostFromComposition(
     ? (host.getFacialLandmarkReceipt() ?? undefined)
     : undefined;
   const garment = garmentStyle ? (host.getGarmentGeometryReceipt() ?? undefined) : undefined;
+  const ocular = ocularProfile ? (host.getOcularGeometryReceipt() ?? undefined) : undefined;
   return {
     ok: true,
     host,
@@ -1722,6 +1732,7 @@ export function buildCharacterHostFromComposition(
     skin,
     facialLandmarks,
     garment,
+    ocular,
     groom,
     morph,
     expression,

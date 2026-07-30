@@ -89,6 +89,7 @@ export const AGENT_AVATAR_ORBITAL_PROFILES = [
   'tearline-rim-v1',
   'recessed-lids-v1',
   'anatomical-lid-fold-v2',
+  'anatomical-lid-blend-v3',
 ] as const;
 export type AgentAvatarOrbitalProfile = (typeof AGENT_AVATAR_ORBITAL_PROFILES)[number];
 export const AGENT_AVATAR_FACIAL_DETAIL_PROFILES = [
@@ -112,6 +113,9 @@ export interface AgentAvatarOrbitalGeometryReceipt {
   eyeScale?: number;
   /** Present only when an independently indexed upper-lid crease is emitted. */
   lidFoldProfile?: 'upper-crease-continuity-v1';
+  /** H3Z additional skin rows blending the lid aperture into the face plane. */
+  lidTransitionProfile?: 'cubic-lid-blend-v1';
+  lidTransitionRows?: number;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -2650,7 +2654,8 @@ function pushOrbitalLidShell(
   lidOpening: number,
   canthalTilt: number,
   side: -1 | 1,
-  jointIdx: number
+  jointIdx: number,
+  transitionRows = 2
 ): void {
   const segments = 18;
   const apertureHalfWidth = eyeRadius * 1.08;
@@ -2678,10 +2683,14 @@ function pushOrbitalLidShell(
         z: 1,
       });
 
-      for (const [y, z] of [
-        [innerY, innerZ],
-        [outerY, outerZ],
-      ] as const) {
+      for (let row = 0; row < transitionRows; row++) {
+        const rowT = transitionRows === 1 ? 0 : row / (transitionRows - 1);
+        const blend = rowT * rowT * (3 - 2 * rowT);
+        const y = innerY + (outerY - innerY) * blend;
+        const z =
+          innerZ +
+          (outerZ - innerZ) * blend +
+          Math.sin(rowT * Math.PI) * eyeRadius * (transitionRows > 2 ? 0.035 : 0);
         acc.positions.push(x, y, z);
         acc.normals.push(normal.x, normal.y, normal.z);
         acc.tangents.push(1, 0, 0, 1);
@@ -2691,9 +2700,11 @@ function pushOrbitalLidShell(
     }
 
     for (let segment = 0; segment < segments; segment++) {
-      const a = base + segment * 2;
-      const b = a + 2;
-      acc.indices.push(a, b, a + 1, a + 1, b, b + 1);
+      for (let row = 0; row < transitionRows - 1; row++) {
+        const a = base + segment * transitionRows + row;
+        const b = a + transitionRows;
+        acc.indices.push(a, b, a + 1, a + 1, b, b + 1);
+      }
     }
   };
 
@@ -3150,7 +3161,11 @@ function pushNeutralAnatomicalHead(
     const orbitalIndexStart = acc.indices.length;
     const buildScale = radius / 0.09;
     const eyeY = headBase.y + 0.12 * buildScale;
-    if (orbitalProfile === 'recessed-lids-v1' || orbitalProfile === 'anatomical-lid-fold-v2') {
+    if (
+      orbitalProfile === 'recessed-lids-v1' ||
+      orbitalProfile === 'anatomical-lid-fold-v2' ||
+      orbitalProfile === 'anatomical-lid-blend-v3'
+    ) {
       const eyeRadius = 0.0145 * buildScale * eyeScale;
       const eyeCenterZ = headBase.z + radius * 0.91 - eyeRadius * eyeRecess;
       const facePlaneZ = headBase.z + radius * 1.025;
@@ -3167,9 +3182,13 @@ function pushNeutralAnatomicalHead(
           lidOpening,
           canthalTilt,
           side,
-          jointIdx
+          jointIdx,
+          orbitalProfile === 'anatomical-lid-blend-v3' ? 4 : 2
         );
-        if (orbitalProfile === 'anatomical-lid-fold-v2') {
+        if (
+          orbitalProfile === 'anatomical-lid-fold-v2' ||
+          orbitalProfile === 'anatomical-lid-blend-v3'
+        ) {
           pushAnatomicalLidFold(
             acc,
             {
@@ -3221,8 +3240,12 @@ function pushNeutralAnatomicalHead(
       lidOpening,
       canthalTilt,
       ...(eyeScale === 1 ? {} : { eyeScale }),
-      ...(orbitalProfile === 'anatomical-lid-fold-v2'
+      ...(orbitalProfile === 'anatomical-lid-fold-v2' ||
+      orbitalProfile === 'anatomical-lid-blend-v3'
         ? { lidFoldProfile: 'upper-crease-continuity-v1' as const }
+        : {}),
+      ...(orbitalProfile === 'anatomical-lid-blend-v3'
+        ? { lidTransitionProfile: 'cubic-lid-blend-v1' as const, lidTransitionRows: 4 }
         : {}),
       vertexRange: {
         vertexStart: orbitalVertexStart,
@@ -3641,7 +3664,11 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const orbitalProfile = opts.orbitalProfile ?? 'tearline-rim-v1';
   const eyeRecess = clampFloat(
     opts.eyeRecess,
-    orbitalProfile === 'recessed-lids-v1' || orbitalProfile === 'anatomical-lid-fold-v2' ? 0.28 : 0,
+    orbitalProfile === 'recessed-lids-v1' ||
+      orbitalProfile === 'anatomical-lid-fold-v2' ||
+      orbitalProfile === 'anatomical-lid-blend-v3'
+      ? 0.28
+      : 0,
     0,
     0.45
   );

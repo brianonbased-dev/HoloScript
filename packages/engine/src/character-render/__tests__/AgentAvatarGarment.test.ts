@@ -170,4 +170,27 @@ describe('AgentAvatarGarment — coherent upper-body fit', () => {
     );
     expect(fieldcoat.cloth.vertexCount).toBeGreaterThan(openShell.cloth.vertexCount);
   });
+
+  it('builds H3Z shell depth, closures, cuffs, and source-owned crossweave topology', () => {
+    const structured = buildAgentAvatarGarment({
+      style: 'stormglass_structured_fieldcoat',
+      radialSegments: 24,
+    });
+    const tailored = buildAgentAvatarGarment({
+      style: 'stormglass_tailored_fieldcoat',
+      radialSegments: 24,
+    });
+
+    expect(structured.receipt).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v3',
+      style: 'stormglass_structured_fieldcoat',
+      constructionProfile: 'structured-fieldcoat-shell-v2',
+      shellThickness: 0.008,
+      closureCount: 5,
+      cuffBandCount: 2,
+      fabricSurfaceProfile: 'stormglass-crossweave-normal-v1',
+    });
+    expect(structured.cloth.vertexCount).toBeGreaterThan(tailored.cloth.vertexCount);
+    expect(structured.cloth.indices.length).toBeGreaterThan(tailored.cloth.indices.length);
+  });
 });

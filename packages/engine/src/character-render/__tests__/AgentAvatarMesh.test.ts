@@ -1299,4 +1299,28 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
       profile: 'expressive-cranial-neck-volume-v4',
     });
   });
+
+  it('builds H3Z four-row cubic lid-to-face transition shells', () => {
+    const h3y = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceTearline: true,
+      orbitalProfile: 'anatomical-lid-fold-v2',
+    });
+    const h3z = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceTearline: true,
+      orbitalProfile: 'anatomical-lid-blend-v3',
+    });
+
+    expect(h3z.orbital).toMatchObject({
+      profile: 'anatomical-lid-blend-v3',
+      lidFoldProfile: 'upper-crease-continuity-v1',
+      lidTransitionProfile: 'cubic-lid-blend-v1',
+      lidTransitionRows: 4,
+      eyeRecess: 0.28,
+    });
+    expect(h3z.orbital!.vertexRange.vertexCount).toBeGreaterThan(
+      h3y.orbital!.vertexRange.vertexCount
+    );
+  });
 });

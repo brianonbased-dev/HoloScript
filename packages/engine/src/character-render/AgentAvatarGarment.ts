@@ -21,7 +21,8 @@ import { getTranslation, type Vec3 } from './skin-math';
 export type SovereignGarmentStyle =
   | 'stormglass_hooded_tunic'
   | 'stormglass_open_civic_tunic'
-  | 'stormglass_tailored_fieldcoat';
+  | 'stormglass_tailored_fieldcoat'
+  | 'stormglass_structured_fieldcoat';
 export type { SovereignMantleStyle } from './AgentAvatarMantleCatalog';
 
 export interface GarmentMeshPart {
@@ -48,7 +49,8 @@ export interface AgentAvatarGarmentData {
 export interface AgentAvatarGarmentGeometryReceipt {
   schemaVersion:
     | 'holoscript.agent-avatar-garment-geometry.v1'
-    | 'holoscript.agent-avatar-garment-geometry.v2';
+    | 'holoscript.agent-avatar-garment-geometry.v2'
+    | 'holoscript.agent-avatar-garment-geometry.v3';
   style: SovereignGarmentStyle;
   radialSegments: number;
   faceCoverage: 'closed-hood-visor' | 'open-v-collar' | 'open-lapel-collar';
@@ -58,13 +60,21 @@ export interface AgentAvatarGarmentGeometryReceipt {
     | 'constructed-panel-clearance-v2';
   collarProfile: 'legacy-hood-collar-v1' | 'tailored-open-v-collar-v1' | 'tailored-lapel-v2';
   /** Present only when separately indexed sewn-panel topology is emitted. */
-  constructionProfile?: 'four-panel-fieldcoat-v1';
+  constructionProfile?: 'four-panel-fieldcoat-v1' | 'structured-fieldcoat-shell-v2';
   /** Independently indexed torso panels, excluding placket, lapels, yokes, and sleeves. */
   constructedPanelCount?: number;
   /** Topological panel boundaries intentionally left un-welded as garment seams. */
   constructionSeamCount?: number;
   /** Shoulder pieces connecting the torso panels to articulated sleeve roots. */
   shoulderYokeCount?: number;
+  /** H3Z authored distance between the base panel and raised facing/closure layer. */
+  shellThickness?: number;
+  /** Independently emitted front closure studs. */
+  closureCount?: number;
+  /** Independently emitted cuff bands, one per sleeve. */
+  cuffBandCount?: number;
+  /** Source-owned material-detail profile joined by CharacterHost. */
+  fabricSurfaceProfile?: 'stormglass-crossweave-normal-v1';
   torsoScale: number;
   shoulderScale: number;
   /** Emitted bind-space half width of the upper shoulder shell. */
@@ -284,7 +294,12 @@ function pushQuadSurface(
   target.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
 }
 
-function pushFieldcoatFinish(target: MeshAccum, buildScale: number, shoulderScale: number): void {
+function pushFieldcoatFinish(
+  target: MeshAccum,
+  buildScale: number,
+  shoulderScale: number,
+  structured = false
+): void {
   pushOpenCollar(target, buildScale, shoulderScale);
   const z = 0.198 * buildScale;
   pushQuadSurface(
@@ -313,6 +328,39 @@ function pushFieldcoatFinish(target: MeshAccum, buildScale: number, shoulderScal
       ],
       'spine2',
       0
+    );
+  }
+
+  if (!structured) return;
+  const facingZ = z + 0.008 * buildScale;
+  for (const side of [-1, 1] as const) {
+    const innerX = side * 0.018 * buildScale;
+    const outerX = side * 0.067 * buildScale;
+    pushQuadSurface(
+      target,
+      [
+        v(innerX, 0.66, facingZ),
+        v(outerX, 0.68, facingZ),
+        v(outerX, 1.25, facingZ + 0.004 * buildScale),
+        v(innerX, 1.29, facingZ + 0.004 * buildScale),
+      ],
+      'spine1',
+      0.1
+    );
+  }
+
+  for (let closure = 0; closure < 5; closure++) {
+    const y = 0.76 + closure * 0.105;
+    pushTube(
+      target,
+      v(0, y, facingZ),
+      v(0, y, facingZ + 0.012 * buildScale),
+      0.012 * buildScale,
+      0.011 * buildScale,
+      'spine1',
+      8,
+      0.08,
+      0.08
     );
   }
 }
@@ -522,7 +570,8 @@ export function buildAgentAvatarGarment(
   const shoulderScale = Math.max(0.85, Math.min(1.25, options.shoulderScale ?? 1));
   const segments = Math.max(6, Math.min(32, Math.round(options.radialSegments ?? 24)));
   const openCivic = options.style === 'stormglass_open_civic_tunic';
-  const constructed = options.style === 'stormglass_tailored_fieldcoat';
+  const structured = options.style === 'stormglass_structured_fieldcoat';
+  const constructed = options.style === 'stormglass_tailored_fieldcoat' || structured;
   const openFace = openCivic || constructed;
   const torsoBuild = buildScale * torsoScale;
   const openShoulderBuild = buildScale * Math.max(1, shoulderScale);
@@ -621,7 +670,7 @@ export function buildAgentAvatarGarment(
     );
     pushVisor(visor, segments, buildScale);
   } else if (constructed) {
-    pushFieldcoatFinish(cloth, buildScale, shoulderScale);
+    pushFieldcoatFinish(cloth, buildScale, shoulderScale, structured);
   } else {
     pushOpenCollar(cloth, buildScale, shoulderScale);
   }
@@ -654,6 +703,21 @@ export function buildAgentAvatarGarment(
       0.2,
       0.62
     );
+    if (structured) {
+      const cuffStart = add(scale(elbow, 0.18), scale(hand, 0.82));
+      const cuffEnd = add(scale(elbow, 0.06), scale(hand, 0.94));
+      pushTube(
+        cloth,
+        cuffStart,
+        cuffEnd,
+        sleeveWristRadius + 0.007 * buildScale,
+        sleeveWristRadius + 0.006 * buildScale,
+        `${side}_forearm`,
+        segments,
+        0.54,
+        0.62
+      );
+    }
   }
 
   if (options.mantleStyle) {
@@ -672,8 +736,10 @@ export function buildAgentAvatarGarment(
     visor: visorMesh,
     mantle: mantleMesh,
     receipt: {
-      schemaVersion: constructed
-        ? 'holoscript.agent-avatar-garment-geometry.v2'
+      schemaVersion: structured
+        ? 'holoscript.agent-avatar-garment-geometry.v3'
+        : constructed
+          ? 'holoscript.agent-avatar-garment-geometry.v2'
         : 'holoscript.agent-avatar-garment-geometry.v1',
       style: options.style,
       radialSegments: segments,
@@ -695,10 +761,20 @@ export function buildAgentAvatarGarment(
           : 'legacy-hood-collar-v1',
       ...(constructed
         ? {
-            constructionProfile: 'four-panel-fieldcoat-v1' as const,
+            constructionProfile: structured
+              ? ('structured-fieldcoat-shell-v2' as const)
+              : ('four-panel-fieldcoat-v1' as const),
             constructedPanelCount: 4,
             constructionSeamCount: 8,
             shoulderYokeCount: 2,
+            ...(structured
+              ? {
+                  shellThickness: round6(0.008 * buildScale * heightScale),
+                  closureCount: 5,
+                  cuffBandCount: 2,
+                  fabricSurfaceProfile: 'stormglass-crossweave-normal-v1' as const,
+                }
+              : {}),
           }
         : {}),
       torsoScale,

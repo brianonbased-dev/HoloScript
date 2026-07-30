@@ -91,7 +91,8 @@ export interface CharacterRenderOptions {
 export type CharacterEnvironmentLightProfile =
   | 'legacy-key-v1'
   | 'analytic-three-point-v1'
-  | 'directional-reflection-probe-v1';
+  | 'directional-reflection-probe-v1'
+  | 'stormglass-room-basis-v2';
 
 export interface CharacterEnvironmentLightOptions {
   profile?: CharacterEnvironmentLightProfile;
@@ -110,10 +111,15 @@ export interface CharacterEnvironmentLightOptions {
 export interface CharacterEnvironmentLightReceipt {
   schemaVersion:
     | 'holoscript.character-environment-light.v1'
-    | 'holoscript.character-environment-light.v2';
+    | 'holoscript.character-environment-light.v2'
+    | 'holoscript.character-environment-light.v3';
   profile: CharacterEnvironmentLightProfile;
   /** H3Y reinterprets the three authored lobes as a low-frequency reflection probe. */
-  responseProfile?: 'three-lobe-diffuse-specular-probe-v1';
+  responseProfile?:
+    | 'three-lobe-diffuse-specular-probe-v1'
+    | 'source-authored-room-basis-v2';
+  /** H3Z is a procedural room basis, not a photographic or imported HDRI. */
+  photographicHdri?: false;
   key: {
     direction: [number, number, number];
     color: [number, number, number];
@@ -169,13 +175,21 @@ export function deriveCharacterEnvironmentLightReceipt(
   const profile = options.profile ?? 'legacy-key-v1';
   const analytic = profile !== 'legacy-key-v1';
   const reflectionProbe = profile === 'directional-reflection-probe-v1';
+  const roomBasis = profile === 'stormglass-room-basis-v2';
   return {
-    schemaVersion: reflectionProbe
-      ? 'holoscript.character-environment-light.v2'
-      : 'holoscript.character-environment-light.v1',
+    schemaVersion: roomBasis
+      ? 'holoscript.character-environment-light.v3'
+      : reflectionProbe
+        ? 'holoscript.character-environment-light.v2'
+        : 'holoscript.character-environment-light.v1',
     profile,
-    ...(reflectionProbe
-      ? { responseProfile: 'three-lobe-diffuse-specular-probe-v1' as const }
+    ...(roomBasis
+      ? {
+          responseProfile: 'source-authored-room-basis-v2' as const,
+          photographicHdri: false as const,
+        }
+      : reflectionProbe
+        ? { responseProfile: 'three-lobe-diffuse-specular-probe-v1' as const }
       : {}),
     key: {
       direction: normalizedDirection(options.keyDirection, legacyLightDirection),
@@ -741,11 +755,13 @@ export async function renderCharacter(
   frame[59] = environment.rim.intensity;
   frame[60] = environment.exposure;
   frame[61] =
-    environment.profile === 'directional-reflection-probe-v1'
-      ? 2
-      : environment.profile === 'analytic-three-point-v1'
-        ? 1
-        : 0;
+    environment.profile === 'stormglass-room-basis-v2'
+      ? 3
+      : environment.profile === 'directional-reflection-probe-v1'
+        ? 2
+        : environment.profile === 'analytic-three-point-v1'
+          ? 1
+          : 0;
   frame[39] = 0;
   const frameBuf = device.createBuffer({
     size: frame.byteLength,

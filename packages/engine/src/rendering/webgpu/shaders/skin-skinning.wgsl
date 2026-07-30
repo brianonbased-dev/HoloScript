@@ -126,6 +126,23 @@ fn directionalReflectionProbe(direction : vec3<f32>, roughness : f32) -> vec3<f3
   }
   let d = normalize(direction);
   let exponent = mix(18.0, 2.2, clamp(roughness, 0.0, 1.0));
+  if (frame.envParams.y > 2.5) {
+    // H3Z source-authored Stormglass room basis. The existing light vectors become a broad
+    // window, ceiling, and floor response; no photographic HDRI or additional binding is used.
+    let window = pow(max(dot(d, normalize(frame.keyDirection.xyz)), 0.0), exponent * 0.72);
+    let wall = pow(max(dot(d, normalize(frame.fillDirection.xyz)), 0.0), exponent * 0.46);
+    let edge = pow(max(dot(d, normalize(frame.rimDirection.xyz)), 0.0), exponent * 0.58);
+    let ceiling = pow(max(d.y, 0.0), mix(5.0, 1.5, roughness));
+    let floor = pow(max(-d.y, 0.0), mix(7.0, 2.0, roughness));
+    let roomAmbient =
+      frame.keyColor.rgb * frame.keyColor.w * 0.045 +
+      frame.fillColor.rgb * frame.fillColor.w * 0.055 +
+      frame.rimColor.rgb * frame.rimColor.w * 0.025;
+    return roomAmbient +
+      frame.keyColor.rgb * frame.keyColor.w * (window + ceiling * 0.18) +
+      frame.fillColor.rgb * frame.fillColor.w * (wall * 0.78 + floor * 0.12) +
+      frame.rimColor.rgb * frame.rimColor.w * edge * 0.72;
+  }
   let keyLobe = pow(max(dot(d, normalize(frame.keyDirection.xyz)), 0.0), exponent);
   let fillLobe = pow(max(dot(d, normalize(frame.fillDirection.xyz)), 0.0), exponent);
   let rimLobe = pow(max(dot(d, normalize(frame.rimDirection.xyz)), 0.0), exponent);
@@ -380,11 +397,17 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
   if (region == 4) {
     let f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
     let fres = f0 + (1.0 - f0) * pow(1.0 - facing, 5.0);
-    let alpha = clamp(mat.color.a + fres * 0.55 + catchlight * 0.25, 0.0, 0.82);
+    let tearMeniscus = select(0.0, 1.0, in.uv.y > 1.0);
+    let alpha = clamp(
+      mat.color.a + fres * 0.55 + catchlight * 0.25 + tearMeniscus * 0.24,
+      0.0,
+      0.9
+    );
     let probe = directionalReflectionProbe(reflect(-V, N), 0.04);
     let col =
       frame.keyColor.rgb * (catchlight * 1.15 + fres * 0.28) * frame.keyColor.w +
-      probe * (0.22 + fres * 0.5);
+      probe * (0.22 + fres * 0.5 + tearMeniscus * 0.32) +
+      vec3<f32>(tearMeniscus * (0.12 + catchlight * 0.45));
     return vec4<f32>(col, alpha);
   }
 

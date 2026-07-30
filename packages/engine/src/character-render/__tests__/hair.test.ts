@@ -286,6 +286,39 @@ describe('hair — procedural geometry (pure data)', () => {
     expect(replay.groom).toEqual(contained.groom);
   });
 
+  it('emits deterministic H3Z scalp-contained flyaway breakup', () => {
+    const options = {
+      style: 'medium_wavy' as const,
+      faceTopology: 'neutral-anatomical-v2' as const,
+      guides: 72,
+      cardsPerGuide: 2,
+      segments: 6,
+      groomProfile: 'scalp-flow-breakup-v3' as const,
+      rootLift: 0.001,
+      cardWidth: 0.014,
+    };
+    const breakup = buildAgentAvatarHair(options);
+    const replay = buildAgentAvatarHair(options);
+
+    expect(breakup.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v3',
+      profile: 'scalp-flow-breakup-v3',
+      containmentProfile: 'ellipsoidal-scalp-exterior-v1',
+      breakupProfile: 'contained-flyaway-breakup-v1',
+      flyawayGuideCount: 12,
+      flyawayCardCount: 12,
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(breakup.groom?.cardCount).toBe(
+      breakup.groom!.emittedGuideCount * 2 + breakup.groom!.flyawayCardCount!
+    );
+    expect(Array.from(replay.positions)).toEqual(Array.from(breakup.positions));
+    expect(replay.groom).toEqual(breakup.groom);
+    expect(resolveAgentAvatarGroomProfile('Scalp Flow Breakup V3')).toBe(
+      'scalp-flow-breakup-v3'
+    );
+  });
+
   it('turns source-authored crown whorl into deterministic de-clumped scalp-flow topology', () => {
     const common = {
       style: 'cropped_coils' as const,

@@ -51,6 +51,7 @@ import {
   type AgentAvatarGroomProfile,
   type AgentAvatarHairMaterialReceipt,
   type AgentAvatarHairStyle,
+  type AgentAvatarOcularGeometryReceipt,
   type AgentAvatarOcularProfile,
   type CharacterMeshData,
 } from './AgentAvatarHair';
@@ -384,6 +385,21 @@ const EYE_BASE: Omit<RefractiveEyeMaterialSpec, 'color'> = {
   ior: 1.376,
 };
 
+/** H3Z source-owned cross-weave tile; compact pure data, not an external texture dependency. */
+const STORMGLASS_CROSSWEAVE_TILE: WovenClothTextureTile = {
+  size: 4,
+  albedo: [0.94, 1.02, 0.96, 1.04, 1.03, 0.95, 1.01, 0.97, 0.96, 1.04, 0.94, 1.02, 1.01, 0.97, 1.03, 0.95],
+  normalXY: [
+    0.42, 0.5, 0.58, 0.5, 0.42, 0.5, 0.58, 0.5,
+    0.5, 0.58, 0.5, 0.42, 0.5, 0.58, 0.5, 0.42,
+    0.58, 0.5, 0.42, 0.5, 0.58, 0.5, 0.42, 0.5,
+    0.5, 0.42, 0.5, 0.58, 0.5, 0.42, 0.5, 0.58,
+  ],
+  roughness: [0.76, 0.68, 0.74, 0.66, 0.69, 0.77, 0.67, 0.75, 0.74, 0.66, 0.76, 0.68, 0.67, 0.75, 0.69, 0.77],
+  repeat: 12,
+  normalScale: 0.82,
+};
+
 /** Authoritative world-state for an embodied agent (subset of xr-embodiment's WorldStateSource). */
 export interface CharacterWorldState {
   position?: { x?: number; y?: number; z?: number };
@@ -623,6 +639,16 @@ export class CharacterHost {
       sheen: 0.42,
       weaveScale: 18,
       rimStrength: 0.32,
+      ...(opts.garmentStyle === 'stormglass_structured_fieldcoat'
+        ? {
+            textureTile: {
+              ...STORMGLASS_CROSSWEAVE_TILE,
+              albedo: [...STORMGLASS_CROSSWEAVE_TILE.albedo],
+              normalXY: [...STORMGLASS_CROSSWEAVE_TILE.normalXY],
+              roughness: [...STORMGLASS_CROSSWEAVE_TILE.roughness],
+            },
+          }
+        : {}),
     };
     this.mantleMaterial = {
       shadingModel: 'woven-cloth',
@@ -791,6 +817,11 @@ export class CharacterHost {
     return this.built.garment ? { ...this.built.garment } : null;
   }
 
+  /** Exact native ocular construction receipt, including H3Z tear-meniscus topology. */
+  getOcularGeometryReceipt(): AgentAvatarOcularGeometryReceipt | null {
+    return this.built.ocular ? { ...this.built.ocular } : null;
+  }
+
   /** Exact native skin-surface response derived from @subsurface_scattering. */
   getSkinMaterialReceipt(): AgentAvatarSkinMaterialReceipt {
     const base: Omit<AgentAvatarSkinMaterialReceiptV2, 'schemaVersion'> = {
@@ -908,7 +939,9 @@ export class CharacterHost {
    * `material` remains the lambert fallback for callers that render without groups.
    */
   getDrawSpec(): CharacterDrawSpec {
-    const layeredEyes = this.built.ocularProfile === 'layered-ocular-v1';
+    const layeredEyes =
+      this.built.ocularProfile === 'layered-ocular-v1' ||
+      this.built.ocularProfile === 'layered-ocular-tearfilm-v2';
     const opaqueEyeGroups: MaterialGroup[] = layeredEyes
       ? [
           ...this.built.ocularRanges.sclera.map((range) => ({
