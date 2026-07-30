@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-07-30T14:05:46Z",
+  "generatedAt": "2026-07-30T16:55:12Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "68d5c16cfc29e6d3653bd36fcab92d7afe26cdc6",
+  "sourceCommit": "2b88b8c89008322f9b21e707053fd580bffcba85",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "wasm-pack build --target web --out-dir pkg --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 520453,
-    "wasmSha256": "4282e6b0ffa193b97bf4f4e52acd1ae27d4b06d9b3633c7ef30b5dc2f5a9a35d",
-    "previousWasmSha256": "fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
+    "wasmBytes": 523870,
+    "wasmSha256": "3d13e4f2cce966d119300a3d5f59c980d60847559876e0d08f1f203e6cec1637",
+    "previousWasmSha256": "4282e6b0ffa193b97bf4f4e52acd1ae27d4b06d9b3633c7ef30b5dc2f5a9a35d",
     "repeatBuildSha256Matched": true,
-    "note": "Clean HoloRepo-candidate rebuild adding deterministic subset v8 lifecycle effect-intent evaluation. The evaluator executes shipped on_spawn source into ordered inert intents without dispatching host effects. A repeat web build reproduced the SHA-256, and both Node builds from the same source were byte-identical."
+    "note": "Clean HoloRepo-candidate rebuild adding bounds-checked runtime indexing for flat homogeneous scalar aggregate values. The List3<i32> std ABI uses read-only dynamic projection while heterogeneous layouts, indexed mutation, and out-of-bounds access fail closed. A repeat web build reproduced the SHA-256, and both Node builds from the same source were byte-identical."
   }
 }
