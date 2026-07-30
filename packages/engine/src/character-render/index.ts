@@ -185,6 +185,16 @@ export {
 } from './AgentAvatarMicroMotion';
 
 export {
+  deriveCharacterMotionVectorFrame,
+  rasterizeCharacterMotionVectorsGPU,
+  type CharacterMotionRasterReceipt,
+  type CharacterMotionRasterResult,
+  type CharacterMotionVectorFrame,
+  type CharacterMotionVectorOptions,
+  type CharacterMotionVectorReceipt,
+} from './CharacterMotionVectors';
+
+export {
   buildCharacterHostFromComposition,
   type ParsedComposition,
   type CompObject,

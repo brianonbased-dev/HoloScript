@@ -65,6 +65,11 @@ export {
   type TemporalResolveReceipt,
   type TemporalResolveResult,
 } from './TemporalConvergence';
+export type {
+  DepthGrid,
+  MotionVectorGrid,
+  ReactiveMaskGrid,
+} from './TemporalInputs';
 
 // Debug tools
 export { PhysicsDebugDrawer } from './PhysicsDebugDrawer';

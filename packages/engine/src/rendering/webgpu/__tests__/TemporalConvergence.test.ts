@@ -79,10 +79,40 @@ describe('TemporalConvergenceController', () => {
       frameCount: config.sampleCount,
       stableFrameCount: config.sampleCount,
       converged: true,
-      motionVectorsConsumed: false,
+      motionVectorResidentFramesAdmitted: 0,
       reactiveMaskConsumed: false,
-      disocclusionInputConsumed: false,
+      requiredHistoryPolicy: 'reproject-resident-motion-invalidate-camera-or-lod-v2',
     });
+  });
+
+  it('admits resident motion only when matching motion vectors are available', () => {
+    const controller = TemporalConvergenceController.fromProfile('browser-balanced');
+    controller.beginFrame({
+      cameraStateId: 'camera',
+      residentStateId: 'pose-a',
+      lodLevel: 0,
+      motionVectorsAvailable: true,
+    });
+    const reprojected = controller.beginFrame({
+      cameraStateId: 'camera',
+      residentStateId: 'pose-b',
+      lodLevel: 0,
+      motionVectorsAvailable: true,
+    });
+    expect(reprojected).toMatchObject({
+      invalidated: false,
+      historyValid: true,
+      feedback: 0.5,
+    });
+    expect(controller.getReceipt().motionVectorResidentFramesAdmitted).toBe(1);
+
+    const missingVelocity = controller.beginFrame({
+      cameraStateId: 'camera',
+      residentStateId: 'pose-c',
+      lodLevel: 0,
+      motionVectorsAvailable: false,
+    });
+    expect(missingVelocity.invalidationReason).toBe('resident-motion');
   });
 
   it('produces deterministic jitter and never mutates the source matrix', () => {
@@ -167,5 +197,60 @@ describe('resolveTemporalFrameGPU', () => {
     });
     expect(resolved.pixels.data).toEqual(current.data);
     expect(resolved.receipt.historyValid).toBe(false);
+  });
+
+  itGpu('reprojects velocity and rejects disoccluded depth on the GPU', async () => {
+    const size = 64;
+    const history = checkerboard(size, 0, 0);
+    const current = checkerboard(size, 0, 0);
+    for (let y = 18; y < 46; y += 1) {
+      for (let x = 12; x < 30; x += 1) {
+        const historyOffset = (y * size + x) * 4;
+        const currentOffset = (y * size + x + 1) * 4;
+        history.data[historyOffset] = 210;
+        history.data[historyOffset + 1] = 120;
+        history.data[historyOffset + 2] = 60;
+        current.data[currentOffset] = 210;
+        current.data[currentOffset + 1] = 120;
+        current.data[currentOffset + 2] = 60;
+      }
+    }
+    const motionData = new Float32Array(size * size * 2);
+    for (let pixel = 0; pixel < size * size; pixel += 1) {
+      motionData[pixel * 2] = 1;
+    }
+    const currentDepthData = new Float32Array(size * size).fill(0.5);
+    const historyDepthData = new Float32Array(size * size).fill(0.5);
+    currentDepthData[24 * size + 20] = 0.2;
+    const reactiveData = new Float32Array(size * size);
+    reactiveData[25 * size + 20] = 1;
+
+    const resolved = await resolveTemporalFrameGPU(testDevice!, current, history, {
+      feedback: 0.75,
+      historyValid: true,
+      motionVectors: {
+        width: size,
+        height: size,
+        data: motionData,
+        space: 'current-minus-previous-pixels',
+      },
+      currentDepth: { width: size, height: size, data: currentDepthData },
+      historyDepth: { width: size, height: size, data: historyDepthData },
+      reactiveMask: { width: size, height: size, data: reactiveData },
+      disocclusionDepthThreshold: 0.01,
+    });
+
+    expect(resolved.pixels.data).toEqual(current.data);
+    expect(resolved.receipt).toMatchObject({
+      schemaVersion: 'holoscript.webgpu-temporal-resolve.v2',
+      motionVectorsConsumed: true,
+      motionVectorSpace: 'current-minus-previous-pixels',
+      disocclusionInputConsumed: true,
+      reactiveMaskConsumed: true,
+      outOfBoundsHistoryPixelCount: size,
+      disocclusionRejectedPixelCount: 1,
+      fullyReactivePixelCount: 1,
+      gpuTimestampMeasured: false,
+    });
   });
 });
