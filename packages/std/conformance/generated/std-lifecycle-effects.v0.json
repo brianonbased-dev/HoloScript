@@ -1,0 +1,130 @@
+{
+  "schema": "holoscript.std-lifecycle-effect-vectors.v0",
+  "descriptor": "packages/std/conformance/lifecycle/std-lifecycle-effect-abi.v0.json",
+  "descriptorSha256": "sha256:5c9715e81f401999176935a5956f78ece118efdba4ea7bf240f6d407dcafe1ed",
+  "vectorCount": 4,
+  "vectors": [
+    {
+      "id": "packaged-std-math-on-spawn",
+      "source": "packages/std/src/math.hsplus",
+      "sourceSha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955",
+      "trait": "std_math",
+      "expected": {
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_math",
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "kind": "bind_factory",
+            "alias": "math",
+            "factory": "get_std_math_lib",
+            "namespaces": [
+              "math"
+            ]
+          },
+          {
+            "kind": "emit",
+            "event": "std_math_ready",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "dispatched": false
+      }
+    },
+    {
+      "id": "packaged-std-list-on-spawn",
+      "source": "packages/std/src/collections.hsplus",
+      "sourceSha256": "sha256:e66cb497736e6defa5f2d68eecbebf1910cfecceb37b878eb6a840afde2c8a90",
+      "trait": "std_list",
+      "expected": {
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_list",
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "kind": "bind_factory",
+            "alias": "list_lib",
+            "factory": "get_std_collections_lib",
+            "namespaces": [
+              "list_lib",
+              "map_lib",
+              "set_lib"
+            ]
+          },
+          {
+            "kind": "emit",
+            "event": "std_list_ready",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "dispatched": false
+      }
+    },
+    {
+      "id": "packaged-std-map-on-spawn",
+      "source": "packages/std/src/collections.hsplus",
+      "sourceSha256": "sha256:e66cb497736e6defa5f2d68eecbebf1910cfecceb37b878eb6a840afde2c8a90",
+      "trait": "std_map",
+      "expected": {
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_map",
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "kind": "bind_factory",
+            "alias": "map_lib",
+            "factory": "get_std_collections_lib",
+            "namespaces": [
+              "list_lib",
+              "map_lib",
+              "set_lib"
+            ]
+          },
+          {
+            "kind": "emit",
+            "event": "std_map_ready",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "dispatched": false
+      }
+    },
+    {
+      "id": "packaged-std-set-on-spawn",
+      "source": "packages/std/src/collections.hsplus",
+      "sourceSha256": "sha256:e66cb497736e6defa5f2d68eecbebf1910cfecceb37b878eb6a840afde2c8a90",
+      "trait": "std_set",
+      "expected": {
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_set",
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "kind": "bind_factory",
+            "alias": "set_lib",
+            "factory": "get_std_collections_lib",
+            "namespaces": [
+              "list_lib",
+              "map_lib",
+              "set_lib"
+            ]
+          },
+          {
+            "kind": "emit",
+            "event": "std_set_ready",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "dispatched": false
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "schema": "holoscript.std-abi-conformance-manifest.v0",
-  "stdPackageVersion": "7.0.12",
+  "stdPackageVersion": "7.0.13",
   "opsFile": "packages/std/conformance/std-abi-ops.v0.json",
   "packagedExecutionFile": "packages/std/conformance/generated/std-abi-packaged-execution.v0.json",
   "files": {
@@ -33,6 +33,12 @@
     },
     "packages/std/conformance/std-abi-packaged-extensions.v0.json": {
       "sha256": "sha256:3720d38455bbe1cd853d5cbe2d9cf999e22f295a1309f0488900ca50dae01c5b"
+    },
+    "packages/std/conformance/lifecycle/std-lifecycle-effect-abi.v0.json": {
+      "sha256": "sha256:5c9715e81f401999176935a5956f78ece118efdba4ea7bf240f6d407dcafe1ed"
+    },
+    "packages/std/conformance/generated/std-lifecycle-effects.v0.json": {
+      "sha256": "sha256:83e80bcad2b46e6f125504f9f8e04b80b430b5869674adbac90992c449028f74"
     }
   },
   "counts": {
@@ -42,5 +48,17 @@
     "packagedHandlers": 59,
     "packagedVectors": 67,
     "excluded": 1
+  },
+  "lifecycleEffect": {
+    "schema": "holoscript.std-lifecycle-effect-abi.v0",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+    "descriptorFile": "packages/std/conformance/lifecycle/std-lifecycle-effect-abi.v0.json",
+    "vectorsFile": "packages/std/conformance/generated/std-lifecycle-effects.v0.json",
+    "vectors": 4,
+    "packagedSources": [
+      "packages/std/src/math.hsplus",
+      "packages/std/src/collections.hsplus"
+    ],
+    "dispatched": false
   }
 }

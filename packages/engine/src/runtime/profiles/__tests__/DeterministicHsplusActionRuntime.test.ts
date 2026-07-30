@@ -4,6 +4,7 @@ import {
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET,
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V6,
   ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7,
+  ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V8,
   createDeterministicHsplusActionRuntime,
   createDeterministicHsplusTraitRuntime,
 } from '../DeterministicHsplusActionRuntime';
@@ -890,6 +891,54 @@ describe('DeterministicHsplusTraitRuntime v7 packaged traits', () => {
         })
       )
     ).toThrow(/namespace "lib" is shadowed by a parameter/i);
+  });
+
+  it('evaluates on_spawn as an ordered inert lifecycle-effect intent', () => {
+    expect(ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V8).toBe(
+      'holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents'
+    );
+    const runtime = createDeterministicHsplusTraitRuntime(PACKAGED_SOURCE, 'std_probe', {
+      hostBindings,
+    });
+
+    expect(runtime.invokeLifecycle()).toEqual({
+      schema: 'holoscript.lifecycle-effect-intent.v0',
+      subsetId: ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V8,
+      trait: 'std_probe',
+      handler: 'on_spawn',
+      operations: [
+        {
+          kind: 'bind_factory',
+          alias: 'lib',
+          factory: 'get_std_collections_lib',
+          namespaces: ['list_lib', 'map_lib', 'set_lib'],
+        },
+        {
+          kind: 'emit',
+          event: 'spawn_side_effect_must_not_run',
+          payload: {},
+        },
+      ],
+      result: null,
+      dispatched: false,
+    });
+    expect(() => runtime.invoke(traitObservation('on_spawn', {}))).toThrow(
+      /invokeLifecycle/
+    );
+  });
+
+  it('fails closed when on_spawn leaves the lifecycle-effect subset', () => {
+    const unsupported = `@trait unsupported_spawn {
+  @on_spawn => {
+    value = 1
+  }
+}`;
+    const runtime = createDeterministicHsplusTraitRuntime(
+      unsupported,
+      'unsupported_spawn',
+      { hostBindings }
+    );
+    expect(() => runtime.invokeLifecycle()).toThrow(/outside the lifecycle subset/);
   });
 
   it('fails closed on trait lookup, action mode, and union-handle collisions', () => {
