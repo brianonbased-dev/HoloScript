@@ -1,0 +1,158 @@
+{
+  "schema": "holoscript.std-lifecycle-effect-conformance.node.v0",
+  "generatedAtISO": "2026-07-30T13:52:16.385Z",
+  "target": "node",
+  "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+  "sources": {
+    "packages/std/conformance/generated/std-lifecycle-effects.v0.json": {
+      "sha256": "sha256:83e80bcad2b46e6f125504f9f8e04b80b430b5869674adbac90992c449028f74"
+    }
+  },
+  "executionRuntime": {
+    "engine": "@holoscript/engine DeterministicHsplusTraitRuntime.invokeLifecycle",
+    "node": "v24.15.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "environment": {
+    "hostname": "Work"
+  },
+  "results": [
+    {
+      "id": "packaged-std-math-on-spawn",
+      "trait": "std_math",
+      "pass": true,
+      "actual": {
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_math",
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "kind": "bind_factory",
+            "alias": "math",
+            "factory": "get_std_math_lib",
+            "namespaces": [
+              "math"
+            ]
+          },
+          {
+            "kind": "emit",
+            "event": "std_math_ready",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "dispatched": false
+      },
+      "expectedSha256": "sha256:f1ae305ee4a3b77e327e0bd1e81a683bec4974e23063b1a8d54e93836ebb201e",
+      "actualSha256": "sha256:f1ae305ee4a3b77e327e0bd1e81a683bec4974e23063b1a8d54e93836ebb201e"
+    },
+    {
+      "id": "packaged-std-list-on-spawn",
+      "trait": "std_list",
+      "pass": true,
+      "actual": {
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_list",
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "kind": "bind_factory",
+            "alias": "list_lib",
+            "factory": "get_std_collections_lib",
+            "namespaces": [
+              "list_lib",
+              "map_lib",
+              "set_lib"
+            ]
+          },
+          {
+            "kind": "emit",
+            "event": "std_list_ready",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "dispatched": false
+      },
+      "expectedSha256": "sha256:6bc43c6de67d88b756d352183b88da5d640180f8a4ea43689b5fae1d22dfeeda",
+      "actualSha256": "sha256:6bc43c6de67d88b756d352183b88da5d640180f8a4ea43689b5fae1d22dfeeda"
+    },
+    {
+      "id": "packaged-std-map-on-spawn",
+      "trait": "std_map",
+      "pass": true,
+      "actual": {
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_map",
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "kind": "bind_factory",
+            "alias": "map_lib",
+            "factory": "get_std_collections_lib",
+            "namespaces": [
+              "list_lib",
+              "map_lib",
+              "set_lib"
+            ]
+          },
+          {
+            "kind": "emit",
+            "event": "std_map_ready",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "dispatched": false
+      },
+      "expectedSha256": "sha256:1ef2d2e9add96467f5a69ca238708261d92a2354821248a494a7c3198ee2b4b2",
+      "actualSha256": "sha256:1ef2d2e9add96467f5a69ca238708261d92a2354821248a494a7c3198ee2b4b2"
+    },
+    {
+      "id": "packaged-std-set-on-spawn",
+      "trait": "std_set",
+      "pass": true,
+      "actual": {
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_set",
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "kind": "bind_factory",
+            "alias": "set_lib",
+            "factory": "get_std_collections_lib",
+            "namespaces": [
+              "list_lib",
+              "map_lib",
+              "set_lib"
+            ]
+          },
+          {
+            "kind": "emit",
+            "event": "std_set_ready",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "dispatched": false
+      },
+      "expectedSha256": "sha256:6788b84b0b7cf962c595f32729f5ba648f3134e8a56cf83109d8e956bb08272e",
+      "actualSha256": "sha256:6788b84b0b7cf962c595f32729f5ba648f3134e8a56cf83109d8e956bb08272e"
+    }
+  ],
+  "summary": {
+    "vectors": 4,
+    "passed": 4,
+    "failed": 0,
+    "dispatched": false
+  },
+  "claimBoundary": {
+    "proved": "Actual packaged on_spawn source bytes evaluated to ordered inert lifecycle intents in the engine runtime.",
+    "notClaimed": "No event was dispatched and no host function, timer, asynchronous work, I/O, retry, rollback, or runtime mutation was executed."
+  }
+}

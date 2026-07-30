@@ -396,6 +396,20 @@ pub fn evaluate_trait_handler_v6(
     eval::evaluate_trait_handler_v6_js(source, trait_name, handler_name, args_json, &host_bindings)
 }
 
+/// Evaluate one packaged trait's `@on_spawn` body into an inert lifecycle
+/// effect-intent envelope.
+///
+/// The v8 lifecycle boundary validates and records source-ordered packaged
+/// factory bindings plus `emit(event, payload)` operations. It never invokes a
+/// host function, dispatches an event, starts a timer, performs I/O, or mutates
+/// runtime state. The injected host bindings are inspected only to validate
+/// namespace custody and collision-free packaged factory handles.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn evaluate_trait_spawn_v1(source: &str, trait_name: &str, host_bindings: JsValue) -> String {
+    eval::evaluate_trait_spawn_v1_js(source, trait_name, &host_bindings)
+}
+
 /// Compile top-level `.hs` functions to a UAAL bytecode packet.
 ///
 /// This mirrors [`compile_to_kotlin`]'s JSON boundary but targets the stack-based

@@ -361,6 +361,41 @@ export function evaluate_trait_handler_v6(source, trait_name, handler_name, args
     }
 }
 
+/**
+ * Evaluate one packaged trait's `@on_spawn` body into an inert lifecycle
+ * effect-intent envelope.
+ *
+ * The v8 lifecycle boundary validates and records source-ordered packaged
+ * factory bindings plus `emit(event, payload)` operations. It never invokes a
+ * host function, dispatches an event, starts a timer, performs I/O, or mutates
+ * runtime state. The injected host bindings are inspected only to validate
+ * namespace custody and collision-free packaged factory handles.
+ * @param {string} source
+ * @param {string} trait_name
+ * @param {any} host_bindings
+ * @returns {string}
+ */
+export function evaluate_trait_spawn_v1(source, trait_name, host_bindings) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(trait_name, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.evaluate_trait_spawn_v1(retptr, ptr0, len0, ptr1, len1, addHeapObject(host_bindings));
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred3_0 = r0;
+        deferred3_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred3_0, deferred3_1, 1);
+    }
+}
+
 export function init() {
     wasm.init();
 }

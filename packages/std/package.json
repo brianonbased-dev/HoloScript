@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/std",
-  "version": "7.0.12",
+  "version": "7.0.13",
   "description": "HoloScript Standard Library - Core types and utilities",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -16,6 +16,7 @@
     "src/abi/vector-v1.hs",
     "src/abi/collections-list3-v1.hs",
     "conformance/host-abi",
+    "conformance/lifecycle",
     "conformance/generated",
     "conformance/std-abi-ops.v0.json",
     "conformance/std-abi-packaged-extensions.v0.json",
@@ -57,6 +58,8 @@
     "./conformance/manifest": "./conformance/generated/manifest.json",
     "./conformance/trait": "./conformance/generated/std-abi-conformance.trait.hsplus",
     "./conformance/vectors": "./conformance/generated/std-abi-vectors.v0.jsonl",
+    "./lifecycle-effect-abi": "./conformance/lifecycle/std-lifecycle-effect-abi.v0.json",
+    "./conformance/lifecycle-effects": "./conformance/generated/std-lifecycle-effects.v0.json",
     "./string": {
       "types": "./dist/string.d.ts",
       "import": "./dist/string.js",
